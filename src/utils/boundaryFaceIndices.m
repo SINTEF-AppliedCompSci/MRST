@@ -1,0 +1,88 @@
+function ix = boundaryFaceIndices(G, direction, i1, i2, i3)
+%Retrieve face indices belonging to subset of global outer faces.
+%
+% SYNOPSIS:
+%   ix = boundaryFaceIndices(G, side, i1, i2, i3)
+%
+% PARAMETERS:
+%   G     - Grid data structure.
+%
+%   side  - Global side from which to extract face indices.  String.  Must
+%           (case insensitively) match one of six alias groups:
+%
+%              1) {'West' , 'XMin', 'Left'  }
+%              2) {'East' , 'XMax', 'Right' }
+%              3) {'South', 'YMin', 'Back'  }
+%              4) {'North', 'YMax', 'Front' }
+%              5) {'Upper', 'ZMin', 'Top'   }
+%              6) {'Lower', 'ZMax', 'Bottom'}
+%
+%           These groups correspond to the cardinal directions mentioned as
+%           the first alternative in each group.
+%
+%   i1,i2,i3 - Index ranges in which one is to look for boundary faces in
+%           the three axial directions
+%
+% RETURNS:
+%   ix    - Required face indices.
+%
+% NOTE:
+%   This function is mainly intended for internal use by functions fluxside
+%   and pside.  Its calling interface may change more frequently than those
+%   of the *side functions.
+%
+% SEE ALSO:
+%   fluxside, pside.
+
+%{
+#COPYRIGHT#
+%}
+
+% $Date: 2012-01-30 11:41:03 +0100 (Mon, 30 Jan 2012) $
+% $Revision: 9020 $
+
+i1 = reshape(i1, [], 1);
+i2 = reshape(i2, [], 1);
+i3 = reshape(i3, [], 1);
+
+switch lower(direction),
+   case {'left'  , 'west' , 'xmin'},
+      faceTag = 1;
+   case {'right' , 'east' , 'xmax'},
+      faceTag = 2;
+   case {'back'  , 'south', 'ymin'},
+      faceTag = 3;
+   case {'front' , 'north', 'ymax'},
+      faceTag = 4;
+   case {'top'   , 'upper', 'zmin'},
+      faceTag = 5;
+   case {'bottom', 'lower', 'zmax'},
+      faceTag = 6;
+   otherwise
+      error(1,'Illigal direction');
+end
+[Ix{1:3}] = ind2sub(G.cartDims,G.cells.indexMap);
+cellno = rldecode(1:G.cells.num, diff(G.cells.facePos),2)';
+i      = any(G.faces.neighbors ==0, 2);
+j      = false(max(G.cells.faces(:,2)),1);
+if isempty(i1)
+   pick_I = 1;
+else
+   pick_I = false(G.cartDims(1),1); pick_I(i1) = true;
+end
+if isempty(i2)
+   pick_J = 1;
+else
+   pick_J = false(G.cartDims(2),1); pick_J(i2) = true;
+end
+if isempty(i3)
+   pick_K = 1;
+else
+   pick_K = false(G.cartDims(3),1); pick_K(i3) = true;
+end
+
+j(faceTag) = true;
+p  = pick_I(Ix{1}) & pick_J(Ix{2}) & pick_K(Ix{3});
+I  = i(G.cells.faces(:,1)) & j(G.cells.faces(:,2)) & p(cellno);
+ix = G.cells.faces(I,1);
+end

@@ -1,0 +1,195 @@
+function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
+	 n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_connectivity, erivers)
+  % Function converting traps and spill field information from a node-based 
+  % representation to a cell-based one.
+  %
+  % SYNOPSIS
+  % [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity] = 
+  %    n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_connectivity)
+  %
+  % PARAMETERS:
+  % Gt                 - 2D grid structure 
+  % ntrap_regions      \ 
+  % ntrap_zvals        - node-based trap information, as computed by the
+  % ntrap_connectivity / 'compute-trap-regions' function
+  % 
+  % RETURNS:
+  % The cell-based versions of the trap-information data matrices provided as input
+  % parameters to this function:
+  % ctraps             - One value per grid cell; zero for nontrap-cells, trap number 
+  %                      from 1 upwards) for trap cells.
+  % ctrap_zvals        - vector with one element per trap, giving the z-spill value 
+  %                      for that trap
+  % ctrap_regions      - one value per grid cell.  Gives the trap number of the trap 
+  %                      that the node spills into, or zero if the cell belongs to 
+  %                      the spill region of the 'exterior' of the domain. 
+  % ctrap_connectivity - (Sparse) adjacency matrix with one row/column per trap. 
+  %                      Row 'i' is nonzero only for columns 'j' where trap 'i' spills
+  %                      directly into trap 'j' when overflowing.
+  % lost_regions       - indices of those edge-based regions whose traps did
+  %                      not get projected to any cell (e.g. because they
+  %                      were too small)
+  %
+  %
+  % SEE ALSO:
+  % computeNodeTraps
+
+  % As long as traps are not eliminated, connectivities, z-values and spill regions 
+  % are identical to the node-based version...
+  ctrap_connectivity = ntrap_connectivity;
+  ctrap_zvals = ntrap_zvals;
+  initial_num_regions = numel(ctrap_zvals);
+  if isfield(Gt.cells, 'z')
+     cell_centroids = Gt.cells.z;
+  else
+      cell_centroids = compute_cell_z_vals(Gt);
+  end
+  
+  % projecting spill regions from nodes to cells
+  ctrap_regions = nodeFieldToCellField(Gt, ntrap_regions);
+
+  % isolating traps
+  ctraps = zeros(size(ctrap_regions));
+  for i = 1:initial_num_regions
+    ctrap_region_indices = find(ctrap_regions == i);
+    ctrap_cells = intersect(find(cell_centroids < ctrap_zvals(i)), ctrap_region_indices);
+    ctraps(ctrap_cells) = i;
+  end
+
+  % if any region was eliminated (did not end up to be projected to a single cell), 
+  % formally remove it and update the adjacency matrix accordingly.
+  lost_regions = identify_lost_regions(initial_num_regions, ctraps);
+  
+  % regions that are associated to lost traps are re-associated to remaining
+  % traps below
+  for i = lost_regions
+      ixs = find(ctrap_regions == i);
+      ctrap_regions(ixs) = next_remaining_downstream_trap(i, ctrap_connectivity, ...
+                                                        lost_regions);
+  end
+  
+  % Removing indexes to lost traps, and re-indexing remaining traps
+  ctrap_regions = re_index(ctrap_regions, lost_regions);
+  ctraps        = re_index(ctraps,        lost_regions);
+  ctrap_zvals(lost_regions) = [];  
+
+  % Updating connectivity matrix and river structure by removing lost regions one by one
+  for i = lost_regions 
+    % NB: for this to work, it's important that 'lost_regions' is sorted in 
+    % descending order
+    
+    %% Update connectivity matrix
+    rmerge = sparse(eye(size(ctrap_connectivity)));  
+
+    lmerge = sparse(eye(size(ctrap_connectivity)));
+    lmerge(:,i) = ctrap_connectivity(:,i);
+
+    lmerge(i,:) = [];
+    rmerge(:,i) = [];
+    
+    ctrap_connectivity = lmerge * ctrap_connectivity * rmerge;
+
+    %% Update rivers
+    upstream_regs = find(ntrap_connectivity(:,i));
+    if ~isempty(upstream_regs)
+        for j = upstream_regs'
+            for k = 1:numel(erivers{j})
+                if ntrap_regions(erivers{j}{k}(end)) == i
+                    for l = 1:numel(erivers{i})
+                        %fprintf('%d %d %d %d', j, k, i, l);
+                        %fprintf('(%d, %d) - (%d, %d)\n', size(erivers{j}{k}), size(erivers{i}{l}))
+                        erivers{j}{k} = [erivers{j}{k}; erivers{i}{l}];
+                    end
+                end
+            end
+        end
+    end
+  end
+  % removing rivers corresponding to lost regions (information of these
+  % rivers has already been taken care of by merging taking place in the
+  % previous loop.
+  erivers(lost_regions) = [];
+  crivers = project_rivers_to_cells(Gt, erivers);
+end
+
+function lost_regions = identify_lost_regions(num_regions, mapped_regions)
+  % Determine which regions were 'eliminated' when passing from node-based to 
+  % cell-based representation (i.e., not a single cell was attributed to it.
+
+  % 'fliplr' ensures reverse ordering, so that the vector starts with the
+  % highest index.
+  lost_regions = fliplr(setdiff(1:num_regions, unique(mapped_regions)));
+end
+
+function mat = re_index(mat, indices)
+  for i = indices
+      ixs = mat > i;
+      mat(ixs) = mat(ixs) - 1;
+  end
+end	 
+
+function ctoids = compute_cell_z_vals(Gt)
+  % Compute z-value of each cell as the average of the z-values of its four
+  % nodes.
+  %
+  % We presuppose here that each cell has exactly four nodes.  If this is not 
+  % a safe assumption, a more involved implementation is needed below.
+  ctoids = mean(Gt.nodes.z(activeCellNodes(Gt)));
+
+end
+
+%===============================================================================
+function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
+    
+    cell_rivers = cell(size(edge_rivers, 1), 1);
+    cellnodes = activeCellNodes(Gt); % (4 x m)-sized matrix; m = # of active cells
+                                % in Gt.  Each col. holds the indices of the
+                                % 4 corner nodes of the corresponding cell.
+    for trap_ix = 1:size(edge_rivers, 1)
+        for r_ix = 1:numel(edge_rivers{trap_ix})
+            nodes_ix = edge_rivers{trap_ix}{r_ix};
+            cells_ix = [];
+            for i = 1:4
+                % finding index of cells having these nodes as corner 'i'.
+                cells_ix = [cells_ix, find(ismember(cellnodes(i, :), nodes_ix))]; %#ok
+
+                % remove nodes that have been mapped, and iterate on the next
+                % corner
+                % nodes_ix = nodes_ix(find(~ismember(nodes_ix, cellnodes(i, cells_ix))));
+                if (isempty(nodes_ix)); break; end;
+            end
+            cell_rivers{trap_ix}{r_ix} = cells_ix;
+        end
+    end
+end
+
+
+%===============================================================================
+function ixs = next_remaining_downstream_trap(trap_ixs, connectivity, lost_regions)
+% Return next remaining downstream trap, or '0' if there is none.
+
+    downstream_traps = find(sum(connectivity(trap_ixs, :),1));
+    
+    % If there are no downstream traps at all, it measn that the flow will
+    % exit the domain.  Return '0' to indicate this.
+    if isempty(downstream_traps)
+        ixs = 0;
+        return;
+    end
+    
+    % Are any of the downstream traps remaining in the system after lost
+    % regions have been eliminated?
+    rem_traps = setdiff(downstream_traps, lost_regions);
+    
+    if ~isempty(rem_traps)
+        % 'rem_traps' contain one or more downstream traps that will remain
+        % after those in 'lost_regions' have been removed.  One is not more
+        % correct than another, so we arbitrarily pick the first one.
+        ixs = rem_traps(1);
+    else
+        ixs = ...
+            next_remaining_downstream_trap(intersect(downstream_traps, lost_regions), ...
+                                           connectivity, ... 
+                                           lost_regions);
+    end
+end

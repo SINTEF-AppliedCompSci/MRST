@@ -1,0 +1,347 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>showCO2atlas</title><meta name="generator" content="MATLAB 7.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2013-02-08"><meta name="DC.source" content="showCO2atlas.m"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Give an overview of the CO2 atlas data.</a></li><li><a href="#2">Description of raw data</a></li><li><a href="#3">Show the data directly</a></li><li><a href="#4">Create a grid by combining heightmaps and depths</a></li><li><a href="#5">Plot the full grid</a></li><li><a href="#6">Read all the formations</a></li><li><a href="#7">Visualize all the formations</a></li></ul></div><h2>Give an overview of the CO2 atlas data.<a name="1"></a></h2><p>In this example we show how one can employ MRST's CO2 module to analyse CO2 storage potential based on the data provided by Norwegian petroleum directorate <a href="http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/">http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/</a>. The datasets are carefully described in both a short and a long report. It is recommended to have one of these reports at hand when experimenting with the data. The raw data provied by NPD can be obtained from their website in a GEOGRAPHICAL DATA (SHAPE- and RASTERFILES). For the sake of convenience we have converted the files to a ASCII format more suitable for our applications. These files can be inspected using any text editor.</p><p>We process the files and and get both the raw datasets and grdecl structs suitable for processGRDECL.</p><pre class="codeinput"><span class="keyword">try</span>
+    require <span class="string">deckformat</span>
+<span class="keyword">catch</span> <span class="comment">%#ok&lt;CTCH&gt;</span>
+    mrstModule <span class="string">add</span> <span class="string">deckformat</span>;
+<span class="keyword">end</span>
+
+fprintf(1,<span class="string">'Loading atlas data (this may take a few minutes)..'</span>);
+[grdecls, rawdata] = getAtlasGrid(); <span class="comment">%#ok</span>
+fprintf(1, <span class="string">'done\n'</span>);
+</pre><pre class="codeoutput">Loading atlas data (this may take a few minutes)..done
+</pre><h2>Description of raw data<a name="2"></a></h2><p>Show the raw data. Each dataset contains four fields: - Name, which is the name of the formation - Variant: Either thickness or height, indicating wether the dataset represents height data or thickness data. - Data: The actual datasets as a matrix. - Meta: Metadata. The most interesting field here is the   xllcorner/yllcorner variable which indicates the position in ED50   datum space.</p><pre class="codeinput">disp <span class="string">'Raw data:'</span>
+<span class="keyword">for</span> i=1:numel(rawdata);
+    rd = rawdata{i};
+    fprintf(<span class="string">'Dataset %-2i is %-12s (%-9s). Resolution: %4i meters\n'</span>, <span class="keyword">...</span>
+            i, rd.name, rd.variant,  rd.meta.cellsize)
+<span class="keyword">end</span>
+<span class="comment">% Store names for convenience</span>
+names = cellfun(@(x) x.name, rawdata, <span class="string">'UniformOutput'</span>, false)';
+</pre><pre class="codeoutput">Raw data:
+Dataset 1  is Brentgrp     (thickness). Resolution:  500 meters
+Dataset 2  is Brynefm      (thickness). Resolution:  500 meters
+Dataset 3  is Cookfm       (thickness). Resolution:  500 meters
+Dataset 4  is Dunlingp     (top      ). Resolution:  500 meters
+Dataset 5  is Fensfjordfm  (thickness). Resolution:  500 meters
+Dataset 6  is Gassumfm     (thickness). Resolution:  500 meters
+Dataset 7  is Gassumfm     (top      ). Resolution:  500 meters
+Dataset 8  is Huginfmeast  (thickness). Resolution:  500 meters
+Dataset 9  is Huginfmwest  (thickness). Resolution:  500 meters
+Dataset 10 is Johansenfm   (thickness). Resolution:  500 meters
+Dataset 11 is Johansenfm   (top      ). Resolution:  200 meters
+Dataset 12 is Jurassicmid  (top      ). Resolution: 1000 meters
+Dataset 13 is Jurassic     (top      ). Resolution: 1000 meters
+Dataset 14 is Krossfjordfm (thickness). Resolution:  500 meters
+Dataset 15 is Paleocene    (top      ). Resolution: 1000 meters
+Dataset 16 is Pliocenesand (thickness). Resolution:  500 meters
+Dataset 17 is Pliocenesand (top      ). Resolution:  500 meters
+Dataset 18 is Sandnesfm    (thickness). Resolution:  500 meters
+Dataset 19 is Skadefm      (thickness). Resolution:  500 meters
+Dataset 20 is Skadefm      (top      ). Resolution:  500 meters
+Dataset 21 is Sleipnerfm   (thickness). Resolution:  500 meters
+Dataset 22 is Sognefjordfm (thickness). Resolution:  500 meters
+Dataset 23 is Statfjordfm  (thickness). Resolution:  500 meters
+Dataset 24 is Statfjordfm  (top      ). Resolution:  500 meters
+Dataset 25 is Ulafm        (thickness). Resolution:  500 meters
+Dataset 26 is Utsirafm     (thickness). Resolution:  500 meters
+Dataset 27 is Utsirafm     (top      ). Resolution:  500 meters
+</pre><h2>Show the data directly<a name="3"></a></h2><p>The data sets are perfectly usable for visualization on their own. To see this, we find the datasets corresponding to the Utsira formation and plot both the thickness and the heightmap.</p><p>Note that the datasets are not entirely equal: Some sections are not included in the thickness map and vice versa. In addition to this, the coordinates are not always overlapping, making interpolation neccessary.</p><p>Some formations are only provided as thickness maps; These are processed by sampling the relevant part of the Jurassic formation for top surface structure.</p><pre class="codeinput">utsira_rd = rawdata(strcmpi(names, <span class="string">'Utsirafm'</span>));
+clf;
+<span class="keyword">for</span> i = 1:numel(utsira_rd)
+    urd = utsira_rd{i};
+
+    subplot(2,1,i)
+    surf(urd.data)
+
+    title([urd.name <span class="string">' '</span> urd.variant])
+    shading <span class="string">interp</span>
+    view(0,90)
+    axis <span class="string">tight</span> <span class="string">off</span>
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="showCO2atlas_01.png" alt=""> <h2>Create a grid by combining heightmaps and depths<a name="4"></a></h2><p>The datasets are used to create interpolants which give both height and thickness on a fine grid. Any regions where the thickness/height is zero or not defined is removed, giving a GRDECL file defining the intersection of these datasets.</p><p>The call is coarsened by a factor 2: These grids can quickly become fairly large as they contain a lot of data. A full realization of this Utsira grid contains about 100k cells; By coarsening by 2 we end up with the more managable amount of 25k cells. The parameter nz determines the amount of fine cells in the logical k-direction and can be used to produce layered models for full simulations.</p><pre class="codeinput">gr = getAtlasGrid(<span class="string">'Utsirafm'</span>, <span class="string">'coarsening'</span>, 2, <span class="string">'nz'</span>, 1);
+
+<span class="comment">% Process the grid</span>
+G = processGRDECL(gr{1});
+
+<span class="comment">% The coarsening may disconnect small components, take only the largest and</span>
+<span class="comment">% first grid produced by processGRDECL and add geometry data to it.</span>
+G = computeGeometry(G(1));
+</pre><h2>Plot the full grid<a name="5"></a></h2><p>We plot the full grid, colorized by cell volumes. We also add a simple light to distinguish the oscillating surface of the reservoir. These oscillations can be a target for structural trapping of migrating CO2.</p><pre class="codeinput">clf;
+plotCellData(G, G.cells.volumes)
+title(<span class="string">'Utsira formation - full grid with thickness and heightmap'</span>)
+axis <span class="string">tight</span> <span class="string">off</span>
+light(<span class="string">'Position'</span>,[-1 -1 -1],<span class="string">'Style'</span>,<span class="string">'infinite'</span>);
+lighting <span class="string">phong</span>
+view(90,45)
+</pre><img vspace="5" hspace="5" src="showCO2atlas_02.png" alt=""> <h2>Read all the formations<a name="6"></a></h2><p>Again we read all the fine grids. We process all the grids to get proper grids with coordinates. The coarsening is useful here as we will only need the basic outline for the upcoming figure.</p><pre class="codeinput">grdecls = getAtlasGrid(<span class="string">'coarsening'</span>, 5);
+ng = numel(grdecls);
+
+grids = cell(ng,1);
+<span class="keyword">for</span> i = 1:ng
+    gd = processGRDECL(grdecls{i});
+    grids{i} = computeGeometry(gd(1));
+<span class="keyword">end</span>
+</pre><h2>Visualize all the formations<a name="7"></a></h2><p>We then visualize the formations along with a map of Norway and point plots of all production wells in the Norwegian continental shelf.</p><p>The well data comes from the Norwegian Petroleum Directorate and can be found in more detail at <a href="http://factpages.npd.no/factpages/">http://factpages.npd.no/factpages/</a>.</p><p>The map of Norway comes from The Norwegian Mapping and Cadastre Authority and can be found at <a href="http://www.kartverket.no/">http://www.kartverket.no/</a>. Note that the map is only provided for scale and rough positioning - no claims are made regarding the accuracy in relation the subsea reservoirs.</p><pre class="codeinput">clf;
+hold <span class="string">on</span>
+
+<span class="keyword">for</span> i=1:ng;
+    G = grids{i};
+    <span class="comment">% We want to colorize each grid differently</span>
+    data = repmat(i, G.cells.num, 1);
+    plotCellData(grids{i}, data, <span class="string">'facea'</span>, .3, <span class="string">'edgea'</span>, .05, <span class="string">'edgec'</span>, <span class="string">'k'</span>);
+<span class="keyword">end</span>
+
+legend(cellfun(@(x) x.name, grdecls, <span class="string">'UniformOutput'</span>, false), <span class="string">'Location'</span>, <span class="string">'EastOutside'</span>)
+
+box <span class="string">on</span>
+view(2)
+set(gcf,<span class="string">'Color'</span>,[0.8 0.8 0.8]);set(gca,<span class="string">'Color'</span>,[0.8 0.8 0.8]);
+set(gca,<span class="string">'XColor'</span>,[0,0,0])
+set(gca,<span class="string">'YColor'</span>,[0,0,0]);set(gca,<span class="string">'LineWidth'</span>,1)
+
+ax = axis();
+colormap <span class="string">hsv</span>
+
+<span class="comment">% Load and plot a map</span>
+load(fullfile(VEROOTDIR, <span class="string">'data'</span>, <span class="string">'atlas'</span>, <span class="string">'norway.mat'</span>));
+<span class="keyword">for</span> k=1:length(norway),
+    line(norway{k}(:,1) + 6.8e5, norway{k}(:,2));
+<span class="keyword">end</span>;
+axis(ax)
+
+hold <span class="string">on</span>
+load(fullfile(VEROOTDIR, <span class="string">'data'</span>, <span class="string">'atlas'</span>, <span class="string">'welldata.mat'</span>));
+plot(welldata(:,2), welldata(:,1), <span class="string">'.k'</span>, <span class="string">'MarkerSize'</span>, 5)
+</pre><img vspace="5" hspace="5" src="showCO2atlas_03.png" alt=""> <p class="footer"><br>
+      Published with MATLAB&reg; 7.13<br></p></div><!--
+##### SOURCE BEGIN #####
+%% Give an overview of the CO2 atlas data.
+%
+% In this example we show how one can employ MRST's CO2 module to analyse
+% CO2 storage potential based on the data provided by Norwegian petroleum
+% directorate
+% http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/. The
+% datasets are carefully described in both a short and a long report. It is
+% recommended to have one of these reports at hand when experimenting with
+% the data. The raw data provied by NPD can be obtained from their website
+% in a GEOGRAPHICAL DATA (SHAPE- and RASTERFILES). For the sake of
+% convenience we have converted the files to a ASCII format more suitable
+% for our applications. These files can be inspected using any text editor.
+%
+% We process the files and and get both the raw datasets and grdecl structs
+% suitable for processGRDECL.
+%
+try
+    require deckformat
+catch %#ok<CTCH>
+    mrstModule add deckformat;
+end
+
+fprintf(1,'Loading atlas data (this may take a few minutes)..');
+[grdecls, rawdata] = getAtlasGrid(); %#ok
+fprintf(1, 'done\n');
+
+%% Description of raw data
+% Show the raw data. Each dataset contains four fields:
+% - Name, which is the name of the formation
+% - Variant: Either thickness or height, indicating wether the dataset
+% represents height data or thickness data.
+% - Data: The actual datasets as a matrix.
+% - Meta: Metadata. The most interesting field here is the
+%   xllcorner/yllcorner variable which indicates the position in ED50
+%   datum space.
+
+disp 'Raw data:'
+for i=1:numel(rawdata);
+    rd = rawdata{i};
+    fprintf('Dataset %-2i is %-12s (%-9s). Resolution: %4i meters\n', ...
+            i, rd.name, rd.variant,  rd.meta.cellsize)
+end
+% Store names for convenience
+names = cellfun(@(x) x.name, rawdata, 'UniformOutput', false)';
+
+%% Show the data directly
+%
+% The data sets are perfectly usable for visualization on their own. To see
+% this, we find the datasets corresponding to the Utsira formation and plot
+% both the thickness and the heightmap.
+%
+% Note that the datasets are not entirely equal: Some sections are not
+% included in the thickness map and vice versa. In addition to this, the
+% coordinates are not always overlapping, making interpolation neccessary.
+%
+% Some formations are only provided as thickness maps; These are processed
+% by sampling the relevant part of the Jurassic formation for top surface
+% structure.
+
+utsira_rd = rawdata(strcmpi(names, 'Utsirafm'));
+clf;
+for i = 1:numel(utsira_rd)
+    urd = utsira_rd{i};
+    
+    subplot(2,1,i)
+    surf(urd.data)
+    
+    title([urd.name ' ' urd.variant])
+    shading interp
+    view(0,90)
+    axis tight off
+end
+
+%% Create a grid by combining heightmaps and depths
+% The datasets are used to create interpolants which give both height and
+% thickness on a fine grid. Any regions where the thickness/height is zero
+% or not defined is removed, giving a GRDECL file defining the intersection
+% of these datasets.
+%
+% The call is coarsened by a factor 2: These grids can quickly become
+% fairly large as they contain a lot of data. A full realization of this
+% Utsira grid contains about 100k cells; By coarsening by 2 we end up with
+% the more managable amount of 25k cells. The parameter nz determines the
+% amount of fine cells in the logical k-direction and can be used to
+% produce layered models for full simulations.
+
+gr = getAtlasGrid('Utsirafm', 'coarsening', 2, 'nz', 1);
+
+% Process the grid
+G = processGRDECL(gr{1});
+
+% The coarsening may disconnect small components, take only the largest and
+% first grid produced by processGRDECL and add geometry data to it.
+G = computeGeometry(G(1));
+
+%% Plot the full grid
+% We plot the full grid, colorized by cell volumes. We also add a simple
+% light to distinguish the oscillating surface of the reservoir. These
+% oscillations can be a target for structural trapping of migrating CO2.
+
+clf;
+plotCellData(G, G.cells.volumes)
+title('Utsira formation - full grid with thickness and heightmap')
+axis tight off
+light('Position',[-1 -1 -1],'Style','infinite');
+lighting phong
+view(90,45)
+
+%% Read all the formations
+% Again we read all the fine grids. We process all the grids to get proper
+% grids with coordinates. The coarsening is useful here as we will only
+% need the basic outline for the upcoming figure.
+grdecls = getAtlasGrid('coarsening', 5);
+ng = numel(grdecls);
+
+grids = cell(ng,1);
+for i = 1:ng
+    gd = processGRDECL(grdecls{i});
+    grids{i} = computeGeometry(gd(1));
+end
+
+%% Visualize all the formations
+% We then visualize the formations along with a map of Norway and point
+% plots of all production wells in the Norwegian continental shelf.
+%
+% The well data comes from the Norwegian Petroleum Directorate and can be
+% found in more detail at http://factpages.npd.no/factpages/.
+%
+% The map of Norway comes from The Norwegian Mapping and Cadastre Authority
+% and can be found at http://www.kartverket.no/. Note that the map is only
+% provided for scale and rough positioning - no claims are made regarding
+% the accuracy in relation the subsea reservoirs.
+
+clf;
+hold on
+
+for i=1:ng;
+    G = grids{i};
+    % We want to colorize each grid differently
+    data = repmat(i, G.cells.num, 1);
+    plotCellData(grids{i}, data, 'facea', .3, 'edgea', .05, 'edgec', 'k');
+end
+
+legend(cellfun(@(x) x.name, grdecls, 'UniformOutput', false), 'Location', 'EastOutside')
+
+box on
+view(2)
+set(gcf,'Color',[0.8 0.8 0.8]);set(gca,'Color',[0.8 0.8 0.8]);
+set(gca,'XColor',[0,0,0])
+set(gca,'YColor',[0,0,0]);set(gca,'LineWidth',1)
+
+ax = axis();
+colormap hsv
+
+% Load and plot a map 
+load(fullfile(VEROOTDIR, 'data', 'atlas', 'norway.mat'));
+for k=1:length(norway), 
+    line(norway{k}(:,1) + 6.8e5, norway{k}(:,2)); 
+end;
+axis(ax)
+
+hold on
+load(fullfile(VEROOTDIR, 'data', 'atlas', 'welldata.mat'));
+plot(welldata(:,2), welldata(:,1), '.k', 'MarkerSize', 5)
+
+##### SOURCE END #####
+--></body></html>

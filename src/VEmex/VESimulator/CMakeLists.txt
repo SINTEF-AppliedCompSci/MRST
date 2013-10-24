@@ -1,0 +1,38 @@
+PROJECT(VESIMULATOR)
+
+SET(VESIMULATOR_VERSION 1.0)
+
+IF(NOT LIBRARY_OUTPUT_PATH)
+    SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/LIB)
+ENDIF(NOT LIBRARY_OUTPUT_PATH)
+
+INCLUDE_DIRECTORIES(
+    include
+    )
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+add_custom_target(doc_cpu
+${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+COMMENT "Generating API documentation with Doxygen" VERBATIM
+)
+endif(DOXYGEN_FOUND)
+CONFIGURE_FILE("include/configure.h.in"
+    "${PROJECT_SOURCE_DIR}/include/configure.h")
+FILE(GLOB headers "include/*.h*")
+FILE(GLOB srcs "include/*.c*")
+FILE(GLOB tmpls "include/tmpl/*.tmpl")
+SET(VESimulator_src src/VESimulator.cpp ${headers} ${srcs} ${tmpls})
+ADD_LIBRARY(VESimulatorCPU STATIC ${VESimulator_src})
+TARGET_LINK_LIBRARIES(VESimulatorCPU ${MATLAB_LIBRARIES})
+
+
+
+SET_TARGET_PROPERTIES(VESimulatorCPU PROPERTIES COMPILE_FLAGS
+    "${OpenMP_CXX_FLAGS}" LINK_FLAGS "${OpenMP_CXX_FLAGS}")
+
+IF(${FORCE_32_BIT})
+    SET_TARGET_PROPERTIES(VESimulatorCPU PROPERTIES COMPILE_FLAGS "-m32"
+        LINK_FLAGS "-m32")
+ENDIF(${FORCE_32_BIT})

@@ -1,0 +1,191 @@
+template<class Real>
+Grid2D<Real>::Grid2D(cells_t<double> *cells2d, faces_t *faces2d,
+                     nodes_t<double> *nodes2d, columns_t<double> *columns2d, int dim[2])
+{
+
+    isCpp = false;
+    copyCells(cells2d);
+    copyFaces(faces2d);
+    copyNodes(nodes2d);
+    copyColumns(columns2d);
+
+    dims[0]     = dim[0];
+    dims[1]     = dim[1];
+}
+
+template<class Real>
+Grid2D<Real>::Grid2D(cells_t<double> *cells2d, faces_t *faces2d,
+                     nodes_t<double> *nodes2d, columns_t<double> *columns2d, int dim[2], bool cpp)
+{
+    assert(cpp);
+    isCpp = true;
+
+    cells = cells2d;
+    faces = faces2d;
+    nodes = nodes2d;
+    columns = columns2d;
+
+    dims[0]     = dim[0];
+    dims[1]     = dim[1];
+}
+
+
+
+template<class Real>
+Grid2D<Real>::~Grid2D()
+{
+
+    if (isCpp){
+	//Memory managed in MakeTopSurfaceGrid.cpp
+    }else{
+        delete[] cells->faces;
+        delete[] cells->H;
+        delete[] cells->columnPos;
+        delete[] cells->normals;
+        delete[] cells->centroids;
+        delete[] cells->z;
+        delete[] cells->numFaces;
+        delete[] cells->volumes;
+        delete cells;
+
+        delete[] faces->neighbors;
+        delete[] faces->nodes;
+        delete faces;
+
+        delete[] nodes->coords;
+        delete nodes;
+
+        delete[] columns->cells;
+        delete[] columns->dz;
+        delete[] columns->z;
+        delete columns;
+    }
+}
+
+template<class Real>
+void Grid2D<Real>::cellRelperm(Real& kr,Real& dkr,const int& cell, const Real& height,
+                               const Real *perm) const
+{
+    kr = 0.0;
+    dkr = 0.0;
+    int from = cells->columnPos[cell];
+    int to = cells->columnPos[cell+1];
+    while(from < to) {
+        Real value = perm[columns->cells[from]];
+
+        if(height > columns->z[from]) {
+            kr += value*columns->dz[from];
+        } else if(kr == 0.0) {
+            kr += value*height;
+            dkr =value;
+            break;
+        } else {
+            kr += value*(height - columns->z[from-1]);
+            dkr = value;
+            break;
+        }
+        from++;
+    }
+}
+
+
+template<class Real>
+void Grid2D<Real>::copyCells(cells_t<double> *oldCells)
+{
+    cells = new cells_t<Real>();
+
+    int num = oldCells->num;
+
+    cells->faces        = new int[4*num];
+    cells->H            = new Real[num];
+    cells->columnPos    = new int[num+1];
+    cells->normals      = new Real[3*num];
+    cells->volumes      = new Real[num];
+    cells->centroids    = new Real[2*num];
+    cells->z            = new Real[num];
+    cells->numFaces     = new int[num];
+
+    cells->num  = num;
+#pragma omp parallel for
+    for(int i = 0; i < num; i++) {
+        cells->faces[4*i+0] = oldCells->faces[4*i+0] - 1;
+        cells->faces[4*i+1] = oldCells->faces[4*i+1] - 1;
+        cells->faces[4*i+2] = oldCells->faces[4*i+2] - 1;
+        cells->faces[4*i+3] = oldCells->faces[4*i+3] - 1;
+
+        cells->numFaces[i]  = oldCells->numFaces[i];
+        cells->columnPos[i] = oldCells->columnPos[i] - 1;
+
+        cells->normals[3*i+0] = (Real) oldCells->normals[i];
+        cells->normals[3*i+1] = (Real) oldCells->normals[num + i];
+        cells->normals[3*i+2] = (Real) oldCells->normals[2*num + i];
+
+        cells->centroids[2*i] = (Real) oldCells->centroids[i];
+        cells->centroids[2*i+1] = (Real) oldCells->centroids[num + i];
+
+        cells->z[i]         = (Real) oldCells->z[i];
+        cells->volumes[i]   = (Real) oldCells->volumes[i];
+        cells->H[i]         = (Real) oldCells->H[i];
+    }
+
+    cells->columnPos[num] = oldCells->columnPos[num] - 1;
+}
+
+template<class Real>
+void Grid2D<Real>::copyFaces(faces_t *oldFaces)
+{
+    faces = new faces_t();
+
+    int num = oldFaces->num;
+
+    faces->neighbors    = new int[2*num];
+    faces->nodes        = new int[2*num];
+
+    faces->num = num;
+
+#pragma omp parallel for
+    for(int i = 0; i < num; i++) {
+        faces->neighbors[2*i]   = oldFaces->neighbors[i]        - 1;
+        faces->neighbors[2*i+1] = oldFaces->neighbors[num + i]  - 1;
+        faces->nodes[2*i]       = oldFaces->nodes[2*i]          - 1;
+        faces->nodes[2*i + 1]   = oldFaces->nodes[2*i+1]        - 1;
+    }
+}
+
+template<class Real>
+void Grid2D<Real>::copyNodes(nodes_t<double> *oldNodes)
+{
+    nodes = new nodes_t<Real>();
+
+    int num = oldNodes->num;
+
+    nodes->coords   = new Real[2*num];
+
+    nodes->num = num;
+
+#pragma omp parallel for
+    for(int i = 0; i < num; i++) {
+        nodes->coords[2*i]      = (Real) oldNodes->coords[i];
+        nodes->coords[2*i+1]    = (Real) oldNodes->coords[num + i];
+    }
+}
+
+template<class Real>
+void Grid2D<Real>::copyColumns(columns_t<double> *oldCols)
+{
+    columns = new columns_t<Real>();
+
+    int num = oldCols->num;
+
+    columns->cells  = new int[num];
+    columns->dz     = new Real[num];
+    columns->z      = new Real[num];
+
+    columns->num = num;
+#pragma omp parallel for
+    for(int i = 0; i < num; i++) {
+        columns->cells[i]   = oldCols->cells[i] - 1;
+        columns->dz[i]      = (Real) oldCols->dz[i];
+        columns->z[i]       = (Real) oldCols->z[i];
+    }
+}

@@ -1,0 +1,25 @@
+<?xml version = '1.0' encoding = 'ISO-8859-1'?>
+<ParameterGroup name="root">
+  <Parameter type="file" name="deck_filename" value="data3d/ff100_modified_poly.data"/>
+  <Parameter type="string" name="output_dir" value="output_ff100_modified_poly"/>
+  <Parameter type="bool" name="use_segregation_split" value="true"/>
+  <Parameter type="bool" name="use_column_solver" value="true"/>
+  <Parameter type="bool" name="use_gauss_seidel_gravity" value="true"/>
+  <Parameter type="double" name="nl_tolerance" value="1e-7"/>
+  <Parameter type="int" name="nl_maxiter" value="100"/>
+  <Parameter type="double" name="poly_amount" value="3.0"/>
+  <Parameter type="double" name="poly_start_days" value="10.0"/>
+  <Parameter type="double" name="poly_end_days" value="100.0"/>
+  <Parameter type="string" name="linsolver" value="istl"/>
+  <Parameter type="double" name="linsolver_residual_tolerance" value="1e-6"/>
+  <Parameter type="int" name="linsolver_verbosity" value="2"/>
+  <ParameterGroup name="pressure">
+    <Parameter type="int" name="max_it" value="100"/>
+    <Parameter type="double" name="atol" value="1e-5"/>
+  </ParameterGroup>
+  <ParameterGroup name="transport">
+    <Parameter type="int" name="max_it" value="10"/>
+    <Parameter type="double" name="atol" value="1e-8"/>
+  </ParameterGroup>
+
+</ParameterGroup>

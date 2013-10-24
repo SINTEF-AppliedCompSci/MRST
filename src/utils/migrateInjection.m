@@ -1,0 +1,178 @@
+function sol = migrateInjection(Gt, res, petrodata, wellCell, varargin)
+
+%% Process options
+opt = struct('amount',      1, ...
+            'T_injection',  100*year,  ...
+            'T_migration',  1000*year, ...
+            'topPressure',  300*barsa, ...
+            'Ni',           20,        ...
+            'Nm',           40,        ...
+            'plotPanel',    false,     ...
+            'view',         [-85 70],...
+            'plotPlume',    true, ...
+            'plotHist',     false,     ...
+            'wireH',        true,...
+            'wireS',        true);
+opt = merge_options(opt, varargin{:});
+
+%% Take care of global variables
+% When launched from the interactive viewer, we use a global variable to
+% indicate when the user has pushed the 'Abort' button. If launched as a
+% standalone simulation, this variable must be set to false.
+global veSimAborted;
+if isempty(veSimAborted)
+   veSimAborted = false;
+end
+
+%% Set up fluid
+muw = 0.30860;  rhow = 975.86; sw    = 0.1;
+muc = 0.056641; rhoc = 686.54; srco2 = 0.2;
+kwm = [0.2142 0.85];
+
+mu  = [muc  muw ] .* centi*poise;
+rho = [rhoc rhow] .* kilogram/meter^3;
+
+fluid = initSimpleVEFluid_s('mu' , mu , 'rho', rho, ...
+                                'height'  , Gt.cells.H,...
+                                'sr', [srco2, sw],'kwm',kwm);
+fluid.sr = srco2;
+fluid.sw = sw;
+
+%% Define vertical pressure distribution
+gravity on;
+grav     = gravity();
+topPos   = min(Gt.cells.z);
+pressure = @(z) opt.topPressure + rho(2)*(z - topPos)*grav(3);
+
+%% Schedule
+T_tot = opt.T_injection + opt.T_migration;
+dTi   = opt.T_injection / opt.Ni;  % short time steps during injection
+dTm   = opt.T_migration / opt.Nm;  % longer steps during migration
+
+
+%% Set up rock properties and compute transmissibilities
+% We use the averaged values for porosity and permeability as given in the
+% Atlas tables. Since cellwise data is not present, we assume to averaged
+% values to be valid everywhere.
+G = Gt.parent;
+pd = petrodata;
+rock.poro = repmat(pd.avgporo, G.cells.num, 1);
+rock.perm = repmat(pd.avgperm, G.cells.num, 1);
+rock2D    = averageRock(rock, Gt);
+T = computeTrans(Gt, rock2D);
+T = T.*Gt.cells.H(gridCellNo(Gt));
+
+%% Set up well and boundary conditions
+% This example is using an incompressible model for both rock and fluid. If
+% we assume no-flow on the boundary, this will result in zero flow from a
+% single injection well. However, this can be compensated if we use the
+% physical understanding of the problem to set appropriate boundary
+% conditions: The atlas formations are enormous compared to the volume of
+% the injected CO2. Thus, it is impossible that the injection will change
+% the composition of the formation significantly. We therefore assume that
+% the boundary conditions can be set equal to hydrostatic pressure to drive
+% flow.
+
+% Add an injector well for the CO2 with Mt annual injection
+rate = opt.amount*1e9*kilogram/(year*rhoc*kilogram*meter^3);
+W = addWell([], G, rock, wellCell,...
+   'Type', 'rate', 'Val', rate, 'comp_i', [1,0], 'name', 'Injector');
+
+% Add pressure boundary
+bnd = boundaryFaces(Gt);
+bc = addBC([], bnd, 'pressure', pressure(Gt.faces.z(bnd)), 'sat', [0 1]);
+
+% Convert to 2D wells
+W2D = convertwellsVE_s(W, G, Gt, rock2D,'ip_tpf');
+
+%%  Set up initial reservoir conditions
+% The initial pressure is set to hydrostatic pressure. Setup and plot.
+sol = initResSolVE_s(Gt, pressure(Gt.cells.z), 0);
+sol.wellSol = initWellSol(W2D, 0);
+sol.h = zeros(Gt.cells.num, 1);
+
+[ii jj] = ind2sub(G.cartDims, G.cells.indexMap);
+
+opts = {'slice',     double([ii(wellCell), jj(wellCell)]),...
+        'Saxis',     [0 1-fluid.sw], ...
+        'view',      opt.view,...
+        'plotPlume', opt.plotPlume, ...
+        'wireH',     opt.wireH,...
+        'wireS',     opt.wireS,...
+        'maxH',      (max(Gt.cells.z) - min(Gt.cells.z))/3, ...
+        'plotHist',  opt.plotHist};
+
+if opt.plotPanel
+    fh = plotPanelVE(G, Gt, W, sol, 0, ...
+       [volumesVE(Gt, sol, rock2D, fluid, res) 0], opts{:});
+else
+    fh = figure;
+end
+
+%% Run the simulation
+% Solve for all timesteps, and plot the results at each timestep.
+t = 0;
+tt = ' (Injecting)';
+totVol = 0;
+
+% Estimate total timesteps
+tstep_tot = ceil(opt.T_injection/dTi) + ceil(opt.T_migration/dTm);
+i = 1;
+
+% Waitbar to show progress
+hwbar = waitbar(0, 'Initializing...');
+wbar = @(i, t, status) waitbar(t/T_tot, hwbar, ...
+   sprintf('Timestep %d of %d, T=%s%s', i, tstep_tot, ...
+   formatTimeRange(floor(t/year)*year), status));
+while t < T_tot;
+    if ishandle(hwbar)
+        wbar(i, t, tt);
+    end
+    if t >= opt.T_injection
+        W2D = [];
+        dT  = dTm;
+        % Do a shorter timestep
+        dT = min(dT, T_tot - t);
+        tt  = ' (Migrating)';
+    else
+        dT = dTi;
+        dT = min(dT, opt.T_injection - t);
+        W2D(1).cells = double(wellCell);
+    end
+    sol = incompTPFA(sol, Gt, T, fluid, 'wells', W2D, 'bc', bc);
+    sol = implicitTransport(sol, Gt, dT, rock2D, fluid, ...
+                            'wells', W2D, 'bc', bc, 'Verbose', false, 'Trans', T);
+    t = t + dT;
+
+    % Plotting
+    [s h hm] = normalizeValuesVE(Gt, sol, fluid);
+    sol.h = h;
+    sol.h_max = hm;
+    if ~ishandle(fh) || veSimAborted
+        disp 'Simulation aborted!'
+        break
+    end
+
+    if opt.plotPanel
+        % Use advanced plotting
+        if ~isempty(W2D)
+            totVol = totVol + W2D.val*dT;
+        end
+        vol = volumesVE(Gt, sol, rock2D, fluid, res);
+        plotPanelVE(G, Gt, W, sol, t, [vol totVol], opts{:});
+    else
+        set(0,'CurrentFigure', fh);
+        [a,b] = view();
+        clf
+        plotCellData(G, s, 'edgec', 'k', 'edgea', .1, 'edgec', [.6 .6 .6]);
+        plotWell(G, W); caxis([0 .9]);
+        title([formatTimeRange(t) tt])
+        colorbar
+        axis tight off
+        view(a,b);
+        drawnow
+    end
+    i = i + 1;
+end
+if ishandle(hwbar), close(hwbar); end
+end

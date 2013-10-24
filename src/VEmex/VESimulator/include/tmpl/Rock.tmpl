@@ -1,0 +1,22 @@
+template<class Real>
+Rock<Real>::Rock(int cells, double *perm, double *poro)
+{
+    numCells = cells;
+
+    permeability = new Real[cells];
+    porosity = new Real[cells];
+
+#pragma omp parallel for
+    for(int i = 0; i < cells; i++) {
+        permeability[i] = (Real) perm[i];
+
+        porosity[i]     = (Real) poro[i];
+    }
+}
+
+template<class Real>
+Rock<Real>::~Rock()
+{
+    delete[] permeability;
+    delete[] porosity;
+}

@@ -1,0 +1,259 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>exampleVEBlackOilAdi</title><meta name="generator" content="MATLAB 7.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2013-02-11"><meta name="DC.source" content="exampleVEBlackOilAdi.m"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">VE simulation in a standard black-oil solver</a></li><li><a href="#2">Parameters for the simulation</a></li><li><a href="#3">Create input deck and construct grid</a></li><li><a href="#4">Initialize data structures</a></li><li><a href="#5">Run the schedule setup in the file</a></li><li><a href="#6">Plot results</a></li></ul></div><h2>VE simulation in a standard black-oil solver<a name="1"></a></h2><p>In this example we show how to set up a standard format black-oil model that can be used to simulate a VE model. For the actual simulation,  we use the fully-implicit solver in MRST from the 'ad-fi' module, which is based on automatic differentiation.</p><pre class="codeinput"><span class="keyword">try</span>
+   require <span class="string">deckformat</span> <span class="string">ad-fi</span>
+<span class="keyword">catch</span> <span class="comment">%#ok&lt;CTCH&gt;</span>
+   mrstModule <span class="string">add</span> <span class="string">deckformat</span> <span class="string">ad-fi</span>
+<span class="keyword">end</span>
+</pre><h2>Parameters for the simulation<a name="2"></a></h2><pre class="codeinput">gravity <span class="string">on</span>
+[nx,ny,nz] = deal(40, 1, 1);     <span class="comment">% Cells in Cartsian grid</span>
+[Lx,Ly,H]  = deal(2000,1000,15); <span class="comment">% Physical dimensions of reservoir</span>
+total_time = 5*year;             <span class="comment">% Total simulation time</span>
+nsteps     = 10;                 <span class="comment">% Number of time steps in simulation</span>
+dt         = total_time/nsteps;  <span class="comment">% Time step length</span>
+perm       = 100;                <span class="comment">% Permeability in milli darcies</span>
+phi        = 0.1;                <span class="comment">% Porosity</span>
+depth      = 1000;               <span class="comment">% Initial depth</span>
+ipress     = 200;                <span class="comment">% Initial pressure</span>
+</pre><h2>Create input deck and construct grid<a name="3"></a></h2><p>Create an input deck that can be used together with the fully-implicit solver from the 'ad-fi' module. Since the grid is constructed as part of setting up the input deck, we obtain it directly.</p><pre class="codeinput">[deck, G] = sinusDeckAdi([nx ny nz], [Lx Ly H], nsteps, dt, <span class="keyword">...</span>
+                         -.1*pi/180, depth, phi, perm, <span class="keyword">...</span>
+                         (H*phi*Lx*Ly)*0.2*day/year, ipress);
+
+<span class="comment">% Alternatively, we could read deck from file and construct the grid</span>
+<span class="comment">% deck = readEclipseDeck( ...</span>
+<span class="comment">%    fullfile(VEROOTDIR,'data','decks','sinusDeckAdi.DATA');</span>
+<span class="comment">% G = initEclipseGrid(deck);</span>
+
+figure, plotGrid(G),view([0 -1 0]), box <span class="string">on</span>
+</pre><img vspace="5" hspace="5" src="exampleVEBlackOilAdi_01.png" alt=""> <h2>Initialize data structures<a name="4"></a></h2><p>First, we convert the input deck to SI units, which is the unit system used by MRST. Second, we initialize the rock parameters from the deck; the resulting data structure may have to be post-processed to remove inactive cells. Then we set up the fluid object and tell the ad-fi solver that that we are working with an oil-water system.</p><pre class="codeinput">deck  = convertDeckUnits(deck);
+rock  = initEclipseRock(deck);
+rock  = compressRock(rock, G.cells.indexMap);
+fluid = initDeckADIFluid(deck);
+systemOW  = initADISystem({<span class="string">'Oil'</span>, <span class="string">'Water'</span>}, G, rock, fluid);
+</pre><h2>Run the schedule setup in the file<a name="5"></a></h2><p>Before we can run the schedule, we make sure that we have an initial hydrostatic pressure distribution. Then we pick the schedule from the input deck and start the simulator.</p><pre class="codeinput">x0 = initEclipseState(G, deck, initEclipseFluid(deck));
+z  = G.cells.centroids(:,3);
+x0.pressure = ipress*barsa +(z(:)-z(end))*norm(gravity)*deck.PROPS.DENSITY(2);
+
+[wellSols, states] = runScheduleADI(x0, G, rock, systemOW, deck.SCHEDULE);
+</pre><pre class="codeoutput">Warning: Non-linear solver did not converge, stopped by max iterations... 
+Step    1 of   20 (Used  25 iterations)
+Step    2 of   20 (Used  10 iterations)
+Step    3 of   20 (Used   4 iterations)
+Step    4 of   20 (Used   4 iterations)
+Step    5 of   20 (Used   4 iterations)
+Step    6 of   20 (Used   4 iterations)
+Step    7 of   20 (Used   3 iterations)
+Step    8 of   20 (Used   3 iterations)
+Step    9 of   20 (Used   3 iterations)
+Step   10 of   20 (Used   3 iterations)
+Warning: Injector 'I01' shut on input.  Ignored.
+ 
+Warning: Number of wells has changed, wellsol field should be updated based on well-name matching 
+Step   11 of   20 (Used   7 iterations)
+Step   12 of   20 (Used   4 iterations)
+Step   13 of   20 (Used   3 iterations)
+Step   14 of   20 (Used   3 iterations)
+Step   15 of   20 (Used   3 iterations)
+Step   16 of   20 (Used   3 iterations)
+Step   17 of   20 (Used   3 iterations)
+Step   18 of   20 (Used   3 iterations)
+Step   19 of   20 (Used   3 iterations)
+Step   20 of   20 (Used   3 iterations)
+</pre><h2>Plot results<a name="6"></a></h2><pre class="codeinput"><span class="comment">%figure</span>
+Gt = topSurfaceGrid(G);
+xc = Gt.cells.centroids(:,1);
+zt = Gt.cells.z;
+zb = zt + Gt.cells.H;
+<span class="keyword">for</span> nn=1:numel(states)
+    clf
+    state=states{nn};
+
+    subplot(2,2,1),cla
+    title(<span class="string">'pressure'</span>)
+    plotCellData(G,state.pressure/barsa);colorbar(<span class="string">'horiz'</span>), caxis([100 200])
+
+    subplot(2,2,2),cla
+    title(<span class="string">'saturation'</span>)
+    plotCellData(G,state.s(:,1));colorbar(<span class="string">'horiz'</span>), caxis([0 1])
+
+    <span class="comment">% plot as VE</span>
+    subplot(2,2,3),cla
+    plot(xc,state.pressure/barsa); set(gca,<span class="string">'YLim'</span>,[100 200]);
+
+    subplot(2,2,4),cla,hold <span class="string">on</span>
+    patch(xc([1 1:end end]), [zt(end)-10; zt; zt(end)-10],.7*[1 1 1]);
+    patch(xc([1 1:end end]), [zb(end)+10; zb; zb(end)+10],.7*[1 1 1]);
+    patch(xc([1:end end:-1:1]), <span class="keyword">...</span>
+      [zt + Gt.cells.H.*state.s(:,2); zt(end:-1:1)], <span class="string">'g'</span>)
+    patch(xc([1:end end:-1:1]), <span class="keyword">...</span>
+      [zt + Gt.cells.H.*state.s(:,2); zb(end:-1:1)], <span class="string">'b'</span>)
+    set(gca,<span class="string">'YDir'</span>,<span class="string">'reverse'</span>), axis <span class="string">tight</span>
+
+    drawnow;
+    pause(0.01)
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="exampleVEBlackOilAdi_02.png" alt=""> <p class="footer"><br>
+      Published with MATLAB&reg; 7.13<br></p></div><!--
+##### SOURCE BEGIN #####
+%% VE simulation in a standard black-oil solver
+% In this example we show how to set up a standard format black-oil
+% model that can be used to simulate a VE model. For the actual
+% simulation,  we use the fully-implicit solver in MRST from the 'ad-fi'
+% module, which is based on automatic differentiation. 
+
+try
+   require deckformat ad-fi
+catch %#ok<CTCH>
+   mrstModule add deckformat ad-fi
+end
+
+%% Parameters for the simulation
+gravity on
+[nx,ny,nz] = deal(40, 1, 1);     % Cells in Cartsian grid
+[Lx,Ly,H]  = deal(2000,1000,15); % Physical dimensions of reservoir
+total_time = 5*year;             % Total simulation time
+nsteps     = 10;                 % Number of time steps in simulation
+dt         = total_time/nsteps;  % Time step length
+perm       = 100;                % Permeability in milli darcies
+phi        = 0.1;                % Porosity
+depth      = 1000;               % Initial depth
+ipress     = 200;                % Initial pressure
+
+%% Create input deck and construct grid
+% Create an input deck that can be used together with the fully-implicit
+% solver from the 'ad-fi' module. Since the grid is constructed as part of
+% setting up the input deck, we obtain it directly. 
+[deck, G] = sinusDeckAdi([nx ny nz], [Lx Ly H], nsteps, dt, ...
+                         -.1*pi/180, depth, phi, perm, ...
+                         (H*phi*Lx*Ly)*0.2*day/year, ipress);
+
+% Alternatively, we could read deck from file and construct the grid
+% deck = readEclipseDeck( ...
+%    fullfile(VEROOTDIR,'data','decks','sinusDeckAdi.DATA');
+% G = initEclipseGrid(deck);
+
+figure, plotGrid(G),view([0 -1 0]), box on
+                      
+                 
+%% Initialize data structures
+% First, we convert the input deck to SI units, which is the unit system
+% used by MRST. Second, we initialize the rock parameters from the deck;
+% the resulting data structure may have to be post-processed to remove
+% inactive cells. Then we set up the fluid object and tell the ad-fi solver
+% that that we are working with an oil-water system.
+deck  = convertDeckUnits(deck);
+rock  = initEclipseRock(deck);
+rock  = compressRock(rock, G.cells.indexMap);
+fluid = initDeckADIFluid(deck);
+systemOW  = initADISystem({'Oil', 'Water'}, G, rock, fluid);
+
+
+%% Run the schedule setup in the file
+% Before we can run the schedule, we make sure that we have an initial
+% hydrostatic pressure distribution. Then we pick the schedule from the
+% input deck and start the simulator.
+x0 = initEclipseState(G, deck, initEclipseFluid(deck));
+z  = G.cells.centroids(:,3);
+x0.pressure = ipress*barsa +(z(:)-z(end))*norm(gravity)*deck.PROPS.DENSITY(2);
+
+[wellSols, states] = runScheduleADI(x0, G, rock, systemOW, deck.SCHEDULE);
+
+%% Plot results
+%figure
+Gt = topSurfaceGrid(G);
+xc = Gt.cells.centroids(:,1);
+zt = Gt.cells.z;
+zb = zt + Gt.cells.H;
+for nn=1:numel(states)
+    clf
+    state=states{nn};
+    
+    subplot(2,2,1),cla
+    title('pressure')
+    plotCellData(G,state.pressure/barsa);colorbar('horiz'), caxis([100 200])
+    
+    subplot(2,2,2),cla
+    title('saturation')
+    plotCellData(G,state.s(:,1));colorbar('horiz'), caxis([0 1])
+    
+    % plot as VE
+    subplot(2,2,3),cla
+    plot(xc,state.pressure/barsa); set(gca,'YLim',[100 200]);
+
+    subplot(2,2,4),cla,hold on
+    patch(xc([1 1:end end]), [zt(end)-10; zt; zt(end)-10],.7*[1 1 1]);
+    patch(xc([1 1:end end]), [zb(end)+10; zb; zb(end)+10],.7*[1 1 1]);
+    patch(xc([1:end end:-1:1]), ...
+      [zt + Gt.cells.H.*state.s(:,2); zt(end:-1:1)], 'g')
+    patch(xc([1:end end:-1:1]), ...
+      [zt + Gt.cells.H.*state.s(:,2); zb(end:-1:1)], 'b')
+    set(gca,'YDir','reverse'), axis tight
+    
+    drawnow;
+    pause(0.01)
+end
+
+##### SOURCE END #####
+--></body></html>

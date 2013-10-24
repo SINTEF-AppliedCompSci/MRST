@@ -1,0 +1,19 @@
+template<class Real>
+Fluid<Real>::Fluid(Real mu_arg[2], Real rho_arg[2], Real sr_arg, Real sw_arg,
+        Real flux_arg, Real kwm_arg[2])
+{
+    mu[0]       = (Real) mu_arg[0];
+    mu[1]       = (Real) mu_arg[1];
+    rho[0]      = (Real) rho_arg[0];
+    rho[1]      = (Real) rho_arg[1];
+    sr          = (Real) sr_arg;
+    sw          = (Real) sw_arg;
+    fluxInterp  = (Real) flux_arg;
+    kwm[0]      = (Real) kwm_arg[0];
+    kwm[1]      = (Real) kwm_arg[1];
+}
+
+template<class Real>
+Fluid<Real>::~Fluid()
+{
+}
