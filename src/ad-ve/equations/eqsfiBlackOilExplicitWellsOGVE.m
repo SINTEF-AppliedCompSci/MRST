@@ -42,7 +42,11 @@ assert(all(state.s(:)>=0))
 rs0 = state0.rs;
 %--------------------------------------------------------------------------
 rsSat  = f.rsSat(p);
-isSat = (sG>0) | rs>rsSat;% | (1 - sW + sG)  == 0;
+if(isfield(f,'dis_rate'))
+    isSat = (sG>0) | rs>rsSat;% | (1 - sW + sG)  == 0;
+else
+    isSat = (sG>sqrt(eps)) | rs>rsSat;% | (1 - sW + sG)  == 0;
+end
 %isSat = sG>-1;%(sG>0 | rs>=rsSat);% | (1 - sW + sG)  == 0;
 if isempty(hst)
     hst.numch = zeros(G.cells.num,1);
@@ -120,13 +124,14 @@ rsbOvO = s.faceUpstr(upc, rs).*bOvO;
 
 % gas props (calculated at oil pressure OK?)
 bG     = f.bG(pG);
+
 %bG     = f.bG(p+pcOG);
 rhoG   = bG.*f.rhoGS;
 rhoGf  = s.faceAvg(rhoG);
 muG = f.muG(pG);%+pcOG);
 mobG = trMult.*krG./muG;
 %mobG = trMult.*krG./f.muG(p+pcOG);
-
+assert(all(double(rhoG)<double(rhoO)))
 
 if(~any(strcmp(G.type,'topSurfaceGrid')))
     dpG     = s.grad(p+pcOG) - g*(rhoGf.*s.grad(G.cells.centroids(:,3)));
@@ -298,22 +303,24 @@ if(isfield(f,'dis_rate'))
     dis_rate=f.dis_rate.*(s.pv./G.cells.H);
     %only disolve flowing else hystereis variable should be included
     %dis_rate=dis_rate.*double((rs.val<rsSat.val) & (sG.val>0));
+    meps=sqrt(eps);
     if(false)
         dis_rate=dis_rate.*double((rs.val<=(rsSat.val-sqrt(eps))) & (sG.val>sqrt(eps)));
     else
         a=100;
-        dis_rate=dis_rate.*double((rs.val<=(rsSat.val-sqrt(eps))) & (sG.val>sqrt(eps)));
+        dis_rate=dis_rate.*double((rs.val<=(rsSat.val-meps)) & (sG.val>meps));
         tanhyp=@(x,a) ((exp(a*x)-exp(-a*x))./(exp(a*x)+exp(-a*x)));
         s_fac=tanhyp(sG,a);%((exp(a*sG)-exp(-a*sG))./(exp(a*sG)+exp(-a*sG)));
         rs_eps=(rsSat-rs)./f.dis_max;
         rs_fac=tanhyp(rs_eps,a);
         %dis_rate=dis_rate.*((exp(a*sG)-exp(-a*sG))./(exp(a*sG)+exp(-a*sG)));
-        dis_rate=dis_rate.*s_fac;%.*rs_fac;
+        dis_rate=dis_rate.*s_fac.*rs_fac;
     end
     eqs{3} = (s.pv/dt).*...
         ( pvMult.*(rs.*bO.*(1-sG) ) -...
         pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
         s.div(rsbOvO);
+    eqs_org{3}=eqs{3};
     %eqs{3}(wc) = eqs{2}(wc) - rsw.*bOqO;
     if(~isempty(W))
         eqs{3}(wc(pInx)) = eqs{3}(wc(pInx)) - rsw(pInx).*bOqO(pInx);
@@ -378,7 +385,7 @@ if(isfield(f,'dis_rate'))
         end
     end
     %is_sat_loc=(rs.val>(rsSat.val-sqrt(eps))) & eqs{3} > 0;
-    is_sat_loc=(rs.val>rsSat.val);
+    is_sat_loc=(rs.val>=rsSat.val) &  (sG>sqrt(meps));
     eqs{3}(is_sat_loc) = (rs(is_sat_loc) - rsSat(is_sat_loc)).*s.pv(is_sat_loc)/dt;
     % find difference in sGmax
     % introduce changing maximum sGmax
@@ -411,11 +418,22 @@ if(isfield(f,'dis_rate'))
         %ind = sG < sGmax0;
         %tmp = sG < sGmax;
         %%{
-        ind1= tmp2<0 & sGmax < sGmax0;
-        ind2= tmp2<0 & ~(sGmax < sGmax0);
+        % the case of disolution do not manage to remove all residual
+        % saturation  and the new state do not is not fully dissolved
+        ind1= (tmp2<0) & (sGmax < sGmax0) & (~is_sat_loc);        
         if(any(ind1))
             eqs{7}(ind1)=tmp(ind1);
         end
+        % the new state is fully dissolved but all residual saturaiont is
+        % not gone
+        ind3= is_sat_loc & (sGmax < sGmax0) & (sGmax > sG)
+        if(any(ind3))
+            eqs{7}(ind3)=(s.pv/dt).*...
+            (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-r0)
+        end
+        
+        %{
+        ind2= tmp2<0 & ~(sGmax < sGmax0);
         if(any(ind2))
             eqs{7}(ind2)=sGmax(ind2)-sGmax0(ind2);
         end
