@@ -1,13 +1,13 @@
 mrstModule add coarsegrid gridtools mrst-gui
 
-%% Extract a subset of the fine scale Utsira formation 
+%% Extract a subset of the an atlas grid
 grdecl = getAtlasGrid('utsirafm', 'coarsening', 1);
 G = processGRDECL(grdecl{1});
 G = computeGeometry(G(1));
 cdims = G.cartDims;
-G = extractSubgrid(G, find(G.cells.centroids(:, 2) > 6.62e6));
-G.cartDims = cdims;
-G = computeGeometry(G);
+% G = extractSubgrid(G, find(G.cells.centroids(:, 2) > 6.62e6));
+% G.cartDims = cdims;
+% G = computeGeometry(G);
 
 Gt = topSurfaceGrid(G);
 rock = struct('poro', repmat(.3, G.cells.num, 1), ...
@@ -20,10 +20,15 @@ trees = maximizeTrapping(Gt, 'res', res);
 % Use the largest z value to find the ideal injection spot: This
 % corresponds to the deepest possible place in the reservoir surface to
 % inject.
+%
+% We show the five best root notes, which maximizes stored CO2 where five
+% injectors are to be placed. We also show the best single injection cell
+% if we assume that the boundary between two different trap regions spills
+% over to both the neighboring trees.
+
 N = 5;
 W = [];
 injRate = sum(G.cells.volumes)/(10000*N*year);
-
 for i = 1:N
     region = find(res.trap_regions == trees(i).root);
     [~, minpoint] = max(Gt.cells.z(region));
@@ -34,14 +39,23 @@ for i = 1:N
         'comp_i', [1 0]);
     
 end
+% Get the best cell, and plot in blue
+bestSingleCell = findOptimalInjectionPoint(Gt, res);
+W_best = addWell([], G, rock, bestSingleCell, ...
+'Name', 'BestPossiblePoint', ...
+'val', injRate, ...
+'Type', 'rate', ...
+'comp_i', [1 0]);
 
 clf;
 v = trapPathsValue(Gt, trees, res);
 plotCellData(Gt, log10(v), v>0)
 plotGrid(Gt, 'facec', 'none', 'edgea', .05)
 plotWell(G, W)
+plotWell(G, W_best, 'color', 'b')
+outlineCoarseGrid(G, res.trap_regions, 'facecolor', 'none')
 axis tight off
-view(115, 60)
+view(104, 85)
 
 
 
