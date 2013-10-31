@@ -1,6 +1,13 @@
 function fluid = addVERelperm(fluid,varargin)   
-    opt=struct('res_oil',0,'res_gas',0,'Gt',[],'kro',1,'krg',1,'top_trap',[],'surf_topo','square');
-    opt=merge_options(opt, varargin{:});        
+    opt=struct('res_oil',       0,...
+               'res_gas',       0,...
+               'Gt',            [],...
+               'kro',           1,...
+               'krg',           1,...
+               'top_trap',      [],...
+               'surf_topo',     'square');
+   
+    opt = merge_options(opt, varargin{:});        
     fluid.krG=@(sg, p, varargin) krG(sg,opt,varargin{:});
     fluid.krOG=@(so, p, varargin) krOG(so,opt,varargin{:});
     fluid.pcOG=@(sg, p, varargin) pcOG(sg,p ,fluid,opt,varargin{:});
@@ -11,10 +18,12 @@ function fluid = addVERelperm(fluid,varargin)
     fluid.res_oil =opt.res_oil;
     %fluid=rmfield(fluid,'relPerm');
 end
+
 function s = invPc3D(p,opt)
          s=(sign(p+eps)+1)/2*(1-opt.res_oil);
          s=1-s;
 end
+
 function kr= krG(sg,opt,varargin)
     loc_opt=struct('sGmax',[]);    
     loc_opt=merge_options(loc_opt,varargin{:});
@@ -25,10 +34,10 @@ function kr= krG(sg,opt,varargin)
     end
     switch opt.surf_topo
         case 'inf_rough'
-              %% for infinite rough upper surface
-                kr=(sg_free.*opt.Gt.cells.H-opt.top_trap)./opt.Gt.cells.H;% simple model
+            % for infinite rough upper surface
+            kr = (sg_free.*opt.Gt.cells.H-opt.top_trap)./opt.Gt.cells.H;% simple model
         case 'sinus'
-            kr2=((sg_free.*opt.Gt.cells.H).^2-opt.top_trap.^2)./(opt.Gt.cells.H.^2-opt.top_trap.^2);
+            kr2 = ((sg_free.*opt.Gt.cells.H).^2-opt.top_trap.^2)./(opt.Gt.cells.H.^2-opt.top_trap.^2);
             kr=kr2;
              kr(kr2<=0)=0*kr2(kr<=0);
             kr(kr2>0)=kr2(kr2>0).^(0.5);
@@ -38,14 +47,17 @@ function kr= krG(sg,opt,varargin)
            kr(opt.top_trap>0)=kr_s(opt.top_trap>0);
            kr(sg_free<=0)=0.0*sg_free(sg_free<=0);
            %kr(kr<0)=kr(kr<0).*0.0;
+        case 'smooth'
+           kr = sg;
         otherwise
-            error('No such surface type implemented')
+           error('Unknown surface topology')
     end
     kr(kr<0)=0.0.*sg_free(kr<0);
     kr(kr<0)=0.0.*sg_free(kr<0);
     assert(all(kr>=0));
     kr=kr.*opt.krg;
 end
+
 function kr= krOG(so,opt,varargin)
     loc_opt=struct('sGmax',[]);    
     loc_opt=merge_options(loc_opt,varargin{:});
