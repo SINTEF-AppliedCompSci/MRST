@@ -30,6 +30,11 @@ disp('   Vertical averaging applied to the Sleipner model');
 disp('   using C++ accelleration in the transport solver');
 disp('================================================================');
 disp(' ');
+try 
+   require gridtools mex mimetic
+catch %#ok<CTCH>
+   mrstModule add gridtools mex mimetic;
+end
 
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
@@ -109,7 +114,7 @@ end
 % through the well
 opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], ...
    'maxH', 5, 'Wadd', 10, 'view', [130 50]};
-plotPanelVE(G, Gt, W, sol, 0.0, [0 0 1], opts{:});
+plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,6), opts{:});
 
 
 %% Main loop
