@@ -1,4 +1,4 @@
-function [Gt, sol, sreport]=runMigration_topmod(Gt , wpos, pd, method, case_name,varargin)
+function [Gt, sol, sreport]=runMigration_topmod(Gt , wells, pd, method, case_name,varargin)
 
 %% Vertical-Averaged Simulation: SLEIPNER
 % Sleipner is a comercial CO2 storage site in the North Sea, where CO2 has
@@ -89,6 +89,7 @@ Gt.primitives = @primitivesMimeticVE_s;
 % Use C++ acceleration if it exists - NB: requires the VEmex module
 % Notice that the two solvers determine the time steps differently and
 % may therefore give slightly different answers.
+%{
 try
    mtransportVE;
    cpp_accel = true;
@@ -98,6 +99,8 @@ catch me%#ok
    disp('Using matlab VE-transport');
    cpp_accel = false;
 end
+%}
+cpp_accel=false;
 % there is isures with pressure
 transport_methods={'explicite_incomp_mim','implicit_incomp_tpf','explicite_incomp_tpf',...
                    'adi_simple',...
@@ -137,23 +140,16 @@ disp(' -> Setting well and boundary conditions');
 % Set well in 3D model
 
 
-
-rates  = [2.91e4; 5.92e4; 6.35e4; 8.0e4; 1.09e5; ...
-         1.5e5; 2.03e5; 2.69e5; 3.47e05; 4.37e5; 5.4e5]*meter^3/year;
-if(method<0)
-   wellIx = [36 78 7]; 
-  W      = verticalWell([], Gt.parent, rock, wellIx(1), wellIx(2), ...
-                      1, 'Type', 'rate', 'Val', rates(1), ...
-                      'Radius', 0.1, 'comp_i', [1,0], 'name', 'I');  
-    
-else
+W
+for i=1:size(wells.pos,1)
     rhoc=760;
-    rates = opt.amount*1e9*kilogram./(year*rhoc*kilogram*meter^3);
+    wpos=wells.pos(i,:)
+    rates = wells.amounts*1e9*kilogram./(year*rhoc*kilogram*meter^3);
     dist=sqrt(sum(bsxfun(@minus,Gt.cells.centroids(:,1:2),wpos).^2,2))
     [dd,cellnum]=min(dist);
     [ix,iy]=ind2sub(Gt.cartDims,Gt.cells.indexMap(cellnum));
     wellIx = double([ix iy]); 
-    W      = verticalWell([], Gt.parent, rock, wellIx(1), wellIx(2), ...
+    W      = verticalWell(W, Gt.parent, rock, wellIx(1), wellIx(2), ...
                       1, 'Type', 'rate', 'Val', rates(1), ...
                       'Radius', 0.1, 'comp_i', [1,0], 'name', 'I','InnerProduct','ip_tpf');
 end
@@ -216,7 +212,7 @@ sreport{end+1}=struct('t',t,'W',W,'bcVE',bcVE,'sol',sol,'masses',zeros(1,7));%#o
 mydir=[case_name,'_',num2str(method)];
 save_report(mydir,sreport{end},numel(sreport));
 dT_prev=dT;
-
+p0=sol.pressure;
 while t<T
    % Advance solution: compute pressure and then transport
    t_loc = 0;
@@ -284,6 +280,10 @@ while t<T
           dT=min(dT,stopInject-t);
        end
        fprintf(1,'%4d years\n', convertTo(t,year));
+       fprintf(1,'Maximum pressure cell diff %f\n', (convertTo(max(sol.pressure-p0),barsa)));
+       if(~isempty(w))       
+        fprintf(1,'Maximum pressure well diff %f\n', convertTo(vertcat(sol.wellSol.pressure),barsa));
+       end
        
    end
    if(t< stopInject)

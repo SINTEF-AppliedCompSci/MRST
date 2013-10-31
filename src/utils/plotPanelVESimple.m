@@ -250,6 +250,7 @@ if(~(prod(Gt.cartDims)==Gt.cells.num))
     cvec(cvec<0.1)=NaN;
 end
 makepColorPlot(cvec);
+view(prm.view)
 if(isfield(fluidADI,'dis_max'))
     rsH=Gt.cells.H.*(1-sol.s).*sol.rs/fluidADI.dis_max;
 else
@@ -344,7 +345,7 @@ box on;
           %plotCellData(Gt,cvec);          
           axis tight off;
           colorbar;
-          view(3)
+          %view(3)
           
           %view(2)  
         end
