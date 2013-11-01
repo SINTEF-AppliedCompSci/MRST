@@ -336,7 +336,7 @@ title('End of simulation CO2 compared to algorithmically determined trap')
 %displayEndOfDemoMessage(mfilename)
 %%
 end
-function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(solver,Gt,rock, rock2D, cpp_accel,opt)
+function [transport_solver, fluidVE_h, fluidVE_s, fluidADI]= makeTransportSolver(solver,Gt,rock, rock2D, cpp_accel,opt)
     mu= [6e-2*milli 8e-4]*Pascal*second;
     rho= [760 1200] .* kilogram/meter^3;
     sr= 0.21;sw= 0.11;kwm= [0.75 0.54];
@@ -604,6 +604,7 @@ function sol = transport_solve_ex_mim(dT, sol, Gt, SVE, rock, fluidVE, bcVE, w, 
    end
    sol.s = height2Sat(sol, Gt, fluidVE);
 end
+
 function sol = transport_solve_ex_tpf(dT, sol, Gt, T, rock, fluidVE_h,...
                                         bcVE, w, preComp, cpp_accel,fluidVE_s)
    sol = incompTPFA(sol, Gt, T, fluidVE_s, 'wells', w, 'bc', bcVE,'pc_form','nonwetting');
@@ -617,23 +618,25 @@ function sol = transport_solve_ex_tpf(dT, sol, Gt, T, rock, fluidVE_h,...
                                'intVert', false);
    end
    sat = height2Sat(sol, Gt, fluidVE_h);
-   sol.s =sat;
+   sol.s = sat;
    sol.extSat= [min(sat,sol.extSat(:,1)),max(sat,sol.extSat(:,2))];
 end
+
 function sol = transport_solve_imp_tpf(dT, sol, Gt, T, fluid, W2D, bc, rock2D)
     sol = incompTPFA(sol, Gt, T, fluid, 'wells', W2D, 'bc', bc,'pc_form','nonwetting');
     sol = implicitTransport(sol, Gt, dT, rock2D, fluid, ...
                             'wells', W2D, 'bc', bc, 'Verbose', false,'Trans',T);
-    [s h hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
+    [s, h, hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
     sol.h = h;
     sol.h_max = hm;                    
     %sol = 
 end
+
 function sol = explicit_solve_imp_tpf_s(dT, sol, Gt, T, fluid, W2D, bc, rock2D)
     sol = incompTPFA(sol, Gt, T, fluid, 'wells', W2D, 'bc', bc,'pc_form','nonwetting');
     sol = explicitTransport(sol, Gt, dT, rock2D, fluid, ...
                             'wells', W2D, 'bc', bc, 'Verbose', false,'Trans ',T);
-    [s h hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
+    [s, h, hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
     sol.h = h;
     sol.h_max = hm;                    
     %sol = 
