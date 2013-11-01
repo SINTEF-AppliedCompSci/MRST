@@ -150,7 +150,7 @@ for i=1:size(wells.pos,1)
     wellIx = double([ix iy]); 
     W      = verticalWell(W, Gt.parent, rock, wellIx(1), wellIx(2), ...
                       1, 'Type', 'rate', 'Val', rates(1), ...
-                      'Radius', 10, 'comp_i', [1,0], 'name', 'I','InnerProduct','ip_tpf');
+                      'Radius', 0.3, 'comp_i', [1,0], 'name', 'I','InnerProduct','ip_tpf');
 end
 
 % Well in 2D model
