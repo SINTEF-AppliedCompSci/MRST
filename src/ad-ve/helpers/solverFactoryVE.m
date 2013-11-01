@@ -1,6 +1,7 @@
 function solver = solverFactoryVE(Gt, fluid, rock, system, varargin)
    opt = struct('transport',      'implicit',...
-                'formulation',     's', ...
+                'formulation',    's', ...
+                'transportTolerance', 1e-3, ...
                 'discretization', 'tpfa' ...
                 );
    
@@ -14,6 +15,7 @@ function solver = solverFactoryVE(Gt, fluid, rock, system, varargin)
    T = [];
    
    if fullyImplicit
+       require ad-fi
        assert(useS);
        if system.activeComponents.disgas
            % CO2 can be dissolved
@@ -21,6 +23,9 @@ function solver = solverFactoryVE(Gt, fluid, rock, system, varargin)
        else
            tsolve = @transport_adiOG_simple;
        end
+       system.nonlinear.tol = opt.transportTolerance;
+       system.nonlinear.use_ecltol = false;
+       
        solver = @(sol, w, bc, dT) tsolve(sol, Gt, system, bc, w, dT, fluid);
    else
        switch(lower(opt.discretization))
@@ -30,6 +35,7 @@ function solver = solverFactoryVE(Gt, fluid, rock, system, varargin)
                psolve = @(sol, w, bc) incompTPFA(sol, Gt, T, fluid,...
                                                   'wells', w, 'bc', bc);
            case 'mimetic'
+               require mimetic
                S = computeMimeticIPVE(Gt, rock2D, 'Innerproduct','ip_tpf');
                if useS
                    solveMimetic = @solveIncompFlowVE;
@@ -47,7 +53,7 @@ function solver = solverFactoryVE(Gt, fluid, rock, system, varargin)
            case 'implicit'
                assert(useS)
                tsolve = @(sol, w, bc, dT) implicitTransport(sol, Gt, dT, rock2D, fluid, ...
-                            'wells', w, 'bc', bc, 'Verbose', false, 'Trans', T);
+                            'wells', w, 'bc', bc, 'Trans', T, 'nltol', opt.transportTolerance);
            case 'explicit'
                if useS
                    tsolve = @(sol, w, bc, dT) explicitTransport(sol, Gt, dT,...
@@ -65,28 +71,38 @@ function solver = solverFactoryVE(Gt, fluid, rock, system, varargin)
                error('Unknown transport solver');
        end
        
-       if useS
-          solver = @(sol, w, bc, dT) transportSolveIncompS(sol, w, bc, dT, psolve, tsolve);
-       else
-          solver = @(sol, w, bc, dT) transportSolveIncompH(sol, w, bc, dT, psolve, tsolve);
-       end
+      solver = @(sol, w, bc, dT) transportSolveIncomp(sol, w, bc, dT, ...
+                                        psolve, tsolve, Gt, fluid, useS);
    end
 end
 
-function sol = transportSolveIncompH(sol, w, bc, dT, psolve, tsolve)
-    sol = psolve(sol, w, bc);
-    sol = tsolve(sol, w, bc, dT);
 
-    sol.s = height2Sat(sol, Gt, fluidVE);
-    sol.extSat= [min(sat,sol.extSat(:,1)),max(sat,sol.extSat(:,2))];
-end
-
-function sol = transportSolveIncompS(sol, w, bc, dT, psolve, tsolve)
+function [sol, its, conv] = transportSolveIncomp(sol, w, bc, dT, psolve, tsolve, Gt, fluid, isS)
     sol = psolve(sol, w, bc);
-    sol = tsolve(sol, w, bc, dT);
-    [s, h, hm] = normalizeValuesVE(Gt, sol, fluid); %#ok
-    sol.h = h;
-    sol.h_max = hm;    
+    if isS
+        [sol, report] = tsolve(sol, w, bc, dT);
+            conv.converged = report.success;
+        if conv.converged
+            its = report.iterations;
+        else
+            its = report.vasted_iterations;
+        end
+    else
+        % We have a solver that does not report convergence.
+        sol = tsolve(sol, w, bc, dT);
+        conv.converged = true;
+        its = 1;
+    end
+    
+    if isS
+        [s, h, hm] = normalizeValuesVE(Gt, sol, fluid); %#ok
+        sol.h = h;
+        sol.h_max = hm;
+    else
+        sol.s = height2Sat(sol, Gt, fluid);
+        sol.extSat= [min(sat,sol.extSat(:,1)),max(sat,sol.extSat(:,2))];
+    end
+
 end
 
 function T = computeTransmissibilityVE(Gt, rock2D)
@@ -101,7 +117,7 @@ end
 
 %%%%%% TRANSPORT SOLVERS, FULLY IMPLICIT
 
-function sol = transport_adiOGD_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluidADI)     
+function [sol, its, convergence] = transport_adiOGD_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluidADI)     
     
      %state=sol;
      %rmfield(sol,'state')
@@ -130,7 +146,7 @@ function sol = transport_adiOGD_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,flui
             W(i).compi=[0,W(i).compi([2,1])]; 
          end
      end
-    [state, its] = solvefiADI(state, dT, W, Gt, systemOG,'bc',bcVE_s);%#ok
+    [state, its, convergence] = solvefiADI(state, dT, W, Gt, systemOG,'bc',bcVE_s);%#ok
     %[state, its] = solvefiADI(state, dT, W, Gt, systemOG,'bc',[]);%#ok
     sat=state.s(:,2);
     sol.s=sat;
@@ -173,7 +189,7 @@ function sol = transport_adiOGD_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,flui
     sol.sGmax=state.sGmax;
 end
 
-function sol = transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluidADI)
+function [sol, its, convergence] = transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluidADI)
      %state=sol;
      state.pressure = sol.pressure;   
      state.smax=[1-sol.extSat(:,1),sol.extSat(:,2)];
@@ -192,7 +208,7 @@ function sol = transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluid
             W(i).compi=[0,W(i).compi([2,1])]; 
          end
      end
-    [state, its] = solvefiADI(state, dT, W, Gt, systemOG,'bc',bcVE_s);%#ok
+    [state, its, convergence] = solvefiADI(state, dT, W, Gt, systemOG,'bc',bcVE_s);%#ok
     %[state, its] = solvefiADI(state, dT, W, Gt, systemOG,'bc',[]);%#ok
     sat=state.s(:,2);
     sol.s=sat;    

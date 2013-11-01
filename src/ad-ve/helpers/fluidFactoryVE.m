@@ -1,4 +1,4 @@
-function [fluid, system] = fluidFactoryVE(Gt, rock, varargin)
+function [fluid, system, sol] = fluidFactoryVE(Gt, rock, varargin)
    opt = struct('mu',                   [6e-2*milli 8e-4]*Pascal*second,...
                 'rho',                  [760 1200] .* kilogram/meter^3, ...
                 'sr',                   0.21, ...
@@ -39,15 +39,15 @@ function [fluid, system] = fluidFactoryVE(Gt, rock, varargin)
         % Compressibilities...
         fluid.pvMultR = @(p) 1 + opt.rockCompressibility*(p-opt.referencePressure);
         
-        fluid.bO = @(p) 1 + opt.waterCompressibility*(p-opt.referencePressure);
-        fluid.BO = @(p) 1./fluid.bO(p);
+        fluid.bO = @(p, varargin) 1 + opt.waterCompressibility*(p-opt.referencePressure);
+        fluid.BO = @(p, varargin) 1./fluid.bO(p);
         
         if opt.useTabulatedCO2
             fluid.bG  =  boCO2(opt.referenceTemperature, fluid.rhoG);
         else
-            fluid.bG = @(p) 1 + opt.gasCompressibility*(p-opt.referencePressure);
+            fluid.bG = @(p, varargin) 1 + opt.gasCompressibility*(p-opt.referencePressure);
         end
-        fluid.BG = @(p) 1./fluid.bG(p);
+        fluid.BG = @(p, varargin) 1./fluid.bG(p);
         
         
         fluid = addVERelperm(fluid, 'res_oil',     opt.sw, ...
@@ -59,7 +59,7 @@ function [fluid, system] = fluidFactoryVE(Gt, rock, varargin)
             if isfinite(opt.dissolutionSpeed)
                 fluid.dis_rate = opt.dissolutionSpeed*opt.dissolutionMax;
             end
-            fluid.rsSat=@(po,rs,flag,varargin) (po*0+1)*opt.dissolutionMax;
+            fluid.rsSat= @(po,rs,flag,varargin) (po*0+1)*opt.dissolutionMax;
             % Recall that "oil" is really water and gas refers to CO2
             phases = {'Oil', 'Gas', 'DisGas',};
         else
@@ -68,10 +68,15 @@ function [fluid, system] = fluidFactoryVE(Gt, rock, varargin)
         
         s = setupSimCompVe(Gt, rock2D);
         
-        system = initADISystem(phases, Gt, rock2D, fluid, 'simComponents',s);
+        system = initADISystem(phases, Gt, rock2D, fluid,...
+                                    'simComponents', s, ...
+                                    'use_ecltol',    false);
         if opt.dissolution
             % Override equations with the actual black oil-like fluid
-            system.getEquations = @eqsfiBlackOilExplicitWellsOGVE_new;   
+            system.getEquations = @eqsfiBlackOilExplicitWellsOGVE_new;
+            system.stepFunction = @(state0, state, meta, dt, W, G, system, varargin)...
+                   stepBlackOilOGVE(state0, state, meta, dt, G, W, system, fluid, varargin{:});
+
         else
             % Override with ve-based oil-gas fluid
             system.getEquations = @eqsfiOGExplicitWellsVE;   
@@ -92,9 +97,14 @@ function [fluid, system] = fluidFactoryVE(Gt, rock, varargin)
                                                 'height',   Gt.cells.H,...
                                                 'sr',       [opt.sr, opt.sw],...
                                                 'kwm',      opt.kwm);                                                        
-                fluid.sr = sr;
-                fluid.sw = sw;
+                fluid.sr = opt.sr;
+                fluid.sw = opt.sw;
         end
         system = [];
     end
+    
+    % Finally, set up a initialized state matching the fluid
+    sol = initResSolVE(Gt, opt.referencePressure, 0);
+    sol.pressure = rho(2)*norm(gravity()).*Gt.cells.z;
+    [sol.rs, sol.sGmax, sol.s] = deal(zeros(Gt.cells.num,1));
 end
