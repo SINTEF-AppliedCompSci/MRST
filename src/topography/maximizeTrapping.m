@@ -93,9 +93,12 @@ function v = volumes(G, res, trap)
     v = zeros(1,numel(trap));
     for i = 1:numel(trap)
         ind = res.traps == trap(i);
-        z = G.cells.z(ind);
+        H=G.cells.H(ind);
+        z = G.cells.z(ind);        
         fill_z = res.trap_z(trap(i));
-        v(i) = sum(max(eps, G.cells.volumes(ind).*(fill_z - z)));
+        assert(all((fill_z - z)>=0));
+        h_plume=min((fill_z - z),H);
+        v(i) = sum(max(eps, G.cells.volumes(ind).*h_plume));
     end
 end
 
