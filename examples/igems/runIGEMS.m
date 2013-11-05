@@ -53,7 +53,7 @@ clf
 Gt_zshifted = Gt; 
 Gt_zshifted.nodes.z = Gt_zshifted.nodes.z - 100;
 plot_opts = {'edgeColor', 'k', 'edgeAlpha', 0.1};
-plotGrid(G, 'edgeAlpha', plot_opts{:});
+plotGrid(G, plot_opts{:});
 plotCellData(Gt_zshifted, Gt_zshifted.cells.z, plot_opts{:});
 view(55,26);
 
