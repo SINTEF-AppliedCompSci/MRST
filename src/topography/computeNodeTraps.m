@@ -26,8 +26,8 @@ function res = computeNodeTraps(Gt)
 %                            returned as a cell array rather than a
 %                            vector or matrix. 
 %          dstr_neigh      - one value per grid node.  Gives index of
-%                            'most downstream' neighbor node, or '0' if
-%                            there is no downstream neighbor (i.e. the
+%                            'most upstream' neighbor node, or '0' if
+%                            there is no upstream neighbor (i.e. the
 %                            node in question is a sommet or on the
 %                            boundary. 
 %          trap_regions    - one value per grid node.  Gives the number
@@ -125,11 +125,11 @@ function [reg_groupings, grouping_zvals, grouping_sp_ix, cmat, icmat] = ...
 % reg_groupings  - sparse matrix expressing which nodes of 'cmat' have
 %                  been grouped together.  (This happens when 'cycles'
 %                  are detected, so that no of the involved nodes can be
-%                  said to be downstream from the others.)  The matrix
+%                  said to be upstream from the others.)  The matrix
 %                  has one row per node and one column per grouping. 
 % icmat          - "iterated" cmat, i.e. cmat + cmat^2 + cmat^3 + ... until cmat^n = 0.
 %                  This matrix thus expresses, for a given grouping
-%                  (line), all the groupings that are 'downstream' of it
+%                  (line), all the groupings that are 'upstream' of it
 %                  (columns). 
 % cmat           - adjacency (connectivity) matrix between traps, and
 %                  between traps and the exterior.
@@ -162,7 +162,7 @@ function [reg_groupings, grouping_zvals, grouping_sp_ix, cmat, icmat] = ...
         while (any(diag(icmat)))
             dnz = find(diag(icmat)); % indices of nonzero diagonal elements
             i = dnz(1);
-            % nodes participating in the cycle are those both upstream AND downstream
+            % nodes participating in the cycle are those both upstream AND upstream
             % of node i.  In other words, the intersection of nonzeros on the i-th row
             % and i-th column of 'tmp'.
             cycle_nodes = find(icmat(i,:) & icmat(:,i)');
@@ -282,7 +282,7 @@ function [res_mat, z_heights, spillpoint_edge] = ...
 end
 
 %===============================================================================
-function rivers = trace_rivers(Gt, traps, trap_spoint_edges, downstream_neighbor)
+function rivers = trace_rivers(Gt, traps, trap_spoint_edges, upstream_neighbor)
     num_traps = size(trap_spoint_edges,1);
     
     % Assumption: each face (edge) has exactly two nodes, which are stored
@@ -302,18 +302,18 @@ function rivers = trace_rivers(Gt, traps, trap_spoint_edges, downstream_neighbor
             % growing river at 'end' until a sommet is reached
             first_node = river_nodes(1);
             last_node  = river_nodes(2);
-            % while ( downstream_neighbor(last_node) ~= 0 ) && ...
+            % while ( upstream_neighbor(last_node) ~= 0 ) && ...
             %       ( traps(last_node) == 0)
-            while (downstream_neighbor(last_node) ~= 0)
-                last_node = downstream_neighbor(last_node);
+            while (upstream_neighbor(last_node) ~= 0)
+                last_node = upstream_neighbor(last_node);
                 river_nodes = [river_nodes; last_node];                    %#ok
             end
             
             % growing river at 'start' until a sommet is reached
-            % while ( downstream_neighbor(first_node) ~= 0) && ...
+            % while ( upstream_neighbor(first_node) ~= 0) && ...
             %       ( traps(first_node) == 0)
-            while (downstream_neighbor(first_node) ~= 0)
-                first_node = downstream_neighbor(first_node);
+            while (upstream_neighbor(first_node) ~= 0)
+                first_node = upstream_neighbor(first_node);
                 river_nodes = [first_node; river_nodes];                   %#ok
             end
             % ensuring that the river is oriented so that it starts in 'this'
@@ -333,7 +333,7 @@ function [neigh_traps, highest_spill_z_value, highest_spill_edge_ixs] ...
 % [This function is written for, and called by, the functions 'assemble_connectivity_matrix' 
 %  and 'computeNodeTraps']
 % For a given trap (as indicated by 'trap_ix'), determine which other traps
-% it spills into (i.e. immediate "downstream" neighbor(s)). Each trap is 
+% it spills into (i.e. immediate "upstream" neighbor(s)). Each trap is 
 % defined by a number of "local-minima" spill regions, as expressed by the 
 % 'all_traps' matrix.
 % 
@@ -342,7 +342,7 @@ function [neigh_traps, highest_spill_z_value, highest_spill_edge_ixs] ...
 %   locate_neighbor_traps(trap_ix, all_traps, spill_edges)
 %
 % PARAMETERS:
-% trap_ix      - Index of the trap for which we want to identify the immediate downstream traps
+% trap_ix      - Index of the trap for which we want to identify the immediate upstream traps
 % all_traps    - Matrix expressing how individual 'local-minima' spill regions have been grouped 
 %                together as 'traps'.  Each line represent a local spill region, each column 
 %                represents a trap.  Elements are either '1' (region 'i' is part of trap 'j') or 
@@ -364,8 +364,8 @@ function [neigh_traps, highest_spill_z_value, highest_spill_edge_ixs] ...
 %                This matrix can be produced by the 'nodeSpillField' function.                    
 %
 % RETURNS:
-% neigh_traps            - Index (or vector of indices) to the trap(s) immediate downstream of the 
-%                          trap in question.  Can be empty if there is no trap downstream (i.e. 
+% neigh_traps            - Index (or vector of indices) to the trap(s) immediate upstream of the 
+%                          trap in question.  Can be empty if there is no trap upstream (i.e. 
 %                          trap spills out of domain).
 % highest_spill_z_value  - z-value of the trap's spill point.
 % highest_spill_edge_ixs - Index(ices) of the corresponding spill edge(s)
