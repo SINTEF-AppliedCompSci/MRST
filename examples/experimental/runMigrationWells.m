@@ -29,8 +29,7 @@ function [Gt, sol, sreport]=runMigration_topmod(Gt , wells, pd, method, case_nam
 %clc
 
 %% Process options
-opt = struct('amount',      1, ...
-            'T_injection',  100*year,  ...
+opt = struct('T_injection',  100*year,  ...
             'T_migration',  1000*year, ...
             'dt_min', 0.1*year,...
             'dt_max', 1*year,...
@@ -140,18 +139,18 @@ disp(' -> Setting well and boundary conditions');
 % Set well in 3D model
 
 
-W
+W=[];
 for i=1:size(wells.pos,1)
     rhoc=760;
-    wpos=wells.pos(i,:)
-    rates = wells.amounts*1e9*kilogram./(year*rhoc*kilogram*meter^3);
-    dist=sqrt(sum(bsxfun(@minus,Gt.cells.centroids(:,1:2),wpos).^2,2))
+    wpos=wells.pos(i,:);
+    rates = wells.amounts(i)*1e9*kilogram./(year*rhoc*kilogram*meter^3);
+    dist=sqrt(sum(bsxfun(@minus,Gt.cells.centroids(:,1:2),wpos).^2,2));
     [dd,cellnum]=min(dist);
     [ix,iy]=ind2sub(Gt.cartDims,Gt.cells.indexMap(cellnum));
     wellIx = double([ix iy]); 
     W      = verticalWell(W, Gt.parent, rock, wellIx(1), wellIx(2), ...
                       1, 'Type', 'rate', 'Val', rates(1), ...
-                      'Radius', 0.1, 'comp_i', [1,0], 'name', 'I','InnerProduct','ip_tpf');
+                      'Radius', 10, 'comp_i', [1,0], 'name', 'I','InnerProduct','ip_tpf');
 end
 
 % Well in 2D model
@@ -186,7 +185,7 @@ ts=findTrappingStructure(Gt);
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
 opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE_h.sw], ...
-   'maxH', 5, 'Wadd', 10, 'view', [130 50]};
+   'maxH', 5, 'Wadd', 10, 'view', [60 80]};
 if(opt.plot)
  plotPanelVESimple(Gt.parent, Gt, W, sol, 0.0, [0 0 0 0 0 0 1], fluidVE_h, fluidADI, opts{:});
 end
@@ -228,7 +227,7 @@ while t<T
                totMas = totMas + fluidVE_h.rho(1).*w.val*dT;
            else
                rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.pressure);
-               totMas = totMas + rhoCO2_well.*sol.state.wellSol.qGs*dT;
+               totMas = totMas + rhoCO2_well.*sum(vertcat(sol.state.wellSol.qGs))*dT;
                masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
                co2mass= masses(1)+masses(3);
                if(abs(co2mass-totMas)> totMas*1e-3)
@@ -258,9 +257,9 @@ while t<T
                first_post=false;
            end               
        else
-           ind = min(floor(t/year)+1, numel(rates));
-           rate = rates(ind);
-           w.val = rate;
+           %ind = min(floor(t/year)+1, numel(rates));
+           %rate = rates(ind);
+           %w.val = rate;
        end
        
        % Plotting
@@ -282,7 +281,7 @@ while t<T
        fprintf(1,'%4d years\n', convertTo(t,year));
        fprintf(1,'Maximum pressure cell diff %f\n', (convertTo(max(sol.pressure-p0),barsa)));
        if(~isempty(w))       
-        fprintf(1,'Maximum pressure well diff %f\n', convertTo(vertcat(sol.wellSol.pressure),barsa));
+        fprintf(1,'Maximum pressure well diff %f\n', convertTo(max(vertcat(sol.state.wellSol.pressure)),barsa));
        end
        
    end
@@ -326,7 +325,7 @@ trap = res.trap_regions([WVE.cells]);
 figure()
 clf();
 plotCellData(Gt, sol.h, sol.h > 0.01)
-plotGrid(Gt, res.traps == trap, 'FaceColor', 'red', 'EdgeColor', 'w')
+%plotGrid(Gt, res.traps == trap, 'FaceColor', 'red', 'EdgeColor', 'w')
 plotGrid(Gt, 'FaceColor', 'None', 'EdgeAlpha', .1);
 
 legend({'CO2 Plume', 'Trap'})
@@ -337,7 +336,7 @@ title('End of simulation CO2 compared to algorithmically determined trap')
 %displayEndOfDemoMessage(mfilename)
 %%
 end
-function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(solver,Gt,rock, rock2D, cpp_accel,opt)
+function [transport_solver, fluidVE_h, fluidVE_s, fluidADI]= makeTransportSolver(solver,Gt,rock, rock2D, cpp_accel,opt)
     mu= [6e-2*milli 8e-4]*Pascal*second;
     rho= [760 1200] .* kilogram/meter^3;
     sr= 0.21;sw= 0.11;kwm= [0.75 0.54];
@@ -406,7 +405,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
            %fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
            fluidADI = addVERelperm_topmod(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt,'top_trap',opt.top_trap);
            systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
-               'simComponents',s,'VE',true,'tol',1e-12);
+               'simComponents',s,'VE',true,'tol',1e-6);
 
            transport_solver = @(sol,bcVE_s,WVE_s,dT)...
                transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluidADI);
@@ -605,6 +604,7 @@ function sol = transport_solve_ex_mim(dT, sol, Gt, SVE, rock, fluidVE, bcVE, w, 
    end
    sol.s = height2Sat(sol, Gt, fluidVE);
 end
+
 function sol = transport_solve_ex_tpf(dT, sol, Gt, T, rock, fluidVE_h,...
                                         bcVE, w, preComp, cpp_accel,fluidVE_s)
    sol = incompTPFA(sol, Gt, T, fluidVE_s, 'wells', w, 'bc', bcVE,'pc_form','nonwetting');
@@ -618,23 +618,25 @@ function sol = transport_solve_ex_tpf(dT, sol, Gt, T, rock, fluidVE_h,...
                                'intVert', false);
    end
    sat = height2Sat(sol, Gt, fluidVE_h);
-   sol.s =sat;
+   sol.s = sat;
    sol.extSat= [min(sat,sol.extSat(:,1)),max(sat,sol.extSat(:,2))];
 end
+
 function sol = transport_solve_imp_tpf(dT, sol, Gt, T, fluid, W2D, bc, rock2D)
     sol = incompTPFA(sol, Gt, T, fluid, 'wells', W2D, 'bc', bc,'pc_form','nonwetting');
     sol = implicitTransport(sol, Gt, dT, rock2D, fluid, ...
                             'wells', W2D, 'bc', bc, 'Verbose', false,'Trans',T);
-    [s h hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
+    [s, h, hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
     sol.h = h;
     sol.h_max = hm;                    
     %sol = 
 end
+
 function sol = explicit_solve_imp_tpf_s(dT, sol, Gt, T, fluid, W2D, bc, rock2D)
     sol = incompTPFA(sol, Gt, T, fluid, 'wells', W2D, 'bc', bc,'pc_form','nonwetting');
     sol = explicitTransport(sol, Gt, dT, rock2D, fluid, ...
                             'wells', W2D, 'bc', bc, 'Verbose', false,'Trans ',T);
-    [s h hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
+    [s, h, hm] = normalizeValuesVE(Gt, sol, fluid);%#ok
     sol.h = h;
     sol.h_max = hm;                    
     %sol = 

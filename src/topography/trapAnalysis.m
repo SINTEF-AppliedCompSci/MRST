@@ -31,6 +31,10 @@ function res = trapAnalysis(Gt, method)
 %                          sparse format.
 %         - cell_lines   - @@ COMPLETE
 %
+%         - top          - cell number for the top point of each trap for
+%                          the cell-centroid-based algorithm, undefined for
+%                          the edge-based algorithm
+%
 % EXAMPLE:
 %
   if method
@@ -58,13 +62,15 @@ function res = edge_based_trap_analysis(Gt)
     res.trap_regions = ctrap_regions;
     res.trap_adj     = cadj;
     res.cell_lines   = crivers;
+    res.top          = [];
 end
 
 %===============================================================================
 function res = cell_based_trap_analysis(Gt)
     trap_st = findTrappingStructure(Gt);
-    conn_st = findTrapConnections(trap_st.Gtop, trap_st.z_spill_loc);
+    res.top = trap_st.top;
     
+    conn_st = findTrapConnections(trap_st.Gtop, trap_st.z_spill_loc);
     res.traps    = conn_st.traps;
     res.trap_adj = conn_st.trap_matrix;
 

@@ -194,20 +194,23 @@ else
     state.s  = [1-sg, sg];    
     state.sGmax=min(1,state.sGmax);
     state.sGmax=max(0,state.sGmax);
-    diff=0;
-    state.sGmax=max(state.sGmax,sg-diff);
+    
     
     state.rs=max(0,state.rs);
     %state.rs=min(state.rs,f.rsSat(state.pressure));
     if isfield(f,'dis_rate')
+        diff=0;
+        state.sGmax=max(state.sGmax,sg-diff);
         %state.sGmax=min(state.sGmax,max(state.smax(:,2),sg)+diff);
         min_rs= minRs(state.pressure,state.s(:,2),state.sGmax,f,G);
         min_rs=min_rs./state.s(:,1);
         state.rs=max(min_rs,state.rs);
         state.rs=min(state.rs,f.rsSat(state.pressure));
     else
-        state.sGmax=min(state.sGmax,max(state.smax(:,2),sg)+diff);
-      %state.rs=min(state.rs,f.rsSat(state.pressure));  
+        diff=1e-3;
+        state.sGmax=max(state.sGmax,sg);
+        state.sGmax=max(state.sGmax,max(state.smax(:,2),sg)+diff*0.0);
+        state.rs=min(state.rs,f.rsSat(state.pressure)+diff);  
     end
     
 end
