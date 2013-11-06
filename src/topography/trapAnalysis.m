@@ -29,8 +29,12 @@ function res = trapAnalysis(Gt, method)
 %                          at (i,j) indicates that region 'i' spills directly
 %                          into region 'j'.  This matrix is stored on the
 %                          sparse format.
-%         - cell_lines   - @@ COMPLETE
-%
+%         - cell_lines   - One cell array per trap, conaining the 'rivers'
+%                          exiting that trap.  A river is presented as a
+%                          sequence of consecutive grid cells that lie
+%                          geographically along the river.  A river starts in
+%                          a trap and ends either in another trap or at the
+%                          boundary of the domain.
 %         - top          - cell number for the top point of each trap for
 %                          the cell-centroid-based algorithm, undefined for
 %                          the edge-based algorithm

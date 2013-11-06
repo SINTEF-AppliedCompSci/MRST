@@ -31,6 +31,11 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
   % lost_regions       - indices of those edge-based regions whose traps did
   %                      not get projected to any cell (e.g. because they
   %                      were too small)
+  % crivers            - one cell array per trap, containing the 'rivers'
+  %                      exiting that trap.  A river is presented as a sequence of
+  %                      consecutive grid cells that lie geographically along the
+  %                      river.  A river starts in the trap, and ends either in another
+  %                      trap or at the boundary of the domain.
   %
   %
   % SEE ALSO:
@@ -211,8 +216,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
                 % finding index of cells having these nodes as corner 'i'.
                 cells_ix = [cells_ix, find(ismember(cellnodes(i, :), nodes_ix))]; %#ok
 
-                % remove nodes that have been mapped, and iterate on the next
-                % corner
+                % remove nodes that have been mapped, and iterate on the next corner
                 % nodes_ix = nodes_ix(find(~ismember(nodes_ix, cellnodes(i, cells_ix))));
                 if (isempty(nodes_ix)); break; end;
             end
