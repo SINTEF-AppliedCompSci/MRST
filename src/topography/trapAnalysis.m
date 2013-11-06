@@ -53,16 +53,16 @@ function res = edge_based_trap_analysis(Gt)
     ntraps = computeNodeTraps(Gt);
 
     % Projecting trap information onto cells (from edges)
-    [ctraps, ctrap_zvals, ctrap_regions, cadj, crivers] = ...
-        n2cTraps(Gt, ntraps.trap_regions, ntraps.trap_zvals, ntraps.connectivity, ...
-                 ntraps.rivers);  
+    [ctraps, ctrap_zvals, ctrap_regions, csommets, cadj, crivers] = ...
+        n2cTraps(Gt, ntraps.trap_regions, ntraps.trap_zvals, ntraps.dstr_neigh, ...
+                 ntraps.connectivity, ntraps.rivers);  
     
     res.traps        = ctraps;
     res.trap_z       = ctrap_zvals;
     res.trap_regions = ctrap_regions;
     res.trap_adj     = cadj;
     res.cell_lines   = crivers;
-    res.top          = [];
+    res.top          = csommets;
 end
 
 %===============================================================================
@@ -117,7 +117,8 @@ function res = cell_based_trap_analysis(Gt)
             tcells=affected_cells(res.traps(affected_cells)>0);
             if(~(min(Gt.cells.z(tcells))==min(Gt.cells.z(affected_cells))))
                myswitch=0;
-               dispif(mrstVerbose, ['Warning, top point of region higher than trap in region.  Include in outside traps.\n']);
+               dispif(mrstVerbose, ['Warning, top point of region higher than ' ...
+                                   'trap in region.  Include in outside traps.\n']); 
             end            
         end
         switch myswitch;
@@ -130,7 +131,8 @@ function res = cell_based_trap_analysis(Gt)
           otherwise
             %dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  Touches %d ' ...
             %                     'traps.\n'], numel(affected_region));
-            dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  Assign to highest trap\n'], numel(affected_region));
+            dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  ' ...
+                                'Assign to highest trap\n'], numel(affected_region)); 
             [m,i]=min(Gt.cells.z(tcells));                 
             res.trap_regions(affected_cells) = res.traps(tcells(i(1)));
         end
