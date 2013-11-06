@@ -7,7 +7,7 @@
 
 %% Load data
 % Make top-surface grid from a coarsened version of the Utsira formation
-[grdecl,m] = getAtlasGrid('Utsirafm','coarsening',3);
+[grdecl,m] = getAtlasGrid('Utsirafm','coarsening', 4);
 G    = processGRDECL(grdecl{1});
 Gt   = topSurfaceGrid(G(1));
 meta = m{2}.meta;
@@ -56,8 +56,17 @@ c(c==0)=NaN;
 figure(1),clf
 surf(X,Y,data+1),shading interp
 hold on
-plot3(c(:,1),c(:,2),c(:,3)-1, 'k-', 'LineWidth', 1);
+plot3(c(:,1),c(:,2),c(:,3)-1, 'w-', 'LineWidth', 1);
+
+startpts = isnan(c(:, 1));
+startpts = [false; startpts(1:end-1)];
+plot3(c(startpts,1),c(startpts,2),c(startpts,3)-1, 'r.', 'LineWidth', 1);
+
+
 hold off
+camlight left
+lighting phong
+colormap winter
 view(70,50), axis tight, set(gca,'ZDir','reverse');
 
 %% Find trapping structure
@@ -71,27 +80,34 @@ view(70,50), axis tight, set(gca,'ZDir','reverse');
 % corresponding spill point.
 
 % Check for existence of the MATLAB graph library
+mrstModule add gridtools coarsegrid
 checkBGL();
 
-ts=findTrappingStructure(Gt);
-
+ts = findTrappingStructure(Gt);
+res = trapAnalysis(Gt, true);
 % Plot the new top-surface grid on top of the old one to show the location
 % of traps
 clf, subplot('position',[.025 .025 .95 .95]);
-plotGrid(Gt,      'FaceColor','r','EdgeAlpha',.1)
-plotGrid(ts.Gtop, 'FaceColor','y','EdgeColor','none');
-view(92,40), axis tight off, set(gca,'ZDir','reverse');
+subs = ts.istrap;
+plotCellData(Gt,      .8*ones(G.cells.num,  1), res.traps > 0, 'EdgeAlpha',.1, 'facea', .5)
+plotCellData(ts.Gtop, .2*ones(G.cells.num, 1), 'EdgeAlpha',.1, 'EdgeColor', 'w');
+axis tight off, 
+set(gca,'ZDir','normal');
+camlight right
+lighting phong
+set(gca,'ZDir','reverse');
+colormap autumn
+hold on
+plot3(c(:,1),c(:,2),c(:,3)-1, 'w-', 'LineWidth', 1);
 
-%%
-% Show the flat parts of the grid
-cla
-plotGrid(ts.Gtop,'FaceColor','none','EdgeAlpha',.1)
-plotGrid(ts.Gtop, ts.z_spill_loc>0, 'EdgeAlpha', .1)
+view(72,16), 
+caxis([0 1])
+
 
 %%
 % Show the traps on different levels in different colors
 cla
-plotGrid(ts.Gtop,'FaceColor','none','edgeAlpha',0.1)
+plotGrid(ts.Gtop,'FaceColor',[1 1 1]*.9,'edgeAlpha',0.1, 'edgec', 'none')
 nt  = numel(ts.trap_level);
 col = hsv(nt);
 for k=nt:-1:1
@@ -99,11 +115,16 @@ for k=nt:-1:1
    for i=1:size(ts.trap_level{k},2)
       cell_list = [cell_list; find(ts.trap_level{k}(:,i)>0)]; %#ok
    end
-   plotGrid(Gt, cell_list, 'FaceColor', col(k,:),  'EdgeAlpha',.1);
+   plotGrid(Gt, cell_list, 'FaceColor', col(k,:), 'EdgeColor', 'none');
 end
 colormap(col); cbh=colorbar('horiz'); caxis([0 nt]+.5);set(cbh,'XTick',1:nt);
-view(100,70)
+set(gca,'ZDir','normal');
+camlight right
+lighting phong
+set(gca,'ZDir','reverse');
 
+view(100,70)
+axis off
 %% 
 % All the CO2 that accumulates in a trap must come from the trap's drainage
 % area that consists of all cells that have an updip connection to the
@@ -111,6 +132,7 @@ view(100,70)
 % defined as the cells whose spill paths lead into the corresponding local
 % top point. A spill path is the path that the CO2 will follow in its
 % upward migration when injected infinitesimally slow from a given point
+mrstModule add mrst-gui
 clf, subplot('position',[.025 .025 .95 .95]);
 
 % To find the drainage area, we construct a directed graph from the gravity
@@ -130,6 +152,16 @@ plotCellData(Gt,p(ci), p(ci)>0, 'EdgeColor', 'none');
 plotGrid(Gt,ts.top(ts.istrap), 'FaceColor',[.45 .45 .45],'EdgeAlpha',.1);
 axis tight off, view(85,50), colormap(jet(nt));
 
+[trees, volumes] = maximizeTrapping(Gt, 'res', res, 'removeOverlap', false);
+
+% Plot bar columns showing the volume of each trap
+topcells = ts.top(ts.istrap);
+v = volumes(res.traps(topcells));
+plotGridBarchart(G, v, ts.top(ts.istrap), 'widthscale', 1, 'facecolor', 'w')
+set(gca,'ZDir','normal');
+camlight right
+lighting phong
+set(gca,'ZDir','reverse');
 
 %% Find trap connections (river system)
 % The CO2 is typically injected low in the formation and if we disregard
