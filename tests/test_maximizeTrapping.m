@@ -1,15 +1,16 @@
 mrstModule add coarsegrid gridtools mrst-gui
 
 %% Extract a subset of the Utsira formation for analysis
-[grdecl, d, petrodata] = getAtlasGrid('utsirafm', 'coarsening', 1);
+coarsefactor = 1;
+[grdecl, d, petrodata] = getAtlasGrid('utsirafm', 'coarsening', coarsefactor);
 pd = petrodata{1};
 
 G = processGRDECL(grdecl{1});
 G = computeGeometry(G(1));
 cdims = G.cartDims;
-G = extractSubgrid(G, find(G.cells.centroids(:, 2) > 6.62e6));
-G.cartDims = cdims;
-G = computeGeometry(G);
+% G = extractSubgrid(G, find(G.cells.centroids(:, 2) > 6.62e6));
+% G.cartDims = cdims;
+% G = computeGeometry(G);
 
 Gt = topSurfaceGrid(G);
 rock = struct('poro', repmat(pd.avgporo, G.cells.num, 1), ...
@@ -25,20 +26,40 @@ rock = struct('poro', repmat(pd.avgporo, G.cells.num, 1), ...
 % traps in any given tree, many trees will largely consist of the same
 % traps. When optimizing injection with a single injection point the
 % distinction is not important, but the overlap must be considered when
-% several injectors are being considered.
 
 res = trapAnalysis(Gt, 'cell');
-[trees, trapvols] = maximizeTrapping(Gt, 'res', res);
+[trees, trapvols] = maximizeTrapping(Gt, 'res', res, 'removeOverlap', true);
 trees_nooverlap = maximizeTrapping(Gt, 'res', res, 'removeOverlap', false);
+%%
+% several injectors are being considered.
+close all
+fp = get(0, 'DefaultFigurePosition');
+h = figure('position', fp.*[1 1 1 .5]);
 
-treevalues = (vertcat(trees.value));
-treevalues_nooverlap = (vertcat(trees_nooverlap.value));
-semilogy([treevalues, treevalues], '.')
+[tv, tv_noop] = deal(nan(max(res.traps), 1));
+
+% Index into total trap index based on leaf node
+tv(vertcat(trees.root)) = vertcat(trees.value);
+tv_noop(vertcat(trees_nooverlap.root)) = vertcat(trees_nooverlap.value);
+
+% Sort by the overlapping values
+[tv, ind] = sort(tv, 'descend');
+tv_noop = tv_noop(ind);
+
+% Strip nan values
+tv_noop(isnan(tv)) = [];
+tv(isnan(tv)) = [];
+
+bar([tv, tv_noop- tv], 'stacked')
 set(gcf, 'Renderer', 'painters')
-ylabel('Tree volume')
+ylabel('Tree volume (m^3)')
 xlabel('Tree index')
-legend({'Overlap removed', 'Overlap included'})
+caxis( [.5 2])
+set(gca, 'Yscale', 'log')
 axis auto
+ylim([min(tv), 1.1*max(tv)])
+legend({'Without overlap', 'Overlap'},'location', 'southwest')
+
 %% Find the ideal injection spot for each trap region
 % Use the largest z value to find the ideal injection spot: This
 % corresponds to the deepest possible place in the reservoir surface to
@@ -48,6 +69,8 @@ axis auto
 % injectors are to be placed. We also find the best single injection cell
 % if we assume that the boundary between two different trap regions spills
 % over to both the neighboring trap regions. 
+if ishandle(h); close(h); end;
+h = figure('position', fp.*[1 1 2.5 1.5]);
 
 N = 10;
 % Work out the lowest point in each root trap
@@ -66,7 +89,7 @@ end
 
 % Vast differences in values, use log10
 largest = log10(largestVol);
-v       = log10(treevalues);
+v       = log10(tv);
 treestart = [largest; v(1:N)];
 trapcells = [bestSingleCell; trapcells];
 
@@ -82,23 +105,24 @@ end
 plotGrid(G, res.traps == 0, 'edgec', 'none', 'facec', [1 1 1]*.9)
 
 plotBar = @(data, cells, format) plotGridBarchart(G, data, cells, ...
-                            'widthscale', 5, 'facecolor', [], ...
+                            'widthscale', 5*(1/coarsefactor), 'facecolor', [], ...
+                            'fontsize', 15, ...
                             'EdgeColor', 'none', 'textformat', format);
 % Setup function handle to show percent of total trapped volume
-perc = @(x) 100*(10^x)/sum(treevalues);
+perc = @(x) 100*(10^x)/sum(tv);
 plotBar(treestart, trapcells, @(x) sprintf('%1.1f%%', perc(x)))
 
 outlineCoarseGrid(G, res.trap_regions, 'facecolor', 'none')
-set(gca,'ZDir','normal');
-camlight head
-lighting phong
-set(gca,'ZDir','reverse');
+% set(gca,'ZDir','normal');
+% camlight head
+% lighting phong
+% set(gca,'ZDir','reverse');
 
 axis tight off
-view(85, 50)
+view(64, 72)
 caxis([min(treestart), max(treestart)]);
-%% Simulatte CO2 injection
-sol = migrateInjection(Gt, res, pd, bestSingleCell, 'amount', 10l, 'Nm', 1000, 'Ni', 50, 'T_migration', 2000*year);
+%% Simulate CO2 injection
+sol = migrateInjection(Gt, res, pd, bestSingleCell, 'amount', 10, 'Nm', 1000, 'Ni', 50, 'T_migration', 2000*year);
 
 %% Plot the actual migration
 close all
@@ -111,3 +135,9 @@ for i = 1:2
 end
 plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', .05)
 view(-210, 28)
+
+%%
+close all
+plotGridBarchart(G, sol.h, 'edgecolor', 'none', 'facealpha', .6);
+plotGrid(G, 'FaceAlpha', 0, 'edgealpha', .1)
+fastRotateButton
