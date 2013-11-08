@@ -35,9 +35,9 @@ function res = trapAnalysis(Gt, method)
 %                          geographically along the river.  A river starts in
 %                          a trap and ends either in another trap or at the
 %                          boundary of the domain.
-%         - top          - cell number for the top point of each trap for
-%                          the cell-centroid-based algorithm, undefined for
-%                          the edge-based algorithm
+%         - top          - indices for all cells that represents local maxima
+%                          in the grid.  (NB: these are all trap cells, but
+%                          there may be more than one local maxima per trap)
 %
 % EXAMPLE:
 %

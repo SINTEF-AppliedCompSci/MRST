@@ -24,7 +24,9 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
   % ctrap_regions      - one value per grid cell.  Gives the trap number of the trap 
   %                      that the node spills into, or zero if the cell belongs to 
   %                      the spill region of the 'exterior' of the domain. 
-  % csommets           - indices to the sommet cells of the projected traps
+  % csommets           - indices to all cells that represent local maxima
+  %                      (NB: these are all trap cells, but there may be more
+  %                      than one sommet per trap) 
   % ctrap_connectivity - (Sparse) adjacency matrix with one row/column per trap. 
   %                      Row 'i' is nonzero only for columns 'j' where trap 'i' spills
   %                      directly into trap 'j' when overflowing.
