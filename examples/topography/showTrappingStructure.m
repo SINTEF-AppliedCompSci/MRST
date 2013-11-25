@@ -8,7 +8,7 @@
 %% Load data
 % Make top-surface grid from a coarsened version of the Utsira formation
 [grdecl,m] = getAtlasGrid('Utsirafm','coarsening', 4);
-G    = processGRDECL(grdecl{1});
+G    = computeGeometry(processGRDECL(grdecl{1}));
 Gt   = topSurfaceGrid(G(1));
 meta = m{2}.meta;
 data = abs(m{2}.data)';
@@ -89,8 +89,8 @@ res = trapAnalysis(Gt, true);
 % of traps
 clf, subplot('position',[.025 .025 .95 .95]);
 subs = ts.istrap;
-plotCellData(Gt,      .8*ones(G.cells.num,  1), res.traps > 0, 'EdgeAlpha',.1, 'facea', .5)
-plotCellData(ts.Gtop, .2*ones(G.cells.num, 1), 'EdgeAlpha',.1, 'EdgeColor', 'w');
+plotCellData(Gt,      .8*ones(Gt.cells.num,  1), res.traps > 0, 'EdgeAlpha',.1, 'facea', .5)
+plotCellData(ts.Gtop, .2*ones(Gt.cells.num, 1), 'EdgeAlpha',.1, 'EdgeColor', 'w');
 axis tight off, 
 set(gca,'ZDir','normal');
 camlight right
