@@ -1,10 +1,14 @@
 function [Gt,sol, sreport]=runSleipnerSimple(method,case_name,varargin)
 %% Vertical-Averaged Simulation: SLEIPNER
-% Sleipner is a comercial CO2 storage site in the North Sea, where CO2 has
-% been injected since 1996.
+% The Sleipner field in the North Sea was the world's first commercial CO2
+% storage project. Every year since 1996, approximately one million tonnes
+% of carbon dioxide has been captured from the natural gas production at
+% Sleipner West using a conventional amine process and stored in the saline
+% Utsira formation. The Utsira formation is a  200-250 meters thick massive
+% sandstone that lies at a depth of 800-1000 metres below the seabed.
 %
-% In this example we simulate injection and migration of CO2 on sleipner
-% using the data provided in the paper:
+% In this example we simulate injection and migration of CO2 in the upper
+% geological layer of Sleipner using the data provided in the paper:
 %
 %     "Reservoir Modeling of CO2 Plume Behavior Calibrated Agains
 %     Monitoring Data From Sleipner, Norway", SPE 134891
@@ -12,8 +16,9 @@ function [Gt,sol, sreport]=runSleipnerSimple(method,case_name,varargin)
 % The data set is avaliable online on:
 %   http://www.ieaghg.org/index.php?/2009112025/modelling-network.html
 %
-% Provided with the paper is injection rates for 11 years. We inject 30
-% years using the last injection rate the last 19 years.
+% The data set provides injection rates for eleven years. We inject thirty
+% years, assuming that the injection continues with a constant rate the
+% last twenty years.
 %
 % We demonstrate the use of C/C++-accelerated MATLAB, using the functions
 %
