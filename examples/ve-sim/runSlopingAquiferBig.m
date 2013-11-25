@@ -89,6 +89,11 @@ catch me
    disp('Using matlab ve-transport');
    cpp_accel = false;
 end
+try
+   require mimetic
+catch me
+   mrstModule add mimetic;
+end
 
 % Find trapping structure in grid. Used for calculation of trapped volumes
 ts=findTrappingStructure(Gt);
@@ -100,7 +105,7 @@ ts=findTrappingStructure(Gt);
 % through the well
 opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], ...
    'maxH', 200, 'Wadd', 1000};
-plotPanelVE(G, Gt, W, sol, 0.0, [0 0 1], opts{:});
+plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,6), opts{:});
 
 %% Main loop
 % Run the simulation using a sequential splitting with pressure and
