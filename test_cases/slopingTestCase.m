@@ -158,8 +158,8 @@ sol_full.wellSol = initWellSol(W, 0);
 % % 
 % opts = {'slice', double([x_min + 3 y_middle]), 'Saxis', [0 1-fluid_H.sw], 'maxH', max(G.nodes.coords(:,3)), ...
 %         'view', v, 'wireH', true, 'wireS', true};
-% % % plotPanelVE(G, G_2D, W, sol_S, 0.0, [0 0 1], opts{:});
-% plotPanelVE(G, G_2D, W, sol_H, 0.0, [0 0 1], opts{:});
+% % % plotPanelVE(G, G_2D, W, sol_S, 0.0, [0 0 0 0], opts{:});
+% plotPanelVE(G, G_2D, W, sol_H, 0.0, [0 0 0 0], opts{:});
 %% Main loop
 % Run the simulation using a sequential splitting with pressure and
 % transport computed in separate steps. 

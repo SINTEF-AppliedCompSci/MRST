@@ -16,9 +16,12 @@ function vol = volumesVE(G, sol, rock, fluid, ts)
     %   provided, the vector consists of two entries:
     %      - the residual CO2 saturation in regions where the CO2 plume has
     %        moved out, defined as the difference between h_max and h
+    %      - the free residual volume defined as the height of the CO2
+    %        colum in each cell multiplied by the pore volume of the cell
+    %        and the residual CO2 saturation
     %      - free volume defined as the height of CO2 column in each cell
     %        multiplied by the pore volume of the cell and the CO2
-    %        saturation
+    %        saturation minus the residual CO2 saturation
     %   If a trapping structure is provided, the vector consists of five
     %   entries:
     %      - residual volumes of CO2 confined to structural traps
@@ -32,9 +35,11 @@ function vol = volumesVE(G, sol, rock, fluid, ts)
    
     pv = rock.poro.*G.cells.volumes;
     if nargin==4
-       trapped = sum((sol.h_max-sol.h).*pv)*fluid.sr;
-       free    = sum(sol.h.*pv)*(1-fluid.sw);
-       vol     = [trapped free];
+       trapped  = sum((sol.h_max-sol.h).*pv)*fluid.sr;
+       plumeVol = sum(sol.h.*pv);
+       freeRes  = plumeVol*fluid.sr;
+       free     = plumeVol*(1-fluid.sw-fluid.sr);
+       vol      = [trapped freeRes free];
     elseif nargin==5
        if isfield(ts, 'z_spill_loc')
            zt = max(ts.z_spill_loc-G.cells.z, 0);
