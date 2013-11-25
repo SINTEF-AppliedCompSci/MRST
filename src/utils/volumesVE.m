@@ -19,7 +19,7 @@ function vol = volumesVE(G, sol, rock, fluid, ts)
     %      - free volume defined as the height of CO2 column in each cell
     %        multiplied by the pore volume of the cell and the CO2
     %        saturation
-    %   If a trapping structure is provided, the vector consists of four
+    %   If a trapping structure is provided, the vector consists of five
     %   entries:
     %      - residual volumes of CO2 confined to structural traps
     %      - residual volume of CO2 left in cells the CO2 plume has
