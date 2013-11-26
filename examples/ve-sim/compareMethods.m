@@ -129,7 +129,7 @@ sw = 0.3;
 % We extract arbitrarily the first set of wells from the deck constructed
 % for a general black-oil solver. Since the grid specified in the input
 % deck is only one cell thick, the well indices calculated in 3D will also
-% be correct for the VE simulation. However, we need to make to other
+% be correct for the VE simulation. However, we need to make two other
 % modifications. First, if the well is specified as 'resv', we change the
 % specification to rate. Likewise, we correct the definition of input value
 % according to solver so that CO2 is injected correctly in each two-phase
@@ -168,8 +168,9 @@ tmp.tsolver = @(sol,fluid, dt, W, bc, src) ...
    explicitTransportVE(sol, Gts, dt, rock, fluid, 'computeDt', true, ...
    'intVert_poro', false,'intVert',false,'wells',W,'bc',bc, 'src', src);
 
-% As this solver solves for height of CO2 plume, it is not neccessary to
-% compute h from saturation values but have to find the saturation
+% As this solver solves for the height of the CO2 plume, it is not
+% neccessary to compute h from saturation values, but instead we have to
+% compute the saturation from h
 tmp.compute_h=false;
 tmp.compute_sat=true;
 
@@ -205,7 +206,7 @@ tmp.psolver = @(sol,fluid, W, bc, src) ...
 tmp.tsolver = @(sol,fluid,dt,W,bc, src) ...
    implicitTransport(sol, Gts, dt, rock2d, fluid, 'wells', W, 'bc', bc, 'src', src);
 
-% One need to calculate h separatly since the solver does not
+% One needs to calculate h separatly since the solver does not
 tmp.compute_h = true;
 tmp.compute_sat = false;
 
@@ -418,8 +419,8 @@ plot(xc, pco2, 'dr-');
 text(xc(end-4), pco2(end-3),'Pressure at top \rightarrow', ...
    'HorizontalAlignment', 'right', 'Color', 'r')
 
-% In this plot of the pressure at the end we see
-%    - The mimetic calculate the pressure at the interface between
-%        co2 and water
-%      - The tpfa with the given fluid calculate the extrapolated
-%        water pressure at the top
+% In this plot of the pressure at the end of simulation, we see that
+%    - the mimetic method calculates the pressure at the interface between
+%      CO2 and water
+%    - the TPFA method with the given fluid calculates the extrapolated
+%      water pressure at the top
