@@ -20,7 +20,7 @@ function trap=findTrappingStructure(Gt, varargin)
 %   top  - an (nx1) vector of cell number for all local maxima on the top
 %          surface grid
 %
-%   istrap - an (nx1) boolean vector identifying wether a local maximum is
+%   istrap - an (nx1) boolean vector identifying whether a local maximum is
 %          a trap or not. In the following, m = numel(top(istrap))
 %
 %   Gtop - a top-surface grid, in which the topography inside each
@@ -89,7 +89,7 @@ function trap=findTrappingStructure(Gt, varargin)
 %   colormap(col); cbh=colorbar; caxis([0 nt]+.5);set(cbh,'YTick',1:nt);
 %
 % SEE ALSO:
-%   topSurfaceGrid, findCellLines
+%   topSurfaceGrid, trapAnalysis, findCellLines, findTrapConnections
 % 
 opt = struct('use_multipoint',false);
 opt = merge_options(opt, varargin{:});
@@ -100,8 +100,6 @@ checkBGL();
 % Find top cells of the surface defined such that all centroids of all
 % internal neighbors lie deeper.
 nc       = Gt.cells.num;
-
-
 
 if(opt.use_multipoint)   
   N=neighboursByNodes(Gt,'include_bc',true);
