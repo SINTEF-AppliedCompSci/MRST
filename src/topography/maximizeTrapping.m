@@ -61,7 +61,9 @@ function [trees, v] = maximizeTrapping(G, varargin)
     end
     Nt = min(opt.n,numel(rn));
     
-    trees = struct('root', [], 'traps', [], 'value', cellfun(@(x) 0, cell(1,Nt), 'UniformOutput', false));
+    trees = struct('root',  [], ...
+                   'traps', [], ...
+                   'value', cellfun(@(x) 0, cell(1,Nt), 'UniformOutput', false));
     % Initialize
     i = 1;
     

@@ -55,7 +55,8 @@ else
   G=processGRDECL(grdecl); 
 end
 [ijk{1:3}]=ind2sub(G.cartDims,G.cells.indexMap)
-kmin=min(ijk{3}(grdecl.PERMX>200));kmax=max(ijk{3}(grdecl.PERMX>200));
+kmin=double(min(ijk{3}(grdecl.PERMX>200)));
+kmax=double(max(ijk{3}(grdecl.PERMX>200)));
 grdecl=cutGrdecl(grdecl,[1,grdecl.cartDims(1);1,grdecl.cartDims(2);kmin,kmax]);
 permx=mean(grdecl.PERMX);poro=mean(grdecl.PORO);
 grdecl=coarseGrdecl(grdecl,[1 1,grdecl.cartDims(3)]);

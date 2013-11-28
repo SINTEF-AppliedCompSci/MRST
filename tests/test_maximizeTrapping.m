@@ -1,7 +1,10 @@
 mrstModule add coarsegrid gridtools mrst-gui
 
-%% Extract a subset of the an atlas grid
-grdecl = getAtlasGrid('utsirafm', 'coarsening', 1);
+%% Extract a subset of the Utsira formation for analysis
+coarsefactor = 1;
+[grdecl, d, petrodata] = getAtlasGrid('utsirafm', 'coarsening', coarsefactor);
+pd = petrodata{1};
+
 G = processGRDECL(grdecl{1});
 G = computeGeometry(G(1));
 cdims = G.cartDims;
@@ -10,177 +13,131 @@ cdims = G.cartDims;
 % G = computeGeometry(G);
 
 Gt = topSurfaceGrid(G);
-rock = struct('poro', repmat(.3, G.cells.num, 1), ...
-              'perm', repmat(100*milli*darcy, G.cells.num, 1));
+rock = struct('poro', repmat(pd.avgporo, G.cells.num, 1), ...
+              'perm', repmat(pd.avgperm, G.cells.num, 1));
 %% Compute trapping analysis and find the sorted injection trees
+% An injection tree corresponds to a root node and all traps that are
+% upstream from that node. By default, maximize trapping finds all
+% leafnodes while accounting for overlap between the trees.
+%
+% We find both the trap tree with and without overlap. Once plotted, it is
+% obvious that the calculated volumes with overlap are quite different from
+% those without: As several leaf nodes may be downstream from the larger
+% traps in any given tree, many trees will largely consist of the same
+% traps. When optimizing injection with a single injection point the
+% distinction is not important, but the overlap must be considered when
+
 res = trapAnalysis(Gt, 'cell');
-trees = maximizeTrapping(Gt, 'res', res);
+[trees, trapvols] = maximizeTrapping(Gt, 'res', res, 'removeOverlap', true);
+trees_nooverlap = maximizeTrapping(Gt, 'res', res, 'removeOverlap', false);
+%%
+% several injectors are being considered.
+close all
+fp = get(0, 'DefaultFigurePosition');
+h = figure('position', fp.*[1 1 1 .5]);
+
+[tv, tv_noop] = deal(nan(max(res.traps), 1));
+
+% Index into total trap index based on leaf node
+tv(vertcat(trees.root)) = vertcat(trees.value);
+tv_noop(vertcat(trees_nooverlap.root)) = vertcat(trees_nooverlap.value);
+
+% Sort by the overlapping values
+[tv, ind] = sort(tv, 'descend');
+tv_noop = tv_noop(ind);
+
+% Strip nan values
+tv_noop(isnan(tv)) = [];
+tv(isnan(tv)) = [];
+
+bar([tv, tv_noop- tv], 'stacked')
+set(gcf, 'Renderer', 'painters')
+ylabel('Tree volume (m^3)')
+xlabel('Tree index')
+caxis( [.5 2])
+set(gca, 'Yscale', 'log')
+axis auto
+ylim([min(tv), 1.1*max(tv)])
+legend({'Without overlap', 'Overlap'},'location', 'southwest')
 
 %% Find the ideal injection spot for each trap region
 % Use the largest z value to find the ideal injection spot: This
 % corresponds to the deepest possible place in the reservoir surface to
 % inject.
 %
-% We show the five best root notes, which maximizes stored CO2 where five
-% injectors are to be placed. We also show the best single injection cell
+% We show the ten best root notes, which maximizes stored CO2 where five
+% injectors are to be placed. We also find the best single injection cell
 % if we assume that the boundary between two different trap regions spills
-% over to both the neighboring trees.
+% over to both the neighboring trap regions. 
+if ishandle(h); close(h); end;
+h = figure('position', fp.*[1 1 2.5 1.5]);
 
-N = 5;
-W = [];
-injRate = sum(G.cells.volumes)/(10000*N*year);
+N = 10;
+% Work out the lowest point in each root trap
+trapcells = zeros(N, 1);
 for i = 1:N
-    region = find(res.trap_regions == trees(i).root);
-    [~, minpoint] = max(Gt.cells.z(region));
-    W = addWell(W, G, rock, region(minpoint), ...
-        'Name', num2str(i), ...
-        'val', injRate, ...
-        'Type', 'rate', ...
-        'comp_i', [1 0]);
+    r = res.trap_regions == trees(i).root;
+    region = find(r);
+    tmp = Gt.cells.z;
+    tmp(~r) = -inf;
     
+    [minpoint, cell] = max(tmp);
+    trapcells(i) = cell;
 end
-% Get the best cell, and plot in blue
-bestSingleCell = findOptimalInjectionPoint(Gt, res);
-W_best = addWell([], G, rock, bestSingleCell, ...
-'Name', 'BestPossiblePoint', ...
-'val', injRate, ...
-'Type', 'rate', ...
-'comp_i', [1 0]);
+% Get the best cell on a ridge
+[bestSingleCell, largestVol, allFaces, point, traps] = findOptimalInjectionPoint(Gt, res);
+
+% Vast differences in values, use log10
+largest = log10(largestVol);
+v       = log10(tv);
+treestart = [largest; v(1:N)];
+trapcells = [bestSingleCell; trapcells];
 
 clf;
-v = trapPathsValue(Gt, trees, res);
-plotCellData(Gt, log10(v), v>0)
-plotGrid(Gt, 'facec', 'none', 'edgea', .05)
-plotWell(G, W)
-plotWell(G, W_best, 'color', 'b')
-outlineCoarseGrid(G, res.trap_regions, 'facecolor', 'none')
-axis tight off
-view(104, 85)
-
-
-
-
-%% Set up fluid
-muw = 0.30860;  rhow = 975.86; sw    = 0.1;
-muc = 0.056641; rhoc = 686.54; srco2 = 0.2;
-kwm = [0.2142 0.85];
-
-mu  = [muc  muw ] .* centi*poise;
-rho = [rhoc rhow] .* kilogram/meter^3;
-
-fluid = initSimpleVEFluid_s('mu' , mu , 'rho', rho, ...
-                                'height'  , Gt.cells.H,...
-                                'sr', [srco2, sw],'kwm',kwm);
-fluid.sr = srco2;
-fluid.sw = sw;
-
-%% Define vertical pressure distribution
-topPressure = 350*barsa;
-gravity on;
-grav     = gravity();
-topPos   = min(Gt.cells.z);
-pressure = @(z) topPressure + rho(2)*(z - topPos)*grav(3);
-
-%% Schedule
-T_injection = 100*year;
-T_migration = 500*year;
-Ni = 20;
-Nm = 100;
-
-T_tot = T_injection + T_migration;
-dTi   = T_injection / Ni;  % short time steps during injection
-dTm   = T_migration / Nm;  % longer steps during migration
-
-rock2D    = averageRock(rock, Gt);
-T = computeTrans(Gt, rock2D);
-T = T.*Gt.cells.H(gridCellNo(Gt));
-
-
-% Add pressure boundary 
-bnd = boundaryFaces(Gt);
-bc = addBC([], bnd, 'pressure', pressure(Gt.faces.z(bnd)), 'sat', [0 1]);
-
-% Convert to 2D wells
-W2D = convertwellsVE_s(W, G, Gt, rock2D,'ip_tpf');
-
-%%  Set up initial reservoir conditions
-% The initial pressure is set to hydrostatic pressure. Setup and plot.
-sol = initResSolVE_s(Gt, pressure(Gt.cells.z), 0);
-sol.wellSol = initWellSol(W2D, 0);
-sol.h = zeros(Gt.cells.num, 1);
-
-
-opts = {'Saxis',     [0 1-fluid.sw], ...
-        'plotPlume', true, ...
-        'wireH', true, ...
-        'wireS', true, ...
-        'slice',     [150 800], ...
-        'maxH',      (max(Gt.cells.z) - min(Gt.cells.z))/3, ...
-        'plotHist',  true};
-
-
-fh = plotPanelVE(G, Gt, W, sol, 0, ...
-   [volumesVE(Gt, sol, rock2D, fluid, res) 0], opts{:});
-
-
-%% Run the simulation
-W2D = convertwellsVE_s(W, G, Gt, rock2D,'ip_tpf');
-% Solve for all timesteps, and plot the results at each timestep.
-t = 0;
-tt = ' (Injecting)';
-totVol = 0;
-
-% Estimate total timesteps
-tstep_tot = ceil(T_injection/dTi) + ceil(T_migration/dTm); 
-i = 1;
-
-% Waitbar to show progress
-hwbar = waitbar(0, 'Initializing...');
-wbar = @(i, t, status) waitbar(t/T_tot, hwbar, ...
-   sprintf('Timestep %d of %d, T=%s%s', i, tstep_tot, ...
-   formatTimeRange(floor(t/year)*year), status));
-while t < T_tot;
-    if ishandle(hwbar)
-        wbar(i, t, tt);
-    end
-    if t >= T_injection 
-        W2D = [];
-        dT  = dTm;
-        % Do a shorter timestep
-        dT = min(dT, T_tot - t);
-        tt  = ' (Migrating)';
-    else
-        dT = dTi;
-        dT = min(dT, T_injection - t);
-    end
-    sol = incompTPFA(sol, Gt, T, fluid, 'wells', W2D, 'bc', bc);
-    sol = implicitTransport(sol, Gt, dT, rock2D, fluid, ...
-                            'wells', W2D, 'bc', bc, 'Verbose', false);
-    t = t + dT;
-
-    % Plotting
-    [s h hm] = normalizeValuesVE(Gt, sol, fluid);
-    sol.h = h;
-    sol.h_max = hm;
-
-    if true
-        % Use advanced plotting
-        if ~isempty(W2D)
-            totVol = totVol + sum([W2D.val])*dT;
-        end
-        vol = volumesVE(Gt, sol, rock2D, fluid, res);
-        plotPanelVE(G, Gt, W, sol, t, [vol totVol], opts{:}); 
-    else
-        set(0,'CurrentFigure', fh);
-        [a,b] = view();
-        clf
-        plotCellData(G, s, 'edgec', 'k', 'edgea', .1, 'edgec', [.6 .6 .6]);
-        plotWell(G, W); caxis([0 .9]);
-        title([formatTimeRange(t) tt])
-        colorbar
-        axis tight off
-        view(a,b);
-        drawnow
-    end
-    i = i + 1;
+% Plot all traps colorized by their largest tree volume
+plotted = false(G.cells.num, 1);
+for i = 1:numel(trees)
+    cells = ismember(res.traps, trees(i).traps);
+    plotCellData(G, repmat(v(i), G.cells.num, 1), cells & ~plotted);
+    plotted = plotted | cells;
 end
+
+plotGrid(G, res.traps == 0, 'edgec', 'none', 'facec', [1 1 1]*.9)
+
+plotBar = @(data, cells, format) plotGridBarchart(G, data, cells, ...
+                            'widthscale', 5*(1/coarsefactor), 'facecolor', [], ...
+                            'fontsize', 15, ...
+                            'EdgeColor', 'none', 'textformat', format);
+% Setup function handle to show percent of total trapped volume
+perc = @(x) 100*(10^x)/sum(tv);
+plotBar(treestart, trapcells, @(x) sprintf('%1.1f%%', perc(x)))
+
+outlineCoarseGrid(G, res.trap_regions, 'facecolor', 'none')
+% set(gca,'ZDir','normal');
+% camlight head
+% lighting phong
+% set(gca,'ZDir','reverse');
+
+axis tight off
+view(64, 72)
+caxis([min(treestart), max(treestart)]);
+%% Simulate CO2 injection
+sol = migrateInjection(Gt, res, pd, bestSingleCell, 'amount', 10, 'Nm', 1000, 'Ni', 50, 'T_migration', 2000*year);
+
+%% Plot the actual migration
+close all
+target_trees = trees(arrayfun(@(x) any(traps == x.root), trees));
+
+plotCellData(Gt, sol.h, sol.h > 0.1)
+colors = {'r', 'y'};
+for i = 1:2
+    plotGrid(Gt, ismember(res.traps, target_trees(i).traps), 'FaceColor', colors{i}, 'EdgeColor', 'none');
+end
+plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', .05)
+view(-210, 28)
+
+%%
+close all
+plotGridBarchart(G, sol.h, 'edgecolor', 'none', 'facealpha', .6);
+plotGrid(G, 'FaceAlpha', 0, 'edgealpha', .1)
+fastRotateButton

@@ -22,8 +22,20 @@ cachepath = fullfile(matpath, 'IGEMS.mat');
 if exist(cachepath, 'file')
     load(cachepath);
 else
-    pth = fullfile(VEROOTDIR, 'data', 'igems', 'eclipsegrids', 'OSS_NP2.GRDECL');
-    grdecl = readGRDECL(pth);
+   pth = fullfile(VEROOTDIR, 'data', 'igems');
+   fle = fullfile('eclipsegrids/OSS_NP2.GRDECL');
+   if ~exist(fullfile(pth,fle), 'file')
+      promptMessage = sprintf('This will download 467 MB of data which will extract to 7.6 GB\nDo you want to Continue processing, or Cancel to abort processing?');
+      button = questdlg(promptMessage, 'Continue', 'Continue', 'Cancel', 'Continue');
+      if strcmpi(button, 'Cancel')
+         return;
+      end
+      disp(' -> Download 467 MB of data from: http://files.nr.no/igems/');
+      disp(['    Putting data in ', pth]);
+      %untar('http://files.nr.no/igems/eclipsegrids.zip',pth);
+    end
+    grdecl = readGRDECL(fullfile(pth, fle));
+
     G = processGRDECL(grdecl);
     G = computeGeometry(G);
     rock = grdecl2Rock(grdecl);
@@ -53,7 +65,7 @@ clf
 Gt_zshifted = Gt; 
 Gt_zshifted.nodes.z = Gt_zshifted.nodes.z - 100;
 plot_opts = {'edgeColor', 'k', 'edgeAlpha', 0.1};
-plotGrid(G, 'edgeAlpha', plot_opts{:});
+plotGrid(G, plot_opts{:});
 plotCellData(Gt_zshifted, Gt_zshifted.cells.z, plot_opts{:});
 view(55,26);
 

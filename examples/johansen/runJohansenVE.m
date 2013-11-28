@@ -83,17 +83,15 @@ catch me
    disp('Using matlab ve-transport');
    cpp_accel = false;
 end
-% Find trapping structure in grid. Used for calculation of trapped volumes
-ts=findTrappingStructure(Gt);
 
 %% Prepare plotting
 % We will make a composite plot that consists of several parts: a 3D plot
-% of the plume, a pie chart of trapped versus free volume, a plane view of
+% of the plume, a pie chart of trapped versus free volumes, a plane view of
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
 opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], 'maxH', 100, ...
    'Wadd', 500, 'view', [-85 70], 'wireH', true, 'wireS', true};
-plotPanelVE(G, Gt, W, sol, 0.0, [0 0 1], opts{:});
+plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,4), opts{:});
 
 
 % Main loop
@@ -132,7 +130,7 @@ while t<T
    if ~isempty(WVE)
       totVol = totVol + WVE.val*dT;
    end
-   vol = volumesVE(Gt, sol, rock2D, fluidVE, ts);
+   vol = volumesVE(Gt, sol, rock2D, fluidVE);
 
    % Check if we are to stop injecting
    if t>= stopInject

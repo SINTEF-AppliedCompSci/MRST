@@ -1,5 +1,5 @@
-function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
-	 n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_connectivity, erivers)
+function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, crivers] = ...
+	 n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_dstr_neigh, ntrap_connectivity, erivers)
   % Function converting traps and spill field information from a node-based 
   % representation to a cell-based one.
   %
@@ -10,8 +10,9 @@ function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
   % PARAMETERS:
   % Gt                 - 2D grid structure 
   % ntrap_regions      \ 
-  % ntrap_zvals        - node-based trap information, as computed by the
-  % ntrap_connectivity / 'compute-trap-regions' function
+  % ntrap_dstr_neigh   | node-based trap information, as computed by the
+  % ntrap_zvals        | 'compute-trap-regions' function                
+  % ntrap_connectivity / 
   % 
   % RETURNS:
   % The cell-based versions of the trap-information data matrices provided as input
@@ -23,12 +24,20 @@ function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
   % ctrap_regions      - one value per grid cell.  Gives the trap number of the trap 
   %                      that the node spills into, or zero if the cell belongs to 
   %                      the spill region of the 'exterior' of the domain. 
+  % csommets           - indices to all cells that represent local maxima
+  %                      (NB: these are all trap cells, but there may be more
+  %                      than one sommet per trap) 
   % ctrap_connectivity - (Sparse) adjacency matrix with one row/column per trap. 
   %                      Row 'i' is nonzero only for columns 'j' where trap 'i' spills
   %                      directly into trap 'j' when overflowing.
   % lost_regions       - indices of those edge-based regions whose traps did
   %                      not get projected to any cell (e.g. because they
   %                      were too small)
+  % crivers            - one cell array per trap, containing the 'rivers'
+  %                      exiting that trap.  A river is presented as a sequence of
+  %                      consecutive grid cells that lie geographically along the
+  %                      river.  A river starts in the trap, and ends either in another
+  %                      trap or at the boundary of the domain.
   %
   %
   % SEE ALSO:
@@ -44,9 +53,14 @@ function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
   else
       cell_centroids = compute_cell_z_vals(Gt);
   end
+
+  % identify sommets 
+  node_sommets = zeros(size(ntrap_regions));
+  node_sommets(intersect(find(ntrap_dstr_neigh == 0), find(ntrap_regions ~= 0))) = 1;
   
-  % projecting spill regions from nodes to cells
+  % projecting spill regions and sommets from nodes to cells
   ctrap_regions = nodeFieldToCellField(Gt, ntrap_regions);
+  cell_sommets  = n2c_sommets(Gt, node_sommets);
 
   % isolating traps
   ctraps = zeros(size(ctrap_regions));
@@ -64,7 +78,8 @@ function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
   % traps below
   for i = lost_regions
       ixs = find(ctrap_regions == i);
-      ctrap_regions(ixs) = next_remaining_downstream_trap(i, ctrap_connectivity, ...
+      ctrap_regions(ixs) = next_remaining_downstream_trap(i, ...
+                                                        ctrap_connectivity, ...
                                                         lost_regions);
   end
   
@@ -73,6 +88,13 @@ function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
   ctraps        = re_index(ctraps,        lost_regions);
   ctrap_zvals(lost_regions) = [];  
 
+  % keeping cell sommets that still correspond to traps, and sorting them
+  cell_sommets = cell_sommets .* ctrap_regions; % values change from 0/1 to trap index
+  %cell_sommets_ixs = unique_cell_sommet_ixs(cell_sommets, cell_centroids);
+  cell_sommet_ixs = find(cell_sommets);
+  [dummy, order] = sort(cell_sommets(cell_sommet_ixs));
+  csommets = cell_sommet_ixs(order);
+  
   % Updating connectivity matrix and river structure by removing lost regions one by one
   for i = lost_regions 
     % NB: for this to work, it's important that 'lost_regions' is sorted in 
@@ -111,6 +133,49 @@ function [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity, crivers] = ...
   erivers(lost_regions) = [];
   crivers = project_rivers_to_cells(Gt, erivers);
 end
+
+function cell_sommets = n2c_sommets(Gt, node_sommets)
+% For each sommet, associate a corresponding grid cell
+
+% Determining a 'representative' node (the shallowest one) for each cell
+    cnodes = activeCellNodes(Gt);
+    num_cells = size(cnodes,2);
+    [min_z, representative] = min(Gt.nodes.z(cnodes));
+    cnodes_rep = cnodes(sub2ind(size(cnodes), representative, 1:num_cells));
+    
+    % giving an unique value to each sommet, making it possible to recognize
+    % it from others
+    ns_ix = find(node_sommets);
+    num_sommets = numel(ns_ix);
+    node_sommets(ns_ix) = 1:num_sommets;
+    
+    % determine which cells have a given node sommet as its representative
+    % (usually more than one!)
+    cell_sommets = node_sommets(cnodes_rep);
+    
+    % choosing unique cell to represent each node
+    cell_sommets_ix = find(cell_sommets);
+    cell_sommets_vals = cell_sommets(cell_sommets_ix);
+    [Y, I] = sort(cell_sommets_vals);
+    [Z, J] = unique(cell_sommets_vals, 'first');
+    cell_sommets(:) = 0;
+    cell_sommets(cell_sommets_ix(I(J))) = 1;   
+end
+
+
+% function csixs = unique_cell_sommet_ixs(cell_sommets, cell_centroids)
+% % For each sommet, determine one unique cell to represent it.  This should be
+% % the 'highest' of the cells it is projected to, i.e. the one whose centroid
+% % has the lowest depth-value.
+%     ixs = find(cell_sommets); % not necessarily unique
+%     candidate_centroids = cell_centroids(ixs);
+%     [~, I] = sort(candidate_centroids); % lowest z-values go first
+%     ixs = ixs(I); % ixs now arranged so that cells with lowest x-values
+%                   % referenced first
+%     [~, keep_ix] = unique(ixs, 'first');
+%     csix = ixs(keep_ix);
+% end
+
 
 function lost_regions = identify_lost_regions(num_regions, mapped_regions)
   % Determine which regions were 'eliminated' when passing from node-based to 
@@ -153,8 +218,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
                 % finding index of cells having these nodes as corner 'i'.
                 cells_ix = [cells_ix, find(ismember(cellnodes(i, :), nodes_ix))]; %#ok
 
-                % remove nodes that have been mapped, and iterate on the next
-                % corner
+                % remove nodes that have been mapped, and iterate on the next corner
                 % nodes_ix = nodes_ix(find(~ismember(nodes_ix, cellnodes(i, cells_ix))));
                 if (isempty(nodes_ix)); break; end;
             end

@@ -109,7 +109,7 @@ end
 % through the well
 opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], ...
    'maxH', 5, 'Wadd', 10, 'view', [130 50]};
-plotPanelVE(G, Gt, W, sol, 0.0, [0 0 1], opts{:});
+plotPanelVE(G, Gt, W, sol, 0.0, ones(1,6), opts{:});
 
 
 %% Main loop

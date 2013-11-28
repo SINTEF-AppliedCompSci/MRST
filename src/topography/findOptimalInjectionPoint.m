@@ -1,4 +1,4 @@
-function [cell, largestVol, allFaces, point] = findOptimalInjectionPoint(G, res)
+function [cell, largestVol, allFaces, point, traps] = findOptimalInjectionPoint(G, res)
 %Find the optimal point to inject CO2
 %
 % SYNOPSIS:
@@ -73,4 +73,5 @@ function [cell, largestVol, allFaces, point] = findOptimalInjectionPoint(G, res)
     [v, ind] = min(G.cells.z(cells));%#ok
     cell = cells(ind);
     point = G.cells.centroids(cell, :);
+    traps = n;
 end
