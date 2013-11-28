@@ -15,10 +15,13 @@ function G = readIGEMSIRAP(name, i, varargin)
 %  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
 %            supported options are:
 %
-%              Coarse -- Vector of 2 elements corresponding to a coarsening
+%              coarse -- Vector of 2 elements corresponding to a coarsening
 %              factor for logical i and j directions respectively. A coarse
 %              vector of [2, 2] will produce a grid 1/2^2 = 1/4th the size
 %              of [1, 1] and so on.
+%
+%              save   -- Bolean. If true, a mat file with the constructed
+%              grid is saved for later use. Default: true
 %
 % RETURNS:
 %   G      - Valid grid definition containing connectivity, cell
@@ -33,7 +36,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 %}
 
 require mex
-opt = struct('coarse', [1 1]);
+opt = struct('coarse', [1 1], 'save', true);
 opt = merge_options(opt, varargin{:});
 coarse = opt.coarse;
 
@@ -90,9 +93,11 @@ catch
     end
 
 
-    mkdirif([result_dir,filesep, name])
-    mkdirif([result_dir,filesep, name, filesep, 'grid'])
-    save(outfilename,'-v7.3','G')
+    if opt.save,
+       mkdirif([result_dir,filesep, name])
+       mkdirif([result_dir,filesep, name, filesep, 'grid'])
+       save(outfilename,'-v7.3','G')
+    end
 end
 end
 
