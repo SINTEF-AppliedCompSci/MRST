@@ -114,7 +114,6 @@ leaf_traps={};
 count=1;% conting riveres connecting traps
 leaf_count=1;% counting leaf nodes
 disp('Start find rivers')
-tic;
 while any(vizited_traps==0)
    nv=find(vizited_traps==0);
    % find the lowest trap
