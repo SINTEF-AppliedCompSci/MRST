@@ -4,6 +4,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 % SYNOPSIS:
 %   G = readIGEMSIRAP('flatUP1', 3)
 %   G = readIGEMSIRAP('flatUP1', 3, 'coarse', [5 5])
+%   G = readIGEMSIRAP('1_FMM.irap', [], 'dir', idir, 'save', false);
 %
 % PARAMETERS:
 %   name   - The name of the IGEMS grid. For valid names, run
@@ -23,6 +24,8 @@ function G = readIGEMSIRAP(name, i, varargin)
 %              save   -- Bolean. If true, a mat file with the constructed
 %              grid is saved for later use. Default: true
 %
+%              dir    -- String. Load files from this directory.
+%
 % RETURNS:
 %   G      - Valid grid definition containing connectivity, cell
 %            geometry, face geometry and unique nodes.
@@ -36,13 +39,19 @@ function G = readIGEMSIRAP(name, i, varargin)
 %}
 
 require mex
-opt = struct('coarse', [1 1], 'save', true);
+opt = struct('coarse', [1 1], ...
+             'save', true, ...
+             'dir',  []);
 opt = merge_options(opt, varargin{:});
 coarse = opt.coarse;
 
-
-result_dir = fullfile(VEROOTDIR, 'data', 'igems');
-file_dir = fullfile(result_dir, 'surfaces');
+if isempty(opt.dir)
+   result_dir = fullfile(VEROOTDIR, 'data', 'igems');
+   file_dir = fullfile(result_dir, 'surfaces');
+else
+   result_dir = opt.dir;
+   file_dir   = opt.dir;
+end
 
 if all(coarse == 1)
     outfilename = ['grid', name];
@@ -58,13 +67,16 @@ outfilename = [outfilename, '.mat'];
 
 try
     load(outfilename)
-catch
-    if(isempty(i))
-       filename=[file_dir, filesep, name,'.irap'];
-    else
-       filename=[file_dir, filesep ,name, filesep, int2str(i),'_',name,'.irap'];
+catch %#ok<*CTCH>
+    if isempty(strfind(name,'.irap'))
+       name = [name '.irap'];
     end
-    [x, y, Z, angle]= readIrapClassicAsciiSurf(filename);
+    if(isempty(i))
+       filename=[file_dir, filesep, name];
+    else
+       filename=[file_dir, filesep, name, filesep, int2str(i),'_', name];
+    end
+    [x, y, Z]= readIrapClassicAsciiSurf(filename);
     assert(all(diff(x)==100));
     assert(all(diff(y)==100));
     if ~(prod(coarse)==1)
