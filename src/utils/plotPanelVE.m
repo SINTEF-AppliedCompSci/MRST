@@ -138,12 +138,13 @@ caxis(prm.Saxis);
 
 %% Pie chart of trapped and free CO2
 subplot(2,3,3), cla
-if numel(vol)==3
-   str1 = ['trapped ' num2str(round(vol(1)/vol(3)*100)) ' %'];
-   str2 = ['free ' num2str(round(vol(2)/vol(3)*100)) ' %'];
-   ph = pie([max(vol(1),eps) max(vol(2),eps)],{str1, str2});
+if numel(vol)==4
+   str1 = ['residual ' num2str(round(vol(1)/vol(4)*100)) ' %'];
+   str2 = ['free res. ' num2str(round(vol(2)/vol(4)*100)) ' %'];
+   str3 = ['free ' num2str(round(vol(3)/vol(4)*100)) ' %'];
+   ph = pie([max(vol(1),eps) max(vol(2),eps) max(vol(3),eps)],{str1, str2, str3}); %#ok<NASGU>
    title(['Total volume: ', ...
-      num2str(round(convertTo(vol(3),mega*meter^3))),' M m^3']);
+      num2str(round(convertTo(vol(4),mega*meter^3))),' M m^3']);
 elseif numel(vol)==6
    vplot = max([vol(1:5) vol(6)-sum(vol(1:5))], eps);
    ph = pie(vplot);

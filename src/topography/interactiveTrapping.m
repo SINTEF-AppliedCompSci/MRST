@@ -37,6 +37,10 @@ function varargout = interactiveTrapping(inp, varargin)
 %               - method: Choose cell or node based algorithm. Valid
 %                 inputs: 'node', 'cell'. Default: 'cell'.
 %
+%               - injpt: Choose this cell number as injection point at
+%                 startup. If zero, no injection point is selected.
+%                 Default: zero
+%
 % RETURNS:
 %   h  - Handle to resulting figure object.
 %
@@ -52,7 +56,8 @@ function varargout = interactiveTrapping(inp, varargin)
                 'spillregions', false,  ...
                 'traps',        true,   ...
                 'method',       'cell', ...
-                'colorpath',    true ...
+                'colorpath',    true,   ...
+                'injpt',        0       ...
                 );
    
    global selectedVECell;
@@ -175,7 +180,11 @@ function varargout = interactiveTrapping(inp, varargin)
                
                
                
-    plotMain(Gt, res, bf, top)
+    ax = plotMain(Gt, res, bf, top);
+    if opt.injpt > 0,
+       clickHandler(Gt, res, bf, [], [], [], opt.injpt);
+    end
+    axes(ax); %#ok<MAXES>
 
     if nargout > 0
        % Return a handle to the figure if it was asked for.
@@ -183,11 +192,15 @@ function varargout = interactiveTrapping(inp, varargin)
     end
 end
 
-function clickHandler(Gt, res, bf, data, src, event)                       %#ok
+function clickHandler(Gt, res, bf, data, src, event, flag)                 %#ok
     % Get data
-    pts = get(gca, 'CurrentPoint');
-    [c f] = nearestCellLine(Gt, 1:Gt.faces.num, pts);                      %#ok
-    c = c(1);
+    if ~flag,
+       pts = get(gca, 'CurrentPoint');
+       [c f] = nearestCellLine(Gt, 1:Gt.faces.num, pts);                      %#ok
+       c = c(1);
+    else
+       c = flag;
+    end
     global selectedVECell;
     
     if strcmpi(get(gcf, 'SelectionType'), 'normal');
@@ -265,7 +278,7 @@ function clickHandler(Gt, res, bf, data, src, event)                       %#ok
     subplot('position', [.025 .025 .65 .95]); cla
     axmain = gca;
     plotMain(Gt, res, bf, data);
-    fn = @(src, event) clickHandler(Gt, res, bf, data, src, event);
+    fn = @(src, event) clickHandler(Gt, res, bf, data, src, event, 0);
     plotGrid(Gt, res.traps == trap, 'edgec', 'none', 'facec', 'red', 'ButtonDownFcn', fn);
     
     
@@ -346,7 +359,7 @@ function clickHandler(Gt, res, bf, data, src, event)                       %#ok
     axis(axmain);
 end
 
-function plotMain(Gt, res, bf, atlasdata)
+function ax = plotMain(Gt, res, bf, atlasdata)
 % Main plotting of grid
     
     isOn = @(tag) strcmpi(get(findobj(gcf, 'tag', tag), 'State'), 'on');
@@ -356,10 +369,10 @@ function plotMain(Gt, res, bf, atlasdata)
     showLight = isOn('toggleLight');  
     showContour = isOn('toggleContour');  
     
-    fn = @(src, event) clickHandler(Gt, res, bf, atlasdata, src, event);
+    fn = @(src, event) clickHandler(Gt, res, bf, atlasdata, src, event,0);
     subplot('position', [.025 .025 .65 .95]);
 
-    cla
+    cla; ax = gca;
 
     zdata = Gt.cells.z;
     zrange = (zdata - min(zdata))./(max(zdata) - min(zdata));

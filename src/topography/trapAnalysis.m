@@ -29,7 +29,15 @@ function res = trapAnalysis(Gt, method)
 %                          at (i,j) indicates that region 'i' spills directly
 %                          into region 'j'.  This matrix is stored on the
 %                          sparse format.
-%         - cell_lines   - @@ COMPLETE
+%         - cell_lines   - One cell array per trap, conaining the 'rivers'
+%                          exiting that trap.  A river is presented as a
+%                          sequence of consecutive grid cells that lie
+%                          geographically along the river.  A river starts in
+%                          a trap and ends either in another trap or at the
+%                          boundary of the domain.
+%         - top          - indices for all cells that represents local maxima
+%                          in the grid.  (NB: these are all trap cells, but
+%                          there may be more than one local maxima per trap)
 %
 % EXAMPLE:
 %
@@ -49,22 +57,24 @@ function res = edge_based_trap_analysis(Gt)
     ntraps = computeNodeTraps(Gt);
 
     % Projecting trap information onto cells (from edges)
-    [ctraps, ctrap_zvals, ctrap_regions, cadj, crivers] = ...
-        n2cTraps(Gt, ntraps.trap_regions, ntraps.trap_zvals, ntraps.connectivity, ...
-                 ntraps.rivers);  
+    [ctraps, ctrap_zvals, ctrap_regions, csommets, cadj, crivers] = ...
+        n2cTraps(Gt, ntraps.trap_regions, ntraps.trap_zvals, ntraps.dstr_neigh, ...
+                 ntraps.connectivity, ntraps.rivers);  
     
     res.traps        = ctraps;
     res.trap_z       = ctrap_zvals;
     res.trap_regions = ctrap_regions;
     res.trap_adj     = cadj;
     res.cell_lines   = crivers;
+    res.top          = csommets;
 end
 
 %===============================================================================
 function res = cell_based_trap_analysis(Gt)
     trap_st = findTrappingStructure(Gt);
-    conn_st = findTrapConnections(trap_st.Gtop, trap_st.z_spill_loc);
+    res.top = trap_st.top;
     
+    conn_st = findTrapConnections(trap_st.Gtop, trap_st.z_spill_loc);
     res.traps    = conn_st.traps;
     res.trap_adj = conn_st.trap_matrix;
 
@@ -86,11 +96,11 @@ function res = cell_based_trap_analysis(Gt)
     %%{
     for i=1:numel(res.trap_z)
        tcells=find(res.traps==i);
-       bcells=tcells(find((Gt.cells.z(tcells)==res.trap_z(i))));
+       bcells=tcells((Gt.cells.z(tcells)==res.trap_z(i)));
        if(numel(bcells)>1)
-          dispif(mrstVerbose, ['Warning, Trap boundary or trap.']) 
+          dispif(mrstVerbose, 'Warning, Trap boundary or trap.') 
        end
-       [z,j]=max(Gt.cells.z(tcells));
+       z=max(Gt.cells.z(tcells));
        assert(z==res.trap_z(i));
        % remove b cell from trap
        res.traps(bcells)=0;       
@@ -111,7 +121,8 @@ function res = cell_based_trap_analysis(Gt)
             tcells=affected_cells(res.traps(affected_cells)>0);
             if(~(min(Gt.cells.z(tcells))==min(Gt.cells.z(affected_cells))))
                myswitch=0;
-               dispif(mrstVerbose, ['Warning, top point of region higher than trap in region.  Include in outside traps.\n']);
+               dispif(mrstVerbose, ['Warning, top point of region higher than ' ...
+                                   'trap in region.  Include in outside traps.\n']); 
             end            
         end
         switch myswitch;
@@ -122,10 +133,9 @@ function res = cell_based_trap_analysis(Gt)
             % this should be the normal case            
             res.trap_regions(affected_cells) = affected_region(1);
           otherwise
-            %dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  Touches %d ' ...
-            %                     'traps.\n'], numel(affected_region));
-            dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  Assign to highest trap\n'], numel(affected_region));
-            [m,i]=min(Gt.cells.z(tcells));                 
+            dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  ' ...
+                                'Assign to highest trap\n'], numel(affected_region)); 
+            [m,i]=min(Gt.cells.z(tcells));                  %#ok<ASGLU>
             res.trap_regions(affected_cells) = res.traps(tcells(i(1)));
         end
     end

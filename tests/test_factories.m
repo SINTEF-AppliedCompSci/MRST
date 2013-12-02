@@ -1,5 +1,5 @@
 if 1
-    [grdecl, dataset, petroinfo] = getAtlasGrid('Utsirafm','coarsening',2);
+    [grdecl, dataset, petroinfo] = getAtlasGrid('Utsirafm','coarsening',5);
     petrodata=petroinfo{1};
 
     G      = processGRDECL(grdecl{1});
@@ -10,15 +10,15 @@ G      = computeGeometry(G(1));
 Gt     = topSurfaceGrid(G);
 
 clear rock
-rock.perm = ones(G.cells.num, 1);
+rock.perm = 1*darcy*ones(G.cells.num, 1);
 rock.poro = ones(G.cells.num, 1);
 rho = [760 1200] .* kilogram/meter^3;
 
 %%
 
-[fluid, system, sol] = fluidFactoryVE(Gt, rock, 'fullyImplicit', false, 'dissolution', false);
+[fluid, system, sol] = fluidFactoryVE(Gt, rock, 'fullyImplicit', true, 'dissolution', true);
 
-solver = solverFactoryVE(Gt, fluid, rock, system, 'transportTolerance',5e-3);
+solver = solverFactoryVE(Gt, fluid, rock, system, 'transportTolerance',1e-6);
 
 
 
@@ -36,10 +36,10 @@ for i = 1:N
     points = [points; ...
               Gt.cells.centroids(cell, :)];
 end
-[W, W_ve, bc] = wellSetup(Gt, rock, points, 1*mega*1000*kilogram, rho);
+[W, W_ve, bc] = wellSetup(Gt, rock, points, [100*mega*1000*kilogram]/N, rho, 'radius', .15);
 
 
-mrstVerbose on
+mrstVerbose off
 gravity z on 
 % sol = initResSolVE(Gt, 300*barsa(), 0);
 % sol.pressure= rho(2)*norm(gravity()).*Gt.cells.z;

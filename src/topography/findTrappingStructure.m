@@ -15,19 +15,19 @@ function trap=findTrappingStructure(Gt, varargin)
 %
 % RETURNS:
 %   a structure describing the traps of the top surface. The structure
-%   consists of the following field (nc=number of cells in Gt):
+%   consists of the following fields (nc=number of cells in Gt):
 %
-%   top  - an (nx1) vector of cell number for all local maxima on the top
+%   top  - an (nx1) vector of cell numbers for all local maxima on the top
 %          surface grid
 %
-%   istrap - an (nx1) boolean vector identifying wether a local maximum is
+%   istrap - an (nx1) boolean vector identifying whether a local maximum is
 %          a trap or not. In the following, m = numel(top(istrap))
 %
 %   Gtop - a top-surface grid, in which the topography inside each
 %          (primary) trap has been replaced by a flat surface at the depth
 %          of the corresponding spill point
 %
-%   z_spill_loc - a (nc x 1) vector giving the spill-point depth of the
+%   z_spill_loc - an (nc x 1) vector giving the spill-point depth of the
 %          largest trap a given cell is part of, and zero if the cell is
 %          not part of a trap.
 %
@@ -39,24 +39,24 @@ function trap=findTrappingStructure(Gt, varargin)
 %          traps and hence at least one local spill point, a level-3 trap
 %          contains at least two level-2 traps, and so on.
 %
-%   trap_level - an (tl x 1) cell array of (nc x m) sparse matrices, where
+%   trap_level - a (tl x 1) cell array of (nc x m) sparse matrices, where
 %          'tl' is the maximum trap level. Each sparse matrix describes the
 %          traps on a given level, that is, trap_level{k}{i,j} is equal one
 %          if cell number i is part of a level-k trap that has cell j as a
 %          local maximum.
 %
-%   z_spill_level - an (tl x 1) cell array of (m x 1) vectors defined so
+%   z_spill_level - a (tl x 1) cell array of (m x 1) vectors defined so
 %          that z_spill_level{k}(j) gives the spill-point depth of the
 %          level-k trap that the local maximum in cell j is part of and NaN
 %          if cell j is not a local maximum in a level-k trap.
 %
-%   z_spill_loc_level - an (tl x 1) cell array of (nc x 1) vectors. The
+%   z_spill_loc_level - a (tl x 1) cell array of (nc x 1) vectors. The
 %          vector z_spill_loc_level{k}(i) gives the depth of the spill
 %          point for the level-k trap that cell i is part of and zero if
 %          cell is not part of a trap.
 %
 % NOTE:
-%   The routine assumes that all top-grid surfaces has strictly positive
+%   The routine assumes that all top-grid surfaces have strictly positive
 %   z-values and will fail if the z-values cross zero.
 %
 % Examples:
@@ -89,7 +89,7 @@ function trap=findTrappingStructure(Gt, varargin)
 %   colormap(col); cbh=colorbar; caxis([0 nt]+.5);set(cbh,'YTick',1:nt);
 %
 % SEE ALSO:
-%   topSurfaceGrid, findCellLines
+%   topSurfaceGrid, trapAnalysis, findCellLines, findTrapConnections
 % 
 opt = struct('use_multipoint',false);
 opt = merge_options(opt, varargin{:});
@@ -100,8 +100,6 @@ checkBGL();
 % Find top cells of the surface defined such that all centroids of all
 % internal neighbors lie deeper.
 nc       = Gt.cells.num;
-
-
 
 if(opt.use_multipoint)   
   N=neighboursByNodes(Gt,'include_bc',true);

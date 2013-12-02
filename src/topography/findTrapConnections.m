@@ -1,14 +1,18 @@
 function trap_con = findTrapConnections(Gnew,z_spill_loc)
-% Find the connections between the traps of top surface
-% trap_con = findTrapConnections(Gnew,z_spill_loc)
+% Find the connections between the traps in a top-surface grid
 %
-% Gnew - valid top surface grid 
+% SYNOPSIS:
+%   trap_con = findTrapConnections(Gnew,z_spill_loc)
 %
-%  z_spill_loc - Vector of size number of cells which define traps. The
-%                vector is >0 and equal the z value of the traing surface
-%                for cells in a trap and =0 otherwise
-%  RETURNS:
-%    trap_con - A struct with connection information between the traps.
+% PARAMETERS:
+%   Gnew - valid top surface grid 
+%
+%   z_spill_loc - Vector of size number of cells which define traps. The
+%         vector is >0 and equal the z value of the traing surface
+%         for cells in a trap and =0 otherwise
+%
+% RETURNS:
+%   trap_con - A struct with connection information between the traps.
 %               It has the form
 %
 %        trap_con=struct(  'cell_lines',cell_lines,...
@@ -39,10 +43,8 @@ function trap_con = findTrapConnections(Gnew,z_spill_loc)
 %       leaf_traps - Trapnumber of each leafnode, one for each leaf_line and
 %                    and sorted by lowest first
 %
-% NOTES:
 %
-%
-% Example
+% Example:
 %     trap_str = findTappingStructure(Gt) 
 %     trap_con = findTrapConnections(Gt,z_spill_loc)
 %     figure(),clf,
@@ -50,11 +52,10 @@ function trap_con = findTrapConnections(Gnew,z_spill_loc)
 %     plotGrid(Gnew, trap_str.z_spill_loc>0),axis off;axis tight;view(3)  
 %     plotGrid(Gnew,{trap_con.cell_lines{:}})
 %     axis tight; axis off;view(2);
-%     
 % 
 %
 % SEE ALSO:
-%   topSurfaceGrid, findTrappingStructure
+%   topSurfaceGrid, trapAnalysis, findTrappingStructure
 %
 require gridtools coarsegrid
 
@@ -113,7 +114,6 @@ leaf_traps={};
 count=1;% conting riveres connecting traps
 leaf_count=1;% counting leaf nodes
 disp('Start find rivers')
-tic;
 while any(vizited_traps==0)
    nv=find(vizited_traps==0);
    % find the lowest trap
