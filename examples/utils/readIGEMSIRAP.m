@@ -68,13 +68,13 @@ outfilename = [outfilename, '.mat'];
 try
     load(outfilename)
 catch %#ok<*CTCH>
-    if isempty(strfind(name,'.irap'))
+    if isempty(strfind(name,'.irap')) && isempty(i)
        name = [name '.irap'];
     end
     if(isempty(i))
        filename=[file_dir, filesep, name];
     else
-       filename=[file_dir, filesep, name, filesep, int2str(i),'_', name];
+       filename=[file_dir, filesep, name, filesep, int2str(i),'_', name '.irap'];
     end
     [x, y, Z]= readIrapClassicAsciiSurf(filename);
     assert(all(diff(x)==100));
