@@ -6,7 +6,7 @@
 % http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/. The
 % datasets are carefully described in both a short and a long report. It is
 % recommended to have one of these reports at hand when experimenting with
-% the data. The raw data provied by NPD can be obtained from their website
+% the data. The raw data provided by NPD can be obtained from their website
 % in a GEOGRAPHICAL DATA (SHAPE- and RASTERFILES). For the sake of
 % convenience we have converted the files to a ASCII format more suitable
 % for our applications. These files can be inspected using any text editor.
