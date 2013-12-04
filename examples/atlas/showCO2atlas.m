@@ -1,5 +1,4 @@
 %% Give an overview of the CO2 atlas data.
-%
 % In this example we show how one can employ MRST's CO2 module to analyse
 % CO2 storage potential based on the data provided by Norwegian Petroleum
 % Directorate as part of the CO2 Storage Atlas for the Norwegian North Sea,
