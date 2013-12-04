@@ -101,7 +101,7 @@ function res = cell_based_trap_analysis(Gt)
           dispif(mrstVerbose, 'Warning, Trap boundary or trap.') 
        end
        z=max(Gt.cells.z(tcells));
-       assert(z==res.trap_z(i));
+       assert(z<res.trap_z(i));
        % remove b cell from trap
        res.traps(bcells)=0;       
     end

@@ -72,8 +72,9 @@ Gnew.nodes.z(cn)=zz;
 Gnew.cells.cellNodes = getSortedCellNodes(Gnew);
 
 % find connected traps
+
 z_unique = unique(z_spill_loc);
-assert(z_unique(1) == 0);
+%assert(z_unique(1) == 0);
 traps = zeros(size(z_spill_loc));
 for i = 1:size(z_unique, 1)
     traps(find(z_spill_loc == z_unique(i))) = i;

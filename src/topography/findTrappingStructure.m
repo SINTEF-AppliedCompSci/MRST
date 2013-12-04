@@ -106,13 +106,14 @@ if(opt.use_multipoint)
 else
    N=Gt.faces.neighbors;
 end
+%%
 internal=all(N>0,2);
 ni1=N(internal,1);ni2=N(internal,2);
 z_diff   = Gt.cells.z(ni2)-Gt.cells.z(ni1);
-top      = accumarray([ni2;ni1], double([z_diff;-z_diff]<0), [nc,1], @prod, 0);
+top      = accumarray([ni2;ni1], double([z_diff;-z_diff]<=0), [nc,1], @prod, 0);
 %top      = accumarray(ni2, double(z_diff<0), [nc,1], @prod, 0);
 top_cells=find(top);
-
+%%
 % Make copy of input grid which is going to be modifed
 Gtop=Gt;
  
@@ -231,6 +232,8 @@ cn        = double(Gtop.cells.sortedCellNodes(mcolon(eIX(cells), eIX(cells + 1) 
 zz        = rldecode(z_spill_loc(z_spill_loc>0),nn);
 Gtop.nodes.z(cn) = zz;
 
+z_spill_loc(z_spill_loc==Gt.cells.z)=0;
+top_cells=top_cells(z_spill_loc(top_cells)>0);
 
 % Pack the results in a data structure
 trap =struct('Gtop', Gtop, ...
