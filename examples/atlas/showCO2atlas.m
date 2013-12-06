@@ -1,18 +1,17 @@
 %% Give an overview of the CO2 atlas data.
-%
 % In this example we show how one can employ MRST's CO2 module to analyse
-% CO2 storage potential based on the data provided by Norwegian petroleum
-% directorate
+% CO2 storage potential based on the data provided by Norwegian Petroleum
+% Directorate as part of the CO2 Storage Atlas for the Norwegian North Sea,
 % http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/. The
 % datasets are carefully described in both a short and a long report. It is
 % recommended to have one of these reports at hand when experimenting with
-% the data. The raw data provied by NPD can be obtained from their website
-% in a GEOGRAPHICAL DATA (SHAPE- and RASTERFILES). For the sake of
-% convenience we have converted the files to a ASCII format more suitable
+% the data. The raw data provided by NPD can be obtained from their website
+% in a GIS formate (SHAPE- and RASTERFILES). For the sake of
+% convenience, we have converted the files to a ASCII format more suitable
 % for our applications. These files can be inspected using any text editor.
 %
-% We process the files and and get both the raw datasets and grdecl structs
-% suitable for processGRDECL.
+% We process the files and and get both the raw datasets and data
+% structures suitable for constructing volumetric corner-point grids.
 %
 try
     require deckformat
@@ -44,8 +43,7 @@ end
 names = cellfun(@(x) x.name, rawdata, 'UniformOutput', false)';
 
 %% Show the data directly
-%
-% The data sets are perfectly usable for visualization on their own. To see
+% The datasets are perfectly usable for visualization on their own. To see
 % this, we find the datasets corresponding to the Utsira formation and plot
 % both the thickness and the heightmap.
 %
@@ -71,18 +69,18 @@ for i = 1:numel(utsira_rd)
     axis tight off
 end
 
-%% Create a grid by combining heightmaps and depths
+%% Create a grid by combining height maps and depths
 % The datasets are used to create interpolants which give both height and
 % thickness on a fine grid. Any regions where the thickness/height is zero
 % or not defined is removed, giving a GRDECL file defining the intersection
 % of these datasets.
 %
-% The call is coarsened by a factor 2: These grids can quickly become
+% The call is coarsened by a factor two: These grids can quickly become
 % fairly large as they contain a lot of data. A full realization of this
-% Utsira grid contains about 100k cells; By coarsening by 2 we end up with
-% the more managable amount of 25k cells. The parameter nz determines the
-% amount of fine cells in the logical k-direction and can be used to
-% produce layered models for full simulations.
+% Utsira grid contains about 100k cells. By coarsening a factor two we end
+% up with the more managable amount of 25k cells. The parameter 'nz'
+% determines the number of fine cells in the logical k-direction and can be
+% used to produce layered models for full simulations.
 
 gr = getAtlasGrid('Utsirafm', 'coarsening', 2, 'nz', 1);
 
@@ -94,9 +92,9 @@ G = processGRDECL(gr{1});
 G = computeGeometry(G(1));
 
 %% Plot the full grid
-% We plot the full grid, colorized by cell volumes. We also add a simple
-% light to distinguish the oscillating surface of the reservoir. These
-% oscillations can be a target for structural trapping of migrating CO2.
+% We plot the full grid, colorized by cell volumes. Light is added to the
+% scene to better reveal reliefs in the top surface of the reservoir.
+% These folds can be a target for structural trapping of migrating CO2.
 
 clf;
 plotCellData(G, G.cells.volumes)
@@ -121,7 +119,7 @@ end
 
 %% Visualize all the formations
 % We then visualize the formations along with a map of Norway and point
-% plots of all production wells in the Norwegian continental shelf.
+% plots of all production wells in the Norwegian Continental Shelf.
 %
 % The well data comes from the Norwegian Petroleum Directorate and can be
 % found in more detail at http://factpages.npd.no/factpages/.
