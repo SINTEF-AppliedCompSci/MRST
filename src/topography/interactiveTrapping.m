@@ -377,10 +377,12 @@ function plotMain(Gt, res, bf, atlasdata)
     
     total = sum(volumesOfTraps(Gt, res, 1:max(res.traps))) - trapped;
     
-    hp = pie([vprimary, sum(vsecondary), total], [1,1,1], ...
-       {'Primary', 'Migration', 'Not filled'});
+    hp = pie([vprimary, sum(vsecondary), total], [1,1,1]);
     pcm = [0 0 .7; .1 .8 .1; .6 0 0];
     for k=1:3, set(hp(2*k-1), 'FaceColor', pcm(k,:)); end
+    hl = legend('Primary', 'Migration', 'Not Filled', ...
+       'Location','SouthOutside','Orientation','horizontal');
+    set(hl,'FontSize',8,'Color',get(gcf,'Color')+.1);
 
     %%%  Plot barchart
     subplot('position', [.775 .025 .2 .45]); cla
@@ -392,10 +394,16 @@ function plotMain(Gt, res, bf, atlasdata)
     ldata(ldata < 0) = 0;
     % Transform and plot the data to the unit axis
     % trick: By using hist we get tighter spacing *and* the bars are for
-    % some reason drawn as patches.
+    % some reason drawn as patches. Moreover, if N>150, we need to set
+    % EdgeColor to 'none' to avoid causing problems when 'bar' sets
+    % EdgeColor equal FaceColor.
     hbar = bar(ldata./max(ldata), 'hist');
     N = numel(subtraps) + 1;
-    set(hbar, 'FaceVertexCData', colorizeDepth(1:N, N, colorizePath));
+    if N>150
+       set(hbar, 'FaceVertexCData', colorizeDepth(1:N, N, colorizePath), 'EdgeColor', 'none');
+    else
+       set(hbar, 'FaceVertexCData', colorizeDepth(1:N, N, colorizePath));
+    end
     set(gca, 'YTickLabel', sprintf('%2.3g|', 10.^(get(gca, 'YTick')*max(ldata))))
     set(gca, 'YTickMode', 'manual')
     axis tight
