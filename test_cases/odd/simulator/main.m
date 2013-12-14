@@ -7,9 +7,12 @@ CO2   = CO2props('rho_big_trunc', '');
 
 %% Define all necessary parameters for a test case (including grid, fluids,
 %  initial conditions, etc.)
-incomp_case = setupScenarioSlope(CO2, 'compressible' , 'incompressible');
-hcomp_case  = setupScenarioSlope(CO2, 'compressible' , 'horizontal'    );
-comp_case   = setupScenarioSlope(CO2, 'compressible' , 'full'          );
+incomp_case = setupScenarioInject(CO2, 'compressible' , 'incompressible');
+hcomp_case  = setupScenarioInject(CO2, 'compressible' , 'horizontal'    );
+comp_case   = setupScenarioInject(CO2, 'compressible' , 'full'          );
+% incomp_case = setupScenarioSlope(CO2, 'compressible' , 'incompressible');
+% hcomp_case  = setupScenarioSlope(CO2, 'compressible' , 'horizontal'    );
+% comp_case   = setupScenarioSlope(CO2, 'compressible' , 'full'          );
 % incomp_case = setupScenarioDome(CO2, 'compressible' , 'incompressible');
 % hcomp_case  = setupScenarioDome(CO2, 'compressible' , 'incompressible');
 % comp_case   = setupScenarioDome(CO2, 'compressible' , 'incompressible');
