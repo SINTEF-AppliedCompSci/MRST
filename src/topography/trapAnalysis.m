@@ -96,12 +96,12 @@ function res = cell_based_trap_analysis(Gt)
     %%{
     for i=1:numel(res.trap_z)
        tcells=find(res.traps==i);
-       bcells=tcells(find((Gt.cells.z(tcells)==res.trap_z(i))));
+       bcells=tcells((Gt.cells.z(tcells)==res.trap_z(i)));
        if(numel(bcells)>1)
-          dispif(mrstVerbose, ['Warning, Trap boundary or trap.']) 
+          dispif(mrstVerbose, 'Warning, Trap boundary or trap.') 
        end
-       [z,j]=max(Gt.cells.z(tcells));
-       assert(z==res.trap_z(i));
+       z=max(Gt.cells.z(tcells));
+       assert(z<res.trap_z(i));
        % remove b cell from trap
        res.traps(bcells)=0;       
     end
@@ -133,11 +133,9 @@ function res = cell_based_trap_analysis(Gt)
             % this should be the normal case            
             res.trap_regions(affected_cells) = affected_region(1);
           otherwise
-            %dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  Touches %d ' ...
-            %                     'traps.\n'], numel(affected_region));
             dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  ' ...
                                 'Assign to highest trap\n'], numel(affected_region)); 
-            [m,i]=min(Gt.cells.z(tcells));                 
+            [m,i]=min(Gt.cells.z(tcells));                  %#ok<ASGLU>
             res.trap_regions(affected_cells) = res.traps(tcells(i(1)));
         end
     end

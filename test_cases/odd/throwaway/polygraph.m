@@ -1,6 +1,6 @@
 function yrange = polygraph(graphs, colors, labels, plot_title, xvals, yrange)
 
-    hold on; cla;
+    hold on; %cla;
     for g_ix = 1:size(graphs, 2) % one graph per column
         
         plot(xvals, graphs(:, g_ix), colors{g_ix});

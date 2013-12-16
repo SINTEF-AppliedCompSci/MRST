@@ -10,6 +10,9 @@ CO2   = CO2props('rho_big_trunc', '');
 incomp_case = setupScenarioInject(CO2, 'compressible' , 'incompressible');
 hcomp_case  = setupScenarioInject(CO2, 'compressible' , 'horizontal'    );
 comp_case   = setupScenarioInject(CO2, 'compressible' , 'full'          );
+% incomp_case = setupScenarioSlope(CO2, 'compressible' , 'incompressible');
+% hcomp_case  = setupScenarioSlope(CO2, 'compressible' , 'horizontal'    );
+% comp_case   = setupScenarioSlope(CO2, 'compressible' , 'full'          );
 % incomp_case = setupScenarioDome(CO2, 'compressible' , 'incompressible');
 % hcomp_case  = setupScenarioDome(CO2, 'compressible' , 'incompressible');
 % comp_case   = setupScenarioDome(CO2, 'compressible' , 'incompressible');
@@ -36,12 +39,12 @@ zt = incomp_case.Gt.cells.z;
 
 %keep_timesteps = [5 55 200];
 %keep_timesteps = [5 20 40];
-keep_timesteps = [5, 25, 60];
+%keep_timesteps = [5, 25, 60];
 %keep_timesteps = [5, 25, 50];
 %keep_timesteps =  [5, 10, 25];
 %keep_timesteps = [5, 25, 70];
 %keep_timesteps = [5, 115, 220];
-%keep_timesteps = [1 2 3];
+keep_timesteps = [21, 60];
 saved_timesteps = [];
 
 %% Main time loop
@@ -76,24 +79,16 @@ for t = 1:incomp_case.numSteps
 end
 toc
 
+save('cached', 'saved_timesteps', 'xc', 'zt');
+
 % Plotting graphs for selected timesteps
 close all;
 num_steps = numel(keep_timesteps);
-% for i = 1:num_steps;
-%     figure(i);
-%     locusPlot([saved_timesteps(i, 3)], {'r'}, comp_case.gravity.theta, ...
-%               comp_case.temp_grad, true, false);
-% end
 
-figure(num_steps + 1); 
-set(gcf, 'position', [0 0 1221 1534]);
-plotsummary(xc, zt, saved_timesteps, {'b', 'g', 'r'}, ...
-            {'Year 5', 'Year 25', 'Year 60'});
-            
-% plotsummary(xc, zt, saved_timesteps, {'b', 'g', 'r'}, ...
-%             {'Year 5', 'Year 25', 'Year 50'}, ...
-%             sin(comp_case.gravity.theta) * 80000);
-
+figure(num_steps + 1); plotsummary(xc, zt, saved_timesteps, {'b', 'g', 'r'}, ...
+                                   {'Year 21', 'Year 60'});
+% figure(num_steps + 1); plotsummary(xc, zt, saved_timesteps, {'b', 'g', 'r'}, ...
+%                                    {'Year 5', 'Year 55', 'Year 140'});
 
 %plotting loci 
 %h = PVTplot([5e6, 11e6], [300, 320], CO2);
@@ -109,40 +104,38 @@ for i = 1:num_steps
     ipress = saved_timesteps(i,3).info.intPress;
     plot(itemp, ipress, styles{i});
 end
-
-h = figure; % new figure
-set(gcf, 'position', [0 0 695 499]);
-hold on;
-EOS.compressible = 'full';
-EOS.rho = CO2.rho;
-EOS.beta = CO2.beta;
-EOS.gamma = CO2.gamma;
-EOS.beta2 = @(p, t) CO2.rhoDPP(p,t)./CO2.rho(p,t);
-EOS.gamma2 = @(p, t) CO2.rhoDTT(p,t)./CO2.rho(p,t);
-EOS.chi = @(p, t) CO2.rhoDPT(p,t)./CO2.rho(p,t);
-max_y = 0;
-for i = 1:num_steps;
-    % plotting density variation
-    % int_temp  = saved_timesteps(i,3).info.intTemp;
-    % int_press = saved_timesteps(i,3).info.intPress;
-    % tgrad     = comp_case.temp_grad / 1000;
-    % gcost     = norm(gravity) * cos(comp_case.gravity.theta);
-    % [~,~,~,~,eta] = etaIntegrals(EOS, int_press, int_temp, tgrad, gcost);
-    % yvals = eta(-saved_timesteps(i,3).h);
-    yvals = saved_timesteps(i,3).info.topRho ./ saved_timesteps(i,3).info.intRho;
-    if max(yvals) > max_y
-        max_y = max(yvals);
+if false
+    h = figure; % new figure
+    hold on;
+    EOS.compressible = 'full';
+    EOS.rho = CO2.rho;
+    EOS.beta = CO2.beta;
+    EOS.gamma = CO2.gamma;
+    EOS.beta2 = @(p, t) CO2.rhoDPP(p,t)./CO2.rho(p,t);
+    EOS.gamma2 = @(p, t) CO2.rhoDTT(p,t)./CO2.rho(p,t);
+    EOS.chi = @(p, t) CO2.rhoDPT(p,t)./CO2.rho(p,t);
+    max_y = 0;
+    for i = 1:num_steps;
+        % plotting density variation
+        int_temp  = saved_timesteps(i,3).info.intTemp;
+        int_press = saved_timesteps(i,3).info.intPress;
+        tgrad     = comp_case.temp_grad / 1000;
+        gcost     = norm(gravity) * cos(comp_case.gravity.theta);
+        [~,~,~,~,eta] = etaIntegrals(EOS, int_press, int_temp, tgrad, gcost);
+        yvals = eta(-saved_timesteps(i,3).h);
+        if max(yvals) > max_y
+            max_y = max(yvals);
+        end
+        
+        plot(xc/1e3, yvals , styles{i});
     end
-    
-    plot(xc/1e3, yvals , styles{i});
+    xlabel('km', 'FontSize', 20);
+    ylabel('\rho_T/\rho_M', 'FontSize', 20);
+    axis([min(xc)/1e3, max(xc)/1e3, 1, max_y + (max_y-1)*0.15]);
+    set(gca, 'FontSize', 16);
 end
-xlabel('km', 'FontSize', 20);
-ylabel('\rho_T/\rho_M', 'FontSize', 20);
-axis([min(xc)/1e3, max(xc)/1e3, 1, max_y + (max_y-1)*0.15]);
-set(gca, 'FontSize', 16);
 
-save('cached', 'saved_timesteps', 'xc', 'zt');
-CO2.dispose();
+CO2.dispose(); 
 keyboard;
 end
 %%                                                                             

@@ -3,6 +3,9 @@ function plotsummary(abscissa, z_top, saved_tsteps, colors, column_labels, tilt_
     columns = size(saved_tsteps, 1);
     % stylemap for twin graphs (top/iface pressure, top/iface density)
     dashed_colors = cellfun(@(x) [x, '--'], colors, 'UniformOutput', false);
+    
+    sym_colors = {'o', '*', '<'}
+    
     colors_twin = {dashed_colors{:}, colors{:}};
 
     for c = 1:columns
@@ -19,6 +22,17 @@ function plotsummary(abscissa, z_top, saved_tsteps, colors, column_labels, tilt_
         polygraph([heights, z_top], {colors{:}, 'k'}, ...
                   {'km','m'}, '', abscissa/1e3, ...
                   [min_z, max_z + (max_z-min_z)* 0.1]);
+
+        polygraph([heights(1:6:end,1)], {sym_colors{1}, 'k'}, ...
+                  {'km','m'}, '', abscissa(1:6:end)/1e3, ...
+                  [min_z, max_z + (max_z-min_z)* 0.1]);
+        polygraph([heights(3:6:end,2)], {sym_colors{2}, 'k'}, ...
+                  {'km','m'}, '', abscissa(3:6:end)/1e3, ...
+                  [min_z, max_z + (max_z-min_z)* 0.1]);
+        polygraph([heights(5:6:end,3)], {sym_colors{3}, 'k'}, ...
+                  {'km','m'}, '', abscissa(5:6:end)/1e3, ...
+                  [min_z, max_z + (max_z-min_z)* 0.1]);
+        
         set(gca, 'YDir', 'reverse');
 
         % Plotting pressures
