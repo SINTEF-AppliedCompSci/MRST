@@ -1,4 +1,4 @@
-function plotsummary(abscissa, z_top, saved_tsteps, colors, column_labels)
+function plotsummary(abscissa, z_top, saved_tsteps, colors, column_labels, tilt_offset)
     
     columns = size(saved_tsteps, 1);
     % stylemap for twin graphs (top/iface pressure, top/iface density)
@@ -38,7 +38,6 @@ function plotsummary(abscissa, z_top, saved_tsteps, colors, column_labels)
 
         
     end    
-    
 
     % column labeling
     for c = 1:columns
@@ -60,6 +59,14 @@ function plotsummary(abscissa, z_top, saved_tsteps, colors, column_labels)
         ypos = ylim(1) + diff(ylim)/2;
         h = text(xpos, ypos, row_labels{r}, 'FontSize', 20, 'HorizontalAlignment', ...
                  'center', 'rotation', 90);
+    end
+    
+    % Adding second axis to height plots if required
+    if exist('tilt_offset') && tilt_offset ~= 0
+        for c = 1:columns
+            subplot(4, columns, c);
+            addSecondAxis(gca, tilt_offset);
+        end
     end
 end
 
