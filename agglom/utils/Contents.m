@@ -1,0 +1,29 @@
+% Files
+%   blockConnectivity.m            - Build block-to-neighbours map by transposing neighbourship definition
+%   blockNeighbours.m              - Identify the neighbours of a particular coarse block.
+%   blockNeighbourship.m           - Derive coarse-scale neighbourship from fine-scale information
+%   coarse_sat.m                   - Converts a fine saturation field to a coarse saturation field, weighted
+%   convertBC2Coarse.m             - Convert fine-scale boundary conditions to coarse scale.
+%   convertRock2Coarse.m           - Create coarse-scale porosity field for solving transport equation.
+%   convertSource2Coarse.m         - Accumulate fine-scale source terms to coarse scale
+%   findConfinedBlocks.m           - Identify coarse blocks confined entirely within a single other block.
+%   signOfFineFacesOnCoarseFaces.m - Identify fine-scale flux direction corresponding to coarse-scale outflow
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
