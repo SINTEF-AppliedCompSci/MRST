@@ -1,0 +1,791 @@
+ function varargout = plotToolbar(Grid, dataset, varargin)
+%Plot one or more datasets with interactive tools for visualization
+%
+% SYNOPSIS:
+%   h = plotToolbar(G, dataset)
+%   h = plotToolbar(G, struct('data1', data, 'data2', data));
+%
+% DESCRIPTION:
+%   plotToolbar is designed to be a drop-in replacement for plotCellData
+%   which has several added features that allow the user to inspect and
+%   manipulate several datasets. The key features are:
+%
+%       - Capable of interacting with multiple datasets simultanously. See
+%       required parameters.
+%
+%       - Supports all options supported by plotCellData.
+%
+%       - Improved rotation speed of figures due to custom rotate handler.
+%       This is extremely useful when working with 100k+ cells.
+%
+%       - Subdivide model, use slicing planes to visualize internal
+%       features or limit by logical indices or the values of datasets.
+%
+%       - Dynamic histograms allow easy inspection of subsamples of a
+%       complex dataset.
+%
+%       - Multiple transformations (log10, absolute value etc) makes it
+%       easy to explore a new dataset without any a priori knowledge of the
+%       data. Visualize directly on the equivialent logical grid structure.
+%
+%       - Visualize a whole simulation, including playback with dynamic
+%       selection.
+%
+% REQUIRED PARAMETERS:
+%   Grid    - Grid data structure.
+%
+%   data    - Scalar cell data with which to colour the grid.  One scalar,
+%             indexed colour value for each cell in the grid or one
+%             TrueColor value for each cell.  If a cell subset is specified
+%             in terms of the 'cells' parameter, 'data' must either contain
+%             one scalar value for each cell in the model or one scalar
+%             value for each cell in this subset.
+%
+%   cells   - Vector of cell indices defining sub grid.  The graphical
+%             output of function 'plotToolbar' will be restricted to the
+%             subset of cells from 'G' represented by 'cells'.
+%
+%             If unspecified, function 'plotToolbar' will behave as if the
+%             user defined
+%
+%                 cells = 1 : G.cells.num
+%
+%             meaning graphical output will be produced for all cells in
+%             the grid model 'G'.  If 'cells' is empty (i.e., if
+%             ISEMPTY(cells)), then no graphical output will be produced.
+%
+%   'pn'/pv - List of property names/property values.  OPTIONAL.
+%             This list will be passed directly on to function PATCH
+%             meaning all properties supported by PATCH are valid.
+%
+% RETURNS:
+%   h       - Handle to underlying plot call. If used interactively, this
+%             handle will *not* remain usable.
+%
+% EXAMPLE:
+%    G = cartGrid([10,10,10])
+%    G = computeGeometry(G);
+%    %Visualize the grid itself
+%    plotToolbar(G, G)
+%
+% SEE ALSO:
+%   plotCellData, plotFaces
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
+    G = Grid;
+
+    if mod(numel(varargin), 2) == 1
+        initialSelection = varargin{1};
+        if ~islogical(initialSelection)
+            tmpsel = false(G.cells.num, 1);
+            tmpsel(initialSelection) = true;
+            initialSelection = tmpsel;
+            clear tmpsel
+        end
+        assert(numel(initialSelection) == G.cells.num);
+        initialSelection = reshape(initialSelection, [], 1);
+        varargin = varargin(2 : end);
+    else
+        initialSelection = true(G.cells.num, 1);
+    end
+    isscalar = false;
+
+    if isnumeric(dataset) && max(size(dataset)) == G.cells.num
+        if size(dataset, 2) == 1
+            isscalar = true;
+        end
+        dataset = struct('values', dataset);
+    elseif iscell(dataset)
+        try
+            dataset = [dataset{:}];
+        catch e
+            error('To visualize cell data, all entries must be of the same type!');
+        end
+    end
+
+    datasetname = inputname(2);
+    cellfields = getStructFields(G, dataset(1), datasetname);
+    ni = 1;
+    if ~isempty(cellfields)
+        selectionName = cellfields{1};
+    else
+        selectionName = '';
+    end
+
+    data = readStructField(dataset(ni), selectionName);
+
+    N = numel(dataset);
+
+    %% Constants
+    if ~isfield(G, 'cartDims')
+        G.cartDims = ones(1, G.griddim);
+    end
+    ijk = cell(size(G.cartDims));
+    [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
+
+
+    % Plotting parameters
+    [...
+     vecToggle, ...
+     logDisplay, ...
+     absDisplay, ...
+     tenDisplay, ...
+     nonzeroDisplay, ...
+     slices, ...
+     logicalsubset, ...
+     histsubset, ...
+     histh, ...
+     cax, ...
+     histAll, ...
+     N_hist, ...
+     sliceoutlineh, ...
+     gridOutline, ...
+     minmax, ...
+     mainFig, ...
+     ph, ...
+     vh, ...
+     G_logi...
+     ] = deal([]);
+
+    %%
+
+    fig = gcf;
+    % Delete previous instances of toolbar in same figure
+    delete(findobj(fig, 'Tag', 'mrst-plottoolbar'));
+
+    ht = uitoolbar(fig, 'Tag', 'mrst-plottoolbar');
+
+    % Log10 button
+    log10toggleh = uitoggletool(ht, 'TooltipString', 'Logarithmic plot (log10)',...
+                     'ClickedCallback', @toggleTransform, ...
+                     'cdata', geticon('log10'));
+    % 10^x button
+    tentoggleh = uitoggletool(ht, 'TooltipString', '10^x plot',...
+                     'ClickedCallback', @toggleTransform, ...
+                     'cdata', geticon('10'));
+
+    % Abs button
+    abstoggleh = uitoggletool(ht, 'TooltipString', 'Absolute value',...
+                     'ClickedCallback', @toggleTransform, ...
+                     'cdata', geticon('abs'));
+
+    % Abs button
+    nonzerotoggleh = uitoggletool(ht, 'TooltipString', 'Filter zero values',...
+                     'ClickedCallback', @toggleTransform, ...
+                     'cdata', geticon('nonzero'));
+
+    % Logical grid button
+    uitoggletool(ht, 'TooltipString', 'Logical grid',...
+                     'ClickedCallback', @toggleLogicalGrid, ...
+                     'cdata', geticon('ijkgrid'));
+
+    % Grid outline button
+    gridToggle = uitoggletool(ht, 'TooltipString', 'Show grid boundary outline',...
+                   'ClickedCallback', @replotPatch,...
+                   'cdata', geticon('outline'));
+
+    % Histogram button
+    uipushtool(ht, 'TooltipString', 'Dynamic histogram of currently displayed data',...
+                   'ClickedCallback', @plotHistogram,...
+                   'cdata', geticon('hist'));
+    % Limiting dataset
+    uipushtool(ht, 'TooltipString', 'Set limits on displayed dataset',...
+                   'ClickedCallback', @limitDataset,...
+                   'cdata', geticon('minmax'),...
+                   'Separator', 'on');
+    % Limit logical
+    uipushtool(ht, 'TooltipString', 'Pick logical indices',...
+                   'ClickedCallback', @limitLogical,...
+                   'cdata', geticon('ijk'));
+
+    % Slice!
+    sliceToggle = uitoggletool(ht, 'TooltipString', 'Slice the figure. Click two times to slice.',...
+                   'ClickedCallback', @sliceToggleFn,...
+                   'cdata', geticon('slice'));
+
+    % Slice 2!
+    uipushtool(ht, 'TooltipString', 'Interactive plane slice',...
+                   'ClickedCallback', @(src, event) plotAdjustiblePlane(G, data, 'Callback', @planarCallback),...
+                   'cdata', geticon('sliceplane'));
+
+    % Reset selection
+    uipushtool(ht, 'TooltipString', 'Reset selection',...
+                   'ClickedCallback', @(src, event) resetSelection,...
+                   'cdata', geticon('reset'));
+
+    % Adjust patch
+    uipushtool(ht, 'TooltipString', 'Set patch properties',...
+                   'ClickedCallback', @(src, event) adjustPatch,...
+                   'cdata', geticon('adjust'), ...
+                   'Separator', 'on');
+
+
+    % Axis adjustments
+    uipushtool(ht, 'TooltipString', 'Set axis to tight',...
+                   'ClickedCallback', @(src, event) axis('tight'),...
+                   'cdata', geticon('tight'), ...
+                   'Separator', 'off');
+
+    % Zoom to selection
+    zoomselToggle = uitoggletool(ht, 'TooltipString', 'Center axis on selection',...
+                   'ClickedCallback', @(src, event) replotPatch(),...
+                   'cdata', geticon('centersel'), ...
+                   'Separator', 'off');
+
+    % Freeze caxis
+    caxisToggle = uitoggletool(ht, 'TooltipString', 'Freeze caxis',...
+                   'cdata', geticon('lockcaxis'), ...
+                   'Separator', 'off');
+
+    addSelector();
+
+    % Initial plot comes here
+    resetSelection(varargin{:})
+
+    if isnumeric(fig)
+        % Override default drawing button to make plot rotations much faster
+        % This is only needed for HG1.
+        fastRotateButton();
+    end
+
+    if nargout > 0
+        varargout{1} = ph;
+        if nargout > 1
+            varargout{2} = @(newDataset, varargin) injectDataset(newDataset, varargin{:});
+        end
+    end
+
+    function closeFcn(src, event)
+        % Destructor
+        delete(fig);
+    end
+
+    set(fig, 'CloseRequestFcn', @closeFcn);
+
+ function injectDataset(newGrid, newDataset, varargin)
+     G = newGrid;
+     if numel(varargin)
+         ni = varargin{1};
+     end
+     dataset = newDataset;
+     data = readStructField(dataset(ni), selectionName);
+     addSelector();
+     replotPatch();
+     drawnow
+ end
+
+function planarCallback(selection, outlinepts)
+    set(gridToggle, 'State', 'on')
+    slices = selection;
+    deleteHandle(sliceoutlineh);
+    set(0, 'CurrentFigure', mainFig);
+    axis tight off
+    sliceoutlineh = patch(outlinepts(:, 1), outlinepts(:, 2), outlinepts(:, 3), 'k', 'FaceAlpha', 0);
+    replotPatch();
+end
+
+function selectdata(datas, index, fullname)
+    data = datas;
+    if ~strcmpi(selectionName, fullname)
+        set(caxisToggle, 'State', 'off');
+        selectionName = fullname;
+    end
+    ni = index;
+
+    replotPatch();
+end
+
+function h = getHandle()
+    h = ph;
+end
+
+function addSelector()
+    if N > 1 || ~isscalar
+        set(0, 'CurrentFigure', fig)
+
+        oldPanel = findobj(fig, 'Tag', 'mrst-datasetselector');
+        if ~isempty(oldPanel)
+            delete(oldPanel)
+        end
+        dsheight = .06;
+        hmod = .1;
+        subplot('Position', [hmod, dsheight + hmod, 1 - 2*hmod, 1-dsheight - 2*hmod]);
+        datasetSelector(G, dataset, 'Parent', gcf, 'Location', [0, 0, 1, dsheight], 'Callback', @selectdata, 'Setname', datasetname);
+        set(fig, 'ResizeFcn', @handleFigureResize);
+        handleFigureResize(fig, []);
+   end
+end
+
+function sliceToggleFn(src, event)
+     activateuimode(gcf, '');
+     switch get(src, 'State')
+         case 'on'
+            set(getHandle(), 'ButtonDownFcn', @sliceDataset)
+            setptr(fig, 'add')
+         case 'off'
+            set(getHandle(), 'ButtonDownFcn', [])
+            setptr(fig,'arrow');
+     end
+ end
+
+function toggleLogicalGrid(src, event)
+    if strcmpi(get(src, 'State'), 'on')
+        if ~isstruct(G_logi)
+            G_logi = reorderLogical(G);
+        end
+        G = G_logi;
+    else
+        G = Grid;
+    end
+    replotPatch();
+    axis tight
+end
+
+function G2 = reorderLogical(G)
+    G2 = cartGrid(G.cartDims);
+    cellInd = false(G.cells.num, 1);
+    cellInd(G.cells.indexMap) = true;
+    G2 = extractSubgrid(G2, find(cellInd));
+    try
+        G2 = mcomputeGeometry(G2);
+    catch
+        G2 = computeGeometry(G2);
+    end
+    G2.cartDims = G.cartDims;
+end
+
+function resetSelection(varargin)
+    set(log10toggleh, 'State', 'off')
+    set(abstoggleh, 'State', 'off')
+    set(tentoggleh, 'State', 'off')
+    logDisplay = false;
+    absDisplay = false;
+    tenDisplay = false;
+    nonzeroDisplay = false;
+
+    slices = NaN;
+    logicalsubset.i = NaN;
+    logicalsubset.j = NaN;
+    logicalsubset.k = NaN;
+    minmax.filter = [];
+    minmax.active = true(G.cells.num, 1);
+    mainFig = gcf;
+    histsubset = nan;
+
+    replotPatch(varargin{:});
+end
+
+function toggleTransform(src, event)
+    logDisplay = strcmpi(get(log10toggleh, 'State'), 'on');
+    absDisplay = strcmpi(get(abstoggleh, 'State'), 'on');
+    tenDisplay = strcmpi(get(tentoggleh, 'State'), 'on');
+    nonzeroDisplay = strcmpi(get(nonzerotoggleh, 'State'), 'on');
+
+    set(caxisToggle, 'State', 'off')
+    replotPatch();
+end
+
+function plotHistogram(varargin)
+    if isempty(histAll); histAll = true; end
+    if isempty(N_hist); N_hist = 10; end;
+    oldfig = gcf;
+
+    if isempty(histh) || ~ishandle(histh)
+        if nargin == 0;
+            return;
+        end
+        histh = figure;
+    end
+    [d, fun, subset] = getData();
+    d = double(d);
+    if histAll
+        data_hist = d;
+    else
+        data_hist = d(subset, :);
+    end
+    data_hist = data_hist(all(isfinite(data_hist), 2), :);
+    % If vector data, assume l2 norm
+    if size(data_hist, 2) > 1
+        data_hist = sum(data_hist, 2).^2;
+    end
+
+%     figure(histh); clf;
+    set(0, 'CurrentFigure', histh);
+    clf;
+    % Find data
+    [n, X] = hist(data_hist, N_hist);
+
+    function h = plotRectangle(x, height, width, value, varargin)
+        h = patch([x; x+width; x+width; x], [0; 0; height; height], value, varargin{:});
+    end
+
+    h = X(2) - X(1);
+    for i = 1:N_hist
+        plotRectangle(X(i) - h, n(i), h, X(i), 'ButtonDownFcn', @(src, event) histClickHandler(src, event, X(i), h, d));
+    end
+
+    axis tight
+    caxis(cax);
+
+
+    function histToggleAll(src, event)
+        histAll = get(src, 'Value');
+        plotHistogram();
+    end
+
+    function histChangeN(src, event)
+        strings = get(src, 'String');
+        N_hist = str2double(strings{get(src, 'Value')});
+        plotHistogram();
+    end
+    bins = [10, 25, 50, 100, 250, 1000];
+    uicontrol(histh, 'Style', 'popupmenu', 'String', arrayfun(@(x) num2str(x), bins , 'UniformOutput', false),...
+        'Position', [5 0 60 50], 'Callback', @histChangeN, 'value', find(bins == N_hist))
+    uicontrol(histh, 'Style', 'togglebutton', 'String', 'All',...
+        'Position', [5 55 60 25], 'Value', histAll, 'Callback', @histToggleAll)
+    set(0, 'CurrentFigure', oldfig)
+
+    function closeFcn(src, event)
+        histh = NaN;
+        delete(src);
+    end
+
+    set(histh, 'CloseRequestFcn', @closeFcn);
+end
+
+
+function histClickHandler(src, event, x, h, d)
+    seltype = get(histh, 'SelectionType');
+    inside = abs(d - x) <= h/2;
+    switch seltype
+        case 'normal'
+            % Normal click
+            histsubset = inside;
+        case 'alt'
+            % Right click / ctrl-click
+            if isnan(histsubset)
+                histsubset = inside;
+            else
+                histsubset = histsubset | inside;
+            end
+        case 'extend'
+            % Shift click
+            histsubset = ~inside;
+    end
+    replotPatch();
+ end
+
+function sliceDataset(src, event)
+    % Two mouse events.
+    % The first defines a line through the axis. The second the last point
+    % for a slicing plane.
+    % If the first click is alternate (ctrl-click / mouse2) it is additive.
+    % If the second click is extend the slice does not terminate
+
+    axold = axis();
+
+    pts1 = get(gca, 'CurrentPoint');
+    additive = ~strcmpi(get(gcf, 'SelectionType'), 'normal') & ~isnan(slices);
+    hold on
+    while 1
+        while 1
+            if waitforbuttonpress == 1
+                return
+            end
+            final = ~strcmpi(get(gcf, 'SelectionType'), 'extend');
+            pts2 = get(gca, 'CurrentPoint');
+            break
+        end
+
+        A = pts1(1,:);
+        B = pts2(1,:);
+        C = pts1(2,:);
+
+        Normal = cross(B-A, C-A);
+
+        if additive
+            old = slices;
+        else
+            old = true(G.cells.num, 1);
+        end
+        slices = old & sum(repmat(Normal, G.cells.num, 1).*(G.cells.centroids  - repmat(A, G.cells.num,1)), 2) > 0;
+        replotPatch();
+        axis(axold);
+        if final,
+            setptr(fig,'arrow');
+            set(sliceToggle, 'State', 'off')
+            break;
+        end;
+    end
+end
+
+function limitLogical(src, event)
+
+    pos = get(gcf, 'OuterPosition');
+    fi = figure('Position',[pos(1:2)-[300 0],  [300 340]], 'Toolbar','none', 'MenuBar', 'none');
+    set(fi, 'Name', 'Select logical indices');
+
+
+    Mv = max([ijk{:}]);
+
+    f = {'i', 'j', 'k'};
+    for i = 1:G.griddim
+        if isnan(logicalsubset.(f{i}))
+            logicalsubset.(f{i}) = 1:Mv(i);
+        end
+    end
+
+
+    si = uicontrol(fi, 'Position', [0,   40, 100, 300], 'String', 1:Mv(1) , 'Style', 'listbox', 'Max', Mv(1), 'Value', logicalsubset.i, 'TooltipString', 'I');
+    sj = uicontrol(fi, 'Position', [100, 40, 100, 300], 'String', 1:Mv(2) , 'Style', 'listbox', 'Max', Mv(2), 'Value', logicalsubset.j, 'TooltipString', 'J');
+    if G.griddim == 3
+        sk = uicontrol(fi, 'Position', [200, 40, 100, 300], 'String', 1:Mv(3) , 'Style', 'listbox', 'Max', Mv(3), 'Value', logicalsubset.k, 'TooltipString', 'K');
+    end
+
+    uicontrol(fi, 'Style', 'pushbutton', 'Position', [100, 0, 100, 40], 'string', 'Apply', 'callback', @(src, event) uiresume(fi))
+    uiwait(fi);
+
+    if ~ishandle(fi)
+        % User closed window
+        return
+    end
+
+    logicalsubset.i = get(si, 'Value');
+    logicalsubset.j = get(sj, 'Value');
+    if G.griddim == 3
+    logicalsubset.k = get(sk, 'Value');
+    end
+
+    replotPatch();
+    close(fi);
+    limitLogical(src, event);
+end
+
+function limitDataset(src, event)
+    addFilters(G, minmax.filter, dataset(ni), @setlimits);
+end
+
+function setlimits(active, filter)
+    % seperate function to break closure
+    minmax.filter = filter;
+    minmax.active = active;
+    replotPatch();
+end
+
+function adjustPatch(src, event)
+    % New figure
+    pos = get(gcf, 'OuterPosition');
+    fi = figure('Position',[pos(1:2)-50,  [350 120]], 'Toolbar','none', 'MenuBar', 'none');
+
+    set(gcf, 'Name', 'Change patch style');
+
+    [se, ee] = linkedSlider(fi, [10,60], 0, 1, get(ph, 'EdgeAlpha'), 'Edge');
+    [sf, ef] = linkedSlider(fi, [10,90], 0, 1, get(ph, 'FaceAlpha'), 'Face');
+    applyfun = @(src, event) set(ph, 'FaceAlpha', get(sf, 'Value'), 'EdgeAlpha', get(se, 'Value'));
+
+    patchcolor = @(src, event) set(ph, 'EdgeColor', uisetcolor(get(ph, 'EdgeColor')));
+    uicontrol(fi, 'Style', 'pushbutton', 'Position', [245, 10 100, 40], 'string', 'EdgeColor', 'callback', patchcolor)
+    uicontrol(fi, 'Style', 'pushbutton', 'Position', [10, 10 100, 40], 'string', 'Apply', 'callback', applyfun)
+end
+
+function replotPatch(varargin)
+
+    [d, fun, subset] = getData();
+    set(0, 'CurrentFigure', mainFig)
+
+    plotAsVector = any(ishandle(vecToggle)) && strcmpi(get(vecToggle, 'State'), 'on');
+
+    if sum(subset) == 0
+        disp 'Selection returned no values, will not change plot...'
+        return
+    end
+
+    if strcmpi(get(caxisToggle, 'State'), 'on')
+        cx = caxis();
+    end
+
+
+    if strcmpi(get(gridToggle, 'State'), 'on')
+        deleteHandle(gridOutline)
+        gridOutline = plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.05,...
+            'EdgeColor', 1 - get(0, 'DefaultAxesColor'));
+
+    else
+        if any(ishandle(gridOutline))
+            deleteHandle(gridOutline);
+        end
+    end
+
+    if any(ishandle(vh));
+        delete(vh);
+    end
+    if plotAsVector
+        if ishandle(ph);
+            set(ph, 'Visible', 'off');
+        end
+        vh = plotCellVectorData(G, d, subset);
+    else
+        if ishandle(ph)
+            ph2 = plotCellData(G, d, subset, ...
+                                               'EdgeAlpha', get(ph, 'EdgeAlpha'),...
+                                               'EdgeColor', get(ph, 'EdgeColor'),...
+                                               'FaceAlpha', get(ph, 'FaceAlpha'),...
+                                               'FaceColor', get(ph, 'FaceColor'),...
+                                               'LineStyle', get(ph, 'LineStyle'),...
+                                               'LineWidth', get(ph, 'LineWidth'));
+            delete(ph);
+            ph = ph2;
+        else
+            ph = plotCellData(G, d, subset, varargin{:});
+        end
+    end
+
+    if strcmpi(get(zoomselToggle, 'State'), 'on')
+        gc = G.cells.centroids(subset, :);
+        mgc = min(gc);
+        Mgc = max(gc);
+        hgc = Mgc - mgc + sqrt(eps);
+        axis([mgc(1) - .1*hgc(1)...
+              Mgc(1) + .1*hgc(1)...
+              mgc(2) - .1*hgc(2)...
+              Mgc(2) + .1*hgc(2)...
+              mgc(3) - .1*hgc(3)...
+              Mgc(3) + .1*hgc(3)...
+            ])
+    end
+
+    if strcmpi(get(caxisToggle, 'State'), 'on')
+        caxis(cx);
+    elseif min(size(d)) == 1
+        dsel = d(initialSelection);
+        dsel = double(dsel(isfinite(dsel)));
+        if any(dsel)
+            lower = @(v) v - eps(v);
+            upper = @(v) v + eps(v);
+            caxis([lower(min(dsel)), upper(max(dsel))]);
+        end
+    end
+    cax = caxis();
+    plotHistogram();
+end
+
+function [d, fun, subset] = getData()
+    fun = @(x) x;
+
+
+    if absDisplay
+        fun = @(x) abs(fun(x));
+    end
+
+    if tenDisplay
+        fun = @(x) 10.^fun(x);
+    end
+
+    if logDisplay
+        fun = @(x) sign(fun(x)).*log10(abs(fun(x)));
+    end
+
+    subset = initialSelection;
+
+
+    subset = subset & minmax.active;
+
+    if ~isnan(slices)
+        subset = subset & slices;
+    end
+
+    if ~isnan(histsubset)
+        subset = subset & sum(histsubset, 2) > 0;
+    end
+
+    if ~isnan(logicalsubset.i)
+        subset = subset & ismember(ijk{1}, logicalsubset.i);
+    end
+
+    if ~isnan(logicalsubset.j)
+        subset = subset & ismember(ijk{2}, logicalsubset.j);
+    end
+
+    if ~isnan(logicalsubset.k)
+        subset = subset & ismember(ijk{3}, logicalsubset.k);
+    end
+
+    if nonzeroDisplay
+        tmp = sum(abs(data), 2);
+        subset = subset & tmp > sqrt(eps(max(tmp))) ;
+    end
+
+    if size(data, 2) == 3
+        if ~any(ishandle(vecToggle))
+            vecToggle = uitoggletool(ht, 'TooltipString', 'Plot as vector',...
+                                         'ClickedCallback', @replotPatch, ...
+                                         'cdata', geticon('vfield'));
+        end
+    elseif ishandle(vecToggle)
+        delete(vecToggle);
+    end
+    d = fun(double(data));
+end
+
+
+ end
+
+function handleFigureResize(src, event)
+    sel = findobj(src, 'Tag', 'mrst-datasetselector');
+
+    oldunits_fig = get(src, 'Units');
+    oldunits_sel = get(sel, 'Units');
+
+    set(src, 'Units', 'pixels');
+    set(sel, 'Units', 'pixels');
+
+    figPos = get(src, 'Position');
+    set(sel, 'Position', [0 0 figPos(3), 25]);
+
+    set(src, 'Units', oldunits_fig);
+    if iscell(oldunits_sel) && numel(oldunits_sel) > 1
+        oldunits_sel = oldunits_sel{1};
+    end
+    set(sel, 'Units', oldunits_sel);
+end
+
+function cdata = geticon(name)
+    n = mfilename('fullpath');
+    tmp = regexp(n, filesep, 'split');
+    icon = fullfile(tmp{1:end-1}, 'icons', [name '.gif']);
+    [cdata, map] = imread(icon);
+    map((map(:,1)+map(:,2)+map(:,3)==3)) = NaN;
+    cdata = ind2rgb(cdata,map);
+end
+
+function [s, e] = linkedSlider(fi, pos, md, Md, val, title)
+    uicontrol(fi, 'Style', 'text', 'Position', [pos(1:2) 25, 25], 'string', title)
+    size1 = [pos(1)+25, pos(2), 250, 25];
+    sizee1 = [size1(1:2) + [size1(3) + 10, 0], [50 25]];
+    cap = @(x) max(md, min(x, Md));
+
+    e = uicontrol(fi, 'Style', 'edit', 'Value', val, 'Position', sizee1, 'String', sprintf('%.3f', val));
+    fun = @(src, event) set(e, 'String', sprintf('%.3f', get(src, 'Value')));
+    s = uicontrol(fi, 'Style', 'slider', 'Position', size1, 'Min', md, 'Max', Md, 'Value', val, 'Callback', fun);
+    fun2 = @(src, event) set(s, 'Value', cap(sscanf(get(src, 'String'), '%f')));
+    set(e, 'Callback', fun2);
+end

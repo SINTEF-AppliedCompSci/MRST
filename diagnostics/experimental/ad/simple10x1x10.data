@@ -1,0 +1,197 @@
+RUNSPEC
+TITLE
+   SIMPLE 2D OW PROBLEM 
+
+DIMENS
+   10   1    1  /
+
+OIL
+
+WATER
+
+GAS
+
+DISGAS
+
+EQLDIMS
+    1  100   10    1    1 /
+
+TABDIMS
+    1    1   16   12    1   12 /
+
+WELLDIMS
+    2    1    1    2 /
+
+START
+  1 'JAN' 2000  /
+
+UNIFIN
+
+GRID    ================================================================
+INIT
+--     ARRAY  VALUE     ------- BOX ------
+EQUALS
+      'DX'      20      /
+      'DY'      20      /
+      'DZ'       4      /
+      'PORO'     0.3    /
+      'PERMX'  100      /
+      'TOPS'  1000      /
+/
+
+COPY
+      'PERMX'    'PERMY'   /
+      'PERMX'    'PERMZ'   /
+/
+
+PROPS    ===============================================================
+-- WATER RELATIVE PERMEABILITY AND CAPILLARY PRESSURE ARE TABULATED AS
+-- A FUNCTION OF WATER SATURATION.
+--
+--  SWAT   KRW   PCOW
+SWFN
+    0  0       0
+    1.0   1    0  /
+
+-- SIMILARLY FOR GAS
+--
+--  SGAS   KRG   PCOG
+SGFN
+    0     0       0
+    1.0   1.0     0 /
+
+-- OIL RELATIVE PERMEABILITY IS TABULATED AGAINST OIL SATURATION
+-- FOR OIL-WATER AND OIL-GAS-CONNATE WATER CASES
+--
+--  SOIL     KROW     KROG
+SOF3
+    0        0        0
+    1        1        0/
+
+-- PVT PROPERTIES OF WATER
+--
+--    REF. PRES. REF. FVF  COMPRESSIBILITY  REF VISCOSITY  VISCOSIBILITY
+PVTW
+       250     1        3.13D-6           1            0 /
+
+-- ROCK COMPRESSIBILITY
+--
+--    REF. PRES   COMPRESSIBILITY
+ROCK
+        14.7          3.0D-6          /
+
+-- SURFACE DENSITIES OF RESERVOIR FLUIDS
+--
+--        OIL   WATER   GAS
+DENSITY
+         1   1  1  /
+
+-- PVT PROPERTIES OF DRY GAS (NO VAPOURISED OIL)
+-- WE WOULD USE PVTG TO SPECIFY THE PROPERTIES OF WET GAS
+--
+--   PGAS   BGAS   VISGAS
+PVDG
+     14.7 166.666   0.008
+     250.0  1   0.0096 /
+
+
+
+-- PVT PROPERTIES OF LIVE OIL (WITH DISSOLVED GAS)
+-- WE WOULD USE PVDO TO SPECIFY THE PROPERTIES OF DEAD OIL
+--
+-- FOR EACH VALUE OF RS THE SATURATION PRESSURE, FVF AND VISCOSITY
+-- ARE SPECIFIED. FOR RS=1.27 AND 1.618, THE FVF AND VISCOSITY OF
+-- UNDERSATURATED OIL ARE DEFINED AS A FUNCTION OF PRESSURE. DATA
+-- FOR UNDERSATURATED OIL MAY BE SUPPLIED FOR ANY RS, BUT MUST BE
+-- SUPPLIED FOR THE HIGHEST RS (1.618).
+--
+--   RS      POIL  FVFO  VISO
+PVTO
+    0.001    14.7 1.062  1    /
+    1       250.0 1.15   1   /
+    1.618  275.0 1.827  1
+           300.0 1.726  1   /
+
+
+/
+
+
+SOLUTION ===============================================================
+EQUIL
+--depth  pressure(atm) woc
+   1000      234       1200   /
+
+SUMMARY  ===============================================================
+FOPR
+WBHP
+/
+
+SCHEDULE ===============================================================
+
+WELSPECS
+--     WELL   GROUP LOCATION  BHP   PI
+--     NAME   NAME    I  J   DEPTH DEFN
+    'PRODUCER' 'G'   10  1    1000 'OIL'  /
+    'INJECTOR' 'G'    1  1    1000 'WAT'  /
+/
+
+COMPDAT
+--     WELL     -LOCATION- OPEN/ SAT CONN  WELL
+--     NAME     I  J K1 K2 SHUT  TAB FACT  DIAM
+    'PRODUCER'  10 1 1  1 'OPEN' 2*       0.3/
+    'INJECTOR'   1  1 1  1 'OPEN' 2*       0.3/
+/
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+     'PRODUCER' 'OPEN'  'BHP'   5*                            150/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW
+--      NAME    TYPE   SHUT    MODE    RATE
+     'INJECTOR' 'WATER' 'OPEN' 'RATE'   100  /
+/
+
+
+TSTEP
+2*5.0 4*10.0 1*50.0
+/
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+     'PRODUCER' 'OPEN'  'BHP'   5*                            150/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW
+--      NAME    TYPE   SHUT    MODE    RATE
+     'INJECTOR' 'WATER' 'OPEN' 'RATE'   200  /
+/
+
+
+TSTEP
+2*50.0
+/
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+     'PRODUCER' 'OPEN'  'BHP'   5*                            110/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW
+--      NAME    TYPE   SHUT    MODE    RATE
+     'INJECTOR' 'WATER' 'OPEN' 'RATE'   100  /
+/
+
+
+TSTEP
+1*100.0
+/
+
+END     ================================================================
