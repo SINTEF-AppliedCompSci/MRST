@@ -219,17 +219,10 @@ function lst = clear_modules(lst)
       p = path_search(lst);
       p = p(~ cellfun(@isempty, p));
 
-      pth = split_path(path);
-
-      [ii, jj] = blockDiagIndex(numel(pth), numel(p));
-      match = strcmp(reshape(pth(ii), [], 1), ...
-                     reshape(p  (jj), [], 1));
-
-      excl = false([numel(pth), 1]);
-      excl(ii(match)) = true;
-
-      pth = strcat(pth(~ excl), pathsep);
-      path([ pth{:} ]);
+      for r = reshape(p, 1, []),
+         dirs = filter_module_dirs(r{1});
+         rmpath(dirs{:});
+      end
 
       lst = {};
    end
