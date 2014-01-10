@@ -1,0 +1,59 @@
+- TUTORIALS 
+ 
+Q:
+I get the error
+??? Undefined function or variable
+when I try to run the tutorials.
+
+
+A: 
+Run 'startup.m' given in the MRST root directory to add all needed
+folders to MATLAB's search path. 
+
+
+Q:
+MATLAB crashes with a segmentation fault when I try to run the
+tutorials.
+ 
+A: 
+Use of OpenGL as renderer when doing plotting can cause MATLAB to
+crash with a segmentation fault and error message such as 
+
+'attempt to draw locked object'
+
+So far it has particularly been a problem for users on Mac and it has
+to do with the OpenGL driver, see 
+
+http://www.mathworks.com/support/tech-notes/1200/1201.shtml
+
+A 'solution' is to write 
+
+opengl neverselect
+
+(in the command window or in the top of the file)
+
+which disables OpenGL - and therefore also results in a bit less fancy
+plotting (for instance no transparency).
+
+Q:
+Can I access the GSmodel.grdecl file used in the Real-Field Model 
+in the tutorial on the web?
+
+A: 
+The model used in this example is unfortunately not yet publicly
+available, but consider the synthetic reservoir model from the SAIGUP
+study instead.
+
+
+- GRIDS/DATA
+
+Q:
+I get very strange results when trying to run my simulation model.
+
+A: 
+First check that all your variables have the right unit. MRST uses SI
+units, so e.g. the permeability should be in m^2 which means that you
+need to convert the permeability if it was given in mD. See functions
+'convertInputUnits.m' and 'convertFrom.m'.
+
+

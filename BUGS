@@ -1,0 +1,113 @@
+2008-04-30   readGRDECL:
+             Missing error checking for SPECGRID, DIMENS, COORD
+
+2008-04-30   readGRDECL not working for Norne and Johansen.
+             [2009-11-08: FIXED]
+
+2008-06-13   rock:
+             Why is dimension of porosity and permeability vector equal to
+             prod(G.cartDims) and not G.cells.num!?
+             [FIXED]
+
+2008-06-24   mobility ratio in saturation solvers is inverted.
+             [2009-11-08: FIXED]
+
+2008-06-24   number of permeability values == number of active cells?
+             See entry for 2008-06-13...
+             [2009-11-08: FIXED]
+
+2008-06-24   Gravity not used/implemented/... in assembleMimeticSystem.m
+             [2009-11-08: FIXED]
+
+2008-06-24   Mobility adjustments for BIV and BIVW really needed [hmn asks]?
+             [2009-11-08: No longer pertinent?]
+
+2008-07-02   rock == [] does not work.  Fix tests and examples!
+             2008-08-14 -> ISEMPTY(rock) is not supposed to work!
+             [2009-11-08: Won't change]
+
+2008-07-02   gravity runs without densities.  Wtf!?  Or...
+             [2009-11-08: No longer pertinent?]
+
+2008-07-02   pside with index set (1:1) seem to crash.
+             [2009-11-08: FIXED]
+
+2008-07-02   check S.constants gravity scaling
+             [2009-11-08: No longer pertinent, S.constants is gone]
+
+2008-07-02   bug in gravityColumn. facePressures are not correct. [OK]
+
+2008-07-03   tests/mimetic_mixed_tpf:
+             Smthng s wrng? Wrong R-O-N-G WRONG
+             [2009-11-08: No longer pertinent]
+
+2008-08-14   Possibly erroneous evaluation of well fluxes in
+             multiscale code?  Currently uses divergence of cell flux.
+
+2008-08-21   Boundary conditions are not supported in multiscale code due
+             to design of coarse grid structure.  Needs fixing.  Urgently.
+             [2009-11-08: FIXED]
+
+2008-09-18   Hack of functions schurComplement{,Symm} to restore Dirichlet
+             conditions does not work.  Need to find a solution of some kind.
+             [2009-11-08: FIXED]
+
+2008-10-31   blackoilUpwBE.m does not implement flux \nabla\cdot(v f/B).
+             B is missing!
+             [2009-11-08: FIXED]
+
+2008-12-03   Implicit transport solvers fail when dt is very small.
+             Tolerance of residual should scale with time step, somehow.
+             [2009-11-08: Status unknown]
+
+2009-11-06   In readGRDECL function: an empty space after the file name
+             under keyword INCLUDE and before the ending quotation mark,
+             produces error message.
+
+             [Triage comment [2009-11-08]: Does this really constitute a
+              bug?  Input of the form
+
+                        INCLUDE
+                           'path/to/filename.ext ' /
+
+              is invalid (at least in our case), because we don't
+              support spaces in file names.  We therefore ought to
+              detect such input and error out with a more intelligible
+              error message.]
+
+2009-11-06   In readGRDECL function: reading EQUALS keyword encounters
+             problem, probably when the box index limits (imin-imax,
+             jmin-jmax,kmin-kmax) are defaulted(not given).
+
+             [Triage comment [2009-11-08]: We don't really support input
+              BOXes yet (and may not for some time still).  We should,
+              however, support "EQUALS array value/" with an input box
+              corresponding to the entire model.]
+
+2009-11-06   In readGRDECL function: reading EQUIL keyword encounters
+             problem, most probably in defining grdecl.EQUIL .
+
+             [Triage comment [2009-11-08]: Missing feature].
+
+2010-09-23   The 'processPartition' function does not handle partitions
+             in which any blocks have more than one cell, but no
+             internal connections (ref.: Confidential model,
+             coarseDims=[15, 30, 50]).
+
+2010-10-07   tet2grid combined with delaunayn produce unusable grids.
+
+2010-10-17   The input readers that open files don't report file names
+             in case of FOPEN failure.  This leads to less than fully
+             useful error messages.  The functions in question are
+
+                     fns = {...
+                       'readBinaryEclipseFile', ...
+                       'readBinaryEcliseTimeData', ...
+                       'readCache', ...
+                       'readEclipseIncludeFile', ...
+                       'readEclipseTimeData', ...
+                       'readEcliseDeck', ...
+                       'readEcliseOutput', ...
+                       'readGRDECL', ...
+                       'readSimData' };
+                     edit(fns{:})

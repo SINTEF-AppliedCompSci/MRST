@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<demos>
+
+  <name>MRST</name>
+  <type>toolbox</type>
+  <icon>$toolbox/matlab/icons/matlabicon.gif</icon>
+  <description>
+    The Reservoir Simulation Toolbox is developed by SINTEF Applied
+    Matemathics and is a result of our research on the development of
+    new (multiscale) computational methodologies.  The toolbox consists
+    of a comprehensive set of routines and data structures for reading,
+    representing, processing, and visualizing unstructured grids, with
+    particular emphasis on the corner-point format used within the
+    petroleum industry.  The current release is geared towards single-
+    and two-phase flow and contains a set of mimetic and multiscale flow
+    solvers and a few simple transport solvers capable of handling
+    general, unstructured grids.
+  </description>
+
+  <website>
+    <a href="http://www.sintef.no/MRST/">Visit our website for more
+      information about the simulator.</a>
+  </website>
+
+  <!-- NB: allow no leading or trailing spaces inside <label></label>
+   (i.e. do not write <label>  title  </label>  - causes very unexpected behaviour!! -->
+
+
+  <!-- Grid -->
+  <demosection>
+    <label>Corner-Point Grids</label>
+    <demoitem>
+      <label>Read, Display, and Manipulate</label>
+      <callback>cornerPointModelExample</callback>
+      <file>grids/html/cornerPointModelExample.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>Example of a Real-Field Model</label>
+      <callback>saigupModelExample</callback>
+      <file>grids/html/saigupModelExample.html</file>
+    </demoitem>
+  </demosection>
+
+
+  <!-- Single-phase -->
+  <demosection>
+    <label>Single-Phase Flow</label>
+
+    <demoitem>
+      <label>My First Flow Solver: Gravity Column</label>
+      <callback>gravityColumn</callback>
+      <file>1ph/html/gravityColumn.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>Basic Flow-Solver Tutorial</label>
+      <callback>simpleBC</callback>
+      <file>1ph/html/simpleBC.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>How to Specify Sources and Boundary Conditions</label>
+      <callback>simpleSRCandBC</callback>
+      <file>1ph/html/simpleSRCandBC.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>Using Peacemann Well Models</label>
+      <callback>simpleWellExample</callback>
+      <file>1ph/html/simpleWellExample.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>Two-Point Flux Approximation Solvers</label>
+      <callback>simpleTPFA</callback>
+      <file>1ph/html/simpleTPFA.html</file>
+    </demoitem>
+
+
+    <demoitem>
+      <label>A Simple Corner-Point Model</label>
+      <callback>simpleCornerPointExample</callback>
+      <file>1ph/html/simpleCornerPointExample.html</file>
+    </demoitem>
+
+
+    <demoitem>
+      <label>A Real-Field Model</label>
+      <callback>saigupField1phExample</callback>
+      <file>1ph/html/saigupField1phExample.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>Incorporating Multipliers Into Consistent and Convergent
+             Schemes</label>
+      <callback>multiplierExampleSAIGUP</callback>
+      <file>grids/html/multiplierExampleSAIGUP.html</file>
+    </demoitem>
+  </demosection>
+
+
+  <!-- Two-phase -->
+  <demosection>
+    <label>Two-Phase Flow and Transport</label>
+    <demoitem>
+      <label>Basic Transport-Solver Tutorial</label>
+      <callback>simple2phWellExample</callback>
+      <file>2ph/html/simple2phWellExample.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>A Real-Field Model</label>
+      <callback>saigupField2phExample</callback>
+      <file>2ph/html/saigupField2phExample.html</file>
+    </demoitem>
+
+  </demosection>
+
+
+  <!-- Multiscale -->
+  <demosection>
+    <label>Multiscale Flow Simulation</label>
+
+    <demoitem>
+      <label>My First Multiscale Solver: Gravity Column</label>
+      <callback>gravityColumnMS</callback>
+      <file>../modules/msmfem/examples/html/gravityColumnMS.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>Basic Multiscale Tutorial</label>
+      <callback>simpleBCMS</callback>
+      <file>../modules/msmfem/examples/html/simpleBCMS.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>Sources and Boundary Conditions</label>
+      <callback>simpleSRCandBCMS</callback>
+      <file>../modules/msmfem/examples/html/simpleSRCandBCMS.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>How To Add Wells</label>
+      <callback>simpleWellExampleMS</callback>
+      <file>../modules/msmfem/examples/html/simpleWellExampleMS.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>How to Apply Overlap for Increased Accuracy</label>
+      <callback>simpleWellOverlap</callback>
+      <file>../modules/msmfem/examples/html/simpleWellOverlap.html</file>
+    </demoitem>
+
+    <demoitem>
+      <label>A Simple Corner-Point Model</label>
+      <callback>simpleCornerPointExampleMS</callback>
+      <file>../modules/msmfem/examples/html/simpleCornerPointExampleMS.html</file>
+    </demoitem>
+  </demosection>
+</demos>

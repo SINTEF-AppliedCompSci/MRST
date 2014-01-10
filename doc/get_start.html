@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/1999/REC-html401-19991224/loose.dtd">
+
+<!--
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Getting Started</title>
+    <link rel="stylesheet" href="docstyle.css" type="text/css">
+    <meta name="generator" content="DocBook XSL Stylesheets V1.52.2">
+    <meta http-equiv="Content-Script-Type" content="text/javascript">
+    <script language="JavaScript" src="docscripts.js"></script>
+  </head>
+
+  <body><a name="top_of_page"></a>
+    <p style="font-size:1px;">&nbsp;</p>
+
+    <h1 class="title"><a name="bqr_2pl"></a>Getting Started</h1><hr>
+    <a name="matlab_getting_started"></a>
+
+
+    <h2>System Requirements</h2>
+    <p>
+    The Toolbox requires MATLAB<sup>&reg;</sup> edition 7.4 (R2006a) or
+    later.  Some features are also supported in earlier versions of
+    MATLAB<sup>&reg;</sup>.
+    </p>
+
+    <h2>Preliminaries</h2>
+    <p>
+    Using the toolbox requires prepending a number of directories to the
+    MATLAB<sup>&reg;</sup> search path.  The <code>startup</code> script
+    within the main toolbox directory handles the necessary <a
+      href="matlab:doc path">path</a> modifications.
+    </p>
+
+    <p>
+    Starting MATLAB<sup>&reg;</sup> in the main Toolbox directory will
+    automatically run <a href="matlab:doc startup">startup</a>.
+    Otherwise, you will need to invoke this particular script
+    manually&mdash;either by means of the <a href="matlab:doc
+      run">run</a> command or by navigating to the main toolbox
+    directory and typing <code>startup</code> in the Command Window.
+    </p>
+
+    <h2>Demos</h2>
+    <p>
+    The best place to start is by watching <a
+      href="matlab:demo('toolboxes', 'MRST Toolbox')" target="_top">our
+      demos</a> for an overview of toolbox features.  We recommend that
+    you start with the Basic Reservoir Tutorial Demo.  This
+    demonstration describes how to set up and simulate a simple
+    reservoir model.
+    </p>
+
+    <p>
+    You can also <a href="matlab:edit simpleBC">look at the source code
+      for this demo in the Editor</a>, or <a
+      href="matlab:echodemo('simpleBC')">run the demo step by step in
+      the Command Window</a>.
+    </p>
+
+
+    <h2>Help</h2>
+    <p>
+    At present the only help provided with the Reservoir Simulation
+    Toolbox is M-file <a href="matlab:doc help">help</a> for each
+    function.  This works as follows: If you need to know more about a
+    specific function called <code>functionname</code>, type the in the
+    Command Window:
+
+    <br><br> <code>help functionname</code><br><br>
+
+    This displays the M-file help, which is a brief description and the
+    syntax for functionname, in the Command Window. 
+
+    To see how this looks for the grid function <code>cartGrid</code>
+    press <a href="matlab:help cartGrid">here</a>.
+    </p>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+<!--
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<productinfo
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="optional">
+  <?xml-stylesheet type="text/xsl" href="optional"?>
+
+  <matlabrelease>R14</matlabrelease>
+  <name>Reservoir Simulation</name>
+  <type>toolbox</type>
+  <icon>$docroot/techdoc/matlab_env/examples/specsimicon.gif</icon>
+  <help_location>doc</help_location>
+
+  <list>
+
+    <listitem>
+      <label>Demos</label>
+      <callback>demo('toolboxes', 'MRST Toolbox')</callback>
+      <icon>$toolbox/matlab/icons/demoicon.gif</icon>
+    </listitem>
+
+
+    <listitem>
+      <label>Help</label>
+      <callback>web(fullfile(ROOTDIR, 'doc', 'mrst.html'),  '-helpbrowser')</callback>
+      <icon>$toolbox/matlab/icons/book_mat.gif</icon>
+    </listitem>
+
+
+    <listitem>
+      <label>Web Site (Reservoir Simulation Toolbox)</label>
+      <callback>web http://www.sintef.no/Projectweb/MRST/ -browser;</callback>
+      <icon>$toolbox/matlab/icons/webicon.gif</icon>
+    </listitem>
+
+  </list>
+
+</productinfo>
