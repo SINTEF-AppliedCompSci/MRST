@@ -1,0 +1,707 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>dfmMsFV</title><meta name="generator" content="MATLAB 7.13"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2013-03-22"><meta name="DC.source" content="dfmMsFV.m"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">An example using the MsFV method where the coarse grid is based on fractures</a></li><li><a href="#2">set up the case</a></li><li><a href="#3">set up the solver</a></li><li><a href="#4">Run the two cases</a></li><li><a href="#6">Set up permeability</a></li><li><a href="#7">Define a simple two phase fluid object</a></li><li><a href="#8">Extract dual grid from g_fine</a></li><li><a href="#9">Generate primal grid</a></li><li><a href="#10">Setup a producer / injector pair of wells</a></li><li><a href="#11">Set up solution structures with only one phase</a></li><li><a href="#12">Set up pressure and transport solvers</a></li><li><a href="#13">Implicit transport solver</a></li><li><a href="#14">Solve initial pressure in reservoir</a></li><li><a href="#15">Transport loop</a></li><li><a href="#16">Start the main loop</a></li><li><a href="#18">Plot results</a></li></ul></div><h2>An example using the MsFV method where the coarse grid is based on fractures<a name="1"></a></h2><p>This example shows how to construct a coarse model for the MsFV method based on fractures. To demonstrate the flexibility of the method two set of fractures are considered. The first set named coarse-scale fractures are used to define the coarse model, while another set named fine-scale fractures are only included in the fine-scale model. For comparison an example where the coarse grid is not based on the fractures is considered</p><p>For further details see: "Inexact linear solver for flow in multiscale fractures" T.H. Sandve, E. Keilegavlen and J. M. Nordbotten submittet to Water Resources Research 2013</p><p>Copyright 2011-2012 University of Bergen, 2013 IRIS AS</p><p>This file is licensed under the GNU General Public License v3.0.</p><p>AUTHOR: Tor Harald Sandve, <a href="mailto:tor.harald.sandve@iris.no">tor.harald.sandve@iris.no</a></p><pre class="codeinput"><span class="comment">% include the needed modules</span>
+mrstModule <span class="string">add</span> <span class="string">coarsegrid</span> <span class="string">msfvm</span> <span class="string">dfm</span> <span class="string">msfv-dfm</span>
+
+<span class="comment">% dock the figures</span>
+close <span class="string">all</span>
+set(0,<span class="string">'DefaultFigureWindowStyle'</span>,<span class="string">'docked'</span>)
+</pre><h2>set up the case<a name="2"></a></h2><pre class="codeinput"><span class="comment">% bounding box of the domain</span>
+box = [0,0; 100,100];
+
+<span class="comment">% the two set of fractures are drawn in open-office</span>
+fset{1} = struct(<span class="string">'fractures'</span>,<span class="string">'coarseFractures.odp'</span>,<span class="keyword">...</span>
+    <span class="string">'box'</span>,box, <span class="keyword">...</span>
+    <span class="string">'precision'</span>,1e-3, <span class="keyword">...</span>
+    <span class="string">'aperture'</span>,0.001, <span class="keyword">...</span>
+    <span class="string">'tag'</span>, 1 <span class="keyword">...</span>
+    );
+
+fset{2} = struct(<span class="string">'fractures'</span>,<span class="string">'fineFractures.odp'</span>,<span class="keyword">...</span>
+    <span class="string">'box'</span>,box, <span class="keyword">...</span>
+    <span class="string">'precision'</span>,1e-3, <span class="keyword">...</span>
+    <span class="string">'aperture'</span>,0.0005, <span class="keyword">...</span>
+    <span class="string">'tag'</span>, 2 <span class="keyword">...</span>
+    );
+
+
+<span class="comment">% make an nonconforming coarse grid for comparison</span>
+<span class="comment">% for simplicity we use a Cartesian coarse grid</span>
+
+<span class="comment">% number of internal points i.e number of coarse cells = n1+1*n2+1</span>
+n = [3,3];
+
+<span class="comment">% tag for the coarse grid.</span>
+tag = 3;
+makeCartFrac(n,tag,box,<span class="string">'cartCoarseGrid.mat'</span>)
+fset{3} = struct(<span class="string">'fractures'</span>,<span class="string">'cartCoarseGrid.mat'</span>,<span class="keyword">...</span>
+    <span class="string">'box'</span>,box, <span class="keyword">...</span>
+    <span class="string">'precision'</span>,1e-3, <span class="keyword">...</span>
+    <span class="string">'aperture'</span>,.1, <span class="keyword">...</span>
+    <span class="string">'tag'</span>, tag <span class="keyword">...</span>
+    );
+
+<span class="comment">% number of fine-scale cells</span>
+numberOfFinecells = 5000;
+
+<span class="comment">% Plot grids</span>
+doPlotGrid = true;
+
+<span class="comment">% Plot transport</span>
+doPlotSim = true;
+
+<span class="comment">% Plot results</span>
+doPlotRes = true;
+</pre><h2>set up the solver<a name="3"></a></h2><pre class="codeinput"><span class="comment">% number of GMRES iterations</span>
+iterations = 3;
+
+<span class="comment">% As we want to control GMRES with number of iterations rather than</span>
+<span class="comment">% the tolerance, we use a strict tolerance that we most probably would not</span>
+<span class="comment">% reach in a few iterations</span>
+tolerance = 1e-16;
+</pre><h2>Run the two cases<a name="4"></a></h2><pre class="codeinput"><span class="keyword">for</span> casenr = 1:2
+</pre><pre class="codeinput">    <span class="keyword">switch</span> casenr
+        <span class="keyword">case</span> 1 <span class="comment">% coarse fractures constraints the coarse dual grid</span>
+            coarseGrid = cell(1,1);
+            coarseGrid{1} = fset{1};
+            coarseGrid{1}.merge = true;
+            coarseGrid{1}.apertureType = <span class="string">'constants'</span>;
+            fineGrid = cell(2,1);
+            fineGrid{2} = fset{2};
+            fineGrid{1} = fset{3};
+        <span class="keyword">case</span> 2 <span class="comment">% the Cartesian grid is used as constraints for the coarse dual grid</span>
+            coarseGrid = cell(1,1);
+            coarseGrid{1} = fset{3};
+            coarseGrid{1}.merge = true;
+            coarseGrid{1}.apertureType = <span class="string">'constants'</span>;
+            fineGrid = cell(2,1);
+            fineGrid{1} = fset{1};
+            fineGrid{2} = fset{2};
+    <span class="keyword">end</span>
+
+
+    t = tic;
+
+    <span class="comment">% filename for to save the grids</span>
+    grid_filename = [<span class="string">'grids-'</span>,int2str(casenr),<span class="string">'.mat'</span>];
+
+    <span class="comment">% create the grid hierarchy</span>
+    [g_dual,g_fine] = createGridHierarchy(coarseGrid,fineGrid,<span class="string">'save'</span>,grid_filename,<span class="keyword">...</span>
+        <span class="string">'numElements'</span>, numberOfFinecells,<span class="string">'precision'</span>,1e-3,<span class="string">'box'</span>,box);
+    toc(t)
+</pre><pre class="codeoutput">Make coarse grid
+Get fine-scale fractures
+Make fine grid
+Get fine-scale fractures
+Get fine-scale fractures
+Elapsed time is 0.401046 seconds.
+</pre><pre class="codeoutput">Make coarse grid
+Get fine-scale fractures
+Make fine grid
+Get fine-scale fractures
+Get fine-scale fractures
+Elapsed time is 0.397318 seconds.
+</pre><h2>Set up permeability<a name="6"></a></h2><pre class="codeinput">    <span class="comment">% uniform matrix permeability</span>
+    rock.perm = repmat(100*milli*darcy, [g_fine.cells.num, 1]);
+    rock.poro = repmat(0.1            , [g_fine.cells.num, 1]);
+
+    <span class="comment">% use the cubic assumption for the fracture permeability</span>
+    <span class="comment">% with unit porosity</span>
+    kf = g_fine.faces.apertures.^2/12;
+    <span class="keyword">for</span> i = 2:-1:1 <span class="comment">% note that hybrid cells with tag 3</span>
+        <span class="comment">% i.e the Cartesian grid is omitted from the loop)</span>
+        [fcells,ncells] = getFractureCells(g_fine,i);
+        rock.perm(fcells) = kf(g_fine.cells.tags(fcells));
+        rock.perm(ncells) = max(kf(g_fine.cells.tags(fcells)));
+        rock.poro(fcells) = 1;
+        rock.poro(ncells) = 1;
+    <span class="keyword">end</span>
+
+    <span class="comment">% compute the fine-scale transmissibilities</span>
+    S = computeTrans_DFM(g_fine, rock,<span class="string">'hybrid'</span>,true);
+
+
+    <span class="comment">% compute the fine-scale hybrid transmissibilities</span>
+    <span class="keyword">if</span> isfield(g_fine,<span class="string">'hybridNeighbors'</span>)
+        [g_fine,S2] = computeHybridTrans(g_fine,S);
+    <span class="keyword">else</span>
+        S2 = [];
+    <span class="keyword">end</span>
+</pre><h2>Define a simple two phase fluid object<a name="7"></a></h2><p>Linear tracer transport</p><pre class="codeinput">    fluid = initSimpleFluid(<span class="string">'mu'</span> , [   1,  1]*centi*poise     , <span class="keyword">...</span>
+        <span class="string">'rho'</span>, [1014, 859]*kilogram/meter^3, <span class="keyword">...</span>
+        <span class="string">'n'</span>  , [  1,   1]);
+</pre><h2>Extract dual grid from g_fine<a name="8"></a></h2><pre class="codeinput">    DG = partitionDualDFM(g_fine);
+    DG.lineedge = [];
+
+    <span class="comment">% store the dual grid in the grid structure</span>
+    g_fine.cells.level = zeros(g_fine.cells.num,1);
+    g_fine.cells.level(DG.nn) = 0;
+    g_fine.cells.level(DG.ee) = 1;
+    g_fine.cells.level(DG.ii) = 2;
+
+    <span class="comment">% plot the dual grid</span>
+    <span class="keyword">if</span> doPlotGrid
+        clf, plotDual_DFM(g_fine, DG)
+    <span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="dfmMsFV_01.png" alt=""> <img vspace="5" hspace="5" src="dfmMsFV_03.png" alt=""> <h2>Generate primal grid<a name="9"></a></h2><pre class="codeinput">    p  = partitioningByAggregation(g_fine,DG);
+    CG = generateCoarseGrid(g_fine, p);
+    CG = coarsenGeometry(CG);
+</pre><h2>Setup a producer / injector pair of wells<a name="10"></a></h2><pre class="codeinput">    <span class="comment">% Place the producer / injector in the large-scale fractures</span>
+    [fcells,ncells] = getFractureCells(g_fine,1);
+
+    <span class="comment">% Injector in lower left corner</span>
+    c1 = findClosestCell(g_fine,box(1,1),box(1,2),fcells);
+    <span class="comment">% Producer in upper right corner</span>
+    c2 = findClosestCell(g_fine,box(2,1),box(2,2),fcells);
+
+    <span class="comment">% set up the well</span>
+    rate = 10*meter^3/day;
+    bhp  = 1*barsa;
+    radius = 0.05;
+
+    W = addWell([], g_fine, rock, c1 ,      <span class="keyword">...</span>
+        <span class="string">'Type'</span>, <span class="string">'rate'</span> , <span class="string">'Val'</span>, rate, <span class="keyword">...</span>
+        <span class="string">'Radius'</span>, radius, <span class="string">'InnerProduct'</span>, <span class="string">'ip_tpf'</span>, <span class="keyword">...</span>
+        <span class="string">'Comp_i'</span>, [1, 0]);
+
+    W = addWell(W, g_fine, rock, c2,      <span class="keyword">...</span>
+        <span class="string">'Type'</span>, <span class="string">'bhp'</span> , <span class="string">'Val'</span>, bhp, <span class="keyword">...</span>
+        <span class="string">'Radius'</span>, radius, <span class="string">'InnerProduct'</span>, <span class="string">'ip_tpf'</span>, <span class="keyword">...</span>
+        <span class="string">'Comp_i'</span>, [0, 1]);
+
+    <span class="comment">%W = [];</span>
+
+    <span class="comment">% Alternatively a simple source</span>
+    src =[];
+    <span class="comment">%src = addSource(src,double(c1),rate,'sat',[1,1]);</span>
+    <span class="comment">%src = addSource(src,double(c2),-rate,'sat',[1,1]);</span>
+</pre><h2>Set up solution structures with only one phase<a name="11"></a></h2><pre class="codeinput">    refSol = initResSol(g_fine, bhp, [0, 1]);
+    msSol = refSol;
+
+    gravity <span class="string">off</span>
+    verbose = false;
+</pre><h2>Set up pressure and transport solvers<a name="12"></a></h2><pre class="codeinput">    <span class="comment">% Reference TPFA</span>
+    r_psolve = @(state) incompTPFA_DFM(state, g_fine, S, fluid, <span class="string">'Wells'</span>, W,<span class="string">'src'</span>,src,<span class="string">'c2cTrans'</span>,S2,<span class="string">'MatrixOutput'</span>,true);
+
+
+    <span class="comment">% MsFV using a few GMRES iterations to improve flux error</span>
+    psolve   = @(state) solveMSFV_TPFA_Incomp_DFM(state, g_fine, CG, S, fluid, <span class="keyword">...</span>
+        <span class="string">'Reconstruct'</span>, true, <span class="string">'Dual'</span>, DG, <span class="string">'src'</span>,src,<span class="string">'Wells'</span>, W,<span class="keyword">...</span>
+        <span class="string">'Update'</span>, true, <span class="string">'Iterations'</span>,iterations,<span class="string">'Tolerance'</span>, tolerance, <span class="string">'Iterator'</span>, <span class="string">'gmres'</span>,<span class="string">'c2cTrans'</span>,S2);
+</pre><h2>Implicit transport solver<a name="13"></a></h2><pre class="codeinput">    tsolve   = @(state, dT) implicitTransport_DFM(state, g_fine, dT, rock, <span class="keyword">...</span>
+        fluid, <span class="string">'wells'</span>, W, <span class="string">'src'</span>,src, <span class="keyword">...</span>
+        <span class="string">'verbose'</span>, false,<span class="string">'nltol'</span>,1e-1);
+</pre><h2>Solve initial pressure in reservoir<a name="14"></a></h2><pre class="codeinput">    <span class="comment">% referance solution</span>
+    refSol= r_psolve(refSol);
+
+    <span class="comment">% inexact solution</span>
+    msSol = psolve(msSol);
+
+    <span class="comment">% store data for plotting</span>
+    caseData.msSol{casenr} = msSol;
+    caseData.g_fine{casenr} = g_fine;
+    caseData.rock{casenr} = rock;
+</pre><h2>Transport loop<a name="15"></a></h2><p>Solve a linear transport problem with fixed fluxes computed from the pressure equation</p><pre class="codeinput">    <span class="comment">% Simulation time is 1 PVI</span>
+    <span class="keyword">if</span> casenr == 1
+    T      = sum(g_fine.cells.volumes.*rock.poro)./rate;
+    dT     = T/10;
+    <span class="keyword">end</span>
+</pre><h2>Start the main loop<a name="16"></a></h2><p>Iterate through the time steps and plot the saturation profiles along the way.</p><pre class="codeinput">    t = 0;
+    msSat = [];
+    refSat = [];
+
+    <span class="comment">%if doPlotSim, figure, end</span>
+
+    <span class="keyword">while</span> t &lt; T,
+        <span class="comment">% Solve transport equations using the transport solver</span>
+        msSol  = tsolve(msSol , dT);
+        refSol = tsolve(refSol, dT);
+
+        <span class="comment">% Update the pressure based on the new saturation</span>
+        <span class="comment">%msSol    = psolve(msSol);</span>
+        <span class="comment">%refSol   = r_psolve(refSol);</span>
+
+        <span class="comment">% store saturation at source</span>
+        msSat = [msSat ; msSol.s(c2,1)];
+        refSat = [refSat ; refSol.s(c2,1)];
+
+        <span class="comment">% Increase time and continue if we do not want to plot saturation</span>
+        <span class="keyword">if</span> doPlotSim
+            clf;
+            <span class="comment">% Saturation plot</span>
+            subplot(2,2,1)
+            plotGrid_DFM(g_fine, <span class="string">'FaceColor'</span>, <span class="string">'None'</span>, <span class="string">'EdgeAlpha'</span>, 0)
+            plotCellData_DFM(g_fine, refSol.s(:,1), refSol.s(:,1) &gt; 1e-4);
+            plotFractures(g_fine,find(refSol.s(:,1) &gt; 1e-4),refSol.s(:,1)); axis <span class="string">tight</span>; colorbar;
+            title(<span class="string">'Saturation Ref'</span>)
+            caxis([0 1]);
+
+            subplot(2,2,2)
+            plotGrid_DFM(g_fine, <span class="string">'FaceColor'</span>, <span class="string">'None'</span>, <span class="string">'EdgeAlpha'</span>, 0)
+            plotCellData_DFM(g_fine, msSol.s(:,1), msSol.s(:,1) &gt; 1e-4);
+            plotFractures(g_fine,find(msSol.s(:,1) &gt; 1e-4),msSol.s(:,1)); axis <span class="string">tight</span>; colorbar;
+            title(<span class="string">'Saturation inexact'</span>)
+            <span class="comment">% Align colorbars</span>
+            caxis([0 1])
+
+
+            <span class="comment">% Pressure plot</span>
+            subplot(2,2,3)
+            plotCellData_DFM(g_fine, refSol.pressure); axis <span class="string">tight</span>; colorbar;
+            title(<span class="string">'Pressure Ref'</span>)
+            cbar = caxis();
+            subplot(2,2,4)
+            hs = plotCellData_DFM(g_fine, msSol.pressure); axis <span class="string">tight</span>; colorbar;
+            title(<span class="string">'Pressure MSFV'</span>)
+            caxis(cbar)
+
+
+            drawnow
+        <span class="keyword">end</span>
+        t = t + dT;
+
+    <span class="keyword">end</span>
+
+
+     caseData.refSat{casenr} = refSat;
+     caseData.msSat{casenr} = msSat;
+</pre><img vspace="5" hspace="5" src="dfmMsFV_02.png" alt=""> <img vspace="5" hspace="5" src="dfmMsFV_04.png" alt=""> <pre class="codeinput"><span class="keyword">end</span>
+</pre><h2>Plot results<a name="18"></a></h2><pre class="codeinput"><span class="keyword">if</span> doPlotRes
+
+    <span class="comment">% compare concentration at outlet</span>
+    clf
+    plot(caseData.refSat{1},<span class="string">'*'</span>)
+    hold <span class="string">all</span>
+    plot(caseData.msSat{1})
+    plot(caseData.msSat{2})
+    legend({<span class="string">'Reference solution'</span>,<span class="string">'Conforming coarse grid'</span>,<span class="string">'Non-conforming coarse grid'</span>},<span class="string">'Location'</span>,<span class="string">'SouthEast'</span>)
+    xlabel(<span class="string">'PVI'</span>)
+    ylabel(<span class="string">'Concentration'</span>)
+
+    <span class="comment">% compare the gmres residuals</span>
+    figure
+    <span class="keyword">for</span> i = 1:2
+        semilogy(0:caseData.msSol{i}.iter,caseData.msSol{i}.residuals(1:caseData.msSol{i}.iter+1))
+        hold <span class="string">all</span>
+    <span class="keyword">end</span>
+    legend({<span class="string">'Conforming coarse grid'</span>, <span class="string">'Non-conforming coarse grid'</span>})
+    title(<span class="string">'GMRES residuals'</span>)
+    xlabel(<span class="string">'iterations'</span>)
+    ylabel(<span class="string">'relative residual'</span>)
+
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="dfmMsFV_05.png" alt=""> <img vspace="5" hspace="5" src="dfmMsFV_06.png" alt=""> <p class="footer"><br>
+      Published with MATLAB&reg; 7.13<br></p></div><!--
+##### SOURCE BEGIN #####
+%% An example using the MsFV method where the coarse grid is based on fractures
+% 
+% This example shows how to construct a coarse model for the MsFV method based on
+% fractures. To demonstrate the flexibility of the method two set of
+% fractures are considered. The first set named coarse-scale fractures are used
+% to define the coarse model, while another set named fine-scale fractures 
+% are only included in the fine-scale model. 
+% For comparison an example where the coarse grid is not based on the
+% fractures is considered
+%
+% For further details see:
+% "Inexact linear solver for flow in multiscale fractures" 
+% T.H. Sandve, E. Keilegavlen and J. M. Nordbotten submittet to
+% Water Resources Research 2013
+%
+% Copyright 2011-2012 University of Bergen, 2013 IRIS AS 
+%
+% This file is licensed under the GNU General Public License v3.0.
+%
+% AUTHOR: Tor Harald Sandve, tor.harald.sandve@iris.no
+
+
+% include the needed modules
+mrstModule add coarsegrid msfvm dfm msfv-dfm
+
+% dock the figures
+close all
+set(0,'DefaultFigureWindowStyle','docked')
+
+%% set up the case
+
+% bounding box of the domain 
+box = [0,0; 100,100];
+
+% the two set of fractures are drawn in open-office 
+fset{1} = struct('fractures','coarseFractures.odp',...
+    'box',box, ...
+    'precision',1e-3, ...
+    'aperture',0.001, ...
+    'tag', 1 ...
+    );
+
+fset{2} = struct('fractures','fineFractures.odp',...
+    'box',box, ...
+    'precision',1e-3, ...
+    'aperture',0.0005, ...
+    'tag', 2 ...
+    );
+
+
+% make an nonconforming coarse grid for comparison
+% for simplicity we use a Cartesian coarse grid 
+
+% number of internal points i.e number of coarse cells = n1+1*n2+1
+n = [3,3]; 
+
+% tag for the coarse grid. 
+tag = 3;
+makeCartFrac(n,tag,box,'cartCoarseGrid.mat')
+fset{3} = struct('fractures','cartCoarseGrid.mat',...
+    'box',box, ...
+    'precision',1e-3, ...
+    'aperture',.1, ...
+    'tag', tag ...
+    ); 
+
+% number of fine-scale cells 
+numberOfFinecells = 5000;
+
+% Plot grids
+doPlotGrid = true;
+
+% Plot transport
+doPlotSim = true;
+
+% Plot results
+doPlotRes = true;
+
+%% set up the solver
+
+% number of GMRES iterations
+iterations = 3;
+
+% As we want to control GMRES with number of iterations rather than
+% the tolerance, we use a strict tolerance that we most probably would not
+% reach in a few iterations 
+tolerance = 1e-16;
+
+%% Run the two cases
+for casenr = 1:2
+    
+    switch casenr
+        case 1 % coarse fractures constraints the coarse dual grid
+            coarseGrid = cell(1,1);
+            coarseGrid{1} = fset{1};
+            coarseGrid{1}.merge = true;
+            coarseGrid{1}.apertureType = 'constants';
+            fineGrid = cell(2,1);
+            fineGrid{2} = fset{2};
+            fineGrid{1} = fset{3};
+        case 2 % the Cartesian grid is used as constraints for the coarse dual grid
+            coarseGrid = cell(1,1);
+            coarseGrid{1} = fset{3};
+            coarseGrid{1}.merge = true;
+            coarseGrid{1}.apertureType = 'constants';
+            fineGrid = cell(2,1);
+            fineGrid{1} = fset{1};
+            fineGrid{2} = fset{2};
+    end
+    
+    
+    t = tic;
+    
+    % filename for to save the grids
+    grid_filename = ['grids-',int2str(casenr),'.mat'];
+    
+    % create the grid hierarchy
+    [g_dual,g_fine] = createGridHierarchy(coarseGrid,fineGrid,'save',grid_filename,...
+        'numElements', numberOfFinecells,'precision',1e-3,'box',box);
+    toc(t)
+    
+    
+    %% Set up permeability
+    
+    % uniform matrix permeability
+    rock.perm = repmat(100*milli*darcy, [g_fine.cells.num, 1]);
+    rock.poro = repmat(0.1            , [g_fine.cells.num, 1]);
+    
+    % use the cubic assumption for the fracture permeability
+    % with unit porosity
+    kf = g_fine.faces.apertures.^2/12;
+    for i = 2:-1:1 % note that hybrid cells with tag 3
+        % i.e the Cartesian grid is omitted from the loop)
+        [fcells,ncells] = getFractureCells(g_fine,i);
+        rock.perm(fcells) = kf(g_fine.cells.tags(fcells));
+        rock.perm(ncells) = max(kf(g_fine.cells.tags(fcells)));
+        rock.poro(fcells) = 1;
+        rock.poro(ncells) = 1;
+    end
+    
+    % compute the fine-scale transmissibilities
+    S = computeTrans_DFM(g_fine, rock,'hybrid',true);
+    
+    
+    % compute the fine-scale hybrid transmissibilities
+    if isfield(g_fine,'hybridNeighbors')
+        [g_fine,S2] = computeHybridTrans(g_fine,S);
+    else
+        S2 = [];
+    end
+    
+    %% Define a simple two phase fluid object
+    % Linear tracer transport
+    fluid = initSimpleFluid('mu' , [   1,  1]*centi*poise     , ...
+        'rho', [1014, 859]*kilogram/meter^3, ...
+        'n'  , [  1,   1]);
+
+    
+    %% Extract dual grid from g_fine
+    DG = partitionDualDFM(g_fine);
+    DG.lineedge = [];
+    
+    % store the dual grid in the grid structure
+    g_fine.cells.level = zeros(g_fine.cells.num,1);
+    g_fine.cells.level(DG.nn) = 0;
+    g_fine.cells.level(DG.ee) = 1;
+    g_fine.cells.level(DG.ii) = 2;
+    
+    % plot the dual grid
+    if doPlotGrid
+        clf, plotDual_DFM(g_fine, DG)
+    end
+    
+    %% Generate primal grid
+    p  = partitioningByAggregation(g_fine,DG);
+    CG = generateCoarseGrid(g_fine, p);
+    CG = coarsenGeometry(CG);
+    
+    %% Setup a producer / injector pair of wells
+    
+    % Place the producer / injector in the large-scale fractures
+    [fcells,ncells] = getFractureCells(g_fine,1);
+    
+    % Injector in lower left corner
+    c1 = findClosestCell(g_fine,box(1,1),box(1,2),fcells);
+    % Producer in upper right corner
+    c2 = findClosestCell(g_fine,box(2,1),box(2,2),fcells);
+    
+    % set up the well
+    rate = 10*meter^3/day;
+    bhp  = 1*barsa;
+    radius = 0.05;
+    
+    W = addWell([], g_fine, rock, c1 ,      ...
+        'Type', 'rate' , 'Val', rate, ...
+        'Radius', radius, 'InnerProduct', 'ip_tpf', ...
+        'Comp_i', [1, 0]);
+    
+    W = addWell(W, g_fine, rock, c2,      ...
+        'Type', 'bhp' , 'Val', bhp, ...
+        'Radius', radius, 'InnerProduct', 'ip_tpf', ...
+        'Comp_i', [0, 1]);
+    
+    %W = [];
+    
+    % Alternatively a simple source
+    src =[];
+    %src = addSource(src,double(c1),rate,'sat',[1,1]);
+    %src = addSource(src,double(c2),-rate,'sat',[1,1]);
+    
+    %% Set up solution structures with only one phase
+    refSol = initResSol(g_fine, bhp, [0, 1]);
+    msSol = refSol;
+
+    gravity off
+    verbose = false;
+    
+    %% Set up pressure and transport solvers
+    
+    % Reference TPFA
+    r_psolve = @(state) incompTPFA_DFM(state, g_fine, S, fluid, 'Wells', W,'src',src,'c2cTrans',S2,'MatrixOutput',true);
+    
+    
+    % MsFV using a few GMRES iterations to improve flux error
+    psolve   = @(state) solveMSFV_TPFA_Incomp_DFM(state, g_fine, CG, S, fluid, ...
+        'Reconstruct', true, 'Dual', DG, 'src',src,'Wells', W,...
+        'Update', true, 'Iterations',iterations,'Tolerance', tolerance, 'Iterator', 'gmres','c2cTrans',S2);
+    
+    
+    
+    %% Implicit transport solver
+    tsolve   = @(state, dT) implicitTransport_DFM(state, g_fine, dT, rock, ...
+        fluid, 'wells', W, 'src',src, ...
+        'verbose', false,'nltol',1e-1);
+    %% Solve initial pressure in reservoir
+    
+    % referance solution 
+    refSol= r_psolve(refSol);
+    
+    % inexact solution
+    msSol = psolve(msSol);
+    
+    % store data for plotting 
+    caseData.msSol{casenr} = msSol;
+    caseData.g_fine{casenr} = g_fine;
+    caseData.rock{casenr} = rock;
+    
+    %% Transport loop
+    % Solve a linear transport problem with fixed fluxes
+    % computed from the pressure equation
+
+    % Simulation time is 1 PVI
+    if casenr == 1
+    T      = sum(g_fine.cells.volumes.*rock.poro)./rate;
+    dT     = T/10;
+    end
+    
+    %% Start the main loop
+    % Iterate through the time steps and plot the saturation profiles along the
+    % way.
+    t = 0;
+    msSat = [];
+    refSat = [];
+
+    %if doPlotSim, figure, end
+    
+    while t < T,
+        % Solve transport equations using the transport solver
+        msSol  = tsolve(msSol , dT);
+        refSol = tsolve(refSol, dT);
+        
+        % Update the pressure based on the new saturation
+        %msSol    = psolve(msSol);
+        %refSol   = r_psolve(refSol);
+        
+        % store saturation at source
+        msSat = [msSat ; msSol.s(c2,1)];
+        refSat = [refSat ; refSol.s(c2,1)];
+        
+        % Increase time and continue if we do not want to plot saturation
+        if doPlotSim
+            clf;
+            % Saturation plot
+            subplot(2,2,1)
+            plotGrid_DFM(g_fine, 'FaceColor', 'None', 'EdgeAlpha', 0)
+            plotCellData_DFM(g_fine, refSol.s(:,1), refSol.s(:,1) > 1e-4);
+            plotFractures(g_fine,find(refSol.s(:,1) > 1e-4),refSol.s(:,1)); axis tight; colorbar;
+            title('Saturation Ref')
+            caxis([0 1]);
+            
+            subplot(2,2,2)
+            plotGrid_DFM(g_fine, 'FaceColor', 'None', 'EdgeAlpha', 0)
+            plotCellData_DFM(g_fine, msSol.s(:,1), msSol.s(:,1) > 1e-4);
+            plotFractures(g_fine,find(msSol.s(:,1) > 1e-4),msSol.s(:,1)); axis tight; colorbar;
+            title('Saturation inexact')
+            % Align colorbars
+            caxis([0 1])
+            
+            
+            % Pressure plot
+            subplot(2,2,3)
+            plotCellData_DFM(g_fine, refSol.pressure); axis tight; colorbar;
+            title('Pressure Ref')
+            cbar = caxis();
+            subplot(2,2,4)
+            hs = plotCellData_DFM(g_fine, msSol.pressure); axis tight; colorbar;
+            title('Pressure MSFV')
+            caxis(cbar)
+            
+            
+            drawnow
+        end
+        t = t + dT;
+
+    end
+
+   
+     caseData.refSat{casenr} = refSat;
+     caseData.msSat{casenr} = msSat;
+      
+end
+
+%% Plot results
+if doPlotRes
+
+    % compare concentration at outlet
+    clf
+    plot(caseData.refSat{1},'*')
+    hold all
+    plot(caseData.msSat{1})
+    plot(caseData.msSat{2})
+    legend({'Reference solution','Conforming coarse grid','Non-conforming coarse grid'},'Location','SouthEast')
+    xlabel('PVI')
+    ylabel('Concentration')
+    
+    % compare the gmres residuals
+    figure
+    for i = 1:2
+        semilogy(0:caseData.msSol{i}.iter,caseData.msSol{i}.residuals(1:caseData.msSol{i}.iter+1))
+        hold all
+    end
+    legend({'Conforming coarse grid', 'Non-conforming coarse grid'})
+    title('GMRES residuals')
+    xlabel('iterations')
+    ylabel('relative residual')
+    
+end
+
+##### SOURCE END #####
+--></body></html>
