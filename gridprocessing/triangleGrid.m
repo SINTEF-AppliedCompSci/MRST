@@ -73,27 +73,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              'triangulation of the points ''P''.']);
    end
 
-   t = int32(t);
-
    [fn, i]           = sort(reshape(t(:, [1,2, 2,3, 3,1])', 2, []));
    [fn, cf, cf]      = unique(fn', 'rows');  %#ok
 
    G.faces.nodes     = reshape(fn', [], 1);
-   G.cells.faces     = int32(cf);
+   G.cells.faces     = cf;
 
    G.nodes.coords    = p;
    G.nodes.num       = size(p, 1);
 
    G.cells.num       = size(t, 1);
-   G.cells.facePos   = int32(cumsum([1; repmat(3, [G.cells.num, 1])]));
+   G.cells.facePos   = cumsum([1; repmat(3, [G.cells.num, 1])]);
 
    cellNo            = rldecode(1:G.cells.num, diff(G.cells.facePos), 2).';
 
    G.faces.num       = double(max(G.cells.faces));
-   G.faces.neighbors = int32(accumarray([G.cells.faces, i(1,:)'], cellNo, ...
-                                        [G.faces.num, 2]));
+   G.faces.neighbors = accumarray([G.cells.faces, i(1,:)'], cellNo, ...
+                                  [G.faces.num, 2]);
 
-   G.faces.nodePos   = int32(cumsum([1; repmat(2, [G.faces.num, 1])]));
+   G.faces.nodePos   = cumsum([1; repmat(2, [G.faces.num, 1])]);
 
    G.type            = { mfilename };
    G.griddim         = 2;

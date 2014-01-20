@@ -59,7 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    n         = numel(pos)-1;
    [r, p]    = reverseLookup(n, pos, data, remove);
    data(p,:) = [];
-   pos       = int32(pos) - int32(cumsum([0; accumarray(r,1,[n,1])]));
+   pos       = pos - cumsum([0; accumarray(r,1,[n,1])]);
 end
 
 %--------------------------------------------------------------------------
