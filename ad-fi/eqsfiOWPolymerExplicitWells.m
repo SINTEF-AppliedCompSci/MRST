@@ -32,8 +32,8 @@ qOs  = vertcat(state.wellSol.qOs);
 % poly_num  = vertcat(state.wellSol.poly);
 % poly = poly_num;
 
-wciPoly_num = getWellPolymer(W);
-wciPoly = wciPoly_num;
+[wPoly, wciPoly] = getWellPolymer(W);
+wPoly_num = wPoly;
 % previous variables ------------------------------------------------------
 p0  = state0.pressure;
 sW0 = state0.s(:,1);
@@ -49,8 +49,8 @@ if ~opt.resOnly,
 
    if ~opt.reverseMode,
 
-      [p, sW, c, qWs, qOs, wciPoly, pBHP]  = ...
-         initVariablesADI(p, sW, c, qWs, qOs, wciPoly_num, pBHP);
+      [p, sW, c, qWs, qOs, wPoly, pBHP]  = ...
+         initVariablesADI(p, sW, c, qWs, qOs, wPoly_num, pBHP);
 
    else
 
@@ -195,7 +195,7 @@ zeroW = 0*zw;
 eqs{4} = Rw'*bWqW + qWs + zeroW;
 eqs{5} = Rw'*bOqO + qOs + zeroW;
 % Trivial constraint - this is only to get the adjoint partial derivatives
-eqs{6} = wciPoly - wciPoly_num + zeroW(iInxW);
+eqs{6} = wPoly - wPoly_num;
 
 % Last eq: boundary cond
 eqs{7} = handleBC(W, pBHP, qWs, qOs, [], scalFacs) + zeroW;
@@ -203,15 +203,15 @@ end
 %--------------------------------------------------------------------------
 
 
-function wciPoly = getWellPolymer(W)
+function [wPoly, wciPoly] = getWellPolymer(W)
     if isempty(W)
         wciPoly = [];
         return
     end
     inj   = vertcat(W.sign)==1;
     polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
-    polVal = zeros(nnz(inj), 1);
-    polVal(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(polVal, cellfun(@numel, {W(inj).cells}));
+    wPoly = zeros(nnz(inj), 1);
+    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
+    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
 end
 
