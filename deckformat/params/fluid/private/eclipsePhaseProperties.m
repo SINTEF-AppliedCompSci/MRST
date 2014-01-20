@@ -86,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    pos   = cumsum(double(phase));
 
-   pvtfuns         = cell ([1, 3]);
+   pvtfuns         = repmat({ cell([1, ntpvt]) }, [1, 3]);
    miscible        = false([1, 3]);
    incomp          = false([1, 3]);
    surface_density = zeros([ntpvt, pos(end)]);
