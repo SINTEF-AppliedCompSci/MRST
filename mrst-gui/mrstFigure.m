@@ -37,7 +37,7 @@ function varargout = mrstFigure(varargin)
 %    plotGrid(G);
 %
 % SEE ALSO:
-%   
+%   figure, fastRotateButton, setRenderFixes
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
