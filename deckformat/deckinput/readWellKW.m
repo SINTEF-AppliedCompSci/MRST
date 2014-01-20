@@ -204,9 +204,12 @@ function w = readWConInje(fid, w)
    numeric  = 5 : numel(template);
 
    data = readDefaultedKW(fid, template);
-   data = toDouble(data, numeric);
 
-   w = assignControlRecords(w, data, 'WCONINJE');
+   if ~isempty(data),
+      data = toDouble(data, numeric);
+
+      w = assignControlRecords(w, data, 'WCONINJE');
+   end
 end
 
 %--------------------------------------------------------------------------
