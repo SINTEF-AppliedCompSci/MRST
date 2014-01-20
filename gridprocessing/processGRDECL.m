@@ -898,7 +898,7 @@ G.faces.cellTags   = [G.faces.cellTags;   repmat(tags, [size(new,1), 1])];
                                                   G.nodes.coords);
 G.faces.nodePos  = cumsum([1; double(diff(G.faces.nodePos)); ncor]);
 G.faces.nodes    = [G.faces.nodes;      cor];
-G.faces.tag      = [G.faces.tag;      ones(numel(ncor))];
+G.faces.tag      = [G.faces.tag;      ones(numel(ncor), 1)];
 
 dispif(opt.Verbose, ' Found %d new faces\n', numel(ncor));
 end
