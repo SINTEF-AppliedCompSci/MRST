@@ -438,7 +438,7 @@ function w = readGrupNet(fid, w)
 
    if ~ isempty(grpnet),
       [i, j] = blockDiagIndex(size(grpnet, 1), size(data, 1));
-      m      = strcmpi(gprnet(i, 1), data(j, 1));
+      m      = strcmpi(grpnet(i, 1), data(j, 1));
 
       if any(m),
          ij = [ i(m), j(m) ];
