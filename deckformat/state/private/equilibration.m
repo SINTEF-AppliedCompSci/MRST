@@ -29,26 +29,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert (isfield(G.cells, 'centroids'), ...
            'Input grid must be equipped with geometric information.');
 
-   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'EQLNUM'),
-      eqlnum = reshape(deck.REGIONS.EQLNUM(G.cells.indexMap), [], 1);
-   else
-      eqlnum = ones([G.cells.num, 1]);
-   end
+   pressure = zeros([G.cells.num, numel(fluid.names)]);
+   rs       = zeros([G.cells.num, 1]);
+   rv       = zeros([G.cells.num, 1]);
 
-   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'PVTNUM'),
-      pvtnum = reshape(deck.REGIONS.PVTNUM(G.cells.indexMap), [], 1);
-   else
-      pvtnum = ones([G.cells.num, 1]);
-   end
+   [eqlnum, pvtnum] = regions(deck, G);
 
-   np        = numel(fluid.names);
-   pressure  = zeros([G.cells.num, np]);
-   rs        = zeros([G.cells.num, 1 ]);
-   rv        = zeros([G.cells.num, 1 ]);
+   act_region = @(I) find(accumarray(I(:), 1) > 0);
 
-   for eqreg = reshape(find(accumarray(eqlnum, 1) > 0), 1, []),
+   for eqreg = reshape(act_region(eqlnum), 1, []),
       cells  = eqlnum == eqreg;
-      pvtreg = find(accumarray(pvtnum(cells), 1) > 0);
+      pvtreg = act_region(pvtnum(cells));
 
       if numel(pvtreg) > 1,
          error(id('EquilReg:InconsistentPVTReg')            , ...
@@ -80,6 +71,22 @@ end
 
 %--------------------------------------------------------------------------
 % Private helpers follow.
+%--------------------------------------------------------------------------
+
+function [eqlnum, pvtnum] = regions(deck, G)
+   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'EQLNUM'),
+      eqlnum = reshape(deck.REGIONS.EQLNUM(G.cells.indexMap), [], 1);
+   else
+      eqlnum = ones([G.cells.num, 1]);
+   end
+
+   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'PVTNUM'),
+      pvtnum = reshape(deck.REGIONS.PVTNUM(G.cells.indexMap), [], 1);
+   else
+      pvtnum = ones([G.cells.num, 1]);
+   end
+end
+
 %--------------------------------------------------------------------------
 
 function [press, rs, rv] = ...
