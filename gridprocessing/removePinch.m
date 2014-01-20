@@ -86,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    p = G.faces.nodePos(1:end-1);
    N = max(diff(G.faces.nodePos));
    m = inf(G.faces.num, 1);
-   v = zeros(G.faces.num, 1, 'int32');
+   v = zeros(G.faces.num, 1);
    for i=1:N,
       j    = G.faces.nodes(p) < m;
       v(j) = p(j);
@@ -219,7 +219,7 @@ function ix = rot(pos, offset)
    assert(numel(i) == numel(offset));
 
    num    = pos(i+1)-pos(i);
-   offset = mod(int32(offset(:)), num(:)); % net offset
+   offset = mod(offset(:), num(:)); % net offset
    ix     = zeros(sum(num), 1);
 
    ix(mcolon(pos(i),        pos(i)+num-offset-1)) = ...

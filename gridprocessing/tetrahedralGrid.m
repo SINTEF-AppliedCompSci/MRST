@@ -52,22 +52,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [fn,i]            = sort(reshape(t(:,[2,1,3, 1,2,4, 3,1,4, 2,3,4])', 3, []));
    [fn, cf, cf]      = unique(fn', 'rows');
    G.faces.nodes     = reshape(fn', [], 1);
-   G.cells.faces     = int32(cf);
+   G.cells.faces     = cf;
 
    G.nodes.coords    = p;
    G.nodes.num       = size(p, 1);
 
    G.cells.num       = size(t, 1);
-   G.cells.indexMap  = int32((1:G.cells.num) .');
-   G.cells.facePos   = int32(cumsum([1;repmat(4, [G.cells.num, 1])]));
+   G.cells.indexMap  = (1:G.cells.num) .';
+   G.cells.facePos   = cumsum([1;repmat(4, [G.cells.num, 1])]);
    cellNo            = rldecode(1:G.cells.num, diff(G.cells.facePos), 2).';
 
 
    G.faces.num       = double(max(G.cells.faces));
-   G.faces.neighbors = int32(accumarray([G.cells.faces,  ...
-                             1+(any(diff(i)'==1, 2))], cellNo, ...
-                             [G.faces.num, 2]));
-   G.faces.nodePos   = int32(cumsum([1;repmat(3, [G.faces.num, 1])]));
+   G.faces.neighbors = accumarray([G.cells.faces,  ...
+                       1+(any(diff(i)'==1, 2))], cellNo, ...
+                       [G.faces.num, 2]));
+   G.faces.nodePos   = cumsum([1;repmat(3, [G.faces.num, 1])]);
    G.type            = { mfilename };
    G.griddim         = 3;
 

@@ -113,7 +113,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    H.faces.neighbors = G.faces.neighbors(faces, :);
 
-   pos = @(n) int32(cumsum([1; double(reshape(n, [], 1))]));
+   pos = @(n) cumsum([1; double(reshape(n, [], 1))]);
    H.cells.facePos   = pos(numFaces);
    H.faces.nodePos   = pos(numNodes);
 
@@ -121,9 +121,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    H.faces.nodes       = G.faces.nodes(ix(G.faces.nodePos, ff)   );
 
    % Renumbering of grid entities (cells,faces,nodes) in subgrid.
-   mc = zeros([G.cells.num+1, 1], 'int32');   mc(cells) = 1:numel(c);
-   fc = zeros([G.faces.num  , 1], 'int32');   fc(faces) = 1:numel(ff);
-   nc = zeros([G.nodes.num  , 1], 'int32');   nc(nodes) = 1:sum(nodes);
+   mc = zeros([G.cells.num+1, 1]);   mc(cells) = 1:numel(c);
+   fc = zeros([G.faces.num  , 1]);   fc(faces) = 1:numel(ff);
+   nc = zeros([G.nodes.num  , 1]);   nc(nodes) = 1:sum(nodes);
 
    H.faces.neighbors  = mc(H.faces.neighbors+1);
    H.cells.faces(:,1) = fc(H.cells.faces(:,1));

@@ -68,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    G.faces.neighbors(ind,:) = [];
    numNodes (ind,:) = [];
-   G.faces.nodePos = int32(cumsum([1; double(numNodes)]));
+   G.faces.nodePos = cumsum([1; double(numNodes)]);
    if isfield(G.faces, 'numNodes'),
       G.faces = rmfield(G.faces, 'numNodes');
    end
@@ -87,6 +87,6 @@ function m = mapExcluding(indices)
    n            = numel(indices);
    ind          = ones(n,1);
    ind(indices) = 0;
-   m            = int32(cumsum(ind));
+   m            = cumsum(ind);
    m(indices)   = 0;
 end
