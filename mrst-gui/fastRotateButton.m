@@ -1,4 +1,4 @@
-function fastRotateButton()
+function fastRotateButton(varargin)
 %Hook in faster rotation for 3D plots.
 %
 % SYNOPSIS:
@@ -48,11 +48,15 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    if nargin > 0
+        h = varargin{1};
+    else
+        h = gcf();
+    end
 
-ht = findall(gcf,'tag','FigureToolBar');
-hRotate = findall(ht, 'tag', 'Exploration.Rotate');
-set(hRotate, 'ClickedCallback', @(varargin) rotateFast(varargin{:}));
-
+    ht = findall(h,'tag','FigureToolBar');
+    hRotate = findall(ht, 'tag', 'Exploration.Rotate');
+    set(hRotate, 'ClickedCallback', @(varargin) rotateFast(varargin{:}));
 end
 
 function rotateFast(src, event, varargin)
