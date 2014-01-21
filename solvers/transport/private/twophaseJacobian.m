@@ -180,10 +180,10 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
 
    clear mu sat kr dkr
 
-
-   internal   = all(G.faces.neighbors~=0, 2);
-   ic1  = double(G.faces.neighbors(internal,1));
-   ic2  = double(G.faces.neighbors(internal,2));
+   neighbors = getNeighbourship(G, 'Topological', true);
+   internal   = all(neighbors~=0, 2);
+   ic1  = double(neighbors(internal,1));
+   ic2  = double(neighbors(internal,2));
    clear internal_faces
 
 
@@ -310,10 +310,10 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
    m   = bsxfun(@rdivide, kr, mu);
    clear mu sat kr
 
-
-   internal = all(G.faces.neighbors~=0, 2);
-   ic1  = G.faces.neighbors(internal,1);
-   ic2  = G.faces.neighbors(internal,2);
+   neighbors = getNeighbourship(G, 'Topological', true);
+   internal = all(neighbors~=0, 2);
+   ic1  = neighbors(internal,1);
+   ic2  = neighbors(internal,2);
    clear internal_faces
 
    % Compute water source term
@@ -352,7 +352,8 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, rock, rho, fluid, opt)
 %  gflux = harmonic average of (n·K·gravity·(rho1-rho2)) in each cell-
 
    g     = gravity() * (rho(1) - rho(2));
-   gflux = zeros([G.faces.num, 1]);
+   N = getNeighbourship(G, 'Topological', true);
+   gflux = zeros([size(N, 1), 1]);
    dim   = G.griddim;
 
    if (norm(g) > 0) || isfield(fluid, 'pc'),
@@ -377,13 +378,12 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, rock, rho, fluid, opt)
         gflux = 2 ./ accumarray(G.cells.faces(:,1), 1 ./ nKg, [G.faces.num, 1]);
 
       else
-        N = G.faces.neighbors;
         i = any(N==0, 2);
         % N(i, :) = [c_i 0] or [0 c_i], change to [c_i c_i] to make
         % C(outerFaces) = 0
         N(i, :) = repmat(sum(N(i, :), 2), [1, 2]);
-      %face transmissibility
-        harm_c  = 1 ./ accumarray(G.cells.faces(:,1), 1./opt.Trans, [G.faces.num, 1]);
+       % face transmissibility
+        harm_c  = 1 ./ reduceFacesOverCells(G, N, 1./opt.Trans);
         if isempty(opt.dhfz)
             C       = G.cells.centroids(N(:,2),:) - G.cells.centroids(N(:,1),:);
             gflux   = harm_c.*(C*g');
@@ -403,7 +403,6 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, rock, rho, fluid, opt)
 
    if isfield(fluid, 'pc')
       % Capillary pressure
-      N = G.faces.neighbors;
       i = any(N==0, 2);
 
       % N(i, :) = [c_i 0] or [0 c_i], change to [c_i c_i] to make
@@ -434,9 +433,9 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, rock, rho, fluid, opt)
          % d/ds_i (harm_c(pc_flux)
          pcJac  = harm_c./nC;
       else
-         % Use transmissibilites
-         harm_c = 1 ./ accumarray(G.cells.faces(:,1), 1./opt.Trans, [G.faces.num, 1]);
-         % Two point approximation to grad pc
+        % Use transmissibilites
+        harm_c = 1 ./ reduceFacesOverCells(G, neighbors, 1./opt.Trans);
+        % Two point approximation to grad pc
         d_pc_mod   = @(cell_pc) ( cell_pc(N(~i,2),:)-cell_pc(N(~i,1),:));
 
         % Flux contribution of capillary pressure for internal faces
@@ -452,7 +451,7 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, rock, rho, fluid, opt)
 
 
    else
-      pc_flux = @(rSol) zeros(sum(all(G.faces.neighbors~=0, 2)), 1);
+      pc_flux = @(rSol) zeros(sum(all(N~=0, 2)), 1);
       pcJac = zeros(size(gflux));
    end
 end
@@ -460,7 +459,8 @@ end
 %--------------------------------------------------------------------------
 
 function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
-   intern = all(G.faces.neighbors ~= 0, 2);
+   neighbors = getNeighbourship(G, 'Topological', true);
+   intern = all(neighbors ~= 0, 2);
    gflux  = gflux(intern) + pcflux;
    dflux  = dflux(intern);
    iw     = nan(sum(intern), 1);
@@ -473,7 +473,7 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
    b = ~(dflux > 0) & ~(gflux > 0);
    c = a | b;
 
-   N       = G.faces.neighbors(intern,:);
+   N       = neighbors(intern,:);
    N(b, :) = N(b, [2,1]);
    iw(c)   = N(c, 1);
    clear a b c N
@@ -484,7 +484,7 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
    b = ~(dflux > 0) & ~(gflux < 0);
    c =  a | b;
 
-   N       = G.faces.neighbors(intern,:);
+   N       = neighbors(intern,:);
    N(b, :) = N(b, [2,1]);
    io(c)   = N(c, 1);
    clear a b c N
@@ -500,11 +500,11 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
       vw = dflux + gflux.*mo;
       vo = dflux - gflux.*mw;
 
-      N             = G.faces.neighbors(intern,:);
+      N             = neighbors(intern,:);
       N(vw<0, :)    = N(vw<0, [2,1]);
       iw(isnan(iw)) = N(isnan(iw), 1);
 
-      N             = G.faces.neighbors(intern,:);
+      N             = neighbors(intern,:);
       N(vo<0, :)    = N(vo<0, [2,1]);
       io(isnan(io)) = N(isnan(io), 1);
    end
