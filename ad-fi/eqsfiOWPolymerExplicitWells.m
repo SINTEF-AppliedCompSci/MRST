@@ -34,6 +34,7 @@ qOs  = vertcat(state.wellSol.qOs);
 
 [wPoly, wciPoly] = getWellPolymer(W);
 wPoly_num = wPoly;
+
 % previous variables ------------------------------------------------------
 p0  = state0.pressure;
 sW0 = state0.s(:,1);
@@ -44,6 +45,8 @@ c0  = state0.c;
 %Initialization of independent variables ----------------------------------
 
 zw = zeros(size(pBHP));
+zwPoly = zeros(size(wPoly));
+
 if ~opt.resOnly,
    % ADI variables needed since we are not only computing residuals.
 
@@ -54,11 +57,11 @@ if ~opt.resOnly,
 
    else
 
-      [p0, sW0, c0, zw, zw, zw, zw] = ...
+      [p0, sW0, c0, zw, zw, zwPoly, zw] = ...
          initVariablesADI(p0, sW0, c0,              ...
                           zeros(size(qWs)),         ...
                           zeros(size(qOs)),         ...
-                          zeros(size(wciPoly_num)), ...
+                          zeros(size(wPoly_num)), ...
                           zeros(size(pBHP)));                          %#ok
 
    end
@@ -191,11 +194,12 @@ eqs{3}(wc) = eqs{3}(wc) + bWqP;
 
 % well equations
 zeroW = 0*zw;
+zeroWPoly = 0*zwPoly;
 
 eqs{4} = Rw'*bWqW + qWs + zeroW;
 eqs{5} = Rw'*bOqO + qOs + zeroW;
 % Trivial constraint - this is only to get the adjoint partial derivatives
-eqs{6} = wPoly - wPoly_num;
+eqs{6} = wPoly - wPoly_num + zeroWPoly;
 
 % Last eq: boundary cond
 eqs{7} = handleBC(W, pBHP, qWs, qOs, [], scalFacs) + zeroW;
