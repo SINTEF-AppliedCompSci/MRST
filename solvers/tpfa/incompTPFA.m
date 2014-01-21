@@ -178,10 +178,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    t0 = ticif (opt.Verbose);
 
    % Preliminaries
-   neighborship = getNeighbourship(G, 'Topological', true);
-   cellNo = rldecode(1:G.cells.num, double(diff(G.cells.facePos)), 2).';
-   cf     = G.cells.faces(:,1);
+   [neighborship, n_isnnc] = getNeighbourship(G, 'Topological', true);
+   [cellNo, cf, cn_isnnc] = getCellNoFaces(G);
    nif    = size(neighborship, 1);
+   ncf    = size(cf, 1);
    nc     = G.cells.num;
    nw     = length(opt.wells);
    n      = nc + nw;
@@ -190,13 +190,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    totmob = sum(mob, 2);
 
    % Compute effective (mobility-weighted) transmissibilities.
-   [T, ft] = compute_trans(G, T, cellNo, neighborship, totmob, opt);
+   [T, ft] = compute_trans(G, T, cellNo, cf, neighborship, totmob, opt);
 
    % Identify internal faces
    i  = all(neighborship ~= 0, 2);
 
    % Boundary conditions and source terms.
-   [ff, gg, hh, grav, dF, dC] = ...
+   hh = zeros(nif, 1);
+   dF = false(nif, 1);
+   [grav, ff] = deal(zeros(ncf, 1));
+   [ff(~cn_isnnc), gg, hh(~n_isnnc), grav(~cn_isnnc), dF(~n_isnnc), dC] = ...
       computePressureRHS(G, omega, opt.bc, opt.src);
 
    % made to add capillary pressure
@@ -219,7 +222,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
    clear mob
 
-   sgn = 2*(G.faces.neighbors(cf, 1) == cellNo) - 1;
+   sgn = 2*(neighborship(cf, 1) == cellNo) - 1;
    j   = i(cf) | dF(cf);
    fg  = accumarray(cf(j), grav(j).*sgn(j), [nif, 1]);
    if ~isempty(opt.bcp),
@@ -335,8 +338,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Reconstruct face pressures and fluxes.
    fpress     =  ...
-          accumarray(G.cells.faces(:,1), (p(cellNo)+grav).*T, [G.faces.num,1])./ ...
-          accumarray(G.cells.faces(:,1), T, [G.faces.num,1]);
+          accumarray(cf, (p(cellNo)+grav).*T, [nif, 1])./ ...
+          accumarray(cf(:,1), T, [nif,1]);
 
 
    % Neumann faces
@@ -388,7 +391,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [T, ft] = compute_trans(G, T, cellNo, neighborship, totmob, opt)
+function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, opt)
    if opt.use_trans,
       niface = size(neighborship, 1);
       neighborcount = sum(neighborship > 0, 2);
@@ -396,14 +399,15 @@ function [T, ft] = compute_trans(G, T, cellNo, neighborship, totmob, opt)
              ['Expected one transmissibility for each interface ', ...
               '(=%d) but got %d.'], niface, numel(T));
 
-      fmob = reduceFacesOverCells(G, neighborship, totmob(cellNo));
-                    
+      fmob = accumarray(cellFaces, totmob(cellNo), ...
+                        [niface, 1]);
+  
       fmob = fmob ./ neighborcount;
       ft   = T .* fmob;
 
       % Synthetic one-sided transmissibilities.
       th = ft .* neighborcount;
-      T  = th(G.cells.faces(:,1));
+      T  = th(cellFaces(:,1));
 
    else
 
