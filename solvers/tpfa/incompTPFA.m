@@ -178,9 +178,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    t0 = ticif (opt.Verbose);
 
    % Preliminaries
+   neighborship = getNeighbourship(G, 'Topological', true);
    cellNo = rldecode(1:G.cells.num, double(diff(G.cells.facePos)), 2).';
    cf     = G.cells.faces(:,1);
-   nf     = G.faces.num;
+   nif    = size(neighborship, 1);
    nc     = G.cells.num;
    nw     = length(opt.wells);
    n      = nc + nw;
@@ -189,10 +190,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    totmob = sum(mob, 2);
 
    % Compute effective (mobility-weighted) transmissibilities.
-   [T, ft] = compute_trans(G, T, cellNo, totmob, opt);
+   [T, ft] = compute_trans(G, T, cellNo, neighborship, totmob, opt);
 
    % Identify internal faces
-   i  = all(G.faces.neighbors ~= 0, 2);
+   i  = all(neighborship ~= 0, 2);
 
    % Boundary conditions and source terms.
    [ff, gg, hh, grav, dF, dC] = ...
@@ -220,7 +221,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    sgn = 2*(G.faces.neighbors(cf, 1) == cellNo) - 1;
    j   = i(cf) | dF(cf);
-   fg  = accumarray(cf(j), grav(j).*sgn(j), [nf, 1]);
+   fg  = accumarray(cf(j), grav(j).*sgn(j), [nif, 1]);
    if ~isempty(opt.bcp),
       fg(opt.bcp.face) = fg(opt.bcp.face) + opt.bcp.value;
       warning('mrst:periodic_bc', ...
@@ -287,14 +288,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % faces for each cell.
    d  = d + ...
         accumarray(cellNo(dF(cf)), T(dF(cf)), [nc, 1]) +...
-        accumarray(reshape(G.faces.neighbors(i,:), [], 1), ...
+        accumarray(reshape(neighborship(i,:), [], 1), ...
                    repmat(ft(i), [2,1]),  [nc, 1]);
 
    % Assemble coefficient matrix for internal faces.  Boundary conditions
    % may introduce additional diagonal entries.  Also, wells introduce
    % additional equations and unknowns.
-   I  = [G.faces.neighbors(i,1); G.faces.neighbors(i,2); (1:nc)'];
-   J  = [G.faces.neighbors(i,2); G.faces.neighbors(i,1); (1:nc)'];
+   I  = [neighborship(i,1); neighborship(i,2); (1:nc)'];
+   J  = [neighborship(i,2); neighborship(i,1); (1:nc)'];
    V  = [-ft(i); -ft(i); d]; clear d;
    A  = sparse(double(I), double(J), V, nc, nc);
    A = [A, C'; C D]; clear I J V C D;
@@ -353,10 +354,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Sign for boundary faces
    sgn  = 2*(G.faces.neighbors(~i,2)==0)-1;
-   ni   = G.faces.neighbors(i,:);
-   flux = -accumarray(find(i),  ft(i) .*(p(ni(:,2))-p(ni(:,1))-fg(i)), [nf, 1]);
+   ni   = neighborship(i,:);
+   flux = -accumarray(find(i),  ft(i) .*(p(ni(:,2))-p(ni(:,1))-fg(i)), [nif, 1]);
    c    = sum(G.faces.neighbors(~i,:),2) ;
-   fg  = accumarray(cf, grav, [nf, 1]);
+   fg  = accumarray(cf, grav, [nif, 1]);
    flux(~i) = -sgn.*ft(~i).*( fpress(~i) - p(c) - fg(~i) );
    %flux = -sgn.*ft((fpress(~i)-p(c)-grav));
    state.pressure(1 : nc) = p(1 : nc);
@@ -387,20 +388,21 @@ end
 
 %--------------------------------------------------------------------------
 
-function [T, ft] = compute_trans(G, T, cellNo, totmob, opt)
+function [T, ft] = compute_trans(G, T, cellNo, neighborship, totmob, opt)
    if opt.use_trans,
-
-      assert (numel(T) == G.faces.num, ...
+      niface = size(neighborship, 1);
+      neighborcount = sum(neighborship > 0, 2);
+      assert (numel(T) == niface, ...
              ['Expected one transmissibility for each interface ', ...
-              '(=%d) but got %d.'], G.faces.num, numel(T));
+              '(=%d) but got %d.'], niface, numel(T));
 
-      fmob = accumarray(G.cells.faces(:,1), totmob(cellNo), ...
-                        [G.faces.num, 1]);
-      fmob = fmob ./ sum(G.faces.neighbors > 0, 2);
+      fmob = reduceFacesOverCells(G, cellNo, neighborship, totmob);
+                    
+      fmob = fmob ./ neighborcount;
       ft   = T .* fmob;
 
       % Synthetic one-sided transmissibilities.
-      th = ft .* sum(G.faces.neighbors > 0, 2);
+      th = ft .* neighborcount;
       T  = th(G.cells.faces(:,1));
 
    else
