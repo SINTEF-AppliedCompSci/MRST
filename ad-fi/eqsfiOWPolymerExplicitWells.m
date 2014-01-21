@@ -186,9 +186,9 @@ eqs{2}(wc) = eqs{2}(wc) + bWqW;
 
 % polymer in water:
 poro =  s.pv./G.cells.volumes;
-eqs{3} =   (s.pv*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - pvMult0.*f.bW(p0).*sW0.*c0) ...
-         + (s.pv/dt).*(f.rhoR*((1-poro)./poro).*(f.ads(max(c, cmax))-f.ads(cmax0))) ... % Adsorption isotherm effect
-         + s.div(bWvP);
+f.effads =  @(c, cmax)(effads(c, cmax, f));
+eqs{3} =   (s.pv*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
+    (f.rhoR*((1-poro)./poro).*(f.effads(c, cmax)-f.effads(c0, cmax0))) + s.div(bWvP);
 
 eqs{3}(wc) = eqs{3}(wc) + bWqP;
 
@@ -219,3 +219,11 @@ function [wPoly, wciPoly] = getWellPolymer(W)
     wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
 end
 
+
+function y = effads(c, cmax, f)
+   if f.adsInx == 2
+      y = f.ads(max(c, cmax));
+   else
+      y = f.ads(c);
+   end
+end
