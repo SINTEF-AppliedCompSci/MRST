@@ -396,7 +396,7 @@ function [T, ft] = compute_trans(G, T, cellNo, neighborship, totmob, opt)
              ['Expected one transmissibility for each interface ', ...
               '(=%d) but got %d.'], niface, numel(T));
 
-      fmob = reduceFacesOverCells(G, cellNo, neighborship, totmob);
+      fmob = reduceFacesOverCells(G, neighborship, totmob(cellNo));
                     
       fmob = fmob ./ neighborcount;
       ft   = T .* fmob;
