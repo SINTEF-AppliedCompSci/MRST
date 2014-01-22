@@ -392,8 +392,8 @@ end
 %--------------------------------------------------------------------------
 
 function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, opt)
-   if opt.use_trans,
-      niface = size(neighborship, 1);
+    niface = size(neighborship, 1);
+    if opt.use_trans,  
       neighborcount = sum(neighborship > 0, 2);
       assert (numel(T) == niface, ...
              ['Expected one transmissibility for each interface ', ...
@@ -419,7 +419,7 @@ function [T, ft] = compute_trans(G, T, cellNo, cellFaces, neighborship, totmob, 
               'half face (=%d), but got %d.'], numel(cellNo), numel(T));
 
       T  = T .* totmob(cellNo);
-      ft = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ T, [G.faces.num, 1]);
+      ft = 1 ./ accumarray(cellFaces, 1 ./ T, [niface, 1]);
 
    end
 end
