@@ -154,6 +154,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert(~isempty(opt.Trans) || ~isfield(G, 'nnc'), ...
        ['Transmissibilities must be supplied in ''Trans'''...
        ' keyword argument when the grid has non-neighboring connections'])
+
    % ----------------------------------------------------------------------
 
 
