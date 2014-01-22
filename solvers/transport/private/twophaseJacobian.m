@@ -353,7 +353,10 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
 %  gflux = harmonic average of (n·K·gravity·(rho1-rho2)) in each cell-
 
    g     = gravity() * (rho(1) - rho(2));
-   N = getNeighbourship(G, 'Topological', true);
+   [N, neighborship] = deal(getNeighbourship(G, 'Topological', true));
+   % Number of interfaces (faces + NNC)
+   nif = size(N, 1);
+   
    gflux = zeros([size(N, 1), 1]);
    dim   = G.griddim;
 
@@ -383,7 +386,7 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
         % C(outerFaces) = 0
         N(i, :) = repmat(sum(N(i, :), 2), [1, 2]);
         % face transmissibility
-        harm_c  = 1 ./ accumarray(cellFace, 1./opt.Trans, [G.faces.num, 1]);
+        harm_c  = 1 ./ accumarray(cellFace, 1./opt.Trans, [nif, 1]);
         if isempty(opt.dhfz)
             C       = G.cells.centroids(N(:,2),:) - G.cells.centroids(N(:,1),:);
             gflux   = harm_c.*(C*g');
@@ -419,7 +422,7 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
         % Permeability contribution for each face by taking the
         % harmonic average of nKC on all faces and divide by |C| = nC
         % Area weighted since n is area weighted.
-         harm_c = 2 ./ accumarray(cellFace, 1./ nKC, [G.faces.num, 1])./nC;
+         harm_c = 2 ./ accumarray(G.cells.faces(:,1), 1./ nKC, [G.faces.num, 1])./nC;
          % Two point approximation to grad pc
          d_pc   = @(cell_pc) ( cell_pc(N(~i,1),:)-cell_pc(N(~i,2),:))./nC(~i);
 
@@ -447,11 +450,8 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
         % d/ds_i (harm_c(pc_flux)
         pcJac  = -harm_c;
       end
-
-
-
    else
-      pc_flux = @(rSol) zeros(sum(all(N~=0, 2)), 1);
+      pc_flux = @(rSol) zeros(sum(all(neighborship~=0, 2)), 1);
       pcJac = zeros(size(gflux));
    end
 end
