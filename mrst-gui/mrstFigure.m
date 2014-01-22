@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Set properties and fast rotation
     if any(strcmpi(varargin, 'fast'))
-        set(h, 'DrawMode', 'fast')
+        set(h, 'DefaultAxesDrawMode', 'fast')
     end
     
     if ~any(strcmpi(varargin, 'painters'))
