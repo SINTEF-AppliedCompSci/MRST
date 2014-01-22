@@ -53,6 +53,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % List of faces per cell with same size as cellNo
     cellFaces = G.cells.faces(:,1);
     
+    % Mapping to show which entries in cellNo/cellFaces are resulting from
+    % NNC and not actual geometric faces.
+    isNNC = false([numel(cellNo), 1]);
     % If NNC is present, we add these extra connections to cellno &
     % cellFaces to allow consistent treatment.
     if isfield(G, 'nnc') && isfield(G.nnc, 'cells')
@@ -61,11 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         nnc_faceno = G.faces.num + (1:size(G.nnc.cells, 1)).';
         cellNo = [cellNo; nnc_cells];
         cellFaces = [cellFaces; nnc_faceno; nnc_faceno];
-    else
-        nnc_cells = [];
+        % Added connections are NNC
+        isNNC = [ isNNC ; true([numel(nnc_cells), 1]) ];
     end
-    % Mapping to show which entries in cellNo/cellFaces are resulting from
-    % NNC and not actual geometric faces.
-    isNNC = false(size(cellNo));
-    isNNC((end-numel(nnc_cells)+1):end) = true;
 end
