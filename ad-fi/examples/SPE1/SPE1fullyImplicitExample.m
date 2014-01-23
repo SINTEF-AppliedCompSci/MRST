@@ -47,8 +47,9 @@ p0    = [ 329.7832774859256 ; ...  % Top layer
 p0    = convertFrom(p0(k), barsa);
 s0    = repmat([ 0.12, 0.88, 0.0 ], [G.cells.num, 1]);
 rs0   = repmat( 226.1966570852417 , [G.cells.num, 1]);
+rv0   = 0; % dry gas
 
-state = struct('s', s0, 'rs', rs0, 'pressure', p0);   clear k p0 s0 rs0
+state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
 
 %% Plot well and permeability
 % The permeability consists of three layers going from high to low

@@ -43,18 +43,18 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, f, system, varargin)
             [p, sW, x, qWs, qOs, qGs, bhp] = ...
                 initVariablesADI(p, sW, x, qWs, qOs, qGs, bhp);
             % define sG, rs and rv in terms of x
-            rsSat = f.rsSat(p);
-            rvSat = f.rvSat(p);
             sG = st2.*(1-sW) + st3.*x;
             if disgas
-                rs = (~st1).*rsSat  + st1.*x;
-            else % rs is a constant scalar
-                rs = rsSat;
+                rsSat = f.rsSat(p);
+                rs = (~st1).*rsSat + st1.*x;
+            else % otherwise rs = rsSat = const
+                rsSat = rs;
             end
             if vapoil
-                rv = (~st2).*rvSat  + st2.*x;
-            else % rv is a constant scalar
-                rv = rvSat;
+                rvSat = f.rvSat(p);
+                rv = (~st2).*rvSat + st2.*x;
+            else % otherwise rv = rvSat = const
+                rvSat = rv;
             end
         else
             x0 = st1p.*rs0 + st2p.*rv0 + st3p.*sG0;
@@ -63,23 +63,23 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, f, system, varargin)
                 initVariablesADI(p0, sW0, x0, ...
                 zeros(size(qWs)) , zeros(size(qOs)) , ...
                 zeros(size(qGs)) , zeros(size(bhp)));                 %#ok
-            rsSat0 = f.rsSat(p0);
-            rvSat0 = f.rvSat(p0);
             sG0 = st2p.*(1-sW0) + st3p.*x0;
             if disgas
+                rsSat0 = f.rsSat(p0);
                 rs0 = (~st1p).*rsSat0  + st1p.*x0;
-            else
-                rs0 = rsSat0;
+            else 
+                rsSat0 = rs0; % Not used - remove
             end
             if vapoil
+                rvSat0 = f.rvSat(p0);
                 rv0 = (~st2p).*rvSat0  + st2p.*x0;
             else
-                rv0 = rvSat0;
+                rvSat0 = rv0; % Not used - remove
             end
         end
     else % resOnly-case compute rsSat and rvSat for use in well eqs
-        rsSat = f.rsSat(p);
-        rvSat = f.rvSat(p);
+        if disgas, rsSat = f.rsSat(p); else rsSat = rs; end
+        if vapoil, rvSat = f.rvSat(p); else rvSat = rv; end
     end
     %----------------------------------------------------------------------
     %check for p-dependent tran mult:
@@ -121,10 +121,16 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, f, system, varargin)
     bWvW = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
 
     % OIL PROPS
-    bO     = f.bO(p, rs, ~st1);
+    if disgas
+        bO  = f.bO(p, rs, ~st1);
+        muO = f.muO(p, rs, ~st1);
+    else
+        bO  = f.bO(p);
+        muO = f.muO(p);
+    end
     rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
     rhoOf  = s.faceAvg(rhoO);
-    mobO   = trMult.*krO./f.muO(p, rs, ~st1);
+    mobO   = trMult.*krO./muO;
     dpO    = s.grad(p) - g*(rhoOf.*dz);
     % oil upstream-index
     upc = (double(dpO)>=0);
@@ -132,10 +138,16 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, f, system, varargin)
     if disgas, rsbOvO = s.faceUpstr(upc, rs).*bOvO;end
 
     % GAS PROPS (calculated at oil pressure)
-    bG     = f.bG(p, rv, ~st2);
+    if vapoil
+        bG  = f.bG(p, rv, ~st2);
+        muG = f.muG(p, rv, ~st2);
+    else
+        bG  = f.bG(p);
+        muG = f.muG(p);
+    end
     rhoG   = bG.*(rv*f.rhoOS + f.rhoGS);
     rhoGf  = s.faceAvg(rhoG);
-    mobG   = trMult.*krG./f.muG(p, rv, ~st2);
+    mobG   = trMult.*krG./muG;
     dpG    = s.grad(p+pcOG) - g*(rhoGf.*dz);
     % gas upstream-index
     upc    = (double(dpG)>=0);
@@ -147,8 +159,8 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, f, system, varargin)
     sO0 = 1- sW0 - sG0;
 
     bW0 = f.bW(p0);
-    bO0 = f.bO(p0, rs0, ~st1p);
-    bG0 = f.bG(p0, rv0, ~st2p);
+    if disgas, bO0 = f.bO(p0, rs0, ~st1p); else bO0 = f.bO(p0); end
+    if vapoil, bG0 = f.bG(p0, rv0, ~st2p); else bG0 = f.bG(p0); end
 
     % oil eq:
     if vapoil
