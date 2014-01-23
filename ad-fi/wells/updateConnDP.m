@@ -142,11 +142,12 @@ switch model
         gor = abs(mixs(:,3)./mixs(:,2));
         gor(isnan(gor)) = inf;
         rs = min(rMax(:,1), gor);
-        ogr = abs(mixs(:,3)./mixs(:,2));
+        ogr = abs(mixs(:,2)./mixs(:,3));
         ogr(isnan(gor)) = inf;
         rv = min(rMax(:,2), ogr);
-        x(:,3) = x(:,3) - rs.*mixs(:,2);
-        x(:,2) = x(:,2) - rv.*mixs(:,3);
+        d = 1-rs.*rv;
+        x(:,3) = (x(:,3) - rs.*mixs(:,2))./d;
+        x(:,2) = (x(:,2) - rv.*mixs(:,3))./d;
         x(:,2:3) = x(:,2:3).*(x(:,2:3)>0);
     otherwise
         error(['Unknown model: ', model]);
