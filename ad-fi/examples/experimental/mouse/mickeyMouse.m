@@ -60,6 +60,8 @@ systemPolymer = initADISystem(deck, G, rock, fluid);
 state0 = initResSol(G, 1, [.5, .5]);
 state0.cmax = zeros(G.cells.num,1);
 state0.c = state0.cmax;
+state0.wellSol = initWellSolLocal(W, state0);
+
 
 nt = 250;
 dt = ones(nt,1)*day/10;
