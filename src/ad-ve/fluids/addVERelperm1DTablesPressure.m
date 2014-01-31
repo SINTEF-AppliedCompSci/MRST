@@ -95,17 +95,34 @@ function varargout = krG(sg, p, fluid, opt, varargin)
    end
    pc=interpTable(opt.table_co2.SP,opt.table_co2.p,SP);      
    %dp=dinterpTable(opt.table_co2.SP,opt.table_co2.p, SP).*dSP;
-   
+   h_int=pc./(drho);
+   if(opt.table_co2.is_kscaled)
+       h_int=h_int.*kscale;
+   end
    
    kr=interpTable(opt.table_co2.p,opt.table_co2.krP, pc)./dSP;
    %dkr=dinterpTable(opt.table_co2.p,opt.table_co2.krP, p).*dp./(dSP);
    
-   dpH=interpTable(opt.table_co2.SP,opt.table_co2.p, dSP);   
-   if(any(pc>dpH))
-       disp(['Capillary is larger than H for ', num2str(sum(gh>H)),'values'])
-       spH=interpTable(opt.table_co2.p,opt.table_co2.SP,dpH(p>dpH));
-       kr_H=interpTable(opt.table_co2.p,opt.table_co2.SP,spH)./dpH(p>dpH);
-       kr(p>dpH)=kr_H+((sg(gh>H)-sH./H(gh>H))./(1-sH./H(gh>H))).*(1-kr_H);
+   
+   %if(any(pc>dpH))
+   h_ind=h_int>opt.height;
+   
+   if(any(h_ind))
+       dpH=opt.height(h_ind).*drho(h_ind);%*(1-opt.res_oil);
+       disp(['Capillary is larger than H for ', num2str(sum(h_ind)),'values'])       
+       if(opt.table_co2.is_kscaled)
+           dpH=dpH./kscale(h_ind);           
+       end
+       spH=interpTable(opt.table_co2.p,opt.table_co2.SP,dpH);
+       sH=spH./drho(h_ind);
+       if(opt.table_co2.is_kscaled)
+          sH=sH.*kscale(h_ind); 
+       end
+       
+       kr_H=interpTable(opt.table_co2.p,opt.table_co2.krP,dpH)./dpH;
+       kr_end=1;%opt.table_co2.kr3D(1-opt.res_oil);
+       kr(h_ind)=kr_H+((sg(h_ind)-sH./H(h_ind))./(1-sH./H(h_ind))).*(kr_end-kr_H);
+        %kr(h_ind)=kr_H+((sg(h_ind)-sH./H(h_ind))).*(1-kr_H);
     %   dkr(p>dpH)=(1./(1-(sH./H(p>dpH)))).*(1-kr_H);
    end
    
