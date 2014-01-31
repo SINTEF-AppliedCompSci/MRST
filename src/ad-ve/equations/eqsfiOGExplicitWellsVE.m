@@ -212,7 +212,7 @@ else
  eqs{5}=zeroW;   
 end
 for jj=1:numel(eqs)
-   assert(all(isfinite(double(eqs{jj})))) 
+   assert(all(isfinite(double(eqs{jj})))); 
 end
 
 %sum([double(eqs{2})*dt,...
