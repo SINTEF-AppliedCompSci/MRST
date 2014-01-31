@@ -51,10 +51,10 @@ end
 % faster access at a later time.
 [Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodelSimple(true);
 if(opt.mod_rock)
-    %rock.poro=rock.poro*0.6;
-    %rock2D.poro=rock2D.poro*0.6;
-    rock.perm=rock.perm*3;
-    rock2D.perm=rock2D.perm*3;
+    rock.poro=rock.poro*0.6;
+    rock2D.poro=rock2D.poro*0.6;
+    rock.perm=rock.perm*6;
+    rock2D.perm=rock2D.perm*6;
 end
 
 Gt.grav_pressure = @(g, omega) gravPressureVE_s(g, omega);
@@ -283,11 +283,16 @@ while t<T
    end
    dTplot=min(dTplot,T-t);
 end
-%for i=2:numel(sreport)
-%   sreport{i}.sol=rmfield(sreport{i}.sol,'twophaseJacobian')
-%end
+for i=1:numel(sreport)
+   if(isfield(sreport{i}.sol,'twophaseJacobian'))       
+        sreport{i}.sol=rmfield(sreport{i}.sol,'twophaseJacobian')
+   end
+end
+Gt=rmfield(Gt,'grav_pressure');
+Gt=rmfield(Gt,'primitives');
 cputime=toc(stime);%#ok
-save([case_name,'_',num2str(method)],'sreport','Gt','fluidVE_h','fluidVE_s','fluidADI','opts','cputime','WVE','opt')
+%save([case_name,'_',num2str(method)],'sreport','Gt','fluidVE_h','fluidVE_s','fluidADI','opts','cputime','WVE','opt')
+save([case_name,'_',num2str(method)],'sreport','Gt')
 fprintf(1,'\n\n');
 % delete C++ simulator
 if cpp_accel, mtransportVE; end
