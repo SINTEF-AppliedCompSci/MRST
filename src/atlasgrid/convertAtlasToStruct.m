@@ -1,0 +1,90 @@
+function sqform = convertAtlasToStruct(meta_thick, meta_top, data_thick, data_top)
+%Create GRDECL struct from CO2 storage atlas thickness/top data
+%
+% SYNOPSIS:
+%   grdecl = convertAtlasTo3D(m_thick, m_top, d_thick, d_top, 3)
+%
+% DESCRIPTION:
+%   Given two datasets with possibily non-matching nodes, interpolate and
+%   combine to form a GRDECL struct suitable for 3D simulations after a
+%   call to processGRDECL or for further manipulation.
+%
+% REQUIRED PARAMETERS:
+%   meta_thick - Metainformation for the thickness data as produced from
+%                readAAIGrid
+%
+%   meta_top   - Metainformation for top data.
+%
+%   data_thick - Data for the thickness data as produced from
+%                readAAIGrid
+%
+%   top_thick  - Data for the top data as produced from
+%                readAAIGrid
+%
+%
+% RETURNS:
+%   grdecl - GRDECL struct suitable for processGRDECL
+%
+%
+% NOTES:
+%       It is likely easier to use getAtlasGrid instead of calling this
+%       routine directly.
+%
+% SEE ALSO:
+%   getAlasGrid
+
+%{
+#COPYRIGHT#
+%}
+
+    ndims = [meta_top.dims];
+    dims = ndims - 1;
+    h = meta_top.cellsize;
+
+    
+    grdecl.cartDims = reshape(dims, 1, []);
+    
+    xl = meta_top.xllcorner;
+    yl = meta_top.yllcorner;
+    
+    % Create grids
+    [X, Y]  = ndgrid(linspace(xl, dims(1)*h + xl, ndims(1)), ...
+                        linspace(yl, dims(2)*h + yl, ndims(2)));
+    
+
+    F_top   = interpolateData(meta_top,   data_top);
+    F_thick = interpolateData(meta_thick, data_thick);
+    
+    x = reshape(X, [], 1);
+    y = reshape(Y, [], 1);
+    thick = reshape(F_thick(x, y), ndims(1), ndims(2));
+    top   = reshape(F_top(x, y)  , ndims(1), ndims(2));
+   
+    
+   
+    
+    %
+    
+    %thick(thick<=0) = NaN;
+    %
+    
+    %sqform=struct('X',X,'Y',Y,'thick',thick,'top',top,'dx',h,'dy',h,'orig',[xl,yl]);
+    %sqform=struct('nodeDims',ndims,'thick',thick,'top',top,'dx',h,'dy',h,'orig',[xl,yl]);
+    sqform=struct('nodeDims',ndims,'thick',thick,'top',top,'dx',h,'dy',h,'orig',[xl,yl],'X',X,'Y',Y);
+    
+    
+   
+end
+
+function F = interpolateData(meta, data)
+    dims = meta.dims;
+    % We have a cell centered grid, so subtract by one
+    gdims = dims - 1;
+    h = meta.cellsize;
+    xl = meta.xllcorner;
+    yl = meta.yllcorner;
+    [X, Y]  = ndgrid(linspace(xl, gdims(1)*h + xl, dims(1)), ...
+                     linspace(yl, gdims(2)*h + yl, dims(2)));    
+    F =@(x,y) interp2(X',Y',data', x, y);              
+    %F = TriScatteredInterp(X(:), Y(:), data(:));
+end
