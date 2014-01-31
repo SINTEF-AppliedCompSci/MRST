@@ -92,7 +92,7 @@ end
 %check for capillary pressure (p_cog)
 pcOG = 0;
 if isfield(f, 'pcOG')
-    pcOG  = f.pcOG(sG,p,'sGmax',sGmax.val);
+    pcOG  = f.pcOG(sG,p,'sGmax',sGmax);
     %pcOG  = f.pcOG(sG0,p0,'sGmax',sGmax0);
     pG=p;
     pG0=p0;%+pcOG
@@ -186,6 +186,9 @@ if(~isempty(W))
         mobGw(iInxO) = 0;
         mobOw(iInxO) = (mobGw(iInxO) + mobOw(iInxO));
     else
+        %iInxG=inxG |  vertcat(state.wellSol.qGs)>0;
+        %iInxO=inxO |  vertcat(state.wellSol.qOs)>0;
+        assert(all(~(iInxG& iInxO)));
         mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));
         mobOw(iInxG) = 0;
         mobGw(iInxO) = 0;
@@ -305,10 +308,10 @@ if(isfield(f,'dis_rate'))
     %dis_rate=dis_rate.*double((rs.val<rsSat.val) & (sG.val>0));
     meps=sqrt(eps);
     if(false)
-        dis_rate=dis_rate.*double((rs.val<=(rsSat.val-sqrt(eps))) & (sG.val>sqrt(eps)));
+        dis_rate=dis_rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
     else
-        a=100;
-        dis_rate=dis_rate.*double((rs.val<=(rsSat.val-meps)) & (sG.val>meps));
+        a=600;
+        dis_rate=dis_rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
         tanhyp=@(x,a) ((exp(a*x)-exp(-a*x))./(exp(a*x)+exp(-a*x)));
         s_fac=tanhyp(sG,a);%((exp(a*sG)-exp(-a*sG))./(exp(a*sG)+exp(-a*sG)));
         rs_eps=(rsSat-rs)./f.dis_max;
@@ -320,7 +323,7 @@ if(isfield(f,'dis_rate'))
         ( pvMult.*(rs.*bO.*(1-sG) ) -...
         pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
         s.div(rsbOvO);
-    eqs_org{3}=eqs{3};
+    %eqs_org{3}=eqs{3};
     %eqs{3}(wc) = eqs{2}(wc) - rsw.*bOqO;
     if(~isempty(W))
         eqs{3}(wc(pInx)) = eqs{3}(wc(pInx)) - rsw(pInx).*bOqO(pInx);
@@ -345,7 +348,7 @@ if(isfield(f,'dis_rate'))
         %s_water=(1-sg_free-(sGmax-sg_free).*f.res_gas./(1-f.res_oil));
         if(false)
             drho=norm(gravity)*(f.rhoOS.*f.bO(p)-f.rhoGS.*f.bG(p));
-            pcmax=f.pcOG(sGmax, p,'sGmax',sGmax.val);      
+            pcmax=f.pcOG(sGmax, p,'sGmax',double(sGmax));      
             h_max=pcmax./drho;
             s_water=(1-sG);
             % had to introduce grid*
@@ -371,21 +374,52 @@ if(isfield(f,'dis_rate'))
         %s_water_mix=sGmax-sG;
         
         % rs > rs0 is a hack
-        ind_low_rs = (rs.*(1-sG)<=min_rs) & eqs{3}>0;% final???
+        %%{
+        tmp = (s.pv/dt).*...
+        ( double(pvMult).*(double(min_rs).*double(bO) ) -...
+        pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
+        s.div(double(rsbOvO));
+        
+        %eqs{3}(wc) = eqs{2}(wc) - rsw.*bOqO;
+        if(~isempty(W))
+            tmp(wc(pInx)) = tmp(wc(pInx)) - double(rsw(pInx)).*double(bOqO(pInx));
+        end
+        if(~isempty(opt.bc))
+            tmp(bc_cell)  = tmp(bc_cell) + double(rsbc).*double(bOqObc); 
+        end
+        tmp=tmp-double(dis_rate);
+        ind_low_rs = tmp>-sqrt(eps);
+        
+        %}
+        
+        
+        %ind_low_rs = (rs.*(1-sG) - min_rs)<=f.dis_max*sqrt(eps)  &  (eqs{3}>-sqrt(eps)*max(abs(double(eqs{3}))));% & (rs.*(1-sG) - min_rs) >-f.dis_max*sqrt(eps));% ((rs.*(1-sG) >= min_rs) & eqs{3}>0) ;% final???
+        %ind_low_rs = (rs.*(1-sG) - min_rs)< f.dis_max*sqrt(eps) & eqs{3}>0;% ((rs.*(1-sG) >= min_rs) & eqs{3}>0) ;% final???
+        %ind_low_rs = ones(G.cells.num,1)>0;
+        %ind_low_rs = zeros(G.cells.num,1)>0;
+        %ind_low_rs = (rs.*(1-sG)<=(min_rs+sqrt(eps).*f.dis_max)) & eqs{3}>-sqrt(eps)*max(double(eqs{3}));% final???
+        %ind_low_rs = ((rs.*(1-sG)-min_rs)< sqrt(eps).*f.dis_max) & eqs{3}>-sqrt(eps)*max(double(eqs{3}));% final???   
         %ind_low_rs = (rs.*(1-sG)<min_rs);% & eqs{3}>0;% final???
         %ind_low_rs=(min_rs>=rs.*(1-sG)) & (s.pv.*(min_rs-min_rs0))>dis_rate*dt;% & (eqs{3}<0);% & rs.*(1-sG) > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
         %ind_low_rs=(min_rs>=rs.*(1-sG)) | (s.pv.*(min_rs-r0.*))>dis_rate*dt;% & (eqs{3}<0);% & rs.*(1-sG) > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
         %ind_low_rs=min_rs>(rs.*(1-sG)*(1-sqrt(eps)));% needed for dis_rate=0& min_rs > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
         %ind_low_rs=min_rs>(rs.*(1-sG)*(1+sqrt(eps)));% & min_rs > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
-        
+        %plot(ind_low_rs)
+        is_sat_loc=((double(rs)>=double(rsSat)) &  (eqs{3}<0)) ;
+        %plot((rs.*(1-sG) - min_rs)<=f.dis_max*sqrt(eps))
+        %plot(double(rs.*(1-sG) - min_rs))
+        %plot(ind_low_rs)
+        %drawnow
         ind=ind_low_rs;
         if(any(ind))
             eqs{3}(ind)=rs(ind).*(1-sG(ind))-min_rs(ind);
             eqs{3}(ind)=eqs{3}(ind).*(s.pv(ind)/dt);
         end
+        %eqs{3}= eqs{3}./f.dis_max;
+    else
+       is_sat_loc=((double(rs)>=double(rsSat)) &  (sG>meps)) ; 
     end
     %is_sat_loc=(rs.val>(rsSat.val-sqrt(eps))) & eqs{3} > 0;
-    is_sat_loc=(rs.val>=rsSat.val) &  (sG>sqrt(meps));
     eqs{3}(is_sat_loc) = (rs(is_sat_loc) - rsSat(is_sat_loc)).*s.pv(is_sat_loc)/dt;
     % find difference in sGmax
     % introduce changing maximum sGmax
@@ -420,16 +454,18 @@ if(isfield(f,'dis_rate'))
         %%{
         % the case of disolution do not manage to remove all residual
         % saturation  and the new state do not is not fully dissolved
-        ind1= (tmp2<0) & (sGmax < sGmax0) & (~is_sat_loc);        
+        %ind1= (tmp2<0) & (sGmax < sGmax0) & (~is_sat_loc);
+        ind1= (tmp2<0) & (~is_sat_loc);
         if(any(ind1))
             eqs{7}(ind1)=tmp(ind1);
         end
         % the new state is fully dissolved but all residual saturaiont is
         % not gone
-        ind3= is_sat_loc & (sGmax < sGmax0) & (sGmax > sG)
+        ind3= is_sat_loc & (sGmax < sGmax0) & (sGmax > sG);
         if(any(ind3))
-            eqs{7}(ind3)=(s.pv/dt).*...
-            (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-r0)
+            tmp = (s.pv/dt).*...
+            (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
+            eqs{7}(ind3)= tmp(ind3);
         end
         
         %{
@@ -455,7 +491,8 @@ if(isfield(f,'dis_rate'))
         %ind=(sGmax<=sG);
         %eqs{7}(ind)=sGmax-sG;
     else
-        eqs{7}=sGmax-max(sGmax0,sG.val);
+        %eqs{7}=sGmax-max(sGmax0,double(sG));
+        eqs{7}=sGmax-max(sGmax0,sG);
         % neglect posibility of leting sGmax decreas due to disolusion
         
         %ind = (sGmax0 > sG);
@@ -600,8 +637,8 @@ if any(crossFlow)
         
     end
 end
-assert(all(mO.val>=0))
-assert(all(mG.val>=0))
+assert(all(double(mO)>=0))
+assert(all(double(mG)>=0))
 end
 
 
