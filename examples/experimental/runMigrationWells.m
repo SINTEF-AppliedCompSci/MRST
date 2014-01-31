@@ -204,7 +204,7 @@ fprintf(1,'Time: %4d years', convertTo(t,year));
 stime=tic;
 w = WVE;
 tic
-%bcVE=[];
+bcVE=[];
 first_post=true;
 sreport={};
 sreport{end+1}=struct('t',t,'W',W,'bcVE',bcVE,'sol',sol,'masses',zeros(1,7));%#ok
