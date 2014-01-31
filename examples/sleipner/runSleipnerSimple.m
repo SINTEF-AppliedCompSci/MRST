@@ -31,6 +31,7 @@ function [Gt,sol, sreport]=runSleipnerSimple(method,case_name,varargin)
 
 %% Display header
 %clc
+
 opt = struct('Verbose', mrstVerbose,'plot',true);
 opt = merge_options(opt, varargin{:});
 disp('================================================================');
@@ -46,6 +47,7 @@ if(a>20)
 else
    close(a); 
 end
+require ad-fi gridtools;
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
 % The VE model consists of a top-surface grid (Gt), petrophysical data
