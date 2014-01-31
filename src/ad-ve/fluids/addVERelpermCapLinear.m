@@ -116,11 +116,14 @@ end
 function h = invS(S, p, fluid, opt)
     % scale availabe gas volume
     % hack to avoid inf
+    %{
+    ind_zero=double(S)==0;    
     if(isa(S,'ADI'))
-        S.val(S.val==0)=sqrt(eps);
+        S.val(ind_zero)=sqrt(eps);
     else
-        S(S==0)=sqrt(eps);
+        S(ind_zero)=sqrt(eps);
     end
+    %}
     
     S=S/(1-opt.res_oil);
     C=opt.cap_scale;  
@@ -131,7 +134,15 @@ function h = invS(S, p, fluid, opt)
     vol_cap=(1/2)*cap_norm;
     assert(all(cap_norm<1));
     vol_capb=vol_cap+1-cap_norm;
-    h=(2*S./cap_norm).^(1/2).*cap_norm;
+    h=(2*(S)./cap_norm).^(1/2).*cap_norm;
+    
+    % reguralize sqare root function near zero
+    h_tol=1e-5;S_tol=0.5 *(h_tol./double(cap_norm)).^2.*double(cap_norm);
+    h_tmp=h_tol*S./S_tol;
+    ind=h<h_tol;
+    h(ind)=h_tmp(ind);
+         
+    
     ind=(S>vol_cap) & (S<vol_capb);
     if(any(ind))
         h(ind)=(S(ind)-vol_cap(ind))+cap_norm(ind);
@@ -149,6 +160,13 @@ function h = invS(S, p, fluid, opt)
     end
     %plot(S,(2*S).^(1/2),S,(S-vol_cap)+cap_norm,S,(vol_cap-0*S),S,(vol_capb-0*S),S(ind),h(ind))
     h=h.*opt.H;
+    %{
+    if(isa(S,'ADI'))
+        h.val(ind_zero)=0;
+    else
+       h(ind_zero)=0; 
+    end
+    %}
 end
 function [s, z_out] = S3D(SVE,p, samples, H, fluid, opt)
     % utility function for plotting saturation frofile and definition of
