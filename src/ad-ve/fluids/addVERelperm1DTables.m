@@ -58,7 +58,9 @@ function varargout = krG(sg, p, H, fluid, opt, varargin)
    gh=interpTable(opt.table_co2.SH,opt.table_co2.h,SH);
    %dgh=dinterpTable(opt.table_co2.SH,opt.table_co2.h,SH).*H;         
    kr=interpTable(opt.table_co2.h,opt.table_co2.krH, gh)./H;
+   assert(all(SH./H<=1));
    %dkr=dinterpTable(opt.table_co2.h,opt.table_co2.krH, gh)./H;
+   %{
    if(any(gh>H))
        disp(['Capillary is larger than H for ', num2str(sum(gh>H)),'values'])
        sH=interpTable(opt.table_co2.h,opt.table_co2.SH,H(gh>H));
@@ -66,13 +68,15 @@ function varargout = krG(sg, p, H, fluid, opt, varargin)
        kr(gh>H)=kr_H+((sg(gh>H)-sH./H(gh>H))./(1-sH./H(gh>H))).*(1-kr_H);
    %    dkr(gh>H)=(1./(1-(sH./H(gh>H)))).*(1-kr_H);
    end
+   %}
    varargout{1} = kr;
    %varargout{2} = dkr.*dgh;
 end
 function varargout = krOG(so, p, H, fluid, opt, varargin)
-   kr=interpTable(opt.table_water.h,opt.table_water.krH, so);
+   %kr=interpTable(opt.table_water.h,opt.table_water.krH, so);
    %dkr=dinterpTable(opt.table_water.S,opt.table_water.kr, so); 
-   varargout{1} = kr;
+   %varargout{1} = kr;
+   varargout{1} = so;
    %varargout{2} = dkr;
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55
