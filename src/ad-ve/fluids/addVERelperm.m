@@ -38,22 +38,32 @@ function kr= krG(sg,opt,varargin)
             kr = (sg_free.*opt.Gt.cells.H-opt.top_trap)./opt.Gt.cells.H;% simple model
         case 'sinus'
             kr2 = ((sg_free.*opt.Gt.cells.H).^2-opt.top_trap.^2)./(opt.Gt.cells.H.^2-opt.top_trap.^2);
-            kr=kr2;
-             kr(kr2<=0)=0*kr2(kr<=0);
+            %sigma=1e4;
+            kr2=kr2+1e-4*sg_free;
+            kr2(kr2<0)=0*sg_free(kr2<0);
+            kr=(kr2).^(0.5);
+            %{
+            kr(kr2<=0)=0*kr2(kr<=0);
             kr(kr2>0)=kr2(kr2>0).^(0.5);
+            %}
         case 'square'
            kr_s=(sg_free.^2-(opt.top_trap./opt.Gt.cells.H).^2)./(sg_free.*(1-(opt.top_trap./opt.Gt.cells.H).^2));
-           kr=sg_free;
-           kr(opt.top_trap>0)=kr_s(opt.top_trap>0);
-           kr(sg_free<=0)=0.0*sg_free(sg_free<=0);
+           %kr=sg_free;
+           kr=kr_s;
+           kr((opt.top_trap./opt.Gt.cells.H)>sg_free)=0*sg_free((opt.top_trap./opt.Gt.cells.H)>sg_free);
+           %kr(opt.top_trap>0*sg_free)=kr_s(opt.top_trap>0*sg_free);
+           %kr(opt.top)=kr_s(opt.top_trap>0);
+           %kr(sg_free<=0)=0.0*sg_free(sg_free<=0);
            %kr(kr<0)=kr(kr<0).*0.0;
         case 'smooth'
-           kr = sg;
+           kr = sg_free;
         otherwise
            error('Unknown surface topology')
     end
-    kr(kr<0)=0.0.*sg_free(kr<0);
-    kr(kr<0)=0.0.*sg_free(kr<0);
+    if(any(double(kr)<0))
+        kr(kr<0)=0.0.*sg_free(kr<0);
+        kr(kr<0)=0.0.*sg_free(kr<0);
+    end
     assert(all(kr>=0));
     kr=kr.*opt.krg;
 end
@@ -89,7 +99,7 @@ function pc= pcOG(sg, p, fluid,opt,varargin)
         assert(all(sg_free>=0))
         pc = norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)).*sg_free.*opt.Gt.cells.H;
     else
-       pc = norm(gravity)*(fluid.rhoOS-fluid.rhoGS).*sg.*opt.Gt.cells.H;
+       pc = norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)).*sg.*opt.Gt.cells.H;
     end
     pc=pc/(1-opt.res_oil);
 end
