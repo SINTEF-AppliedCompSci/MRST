@@ -64,7 +64,7 @@ function pc = pcOG(sg, p, fluid, opt, varargin)
    end   
    assert(all(h>=0));
    drho=((fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS*fluid.bG(p))*norm(gravity));   
-   pc = drho*h;
+   pc = drho.*h;
 end
 
 function kr = krG(sg, opt, varargin)
@@ -136,7 +136,7 @@ function [h h_max] = saturation2Height(sg, opt, loc_opt)
     h(h<0)=0;
    end
    if(any(h>opt.Gt.cells.H))
-    h(h>opt.Gt.cells.H)=opt.Gt.cells.H;
+    h(h>opt.Gt.cells.H)=opt.Gt.cells.H(h>opt.Gt.cells.H);
    end
    
 end
