@@ -55,7 +55,9 @@ function varargout = getAtlasGrid(varargin)
     
     opt = struct('nz',              1, ...
                  'coarsening',      1, ...
-                 'Verbose',         mrstVerbose);
+                 'refining',          1, ...
+                 'Verbose',         mrstVerbose,...
+                 'make_deck',       true);
     if mod(nargin, 2) == 1
         names = varargin{1};
         if nargin > 1
@@ -110,6 +112,11 @@ function varargout = getAtlasGrid(varargin)
     findname = @(name) datasets{cellfun(@(x) strcmpi(x.name, name), datasets)};
     jura_top = {jurassic_mid, jurassic_top};
     jurassic = {'Jurassicmid', 'Jurassic'};
+    if(opt.refining>1)
+        for i=1:numel(datasets)
+            datasets{i}=refineInfo(datasets{i},opt.refining); 
+        end
+    end
     
     [decks, petroinfo] = deal({});
     
@@ -123,8 +130,11 @@ function varargout = getAtlasGrid(varargin)
         for j = 1:numel(jur)
             jthick = findname(jur{j});
             dispif(opt.Verbose, ['Processing ' jur{j} ' ...\n']);
-            
-            deck =  convertAtlasTo3D(jthick.meta, jtop.meta, jthick.data, jtop.data, opt.nz);
+            if(opt.make_deck)
+                deck =  convertAtlasTo3D(jthick.meta, jtop.meta, jthick.data, jtop.data, opt.nz);
+            else
+                deck= convertAtlasToStruct(jthick.meta, jtop.meta, jthick.data, jtop.data);
+            end
             deck.name = jthick.name;
             
             petroinfo{end+1} = getAvgRock(deck.name); %#ok
@@ -143,7 +153,11 @@ function varargout = getAtlasGrid(varargin)
             thick = datasets{j};
             if strcmpi(thick.variant, 'thickness') && strcmpi(thick.name, top.name)
                  dispif(opt.Verbose, ['Processing ', top.name, ' ...\n']);
-                 deck = convertAtlasTo3D(thick.meta, top.meta, thick.data, top.data, opt.nz); %#ok
+                 if(opt.make_deck)
+                    deck = convertAtlasTo3D(thick.meta, top.meta, thick.data, top.data, opt.nz); %#ok
+                 else
+                     deck = convertAtlasToStruct(thick.meta, top.meta, thick.data, top.data);                     
+                 end
                  deck.name = thick.name;
                  
                  petroinfo{end+1} = getAvgRock(deck.name); %#ok
