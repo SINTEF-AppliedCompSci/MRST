@@ -126,7 +126,7 @@ if comp.gas
                    system.stepFunction = @(state0, state, meta, dt, W, G, system, varargin)...
                        stepBlackOilOGVE(state0, state, meta, dt, G, W, system, fluid, varargin{:});
                    system.getEquations = @eqsfiBlackOilExplicitWellsOGVE;
-                   %system.updateFinal  = @(state, state0) updateFinal(state, state0);
+                   system.updateFinal  = @(state, state0) updateFinalVE(state, state0, fluid,G);
                    system.cellwise = 1:3;
                    system.cpr.gas = [2 3]
                    system.cpr.active = 1:2;
