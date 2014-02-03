@@ -138,7 +138,7 @@ function [g_top, g] = topSurfaceGrid(g, varargin)
 % $Revision: 10008 $
 
 opt = struct('Verbose', mrstVerbose, ...
-             'AddFaults', false);
+             'AddFaults', false,'add_cellnodes',true);
 opt = merge_options(opt, varargin{:});
 
 verbose = opt.Verbose;
@@ -167,7 +167,12 @@ A(g.cells.indexMap) = true;
 active = any(A, 3);
 
 g_top = cartGrid(g.cartDims(1:2));
+g_top.faces.tag=[1:g_top.faces.num]';
 g_top = removeCells(g_top, find(~active)');
+%%
+cartFaceMap=g_top.faces.tag;
+%%
+g_top.faces=rmfield(g_top.faces,'tag');
 
 B = cumsum(A,3);
 
@@ -320,7 +325,11 @@ g_top.cells.H = H;
 g_top.cells.normals = g.faces.normals(topFaces3D, :);
 
 % g_top = computeGeometryVE(g_top);
-g_top.columns.z = cumulativeHeight(g_top);
+if(any(diff(g_top.cells.columnPos)>1))   
+    g_top.columns.z = cumulativeHeight(g_top);
+else
+    g_top.columns.z = g_top.cells.z;
+end
 g_top.type = [g_top.type, mfilename];
 
 %% Add function handles to pass replacement functions to msrt default solvers
@@ -341,11 +350,14 @@ if nargout == 1 && g_old.cells.num ~= g.cells.num
 end
 g.type = [g.type, mfilename];
 
-% Speed up plotting
-g_top.cells.sortedCellNodes = getSortedCellNodes(g_top);
-% Temporary addition for the gap between initial co2lab release and mrst
-% 2013a.
-g_top.cells.cellNodes = g_top.cells.sortedCellNodes;
+if(opt.add_cellnodes)
+   % Speed up plotting
+  g_top.cells.sortedCellNodes = getSortedCellNodes(g_top);
+  % Temporary addition for the gap between initial co2lab release and mrst
+                                % 2013a.
+  g_top.cells.cellNodes = g_top.cells.sortedCellNodes;
+end
+g_top.faces.cartFaceMap=cartFaceMap;
 end
 
 function dz = compute_dz(g, cell_ix)
