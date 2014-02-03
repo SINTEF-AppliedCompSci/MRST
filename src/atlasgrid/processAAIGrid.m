@@ -70,6 +70,15 @@ function G = processAAIGrid(meta, data, topgrid, cstrids)
         G.cells.z = z;
         G.nodes.z= G.nodes.coords(:,3);
         G.nodes.coords(:,3) = [];
+        %{
+        if(all(strid==strid(1))
+            dx=h*strid(1);
+            G.faces.areas     = dx  
+            G.faces.normals   = [];
+            G.faces.centroids = ;
+            G.cells.volumes   = cellVolumes;
+            G.cells.centroids = cellCentroids;
+        %}
         G = computeGeometry(G);
     end
     G.cells.z = z;
