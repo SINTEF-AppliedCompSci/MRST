@@ -1,4 +1,4 @@
-function [s,pc,kr,SH,krH, s_max]= veRelpermTester(hs, p, fluid, H, varargin)
+function [s,pc,kr,SH,krH, s_max,fval]= veRelpermTester(hs, p, fluid, H, varargin)
     opt=struct('samples',100,'hs_max',[],'kscale',[]);
     opt=merge_options(opt, varargin{:});
     if(isfield(fluid,'is_kscaled'))
@@ -15,7 +15,7 @@ function [s,pc,kr,SH,krH, s_max]= veRelpermTester(hs, p, fluid, H, varargin)
     dh=h(2)-h(1);
     drho=(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p))*norm(gravity);
     
-    s_h = invPc3D(h*drho); 
+    s_h = invPc3D(h.*drho); 
     sg_h=1-s_h;
     kr_h=fluid.kr3D(sg_h);
     pc=hs.*drho;
@@ -25,7 +25,7 @@ function [s,pc,kr,SH,krH, s_max]= veRelpermTester(hs, p, fluid, H, varargin)
      hs_max=opt.hs_max;
       h_max=linspace(0,hs_max,opt.samples)';
       dh_max=h_max(2)-h_max(1);
-      s_hmax= invPc3D(h_max*drho);
+      s_hmax= invPc3D(h_max.*drho);
       sg_hmax=1-s_hmax;
       SH_max=(sum(sg_hmax)-sg_hmax(end)/2)*dh_max;
       s_max=SH_max./H;
@@ -37,6 +37,7 @@ function [s,pc,kr,SH,krH, s_max]= veRelpermTester(hs, p, fluid, H, varargin)
       s=SH./H;  
     end
     kr=krH./H;
+    fval=struct('h',h,'s_h',s_h,'kr_h',kr_h,'s_hmax',s_hmax,'h_max',h_max);
 end
 %function fsg = free_sg(sg,sGmax,opt)
 %        ineb=sg>sGmax;
