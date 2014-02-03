@@ -9,8 +9,11 @@ samples=1000;
 n_test=30;
 fac=3/4;
 hs=linspace(0,H*fac,n_test)';
-Gt=struct('cells',struct('H',H*ones(n_test,1)));
+G=cartGrid([n_test,1 1],[1000,1000,H]);G=computeGeometry(G)
+Gt=topSurfaceGrid(G);
+%Gt=struct('cells',struct('H',H*ones(n_test,1)));
 rock=struct('perm',100*milli*darcy*ones(n_test,1),'poro',0.1*ones(n_test,1));
+rock.parent=rock;
 
 % make initail fluid
 fluid=[];
