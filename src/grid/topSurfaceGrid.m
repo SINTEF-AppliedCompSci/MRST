@@ -357,6 +357,7 @@ if(opt.add_cellnodes)
                                 % 2013a.
   g_top.cells.cellNodes = g_top.cells.sortedCellNodes;
 end
+% this map is used for transfering face data on g_top to the face data on the underliing cartesian grid.
 g_top.faces.cartFaceMap=cartFaceMap;
 end
 
