@@ -51,7 +51,7 @@ function [trees, v] = maximizeTrapping(G, varargin)
         opt.res = trapAnalysis(G, true);
     end
     
-    v = volumes(G, opt.res, 1:max(opt.res.traps));
+    v = trapVolumes(G, opt.res, 1:max(opt.res.traps));
 
     % All root nodes - traps that are downstream from every other trap
     if opt.calculateAll
@@ -90,19 +90,7 @@ function [trees, v] = maximizeTrapping(G, varargin)
     end
 end
 
-function v = volumes(G, res, trap)
-% Find volume of a subset of traps
-    v = zeros(1,numel(trap));
-    for i = 1:numel(trap)
-        ind = res.traps == trap(i);
-        H=G.cells.H(ind);
-        z = G.cells.z(ind);        
-        fill_z = res.trap_z(trap(i));
-        assert(all((fill_z - z)>=0));
-        h_plume=min((fill_z - z),H);
-        v(i) = sum(max(eps, G.cells.volumes(ind).*h_plume));
-    end
-end
+
 
 function c = rootNotes(A)
     c = find(sum(A,2) == 0);

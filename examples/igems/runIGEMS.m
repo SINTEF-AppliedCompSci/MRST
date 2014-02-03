@@ -36,8 +36,12 @@ else
     end
     grdecl = readGRDECL(fullfile(pth, fle));
 
-    G = processGRDECL(grdecl);
-    G = computeGeometry(G);
+    try
+       G = processgrid(grdecl);
+       G = mcomputeGeometry(G);
+    catch
+       G = computeGeometry(processGRDECL(grdecl));
+    end
     rock = grdecl2Rock(grdecl);
     [Gt,G] = topSurfaceGrid(G);
     rock2D = averageRock(rock, Gt);

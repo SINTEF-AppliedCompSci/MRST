@@ -60,8 +60,7 @@ function varargout = interactiveTrapping(inp, varargin)
                 'injpt',        0       ...
                 );
    
-   global selectedVECell;
-   selectedVECell = 1;
+   global selectedCell;
    
    if nargout > 0
        varargout{1} = NaN;
@@ -72,6 +71,7 @@ function varargout = interactiveTrapping(inp, varargin)
    end
    
    opt = merge_options(opt, varargin{:});
+   selectedCell = opt.injpt;
 
     if isfield(inp, 'cells')
         % Assume input is a top surface grid
@@ -177,59 +177,26 @@ function varargout = interactiveTrapping(inp, varargin)
     uipushtool(ht, 'TooltipString', 'Setup VE simulation',...
                    'cdata', geticon('simulate'),...
                    'ClickedCallback', @(src, event) runSimulation(Gt, res, src, event));
-               
-               
-               
-    ax = plotMain(Gt, res, bf, top);
-    if opt.injpt > 0,
-       clickHandler(Gt, res, bf, [], [], [], opt.injpt);
-    end
-    axes(ax); %#ok<MAXES>
-
+                
+    plotMain(Gt, res, bf, top);
+    
     if nargout > 0
        % Return a handle to the figure if it was asked for.
        varargout{1} = h;
     end
 end
 
-function clickHandler(Gt, res, bf, data, src, event, flag)                 %#ok
-    % Get data
-    if ~flag,
-       pts = get(gca, 'CurrentPoint');
-       [c f] = nearestCellLine(Gt, 1:Gt.faces.num, pts);                      %#ok
-       c = c(1);
-    else
-       c = flag;
-    end
-    global selectedVECell;
-    
-    if strcmpi(get(gcf, 'SelectionType'), 'normal');
-        selectedVECell  = c;
-    end
-    
-    reptext = findobj('Tag', 'gridReport');
-    if ~isempty(reptext)
-        set(reptext(1), 'string', getReport(Gt, selectedVECell));
-    end
-    
-    if isfield(res, 'trap_regions')
-        % We use spill region to categorize cells
-        trap = res.trap_regions(c);
-    else
-        % Fail if not directly clicking a trap
-        trap = res.traps(c);
-    end
-    if trap == 0
-        plotMain(Gt, res, bf, data);
-        plotGrid(Gt, c, 'facec', 'yellow')
-        disp(['Current positition is not downstream from any trap, '...
-              'or spillpoint data was not produced.'])
-        return
-    end
+function clickHandler(Gt, res, bf, data, src, event)                       %#ok
+    global selectedCell;
 
+    % Get data
+    pts = get(gca, 'CurrentPoint');
+    [c f] = nearestCellLine(Gt, 1:Gt.faces.num, pts);                      %#ok
+   
     if strcmpi(get(gcf, 'SelectionType'), 'alt')
-        figure(302); clf;
+        figure; clf;
         
+        trap = res.trap_regions(c(1));
         currTrap = res.traps == trap;
         
         volume = volumesOfTraps(Gt, res, trap);
@@ -255,13 +222,71 @@ function clickHandler(Gt, res, bf, data, src, event, flag)                 %#ok
         legend({'Trap floor', 'Trap ceiling'})
         cbar = colorbar('South');
         set(get(cbar, 'YLabel'), 'String', 'Depth')
-        return
+    else
+       selectedCell  = c(1);
+       
+       reptext = findobj('Tag', 'gridReport');
+       if ~isempty(reptext)
+          set(reptext(1), 'string', getReport(Gt, selectedCell));
+       end
+       plotMain(Gt, res, bf, data);
+    end
+end
+
+function plotMain(Gt, res, bf, atlasdata)
+% Main plotting of grid
+
+    global selectedCell;
+
+    
+    isOn = @(tag) strcmpi(get(findobj(gcf, 'tag', tag), 'State'), 'on');
+    
+    showTraps = isOn('toggleTraps');
+    showSpill = isOn('toggleSpillRegions');
+    showLight = isOn('toggleLight');  
+    showContour = isOn('toggleContour');  
+    
+    fn = @(src, event) clickHandler(Gt, res, bf, atlasdata, src, event);
+    subplot('position', [.025 .025 .65 .95]);
+
+    [az, el] = view();
+    cla; ax = gca;
+    hold on
+
+    zdata = Gt.cells.z;
+    zrange = (zdata - min(zdata))./(max(zdata) - min(zdata));
+    
+    if isfield(res, 'trap_regions') && showSpill
+        % Plot accumulation regions
+        if max(res.traps)<128
+           cmap = lines(max(res.traps) + 1);
+        else
+           cmap = jet(max(res.traps) + 1);
+        end
+        colormap(cmap);
+        map = greyMask(cmap);
+        map(1,:) = get(gcf, 'Color');
+        tmp = res.trap_regions;
+        tmp(tmp>max(res.traps)) = max(res.traps);
+        
+        h = plotCellData(Gt, ones(Gt.cells.num, 1), 'ButtonDownFcn', fn, 'EdgeColor', 'none');
+        set(h, 'FaceVertexCData', map(tmp + 1, :))
+    else
+        % Plot heightdata
+        h = plotCellData(Gt, zdata, 'ButtonDownFcn', fn);
+        map = jet(64);
+        v = interp1(linspace(0,1,64), map, zrange );
+        set(h, 'FaceVertexCData', v);
     end
     
-    % Plot several things
-    % - The grid with the traps highlighted
-    % - Amount trapped in a pie chart
-    % - Log-bar-plot of total volume of each trap reached
+    if showTraps
+        plotCellData(Gt, res.traps, res.traps ~= 0, ...
+           'ButtonDownFcn', fn, 'edgecolor', [.3 .3 .3], 'edgea', .05)
+        plotPartitionOutlineTopsurface(Gt, res.traps, 'LineWidth', 1.5)
+        caxis([0 max(res.traps)]);
+    end
+    
+    % Determine whether we have forward or backward mode
     if strcmpi(get(gcf, 'SelectionType'), 'extend')
         outline = 'green';
         A = res.trap_adj';
@@ -269,49 +294,69 @@ function clickHandler(Gt, res, bf, data, src, event, flag)                 %#ok
         outline = 'blue';
         A = res.trap_adj;
     end
-    subplot('position', [.025 .025 .65 .95]);
-    % Store view
-    [az, el] = view();
     
-    cla;
-    %%% Plot path of migration
-    subplot('position', [.025 .025 .65 .95]); cla
-    axmain = gca;
-    plotMain(Gt, res, bf, data);
-    fn = @(src, event) clickHandler(Gt, res, bf, data, src, event, 0);
-    plotGrid(Gt, res.traps == trap, 'edgec', 'none', 'facec', 'red', 'ButtonDownFcn', fn);
+    % Do we have any cell selected?
+    if selectedCell>0
+       trap = res.trap_regions(selectedCell);
+       wpos = Gt.cells.centroids(selectedCell,:);
+    else
+       trap = 0;
+       wpos = [];
+    end
+    zm = min(Gt.cells.z);
+    zM = max(Gt.cells.z);
     
+    if trap==0,
+       disp(['Current positition is not downstream from any trap, '...
+              'or spillpoint data was not produced.'])
+       if ~isempty(wpos)
+          plotGrid(Gt, selectedCell, 'facec', 'yellow', 'ButtonDownFcn', fn)
+          plot3(wpos([1 1],1), wpos([1 1],2), [zm zM],'r','LineWidth',2);
+       end
+    else
     
-    subt = getMigrationTree(Gt, A, trap, 0, fn);
+       plotGrid(Gt, res.traps == trap, 'edgec', 'none', 'facec', 'red', 'ButtonDownFcn', fn);
+       subt = getMigrationTree(Gt, A, trap, 0, fn);
     
-    t = [trap subt];
-    colorizePath = strcmpi(get(findobj(gcf, 'tag', 'toggleColorpath'), 'State'), 'on');
-    for i = 1:numel(t)
-        ci = res.traps == t(i);
+       t = [trap subt];
+       colorizePath = strcmpi(get(findobj(gcf, 'tag', 'toggleColorpath'), 'State'), 'on');
+       for i = 1:numel(t)
+          ci = res.traps == t(i);
         
-        plotGrid(Gt, ci, 'facec', colorizeDepth(i, numel(t), colorizePath),...
-           'edgec', 'none', 'ButtonDownFcn', fn);
+          plotGrid(Gt, ci, 'facec', colorizeDepth(i, numel(t), colorizePath),...
+             'edgec', 'none', 'ButtonDownFcn', fn);
+       end
+       partition = res.traps;
+       partition(~ismember(partition, t)) = max(t)+1;
+    
+       Gtmp = Gt;
+       Gtmp.nodes.z = Gt.nodes.z - (zM- zm)/1000;
+       plotPartitionOutlineTopsurface(Gtmp, partition, 'LineWidth', 1.5, 'EdgeColor', outline)
+       
+       if isfield(res, 'cell_lines')
+          [x y z] = getPlotRivers(Gt, [res.cell_lines{[unique(subt) trap]}], res);
+       end
+       plot3(x, y, z, 'k', 'LineWidth', 2);
+    
+       % Highlight current selection
+       plotGrid(Gt, selectedCell, 'facec', 'yellow', 'ButtonDownFcn', fn)
+       plot3(wpos([1 1],1), wpos([1 1],2), [zm zM],'r','LineWidth',2);
     end
-    partition = res.traps;
-    partition(~ismember(partition, t)) = max(t)+1;
-    
-    Gtmp = Gt;
-    Gtmp.nodes.z = Gt.nodes.z - (max(Gt.cells.z) - min(Gt.cells.z))/1000;
-    plotPartitionOutlineTopsurface(Gtmp, partition, 'LineWidth', 1.5, 'EdgeColor', outline)
-    % Highlight current selection
-    plotGrid(Gt, c, 'facec', 'yellow', 'ButtonDownFcn', fn)
-    
-    view(az, el);
-    
-    if isfield(res, 'cell_lines')
-        [x y z] = getPlotRivers(Gt, [res.cell_lines{[unique(subt) trap]}], res);
+    hold off
+    %colormap jet
+    axis tight off
+    view(az,el);
+
+    if ~isempty(atlasdata) && showContour
+        contourAtlas(atlasdata, 10, 1)
     end
     
-    if strcmpi(get(findobj(gcf, 'tag', 'toggleLight'), 'State'), 'on')
+    if showLight
+        light;
         lighting phong
+        light('Position',[max(Gt.cells.centroids) 4*max(Gt.cells.z)],'Style','infinite');
     end
-    hold on
-    plot3(x, y, z, 'k', 'LineWidth', 2);
+    if trap==0, return, end;
     
     %%% Plot piechart
     subplot('position', [.75 .525 .225 .425]); cla reset; hold off;
@@ -332,7 +377,12 @@ function clickHandler(Gt, res, bf, data, src, event, flag)                 %#ok
     
     total = sum(volumesOfTraps(Gt, res, 1:max(res.traps))) - trapped;
     
-    pie([vprimary, sum(vsecondary), total], [1,0,0], {'Primary', 'Migration', 'Not filled'})
+    hp = pie([vprimary, sum(vsecondary), total], [1,1,1]);
+    pcm = [0 0 .7; .1 .8 .1; .6 0 0];
+    for k=1:3, set(hp(2*k-1), 'FaceColor', pcm(k,:)); end
+    hl = legend('Primary', 'Migration', 'Not Filled', ...
+       'Location','SouthOutside','Orientation','horizontal');
+    set(hl,'FontSize',8,'Color',get(gcf,'Color')+.1);
 
     %%%  Plot barchart
     subplot('position', [.775 .025 .2 .45]); cla
@@ -344,10 +394,16 @@ function clickHandler(Gt, res, bf, data, src, event, flag)                 %#ok
     ldata(ldata < 0) = 0;
     % Transform and plot the data to the unit axis
     % trick: By using hist we get tighter spacing *and* the bars are for
-    % some reason drawn as patches.
+    % some reason drawn as patches. Moreover, if N>150, we need to set
+    % EdgeColor to 'none' to avoid causing problems when 'bar' sets
+    % EdgeColor equal FaceColor.
     hbar = bar(ldata./max(ldata), 'hist');
     N = numel(subtraps) + 1;
-    set(hbar, 'FaceVertexCData', colorizeDepth(1:N, N, colorizePath));
+    if N>150
+       set(hbar, 'FaceVertexCData', colorizeDepth(1:N, N, colorizePath), 'EdgeColor', 'none');
+    else
+       set(hbar, 'FaceVertexCData', colorizeDepth(1:N, N, colorizePath));
+    end
     set(gca, 'YTickLabel', sprintf('%2.3g|', 10.^(get(gca, 'YTick')*max(ldata))))
     set(gca, 'YTickMode', 'manual')
     axis tight
@@ -356,64 +412,7 @@ function clickHandler(Gt, res, bf, data, src, event, flag)                 %#ok
     
     % Set axis to the main plot to ensure that immediate changes to view
     % etc. go to the actual 3D axis.
-    axis(axmain);
-end
-
-function ax = plotMain(Gt, res, bf, atlasdata)
-% Main plotting of grid
-    
-    isOn = @(tag) strcmpi(get(findobj(gcf, 'tag', tag), 'State'), 'on');
-    
-    showTraps = isOn('toggleTraps');
-    showSpill = isOn('toggleSpillRegions');
-    showLight = isOn('toggleLight');  
-    showContour = isOn('toggleContour');  
-    
-    fn = @(src, event) clickHandler(Gt, res, bf, atlasdata, src, event,0);
-    subplot('position', [.025 .025 .65 .95]);
-
-    cla; ax = gca;
-
-    zdata = Gt.cells.z;
-    zrange = (zdata - min(zdata))./(max(zdata) - min(zdata));
-    
-    if isfield(res, 'trap_regions') && showSpill
-        % Plot spill regions
-        map = greyMask(jet(max(res.traps) + 1));
-        map(1,:) = get(gcf, 'Color');
-        tmp = res.trap_regions;
-        tmp(tmp>max(res.traps)) = max(res.traps);
-        
-        h = plotCellData(Gt, ones(Gt.cells.num, 1), 'ButtonDownFcn', fn, 'EdgeColor', 'none');
-        set(h, 'FaceVertexCData', map(tmp + 1, :))
-    else
-        % Plot heightdata
-        
-        h = plotCellData(Gt, zdata, 'ButtonDownFcn', fn);
-        map = (jet());
-        v = interp1(linspace(0,1,64), map, zrange );
-        set(h, 'FaceVertexCData', v);
-    end
-    
-    if showTraps
-        plotCellData(Gt, res.traps + zrange./5, res.traps ~= 0, 'ButtonDownFcn', fn, 'edgecolor', [.3 .3 .3], 'edgea', .05)
-        
-        plotPartitionOutlineTopsurface(Gt, res.traps, 'LineWidth', 1.5)
-        caxis([0 max(res.traps)]);
-    end
-    
-    colormap jet
-    axis tight off
-
-    if ~isempty(atlasdata) && showContour
-        contourAtlas(atlasdata, 10, 1)
-    end
-    
-    if showLight
-        light;
-        lighting phong
-        light('Position',[max(Gt.cells.centroids) 4*max(Gt.cells.z)],'Style','infinite');
-    end
+    axes(ax); %#ok<MAXES>
 end
 
 function subtraps = getMigrationTree(G, A, trap, depth, fn)
@@ -514,10 +513,13 @@ function plotPartitionOutlineTopsurface(Gt, p, varargin)
 end
 
 function runSimulation(Gt, res, src, event) %#ok<INUSD>
-    global selectedVECell veSimAborted
+    global selectedCell veSimAborted
     persistent fi
     
-    
+    if selectedCell==0
+       disp('Please select an injection point first')
+       return;
+    end
     pos = get(gcf, 'OuterPosition');
     if isempty(fi) || ~ishandle(fi) 
         fi = figure('Position',[pos(1:2)-[300 0],  [510 400]], 'Toolbar','none', 'MenuBar', 'none');
@@ -565,7 +567,7 @@ function runSimulation(Gt, res, src, event) %#ok<INUSD>
 
     advancedph = uicontrol(ph, 'Style', 'checkbox', 'Position', [350, 5, 120, 40], 'string', 'Advanced plot', 'Value', true);
     
-    uicontrol(ph, 'Style', 'text', 'Tag', 'gridReport', 'Position', [10 bottom + 7*25 + 50, 455, 100], 'string', getReport(Gt, selectedVECell))
+    uicontrol(ph, 'Style', 'text', 'Tag', 'gridReport', 'Position', [10 bottom + 7*25 + 50, 455, 100], 'string', getReport(Gt, selectedCell))
     
     while ishandle(fi)
         uiwait(fi);
@@ -579,7 +581,7 @@ function runSimulation(Gt, res, src, event) %#ok<INUSD>
         petrodata.avgporo = get(sporo, 'Value');
         
         veSimAborted = false;
-        migrateInjection(Gt, res, petrodata, selectedVECell,...
+        migrateInjection(Gt, res, petrodata, selectedCell,...
                          'amount',      get(sco2, 'Value'),...
                          'T_injection', get(sinj, 'Value')*year,...
                          'T_migration', get(smig, 'Value')*year,...
