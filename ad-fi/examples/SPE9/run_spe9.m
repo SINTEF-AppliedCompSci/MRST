@@ -23,8 +23,9 @@ sw0 = deck.SOLUTION.SWAT;
 sg0 = deck.SOLUTION.SGAS;
 s0  = [sw0, 1-sw0-sg0, sg0];
 rs0 = deck.SOLUTION.RS;
+rv0 = 0;
 
-state = struct('s', s0, 'rs', rs0, 'pressure', p0);   clear k p0 s0 rs0
+state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
 
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);
