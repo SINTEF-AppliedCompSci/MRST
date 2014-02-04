@@ -172,6 +172,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    dispif(opt.verbose, '\nimplicitTransport:\n');
    dispif(opt.verbose, [repmat('-', [1, 70]), '\n']);
+   assert(tf>0);
    [state, report] = newtonRaphson2ph(state, tf, F, Jac, update, opt);
 
    dispif(opt.verbose || ~report.success, report.str);
