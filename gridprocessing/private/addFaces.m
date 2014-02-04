@@ -67,17 +67,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %G.faces.tag       = [G.faces.tag; tags];
    G.faces.nodes       = [G.faces.nodes; facenodes];
 
-   numf        = int32(numel(numnodes));
+   numf        = numel(numnodes);
    newfaces    = G.faces.num +(1:numf)';
    G.faces.num = double(G.faces.num +numf);
    clear numf
 
    if isfield(G.faces, 'numNodes'),
-      G.faces.numNodes = [G.faces.numNodes; int8(numnodes)];
-      G.faces.nodePos =  int32(cumsum([1;double(G.faces.numNodes)]));
+      G.faces.numNodes = [G.faces.numNodes; numnodes];
+      G.faces.nodePos =  cumsum([1;double(G.faces.numNodes)]);
    else
-      G.faces.nodePos = int32(cumsum([1; double(diff(G.faces.nodePos)); ...
-                                      double(numnodes)]));
+      G.faces.nodePos = cumsum([1; double(diff(G.faces.nodePos)); ...
+                                      double(numnodes)]);
    end
 
    faces     = repmat(newfaces, [2,1]);

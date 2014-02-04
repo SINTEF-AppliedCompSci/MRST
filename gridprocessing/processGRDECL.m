@@ -446,13 +446,13 @@ function [G, P, B] = create_initial_grid(X, Y, Z)
    G.nodes.num                = size(G.nodes.coords, 1);
    G.cartDims                 = size(X) / 2;
    G.cells.num                = prod(G.cartDims);
-   G.cells.indexMap           = int32(1 : prod(G.cartDims)) .';
+   G.cells.indexMap           = (1 : prod(G.cartDims)) .';
 
    % Empty structure used to hold grid
-   G.faces.nodes      = int32([]);
-   G.faces.nodePos    = int32([]);
-   G.faces.neighbors  = zeros(0, 2, 'int32');
-   G.faces.tag        = int8([]);
+   G.faces.nodes      = [];
+   G.faces.nodePos    = [];
+   G.faces.neighbors  = zeros(0, 2);
+   G.faces.tag        = []
    G.faces.cellTags   = [];
 
    P = reshape(from, 2 * G.cartDims);
@@ -514,7 +514,7 @@ nf              = size(G.faces.neighbors, 1);
 G.faces.num     = nf;
 G.nodes.num     = size(G.nodes.coords, 1);
 numFaces        = accumarray(G.faces.neighbors(:)+1, 1, [G.cells.num+1, 1]);
-G.cells.facePos = int32(cumsum([1; numFaces(2:end)]));
+G.cells.facePos = cumsum([1; numFaces(2:end)]);
 
 
 cellTags = fliplr(cellTags);
@@ -523,7 +523,7 @@ cellTags = fliplr(cellTags);
 vec         = (double(G.faces.neighbors(:))-1)*nf + repmat((1:nf)', [2,1]);
 hf          = find(G.faces.neighbors(:)~=0);
 [vec, ind]  = sort(vec(hf));
-G.cells.faces = int32([mod(vec-1, nf) + 1, cellTags(hf(ind))]);
+G.cells.faces = [mod(vec-1, nf) + 1, cellTags(hf(ind))];
 
 % The above code block is equivalent to (but sligthly faster than) the
 % following, where sort has been replaced by sortrows.  Speedup is
@@ -689,10 +689,10 @@ F  = F(isfinite(F));
 % Write result to pre-grid structure
 n                  =  numel(c1);
 dispif(opt.Verbose, ' Found %d new regular faces\n', n);
-G.faces.nodes        = [G.faces.nodes;        int32(F)];
-G.faces.neighbors  = [G.faces.neighbors;  int32([c1(:), c2(:)])];
-G.faces.nodePos    = int32(cumsum([1; double(diff(G.faces.nodePos)); nF]));
-G.faces.tag        = [G.faces.tag;        zeros(n, 1, 'int8')];
+G.faces.nodes        = [G.faces.nodes; F];
+G.faces.neighbors  = [G.faces.neighbors; [c1(:), c2(:)]];
+G.faces.nodePos    = cumsum([1; double(diff(G.faces.nodePos)); nF]);
+G.faces.tag        = [G.faces.tag;        zeros(n, 1)];
 G.faces.cellTags   = [G.faces.cellTags;   repmat(tags, [numel(c1), 1])];
 
 
@@ -729,11 +729,11 @@ f          = faces(ind, :);
 
 n          =  numel(c1);
 dispif(opt.Verbose, ' Found %d new regular faces\n', n);
-G.faces.nodes        = [G.faces.nodes;        int32(reshape(f', [], 1))];
-G.faces.neighbors  = [G.faces.neighbors;  int32([c1(:), c2(:)])];
-G.faces.nodePos    = int32(cumsum([1; double(diff(G.faces.nodePos)); ...
-   repmat(4, [n, 1])]));
-G.faces.tag        = [G.faces.tag;        zeros(n, 1, 'int8')];
+G.faces.nodes        = [G.faces.nodes;        reshape(f', [], 1)];
+G.faces.neighbors  = [G.faces.neighbors;  [c1(:), c2(:)]];
+G.faces.nodePos    = cumsum([1; double(diff(G.faces.nodePos)); ...
+                             repmat(4, [n, 1])]);
+G.faces.tag        = [G.faces.tag;        zeros(n, 1)];
 G.faces.cellTags   = [G.faces.cellTags;   repmat(tags, [numel(c1), 1])];
 end
 
@@ -890,15 +890,15 @@ new  = [ka(C(:,1)), kb(C(:,2))];
 ind  = any(new~=0, 2);  % Keep rows with at least one non-zero
 new  = new(any(new~=0, 2), :);
 
-G.faces.neighbors  = [G.faces.neighbors;  int32(new)];
+G.faces.neighbors  = [G.faces.neighbors;  new];
 G.faces.cellTags   = [G.faces.cellTags;   repmat(tags, [size(new,1), 1])];
 
 % Compute new node coordinates and geometry of the newly found faces
 [G.nodes.coords, ncor, cor] = computeFaceGeometry(a, b, C(ind,:), ...
                                                   G.nodes.coords);
-G.faces.nodePos  = int32(cumsum([1; double(diff(G.faces.nodePos)); ncor]));
-G.faces.nodes    = [G.faces.nodes;      int32(cor) ];
-G.faces.tag      = [G.faces.tag;      ones(numel(ncor), 1, 'int8')];
+G.faces.nodePos  = cumsum([1; double(diff(G.faces.nodePos)); ncor]);
+G.faces.nodes    = [G.faces.nodes;      cor];
+G.faces.tag      = [G.faces.tag;      ones(numel(ncor), 1)];
 
 dispif(opt.Verbose, ' Found %d new faces\n', numel(ncor));
 end

@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % second node.  Add midpoint of G-boundary nodes.
    faceNodes(b, :) = [sum(faceNodes(b,:), 2), newnodes];
 
-   z = zeros(sum(b), 1, 'int32');
+   z = zeros(sum(b), 1);
    neighbors = [reshape(G.faces.nodes, 2, [])';...G-nodes == H-cells
                 z,       fe(b,1); ...
                 fe(b,2), z      ];

@@ -57,6 +57,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if nargin <= 2, s0 = 0; end
 
    [nc, nf] = deal(G.cells.num, G.faces.num);
+   if isfield(G, 'nnc') && isfield(G.nnc, 'cells')
+       % Expand the number of interfaces with the number of non-neighboring
+       % interfaces
+       nf = nf + size(G.nnc.cells, 1);
+   end
 
    if size(s0, 1) == 1,
 

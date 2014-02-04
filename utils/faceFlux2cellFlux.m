@@ -36,7 +36,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+N = getNeighbourship(G, 'Topological', true);
+[cellNo, cellFaces] = getCellNoFaces(G);
 
-cellNo   = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
-sgn      = 2*(G.faces.neighbors(G.cells.faces(:,1), 1) == cellNo) - 1;
-cellFlux = bsxfun(@times, sgn, faceFlux(G.cells.faces(:,1), :));
+sgn      = 2*(N(cellFaces(:,1), 1) == cellNo) - 1;
+cellFlux = bsxfun(@times, sgn, faceFlux(cellFaces, :));
+

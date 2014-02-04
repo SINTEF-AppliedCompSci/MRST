@@ -240,20 +240,20 @@ function G = tensorGrid3D(x, y, z, varargin)
    %% Assemble structure -----------------------------------------------------
 
    G.cells = struct('num',      numC,                   ...
-                    'facePos',  int32(1:6:(numC+1)*6)', ...
-                    'indexMap', int32(1 : numC)');
+                    'facePos',  (1:6:(numC+1)*6)', ...
+                    'indexMap', (1 : numC)');
 
    G.faces = struct('num',       numF,                   ...
-                    'nodePos',   int32(1:4:(numF+1)*4)', ...
-                    'neighbors', int32(neighbors),       ...
-                    'tag',       zeros(numF, 1, 'int8'));
+                    'nodePos',   (1:4:(numF+1)*4)', ...
+                    'neighbors', (neighbors),       ...
+                    'tag',       zeros(numF, 1));
 
    G.nodes = struct('num', numN, 'coords', coords);
 
-   G.cells.faces = int32(cellFaces);
-   G.faces.nodes = int32(faceNodes);
+   G.cells.faces = cellFaces;
+   G.faces.nodes = faceNodes;
    if opt.cellnodes,
-      G.cellNodes = int32(cNodes);
+      G.cellNodes = cNodes;
    end
    G.cartDims = celldim;
 end
@@ -378,20 +378,20 @@ function G =tensorGrid2D(x, y, varargin)
    %% Assemble structure --------------------------------------------------
 
    G.cells = struct('num',      numC,                   ...
-                    'facePos',  int32(1:4:(numC+1)*4)', ...
-                    'indexMap', int32(1 : numC)');
+                    'facePos',  (1:4:(numC+1)*4)', ...
+                    'indexMap', (1 : numC)');
 
    G.faces = struct('num',       numF,                   ...
-                    'nodePos',   int32(1:2:(numF+1)*2)', ...
-                    'neighbors', int32(neighbors),       ...
-                    'tag',       zeros(numF, 1, 'int8'));
+                    'nodePos',   (1:2:(numF+1)*2)', ...
+                    'neighbors', neighbors,       ...
+                    'tag',       zeros(numF, 1));
 
    G.nodes = struct('num', numN, 'coords', coords);
 
-   G.cells.faces = int32(cellFaces);
-   G.faces.nodes = int32(faceNodes);
+   G.cells.faces = cellFaces;
+   G.faces.nodes = faceNodes;
    if opt.cellnodes,
-      G.cellNodes = int32(cNodes);
+      G.cellNodes = cNodes;
    end
    G.cartDims = celldim;
 end

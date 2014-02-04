@@ -41,7 +41,7 @@ function [data, pos] = insertInPackedData(pos, data, r, c)
    new = tmp(:,2:end);
    t   = accumarray(r, 1, [n, 1]);
    num = diff(pos);
-   pos = int32(cumsum([1;double(diff(pos))+t]));
+   pos = cumsum([1;double(diff(pos))+t]);
 
    r   = unique(r);
    ix  = mcolon(pos(r)+num(r), pos(r+1)-1);

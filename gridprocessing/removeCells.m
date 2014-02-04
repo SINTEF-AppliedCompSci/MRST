@@ -108,7 +108,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   % Alter cells
   numFaces(cells)         = [];
   G.cells.num             = G.cells.num-numel(cells);
-  G.cells.facePos         = int32(cumsum([1; double(numFaces)]));
+  G.cells.facePos         = cumsum([1; double(numFaces)]);
   if isfield(G.cells, 'indexMap'), G.cells.indexMap(cells) = []; end
 
   %new numbering of faces.
@@ -150,7 +150,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
   numNodes(ind)            = [];
   G.faces.neighbors(ind,:) = [];
-  G.faces.nodePos = int32(cumsum([1; double(numNodes)]));
+  G.faces.nodePos = cumsum([1; double(numNodes)]);
   if isfield(G.faces, 'tag'),
      G.faces.tag      (ind,:) = [];
   end
@@ -166,7 +166,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   % Remove nodes
   G.nodes.coords(ind,:) = [];
   G.nodes.num           = G.nodes.num - sum(ind);
-  G.faces.nodes           = int32(nodemap(G.faces.nodes));
+  G.faces.nodes           = nodemap(G.faces.nodes);
 
   if any(G.faces.nodes==0),
       error('In removeCells: Too many nodes removed!');
