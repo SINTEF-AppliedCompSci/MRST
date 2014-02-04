@@ -302,5 +302,5 @@ end
 %--------------------------------------------------------------------------
 
 function s = getSupportedComponents()
-   s = { 'oil', 'water', 'gas', 'polymer', 'disgas', 'T', 'MI' };
+   s = { 'oil', 'water', 'gas', 'polymer', 'disgas', 'T', 'MI', 'vapoil' };
 end
