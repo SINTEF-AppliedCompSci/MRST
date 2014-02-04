@@ -32,8 +32,9 @@ qOs  = vertcat(state.wellSol.qOs);
 % poly_num  = vertcat(state.wellSol.poly);
 % poly = poly_num;
 
-wciPoly_num = getWellPolymer(W);
-wciPoly = wciPoly_num;
+[wPoly, wciPoly] = getWellPolymer(W);
+wPoly_num = wPoly;
+
 % previous variables ------------------------------------------------------
 p0  = state0.pressure;
 sW0 = state0.s(:,1);
@@ -44,21 +45,23 @@ c0  = state0.c;
 %Initialization of independent variables ----------------------------------
 
 zw = zeros(size(pBHP));
+zwPoly = zeros(size(wPoly));
+
 if ~opt.resOnly,
    % ADI variables needed since we are not only computing residuals.
 
    if ~opt.reverseMode,
 
-      [p, sW, c, qWs, qOs, wciPoly, pBHP]  = ...
-         initVariablesADI(p, sW, c, qWs, qOs, wciPoly_num, pBHP);
+      [p, sW, c, qWs, qOs, wPoly, pBHP]  = ...
+         initVariablesADI(p, sW, c, qWs, qOs, wPoly_num, pBHP);
 
    else
 
-      [p0, sW0, c0, zw, zw, zw, zw] = ...
+      [p0, sW0, c0, zwPoly, zwPoly, zwPoly, zw] = ...
          initVariablesADI(p0, sW0, c0,              ...
                           zeros(size(qWs)),         ...
                           zeros(size(qOs)),         ...
-                          zeros(size(wciPoly_num)), ...
+                          zeros(size(wPoly_num)), ...
                           zeros(size(pBHP)));                          %#ok
 
    end
@@ -183,19 +186,20 @@ eqs{2}(wc) = eqs{2}(wc) + bWqW;
 
 % polymer in water:
 poro =  s.pv./G.cells.volumes;
-eqs{3} =   (s.pv*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - pvMult0.*f.bW(p0).*sW0.*c0) ...
-         + (s.pv/dt).*(f.rhoR*((1-poro)./poro).*(f.ads(max(c, cmax))-f.ads(cmax0))) ... % Adsorption isotherm effect
-         + s.div(bWvP);
+f.effads =  @(c, cmax)(effads(c, cmax, f));
+eqs{3} =   (s.pv*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
+    (f.rhoR*((1-poro)./poro).*(f.effads(c, cmax)-f.effads(c0, cmax0))) + s.div(bWvP);
 
 eqs{3}(wc) = eqs{3}(wc) + bWqP;
 
 % well equations
 zeroW = 0*zw;
+zeroWPoly = 0*zwPoly;
 
 eqs{4} = Rw'*bWqW + qWs + zeroW;
 eqs{5} = Rw'*bOqO + qOs + zeroW;
 % Trivial constraint - this is only to get the adjoint partial derivatives
-eqs{6} = wciPoly - wciPoly_num + zeroW(iInxW);
+eqs{6} = wPoly - wPoly_num + zeroWPoly;
 
 % Last eq: boundary cond
 eqs{7} = handleBC(W, pBHP, qWs, qOs, [], scalFacs) + zeroW;
@@ -203,15 +207,23 @@ end
 %--------------------------------------------------------------------------
 
 
-function wciPoly = getWellPolymer(W)
+function [wPoly, wciPoly] = getWellPolymer(W)
     if isempty(W)
         wciPoly = [];
         return
     end
     inj   = vertcat(W.sign)==1;
     polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
-    polVal = zeros(nnz(inj), 1);
-    polVal(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(polVal, cellfun(@numel, {W(inj).cells}));
+    wPoly = zeros(nnz(inj), 1);
+    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
+    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
 end
 
+
+function y = effads(c, cmax, f)
+   if f.adsInx == 2
+      y = f.ads(max(c, cmax));
+   else
+      y = f.ads(c);
+   end
+end
