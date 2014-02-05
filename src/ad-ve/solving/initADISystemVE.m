@@ -253,9 +253,10 @@ system.podbasis = opt.podbasis;
 
 end
 
-function s = getSupportedComponents()
-    supported = {'oil', 'water', 'gas', 'polymer', 'disgas'};
-    for i = 1:numel(supported)
-        s.(supported{i}) = false;
+
+function ss = getSupportedComponents()
+   s = { 'oil', 'water', 'gas', 'polymer', 'disgas', 'T', 'MI', 'vapoil' };
+    for i = 1:numel(s)
+        ss.(s{i}) = false;
     end
 end

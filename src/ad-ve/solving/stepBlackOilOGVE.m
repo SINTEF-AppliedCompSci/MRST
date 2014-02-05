@@ -227,7 +227,7 @@ dqGs  = dx{5};
 
 
 for w = 1:numel(state.wellSol)    
-    state.wellSol(w).pressure = state.wellSol(w).pressure + dpBHP(w);   
+    state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);   
     state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
     state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
 end
