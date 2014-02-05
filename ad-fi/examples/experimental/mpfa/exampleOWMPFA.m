@@ -3,7 +3,7 @@
 %  model that can be used to simulate a VE model. For the actual
 %  simulation,  we use the fully-implicit solver in MRST from the 'ad-fi'
 %  module, which is based on automatic differentiation. 
-
+use_mpfa=true;
 try
    require deckformat ad-fi
 catch %#ok<CTCH>
@@ -70,7 +70,7 @@ clf,plotGrid(G)
 % Peacemann well models"</a> for more details.
 % </html>
 
-
+inner_prod='ip_tpf'
 W = verticalWell([], G, rock, wcells_ind(1,1) , wcells_ind(1,2),1:G.cartDims(3),...          ...
             'Type', 'rate', 'Val', 1e4/day(), ...
             'Radius', 0.1, 'Comp_i', [1, 0, 0],'InnerProduct',inner_prod);
@@ -80,7 +80,7 @@ W = verticalWell(W, G, rock, wcells_ind(2,1) , wcells_ind(2,2), 1:G.cartDims(3),
 W = verticalWell(W, G, rock, wcells_ind(3,1) , wcells_ind(3,2), 1:G.cartDims(3),...
             'Type', 'bhp' , 'Val', 1.0e5, ...
             'Radius', 0.1, 'Dir', 'y', 'Comp_i', [0, 1, 0],'InnerProduct',inner_prod, 'Sign'        , -1);
-
+Wext=W;
 figure(30)
 plotGrid(G)
 plotWell(G,W)
@@ -103,13 +103,14 @@ fluid.relPerm =@(sw) deal(fluid.krW(sw),fluid.krO(1-sw));
 systemOW  = initADISystem({'Oil', 'Water'}, G, rock, fluid);
 s_org=systemOW.s;
 s=s_org;
-if(true)
+if(use_mpfa)
    %% TPF
     s.grad=@(x) s_org.T.*s_org.grad(x);
     s.T=ones(size(s.T));
     systemOW.s=s;
 else
    %% MPFA
+    mrstModule add mpfa
     nc=G.cells.num;
     % matrix from cells+boundary to hface, where all value on a face is
     % equal (??)

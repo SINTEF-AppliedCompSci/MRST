@@ -83,9 +83,9 @@ end
 [meta, residuals] = getResiduals(meta, eqs, system, solver_diverged);
 
 if(opt.temperature || opt.minerals)
-%{
+%%{
     %residuals = cellfun(@(x) norm(x.val, 'inf'), eqs);
-    %meta.converged = all(residuals < system.nonlinear.tol);
+    meta.converged = all(residuals < system.nonlinear.tol);
 %}
 
 
@@ -104,7 +104,8 @@ if(opt.temperature || opt.minerals)
             fprintf('\n');
         end
         fprintf('%8.2e ', residuals);
-    end
+         fprintf('\n');   
+    end   
 else
         meta.converged = converged;
         meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~converged;
@@ -152,9 +153,9 @@ dpBHP   = dx{5};
 var_num=5;
 if(opt.temperature)
     var_num = var_num+1;
-    state.T=state.T+step*dx{var_num};
-    state.T = max(state.T,273);
-    state.T = min(state.T,500);
+    state.T=state.T+dx{var_num};
+    %state.T = max(state.T,273);
+    %state.T = min(state.T,500);
 end
 
 if(opt.minerals)
