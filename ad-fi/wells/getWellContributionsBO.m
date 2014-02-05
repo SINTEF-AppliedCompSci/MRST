@@ -12,6 +12,14 @@ function [eqs, bq, sol] = getWellContributionsBO(W, pBH, qs, p, rho, b, rs, m, s
       if ~isfield(W(wnr), 'topo')||isempty(W(wnr).topo)
          W(wnr).topo = [(0:(nperf-1))', (1:nperf)'];
       end
+      if(~isfield(sol(wnr),'alpha'))
+        sol(wnr).alpha=[1 0 0];
+      end
+      if(isempty(sol(wnr).alpha))  
+        sol(wnr).alpha=[1 0 0];
+      end
+            
+      
       Hw{wnr} = computeWellHead(W(wnr), sol(wnr).alpha, subDb(rho, perf2well==wnr));
    end
    Hw = vertcat(Hw{:});
@@ -44,8 +52,12 @@ function [eqs, bq, sol] = getWellContributionsBO(W, pBH, qs, p, rho, b, rs, m, s
    eqs{2} = -Rw'*bq{2} + qs{2};
    eqs{3} = -Rw'*(bq{3} + rs.*bq{2}) + qs{3};
    %check limits and update comtrols
-   [sol, sol] = checkLims(sol, pBH, qs{:});                            %#ok
-   eqs{4}   = handleBC(sol, pBH, qs{:});
+   % [withinLims, W]
+   % checkLims(W, pBH, qWs, qOs, qGs)
+   %[sol,sol] = checkLims(sol, pBH, qs{:});
+   [limW, W] = checkLims(W, pBH, qs{:});                            %#ok
+   %eqs{4}   = handleBC(sol, pBH, qs{:});
+   eqs{4}   = handleBC(W, pBH, qs{:});
 
    % finally explicit update of segment phase distribution and add crossflow
    % flag and connection pressure to sol
