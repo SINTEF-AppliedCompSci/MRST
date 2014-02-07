@@ -29,26 +29,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert (isfield(G.cells, 'centroids'), ...
            'Input grid must be equipped with geometric information.');
 
-   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'EQLNUM'),
-      eqlnum = reshape(deck.REGIONS.EQLNUM(G.cells.indexMap), [], 1);
-   else
-      eqlnum = ones([G.cells.num, 1]);
-   end
+   pressure = zeros([G.cells.num, numel(fluid.names)]);
+   rs       = zeros([G.cells.num, 1]);
+   rv       = zeros([G.cells.num, 1]);
 
-   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'PVTNUM'),
-      pvtnum = reshape(deck.REGIONS.PVTNUM(G.cells.indexMap), [], 1);
-   else
-      pvtnum = ones([G.cells.num, 1]);
-   end
+   [eqlnum, pvtnum] = regions(deck, G);
 
-   np        = numel(fluid.names);
-   pressure  = zeros([G.cells.num, np]);
-   rs        = zeros([G.cells.num, 1 ]);
-   rv        = zeros([G.cells.num, 1 ]);
+   act_region = @(I) find(accumarray(I(:), 1) > 0);
 
-   for eqreg = reshape(find(accumarray(eqlnum, 1) > 0), 1, []),
+   for eqreg = reshape(act_region(eqlnum), 1, []),
       cells  = eqlnum == eqreg;
-      pvtreg = find(accumarray(pvtnum(cells), 1) > 0);
+      pvtreg = act_region(pvtnum(cells));
 
       if numel(pvtreg) > 1,
          error(id('EquilReg:InconsistentPVTReg')            , ...
@@ -80,6 +71,22 @@ end
 
 %--------------------------------------------------------------------------
 % Private helpers follow.
+%--------------------------------------------------------------------------
+
+function [eqlnum, pvtnum] = regions(deck, G)
+   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'EQLNUM'),
+      eqlnum = reshape(deck.REGIONS.EQLNUM(G.cells.indexMap), [], 1);
+   else
+      eqlnum = ones([G.cells.num, 1]);
+   end
+
+   if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'PVTNUM'),
+      pvtnum = reshape(deck.REGIONS.PVTNUM(G.cells.indexMap), [], 1);
+   else
+      pvtnum = ones([G.cells.num, 1]);
+   end
+end
+
 %--------------------------------------------------------------------------
 
 function [press, rs, rv] = ...
@@ -164,6 +171,68 @@ function s = initsat(deck, press, pix, Zc, indexMap)
 
       if ow, s(c, pix.WATER) = inv_Pcow{er, sr}(Pcow(c), Zc(c)); end
       if go, s(c, pix.GAS)   = inv_Pcog{er, sr}(Pcog(c), Zc(c)); end
+   end
+
+   if (ow && go) && any(sum(s, 2) > 1),
+      % Three-phase problem (O/W/G) for which the water transition zone
+      % extends into the gas transition zone, causing negative oil
+      % saturations from simplified view of initial distribution.
+      %
+      % Recalculate saturation distribution from gas-water capillary
+      % pressure defined as Pcgw(Sw) = Pcog(Sg=1-Sw) + Pcow(Sw)) and set
+      % initial oil saturation to zero in these cells.  Assume GWC=GOC
+      % (gas-water contact coincides with gas-oil contact) in relevant
+      % equilibration regions.
+      %
+      c      = sum(s, 2) > 1;
+      Pcgw   = press(c, pix.GAS) - press(c, pix.WATER);
+      pairs  = sortrows([eqlnum(c), satnum(c), find(c), (1 : sum(c)) .']);
+      [p, n] = rlencode(pairs(:, [1, 2]));
+      pos    = cumsum([1 ; n]);
+
+      % Define derived gas-water capillary pressure curves.  This is a
+      % convenience definition only that helps simplify the creation of
+      % reverse interpolators through the use of function 'create_invpc'.
+      %
+      if all(isfield(deck.PROPS, { 'SWOF', 'SGOF' })),
+         % Family I
+         [wtbl, gtbl] = deal(deck.PROPS.SWOF, deck.PROPS.SGOF);
+      else
+         assert (all(isfield(deck.PROPS, { 'SWFN', 'SGFN' })));
+         % Family II
+         [wtbl, gtbl] = deal(deck.PROPS.SWFN, deck.PROPS.SGFN);
+      end
+
+      deck.PROPS.SLGOF = cell([1, p(end,2)]);  % p(end,2) == MAX(p(:,2)).
+      for r = reshape(find(accumarray(p(:, 2), 1) > 0), 1, []), % Act. reg.
+         tw = wtbl{r}(:, [1, end]);
+         tg = gtbl{r}(:, [1, end]);
+
+         % Gas-oil capillary pressure as a function of Sw (Sg = 1 - Sw).
+         pcgo = interp1(tg(:, 1), tg(:, 2), ...
+                        1 - tw(:, 1), 'linear', 'extrap');
+
+         % Tabulate P_{c,gw} as a function of Sw.
+         deck.PROPS.SLGOF{r} = [ tw(:,1) , pcgo + tw(:,2) ];
+      end
+
+      kw = { 'SLGOF', 'foo' };  % The first table exists by construction.
+      phase         = 'gas/water';
+      cntct_ix      = 5;        % GWC=GOC
+      is_increasing = false;    % d(P_{c,gw})/dSw <= 0
+
+      iPcgw = cell([max(eqlnum), max(satnum)]);
+      iPcgw = create_invpc(iPcgw, deck, phase, kw, ...
+                           cntct_ix, is_increasing);
+
+      for r = 1 : size(p, 1),
+         ix       = pairs(pos(r) : pos(r + 1) - 1, [end - 1, end]);
+         [er, sr] = deal(p(r,1), p(r,2));
+
+         sw = iPcgw{er, sr}(Pcgw(ix(:,2)), Zc(ix(:,1)));
+
+         s(ix(:,1), [pix.WATER, pix.GAS]) = [sw, 1 - sw];
+      end
    end
 
    % Define oil saturation to fill pore space.
