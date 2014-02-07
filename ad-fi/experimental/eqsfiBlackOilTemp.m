@@ -25,7 +25,7 @@ function [eqs, state, hst] = eqsfiBlackOilTemp(state0, state, dt, G, W, s, f, va
     sG   = state.s(:,3);
     rs   = state.rs;
 
-    pBHP = vertcat(state.wellSol.pressure);
+    pBHP = vertcat(state.wellSol.bhp);
     qWs  = vertcat(state.wellSol.qWs);
     qOs  = vertcat(state.wellSol.qOs);
 
@@ -194,18 +194,9 @@ function [eqs, state, hst] = eqsfiBlackOilTemp(state0, state, dt, G, W, s, f, va
 
     eqs{5} = (s.pv/dt).*(  (1-pvMult).*uR-(1-pvMult0).*uR0) + s.div( vQ);
     eqs{5}(wc) = eqs{5}(wc)-vQqQ;
-    for i=1:numel(eF)
-        %{
-         eqs{5}  =  eqs{5} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoF{i}.*sF{i} - pvMult0.*eF0{i}.*rhoF0{i}.*sF0{i} )...
-                +  s.div( s.faceUpstr(bFvF{i}>0, rhoF{i}.*hF{i}) .* bFvF{i}));
-        %}
-        %{
-        eqs{5}  =  eqs{5} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoS{i}.*bF{i}.*sF{i} - pvMult0.*eF0{i}.*rhoS{i}.*bF0{i}.*sF0{i} )...
-                +  s.div( s.faceUpstr(bFvF{i}>0, rhoS{i}.*hF{i}) .* bFvF{i}));
-        %}
+    for i=1:numel(eF)       
         eqs{5}  =  eqs{5} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoS{i}.*bFsF{i} - pvMult0.*eF0{i}.*rhoS{i}.*bFsF0{i} )...
-                +  s.div( s.faceUpstr(bFvF{i}>0, rhoS{i}.*hF{i}) .* bFvF{i}));
-         %eqs{5}(wc) = eqs{4}(wc)  -  rhoF{i}.*bHqH{i};
+                +  s.div( s.faceUpstr(bFvF{i}>0, rhoS{i}.*hF{i}) .* bFvF{i}));         
     end
 
 
@@ -260,7 +251,6 @@ function [eqs, state, hst] = eqsfiBlackOilTemp(state0, state, dt, G, W, s, f, va
     end
     HqH=cell(3,1);
     for i=1:3
-        %HqH{i}  = rhoF{i}(wc).*hF{i}(wc).*bFqF{i};
         HqH{i}  = rhoS{i}.*hF{i}(wc).*bFqF{i};
         ind=bFqF{i}>0;
         HqH{i}(ind)  = hFwp{i}(ind).*bFqF{i}(ind);

@@ -143,5 +143,5 @@ plot(xc,state.s(:,2),xc,(state.T-273)./(300-273),'r','LineWidth',2);%,xc,state1.
 set(gca,'FontSize',16)
 legend('Water','T')
 axis([0,300,0,1])
-myprint('Temprature_example')
+%myprint('Temprature_example')
 

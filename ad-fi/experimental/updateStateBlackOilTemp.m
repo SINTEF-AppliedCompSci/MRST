@@ -95,15 +95,15 @@ state.T = T0 + dx{5};
 %wells:
 shift=1;
 if ~stepOpts.solveWellEqs
-    dpBH = dx{8+shirt};
-    dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.pressure)));
+    dpBH = dx{8+shift};
+    dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.bhp)));
 
-    dqWs  = dx{5+shirt};
-    dqOs  = dx{6+shirt};
-    dqGs  = dx{7+shirt};
+    dqWs  = dx{5+shift};
+    dqOs  = dx{6+shift};
+    dqGs  = dx{7+shift};
 
     for w = 1:numel(state.wellSol)
-        state.wellSol(w).pressure = state.wellSol(w).pressure + dpBH(w);
+        state.wellSol(w).bhp = state.wellSol(w).bhp + dpBH(w);
         state.wellSol(w).qWs      = state.wellSol(w).qWs + dqWs(w);
         state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
         state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);

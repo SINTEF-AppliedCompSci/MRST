@@ -214,13 +214,17 @@ else
             stepOW(state0, state, meta, dt, G, W, system, fluid, ...
             'temperature', use_T, 'minerals', use_MI);
         if use_T || use_MI
-           system.getEquations = @eqsfiOWExplicitWells;
+            system.cellwise     = [1:2,6];
+            system.cpr.active   = [1:2,6];
+            system.getEquations = @eqsfiOWExplicitWells;
         else
+            system.cellwise     = 1:2;
+            system.cpr.active   = 1:2;
             system.getEquations = @eqsfiOW;
         end
-        system.cellwise     = 1:2;
+        
         system.cpr.gas      = [];
-        system.cpr.active   = 1:2;
+        
     end
 end
 

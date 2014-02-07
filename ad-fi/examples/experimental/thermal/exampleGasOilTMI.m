@@ -222,7 +222,7 @@ systemOW.s.TH=systemOW.s.TH*3e1;
 %% Plot results
 %figure
 figure(1)
-
+xc=G.cells.centroids(:,1);
 for nn=1:numel(states)
     clf
     state=states{nn};

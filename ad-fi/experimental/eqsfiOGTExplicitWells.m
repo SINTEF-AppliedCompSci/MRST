@@ -1,4 +1,4 @@
-function [eqs, hst] = eqsfiOGTExplicitWells(state0, state, dt, G, W, s, f, varargin)
+function [eqs, state, hst] = eqsfiOGTExplicitWells(state0, state, dt, G, W, s, f, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -25,7 +25,7 @@ if(isfield(state0,'smax'))
 else
     sGmax=[];
 end
-pBHP = vertcat(state.wellSol.pressure);
+pBHP = vertcat(state.wellSol.bhp);
 qGs  = vertcat(state.wellSol.qGs);
 qOs  = vertcat(state.wellSol.qOs);
 %eQs  = vertcat(state.wellSol.qGs);

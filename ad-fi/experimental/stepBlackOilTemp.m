@@ -83,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       stepOptions = system.stepOptions;
       stepOptions.solveWellEqs = false;
       getEqs = @(state) eqsfiBlackOil(state0, state, dt, G, W, s, fluid, 'stepOptions', stepOptions, 'history', meta.history, 'resOnly', true);
-      upState = @(dx, explTrms) updateState(W, state, dx, fluid, system);
+      upState = @(dx, explTrms) system.updateState(W, state, dx, fluid, system);
       [state, dx, searchfail] = linesearchADI(state, dx, system, getEqs, upState, true);
    end
 
