@@ -255,7 +255,7 @@ end
 function dirs = filter_module_dirs(root)
    if ~isempty(root),
       dirs  = split_path(genpath(root));
-      vcdir = '\.(git|hg|svn)';
+      vcdir = [regexptranslate('escape', filesep), '\.(git|hg|svn)'];
 
       is_vcdir = ~cellfun(@isempty, regexp(dirs, vcdir));
       exclude  = is_vcdir | cellfun(@isempty, dirs);
