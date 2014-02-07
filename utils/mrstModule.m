@@ -152,7 +152,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    elseif nargout == 1,
 
       MODLIST = prune_modules(MODLIST);
-      varargout{1} = MODLIST(end : -1 : 1);
+      varargout{1} = MODLIST;
 
    else
 
