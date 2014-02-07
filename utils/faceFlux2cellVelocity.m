@@ -41,10 +41,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       G = computeGeometry(G);
    end
 
-   cellNo = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .';
+   [cellNo, cellFaces] = getCellNoFaces(G);
 
-   C  = G.faces.centroids(G.cells.faces(:,1), :) - ...
-        G.cells.centroids(cellNo            , :);
+   C  = G.faces.centroids(cellFaces, :) - ...
+        G.cells.centroids(cellNo   , :);
 
    cf = faceFlux2cellFlux(G, faceFlux);
 
