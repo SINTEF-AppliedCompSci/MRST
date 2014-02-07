@@ -39,14 +39,15 @@ end
 
 % Detrmine staus of updated cells -----------------------------------------
 watOnly  = sw(:,1) > 1-etol;
-rsSat0   = f.rsSat(state.pressure);
-rvSat0   = f.rvSat(state.pressure);
-rsSat    = f.rsSat(p);
-rvSat    = f.rvSat(p);
+
 % phase transitions sg <-> rs  --------------------------------------------
 if ~disgas
+    rsSat0 = state.rs;
+    rsSat  = rsSat0; 
     gasPresent = true;
 else
+    rsSat0 = f.rsSat(state.pressure);
+    rsSat  = f.rsSat(p);
     gasPresent = or(and( sg > 0, ~st1), watOnly); % Obvious case
     % Keep oil saturated if previous sg is sufficiently large:
     ix1 = and( sg < 0, state.s(:,3) > etol);
@@ -64,7 +65,11 @@ sg(ix) = 0;
 % phase transitions so <-> rv
 if ~vapoil
     oilPresent = true;
+    rvSat0 = state.rv;
+    rvSat  = rvSat0;
 else
+    rvSat0   = f.rvSat(state.pressure);
+    rvSat    = f.rvSat(p);
     oilPresent = or(and( so > 0, ~st2), watOnly); % Obvious case
     % Keep gas saturated if previous so is sufficiently large
     ix1 = and( so < 0, state.s(:,2) > etol);

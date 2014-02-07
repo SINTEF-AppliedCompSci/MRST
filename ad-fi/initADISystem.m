@@ -122,16 +122,24 @@ end
 
 if comp.gas
     if comp.oil && comp.water,
-        if comp.disgas
-            dispif(opt.Verbose, 'Found a black-oil system...\n')
-            system.stepFunction = @(state0, state, meta, dt, W, G, system) stepBlackOil(state0, state, meta, dt, G, W, system, fluid);
-            system.getEquations = @eqsfiBlackOil;
-            system.cellwise = 1:4;
-            system.cpr.gas = [3 4];
-            system.cpr.active = 1:3;
-        else
-            error('Three phase with not disolved gas not implemented')
-        end
+        if comp.disgas, ld = 'live'; else ld = 'dead';end
+        if comp.vapoil, wd = 'wet' ; else wd = 'dry' ;end
+        dispif(opt.Verbose, 'Found a three-phase system: %s oil, %s gas ...\n', ld, wd)
+        system.stepFunction = @(state0, state, meta, dt, W, G, system) stepVO(state0, state, meta, dt, G, W, system, fluid);
+        system.getEquations = @eqsfiVO;
+        system.cellwise   = 1:3;
+        system.cpr.active = 1:3;
+        system.cpr.gas    = 3;
+%         if comp.disgas
+%             dispif(opt.Verbose, 'Found a black-oil system...\n')
+%             system.stepFunction = @(state0, state, meta, dt, W, G, system) stepBlackOil(state0, state, meta, dt, G, W, system, fluid);
+%             system.getEquations = @eqsfiBlackOil;
+%             system.cellwise = 1:4;
+%             system.cpr.gas = [3 4];
+%             system.cpr.active = 1:3;
+%         else
+%             error('Three phase with not disolved gas not implemented')
+%         end
     else
        if(comp.water)
            error('Pure Gas water system not implemented use 3 phase system')
@@ -304,7 +312,9 @@ system.podbasis = opt.podbasis;
 end
 
 %--------------------------------------------------------------------------
-
 function s = getSupportedComponents()
-   s = { 'oil', 'water', 'gas', 'polymer', 'disgas', 'T', 'MI', 'vapoil' };
+   s = { 'oil', 'water', 'gas', 'polymer', 'disgas', 'vapoil', 'T', 'MI' };
 end
+%function s = getSupportedComponents()
+%   s = { 'oil', 'water', 'gas', 'polymer', 'disgas', 'T', 'MI' };
+%end

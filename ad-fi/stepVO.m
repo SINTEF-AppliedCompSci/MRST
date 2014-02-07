@@ -69,12 +69,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if system.nonlinear.cpr && isempty(system.podbasis)
       % Solve the equations using CPR preconditioner
-      %p  = state.pressure; rs = state.rs; rss = fluid.rsSat(p);
-      %bW = fluid.bW(p); bO = fluid.bO(p, rs, rs >= rss); bG = fluid.bG(p);
-      p  = mean(state.pressure); rs = fluid.rsSat(p);
-      bW = fluid.bW(p); bO = fluid.bO(p, rs, true); bG = fluid.bG(p);
+      p  = mean(state.pressure);
+      bW = fluid.bW(p); 
+      if system.activeComponents.disgas
+          rs = fluid.rsSat(p);
+          bO = fluid.bO(p, rs, true); 
+      else
+          bO = fluid.bO(p);
+      end
+      if system.activeComponents.vapoil
+          rv = fluid.rvSat(p);
+          bG = fluid.bG(p, rv, true); 
+      else
+          bG = fluid.bG(p);
+      end
       sc = [1./bO, 1./bW, 1./bG];
-      %sc = [1./bW, 1./bO-rs./bG, 1./bG];
+      %sc = [1./bO-rs./bG, 1./bW, 1./bG];
       [dx, gmresits, gmresflag] = ...
          cprGeneric(eqs, system,                                      ...
                     'ellipSolve', system.nonlinear.cprEllipticSolver, ...
