@@ -60,7 +60,7 @@ end
 
 searchfail = true;
 if system.nonlinear.linesearch
-    getEqs = @(state) system.getEquation(state0, state, dt, G, W, s, fluid, 'resOnly', true,'bc',opt.bc);
+    getEqs = @(state) system.getEquations(state0, state, dt, G, W, s, fluid, 'resOnly', true,'bc',opt.bc);
     upState = @(dx) updateState(state, dx);
     [state, dx, searchfail] = linesearchADI(state, dx, system, getEqs, upState, false);
 end
@@ -122,7 +122,7 @@ dqOs  = step*dx{4};
 dpBHP = step*dx{5};
 
 for w = 1:numel(state.wellSol)
-    state.wellSol(w).pressure = state.wellSol(w).pressure + dpBHP(w);
+    state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
     state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
     state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
 end

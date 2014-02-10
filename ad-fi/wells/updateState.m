@@ -98,7 +98,7 @@ if ~stepOpts.solveWellEqs
     dqGs  = dx{7};
 
     for w = 1:numel(state.wellSol)
-        state.wellSol(w).pressure = state.wellSol(w).pressure + dpBH(w);
+        state.wellSol(w).bhp = state.wellSol(w).bhp + dpBH(w);
         state.wellSol(w).qWs      = state.wellSol(w).qWs + dqWs(w);
         state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
         state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);

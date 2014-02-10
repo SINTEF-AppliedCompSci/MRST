@@ -140,7 +140,7 @@ switch myfys
     case 'boil_temp'
         system.stepFunction =@ stepBlackOilTemp;
         system.getEquations =@ eqsfiBlackOilTemp;
-        system.updateState  =@  upDateStateBlackOilTemp;
+        system.updateState  =@  updateStateBlackOilTemp;
         fluid.muW =@(p,T) fluid.muW(p)./(1+1e-2.*(T-300));
         fluid.muO =@(p,rs,isSat,T) fluid.muO(p,rs,isSat)./(1+10e-1.*(T-300));
     case 'oil'

@@ -136,6 +136,7 @@ for tstep = opt.startAt:numel(dt)
         while t_loc< dt(tstep)
             state0 = state;
             dispif(vb, sprintf('Local time step length: %g day.\n', convertTo(dt_loc, day)))
+            assert(dt_loc>0)
             [state, its, converged] = solvefiADI(state, dt_loc, W, G, system);
             % figure(99),clf;
             % plotCellData(G,state.s(:,1)),plotWell(G,W)
