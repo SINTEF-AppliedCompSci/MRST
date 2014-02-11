@@ -3,8 +3,8 @@ function fluid = initSimpleADIFluid(varargin)
    opt = merge_options(opt, varargin{:});
 
    krW = @(sw, varargin) sw.^opt.n(1);
-   krO = @(so, varargin) so.^opt.n(1);
-   krG = @(sg, varargin) sg.^opt.n(1);
+   krO = @(so, varargin) so.^opt.n(2);
+   krG = @(sg, varargin) sg.^opt.n(3);
    relperms = {krW, krO, krG};
 
    fluid.relPerm = @(sw, sg, varargin) relPerm(krW, krO, krG, sw, sg, varargin{:});
