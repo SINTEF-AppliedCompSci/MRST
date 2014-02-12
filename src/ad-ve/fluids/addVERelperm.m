@@ -81,7 +81,10 @@ function kr= krOG(so,opt,varargin)
         kr=so_free+(1-opt.res_gas)*sg_res;
         % this to avoid errors in ADI derivative
         %kr(~ineb)=so(~ineb)
-        kr(ineb)=(1-sg(ineb)/(1-opt.res_oil));
+        if any(ineb) % test necessary since otherwise we risk subtracting an
+                     % array of size 0 from a scalar, which will crash
+            kr(ineb)=(1-sg(ineb)/(1-opt.res_oil));
+        end
         kr(kr<0)=0.0*kr(kr<0);
         assert(all(kr>=0));
     else
