@@ -386,7 +386,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               [y, dydx, dydv] = interpRegPVT(T, x, v.val, flag, reginx);
               h = ADI(y, lMultDiag(dydx, v.jac));
           elseif ~isa(v,'ADI') %v is a scalar
-              h = interpRegPVT(T, v, x, flag, reginx);
+              [y, dydx, dydv] = interpRegPVT(T, x.val, v, flag, reginx);
+              h = ADI(y, lMultDiag(dydx, x.jac));
           else
               [y, dydx, dydv] = interpRegPVT(T, x.val, v.val, flag, reginx);
               h = ADI(y, timesJac(dydx, dydv, v.jac, x.jac)); %note order of input
