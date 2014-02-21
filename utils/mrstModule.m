@@ -152,7 +152,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    elseif nargout == 1,
 
       MODLIST = prune_modules(MODLIST);
-      varargout{1} = MODLIST(end : -1 : 1);
+      varargout{1} = MODLIST;
 
    else
 
@@ -239,6 +239,15 @@ function pth = path_search(mods)
       assert (numel(mods) == 1, 'Internal error in %s', mfilename);
       pth = { pth };
    end
+
+   if isunix,
+      % Implement (partial) tilde expansion akin to FOPEN to avoid false
+      % negatives in 'prune_modules'.  Paths of the form '~/<something>' is
+      % by far the most common, so that's what we support.  We assume that
+      % every user has a valid 'HOME' value.
+
+      pth = regexprep(pth, '^~/', [getenv('HOME'), filesep]);
+   end
 end
 
 %--------------------------------------------------------------------------
@@ -246,7 +255,7 @@ end
 function dirs = filter_module_dirs(root)
    if ~isempty(root),
       dirs  = split_path(genpath(root));
-      vcdir = '\.(git|hg|svn)';
+      vcdir = [regexptranslate('escape', filesep), '\.(git|hg|svn)'];
 
       is_vcdir = ~cellfun(@isempty, regexp(dirs, vcdir));
       exclude  = is_vcdir | cellfun(@isempty, dirs);
