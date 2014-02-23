@@ -4,12 +4,9 @@ function fluid = addVERelpermIntegratedFluid(fluid, varargin)
                 'kr_pressure',false,...
                 'Gt',[],'int_poro',false,...
                 'rock',[]);
-    opt = merge_options(opt,varargin{:});    
+    opt = merge_options(opt, varargin{:});
     % should also include endpoint scaling    
-    opt=merge_options(opt, varargin{:});        
-    
-      
-   opt = merge_options(opt, varargin{:});
+
    assert(~isempty(opt.Gt));
    assert(~isempty(opt.rock));
    % precalculate the complete perm and pore volume
