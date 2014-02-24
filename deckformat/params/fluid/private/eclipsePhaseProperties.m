@@ -80,7 +80,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [A, L, V] = deal(1, 2, 3);
 
    % Determine active phases in run/input deck.
-   names = {'water', 'oil', 'gas'};
+   names = { 'water', 'oil', 'gas' };
    phase = isfield(rspec, upper(names));
    names = names(phase);
 
@@ -118,8 +118,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       error('Cannot specify miscible aquaic phase in absence of vapour.');
    end
 
-   info = summarise(pos, surface_density, phase, miscible, incomp, A, L, V);
-   %dispif(opt.verbose, info);
+   info = summarise(pos, surface_density, phase, ...
+                    miscible, incomp, A, L, V);
 
    incomp = incomp(phase);
 end
@@ -373,37 +373,61 @@ end
 
 %--------------------------------------------------------------------------
 
-function info = summarise(pos, surface_density, phase, miscible, incomp, A, L, V)
+function info = summarise(pos, rhoS, phase, miscible, incomp, A, L, V)
    info = '';
-   if phase(A), info = [info,sprintf('Surface density for water: %8.2f\n',...
-         surface_density(pos(A)))];
-   end
-   if phase(L), info = [info,sprintf('Surface density for oil:   %8.2f\n',...
-         surface_density(pos(L)))];
-   end
-   if phase(V), info = [info,sprintf('Surface density for gas:   %8.2f\n\n',...
-         surface_density(pos(V)))];
-   end
 
    if phase(A),
-      if miscible(A),info = [info,sprintf('Aquaic phase:  miscible ')];
-      else           info = [info,sprintf('Aquaic phase:  immiscible ')]; end
-      if incomp(A),  info = [info,sprintf('and incompressible\n')];
-      else           info = [info,sprintf('and compressible\n')]; end
+      info = [ info, densstring('water', '', rhoS(:, pos(A))) ];
    end
 
-
    if phase(L),
-      if miscible(L),info = [info,sprintf('Liquid phase:  miscible ')];
-      else           info = [info,sprintf('Liquid phase:  immiscible ')]; end
-      if incomp(L),  info = [info,sprintf('and incompressible\n')];
-      else           info = [info,sprintf('and compressible\n')]; end
+      info = [ info, densstring('oil', '  ', rhoS(:, pos(L))) ];
    end
 
    if phase(V),
-      if miscible(V),info = [info,sprintf('Vapour phase:  miscible ')];
-      else           info = [info,sprintf('Vapour phase:  immiscible ')]; end
-      if incomp(V),  info = [info,sprintf('and incompressible\n')];
-      else           info = [info,sprintf('and compressible\n')]; end
+      info = [ info, densstring('gas', '  ', rhoS(:, pos(V))) ];
    end
+
+   info = [ info, newline ];
+
+   if phase(A),
+      info = [ info, mcstring('Aquaic', miscible(A), incomp(A)) ];
+   end
+
+   if phase(L),
+      info = [ info, mcstring('Liquid', miscible(L), incomp(L)) ];
+   end
+
+   if phase(V),
+      info = [ info, mcstring('Vapour', miscible(V), incomp(V)) ];
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function sr = densstring(ph, blank, rhoS)
+   sr = sprintf(' %8.2f', reshape(rhoS, 1, []));
+   sr = [ 'Surface density for ', ph, ':', blank, sr, newline ];
+end
+
+%--------------------------------------------------------------------------
+
+function mc = mcstring(ph, misc, incomp)
+   mc = [ ph, ' phase:  ' ];
+
+   if misc,   mc = [ mc, 'miscible'  ];
+   else       mc = [ mc, 'immiscible']; end
+
+   mc = [ mc, ' and ' ];
+
+   if incomp, mc = [ mc, 'incompressible' ];
+   else       mc = [ mc, 'compressible'   ]; end
+
+   mc = [ mc, newline ];
+end
+
+%--------------------------------------------------------------------------
+
+function s = newline
+   s = sprintf('\n');
 end
