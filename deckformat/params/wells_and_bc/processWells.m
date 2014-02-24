@@ -240,6 +240,8 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
 
       type = lower(control.WCONHIST{i,3});
       switch type,
+         % Note: 'val' is INJECTION rate in MRST's sign conventions.
+         %
          case 'orat', val = - control.WCONHIST{i, 4};
          case 'wrat', val = - control.WCONHIST{i, 5};
          case 'grat', val = - control.WCONHIST{i, 6};
