@@ -67,7 +67,7 @@ function varargout = interactiveTrapping(inp, varargin)
    end
    
    if strcmpi(opt.method, 'cell')
-       require coarsegrid gridtools
+       require coarsegrid
    end
    
    opt = merge_options(opt, varargin{:});

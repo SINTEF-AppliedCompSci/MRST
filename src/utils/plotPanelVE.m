@@ -148,9 +148,13 @@ if numel(vol)==4
 elseif numel(vol)==6
    vplot = max([vol(1:5) vol(6)-sum(vol(1:5))], eps);
    ph = pie(vplot);
+   pieColorMap = getInventoryColors(2:7);
+   for sliceNo=1:numel(ph)/2, 
+      set(ph(sliceNo*2-1),'FaceColor',pieColorMap(sliceNo,:)); 
+   end
    % trick auto-shrink by first placing legend below and then moving it
-   lnames = {'Struct. residual', 'Residual', 'Free residual', 'Struct. movable', ...
-      'Free movable', 'Leaked'};
+   lnames = {'Residual (traps)', 'Residual', 'Residual (plume)', 'Movable (traps)', ...
+      'Movable (plume)', 'Leaked'};
    hl = legend(lnames, 'Location','SouthOutside', 'orientation','horizontal');
    set(hl,'Location','SouthEastOutside','orientation','vertical');
    pl = get(hl, 'Position'); set(hl, 'Position', [.85 pl(2)-.035 pl(3:4)]);
@@ -231,14 +235,17 @@ function makePlotHistory()
 end
 
 function plotHistory()
-    if ishandle(h3)
-        set(0, 'CurrentFigure', h3);
-        area(convertTo(thistory, year), convertTo(volHistory, mega*meter^3));
-        xlabel('Years since simulation start');
-        ylabel('Volume (M m^3)')
-        axis tight
-        legend(lnames, 'location', 'eastoutside', 'orientation', 'vertical');
-    end
+   if ishandle(h3)
+      set(0, 'CurrentFigure', h3);
+      area(convertTo(thistory, year), convertTo(volHistory, mega*meter^3));
+      col = getInventoryColors(7:-1:2);
+      chld =  get(gca,'Children');
+      for i=1:numel(chld), set(chld(i),'FaceColor',col(i,:)); end
+      xlabel('Years since simulation start');
+      ylabel('Volume (M m^3)')
+      axis tight
+      legend(lnames, 'location', 'eastoutside', 'orientation', 'vertical');
+   end
 end
 
 end

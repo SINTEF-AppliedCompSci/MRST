@@ -62,7 +62,6 @@ function kr= krG(sg,opt,varargin)
     end
     if(any(double(kr)<0))
         kr(kr<0)=0.0.*sg_free(kr<0);
-        kr(kr<0)=0.0.*sg_free(kr<0);
     end
     assert(all(kr>=0));
     kr=kr.*opt.krg;
