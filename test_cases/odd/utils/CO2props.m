@@ -1,4 +1,4 @@
-function obj = CO2props(rhofile, hfile)
+function obj = CO2props(rhofile, hfile, noassert)
 
 %% ESTABLISHING STATIC DATA
   
@@ -21,6 +21,15 @@ function obj = CO2props(rhofile, hfile)
   % make separate matrices by phase, and compute derivative tables
   rho = establish_data_tables(rho);
   h   = establish_data_tables(h);
+  
+  % What should be done if P or T values are outside table range?  Default is
+  % to throw an error, but alternatively, NaN-values could be returned for
+  % the respective results.
+  assert_valid_range = true;
+  if exist('noassert') && noassert
+      assert_valid_range = false;
+  end
+  
       
   %% DECLARING MEMBER FUNCTIONS
 
@@ -201,7 +210,13 @@ end
   
 function res = extractValues(P, T, spanP, spanT, supsamples, liqsamples, gassamples)
     
-    [P, T]   = truncate_PT_vectorized(P, T, spanP, spanT);
+    if assert_valid_range
+        assert_in_range(P, spanP);
+        assert_in_range(T, spanT);
+    else
+        [P, T]   = truncate_PT_vectorized(P, T, spanP, spanT);
+    end
+    
     phase    = phase_of(P, T);
     sph      = (phase == 0);
     lph      = (phase == 1);
@@ -369,6 +384,11 @@ function phase = compute_phase(rows, cols, span_p, span_t)
     phase = reshape(phase_of(P(:), T(:)), rows, cols);
 end
   
+function assert_in_range(val, range)
+    assert(all(val >= range(1)))
+    assert(all(val <= range(2)))
+end
+
 function [P, T] = truncate_PT_vectorized(P, T, Pspan, Tspan)
   
     P(P < Pspan(1) | P > Pspan(2)) = NaN;
