@@ -240,13 +240,13 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
 
       type = lower(control.WCONHIST{i,3});
       switch type,
-         case 'orat', val = control.WCONHIST{i, 4};
-         case 'wrat', val = control.WCONHIST{i, 5};
-         case 'grat', val = control.WCONHIST{i, 6};
-         case 'lrat', val = sum([control.WCONHIST{i, 4:5}]);
-         case 'bhp' , val = control.WCONHIST{i, 10};
+         case 'orat', val = - control.WCONHIST{i, 4};
+         case 'wrat', val = - control.WCONHIST{i, 5};
+         case 'grat', val = - control.WCONHIST{i, 6};
+         case 'lrat', val = - sum([control.WCONHIST{i, 4:5}]);
+         case 'bhp' , val = - control.WCONHIST{i, 10};
          case 'resv',
-            type = 'lrat'; val = sum([control.WCONHIST{i, 4:5}]);
+            type = 'lrat'; val = - sum([control.WCONHIST{i, 4:5}]);
             dispif(mrstVerbose(),'resv changed to lrat for wconhist');
 
          otherwise
