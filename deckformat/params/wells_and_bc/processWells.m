@@ -247,7 +247,7 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
          case 'bhp' , val = - control.WCONHIST{i, 10};
          case 'resv',
             type = 'lrat'; val = - sum([control.WCONHIST{i, 4:5}]);
-            dispif(mrstVerbose(),'resv changed to lrat for wconhist');
+            dispif(mrstVerbose(), 'RESV changed to LRAT for WCONHIST');
 
          otherwise
             dispif(opt.Verbose, ...
