@@ -36,9 +36,9 @@ disp('   using C++ accelleration in the transport solver');
 disp('================================================================');
 disp(' ');
 try 
-   require gridtools mex mimetic
+   require mex mimetic
 catch %#ok<CTCH>
-   mrstModule add gridtools mex mimetic;
+   mrstModule add mex mimetic;
 end
 
 %% Construct stratigraphic, petrophysical, and VE models

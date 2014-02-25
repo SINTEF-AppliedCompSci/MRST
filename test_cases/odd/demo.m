@@ -1,6 +1,5 @@
 require vertical-equil-lab
 require mex/libgeometry
-require gridtools
 require coarsegrid
 
 clear;

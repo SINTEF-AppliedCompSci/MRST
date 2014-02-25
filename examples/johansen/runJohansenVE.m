@@ -12,7 +12,6 @@
 % necessary to run the example can be downloaded from the
 % <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 % website>.
-require gridtools
 %% Display header
 clc;
 disp('================================================================');

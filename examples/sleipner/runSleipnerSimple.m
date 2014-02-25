@@ -47,7 +47,7 @@ if(a>20)
 else
    close(a); 
 end
-require ad-fi gridtools;
+require ad-fi;
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
 % The VE model consists of a top-surface grid (Gt), petrophysical data

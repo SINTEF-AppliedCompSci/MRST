@@ -80,7 +80,7 @@ view(70,50), axis tight, set(gca,'ZDir','reverse');
 % corresponding spill point.
 
 % Check for existence of the MATLAB graph library
-mrstModule add gridtools coarsegrid
+mrstModule add coarsegrid
 checkBGL();
 
 ts = findTrappingStructure(Gt);

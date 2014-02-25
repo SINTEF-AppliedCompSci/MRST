@@ -94,7 +94,6 @@ function trap=findTrappingStructure(Gt, varargin)
 opt = struct('use_multipoint',false);
 opt = merge_options(opt, varargin{:});
 
-require gridtools
 checkBGL();
 
 % Find top cells of the surface defined such that all centroids of all

@@ -4,9 +4,9 @@
 % give seventeen different grids. We then compeare the result with a saved results.
 % It is bases on basicCapasityAtlas from paper ??
 try
-   require coarsegrid deckformat gridtools mex
+   require coarsegrid deckformat mex
 catch %#ok<CTCH>
-   mrstModule add coarsegrid deckformat gridtools mex
+   mrstModule add coarsegrid deckformat mex
 end
 
 

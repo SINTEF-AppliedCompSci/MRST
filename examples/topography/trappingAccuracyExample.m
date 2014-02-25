@@ -13,7 +13,7 @@
 % a rough of estimate the information which is missing in the coarse Atlas
 % grids, we will also compare the relatively fine scale Sleipner grid with
 % the same region in the Utsira formation, where Sleipner is located.
-require gridtools coarsegrid deckformat
+require coarsegrid deckformat
 
 %% Generate grids and trapping for the Johansen formation
 % We generate six realizations of the Johansen formation from the CO2

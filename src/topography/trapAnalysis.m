@@ -43,7 +43,7 @@ function res = trapAnalysis(Gt, method)
 %
   if method
       % we will use the cell-based method
-      require coarsegrid gridtools
+      require coarsegrid 
       res = cell_based_trap_analysis(Gt);
   else
       % we will use the edge-based method

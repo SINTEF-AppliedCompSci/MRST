@@ -1,4 +1,4 @@
-mrstModule add coarsegrid gridtools mrst-gui
+mrstModule add coarsegrid mrst-gui
 
 %% Extract a subset of the Utsira formation for analysis
 coarsefactor = 1;

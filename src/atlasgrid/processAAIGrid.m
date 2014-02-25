@@ -26,7 +26,6 @@ function G = processAAIGrid(meta, data, topgrid, cstrids)
 %     
 %
     mlist = mrstModule();
-    mrstModule add gridtools;
     
     dims = [meta.ncols, meta.nrows];
     % We have a cell centered grid, so subtract by one

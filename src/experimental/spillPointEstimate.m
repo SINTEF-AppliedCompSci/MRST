@@ -34,7 +34,6 @@ function [down_cells,rest_volume,down_cells_prev, Gtop]=spillPointEstimate(Gtop,
 % 
 opt = struct('use_multipoint',false,'include_bc',false);
 opt = merge_options(opt, varargin{:});
-%require gridtools mex/matlab_bgl
 Gtop_new=Gtop;
 Gtop_prev=Gtop;
 [C,N,CC]=maxTPFAGravityMatrix(Gtop,'use_multipoint',opt.use_multipoint);%#ok

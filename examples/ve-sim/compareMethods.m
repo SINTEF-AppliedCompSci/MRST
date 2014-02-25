@@ -58,9 +58,9 @@
 %
 
 try
-   require deckformat gridtools
+   require deckformat 
 catch %#ok<CTCH>
-   mrstModule add deckformat gridtools
+   mrstModule add deckformat 
 end
 
 %% Parameters for the simulation

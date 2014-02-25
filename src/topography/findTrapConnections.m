@@ -57,7 +57,7 @@ function trap_con = findTrapConnections(Gnew,z_spill_loc)
 % SEE ALSO:
 %   topSurfaceGrid, trapAnalysis, findTrappingStructure
 %
-require gridtools coarsegrid
+require coarsegrid
 
 % make top surface flat according to z_spill_loc
 cells=find(z_spill_loc>0);

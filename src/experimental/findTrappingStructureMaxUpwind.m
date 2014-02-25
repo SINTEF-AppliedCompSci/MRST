@@ -47,7 +47,6 @@ function trap_struct=findTrappingStructure(Gt,varargin)
 % 
 opt = struct('use_multipoint',false,'include_bc',true);
 opt = merge_options(opt, varargin{:});
-%require gridtools mex/matlab_bgl
 Gtop=Gt;
 grid_flat=false;
 

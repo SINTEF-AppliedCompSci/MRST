@@ -2,7 +2,6 @@
 % to do trap analysis we need  the following modules
 %mrstModule add internal/vertical-equil
 %mrstModule add gridprocessing
-%mrstModule add gridtools
 %mrstModule add mex/libgeometry
 %mrstModule add mex
 %mrstModule add /home/hnil/heim/SVN/simmatlab/branches/halvor/mrst_extra/gridprocessing
