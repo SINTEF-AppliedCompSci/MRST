@@ -23,7 +23,7 @@ function sqform = convertAtlasToStruct(meta_thick, meta_top, data_thick, data_to
 %
 %
 % RETURNS:
-%   grdecl - GRDECL struct suitable for processGRDECL
+%   sqform - GRDECL struct suitable for processGRDECL
 %
 %
 % NOTES:
