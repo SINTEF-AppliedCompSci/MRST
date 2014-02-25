@@ -1,4 +1,5 @@
-function [c, rho, mu, u, R, B, A, dA, dB, dR] = blackOilPVT(pvtfun, rhos, p, z)
+function [c, rho, mu, u, R, B, A, dA, dB, dR] = ...
+      blackOilPVT(pvtfun, rhos, p, z)
 %Evaluate blackoil pvt functions and return phase properties.
 %
 % SYNOPSIS:
