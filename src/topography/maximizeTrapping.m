@@ -51,7 +51,7 @@ function [trees, v] = maximizeTrapping(G, varargin)
         opt.res = trapAnalysis(G, true);
     end
     
-    v = trapVolumes(G, opt.res, 1:max(opt.res.traps));
+    v = volumesOfTraps(G, opt.res, 1:max(opt.res.traps));
 
     % All root nodes - traps that are downstream from every other trap
     if opt.calculateAll
