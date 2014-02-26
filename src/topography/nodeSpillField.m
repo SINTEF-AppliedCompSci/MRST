@@ -155,10 +155,14 @@ function imat = node_incidence_matrix(Gt)
 
     nnum = Gt.nodes.num;    
  
-    % mapping incidences.  Since, if (i,j) is an incidence, (j,i) must be one too, we
-    % make the matrix symmetric in the second step.
-    % imat = accumarray(node_incidences, 1, [nnum, nnum], @prod, [], true); % doesn't work in Octave
-    tmp = accumarray(node_incidences, ones(size(node_incidences, 1), 1), [nnum, nnum], @prod, [], true);
+    % mapping incidences.  Since, if (i,j) is an incidence, (j,i) must be one too, we make the
+    % matrix symmetric in the second step.
+
+    % tmp = accumarray(node_incidences, ones(size(node_incidences, 1), 1), [nnum, nnum], @prod, [], true);
+    % NB: accumarray has a memory limitation on 32-bit architectures, so the previous
+    % out-commented line has been replaced by the following line:
+
+    tmp = spones(sparse(node_incidences(:,1), node_incidences(:,2), 1, nnum, nnum));
     tmp = tmp + tmp';
 
     % EXPLANATION OF THE UPCOMING CODE LINE:
