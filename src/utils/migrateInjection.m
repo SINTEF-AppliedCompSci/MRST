@@ -1,5 +1,42 @@
-function sol = migrateInjection(Gt, res, petrodata, wellCell, varargin)
-
+function sol = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
+%% Run a simple injection scenario and visualize each time step
+%
+% SYNOPSIS:
+%   function sol = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
+%
+% DESCRIPTION:
+%
+% This script runs a simple injection scenario based on a top-surface grid
+% and a single injector well located in a specified grid cell.  The
+% simulation uses an incompressible fluid with linear relative permeabilities
+% and sharp interface.  Rock is incompressible and homogeneous, with
+% permeability and porosity provided by the 'petrodata' argument.  After
+% computation of a timestep, the variously trapped volumes are computed, and
+% the result is visualized (either using 'plotPanelVE', or simply by using
+% 'plotCellData').  
+%
+% For the simulation, pressure is solved using two-point flux approximation.
+% Saturations are computed using implicit transport.
+%
+% PARAMETERS:
+%   Gt        - Top surface grid 
+%   traps     - trapping structure object, as returned by a call to
+%               'findTrappingStructure'.  Only used for visualizations
+%               involving plotPanelVE.  Can be left empty, in which case it
+%               will be computed internally if needed.
+%   petrodata - structure with the fields 'avgperm' (average permeability)
+%               and 'avgporo' (average porosity).  These are single scalars,
+%               which will be attributed uniformly to all cells.
+%   wellCell  - Index of the cell containing the injection well.
+%   varargin  - Allows special options to be set / defaults to be
+%               overridden.  For instance, the default injection and
+%               migration times can be changed, as well as the number of timesteps.
+%
+% RETURNS:
+%   sol - simulation solution for the last timestep 
+%
+% SEE ALSO:
+%
 %% Process options
 opt = struct('amount',      1, ...
             'T_injection',  100*year,  ...
@@ -14,6 +51,11 @@ opt = struct('amount',      1, ...
             'wireH',        true,...
             'wireS',        true);
 opt = merge_options(opt, varargin{:});
+
+%% Precompute traps if missing and required
+if opt.plotPanel && isempty(traps)
+  traps = trapAnalysis(Gt, false);
+end
 
 %% Take care of global variables
 % When launched from the interactive viewer, we use a global variable to
@@ -104,7 +146,7 @@ opts = {'slice',     double([ii(wellCell), jj(wellCell)]),...
 
 if opt.plotPanel
     fh = plotPanelVE(G, Gt, W, sol, 0, ...
-       [volumesVE(Gt, sol, rock2D, fluid, res) 0], opts{:});
+       [volumesVE(Gt, sol, rock2D, fluid, traps) 0], opts{:});
 else
     fh = figure;
 end
@@ -158,8 +200,9 @@ while t < T_tot;
         if ~isempty(W2D)
             totVol = totVol + W2D.val*dT;
         end
-        vol = volumesVE(Gt, sol, rock2D, fluid, res);
+        vol = volumesVE(Gt, sol, rock2D, fluid, traps);
         plotPanelVE(G, Gt, W, sol, t, [vol totVol], opts{:});
+
     else
         set(0,'CurrentFigure', fh);
         [a,b] = view();
