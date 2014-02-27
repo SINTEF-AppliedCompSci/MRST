@@ -89,7 +89,9 @@ if (t==0)
   G_y = computeGeometry(G_y);
   G_y.cartDims = G.cartDims;
 
-  scrsz  = get(0,'ScreenSize');
+  %scrsz  = get(0,'ScreenSize');      % This works poorly for dualscreens
+  scrsz = get(0, 'MonitorPositions'); % This also works for dualscreen settings
+  scrsz = scrsz(1,:);                 % choose first monitor
   fsize = min([scrsz(3:4); 1024 700]);
   h = figure('Position', [scrsz(3)-fsize(1), scrsz(4)-fsize(2)-75, fsize]);
   if nargout > 0; varargout{1} = h; end;
@@ -105,7 +107,7 @@ if (t==0)
   volHistory = vol;
   thistory   = 0;
   if prm.plotHist
-     h3 = figure;
+     h3 = figure('Position', [1, 1, 640, 480]);
   else
      h3 = [];
   end
