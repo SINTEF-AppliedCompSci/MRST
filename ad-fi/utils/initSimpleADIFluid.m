@@ -1,4 +1,37 @@
 function fluid = initSimpleADIFluid(varargin)
+% Make a structure representing a three-component fluid (water, oil, gas)
+% and their properties (relative permeabilities, densities, viscosities).
+% Relative permeabilities are modeled as monomial functions of saturation.
+% Densities are assumed constant, so the returned formation volume factors
+% are constant equal to 1.
+%
+% SYNOPSIS:
+%   fluid = initSimpleADIFluid()
+%   fluid = initSimpleADIFluid('pn1', 'pv1')
+%
+% PARAMETERS:
+%   'pn'/pv - List of property names/property values.  Possibilities are:
+%   - mu  : vector of viscosity values for water, oil and gas, [muW, muO, muG].  
+%           Default is [1 1 1].
+%   - rho : vector of density values for water, oil and gas, [rhoW, rhoO, rhoG].
+%           Default is [1 1 1].
+%   - n   : vector of the degrees of the monomials describing relative
+%           permeability for water, oil and gas [nW, nO, nG].  Default is
+%           [1 1 1] (linear relative permeabilities)
+%
+% RETURNS:
+%   fluid - struct containing the following functions (where X = 'W' [water],
+%           'O' [oil] and 'G' [gas]) 
+%           * [krW, krO, krG] = relPerm(s_water, s_gas) - relative permeability functions         
+%           * rhoX         - density of X
+%           * rhoXS        - density of X at surface (equal to rhoX, since incompressible)
+%           * bX(p), BX(p) - formation volume factors and their inverses
+%                            (constants, always equal one)
+%           * muX(p)       - viscosity functions (constant)
+%           * krX(s)       - rel.perm for X
+%           * krOX(s)      - 
+%           * rsSat()      - residual saturation (always returns 0)
+
    opt = struct('mu', [1 1 1], 'rho', [1 1 1], 'n', [1 1 1]);
    opt = merge_options(opt, varargin{:});
 
