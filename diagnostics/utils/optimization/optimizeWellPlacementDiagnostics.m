@@ -105,7 +105,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'plotProgress', true);
     opt = merge_options(opt, varargin{:});
 
-    require gridtools
+    %require gridtools
     ijk = gridLogicalIndices(G);
     wellHistory = {};
     history = [];
