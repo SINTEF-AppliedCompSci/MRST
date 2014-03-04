@@ -60,12 +60,13 @@ for k = 1:nw
     %else
     %    ws(k).bhp = -inf;
     %end
+    irate=eps;
     ws(k).qTs  = 0;
-    ws(k).qWs  = 0;
-    ws(k).qOs  = 0;
-    ws(k).qGs  = 0;
+    ws(k).qWs  = W(k).sign*irate;
+    ws(k).qOs  = W(k).sign*irate;
+    ws(k).qGs  = W(k).sign*irate;
     ws(k).mixs = W(k).compi(actPh);
-    ws(k).qs   = zeros(1, nPh);
+    ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
     ws(k).cqs  = zeros(nConn,nPh);
 end
