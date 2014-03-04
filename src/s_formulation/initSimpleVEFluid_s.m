@@ -76,8 +76,8 @@ function varargout = properties(opt, varargin)
 end
 %---------------------------------------------------------------------
 function s = cap_press_inv(pc, g_top, opt, varargin)
-   % this trasformation has to be doen twise as long as
-   % pc aand relperm i separate functions
+   % this trasformation has to be done twice as long as
+   % pc and relperm are separate functions
    %if nargout<2
    %  [h,h_max] = saturation2Height(state,g_top,opt);
    %else
@@ -97,8 +97,8 @@ function s = cap_press_inv(pc, g_top, opt, varargin)
 end
 %---------------------------------------------------------------------
 function varargout = cap_press(state, g_top, opt, varargin)
-   % this trasformation has to be doen twise as long as
-   % pc aand relperm i separate functions
+   % this trasformation has to be done twice as long as
+   % pc and relperm are separate functions
    if nargout<2
      [h,h_max] = saturation2Height(state,g_top,opt);
    else
@@ -119,6 +119,7 @@ function varargout = cap_press(state, g_top, opt, varargin)
    end
    
 end
+%---------------------------------------------------------------------
 function varargout = relperm(state, g_top, opt, varargin)
    if nargout<2
      [h,h_max] = saturation2Height(state,g_top,opt);
