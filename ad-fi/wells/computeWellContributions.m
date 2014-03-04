@@ -27,6 +27,7 @@ compi = compi(:, actPh);
 if ~allowWellSignChange % injector <=> w.sign>0, prod <=> w.sign<0
     isInj = vertcat(W.sign)>0;
 else
+    %qt_s =sol.qWs+sol.qOs+sol.qGs;
     isInj = double(qt_s)>0;   % sign determined from solution
 end
 
@@ -115,7 +116,10 @@ end
 % return mix_s(just values), connection and well status:
 mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
-status  = and(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
+status  = ~deadWells;%any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
+if(mrstVerbose && any(deadWells) )
+    warning('It exist deadWells')
+end
 end
 
 %--------------------------------------------------------------------------
