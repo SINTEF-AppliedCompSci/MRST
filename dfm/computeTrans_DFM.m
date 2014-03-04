@@ -1,4 +1,4 @@
-function T = computeTrans_DFM(G, rock, varargin)
+function [T,hybrids] = computeTrans_DFM(G, rock, varargin)
 % Compute transmissibilities using a two-point scheme.
 %
 % SYNOPSIS:
