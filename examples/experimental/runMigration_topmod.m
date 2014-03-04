@@ -140,7 +140,7 @@ disp(' -> Setting well and boundary conditions');
 % Set well in 3D model
 
 
-W
+%W
 for i=1:size(wells.pos,1)
     rhoc=760;
     wpos=wells.pos(i,:)

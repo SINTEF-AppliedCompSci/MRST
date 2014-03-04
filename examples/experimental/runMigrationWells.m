@@ -1,4 +1,4 @@
-function [Gt, sol, sreport]=runMigration_topmod(Gt , wells, pd, method, case_name,varargin)
+function [Gt, sol, sreport]=runMigrationWells(Gt , wells, pd, method, case_name,varargin)
 
 %% Vertical-Averaged Simulation: SLEIPNER
 % Sleipner is a comercial CO2 storage site in the North Sea, where CO2 has
