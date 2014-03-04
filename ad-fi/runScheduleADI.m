@@ -179,6 +179,7 @@ for tstep = 1:numel(dt)
                W = schedule.control(control).W;
            end
            openWells = vertcat(W.status);
+           assert(all(islogical(openWells)));% avoid errors due to setting status to 1;
            W = W(openWells);
         end
     end
