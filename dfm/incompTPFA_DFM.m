@@ -260,6 +260,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        % Star-delta transformation for the cell2cell connections
        if(~isempty(opt.c2cTrans))
+           % this is an error start delta transformen
+           warning('Errors on large than 2 connections')
            [~,totmob_hyb] = computeHybridTrans(G,totmob(cellNo));
            ft_hyb 	= ft_hyb.*totmob_hyb;
        end
