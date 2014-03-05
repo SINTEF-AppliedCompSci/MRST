@@ -248,7 +248,17 @@ nodes3D = g.faces.nodes(faceNodes);
 %    1     2        1     2
 %
 %  Must therefore use index to match correct nodes:
-ix = repmat([1 2 4 3]', g_top.cells.num,1)+(cn_top(:,1)-1)*4;
+%ix = repmat([1 2 4 3]', g_top.cells.num,1)+(cn_top(:,1)-1)*4; 
+% NB: the above does not work when the tiling order of the top faces in the 
+% original grid does not match the indexing of the cells in the top surface
+% grid differ from the indexing of the cells in the top surface grid.
+% Proposed fix in the two codelines below:
+
+% We assume that the relative corner order is the same for all 'top' faces in 
+% the original grid, so we only check the corner order of the first such face
+% (assumed to have 4 corners...)
+rco = relative_corner_order(nodes3D(1:4)); 
+ix = repmat(rco, g_top.cells.num,1) + (cn_top(:,1)-1)*4;
 
 nodes2D = cn_top(ix,3);
 
@@ -360,6 +370,12 @@ end
 % this map is used for transfering face data on g_top to the face data on the underliing cartesian grid.
 g_top.faces.cartFaceMap=cartFaceMap;
 end
+% ----------------------------------------------------------------------------
+function rco = relative_corner_order(co)
+    [tmp, I]  = sort(co);
+    [tmp, rco] = sort(I);
+end
+
 
 function dz = compute_dz(g, cell_ix)
 % Assume that all cells have both top and bottom face.
