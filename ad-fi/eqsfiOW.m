@@ -64,13 +64,17 @@ if isfield(f, 'pvMultR')
     pvMult =  f.pvMultR(p);
     pvMult0 = f.pvMultR(p0);
 end
-
+transMult=1;
+if isfield(f, 'transMult')
+   transMult=f.transMult(p); 
+end
 %check for capillary pressure (p_cow)
 pcOW = 0;
 if isfield(f, 'pcOW')
     pcOW  = f.pcOW(sW);
 end
 
+trans=s.T.*transMult;
 % -------------------------------------------------------------------------
 [krW, krO] = f.relPerm(sW);
 %krW = f.krW(sW);
@@ -87,7 +91,7 @@ mobW   = trMult.*krW./f.muW(p-pcOW);
 dpW     = s.grad(p-pcOW) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
 % water upstream-index
 upc = (double(dpW)>=0);
-bWvW = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
+bWvW = s.faceUpstr(upc, bW.*mobW).*trans.*dpW;
 
 
 % oil props
@@ -100,10 +104,10 @@ upc = (double(dpO)>=0);
 if isfield(f, 'BOxmuO')
     % mob0 is already multplied with b0
     mobO   = trMult.*krO./f.BOxmuO(p);
-    bOvO   = s.faceUpstr(upc, mobO).*s.T.*dpO;
+    bOvO   = s.faceUpstr(upc, mobO).*trans.*dpO;
 else
     mobO   = trMult.*krO./f.muO(p);
-    bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
+    bOvO   = s.faceUpstr(upc, bO.*mobO).*trans.*dpO;
 end
 
 
