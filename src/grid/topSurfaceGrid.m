@@ -251,7 +251,7 @@ nodes3D = g.faces.nodes(faceNodes);
 %ix = repmat([1 2 4 3]', g_top.cells.num,1)+(cn_top(:,1)-1)*4; 
 % NB: the above does not work when the tiling order of the top faces in the 
 % original grid does not match the indexing of the cells in the top surface
-% grid differ from the indexing of the cells in the top surface grid.
+% grid.
 % Proposed fix in the two codelines below:
 
 % We assume that the relative corner order is the same for all 'top' faces in 
