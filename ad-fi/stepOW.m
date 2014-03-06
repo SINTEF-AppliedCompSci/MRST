@@ -107,7 +107,11 @@ if(opt.temperature || opt.minerals)
          fprintf('\n');   
     end   
 else
+    if(~system.nonlinear.use_ecltol)
+      meta.converged = all(residuals < system.nonlinear.tol);  
+    else
         meta.converged = converged;
+    end
         meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~converged;
 
     if opt.Verbose
