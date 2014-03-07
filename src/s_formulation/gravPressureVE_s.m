@@ -1,5 +1,5 @@
 function ff = gravPressureVE_s(G, omega)
-%Computes innerproduct cf (face_centroid - cell_centroid) * g for each face
+%Computes innerproduct of (face_centroid - cell_centroid) * g for each face
 %
 % SYNOPSIS:
 %   ff = gravPressureVE_s(g, omega)
