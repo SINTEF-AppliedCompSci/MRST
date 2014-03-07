@@ -254,10 +254,10 @@ nodes3D = g.faces.nodes(faceNodes);
 % grid.
 % Proposed fix in the two codelines below:
 
-% We assume that the relative corner order is the same for all 'top' faces in 
-% the original grid, so we only check the corner order of the first such face
-% (assumed to have 4 corners...)
-rco = relative_corner_order(nodes3D(1:4)); 
+% Determine how to orient the 2D cell relative to the 3D face in order to
+% preserve the logical ordering (ensuring that neighbor cells share the
+% correct nodes)
+rco = relative_corner_order(nodes3D); 
 ix = repmat(rco, g_top.cells.num,1) + (cn_top(:,1)-1)*4;
 
 nodes2D = cn_top(ix,3);
@@ -370,10 +370,41 @@ end
 % this map is used for transfering face data on g_top to the face data on the underliing cartesian grid.
 g_top.faces.cartFaceMap=cartFaceMap;
 end
+
 % ----------------------------------------------------------------------------
 function rco = relative_corner_order(co)
-    [tmp, I]  = sort(co);
-    [tmp, rco] = sort(I);
+% Determine the relative corner order that should be used when reading nodes
+% from 3D faces to 2D cells.  As described in the main routine, the default
+% permutation to apply per-cell is [1 2 4 3].  However, this presumes that
+% cells are ordered such that row-wise, the 3D face corresponding to cell
+% (j+1) immediately follows (rather than precedes) the one corresponding to
+% cell (j), and that likewise, the 3D faces corresponding to cells in row (i)
+% succeeds (rather than precedes) those of row (i+1).  If these assumptions
+% do not hold, we must modify the permutation to use accordingly.
+    rco = [1 2 4 3]'; % should be true for most grids
+
+    % Function to determine whether 3D face 2 lies to the 'right' or 'left'
+    % of 3D face 1. (assuming that each face has 4 corners, and that there
+    % are at least two faces present)
+    next_cell_comes_before = @(ixs) (ixs(1) == ixs(6)) && (ixs(4) == ixs(7));
+    
+    % Function to determine whether the second row of 3D faces comes 'before'
+    % or 'after' the first row.  We assume this happens if the lower-left
+    % corner of the first cell is later repeated (ignoring the two first
+    % nodes of the second cell), _or_ if the lower-right node is later
+    % repeated (ignoring the first node of the second cell)
+    next_row_comes_before = ...
+        @(ixs) ~isempty(find(ixs(7:end)==ixs(1), 1, 'first')) || ...
+               ~isempty(find(ixs(6:end)==ixs(2), 1, 'first'));
+    
+    if (next_row_comes_before(co))
+        rco = flipud(rco);
+    end
+
+    if (next_cell_comes_before(co))
+        rco(1:2) = flip(rco(1:2));
+        rco(3:4) = flip(rco(3:4));
+    end
 end
 
 
