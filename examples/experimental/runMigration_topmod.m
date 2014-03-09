@@ -102,7 +102,7 @@ end
 %}
 cpp_accel=false;
 % there is isures with pressure
-transport_methods={'explicite_incomp_mim','implicit_incomp_tpf','explicite_incomp_tpf',...
+transport_methods={'explicit_incomp_mim','implicit_incomp_tpf','explicit_incomp_tpf',...
                    'adi_simple',...
                    'adi_OGD_simple_inst',...
                    'adi_OGD_simple_mix',...
@@ -133,7 +133,7 @@ dTplot          = opt.dTplot;
 
 %% Set well and boundary conditions
 % The well is placed near the actual injection site. The injection rates
-% are taken from the beforementioned paper. Hydrostatic boundary conditions
+% are taken from the aforementioned paper. Hydrostatic boundary conditions
 % are specified on all outer boundaries.
 disp(' -> Setting well and boundary conditions');
 
@@ -374,7 +374,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
         fluidADI.BG = @(p) 1./fluidADI.bG(p);
     end
     switch solver
-        case 'explicite_incomp_mim'            
+        case 'explicit_incomp_mim'            
             disp(' -> Initialising solvers');
             SVE = computeMimeticIPVE(Gt, rock2D, 'Innerproduct','ip_tpf');
             preComp = initTransportVE(Gt, rock2D);
@@ -382,7 +382,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
                   transport_solve_ex_mim(dT, sol, Gt, SVE,...
                                   rock, fluidVE_h, bcVE, w, preComp,...
                                   cpp_accel);
-         case 'explicite_incomp_tpf'
+         case 'explicit_incomp_tpf'
             T = computeTrans(Gt, rock2D);
             T = T.*Gt.cells.H(gridCellNo(Gt));      
            preComp = initTransportVE(Gt, rock2D);
@@ -395,7 +395,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
             T = T.*Gt.cells.H(gridCellNo(Gt));                        
             transport_solver = @(sol,bcVE_s,WVE_s,dT)...
                 transport_solve_imp_tpf(dT, sol, Gt, T, fluidVE_s, WVE_s, bcVE_s, rock2D);
-        case 'explicite_incomp_tpf_s'                        
+        case 'explicit_incomp_tpf_s'                        
             T = computeTrans(Gt, rock2D);
             T = T.*Gt.cells.H(gridCellNo(Gt));                        
             transport_solver = @(sol,bcVE_s,WVE_s,dT)...
