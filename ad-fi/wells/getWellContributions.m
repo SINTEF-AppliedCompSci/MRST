@@ -97,6 +97,7 @@ for wnr = 1:numel(sol)
     ix = perf2well==wnr;
     sol(wnr).cqs     = cq_sDb(ix,:);
     sol(wnr).cstatus = cstatus(ix);
+    sol(wnr).status = status(wnr);
 end
 end
 %--------------------------------------------------------------------------

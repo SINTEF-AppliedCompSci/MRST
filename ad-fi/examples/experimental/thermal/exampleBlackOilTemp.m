@@ -57,7 +57,7 @@ rock.poro=phi*ones(G.cells.num,1);
 gravity off
 
 
-system = initADISystem({'Oil','Water','Gas','disgas'}, G, rock, fluid, 'cpr', false);
+
  system.nonlinear.tolMB=1e-5
  system.nonlinear.tolCNV=1e-7
  system.nonlinear.tol=1e-5;
@@ -78,7 +78,7 @@ fluid.uR = @(T) cR.*T;
 fluid.hW = @(p,T) cW.*T;
 fluid.hG = @(p,T) 0.1*cW.*T;
 fluid.hO = @(p,T) 0.7*cW.*T;
-
+system = initADISystem({'Oil','Water','Gas','disgas'}, G, rock, fluid, 'cpr', false);
 
 
 W=[];
@@ -143,6 +143,7 @@ switch myfys
         system.updateState  =@  updateStateBlackOilTemp;
         fluid.muW =@(p,T) fluid.muW(p)./(1+1e-2.*(T-300));
         fluid.muO =@(p,rs,isSat,T) fluid.muO(p,rs,isSat)./(1+10e-1.*(T-300));
+        system.fluid=fluid;
     case 'oil'
 
     otherwise
@@ -150,7 +151,7 @@ switch myfys
 end
 
 %[wellSols states iter] = runScheduleADI(state, G, rock, system, schedule);
-[wellSols states iter schedule] = runMrstADI(state, G, system, mrst_schedule,'force_step',false);
+[wellSols states iter schedule] = runMrstADI(state, G, system, mrst_schedule,'force_step',false,'dt_min',0.1*day);
 toc(timer)
 
 %% Plot the solution

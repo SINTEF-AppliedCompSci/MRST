@@ -60,9 +60,10 @@ switch fluid_case
        fluid.pcOW=@(sg,varargin) 1*barsa*(sg);
        mu1=0.4e-3;mu2=0.4e-4;
        fluid.muG=@(p,T) mu1+(mu2-mu1).*(T-273)./(300-273);
-       mu1=1e-3;mu2=0.4e-3;
+       mu1=1e-3;mu2=0.01e-3;
        fluid.muO=@(p,T) mu1+(mu2-mu1).*(T-273)./(300-273);
        fluid=rmfield(fluid,'relPerm');
+       fluid=rmfield(fluid,'BOxmuO');
        res_gas=0;
     otherwise
        disp('Use deck as fluid')

@@ -148,7 +148,11 @@ if isfield(f, 'BOxmuO')
     mobO   = trMult.*krO./f.BOxmuO(p);
     bOvO   = s.faceUpstr(upc, mobO).*s.T.*dpO;
 else
-    mobO   = trMult.*krO./f.muO(p);
+    if(opt.temperature)
+       mobO   = trMult.*krO./f.muO(p,T); 
+    else
+        mobO   = trMult.*krO./f.muO(p);
+    end
     bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
 end
 
