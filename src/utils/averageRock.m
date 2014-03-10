@@ -5,7 +5,7 @@ function rock2D = averageRock(rock, g_top)
 %   rock = averageRock(rock, g_top)
 %
 % PARAMETERS:
-%   rock    - rock structure for 3D grid
+%   rock    - rock structure for 3D grid.  
 %
 %   g_top   - top surface 2D grid as defined by function 'topSurfaceGrid'.
 %

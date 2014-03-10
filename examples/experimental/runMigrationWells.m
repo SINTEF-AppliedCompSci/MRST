@@ -182,7 +182,7 @@ ts=findTrappingStructure(Gt);
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
 opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE_h.sw], ...
-   'maxH', 5, 'Wadd', 10, 'view', [60 80]};
+        'maxH', 5, 'Wadd', 10, 'view', [60 80]};
 if(opt.plot)
  plotPanelVESimple(Gt.parent, Gt, W, sol, 0.0, [0 0 0 0 0 0 1], fluidVE_h, fluidADI, opts{:});
 end

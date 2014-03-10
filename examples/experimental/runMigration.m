@@ -402,7 +402,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
             
         case 'adi_simple'
            s=setupSimCompVe(Gt,rock2D);
-           fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
+           fluidADI = addVERelperm(fluidADI, Gt,'res_oil',sw,'res_gas',sr);
            systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                'simComponents',s,'VE',true);
 
@@ -412,7 +412,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
            fluidADI.bG = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
            fluidADI.BG = @(p) 1./fluidADI.bG(p);
            s=setupSimCompVe(Gt,rock2D);
-           fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
+           fluidADI = addVERelperm(fluidADI, Gt, 'res_oil',sw,'res_gas',sr);
            systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                'simComponents',s,'VE',true);
 
@@ -445,7 +445,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
             s=setupSimCompVe(Gt,rock2D);
             % important that add relperm is added after fluid properiece
             % since it is bounded to the  density
-            fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
+            fluidADI = addVERelperm(fluidADI, Gt,'res_oil',sw,'res_gas',sr);
             systemOG = initADISystemVE({'Oil', 'Gas','DisGas'}, Gt, rock2D, fluidADI,...
                 'simComponents',s,'VE',true,'tol',1e-5);
             systemOG.getEquations = @eqsfiBlackOilExplicitWellsOGVE_new;   

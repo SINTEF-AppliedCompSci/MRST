@@ -1,4 +1,4 @@
-function fluid = addVERelperm(fluid,varargin)   
+function fluid = addVEBlackOilRelperm(fluid,varargin)   
     opt=struct('res_oil',0,'res_gas',0,'Gt',[]);
     opt=merge_options(opt, varargin{:});        
     fluid.krG=@(sg,varargin) krG(sg,opt,varargin{:});

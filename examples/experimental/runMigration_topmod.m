@@ -414,7 +414,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
            fluidADI.bG = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
            fluidADI.BG = @(p) 1./fluidADI.bG(p);
            s=setupSimCompVe(Gt,rock2D);
-           fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
+           fluidADI = addVERelperm(fluidADI, Gt,'res_oil',sw,'res_gas',sr);
            systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                'simComponents',s,'VE',true);
 

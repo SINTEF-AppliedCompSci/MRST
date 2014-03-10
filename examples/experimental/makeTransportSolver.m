@@ -1,5 +1,8 @@
 function [transport_solver, fluidVE_h, fluidVE_s, fluidADI] = ...
     makeTransportSolver(solver, Gt, rock, rock2D, cpp_accel,opt)
+    
+    error(['This function is on-hold, and will need to be reviewed in a more ' ...
+           'comprehensive manner.  As for now, it should not be presumed to work.']);
 % 
 %
 % SYNOPSIS:
@@ -120,7 +123,7 @@ function [transport_solver, fluidVE_h, fluidVE_s, fluidADI] = ...
         fluidADI.bG = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
         fluidADI.BG = @(p) 1./fluidADI.bG(p);
         s=setupSimCompVe(Gt,rock2D);
-        fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
+        fluidADI = addVERelperm(fluidADI, Gt,'res_oil',sw,'res_gas',sr);
         systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                                    'simComponents',s,'VE',true);
         

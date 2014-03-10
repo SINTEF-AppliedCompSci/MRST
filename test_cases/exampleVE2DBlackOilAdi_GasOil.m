@@ -82,10 +82,9 @@ switch fluid_case
        fluid=rmfield(fluid,'relPerm');
        res_gas=0;
     case 'sharp_interface'    
-       fluid = addVERelperm(fluid,...
+       fluid = addVERelperm(fluid, Gt, 
                             'res_oil',res_oil,...
-                            'res_gas',res_gas,...
-                            'Gt',Gt);   
+                            'res_gas',res_gas);
     case 'integrate'
         res_gas = 0.0;
         fluid = addVERelpermCap(fluid,'alpha',1,'beta',1,'cap_scale',100*barsa,'H',Gt.cells.H,'kr_pressure',false);
@@ -146,7 +145,7 @@ switch fluid_case
                                
     case 'hystersis'
         
-        fluid = addVERelperm(fluid,'res_oil',0,'res_gas',res_gas,'Gt',Gt);
+        fluid = addVERelperm(fluid, Gt, 'res_oil',0,'res_gas',res_gas);
     otherwise
        disp('Use deck as fluid')
 end
