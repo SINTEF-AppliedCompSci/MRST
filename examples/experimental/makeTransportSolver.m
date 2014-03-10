@@ -66,8 +66,9 @@ function [transport_solver, fluidVE_h, fluidVE_s, fluidADI] = ...
     end
 
     %% Adding (hard-coded) compressibility values for the ADI fluid 
-    fluidADI.pvMultR =@(p) 1+(1e-5/barsa)*(p-100*barsa);
-    if(true)
+    fluidADI.pvMultR =@(p) 1+(1e-5/barsa)*(p-100*barsa); % rock matrix
+    
+    if(is_compressible_fluid(solver))
         fluidADI.bO = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
         fluidADI.BO = @(p) 1./fluidADI.bO(p);
         p_ref=mean(Gt.cells.z).*norm(gravity).*rho(2);%average hydrostatic pressure
@@ -105,30 +106,16 @@ function [transport_solver, fluidVE_h, fluidVE_s, fluidADI] = ...
         T = T.*Gt.cells.H(gridCellNo(Gt));                        
         transport_solver = @(sol,bcVE_s,WVE_s,dT)...
             transport_solve_imp_tpf_s(dT, sol, Gt, T, fluidVE_s, WVE_s, bcVE_s, rock2D);
-      case 'adi_simple'
+      
+      case {'adi_simple', 'adi_simple_incomp'}
+
         s=setupSimCompVe(Gt,rock2D);
-        %fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
-        fluidADI = addVERelperm_topmod(fluidADI,...
-                                       'res_oil'  , sw,...
-                                       'res_gas'  , sr,...
-                                       'Gt'       , Gt,...
-                                       'top_trap' , opt.top_trap);
-        
+        fluidADI = addVERelperm(fluidADI, Gt, 'res_oil',sw, 'res_gas',sr);
         systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                                    'simComponents',s,'VE',true,'tol',1e-6);
-        
         transport_solver = @(sol, bcVE_s, WVE_s, dT) ...
             transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT, fluidADI);
-      case 'adi_simple_incomp'
-        fluidADI.bG = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
-        fluidADI.BG = @(p) 1./fluidADI.bG(p);
-        s=setupSimCompVe(Gt,rock2D);
-        fluidADI = addVERelperm(fluidADI, Gt,'res_oil',sw,'res_gas',sr);
-        systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
-                                   'simComponents',s,'VE',true);
-        
-        transport_solver = @(sol,bcVE_s,WVE_s,dT)...
-            transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT, fluidADI);             
+      
       case {'adi_OGD_simple_inst','adi_OGD_simple_mix'}           
         pressure_case='simple_instant';
         %pressure_case='simple_time_mix';
@@ -143,23 +130,7 @@ function [transport_solver, fluidVE_h, fluidVE_s, fluidADI] = ...
             dis_par = 0.1;
             fluidADI.dis_rate = dis_par * dis_max / year;
         end
-        
-        % switch solver                   % @@ Odd: Look into simplifying this switch
-        %   case 'adi_OGD_simple_mix'
-        %     %l_fac=1e-10;
-        %     %fluidADI.bO=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
-        %     %fluidADI.BO=@(po,rs,flag,varargin) 1./fluid.bO(po,rs,flag,varargin);
-        %     dis_par=0.1;% meter per year;
-        %     fluidADI.dis_rate=dis_par*dis_max/year;
-        %     %fluid.dis_rate=5e-13*H;
-        %     fluidADI.bO=@(po,rs,flag,varargin) fluidADI.bO(po);%(po-200*barsa)*l_fac+1;
-        %     fluidADI.BO=@(po,rs,flag,varargin) 1./fluidADI.bO(po,rs,flag,varargin);
-        %   case 'adi_OGD_simple_inst'
-        %     %l_fac=0;
-        %     fluidADI.bO=@(po,rs,flag,varargin) fluidADI.bO(po);%(po-200*barsa)*l_fac+1;
-        %     fluidADI.BO=@(po,rs,flag,varargin) 1./fluidADI.bO(po,rs,flag,varargin);
-        %   otherwise
-        % end
+
         fluidADI.muO=@(po,rs,flag,varargin) fluidADI.muO(po);
         fluidADI.rsSat=@(po,rs,flag,varargin)   (po*0+1)*dis_max;
         s=setupSimCompVe(Gt,rock2D);
@@ -187,6 +158,25 @@ function [transport_solver, fluidVE_h, fluidVE_s, fluidADI] = ...
         transport_solver=[]; %#ok
     end
 end
+
+
+function res = is_compressible_fluid(solver)
+    
+    switch solver
+      case {'explicit_incomp_mim', ...
+            'implicit_incomp_tpf', ...
+            'explicit_incomp_tpf', ...
+            'adi_simple_incomp'}
+        res = false;
+      case {'adi_simple', ...
+            'adi_OGD_simple_inst', ...
+            'adi_OGD_simple_mix'}
+        res = true;
+      otherwise
+          error('Unrecognized case');
+    end
+end
+
 % ----------------------------------------------------------------------------
 function sol = transport_adiOGD_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluidADI)     
     
