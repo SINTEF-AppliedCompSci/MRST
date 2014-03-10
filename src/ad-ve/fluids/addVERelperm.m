@@ -15,8 +15,8 @@ function fluid = addVERelperm(fluid, varargin)
 %   varargin - Option/value pairs, where the following options are available:
 %              res_oil   - residual oil saturation (scalar)
 %              res_gas   - residual gas saturation (scalar)
-%              kro       - 
-%              krg       - 
+%              kro       - rel. perm of oil at full flowing saturation
+%              krg       - rel. perm of gas at full flowing saturation
 %              top_trap  - Thickness of sub-resolution caprock rugosity
 %              surf_topo - Sub-resolution rugosity geometry type.  Can be
 %                          'smooth', 'square', 'sinus' or 'inf_rough'.
