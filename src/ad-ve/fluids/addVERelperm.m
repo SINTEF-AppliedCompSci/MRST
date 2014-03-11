@@ -1,4 +1,4 @@
-function fluid = addVERelperm(fluid, varargin)
+function fluid = addVERelperm(fluid, Gt, varargin)
 % Add VE-upscaled rel.perm. (and related functions) for a two-phase fluid object
 %
 % SYNOPSIS:
