@@ -68,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       error(nargchk(1, 2, nargin, 'struct'));
    end
 
-   error(nargoutchk(1, 2, nargout, 'struct'));
+   %error(nargoutchk(1, 2, nargout, 'struct'));
 
    if nargin == 1, n = m; end
 
