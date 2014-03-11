@@ -438,7 +438,7 @@ function [G, P, B] = create_initial_grid(X, Y, Z)
    % number in first column. We must use column order Z, Y, X to obtain
    % natural ordering of points.
 
-   G.type = 'INVALID';
+   G.type = { 'INVALID' };
    G.griddim = 3;
 
    [G.nodes.coords, to, from] = unique([Z(:), Y(:), X(:)], 'rows');    %#ok
