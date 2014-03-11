@@ -452,7 +452,7 @@ function [G, P, B] = create_initial_grid(X, Y, Z)
    G.faces.nodes      = [];
    G.faces.nodePos    = [];
    G.faces.neighbors  = zeros(0, 2);
-   G.faces.tag        = []
+   G.faces.tag        = [];
    G.faces.cellTags   = [];
 
    P = reshape(from, 2 * G.cartDims);
