@@ -37,9 +37,9 @@ function obj = CO2props(rhofile, hfile, noassert)
   obj.phaseOf     = @(P, T) phase_of(P, T);
 
   % CO2 density and its derivatives  
-  obj.rhoDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT  (rho, P, T), @obj.rhoDPT,  @obj.rhoDTT);
+  obj.rhoDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT  (rho, P, T), @noder,  @noder);
   obj.rhoDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP  (rho, P, T), @noder,  @noder);
-  obj.density     = @(P, T) calcMulti(P, T, @(P, T) calcVal (rho, P, T), @noder,   @noder);
+  obj.density     = @(P, T) calcMulti(P, T, @(P, T) calcVal (rho, P, T), @obj.rhoDP,   @obj.rhoDT);
   obj.rhoInfo = @() printInfo(rho);
   
   
@@ -213,21 +213,10 @@ end
 function tables = deriv_tables(base, delta_p, delta_t)
     
     % computing derivatives in pressure
-    tables.dp     = diff(base,        1, 1) / delta_p;
-    tables.dpp    = diff(tables.dp,   1, 1) / delta_p;
-    tables.dppp   = diff(tables.dpp,  1, 1) / delta_p;
-    
+    tables.dp     = diff(base,        1, 1) / delta_p;        
     % computing derivatives in temperature
     tables.dt     = diff(base,        1, 2) / delta_t;
-    tables.dtt    = diff(tables.dt,   1, 2) / delta_t;
-    tables.dttt   = diff(tables.dtt,  1, 2) / delta_t;
-
-    % computing cross derivative
-    tables.dpt    = diff(tables.dp,   1, 2) / delta_t;
     
-    % computer higher mixed derivatives
-    tables.dppt   = diff(tables.dpt,  1, 1) / delta_p;
-    tables.dptt   = diff(tables.dpt,  1, 2) / delta_t;
 end
 
 
