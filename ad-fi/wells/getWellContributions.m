@@ -1,4 +1,4 @@
-function [eqs, cq_s, sol] = getWellContributions(W, sol, pBH, q_s, p, rho_s, b, r, rMax, m, varargin)
+function [eqs, cq_s, sol, Rw] = getWellContributions(W, sol, pBH, q_s, p, rho_s, b, r, rMax, m, varargin)
 % [eqs, cq_s, sol, closedConns] = getWellContributions(W, sol, pBH, q_s, p, rho_s, b, r, rMax, m, varargin)
 % INPUT:
 % W     : well-structure
@@ -81,7 +81,7 @@ end
 % end
 
 % Compute well-flow and get first nPh well equations
-[eqs, cq_s, mix_s, status, cstatus] = computeWellContributions(...
+[eqs, cq_s, mix_s, status, cstatus, Rw] = computeWellContributions(...
                     W, sol, pBH, q_s, p, b, r, m, model, ...
                     opt.allowWellSignChange, opt.allowCrossFlow);
 
