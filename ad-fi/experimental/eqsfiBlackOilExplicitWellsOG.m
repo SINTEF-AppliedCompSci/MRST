@@ -24,7 +24,7 @@ else
     sGmax=[];
 end
 rs   = state.rs;
-pBHP = vertcat(state.wellSol.pressure);
+pBHP = vertcat(state.wellSol.bhp);
 qOs  = vertcat(state.wellSol.qOs);
 qGs  = vertcat(state.wellSol.qGs);
 

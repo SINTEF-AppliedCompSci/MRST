@@ -87,170 +87,228 @@ end
 end
 
 %--------------------------------------------------------------------------
+% This is a 'cleaned' version of this function.  The original version, with
+% varous comment-outs and original indenting, is preserved below
+% (commented-out) for future reference.
 function [state, nInc] = updateState(W, state, dx, f, explTrms)
-%maxSatStep = .25;
 
+    maxSatCh = .2;
+    dp       = dx{1};
+    dsg      = dx{2};
+    drs      = dx{3};
+    inx      = abs(dsg) > maxSatCh;
+    dsg(inx) = sign(dsg(inx))*maxSatCh;
+    cap      = @(x) max(x, 0);
 
-maxSatCh = .2;
-%maxRsCh  = inf;
+    nInc = max( [norm(dp,'inf')/norm(state.pressure, 'inf'), ...
+                 norm(dsg,'inf'), ...
+                 norm(drs,'inf')/norm(state.rs, 'inf')] );
 
-% d = findDampening(state, W, dx{8});
-% dx = cellfun(@(x) x*d, dx, 'UniformOutput', false);
+    state.pressure = cap(state.pressure + dp);
+    % state.pressure(state.pressure<200*barsa)=201*barsa; % @@ This line really
+                                                          % doesn't seem right,
+                                                          % so I commented it out
+                                                          % for now.
+    state.rs = cap(state.rs + drs);
+    sg       = state.s(:,2) + dsg;
 
-dp  = dx{1};
-
-%dsw = dx{2};
-%inx = abs(dsw) > maxSatCh;
-%dsw(inx) = sign(dsw(inx))*maxSatCh;
-
-dsg = dx{2};
-inx = abs(dsg) > maxSatCh;
-dsg(inx) = sign(dsg(inx))*maxSatCh;
-
-drs = dx{3};
-
-cap = @(x) max(x, 0);
-
-nInc = max( [norm(dp,'inf')/norm(state.pressure, 'inf'), ...
-             norm(dsg,'inf'), ...
-             norm(drs,'inf')/norm(state.rs, 'inf')] );
-
-
-%dp(dp>30*barsa)=30*barsa;
-%dp(dp<30*barsa)=-30*barsa;
-
-state.pressure = cap(state.pressure + dp);
-%state.pressure = (state.pressure + dp);
-state.pressure(state.pressure<200*barsa)=201*barsa;
-rs = cap(state.rs + drs);
-
-
-%{
-%This has serios troubles with time dependent resolution
-state0 = state;
-epsilon = sqrt(eps);
-appG = true;
-if appG
-    sg0 = state0.s(:,2);
-    isSat0  = sg0 > 0;
-    keepSat = sg0 > epsilon*(1+eps);
-
-    rs0    = state0.rs;
-    rsSat0 = f.rsSat(state0.pressure);
-    keepUSat = rs0 < rsSat0*(1-epsilon)*(1-eps);
-
-    sg  = sg0 + dsg;
-    rsSat = f.rsSat(state.pressure);
-    isSat = or(sg > 0, rs > rsSat);
-
-    setToEps  = and(isSat<isSat0, keepSat);
-    setToZero = and(isSat<isSat0, ~keepSat);
-
-    setToMaxEps = and(isSat>isSat0, keepUSat);
-    setToMax    = and(isSat>isSat0, ~keepUSat);
-
-    sg(setToEps)  = epsilon;
-    rs(setToEps)  = rsSat(setToEps);
-
-    sg(setToZero) = 0;
-    rs(setToZero) = rsSat(setToZero)*(1-epsilon);
-
-    sg(setToMaxEps) = 0;
-    rs(setToMaxEps) = rsSat(setToMaxEps)*(1-epsilon);
-
-    sg(setToMax) = epsilon;
-    rs(setToMax) = rsSat(setToMax);
-
-else
-%}
-    sg = state.s(:,2) + dsg;
-%end
-
-
-state.rs = rs;
-if(isfield(f,'cutValues') & false)
-    state.s  = [1-sg, sg];
-    state=f.cutValues(state);
-else
     sg=max(0,sg);
     sg=min(1,sg);
     state.s  = [1-sg, sg];
-end
 
+    %--------------
+    % NB: eqnnames = {'Oil', 'Gas', 'Dis.Gas', 'qOs', 'qGs', 'pBHP'};
+    dqOs  = dx{4};
+    dqGs  = dx{5};
+    dpBHP = dx{6}; %maybe put some limit on this?
 
-%--------------
-%eqnnames = {'Oil', 'Gas', 'Dis.Gas', 'qOs', 'qGs', 'pBHP'};
-dpBHP = dx{6}; %maybe put some limit on this?
-dqOs  = dx{4};
-dqGs  = dx{5};
+    for w = 1:numel(state.wellSol)
+        state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
+        state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
+        state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
+    end
 
-
-
-for w = 1:numel(state.wellSol)
-    state.wellSol(w).pressure = state.wellSol(w).pressure + dpBHP(w);
-    state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
-    state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
-end
-
-% Add explicit terms
-if isfield(explTrms, 'wellFlux')
-    cc = 0;
-    winx = [0; cumsum(arrayfun(@(x)numel(x.cells), W))];
-    for wnr = 1:numel(W)
-        state.wellSol(wnr).flux = explTrms.wellFlux((winx(wnr)+1) : winx(wnr+1),:);
-        if any(state.wellSol(wnr).flux.*W(wnr).sign < 0)
-            cc = cc +1;
+    % Add explicit terms
+    if isfield(explTrms, 'wellFlux')
+        winx = [0; cumsum(arrayfun(@(x)numel(x.cells), W))];
+        for wnr = 1:numel(W)
+            state.wellSol(wnr).flux = explTrms.wellFlux((winx(wnr)+1) : winx(wnr+1),:);
         end
     end
-%    if cc > 0
-%        warning(['Crossflow appeared in ', num2str(cc), ' wells']);
-%    end
-end
-if isfield(explTrms, 'conPr')
-    winx = [0; cumsum(arrayfun(@(x)numel(x.cells), W))];
-    for wnr = 1:numel(W)
-        state.wellSol(wnr).cpr = explTrms.conPr((winx(wnr)+1) : winx(wnr+1),:);
-    end
-end
-end
-
-function wsol = updateWellSol(w, wsol, dp, dqO, dqG)
-
-    dmod = 1;
-    pressure = wsol.pressure + dp;
-    if ((w.sign ==  1) && pressure > w.bhpLimit) ||...
-       ((w.sign == -1) && pressure < w.bhpLimit)
-        overstep = w.sign*(pressure - w.bhpLimit);
-        dmod = 1 - overstep/dp;
-        pressure = w.bhpLimit + w.sign*1*barsa;
-    end
-    wsol.pressure = pressure;
-    % Ensure that we take a step equal to
-    wsol.qOs = wsol.qOs + dmod*dqO;
-    wsol.qGs = wsol.qGs + dmod*dqG;
-end
-
-function d = findDampening(state, W, dp)
-
-    d = 1;
-    for i = 1:numel(W)
-        pressure = state.wellSol(i).pressure + dp(i);
-        w = W(i);
-        if ~strcmp(w.type, 'bhp')
-            assert(((w.sign ==  1) && state.wellSol(i).pressure - sqrt(eps) <= w.bhpLimit) || ((w.sign == -1) && state.wellSol(i).pressure + sqrt(eps) >= w.bhpLimit))
+    if isfield(explTrms, 'conPr')
+        winx = [0; cumsum(arrayfun(@(x)numel(x.cells), W))];
+        for wnr = 1:numel(W)
+            state.wellSol(wnr).cpr = explTrms.conPr((winx(wnr)+1) : winx(wnr+1),:);
         end
-        if ((w.sign ==  1) && pressure > w.bhpLimit) ||...
-           ((w.sign == -1) && pressure < w.bhpLimit)
-            overstep = w.sign*(pressure - w.bhpLimit);
+    end
+end
 
-            dmod = overstep/dp(i);
-%             if( abs(dmod) == 1)
-%                 dmod = .1;
+
+% %--------------------------------------------------------------------------
+% function [state, nInc] = updateState(W, state, dx, f, explTrms)
+% %maxSatStep = .25;
+
+
+% maxSatCh = .2;
+% %maxRsCh  = inf;
+
+% % d = findDampening(state, W, dx{8});
+% % dx = cellfun(@(x) x*d, dx, 'UniformOutput', false);
+
+% dp  = dx{1};
+
+% %dsw = dx{2};
+% %inx = abs(dsw) > maxSatCh;
+% %dsw(inx) = sign(dsw(inx))*maxSatCh;
+
+% dsg = dx{2};
+% inx = abs(dsg) > maxSatCh;
+% dsg(inx) = sign(dsg(inx))*maxSatCh;
+
+% drs = dx{3};
+
+% cap = @(x) max(x, 0);
+
+% nInc = max( [norm(dp,'inf')/norm(state.pressure, 'inf'), ...
+%              norm(dsg,'inf'), ...
+%              norm(drs,'inf')/norm(state.rs, 'inf')] );
+
+
+% %dp(dp>30*barsa)=30*barsa;
+% %dp(dp<30*barsa)=-30*barsa;
+
+% state.pressure = cap(state.pressure + dp);
+% %state.pressure = (state.pressure + dp);
+% state.pressure(state.pressure<200*barsa)=201*barsa;
+% rs = cap(state.rs + drs);
+
+
+% %{
+% %This has serios troubles with time dependent resolution
+% state0 = state;
+% epsilon = sqrt(eps);
+% appG = true;
+% if appG
+%     sg0 = state0.s(:,2);
+%     isSat0  = sg0 > 0;
+%     keepSat = sg0 > epsilon*(1+eps);
+
+%     rs0    = state0.rs;
+%     rsSat0 = f.rsSat(state0.pressure);
+%     keepUSat = rs0 < rsSat0*(1-epsilon)*(1-eps);
+
+%     sg  = sg0 + dsg;
+%     rsSat = f.rsSat(state.pressure);
+%     isSat = or(sg > 0, rs > rsSat);
+
+%     setToEps  = and(isSat<isSat0, keepSat);
+%     setToZero = and(isSat<isSat0, ~keepSat);
+
+%     setToMaxEps = and(isSat>isSat0, keepUSat);
+%     setToMax    = and(isSat>isSat0, ~keepUSat);
+
+%     sg(setToEps)  = epsilon;
+%     rs(setToEps)  = rsSat(setToEps);
+
+%     sg(setToZero) = 0;
+%     rs(setToZero) = rsSat(setToZero)*(1-epsilon);
+
+%     sg(setToMaxEps) = 0;
+%     rs(setToMaxEps) = rsSat(setToMaxEps)*(1-epsilon);
+
+%     sg(setToMax) = epsilon;
+%     rs(setToMax) = rsSat(setToMax);
+
+% else
+% %}
+%     sg = state.s(:,2) + dsg;
+% %end
+
+
+% state.rs = rs;
+% if(isfield(f,'cutValues') & false)
+%     state.s  = [1-sg, sg];
+%     state=f.cutValues(state);
+% else
+%     sg=max(0,sg);
+%     sg=min(1,sg);
+%     state.s  = [1-sg, sg];
+% end
+
+
+% %--------------
+% %eqnnames = {'Oil', 'Gas', 'Dis.Gas', 'qOs', 'qGs', 'pBHP'};
+% dpBHP = dx{6}; %maybe put some limit on this?
+% dqOs  = dx{4};
+% dqGs  = dx{5};
+
+
+
+% for w = 1:numel(state.wellSol)
+%     state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
+%     state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
+%     state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
+% end
+
+% % Add explicit terms
+% if isfield(explTrms, 'wellFlux')
+%     cc = 0;
+%     winx = [0; cumsum(arrayfun(@(x)numel(x.cells), W))];
+%     for wnr = 1:numel(W)
+%         state.wellSol(wnr).flux = explTrms.wellFlux((winx(wnr)+1) : winx(wnr+1),:);
+%         if any(state.wellSol(wnr).flux.*W(wnr).sign < 0)
+%             cc = cc +1;
+%         end
+%     end
+% %    if cc > 0
+% %        warning(['Crossflow appeared in ', num2str(cc), ' wells']);
+% %    end
+% end
+% if isfield(explTrms, 'conPr')
+%     winx = [0; cumsum(arrayfun(@(x)numel(x.cells), W))];
+%     for wnr = 1:numel(W)
+%         state.wellSol(wnr).cpr = explTrms.conPr((winx(wnr)+1) : winx(wnr+1),:);
+%     end
+% end
+% end
+
+% function wsol = updateWellSol(w, wsol, dp, dqO, dqG)
+
+%     dmod = 1;
+%     pressure = wsol.pressure + dp;
+%     if ((w.sign ==  1) && pressure > w.bhpLimit) ||...
+%        ((w.sign == -1) && pressure < w.bhpLimit)
+%         overstep = w.sign*(pressure - w.bhpLimit);
+%         dmod = 1 - overstep/dp;
+%         pressure = w.bhpLimit + w.sign*1*barsa;
+%     end
+%     wsol.pressure = pressure;
+%     % Ensure that we take a step equal to
+%     wsol.qOs = wsol.qOs + dmod*dqO;
+%     wsol.qGs = wsol.qGs + dmod*dqG;
+% end
+
+% function d = findDampening(state, W, dp)
+
+%     d = 1;
+%     for i = 1:numel(W)
+%         pressure = state.wellSol(i).bhp + dp(i);
+%         w = W(i);
+%         if ~strcmp(w.type, 'bhp')
+%             assert(((w.sign ==  1) && state.wellSol(i).bhp - sqrt(eps) <= w.bhpLimit) || ((w.sign == -1) && state.wellSol(i).bhp + sqrt(eps) >= w.bhpLimit))
+%         end
+%         if ((w.sign ==  1) && pressure > w.bhpLimit) ||...
+%            ((w.sign == -1) && pressure < w.bhpLimit)
+%             overstep = w.sign*(pressure - w.bhpLimit);
+
+%             dmod = overstep/dp(i);
+% %             if( abs(dmod) == 1)
+% %                 dmod = .1;
+% %             end
+%             d = min(1 - dmod, d);
+%             if d < sqrt(eps)
+%                 d = 1e-3;
 %             end
-            d = min(1 - dmod, d);
-            if d < sqrt(eps)
-                d = 1e-3;
-            end
-        end
-    end
-end
+%         end
+%     end
+% end

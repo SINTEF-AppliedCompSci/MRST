@@ -1,4 +1,4 @@
-function wellSol = initWellSolLocal(W, x)
+function wellSol = initWellSolLocalOrig(W, x)
 %Initialize well solution data structure.
 %
 % SYNOPSIS:
@@ -53,7 +53,7 @@ if ~isstruct(x)
         wellSol(w).qWs      = 0;
         wellSol(w).qOs      = 0;
         wellSol(w).qGs      = 0;
-        wellSol(w).pressure = x;%repmat(p0, [numel(W(w).cells), 1]);
+        wellSol(w).bhp = x;%repmat(p0, [numel(W(w).cells), 1]);
     end
 elseif isstruct(x) %state
     if isfield(x, 'wellSol')
@@ -69,9 +69,9 @@ elseif isstruct(x) %state
                     limit = @max;
                 end
                 if isfield(W, 'bhpLimit')
-                    wellSol(w).pressure = limit(x.pressure(W(w).cells(1)) + W(w).sign*10*barsa, W(w).bhpLimit - sqrt(eps));
+                    wellSol(w).bhp = limit(x.pressure(W(w).cells(1)) + W(w).sign*10*barsa, W(w).bhpLimit - sqrt(eps));
                 else
-                    wellSol(w).pressure = x.pressure(W(w).cells(1)) + W(w).sign*10*barsa;
+                    wellSol(w).bhp = x.pressure(W(w).cells(1)) + W(w).sign*10*barsa;
                 end
             end
         else
@@ -95,9 +95,9 @@ elseif isstruct(x) %state
                 limit = @max;
             end
             if isfield(W, 'bhpLimit')
-                wellSol(w).pressure = limit(x.pressure(W(w).cells(1)) + W(w).sign*10*barsa, W(w).bhpLimit - sqrt(eps));
+                wellSol(w).bhp = limit(x.pressure(W(w).cells(1)) + W(w).sign*10*barsa, W(w).bhpLimit - sqrt(eps));
             else
-                wellSol(w).pressure = x.pressure(W(w).cells(1)) + W(w).sign*10*barsa;
+                wellSol(w).bhp = x.pressure(W(w).cells(1)) + W(w).sign*10*barsa;
             end
         end
     end

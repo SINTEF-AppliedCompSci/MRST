@@ -65,7 +65,7 @@ state0 = initResSol(G, 6000*psia, initSat);
 state0.wellSol = initWellSolLocal(W, state0);
 
 for i = 1:numel(W)
-    state0.wellSol(i).pressure = W(i).val;
+    state0.wellSol(i).bhp = W(i).val;
     % Set well sign
     if strcmpi(W(i).name(1), 'p')
         W(i).sign = -1;

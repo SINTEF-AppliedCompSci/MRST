@@ -208,12 +208,12 @@ function [eqs, state, hst] = eqsfiBlackOilTemp(state0, state, dt, G, W, s, f, va
                                           {mobW(wc), mobO(wc), mobG(wc)}, ...
                                           state.wellSol, opt.stepOptions.maxitWell);
         if isa(pBHP, 'ADI')
-            pBHP.val = vertcat(state.wellSol.pressure);
+            pBHP.val = vertcat(state.wellSol.bhp);
             qWs.val  = vertcat(state.wellSol.qWs);
             qOs.val  = vertcat(state.wellSol.qOs);
             qGs.val  = vertcat(state.wellSol.qGs);
         else
-            pBHP = vertcat(state.wellSol.pressure);
+            pBHP = vertcat(state.wellSol.bhp);
             qWs  = vertcat(state.wellSol.qWs);
             qOs  = vertcat(state.wellSol.qOs);
             qGs  = vertcat(state.wellSol.qGs);

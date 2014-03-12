@@ -189,7 +189,7 @@ for tstep = opt.startAt:numel(dt)
     if(~isempty(W))
     s = [W.sign];
 
-    insideLimits = s.*[state.wellSol.pressure] <= [W.bhpLimit].*s;
+    insideLimits = s.*[state.wellSol.bhp] <= [W.bhpLimit].*s;
     if ~all(insideLimits) && opt.Verbose;
         fprintf('Well(s) outside limit: ')
         fprintf('%s ', W(~insideLimits).name);
