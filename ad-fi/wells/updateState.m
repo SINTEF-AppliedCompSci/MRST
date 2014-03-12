@@ -91,7 +91,7 @@ assert(all(state.s(:) >= 0))
 %wells:
 if ~stepOpts.solveWellEqs
     dpBH = dx{8};
-    dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.pressure)));
+    dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.bhp)));
 
     dqWs  = dx{5};
     dqOs  = dx{6};

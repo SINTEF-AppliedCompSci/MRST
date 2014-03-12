@@ -123,7 +123,7 @@ function [state, nInc] = updateState(W, state, dx, f, explTrms)
     dpBHP = dx{6}; %maybe put some limit on this?
 
     for w = 1:numel(state.wellSol)
-        state.wellSol(w).pressure = state.wellSol(w).pressure + dpBHP(w);
+        state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
         state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
         state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
     end
@@ -245,7 +245,7 @@ end
 
 
 % for w = 1:numel(state.wellSol)
-%     state.wellSol(w).pressure = state.wellSol(w).pressure + dpBHP(w);
+%     state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
 %     state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
 %     state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
 % end
@@ -292,10 +292,10 @@ end
 
 %     d = 1;
 %     for i = 1:numel(W)
-%         pressure = state.wellSol(i).pressure + dp(i);
+%         pressure = state.wellSol(i).bhp + dp(i);
 %         w = W(i);
 %         if ~strcmp(w.type, 'bhp')
-%             assert(((w.sign ==  1) && state.wellSol(i).pressure - sqrt(eps) <= w.bhpLimit) || ((w.sign == -1) && state.wellSol(i).pressure + sqrt(eps) >= w.bhpLimit))
+%             assert(((w.sign ==  1) && state.wellSol(i).bhp - sqrt(eps) <= w.bhpLimit) || ((w.sign == -1) && state.wellSol(i).bhp + sqrt(eps) >= w.bhpLimit))
 %         end
 %         if ((w.sign ==  1) && pressure > w.bhpLimit) ||...
 %            ((w.sign == -1) && pressure < w.bhpLimit)

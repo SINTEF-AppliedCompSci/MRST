@@ -128,7 +128,7 @@ function [W, meta, state, changed] = checkWellLimits(W, meta, state, useBHP)
            ((w.sign == -1) && ws.pressure < w.bhpLimit) || useBHP
             W(i).type = 'bhp';
             W(i).val = w.bhpLimit;
-            state.wellSol(i).pressure = w.bhpLimit;
+            state.wellSol(i).bhp = w.bhpLimit;
 %             fprintf('\t%d Limit %2.2g, was %2.2g\n', w.sign, w.bhpLimit, ws.pressure);
             fprintf('Changing well %s!\n', W(i).name);
             changed = true;

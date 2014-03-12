@@ -27,7 +27,7 @@ if(isfield(state0,'smax'))
 else
     sGmax=[];
 end
-pBHP = vertcat(state.wellSol.pressure);
+pBHP = vertcat(state.wellSol.bhp);
 qGs  = vertcat(state.wellSol.qGs);
 qOs  = vertcat(state.wellSol.qOs);
 
