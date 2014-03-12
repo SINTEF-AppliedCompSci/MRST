@@ -208,8 +208,8 @@ while t < T,
    % convert from height to saturation
    sol.s = height2Sat(sol, g_top, fluid_v);
    %-----------------------------------------------------------------------
-   bhp3D =   [bhp3D; rSol.wellSol.pressure];
-   bhp2D = [bhp2D; sol.wellSol.pressure];
+   bhp3D =   [bhp3D; rSol.wellSol.bhp];
+   bhp2D = [bhp2D; sol.wellSol.bhp];
    assert(max(sol.s(:,1)) < 1+eps && min(sol.s(:,1)) > -eps);
    % Increase time:
    t = t + dT;

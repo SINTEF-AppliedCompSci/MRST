@@ -212,7 +212,7 @@ while t<T
            if(method<4)
                totMas = totMas + fluidVE_h.rho(1).*w.val*dT;
            else
-               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.pressure);
+               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.bhp);
                totMas = totMas + rhoCO2_well.*sol.state.wellSol.qGs*dT;
                masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
                co2mass= masses(1)+masses(3);

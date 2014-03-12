@@ -223,7 +223,7 @@ while t<T
            if(method<4)
                totMas = totMas + fluidVE_h.rho(1).*w.val*dT;
            else
-               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.pressure);
+               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.bhp);
                totMas = totMas + rhoCO2_well.*sum(vertcat(sol.state.wellSol.qGs))*dT;
                masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
                co2mass= masses(1)+masses(3);
@@ -278,7 +278,7 @@ while t<T
        fprintf(1,'%4d years\n', convertTo(t,year));
        fprintf(1,'Maximum pressure cell diff %f\n', (convertTo(max(sol.pressure-p0),barsa)));
        if(~isempty(w))       
-        fprintf(1,'Maximum pressure well diff %f\n', convertTo(max(vertcat(sol.state.wellSol.pressure)),barsa));
+        fprintf(1,'Maximum pressure well diff %f\n', convertTo(max(vertcat(sol.state.wellSol.bhp)),barsa));
        end
        
    end
