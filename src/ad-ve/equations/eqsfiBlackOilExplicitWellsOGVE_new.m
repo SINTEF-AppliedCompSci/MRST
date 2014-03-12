@@ -186,7 +186,7 @@ if(~isempty(W))
         mobGw(iInxO) = 0;
         mobOw(iInxO) = (mobGw(iInxO) + mobOw(iInxO));
     else
-        mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));
+        mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));  @@ Magic number?
         mobOw(iInxG) = 0;
         mobGw(iInxO) = 0;
         mobOw(iInxO) = 1./1e-3;%muO(wc(iInxO));
@@ -379,7 +379,7 @@ if(isfield(f,'dis_rate'))
     
 else
     eqs{3} = sG + 0*sG0;
-    eqs{3}(isSat) = rs(isSat) - rsSat(isSat);
+    eqs{3}(isSat) = rs(isSat) - rsSat(isSat); % Force saturation to equal max saturation
     eqs{7}=sGmax-max(sGmax0,sG);
 end
 
@@ -392,7 +392,7 @@ end
 if(~isempty(W))
     eqs{4} = -Rw'*bOqO + qOs + zeroW;
     eqs{5} = -Rw'*(bGqG + rsw.*bOqO) + qGs + zeroW;
-    eqs{6} = handleBC(W, pBHP, [], qOs, qGs, scalFacs) + zeroW;
+    eqs{6} = handleBC(W, pBHP, [], qOs, qGs, scalFacs) + zeroW; 
 else
     eqs{4} = zeroW;
     eqs{5}  = zeroW;
