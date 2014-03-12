@@ -1,0 +1,48 @@
+function obj = CO2props_simple()
+% from dumux
+obj.density =@(p,T) g_density(T,p);
+obj.enthalpy =@(p,T) g_enthalpy(T,p);
+obj.viscosity = @(p,T) g_viscosity(T,p);
+end
+
+function v= l_enthalpy(T,p)
+v= (T - 298.15)*5e3;
+end
+function v= g_entalpy(T,p)
+v= (T - 298.15)*5e3;
+end
+function v = g_enthalpy(T,p)
+   v = 571.3e3 + (T - 298.15)*0.85e3;
+end
+
+function v=g_density(T,p)
+mM=44e-3;%molarMass()
+R = 8.314472
+%idal gass
+ v = pressure*mM./(R*T);
+end
+function v= g_viscosity(T,p)
+
+Tc = 273.15 + 30.95;%criticalTemperature();
+Vc = 93.9; %// critical specific volume [cm^3/mol]
+omega = 0.239; %// accentric factor
+mM=44e-3;%molarMass()
+M = mM * 1e3; %// molar mas [g/mol]
+dipole = 0.0; %// dipole moment [debye]
+
+mu_r4 = 131.3 * dipole / sqrt(Vc * Tc);
+mu_r4= power(mu_r4,3);
+%mu_r4 *= mu_r4;
+%mu_r4 *= mu_r4;
+
+Fc = 1 - 0.2756*omega + 0.059035*mu_r4;
+Tstar = 1.2593 * temperature/Tc;
+Omega_v =...
+    1.16145*power(Tstar, -0.14874) +...
+    0.52487*exp(- 0.77320*Tstar) +...
+    2.16178*exp(- 2.43787*Tstar);
+mu = 40.785*Fc*sqrt(M*temperature)./(power(Vc, 2./3)*Omega_v);
+
+%// convertion from micro poise to Pa s
+v=mu/1e6 / 10;
+end
