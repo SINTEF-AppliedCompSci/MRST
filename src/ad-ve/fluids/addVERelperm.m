@@ -45,14 +45,16 @@ function fluid = addVERelperm(fluid, Gt, varargin)
                'surf_topo',     'smooth');
    
     opt = merge_options(opt, varargin{:});        
+
     fluid.krG=@(sg, p, varargin) krG(sg, Gt, opt, varargin{:});
     fluid.krOG=@(so, p, varargin) krOG(so,opt,varargin{:});
-    fluid.pcOG=@(sg, p, varargin) pcOG(sg,p ,fluid,opt,varargin{:});
-    fluid.cutValues=@(state,varargin) cutValues(state,opt);
-    fluid.invPc3D = @(p) invPc3D(p,opt);
-    fluid.kr3D =@(s) s;
-    fluid.res_gas = opt.res_gas;
-    fluid.res_oil =opt.res_oil;
+    fluid.pcOG=@(sg, p, varargin) pcOG(sg, p ,fluid, Gt, opt, varargin{:});
+
+    fluid.cutValues = @(state,varargin) cutValues(state,opt);
+    fluid.invPc3D   = @(p) invPc3D(p,opt);
+    fluid.kr3D      = @(s) s;
+    fluid.res_gas   = opt.res_gas;
+    fluid.res_oil   = opt.res_oil;
 end
 
 % ============================================================================
@@ -145,7 +147,7 @@ function kr= krOG(so,opt,varargin)
 end
 
 % ----------------------------------------------------------------------------
-function pc = pcOG(sg, p, fluid, opt, varargin)
+function pc = pcOG(sg, p, fluid, Gt, opt, varargin)
     loc_opt = struct('sGmax',[]);    
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
@@ -156,7 +158,7 @@ function pc = pcOG(sg, p, fluid, opt, varargin)
              norm(gravity) .* sg_free .* Gt.cells.H;
     else
        pc = (fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)) * ...
-            norm(gravity) .*sg.*opt.Gt.cells.H;
+            norm(gravity) .*sg.*Gt.cells.H;
     end
     pc = pc / (1-opt.res_oil);
 end
