@@ -70,8 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if ~isempty(bc), assert (~isempty(bc.sat))
-      is_int = all(double(G.faces.neighbors) > 0, 2);
-      [i, s] = contrib_bc(G, state, bc, is_int);
+      [i, s] = contrib_bc(G, state, bc);
       qi = [qi; i];
       qs = [qs; s];
    end
@@ -119,31 +118,37 @@ end
 
 %--------------------------------------------------------------------------
 
-function [qi, qs] = contrib_bc(G, state, bc, is_int)
+function [qi, qs] = contrib_bc(G, state, bc)
    % Contributions from boundary conditions as defined by 'addBC'.
 
-   qs = zeros([G.faces.num, 1]);
-   dF = false([G.faces.num, 1]);
+   N = getNeighbourship(G, 'Geometrical', true);
+   N = double(N(bc.face, :));
 
+   assert (all(sum(N == 0, 2) == 1), ...
+           'Boundary condition supplied on internal face?');
+
+   bdryCell   = @(i) sum(N(i, :), 2);
+   bcFluxSign = @(i) 2*(N(i, 1) == 0) - 1;
+
+   % 1) Dirichlet BCs.  Retrieve rate from state.flux.
    isDir = strcmp('pressure', bc.type);
-   isNeu = strcmp('flux',     bc.type);
+   qi    = bdryCell  (isDir);
+   qs    = bcFluxSign(isDir) .* state.flux(bc.face(isDir));
 
-   dF(bc.face(isDir))      = true;
-   cfIx                    = dF(G.cells.faces(:,1));
+   % 2) Neumann BCs.  Retrieve rate from BC specification itself.
+   isNeu = strcmp('flux', bc.type);
+   qi    = [ qi ; bdryCell(isNeu) ];
+   qs    = [ qs ; bc.value(isNeu) ];
 
-   cflux = faceFlux2cellFlux(G, state.flux);
-   qs(G.cells.faces(cfIx,1)) = -cflux(cfIx);
-   qs(bc.face(isNeu))      = bc.value(isNeu);
-
-   % Injection BC's have positive rate (flux) into reservoir.
+   % Injection BCs have positive rate (flux) into reservoir.
    %
    is_inj = qs > 0;
    if any(is_inj),
-      qs(is_inj) = qs(is_inj) .* bc.sat(is_inj(bc.face), 1);
+      i = [ reshape(find(isDir), [], 1) ; ...
+            reshape(find(isNeu), [], 1) ];
+
+      assert (numel(is_inj) == numel(i), 'Internal error in contrib_bc');
+
+      qs(is_inj) = qs(is_inj) .* bc.sat(i(is_inj), 1);
    end
-
-   is_outer = ~is_int;
-
-   qi = sum(G.faces.neighbors(is_outer,:), 2);
-   qs = qs(is_outer);
 end
