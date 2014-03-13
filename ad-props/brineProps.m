@@ -1,12 +1,12 @@
-function brine = brine(salinity)
+function brine = brineProps(salinity)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
-h2o_s=h2o();
+h2o=h2oProps();
 
 brine.viscosity = @(p,T) viscosity(T,p,salinity);
-brine.density = @(p,T) density(T,p,h2o_s,salinity);
-brine.enthalpy = @(p,T) enthalpy(T,p,h2o_s,salinity);
-
+brine.density = @(p,T) density(T,p,h2o,salinity);
+brine.enthalpy = @(p,T) enthalpy(T,p,h2o,salinity);
+brine.name='brine';
 %brine=viscosity(T,p,salinity);
 %brine=density(T,p,h2o_s,salinity);
 %brine=enthalpy(T,p,h2o_s,salinity);
@@ -68,7 +68,7 @@ hw = h2o.enthalpy(p, T)/1E3;% /* kJ/kg */
 
 %/*DAUBERT and DANNER*/
 %/*U=*/
-h_NaCl = (3.6710E4*T + 0.5*(6.2770E1)*T*T - ((6.6670E-2)/3)*T*T*T
+h_NaCl = (3.6710E4*T + 0.5*(6.2770E1).*T.*T - ((6.6670E-2)/3).*T.*T.*T...
                 +((2.8000E-5)/4)*power(T,4))/(58.44E3)- 2.045698e+02;% /* kJ/kg */
 
 m = (1E3/58.44)*(S./(1-S));

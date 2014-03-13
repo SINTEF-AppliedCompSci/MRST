@@ -1,9 +1,10 @@
-function h2o = h2o()
+function h2o = h2oProps()
 % from dumux h2o
     h2o.isvalid =@(p,T) T <= 623.15 & p<= 100e6;
     h2o.density =@(p,T) R1_density(p,T);
     h2o.enthalpy =@(p,T) R1_entalpy(p,T);
     h2o.viscosity = @(p,T) R1_viscosity(p,T);
+    h2o.name='h2o';
 end
 function v= R1_viscosity(p,T)
     rho=R1_density(p,T);
@@ -28,7 +29,7 @@ for i = 1:5
 end
 muBar =muBar.*rhoBar;
 muBar = exp(muBar);
-muBar  =muBar.*100.*sqrt(TBar);
+muBar  =muBar.*100.*power(TBar,0.5);
 H = [1.67752, 2.20462, 0.6366564, -0.241605];
 tmp = 0; tmp2 = 1;
 for i = 1:4

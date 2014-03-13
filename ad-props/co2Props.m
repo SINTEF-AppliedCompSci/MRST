@@ -35,18 +35,19 @@ function obj = CO2props(rhofile, hfile, noassert)
 
   % return CO2 phase at (P, T) (0: supercritical; 1: liquid; 2: gas)
   obj.phaseOf     = @(P, T) phase_of(P, T);
-
+    
   % CO2 density and its derivatives  
   obj.rhoDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT  (rho, P, T), @noder,  @noder);
   obj.rhoDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP  (rho, P, T), @noder,  @noder);
   obj.density     = @(P, T) calcMulti(P, T, @(P, T) calcVal (rho, P, T), @obj.rhoDP,   @obj.rhoDT);
   obj.rhoInfo = @() printInfo(rho);
-  
+  obj.name='co2 table';
   
   % CO2 enthalpy and its derivatives
-  obj.entalpy     = @(P, T) calcMulti(P, T, @(P, T) calcVal  (h, P, T), @obj.hDP,   @obj.hDT);
   obj.hDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP   (h, P, T), @noder,  @noder);  
   obj.hDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT   (h, P, T), @noder,  @noder);  
+  obj.enthalpy     = @(P, T) calcMulti(P, T, @(P, T) calcVal  (h, P, T), @obj.hDP,   @obj.hDT);
+  
   obj.hInfo = @() printInfo(h);
   
   
@@ -227,7 +228,7 @@ function phase = phase_of(P, T)
 % * 1 designate "liquid"
 % * 2 designate "gas"    
   
-    phase = nan * ones(numel(P), 1);
+    phase = nan * ones(max(numel(P),numel(T)), 1);
   
     [Pc, Tc] = CO2CriticalPoint();
     
@@ -322,7 +323,7 @@ function phase = compute_phase(rows, cols, span_p, span_t)
 end
   
 function assert_in_range(val, range)
-    assert(all(val >= range(1)))
+   assert(all(val >= range(1)))
     assert(all(val <= range(2)))
 end
 
@@ -404,7 +405,7 @@ function v = gasViscosity(T,p,co2pr)
         end
 
 
-        TStar = temperature/ESP;
+        TStar = T/ESP;
 
         %/* mu0: viscosity in zero-density limit */
         SigmaStar = exp(a0 + a1*log(TStar)...
@@ -412,10 +413,10 @@ function v = gasViscosity(T,p,co2pr)
                         + a3*log(TStar).*log(TStar).*log(TStar)...
                         + a4*log(TStar).*log(TStar).*log(TStar).*log(TStar) );
 
-        mu0 = 1.00697*sqrt(T) / SigmaStar;
+        mu0 = 1.00697*power(T,0.5) ./ SigmaStar;
 
         %/* dmu : excess viscosity at elevated density */
-        rho = co2pr.rho(p, T); %/* CO2 mass density [kg/m^3] */
+        rho = co2pr.density(p, T); %/* CO2 mass density [kg/m^3] */
 
         dmu = d11*rho + d21*rho.*rho + d64*power(rho,6)./(TStar.*TStar.*TStar)...
             + d81*power(rho,8) + d82*power(rho,8)./TStar;
@@ -429,10 +430,10 @@ function v = gasViscosity(T,p,co2pr)
         %//dmucrit = e1*rho + e2*rho*rho + e4*rho*rho*rho;
         %//visco_CO2 = (mu0 + dmu + dmucrit)/1.0E6;   /* conversion to [Pa s] */
 
-        visco_CO2 = (mu0 + dmu)/1.0E6;  % /* conversion to [Pa s] */
+        visco_CO2 = (mu0 + dmu)/1.0e6;  % /* conversion to [Pa s] */
 
         v=visco_CO2;
 end
 
 
-end
+
