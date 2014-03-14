@@ -229,7 +229,7 @@ while t<T
            else
                rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.bhp);
                totMas = totMas + rhoCO2_well.*sol.state.wellSol.qGs*dT;
-               masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
+               masses = phaseMassesVEADI(Gt, sol, rock2D, fluidADI);
                co2mass= masses(1)+masses(3);
                if(abs(co2mass-totMas)> totMas*1e-3)
                    disp(['Mass of co2 not in domian is ',....
@@ -244,7 +244,7 @@ while t<T
            masses = massesVE(Gt, sol, rock2D, fluidVE_h, ts);
        else
            % ADI based
-           masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
+           masses = phaseMassesVEADI(Gt, sol, rock2D, fluidADI);
            co2mass= masses(1)+masses(3);
            masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h, ts);
            assert(sum(masses)<totMas*(1+1e-2))
