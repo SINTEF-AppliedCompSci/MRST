@@ -134,7 +134,7 @@ function state = solveIncompFlowVE(state, g, s, rock, fluid, varargin)
 %                                            values mean
 %                                            production/extraction out of
 %                                            reservoir.
-%                              - pressure -- Well bottom-hole pressure.
+%                              - bhp      -- Well bottom-hole pressure.
 %
 % NOTE:
 %   If there are no external influences, i.e., if all of the structures

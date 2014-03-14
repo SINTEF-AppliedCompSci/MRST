@@ -54,8 +54,7 @@ grdecl.ACTNUM(grdecl.PERMX<200) = 0;
 % C-accelerated routines
 if usemex,
    mlist = mrstModule;
-   mrstModule add 'mex/opm_gridprocessing'
-   mrstModule add 'mex/libgeometry'
+   mrstModule add 'mrst-model-io'
    G = processgrid(grdecl);
    G = mcomputeGeometry(G);
    mrstModule('reset', mlist{:});

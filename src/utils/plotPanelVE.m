@@ -12,7 +12,8 @@ function varargout = plotPanelVE(G, Gt, W, sol, t, vol, varargin)
 %   W       - Well
 %   sol     - Solution data structure
 %   t       - Time
-%   vol     - Vector of (free, trapped, total) volumes
+%   vol     - Vector of (free, trapped, total) volumes. It will have either
+%             four or six entries, as explained below.
 %   opt     - Various options
 %   'pn'/pv - List of 'key'/value pairs defining optional parameters.
 %
@@ -45,12 +46,35 @@ function varargout = plotPanelVE(G, Gt, W, sol, t, vol, varargin)
 %      'plotPlume' -- Boolean indicating if the plume should be plotted as
 %                     a sharp interface.
 %
+%   Entries ov argument vector 'vol':
+%       If only residual trapping (not structural trapping) is considered,
+%       'vol' will have four entries, with the following meaning:
+%          vol(1)  -- residually trapped volume outside the movable zone
+%          vol(2)  -- residually trapped volume within the movable zone
+%          vol(3)  -- free volume (volume of movable zone minus vol(2))
+%          vol(4)  -- total volume (the others ought to sum up to this one)
+%      If residual trapping and structural trapping are both considered,
+%      'vol' will have six entries, with the following meaning (for a more
+%      in-depth description, refer to documentation of the function
+%      'volumesVE':
+%          vol(1)  -- vol. of CO2 that is BOTH residually and structurally
+%                     trapped
+%          vol(2)  -- vol. of CO2 that is residually (but not structurally)
+%                     trapped, and that is outside the free-flowing zone
+%          vol(3)  -- vol. of CO2 that is residually (but not structurally)
+%                     trapped, and that is still inside the free-flowing zone
+%          vol(4)  -- vol. of CO2 that is structurally (but not residually)
+%                     trapped.
+%          vol(5)  -- vol. of CO2 that is neither structurally nor residually
+%                     trapped.
+%          vol(6)  -- total volume (the others ought to sum up to this one).
+%
 %   In addition, the function may plot the CO2 inventory as a function of
 %   time if the user clicks the pie chart or if the option 'plotHist' is
 %   set to true.
 %
 % SEE ALSO:
-%   runIGEMS
+%   runIGEMS, volumesVE
 
 persistent G_x G_y;      % Grids for 2D slices
 persistent h h1 h2 h3;   % Figure and graphics handles
@@ -119,24 +143,25 @@ set(0,'CurrentFigure', h);
 subplot(2,3,1:2);
 if t==0
    if prm.wireS
-      plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.1);
+      plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.1); 
    else
-      h1 = plotCellData(G, sol.s, 'EdgeColor','w','EdgeAlpha', .15);
+      h1 = plotCellData(G, sol.s, 'EdgeColor','w','EdgeAlpha', .15); 
    end
-   plotGrid(G_x, 'FaceColor', 'none', 'EdgeColor', 'c');
-   plotGrid(G_y, 'FaceColor', 'none', 'EdgeColor', 'm');
-   plotWell(G, W, 'height', prm.Wadd, 'color', 'r');
+   plotGrid(G_x, 'FaceColor', 'none', 'EdgeColor', 'c'); 
+   plotGrid(G_y, 'FaceColor', 'none', 'EdgeColor', 'm'); 
+   plotWell(G, W, 'height', prm.Wadd, 'color', 'r'); 
    axis tight off, view(prm.view);
 else
    if ishandle(h1), delete(h1); end
    if prm.wireS
-      h1 = plotCellData(G, sol.s, sol.s>prm.ptol, 'EdgeAlpha', 0.1);
+      h1 = plotCellData(G, sol.s, sol.s>prm.ptol, 'EdgeAlpha', 0.1); 
    else
-      h1 = plotCellData(G, sol.s, 'EdgeColor','w','EdgeAlpha', .15);
+      h1 = plotCellData(G, sol.s, 'EdgeColor','w','EdgeAlpha', .15); 
    end
 end
 title(['CO2 saturation at ', num2str(convertTo(t,year)), ' years']);
 caxis(prm.Saxis);
+
 
 %% Pie chart of trapped and free CO2
 subplot(2,3,3), cla
@@ -180,12 +205,12 @@ end
 subplot(2,3,4)
 if prm.wireH
    if t==0
-      plotGrid(Gt, 'FaceColor', 'none', 'EdgeAlpha', 0.1);
+      plotGrid(Gt, 'FaceColor', 'none', 'EdgeAlpha', 0.1); 
       axis tight off, set(gca,'zdir','reverse'); view([-90, 90])
       colorbar, caxis([0 prm.maxH]);
    else
       if ishandle(h2), delete(h2); end
-      h2 = plotCellData(Gt, sol.h, sol.h(:,1)>prm.ptol,'EdgeAlpha', 0.1);
+      h2 = plotCellData(Gt, sol.h, sol.h(:,1)>prm.ptol,'EdgeAlpha', 0.1); 
    end
 else
    cla
@@ -193,9 +218,9 @@ else
    hplot = hplot([1:end end],:);
    hplot = hplot(:,[1:end end]);
    pcolor(x,-y,hplot); shading flat; caxis([0 prm.maxH])
-   hold on;
+   hold on; 
    colorbar
-   contour(x,-y,reshape(Gt.nodes.z,Gt.cartDims+1),5,'w');
+   contour(x,-y,reshape(Gt.nodes.z,Gt.cartDims+1),5,'w'); 
    hold off, axis tight off
 end
 title('Height of CO2-column');
@@ -203,11 +228,11 @@ title('Height of CO2-column');
 %% Saturation along the two slices
 subplot(4,3,8:9); cla % x-slice
 if prm.plotPlume
-    plotPlume(G, Gt, sol.h, cells_sub_x,'EdgeColor','w','EdgeAlpha',.1);
-    plotGrid(G, cells_sub_x,'EdgeColor', 'k','EdgeAlpha',.1, 'FaceColor', 'none');
+    plotPlume(G, Gt, sol.h, cells_sub_x,'EdgeColor','w','EdgeAlpha',.1); 
+    plotGrid(G, cells_sub_x,'EdgeColor', 'k','EdgeAlpha',.1, 'FaceColor', 'none'); 
     caxis([0 prm.maxH]);
 else
-    plotCellData(G_x, sol.s(cells_sub_x),'EdgeColor','w','EdgeAlpha',.1);
+    plotCellData(G_x, sol.s(cells_sub_x),'EdgeColor','w','EdgeAlpha',.1); 
     caxis(prm.Saxis);
 end
 axis tight off, view([0 0] + prm.plotPlume*4), title('CO2-saturation, x-slice (cyan)');
@@ -215,11 +240,11 @@ axis tight off, view([0 0] + prm.plotPlume*4), title('CO2-saturation, x-slice (c
 
 subplot(4,3,11:12); cla % yslice
 if prm.plotPlume
-    plotPlume(G, Gt, sol.h, cells_sub_y,'EdgeColor','w','EdgeAlpha',.1);
-    plotGrid(G, cells_sub_y,'EdgeColor','k','EdgeAlpha',.1, 'FaceColor', 'none');
+    plotPlume(G, Gt, sol.h, cells_sub_y,'EdgeColor','w','EdgeAlpha',.1); 
+    plotGrid(G, cells_sub_y,'EdgeColor','k','EdgeAlpha',.1, 'FaceColor', 'none'); 
     caxis([0 prm.maxH]);
 else
-    plotCellData(G_y, sol.s(cells_sub_y),'EdgeColor','w','EdgeAlpha',.1);
+    plotCellData(G_y, sol.s(cells_sub_y),'EdgeColor','w','EdgeAlpha',.1); 
     caxis(prm.Saxis);
 end
 axis tight off, view([90 0] + prm.plotPlume*4), title('CO2-saturation, y-slice (magenta)');

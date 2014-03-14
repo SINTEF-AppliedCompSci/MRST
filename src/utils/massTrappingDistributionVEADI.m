@@ -27,12 +27,16 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
 %            masses[6] : mass of structurally (but not residually) trapped gas
 %            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
 
-    
+    % Extracting relevant information from 'sol'
     p = sol.state.pressure;
     sF = sol.state.s(:,1);
     sG = sol.state.s(:,2);
     SF = sF .* Gt.cells.H;
     SG = SG .* Gt.cells.H;
+    rs = 0;
+    if isfield(sol.state, 'rs')
+        rs = sol.state.rs;
+    end
     
     pvMult = 1; 
     if isfield(fluidADI, 'pvMultR')
@@ -64,7 +68,7 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
     freeRes   = plumeVol * sr;
     freeMov   = plumeVol * (1 - sw - sr);
     resTrap   = sum(max(sol.h_max - max(zt, sol.h),0) .* rhoCO2 .* pv ) .* sr;
-    resDis    = fluidADI.rhoG .* sum(pv .* (sol.state.rs .* fluidADI.bO(p) .* SF)); 
+    resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); 
 
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov],0);
 
