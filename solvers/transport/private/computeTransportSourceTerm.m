@@ -6,9 +6,8 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc)
 %
 % PARAMETERS:
 %   state - Reservoir and well solution structure either properly
-%           initialized from functions 'initResSol' and 'initWellSol'
-%           respectively, or the results from a call to function
-%           'solveIncompFlow'.
+%           initialized from function 'initState', or the results from a
+%           call to function 'incompTPFA'.
 %
 %   wells - Well structure as defined by function 'addWell'.  May be empty
 %           (i.e., W = []) which is interpreted as a model without any
