@@ -190,9 +190,6 @@ function [i, s, c] = contrib_wells(W, wellSol)
 
    i = vertcat(W.cells);
    s = vertcat(wellSol.flux);
-
-   % Injection perforations have positive flux (into reservoir).
-   %
    c = rldecode(vertcat(W.compi), nperf);
 end
 
