@@ -86,20 +86,18 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
 % NOTE we solve
 %              __
 %        s_t + \/· [D·f(s) + D·f(s)·mo(s)] = f(s) Q
 %
 % for constant vector and scalar fields fields D, G and Q.
 
-
    opt = struct('verbose', mrstVerbose, 'wells', [], ...
                 'src', [], 'bc', [], 'Trans', [],'dhfz',[]);
    opt = merge_options(opt, varargin{:});
 
-   assert (size(state.s,2)<3 || all(state.s(:,3)==0));
-
+   assert ((size(state.s,2) < 3) || all(state.s(:,3) == 0), ...
+           'Function ''%s'' is for two-phase flow only', mfilename);
 
    % All source terms, i.e., boundary conditions, source terms and wells.
    compi = { 'use_compi', true };
@@ -108,7 +106,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    q = assembleTransportSource(q, G.cells.num, compi{:});
 
    % Extract (constant) fluid densities.
-   [rho, rho]     = fluid.properties(state);
+   [rho, rho] = fluid.properties(state);
 
    % Compute the gravitational potential (rho_w - rho_o)n·Kg across each
    % face in the grid.
