@@ -74,4 +74,3 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
 end
 
     
-end
