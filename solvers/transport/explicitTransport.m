@@ -125,8 +125,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if opt.computedt,
 
       % ---------- Time step estimate from state ---------------
-      vsrc  = computeTransportSourceTerm(state, ...
-                                         G, opt.wells, opt.src, opt.bc);
+      compi = { 'use_compi', true };
+      vsrc = computeTransportSourceTerm(state, G, opt.wells, ...
+                                        opt.src, opt.bc, compi{:});
+      vsrc = assembleTransportSource(vsrc, G.cells.num, compi{:});
+
       gflux = getFlux(G, rock,opt);
       getdt = @(state) min([...
                    opt.max_dt, ...

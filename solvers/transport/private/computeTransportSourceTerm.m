@@ -1,8 +1,9 @@
-function q = computeTransportSourceTerm(state, G, wells, src, bc)
-%Compute source terms for transport
+function q = computeTransportSourceTerm(state, G, wells, src, bc, varargin)
+%Compute source term contributions for transport
 %
 % SYNOPSIS:
 %   q = computeTransportSourceTerm(state, G, wells, src, bc)
+%   q = computeTransportSourceTerm(state, G, wells, src, bc, 'pn1', pv1, ...)
 %
 % PARAMETERS:
 %   state - Reservoir and well solution structure either properly
@@ -23,12 +24,67 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc)
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
 %
+%   'pn'/pv -
+%           List of 'key'/value pairs defining optional parameters.  The
+%           supported options are:
+%             - use_compi --
+%                 Whether or not to include the composition of injected
+%                 fluids into the source term.  This is appropriate for
+%                 two-phase flow only, and simply scales the rate of fluid
+%                 sources with component one of 'q.compi'.  Sinks, i.e,
+%                 those terms for which the source rate is negative, remain
+%                 unaffected.
+%
+%                 LOGICAL.  Default value: use_compi=TRUE (include
+%                 composition of injected fluid into fluid sources).
+%
 % RETURNS:
-%   q     - Aggregate source term contributions (per grid cell) suitable
-%           for passing to a transport solver.  Measured in units of m^3/s.
+%   q - Source term structure containing details of each individual,
+%       derived fluid source and sink term in the model--be they from
+%       wells, boundary conditions or synthetic fluid sources (i.e., the
+%       'src' parameter).
+%
+%       Structure containing the following fields
+%         - cell --
+%             m-by-1 (numeric) array of cell indices, each specifying which
+%             cell is affected by a particular contribution.
+%
+%         - flux --
+%             m-by-1 numeric array of source/sink rates.  In particular,
+%             'flux(i)' specifies the rate of the 'i'th contributions
+%             (affecting 'cell(i)').
+%
+%         - compi --
+%             Empty or m-by-np numeric array ('np' is number of fluid
+%             phases) specifying the compositions of the injected fluids.
+%
+%             This field is empty if use_compi==FALSE.
+%
+%             The underlying information is derived (extracted) from
+%             appropriate structure fields ('.comp_i' for wells, '.sat' for
+%             'src' and 'bc).  Note that it is an error to specify
+%
+%                use_compi=TRUE
+%
+%             unless all pertinent source term objects (non-empty 'wells',
+%             non-empty 'src', or non-empty 'bc') carry sufficient
+%             information to specify the composition of the injected fluid.
+%
+%             The value of compi(p,:) is undefined (typically all zero) for
+%             production terms (i.e., fluid sinks) characterised by
+%
+%                flux(p) < 0
+%
+% NOTE:
+%   - This function is typically appropriate only for single- and two-phase
+%     flow and transport problems.
+%
+%   - MRST does not support specifying both injection and production (i.e.,
+%     fluid sources and fluid sinks) in the same cell.  Enforcing that
+%     restriction is deferred to function assembleTransportSource.
 %
 % SEE ALSO:
-%   twophaseJacobian, computeTimeOfFlight.
+%   computeTimeOfFlight, explicitTransport, private/assembleTransportSource
 
 % TODO:
 %   - implement gravity effects for pressure boundary and wells
@@ -52,72 +108,107 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   opt = struct('use_compi', true);
+   opt = merge_options(opt, varargin{:});
 
-   qi = [];  % Cells to which sources are connected
-   qs = [];  % Actual strength of source term (in m^3/s).
+   check_input(wells, bc, src, opt)
+
+   c = [];  % Cells to which sources are connected
+   r = [];  % Actual strength of source term (in m^3/s).
+   i = [];  % Injection composition (size NUMEL(qs)-by-SIZE(sat,2))
 
    if ~isempty(wells),
-      [i, s] = contrib_wells(wells, state.wellSol);
-      qi = [qi; i];
-      qs = [qs; s];
+      [c, r, i] = ...
+         concat(c, r, i, opt, @() contrib_wells(wells, state.wellSol));
    end
 
-   if ~isempty(src), assert (~isempty(src.sat))
-      [i, s] = contrib_src(src);
-      qi = [qi; i];
-      qs = [qs; s];
+   if ~isempty(src),
+      [c, r, i] = ...
+         concat(c, r, i, opt, @() contrib_src(src));
    end
 
    if ~isempty(bc), assert (~isempty(bc.sat))
-      [i, s] = contrib_bc(G, state, bc);
-      qi = [qi; i];
-      qs = [qs; s];
+      [c, r, i] = ...
+         concat(c, r, i, opt, @() contrib_bc(G, state, bc));
    end
 
    %-----------------------------------------------------------------------
    % Assemble all source and sink contributions to each affected cell. ----
    %
-   q = sparse(qi, 1, qs, G.cells.num, 1);
+   q = struct('cell', c, 'flux', r, 'compi', i);
 end
 
 %--------------------------------------------------------------------------
 
-function [qi, qs] = contrib_wells(W, wellSol)
+function check_input(wells, bc, src, opt)
+   if opt.use_compi,
+
+      if ~isempty(wells) && any(cellfun('isempty', { wells.compi })),
+         error('ComputeTransportSourceTerm:EmptyWellCompi', ...
+              ['Wells must have valid ''.comp_i'' fields to ', ...
+               'specify (''use_compi'',TRUE).']);
+      end
+
+      if ~isempty(bc) && isempty(bc.sat),
+         error('ComputeTransportSourceTerm:EmptyBCSat', ...
+              ['Boundary conditions must have valid ''.sat'' ', ...
+               'field to specify (''use_compi'',TRUE).']);
+      end
+
+      if ~isempty(src) && isempty(src.sat),
+         error('ComputeTransportSourceTerm:EmptySrcSat', ...
+              ['Explicit source terms must have valid ''.sat'' ', ...
+               'field to specify (''use_compi'',TRUE).']);
+      end
+
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function [qi, qs, compi] = concat(qi, qs, compi, opt, contrib)
+   [i, s, c] = contrib();
+
+   qi = [ qi ; i ];
+   qs = [ qs ; s ];
+
+   if opt.use_compi,
+      assert (isempty(compi) || size(c, 2) == size(compi, 2), ...
+             ['Injection composition incompatible with existing ', ...
+              'source terms']);
+
+      compi = [ compi ; c ];
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function [i, s, c] = contrib_wells(W, wellSol)
    % Wells as defined by 'addWell'.
 
    nperf = cellfun(@numel, { W.cells }) .';
 
-   qi = vertcat(W.cells);
-   qs = vertcat(wellSol.flux);
+   i = vertcat(W.cells);
+   s = vertcat(wellSol.flux);
 
    % Injection perforations have positive flux (into reservoir).
    %
-   comp      = rldecode(vertcat(W.compi), nperf);
-   inj_p     = qs > 0;
-   if any(inj_p)
-      qs(inj_p) = qs(inj_p) .* comp(inj_p,1);
-   end
+   c = rldecode(vertcat(W.compi), nperf);
 end
 
 %--------------------------------------------------------------------------
 
-function [qi, qs] = contrib_src(src)
+function [i, s, c] = contrib_src(src)
    % Explicit sources defined by (e.g.) 'addSource'.
 
-   qi = src.cell;
-   qs = src.rate;
-
-   % Injection sources have positive rate into reservoir.
-   %
-   in = find(src.rate > 0);
-   if ~isempty(in),
-      qs(in) = qs(in) .* src.sat(in,1);
-   end
+   i = src.cell;
+   s = src.rate;
+   c = src.sat;
 end
 
 %--------------------------------------------------------------------------
 
-function [qi, qs] = contrib_bc(G, state, bc)
+function [qi, qs, c] = contrib_bc(G, state, bc)
    % Contributions from boundary conditions as defined by 'addBC'.
 
    N = getNeighbourship(G, 'Geometrical', true);
@@ -139,15 +230,15 @@ function [qi, qs] = contrib_bc(G, state, bc)
    qi    = [ qi ; bdryCell(isNeu) ];
    qs    = [ qs ; bc.value(isNeu) ];
 
-   % Injection BCs have positive rate (flux) into reservoir.
-   %
-   is_inj = qs > 0;
-   if any(is_inj),
+   if ~isempty(bc.sat),
+      % Reorder composition to match cells ('qi').
+
       i = [ reshape(find(isDir), [], 1) ; ...
             reshape(find(isNeu), [], 1) ];
 
-      assert (numel(is_inj) == numel(i), 'Internal error in contrib_bc');
-
-      qs(is_inj) = qs(is_inj) .* bc.sat(i(is_inj), 1);
+      bc.sat = bc.sat(i, :);
    end
+
+   % Empty if ISEMPTY(bc.sat)
+   c = bc.sat;
 end

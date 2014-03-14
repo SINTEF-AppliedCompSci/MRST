@@ -102,7 +102,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    % All source terms, i.e., boundary conditions, source terms and wells.
-   q = computeTransportSourceTerm(state, G, opt.wells, opt.src, opt.bc);
+   compi = { 'use_compi', true };
+   q = computeTransportSourceTerm(state, G, opt.wells, ...
+                                  opt.src, opt.bc, compi{:});
+   q = assembleTransportSource(q, G.cells.num, compi{:});
 
    % Extract (constant) fluid densities.
    [rho, rho]     = fluid.properties(state);
