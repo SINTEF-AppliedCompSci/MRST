@@ -27,9 +27,9 @@ function masses = phaseMassesVEADI(Gt, sol, rock, fluidADI)
     p      = sol.state.pressure;
     sF     = sol.state.s(:,1);  % fluid saturation
     sG     = sol.state.s(:,2);  % gas saturation
-    SF     = sF .* G.cells.H;   % vertically integrated saturation, fluid
-    SG     = sG .* G.cells.H;   % vertically integrated saturation, gas
-    pv     = rock.poro .* G.cells.volumes .* pvMult; % pore volumes
+    SF     = sF .* Gt.cells.H;   % vertically integrated saturation, fluid
+    SG     = sG .* Gt.cells.H;   % vertically integrated saturation, gas
+    pv     = rock.poro .* Gt.cells.volumes .* pvMult; % pore volumes
     rhoCO2 = fluidADI.rhoG .* fluidADI.bG(p);
     rhoW   = fluidADI.rhoO .* fluidADI.bO(p);
 

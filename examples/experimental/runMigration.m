@@ -249,7 +249,9 @@ while t<T
            % ADI based
            masses = phaseMassesVEADI(Gt, sol, rock2D, fluidADI);
            co2mass= masses(1)+masses(3);
-           masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h, ts);
+           masses = ...
+               massTrappingDistributionVEADI(Gt, sol, rock2D, fluidADI, ...
+                                             fluidVE_h.sr, fluidVE_h.sw, ts);
            assert(sum(masses)<totMas*(1+1e-2))
            assert(co2mass<(totMas*(1+1e-2)));
        end       
