@@ -32,7 +32,7 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
     sF = sol.state.s(:,1);
     sG = sol.state.s(:,2);
     SF = sF .* Gt.cells.H;
-    SG = SG .* Gt.cells.H;
+    SG = sG .* Gt.cells.H;
     rs = 0;
     if isfield(sol.state, 'rs')
         rs = sol.state.rs;
