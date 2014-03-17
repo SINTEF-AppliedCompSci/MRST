@@ -68,8 +68,7 @@ grdecl.PORO=poro*ones(size(grdecl.ACTNUM));
 % C-accelerated routines
 if usemex,
    mlist = mrstModule;
-   mrstModule add 'mex/opm_gridprocessing'
-   mrstModule add 'mex/libgeometry'
+   mrstModule add 'mrst-model-io'
    G = mprocessGRDECL(grdecl);
    G = mcomputeGeometry(G);
    mrstModule('reset', mlist{:});

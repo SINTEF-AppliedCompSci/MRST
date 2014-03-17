@@ -47,7 +47,8 @@ if(a>20)
 else
    close(a); 
 end
-require ad-fi;
+moduleCheck('ad-fi', 'ad-props', 'mex');
+
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
 % The VE model consists of a top-surface grid (Gt), petrophysical data
@@ -81,7 +82,7 @@ transport_methods={'explicit_incomp_mim','implicit_incomp_tpf','explicit_incomp_
                    'adi_OGD_simple_mix',...                   
                    };
 
-method=5;
+%method=5;
 transport_method=transport_methods{method};
 [transport_solver fluidVE_h fluidVE_s, fluidADI]=...
     makeTransportSolver(transport_method,Gt,rock, rock2D,cpp_accel);
@@ -508,7 +509,8 @@ function sol = transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluid
      state.s=[1-sol.s,sol.s];
      state.rs=sol.rs;
      %state=rmfield(state,'wellSol');
-
+     %     state.WellSol = initWellSolLocal(WVE_s, state);
+     
      if(isempty(WVE_s))
          %W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', 'sign', 1);
          %W.bhpLimit = 0;
