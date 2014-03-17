@@ -212,7 +212,8 @@ for tstep = opt.startAt:numel(dt)
     end
     % Running hook function if provided
     if ~isempty(opt.tstep_hook_fn)
-        opt.tstep_hook_fn(G, W, state);
+        opt.tstep_hook_fn(G, W, state, dt(tstep));
+        drawnow;
     end
 end
 
