@@ -242,8 +242,8 @@ end
 
 % ----------------------------------------------------------------------------
 function [iter, wellSols, states] = ...
-        poststepHousekeeping(its, step, state0, state, system, G, W, iter, dt, wellSols, states, ...
-                             outputStates, outputFluxes)
+        poststepHousekeeping(its, step, state0, state, system, G, W, iter, ...
+                             dt, wellSols, states, outputStates, outputFluxes)
 
     iter(step) = its;
     wellSols{step} = addWellInfo(state.wellSol, W);
