@@ -37,7 +37,7 @@ opt = struct('Verbose', mrstVerbose, 'writeOutput', false, ...
              'outputName', 'state', 'scaling', [], 'startAt', 1, ...
              'outputDir', default_outputDir, 'Wext',[],'fluxes',false,...
              'dt_min', inf,'force_step',true,'targetIts',6, ...
-             'report_all',true, 'bc', []);
+             'report_all',true, 'bc', [], 'tstep_hook_fn', []);
 
 opt = merge_options(opt, varargin{:});
 
@@ -50,11 +50,12 @@ meta = struct('converged'   , false, ...
 vb = opt.Verbose;
 outputStates = nargout > 1;
 outputIter = nargout > 2;
+
 if(opt.report_all)
     schedulenew=schedule;
-    tstep_all=1;
 end
 
+total_stepcount = 1;
 
 
 %--------------------------------------------------------------------------
@@ -112,6 +113,7 @@ dt_prev_ok=min(dt(1),opt.dt_min);
 for tstep = opt.startAt:numel(dt)
     dispif(vb, 'Global time step %5.0f of %d\n', tstep, numel(dt));
     control = schedule.step.control(tstep);
+    dt_already_reported = false;
 
     if(control==0)
         W=[];
@@ -155,25 +157,19 @@ for tstep = opt.startAt:numel(dt)
             end
             t=t+dt_loc;
             if(opt.report_all)
-                % report all steps and produce schedual accordingly
-                iter(tstep_all) = its;
-                wellSols{tstep_all} = state.wellSol;
-                wellSols{tstep_all} = addWellInfo(wellSols{tstep_all}, W);
-                if outputStates
-                    states{tstep_all + 1} = state;
-                end
-                if(opt.fluxes)
-                    [eqs, flux] = system.getEquations(state0, state, dt_loc, G, W, system.s, system.fluid,'bc',[],'fluxes',true);
-                    states{tstep_all +1}.fluxes=flux;
-                end
-                if opt.writeOutput && schedule.step.repStep(tstep)
-                    repStep = repStep + 1;
-                    save(outNm(tstep), 'state', 'W');
-                end
-                schedulenew.step.control(tstep_all)=control;
-                schedulenew.step.val(tstep_all)=dt_loc;
-                dispif(~opt.Verbose, 'Step %4g of %3.2f (Used %3g iterations)\n', tstep_all, t/T_all, its);
-                tstep_all=tstep_all+1;
+                % report also for local timesteps and produce schedule accordingly
+                [iter, wellSols, states] = ...
+                    poststepHousekeeping(its, total_stepcount, state0, state, system, G, W, iter, ...
+                                         dt_loc, wellSols, states, outputStates, opt.fluxes);
+
+                schedulenew.step.control(total_stepcount)=control;
+                schedulenew.step.val(total_stepcount)=dt_loc;
+                dispif(~opt.Verbose, 'Step %4g of %3.2f (Used %3g iterations)\n', ...
+                       total_stepcount, t/T_all, its);
+                
+                total_stepcount = total_stepcount + 1;
+                dt_already_reported = true; % no need to report again at the
+                                            % end of the global loop
             end
             dt_history=[];
             [dt_new, dt_history] = simpleStepSelector(dt_history, dt_loc, its,...
@@ -197,25 +193,28 @@ for tstep = opt.startAt:numel(dt)
             dt_loc=min(dt_new,dt(tstep)-t_loc);
         end
     end
-    if(~opt.report_all || opt.force_step)
-        iter(tstep) = its;
-        wellSols{tstep} = state.wellSol;
-        wellSols{tstep} = addWellInfo(wellSols{tstep}, W);
-        if outputStates
-            states{tstep + 1} = state;
-        end
-        if(opt.fluxes)
-            [eqs,flux] = system.getEquations(state0, state, dt(tstep), G, W, system.s, system.fluid,'bc',[],'fluxes',true,'stepOptions', system.stepOptions);
-            states{tstep +1}.fluxes=flux;
-        end
-        %prevControl = control;
-        if opt.writeOutput && schedule.step.repStep(tstep)
-            repStep = repStep + 1;
-            save(outNm(tstep), 'state', 'W');
-        end
+
+    if(~dt_already_reported)
+        [iter, wellSols, states] = poststepHousekeeping(its, total_stepcount, state0, ...
+                                                        state, system, G, W, ...
+                                                        iter, dt(total_stepcount), ...
+                                                        wellSols, states, ...
+                                                        outputStates, opt.fluxes);
+
         dispif(~opt.Verbose, 'Step %4g of %4g (Used %3g iterations)\n', tstep, numel(dt), its);
+        total_stepcount = total_stepcount + 1;
     end
 
+    % Stuff to do once per 'tstep' (regardless of whether local stepping is used)
+    if opt.writeOutput && schedule.step.repStep(tstep)
+        repStep = repStep + 1;
+        save(outNm(tstep), 'state', 'W');
+    end
+    % Running hook function if provided
+    if ~isempty(opt.tstep_hook_fn)
+        opt.tstep_hook_fn(G, W, state, dt(tstep));
+        drawnow;
+    end
 end
 
 dispif(vb, '************Simulation done: %7.2f seconds ********************\n', toc(timero))
@@ -232,14 +231,34 @@ if opt.report_all
 end
 end
 
+% ----------------------------------------------------------------------------
 function wellSol = addWellInfo(wellSol, W)
-%nm = fieldnames(W);
-nm = {'name', 'sign'};
-for k = 1:numel(nm)
-    for wnum = 1:numel(W)
-        wellSol(wnum).(nm{k}) = W(wnum).(nm{k});
+    nm = {'name', 'sign'};
+    for k = 1:numel(nm)
+        for wnum = 1:numel(W)
+            wellSol(wnum).(nm{k}) = W(wnum).(nm{k});
+        end
     end
 end
+
+% ----------------------------------------------------------------------------
+function [iter, wellSols, states] = ...
+        poststepHousekeeping(its, step, state0, state, system, G, W, iter, ...
+                             dt, wellSols, states, outputStates, outputFluxes)
+
+    iter(step) = its;
+    wellSols{step} = addWellInfo(state.wellSol, W);
+    if outputStates
+        states{step+1} = state;
+    end
+    if outputFluxes
+        [eqs, flux] = system.getEquations(state0, state, dt, G, W, system.s, ...
+                                                  system.fluid, 'bc', opt.bc, ...
+                                                  'fluxes', true, 'stepOptions', ...
+                                                  system.stepOptions);
+        states{step+1}.fluxes = flux;
+    end
+    
 end
 
 
