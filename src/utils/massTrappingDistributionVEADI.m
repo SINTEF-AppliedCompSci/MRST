@@ -24,8 +24,7 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
 %            masses[4] : mass of non-trapped gas that will be residually trapped
 %            masses[5] : mass of structurally trapped gas, not counting the gas that 
 %                        will eventually be residually trapped
-%            masses[6] : mass of structurally (but not residually) trapped gas
-%            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
+%            masses[6] : mass of 'free' gas (i.e. not trapped in any way)
 
     % Extracting relevant information from 'sol'
     p = sol.state.pressure;
@@ -60,15 +59,15 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
     
     % this depend that the fluid has a sharp interface relperm of normal
     % type
-    hdift     = max(min(zt, sol.h_max) - min(zt, sol.h),0);
-    strucVol  = sum(min(zt, sol.h) .* pv .* rhoCO2);
-    plumeVol  = sum(rhoCO2 .* sol.h.* pv) - strucVol;
-    resStruc  = (strucVol + sum(hdift .* rhoCO2 .* pv)) * sr;
-    freeStruc = strucVol * (1 - sr - sw);
-    freeRes   = plumeVol * sr;
-    freeMov   = plumeVol * (1 - sw - sr);
-    resTrap   = sum(max(sol.h_max - max(zt, sol.h),0) .* rhoCO2 .* pv ) .* sr;
-    resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); 
+    hdift     = max(min(zt, sol.h_max) - min(zt, sol.h),0);   % trapped part of h_max-h
+    strucVol  = sum(min(zt, sol.h) .* pv .* rhoCO2);          % trapped, flowing
+    plumeVol  = sum(rhoCO2 .* sol.h.* pv) - strucVol;         % non-trapped, flowing
+    resStruc  = (strucVol + sum(hdift .* rhoCO2 .* pv)) * sr; % trapped, residual
+    freeStruc = strucVol * (1 - sr - sw);                     % trapped, non-residual
+    freeRes   = plumeVol * sr;                                % non-trapped, flowing, residual
+    freeMov   = plumeVol * (1 - sw - sr);                     % non-trapped, flowing, non-residual
+    resTrap   = sum(max(sol.h_max - max(zt, sol.h),0) .* rhoCO2 .* pv ) .* sr; % non-trapped, non-flowing, residual
+    resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); % dissolved
 
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov],0);
 

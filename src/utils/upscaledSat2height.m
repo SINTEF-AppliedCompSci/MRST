@@ -57,9 +57,9 @@ function [h, h_max] = upscaledSat2height(S, S_max, Gt, varargin)
         assert(~isempty(opt.resSat));
         sw    = opt.resSat(1);
         sn    = opt.resSat(2);
-        h     = Gt.cells.H .* (S .* (1-sw) - (S_max .* sn)) ./  ...
-                                   ((1-sw) .* (1 - sw - sn));
-        h_max = Gt.cells.H .* S_max ./(1-sw);
+        h     = Gt.cells.H .* ((S .* (1-sw) - (S_max .* sn)) ./  ...
+                                   ((1-sw) .* (1 - sw - sn)));
+        h_max = Gt.cells.H .* (S_max ./(1-sw));
         
     else
         % Capillary pressure function provided - we assume a general model
