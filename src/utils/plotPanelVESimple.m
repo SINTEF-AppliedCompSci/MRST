@@ -229,7 +229,8 @@ else
     plotSlizeHeight(cells_sub_gt_y,2);
 end
 set(0,'CurrentFigure',h_area)
-subplot(1,3,1),cla,
+clf;
+subplot(1,3,1)
 cvec=sol.h;
 if(~(prod(Gt.cartDims)==Gt.cells.num))   
     cvec(cvec<0.1)=NaN;
@@ -244,7 +245,7 @@ hold on;
 colorbar
 contour(x,-y,reshape(Gt.nodes.z,Gt.cartDims+1),5,'w');
 %}
-subplot(1,3,2),cla
+subplot(1,3,2)
 cvec=sol.h_max;
 if(~(prod(Gt.cartDims)==Gt.cells.num))   
     cvec(cvec<0.1)=NaN;
@@ -256,7 +257,7 @@ if(isfield(fluidADI,'dis_max'))
 else
     rsH=zeros(Gt.cells.num,1);
 end
-subplot(1,3,3),cla
+subplot(1,3,3)
 cvec=rsH;
 if(~(prod(Gt.cartDims)==Gt.cells.num))   
     cvec(cvec<1)=NaN;
@@ -267,6 +268,7 @@ makepColorPlot(cvec);
 
 set(0,'CurrentFigure', h1);
 head=sol.pressure-fluid.rho(2)*norm(gravity)*(Gt.cells.z-mean(Gt.cells.z));
+clf;
 subplot(1,2,1)
 %press = reshape(head,Gt.cartDims)/barsa;
 %press = press([1:end end],:);
@@ -294,7 +296,7 @@ box on;
 
 
 %if(t>0)
-%drawnow
+drawnow
 %end
     function makePlotHistory()
         if isempty(h3)
