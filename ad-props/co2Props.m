@@ -4,9 +4,9 @@ function obj = CO2props(rhofile, hfile, noassert)
   
   % load data tables
   if isempty(rhofile)
-      %rho = load('rho_small');     % load density data
+      rho = load('rho_small');     % load density data
       %rho = load('rho_big_trunc'); % load density data 
-      rho = load('rho_huge');       % load density data 
+      %rho = load('rho_huge');       % load density data 
       %rho = load('rho_hybrid');    % load density data    
   else
       rho = load(rhofile);

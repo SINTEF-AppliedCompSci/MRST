@@ -1,0 +1,2 @@
+addpath('/home/hnil/heim/BITBUCKET/mrst-bitbucket/my_modules/mrst-external/fluid/coolprops/')
+addpath('/home/hnil/heim/BITBUCKET/mrst-bitbucket/my_modules/mrst-external/coolprop_git/coolprop/wrappers/MATLAB')

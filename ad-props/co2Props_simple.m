@@ -9,16 +9,14 @@ end
 function v= l_enthalpy(T,p)
 v= (T - 298.15)*5e3;
 end
-function v= g_entalpy(T,p)
-v= (T - 298.15)*5e3;
-end
+
 function v = g_enthalpy(T,p)
    v = 571.3e3 + (T - 298.15)*0.85e3;
 end
 
 function v=g_density(T,p)
 mM=44e-3;%molarMass()
-R = 8.314472
+R = 8.314472;
 %idal gass
  v = p.*mM./(R*T);
 end
