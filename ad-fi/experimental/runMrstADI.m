@@ -67,7 +67,7 @@ dispif(vb, '*****************************************************************\n'
 %--------------------------------------------------------------------------
 
 
-if opt.writeOutput
+if opt.writeOutput | (opt.startAt ~= 1)
     directory = fullfile(fileparts(mfilename('fullpath')), 'cache');
     %delete existing output
     delete(fullfile(directory, [opt.outputName, '*.mat']));
