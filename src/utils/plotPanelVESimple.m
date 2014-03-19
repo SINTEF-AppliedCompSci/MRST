@@ -253,7 +253,7 @@ end
 makepColorPlot(cvec);
 view(prm.view)
 if(isfield(fluidADI,'dis_max'))
-    rsH=Gt.cells.H.*(1-sol.s).*sol.rs/fluidADI.dis_max;
+    rsH=Gt.cells.H.*(1-sol.s(:,2)).*sol.rs/fluidADI.dis_max;
 else
     rsH=zeros(Gt.cells.num,1);
 end

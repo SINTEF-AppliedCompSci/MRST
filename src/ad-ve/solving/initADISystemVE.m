@@ -128,7 +128,7 @@ if comp.gas
                    system.getEquations = @eqsfiBlackOilExplicitWellsOGVE;
                    system.updateFinal  = @(state, state0) updateFinalVE(state, state0, fluid,G);
                    system.cellwise = 1:3;
-                   system.cpr.gas = [2 3]
+                   system.cpr.gas = [2 3];
                    system.cpr.active = 1:2;
                else
                    dispif(opt.Verbose, 'Found a Oil/Gas with disolution ...\n')

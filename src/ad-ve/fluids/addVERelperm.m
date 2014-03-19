@@ -99,8 +99,8 @@ function kr= krG(sg, Gt, opt,varargin)
                 (sg_free .* (1 - (opt.top_trap ./ Gt.cells.H).^2));
 
            kr=kr_s;
-           kr((opt.top_trap ./ opt.Gt.cells.H) > sg_free) = ...
-               0 * sg_free((opt.top_trap ./ opt.Gt.cells.H) > sg_free);
+           kr((opt.top_trap ./ Gt.cells.H) > sg_free) = ...
+               0 * sg_free((opt.top_trap ./ Gt.cells.H) > sg_free);
       
       case 'smooth'
            kr = sg_free;
