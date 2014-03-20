@@ -1,7 +1,10 @@
 function obj = CO2props(rhofile, hfile, noassert)
 
 %% ESTABLISHING STATIC DATA
-  
+  if(nargin<2)
+      rhofile=[];
+      hfile=[];
+  end
   % load data tables
   if isempty(rhofile)
       rho = load('rho_small');     % load density data
