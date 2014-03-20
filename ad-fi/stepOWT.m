@@ -133,6 +133,7 @@ nInc = max( norm(dp,'inf')/norm(state.pressure, 'inf'), ...
 
 ds = sign(ds).*min(abs(ds), dsMax);
 dp = sign(dp).*min(abs(dp), abs(dpMax.*state.pressure));
+%dp = sign(dp).*min(abs(dp), abs(10*barsa));
 
 state.pressure = state.pressure + dp;
 sw = state.s(:,1) + ds;
@@ -140,10 +141,10 @@ sw = state.s(:,1) + ds;
 sw = min(sw, 1); sw = max(sw, 0);
 
 state.s = [sw, 1-sw];
-
-
+dT=dx{3};
+dT=sign(dT).*min(abs(dT),10);
 %if(opt.temperature)
-    state.T=state.T+dx{3};
+    state.T=state.T+dT;
 %end
 dqWs    = dx{4};
 dqOs    = dx{5};
