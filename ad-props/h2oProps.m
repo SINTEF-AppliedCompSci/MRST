@@ -11,16 +11,17 @@ function v= R1_viscosity(p,T)
     v =common_viscosity(T,rho);
 end
 function v = common_viscosity(T,rho)
-rhoBar = rho/322.0;
+rhoc=322;
+rhoBar = rho/rhoc;
 cT=647.096;
 TBar = T/cT;
 Hij = Visc_const();
 tmp3 = 1;
 muBar = 0;
-for i = 1:5
+for i = 1:6
     tmp = 0;
     tmp2 = 1;
-    for j = 1:6
+    for j = 1:7
         tmp = tmp + Hij(i,j).*tmp2;
         tmp2 =tmp2.* (rhoBar - 1);
     end
@@ -29,6 +30,7 @@ for i = 1:5
 end
 muBar =muBar.*rhoBar;
 muBar = exp(muBar);
+
 muBar  =muBar.*100.*power(TBar,0.5);
 H = [1.67752, 2.20462, 0.6366564, -0.241605];
 tmp = 0; tmp2 = 1;
