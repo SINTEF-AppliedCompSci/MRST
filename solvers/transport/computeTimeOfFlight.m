@@ -41,13 +41,13 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
 %
-%   'reverse' - Reverse the fluxes and rates.
+%   reverse - Reverse the fluxes and rates.
 %
-%   'tracer'  - Cell-array of cell-index vectors for which to solve tracer
-%               equation. One equation is solved for each vector with
-%               tracer injected in cells given indices. Each vector adds
-%               one additional RHS to the original tof-system. Output given
-%               as additional columns in T.
+%   tracer - Cell-array of cell-index vectors for which to solve tracer
+%           equation. One equation is solved for each vector with
+%           tracer injected in cells given indices. Each vector adds
+%           one additional RHS to the original tof-system. Output given
+%           as additional columns in T.
 % RETURNS:
 %   T - Cell values of a piecewise constant approximation to time-of-flight
 %       computed as the solution of the boundary-value problem
@@ -104,10 +104,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('bc', [], 'src', [], 'wells', [], 'reverse', false, 'tracer', {{}});
 opt = merge_options(opt, varargin{:});
 
-assert (isempty(opt.src) || ~isempty(opt.src.sat), ...
-   'Source terms must have a valid ''sat'' field.');
-assert (isempty(opt.bc) || ~isempty(opt.bc.sat), ...
-   'Boundary conditions must have a valid ''sat'' field.');
+assert(~isempty(opt.src) || ~isempty(opt.bc) || ~isempty(opt.wells), ...
+    'Must have inflow described as boundary conditions, sources or wells');
 assert (isfield(rock, 'poro')         && ...
         numel(rock.poro)==G.cells.num,   ...
         ['The rock input must have a field poro with porosity ',...
@@ -117,42 +115,88 @@ assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
 tr = opt.tracer;
 if ~iscell(tr), tr = {tr}; end
 
-% Find external sources of inflow
-q  = computeTransportSourceTerm(state, G, opt.wells, opt.src, opt.bc);
+% Find external sources of inflow: q contains the contribution from src/W,
+% while qb contains the cell-wise sum of fluxes from boundary conditions.
+[q,qb] = computeSourceTerm(state, G, opt.wells, opt.src, opt.bc);
 
 if opt.reverse,
-   q = -q;
+   q  = -q;
+   qb = -qb;
    state.flux = -state.flux;
 end
 
-% Build upwind flux matrix with v_ii = max(flux_ij, 0) + max(qi, 0) and
-% v_ij = min(flux_ij, 0).
+% Build upwind flux matrix in which we define v_ji = max(flux_ij, 0) and
+% v_ij = -min(flux_ij, 0). Then the diagonal of the discretization matrix
+% is obtained by summing rows in the upwind flux matrix. This will give the
+% correct diagonal in all cell except for those with a positive fluid
+% source. In these cells, the average time-of-flight will be equal half the
+% time it takes to fill the cell, which means that the diagonal entry
+% should be equal twice the fluid rate inside the cell.
 i  = ~any(G.faces.neighbors==0, 2);
 n  = double(G.faces.neighbors(i,:));
 nc = G.cells.num;
-qp = max(q, 0);
-A  = sparse(n(:,1), n(:,2),  max(state.flux(i), 0), nc, nc)...
-   + sparse(n(:,2), n(:,1), -min(state.flux(i), 0), nc, nc);
-A  = -A' + spdiags(max([sum(A); sum(A')])', 0, nc, nc);
+qp = max(q+qb, 0);
+A  = sparse(n(:,2), n(:,1),  max(state.flux(i), 0), nc, nc)...
+   + sparse(n(:,1), n(:,2), -min(state.flux(i), 0), nc, nc);
+A  = -A + spdiags(sum(A,2)+2*qp, 0, nc, nc);
 
-pv = poreVolume(G, rock);
+% Subtract the divergence of the velocity minus any source terms from the
+% diagonal to account for compressibility effects. Inflow/outflow from
+% boundary conditions are accounted for in the divergence, and hence we
+% only need to subtract q (and not qb).
+div = accumarray(gridCellNo(G), faceFlux2cellFlux(G, state.flux));
+A   = A - spdiags(div-q, 0, nc, nc);
 
-% Subtract divergence of non-source cells from rhs
-cellNo = rldecode(1:G.cells.num,diff(G.cells.facePos),2)';
-flux = faceFlux2cellFlux(G, state.flux);
-div = accumarray(cellNo, flux);
-% The q below is added to the line below to make it a no-op for source
-% cells, div will be equal to q for such cells.
-pv = pv - div + q;
-
-% build RHSs for tracer equations
+% Build RHSs for tracer equations. Since we have doubled the rate in any
+% cells with a positive source, we need to also double the rate on the
+% right-hand side here.
 numTrRHS = numel(tr);
-numCells = cellfun(@numel, tr);
-TrRHS    = full( sparse(vertcat(tr{:}), ...
-                 rldecode((1:numTrRHS)', numCells(:)), ...
-                 1, nc, numTrRHS ));
-TrRHS    = bsxfun(@times, TrRHS, full(qp));
+TrRHS = zeros(nc,numTrRHS);
+for i=1:numTrRHS,
+   TrRHS(tr{i},i) = 2*qp(tr{i});
+end
 
 % Time of flight for a divergence-free velocity field.
-T  = A \ [pv TrRHS];
+T  = A \ [poreVolume(G,rock) TrRHS];
+end
+
+
+function [q, qb] = computeSourceTerm(state, G, W, src, bc)
+   qi = [];  % Cells to which sources are connected
+   qs = [];  % Actual strength of source term (in m^3/s).
+
+   % Contribution from wells
+   if ~isempty(W),
+      qi = [qi; vertcat(W.cells)];
+      qs = [qs; vertcat(state.wellSol.flux)];
+   end
+
+   % Contribution from sources
+   if ~isempty(src),
+      qi = [qi; src.cell];
+      qs = [qs; src.rate];
+   end
+
+   % Assemble all source and sink contributions to each affected cell.
+   q = sparse(qi, 1, qs, G.cells.num, 1);
+
+   % Contribution from boundary conditions
+   if ~isempty(bc),
+      ff    = zeros(G.faces.num, 1);
+
+      isDir = strcmp('pressure', bc.type);
+      i     = bc.face(isDir);
+      if ~isempty(i)
+         ff(i) = state.flux(i) .* (2*(G.faces.neighbors(i,1)==0) - 1);
+      end
+
+      isNeu = strcmp('flux', bc.type);
+      ff(bc.face(isNeu)) = bc.value(isNeu);
+
+      is_outer = ~all(double(G.faces.neighbors) > 0, 2);
+      qb = sparse(sum(G.faces.neighbors(is_outer,:), 2), 1, ...
+         ff(is_outer), G.cells.num, 1);
+   else
+      qb = sparse(G.cells.num,1);
+   end
 end
