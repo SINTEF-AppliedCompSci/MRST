@@ -2,8 +2,8 @@ function p = refineGreedy(p, G, IFlw, NU, varargin)
 %Refine blocks in a partition using a greedy algorithm
 %
 % SYNOPSIS:
-%   p = refineGreedy(p, G, IFlw, NU);
-%   p = refineGreedy(p, G, IFlw, NU, 'nlevel', 2);
+%   p = refineGreedy(p, G, IFlw, NU)
+%   p = refineGreedy(p, G, IFlw, NU, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   The function performs a greedy refinement of all blocks in which the
