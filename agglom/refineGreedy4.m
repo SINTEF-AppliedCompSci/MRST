@@ -76,9 +76,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-require('gridtools');
-
 opt = struct('nlevel', 2, 'verbose', mrstVerbose, 'nadd', inf);
 opt = merge_options(opt, varargin{:});
 
