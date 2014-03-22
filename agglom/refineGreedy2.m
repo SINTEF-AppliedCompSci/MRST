@@ -32,10 +32,10 @@ function p = refineGreedy2(p, G, IFlw, NU, varargin)
 %            merge a candidate block to its (feasible) neighbouring block
 %            that most closely matches its own block flow.
 %
-%   NU     - Algorithm controlling parameters.  The algorithm will refine
+%   NU     - Algorithm controlling parameter.  The algorithm will refine
 %            blocks that violate the criterion
 %
-%                IFlw(B) |B| >= (NU / n) IFlw(G) |G|    (*)
+%                IFlw(B) |B| <= (NU / n) IFlw(G) |G|    (*)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
