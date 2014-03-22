@@ -54,7 +54,6 @@ function p = refineGreedy3(p, G, IFlw, NU, varargin)
 %
 % SEE ALSO:
 %   refineGreedy, refineGreedy2, mergeBlocks, refineBlocks, processPartition.
-%
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
