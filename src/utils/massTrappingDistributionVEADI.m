@@ -66,9 +66,9 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
     freeStruc = strucVol * (1 - sr - sw);                     % trapped, non-residual
     freeRes   = plumeVol * sr;                                % non-trapped, flowing, residual
     freeMov   = plumeVol * (1 - sw - sr);                     % non-trapped, flowing, non-residual
-    resTrap   = sum(max(sol.h_max - max(zt, sol.h),0) .* rhoCO2 .* pv ) .* sr; % non-trapped, non-flowing, residual
+    resTrap   = sum(max(sol.h_max - max(zt, sol.h),0) .* ...
+                    rhoCO2 .* pv ) .* sr;                     % non-trapped, non-flowing, residual
     resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); % dissolved
-
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov],0);
 
     if(abs(sum(masses(2:end))-gasPhase) > 1e-3 * gasPhase)
