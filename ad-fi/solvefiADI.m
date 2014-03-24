@@ -82,6 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % If the stepFunction admets additional arguments, pass them along,
     % otherwise ignore them @@ TODO: We should find a consistent solution for
     % this.
+    assert(dt>0);
     if nargin(system.stepFunction) == 7
         % Step function has a fixed number of arguments (8), and doesn't allow
         % additional arguments
