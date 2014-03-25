@@ -54,9 +54,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-require('gridtools')
-
 if G.griddim==2,
    opt = struct('cartDims', [2, 2], 'verbose',  mrstVerbose);
 else

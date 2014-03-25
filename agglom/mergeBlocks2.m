@@ -83,20 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    lbnd = NL * sum(         bIVol) / G.cells.num;    % SUM(IVol .* volumes)
    ubnd = NU * sum(bIFlw .* bIVol) / G.cells.num;    % SUM(IFlw .* volumes)
 
-   if exist('getNeighbourship', 'file') == 2,
-      % Module 'gridtools' is loaded.  Use it to handle explicit NNCs.
-      N = getNeighbourship(G, 'Topological', false);
-   else
-      if isfield(G, 'nnc'),
-         warning(msgid('NNC:Ignored'), ...
-                ['Module ''gridtools'' is not loaded.\n', ...
-                 'Ignoring non-neighbouring connections in block ', ...
-                 'neighbourship']);
-      end
-
-      N = G.faces.neighbors;
-   end
-
+   N    = getNeighbourship(G, 'Topological', false);
    bN   = blockNeighbourship(N, p);
 
    mrg  = mergeBlocksCore(bN, bIVol, bIFlw, bINum, ...

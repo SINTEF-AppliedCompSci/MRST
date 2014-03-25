@@ -25,12 +25,6 @@
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
 try
-   require gridtools
-catch me
-   mrstModule add gridtools;
-end
-
-try
    require coarsegrid
 catch me
    mrstModule add coarsegrid;
