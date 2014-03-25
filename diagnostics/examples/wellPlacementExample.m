@@ -8,7 +8,7 @@
 % Different options can be changed for different results. The default is to
 % optimize the placement of the wells, but not their rates.
 
-mrstModule add deckformat ad-fi diagnostics spe10 mrst-gui
+mrstModule add deckformat ad-fi ad-props diagnostics spe10 mrst-gui
 
 % Start with a five spot-like well setup. Otherwise, place all injectors
 % near the middle of the domain.
