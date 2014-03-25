@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % this.
     assert(dt>0);
     if nargin(system.stepFunction) == 7
-        % Step function has a fixed number of arguments (8), and doesn't allow
+        % Step function has a fixed number of arguments (7), and doesn't allow
         % additional arguments
         step = @(state, meta) ...
                system.stepFunction(state0, state, meta, dt, W, G, ...
