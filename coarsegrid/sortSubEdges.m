@@ -41,9 +41,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   require gridtools
-
    assert( isfield(cg, 'parent'),        ...
       'SORTSUBFACES has meaning for coarse grids only!');
    assert(~isfield(cg.parent, 'parent'), ...

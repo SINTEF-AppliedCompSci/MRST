@@ -20,12 +20,6 @@ catch me
 end
 
 try
-   require gridtools
-catch me
-   mrstModule add gridtools;
-end
-
-try
    require coarsegrid
 catch me
    mrstModule add coarsegrid;
