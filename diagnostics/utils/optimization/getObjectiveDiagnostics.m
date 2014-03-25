@@ -312,7 +312,6 @@ function obj = minimizeLorenz(state, D, pv, varargin)
 end
 
 function obj = minimizeLayeredLorenz(G, state, D, pv, removeOutliers)
-    require gridtools
     ijk = gridLogicalIndices(G);
     for i = 1:G.cartDims(3)
         lc = minimizeLorenz(state, D, pv, removeOutliers, ijk{3} == i);

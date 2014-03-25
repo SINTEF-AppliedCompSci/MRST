@@ -1,4 +1,4 @@
-mrstModule add deckformat ad-fi diagnostics gridtools spe10 internal/mrst-gui
+mrstModule add deckformat ad-fi diagnostics spe10 internal/mrst-gui
 
 clear rock
 fn    = fullfile(ROOTDIR, 'modules', 'diagnostics', 'experimental', 'ad', 'trivial.data');
