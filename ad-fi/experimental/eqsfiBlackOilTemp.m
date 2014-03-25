@@ -178,7 +178,6 @@ function [eqs, state, hst] = eqsfiBlackOilTemp(state0, state, dt, G, W, s, f, va
 
     bFvF={bOvO,bWvW,bGvG+rsbOvO};
 
-
     eF={f.uO(p,T) , f.uW(p,T), f.uG(p,T)};
     eF0={f.uO(p0,T0) , f.uW(p0,T0), f.uG(p0,T0)};
     hF={f.hO(p,T), f.hW(p,T), f.hG(p,T)};
@@ -191,8 +190,9 @@ function [eqs, state, hst] = eqsfiBlackOilTemp(state0, state, dt, G, W, s, f, va
     %bFqF={bOqO,bWqW,bGqG};
     % well contributions is taken at the end
 
-
-    eqs{5} = (s.pv/dt).*(  (1-pvMult).*uR-(1-pvMult0).*uR0) + s.div( vQ);
+    
+    vol=G.cells.volumes;
+    eqs{5} = (1/dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.div( vQ);
     eqs{5}(wc) = eqs{5}(wc)-vQqQ;
     for i=1:numel(eF)       
         eqs{5}  =  eqs{5} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoS{i}.*bFsF{i} - pvMult0.*eF0{i}.*rhoS{i}.*bFsF0{i} )...
