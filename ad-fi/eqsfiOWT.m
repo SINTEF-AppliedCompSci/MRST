@@ -147,7 +147,7 @@ bW0=f.bW(p0);
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
 
 % temprature
-rhoS={f.rhoOS,f.rhoWS};
+    rhoS={f.rhoOS,f.rhoWS};
     bFsF={bO.*sO,bW.*sW};
     bFsF0={bO0.*sO0,bW0.*sW0};
 
@@ -163,9 +163,9 @@ rhoS={f.rhoOS,f.rhoWS};
     %vQqQ = 0*wT;
     %bFqF={bOqO,bWqW,bGqG};
     % well contributions is taken at the end
-
-
-    eqs{3} = (s.pv/dt).*(  (1-pvMult).*uR-(1-pvMult0).*uR0) + s.div( vQ);
+    %eqs{3} = (s.pv/dt).*(  (1-pvMult).*uR-(1-pvMult0).*uR0) + s.div( vQ);
+    vol=G.cells.volumes;
+    eqs{3} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.div( vQ);
     %eqs{3}=eqs{3};
     %eqs{5}(wc) = eqs{5}(wc)-vQqQ;
     for i=1:numel(eF)       
