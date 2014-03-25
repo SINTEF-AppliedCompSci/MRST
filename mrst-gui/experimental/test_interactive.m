@@ -16,7 +16,6 @@ h = plotCellData(G, rock.poro, 'ButtonDownFcn', @interactiveSelection)
 close all;
 addFilters(G, [], rock, [])
 %%
-mrstModule add gridtools
 ijk = gridLogicalIndices(G);
 clc;
 close all;

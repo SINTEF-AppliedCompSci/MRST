@@ -5,7 +5,7 @@
 % is to create the interactive figures produced by interactiveDiagnostics.
 %
 %% Set up grid and rock
-mrstModule add diagnostics gridtools mrst-gui
+mrstModule add diagnostics mrst-gui
 grdecl = fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP', 'SAIGUP.GRDECL');
 
 if ~exist(grdecl, 'file'),

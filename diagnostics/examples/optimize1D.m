@@ -5,7 +5,7 @@
 %
 % We begin by defining a simple 10x1x1 grid discretized into 101 fine
 % cells.
-mrstModule add ad-fi diagnostics gridtools
+mrstModule add ad-fi diagnostics
 N = 100 + 1;
 % Define the middle of the domain
 mid = floor(N/2);
