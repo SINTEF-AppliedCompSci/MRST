@@ -43,7 +43,7 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
 %   fluid   - Data structure describing the fluids in the problem.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   - verbose 
+%   - verbose
 %
 %   - wells
 %
@@ -56,7 +56,7 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
 %                  default false
 %
 %   - vert_method : method used for vertical average on 3d grids
-%                   valid options are 
+%                   valid options are
 %                  'topface': use top surface for gravity gradient
 %                  'cells' : use cellcentroid to
 %                  'pp_cells': use cellcentroid just a bit different
@@ -92,7 +92,7 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
 % for constant vector and scalar fields fields D, G and Q.
 
 
-   opt = struct('verbose', false,... 
+   opt = struct('verbose', false,...
                  'wells', [],...
                  'src', [],...
                  'bc', [],...
@@ -101,7 +101,7 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
                  'nltol',[], ...
                  'Trans',[]);
    opt = merge_options(opt, varargin{:});
-   
+
    assert (size(state.s,2)<3 || all(state.s(:,3)==0));
 
 
@@ -120,12 +120,12 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
       [dflux, gflux] = getFlux(G, rock, rho, state.flux);
       pcflux = @(s)( zeros(size(gflux)));
       pcJac=0;
-     
+
       % Bind flux terms dflux and gflux.  The call [iw,io]=findUpwindCells(..)
       % computes cell index of upwind cell for the water phase (iw) and oil
       % phase (io).
       cdata           = computeConstData(G, dflux, gflux);
-      findUpwindCells = @(mob, resSol) findPhaseUpwindCells(cdata, mob);      
+      findUpwindCells = @(mob, resSol) findPhaseUpwindCells(cdata, mob);
    else
       [dflux, gflux, pcflux, pcJac] = getFluxCap(G,state, rock, rho,...
                                                   fluid, opt.vert_avrg,opt.vert_method, opt.Trans);
@@ -156,7 +156,7 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux, pcJac,
 
 %           dt    mw
 %     F =   -- · ------- (dflux + mo*(pcflux + gflux))
-%           pv   mw + mo 
+%           pv   mw + mo
 %
 
 %    dF      dt      mo       1
@@ -175,7 +175,7 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux, pcJac,
 %
 %    dF          dt  fw
 %    ------- =   --  --  mo
-%    dpcflux     pv  
+%    dpcflux     pv
 %
 %
 %    dF    dF  dmw    dF  dmo   dF      dpcflux
@@ -196,17 +196,17 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux, pcJac,
    [kr, dkr] = fluid.relperm(sat, resSol);
    m         = bsxfun(@rdivide, kr,  mu);    % mobility in each cell
    dm        = bsxfun(@rdivide, dkr, mu);    % derivative of mobility
-      
+
    clear mu sat kr dkr
 
    internal_faces   = all(G.faces.neighbors~=0, 2);
    ic1  = double(G.faces.neighbors(internal_faces,1));
    ic2  = double(G.faces.neighbors(internal_faces,2));
-   
+
    % For each face k, iw(k) and io(k) is the cell index in which we
    % must evaluate the water and oil mobilities, respectively.
    [iw, io] = findIx(m, resSol);
-%   if(isfield(resSol,'p_ph'))      
+%   if(isfield(resSol,'p_ph'))
 %      [iww,ioo]=upwindPh(G,resSol,rho);
 %   end
    % % temporary removed:
@@ -215,41 +215,41 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux, pcJac,
 %    end
    m_face   = [m(iw, 1) m(io,2)];
    f_face   = bsxfun(@rdivide, m_face, sum(m_face,2));
-    
+
    dmw_fo    = f_face(:,2).*dm(iw,1);
    dmo_fw    = f_face(:,1).*dm(io,2);
 
    dvw_ds1 =  (dflux + (pcflux(resSol) + gflux).*m_face(:,2)) .* dmw_fo ./ sum(m_face,2);
    dvw_ds2 = -(dflux - (pcflux(resSol) + gflux).*m_face(:,1)) .* dmo_fw ./ sum(m_face,2);
 
-   
+
    dFdSiw1  = dt./pv(ic1).*dvw_ds1;
    dFdSiw2  = dt./pv(ic2).*dvw_ds1;
    dFdSio1  = dt./pv(ic1).*dvw_ds2;
    dFdSio2  = dt./pv(ic2).*dvw_ds2;
 
-      
+
    clear dmw_fo dmo_fw dvw_ds1 dvw_ds2 internal_faces
 
    % In cell: differentiate term s-s0 + dt/pv(max(q,0) + min(q,0).*f) with
    % respect to cell saturation.
    f   = bsxfun(@rdivide, m, sum(m,2));
    df  = (f(:,2).*dm(:,1) - f(:,1).*dm(:,2))./sum(m,2);
-   
-      
+
+
    % derivative of Sn+1 and contribution from in perforations of well
    d   = 1-dt./pv.*(min(q, 0).*df);
 
    id  = (1:G.cells.num)';
 
-   % Assemble contribututions 
+   % Assemble contribututions
    %           diagonal  water mobility      oil mobility
    J = sparse([id;        ic1;      ic2;        ic1;      ic2], ... %row
               [id;         iw;       iw;         io;       io], ... %column
               [d;     dFdSiw1; -dFdSiw2;    dFdSio1; -dFdSio2], ... %value
               G.cells.num, G.cells.num);
-   
-   
+
+
    % Add contributions from well for cases where there is inflow (and
    % possibly also outflow) in the well)
    % Calculate part of jacobian assosiated with wells
@@ -257,11 +257,11 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux, pcJac,
    for kk=1:numel(W)
        inperf  =  resSol.wellSol(kk).flux<0;
        outperf =  resSol.wellSol(kk).flux>0;
-       if(sum(inperf)>0) 
+       if(sum(inperf)>0)
           %S_avg = -resSol.wellSol(kk).flux(inperf).*f(W(kk).cells(inperf));%+W(kk).comp(1);
-          influx = -sum(resSol.wellSol(kk).flux(inperf)); % sum influx (positive) 
-          wellhead = sum(resSol.wellSol(kk).flux);        % net injection or prodcution  
-          
+          influx = -sum(resSol.wellSol(kk).flux(inperf)); % sum influx (positive)
+          wellhead = sum(resSol.wellSol(kk).flux);        % net injection or prodcution
+
           if(wellhead>0) % well is net injector (more outflux than influx)
              normal=(influx+wellhead); % outflux
              %S_avg = (sum(S_avg)+W(kk).val*W(kk).compi(1))./(normal);
@@ -269,73 +269,75 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux, pcJac,
              normal=influx; % influx
              %S_avg = (sum(S_avg))./(normal);
           end
-                  
+
           flux_in  = resSol.wellSol(kk).flux(inperf);
-          flux_out = resSol.wellSol(kk).flux(outperf);    
-          
+          flux_out = resSol.wellSol(kk).flux(outperf);
+
           num_in  = sum(inperf);
-          num_out = sum(outperf); 
-          
+          num_out = sum(outperf);
+
           % compute source term
           q(W(kk).cells(inperf)) = q(W(kk).cells(inperf)) + flux_in;
-         
-          % If the well also has outflow cells, we must add 
+
+          % If the well also has outflow cells, we must add
           % Jacobi contributions to out cells from the in cells
-          if(sum(outperf)>0) 
+          if(sum(outperf)>0)
              % row
              iout = [iout; rldecode(W(kk).cells(outperf),repmat(num_in, num_out,1))]; %#ok
              % column
              iinn = [iinn; repmat(W(kk).cells(inperf),num_out,1)]; %#ok
-             
+
              % each in-perforation gives contribution to all out cells. The
              % contribution for one out cell is weigthed by the relative
-             % outflow from the well into that cell given by: 
+             % outflow from the well into that cell given by:
              val_tmp = bsxfun(@times, repmat(flux_out,1, num_in ), ...
-                           ((-flux_in.*df(W(kk).cells(inperf)))/normal)');                        
+                           ((-flux_in.*df(W(kk).cells(inperf)))/normal)');
              % value
              matel  =[matel; reshape(val_tmp', [], 1) ]; %#ok
-          end        
+          end
        end
        %q(W(kk).cells(outperf)) = q(W(kk).cells(outperf))
    end
    Jwell = sparse(iout,iinn,-matel,G.cells.num,G.cells.num);
-   
-           
+
+
    J=J+Jwell;
-  
-   % Add to Jacobian elemenst for derivative of capillary pressure   
+
+   % Add to Jacobian elemenst for derivative of capillary pressure
    if isfield(fluid, 'pc')
      [pc, dpc]       = fluid.pc(resSol);                                  %#ok
-      
+
       d_p  =      dt.* f_face(:,1).*m_face(:,2).*pcJac;
-      
+
       % d pcflux
       %  --------
       %     dS
       % for a face e_ij gives four contributions to the Jacobi matrix:
-      
+
       dFdSipc1_1 =  d_p.*dpc(ic1)./pv(ic1);  % J_ii
       dFdSipc1_2 =  d_p.*dpc(ic2)./pv(ic1);  % J_ij
       dFdSipc2_1 =  d_p.*dpc(ic1)./pv(ic2);  % J_ji
-      dFdSipc2_2 =  d_p.*dpc(ic2)./pv(ic2);  % J_jj      
-    
-      
-   
+      dFdSipc2_2 =  d_p.*dpc(ic2)./pv(ic2);  % J_jj
+
+
+
       J = J + sparse( [ic1;        ic1;        ic2;        ic2], ... %row
          [ic1;        ic2;        ic1;        ic2], ... %column
          [dFdSipc1_1; -dFdSipc1_2;  -dFdSipc2_1; dFdSipc2_2], ... %value
          G.cells.num, G.cells.num);
-      % handle capillary pressure at boundary    
-      bc_cells =  sum(G.faces.neighbors(bc.face,:),2);
-      dpc_bc = dpc(bc_cells);
-      pc_bc = pc(bc_cells);
+      % handle capillary pressure at boundary
+      if ~isempty(bc)
+         bc_cells =  sum(G.faces.neighbors(bc.face,:),2);
+         dpc_bc = dpc(bc_cells);
+         pc_bc = pc(bc_cells);
+      end
 
       % Fbc = m(pc_bc,2).*f(pc_bc,2).*pc_bc*Trans(bc.faces);
       if(~isempty(Trans))
         dFbc= dm(bc_cells,2).*f(bc_cells).*pc_bc+...
                 m(bc_cells,2).*df(bc_cells).*pc_bc+...
-                m(bc_cells,2).*f(bc_cells).*dpc_bc;            
-        dFbc = Trans(bc.face).*dFbc;        
+                m(bc_cells,2).*f(bc_cells).*dpc_bc;
+        dFbc = Trans(bc.face).*dFbc;
         J = J - sparse(bc_cells, bc_cells, dFbc,G.cells.num, G.cells.num);
       end
    end
@@ -392,9 +394,9 @@ function F = Residual (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux,...
    % Compute water source term
    f_cell = m(:,1) ./ sum(m,2);
    Q      = max(q,0) + min(q,0).*f_cell;
-   
+
    % Calculate source term related to wells. Need to take special care in
-   % cases where well has both in and outflux   
+   % cases where well has both in and outflux
    for kk=1:numel(W)
        inperf=  resSol.wellSol(kk).flux<0;
        outperf=  resSol.wellSol(kk).flux>0;
@@ -429,14 +431,14 @@ function F = Residual (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux,...
    m_face  = [m(iw, 1) m(io,2)];
    f_face  = m_face(:,1)./sum(m_face,2);
    v_water = f_face.*(dflux+(pcflux(resSol)+ gflux).*(m_face(:,2)));
-   
+
 
    F   = resSol.s(:,1) - resSol_0.s(:,1);
    F   = F+dt.*(1./pv).*(accumarray([ic1; ic2], [v_water; -v_water]) - Q);
    % handle capillary pressure at boundary
    if(~isempty(Trans) && isfield(fluid, {'pc'}))
     bc_cells =  sum(G.faces.neighbors(bc.face,:),2);
-    pc       = fluid.pc(resSol);  
+    pc       = fluid.pc(resSol);
     pc_bc = pc(bc_cells);%fluid.pc(resSol.s(bc_cells,1));
     v_water = ((m(bc_cells,1).*m(bc_cells,2))./sum(m(bc_cells,:),2)).*Trans(bc.face).*pc_bc;
     %F   = F + dt.*(1/pv).*(accumarray(bc_cells, v_water));
@@ -465,7 +467,7 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
    cIntFInx = is_int(G.cells.faces(:,1));
 
    % Indices of internal face corresponding to cIntFInx.
-   globfix  = G.cells.faces(cIntFInx, 1); 
+   globfix  = G.cells.faces(cIntFInx, 1);
 
    % rho(1) - rho(2) is always correct (even when rho(2) > rho(1)), because
    % during transport (using, e.g., the 'twophaseUpwBEGrav' transport
@@ -485,9 +487,9 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
           ['Permeability must be defined in active cells only.\n', ...
            'Got %d tensors, expected %d (== number of cells).'],   ...
            size(K,1), G.cells.num);
-   
+
    C = zeros(numel(G.faces.neighbors(:,1)), dim);
-   
+
    %_all = G.cells.centroids(G.faces.neighbors(:,1))-G.cells.centroids(G.faces.neighbors(:,2),:);
    C(is_int,:)=G.cells.centroids(G.faces.neighbors(is_int,1),:)...
        -G.cells.centroids(G.faces.neighbors(is_int,2),:);
@@ -495,9 +497,9 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
    d_pc = @(cell_pc) (cell_pc(G.faces.neighbors(is_int,1),:)- ...
                      cell_pc(G.faces.neighbors(is_int,2),:));%./nC; %...
                      %.*G.faces.areas(is_int); %blir med i nKC
-       
+
    %d_pc = d_pc.*G.faces.areas(is_int)./nC;
-      
+
    if (any(strcmp(G.type, 'topSurfaceGrid')))
        if(isempty(Trans))
             nKC = sum(G.faces.normals(G.cells.faces(:,1), r).* ...
@@ -505,7 +507,7 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
             .*C(G.cells.faces(:,1),c), 2);
             harm_c(is_int) = (2 ./ accumarray(renum(globfix), 1 ./ nKC(cIntFInx)))./nC;
        else
-          %harm_c = Trans; 
+          %harm_c = Trans;
        end
    else
       nKC = sum(G.faces.normals(G.cells.faces(:,1), r).* ...
@@ -513,15 +515,15 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
       harm_c(is_int) = (2 ./ accumarray(renum(globfix), 1 ./ nKC(cIntFInx)))./nC;
    end
    %bsxfun(@times, K(cellNo,:), C(G.cells.faces(:,1),c), 2)); %hvorfor C?
-   % C er på facer.. 
+   % C er på facer..
    %harm_c(is_int) = (2 ./ accumarray(renum(globfix), 1 ./ nKC(cIntFInx)))./nC;
    if(~vert_avrg)
       nKg = sum(G.faces.normals(G.cells.faces(:,1), r) .* ...
          bsxfun(@times, K(cellNo,:), g_fac(c)), 2);
       harm_g(is_int) = 2 ./ accumarray(renum(globfix), 1 ./ nKg(cIntFInx));
    else
-       if (any(strcmp(G.type, 'topSurfaceGrid'))) 
-           
+       if (any(strcmp(G.type, 'topSurfaceGrid')))
+
           assert(size(G.cells.centroids,2)==2);
           if(isempty(Trans))
            harm_g(is_int) =  -norm(g_fac)*harm_c(is_int).*...
@@ -529,20 +531,20 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
                -G.cells.z(G.faces.neighbors(is_int,2)))./nC;
           else
              harm_g(is_int) =norm(g_fac)*Trans(is_int).*(G.cells.z(G.faces.neighbors(is_int,1))...
-               -G.cells.z(G.faces.neighbors(is_int,2))) ; 
+               -G.cells.z(G.faces.neighbors(is_int,2))) ;
           end
        else
            % vert_method_3d = 'cells';% not working
            % vert_method_3d = 'cells_pp';% working
-           % vert_method_3d = 'topface';  
+           % vert_method_3d = 'topface';
            vert_method_3d = vert_method;
            hftb = any(bsxfun(@eq,G.cells.faces(:,2),[5,6]),2);
            ftb = G.cells.faces(hftb,1);
-           ftb = unique(ftb);   
+           ftb = unique(ftb);
            harm_c( ftb ) = 0;
            switch  vert_method_3d
                case {'cells'}
-                   % use cellcentroid for defining gravity effert 
+                   % use cellcentroid for defining gravity effert
                    % warning('Only simple verion of vertical average is implemented for 3d grid');
                    harm_g(is_int) = -norm(g_fac).*harm_c(is_int)...
                        .*(G.cells.centroids(G.faces.neighbors(is_int,1),3)...
@@ -550,7 +552,7 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
                    %now gravity flow tru z surfaces
                    %harm_g(~is_int)=0;
                    harm_g( ftb) = 0;
-                   
+
                case {'cells_pp'}
                   % use cellcentroid for defining gravity effert
                   nnC=zeros(G.faces.num,1);
@@ -562,13 +564,13 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
                   xy_faces = ifxy;
                    harm_g(xy_faces) =  -norm(g_fac).*harm_c(xy_faces).*...
                        (G.cells.centroids(G.faces.neighbors(xy_faces,1),3)...
-                       -G.cells.centroids(G.faces.neighbors(xy_faces,2),3))./nnC(xy_faces);                   
+                       -G.cells.centroids(G.faces.neighbors(xy_faces,2),3))./nnC(xy_faces);
                case {'topface'}
                    % use top surface centroid for defining gravity effect
                    % nC and nKC could be calculate from top surface
                    % centroid difference in this case
                    nnC=zeros(G.faces.num,1);
-                   nnC(is_int)=nC;   
+                   nnC(is_int)=nC;
                    hfxy = (G.cells.faces(:,2) < 5);
                    fxy = G.cells.faces(hfxy,1);
                    fxy = unique(fxy);
@@ -596,13 +598,13 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
     pc_flux = @(rSol)  harm_c(is_int).*d_pc(fluid.pc(rSol))./nC;
     pcJac = harm_c(is_int)./nC;
    else
-      
-      pc_flux = @(rSol)  -Trans(is_int).*d_pc(fluid.pc(rSol));  
+
+      pc_flux = @(rSol)  -Trans(is_int).*d_pc(fluid.pc(rSol));
       pcJac = -Trans(is_int);
    end
    % precompute some values used to compute dpc/ds in Jacobian
    %pcJac = harm_c(is_int).*G.faces.areas(is_int)./nC;
-   
+
    g = harm_g(is_int);
    f = darcyFaceFlux(is_int);
 end
@@ -842,7 +844,7 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc)
       qi = [qi; i];
       qs = [qs; s];
    end
-   
+
    if ~isempty(bc), assert (~isempty(bc.sat))
       is_int = all(double(G.faces.neighbors) > 0, 2);
       [i, s] = contrib_bc(G, state, bc, is_int);
