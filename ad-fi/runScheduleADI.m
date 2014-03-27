@@ -178,14 +178,16 @@ for tstep = 1:numel(dt)
            else
                W = schedule.control(control).W;
            end
-           openWells = vertcat(W.status);
-           assert(all(islogical(openWells)));% avoid errors due to setting status to 1;
-           W = W(openWells);
+           if(~isempty(W))
+            openWells = vertcat(W.status);
+            assert(all(islogical(openWells)));% avoid errors due to setting status to 1;
+            W = W(openWells);
+           end
         end
     end
     dispif(vb, 'Time step length: %g day.\n', convertTo(dt(tstep), day))
     state0 = state;
-    if useMrstSchedule && uniformSchedule
+    if useMrstSchedule && uniformSchedule && ~isempty(W)
         state0.wellSol = initWellSolLocal(W, state, wellSol_init(openWells));
     else
         state0.wellSol = initWellSolLocal(W, state);
@@ -193,16 +195,25 @@ for tstep = 1:numel(dt)
 
     [state, its, conv] = solvefiADI(state0, dt(tstep), W, G, system);
     % check if any controls have been switched, and if so update W
-    W = updateSwitchedControls(state.wellSol, W);
+    if(~isempty(W))
+        W = updateSwitchedControls(state.wellSol, W);
+    end
     wellSols{tstep} = state.wellSol;
     wellSols{tstep} = addWellInfo(wellSols{tstep}, W);
 
     iter(tstep) = its;
-    if useMrstSchedule && uniformSchedule
-        wellSol_init(openWells) = state.wellSol;
-        ws = wellSol_zero;
-        ws(openWells) = state.wellSol;
-        state.wellSol = ws;
+    if useMrstSchedule && uniformSchedule && ~isempty(W)
+        if(any(openWells))
+            wellSol_init(openWells) = state.wellSol;
+            ws = wellSol_zero;
+            ws(openWells) = state.wellSol;
+            state.wellSol = ws;
+        else
+           wellSol_init = state.wellSol;
+           ws = wellSol_zero;
+           ws = state.wellSol;
+           state.wellSol=ws;
+        end
     end
     wellSols{tstep} = state.wellSol;
     wellSols{tstep} = addWellInfo(wellSols{tstep}, W);
