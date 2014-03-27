@@ -149,8 +149,9 @@ dT=sign(dT).*min(abs(dT),10);
 dqWs    = dx{4};
 dqOs    = dx{5};
 dpBHP   = dx{6};
-
-dpBHP = sign(dpBHP).*min(abs(dpBHP), abs(dpMax.*vertcat(state.wellSol.bhp)));
+if(prod(size(dpBHP))>0)
+    dpBHP = sign(dpBHP).*min(abs(dpBHP), abs(dpMax.*vertcat(state.wellSol.bhp)));
+end
 for w = 1:numel(state.wellSol)
     state.wellSol(w).bhp      = state.wellSol(w).bhp + dpBHP(w);
     state.wellSol(w).qWs      = state.wellSol(w).qWs + dqWs(w);
