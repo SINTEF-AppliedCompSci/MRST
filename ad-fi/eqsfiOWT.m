@@ -70,7 +70,7 @@ if isfield(f, 'pvMultR')
 end
 transMult=1;
 if isfield(f, 'transMult')
-   transMult=f.transMult(p); 
+    transMult=f.transMult(p);
 end
 %check for capillary pressure (p_cow)
 pcOW = 0;
@@ -149,55 +149,55 @@ bW0=f.bW(p0);
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
 
 % temprature
-    rhoS={f.rhoOS,f.rhoWS};
-    bFsF={bO.*sO,bW.*sW};
-    bFsF0={bO0.*sO0,bW0.*sW0};
+rhoS={f.rhoOS,f.rhoWS};
+bFsF={bO.*sO,bW.*sW};
+bFsF0={bO0.*sO0,bW0.*sW0};
 
-    bFvF={bOvO,bWvW};
-    eF={f.uO(p,T) , f.uW(p,T)};
-    eF0={f.uO(p0,T0) , f.uW(p0,T0)};
-    hF={f.hO(p,T), f.hW(p,T)};
+bFvF={bOvO,bWvW};
+eF={f.uO(p,T) , f.uW(p,T)};
+eF0={f.uO(p0,T0) , f.uW(p0,T0)};
+hF={f.hO(p,T), f.hW(p,T)};
 
-    uR=f.uR(T);uR0=f.uR(T0);
-    vQ = s.T_r .* s.grad(T);
-    %wT=[W.T]';
-    %vQqQ=W.WI_r*(wT-T(wc));
-    %vQqQ = 0*wT;
-    %bFqF={bOqO,bWqW,bGqG};
-    % well contributions is taken at the end
-    %eqs{3} = (s.pv/dt).*(  (1-pvMult).*uR-(1-pvMult0).*uR0) + s.div( vQ);
-    vol=G.cells.volumes;
-    eqs{3} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.div( vQ);
-    %eqs{3}=eqs{3};
-    %eqs{5}(wc) = eqs{5}(wc)-vQqQ;
-    for i=1:numel(eF)       
-        eqs{3}  =  eqs{3} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoS{i}.*bFsF{i} - pvMult0.*eF0{i}.*rhoS{i}.*bFsF0{i} )...
-                +  s.div( s.faceUpstr(bFvF{i}>0, rhoS{i}.*hF{i}) .* bFvF{i}));         
+uR=f.uR(T);uR0=f.uR(T0);
+vQ = s.T_r .* s.grad(T);
+%wT=[W.T]';
+%vQqQ=W.WI_r*(wT-T(wc));
+%vQqQ = 0*wT;
+%bFqF={bOqO,bWqW,bGqG};
+% well contributions is taken at the end
+%eqs{3} = (s.pv/dt).*(  (1-pvMult).*uR-(1-pvMult0).*uR0) + s.div( vQ);
+vol=G.cells.volumes;
+eqs{3} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.div( vQ);
+%eqs{3}=eqs{3};
+%eqs{5}(wc) = eqs{5}(wc)-vQqQ;
+for i=1:numel(eF)
+    eqs{3}  =  eqs{3} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoS{i}.*bFsF{i} - pvMult0.*eF0{i}.*rhoS{i}.*bFsF0{i} )...
+        +  s.div( s.faceUpstr(bFvF{i}>0, rhoS{i}.*hF{i}) .* bFvF{i}));
+end
+if(~isempty(opt.bc))
+    bc_p=strcmp(opt.bc.type,'pressure');
+    if(any(bc_p))
+        bc=opt.bc(bc_p);
+        [bWqWbc,bOqObc] = pressureBCContrib(G,s,p,rhoW,rhoO,mobW,mobO,pcOW,bc)
+        eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
+        eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bWqWbc;
     end
-    if(~isempty(opt.bc))
-        bc_p=strcmp(opt.bc.type,'pressure');
-        if(any(bc_p))
-            bc=opt.bc(bc_p);
-            [bWqWbc,bOqObc] = pressureBCContrib(G,s,p,rhoW,rhoO,mobW,mobO,pcOW,bc)                
-            eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
-            eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bWqWbc;
-        end
+end
+if(~isempty(opt.bcT))
+    assert(all(strcmp(opt.bcT.type,'temprature')));
+    bc_t=strcmp(opt.bcT.type,'temprature');
+    if(any(bc_t))
+        assert(isempty(opt.bc),'can only have temprature boundary with nowflow');
+        bc=opt.bcT;
+        
+        [bQqQbc,bcT_cell] = tempratureBCContrib(G,s,T,bc);
+        eqs{3}(bcT_cell)  = eqs{3}(bcT_cell) + bQqQbc;
     end
-    if(~isempty(opt.bcT))
-        assert(all(strcmp(opt.bcT.type,'temprature')));
-        bc_t=strcmp(opt.bcT.type,'temprature');
-        if(any(bc_t))
-            assert(isempty(opt.bc),'can only have temprature boundary with nowflow');
-            bc=opt.bcT;
-            
-            [bQqQbc,bcT_cell] = tempratureBCContrib(G,s,T,bc);                
-            eqs{3}(bcT_cell)  = eqs{3}(bcT_cell) + bQqQbc;
-        end
-    end
-    
-    
-    
-    
+end
+
+
+
+
 % well equations
 if ~isempty(W)
     if ~opt.reverseMode
@@ -210,7 +210,7 @@ if ~isempty(W)
         [eqs(4:6), cqs, state.wellSol, Rw] = getWellContributions(...
             W, state.wellSol, pBH, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
             'iteration', opt.iteration);
-
+        
         [wc, cqs] = checkForRepititions(wc, cqs);
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
         eqs{2}(wc) = eqs{2}(wc) - cqs{1};
@@ -223,28 +223,28 @@ if ~isempty(W)
         end
     end
     
-bFqF={cqs{2},cqs{1}};
-hFwp=cell(2,1);
-
-
-Tw=[W.T]';
-hFwp{2}=f.rhoWS*f.hW(Rw*pBH,Rw*Tw);
-hFwp{1}=f.rhoOS*f.hO(Rw*pBH,Rw*Tw);
-HqH=cell(3,1);
-for i=1:2;
-    HqH{i}  = rhoS{i}.*hF{i}(wc).*bFqF{i};
-    ind=bFqF{i}>0;
-    HqH{i}(ind)  = hFwp{i}(ind).*bFqF{i}(ind);
-end
-%% add well contributioin
-for i=1:2
-    eqs{3}(wc) = eqs{3}(wc)  -  HqH{i};
-end
-%% add contribution from rock conductivity from the well
-if(isfield(W,'WI_r'))
-    vQqQ=W.WI_r*(Rw*wT-T(wc));
-    eqs{3}(wc) = eqs{3}(wc)  -  vQqQ;
-end
+    bFqF={cqs{2},cqs{1}};
+    hFwp=cell(2,1);
+    
+    
+    Tw=[W.T]';
+    hFwp{2}=f.rhoWS*f.hW(Rw*pBH,Rw*Tw);
+    hFwp{1}=f.rhoOS*f.hO(Rw*pBH,Rw*Tw);
+    HqH=cell(3,1);
+    for i=1:2;
+        HqH{i}  = rhoS{i}.*hF{i}(wc).*bFqF{i};
+        ind=bFqF{i}>0;
+        HqH{i}(ind)  = hFwp{i}(ind).*bFqF{i}(ind);
+    end
+    %% add well contributioin
+    for i=1:2
+        eqs{3}(wc) = eqs{3}(wc)  -  HqH{i};
+    end
+    %% add contribution from rock conductivity from the well
+    if(isfield(W,'WI_r'))
+        vQqQ=W.WI_r*(Rw*wT-T(wc));
+        eqs{3}(wc) = eqs{3}(wc)  -  vQqQ;
+    end
 else % no wells
     eqs(4:6) = {pBH, pBH, pBH};  % empty  ADIs
 end
