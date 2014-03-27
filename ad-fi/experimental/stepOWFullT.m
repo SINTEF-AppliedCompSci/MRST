@@ -85,7 +85,7 @@ end
 
 %%{
     %residuals = cellfun(@(x) norm(x.val, 'inf'), eqs);
-    meta.converged = all(residuals < system.nonlinear.tol);
+    meta.converged = all(residuals < system.nonlinear.tol);    
 %}
 
 
@@ -108,7 +108,7 @@ if opt.Verbose
 end
 
 
-meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~converged;
+meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~meta.converged;
 
 end
 
@@ -116,7 +116,7 @@ end
 
 function [state, nInc] = updateState(state, dx, opt)
 dsMax = .2;
-dpMax = .3;
+dpMax = 0.3;
 % if ~isempty(phi)
 %     for i = 1:numel(dx)
 %         dx{i} = phi.basis{i}*dx{i};
@@ -132,8 +132,8 @@ nInc = max( norm(dp,'inf')/norm(state.pressure, 'inf'), ...
 %step = min(1, maxSatStep./maxch);
 
 ds = sign(ds).*min(abs(ds), dsMax);
-dp = sign(dp).*min(abs(dp), abs(dpMax.*state.pressure));
-%dp = sign(dp).*min(abs(dp), abs(10*barsa));
+%dp = sign(dp).*min(abs(dp), abs(dpMax.*state.pressure));
+dp = sign(dp).*min(abs(dp), abs(10*barsa));
 
 state.pressure = state.pressure + dp;
 sw = state.s(:,1) + ds;
@@ -149,8 +149,9 @@ dT=sign(dT).*min(abs(dT),10);
 dqWs    = dx{4};
 dqOs    = dx{5};
 dpBHP   = dx{6};
-
-dpBHP = sign(dpBHP).*min(abs(dpBHP), abs(dpMax.*vertcat(state.wellSol.bhp)));
+if(prod(size(dpBHP))>0)
+    dpBHP = sign(dpBHP).*min(abs(dpBHP), abs(dpMax.*vertcat(state.wellSol.bhp)));
+end
 for w = 1:numel(state.wellSol)
     state.wellSol(w).bhp      = state.wellSol(w).bhp + dpBHP(w);
     state.wellSol(w).qWs      = state.wellSol(w).qWs + dqWs(w);
