@@ -8,7 +8,9 @@ opt = struct('Verbose', mrstVerbose, ...
              'temperature', false,...
              'minerals', false, ...
              'iteration', -1, ...
-             'stepOptions', []);  % Compatibility only
+             'stepOptions', [],...
+             'bc',[],...
+             'bcT',[]);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
 
@@ -172,8 +174,30 @@ eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
         eqs{3}  =  eqs{3} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoS{i}.*bFsF{i} - pvMult0.*eF0{i}.*rhoS{i}.*bFsF0{i} )...
                 +  s.div( s.faceUpstr(bFvF{i}>0, rhoS{i}.*hF{i}) .* bFvF{i}));         
     end
-
-
+    if(~isempty(opt.bc))
+        bc_p=strcmp(opt.bc.type,'pressure');
+        if(any(bc_p))
+            bc=opt.bc(bc_p);
+            [bWqWbc,bOqObc] = pressureBCContrib(G,s,p,rhoW,rhoO,mobW,mobO,pcOW,bc)                
+            eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
+            eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bWqWbc;
+        end
+    end
+    if(~isempty(opt.bcT))
+        assert(all(strcmp(opt.bcT.type,'temprature')));
+        bc_t=strcmp(opt.bcT.type,'temprature');
+        if(any(bc_t))
+            assert(isempty(opt.bc),'can only have temprature boundary with nowflow');
+            bc=opt.bcT;
+            
+            [bQqQbc,bcT_cell] = tempratureBCContrib(G,s,T,bc);                
+            eqs{3}(bcT_cell)  = eqs{3}(bcT_cell) + bQqQbc;
+        end
+    end
+    
+    
+    
+    
 % well equations
 if ~isempty(W)
     if ~opt.reverseMode
@@ -198,21 +222,11 @@ if ~isempty(W)
             eqs(4:6) = {zw, zw, zw};
         end
     end
-else % no wells
-    eqs(4:6) = {pBH, pBH, pBH};  % empty  ADIs
-end
-
+    
 bFqF={cqs{2},cqs{1}};
 hFwp=cell(2,1);
 
-%for i=1:numel(W)
-    %{
-    hFwp{1}=[hFwp{1};f.rhoOS*repmat(W(i).hO,numel(W(i).cells),1)];
-    hFwp{2}=[hFwp{2};f.rhoWS*repmat(W(i).hW,numel(W(i).cells),1)];
-    %}
-    
-    
-%end
+
 Tw=[W.T]';
 hFwp{2}=f.rhoWS*f.hW(Rw*pBH,Rw*Tw);
 hFwp{1}=f.rhoOS*f.hO(Rw*pBH,Rw*Tw);
@@ -226,6 +240,16 @@ end
 for i=1:2
     eqs{3}(wc) = eqs{3}(wc)  -  HqH{i};
 end
+%% add contribution from rock conductivity from the well
+if(isfield(W,'WI_r'))
+    vQqQ=W.WI_r*(Rw*wT-T(wc));
+    eqs{3}(wc) = eqs{3}(wc)  -  vQqQ;
+end
+else % no wells
+    eqs(4:6) = {pBH, pBH, pBH};  % empty  ADIs
+end
+
+
 eqs{3}=eqs{3}/1e6;
 
 end
@@ -246,5 +270,35 @@ end
 
 
 
+function  [bWqWbc,bOqObc] = pressureBCContrib(G,s,p,rhoW,rhoO,mobW,mobO,pcOW,bc)        
+        assert(all(strcmp(bc.type,'pressure')),'only pressure bc allowed');
+        Tbc=s.T_all(bc.face);
+        assert(all(sum(G.faces.neighbors(bc.face,:)>0,2)==1),'bc on internal boundary');
+        bc_cell=sum(G.faces.neighbors(bc.face,:),2);
+        
+        dzbc=(G.cells.centroids(bc_cell,3)-G.faces.centroids(opt.bc.face,3));
+        
+        pObc=p(bc_cell);rhoObc=rhoO(bc_cell);
+        dpbc_o=bc.value-pObc+g*(rhoObc.*dzbc);
+        pWbc= pObc-pcOW(bc_cell);rhoWbc=rhoW(bc_cell);
+        dpbc_w=bc.value-(pWbc)+g*(rhoWbc.*dzbc);
+        bWmobWbc = bW(bc_cell).*mobW(bc_cell);
+        bOmobObc = bO(bc_cell).*mobO(bc_cell);
+        bWmobWbc(dpbc_o>0)=0;
+        if(any(dpbc_w>0))
+            bWmobWbc(dpbc_w>0)=bW(bc_cell(dpbc_w>0)).*(mobW(bc_cell(dpbc_w>0))+mobO(bc_cell(dpbc_w>0)));     
+        end
+        bWqWbc  = -bWmobWbc.*Tbc.*(dpbc_g);
+        bOqObc  = -bOmobObc.*Tbc.*(dpbc_o);
+end
 
+function  [bQqQbc,bc_cell] = tempratureBCContrib(G,s,T,bc)        
+        assert(all(strcmp(bc.type,'temprature')),'only pressure bc allowed');
+        Tr_bc=s.T_r_all(bc.face);
+        assert(all(sum(G.faces.neighbors(bc.face,:)>0,2)==1),'bc on internal boundary');
+        bc_cell=sum(G.faces.neighbors(bc.face,:),2);        
+        Tbc=T(bc_cell);
+        dTbc=bc.value-Tbc;
+        bQqQbc  = -Tr_bc.*(dTbc);
+end
 
