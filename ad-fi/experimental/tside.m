@@ -1,11 +1,11 @@
 function bc = pside(bc, G, side, T, varargin)
-%Impose temprature boundary condition on global side.
+%Impose pressure boundary condition on global side.
 %
 % SYNOPSIS:
-%   bc = pside(bc, G, side, T)
-%   bc = pside(bc, G, side, T, 'pn', pv)
-%   bc = pside(bc, G, side, T, I1, I2)
-%   bc = pside(bc, G, side, T, I1, I2, 'pn', pv)
+%   bc = pside(bc, G, side, p)
+%   bc = pside(bc, G, side, p, 'pn', pv)
+%   bc = pside(bc, G, side, p, I1, I2)
+%   bc = pside(bc, G, side, p, I1, I2, 'pn', pv)
 %
 % PARAMETERS:
 %   bc     - Boundary condition structure as defined by function 'addBC'.
@@ -82,12 +82,33 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% fake pressure to reuse code
-bc = pside(bc, G, side, T, varargin{:});
-for i=1:numel(bc.type)
-   bc.type{i}='temperature'; 
+
+if ~isfield(G, 'cartDims'),
+   error(msgid('NotImplemented'), ...
+         'PSIDE is not implemented for this grid type.');
 end
-bc=rmfield(bc,'sat');
+
+error(nargchk(4, 10, nargin, 'struct'))
+
+if nargin == 4 || ischar(varargin{1}),
+   % pside(bc, G, side, p, ['pn1', pv1, ...]).  Use entire face.
+   I1 = []; I2 = [];
+else
+   % pside(bc, G, side, p, I1, I2, ['pn1', pv1, ...]).
+   I1 = varargin{1}; I2 = varargin{2};
+   varargin = varargin(3 : end);
+end
+
+opt = struct('sat', [], 'range', []);
+opt = merge_options(opt, varargin{:});
+
+
+ix = boundaryFaceIndices(G, side, I1, I2, opt.range);
+
+assert (any(numel(T) == [1, numel(ix)]));
 
 
 
+if numel(T) == 1, T = T(ones([numel(ix), 1])); end
+
+bc = addBCT(bc, ix, 'temprature', T);
