@@ -109,7 +109,7 @@ prevControl = -1;
 timero = tic;
 repStep = 0;
 W = [];
-dt_prev_ok=max(dt(1),opt.dt_min);
+dt_prev_ok=min(dt(1),opt.dt_min);
 for tstep = opt.startAt:numel(dt)
     dispif(vb, 'Global time step %5.0f of %d\n', tstep, numel(dt));
     control = schedule.step.control(tstep);
