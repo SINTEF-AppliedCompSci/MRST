@@ -1,5 +1,6 @@
-function obj = CO2props_simple()
+function obj = co2Props_simple()
 % from dumux
+warning('CO2 as ideal gas')
 obj.density =@(p,T) g_density(T,p);
 obj.enthalpy =@(p,T) g_enthalpy(T,p);
 obj.viscosity = @(p,T) g_viscosity(T,p);

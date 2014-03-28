@@ -84,12 +84,12 @@ trans=s.T.*transMult;
 
 % water props (calculated at oil pressure OK?)
 %bW     = f.bW(p);
-bW     = f.bW(p-pcOW);
+bW     = f.bW(p-pcOW,T);
 rhoW   = bW.*f.rhoWS;
 % rhoW on face, avarge of neighboring cells (E100, not E300)
 rhoWf  = s.faceAvg(rhoW);
 %mobW   = trMult.*krW./f.muW(p);
-mobW   = trMult.*krW./f.muW(p-pcOW);
+mobW   = trMult.*krW./f.muW(p-pcOW,T);
 dpW     = s.grad(p-pcOW) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
 % water upstream-index
 upc = (double(dpW)>=0);
@@ -97,20 +97,16 @@ bWvW = s.faceUpstr(upc, bW.*mobW).*trans.*dpW;
 
 
 % oil props
-bO     = f.bO(p);
+bO     = f.bO(p,T);
 rhoO   = bO.*f.rhoOS;
 rhoOf  = s.faceAvg(rhoO);
 dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.centroids(:,3)));
 % oil upstream-index
 upc = (double(dpO)>=0);
-if isfield(f, 'BOxmuO')
-    % mob0 is already multplied with b0
-    mobO   = trMult.*krO./f.BOxmuO(p);
-    bOvO   = s.faceUpstr(upc, mobO).*trans.*dpO;
-else
-    mobO   = trMult.*krO./f.muO(p);
-    bOvO   = s.faceUpstr(upc, bO.*mobO).*trans.*dpO;
-end
+
+mobO   = trMult.*krO./f.muO(p,T);
+bOvO   = s.faceUpstr(upc, bO.*mobO).*trans.*dpO;
+
 
 
 % %WELLS ----------------------------------------------------------------
@@ -138,12 +134,12 @@ end
 % EQUATIONS ---------------------------------------------------------------
 % oil:
 sO=(1-sW);sO0=(1-sW0);
-bO0=f.bO(p0);
+bO0=f.bO(p0,T0);
 eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.div(bOvO);
 
 
 % water:
-bW0=f.bW(p0);
+bW0=f.bW(p0,T0);
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
 
 % temprature

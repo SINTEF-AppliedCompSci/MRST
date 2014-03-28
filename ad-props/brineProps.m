@@ -1,4 +1,7 @@
 function brine = brineProps(salinity)
+if(nargin<1)
+    salinity= 0.03;
+end
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 h2o=h2oProps();
@@ -82,7 +85,7 @@ for i=1:4
     end
 end
 
-delta_h = (4.184/(1E3 + (58.44 * m))).*d_h;
+delta_h = (4.184./(1E3 + (58.44 * m))).*d_h;
 
 %/* Enthalpy of brine */
 

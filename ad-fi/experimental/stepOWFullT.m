@@ -79,7 +79,7 @@ if searchfail
     [state, nInc] = updateState(state, dx, opt);
 end
 
-[converged CNV MB] = getConvergence(state, eqs, fluid, system, dt);
+
 [meta, residuals] = getResiduals(meta, eqs, system, solver_diverged);
 
 

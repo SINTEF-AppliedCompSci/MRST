@@ -76,7 +76,7 @@ fluid.eW = @(T) cW.*T;
 fluid.eO = @(T) cW.*T;
 fluid.eR = @(T) cR.*T;
 
-systemOW  = initADISystem({'Oil', 'Water','T'}, G, rock, fluid);
+systemOW  = initADISystem({'Oil', 'Water','Gas'}, G, rock, fluid);
 % calculate conducivity for fock
 
 fake_rock.perm=4.0*ones(G.cells.num,1);
@@ -98,7 +98,7 @@ x0.s(:,1)=deck.SOLUTION.SWAT;
 x0.s(:,2)=deck.SOLUTION.SOIL;
 x0.smax=x0.s;
 x0.smin=x0.s;
-x0.T=300*ones(G.cells.num,1);
+x0.T=273*ones(G.cells.num,1);
 %x0.T(floor(G.cartDims(1)/2))=330;
 
 %x0.s=x0.s(:,[2,1]);
