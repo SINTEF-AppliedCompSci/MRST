@@ -59,9 +59,9 @@ end
 
 % ============================================================================
 function s = invPc3D(p, opt)
-% Fine-scale oil saturation (considered equal to residual saturation
-% ('res_oil') in the gas zone and 1 in the oil zone)  So it doesn't take
-% hysteresis into account.
+% Fine-scale oil saturation, considered equal to residual saturation
+% ('res_oil') in the gas zone and 1 in the oil zone.  @@ It doesn't take
+% hysteresis into account).
          s=(sign(p+eps)+1)/2*(1-opt.res_oil);
          s=1-s;
 end
