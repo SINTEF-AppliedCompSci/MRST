@@ -1,11 +1,11 @@
-function [eqs, hst, explTrms] = eqsfiBlackOilExplicitWellsOGVE(state0, state, dt, G, W, s, f, varargin)
+function [eqs, hst, explTrms] = eqsfiBlackOilExplicitWellsOGVE_odd(state0, state, dt, G, W, s, f, varargin)
 % Generate equations for a Black Oil system (oil, water and gas with gas dissolved in oil).
 opt = struct('Verbose',     mrstVerbose,...
-    'reverseMode', false,...
-    'scaling',     [],...
-    'resOnly',     false,...
-    'history',     [],...
-    'bc',[]);
+             'reverseMode', false,...
+             'scaling',     [],...
+             'resOnly',     false,...
+             'history',     [],...
+             'bc',[]);
 opt = merge_options(opt, varargin{:});
 
 if ~isempty(opt.scaling)
@@ -17,26 +17,18 @@ end
 hst = opt.history;
 
 % current variables: ------------------------------------------------------
-p    = state.pressure;
-sG   = state.s(:,2);
-%if(isfield(state0,'smax'))
-%    sGmax=max(state.s(:,2),state0.smax(:,2));
-%else
-%    sGmax=[];
-%end
-sGmax=state.sGmax;
-
-
-rs   = state.rs;
-%pBHP = vertcat(state.wellSol.bhp);
-pBHP = vertcat(state.wellSol.bhp);
-qOs  = vertcat(state.wellSol.qOs);
-qGs  = vertcat(state.wellSol.qGs);
+p     = state.pressure;
+sG    = state.s(:,2);
+sGmax = state.sGmax;
+rs    = state.rs;
+pBHP  = vertcat(state.wellSol.bhp);
+qOs   = vertcat(state.wellSol.qOs);
+qGs   = vertcat(state.wellSol.qGs);
 
 % previous variables ------------------------------------------------------
-p0  = state0.pressure;
-sG0 = state0.s(:,2);
-sGmax0=state0.sGmax;
+p0     = state0.pressure;
+sG0    = state0.s(:,2);
+sGmax0 = state0.sGmax;
 
 assert(all(state0.s(:)>=0))
 assert(all(state.s(:)>=0))
@@ -48,7 +40,6 @@ if(isfield(f,'dis_rate'))
 else
     isSat = (sG>sqrt(eps)) | rs>rsSat;% | (1 - sW + sG)  == 0;
 end
-%isSat = sG>-1;%(sG>0 | rs>=rsSat);% | (1 - sW + sG)  == 0;
 if isempty(hst)
     hst.numch = zeros(G.cells.num,1);
 else
@@ -72,7 +63,6 @@ end
 
 
 g  = norm(gravity);
-%[Tw, dzw, Rw, wc, perf2well, pInx, iInxW] = getWellStuffOG(W);
 if(~isempty(W))
     [Tw, dzw, Rw, wc, perf2well, pInx, iInxG, iInxO] = getWellStuffOG(W);
 end
@@ -94,23 +84,23 @@ end
 pcOG = 0;
 if isfield(f, 'pcOG')
     pcOG  = f.pcOG(sG,p,'sGmax',sGmax);
-    %pcOG  = f.pcOG(sG0,p0,'sGmax',sGmax0);
     pG=p;
-    pG0=p0;%+pcOG
+    pG0=p0;
 end
 
 % -------------------------------------------------------------------------
-%[krW, krO, krG] = f.relPerm(sW, sG);
+
 krO = f.krOG(1-sG, p,'sGmax',sGmax);
 krG = f.krG(sG, p,'sGmax',sGmax);
 % water props (calculated at oil pressure OK?)
 
 % oil props
-bO     = f.bO(p, rs, isSat);
-rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
-rhoOf  = s.faceAvg(rhoO);
-muO=f.muO(p,rs,isSat);
-mobO   = trMult.*krO./muO;
+bO    = f.bO(p, rs, isSat);
+rhoO  = bO.*(rs*f.rhoGS + f.rhoOS);
+rhoOf = s.faceAvg(rhoO);
+muO   = f.muO(p,rs,isSat);
+mobO  = trMult.*krO./muO;
+
 if(~any(strcmp(G.type,'topSurfaceGrid')))
     dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.centroids(:,3)));
     
@@ -124,15 +114,13 @@ bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
 rsbOvO = s.faceUpstr(upc, rs).*bOvO;
 
 % gas props (calculated at oil pressure OK?)
-bG     = f.bG(pG);
+bG    = f.bG(pG);
+rhoG  = bG.*f.rhoGS;
+rhoGf = s.faceAvg(rhoG);
+muG   = f.muG(pG);%+pcOG);
+mobG  = trMult.*krG./muG;
 
-%bG     = f.bG(p+pcOG);
-rhoG   = bG.*f.rhoGS;
-rhoGf  = s.faceAvg(rhoG);
-muG = f.muG(pG);%+pcOG);
-mobG = trMult.*krG./muG;
-%mobG = trMult.*krG./f.muG(p+pcOG);
-assert(all(double(rhoG)<double(rhoO)))
+assert(all(double(rhoG)<double(rhoO)));
 
 if(~any(strcmp(G.type,'topSurfaceGrid')))
     dpG     = s.grad(p+pcOG) - g*(rhoGf.*s.grad(G.cells.centroids(:,3)));
@@ -169,51 +157,26 @@ if(~isempty(W))
     bOw = bO(wc);
     bGw = bG(wc);
     rsw = rs(wc);
-    if(false)
-        [mobOw, mobGw, crossFlow] = ...
-            computeWellMobilitiesOG(W, qOs, qGs, mobO(wc), mobG(wc), ...
-            bOw, bGw, rsw, isInj);
-        
-        if any(crossFlow)
-            %    fprintf('Crossflow in %2.0d connections\n', nnz(crossFlow));
-        end
-    end
+
     %set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
     mobGw  = mobG(wc);
     mobOw  = mobO(wc);
-    if(false)
-        mobGw(iInxG) = (mobGw(iInxG) + mobOw(iInxG));
-        mobOw(iInxG) = 0;
-        mobGw(iInxO) = 0;
-        mobOw(iInxO) = (mobGw(iInxO) + mobOw(iInxO));
-    else
-        %iInxG=inxG |  vertcat(state.wellSol.qGs)>0;
-        %iInxO=inxO |  vertcat(state.wellSol.qOs)>0;
-        assert(all(~(iInxG& iInxO)));
-        mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));
-        mobOw(iInxG) = 0;
-        mobGw(iInxO) = 0;
-        mobOw(iInxO) = 1./1e-3;%muO(wc(iInxO));
-        %rs(iInxG)=0;
-        %rs(iInxO)=0;
-    end
+    
+    assert(all(~(iInxG& iInxO)));
+    mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));
+    mobOw(iInxG) = 0;
+    mobGw(iInxO) = 0;
+    mobOw(iInxO) = 1./1e-3;%muO(wc(iInxO));
+
     assert(all(mobOw>=0))
     assert(all(mobGw>=0))
     
-    if(false)
-        qO = (-Tw).*mobOw.*drawdown;
-        qG = (-Tw).*mobGw.*drawdown;
-    else
-        qO = (-Tw).*mobOw.*(-(pBHP(perf2well) + 0.0*Hw) + p(wc));
-        qG = (-Tw).*mobGw.*(-(pBHP(perf2well) + 0.0*Hw+0.0*pcOGw) + p(wc));
-    end
+    qO = (-Tw).*mobOw.*(-(pBHP(perf2well) + 0.0*Hw) + p(wc));
+    qG = (-Tw).*mobGw.*(-(pBHP(perf2well) + 0.0*Hw+0.0*pcOGw) + p(wc));
     
     bOqO  = bOw.*qO;
     bGqG  = bGw.*qG;
     
-    %bWqW  = -bWmobWw.*Tw.*(pBHP(perf2well) - pw + pcOWw + g*dzw.*rhoW(wc));
-    %bOqO  = -bOmobOw.*Tw.*(pBHP(perf2well) - pw + g*dzw.*rhoO(wc));
-    %bGqG  = -bGmobGw.*Tw.*(pBHP(perf2well) - pw - pcOGw + g*dzw.*rhoG(wc));
     
     % Compute explicit terms
     explTrms.wellFlux = [double(qO), double(qG)];
@@ -230,8 +193,7 @@ if(~isempty(opt.bc))
     assert(all(strcmp(opt.bc.type,'pressure')));
     Tbc=s.T_all(opt.bc.face);
     bc_cell=sum(G.faces.neighbors(opt.bc.face,:),2);
-    %bc_cell_loc=false(G.cells.num,1);
-    %bc_cell_loc(bc_cell_nr)=true;
+
     % assume cappillary pressure zero outside
     dzbc=(G.cells.z(bc_cell)-G.faces.z(opt.bc.face));
     pObc=p(bc_cell);rhoObc=rhoO(bc_cell);
@@ -242,11 +204,9 @@ if(~isempty(opt.bc))
     bOmobObc = bO(bc_cell).*mobO(bc_cell);
     bGmobGbc(dpbc_g>0)=0;
     rsbc    = rs(bc_cell);
-    %bGmobGbc(dpbc_o>0)=0;
-    %bOmobObc(dpbc_g>0)=0;
+
     if(any(dpbc_o>0))
         bOmobObc(dpbc_o>0)=bO(bc_cell(dpbc_o>0)).*(mobO(bc_cell(dpbc_o>0))+mobG(bc_cell(dpbc_o>0)));
-        %bOmobObc(dpbc_o>0)=bO(bc_cell(dpbc_o>0)).*(mobO(bc_cell(dpbc_o>0)));
         rsbc(dpbc_o>0) = 0;
     end
     bGqGbc  = -bGmobGbc.*Tbc.*(dpbc_g);
@@ -266,31 +226,12 @@ eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sG) - pvMult0.*f.bO(p0,rs0,isSat0).*(1-sG0)
 if(~isempty(W))
     eqs{1}(wc) = eqs{1}(wc) - bOqO;
 end
-%eqs{1} = addToVals(eqs{1}, wc, bOqO);
-%eqs{2} = addToVals(eqs{2}, wc, bWqW);
 % gas:
 eqs{2} = (s.pv/dt).*...
     ( pvMult.*(bG.*sG + rs.*bO.*(1-sG) ) -...
     pvMult0.*(f.bG(pG0).*sG0 + rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
-    s.div(bGvG + rsbOvO);
-if(false)
-if(~isempty(W))
-disp([sum(double((s.pv.*( pvMult.*(bG.*sG + rs.*bO.*(1-sG) )))))-...
-    sum(double(s.pv.*(pvMult0.*(f.bG(pG0).*sG0 + rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) )))),...
-    sum(double(s.div(bGvG + rsbOvO)*dt)),...
-    sum(double(bGqG(iInxG))*dt),...
-    sum(double(bGqGbc+ rsbc.*bOqObc)*dt)]/1e6)
-else
-   disp([sum(double((s.pv.*( pvMult.*(bG.*sG + rs.*bO.*(1-sG) )))))-...
-    sum(double(s.pv.*(pvMult0.*(f.bG(pG0).*sG0 + rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) )))),...
-    sum(double(s.div(bGvG + rsbOvO)*dt)),...
-    sum(double(bGqGbc+ rsbc.*bOqObc)*dt)]/1e6) 
-end
-end
+    s.div(bGvG + rsbOvO); 
 
-
-%  eqs{2}(wc) = eqs{2}(wc) - bGqG - rsw.*bOqO;
-%eqs{2}(wc) = eqs{2}(wc) - bGqG-rsw.*bOqO;
 if(~isempty(W))
     eqs{2}(wc(iInxG)) = eqs{2}(wc(iInxG)) - bGqG(iInxG);
     eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx) - rsw(pInx).*bOqO(pInx);
@@ -303,29 +244,27 @@ end
 
 % closing eqs:
 if(isfield(f,'dis_rate'))
-    %dis_rate=f.dis_rate.*G.cells.volumes;
+
     dis_rate=f.dis_rate.*(s.pv./G.cells.H);
-    %only disolve flowing else hystereis variable should be included
-    %dis_rate=dis_rate.*double((rs.val<rsSat.val) & (sG.val>0));
+    
+    % set rate to zero if already saturated, or if there is no gas phase present
     meps=sqrt(eps);
-    if(false)
-        dis_rate=dis_rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
-    else
-        a=600;
-        dis_rate=dis_rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
-        tanhyp=@(x,a) ((exp(a*x)-exp(-a*x))./(exp(a*x)+exp(-a*x)));
-        s_fac=tanhyp(sG,a);%((exp(a*sG)-exp(-a*sG))./(exp(a*sG)+exp(-a*sG)));
-        rs_eps=(rsSat-rs)./f.dis_max;
-        rs_fac=tanhyp(rs_eps,a);
-        %dis_rate=dis_rate.*((exp(a*sG)-exp(-a*sG))./(exp(a*sG)+exp(-a*sG)));
-        dis_rate=dis_rate.*s_fac.*rs_fac;
-    end
+    dis_rate=dis_rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
+
+    
+    a=600;
+    tanhyp=@(x,a) ((exp(a*x)-exp(-a*x))./(exp(a*x)+exp(-a*x)));
+    s_fac=tanhyp(sG,a); % approximately one, but goes to 0 for very small values of sG
+    rs_eps=(rsSat-rs)./f.dis_max;
+    rs_fac=tanhyp(rs_eps,a);
+    dis_rate=dis_rate.*s_fac.*rs_fac; % smoothly turn down dissolution rate when
+                                      % sG goes to 0, or when dissolved value
+                                      % approaches maximum.
     eqs{3} = (s.pv/dt).*...
         ( pvMult.*(rs.*bO.*(1-sG) ) -...
         pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
-        s.div(rsbOvO);
-    %eqs_org{3}=eqs{3};
-    %eqs{3}(wc) = eqs{2}(wc) - rsw.*bOqO;
+        s.div(rsbOvO); 
+
     if(~isempty(W))
         eqs{3}(wc(pInx)) = eqs{3}(wc(pInx)) - rsw(pInx).*bOqO(pInx);
     end
@@ -335,172 +274,65 @@ if(isfield(f,'dis_rate'))
     eqs{3}=eqs{3}-dis_rate;
     
     
-    % min value from free_sg in fluid/private
-    %sg_free=((1-f.res_oil)*sG-(sGmax*f.res_gas))./(1-f.res_gas-f.res_oil);
-    %sg_free0=((1-f.res_oil)*sG0-(sGmax0*f.res_gas))./(1-f.res_gas-f.res_oil);
-    % introduce minimum rs due to mixing sone
-    if(true)
-        %drho=norm(gravity)*(f.rhoOS.*f.bO(p)-f.rhoGS.*f.bG(pG));
-        
-        
-        %ineb=sG>sGmax;
-        
-        %s_water=(1-sg_free-(sGmax-sg_free).*f.res_gas./(1-f.res_oil));
-        %s_water=(1-sg_free-(sGmax-sg_free).*f.res_gas./(1-f.res_oil));
-        if(false)
-            drho=norm(gravity)*(f.rhoOS.*f.bO(p)-f.rhoGS.*f.bG(p));
-            pcmax=f.pcOG(sGmax, p,'sGmax',double(sGmax));      
-            h_max=pcmax./drho;
-            s_water=(1-sG);
-            % had to introduce grid*
-            ind=h_max<G.cells.H;
-            
-            s_water_mix=s_water;
-            if(any(ind))
-                s_water_mix(ind)=s_water(ind)-(1-h_max(ind)./G.cells.H(ind));
-            end
-            min_rs=s_water_mix.*rsSat;
-        else
-            %{
-            h=pcOG./drho;
-            h_max(h<=0)=sG(h<=0).*G.cells.H(h<=0)/(f.res_gas);
-            h(h<=0)=0*h(h<=0);
-            min_rs=(1-f.res_gas).*(h_max-h).*f.dis_max...% rs in the oil/water sone
-                +(f.res_oil).*h.*f.dis_max;
-            min_rs=min_rs./G.cells.H;
-            %}
-            min_rs=minRs(p,sG,sGmax,f,G);
-            min_rs0=minRs(p0,sG0,sGmax0,f,G);
-        end
-        %s_water_mix=sGmax-sG;
-        
-        % rs > rs0 is a hack
-        %%{
-        tmp = (s.pv/dt).*...
-        ( double(pvMult).*(double(min_rs).*double(bO) ) -...
-        pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
-        s.div(double(rsbOvO));
-        
-        %eqs{3}(wc) = eqs{2}(wc) - rsw.*bOqO;
-        if(~isempty(W))
-            tmp(wc(pInx)) = tmp(wc(pInx)) - double(rsw(pInx)).*double(bOqO(pInx));
-        end
-        if(~isempty(opt.bc))
-            tmp(bc_cell)  = tmp(bc_cell) + double(rsbc).*double(bOqObc); 
-        end
-        tmp=tmp-double(dis_rate);
-        ind_low_rs = tmp>-sqrt(eps);
-        
-        %}
-        
-        
-        %ind_low_rs = (rs.*(1-sG) - min_rs)<=f.dis_max*sqrt(eps)  &  (eqs{3}>-sqrt(eps)*max(abs(double(eqs{3}))));% & (rs.*(1-sG) - min_rs) >-f.dis_max*sqrt(eps));% ((rs.*(1-sG) >= min_rs) & eqs{3}>0) ;% final???
-        %ind_low_rs = (rs.*(1-sG) - min_rs)< f.dis_max*sqrt(eps) & eqs{3}>0;% ((rs.*(1-sG) >= min_rs) & eqs{3}>0) ;% final???
-        %ind_low_rs = ones(G.cells.num,1)>0;
-        %ind_low_rs = zeros(G.cells.num,1)>0;
-        %ind_low_rs = (rs.*(1-sG)<=(min_rs+sqrt(eps).*f.dis_max)) & eqs{3}>-sqrt(eps)*max(double(eqs{3}));% final???
-        %ind_low_rs = ((rs.*(1-sG)-min_rs)< sqrt(eps).*f.dis_max) & eqs{3}>-sqrt(eps)*max(double(eqs{3}));% final???   
-        %ind_low_rs = (rs.*(1-sG)<min_rs);% & eqs{3}>0;% final???
-        %ind_low_rs=(min_rs>=rs.*(1-sG)) & (s.pv.*(min_rs-min_rs0))>dis_rate*dt;% & (eqs{3}<0);% & rs.*(1-sG) > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
-        %ind_low_rs=(min_rs>=rs.*(1-sG)) | (s.pv.*(min_rs-r0.*))>dis_rate*dt;% & (eqs{3}<0);% & rs.*(1-sG) > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
-        %ind_low_rs=min_rs>(rs.*(1-sG)*(1-sqrt(eps)));% needed for dis_rate=0& min_rs > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
-        %ind_low_rs=min_rs>(rs.*(1-sG)*(1+sqrt(eps)));% & min_rs > rs0.*(1-sG0);%(rs>rs0);%& sGmax>sG;
-        %plot(ind_low_rs)
-        is_sat_loc=((double(rs)>=double(rsSat)) &  (eqs{3}<0)) ;
-        %plot((rs.*(1-sG) - min_rs)<=f.dis_max*sqrt(eps))
-        %plot(double(rs.*(1-sG) - min_rs))
-        %plot(ind_low_rs)
-        %drawnow
-        ind=ind_low_rs;
-        if(any(ind))
-            eqs{3}(ind)=rs(ind).*(1-sG(ind))-min_rs(ind);
-            eqs{3}(ind)=eqs{3}(ind).*(s.pv(ind)/dt);
-        end
-        %eqs{3}= eqs{3}./f.dis_max;
-    else
-       is_sat_loc=((double(rs)>=double(rsSat)) &  (sG>meps)) ; 
+    %% Ensure dissolved quantity doesn't go below the minimum allowed
+    % (i.e. that suggested by dissolution in zones with residual saturation)
+    min_rs  = minRs(p,sG,sGmax,f,G);
+    min_rs0 = minRs(p0,sG0,sGmax0,f,G);
+
+    tmp = (s.pv/dt).*...
+    ( double(pvMult).*(double(min_rs).*double(bO) ) -...
+    pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
+    s.div(double(rsbOvO)); 
+    
+    if (~isempty(W))
+        tmp(wc(pInx)) = tmp(wc(pInx)) - double(rsw(pInx)).*double(bOqO(pInx));
     end
-    %is_sat_loc=(rs.val>(rsSat.val-sqrt(eps))) & eqs{3} > 0;
+    if(~isempty(opt.bc))
+        tmp(bc_cell)  = tmp(bc_cell) + double(rsbc).*double(bOqObc); 
+    end
+    tmp=tmp-double(dis_rate);
+    ind_low_rs = tmp>-sqrt(eps);  % If so, then min_rs is larger than the
+                                  % solution of eqs{3}, in other words, the
+                                  % solution of eqs{3} is smaller than the
+                                  % allowed value.  We have to modify eqs{3}.
+
+    ind = ind_low_rs;  % Identify cells where 'rs' is moving below the minimum
+                       % allowed value
+    if(any(ind))
+        % Force value of 'rs' in these cell to equal 'min_rs'
+        eqs{3}(ind)=rs(ind).*(1-sG(ind))-min_rs(ind); % @@ multiply by bO?????
+        eqs{3}(ind)=eqs{3}(ind).*(s.pv(ind)/dt);
+    end
+    
+    %% Ensure dissolved quantity doesn't exceed 'rsSat'
+    
+    is_sat_loc=((double(rs)>=double(rsSat)) &  (eqs{3}<0)) ;
+    % force saturation in these cells to equal 'rsSat'.
     eqs{3}(is_sat_loc) = (rs(is_sat_loc) - rsSat(is_sat_loc)).*s.pv(is_sat_loc)/dt;
-    % find difference in sGmax
-    % introduce changing maximum sGmax
-    if(true)
-        %eqs{7}=(sGmax-max(sGmax0,sG)).*(s.pv/dt);        
-        eqs{7}=(sGmax-sG).*(s.pv/dt);
-        %eqs{7}(sG<sGmax0)=sGmax(sG<sGmax0)-sGmax0(sG<sGmax0);
-        % sg=sg_free+(sGmax-sg_free).opt_res/(1-opt.res_oil)
-        %sg_res=(sGmax-sg_free).*f.res_gas./(1-f.res_oil);
-        %sg_res0=(sGmax0-sg_free0).*f.res_gas./(1-f.res_oil);
-        %tmp_sg=(s.pv/dt).*...
-        %    (pvMult.*bG.*sG- pvMult0.*f.bG(p0).*sGmax0)+dis_rate;
-        %ind=tmp_sg>0;
-        %if(any(ind))
-        %   eqs{7}(ind)=sGmax(ind)-sG(ind);
-        %end
-        tmp=(s.pv/dt).*...
-            (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
-        tmp2=(s.pv/dt).*...
-        (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
-        %ind=(sGmax>sG) & (sGmax0 > sGmax0) & (sGmax < sGmax0);
-        %ind= (sGmax < sGmax0) & (sGmax > sG);
-        %ind= (sg_res > 0);%(sGmax < sGmax0);% & (sGmax > sG);
-        %{
-        ind  = tmp2<0;% & sGmax < sGmax0;%max(sGmax0,sG.val) ; % the laste avoid expantion of sGmax due to pressure
-        if(any(ind))
-            eqs{7}(ind)=tmp(ind);
-        end
-        %}
-        %ind = sG < sGmax0;
-        %tmp = sG < sGmax;
-        %%{
-        % the case of disolution do not manage to remove all residual
-        % saturation  and the new state do not is not fully dissolved
-        %ind1= (tmp2<0) & (sGmax < sGmax0) & (~is_sat_loc);
-        ind1= (tmp2<0) & (~is_sat_loc);
-        if(any(ind1))
-            eqs{7}(ind1)=tmp(ind1);
-        end
-        % the new state is fully dissolved but all residual saturaiont is
-        % not gone
-        ind3= is_sat_loc & (sGmax < sGmax0) & (sGmax > sG);
-        if(any(ind3))
-            tmp = (s.pv/dt).*...
-            (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
-            eqs{7}(ind3)= tmp(ind3);
-        end
-        
-        %{
-        ind2= tmp2<0 & ~(sGmax < sGmax0);
-        if(any(ind2))
-            eqs{7}(ind2)=sGmax(ind2)-sGmax0(ind2);
-        end
-        %}
-        %ind = (sg_res > 0)  & tmp2>=0;
-        %if(any(ind))
-        %   eqs{7}(ind) = sGmax(ind)-sG(ind);            
-        %end
-        %ind = (sGmax < sG) & (sG.val <= sGmax0);
-        %if(any(ind))
-        %    eqs{7}(ind)=sGmax(ind)-sG.val(ind);
-        %end
-        %tmp=(pvMult.*bG.*sGmax- pvMult0.*bG0.*sGmax0)+...
-        %    (rs.*bO.*(1-sG) ) -...
-        %    pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) );
-        %
-        %eqs{7}(is_sat_loc)=tmp(is_sat_loc);
-        %eqs{7}(ind)=tmp(ind);
-        %ind=(sGmax<=sG);
-        %eqs{7}(ind)=sGmax-sG;
-    else
-        %eqs{7}=sGmax-max(sGmax0,double(sG));
-        eqs{7}=sGmax-max(sGmax0,sG);
-        % neglect posibility of leting sGmax decreas due to disolusion
-        
-        %ind = (sGmax0 > sG);
-        %eqs{7}(ind)=sGmax(ind)-sGmax0(ind);
-        %ind = (sGmax>sG) & (sGmax0 < sG)
-        %ind=sGmax<=sG;
-        %eqs{7}(ind)=sGmax(ind)-sG(ind);
+
+    %% Compute changes to sGmax
+
+    % Default equation: force 'sGmax' to equal 'sG'
+    eqs{7}=(sGmax-sG).*(s.pv/dt);
+    tmp=(s.pv/dt).*...
+        (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+    tmp2=(s.pv/dt).*...
+         (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+    %%{
+    % the case of disolution do not manage to remove all residual
+    % saturation  and the new state do not is not fully dissolved
+    %ind1= (tmp2<0) & (sGmax < sGmax0) & (~is_sat_loc);
+    ind1= (tmp2<0) & (~is_sat_loc);
+    if(any(ind1))
+        eqs{7}(ind1)=tmp(ind1);
+    end
+    % the new state is fully dissolved but all residual saturaiont is
+    % not gone
+    ind3= is_sat_loc & (sGmax < sGmax0) & (sGmax > sG);
+    if(any(ind3))
+        tmp = (s.pv/dt).*...
+        (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
+        eqs{7}(ind3)= tmp(ind3);
     end
     
 else
@@ -514,7 +346,7 @@ end
 
 
 % Last eq: boundary cond
-    zeroW=0*pBHP;
+zeroW=0*pBHP;
 if(~isempty(W))
     eqs{4} = -Rw'*bOqO + qOs + zeroW;
     eqs{5} = -Rw'*(bGqG + rsw.*bOqO) + qGs + zeroW;
@@ -527,7 +359,6 @@ end
 for i=[1,2,3,7]
     eqs{i}=eqs{i}*dt/year;
 end
-
 
 end
 
