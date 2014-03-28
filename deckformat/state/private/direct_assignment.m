@@ -179,7 +179,7 @@ function rs = initial_solution_gor(G, deck, press, imap, pix)
 
    elseif isfield(deck.SOLUTION, 'PBUB'),
 
-      [pvtnum, regno] = get_pvtnum(deck);
+      [pvtnum, regno] = get_pvtnum(deck, imap);
 
       rs   = nan([G.cells.num, 1]);
       pbub = reshape(deck.SOLUTION.PBUB(imap), [], 1);
@@ -223,7 +223,7 @@ function rv = initial_vapour_ogr(G, deck, press, imap, pix)
 
    elseif isfield(deck.SOLUTION, 'PDEW'),
 
-      [pvtnum, regno] = get_pvtnum(deck);
+      [pvtnum, regno] = get_pvtnum(deck, imap);
 
       rv     = nan([G.cells.num, 1]);
       pdew   = reshape(deck.SOLUTION.PDEW(imap), [], 1);
@@ -255,9 +255,9 @@ end
 
 %--------------------------------------------------------------------------
 
-function [pvtnum, regno] = get_pvtnum(deck)
+function [pvtnum, regno] = get_pvtnum(deck, imap)
    if isfield(deck, 'REGIONS') && isfield(deck.REGIONS, 'PVTNUM'),
-      pvtnum = reshape(deck.REGIONS.PVTNUM(G.cells.indexMap), [], 1);
+      pvtnum = reshape(deck.REGIONS.PVTNUM(imap), [], 1);
    else
       pvtnum = ones([G.cells.num, 1]);
    end

@@ -71,15 +71,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [pvtfun, rho_s, n, info1, incomp] = eclipsePhaseProperties(deck);
    [relperm, pcap, info2]            = eclipseRelperm        (deck);
 
-   fluid.names          = n;
-
+   fluid.names = n;
+   fluid.info  = [info1, info2];
    if isfield(deck.RUNSPEC, 'TITLE'),
-      fluid.info        = [sprintf('Title of parameter file: ''%s''\n\n',...
-                           deck.RUNSPEC.TITLE), info1, info2];
-   else
-      fluid.info        = [info1, info2];
+      fluid.info = [sprintf('Title of parameter file: ''%s''\n\n',...
+                            deck.RUNSPEC.TITLE), ...
+                    fluid.info];
    end
-   fluid.pvt            = @(p, z) blackOilPVT(pvtfun, rho_s, p, z);
+
+   if size(rho_s, 1) > 1,
+      % Multiple PVT regions not supported.  Pick region one.
+      rho_s     = rho_s(1, :);
+      func      = cellfun(@(f) f{1}, pvtfun, 'UniformOutput', false);
+      fluid.pvt = @(p, z) blackOilPVT(func, rho_s, p, z);
+      clear func
+
+      dispif(mrstVerbose, ...
+             'Multiple PVT regions not supported.  Using region one only');
+   else
+      fluid.pvt = @(p, z) blackOilPVT(pvtfun, rho_s, p, z);
+   end
+
    fluid.relperm        = relperm;
    fluid.pc             = pcap;
 
