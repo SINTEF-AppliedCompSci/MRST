@@ -149,11 +149,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                },
             prp = readGridBoxArray(prp, fid, kw, prod(dims));
 
-         case 'TLMIXPAR',
+         case {'TLMIXPAR', 'PLMIXPAR'},
+            % Note: The following warning is given in ECLIPSE 2013.2 when
+            % running a polymer model with TLMIXPAR: THE TLMIXPAR KEYWORD
+            % IS NO LONGER COMPATIBLE WITH THE POLYMER FLOOD MODEL. USE THE
+            % PLMIXPAR KEYWORD INSTEAD.
             tmpl(1:2) = { 'NaN' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntmisc);
             prp.(kw)  = to_double(data);  clear tmpl
-
+            
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},
             prp = applyOperator(prp, fid, kw);
