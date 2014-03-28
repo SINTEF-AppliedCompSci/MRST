@@ -86,13 +86,13 @@ end
 mixpar = f.mixPar;
 cbar   = c/f.cmax;
 
-a = f.muWMult(f.cmax)^(1-mixpar);
+a = f.muWMult(f.cmax).^(1-mixpar);
 
 b = 1./(1-cbar+cbar./a);
 
 muWMult = b.*f.muWMult(c).^mixpar;
 
-permRed = 1 + ((f.rrf-1)/f.adsMax)*f.ads(max(c, cmax));
+permRed = 1 + ((f.rrf-1)./f.adsMax).*f.ads(max(c, cmax));
 muWMult  = muWMult.*permRed;
 
 % polymer injection well:
@@ -187,8 +187,8 @@ eqs{2}(wc) = eqs{2}(wc) + bWqW;
 % polymer in water:
 poro =  s.pv./G.cells.volumes;
 f.effads =  @(c, cmax)(effads(c, cmax, f));
-eqs{3} =   (s.pv*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
-    (f.rhoR*((1-poro)./poro).*(f.effads(c, cmax)-f.effads(c0, cmax0))) + s.div(bWvP);
+eqs{3} =   (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
+    (f.rhoR.*((1-poro)./poro).*(f.effads(c, cmax)-f.effads(c0, cmax0))) + s.div(bWvP);
 
 eqs{3}(wc) = eqs{3}(wc) + bWqP;
 
