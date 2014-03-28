@@ -1,4 +1,4 @@
-function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw, trapstruct)
+function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, sw, trapstruct)
 % Compute the trapping status distribution of CO2 in each cell of a top-surface grid
 %
 % SYNOPSIS:
@@ -8,8 +8,7 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
 %
 % PARAMETERS:
 %   Gt         - Top surface grid
-%   sol        - Solution structure, containing a valid 'state' object, as
-%                well as 'h' and 'h_max' fields.
+%   state      - Falid 'state' object, with the additional fields 'h' and 'h_max'.
 %   rock       - rock parameters corresponding to 'Gt'
 %   fluidADI   - ADI fluid object (used to get densities and compressibilities)
 %   sr         - gas residual saturation (scalar)
@@ -27,14 +26,14 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
 %            masses[6] : mass of 'free' gas (i.e. not trapped in any way)
 
     % Extracting relevant information from 'sol'
-    p = sol.state.pressure;
-    sF = sol.state.s(:,1);
-    sG = sol.state.s(:,2);
+    p = state.pressure;
+    sF = state.s(:,1);
+    sG = state.s(:,2);
     SF = sF .* Gt.cells.H;
     SG = sG .* Gt.cells.H;
     rs = 0;
-    if isfield(sol.state, 'rs')
-        rs = sol.state.rs;
+    if isfield(state, 'rs')
+        rs = state.rs;
     end
     
     pvMult = 1; 
@@ -59,15 +58,15 @@ function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw,
     
     % this depend that the fluid has a sharp interface relperm of normal
     % type
-    hdift     = max(min(zt, sol.h_max) - min(zt, sol.h),0);   % trapped part of h_max-h
-    strucVol  = sum(min(zt, sol.h) .* pv .* rhoCO2);          % trapped, flowing
-    plumeVol  = sum(rhoCO2 .* sol.h.* pv) - strucVol;         % non-trapped, flowing
-    resStruc  = (strucVol + sum(hdift .* rhoCO2 .* pv)) * sr; % trapped, residual
-    freeStruc = strucVol * (1 - sr - sw);                     % trapped, non-residual
-    freeRes   = plumeVol * sr;                                % non-trapped, flowing, residual
-    freeMov   = plumeVol * (1 - sw - sr);                     % non-trapped, flowing, non-residual
-    resTrap   = sum(max(sol.h_max - max(zt, sol.h),0) .* ...
-                    rhoCO2 .* pv ) .* sr;                     % non-trapped, non-flowing, residual
+    hdift     = max(min(zt, state.h_max) - min(zt, state.h),0);    % trapped part of h_max-h
+    strucVol  = sum(min(zt, state.h) .* pv .* rhoCO2);             % trapped, flowing
+    plumeVol  = sum(rhoCO2 .* state.h.* pv) - strucVol;            % non-trapped, flowing
+    resStruc  = (strucVol + sum(hdift .* rhoCO2 .* pv)) * sr;      % trapped, res
+    freeStruc = strucVol * (1 - sr - sw);                          % trapped, non-res
+    freeRes   = plumeVol * sr;                                     % non-trapped, flowing, res
+    freeMov   = plumeVol * (1 - sw - sr);                          % non-trapped, flowing, non-res
+    resTrap   = sum(max(state.h_max - max(zt, state.h),0) .* ...
+                    rhoCO2 .* pv ) .* sr;                          % non-trapped, non-flowing, res
     resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); % dissolved
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov],0);
 
