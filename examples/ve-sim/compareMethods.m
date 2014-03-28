@@ -58,9 +58,9 @@
 %
 
 try
-   require deckformat 
+   require deckformat
 catch %#ok<CTCH>
-   mrstModule add deckformat 
+   mrstModule add deckformat
 end
 
 %% Parameters for the simulation
@@ -68,7 +68,7 @@ gravity on
 [nx,ny,nz] = deal(50, 1, 1);     % Cells in Cartsian grid
 [Lx,Ly,H]  = deal(2000,1000,15); % Physical dimensions of reservoir
 total_time = 100*year;           % Total simulation time
-nsteps     = 40;                 % Number of time steps in simulation
+nsteps     = 200;                % Number of time steps in simulation
 dt         = total_time/nsteps;  % Time step length
 inj_time   = total_time/10;      % Injetection time
 perm       = 100;                % Permeability in milli darcies
@@ -103,7 +103,7 @@ rock2d = averageRock(rock, Gts);
 
 % Note that the top-surface grid is modified with an extra field that
 % defines a function handle to how to calculate the gravity contribution.
-% This is the part which is VE spesific. 
+% This is the part which is VE spesific.
 Gts.grav_pressure
 
 
@@ -140,7 +140,7 @@ for i=1:numel(W_3D)
         W_3D(i).type='rate';
     end
 end
-W_h = convertwellsVE(W_3D, G, Gts, rock2d,'ip_simple');
+W_h = convertwellsVE(W_3D, G, Gts, rock2d,'ip_tpf');
 W_s = convertwellsVE(W_3D, G, Gts, rock2d,'ip_tpf');
 for i=1:numel(W_h)
     W_s(i).compi=[1 0];
@@ -151,7 +151,7 @@ end
 
 %% Set up solver based on h-formulation
 % Create a cell array to hold helper variables and function handles for
-% each solver. 
+% each solver.
 problem = cell(2,1);
 tmp.fluid = initVEFluidHForm(Gts, 'mu', mu, 'rho', rho, 'sr', sr,'sw', sw);
 tmp.sol   = initResSol(Gts, 0);
@@ -161,7 +161,7 @@ tmp.sol   = initResSol(Gts, 0);
 
 % Define pressure and transport solvers with common interfaces. For the
 % mimetic pressure solver, we need to precompute inner products
-S = computeMimeticIPVE(Gts,rock2d,'Innerproduct','ip_simple');
+S = computeMimeticIPVE(Gts,rock2d,'Innerproduct','ip_tpf');
 tmp.psolver = @(sol, fluid, W, bc, src) ...
    solveIncompFlowVE(sol, Gts, S, rock2d, fluid, 'wells', W, 'bc', bc, 'src', src);
 tmp.tsolver = @(sol,fluid, dt, W, bc, src) ...
@@ -299,12 +299,12 @@ while t < total_time
             if kk==1, cxs=caxis(); else caxis(cxs); end;
             title(['Height ',num2str(kk)]);
             colorbar,shading interp
-            
+
             subplot(numel(problem),2,(2*(kk-1))+2)
             pcolor(X,Y,reshape(tmp.sol.max_h,Gts.cartDims))
             caxis(cxs)
             title(['Max Height',num2str(kk)]);colorbar,shading interp
-            
+
             problem{kk} = tmp;
             continue;
         end
@@ -312,25 +312,25 @@ while t < total_time
         % Plot current and observed maximal values for h and S
         set(0, 'CurrentFigure', fig1);
         subplot(2,4,1), hold on
-        plot(xc, tmp.sol.h, tmp.col); ylim([0 H]) 
+        plot(xc, tmp.sol.h, tmp.col); ylim([0 H])
         if kk==1, axh=axis(); else axis(axh); end
         title('Height'); xlabel('x'); ylabel('h');
-        
+
         subplot(2,4,2), hold on
         plot(xc, tmp.sol.h_max, tmp.col); ylim([0 H])
         if kk==1, axh_max=axis(); else axis(axh_max);  end
         title('Max height'); xlabel('x'); ylabel('h_max') ;
-        
+
         subplot(2,4,5), hold on
         plot(xc, tmp.sol.s(:,1), tmp.col); ylim([0 1])
         if kk==1; axs=axis(); else axis(axs); end
         title('Saturation'); xlabel('x'); ylabel('s')
-        
+
         subplot(2,4,6), hold on
         plot(xc, tmp.sol.s_max(:,1), tmp.col); ylim([0 1]);
         if kk==1, axs_max=axis(); else axis(axs_max); end
         title('Max Saturation'); xlabel('x'); ylabel('s_max')
-        
+
         set(0, 'CurrentFigure', fig1);
         subplot(2,4,[3 4 7 8]); set(gca,'YDir','reverse')
         hold on
@@ -342,8 +342,8 @@ while t < total_time
            legend('Free CO2, h', 'Max CO2, h', 'Free CO2, S', 'Max CO2, S', 4);
            box on;axis tight; title('Surfaces'); xlabel('x'); ylabel('depth')
         end
-        
-        % Plot pressures.  
+
+        % Plot pressures.
         set(0, 'CurrentFigure', fig2); set(gca, 'YDir', 'reverse')
         hold on
         plot(xc, tmp.sol.pressure/barsa, tmp.col)
@@ -356,20 +356,20 @@ while t < total_time
         end
         xlabel('x'); ylabel('pressure')
         title('Comparing pressure for the different solvers')
-        
+
         % Update solution object
         problem{kk} = tmp;
     end
     set(0, 'CurrentFigure', fig1); drawnow;
     set(0, 'CurrentFigure', fig2); drawnow;
-    
+
     t=t+dt;
-    
+
     % Print CO2 inventory
     fprintf(1,'%6.2f   %f   %f\n', t/year, ...
        sum(problem{1}.sol.s.*vol)/1e6, ...
        sum(problem{2}.sol.s.*vol)/1e6 );
-    
+
 end
 fprintf(1,'-----------------------------------------\n\n');
 
