@@ -1,4 +1,4 @@
-function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, sw, trapstruct)
+function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, sw, trapstruct, dh)
 % Compute the trapping status distribution of CO2 in each cell of a top-surface grid
 %
 % SYNOPSIS:
@@ -14,6 +14,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
 %   sr         - gas residual saturation (scalar)
 %   sw         - liquid residual saturation (scalar)
 %   trapstruct - trapping structure
+%   dh         - subtrapping capacity (empty, or one value per grid cell of Gt.
 %
 % RETURNS:
 %   masses - vector with 6 components, representing:
@@ -24,6 +25,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
 %            masses[5] : mass of structurally trapped gas, not counting the gas that 
 %                        will eventually be residually trapped
 %            masses[6] : mass of 'free' gas (i.e. not trapped in any way)
+%            masses[7] : mass of subscale trapped gas (if 'dh' is nonempty)
 
     % Extracting relevant information from 'sol'
     p = state.pressure;
@@ -56,22 +58,33 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
         zt   = min(zt, Gt.cells.H);
     end
     
-    % this depend that the fluid has a sharp interface relperm of normal
-    % type
-    hdift     = max(min(zt, state.h_max) - min(zt, state.h),0);    % trapped part of h_max-h
-    strucVol  = sum(min(zt, state.h) .* pv .* rhoCO2);             % trapped, flowing
-    plumeVol  = sum(rhoCO2 .* state.h.* pv) - strucVol;            % non-trapped, flowing
+    % Determine amount of CO2 in subtraps, if any
+    h_sub  = zeros(Gt.cells.num, 1); % subtrapped part of 'h'
+    hm_sub = zeros(Gt.cells.num, 1); % subtrapped part of 'h_max'
+    if ~isempty(dh)
+        h_sub  = min(Gt.dh, state.h);
+        hm_sub = min(Gt.dh, state.h_max);
+    end
+    h_eff  = state.h - h_sub;
+    hm_eff = state.h_max - hm_sub;
+    
+    % this requires that the fluid has a sharp interface relperm of normal type    
+    hdift     = max(min(zt, hm_eff) - min(zt, h_eff),0);    % trapped part of h_max-h
+    strucVol  = sum(min(zt, h_eff) .* pv .* rhoCO2);             % trapped, flowing
+    plumeVol  = sum(rhoCO2 .* h_eff.* pv) - strucVol;            % non-trapped, flowing
     resStruc  = (strucVol + sum(hdift .* rhoCO2 .* pv)) * sr;      % trapped, res
     freeStruc = strucVol * (1 - sr - sw);                          % trapped, non-res
     freeRes   = plumeVol * sr;                                     % non-trapped, flowing, res
     freeMov   = plumeVol * (1 - sw - sr);                          % non-trapped, flowing, non-res
-    resTrap   = sum(max(state.h_max - max(zt, state.h),0) .* ...
+    resTrap   = sum(max(hm_eff - max(zt, h_eff),0) .* ...
                     rhoCO2 .* pv ) .* sr;                          % non-trapped, non-flowing, res
     resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); % dissolved
-    masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov],0);
+    subtrap   = sum((hm_eff * sr + h_eff * (1 - sr - sw)) .* pv) * rhoCO2;
+
+    masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov, subtrap], 0);
 
     if(abs(sum(masses(2:end))-gasPhase) > 1e-3 * gasPhase)
-        disp('There is a mismatch between mass calculations')
+        disp('There is a mismatch between mass calculations');
     end
 end
 
