@@ -123,6 +123,7 @@ for tstep = opt.startAt:numel(dt)
         end
         state.wellSol=initWellSolLocal(W, state);
     end
+    prevControl = control;
     not_converged = true;
     dispif(vb, sprintf('Global time step length: %g day.\n', convertTo(dt(tstep), day)))
 
