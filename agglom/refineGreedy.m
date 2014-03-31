@@ -2,8 +2,8 @@ function p = refineGreedy(p, G, IFlw, NU, varargin)
 %Refine blocks in a partition using a greedy algorithm
 %
 % SYNOPSIS:
-%   p = refineGreedy(p, G, IFlw, NU);
-%   p = refineGreedy(p, G, IFlw, NU, 'nlevel', 2);
+%   p = refineGreedy(p, G, IFlw, NU)
+%   p = refineGreedy(p, G, IFlw, NU, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   The function performs a greedy refinement of all blocks in which the
@@ -28,8 +28,8 @@ function p = refineGreedy(p, G, IFlw, NU, varargin)
 %            merge a candidate block to its (feasible) neighbouring block
 %            that most closely matches its own block flow.
 %
-%   NU     - Algorithm controlling parameters.  The algorithm will refine
-%            blocks that violate the criterion
+%   NU     - Algorithm controlling parameter.  The algorithm will refine
+%            blocks with too much flow--i.e., blocks for which
 %
 %                IFlw(B) |B| >= (NU / n) IFlw(G) |G|    (*)
 %
@@ -72,7 +72,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
 
 opt = struct('nlevel', 2, 'verbose', mrstVerbose);
 opt = merge_options(opt, varargin{:});
