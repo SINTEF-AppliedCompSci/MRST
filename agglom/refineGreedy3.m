@@ -32,10 +32,11 @@ function p = refineGreedy3(p, G, IFlw, NU, varargin)
 %            that most closely matches its own block flow.
 %
 %   NU     - Algorithm controlling parameter.  The algorithm will refine
-%            blocks that violate either of the critera
+%            blocks with too much flow or too many cells--i.e., blocks
+%            which meet either of the critera
 %
-%                IFlw(B) |B| <= (NU / n) IFlw(G) |G|    (*)
-%                n_B         <= NU                      (**)
+%                IFlw(B) |B| >= (NU / n) IFlw(G) |G|    (*)
+%                n_B         >= NU                      (**)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %

@@ -29,9 +29,9 @@ function p = refineGreedy(p, G, IFlw, NU, varargin)
 %            that most closely matches its own block flow.
 %
 %   NU     - Algorithm controlling parameter.  The algorithm will refine
-%            blocks that violate the criterion
+%            blocks with too much flow--i.e., blocks for which
 %
-%                IFlw(B) |B| <= (NU / n) IFlw(G) |G|    (*)
+%                IFlw(B) |B| >= (NU / n) IFlw(G) |G|    (*)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
