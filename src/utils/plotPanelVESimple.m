@@ -162,7 +162,7 @@ elseif numel(vol)==8
     ph = pie(vplot);
     % trick auto-shrink by first placing legend below and then moving it
     lnames = {'Disolved','Struct. residual', 'Residual', 'Free residual', 'Struct. movable', ...
-        'Free movable','subscale trapped', 'Leaked'};
+        'subscale trapped', 'Free movable', 'Leaked'};
     hl = legend(lnames, 'Location','SouthOutside', 'orientation','horizontal');
     set(hl,'Location','SouthEastOutside','orientation','vertical');
     pl = get(hl, 'Position'); set(hl, 'Position', [.85 pl(2)-.035 pl(3:4)]);

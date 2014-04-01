@@ -24,8 +24,8 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
 %            masses[4] : mass of non-trapped gas that will be residually trapped
 %            masses[5] : mass of structurally trapped gas, not counting the gas that 
 %                        will eventually be residually trapped
-%            masses[6] : mass of 'free' gas (i.e. not trapped in any way)
-%            masses[7] : mass of subscale trapped gas (if 'dh' is nonempty)
+%            masses[6] : mass of subscale trapped gas (if 'dh' is nonempty)
+%            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
 
     % Extracting relevant information from 'sol'
     p = state.pressure;
@@ -81,7 +81,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
     resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); % dissolved
     subtrap   = sum((hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2);
 
-    masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov, subtrap], 0);
+    masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc, subtrap, freeMov], 0);
 
     if(abs(sum(masses(2:end))-gasPhase) > 1e-3 * gasPhase)
         disp('There is a mismatch between mass calculations');
