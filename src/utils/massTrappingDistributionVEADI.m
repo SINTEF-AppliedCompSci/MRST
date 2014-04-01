@@ -62,8 +62,8 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
     h_sub  = zeros(Gt.cells.num, 1); % subtrapped part of 'h'
     hm_sub = zeros(Gt.cells.num, 1); % subtrapped part of 'h_max'
     if ~isempty(dh)
-        h_sub  = min(Gt.dh, state.h);
-        hm_sub = min(Gt.dh, state.h_max);
+        h_sub  = min(dh, state.h);
+        hm_sub = min(dh, state.h_max);
     end
     h_eff  = state.h - h_sub;
     hm_eff = state.h_max - hm_sub;
@@ -79,7 +79,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
     resTrap   = sum(max(hm_eff - max(zt, h_eff),0) .* ...
                     rhoCO2 .* pv ) .* sr;                          % non-trapped, non-flowing, res
     resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); % dissolved
-    subtrap   = sum((hm_eff * sr + h_eff * (1 - sr - sw)) .* pv) * rhoCO2;
+    subtrap   = sum((hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2);
 
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc,  freeMov, subtrap], 0);
 
