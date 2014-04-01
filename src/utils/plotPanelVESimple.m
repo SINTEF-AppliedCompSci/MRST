@@ -157,17 +157,17 @@ if numel(vol)==3
     ph = pie([max(vol(1),eps) max(vol(2),eps)],{str1, str2});
     title(['Total mass : ', ...
         num2str(round(convertTo(vol(3),mega*meter^3))),' M m^3']);
-elseif numel(vol)==7
-    vplot = max([vol(1:6) vol(7)-sum(vol(1:6))], eps);
+elseif numel(vol)==8
+    vplot = max([vol(1:7) vol(8)-sum(vol(1:7))], eps);
     ph = pie(vplot);
     % trick auto-shrink by first placing legend below and then moving it
     lnames = {'Disolved','Struct. residual', 'Residual', 'Free residual', 'Struct. movable', ...
-        'Free movable','Leaked'};
+        'Free movable','subscale trapped', 'Leaked'};
     hl = legend(lnames, 'Location','SouthOutside', 'orientation','horizontal');
     set(hl,'Location','SouthEastOutside','orientation','vertical');
     pl = get(hl, 'Position'); set(hl, 'Position', [.85 pl(2)-.035 pl(3:4)]);
     title(['Total injected mass: ', ...
-        num2str(round(convertTo(vol(7),1e3*mega))),' M tonn']);
+        num2str(round(convertTo(vol(8),1e3*mega))),' M tonn']);
     
     if t ~= 0
         volHistory = [volHistory; vplot];
