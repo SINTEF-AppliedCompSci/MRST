@@ -68,9 +68,6 @@ dispif(vb, '*****************************************************************\n'
 
 
 if opt.writeOutput | (opt.startAt ~= 1)
-    directory = fullfile(fileparts(mfilename('fullpath')), 'cache');
-    %delete existing output
-    delete(fullfile(directory, [opt.outputName, '*.mat']));
     % output file-names
     outNm  = @(tstep)fullfile(opt.outputDir, [opt.outputName, sprintf('%05.0f', tstep)]);
 end
@@ -109,7 +106,7 @@ prevControl = -1;
 timero = tic;
 repStep = 0;
 W = [];
-dt_prev_ok=max(dt(opt.startAt),opt.dt_min);
+dt_prev_ok=min(dt(opt.startAt),opt.dt_min);
 for tstep = opt.startAt:numel(dt)
     dispif(vb, 'Global time step %5.0f of %d\n', tstep, numel(dt));
     control = schedule.step.control(tstep);
@@ -126,6 +123,7 @@ for tstep = opt.startAt:numel(dt)
         end
         state.wellSol=initWellSolLocal(W, state);
     end
+    prevControl = control;
     not_converged = true;
     dispif(vb, sprintf('Global time step length: %g day.\n', convertTo(dt(tstep), day)))
 
@@ -152,10 +150,11 @@ for tstep = opt.startAt:numel(dt)
                     state=state0;
                     continue;
                 else
-                    warning('Time step cutting not successfull, continue anyway')
+                    warning('Time step cutting not successful, continue anyway')
                 end
             end
             t=t+dt_loc;
+            fprintf('t = %g days\n', convertTo(t, day));
             if(opt.report_all)
                 % report also for local timesteps and produce schedule accordingly
                 [iter, wellSols, states] = ...
@@ -212,7 +211,7 @@ for tstep = opt.startAt:numel(dt)
     end
     % Running hook function if provided
     if ~isempty(opt.tstep_hook_fn)
-        opt.tstep_hook_fn(G, W, state, dt(tstep));
+        opt.tstep_hook_fn(state, tstep);
         drawnow;
     end
 end
