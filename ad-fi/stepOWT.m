@@ -79,7 +79,7 @@ if searchfail
     [state, nInc] = updateState(state, dx, opt);
 end
 
-[converged CNV MB] = getConvergence(state, eqs, fluid, system, dt);
+%[converged CNV MB] = getConvergence(state, eqs, fluid, system, dt);
 [meta, residuals] = getResiduals(meta, eqs, system, solver_diverged);
 
 
@@ -108,7 +108,7 @@ if opt.Verbose
 end
 
 
-meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~converged;
+meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~meta.converged;
 
 end
 
