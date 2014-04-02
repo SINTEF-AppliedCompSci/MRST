@@ -8,7 +8,8 @@ opt = struct('Verbose', mrstVerbose, ...
              'temperature', false,...
              'minerals', false, ...
              'iteration', -1, ...
-             'stepOptions', []);  % Compatibility only
+             'stepOptions', [],...
+             'addfluxes',true);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
 
@@ -41,7 +42,7 @@ if isfield(f, 'pcOW')
     pcOW0  = f.pcOW(sW0);
 end
 pW0=p0-pcOW0;
-
+assert(all(pW0>0 ))
 
 %--------------------------------------------------------------------------
 
@@ -80,6 +81,7 @@ if isfield(f, 'transMult')
    transMult=f.transMult(p); 
 end
 %check for capillary pressure (p_cow)
+
 pcOW = 0;
 if isfield(f, 'pcOW')
     pcOW  = f.pcOW(sW);
@@ -234,7 +236,11 @@ for i=1:2
 end
 end
 eqs{3}=eqs{3}/1e6;
-
+if(opt.addfluxes)
+    for i=1:numel(bFvF)
+        state.bFvF{i}=double(bFvF{i});
+    end
+end
 end
 %--------------------------------------------------------------------------
 
