@@ -22,6 +22,9 @@ function fluid = fluid2BlackOilTemp(bo_fluid,fluids,p_ref,T_ref)
    end
    fluid.rsSat = @(varargin) varargin{1}*0;
    fluid.relPerm = bo_fluid.relPerm;
+   if(isfield(bo_fluid,'pcOW'))
+      fluid.pcOW =   bo_fluid.pcOW;
+   end
 end
 function T=extend(T,p)
     T=repmat(T,numel(double(p)),1);
