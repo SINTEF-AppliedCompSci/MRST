@@ -65,7 +65,7 @@ function res = edge_based_trap_analysis(Gt)
     res.trap_z       = ctrap_zvals;
     res.trap_regions = ctrap_regions;
     res.trap_adj     = cadj;
-    res.cell_lines   = crivers;
+    res.cell_lines   = crivers';
     res.top          = csommets;
 end
 

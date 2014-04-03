@@ -203,6 +203,41 @@ function ctoids = compute_cell_z_vals(Gt)
 
 end
 
+% %===============================================================================
+% function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
+    
+%     cell_rivers = cell(size(edge_rivers, 1), 1);
+%     cellnodes = activeCellNodes(Gt); % (4 x m)-sized matrix; m = # of active cells
+%                                 % in Gt.  Each col. holds the indices of the
+%                                 % 4 corner nodes of the corresponding cell.
+%     for trap_ix = 1:size(edge_rivers, 1)
+%         for r_ix = 1:numel(edge_rivers{trap_ix})
+%             nodes_ix = edge_rivers{trap_ix}{r_ix};
+%             cells_ix = [];
+%             num_edges = numel(nodes_ix) - 1;
+%             assert(num_edges > 0); % a river should have at least one edge...
+%             for i = 1:num_edges
+                
+                
+%             end
+            
+            
+            
+            
+            
+%             for i = 1:4
+%                 % finding index of cells having these nodes as corner 'i'.
+%                 cells_ix = [cells_ix, find(ismember(cellnodes(i, :), nodes_ix))]; %#ok
+
+%                 % remove nodes that have been mapped, and iterate on the next corner
+%                 % nodes_ix = nodes_ix(find(~ismember(nodes_ix, cellnodes(i, cells_ix))));
+%                 if (isempty(nodes_ix)); break; end;
+%             end
+%             cell_rivers{trap_ix}{r_ix} = cells_ix;
+%         end
+%     end
+% end
+
 %===============================================================================
 function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
     
