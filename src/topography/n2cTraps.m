@@ -132,7 +132,9 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
   % previous loop.
   erivers(lost_regions) = [];
   crivers = project_rivers_to_cells(Gt, erivers);
+  crivers = truncate_rivers_inside_traps(crivers, ctraps);
 end
+%===============================================================================
 
 function cell_sommets = n2c_sommets(Gt, node_sommets)
 % For each sommet, associate a corresponding grid cell
@@ -176,7 +178,7 @@ end
 %     csix = ixs(keep_ix);
 % end
 
-
+%===============================================================================
 function lost_regions = identify_lost_regions(num_regions, mapped_regions)
   % Determine which regions were 'eliminated' when passing from node-based to 
   % cell-based representation (i.e., not a single cell was attributed to it.
@@ -186,6 +188,7 @@ function lost_regions = identify_lost_regions(num_regions, mapped_regions)
   lost_regions = fliplr(setdiff(1:num_regions, unique(mapped_regions)));
 end
 
+%===============================================================================
 function mat = re_index(mat, indices)
   for i = indices
       ixs = mat > i;
@@ -193,6 +196,7 @@ function mat = re_index(mat, indices)
   end
 end	 
 
+%===============================================================================
 function ctoids = compute_cell_z_vals(Gt)
   % Compute z-value of each cell as the average of the z-values of its four
   % nodes.
@@ -202,6 +206,7 @@ function ctoids = compute_cell_z_vals(Gt)
   ctoids = mean(Gt.nodes.z(activeCellNodes(Gt)));
 
 end
+
 
 % %===============================================================================
 % function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
@@ -214,17 +219,6 @@ end
 %         for r_ix = 1:numel(edge_rivers{trap_ix})
 %             nodes_ix = edge_rivers{trap_ix}{r_ix};
 %             cells_ix = [];
-%             num_edges = numel(nodes_ix) - 1;
-%             assert(num_edges > 0); % a river should have at least one edge...
-%             for i = 1:num_edges
-                
-                
-%             end
-            
-            
-            
-            
-            
 %             for i = 1:4
 %                 % finding index of cells having these nodes as corner 'i'.
 %                 cells_ix = [cells_ix, find(ismember(cellnodes(i, :), nodes_ix))]; %#ok
@@ -238,30 +232,82 @@ end
 %     end
 % end
 
+
+
 %===============================================================================
 function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
     
+    % Assume exactly two nodes per edge
+    assert(unique(diff(Gt.faces.nodePos)) == 2); 
+                                                 
+    % one row per edge, giving its end node indices (in ascending order)
+    enode_table = sort(reshape(Gt.faces.nodes, 2, [])', 2, 'ascend');
+    
+    % make tables with the diagonals of each cell (needed in case the river
+    % goes diagonally across a cell)
+    cellnodes = activeCellNodes(Gt)';
+    diag1 = sort([cellnodes(:,1), cellnodes(:,4)], 2, 'ascend');
+    diag2 = sort([cellnodes(:,2), cellnodes(:,3)], 2, 'ascend');
+                                       
     cell_rivers = cell(size(edge_rivers, 1), 1);
-    cellnodes = activeCellNodes(Gt); % (4 x m)-sized matrix; m = # of active cells
-                                % in Gt.  Each col. holds the indices of the
-                                % 4 corner nodes of the corresponding cell.
     for trap_ix = 1:size(edge_rivers, 1)
         for r_ix = 1:numel(edge_rivers{trap_ix})
             nodes_ix = edge_rivers{trap_ix}{r_ix};
-            cells_ix = [];
-            for i = 1:4
-                % finding index of cells having these nodes as corner 'i'.
-                cells_ix = [cells_ix, find(ismember(cellnodes(i, :), nodes_ix))]; %#ok
+            
+            % removing consecutive duplicates @@ find out why this sometimes happens!
+            nodes_ix = nodes_ix([1; diff(nodes_ix)]~=0);
 
-                % remove nodes that have been mapped, and iterate on the next corner
-                % nodes_ix = nodes_ix(find(~ismember(nodes_ix, cellnodes(i, cells_ix))));
-                if (isempty(nodes_ix)); break; end;
+            cells_ix = [];
+            num_edges = numel(nodes_ix) - 1;
+            assert(num_edges > 0); % a river should have at least one edge...
+            for i = 1:num_edges
+                enodes = sort([nodes_ix(i) nodes_ix(i+1)], 2, 'ascend');
+                
+                % Determining unique edge index having these two nodes as endpoints
+                [dummy, edge_ix] = ismember(enodes, enode_table, 'rows');
+                
+                if edge_ix == 0
+                    % No such edge.  The river is here going diagonally
+                    % across a cell.  Determine this cell, and add it as a
+                    % river cell
+                    [dummy, c_ix] = ismember(enodes, diag1, 'rows');
+                    if c_ix == 0
+                        [dummy, c_ix] = ismember(enodes, diag2, 'rows');
+                    end
+                    assert(c_ix ~= 0); % should be one of the two diagonals
+                    cells_ix = [cells_ix, c_ix];
+                else
+                    % Determining cells bordering this edge.   If there is only
+                    % one cell, 'project' the edge to it; if there are two,
+                    % 'project the edge to the shallowest of them
+                    neigh_cells = sort(Gt.faces.neighbors(edge_ix), 'ascend');
+                    if neigh_cells(1) == 0
+                        cells_ix = [cells_ix, neigh_cells(2)];
+                    else
+                        [dummy, min_ix] = min(Gt.cells.z(neigh_cells));
+                        cells_ix = [cells_ix, neigh_cells(min_ix)];
+                    end
+                end
             end
             cell_rivers{trap_ix}{r_ix} = cells_ix;
         end
     end
 end
 
+%===============================================================================
+
+function crivers =  truncate_rivers_inside_traps(crivers, ctraps)
+    
+    for t_ix = 1:numel(crivers)
+        for r_ix = 1:numel(crivers{t_ix})
+            river = crivers{t_ix}{r_ix};
+            start_ix = max(1, find(ctraps(river)==0,1) - 1);
+            end_ix   = min(numel(river), find(ctraps(river)==0,1, 'last') +1);
+            
+            crivers{t_ix}{r_ix} = river(start_ix:end_ix);
+        end
+    end
+end
 
 %===============================================================================
 function ixs = next_remaining_downstream_trap(trap_ixs, connectivity, lost_regions)
