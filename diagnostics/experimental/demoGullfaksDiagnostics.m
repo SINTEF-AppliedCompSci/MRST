@@ -1,5 +1,5 @@
 clear grdecl
-mrstModule add deckformat ad-fi mex internal/mrst-gui coarsegrid diagnostics
+mrstModule add deckformat ad-fi mex mrst-gui coarsegrid diagnostics
 prefix = fullfile(ROOTDIR, 'examples', 'data', 'gullfaks', 'E300HIST4');
 egrid = readEclipseOutputFileUnFmt([prefix '.EGRID']);
 init = readEclipseOutputFileUnFmt([prefix '.INIT']);
