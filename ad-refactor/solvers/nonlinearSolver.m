@@ -27,7 +27,7 @@ classdef nonlinearSolver
         end
         
         function [state, status] = solveTimestep(solver, state0, dT, model, varargin)
-            % Solve a single timestep, possibly subdividing it
+            % Solve a timestep for a non-linear system using one or more substeps
             drivingForces = struct('Wells', [],...
                                    'bc',    [],...
                                    'src',   []);

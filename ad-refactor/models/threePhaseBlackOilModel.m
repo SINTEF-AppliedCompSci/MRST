@@ -1,10 +1,12 @@
 classdef threePhaseBlackOilModel < physicalModel
     % Three phase with optional dissolved gas and vaporized oil
     properties
+        % Determines if gas can be dissolved into the oil phase
         disgas
+        % Determines if oil can be vaporized into the gas phase
         vapoil
         
-        % Maximum rs increment
+        % Maximum Rs increment
         drsMax
     end
     

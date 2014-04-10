@@ -14,10 +14,12 @@ classdef linearSolverAD
        end
        
        function result = solveLinearSystem(solver, A, b) %#ok
+           % Solve the linear system to a given tolerance
            error('Superclass not meant for direct use')
        end
        
        function [dx, result] = solveLinearProblem(solver, problem)
+           % Solve a linearized problem
            problem = problem.assembleSystem();
            result = solver.solveLinearSystem(problem.A, problem.b); 
            
@@ -34,11 +36,15 @@ classdef linearSolverAD
        end
        
        function setupSolver(solver, A, b, varargin) %#ok 
+           % Run setup on a solver for a given system
+           
            % Dummy function run before a set of linear problems with
            % different right hand sides
        end
        
        function cleanupSolver(solver, A, b, varargin) %#ok 
+           % Clean up solver after use (if needed)
+           
            % Dummy function run after a set of linear problems with
            % different right hand sides 
            
