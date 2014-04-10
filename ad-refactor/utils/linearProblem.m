@@ -3,16 +3,18 @@ classdef linearProblem
     properties
         equations
         types
-        names
+        equationNames
+        primaryVariables
         A
         b
     end
     
     methods
-        function problem = linearProblem(equations, types, names)
+        function problem = linearProblem(equations, types, names, primary)
             problem.equations = equations;
             problem.types = types;
-            problem.names = names;
+            problem.equationNames = names;
+            problem.primaryVariables = primary;
             problem.A = [];
             problem.b = [];
         end

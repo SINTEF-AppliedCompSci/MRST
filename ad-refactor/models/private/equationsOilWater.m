@@ -53,6 +53,7 @@ if ~opt.resOnly,
             zeros(size(qOs)), ...
             zeros(size(pBH)));                          %#ok
     end
+    primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
 end
 clear tmp
 g  = norm(gravity);
@@ -157,7 +158,7 @@ else % no wells
     names(3:5) = {'empty', 'empty', 'empty'};
     types(3:5) = {'none', 'none', 'none'};
 end
-problem = linearProblem(eqs, types, names);
+problem = linearProblem(eqs, types, names, primaryVars);
 end
 %--------------------------------------------------------------------------
 

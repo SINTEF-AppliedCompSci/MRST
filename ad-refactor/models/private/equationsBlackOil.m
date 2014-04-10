@@ -86,6 +86,8 @@ function problem = equationsBlackOil(state0, state, dt, G, drivingForces, s, f, 
         if disgas, rsSat = f.rsSat(p); else rsSat = rs; end
         if vapoil, rvSat = f.rvSat(p); else rvSat = rv; end
     end
+    primaryVars = {'pressure', 'sW', 'x', 'qWs', 'qOs', 'qGs', 'bhp'};
+    
     %----------------------------------------------------------------------
     %check for p-dependent tran mult:
     trMult = 1;
@@ -243,7 +245,7 @@ function problem = equationsBlackOil(state0, state, dt, G, drivingForces, s, f, 
     end
      
     
-    problem = linearProblem(eqs, types, names);
+    problem = linearProblem(eqs, types, names, primaryVars);
 end
 %--------------------------------------------------------------------------
 function [st1, st2, st3] = getCellStatus(state, disgas, vapoil)
