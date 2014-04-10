@@ -62,7 +62,7 @@ classdef physicalModel
             convergence = model.checkConvergence(problem);
             if ~convergence
                 dx = solver.solveLinearProblem(problem);
-                state = model.updateState(state, dx, drivingForces); %%
+                state = model.updateState(state, problem, dx, drivingForces); %%
             end
         end
     end

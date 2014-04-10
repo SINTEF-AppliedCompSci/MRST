@@ -33,5 +33,17 @@ classdef linearProblem
             % Overload norm for convergence testing
             values = cellfun(@(x) norm(x.val, varargin{:}), problem.equations);
         end
+        
+        function index = indexOfType(problem, name)
+            index = cellfun(@(x) strcmpi(x, name), problem.types);
+        end
+        
+        function index = indexOfPrimaryVariable(problem, name)
+            index = cellfun(@(x) strcmpi(x, name), problem.primaryVariables);
+        end
+        
+        function index = indexOfEquationName(problem, name)
+            index = cellfun(@(x) strcmpi(x, name), problem.equationNames);
+        end
     end
 end

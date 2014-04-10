@@ -26,12 +26,15 @@ classdef twoPhaseOilWaterModel < physicalModel
             
         end
         
-        function state = updateState(model, state, dx, drivingForces)
+        function state = updateState(model, state, problem, dx, drivingForces)
             dsMax = model.dsMax;
             dpMax = model.dpMax;
             
-            dp = dx{1};
-            ds = dx{2};
+            pInd = problem.indexOfPrimaryVariable('pressure');
+            wInd = problem.indexOfPrimaryVariable('sW');
+            
+            dp = dx{pInd};
+            ds = dx{wInd};
 
             ds = sign(ds).*min(abs(ds), dsMax);
             dp = sign(dp).*min(abs(dp), abs(dpMax.*state.pressure));
@@ -42,10 +45,10 @@ classdef twoPhaseOilWaterModel < physicalModel
             sw = min(sw, 1); sw = max(sw, 0);
 
             state.s = [sw, 1-sw];
-
-            dqWs    = dx{3};
-            dqOs    = dx{4};
-            dpBHP   = dx{5};
+            
+            dqWs    = dx{problem.indexOfPrimaryVariable('qWs')};
+            dqOs    = dx{problem.indexOfPrimaryVariable('qOs')};
+            dpBHP   = dx{problem.indexOfPrimaryVariable('bhp')};
             
             if ~isempty(dpBHP)
                 dpBHP = sign(dpBHP).*min(abs(dpBHP), abs(dpMax.*vertcat(state.wellSol.bhp)));
