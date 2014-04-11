@@ -50,7 +50,7 @@ classdef physicalModel
             
             if mrstVerbose()
                 for i = 1:numel(values)
-                    fprintf('%s (%s): %2.2e\t', problem.names{i}, problem.types{i}, values(i));
+                    fprintf('%s (%s): %2.2e\t', problem.equationNames{i}, problem.types{i}, values(i));
                 end
                 fprintf('\n')
             end
