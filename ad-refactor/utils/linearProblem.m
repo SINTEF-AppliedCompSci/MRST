@@ -29,13 +29,29 @@ classdef linearProblem
            end
         end
         
+        %%%%%  Overloaded functions  %%%%%
         function values = norm(problem, varargin)
             % Overload norm for convergence testing
             values = cellfun(@(x) norm(x.val, varargin{:}), problem.equations);
         end
         
+        function n = numel(problem)
+            n = numel(problem.equations);
+        end
+        %%%%% Utilities %%%%
+        function varnum = getEquationVarNum(problem, n)
+            if nargin == 1
+                n = ':';
+            end
+            varnum = cellfun(@(x) numel(x.val), problem.equations(n));
+        end
+        
         function index = indexOfType(problem, name)
             index = cellfun(@(x) strcmpi(x, name), problem.types);
+        end
+        
+        function no = countOfType(problem, name)
+            no = sum(cellfun(@(x) strcmpi(x, name), problem.types));
         end
         
         function index = indexOfPrimaryVariable(problem, name)
@@ -45,5 +61,47 @@ classdef linearProblem
         function index = indexOfEquationName(problem, name)
             index = cellfun(@(x) strcmpi(x, name), problem.equationNames);
         end
+        
+        %%%%% Linear magic... %%%%%
+        function [problem, eliminatedEquation] = eliminateVariable(problem, variable)
+            if isa(variable, 'char')
+                n = find(problem.indexOfEquationName(variable));
+            elseif isnumeric(variable)
+                n = variable;
+                if islogical(n)
+                    n = find(n);
+                end
+            end
+            
+            eqs = problem.equations;
+            
+            solveInx = setdiff(1:numel(eqs), n);
+            eliminatedEquation      = eqs{n};
+            
+            for eqNum = solveInx
+                for jacNum = solveInx
+                    
+                    if numel(eqs{eqNum}.jac{jacNum}) ~= 0 && numel(eliminatedEquation.jac{jacNum}) ~= 0
+                        eqs{eqNum}.jac{jacNum} = eqs{eqNum}.jac{jacNum} - eqs{eqNum}.jac{n}*(eliminatedEquation.jac{n}\eliminatedEquation.jac{jacNum});
+                    end
+                end
+                if ~isempty(eqs{eqNum}.val) && ~isempty(eliminatedEquation.val) 
+                    eqs{eqNum}.val = eqs{eqNum}.val - eqs{eqNum}.jac{n}*(eliminatedEquation.jac{n}\eliminatedEquation.val);
+                end
+            end
+            
+            eqs  = eqs(solveInx);
+            for eqNum = 1:numel(eqs)
+                eqs{eqNum}.jac = eqs{eqNum}.jac(solveInx);
+            end
+            problem.equations = eqs;
+            problem.equationNames  = problem.equationNames(solveInx);
+            problem.types          = problem.types(solveInx);
+            
+            % We are implicitly eliminating the variable of the same type
+            problem.primaryVariables = problem.primaryVariables(solveInx);
+        end
+        
+        
     end
 end

@@ -23,6 +23,10 @@ classdef linearSolverAD
            problem = problem.assembleSystem();
            result = solver.solveLinearSystem(problem.A, problem.b); 
            
+           dx = solver.storeIncrements(problem, result);
+       end
+       
+       function dx = storeIncrements(solver, problem, result) %#ok
            % Store the increments seperately - copy/paste from SolveEqsADI
            numVars = cellfun(@numval, problem.equations)';
            cumVars = cumsum(numVars);

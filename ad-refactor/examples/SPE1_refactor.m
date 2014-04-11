@@ -65,9 +65,9 @@ clear boModel
 clear nonlinear
 
 boModel = threePhaseBlackOilModel(G, rock, fluid, 'deck', deck);
-
+linsolve = CPRSolverAD();
 % nonlinear = nonlinearSolver();
 % [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
 
-[wellSols, states] = runScheduleRefactor(state, boModel, schedule)
+[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);

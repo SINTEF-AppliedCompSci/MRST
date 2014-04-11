@@ -228,7 +228,7 @@ function problem = equationsBlackOil(state0, state, dt, G, drivingForces, s, f, 
             eqs{2}(wc) = eqs{2}(wc) - cqs{1}; % Add src to water eq
             eqs{3}(wc) = eqs{3}(wc) - cqs{3}; % Add src to gas eq
             
-            names(4:7) = {'oil', 'water', 'gas', 'closure'};
+            names(4:7) = {'oilWells', 'waterWells', 'gasWells', 'closureWells'};
             types(4:7) = {'perf', 'perf', 'perf', 'well'};
         else
             % Force wells to be ADI variables.

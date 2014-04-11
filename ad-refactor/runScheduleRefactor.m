@@ -1,6 +1,7 @@
 function [wellSols, states] = runScheduleRefactor(initState, model, schedule, varargin)
 
-    opt = struct('Verbose', mrstVerbose);
+    opt = struct('Verbose', mrstVerbose,...
+                 'linearSolver', []);
 
     opt = merge_options(opt, varargin{:});
 
@@ -13,7 +14,7 @@ function [wellSols, states] = runScheduleRefactor(initState, model, schedule, va
     dispif(vb, '********** Starting simulation: %5.0f steps, %5.0f days *********\n', numel(dt), tm(end)/day)
     dispif(vb, '*****************************************************************\n')
 
-    solver = nonlinearSolver();
+    solver = nonlinearSolver('linearSolver', opt.linearSolver);
 
     nSteps = numel(dt);
 

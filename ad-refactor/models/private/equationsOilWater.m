@@ -141,7 +141,7 @@ if ~isempty(W)
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
         eqs{2}(wc) = eqs{2}(wc) - cqs{1};
         
-        names(3:5) = {'oil', 'water', 'closure'};
+        names(3:5) = {'oilWells', 'waterWells', 'closureWells'};
         types(3:5) = {'perf', 'perf', 'well'};
     else
         % in reverse mode just gather zero-eqs of correct size
