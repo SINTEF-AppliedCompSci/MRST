@@ -237,18 +237,24 @@ end
 %===============================================================================
 function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
     
+    nnum = Gt.nodes.num;
+    
     % Assume exactly two nodes per edge
     assert(unique(diff(Gt.faces.nodePos)) == 2); 
                                                  
     % one row per edge, giving its end node indices (in ascending order)
-    enode_table = sort(reshape(Gt.faces.nodes, 2, [])', 2, 'ascend');
+    enodes_sorted = sort(reshape(Gt.faces.nodes, 2, [])', 2, 'ascend');
+    enodes_lookup = sparse(enodes_sorted(:,1), enodes_sorted(:,2), ...
+                           1:Gt.faces.num, nnum, nnum);
     
     % make tables with the diagonals of each cell (needed in case the river
     % goes diagonally across a cell)
     cellnodes = activeCellNodes(Gt)';
     diag1 = sort([cellnodes(:,1), cellnodes(:,4)], 2, 'ascend');
     diag2 = sort([cellnodes(:,2), cellnodes(:,3)], 2, 'ascend');
-                                       
+    diag_lookup = sparse(diag1(:,1), diag1(:,2), (1:Gt.cells.num)', nnum, nnum) + ...
+                  sparse(diag2(:,1), diag2(:,2), (1:Gt.cells.num)', nnum, nnum);
+    
     cell_rivers = cell(size(edge_rivers, 1), 1);
     for trap_ix = 1:size(edge_rivers, 1)
         for r_ix = 1:numel(edge_rivers{trap_ix})
@@ -261,19 +267,14 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
             num_edges = numel(nodes_ix) - 1;
             assert(num_edges > 0); % a river should have at least one edge...
             for i = 1:num_edges
-                enodes = sort([nodes_ix(i) nodes_ix(i+1)], 2, 'ascend');
-                
-                % Determining unique edge index having these two nodes as endpoints
-                [dummy, edge_ix] = ismember(enodes, enode_table, 'rows');
-                
+                enodes  = sort([nodes_ix(i) nodes_ix(i+1)], 2, 'ascend');
+                edge_ix = enodes_lookup(enodes(1), enodes(2));
+
                 if edge_ix == 0
                     % No such edge.  The river is here going diagonally
                     % across a cell.  Determine this cell, and add it as a
                     % river cell
-                    [dummy, c_ix] = ismember(enodes, diag1, 'rows');
-                    if c_ix == 0
-                        [dummy, c_ix] = ismember(enodes, diag2, 'rows');
-                    end
+                    c_ix = diag_lookup(enodes(1), enodes(2));
                     assert(c_ix ~= 0); % should be one of the two diagonals
                     cells_ix = [cells_ix, c_ix];
                 else
