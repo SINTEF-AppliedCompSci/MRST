@@ -24,9 +24,15 @@ classdef linearProblem
            % they aren't already created
            if isempty(problem.A)
                eqs = cat(problem.equations{:});
-               problem.A = -eqs.jac{1};
-               problem.b = eqs.val;
+               problem.A = eqs.jac{1};
+               problem.b = -eqs.val;
            end
+        end
+        
+        function [A, b] = getLinearSystem(problem)
+            problem = problem.assembleSystem();
+            A = problem.A;
+            b = problem.b;
         end
         
         %%%%%  Overloaded functions  %%%%%

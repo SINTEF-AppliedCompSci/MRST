@@ -50,7 +50,10 @@ scalFacs.rate     = 100/day;
 % This is done to get values for the wells for all timesteps. Since the
 % case is fairly small,
 timer = tic;
-system = initADISystem({'Oil', 'Water'}, G, rock, fluid);
+system = initADISystem({'Oil', 'Water'}, G, rock, fluid, 'cpr', true);
+system.nonlinear.cprBlockInvert = false;
+
+
 [wellSols states] = runScheduleADI(state, G, rock, system, schedule);
 t_forward = toc(timer);
 
@@ -67,5 +70,10 @@ clear owModel
 clear nonlinear
 
 owModel = twoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
+linsolve = CPRSolverAD();
+% linsolve = mldivideSolverAD();
+% nonlinear = nonlinearSolver();
+% [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
-[wellSols, states] = runScheduleRefactor(state, owModel, schedule);
+
+[wellSols, states] = runScheduleRefactor(state, owModel, schedule, 'linearSolver', linsolve);
