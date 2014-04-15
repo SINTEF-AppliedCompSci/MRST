@@ -1,4 +1,4 @@
-function [dstr_neigh, region, spill_edges] = nodeSpillField(Gt)
+function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
 % Compute the spill field for the 2D grid 'Gt'.
 % The spill field consists of a classification of each of the nodes
 % in the grid as belonging to a specific spill region.  A spill region is defined by 
@@ -6,15 +6,15 @@ function [dstr_neigh, region, spill_edges] = nodeSpillField(Gt)
 % The node at the maximum is flagged as a "sommet" node.
 %
 % SYNOPSIS
-%   [downstream_neigh, region, spill_edges] = spill_field(Gt);
+%   [upslope_neigh, region, spill_edges] = spill_field(Gt);
 %
 % PARAMETERS:
 %      Gt - a 2D grid with an associated z-field
 %
 % RETURNS:    
-%   dstr_neigh  - One element per node in Gt, containing the index of the
-%                 'most (steepest) downstream' of its neighbor nodes, or '0'
-%                 if it is a boundary node or sommet node (no downstream neighbor)
+%   uslp_neigh  - One element per node in Gt, containing the index of the
+%                 'most (steepest) upslope' of its neighbor nodes, or '0'
+%                 if it is a boundary node or sommet node (no upslope neighbor)
 %   region      - a vector with one element per node in Gt.  The element gives the index
 %                 of the spill region that the corresponding node belongs to.  Nodes with
 %                 index 0 belong to the 'exterior' spill region.  Nodes with higher indices
@@ -40,12 +40,12 @@ function [dstr_neigh, region, spill_edges] = nodeSpillField(Gt)
     % belonging to the 'exterior' spill region.
     boundary_node = identify_boundary_nodes(node_neighbors); % one entry per node
 
-    % Initializing vector storing information about regions and downstream neighbors.
+    % Initializing vector storing information about regions and upslope neighbors.
     % The real values will be recursively determined later by calling the nested
-    % function 'establish_region'.  (NB: 'dstr_neigh', 'region' and region_count are the
+    % function 'establish_region'.  (NB: 'uslp_neigh', 'region' and region_count are the
     % ONLY variables that will be modified by the nested functions below).
     
-    dstr_neigh = repmat(-1, num_nodes, 1);  % one entry per node (-1 means 'uninitialized')
+    uslp_neigh = repmat(-1, num_nodes, 1);  % one entry per node (-1 means 'uninitialized')
     region = repmat(-1, num_nodes, 1);     % Possible flags will be:
                                            % -1 : uninitializied
                                            % -2 : pending (temporary value used by recursive 
@@ -54,14 +54,14 @@ function [dstr_neigh, region, spill_edges] = nodeSpillField(Gt)
                                            % >1 : belongs to an interior region
     region(boundary_node) = 0;             % All boundary nodes considered to be part of the
                                            % 'exit' region. 
-    dstr_neigh(boundary_node) = 0;         % We do not track downstream  neighbors for boundary
+    uslp_neigh(boundary_node) = 0;         % We do not track upslope  neighbors for boundary
                                            % nodes.
     region_count = 0;                      % Counting interior regions as they are discovered
     
     % Identifying regions and sommets
     for i = 1:num_nodes
         if region(i) == -1
-            % region/downstream neighbor info for this node has not yet been set.  Let's do it here.
+            % region/upslope neighbor info for this node has not yet been set.  Let's do it here.
             assign_region(i);
         end
     end
@@ -74,7 +74,7 @@ function [dstr_neigh, region, spill_edges] = nodeSpillField(Gt)
     %% --- It might have to recursively determine the region number of neighboring indices
     %% --- before deciding the region number of 'node_ix' itself.
     %% --- This function might modify the following variables in its calling context:
-    %% --- * 'dstr_neigh'
+    %% --- * 'uslp_neigh'
     %% --- * 'region'
     %% --- * 'region_count'
     function assign_region(node_ix)
@@ -87,23 +87,23 @@ function [dstr_neigh, region, spill_edges] = nodeSpillField(Gt)
 
         % Finding the node in the neighborhood, and checking if it is strictly greater
         % than the current node
-        [dstr_neigh(node_ix), strictly_higher] = highest_in_neighborhood(node_ix);
-        if dstr_neigh(node_ix) == node_ix 
+        [uslp_neigh(node_ix), strictly_higher] = highest_in_neighborhood(node_ix);
+        if uslp_neigh(node_ix) == node_ix 
             % The current node is strictly the highest in its neighborhood
-            dstr_neigh(node_ix) = 0; % We flag this exlicitly as a sommet node.
+            uslp_neigh(node_ix) = 0; % We flag this exlicitly as a sommet node.
             region_count    = region_count+1;
             region(node_ix) = region_count;
         elseif strictly_higher
             % This node belongs to the same region as its strictly higher
             % neighbor
-            assign_region(dstr_neigh(node_ix));
-            region(node_ix) = region(dstr_neigh(node_ix));  
+            assign_region(uslp_neigh(node_ix));
+            region(node_ix) = region(uslp_neigh(node_ix));  
         else 
             % this node has a neighbour node at exactly the same height.  Keep looking
             % for a higher one.
             region(node_ix) = -2; % we flag our current node as 'pending' with '-1'.
-            assign_region(dstr_neigh(node_ix));
-            region(node_ix) = region(dstr_neigh(node_ix)); % Node will belong to same region as its
+            assign_region(uslp_neigh(node_ix));
+            region(node_ix) = region(uslp_neigh(node_ix)); % Node will belong to same region as its
                                                            % neighbor with the same height.
         end
     end % --- End of recursive helper function 'assign_region' ---
