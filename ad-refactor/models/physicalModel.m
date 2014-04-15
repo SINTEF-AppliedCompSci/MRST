@@ -29,7 +29,7 @@ classdef physicalModel
             model.operators = setupSimComp(G, rock, varargin{:});
         end
         
-        function eqs = getEquations(model, state0, state, drivingForces, dt, varargin) %#ok
+        function [problem, state] = getEquations(model, state0, state, drivingForces, dt, varargin) %#ok
             % Get the equations governing the system
             error('Base class not meant for direct use')
         end
@@ -58,7 +58,7 @@ classdef physicalModel
         
         function [state, convergence] = stepFunction(model, state, state0, dt, drivingForces, solver, varargin)
             % Make a single linearized timestep
-            problem = model.getEquations(state0, state, dt, drivingForces, varargin{:});
+            [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
             convergence = model.checkConvergence(problem);
             if ~convergence
                 dx = solver.solveLinearProblem(problem);
