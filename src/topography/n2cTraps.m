@@ -280,7 +280,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
                     % Determining cells bordering this edge.   If there is only
                     % one cell, 'project' the edge to it; if there are two,
                     % 'project the edge to the shallowest of them
-                    neigh_cells = sort(Gt.faces.neighbors(edge_ix), 'ascend');
+                    neigh_cells = sort(Gt.faces.neighbors(edge_ix,:), 'ascend');
                     if neigh_cells(1) == 0
                         cells_ix = [cells_ix, neigh_cells(2)];
                     else
