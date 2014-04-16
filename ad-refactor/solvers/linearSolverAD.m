@@ -18,7 +18,7 @@ classdef linearSolverAD
            error('Superclass not meant for direct use')
        end
        
-       function [dx, result] = solveLinearProblem(solver, problem)
+       function [dx, result] = solveLinearProblem(solver, problem, model)
            % Solve a linearized problem
            problem = problem.assembleSystem();
            result = solver.solveLinearSystem(problem.A, problem.b); 
