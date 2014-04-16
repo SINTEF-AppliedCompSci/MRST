@@ -245,7 +245,7 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
     end
      
     
-    problem = linearProblem(eqs, types, names, primaryVars);
+    problem = linearProblem(eqs, types, names, primaryVars, state);
 end
 %--------------------------------------------------------------------------
 function [st1, st2, st3] = getCellStatus(state, disgas, vapoil)

@@ -7,16 +7,19 @@ classdef linearProblem
         primaryVariables
         A
         b
+        state
     end
     
     methods
-        function problem = linearProblem(equations, types, names, primary)
+        function problem = linearProblem(equations, types, names, primary, state)
             problem.equations = equations;
             problem.types = types;
             problem.equationNames = names;
             problem.primaryVariables = primary;
             problem.A = [];
             problem.b = [];
+            
+            problem.state = state;
         end
         
         function problem = assembleSystem(problem)
@@ -24,8 +27,8 @@ classdef linearProblem
            % they aren't already created
            if isempty(problem.A)
                eqs = cat(problem.equations{:});
-               problem.A = eqs.jac{1};
-               problem.b = -eqs.val;
+               problem.A = -eqs.jac{1};
+               problem.b = eqs.val;
            end
         end
         

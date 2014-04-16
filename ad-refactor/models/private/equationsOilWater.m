@@ -158,7 +158,7 @@ else % no wells
     names(3:5) = {'empty', 'empty', 'empty'};
     types(3:5) = {'none', 'none', 'none'};
 end
-problem = linearProblem(eqs, types, names, primaryVars);
+problem = linearProblem(eqs, types, names, primaryVars, state);
 end
 %--------------------------------------------------------------------------
 
