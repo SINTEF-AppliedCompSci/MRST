@@ -41,6 +41,7 @@ classdef nonlinearSolver
             dt = dT;
             ministepNo = 1;
             
+            itCount = 0;
             while ~done
                 state = state0;
                 for iter = 1:ministepNo
@@ -48,6 +49,7 @@ classdef nonlinearSolver
                     state0_local = state;
                     for i = 1:solver.maxIterations
                         [state, converged] = model.stepFunction(state, state0_local, dt, drivingForces, solver.linearSolver, 'iteration', i);
+                        itCount = itCount + 1;
                         if converged
                             break
                         end
@@ -71,7 +73,7 @@ classdef nonlinearSolver
                 end
             end
             
-            status = struct('iterations',   iter,...
+            status = struct('iterations',   itCount,...
                             'converged',    converged,...
                             'ministeps', 	ministepNo);
 
