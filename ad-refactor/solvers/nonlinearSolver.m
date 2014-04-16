@@ -65,6 +65,7 @@ classdef nonlinearSolver
                     % We didn't converge, but we are still away from the
                     % maximum number of substeps. Double the amount for the
                     % next iteration.
+                    warning('Solver did not converge, cutting timestep')
                     ministepNo = 2*ministepNo;
                     dt = dt/2;
                 else
