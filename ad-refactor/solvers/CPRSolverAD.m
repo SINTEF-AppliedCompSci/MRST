@@ -88,18 +88,23 @@ classdef CPRSolverAD < linearSolverAD
                     tmp = eqs{pressureIndex}(isCurrent);
                     eqs{pressureIndex}(isCurrent) = eqs{i}(isCurrent);
                     eqs{i}(isCurrent) = tmp;
+                    
+                    isElliptic(isCurrent, pressureIndex) = true;
+                    isElliptic(isCurrent, i) = false;
                 end
             end
             
-            tmp = 0*eqs{pressureIndex};
             for i = 1:cellEqNo
                 % Add together all the equations to get a "pressure
                 % equation" where we know that all submatrices should be as
                 % close as possible to M-matrices (because of switching,
                 % which does not actually alter the solution)
-                tmp = tmp + eqs{i};
+                if i == pressureIndex
+                    continue
+                end
+                ok = isElliptic(:, i);
+                eqs{pressureIndex}(ok) = eqs{pressureIndex}(ok) + eqs{i}(ok);
             end
-            eqs{pressureIndex} = tmp;
             problem.equations = eqs;
             
             % Set up storage for all variables, including those we
@@ -147,6 +152,7 @@ classdef CPRSolverAD < linearSolverAD
             dispif(mrstVerbose(), 'GMRES converged in %d iterations\n', its(2));
             dxCell = solver.storeIncrements(problem, cprSol);
             
+            % Put the recovered variables into place
             dx(recovered) = dxCell;
             
             assert(all(diff(cellIndex) == 1), 'This solver currently assumes that the cell variables comes first!')
