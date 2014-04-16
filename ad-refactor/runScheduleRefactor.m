@@ -31,7 +31,11 @@ function [wellSols, states] = runScheduleRefactor(initState, model, schedule, va
     for i = 1:nSteps
         fprintf('Solving timestep %d of %d at %s\n', i, nSteps, formatTimeRange(tm(i)));
         W = getWell(i);
+        timer = tic();
         [state, status] = solver.solveTimestep(state, dt(i), model, 'Wells', W);
+        t = toc(timer);
+        dispif(vb, 'Completed %d iterations in %2.2f seconds (%2.2fs per iteration)\n', ...
+                    status.iterations, t, t/status.iterations);
         states{i} = state;
         wellSols{i} = state.wellSol;
     end
