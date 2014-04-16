@@ -25,6 +25,11 @@ classdef threePhaseBlackOilModel < physicalModel
             model.fluid  = fluid;
             model.G   = G;
             
+            %
+            model.oil = true;
+            model.gas = true;
+            model.water = true;
+            
             % Max increments
             model.drsMax = opt.drsMax;
             model.dpMax = opt.dpMax;

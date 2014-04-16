@@ -15,6 +15,13 @@ classdef physicalModel
         dpMax
         % Maximum saturation change
         dsMax
+        
+        % Water phase present
+        water
+        % Gas phase present
+        gas
+        % Oil phase present
+        oil
     end
     
     methods
@@ -22,6 +29,9 @@ classdef physicalModel
             model.dpMax = inf;
             model.dsMax = .2;
             model.nonlinearTolerance = 1e-8;
+            model.water = false;
+            model.gas = false;
+            model.oil = false;
         end
         
         function model = setupOperators(model, G, rock, varargin)

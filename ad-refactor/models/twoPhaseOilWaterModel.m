@@ -12,6 +12,12 @@ classdef twoPhaseOilWaterModel < physicalModel
             model.fluid  = fluid;
             model.G   = G;
             
+            %
+            model.oil = true;
+            model.gas = true;
+            model.water = false;
+            
+            
             model.name = 'OilWater_2ph';
             model = model.setupOperators(G, rock, 'deck', opt.deck);
         end
