@@ -39,14 +39,14 @@ classdef linearSolverAD
            end
        end
        
-       function setupSolver(solver, A, b, varargin) %#ok 
+       function solver = setupSolver(solver, A, b, varargin) %#ok 
            % Run setup on a solver for a given system
            
            % Dummy function run before a set of linear problems with
            % different right hand sides
        end
        
-       function cleanupSolver(solver, A, b, varargin) %#ok 
+       function  solver = cleanupSolver(solver, A, b, varargin) %#ok 
            % Clean up solver after use (if needed)
            
            % Dummy function run after a set of linear problems with
