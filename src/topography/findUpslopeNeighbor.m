@@ -1,4 +1,4 @@
-function [upneigh, nhood] = findUpslopeNeighbor(xyz, neighs, regions)
+function [upneigh, nhood, tan_angle] = findUpslopeNeighbor(xyz, neighs, regions)
 %
 % Determine cell (or node) neighbors, and determine steepest upslope
 %
@@ -18,13 +18,16 @@ function [upneigh, nhood] = findUpslopeNeighbor(xyz, neighs, regions)
 %             eliminated.
 %
 % RETURNS:
-%   upneigh - most upslope neighbor for each cell (or node).  Can be the cell
-%             itself in case of a sommet node.
-%   nhood   - a matrix giving the complete neighborhood of each cell (or
-%             Each line represents a node, and contains the indices of nodes
-%             in its neighborhood.  Number of columns is governed by the
-%             largest neighborhood.  If a cell has fewer neighbors than the
-%             number of columns, the surplus entries are given the value zero.
+%   upneigh  - most upslope neighbor for each cell (or node).  Can be the cell
+%              itself in case of a sommet node.
+%   nhood    - a matrix giving the complete neighborhood of each cell (or
+%              Each line represents a node, and contains the indices of nodes
+%              in its neighborhood.  Number of columns is governed by the
+%              largest neighborhood.  If a cell has fewer neighbors than the
+%              number of columns, the surplus entries are given the value
+%              zero.
+%  tan_angle - tangent of the angle of the slope from the cell to its upslope
+%              neigh (optional output parameter)
 % EXAMPLE:
 %
 % To compute the cell neighborhood and upslope neighbors of cells in a top
@@ -75,6 +78,10 @@ function [upneigh, nhood] = findUpslopeNeighbor(xyz, neighs, regions)
     [v, i]   = max(slopemat, [], 2);
     
     upneigh = nhood(sub2ind(size(nhood), 1:num, i'))';
+
+    if nargout > 2
+        tan_angle = sqrt(v);
+    end
     
 end
 
