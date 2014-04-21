@@ -162,7 +162,8 @@ if(~isempty(W))
     mobGw  = mobG(wc);
     mobOw  = mobO(wc);
     
-    assert(all(~(iInxG& iInxO)));
+    %assert(all(~(iInxG& iInxO)));
+    assert(isempty(intersect(iInxG, iInxO)));
     mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));
     mobOw(iInxG) = 0;
     mobGw(iInxO) = 0;
