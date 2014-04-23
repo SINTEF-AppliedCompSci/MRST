@@ -21,8 +21,8 @@ function cg = generateCoarseGrid(G, p, varargin)
 %
 % RETURNS:
 %   CG - Coarse grid structure. A master structure having the following
-%   fields: 
-%    - cells --  
+%   fields:
+%    - cells --
 %        A structure specifying properties for each individual block in the
 %        grid.  See CELLS below for details.
 %
@@ -43,7 +43,7 @@ function cg = generateCoarseGrid(G, p, varargin)
 %
 %    - griddim --
 %        The dimension of the grid which in most cases will equal
-%        size(G.nodes.coords,2).
+%        'size(G.nodes.coords,2)'.
 %
 %   CELLS - Cell structure G.cells:
 %    - num --
@@ -62,21 +62,21 @@ function cg = generateCoarseGrid(G, p, varargin)
 %    - faces --
 %        A (CG.cells.facePos(end)-1)-by-2 array of global connections
 %        associated with a given block.  Specifically, if
-%        cells.faces(i,1)==j, then global connection cells.faces(i,2) is
-%        associated with global block `j'.
+%        'cells.faces(i,1)==j', then global connection 'cells.faces(i,2)'
+%        is associated with global block 'j'.
 %
 %        To conserve memory, only the second column is actually stored in
-%        the grid structure.  The first column may be re-constructed using
+%        the grid structure.  The first column may be reconstructed using
 %        the statement
 %
 %           rldecode(1 : CG.cells.num, diff(CG.cells.facePos), 2) .'
 %
 %        Optionally, one may append a third column to this array that
 %        contains a tag that has been inherited from the parent grid.
-%   
+%
 %   FACES - Face structure G.faces:
-%    - num -- 
-%        Number of global faces in grid.
+%    - num --
+%        Number of global connections in grid.
 %
 %    - connPos, fconn --
 %        Packed data-array representation of coarse->fine connection
@@ -84,16 +84,16 @@ function cg = generateCoarseGrid(G, p, varargin)
 %
 %            fconn(connPos(i) : connPos(i + 1) - 1)
 %
-%        are the fine-scale connections (i.e., rows of the neighbourship
-%        definition G.faces.neighbors) that constitute coarse-scale
-%        connection i.
+%        are the connections in the parent grid (i.e., rows of the
+%        neighborship definition 'G.faces.neighbors') that constitute
+%        coarse-grid connection 'i'.
 %
-%    - neighbors -- 
+%    - neighbors --
 %        A CG.faces.num-by-2 array of neighbouring information. Global
-%        connection `i' is shared by global blocks neighbors(i,1) and
-%        neighbors(i,2).  One of neighbors(i,1) or neighbors(i,2), but not
-%        both, may be zero, meaning that connection `i' is between a single
-%        block and the exterior of the grid
+%        connection 'i' is shared by global blocks neighbors(i,1) and
+%        neighbors(i,2).  One of 'neighbors(i,1)' or 'neighbors(i,2)', but
+%        not both, may be zero, meaning that connection 'i' is between a
+%        single block and the exterior of the grid.
 %
 %
 %   The coarse grid consists entirely of topological information
