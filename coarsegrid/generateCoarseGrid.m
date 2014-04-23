@@ -1,18 +1,18 @@
-function cg = generateCoarseGrid(g, p, varargin)
+function cg = generateCoarseGrid(G, p, varargin)
 %Form coarse grid from partition of fine-scale grid.
 %
 % SYNOPSIS:
-%   CG = generateCoarseGrid(G, p)
-%   CG = generateCoarseGrid(G, p, pf)
+%   CG = generateCoarseGrid(G, pv)
+%   CG = generateCoarseGrid(G, pv, pf)
 %
 % PARAMETER:
-%   G - grid_structure data structure describing fine-scale discretisation
-%       of reservoir geometry.
+%   G -  grid_structure data structure describing fine-scale discretisation
+%        of reservoir geometry.
 %
-%   p - Partition vector of size [G.cells.num, 1] describing the coarse
-%       grid.  We assume that all coarse blocks are connected.  The
-%       partition vector is often created by function partitionCartGrid
-%       or function partitionUI.
+%   pv - Partition vector of size [G.cells.num, 1] describing the coarse
+%        grid.  We assume that all coarse blocks are connected.  The
+%        partition vector is often created by function partitionCartGrid
+%        or function partitionUI.
 %
 %   pf - Partition vector on faces of 'G'. This indicator enables
 %        construction of coarse grids with multiple connections between
@@ -20,23 +20,94 @@ function cg = generateCoarseGrid(g, p, varargin)
 %        to generating coarse faces defined by unique block pairs only.
 %
 % RETURNS:
-%   CG - Coarse grid structure.  The coarse grid consists entirely of
-%        topological information stored in the same topological fields as
-%        in the fine-scale grid described in 'grid_structure'.
+%   CG - Coarse grid structure. A master structure having the following
+%   fields: 
+%    - cells --  
+%        A structure specifying properties for each individual block in the
+%        grid.  See CELLS below for details.
 %
-%        Specifically, the fields
+%    - faces --
+%        A structure specifying properties for each individual block
+%        connections in the grid.  See FACES below for details.
 %
-%            CG.cells.num, CG.cells.facePos, CG.cells.faces
-%            CG.faces.num, and CG.faces.neighbors
+%    - partition --
+%        A copy of the partition vector 'pv'
 %
-%        have the same interpretation in the coarse grid as in the
-%        fine-scale grid.
+%    - parent --
+%        A copy of the grid structure for the parent grid
 %
-%        The partition vector 'p' is stored within the coarse grid in a
-%        separate field, 'CG.partition'.
+%    - type --
+%        A cell array of strings describing the history of grid constructor
+%        and modifier functions through which a particular grid structure
+%        has been defined.
+%
+%    - griddim --
+%        The dimension of the grid which in most cases will equal
+%        size(G.nodes.coords,2).
+%
+%   CELLS - Cell structure G.cells:
+%    - num --
+%        Number of cells in global grid.
+%
+%    - facePos --
+%        Indirection map of size [num+1,1] into the 'cells.faces' array.
+%        Specifically, the connection information of block 'i' is found in
+%        the submatrix
+%
+%            CG.cells.faces(facePos(i) : facePos(i+1)-1, :)
+%
+%        The number of connections of each block may be computed using the
+%        statement DIFF(facePos).
+%
+%    - faces --
+%        A (CG.cells.facePos(end)-1)-by-2 array of global connections
+%        associated with a given block.  Specifically, if
+%        cells.faces(i,1)==j, then global connection cells.faces(i,2) is
+%        associated with global block `j'.
+%
+%        To conserve memory, only the second column is actually stored in
+%        the grid structure.  The first column may be re-constructed using
+%        the statement
+%
+%           rldecode(1 : CG.cells.num, diff(CG.cells.facePos), 2) .'
+%
+%        Optionally, one may append a third column to this array that
+%        contains a tag that has been inherited from the parent grid.
+%   
+%   FACES - Face structure G.faces:
+%    - num -- 
+%        Number of global faces in grid.
+%
+%    - connPos, fconn --
+%        Packed data-array representation of coarse->fine connection
+%        mapping.  Specifically, the elements
+%
+%            fconn(connPos(i) : connPos(i + 1) - 1)
+%
+%        are the fine-scale connections (i.e., rows of the neighbourship
+%        definition G.faces.neighbors) that constitute coarse-scale
+%        connection i.
+%
+%    - neighbors -- 
+%        A CG.faces.num-by-2 array of neighbouring information. Global
+%        connection `i' is shared by global blocks neighbors(i,1) and
+%        neighbors(i,2).  One of neighbors(i,1) or neighbors(i,2), but not
+%        both, may be zero, meaning that connection `i' is between a single
+%        block and the exterior of the grid
+%
+%
+%   The coarse grid consists entirely of topological information
+%   stored in the same topological fields as in the fine-scale grid
+%   described in 'grid_structure'. Specifically, the fields
+%
+%          CG.cells.num, CG.cells.facePos, CG.cells.faces
+%          CG.faces.num, and CG.faces.neighbors
+%
+%   have the same interpretation in the coarse grid as in the
+%   fine-scale grid.
 %
 % SEE ALSO:
-%   coarseConnections, transposeConnections, grid_structure.
+%   grid_structure, cellPartitionToFacePartition, processFacePartition
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -58,9 +129,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   Ic = indicator(g, varargin{:});
+   Ic = indicator(G, varargin{:});
 
-   [conn, ind, cpos, fconn] = coarseConnections(g, p, Ic);
+   [conn, ind, cpos, fconn] = coarseConnections(G, p, Ic);
    [facePos, faces]    = transposeConnections(conn);
 
    % Form output structure
@@ -77,29 +148,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    %  3) Preserve original partition vector
    cg.partition = p;
-   cg.parent    = g;
-   cg.griddim   = g.griddim;
+   cg.parent    = G;
+   cg.griddim   = G.griddim;
    cg.type = {'generateCoarseGrid'};
 end
 
 %--------------------------------------------------------------------------
 
-function Ic = indicator(g, varargin)
-   Ic = zeros([g.faces.num, 1]);
+function Ic = indicator(G, varargin)
+   Ic = zeros([G.faces.num, 1]);
 
-   if size(g.cells.faces, 2) > 1,
+   if size(G.cells.faces, 2) > 1,
       % Inherit cell-face tag from FS.
       %
-      ext = any(g.faces.neighbors == 0, 2);
+      ext = any(G.faces.neighbors == 0, 2);
 
-      ix  = ext(g.cells.faces(:,1));
+      ix  = ext(G.cells.faces(:,1));
 
-      Ic(g.cells.faces(ix,1)) = g.cells.faces(ix, 2);
+      Ic(G.cells.faces(ix,1)) = G.cells.faces(ix, 2);
    end
 
    if (nargin > 1) && ...
          (isnumeric(varargin{1}) || islogical(varargin{1})) && ...
-         (size(varargin{1}, 1) == g.faces.num),
+         (size(varargin{1}, 1) == G.faces.num),
 
       Ic = [Ic, varargin{1}];
 
