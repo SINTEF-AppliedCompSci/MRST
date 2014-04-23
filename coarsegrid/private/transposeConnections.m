@@ -10,15 +10,17 @@ function [connPos, conns] = transposeConnections(N)
 %       faces.neighbors fields in the MRST grid structure.
 %
 % RETURNS:
-%   connPos - Indirection array into the 'conns' array of block->connection
-%             mappings.  Specifically, the connections of block 'i' are
-%             located in elements
+%   connPos - 
+%       Indirection array into the 'conns' array of block->connection
+%       mappings.  Specifically, the connections of block 'i' are located
+%       in elements
 %
-%                 connPos(i) : connPos(i + 1) - 1
+%              connPos(i) : connPos(i + 1) - 1
 %
-%             of the 'conns' array.
+%       of the 'conns' array.
 %
-%   conns   - Connection data ordered per block.
+%   conns - 
+%       Connection data ordered per block.
 %
 % NOTE:
 %   If the connection/neighbourship definition 'N' indeed is the
