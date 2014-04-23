@@ -49,6 +49,7 @@ wrad     = [0.125, 0.125, 0.125, 0.125, 0.125] .* meter;
 wloc     = [  1,   60,     1,   60,   30;
               1,    1,   220,  220,  110];
 wname    = {'P1', 'P2', 'P3', 'P4', 'I1'};
+sgn      = [ -1 ,  -1 ,  -1 ,  -1 ,   1 ];
 if nargin > 1 && isnumeric(varargin{2}),
    wloc = varargin{2};
 end
@@ -72,5 +73,6 @@ W = [];
 for w = 1 : numel(wtype),
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), [], ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
-                    'Radius', wrad(w), 'Name', wname{w});
+                    'Radius', wrad(w), 'Name', wname{w}, ...
+                    'Sign', sgn(w));
 end
