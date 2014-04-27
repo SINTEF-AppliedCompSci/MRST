@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    G.faces.num       = double(max(G.cells.faces));
    G.faces.neighbors = accumarray([G.cells.faces,  ...
                        1+(any(diff(i)'==1, 2))], cellNo, ...
-                       [G.faces.num, 2]));
+                       [G.faces.num, 2]);
    G.faces.nodePos   = cumsum([1;repmat(3, [G.faces.num, 1])]);
    G.type            = { mfilename };
    G.griddim         = 3;
