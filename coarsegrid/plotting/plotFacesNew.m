@@ -113,11 +113,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          end
       case 1
          faces = other_input{1};
+         if islogical(faces)
+            faces = find(faces);
+         end
          if ~any(strcmpi(varargin, 'FaceColor')),
             varargin = [varargin, {'FaceColor', 'y'}];
          end
       case 2
          faces = other_input{1};
+         if islogical(faces)
+            faces = find(faces);
+         end
          color = other_input{2};
       otherwise
          error('What!?');
