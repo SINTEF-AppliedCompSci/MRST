@@ -46,10 +46,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+require triangle
 
 if nargin < 1, maxarea = 100; end
    nlayers = 15;
-   addpath([ROOTDIR, filesep, 'modules/mex', filesep, 'triangle']);
 
    pslg  = createOutline();
 
