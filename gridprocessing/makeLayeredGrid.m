@@ -92,14 +92,18 @@ G.nodes.coords    = [repmat(G.nodes.coords, [nlayers+1,1]), ...
                     kron((0:nlayers)', ones(G.nodes.num,1))];
 G.nodes.num       = (nlayers+1)*G.nodes.num;
 G.cells.num       = nlayers*G.cells.num;
-G.cells.numFaces  = repmat(diff(G.cells.facePos)+2, [nlayers, 1]);
+
 G.faces.neighbors = [vNeighbors; hNeighbors];
 G.faces.num       = size(G.faces.neighbors,1);
-G.faces.numNodes  = [vNumNodes; hNumNodes];
 G.faces.nodes       = [vFaces(:); reshape(hFaces',[], 1)];
 pos = @(n) cumsum([1; double(reshape(n, [], 1))]);
-G.faces.nodePos = pos(G.faces.numNodes);
-G.cells.facePos = pos(G.cells.numFaces);
+
+numFaces = repmat(diff(G.cells.facePos) + 2, [nlayers, 1]);
+numNodes = [vNumNodes; hNumNodes];
+
+G.faces.nodePos = pos(numNodes);
+G.cells.facePos = pos(numFaces);
+
 % Cell topology from G.faces.neighbors
 N   = G.faces.neighbors;
 tmp = sortrows([N(:,1),(1:G.faces.num)', ones(G.faces.num,1);...
