@@ -65,15 +65,15 @@ if nargin < 1, maxarea = 100; end
      G = pebi(G);
    end
 
-   G = computeGeometry(G);
+   H = computeGeometry(G);
    n = G.cells.num;
 
 
    % Find cells to left/right of fault.
-   c = findCells(G, fault);
+   c = findCells(H, fault);
 
    if (nargin > 1) && (nargout > 1),
-      varargout{1} = findEnclosingCell(G, varargin{1});
+      varargout{1} = findEnclosingCell(H, varargin{1});
    end
 
    G  = makeLayeredGrid(G, nlayers);
