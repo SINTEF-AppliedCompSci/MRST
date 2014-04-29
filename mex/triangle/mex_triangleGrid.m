@@ -2,45 +2,51 @@ function G = mex_triangleGrid(points, edges, varargin)
 %Construct 2d triangle grid in physical space.
 %
 % SYNOPSIS:
-%   G = mex_triangleGrid(edgepointlist, edgelist)
-%   G = mex_triangleGrid(edgepointlist, edgelist, 'pn1', pv1, ...)
+%   G = mex_triangleGrid(pointlist, edgelist)
+%   G = mex_triangleGrid(pointlist, edgelist, 'pn1', pv1, ...)
 %
 % PARAMETERS:
-%   pointlist - List of node coordinates for edges.
+%   pointlist -
+%            List of vertex coordinates.  Must be an m-by-2 (double) array
+%            of (X,Y) coordinate tuples--one tuple for each vertex.
 %
-%   edgelist  - List of edges defining the boundary of the domain that is
-%               to be gridded.
-%  'pn'/pv    - List of 'key'/value pairs defining optional parameters.
-%               The supported options are:
+%   edgelist -
+%            List of edges defining the boundary of the domain.  Must be an
+%            n-by-2 integer array of start- and end nodes (vertices) of
+%            individual edges.
 %
-%              maxArea  -- Maximal area of triangle.
+%  'pn'/pv - List of 'key'/value pairs defining optional parameters.
+%            The supported options are:
+%              maxArea  -- Maximum area (m^2) of individual triangles.
 %
-%              minAngle -- Minimum angle in triangles. Use sensible values
-%                          here.  Otherwise, the mex function may not
-%                          return.
+%              minAngle -- Minimum angle in triangles (degrees).
+%                          Use sensible values here (0 < minAngle < 40)
+%                          lest the Triangle software fail to compute a
+%                          triangulation.
+%
 %              verbose  -- Whether or not to display progress information
-%                          Logical.  Default value: Verbose = false.
+%                          while triangulating the domain.
+%                          Logical.  Default value: verbose = false.
 %
 % RETURNS:
-%   G - Grid structure mostly as detailed in grid_structure, though lacking
-%       the fields
-%         - G.cells.volumes
-%         - G.cells.centroids
+%   G - Grid structure as detailed in grid_structure, without geometric
+%       primitives.  Use function computeGeometry to compute those values.
 %
-%         - G.faces.areas
-%         - G.faces.normals
-%         - G.faces.centroids
+% NOTE:
+%   This function invokes the Triangle software package.   See website
 %
-%       These fields may be computed using the function computeGeometry.
+%       http://www.cs.cmu.edu/~quake/triangle.html
+%
+%   for availability and terms and conditions for use.
 %
 % EXAMPLE:
 %   % Make a 10m-by-5m grid.
-%      points = [0,0; 5,0; 5,10; 0,10];
-%      edges  = [1,2;2,3;3,4;4,1]
-%      G = mex_triangleGrid(points, edges, 'maxArea', 0.3);
+%   points = [ 0 , 0 ; 5 , 0 ; 5 , 10 ; 0 , 10 ];
+%   edges  = [ 1 , 2 ; 2 , 3 ; 3 ,  4 ; 4 ,  1 ];
+%   G = mex_triangleGrid(points, edges, 'maxArea', 0.3);
 %
 %   % Plot the grid in 3D-view.
-%      f = plotGrid(G); axis equal tight; view(2);
+%   f = plotGrid(G); axis equal tight; view(2)
 %
 % SEE ALSO:
 %   grid_structure, computeGeometry.
@@ -64,68 +70,108 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   opt = struct('maxArea',        10, ...
+                'minAngle',       32, ...  % Degrees
+                'segmentmarkers', [], ...
+                'verbose',        false);
+   opt = merge_options(opt, varargin{:});
 
-opt = struct('maxArea',  10, ...
-             'minAngle', 32, ...
-             'segmentmarkers', [], ...
-             'verbose', false);
-opt = merge_options(opt, varargin{:});
-if isempty(opt.segmentmarkers),
-   opt.segmentmarkers = int32(1:size(edges,1));
-end
-assert(numel(opt.segmentmarkers) == size(edges,1));
+   if isempty(opt.segmentmarkers),
+      opt.segmentmarkers = int32(1 : size(edges, 1));
+   end
 
-assert(size(points, 2)==2);
-assert(size(edges, 2)==2);
-assert(min(edges(:))>=0 );
-assert(max(edges(:))<=size(points,1));
-assert(opt.maxArea  > 0 );
-assert(opt.minAngle > 0 );
-assert(opt.minAngle < 40);
+   check_input(opt, points, edges);
 
-%% domain boundary
-in.pointlist   = points';
-in.segmentlist = int32(edges'-1);
-in.segmentmarkerlist = opt.segmentmarkers;
+   [tri, vor] = triangulate(opt, points, edges);
 
-options = sprintf('Q2pzvAneiq%fa%f', opt.minAngle, opt.maxArea);
-if opt.verbose,
-   options = [options(2:end), 'V'];
+   % Construct output grid
+   G = struct('cells'  , cells(tri, vor), ...
+              'faces'  , faces(tri, vor), ...
+              'nodes'  , nodes(tri),      ...
+              'griddim', 2,               ...
+              'type'   , { { mfilename } });
 end
 
-%% Construct triangulation
-[out, vorout]=mex_triangle(in, options);
+%--------------------------------------------------------------------------
 
-G.nodes.num       = size(out.pointlist, 2);
-G.nodes.coords    = out.pointlist';
-G.faces.num       = size(out.edgelist, 2);
-G.faces.numNodes  = int32(repmat(2, [G.faces.num, 1]));
-G.faces.neighbors = int32(vorout.edgelist');
-G.cells.num       = size(out.trianglelist, 2);
-G.cells.numFaces  = int32(repmat(3, [G.cells.num, 1]));
-G.faces.nodes       = int32(out.edgelist(:));
-G.faces.tag = out.edgemarkerlist;
+function check_input(opt, points, edges)
+   assert (numel(opt.segmentmarkers) == size(edges, 1), ...
+           'There must be one segment identifier for each edge');
 
-% Computing cellFaces from triangle list requires some kind of sorting.
-%{
-e = double(out.edgelist);
-M = sparse(e(1,:), e(2,:), 1:size(e, 2));M = M + M';
-T = reshape(out.trianglelist([1,2,2,3,3,1], :), 2, [])';
-A = int64(T(:,1)); B = int64(T(:,2));
-G.cells.faces = int64(full(M(A+(B-1)*G.nodes.num) ));
-%}
-e = (1:size(out.edgelist, 2))';
-n = double(vorout.edgelist)';
-n = sortrows([n(:,1), e; n(:,2), e]);
-G.cells.faces = n(n(:,1)~=0,2);
+   assert (size(points, 2) == 2, 'Node coordinates must be planar (2D)');
+   assert (size(edges , 2) == 2, 'Edges must connect exactly two nodes');
 
+   assert (min(edges(:)) >  0, ...
+           'Edges must refer to valid nodes (too small)');
+   assert (max(edges(:)) <= size(points, 1), ...
+           'Edges must refer to valid nodes (too large)');
 
-% PAtch to convert numFaces and numNodes to facePos and nodePos;
-pos = @(n) int32(cumsum([1; double(reshape(n, [], 1))]));
-G.faces.nodePos = pos(G.faces.numNodes);
-G.cells.facePos = pos(G.cells.numFaces);
-G.cells = rmfield(G.cells, 'numFaces');
-G.faces = rmfield(G.faces, 'numNodes');
+   assert (opt.maxArea  >  0, 'Maximum area must be positive');
+   assert (opt.minAngle >  0, 'Minumum angle must be positive');
+   assert (opt.minAngle < 40, 'Minimum angle must be less than 40 degrees');
+end
 
-G.griddim = 2;
-G.type = { mfilename };
+%--------------------------------------------------------------------------
+
+function [tri, vor] = triangulate(opt, points, edges)
+   % Domain boundary
+   in = struct('pointlist'        , points .'          , ...
+               'segmentlist'      , int32(edges .' - 1), ...
+               'segmentmarkerlist', opt.segmentmarkers);
+
+   options = ['Q2pzvAnei', ...
+              sprintf('q%fa%f', opt.minAngle, opt.maxArea)];
+   if opt.verbose,
+      options = ['V', options(2:end)];
+   end
+
+   % Construct triangulation
+   [tri, vor] = mex_triangle(in, options);
+end
+
+%--------------------------------------------------------------------------
+% Computing cells.faces from triangle list requires some kind of sorting.
+
+function c = cells(tri, vor)
+   n  = size(tri.trianglelist, 2);
+   cf = cellFaces(tri, vor);
+
+   c  = struct('num'    , n,         ...
+               'facePos', pos(3, n), ...
+               'faces'  , cf(cf(:,1) ~= 0, 2));
+end
+
+%--------------------------------------------------------------------------
+
+function f = faces(tri, vor)
+   n = size(tri.edgelist, 2);
+
+   f = struct('num'      , n,                                    ...
+              'nodePos'  , pos(2, n),                            ...
+              'nodes'    , double(reshape(tri.edgelist, [], 1)), ...
+              'neighbors', double(vor.edgelist) .',              ...
+              'tag'      , double(tri.edgemarkerlist) .');
+end
+
+%--------------------------------------------------------------------------
+
+function n = nodes(tri)
+   n = struct('num'   , size(tri.pointlist, 2), ...
+              'coords', tri.pointlist .');
+end
+
+%--------------------------------------------------------------------------
+
+function cf = cellFaces(tri, vor)
+   e  = (1 : size(tri.edgelist, 2)) .';
+
+   cf = double(vor.edgelist) .';
+   cf = sortrows([ cf(:,1) , e ; ...
+                   cf(:,2) , e ]);
+end
+
+%--------------------------------------------------------------------------
+
+function v = pos(n, rpt)
+   v = cumsum([1 ; repmat(n, [ rpt, 1 ])]);
+end
