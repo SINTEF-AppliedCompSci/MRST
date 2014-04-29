@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   require coarsegrid gridtools
+   require coarsegrid
 
    assert (all(cartDims > 0), ...
            'All Cartesian refinement sizes must be strictly positive.');

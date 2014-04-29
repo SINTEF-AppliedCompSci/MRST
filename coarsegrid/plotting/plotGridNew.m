@@ -87,6 +87,12 @@ if mod(numel(varargin), 2) == 1,
    %
    if isnumeric(varargin{1}),
       cells = varargin{1};
+   elseif islogical(varargin{1})
+      cells = find(varargin{1});
+   else
+      error(['Second parameter ''cells'' must either be a list of ', ...
+             'explicit cell indices or a logical mask into the '  , ...
+             'grid''s cells.']);
    end
 
    % Strip 'cells' argument off of remaining input argument list.

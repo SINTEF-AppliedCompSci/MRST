@@ -1,4 +1,4 @@
-function [conn, ind, cpos, fconn] = coarseConnections(g, p, varargin)
+function [conn, ind, cpos, fconn] = coarseConnections(G, p, varargin)
 %Derive connection/topology structure on coarse grid
 %
 % SYNOPSIS:
@@ -13,33 +13,36 @@ function [conn, ind, cpos, fconn] = coarseConnections(g, p, varargin)
 %
 %   Ic - Discrete indicator function.  An m-by-n numeric array of function
 %        values.  There must be one row in 'Ic' for each connection (row)
-%        in the neighbourship definition (in other words m==SIZE(N,1)).
+%        in the neighbourship definition. In other words, if we set
+%        N=G.faces.neighbors, then m==SIZE(N,1). 
 %        OPTIONAL.  Default value: Ic = ONES([m, 1]).
 %
 % RETURNS:
-%   conn - Coarse-scale connection structure represented as a neighbourship
-%          definition (m-by-2 array of coarse-scale block pairs).  A
-%          coarse-scale connection is defined as the intersection of the
-%          unique block pairs defined by p(N) with the unique applicable
-%          indicator tuples defined by 'Ic(c,:)'.
+%   conn - 
+%        Coarse-scale connection structure represented as a neighbourship
+%        definition (m-by-2 array of coarse-scale block pairs).  If we set
+%        q = [0; p], then the coarse-scale connection is defined as the
+%        intersection of the unique block pairs defined by q(N+1) with the
+%        corresponding unique applicable indicator tuples defined by Ic.
 %
-%   ind  - Actual indicator value (including half-face tag if present)
-%          associated with each coarse-scale connection.
+%   ind - 
+%        Actual indicator value (including half-face tag if present)
+%        associated with each coarse-scale connection.
 %
 %   cpos, fconn -
-%          Packed data-array representation of coarse->fine connection
-%          mapping.  Specifically, the elements
+%        Packed data-array representation of coarse->fine connection
+%        mapping.  Specifically, the elements
 %
 %              fconn(cpos(i) : cpos(i + 1) - 1)
 %
-%          are the fine-scale connections (i.e., rows of the neighbourship
-%          definition 'N') that constitute coarse-scale connection 'i'.
+%        are the fine-scale connections (i.e., rows of the neighbourship
+%        definition N) that constitute coarse-scale connection i.
 %
 % NOTE:
 %   This function uses SORTROWS.
 %
 % SEE ALSO:
-%   partitionCartGrid, generateCoarseGrid, sortrows.
+%   generateCoarseGrid, rlencode, sortrows.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -61,7 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   N = g.faces.neighbors;
+   N = G.faces.neighbors;
    if (nargin > 2) && isnumeric(varargin{1}),
       Ic = varargin{1};
    else

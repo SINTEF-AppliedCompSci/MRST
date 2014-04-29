@@ -53,7 +53,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-require coarsegrid gridtools
+require coarsegrid
 
 opt = struct('cartDims', repmat(2, [1, G.griddim]), 'fixPart', []);
 opt = merge_options(opt, varargin{:});
