@@ -3,9 +3,16 @@
 % grids using a PEBI grid. This grid is unstructured in ij-space.
 %
 % We start by loading the required modules and a stored binary file that
-% includes the grids.
+% includes the grids. If the stored binary file is not found, it is
+% downloaded from the Internet (approximately 15 MB download)
 
 mrstModule add msfvm mrst-gui mex agglom coarsegrid
+
+if ~exist('pebi_with_dual.mat', 'file')
+    disp('Did not find grid, downloading (~15.0 MB)')
+    msfvmdir = fullfile(mrstPath('query', 'msfvm'), 'examples');
+    unzip('http://www.sintef.no/project/MRST/pebi_with_dual.mat.zip', msfvmdir)
+end
 
 load pebi_with_dual
 %% Plot the coarse grids (dual and primal)
