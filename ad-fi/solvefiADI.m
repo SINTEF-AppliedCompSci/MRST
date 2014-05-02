@@ -78,24 +78,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Solve equations using a general iterative process defined by
     % stepFunction. This is typically Newton iterations.
-    
-    % If the stepFunction admets additional arguments, pass them along,
-    % otherwise ignore them @@ TODO: We should find a consistent solution for
-    % this.
-    assert(dt>0);
-    if nargin(system.stepFunction) == 7
-        % Step function has a fixed number of arguments (7), and doesn't allow
-        % additional arguments
-        step = @(state, meta) ...
-               system.stepFunction(state0, state, meta, dt, W, G, ...
-                                   system);
-    else
-        % Step function allows additional arguments.  Pass them along.
-        step = @(state, meta) ...
-               system.stepFunction(state0, state, meta, dt, W, G, ...
-                                   system, varargin{:});
-    end
-    
+
+    step = @(state, meta) ...
+       system.stepFunction(state0, state, meta, dt, W, G, ...
+                           system, varargin{:});
+
     meta = struct('converged'   , false, ...
                   'stopped'     , false, ...
                   'wellschanged', false, ...
@@ -121,14 +108,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if(isfield(system,'updateFinal'))
             state=system.updateFinal(state, state0);
     end
-
-    convergence.residuals = meta.res_history(1:meta.iteration, :);
+    
+       convergence.residuals = meta.res_history(1:meta.iteration, :);
     convergence.converged = meta.converged;
 
     if meta.stopped,
-        warning('newt:maxit', ...
-               ['Non-linear solver did not converge, stopped ', ...
-                'by max iterations...']);
+          warning('newt:maxit', ...
+                  ['Non-linear solver did not converge, stopped ', ...
+                   'by max iterations...']);
     end
 
     dispif(mrstVerbose, 'Completed %d iterations in %1.2f s\n', ...
