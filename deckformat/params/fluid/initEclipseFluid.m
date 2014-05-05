@@ -89,7 +89,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       clear func
 
       dispif(mrstVerbose, ...
-             'Multiple PVT regions not supported.  Using region one only');
+            ['Multiple PVT regions not supported.\n', ...
+             '\t-> Using region one (1) only.\n\n']);
    else
       fluid.pvt = @(p, z) blackOilPVT(pvtfun, rho_s, p, z);
    end
