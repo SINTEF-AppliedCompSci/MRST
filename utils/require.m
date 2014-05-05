@@ -54,25 +54,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       e = sprintf('Did you forget to include the %s module%s?', ...
                   quote_list(missing), plural);
 
-      % 'm' includes '.', and '..', but that's not a problem in this
-      % particular case.
-      %
-      m = dir(fullfile(ROOTDIR, 'modules'));
+      p = mrstPath('search', missing{:});
+      if ischar(p), p = { p }; end
 
-      % 'Known' is the subset of 'missing' modules in module directory.
-      known   = subset_op(missing, { m([m.isdir]).name }, @(x) x);
+      % 'Known' is the subset of 'missing' modules that have a record in
+      % the module registry.
+      known   = ~cellfun(@isempty, p);
       plural  = ' is';
 
-      if numel(known) > 1, plural = 's are'; end
+      if sum(known) > 1, plural = 's are'; end
 
-      if ~isempty(known),
+      if any(known),
+         klist = missing(known);
          a = sprintf(['The %s module%s known to MRST and may be ', ...
                       'activated using\n\n\tmrstModule add%s'], ...
-                      quote_list(known), plural, stringify_list(known));
+                      quote_list(klist), plural, stringify_list(klist));
 
-         if numel(known) < numel(missing),
+         if sum(known) < numel(missing),
             plural = '';
-            if numel(known) < numel(missing) - 1, plural = 's'; end
+            if sum(known) < numel(missing) - 1, plural = 's'; end
 
             a = [a, sprintf('\n\nThe remaining module%s', plural), ...
                  ' ', hercule, '.'];
