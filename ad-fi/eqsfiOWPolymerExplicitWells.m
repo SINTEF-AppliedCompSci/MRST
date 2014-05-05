@@ -1,4 +1,4 @@
-function [eqs, hst] = eqsfiOWPolymerExplicitWells(state0, state, dt, G, W, s, f, varargin)
+function [eqs, hst] = eqsfiOWPolymerExplicitWells(state0, state, dt, G, W, system, f, varargin)
 % Generate equations for a Oil-Water-Polymer system.
 
 opt = struct('Verbose'    , mrstVerbose, ...
@@ -18,6 +18,7 @@ else
 end
 
 hst = opt.history;
+s = system.s;
 
 % current variables: ------------------------------------------------------
 p     = state.pressure;

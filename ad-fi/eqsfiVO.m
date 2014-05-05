@@ -1,4 +1,4 @@
-function [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, f, system, varargin)
+function [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, f, varargin)
 % Generate equations for a Volatile 3Ph system (wet-gas, live-oil).
     opt = struct('Verbose',     mrstVerbose,...
                  'reverseMode', false,...
@@ -12,6 +12,7 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, f, system, varargin)
 
     disgas = system.activeComponents.disgas;
     vapoil = system.activeComponents.vapoil;
+    s = system.s;
 
     % current variables: ------------------------------------------------------
     p    = state.pressure;
