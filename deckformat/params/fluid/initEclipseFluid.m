@@ -71,6 +71,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [pvtfun, rho_s, n, info1, incomp] = eclipsePhaseProperties(deck);
    [relperm, pcap, info2]            = eclipseRelperm        (deck);
 
+   pvtfun = clear_absent(pvtfun, n);
+
    fluid.names = n;
    fluid.info  = [info1, info2];
    if isfield(deck.RUNSPEC, 'TITLE'),
@@ -111,6 +113,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       fprintf('Relative permeability:\n%s', info2);
       fprintf('-----------------------------------------------------\n\n');
    end
+end
+
+%--------------------------------------------------------------------------
+
+function pvtfun = clear_absent(pvtfun, present)
+   phases = { 'WATER', 'OIL', 'GAS' };
+
+   [i, j] = blockDiagIndex(numel(phases), numel(present));
+
+   m = strcmpi(reshape(phases (i), [], 1), ...
+               reshape(present(j), [], 1));
+
+   pvtfun(~ any(reshape(m, numel(phases), []), 2)) = { [] };
 end
 
 %--------------------------------------------------------------------------
