@@ -249,9 +249,10 @@ if(isfield(f,'dis_rate'))
     dis_rate=f.dis_rate.*(s.pv./G.cells.H);
     
     % set rate to zero if already saturated, or if there is no gas phase present
+    
+    % dis_rate adjustment, approach 1
     meps=sqrt(eps);
     dis_rate=dis_rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
-
     
     a=600;
     tanhyp=@(x,a) ((exp(a*x)-exp(-a*x))./(exp(a*x)+exp(-a*x)));
@@ -261,6 +262,7 @@ if(isfield(f,'dis_rate'))
     dis_rate=dis_rate.*s_fac.*rs_fac; % smoothly turn down dissolution rate when
                                       % sG goes to 0, or when dissolved value
                                       % approaches maximum.
+    
     eqs{3} = (s.pv/dt).*...
         ( pvMult.*(rs.*bO.*(1-sG) ) -...
         pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
@@ -316,9 +318,13 @@ if(isfield(f,'dis_rate'))
     % Default equation: force 'sGmax' to equal 'sG'
     eqs{7}=(sGmax-sG).*(s.pv/dt);
     tmp=(s.pv/dt).*...
-        (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+        (pvMult.*bG.*sGmax- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
     tmp2=(s.pv/dt).*...
-         (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+         (pvMult.*double(bG).*double(sG)- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+    % tmp=(s.pv/dt).*...
+    %     (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+    % tmp2=(s.pv/dt).*...
+    %      (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
     %%{
     % the case of disolution do not manage to remove all residual
     % saturation  and the new state do not is not fully dissolved
@@ -327,12 +333,13 @@ if(isfield(f,'dis_rate'))
     if(any(ind1))
         eqs{7}(ind1)=tmp(ind1);
     end
-    % the new state is fully dissolved but all residual saturaiont is
+    % the new state is fully dissolved but all residual saturation is
     % not gone
     ind3= is_sat_loc & (sGmax < sGmax0) & (sGmax > sG);
     if(any(ind3))
         tmp = (s.pv/dt).*...
-        (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
+        (pvMult.*bG.*sGmax- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
+        %(pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
         eqs{7}(ind3)= tmp(ind3);
     end
     
