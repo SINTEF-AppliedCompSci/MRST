@@ -51,7 +51,7 @@ function p = split_path(p)
    try
       p = regexp(p, pathsep, 'split');
    catch  %#ok
-      % Octave compatiblity.  It is an error to get here in an M run.
+      % Octave compatibility.  It is an error to get here in an M run.
       p = strsplit(p, pathsep);
    end
 end
