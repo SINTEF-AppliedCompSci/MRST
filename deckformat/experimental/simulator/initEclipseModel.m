@@ -1,10 +1,48 @@
-function [G, rock, fluid, state, wells, trans, dt, deck] = initEclipseModel(fn)
+function [G, rock, fluid, ...
+   state, wells, trans, dt, deck] = initEclipseModel(inputfile)
+%Initialise basic MRST objects from ECLIPSE input file (*.DATA)
+%
+% SYNOPSIS:
+%   [G, rock, fluid, ...
+%    state, wells, trans, dt, deck] = initEclipseModel(inputfile)
+%
+% DESCRIPTION:
+%   Function 'initEclipseModel' constructs the fundamental MRST simulation
+%   objects (grid, rock properties, fluids &c) from a single ECLIPSE-style
+%   input file (typically named '*.DATA').
+%
+% PARAMS:
+%   inputfile - Name (string) of input file.  The input is assumed to be a
+%               regular file on disk and not, say, a POSIX pipe.
+%
+% RETURNS:
+%   G     - Grid structure as defined by function 'initEclipseGrid'.
+%
+%   rock  - Rock data structure as defined by function 'initEclipseRock'.
+%
+%   fluid - Fluid data structure as defined by function 'initEclipseFluid'.
+%
+%   state - Initial state object as defined by function 'initEclipseState'.
+%
+%   wells - Initial well object as defined by function 'processWells'. This
+%           structure is derived from the initial well configuration.
+%
+%   trans - Background (absolute) one-sided ("half-face")
+%           transmissibilities as defined by functions 'computeTrans' and
+%           'computeTranMult'.
+%
+%   dt    - Report step sequence derived from 'TSTEP' and 'DATES'.
+%
+%   deck  - Raw input deck as defined by functions 'readEclipseDeck' and
+%           'convertDeckUnits'.  Especially usefull for the dynamic
+%           SCHEDULE information pertaining to switching well controls.
+
    require deckformat
 
    gravity reset
    gravity on
 
-   deck  = convertDeckUnits(readEclipseDeck(fn));
+   deck  = convertDeckUnits(readEclipseDeck(inputfile));
 
    fprintf('----------------------------------------------------------\n');
 
