@@ -12,6 +12,7 @@
 % necessary to run the example can be downloaded from the
 % <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 % website>.
+moduleCheck('mex', 'mimetic');
 %% Display header
 clc;
 disp('================================================================');
