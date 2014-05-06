@@ -14,11 +14,14 @@ function partition2 = processPartition(G, partition, facelist)
 %              internally connected.  Consequently, if all coarse blocks
 %              are connected then ALL(p2 == p).
 %
-%   facelist - Lit of faces across which the connections between cells
+%   facelist - List of faces across which the connections between cells
 %              should be removed before the processing
 %
 % RETURNS:
 %   q        - Updated partition with only connected coarse blocks.
+%
+% SEE ALSO:
+%   processFacePartition, partitionUI, partitionCartGrid 
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
