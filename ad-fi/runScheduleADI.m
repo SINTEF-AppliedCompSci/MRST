@@ -90,9 +90,11 @@ opt = struct('Verbose'       , mrstVerbose      , ...
 opt = merge_options(opt, varargin{:});
 
 vb = opt.Verbose;
-outputStates =      nargout > 1;
-outputIter =        nargout > 2;
-outputConvergence = nargout > 3;
+outputStates      = nargout > 1;
+outputSchedule    = nargout > 2; % Refined schedule is given as output. Useful when time refinement
+                                 % is used (force_step = false)
+outputIter        = nargout > 3;
+outputConvergence = nargout > 4;
 
 %--------------------------------------------------------------------------
 
@@ -288,12 +290,16 @@ if outputStates
    varargout{2} = states;
 end
 
+if outputSchedule
+   varargout{3} = schedule;
+end
+
 if outputIter
-   varargout{3} = iter;
+   varargout{4} = iter;
 end
 
 if outputConvergence
-   varargout{4} = convergence;
+   varargout{5} = convergence;
 end
 
 end
