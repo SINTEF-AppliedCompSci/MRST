@@ -38,7 +38,7 @@ if ~isfield(state, 'cmax')
     state.cmax = state.c;
 end
 
-eqs = system.getEquations(state0, state, dt, G, W, s, fluid, 'iteration', meta.iteration);
+eqs = system.getEquations(state0, state, dt, G, W, system, fluid, 'iteration', meta.iteration);
 
 if system.nonlinear.cpr && isempty(system.podbasis)
     [dx, gmresits, gmresflag] = cprGeneric(eqs, system,...
@@ -57,7 +57,7 @@ end
 
 searchfail = true;
 if system.nonlinear.linesearch
-    getEqs = @(state) system.getEquations(state0, state, dt, G, W, s, fluid, 'resOnly', true);
+    getEqs = @(state) system.getEquations(state0, state, dt, G, W, system, fluid, 'resOnly', true);
     upState = @(dx) updateState(state, dx, fluid, W);
     [state, dx, searchfail] = linesearchADI(state, dx, system, getEqs, upState, false);
 end
