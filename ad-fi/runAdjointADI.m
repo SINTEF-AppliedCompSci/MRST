@@ -1,4 +1,4 @@
-function grad = runAdjointADI(G, rock, fluid, schedule, objective, system, varargin)
+function varargout = runAdjointADI(G, rock, fluid, schedule, objective, system, varargin)
 % Compute adjoint gradients for a schedule using the fully implicit ad solvers
 %
 % SYNOPSIS:
@@ -60,6 +60,9 @@ function grad = runAdjointADI(G, rock, fluid, schedule, objective, system, varar
 %                 Defaults to 1 and 1.
 % RETURNS:
 %
+%  grad         - gradient vector with respect to control step.
+%
+%  gradFull {OPTIONAL} - gradient vector with respect to time step.
 %
 % COMMENTS:
 %
@@ -97,10 +100,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'simOutputName',       'state', ...
                 'simOutputNameFunc',   [], ...
                 'ForwardStates',       [], ...
-                'ControlVariables',    [],...
-                'scaling',             []);
+                'ControlVariables',    [], ...
+                'scaling',             [], ...
+                'timeStepGradient',    false);
 
    opt = merge_options(opt, varargin{:});
+
+
 
    vb = opt.Verbose;
    states = opt.ForwardStates;
@@ -146,6 +152,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Load state - either from passed states in memory or on disk
    % representation.
    state = loadState(states, inNm, numel(dts));
+   % We strip wellSols for closed wells,
+   state.wellSol = state.wellSol(vertcat(state.wellSol.status) == 1);
 
    timero = tic;
    useMrstSchedule = isfield(schedule.control(1), 'W');
@@ -168,25 +176,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
       state_m = loadState(states, inNm, tstep-1);
-      eqs   = system.getEquations(state_m, state  , dts(tstep), G, W, system.s, fluid, 'scaling', ...
+      % We strip wellSols for closed wells,
+      state_m.wellSol = state_m.wellSol(vertcat(state_m.wellSol.status) == 1);
+
+      % For adjoint computation, we do not allow control switching.
+      system.well.allowControlSwitching = false;
+
+      % Sanity check: wellSols and W have same type. We also set equal val. Note that
+      % val should actually not be used in adjoint simulation.
+      for wn = 1:numel(W)
+         assert(strcmp(W(wn).type, state.wellSol(wn).type), ['In runAdjointADI, well types do not ' ...
+                             'match']);
+         W(wn).val = state.wellSol(wn).val;
+      end
+
+
+      eqs   = system.getEquations(state_m, state  , dts(tstep), G, W, system, fluid, 'scaling', ...
                                            scalFacs,  'stepOptions', ...
                                            system.stepOptions, 'iteration', inf);
       if tstep < nsteps
-         eqs_p = system.getEquations(state  , state_p, dts(tstep+1), G, W_p, system.s, fluid, ...
+         eqs_p = system.getEquations(state, state_p, dts(tstep+1), G, W_p, system, fluid, ...
                                               'reverseMode', true, 'scaling', scalFacs, 'stepOptions', ...
                                               system.stepOptions, 'iteration', inf);
       end
 
       [adjVec, ii] = solveAdjointEqsADI(eqs, eqs_p, adjVec, objective(tstep), system);
       if isempty(opt.ControlVariables)
-         gradFull{tstep} = zeros(numel(openWells));
+         gradFull{tstep} = zeros(numel(openWells), 1);
          gradFull{tstep}(openWells) = -adjVec(ii(end,1):ii(end,2));
       else
          gradFull{tstep} = -adjVec(mcolon(ii(opt.ControlVariables,1),ii(opt.ControlVariables,2)));
       end
 
-      state   = state_m;
       state_p = state;
+      state   = state_m;
       W_p = W;
       prevControl = control;
       dispif(vb, 'Done %6.2f\n', toc(timeri))
@@ -199,6 +222,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    for k = 1:numel(schedule.control)
       ck = (schedule.step.control == k);
       grad{k} = sum(cell2mat(gradFull(ck)), 2);
+   end
+
+   varargout{1} = grad;
+
+   if opt.timeStepGradient
+      varargout{2} = gradFull;
    end
 
    dispif(vb, '************Simulation done: %7.2f seconds ********************\n', toc(timero))
@@ -219,6 +248,3 @@ function state = loadState(states, inNm, tstep)
       state = out.(fn{:});
    end
 end
-
-
-
