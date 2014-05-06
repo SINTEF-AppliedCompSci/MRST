@@ -197,12 +197,15 @@ axis tight off, view(20,30)
 % From the plot above, it is not easy to see the shape of the individual
 % coarse blocks. We therefore first highlight three representative blocks.
 blocks = [4, 6, 28];
-col = ['b','r','g','c','m','y'];
+col = ['b', 'r', 'g', 'c', 'm', 'y'];
+
 cla
-plotGrid(G,'EdgeColor',[0.75 0.75 0.75],'FaceColor','w');
-outlineCoarseGrid(G,blockIx, 'FaceColor', 'none', 'LineWidth', 2);
-for i=1:numel(blocks),
-   plotGrid(G,find(blockIx==blocks(i)),'FaceColor',col(mod(i,numel(col))+1));
+plotGrid(G, 'EdgeColor', [0.75, 0.75, 0.75], 'FaceColor', 'w')
+outlineCoarseGrid(G, blockIx, 'FaceColor', 'none', 'LineWidth', 2)
+
+for i = 1 : numel(blocks),
+   plotGrid(G, blockIx == blocks(i), ...
+            'FaceColor', col(mod(i, numel(col)) + 1));
 end
 
 %% Build the coarse-grid
@@ -224,12 +227,16 @@ CG.faces       %#ok  (intentional display)
 % this end, we arbitrarily pick a few blocks and inspect these block and
 % their neighbours. For the first block, we plot the cells but do not
 % highlight the faces that have been marked as lying on a fault
-cla, plotBlockAndNeighbors(G,CG,blocks(1),'PlotFaults',false); view(30,50);
+cla
+plotBlockAndNeighbors(CG, blocks(1), 'PlotFaults', false([2, 1]))
+view(30, 50)
 
 %%
 % The next block lies at a fault, so therefore we highlight the fault faces
 % as well
-cla, plotBlockAndNeighbors(G,CG,blocks(3),'PlotFaults',true); view(20,30);
+cla
+plotBlockAndNeighbors(CG, blocks(3), 'PlotFaults', true([2, 1]))
+view(20, 30)
 
 %%
 displayEndOfDemoMessage(mfilename)
