@@ -1,28 +1,27 @@
-function partition2 = processPartition(G, partition, varargin)
+function partition2 = processPartition(G, partition, facelist)
 %Split disconnected coarse blocks into new blocks.
 %
 % SYNOPSIS:
-%   p2 = processPartition(G, p)
-%   p2 = processPartition(G, p, 'pn1', pv1, ...)
+%   q = processPartition(G, p)
+%   q = processPartition(G, p, facelist)
 %
 % PARAMETERS:
-%   G       - Grid structure as described by grid_structure.
+%   G        - Grid structure as described by grid_structure.
 %
-%   p       - Vector of size G.cells.num-by-1 of initial cell-to-block
-%             mappings.  Assumed to be a vector of positive integers.  The
-%             coarse block numbers are preserved for all blocks that are
-%             internally connected.  Consequently, if all coarse blocks are
-%             connected then ALL(p2 == p).
+%   p        - Vector of size G.cells.num-by-1 of initial cell-to-block
+%              mappings.  Assumed to be a vector of positive integers.  The
+%              coarse block numbers are preserved for all blocks that are
+%              internally connected.  Consequently, if all coarse blocks
+%              are connected then ALL(q == p).
 %
-%   'pn'/pv - List of 'key'/value pairs designating optional parameters.
-%             Currently supported parameters are
-%               - Verbose -- Whether or not to emit progress reports
-%                            during the computation.
-%                            Logical.  Default value dependent upon global
-%                            verbose settings in function 'mrstVerbose'.
+%   facelist - List of faces across which the connections between cells
+%              should be removed before the processing
 %
 % RETURNS:
-%   p2 - Updated partition with only connected coarse blocks.
+%   q        - Updated partition with only connected coarse blocks.
+%
+% SEE ALSO:
+%   processFacePartition, partitionUI, partitionCartGrid 
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -44,23 +43,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-opt = struct('Verbose', mrstVerbose);
-opt = merge_options(opt, varargin{:});
-
-
 non_empty            = find(accumarray(partition, 1) > 0);
 [b2cPos, b2c, locno] = invertPartition(partition);
 
 maxBlk = non_empty(end);
-nBlk   = numel(non_empty);
 
+% Find list of valid connections: first, disregard connections between
+% cells that belong to different coarse blocks
 p1 = [0; partition];
 N  = p1(G.faces.neighbors + 1);
 valid = N(:,1) == N(:,2);
-
 clear N p1
 
-if opt.Verbose, h = waitbar(0, 'Processing partition...'); t0 = tic; end
+% Then remove connections that have been specified explicitly by user
+if nargin>=3
+   if isnumeric(facelist)
+      assert(min(facelist)>0 && max(facelist)<=G.faces.num, ...
+         'Face number not within valid range');
+      valid(facelist) = false;
+   elseif islogical(facelist) && numel(facelist)==G.faces.num
+      valid(facelist) = false;
+   else
+      error(msgid('FaceList:NonNumeric'), ...
+         'Face list ''faces'' is not numeric or a boolean per face.')
+   end
+end
 
 partition2 = repmat(-1, size(partition));
 for k = 1 : numel(non_empty),
@@ -104,9 +111,8 @@ for k = 1 : numel(non_empty),
 
    maxBlk = maxBlk + max(nComp - 1, 0);
 
-   if opt.Verbose, waitbar(k / nBlk, h), end
 end
 
 assert (all(partition2 > 0));
 
-if opt.Verbose, toc(t0), close(h); end
+end
