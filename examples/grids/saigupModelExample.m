@@ -192,16 +192,17 @@ CG.faces       %#ok  (intentional display)
 % this end, we arbitrarily pick a few blocks and inspect these block and
 % their neighbours. For the first block, we plot the cells and the faces
 % that have been marked as lying on a fault
-clf; plotBlockAndNeighbors(G,CG,48); view(-90,70);
+clf, plotBlockAndNeighbors(CG, 48), view(-90, 70)
 
 %%
 % For the second block, we only plot the cells and not the faulted faces
-clf; plotBlockAndNeighbors(G,CG,15,'PlotFaults',false); view(90,70);
+clf
+plotBlockAndNeighbors(CG, 15, 'PlotFaults', false([2, 1]))
+view(90, 70)
 
 %%
 % The third set of neighboring blocks contains more faults
-clf; plotBlockAndNeighbors(G,CG,21); view(0,40);
-
+clf, plotBlockAndNeighbors(CG, 21), view(0,40)
 
 %%
 % We end the example by highlighting six representative blocks, including
