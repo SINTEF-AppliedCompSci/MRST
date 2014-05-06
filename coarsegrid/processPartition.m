@@ -12,7 +12,7 @@ function partition2 = processPartition(G, partition, facelist)
 %              mappings.  Assumed to be a vector of positive integers.  The
 %              coarse block numbers are preserved for all blocks that are
 %              internally connected.  Consequently, if all coarse blocks
-%              are connected then ALL(p2 == p).
+%              are connected then ALL(q == p).
 %
 %   facelist - List of faces across which the connections between cells
 %              should be removed before the processing
