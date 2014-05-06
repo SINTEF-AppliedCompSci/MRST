@@ -15,7 +15,8 @@ function c = findEnclosingCell(G, pt)
 %
 %           sum(bsxfun(@minus, G.cells.centroids, pt(i,:)) .^ 2, 2)
 %
-%        is minimised.
+%        is minimised. If a point lies on the boundary between two cells,
+%        the function returns the smallest index.
 %
 % SEE ALSO:
 %   pebi.
@@ -69,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       if isempty(ind)
          c(k) = 0;
       else
-         c(k) = ind;
+         c(k) = min(ind);
       end
    end
 end
