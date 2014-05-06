@@ -59,7 +59,7 @@ h=colorbar; set(h,'YTick',log10(cs),'YTickLabel',cs');
 % Cartesian (e.g., corner-point and other mapped grids that may contain
 % inactive or degenerate cells).
 p  = partitionUI(G, [Nx, Ny, Nz]);
-p  = processPartition(G, p, 'Verbose', verbose);
+p  = processPartition(G, p);
 
 % Plot the partition
 newplot

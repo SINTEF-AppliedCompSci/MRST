@@ -69,7 +69,7 @@ subplot('Position',[0.02 0.15 0.46 0.7]),
 % are only logically Cartesian (e.g., corner-point and other mapped grids
 % that may contain non-neighbouring connections and inactive or degenerate
 % cells).
-p = processPartition(G, p, 'Verbose', verbose);
+p = processPartition(G, p);
 subplot('Position',[0.52 0.15 0.46 0.7]),
    plotCellData(G, mod(p,9)); shading faceted
    outlineCoarseGrid(G,p,'LineWidth',3);

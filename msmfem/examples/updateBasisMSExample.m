@@ -66,7 +66,7 @@ xMs  = initState(G, W, 0);
 % corner-point and other mapped grids that may contain inactive or
 % degenerate cells).
 p  = partitionUI(G, [5, 5, 2]);
-p  = processPartition  (G, p, 'Verbose', verbose);
+p  = processPartition(G, p);
 
 figure;
 plotCellData(G,mod(p,2)); view(3); axis equal tight off

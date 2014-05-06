@@ -52,7 +52,7 @@ xMs_speed  = xRef;
 %% Partition the grid
 % We partition the fine grid into coarse blocks.
 p = partitionUI(G, [Nx, Ny, Nz]);
-p = processPartition(G, p, 'Verbose', verbose);
+p = processPartition(G, p);
 
 %%
 % Generate the coarse-grid structure
