@@ -89,11 +89,7 @@ catch me
    disp('Using matlab ve-transport');
    cpp_accel = false;
 end
-try
-   require mimetic
-catch me
-   mrstModule add mimetic;
-end
+moduleCheck('mimetic');
 
 % Find trapping structure in grid. Used for calculation of trapped volumes
 ts=findTrappingStructure(Gt);
