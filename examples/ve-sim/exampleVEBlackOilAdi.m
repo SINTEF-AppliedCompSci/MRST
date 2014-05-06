@@ -4,11 +4,7 @@
 % simulation,  we use the fully-implicit solver in MRST from the 'ad-fi'
 % module, which is based on automatic differentiation. 
 
-try
-   require deckformat ad-fi
-catch %#ok<CTCH>
-   mrstModule add deckformat ad-fi
-end
+moduleCheck('deckformat', 'ad-fi');
 
 %% Parameters for the simulation
 gravity on
