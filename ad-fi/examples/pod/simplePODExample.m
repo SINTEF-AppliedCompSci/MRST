@@ -59,7 +59,7 @@ schedule_training = deck_training.SCHEDULE;
 schedule_problem  = deck_problem.SCHEDULE;
 %% Solve full system for various parameters to create snapshot ensamble
 
-systemOW =      initADISystem({'Oil', 'Water'}, G, rock, fluid);
+systemOW =      initADISystem({'Oil', 'Water'}, G, rock, fluid, 'well_allowControlSwitching', false);
 [wsol, states] = runScheduleADI(state, G, rock, systemOW, schedule_training);
 
 %% Plot the simulation for all timesteps
@@ -130,7 +130,8 @@ tfull = toc(timer);
 
 warning('off', 'newt:maxit')
 timer = tic;
-[wsol_pod, states_pod]   = runScheduleADI(state, G, rock, systemOW_basis, schedule_problem);
+[wsol_pod, states_pod]   = runScheduleADI(state, G, rock, systemOW_basis, schedule_problem, ...
+                                          'stop_if_not_converged', false);
 tpod = toc(timer);
 warning('on', 'newt:maxit')
 
