@@ -190,7 +190,7 @@ assert (iscellstr(suppl), 'Option names must be strings');
 m = strcmpi(reshape(known(i), [], 1), ...
             reshape(suppl(j), [], 1));
 
-this = [ known(i(m)) ; varargin(2 * j(m)) ];
+this = [ known(i(m))' ; varargin(2 * j(m)) ];
 opt  = merge_options(opt, this{:});
 
 excl = false([numel(varargin), 1]);
