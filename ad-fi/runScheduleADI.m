@@ -260,7 +260,7 @@ while tstep <= numel(schedule.step.val)
                                                    'stepModifier', 1.5);
 
          if tstep < numel(schedule.step.val) && dt_new < schedule.step.val(tstep + 1)
-            schedule = reComputeSchedule(t, dt_new, schedule);
+            schedule = refineSchedule(t, dt_new, schedule);
             if ref_dt < dt_new
                fprintf('*** Increased time step\n');
             elseif ref_dt > dt_new
