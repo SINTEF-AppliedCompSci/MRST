@@ -35,7 +35,7 @@ disp('   Vertical averaging applied to the Sleipner model');
 disp('   using C++ accelleration in the transport solver');
 disp('================================================================');
 disp(' ');
-moduleCheck('mimetic', 'matlab_bgl');
+moduleCheck('mimetic', 'mex');
 
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
