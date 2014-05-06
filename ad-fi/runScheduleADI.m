@@ -84,7 +84,7 @@ opt = struct('Verbose'       , mrstVerbose      , ...
              'outputDir'     , default_outputDir, ...
              'plotCallback'  , [],  ...
              'outputNameFunc', [], ...
-             'force_step'    , false, ...
+             'force_step'    , true, ...
              'minStepSize'   , 0);
 
 opt = merge_options(opt, varargin{:});
@@ -206,7 +206,7 @@ while tstep <= numel(schedule.step.val)
 
    if ~(conv.converged)
       if opt.force_step
-         error('Does not converge; try ...')
+         error('You may try time step refinement: set ''force_step'' option equal to false in runScheduleADI.');
       else
          % split time step
          fprintf('Cutting time step!\n');
@@ -214,7 +214,7 @@ while tstep <= numel(schedule.step.val)
          fprintf('New step size: %.5g day.\n', schedule.step.val(tstep)/day);
          ref_dt = ref_dt/2;
          if ref_dt < opt.minStepSize
-            error('Does not converge; below time step')
+            error('Minimum step size refinement has been reached.')
          end
          state = state0;
       end
