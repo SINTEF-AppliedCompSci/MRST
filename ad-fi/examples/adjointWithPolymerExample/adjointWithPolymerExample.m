@@ -7,7 +7,7 @@
 % polymer, followed by a water flooding phase without polymer. Finally, the
 % water rate is reduced for the final time steps.
 %
-mrstModule add deckformat gridtools ad-fi
+mrstModule add deckformat ad-fi
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'polymer.data');
