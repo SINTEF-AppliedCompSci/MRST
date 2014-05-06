@@ -1,10 +1,7 @@
-function [sol, withinLims] = updateControls(W, sol, pBH, q_s, model, allowWellSignChange)
+function [sol, withinLims] = updateControls(W, sol, pBH, q_s, model)
 if isempty(W)||isempty(W(1).lims)
     withinLims = true(numel(sol),1);
 else
-    if nargin < 6
-        allowWellSignChange = false;
-    end
 
     nwells     = numel(sol);
     withinLims = true(nwells,1);
@@ -15,18 +12,13 @@ else
 
     for wnr = 1:numel(sol)
         lims = W(wnr).lims;
-        if ~allowWellSignChange
-            lims.vrat = -inf;
-        else
-            lims.vrat = -inf;
-        end
         pBHw  = pBH(wnr);
         q_sw  = q_s(wnr,:);
         qt_sw = sum(q_sw);
         if ~isnumeric(W(wnr).lims)
             if sol(wnr).sign > 0   % injector
-                modes   = {'bhp', 'rate', 'rate'};
-                flags = [pBHw > lims.bhp, qt_sw > lims.rate, qt_sw < lims.vrat];
+                modes   = {'bhp', 'rate'};
+                flags = [pBHw > lims.bhp, qt_sw > lims.rate];
             else            % producer
                 modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
                 flags = [pBHw           < lims.bhp,  ...
@@ -34,7 +26,7 @@ else
                     q_sw(1)+q_sw(2) < lims.lrat, ...
                     q_sw(3)         < lims.grat, ...
                     q_sw(1)         < lims.wrat, ...
-                    qt_sw           > -lims.vrat];
+                    qt_sw           < lims.vrat];
             end
         else
             modes = {};
