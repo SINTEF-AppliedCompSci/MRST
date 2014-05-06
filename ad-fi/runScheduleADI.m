@@ -222,7 +222,7 @@ while tstep <= numel(schedule.step.val)
       end
    else
       % check if any controls have been switched, and if so update W
-      optloc = {'allowWellSignChange', system.well.allowWellSignChange};
+      optloc = {'allowWellSignChange', system.well.allowWellSignChange, 'allowControlSwitching', system.well.allowControlSwitching};
       W(openWells) = updateSwitchedControls(state.wellSol, W(openWells), ...
                                             optloc{:});
       

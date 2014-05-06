@@ -5,7 +5,7 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
       return
    end
 
-   opt = struct('allowWellSignChange', false);
+   opt = struct('allowWellSignChange', false, 'allowControlSwitching', true);
    opt = merge_options(opt, varargin{:});
 
    % Check if producers are becoming injectors and vice versa
@@ -14,7 +14,7 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
    inx = find(wsg~=ssg);
 
    wells_shut = false;
-   if ~opt.allowWellSignChange
+   if ~opt.allowWellSignChange & opt.allowControlSwitching
       for k = 1:numel(inx)
          wells_shut = true;
          tps  = {'injector', 'producer'};
