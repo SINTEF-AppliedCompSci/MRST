@@ -110,33 +110,36 @@ dqWs = dx{4};
 dqOs = dx{5};
 dqGs = dx{6};
 dpBH = dx{7};
-dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.bhp)));
 
-for w = 1:numel(state.wellSol)
-    ws = state.wellSol(w);
-    ws.bhp  = ws.bhp + dpBH(w);
-    ws.qWs  = ws.qWs + dqWs(w);
-    ws.qOs  = ws.qOs + dqOs(w);
-    ws.qGs  = ws.qGs + dqGs(w);
+if ~isempty(dpBH)  % Avoid case where there is no active well.
+   dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.bhp)));
+   for w = 1:numel(state.wellSol)
+      ws = state.wellSol(w);
+      ws.bhp  = ws.bhp + dpBH(w);
+      ws.qWs  = ws.qWs + dqWs(w);
+      ws.qOs  = ws.qOs + dqOs(w);
+      ws.qGs  = ws.qGs + dqGs(w);
 
-    tp = ws.type;
-    v  = ws.val;
-    switch tp
+      tp = ws.type;
+      v  = ws.val;
+      switch tp
         case 'bhp'
-            ws.bhp = v;
+          ws.bhp = v;
         case 'rate'
-            ws.qWs = v*W(w).compi(1);
-            ws.qOs = v*W(w).compi(2);
-            ws.qGs = v*W(w).compi(3);
+          ws.qWs = v*W(w).compi(1);
+          ws.qOs = v*W(w).compi(2);
+          ws.qGs = v*W(w).compi(3);
         case 'orat'
-            ws.qOs = v;
+          ws.qOs = v;
         case 'wrat'
-            ws.qWs = v;
+          ws.qWs = v;
         case 'grat'
-            ws.qGs = v;
-    end
-    state.wellSol(w) = ws;
+          ws.qGs = v;
+      end
+      state.wellSol(w) = ws;
+   end
 end
+
 end
 
 function [st1, st2, st3] = getCellStatus(state, disgas, vapoil)
