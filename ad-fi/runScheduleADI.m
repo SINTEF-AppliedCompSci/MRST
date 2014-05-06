@@ -85,6 +85,7 @@ opt = struct('Verbose'       , mrstVerbose      , ...
              'plotCallback'  , [],  ...
              'outputNameFunc', [], ...
              'force_step'    , true, ...
+             'stop_if_not_converged', true, ...
              'minStepSize'   , 0);
 
 opt = merge_options(opt, varargin{:});
@@ -206,21 +207,33 @@ while tstep <= numel(schedule.step.val)
    
    [state, its, conv] = solvefiADI(state0, schedule.step.val(tstep), W(openWells), G, system);
 
-   if ~(conv.converged)
-      if opt.force_step
-         error('You may try time step refinement: set ''force_step'' option equal to false in runScheduleADI.');
-      else
+   proceed_to_next_step = true;
+   
+   if ~(conv.converged) 
+      if opt.force_step & opt.stop_if_not_converged
+         error(['You may try time step refinement: set ''force_step'' option equal to false in ', ...
+                'runScheduleADI.']);
+      elseif ~opt.force_step
          % split time step
          fprintf('Cutting time step!\n');
          schedule = splitTimeStep(schedule, tstep);
          fprintf('New step size: %.5g day.\n', schedule.step.val(tstep)/day);
          ref_dt = ref_dt/2;
-         if ref_dt < opt.minStepSize
-            error('Minimum step size refinement has been reached.')
+         if ref_dt < opt.minStepSize 
+            if opt.stop_if_not_converged
+               error('Minimum step size refinement has been reached.')
+            else
+               proceed_to_next_step = true;
+            end
+         else
+            state = state0;
+            proceed_to_next_step = false;
          end
-         state = state0;
       end
-   else
+   end         
+   
+   if proceed_to_next_step
+   
       % check if any controls have been switched, and if so update W
       optloc = {'allowWellSignChange', system.well.allowWellSignChange, 'allowControlSwitching', system.well.allowControlSwitching};
       W(openWells) = updateSwitchedControls(state.wellSol, W(openWells), ...
