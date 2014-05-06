@@ -31,8 +31,8 @@ qOs    = vertcat(state.wellSol.qOs);
 %mixWs = mixs(:,1);
 
 % previous variables ------------------------------------------------------
-p0  = state0.pressure;
-sW0 = state0.s(:,1);
+p0   = state0.pressure;
+sW0  = state0.s(:,1);
 pBH0 = vertcat(state0.wellSol.bhp);
 qWs0 = vertcat(state0.wellSol.qWs);
 qOs0 = vertcat(state0.wellSol.qOs);
@@ -155,9 +155,14 @@ if ~isempty(W)
         bw   = {bW(wc), bO(wc)};
         rw   = {};
         mw   = {mobW(wc), mobO(wc)};
-        [eqs(3:5), cqs, state.wellSol] = getWellContributions(...
-            W, state.wellSol, pBH, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
-            'iteration', opt.iteration);
+        optloc = {'iteration', opt.iteration, ...
+                  'model', 'OW', ...
+                  'allowWellSignChange', system.well.allowWellSignChange, ...
+                  'allowControlSwitching', system.well.allowControlSwitching};
+        
+        [eqs(3:5), cqs, state.wellSol] = getWellContributions(W, state.wellSol, pBH, {qWs, qOs}, ...
+                                                                 pw, rhos, bw, rw, rw, mw, ...
+                                                                 optloc{:});
 
         [wc, cqs] = checkForRepititions(wc, cqs);
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
