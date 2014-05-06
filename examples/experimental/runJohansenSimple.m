@@ -23,7 +23,7 @@ function [Gt,sol, sreport]=runJohansenSimple(method,case_name,varargin)
 %
 % The last mentioned function requires that you have built the solver in
 % the src/VEmex directory.
-
+moduleCheck('mex', 'ad-props', 'ad-fi', 'matlab_bgl')
 %% Display header
 %clc
 opt = struct('Verbose', mrstVerbose,'plot',true);
