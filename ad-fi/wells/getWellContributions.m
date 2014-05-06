@@ -70,8 +70,8 @@ end
 
 %--------------------------------------------------------------------------
 % Check and switch control limits if allowed
-if opt.allowControlSwitching
-    [sol, withinLims] = updateControls(W, sol, pBH, q_s, model, opt.allowWellSignChange);
+if opt.allowControlSwitching 
+    [sol, withinLims] = updateControls(W, sol, pBH, q_s, model);
     [pBH, q_s] = updateVars(pBH, q_s, sol, W, withinLims);
 end
 
