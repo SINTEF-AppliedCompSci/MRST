@@ -33,6 +33,9 @@ qOs    = vertcat(state.wellSol.qOs);
 % previous variables ------------------------------------------------------
 p0  = state0.pressure;
 sW0 = state0.s(:,1);
+pBH0 = vertcat(state0.wellSol.bhp);
+qWs0 = vertcat(state0.wellSol.qWs);
+qOs0 = vertcat(state0.wellSol.qOs);
 %--------------------------------------------------------------------------
 
 
@@ -46,9 +49,9 @@ if ~opt.resOnly,
     else
         [p0, sW0, tmp, tmp, tmp] = ...
             initVariablesADI(p0, sW0,          ...
-            zeros(size(qWs)), ...
-            zeros(size(qOs)), ...
-            zeros(size(pBH)));                          %#ok
+            zeros(size(qWs0)), ...
+            zeros(size(qOs0)), ...
+            zeros(size(pBH0)));                          %#ok
     end
 end
 clear tmp
@@ -162,7 +165,7 @@ if ~isempty(W)
     else
         % in reverse mode just gather zero-eqs of correct size
         for eqn = 3:5
-            nw = numel(state0.wellSol);
+            nw = numel(state.wellSol);
             zw = double2ADI(zeros(nw,1), p0);
             eqs(3:5) = {zw, zw, zw};
         end

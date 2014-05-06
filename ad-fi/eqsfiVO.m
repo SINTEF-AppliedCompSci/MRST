@@ -32,6 +32,10 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, f, varargin)
     sG0 = state0.s(:,3);
     rs0 = state0.rs;
     rv0 = state0.rv;
+    bhp0 = vertcat(state0.wellSol.bhp);
+    qWs0 = vertcat(state0.wellSol.qWs);
+    qOs0 = vertcat(state0.wellSol.qOs);
+    qGs0 = vertcat(state0.wellSol.qGs);
 
     %Initialization of primary variables ----------------------------------
     [st1 , st2  , st3 ] = getCellStatus(state , disgas, vapoil);
@@ -62,8 +66,8 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, f, varargin)
 
             [p0, sW0, x0, zw, zw, zw, zw] = ...
                 initVariablesADI(p0, sW0, x0, ...
-                zeros(size(qWs)) , zeros(size(qOs)) , ...
-                zeros(size(qGs)) , zeros(size(bhp)));                 %#ok
+                zeros(size(qWs0)) , zeros(size(qOs0)) , ...
+                zeros(size(qGs0)) , zeros(size(bhp0)));                 %#ok
             sG0 = st2p.*(1-sW0) + st3p.*x0;
             if disgas
                 rsSat0 = f.rsSat(p0);
@@ -214,7 +218,7 @@ function [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, f, varargin)
             eqs{3}(wc) = eqs{3}(wc) - cqs{3}; % Add src to gas eq
         else
             % Force wells to be ADI variables.
-            nw = numel(state0.wellSol);
+            nw = numel(state.wellSol);
             zw = double2ADI(zeros(nw,1), p0);
             eqs(4:7) = {zw, zw, zw, zw};
         end
