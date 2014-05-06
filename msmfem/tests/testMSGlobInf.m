@@ -53,7 +53,7 @@ xMs2 = initState(G, W, 0);
 % corner-point and other mapped grids that may contain inactive or
 % degenerate cells).
 p  = partitionUI(G, [4, 4, 1]);
-p  = processPartition  (G, p, 'Verbose', verbose);
+p  = processPartition  (G, p);
 
 CG = generateCoarseGrid(G, p, 'Verbose', verbose);
 

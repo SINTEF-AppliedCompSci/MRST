@@ -27,7 +27,7 @@ fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
 xrRef = initResSol(G, 0.0);
 
 p  = partitionUI(G, [5, 5, 2]);
-p  = processPartition  (G, p, 'Verbose', verbose);
+p  = processPartition  (G, p);
 CG = generateCoarseGrid(G, p, 'Verbose', verbose);
 S  = computeMimeticIP(G, rock, 'Verbose', verbose);
 %

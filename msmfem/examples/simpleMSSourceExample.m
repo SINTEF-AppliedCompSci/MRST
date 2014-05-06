@@ -32,7 +32,7 @@ function simpleMSSourceExample(varargin)
    xMs   = initResSol(G, 0.0);
 
    p  = partitionUI(G, coarseDims);
-   p  = processPartition  (G, p, 'Verbose', verbose);
+   p  = processPartition  (G, p);
    CG = generateCoarseGrid(G, p, 'Verbose', verbose);
 
    S  = computeMimeticIP(G, rock, 'Verbose', verbose);

@@ -53,7 +53,7 @@ xMs  = xRef;
 % Cartesian (e.g., corner-point and other mapped grids that may contain
 % inactive or degenerate cells).
 p = partitionUI(G, [Nx, Ny, Nz]);
-p = processPartition(G, p, 'Verbose', verbose);
+p = processPartition(G, p);
 
 % Generate the coarse-grid structure
 CG = generateCoarseGrid(G, p, 'Verbose', verbose);
