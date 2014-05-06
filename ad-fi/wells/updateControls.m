@@ -12,6 +12,9 @@ else
 
     for wnr = 1:numel(sol)
         lims = W(wnr).lims;
+        if ~isfield(lims, 'vrat')
+           lims.vrat = -Inf;
+        end
         pBHw  = pBH(wnr);
         q_sw  = q_s(wnr,:);
         qt_sw = sum(q_sw);
