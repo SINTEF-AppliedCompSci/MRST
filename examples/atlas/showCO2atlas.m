@@ -1,27 +1,33 @@
-%% Give an overview of the CO2 atlas data.
-% In this example we show how one can employ MRST's CO2 module to analyse
-% CO2 storage potential based on the data provided by Norwegian Petroleum
-% Directorate as part of the CO2 Storage Atlas for the Norwegian North Sea,
-% http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/. The
-% datasets are carefully described in both a short and a long report. It is
-% recommended to have one of these reports at hand when experimenting with
-% the data. The raw data provided by NPD can be obtained from their website
-% in a GIS formate (SHAPE- and RASTERFILES). For the sake of
-% convenience, we have converted the files to a ASCII format more suitable
-% for our applications. These files can be inspected using any text editor.
+%% CO2 Storage Atlas: the Norwegian North Sea
+% The Norwegian Petroleum Directorate (NPD) has developed an atlas that
+% gives an overview over areas in the Norwegian part of the North Sea where
+% CO2 can be stored safely in the subsurface for a long time, see
+% http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/. As part of
+% the atlas, NPD has released geographical data for many of the formations
+% that are described in the atlas. The data are given in a GIS formate
+% (shape- and rasterfiles) and can be downloaded from their webpage.
 %
-% We process the files and and get both the raw datasets and data
-% structures suitable for constructing volumetric corner-point grids.
-%
-try
-    require deckformat
-catch %#ok<CTCH>
-    mrstModule add deckformat;
-end
+% One of the purposes of the 'co2lab' in MRST is to provide simple access
+% to public datasets. In this example, we describe how you can
+% use the functionality in 'co2lab' to download and display the
+% data sets that accompany the atlas. For the sake of convenience, we have
+% converted the files to an ASCII format more suitable for our
+% applications. These files can be inspected using any text editor. We also
+% process the files and get both the raw datasets and data structures
+% suitable for constructing volumetric corner-point grids of several sand
+% bodies. At the end of the example, we analyse the different formations
+% and compute the capacity for structural trapping in each formation.
 
-fprintf(1,'Loading atlas data (this may take a few minutes)..');
+%% Read data
+% This example assumes that you have already downloaded the datasets from
+% the NPD webpages. If you have not done so, you can use the following
+% command: downloadDataSets('atlas')
+
+moduleCheck('co2lab', 'deckformat');
+
+fprintf('Loading atlas data (this may take a few minutes)..');
 [grdecls, rawdata] = getAtlasGrid(); %#ok
-fprintf(1, 'done\n');
+fprintf('done\n');
 
 %% Description of raw data
 % Show the raw data. Each dataset contains four fields:
@@ -33,16 +39,19 @@ fprintf(1, 'done\n');
 %   xllcorner/yllcorner variable which indicates the position in ED50
 %   datum space.
 
-disp 'Raw data:'
+fprintf('\nRaw data:\n')
+fprintf('----------------------------------------------------------------\n');
 for i=1:numel(rawdata);
     rd = rawdata{i};
     fprintf('Dataset %-2i is %-12s (%-9s). Resolution: %4i meters\n', ...
             i, rd.name, rd.variant,  rd.meta.cellsize)
 end
+fprintf('----------------------------------------------------------------\n');
+
 % Store names for convenience
 names = cellfun(@(x) x.name, rawdata, 'UniformOutput', false)';
 
-%% Show the data directly
+%% Show the data directly: Utsira formation
 % The datasets are perfectly usable for visualization on their own. To see
 % this, we find the datasets corresponding to the Utsira formation and plot
 % both the thickness and the heightmap.
@@ -69,53 +78,6 @@ for i = 1:numel(utsira_rd)
     axis tight off
 end
 
-%% Create a grid by combining height maps and depths
-% The datasets are used to create interpolants which give both height and
-% thickness on a fine grid. Any regions where the thickness/height is zero
-% or not defined is removed, giving a GRDECL file defining the intersection
-% of these datasets.
-%
-% The call is coarsened by a factor two: These grids can quickly become
-% fairly large as they contain a lot of data. A full realization of this
-% Utsira grid contains about 100k cells. By coarsening a factor two we end
-% up with the more managable amount of 25k cells. The parameter 'nz'
-% determines the number of fine cells in the logical k-direction and can be
-% used to produce layered models for full simulations.
-
-gr = getAtlasGrid('Utsirafm', 'coarsening', 2, 'nz', 1);
-
-% Process the grid
-G = processGRDECL(gr{1});
-
-% The coarsening may disconnect small components, take only the largest and
-% first grid produced by processGRDECL and add geometry data to it.
-G = computeGeometry(G(1));
-
-%% Plot the full grid
-% We plot the full grid, colorized by cell volumes. Light is added to the
-% scene to better reveal reliefs in the top surface of the reservoir.
-% These folds can be a target for structural trapping of migrating CO2.
-
-clf;
-plotCellData(G, G.cells.volumes)
-title('Utsira formation - full grid with thickness and heightmap')
-axis tight off
-light('Position',[-1 -1 -1],'Style','infinite');
-lighting phong
-view(90,45)
-
-%% Read all the formations
-% Again we read all the fine grids. We process all the grids to get proper
-% grids with coordinates. The coarsening is useful here as we will only
-% need the basic outline for the upcoming figure.
-grdecls = getAtlasGrid('coarsening', 5);
-ng = numel(grdecls);
-
-grids = cell(ng,1);
-for i = 1:ng
-    gd = processGRDECL(grdecls{i});
-    grids{i} = computeGeometry(gd(1));
-end
 
 %% Visualize all the formations
 % We then visualize the formations along with a map of Norway and point
@@ -128,7 +90,20 @@ end
 % and can be found at http://www.kartverket.no/. Note that the map is only
 % provided for scale and rough positioning - no claims are made regarding
 % the accuracy in relation the subsea reservoirs.
+%
+% To visualize the formations, we load a 5x5 coarsened version of each data
+% set and use this to create a simple volumetric model that represents
+% approximately the outline of each formation. More details about how to
+% create 3D grid models are given in the script 'modelsFromAtlas.m'
 
+grdecls = getAtlasGrid('coarsening', 5);
+ng = numel(grdecls);
+
+grids = cell(ng,1);
+for i = 1:ng
+    gd = processGRDECL(grdecls{i});
+    grids{i} = computeGeometry(gd(1));
+end
 clf;
 hold on
 
@@ -160,3 +135,29 @@ axis(ax)
 hold on
 load(fullfile(VEROOTDIR, 'data', 'atlas', 'welldata.mat'));
 plot(welldata(:,2), welldata(:,1), '.k', 'MarkerSize', 5)
+
+
+%% Redo the visualization in 3D with higher resolution
+% To show the depth of the various formations, we redo the plot in 3D.
+figure;
+p = get(gcf,'Position'); set(gcf,'Position', p + [-300 0 300 0]);
+grdecls = getAtlasGrid('coarsening', 3);
+ng = numel(grdecls);
+
+grids = cell(ng,1);
+for i = 1:ng
+    gd = processGRDECL(grdecls{i});
+    grids{i} = computeGeometry(gd(1));
+end
+
+clf;
+hold on
+for i=1:ng;
+    G = grids{i};
+    % We want to colorize each grid differently
+    data = repmat(i, G.cells.num, 1);
+    plotCellData(grids{i}, data, 'facea', .8, 'edgea', .01, 'edgec', 'k');
+end
+axis tight; box on; view(-300,50)
+hold off
+legend(cellfun(@(x) x.name, grdecls, 'UniformOutput', false), 'Location', 'EastOutside')
