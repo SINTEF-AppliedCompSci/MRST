@@ -62,7 +62,7 @@ function path = shortestPath(M, start, target)
     end
     
     while path(end) ~= start
-        path = [path; n(path(end))];
+        path = [path; n(path(end))]; %#ok
     end
     
     path = flipud(path);
