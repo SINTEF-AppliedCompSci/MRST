@@ -84,7 +84,7 @@ colorbar('SouthOutside');
 % behavior is observed.
 %
 % To see detailed convergence analysis during each time step, set verbose
-% to on using
+% to on by using:
 %
 % mrstVerbose on
 
