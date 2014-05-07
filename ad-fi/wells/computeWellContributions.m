@@ -103,7 +103,7 @@ end
 cqt_i = -(connInjInx.*Tw).*(mt.*drawdown);
 % volume ratio between connection and standard conditions
 volRat  = compVolRat(mix_s, b, r, Rw, model);
-% injecting connections total volumerates at standard condintions
+% injecting connections total volume rates at standard conditions
 cqt_is = cqt_i./volRat;
 % connection phase volumerates at standard conditions (for output):
 cq_s = cell(1,numPh);
@@ -119,9 +119,13 @@ end
 % return mix_s(just values), connection and well status:
 mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
-status  = ~deadWells;%any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
-if(mrstVerbose && any(deadWells) )
-%     warning('It exist deadWells')
+status  = ~deadWells; %any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
+if mrstVerbose && any(deadWells),
+   dW = {W(deadWells).name};
+   dW = cellfun(@(w)([w, ' ']), dW, 'UniformOutput', false);
+   dW = horzcat(dW{:});
+   dW = dW(1:end - 1);
+   fprintf('Inactive wells: %s.\n', dW);
 end
 end
 
