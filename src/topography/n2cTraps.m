@@ -77,7 +77,7 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
   % regions that are associated to lost traps are re-associated to remaining
   % traps below
   for i = lost_regions
-      ixs = find(ctrap_regions == i);
+      ixs = (ctrap_regions == i);
       ctrap_regions(ixs) = next_remaining_downstream_trap(i, ...
                                                         ctrap_connectivity, ...
                                                         lost_regions);
@@ -92,7 +92,7 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
   cell_sommets = cell_sommets .* ctrap_regions; % values change from 0/1 to trap index
   %cell_sommets_ixs = unique_cell_sommet_ixs(cell_sommets, cell_centroids);
   cell_sommet_ixs = find(cell_sommets);
-  [dummy, order] = sort(cell_sommets(cell_sommet_ixs));
+  [~ , order] = sort(cell_sommets(cell_sommet_ixs));
   csommets = cell_sommet_ixs(order);
   
   % Updating connectivity matrix and river structure by removing lost regions one by one
@@ -105,10 +105,10 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
     rmerge = sparse(eye(size(ctrap_connectivity)));  
 
     lmerge = sparse(eye(size(ctrap_connectivity)));
-    lmerge(:,i) = ctrap_connectivity(:,i);
+    lmerge(:,i) = ctrap_connectivity(:,i); %#ok
 
-    lmerge(i,:) = [];
-    rmerge(:,i) = [];
+    lmerge(i,:) = []; %#ok
+    rmerge(:,i) = []; %#ok
     
     ctrap_connectivity = lmerge * ctrap_connectivity * rmerge;
 
@@ -144,8 +144,8 @@ function river = join_rivers(r1, r2, Gt, fillnodes)
         river = [r1(1:end-1); r2];
     else
         % processing endpoints to make a clean search
-        eix = max(find(ismember(r1, fillnodes)));
-        six = min(find(ismember(r2, fillnodes)));
+        eix = find(ismember(r1, fillnodes), 1, 'last');
+        six = find(ismember(r2, fillnodes), 1, 'first');
         r1 = r1(1:eix);
         r2 = r2(six:end);
         

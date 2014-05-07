@@ -1,4 +1,26 @@
 function path = shortestPath(M, start, target)
+%
+% Use Dijkstra's algorithm to compute the shortest path between two nodes.
+% SYNOPSIS:
+%   function path = shortestPath(M, start, target)
+%
+% DESCRIPTION:
+% This function computes the shortest path between two nodes in a
+% connectivity graph with positive edge lengths.  The algorithm operates on
+% non-sparse matrices, so it should only be used on relatively small graphs.
+% 
+% PARAMETERS:
+%   M      - connectivity matrix, where nonzero entries indicate positive
+%            distances.  M(i,j) > 0 indicates an edge between node i and j,
+%            where the value of M(i,j) represents the distance.
+%   start  - start node index
+%   target - target node index
+%
+% RETURNS:
+%   path - a vector of node indices indicating the shortest path from node
+%   'start' to node 'target', or an empty vector if no such path exists.
+%
+
 
     num_nodes = size(M,1);
     assert(size(M,2) == num_nodes);
@@ -40,7 +62,7 @@ function path = shortestPath(M, start, target)
     end
     
     while path(end) ~= start
-        path = [path; n(path(end))];
+        path = [path; n(path(end))]; %#ok
     end
     
     path = flipud(path);

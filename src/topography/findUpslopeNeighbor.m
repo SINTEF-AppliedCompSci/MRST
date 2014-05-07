@@ -54,7 +54,7 @@ function [upneigh, nhood, tan_angle] = findUpslopeNeighbor(xyz, neighs, regions)
     
     % Eliminating relations between neighbors that belong to different
     % regions, if requested
-    if exist('regions')
+    if exist('regions', 'var')
         [c1, c2] = restrict_to_regions(c1, c2, regions);
     end
     
@@ -66,10 +66,10 @@ function [upneigh, nhood, tan_angle] = findUpslopeNeighbor(xyz, neighs, regions)
     neigh_dxy = sum(neigh_dxy.^2, 2); % the squared xy-distance bwt. neighs
     slopes    = neigh_dz ./ neigh_dxy; % squared tan of angle (or NaN, for
                                        % self-neighbors) 
-    slopes(find(isnan(slopes))) = 0; % setting NaN values to zero.
+    slopes(isnan(slopes)) = 0; % setting NaN values to zero.
     
     % Assembling the neighborhood matrix
-    [dummy, n] = rlencode(c2);
+    [~, n] = rlencode(c2);
     npos       = cumsum([1;n]);
     nhood      = expand_neighbor_array(c1, npos, 0);
 
