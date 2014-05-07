@@ -118,10 +118,8 @@ classdef fullCompressibleCO2BrineModel < physicalModel
         else
             % We do not have a complete, compressible equation of state, or
             % alternatively, the user has requested constant vertical
-            % density, so the correction functions are trivial (no
-            % correction). 
-            trivial = @(h) 1;
-            fun = @(p, t) {trivial, trivial};
+            % density, so the correction functions are empty
+            fun = @(p, t) {[], []};
         end
     end
     
