@@ -13,6 +13,7 @@
 % <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 % website>.
 moduleCheck('mex', 'mimetic');
+
 %% Display header
 clc;
 disp('================================================================');
@@ -67,6 +68,9 @@ bcVE.h = zeros(size(bcVE.face));
 
 %% Prepare simulations
 % Compute inner products and instantiate solution structure
+% For the transport simulation, the default choice is to use a
+% C-accelerated solver, but if this does not work, we use the standard
+% solver from MRST
 SVE = computeMimeticIPVE(Gt, rock2D, 'Innerproduct','ip_simple');
 preComp = initTransportVE(Gt, rock2D);
 sol = initResSolVE(Gt, 0, 0);
