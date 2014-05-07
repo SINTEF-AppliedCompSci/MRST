@@ -2,43 +2,50 @@ function varargout = getAtlasGrid(varargin)
 % Get GRDECL grids and datasets for CO2 Atlas datasets
 %
 % SYNOPSIS:
-%       [grdecls datasets petroinfo] = getAtlasGrid();
-%       [grdecls datasets petroinfo] = getAtlasGrid({'Johansenfm', 'Brynefm'});
-%       [grdecls datasets petroinfo] = getAtlasGrid('Johansenfm');
+%   getAtlasGrid();    % lists all possible datasets
 %
-%       % List possible datasets
-%       getAtlasGrid();
+%   [grdecls datasets petroinfo] = getAtlasGrid();
+%   [grdecls datasets petroinfo] = getAtlasGrid({'Johansenfm', 'Brynefm'});
+%   [grdecls datasets petroinfo] = getAtlasGrid('Johansenfm');
+%
+%   [grdecls ...] = getAtlasGrid(pn1, pv1, ..)
+%   [grdecls ...] = getAtlasGrid('Johansenfm', pn1, pv1, ...)
+%   [grdecls ...] = getAtlasGrid({'Johansenfm', ..}, pn1, pv1, ...)
 %
 % PARAMETERS:
-%   inp     - Either a valid top surface grid as defined by
-%             topSurfaceGrid(G) or a string which is valid input for
-%             getAtlasGrid.
-%
 %   'pn'/pv - List of optional property names/property values:
 %                   
-%               - coarsening: Coarsening factor. If set to 1, a grid with
-%               approximately one cell per datapoint is produced. If set to
-%               2, every second datapoint in x and y direction is used,
-%               giving a reduction to 1/4th size.
+%    - coarsening: Coarsening factor. If set to one, a grid with
+%             approximately one cell per datapoint is produced. If set to
+%             two, every second datapoint in x and y direction is used,
+%             giving a reduction to 1/4th size. Default: 1
 %
-%               - nz: Vertical / k-direction number of layers
+%    - nz: Vertical / k-direction number of layers. Default: 1
+%
+%    - make_deck: Boolean. If set to true, the routine will create cell
+%             arrays of data members in ECLIPSE grid structures to
+%             represent the 3D grid. If false, the routine will create a
+%             structure that contains node points, depth of top surface,
+%             thickness of formation, etc. 
 %
 % NOTE:
 %     If called without parameters, the function will list all files in the
 %     data directory.
 %
 % RETURNS:
-%   grdecls   - Cell array of grdecl structs suitable for processGRDECL
+%   grdecls - Cell arrays of data members in ECLIPSE grid structures
+%             suitable for processGRDECL if 'make_deck' is true.
+%             Otherwise, a data structure that contains arrays giving the
+%             nodes, depth of top surface, thickness of formation, etc.
 %
-%   datasets  - (OPTIONAL) raw datasets used to produce GRDECL structs.
+%   datasets - (OPTIONAL) raw datasets used to produce GRDECL structs.
 %
-%   petroinfo - (OPTIONAL) average perm / porosity as given in the Atlas.
-%              Will contain NaN where values are not provided or possible
-%              to calculate.
-%
+%   petroinfo - (OPTIONAL) average perm / porosity as given in the atlas.
+%             Will contain NaN where values are not provided or possible
+%             to calculate.
 %
 % SEE ALSO:
-%   convertAtlasTo3D
+%   convertAtlasTo3D, downloadDataSets
 
 %{
 #COPYRIGHT#
@@ -55,7 +62,7 @@ function varargout = getAtlasGrid(varargin)
     
     opt = struct('nz',              1, ...
                  'coarsening',      1, ...
-                 'refining',          1, ...
+                 'refining',        1, ...
                  'Verbose',         mrstVerbose,...
                  'make_deck',       true);
     if mod(nargin, 2) == 1
@@ -234,7 +241,7 @@ function [n gdir] = getNames()
     dir_grid = dir(gdir);
     n = {dir_grid(~[dir_grid.isdir]).name};
     if isempty(n)
-        error('Missing dataset! Please run ''downloadDataSets'' to continue')
+        error('Missing dataset! Please run ''downloadDataSets(''atlas'')'' to continue')
     end
 end
 
