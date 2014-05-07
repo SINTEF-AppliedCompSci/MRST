@@ -1,24 +1,58 @@
 function downloadDataSets(varargin)
-%% Download data sets for CO2 laboratory
-% This script will download and install all data sets used by the CO2
-% laboratory that are publicly available and do not require registration by
-% the user. The following data sets will be downloaded:
-% 
-% * The Johansen formation is a candidate site for large-scale CO2 storage
-%   offshore the south-west coast of Norway. The Johansen data set,
-%   consists of four different sector models and a full-field model, see
-%   the <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/
-%   MatMoRA webpage> for more details. Here, we only download the NPD5
-%   sector model.
+% Download data sets for CO2 laboratory
 %
-% * The IGEMS conceptual model, used in one of the VE tutorials, is a
-%   syntetic model set that was created early in the
-%   <http://www.nr.no/igems IGEMS project> as an example of a large 3D grid
-%   model with variations in the topsurface topography.
+% SYNOPSIS:
+%   downloadDataSets()
+%   downloadDataSets('all')
+%   downloadDataSets({'atlas', 'johansen', ..})
 %
-% In addition, a few examples use the Sleipner data set from ieaghg.org,
-% which requires user registration and hence must be downloaded manually;
-% see "sleipner/README" for more details.
+% DESCRIPTION:
+%   This script contains functionality to download and install all data
+%   sets used by the CO2 laboratory that are publicly available and do not
+%   require registration by the user:
+%
+%   * Name: 'atlas'
+%     The Norwegian Petroleum Directorate (NPD) has developed an atlas that
+%     gives an overview over areas in the Norwegian part of the North Sea
+%     where CO2 can be stored safely in the subsurface for a long time, see
+%     http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/. As
+%     part of the atlas, NPD has released geographical data for many of the
+%     formations that are described in the atlas. The data are given in a
+%     GIS formate (shape- and rasterfiles)
+%     Size of data set: ~14 MB
+%
+%   * Name: 'igems'
+%     The IGEMS project (http://www.nr.no/nb/IGEMS) studied how top surface
+%     morphology influences the CO2 storage capacity. Alternative
+%     top-surface morphologies are created stochastically by combining
+%     different stratigraphic scenarios with different structural
+%     scenarios. For more information about the data set, see
+%     http://files.nr.no/igems/data.pdf.
+%     Size of data set: ~1.1 GB
+%
+%   * Name: 'johansen'
+%     The Johansen formation is a candidate site for large-scale CO2
+%     storage offshore the south-west coast of Norway. The Johansen data
+%     set, consists of four different sector models and a full-field model.
+%     Here, we only download the NPD5 sector model. For more details, see:
+%     http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/
+%     Size of data set: ~13 MB
+%
+%   * Name: 'slopingaquifer'
+%     A conceptual model from the IGEMS study. This synthetic model was
+%     created early in the IGEMS project (http://www.nr.no/igems) as an
+%     example of a large 3D grid model with variations in the topsurface
+%     topography.
+%     Size of data set: ~3 MB
+%
+% If the function is called with no argument, it goes through the list and
+% asks the user for permission to download each dataset. When given a
+% specific name or 'all', the function downloads the datasets without
+% asking for permissiong.
+%
+% In addition to the above, a few examples use the Sleipner data set from
+% ieaghg.org, which requires user registration and hence must be downloaded
+% manually; see "sleipner/README" for more details.
 
 if nargin > 0
     ask = false;
