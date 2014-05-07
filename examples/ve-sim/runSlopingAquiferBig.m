@@ -12,6 +12,8 @@
 % * processgrid (replaces processGRDECL)
 % * mcomputegeometry (replaces computeGeometry)
 
+moduleCheck('mex');
+
 %% Write header
 clc;
 disp('================================================================');

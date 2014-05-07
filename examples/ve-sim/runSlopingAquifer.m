@@ -10,6 +10,8 @@
 %
 % The simulation is done using the vertical average/equilibrium framework.
 
+moduleCheck('mex');
+
 %% Write header
 clear, clc;
 disp('================================================================');
