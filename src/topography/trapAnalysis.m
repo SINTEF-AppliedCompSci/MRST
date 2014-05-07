@@ -59,7 +59,7 @@ function res = edge_based_trap_analysis(Gt)
     % Projecting trap information onto cells (from edges)
     [ctraps, ctrap_zvals, ctrap_regions, csommets, cadj, crivers] = ...
         n2cTraps(Gt, ntraps.trap_regions, ntraps.trap_zvals, ntraps.dstr_neigh, ...
-                 ntraps.connectivity, ntraps.rivers);  
+                 ntraps.connectivity, ntraps.traps, ntraps.rivers);  
     
     res.traps        = ctraps;
     res.trap_z       = ctrap_zvals;

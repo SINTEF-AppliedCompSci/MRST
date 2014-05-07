@@ -1,5 +1,5 @@
 function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, crivers] = ...
-	 n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_dstr_neigh, ntrap_connectivity, erivers)
+	 n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_dstr_neigh, ntrap_connectivity, ntraps, erivers)
   % Function converting traps and spill field information from a node-based 
   % representation to a cell-based one.
   %
@@ -99,6 +99,7 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
   for i = lost_regions 
     % NB: for this to work, it's important that 'lost_regions' is sorted in 
     % descending order
+    tnodes = find(ntraps == i);
     
     %% Update connectivity matrix
     rmerge = sparse(eye(size(ctrap_connectivity)));  
@@ -120,7 +121,8 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
                     for l = 1:numel(erivers{i})
                         %fprintf('%d %d %d %d', j, k, i, l);
                         %fprintf('(%d, %d) - (%d, %d)\n', size(erivers{j}{k}), size(erivers{i}{l}))
-                        erivers{j}{k} = [erivers{j}{k}; erivers{i}{l}];
+                        %erivers{j}{k} = [erivers{j}{k}; erivers{i}{l}];
+                        erivers{j}{k} = join_rivers(erivers{j}{k}, erivers{i}{l}, Gt, tnodes);
                     end
                 end
             end
@@ -136,6 +138,31 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
 end
 %===============================================================================
 
+function river = join_rivers(r1, r2, Gt, fillnodes)
+    if r1(end) == r2(1)
+        % we know these are connected.  Join directly.
+        river = [r1(1:end-1); r2];
+    else
+        % processing endpoints to make a clean search
+        eix = max(find(ismember(r1, fillnodes)));
+        six = min(find(ismember(r2, fillnodes)));
+        r1 = r1(1:eix);
+        r2 = r2(six:end);
+        
+        assert(ismember(r1(end), fillnodes));
+        assert(ismember(r2(1), fillnodes));
+        
+        start  = find(fillnodes == r1(end));
+        target = find(fillnodes == r2(1));
+
+        M = subregionConnectivityMatrix(Gt, fillnodes);
+        path = shortestPath(M, start, target);
+        path = fillnodes(path);
+        river = [r1(1:end-1); path(1:end-1); r2];
+    end        
+end
+
+% ============================================================================
 function cell_sommets = n2c_sommets(Gt, node_sommets)
 % For each sommet, associate a corresponding grid cell
 
