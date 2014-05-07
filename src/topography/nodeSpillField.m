@@ -48,11 +48,10 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
     % their neighborhood, causing (at least) the last index of 'nhood' to be
     % zero. 
     boundary_nodes         = (nhood(:,end) == 0);
-    int_sommets            = find(uslp_neigh == (1:Gt.nodes.num)');
+    int_sommets            = (uslp_neigh == (1:Gt.nodes.num)') & ~boundary_nodes;
     region                 = NaN * ones(Gt.nodes.num,1);
     region(boundary_nodes) = 0;
-    region(int_sommets)    = 1:numel(int_sommets); % assigning region identifiers
-                                                
+    region(int_sommets)    = 1:sum(int_sommets); % assigning region identifiers
     unfinished = find(isnan(region));
     while ~isempty(unfinished)
         cur_sneigh_ix = uslp_neigh(unfinished);
