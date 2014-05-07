@@ -33,7 +33,7 @@ Now you can start MATLAB from your MRST directory and activate the
 vertical-eqilibrium module by typing the following command at the MATLAB
 command prompt:
 
-    >> mrstModule add VE2012a
+    >> mrstModule add co2lab
 
 The following examples use the C++ accelerated VE-transport solver if it
 is available on the current computer system
