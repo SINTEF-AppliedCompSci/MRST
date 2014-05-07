@@ -35,11 +35,7 @@ disp('   Vertical averaging applied to the Sleipner model');
 disp('   using C++ accelleration in the transport solver');
 disp('================================================================');
 disp(' ');
-try 
-   require mex mimetic
-catch %#ok<CTCH>
-   mrstModule add mex mimetic;
-end
+moduleCheck('mimetic', 'mex');
 
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
@@ -59,8 +55,8 @@ stopInject = 30*year();
 dT         = 1*year();
 dTplot     = dT;
 fluidVE    = initVEFluidHForm(Gt, 'mu' , [6e-2*milli 8e-4]*Pascal*second, ...
-                         'rho', [760 1200] .* kilogram/meter^3, ...
-                         'sr', 0.21, 'sw', 0.11, 'kwm', [0.75 0.54]);
+                              'rho', [760 1200] .* kilogram/meter^3, ...
+                              'sr', 0.21, 'sw', 0.11, 'kwm', [0.75 0.54]);
 
 %% Set well and boundary conditions
 % The well is placed near the actual injection site. The injection rates

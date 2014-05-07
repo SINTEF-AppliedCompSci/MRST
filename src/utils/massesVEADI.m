@@ -1,4 +1,6 @@
 function masses = massesVEADI(G, sol, rock, fluidADI, fluid,ts)
+    error(['massesVEADI is deprecated.  Use phaseMassesVEADI or ' ...
+           'MassTrappingDistributionVEADI instead.\n']);
     % SYNOPSIS:
     %   vol = volumesVE(G, sol, rock, fluid)
     %   vol = volumesVE(G, sol, rock, fluid, ts)

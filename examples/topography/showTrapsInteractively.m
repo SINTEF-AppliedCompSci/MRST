@@ -111,7 +111,8 @@ end
 % and apply some coarsening to make the grid smaller. Note that full
 % resolution should be used if possible to get the best accuracy.
 
-h = interactiveTrapping('Johansenfm', 'coarsening', 2, 'method', method);
+h = interactiveTrapping('Johansenfm', 'coarsening', 2, ...
+   'method', method, 'light', true, 'contour', true);
 view(-70, 80)
 
 disp('Showing CO2 Atlas dataset... Close to continue')

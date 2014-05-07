@@ -1,16 +1,18 @@
 function fsg = free_sg(sg, sGmax, opt)
-% Determine the mobile part of present saturation, given the present
-% saturation and the historically maximum saturation, assuming a sharp
-% interface.   (If the present saturation is lower than the historical
-% maximum, it suggest that some of it is residually trapped, leading to a
-% lower mobile saturation).  The formula is based on the simple
-% transformation:
-% s*H=h*(1-sr(2))+(h_max -h)*sr(1)
-% s_max*H = h_max*(1-sr(2))
+% Determine the mobile part of present saturation.
 % 
 % SYNOPSIS:
 %   function fsg = free_sg(sg, sGmax, opt)
 %
+% DESCRIPTION:
+% Determine the mobile part of present saturation, given the present saturation
+% and the historically maximum saturation, assuming a sharp interface.  (If the
+% present saturation is lower than the historical maximum, it suggest that some
+% of it is residually trapped, leading to a lower mobile saturation).  The
+% formula is based on the simple transformation: 
+%     s * H = h * (1 - sr(2)) + (h_max - h) * sr(1)
+% s_max * H = h_max * (1 - sr(2))
+% 
 % PARAMETERS:
 %   sg    - present saturation
 %   sGmax - historically maximum saturation
@@ -19,18 +21,19 @@ function fsg = free_sg(sg, sGmax, opt)
 %           * opt.res_oil : residual oil saturation
 % RETURNS:
 %   fsg - the free part of the present saturation (fsg <= sg)
-%
-        ineb=sg>=sGmax;
-        %sg_free=sg-(loc_opt.sGmax-sg)*opt.res_gas;                
-        fsg=((1-opt.res_oil)*sg-(sGmax*opt.res_gas))./(1-opt.res_gas-opt.res_oil);
-        %fsg=(sg-(sGmax*opt.res_gas))./(1-opt.res_gas);
-        %fsg(sg>=sGmax)=sg(sg>=sGmax);
-        %assert(all(fsg>=-sqrt(eps)));
-        fsg(ineb)=sg(ineb);
-        fsg(fsg<0)=0.0*fsg(fsg<0);
-end 
+
+    %% aliases for better readability
+    rw = opt.res_oil; % 'wetting phase'
+    rn = opt.res_gas; % 'non-wetting phase'
     
-    % this transformation is based on the simple transormation
-   % s*H=h*(1-sr(2))+(h_max -h)*sr(1)
-   % s_max*H = h_max*(1-sr(2))
-   
+    %% Computing free part of current saturation
+    % NB: in the h-formulation, this would equal (1-sw) h / H. 
+
+    fsg = ((1 - rw) * sg - (sGmax * rn)) ./ (1 - rw - rn);
+
+    %% Ensuring exact values at boundaries
+    ineb       = (sg >= sGmax);  % cells with no residual trapping (drainage zone)
+    fsg(ineb)  = sg(ineb);       % In the drainage zone, ensure exact equality
+    fsg(fsg<0) = 0.0*fsg(fsg<0); % avoiding negative saturations due to roundoff
+
+end 

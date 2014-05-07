@@ -80,7 +80,7 @@ transport_methods={'explicit_incomp_mim','implicit_incomp_tpf','explicit_incomp_
                    'adi_OGD_simple_mix',...                   
                    };
 
-%method=5;
+method=5;
 if(isempty(opt.T))
    T_ref=mean(Gt.cells.z) *30/1e3+273+4;% average temprature
 else
@@ -212,9 +212,9 @@ while t<T
            if(method<4)
                totMas = totMas + fluidVE_h.rho(1).*w.val*dT;
            else
-               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.pressure);
+               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.bhp);
                totMas = totMas + rhoCO2_well.*sol.state.wellSol.qGs*dT;
-               masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
+               masses = phaseMassesVEADI(Gt, sol, rock2D, fluidADI);
                co2mass= masses(1)+masses(3);
                if(abs(co2mass-totMas)> totMas*1e-3)
                    disp(['Mass of co2 not in domian is ',....
@@ -232,9 +232,11 @@ while t<T
            masses = massesVE(Gt, sol, rock2D, fluidVE_h, ts);
        else
            % ADI based
-           masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
+           masses = phaseMassesVEADI(Gt, sol, rock2D, fluidADI);
            co2mass= masses(1)+masses(3);
-           masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h, ts);
+           masses = ...
+               massTrappingDistributionVEADI(Gt, sol, rock2D, fluidADI, ...
+                                             fluidVE_h.sr, fluidVE_h.sw, ts);
            assert(sum(masses)<totMas*(1+1e-3))
            assert(co2mass<(totMas*(1+1e-3)));
        end       

@@ -332,7 +332,7 @@ function state = incompTPFAVE_s(state, G, T, fluid, varargin)
       wc       = W(k).cells;
       dp       = norm(gravity()) * W(k).dZ*sum(rho .* W(k).compi, 2);
       state.wellSol(k).flux     = W(k).WI.*totmob(wc).*(p(nc+k) + dp - p(wc));
-      state.wellSol(k).pressure = p(nc + k);
+      state.wellSol(k).bhp = p(nc + k);
    end
 
    if opt.MatrixOutput,

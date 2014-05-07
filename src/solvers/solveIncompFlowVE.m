@@ -134,7 +134,7 @@ function state = solveIncompFlowVE(state, g, s, rock, fluid, varargin)
 %                                            values mean
 %                                            production/extraction out of
 %                                            reservoir.
-%                              - pressure -- Well bottom-hole pressure.
+%                              - bhp      -- Well bottom-hole pressure.
 %
 % NOTE:
 %   If there are no external influences, i.e., if all of the structures
@@ -397,7 +397,7 @@ function state = pack_solution(state, g, s, flux, pres, lam, opt)
          nperf = numel(opt.wells(k).cells);
 
          state.wellSol(k).flux     = -flux(i_f + 1 : i_f + nperf);
-         state.wellSol(k).pressure =  lam (i_p + 1 : i_p +   1  );
+         state.wellSol(k).bhp =  lam (i_p + 1 : i_p +   1  );
 
          i_f = i_f + nperf;
          i_p = i_p +   1  ;

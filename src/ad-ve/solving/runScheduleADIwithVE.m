@@ -1,4 +1,4 @@
-function varargout = runScheduleADI(initState, G, rock, system, schedule, varargin)
+function varargout = runScheduleADIwithVE(initState, G, rock, system, schedule, varargin)
 % Given a schedule and a system, solve for all time steps
 %
 % SYNOPSIS:
@@ -140,7 +140,7 @@ for tstep = 1:numel(dt)
     
     s = [W.sign];
     
-    insideLimits = s.*[state.wellSol.pressure] <= [W.bhpLimit].*s;
+    insideLimits = s.*[state.wellSol.bhp] <= [W.bhpLimit].*s;
     if ~all(insideLimits) && opt.Verbose;
         fprintf('Well(s) outside limit: ')
         fprintf('%s ', W(~insideLimits).name);

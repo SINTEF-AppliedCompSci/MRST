@@ -67,8 +67,10 @@ function [trees, v] = maximizeTrapping(G, varargin)
     % Initialize
     i = 1;
     
-    downstream = arrayfun( @(ind) find(dfs(opt.res.trap_adj, ind) > -1), rn, ...
-                                                  'UniformOutput', false);
+    % downstream = arrayfun( @(ind) find(dfs(opt.res.trap_adj, ind) > -1), rn, ...
+    %                                               'UniformOutput', false);
+    downstream = establishDownstreamTraps(opt.res.trap_adj, rn);
+    
     rn_vols = cellfun(@(x) sum(v(x)), downstream);
     done = false(size(rn_vols));
     while i <= Nt
@@ -89,9 +91,23 @@ function [trees, v] = maximizeTrapping(G, varargin)
         i = i + 1;
     end
 end
+% ============================================================================
 
+function dstr = establishDownstreamTraps(A, start_ixs)
+% Returns cell array with one entry per trap indexed in 'start_ixs', listing
+% the chain of traps it spills into (including itself)
+    num_traps = size(A,1); % also equal to size(A,2)
+    M  = spones(A + speye(num_traps));
+    M1 = M;
+    M2 = spones(M1 * M);
+    while ~isequal(M1, M2)
+        M1 = M2;
+        M2 = spones(M1 * M);
+    end
+    dstr = arrayfun(@(x) find(M2(x,:))', start_ixs, 'UniformOutput', false);
+end
 
-
+% ----------------------------------------------------------------------------
 function c = rootNotes(A)
     c = find(sum(A,2) == 0);
 end

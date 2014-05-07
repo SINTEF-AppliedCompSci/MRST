@@ -16,6 +16,10 @@ function resSol = initResSolVE(G, p0, s0, varargin)
     resSol.h_max = resSol.h;
     resSol.extSat= repmat(resSol.s, 1, 2);
     
+    % @@ Clarify role vis-a-vis extSat 
+    resSol.smin  = resSol.s; 
+    resSol.smax  = resSol.s; 
+    
     if ~opt.use_ADI 
         % outside the ADI framework, we need to provide explicit functions
         % for computing the Jacobian.

@@ -6,7 +6,7 @@ function state = updateFinalVE(state, state0,f,G)
     if isfield(f,'dis_rate')
         min_rs= minRs(state.pressure,state.s(:,2),state.sGmax,f,G);
         min_rs=min_rs./state.s(:,1);
-        assert(all(state.rs>=min_rs));
+        assert(all(state.rs - min_rs >= -2.0e-6)); % @@
     end
           
 end

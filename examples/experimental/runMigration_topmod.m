@@ -227,9 +227,9 @@ while t<T
            if(method<4)
                totMas = totMas + fluidVE_h.rho(1).*w.val*dT;
            else
-               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.pressure);
+               rhoCO2_well= fluidADI.rhoG;%.*fluidADI.bG(sol.state.wellSol.bhp);
                totMas = totMas + rhoCO2_well.*sol.state.wellSol.qGs*dT;
-               masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
+               masses = phaseMassesVEADI(Gt, sol, rock2D, fluidADI);
                co2mass= masses(1)+masses(3);
                if(abs(co2mass-totMas)> totMas*1e-3)
                    disp(['Mass of co2 not in domian is ',....
@@ -244,9 +244,11 @@ while t<T
            masses = massesVE(Gt, sol, rock2D, fluidVE_h, ts);
        else
            % ADI based
-           masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h);
+           masses = phaseMassesVEADI(Gt, sol, rock2D, fluidADI);
            co2mass= masses(1)+masses(3);
-           masses = massesVEADI(Gt, sol, rock2D, fluidADI, fluidVE_h, ts);
+           masses = ...
+               massTrappingDistributionVEADI(Gt, sol, rock2D, fluidADI, ...
+                                             fluidVE_h.sr, fluidVE_h.sw, ts);
            assert(sum(masses)<totMas*(1+1e-2))
            assert(co2mass<(totMas*(1+1e-2)));
        end       
@@ -282,7 +284,7 @@ while t<T
        fprintf(1,'%4d years\n', convertTo(t,year));
        fprintf(1,'Maximum pressure cell diff %f\n', (convertTo(max(sol.pressure-p0),barsa)));
        if(~isempty(w))       
-        fprintf(1,'Maximum pressure well diff %f\n', convertTo(vertcat(sol.wellSol.pressure),barsa));
+        fprintf(1,'Maximum pressure well diff %f\n', convertTo(vertcat(sol.wellSol.bhp),barsa));
        end
        
    end
@@ -404,7 +406,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
         case 'adi_simple'
            s=setupSimCompVe(Gt,rock2D);
            %fluidADI = addVERelperm(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt);
-           fluidADI = addVERelperm_topmod(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt,'top_trap',opt.top_trap);
+           fluidADI = addVERelperm(fluidADI, Gt, 'res_oil',sw,'res_gas',sr,'top_trap',opt.top_trap);
            systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                'simComponents',s,'VE',true,'tol',1e-12);
 
@@ -447,7 +449,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
             s=setupSimCompVe(Gt,rock2D);
             % important that add relperm is added after fluid properiece
             % since it is bounded to the  density
-            fluidADI = addVERelperm_topmod(fluidADI,'res_oil',sw,'res_gas',sr,'Gt',Gt,'top_trap',opt.top_trap);
+            fluidADI = addVERelperm(fluidADI, Gt, 'res_oil',sw,'res_gas',sr,'top_trap',opt.top_trap);
             systemOG = initADISystemVE({'Oil', 'Gas','DisGas'}, Gt, rock2D, fluidADI,...
                 'simComponents',s,'VE',true,'tol',1e-5);
             systemOG.getEquations = @eqsfiBlackOilExplicitWellsOGVE_new;   

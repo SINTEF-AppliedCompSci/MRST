@@ -13,7 +13,8 @@
 % a rough of estimate the information which is missing in the coarse Atlas
 % grids, we will also compare the relatively fine scale Sleipner grid with
 % the same region in the Utsira formation, where Sleipner is located.
-require coarsegrid deckformat
+
+moduleCheck('coarsegrid', 'deckformat');
 
 %% Generate grids and trapping for the Johansen formation
 % We generate six realizations of the Johansen formation from the CO2
@@ -29,6 +30,7 @@ N = 6;
 [Grids res] = deal(cell(numel(N),1));
 
 for i = 1:N
+    fprintf(1,'\nLoading Johansen formation (coarsening factor: %d)...\n', i);
     gr = getAtlasGrid('Johansenfm', 'coarsening', i);
     G = processGRDECL(gr{1});
     % Create top surface grid
@@ -38,6 +40,7 @@ for i = 1:N
     res{i} = trapAnalysis(Gt, true);
     res{i}.volumes = volumesOfTraps(Gt, res{i});
 end
+
 %% Plot a subset of Johansen with different degree of coarsening
 % We first define a subdomain consisting of a minimum and maximum value for
 % both x and y coordinates which is then plotted on the fine grid.
@@ -213,6 +216,7 @@ plotCellData(Gt_sleipner, res_sleipner.traps, res_sleipner.traps ~= 0)
 view(-40, 50)
 axis tight off
 title('Utsira subset and Sleipner grid')
+
 %% Estimate the lost local oscillations per area
 % We find the total trap volume for Sleipner and divide it by the total
 % area of the Sleipner case to find a rough estimate of the trap volume per
@@ -290,6 +294,7 @@ view(-50, 40);
 axis tight off
 
 title('Adjusted versus original Sleipner grid')
+
 %% Find new trapping volume
 trapvol_adjusted = sum(volumesOfTraps(Gt_adjusted, res_adjusted));
 
@@ -310,6 +315,6 @@ fprintf(['Total approximate lost trap volume for Utsira ' ...
 % compared to the large scale structural traps. This shows the importance
 % of using fine scale resolution when simulating long term migrations as
 % coarsening may have a large impact on the trapped CO2 volumes.
-clf;
+figure
 pie([lost_volume_adjusted trapvol_utsira])
 legend({'Local variations', 'Global variations'})

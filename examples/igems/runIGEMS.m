@@ -12,15 +12,17 @@
 % geometry information is computed explicitly in the call to
 % 'computeGeometry'.  Finally, the top surface of the 3D grid is extracted
 % as a 2D grid with the 'topSurfaceGrid' function.
+%
+% NB! This file is HUGE and it may take very long time to read and process
 
 matpath = fullfile(VEROOTDIR, 'data', 'mat');
 if ~isdir(matpath)
-    mkdir(matpath)
+   mkdir(matpath)
 end
 
 cachepath = fullfile(matpath, 'IGEMS.mat');
 if exist(cachepath, 'file')
-    load(cachepath);
+   load(cachepath);
 else
    pth = fullfile(VEROOTDIR, 'data', 'igems');
    fle = fullfile('eclipsegrids/OSS_NP2.GRDECL');
@@ -33,19 +35,21 @@ else
       disp(' -> Download 467 MB of data from: http://files.nr.no/igems/');
       disp(['    Putting data in ', pth]);
       %untar('http://files.nr.no/igems/eclipsegrids.zip',pth);
-    end
-    grdecl = readGRDECL(fullfile(pth, fle));
-
-    try
-       G = processgrid(grdecl);
-       G = mcomputeGeometry(G);
-    catch
-       G = computeGeometry(processGRDECL(grdecl));
-    end
-    rock = grdecl2Rock(grdecl);
-    [Gt,G] = topSurfaceGrid(G);
-    rock2D = averageRock(rock, Gt);
-    save('-v7.3', cachepath, 'G', 'Gt', 'rock', 'rock2D');
+   end
+   
+   disp('Loading and processing a 588 MB file. This may take a long time...'); 
+   grdecl = readGRDECL(fullfile(pth, fle));
+   
+   try
+      G = processgrid(grdecl);
+      G = mcomputeGeometry(G);
+   catch
+      G = computeGeometry(processGRDECL(grdecl));
+   end
+   rock = grdecl2Rock(grdecl);
+   [Gt,G] = topSurfaceGrid(G);
+   rock2D = averageRock(rock, Gt);
+   save('-v7.3', cachepath, 'G', 'Gt', 'rock', 'rock2D');
 end
 
 rock2D.poro = 0.25 * ones(Gt.cells.num, 1); % @@ HACK
