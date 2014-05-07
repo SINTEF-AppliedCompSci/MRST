@@ -1,4 +1,19 @@
 function M = subregionConnectivityMatrix(Gt, nodes)
+%
+% Generate the connectivity matrix between a subset of the nodes of a 2D grid.
+%
+% SYNOPSIS:
+%   function M = subregionConnectivityMatrix(Gt, nodes)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   Gt    - top surface grid
+%   nodes - vector with node indices, representing a subset of the nodes in Gt.
+%
+% RETURNS:
+%   M - Connectivity matrix between the nodes in 'nodes', as defined by the
+%       edges of the top surface grid Gt.
 
     % list of all node connectivities
     neigh_rels = reshape(Gt.faces.nodes, 2, [])';
