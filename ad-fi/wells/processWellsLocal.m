@@ -481,7 +481,7 @@ function W = buildWell(W, G, rock, control, i, p, ...
    Kh    = rldecode([comp{:,10}], nperf, 2) .';
    WI    = rldecode([comp{:, 8}], nperf, 2) .';
    Wdiam = rldecode([comp{:, 9}], nperf, 2) .';
-   openShutFlag = rldecode(vertcat({comp{:, 6}}), nperf, 2) .';
+   openShutFlag = rldecode(comp(:, 6), nperf);
 
    % Zero input value means to calculate quantities ourselves.
    % Set negative whence 'addWell' will DTRT[tm].
