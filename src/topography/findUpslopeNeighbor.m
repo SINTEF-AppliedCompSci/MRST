@@ -39,7 +39,7 @@ function [upneigh, nhood, tan_angle] = findUpslopeNeighbor(xyz, neighs, regions)
     num = size(xyz,1); % number of cells (or nodes)
     
     % Remove neighbor relations representing exterior faces
-    neighs = neighs(find(prod(neighs, 2)~=0),:);
+    neighs = double(neighs(~ any(neighs == 0, 2),:));
     
     % Producing adjacency matrix for the 4-neighborhood of each cell
     adj = sparse(neighs(:,1), neighs(:,2), 1, num, num, 2*size(neighs,1));
