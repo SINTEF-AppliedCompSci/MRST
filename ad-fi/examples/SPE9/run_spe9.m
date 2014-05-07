@@ -36,10 +36,32 @@ rv0 = 0;
 
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
 
+%% Plot well and permeability
+% To appreciate the heterogeneity of the reservoir, toggle the log button in
+% the toolbar in the figure.
+%
+
+clf;
+W = processWells(G, rock, deck.SCHEDULE.control(1));
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
+            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
+title('Permeability (mD)')
+axis tight;
+view(35, 40);
+colorbar('SouthOutside');
+
+
+%% Set up the schedule
+%  We allow for well control switching. In this case, the producing wells
+%  are initially controlled using oil rate. There is minimum value for
+%  bottom hole pressure (in this case, 68.9 bar for all wells). For a
+%  producer, if the bottom hole pressure (bhp) which is needed to obtain the
+%  given oil rate is below the minimum bhp, then the well changes control
+%  type and becomes controlled by pressure.
+
 schedule = deck.SCHEDULE;
-system = initADISystem(deck, G, rock, fluid, 'cpr', true);
-% switch off individual well solves:
-system.stepOptions.solveWellEqs = false;
+system = initADISystem(deck, G, rock, fluid, 'cpr', true, 'allowControlSwitching', true);
 % use new cpr based on dnr
 system.nonlinear.cprBlockInvert = false;
 % convergence is overall better for quite strict limits on update
@@ -70,22 +92,49 @@ timer = tic;
 toc(timer)
 
 %% Plot solutions
+% We opt for a simple volume plot of the oil saturation.
+
+figure
+clf
+view(35, 40);
+for i = 2:numel(states)
+    [az, el] = view();
+    clf;
+    plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
+    plotCellData(G, states{i}.s(:,2));
+    time = sum(schedule.step.val(1:i-1));
+    title(['Oil saturation. Step ' num2str(i) ' (' formatTimeRange(time) ')'])
+    axis tight off
+    view(az, el);
+    pause(0.1)
+end
+
+
+% Plot oil and gas rates in producers and water rate in injector
+
 T     = convertTo(cumsum(schedule.step.val), day);
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 injInx = 1;
 prdInx = 2:26;
+
 figure(1)
-plot(T, qWs(:, injInx)*day, '-*'), xlabel('Years'),title('Water injection rate')
+plot(T, convertTo(qWs(:, injInx), meter^3/day), '-*')
+xlabel('Time [days]'), title('Water injection rate [m^3/day]')
+
 figure(2)
-plot(T, bhp(:, prdInx)/barsa, '-*'), xlabel('Years'),title('BHPs')
+plot(T, convertTo(bhp(:, prdInx), barsa), '-*'),
+xlabel('Time [days]'), title('BHPs [bar]')
+
 figure(3)
-plot(T, qOs(:, prdInx)*day, '-*'), xlabel('Years'),title('Oil production rates')
+for i = 1:25
+   subplot(5,5,i)
+   plot(T, convertTo(qOs(:, prdInx(i)), meter^3/day), '-*');
+   xlabel('Time [days]');
+   title(sprintf('Oil production rate (%s) [m^3/day]', ...
+                 W(prdInx(i)).name));
+end
+set(gcf, 'position', [100, 100, 1500, 1000])
+
 figure(4)
-plot(T, qGs(:, prdInx)*day, '-*'), xlabel('Years'),title('Gas production rates')
-
-
-
-
-
-
-
+plot(T, convertTo(qGs(:, prdInx), meter^3/day, '-*')
+xlabel('Time [days]'), title('Gas production rates [m^3/day]')
