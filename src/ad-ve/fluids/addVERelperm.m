@@ -48,6 +48,7 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 
     fluid.krG=@(sg, p, varargin) krG(sg, Gt, opt, varargin{:});
     fluid.krOG=@(so, p, varargin) krOG(so,opt,varargin{:});
+
     fluid.pcOG=@(sg, p, varargin) pcOG(sg, p ,fluid, Gt, opt, varargin{:});
 
     fluid.cutValues = @(state,varargin) cutValues(state,opt);
@@ -55,6 +56,7 @@ function fluid = addVERelperm(fluid, Gt, varargin)
     fluid.kr3D      = @(s) s;
     fluid.res_gas   = opt.res_gas;
     fluid.res_oil   = opt.res_oil;
+
 end
 
 % ============================================================================
@@ -148,7 +150,11 @@ end
 
 % ----------------------------------------------------------------------------
 function pc = pcOG(sg, p, fluid, Gt, opt, varargin)
+<<<<<<< HEAD
+    loc_opt = struct('sGmax',[]);    
+=======
     loc_opt = struct('sGmax',[]);
+>>>>>>> 48a5afe9e7e3b9810104c7aab551f52485f109f4
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
         % could been put in separate function
