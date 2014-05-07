@@ -50,136 +50,136 @@ function varargout = getAtlasGrid(varargin)
 %{
 #COPYRIGHT#
 %}
-    if nargout == 0
-        n = getNames();
-        n = n( cellfun(@(x) ~isempty(strfind(x,'_')), n) );
-        n = regexp(n, '_', 'split');
-        n = unique(cellfun(@(x) x{1}, n, 'UniformOutput', false));
-        disp 'Available grids are: '
-        fprintf('\t- %s\n', n{:});
-        return
-    end
-    
-    opt = struct('nz',              1, ...
-                 'coarsening',      1, ...
-                 'refining',        1, ...
-                 'Verbose',         mrstVerbose,...
-                 'make_deck',       true);
-    if mod(nargin, 2) == 1
-        names = varargin{1};
-        if nargin > 1
-            varargin = {varargin{2:end}}; %#ok
-        else
-            varargin = {};
-        end
-    else
-        names = {};
-    end
+if nargout == 0
+   n = getNames();
+   n = n( cellfun(@(x) ~isempty(strfind(x,'_')), n) );
+   n = regexp(n, '_', 'split');
+   n = unique(cellfun(@(x) x{1}, n, 'UniformOutput', false));
+   disp 'Available grids are: '
+   fprintf('\t- %s\n', n{:});
+   return
+end
 
-    opt = merge_options(opt, varargin{:});
+opt = struct('nz',              1, ...
+   'coarsening',      1, ...
+   'refining',        1, ...
+   'Verbose',         mrstVerbose,...
+   'make_deck',       true);
+if mod(nargin, 2) == 1
+   names = varargin{1};
+   if nargin > 1
+      varargin = {varargin{2:end}}; %#ok
+   else
+      varargin = {};
+   end
+else
+   names = {};
+end
 
-    if ischar(names)
-        names = {names};
-    end
+opt = merge_options(opt, varargin{:});
 
-    
-    %% Handle grids belonging to the Jurassic formations
-    % This is done by sampling the Jurassic formation for the top heights
-    jurassic_mid = {'Brentgrp',...
-                    'Brynefm',...
-                    'Sleipnerfm'};
-                
-    jurassic_top = {'Sognefjordfm',...
-                    'Fensfjordfm',...
-                    'Krossfjordfm',...
-                    'Huginfmeast',...
-                    'Huginfmwest',...
-                    'Sandnesfm',...
-                    'Ulafm'};
-                
-    if ~isempty(names)
-        juractive = [0 0];
-        
-        jurassic_mid = intersect(jurassic_mid, names);
-        jurassic_top = intersect(jurassic_top, names);
-        if ~isempty(jurassic_mid)
-            names = [names, {'Jurassicmid'}];
-            juractive(1) = 1;
-        end
-        if ~isempty(jurassic_top)
-            names = [names, {'Jurassic'}];
-            juractive(2) = 1;
-        end
-    else
-        juractive = [1 1];
-    end
-    
-    datasets = readAtlasGrids(names, opt.coarsening);
-    
-    findname = @(name) datasets{cellfun(@(x) strcmpi(x.name, name), datasets)};
-    jura_top = {jurassic_mid, jurassic_top};
-    jurassic = {'Jurassicmid', 'Jurassic'};
-    if(opt.refining>1)
-        for i=1:numel(datasets)
-            datasets{i}=refineInfo(datasets{i},opt.refining); 
-        end
-    end
-    
-    [decks, petroinfo] = deal({});
-    
-    for i = 1:2
-        jur = jura_top{i};
-        if ~juractive(i)
-            continue
-        end
-        jtop = findname(jurassic{i});
+if ischar(names)
+   names = {names};
+end
 
-        for j = 1:numel(jur)
-            jthick = findname(jur{j});
-            dispif(opt.Verbose, ['Processing ' jur{j} ' ...\n']);
-            if(opt.make_deck)
-                deck =  convertAtlasTo3D(jthick.meta, jtop.meta, jthick.data, jtop.data, opt.nz);
-            else
-                deck= convertAtlasToStruct(jthick.meta, jtop.meta, jthick.data, jtop.data);
-            end
-            deck.name = jthick.name;
-            
-            petroinfo{end+1} = getAvgRock(deck.name); %#ok
-            decks{end+1} = deck;%#ok
-        end
-    end
-    
-    %% Handle grids with seperate thickness / top maps of same name
-    for i = 1:numel(datasets)
-        top = datasets{i};
-        if ~strcmpi(top.variant, 'top')
-            continue
-        end
 
-        for j = 1:numel(datasets)
-            thick = datasets{j};
-            if strcmpi(thick.variant, 'thickness') && strcmpi(thick.name, top.name)
-                 dispif(opt.Verbose, ['Processing ', top.name, ' ...\n']);
-                 if(opt.make_deck)
-                    deck = convertAtlasTo3D(thick.meta, top.meta, thick.data, top.data, opt.nz); %#ok
-                 else
-                     deck = convertAtlasToStruct(thick.meta, top.meta, thick.data, top.data);                     
-                 end
-                 deck.name = thick.name;
-                 
-                 petroinfo{end+1} = getAvgRock(deck.name); %#ok
-                 decks{end+1} = deck; %#ok
-                 break;
-            end
-        end
-    end
-    varargout{1} = decks;
-    if nargout > 1
-        varargout{2} = datasets;
-        if nargout > 2
-            varargout{3} = petroinfo;
-        end
-    end
+% Handle grids belonging to the Jurassic formations
+% This is done by sampling the Jurassic formation for the top heights
+jurassic_mid = {'Brentgrp',...
+   'Brynefm',...
+   'Sleipnerfm'};
+
+jurassic_top = {'Sognefjordfm',...
+   'Fensfjordfm',...
+   'Krossfjordfm',...
+   'Huginfmeast',...
+   'Huginfmwest',...
+   'Sandnesfm',...
+   'Ulafm'};
+
+if ~isempty(names)
+   juractive = [0 0];
+   
+   jurassic_mid = intersect(jurassic_mid, names);
+   jurassic_top = intersect(jurassic_top, names);
+   if ~isempty(jurassic_mid)
+      names = [names, {'Jurassicmid'}];
+      juractive(1) = 1;
+   end
+   if ~isempty(jurassic_top)
+      names = [names, {'Jurassic'}];
+      juractive(2) = 1;
+   end
+else
+   juractive = [1 1];
+end
+
+datasets = readAtlasGrids(names, opt.coarsening);
+
+findname = @(name) datasets{cellfun(@(x) strcmpi(x.name, name), datasets)};
+jura_top = {jurassic_mid, jurassic_top};
+jurassic = {'Jurassicmid', 'Jurassic'};
+if(opt.refining>1)
+   for i=1:numel(datasets)
+      datasets{i}=refineInfo(datasets{i},opt.refining);
+   end
+end
+
+[decks, petroinfo] = deal({});
+
+for i = 1:2
+   jur = jura_top{i};
+   if ~juractive(i)
+      continue
+   end
+   jtop = findname(jurassic{i});
+   
+   for j = 1:numel(jur)
+      jthick = findname(jur{j});
+      dispif(opt.Verbose, ['Processing ' jur{j} ' ...\n']);
+      if(opt.make_deck)
+         deck =  convertAtlasTo3D(jthick.meta, jtop.meta, jthick.data, jtop.data, opt.nz);
+      else
+         deck= convertAtlasToStruct(jthick.meta, jtop.meta, jthick.data, jtop.data);
+      end
+      deck.name = jthick.name;
+      
+      petroinfo{end+1} = getAvgRock(deck.name); %#ok
+      decks{end+1} = deck;%#ok
+   end
+end
+
+% Handle grids with seperate thickness / top maps of same name
+for i = 1:numel(datasets)
+   top = datasets{i};
+   if ~strcmpi(top.variant, 'top')
+      continue
+   end
+   
+   for j = 1:numel(datasets)
+      thick = datasets{j};
+      if strcmpi(thick.variant, 'thickness') && strcmpi(thick.name, top.name)
+         dispif(opt.Verbose, ['Processing ', top.name, ' ...\n']);
+         if(opt.make_deck)
+            deck = convertAtlasTo3D(thick.meta, top.meta, thick.data, top.data, opt.nz);
+         else
+            deck = convertAtlasToStruct(thick.meta, top.meta, thick.data, top.data);
+         end
+         deck.name = thick.name;
+         
+         petroinfo{end+1} = getAvgRock(deck.name); %#ok
+         decks{end+1} = deck; %#ok
+         break;
+      end
+   end
+end
+varargout{1} = decks;
+if nargout > 1
+   varargout{2} = datasets;
+   if nargout > 2
+      varargout{3} = petroinfo;
+   end
+end
 end
 
 
