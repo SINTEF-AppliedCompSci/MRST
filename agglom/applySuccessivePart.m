@@ -48,7 +48,7 @@ function p = applySuccessivePart(p, G, indicator, NU, pfixed)
 %   p1 = partitionCartGrid(G.cartDims, [2 1]);
 %   p2 = partitionCartGrid(G.cartDims, [1 2]);
 %   p = ones(G.cells.num,1);
-%   p = applySuccessivePart(p, G, p, 6, [p1 p2]);
+%   p = applySuccessivePart(p, G, p, 12, [p1 p2]);
 %   plotCellData(G,p,'EdgeColor','k');
 %
 % SEE ALSO:
