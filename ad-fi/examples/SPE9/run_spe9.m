@@ -53,15 +53,20 @@ colorbar('SouthOutside');
 
 
 %% Set up the schedule
-%  We allow for well control switching. In this case, the producing wells
-%  are initially controlled using oil rate. There is minimum value for
-%  bottom hole pressure (in this case, 68.9 bar for all wells). For a
-%  producer, if the bottom hole pressure (bhp) which is needed to obtain the
-%  given oil rate is below the minimum bhp, then the well changes control
-%  type and becomes controlled by pressure.
+% There are three control periods and the control changes occur after 300
+% and 360 days. However, well control can switch if the well constraints are
+% not fulfilled (this is the default option, which can be changed). In the
+% case of the schedule we are considering, the wells are controlled by rate
+% (oil rate for the producers and water rate for the injectors). There is
+% minimum value for bottom hole pressure (in this case, 68.9 bar for all
+% wells). For a producer, if the bottom hole pressure (bhp) which is needed
+% to obtain the given oil rate is below the minimum bhp, then the well
+% changes control type and becomes controlled by pressure. It means that we
+% have a lower bound on the bhp. For the injectors, we have an upper bound
+% on the bhp.
 
 schedule = deck.SCHEDULE;
-system = initADISystem(deck, G, rock, fluid, 'cpr', true, 'allowControlSwitching', true);
+system = initADISystem(deck, G, rock, fluid, 'cpr', true);
 system.nonlinear.cprBlockInvert = false;
 % convergence is overall better for quite strict limits on update
 system.stepOptions.drsMax = .2;
@@ -108,9 +113,12 @@ for i = 2:numel(states)
 end
 
 
-% Plot oil and gas rates in producers and water rate in injector
+%% Plot of the production and injection rates.
+% We observe that the rate are not constant in the initially given control
+% periods ([0,300], [300,360], [360,900] days). It means that the well
+% controls have switched from rate to bhp.
 
-T     = convertTo(cumsum(schedule.step.val), day);
+T = convertTo(cumsum(schedule.step.val), day);
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 injInx = 1;
 prdInx = 2:26;
