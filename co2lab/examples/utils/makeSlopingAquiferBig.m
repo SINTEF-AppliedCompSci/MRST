@@ -54,7 +54,7 @@ grdecl.COORD = lines(:); clear lines
 % C-accelerated routines
 if usemex,
    mlist = mrstModule;
-   mrstModule add mex;
+   mrstModule add libgeometry opm_gridprocessing;
    G = processgrid(grdecl);
    G = mcomputeGeometry(G);
    mrstModule('reset',mlist{:});

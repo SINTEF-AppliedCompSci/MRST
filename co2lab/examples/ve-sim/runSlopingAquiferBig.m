@@ -12,7 +12,7 @@
 % * processgrid (replaces processGRDECL)
 % * mcomputegeometry (replaces computeGeometry)
 
-moduleCheck('mex');
+%moduleCheck('mex');
 
 %% Write header
 clc;
