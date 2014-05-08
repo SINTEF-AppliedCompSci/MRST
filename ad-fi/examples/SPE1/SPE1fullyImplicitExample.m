@@ -61,6 +61,8 @@ state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 r
 %  implicit solver: solvefiADI is capable of taking a well object directly
 %  and solving for a single time step in a manner similar to the other MRST
 %  solvers.
+
+figure(1)
 clf;
 W = processWells(G, rock, deck.SCHEDULE.control(1));
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
@@ -88,15 +90,10 @@ colorbar('SouthOutside');
 %
 %  mrstVerbose on
 
-figure(1);
-[h, plotcallback] = plotToolbar(G, state);
-view(35, 40);
-axis tight off
-
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', false);
 timer = tic;
-[wellSols states iter] = runScheduleADI(state, G, rock, system, schedule, 'plotCallback', plotcallback);
+[wellSols states iter] = runScheduleADI(state, G, rock, system, schedule);
 toc(timer)
 
 %% Plot the solution
