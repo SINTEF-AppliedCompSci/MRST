@@ -1,10 +1,10 @@
 %% SPE3 case using fully implicit black oil solver
-% This example solves the SPE3 problem which consists of gas injection in a
-% small ($9\times9\times4$) reservoir. The problem is originally a compositional
-% problem. Using PVTi, we convert it to a blackoil problem and the resulting
-% datas are provided in the file "SPE3.DATA". The oil can vaporize but the gas
-% cannot dissolve in oil so that the gas/oil ratio remains equal to zero during
-% the whole simulation. 
+%  This example solves the SPE3 problem which consists of gas injection in a
+%  small (9x9x4) reservoir. The problem is originally a compositional
+%  problem. Using PVTi, we convert it to a blackoil problem and the resulting
+%  datas are provided in the file "SPE3.DATA". The oil can vaporize but the gas
+%  cannot dissolve in oil so that the gas/oil ratio remains equal to zero during
+%  the whole simulation. 
 
 require ad-fi deckformat
 
@@ -31,8 +31,8 @@ fluid = initDeckADIFluid(deck);
 gravity on
 
 %% Set up initial state
-%  The initial state is a pressure field and a mixture of water and free gas
-%  corresponding to the equilibrium between gravitational and capillary forces.
+%  The initial state corresponds to an equilibrium state between gravitational and capillary
+%  forces. It has been computed before and we load it from deck.
 
 p0  = deck.SOLUTION.PRESSURE;
 sw0 = deck.SOLUTION.SWAT;
@@ -44,8 +44,8 @@ state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
 clear k p0 s0 rv0 rs0
 
 %% Plot well and permeability
-% The permeability is constant in each layer. There is one injecting and one
-% producing well.
+%  The permeability is constant in each layer. There is one injecting and one
+%  producing well.
 
 clf;
 W = processWells(G, rock, deck.SCHEDULE.control(1));
@@ -82,9 +82,9 @@ title('Gas rate / Oil rate')
 
 
 %% Plot of Bottom Hole Pressure and gas production/injection rate
-% The wells are controlled by gas rate but also constrained by pressure. For the producing well, the
-% lower limit for the bottom hole pressure is 1050 psia (72.395 bar). We observe that the
-% producing well switches control at t=5840 days.
+%  The wells are controlled by gas rate but also constrained by pressure. For the producing well, the
+%  lower limit for the bottom hole pressure is 1050 psia (72.395 bar). We observe that the
+%  producing well switches control at t=5840 days.
 
 figure(2)
 clf
