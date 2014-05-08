@@ -1,8 +1,17 @@
+
+%% The Delft EGG model
+%  Researchers from TU Delft have developed their own model - the Egg model
+%  - to compare different two phase flow simulators. In this process, MRST
+%  has been validated against Eclipse, GPRS, and MoReS using a version of
+%  their Egg model. The results obtained with the four simulators are almost
+%  identical. Read more.
+
+
 require ad-fi deckformat
 
-%addpath ../../wells_ad-fi
-fn    = 'BENCH_EGG.DATA';
-
+% Read and process input files.
+current_dir = fileparts(mfilename('fullpath'));
+fn    = 'EGG.DATA';
 deck = readEclipseDeck(fn);
 
 % The deck is given in field units, MRST uses metric.
@@ -21,41 +30,54 @@ fluid = initDeckADIFluid(deck);
 % The case includes gravity
 gravity on
 
-%%
-%% Approximate initial conds:
+
+%% Plot wells and permeability
+
+figure(1)
+clf;
+W = processWells(G, rock, deck.SCHEDULE.control(1));
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
+            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
+title('Permeability (mD)')
+axis tight;
+view(35, 40);
+colorbar('SouthOutside');
+
+%% Set up the initial state
+%  We consider a reservoir with a uniform saturation distribution (s_w =
+%  0.1, s_o = 0.9) and we compute an approximation of the initial pressure.
+
+sw = 0.1; 
+so = 0.9;
 pr   = 400*barsa;
 rz   = G.cells.centroids(1,3);
 dz   = G.cells.centroids(:,3) - rz;
 rhoO    = fluid.bO(400*barsa)*fluid.rhoOS;
 rhoW    = fluid.bW(400*barsa)*fluid.rhoWS;
-rhoMix  = .1*rhoW + .9*rhoO;
+rhoMix  = sw*rhoW + so*rhoO;
 p0   = pr + norm(gravity)*rhoMix*dz;
 
+% The function initResSol initializes the solution data structure.
+rSol  = initResSol(G, p0, [sw, so]);
 
-rSol  = initResSol(G, p0, [0.1, .90]);
-%%
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);
-%system.nonlinear.adhocSolve = true;
 system.pscale = 1/(100*barsa);
 system.nonlinear.cprBlockInvert = false;
 system.nonlinear.cprRelTol      = 2e-2;
 system.nonlinear.cprEllipticSolver = @mldivide;
-%system.nonlinear.relaxation  = false;
-% 
 schedule = deck.SCHEDULE;
+
+
+%% Run the simulation
+%  We use a fully implicit oil/water solver.
+
 tt = tic;
-wellSols = runScheduleADI(rSol, G, rock, system, schedule);
+[wellSols, states, iter] = runScheduleADI(rSol, G, rock, system, schedule);
 toc(tt)
-% plot 
 
 [wrt, ort, grt, bhp] = wellSolToVector(wellSols);
 T = convertTo(cumsum(deck.SCHEDULE.step.val), day);
 figure(1), hold on
 plot(T,ort(:,9:12)*day), plot(T,wrt(:,9:12)*day),legend(W(9:12).name)
-
-%--------------------------------------------------------------------------
-% Timings 21.10.2013:
-%   Direct solver:          784 sec
-%   CPR (DRS and tol 2e-2)  624 sec
-%   Ad-hoc solver           500 sec
 
