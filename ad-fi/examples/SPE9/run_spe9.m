@@ -62,7 +62,6 @@ colorbar('SouthOutside');
 
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true, 'allowControlSwitching', true);
-% use new cpr based on dnr
 system.nonlinear.cprBlockInvert = false;
 % convergence is overall better for quite strict limits on update
 system.stepOptions.drsMax = .2;
@@ -70,7 +69,6 @@ system.stepOptions.dpMax  = .2;
 system.stepOptions.dsMax  = .05;
 % gmres tol needs to be quite strict
 system.nonlinear.cprRelTol = 1e-3;
-system.pscale = 1/(200*barsa);
 
 %% Plot reservoir and wells
 figure, 
@@ -94,7 +92,7 @@ toc(timer)
 %% Plot solutions
 % We opt for a simple volume plot of the oil saturation.
 
-figure
+figure(1)
 clf
 view(35, 40);
 for i = 2:numel(states)
