@@ -28,7 +28,7 @@ ipress     = 200;                % Initial pressure
 
 % Alternatively, we could read deck from file and construct the grid
 % deck = readEclipseDeck( ...
-%    fullfile(mrstPath('co2lab'),'data','decks','sinusDeckAdi.DATA');
+%    fullfile(mrstPath('co2lab'),'data','decks','sinusDeckAdiVE.DATA');
 % G = initEclipseGrid(deck);
 
 figure, plotGrid(G),view([0 -1 0]), box on
