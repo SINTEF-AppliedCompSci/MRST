@@ -1,0 +1,21 @@
+* Questions
+** Should we use ~setupSimComp~ or ~setupSimCompVE~?  In the original code, the comments argue for the former (see ~prepareSimulationSystem~), but right now I don't see a reason (and indeed, choosing the former gives wrong pore volumes).
+- for now, I chose to use ~setupSimCompVE~ as this is conceptually the function to use for VE.
+
+* Functions to implement
+** DONE constantEOS
+** DONE setupFluid
+** TODO equationsCO2BrineCompressible
+** TODO model.updateState
+** TODO nonlinearSolverAdaptiveTimestep
+
+
+
+
+* scratch
+** runScheduleRefactor
+*** [nonlinear]solver.solveTimestep
+**** model.stepFunction (called with the linear solver as an argument)
+***** model.getEquations
+***** [linear]solver.solveLinearProblem
+***** model.updateState
