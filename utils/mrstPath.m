@@ -53,9 +53,22 @@ function varargout = mrstPath(varargin)
 %        'reregister' or 'reset'.  The semantics of the command verbs are
 %        as follows:
 %
-%           o) addroot -- Register a module root directory.  List
-%                         interpreted as a list of directories, subject, the
-%                         subdirectories of which will be
+%           o) addroot -- Register a module root directory.  The input is
+%                         interpreted as a list of directories in which the
+%                         immediate subdirectories will be treated as
+%                         individual modules and entered into the module
+%                         mapping as if manually registered using 'register'.
+%
+%                         EXCEPTION: Immediate subdirectories named
+%
+%                            - data
+%                            - deprecated
+%                            - experimental
+%
+%                         (subject to platform specific conventions) WILL
+%                         NOT be put into the module mapping when using
+%                         'addroot'.  Modules with these names must be
+%                         manually entered using the 'register' verb.
 %
 %           o) clear   -- Deactivate all modules.  An explicit module list,
 %                         if present, is ignored.
@@ -252,10 +265,21 @@ function cache = register_root(cache, mods)
    mods = mods(cellfun(@isdir, mods));
    m2d  = @(r, m) cellfun(@(x) fullfile(r, x), m, 'UniformOutput', false);
 
+   exclude = { 'data', 'deprecated', 'experimental' };
+
    for mroot = reshape(mods, 1, []),
       m = dir(mroot{1});
       m = { m([ m.isdir ]).name };
       m = m(~ strncmp('.', m, 1));
+
+      % Don't automatically register modules from the 'exclude' list.
+      [excl, excl] = look_for(exclude, m);                      %#ok<ASGLU>
+      m = m(~ excl);
+
+      if isempty(m),
+         % No (non-excluded) modules in 'mroot'.  Proceed to next.
+         continue;
+      end
 
       rlist = reshape([m ; m2d(mroot{1}, m)], 1, []);
       cache = register_modules(cache, rlist);
