@@ -53,17 +53,17 @@ colorbar('SouthOutside');
 
 
 %% Set up the schedule
-% There are three control periods and the control changes occur after 300
-% and 360 days. However, well control can switch if the well constraints are
-% not fulfilled (this is the default option, which can be changed). In the
-% case of the schedule we are considering, the wells are controlled by rate
-% (oil rate for the producers and water rate for the injectors). There is
-% minimum value for bottom hole pressure (in this case, 68.9 bar for all
-% wells). For a producer, if the bottom hole pressure (bhp) which is needed
-% to obtain the given oil rate is below the minimum bhp, then the well
-% changes control type and becomes controlled by pressure. It means that we
-% have a lower bound on the bhp. For the injectors, we have an upper bound
-% on the bhp.
+% There are three control periods and the controls change after 300 and 360
+% days. However, well control can switch if the well constraints are not
+% fulfilled (this is the default option. If you do not want this, set the
+% option 'allowControlSwitching' to false when calling initADIsystem). In
+% the case of the schedule we are considering, the wells are controlled by
+% rate (oil rate for the producers and water rate for the injectors). There
+% is a minimum value for bottom hole pressure for the producers (here, 68.9
+% bar for all producing wells). It means that if the bottom hole pressure
+% (bhp) which is needed to obtain the given rate is below the minimum bhp,
+% then the well changes control type and becomes controlled by pressure. For
+% the injectors, we have a maximum value for the bhp (here, 275.79 bar).
 
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);
@@ -90,6 +90,7 @@ plotWell(G, W(2:end),'color','k','linewidth',3,'fontsize',14);
 axis tight, view(40,55);
 
 %% Run schedule
+% We use the fully implicit solver
 timer = tic;
 [wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
 toc(timer)
@@ -114,11 +115,11 @@ end
 
 
 %% Plot of the production and injection rates.
-% We observe that the rate are not constant in the initially given control
-% periods ([0,300], [300,360], [360,900] days). It means that the well
+% We observe that the rate are not constant in the control periods given
+% initially ([0,300], [300,360], [360,900] days). It means that the well
 % controls have switched from rate to bhp.
 
-T = convertTo(cumsum(schedule.step.val), day);
+T     = convertTo(cumsum(schedule.step.val), day);
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 injInx = 1;
 prdInx = 2:26;
