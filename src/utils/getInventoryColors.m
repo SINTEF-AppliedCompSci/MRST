@@ -6,7 +6,7 @@ function c = getInventoryColors(ind)
 %
 % PARAMETERS:
 %   ind - a scalar or vector consisting of one or more of the numbers one
-%         to seven. These numbers signify the following parts CO2
+%         to seven. These numbers signify the following parts of a CO2
 %         inventory:
 %            1 - dissolved
 %            2 - residual (traps)
