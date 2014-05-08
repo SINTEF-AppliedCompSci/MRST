@@ -5,17 +5,19 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
       return
    end
 
-   opt = struct('allowWellSignChange', false, 'allowControlSwitching', true);
+   opt = struct('allowWellSignChange', false, ...
+                'allowControlSwitching', true, ...
+                'Verbose', mrstVerbose);
    opt = merge_options(opt, varargin{:});
 
-   % Check if producers are becoming injectors and vice versa. The indexes of
-   % such wells are stored in inx.
+   % Check if producers are becoming injectors and vice versa. The indexes
+   % of such wells are stored in inx.
    wsg = vertcat(W(:).sign);
    ssg = sign(getTotalRate(sol));
    inx = wsg ~= ssg;
 
-   % A well can be set to zero rate without beeing shut down. We update inx to
-   % take into account this fact.
+   % A well can be set to zero rate without beeing shut down. We update inx
+   % to take into account this fact.
    wval = vertcat(W(:).val);
    wtype = {W(:).type}';
    inx = inx & ~strcmp('bhp', wtype) & (wval ~= 0);
@@ -32,7 +34,9 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
             ostring = [ostring,  W(inx(k)).name, ', '];
          end
 
-         fprintf([ostring(1:end - 2), ' shut down.\n']);
+         if opt.Verbose,
+            fprintf([ostring(1:end - 2), ' shut down.\n']);
+         end
       end
    end
 
@@ -41,9 +45,13 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
    for k = 1:numel(inx)
       fromTp = W(inx(k)).type;
       toTp   = sol(inx(k)).type;
-      fprintf(['Well ', W(inx(k)).name,       ...
-               ' has switched from ', fromTp, ...
-               ' to ', toTp, '.\n']);
+
+      if opt.Verbose
+         fprintf(['Well ', W(inx(k)).name,       ...
+                  ' has switched from ', fromTp, ...
+                  ' to ', toTp, '.\n']);
+      end
+
       W(inx(k)).type = toTp;
       W(inx(k)).val  = sol(inx(k)).val;
    end
