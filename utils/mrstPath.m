@@ -5,8 +5,9 @@ function varargout = mrstPath(varargin)
 %   Either of the modes
 %      1) mrstPath register list
 %      2) mrstPath <command> [module list]
-%      3) mrstPath search module list
+%      3) mrstPath [search] module list
 %         paths = mrstPath('search', module list)
+%         paths = mrstPath(module list)
 %
 % PARAMETERS:
 %   Mode 1)
@@ -81,15 +82,30 @@ function varargout = mrstPath(varargin)
 %                            mrstPath register [list]
 %
 %   Mode 3)
-%     None.
+%     Query module register.  Input is list of modules for which to
+%     retrieve the current module directory.
 %
 % RETURNS:
 %   Modes 1) and 2)
 %     Nothing.
 %
-%   Mode 2)
+%   Mode 3)
 %     modules - List, represented as a cell array of strings, of the
-%               currently active add-on modules.
+%               currently active add-on modules.  If called without output
+%               arguments, function 'mrstPath' will display the known
+%               mapping of the requested modules (all modules if module
+%               list is empty) in the Command Window.
+%
+%               NOTE: As a special case the return value will be a string
+%               (not a cell array of strings) if function 'mrstPath' is
+%               called with a single input module name and a single output
+%               parameter, e.g., as
+%
+%                   pth = mrstPath('search', 'deckformat')
+%
+%               Callers needing the "cell array of strings" semantics must
+%               be prepared to use ISCHAR on the return value and behave
+%               accordingly.
 %
 % SEE ALSO:
 %   ROOTDIR, isdir, filesep, fullfile.
@@ -211,10 +227,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          otherwise
 
-            error(msgid('Verb:Unknown'), ...
-                 ['Unknown command verb ''%s''.  Must be one of ', ...
-                  '''register'', ''clear'', ''list'', ''remove'', ', ...
-                  '''reset'', or ''query''.'], cmd);
+            % No (known) action.  Behave as if caller performed a 'search'.
+            [varargout{1:nargout}] = mrstPath('search', varargin{:});
 
       end
 
