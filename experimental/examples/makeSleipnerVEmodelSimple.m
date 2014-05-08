@@ -41,7 +41,7 @@ catch
 end
 
 %% Process 3D grid and compute geometry
-% First, we map from left-hand to right-hand coordinate system. 
+% First, we map from left-hand to right-hand coordinate system.
 disp(' -> Processing grid');
 lines = reshape(grdecl.COORD,6,[]);
 lines([2 5],:) = -lines([2 5],:);
@@ -52,7 +52,7 @@ grdecl.COORD = lines(:); clear lines
 if(usemex)
   G=mprocessGRDECL(grdecl);
 else
-  G=processGRDECL(grdecl); 
+  G=processGRDECL(grdecl);
 end
 [ijk{1:3}]=ind2sub(G.cartDims,G.cells.indexMap)
 kmin=double(min(ijk{3}(grdecl.PERMX>200)));
