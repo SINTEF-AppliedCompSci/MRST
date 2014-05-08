@@ -21,7 +21,7 @@
 % as a 2D grid with the 'topSurfaceGrid' function.
 %
 % NB! This file is HUGE and it may take very long time to read and process
-matpath = fullfile(VEROOTDIR, 'data', 'mat');
+matpath = fullfile(mrstPath('co2lab'), 'data', 'mat');
 if ~isdir(matpath)
    mkdir(matpath)
 end
@@ -33,7 +33,7 @@ if exist(cachepath, 'file')
    load(cachepath);
    fprintf('done\n');
 else
-   pth = fullfile(VEROOTDIR, 'data', 'igems');
+   pth = fullfile(mrstPath('co2lab'), 'data', 'igems');
    fle = fullfile('eclipsegrids', 'OSS_NP2.GRDECL');
    if ~exist(fullfile(pth,fle), 'file')
       promptMessage = sprintf(...

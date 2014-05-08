@@ -8,7 +8,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 %
 % PARAMETERS:
 %   name   - The name of the IGEMS grid. For valid names, run
-%            >>> ls(fullfile(VEROOTDIR, 'data', 'igems', 'surfaces'))
+%            >>> ls(fullfile(mrstPath('co2lab'), 'data', 'igems', 'surfaces'))
 %
 %   i      - The index of the realization of the grid. A value from 1 to
 %            100.
@@ -46,7 +46,7 @@ opt = merge_options(opt, varargin{:});
 coarse = opt.coarse;
 
 if isempty(opt.dir)
-   result_dir = fullfile(VEROOTDIR, 'data', 'igems');
+   result_dir = fullfile(mrstPath('co2lab'), 'data', 'igems');
    file_dir = fullfile(result_dir, 'surfaces');
 else
    result_dir = opt.dir;

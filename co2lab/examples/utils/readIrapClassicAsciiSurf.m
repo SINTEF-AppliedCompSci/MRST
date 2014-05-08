@@ -17,8 +17,8 @@ function [x, y, Z, angle] = readIrapClassicAsciiSurf(filename)
 %   angle  - Grid angle
 %
 % EXAMPLE:
-%    fname = fullfile(VEROOTDIR, 'data', 'igems', 'surfaces', 'flatNP1', ...
-%                     '1_flatNP1.irap');
+%    fname = fullfile(mrstPath('co2lab'), 'data', 'igems', ...
+%                      'surfaces', 'flatNP1', '1_flatNP1.irap');
 %    [x, y, Z, angle] = readIrapClassicAsciiSurf(fname);
 %    surf(x,y,Z);
 %    % Reverse ZDir according to MRST convention

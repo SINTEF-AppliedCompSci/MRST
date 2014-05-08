@@ -236,7 +236,7 @@ end
 end
 
 function [n gdir] = getNames()
-    gdir = fullfile(VEROOTDIR, 'data', 'atlas');
+    gdir = fullfile(mrstPath('co2lab'), 'data', 'atlas');
 
     dir_grid = dir(gdir);
     n = {dir_grid(~[dir_grid.isdir]).name};

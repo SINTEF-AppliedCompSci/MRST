@@ -172,7 +172,7 @@ axis tight
 % the larger Utsira formation and by comparing the local features we can
 % see the level of detail which has been lost by coarsening.
 
-sleipner_deck = readGRDECL(fullfile(VEROOTDIR, 'data', 'sleipner', 'M9X1.grdecl'));
+sleipner_deck = readGRDECL(fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'));
 
 % Do mapaxis explicitly to get coinciding coordinate systems
 ma = [436914 6475050 436914 6469150 440114 6469150];

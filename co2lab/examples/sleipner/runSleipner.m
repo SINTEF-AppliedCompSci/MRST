@@ -103,7 +103,8 @@ try
    cpp_accel = true;
 catch me
    disp('mex-file for C++ acceleration not found');
-   disp(['See ', fullfile(VEROOTDIR,'src/VEmex','README'), ' for building instructions']);
+   disp(['See ', fullfile(mrstPath('co2lab'),'ve','VEmex','README'), ...
+      ' for building instructions']);
    disp('Using matlab VE-transport');
    cpp_accel = false;
 end

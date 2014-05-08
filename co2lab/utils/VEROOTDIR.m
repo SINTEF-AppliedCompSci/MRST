@@ -13,7 +13,8 @@ function veroot = VEROOTDIR
 %{
 #COPYRIGHT#
 %}
-
+warning('co2lab:deprecated',...
+   'This file is deprecated. Use ''mrstPath(''co2lab'')'' instead');
 nm = mfilename('fullpath');
 ix = strfind(nm, filesep);
 if ~isempty(ix),

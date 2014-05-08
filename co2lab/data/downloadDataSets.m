@@ -34,7 +34,8 @@ function downloadDataSets(varargin)
 %     The Johansen formation is a candidate site for large-scale CO2
 %     storage offshore the south-west coast of Norway. The Johansen data
 %     set, consists of four different sector models and a full-field model.
-%     Here, we only download the NPD5 sector model. For more details, see:
+%     Here, we only download the NPD5 sector and the full-field models. For
+%     more details, see:
 %     http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/
 %     Size of data set: ~13 MB
 %
@@ -80,12 +81,12 @@ end
 if getJohansen || (ask && userConsent('Download the Johansen data set (~13 MB)'))
    fprintf(1, '  Downloading Johansen sector model (NPD5) ..');
    unzip('http://www.sintef.no/project/MatMoRA/Johansen/NPD5.zip', ...
-      fullfile(VEROOTDIR, 'data', 'johansen'));
+      fullfile(mrstPath('co2lab'), 'data', 'johansen'));
    fprintf(1,'done\n');
 
    fprintf(1,'  Downloading Johansen full-field model..');
    unzip('http://www.sintef.no/project/MatMoRA/Johansen/FULLFIELD_Eclipse.zip', ...
-      fullfile(VEROOTDIR, 'data', 'johansen'));
+      fullfile(mrstPath('co2lab'), 'data', 'johansen'));
     fprintf(1,'done\n');  
 end
 
@@ -93,7 +94,7 @@ end
 if getSloping || (ask && userConsent('Download synthetic sloping aquifer model (~3 MB)'))
    fprintf(1,'  Downloading synthetic sloping aquifer model ..');
    untar('http://www.sintef.no/project/MRST/IGEMS.tar.gz',...
-      fullfile(VEROOTDIR, 'data'));
+      fullfile(mrstPath('co2lab'), 'data'));
    fprintf(1,'done\n');
 end
 
@@ -101,9 +102,9 @@ end
 if getAtlas || (ask && userConsent('Download CO2 Atlas (~14 MB)'))
    fprintf(1,'  Downloading CO2 Atlas (this may take a few minutes) ..');
    untar('http://www.sintef.no/project/MRST/CO2_atlas.tar.gz',...
-      fullfile(VEROOTDIR, 'data'));
+      fullfile(mrstPath('co2lab'), 'data'));
    untar('http://www.sintef.no/project/MRST/mapAndWells.tar.gz', ...
-      fullfile(VEROOTDIR, 'data', 'atlas'));
+      fullfile(mrstPath('co2lab'), 'data', 'atlas'));
    fprintf(1,'done\n');
 end
 
@@ -111,7 +112,7 @@ end
 if getIGEMS || (ask && userConsent('Download IGEMS data set (~1.1 GB)'))
    % Download and check surfaces
    fprintf(1,'  Downloading IGEMS surfaces (this may take several minutes) ..');
-   datadir = fullfile(VEROOTDIR, 'data', 'igems');
+   datadir = fullfile(mrstPath('co2lab'), 'data', 'igems');
    unzip('http://www.nr.no/files/sand/Igems/surfaces.zip', datadir);
    dirs = dir(fullfile(datadir,'surfaces'));
    for i=1:numel(dirs)

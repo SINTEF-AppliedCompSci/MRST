@@ -21,7 +21,7 @@ if nargin<1, usemex=true; end
 fname = 'slopingAquiferBig.mat';
 try
    disp([' -> Reading ' fname]);
-   datadir = fullfile(VEROOTDIR, 'data', 'mat');
+   datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
    load(fullfile(datadir, fname));
    return;
 catch %#ok<*CTCH>
@@ -30,7 +30,7 @@ end
 
 %% Read the IGEMS data file
 try
-   idir = fullfile(VEROOTDIR, 'data', 'igems');
+   idir = fullfile(mrstPath('co2lab'), 'data', 'igems');
    imodel = 'IGEMS.GRDECL';
    fprintf('    Reading %s\n', imodel);
    grdecl = readGRDECL(fullfile(idir, imodel));
@@ -38,7 +38,7 @@ catch
    disp(' -> Download data from: http://www.sintef.no/Projectweb/MRST/');
    disp(['    Putting data in ', idir]);
    untar('http://www.sintef.no/project/MRST/IGEMS.tar.gz',...
-      fullfile(VEROOTDIR, 'data'));
+      fullfile(mrstPath('co2lab'), 'data'));
    grdecl = readGRDECL(fullfile(idir, imodel));
 end
 

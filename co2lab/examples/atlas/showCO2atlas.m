@@ -114,7 +114,8 @@ for i=1:ng;
     plotCellData(grids{i}, data, 'facea', .3, 'edgea', .05, 'edgec', 'k');
 end
 
-legend(cellfun(@(x) x.name, grdecls, 'UniformOutput', false), 'Location', 'EastOutside')
+legend(cellfun(@(x) x.name, grdecls, 'UniformOutput', false), ...
+   'Location', 'EastOutside')
 
 box on
 view(2)
@@ -126,14 +127,14 @@ ax = axis();
 colormap hsv
 
 % Load and plot a map 
-load(fullfile(VEROOTDIR, 'data', 'atlas', 'norway.mat'));
+load(fullfile(mrstPath('co2lab'), 'data', 'atlas', 'norway.mat'));
 for k=1:length(norway), 
     line(norway{k}(:,1) + 6.8e5, norway{k}(:,2)); 
 end;
 axis(ax)
 
 hold on
-load(fullfile(VEROOTDIR, 'data', 'atlas', 'welldata.mat'));
+load(fullfile(mrstPath('co2lab'), 'data', 'atlas', 'welldata.mat'));
 plot(welldata(:,2), welldata(:,1), '.k', 'MarkerSize', 5)
 
 
@@ -160,4 +161,5 @@ for i=1:ng;
 end
 axis tight; box on; view(-300,50)
 hold off
-legend(cellfun(@(x) x.name, grdecls, 'UniformOutput', false), 'Location', 'EastOutside')
+legend(cellfun(@(x) x.name, grdecls, 'UniformOutput', false), ...
+   'Location', 'EastOutside')
