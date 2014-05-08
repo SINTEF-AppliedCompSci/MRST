@@ -30,12 +30,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    i =     strncmp(m, p, length(m));
    i = i | ~cellfun(@isempty, regexp(p, '\.(git|hg|svn)'));
+   i = i | ~cellfun(@isempty, regexp(p, '3rdparty'));
    i = i | cellfun(@isempty, p);
 
    addpath(p{~i});
 
    % Add modules as module root directory
    mrstPath('addroot', m);
+
+   % Register known third-party modules
+   mod_3rdparty = { 'matlab_bgl' };
+   thirdparty   = @(m) fullfile(d, 'utils', '3rdparty', m);
+   for mod = reshape(mod_3rdparty, 1, []),
+      mrstPath('add', mod{1}, thirdparty(mod{1}));
+   end
 
    % If there exists a startup_user.m file in the root dir of MRST, we
    % execute this file.
