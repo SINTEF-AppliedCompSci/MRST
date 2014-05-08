@@ -48,18 +48,18 @@ else
       unzip('http://files.nr.no/igems/eclipsegrids.zip',pth);
    end
    
-   fprintf(['Reading and processing a 588 MB file.' ...
-      'This may take a long time...']); 
+   fprintf('Reading and a 588 MB file. This may take a long time...'); 
    grdecl = readGRDECL(fullfile(pth, fle));
-   
+   fprintf('done.\nConstructing grid and petrophysics...');
    try
-      moduleCheck('mex'); % load opm_gridprocessing and libgeometry
+      moduleCheck('opm_gridprocessing', 'libgeometry');
       G = processgrid(grdecl);
       G = mcomputeGeometry(G);
    catch                                                         %#ok<CTCH>
       G = computeGeometry(processGRDECL(grdecl));
    end
    rock = grdecl2Rock(grdecl);
+   fprintf('done.\nCreating top-surface grid...');
    [Gt,G] = topSurfaceGrid(G);
    rock2D = averageRock(rock, Gt);
 
@@ -221,6 +221,6 @@ clf; plotCellData(Gt, trap_field); axis equal tight; colorbar;
 clf; plotCellData(Gt, ts.trap_regions, trap_field==0);
 plotGrid(Gt, trap_field>0, 'FaceColor', 'k', 'EdgeColor','none');
 nreg = max(ts.trap_regions);
-colormap((2*colorcube(nreg+1)+ones(nreg+1,3))/3); 
+colormap((colorcube(nreg+1)+2*ones(nreg+1,3))/3); 
 view(2); axis equal tight
 
