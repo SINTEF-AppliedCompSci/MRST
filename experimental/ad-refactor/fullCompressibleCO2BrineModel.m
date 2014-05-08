@@ -24,11 +24,11 @@ classdef fullCompressibleCO2BrineModel < physicalModel
         function model = fullCompressibleCO2BrineModel(Gt, tinfo, varargin)
             opt.EOSCO2   = []; 
             opt.EOSBRINE = [];
-            opt.slope    = 0;                    % in radians
-            opt.slopedir = [1 0];                % default is slope towards east
-            opt.rhoBrine = 1020 kg / meter^3;    % if EOS not provided
-            opt.mu       = [5.36108e-5, 6.5e-4]; % Default mu values [CO2, brine]
-            op5.constantVerticalDensity = false; % true for semi-compressible model
+            opt.slope    = 0;                       % in radians
+            opt.slopedir = [1 0];                   % default is slope towards east
+            opt.rhoBrine = 1020 kilogram / meter^3; % if EOS not provided
+            opt.mu       = [5.36108e-5, 6.5e-4];    % Default mu values [CO2, brine]
+            op5.constantVerticalDensity = false;    % true for semi-compressible model
             opt = merge_options(opt, varargin{:});
             
             % Ensuring equations of state are defined
