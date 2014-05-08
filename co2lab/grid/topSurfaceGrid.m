@@ -156,7 +156,7 @@ g_old = g;
 
 if ~all(activeCells(:))
    mlist = mrstModule;
-   mrstModule add mex;
+   mrstModule add libgeometry;
    g = removeCells(g, cart2active(g, find(~activeCells)));
    g = remove_disc_cells(g, verbose);
    g = mcomputeGeometry(g);

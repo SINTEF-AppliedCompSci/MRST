@@ -43,8 +43,10 @@ function res = trapAnalysis(Gt, method)
 %
   if method
       % we will use the cell-based method
-      require coarsegrid 
+      mlist = mrstModule();
+      moduleCheck('matlab_bgl','coarsegrid');
       res = cell_based_trap_analysis(Gt);
+      mrstModule('reset', mlist{:})
   else
       % we will use the edge-based method
       res = edge_based_trap_analysis(Gt);
