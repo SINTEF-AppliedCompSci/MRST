@@ -12,19 +12,20 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
    wsg = vertcat(W(:).sign);
    ssg = sign(getTotalRate(sol));
    inx = find(wsg~=ssg);
-
    wells_shut = false;
    if ~opt.allowWellSignChange & opt.allowControlSwitching
-      for k = 1:numel(inx)
+      if any(inx)
          wells_shut = true;
-         tps  = {'injector', 'producer'};
-         tpIx = [1 2];
-         if wsg(inx(k)) < 1, tpIx = [2 1];end
-         W(inx(k)).status = false;
-         fprintf(['Well ', W(inx(k)).name, ' has been shut down.\n']);
+         ostring = 'Wells ';
+         for k = 1:numel(inx)
+            W(inx(k)).status = false;
+            ostring = [ostring,  W(inx(k)).name, ', '];
+         end
+         fprintf([ostring(1:end - 2) ' shut down.\n']);
       end
    end
 
+   
    % Check if well-controls have been switch, if so, update W
    inx = find(~arrayfun(@(x,y)strcmp(x.type,y.type), W(:), sol(:)));
    for k = 1:numel(inx)
@@ -34,6 +35,7 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
       W(inx(k)).type = toTp;
       W(inx(k)).val  = sol(inx(k)).val;
    end
+   
 end
 
 
