@@ -64,6 +64,8 @@ timer = tic;
 [wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
 toc(timer)  
 
+
+
 %% Plot Producer Gas/Oil ratio
 T = convertTo(cumsum(schedule.step.val), day);
 inj  = find([wellSols{1}.sign] == 1);
@@ -78,22 +80,45 @@ xlabel('Days')
 title('Gas rate / Oil rate')
 
 
-%% Plot Producer Bottom Hole Pressure
+
+%% Plot of Bottom Hole Pressure and gas production/injection rate
+% The wells are controlled by gas rate but also constrained by pressure. For the producing well, the
+% lower limit for the bottom hole pressure is 1050 psia (72.395 bar). We observe that the
+% producing well switches control at t=5840 days.
+
 figure(2)
 clf
-bhp_p = bhp(:,prod);
-plot(T,     convertTo(bhp_p, barsa), '-*b')
+subplot(2,2,1)
+bhp_p = convertTo(bhp(:,prod), barsa);
+plot(T, bhp_p, '-*b')
 xlabel('Days')
 ylabel('bar')
 title('Bottom hole pressure (Producer)')
-
-
-%% Plot Injector Bottom Hole Pressure
-figure(3)
-clf
-bhp_i = bhp(:,inj);
-plot(T,     convertTo(bhp_i, barsa), '-*b')
+subplot(2,2,2)
+bhp_i = convertTo(bhp(:,inj), barsa);
+plot(T, bhp_i, '-*b')
 xlabel('Days')
 ylabel('bar')
 title('Bottom hole pressure (Injector)')
+subplot(2,2,3)
+qGs_p = day*qGs(:,prod);
+plot(T, qGs_p, '-*b')
+xlabel('Days')
+ylabel('m^3/day')
+title('Gas production rate (m^3/day)')
+subplot(2,2,4)
+qGs_i = day*qGs(:,inj);
+plot(T, qGs_i, '-*b')
+xlabel('Days')
+ylabel('m^3/day')
+title('Gas injection rate (m^3/day)')
+
+% Compute first time producing well switches to bhp control
+ct = cellfun(@(w)(w(2).type), wellSols, 'uniformoutput', false);
+ind = find(strcmp('bhp', ct), 1);
+subplot(2,2,1)
+text(T(ind), bhp_p(ind), 'Well control switches from gas rate to bhp \rightarrow  ', ...
+     'horizontalalignment', 'right');
+subplot(2,2,3)
+text(T(ind), qGs_p(ind), 'Well control switches from gas rate to bhp \rightarrow  ', 'horizontalalignment', 'right');
 
