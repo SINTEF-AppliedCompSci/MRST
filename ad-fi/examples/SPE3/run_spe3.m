@@ -43,7 +43,7 @@ rs0 = 0;
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   
 clear k p0 s0 rv0 rs0
 
-%% Plot well and permeability
+%% Plot wells and permeability
 %  The permeability is constant in each layer. There is one injecting and one
 %  producing well.
 

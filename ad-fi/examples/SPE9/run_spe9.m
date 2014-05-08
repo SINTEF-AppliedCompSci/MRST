@@ -41,6 +41,7 @@ state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 r
 % the toolbar in the figure.
 %
 
+figure(1)
 clf;
 W = processWells(G, rock, deck.SCHEDULE.control(1));
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...

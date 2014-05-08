@@ -51,7 +51,7 @@ rv0   = 0; % dry gas
 
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
 
-%% Plot well and permeability
+%% Plot wells and permeability
 %  The permeability consists of three layers going from high to low
 %  permeability along the z axis. The wells are completed in the upper and
 %  lower layer for the injector and producer respectively. To get a well
