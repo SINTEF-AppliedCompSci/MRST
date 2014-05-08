@@ -198,8 +198,25 @@ function lst = add_modules(lst, mods)
    end
 
    for r = reshape(pth(fnd), 1, []),
-      dirs = filter_module_dirs(r{1});
-      addpath(dirs{:});
+      try
+         mload = fullfile(r{1}, 'private', 'modload.m');
+
+         if exist(mload, 'file') == 2,
+            run(mload);
+         end
+
+         dirs = filter_module_dirs(r{1});
+         addpath(dirs{:});
+
+      catch ME
+         % 'modload' failed, proceed to next module.
+         [m, m] = fileparts(r{1});                              %#ok<ASGLU>
+
+         fprintf('Failed to load ''%s'':\n%s\n', m, ME.message);
+         fprintf('Module ''%s'' IGNORED\n', m);
+
+         continue;
+      end
    end
 
    mods   = mods(fnd);
