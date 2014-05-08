@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % execute this file.
    local = fullfile(ROOTDIR, 'startup_user.m');
    if exist(local, 'file') == 2
-       run(local);
+       run_local(local);
    end
 end
 
@@ -54,4 +54,10 @@ function p = split_path(p)
       % Octave compatibility.  It is an error to get here in an M run.
       p = strsplit(p, pathsep);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function run_local(local)
+   run(local)
 end
