@@ -83,9 +83,9 @@ for nn=1:numel(states)
     patch(xc([1 1:end end]), [zt(end)-10; zt; zt(end)-10],.7*[1 1 1]);
     patch(xc([1 1:end end]), [zb(end)+10; zb; zb(end)+10],.7*[1 1 1]);
     patch(xc([1:end end:-1:1]), ...
-      [zt + Gt.cells.H.*state.s(:,2); zt(end:-1:1)], 'g')
+      [zt + Gt.cells.H.*state.s(:,2); zt(end:-1:1)], getVEColors('plume'))
     patch(xc([1:end end:-1:1]), ...
-      [zt + Gt.cells.H.*state.s(:,2); zb(end:-1:1)], 'b')
+      [zt + Gt.cells.H.*state.s(:,2); zb(end:-1:1)], getVEColors('brine'))
     set(gca,'YDir','reverse'), axis tight
     
     drawnow;
