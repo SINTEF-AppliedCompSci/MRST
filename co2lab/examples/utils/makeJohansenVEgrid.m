@@ -40,7 +40,7 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeJohansenVEgrid()
 
 try
    disp(' -> Reading Johansen.mat');
-   datadir = fullfile(mrstPath('co2lab','data','mat');
+   datadir = fullfile(mrstPath('co2lab'),'data','mat');
    load(fullfile(datadir,'Johansen'));
    return;
 catch %#ok<*CTCH>
