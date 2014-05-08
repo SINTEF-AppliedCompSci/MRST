@@ -91,10 +91,11 @@ function kr= krG(sg, Gt, opt,varargin)
       case 'sinus'
             kr2 = ((sg_free .* Gt.cells.H).^2 - opt.top_trap.^2) ./ ...
                   (Gt.cells.H.^2 - opt.top_trap.^2);
-
-            kr2=kr2+1e-4*sg_free;  % @@ Adding small 'fudge factor'
-            kr2(kr2<0)=0*sg_free(kr2<0);  % @@ Really necessary??
-            kr=(kr2).^(0.5);
+            factor=1e-4;% @@ Adding small 'fudge factor' to avoid singularity
+            %kr2=kr2+1e-4*sg_free;  
+            kr2(kr2<0)=0*sg_free(kr2<0);% @@ Really necessary?? 
+            kr=(kr2).^(0.5);            
+            kr(kr2<factor)=(kr2(kr2<factor)/factor)*(factor^(0.5));
 
       case 'square'
            kr_s=(sg_free.^2 - (opt.top_trap ./ Gt.cells.H).^2) ./ ...
@@ -150,11 +151,7 @@ end
 
 % ----------------------------------------------------------------------------
 function pc = pcOG(sg, p, fluid, Gt, opt, varargin)
-<<<<<<< HEAD
-    loc_opt = struct('sGmax',[]);    
-=======
     loc_opt = struct('sGmax',[]);
->>>>>>> 48a5afe9e7e3b9810104c7aab551f52485f109f4
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
         % could been put in separate function
