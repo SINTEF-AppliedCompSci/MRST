@@ -17,7 +17,7 @@ function veroot = VEROOTDIR
 nm = mfilename('fullpath');
 ix = strfind(nm, filesep);
 if ~isempty(ix),
-   veroot = nm(1 : ix(end-2));
+   veroot = nm(1 : ix(end-1));
 else
    veroot = nm;
 end
