@@ -5,12 +5,13 @@ function c = getVEColors(ind)
 %   c = getVEColors(ind)
 %
 % PARAMETERS:
-%   ind - a scalar or vector consisting of one or more of the numbers one to
-%         five. These numbers signify the following parts of a VE model:
-%            1 - trapped CO2
-%            2 - CO2 plume (movable)
-%            3 - residual CO2
-%            4 - CO2 dissolved in brine
+%   ind - a scalar or vector consisting of one or more of the numbers one
+%         to five, or a cell array consisting of a set of strings, that
+%         signify the following parts of a VE model:
+%            1 - trapped
+%            2 - plume
+%            3 - residual
+%            4 - dissolved
 %            5 - brine
 %
 % RETURNS:
@@ -25,18 +26,23 @@ function c = getVEColors(ind)
 red = [1 0 0]; blue = [0 0 1]; white = [1 1 1]; black = [0 0 0];
 mix = @(a,b,c) (a*c + b*(100-c))/100;
 
+if ischar(ind)
+   ind = {ind};
+elseif isnumeric(ind)
+   ind = num2cell(ind);
+end
 c = zeros(numel(ind),3);
 for i=1:numel(ind)
-   switch ind(i)
-      case 1
+   switch ind{i}
+      case {1,'trapped'}
          c(i,:) = mix(mix(red,white,40),black,80);
-      case 2
+      case {2,'plume'}
          c(i,:) = mix(red,white,40);
-      case 3
+      case {3,'residual'}
          c(i,:) = mix(mix(red,blue,50),white,20);
-      case 4
+      case {4,'dissolved'}
          c(i,:) = mix(blue,white,20);
-      case 5
+      case {5,'brine'}
          c(i,:) = mix(blue,white,30);
    end
 end 
