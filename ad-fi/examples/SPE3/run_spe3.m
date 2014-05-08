@@ -1,8 +1,10 @@
-%% SPE3 case for fully implicit black oil solver
-% This example solves the SPE1 problem which consists of gas injection in a
-% small ($9\times9\times4$) reservoir with a single producer and
-% injector. The problem is parsed and solved from the problem file
-% "SPE3.DATA" 
+%% SPE3 case using fully implicit black oil solver
+% This example solves the SPE3 problem which consists of gas injection in a
+% small ($9\times9\times4$) reservoir. The problem is originally a compositional
+% problem. Using PVTi, we convert it to a blackoil problem and the resulting
+% datas are provided in the file "SPE3.DATA". The oil can vaporize but the gas
+% cannot dissolve in oil so that the gas/oil ratio remains equal to zero during
+% the whole simulation. 
 
 require ad-fi deckformat
 
@@ -28,12 +30,9 @@ fluid = initDeckADIFluid(deck);
 % The case includes gravity
 gravity on
 
-%%
-% The initial state is a pressure field and  a
-%  mixture of water  and free gas (So=0.88) which are constant in each layer. The gas cannot
-%  dissolve in oil but ith no initial free
-% gas (Sg=0.0) and a constant dissolved gas/oil ratio ("Rs") throughout the
-% model.
+%% Set up initial state
+%  The initial state is a pressure field and a mixture of water and free gas
+%  corresponding to the equilibrium between gravitational and capillary forces.
 
 p0  = deck.SOLUTION.PRESSURE;
 sw0 = deck.SOLUTION.SWAT;
@@ -44,7 +43,20 @@ rs0 = 0;
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   
 clear k p0 s0 rv0 rs0
 
-%fluid.rsSat = @(p)rs0;
+%% Plot well and permeability
+% The permeability is constant in each layer. There is one injecting and one
+% producing well.
+
+clf;
+W = processWells(G, rock, deck.SCHEDULE.control(1));
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
+            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
+title('Permeability (mD)')
+axis tight;
+view(35, 40);
+colorbar('SouthOutside');
+
 %% Initialize schedule and system before solving for all timesteps
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);
@@ -56,6 +68,7 @@ toc(timer)
 T = convertTo(cumsum(schedule.step.val), day);
 inj  = find([wellSols{1}.sign] == 1);
 prod = find([wellSols{1}.sign] == -1);
+% Put the well solution data into a format more suitable for plotting
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 figure(1)
 clf
@@ -63,6 +76,7 @@ gor = qGs(:,prod)./qOs(:,prod);
 plot(T, gor, '-*b')
 xlabel('Days')
 title('Gas rate / Oil rate')
+
 
 %% Plot Producer Bottom Hole Pressure
 figure(2)
@@ -72,6 +86,7 @@ plot(T,     convertTo(bhp_p, barsa), '-*b')
 xlabel('Days')
 ylabel('bar')
 title('Bottom hole pressure (Producer)')
+
 
 %% Plot Injector Bottom Hole Pressure
 figure(3)
