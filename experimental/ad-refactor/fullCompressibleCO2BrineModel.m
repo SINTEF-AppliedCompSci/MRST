@@ -26,7 +26,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             opt.EOSBRINE = [];
             opt.slope    = 0;                       % in radians
             opt.slopedir = [1 0];                   % default is slope towards east
-            opt.rhoBrine = 1020 kilogram / meter^3; % if EOS not provided
+            opt.rhoBrine = 1020 * kilogram / meter^3; % if EOS not provided
             opt.mu       = [5.36108e-5, 6.5e-4];    % Default mu values [CO2, brine]
             op5.constantVerticalDensity = false;    % true for semi-compressible model
             opt = merge_options(opt, varargin{:});
@@ -42,7 +42,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             % Inherited properties
             model.G         = Gt;
             model.name      = 'fully_compressible_CO2_brine';
-            model.operators = model.setupOperators(Gt, rock, varargin{:});
+            model           = model.setupOperators(Gt, rock, varargin{:});
             model.oil       = false;
             model.gas       = true;
             model.water     = true;
@@ -53,18 +53,18 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             model.T_grad      = tinfo{3}; 
             model.slope       = opt.slope;
             model.cfluid = setupFluid(opt.EOSCO2,   opt.mu(1), opt.slope, ...
-                                      T_grad, opt.constantVerticalDensity);
+                                      model.T_grad, opt.constantVerticalDensity);
             model.bfluid = setupFluid(opt.EOSBRINE, opt.mu(2), opt.slope, ...
-                                      T_grad, opt.constantVerticalDensity);
+                                      model.T_grad, opt.constantVerticalDensity);
           
         end
     end
     % ============================== Private methods ==============================
     methods (Access = private)
 
-        function operators = setupOperators(model, Gt, rock, varargin)
+        function model = setupOperators(model, Gt, rock, varargin)
             
-            operators = setupSimCompVe(Gt, rock, varargin{:});
+            model.operators = setupSimCompVe(Gt, rock, varargin{:});
         end 
     % ----------------------------------------------------------------------------
         function [problem, state] = ...
@@ -81,57 +81,56 @@ classdef fullCompressibleCO2BrineModel < physicalModel
         
     % ----------------------------------------------------------------------------    
         function updateState(model, state, problem, dx, drivingForces)
-            
+            error('unimplemented');
         end
     end
-    
-    % ====================== Helper functions (not methods) ======================
-    
-    function EOS = makeConstantEOS(rho)
-        EOS.rho = @(p, t) rho * ones(numel(double(p)), 1);
-    end
-    
-    % ----------------------------------------------------------------------------
-    
-    function fluid = setupFluid(EOS, mu, slope, Tgrad, vconst)
-        fluid.mu  = @(p, t) mu; % @@ can be rewritten to allow variable mu
-        fluid.rho = @EOS.rho;   % Should be a function of p and t
-        
-        % define functions to correct for variable vertical density
-        fluid.h_integrals = etaIntegralFunctions(EOS, slope, Tgrad, vconst);
-    end
+end
 
-    % ----------------------------------------------------------------------------
+% ====================== Helper functions (not methods) ======================
+
+function EOS = makeConstantEOS(rho)
+    EOS.rho = @(p, t) rho * ones(numel(double(p)), 1);
+end
+
+% ----------------------------------------------------------------------------
+
+function fluid = setupFluid(EOS, mu, slope, Tgrad, vconst)
+    fluid.mu  = @(p, t) mu; % @@ can be rewritten to allow variable mu
+    fluid.rho = @EOS.rho;   % Should be a function of p and t
     
-    function c = IetaAndINupEta(p, t, EOS, Gct, gct)
-        [Ieta, INupEta] = etaIntegrals(EOS, p , t, Gct, gct); 
-        c = {Ieta, INupEta};
+    % define functions to correct for variable vertical density
+    fluid.h_integrals = etaIntegralFunctions(EOS, slope, Tgrad, vconst);
+end
+
+% ----------------------------------------------------------------------------
+
+function c = IetaAndINupEta(p, t, EOS, Gct, gct)
+    [Ieta, INupEta] = etaIntegrals(EOS, p , t, Gct, gct); 
+    c = {Ieta, INupEta};
+end
+
+% ----------------------------------------------------------------------------
+
+function fun = etaIntegralFunctions(EOS, slope, Tgrad, vconst)
+    if complete_eos(EOS) && ~vconst
+        gct = norm(gravity) * cos(slope);
+        Gct = Tgrad / 1000  * cos(slope);
+        fun = @(p, t) IetaAndINupEta(p, t, EOS, Gct, gct);
+    else
+        % We do not have a complete, compressible equation of state, or
+        % alternatively, the user has requested constant vertical
+        % density, so the correction functions are empty
+        fun = @(p, t) {[], []};
     end
+end
+
+% ----------------------------------------------------------------------------
+
+function res = complete_eos(EOS)
+% Check if EOS has all the required functions to be useable for
+% approximating vertical density profiles
+    contains = @(name) isfield(EOS, name) && isa(EOS.(name), 'function_handle');
     
-    % ----------------------------------------------------------------------------
-    
-    function fun = etaIntegralFunctions(EOS, slope, Tgrad, vconst)
-        if complete_eos(EOS) && ~vconst
-            gct = norm(gravity) * cos(slope);
-            Gct = Tgrad / 1000  * cos(slope);
-            fun = @(p, t) IetaAndINupEta(p, t, EOS, Gct, gct);
-        else
-            % We do not have a complete, compressible equation of state, or
-            % alternatively, the user has requested constant vertical
-            % density, so the correction functions are empty
-            fun = @(p, t) {[], []};
-        end
-    end
-    
-    % ----------------------------------------------------------------------------
-    
-    function res = complete_eos(EOS)
-    % Check if EOS has all the required functions to be useable for
-    % approximating vertical density profiles
-        contains = @(name) isfield(EOS, name) && isa(EOS.(name), 'function_handle');
-        
-        % Return true if EOS contains all of the following functions:
-        res = all(contains({'rho', 'beta', 'gamma', 'chi', 'beta2', 'gamma2'}));
-    end
-    
+    % Return true if EOS contains all of the following functions:
+    res = all(contains({'rho', 'beta', 'gamma', 'chi', 'beta2', 'gamma2'}));
 end

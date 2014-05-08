@@ -11,8 +11,8 @@ function comp_refactor()
     ref_temp  = 273.15 + 6; % degrees kelvin
     ref_depth = 0;          % surface used as temperature reference depth
     temp_grad = 40;         % degrees per kilometer
-    tinfo     = {ref_temp, ref_dept, temp_grad}; 
-    rhoW      = 1020 kilogram / meter^3; % density of brine
+    tinfo     = {ref_temp, ref_depth, temp_grad}; 
+    rhoW      = 1020 * kilogram / meter^3; % density of brine
         
     %% define injection well and schedule
     schedule = ;

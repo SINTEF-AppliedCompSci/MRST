@@ -50,11 +50,11 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     
     %% Handling wells (setting up equations, rates)
     [eqs(3:4), wc, qw, types(3:4), names(3:4)] = ...
-        setupWellEquations(Gt, drivingForces.W, p, q, bhp, muC);
+        setupWellEquations(drivingForces.W, p, q, bhp, muC);
     
     %% Setting up equation systems
-    if ~isempty(IetaCO2) rhoC = rhoC .* IetaCO2(-h);  rhoC0 = rhoC0 .* IetaCO2(-h0);  end;
-    if ~isempty(IetaBri) rhoB = rhoB .* IetaBri(H-h); rhoB0 = rhoB0 .* IetaBri(H-h0); end;
+    if ~isempty(IetaCO2) rhoC = rhoC .* IetaCO2(-h);  rhoC0 = rhoC0 .* IetaCO2(-h0);  end; %#ok
+    if ~isempty(IetaBri) rhoB = rhoB .* IetaBri(H-h); rhoB0 = rhoB0 .* IetaBri(H-h0); end; %#ok
     
     eqs{1} = contEquation(s, dt, h,   h0,   rhoC, rhoC0, intFluxCO2, bc_cell, bc_fC, wc, qw);
     eqs{2} = contEquation(s, dt, H-h, H-h0, rhoB, rhoB0, intFluxBri, bc_cell, bc_fB, wc, qw);
@@ -63,14 +63,14 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     names(1:2) = {'CO2', 'brine'};
 
     % Rebalancing the conservation equations
-    for i = [1:2]   eqs(i) = eqs(i) * dt/year;   end
+    for i = [1:2]   eqs(i) = eqs(i) * dt/year;   end %#ok
 
     primary = {'pressure' ,'height', 'q', 'bhp'};
     problem = linearProblem(eqs, types, names, primary, state);
 end
 
 % ----------------------------------------------------------------------------
-function [eqs, wcells, wrates, tp, nm] = setupWellEquations(Gt, W, p, q, bhp, muC)
+function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, muC)
 % ----------------------------------------------------------------------------
     if isempty(W)  
         eqs{1} = 0*bhp; 
@@ -103,7 +103,7 @@ function eq = contEquation(s, dt, h, h0, rho, rho0, intflux, bcells, bflux, wcel
 end
 
 %-------------------------------------------------------------------------------
-function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir,
+function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
                                           rhoC, muC, INEfunC, rhoB, muB, INEfunB)
 %-------------------------------------------------------------------------------
     if isempty(bc);
@@ -257,8 +257,3 @@ function ifaces = interiorFaces(Gt)
     % Identify the internal faces (@ cleaner way of doing this?)
     ifaces = find(prod(double(Gt.faces.neighbors), 2) ~= 0);
 end
-
-
-
-
-
