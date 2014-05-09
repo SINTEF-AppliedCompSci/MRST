@@ -1,33 +1,33 @@
 function masses = massesVE(G, sol, rock, fluid, ts)
-    % SYNOPSIS:
-    %   vol = volumesVE(G, sol, rock, fluid)
-    %   vol = volumesVE(G, sol, rock, fluid, ts)
-    %   
-    % PARAMETERS:
-    %   G      - 2D top surface grid used for VE-simulations
-    %   sol    - Solution state as defined by initResSolVE
-    %   rock   - rock for the top surface grid
-    %   fluid  - fluid object
-    %   ts     - trapping structure object, typically returned by a call to
-    %            'findTrappingStructure'
-    % 
-    % RETURNS:
-    %   a vector with trapped and free volumes. If no trapping structure is
-    %   provided, the vector consists of two entries:
-    %      - the residual CO2 saturation in regions where the CO2 plume has
-    %        moved out again defined as the difference between h_max and h
-    %      - free volume defined as the height of CO2 column in each cell
-    %        multiplied by the pore volume of the cell and the CO2
-    %        saturation
-    %   If a trapping structure is provided, the vector consists of four
-    %   entries:
-    %      - residual volumes of CO2 confined to structural traps
-    %      - residual volume of CO2 left in cells the CO2 plume has
-    %        moved out again
-    %      - fraction of the free volume that will remained as residual CO2
-    %        when the plume moves out of cells
-    %      - movable volumes of CO2 confined to structural traps
-    %      - fraction of the free volume that can leave the cells
+% SYNOPSIS:
+%   vol = volumesVE(G, sol, rock, fluid)
+%   vol = volumesVE(G, sol, rock, fluid, ts)
+%
+% PARAMETERS:
+%   G      - 2D top surface grid used for VE-simulations
+%   sol    - Solution state as defined by initResSolVE
+%   rock   - rock for the top surface grid
+%   fluid  - fluid object
+%   ts     - trapping structure object, typically returned by a call to
+%            'findTrappingStructure'
+%
+% RETURNS:
+%   a vector with trapped and free volumes. If no trapping structure is
+%   provided, the vector consists of two entries:
+%      - the residual CO2 saturation in regions where the CO2 plume has
+%        moved out again defined as the difference between h_max and h
+%      - free volume defined as the height of CO2 column in each cell
+%        multiplied by the pore volume of the cell and the CO2
+%        saturation
+%   If a trapping structure is provided, the vector consists of four
+%   entries:
+%      - residual volumes of CO2 confined to structural traps
+%      - residual volume of CO2 left in cells the CO2 plume has
+%        moved out again
+%      - fraction of the free volume that will remained as residual CO2
+%        when the plume moves out of cells
+%      - movable volumes of CO2 confined to structural traps
+%      - fraction of the free volume that can leave the cells
    
     pv = rock.poro.*G.cells.volumes;
     if nargin==4
