@@ -37,13 +37,10 @@ function G = computeGeometryVE(G, varargin)
 % $Date: 2012-01-30 11:41:03 +0100 (Mon, 30 Jan 2012) $
 % $Revision: 9020 $
 
-%% Setup
+% Setup
 assert(size(G.faces.nodes, 2)==1);
 opt     = struct('verbose', mrstVerbose);
 opt     = merge_options(opt, varargin{:});
-
-%numC    = G.cells.num;
-%numF    = G.faces.num;
 
 if size(G.nodes.coords,2)==2
    coords    = [G.nodes.coords G.nodes.z];
@@ -88,7 +85,7 @@ cellCentroids(:,3) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,3)
 cellCentroids      = bsxfun(@rdivide, cellCentroids, cellVolumes);
 tocif(opt.verbose)
 
-%% Update grid
+% Update grid
 G.faces.areas     = faceAreas;
 G.faces.normals   = faceNormals;
 G.faces.centroids = faceCentroids(:,1:2);

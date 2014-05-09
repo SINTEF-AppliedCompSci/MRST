@@ -2,14 +2,17 @@ function [C,N, CC] = maxTPFAGravityMatrix(Gtop,varargin)
 %Returns a matrix defining the maximal gravity connection of the top surface
 %
 % SYNOPSIS:
-%    C = maxTPFAGravityMatrix(Gtop)
-%    [C, N ] = maxTPFAGravityMatrix(Gtop)
+%    C          = maxTPFAGravityMatrix(Gtop)
+%    [C, N ]    = maxTPFAGravityMatrix(Gtop)
 %    [C, N, CC] = maxTPFAGravityMatrix(Gtop)
 %
 % VARIABLES:
 %    Gtop - grid structure for a top-surface grid
+%
 %    C    - matrix with maximal gravity connection
-%    N    - 2*num_cells matrix defining the neiboursing cells
+%
+%    N    - 2*num_cells matrix defining the neibouring cells
+%
 %    CC   - matrix with maximal gravity connection including conections to
 %           boundary. Boundary is defind as cell num_cells+1
 %
@@ -18,9 +21,6 @@ function [C,N, CC] = maxTPFAGravityMatrix(Gtop,varargin)
 %
 %              use_multipoint -- locical to extend neighbours to nodebased
 %                                stencile neighbours.
-%
-%
-%
 %
 % DESCRIPTION:
 %    The routine constructs a matrix that represents the maximal gravity
@@ -91,7 +91,7 @@ C      = sparse(indx,indy,1,cnum,cnum);
 C      = C + sparse(double(ni2),double(ni1),z_diff==0,cnum,cnum) + ...
     sparse(double(ni1),double(ni2),z_diff==0,cnum,cnum);
 if(nargout>2)
-    %%
+    %
     CC      = sparse(indx,indy,1,cnum+1,cnum+1);
     CC      = CC + sparse(double(ni2),double(ni1),z_diff==0,cnum+1,cnum+1) + ...
         sparse(double(ni1),double(ni2),z_diff==0,cnum+1,cnum+1);
@@ -99,7 +99,7 @@ if(nargout>2)
     b_cells=sum(N(~intern,:),2);
     ind=full(sum(CC(b_cells,:),2))==0;
     b_out=b_cells(ind);
-    %%
+    %
     CC      = CC + sparse(b_out,cnum+1,1,cnum+1,cnum+1);
 end
 

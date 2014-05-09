@@ -18,7 +18,7 @@ warning('co2lab:deprecated',...
 nm = mfilename('fullpath');
 ix = strfind(nm, filesep);
 if ~isempty(ix),
-   veroot = nm(1 : ix(end-1));
+   veroot = nm(1 : ix(end-2));
 else
    veroot = nm;
 end

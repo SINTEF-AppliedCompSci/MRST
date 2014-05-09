@@ -6,17 +6,17 @@ function G = processAAIGrid(meta, data, topgrid, cstrids)
 % PARAMETERS:
 %   G       - Grid data structure.
 %
-%   meta  - meta data of the grid
+%   meta    - meta data of the grid
 %
-%   data  - data defining hight of surface
+%   data    - data defining hight of surface
 %
 %   topgrid - if true make topsurface grid
 %
 %   cstrids - stride to make coarser representation
 %
 % RETURNS:
-%   G - valid mrst grid, if topgrid is true it has the format of
-%       at topsurface grid or else it is a 2D grid embedded in 3D
+%   G - valid MRST grid. If 'topgrid' is true, G has the format of
+%       a top-surface grid. If not, G is a 2D grid embedded in 3D
 % 
 % NOTES:
 %

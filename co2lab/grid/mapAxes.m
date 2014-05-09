@@ -28,7 +28,7 @@ e1 = MA(5:6) - MA(3:4); e1 = e1/norm(e1);
 e2 = MA(1:2) - MA(3:4); e2 = e2/norm(e2);
 msign=dot([0 0 1],cross([e1,0],[e2,0]));
 if(msign<0)
-    warning('mapAxis','mapAxes may change signature of coordinate system.')
+    warning('mapAxis:sgn','mapAxes may change signature of coordinate system.')
 end
 % tranform coordinate system may change the sign of the system
 mpos = bsxfun(@times,pos(:,1),e1)+bsxfun(@times,pos(:,2),e2);
