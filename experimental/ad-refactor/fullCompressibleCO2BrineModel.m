@@ -84,7 +84,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
         end
         
     % ----------------------------------------------------------------------------    
-        function updateState(model, state, problem, dx, drivingForces)
+        function state = updateState(model, state, problem, dx, drivingForces)
 
             % computing pressure increment
             dp = dx{problem.indexOfPrimaryVariable('pressure')};
@@ -92,7 +92,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             
             % computing height increment
             dh    = dx{problem.indexOfPrimaryVariable('height')};
-            dhMax = model.sMax .* model.G.cells.H;
+            dhMax = model.dsMax .* model.G.cells.H;
             dh    = sign(dh) .* min(abs(dh), dhMax);
             
             % computting well-related increments
@@ -103,11 +103,12 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             state.pressure     = state.pressure + dp;
             state.h            = state.h + dh;
             if ~isempty(dbhp)
-                dbhp = sign(dbhp) .* min(abs(dbhp) .* vertcat(state.wellSol.bhp));
+                dbhp = sign(dbhp) .* min(abs(dbhp),  ...
+                                         abs(model.dpMax.* vertcat(state.wellSol.bhp)));
                 for w = 1:numel(state.wellSol)
                     state.wellSol(w).bhp = state.wellSol(w).bhp + dbhp(w);
                     state.wellSol(w).qGs = state.wellSol(w).qGs + dq;
-                    n_ix = state.wellSOl.qGs < 0;
+                    n_ix = state.wellSol.qGs < 0;
                     state.wellSol(w).qGs(n_ix) = 0;
                 end
             end

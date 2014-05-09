@@ -7,6 +7,18 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     opt = struct('reverseMode' , false, 'resOnly', false, 'iteration', -1);
     opt = merge_options(opt, varargin{:});
     
+    %% Ensure that the state's wellSol struct is present if and only if there
+    %% are wells present
+    if isempty(drivingForces.Wells) && isfield(state, 'wellSol')
+        % no wells present - remove wellSol structure
+        state.wellSol.qGs = [];
+        state.wellSol.bhp = [];
+    elseif ~isempty(drivingForces.Wells) && ~isfield(state, 'wellSol')
+         % wells present and no wellSol structure initialized.  Do it.
+         state = struct('qGs', drivingForces.Wells.val, ...
+                        'bhp', state.pressure(vertcat(drivingForces.Wells.wc)));
+    end
+        
     %% Precomputed values useful for later
     g_cos_t = norm(gravity) * cos(slope);
     g_sin_t = norm(gravity) * sin(slope);
@@ -41,7 +53,7 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     
     intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, s.T, -1, dpI, ...
                              mod_term, -s.grad(rhoC), rhoC, muC, h,   H, g_cos_t); 
-    intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, s.T,  1, dpI, ...
+    intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaBri, s.T,  1, dpI, ...
                              mod_term, -s.grad(rhoB), rhoB, muB, H-h, H, g_cos_t);
     
     %% Computing boundary fluxes, if any
@@ -51,7 +63,7 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     
     %% Handling wells (setting up equations, rates)
     [eqs(3:4), wc, qw, types(3:4), names(3:4)] = ...
-        setupWellEquations(drivingForces.W, pI, q, bhp, muC);
+        setupWellEquations(drivingForces.Wells, pI, q, bhp, muC);
     
     %% Setting up equation systems
     if ~isempty(IetaCO2) rhoC = rhoC .* IetaCO2(-h);  rhoC0 = rhoC0 .* IetaCO2(-h0);  end; %#ok
@@ -64,7 +76,7 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     names(1:2) = {'CO2', 'brine'};
 
     % Rebalancing the conservation equations
-    for i = [1:2]   eqs(i) = eqs(i) * dt/year;   end %#ok
+    for i = [1:2]   eqs{i} = eqs{i} * dt/year;   end %#ok
 
     primary = {'pressure' ,'height', 'q', 'bhp'};
     problem = linearProblem(eqs, types, names, primary, state);
@@ -76,6 +88,8 @@ function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, muC)
     if isempty(W)  
         eqs{1} = 0*bhp; 
         eqs{2} = 0*bhp; 
+        wcells = [];
+        wrates = [];
         tp = {'none', 'none'};
         nm = {'empty', 'empty'};
         return;  
@@ -136,13 +150,35 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     % Manually setting up the relevant discretization operators for the boundary
     avg   = @(x) x;     % x will already refer to boundary faces here, so nothing to do.
     ustr  = @(i, x) x; % ditto
-    bINEfunC = @(x) restrict_fun(INEfunC, x, cells);
-    bINEfunB = @(x) restrict_fun(INEfunB, x, cells);
+    bINEfunC = make_restrict_fun(INEfunC, cells, rhoC); % @@ Suboptimal solution.  Candidate
+    bINEfunB = make_restrict_fun(INEfunB, cells, rhoB); %    for optimization if necessary.
     gct   = norm(gravity) * cos(slope);    
     fluxC = computeFlux(avg, ustr, bINEfunC, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, bH, gct);
     fluxB = computeFlux(avg, ustr, bINEfunB, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, bH, gct);
     
 end
+
+% ----------------------------------------------------------------------------
+function res = make_restrict_fun(fun, ix, model)
+% @@ A really hacky function.  It should be considered to change the calling
+% code so that the below isn't necessary.
+% ----------------------------------------------------------------------------
+    if isempty(fun)
+        res = [];
+        return;
+    end
+    
+    function v = f(x)
+        tmp = model*0; % We just need an empty (possible ADI) variable of
+                       % the size expected by the function 'fun'
+        tmp(ix) = x;   % We only need the evaluations of 'fun' for the        
+        v = fun(tmp);  % indices 'ix'.  Give these indices a non-dummy value, 
+        v = v(ix);     % compute the function, and extract only the resulting 
+    end                % components.                                          
+        
+    res = @f;
+end
+
 
 %-------------------------------------------------------------------------------
 function flux = computeFlux(faceAvgFun, UpstrFun, INupEtaFun, ...
@@ -246,9 +282,11 @@ end
 % ----------------------------------------------------------------------------
 function [p, h, q, bhp] = extract_vars(st, initADI)
 % ----------------------------------------------------------------------------
+    
     [p, h, q, bhp] = deal(st.pressure, st.h, ...
                           vertcat(st.wellSol.qGs), ...
                           vertcat(st.wellSol.bhp));
+
     if initADI
         [p, h, q, bhp] = initVariablesADI(p, h, q, bhp);
     end

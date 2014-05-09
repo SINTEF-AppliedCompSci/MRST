@@ -42,15 +42,17 @@ function comp_refactor()
     
     %% Define model
     model = fullCompressibleCO2BrineModel(Gt, rock, tinfo, 'rhoBrine', rhoW);
-    
-    %% Define solver
-    linsolver = CPRSolverAD();
-    
+
     %% Run schedule
     [wellSols, states] = ...
-        runScheduleRefactor(state, model, schedule, ...
-                            'bc'           , bc,    ...
-                            'linearSolver' , linsolver);
+        runScheduleRefactor(state, model, schedule, 'bc', bc);
+
+    %% plot result
+    for s = states'
+        plot(s{:}.h);
+        pause(1);
+    end
+    
 end
 
 % ----------------------------------------------------------------------------
