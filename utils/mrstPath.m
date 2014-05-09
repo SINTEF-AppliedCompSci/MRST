@@ -454,9 +454,10 @@ end
 %--------------------------------------------------------------------------
 
 function print_list(map)
+   [i, i] = sort(map(:,1));                                     %#ok<ASGLU>
    nchar = max(cellfun('prodofsize', map(:,1)));
 
-   for k = 1 : size(map, 1),
+   for k = reshape(i, 1, []),
       fprintf('  * %-*s -> %s\n', nchar, map{k,1}, map{k,2});
    end
 end
