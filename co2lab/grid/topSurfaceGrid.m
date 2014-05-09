@@ -143,7 +143,7 @@ opt = merge_options(opt, varargin{:});
 
 verbose = opt.Verbose;
 
-%% Create 2D grid
+%%%% Create 2D grid
 % remove inactive cells
 A = false(g.cartDims);
 A(g.cells.indexMap) = true;
@@ -167,18 +167,18 @@ A(g.cells.indexMap) = true;
 active = any(A, 3);
 
 g_top = cartGrid(g.cartDims(1:2));
-g_top.faces.tag=[1:g_top.faces.num]';
+g_top.faces.tag=(1:g_top.faces.num)';
 g_top = removeCells(g_top, find(~active)');
-%%
+
 cartFaceMap=g_top.faces.tag;
-%%
+
 g_top.faces=rmfield(g_top.faces,'tag');
 
 B = cumsum(A,3);
 
 topCells3D=find(B(g.cells.indexMap)==1);
 
-%% Find top cells/faces
+%%%% Find top cells/faces
 topCFaces = g.cells.faces(mcolon(g.cells.facePos(topCells3D), ...
                                  g.cells.facePos(topCells3D+1)-1),:);
 
@@ -202,7 +202,7 @@ cells2D = cart2active(g_top, oldCellIx);
 topCells3D = topCells3D(ix);
 topFaces3D = topFaces3D(ix);
 
-%% Averaging of node coordinates in the top-surface grid
+%%%% Averaging of node coordinates in the top-surface grid
 % Find corresponence between node number in 3D and 2D grid. One node in 2D
 % grid can correspond to two nodes in 3D grid if the top cells are not
 % neighbors. Must therefore accumulate and average contributions from these
@@ -273,7 +273,7 @@ g_top.nodes.z = accumarray(nodes2D, ...
 % average coordinates if columns are connected. An improvement would be to
 % make new nodes if we have a fault without connectivity.
 
-%% Compute column information
+%%% Compute column information
 
 % sort cells in 3D grid by wrt to columns (j, i, and k-index)
 % i.e: fix j (x-dir) and sort on i index before we sort on k and numbering
@@ -292,14 +292,15 @@ columns.dz = compute_dz(g, cell_ix);
 
 % find index to first cell in each column in columns.cells
 % stolen from rlencode: compare differences in position to find run length.
-columnPos = 1 + [0;[find(any(mat(1:end-1,1:2) ~= mat(2:end,1:2),2)); size(mat,1)]];
+columnPos = 1 + ...
+   [0; [find(any(mat(1:end-1,1:2) ~= mat(2:end,1:2),2)); size(mat,1)]];
 
 % Compute column height H:
-% NB: inaccurate if dz is inaccurate:
+% NB: inaccurate if dz is inaccurate
 colNo = rldecode(1:g_top.cells.num, columnPos(2:end)-columnPos(1:(end-1)),2).';
 H = accumarray(colNo, columns.dz);
 
-%% Add fields to struct
+%%% Add fields to struct
 
 g_top.columns = columns;
 g_top.cells.columnPos = columnPos;
@@ -308,15 +309,19 @@ g_top.cells.columnPos = columnPos;
 g_top.cells.map3DFace = topFaces3D;
 g_top.cells.ij    = [ijk(topCells3D,1) ijk(topCells3D,2)];
 g_top.parent=g;
-%% Add faults - Not well tested, but is analogous to what is done in examples
+
+%%% Add faults
+% Not well tested, but is analogous to what is done in examples
 if opt.AddFaults && any(g.faces.tag)
     [g_top c_fault] = add_faults(g, g_top, ijk);
     g_top = computeGeometryVE_2D(g_top);
+    
     % Adjust the z values of the corresponding cells
     g_top.cells.z(c_fault) = g.faces.centroids(topFaces3D(c_fault),3);
-    % Note that no extra nodes have been added to the grid, and g.faces.z has
-    % not been adjusted, but this (probably) only matters for plotting the grid.
-    % g_top gets an internal boundary across sealing faults.
+    
+    % Note that no extra nodes have been added to the grid, and g.faces.z
+    % has not been adjusted, but this (probably) only matters for plotting
+    % the grid. g_top gets an internal boundary across sealing faults.
 else
     g_top = computeGeometryVE_2D(g_top);
     
@@ -330,7 +335,7 @@ if(any(g_top.faces.areas<0))
         g_top.faces.areas=abs(g_top.cells.areas);
 end
 
-%% Extract geometry from 3D grid and compute remaining fields
+%%% Extract geometry from 3D grid and compute remaining fields
 g_top.cells.H = H;
 g_top.cells.normals = g.faces.normals(topFaces3D, :);
 
@@ -342,8 +347,8 @@ else
 end
 g_top.type = [g_top.type, mfilename];
 
-%% Add function handles to pass replacement functions to msrt default solvers
-% This enables use of solveIncompFlow with top grids.
+%%% Add function handles to pass replacement functions to MRST default
+% solvers. This enables use of solveIncompFlow with top grids.
 g_top.grav_pressure = @(g, omega) gravPressureVE_s(g, omega);
 
 g_top.primitives = @primitivesMimeticVE_s;
@@ -367,44 +372,47 @@ if(opt.add_cellnodes)
                                 % 2013a.
   g_top.cells.cellNodes = g_top.cells.sortedCellNodes;
 end
-% this map is used for transfering face data on g_top to the face data on the underliing cartesian grid.
+% this map is used for transfering face data on g_top to the face data on
+% the underlying Cartesian grid. 
 g_top.faces.cartFaceMap=cartFaceMap;
 end
 
 % ----------------------------------------------------------------------------
 function rco = relative_corner_order(co)
-% Determine the relative corner order that should be used when reading nodes
-% from 3D faces to 2D cells.  As described in the main routine, the default
-% permutation to apply per-cell is [1 2 4 3].  However, this presumes that
-% cells are ordered such that row-wise, the 3D face corresponding to cell
-% (j+1) immediately follows (rather than precedes) the one corresponding to
-% cell (j), and that likewise, the 3D faces corresponding to cells in row (i)
-% succeeds (rather than precedes) those of row (i+1).  If these assumptions
-% do not hold, we must modify the permutation to use accordingly.
-    rco = [1 2 4 3]'; % should be true for most grids
+% Determine the relative corner order that should be used when reading
+% nodes from 3D faces to 2D cells.  As described in the main routine, the
+% default permutation to apply per-cell is [1 2 4 3].  However, this
+% presumes that cells are ordered such that row-wise, the 3D face
+% corresponding to cell (j+1) immediately follows (rather than precedes)
+% the one corresponding to cell (j), and that likewise, the 3D faces
+% corresponding to cells in row (i) succeeds (rather than precedes) those
+% of row (i+1).  If these assumptions do not hold, we must modify the
+% permutation to use accordingly.
 
-    % Function to determine whether 3D face 2 lies to the 'right' or 'left'
-    % of 3D face 1. (assuming that each face has 4 corners, and that there
-    % are at least two faces present)
-    next_cell_comes_before = @(ixs) (ixs(1) == ixs(6)) && (ixs(4) == ixs(7));
-    
-    % Function to determine whether the second row of 3D faces comes 'before'
-    % or 'after' the first row.  We assume this happens if the lower-left
-    % corner of the first cell is later repeated (ignoring the two first
-    % nodes of the second cell), _or_ if the lower-right node is later
-    % repeated (ignoring the first node of the second cell)
-    next_row_comes_before = ...
-        @(ixs) ~isempty(find(ixs(7:end)==ixs(1), 1, 'first')) || ...
-               ~isempty(find(ixs(6:end)==ixs(2), 1, 'first'));
-    
-    if (next_row_comes_before(co))
-        rco = flipud(rco);
-    end
+rco = [1 2 4 3]'; % should be true for most grids
 
-    if (next_cell_comes_before(co))
-        rco(1:2) = flip(rco(1:2));
-        rco(3:4) = flip(rco(3:4));
-    end
+% Function to determine whether 3D face 2 lies to the 'right' or 'left'
+% of 3D face 1. (assuming that each face has 4 corners, and that there
+% are at least two faces present)
+next_cell_comes_before = @(ixs) (ixs(1) == ixs(6)) && (ixs(4) == ixs(7));
+    
+% Function to determine whether the second row of 3D faces comes 'before'
+% or 'after' the first row.  We assume this happens if the lower-left
+% corner of the first cell is later repeated (ignoring the two first
+% nodes of the second cell), _or_ if the lower-right node is later
+% repeated (ignoring the first node of the second cell)
+next_row_comes_before = ...
+   @(ixs) ~isempty(find(ixs(7:end)==ixs(1), 1, 'first')) || ...
+   ~isempty(find(ixs(6:end)==ixs(2), 1, 'first'));
+    
+if (next_row_comes_before(co))
+   rco = flipud(rco);
+end
+
+if (next_cell_comes_before(co))
+   rco(1:2) = flip(rco(1:2));
+   rco(3:4) = flip(rco(3:4));
+end
 end
 
 
@@ -420,6 +428,7 @@ end
 function g = remove_disc_cells(G, verbose)
 % Make 3D grid suitable for construction of top surface grid.
 % Remove disconnected cells from the 3D model
+
 ix = all(G.faces.neighbors~=0, 2);
 I  = [G.faces.neighbors(ix,1);G.faces.neighbors(ix,2)];
 J  = [G.faces.neighbors(ix,2);G.faces.neighbors(ix,1)];
@@ -443,7 +452,7 @@ if numel(c) > 2,
       g(i).type     = { mfilename };    %#ok
    end
 
-   [i,i] = sort(-sz);
+   [i,i] = sort(-sz); %#ok<ASGLU>
    G     = g(i);
 end
 
@@ -456,10 +465,13 @@ g = G(1);
 end
 
 function [g_top c_full] = add_faults(g, g_top, ijk)
-f_fault = (g.faces.neighbors(:,1) == 0 | g.faces.neighbors(:,2) == 0) & g.faces.tag~=0;
+
+f_fault = (g.faces.neighbors(:,1) == 0 | ...
+   g.faces.neighbors(:,2) == 0) & g.faces.tag~=0;
 c_fault = g.faces.neighbors(f_fault,:);
 c_fault = c_fault(:);
 c_fault = c_fault(c_fault>0);
+
 % Find i/j indices of cells belonging to fault
 ij_f = unique(ijk(c_fault,1:2), 'rows');
 
@@ -470,10 +482,13 @@ f_c = ismember(ijk(:,1:2), ij_f, 'rows');
 % belong to the fault.
 c_partial = ijk(setdiff(find(f_c), c_fault), 1:2);
 c_full    = setdiff(ij_f, c_partial, 'rows');
-c_full = find(ismember(g_top.cells.indexMap, sub2ind(g_top.cartDims, c_full(:,1), c_full(:,2))));
+c_full = find(ismember(g_top.cells.indexMap, ...
+   sub2ind(g_top.cartDims, c_full(:,1), c_full(:,2))));
 
 % If a face is between two full faulted cells, remove
-face_fault = find(ismember(g_top.faces.neighbors(:,1), c_full) & ismember(g_top.faces.neighbors(:,2), c_full));
+face_fault = find(ismember(g_top.faces.neighbors(:,1), c_full) & ...
+   ismember(g_top.faces.neighbors(:,2), c_full));
+
 % Make an internal boundary
 if any(face_fault)
     g_top = makeInternalBoundary(g_top, face_fault);
