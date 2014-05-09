@@ -25,8 +25,8 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     H = Gt.cells.H;
     
     %% Extract current and prevous variables, initialize as ADI if required
-    [pI,  h,  q,  bhp ] = extract_vars(state, ~opt.resOnly && ~opt.reverseMode);
-    [pI0, h0, q0, bhp0] = extract_vars(state0,~opt.resOnly &&  opt.reverseMode);
+    [pI,  h,  q,  bhp] = extract_vars(state, ~opt.resOnly && ~opt.reverseMode);
+    [pI0, h0, ~,  ~  ] = extract_vars(state0,~opt.resOnly &&  opt.reverseMode);
     
     %% Computing values at co2-brine interface
     % temperature

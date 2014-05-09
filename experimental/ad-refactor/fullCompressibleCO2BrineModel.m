@@ -84,7 +84,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
         end
         
     % ----------------------------------------------------------------------------    
-        function state = updateState(model, state, problem, dx, drivingForces)
+        function state = updateState(model, state, problem, dx, drivingForces) %#ok
 
             % computing pressure increment
             dp = dx{problem.indexOfPrimaryVariable('pressure')};
