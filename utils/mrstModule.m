@@ -191,15 +191,47 @@ function lst = add_modules(lst, mods)
       fprintf('  * %s\n', mods{~fnd});
    end
 
-   if ~ any(fnd),
-      % No pathname known for any of the requested modules.  Return without
-      % attempting to modify the PATH.
-      return
+   for k = reshape(find(fnd), 1, []),
+      mroot = pth{k};
+
+      try
+         mload   = fullfile(mroot, 'private', 'modload.m');
+         mloadfb = fullfile(mroot, 'private', 'modload_fallback.m');
+
+         if exist(mload, 'file') == 2,
+            % If module provides a 'modload', then run it
+            run(mload);
+
+         elseif exist(mloadfb, 'file') == 2,
+            % Otherwise, if module provides a 'modload_fallback', then run
+            % that.  This is an escape clause that supports code generation
+            % approaches to constructing 'modload' without putting the
+            % generated code into a VCS (e.g., Git).
+            %
+            run(mloadfb);
+         end
+
+         dirs = filter_module_dirs(mroot);
+         addpath(dirs{:});
+
+      catch ME
+         % 'modload' failed, proceed to next module.
+         [m, m] = fileparts(mroot);                             %#ok<ASGLU>
+
+         fprintf('Failed to load ''%s'':\n%s\n', m, ME.message);
+         fprintf('Module ''%s'' IGNORED\n', m);
+
+         fnd(k) = false;
+
+         continue;
+      end
    end
 
-   for r = reshape(pth(fnd), 1, []),
-      dirs = filter_module_dirs(r{1});
-      addpath(dirs{:});
+   if ~ any(fnd),
+      % No pathname known for any of the requested modules (or they all
+      % failed to load).  Return without attempting to modify the list of
+      % active modules.
+      return
    end
 
    mods   = mods(fnd);
