@@ -191,32 +191,38 @@ function lst = add_modules(lst, mods)
       fprintf('  * %s\n', mods{~fnd});
    end
 
-   if ~ any(fnd),
-      % No pathname known for any of the requested modules.  Return without
-      % attempting to modify the PATH.
-      return
-   end
+   for k = reshape(find(fnd), 1, []),
+      mroot = pth{k};
 
-   for r = reshape(pth(fnd), 1, []),
       try
-         mload = fullfile(r{1}, 'private', 'modload.m');
+         mload   = fullfile(mroot, 'private', 'modload.m');
 
          if exist(mload, 'file') == 2,
+            % If module provides a 'modload', then run it
             run(mload);
          end
 
-         dirs = filter_module_dirs(r{1});
+         dirs = filter_module_dirs(mroot);
          addpath(dirs{:});
 
       catch ME
          % 'modload' failed, proceed to next module.
-         [m, m] = fileparts(r{1});                              %#ok<ASGLU>
+         [m, m] = fileparts(mroot);                             %#ok<ASGLU>
 
          fprintf('Failed to load ''%s'':\n%s\n', m, ME.message);
          fprintf('Module ''%s'' IGNORED\n', m);
 
+         fnd(k) = false;
+
          continue;
       end
+   end
+
+   if ~ any(fnd),
+      % No pathname known for any of the requested modules (or they all
+      % failed to load).  Return without attempting to modify the list of
+      % active modules.
+      return
    end
 
    mods   = mods(fnd);
