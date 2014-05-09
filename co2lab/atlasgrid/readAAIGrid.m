@@ -8,7 +8,7 @@ function [meta, data] = readAAIGrid(filename)
 %   inp     - A valid filename for fopen.
 %
 % RETURNS:
-%   meta    - metadata defining globall coordinate system, cellsize etc.
+%   meta    - metadata defining global coordinate system, cell size, etc.
 %   
 %   data    - A matrix containing the data from the file.
 %
@@ -51,8 +51,6 @@ function [meta, data] = readAAIGrid(filename)
     data(:,:) = data(end:-1:1,:);
     
     % Switch from C style indexing to FORTRAN/MATLAB-style
-    data = data';
-    
-    
+    data = data'; 
 
 end

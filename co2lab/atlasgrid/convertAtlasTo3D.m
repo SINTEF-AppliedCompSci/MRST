@@ -27,8 +27,8 @@ function grdecl = convertAtlasTo3D(meta_thick, meta_top, data_thick, data_top, n
 %
 %
 % NOTES:
-%       It is likely easier to use getAtlasGrid instead of calling this
-%       routine directly.
+%   It is likely easier to use getAtlasGrid instead of calling this
+%   routine directly.
 %
 % SEE ALSO:
 %   getAlasGrid
@@ -55,17 +55,17 @@ function grdecl = convertAtlasTo3D(meta_thick, meta_top, data_thick, data_top, n
 
     F_top   = interpolateData(meta_top,   data_top);
     F_thick = interpolateData(meta_thick, data_thick);
-    if(false)
-       x = squeeze(X(:,:,1));
-       y = squeeze(Y(:,:,1));  
-       thick = F_thick(x, y)/dims(3);
-       top   = F_top(x,y);
-    else
-       x = reshape(X(:,:,1), [], 1);
-       y = reshape(Y(:,:,1), [], 1);
-       thick = reshape(F_thick(x, y), ndims(1), ndims(2))/dims(3);
-       top   = reshape(F_top(x, y)  , ndims(1), ndims(2));
-    end
+    %if(false)
+    %   x = squeeze(X(:,:,1));
+    %   y = squeeze(Y(:,:,1));  
+    %   thick = F_thick(x, y)/dims(3);
+    %   top   = F_top(x,y);
+    %else
+    x = reshape(X(:,:,1), [], 1);
+    y = reshape(Y(:,:,1), [], 1);
+    thick = reshape(F_thick(x, y), ndims(1), ndims(2))/dims(3);
+    top   = reshape(F_top(x, y)  , ndims(1), ndims(2));
+    %end
     
    
     
