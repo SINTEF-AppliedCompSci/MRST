@@ -2,22 +2,19 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
                                                           Gt, drivingForces, s, ...
                                                           co2fluid, brinefluid, ...
                                                           T_ref, T_ref_depth, T_grad, ...
-                                                          temp_info, slope, slopedir, ...
+                                                          slope, slopedir, ...
                                                           varargin)
-    opt = struct('reverseMode' , false, 'resOnly', false);
+    opt = struct('reverseMode' , false, 'resOnly', false, 'iteration', -1);
     opt = merge_options(opt, varargin{:});
     
     %% Precomputed values useful for later
     g_cos_t = norm(gravity) * cos(slope);
     g_sin_t = norm(gravity) * sin(slope);
+    H = Gt.cells.H;
     
     %% Extract current and prevous variables, initialize as ADI if required
     [pI,  h,  q,  bhp ] = extract_vars(state, ~opt.resOnly && ~opt.reverseMode);
     [pI0, h0, q0, bhp0] = extract_vars(state0,~opt.resOnly &&  opt.reverseMode);
-    
-    %% Setting up density-corrective integrals
-    [IetaCO2, INupEtaCO2] = co2fluid.h_integrals(p, t);
-    [IetaBri, INupEtaBri] = brinefluid.h_integrals(p, t);
     
     %% Computing values at co2-brine interface
     % temperature
@@ -27,6 +24,10 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     rhoC  = co2fluid.rho(pI,  tI)  ;   rhoB  = brinefluid.rho(pI,  tI);
     rhoC0 = co2fluid.rho(pI0, tI0) ;   rhoB0 = brinefluid.rho(pI0, tI0);
     muC   = co2fluid.mu(pI, tI)    ;   muB   = brinefluid.mu(pI, tI);
+    
+    %% Setting up density-corrective integrals
+    [IetaCO2, INupEtaCO2] = co2fluid.h_integrals(pI, tI);
+    [IetaBri, INupEtaBri] = brinefluid.h_integrals(pI, tI);
     
     %% Computing interior fluxes
     
@@ -50,7 +51,7 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     
     %% Handling wells (setting up equations, rates)
     [eqs(3:4), wc, qw, types(3:4), names(3:4)] = ...
-        setupWellEquations(drivingForces.W, p, q, bhp, muC);
+        setupWellEquations(drivingForces.W, pI, q, bhp, muC);
     
     %% Setting up equation systems
     if ~isempty(IetaCO2) rhoC = rhoC .* IetaCO2(-h);  rhoC0 = rhoC0 .* IetaCO2(-h0);  end; %#ok
@@ -113,7 +114,7 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     assert(all(strcmp(bc.type, 'pressure'))); % only support pressure type for now
 
     Tbc   = s.T_all(bc.face);
-    cells = sum(Gt.faces.neighors(bc.face, :), 2);
+    cells = sum(Gt.faces.neighbors(bc.face, :), 2);
     assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
     
     % prepare boundary-cell-specific values
@@ -135,9 +136,11 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     % Manually setting up the relevant discretization operators for the boundary
     avg   = @(x) x;     % x will already refer to boundary faces here, so nothing to do.
     ustr  = @(i, x) x; % ditto
+    bINEfunC = @(x) restrict_fun(INEfunC, x, cells);
+    bINEfunB = @(x) restrict_fun(INEfunB, x, cells);
     gct   = norm(gravity) * cos(slope);    
-    fluxC = computeFlux(avg, ustr, INEfunC, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, bH, gct);
-    fluxB = computeFlux(avg, ustr, INEfunB, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, bH, gct);
+    fluxC = computeFlux(avg, ustr, bINEfunC, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, bH, gct);
+    fluxB = computeFlux(avg, ustr, bINEfunB, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, bH, gct);
     
 end
 
@@ -218,7 +221,7 @@ end
 function tI = imposed_iface_temp(Gt, slope, slopedir, h, T_ref, T_ref_depth, T_grad)
 % ----------------------------------------------------------------------------
     depth = compute_real_depth(Gt, slope, slopedir, h);
-    tI    = T_ref + (depth - T_ref_depth) * T_grad;
+    tI    = T_ref + (depth - T_ref_depth) * T_grad/1000;
 end
 
 % ----------------------------------------------------------------------------

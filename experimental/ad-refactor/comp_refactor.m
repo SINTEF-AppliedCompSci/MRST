@@ -1,6 +1,6 @@
 function comp_refactor()
 
-    moduleCheck('ad-fi');
+    moduleCheck('ad-fi', 'ad-refactor');
     gravity on;
     
     %% Define grid, rock and temperature regime
@@ -13,23 +13,44 @@ function comp_refactor()
     temp_grad = 40;         % degrees per kilometer
     tinfo     = {ref_temp, ref_depth, temp_grad}; 
     rhoW      = 1020 * kilogram / meter^3; % density of brine
-        
+    
+    
     %% define injection well and schedule
-    schedule = ;
+    tnum     = 60; % total number of timesteps
+    inum     = 20; % number of injection steps
+    tot_time = 60 * year;
+    schedule = struct('W', addWell([], Gt, rock, ceil(Gt.cells.num/2), ...
+                                   'type'   , 'rate'                      , ...
+                                   'radius' , 0.3                         , ...
+                                   'comp_i' , [0 0 1]                     , ...
+                                   'val'    , 1e7 * kilo * kilogram /year , ...
+                                   'name'   , 'I'), ...
+                      'step', struct('val'    , diff(linspace(0, tot_time, tnum+1)), ...
+                                     'control', [ones(inum,1); zeros(tnum-inum, 1)]));
     
     %% Initialize state
-    state = struct('pressure', hydrostaticPressure(Gt, rhoW, 1*atm), ...
-                   'h'       , expand_var(0, Gt.cells.num));
+    % @@ NB: computation of hydrostatic pressure below must be changed if
+    % reservoir is tilted
+    p0 = hydrostaticPressure(Gt, rhoW, 1*atm);
+    state = struct('pressure', p0, ...
+                   'h', expand_var(0, Gt.cells.num), ...
+                   'wellSol', struct('bhp', p0(1), 'qGs', schedule.W(1).val));
+    
+    %% define boundary conditions
+    bc = pside([], Gt, 'LEFT',  p0(1));
+    bc = pside(bc, Gt, 'RIGHT', p0(end));
     
     %% Define model
-    model = fullCompressibleCO2BrineModel(Gt, tinfo, 'rhoBrine', rhoW);
+    model = fullCompressibleCO2BrineModel(Gt, rock, tinfo, 'rhoBrine', rhoW);
     
     %% Define solver
-    nlsolve = adaptiveNonlinearSolver('linearSolver', CPRSolverAD());
+    linsolver = CPRSolverAD();
     
     %% Run schedule
     [wellSols, states] = ...
-        runScheduleRefactor(state, model, schedule, 'nonlinearSolver', nlsolve);
+        runScheduleRefactor(state, model, schedule, ...
+                            'bc'           , bc,    ...
+                            'linearSolver' , linsolver);
 end
 
 % ----------------------------------------------------------------------------
@@ -46,4 +67,9 @@ function G = setTopDepth(G, depth)
     mindepth = min(G.nodes.coords(:,3));
     G.nodes.coords(:,3) = G.nodes.coords(:,3) + (depth - mindepth);
 end
-        
+
+% ----------------------------------------------------------------------------
+function p = hydrostaticPressure(Gt, rho_water, surface_pressure)
+% ----------------------------------------------------------------------------
+    p = rho_water * norm(gravity()) * Gt.cells.z + surface_pressure;
+end
