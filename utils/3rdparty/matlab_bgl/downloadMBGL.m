@@ -40,5 +40,5 @@ function downloadMBGL
    copyfile(fullfile(dest, 'private', 'modload.m.in'), ...
             fullfile(dest, 'private', 'modload.m'));
 
-   clear modload
+   clear modload modload_fallback
 end

@@ -196,10 +196,19 @@ function lst = add_modules(lst, mods)
 
       try
          mload   = fullfile(mroot, 'private', 'modload.m');
+         mloadfb = fullfile(mroot, 'private', 'modload_fallback.m');
 
          if exist(mload, 'file') == 2,
             % If module provides a 'modload', then run it
             run(mload);
+
+         elseif exist(mloadfb, 'file') == 2,
+            % Otherwise, if module provides a 'modload_fallback', then run
+            % that.  This is an escape clause that supports code generation
+            % approaches to constructing 'modload' without putting the
+            % generated code into a VCS (e.g., Git).
+            %
+            run(mloadfb);
          end
 
          dirs = filter_module_dirs(mroot);
