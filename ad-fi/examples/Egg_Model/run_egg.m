@@ -1,10 +1,10 @@
 
 %% The Delft EGG model
-%  Researchers from TU Delft have developed their own model - the Egg model
-%  - to compare different two phase flow simulators. In this process, MRST
-%  has been validated against Eclipse, GPRS, and MoReS using a version of
-%  their Egg model. The results obtained with the four simulators are almost
-%  identical. Read more.
+% Researchers from TU Delft have developed their own model - the Egg model
+% - to compare different two phase flow simulators. In this process, MRST
+% has been validated against Eclipse, GPRS, and MoReS using a version of
+% their Egg model. The results obtained with the four simulators are almost
+% identical. Read more.
 
 
 require ad-fi deckformat
@@ -45,8 +45,8 @@ view(35, 40);
 colorbar('SouthOutside');
 
 %% Set up the initial state
-%  We consider a reservoir with a uniform saturation distribution (s_w =
-%  0.1, s_o = 0.9) and we compute an approximation of the initial pressure.
+% We consider a reservoir with a uniform saturation distribution (s_w =
+% 0.1, s_o = 0.9) and we compute an approximation of the initial pressure.
 
 sw = 0.1; 
 so = 0.9;
@@ -70,7 +70,7 @@ schedule = deck.SCHEDULE;
 
 
 %% Run the simulation
-%  We use a fully implicit oil/water solver.
+% We use a fully implicit oil/water solver.
 
 tt = tic;
 [wellSols, states, iter] = runScheduleADI(rSol, G, rock, system, schedule);

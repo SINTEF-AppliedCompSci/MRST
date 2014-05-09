@@ -61,14 +61,14 @@ colorbar('SouthOutside');
 % There are three control periods and the controls change after 300 and 360
 % days. However, well control can switch if the well constraints are not
 % fulfilled (this is the default option. If you do not want this, set the
-% option 'allowControlSwitching' to false when calling initADIsystem). In
-% the case of the schedule we are considering, the wells are controlled by
-% rate (oil rate for the producers and water rate for the injectors). There
-% is a minimum value for bottom hole pressure for the producers (here, 68.9
-% bar for all producing wells). It means that if the bottom hole pressure
-% (bhp) which is needed to obtain the given rate is below the minimum bhp,
-% then the well changes control type and becomes controlled by pressure. For
-% the injectors, we have a maximum value for the bhp (here, 275.79 bar).
+% option 'allowControlSwitching' to false when calling initADIsystem). In the
+% case of the schedule we are considering, the wells are controlled by rate
+% (oil rate for the producers and water rate for the injectors). There is a
+% minimum value for bottom hole pressure for the producers (here, 68.9 bar for
+% all producing wells). It means that if the bottom hole pressure (bhp) which
+% is needed to obtain the given rate is below the minimum bhp, then the well
+% changes control type and becomes controlled by pressure. For the injectors,
+% we have a maximum value for the bhp (here, 275.79 bar).
 
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);

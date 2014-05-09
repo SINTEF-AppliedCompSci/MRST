@@ -1,10 +1,10 @@
 %% SPE3 case using fully implicit black oil solver
-%  This example solves the SPE3 problem which consists of gas injection in a
-%  small (9x9x4) reservoir. The problem is originally a compositional
-%  problem. Using PVTi, we convert it to a blackoil problem and the resulting
-%  datas are provided in the file "SPE3.DATA". The oil can vaporize but the gas
-%  cannot dissolve in oil so that the gas/oil ratio remains equal to zero during
-%  the whole simulation. 
+% This example solves the SPE3 problem which consists of gas injection in a
+% small (9x9x4) reservoir. The problem is originally a compositional
+% problem. Using PVTi, we convert it to a blackoil problem and the resulting
+% datas are provided in the file "SPE3.DATA". The oil can vaporize but the
+% gas cannot dissolve in oil so that the gas/oil ratio remains equal to zero
+% during the whole simulation.
 
 require ad-fi deckformat
 
@@ -31,8 +31,9 @@ fluid = initDeckADIFluid(deck);
 gravity on
 
 %% Set up initial state
-%  The initial state corresponds to an equilibrium state between gravitational and capillary
-%  forces. It has been computed before and we load it from deck.
+% The initial state corresponds to an equilibrium state between
+% gravitational and capillary forces. It has been computed before and we
+% load it from deck.
 
 p0  = deck.SOLUTION.PRESSURE;
 sw0 = deck.SOLUTION.SWAT;
@@ -44,13 +45,13 @@ state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
 clear k p0 s0 rv0 rs0
 
 %% Plot wells and permeability
-%  The permeability is constant in each layer. There is one injecting and one
-%  producing well.
+% The permeability is constant in each layer. There is one injecting and one
+% producing well.
 
 clf;
 W = processWells(G, rock, deck.SCHEDULE.control(1));
-plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
-            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
+             'FaceAlpha', .5, 'EdgeAlpha', .3, 'EdgeColor', 'k');
 plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
 title('Permeability (mD)')
 axis tight;
@@ -62,7 +63,7 @@ schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);
 timer = tic;
 [wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
-toc(timer)  
+toc(timer)
 
 
 
@@ -82,9 +83,10 @@ title('Gas rate / Oil rate')
 
 
 %% Plot of Bottom Hole Pressure and gas production/injection rate
-%  The wells are controlled by gas rate but also constrained by pressure. For the producing well, the
-%  lower limit for the bottom hole pressure is 1050 psia (72.395 bar). We observe that the
-%  producing well switches control at t=5840 days.
+% The wells are controlled by gas rate but also constrained by pressure. For
+% the producing well, the lower limit for the bottom hole pressure is 1050
+% psia (72.395 bar). We observe that the producing well switches control at
+% t=5840 days.
 
 figure(2)
 clf
@@ -94,18 +96,21 @@ plot(T, bhp_p, '-*b')
 xlabel('Days')
 ylabel('bar')
 title('Bottom hole pressure (Producer)')
+
 subplot(2,2,2)
 bhp_i = convertTo(bhp(:,inj), barsa);
 plot(T, bhp_i, '-*b')
 xlabel('Days')
 ylabel('bar')
 title('Bottom hole pressure (Injector)')
+
 subplot(2,2,3)
 qGs_p = day*qGs(:,prod);
 plot(T, qGs_p, '-*b')
 xlabel('Days')
 ylabel('m^3/day')
 title('Gas production rate (m^3/day)')
+
 subplot(2,2,4)
 qGs_i = day*qGs(:,inj);
 plot(T, qGs_i, '-*b')
@@ -117,8 +122,11 @@ title('Gas injection rate (m^3/day)')
 ct = cellfun(@(w)(w(2).type), wellSols, 'uniformoutput', false);
 ind = find(strcmp('bhp', ct), 1);
 subplot(2,2,1)
-text(T(ind), bhp_p(ind), 'Well control switches from gas rate to bhp \rightarrow  ', ...
+text(T(ind), bhp_p(ind), ...
+     'Well control switches from gas rate to bhp \rightarrow  ', ...
      'horizontalalignment', 'right');
 subplot(2,2,3)
-text(T(ind), qGs_p(ind), 'Well control switches from gas rate to bhp \rightarrow  ', 'horizontalalignment', 'right');
 
+text(T(ind), qGs_p(ind), ...
+     'Well control switches from gas rate to bhp \rightarrow  ', ...
+     'horizontalalignment', 'right');
