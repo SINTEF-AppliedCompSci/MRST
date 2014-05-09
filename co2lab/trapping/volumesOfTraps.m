@@ -1,9 +1,8 @@
 function v = volumesOfTraps(Gt, res, varargin)
-%% Compute volumes of (a subset of) precomputed structural traps
-% NB: The volumes computes are total volumes, not pore volumes! 
+% Compute volumes of (a subset of) precomputed structural traps
 % 
 % SYNOPSIS:
-%   function v = volumesOfTraps(Gt, res, varargin)
+%   v = volumesOfTraps(Gt, res, varargin)
 %
 % PARAMETERS:
 %   Gt       - top surface grid
@@ -14,9 +13,10 @@ function v = volumesOfTraps(Gt, res, varargin)
 %
 % RETURNS:
 %   v - vector containing volumes for each specified trap
+%       NB: The volumes computes are total volumes, not pore volumes!
 %
 % SEE ALSO:
-% trapAnalysis    
+%   trapAnalysis    
 %
 
     if nargin == 2

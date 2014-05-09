@@ -1,5 +1,4 @@
 function [upneigh, nhood, tan_angle] = findUpslopeNeighbor(xyz, neighs, regions)
-%
 % Determine cell (or node) neighbors, and determine steepest upslope
 %
 % SYNOPSIS:
@@ -9,6 +8,7 @@ function [upneigh, nhood, tan_angle] = findUpslopeNeighbor(xyz, neighs, regions)
 %   Determine cell (or node) neighbors, and determine steepest upslope.
 %   Neighbors include diagonal neighbors and the cell (or node) itself, so
 %   the max. number of neighbors is 9.
+%
 % PARAMETERS:
 %   xyz     - 3D coordinates of cells (or nodes)
 %   neighs  - (n,2) list of the 'n' neighbor relations, where each line
@@ -18,20 +18,21 @@ function [upneigh, nhood, tan_angle] = findUpslopeNeighbor(xyz, neighs, regions)
 %             eliminated.
 %
 % RETURNS:
-%   upneigh  - most upslope neighbor for each cell (or node).  Can be the cell
-%              itself in case of a sommet node.
+%   upneigh  - most upslope neighbor for each cell (or node).  Can be the
+%              cell itself in case of a sommet node.
 %   nhood    - a matrix giving the complete neighborhood of each cell (or
-%              Each line represents a node, and contains the indices of nodes
-%              in its neighborhood.  Number of columns is governed by the
-%              largest neighborhood.  If a cell has fewer neighbors than the
-%              number of columns, the surplus entries are given the value
-%              zero.
-%  tan_angle - tangent of the angle of the slope from the cell to its upslope
+%              Each line represents a node, and contains the indices of
+%              nodes in its neighborhood.  Number of columns is governed by
+%              the largest neighborhood.  If a cell has fewer neighbors
+%              than the number of columns, the surplus entries are given
+%              the value zero.
+%  tan_angle - tangent of the angle of the slope from the cell to its
+%              upslope
 %              neigh (optional output parameter)
-% EXAMPLE:
 %
-% To compute the cell neighborhood and upslope neighbors of cells in a top
-% surface grid 'Gt':
+% EXAMPLE:
+%   To compute the cell neighborhood and upslope neighbors of cells in a
+%   top surface grid 'Gt':
 %   [upslope, neigh] = findUpslopeNeighbor([Gt.cells.centroids, Gt.cells.z],
 %                                          Gt.faces.neighbors);
 % 

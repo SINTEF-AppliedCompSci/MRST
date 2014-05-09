@@ -139,8 +139,8 @@ function fheight = compute_exact_fill_height(areas, top_zvals, poro, ubound, ...
     fheight = fzero(vol_diff, 0.5 * (min(top_zvals) + ubound));
     
     
-    %% Function minimization approach (probably less precise, due to the
-    %% squaring, but perhaps more robust, due to explicit bounds)
+    % Function minimization approach (probably less precise, due to the
+    % squaring, but perhaps more robust, due to explicit bounds)
     % obj_fun = @(X) (volume_downto_z(areas, top_zvals, X, poro) - volume)^2;
     % fheight = fminbnd(obj_fun, min(top_zvals), ubound);
     
