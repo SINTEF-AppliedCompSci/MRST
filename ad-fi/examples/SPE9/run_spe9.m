@@ -12,6 +12,10 @@ end
 mrstVerbose true
 
 %% Read and process file.
+% The data set we provide is a modified version of the data set which
+% belongs to the <http://www.ntnu.edu/studies/courses/TPG4535 course>
+% material available at <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>
+
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'SPE9.DATA');
 deck = readEclipseDeck(fn);
