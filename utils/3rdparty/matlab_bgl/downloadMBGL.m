@@ -39,4 +39,6 @@ function downloadMBGL
    % component.
    copyfile(fullfile(dest, 'private', 'modload.m.in'), ...
             fullfile(dest, 'private', 'modload.m'));
+
+   clear modload
 end
