@@ -196,7 +196,7 @@ function res = calcMulti(P, T, fun, fun_dp, fun_dt)
             %res = ADI(res, lMultDiag(dres_dp, P.jac) + lMultDiag(dres_dt, T.jac));
             tmp1 = lMultDiag(dres_dp, P.jac);
             tmp2 = lMultDiag(dres_dt, T.jac);
-            res = ADI(res, {tmp1{1} + tmp2{1}, tmp1{2} + tmp2{2}});
+            res = ADI(res, cell_adder(tmp1, tmp2));%{tmp1{1} + tmp2{1}, tmp1{2} + tmp2{2}});
         else
             res = ADI(res, lMultDiag(dres_dp, P.jac));
        end
@@ -208,6 +208,12 @@ function res = calcMulti(P, T, fun, fun_dp, fun_dt)
     end
 end
   
+function c = cell_adder(c1, c2)
+    for i = 1:numel(c1)
+        c{i} = c1{i} + c2{i};
+    end
+end
+
 function res = extractValues(P, T, spanP, spanT, supsamples, liqsamples, gassamples)
     
     if assert_valid_range
