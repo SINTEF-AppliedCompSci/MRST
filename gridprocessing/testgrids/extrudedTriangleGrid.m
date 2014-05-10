@@ -46,7 +46,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-require mex
+mlist = mrstModule();
+mrstModule add triangle;
 
 if nargin < 1, maxarea = 100; end
    nlayers = 15;
@@ -92,6 +93,7 @@ if nargin < 1, maxarea = 100; end
    end
 
    G = removeCells(G, (c & c1) | ((~ c) & c2));
+   mrstModule('reset', mlist{:});
 end
 
 %--------------------------------------------------------------------------
@@ -157,15 +159,15 @@ end
 
 %--------------------------------------------------------------------------
 
-function curve = splineRefine(pts)
-   t   = linspace(0, 1, size(pts,1));
-   ppx = spline(t, pts(:,1));
-   ppy = spline(t, pts(:,2));
-
-   tt   = linspace(0, 1, 20)';
-   X = ppval(ppx, tt);
-   Y = ppval(ppy, tt);
-   curve.points = [X,Y];
-   curve.ppx = ppx;
-   curve.ppy = ppy;
-end
+%function curve = splineRefine(pts)
+%   t   = linspace(0, 1, size(pts,1));
+%   ppx = spline(t, pts(:,1));
+%   ppy = spline(t, pts(:,2));
+%
+%   tt   = linspace(0, 1, 20)';
+%   X = ppval(ppx, tt);
+%   Y = ppval(ppy, tt);
+%   curve.points = [X,Y];
+%   curve.ppx = ppx;
+%   curve.ppy = ppy;
+%end
