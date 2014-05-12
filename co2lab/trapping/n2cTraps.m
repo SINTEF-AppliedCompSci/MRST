@@ -289,7 +289,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
         for r_ix = 1:numel(edge_rivers{trap_ix})
             nodes_ix = edge_rivers{trap_ix}{r_ix};
             
-            % removing consecutive duplicates @@ find out why this sometimes happens!
+            % removing consecutive duplicates 
             nodes_ix = nodes_ix([1; diff(nodes_ix)]~=0);
 
             cells_ix = [];

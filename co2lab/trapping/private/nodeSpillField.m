@@ -96,7 +96,7 @@ function res = find_spill_edges(Gt, s_field)
 %         Col 7: index of edge's second node
     
     % We here assume that each face (i.e. edge) has exactly two nodes, which are stored 
-    % consecutively in the Gt.faces.nodes vector (@@ is this always the case?)
+    % consecutively in the Gt.faces.nodes vector 
     enodes = reshape(Gt.faces.nodes, 2, [])';
     
     %      --- Col 1 ---     -- Col 2 and 3 -- -- Col 4 and 5 --  -- Col 6 and 7 --
