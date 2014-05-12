@@ -306,13 +306,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       %--------------------------------------------------------------------
 
       function h = max(u,v) % this function should be expanded
-          if ~isa(u,'ADI') % u is a double
-              if numel(u) == 1
-                  % Single scalar, use standard expansion to full array
-                  % comparison.
-                  u = repmat(u, size(v.val));
-              end
-              [value, inx] = max([u v.val], [], 2);
+          if ~isa(u, 'ADI'), % u is a DOUBLE
+              value =  bsxfun(@max, u, v.val);
+	      inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
               h  = ADI(value, lMultDiag(inx==2, v.jac));
           elseif ~isa(v,'ADI') %v is a vector
               h = max(v,u);
@@ -320,11 +316,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               error('Not yet implemented ...');
           end
       end
+
       %--------------------------------------------------------------------
+
       function h = min(u, v)
-          % Use def. of minimum to handle this
+          % Use def. of maximum to handle this
           h = -max(-u, -v);
       end
+
       %--------------------------------------------------------------------
 
       function h = sum(u)
