@@ -4,9 +4,8 @@
 % meant to illustrate the principles, not best practice for real cases.
 
 %% Setup
-% Load required modules and set random stream
+%  required modules and set random stream
 require deckformat ad-fi
-
 s = RandStream('mcg16807', 'Seed', 0);
 try
    s0 = RandStream.setGlobalStream(s);
@@ -14,8 +13,9 @@ catch  %#ok
    s0 = RandStream.setDefaultStream(s);  %#ok Backwards compatibility
 end
 
+%%
 % We set up a training simulation and an actual problem. The training
-% simulation has the same well and grid setupm, but the BHP of the
+% simulation has the same well and grid setup, but the BHP of the
 % producers varies in the different simulations.
 
 current_dir = fileparts(mfilename('fullpath'));
@@ -35,9 +35,10 @@ grd = deck_training.GRID;
 G = initEclipseGrid(deck_training);
 G = computeGeometry(G);
 
-% rock - heterogenous field
-poro = gaussianField(G.cartDims, [.4 .8], [11 3 3], 2.5);
+%% Setup rock porosity
+% We choose a randomly distributed porosity and the corresponding permeability.
 
+poro = gaussianField(G.cartDims, [.4 .8], [11 3 3], 2.5);
 K = poro.^3.*(1e-5)^2./(0.81*72*(1-poro).^2);
 rock.perm    = K(:);
 rock.poro = poro(:);
@@ -45,24 +46,21 @@ rock.poro = poro(:);
 % fluid
 fluid = initDeckADIFluid(deck_training);
 
-% Oil rel-perm from 2p OW system.
-% Needed by equation implementation function 'eqsfiOWExplictWells'.
-fluid.krO = fluid.krOW;
-
 gravity off
 
 state.pressure = 1.5e7*ones(G.cells.num, 1);
 state.s        = ones(G.cells.num,1)*[0, 1];
 
-
 schedule_training = deck_training.SCHEDULE;
 schedule_problem  = deck_problem.SCHEDULE;
+
 %% Solve full system for various parameters to create snapshot ensamble
 
-systemOW =      initADISystem({'Oil', 'Water'}, G, rock, fluid, 'well_allowControlSwitching', false);
+systemOW = initADISystem({'Oil', 'Water'}, G, rock, fluid, 'allowControlSwitching', false);
+
 [wsol, states] = runScheduleADI(state, G, rock, systemOW, schedule_training);
 
-%% Plot the simulation for all timesteps
+%% Plot the simulation for all time steps
 % The dominant producer switches between each control. This is obviously
 % not a good schedule for oil production, but it gives a highly dynamic
 % flow pattern.
@@ -92,6 +90,7 @@ end
 % and clustering of eigenvectors. This example defaults to no clustering as
 % the implementation of clustering depends on an external package YAEL
 % (https://gforge.inria.fr/)
+
 ns = nan;
 np = 25;
 
@@ -129,11 +128,14 @@ timer = tic;
 tfull = toc(timer);
 
 warning('off', 'newt:maxit')
+warning('off', 'newt:stagnate')
 timer = tic;
 [wsol_pod, states_pod]   = runScheduleADI(state, G, rock, systemOW_basis, schedule_problem, ...
                                           'stop_if_not_converged', false);
 tpod = toc(timer);
 warning('on', 'newt:maxit')
+warning('on', 'newt:stagnate')
+
 
 %% Plot and compare the solutions
 v = [0, 90];
@@ -181,7 +183,7 @@ end
 % setting up the linear systems is large compared to the cost of solving
 % the actual systems.
 
-time = cumsum(schedule_problem.step.val) ;
+time = cumsum(schedule_problem.step.val) /day;
 % Put the well solution data into a format more suitable for plotting
 [qWsp, qOsp, qGsp, bhpp] = wellSolToVector(wsol_pod);
 [qWsf, qOsf, qGsf, bhpf] = wellSolToVector(wsol_full);
@@ -189,10 +191,14 @@ for i = 2:5
     figure(i);
     clf;
     subplot(1,2,1)
-    plot(time, -[qWsf(:,i) , qWsp(:,i)])
+    plot(time, [qWsf(:,i) , qWsp(:,i)]*day)
+    xlabel('time (days)')
+    ylabel('rate (m^3/day)')
     title(['Water rate ' wsol_full{1}(i).name])
     subplot(1,2,2)
-    plot(time, -[qOsf(:,i) , qOsp(:,i)])
+    plot(time, [qOsf(:,i) , qOsp(:,i)]*day)
+    xlabel('time (days)')
+    ylabel('rate (m^3/day)')
     title(['Oil rate ' wsol_full{1}(i).name])
     legend({'Full simulation', 'POD simulation'})
 end
