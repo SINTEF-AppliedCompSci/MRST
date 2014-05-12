@@ -22,7 +22,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 %              of [1, 1] and so on.
 %
 %              save   -- Bolean. If true, a mat file with the constructed
-%              grid is saved for later use. Default: true
+%              grid is saved for later use. Default: false
 %
 %              dir    -- String. Load files from this directory.
 %
@@ -38,9 +38,8 @@ function G = readIGEMSIRAP(name, i, varargin)
 #COPYRIGHT#
 %}
 
-require mex
 opt = struct('coarse', [1 1], ...
-             'save', true, ...
+             'save', false, ...
              'dir',  []);
 opt = merge_options(opt, varargin{:});
 coarse = opt.coarse;

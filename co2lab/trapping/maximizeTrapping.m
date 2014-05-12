@@ -2,10 +2,7 @@ function [trees, v] = maximizeTrapping(G, varargin)
 %Find the N best injection trees, with optional compensation for overlap
 %
 % SYNOPSIS:
-%   
-%
-% DESCRIPTION:
-%   trees = maximizeTrapping(G)
+%   trees            = maximizeTrapping(G)
 %   [trees, volumes] = maximizeTrapping(G, 'n', 5)
 %
 % REQUIRED PARAMETERS:
@@ -20,21 +17,19 @@ function [trees, v] = maximizeTrapping(G, varargin)
 %   res - Output from trapAnalysis. Will be generated if not supplied.
 % 
 %   calculateAll - Should all traps be considered as starting points? If
-%                  not, leaf nodes will be the starting point of the
-%                  algorithm.
+%         not, leaf nodes will be the starting point of the algorithm.
 %
 %   removeOverlap - If enabled, traps belonging to tree number 1, ..., m-1
-%                   will be set to zero volume when calculating tree number
-%                   m.
+%         will be set to zero volume when calculating tree number m.
 %
 % RETURNS:
-%   trees     - N by 1 struct array of trees structs, with fields
-%                   - root: Trap index of the tree root.
-%                   - traps: Array of traps downstream from root (including
-%                            the root trap itself)
-%                   - value: Total value of the tree. If N >= number of
-%                   traps and removeOverlap is enabled, this will sum to
-%                   total trap volume over all trees.
+%   trees - N by 1 struct array of trees structs, with fields
+%           - root:  Trap index of the tree root.
+%           - traps: Array of traps downstream from root (including
+%                    the root trap itself)
+%           - value: Total value of the tree. If N >= number of
+%                    traps and removeOverlap is enabled, this will sum to
+%                    total trap volume over all trees.
 
 %{
 #COPYRIGHT#

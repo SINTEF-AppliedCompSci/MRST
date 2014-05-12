@@ -117,7 +117,7 @@ if ~isempty(opt.wells)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% INIT VARIABLES BEFORE LOOP
+% INIT VARIABLES BEFORE LOOP
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 first_time = true; % indication for dynamic time step
 is_int   = all(double(G_top.faces.neighbors) > 0, 2);
@@ -126,7 +126,7 @@ rho_diff = (fluid.rho(1) - fluid.rho(2));
 
 if ~ isfield(state, 'h_max'), state.h_max = state.h; end
 
-%% Assign precomputed values to variables
+%%% Assign precomputed values to variables
 if isempty(opt.preComp) %
    opt.preComp = initTransportVE(G_top, averageRock(rock, G_top));
 end
@@ -138,17 +138,17 @@ opt     = rmfield(opt, 'preComp');
 if(strcmp(opt.time_stepping,'coats'))
    K_face_tmp = K_face;
 end
-%% Compute sources
+%%% Compute sources
 q = sources(G_top, state, is_int, 'wells', opt.wells, 'src', opt.src, ...
             'bc', opt.bc);
 
-%% Compute time step satisfying CFL condition
+%%% Compute time step satisfying CFL condition
 if (strcmp(opt.time_stepping,'simple') && opt.computedt)
    dt = compute_dt(dt, flux, grav, G_top, fluid, pv, z_diff, ...
                    K_face,q, rock, opt);
 end
 
-%% Precompute values for integration of permeability and inversion of poro
+%%% Precompute values for integration of permeability and inversion of poro
 if opt.intVert
    % Find relperm for column (when h = H) by vertical integration
    kr_H   = integrateVertically(rock.perm(:,1), inf, G_top);
@@ -163,7 +163,7 @@ if opt.intVert_poro
                .*G_top.columns.dz,G_top.cells.columnPos);
 end
 
-%% Make function handle to compute pv h^n+1 =pv h^n - H(f_w, dz, dt))
+%%% Make function handle to compute pv h^n+1 =pv h^n - H(f_w, dz, dt))
 H = @(f,dz) (dz - max(q,0) - min(q,0).*f);
 
 if strcmp(opt.time_stepping,'simple') && opt.verbose
@@ -174,17 +174,17 @@ end
 report.timesteps = ceil(tf/dt);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% RUN TRANSPORT LOOP ------------------------------------------------------
+% RUN TRANSPORT LOOP ------------------------------------------------------
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = 0;
 
 while t < tf,
-   %% Compute diffusion/ "capillary pressure"-gradient term
+   %%% Compute diffusion/ "capillary pressure"-gradient term
    % compute explicit discretisation of grad h = h_diff:
    h_diff = n_z(cells(:,1)).*fluid.pc(state.h(cells(:,1)))- ...
             n_z(cells(:,2)).*fluid.pc(state.h(cells(:,2)));
 
-   %% Compute mobilites/flux function
+   %%% Compute mobilites/flux function
    % Compute cell mobility and fractional flow.
    if opt.intVert
       [kr,dkr]  = integrateVertically(rock.perm(:,1), state.h, G_top);
@@ -214,11 +214,11 @@ while t < tf,
    fw_face = faceMob(:,1) ./ sum(faceMob,2);
    fw_face(sum(faceMob,2)==0) = 0; %Remove possible NaNs
 
-   %% Build/solve system
+   %%% Build/solve system
    df =  rho_diff*K_face.*faceMob(:,2) .* fw_face;
 
    %------------------------------------------------------------------------
-   %% Explicit
+   %%% Explicit
    % discretise the full equation explicitly.
    %------------------------------------------------------------------------
    dz = flux*fw_face - grav*(df.*(z_diff+h_diff));
@@ -280,7 +280,7 @@ while t < tf,
       end
    end
 
-   %% Hysteresis: account for residual saturation in pore volume
+   %%% Hysteresis: account for residual saturation in pore volume
    %              after updating the new total volume of CO2 in the cell
    if(opt.intVert_poro)
       vol= integrateVertically(pv_3D', state.h(:,1), G_top);
@@ -521,7 +521,7 @@ function q = sources(G_top, state, is_int,  varargin)
 
    opt = merge_options(opt, varargin{:});
    %-----------------------------------------------------------------------
-   %% External sources/sinks (e.g. wells and BC's) ------------------------
+   % External sources/sinks (e.g. wells and BC's) ------------------------
    %
    qi = [];  % Cells to which sources are connected
    qh = [];  % Actual strength of source term (in m^3/s).
@@ -546,7 +546,7 @@ function q = sources(G_top, state, is_int,  varargin)
    end
 
    %-----------------------------------------------------------------------
-   %% Assemble final phase flux and source contributions in SPARSE format -
+   % Assemble final phase flux and source contributions in SPARSE format -
    %
    q  = sparse(qi, 1, qh, G_top.cells.num, 1);
 end

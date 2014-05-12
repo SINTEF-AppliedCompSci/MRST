@@ -45,7 +45,7 @@ dispif(1,' and %d years of migration\n', convertTo(T-stopInject,year));
 dispif(1,'Time: %4d years', convertTo(t,year));
 stime=tic;
 
-require ad-fi
+moduleCheck('ad-fi');
 
 isMigrating = false;
 
