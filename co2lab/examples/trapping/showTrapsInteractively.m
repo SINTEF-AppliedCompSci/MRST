@@ -1,49 +1,13 @@
 %% Interactive spill point analysis of top surface grids
 % This example demonstrates the use of the interactive viewer for viewing
-% and finding structural traps for CO2 migration. This tutorial is
-% primarily concerned with interactive usage: For general information of
-% trap analysis, see the showTrappingStructure example.
-%
-% Select trapping algorithm
-useCell = true;
-
-switch useCell
-    case true
-        method = 'cell';
-    otherwise
-        method = 'node';
-end
-
-% Check if the script is run interactively
-isInteractive = numel(dbstack) == 0;
-%% Explore a synthetic grid
-% We first create a simple synthetic grid to demonstrate the interactive
-% trapping. This grid is created by producing a simple Cartesian geometry
-% and perturbing the z coordinates by a periodic function based on x and y
-% to get several local traps. Additionally, to create a hierachy of traps,
-% we slant the grid.
-
-L = 1000; L_p = L/5; H = 10;
-G = cartGrid([101 101 1],[L L H]);
-
-
-% Set new coordinates, compute geometry information
-G.nodes.coords(:,3) =   100 + G.nodes.coords(:,3) + ...
-                              G.nodes.coords(:,1)*0.01...
-                    -2*sin(pi*G.nodes.coords(:,1)/L_p).*...
-                       sin(pi*G.nodes.coords(:,2)/L_p);
-                   
-G = computeGeometry(G);
-
-% Create top surface grid
-Gt = topSurfaceGrid(G);
-
-%% Show interactive plot
-% We plot the top surface grid in the interactive viewer. Initially the
-% possible structural traps are shown, colorized by the volume of each
-% structural trap on a white grid.
+% and finding structural traps for CO2 migration. Three different examples
+% are presented: 
 % 
-% The following functionality is present:
+% # a small conceptual model
+% # a model of the Johansen formation from the CO2 Storage Atlas
+% # a large model from the IGEMS project
+%
+% The following functionality is present in the interactive viewer:
 %
 % - Left clicking on a trap will colorize the trap and all other traps that
 %   are downstream to that trap along with the path between them. Left
@@ -60,7 +24,7 @@ Gt = topSurfaceGrid(G);
 %
 %    * The second figure shows a logarithmic bar chart of the trap volumes
 %      along with their position along the migration path. This is useful
-%      for several reasons; One being that the quality of the dataset may
+%      for several reasons; one being that the quality of the dataset may
 %      impact the correctness of far away traps, another being that far
 %      away traps will likely meet a slower CO2 front, making the model of
 %      infinitesimally slow migration better.
@@ -94,18 +58,53 @@ Gt = topSurfaceGrid(G);
 %    * Setup VE simulation. The currently clicked cell will become an
 %      injector in a vertically averaged CO2 migration simulation. The user
 %      can setup injection rates and timesteps through a simple user
-%      interface and stop simulations by closing the visualization
-%      window.
-%
+%      interface and stop simulations by closing the visualization window.
 
+% Select trapping algorithm
+useCell = true;
+
+switch useCell
+    case true
+        method = 'cell';
+    otherwise
+        method = 'node';
+end
+
+% Check if the script is run interactively
+isInteractive = numel(dbstack) == 0;
+
+%% Explore a synthetic grid
+% We first create a simple synthetic grid to demonstrate the interactive
+% trapping. This grid is created by producing a simple Cartesian geometry
+% and perturbing the z coordinates by a periodic function based on x and y
+% to get several local traps. Additionally, to create a hierachy of traps,
+% we slant the grid.
+%
+% We plot the top surface grid in the interactive viewer. Initially the
+% possible structural traps are shown, colorized by the volume of each
+% structural trap on a white grid.
+ 
+L = 1000; L_p = L/5; H = 10;
+G = cartGrid([101 101 1],[L L H]);
+G.nodes.coords(:,3) =   100 + G.nodes.coords(:,3) + ...
+                              G.nodes.coords(:,1)*0.01...
+                    -2*sin(pi*G.nodes.coords(:,1)/L_p).*...
+                       sin(pi*G.nodes.coords(:,2)/L_p);
+G = computeGeometry(G);
+
+% Create top surface grid
+Gt = topSurfaceGrid(G);
+
+% Show interactive plot
 h = interactiveTrapping(Gt, 'method', method, 'light', true);
 view(180, 50)
 
 disp('Showing synthetic dataset... Close to continue')
-if isInteractive
+if ~isInteractive
     waitfor(h)
 end
-%% Interact with a more interesting dataset
+
+%% The Johansen formation
 % By passing in the name of a CO2 Storage Atlas grid, the function
 % automatically generates the grid for us. We select the Johansen formation
 % and apply some coarsening to make the grid smaller. Note that full
@@ -116,16 +115,17 @@ h = interactiveTrapping('Johansenfm', 'coarsening', 2, ...
 view(-70, 80)
 
 disp('Showing CO2 Atlas dataset... Close to continue')
-if isInteractive
+if ~isInteractive
     waitfor(h)
 end
-%% Grid from the IGEMS (Impact of Realistic Geologic Models on Simulation of CO2 storage) project
-% We read and process a grid from the folder data/igems/eclipsegrids. These
-% grids are very large, so this part of the example requires C-accelerated
-% geometry computation. For more information, see the IGEMS website at
-% http://www.nr.no/nb/IGEMS.
 
-require mex
+%% Grid from the IGEMS 
+% The purpose of the IGEMS project was to study the impact that top-surface
+% morphology has on storage capacity and the migration process. Alternative
+% top-surface morphologies are created stochastically by combining
+% different stratigraphic scenarios with different structural scenarios.
+% For more information about the data set, see
+% http://files.nr.no/igems/data.pdf.
 
 G = readIGEMSIRAP('OSS', 1, 'coarse', [2 2]);
 Gt = topSurfaceGrid(G);
@@ -135,6 +135,6 @@ h = interactiveTrapping(Gt, 'method', method);
 view(180, 50)
 
 disp('Showing IGEMS dataset... Close to continue')
-if isInteractive
+if ~isInteractive
     waitfor(h)
 end

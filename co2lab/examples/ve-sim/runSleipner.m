@@ -35,7 +35,7 @@ disp('   Vertical averaging applied to the Sleipner model');
 disp('   using C++ accelleration in the transport solver');
 disp('================================================================');
 disp(' ');
-moduleCheck('mimetic', 'mex');
+moduleCheck('mimetic');
 
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
@@ -103,7 +103,8 @@ try
    cpp_accel = true;
 catch me
    disp('mex-file for C++ acceleration not found');
-   disp(['See ', fullfile(VEROOTDIR,'src/VEmex','README'), ' for building instructions']);
+   disp(['See ', fullfile(mrstPath('co2lab'),'ve','VEmex','README'), ...
+      ' for building instructions']);
    disp('Using matlab VE-transport');
    cpp_accel = false;
 end

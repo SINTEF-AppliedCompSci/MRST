@@ -1,50 +1,52 @@
 function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, crivers] = ...
 	 n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_dstr_neigh, ntrap_connectivity, ntraps, erivers)
-  % Function converting traps and spill field information from a node-based 
-  % representation to a cell-based one.
-  %
-  % SYNOPSIS
-  % [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity] = 
-  %    n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_connectivity)
-  %
-  % PARAMETERS:
-  % Gt                 - 2D grid structure 
-  % ntrap_regions      \ 
-  % ntrap_dstr_neigh   | node-based trap information, as computed by the
-  % ntrap_zvals        | 'compute-trap-regions' function                
-  % ntrap_connectivity / 
-  % 
-  % RETURNS:
-  % The cell-based versions of the trap-information data matrices provided as input
-  % parameters to this function:
-  % ctraps             - One value per grid cell; zero for nontrap-cells, trap number 
-  %                      from 1 upwards) for trap cells.
-  % ctrap_zvals        - vector with one element per trap, giving the z-spill value 
-  %                      for that trap
-  % ctrap_regions      - one value per grid cell.  Gives the trap number of the trap 
-  %                      that the node spills into, or zero if the cell belongs to 
-  %                      the spill region of the 'exterior' of the domain. 
-  % csommets           - indices to all cells that represent local maxima
-  %                      (NB: these are all trap cells, but there may be more
-  %                      than one sommet per trap) 
-  % ctrap_connectivity - (Sparse) adjacency matrix with one row/column per trap. 
-  %                      Row 'i' is nonzero only for columns 'j' where trap 'i' spills
-  %                      directly into trap 'j' when overflowing.
-  % lost_regions       - indices of those edge-based regions whose traps did
-  %                      not get projected to any cell (e.g. because they
-  %                      were too small)
-  % crivers            - one cell array per trap, containing the 'rivers'
-  %                      exiting that trap.  A river is presented as a sequence of
-  %                      consecutive grid cells that lie geographically along the
-  %                      river.  A river starts in the trap, and ends either in another
-  %                      trap or at the boundary of the domain.
-  %
-  %
-  % SEE ALSO:
-  % computeNodeTraps
+% Function converting traps and spill field information from a node-based 
+% representation to a cell-based one.
+%
+% SYNOPSIS
+%   [ctraps, ctrap_zvals, ctrap_regions, ctrap_connectivity] = 
+%      n2cTraps(Gt, ntrap_regions, ntrap_zvals, ntrap_connectivity)
+%
+% PARAMETERS:
+%   Gt                 - 2D grid structure 
+%   ntrap_regions      \ 
+%   ntrap_dstr_neigh   | node-based trap information, as computed by the
+%   ntrap_zvals        | 'compute-trap-regions' function                
+%   ntrap_connectivity / 
+% 
+% RETURNS:
+%   The cell-based versions of the trap-information data matrices provided
+%   as input parameters to this function:
+%     ctraps         - One value per grid cell; zero for nontrap-cells,
+%                      trap number from 1 upwards) for trap cells.
+%     ctrap_zvals    - vector with one element per trap, giving the
+%                      z-spill value for that trap
+%     ctrap_regions  - one value per grid cell.  Gives the trap number of
+%                      the trap that the node spills into, or zero if the
+%                      cell belongs to the spill region of the 'exterior'
+%                      of the domain.
+%     csommets       - indices to all cells that represent local maxima
+%                      (NB: these are all trap cells, but there may be more
+%                      than one sommet per trap)
+%     ctrap_connectivity - (Sparse) adjacency matrix with one row/column
+%                      per trap. Row 'i' is nonzero only for columns 'j'
+%                      where trap 'i' spills directly into trap 'j' when
+%                      overflowing.
+%     lost_regions  - indices of those edge-based regions whose traps did
+%                      not get projected to any cell (e.g. because they
+%                      were too small)
+%     crivers        - one cell array per trap, containing the 'rivers'
+%                      exiting that trap.  A river is presented as a
+%                      sequence of consecutive grid cells that lie
+%                      geographically along the river.  A river starts in
+%                      the trap, and ends either in another trap or at the
+%                      boundary of the domain.
+%
+% SEE ALSO:
+%   computeNodeTraps
 
-  % As long as traps are not eliminated, connectivities, z-values and spill regions 
-  % are identical to the node-based version...
+% As long as traps are not eliminated, connectivities, z-values and spill
+% regions are identical to the node-based version...
   ctrap_connectivity = ntrap_connectivity;
   ctrap_zvals = ntrap_zvals;
   initial_num_regions = numel(ctrap_zvals);
@@ -101,7 +103,7 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
     % descending order
     tnodes = find(ntraps == i);
     
-    %% Update connectivity matrix
+    % Update connectivity matrix
     rmerge = sparse(eye(size(ctrap_connectivity)));  
 
     lmerge = sparse(eye(size(ctrap_connectivity)));
@@ -112,7 +114,7 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
     
     ctrap_connectivity = lmerge * ctrap_connectivity * rmerge;
 
-    %% Update rivers
+    % Update rivers
     upstream_regs = find(ntrap_connectivity(:,i));
     if ~isempty(upstream_regs)
         for j = upstream_regs'
@@ -169,7 +171,7 @@ function cell_sommets = n2c_sommets(Gt, node_sommets)
 % Determining a 'representative' node (the shallowest one) for each cell
     cnodes = activeCellNodes(Gt);
     num_cells = size(cnodes,2);
-    [min_z, representative] = min(Gt.nodes.z(cnodes));
+    [min_z, representative] = min(Gt.nodes.z(cnodes)); %#ok<ASGLU>
     cnodes_rep = cnodes(sub2ind(size(cnodes), representative, 1:num_cells));
     
     % giving an unique value to each sommet, making it possible to recognize
@@ -185,8 +187,8 @@ function cell_sommets = n2c_sommets(Gt, node_sommets)
     % choosing unique cell to represent each node
     cell_sommets_ix = find(cell_sommets);
     cell_sommets_vals = cell_sommets(cell_sommets_ix);
-    [Y, I] = sort(cell_sommets_vals);
-    [Z, J] = unique(cell_sommets_vals, 'first');
+    [Y, I] = sort(cell_sommets_vals); %#ok<ASGLU>
+    [Z, J] = unique(cell_sommets_vals, 'first'); %#ok<ASGLU>
     cell_sommets(:) = 0;
     cell_sommets(cell_sommets_ix(I(J))) = 1;   
 end
@@ -270,7 +272,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
     assert(unique(diff(Gt.faces.nodePos)) == 2); 
                                                  
     % one row per edge, giving its end node indices (in ascending order)
-    enodes_sorted = sort(reshape(Gt.faces.nodes, 2, [])', 2, 'ascend');
+    enodes_sorted = sort(reshape(Gt.faces.nodes, 2, []), 1, 'ascend')';
     enodes_lookup = sparse(enodes_sorted(:,1), enodes_sorted(:,2), ...
                            1:Gt.faces.num, nnum, nnum);
     
@@ -287,7 +289,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
         for r_ix = 1:numel(edge_rivers{trap_ix})
             nodes_ix = edge_rivers{trap_ix}{r_ix};
             
-            % removing consecutive duplicates @@ find out why this sometimes happens!
+            % removing consecutive duplicates 
             nodes_ix = nodes_ix([1; diff(nodes_ix)]~=0);
 
             cells_ix = [];
@@ -303,17 +305,17 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
                     % river cell
                     c_ix = diag_lookup(enodes(1), enodes(2));
                     assert(c_ix ~= 0); % should be one of the two diagonals
-                    cells_ix = [cells_ix, c_ix];
+                    cells_ix = [cells_ix, c_ix]; %#ok<AGROW>
                 else
                     % Determining cells bordering this edge.   If there is only
                     % one cell, 'project' the edge to it; if there are two,
                     % 'project the edge to the shallowest of them
                     neigh_cells = sort(Gt.faces.neighbors(edge_ix,:), 'ascend');
                     if neigh_cells(1) == 0
-                        cells_ix = [cells_ix, neigh_cells(2)];
+                        cells_ix = [cells_ix, neigh_cells(2)]; %#ok<AGROW>
                     else
-                        [dummy, min_ix] = min(Gt.cells.z(neigh_cells));
-                        cells_ix = [cells_ix, neigh_cells(min_ix)];
+                        [dummy, min_ix] = min(Gt.cells.z(neigh_cells)); %#ok<ASGLU>
+                        cells_ix = [cells_ix, neigh_cells(min_ix)]; %#ok<AGROW>
                     end
                 end
             end

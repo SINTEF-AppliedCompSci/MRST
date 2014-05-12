@@ -3,15 +3,15 @@
 % equlibrium approximations to the two-phase flow in reservoirs.
 %
 % # Using the height $h$ of the CO2 column as primary variable, a mimetic
-%   discretization of the pressure equation, and a transport solver based on
-%   explicit time stepping. This was the original formulation in the vertical
-%   average module.
+%   discretization of the pressure equation, and a transport solver based
+%   on explicit time stepping. This was the original formulation in the
+%   vertical average module.
 % # Using fractional height ($S=h/H$) as primary variable, a
 %   standard two-point discretization for the pressure equation, and the
 %   standard implicit transport solver from mrst core.
 %
-% The example also sets up a complete input deck (in Eclipse format)
-% which can be used for simulation by traditional solvers
+% The example also sets up a complete input deck (in Eclipse format) which
+% can be used for simulation by traditional solvers
 
 %% Background
 % We start with the multiphase version of Darcy's law:
@@ -57,11 +57,7 @@
 % standard fractional flow model.
 %
 
-try
-   require deckformat
-catch %#ok<CTCH>
-   mrstModule add deckformat
-end
+moduleCheck('deckformat','mimetic');
 
 %% Parameters for the simulation
 gravity on

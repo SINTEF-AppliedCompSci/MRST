@@ -1,98 +1,35 @@
 %% IGEMS Data Set
-% The IGEMS project (http://www.nr.no/nb/IGEMS) studied how top surface
-% morphology influences the CO2 storage capacity. Alternative top-surface
-% morphologies are created stochastically by combining different
-% stratigraphic scenarios with different structural scenarios. In this
-% example, we will use one of the 3D models developed in the project to
-% demonstrate spill-point analysis and VE simulations on a model with a
-% huge number of cells.
+% The IGEMS project studied how top surface morphology influences the CO2
+% storage capacity. Alternative top-surface morphologies were created
+% stochastically by combining different stratigraphic scenarios with
+% different structural scenarios. In this example, we will use one of the
+% top surfaces developed in the project to demonstrate capacity estimates
+% and spill-point analysis on a model with a huge number of cells. For
+% depositional features, two scenarios were chosen for which it was
+% considered likely that a depositional/erosional topography could be
+% preserved under a thick regional seal; the latter commonly formed by
+% marine shale. The two scenarios reflect situations where sand deposition
+% is suceeded by deposition of fines as a result of marine transgression:
+% 
+% * Offshore sand ridges covered by thick marine shale (OSS)
+% * Preserved beach ridges under marine shale (FMM)
 %
-%% Information about IGEMS
+% In this example, we will consider an OSS-type surface that consists of
+% sand dunes with amplitude up to 20 meters, width 2-4 km, and length 10-60
+% km, and spacing 2-4 km. In addition, there is a conceptual structural
+% scenario that consists of a single fault system with random 20-150 m
+% displacement, random 300-6000 m length, and 90 degrees strike.
+%
+% More information about IGEMS
 % Link: <http://www.nr.no/nb/IGEMS>
 % Data description: <http://files.nr.no/igems/data.pdf>
-%
+
 %% Read and prepare grid structure
-% The full 3D grid is saved in the ECLIPSE format.  The function
-% 'readGRDECL' reads this file and produces a MATLAB data structure
-% representing the grid on this format.  The grid is then converted to the
-% MRST grid structure using the 'processGRDECL' command, and useful
-% geometry information is computed explicitly in the call to
-% 'computeGeometry'.  Finally, the top surface of the 3D grid is extracted
-% as a 2D grid with the 'topSurfaceGrid' function.
-%
-% NB! This file is HUGE and it may take very long time to read and process
-matpath = fullfile(VEROOTDIR, 'data', 'mat');
-if ~isdir(matpath)
-   mkdir(matpath)
-end
-
-disp('This data set is HUGE. You should have more than 12 GiB memory');
-cachepath = fullfile(matpath, 'IGEMS.mat');
-if exist(cachepath, 'file')
-   fprintf('Loading data...');
-   load(cachepath);
-   fprintf('done\n');
-else
-   pth = fullfile(VEROOTDIR, 'data', 'igems');
-   fle = fullfile('eclipsegrids', 'OSS_NP2.GRDECL');
-   if ~exist(fullfile(pth,fle), 'file')
-      promptMessage = sprintf(...
-         ['This will download 467 MB of data which will extract to 7.6 GB\n' ...
-         'Do you want to Continue processing, or Cancel to abort processing?']);
-      button = questdlg(promptMessage, 'Continue', 'Continue', 'Cancel', 'Continue');
-      if strcmpi(button, 'Cancel')
-         return;
-      end
-      disp(' -> Download 467 MB of data from: http://files.nr.no/igems/');
-      disp(['    Putting data in ', pth]);
-      unzip('http://files.nr.no/igems/eclipsegrids.zip',pth);
-   end
-   
-   fprintf(['Reading and processing a 588 MB file.' ...
-      'This may take a long time...']); 
-   grdecl = readGRDECL(fullfile(pth, fle));
-   
-   try
-      moduleCheck('mex'); % load opm_gridprocessing and libgeometry
-      G = processgrid(grdecl);
-      G = mcomputeGeometry(G);
-   catch                                                         %#ok<CTCH>
-      G = computeGeometry(processGRDECL(grdecl));
-   end
-   rock = grdecl2Rock(grdecl);
-   [Gt,G] = topSurfaceGrid(G);
-   rock2D = averageRock(rock, Gt);
-
-   fprintf('done\nSaving grid and rock structure to file...');
-   save('-v7.3', cachepath, 'G', 'Gt', 'rock', 'rock2D');
-   fprintf('done\n');
-end
-
-rock2D.poro = 0.25 * ones(Gt.cells.num, 1); % @@ HACK
-
-%% 
-% To illustrate the 3D grid and the extracted 2D grid, we plot them in the
-% same figure.  For convenience, we shift the plot of the extracted top
-% grid fifty meters upwards.  This way, the plots will not overlap and we
-% will clearly see the extracted 2D surface as distinct from the 3D grid.
-% As we can see from the resulting graphic, the top surface is gently
-% sloping, slighly curved, and contains elongated local irregularities that
-% run perpendicular to the direction of the slope.  In addition, there are
-% several discontinuities from faults.  Assuming that the top surface
-% represents a boundary with an inpermeable caprock above, the geometric
-% irregularity will provide a certain capacity of structural trapping of
-% CO2 (local 'pockets' where the CO2, flowing upward, would be stuck).
-% 
-% The next section will present a geometric analyisis of this structural
-% trapping capacity.
-clf
-Gt_zshifted = Gt; 
-Gt_zshifted.nodes.z = Gt_zshifted.nodes.z - 100;
-plot_opts = {'edgeColor', 'k', 'edgeAlpha', 0.1};
-plotGrid(G, plot_opts{:});
-plotCellData(Gt_zshifted, Gt_zshifted.cells.z, plot_opts{:});
-view(55,26); axis tight
-
+% The project developed both full 3D grid saved in the ECLIPSE format and
+% surfaces saved in the IRAP formate.  The ECLIPSE files are huge (588 MB)
+% and reading and processing them typically requires a computer with at
+% least 12 GB memory. Here, we will therefore only use the surface grid.
+Gt = topSurfaceGrid( readIGEMSIRAP('OSSNP1', 1) );
 
 %% First study: geometric analyisis of caprock (spill point analysis)
 % The following command carries out a structural trapping analysis based on
@@ -129,12 +66,12 @@ num_traps = max(ts.traps) %#ok
 % then call the 'plotCellData' command.  On the resulting plot, we can see
 % several long-narrow traps aligned with the crests of the surface, as well
 % as a large number of scattered, small pockets.
-p = get(gcf,'Position'); set(gcf,'Position', p + [0 -300 0 300]);
+figure; p = get(gcf,'Position'); set(gcf,'Position', p + [0 -300 0 300]);
 trap_field = zeros(size(ts.traps));
 trap_field(ts.traps>0) = 2;
-figure(1); clf; 
+plot_opts = {'edgeColor', 'k', 'edgeAlpha', 0.1};
 plotCellData(Gt, trap_field, plot_opts{:});
-view(30,20); axis tight, colormap('jet');
+view(-65,25); axis tight, colormap('jet');
 
 %%
 % Likewise, the 'rivers' exiting each trap (and then either entering
@@ -151,10 +88,9 @@ end
  
 clf;
 plotCellData(Gt, max(trap_field, river_field));
-view(2); axis equal tight
+view(-90,90); axis equal tight
 
-disp('Entering keyboard mode: type ''return'' to exit');
-keyboard;
+
 %% 
 % The vector |ts.trap_z| contains the _spill point depth_ for each trap,
 % i.e., the depth at which the trap 'spills over'.  The trapping capacity
@@ -167,7 +103,8 @@ keyboard;
 % rock structure, we can now easily compute the storage volumes for each
 % trap.
 
-trap_volumes = computeTrapVolume(Gt, ts, rock2D.poro, 1:num_traps);
+poro = .2*ones(Gt.cells.num,1);
+trap_volumes = computeTrapVolume(Gt, ts, poro, 1:num_traps);
 
 total_trapping_capacity = sum(trap_volumes);
 fprintf('Total trapping capacity is: %6.2e\n\n', total_trapping_capacity);
@@ -192,14 +129,15 @@ fprintf(['\nTogether, these traps cover %6.2e m3, which represents %3.1f ' ...
 largest_traps_field = zeros(size(ts.traps));
 largest_traps_field(ismember(ts.traps, sorted_ix(1:10))) = 3;
 clf; plotCellData(Gt, max(trap_field, largest_traps_field));
-view(2);axis equal tight
+view(-90,90);axis equal tight
 
 %%
 % We can also color code each trap according to the total volume it holds:
 for i = 1:num_traps
     trap_field(ts.traps == i) = trap_volumes(i);
 end
-clf; plotCellData(Gt, trap_field); axis equal tight; colorbar;
+clf; 
+plotCellData(Gt, trap_field); axis equal tight; view(-90,90); colorbar;
 
 
 %%
@@ -221,6 +159,6 @@ clf; plotCellData(Gt, trap_field); axis equal tight; colorbar;
 clf; plotCellData(Gt, ts.trap_regions, trap_field==0);
 plotGrid(Gt, trap_field>0, 'FaceColor', 'k', 'EdgeColor','none');
 nreg = max(ts.trap_regions);
-colormap((2*colorcube(nreg+1)+ones(nreg+1,3))/3); 
-view(2); axis equal tight
+colormap((colorcube(nreg+1)+2*ones(nreg+1,3))/3); 
+view(-90,90); axis equal tight
 

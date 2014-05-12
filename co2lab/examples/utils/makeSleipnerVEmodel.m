@@ -22,7 +22,7 @@ if nargin<1, usemex = true; end
 
 try
    disp(' -> Reading Sleipner.mat');
-   datadir = fullfile(VEROOTDIR, 'data', 'mat');
+   datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
    load(fullfile(datadir,'Sleipner'));
    return;
 catch %#ok<*CTCH>
@@ -33,7 +33,7 @@ end
 try
    sdir = fullfile('data', 'sleipner');
    disp([' -> Reading data from: ' sdir]);
-   grdecl = readGRDECL(fullfile(VEROOTDIR, sdir, 'SLEIPNER.DATA'));
+   grdecl = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
 catch
    fprintf(1, '    Reading failed, please dowload data manually following');
    fprintf(1, ' instructions\n    in "%s"\n', fullfile(sdir,'README'));
@@ -54,7 +54,7 @@ grdecl.ACTNUM(grdecl.PERMX<200) = 0;
 % C-accelerated routines
 if usemex,
    mlist = mrstModule;
-   mrstModule add mex
+   mrstModule add libgeometry opm_gridprocessing
    G = processgrid(grdecl);
    G = mcomputeGeometry(G);
    mrstModule('reset', mlist{:});

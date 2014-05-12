@@ -94,7 +94,8 @@ function trap=findTrappingStructure(Gt, varargin)
 opt = struct('use_multipoint',false);
 opt = merge_options(opt, varargin{:});
 
-checkBGL();
+mlist = mrstModule();
+mrstModule add matlab_bgl;
 
 % Find top cells of the surface defined such that all centroids of all
 % internal neighbors lie deeper.
@@ -105,14 +106,14 @@ if(opt.use_multipoint)
 else
    N=Gt.faces.neighbors;
 end
-%%
+%
 internal=all(N>0,2);
 ni1=N(internal,1);ni2=N(internal,2);
 z_diff   = Gt.cells.z(ni2)-Gt.cells.z(ni1);
 top      = accumarray([ni2;ni1], double([z_diff;-z_diff]<=0), [nc,1], @prod, 0);
 %top      = accumarray(ni2, double(z_diff<0), [nc,1], @prod, 0);
 top_cells=find(top);
-%%
+%
 % Make copy of input grid which is going to be modifed
 Gtop=Gt;
  
@@ -244,6 +245,7 @@ trap =struct('Gtop', Gtop, ...
              'z_spill_level',{z_spill_level},...
              'z_spill_loc_level',{z_spill_loc_level});
                      
+mrstModule('reset', mlist{:})
 return
 end
 

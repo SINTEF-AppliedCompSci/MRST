@@ -269,7 +269,7 @@ S.type    = systemType;
 S.intVert = opt.intVert;
 
 
-%% Inverse of innerproduct - functions
+% Inverse of innerproduct - functions
 
 function W = ip_simple(a, v, K, C, N, computeInverseIP)
 % These are not mutually inverse for general cells

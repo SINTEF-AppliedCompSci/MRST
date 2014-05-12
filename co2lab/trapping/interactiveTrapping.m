@@ -71,7 +71,7 @@ function varargout = interactiveTrapping(inp, varargin)
    end
    
    if strcmpi(opt.method, 'cell')
-       require coarsegrid
+       moduleCheck('coarsegrid');
    end
    
    opt = merge_options(opt, varargin{:});
@@ -102,7 +102,7 @@ function varargout = interactiveTrapping(inp, varargin)
         % first grid produced by processGRDECL and add geometry data to it.
         try
             mlist = mrstModule();
-            mrstModule add mex
+            mrstModule add libgeometry
             G = mcomputeGeometry(G(1));
             mrstModule('reset', mlist{:})
         catch %#ok

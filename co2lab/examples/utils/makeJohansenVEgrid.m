@@ -1,5 +1,5 @@
 function [G, Gt, rock, rock2D, bcIxVE] = makeJohansenVEgrid()
-%Make an VE model based upon a data set of the Johansen formation
+%Make a VE model based upon a data set of the Johansen formation
 %
 % SYNOPSIS:
 %  [G, Gt, bcIx, bcIxVE, rock, rock2D] = makeJohansenVEgrid()
@@ -40,7 +40,7 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeJohansenVEgrid()
 
 try
    disp(' -> Reading Johansen.mat');
-   datadir = fullfile(VEROOTDIR,'data','mat');
+   datadir = fullfile(mrstPath('co2lab'),'data','mat');
    load(fullfile(datadir,'Johansen'));
    return;
 catch %#ok<*CTCH>
@@ -52,7 +52,7 @@ end
 % depending upon where you have stored the Johansen data-set
 
 try
-   jdir = fullfile(VEROOTDIR, 'data', 'johansen');
+   jdir = fullfile(mrstPath('co2lab'), 'data', 'johansen');
    sector = 'NPD5';
    fprintf('    Reading %s\n', sector);
    sector = fullfile(jdir, sector);

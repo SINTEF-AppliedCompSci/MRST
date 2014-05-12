@@ -12,7 +12,7 @@
 % * processgrid (replaces processGRDECL)
 % * mcomputegeometry (replaces computeGeometry)
 
-moduleCheck('mex');
+%moduleCheck('mex');
 
 %% Write header
 clc;
@@ -87,7 +87,8 @@ try
 catch me
    d = fileparts(mfilename('fullpath'));
    disp('mex-file for C++ acceleration not found');
-   disp(['See ', fullfile(VEROOTDIR,'VEmex','README'), ' for building instructions']);
+   disp(['See ', fullfile(mrstPath('co2lab'),'ve','VEmex','README'), ...
+      ' for building instructions']);
    disp('Using matlab ve-transport');
    cpp_accel = false;
 end

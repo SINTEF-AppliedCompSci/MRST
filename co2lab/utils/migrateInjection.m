@@ -1,5 +1,5 @@
 function sol = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
-%% Run a simple injection scenario and visualize each time step
+% Run a simple injection scenario and visualize each time step
 %
 % SYNOPSIS:
 %   function sol = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
@@ -37,7 +37,8 @@ function sol = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
 %
 % SEE ALSO:
 %
-%% Process options
+
+%%% Process options
 opt = struct('amount',      1, ...
             'T_injection',  100*year,  ...
             'T_migration',  1000*year, ...
@@ -52,12 +53,12 @@ opt = struct('amount',      1, ...
             'wireS',        true);
 opt = merge_options(opt, varargin{:});
 
-%% Precompute traps if missing and required
+%%% Precompute traps if missing and required
 if opt.plotPanel && isempty(traps)
   traps = trapAnalysis(Gt, false);
 end
 
-%% Take care of global variables
+%%% Take care of global variables
 % When launched from the interactive viewer, we use a global variable to
 % indicate when the user has pushed the 'Abort' button. If launched as a
 % standalone simulation, this variable must be set to false.
@@ -66,7 +67,7 @@ if isempty(veSimAborted)
    veSimAborted = false;
 end
 
-%% Set up fluid
+%%% Set up fluid
 muw = 0.30860;  rhow = 975.86; sw    = 0.1;
 muc = 0.056641; rhoc = 686.54; srco2 = 0.2;
 kwm = [0.2142 0.85];
@@ -80,19 +81,19 @@ fluid = initSimpleVEFluid_s('mu' , mu , 'rho', rho, ...
 fluid.sr = srco2;
 fluid.sw = sw;
 
-%% Define vertical pressure distribution
+%%% Define vertical pressure distribution
 gravity on;
 grav     = gravity();
 topPos   = min(Gt.cells.z);
 pressure = @(z) opt.topPressure + rho(2)*(z - topPos)*grav(3);
 
-%% Schedule
+%%% Schedule
 T_tot = opt.T_injection + opt.T_migration;
 dTi   = opt.T_injection / opt.Ni;  % short time steps during injection
 dTm   = opt.T_migration / opt.Nm;  % longer steps during migration
 
 
-%% Set up rock properties and compute transmissibilities
+%%% Set up rock properties and compute transmissibilities
 % We use the averaged values for porosity and permeability as given in the
 % Atlas tables. Since cellwise data is not present, we assume to averaged
 % values to be valid everywhere.
@@ -104,7 +105,7 @@ rock2D    = averageRock(rock, Gt);
 T = computeTrans(Gt, rock2D);
 T = T.*Gt.cells.H(gridCellNo(Gt));
 
-%% Set up well and boundary conditions
+%%% Set up well and boundary conditions
 % This example is using an incompressible model for both rock and fluid. If
 % we assume no-flow on the boundary, this will result in zero flow from a
 % single injection well. However, this can be compensated if we use the
@@ -127,7 +128,7 @@ bc = addBC([], bnd, 'pressure', pressure(Gt.faces.z(bnd)), 'sat', [0 1]);
 % Convert to 2D wells
 W2D = convertwellsVE_s(W, G, Gt, rock2D,'ip_tpf');
 
-%%  Set up initial reservoir conditions
+%%%  Set up initial reservoir conditions
 % The initial pressure is set to hydrostatic pressure. Setup and plot.
 sol = initResSolVE_s(Gt, pressure(Gt.cells.z), 0);
 sol.wellSol = initWellSol(W2D, 0);
@@ -151,7 +152,7 @@ else
     fh = figure;
 end
 
-%% Run the simulation
+%%% Run the simulation
 % Solve for all timesteps, and plot the results at each timestep.
 t = 0;
 tt = ' (Injecting)';

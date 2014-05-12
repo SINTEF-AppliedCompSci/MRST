@@ -16,7 +16,7 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeSlopingAquifer()
 
 try
    disp(' -> Reading SlopingAquifer.mat');
-   datadir = fullfile(VEROOTDIR, 'data', 'mat');
+   datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
    load(fullfile(datadir,'SlopingAquifer'));
    return
 catch %#ok<*CTCH>

@@ -57,7 +57,10 @@ function trap_con = findTrapConnections(Gnew,z_spill_loc)
 % SEE ALSO:
 %   topSurfaceGrid, trapAnalysis, findTrappingStructure
 %
-require coarsegrid
+
+mlist = mrstModule();
+mrstModule add coarsegrid matlab_bgl
+
 
 % make top surface flat according to z_spill_loc
 cells=find(z_spill_loc>0);
@@ -77,9 +80,8 @@ z_unique = unique(z_spill_loc);
 %assert(z_unique(1) == 0);
 traps = zeros(size(z_spill_loc));
 for i = 1:size(z_unique, 1)
-    traps(find(z_spill_loc == z_unique(i))) = i;
+    traps(z_spill_loc == z_unique(i)) = i;
 end
-% traps=double(z_spill_loc>0)+1; % @@
 
 
 % this need the mrst coarse grid module
@@ -87,7 +89,6 @@ traps = processPartition(Gnew,traps);
 traps = traps-1;
 
 % purge accidentally created traps in non-trap regions 
-% @@ Odd: Why does this happen?
 bad_traps = sort(traps(intersect(find(z_spill_loc == 0), find(traps))), ...
                  'descend');
 if ~isempty(bad_traps)
@@ -208,5 +209,6 @@ trap_con=struct('cell_lines',{cell_lines},...
                 'trap_matrix',trap_matrix,...
                 'leaf_lines',{leaf_lines},...
                 'leaf_traps',{leaf_traps});
+mrstModule('reset', mlist{:})
 return;
 end

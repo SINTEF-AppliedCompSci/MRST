@@ -8,7 +8,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 %
 % PARAMETERS:
 %   name   - The name of the IGEMS grid. For valid names, run
-%            >>> ls(fullfile(VEROOTDIR, 'data', 'igems', 'surfaces'))
+%            >>> ls(fullfile(mrstPath('co2lab'), 'data', 'igems', 'surfaces'))
 %
 %   i      - The index of the realization of the grid. A value from 1 to
 %            100.
@@ -22,7 +22,7 @@ function G = readIGEMSIRAP(name, i, varargin)
 %              of [1, 1] and so on.
 %
 %              save   -- Bolean. If true, a mat file with the constructed
-%              grid is saved for later use. Default: true
+%              grid is saved for later use. Default: false
 %
 %              dir    -- String. Load files from this directory.
 %
@@ -38,15 +38,14 @@ function G = readIGEMSIRAP(name, i, varargin)
 #COPYRIGHT#
 %}
 
-require mex
 opt = struct('coarse', [1 1], ...
-             'save', true, ...
+             'save', false, ...
              'dir',  []);
 opt = merge_options(opt, varargin{:});
 coarse = opt.coarse;
 
 if isempty(opt.dir)
-   result_dir = fullfile(VEROOTDIR, 'data', 'igems');
+   result_dir = fullfile(mrstPath('co2lab'), 'data', 'igems');
    file_dir = fullfile(result_dir, 'surfaces');
 else
    result_dir = opt.dir;

@@ -1,16 +1,19 @@
 function res = trapAnalysis(Gt, method)
-% Compute and summarize the relevant trap analysis information,  using either
-% a cell-centroid-based or edge-based implementation.  Regardless of
-% implementation, the resulting information pertains to cells (not edges).
-%
+% Compute and summarize the relevant trap analysis information
 % SYNOPSIS:
 %   function res = trapAnalysis(Gt, method)
 %
 % PARAMETERS:
 %   Gt     - top surface grid to analyze
-%   method - 'true' : use cell-centroid-based implementation (requires
-%                     matlab_bgl)
+%   method - 'true' : use cell-centroid-based implementation
 %            'false': use edge-based implementation
+% DESCRIPTION:
+%   The function computes and summarizes information that describes the
+%   trapping structure using either a cell-centroid-based implementation
+%   that requires the Matlab Boost Graph Library (from 3rd-party module
+%   'matlab_bgl') or an edge-based implementation.  Regardless of
+%   implementation, the resulting information pertains to cells (not
+%   edges). 
 %
 % RETURNS:
 %   res - structure describing the trap structure of Gt with the following
@@ -20,31 +23,35 @@ function res = trapAnalysis(Gt, method)
 %                          belong to a trap.
 %         - trap_z       - One value per trap, giving the z-value at its
 %                          bottom (spill point)
-%         - trap_regions - one index per cell in Gt.  Gives the index of the
-%                          trap that the cell 'spills into', or '0' if the
-%                          cell spills out of the domain.  NB: A cell does
-%                          not have to lie in a trap in order to spill into it.
+%         - trap_regions - one index per cell in Gt.  Gives the index of
+%                          the trap that the cell 'spills into', or '0' if
+%                          the cell spills out of the domain.  NB: A cell
+%                          does not have to lie in a trap in order to spill
+%                          into it. 
 %         - trap_adj     - adjacency matrix describing connection between
-%                          traps.  Values are thus 0 or 1).  A nonzero value
-%                          at (i,j) indicates that region 'i' spills directly
-%                          into region 'j'.  This matrix is stored on the
-%                          sparse format.
+%                          traps.  Values are thus 0 or 1).  A nonzero
+%                          value at (i,j) indicates that region 'i' spills
+%                          directly into region 'j'.  This matrix is stored
+%                          on the sparse format.
 %         - cell_lines   - One cell array per trap, conaining the 'rivers'
 %                          exiting that trap.  A river is presented as a
 %                          sequence of consecutive grid cells that lie
-%                          geographically along the river.  A river starts in
-%                          a trap and ends either in another trap or at the
-%                          boundary of the domain.
-%         - top          - indices for all cells that represents local maxima
-%                          in the grid.  (NB: these are all trap cells, but
-%                          there may be more than one local maxima per trap)
+%                          geographically along the river.  A river starts
+%                          in a trap and ends either in another trap or at
+%                          the boundary of the domain.
+%         - top          - indices for all cells that represents local
+%                          maxima in the grid.  (NB: these are all trap
+%                          cells, but there may be more than one local
+%                          maxima per trap)
 %
 % EXAMPLE:
 %
   if method
       % we will use the cell-based method
-      require coarsegrid 
+      mlist = mrstModule();
+      moduleCheck('matlab_bgl','coarsegrid');
       res = cell_based_trap_analysis(Gt);
+      mrstModule('reset', mlist{:})
   else
       % we will use the edge-based method
       res = edge_based_trap_analysis(Gt);

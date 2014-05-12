@@ -80,7 +80,7 @@ view(70,50), axis tight, set(gca,'ZDir','reverse');
 % corresponding spill point.
 
 % Check for existence of the MATLAB graph library
-mrstModule add coarsegrid
+mrstModule add coarsegrid matlab_bgl
 checkBGL();
 
 ts = findTrappingStructure(Gt);
@@ -139,7 +139,7 @@ clf, subplot('position',[.025 .025 .95 .95]);
 % flux, make this graph bi-directional along each edge, and then compute
 % the connected components.
 C       = maxTPFAGravityMatrix(Gt);
-[ci,ss] = components(C+C');  assert(max(ci)==numel(ts.top))
+[ci,ss] = components(C+C');  %assert(max(ci)==numel(ts.top))
 
 % Set a unique random color for each trap
 p  = zeros(length(ts.top),1);

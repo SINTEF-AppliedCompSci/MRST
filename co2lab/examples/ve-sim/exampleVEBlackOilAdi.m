@@ -22,13 +22,13 @@ ipress     = 200;                % Initial pressure
 % Create an input deck that can be used together with the fully-implicit
 % solver from the 'ad-fi' module. Since the grid is constructed as part of
 % setting up the input deck, we obtain it directly. 
-[deck, G] = sinusDeckAdi([nx ny nz], [Lx Ly H], nsteps, dt, ...
+[deck, G] = sinusDeckAdiVE([nx ny nz], [Lx Ly H], nsteps, dt, ...
                          -.1*pi/180, depth, phi, perm, ...
                          (H*phi*Lx*Ly)*0.2*day/year, ipress);
 
 % Alternatively, we could read deck from file and construct the grid
 % deck = readEclipseDeck( ...
-%    fullfile(VEROOTDIR,'data','decks','sinusDeckAdi.DATA');
+%    fullfile(mrstPath('co2lab'),'data','decks','sinusDeckAdiVE.DATA');
 % G = initEclipseGrid(deck);
 
 figure, plotGrid(G),view([0 -1 0]), box on

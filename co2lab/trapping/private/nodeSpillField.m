@@ -31,9 +31,9 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
 %                    Col 5: z-value of edge's second node
 %                    Col 6: index of edge's first node
 %                    Col 7: index of edge's second node
-%                    
-    %% Determining the neighborhood and steepest upslope neighbor of each node
-    
+%
+
+    %%% Determining the neighborhood and steepest upslope neighbor of each node
     % Establishing list of all neighborhood relations between nodes.  Since
     % we are working on a 2D grid, we assume that all edges have two distinct
     % nodes, so we do not bother to use the 'Gt.faces.nodePos' indirection map.
@@ -42,8 +42,7 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
     [uslp_neigh, nhood] = findUpslopeNeighbor(nodes_xyz, neigh_rels);
                                                
     
-    %% Constructing the 'region' matrix
-
+    %%% Constructing the 'region' matrix
     % Flag boundary nodes as those having less than nine members of
     % their neighborhood, causing (at least) the last index of 'nhood' to be
     % zero. 
@@ -62,14 +61,13 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
         unfinished = find(isnan(region));    
     end
     
-    %% Final adjustments of uslp_neigh, to fulfill contract
-
+    %%% Final adjustments of uslp_neigh, to fulfill contract
     % Ascribe boundary nodes and interior sommet nodes an upslope neighbor
     % index of 0
     uslp_neigh(boundary_nodes) = 0;
     uslp_neigh(int_sommets) = 0;
 
-    %% Computing spill edges
+    % Computing spill edges
     spill_edges = find_spill_edges(Gt, region);
 end
 
@@ -98,7 +96,7 @@ function res = find_spill_edges(Gt, s_field)
 %         Col 7: index of edge's second node
     
     % We here assume that each face (i.e. edge) has exactly two nodes, which are stored 
-    % consecutively in the Gt.faces.nodes vector (@@ is this always the case?)
+    % consecutively in the Gt.faces.nodes vector 
     enodes = reshape(Gt.faces.nodes, 2, [])';
     
     %      --- Col 1 ---     -- Col 2 and 3 -- -- Col 4 and 5 --  -- Col 6 and 7 --

@@ -22,7 +22,7 @@ if nargin<1, usemex = true; end
 
 try
    disp(' -> Reading SleipnerSimple.mat');
-   datadir = fullfile(VEROOTDIR, 'data', 'mat');
+   datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
    load(fullfile(datadir,'SleipnerSimple'));
    return;
 catch %#ok<*CTCH>
@@ -33,7 +33,7 @@ end
 try
    sdir = fullfile('data', 'sleipner');
    disp([' -> Reading data from: ' sdir]);
-   grdecl = readGRDECL(fullfile(VEROOTDIR, sdir, 'SLEIPNER.DATA'));
+   grdecl = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
 catch
    fprintf(1, '    Reading failed, please dowload data manually following');
    fprintf(1, ' instructions\n    in "%s"\n', fullfile(sdir,'README'));
@@ -41,7 +41,7 @@ catch
 end
 
 %% Process 3D grid and compute geometry
-% First, we map from left-hand to right-hand coordinate system. 
+% First, we map from left-hand to right-hand coordinate system.
 disp(' -> Processing grid');
 lines = reshape(grdecl.COORD,6,[]);
 lines([2 5],:) = -lines([2 5],:);
@@ -52,7 +52,7 @@ grdecl.COORD = lines(:); clear lines
 if(usemex)
   G=mprocessGRDECL(grdecl);
 else
-  G=processGRDECL(grdecl); 
+  G=processGRDECL(grdecl);
 end
 [ijk{1:3}]=ind2sub(G.cartDims,G.cells.indexMap)
 kmin=double(min(ijk{3}(grdecl.PERMX>200)));

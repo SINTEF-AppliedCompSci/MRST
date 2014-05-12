@@ -1,5 +1,5 @@
 function sqform = convertAtlasToStruct(meta_thick, meta_top, data_thick, data_top)
-%Create GRDECL struct from CO2 storage atlas thickness/top data
+%Create GRDECL struct from thickness/top data from the CO2 Storage Atlas 
 %
 % SYNOPSIS:
 %   grdecl = convertAtlasTo3D(m_thick, m_top, d_thick, d_top, 3)
@@ -60,17 +60,8 @@ function sqform = convertAtlasToStruct(meta_thick, meta_top, data_thick, data_to
     thick = reshape(F_thick(x, y), ndims(1), ndims(2));
     top   = reshape(F_top(x, y)  , ndims(1), ndims(2));
    
-    
-   
-    
-    %
-    
-    %thick(thick<=0) = NaN;
-    %
-    
-    %sqform=struct('X',X,'Y',Y,'thick',thick,'top',top,'dx',h,'dy',h,'orig',[xl,yl]);
-    %sqform=struct('nodeDims',ndims,'thick',thick,'top',top,'dx',h,'dy',h,'orig',[xl,yl]);
-    sqform=struct('nodeDims',ndims,'thick',thick,'top',top,'dx',h,'dy',h,'orig',[xl,yl],'X',X,'Y',Y);
+    sqform=struct('nodeDims',ndims,'thick',thick,'top',top, ...
+       'dx',h,'dy',h,'orig',[xl,yl],'X',X,'Y',Y);
     
     
    

@@ -12,7 +12,7 @@
 % necessary to run the example can be downloaded from the
 % <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 % website>.
-moduleCheck('mex', 'mimetic');
+moduleCheck('mimetic');
 
 %% Display header
 clc;
@@ -70,7 +70,7 @@ bcVE.h = zeros(size(bcVE.face));
 % Compute inner products and instantiate solution structure
 % For the transport simulation, the default choice is to use a
 % C-accelerated solver, but if this does not work, we use the standard
-% solver from MRST
+% solver from MRST.
 SVE = computeMimeticIPVE(Gt, rock2D, 'Innerproduct','ip_simple');
 preComp = initTransportVE(Gt, rock2D);
 sol = initResSolVE(Gt, 0, 0);
@@ -83,7 +83,8 @@ try
 catch me
    d = fileparts(mfilename('fullpath'));
    disp('mex-file for C++ acceleration not found');
-   disp(['See ', fullfile(VEROOTDIR,'VEmex','README'), ' for building instructions']);
+   disp(['See ', fullfile(mrstPath('co2lab'),'ve','VEmex','README'),...
+      ' for building instructions']);
    disp('Using matlab ve-transport');
    cpp_accel = false;
 end
@@ -157,5 +158,3 @@ fprintf(1,'\n\n');
 if cpp_accel, mtransportVE(); end
 etime = toc;
 disp(['Elapsed simulation time: ', num2str(etime), ' seconds.']);
-
-displayEndOfDemoMessage(mfilename)

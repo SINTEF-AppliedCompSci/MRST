@@ -1,9 +1,8 @@
 function vol = computeTrapVolume(Gt, tstruct, poro, trap_ixs)
-% Compute total pore volume of the traps whose indices are given in 'trap_ixs'
-% in the top surface grid Gt.
-% 
+% Compute total pore volume of traps
+%
 % SYNOPSIS:
-%   function vol = computeTrapVolume(Gt, tstruct, poro, trap_ix)
+%   vol = computeTrapVolume(Gt, tstruct, poro, trap_ix)
 %
 % PARAMETERS:
 %   Gt       - top surface grid

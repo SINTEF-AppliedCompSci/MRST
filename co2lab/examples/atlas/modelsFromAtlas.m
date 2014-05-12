@@ -51,7 +51,7 @@ view(90,45)
 % processing.
 
 % Load module
-moduleCheck('mex'); 
+moduleCheck('libgeometry','opm_gridprocessing'); 
 
 % Count number of sand bodies
 grdecls = getAtlasGrid('coarsening',10);
@@ -111,3 +111,4 @@ for i=1:ng
       res{i}.name, res{i}.cells, res{i}.zmin, res{i}.zmax, res{i}.volume, ...
       res{i}.capacity, res{i}.capacity/res{i}.volume*100);
 end
+fprintf('-------------|--------|------|------|----------|-----------|-----------\n\n');
