@@ -1,5 +1,5 @@
 % Files
-%   OilWaterAdjointExample.m - Read the problem from a deckfile
+%   OilWaterAdjoint.m - Read the problem from a deckfile
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
