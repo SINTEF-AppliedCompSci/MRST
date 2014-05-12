@@ -62,6 +62,22 @@ classdef fullCompressibleCO2BrineModel < physicalModel
                                       model.T_grad, opt.constantVerticalDensity);
           
         end
+        
+        function state = includeComputedCaprockValues(model, state)
+        % Given a state with values at the co2-brine interface, compute the
+        % corresponding values at the caprock level (pressure and density)
+            
+            tempFun  = @(x) state.extras.tI - (x - state.h) .* cos(model.slope) / 1000;
+            
+            state.extras.tTop   = tempFun(state.h * 0);
+            state.extras.pTop   = numIntTopPress(state.pressure , ...
+                                               tempFun          , ...
+                                               state.h          , ...
+                                               model.cfluid.rho , ...
+                                               norm(gravity) * cos(model.slope));
+            state.extras.rhoTop = mode.cfluid.rho(state.extras.pTop, ...
+                                                  state.extras.tTop);
+        end
     end
     % ============================== Private methods ==============================
     methods (Access = protected)
@@ -119,6 +135,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             state.h(ex_ix)     = model.G.cells.H(ex_ix);
         end
     end
+    
 end
 
 % ====================== Helper functions (not methods) ======================
@@ -184,4 +201,11 @@ function res = complete_eos(EOS)
     
     % Return true if EOS contains all of the following functions:
     res = all(cellfun(contains, {'rho', 'beta', 'gamma', 'chi', 'beta2', 'gamma2'}));
+end
+
+% ----------------------------------------------------------------------------
+
+function Ptop = numIntTopPress(Pref, tfun, h, rhofun, g_cos_t)
+    res = ode23(@(z, p) g_cos_t * rhofun(p, tfun(z)), [h 0], Pref);
+    Ptop = res.y(end);
 end

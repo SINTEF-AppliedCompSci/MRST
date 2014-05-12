@@ -15,8 +15,8 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
         state.wellSol.bhp = [];
     elseif ~isempty(drivingForces.Wells) && ~isfield(state, 'wellSol')
          % wells present and no wellSol structure initialized.  Do it.
-         state = struct('qGs', drivingForces.Wells.val, ...
-                        'bhp', state.pressure(vertcat(drivingForces.Wells.wc)));
+         state.wellSol = struct('qGs', drivingForces.Wells.val, ...
+                                'bhp', state.pressure(vertcat(drivingForces.Wells.wc)));
     end
         
     %% Precomputed values useful for later
@@ -80,7 +80,22 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
 
     primary = {'pressure' ,'height', 'q', 'bhp'};
     problem = linearProblem(eqs, types, names, primary, state);
+    
+    %% Adding extra information to state object (not used in equations, but
+    %% useful for later analysis)
+    state.extras = addedInfoForAnalysis(tI, rhoC, intFluxCO2, intFluxBri);
 end
+
+% ----------------------------------------------------------------------------
+function extras = addedInfoForAnalysis(tempIface, rhoI, fluxCO2, fluxBrine)
+% ----------------------------------------------------------------------------
+    
+    extras.tI = double(tempIface);
+    extras.rhoI = rhoI;
+    extras.fluxCO2 = double(fluxCO2);
+    extras.fluxBrine = double(fluxBrine);
+end
+    
 
 % ----------------------------------------------------------------------------
 function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, muC)

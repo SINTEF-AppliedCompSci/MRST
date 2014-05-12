@@ -16,8 +16,8 @@ function comp_refactor()
     
     
     %% define injection well and schedule
-    tnum     = 60; % total number of timesteps
-    inum     = 20; % number of injection steps
+    tnum     = 6; %60; % total number of timesteps
+    inum     = 2;%20; % number of injection steps
     tot_time = 60 * year;
     schedule = struct('W', addWell([], Gt, rock, ceil(Gt.cells.num/2), ...
                                    'type'   , 'rate'                      , ...
@@ -47,9 +47,11 @@ function comp_refactor()
     [wellSols, states] = ...
         runScheduleRefactor(state, model, schedule, 'bc', bc);
 
-    %% plot result
+    
+    %% compute caprock values and plot result
     for s = states'
-        plot(s{:}.h);
+        s_tmp = model.includeComputedCaprockValues(s{:});
+        plot(s_tmp.h);
         pause(1);
     end
     
