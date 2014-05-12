@@ -21,7 +21,7 @@ require ad-fi deckformat
 % |Egg_Model_ECL.DATA|. The next two lines correspond to the setup where the whole
 % dataset has been downloaded under the current directory.
 
-dir = fileparts(mfilename('fullpath'));
+currentdir = fileparts(mfilename('fullpath'));
 fn = fullfile(currentdir, 'data', 'Egg_Model_Data_Files_v2', 'MRST', 'Egg_Model_ECL.DATA');
 
 deck = readEclipseDeck(fn);
@@ -85,7 +85,6 @@ system = initADISystem(deck, G, rock, fluid, 'cpr', true);
 system.pscale = 1/(100*barsa);
 system.nonlinear.cprBlockInvert = false;
 system.nonlinear.cprRelTol      = 2e-2;
-system.nonlinear.cprEllipticSolver = @mldivide;
 schedule = deck.SCHEDULE;
 
 
