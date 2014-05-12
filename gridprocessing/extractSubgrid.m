@@ -133,14 +133,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    H.cells.num = numel(H.cells.facePos) - 1;
    H.nodes.num = size(H.nodes.coords, 1);
 
-   if isfield(G.cells, 'indexMap'),
-      H.cells.indexMap = G.cells.indexMap(cells(2:end));
-   end
-
    if isfield(G, 'cartDims'),
       H.cartDims = nan(size(G.cartDims));
    end
 
+   if isfield(G.cells, 'indexMap'),
+      H.cells.indexMap = G.cells.indexMap(cells(2:end));
+      if isfield(G, 'cartDims'),
+         H.cartDims = G.cartDims;
+      end
+   end
+   
    % Record history.
    assert (isfield(G, 'type'), ...
            'Every grid must record its origin in the field ''type''.');
