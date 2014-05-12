@@ -9,15 +9,35 @@
 
 require ad-fi deckformat
 
-% Read and process input files.
-current_dir = fileparts(mfilename('fullpath'));
-fn    = 'EGG.DATA';
+%% Read and process input files
+% The data file for the egg model are available at
+% <http://dx.doi.org/10.4121/uuid:916c86cd-3558-4672-829a-105c62985ab2
+% 3TU.Datacentrum>. From there you can download the whole dataset but we will only need
+% the following files which can be found under the MRST directory: 
+% 
+%  ACTIVE.INC,COMPDAT.INC, Egg_Model_ECL.DATA, mDARCY.INC, SCHEDULE_NEW.INC 
+% 
+% Put all these files under the same directory and let |fn| denote the path of
+% |Egg_Model_ECL.DATA|. The next two lines correspond to the setup where the whole
+% dataset has been downloaded under the current directory.
+
+dir = fileparts(mfilename('fullpath'));
+fn = fullfile(currentdir, 'data', 'Egg_Model_Data_Files_v2', 'MRST', 'Egg_Model_ECL.DATA');
+
 deck = readEclipseDeck(fn);
 
 % The deck is given in field units, MRST uses metric.
 deck = convertDeckUnits(deck);
 
 G = initEclipseGrid(deck);
+
+
+%%
+% The egg-shaped grid is constructed be removing cells from a rectangular cartesian
+% grid. We use the MRST function extractSubgrid to remove the unactive cells given in
+% deck.GRID.ACTNUM, which is contructed from the data file ACTIVE.INC
+
+G = extractSubgrid(G, logical(deck.GRID.ACTNUM));
 G = computeGeometry(G);
 
 rock  = initEclipseRock(deck);
