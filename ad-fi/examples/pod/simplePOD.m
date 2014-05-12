@@ -179,7 +179,7 @@ end
 %
 % In terms of time used, these examples are so small that the overhead of
 % setting up the linear systems is large compared to the cost of solving
-% the actual systems. As such, the model
+% the actual systems.
 
 time = cumsum(schedule_problem.step.val) ;
 % Put the well solution data into a format more suitable for plotting
