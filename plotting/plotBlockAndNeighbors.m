@@ -1,47 +1,83 @@
-function varargout = plotBlockAndNeighbors(G, CG, block, varargin)
-%Plot a coarse block and its neighbors to current axes (reversed Z axis).
+function varargout = plotBlockAndNeighbors(CG, block, varargin)
+%Plot a coarse block and its neighbours to current axes (reversed Z axis).
 %
-% Different colors and levels of transparency are used to distinguish the
-% blocks.  The block itself is plotted in blue color and the neighbors in
-% cyan, magenta, yellow, white, and green (with a cyclic repeat).  Faults
-% are plotted using red patches.
+% Different colours and levels of transparency are used to distinguish the
+% blocks.  The block itself is plotted in blue colour and the neighbours
+% using colours from a brightened COLORCUBE colour map.  Faults are plotted
+% using gray patches (RGB = REPMAT(0.7, [1, 3])) with red edge colours.
 %
 % SYNOPSIS:
-%       plotBlockAndNeighbors(G, CG, block)
-%       plotBlockAndNeighbors(G, CG, block, 'pn1', 'pv1', ...)
+%       plotBlockAndNeighbors(CG, block)
+%       plotBlockAndNeighbors(CG, block, 'pn1', 'pv1', ...)
 %   h = plotBlockAndNeighbors(...)
 %
 % PARAMETERS:
-%   G       - Grid data structure.
-%
 %   CG      - Coarse grid data structure.
 %
 %   block   - The coarse block to be plotted.
 %
 %   'pn'/pv - List of property names/property values.  OPTIONAL.
-%             This list will be passed directly on to function PATCH
-%             meaning all properties supported by PATCH are valid.
+%             All properties supported by function PATCH are supported.
+%             This list can be used to control the appearance and other
+%             properties of the final graphic output.
 %
-%             As a special case, function 'plotBlockAndNeighbors' supports
-%             an option 'PlotFaults', whose argument is either TRUE or
-%             FALSE, which indicates whether or not the faults should be
-%             added to the graphical output.
+%             Moreover, function 'plotBlockAndNeighbors' supports the
+%             following list of additional options that control object
+%             selection and appearance.
+%
+%               - PlotFaults --
+%                   Two-element LOGICAL vector, the entries of which
+%                   specify whether or not fault faces should be added to
+%                   the graphical output of the 'block' and its neighbours,
+%                   respectively.
+%
+%                   DEFAULT: PlotFaults = TRUE([1,2]) (attach fault faces
+%                   to both the 'block' and all of its neighbours).
+%
+%               - Alpha --
+%                   (2 + MAX(FIND(PlotFaults)))-element numeric vector,
+%                   values in [0,1], specifying scalar transparency
+%                   ("AlphaData") values for the 'block', its neighbours,
+%                   and the fault faces of the 'block' and its neighbours,
+%                   respectively.
+%
+%                   DEFAULT: Alpha = ONES([1,4]) (no transparency in any of
+%                   the final objects--all objects drawn opaquely).
 %
 % RETURNS:
-%   h  - Handle to resulting patch object.  The patch object is added
-%        directly to the current AXES object (GCA).
-%        OPTIONAL.  Only returned if specifically requested.
+%   h - Handle to resulting patch objects.  The patch objects are added
+%       directly to the current AXES object (GCA).
+%       OPTIONAL.  Only returned if specifically requested.
+%
+% EXAMPLE:
+%   % Plot a block and its neighbours from a coarse partitioning of the
+%   % "model 3" synthetic geometry
+%   require coarsegrid  %  Make "coarse block" concept meaningful
+%
+%   % Generate geometry
+%   G = processGRDECL(makeModel3([100, 60, 15]));
+%
+%   % Partition geometry
+%   p = partitionUI(G, [ 5, 5, 3 ]);
+%   p = compressPartition(processPartition(G, p));
+%
+%   % Generate coarse grid
+%   CG = generateCoarseGrid(G, p);
+%
+%   % Plot selected block (# 37) and its neighbours
+%   plotBlockAndNeighbors(CG, 37, 'Alpha', repmat(0.75, [1, 4]))
+%   view(-145, 26)
 %
 % NOTES:
-%   Function 'plotBlockAndNeighbors' is implemented in terms of the
-%   high-level functions 'plotGrid' and 'plotFaces', which again use the
-%   low-level function PATCH.  If a separate axes is needed for the
-%   graphical output, callers should employ function newplot prior to
-%   calling 'plotBlockAndNeighbors'. The function relies on a specific set
-%   of values for the properties 'FaceColor' and 'FaceAlpha'.
+%   Function 'plotBlockAndNeighbors' is implemented in terms of plotting
+%   function 'plotFaces' which in turn uses the built-in function PATCH.
+%   If a separate axes is needed for the graphical output, callers should
+%   employ function NEWPLOT prior to calling 'plotBlockAndNeighbors'.  This
+%   function relies on a specific set of values for the properties
+%   'FaceColor' and 'FaceAlpha'.
 %
 % SEE ALSO:
-%   plotFaces, plotGrid, patch, newplot.
+%   plotFaces, patch, newplot.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -62,60 +98,113 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+opt = struct('PlotFaults', true([1, 2]), ...
+             'Alpha'     , ones([1, 4]));
+[opt, varargin] = process_options(opt, varargin{:});
 
-opt = struct('PlotFaults', true);
-opt = merge_options(opt, varargin{:});
+assert (numel(opt.Alpha) >= 2 + find(opt.PlotFaults, 1, 'last'), ...
+       ['Option ''Alpha'' must specify enough AlphaData values ', ...
+        'to cover the requested plotting modes.']);
 
-ix = find(strcmpi(varargin(1 : 2 : end), 'plotfaults'));
-if ~isempty(ix),
-   varargin = varargin([1 : 2*(ix-1), 2*ix + 1 : end]);
-end
-
-% Find partitioning
+% Initialize parameters
 p = CG.partition;
+G = CG.parent;
+h = [];
 
-% Set correct alpha values for block, fault, neighbors and faults in
-% neighbors
-if opt.PlotFaults,
-   FaceAlpha = [0.5 0.5 0.05 0.2];
-else
-   FaceAlpha = [1.0 1.0 0.1 1.0];
+if any(opt.PlotFaults) && isfield(G.faces, 'tag'),
+   findFF = findFaultFaces(G, p);
 end
 
 % Plot the block
-h = plotGrid(G, find(p==block),...
-             'FaceColor','b','FaceAlpha',FaceAlpha(1), varargin{:});
+plot_fault = @(faces, alpha) ...
+    plotFaces(G, faces, 'FaceColor', [ 0.7, 0.7, 0.7 ], ...
+              'EdgeColor', 'r', 'FaceAlpha', alpha, varargin{:});
+
+plot_block = @(faces, colour, alpha) ...
+    plotFaces(G, faces, 'FaceColor', colour, ...
+              'FaceAlpha', alpha, varargin{:});
+
+bdryFaces = @(blk) boundaryFaces(G, p == blk);
+
+blockFaces = false([G.faces.num, 1]);
+blockFaces(bdryFaces(block)) = true;
 
 % Find all faults and plot them
-if opt.PlotFaults && isfield(G.faces, 'tag'),
-   pB = [0; p];
-   pN = pB(G.faces.neighbors+1);
-   f  = find(any(pN==block,2));
-   plotFaces(G, f(G.faces.tag(f)>0),...
-                 'FaceColor','r','FaceAlpha', FaceAlpha(2), varargin{:});
+if opt.PlotFaults(1) && isfield(G.faces, 'tag'),
+   faultfaces = findFF(block);
+
+   hf = plot_fault(faultfaces, opt.Alpha(3));
+   h  = [hf ; h];
+
+   blockFaces(faultfaces) = false;
 end
 
-% Find neighbors
-nb = reshape(CG.faces.neighbors(any(CG.faces.neighbors==block,2),:),[],1);
-nb(nb==block) =[];
-nb = unique(nb(nb>0));
+hf = plot_block(blockFaces, 'b', opt.Alpha(1));
+h  = [hf ; h];
+
+%-----------------------------------------------------------------------
 
 % Plot the neighbors
-col = ['g','c','m','y','w'];
-for j=1:numel(nb)
+cN = CG.faces.neighbors;
+nb = reshape(cN(any(cN == block, 2), :), [], 1);  clear cN
+nb(nb == block) = [];
+nb = unique(nb(nb > 0));
 
-   % plot neighbouring block #j
-   plotGrid(G,find(p==nb(j)), 'FaceColor',col(mod(j,numel(col))+1),...
-            'FaceAlpha', FaceAlpha(3), varargin{:});
+m = max(8, numel(nb));
+col = (2*colorcube(m) + 1) ./ 3;
+for j = 1 : numel(nb),
+   blockFaces = false([G.faces.num, 1]);
+   blockFaces(bdryFaces(nb(j))) = true;
 
-   % find all faults and plot them
-   if opt.PlotFaults && isfield(G.faces, 'tag'),
-      pN = pB(G.faces.neighbors+1);
-      f  = find(any(pN==nb(j),2));
-      plotFaces(G, f(G.faces.tag(f)>0), ...
-               'FaceColor','r','FaceAlpha',FaceAlpha(4),varargin{:});
+   % Find all faults and plot them
+   if opt.PlotFaults(2) && isfield(G.faces, 'tag'),
+      faultfaces = findFF(nb(j));
+
+      hf = plot_fault(faultfaces, opt.Alpha(4));
+      h  = [hf ; h];                                            %#ok<AGROW>
+
+      blockFaces(faultfaces) = false;
    end
+
+   hf = plot_block(blockFaces, col(j,:), opt.Alpha(2));
+   h  = [hf ; h];                                               %#ok<AGROW>
 end
+
 axis tight off; view(3);
 
 if nargout > 0, varargout{1} = h; end
+
+%--------------------------------------------------------------------------
+
+function [opt, va] = process_options(opt, varargin)
+assert (mod(numel(varargin), 2) == 0, ...
+        'Options must be list of ''key''/value pairs');
+
+known = fieldnames(opt);
+suppl = varargin(1 : 2 : end);
+
+assert (iscellstr(suppl), 'Option names must be strings');
+
+[i, j] = blockDiagIndex(numel(known), numel(suppl));
+
+m = strcmpi(reshape(known(i), [], 1), ...
+            reshape(suppl(j), [], 1));
+
+this = [ known(i(m))' ; varargin(2 * j(m)) ];
+opt  = merge_options(opt, this{:});
+
+excl = false([numel(varargin), 1]);
+excl(mcolon(2*j(m) - 1, 2*j(m))) = true;
+va = varargin(~ excl);
+
+%--------------------------------------------------------------------------
+
+function f = findFaultFaces(G, p)
+p = [ 0 ; reshape(p, [], 1) ];
+N = p(G.faces.neighbors + 1);
+
+f0 = @(b) find(any(N == b, 2));
+
+f1 = @(i) i(G.faces.tag(i) > 0);
+
+f  = @(b) f1(f0(b));

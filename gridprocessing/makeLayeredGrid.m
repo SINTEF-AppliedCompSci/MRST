@@ -53,7 +53,7 @@ G.type = [G.type, { mfilename }];
 
 % Faces with horizontal normal
 %-----------------------------
-edges = reshape(G.faces.nodes(:,1), 2, []) .';
+edges = reshape(double(G.faces.nodes(:,1)), 2, []) .';
 dz    = G.nodes.num;
 p1    = repmat(edges(:,1), [nlayers,1])+...
         kron((0:nlayers-1)', ones(size(edges,1), 1))*dz;
@@ -76,7 +76,7 @@ hNeighbors(bdry)=0;
 % Faces with vertical normal
 %----------------------------
 cn     = getCellNodes(G);
-vFaces = repmat(cn, [nlayers+1, 1]) + ...
+vFaces = repmat(double(cn), [nlayers + 1, 1]) + ...
          kron((0:nlayers)', ones(size(cn,1), 1))*dz;
 vNumNodes = repmat(diff(G.cells.facePos), [nlayers+1, 1]);
 
@@ -90,20 +90,24 @@ vNeighbors(cells+G.cells.num,1) = cells;
 %---------------------------
 G.nodes.coords    = [repmat(G.nodes.coords, [nlayers+1,1]), ...
                     kron((0:nlayers)', ones(G.nodes.num,1))];
-G.nodes.num       = (nlayers+1)*G.nodes.num;
-G.cells.num       = nlayers*G.cells.num;
-G.cells.numFaces  = repmat(diff(G.cells.facePos)+2, [nlayers, 1]);
+G.nodes.num       = (nlayers + 1) * G.nodes.num;
+G.cells.num       = nlayers * G.cells.num;
+
 G.faces.neighbors = [vNeighbors; hNeighbors];
 G.faces.num       = size(G.faces.neighbors,1);
-G.faces.numNodes  = [vNumNodes; hNumNodes];
-G.faces.nodes       = [vFaces(:); reshape(hFaces',[], 1)];
-pos = @(n) cumsum([1; double(reshape(n, [], 1))]);
-G.faces.nodePos = pos(G.faces.numNodes);
-G.cells.facePos = pos(G.cells.numFaces);
+G.faces.nodes     = [vFaces(:); reshape(hFaces .', [], 1)];
+
+numFaces = repmat(diff(G.cells.facePos) + 2, [nlayers, 1]);
+numNodes = [vNumNodes; hNumNodes];
+pos      = @(n) cumsum([1; double(reshape(n, [], 1))]);
+
+G.faces.nodePos = pos(numNodes);
+G.cells.facePos = pos(numFaces);
+
 % Cell topology from G.faces.neighbors
 N   = G.faces.neighbors;
-tmp = sortrows([N(:,1),(1:G.faces.num)', ones(G.faces.num,1);...
-                N(:,2),(1:G.faces.num)',-ones(G.faces.num,1)]);
+tmp = sortrows([N(:,1), (1:G.faces.num).',  ones([G.faces.num, 1]); ...
+                N(:,2), (1:G.faces.num).', -ones([G.faces.num, 1])]);
 
 G.cells.faces       = tmp(tmp(:,1)>0,2);
 G.cells.faces       = [G.cells.faces, zeros(size(G.cells.faces))];

@@ -8,11 +8,17 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %   [T, A, q] = computeTimeOfFlight(...)
 %
 % DESCRIPTION:
-%   Compute time of flight by solving
+%   Compute time-of-flight by solving
 %
-%       \nabla·(vT) = \phi
+%       v·\nabla T = \phi
 %
-%   using a first-order finite-volume method with upwind flux.
+%   using a first-order finite-volume method with upwind flux. Here, 'v' is
+%   the Darcy velocity, '\phi' is the porosity, and T is time-of-flight.
+%   The time-of-flight T(x) is the time it takes an inert particles that is
+%   passively advected with the fluid to travel from the nearest inflow
+%   point to the point 'x' inside the reservoir. For the computation to
+%   make sense, inflow points must be specified in terms of inflow
+%   boundaries, source terms, wells, or combinations of these.
 %
 % REQUIRED PARAMETERS:
 %   G     - Grid structure.
@@ -20,11 +26,9 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %   rock  - Rock data structure.
 %           Must contain a valid porosity field, 'rock.poro'.
 %
-%   state - Reservoir and well solution structure either properly
-%           initialized from functions 'initResSol' and 'initWellSol'
-%           respectively, or the results from a call to function
-%           'solveIncompFlow'.  Must contain valid cell interface fluxes,
-%           'state.flux'.
+%   state - Reservoir state structure, must contain valid cell interface
+%           fluxes, 'state.flux'. Typically, 'state' will contain the
+%           solution produced by a flow solver like 'incompTPFA'.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   wells - Well structure as defined by function 'addWell'.  May be empty
@@ -41,18 +45,27 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
 %
-%   'reverse' - Reverse the fluxes and rates.
+%   reverse - Boolean variable. If true, the reverse time-of-flight will be
+%           computed, i.e., the travel time from a cell inside the
+%           reservoir to the nearest outflow point (well, source, or
+%           outflow boundary). Default: FALSE, i.e, compute forward tof.
 %
-%   'tracer'  - Cell-array of cell-index vectors for which to solve tracer
-%               equation. One equation is solved for each vector with
-%               tracer injected in cells given indices. Each vector adds
-%               one additional RHS to the original tof-system. Output given
-%               as additional columns in T.
+%   tracer - Cell-array of cell-index vectors for which to solve a
+%           stationary tracer equation:
+%
+%             \nabla·(v C) = 0,      C(inflow,t)=1
+%
+%           One equation is solved for each vector with tracer injected in
+%           the cells with the given indices. Each vector adds one
+%           additional right-hand side to the original tof-system. Output
+%           given as additional columns in T.
+%
+%
 % RETURNS:
 %   T - Cell values of a piecewise constant approximation to time-of-flight
 %       computed as the solution of the boundary-value problem
 %
-%           (*)    \nabla·(vT) = \phi
+%           (*)    v · \nabla T = \phi
 %
 %       using a finite-volume scheme with single-point upwind approximation
 %       to the flux.
@@ -61,13 +74,16 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %       whose entries are
 %
 %           A_ij = min(F_ij, 0), and
-%           A_ii = sum_j max(F_ij, 0) + max(q_i, 0),
+%           A_ii = sum_j max(F_ij, 0) + max(2*q_i, 0),
 %
 %       where F_ij = -F_ji is the flux from cell i to cell j
 %
 %           F_ij = A_ij·n_ij·v_ij.
 %
 %       and n_ij is the outward-pointing normal of cell i for grid face ij.
+%       The discretization uses a simple model for cells containing inflow.
+%       If q_i denotes the rate and V_i the volume of cell i, then T_i is
+%       set to half the time it takes to fill the cell, T_i = V_i/(2q_i). 
 %
 %       OPTIONAL.  Only returned if specifically requested.
 %
@@ -104,10 +120,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt = struct('bc', [], 'src', [], 'wells', [], 'reverse', false, 'tracer', {{}});
 opt = merge_options(opt, varargin{:});
 
-assert (isempty(opt.src) || ~isempty(opt.src.sat), ...
-   'Source terms must have a valid ''sat'' field.');
-assert (isempty(opt.bc) || ~isempty(opt.bc.sat), ...
-   'Boundary conditions must have a valid ''sat'' field.');
+assert (~all([isempty(opt.src), isempty(opt.bc), isempty(opt.wells)]), ...
+    'Must have inflow described as boundary conditions, sources, or wells');
 assert (isfield(rock, 'poro')         && ...
         numel(rock.poro)==G.cells.num,   ...
         ['The rock input must have a field poro with porosity ',...
@@ -117,42 +131,89 @@ assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
 tr = opt.tracer;
 if ~iscell(tr), tr = {tr}; end
 
-% Find external sources of inflow
-q  = computeTransportSourceTerm(state, G, opt.wells, opt.src, opt.bc);
+% Find external sources of inflow: q contains the contribution from from
+% sources (src) and wells (W), while qb contains the cell-wise sum of
+% fluxes from boundary conditions.
+[q,qb] = computeSourceTerm(state, G, opt.wells, opt.src, opt.bc);
 
 if opt.reverse,
-   q = -q;
+   q  = -q;
+   qb = -qb;
    state.flux = -state.flux;
 end
 
-% Build upwind flux matrix with v_ii = max(flux_ij, 0) + max(qi, 0) and
-% v_ij = min(flux_ij, 0).
+% Build upwind flux matrix in which we define v_ji = max(flux_ij, 0) and
+% v_ij = -min(flux_ij, 0). Then the diagonal of the discretization matrix
+% is obtained by summing rows in the upwind flux matrix. This will give the
+% correct diagonal in all cells except for those with a positive fluid
+% source. In these cells, the average time-of-flight is set to half the
+% time it takes to fill the cell, which means that the diagonal entry
+% should be equal twice the fluid rate inside these cells.
 i  = ~any(G.faces.neighbors==0, 2);
 n  = double(G.faces.neighbors(i,:));
 nc = G.cells.num;
-qp = max(q, 0);
-A  = sparse(n(:,1), n(:,2),  max(state.flux(i), 0), nc, nc)...
-   + sparse(n(:,2), n(:,1), -min(state.flux(i), 0), nc, nc);
-A  = -A' + spdiags(max([sum(A); sum(A')])', 0, nc, nc);
+qp = max(q+qb, 0);
+A  = sparse(n(:,2), n(:,1),  max(state.flux(i), 0), nc, nc)...
+   + sparse(n(:,1), n(:,2), -min(state.flux(i), 0), nc, nc);
+A  = -A + spdiags(sum(A,2)+2*qp, 0, nc, nc);
 
-pv = poreVolume(G, rock);
+% Subtract the divergence of the velocity minus any source terms from the
+% diagonal to account for compressibility effects. Inflow/outflow from
+% boundary conditions are accounted for in the divergence, and hence we
+% only need to subtract q (and not qb).
+div = accumarray(gridCellNo(G), faceFlux2cellFlux(G, state.flux));
+A   = A - spdiags(div-q, 0, nc, nc);
 
-% Subtract divergence of non-source cells from rhs
-cellNo = rldecode(1:G.cells.num,diff(G.cells.facePos),2)';
-flux = faceFlux2cellFlux(G, state.flux);
-div = accumarray(cellNo, flux);
-% The q below is added to the line below to make it a no-op for source
-% cells, div will be equal to q for such cells.
-pv = pv - div + q;
-
-% build RHSs for tracer equations
+% Build right-hand sides for tracer equations. Since we have doubled the
+% rate in any cells with a positive source, we need to also double the rate
+% on the right-hand side here.
 numTrRHS = numel(tr);
-numCells = cellfun(@numel, tr);
-TrRHS    = full( sparse(vertcat(tr{:}), ...
-                 rldecode((1:numTrRHS)', numCells(:)), ...
-                 1, nc, numTrRHS ));
-TrRHS    = bsxfun(@times, TrRHS, full(qp));
+TrRHS = zeros(nc,numTrRHS);
+for i=1:numTrRHS,
+   TrRHS(tr{i},i) = 2*qp(tr{i});
+end
 
 % Time of flight for a divergence-free velocity field.
-T  = A \ [pv TrRHS];
+T  = A \ [poreVolume(G,rock) TrRHS];
+end
+
+
+function [q, qb] = computeSourceTerm(state, G, W, src, bc)
+   qi = [];  % Cells to which sources are connected
+   qs = [];  % Actual strength of source term (in m^3/s).
+
+   % Contribution from wells
+   if ~isempty(W),
+      qi = [qi; vertcat(W.cells)];
+      qs = [qs; vertcat(state.wellSol.flux)];
+   end
+
+   % Contribution from sources
+   if ~isempty(src),
+      qi = [qi; src.cell];
+      qs = [qs; src.rate];
+   end
+
+   % Assemble all source and sink contributions to each affected cell.
+   q = sparse(qi, 1, qs, G.cells.num, 1);
+
+   % Contribution from boundary conditions
+   if ~isempty(bc),
+      ff    = zeros(G.faces.num, 1);
+
+      isDir = strcmp('pressure', bc.type);
+      i     = bc.face(isDir);
+      if ~isempty(i)
+         ff(i) = state.flux(i) .* (2*(G.faces.neighbors(i,1)==0) - 1);
+      end
+
+      isNeu = strcmp('flux', bc.type);
+      ff(bc.face(isNeu)) = bc.value(isNeu);
+
+      is_outer = ~all(double(G.faces.neighbors) > 0, 2);
+      qb = sparse(sum(G.faces.neighbors(is_outer,:), 2), 1, ...
+         ff(is_outer), G.cells.num, 1);
+   else
+      qb = sparse(G.cells.num,1);
+   end
 end

@@ -30,6 +30,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    i =     strncmp(m, p, length(m));
    i = i | ~cellfun(@isempty, regexp(p, '\.(git|hg|svn)'));
+   i = i | ~cellfun(@isempty, regexp(p, '3rdparty'));
    i = i | cellfun(@isempty, p);
 
    addpath(p{~i});
@@ -37,11 +38,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Add modules as module root directory
    mrstPath('addroot', m);
 
+   % Register known third-party modules
+   mod_3rdparty = { 'matlab_bgl' };
+   thirdparty   = @(m) fullfile(d, 'utils', '3rdparty', m);
+   for mod = reshape(mod_3rdparty, 1, []),
+      mrstPath('add', mod{1}, thirdparty(mod{1}));
+   end
+
    % If there exists a startup_user.m file in the root dir of MRST, we
    % execute this file.
    local = fullfile(ROOTDIR, 'startup_user.m');
    if exist(local, 'file') == 2
-       run(local);
+       run_local(local);
    end
 end
 
@@ -51,7 +59,13 @@ function p = split_path(p)
    try
       p = regexp(p, pathsep, 'split');
    catch  %#ok
-      % Octave compatiblity.  It is an error to get here in an M run.
+      % Octave compatibility.  It is an error to get here in an M run.
       p = strsplit(p, pathsep);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function run_local(local)
+   run(local)
 end

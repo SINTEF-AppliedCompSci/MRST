@@ -15,7 +15,8 @@ function c = findEnclosingCell(G, pt)
 %
 %           sum(bsxfun(@minus, G.cells.centroids, pt(i,:)) .^ 2, 2)
 %
-%        is minimised.
+%        is minimised. If a point lies on the boundary between two cells,
+%        the function returns the smallest index.
 %
 % SEE ALSO:
 %   pebi.
@@ -65,6 +66,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       V = ~ (sgn .* v(G.cells.faces(:,1)) < 0);
 
       i = accumarray(cellno, V, [G.cells.num, 1], @(x) all(x));
-      c(k) = find(i);
+      ind = find(i);
+      if isempty(ind)
+         c(k) = 0;
+      else
+         c(k) = min(ind);
+      end
    end
 end

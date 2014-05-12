@@ -128,7 +128,7 @@ for w = 1 : nW,
       fno = G.cells.facePos(cno):G.cells.facePos(cno+1)-1;
       area = max(G.faces.areas(G.cells.faces(fno)));
       rl = prm.radius*0.25*sqrt(area);
-      rv = 0.25*G.cells.volumes(cno)/area;
+      rv = prm.radius*0.25*G.cells.volumes(cno)/area;
       switch lower(dir(i))
          case 'x',
             R = [rv; rv];

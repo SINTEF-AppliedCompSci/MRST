@@ -59,11 +59,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if (nargin > 1) && isnumeric(varargin{1}),
       sub = varargin{1};
-
       if any(sub == 0),
          warning(msgid('Outside:InCellSubset'), ...
-                 'Cell zero (outside) included in subset. Ignored.');
+            'Cell zero (outside) included in subset. Ignored.');
       end
+   elseif (nargin>1) && islogical(varargin{1})
+      sub = find(varargin{1});
    else
        sub = (1 : g.cells.num) .';
    end

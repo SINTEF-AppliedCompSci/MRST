@@ -193,16 +193,17 @@ CG.faces       %#ok  (intentional display)
 % this end, we arbitrarily pick a few blocks and inspect these block and
 % their neighbours. For the first block, we plot the cells and the faces
 % that have been marked as lying on a fault
-clf; plotBlockAndNeighbors(G,CG,48); view(-90,70);
+clf, plotBlockAndNeighbors(CG, 48), view(-90,70)
 
 %%
 % For the second block, we only plot the cells and not the faulted faces
-clf; plotBlockAndNeighbors(G,CG,15,'PlotFaults',false); view(90,70);
+clf
+plotBlockAndNeighbors(CG, 15, 'PlotFaults', false([2, 1]))
+view(90, 70)
 
 %%
 % The third set of neighboring blocks contains more faults
-clf; plotBlockAndNeighbors(G,CG,21); view(0,40);
-
+clf, plotBlockAndNeighbors(CG, 21), view(0, 40)
 
 %%
 % We end the example by highlight six representative blocks, including the
@@ -211,17 +212,22 @@ clf; plotBlockAndNeighbors(G,CG,21); view(0,40);
 % require that the coarse-grid structure has been built.
 clf
 blocks = [3, 15, 21, 23, 34, 48];
-col = ['b','g','r','c','m','y'];
-axes('position',[0.01 0.25 0.99 0.75]);
-   plotGrid(G,'EdgeColor',[0.75 0.75 0.75],'FaceColor','w');
-   outlineCoarseGrid(G,blockIx, 'FaceColor', 'none', 'LineWidth', 2);
-   for i=1:6, plotGrid(G,find(blockIx==blocks(i)),'FaceColor',col(i)); end
-   axis tight off; view(10,90);
+col = ['b', 'g', 'r', 'c', 'm', 'y'];
+axes('position', [0.01, 0.25, 0.99, 0.75]);
+plotGrid(G, 'EdgeColor', [0.75, 0.75, 0.75], 'FaceColor', 'w');
+outlineCoarseGrid(G, blockIx, 'FaceColor', 'none', 'LineWidth', 2);
+
+for i = 1 : 6,
+   plotGrid(G, blockIx == blocks(i), 'FaceColor', col(i));
+end
+axis tight off, view(10, 90)
 
 % Plot the chosen 6 coarse blocks
-for i=1:6;
-   axes('position',[(i-1)/6 0.02 1/6 0.25]);
-   plotGrid(G,find(blockIx==blocks(i)),'FaceColor',col(i));
+for i = 1 : 6,
+   axes('position', [(i-1)/6, 0.02, 1/6, 0.25]);
+
+   plotGrid(G, blockIx == blocks(i), 'FaceColor', col(i));
+
    axis tight off, view(0,75), zoom(1.2)
 end
 

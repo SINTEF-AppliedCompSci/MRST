@@ -46,10 +46,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+mlist = mrstModule();
+mrstModule add triangle;
 
 if nargin < 1, maxarea = 100; end
    nlayers = 15;
-   addpath([ROOTDIR, filesep, 'modules/mex', filesep, 'triangle']);
 
    pslg  = createOutline();
 
@@ -58,38 +59,41 @@ if nargin < 1, maxarea = 100; end
       pslg.edges  = [pslg.edges;  fault.edges+size(pslg.points,1)];
       pslg.points = [pslg.points; fault.points];
    end
+
    G = mex_triangleGrid(pslg.points, pslg.edges, 'maxArea', maxarea, ...
-      'segmentmarkers', int32(1:size(pslg.edges, 1)));
-   if nargin==2
-     % Make an areal pebi grid rather than the triangular grid.
-     G = pebi(G);
+                        'segmentmarkers', int32(1:size(pslg.edges, 1)));
+
+   if nargin == 2,
+      % Make an areal pebi grid rather than the triangular grid.
+      G = pebi(G);
    end
 
-   G = computeGeometry(G);
+   H = computeGeometry(G);
    n = G.cells.num;
 
-
    % Find cells to left/right of fault.
-   c = findCells(G, fault);
+   c = findCells(H, fault);
 
    if (nargin > 1) && (nargout > 1),
-      varargout{1} = findEnclosingCell(G, varargin{1});
+      varargout{1} = findEnclosingCell(H, varargin{1});
    end
 
-   G  = makeLayeredGrid(G, nlayers);
+   G = makeLayeredGrid(G, nlayers);
    G = transformGrid(G);
 
+   c  = repmat(c, [nlayers, 1]);
+   c1 = [repmat(true ([n, 1]), [ 3          , 1]); ...
+         repmat(false([n, 1]), [nlayers - 3 , 1])];
 
-   c  = repmat(c, [nlayers,1]);
-   c1 = [repmat(true (n,1), [ 3,1]); ...
-         repmat(false(n,1), [nlayers-3,1])];
+   c2 = [repmat(false([n, 1]), [nlayers - 5 , 1]); ...
+         repmat(true ([n, 1]), [ 5          , 1])];
 
-   c2 = [repmat(false(n,1), [nlayers-5,1]); ...
-         repmat(true (n,1), [ 5,1])];
    if isfield(G.faces, 'tag')
       G.faces = rmfield(G.faces, 'tag');
    end
-   G  = removeCells(G, find((c&c1) | (~c&c2)));
+
+   G = removeCells(G, (c & c1) | ((~ c) & c2));
+   mrstModule('reset', mlist{:});
 end
 
 %--------------------------------------------------------------------------
@@ -117,7 +121,7 @@ end
 %--------------------------------------------------------------------------
 
 function c = findCells(G, fault)
-   c = G.cells.centroids(:,1)<ppval(fault.ppx, G.cells.centroids(:,2));
+   c = G.cells.centroids(:,1) < ppval(fault.ppx, G.cells.centroids(:,2));
 end
 
 %--------------------------------------------------------------------------
@@ -130,10 +134,15 @@ end
 %--------------------------------------------------------------------------
 
 function fault = createFault()
-   pts   = [0.5,0.0; 0.5,0.3; 0.4 0.6;0.4,1.0]*100;
+   pts   = [0.5 , 0.0 ; ...
+            0.5 , 0.3 ; ...
+            0.4 , 0.6 ; ...
+            0.4 , 1.0 ].*100;
+
    fault = splineRefine2(pts);
    n     = size(fault.points, 1);
-   fault.edges = [(1:n-1)', (2:n)'];
+
+   fault.edges = [(1:n-1) .', (2:n) .'];
 end
 
 %--------------------------------------------------------------------------
@@ -150,15 +159,15 @@ end
 
 %--------------------------------------------------------------------------
 
-function curve = splineRefine(pts)
-   t   = linspace(0, 1, size(pts,1));
-   ppx = spline(t, pts(:,1));
-   ppy = spline(t, pts(:,2));
-
-   tt   = linspace(0, 1, 20)';
-   X = ppval(ppx, tt);
-   Y = ppval(ppy, tt);
-   curve.points = [X,Y];
-   curve.ppx = ppx;
-   curve.ppy = ppy;
-end
+%function curve = splineRefine(pts)
+%   t   = linspace(0, 1, size(pts,1));
+%   ppx = spline(t, pts(:,1));
+%   ppy = spline(t, pts(:,2));
+%
+%   tt   = linspace(0, 1, 20)';
+%   X = ppval(ppx, tt);
+%   Y = ppval(ppy, tt);
+%   curve.points = [X,Y];
+%   curve.ppx = ppx;
+%   curve.ppy = ppy;
+%end

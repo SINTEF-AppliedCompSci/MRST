@@ -5,8 +5,9 @@ function varargout = mrstPath(varargin)
 %   Either of the modes
 %      1) mrstPath register list
 %      2) mrstPath <command> [module list]
-%      3) mrstPath search module list
+%      3) mrstPath [search] module list
 %         paths = mrstPath('search', module list)
+%         paths = mrstPath(module list)
 %
 % PARAMETERS:
 %   Mode 1)
@@ -52,9 +53,22 @@ function varargout = mrstPath(varargin)
 %        'reregister' or 'reset'.  The semantics of the command verbs are
 %        as follows:
 %
-%           o) addroot -- Register a module root directory.  List
-%                         interpreted as a list of directories, subject, the
-%                         subdirectories of which will be
+%           o) addroot -- Register a module root directory.  The input is
+%                         interpreted as a list of directories in which the
+%                         immediate subdirectories will be treated as
+%                         individual modules and entered into the module
+%                         mapping as if manually registered using 'register'.
+%
+%                         EXCEPTION: Immediate subdirectories named
+%
+%                            - data
+%                            - deprecated
+%                            - experimental
+%
+%                         (subject to platform specific conventions) WILL
+%                         NOT be put into the module mapping when using
+%                         'addroot'.  Modules with these names must be
+%                         manually entered using the 'register' verb.
 %
 %           o) clear   -- Deactivate all modules.  An explicit module list,
 %                         if present, is ignored.
@@ -81,15 +95,30 @@ function varargout = mrstPath(varargin)
 %                            mrstPath register [list]
 %
 %   Mode 3)
-%     None.
+%     Query module register.  Input is list of modules for which to
+%     retrieve the current module directory.
 %
 % RETURNS:
 %   Modes 1) and 2)
 %     Nothing.
 %
-%   Mode 2)
+%   Mode 3)
 %     modules - List, represented as a cell array of strings, of the
-%               currently active add-on modules.
+%               currently active add-on modules.  If called without output
+%               arguments, function 'mrstPath' will display the known
+%               mapping of the requested modules (all modules if module
+%               list is empty) in the Command Window.
+%
+%               NOTE: As a special case the return value will be a string
+%               (not a cell array of strings) if function 'mrstPath' is
+%               called with a single input module name and a single output
+%               parameter, e.g., as
+%
+%                   pth = mrstPath('search', 'deckformat')
+%
+%               Callers needing the "cell array of strings" semantics must
+%               be prepared to use ISCHAR on the return value and behave
+%               accordingly.
 %
 % SEE ALSO:
 %   ROOTDIR, isdir, filesep, fullfile.
@@ -211,10 +240,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          otherwise
 
-            error(msgid('Verb:Unknown'), ...
-                 ['Unknown command verb ''%s''.  Must be one of ', ...
-                  '''register'', ''clear'', ''list'', ''remove'', ', ...
-                  '''reset'', or ''query''.'], cmd);
+            % No (known) action.  Behave as if caller performed a 'search'.
+            [varargout{1:nargout}] = mrstPath('search', varargin{:});
 
       end
 
@@ -238,10 +265,21 @@ function cache = register_root(cache, mods)
    mods = mods(cellfun(@isdir, mods));
    m2d  = @(r, m) cellfun(@(x) fullfile(r, x), m, 'UniformOutput', false);
 
+   exclude = { 'data', 'deprecated', 'experimental' };
+
    for mroot = reshape(mods, 1, []),
       m = dir(mroot{1});
       m = { m([ m.isdir ]).name };
       m = m(~ strncmp('.', m, 1));
+
+      % Don't automatically register modules from the 'exclude' list.
+      [excl, excl] = look_for(exclude, m);                      %#ok<ASGLU>
+      m = m(~ excl);
+
+      if isempty(m),
+         % No (non-excluded) modules in 'mroot'.  Proceed to next.
+         continue;
+      end
 
       rlist = reshape([m ; m2d(mroot{1}, m)], 1, []);
       cache = register_modules(cache, rlist);
@@ -416,9 +454,10 @@ end
 %--------------------------------------------------------------------------
 
 function print_list(map)
+   [i, i] = sort(map(:,1));                                     %#ok<ASGLU>
    nchar = max(cellfun('prodofsize', map(:,1)));
 
-   for k = 1 : size(map, 1),
+   for k = reshape(i, 1, []),
       fprintf('  * %-*s -> %s\n', nchar, map{k,1}, map{k,2});
    end
 end
