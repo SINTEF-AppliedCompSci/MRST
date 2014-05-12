@@ -179,12 +179,13 @@ for tstep = opt.startAt:numel(dt)
             %[dt, dt_history] = simpleStepSelector(dt_history, dt_loc, its, varargin);
             t_loc=t_loc+dt_loc;
             if(t_loc<dt(tstep))
-                if(its<10)
+                if(its<system.nonlinear.maxIterations)
                     dt_prev_ok=dt_loc;
                 end
             else
-               if(its<10)
-                  if(dt_loc>dt(tstep)/2)
+               if(converged.converged)
+                  if(dt_prev_ok >= dt(tstep)/1.5 || dt_new >= dt(tstep)/1.5 )
+                  %if(dt_loc>dt(tstep)/2)
                        dt_prev_ok = dt(tstep);
                   end
                end
