@@ -34,7 +34,7 @@ G = initEclipseGrid(deck);
 
 %%
 % The egg-shaped grid is constructed be removing cells from a rectangular cartesian
-% grid. We use the MRST function extractSubgrid to remove the unactive cells given in
+% grid. We use the MRST function extractSubgrid to select the active cells given in
 % deck.GRID.ACTNUM, which is contructed from the data file ACTIVE.INC
 
 G = extractSubgrid(G, logical(deck.GRID.ACTNUM));
@@ -43,8 +43,7 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
-% Create a special ADI fluid which can produce differentiated fluid
-% properties.
+% Create a special ADI fluid which can produce differentiated fluid properties.
 fluid = initDeckADIFluid(deck);
 
 % The case includes gravity
@@ -95,9 +94,20 @@ tt = tic;
 [wellSols, states, iter] = runScheduleADI(rSol, G, rock, system, schedule);
 toc(tt)
 
+
+%% Plot oil and water production rates
+
 % Put the well solution data into a format more suitable for plotting
 [wrt, ort, grt, bhp] = wellSolToVector(wellSols);
 T = convertTo(cumsum(deck.SCHEDULE.step.val), day);
-figure(1), hold on
-plot(T,ort(:,9:12)*day), plot(T,wrt(:,9:12)*day),legend(W(9:12).name)
+
+figure(2)
+clf
+prodind = 9:12; % The four producers correspond to the four last entries in wrt, ort, grt.
+for i = 1 : 4
+   subplot(2,2,i);
+   h = plot(T, ort(:, prodind(i))*day, T, wrt(:, prodind(i))*day);
+   title(W(prodind(i)).name);
+   legend({'Oil rate', 'Water rate'})
+end
 
