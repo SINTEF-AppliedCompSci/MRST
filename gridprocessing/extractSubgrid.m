@@ -138,7 +138,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if isfield(G, 'cartDims'),
-      H.cartDims = nan(size(G.cartDims));
+      H.cartDims = G.cartDims;
    end
 
    % Record history.
