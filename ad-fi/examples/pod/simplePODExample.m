@@ -182,6 +182,7 @@ end
 % the actual systems. As such, the model
 
 time = cumsum(schedule_problem.step.val) ;
+% Put the well solution data into a format more suitable for plotting
 [qWsp, qOsp, qGsp, bhpp] = wellSolToVector(wsol_pod);
 [qWsf, qOsf, qGsf, bhpf] = wellSolToVector(wsol_full);
 for i = 2:5

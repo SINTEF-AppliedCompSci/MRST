@@ -125,6 +125,8 @@ end
 % controls have switched from rate to bhp.
 
 T     = convertTo(cumsum(schedule.step.val), day);
+
+% Put the well solution data into a format more suitable for plotting
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 injInx = 1;
 prdInx = 2:26;

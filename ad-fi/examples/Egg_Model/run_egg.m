@@ -95,6 +95,7 @@ tt = tic;
 [wellSols, states, iter] = runScheduleADI(rSol, G, rock, system, schedule);
 toc(tt)
 
+% Put the well solution data into a format more suitable for plotting
 [wrt, ort, grt, bhp] = wellSolToVector(wellSols);
 T = convertTo(cumsum(deck.SCHEDULE.step.val), day);
 figure(1), hold on
