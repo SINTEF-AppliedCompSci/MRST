@@ -124,17 +124,23 @@ system = initADISystem({'Oil', 'Water'}, G, rock, fluid);
 t_forward = toc(timer);
 
 %% Create objective functions
-% We can then create objective functions, which are here net profit worth.
-% Since the adjoint formulation uses one forward run (runScheduleADI) to get
-% the values for the objective function and one backward run (runAdjointADI)
-% to get the gradients, we create an objective function based on the earlier
-% solution. Since we will compare with the more computationally intensive
-% numerical gradient, we also define an objective function which will be
-% used for approximating the gradient of the objective function in a
-% difference scheme.
+% We can then create objective functions, which are here net profit worth.  Since the
+% adjoint formulation uses one forward run (runScheduleADI) to get the values for the
+% objective function and one backward run (runAdjointADI) to get the gradients, we create
+% an objective function based on the earlier solution. Since we will compare with the more
+% computationally intensive numerical gradient, we also define an objective function which
+% will be used for approximating the gradient of the objective function in a difference
+% scheme. We set up approximate prices in USD for both the oil price and the injection
+% cost of the different phases.
 
-objective_adjoint = @(tstep)NPVOW(G, wellSols, schedule, 'ComputePartials', true, 'tStep', tstep);
-objective_numerical = @(wellSols)NPVOW(G, wellSols, schedule);
+prices = {'OilPrice',            100  , ...
+          'WaterProductionCost',   1  , ...
+          'WaterInjectionCost',    0.1, ...
+          'DiscountFactor',        0.1 };
+
+objective_adjoint = @(tstep)NPVOW(G, wellSols, schedule, 'ComputePartials', true, 'tStep', ...
+                                  tstep, prices{:});
+objective_numerical = @(wellSols)NPVOW(G, wellSols, schedule, prices{:});
 
 %% Compute derivatives using the adjoint formulation
 % We pass in the objective function of the previous run. The objective function had a cost
