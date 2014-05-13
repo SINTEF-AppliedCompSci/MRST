@@ -1,3 +1,6 @@
+%% 2 phases system with polymer
+% 
+
 %% Read case from file
 % This example contains a simple $31\times31\times3$ fine grid containing
 % two injectors in opposite corners and one producer in the middle of the
@@ -23,11 +26,21 @@ rock  = compressRock(rock, G.cells.indexMap);
 
 fluid = initDeckADIFluid(deck);
 
-% Oil rel-perm from 2p OW system.
-% Needed by equation implementation function 'eqsfiOWExplictWells'.
-fluid.krO = fluid.krOW;
-
 gravity on
+
+
+%% Plot wells and permeability
+figure(1)
+clf;
+W = processWells(G, rock, deck.SCHEDULE.control(1));
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
+            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotWell(G, W);
+title('Permeability (mD)')
+axis tight;
+view(35, 40);
+colorbar('SouthOutside');
+
 
 %% Set up simulation parameters
 % We want a layer of oil on top of the reservoir and water on the bottom.
@@ -43,11 +56,11 @@ state0.s(ijk{3} == 2, 2) = .8;
 % Enforce s_w + s_o = 1;
 state0.s(:,1) = 1 - state0.s(:,2);
 
-% Add zero polymer concentration to the state.
+% Add zero polymer concentration to the initial state.
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = zeros(G.cells.num, 1);
-s = setupSimComp(G, rock, 'deck', deck);
 
+figure(2)
 clf
 plotCellData(G, state0.s(:,2));
 plotGrid(G, 'facec', 'none')
@@ -63,6 +76,8 @@ colorbar;
 % problem with water injection with regards to oil production is that the
 % water is much more mobile than the hydrocarbons we are trying to
 % displace, injecting a polymer may be beneficial towards oil recovery.
+figure(3)
+clf
 dc = 0:.1:fluid.cmax;
 plot(dc, fluid.muWMult(dc))
 title('muW Multiplier')
@@ -135,7 +150,8 @@ cumt = cumsum(schedule.step.val);
 
 v = @(value) cumsum([value{:}]);
 
-
+figure(4)
+clf
 plot(convertTo(cumt, year), ...
      convertTo([v(objectiveOW)            ; ...
                 v(objectiveCheapPolymer)  ; ...
@@ -169,18 +185,19 @@ adjointGradient = ...
 % using some external algorithm we could optimize the polymer injection
 % rate with regards to the total reservoir value.
 
+figure(5)
 clf
 ng = numel(adjointGradient);
 for i = 1:ng
-    subplot(2,ng,i)
+    subplot(2, ng, i)
     plot(adjointGradient{i}(1:2), '*');
     title(['Polymer step ' num2str(i) ])
-    set(gca, 'xtick', [1;2], 'xlim', [0.5;2.5]);
+    set(gca, 'xtick', [1; 2], 'xlim', [0.5; 2.5]);
     axis 'auto y'
-    subplot(2,ng,i+3)
+    subplot(2, ng, i + 3)
     plot(adjointGradient{i}(3:end), '*'); axis tight
     title(['Wells control step ' num2str(i) ])
-    set(gca, 'xtick', [1;2;3], 'xlim', [0.5; 3.5]);
+    set(gca, 'xtick', [1; 2; 3], 'xlim', [0.5; 3.5]);
     axis 'auto y'
     xlabel('Well #')
 end
@@ -192,14 +209,14 @@ end
 % with and without polymer injection in a single pie chart.
 
 W = processWells(G, rock, schedule.control(schedule.step.control(1)));
-figure;
+figure(6)
+clf
 view(10,65)
 
 [az, el] = deal(6, 60);
 
 nDigits = floor(log10(numel(statesPolymer) - 1)) + 1;
 
-%%
 for i = 1 : numel(statesPolymer) - 1,
     injp  = wellSolsPolymer{i}(3);
     injow = wellSolsOW{i}(3);
@@ -230,8 +247,10 @@ for i = 1 : numel(statesPolymer) - 1,
 end
 
 %% Plot the accumulated water and oil production for both cases
-% We concat the well solutions and plot the accumulated producer rates for
-% both the polymer and the non-polymer run. The result shows that
+% We concat the well solutions and plot the production rates for
+% both the polymer and the non-polymer run. 
+
+figure(7)
 clf;
 wspoly = vertcat(wellSolsPolymer{:});
 wsow = vertcat(wellSolsOW{:});
@@ -240,11 +259,16 @@ data = -([ [wsow(:,3).qWs]   ; ...
            [wspoly(:,3).qWs] ; ...
            [wsow(:,3).qOs]   ; ...
            [wspoly(:,3).qOs] ] .');
-data = bsxfun(@times, data, schedule.step.val);
 
-plot(convertTo(cumt, year), convertTo(data, stb));
+% We process the values to do bar plots.
+cumtbar = cumt(1 : end - 1);
+cumtbar = rldecode(cumtbar, 2*ones(numel(cumtbar), 1));
+cumtbar = [0;  cumtbar; cumt(end)];
+databar = rldecode(data, 2*ones(size(data, 1), 1));
+
+plot(convertTo(cumtbar, year), convertTo(databar, stb));
 legend('Water without polymer', 'Water with polymer', ...
        'Oil without polymer', 'Oil with polymer', 2)
-
+title('Production rates')
 ylabel('stb')
 xlabel('Years')
