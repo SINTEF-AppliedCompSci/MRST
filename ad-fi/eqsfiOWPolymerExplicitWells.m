@@ -33,7 +33,7 @@ qOs  = vertcat(state.wellSol.qOs);
 % poly_num  = vertcat(state.wellSol.poly);
 % poly = poly_num;
 
-[wPoly, wciPoly] = getWellPolymer(W);
+wPoly = getWellPolymer(W);
 wPoly_num = wPoly;
 
 % previous variables ------------------------------------------------------
@@ -98,6 +98,9 @@ muWMult  = muWMult.*permRed;
 
 % polymer injection well:
 cw        = c(wc);
+inj   = vertcat(W.sign)==1;
+ind = rldecode((1 : nnz(inj)).', cellfun(@numel, {W(inj).cells}));
+wciPoly = wPoly(ind);
 cw(iInxW) = wciPoly;
 cbarw     = cw/f.cmax;
 % muWMultMax = a + (1-a)*cbarw;
@@ -234,16 +237,14 @@ end
 %--------------------------------------------------------------------------
 
 
-function [wPoly, wciPoly] = getWellPolymer(W)
+function wPoly = getWellPolymer(W)
     if isempty(W)
-        wciPoly = [];
         return
     end
     inj   = vertcat(W.sign)==1;
     polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
     wPoly = zeros(nnz(inj), 1);
     wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
 end
 
 
