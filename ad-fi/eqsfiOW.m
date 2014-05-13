@@ -115,28 +115,6 @@ else
 end
 
 
-% %WELLS ----------------------------------------------------------------
-% bWw     = bW(wc);
-% bOw     = bO(wc);
-% mobWw  = mobW(wc);
-% mobOw  = mobO(wc);
-%
-% %producer mobility
-% bWmobWw  = bWw.*mobWw;
-% bOmobOw  = bOw.*mobOw;
-%
-% %set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
-%
-% bWmobWw(iInxW) = bWw(iInxW).*(mobWw(iInxW) + mobOw(iInxW));
-% bOmobOw(iInxW) = 0;
-% bWmobWw(iInxO) = 0;
-% bOmobOw(iInxO) = bOw(iInxO).*(mobWw(iInxO) + mobOw(iInxO));
-%
-% pw  = p(wc);
-%
-% bWqW  = -bWmobWw.*Tw.*(pBHP(perf2well) - pw + 0.0*pcOWw + g*dzw.*rhoW(wc));
-% bOqO  = -bOmobOw.*Tw.*(pBHP(perf2well) - pw + g*dzw.*rhoO(wc));
-
 % EQUATIONS ---------------------------------------------------------------
 % oil:
 eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.div(bOvO);
