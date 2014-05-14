@@ -27,7 +27,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             opt.slope    = 0;                       % in radians
             opt.slopedir = [1 0];                   % default is slope towards east
             opt.rhoBrine = 1020 * kilogram / meter^3; % if EOS not provided
-            opt.mu       = [5.36108e-5, 6.5e-4];    % Default mu values [CO2, brine]
+            opt.mu       = [5.36108e-5, 5.4e-5];    % Default mu values [CO2, brine]
             opt.constantVerticalDensity = false;    % true for semi-compressible model
             opt = merge_options(opt, varargin{:});
             
@@ -37,10 +37,10 @@ classdef fullCompressibleCO2BrineModel < physicalModel
                 opt.EOSCO2 = CO2props('rho_big_trunc','');
             end
             if isempty(opt.EOSBRINE)
-                opt.EOSBRINE = makeConstantEOS(opt.rhoBrine);
+                opt.EOSBRINE = fullCompressibleCO2BrineModel.makeConstantEOS(opt.rhoBrine);
             end
-            opt.EOSCO2   = defineAdditionalDerivatives(opt.EOSCO2);
-            opt.EOSBRINE = defineAdditionalDerivatives(opt.EOSBRINE);
+            opt.EOSCO2   = fullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSCO2);
+            opt.EOSBRINE = fullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSBRINE);
             
             % Inherited properties
             model.G         = Gt;
@@ -63,20 +63,55 @@ classdef fullCompressibleCO2BrineModel < physicalModel
           
         end
         
-        function state = includeComputedCaprockValues(model, state)
+        function state = includeComputedCaprockValues(model, state, quick)
         % Given a state with values at the co2-brine interface, compute the
         % corresponding values at the caprock level (pressure and density)
             
-            tempFun  = @(x) state.extras.tI - (x - state.h) .* cos(model.slope) / 1000;
+        %tempFun  = @(x,i) state.extras.tI(i) - (x - state.h(i) .* cos(model.slope) / 1000;
+            cos_theta = cos(model.slope);
             
-            state.extras.tTop   = tempFun(state.h * 0);
-            state.extras.pTop   = numIntTopPress(state.pressure , ...
-                                               tempFun          , ...
-                                               state.h          , ...
-                                               model.cfluid.rho , ...
-                                               norm(gravity) * cos(model.slope));
-            state.extras.rhoTop = mode.cfluid.rho(state.extras.pTop, ...
-                                                  state.extras.tTop);
+            if quick
+                % 'quick and dirty', using Taylor
+                [IEta,~] = model.cfluid.h_integrals(state.pressure, state.extras.tI);
+                
+                state.extras.tTop = state.extras.tI - ...
+                                    state.h * cos_theta .* model.T_grad / 1000;
+                
+                pdiff = double(state.h) * norm(gravity) * cos_theta .* double(state.extras.rhoI);
+                if ~isempty(IEta)
+                    pdiff = pdiff .* double(IEta(-state.h));
+                end
+                state.extras.pTop   = state.pressure - pdiff;
+
+            else 
+                % use integration to get more exact values
+                
+                num_cells           = numel(double(state.h));
+                state.extras.tTop   = zeros(num_cells, 1);
+                state.extras.pTop   = zeros(num_cells, 1);
+                state.extras.rhoTop = zeros(num_cells, 1);
+                
+                for i = 1:num_cells
+                    tempFun = @(z) state.extras.tI(i) - (z - state.h(i)) * cos_theta / 1000;
+                    state.extras.tTop(i) = tempFun(0);
+                    state.extras.pTop(i) = numIntTopPress(state.pressure(i), ...
+                                                          tempFun, ...
+                                                          state.h(i), ...
+                                                          model.cfluid.rho, ...
+                                                          norm(gravity) * cos_theta);
+                end
+            end
+        
+            % @@ If 'quick' has been requested, we could also imagine using
+            % Taylor to compute the density at top. 
+
+            if ~isempty(IEta)
+                state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop); 
+            else
+                % Density is either constant in height or always constant
+                state.extras.rhoTop = state.extras.rhoI;
+            end
+        
         end
     end
     % ============================== Private methods ==============================
@@ -84,7 +119,10 @@ classdef fullCompressibleCO2BrineModel < physicalModel
 
         function model = setupOperators(model, Gt, rock, varargin)
             
-            model.operators = setupSimCompVe(Gt, rock, varargin{:});
+            operators = setupSimCompVe(Gt, rock, varargin{:});
+            operators.pv = operators.pv ./ Gt.cells.H; % @@ Necessary since
+                                                       % we use a height-formulation.
+            model.operators = operators;
         end 
     % ----------------------------------------------------------------------------
         function [problem, state] = ...
@@ -135,30 +173,36 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             state.h(ex_ix)     = model.G.cells.H(ex_ix);
         end
     end
-    
+
+    % ============================== Static methods ==============================
+
+    methods(Static)
+        
+        % ----------------------------------------------------------------------------
+        function EOS = makeConstantEOS(rho)
+            EOS.rho = @(p, t) rho * ones(numel(double(p)), 1);
+        end
+        
+        % ----------------------------------------------------------------------------
+       
+        function EOS = defineAdditionalDerivatives(EOS)
+        % add beta2, gamma2 and chi functions if they are not already there, and if
+        % the functions to construct them are avaialble.
+            if isfield(EOS, 'rhoDPP') && ~isfield(EOS, 'beta2')
+                EOS.beta2  = @(p,t) EOS.rhoDPP(p, t) ./ EOS.rho(p,t);
+            end
+            if isfield(EOS, 'rhoDTT') && ~isfield(EOS, 'gamma2')
+                EOS.gamma2 = @(p,t) EOS.rhoDTT(p, t) ./ EOS.rho(p,t);
+            end
+            if isfield(EOS, 'rhoDPT') && ~isfield(EOS, 'chi')
+                EOS.chi = @(p,t) EOS.rhoDPT(p, t) ./ EOS.rho(p, t);
+            end
+        end
+    end
 end
 
 % ====================== Helper functions (not methods) ======================
 
-function EOS = defineAdditionalDerivatives(EOS)
-% add beta2, gamma2 and chi functions if they are not already there, and if
-% the functions to construct them are avaialble.
-    if isfield(EOS, 'rhoDPP') && ~isfield(EOS, 'beta2')
-        EOS.beta2  = @(p,t) EOS.rhoDPP(p, t) ./ EOS.rho(p,t);
-    end
-    if isfield(EOS, 'rhoDTT') && ~isfield(EOS, 'gamma2')
-        EOS.gamma2 = @(p,t) EOS.rhoDTT(p, t) ./ EOS.rho(p,t);
-    end
-    if isfield(EOS, 'rhoDPT') && ~isfield(EOS, 'chi')
-        EOS.chi = @(p,t) EOS.rhoDPT(p, t) ./ EOS.rho(p, t);
-    end
-end
-
-% ----------------------------------------------------------------------------
-
-function EOS = makeConstantEOS(rho)
-    EOS.rho = @(p, t) rho * ones(numel(double(p)), 1);
-end
 
 % ----------------------------------------------------------------------------
 
@@ -197,6 +241,14 @@ end
 function res = complete_eos(EOS)
 % Check if EOS has all the required functions to be useable for
 % approximating vertical density profiles
+    
+    if isfield(EOS, 'compressible') && ~strcmp(EOS.compressible, 'full')
+        res = false;  % the EOS has explicitly been declared not to support
+                      % vertical density profiles.  @@ Not particularly
+                      % elegant, but a compatibility issue with older code.
+        return;
+    end
+
     contains = @(name) isfield(EOS, name) && isa(EOS.(name), 'function_handle');
     
     % Return true if EOS contains all of the following functions:
@@ -206,6 +258,6 @@ end
 % ----------------------------------------------------------------------------
 
 function Ptop = numIntTopPress(Pref, tfun, h, rhofun, g_cos_t)
-    res = ode23(@(z, p) g_cos_t * rhofun(p, tfun(z)), [h 0], Pref);
+    res = ode23(@(z, p) g_cos_t * rhofun(p, tfun(z)), [h, 0], Pref);
     Ptop = res.y(end);
 end

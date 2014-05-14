@@ -39,7 +39,9 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     
     %% Setting up density-corrective integrals
     [IetaCO2, INupEtaCO2] = co2fluid.h_integrals(pI, tI);
+    [Ieta0CO2, ~]         = co2fluid.h_integrals(pI0, tI0);
     [IetaBri, INupEtaBri] = brinefluid.h_integrals(pI, tI);
+    [Ieta0Bri, ~]         = brinefluid.h_integrals(pI0, tI0);
     
     %% Computing interior fluxes
     
@@ -51,10 +53,10 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     v = compute_parall_slopevec(Gt, interiorFaces(Gt), slopedir);
     mod_term = (g_cos_t .* dInt + g_sin_t .* v);
     
-    intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, s.T, -1, dpI, ...
-                             mod_term, -s.grad(rhoC), rhoC, muC, h,   H, g_cos_t); 
-    intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaBri, s.T,  1, dpI, ...
-                             mod_term, -s.grad(rhoB), rhoB, muB, H-h, H, g_cos_t);
+    intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, s.T, -1, ...
+                             dpI, mod_term, -s.grad(rhoC), rhoC, muC, h,   H, g_cos_t); 
+    intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaBri, s.T,  1, ...
+                             dpI, mod_term, -s.grad(rhoB), rhoB, muB, H-h, H, g_cos_t);
     
     %% Computing boundary fluxes, if any
     [bc_cell, bc_fC, bc_fB] = ...
@@ -63,14 +65,21 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     
     %% Handling wells (setting up equations, rates)
     [eqs(3:4), wc, qw, types(3:4), names(3:4)] = ...
-        setupWellEquations(drivingForces.Wells, pI, q, bhp, muC);
+        setupWellEquations(drivingForces.Wells, pI, q, bhp, rhoC, muC);
     
     %% Setting up equation systems
-    if ~isempty(IetaCO2) rhoC = rhoC .* IetaCO2(-h);  rhoC0 = rhoC0 .* IetaCO2(-h0);  end; %#ok
-    if ~isempty(IetaBri) rhoB = rhoB .* IetaBri(H-h); rhoB0 = rhoB0 .* IetaBri(H-h0); end; %#ok
+    rhoCIeta = rhoC; rhoCIeta0 = rhoC0; rhoBIeta = rhoB; rhoBIeta0 = rhoB0;
+    if ~isempty(IetaCO2) 
+        rhoCIeta  = rhoCIeta  .* IetaCO2(-h);  
+        rhoCIeta0 = rhoCIeta0 .* Ieta0CO2(-h0);  
+    end
+    if ~isempty(IetaBri)
+        rhoBIeta  = rhoBIeta  .* IetaBri(H-h);
+        rhoBIeta0 = rhoBIeta0 .* Ieta0Bri(H-h);
+    end
     
-    eqs{1} = contEquation(s, dt, h,   h0,   rhoC, rhoC0, intFluxCO2, bc_cell, bc_fC, wc, qw);
-    eqs{2} = contEquation(s, dt, H-h, H-h0, rhoB, rhoB0, intFluxBri, bc_cell, bc_fB, wc, qw);
+    eqs{1} = contEquation(s, dt, h,   h0,   rhoCIeta, rhoCIeta0, intFluxCO2, bc_cell, bc_fC, wc, qw);
+    eqs{2} = contEquation(s, dt, H-h, H-h0, rhoBIeta, rhoBIeta0, intFluxBri, bc_cell, bc_fB, [], []);
     
     types(1:2) = {'cell', 'cell'};
     names(1:2) = {'CO2', 'brine'};
@@ -84,6 +93,10 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     %% Adding extra information to state object (not used in equations, but
     %% useful for later analysis)
     state.extras = addedInfoForAnalysis(tI, rhoC, intFluxCO2, intFluxBri);
+    if ~isempty(IetaCO2)    krull1 = IetaCO2(-h);    else krull1 = ones(100,1); end;
+    if ~isempty(INupEtaCO2) krull2 = INupEtaCO2(-h); else krull2 = ones(100,1); end;
+    
+    %state.extras.h50 = [double(state.h(50)), double(krull1(50)), double(krull2(50))]; @@ REMOVE
 end
 
 % ----------------------------------------------------------------------------
@@ -98,7 +111,7 @@ end
     
 
 % ----------------------------------------------------------------------------
-function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, muC)
+function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, rhoC, muC)
 % ----------------------------------------------------------------------------
     if isempty(W)  
         eqs{1} = 0*bhp; 
@@ -107,7 +120,7 @@ function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, muC)
         wrates = [];
         tp = {'none', 'none'};
         nm = {'empty', 'empty'};
-        return;  
+        return;
     end
     
     % at the moment, only injectors of CO2 are allowed
@@ -116,7 +129,7 @@ function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, muC)
     % Use getWellStuffOG to get the (limited) information we need
     [Tw, ~, Rw, wcells, perf2well] = getWellStuffOG(W);
     
-    wrates = (-Tw) ./ muC(wcells) .* (p(wcells) - bhp(perf2well));
+    wrates = rhoC(wcells) .* (-Tw) ./ muC(wcells) .* (p(wcells) - bhp(perf2well));
     eqs{1} = -Rw' * wrates + q;  % @@ Why has the other code a +zeroW here?
     eqs{2} = handleBC(W, bhp, [], [], q);
     tp = {'perf', 'well'};
@@ -271,36 +284,22 @@ end
 % ----------------------------------------------------------------------------
 function tI = imposed_iface_temp(Gt, slope, slopedir, h, T_ref, T_ref_depth, T_grad)
 % ----------------------------------------------------------------------------
-    depth = compute_real_depth(Gt, slope, slopedir, h);
+    depth = computeRealDepth(Gt, slope, slopedir, h);
     tI    = T_ref + (depth - T_ref_depth) * T_grad/1000;
-end
-
-% ----------------------------------------------------------------------------
-function depth = compute_real_depth(Gt, slope, slopedir, h)
-% ----------------------------------------------------------------------------
-    % Compute depth, taking the inclination of the aquifer into account
-    if slope == 0
-        % no correction for angle needs to be made
-        depth = Gt.cells.z + h;
-    else
-        ref_cell = [1, 1]; % @@ For now, we use this corner cell as the reference cell
-        ref_ix = sub2ind(Gt.cartDims, ref_cell(1), ref_cell(2));
-        shift = bsxfun(@minus, Gt.cells.centroids, Gt.cells.centroids(ref_ix, :));
-        shift = shift * slopedir(:);
-
-        depth = Gt.cells.z(ref_ix) + ...
-            (Gt.cells.z - Gt.cells.z(ref_ix) + h) * cos(slope) - ...
-            shift * sin(slope);
-    end
 end
 
 % ----------------------------------------------------------------------------
 function [p, h, q, bhp] = extract_vars(st, initADI)
 % ----------------------------------------------------------------------------
     
-    [p, h, q, bhp] = deal(st.pressure, st.h, ...
-                          vertcat(st.wellSol.qGs), ...
-                          vertcat(st.wellSol.bhp));
+    [p, h] = deal(st.pressure, st.h);
+    if ~isempty(st.wellSol)
+        [q, bhp] = deal(vertcat(st.wellSol.qGs), ...
+                        vertcat(st.wellSol.bhp));
+    else
+        q = 0; bhp = 0;
+    end
+    
 
     if initADI
         [p, h, q, bhp] = initVariablesADI(p, h, q, bhp);
