@@ -5,7 +5,7 @@
 % injector. It is set up to be solved using a black-oil model. The data set
 % we provide is a modified version of input files belonging to the
 % <http://www.ntnu.edu/studies/courses/TPG4535 course in reservoir
-% engineering and petrophysics> at NTNU and available at
+% engineering and petrophysics> at NTNU (Trondheim, Norway) and available at
 % <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>. The
 % results are compared to the output from a major commercial reservoir
 % simulator (Eclipse 100).
