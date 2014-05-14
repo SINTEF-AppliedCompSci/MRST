@@ -1,25 +1,27 @@
-
 %% The Delft EGG model
-% Researchers from TU Delft have developed their own model - the Egg model
-% - to compare different two phase flow simulators. In this process, MRST
-% has been validated against Eclipse, GPRS, and MoReS using a version of
-% their Egg model. The results obtained with the four simulators are almost
-% identical. Read more.
+% Researchers from TU Delft and Endhoven have developed their own model - the Egg model -
+% to compare different two phase flow simulators. In this process, MRST has been validated
+% against Eclipse, GPRS, and MoReS. The results obtained with the four simulators are
+% almost identical. A detailed description of this project and its outcome can be found in
+% the following <http://dx.doi.org/10.4121/uuid:916c86cd-3558-4672-829a-105c62985ab2
+% research note>.
 
 
-require ad-fi deckformat
 
 %% Read and process input files
 % The data file for the egg model are available at
 % <http://dx.doi.org/10.4121/uuid:916c86cd-3558-4672-829a-105c62985ab2
 % 3TU.Datacentrum>. From there you can download the whole dataset but we will only need
-% the following files which can be found under the MRST directory: 
+% the following files which can be found under the directory
+% |Egg_Model_Data_Files_v2/MRST/|:
 % 
 %  ACTIVE.INC,COMPDAT.INC, Egg_Model_ECL.DATA, mDARCY.INC, SCHEDULE_NEW.INC 
 % 
 % Put all these files under the same directory and let |fn| denote the path of
 % |Egg_Model_ECL.DATA|. The next two lines correspond to the setup where the whole
-% dataset has been downloaded under the current directory.
+% dataset has been downloaded under the same directory as |run_egg.m|.
+
+require ad-fi deckformat
 
 currentdir = fileparts(mfilename('fullpath'));
 fn = fullfile(currentdir, 'data', 'Egg_Model_Data_Files_v2', 'MRST', 'Egg_Model_ECL.DATA');
@@ -35,7 +37,7 @@ G = initEclipseGrid(deck);
 %%
 % The egg-shaped grid is constructed be removing cells from a rectangular cartesian
 % grid. We use the MRST function extractSubgrid to select the active cells given in
-% deck.GRID.ACTNUM, which is contructed from the data file ACTIVE.INC
+% |deck.GRID.ACTNUM|. The active cells are loaded in the deck from |ACTIVE.INC|.
 
 G = extractSubgrid(G, logical(deck.GRID.ACTNUM));
 G = computeGeometry(G);
@@ -51,6 +53,7 @@ gravity on
 
 
 %% Plot wells and permeability
+%
 
 figure(1)
 clf;
@@ -96,6 +99,7 @@ toc(tt)
 
 
 %% Plot oil and water production rates
+%
 
 % Put the well solution data into a format more suitable for plotting
 [wrt, ort, grt, bhp] = wellSolToVector(wellSols);
