@@ -30,26 +30,8 @@ function varargout = mrstModule(varargin)
 %                                      mrstModule add [module list]
 %
 %     [module list] - A sequence of strings naming individual add-on
-%                     modules for MRST.  A module string/name may be either
-%                     of the following:
-%
-%                       o) A relative path-name such as 'agglomeration' or
-%                          'eclipse/resultinput'.  The name is interpreted
-%                          as a directory relative to the default MRST
-%                          module directory,
-%
-%                              fullfile(ROOTDIR, 'modules')
-%
-%                          If no such directory exists, as determined by
-%                          ISDIR, the requested module is ignored.
-%
-%                          The string may include the path-name component
-%                          separator, FILESEP.
-%
-%                       o) An absolute path-name identifying an arbitrary
-%                          directory on the local computer system.  If the
-%                          directory does not exist, the requested module
-%                          is ignored.
+%                     modules for MRST.  The mapping of module names to
+%                     system paths is performed by function 'mrstPath'.
 %
 %   Mode 2)
 %     None.
@@ -63,15 +45,13 @@ function varargout = mrstModule(varargin)
 %               currently active add-on modules.
 %
 % EXAMPLES:
-%    mrstModule add eclipse
-%    mrstModule add /exp/module
-%    mrstModule add ../utility/module
+%    mrstModule add deckformat ad-fi spe10
 %
 %    mrstModule list
 %    mrstModule clear
 %
 % SEE ALSO:
-%   ROOTDIR, isdir, filesep.
+%   mrstPath.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
