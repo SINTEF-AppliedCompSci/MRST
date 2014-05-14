@@ -43,8 +43,7 @@ gravity on
 % gas (Sg=0.0) and a constant dissolved gas/oil ratio (|Rs|) throughout the
 % model. The pressure and Rs values are derived through external means.
 
-clear prod
-[k, k, k] = ind2sub(G.cartDims, G.cells.indexMap);  %#ok
+[k, k, k] = gridLogicalIndices(G);
 
 p0    = [ 329.7832774859256 ; ...  % Top layer
           330.2313357125603 ; ...  % Middle layer
