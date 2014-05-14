@@ -12,10 +12,15 @@ end
 mrstVerbose true
 
 %% Read and process file.
-% The data set we provide is a modified version of the data set which
-% belongs to the <http://www.ntnu.edu/studies/courses/TPG4535 course>
-% material available at <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>
+% This <ninth SPE comparative solution project> consists of a water
+% injection problem in a highly heterogenous reservoir. There is one
+% injector and 25 producers. The problem is set up to be solved using a
+% black-oil model. The data set we provide is a modified version of input
+% files belonging to the <http://www.ntnu.edu/studies/courses/TPG4535 course
+% in reservoir engineering and petrophysics> at NTNU (Trondheim, Norway) and
+% available at % <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
 
+%% Read input files
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'SPE9.DATA');
 deck = readEclipseDeck(fn);
@@ -61,14 +66,14 @@ colorbar('SouthOutside');
 % There are three control periods and the controls change after 300 and 360
 % days. However, well control can switch if the well constraints are not
 % fulfilled (this is the default option. If you do not want this, set the
-% option 'allowControlSwitching' to false when calling initADIsystem). In the
-% case of the schedule we are considering, the wells are controlled by rate
-% (oil rate for the producers and water rate for the injectors). There is a
-% minimum value for bottom hole pressure for the producers (here, 68.9 bar for
-% all producing wells). It means that if the bottom hole pressure (bhp) which
-% is needed to obtain the given rate is below the minimum bhp, then the well
-% changes control type and becomes controlled by pressure. For the injectors,
-% we have a maximum value for the bhp (here, 275.79 bar).
+% option 'allowControlSwitching' to false when calling initADIsystem). In
+% the case of the schedule we are considering, the wells are controlled by
+% rate (oil rate for the producers and water rate for the injectors). There
+% is a minimum value for bottom hole pressure for the producers (here, 68.9
+% bar for all producing wells). It means that if the bottom hole pressure
+% (bhp) which is needed to obtain the given rate is below the minimum bhp,
+% then the well changes control type and becomes controlled by pressure. For
+% the injectors, we have a maximum value for the bhp (here, 275.79 bar).
 
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);
@@ -102,6 +107,7 @@ toc(timer)
 
 %% Plot solutions
 % We opt for a simple volume plot of the oil saturation.
+%
 
 figure(1)
 clf
@@ -120,9 +126,9 @@ end
 
 
 %% Plot of the production and injection rates.
-% We observe that the rate are not constant in the control periods given
-% initially ([0,300], [300,360], [360,900] days). It means that the well
-% controls have switched from rate to bhp.
+% We observe that the rates are not constant in the control periods given
+% initially ([0,300], [300,360], [360,900] days). For some timesteps, the
+% well controls have switched from rate to bhp.
 
 T     = convertTo(cumsum(schedule.step.val), day);
 

@@ -1,13 +1,18 @@
 %% SPE1 case 
-% This example solves the SPE1 problem which consists of a gas injection problem in a
-% small ($10\times10\times3$) reservoir with a single producer and a single injector. We
-% use a black-oil model. The problem is parsed and solved from the input file "odeh_adi"
-% and the result is then compared to the output from a major commercial reservoir
+% This <http://dx.doi.org/10.2118/9723-PA first comparative solution
+% project> consists of a gas injection problem in a small
+% ($10\times10\times3$) reservoir with a single producer and a single
+% injector. It is set up to be solved using a black-oil model. The data set
+% we provide is a modified version of input files belonging to the
+% <http://www.ntnu.edu/studies/courses/TPG4535 course in reservoir
+% engineering and petrophysics> at NTNU and available at
+% <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>. The
+% results are compared to the output from a major commercial reservoir
 % simulator (Eclipse 100).
 
-
 %% Read input files
-% The input file odeh_adi follows Eclipse format.
+% The input files follow Eclipse format. MRST contains a dedicated module
+% which can handle standard Eclipse keywords.
 
 require ad-fi deckformat mrst-gui
 
@@ -59,15 +64,16 @@ clear k p0 s0 rs0;
 % lower layer for the injector and producer respectively. To get a well
 % object, we simply process the first control from the schedule.
 %
-% Note that it is not necessary to construct a schedule to solve problems using the fully
-% implicit solver: solvefiADI is capable of taking a well object directly and solving for
-% a single time step in a manner similar to the other MRST solvers.
+% Note that it is not necessary to construct a schedule to solve problems
+% using the fully implicit solver: solvefiADI is capable of taking a well
+% object directly and solving for a single time step in a manner similar to
+% the other MRST solvers.
 
 figure(1)
 clf;
 W = processWells(G, rock, deck.SCHEDULE.control(1));
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
-            'EdgeAlpha', .3, 'EdgeColor', 'k');
+             'EdgeAlpha', .3, 'EdgeColor', 'k');
 plotWell(G, W);
 title('Permeability (mD)')
 axis tight;
@@ -75,18 +81,19 @@ view(35, 40);
 colorbar('SouthOutside');
 
 %% Initialize schedule and system before solving for all timesteps
-% We extract the schedule from the read deck and create a ADI system for our problem. The
-% system autodetects a black oil problem and sets up default values for the various
-% options. The only thing we change is that we disable the CPR preconditioner as the
-% problem is too small to benefit from preconditioning: The overhead required for the
-% preconditioner is bigger than the benefits offered by a specialized solver.
+% We extract the schedule from the read deck and create a ADI system for our
+% problem. The system autodetects a black oil problem and sets up default
+% values for the various options. The only thing we change is that we
+% disable the CPR preconditioner as the problem is too small to benefit from
+% preconditioning: The overhead required for the preconditioner is bigger
+% than the benefits offered by a specialized solver.
 %
 % During some time steps (67 and 91) the Newton iterations oscillate. The
 % solver detects this, and dampens or relaxes the step length when this
 % behavior is observed.
 %
-% To see detailed convergence analysis during each time step, set verbose
-% to on by using: |mrstVerbose on|
+% To see detailed convergence analysis during each time step, set verbose to
+% on by using: |mrstVerbose on|
 
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', false);
@@ -95,12 +102,13 @@ timer = tic;
 toc(timer)
 
 %% Plot the solution
-% We opt for a simple volume plot of the gas saturation. If opengl capability is set to
-% software, we fall back to a simpler cell data plot.  If you have problems with getting
-% good plots you can set useVolume to false.
+% We opt for a simple volume plot of the gas saturation. If opengl
+% capability is set to software, we fall back to a simpler cell data plot.
+% If you have problems with getting good plots you can set useVolume to
+% false.
 
 oglcapable = opengl('data');
-useVolume = ~oglcapable.Software;
+useVolume  = ~oglcapable.Software;
 
 figure(2)
 view(35, 40);
@@ -171,8 +179,9 @@ plot(Tcomp, ecl,  '-r','Marker', '.', 'MarkerSize',16);
 set(gca,'Xlim', [0 0.5]);
 
 %% Plot injector and producer bottom hole pressure
-% The wells are rate controlled so that the bottom hole pressure is solved in the implicit
-% loop. We plot the bottom hole pressure for the injector and producer to verify accuracy.
+% The wells are rate controlled so that the bottom hole pressure is solved
+% in the implicit loop. We plot the bottom hole pressure for the injector
+% and producer to verify accuracy.
 
 figure(3)
 clf

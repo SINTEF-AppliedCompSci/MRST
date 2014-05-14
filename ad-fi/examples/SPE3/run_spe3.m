@@ -1,20 +1,19 @@
 %% SPE3 case using fully implicit black oil solver
 % This <http://dx.doi.org/10.2118/12278-PA third SPE comparative solution
 % project> consists of a gas injection problem in a small (9x9x4) reservoir.
-% The problem is originally set up to be solved using a compositional
-% solver. Using PVTi, the physical datas have been processed to obtain an
-% equivalent blackoil problem and the resulting blackoil parameters are
-% provided in the file "SPE3.DATA". The data set we provide is a modified
-% version of input files belonging to the
-% <http://www.ntnu.edu/studies/courses/TPG4535 course in reservoir
-% engineering and petrophysics> at NTNU and available at
-% <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>. The
-% oil can vaporize but the gas cannot dissolve in oil so that the gas/oil
+% The problem is originally set up to be solved using a compositional solver.
+% Using PVTi, the physical datas have been processed to obtain an equivalent
+% blackoil problem and the resulting blackoil parameters are provided in the
+% file "SPE3.DATA". The data set we provide is a modified version of input
+% files belonging to the <http://www.ntnu.edu/studies/courses/TPG4535 course in
+% reservoir engineering and petrophysics> at NTNU (Trondheim, Norway) and
+% available at % <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
+% The oil can vaporize but the gas cannot dissolve in oil so that the gas/oil
 % ratio remains equal to zero during the whole simulation. The data are
 
 %% Read input files
-% The input files follow Eclipse format. MRST contains a dedicated module to
-% read such format.
+% The input files follow Eclipse format. MRST contains a dedicated module
+% which can handle standard Eclipse keywords.
 
 require ad-fi deckformat
 
