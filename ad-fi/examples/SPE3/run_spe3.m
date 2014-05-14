@@ -1,10 +1,20 @@
 %% SPE3 case using fully implicit black oil solver
-% This example solves the SPE3 problem which consists of gas injection in a
-% small (9x9x4) reservoir. The problem is originally a compositional
-% problem. Using PVTi, we convert it to a blackoil problem and the resulting
-% datas are provided in the file "SPE3.DATA". The oil can vaporize but the
-% gas cannot dissolve in oil so that the gas/oil ratio remains equal to zero
-% during the whole simulation.
+% This <http://dx.doi.org/10.2118/12278-PA third SPE comparative solution
+% project> consists of a gas injection problem in a small (9x9x4) reservoir.
+% The problem is originally set up to be solved using a compositional
+% solver. Using PVTi, the physical datas have been processed to obtain an
+% equivalent blackoil problem and the resulting blackoil parameters are
+% provided in the file "SPE3.DATA". The data set we provide is a modified
+% version of input files belonging to the
+% <http://www.ntnu.edu/studies/courses/TPG4535 course in reservoir
+% engineering and petrophysics> at NTNU and available at
+% <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>. The
+% oil can vaporize but the gas cannot dissolve in oil so that the gas/oil
+% ratio remains equal to zero during the whole simulation. The data are
+
+%% Read input files
+% The input files follow Eclipse format. MRST contains a dedicated module to
+% read such format.
 
 require ad-fi deckformat
 
@@ -14,7 +24,8 @@ fn    = fullfile(current_dir, 'SPE3.DATA');
 
 deck = readEclipseDeck(fn);
 
-% The deck is given in field units, MRST uses metric.
+% The deck is given in field units, MRST uses consistently the metric
+% system.
 deck = convertDeckUnits(deck);
 
 G = initEclipseGrid(deck);
@@ -23,8 +34,8 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
-% Create a special ADI fluid which can produce differentiated fluid
-% properties.
+% Create a special ADI fluid from deck, which can produce differentiated
+% fluid properties.
 fluid = initDeckADIFluid(deck);
 
 % The case includes gravity
@@ -59,6 +70,7 @@ view(35, 40);
 colorbar('SouthOutside');
 
 %% Initialize schedule and system before solving for all timesteps
+%
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', true);
 timer = tic;
@@ -66,8 +78,8 @@ timer = tic;
 toc(timer)
 
 
-
 %% Plot Producer Gas/Oil ratio
+%
 T = convertTo(cumsum(schedule.step.val), day);
 inj  = find([wellSols{1}.sign] == 1);
 prod = find([wellSols{1}.sign] == -1);
@@ -79,7 +91,6 @@ gor = qGs(:,prod)./qOs(:,prod);
 plot(T, gor, '-*b')
 xlabel('Days')
 title('Gas rate / Oil rate')
-
 
 
 %% Plot of Bottom Hole Pressure and gas production/injection rate
