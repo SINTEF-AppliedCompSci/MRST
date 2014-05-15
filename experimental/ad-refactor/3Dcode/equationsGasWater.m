@@ -2,24 +2,15 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
 
     opt = struct('Verbose'     , mrstVerbose , ...
                  'reverseMode' , false       , ...
-                 'scaling'     , []          , ...
                  'resOnly'     , false       , ...
-                 'history'     , []          , ...
                  'minerals'    , false       , ...
                  'iteration'   , -1          , ...
                  'stepOptions' , []); % compatibility only
     opt = merge_options(opt, varargin{:});
     
-    if ~isempty(opt.scaling)
-        scalFacs = opt.scaling;
-    else
-        scalFacs.rate = 1; scalFacs.pressure = 1;
-    end
     
     W = drivingForces.Wells;
     assert(isempty(drivingForces.src)); 
-    
-    hst = opt.history
     
     % ----------------------------- Current variables -----------------------------
     p   = state.pressure;
@@ -42,8 +33,7 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
         end
         primaryVars = {'pressure', 'sG', 'qWs', 'wGs', 'bhp'};
     end
-    g = norm(gravity);
-    
+        
     % ----------------------------------------------------------------------------
     
     % Check for p-dependent tran mult:
@@ -88,7 +78,9 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     
     % ---------------------------- Boundary conditions ----------------------------
 
-    [bc_cells, b_fW, b_fG] = BCFluxes(Gt, s, drivingForces.bc, _stuff_);
+    [bc_cells, b_fW, b_fG] = ...
+        BCFluxes(Gt, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
+
     eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
     eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
     
@@ -124,44 +116,76 @@ end
 
 % ============================= END MAIN FUNCTION =============================
 
-
-function [cells, fluxW, fluxG] = BCFluxes(G, s, bc, _stuff_)
+function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult, trMult)
+    
     if isempty(bc)
         % all boundary conditions are no-flow; nothing to do here.
         cells = []; fluxW = []; fluxG = []; return;
     end
+
     assert(all(strcmp(bc.type, 'pressure'))); % only supported type for now
-    Tbc = s.T_all(bc.face);
     cells = sum(G.faces.neighbors(bc.face, :), 2);
     assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
     
     % prepare boundary-specific values
-     
-    % manually setting up discretizing operators
-
-    % compute fluxes
+    bp   = p(cells); 
+    bt   = t(cells);
+    bdp  = bc.value - bp;
+    bdz  = G.faces.centroids(bc.face, 3) - G.cells.centroids(cells,3);
     
+    assert(isscalar(transMult)); % not implemented for face-wise values
+    assert(isscalar(trMult));    % not implemented for face-wise values
+    trans = s.T_all(bc.face) .* transMult; 
+    krWf = trMult * krW(cells);
+    krGf = trMult * krG(cells);
+    
+    g = norm(gravity); 
+    
+    [bw, rhoWf, mobW] = computeRhoMobBFace(bp, bt, f.bW, f.rhoWS, krWf, f.muW);
+    [bg, rhoGf, mobG] = computeRhoMobBFace(bp, bt, f.bG, f.rhoGs, krGf, f.muG);
+    
+    dptermW = bdp - rhoWf .* g .* bdz;
+    dptermG = bdp - rhoGf .* g .* bdz;
+    
+    % Adjust upstream-weighted mobilities to prevent gas from re-entering the domain
+    ix = dptermG < 0;
+    mobG(ix) = 0;
+    mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
+ 
+    % compute fluxes
+    fluxW = bw .* mobW .* trans .* dptermW;
+    fluxG = bg .* mobG .* trans .* dptermG;
     
 end
 
 % ----------------------------------------------------------------------------
 
+function [bb, brho, bmob] = computeRhoMobBFace(bp, bt, bfun, rhoS, kr, mufun)
+
+    bb   = bfun(bp, bt);
+    brho = bb .* rhoS;
+    bmob = trMult .* kr ./ mufun(bp, bt);
+
+end
+
+% ----------------------------------------------------------------------------
 function [b, mob, flux] = compMFlux(p, t, bfun, mufun, rhoS, trMult, kr, s, G, trans)
     
+    g   = norm(gravity);
     b   = bfun(p, t);
     mob = trMult .* kr ./ mufun(p, t);
 
     rhoFace = s.faceAvg(b*rhoS);
     
     dp   = s.grad(p) - g * rhoFace .* s.grad(G.cells.centroids(:,3));
-    upc  = (double(dp)> =0);
+    upc  = (double(dp)>=0);
     flux = s.faceUpstr(upc, b .* mob) .* trans .* dp;
 
 end
 
 % ----------------------------------------------------------------------------
 function [wc, cqs] = checkForRepetitions(wc, cqs)
-[c, ia, ic] = unique(wc, 'stable');
+[c, ~, ic] = unique(wc, 'stable');
 if numel(c) ~= numel(wc)
     A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
     wc = c;
