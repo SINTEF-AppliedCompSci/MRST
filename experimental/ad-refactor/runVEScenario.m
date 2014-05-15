@@ -1,8 +1,8 @@
-function comp_refactor(comp_model, scenariofile, savename)
+function runVEScenario(comp_model, scenariofile, savename)
 %
 %
 % SYNOPSIS:
-%   function comp_refactor(model, savename)
+%   function runVEScenario(model, savename)
 %
 % DESCRIPTION:
 %
@@ -11,7 +11,7 @@ function comp_refactor(comp_model, scenariofile, savename)
 %   savename - file in which to save the results
 %
 % RETURNS:
-%   comp_refactor(model, - 
+%   runVEScenario(model, - 
 %
 % EXAMPLE:
 %
