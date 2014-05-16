@@ -21,6 +21,10 @@ classdef twoPhaseGasWaterModel < physicalModel
             model       = model.setupOperators(G, rock);
         end
 
+    end
+    
+    methods (Access = protected)
+
         % ------------------------------------------------------------------------
         
         function [problem, state] = getEquations(model, state0, state, dt, ...

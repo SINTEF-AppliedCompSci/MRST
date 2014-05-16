@@ -7,8 +7,8 @@ function runVEScenario(comp_model, scenariofile, savename)
 % DESCRIPTION:
 %
 % PARAMETERS:
-%   model    - 1 - incompressible; 2 - semi-compressible; 3 - fully compressible
-%   savename - file in which to save the results
+%   comp_model - 1 - incompressible; 2 - semi-compressible; 3 - fully compressible
+%   savename   - file in which to save the results
 %
 % RETURNS:
 %   runVEScenario(model, - 
@@ -34,7 +34,7 @@ function runVEScenario(comp_model, scenariofile, savename)
     CO2obj = CO2props('rho_big_trunc','');
     depth = computeRealDepth(Gt, slope, slopedir, 0); % slope-adjusted depth
 
-    switch comp_model
+    switch comp_model 
       case 1
         % determine constant rho value
         tref = ref_temp + depth(refcell_ix) * temp_grad/1000;
