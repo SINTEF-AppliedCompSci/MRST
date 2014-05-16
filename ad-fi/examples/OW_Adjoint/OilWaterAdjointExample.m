@@ -10,7 +10,7 @@
 % output. 
 
 % This requires the deckformat module.
-require deckformat
+require deckformat ad-fi
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'simple10x1x10.data');
