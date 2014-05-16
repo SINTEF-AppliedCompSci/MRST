@@ -1,5 +1,5 @@
 * Questions
-** Should we use ~setupSimComp~ or ~setupSimCompVE~?  In the original code, the comments argue for the former (see ~prepareSimulationSystem~), but right now I don't see a reason (and indeed, choosing the former gives wrong pore volumes).
+** DONE Should we use ~setupSimComp~ or ~setupSimCompVE~?  In the original code, the comments argue for the former (see ~prepareSimulationSystem~), but right now I don't see a reason (and indeed, choosing the former gives wrong pore volumes).
 - for now, I chose to use ~setupSimCompVE~ as this is conceptually the function to use for VE.
 
 * stuff to do
@@ -7,8 +7,12 @@
 ** TODO saving of timesteps
 ** TODO implementing good plotting
 ** TODO comparing the three compressible models on the three paper cases
-** TODO implement 3D model
-** TODO compare with 3D model
+** 3D model
+*** TODO implement 3D model
+*** TODO Better grid for 3D model (tighter on top than on bottom)
+*** TODO saving of timesteps for 3D model
+*** TODO make good visualization of 3D model solution
+*** TODO compare with 3D model
 
 
 
