@@ -66,17 +66,17 @@ cellno = rldecode(1:G.cells.num, diff(G.cells.facePos),2)';
 i      = any(G.faces.neighbors ==0, 2);
 j      = false(max(G.cells.faces(:,2)),1);
 if isempty(i1)
-   pick_I = 1;
+   pick_I = true(G.cartDims(1),1);
 else
    pick_I = false(G.cartDims(1),1); pick_I(i1) = true;
 end
 if isempty(i2)
-   pick_J = 1;
+   pick_J = true(G.cartDims(2),1);
 else
    pick_J = false(G.cartDims(2),1); pick_J(i2) = true;
 end
 if isempty(i3)
-   pick_K = 1;
+   pick_K = true(G.cartDims(3),1);
 else
    pick_K = false(G.cartDims(3),1); pick_K(i3) = true;
 end
