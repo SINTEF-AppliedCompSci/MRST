@@ -323,20 +323,14 @@ function dx = solveEqs(eqs, linsolve)
     eqs_c = cat(eqs{:});
 
     J = -eqs_c.jac{:};
-    %tmp      = zeros(ii(end,end), 1);
+    % We now have an elliptic system that can be solved using e.g.
+    % multigrid 
     tmp = linsolve(J, eqs_c.val);
-
     dx{1} = tmp;
 
-    %recover
+    % recover variables
     dx{3} = recoverVars(eq_w, 2,    {dx{1}});
     dx{2} = recoverVars(eq_r, 2,    {dx{1}, dx{3}});
-
-    %eqn = size(ii,1);
-    %dx = cell(eqn,1);
-    %for i = 1:eqn
-    %        dx{i} = tmp(ii(i,1):ii(i,2));
-    %end
 end
 
 function grad = SolveAdjointTOFEqs(eqs, D, objk, scaling, perf2well)
