@@ -49,7 +49,7 @@ function downloadDataSets(varargin)
 % If the function is called with no argument, it goes through the list and
 % asks the user for permission to download each dataset. When given a
 % specific name or 'all', the function downloads the datasets without
-% asking for permissiong.
+% asking for permission.
 %
 % In addition to the above, a few examples use the Sleipner data set from
 % ieaghg.org, which requires user registration and hence must be downloaded
