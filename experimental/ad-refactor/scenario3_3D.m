@@ -1,20 +1,22 @@
-function scenario1_3D(savename)
+function scenario3_3D(savename)
 
     gravity on;
     moduleCheck('ad-fi');
     moduleCheck('ad-refactor');
 
     %% Grid and rock parameters
+    xnum      = 100;
     znum      = 60;%30;
-    depth     = 750;
-    thickness = 150;
+    depth     = 700;
+    dome_h    = 160;
     exponent  = 1.2;
-    G         = cartGrid([100, 1, znum], [40000, 3000, thickness]);
-    G         = adjustVerticalCoords(G, depth, depth + thickness, znum, exponent);
+    thickness = 100;
+    G         = cartGrid([xnum, 1, znum], [10000, 3000, thickness]);
+    G         = adjustVerticalCoords(G, depth, depth + thickness, znum, exponent, dome_h);
     G         = computeGeometry(G);
     cnum      = G.cells.num;
-    rock.perm = repmat(400*milli*darcy, cnum, 1);
-    rock.poro = repmat(0.1            , cnum, 1);
+    rock.perm = repmat(1100*milli*darcy, cnum, 1);
+    rock.poro = repmat(0.2             , cnum, 1);
     
     %% temperature related parameters
     tempS = 273.15 + 6;
@@ -26,17 +28,17 @@ function scenario1_3D(savename)
     fluid.pcGW    = @(sG) 0;                         % no capillary pressure - sharp interface
     fluid.relPerm = @(sG) deal(1-sG, sG);            % linear relperm
     fluid.rhoGS   = 1.977 * kilogram / meter^3;
-    fluid.rhoWS   = 1050  * kilogram / meter^3;
+    fluid.rhoWS   = 1100  * kilogram / meter^3;
     fluid.bW      = @(p,t) ones(numel(double(p)),1); % constant density
     fluid.bG      = @(p,t) EOS.rho(p, t) ./ fluid.rhoGS;
-    fluid.muW     = @(p,t) 5.4e-5;                   % constant viscosity
+    fluid.muW     = @(p,t) 6.5e-4;                   % constant viscosity
     fluid.muG     = @(p,t) 5.36108e-5;               % constant viscosity
 
     %% Wells and schedule
-    tnum     = 60; %60;
-    inum     = 19;
-    tot_time = 60 * year;
-    rate     = 1e7 * kilo * kilogram / year / fluid.rhoGS;
+    tnum     = 200; %60;
+    inum     = 49;
+    tot_time = 200 * year;
+    rate     = 2e6 * kilo * kilogram / year / fluid.rhoGS;
 
     schedule = struct('W', verticalWell([], G, rock, 50, 1, [], ...
                                         'type'   , 'rate'  ,    ...
@@ -84,13 +86,26 @@ function scenario1_3D(savename)
     save(savename, 'states', 'G');
 end
 
-function G = adjustVerticalCoords(G, zmin, zmax, zcellnum, exponent)
+function G = adjustVerticalCoords(G, zmin, zmax, zcellnum, exponent, dome_height)
+
+    % adjust cell heights to make thinner cells on top
+    cell_spacing = linspace(0, 1, zcellnum+1);
+    cell_spacing = cell_spacing .^ exponent;
+    cell_spacing = cell_spacing * (zmax-zmin);
+    cell_spacing = reshape(repmat(cell_spacing, prod(G.cartDims(1:2)+1), 1), [],1);
     
-    tmp = linspace(0, 1, zcellnum+1);
-    tmp = tmp .^ exponent;
-    tmp = tmp * (zmax-zmin) + zmin;
-    tmp = reshape(repmat(tmp, prod(G.cartDims(1:2)+1), 1), [],1);
-    G.nodes.coords(:,3) = tmp;
+    % Adjust geometry of grid to make a dome (in 2D)
+    xnn = G.cartDims(1) + 1; % number of nodes along x direction
+    dh   = dome_height / 2;  % half-height
+    geom = dh * cos([1:xnn]'./xnn * 2 * pi);
+    geom = (geom + fliplr(geom))/2;
+    geom = reshape(repmat(geom, 1, prod(G.cartDims(2:3)+1)), [], 1);
+    
+    % set depth of dome ape
+    z = geom + cell_spacing;
+    z = z + (zmin-min(z));
+    
+    G.nodes.coords(:,3) = z;
 end
 
         
