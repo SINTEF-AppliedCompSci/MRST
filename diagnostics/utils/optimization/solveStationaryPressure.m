@@ -256,9 +256,9 @@ for i = 1:numel(W)
 
     if findTof
         if isProd(i)
-            forward_tof(wc)  = forward_tof(wc) - wflux.*tau_forward(wc);
+            forward_tof(wc)  = forward_tof(wc) - 2*wflux.*tau_forward(wc);
         elseif isInj(i)
-            backward_tof(wc) = backward_tof(wc) + wflux.*tau_backward(wc);
+            backward_tof(wc) = backward_tof(wc) + 2*wflux.*tau_backward(wc);
         end
     end
 end
