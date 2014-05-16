@@ -11,7 +11,14 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     
     W = drivingForces.Wells;
     assert(isempty(drivingForces.src)); 
-    
+
+    if isempty(W) && isfield(state, 'wellSol')
+        % no wells present - remove wellSol structure
+        state.wellSol.qGs = [];
+        state.wellSol.qWs = [];
+        state.wellSol.bhp = [];
+    end
+
     % ----------------------------- Current variables -----------------------------
     p   = state.pressure;
     sG  = state.s(:,2); % water is first column, gas second
@@ -31,7 +38,7 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
         else
             [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sw0, 0*qWs, 0*qGs, 0*pBH);
         end
-        primaryVars = {'pressure', 'sG', 'qWs', 'wGs', 'bhp'};
+        primaryVars = {'pressure', 'sG', 'qWs', 'qGs', 'bhp'};
     end
         
     % ----------------------------------------------------------------------------
@@ -41,7 +48,7 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     if isfield(f, 'tranMultR'), trMult = f.tranMultR(p); end;
     
     % Check for p-dependent porv mult:
-    pvMult = 1; pvMult0 = 0;
+    pvMult = 1; pvMult0 = 1;
     if isfield(f, 'pvMultR')
         pvMult  = f.pvMultR(p);
         pvMult0 = f.pvMultR(p0);
@@ -60,26 +67,26 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     end
     % ----------------------------------------------------------------------------
     
-    [krG, krW] = f.relPerm(sG);
+    [krW, krG] = f.relPerm(sG);
     
     % computing densities, mobilities and upstream indices
     [bW, mobW, fluxW] = compMFlux(p - pcGW, t, f.bW, f.muW, f.rhoWS, trMult, krW, s, G, trans);
     [bG, mobG, fluxG] = compMFlux(p,        t, f.bG, f.muG, f.rhoGS, trMult, krG, s, G, trans);
 
-    bW0 = f.bW(p0 - pcGW(sG0), t);
+    bW0 = f.bW(p0 - pcGW, t);
     bG0 = f.bG(p0, t);
     
     % --------------------------- Continuity equations ---------------------------
     
-    eqs{1} = (s.pv/dt) .* (pvMult .* bW .* (1-sG) - pvMult0 .* bW0) + s.div(fluxW);
-    eqs{2} = (s.pv/dt) .* (pvMult .* bG .* sG     - pvMult0 .* bG0) + s.div(fluxG);
+    eqs{1} = (s.pv/dt) .* (pvMult .* bW .* (1-sG) - pvMult0 .* bW0 .* (1-sG0)) + s.div(fluxW);
+    eqs{2} = (s.pv/dt) .* (pvMult .* bG .* sG     - pvMult0 .* bG0 .* sG0    ) + s.div(fluxG);
     names  = {'water', 'gas'};
     types  = {'cell' , 'cell'};
     
     % ---------------------------- Boundary conditions ----------------------------
 
     [bc_cells, b_fW, b_fG] = ...
-        BCFluxes(Gt, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
+        BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
 
     eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
     eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
@@ -95,7 +102,7 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
         
         [eqs(3:5), cqs, state.wellSol] = ...
             getWellContributions(W, state.wellSol, pBH, {qWs, qGs}, pw, rhos, ...
-                                 bw, {}, {}, mw, 'iteration', opt.iteration);   
+                                 bw, {}, {}, mw, 'iteration', opt.iteration, 'model', 'WG'); 
         [wc, cqs] = checkForRepetitions(wc, cqs);
         eqs{1}(wc) = eqs{1}(wc) - cqs{1};
         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
@@ -104,7 +111,7 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
         types(3:5) = {'perf'       , 'perf'     , 'well'};
     
     else % no wells, or in reverse mode
-        eqs{3:5}   = {0*pBH   , 0*pBH   , 0*pBH}; % empty ADIs
+        eqs(3:5)   = {0*pBH   , 0*pBH   , 0*pBH}; % empty ADIs
         names(3:5) = {'empty' , 'empty' , 'empty'};
         types(3:5) = {'none'  , 'none'  , 'none'};
     end
@@ -142,7 +149,7 @@ function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult
     g = norm(gravity); 
     
     [bw, rhoWf, mobW] = computeRhoMobBFace(bp, bt, f.bW, f.rhoWS, krWf, f.muW);
-    [bg, rhoGf, mobG] = computeRhoMobBFace(bp, bt, f.bG, f.rhoGs, krGf, f.muG);
+    [bg, rhoGf, mobG] = computeRhoMobBFace(bp, bt, f.bG, f.rhoGS, krGf, f.muG);
     
     dptermW = bdp - rhoWf .* g .* bdz;
     dptermG = bdp - rhoGf .* g .* bdz;
@@ -160,11 +167,11 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [bb, brho, bmob] = computeRhoMobBFace(bp, bt, bfun, rhoS, kr, mufun)
+function [bb, brho, bmob] = computeRhoMobBFace(bp, bt, bfun, rhoS, krf, mufun)
 
     bb   = bfun(bp, bt);
     brho = bb .* rhoS;
-    bmob = trMult .* kr ./ mufun(bp, bt);
+    bmob = krf ./ mufun(bp, bt);
 
 end
 

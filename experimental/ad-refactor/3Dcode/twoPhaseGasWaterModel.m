@@ -43,11 +43,11 @@ classdef twoPhaseGasWaterModel < physicalModel
         
         function state = updateState(model, state, problem, dx, drivingForces) %#ok
             
-            dp      = dx{problem.indexOfPrimaryVarible('pressure')};
-            ds      = dx{problem.indexOfPrimaryVarible('sG')};
-            dqWs    = dx{problem.indexOfPrimaryVarible('qWs')};
-            dqGs    = dx{problem.indexOfPrimaryVarible('qGs')};
-            dpBHP   = dx{problem.indexOfPrimaryVarible('bhp')};
+            dp      = dx{problem.indexOfPrimaryVariable('pressure')};
+            ds      = dx{problem.indexOfPrimaryVariable('sG')};
+            dqWs    = dx{problem.indexOfPrimaryVariable('qWs')};
+            dqGs    = dx{problem.indexOfPrimaryVariable('qGs')};
+            dpBHP   = dx{problem.indexOfPrimaryVariable('bhp')};
             
             dsMax   = model.dsMax; 
             dpMax   = model.dpMax .* state.pressure;
@@ -62,6 +62,9 @@ classdef twoPhaseGasWaterModel < physicalModel
             state.s = [1-sG, sG];
 
             for w = 1:numel(state.wellSol)
+                if isempty(state.wellSol(w).bhp) 
+                    break; % no well present
+                end
                 state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
                 state.wellSol(w).qWs = state.wellSol(w).qWs + dqWs(w);
                 state.wellSol(w).wGs = state.wellSol(w).qGs + dqGs(w);
@@ -74,7 +77,11 @@ end
 
 function res = truncate(m, val, M)
 % ensure all components in 'val' are in the range [m, M]
-    res = max(m, min(val, M)); 
+    if ~isempty(val)
+        res = max(m, min(val, M)); 
+    else
+        res = [];
+    end
 end
 
 function t = computeTemperatureField(G, tsurf, tgrad)
