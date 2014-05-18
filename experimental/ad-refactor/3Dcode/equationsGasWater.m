@@ -12,8 +12,8 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     W = drivingForces.Wells;
     assert(isempty(drivingForces.src)); 
 
-    if isempty(W) && isfield(state, 'wellSol')
-        % no wells present - remove wellSol structure
+    if isempty(W) && isfield(state, 'wellSol') && ~isempty(state.wellSol) 
+        % no wells present - empty content of wellSol structure
         state.wellSol.qGs = [];
         state.wellSol.qWs = [];
         state.wellSol.bhp = [];
@@ -155,14 +155,15 @@ function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult
     dptermG = bdp - rhoGf .* g .* bdz;
     
     % Adjust upstream-weighted mobilities to prevent gas from re-entering the domain
-    ix = dptermG < 0;
+    ix = dptermG > 0;
     mobG(ix) = 0;
     mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
  
     % compute fluxes
-    fluxW = bw .* mobW .* trans .* dptermW;
-    fluxG = bg .* mobG .* trans .* dptermG;
+    fluxW = - bw .* mobW .* trans .* dptermW;
+    fluxG = - bg .* mobG .* trans .* dptermG;
     
+    %fprintf('%f, %f\n', max(abs(fluxW.val)), max(abs(fluxG.val)));
 end
 
 % ----------------------------------------------------------------------------
