@@ -26,8 +26,13 @@ function yrange = polygraph(graphs, colors, labels, plot_title, xvals, yrange)
     if yrange(1) < yrange(2)
         margin = 0;
     else
-        margin = yrange(1) * 0.05;
+        if abs(yrange(1)) > 100 * eps;
+            margin = yrange(1) * 0.05;
+        else
+            margin = 0.01;
+        end
     end
+    
     axis([min(xvals), max(xvals), yrange(1)-margin, yrange(2)+margin]);
     
 end
