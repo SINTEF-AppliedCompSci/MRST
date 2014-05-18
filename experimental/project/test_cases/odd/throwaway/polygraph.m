@@ -1,5 +1,10 @@
 function yrange = polygraph(graphs, colors, labels, plot_title, xvals, yrange)
 
+    if isempty(graphs)
+        yrange = [];
+        return
+    end
+        
     hold on; %cla;
     for g_ix = 1:size(graphs, 2) % one graph per column
         

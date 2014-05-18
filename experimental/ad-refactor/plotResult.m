@@ -11,7 +11,7 @@ function plotResult(results, timesteps)
             Gt = states{i}.Gt;
         end
     end
-    z = zeros(numel(states{1}.states{1}.h), 1);
+    z = zeros(numel(states{1}.result(1).h), 1);
     x = [1:numel(z)]';
     if ~isempty(Gt)
         z = Gt.cells.z;
@@ -30,9 +30,9 @@ function plotResult(results, timesteps)
         subplot(4, tnum, t_ix);
         heights = [];
         for m = 1:num_models
-            heights = [heights, states{m}.states{t}.h + z];
+            heights = [heights, states{m}.result(t).h + z];
         end
-        polygraph([heights, z], {style1{:}, 'k'}, ...
+        polygraph([heights, z], {style1{1:num_models}, 'k'}, ...
                   {'km','m'}, '', x/1e3, ...
                   [min(z), max(z) + (max(z)-min(z))*0.1]);
         
@@ -44,8 +44,8 @@ function plotResult(results, timesteps)
         ipress = [];
         tpress = [];
         for m = 1:num_models
-            ipress = [ipress, states{m}.states{t}.pressure];
-            tpress = [tpress, states{m}.states{t}.extras.pTop];
+            ipress = [ipress, states{m}.result(t).pI  ];
+            tpress = [tpress, states{m}.result(t).pTop];
         end
         polygraph([ipress, tpress], ...
                   {style1{1:num_models}, style2{1:num_models}}, ...
@@ -55,8 +55,8 @@ function plotResult(results, timesteps)
         subplot(4, tnum, 2*tnum + t_ix);
         idensity = []; tdensity = [];
         for m = 1:num_models
-            idensity = [idensity, double(states{m}.states{t}.extras.rhoI)];
-            tdensity = [tdensity, double(states{m}.states{t}.extras.rhoTop)];
+            idensity = [idensity, double(states{m}.result(t).rhoI)];
+            tdensity = [tdensity, double(states{m}.result(t).rhoTop)];
         end
         polygraph([idensity, tdensity], ...
                   {style1{1:num_models}, style2{1:num_models}}, ...
@@ -66,7 +66,7 @@ function plotResult(results, timesteps)
         subplot(4, tnum, 3*tnum + t_ix);
         mflux = [];
         for m = 1:num_models
-            mflux = [mflux, states{m}.states{t}.extras.fluxCO2];
+            mflux = [mflux, states{m}.result(t).fluxCO2];
         end
         polygraph(mflux, style1, {'km','kg/m^2/t'}, '', x(2:end)/1e3, []);
     end

@@ -93,9 +93,9 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     %% Adding extra information to state object (not used in equations, but
     %% useful for later analysis)
     state.extras = addedInfoForAnalysis(tI, rhoC, intFluxCO2, intFluxBri);
-    if ~isempty(IetaCO2)    krull1 = IetaCO2(-h);    else krull1 = ones(100,1); end;
-    if ~isempty(INupEtaCO2) krull2 = INupEtaCO2(-h); else krull2 = ones(100,1); end;
-    
+
+    % if ~isempty(IetaCO2)    krull1 = IetaCO2(-h);    else krull1 = ones(100,1); end;
+    % if ~isempty(INupEtaCO2) krull2 = INupEtaCO2(-h); else krull2 = ones(100,1); end;
     %state.extras.h50 = [double(state.h(50)), double(krull1(50)), double(krull2(50))]; @@ REMOVE
 end
 
@@ -188,7 +188,7 @@ end
 
 % ----------------------------------------------------------------------------
 function res = make_restrict_fun(fun, ix, model)
-% @@ A really hacky function.  It should be considered to change the calling
+% @@ A really hacky function.  It would be better to change the calling
 % code so that the below isn't necessary.
 % ----------------------------------------------------------------------------
     if isempty(fun)

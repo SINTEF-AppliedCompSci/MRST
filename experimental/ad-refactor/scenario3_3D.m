@@ -70,20 +70,22 @@ function scenario3_3D(savename)
 
     %% Compute caprock values and save results 
 
-    for i = 1:numel(states)
-        figure(1); clf;
-        plotCellData(G, states{i}.s(:,2));
-        view(0,0);
+    % for i = 1:numel(states)
+    %     figure(1); clf;
+    %     plotCellData(G, states{i}.s(:,2));
+    %     view(0,0);
 
-        figure(2); clf;
-        plotCellData(G, states{i}.pressure);
-        view(0,0);
-        colorbar;
+    %     figure(2); clf;
+    %     plotCellData(G, states{i}.pressure);
+    %     view(0,0);
+    %     colorbar;
 
-        pause(0.5);
-    end
+    %     pause(0.5);
+    % end
     
-    save(savename, 'states', 'G');
+    % save(savename, 'states', 'G');
+    
+    result = makeResultStructure(states, G, rock, EOS, fluid.rhoWS, @(d) tempS + d * tgrad/1000);       save(savename, 'result', 'G');
 end
 
 function G = adjustVerticalCoords(G, zmin, zmax, zcellnum, exponent, dome_height)

@@ -83,8 +83,10 @@ function runVEScenario(comp_model, scenariofile, savename)
     quick = true;
     for i = 1:numel(states)
         states{i} = model.includeComputedCaprockValues(states{i}, quick);
-    end
-    save(savename, 'states', 'Gt');
+    end        
+
+    result = makeResultStructure(states, Gt, rock);
+    save(savename, 'result', 'Gt');
 end
 
 
