@@ -87,18 +87,5 @@ function runVEScenario(comp_model, scenariofile, savename)
     save(savename, 'states', 'Gt');
 end
 
-function h = convertMassesToHeight(masses, CO2obj, p, tinfo, rhoW, slope, ...
-                                   z, areas, poro, approximate)
-    N = numel(masses);
-    h = zeros(N,1);
-    
-    % compute caprock temperature
-    T = tinfo{1} + (z - tinfo{2}) .* (tinfo{3}/1000);
-
-    for i = 1:N
-        h(i) = columnHeight(p(i), T(i), tinfo{3}/1000, CO2obj, rhoW, slope, masses(i), ...
-                            areas(i), poro(i), approximate);
-    end
-end
 
 
