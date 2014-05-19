@@ -1,4 +1,4 @@
-function [s,pc,kr,SH,krH, s_max,fval]= veRelpermTescterCell(hs, drho, fluid, H, varargin)
+function [s,pc,kr, s_max, s_free,fval]= veRelpermTesterCell(hs, drho, fluid, H, varargin)
     opt=struct('samples',100,'hs_max',[],'kscale',[]);
     opt=merge_options(opt, varargin{:});
     if(isfield(fluid,'is_kscaled'))
@@ -28,9 +28,12 @@ function [s,pc,kr,SH,krH, s_max,fval]= veRelpermTescterCell(hs, drho, fluid, H, 
       s_hmax= invPc3D(h_max.*drho);
       sg_hmax=1-s_hmax;
       SH_max=(sum(sg_hmax)-sg_hmax(end)/2)*dh_max;
-      s_max=SH_max./H;
+      s_max=SH_max./H;      
       s=SH./H;
+      s_free=s;
+      %SH=((SH_max-SH)/(1-fluid.res_oil))*fluid.res_gas+SH;
       SH=((SH_max-SH)/(1-fluid.res_oil))*fluid.res_gas+SH;
+      %SH=(SH_max-SH)*fluid.res_gas+SH;
       %s = free_sg(s,s_max,fluid);
       s=SH./H;
     else
