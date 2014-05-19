@@ -55,7 +55,8 @@ x0 = initEclipseState(G, deck, initEclipseFluid(deck));
 z  = G.cells.centroids(:,3);
 x0.pressure = ipress*barsa +(z(:)-z(end))*norm(gravity)*deck.PROPS.DENSITY(2);
 
-[wellSols, states] = runScheduleADI(x0, G, rock, systemOW, deck.SCHEDULE);
+[wellSols, states] = runScheduleADI(x0, G, rock, systemOW, deck.SCHEDULE, ...
+                                    'stop_if_not_converged', false);
 
 %% Plot results
 %figure
