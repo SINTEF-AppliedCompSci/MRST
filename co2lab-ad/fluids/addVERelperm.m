@@ -137,16 +137,21 @@ function kr= krOG(so,opt,varargin)
 
         if any(ineb) % test necessary since otherwise we risk subtracting an
                      % array of size 0 from a scalar, which will crash
-            kr(ineb)=(1-sg(ineb)/(1-opt.res_oil));
+            %kr = kr.*double(~ineb)+ double(~ineb).*(1-sg/(1-opt.res_oil));      
+            %kr(ineb)=(1-sg(ineb)/(1-opt.res_oil));
+            kr=ifcond(kr,1-sg/(1-opt.res_oil),~ineb);
+            %kr=min(kr,(1-sg/(1-opt.res_oil))
         end
-        kr(kr<0)=0.0*kr(kr<0);
+        %kr(kr<0)=0.0*kr(kr<0);
+        kr=max(kr,0.0);
         assert(all(kr>=0));
     else
         kr = so;
     end
     %kr=kr.*opt.krg;
     kr=kr.*opt.kro;  % @@ Odd: the above line most likely a typo...?
-    assert(all(double(kr(so<=opt.res_oil))==0));
+    assert(all(double(kr)==0 | double(so)>opt.res_oil));
+    %assert(all(double(kr(double(so)<=opt.res_oil))==0));
 end
 
 % ----------------------------------------------------------------------------
