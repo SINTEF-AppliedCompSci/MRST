@@ -1,4 +1,4 @@
-function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, sw, trapstruct, dh)
+function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, trapstruct, dh)
 % Compute the trapping status distribution of CO2 in each cell of a top-surface grid
 %
 % SYNOPSIS:
@@ -28,6 +28,8 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
 %            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
 
     % Extracting relevant information from 'sol'
+    sw=fluidADI.res_oil;%liquid residual saturation (scalar)
+    sr=fluidADI.res_gas;%gas residual saturation (scalar)
     p = state.pressure;
     sF = state.s(:,1);
     sG = state.s(:,2);
@@ -42,7 +44,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
     if isfield(fluidADI, 'pvMultR')
         pvMult =  fluidADI.pvMultR(p);
     end
-    pv       = rock.poro .* Gt.cells.volumes .* pvMult;
+    pv       = rock.poro .* Gt.cells.volumes .* pvMult;%effective area
     rhoCO2   = fluidADI.rhoG .* fluidADI.bG(p);
     gasPhase = sum(pv .* (rhoCO2 .* SG));
     
@@ -78,7 +80,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, sr, s
     freeMov   = plumeVol * (1 - sw - sr);                          % non-trapped, flowing, non-res
     resTrap   = sum(max(hm_eff - max(zt, h_eff),0) .* ...
                     rhoCO2 .* pv ) .* sr;                          % non-trapped, non-flowing, res
-    resDis    = fluidADI.rhoG .* sum(pv .* (rs .* fluidADI.bO(p) .* SF)); % dissolved
+    resDis    = fluidADI.rhoG .* sum(pv.* (rs .* fluidADI.bO(p) .* SF)); % dissolved
     subtrap   = sum((hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2);
 
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc, subtrap, freeMov], 0);
