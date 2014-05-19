@@ -134,7 +134,7 @@ for tstep = opt.startAt:numel(dt)
     else
         % local timestepping
         t_loc=0;
-        dt_loc=dt_prev_ok;
+        dt_loc=min(dt_prev_ok,dt(tstep));
         while t_loc< dt(tstep)
             state0 = state;
             dispif(vb, sprintf('Local time step length: %g day.\n', convertTo(dt_loc, day)))
@@ -154,6 +154,7 @@ for tstep = opt.startAt:numel(dt)
                 end
             end
             t=t+dt_loc;
+            t_loc=t_loc+dt_loc;
             fprintf('t = %g days\n', convertTo(t, day));
             if(opt.report_all)
                 % report also for local timesteps and produce schedule accordingly
@@ -177,7 +178,6 @@ for tstep = opt.startAt:numel(dt)
                 'dt_max', dt(tstep), ...
                 'stepModifier', 1.5);
             %[dt, dt_history] = simpleStepSelector(dt_history, dt_loc, its, varargin);
-            t_loc=t_loc+dt_loc;
             if(t_loc<dt(tstep))
                 if(its<system.nonlinear.maxIterations)
                     dt_prev_ok=dt_loc;
