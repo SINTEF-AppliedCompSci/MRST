@@ -274,6 +274,11 @@ function cache = register_root(cache, mods)
 
       % Don't automatically register modules from the 'exclude' list.
       [excl, excl] = look_for(exclude, m);                      %#ok<ASGLU>
+
+      if mrstVerbose && any(excl),
+         print_excluded(mroot{1}, m(excl));
+      end
+
       m = m(~ excl);
 
       if isempty(m),
@@ -460,4 +465,26 @@ function print_list(map)
    for k = reshape(i, 1, []),
       fprintf('  * %-*s -> %s\n', nchar, map{k,1}, map{k,2});
    end
+end
+
+%--------------------------------------------------------------------------
+
+function print_excluded(mroot, excluded)
+   [plural{1:2}]    = deal('y'  , 'was' );
+
+   if numel(excluded) ~= 1,
+      [plural{1:2}] = deal('ies', 'were');
+   end
+
+   fprintf(['The following director%s %s ', ...
+            'explicitly omitted in %s:\n'], ...
+            plural{1}, plural{2}, mroot);
+
+   if ispc,
+      [i, i] = sort(upper(excluded));                           %#ok<ASGLU>
+   else
+      [i, i] = sort(excluded);                                  %#ok<ASGLU>
+   end
+
+   fprintf('  * %s\n', excluded{i});
 end
