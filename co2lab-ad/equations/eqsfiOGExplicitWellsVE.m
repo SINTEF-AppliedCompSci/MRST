@@ -134,7 +134,7 @@ bGmobGw  = bGw.*mobGw;
 bOmobOw  = bOw.*mobOw;
 
 %set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
-if(false)
+if(true)
     bGmobGw(iInxG) = bGw(iInxG).*(mobGw(iInxG) + mobOw(iInxG));
     bOmobOw(iInxG) = 0;
     bGmobGw(iInxO) = 0; 
@@ -147,9 +147,9 @@ else
 end
    
 pw  = p(wc);
-
-bGqG  = -bGmobGw.*Tw.*(pBHP(perf2well) - pw + 0.0*pcOGw + 0.0*g*dzw.*rhoG(wc));
-bOqO  = -bOmobOw.*Tw.*(pBHP(perf2well) - pw + 0.0*g*dzw.*rhoO(wc));
+perfP=pBHP(perf2well);
+bGqG  = -bGmobGw.*Tw.*(perfP - pw + 0.0*pcOGw + 0.0*g*dzw.*rhoG(wc));
+bOqO  = -bOmobOw.*Tw.*(perfP - pw + 0.0*g*dzw.*rhoO(wc));
 end
 % add contributions from boundary
 if(~isempty(opt.bc))
