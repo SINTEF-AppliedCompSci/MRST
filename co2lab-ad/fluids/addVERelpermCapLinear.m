@@ -181,7 +181,7 @@ function [s, z_out] = S3D(SVE,p, samples, H, fluid, opt)
     z=linspace(0,h,samples);
     if(SVE<vol_cap)
        s=z*(h./(opt.H*cap_norm));
-    else (SVE<col_capb)
+    else (SVE<vol_capb)
        s=1; 
        s(z<cap_norm*opt.H)=z./(cap_norm*opt.H); 
     end

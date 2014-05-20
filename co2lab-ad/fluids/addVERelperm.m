@@ -91,10 +91,11 @@ function kr= krG(sg, Gt, opt,varargin)
       case 'sinus'
             kr2 = ((sg_free .* Gt.cells.H).^2 - opt.top_trap.^2) ./ ...
                   (Gt.cells.H.^2 - opt.top_trap.^2);
-
-            kr2=kr2+1e-4*sg_free;  % @@ Adding small 'fudge factor'
-            kr2(kr2<0)=0*sg_free(kr2<0);  % @@ Really necessary??
-            kr=(kr2).^(0.5);
+            factor=1e-4;% @@ Adding small 'fudge factor' to avoid singularity
+            %kr2=kr2+1e-4*sg_free;  
+            kr2(kr2<0)=0*sg_free(kr2<0);% @@ Really necessary?? 
+            kr=(kr2).^(0.5);            
+            kr(kr2<factor)=(kr2(kr2<factor)/factor)*(factor^(0.5));
 
       case 'square'
            kr_s=(sg_free.^2 - (opt.top_trap ./ Gt.cells.H).^2) ./ ...
@@ -136,25 +137,26 @@ function kr= krOG(so,opt,varargin)
 
         if any(ineb) % test necessary since otherwise we risk subtracting an
                      % array of size 0 from a scalar, which will crash
-            kr(ineb)=(1-sg(ineb)/(1-opt.res_oil));
+            %kr = kr.*double(~ineb)+ double(~ineb).*(1-sg/(1-opt.res_oil));      
+            %kr(ineb)=(1-sg(ineb)/(1-opt.res_oil));
+            kr=ifcond(kr,1-sg/(1-opt.res_oil),~ineb);
+            %kr=min(kr,(1-sg/(1-opt.res_oil))
         end
-        kr(kr<0)=0.0*kr(kr<0);
+        %kr(kr<0)=0.0*kr(kr<0);
+        kr=max(kr,0.0);
         assert(all(kr>=0));
     else
         kr = so;
     end
     %kr=kr.*opt.krg;
     kr=kr.*opt.kro;  % @@ Odd: the above line most likely a typo...?
-    assert(all(double(kr(so<=opt.res_oil))==0));
+    assert(all(double(kr)==0 | double(so)>opt.res_oil));
+    %assert(all(double(kr(double(so)<=opt.res_oil))==0));
 end
 
 % ----------------------------------------------------------------------------
 function pc = pcOG(sg, p, fluid, Gt, opt, varargin)
-<<<<<<< HEAD
-    loc_opt = struct('sGmax',[]);    
-=======
     loc_opt = struct('sGmax',[]);
->>>>>>> 48a5afe9e7e3b9810104c7aab551f52485f109f4
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
         % could been put in separate function

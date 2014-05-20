@@ -82,7 +82,6 @@ traps = zeros(size(z_spill_loc));
 for i = 1:size(z_unique, 1)
     traps(z_spill_loc == z_unique(i)) = i;
 end
-% traps=double(z_spill_loc>0)+1; % @@
 
 
 % this need the mrst coarse grid module
@@ -90,7 +89,6 @@ traps = processPartition(Gnew,traps);
 traps = traps-1;
 
 % purge accidentally created traps in non-trap regions 
-% @@ Odd: Why does this happen?
 bad_traps = sort(traps(intersect(find(z_spill_loc == 0), find(traps))), ...
                  'descend');
 if ~isempty(bad_traps)

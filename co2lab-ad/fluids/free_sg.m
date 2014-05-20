@@ -33,7 +33,11 @@ function fsg = free_sg(sg, sGmax, opt)
 
     %% Ensuring exact values at boundaries
     ineb       = (sg >= sGmax);  % cells with no residual trapping (drainage zone)
-    fsg(ineb)  = sg(ineb);       % In the drainage zone, ensure exact equality
-    fsg(fsg<0) = 0.0*fsg(fsg<0); % avoiding negative saturations due to roundoff
+    %fsg(ineb)  = sg(ineb);       % In the drainage zone, ensure exact equality
+    %fsg = ifcond(fsg,sg,~ineb);
+    fsg = ifcond(sg,fsg,ineb);
+    %fsg(fsg<0) = 0.0*fsg(fsg<0); % avoiding negative saturations due to roundoff
+    fsg=max(fsg,0.0);
+    %fsg=ifcond(fsg,0*double(fsg),fsg>0);
 
 end 

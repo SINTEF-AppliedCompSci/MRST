@@ -150,31 +150,48 @@ if(~isempty(W))
     [Hw, alpha]   = computeWellHeadOG(W, state.wellSol, rhow);
     
     % pressure drawdown
-    drawdown = -(pBHP(perf2well) + Hw) + p(wc);
+    
     %isInj    = double(drawdown) < 0;
     
     % connection mobilities
     bOw = bO(wc);
     bGw = bG(wc);
     rsw = rs(wc);
+    pw  = p(wc);
 
     %set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
     mobGw  = mobG(wc);
     mobOw  = mobO(wc);
-    
+    Tdrawdown = -Tw.*(-pBHP(perf2well)  + pw);
     %assert(all(~(iInxG& iInxO)));
     assert(isempty(intersect(iInxG, iInxO)));
+    %%{
+    mobGw(iInxG) = mobG(iInxG)+mobO(iInxG);
+    mobOw(iInxG) = 0;
+    mobGw(iInxO) = 0;
+    mobOw(iInxO) = mobG(iInxO)+mobO(iInxO);
+    % assume all influx from a production well is water/(in represented as oil phase)
+    pInxIn = (pInx & Tdrawdown < 0);
+    mobGw(pInxIn) = 0;
+    mobOw(pInxIn) = mobG(pInxIn)+mobO(pInxIn);
+    rsw(pInxIn) = 0;
+    
+    %}
+    %{
     mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));
     mobOw(iInxG) = 0;
     mobGw(iInxO) = 0;
     mobOw(iInxO) = 1./1e-3;%muO(wc(iInxO));
-
+    %}
     assert(all(mobOw>=0))
     assert(all(mobGw>=0))
     
+    qO = mobOw.*Tdrawdown;
+    qG = mobGw.*Tdrawdown;
+    %{
     qO = (-Tw).*mobOw.*(-(pBHP(perf2well) + 0.0*Hw) + p(wc));
     qG = (-Tw).*mobGw.*(-(pBHP(perf2well) + 0.0*Hw+0.0*pcOGw) + p(wc));
-    
+    %}
     bOqO  = bOw.*qO;
     bGqG  = bGw.*qG;
     
@@ -183,8 +200,8 @@ if(~isempty(W))
     explTrms.wellFlux = [double(qO), double(qG)];
     
     if ~all(sign(Rw'*sum(explTrms.wellFlux,2))==vertcat(W.sign))
-        %     warning('Some producers are becoming injectors or vice versa !!!!!!')
-        %     fprintf('Wells changing roles...\n')
+    %         warning('Some producers are becoming injectors or vice versa !!!!!!')
+    %         fprintf('Wells changing roles...\n')
     end
 else
     explTrms.wellFlux = [];%[double(qO), double(qG)];
@@ -226,6 +243,8 @@ rsSat  = f.rsSat(p);
 eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sG) - pvMult0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) + s.div(bOvO);
 if(~isempty(W))
     eqs{1}(wc) = eqs{1}(wc) - bOqO;
+    %eqs{1}(wc(iInxO)) = eqs{1}(wc(iInxO)) - bOqO(iInxO);
+    %eqs{1}(wc(pInx)) = eqs{1}(wc(pInx)) - bOqO(pInx);
 end
 % gas:
 eqs{2} = (s.pv/dt).*...
@@ -234,8 +253,13 @@ eqs{2} = (s.pv/dt).*...
     s.div(bGvG + rsbOvO); 
 
 if(~isempty(W))
+    %%{
     eqs{2}(wc(iInxG)) = eqs{2}(wc(iInxG)) - bGqG(iInxG);
-    eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx) - rsw(pInx).*bOqO(pInx);
+    eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx)- rsw(pInx).*bOqO(pInx);
+    %pInxW=pIinxG & bOqO > 0;
+    %eqs{2}(wc(pInxW)) = eqs{2}(wc(pInxW))- rsw(pInxW).*bOqO(pInxW);
+    %}
+    %eqs{2}(wc) = eqs{2}(wc) - bGqG(wc) rsw(pInxW).*bOqO(pInxW);
 end
 if(~isempty(opt.bc))
     eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
@@ -251,10 +275,11 @@ if(isfield(f,'dis_rate'))
     % set rate to zero if already saturated, or if there is no gas phase present
     
     % dis_rate adjustment, approach 1
-    meps=sqrt(eps);
+    %meps=sqrt(eps);
+    meps=eps*1000;
     dis_rate=dis_rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
-    
-    a=600;
+    %%{
+    a=200;
     tanhyp=@(x,a) ((exp(a*x)-exp(-a*x))./(exp(a*x)+exp(-a*x)));
     s_fac=tanhyp(sG,a); % approximately one, but goes to 0 for very small values of sG
     rs_eps=(rsSat-rs)./f.dis_max;
@@ -262,7 +287,7 @@ if(isfield(f,'dis_rate'))
     dis_rate=dis_rate.*s_fac.*rs_fac; % smoothly turn down dissolution rate when
                                       % sG goes to 0, or when dissolved value
                                       % approaches maximum.
-    
+    %}
     eqs{3} = (s.pv/dt).*...
         ( pvMult.*(rs.*bO.*(1-sG) ) -...
         pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...

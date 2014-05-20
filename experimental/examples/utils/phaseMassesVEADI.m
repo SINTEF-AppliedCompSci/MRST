@@ -1,4 +1,4 @@
-function masses = phaseMassesVEADI(Gt, sol, rock, fluidADI)
+function masses = phaseMassesVEADI(Gt, state, rock, fluid)
 % Compute column masses of undissolved gas, fluid, and dissolved gas.
 %
 % SYNOPSIS:
@@ -19,19 +19,19 @@ function masses = phaseMassesVEADI(Gt, sol, rock, fluidADI)
 %            column gives the mass of gas dissolved in fluid per cell.
 %
     pvMult = 1; 
-    if isfield(fluidADI, 'pvMultR')
-        pvMult =  fluidADI.pvMultR(sol.state.pressure);
+    if isfield(fluid, 'pvMultR')
+        pvMult =  fluid.pvMultR(state.pressure);
     end
     
     % Defining convenience variables
-    p      = sol.state.pressure;
-    sF     = sol.state.s(:,1);  % fluid saturation
-    sG     = sol.state.s(:,2);  % gas saturation
+    p      = state.pressure;
+    sF     = state.s(:,1);  % fluid saturation
+    sG     = state.s(:,2);  % gas saturation
     SF     = sF .* Gt.cells.H;   % vertically integrated saturation, fluid
     SG     = sG .* Gt.cells.H;   % vertically integrated saturation, gas
     pv     = rock.poro .* Gt.cells.volumes .* pvMult; % pore volumes
-    rhoCO2 = fluidADI.rhoG .* fluidADI.bG(p);
-    rhoW   = fluidADI.rhoO .* fluidADI.bO(p);
+    rhoCO2 = fluid.rhoG .* fluid.bG(p);
+    rhoW   = fluid.rhoO .* fluid.bO(p);
 
     % compute mass of undissolved gas
     gasPhase =  sum(pv .* rhoCO2 .* SG);
@@ -40,8 +40,8 @@ function masses = phaseMassesVEADI(Gt, sol, rock, fluidADI)
     watPhase =  sum(pv .* rhoW .* SF);  
     
     % compute mass of dissolved gas
-    if(isfield(sol.state,'rs'))
-        resDis = fluidADI.rhoG .* sum(pv .* sol.state.rs .* fluidADI.bO(p) .* SF);
+    if(isfield(state,'rs'))
+        resDis = fluid.rhoG .* sum(pv .* state.rs .* fluid.bO(p) .* SF);
     else
         resDis=0;
     end
