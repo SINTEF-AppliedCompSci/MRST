@@ -36,7 +36,7 @@ function scenario3_3D(savename)
 
     %% Wells and schedule
     tnum     = 200; %60;
-    inum     = 49;
+    inum     = 50;
     tot_time = 200 * year;
     rate     = 2e6 * kilo * kilogram / year / fluid.rhoGS;
 

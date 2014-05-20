@@ -20,8 +20,8 @@ function plotResult(results, timesteps)
     
     %% plotting graphs
     figure('Color', [1 1 1]);
-    style1 = {'r', 'g', 'b'}
-    style2 = {'r--', 'g--', 'b--'};
+    style1 = {'r', 'g', 'b', 'm'}
+    style2 = {'r--', 'g--', 'b--', 'm'};
     tnum = numel(timesteps);
     for t_ix = 1:tnum
         t = timesteps(t_ix);

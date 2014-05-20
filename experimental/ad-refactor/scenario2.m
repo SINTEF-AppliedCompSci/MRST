@@ -33,8 +33,8 @@ tot_time = 50 * year;
 % Negative values of height will be interpreted as CO2 mass, and height will
 % be adjusted accordingly
 h0 = zeros(200, 1);
-h0(20 : 40 ) = -linspace(0, 100, 21) * 4e7;
-h0(40 : 60)  = -linspace(100, 0, 21) * 4e7;
+h0(20 : 40) = -linspace(0, 100, 21) * 4e7;
+h0(40 : 60) = -linspace(100, 0, 21) * 4e7;
 
 schedule = struct('W', [], ...
                   'step', struct('val'    , diff(linspace(0, tot_time, tnum+1)), ...
