@@ -58,7 +58,7 @@ function pI = interfacePressure(h, state, Gt, EOSCO2, rhoW, tfun)
     pI = state.pressure(icells);
     below_ix = dz>0;
     pI( below_ix) = pI( below_ix) + rhoCO2(below_ix) * norm(gravity) .* dz(below_ix);
-    pI(~below_ix) = pI(~below_ix) + rhoW * norm(gravity) * dz(~below_ix);
+    pI(~below_ix) = pI(~below_ix) + rhoW * norm(gravity) .* dz(~below_ix);
     
 end
 
