@@ -396,13 +396,13 @@ function press = equilibrate_OWG(Zc, bdry, fluid, pix, Rs, Rv, equil)
                  'Internal error defining oil pressure equilibrium.');
 
          % Datum set below G-zone
-         P0g = deval(sol_u, Zgoc) - Pcog_goc;
+         P0g = deval(sol_u, Zgoc) + Pcog_goc;
       else
          assert (~isempty(sol_d), ...
                  'Internal error defining oil pressure equilibrium.');
 
          % Datum set in G-zone                       (unexpected)
-         P0g = deval(sol_d, Zgoc) - Pcog_goc;
+         P0g = deval(sol_d, Zgoc) + Pcog_goc;
       end
    end
 
