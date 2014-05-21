@@ -141,9 +141,17 @@ function eq = contEquation(s, dt, h, h0, rho, rho0, intflux, bcells, bflux, wcel
 % Function to construct the continuity equation.
 % ----------------------------------------------------------------------------
     eq = (s.pv/dt) .* ((rho .*h) - (rho0 .* h0)) + s.div(intflux);
-    eq(bcells) = eq(bcells) + bflux; % correct for boundary conditions
+    
     eq(wcells) = eq(wcells) - wrate; % correct for wells 
+
+    % @@ NB: The code line below is not correct for cells with more than one
+    % boundary face with pressure condition.  'accumarray' should really be
+    % used, but the ADI framework currently does not support this function,
+    % and a manual loop ('accumarrayADI') is way to slow (practically doubles
+    % the whole runtime of the simulation), so we neglect the error for now.
+    eq(bcells) = eq(bcells) + bflux; % correct for boundary conditions
 end
+
 
 %-------------------------------------------------------------------------------
 function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
@@ -155,10 +163,12 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     end
     assert(all(strcmp(bc.type, 'pressure'))); % only support pressure type for now
 
+    
     Tbc   = s.T_all(bc.face);
     cells = sum(Gt.faces.neighbors(bc.face, :), 2);
-    assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
-    
+
+    %assert(numel(unique(cells)) == numel(cells)); % only support one bc per 
+
     % prepare boundary-cell-specific values
     bdp = bc.value - p(cells);
     bh  = h(cells)     ;  bH  = Gt.cells.H(cells);
@@ -183,7 +193,7 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     gct   = norm(gravity) * cos(slope);    
     fluxC = computeFlux(avg, ustr, bINEfunC, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, bH, gct);
     fluxB = computeFlux(avg, ustr, bINEfunB, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, bH, gct);
-    
+
 end
 
 % ----------------------------------------------------------------------------
@@ -312,3 +322,17 @@ function ifaces = interiorFaces(Gt)
     % Identify the internal faces (@ cleaner way of doing this?)
     ifaces = find(prod(double(Gt.faces.neighbors), 2) ~= 0);
 end
+
+
+%-------------------------------------------------------------------------------
+function target = accumarrayADI(subs, val, target)
+%-------------------------------------------------------------------------------
+% @@ This can be considered a 'slow hack', to get around the problem that
+% accumarray does not work with ADI variables.  Is there a faster way of
+% doing this, rather than using an explicit loop?
+    for i = 1:numel(subs)
+        ix  = subs(i);
+        inc =  val(i); 
+        target(ix) = target(ix) + inc;
+    end
+end    
