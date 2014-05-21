@@ -1,4 +1,4 @@
-function runVEScenario(comp_model, scenariofile, savename)
+function runVEScenario(comp_model, scenariofile, savename, square_domain)
 %
 %
 % SYNOPSIS:
@@ -19,16 +19,31 @@ function runVEScenario(comp_model, scenariofile, savename)
 %
     moduleCheck('ad-fi', 'ad-refactor');
     gravity on;
+    if ~exist('square_domain')
+        % Default is a single row of cells
+        square_domain = false;
+    end
+    
 
     %% load scenario-specific parameters
     refcell_ix = 1; % reference cell for computing constant density - can be
                     % changed in scenario file 
+    
     run(scenariofile);
     
     %% define boundary conditions
     pCap = hydrostaticPressure(Gt, rhoW, 1*atm, slope, slopedir, zeros(Gt.cells.num, 1));
-    bc   = pside([], Gt, 'LEFT',  pCap(1));  
-    bc   = pside(bc, Gt, 'RIGHT', pCap(end));
+    bc   = pside([], Gt, 'LEFT',  ...
+                 pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt,'LEFT'), :), 2)));  
+    bc   = pside(bc, Gt, 'RIGHT', ...
+                 pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt, 'RIGHT'),:),2)));
+    if square_domain
+        assert(slope==0);
+        bc = pside(bc, Gt, 'FRONT', ...
+                   pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt,'FRONT'), :), 2)));  
+        bc = pside(bc, Gt, 'BACK' , ...
+                   pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt,'BACK'), :), 2)));  
+    end
     
     %% Define model
     CO2obj = CO2props('rho_big_trunc','');

@@ -10,22 +10,33 @@
 % h0
 % schedule
 
-[Gt, rock] = makeTopSurfaceGrid([100, 1, 1],      ...  % # cells
-                                [40000, 3000, 150], ...  % phys. dim.
-                                750, 0.1,         ...  % depth, porosity
-                                400 * milli*darcy);    % permeability
+if ~square_domain
+    % the domain is a single row of cells
+    [Gt, rock] = makeTopSurfaceGrid([100, 1, 1],      ...  % # cells
+                                    [40000, 3000, 150], ...  % phys. dim.
+                                    750, 0.1,         ...  % depth, porosity
+                                    400 * milli*darcy);    % permeability
+else
+    % the domain is square
+    [Gt, rock] = makeTopSurfaceGrid([100 100, 1], ...
+                                    [40000 40000 150], ...
+                                    750, 0.1,...
+                                    400*milli*darcy);
+end
+
+    
 ref_temp  = 273.15 + 6; % degrees kelvin
 ref_depth = 0;          % surface used as temperature reference depth
 temp_grad = 40;         % degrees per kilometer
 tinfo     = {ref_temp, ref_depth, temp_grad}; 
 rhoW      = 1050 * kilogram / meter^3; % density of brine
 mu        = [5.36108e-5, 5.4e-5];
-h0        = zeros(100, 1);
+h0        = zeros(Gt.cells.num, 1);
 slope     = 0;
 slopedir  = [1 0];
 
-tnum     = 60; %60; % total number of timesteps
-inum     = 19;%20; % number of injection steps
+tnum     = 60; % total number of timesteps
+inum     = 19; % number of injection steps
 tot_time = 60 * year;
 schedule = struct('W', addWell([], Gt, rock, ceil(Gt.cells.num/2), ...
                                'type'   , 'rate'                      , ...
