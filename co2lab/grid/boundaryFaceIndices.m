@@ -82,7 +82,7 @@ end
 if numel(G.cartDims) == 2
     pick_K = true;
 else
-    assert(numel(G.cartDims == 3));
+    assert(numel(G.cartDims) == 3);
     if isempty(i3) && (numel(G.cartDims) == 3)
         pick_K = true(G.cartDims(3),1);
     else
