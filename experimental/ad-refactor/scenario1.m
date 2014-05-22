@@ -12,15 +12,15 @@
 
 if ~square_domain
     % the domain is a single row of cells
-    [Gt, rock] = makeTopSurfaceGrid([100, 1, 1],      ...  % # cells
+    [Gt, rock] = makeTopSurfaceGrid([25, 1, 1],      ...  % # cells
                                     [40000, 3000, 150], ...  % phys. dim.
                                     750, 0.1,         ...  % depth, porosity
                                     400 * milli*darcy);    % permeability
     wellcell = ceil(Gt.cells.num/2);
 else
     % the domain is square
-    [Gt, rock] = makeTopSurfaceGrid([50 50, 1], ...
-                                    [40000 40000 150], ...
+    [Gt, rock] = makeTopSurfaceGrid([25,1, 1], ...
+                                    [40000 1600 150], ...
                                     750, 0.1,...
                                     400*milli*darcy);
     wellcell = sub2ind(Gt.cartDims, ceil(Gt.cartDims(1)/2), ceil(Gt.cartDims(2)/2));

@@ -88,6 +88,8 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     [bc_cells, b_fW, b_fG] = ...
         BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
 
+    % @@ If a cell has more than one pressure boundary condition, only one
+    % will be taken into account.  This should be fixed later.
     eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
     eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
     
@@ -132,7 +134,7 @@ function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult
 
     assert(all(strcmp(bc.type, 'pressure'))); % only supported type for now
     cells = sum(G.faces.neighbors(bc.face, :), 2);
-    assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
+    %assert(numel(unique(cells)) == numel(cells)); % multiple BC per cell not supported
     
     % prepare boundary-specific values
     bp   = p(cells); 

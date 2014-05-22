@@ -42,6 +42,7 @@ function result = case3D(states, G, rock, EOSCO2, rhoW, tfun)
         result(i).rhoTop    = EOSCO2.rho(result(i).pTop, result(i).tTop);
         result(i).fluxCO2   = []; % atm, flux not supported 
         result(i).fluxBrine = []; 
+        result(i).full3D    = states{i};
     end    
 end
 
