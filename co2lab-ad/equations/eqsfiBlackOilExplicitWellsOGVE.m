@@ -255,9 +255,9 @@ eqs{2} = (s.pv/dt).*...
 if(~isempty(W))
     %%{
     eqs{2}(wc(iInxG)) = eqs{2}(wc(iInxG)) - bGqG(iInxG);
-    eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx)- rsw(pInx).*bOqO(pInx);
-    %pInxW=pIinxG & bOqO > 0;
-    %eqs{2}(wc(pInxW)) = eqs{2}(wc(pInxW))- rsw(pInxW).*bOqO(pInxW);
+    %eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx)- rsw(pInx).*bOqO(pInx);
+    pInxW=iInxG & bOqO > 0;
+    eqs{2}(wc(pInxW)) = eqs{2}(wc(pInxW))- rsw(pInxW).*bOqO(pInxW);
     %}
     %eqs{2}(wc) = eqs{2}(wc) - bGqG(wc) rsw(pInxW).*bOqO(pInxW);
 end
