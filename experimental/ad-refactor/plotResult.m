@@ -11,16 +11,20 @@ function plotResult(results, timesteps, includes)
     states = cell(num_models, 1);
     for i = 1:num_models
         states{i} = load(results{i});
-        if isempty(Gt) && isfield(states{i}, 'Gt')
-            Gt = states{i}.Gt;
+        if isempty(Gt) 
+            if isfield(states{i}, 'Gt')
+                Gt = states{i}.Gt;
+            elseif isfield(states{i}, 'G')
+                Gt = topSurfaceGrid(states{i}.G);
+            end
         end
     end
-    z = zeros(numel(states{1}.result(1).h), 1);
-    x = [1:numel(z)]';
-    if ~isempty(Gt)
-        z = Gt.cells.z;
-        x = Gt.cells.centroids(:,1);
-    end
+    assert(~isempty(Gt))
+    yrow = ceil(Gt.cartDims(2)/2);
+    ixs = sub2ind(Gt.cartDims, 1:Gt.cartDims(1), yrow*ones(1, Gt.cartDims(1)));
+       
+    z = Gt.cells.z(ixs);
+    x = Gt.cells.centroids(ixs,1);
     
     %% plotting graphs
     figure('Color', [1 1 1]);
@@ -36,7 +40,7 @@ function plotResult(results, timesteps, includes)
             subplot(rows, tnum, t_ix);
             heights = [];
             for m = 1:num_models
-                heights = [heights, states{m}.result(t).h + z];
+                heights = [heights, states{m}.result(t).h(ixs) + z];
             end
             in_legend = [repmat(true, num_models, 1); false];
             polygraph([heights, z], {style1{1:num_models}, 'k'}, ...
@@ -54,8 +58,8 @@ function plotResult(results, timesteps, includes)
             ipress = [];
             tpress = [];
             for m = 1:num_models
-                ipress = [ipress, states{m}.result(t).pI  ];
-                tpress = [tpress, states{m}.result(t).pTop];
+                ipress = [ipress, states{m}.result(t).pI(ixs)  ];
+                tpress = [tpress, states{m}.result(t).pTop(ixs)];
             end
             in_legend = [repmat(true,  num_models, 1); ...
                          repmat(false, num_models, 1)];
@@ -72,8 +76,8 @@ function plotResult(results, timesteps, includes)
             subplot(rows, tnum, shift + t_ix);
             idensity = []; tdensity = [];
             for m = 1:num_models
-                idensity = [idensity, double(states{m}.result(t).rhoI)];
-                tdensity = [tdensity, double(states{m}.result(t).rhoTop)];
+                idensity = [idensity, double(states{m}.result(t).rhoI(ixs))];
+                tdensity = [tdensity, double(states{m}.result(t).rhoTop(ixs))];
             end
             in_legend = [repmat(true,  num_models, 1); ...
                          repmat(false, num_models, 1)];
@@ -89,7 +93,7 @@ function plotResult(results, timesteps, includes)
             subplot(rows, tnum, shift + t_ix);
             mflux = [];
             for m = 1:num_models
-                mflux = [mflux, states{m}.result(t).fluxCO2];
+                mflux = [mflux, states{m}.result(t).fluxCO2(ixs)];
             end
             polygraph(mflux, style1, {'km','kg/m^2/t'}, '', x(2:end)/1e3, ...
                       []);

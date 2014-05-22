@@ -170,10 +170,11 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     %assert(numel(unique(cells)) == numel(cells)); % only support one bc per 
 
     % prepare boundary-cell-specific values
-    bdp = bc.value - p(cells);
     bh  = h(cells)     ;  bH  = Gt.cells.H(cells);
     brC = rhoC(cells)  ;  brB = rhoB(cells);
     bmC = muC(cells)   ;  bmB = muB(cells);
+    bp  = bc.value + brB * norm(gravity) .* bh * cos(slope);
+    bdp = bp - p(cells);
 
     % Computing the slope across boundary faces, and correcting for faces
     % whose face normals don't point 'out'. 

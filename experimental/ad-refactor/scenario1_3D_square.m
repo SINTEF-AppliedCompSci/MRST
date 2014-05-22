@@ -9,7 +9,7 @@ function scenario1_3D_square(savename)
     depth     = 750;
     thickness = 150;
     exponent  = 1.2;
-    G         = cartGrid([50, 50, znum], [40000, 40000, thickness]);
+    G         = cartGrid([25, 1, znum], [40000, 1600, thickness]);
     G         = adjustVerticalCoords(G, depth, depth + thickness, znum, exponent);
     G         = computeGeometry(G);
     cnum      = G.cells.num;
@@ -37,8 +37,8 @@ function scenario1_3D_square(savename)
     inum     = 19;
     tot_time = 60 * year;
     rate     = 1e7 * kilo * kilogram / year / fluid.rhoGS;
-
-    schedule = struct('W', verticalWell([], G, rock, 25, 25, [], ...
+    wpos     = ceil(G.cartDims(1:2)/2);
+    schedule = struct('W', verticalWell([], G, rock, wpos(1), wpos(2), [], ...
                                         'type'   , 'rate'  ,    ...
                                         'radius' , 0.3     ,    ...
                                         'comp_i' , [0 0 1] ,    ...

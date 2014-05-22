@@ -5,11 +5,11 @@ function scenario1_3D(savename)
     moduleCheck('ad-refactor');
 
     %% Grid and rock parameters
-    znum      = 60;%30;
+    znum      = 30;%60;%30;
     depth     = 750;
     thickness = 150;
     exponent  = 1.2;
-    G         = cartGrid([100, 1, znum], [40000, 3000, thickness]);
+    G         = cartGrid([25, 1, znum], [40000, 3000, thickness]);
     G         = adjustVerticalCoords(G, depth, depth + thickness, znum, exponent);
     G         = computeGeometry(G);
     cnum      = G.cells.num;
@@ -37,8 +37,9 @@ function scenario1_3D(savename)
     inum     = 19;
     tot_time = 60 * year;
     rate     = 1e7 * kilo * kilogram / year / fluid.rhoGS;
+    wcell    = ceil(G.cartDims(1:2)/2);
 
-    schedule = struct('W', verticalWell([], G, rock, 50, 1, [], ...
+    schedule = struct('W', verticalWell([], G, rock, wcell(1), wcell(2), [], ...
                                         'type'   , 'rate'  ,    ...
                                         'radius' , 0.3     ,    ...
                                         'comp_i' , [0 0 1] ,    ...
