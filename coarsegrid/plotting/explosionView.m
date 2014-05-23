@@ -69,7 +69,7 @@ a = max(G.cells.centroids) - min(G.cells.centroids); a=a./max(a);
 if G.griddim==2
    for i=1:max(q)
       g = extractSubgrid(G, q==i);
-      c = mean(bsxfun(@minus, g.cells.centroids, o))./a;
+      c = mean(bsxfun(@minus, g.cells.centroids, o),1)./a;
       [th,r] = cart2pol(c(:,1),c(:,2));
       [x,y] = pol2cart(th, rmult*r);
       sgn = sign(mean(bsxfun(@minus,g.nodes.coords,o))) .* sign([x,y]);
@@ -80,7 +80,7 @@ if G.griddim==2
 elseif G.griddim==3
    for i=1:max(q)
       g = extractSubgrid(G, q==i);
-      c = mean(bsxfun(@minus, g.cells.centroids, o))./a;
+      c = mean(bsxfun(@minus, g.cells.centroids, o),1)./a;
       [th,phi,r] = cart2sph(c(:,1),c(:,2),c(:,3));
       [x,y,z] = sph2cart(th, phi, rmult*r);
       sgn = sign(mean(bsxfun(@minus,g.nodes.coords,o))) .* sign([x,y,z]);
