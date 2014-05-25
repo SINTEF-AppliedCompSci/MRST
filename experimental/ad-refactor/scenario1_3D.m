@@ -1,15 +1,16 @@
-function scenario1_3D(savename)
+function scenario1_3D(savename, fixed_rho)
 
     gravity on;
     moduleCheck('ad-fi');
     moduleCheck('ad-refactor');
 
     %% Grid and rock parameters
-    znum      = 30;%60;%30;
+    znum      = 25;%60;%30;
     depth     = 750;
     thickness = 150;
-    exponent  = 1.2;
-    G         = cartGrid([25, 1, znum], [40000, 3000, thickness]);
+    exponent  = 1; %1.2;
+    %G         = cartGrid([25, 1, znum], [40000, 3000, thickness]);
+    G         = cartGrid([115, 24, znum], [50000, 12000, thickness]);
     G         = adjustVerticalCoords(G, depth, depth + thickness, znum, exponent);
     G         = computeGeometry(G);
     cnum      = G.cells.num;
@@ -21,11 +22,17 @@ function scenario1_3D(savename)
     tgrad = 40;
 
     %% fluid
-    EOS = CO2props('rho_big_trunc', []);
+    if exist('fixed_rho')
+        % incompressible model
+        EOS.rho = @(p,t) p * 0 + fixed_rho;
+    else
+        % compressible model
+        EOS = CO2props('rho_big_trunc', []);
+    end
 
     fluid.pcGW    = @(sG) 0;                         % no capillary pressure - sharp interface
     fluid.relPerm = @(sG) deal(1-sG, sG);            % linear relperm
-    fluid.rhoGS   = 1.977 * kilogram / meter^3;
+    fluid.rhoGS   = 760 * kilogram / meter^3; %1.977 * kilogram / meter^3;
     fluid.rhoWS   = 1050  * kilogram / meter^3;
     fluid.bW      = @(p,t) ones(numel(double(p)),1); % constant density
     fluid.bG      = @(p,t) EOS.rho(p, t) ./ fluid.rhoGS;
@@ -33,10 +40,10 @@ function scenario1_3D(savename)
     fluid.muG     = @(p,t) 5.36108e-5;               % constant viscosity
 
     %% Wells and schedule
-    tnum     = 60; %60;
-    inum     = 19;
+    tnum     = 3*60; %60; %60;
+    inum     = 3*19;%19;
     tot_time = 60 * year;
-    rate     = 1e7 * kilo * kilogram / year / fluid.rhoGS;
+    rate     = 2e7 * kilo * kilogram / year / fluid.rhoGS;
     wcell    = ceil(G.cartDims(1:2)/2);
 
     schedule = struct('W', verticalWell([], G, rock, wcell(1), wcell(2), [], ...

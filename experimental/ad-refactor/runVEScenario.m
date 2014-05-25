@@ -38,11 +38,11 @@ function runVEScenario(comp_model, scenariofile, savename, square_domain)
     bc   = pside(bc, Gt, 'RIGHT', ...
                  pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt, 'RIGHT'),:),2)));
     if square_domain
-        assert(slope==0);
-        bc = pside(bc, Gt, 'FRONT', ...
-                   pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt,'FRONT'), :), 2)));  
-        bc = pside(bc, Gt, 'BACK' , ...
-                   pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt,'BACK'), :), 2)));  
+        % assert(slope==0);
+        % bc = pside(bc, Gt, 'FRONT', ...
+        %            pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt,'FRONT'), :), 2)));  
+        % bc = pside(bc, Gt, 'BACK' , ...
+        %            pCap(sum(Gt.faces.neighbors(boundaryFaceIndices(Gt,'BACK'), :), 2)));  
     end
     
     %% Define model

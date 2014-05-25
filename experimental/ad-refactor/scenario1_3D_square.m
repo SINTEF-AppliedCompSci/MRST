@@ -5,11 +5,11 @@ function scenario1_3D_square(savename)
     moduleCheck('ad-refactor');
 
     %% Grid and rock parameters
-    znum      = 30;%60;%30;
+    znum      = 20;%20;%60;%30;
     depth     = 750;
-    thickness = 150;
-    exponent  = 1.2;
-    G         = cartGrid([25, 1, znum], [40000, 1600, thickness]);
+    thickness = 300;
+    exponent  = 1.0;
+    G         = cartGrid([40, 1, znum], [160000, 1*1000, thickness]);
     G         = adjustVerticalCoords(G, depth, depth + thickness, znum, exponent);
     G         = computeGeometry(G);
     cnum      = G.cells.num;
@@ -21,7 +21,8 @@ function scenario1_3D_square(savename)
     tgrad = 40;
 
     %% fluid
-    EOS = CO2props('rho_big_trunc', []);
+    %EOS = CO2props('rho_big_trunc', []);
+    EOS.rho = @(p, t) 0*p + 315.4996; % @@
 
     fluid.pcGW    = @(sG) 0;                         % no capillary pressure - sharp interface
     fluid.relPerm = @(sG) deal(1-sG, sG);            % linear relperm
@@ -38,7 +39,9 @@ function scenario1_3D_square(savename)
     tot_time = 60 * year;
     rate     = 1e7 * kilo * kilogram / year / fluid.rhoGS;
     wpos     = ceil(G.cartDims(1:2)/2);
-    schedule = struct('W', verticalWell([], G, rock, wpos(1), wpos(2), [], ...
+    completions = 1;%[]
+    schedule = struct('W', verticalWell([], G, rock, wpos(1), wpos(2), ...
+                                        completions, ...
                                         'type'   , 'rate'  ,    ...
                                         'radius' , 0.3     ,    ...
                                         'comp_i' , [0 0 1] ,    ...
@@ -57,8 +60,8 @@ function scenario1_3D_square(savename)
     bIx = @(grid, side) boundaryFaceIndices(grid, side, [], [], []);
     bc  = pside([], G, 'XMin', hpress(G.faces.centroids(bIx(G, 'XMin'), 3)));
     bc  = pside(bc, G, 'XMax', hpress(G.faces.centroids(bIx(G, 'XMax'), 3)));
-    bc  = pside(bc, G, 'YMin', hpress(G.faces.centroids(bIx(G, 'YMin'), 3)));
-    bc  = pside(bc, G, 'YMax', hpress(G.faces.centroids(bIx(G, 'YMax'), 3)));
+    % bc  = pside(bc, G, 'YMin', hpress(G.faces.centroids(bIx(G, 'YMin'), 3)));
+    % bc  = pside(bc, G, 'YMax', hpress(G.faces.centroids(bIx(G, 'YMax'), 3)));
 
     %% Define model
     model = twoPhaseGasWaterModel(G, rock, fluid, tempS, tgrad); 

@@ -12,15 +12,20 @@
 
 if ~square_domain
     % the domain is a single row of cells
-    [Gt, rock] = makeTopSurfaceGrid([25, 1, 1],      ...  % # cells
-                                    [40000, 3000, 150], ...  % phys. dim.
+    % [Gt, rock] = makeTopSurfaceGrid([25, 1, 1],      ...  % # cells
+    %                                 [40000, 3000, 150], ...  % phys. dim.
+    %                                 750, 0.1,         ...  % depth, porosity
+    %                                 400 * milli*darcy);    % permeability
+    [Gt, rock] = makeTopSurfaceGrid([115, 24, 1],      ...  % # cells
+                                    [50000, 12000, 150], ...  % phys. dim.
                                     750, 0.1,         ...  % depth, porosity
                                     400 * milli*darcy);    % permeability
-    wellcell = ceil(Gt.cells.num/2);
+    wellcell = sub2ind(Gt.cartDims, ceil(Gt.cartDims(1)/2), ceil(Gt.cartDims(2)/2));
+    %wellcell = ceil(Gt.cells.num/2);
 else
     % the domain is square
-    [Gt, rock] = makeTopSurfaceGrid([25,1, 1], ...
-                                    [40000 1600 150], ...
+    [Gt, rock] = makeTopSurfaceGrid([40, 1, 1], ...
+                                    [160000, 1000, 300], ...%[80000 1*4000 150], ...
                                     750, 0.1,...
                                     400*milli*darcy);
     wellcell = sub2ind(Gt.cartDims, ceil(Gt.cartDims(1)/2), ceil(Gt.cartDims(2)/2));
@@ -37,14 +42,14 @@ h0        = zeros(Gt.cells.num, 1);
 slope     = 0;
 slopedir  = [1 0];
 
-tnum     = 60; % total number of timesteps
-inum     = 19; % number of injection steps
+tnum     = 3*60;%60; % total number of timesteps
+inum     = 3*19;%38%19; % number of injection steps
 tot_time = 60 * year;
 schedule = struct('W', addWell([], Gt, rock, wellcell                 , ...
                                'type'   , 'rate'                      , ...
                                'radius' , 0.3                         , ...
                                'comp_i' , [0 0 1]                     , ...
-                               'val'    , 1e7 * kilo * kilogram /year , ...
+                               'val'    , 2e7 * kilo * kilogram /year , ...
                                'name'   , 'I'), ...
                   'step', struct('val'    , diff(linspace(0, tot_time, tnum+1)), ...
                                  'control', [ones(inum,1); zeros(tnum-inum, 1)]));
