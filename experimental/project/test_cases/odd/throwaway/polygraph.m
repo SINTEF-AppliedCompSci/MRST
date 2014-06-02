@@ -1,6 +1,8 @@
 function yrange = polygraph(graphs, colors, labels, plot_title, ...
-                            xvals, yrange, include_in_legend)
-
+                            xvals, yrange, include_in_legend, keep_axis)
+    if ~exist('keep_axis')
+        keep_axis = false;
+    end
     if ~exist('include_in_legend')
         include_in_legend = repmat(true, size(graphs,2), 1);
     end
@@ -44,9 +46,9 @@ function yrange = polygraph(graphs, colors, labels, plot_title, ...
             margin = 0.01;
         end
     end
-    
-    axis([min(xvals), max(xvals), yrange(1)-margin, yrange(2)+margin]);
-    
+    if ~keep_axis
+        axis([min(xvals), max(xvals), yrange(1)-margin, yrange(2)+margin]);
+    end
 end
 
 function legendOff(h)
