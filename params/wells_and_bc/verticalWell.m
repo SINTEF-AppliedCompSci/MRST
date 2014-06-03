@@ -111,7 +111,11 @@ if mod(nargin, 2) == 0,
    %
    assert (isfield(G, 'cartDims'));
    layerSize = prod(G.cartDims(1:2));
-   numLayers = G.cartDims(3);
+   if G.griddim == 3
+      numLayers = G.cartDims(3);
+   else
+      numLayers = 1;
+   end
 
    J = varargin{1}; varargin = varargin(2 : end);
    assert (isnumeric(J) && numel(J) == 1);
@@ -130,7 +134,11 @@ else
    elseif isfield(G, 'cartDims') && numel(G.cartDims) == 3,
       % Logically Cartesian grid.
       layerSize = prod(G.cartDims(1:2));
-      numLayers = G.cartDims(3);
+      if G.griddim == 3
+         numLayers = G.cartDims(3);
+      else
+         numLayers = 1;
+      end
    else
       error(msgid('GridType:NotLayered'), ...
             'Grid type does not appear to support a layered structure');
