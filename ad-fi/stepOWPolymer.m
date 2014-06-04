@@ -38,7 +38,7 @@ if ~isfield(state, 'cmax')
     state.cmax = state.c;
 end
 
-eqs = system.getEquations(state0, state, dt, G, W, s, fluid);
+eqs = system.getEquations(state0, state, dt, G, W, s, fluid, 'iteration', meta.iteration);
 
 if system.nonlinear.cpr && isempty(system.podbasis)
     [dx, gmresits, gmresflag] = cprGeneric(eqs, system,...
