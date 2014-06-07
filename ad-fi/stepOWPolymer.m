@@ -114,8 +114,9 @@ dp = sign(dp).*min(abs(dp), abs(dpMax.*state.pressure));
 
 state.pressure = state.pressure + dp;
 sw = state.s(:,1) + ds;
+
 % Cap values
-sw = min(sw, 1); sw = max(sw, 0);
+sw = min(sw, 1); sw = max(sw, sqrt(eps));
 
 state.s = [sw, 1-sw];
 state.c = state.c + dc;
