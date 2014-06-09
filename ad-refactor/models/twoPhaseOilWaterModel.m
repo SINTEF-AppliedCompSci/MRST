@@ -14,8 +14,8 @@ classdef twoPhaseOilWaterModel < physicalModel
             
             %
             model.oil = true;
-            model.gas = true;
-            model.water = false;
+            model.gas = false;
+            model.water = true;
             
             
             model.name = 'OilWater_2ph';
