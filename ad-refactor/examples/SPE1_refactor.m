@@ -1,5 +1,5 @@
 clear
-mrstModule add ad-fi deckformat mrst-gui
+mrstModule add ad-fi deckformat mrst-gui ad-refactor
 
 % Read and process file.
 current_dir = fileparts(mfilename('fullpath'));
@@ -52,8 +52,8 @@ schedule = deck.SCHEDULE;
 
 system = initADISystem(deck, G, rock, fluid, 'cpr', false);
 timer = tic;
-[wellSols states iter] = runScheduleADI(state, G, rock, system, schedule);
-toc(timer)
+[wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
+time_cpr = toc(timer);
 %%
 
 W = processWellsLocal(G, rock, schedule.control(1), ...
@@ -65,9 +65,23 @@ clear boModel
 clear nonlinear
 
 boModel = threePhaseBlackOilModel(G, rock, fluid, 'deck', deck);
-linsolve = CPRSolverAD();
+%%
+mrstModule add coarsegrid
+
+p = partitionUI(G, [3 3 1]);
+
+CG = generateCoarseGrid(G, p);
+CG = coarsenGeometry(CG);
+CG = storeInteractionRegion(CG);
+
+multiscaleSolver = multiscaleVolumeSolverAD(CG);
+linsolve = CPRSolverAD('ellipticSolver', multiscaleSolver);
+
+
+% linsolve = CPRSolverAD();
 % nonlinear = nonlinearSolver();
 % [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
-
+timer = tic();
 [wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);
+time_ms = toc(timer);

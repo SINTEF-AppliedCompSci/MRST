@@ -6,7 +6,15 @@ classdef CPRSolverAD < linearSolverAD
     end
     methods
         function solver = CPRSolverAD(varargin)
-            solver.ellipticSolver = mldivideSolverAD();
+            opt = struct('ellipticSolver', []);
+            opt = merge_options(opt, varargin{:});
+            
+            if isempty(opt.ellipticSolver)
+                solver.ellipticSolver = mldivideSolverAD();
+            else
+                assert(isa(opt.ellipticSolver, 'linearSolverAD'));
+                solver.ellipticSolver = opt.ellipticSolver;
+            end
             % Todo fill in these options
             solver.relativeTolerance = 1e-3;
             solver.pressureScaling = 1/(200*barsa);
@@ -147,7 +155,7 @@ classdef CPRSolverAD < linearSolverAD
                 cprSol(pInx) = cprSol(pInx) ./ solver.pressureScaling;
             end
             % Clean up elliptic solver
-            solver = solver.cleanupSolver(Ap, b(pInx));
+            solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
             
             dispif(mrstVerbose(), 'GMRES converged in %d iterations\n', its(2));
             dxCell = solver.storeIncrements(problem, cprSol);

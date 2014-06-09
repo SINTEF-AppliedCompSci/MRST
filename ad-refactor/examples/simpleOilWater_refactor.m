@@ -3,7 +3,7 @@
 % $10\times1\times10$ Cartesian grid with uniform permeability. We read the
 % deck and create the grid, rock and fluid structures from the resulting
 % output. This requires the deckformat module.
-require deckformat
+mrstModule add deckformat ad-fi ad-refactor
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'simple10x1x10.data');
@@ -65,11 +65,15 @@ for i = 1:numel(schedule.control)
                                      'DepthReorder', false);
     schedule.control(i).W = W;
 end
+
 %% New way...
 clear owModel
 clear nonlinear
 
+% multiscaleSolver = multiscaleVolumeSolverAD(CG);
+
 owModel = twoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
+% linsolve = CPRSolverAD('ellipticSolver', multiscaleSolver);
 linsolve = CPRSolverAD();
 % linsolve = mldivideSolverAD();
 % nonlinear = nonlinearSolver();
