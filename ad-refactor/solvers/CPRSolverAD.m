@@ -183,7 +183,10 @@ function scale = getScaling(problem, model)
     state = problem.state;
     fluid = model.fluid;
     p  = mean(state.pressure);
-    bW = fluid.bW(p);
+    
+    if model.water
+        bW = fluid.bW(p);
+    end
     
     scale = zeros(numel(problem), 1);
     
@@ -192,13 +195,13 @@ function scale = getScaling(problem, model)
     if isBO && model.disgas
         rs = fluid.rsSat(p);
         bO = fluid.bO(p, rs, true);
-    else
+    elseif model.oil
         bO = fluid.bO(p);
     end
     if isBO && model.vapoil
         rv = fluid.rvSat(p);
         bG = fluid.bG(p, rv, true);
-    else
+    elseif model.gas
         bG = fluid.bG(p);
     end
 
