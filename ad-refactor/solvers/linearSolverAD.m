@@ -1,4 +1,4 @@
-classdef linearSolverAD
+classdef linearSolverAD < handle
     % Base class for a nonlinear solver
    properties
        tolerance
