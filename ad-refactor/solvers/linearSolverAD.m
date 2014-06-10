@@ -8,7 +8,8 @@ classdef linearSolverAD < handle
        function solver = linearSolverAD(varargin)
            opt = struct('tolerance',     1e-8, ...
                         'maxiterations', 25);
-            
+           opt = merge_options(opt, varargin{:});
+           
            solver.tolerance = opt.tolerance;
            solver.maxiterations = opt.maxiterations;
        end
