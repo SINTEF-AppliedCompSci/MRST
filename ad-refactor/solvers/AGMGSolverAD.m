@@ -15,13 +15,11 @@ classdef AGMGSolverAD < linearSolverAD
        
        function solver = setupSolver(solver, A, b, varargin) %#ok 
            % Run setup on a solver for a given system
-           disp 'Setting up AGMG!'
            agmg(A,[],[],[],[],[],[], 1);
        end
        
        function  solver = cleanupSolver(solver, A, b, varargin) %#ok 
            % Clean up solver after use (if needed)
-           disp 'Cleaning up AGMG!'
            agmg(A,[],[],[],[],[],[], -1);
        end
    end
