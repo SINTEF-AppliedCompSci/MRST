@@ -39,7 +39,7 @@ gravity on
 % load initialState;
 %% Set up permeability, grid and wells
 % We will simulate on the top 5 layers.
-layers = 1:5;
+layers = 1:85;
 
 [G, W, rock] = SPE10_setup(layers);
 
@@ -91,6 +91,8 @@ system = initADISystem({'Water', 'Oil'}, G, rock, fluid, 'cpr', true, 'cprRelTol
 % uses MATLABs direct solver @mldivide which is very expensive for a
 % preconditioner.
 
+mrstModule add agmg
+system.nonlinear.cprEllipticSolver = @(A,b) agmg(A,b);
 %% Simulate 1000 days of production and save iteration count and time
 % We provide the solver with time steps for roughly 1000 days of
 % production. A few smaller steps are done to get better accuracy during
@@ -104,6 +106,9 @@ dt = [        0.001*day;
       repmat( 0.1  *day, [  5, 1]);
       repmat( 1    *day, [ 10, 1]);
       repmat(10    *day, [100, 1])];
+  
+dt = dt(1:15);
+  
 nstep = numel(dt);
 
 states = cell(nstep,1);
@@ -111,6 +116,7 @@ its = zeros(nstep,1);
 time = zeros(nstep,1);
 
 state = state0;
+%%
 for t = 1 : nstep
     fprintf('Step %d/%d: %.2f -> %.2f [days]\n\n', t, nstep, ...
             convertTo(sum(dt(1:t-1)), day), ...
@@ -123,6 +129,8 @@ for t = 1 : nstep
     states{t} = state;
     its(t) = it;
     time(t) = toc(timer);
+    
+    time(t)
 
     fprintf('\n\n');
 end
@@ -139,10 +147,11 @@ clear nonlinear
 
 boModel = twoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
 %%
-mrstModule add coarsegrid
+mrstModule add coarsegrid mrst-experimental
 
-p = partitionUI(G, [6 22 1]);
-
+cdims = round(G.cartDims./[10 10 5]);
+% p = partitionUI(G, cdims);
+p = partitionMETIS(G, computeTrans(G, rock), prod(cdims));
 CG = generateCoarseGrid(G, p);
 CG = coarsenGeometry(CG);
 CG = storeInteractionRegion(CG);
@@ -152,11 +161,22 @@ multiscaleSolver = multiscaleVolumeSolverAD(CG);
 owModel = twoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
 linsolve = CPRSolverAD('ellipticSolver', multiscaleSolver);
 
-
+%%
 % linsolve = CPRSolverAD();
 % nonlinear = nonlinearSolver();
 % [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
 timer = tic();
-[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);
+[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'verbose', true, 'linearSolver', linsolve);
 time_ms = toc(timer);
+
+%%
+amgsolver = AGMGSolverAD();
+
+basicCPR = CPRSolverAD('ellipticSolver', amgsolver);
+timer = tic();
+[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'verbose', true,, 'linearSolver', basicCPR);
+time_cpr = toc(timer);
+
+%%
+bar([time_cpr, time_ms])

@@ -6,8 +6,8 @@ mrstModule add ad-fi deckformat
 mrstVerbose true
 
 % Read and process file.
-% filedir = '~/simmatlab/projects/ad-fi_benchmarks/b2-SPE9/';
-filedir = 'D:/Jobb/ad-fi_benchmarks/b2-SPE9/';
+filedir = '~/simmatlab/projects/ad-fi_benchmarks/b2-SPE9/';
+% filedir = 'D:/Jobb/ad-fi_benchmarks/b2-SPE9/';
 fn    = fullfile(filedir, 'BENCH_SPE9.DATA');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
@@ -47,8 +47,8 @@ system.stepOptions.dsMax  = .05;
 system.nonlinear.cprRelTol = 1e-3;
 system.pscale = 1/(200*barsa);
 
-schedule.step.control = schedule.step.control(1);
-schedule.step.val = schedule.step.val(1);
+schedule.step.control = schedule.step.control(1:10);
+schedule.step.val = schedule.step.val(1:10);
 
 %%
 timer = tic;
@@ -72,12 +72,38 @@ boModel = threePhaseBlackOilModel(G, rock, fluid, ...
                                         'drsMax', .2,...
                                         'dpMax', .2', ...
                                         'dsMax', .05, ...
+                                        'disgas', true, ...
                                         'deck', deck);
-linsolve = CPRSolverAD();
+                                    
+%%
+amgsolver = AGMGSolverAD();
+% amgsolver = mldivideSolverAD();
+
+
+linsolve = CPRSolverAD('ellipticSolver', amgsolver);
+% 
 % linsolve = mldivideSolverAD();
+
 % nonlinear = nonlinearSolver();
 % [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
 timer = tic();
 [wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);
 t_class = toc(timer);
+
+%%
+cdims = ceil(G.cartDims./[10 10 5]);
+p = partitionUI(G, cdims);
+% p = partitionMETIS(G, computeTrans(G, rock), prod(cdims));
+CG = generateCoarseGrid(G, p);
+CG = coarsenGeometry(CG);
+
+
+multiscaleSolver = multiscaleVolumeSolverAD(CG);
+linsolvems = CPRSolverAD('ellipticSolver', multiscaleSolver);
+
+
+timer = tic();
+[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolvems);
+t_ms = toc(timer);
+
