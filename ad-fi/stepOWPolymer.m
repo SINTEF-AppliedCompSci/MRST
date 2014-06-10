@@ -38,7 +38,7 @@ if ~isfield(state, 'cmax')
     state.cmax = state.c;
 end
 
-eqs = system.getEquations(state0, state, dt, G, W, s, fluid);
+eqs = system.getEquations(state0, state, dt, G, W, s, fluid, 'iteration', meta.iteration);
 
 if system.nonlinear.cpr && isempty(system.podbasis)
     [dx, gmresits, gmresflag] = cprGeneric(eqs, system,...
@@ -94,7 +94,9 @@ end
 %--------------------------------------------------------------------------
 
 function [state, nInc] = updateState(state, dx, fluid, W)
-maxSatStep = .2;
+dsMax = .2;
+dpMax = .3;
+
 
 
 
@@ -105,12 +107,16 @@ dc = dx{3};
 nInc = max( norm(dp,'inf')/norm(state.pressure, 'inf'), ...
             norm(ds,'inf')/norm(state.s(:,1), 'inf') );
 
-maxch = norm(ds, 'inf');
-step = min(1, maxSatStep./maxch);
+ds = sign(ds).*min(abs(ds), dsMax);
+dp = sign(dp).*min(abs(dp), abs(dpMax.*state.pressure));
 
 
-state.pressure = state.pressure + step*dp;
-sw = state.s(:,1) + step*ds;
+
+state.pressure = state.pressure + dp;
+sw = state.s(:,1) + ds;
+
+% Cap values
+sw = min(sw, 1); sw = max(sw, sqrt(eps));
 
 state.s = [sw, 1-sw];
 state.c = state.c + dc;

@@ -8,6 +8,11 @@ classdef threePhaseBlackOilModel < physicalModel
         
         % Maximum Rs increment
         drsMax
+        
+        % CNV style tolerances
+        useCNVConvergence
+        toleranceCNV;
+        toleranceMB;
     end
     
     methods
@@ -17,6 +22,9 @@ classdef threePhaseBlackOilModel < physicalModel
                          'dpMax',               inf, ...
                          'dsMax',               .2, ...
                          'disgas',              false,...
+                         'useCNVConvergence',   true, ...
+                         'toleranceMB',         1e-7, ...
+                         'toleranceCNV' ,       1e-3, ...
                          'vapoil',              false);
             opt = merge_options(opt, varargin{:});
             
@@ -35,6 +43,10 @@ classdef threePhaseBlackOilModel < physicalModel
             model.dpMax = opt.dpMax;
             model.dsMax = opt.dsMax;
             
+            model.useCNVConvergence = opt.useCNVConvergence;
+            model.toleranceCNV = opt.toleranceCNV;
+            model.toleranceMB = opt.toleranceMB;
+            
             if ~isempty(opt.deck)
                 if isfield(opt.deck.RUNSPEC, 'VAPOIL')
                     model.vapoil = model.vapoil || opt.deck.RUNSPEC.VAPOIL;
@@ -45,6 +57,18 @@ classdef threePhaseBlackOilModel < physicalModel
             end
             model.name = 'BlackOil_3ph';
             model = model.setupOperators(G, rock, 'deck', opt.deck);
+        end
+        
+        function [convergence, values] = checkConvergence(model, problem, varargin)
+            if model.useCNVConvergence
+                % Use convergence model similar to commercial simulator
+                [convergence, values] = CNV_MBConvergence(model, problem);
+            else
+                % Use strict tolerances on the residual without any 
+                % fingerspitzengefuhlen by calling the parent class
+                [convergence, values] = checkConvergence@physicalModel(model, problem, varargin{:});
+            end
+            
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

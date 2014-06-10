@@ -1,5 +1,5 @@
 classdef multiscaleVolumeSolverAD < linearSolverAD
-    % Base class for a nonlinear solver
+    % Multiscale linear solver
    properties
        prolongationType
        prolongationOperator
