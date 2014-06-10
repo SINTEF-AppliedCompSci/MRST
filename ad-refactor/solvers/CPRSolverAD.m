@@ -62,6 +62,7 @@ classdef CPRSolverAD < linearSolverAD
                 eqs{eqn} = eqs{eqn}.*scale(eqn);
             end
             
+            
             isElliptic = false(nCell, cellEqNo);
             for i = 1:cellEqNo
                 % Find the derivative of current cell block w.r.t the
@@ -196,7 +197,7 @@ function scale = getScaling(problem, model)
         bW = fluid.bW(p);
     end
     
-    scale = zeros(numel(problem), 1);
+    scale = ones(numel(problem), 1);
     
     isBO = isa(model, 'threePhaseBlackOilModel');
     
