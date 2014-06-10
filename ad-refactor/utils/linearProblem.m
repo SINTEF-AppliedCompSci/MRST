@@ -8,16 +8,18 @@ classdef linearProblem
         A
         b
         state
+        dt
     end
     
     methods
-        function problem = linearProblem(equations, types, names, primary, state)
+        function problem = linearProblem(equations, types, names, primary, state, dt)
             problem.equations = equations;
             problem.types = types;
             problem.equationNames = names;
             problem.primaryVariables = primary;
             problem.A = [];
             problem.b = [];
+            problem.dt = dt;
             
             problem.state = state;
         end
