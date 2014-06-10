@@ -208,7 +208,7 @@ if ~isempty(W)
             W, state.wellSol, pBHP, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
             'iteration', opt.iteration);
 
-        [wc, cqs] = checkForRepititions(wc, cqs);
+        [wc, cqs] = checkForRepetitions(wc, cqs);
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
         eqs{2}(wc) = eqs{2}(wc) - cqs{1};
 
@@ -255,7 +255,7 @@ function y = effads(c, cmax, f)
    end
 end
 
-function [wc, cqs] = checkForRepititions(wc, cqs)
+function [wc, cqs] = checkForRepetitions(wc, cqs)
 [c, ia, ic] = unique(wc, 'stable');
 if numel(c) ~= numel(wc)
     A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
