@@ -10,7 +10,7 @@
 % prior to release R2011a, this is relatively inefficient.  Starting from
 % 2011a however, the bottleneck of direct indexing has been largely
 % removed.
-mrstModule add ad-fi deckformat spe10
+mrstModule add ad-fi deckformat spe10 ad-refactor
 
 % Read and process file.
 current_dir = fileparts(mfilename('fullpath'));
@@ -39,7 +39,7 @@ gravity on
 % load initialState;
 %% Set up permeability, grid and wells
 % We will simulate on the top 5 layers.
-layers = 1:85;
+layers = 1:15;
 
 [G, W, rock] = SPE10_setup(layers);
 
@@ -107,7 +107,7 @@ dt = [        0.001*day;
       repmat( 1    *day, [ 10, 1]);
       repmat(10    *day, [100, 1])];
   
-dt = dt(1:15);
+% dt = dt(1:5);
   
 nstep = numel(dt);
 
@@ -147,6 +147,9 @@ clear nonlinear
 
 boModel = twoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
 %%
+
+relTol = 5e-3;
+
 mrstModule add coarsegrid mrst-experimental
 
 cdims = round(G.cartDims./[10 10 5]);
@@ -159,7 +162,7 @@ CG = storeInteractionRegion(CG);
 multiscaleSolver = multiscaleVolumeSolverAD(CG);
 
 owModel = twoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
-linsolve = CPRSolverAD('ellipticSolver', multiscaleSolver);
+linsolve = CPRSolverAD('ellipticSolver', multiscaleSolver, 'relativeTolerance', relTol);
 
 %%
 % linsolve = CPRSolverAD();
@@ -173,9 +176,9 @@ time_ms = toc(timer);
 %%
 amgsolver = AGMGSolverAD();
 
-basicCPR = CPRSolverAD('ellipticSolver', amgsolver);
+basicCPR = CPRSolverAD('ellipticSolver', amgsolver, 'relativeTolerance', relTol);
 timer = tic();
-[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'verbose', true,, 'linearSolver', basicCPR);
+[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'verbose', true, 'linearSolver', basicCPR);
 time_cpr = toc(timer);
 
 %%
