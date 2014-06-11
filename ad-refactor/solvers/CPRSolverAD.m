@@ -6,7 +6,8 @@ classdef CPRSolverAD < linearSolverAD
     end
     methods
         function solver = CPRSolverAD(varargin)
-            opt = struct('ellipticSolver', []);
+            opt = struct('ellipticSolver', [], ...
+                         'relativeTolerance', 1e-3);
             opt = merge_options(opt, varargin{:});
             
             if isempty(opt.ellipticSolver)
@@ -16,7 +17,7 @@ classdef CPRSolverAD < linearSolverAD
                 solver.ellipticSolver = opt.ellipticSolver;
             end
             % Todo fill in these options
-            solver.relativeTolerance = 1e-3;
+            solver.relativeTolerance = opt.relativeTolerance;
             solver.pressureScaling = 1/(200*barsa);
         end
         
