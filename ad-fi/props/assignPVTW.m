@@ -50,7 +50,7 @@ if(pvtinx{1}==':')
 else
     pvtnum=nan(size(pw));
     for i=1:numel(pvtinx)
-       pvtnum(pvtinx{k})=k;
+       pvtnum(pvtinx{i})=i;
     end
 end
 end

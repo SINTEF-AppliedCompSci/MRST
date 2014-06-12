@@ -37,6 +37,11 @@ function reginx = getRegMap(val, REGNUM, REGINX, varargin)
       
       end
 
+   elseif isempty(REGNUM)
+      
+      % If REGNUM is empty, there is only one region for all cells.
+      reginx = {(1:numel(opt.cellInx))'};
+      
    else
       % Reference to (small) subset of all cells
 
