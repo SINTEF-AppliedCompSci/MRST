@@ -133,6 +133,7 @@ dqOs  = dx{5};
 % result is already known in forward simulations.
 dpBHP = dx{7};
 
+dpBHP = sign(dpBHP).*min(abs(dpBHP), abs(dpMax.*vertcat(state.wellSol.bhp)));
 for w = 1:numel(state.wellSol)
     state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
     state.wellSol(w).qWs      = state.wellSol(w).qWs + dqWs(w);

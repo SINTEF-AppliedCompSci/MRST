@@ -11,8 +11,10 @@ end
 tabSat = cellfun(@(x)x.data(x.pos(1:end-1),:), T, 'UniformOutput', false);
 
 if nreg > 1
-    reginxSat  = reginx(flag,:);
-    reginxUSat = reginx(~flag,:);
+%     reginxSat  = reginx(flag,:);
+%     reginxUSat = reginx(~flag,:);
+    reginxSat  = cellfun(@(v) v(flag(v)), reginx, 'UniformOutput', false);
+    reginxUSat = cellfun(@(v) v(~flag(v)), reginx, 'UniformOutput', false);
 else
     reginxSat{1}  = ':';
     reginxUSat{1} = ':';
