@@ -50,6 +50,8 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
+%   gravity   - The current gravity in vector form. Defaults to gravity().
+%
 %
 % RETURNS:
 %   F       - Residual
@@ -92,8 +94,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %
 % for constant vector and scalar fields fields D, G and Q.
 
-   opt = struct('verbose', mrstVerbose, 'wells', [], ...
-                'src', [], 'bc', [], 'Trans', [],'dhfz',[]);
+   opt = struct('verbose', mrstVerbose, 'gravity', gravity(), ...
+                'wells', [], 'src', [], 'bc', [], 'Trans', [],'dhfz',[]);
    opt = merge_options(opt, varargin{:});
 
    assert ((size(state.s,2) < 3) || all(state.s(:,3) == 0), ...
@@ -353,7 +355,7 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
 %
 %  gflux = harmonic average of (n·K·gravity·(rho1-rho2)) in each cell-
 
-   g     = gravity() * (rho(1) - rho(2));
+   g     = opt.gravity * (rho(1) - rho(2));
    [N, neighborship] = deal(getNeighbourship(G, 'Topological', true));
    % Number of interfaces (faces + NNC)
    nif = size(N, 1);

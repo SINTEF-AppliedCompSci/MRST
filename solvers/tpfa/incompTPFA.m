@@ -61,6 +61,8 @@ function state = incompTPFA(state, G, T, fluid, varargin)
 %
 %   condition_number - Display estimated condition number of linear system.
 %
+%   gravity   - The current gravity in vector form. Defaults to gravity().
+%
 % RETURNS:
 %   state - Update reservoir and well solution structure with new values
 %           for the fields:
@@ -153,13 +155,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'LinSolve',     @mldivide,        ...
                 'MatrixOutput', false, ...
                 'Verbose',      mrstVerbose,...
+                'gravity',      gravity(), ...
                 'condition_number',false,...
                 'pc_form','nonwetting',...
                 'use_trans',false);
 
    opt = merge_options(opt, varargin{:});
 
-   g_vec   = gravity();
+   g_vec   = opt.gravity;
    % If gravity is overriden, we cannot say anything about the effects of
    % gravity on rhs.
    grav = (norm(g_vec(1:G.griddim)) > 0) || isfield(G, 'grav_pressure');
