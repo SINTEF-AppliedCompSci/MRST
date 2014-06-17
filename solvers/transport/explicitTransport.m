@@ -10,7 +10,7 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %   equation
 %
 %              __
-%        s_t + \/Â· [f(s)(vÂ·n + mo(rho_w - rho_o)nÂ·Kg)] = f(s)q
+%        s_t + \/· [f(s)(v·n + mo(rho_w - rho_o)n·Kg)] = f(s)q
 %
 %   using a first-order mobility-weighted upwind discretisation in space
 %   and a forward Euler discretisation in time.  The transport equation is
@@ -181,8 +181,8 @@ end
 % Private helpers follow.
 %--------------------------------------------------------------------------
 
-function gflux = getFlux(G, rock,opt)
-%harmonic average of one-sided nÂ·KÂ·g on each face
+function gflux = getFlux(G, rock, opt)
+%harmonic average of one-sided n·K·g on each face
 
    gvec   = -opt.gravity;
    gflux  = zeros([G.faces.num, 1]);
