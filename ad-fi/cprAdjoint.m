@@ -92,7 +92,7 @@ function [lambda, its, fl] = cprAdjoint(eqs, rhs, system, varargin)
 %% Implementation
 %
 
-   opt = struct('cprType', 'colSum', 'ellipSolve', @mldivide, 'relTol', 2e-2);
+   opt = struct('cprType', 'colSum', 'cprEllipticSolver', @mldivide, 'relTol', 2e-2);
    opt = merge_options(opt, varargin{:});
 
 
@@ -393,7 +393,7 @@ function x = applyTwoStagePrecAdj(r, A, L, U, Ap, pInx, opt)
    p = zeros(size(r));
    q = U\(L\r);
    s = r - A'*q;
-   p(pInx) = opt.ellipSolve(Ap', s(pInx));
+   p(pInx) = opt.cprEllipticSolver(Ap', s(pInx));
    x = p + q;
 end
 

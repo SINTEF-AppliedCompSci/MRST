@@ -23,7 +23,7 @@ end
 tic
 if system.nonlinear.cpr
     [x, its, fl] = cprAdjoint(eqs, rhs, system, 'cprType', system.nonlinear.cprType, 'relTol', ...
-                   system.nonlinear.cprRelTol);
+                   system.nonlinear.cprRelTol, 'cprEllipticSolver', system.nonlinear.cprEllipticSolver);
 else
     eqs = cat(eqs{:});
 
