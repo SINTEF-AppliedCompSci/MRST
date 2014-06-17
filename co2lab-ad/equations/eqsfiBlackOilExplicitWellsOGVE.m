@@ -171,7 +171,7 @@ if(~isempty(W))
     mobGw(iInxO) = 0;
     mobOw(iInxO) = mobG(iInxO)+mobO(iInxO);
     % assume all influx from a production well is water/(in represented as oil phase)
-    pInxIn = (pInx & Tdrawdown < 0);
+    pInxIn = pInx(Tdrawdown(pInx) < 0);
     mobGw(pInxIn) = 0;
     mobOw(pInxIn) = mobG(pInxIn)+mobO(pInxIn);
     rsw(pInxIn) = 0;
@@ -242,6 +242,9 @@ rsSat  = f.rsSat(p);
 % oil:
 eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sG) - pvMult0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) + s.div(bOvO);
 if(~isempty(W))
+    %[wc, cqs] = checkForRepititions(wc, {bOqO,bGqG});
+    %bOqO=cqs{1};
+    %bGqG=cqs{2};
     eqs{1}(wc) = eqs{1}(wc) - bOqO;
     %eqs{1}(wc(iInxO)) = eqs{1}(wc(iInxO)) - bOqO(iInxO);
     %eqs{1}(wc(pInx)) = eqs{1}(wc(pInx)) - bOqO(pInx);
@@ -256,7 +259,7 @@ if(~isempty(W))
     %%{
     eqs{2}(wc(iInxG)) = eqs{2}(wc(iInxG)) - bGqG(iInxG);
     eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx);%- rsw(pInx).*bOqO(pInx);
-    pInxW=pInx & bOqO > 0;% produce may have influx of water
+    pInxW=pInx(bOqO(pInx) > 0);% produce may have influx of water
     eqs{2}(wc(pInxW)) = eqs{2}(wc(pInxW))- rsw(pInxW).*bOqO(pInxW);
     %pInxW=pInx & bOqO > 0;
     %}
@@ -506,6 +509,15 @@ end
 assert(all(double(mO)>=0))
 assert(all(double(mG)>=0))
 end
-
+function [wc, cqs] = checkForRepititions(wc, cqs)
+[c, ia, ic] = unique(wc);%, 'stable');
+if numel(c) ~= numel(wc)
+    A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
+    wc = c;
+    for k=1:numel(cqs)
+        cqs{k} = A*cqs{k};
+    end
+end
+end
 
 
