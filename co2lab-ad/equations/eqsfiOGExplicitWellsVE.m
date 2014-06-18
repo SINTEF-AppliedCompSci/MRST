@@ -188,33 +188,52 @@ eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sG) - pvMult0.*f.bO(p0).*(1-sG0) ) + s.div(
 
 % water:
 eqs{2} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*f.bG(pG0).*sG0 ) + s.div(bGvG);
-if(~isempty(W))
-    eqs{1}(wc) = eqs{1}(wc) + bOqO;
-    eqs{2}(wc) = eqs{2}(wc) + bGqG;
-end
-if(~isempty(opt.bc))
-    eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
-    eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bGqGbc;
-    assert(sum(double(bGqGbc))>=0)
-end
 
-% well equations
-zeroW = 0*pBHP;
-if(~isempty(W))
-eqs{3} = Rw'*bGqG + qGs + zeroW;
-eqs{4} = Rw'*bOqO + qOs + zeroW;
+    if(~isempty(W))
+        [wc, cqs] = checkForRepititions(wc, {bOqO,bGqG});
+        eqs{1}(wc) = eqs{1}(wc) + cqs{1};
+        eqs{2}(wc) = eqs{2}(wc) + cqs{2};
+        %eqs{1}(wc) = eqs{1}(wc) + bOqO;
+        %eqs{2}(wc) = eqs{2}(wc) + bGqG;
+    end
+    if(~isempty(opt.bc))
+        eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
+        eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bGqGbc;
+        assert(sum(double(bGqGbc))>=0)
+    end
 
-% Last eq: boundary cond
-eqs{5} = handleBC(W, pBHP, [] , qOs, qGs, scalFacs) + zeroW;
+if(~opt.reverseMode)
+    % well equations
+    zeroW = 0*pBHP;
+    if(~isempty(W))
+        eqs{3} = Rw'*bGqG + qGs + zeroW;
+        eqs{4} = Rw'*bOqO + qOs + zeroW;
+        
+        % Last eq: boundary cond
+        eqs{5} = handleBC(W, pBHP, [] , qOs, qGs, scalFacs) + zeroW;
+    else
+        eqs{3}=zeroW;
+        eqs{4}=zeroW;
+        eqs{5}=zeroW;
+    end
+    
 else
- eqs{3}=zeroW;   
- eqs{4}=zeroW;   
- eqs{5}=zeroW;   
+    % in reverse mode just gather zero-eqs of correct size
+    for eqn = 3:5
+        nw = numel(state0.wellSol);
+        zw = double2ADI(zeros(nw,1), p0);
+        eqs(3:5) = {zw, zw, zw};
+    end
 end
+
+
+
 for jj=1:numel(eqs)
    assert(all(isfinite(double(eqs{jj})))); 
 end
 
+%ol=double(ones(1,G.cells.num)*(s.pv.*f.pvMultR(p).*f.bG(p).*sG));% add mass later
+%ouble(vol*f.rhoGS/1e9)
 %sum([double(eqs{2})*dt,...
 if(false)
 if(~isempty(W))
@@ -232,7 +251,16 @@ end
 end
 end
 %--------------------------------------------------------------------------
-
+function [wc, cqs] = checkForRepititions(wc, cqs)
+[c, ia, ic] = unique(wc);%, 'stable');
+if numel(c) ~= numel(wc)
+    A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
+    wc = c;
+    for k=1:numel(cqs)
+        cqs{k} = A*cqs{k};
+    end
+end
+end
 
 
 
