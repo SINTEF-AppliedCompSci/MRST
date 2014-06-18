@@ -212,9 +212,8 @@ if ~isempty(W)
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
         eqs{2}(wc) = eqs{2}(wc) - cqs{1};
 
-        % Divide away water mobility and add in polymer 
-        bWmobWw(double(bWmobWw) == 0) = sqrt(eps);
-        bWqP = bWmobPw.*cqs{1}./bWmobWw;
+        % Divide away water mobility and add in polymer
+        bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
         eqs{3}(wc) = eqs{3}(wc) - bWqP;
 
         eqs{6} = wPoly - wPoly_num + zeroWPoly;
