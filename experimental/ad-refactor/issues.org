@@ -1,0 +1,38 @@
+* Questions
+** DONE Should we use ~setupSimComp~ or ~setupSimCompVE~?  In the original code, the comments argue for the former (see ~prepareSimulationSystem~), but right now I don't see a reason (and indeed, choosing the former gives wrong pore volumes).
+- for now, I chose to use ~setupSimCompVE~ as this is conceptually the function to use for VE.
+
+* stuff to do
+** TODO profiling
+** DONE saving of timesteps
+** TODO implementing good plotting
+** TODO comparing the three compressible models on the three paper cases
+** 3D model
+*** DONE implement 3D model
+*** DONE Better grid for 3D model (tighter on top than on bottom)
+*** DONE saving of timesteps for 3D model
+*** TODO make good visualization of 3D model solution
+*** TODO compare with 3D model
+
+
+
+
+
+
+* scratch
+** runScheduleRefactor
+*** [nonlinear]solver.solveTimestep
+**** model.stepFunction (called with the linear solver as an argument)
+***** model.getEquations
+***** [linear]solver.solveLinearProblem
+***** model.updateState 
+** What should the nonlinear solver do?
+*** save/cache steps, and ability to load cached steps
+*** set state.wellSol if control has changed
+
+
+Endringer i runScheduleRefactor:
+  - accept boundary conditions as argument
+  - change getWell function
+  - set state.wellsol
+    - save/cache problematikk

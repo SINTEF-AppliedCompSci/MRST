@@ -1,4 +1,4 @@
-function [P, T] = DG2PT(depth, tgrad, t0, seafloor_depth, include_atm)
+function [P, T] = DG2PT(depth, tgrad, t0, seafloor_depth, include_atm, rhoBrine)
 %
 % SYNOPSIS:
 %   function [P, T] = DG2PT(depth, tgrad, t0, seafloor_depth, include_atm)
@@ -11,6 +11,7 @@ function [P, T] = DG2PT(depth, tgrad, t0, seafloor_depth, include_atm)
 %                    equals 4°C)
 %   seafloor_depth - depth of sea floor
 %   include_atm    - 'true' if atmospheric pressure should be added to pressure
+%   rhoBrine       - density of brine
 %
 % RETURNS:
 %   P - pressure in the reservoir at the given depth
@@ -23,7 +24,7 @@ function [P, T] = DG2PT(depth, tgrad, t0, seafloor_depth, include_atm)
 %     tgrad:   typical range is 15 deg/km to 50 deg/km
 
 % calculating hydrostatic pressure assuming constant water density
-P = depth * 1000 * 9.8; 
+P = depth * rhoBrine * 9.8; 
 
 if include_atm
     P = P + atm;
