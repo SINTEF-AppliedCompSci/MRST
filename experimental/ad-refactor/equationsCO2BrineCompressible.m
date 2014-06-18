@@ -38,10 +38,10 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     muC   = co2fluid.mu(pI, tI)    ;   muB   = brinefluid.mu(pI, tI);
     
     %% Setting up density-corrective integrals
-    [IetaCO2, INupEtaCO2] = co2fluid.h_integrals(pI, tI);
-    [Ieta0CO2, ~]         = co2fluid.h_integrals(pI0, tI0);
-    [IetaBri, INupEtaBri] = brinefluid.h_integrals(pI, tI);
-    [Ieta0Bri, ~]         = brinefluid.h_integrals(pI0, tI0);
+    [IetaCO2, INupEtaCO2, ~] = co2fluid.h_integrals(pI, tI);
+    [Ieta0CO2, ~, ~]         = co2fluid.h_integrals(pI0, tI0);
+    [IetaBri, INupEtaBri, ~] = brinefluid.h_integrals(pI, tI);
+    [Ieta0Bri, ~, ~]         = brinefluid.h_integrals(pI0, tI0);
     
     %% Computing interior fluxes
     

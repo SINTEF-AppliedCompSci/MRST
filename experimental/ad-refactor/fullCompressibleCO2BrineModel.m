@@ -72,7 +72,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             
             if quick
                 % 'quick and dirty', using Taylor
-                [IEta,~] = model.cfluid.h_integrals(state.pressure, state.extras.tI);
+                [IEta,~, Eta] = model.cfluid.h_integrals(state.pressure, state.extras.tI);
                 
                 state.extras.tTop = state.extras.tI - ...
                                     state.h * cos_theta .* model.T_grad / 1000;
@@ -82,7 +82,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
                     pdiff = pdiff .* double(IEta(-state.h));
                 end
                 state.extras.pTop   = state.pressure - pdiff;
-
+                state.extras.rhoTop = state.extras.rhoI .* Eta(-state.h);
             else 
                 % use integration to get more exact values
                 
@@ -100,16 +100,17 @@ classdef fullCompressibleCO2BrineModel < physicalModel
                                                           model.cfluid.rho, ...
                                                           norm(gravity) * cos_theta);
                 end
+                state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop); 
             end
         
             % @@ If 'quick' has been requested, we could also imagine using
             % Taylor to compute the density at top. 
-
+            state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop);
             if ~isempty(IEta)
-                state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop); 
+                
             else
                 % Density is either constant in height or always constant
-                state.extras.rhoTop = state.extras.rhoI;
+                
             end
         
         end
@@ -216,9 +217,9 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [Ieta, INupEta] = IetaAndINupEta(p, t, EOS, Gct, gct)
+function [Ieta, INupEta, Eta] = IetaAndINupEtaAndEta(p, t, EOS, Gct, gct)
     EOS.compressible = 'full'; % required by the etaIntegrals function
-    [Ieta, INupEta] = etaIntegrals(EOS, p , t, Gct, gct); 
+    [Ieta, INupEta, ~, ~, Eta] = etaIntegrals(EOS, p , t, Gct, gct); 
 end
 
 % ----------------------------------------------------------------------------
@@ -227,12 +228,12 @@ function fun = etaIntegralFunctions(EOS, slope, Tgrad, vconst)
     if complete_eos(EOS) && ~vconst
         gct = norm(gravity) * cos(slope);
         Gct = Tgrad / 1000  * cos(slope);
-        fun = @(p, t) IetaAndINupEta(p, t, EOS, Gct, gct);
+        fun = @(p, t) IetaAndINupEtaAndEta(p, t, EOS, Gct, gct);
     else
         % We do not have a complete, compressible equation of state, or
         % alternatively, the user has requested constant vertical
         % density, so the correction functions are empty
-        fun = @(p, t) deal([], []);
+        fun = @(p, t) deal([], [], []);
     end
 end
 
