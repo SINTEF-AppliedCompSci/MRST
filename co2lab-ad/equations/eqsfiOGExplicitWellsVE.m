@@ -1,4 +1,4 @@
-function [eqs, hst] = eqsfiOGExplicitWellsVE(state0, state, dt, G, W, s, f, varargin)
+function [eqs, hst] = eqsfiOGExplicitWellsVE(state0, state, dt, G, W, system, f, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -14,7 +14,7 @@ if ~isempty(opt.scaling)
 else
     scalFacs.rate = 1; scalFacs.pressure = 1;
 end
-
+s=system.s;
 hst = opt.history;
 
 % current variables: ------------------------------------------------------
