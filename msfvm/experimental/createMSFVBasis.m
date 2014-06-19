@@ -50,7 +50,7 @@ function [B, varargout] = createMSFVBasis(A, DG, useCorrection)
         end
         varargout{1} = Cx;
     else
-        varargout{1} = Cxr = @(r) 0*r;
+        varargout{1} = @(r) 0*r;
     end
 end
 
