@@ -24,6 +24,6 @@ function X = restrictOperator(CG, DG, Nf)
        xind(pos:(pos + M-1)) = coarse;
        pos = pos + M;
     end
-    X = sparse(xind, yind, 1) > 0;
+    X = sparse(xind, yind, 1, Nf, Nf) > 0;
     return
 end
