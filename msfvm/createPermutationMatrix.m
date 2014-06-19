@@ -120,7 +120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     dual.P = sparse(1:Nc,...
                     ordering,...
-                    1) > 0;
+                    1, Nc, Nc) > 0;
    %% Flux permutation matrix
    ordering = zeros(real_nodes,1);
 
@@ -133,5 +133,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    dual.P_flux = sparse(1:real_nodes,...
                     ordering(1:real_nodes),...
-                    1) > 0;
+                    1, Nc, Nc) > 0;
 return
