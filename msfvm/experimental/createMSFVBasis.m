@@ -33,7 +33,7 @@ function [B, varargout] = createMSFVBasis(A, DG, useCorrection)
 
     if dim == 3
         M_ll = A_ll + diag(sum(A_le, 2)) + diag(sum(A_li, 2));
-        B = createBasis3D(A_ie, A_ii, M_ee, M_ll, A_ln, A_el, @mldivide);
+        B = createBasis3D(A_ie, A_ii, M_ee, M_ll, A_ln, A_el, @mldivide_scalable);
     else
         A_en = A(ind.e, ind.n);
         B = createBasis2D(A_ie, A_ii, M_ee, A_en);
@@ -43,12 +43,14 @@ function [B, varargout] = createMSFVBasis(A, DG, useCorrection)
     if useCorrection
         invii_ie = mldivide(A_ii, A_ie);
         if dim == 3
-            invee_el = mldivide(M_ee, A_el);
+            invee_el = mldivide_scalable(M_ee, A_el);
             Cx = @(r) DG.P'*correctionOperator3D(M_ee, A_ii, M_ll, invee_el, invii_ie, ind, DG.P*r);
         else
             Cx = @(r) DG.P'*correctionOperator2D(M_ee, A_ii, invii_ie, ind, DG.P*r);
         end
         varargout{1} = Cx;
+    else
+        varargout{1} = Cxr = @(r) 0*r;
     end
 end
 
@@ -90,4 +92,16 @@ function res = correctionOperator2D(M_ee, A_ii, invii_ie, ind, r)
 
     res(ind.i) = mldivide(A_ii, r(ind.i)) - invii_ie*invee_r;
     res(ind.e) = invee_r;
+end
+
+function x = mldivide_scalable(A, b)
+    x = [];
+    max_sol = 250;
+    n_rhs = size(b, 2);
+    n_sub = ceil(n_rhs/max_sol);
+
+    for i = 1:n_sub
+        tmp = A\b(:, ((i-1)*max_sol + 1):min((i*max_sol), n_rhs));
+        x = horzcat(x, tmp); %#ok
+    end
 end
