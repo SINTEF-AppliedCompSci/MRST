@@ -41,6 +41,10 @@ function ix = boundaryFaceIndices(G, direction, i1, i2, i3)
 % $Date: 2012-01-30 11:41:03 +0100 (Mon, 30 Jan 2012) $
 % $Revision: 9020 $
 
+if exist('i1') == 0  i1 = []; end;
+if exist('i2') == 0  i2 = []; end;
+if exist('i3') == 0  i3 = []; end;
+
 i1 = reshape(i1, [], 1);
 i2 = reshape(i2, [], 1);
 i3 = reshape(i3, [], 1);
@@ -66,19 +70,24 @@ cellno = rldecode(1:G.cells.num, diff(G.cells.facePos),2)';
 i      = any(G.faces.neighbors ==0, 2);
 j      = false(max(G.cells.faces(:,2)),1);
 if isempty(i1)
-   pick_I = 1;
+   pick_I = true(G.cartDims(1),1);
 else
    pick_I = false(G.cartDims(1),1); pick_I(i1) = true;
 end
 if isempty(i2)
-   pick_J = 1;
+   pick_J = true(G.cartDims(2),1);
 else
    pick_J = false(G.cartDims(2),1); pick_J(i2) = true;
 end
-if isempty(i3)
-   pick_K = 1;
+if numel(G.cartDims) == 2
+    pick_K = true;
 else
-   pick_K = false(G.cartDims(3),1); pick_K(i3) = true;
+    assert(numel(G.cartDims) == 3);
+    if isempty(i3) && (numel(G.cartDims) == 3)
+        pick_K = true(G.cartDims(3),1);
+    else
+        pick_K = false(G.cartDims(3),1); pick_K(i3) = true;
+    end
 end
 
 j(faceTag) = true;

@@ -1,2 +1,7 @@
 data/atlas/
 *.m~
+*.org~
+/data/*
+data/igems/*
+data/sleipner/*
+data/johansen/*
