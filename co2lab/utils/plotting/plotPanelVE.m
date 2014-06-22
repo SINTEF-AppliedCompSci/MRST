@@ -88,7 +88,7 @@ prm = struct('maxH',      10, ...
              'view',      [30, 60],...
              'wireS',     false, ...
              'wireH',     false, ...
-             'Wadd',      100, ...
+             'Wadd',      min(max(Gt.nodes.z)-min(Gt.nodes.z), 100), ...
              'Saxis',     [0 1], ...
              'ptol',      1e-3, ...
              'slice',     [10 10],...
@@ -185,8 +185,9 @@ elseif numel(vol)==6
    hl = legend(lnames, 'Location','SouthOutside', 'orientation','horizontal');
    set(hl,'Location','SouthEastOutside','orientation','vertical');
    pl = get(hl, 'Position'); set(hl, 'Position', [.85 pl(2)-.035 pl(3:4)]);
-   title(['Total injected volume: ', ...
-      num2str(round(convertTo(vol(6),mega*meter^3))),' M m^3']);
+   title(sprintf('Total injected volume: %.4g m^3', vol(6)));
+%   title(['Total injected volume: ', ...
+%      num2str(round(convertTo(vol(6),mega*meter^3))),' M m^3']);
 
    if t ~= 0
         volHistory = [volHistory; vplot];
@@ -264,12 +265,15 @@ end
 function plotHistory()
    if ishandle(h3)
       set(0, 'CurrentFigure', h3);
-      area(convertTo(thistory, year), convertTo(volHistory, mega*meter^3));
+      %area(convertTo(thistory, year), convertTo(volHistory, mega*meter^3));
+      area(convertTo(thistory, year), convertTo(volHistory, meter^3));
       col = getInventoryColors(7:-1:2);
       chld =  get(gca,'Children');
+      chld = chld(end-size(col,1)+1:end);
       for i=1:numel(chld), set(chld(i),'FaceColor',col(i,:)); end
       xlabel('Years since simulation start');
-      ylabel('Volume (M m^3)')
+      %ylabel('Volume (M m^3)')
+      ylabel('Volume (m^3)')
       axis tight
       legend(lnames, 'location', 'eastoutside', 'orientation', 'vertical');
    end
