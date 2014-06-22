@@ -380,6 +380,7 @@ function plotMain(Gt, res, bf, atlasdata)
     trapped = vprimary + sum(vsecondary);
     
     total = sum(volumesOfTraps(Gt, res, 1:max(res.traps))) - trapped;
+    total = max(total,eps);  % ensure a small positive number
     
     hp = pie([vprimary, sum(vsecondary), total], [1,1,1]);
     pcm = [0 0 .7; .1 .8 .1; .6 0 0];
