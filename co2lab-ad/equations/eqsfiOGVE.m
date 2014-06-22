@@ -124,35 +124,7 @@ bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
 
 
 %WELLS ----------------------------------------------------------------
-if(~isempty(W))
-    pcOGw = pcOG(wc);
-    bGw     = bG(wc);
-    bOw     = bO(wc);
-    mobGw  = mobG(wc);
-    mobOw  = mobO(wc);
 
-%producer mobility
-bGmobGw  = bGw.*mobGw;
-bOmobOw  = bOw.*mobOw;
-
-%set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
-if(true)
-    bGmobGw(iInxG) = bGw(iInxG).*(mobGw(iInxG) + mobOw(iInxG));
-    bOmobOw(iInxG) = 0;
-    bGmobGw(iInxO) = 0; 
-    bOmobOw(iInxO) = bOw(iInxO).*(mobGw(iInxO) + mobOw(iInxO));
-else
-   bGmobGw(iInxG) = bGw(iInxG)./1e-3;
-   bOmobOw(iInxG) = 0;
-   bGmobGw(iInxO) = 0; 
-   bOmobOw(iInxO) = bOw(iInxO)./1e-3;
-end
-   
-pw  = p(wc);
-perfP=pBHP(perf2well);
-bGqG  = -bGmobGw.*Tw.*(perfP - pw + 0.0*pcOGw + 0.0*g*dzw.*rhoG(wc));
-bOqO  = -bOmobOw.*Tw.*(perfP - pw + 0.0*g*dzw.*rhoO(wc));
-end
 % add contributions from boundary
 if(~isempty(opt.bc))
     assert(all(strcmp(opt.bc.type,'pressure')));
@@ -191,42 +163,39 @@ eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sG) - pvMult0.*f.bO(p0).*(1-sG0) ) + s.div(
 % water:
 eqs{2} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*f.bG(pG0).*sG0 ) + s.div(bGvG);
 
-    if(~isempty(W))
-        [wc, cqs] = checkForRepititions(wc, {bOqO,bGqG});
-        eqs{1}(wc) = eqs{1}(wc) + cqs{1};
-        eqs{2}(wc) = eqs{2}(wc) + cqs{2};
-        %eqs{1}(wc) = eqs{1}(wc) + bOqO;
-        %eqs{2}(wc) = eqs{2}(wc) + bGqG;
-    end
-    if(~isempty(opt.bc))
-        eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
-        eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bGqGbc;
-        assert(sum(double(bGqGbc))>=0)
-    end
 
-if(~opt.reverseMode)
-    % well equations
-    zeroW = 0*pBHP;
-    if(~isempty(W))
-        eqs{3} = Rw'*bGqG + qGs + zeroW;
-        eqs{4} = Rw'*bOqO + qOs + zeroW;
+
+if ~isempty(W)
+    if ~opt.reverseMode
+        wc    = vertcat(W.cells);
+        pw   = p(wc);
+        rhos = [f.rhoOS, f.rhoGS];
+        bw   = {bO(wc), bG(wc)};
+        rw   = {};
+        mw   = {mobO(wc), mobG(wc)};
+        optloc = {'iteration', opt.iteration, ...
+                  'model', 'OG', ...
+                  'allowWellSignChange', system.well.allowWellSignChange, ...
+                  'allowControlSwitching', system.well.allowControlSwitching};
         
-        % Last eq: boundary cond
-        eqs{5} = handleBC(W, pBHP, [] , qOs, qGs, scalFacs) + zeroW;
+        [eqs(3:5), cqs, state.wellSol] = getWellContributions(W, state.wellSol, pBHP, {qOs, qGs}, ...
+                                                                 pw, rhos, bw, rw, rw, mw, ...
+                                                                 optloc{:});
+
+        [wc, cqs] = checkForRepititions(wc, cqs);
+        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
+        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
     else
-        eqs{3}=zeroW;
-        eqs{4}=zeroW;
-        eqs{5}=zeroW;
+        % in reverse mode just gather zero-eqs of correct size
+        for eqn = 3:5
+            nw = numel(state.wellSol);
+            zw = double2ADI(zeros(nw,1), p0);
+            eqs(3:5) = {zw, zw, zw};
+        end
     end
-    
-else
-    % in reverse mode just gather zero-eqs of correct size
-    for eqn = 3:5
-        nw = numel(state0.wellSol);
-        zw = double2ADI(zeros(nw,1), p0);
-        eqs(3:5) = {zw, zw, zw};
-    end
-end
+else % no wells
+    eqs(3:5) = {pBHP, pBHP, pBHP};  % empty  ADIs
+end 
 
 
 
@@ -234,23 +203,6 @@ for jj=1:numel(eqs)
    assert(all(isfinite(double(eqs{jj})))); 
 end
 
-%ol=double(ones(1,G.cells.num)*(s.pv.*f.pvMultR(p).*f.bG(p).*sG));% add mass later
-%ouble(vol*f.rhoGS/1e9)
-%sum([double(eqs{2})*dt,...
-if(false)
-if(~isempty(W))
-    disp([sum(double(s.pv.*(pvMult.*bG.*sG)))-... % mass CO2 after
-        sum(double(s.pv.*(pvMult0.*f.bG(pG0).*sG0))),...% mass CO2 before
-        sum(double(s.div(bGvG)))*dt,...
-        sum(double(bGqGbc))*dt,...
-        sum(double(bGqG))*dt]*f.rhoG)% injected CO2
-else
-   disp([sum(double(s.pv.*(pvMult.*bG.*sG)))-... % mass CO2 after
-        sum(double(s.pv.*(pvMult0.*f.bG(pG0).*sG0))),...% mass CO2 before
-        sum(double(s.div(bGvG)))*dt,...
-        sum(double(bGqGbc))*dt]);%,...
-end
-end
 end
 %--------------------------------------------------------------------------
 function [wc, cqs] = checkForRepititions(wc, cqs)
