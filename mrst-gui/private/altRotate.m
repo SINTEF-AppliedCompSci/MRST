@@ -42,6 +42,9 @@ if nargin == 0
 else
     h = varargin{1};
 end
+
+isHG1 = isnumeric(h);
+
 h = double(h);
 
 if nargin > 1
@@ -65,9 +68,13 @@ end
 
 
 function WindowButtonDownFcn(src, event)
-    oldMode = get(gca, 'DrawMode');
-    set(gca, 'DrawMode', 'fast');
-
+    if isHG1
+        oldMode = get(gca, 'DrawMode');
+        set(gca, 'DrawMode', 'fast');
+    else
+        oldMode = get(gca, 'SortMethod');
+        set(gca, 'SortMethod', 'childorder');
+    end
     pt = get(h, 'CurrentPoint');
     pt = pt(1,:);
 
@@ -88,7 +95,11 @@ end
 
 function WindowButtonUpFcn(src, event)
     set(h, 'WindowButtonMotionFcn', []);
-    set(gca, 'DrawMode', oldMode);
+    if isHG1
+        set(gca, 'DrawMode', oldMode);
+    else
+        set(gca, 'SortMethod', oldMode);
+    end
     drawnow
 end
 
