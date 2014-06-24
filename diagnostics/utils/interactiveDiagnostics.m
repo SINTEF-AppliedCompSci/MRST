@@ -158,6 +158,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
     fig_main = figure;
+    
+    % Check for which version of handle graphics MATLAB is currently
+    % running
+    isHG1 = isnumeric(fig_main);
+    
     axis tight off
 
     % Main scope variables for control panel
@@ -232,7 +237,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % TOF adjustment
         tofp = uipanel('Parent', fig_ctrl, 'Title', 'Time of flight', 'Position', [0 .2 1 .25]);
         tof = D.tof(:);
-
+        
+        isNeg = tof <= 0;
+        tof(isNeg) = min(tof(~isNeg));
+        
         tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
         tofext(2) = max(tofext(2), 15);
 
@@ -326,7 +334,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         if ~any(ishandle(outlineph))
-            outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
+            if isHG1
+                outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
+            else
+                outlineph = plotGrid(G, 'facec', 'none', 'edgec', 'black');
+            end
+            set(outlineph, 'UserData', 'gridoutline');
         end
 
         % Limit dataset based on tof
@@ -605,10 +618,11 @@ end
 function [sliderhandle, edithandle] = linkedSlider(parent, pos, fieldsize, ext, defaultval, title)
     x = pos(1);
     y = pos(2);
-    minval = ext(1);
-    maxval = ext(2);
+    minval = abs(ext(1));
+    maxval = abs(ext(2));
     dims = pos(3:4);
-
+    defaultval = abs(defaultval);
+    
     uicontrol(parent, 'Style', 'text', 'Units', 'normalized', 'Position', [x, y, fieldsize*dims(1) dims(2)], 'string', title)
 
     cap = @(x) max(minval, min(x, maxval));
