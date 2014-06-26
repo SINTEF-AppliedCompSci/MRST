@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if isfield(deck.PROPS, 'ROCK'),
-      rock.cr = rock_compressibility(deck.PROPS);
+      [rock.cr, rock.pref] = rock_compressibility(deck.PROPS);
    end
 end
 
@@ -127,8 +127,9 @@ end
 
 %--------------------------------------------------------------------------
 
-function cr = rock_compressibility(props)
+function [cr, pref] = rock_compressibility(props)
    cr = props.ROCK(:, 2);
+   pref = props.ROCK(:, 1);
 
    cr(isnan(cr)) = 0.0;  % E100 default.
 end
