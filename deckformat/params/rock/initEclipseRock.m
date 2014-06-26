@@ -16,6 +16,8 @@ function rock = initEclipseRock(deck)
 %            - ntg  -- Net-to-gross values.  Corresponds to 'NTG' keyword.
 %            - cr   -- Rock compressibility.  Corresponds to item two of
 %                      'ROCK' keyword (in PROPS section).
+%            - pref -- Reference pressure for rock compressibility.  Data
+%                      from item one of 'ROCK' keyword.
 %
 % NOTE:
 %   A given 'rock' field is only created if the corresponding keyword is
