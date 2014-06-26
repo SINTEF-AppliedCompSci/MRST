@@ -1,40 +1,29 @@
-function obj = CO2props(rhofile, hfile, noassert)
+function obj = CO2props(varargin); %rhofile, hfile, noassert)
 
+  opt.rhofile              = 'rho_huge';
+  opt.hfile                = 'h_small';
+  opt.assert               = 'true';
+  opt.sharp_phase_boundary = true;
+  opt = merge_options(opt, varargin{:});
+    
 %% ESTABLISHING STATIC DATA
-  
-  % load data tables
-  if isempty(rhofile)
-      %rho = load('rho_small');     % load density data
-      %rho = load('rho_big_trunc'); % load density data 
-      rho = load('rho_huge');       % load density data 
-      %rho = load('rho_hybrid');    % load density data    
-  else
-      rho = load(rhofile);
-  end
+    
+  rho = load(opt.rhofile); % load density data
+  h   = load(opt.hfile);   % load enthalpy data
+  assert_valid_range = opt.assert; % do optional checking whether P and T are
+                                   % within covered range (if not checked,
+                                   % NaN values will be returned in such
+                                   % cases instead)
 
-  if isempty(hfile)
-      h = load('h_small');        % load enthalpy data
-  else
-      h = load(hfile);
-  end
-  
   % make separate matrices by phase, and compute derivative tables
-  rho = establish_data_tables(rho);
-  h   = establish_data_tables(h);
-  
-  % What should be done if P or T values are outside table range?  Default is
-  % to throw an error, but alternatively, NaN-values could be returned for
-  % the respective results.
-  assert_valid_range = true;
-  if exist('noassert') && noassert
-      assert_valid_range = false;
-  end
+  rho = establish_data_tables(rho, opt.sharp_phase_boundary);
+  h   = establish_data_tables(h  , opt.sharp_phase_boundary);
   
       
   %% DECLARING MEMBER FUNCTIONS
 
   % return CO2 phase at (P, T) (0: supercritical; 1: liquid; 2: gas)
-  obj.phaseOf     = @(P, T) phase_of(P, T);
+  obj.phaseOf     = @(P, T) phase_of(P, T, opt.sharp_phase_boundary);
 
   % CO2 density and its derivatives
   obj.rhoDPPT = @(P, T) calcMulti(P, T, @(P, T) calcDPPT(rho, P, T), @noder,       @noder);
@@ -223,7 +212,7 @@ function res = extractValues(P, T, spanP, spanT, supsamples, liqsamples, gassamp
         [P, T]   = truncate_PT_vectorized(P, T, spanP, spanT);
     end
     
-    phase    = phase_of(P, T);
+    phase    = phase_of(P, T, opt.sharp_phase_boundary);
     sph      = (phase == 0);
     lph      = (phase == 1);
     gph      = (phase == 2);
@@ -251,21 +240,29 @@ function span = shrink_span(span, ds)
     span = [span(1) + ds/2, span(2) - ds/2];
 end
 
-function tables = establish_data_tables(tables)
+function tables = establish_data_tables(tables, sharp_phase_boundary)
 % Based on the orignal table, generate additional, separate tables for each
 % phase and for derivatives in P and T
     vals = tables.vals;
     Psteplen = tables.P.stepsize;
     Tsteplen = tables.T.stepsize;
-            
-    % Establish separate tables for hypercritical, liquid and gas regions
-    [liq, gas] = prepare_by_phase(vals, tables.P.span, tables.T.span);
-
-    % compute table of derivatives
-    tables.hyp = deriv_tables(vals, Psteplen, Tsteplen);
-    tables.liq = deriv_tables(liq , Psteplen, Tsteplen);
-    tables.gas = deriv_tables(gas , Psteplen, Tsteplen);
     
+    tables.hyp = deriv_tables(vals, Psteplen, Tsteplen);
+            
+    if sharp_phase_boundary
+        % Establish separate tables for hypercritical, liquid and gas regions
+        [liq, gas] = prepare_by_phase(vals, tables.P.span, tables.T.span);
+
+        % compute table of derivatives
+        tables.liq = deriv_tables(liq , Psteplen, Tsteplen);
+        tables.gas = deriv_tables(gas , Psteplen, Tsteplen);
+    else
+        % This is the easy way.  A more comprehensive approach would ensure
+        % that these tables were not needed at all if we do not enforce the
+        % sharp boundary.
+        tables.liq = tables.hyp;
+        tables.gas = tables.hyp;
+    end
 end
 
 function tables = deriv_tables(base, delta_p, delta_t)
@@ -289,13 +286,19 @@ function tables = deriv_tables(base, delta_p, delta_t)
 end
 
 
-function phase = phase_of(P, T)
+function phase = phase_of(P, T, sharp_phase_boundary)
 % Determine phase of CO2 at pressure P and temperature T.  (Vectorized)
 % Flags are:
 % * 0 designate "supercritical"
 % * 1 designate "liquid"
 % * 2 designate "gas"    
-  
+    if ~sharp_phase_boundary
+        % We do not consider the sharp boundary, and can therefore make a
+        % shortcut by considering everything as a single phase
+        phase = zeros(numel(P), 1); % everything considered "supercritical"
+        return;
+    end
+    
     phase = nan * ones(numel(P), 1);
   
     [Pc, Tc] = CO2CriticalPoint();
@@ -331,7 +334,9 @@ function [liq, gas] = prepare_by_phase(base, span_p, span_t)
 % discontinuity in order to faciltiate estimation of derivatives in this
 % region.  
 
-    phase = compute_phase(size(base, 1), size(base, 2), span_p, span_t);
+    % This function should only be called if we use a sharp phase boundary,
+    % hence the 'true' argument passed along to 'compute_phase' here.
+    phase = compute_phase(size(base, 1), size(base, 2), span_p, span_t, true);
 
     liq = NaN * ones(size(base));
     gas = NaN * ones(size(base));
@@ -382,12 +387,12 @@ function [liq, gas] = prepare_by_phase(base, span_p, span_t)
     end
 end
 
-function phase = compute_phase(rows, cols, span_p, span_t)
+function phase = compute_phase(rows, cols, span_p, span_t, sharp_phase_boundary)
 
     Pvals = linspace(span_p(1), span_p(2), rows);
     Tvals = linspace(span_t(1), span_t(2), cols);
     [T, P] = meshgrid(Tvals, Pvals);
-    phase = reshape(phase_of(P(:), T(:)), rows, cols);
+    phase = reshape(phase_of(P(:), T(:), sharp_phase_boundary), rows, cols);
 end
   
 function assert_in_range(val, range)
