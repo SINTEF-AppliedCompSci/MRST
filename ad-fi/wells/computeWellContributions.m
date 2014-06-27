@@ -118,7 +118,7 @@ mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
 status  = ~deadWells;%any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
 if(mrstVerbose && any(deadWells) )
-    warning('It exist deadWells')
+%     warning('It exist deadWells')
 end
 end
 

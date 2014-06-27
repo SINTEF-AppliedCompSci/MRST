@@ -49,21 +49,30 @@ classdef nonlinearSolver
                 for iter = 1:ministepNo
                     % Do a bunch of ministeps
                     state0_local = state;
+                    
+                    nonlinearReports = cell(solver.maxIterations, 1);
                     for i = 1:solver.maxIterations
                         [state, stepReport] = ...
                             model.stepFunction(state, state0_local, dt, drivingForces, ...
                                                solver.linearSolver, 'iteration', i);
                         itCount = itCount + 1;
                         converged  = stepReport.Converged;
-                        reports{i} = stepReport;
+
                         if converged
                             break
                         end
+                        nonlinearReports{i} = stepReport;
                     end
                     if ~converged
                         break
                     end
+                    reports{iter} = struct();
+                    reports{iter}.NonlinearReport = nonlinearReports(~cellfun(@isempty, nonlinearReports));
+                    reports{iter}.LocalTime = dt*iter;
+                    % This line does nothing atm
+                    reports{iter}.Converged = converged;
                 end
+                
                 
                 if converged
                     done = true;

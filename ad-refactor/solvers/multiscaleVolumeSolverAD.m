@@ -17,7 +17,7 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
            % Default options
            solver.prolongationType = 'smoothed';
            solver.restrictionType  = 'controlVolume';
-           solver.galerkinRestriction = true;
+           solver.useGalerkinRestriction = true;
            
            solver = merge_options(solver, varargin{:});
            
