@@ -44,7 +44,7 @@ classdef physicalModel
             error('Base class not meant for direct use')
         end
         
-        function state = updateState(model, state, dx, drivingForces) %#ok
+        function [state, report] = updateState(model, state, dx, drivingForces) %#ok
             % Update state based on non-linear increment
             error('Base class not meant for direct use')
         end
@@ -66,14 +66,19 @@ classdef physicalModel
             end
         end
         
-        function [state, convergence] = stepFunction(model, state, state0, dt, drivingForces, solver, varargin)
+        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, solver, varargin)
             % Make a single linearized timestep
             [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
             convergence = model.checkConvergence(problem);
             if ~convergence
-                dx = solver.solveLinearProblem(problem, model);
-                state = model.updateState(state, problem, dx, drivingForces); %%
+                [dx, linearReport] = solver.solveLinearProblem(problem, model);
+                [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+            else
+                [linearReport, updateReport] = deal(struct());
             end
+            report = struct('LinearSolver', linearReport, ...
+                            'UpdateState',  updateReport, ...
+                            'Converged',    convergence);
         end
     end
 end

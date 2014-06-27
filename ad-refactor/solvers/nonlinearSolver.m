@@ -26,7 +26,7 @@ classdef nonlinearSolver
             end
         end
         
-        function [state, status] = solveTimestep(solver, state0, dT, model, varargin)
+        function [state, report] = solveTimestep(solver, state0, dT, model, varargin)
             % Solve a timestep for a non-linear system using one or more substeps
             drivingForces = struct('Wells', [],...
                                    'bc',    [],...
@@ -44,14 +44,18 @@ classdef nonlinearSolver
             itCount = 0;
             while ~done
                 state = state0;
+                
+                reports = cell(ministepNo, 1);
                 for iter = 1:ministepNo
                     % Do a bunch of ministeps
                     state0_local = state;
                     for i = 1:solver.maxIterations
-                        [state, converged] = ...
+                        [state, stepReport] = ...
                             model.stepFunction(state, state0_local, dt, drivingForces, ...
                                                solver.linearSolver, 'iteration', i);
                         itCount = itCount + 1;
+                        converged  = stepReport.Converged;
+                        reports{i} = stepReport;
                         if converged
                             break
                         end
@@ -75,11 +79,14 @@ classdef nonlinearSolver
                     break
                 end
             end
-            
-            status = struct('iterations',   itCount,...
-                            'converged',    converged,...
-                            'ministeps', 	ministepNo);
-
+            % Truncate reports from step functions
+            reports = reports(~cellfun(@isempty, reports));
+            report = struct('Iterations',       itCount,...
+                            'Converged',        converged,...
+                            'MinistepCount', 	ministepNo);
+            % Add seperately because struct constructor interprets cell
+            % arrays as repeated structs.
+            report.StepReports = reports;
         end
     end
 end

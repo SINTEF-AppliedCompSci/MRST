@@ -21,11 +21,11 @@ classdef CPRSolverAD < linearSolverAD
             solver.pressureScaling = 1/(200*barsa);
         end
         
-        function result = solveLinearSystem(solver, A, b) %#ok
+        function [result, report] = solveLinearSystem(solver, A, b) %#ok
             error('Not supported directly - this is a preconditioner')
         end
         
-        function [dx, result] = solveLinearProblem(solver, problem, model)
+        function [dx, result, report] = solveLinearProblem(solver, problem, model)
             % Solve a linearized problem using a constrained pressure
             % residual preconditioner
             
@@ -150,7 +150,7 @@ classdef CPRSolverAD < linearSolverAD
             ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
 
             prec = @(r) applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
-            [cprSol, fl, relres, its] = gmres(A, b, [], solver.relativeTolerance, 40, prec);
+            [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance, 40, prec);
             
             % Undo pressure scaling
             if solver.pressureScaling ~= 1;
@@ -175,6 +175,15 @@ classdef CPRSolverAD < linearSolverAD
             
             if nargout > 1
                 result = vertcat(dx{:});
+            end
+            
+            if nargout > 2
+                report = struct('IterationsGMRES', its, ...
+                                'FlagGMRES',       fl, ...
+                                'FinalResidual',   relres);
+                if solver.extrareport
+                    report.ResidualHistory = resvec;
+                end
             end
         end
         

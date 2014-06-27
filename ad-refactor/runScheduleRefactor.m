@@ -1,4 +1,4 @@
-function [wellSols, states] = runScheduleRefactor(initState, model, schedule, varargin)
+function [wellSols, states, reports] = runScheduleRefactor(initState, model, schedule, varargin)
 
     opt = struct('Verbose', mrstVerbose,...
                  'linearSolver', []);
@@ -18,9 +18,9 @@ function [wellSols, states] = runScheduleRefactor(initState, model, schedule, va
 
     nSteps = numel(dt);
 
-    wellSols = cell(nSteps, 1);
-    states   = cell(nSteps, 1);
-
+    [wellSols, states, reports] = deal(cell(nSteps, 1));
+    wantStates = nargout > 1;
+    wantReport = nargout > 2;
 
     getWell = @(index) schedule.control(schedule.step.control(index)).W;
     state = initState;
@@ -32,12 +32,21 @@ function [wellSols, states] = runScheduleRefactor(initState, model, schedule, va
         fprintf('Solving timestep %d of %d at %s\n', i, nSteps, formatTimeRange(tm(i)));
         W = getWell(i);
         timer = tic();
-        [state, status] = solver.solveTimestep(state, dt(i), model, 'Wells', W);
+        [state, report] = solver.solveTimestep(state, dt(i), model, 'Wells', W);
         t = toc(timer);
         dispif(vb, 'Completed %d iterations in %2.2f seconds (%2.2fs per iteration)\n', ...
-                    status.iterations, t, t/status.iterations);
-        states{i} = state;
+                    report.Iterations, t, t/report.Iterations);
+        
         wellSols{i} = state.wellSol;
+        
+        if wantStates
+            states{i} = state;
+        end
+        
+        if wantReport
+            reports{i} = report;
+        end
+        
     end
 end
 %--------------------------------------------------------------------------

@@ -23,7 +23,7 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
            solver.coarsegrid = coarsegrid;
        end
        
-       function result = solveLinearSystem(solver, A, b)
+       function [result, report] = solveLinearSystem(solver, A, b)
            I = solver.prolongationOperator;
            
            if solver.useGalerkinRestriction
@@ -33,6 +33,8 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
            end
            coarseValues = (R*A*I)\(R*b);
            result = I*coarseValues;
+           % Nothing to report
+           report = struct();
        end
        
        function solver = setupSolver(solver, A, b, varargin) %#ok 

@@ -32,7 +32,7 @@ classdef twoPhaseOilWaterModel < physicalModel
             
         end
         
-        function state = updateState(model, state, problem, dx, drivingForces)
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
             dsMax = model.dsMax;
             dpMax = model.dpMax;
             
@@ -64,6 +64,8 @@ classdef twoPhaseOilWaterModel < physicalModel
                     state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
                 end
             end
+            
+            report = struct();
         end
         
     end

@@ -3,26 +3,33 @@ classdef linearSolverAD < handle
    properties
        tolerance
        maxiterations
+       extrareport
    end
    methods
        function solver = linearSolverAD(varargin)
            opt = struct('tolerance',     1e-8, ...
-                        'maxiterations', 25);
+                        'maxiterations', 25, ...
+                        'extrareport',   false);
+
            opt = merge_options(opt, varargin{:});
            
            solver.tolerance = opt.tolerance;
            solver.maxiterations = opt.maxiterations;
+           solver.extrareport = opt.extrareport;
        end
        
-       function result = solveLinearSystem(solver, A, b) %#ok
+       function [result, report] = solveLinearSystem(solver, A, b) %#ok
            % Solve the linear system to a given tolerance
            error('Superclass not meant for direct use')
        end
        
-       function [dx, result] = solveLinearProblem(solver, problem, model)
+       function [dx, result, report] = solveLinearProblem(solver, problem, model)
            % Solve a linearized problem
            problem = problem.assembleSystem();
-           result = solver.solveLinearSystem(problem.A, problem.b); 
+           
+           timer = tic();
+           [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
+           report.SolverTime = toc(timer);
            
            dx = solver.storeIncrements(problem, result);
        end

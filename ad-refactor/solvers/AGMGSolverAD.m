@@ -8,9 +8,16 @@ classdef AGMGSolverAD < linearSolverAD
             solver = solver@linearSolverAD(varargin{:});
        end
        
-       function result = solveLinearSystem(solver, A, b)
+       function [result, report] = solveLinearSystem(solver, A, b)
            % Solve the linear system to a given tolerance
-           result = agmg(A, b, [], solver.tolerance, solver.maxiterations, [], [], 2);
+           [result, flag, relres, iter, resvec] = agmg(A, b, [],...
+                        solver.tolerance, solver.maxiterations, [], [], 2);
+           report = struct('Converged', flag < 1, ...
+                           'RelativeResidual', relres, ...
+                           'Iterations',   iter);
+            if solver.extrareport
+                report.ResidualHistory = resvec;
+            end
        end
        
        function solver = setupSolver(solver, A, b, varargin) %#ok 
