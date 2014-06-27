@@ -6,19 +6,20 @@ classdef CPRSolverAD < linearSolverAD
     end
     methods
         function solver = CPRSolverAD(varargin)
-            opt = struct('ellipticSolver', [], ...
-                         'relativeTolerance', 1e-3);
-            opt = merge_options(opt, varargin{:});
+            solver = solver@linearSolverAD();
             
-            if isempty(opt.ellipticSolver)
+            % Default options
+            solver.ellipticSolver = [];
+            solver.relativeTolerance = 1e-3;
+            solver.pressureScaling = 1/(200*barsa);
+            
+            solver = merge_options(solver, varargin{:});
+            
+            if isempty(solver.ellipticSolver)
                 solver.ellipticSolver = mldivideSolverAD();
             else
-                assert(isa(opt.ellipticSolver, 'linearSolverAD'));
-                solver.ellipticSolver = opt.ellipticSolver;
+                assert(isa(solver.ellipticSolver, 'linearSolverAD'));
             end
-            % Todo fill in these options
-            solver.relativeTolerance = opt.relativeTolerance;
-            solver.pressureScaling = 1/(200*barsa);
         end
         
         function [result, report] = solveLinearSystem(solver, A, b) %#ok
@@ -181,7 +182,7 @@ classdef CPRSolverAD < linearSolverAD
                 report = struct('IterationsGMRES', its, ...
                                 'FlagGMRES',       fl, ...
                                 'FinalResidual',   relres);
-                if solver.extrareport
+                if solver.extraReport
                     report.ResidualHistory = resvec;
                 end
             end

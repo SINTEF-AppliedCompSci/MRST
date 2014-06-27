@@ -2,20 +2,18 @@ classdef linearSolverAD < handle
     % Base class for a nonlinear solver
    properties
        tolerance
-       maxiterations
-       extrareport
+       maxIterations
+       extraReport
    end
    methods
        function solver = linearSolverAD(varargin)
-           opt = struct('tolerance',     1e-8, ...
-                        'maxiterations', 25, ...
-                        'extrareport',   false);
-
-           opt = merge_options(opt, varargin{:});
+           solver.tolerance     = 1e-8;
+           solver.maxIterations = 25;
+           solver.extraReport   = false;
            
-           solver.tolerance = opt.tolerance;
-           solver.maxiterations = opt.maxiterations;
-           solver.extrareport = opt.extrareport;
+           if numel(varargin)
+              solver = mergeSupportedOptions(solver, varargin{:});
+           end
        end
        
        function [result, report] = solveLinearSystem(solver, A, b) %#ok

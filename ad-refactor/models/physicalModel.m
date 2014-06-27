@@ -71,7 +71,7 @@ classdef physicalModel
             [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
             convergence = model.checkConvergence(problem);
             if ~convergence
-                [dx, linearReport] = solver.solveLinearProblem(problem, model);
+                [dx, ~, linearReport] = solver.solveLinearProblem(problem, model);
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
             else
                 [linearReport, updateReport] = deal(struct());

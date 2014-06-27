@@ -12,14 +12,15 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
    end
    methods
        function solver = multiscaleVolumeSolverAD(coarsegrid, varargin)
-           opt = struct('prolongationType', 'smoothed', ...
-                        'restrictionType',  'controlVolume', ...
-                        'galerkinRestriction', true);
-           opt = merge_options(opt, varargin{:});
+           solver = solver@linearSolverAD();
            
-           solver.prolongationType = opt.prolongationType;
-           solver.restrictionType  = opt.restrictionType;
-           solver.useGalerkinRestriction = opt.galerkinRestriction;
+           % Default options
+           solver.prolongationType = 'smoothed';
+           solver.restrictionType  = 'controlVolume';
+           solver.galerkinRestriction = true;
+           
+           solver = merge_options(solver, varargin{:});
+           
            solver.coarsegrid = coarsegrid;
        end
        

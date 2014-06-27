@@ -11,11 +11,11 @@ classdef AGMGSolverAD < linearSolverAD
        function [result, report] = solveLinearSystem(solver, A, b)
            % Solve the linear system to a given tolerance
            [result, flag, relres, iter, resvec] = agmg(A, b, [],...
-                        solver.tolerance, solver.maxiterations, [], [], 2);
+                        solver.tolerance, solver.maxIterations, [], [], 2);
            report = struct('Converged', flag < 1, ...
                            'RelativeResidual', relres, ...
                            'Iterations',   iter);
-            if solver.extrareport
+            if solver.extraReport
                 report.ResidualHistory = resvec;
             end
        end

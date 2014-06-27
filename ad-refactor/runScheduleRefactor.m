@@ -1,4 +1,4 @@
-function [wellSols, states, reports] = runScheduleRefactor(initState, model, schedule, varargin)
+function [wellSols, states, schedulereport] = runScheduleRefactor(initState, model, schedule, varargin)
 
     opt = struct('Verbose', mrstVerbose,...
                  'linearSolver', []);
@@ -27,11 +27,14 @@ function [wellSols, states, reports] = runScheduleRefactor(initState, model, sch
     if ~isfield(state, 'wellSol')
         state.wellSol = initWellSolLocal(getWell(1), state);
     end
-
+    
+    
+    simtime = zeros(nSteps, 1);
     for i = 1:nSteps
         fprintf('Solving timestep %d of %d at %s\n', i, nSteps, formatTimeRange(tm(i)));
         W = getWell(i);
         timer = tic();
+        
         [state, report] = solver.solveTimestep(state, dt(i), model, 'Wells', W);
         t = toc(timer);
         dispif(vb, 'Completed %d iterations in %2.2f seconds (%2.2fs per iteration)\n', ...
@@ -46,7 +49,15 @@ function [wellSols, states, reports] = runScheduleRefactor(initState, model, sch
         if wantReport
             reports{i} = report;
         end
-        
+    end
+    
+    if wantReport
+        schedulereport = struct();
+        schedulereport.ControlstepReports = reports;
+        schedulereport.ReservoirTime = cumsum(schedule.step.val);
+        schedulereport.Converged  = cellfun(@(x) x.Converged, reports);
+        schedulereport.Iterations = cellfun(@(x) x.Iterations, reports);
+        schedulereport.SimulationTime = simtime;
     end
 end
 %--------------------------------------------------------------------------
