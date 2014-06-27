@@ -6,6 +6,7 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
        restrictionType
        restrictionOperator
        useGalerkinRestriction
+       updateBasis
        basis
        localSolver
        coarsegrid
@@ -18,6 +19,7 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
            solver.prolongationType = 'smoothed';
            solver.restrictionType  = 'controlVolume';
            solver.useGalerkinRestriction = true;
+           solver.updateBasis = false;
            
            solver = merge_options(solver, varargin{:});
            
@@ -70,6 +72,20 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
                end
                disp('Basis constructed!')
                solver.prolongationOperator = I;
+           elseif solver.updateBasis
+               A_basis = A - diag(sum(A, 2));
+               switch solver.prolongationType
+                   case 'smoothed'
+                       % Just redo iterations until we are below increment
+                       % tolerance again
+                       I = iteratedJacobiBasis(A_basis, solver.coarsegrid,...
+                                            'useConstant', true, ...
+                                            'interpolator', solver.prolongationOperator);
+                       solver.basis = I;
+                   otherwise
+                       error('Error!')
+               end
+                solver.prolongationOperator = I;
            end
        end
    end
