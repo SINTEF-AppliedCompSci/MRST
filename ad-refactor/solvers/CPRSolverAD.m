@@ -86,7 +86,13 @@ classdef CPRSolverAD < linearSolverAD
                 % Switch equations for non-elliptic jacobian components with
                 % some other equation that has an elliptic pressure jacobian
                 [r, c] = find(isElliptic(bad, :));
-                replacementInd = accumarray(r,c,[sum(bad), 1], @min);
+                sb = sum(bad);
+                if sb == 1
+                    % Find gets confused for a single element
+                    r = r(:);
+                    c = c(:);
+                end
+                replacementInd = accumarray(r, c, [sb, 1], @min);
                 
                 
                 for i = unique(replacementInd)'
