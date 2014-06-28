@@ -25,13 +25,15 @@ classdef physicalModel
     end
     
     methods
-        function model = physicalModel()
+        function model = physicalModel(varargin)
             model.dpMax = inf;
             model.dsMax = .2;
             model.nonlinearTolerance = 1e-8;
             model.water = false;
             model.gas = false;
             model.oil = false;
+            
+            model = merge_options(model, varargin{:});
         end
         
         function model = setupOperators(model, G, rock, varargin)

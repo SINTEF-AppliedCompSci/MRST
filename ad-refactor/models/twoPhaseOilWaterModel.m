@@ -12,7 +12,7 @@ classdef twoPhaseOilWaterModel < physicalModel
             model.fluid  = fluid;
             model.G   = G;
             
-            %
+            % Todo redo this using merge_options
             model.oil = true;
             model.gas = false;
             model.water = true;
