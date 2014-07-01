@@ -28,7 +28,7 @@ classdef physicalModel
         function model = physicalModel(varargin)
             model.dpMax = inf;
             model.dsMax = .2;
-            model.nonlinearTolerance = 1e-8;
+            model.nonlinearTolerance = 1e-6;
             model.water = false;
             model.gas = false;
             model.oil = false;
@@ -75,12 +75,16 @@ classdef physicalModel
             if ~convergence
                 [dx, ~, linearReport] = solver.solveLinearProblem(problem, model);
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+                failure = any(cellfun(@(d) ~all(isfinite(d)), dx));
             else
+                failure = false;
                 [linearReport, updateReport] = deal(struct());
             end
             report = struct('LinearSolver', linearReport, ...
                             'UpdateState',  updateReport, ...
+                            'Failure',      failure, ...
                             'Converged',    convergence);
         end
     end
 end
+
