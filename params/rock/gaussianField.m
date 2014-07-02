@@ -17,13 +17,13 @@ function p = gaussianField(N, vals, sz, std)
 %          discrete values in the 'x', 'y', and 'z' coordinate directions
 %          respectively.
 %
+%   VALS - Target interval for the values of the random field
+%
 %   SIZE - Sets the size of the convolution kernel. Default value is
 %          [3,3,3]. If SIZE is a scalar,  the size is interpreted as [SIZE
 %          SIZE SIZE].
 %
 %   STD  - Standard deviation used in the Gaussian filter (default: 0.65)
-%
-%   VALS - Target interval for the values of the random field
 %
 % RETURNS:
 %   p - The scalar nx-by-ny-by-nz Gaussian random field
