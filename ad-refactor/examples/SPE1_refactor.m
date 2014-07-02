@@ -23,7 +23,7 @@ fluid = initDeckADIFluid(deck);
 % The case includes gravity
 gravity on
 
-%%
+
 % The initial state is a pressure field that is constant in each layer, a
 % uniform mixture of water (Sw=0.12) and oil (So=0.88) with no initial free
 % gas (Sg=0.0) and a constant dissolved gas/oil ratio ("Rs") throughout the
@@ -69,10 +69,11 @@ scheduleOnestep = schedule;
 scheduleOnestep.step.val = [1*day; sum(scheduleOnestep.step.val)/10];
 scheduleOnestep.step.control = [1; 1];
 
-timestepper = SimpleTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
+% timestepper = SimpleTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
+timestepper = IterationCountTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
 
 nonlinear = nonlinearSolver('timeStepSelector', timestepper, 'verbose', true);
 
-runScheduleRefactor(state, boModel, scheduleOnestep, 'nonlinearSolver', nonlinear);
+[ws, s, reports] = runScheduleRefactor(state, boModel, scheduleOnestep, 'nonlinearSolver', nonlinear);
 
 

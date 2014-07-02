@@ -3,11 +3,11 @@ mrstModule add ad-fi deckformat
 % use new code for wells; currently located at
 % projects/wells_ad-fi
 
-mrstVerbose true
+% mrstVerbose true
 
 % Read and process file.
-filedir = '~/simmatlab/projects/ad-fi_benchmarks/b2-SPE9/';
-% filedir = 'D:/Jobb/ad-fi_benchmarks/b2-SPE9/';
+% filedir = '~/simmatlab/projects/ad-fi_benchmarks/b2-SPE9/';
+filedir = 'D:/Jobb/ad-fi_benchmarks/b2-SPE9/';
 fn    = fullfile(filedir, 'BENCH_SPE9.DATA');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
@@ -50,19 +50,10 @@ system.pscale = 1/(200*barsa);
 schedule.step.control = schedule.step.control(1:10);
 schedule.step.val = schedule.step.val(1:10);
 
-%%
-timer = tic;
-[wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
-t_standard = toc(timer);
 
 
-%%
-for i = 1:numel(schedule.control)
-    W = processWellsLocal(G, rock, schedule.control(i), ...
-                                     'Verbose', false, ...
-                                     'DepthReorder', false);
-    schedule.control(i).W = W;
-end
+schedule = convertDeckScheduleToMRST(G, rock, schedule);
+
 clear boModel
 clear nonlinear
 % clear CPRSolverAD
@@ -73,11 +64,11 @@ boModel = threePhaseBlackOilModel(G, rock, fluid, ...
                                         'dpMax', .2', ...
                                         'dsMax', .05, ...
                                         'disgas', true, ...
-                                        'deck', deck);
+                                        'inputdata', deck);
                                     
 %%
-amgsolver = AGMGSolverAD();
-% amgsolver = mldivideSolverAD();
+% amgsolver = AGMGSolverAD();
+amgsolver = mldivideSolverAD();
 
 
 linsolve = CPRSolverAD('ellipticSolver', amgsolver);
@@ -92,18 +83,11 @@ timer = tic();
 t_class = toc(timer);
 
 %%
-cdims = ceil(G.cartDims./[10 10 5]);
-p = partitionUI(G, cdims);
-% p = partitionMETIS(G, computeTrans(G, rock), prod(cdims));
-CG = generateCoarseGrid(G, p);
-CG = coarsenGeometry(CG);
 
+timestepper = IterationCountTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
+nonlinear = nonlinearSolver('timeStepSelector', timestepper, 'verbose', true);
 
-multiscaleSolver = multiscaleVolumeSolverAD(CG);
-linsolvems = CPRSolverAD('ellipticSolver', multiscaleSolver);
+[ws, s, reports] = runScheduleRefactor(state, boModel, schedule, ...
+    'nonlinearSolver', nonlinear, 'linearSolver', linsolve);
 
-
-timer = tic();
-[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolvems);
-t_ms = toc(timer);
 
