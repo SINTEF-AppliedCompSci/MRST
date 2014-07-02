@@ -27,8 +27,6 @@ classdef threePhaseBlackOilModel < physicalModel
            
             % Max increments
             model.drsMax = inf;
-            model.dpMax  = inf;
-            model.dsMax  = 0.2;
             
             model.useCNVConvergence = true;
             model.toleranceCNV = 1e-7;
