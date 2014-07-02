@@ -22,16 +22,24 @@ classdef physicalModel
         gas
         % Oil phase present
         oil
+        
+        % Input data used to instansiate the model
+        inputdata
     end
     
     methods
-        function model = physicalModel(varargin)
+        function model = physicalModel(G, rock, fluid, varargin) %#ok
             model.dpMax = inf;
             model.dsMax = .2;
             model.nonlinearTolerance = 1e-6;
             model.water = false;
             model.gas = false;
             model.oil = false;
+            model.inputdata = [];
+            
+            % Physical model
+            model.G = G;
+            model.fluid = fluid;
             
             model = merge_options(model, varargin{:});
         end

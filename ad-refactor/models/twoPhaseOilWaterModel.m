@@ -6,20 +6,19 @@ classdef twoPhaseOilWaterModel < physicalModel
     
     methods
         function model = twoPhaseOilWaterModel(G, rock, fluid, varargin)
-            opt = struct('deck',  []);
-            opt = merge_options(opt, varargin{:});
             
-            model.fluid  = fluid;
-            model.G   = G;
+            model = model@physicalModel(G, rock, fluid);
             
-            % Todo redo this using merge_options
+            % This is the model parameters for oil/water
             model.oil = true;
             model.gas = false;
             model.water = true;
             
+            model = merge_options(model, varargin{:});
             
+            % Name and operators
             model.name = 'OilWater_2ph';
-            model = model.setupOperators(G, rock, 'deck', opt.deck);
+            model = model.setupOperators(G, rock, 'deck', model.inputdata);
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

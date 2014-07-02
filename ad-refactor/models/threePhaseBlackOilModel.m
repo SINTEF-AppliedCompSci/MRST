@@ -17,46 +17,46 @@ classdef threePhaseBlackOilModel < physicalModel
     
     methods
         function model = threePhaseBlackOilModel(G, rock, fluid, varargin)
-            opt = struct('deck',                [], ...
-                         'drsMax',              inf, ...
-                         'dpMax',               inf, ...
-                         'dsMax',               .2, ...
-                         'disgas',              false,...
-                         'useCNVConvergence',   true, ...
-                         'toleranceMB',         1e-7, ...
-                         'toleranceCNV' ,       1e-3, ...
-                         'vapoil',              false);
-            opt = merge_options(opt, varargin{:});
             
-            model.vapoil = opt.vapoil;
-            model.disgas = opt.disgas;
-            model.fluid  = fluid;
-            model.G   = G;
+            model = model@physicalModel(G, rock, fluid);
             
-            %
+            % Typical black oil is disgas / dead oil, but all combinations
+            % are supported
+            model.vapoil = false;
+            model.disgas = true;
+           
+            % Max increments
+            model.drsMax = inf;
+            model.dpMax  = inf;
+            model.dsMax  = 0.2;
+            
+            model.useCNVConvergence = true;
+            model.toleranceCNV = 1e-7;
+            model.toleranceMB = 1e-3;
+            
+                        
+            % All phases are present
             model.oil = true;
             model.gas = true;
             model.water = true;
             
-            % Max increments
-            model.drsMax = opt.drsMax;
-            model.dpMax = opt.dpMax;
-            model.dsMax = opt.dsMax;
+            model = merge_options(model, varargin{:});
             
-            model.useCNVConvergence = opt.useCNVConvergence;
-            model.toleranceCNV = opt.toleranceCNV;
-            model.toleranceMB = opt.toleranceMB;
-            
-            if ~isempty(opt.deck)
-                if isfield(opt.deck.RUNSPEC, 'VAPOIL')
-                    model.vapoil = model.vapoil || opt.deck.RUNSPEC.VAPOIL;
-                end
-                if isfield(opt.deck.RUNSPEC, 'DISGAS')
-                    model.disgas = model.disgas || opt.deck.RUNSPEC.DISGAS;
+            d = model.inputdata;
+            if ~isempty(d)
+                if isfield(d, 'RUNSPEC')
+                    if isfield(d, 'VAPOIL')
+                        model.vapoil = model.vapoil || d.RUNSPEC.VAPOIL;
+                    end
+                    if isfield(d.RUNSPEC, 'DISGAS')
+                        model.disgas = model.disgas || d.RUNSPEC.DISGAS;
+                    end
+                else
+                    error('Unknown dataset format!')
                 end
             end
             model.name = 'BlackOil_3ph';
-            model = model.setupOperators(G, rock, 'deck', opt.deck);
+            model = model.setupOperators(G, rock, 'deck', model.inputdata);
         end
         
         function [convergence, values] = checkConvergence(model, problem, varargin)
