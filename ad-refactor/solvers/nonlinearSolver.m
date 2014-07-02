@@ -41,9 +41,13 @@ classdef nonlinearSolver
             
             dt = dT;
             
+            % Number of nonlinear iterations total
             itCount = 0;
+            % Number of ministeps due to cutting 
             ministepNo = 1;
+            % Number of steps
             stepCount = 0;
+            % Number of accepted steps
             acceptCount = 0;
             
             t_local = 0;
@@ -55,7 +59,10 @@ classdef nonlinearSolver
             
             state = state0;
             
+            % Let the step selector know that we are at start of timestep
+            % and what the current driving forces are
             stepsel = solver.timeStepSelector;
+            stepsel.newControlStep(drivingForces);
             while ~done
                 dt = stepsel.pickTimestep(dt, model);
                 
@@ -73,6 +80,8 @@ classdef nonlinearSolver
                 tmp.LocalTime = t_local + dt; 
                 tmp.Converged = converged;
                 tmp.Timestep = dt;
+                tmp.Iterations = its;
+                
                 reports{end+1} = tmp; %#ok 
                 stepsel.storeTimestep(tmp);
                 
@@ -125,4 +134,5 @@ function [state, reports, converged, its] = solveMinistep(solver, model, state, 
         reports{i} = stepReport;
     end
     its = i;
+    reports = reports(~cellfun(@isempty, reports));
 end
