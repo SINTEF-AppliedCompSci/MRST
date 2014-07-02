@@ -19,7 +19,7 @@ classdef SimpleTimeStepSelector < handle
             
             selector = merge_options(selector, varargin{:});
             
-            selector.controlsChanged = true;
+            selector.isStartOfCtrlStep = true;
         end
         
         function reset(selector)
