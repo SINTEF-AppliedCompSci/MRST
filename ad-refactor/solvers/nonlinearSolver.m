@@ -36,54 +36,47 @@ classdef nonlinearSolver
             done = false;
             
             dt = dT;
-            ministepNo = 1;
             
             itCount = 0;
+            ministepNo = 1;
+            
+            t_local = 0;
+            
+            isFinalMinistep = false;
+            state0_inner = state0;
+            
+            reports = {};
+            
+            state = state0;
             while ~done
-                state = state0;
+%                 dt = getTimestep();
                 
-                reports = cell(ministepNo, 1);
-                for iter = 1:ministepNo
-                    % Do a bunch of ministeps
-                    state0_local = state;
-                    
-                    nonlinearReports = cell(solver.maxIterations, 1);
-                    for i = 1:solver.maxIterations
-                        [state, stepReport] = ...
-                            model.stepFunction(state, state0_local, dt, drivingForces, ...
-                                               solver.linearSolver, 'iteration', i);
-                        itCount = itCount + 1;
-                        converged  = stepReport.Converged;
-
-                        if converged
-                            break
-                        end
-                        nonlinearReports{i} = stepReport;
-                    end
-                    if ~converged
-                        break
-                    end
-                    reports{iter} = struct();
-                    reports{iter}.NonlinearReport = nonlinearReports(~cellfun(@isempty, nonlinearReports));
-                    reports{iter}.LocalTime = dt*iter;
-                    % This line does nothing atm
-                    reports{iter}.Converged = converged;
+                if t_local + dt >= dT
+                    isFinalMinistep = true;
+                    dt = dT - t_local;
                 end
-                
+                [state, nonlinearReports, converged, its] = ...
+                        solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
+
+                reports{end+1}.NonlinearReport = nonlinearReports; %#ok
+                reports{end+1}.LocalTime = t_local + dt; %#ok
+                reports{end+1}.Converged = converged; %#ok
+                itCount = itCount + its;
                 
                 if converged
-                    done = true;
-                elseif ministepNo < solver.maxSubsteps
-                    % We didn't converge, but we are still away from the
-                    % maximum number of substeps. Double the amount for the
-                    % next iteration.
+                    t_local = t_local + dt;
+                    state0_inner = state;
+                else
+                    state = state0_inner;
+                    % Beat timestep with a hammer
                     warning('Solver did not converge, cutting timestep')
                     ministepNo = 2*ministepNo;
                     dt = dt/2;
-                else
-                    warning('Solver did not converge')
-                    break
+                    if ministepNo > solver.maxSubsteps
+                        error('Did not find a solution. Reached maximum amount of substeps');
+                    end
                 end
+                done = isFinalMinistep && converged;
             end
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
@@ -95,4 +88,19 @@ classdef nonlinearSolver
             report.StepReports = reports;
         end
     end
+end
+
+function [state, reports, converged, its] = solveMinistep(solver, model, state, state0, dt, drivingForces)
+    reports = cell(solver.maxIterations, 1);
+    for i = 1:solver.maxIterations
+        [state, stepReport] = ...
+            model.stepFunction(state, state0, dt, drivingForces, ...
+                               solver.linearSolver, 'iteration', i);
+        converged  = stepReport.Converged;
+        if converged
+            break
+        end
+        reports{i} = stepReport;
+    end
+    its = i;
 end
