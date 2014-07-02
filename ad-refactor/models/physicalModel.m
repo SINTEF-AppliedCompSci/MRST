@@ -32,9 +32,6 @@ classdef physicalModel
             model.dpMax = inf;
             model.dsMax = .2;
             model.nonlinearTolerance = 1e-6;
-            model.water = false;
-            model.gas = false;
-            model.oil = false;
             model.inputdata = [];
             
             % Physical model
@@ -42,6 +39,12 @@ classdef physicalModel
             model.fluid = fluid;
             
             model = merge_options(model, varargin{:});
+            
+            % Base class does not support any phases
+            model.water = false;
+            model.gas = false;
+            model.oil = false;
+
         end
         
         function model = setupOperators(model, G, rock, varargin)
