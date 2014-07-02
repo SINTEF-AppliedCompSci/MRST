@@ -44,44 +44,22 @@ rs0   = repmat( 226.1966570852417 , [G.cells.num, 1]);
 rv0   = 0; % dry gas
 
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
-schedule = deck.SCHEDULE;
 
-
-%% Initialize schedule and system before solving for all timesteps
-
-
-system = initADISystem(deck, G, rock, fluid, 'cpr', false);
-timer = tic;
-[wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
-time_cpr = toc(timer);
-%%
-
-W = processWellsLocal(G, rock, schedule.control(1), ...
-                                 'Verbose', false, ...
-                                 'DepthReorder', false);
-schedule.control.W = W;
+schedule = convertDeckScheduleToMRST(G, rock, deck);
 
 clear boModel
 clear nonlinear
 
-boModel = threePhaseBlackOilModel(G, rock, fluid, 'deck', deck);
+boModel = threePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
 %%
-mrstModule add coarsegrid
-
-p = partitionUI(G, [3 3 1]);
-
-CG = generateCoarseGrid(G, p);
-CG = coarsenGeometry(CG);
-CG = storeInteractionRegion(CG);
-
-multiscaleSolver = multiscaleVolumeSolverAD(CG);
-linsolve = CPRSolverAD('ellipticSolver', multiscaleSolver);
 
 
-% linsolve = CPRSolverAD();
-% nonlinear = nonlinearSolver();
-% [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
+ellipSolver = mldivideSolverAD();
+linsolve = CPRSolverAD('ellipticSolver', ellipSolver);
+
 
 timer = tic();
 [wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);
 time_ms = toc(timer);
+
+%%
