@@ -63,3 +63,16 @@ timer = tic();
 time_ms = toc(timer);
 
 %%
+
+
+scheduleOnestep = schedule;
+scheduleOnestep.step.val = [1*day; sum(scheduleOnestep.step.val)/10];
+scheduleOnestep.step.control = [1; 1];
+
+timestepper = SimpleTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
+
+nonlinear = nonlinearSolver('timeStepSelector', timestepper, 'verbose', true);
+
+runScheduleRefactor(state, boModel, scheduleOnestep, 'nonlinearSolver', nonlinear);
+
+

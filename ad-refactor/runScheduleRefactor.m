@@ -1,6 +1,7 @@
 function [wellSols, states, schedulereport] = runScheduleRefactor(initState, model, schedule, varargin)
 
     opt = struct('Verbose', mrstVerbose,...
+                 'nonlinearSolver', [], ...
                  'linearSolver', []);
 
     opt = merge_options(opt, varargin{:});
@@ -13,9 +14,16 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
     dispif(vb, '*****************************************************************\n')
     dispif(vb, '********** Starting simulation: %5.0f steps, %5.0f days *********\n', numel(dt), tm(end)/day)
     dispif(vb, '*****************************************************************\n')
-
-    solver = nonlinearSolver('linearSolver', opt.linearSolver);
-
+    
+    solver = opt.nonlinearSolver;
+    if isempty(solver)
+        solver = nonlinearSolver('linearSolver', opt.linearSolver);
+    elseif ~isempty(opt.linearSolver)
+        % We got a nonlinear solver, but we still want to override the
+        % actual linear solver passed to the higher level schedule function
+        % we're currently in
+        solver.linearSolver = opt.linearSolver;
+    end
     nSteps = numel(dt);
 
     [wellSols, states, reports] = deal(cell(nSteps, 1));
