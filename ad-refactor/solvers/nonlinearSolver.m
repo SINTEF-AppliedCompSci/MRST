@@ -4,25 +4,22 @@ classdef nonlinearSolver
         maxSubsteps
         linearSolver
         verbose
+        isAdjoint
     end
     
     methods
-        function solver = nonlinearSolver(varargin)
-            opt = struct('maxIterations', 25, ...
-                         'maxSubsteps',   32, ...
-                         'verbose',       mrstVerbose(), ...
-                         'isAdjoint',     false, ...
-                         'linearSolver',   []);
-            opt = merge_options(opt, varargin{:});
+        function solver = nonlinearSolver(varargin)            
+            solver.maxIterations = 25;
+            solver.maxSubsteps   = 25;
+            solver.verbose       = mrstVerbose();
+            solver.maxSubsteps   = 32;
+            solver.isAdjoint     = false;
+            solver.linearSolver  = [];
             
-            solver.maxIterations = opt.maxIterations;
-            solver.maxSubsteps   = opt.maxSubsteps;
-            solver.verbose     = opt.verbose;
+            solver = merge_options(solver, varargin{:});
             
-            if isempty(opt.linearSolver)
+            if isempty(solver.linearSolver)
                 solver.linearSolver = mldivideSolverAD();
-            else
-                solver.linearSolver = opt.linearSolver;
             end
         end
         
