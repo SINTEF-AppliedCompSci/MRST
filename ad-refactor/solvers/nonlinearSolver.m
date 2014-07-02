@@ -64,7 +64,7 @@ classdef nonlinearSolver
             stepsel = solver.timeStepSelector;
             stepsel.newControlStep(drivingForces);
             while ~done
-                dt = stepsel.pickTimestep(dt, model);
+                dt = stepsel.pickTimestep(dt, model, solver);
                 
                 if t_local + dt >= dT
                     % Ensure that we hit report time

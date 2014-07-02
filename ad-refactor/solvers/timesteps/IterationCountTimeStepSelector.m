@@ -15,7 +15,7 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
             selector = merge_options(selector, varargin{:});
         end
         
-        function dt = computeTimestep(selector, dt)
+        function dt = computeTimestep(selector, dt, model, solver)
             h = selector.history;
             historyLength = numel(h);
             dt0 = dt;

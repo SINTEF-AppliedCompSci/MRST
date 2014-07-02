@@ -35,8 +35,8 @@ classdef SimpleTimeStepSelector < handle
             end
         end
         
-        function dt = pickTimestep(selector, dt, model)
-            dt = selector.computeTimestep(dt);
+        function dt = pickTimestep(selector, dt, model, solver)
+            dt = selector.computeTimestep(dt, model, solver);
             
             % Honor limits if selection is far off
             dt = min(selector.maxTimestep, dt);
@@ -49,7 +49,7 @@ classdef SimpleTimeStepSelector < handle
             selector.isStartOfCtrlStep = true;
         end
         
-        function dt = computeTimestep(selector, dt) %#ok
+        function dt = computeTimestep(selector, dt, model, solver) %#ok
             % Trivial case
         end
     end
