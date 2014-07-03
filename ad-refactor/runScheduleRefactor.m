@@ -38,18 +38,29 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
     
     
     simtime = zeros(nSteps, 1);
+    prevControl = nan;
     for i = 1:nSteps
         fprintf('Solving timestep %d of %d at %s\n', i, nSteps, formatTimeRange(tm(i)));
-        W = getWell(i);
+        currControl = schedule.step.control(i);
+        if prevControl ~= currControl 
+            W = schedule.control(currControl).W;
+            prevControl = currControl;
+        end
+
         timer = tic();
         
-        [state, report] = solver.solveTimestep(state, dt(i), model, 'Wells', W);
+        
+        state0 = state;
+        state0.wellSol = initWellSolLocal(W, state);
+        
+        [state, report] = solver.solveTimestep(state0, dt(i), model, 'Wells', W);
         t = toc(timer);
         dispif(vb, 'Completed %d iterations in %2.2f seconds (%2.2fs per iteration)\n', ...
                     report.Iterations, t, t/report.Iterations);
         
         wellSols{i} = state.wellSol;
         
+        W = updateSwitchedControls(state.wellSol, W);
         if wantStates
             states{i} = state;
         end
