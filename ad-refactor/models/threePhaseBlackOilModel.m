@@ -13,6 +13,11 @@ classdef threePhaseBlackOilModel < physicalModel
         useCNVConvergence
         toleranceCNV;
         toleranceMB;
+        toleranceWellBHP;
+        toleranceWellRate;
+        
+        % Update wells
+        
     end
     
     methods
@@ -31,7 +36,8 @@ classdef threePhaseBlackOilModel < physicalModel
             model.useCNVConvergence = true;
             model.toleranceCNV = 1e-7;
             model.toleranceMB = 1e-3;
-            
+            model.toleranceWellBHP = 1*barsa;
+            model.toleranceWellRate = 1/day;
                         
             % All phases are present
             model.oil = true;
@@ -60,13 +66,16 @@ classdef threePhaseBlackOilModel < physicalModel
         function [convergence, values] = checkConvergence(model, problem, varargin)
             if model.useCNVConvergence
                 % Use convergence model similar to commercial simulator
-                [convergence, values] = CNV_MBConvergence(model, problem);
+                [conv_cells, v_cells] = CNV_MBConvergence(model, problem);
+                [conv_wells, v_wells] = checkWellConvergence(model, problem);
+                
+                convergence = all(conv_cells) && all(conv_wells);
+                values = [v_cells, v_wells];
             else
                 % Use strict tolerances on the residual without any 
                 % fingerspitzengefuhlen by calling the parent class
                 [convergence, values] = checkConvergence@physicalModel(model, problem, varargin{:});
-            end
-            
+            end            
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
