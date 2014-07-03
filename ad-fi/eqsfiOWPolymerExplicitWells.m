@@ -92,7 +92,7 @@ b = 1./(1-cbar+cbar./a);
 
 muWMult = b.*f.muWMult(c).^mixpar;
 
-permRed = 1 + ((f.rrf-1)./f.adsMax).*f.ads(max(c, cmax));
+permRed = 1 + ((f.rrf-1)./f.adsMax).*effads(c, cmax, f);
 muWMult  = muWMult.*permRed;
 
 % polymer injection well:
