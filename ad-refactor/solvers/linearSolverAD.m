@@ -4,13 +4,15 @@ classdef linearSolverAD < handle
        tolerance
        maxIterations
        extraReport
+       
+       verbose
    end
    methods
        function solver = linearSolverAD(varargin)
            solver.tolerance     = 1e-8;
            solver.maxIterations = 25;
            solver.extraReport   = false;
-           
+           solver.verbose       = mrstVerbose();
            if numel(varargin)
               solver = mergeSupportedOptions(solver, varargin{:});
            end
