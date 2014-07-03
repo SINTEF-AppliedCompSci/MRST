@@ -34,8 +34,8 @@ classdef threePhaseBlackOilModel < physicalModel
             model.drsMax = inf;
             
             model.useCNVConvergence = true;
-            model.toleranceCNV = 1e-7;
-            model.toleranceMB = 1e-3;
+            model.toleranceCNV = 1e-3;
+            model.toleranceMB = 1e-7;
             model.toleranceWellBHP = 1*barsa;
             model.toleranceWellRate = 1/day;
                         
