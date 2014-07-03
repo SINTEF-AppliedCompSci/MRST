@@ -249,6 +249,7 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
      
     
     problem = linearProblem(eqs, types, names, primaryVars, state, dt);
+    problem.iterationNo = opt.iteration;
 end
 %--------------------------------------------------------------------------
 function [st1, st2, st3] = getCellStatus(state, disgas, vapoil)

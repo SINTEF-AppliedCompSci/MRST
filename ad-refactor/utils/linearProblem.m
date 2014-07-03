@@ -9,6 +9,7 @@ classdef linearProblem
         b
         state
         dt
+        iterationNo
     end
     
     methods
@@ -20,6 +21,7 @@ classdef linearProblem
             problem.A = [];
             problem.b = [];
             problem.dt = dt;
+            iterationNo = nan;
             
             problem.state = state;
         end
