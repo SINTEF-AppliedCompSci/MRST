@@ -47,8 +47,8 @@ system.stepOptions.dsMax  = .05;
 system.nonlinear.cprRelTol = 1e-3;
 system.pscale = 1/(200*barsa);
 
-schedule.step.control = schedule.step.control(1:10);
-schedule.step.val = schedule.step.val(1:10);
+% schedule.step.control = schedule.step.control(1:10);
+% schedule.step.val = schedule.step.val(1:10);
 
 
 
@@ -91,3 +91,13 @@ nonlinear = nonlinearSolver('timeStepSelector', timestepper, 'verbose', true);
     'nonlinearSolver', nonlinear, 'linearSolver', linsolve);
 
 
+%%
+
+tmp = [];
+for i = 1:numel(reports)
+    cr = reports(i).ControlstepReports;
+    for j = 1:numel(cr)
+        tmp = horzcat(tmp, cellfun(@(x) x.Iterations, cr{j}.StepReports));
+    end
+end
+plot(tmp)
