@@ -102,6 +102,7 @@ classdef nonlinearSolver
                     if ministepNo > solver.maxSubsteps
                         error('Did not find a solution. Reached maximum amount of substeps');
                     end
+                    isFinalMinistep = false;
                 end
                 done = isFinalMinistep && converged;
             end
