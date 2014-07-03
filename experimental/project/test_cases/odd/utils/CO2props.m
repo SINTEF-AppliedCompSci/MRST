@@ -2,7 +2,7 @@ function obj = CO2props(varargin); %rhofile, hfile, noassert)
 
   opt.rhofile              = 'rho_huge';
   opt.hfile                = 'h_small';
-  opt.assert               = 'true';
+  opt.assert               = true;
   opt.sharp_phase_boundary = true;
   opt = merge_options(opt, varargin{:});
     
