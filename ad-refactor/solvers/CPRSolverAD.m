@@ -45,6 +45,17 @@ classdef CPRSolverAD < linearSolverAD
             nCell = problem.getEquationVarNum(cellIndex(1));
             nP = numel(problem);
             
+
+            
+                        
+            % Get and apply scaling
+            eqs = problem.equations;
+            scale = getScaling(problem, model);
+            for eqn = 1:cellEqNo
+                eqs{eqn} = eqs{eqn}.*scale(eqn);
+            end
+            problem.equations = eqs;
+            
             % Eliminate non-cell variables (well equations etc)
             notCellIndex = find(~isCell);
             
@@ -54,16 +65,7 @@ classdef CPRSolverAD < linearSolverAD
             for i = 1:numel(notCellIndex)
                 [problem, eliminated{i}] = problem.eliminateVariable(elimNames{i});
             end
-
-            
             eqs = problem.equations;
-                        
-            % Get and apply scaling
-            scale = getScaling(problem, model);
-            for eqn = 1:cellEqNo
-                eqs{eqn} = eqs{eqn}.*scale(eqn);
-            end
-            
             
             isElliptic = false(nCell, cellEqNo);
             for i = 1:cellEqNo
@@ -166,7 +168,7 @@ classdef CPRSolverAD < linearSolverAD
             % Clean up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
             
-            dispif(mrstVerbose(), 'GMRES converged in %d iterations\n', its(2));
+            dispif(solver.verbose, 'GMRES converged in %d iterations\n', its(2));
             dxCell = solver.storeIncrements(problem, cprSol);
             
             % Put the recovered variables into place
