@@ -106,8 +106,8 @@ classdef nonlinearSolver
                 done = isFinalMinistep && converged;
             end
             dispif(solver.verbose, ...
-                'Solved timestep with %d accepted ministeps (%d rejected)\n',...
-                acceptCount, stepCount - acceptCount);
+                'Solved timestep with %d accepted ministeps (%d rejected, %d total iterations)\n',...
+                acceptCount, stepCount - acceptCount, itCount);
             
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
