@@ -73,8 +73,10 @@ function [converged, values] = CNV_MBConvergence(model, problem)
     values = [CNV, MB];
     
     if mrstVerbose()
-        fprintf('CNVO\t\tCNVW\t\tCNVG\t\tMBO\t\tMBW\t\tMBG\n');
-        fprintf('%f\t', values);
+        if problem.iterationNo == 1
+            fprintf('CNVO\t\tCNVW\t\tCNVG\t\tMBO\t\tMBW\t\tMBG\n');
+        end
+        fprintf('%2.2e\t', values);
         fprintf('\n')
     end
 end
