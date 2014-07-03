@@ -1,17 +1,21 @@
 classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
     properties
         targetIterationCount
-        maxRelativeAdjustment
-        minRelativeAdjustment
+        
+        useLinearization
+        adjustmentFactor
     end
     methods
         function selector = IterationCountTimeStepSelector(varargin)
             selector = selector@SimpleTimeStepSelector();
             
-            selector.maxRelativeAdjustment = 2;
-            selector.minRelativeAdjustment = .5;
+            selector.useLinearization = true;
             
-            selector.targetIterationCount = 10;
+            selector.lowerTargetIterationCount = 5;
+            selector.upperTargetIterationCount = 10;
+            
+            selector.adjustmentFactor = 2;
+            
             selector = merge_options(selector, varargin{:});
         end
         
@@ -23,7 +27,8 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
             
             if historyLength > 0
                 if historyLength > 1 && ...
-                   h(end).Iterations > selector.targetIterationCount
+                   h(end).Iterations > selector.targetIterationCount && ...
+                   selector.useLinearization
                     % We have a bunch of datapoints for iteration counts,
                     % use this for a finite difference estimation
                     dt_1 = h(end).Timestep;
@@ -40,16 +45,19 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
                     dt_new = dt_1 + (selector.targetIterationCount - F_1)./dFdt;
                 end
 
-                if historyLength == 1 || isinf(dt_new) || dt_new < 0;
+                if historyLength == 1 || isinf(dt_new) || ...
+                        dt_new < 0 || ~selector.useLinearization;
                     % We either do not have enough data to estimate
                     % convergence rates or we got a bad timestep from
                     % difference approximation
                     prev = h(end).Iterations;
                     dt_prev = h(end).Timestep;
-                    if prev > selector.targetIterationCount
-                        dt_new = dt_prev/2;
-                    elseif prev < selector.targetIterationCount
-                        dt_new = 2*dt_prev;
+                    
+                    sf = selector.adjustmentFactor;
+                    if prev > selector.upperTargetIterationCount
+                        dt_new = dt_prev/sf;
+                    elseif prev < selector.lowerTargetIterationCount
+                        dt_new = sf*dt_prev;
                     end
                 end
             else
@@ -58,16 +66,7 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
                 % on the next pass.
             end
             
-            change = dt_new/dt;
-            change = min(change, selector.maxRelativeAdjustment);
-            change = max(change, selector.minRelativeAdjustment);
-
-            dt_new = dt*change;
-            
-            % Of course, if this timestep is longer than what the
-            % non-linear solver wants, who are we to argue...
-            dt = min(dt, dt_new);
-            dt = max(dt, 0.001*day);
+            dt = dt_new;
 
             if selector.verbose && dt ~= dt0
                 if historyLength

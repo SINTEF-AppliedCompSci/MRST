@@ -1,23 +1,18 @@
 classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
     properties
         targetIterationCount
-        maxRelativeAdjustment
-        minRelativeAdjustment
     end
     methods
         function selector = GustafssonLikeStepSelector(varargin)
             selector = selector@SimpleTimeStepSelector();
             
             selector.targetIterationCount = 5;
-            
-            selector.maxRelativeAdjustment = 2;
-            selector.minRelativeAdjustment = .5;
-            
+                        
             selector = merge_options(selector, varargin{:});
         end
         
         function dt = computeTimestep(selector, dt, model, solver)
-            dt0 = dt;
+            dt_suggested = dt;
             
             hist = selector.history;
             nHist = numel(hist);
@@ -33,6 +28,7 @@ classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
             else
                 restart = true;
             end
+            restart = restart | selector.stepLimitedByHardLimits;
             
             tol = selector.targetIterationCount/solver.maxIterations;
 
@@ -61,19 +57,12 @@ classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
                 end
             end
             
-            change = dt_new/dt;
-            change = min(change, selector.maxRelativeAdjustment);
-            change = max(change, selector.minRelativeAdjustment);
-
-            dt_new = dt*change;
+            dt = dt_new;
             
-            dt = min(dt, dt_new);
-            dt = max(dt, 0.001*day);
-            
-            if selector.verbose && dt0 ~= dt
+            if selector.verbose && dt_suggested ~= dt
                 fprintf('Prev # its: %d -> ', hist(end).Iterations)
                 fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
-                    dt/dt0, formatTimeRange(dt0), formatTimeRange(dt));
+                    dt/dt_suggested, formatTimeRange(dt_suggested), formatTimeRange(dt));
             end
         end
     end
