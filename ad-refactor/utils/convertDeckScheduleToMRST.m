@@ -1,4 +1,8 @@
-function scheduleMRST = convertDeckScheduleToMRST(G, rock, scheduleDeck)
+function scheduleMRST = convertDeckScheduleToMRST(G, rock, scheduleDeck, varargin)
+    opt = struct('StepLimit', inf);
+    opt = merge_options(opt, varargin{:});
+
+
     if isfield(scheduleDeck, 'RUNSPEC') &&...
        isfield(scheduleDeck, 'SCHEDULE')
        % Support passing deck directly
@@ -13,5 +17,10 @@ function scheduleMRST = convertDeckScheduleToMRST(G, rock, scheduleDeck)
     for i = 1:nc
         scheduleMRST.control(i).W = ...
             processWellsLocal(G, rock, scheduleDeck.control(i));
+    end
+    
+    if ~isinf(opt.StepLimit)
+        scheduleMRST.step.val     = scheduleMRST.step.val(1:opt.StepLimit);
+        scheduleMRST.step.control = scheduleMRST.step.control(1:opt.StepLimit);
     end
 end
