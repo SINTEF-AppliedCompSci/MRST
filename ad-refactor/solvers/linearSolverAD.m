@@ -13,9 +13,7 @@ classdef linearSolverAD < handle
            solver.maxIterations = 25;
            solver.extraReport   = false;
            solver.verbose       = mrstVerbose();
-           if numel(varargin)
-              solver = mergeSupportedOptions(solver, varargin{:});
-           end
+           solver = merge_options(solver, varargin{:});
        end
        
        function [result, report] = solveLinearSystem(solver, A, b) %#ok
