@@ -15,7 +15,7 @@ classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
             hist = selector.history;
             nHist = numel(hist);
             
-            if nHist == 0
+            if nHist == 0 || ~hist(end).Converged
                 return
             end
             
@@ -33,26 +33,12 @@ classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
             le1 = hist(end).Iterations/solver.maxIterations;
             dt1 = hist(end).Timestep;
             
-            if hist(end).Converged
-                if restart
-                    dt_new = (tol/le1)*dt;
-                else
-                    le0 = hist(end-1).Iterations/solver.maxIterations;
-                    dt0 = hist(end-1).Timestep;
-                    dt_new = (dt1/dt0)*(tol*le0/le1^2)*dt; 
-                end
+            if restart
+                dt_new = (tol/le1)*dt;
             else
-                if nHist > 1 && ~hist(end-1).Converged
-                    % Repeated rejections, bring out the big guns. Probably
-                    % not correct for the simple "error" estimation used
-                    % here based on iterations
-                    le0 = hist(end-1).Iterations/solver.maxIterations;
-                    dt0 = hist(end-1).Timestep;
-                    p = log(le1/le0)/log(dt1/dt0);
-                    dt_new = (tol/le1)^(1/p)*dt;
-                else
-                    dt_new = (tol/le1)*dt;
-                end
+                le0 = hist(end-1).Iterations/solver.maxIterations;
+                dt0 = hist(end-1).Timestep;
+                dt_new = (dt1/dt0)*(tol*le0/le1^2)*dt; 
             end
             
             dt = dt_new;

@@ -25,6 +25,11 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
             dt0 = dt;
             dt_new = dt;
             
+            if ~h(end).Converged
+                % Non-linear solver handles this case
+                return
+            end
+            
             if historyLength > 0
                 if historyLength > 1 && ...
                    h(end).Iterations > selector.targetIterationCount && ...
