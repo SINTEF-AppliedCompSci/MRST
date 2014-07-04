@@ -1,4 +1,4 @@
-classdef nonlinearSolver
+classdef nonlinearSolver < handle
     properties
         maxIterations
         maxSubsteps
@@ -6,6 +6,12 @@ classdef nonlinearSolver
         verbose
         isAdjoint
         timeStepSelector
+        
+        % Related to stabilization of newton steps
+        relaxationParameter
+        relaxationType
+        previousIncrement
+        useRelaxation
     end
     
     methods
@@ -15,6 +21,10 @@ classdef nonlinearSolver
             solver.maxSubsteps   = 32;
             solver.isAdjoint     = false;
             solver.linearSolver  = [];
+            
+            solver.relaxationParameter = 1;
+            solver.relaxationType = 'dampen';
+            solver.useRelaxation = true;
             
             solver = merge_options(solver, varargin{:});
             
@@ -119,21 +129,68 @@ classdef nonlinearSolver
             % arrays as repeated structs.
             report.StepReports = reports;
         end
+        
+        function dx = stabilizeNewtonIncrements(solver, problem, dx)
+            dx_prev = solver.previousIncrement;
+            
+            w = solver.relaxationParameter;
+            if w == 1
+                return
+            end
+            
+            switch(lower(solver.relaxationType))
+                case 'dampen'
+                    for i = 1:numel(dx)
+                        dx{i} = dx{i}*w;
+                    end
+                case 'sor'
+                    if isempty(dx_prev)
+                        return
+                    end
+                    for i = 1:numel(dx)
+                        dx{i} = dx{i}*w + (1-w)*dx_prev{i};
+                    end
+                case 'none'
+                    
+                otherwise
+                    error('Unknown relaxationType: Valid options are ''dampen'', ''none'' or ''sor''');
+            end
+            solver.previousIncrement = dx;
+        end
     end
 end
 
 function [state, reports, converged, its] = solveMinistep(solver, model, state, state0, dt, drivingForces)
     reports = cell(solver.maxIterations, 1);
+    omega0 = solver.relaxationParameter;
+    
+    r = [];
     for i = 1:solver.maxIterations
         [state, stepReport] = ...
             model.stepFunction(state, state0, dt, drivingForces, ...
-                               solver.linearSolver, 'iteration', i);
+                               solver.linearSolver, solver, 'iteration', i);
         converged  = stepReport.Converged;
         if converged
             break
         end
         reports{i} = stepReport;
+        
+        
+        if i > 1 && solver.useRelaxation
+            % Check relative improvement
+            improvement = (r_prev - stepReport.Residuals)./r_prev;
+            % Remove NaN / inf due to converged / not active vars
+            improvement = improvement(isfinite(improvement));
+            r = [r; sum(improvement)]; %#ok
+            if i > 3 && sum(sign(r(end-2:end))) > 0
+                solver.relaxationParameter = max(solver.relaxationParameter - 0.1, .5);
+            else
+                solver.relaxationParameter = min(solver.relaxationParameter + 0.1, 1);
+            end
+        end
+        r_prev = stepReport.Residuals;
     end
     its = i;
     reports = reports(~cellfun(@isempty, reports));
+    solver.relaxationParameter = omega0;
 end

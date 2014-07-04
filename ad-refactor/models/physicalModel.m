@@ -79,12 +79,21 @@ classdef physicalModel
             end
         end
         
-        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, solver, varargin)
+        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, varargin)
             % Make a single linearized timestep
             [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
-            convergence = model.checkConvergence(problem);
+            [convergence, values] = model.checkConvergence(problem);
+            
             if ~convergence
-                [dx, ~, linearReport] = solver.solveLinearProblem(problem, model);
+                % Get increments for Newton solver
+                [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
+                
+                % Let the non-linear solver decide what to do with the
+                % increments to get the best convergence
+                dx = nonlinsolve.stabilizeNewtonIncrements(problem, dx);
+                
+                % Finally update the state. The physical model knows which
+                % properties are actually physical.
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
                 failure = any(cellfun(@(d) ~all(isfinite(d)), dx));
             else
@@ -94,7 +103,8 @@ classdef physicalModel
             report = struct('LinearSolver', linearReport, ...
                             'UpdateState',  updateReport, ...
                             'Failure',      failure, ...
-                            'Converged',    convergence);
+                            'Converged',    convergence, ...
+                            'Residuals',    values);
         end
     end
 end

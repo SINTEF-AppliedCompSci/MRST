@@ -12,8 +12,6 @@ classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
         end
         
         function dt = computeTimestep(selector, dt, model, solver)
-            dt_suggested = dt;
-            
             hist = selector.history;
             nHist = numel(hist);
             
@@ -59,11 +57,6 @@ classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
             
             dt = dt_new;
             
-            if selector.verbose && dt_suggested ~= dt
-                fprintf('Prev # its: %d -> ', hist(end).Iterations)
-                fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
-                    dt/dt_suggested, formatTimeRange(dt_suggested), formatTimeRange(dt));
-            end
         end
     end
 end

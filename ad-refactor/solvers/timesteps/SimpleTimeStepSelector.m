@@ -45,6 +45,7 @@ classdef SimpleTimeStepSelector < handle
         end
         
         function dt = pickTimestep(selector, dt, model, solver)
+            dt0 = dt;
             dt_new = selector.computeTimestep(dt, model, solver);
             
             % Ensure that step does not change too much
@@ -58,6 +59,12 @@ classdef SimpleTimeStepSelector < handle
             dt = min(selector.maxTimestep, dt);
             dt = max(selector.minTimestep, dt);
             
+            if selector.verbose && dt_new ~= dt
+                fprintf('Prev # its: %d -> ', selector.history(end).Iterations)
+                fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
+                    dt/dt0, formatTimeRange(dt0), formatTimeRange(dt));
+            end
+
             if dt ~= dt_new
                 selector.stepLimitedByHardLimits = true;
             else

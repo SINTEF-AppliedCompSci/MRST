@@ -36,11 +36,17 @@ classdef linearProblem
            end
         end
         
+        function problem = clearSystem(problem)
+            problem.A = [];
+            problem.b = [];
+        end
+        
         function [A, b] = getLinearSystem(problem)
             problem = problem.assembleSystem();
             A = problem.A;
             b = problem.b;
         end
+        
         
         %%%%%  Overloaded functions  %%%%%
         function values = norm(problem, varargin)

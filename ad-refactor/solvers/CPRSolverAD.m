@@ -57,6 +57,8 @@ classdef CPRSolverAD < linearSolverAD
             problem.equations = eqs;
             
             % Eliminate non-cell variables (well equations etc)
+            problem = problem.clearSystem();
+            
             notCellIndex = find(~isCell);
             
             eliminated = cell(numel(notCellIndex), 1);
@@ -159,7 +161,8 @@ classdef CPRSolverAD < linearSolverAD
             ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
 
             prec = @(r) applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
-            [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance, 40, prec);
+            [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
+                                                min(solver.maxIterations, size(A, 1)), prec);
             
             % Undo pressure scaling
             if solver.pressureScaling ~= 1;
@@ -168,7 +171,7 @@ classdef CPRSolverAD < linearSolverAD
             % Clean up elliptic solver
             solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
             
-            dispif(solver.verbose, 'GMRES converged in %d iterations\n', its(2));
+            %dispif(solver.verbose, 'GMRES converged in %d iterations\n', its(2));
             dxCell = solver.storeIncrements(problem, cprSol);
             
             % Put the recovered variables into place
