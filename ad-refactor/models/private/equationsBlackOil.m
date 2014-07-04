@@ -129,7 +129,10 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
     % water upstream-index
     upc  = (double(dpW)>=0);
     bWvW = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
-
+    if any(bW < 0)
+        warning('Negative water compressibility present!')
+    end
+    
     % OIL PROPS
     if disgas
         bO  = f.bO(p, rs, ~st1);
@@ -137,6 +140,9 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
     else
         bO  = f.bO(p);
         muO = f.muO(p);
+    end
+    if any(bO < 0)
+        warning('Negative oil compressibility present!')
     end
     rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
     rhoOf  = s.faceAvg(rhoO);
@@ -154,6 +160,9 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
     else
         bG  = f.bG(p);
         muG = f.muG(p);
+    end
+    if any(bG < 0)
+        warning('Negative gas compressibility present!')
     end
     rhoG   = bG.*(rv*f.rhoOS + f.rhoGS);
     rhoGf  = s.faceAvg(rhoG);
