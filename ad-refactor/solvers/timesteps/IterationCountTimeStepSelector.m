@@ -4,6 +4,9 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
         
         useLinearization
         adjustmentFactor
+        
+        lowerTargetIterationCount
+        upperTargetIterationCount
     end
     methods
         function selector = IterationCountTimeStepSelector(varargin)
@@ -13,6 +16,7 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
             
             selector.lowerTargetIterationCount = 5;
             selector.upperTargetIterationCount = 10;
+            selector.targetIterationCount = 5;
             
             selector.adjustmentFactor = 2;
             
