@@ -50,10 +50,10 @@ classdef threePhaseBlackOilModel < physicalModel
             if ~isempty(d)
                 if isfield(d, 'RUNSPEC')
                     if isfield(d, 'VAPOIL')
-                        model.vapoil = model.vapoil || d.RUNSPEC.VAPOIL;
+                        model.vapoil = model.vapoil && d.RUNSPEC.VAPOIL;
                     end
                     if isfield(d.RUNSPEC, 'DISGAS')
-                        model.disgas = model.disgas || d.RUNSPEC.DISGAS;
+                        model.disgas = model.disgas && d.RUNSPEC.DISGAS;
                     end
                 else
                     error('Unknown dataset format!')
