@@ -103,6 +103,8 @@ sw(ix) = 0;
 rs(gasPresent) = rsSat(gasPresent);
 rv(oilPresent) = rvSat(oilPresent);
 
+% Update undersatured r-values
+rs(~gasPresent) = min(rsSat(~gasPresent), rs(~gasPresent));
 
 % Update state ------------------------------------------------------------
 state.pressure = p;
