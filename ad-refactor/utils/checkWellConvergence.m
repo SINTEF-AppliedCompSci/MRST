@@ -1,11 +1,19 @@
 function [convergence, values] = checkWellConvergence(model, problem)
-    ratevals = problem.equations(problem.indexOfType('perf'));
+    isperf = problem.indexOfType('perf');
+    iswell = problem.indexOfType('well');
     
-    bhpvals = problem.equations(problem.indexOfType('well'));
     
-    convergence = [cellfun(@(x) all(double(x) < model.toleranceWellRate), ratevals), ...
-                   cellfun(@(x) all(double(x) < model.toleranceWellBHP), bhpvals)];
-               
+    ratevals = problem.equations(isperf);
+    bhpvals = problem.equations(iswell);
+
     values = [cellfun(@(x) norm(double(x), inf), ratevals), ...
-            cellfun(@(x) norm(double(x), inf), bhpvals)];
+              cellfun(@(x) norm(double(x), inf), bhpvals)];
+    
+    tmp = find(isperf | iswell);
+    isperf = isperf(tmp);
+    iswell = iswell(tmp);
+    
+    convergence = false(size(tmp));
+    convergence(isperf) = values(isperf) < model.toleranceWellRate;
+    convergence(iswell) = values(iswell) < model.toleranceWellBHP;
 end
