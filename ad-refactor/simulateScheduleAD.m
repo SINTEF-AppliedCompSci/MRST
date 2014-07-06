@@ -36,7 +36,7 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
         state.wellSol = initWellSolLocal(getWell(1), state);
     end
     
-    
+    failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
     for i = 1:nSteps
@@ -55,6 +55,12 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
         
         [state, report] = solver.solveTimestep(state0, dt(i), model, 'Wells', W);
         t = toc(timer);
+        
+        if ~report.Converged
+            warning('Nonlinear solver aborted, returning incomplete results!');
+            failure = true;
+            break;
+        end
         dispif(vb, 'Completed %d iterations in %2.2f seconds (%2.2fs per iteration)\n', ...
                     report.Iterations, t, t/report.Iterations);
         
@@ -71,12 +77,15 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
     end
     
     if wantReport
+        reports = reports(~cellfun(@isempty, reports));
+        
         schedulereport = struct();
         schedulereport.ControlstepReports = reports;
         schedulereport.ReservoirTime = cumsum(schedule.step.val);
         schedulereport.Converged  = cellfun(@(x) x.Converged, reports);
         schedulereport.Iterations = cellfun(@(x) x.Iterations, reports);
         schedulereport.SimulationTime = simtime;
+        schedulereport.Failure = failure;
     end
 end
 %--------------------------------------------------------------------------

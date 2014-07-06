@@ -12,6 +12,9 @@ classdef NonLinearSolver < handle
         relaxationType
         previousIncrement
         useRelaxation
+        
+        % Strictness
+        errorOnFailure
     end
     
     methods
@@ -25,6 +28,8 @@ classdef NonLinearSolver < handle
             solver.relaxationParameter = 1;
             solver.relaxationType = 'dampen';
             solver.useRelaxation = false;
+            
+            solver.errorOnFailure = true;
             
             solver = merge_options(solver, varargin{:});
             
@@ -110,7 +115,14 @@ classdef NonLinearSolver < handle
                     ministepNo = 2*ministepNo;
                     dt = dt/2;
                     if ministepNo > solver.maxSubsteps
-                        error('Did not find a solution. Reached maximum amount of substeps');
+                        msg = 'Did not find a solution. Reached maximum amount of substeps';
+                        if solver.errorOnFailure
+                            error(msg);
+                        else
+                            warning('Did not find a solution. Reached maximum amount of substeps');
+                            converged = false;
+                            break;
+                        end
                     end
                     isFinalMinistep = false;
                 end
