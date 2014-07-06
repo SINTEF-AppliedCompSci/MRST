@@ -1,0 +1,13 @@
+mrstModule add ad-unittest
+
+%% Run SPE 1
+tests = matlab.unittest.TestSuite.fromClass(?TestSPE1);
+result_spe1 = run(tests);
+
+%% Run SPE 9
+tests = matlab.unittest.TestSuite.fromClass(?TestSPE9);
+result_spe9 = run(tests);
+
+%% Run oil/water test
+tests = matlab.unittest.TestSuite.fromClass(?TestSimpleOW);
+result_ow = run(tests);
