@@ -221,7 +221,7 @@ function scale = getScaling(problem, model)
     
     scale = ones(numel(problem), 1);
     
-    isBO = isa(model, 'threePhaseBlackOilModel');
+    isBO = isa(model, 'ThreePhaseBlackOilModel');
     
     if isBO && model.disgas
         rs = fluid.rsSat(p);
