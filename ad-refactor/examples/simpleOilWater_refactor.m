@@ -72,7 +72,7 @@ clear nonlinear
 
 % multiscaleSolver = multiscaleVolumeSolverAD(CG);
 
-owModel = twoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
+owModel = TwoPhaseOilWaterModel(G, rock, fluid, 'deck', deck);
 % linsolve = CPRSolverAD('ellipticSolver', multiscaleSolver);
 linsolve = CPRSolverAD();
 % linsolve = mldivideSolverAD();
@@ -80,4 +80,4 @@ linsolve = CPRSolverAD();
 % [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
 
-[wellSols, states] = runScheduleRefactor(state, owModel, schedule, 'linearSolver', linsolve);
+[wellSols, states] = simulateScheduleAD(state, owModel, schedule, 'linearSolver', linsolve);

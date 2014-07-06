@@ -16,7 +16,7 @@ classdef CPRSolverAD < LinearSolverAD
             solver = merge_options(solver, varargin{:});
             
             if isempty(solver.ellipticSolver)
-                solver.ellipticSolver = mldivideSolverAD();
+                solver.ellipticSolver = BackslashSolverAD();
             else
                 assert(isa(solver.ellipticSolver, 'LinearSolverAD'));
             end

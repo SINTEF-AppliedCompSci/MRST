@@ -2,7 +2,7 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
 
     opt = struct('Verbose', mrstVerbose,...
                  'NonLinearSolver', [], ...
-                 'linearSolver', []);
+                 'LinearSolver', []);
 
     opt = merge_options(opt, varargin{:});
 
@@ -17,12 +17,12 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
     
     solver = opt.NonLinearSolver;
     if isempty(solver)
-        solver = NonLinearSolver('linearSolver', opt.linearSolver);
-    elseif ~isempty(opt.linearSolver)
+        solver = NonLinearSolver('linearSolver', opt.LinearSolver);
+    elseif ~isempty(opt.LinearSolver)
         % We got a nonlinear solver, but we still want to override the
         % actual linear solver passed to the higher level schedule function
         % we're currently in
-        solver.linearSolver = opt.linearSolver;
+        solver.LinearSolver = opt.LinearSolver;
     end
     nSteps = numel(dt);
 

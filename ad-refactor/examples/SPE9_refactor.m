@@ -59,7 +59,7 @@ clear nonlinear
 % clear CPRSolverAD
 clear linsolve
 
-boModel = threePhaseBlackOilModel(G, rock, fluid, ...
+boModel = ThreePhaseBlackOilModel(G, rock, fluid, ...
                                         'drsMax', .2,...
                                         'dpMax', .2', ...
                                         'dsMax', .05, ...
@@ -68,7 +68,7 @@ boModel = threePhaseBlackOilModel(G, rock, fluid, ...
                                     
 %%
 % amgsolver = AGMGSolverAD();
-amgsolver = mldivideSolverAD();
+amgsolver = BackslashSolverAD();
 
 
 linsolve = CPRSolverAD('ellipticSolver', amgsolver);
@@ -79,15 +79,15 @@ linsolve = CPRSolverAD('ellipticSolver', amgsolver);
 % [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
 timer = tic();
-[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);
+[wellSols, states] = simulateScheduleAD(state, boModel, schedule, 'linearSolver', linsolve);
 t_class = toc(timer);
 
 %%
 
 timestepper = IterationCountTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
-nonlinear = nonlinearSolver('timeStepSelector', timestepper, 'verbose', true);
+nonlinear = NonLinearSolver('timeStepSelector', timestepper, 'verbose', true);
 
-[ws, s, reports] = runScheduleRefactor(state, boModel, schedule, ...
+[ws, s, reports] =  simulateScheduleAD(state, boModel, schedule, ...
     'nonlinearSolver', nonlinear, 'linearSolver', linsolve);
 
 
