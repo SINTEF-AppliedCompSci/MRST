@@ -24,7 +24,7 @@ classdef nonlinearSolver < handle
             
             solver.relaxationParameter = 1;
             solver.relaxationType = 'dampen';
-            solver.useRelaxation = true;
+            solver.useRelaxation = false;
             
             solver = merge_options(solver, varargin{:});
             
@@ -190,7 +190,8 @@ function [state, reports, converged, its] = solveMinistep(solver, model, state, 
         end
         r_prev = stepReport.Residuals;
     end
-    its = i;
+    % If we converged, the last step did not solve anything
+    its = i - converged;
     reports = reports(~cellfun(@isempty, reports));
     solver.relaxationParameter = omega0;
 end
