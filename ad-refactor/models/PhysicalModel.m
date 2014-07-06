@@ -1,4 +1,4 @@
-classdef physicalModel
+classdef PhysicalModel
     properties
         % Unique identifier for the model
         name
@@ -28,7 +28,7 @@ classdef physicalModel
     end
     
     methods
-        function model = physicalModel(G, rock, fluid, varargin) %#ok
+        function model = PhysicalModel(G, rock, fluid, varargin) %#ok
             model.dpMax = inf;
             model.dsMax = .2;
             model.nonlinearTolerance = 1e-6;

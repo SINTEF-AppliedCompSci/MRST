@@ -1,13 +1,13 @@
-classdef twoPhaseOilWaterModel < physicalModel
+classdef TwoPhaseOilWaterModel < PhysicalModel
     % two phase oil / water system
     properties
 
     end
     
     methods
-        function model = twoPhaseOilWaterModel(G, rock, fluid, varargin)
+        function model = TwoPhaseOilWaterModel(G, rock, fluid, varargin)
             
-            model = model@physicalModel(G, rock, fluid);
+            model = model@PhysicalModel(G, rock, fluid);
             
             % This is the model parameters for oil/water
             model.oil = true;

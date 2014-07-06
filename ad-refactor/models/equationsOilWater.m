@@ -158,7 +158,8 @@ else % no wells
     names(3:5) = {'empty', 'empty', 'empty'};
     types(3:5) = {'none', 'none', 'none'};
 end
-problem = linearProblem(eqs, types, names, primaryVars, state, dt);
+problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+problem.iterationNo = opt.iteration;
 end
 %--------------------------------------------------------------------------
 

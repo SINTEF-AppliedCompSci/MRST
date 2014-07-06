@@ -1,4 +1,4 @@
-classdef CPRSolverAD < linearSolverAD
+classdef CPRSolverAD < LinearSolverAD
     properties
         relativeTolerance
         pressureScaling
@@ -6,7 +6,7 @@ classdef CPRSolverAD < linearSolverAD
     end
     methods
         function solver = CPRSolverAD(varargin)
-            solver = solver@linearSolverAD();
+            solver = solver@LinearSolverAD();
             
             % Default options
             solver.ellipticSolver = [];
@@ -18,7 +18,7 @@ classdef CPRSolverAD < linearSolverAD
             if isempty(solver.ellipticSolver)
                 solver.ellipticSolver = mldivideSolverAD();
             else
-                assert(isa(solver.ellipticSolver, 'linearSolverAD'));
+                assert(isa(solver.ellipticSolver, 'LinearSolverAD'));
             end
         end
         

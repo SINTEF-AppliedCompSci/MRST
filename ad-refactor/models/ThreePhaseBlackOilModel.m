@@ -1,4 +1,4 @@
-classdef threePhaseBlackOilModel < physicalModel
+classdef ThreePhaseBlackOilModel < PhysicalModel
     % Three phase with optional dissolved gas and vaporized oil
     properties
         % Determines if gas can be dissolved into the oil phase
@@ -21,9 +21,9 @@ classdef threePhaseBlackOilModel < physicalModel
     end
     
     methods
-        function model = threePhaseBlackOilModel(G, rock, fluid, varargin)
+        function model = ThreePhaseBlackOilModel(G, rock, fluid, varargin)
             
-            model = model@physicalModel(G, rock, fluid);
+            model = model@PhysicalModel(G, rock, fluid);
             
             % Typical black oil is disgas / dead oil, but all combinations
             % are supported

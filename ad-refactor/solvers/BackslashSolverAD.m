@@ -1,4 +1,4 @@
-classdef mldivideSolverAD < linearSolverAD
+classdef BackslashSolverAD < LinearSolverAD
    methods
        function [result, report] = solveLinearSystem(solver, A, b) %#ok
            result = A\b;

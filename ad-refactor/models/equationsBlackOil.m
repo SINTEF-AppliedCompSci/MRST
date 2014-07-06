@@ -257,7 +257,7 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
     end
      
     
-    problem = linearProblem(eqs, types, names, primaryVars, state, dt);
+    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     problem.iterationNo = opt.iteration;
 end
 %--------------------------------------------------------------------------

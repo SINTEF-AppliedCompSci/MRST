@@ -1,4 +1,4 @@
-classdef multiscaleVolumeSolverAD < linearSolverAD
+classdef MultiscaleVolumeSolverAD < LinearSolverAD
     % Multiscale linear solver
    properties
        prolongationType
@@ -12,8 +12,8 @@ classdef multiscaleVolumeSolverAD < linearSolverAD
        coarsegrid
    end
    methods
-       function solver = multiscaleVolumeSolverAD(coarsegrid, varargin)
-           solver = solver@linearSolverAD();
+       function solver = MultiscaleVolumeSolverAD(coarsegrid, varargin)
+           solver = solver@LinearSolverAD();
            
            % Default options
            solver.prolongationType = 'smoothed';

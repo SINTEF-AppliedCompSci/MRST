@@ -1,8 +1,8 @@
-classdef nonlinearSolver < handle
+classdef NonLinearSolver < handle
     properties
         maxIterations
         maxSubsteps
-        linearSolver
+        LinearSolver
         verbose
         isAdjoint
         timeStepSelector
@@ -15,12 +15,12 @@ classdef nonlinearSolver < handle
     end
     
     methods
-        function solver = nonlinearSolver(varargin)            
+        function solver = NonLinearSolver(varargin)            
             solver.maxIterations = 25;
             solver.verbose       = mrstVerbose();
             solver.maxSubsteps   = 32;
             solver.isAdjoint     = false;
-            solver.linearSolver  = [];
+            solver.LinearSolver  = [];
             
             solver.relaxationParameter = 1;
             solver.relaxationType = 'dampen';
@@ -28,8 +28,8 @@ classdef nonlinearSolver < handle
             
             solver = merge_options(solver, varargin{:});
             
-            if isempty(solver.linearSolver)
-                solver.linearSolver = mldivideSolverAD();
+            if isempty(solver.LinearSolver)
+                solver.LinearSolver = BackslashSolverAD();
             end
             
             if isempty(solver.timeStepSelector)
@@ -168,7 +168,7 @@ function [state, reports, converged, its] = solveMinistep(solver, model, state, 
     for i = 1:solver.maxIterations
         [state, stepReport] = ...
             model.stepFunction(state, state0, dt, drivingForces, ...
-                               solver.linearSolver, solver, 'iteration', i);
+                               solver.LinearSolver, solver, 'iteration', i);
         converged  = stepReport.Converged;
         if converged
             break

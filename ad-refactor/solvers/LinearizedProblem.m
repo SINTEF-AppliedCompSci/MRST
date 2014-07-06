@@ -1,4 +1,4 @@
-classdef linearProblem
+classdef LinearizedProblem
     % A linear subproblem within a non-linear iteration
     properties
         equations
@@ -13,7 +13,7 @@ classdef linearProblem
     end
     
     methods
-        function problem = linearProblem(equations, types, names, primary, state, dt)
+        function problem = LinearizedProblem(equations, types, names, primary, state, dt)
             problem.equations = equations;
             problem.types = types;
             problem.equationNames = names;

@@ -1,11 +1,11 @@
-classdef AGMGSolverAD < linearSolverAD
+classdef AGMGSolverAD < LinearSolverAD
     % Base class for a nonlinear solver
    properties
        
    end
    methods
        function solver = AGMGSolverAD(varargin)
-            solver = solver@linearSolverAD(varargin{:});
+            solver = solver@LinearSolverAD(varargin{:});
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)

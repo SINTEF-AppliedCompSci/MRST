@@ -1,4 +1,4 @@
-classdef linearSolverAD < handle
+classdef LinearSolverAD < handle
     % Base class for a nonlinear solver
    properties
        tolerance
@@ -8,7 +8,7 @@ classdef linearSolverAD < handle
        verbose
    end
    methods
-       function solver = linearSolverAD(varargin)
+       function solver = LinearSolverAD(varargin)
            solver.tolerance     = 1e-8;
            solver.maxIterations = 25;
            solver.extraReport   = false;

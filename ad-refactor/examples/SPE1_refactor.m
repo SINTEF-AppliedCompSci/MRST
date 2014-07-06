@@ -50,16 +50,16 @@ schedule = convertDeckScheduleToMRST(G, rock, deck);
 clear boModel
 clear nonlinear
 
-boModel = threePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
+boModel = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
 %%
 
 
-ellipSolver = mldivideSolverAD();
+ellipSolver = BackslashSolverAD();
 linsolve = CPRSolverAD('ellipticSolver', ellipSolver);
 
 
 timer = tic();
-[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);
+[wellSols, states] = simulateScheduleAD(state, boModel, schedule, 'linearSolver', linsolve);
 time_ms = toc(timer);
 
 %%
@@ -72,8 +72,8 @@ scheduleOnestep.step.control = [1; 1];
 % timestepper = SimpleTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
 timestepper = IterationCountTimeStepSelector('maxTimestep', 5*day, 'verbose', true);
 
-nonlinear = nonlinearSolver('timeStepSelector', timestepper, 'verbose', true);
+nonlinear = NonLinearSolver('timeStepSelector', timestepper, 'verbose', true);
 
-[ws, s, reports] = runScheduleRefactor(state, boModel, scheduleOnestep, 'nonlinearSolver', nonlinear);
+[ws, s, reports] = simulateScheduleAD(state, boModel, scheduleOnestep, 'nonlinearSolver', nonlinear);
 
 
