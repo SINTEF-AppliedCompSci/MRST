@@ -21,7 +21,7 @@ classdef linearProblem
             problem.A = [];
             problem.b = [];
             problem.dt = dt;
-            iterationNo = nan;
+            problem.iterationNo = nan;
             
             problem.state = state;
         end
