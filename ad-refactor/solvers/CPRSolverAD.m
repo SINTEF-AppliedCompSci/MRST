@@ -10,7 +10,7 @@ classdef CPRSolverAD < LinearSolverAD
             
             % Default options
             solver.ellipticSolver = [];
-            solver.relativeTolerance = 1e-3;
+            solver.relativeTolerance = 1e-2;
             solver.pressureScaling = 1/(200*barsa);
             
             solver = merge_options(solver, varargin{:});
