@@ -43,7 +43,7 @@ scalFacs.rate     = 100/day;
 % case is fairly small,
 timer = tic;
 system = initADISystem({'Oil', 'Water'}, G, rock, fluid);
-[wellSols states] = runScheduleADI(state, G, rock, system, schedule);
+[wellSols, states] = runScheduleADI(state, G, rock, system, schedule);
 t_forward = toc(timer);
 
 %% Create objective functions
@@ -63,6 +63,20 @@ t_adjoint = toc(timer);
 timer = tic;
 numericalGradient = computeNumGrad(state, G, rock, system, schedule, objective_numerical, 'scaling', scalFacs, 'Verbose', verbose);
 t_gradient = toc(timer);
+
+%%
+
+model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
+schedulenew = convertDeckScheduleToMRST(G, rock, deck);
+
+% Ensure that solver produces multiple substeps
+stepsel = SimpleTimeStepSelector('maxTimestep', schedulenew.step.val(end)/2);       
+nonlinear = NonLinearSolver('timeStepSelector', stepsel);
+
+[wellSols, states, report] = simulateScheduleAD(state, model, schedulenew,...
+                'OutputMinisteps', true, 'NonLinearSolver', nonlinear);
+%%
+schedulemini = convertReportToSchedule(report, schedulenew);
 
 %% Plot the gradients
 
