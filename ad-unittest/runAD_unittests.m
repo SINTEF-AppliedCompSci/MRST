@@ -20,13 +20,6 @@ result_ow = run(tests);
 tests = matlab.unittest.TestSuite.fromClass(?TestEGG);
 result_egg = run(tests);
 
-%%
-% clear
-test = Test_simulateScheduleAD();
-
-test.testTimestepSelection()
-
-
-
-opt = {'maxRelativeAdjustment', inf};
-GustafssonLikeStepSelector(opt{:})
+%% Run tests on the nonlinear solver
+tests = matlab.unittest.TestSuite.fromClass(?Test_simulateScheduleAD);
+result_sched = run(tests);
