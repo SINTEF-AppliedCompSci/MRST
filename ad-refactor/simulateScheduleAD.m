@@ -79,7 +79,11 @@ function [wellSols, states, schedulereport] = simulateScheduleAD(initState, mode
         if opt.OutputMinisteps
             % We have potentially several ministeps desired as output
             nmini = numel(ministeps);
-            ind = find(cellfun(@isempty, states), 1, 'first'):nmini;
+            ise = find(cellfun(@isempty, states), 1, 'first');
+            if isempty(ise)
+                ise = numel(states) + 1;
+            end
+            ind = ise:(ise + nmini - 1);
             states_step = ministeps;
         else
             % We just want the control step
