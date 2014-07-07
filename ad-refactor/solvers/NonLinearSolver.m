@@ -46,7 +46,8 @@ classdef NonLinearSolver < handle
             % Solve a timestep for a non-linear system using one or more substeps
             drivingForces = struct('Wells', [],...
                                    'bc',    [],...
-                                   'src',   []);
+                                   'src',   [],...
+                                   'controlId', nan);
             
             drivingForces = merge_options(drivingForces, varargin{:});
             
@@ -155,6 +156,9 @@ classdef NonLinearSolver < handle
             % Add seperately because struct constructor interprets cell
             % arrays as repeated structs.
             report.StepReports = reports;
+            if wantMinistates
+                ministates = ministates(~cellfun(@isempty, ministates));
+            end
         end
         
         function dx = stabilizeNewtonIncrements(solver, problem, dx)
