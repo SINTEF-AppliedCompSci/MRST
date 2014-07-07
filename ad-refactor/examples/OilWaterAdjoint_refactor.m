@@ -3,7 +3,7 @@
 % $10\times1\times10$ Cartesian grid with uniform permeability. We read the
 % deck and create the grid, rock and fluid structures from the resulting
 % output. This requires the deckformat module.
-require deckformat
+mrstModule add deckformat ad-fi ad-refactor
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'simple10x1x10.data');
@@ -36,8 +36,11 @@ gravity on
 
 state = initResSol(G, deck.PROPS.PVCDO(1), [.15, .85]);
 
-scalFacs.pressure = 100*barsa;
-scalFacs.rate     = 100/day;
+% scalFacs.pressure = 100*barsa;
+% scalFacs.rate     = 100/day;
+
+scalFacs.pressure = 1;
+scalFacs.rate     = 1;
 %% Run the whole schedule
 % This is done to get values for the wells for all timesteps. Since the
 % case is fairly small,
@@ -70,14 +73,28 @@ model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
 schedulenew = convertDeckScheduleToMRST(G, rock, deck);
 
 % Ensure that solver produces multiple substeps
-stepsel = SimpleTimeStepSelector('maxTimestep', schedulenew.step.val(end)/2);       
+ms = schedulenew.step.val(end)/2;
+ms = inf;
+stepsel = SimpleTimeStepSelector('maxTimestep', ms);       
 nonlinear = NonLinearSolver('timeStepSelector', stepsel);
 
+usemini = true;
 [wellSols, states, report] = simulateScheduleAD(state, model, schedulenew,...
-                'OutputMinisteps', true, 'NonLinearSolver', nonlinear);
-%%
-schedulemini = convertReportToSchedule(report, schedulenew);
+                'OutputMinisteps', usemini, 'NonLinearSolver', nonlinear);
+            
 
+%%
+if usemini
+    schedulemini = convertReportToSchedule(report, schedulenew);
+else
+    schedulemini = schedulenew;
+end
+
+obj = @(tstep)NPVOW(G, wellSols, schedulemini, 'ComputePartials', true, 'tStep', tstep);
+
+grad = simulateAdjointAD(state, states, model, schedulemini, obj);
+vertcat(adjointGradient{:})
+grad(end-5:end)
 %% Plot the gradients
 
 

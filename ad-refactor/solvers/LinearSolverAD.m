@@ -21,6 +21,26 @@ classdef LinearSolverAD < handle
            error('Superclass not meant for direct use')
        end
        
+       function [result, report] = solveAdjointProblem(solver, problemPrev,...
+                                        problemCurr, adjVec, objective, model) %#ok
+           problemCurr = problemCurr.assembleSystem();
+           
+           % Maybe formalize the control variables a bit in the future
+           % sometime...
+           if iscell(objective)
+               objective = objective{:};
+           end
+           objective = cat(objective);
+
+           rhs = -objective.jac{1}';
+           if ~isempty(adjVec)
+               problemPrev = problemPrev.assembleSystem();
+               rhs = rhs - problemPrev.A'*adjVec;
+           end
+           A = problemCurr.A';
+           [result, report] = solver.solveLinearSystem(A, rhs);
+       end
+       
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
            % Solve a linearized problem
            problem = problem.assembleSystem();

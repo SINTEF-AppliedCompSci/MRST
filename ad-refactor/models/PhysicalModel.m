@@ -106,6 +106,53 @@ classdef PhysicalModel
                             'Converged',    convergence, ...
                             'Residuals',    values);
         end
+        
+        function [gradient, report] = solveAdjoint(model, solver, getState,...
+                                    getObjective, schedule, gradient, itNo)
+            dt_steps = schedule.step.val;
+            
+            current = getState(itNo);
+            prev    = getState(itNo - 1);
+            dt = dt_steps(itNo);
+            
+            lookupCtrl = @(step) schedule.control(schedule.step.control(step));
+            [~, forces] = model.getDrivingForces(lookupCtrl(itNo));
+            problem = model.getEquations(prev, current, dt, forces, 'iteration', inf);
+            
+            if itNo < numel(dt_steps)
+                next    = getState(itNo + 1);
+                dt_next = dt_steps(itNo + 1);
+                
+                [~, forces_p] = model.getDrivingForces(lookupCtrl(itNo + 1));
+                problem_p = model.getEquations(current, next, dt_next, forces_p,...
+                                    'iteration', inf, 'reverseMode', true);
+            else
+                problem_p = [];
+            end
+            [gradient, report] = solver.solveAdjointProblem(problem_p,...
+                                        problem, gradient, getObjective(itNo), model);
+                                    
+        end
+        
+        function [vararg, driving] = getDrivingForces(model, control) %#ok
+            vararg = {};
+            driving = struct('Wells', [], 'bc', [], 'src', []);
+            
+            if isfield(control, 'W') && ~isempty(control.W)
+                vararg = [vararg, 'Wells', control.W];
+                driving.Wells = control.W;
+            end
+
+            if isfield(control, 'bc') && ~isempty(control.bc)
+                vararg = [vararg, 'bc', control.bc];
+                driving.bc = control.bc;
+            end
+            
+            if isfield(control, 'src') && ~isempty(control.src)
+                vararg = [vararg, 'src', control.src];
+                driving.src = control.src;
+            end
+        end
     end
 end
 

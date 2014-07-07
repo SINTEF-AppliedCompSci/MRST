@@ -47,7 +47,6 @@ classdef LinearizedProblem
             b = problem.b;
         end
         
-        
         %%%%%  Overloaded functions  %%%%%
         function values = norm(problem, varargin)
             % Overload norm for convergence testing

@@ -45,6 +45,7 @@ function [wellSols, states, schedulereport] = simulateScheduleAD(initState, mode
         currControl = schedule.step.control(i);
         if prevControl ~= currControl 
             W = schedule.control(currControl).W;
+            forces = model.getDrivingForces(schedule.control(currControl));
             prevControl = currControl;
         end
 
@@ -56,10 +57,10 @@ function [wellSols, states, schedulereport] = simulateScheduleAD(initState, mode
         
         if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
-                                            'Wells', W, 'controlId', currControl);
+                                            forces{:}, 'controlId', currControl);
         else
             [state, report] = solver.solveTimestep(state0, dt(i), model,...
-                                            'Wells', W, 'controlId', currControl);
+                                            forces{:}, 'controlId', currControl);
         end
         t = toc(timer);
         
