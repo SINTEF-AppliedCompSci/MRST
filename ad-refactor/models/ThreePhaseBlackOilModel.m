@@ -49,7 +49,7 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
             d = model.inputdata;
             if ~isempty(d)
                 if isfield(d, 'RUNSPEC')
-                    if isfield(d, 'VAPOIL')
+                    if isfield(d.RUNSPEC, 'VAPOIL')
                         model.vapoil = d.RUNSPEC.VAPOIL;
                     end
                     if isfield(d.RUNSPEC, 'DISGAS')
