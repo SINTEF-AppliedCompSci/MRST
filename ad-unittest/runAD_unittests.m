@@ -4,6 +4,10 @@ mrstModule add ad-unittest
 tests = matlab.unittest.TestSuite.fromClass(?TestSPE1);
 result_spe1 = run(tests);
 
+%% Run SPE 3
+tests = matlab.unittest.TestSuite.fromClass(?TestSPE3);
+result_spe3 = run(tests);
+
 %% Run SPE 9
 tests = matlab.unittest.TestSuite.fromClass(?TestSPE9);
 result_spe9 = run(tests);

@@ -9,32 +9,17 @@ classdef TestSimpleOW < ScheduleTest
             test = merge_options(test, varargin{:});
 
             mrstModule add deckformat ad-fi ad-refactor
+
+            fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
             
-            moddir = mrstPath('query', 'ad-unittest');
-            fn = fullfile(moddir, 'data', 'simpleOW', 'simple10x1x10.data');
-            
-            deck = readEclipseDeck(fn);
-            
-            % The deck is given in field units, MRST uses metric.
-            deck = convertDeckUnits(deck);
-            
-            G = initEclipseGrid(deck);
-            G = computeGeometry(G);
-            
-            rock  = initEclipseRock(deck);
-            rock  = compressRock(rock, G.cells.indexMap);
-            
-            % Create a special ADI fluid which can produce differentiated fluid
-            % properties.
-            fluid = initDeckADIFluid(deck);
-            
-            % The case includes gravity
+            [G, rock, fluid, deck, schedule] = test.setupADcase(fn);
+
             gravity on
             
             test.state0 = initResSol(G, deck.PROPS.PVCDO(1), [.15, .85]);
-            
-            test.schedule = convertDeckScheduleToMRST(G, rock, deck);
+            test.schedule = schedule;
             test.model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
+            
         end
         function s = getIdentifier(test, name) %#ok
             s = [mfilename('class'), '_', name];

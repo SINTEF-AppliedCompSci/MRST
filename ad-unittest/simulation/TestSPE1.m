@@ -12,23 +12,9 @@ classdef TestSPE1 < ScheduleTest
 
             mrstModule add deckformat ad-fi ad-refactor
             
-            moddir = mrstPath('query', 'ad-unittest');
-            fn = fullfile(moddir, 'data', 'b1-SPE1', 'BENCH_SPE1.DATA');
+            fn = fullfile('SPE', 'SPE1', 'BENCH_SPE1.DATA');
             
-            deck = readEclipseDeck(fn);
-            
-            % The deck is given in field units, MRST uses metric.
-            deck = convertDeckUnits(deck);
-            
-            G = initEclipseGrid(deck);
-            G = computeGeometry(G);
-            
-            rock  = initEclipseRock(deck);
-            rock  = compressRock(rock, G.cells.indexMap);
-            
-            % Create a special ADI fluid which can produce differentiated fluid
-            % properties.
-            fluid = initDeckADIFluid(deck);
+            [G, rock, fluid, deck, schedule] = test.setupADcase(fn);
             
             % The case includes gravity
             gravity on
@@ -41,7 +27,7 @@ classdef TestSPE1 < ScheduleTest
             rv0 = 0;
             test.state0 = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
             
-            test.schedule = convertDeckScheduleToMRST(G, rock, deck);
+            test.schedule = schedule;
             test.model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
         end
         function s = getIdentifier(test, name) %#ok

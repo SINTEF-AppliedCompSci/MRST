@@ -1,10 +1,10 @@
-classdef TestSPE9 < ScheduleTest
+classdef TestSPE3 < ScheduleTest
     properties
         
     end
     
     methods
-        function test = TestSPE9(varargin)
+        function test = TestSPE3(varargin)
             test = test@ScheduleTest();
             
             
@@ -12,29 +12,24 @@ classdef TestSPE9 < ScheduleTest
 
             mrstModule add deckformat ad-fi ad-refactor
             
-            fn = fullfile('SPE', 'SPE9', 'BENCH_SPE9.DATA');
+            fn = fullfile('SPE', 'SPE3', 'BENCH_SPE3.DATA');
             
             [G, rock, fluid, deck, schedule] = test.setupADcase(fn);
             
+            % The case includes gravity
             gravity on
             
             p0  = deck.SOLUTION.PRESSURE;
             sw0 = deck.SOLUTION.SWAT;
             sg0 = deck.SOLUTION.SGAS;
             s0  = [sw0, 1-sw0-sg0, sg0];
-            rs0 = deck.SOLUTION.RS;
-            rv0 = 0;
-            
-            
+            rv0 = deck.SOLUTION.RV;
+            rs0 = 0;
             test.state0 = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
             
             test.schedule = schedule;
             test.model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
-            
-            test.model.drsMax = .2;
-            test.model.dpMax  = .2;
-            test.model.dsMax  = .05;
-
+            test.model.disgas = false;
         end
         function s = getIdentifier(test, name) %#ok
             s = [mfilename('class'), '_', name];
@@ -49,10 +44,11 @@ classdef TestSPE9 < ScheduleTest
         
         function CPR_mldivide(test)
             name = test.getIdentifier('cpr_mldivide');
-            test.runSchedule(name, 'useCPR', true, 'useAGMG', false, 'cprTol', 1-3);
+            test.runSchedule(name, 'useCPR', true, 'useAGMG', false);
         end
                 
         function CPR_AGMG(test)
+
             name = test.getIdentifier('cpr_agmg');
             mrstModule add agmg
             try
@@ -62,7 +58,7 @@ classdef TestSPE9 < ScheduleTest
                     'AGMG is not installed properly, test cannot proceed')
                 return
             end
-            test.runSchedule(name, 'useCPR', true, 'useAGMG', true, 'cprTol', 1e-3);
+            test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
         end
     end
     
