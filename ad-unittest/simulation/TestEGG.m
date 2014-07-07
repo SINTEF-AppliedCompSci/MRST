@@ -12,7 +12,7 @@ classdef TestEGG < ScheduleTest
 
             fn = fullfile('external', 'TUDelft-EGG', 'BENCH_EGG.DATA');
             
-            [G, rock, fluid, deck, schedule] = test.setupADcase(fn);
+            [G, rock, fluid, deck, schedule] = setupADcase(fn);
 
             gravity on
 

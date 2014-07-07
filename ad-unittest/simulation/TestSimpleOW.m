@@ -12,7 +12,7 @@ classdef TestSimpleOW < ScheduleTest
 
             fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
             
-            [G, rock, fluid, deck, schedule] = test.setupADcase(fn);
+            [G, rock, fluid, deck, schedule] = setupADcase(fn);
 
             gravity on
             

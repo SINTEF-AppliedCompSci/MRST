@@ -14,7 +14,7 @@ classdef TestSPE1 < ScheduleTest
             
             fn = fullfile('SPE', 'SPE1', 'BENCH_SPE1.DATA');
             
-            [G, rock, fluid, deck, schedule] = test.setupADcase(fn);
+            [G, rock, fluid, deck, schedule] = setupADcase(fn);
             
             % The case includes gravity
             gravity on

@@ -19,3 +19,14 @@ result_ow = run(tests);
 %% Run oil/water test
 tests = matlab.unittest.TestSuite.fromClass(?TestEGG);
 result_egg = run(tests);
+
+%%
+% clear
+test = Test_simulateScheduleAD();
+
+test.testTimestepSelection()
+
+
+
+opt = {'maxRelativeAdjustment', inf};
+GustafssonLikeStepSelector(opt{:})

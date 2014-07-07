@@ -14,7 +14,7 @@ classdef TestSPE9 < ScheduleTest
             
             fn = fullfile('SPE', 'SPE9', 'BENCH_SPE9.DATA');
             
-            [G, rock, fluid, deck, schedule] = test.setupADcase(fn);
+            [G, rock, fluid, deck, schedule] = setupADcase(fn);
             
             gravity on
             
