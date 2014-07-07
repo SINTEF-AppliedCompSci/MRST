@@ -135,7 +135,7 @@ classdef NonLinearSolver < handle
                         if solver.errorOnFailure
                             error(msg);
                         else
-                            warning('Did not find a solution. Reached maximum amount of substeps');
+                            warning(msg);
                             converged = false;
                             break;
                         end
