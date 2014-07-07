@@ -74,7 +74,7 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
             else
                 % Use strict tolerances on the residual without any 
                 % fingerspitzengefuhlen by calling the parent class
-                [convergence, values] = checkConvergence@physicalModel(model, problem, varargin{:});
+                [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
             end            
         end
         
