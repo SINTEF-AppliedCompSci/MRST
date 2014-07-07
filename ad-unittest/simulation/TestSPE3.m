@@ -37,29 +37,7 @@ classdef TestSPE3 < ScheduleTest
     end
     
     methods (Test)
-        function baseline(test)
-            name = test.getIdentifier('baseline');
-            test.runSchedule(name);
-        end
-        
-        function CPR_mldivide(test)
-            name = test.getIdentifier('cpr_mldivide');
-            test.runSchedule(name, 'useCPR', true, 'useAGMG', false);
-        end
-                
-        function CPR_AGMG(test)
-
-            name = test.getIdentifier('cpr_agmg');
-            mrstModule add agmg
-            try
-                agmg(speye(3), ones(3, 1));
-            catch
-                test.verifyFail( ...
-                    'AGMG is not installed properly, test cannot proceed')
-                return
-            end
-            test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
-        end
+        % Add your own, test specific tests here
     end
     
 end

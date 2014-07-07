@@ -15,3 +15,7 @@ result_spe9 = run(tests);
 %% Run oil/water test
 tests = matlab.unittest.TestSuite.fromClass(?TestSimpleOW);
 result_ow = run(tests);
+
+%% Run oil/water test
+tests = matlab.unittest.TestSuite.fromClass(?TestEGG);
+result_egg = run(tests);

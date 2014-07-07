@@ -6,6 +6,9 @@ classdef ScheduleTest < matlab.unittest.TestCase
         storeResults
         outputPath
         relativeTolerance
+        
+        % If the case is very big, some tests will ignore it
+        caseIsBig
     end
     
     methods
@@ -14,6 +17,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
             test.schedule = [];
             test.state0 = [];
             test.relativeTolerance = 0.01;
+            test.caseIsBig = false;
             
             % Attempt to be a clean MRST state
             mrstModule reset ad-unittest
@@ -78,4 +82,34 @@ classdef ScheduleTest < matlab.unittest.TestCase
             schedule = convertDeckScheduleToMRST(G, rock, deck);
         end
     end
+    
+    methods (Test)
+        function baseline(test)
+            if test.caseIsBig
+                test.assertFail('Test is too big for mldivide direct solver')
+            end
+            name = test.getIdentifier('baseline');
+            test.runSchedule(name);
+        end
+        
+        function CPR_mldivide(test)
+            name = test.getIdentifier('cpr_mldivide');
+            test.runSchedule(name, 'useCPR', true, 'useAGMG', false);
+        end
+                
+        function CPR_AGMG(test)
+
+            name = test.getIdentifier('cpr_agmg');
+            mrstModule add agmg
+            try
+                agmg(speye(3), ones(3, 1));
+            catch
+                test.verifyFail( ...
+                    'AGMG is not installed properly, test cannot proceed')
+                return
+            end
+            test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
+        end
+    end
+
 end
