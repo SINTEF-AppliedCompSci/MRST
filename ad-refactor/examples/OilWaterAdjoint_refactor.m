@@ -1,0 +1,87 @@
+%% Read the problem from a deckfile
+% The problem is defined in 'INPUT_NUMGRAD.DATA' which is a simple
+% $10\times1\times10$ Cartesian grid with uniform permeability. We read the
+% deck and create the grid, rock and fluid structures from the resulting
+% output. This requires the deckformat module.
+require deckformat
+
+current_dir = fileparts(mfilename('fullpath'));
+fn    = fullfile(current_dir, 'simple10x1x10.data');
+deck = readEclipseDeck(fn);
+
+% Convert to MRST units (SI)
+deck = convertDeckUnits(deck);
+
+% Create grid
+G = initEclipseGrid(deck);
+
+% Set up the rock structure
+rock  = initEclipseRock(deck);
+rock  = compressRock(rock, G.cells.indexMap);
+
+% Create fluid
+fluid = initDeckADIFluid(deck);
+
+% Get schedule
+schedule = deck.SCHEDULE;
+
+% Enable this to get convergence reports when solving schedules
+verbose = false;
+
+
+G = computeGeometry(G);
+T = computeTrans(G, rock);
+
+gravity on
+
+state = initResSol(G, deck.PROPS.PVCDO(1), [.15, .85]);
+
+scalFacs.pressure = 100*barsa;
+scalFacs.rate     = 100/day;
+%% Run the whole schedule
+% This is done to get values for the wells for all timesteps. Since the
+% case is fairly small,
+timer = tic;
+system = initADISystem({'Oil', 'Water'}, G, rock, fluid);
+[wellSols states] = runScheduleADI(state, G, rock, system, schedule);
+t_forward = toc(timer);
+
+%% Create objective functions
+
+objective_adjoint = @(tstep)NPVOW(G, wellSols, schedule, 'ComputePartials', true, 'tStep', tstep);
+objective_numerical = @(wellSols)NPVOW(G, wellSols, schedule);
+
+%% Compute derivatives using the adjoint formulation
+
+timer = tic;
+getEquations = @eqsfiOWExplicitWells;
+adjointGradient = runAdjointADI(G, rock, fluid, schedule, objective_adjoint, system,  'Verbose', verbose, 'ForwardStates', states);
+t_adjoint = toc(timer);
+
+%% Find gradients numerically
+
+timer = tic;
+numericalGradient = computeNumGrad(state, G, rock, system, schedule, objective_numerical, 'scaling', scalFacs, 'Verbose', verbose);
+t_gradient = toc(timer);
+
+%% Plot the gradients
+
+
+wellNames = {wellSols{1}.name};
+
+ga = cell2mat(adjointGradient);
+gn = cell2mat(numericalGradient);
+clf;
+subplot(1,2,1)
+plot(ga(1,:),'-ob'), hold on
+plot(gn(1,:),'-xr')
+title(['Well 1 (', wellNames{1}, ')'])
+xlabel('Control #')
+
+subplot(1,2,2)
+plot(ga(2,:),'-ob'), hold on
+plot(gn(2,:),'-xr'), hold on
+title(['Well 2 (', wellNames{2}, ')'])
+xlabel('Control #')
+legend({'Adjoint', 'Numerical'})
+
