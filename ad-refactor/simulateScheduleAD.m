@@ -55,9 +55,11 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
         state0.wellSol = initWellSolLocal(W, state);
         
         if opt.OutputMinisteps
-            [state, report] = solver.solveTimestep(state0, dt(i), model, 'Wells', W);
+            [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
+                                            'Wells', W, 'controlId', currControl);
         else
-            [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, 'Wells', W);
+            [state, report] = solver.solveTimestep(state0, dt(i), model,...
+                                            'Wells', W, 'controlId', currControl);
         end
         t = toc(timer);
         
@@ -72,17 +74,23 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
 
         W = updateSwitchedControls(state.wellSol, W);
         
+        
+        % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
             % We have potentially several ministeps desired as output
-            ind = find(cellfun(@isempty, states), 1, 'first'):numel(ministeps);
+            nmini = numel(ministeps);
+            ind = find(cellfun(@isempty, states), 1, 'first'):nmini;
+            states_step = ministeps;
         else
             % We just want the control step
             ind = i;
+            states_step = {state};
         end
+        wellSols_step = cellfun(@(x) x.wellSol, states_step, 'UniformOutput', false);
         
-        wellSols{ind} = state.wellSol;
+        wellSols(ind) = wellSols_step;
         if wantStates
-            states{ind} = state;
+            states(ind) = states_step;
         end
         
         if wantReport
