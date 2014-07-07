@@ -42,7 +42,7 @@ classdef NonLinearSolver < handle
             end
         end
         
-        function [state, report] = solveTimestep(solver, state0, dT, model, varargin)
+        function [state, report, ministates] = solveTimestep(solver, state0, dT, model, varargin)
             % Solve a timestep for a non-linear system using one or more substeps
             drivingForces = struct('Wells', [],...
                                    'bc',    [],...
@@ -70,7 +70,9 @@ classdef NonLinearSolver < handle
             isFinalMinistep = false;
             state0_inner = state0;
             
-            reports = {};
+            
+            wantMinistates = nargout > 2;
+            [reports, ministates] = deal(cell(solver.maxSubsteps, 1));
             
             state = state0;
             
@@ -78,6 +80,7 @@ classdef NonLinearSolver < handle
             % and what the current driving forces are
             stepsel = solver.timeStepSelector;
             stepsel.newControlStep(drivingForces);
+            
             while ~done
                 dt = stepsel.pickTimestep(dt, model, solver);
                 
@@ -108,6 +111,18 @@ classdef NonLinearSolver < handle
                     t_local = t_local + dt;
                     state0_inner = state;
                     acceptCount = acceptCount + 1;
+                    
+                    if wantMinistates
+                        % Output each substep
+                        nm = numel(ministates);
+                        if nm < acceptCount
+                            tmp = cell(nm*2, 1);
+                            tmp(1:nm) = ministates;
+                            ministates = tmp;
+                            clear tmp
+                        end
+                        ministates{acceptCount} = state;
+                    end
                 else
                     state = state0_inner;
                     % Beat timestep with a hammer

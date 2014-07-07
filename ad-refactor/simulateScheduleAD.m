@@ -1,6 +1,7 @@
 function [wellSols, states, schedulereport] = runScheduleRefactor(initState, model, schedule, varargin)
 
     opt = struct('Verbose', mrstVerbose,...
+                 'OutputMinisteps', false, ...
                  'NonLinearSolver', [], ...
                  'LinearSolver', []);
 
@@ -53,7 +54,11 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
         state0 = state;
         state0.wellSol = initWellSolLocal(W, state);
         
-        [state, report] = solver.solveTimestep(state0, dt(i), model, 'Wells', W);
+        if opt.OutputMinisteps
+            [state, report] = solver.solveTimestep(state0, dt(i), model, 'Wells', W);
+        else
+            [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, 'Wells', W);
+        end
         t = toc(timer);
         
         if ~report.Converged
@@ -64,11 +69,20 @@ function [wellSols, states, schedulereport] = runScheduleRefactor(initState, mod
         dispif(vb, 'Completed %d iterations in %2.2f seconds (%2.2fs per iteration)\n', ...
                     report.Iterations, t, t/report.Iterations);
         
-        wellSols{i} = state.wellSol;
-        
+
         W = updateSwitchedControls(state.wellSol, W);
+        
+        if opt.OutputMinisteps
+            % We have potentially several ministeps desired as output
+            ind = find(cellfun(@isempty, states), 1, 'first'):numel(ministeps);
+        else
+            % We just want the control step
+            ind = i;
+        end
+        
+        wellSols{ind} = state.wellSol;
         if wantStates
-            states{i} = state;
+            states{ind} = state;
         end
         
         if wantReport
