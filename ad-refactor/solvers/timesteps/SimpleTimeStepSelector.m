@@ -6,11 +6,13 @@ classdef SimpleTimeStepSelector < handle
         verbose
         maxHistoryLength
         isStartOfCtrlStep
+        controlsChanged
         
         maxRelativeAdjustment
         minRelativeAdjustment
         
         stepLimitedByHardLimits
+        previousControl
     end
         
     
@@ -28,6 +30,7 @@ classdef SimpleTimeStepSelector < handle
             selector = merge_options(selector, varargin{:});
             
             selector.isStartOfCtrlStep = true;
+            selector.controlsChanged = true;
             selector.stepLimitedByHardLimits = true;
         end
         
@@ -47,7 +50,7 @@ classdef SimpleTimeStepSelector < handle
         function dt = pickTimestep(selector, dt, model, solver)
             dt0 = dt;
             dt_new = selector.computeTimestep(dt, model, solver);
-            
+
             % Ensure that step does not change too much
             change = dt_new/dt;
             change = min(change, selector.maxRelativeAdjustment);
@@ -59,8 +62,10 @@ classdef SimpleTimeStepSelector < handle
             dt = min(selector.maxTimestep, dt);
             dt = max(selector.minTimestep, dt);
             
-            if selector.verbose && dt_new ~= dt
-                fprintf('Prev # its: %d -> ', selector.history(end).Iterations)
+            if selector.verbose && dt0 ~= dt
+                if ~isempty(selector.history)
+                    fprintf('Prev # its: %d -> ', selector.history(end).Iterations)
+                end
                 fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
                     dt/dt0, formatTimeRange(dt0), formatTimeRange(dt));
             end
@@ -75,6 +80,16 @@ classdef SimpleTimeStepSelector < handle
         
         function newControlStep(selector, control)
             selector.isStartOfCtrlStep = true;
+            
+            prev = selector.previousControl;
+            
+            if isempty(prev) || prev.controlId ~= control.controlId
+                selector.controlsChanged = true;
+                selector.previousControl = control;
+            else
+                selector.controlsChanged = false;
+            end
+            
         end
         
         function dt = computeTimestep(selector, dt, model, solver) %#ok
