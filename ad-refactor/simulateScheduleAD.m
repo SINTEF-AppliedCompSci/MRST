@@ -3,6 +3,7 @@ function [wellSols, states, schedulereport] = simulateScheduleAD(initState, mode
     opt = struct('Verbose', mrstVerbose,...
                  'OutputMinisteps', false, ...
                  'NonLinearSolver', [], ...
+                 'OutputHandler',   [], ...
                  'LinearSolver', []);
 
     opt = merge_options(opt, varargin{:});
@@ -94,6 +95,11 @@ function [wellSols, states, schedulereport] = simulateScheduleAD(initState, mode
         wellSols_step = cellfun(@(x) x.wellSol, states_step, 'UniformOutput', false);
         
         wellSols(ind) = wellSols_step;
+        
+        if ~isempty(opt.OutputHandler)
+            opt.OutputHandler{ind} = states_step;
+        end
+        
         if wantStates
             states(ind) = states_step;
         end

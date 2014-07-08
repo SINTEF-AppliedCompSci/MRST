@@ -47,9 +47,32 @@ classdef ResultHandler < handle
                         ])
                     end
                 end
+                if ~isempty(ls(fullfile(p, [handler.dataPrefix, '*.mat'])))
+                    warning('ResultHandler:FilesExist', ...
+                        'Input directory not clean, consider calling ''resetData''');
+                end
             end
             
         end
+        
+%         function n = numel(handler)
+%             if handler.storeInMemory
+%                 n = numel(handler.data);
+%             elseif handler.writeToDisk
+%                 n = numel(handler.getValidIds);
+%             else
+%                 n = 0;
+%             end
+%         end
+%         
+%         function varargout = size(handler, dim)
+%             N = [numel(handler), 1];
+%             if nargin == 1
+%                 varargout{1} = N;
+%             else
+%                 varargout{1} = N(dim);
+%             end
+%         end
         
         function varargout = subsref(handler, s)
             switch s(1).type
@@ -63,7 +86,9 @@ classdef ResultHandler < handle
                     end
                     
                     if handler.writeToDisk
-                        tmp = handler.readFromFile(s(1).subs{1});
+                        sub = s(1).subs{1};
+                        tmp = handler.readFromFile(sub);
+                        s.subs{1} = 1:numel(sub);
                         [varargout{1:nargout}] = builtin('subsref', tmp, s);
                         return
                     end

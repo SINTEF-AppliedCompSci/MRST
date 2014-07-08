@@ -79,8 +79,13 @@ stepsel = SimpleTimeStepSelector('maxTimestep', ms);
 nonlinear = NonLinearSolver('timeStepSelector', stepsel);
 
 usemini = true;
+
+% Create result handler that writes to disk
+output = ResultHandler('writeToDisk', true, 'storeInMemory', false);
+
 [wellSols, states, report] = simulateScheduleAD(state, model, schedulenew,...
-                'OutputMinisteps', usemini, 'NonLinearSolver', nonlinear);
+                'OutputMinisteps', usemini, 'NonLinearSolver', nonlinear, ...
+                'OutputHandler', output);
             
 
 %%
@@ -92,7 +97,10 @@ end
 
 obj = @(tstep)NPVOW(G, wellSols, schedulemini, 'ComputePartials', true, 'tStep', tstep);
 
-grad = simulateAdjointAD(state, states, model, schedulemini, obj, 'scaling', scalFacs);
+% d = states;
+d = output;
+
+grad = simulateAdjointAD(state, d, model, schedulemini, obj, 'scaling', scalFacs);
 % vertcat(adjointGradient{:})
 % grad(end-5:end)
 %% Plot the gradients

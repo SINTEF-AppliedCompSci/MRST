@@ -4,7 +4,7 @@ function gradients = simulateAdjointAD(state0, states, model, schedule, getObjec
                  'LinearSolver',     []);
     opt = merge_options(opt, varargin{:});
     
-    getState = @(i) getStateFromCell(states, state0, i);
+    getState = @(i) getStateFromInput(schedule, states, state0, i);
     
     if isempty(opt.LinearSolver)
         linsolve = BackslashSolverAD();
@@ -45,18 +45,14 @@ function gradients = simulateAdjointAD(state0, states, model, schedule, getObjec
     end
 end
 
-function state = getStateFromCell(states, state0, i)
+function state = getStateFromInput(schedule, states, state0, i)
     if i == 0
         state = state0;
-    elseif i > numel(states)
+    elseif i > numel(schedule.step.val)
         state = [];
     else
         state = states{i};
     end
-end
-
-function state = getStateFromFile(i)
-    assert(0, 'Someone should implement me!');
 end
 
 function g = getRequestedGradients(dg, report, wantGradFor)
