@@ -105,7 +105,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       act  = column_shape(act,  G.cartDims);
 
       % CUMSUM(skip) captures the number of intervening deactivated layers.
-      % Consequently, DIFF(x) > 0 identify those connections that could
+      % Consequently, DIFF(x) > 0 identifies those connections that could
       % potentially cross pinched layers.
       x = cumsum(double(skip));
       t = [rldecode(1 : size(x,2), size(x,1), 2) .', x(:), act(:)];
