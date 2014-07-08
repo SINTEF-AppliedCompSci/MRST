@@ -1,6 +1,7 @@
 function gradients = simulateAdjointAD(state0, states, model, schedule, getObjective, varargin)
     opt = struct('ControlVariables', 'well', ...
-                 'LinearSolver', []);
+                 'Scaling',          [], ...
+                 'LinearSolver',     []);
     opt = merge_options(opt, varargin{:});
     
     getState = @(i) getStateFromCell(states, state0, i);
@@ -9,6 +10,10 @@ function gradients = simulateAdjointAD(state0, states, model, schedule, getObjec
         linsolve = BackslashSolverAD();
     else
         linsolve = opt.LinearSolver;
+    end
+    
+    if isempty(opt.Scaling)
+        opt.Scaling = struct('rate', 1, 'pressure', 1);
     end
     
     if iscell(opt.ControlVariables)
@@ -23,7 +28,7 @@ function gradients = simulateAdjointAD(state0, states, model, schedule, getObjec
     nt = nstep;
     for step = nt:-1:1
         [dg, grad, report] = model.solveAdjoint(linsolve, getState, ...
-                                                getObjective, schedule, grad, step);
+                                         getObjective, schedule, grad, step, opt.Scaling);
         gradstep(step, :) = getRequestedGradients(dg, report, opt.ControlVariables);
     end
     

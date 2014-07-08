@@ -108,7 +108,11 @@ classdef PhysicalModel
         end
         
         function [gradient, result, report] = solveAdjoint(model, solver, getState,...
-                                    getObjective, schedule, gradient, itNo)
+                                    getObjective, schedule, gradient, itNo, scaling)
+            if nargin == 7
+               scaling = struct('rate', 1, 'pressure', 1);
+            end
+            
             dt_steps = schedule.step.val;
             
             current = getState(itNo);
@@ -117,7 +121,7 @@ classdef PhysicalModel
             
             lookupCtrl = @(step) schedule.control(schedule.step.control(step));
             [~, forces] = model.getDrivingForces(lookupCtrl(itNo));
-            problem = model.getEquations(before, current, dt, forces, 'iteration', inf);
+            problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'scaling', scaling);
             
             if itNo < numel(dt_steps)
                 after    = getState(itNo + 1);
@@ -125,7 +129,7 @@ classdef PhysicalModel
                 
                 [~, forces_p] = model.getDrivingForces(lookupCtrl(itNo + 1));
                 problem_p = model.getEquations(current, after, dt_next, forces_p,...
-                                    'iteration', inf, 'reverseMode', true);
+                                    'iteration', inf, 'reverseMode', true, 'scaling', scaling);
             else
                 problem_p = [];
             end

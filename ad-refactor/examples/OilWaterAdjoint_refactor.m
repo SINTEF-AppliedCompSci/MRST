@@ -36,11 +36,11 @@ gravity on
 
 state = initResSol(G, deck.PROPS.PVCDO(1), [.15, .85]);
 
-% scalFacs.pressure = 100*barsa;
-% scalFacs.rate     = 100/day;
+scalFacs.pressure = 100*barsa;
+scalFacs.rate     = 100/day;
 
-scalFacs.pressure = 1;
-scalFacs.rate     = 1;
+% scalFacs.pressure = 1;
+% scalFacs.rate     = 1;
 %% Run the whole schedule
 % This is done to get values for the wells for all timesteps. Since the
 % case is fairly small,
@@ -92,7 +92,7 @@ end
 
 obj = @(tstep)NPVOW(G, wellSols, schedulemini, 'ComputePartials', true, 'tStep', tstep);
 
-grad = simulateAdjointAD(state, states, model, schedulemini, obj);
+grad = simulateAdjointAD(state, states, model, schedulemini, obj, 'scaling', scalFacs);
 % vertcat(adjointGradient{:})
 % grad(end-5:end)
 %% Plot the gradients
