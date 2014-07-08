@@ -10,7 +10,7 @@ function nnc = processPINCH(grdecl, G)
 %   other words, this function creates connections that do not otherwise
 %   correspond to geometric interfaces.
 %
-%   This function is is used within function 'processGRDECL' to implement
+%   This function is used within function 'processGRDECL' to implement
 %   the processing of keyword 'PINCH' in an ECLIPSE input deck.  Note that
 %   we currently do not support the complete feature set that may be input
 %   through 'PINCH'.  Specifically, we only support the 'TOPBOT'
