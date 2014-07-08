@@ -25,22 +25,6 @@ tests = matlab.unittest.TestSuite.fromClass(?Test_simulateScheduleAD);
 result_sched = run(tests);
 
 %%
-% clear
 tests = matlab.unittest.TestSuite.fromClass(?ResultHandlerTest);
 res = run(tests);
 
-
-%% @() error('SOME:id')
-% clear
-test = ResultHandlerTest();
-
-test.StoreInMemoryTest();
-%%
-clear
-handler = ResultHandler('writeToDisk', true, 'storeInMemory', true);
-
-handler{5} = 3;
-handler{[7, 8, 9]} = {1, 2, 3}
-% Should fail
-handler{[7, 8, 9]} = 1;
-% ha

@@ -63,7 +63,9 @@ classdef ResultHandler < handle
                     end
                     
                     if handler.writeToDisk
-                        
+                        tmp = handler.readFromFile(s(1).subs{1});
+                        [varargout{1:nargout}] = builtin('subsref', tmp, s);
+                        return
                     end
             end
             
@@ -109,23 +111,67 @@ classdef ResultHandler < handle
             end
         end
         
-        function handler = writeToFile(handler, data, id)
+        function data = readFromFile(handler, ids)
+            n = numel(ids);
+            data = cell(1, n);
+            for i = 1:n
+                p = handler.getDataPath(ids(i));
+                tmp = load(p, 'data');
+                data{i} = tmp.data;
+            end
+        end
+        
+        function ids = getValidIds(handler)
+            ids = [];
+            
+            if handler.writeToDisk
+                p = handler.getDataPath();
+                
+                l = ls(p);
+                for i = 1:size(l, 1)
+                    line = l(i, :);
+                    [s, e] = regexp(line, [handler.dataPrefix, '\d+']);
+                    if isempty(s); continue; end
+                    ids = [ids, str2double(line((s+numel(handler.dataPrefix)):e))];
+                end
+                ids = sort(ids);
+                return
+            end
+            
+            if handler.storeInMemory
+                ids = find(~cellfun(@isempty, handler.data));
+                return
+            end
+        end
+        
+        function handler = writeToFile(handler, data, id) %#ok
             p = handler.getDataPath(id);
             save(p, 'data', handler.saveflags);
             dispif(handler.verbose, 'Writing data to %s\n', p);
         end
         
+        function handler = deleteFile(handler, id)
+            p = handler.getDataPath(id);
+            delete(p, 'data');
+            dispif(handler.verbose, 'Deleting data at %s\n', p);
+        end
+        
         function p = getDataPath(handler, i)
+            
             p = fullfile(handler.dataDirectory, handler.dataFolder);
             if nargin > 1
+                assert(numel(i) == 1 && isnumeric(i));
                 p = fullfile(p, [handler.dataPrefix, num2str(i), '.mat']);
             end
         end
         
         function resetData(handler)
             handler.data = {};
+
             if handler.writeToDisk
-                disp('Do something here')
+                p = handler.getDataPath();
+                fp = fullfile(p, [handler.dataPrefix, '*.mat']);
+                delete(fp);
             end
         end
     end
