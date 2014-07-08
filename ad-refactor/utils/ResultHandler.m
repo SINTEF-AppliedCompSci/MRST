@@ -55,24 +55,24 @@ classdef ResultHandler < handle
             
         end
         
-%         function n = numel(handler)
-%             if handler.storeInMemory
-%                 n = numel(handler.data);
-%             elseif handler.writeToDisk
-%                 n = numel(handler.getValidIds);
-%             else
-%                 n = 0;
-%             end
-%         end
-%         
-%         function varargout = size(handler, dim)
-%             N = [numel(handler), 1];
-%             if nargin == 1
-%                 varargout{1} = N;
-%             else
-%                 varargout{1} = N(dim);
-%             end
-%         end
+        function n = numelData(handler)
+            if handler.storeInMemory
+                n = numel(handler.data); 
+            elseif handler.writeToDisk
+                n = numel(handler.getValidIds);
+            else
+                n = 0;
+            end
+        end
+        
+        function varargout = sizeData(handler, dim)
+            N = [numelData(handler), 1];
+            if nargin == 1
+                varargout{1} = N;
+            else
+                varargout{1} = N(dim);
+            end
+        end
         
         function varargout = subsref(handler, s)
             switch s(1).type
