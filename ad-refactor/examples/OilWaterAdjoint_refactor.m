@@ -73,7 +73,7 @@ model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
 schedulenew = convertDeckScheduleToMRST(G, rock, deck);
 
 % Ensure that solver produces multiple substeps
-ms = schedulenew.step.val(end)/2;
+% ms = schedulenew.step.val(end)/2;
 ms = inf;
 stepsel = SimpleTimeStepSelector('maxTimestep', ms);       
 nonlinear = NonLinearSolver('timeStepSelector', stepsel);
@@ -93,26 +93,31 @@ end
 obj = @(tstep)NPVOW(G, wellSols, schedulemini, 'ComputePartials', true, 'tStep', tstep);
 
 grad = simulateAdjointAD(state, states, model, schedulemini, obj);
-vertcat(adjointGradient{:})
-grad(end-5:end)
+% vertcat(adjointGradient{:})
+% grad(end-5:end)
 %% Plot the gradients
 
 
 wellNames = {wellSols{1}.name};
 
 ga = cell2mat(adjointGradient);
+ga_n = full(cell2mat(grad'));
 gn = cell2mat(numericalGradient);
 clf;
 subplot(1,2,1)
 plot(ga(1,:),'-ob'), hold on
 plot(gn(1,:),'-xr')
+plot(ga_n(1,:),'-*g')
+
 title(['Well 1 (', wellNames{1}, ')'])
 xlabel('Control #')
 
 subplot(1,2,2)
 plot(ga(2,:),'-ob'), hold on
 plot(gn(2,:),'-xr'), hold on
+plot(ga_n(2,:),'-*g')
+
 title(['Well 2 (', wellNames{2}, ')'])
 xlabel('Control #')
-legend({'Adjoint', 'Numerical'})
+legend({'Adjoint-old', 'Adjoint-new', 'Numerical'})
 

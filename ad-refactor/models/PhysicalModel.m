@@ -107,31 +107,33 @@ classdef PhysicalModel
                             'Residuals',    values);
         end
         
-        function [gradient, report] = solveAdjoint(model, solver, getState,...
+        function [gradient, result, report] = solveAdjoint(model, solver, getState,...
                                     getObjective, schedule, gradient, itNo)
             dt_steps = schedule.step.val;
             
             current = getState(itNo);
-            prev    = getState(itNo - 1);
+            before    = getState(itNo - 1);
             dt = dt_steps(itNo);
             
             lookupCtrl = @(step) schedule.control(schedule.step.control(step));
             [~, forces] = model.getDrivingForces(lookupCtrl(itNo));
-            problem = model.getEquations(prev, current, dt, forces, 'iteration', inf);
+            problem = model.getEquations(before, current, dt, forces, 'iteration', inf);
             
             if itNo < numel(dt_steps)
-                next    = getState(itNo + 1);
+                after    = getState(itNo + 1);
                 dt_next = dt_steps(itNo + 1);
                 
                 [~, forces_p] = model.getDrivingForces(lookupCtrl(itNo + 1));
-                problem_p = model.getEquations(current, next, dt_next, forces_p,...
+                problem_p = model.getEquations(current, after, dt_next, forces_p,...
                                     'iteration', inf, 'reverseMode', true);
             else
                 problem_p = [];
             end
-            [gradient, report] = solver.solveAdjointProblem(problem_p,...
+            [gradient, result, rep] = solver.solveAdjointProblem(problem_p,...
                                         problem, gradient, getObjective(itNo), model);
-                                    
+            report = struct();
+            report.Types = problem.types;
+            report.LinearSolverReport = rep;
         end
         
         function [vararg, driving] = getDrivingForces(model, control) %#ok

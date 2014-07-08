@@ -21,7 +21,7 @@ classdef LinearSolverAD < handle
            error('Superclass not meant for direct use')
        end
        
-       function [result, report] = solveAdjointProblem(solver, problemPrev,...
+       function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
                                         problemCurr, adjVec, objective, model) %#ok
            problemCurr = problemCurr.assembleSystem();
            
@@ -39,6 +39,8 @@ classdef LinearSolverAD < handle
            end
            A = problemCurr.A';
            [result, report] = solver.solveLinearSystem(A, rhs);
+           
+           grad = solver.storeIncrements(problemCurr, result);
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
