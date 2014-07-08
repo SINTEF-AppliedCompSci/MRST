@@ -108,22 +108,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         initialSelection = true(G.cells.num, 1);
     end
     isscalar = false;
-
+    
+    N = numel(dataset);
+    accessdata = @(x) dataset(x);
     if isnumeric(dataset) && max(size(dataset)) == G.cells.num
         if size(dataset, 2) == 1
             isscalar = true;
         end
         dataset = struct('values', dataset);
+        N = 1;
+        accessdata = @(x) dataset;
     elseif iscell(dataset)
-        try
-            dataset = [dataset{:}];
-        catch e
-            error('To visualize cell data, all entries must be of the same type!');
-        end
+%         try
+%             dataset = [dataset{:}];
+%         catch e
+%             error('To visualize cell data, all entries must be of the same type!');
+%         end
+        accessdata = @(x) dataset{x};
+    elseif strcmpi(class(dataset), 'ResultHandler')
+        N = dataset.numelData();
+        accessdata = @(x) dataset{x};
+        disp 'hello'
     end
 
     datasetname = inputname(2);
-    cellfields = getStructFields(G, dataset(1), datasetname);
+    cellfields = getStructFields(G, accessdata(1), datasetname);
     ni = 1;
     if ~isempty(cellfields)
         selectionName = cellfields{1};
@@ -131,9 +140,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         selectionName = '';
     end
 
-    data = readStructField(dataset(ni), selectionName);
+    data = readStructField(accessdata(ni), selectionName);
 
-    N = numel(dataset);
+    
 
     %% Constants
     if ~isfield(G, 'cartDims')
@@ -581,7 +590,7 @@ function limitLogical(src, event)
 end
 
 function limitDataset(src, event)
-    addFilters(G, minmax.filter, dataset(ni), @setlimits);
+    addFilters(G, minmax.filter, accessdata(ni), @setlimits);
 end
 
 function setlimits(active, filter)

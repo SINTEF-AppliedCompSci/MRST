@@ -97,7 +97,16 @@ ph = uipanel(parent, 'Position', opt.Location, ...
 if isnumeric(datasets)
     nsets = size(datasets, 2);
 else
-    nsets = numel(datasets);
+    if isstruct(datasets)
+        nsets = numel(datasets);
+        accessfcn = @(x) datasets(x);
+    elseif iscell(datasets)
+        nsets = numel(datasets);
+        accessfcn = @(x) datasets{x};
+    elseif strcmpi(class(datasets), 'ResultHandler')
+        nsets = datasets.numelData();
+        accessfcn = @(x) datasets{x};
+    end
 end
 N = 1;
 
@@ -150,7 +159,7 @@ if hasOutput
     width = width - .2;
 end
 
-cellfields = getStructFields(G, datasets(N), setname);
+cellfields = getStructFields(G, accessfcn(N), setname);
 structh = uicontrol(ph,  'Style', 'popupmenu',...
                             'Units', 'normalized',...
                             'Position', [spos 0 width 1],...
@@ -164,7 +173,7 @@ end
 function selectionCallback(src, event)
     name = cellfields{get(structh, 'Value')};
     N = get(src, 'Value');
-    cellfields = getStructFields(G, datasets(N), setname);
+    cellfields = getStructFields(G, accessfcn(N), setname);
     set(structh, 'String', cellfields)
     nameind = find(strcmpi(cellfields, name));
     if isempty(nameind)
@@ -196,7 +205,7 @@ end
 
 function applySelection(src, event)
     name = cellfields {get(structh, 'Value')};
-    d = readStructField(datasets(N), name);
+    d = readStructField(accessfcn(N), name);
     if hasOutput
         varargout{1} = d;
         varargout{2} = N;
