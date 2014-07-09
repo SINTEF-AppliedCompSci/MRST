@@ -23,8 +23,8 @@ classdef PhysicalModel
         % Oil phase present
         oil
         
-        % Phasenames
-        phaseNames
+        % Names of each component, corresponding to their order in state.s
+        componentNames
         
         % Input data used to instansiate the model
         inputdata
@@ -40,7 +40,7 @@ classdef PhysicalModel
             % Physical model
             model.G = G;
             model.fluid = fluid;
-            model.phaseNames = {'water', 'oil', 'gas'};
+            model.componentNames = {'sw', 'so', 'sg'};
             
             model = merge_options(model, varargin{:});
             
@@ -173,18 +173,18 @@ classdef PhysicalModel
         function [fn, index] = getVariableField(model, name)
             index = [];
             switch(lower(name))
-                case 't'
+                case {'t', 'temperature'}
                     fn = 'T';
                 case {'sw', 'water'}
-                    index = find(strcmpi(model.phaseNames, 'water'));
+                    index = find(strcmpi(model.componentNames, 'sw'));
                     fn = 's';
                 case {'so', 'oil'}
-                    index = find(strcmpi(model.phaseNames, 'oil'));
+                    index = find(strcmpi(model.componentNames, 'so'));
                     fn = 's';
                 case {'sg', 'gas'}
-                    index = find(strcmpi(model.phaseNames, 'gas'));
+                    index = find(strcmpi(model.componentNames, 'sg'));
                     fn = 's';
-                case 'pressure'
+                case {'pressure', 'p'}
                     index = 1;
                     fn = 'pressure';
             end
@@ -200,6 +200,45 @@ classdef PhysicalModel
             p = state.(fn)(:, index);
         end
         
+        function state = incrementProp(model, state, name, increment)
+            [fn, index] = model.getVariableField(name);
+            p = state.(fn)(:, index)  + increment;
+            state.(fn)(:, index) = p;
+        end
+        
+        function state = setProp(model, state, name, value)
+            [fn, index] = model.getVariableField(name);
+            state.(fn)(:, index) = value;
+        end
+        
+        function dv = getIncrement(model, dx, problem, name)
+            isVar = problem.indexOfPrimaryVariable(name);
+            if any(isVar)
+                dv = dx{isVar};
+            else
+                dv = 0;
+            end
+        end
+        
+        function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax)
+            if nargin == 5
+                relchangemax = inf;
+            end
+            
+            val0 = model.getProp(state, name);
+            if iscell(dx)
+                dv = model.getIncrement(dx, problem, name);
+            else
+                % Numerical value, increment directly and do not safety
+                % check that this is a part of the model
+                dv = dx;
+            end
+            dv    = sign(dv).*min(abs(dv), abs(relchangemax.*val0));
+
+            val     = val0 + dv;
+            state = model.setProp(state, name, val);
+
+        end
     end
     methods (Static)
 

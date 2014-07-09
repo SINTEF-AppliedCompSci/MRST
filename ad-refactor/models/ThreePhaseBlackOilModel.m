@@ -43,7 +43,7 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
             model.oil = true;
             model.gas = true;
             model.water = true;
-            model.phaseNames = {'water', 'oil', 'gas'};
+            model.componentNames = {'sw', 'so', 'sg'};
             
             model = merge_options(model, varargin{:});
             
@@ -100,15 +100,8 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            state = updateStateBlackOil(state, dx, drivingForces, model.fluid, ...
-             'dsMax',       model.dsMax, ...
-             'dpMax',       model.dpMax, ...
-             'drsMax',      model.drsMax, ...
-             'disgas',      model.disgas, ...
-             'vapoil',      model.vapoil);
+            state = updateStateBlackOilGeneric(model, state, problem, dx, drivingForces);
             report = struct();
         end
-        
-        
     end
 end
