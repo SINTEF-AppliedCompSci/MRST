@@ -62,6 +62,12 @@ classdef PhysicalModel
             error('Base class not meant for direct use')
         end
         
+        function state = updateAfterConvergence(model, state0, state, drivingForces) %#ok
+            % Update state based on non-linear increment after timestep has
+            % converged. Defaults to doing nothing since not all models
+            % require this.
+        end
+        
         function [convergence, values] = checkConvergence(model, problem, n)
             % Check convergence based on residual tolerances
             if nargin == 2
