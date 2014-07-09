@@ -23,6 +23,9 @@ classdef PhysicalModel
         % Oil phase present
         oil
         
+        % Phasenames
+        phaseNames
+        
         % Input data used to instansiate the model
         inputdata
     end
@@ -37,6 +40,7 @@ classdef PhysicalModel
             % Physical model
             model.G = G;
             model.fluid = fluid;
+            model.phaseNames = {'water', 'oil', 'gas'};
             
             model = merge_options(model, varargin{:});
             
@@ -44,7 +48,7 @@ classdef PhysicalModel
             model.water = false;
             model.gas = false;
             model.oil = false;
-
+            
         end
         
         function model = setupOperators(model, G, rock, varargin)
@@ -165,6 +169,41 @@ classdef PhysicalModel
                 driving.src = control.src;
             end
         end
+        
+        function [fn, index] = getVariableField(model, name)
+            index = [];
+            switch(lower(name))
+                case 't'
+                    fn = 'T';
+                case {'sw', 'water'}
+                    index = find(strcmpi(model.phaseNames, 'water'));
+                    fn = 's';
+                case {'so', 'oil'}
+                    index = find(strcmpi(model.phaseNames, 'oil'));
+                    fn = 's';
+                case {'sg', 'gas'}
+                    index = find(strcmpi(model.phaseNames, 'gas'));
+                    fn = 's';
+                case 'pressure'
+                    index = 1;
+                    fn = 'pressure';
+            end
+            
+            if isempty(index)
+                error('PhysicalModel:UnknownPhase', ...
+                    ['Phase ''', name, ''' is not known to this model']);
+            end
+        end
+        
+        function p = getProp(model, state, name)
+            [fn, index] = model.getVariableField(name);
+            p = state.(fn)(:, index);
+        end
+        
     end
+    methods (Static)
+
+    end
+
 end
 

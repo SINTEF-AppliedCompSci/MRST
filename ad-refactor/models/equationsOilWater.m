@@ -1,4 +1,4 @@
-function [problem, state] = equationsOilWater(state0, state, dt, G, drivingForces, s, f, varargin)
+function [problem, state] = equationsOilWater(state0, state, model, dt, drivingForces, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -20,13 +20,21 @@ end
 
 W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
-    
+
+s = model.operators;
+G = model.G;
+f = model.fluid;
 
 hst = opt.history;
 
 % current variables: ------------------------------------------------------
-p    = state.pressure;
-sW   = state.s(:,1);
+
+p  = model.getProp(state, 'pressure');
+p0 = model.getProp(state0, 'pressure');
+
+sW  = model.getProp(state,  'water');
+sW0 = model.getProp(state0, 'water');
+
 pBH = vertcat(state.wellSol.bhp);
 qWs  = vertcat(state.wellSol.qWs);
 qOs    = vertcat(state.wellSol.qOs);
@@ -34,8 +42,7 @@ qOs    = vertcat(state.wellSol.qOs);
 %mixWs = mixs(:,1);
 
 % previous variables ------------------------------------------------------
-p0  = state0.pressure;
-sW0 = state0.s(:,1);
+
 %--------------------------------------------------------------------------
 
 
