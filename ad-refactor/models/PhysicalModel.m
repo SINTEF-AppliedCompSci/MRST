@@ -26,7 +26,7 @@ classdef PhysicalModel
         % Names of each component, corresponding to their order in state.s
         componentNames
         
-        % Input data used to instansiate the model
+        % Input data used to instantiate the model
         inputdata
     end
     
@@ -184,6 +184,9 @@ classdef PhysicalModel
                 case {'sg', 'gas'}
                     index = find(strcmpi(model.componentNames, 'sg'));
                     fn = 's';
+                case {'s', 'sat', 'saturation'}
+                    index = 1:numel(model.componentNames);
+                    fn = 's';
                 case {'pressure', 'p'}
                     index = 1;
                     fn = 'pressure';
@@ -233,9 +236,9 @@ classdef PhysicalModel
                 % check that this is a part of the model
                 dv = dx;
             end
-            dv    = sign(dv).*min(abs(dv), abs(relchangemax.*val0));
+            change = min(relchangemax./max(abs(dv), [], 2), 1);
 
-            val     = val0 + dv;
+            val     = val0 + dv.*repmat(change, 1, size(dv, 2));
             state = model.setProp(state, name, val);
 
         end

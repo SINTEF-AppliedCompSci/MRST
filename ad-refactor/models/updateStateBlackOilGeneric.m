@@ -10,7 +10,6 @@ assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 if isprop(model, 'vapoil')
     vapoil = model.vapoil;
-    
 end
 
 if isprop(model, 'disgas')
@@ -47,16 +46,28 @@ if (disgas || vapoil)
         state = model.updateStateFromIncrement(state, st{2}.*dr, problem, 'rv', model.drsMax);
     end
     
-    dso = -(dsg + dsw);
-    maxVal = max(abs([dsw, dso, dsg]), [], 2);
-    step   = min(model.dsMax./maxVal, 1);
-
-    if model.water
-        state = model.setProp(state, 'sw', sw + step.*dsw);
-    end
-    state = model.setProp(state, 'so', so + step.*dso);
-    state = model.setProp(state, 'sg', sg + step.*dsg);
     
+
+%     maxVal = max(abs([dsw, dso, dsg]), [], 2);
+%     step   = min(model.dsMax./maxVal, 1);
+% 
+%     if model.water
+%         state = model.setProp(state, 'sw', sw + step.*dsw);
+%     end
+%     state = model.setProp(state, 'so', so + step.*dso);
+%     state = model.setProp(state, 'sg', sg + step.*dsg);
+    dso = -(dsg + dsw);
+%     if model.water
+%         ds = [dsw, dso, dsg];
+%     else
+%         ds = [dso, dsg];
+%     end
+    ds = zeros(numel(so), numel(comp));
+    ds(:, strcmpi(comp, 'sw')) = dsw;
+    ds(:, strcmpi(comp, 'so')) = dso;
+    ds(:, strcmpi(comp, 'sg')) = dsg;
+    
+    state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
     % We should *NOT* be solving for oil saturation for this to make sense
     assert(~any(strcmpi(satSolVar, 'so')));
     state = computeFlashBlackOil(state, state0, model, st);
@@ -79,7 +90,7 @@ else
             tmp = tmp - v;
         end
     end
-    % Last phase fills the pores
+    % Last phase fills the pores. This may make the last phase swell a lot.
     state = model.setProp(state, fillComponent, tmp);
 end
 
@@ -160,7 +171,6 @@ else
     status = oilPresent + 2*gasPresent;
 end
 
-nc = size(status, 1);
 if ~disgas
     st1 = false;
 else
