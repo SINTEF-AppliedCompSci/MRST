@@ -35,12 +35,12 @@ function gradients = computeGradientAdjointAD(state0, states, model, schedule, g
     
     % Sum up to the control steps
     nc = numel(schedule.control);
-    gradients = cell(nc, ncv);
+    gradients = cell(ncv, nc);
     for k = 1:nc
         ck = schedule.step.control == k;
         for j = 1:ncv
             tmp = gradstep(ck, j);
-            gradients{k, j} = sum(horzcat(tmp{:}), 2);
+            gradients{j, k} = sum(horzcat(tmp{:}), 2);
         end
     end
 end
