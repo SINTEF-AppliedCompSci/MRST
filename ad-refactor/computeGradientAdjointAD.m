@@ -40,7 +40,7 @@ function gradients = computeGradientAdjointAD(state0, states, model, schedule, g
         ck = schedule.step.control == k;
         for j = 1:ncv
             tmp = gradstep(ck, j);
-            gradients{j, k} = sum(horzcat(tmp{:}), 2);
+            gradients{j, k} = full(sum(horzcat(tmp{:}), 2));
         end
     end
 end
