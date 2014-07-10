@@ -1,4 +1,4 @@
-function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForces, s, f, varargin)
+function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingForces, varargin)
 % Generate equations for a Volatile 3Ph system (wet-gas, live-oil).
     opt = struct('Verbose',     mrstVerbose,...
                  'reverseMode', false,...
@@ -6,11 +6,6 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
                  'resOnly',     false,...
                  'history',     [],  ...
                  'iteration',   -1,  ...
-                 'disgas',      false, ...
-                 'vapoil',      false, ...
-                 'oil',         true, ...
-                 'gas',         true, ...
-                 'water',       true, ...
                  'stepOptions', []);
 
     opt = merge_options(opt, varargin{:});
@@ -18,28 +13,39 @@ function [problem, state] = equationsBlackOil(state0, state, dt, G, drivingForce
     W = drivingForces.Wells;
     assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
     
-    disgas = opt.disgas;
-    vapoil = opt.vapoil;
+    s = model.operators;
+    G = model.G;
+    f = model.fluid;
 
-    % current variables: ------------------------------------------------------
-    p    = state.pressure;
-    sW   = state.s(:,1);
-    sG   = state.s(:,3);
-    rs   = state.rs;
-    rv   = state.rv;
+    disgas = model.disgas;
+    vapoil = model.vapoil;
+
+    % Oil pressure
+    p  = model.getProp(state, 'pressure');
+    p0 = model.getProp(state0, 'pressure');
+
+    % Water saturation
+    sW  = model.getProp(state,  'water');
+    sW0 = model.getProp(state0, 'water');
+    
+    % Gas saturation
+    sG  = model.getProp(state,  'gas');
+    sG0 = model.getProp(state0, 'gas');
+    
+    % Gas component in oil phase
+    rs  = model.getProp(state,  'rs');
+    rs0 = model.getProp(state0, 'rs');
+    
+    % Oil component in gas phase
+    rv  = model.getProp(state,  'rv');
+    rv0 = model.getProp(state0, 'rv');
+
 
     bhp = vertcat(state.wellSol.bhp);
     qWs    = vertcat(state.wellSol.qWs);
     qOs    = vertcat(state.wellSol.qOs);
     qGs    = vertcat(state.wellSol.qGs);
-
-    % previous time-step variables ------------------------------------------------------
-    p0  = state0.pressure;
-    sW0 = state0.s(:,1);
-    sG0 = state0.s(:,3);
-    rs0 = state0.rs;
-    rv0 = state0.rv;
-
+    
     %Initialization of primary variables ----------------------------------
     [st1 , st2  , st3 ] = getCellStatus(state , disgas, vapoil);
     [st1p, st2p , st3p] = getCellStatus(state0, disgas, vapoil);

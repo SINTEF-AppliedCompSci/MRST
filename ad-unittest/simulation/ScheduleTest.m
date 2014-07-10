@@ -65,6 +65,17 @@ classdef ScheduleTest < matlab.unittest.TestCase
     end
     
     methods (Test)
+        
+        function singleStep(test)
+            if test.caseIsBig
+                usecpr = true;
+            else
+                usecpr = false;
+            end
+            name = test.getIdentifier('singlestep');
+            test.runSchedule(name, 'stepcount', 1, 'useCPR', usecpr);
+        end
+        
         function baseline(test)
             if test.caseIsBig
                 test.assertFail('Test is too big for mldivide direct solver')

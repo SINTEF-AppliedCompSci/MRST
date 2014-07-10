@@ -37,7 +37,7 @@ classdef ResultHandler < handle
             handler.data = {};
             if handler.writeToDisk
                 p = handler.getDataPath();
-                if ~exist(p, 'dir') == 7
+                if ~(exist(p, 'dir') == 7)
                     ok = mkdir(p);
                     if ~ok
                         error(['Unable to create output directory! ',...
@@ -47,9 +47,17 @@ classdef ResultHandler < handle
                         ])
                     end
                 end
-                if ~isempty(ls(fullfile(p, [handler.dataPrefix, '*.mat'])))
-                    warning('ResultHandler:FilesExist', ...
-                        'Input directory not clean, consider calling ''resetData''');
+                try
+                    d = ls(fullfile(p, [handler.dataPrefix, '*.mat']));
+                    if ~isempty(d)
+                        warning('ResultHandler:FilesExist', ...
+                            'Input directory not clean, consider calling ''resetData''');
+                    end
+                catch e
+                    if ~strcmp(e.identifier, 'MATLAB:ls:OSError')
+                        % ls returns error for empty dir on some systems
+                        rethrow(e)
+                    end
                 end
             end
             

@@ -43,6 +43,7 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
             model.oil = true;
             model.gas = true;
             model.water = true;
+            model.componentNames = {'sw', 'so', 'sg'};
             
             model = merge_options(model, varargin{:});
             
@@ -63,6 +64,20 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
             model = model.setupOperators(G, rock, 'deck', model.inputdata);
         end
         
+        function [fn, index] = getVariableField(model, name)
+            switch(lower(name))
+                case 'rs'
+                    fn = 'rs';
+                    index = 1;
+                case 'rv'
+                    fn = 'rv';
+                    index = 1;
+                otherwise
+                    % Basic phases are known to the base class
+                    [fn, index] = getVariableField@PhysicalModel(model, name);
+            end
+        end
+
         function [convergence, values] = checkConvergence(model, problem, varargin)
             if model.useCNVConvergence
                 % Use convergence model similar to commercial simulator
@@ -79,27 +94,13 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = equationsBlackOil(state0, state, dt, ...
-                            model.G,...
-                            drivingForces,...
-                            model.operators,...
-                            model.fluid,...
-                            'disgas', model.disgas, ...
-                            'vapoil', model.vapoil, ...
-                            'oil',    model.oil, ...
-                            'gas',    model.gas, ...
-                            'water',  model.water, ...
-                            varargin{:});
+            [problem, state] = equationsBlackOil(state0, state, model, dt, ...
+                            drivingForces, varargin{:});
             
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            state = updateStateBlackOil(state, dx, drivingForces, model.fluid, ...
-             'dsMax',       model.dsMax, ...
-             'dpMax',       model.dpMax, ...
-             'drsMax',      model.drsMax, ...
-             'disgas',      model.disgas, ...
-             'vapoil',      model.vapoil);
+            state = updateStateBlackOilGeneric(model, state, problem, dx, drivingForces);
             report = struct();
         end
     end

@@ -23,6 +23,9 @@ classdef PhysicalModel
         % Oil phase present
         oil
         
+        % Names of each component, corresponding to their order in state.s
+        componentNames
+        
         % Input data used to instansiate the model
         inputdata
     end
@@ -37,6 +40,7 @@ classdef PhysicalModel
             % Physical model
             model.G = G;
             model.fluid = fluid;
+            model.componentNames = {'sw', 'so', 'sg'};
             
             model = merge_options(model, varargin{:});
             
@@ -44,7 +48,7 @@ classdef PhysicalModel
             model.water = false;
             model.gas = false;
             model.oil = false;
-
+            
         end
         
         function model = setupOperators(model, G, rock, varargin)
@@ -60,6 +64,12 @@ classdef PhysicalModel
         function [state, report] = updateState(model, state, dx, drivingForces) %#ok
             % Update state based on non-linear increment
             error('Base class not meant for direct use')
+        end
+        
+        function state = updateAfterConvergence(model, state0, state, drivingForces) %#ok
+            % Update state based on non-linear increment after timestep has
+            % converged. Defaults to doing nothing since not all models
+            % require this.
         end
         
         function [convergence, values] = checkConvergence(model, problem, n)
@@ -159,6 +169,80 @@ classdef PhysicalModel
                 driving.src = control.src;
             end
         end
+        
+        function [fn, index] = getVariableField(model, name)
+            index = [];
+            switch(lower(name))
+                case {'t', 'temperature'}
+                    fn = 'T';
+                case {'sw', 'water'}
+                    index = find(strcmpi(model.componentNames, 'sw'));
+                    fn = 's';
+                case {'so', 'oil'}
+                    index = find(strcmpi(model.componentNames, 'so'));
+                    fn = 's';
+                case {'sg', 'gas'}
+                    index = find(strcmpi(model.componentNames, 'sg'));
+                    fn = 's';
+                case {'pressure', 'p'}
+                    index = 1;
+                    fn = 'pressure';
+            end
+            
+            if isempty(index)
+                error('PhysicalModel:UnknownPhase', ...
+                    ['Phase ''', name, ''' is not known to this model']);
+            end
+        end
+        
+        function p = getProp(model, state, name)
+            [fn, index] = model.getVariableField(name);
+            p = state.(fn)(:, index);
+        end
+        
+        function state = incrementProp(model, state, name, increment)
+            [fn, index] = model.getVariableField(name);
+            p = state.(fn)(:, index)  + increment;
+            state.(fn)(:, index) = p;
+        end
+        
+        function state = setProp(model, state, name, value)
+            [fn, index] = model.getVariableField(name);
+            state.(fn)(:, index) = value;
+        end
+        
+        function dv = getIncrement(model, dx, problem, name)
+            isVar = problem.indexOfPrimaryVariable(name);
+            if any(isVar)
+                dv = dx{isVar};
+            else
+                dv = 0;
+            end
+        end
+        
+        function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax)
+            if nargin == 5
+                relchangemax = inf;
+            end
+            
+            val0 = model.getProp(state, name);
+            if iscell(dx)
+                dv = model.getIncrement(dx, problem, name);
+            else
+                % Numerical value, increment directly and do not safety
+                % check that this is a part of the model
+                dv = dx;
+            end
+            dv    = sign(dv).*min(abs(dv), abs(relchangemax.*val0));
+
+            val     = val0 + dv;
+            state = model.setProp(state, name, val);
+
+        end
     end
+    methods (Static)
+
+    end
+
 end
 
