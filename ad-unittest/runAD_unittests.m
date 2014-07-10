@@ -25,6 +25,10 @@ tests = matlab.unittest.TestSuite.fromClass(?Test_simulateScheduleAD);
 result_sched = run(tests);
 
 %%
+clear
 tests = matlab.unittest.TestSuite.fromClass(?ResultHandlerTest);
 res = run(tests);
 
+%%
+tests = matlab.unittest.TestSuite.fromClass(?TestAdjoints);
+result_adjoints = run(tests);
