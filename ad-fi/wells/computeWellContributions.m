@@ -100,7 +100,7 @@ end
 cqt_i = -(connInjInx.*Tw).*(mt.*drawdown);
 % volume ratio between connection and standard conditions
 volRat  = compVolRat(mix_s, b, r, Rw, model);
-% injceting connections total volumerates at standard condintions
+% injecting connections total volumerates at standard condintions
 cqt_is = cqt_i./volRat;
 % connection phase volumerates at standard conditions (for output):
 cq_s = cell(1,numPh);
