@@ -44,7 +44,6 @@ function grad = computeGradientPerturbationAD(state0, model, schedule, getObject
 %
 %  'perturbation'   - Magnitude of perturbation. Default 1e-7.
 %
-%
 % SEE ALSO:
 %   computeGradientAdjointAD, simulateScheduleAD
 

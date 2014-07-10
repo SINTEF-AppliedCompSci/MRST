@@ -124,10 +124,10 @@ clf;
 for i = 1:2
     subplot(1,2,i)
     hold on
-    plot(adjointNew(i,:),'-ob'), 
-    plot(adjointOld(i,:),'-ob');
-    plot(numericalNew(i,:),'-ob');
-    plot(numericalOld(i,:),'-ob');
+    plot(adjointNew(i,:),'-.b'), 
+    plot(adjointOld(i,:),'-*k');
+    plot(numericalNew(i,:),'-og');
+    plot(numericalOld(i,:),'-+r');
     
     title(['Well ', num2str(i), ' (', wellNames{i}, ')'])
     xlabel('Control #')

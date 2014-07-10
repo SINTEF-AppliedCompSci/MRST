@@ -1,10 +1,54 @@
 classdef LinearSolverAD < handle
-    % Base class for a nonlinear solver
+%Base class for linear solvers in the AD framework
+%
+% SYNOPSIS:
+%   solver = LinearSolverAD()
+%
+% DESCRIPTION:
+%   Base class for linear solvers. Implement methods for solving linearized
+%   problems and adjoints. Also supports setup/cleanup functions
+%   before/after use for initialize once-type usage.
+%
+% REQUIRED PARAMETERS:
+%   None
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   See class properties.
+%
+% NOTE:
+%   This class is intended as superclass. It cannot actually solve
+%   problems.
+%
+% SEE ALSO:
+%   BackslashSolverAD, CPRSolverAD, LinearizedProblem
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
    properties
+       % Convergence tolerance
        tolerance
+       % Max number of iterations used
        maxIterations
+       % Enable this to produce additional report output. May use a lot of
+       % memory for large problems
        extraReport
-       
+       % Verbose output enabler
        verbose
    end
    methods
@@ -23,6 +67,7 @@ classdef LinearSolverAD < handle
        
        function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
                                         problemCurr, adjVec, objective, model) %#ok
+           % Solve an adjoint problem.
            problemCurr = problemCurr.assembleSystem();
            
            % Maybe formalize the control variables a bit in the future
@@ -55,7 +100,9 @@ classdef LinearSolverAD < handle
        end
        
        function dx = storeIncrements(solver, problem, result) %#ok
-           % Store the increments seperately - copy/paste from SolveEqsADI
+           % Extract the results from a vector into a cell array with one
+           % entry per primary variable in the linearized problem.
+           
            numVars = cellfun(@numval, problem.equations)';
            cumVars = cumsum(numVars);
            ii = [[1;cumVars(1:end-1)+1], cumVars];

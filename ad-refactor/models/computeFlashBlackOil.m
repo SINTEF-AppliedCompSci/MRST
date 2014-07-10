@@ -1,5 +1,5 @@
 function state = computeFlashBlackOil(state, state0, model, status)
-    
+    % Update state based on vapoil/disgas flash
     fluid = model.fluid;
     
     disgas = model.disgas;

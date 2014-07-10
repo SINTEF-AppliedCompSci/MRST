@@ -1,4 +1,78 @@
 function gradients = computeGradientAdjointAD(state0, states, model, schedule, getObjective, varargin)
+%Compute gradients using an adjoint/backward simulation that is linear in each step
+%
+% SYNOPSIS:
+%   grad = computeGradientAdjointAD(state0, states, model, schedule, getObjective
+%
+% DESCRIPTION:
+%   For a given schedule, compute gradients with regards to well controls
+%   by perturbing all controls ever so slightly and re-running the
+%   simulation.
+%  
+%   As the cost of this routine grows is approximately
+%
+%        (# wells)x(# ctrl step) x cost of schedule
+%
+%   it can be potentially extremely expensive. It is better to use the
+%   'computeGradientAdjointAD' routine for most practical purposes. This
+%   routine is primarily designed for validation of said routine.
+%
+% REQUIRED PARAMETERS:
+%
+%   state0       - Physical model state at t = 0
+%
+%   states       - All previous states. Must support the syntax 
+%                  state = states{i}. If the problem is too large to fit in
+%                  memory, it can use ResultHandler class to retrieve files
+%                  from the disk.
+%                  
+%   model        - Subclass of PhysicalModel class such as
+%                 ThreePhaseBlackOilModel that models the physical effects
+%                 we want to study.
+%
+%   schedule     - Schedule suitable for simulateScheduleAD.
+%
+%   getObjective - Function handle for getting objective function value 
+%                  for a given timestep with derivatives. Format: @(tstep)
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   
+% 
+%
+% RETURNS:
+%
+%  'Verbose'        - Indicate if extra output is to be printed such as
+%                     detailed convergence reports and so on. 
+% 
+%  'scaling'        - Struct with fields 'rate' and 'pressure' used to
+%                     scale the relevant control equations, if the model 
+%                     supports it.
+%
+%  'LinearSolver'   - Subclass of 'LinearSolverAD' suitable for solving the
+%                     adjoint systems.
+%
+% SEE ALSO:
+%   computeGradientPerturbationAD, simulateScheduleAD
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('ControlVariables', 'well', ...
                  'Scaling',          [], ...
                  'LinearSolver',     []);

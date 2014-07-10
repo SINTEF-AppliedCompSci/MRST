@@ -1,4 +1,6 @@
 function [problem, state] = equationsOilWater(state0, state, model, dt, drivingForces, varargin)
+% Get linearized problem for oil/water system with black oil-style
+% properties
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
