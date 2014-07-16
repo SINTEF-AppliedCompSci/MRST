@@ -280,23 +280,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          eval_fluid_data(state, G, fluid, cmob, cdmob, opt, OP);       %#ok
    end
 
-   % this is computed to make the report corrct
    assert (~ any(any(state.z        < 0)));
    assert (~ any(any(state.pressure < 0)));
+
+   % This is computed to make the report correct.
+   time = 0;
    if ~isempty(opt.report),
-      time = dt + opt.report(end).TIME(end);
-   else
-      time = dt;
+      time = opt.report(end).TIME(end);
    end
+
    offset = G.faces.num * size(state.z, 2);
-   report = [opt.report; ...
-             makeReport(state, G, mob, Af(offset+1:end, offset+1:end), ...
-                        time, it)];
+   Aw     = Af((offset + 1) : end, (offset + 1) : end);
+   pix    = phase_index(fluid, { 'WATER', 'OIL', 'GAS' });
+   report = [opt.report ; ...
+             make_report(state, G, pix, mob, Aw, time + dt, it)];
 end
 
 %--------------------------------------------------------------------------
 
-function report = makeReport(state, G, mob, Aw, time, nit)
+function pix = phase_index(fluid, pname)
+   a      = [reshape(lower(fluid.names), 1, []); ...
+             num2cell(1 : numel(fluid.names))];
+   s      = struct(a{:});
+
+   pix    = num2cell(zeros([1, numel(pname)]));
+   i      = isfield(s, lower(pname));
+   pix(i) = cellfun(@(f) s.(lower(f)), pname(i), 'UniformOutput', false);
+
+   pix    = cell2struct(pix, reshape(pname, 1, []), 2);
+end
+
+%--------------------------------------------------------------------------
+
+function report = make_report(state, G, pix, mob, Aw, time, nit)
    report = struct('TIME', time, 'NEWT', nit);
 
    if ~isfield(state, 'wellSol') || isempty(state.wellSol),
@@ -318,21 +334,38 @@ function report = makeReport(state, G, mob, Aw, time, nit)
 
    report.WBHP = vertcat(state.wellSol.pressure);
 
-   if size(mob, 2) == 3,
-      % Assume Aqua <-> 1, Liquid <-> 2, Vapour <-> 3
-      %
-      WWPR = arates(:, 1);
-      WOPR = arates(:, 2);
-      WGPR = arates(:, 3);
+   np          = size(mob, 2);
+   report.WVPT = arates(:, end);
 
-      WGOR = WGPR ./ WOPR;
+   if pix.OIL > 0,
+      report.WOPR = arates(:, 0*np + pix.OIL);
+   end
 
-      WVPT = arates(:,  end );
-      WWCT = arates(:, 3 + 1) ./ WVPT;
-      WGCT = arates(:, 3 + 3) ./ WVPT;
+   if pix.WATER > 0,
+      report.WWPR = arates(:, 0*np + pix.WATER);
+      report.WWCT = arates(:, 1*np + pix.WATER) ./ report.WVPT;
+   end
 
-      report.WVPT = WVPT;  report.WWPR = WWPR;  report.WOPR = WOPR;
-      report.WGPR = WGPR;  report.WWCT = WWCT;  report.WGCT = WGCT;
+   if pix.GAS > 0,
+      report.WGPR = arates(:, 0*np + pix.GAS);
+      report.WGCT = arates(:, 1*np + pix.GAS) ./ report.WVPT;
+   end
+
+   if all([pix.OIL, pix.GAS] > 0),
+      WGOR = zeros(size(report.WBHP));
+
+      i       = abs(report.WOPR) > 0;
+      WGOR(i) = report.WGPR(i) ./ report.WOPR(i);
+
+      if ~ all(i),
+         wgor = zeros([sum(~i), 1]);
+
+         % GPR ~= 0, OPR == 0 (!)
+         wgor(abs(report.WGPR(~i)) > 0) = inf;
+
+         WGOR(~i) = wgor;
+      end
+
       report.WGOR = WGOR;
    end
 end
