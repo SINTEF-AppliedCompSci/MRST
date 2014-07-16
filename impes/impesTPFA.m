@@ -158,10 +158,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    opt = merge_options(opt, varargin{:});
 
+   eval_pv = @(state) pore_volume(state, opt.rock, pv);
+
    state   = opt.init_state;
    opt.wdp = opt.wellModel(state, opt.wells, fluid);
 
    trans         = compute_trans(G, T, opt);
+   pvol.curr = eval_pv(state);
+   pvol.init = rmfield(pvol.curr, 'jac');  % pv(p0) indep. of curr. press.
+
    [cmob, cdmob] = impesComputeMobility(state, fluid, opt.bc, ...
                                         opt.wells, opt.wdp);
 
@@ -174,7 +179,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       rho = []; pc = []; dpc = []; cfl_fac = 1;
       ix  = 1 : G.faces.num;
 
-      est_dt = @(press, mob, dmob) ...
+      est_dt = @(press, pv, mob, dmob) ...
          opt.cfl_factor * estimate_dt_coats(G, trans(ix), pv, ...
                                             mob(ix, :), dmob(ix, :), ...
                                             press, rho, pc, dpc, cfl_fac);
@@ -184,9 +189,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       clear ix rho pc dpc cfl_fac
    end
 
-   [F, fcontrib_dp, wcontrib_dp, gflux] = ...
+   [F, fcontrib_dp, gflux, gflux] = ...
       assemble_residual(luAc, Af, mob, state, state0, G, trans, ...
-                        dt, pv, density, opt, OP);
+                        dt, pvol, density, opt, OP);            %#ok<ASGLU>
 
    E0   = norm(F, inf);   E = E0;
    done = E < opt.ATol;
@@ -198,13 +203,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    while ~done,
       if opt.EstimateTimeStep,
-         dt_tmp = est_dt(state.pressure, mob, dmob);
+         dt_tmp = est_dt(state.pressure, pvol.curr.val, mob, dmob);
          dt = min(dt, dt_tmp);
       end
 
       [F, fcontrib_dp, wcontrib_dp, gflux] = ...
          assemble_residual(luAc, Af, mob, state, state0, G, trans, ...
-                           dt, pv, density, opt, OP);
+                           dt, pvol, density, opt, OP);
 
       E_new = norm(F, inf);
 
@@ -219,25 +224,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       done = (E < opt.ATol) || (E < opt.RTol * E0);
       dispif(opt.Verbose, ...
              '|| F(%02d) ||_oo = %11.5e\n', it, E);
+
       if done
          continue;
       end
 
       J = approximate_jacobian(luAc, dAc, G, state, state0, ...
                                fcontrib_dp, wcontrib_dp,    ...
-                               dt, pv, opt, OP, mob, fluid);
+                               dt, pvol, opt, OP, mob, fluid);
 
       dpress = - opt.LinSolve(J, F);
 
-
       if opt.LineSearch,
          dpress = line_search(dpress, G, T, trans, dt, state, state0, ...
-                              fluid, mob, density, cmob, cdmob, pv, ...
+                              fluid, mob, density, cmob, cdmob, pvol, ...
                               F, opt, OP);
       end
 
-
       state = update_pressure(state, dpress, G, T, mob, density, OP, opt);
+
+      pvol.curr = eval_pv(state);
 
 %{
       opt.wdp = opt.wellModel(state, opt.wells, fluid);
@@ -266,12 +272,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    sreport.success   = true;
    sreport.dt        = dt;
    if opt.UpdateMass,
+      [state_tmp, dt] = update_masses(state0, dp, fcontrib_dp, ...
+                                      gflux, dt, pvol, opt, OP);
 
-      [state_tmp, dt] = ...
-          update_masses(state0, dp, fcontrib_dp, gflux, dt, pv, opt, OP);
-      state.z=state_tmp.z;
+      state.z = state_tmp.z;
+
       [u, u, u, u] = fluid.pvt(state.pressure, state.z);               %#ok
       state.s      = bsxfun(@rdivide, u, sum(u, 2));
+
       % update face mobility and Af for the definition of
       % well rates
       [cmob, cdmob] = impesComputeMobility(state, fluid, opt.bc, ...
@@ -372,6 +380,28 @@ end
 
 %--------------------------------------------------------------------------
 
+function pvol = pore_volume(state, rock, pv0)
+   val = pv0;
+   jac = zeros(size(pv0));
+
+   if ~isempty(rock) && isstruct(rock) && ...
+         all(isfield(rock, {'cr', 'pref'})),
+
+      x   = rock.cr .* (state.pressure - rock.pref);
+      dx  = rock.cr;            % dx/dp
+
+      e   = 1 + x.*(1 + x./2);
+      de  = (1 + x) .* dx;      % de/dp = de/dx * dx/dp
+
+      jac = val .* de;
+      val = val .* e ;
+   end
+
+   pvol = struct('val', val, 'jac', jac);
+end
+
+%--------------------------------------------------------------------------
+
 function trans = compute_trans(G, T, opt)
    trans = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ T, [G.faces.num, 1]);
 
@@ -410,7 +440,7 @@ end
 
 function [F, fcontrib_dp, wcontrib_dp, grav_term] = ...
       assemble_residual(luAc, Af, mob, state, state0, G, trans, ...
-                        dt, pv, rho, opt, OP)
+                        dt, pvol, rho, opt, OP)
 
    dyntrans    = bsxfun(@times, trans, mob);
    fcontrib_dp = mmultiply(Af, dyntrans);
@@ -418,9 +448,10 @@ function [F, fcontrib_dp, wcontrib_dp, grav_term] = ...
    press       = impesAssembleStateVars(state, opt.bc, opt.wells, opt.wdp);
    dp          = pressure_diff(G, press, opt);
    fcontrib    = bsxfun(@times, fcontrib_dp, dp) + grav_term;
+
    %fcontrib(OP.connno(~OP.active),:)=0;
 
-   F = residual_cell(luAc, state0, G, fcontrib, dt, pv, opt, OP);
+   F = residual_cell(luAc, state0, G, fcontrib, dt, pvol, opt, OP);
 
    wcontrib_dp = [];
 
@@ -441,7 +472,7 @@ end
 
 function dp = ...
       line_search(dp0, G, T, trans, dt, state_old, state0, fluid, ...
-                  mob, rho, cmob, cdmob, pv, F, opt, OP)
+                  mob, rho, cmob, cdmob, pvol, F, opt, OP)
 
    norm_F0 = norm(F, inf);
    norm_F  = 10 * norm_F0;
@@ -458,7 +489,7 @@ function dp = ...
          eval_fluid_data(state, G, fluid, cmob, cdmob, opt, OP);  %#ok
 
       F = assemble_residual(luAc, Af, mob, state, state0, G, ...
-                            trans, dt, pv, density, opt, OP);
+                            trans, dt, pvol, density, opt, OP);
 
       alpha = alpha - 1;
       norm_F = norm(F, inf);
@@ -613,7 +644,7 @@ end
 %--------------------------------------------------------------------------
 
 function [state, dt] = ...
-      update_masses(state, dp, fflux_dp, gflux, dt, pv, opt, OP)
+      update_masses(state, dp, fflux_dp, gflux, dt, pvol, opt, OP)
 
    comp_flux = bsxfun(@times, fflux_dp, dp) + gflux;
 
@@ -632,7 +663,7 @@ function [state, dt] = ...
               *                                                  ...
               comp_flux([OP.connno; OP.wconnno], :);
 
-   dz = - bsxfun(@rdivide, ccontrib, pv);
+   dz = - bsxfun(@rdivide, ccontrib, pvol.curr.val);
 
    % Timestep should be modified so that no single z component becomes
    % negative. Consider only dz corresponding to mass depletion since this
@@ -671,7 +702,7 @@ end
 %--------------------------------------------------------------------------
 
 function F = ...
-      residual_cell(luAc, state0, G, fcontrib, dt, pv, opt, OP)
+      residual_cell(luAc, state0, G, fcontrib, dt, pvol, opt, OP)
 
    cellno = [OP.cellno(OP.active); OP.wcellno];
    connno = [OP.connno(OP.active); OP.wconnno];
@@ -694,7 +725,9 @@ function F = ...
               *                                    ...
               fcontrib(connno, :);
 
-   F = pv .* (1 - sum(solve_single_sys(luAc, state0.z), 2));
+   F =  pvol.curr.val - ...
+       (pvol.init.val .* sum(solve_single_sys(luAc, state0.z), 2));
+
    F = F + dt.*sum(solve_single_sys(luAc, ccontrib), 2);
 end
 
@@ -760,7 +793,7 @@ end
 %--------------------------------------------------------------------------
 
 function J = approximate_jacobian(luAc, dAc, G, state, state0, fcontrib, ...
-                                  w2c, dt, pv, opt, OP, fmob, fluid)
+                                  w2c, dt, pvol, opt, OP, fmob, fluid)
 
    nc = G.cells.num;
    nw = 0;
@@ -831,7 +864,7 @@ function J = approximate_jacobian(luAc, dAc, G, state, state0, fcontrib, ...
 
    % Contributions from cell-based dynamics ((d/dp) Ai^{-1}) \sum_j (\dots)
    %
-   z = bsxfun(@times, pv, state0.z);
+   z = bsxfun(@times, pvol.init.val, state0.z);
 
    press = impesAssembleStateVars(state, opt.bc, opt.wells, opt.wdp);
    dp    = pressure_diff(G, press, opt);
@@ -852,7 +885,10 @@ function J = approximate_jacobian(luAc, dAc, G, state, state0, fcontrib, ...
    dcontrib = solve_single_sys(luAc, z       );  % d <- Ac\z
    dcontrib = mmultiply       (dAc , dcontrib);  % d <- (dAdp)*d
    dcontrib = solve_single_sys(luAc, dcontrib);  % d <- Ac\d
-   dcontrib = sum(dcontrib, 2);
+   dcontrib = sum(dcontrib, 2);                  % d <- \sum_\alpha d
+
+   % Account for rock compressibility
+   dcontrib = dcontrib + pvol.curr.jac;          % d <- d + dpv/dp
 
    cellno   = cellno  (OP.active);    other = other(OP.active);
    ccontrib = ccontrib(OP.active);
