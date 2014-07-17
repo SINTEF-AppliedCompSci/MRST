@@ -1,6 +1,7 @@
 function obj = CO2props(varargin); %rhofile, hfile, noassert)
 
   opt.rhofile              = 'rho_huge';
+  opt.mufile               = 'mu_huge';
   opt.hfile                = 'h_small';
   opt.assert               = true;
   opt.sharp_phase_boundary = true;
@@ -10,6 +11,7 @@ function obj = CO2props(varargin); %rhofile, hfile, noassert)
     
   rho = load(opt.rhofile); % load density data
   h   = load(opt.hfile);   % load enthalpy data
+  mu  = load(opt.mufile);  % load viscosity data
   assert_valid_range = opt.assert; % do optional checking whether P and T are
                                    % within covered range (if not checked,
                                    % NaN values will be returned in such
@@ -18,6 +20,7 @@ function obj = CO2props(varargin); %rhofile, hfile, noassert)
   % make separate matrices by phase, and compute derivative tables
   rho = establish_data_tables(rho, opt.sharp_phase_boundary);
   h   = establish_data_tables(h  , opt.sharp_phase_boundary);
+  mu  = establish_data_tables(mu , opt.sharp_phase_boundary);
   
       
   %% DECLARING MEMBER FUNCTIONS
@@ -41,14 +44,25 @@ function obj = CO2props(varargin); %rhofile, hfile, noassert)
   
   % CO2 enthalpy and its derivatives
   obj.h     = @(P, T) calcMulti(P, T, @(P, T) calcVal  (h, P, T), @obj.hDP,   @obj.hDT);
-  obj.hDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP   (h, P, T), @obj.HDPP,  @obj.HDPT);
-  obj.hDPP  = @(P, T) calcMulti(P, T, @(P, T) calcDPP  (h, P, T), @obj.HDPPP, @noder);
+  obj.hDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP   (h, P, T), @obj.hDPP,  @obj.hDPT);
+  obj.hDPP  = @(P, T) calcMulti(P, T, @(P, T) calcDPP  (h, P, T), @obj.hDPPP, @noder);
   obj.hDPPP = @(P, T) calcMulti(P, T, @(P, T) calcDPPP (h, P, T), @noder,     @noder);
   obj.hDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT   (h, P, T), @obj.hDPT,  @obj.hDTT);
-  obj.hDTT  = @(P, T) calcMulti(P, T, @(P, T) calcDTT  (h, P, T), @noder,     @obj.HDTTT);
+  obj.hDTT  = @(P, T) calcMulti(P, T, @(P, T) calcDTT  (h, P, T), @noder,     @obj.hDTTT);
   obj.hDTTT = @(P, T) calcMulti(P, T, @(P, T) calcDTTT (h, P, T), @noder,     @noder);
   obj.hDPT  = @(P, T) calcMulti(P, T, @(P, T) calcDPT  (h, P, T), @noder,     @noder);
   obj.hInfo = @() printInfo(h);
+  
+  % CO2 dynamic viscosity and its derivatives
+  obj.mu     = @(P, T) calcMulti(P, T, @(P, T) calcVal  (mu, P, T), @obj.muDP,   @obj.muDT);
+  obj.muDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP   (mu, P, T), @obj.muDPP,  @obj.muDPT);
+  obj.muDPP  = @(P, T) calcMulti(P, T, @(P, T) calcDPP  (mu, P, T), @obj.muDPPP, @noder);
+  obj.muDPPP = @(P, T) calcMulti(P, T, @(P, T) calcDPPP (mu, P, T), @noder,     @noder);
+  obj.muDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT   (mu, P, T), @obj.muDPT,  @obj.muDTT);
+  obj.muDTT  = @(P, T) calcMulti(P, T, @(P, T) calcDTT  (mu, P, T), @noder,     @obj.muDTTT);
+  obj.muDTTT = @(P, T) calcMulti(P, T, @(P, T) calcDTTT (mu, P, T), @noder,     @noder);
+  obj.muDPT  = @(P, T) calcMulti(P, T, @(P, T) calcDPT  (mu, P, T), @noder,     @noder);
+  obj.muInfo = @() printInfo(mu);
   
   % compressibility factors
   obj.beta  = @(P, T)   obj.rhoDP(P, T) ./ obj.rho(P, T);  % Compressibility coef.
