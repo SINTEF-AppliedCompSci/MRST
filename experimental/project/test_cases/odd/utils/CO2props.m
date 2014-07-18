@@ -54,14 +54,14 @@ function obj = CO2props(varargin); %rhofile, hfile, noassert)
   obj.hInfo = @() printInfo(h);
   
   % CO2 dynamic viscosity and its derivatives
-  obj.mu     = @(P, T) calcMulti(P, T, @(P, T) calcVal  (mu, P, T), @obj.muDP,   @obj.muDT);
-  obj.muDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP   (mu, P, T), @obj.muDPP,  @obj.muDPT);
-  obj.muDPP  = @(P, T) calcMulti(P, T, @(P, T) calcDPP  (mu, P, T), @obj.muDPPP, @noder);
-  obj.muDPPP = @(P, T) calcMulti(P, T, @(P, T) calcDPPP (mu, P, T), @noder,     @noder);
-  obj.muDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT   (mu, P, T), @obj.muDPT,  @obj.muDTT);
-  obj.muDTT  = @(P, T) calcMulti(P, T, @(P, T) calcDTT  (mu, P, T), @noder,     @obj.muDTTT);
-  obj.muDTTT = @(P, T) calcMulti(P, T, @(P, T) calcDTTT (mu, P, T), @noder,     @noder);
   obj.muDPT  = @(P, T) calcMulti(P, T, @(P, T) calcDPT  (mu, P, T), @noder,     @noder);
+  obj.muDTTT = @(P, T) calcMulti(P, T, @(P, T) calcDTTT (mu, P, T), @noder,     @noder);
+  obj.muDPPP = @(P, T) calcMulti(P, T, @(P, T) calcDPPP (mu, P, T), @noder,     @noder);
+  obj.muDTT  = @(P, T) calcMulti(P, T, @(P, T) calcDTT  (mu, P, T), @noder,     @obj.muDTTT);
+  obj.muDPP  = @(P, T) calcMulti(P, T, @(P, T) calcDPP  (mu, P, T), @obj.muDPPP, @noder);
+  obj.muDT   = @(P, T) calcMulti(P, T, @(P, T) calcDT   (mu, P, T), @obj.muDPT,  @obj.muDTT);
+  obj.muDP   = @(P, T) calcMulti(P, T, @(P, T) calcDP   (mu, P, T), @obj.muDPP,  @obj.muDPT);
+  obj.mu     = @(P, T) calcMulti(P, T, @(P, T) calcVal  (mu, P, T), @obj.muDP,   @obj.muDT);
   obj.muInfo = @() printInfo(mu);
   
   % compressibility factors
