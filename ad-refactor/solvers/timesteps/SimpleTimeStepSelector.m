@@ -1,17 +1,76 @@
 classdef SimpleTimeStepSelector < handle
+%Time step selector base class
+%
+% SYNOPSIS:
+%   selector = SimpleTimeStepSelector();
+%
+%   selector = SimpleTimeStepSelector('maxTimestep', 5*day);
+%
+% DESCRIPTION:
+%   The timestpe selector base class is called by the NonLinearSolver to
+%   determine timesteps, based on hard limits such as the min/max timesteps
+%   as well as possibly more advanced features via the computeTimestep
+%   method that can account for iteration count, residual reduction etc.
+%
+% REQUIRED PARAMETERS:
+%   None
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   See properties
+%
+% RETURNS:
+%   selector suitable for passing to the NonLinearSolver class.
+%
+%
+% SEE ALSO:
+%   IterationCountTimeStepSelector, GustafssonLikeStepSelector
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     properties
+        % Stored history of iterations/residuals during simulation that may
+        % be used to pick the next timestep
         history
+        % Hard upper limit on timestep in seconds
         maxTimestep
+        % Hard lower limit on timestep in seconds
         minTimestep
+        % Extra output
         verbose
+        % Parameter adjusting the amount of history that is stored.
         maxHistoryLength
+        % Flag indicating that we are at the beginning of a control step
         isStartOfCtrlStep
+        % Flag indicating that the controls have changed
         controlsChanged
         
+        % Ensure that dt_next < dt_suggested*maxRelativeAdjustment
         maxRelativeAdjustment
+        % Ensure that dt_next > dt_suggested*minRelativeAdjustment
         minRelativeAdjustment
         
+        % Flag indicating that hard limits and not any step algorithm was
+        % the cause of the previous timestep taken
         stepLimitedByHardLimits
+        % Previous control seen by the selector used to determine when
+        % controls change.
         previousControl
     end
         
@@ -79,6 +138,7 @@ classdef SimpleTimeStepSelector < handle
         end
         
         function newControlStep(selector, control)
+            % Determine if controls have changed
             selector.isStartOfCtrlStep = true;
             
             prev = selector.previousControl;
@@ -93,7 +153,7 @@ classdef SimpleTimeStepSelector < handle
         end
         
         function dt = computeTimestep(selector, dt, model, solver) %#ok
-            % Trivial case
+            % Compute timestep dynamically - does nothing for base class
         end
     end
 end

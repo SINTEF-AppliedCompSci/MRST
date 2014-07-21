@@ -1,14 +1,74 @@
 classdef ResultHandler < handle
+% Class for storing and retrieving simulation results, either in memory or stored to disk
+%
+% SYNOPSIS:
+%   handler = ResultHandler()
+%
+%   handler = ResultHandler('dataprefix', 'mydata', 'writeToDisk', true);
+% 
+% DESCRIPTION:
+%   This class can be used to store and retrieve simulation results. It is
+%   somewhat similar to a cell array in use, if more limited.
+%  
+%   Take a look at the class declaration to get more information.
+%
+% EXAMPLE:
+%
+% % Setup handler
+% handler = ResultHandler('dataprefix', 'mydata', 'writeToDisk', true);
+% 
+% % Write result
+% handler{1} = {'hello'};
+% 
+% % Read result from disk and print
+% disp(handler{1})
+%
+% RETURNS:
+%   Class instance that in some limited aspects acts like a cell array
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
     properties
+        % Boolean indicating if results should be written to disk
         writeToDisk
+        % Boolean indicating if the class should store results in memory
         storeInMemory
         
+        % Directory where data in general is stored.
         dataDirectory
+        % The folder under directory where we will store results. Will be
+        % created if it does not exist.
         dataFolder
+        % Data will be stored in the format <dataPrefix><index> so that
+        % calling handler{51} will store a file as "state51" if dataprefix
+        % is 'state'
         dataPrefix
+        % Flags passed on to MATLAB builtin 'save'. Consider '-v7' if
+        % results are huge.
         saveflags
         
+        % Internal data storage
         data
+        % Flag indicating if verbose output is on. Will output storage and
+        % reading notifications if enabled.
         verbose
     end
     

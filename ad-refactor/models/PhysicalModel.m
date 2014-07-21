@@ -1,4 +1,55 @@
 classdef PhysicalModel
+%Base class for physical models
+%
+% SYNOPSIS:
+%   model = PhysicalModel(G, rock, fluid)
+%
+% DESCRIPTION:
+%   Base class for implementing physical models for use with automatic
+%   differentiation. This class cannot be used directly.
+%
+%   A physical model instance contains the functions for getting residuals
+%   and jacobians, making a single nonlinear step and verifying
+%   convergence. It also contains the functions for updating the state
+%   based on the increments found by the linear solver so that the values
+%   are physically correct.
+%
+% REQUIRED PARAMETERS:
+%   G     - Simulation grid.
+%
+%   rock  - Valid rock used for the model.
+%
+%   fluid - Fluid model used for the model.
+%
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   See class properties.
+%
+% RETURNS:
+%   Class instance.
+%
+% SEE ALSO:
+%   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     properties
         % Unique identifier for the model
         name
@@ -11,9 +62,9 @@ classdef PhysicalModel
         % Grid
         G
         
-        % Maximum pressure change
+        % Maximum relative pressure change
         dpMax
-        % Maximum saturation change
+        % Maximum relative saturation change
         dsMax
         
         % Water phase present
@@ -73,7 +124,7 @@ classdef PhysicalModel
         end
         
         function [convergence, values] = checkConvergence(model, problem, n)
-            % Check convergence based on residual tolerances
+            % Check and report convergence based on residual tolerances
             if nargin == 2
                 n = inf;
             end
@@ -119,6 +170,7 @@ classdef PhysicalModel
         
         function [gradient, result, report] = solveAdjoint(model, solver, getState,...
                                     getObjective, schedule, gradient, itNo, scaling)
+            % Solve adjoints
             if nargin == 7
                scaling = struct('rate', 1, 'pressure', 1);
             end
@@ -151,6 +203,7 @@ classdef PhysicalModel
         end
         
         function [vararg, driving] = getDrivingForces(model, control) %#ok
+            % Setup and pass on driving forces
             vararg = {};
             driving = struct('Wells', [], 'bc', [], 'src', []);
             
@@ -171,6 +224,8 @@ classdef PhysicalModel
         end
         
         function [fn, index] = getVariableField(model, name)
+            % Get the index/name mapping for the model (such as where
+            % pressure or water saturation is located in state)
             index = [];
             switch(lower(name))
                 case {'t', 'temperature'}
@@ -199,22 +254,27 @@ classdef PhysicalModel
         end
         
         function p = getProp(model, state, name)
+            % Get a property based on the name
             [fn, index] = model.getVariableField(name);
             p = state.(fn)(:, index);
         end
         
         function state = incrementProp(model, state, name, increment)
+            % Increment property based on name
             [fn, index] = model.getVariableField(name);
             p = state.(fn)(:, index)  + increment;
             state.(fn)(:, index) = p;
         end
         
         function state = setProp(model, state, name, value)
+            % Set property to given value based on name
             [fn, index] = model.getVariableField(name);
             state.(fn)(:, index) = value;
         end
         
         function dv = getIncrement(model, dx, problem, name)
+            % Find increment in linearized problem with given name, or
+            % output zero if not found
             isVar = problem.indexOfPrimaryVariable(name);
             if any(isVar)
                 dv = dx{isVar};
@@ -224,6 +284,8 @@ classdef PhysicalModel
         end
         
         function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax)
+            % Update a state, with optionally a maximum relative change
+            % applied.
             if nargin == 5
                 relchangemax = inf;
             end

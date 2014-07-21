@@ -1,5 +1,5 @@
 classdef TwoPhaseOilWaterModel < PhysicalModel
-    % two phase oil / water system
+    % Two phase oil/water system without dissolution
     properties
 
     end

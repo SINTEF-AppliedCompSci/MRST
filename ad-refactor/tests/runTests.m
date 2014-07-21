@@ -11,8 +11,8 @@ eq2 = ADI(rhs(end:-1:1), {A, A});
 eqs = {eq1, eq2};
 %%
 clear P
-P = linearProblem(eqs, {'cell', 'cell'}, {'forward', 'reverse'}, {'Monkey', 'Banana'});
-solver = mldivideSolverAD();
+P = LinearizedProblem(eqs, {'cell', 'cell'}, {'forward', 'reverse'}, {'Monkey', 'Banana'}, [], 1*day);
+solver = BackslashSolverAD();
 
 
 sol = solver.solveLinearProblem(P);

@@ -64,6 +64,8 @@ linsolve = CPRSolverAD('ellipticSolver', ellipSolver);
 timer = tic();
 [wellSols_base, states_base, report_base] = simulateScheduleAD(state, boModel, schedule, 'linearSolver', linsolve);
 time_base = toc(timer);
+
+
 %%
 % res.dt = schedule.step.val(2:end);
 clear res

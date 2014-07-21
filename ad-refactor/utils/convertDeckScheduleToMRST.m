@@ -1,4 +1,51 @@
 function scheduleMRST = convertDeckScheduleToMRST(G, rock, scheduleDeck, varargin)
+% Convert deck-type schedule to MRST style schedule
+%
+% SYNOPSIS:
+%   schedule = convertDeckScheduleToMRST(G, rock, deck.SCHEDULE)
+%
+% DESCRIPTION:
+%   Take a schedule in deck-style (from for example the output of
+%   readEclipseDeck), parse all wells and create a new schedule suitable
+%   for 'simulateScheduleAD'.
+%
+% REQUIRED PARAMETERS:
+%   G       - Valid grid (likely from initEclipseGrid). Must be the same
+%           grid as the wells in the schedule are defined for.
+% 
+%   rock    - Valid rock used to compute the well indices. Typically from
+%             initEclipseRock.
+%
+%   scheduleDeck - Either a deck struct from readEclipseDeck or the
+%                  schedule (typically deck.SCHEDULE).
+%
+% 
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%
+%   StepLimit - Only parse the first n control steps.
+%
+% RETURNS:
+%   scheduleMRST - Schedule ready for simulation in 'simulateScheduleAD'.
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('StepLimit', inf);
     opt = merge_options(opt, varargin{:});
 

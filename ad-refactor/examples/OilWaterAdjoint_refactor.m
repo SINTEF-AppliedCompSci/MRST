@@ -81,6 +81,7 @@ nonlinear = NonLinearSolver('timeStepSelector', stepsel);
 usemini = true;
 
 % Create result handler that writes to disk
+clear output
 output = ResultHandler('writeToDisk', true, 'storeInMemory', false);
 
 [wellSols, states, report] = simulateScheduleAD(state, model, schedulenew,...
@@ -100,32 +101,38 @@ obj = @(tstep)NPVOW(G, wellSols, schedulemini, 'ComputePartials', true, 'tStep',
 % d = states;
 d = output;
 
-grad = simulateAdjointAD(state, d, model, schedulemini, obj, 'scaling', scalFacs);
+adjointGradientClass = computeGradientAdjointAD(state, d, model, schedulemini, obj, 'scaling', scalFacs);
 % vertcat(adjointGradient{:})
 % grad(end-5:end)
+%%
+numericalGradientClass = computeGradientPerturbationAD(state, model, schedulenew, objective_numerical, 'scaling', scalFacs);
 %% Plot the gradients
-
 
 wellNames = {wellSols{1}.name};
 
-ga = cell2mat(adjointGradient);
-ga_n = full(cell2mat(grad'));
-gn = cell2mat(numericalGradient);
+adjointNew = cell2mat(adjointGradientClass);
+adjointOld = cell2mat(adjointGradient);
+
+numericalNew = cell2mat(numericalGradientClass);
+numericalOld = cell2mat(numericalGradient);
+
+
+% numericalNew = full(cell2mat(grad));
+% gn = cell2mat(numericalGradient);
 clf;
-subplot(1,2,1)
-plot(ga(1,:),'-ob'), hold on
-plot(gn(1,:),'-xr')
-plot(ga_n(1,:),'-*g')
 
-title(['Well 1 (', wellNames{1}, ')'])
-xlabel('Control #')
+for i = 1:2
+    subplot(1,2,i)
+    hold on
+    plot(adjointNew(i,:),'-.b'), 
+    plot(adjointOld(i,:),'-*k');
+    plot(numericalNew(i,:),'-og');
+    plot(numericalOld(i,:),'-+r');
+    
+    title(['Well ', num2str(i), ' (', wellNames{i}, ')'])
+    xlabel('Control #')
 
-subplot(1,2,2)
-plot(ga(2,:),'-ob'), hold on
-plot(gn(2,:),'-xr'), hold on
-plot(ga_n(2,:),'-*g')
+    xlabel('Control #')
+    legend({'Adjoint-new', 'Adjoint-old', 'Numerical-new', 'Numerical-old'})
 
-title(['Well 2 (', wellNames{2}, ')'])
-xlabel('Control #')
-legend({'Adjoint-old', 'Adjoint-new', 'Numerical'})
-
+end

@@ -29,23 +29,12 @@ classdef Test_simulateScheduleAD < matlab.unittest.TestCase
     end
     
     methods (Static)
-        function [state0, schedule, model] = setupOW()
-            mrstModule add deckformat ad-fi ad-refactor
 
-            fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
-            
-            [G, rock, fluid, deck, schedule] = setupADcase(fn);
-
-            gravity on
-            
-            state0 = initResSol(G, deck.PROPS.PVCDO(1), [.15, .85]);
-            model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
-        end
     end
     
     methods (Test)
         function testMinistepOutput(test)
-            [state0, schedule, model] = test.setupOW();
+            [state0, schedule, model] = setupSimpleOW();
             
             % Override schedule with a single timestep
             schedule.step.val = 1*day;
@@ -145,7 +134,7 @@ classdef Test_simulateScheduleAD < matlab.unittest.TestCase
     end
     methods
         function ok = runTimestepSelector(test, ts)
-            [state0, schedule, model] = test.setupOW();
+            [state0, schedule, model] = setupSimpleOW();
             
             % Set tolerances to a strict value
             model.nonlinearTolerance = 1e-8;

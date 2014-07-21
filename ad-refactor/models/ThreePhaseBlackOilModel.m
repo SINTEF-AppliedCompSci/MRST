@@ -6,14 +6,20 @@ classdef ThreePhaseBlackOilModel < PhysicalModel
         % Determines if oil can be vaporized into the gas phase
         vapoil
         
-        % Maximum Rs increment
+        % Maximum Rs/Rv increment
         drsMax
         
-        % CNV style tolerances
+        % Use alternate tolerance scheme
         useCNVConvergence
+        
+        % CNV tolerance (inf-norm-like)
         toleranceCNV;
+        
+        % MB tolerance values (2-norm-like)
         toleranceMB;
+        % Well tolerance if CNV is being used
         toleranceWellBHP;
+        % Well tolerance if CNV is being used
         toleranceWellRate;
         
         % Update wells
