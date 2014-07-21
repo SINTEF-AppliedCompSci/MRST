@@ -45,7 +45,7 @@ rv0   = 0; % dry gas
 
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
 
-schedule = convertDeckScheduleToMRST(G, rock, deck);
+schedule = convertDeckScheduleToMRST(G, rock, deck, 'StepLimit', 1);
 
 clear boModel
 clear nonlinear

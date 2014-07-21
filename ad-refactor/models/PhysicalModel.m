@@ -304,7 +304,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             state = model.setProp(state, name, val);
 
         end
+            
+        function [isActive, phInd] = getActivePhases(model)
+            isActive = [model.water, model.oil, model.gas];
+            if nargout > 1
+                phInd = find(isActive);
+            end
+        end
+        
+        function phNames = getPhaseNames(model)
+            tmp = 'WOG';
+            active = model.getActivePhases();
+            phNames = tmp(active);
+        end
     end
+
     methods (Static)
 
     end
