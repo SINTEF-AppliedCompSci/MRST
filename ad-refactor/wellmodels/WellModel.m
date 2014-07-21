@@ -35,8 +35,8 @@ classdef WellModel
                                         
             
             wellmodel.verbose = mrstVerbose();
-            wellmodel.pseudocomponents = {{}};
-            wellmodel.maxPseudocomponents = {{}};
+            wellmodel.pseudocomponents = {};
+            wellmodel.maxPseudocomponents = {};
             wellmodel.nonlinearIteration = nan;
             wellmodel.referencePressureIndex = 2;
             wellmodel.allowWellSignChange   = false;
@@ -123,7 +123,8 @@ classdef WellModel
                             bhp = assignValue(bhp,v,k);
                         case 'rate'
                             q_s{1} = assignValue(q_s{1}, v*w.compi(1), k);
-                            q_s{2} = assignValue(q_s{2}, v*w.compi(2), k);
+                            % Is this a bug? should compi ref be 2?
+                            q_s{2} = assignValue(q_s{2}, v*w.compi(1), k);
                             if numel(q_s)>2
                                 q_s{3} = assignValue(q_s{3}, v*w.compi(1), k);
                             end
@@ -194,19 +195,6 @@ classdef WellModel
         end
     end
     methods (Static)
-        function id = getIdentifier(model)
-            id = model.getPhaseNames();
-            
-            dg = isfield(model, 'disgas') && model.disgas;
-            vo = isfield(model, 'vapoil') && model.vapoil;
-            if dg || vo
-                if (vo || dg) && isa(model, 'ThreePhaseBlackOilModel')
-                    id = [id, 'VO'];
-                elseif dg
-                    id = [id, 'BO'];
-                end
-            end
-        end
     end
 end
 

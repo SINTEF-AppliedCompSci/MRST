@@ -141,10 +141,10 @@ dpBH = model.getIncrement(dx, problem, 'bhp');
 if ~isempty(dpBH)
     dpBH = sign(dpBH).*min(abs(dpBH), abs(model.dpMax.*vertcat(state.wellSol.bhp)));
     
-%     wi = strcmpi(comp, 'wg');
-%     oi = strcmpi(comp, 'og');
-%     gi = strcmpi(comp, 'sg');
-    
+    wi = strcmpi(comp, 'wg');
+    oi = strcmpi(comp, 'og');
+    gi = strcmpi(comp, 'sg');
+
     for w = 1:numel(state.wellSol)
         ws = state.wellSol(w);
         ws.bhp  = ws.bhp + dpBH(w);
@@ -167,9 +167,15 @@ if ~isempty(dpBH)
                 % TODO: This uses magic counting and should be fixed, but
                 % is dependent on the same being done to the well
                 % computations
-                ws.qWs = v*W(w).compi(1);
-                ws.qOs = v*W(w).compi(2);
-                ws.qGs = v*W(w).compi(3);
+                if model.water
+                    ws.qWs = v*W(w).compi(wi);
+                end
+                if model.oil
+                    ws.qOs = v*W(w).compi(oi);
+                end
+                if model.gas
+                    ws.qGs = v*W(w).compi(gi);
+                end
             case 'orat'
                 ws.qOs = v;
             case 'wrat'

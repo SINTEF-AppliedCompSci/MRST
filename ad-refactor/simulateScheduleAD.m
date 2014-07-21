@@ -148,7 +148,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     getWell = @(index) schedule.control(schedule.step.control(index)).W;
     state = initState;
     if ~isfield(state, 'wellSol')
-        state.wellSol = initWellSolLocal(getWell(1), state);
+        state.wellSol = initWellSolAD(getWell(1), model, state);
     end
     
     failure = false;
@@ -167,7 +167,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         
         state0 = state;
-        state0.wellSol = initWellSolLocal(W, state);
+        state0.wellSol = initWellSolAD(W, model, state);
         
         if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...

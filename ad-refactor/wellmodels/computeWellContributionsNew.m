@@ -132,16 +132,18 @@ function vs = conn2surf(v, b, r, model)
     end
     vs = bv;
 
-    [~, isgas] = model.getVariableField('sg');
-    [~, isoil] = model.getVariableField('so');
+
     dg = isprop(model, 'disgas') && model.disgas;
     vo = isprop(model, 'vapoil') && model.vapoil;
-
-    if (vo || dg) && isa(model, 'ThreePhaseBlackOilModel')
-        vs{isgas} = vs{isgas} + r{1}.*bv{isoil};
-        vs{isoil} = vs{isoil} + r{2}.*bv{isgas};
-    elseif dg
-        vs{isgas} = vs{isgas} + r{1}.*bv{isoil};
+    if (vo || dg)
+        [~, isgas] = model.getVariableField('sg');
+        [~, isoil] = model.getVariableField('so');
+        if isa(model, 'ThreePhaseBlackOilModel')
+            vs{isgas} = vs{isgas} + r{1}.*bv{isoil};
+            vs{isoil} = vs{isoil} + r{2}.*bv{isgas};
+        elseif dg
+            vs{isgas} = vs{isgas} + r{1}.*bv{isoil};
+        end
     end
 end
 %--------------------------------------------------------------------------
@@ -154,17 +156,19 @@ function volRat  = compVolRat(mix_s, b, r, Rw, model)
     end
     tmp = cmix_s;
 
-    [~, isgas] = model.getVariableField('sg');
-    [~, isoil] = model.getVariableField('so');
+
     dg = isprop(model, 'disgas') && model.disgas;
     vo = isprop(model, 'vapoil') && model.vapoil;
-
-    if (vo || dg) && isa(model, 'ThreePhaseBlackOilModel')
-        d = 1-r{1}.*r{2};
-        tmp{isgas} = (tmp{isgas} - r{1}.*cmix_s{isoil})./d;
-        tmp{isoil} = (tmp{isoil} - r{2}.*cmix_s{isgas})./d;
-    elseif dg
-        tmp{isgas} = tmp{isgas} - r{1}.*cmix_s{isoil};
+    if vo || dg
+        [~, isgas] = model.getVariableField('sg');
+        [~, isoil] = model.getVariableField('so');
+        if (vo || dg) && isa(model, 'ThreePhaseBlackOilModel')
+            d = 1-r{1}.*r{2};
+            tmp{isgas} = (tmp{isgas} - r{1}.*cmix_s{isoil})./d;
+            tmp{isoil} = (tmp{isoil} - r{2}.*cmix_s{isgas})./d;
+        elseif dg
+            tmp{isgas} = tmp{isgas} - r{1}.*cmix_s{isoil};
+        end
     end
 
     volRat = tmp{1}./b{1};

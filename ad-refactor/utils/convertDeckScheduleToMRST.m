@@ -1,4 +1,4 @@
-function scheduleMRST = convertDeckScheduleToMRST(G, rock, scheduleDeck, varargin)
+function scheduleMRST = convertDeckScheduleToMRST(G, model, rock, scheduleDeck, varargin)
 % Convert deck-type schedule to MRST style schedule
 %
 % SYNOPSIS:
@@ -61,9 +61,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     tmp = cell(nc, 1);
     scheduleMRST.control = struct('W', tmp, 'bc', tmp, 'src', tmp);
+    
+    % Massage phases in compi to match active components in model
+    ncomp = numel(model.componentNames);
+    map = zeros(ncomp, 1);
+    for i = 1:ncomp
+        switch lower(model.componentNames{i})
+            case 'sw'
+                map(i) = 1;
+            case 'so'
+                map(i) = 2;
+            case 'sg'
+                map(i) = 3;
+            otherwise
+                map(i) = 4;
+                warning('Unknown component, translation directly form deck difficult, setting zero');
+        end
+    end
+    
     for i = 1:nc
-        scheduleMRST.control(i).W = ...
-            processWellsLocal(G, rock, scheduleDeck.control(i));
+        % Parse well
+        W = processWellsLocal(G, rock, scheduleDeck.control(i));
+        
+        for j = 1:numel(W)
+            c = [W(j).compi, 0];
+            W(j).compi = c(map);
+        end
+        scheduleMRST.control(i).W = W;
     end
     
     if ~isinf(opt.StepLimit)

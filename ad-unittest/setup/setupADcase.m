@@ -1,4 +1,4 @@
-function [G, rock, fluid, deck, schedule] = setupADcase(fn)
+function [deck, schedule, model] = setupADcase(fn)
     moddir = mrstPath('query', 'ad-testdata');
     fn = fullfile(moddir, fn);
     if ~exist(fn, 'file')
@@ -15,5 +15,8 @@ function [G, rock, fluid, deck, schedule] = setupADcase(fn)
     rock  = compressRock(rock, G.cells.indexMap);
 
     fluid = initDeckADIFluid(deck);
-    schedule = convertDeckScheduleToMRST(G, rock, deck);
+    
+    model = selectModelFromDeck(G, rock, fluid, deck);
+    schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+    
 end
