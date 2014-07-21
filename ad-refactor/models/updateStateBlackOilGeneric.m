@@ -4,8 +4,6 @@ state0 = state;
 W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
-
-
 [disgas, vapoil] = deal(false);
 
 if isprop(model, 'vapoil')
@@ -45,23 +43,9 @@ if (disgas || vapoil)
     if vapoil
         state = model.updateStateFromIncrement(state, st{2}.*dr, problem, 'rv', model.drsMax);
     end
-    
-    
 
-%     maxVal = max(abs([dsw, dso, dsg]), [], 2);
-%     step   = min(model.dsMax./maxVal, 1);
-% 
-%     if model.water
-%         state = model.setProp(state, 'sw', sw + step.*dsw);
-%     end
-%     state = model.setProp(state, 'so', so + step.*dso);
-%     state = model.setProp(state, 'sg', sg + step.*dsg);
     dso = -(dsg + dsw);
-%     if model.water
-%         ds = [dsw, dso, dsg];
-%     else
-%         ds = [dso, dsg];
-%     end
+
     ds = zeros(numel(so), numel(comp));
     ds(:, strcmpi(comp, 'sw')) = dsw;
     ds(:, strcmpi(comp, 'so')) = dso;
@@ -77,21 +61,25 @@ else
     % link
     fillComponent = setdiff(lower(model.componentNames), satSolVar);
     fillComponent = fillComponent{1};
+    
     % Fill component is whichever component is assumed to fill up the rest of
-    % the pores
-
+    % the pores. This is done by setting that increment equal to the
+    % negation of all others so that sum(s) == 0 at end of update
     solvedFor = ~strcmpi(comp, fillComponent);
-
-    tmp = 1;
+    ds = zeros(model.G.cells.num, numel(comp));
+    
+    tmp = 0;
     for i = 1:numel(comp)
         if solvedFor(i)
-            [state, v] = model.updateStateFromIncrement(state, dx, problem,...
-                                                    comp{i}, model.dsMax);
+            v = model.getIncrement(dx, problem, comp{i});
+            ds(:, i) = v;
             tmp = tmp - v;
         end
     end
-    % Last phase fills the pores. This may make the last phase swell a lot.
-    state = model.setProp(state, fillComponent, tmp);
+    ds(:, ~solvedFor) = tmp;
+    % We update all saturations simultanously, since this does not bias the
+    % increment towards one phase in particular.
+    state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
 end
 
 
