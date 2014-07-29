@@ -91,19 +91,25 @@ for k = 1 : nstep,
    % Update for next time step
    T = T + DT;
 end
-%% Plot bottom hole pressure for the wells
-clf;
-plot(convertTo([report.TIME], day), [report.WBHP], '-.')
-legend({wells.name}, 'Location', 'Best')
-xlabel('Days')
-ylabel('bar')
 
+%% Plot bottom hole pressure for the wells
+clf
+plot(convertTo([report.TIME], day) , ...
+     convertTo([report.WBHP], psia), '-.')
+legend({wells.name}, 'Location', 'Best')
+
+title('Bottom-hole pressure')
+xlabel('Days of production')
+ylabel('Psi')
 
 %% Plot producer Gas/Oil ratio
-clf;
-plot(convertTo([report.TIME], day), [report.WGOR])
-title('WGOR')
-xlabel('Days')
+clf
+plot(convertTo([report.TIME], day), ...
+     convertTo([report.WGOR], 1000*ft^3/stb))
+
+title('Dissolved Gas/Oil Ratio in producer')
+xlabel('Days of production')
+ylabel('MSCF/STB')
 
 %% Plot accumulated production
 t = [0, report.TIME];
@@ -114,10 +120,11 @@ subplot(1,2,1)
 wgpr = [report.WGPR];
 wgpr = [0, wgpr(2,:)];
 wgpt = cumtrapz(t, wgpr);
-plot(convertTo(t,day), convertTo(wgpt, 1e6*meter^3))
-title('WGPT')
-ylabel('MM m^3')
-xlabel('Days')
+plot(convertTo(t, day), convertTo(wgpt, 1e6*ft^3))
+
+title('Total Accumulated Gas Production')
+ylabel('MM SCF')
+xlabel('Days of production')
 
 subplot(1,2,2)
 % Plot accumulated oil production total at the producer
@@ -125,6 +132,6 @@ wopr = [report.WOPR];
 wopr = [0, wopr(2,:)];
 wopt = cumtrapz(t, wopr);
 plot(convertTo(t, day), convertTo(wopt, 1e6*stb))
-title('WOPT')
-ylabel('MM stb')
-xlabel('Days')
+title('Total Accumulated Oil Production')
+ylabel('MM STB')
+xlabel('Days of production')
