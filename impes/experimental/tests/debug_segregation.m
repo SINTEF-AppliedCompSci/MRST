@@ -9,7 +9,9 @@ gravity on
 
 fluid  = initSimpleCompFluid('mu', [1, 1], 'n', [1, 1], 'c', [1e-3, 1e-3], ...
                             'rho_ref', [2, 1], 'press_ref', 10);
-Trans  = computeTrans(g, rock);
+Trans  = 1 ./ accumarray(g.cells.faces(:,1), ...
+                         1 ./ computeTrans(g, rock), [g.faces.num, 1]);
+
 forces = {'bc' [], 'src', [], 'wells', []};
 
 x      = initResSolComp(g, [], fluid, 10, [2, 1]);

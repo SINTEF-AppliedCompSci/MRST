@@ -37,12 +37,13 @@ state2 = state1;
 
 %% Solvers
 
-htrans = computeTrans(G, rock);
+trans = 1 ./ accumarray(G.cells.faces(:,1), ...
+                        1 ./ computeTrans(G, rock), [G.faces.num, 1]);
 
 %%{
 pvol    = poreVolume(G, rock);
 psolve1 = @(state, dt, vd) ...
-   impesTPFA(state, G, htrans, fluid, dt, pvol, ...
+   impesTPFA(state, G, trans, fluid, dt, pvol, ...
              'bc', bc, 'RTol', 5.0e-12);
 
 %{

@@ -76,6 +76,7 @@ end
 gravity(grav);
 
 T = computeTrans(G, rock);
+trans = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ T, [G.faces.num, 1]);
 
 %--------------------------------------------------------------------------
 %- Run 3 cases if grav = true, 1 case otherwise ---------------------------
@@ -118,7 +119,7 @@ for i = tests,
    %
    pv = poreVolume(G, rock);
    while t < tf,
-      x_impes = impesTPFA        (x_impes, G, T, fluid, dt, pv, drive{:});
+      x_impes = impesTPFA        (x_impes, G, trans, fluid, dt, pv, drive{:});
       x_tpfa  = compTPFA         (x_tpfa, G, rock, T, fluid, dt, drive{:});
       x_tpfa  = implicitTransport(x_tpfa, G, dt, rock, fluid, drive{:});
 

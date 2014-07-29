@@ -40,6 +40,8 @@ bc = pside(bc, g, 'right', 100*barsa, 'sat', [1, 0]); % Produce oil
 T = computeTrans(g, rock);
 x = initResSolComp(g, [], fluid, 100*barsa, [1, 0]); % Initially Oil-filled
 
+trans = 1 ./ accumarray(g.cells.faces(:,1), 1 ./ T, [g.faces.num, 1]);
+
 %%
 opts = {'bc', bc, 'verbose', true};
 
@@ -55,7 +57,7 @@ ubnd = max(g.faces.centroids(:,1));
 
 %%
 for kk = 1:100,
-   [x2, DT] = impesTPFA(x2, g, T, fluid, 10*DT, PV, opts{:}, ...
+   [x2, DT] = impesTPFA(x2, g, trans, fluid, 10*DT, PV, opts{:}, ...
                  'ATol', 5.0e-11, 'RTol', 5.0e-13, 'urc', false);
 
    x3 = compTPFA(x3, g, rock, T, fluid, DT, opts{:});

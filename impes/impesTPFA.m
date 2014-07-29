@@ -28,8 +28,10 @@ function [state, dt, report, sreport] = ...
 %           a previous call to function 'compTPFA' and, possibly, a
 %           transport solver such as function 'implicitTransport'.
 %
-%   G, T  - Grid and half-transmissibilities as computed by the function
-%           'computeTrans'.
+%   G     - Grid.
+%
+%   T     - Connection transmissibilities.  One positive scalar for each
+%           connection in the grid 'G'.
 %
 %   fluid - Compressible fluid object.
 %
@@ -86,9 +88,6 @@ function [state, dt, report, sreport] = ...
 %   state - Updated reservoir and well solution structure with new values
 %           for the fields:
 %              - pressure -- Pressure values for all cells in the
-%                            discretised reservoir model, 'G'.
-%              - facePressure --
-%                            Pressure values for all interfaces in the
 %                            discretised reservoir model, 'G'.
 %              - flux     -- Flux across global interfaces corresponding to
 %                            the rows of 'G.faces.neighbors'.
@@ -163,10 +162,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    state   = opt.init_state;
    opt.wdp = opt.wellModel(state, opt.wells, fluid);
 
-   trans         = compute_trans(G, T, opt);
    pvol.curr = eval_pv(state);
    pvol.init = rmfield(pvol.curr, 'jac');  % pv(p0) indep. of curr. press.
 
+   trans         = collect_trans(T, opt);
    [cmob, cdmob] = impesComputeMobility(state, fluid, opt.bc, ...
                                         opt.wells, opt.wdp);
 
@@ -236,12 +235,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dpress = - opt.LinSolve(J, F);
 
       if opt.LineSearch,
-         dpress = line_search(dpress, G, T, trans, dt, state, state0, ...
-                              fluid, mob, density, cmob, cdmob, pvol, ...
-                              F, opt, OP);
+         dpress = line_search(dpress, G, trans, dt, state, state0, ...
+                              fluid, cmob, cdmob, pvol, F, opt, OP);
       end
 
-      state = update_pressure(state, dpress, G, T, mob, density, OP, opt);
+      state = update_pressure(state, dpress, G, opt);
 
       pvol.curr = eval_pv(state);
 
@@ -401,9 +399,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function trans = compute_trans(G, T, opt)
-   trans = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ T, [G.faces.num, 1]);
-
+function trans = collect_trans(trans, opt)
    if ~isempty(opt.wells),
       trans = [trans; vertcat(opt.wells.WI)];
    end
@@ -469,9 +465,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function dp = ...
-      line_search(dp0, G, T, trans, dt, state_old, state0, fluid, ...
-                  mob, rho, cmob, cdmob, pvol, F, opt, OP)
+function dp = line_search(dp0, G, trans, dt, state_old, state0, ...
+                          fluid, cmob, cdmob, pvol, F, opt, OP)
 
    norm_F0 = norm(F, inf);
    norm_F  = 10 * norm_F0;
@@ -481,7 +476,7 @@ function dp = ...
 
    while ~(norm_F < norm_F0),
       dp    = dpress(alpha, 50*barsa);
-      state = update_pressure(state_old, dp, G, T, mob, rho, OP, opt);
+      state = update_pressure(state_old, dp, G, opt);
 
       [luAc, Af, Af, mob, density, density] = ...
          eval_fluid_data(state, G, fluid, ...
@@ -499,72 +494,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function state = update_pressure(state, dp, G, T, mob, rho, OP, opt)
-   cf  = G.cells.faces(:,1);
-   p   = state.pressure + dp(1 : G.cells.num);
-   dG  = bsxfun(@times, OP.gpot, rho(OP.cellno, :));
-
-   num = bsxfun(@plus, p(OP.cellno), dG);
-   Tm  = bsxfun(@times, T, mob(cf, :));
-   fp  = accumarray(cf, sum(Tm .* num, 2)) ./ accumarray(cf, sum(Tm, 2));
-
-   if ~isempty(opt.bc),
-      di = strcmpi(opt.bc.type, 'pressure');
-      fp(opt.bc.face(di)) = opt.bc.value(di);
-   end
-
-   i = find(~isfinite(fp));
-   if ~isempty(i),
-      % Assertion:
-      %
-      %   This situation occurs only in multi-phase flow and only if *all*
-      %   (upwind) phase mobilites are identically zero on the faces 'i' in
-      %   which case the above defintion produces fp=0/0 (==NaN).
-      %   Moreover, these faces *must* be internal (not boundary).
-      %
-      %   A typical case in which this may happen is if the interfaces 'i'
-      %   represent *sharp* separators between mobile phases of different
-      %   mass densities with the heaviest at "the bottom".  Fairly
-      %   academic, but nevertheless possible as a result of equilibrium
-      %   based intialisation or as a stable state at T_\infty.
-      %
-      % Use a simple transmissibility weighted average of the cell
-      % pressures in this case as there is effectively *no* connection
-      % across the interface.  In other words, the exact interface pressure
-      % value does not matter, we need only compute something vaguely
-      % reasonable in order to subsequently compute A(fp).
-      %
-      % On the other hand, as there is no connection across the interface,
-      % the Jacobian matrix will effectively decouple into sub-systems and
-      % we may experience difficulty solving the system of linear eqns.
-      %
-      N = G.faces.neighbors(i, :);
-
-      % Verify above assertion.
-      %
-      assert (size(mob, 2) > 1, ...
-             ['Non-finite connection pressure in single-phase ', ...
-              'flow is highly unexpected.']);
-
-      assert (all(isnan(fp(i))), ...
-              'Inifinite connection pressures highly unexpected.');
-
-      assert (all(all(mob(i, :) == 0)), ...
-             ['Non-finite connection pressure even if upwind ', ...
-              'phase mobilities are non-zero.']);
-
-      assert (all(all(N ~= 0, 2)), ...
-              'Unexpected zero (upwind) total mobility on boundary.');
-
-      % Compute connection pressure by means of transmissibility weighted
-      % cell pressure values.
-      %
-      c  = reshape(N, [], 1);
-      hf = OP.hf(repmat(i, [2, 1]), c);
-      ix = repmat((1 : numel(i)).', [2, 1]);
-
-      fp(i) = accumarray(ix, T(hf) .* p(c)) ./ accumarray(ix, T(hf));
-   end
+function state = update_pressure(state, dp, G, opt)
+   p = state.pressure + dp(1 : G.cells.num);
 
    if ~isempty(opt.wells),
       is_bhp = strcmpi('bhp', { opt.wells.type });
@@ -590,8 +521,7 @@ function state = update_pressure(state, dp, G, T, mob, rho, OP, opt)
       error('Non-physical pressure increment in cells');
    end
 
-   state.pressure     = p;
-   state.facePressure = fp;
+   state.pressure = p;
 end
 
 %--------------------------------------------------------------------------

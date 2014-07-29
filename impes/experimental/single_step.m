@@ -45,7 +45,8 @@ opts = {'bc', bc, 'verbose', true};
 DT = 1*minute;
 
 %%
-x2 = impesTPFA(x, g, T, fluid, DT, poreVolume(g, rock), opts{:}, ...
+trans = 1 ./ accumarray(g.cells.faces(:,1), 1 ./ T, [g.faces.num, 1]);
+x2 = impesTPFA(x, g, trans, fluid, DT, poreVolume(g, rock), opts{:}, ...
                'ATol', 5.0e-11, 'RTol', 5.0e-10);
 
 %%

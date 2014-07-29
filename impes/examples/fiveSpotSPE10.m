@@ -86,7 +86,9 @@ end
 
 %% Compute static values for the IMPES solver
 % Compute TPFA transmissibilities
-Trans = computeTrans(G, rock);
+Trans = 1 ./ accumarray(G.cells.faces(:,1), ...
+                        1 ./ computeTrans(G, rock), [G.faces.num, 1]);
+
 % Compute pore volume
 PV = poreVolume(G, rock);
 

@@ -47,7 +47,8 @@ porvol = poreVolume(G, rock);
 TSTEP  = convertFrom(spe1_dt, day);
 htrans = computeTrans(G, rock);
 state  = computeFacePressure(state, G, htrans, fluid);
-Trans  = computeTrans(G, rock);
+Trans  = 1 ./ accumarray(G.cells.faces(:,1), ...
+                         1 ./ computeTrans(G, rock), [ G.faces.num, 1 ]);
 
 %% Solve the model
 start  = deck.RUNSPEC.START;

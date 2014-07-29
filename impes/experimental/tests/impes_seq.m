@@ -52,6 +52,8 @@ W = addWell(W, g, rock, g.cells.num, 'Type', 'bhp', 'Val', 100*barsa, ...
 T = computeTrans(g, rock);
 x = initResSolComp(g, W, fluid, 100*barsa, [1, 0]); % Initially Oil-filled
 
+trans = 1 ./ accumarray(g.cells.faces(:,1), 1 ./ T, [g.faces.num, 1]);
+
 %%
 opts = {'wells', W, 'verbose', true};
 
@@ -67,7 +69,7 @@ ubnd = max(g.faces.centroids(:,1));
 
 %%
 for kk = 1:20,%300,
-   [x2, DT] = impesTPFA(x2, g, T, fluid, 2*DT, PV, opts{:}, ...
+   [x2, DT] = impesTPFA(x2, g, trans, fluid, 2*DT, PV, opts{:}, ...
                         'UpdateMass', false, 'ATol', 5.0e-11, ...
                         'RTol', 5.0e-13);
 
