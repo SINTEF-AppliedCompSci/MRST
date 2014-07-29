@@ -257,9 +257,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       [luAc, dAc, Af, mob, dmob, density] = ...
          eval_fluid_data(state, G, fluid, cmob, cdmob, opt, OP);
 
-      it   = it + 1;
+      it = it + 1;
    end
-
 
    s      = { 'ATol', 'RTol' };
    plural = { ''    , 's'    };
@@ -439,8 +438,8 @@ end
 %--------------------------------------------------------------------------
 
 function [F, fcontrib_dp, wcontrib_dp, grav_term] = ...
-      assemble_residual(luAc, Af, mob, state, state0, G, trans, ...
-                        dt, pvol, rho, opt, OP)
+      assemble_residual(luAc, Af, mob, state, state0, ...
+                        G, trans, dt, pvol, rho, opt, OP)
 
    dyntrans    = bsxfun(@times, trans, mob);
    fcontrib_dp = mmultiply(Af, dyntrans);
@@ -477,16 +476,16 @@ function dp = ...
    norm_F0 = norm(F, inf);
    norm_F  = 10 * norm_F0;
 
+   dpress  = @(alpha, dpmax) max(min(pow2(dp0, alpha), dpmax), -dpmax);
    alpha   = 0;
 
-   while ~(norm_F <   norm_F0),
-      dp = pow2(dp0, alpha);
-      dp = min(dp, 50*barsa);
-      dp = max(dp, -50*barsa);
-      state   = update_pressure(state_old, dp, G, T, mob, rho, OP, opt);
+   while ~(norm_F < norm_F0),
+      dp    = dpress(alpha, 50*barsa);
+      state = update_pressure(state_old, dp, G, T, mob, rho, OP, opt);
 
-      [luAc, dAc, Af, mob, dmob, density] = ...
-         eval_fluid_data(state, G, fluid, cmob, cdmob, opt, OP);  %#ok
+      [luAc, Af, Af, mob, density, density] = ...
+         eval_fluid_data(state, G, fluid, ...
+                         cmob, cdmob, opt, OP);                 %#ok<ASGLU>
 
       F = assemble_residual(luAc, Af, mob, state, state0, G, ...
                             trans, dt, pvol, density, opt, OP);
@@ -597,7 +596,9 @@ end
 
 %--------------------------------------------------------------------------
 
-function [state, dp, flux] = compute_flux(state, G, trans, rho, mob, opt, OP)
+function [state, dp, flux] = ...
+      compute_flux(state, G, trans, rho, mob, opt, OP)
+
    nc = G.cells.num;
    nf = G.faces.num;
 
