@@ -121,7 +121,7 @@ end
 %--------------------------------------------------------------------------
 
 function gpot = gravity_potential(G, cellNo, g)
-   g = g(1 : size(G.nodes.coords, 2));
+   g = g(1 : G.griddim);
 
    if norm(g) > 0,
 
