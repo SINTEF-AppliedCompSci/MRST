@@ -265,9 +265,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           '|| F(end) ||_oo = %12.5e\n'], it, plural{1 + (it ~= 1)}, ...
           s{1 + ~(E < opt.ATol)}, E);
 
-   [state, dp, flux] = compute_flux(state, G, trans, density, mob, opt, OP);
-   sreport.success   = true;
-   sreport.dt        = dt;
+   [state, dp]     = compute_flux(state, G, trans, density, mob, opt, OP);
+   sreport.success = true;
+   sreport.dt      = dt;
+
    if opt.UpdateMass,
       [state_tmp, dt] = update_masses(state0, dp, fcontrib_dp, ...
                                       gflux, dt, pvol, opt, OP);
