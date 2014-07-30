@@ -42,11 +42,6 @@ function varargout = mrstPath(varargin)
 %           % DIRARG is not a directory, skip it
 %        end
 %
-%     EXAMPLE:
-%        mrstPath register AGMG       modules/mex/AGMG       ...
-%                          matlab_bgl modules/mex/matlab_bgl ...
-%                          triangle   modules/mex/triangle
-%
 %   Mode 2)
 %     <Command> -
 %        One of the explicit verbs 'addroot', 'clear', 'list', 'remove'
