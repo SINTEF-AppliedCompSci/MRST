@@ -21,12 +21,43 @@ function prm = merge_options(prm, varargin)
 %               MERGE_OPTIONS or the string 'BASE' if MERGE_OPTIONS is
 %               called directly from the base workspace.
 %
+%               Function MERGE_OPTIONS will fail (and call ERROR) if the
+%               class of the new value is different from the class of the
+%               existing value.
+%
 % RETURNS:
 %   prm - Modified parameter structure.
 %
+% SPECIAL CASE:
+%   If the value of a field of the input parameters ('prm') is a CELL
+%   array, then the overriding value of that field can be anything.  If the
+%   new value is another CELL array (i.e., if ISCELL returns true) it will
+%   simply be assigned.  Otherwise, we wrap the overriding value in a cell
+%   array so that the field value is always a CELL array.
+%
+%   This behaviour allows the user of function MERGE_OPTIONS to implement
+%   uniform support for both single elements and heterogeneous collections
+%   of data in a single option.  That in turn is useful in, for instance, a
+%   visualisation application.
+%
 % EXAMPLE:
+%   % 1) Typical use
 %   prm = struct('foo', 1, 'bar', pi, 'baz', true)
 %   prm = merge_options(prm, 'foo', 0, 'bar', rand(10), 'FimFoo', @exp)
+%
+%   % 2) Heterogeneous collection in a CELL array
+%   prm = struct('f', {{ (@(x) x.^2) }}) % 'f' is cell array of f-handles
+%   prm = merge_options(prm, 'f', @exp)  % Pass a simple function handle
+%   fplot(prm.f{1}, [0, 3])              % Reference cell array result
+%
+%   % 3) Heterogeneous collection in a CELL array
+%   prm = struct('d', {{ rand(10) }})   % 'd' is cell array of data points
+%
+%   % Pass multiple data sets
+%   prm = merge_options(prm, 'd', { ones([5, 1]), linspace(0, 1, 11) })
+%
+%   % Plot "last" data set
+%   plot(prm.d{end}, '.-')
 %
 % SEE ALSO:
 %   FIELDNAMES, WARNING, STRUCT.
@@ -68,6 +99,12 @@ if nargin > 1,
          ix = find(strcmpi(nfn{n}, ofn));
 
          if ~isempty(ix),
+            if iscell(prm.(ofn{ix})) && ~iscell(nfv{n}),
+               % Original is CELL -> accept anything by turning "new"
+               % into CELL too.
+               nfv{n} = nfv(n);
+            end
+
             oclass = class(prm.(ofn{ix}));
             nclass = class(nfv{n});
             empty = isempty(prm.(ofn{ix})) || isempty(nfv{n});
