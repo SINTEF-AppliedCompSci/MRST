@@ -21,12 +21,12 @@ function prm = merge_options(prm, varargin)
 %               MERGE_OPTIONS or the string 'BASE' if MERGE_OPTIONS is
 %               called directly from the base workspace.
 %
+% RETURNS:
+%   prm - Modified parameter structure.
+%
 % EXAMPLE:
 %   prm = struct('foo', 1, 'bar', pi, 'baz', true)
 %   prm = merge_options(prm, 'foo', 0, 'bar', rand(10), 'FimFoo', @exp)
-%
-% RETURNS:
-%   prm - Modified parameter structure.
 %
 % SEE ALSO:
 %   FIELDNAMES, WARNING, STRUCT.
