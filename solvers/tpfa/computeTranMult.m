@@ -29,6 +29,31 @@ function m = computeTranMult(G, rockprop)
 %   in the global grid (PROD(G.cartDims) cells).  Values in inactive cells
 %   (e.g., due to explicit deactivation or pinch/collapse) are ignored.
 %
+%   We underscore the fact that these multiplier values are designed to go
+%   with the half-face (one-sided) transmissibility values derived from
+%   function 'computeTrans'.  In particular, the multiplicative factors
+%   must be included BEFORE computing the harmonic average of the one-sided
+%   transmissibilities.
+%
+% EXAMPLE:
+%   %% Compute connection transmissibilities on an ECLIPSE-type model
+%   %
+%   % 1) Compute background, one-sided transmissibilities
+%   htrans = computeTrans(G, rock);
+%
+%   % 2) Compute multipliers for one-sided transmissibilities
+%   tmult = computeTranMult(G, deck.GRID);
+%
+%   if ~ isempty(tmult),
+%      % 2b) Include multipliers for one-sided transmissibilities
+%      htrans = htrans .* tmult;
+%   end
+%
+%   % 3) Compute final background (static) transmissibilities
+%   trans = 1 ./ accumarray(G.cells.faces(:,1), ...
+%                           1 ./ htrans,        ...
+%                           [G.faces.num, 1]);
+%
 % SEE ALSO:
 %   readEclipseDeck, grid_structure.
 
