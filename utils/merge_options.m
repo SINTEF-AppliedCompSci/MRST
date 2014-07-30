@@ -9,8 +9,9 @@ function prm = merge_options(prm, varargin)
 %               this structure is problem specific and defined by caller.
 %
 %   'pn1'/pv1 - 'key'/value pairs overriding default options in `prm'.  A
-%               WARNING is issued if a given 'key' is not already present
-%               in FIELDNAMES(prm).  Key names are case insensitive.
+%               WARNING is issued, and no assignment made, if a given 'key'
+%               is not already present in FIELDNAMES(prm).  Key names are
+%               case insensitive.
 %
 %               The ``message identifier'' of this warning is
 %
