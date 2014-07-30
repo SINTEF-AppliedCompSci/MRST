@@ -175,17 +175,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       eval_fluid_data(state, G, fluid, cmob, cdmob, opt, OP);
 
    if opt.EstimateTimeStep,
-      rho = []; pc = []; dpc = []; cfl_fac = 1;
-      ix  = 1 : G.faces.num;
-
-      est_dt = @(press, pv, mob, dmob) ...
-         opt.cfl_factor * estimate_dt_coats(G, trans(ix), pv, ...
-                                            mob(ix, :), dmob(ix, :), ...
-                                            press, rho, pc, dpc, cfl_fac);
-
-      %dt_tmp = est_dt(state.pressure, mob, dmob);
-      %dt     = min(dt, dt_tmp);
-      clear ix rho pc dpc cfl_fac
+      est_dt = create_timestep_estimator(G, trans, opt);
    end
 
    [F, fcontrib_dp, gflux, gflux] = ...
@@ -404,6 +394,18 @@ function trans = collect_trans(trans, opt)
    if ~isempty(opt.wells),
       trans = [trans; vertcat(opt.wells.WI)];
    end
+end
+
+%--------------------------------------------------------------------------
+
+function est_dt = create_timestep_estimator(G, trans, opt)
+   rho = []; pc = []; dpc = []; cfl_fac = 1;
+   ix  = 1 : G.faces.num;
+
+   est_dt = @(press, pv, mob, dmob) ...
+      opt.cfl_factor *              ...
+      estimate_dt_coats(G, trans(ix), pv, mob(ix, :), dmob(ix, :), ...
+                        press, rho, pc, dpc, cfl_fac);
 end
 
 %--------------------------------------------------------------------------
