@@ -1,19 +1,32 @@
 function cellno = gridCellNo(G, varargin)
-% Find map from half-faces to cells given a set of cells and a grid G
+%Construct map from half-faces to cells or cell subset
 %
 % SYNOPSIS:
 %   cellno = gridCellNo(G)
 %   cellno = gridCellNo(G, c)
 %
 % PARAMETERS:
-%   G    - Grid structure
-%   c    - Cells for which the faces are required
+%   G - Grid structure.
 %
+%   c - Cells for which to construct mapping.  Array of numeric cell
+%       indices in the range 1:G.cells.num .
+%
+%       OPTIONAL.  If unspecified, function 'gridCellNo' will behave as if
+%
+%           c = 1 : G.cells.num
+%
+%       In other words the map will be constructed for all grid cells.
 %
 % RETURNS:
-%   cellno - One element for each half-face. cellno(hf) gives the cell
-%            where halfface hf belongs.
+%   cellno -
+%       Map from half-faces to cell or cell subset indices.  The expression
 %
+%           c(cellno(hf))
+%
+%       derives the cell in 'G' to which half-face 'hf' belongs.  This, in
+%       turn, means that if 'c' is unspecified, then 'cellno(hf)' is that
+%       cell directly.  The half-face 'hf' must be relative to the cell
+%       subset identified by 'c' or global if 'c' is not specified.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
