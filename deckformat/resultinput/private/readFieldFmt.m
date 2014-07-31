@@ -114,6 +114,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'char',
 
+            % Read strings as sequence of eight-character arrays, delimited
+            % by single quote (') characters (which are omitted in result).
+            % This method preserves white-space (blanks) within each string
+            % and guarantees that the number of elements in 'values' is a
+            % multiple of eight.  Note format's leading blank with standard
+            % semantics: Skip blanks between strings.
             values = fscanf(fid, ' %*c%8c%*c', number);
             values = { cellstr(reshape(values, 8, []) .') };
 
