@@ -121,6 +121,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % multiple of eight.  Note format's leading blank with standard
             % semantics: Skip blanks between strings.
             values = fscanf(fid, ' %*c%8c%*c', number);
+
+            assert (numel(values) == 8 * number, ...
+                   ['Internal error in ''CHAR'' handling ', ...
+                    'for keyword ''%s''.'], name);
+
             values = { cellstr(reshape(values, 8, []) .') };
 
          otherwise,
