@@ -80,6 +80,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       number = sscanf(a{2}, '%f');
       ttype  =        a{3}       ;
 
+      if number == 0,
+
+         dispif(opt.Verbose, ...
+                'Keyword ''%s'' with no associated data.\n', name);
+
+         output = struct('type', ttype, 'values', {});
+         return
+
+      elseif number < 0,
+
+         error(msgid('Negative:ItemCount'), ...
+              ['Don''t know how to deal with negative (=%d) item ', ...
+               'count in keyword ''%s''.'], number, name);
+
+      end
+
+      % If we get here, number > 0.
       switch lower(ttype),
          case {'inte', 'doub', 'real'},
 
@@ -101,16 +118,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             values = { cellstr(reshape(values, 8, []) .') };
 
          otherwise,
-            if number == 0,
-               dispif(opt.Verbose, ...
-                      'Keyword ''%s'' with no associated data.\n', name);
-               output = struct('type', ttype, 'values', {});
-               return
-            else
-               error(msgid('Type:Unknown'), ...
-                    ['Variable type ''%s'' is unexpected ', ...
-                     'at this time.'], ttype);
-            end
+            error(msgid('Type:Unknown'), ...
+                 ['Variable type ''%s'' is unexpected ', ...
+                  'at this time.'], ttype);
       end
 
       discard = fgetl(fid);  %#ok, discard to EOL
