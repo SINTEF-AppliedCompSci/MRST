@@ -126,7 +126,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    ['Internal error in ''CHAR'' handling ', ...
                     'for keyword ''%s''.'], name);
 
-            values = { cellstr(reshape(values, 8, []) .') };
+            % Convert to cell-array of strings by placing each sequence of
+            % eight characters into a separate row in a CHAR array.
+            values = cellstr(reshape(values, 8, []) .');
+
+            % Wrap cellstring in CELL (producing single-element cell array)
+            % to account for STRUCT's treatment of CELL array input (i.e.,
+            % to produce a multi-element struct array, notably one STRUCT
+            % array element for each cell array element).
+            values = { values };
 
          otherwise,
             error(msgid('Type:Unknown'), ...
