@@ -141,8 +141,8 @@ dpBH = model.getIncrement(dx, problem, 'bhp');
 if ~isempty(dpBH)
     dpBH = sign(dpBH).*min(abs(dpBH), abs(model.dpMax.*vertcat(state.wellSol.bhp)));
     
-    wi = strcmpi(comp, 'wg');
-    oi = strcmpi(comp, 'og');
+    wi = strcmpi(comp, 'sw');
+    oi = strcmpi(comp, 'so');
     gi = strcmpi(comp, 'sg');
 
     for w = 1:numel(state.wellSol)
@@ -164,9 +164,6 @@ if ~isempty(dpBH)
             case 'bhp'
                 ws.bhp = v;
             case 'rate'
-                % TODO: This uses magic counting and should be fixed, but
-                % is dependent on the same being done to the well
-                % computations
                 if model.water
                     ws.qWs = v*W(w).compi(wi);
                 end
@@ -182,6 +179,8 @@ if ~isempty(dpBH)
                 ws.qWs = v;
             case 'grat'
                 ws.qGs = v;
+            otherwise
+                error('Unknown well control mode');
         end
         state.wellSol(w) = ws;
     end
