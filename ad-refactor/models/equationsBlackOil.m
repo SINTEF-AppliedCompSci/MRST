@@ -81,14 +81,10 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
             if disgas
                 rsSat0 = f.rsSat(p0);
                 rs0 = (~st1p).*rsSat0  + st1p.*x0;
-            else 
-                rsSat0 = rs0; % Not used - remove
             end
             if vapoil
                 rvSat0 = f.rvSat(p0);
                 rv0 = (~st2p).*rvSat0  + st2p.*x0;
-            else
-                rvSat0 = rv0; % Not used - remove
             end
         end
     else % resOnly-case compute rsSat and rvSat for use in well eqs
@@ -248,7 +244,7 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
                                                  'nonlinearIteration', opt.iteration);
             eqs(4:6) = weqs;
             eqs{7} = ctrleqs;
-
+            
             eqs{1}(wc) = eqs{1}(wc) - cqs{2}; % Add src to oil eq
             eqs{2}(wc) = eqs{2}(wc) - cqs{1}; % Add src to water eq
             eqs{3}(wc) = eqs{3}(wc) - cqs{3}; % Add src to gas eq

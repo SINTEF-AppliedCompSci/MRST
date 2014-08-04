@@ -59,7 +59,6 @@ classdef WellModel
                 controlEqs = {};
                 return
             end
-            wc    = vertcat(W.cells);
             
             ncomp = numel(model.componentNames);
             ph = model.getActivePhases();
@@ -77,14 +76,14 @@ classdef WellModel
             clear pressure
             
             % Assertions to indirectly document the implementation
-            assert(numel(p) == ncomp, ['Number of component pressure did not', ...
-                                       ' match number of components!']);
-            assert(numel(mob) == ncomp, ['Number of component mobilities did not', ...
-                                       ' match number of components!']);
-            assert(numel(currentFluxes) == nph, ['Number of phase fluxes did not', ...
-                                                   ' match number of phases!']);
-            assert(numel(components) == ncomp, ['Number of provided components did not', ...
-                                                   ' match number of components!']);
+            assert(numel(p) == ncomp, ...
+                'Number of component pressure did not match number of components!');
+            assert(numel(mob) == ncomp,...
+                'Number of component mobilities did not match number of components!');
+            assert(numel(currentFluxes) == nph, ...
+                'Number of phase fluxes did not match number of phases!');
+            assert(numel(components) == ncomp,...
+                'Number of provided components did not match number of components!');
             assert(numel(surfaceDensities) == nph && numel(bfactors) == nph, ...
                 'Number of densities or bfactors did not match number of present phases!');
             
@@ -120,7 +119,7 @@ classdef WellModel
                     v  = wellSol(k).val;
                     switch wellSol(k).type
                         case 'bhp'
-                            bhp = assignValue(bhp,v,k);
+                            bhp = assignValue(bhp, v, k);
                         case 'rate'
                             q_s{1} = assignValue(q_s{1}, v*w.compi(1), k);
                             % Is this a bug? should compi ref be 2?
@@ -129,11 +128,11 @@ classdef WellModel
                                 q_s{3} = assignValue(q_s{3}, v*w.compi(1), k);
                             end
                         case 'orat'
-                            q_s{2} = assignValue(q_s{2}, v , k);
+                            q_s{2} = assignValue(q_s{2}, v, k);
                         case 'wrat'
-                            q_s{1} = assignValue(q_s{1}, v , k);
+                            q_s{1} = assignValue(q_s{1}, v, k);
                         case 'grat'
-                            q_s{3} = assignValue(q_s{3}, v , k);
+                            q_s{3} = assignValue(q_s{3}, v, k);
                     end % No good guess for qOs, etc...
                 end
             end
@@ -169,7 +168,6 @@ classdef WellModel
                 end
             end
         end
-        
         
         
         function  [wellEqs, controlEqs, cq_s, wellSol] = assembleEquations(wellmodel,...

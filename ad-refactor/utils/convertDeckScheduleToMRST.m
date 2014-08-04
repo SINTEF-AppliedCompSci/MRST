@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 map(i) = 3;
             otherwise
                 map(i) = 4;
-                warning('Unknown component, translation directly form deck difficult, setting zero');
+                warning('Unknown component, translation directly from deck difficult, setting zero');
         end
     end
     

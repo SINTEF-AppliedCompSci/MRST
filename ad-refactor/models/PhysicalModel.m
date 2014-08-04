@@ -283,11 +283,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax)
+        function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
             % Update a state, with optionally a maximum relative change
             % applied.
-            if nargin == 5
+            if nargin < 6
                 relchangemax = inf;
+            end
+            
+            if nargin < 7
+                abschangemax = inf;
             end
             
             val0 = model.getProp(state, name);
@@ -298,8 +302,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % check that this is a part of the model
                 dv = dx;
             end
-            change = min(relchangemax./max(abs(dv), [], 2), 1);
-
+            biggestChange = max(abs(dv./val0), [], 2);
+            relativeChange = min(relchangemax./biggestChange, 1);
+            
+            biggestChange = max(abs(dv), [], 2);
+            absChange = min(abschangemax./biggestChange, 1);
+            
+            change = min(absChange, relativeChange);
+            
             val     = val0 + dv.*repmat(change, 1, size(dv, 2));
             state = model.setProp(state, name, val);
 

@@ -100,7 +100,7 @@ if (disgas || vapoil)
     ds(:, strcmpi(comp, 'so')) = dso;
     ds(:, strcmpi(comp, 'sg')) = dsg;
     
-    state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
+    state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMax);
     % We should *NOT* be solving for oil saturation for this to make sense
     assert(~any(strcmpi(satSolVar, 'so')));
     state = computeFlashBlackOil(state, state0, model, st);
@@ -122,6 +122,8 @@ else
         if solvedFor(i)
             v = model.getIncrement(dx, problem, comp{i});
             ds(:, i) = v;
+            % Saturations added for active variables must be subtracted
+            % from the last phase
             tmp = tmp - v;
         end
     end
