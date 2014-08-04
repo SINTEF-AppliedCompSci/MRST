@@ -42,11 +42,6 @@ function varargout = mrstPath(varargin)
 %           % DIRARG is not a directory, skip it
 %        end
 %
-%     EXAMPLE:
-%        mrstPath register AGMG       modules/mex/AGMG       ...
-%                          matlab_bgl modules/mex/matlab_bgl ...
-%                          triangle   modules/mex/triangle
-%
 %   Mode 2)
 %     <Command> -
 %        One of the explicit verbs 'addroot', 'clear', 'list', 'remove'
@@ -254,7 +249,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       error(msgid('Syntax:Error'), ...
            ['Call syntax is\n\t', ...
             mfilename, ' <command> [module list]  or\n\t', ...
-            'map = ', mfilename]);
+            'map = ', mfilename, '(''search'', module list)']);
 
    end
 end

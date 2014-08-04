@@ -5,36 +5,21 @@ function [data, pos] = insertInPackedData(pos, data, r, c)
 %   [data, pos] = insertInPackedData(pos, data, r, c)
 %
 % PARAMETERS:
-%   G       - Grid structure as described by grid_structure.
-%
-%   fnodes  - face nodes
-%
-%   nnodes  - number of nodes for each face
-%   neigh   - cell neighbors of each face
-%   tags    - cellFaces tags for each half-face associated with face.
+%   pos, data - Packed data array.
+%   r         - Row indices of new data entries.
+%   c         - New data entries.
 %
 % RETURNS:
-%   G       - Grid structure where the followinf fields have been modified:
+%   data, pos - Updated packed data array.  Note reverse order compared to
+%               input.
 %
-%                  G.faces.nodes
+% EXAMPLE:
+%   [G.cells.faces, G.cells.facePos] = ...
+%       insertInPackedData(G.cells.facePos, G.cells.faces, ...
+%                          cells, [faceIDs, hfTags])
 %
-%                  G.cells.faces
-%                  G.cells.facePos
-%                  G.cells.numFaces
-%
-%                  G.faces.neighbors
-%                  G.faces.numNodes
-%                  G.faces.nodePos
-%                  G.faces.tag
-%                  G.faces.num
-%
-% COMMENTS:
-%  Cells may not be closed polygons/polyhedra after this call.
-%
-% SEE ALSO:
-
-% E.g. [cellFaces, facePos]= insertInPackedData(cells.num, facePos,...
-   %                               cellFaces, cells, [facenums, tags])
+%   [G.faces.nodes, G.faces.nodePos] = ...
+%       insertInPackedData(G.faces.nodePos, G.faces.nodes, faces, newnodes)
 
    n   = numel(pos)-1;
    tmp = sortrows([r, c]);

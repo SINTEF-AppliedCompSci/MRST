@@ -10,9 +10,9 @@ function nnc = processPINCH(grdecl, G)
 %   other words, this function creates connections that do not otherwise
 %   correspond to geometric interfaces.
 %
-%   This function is is used within function 'processGRDECL' to implement
-%   the processing of keyword 'PINCH' in an ECLIPSE input deck.  Note that
-%   we currently do not support the complete feature set that may be input
+%   This function is used within function 'processGRDECL' to implement the
+%   processing of keyword 'PINCH' in an ECLIPSE input deck.  Note that we
+%   currently do not support the complete feature set that may be input
 %   through 'PINCH'.  Specifically, we only support the 'TOPBOT'
 %   transmissibility option for item 4 of the keyword.  Any other setting
 %   will be reset to 'TOPBOT' and a warning will be issued.
@@ -105,7 +105,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       act  = column_shape(act,  G.cartDims);
 
       % CUMSUM(skip) captures the number of intervening deactivated layers.
-      % Consequently, DIFF(x) > 0 identify those connections that could
+      % Consequently, DIFF(x) > 0 identifies those connections that could
       % potentially cross pinched layers.
       x = cumsum(double(skip));
       t = [rldecode(1 : size(x,2), size(x,1), 2) .', x(:), act(:)];
