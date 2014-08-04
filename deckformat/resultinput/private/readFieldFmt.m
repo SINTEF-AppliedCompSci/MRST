@@ -80,6 +80,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       number = sscanf(a{2}, '%f');
       ttype  =        a{3}       ;
 
+      if number == 0,
+
+         dispif(opt.Verbose, ...
+                'Keyword ''%s'' with no associated data.\n', name);
+
+         output = struct('type', ttype, 'values', {});
+         return
+
+      elseif number < 0,
+
+         error(msgid('Negative:ItemCount'), ...
+              ['Don''t know how to deal with negative (=%d) item ', ...
+               'count in keyword ''%s''.'], number, name);
+
+      end
+
+      % If we get here, number > 0.
       switch lower(ttype),
          case {'inte', 'doub', 'real'},
 
@@ -97,20 +114,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'char',
 
+            % Read strings as sequence of eight-character arrays, delimited
+            % by single quote (') characters (which are omitted in result).
+            % This method preserves white-space (blanks) within each string
+            % and guarantees that the number of elements in 'values' is a
+            % multiple of eight.  Note format's leading blank with standard
+            % semantics: Skip blanks between strings.
             values = fscanf(fid, ' %*c%8c%*c', number);
-            values = { cellstr(reshape(values, 8, []) .') };
+
+            assert (numel(values) == 8 * number, ...
+                   ['Internal error in ''CHAR'' handling ', ...
+                    'for keyword ''%s''.'], name);
+
+            % Convert to cell-array of strings by placing each sequence of
+            % eight characters into a separate row in a CHAR array.
+            values = cellstr(reshape(values, 8, []) .');
+
+            % Wrap cellstring in CELL (producing single-element cell array)
+            % to account for STRUCT's treatment of CELL array input (i.e.,
+            % to produce a multi-element struct array, notably one STRUCT
+            % array element for each cell array element).
+            values = { values };
 
          otherwise,
-            if number == 0,
-               dispif(opt.Verbose, ...
-                      'Keyword ''%s'' with no associated data.\n', name);
-               output = struct('type', ttype, 'values', {});
-               return
-            else
-               error(msgid('Type:Unknown'), ...
-                    ['Variable type ''%s'' is unexpected ', ...
-                     'at this time.'], ttype);
-            end
+            error(msgid('Type:Unknown'), ...
+                 ['Variable type ''%s'' is unexpected ', ...
+                  'at this time.'], ttype);
       end
 
       discard = fgetl(fid);  %#ok, discard to EOL
