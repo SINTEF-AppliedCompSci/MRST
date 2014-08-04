@@ -45,7 +45,6 @@ rv0   = 0; % dry gas
 
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
 
-schedule = convertDeckScheduleToMRST(G, rock, deck);
 
 clear boModel
 clear nonlinear
@@ -53,6 +52,8 @@ clear nonlinear
 boModel = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck, ...
                                                   'useCNVConvergence', false, ...
                                                   'nonlinearTolerance', 1e-10);
+schedule = convertDeckScheduleToMRST(G, boModel, rock, deck, 'StepLimit', 1);
+
 % boModel.useCNVConvergence = false;
 % boModel.nonlinearTolerance = 1e-12;
 

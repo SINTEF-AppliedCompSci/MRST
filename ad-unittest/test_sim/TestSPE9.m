@@ -14,7 +14,7 @@ classdef TestSPE9 < ScheduleTest
             
             fn = fullfile('SPE', 'SPE9', 'BENCH_SPE9.DATA');
             
-            [G, rock, fluid, deck, schedule] = setupADcase(fn);
+            [deck, schedule, model] = setupADcase(fn);
             
             gravity on
             
@@ -29,7 +29,7 @@ classdef TestSPE9 < ScheduleTest
             test.state0 = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
             
             test.schedule = schedule;
-            test.model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
+            test.model = model;
             
             test.model.drsMax = .2;
             test.model.dpMax  = .2;

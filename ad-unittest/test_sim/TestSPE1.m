@@ -14,7 +14,7 @@ classdef TestSPE1 < ScheduleTest
             
             fn = fullfile('SPE', 'SPE1', 'BENCH_SPE1.DATA');
             
-            [G, rock, fluid, deck, schedule] = setupADcase(fn);
+            [deck, schedule, model] = setupADcase(fn);
             
             % The case includes gravity
             gravity on
@@ -28,7 +28,7 @@ classdef TestSPE1 < ScheduleTest
             test.state0 = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
             
             test.schedule = schedule;
-            test.model = ThreePhaseBlackOilModel(G, rock, fluid, 'inputdata', deck);
+            test.model = model;
         end
         function s = getIdentifier(test, name) %#ok
             s = [mfilename('class'), '_', name];

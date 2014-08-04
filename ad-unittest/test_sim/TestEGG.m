@@ -12,7 +12,7 @@ classdef TestEGG < ScheduleTest
 
             fn = fullfile('external', 'TUDelft-EGG', 'BENCH_EGG.DATA');
             
-            [G, rock, fluid, deck, schedule] = setupADcase(fn);
+            [deck, schedule, model] = setupADcase(fn);
 
             gravity on
 
@@ -27,7 +27,7 @@ classdef TestEGG < ScheduleTest
             
             test.state0 = initResSol(G, p0, [0.1, .90]);
             test.schedule = schedule;
-            test.model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
+            test.model = model;
             
         end
         function s = getIdentifier(test, name) %#ok

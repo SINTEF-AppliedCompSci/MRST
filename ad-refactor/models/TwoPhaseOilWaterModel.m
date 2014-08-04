@@ -1,4 +1,4 @@
-classdef TwoPhaseOilWaterModel < PhysicalModel
+classdef TwoPhaseOilWaterModel < ReservoirModel
     % Two phase oil/water system without dissolution
     properties
 
@@ -7,7 +7,7 @@ classdef TwoPhaseOilWaterModel < PhysicalModel
     methods
         function model = TwoPhaseOilWaterModel(G, rock, fluid, varargin)
             
-            model = model@PhysicalModel(G, rock, fluid);
+            model = model@ReservoirModel(G, rock, fluid);
             
             % This is the model parameters for oil/water
             model.oil = true;

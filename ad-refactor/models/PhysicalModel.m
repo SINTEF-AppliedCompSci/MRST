@@ -2,7 +2,7 @@ classdef PhysicalModel
 %Base class for physical models
 %
 % SYNOPSIS:
-%   model = PhysicalModel(G, rock, fluid)
+%   model = PhysicalModel(G)
 %
 % DESCRIPTION:
 %   Base class for implementing physical models for use with automatic
@@ -15,12 +15,8 @@ classdef PhysicalModel
 %   are physically correct.
 %
 % REQUIRED PARAMETERS:
+%
 %   G     - Simulation grid.
-%
-%   rock  - Valid rock used for the model.
-%
-%   fluid - Fluid model used for the model.
-%
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   See class properties.
@@ -29,7 +25,7 @@ classdef PhysicalModel
 %   Class instance.
 %
 % SEE ALSO:
-%   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel
+%   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, ReservoirModel
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -51,55 +47,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     properties
-        % Unique identifier for the model
-        name
-        % The fluid model
-        fluid
+        % Model name
+        name 
         % Operators used for construction of systems
         operators
         % Inf norm tolerance for nonlinear iterations
         nonlinearTolerance
         % Grid
         G
-        
-        % Maximum relative pressure change
-        dpMax
-        % Maximum relative saturation change
-        dsMax
-        
-        % Water phase present
-        water
-        % Gas phase present
-        gas
-        % Oil phase present
-        oil
-        
-        % Names of each component, corresponding to their order in state.s
-        componentNames
-        
-        % Input data used to instansiate the model
-        inputdata
     end
     
     methods
-        function model = PhysicalModel(G, rock, fluid, varargin) %#ok
-            model.dpMax = inf;
-            model.dsMax = .2;
+        function model = PhysicalModel(G, varargin) %#ok
             model.nonlinearTolerance = 1e-6;
-            model.inputdata = [];
-            
-            % Physical model
-            model.G = G;
-            model.fluid = fluid;
-            model.componentNames = {'sw', 'so', 'sg'};
             
             model = merge_options(model, varargin{:});
             
-            % Base class does not support any phases
-            model.water = false;
-            model.gas = false;
-            model.oil = false;
-            
+            % Physical model
+            model.G = G;
         end
         
         function model = setupOperators(model, G, rock, varargin)
@@ -203,50 +168,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function [vararg, driving] = getDrivingForces(model, control) %#ok
-            % Setup and pass on driving forces
+            % Setup and pass on driving forces. Dummy version for base
+            % class.
             vararg = {};
-            driving = struct('Wells', [], 'bc', [], 'src', []);
-            
-            if isfield(control, 'W') && ~isempty(control.W)
-                vararg = [vararg, 'Wells', control.W];
-                driving.Wells = control.W;
-            end
-
-            if isfield(control, 'bc') && ~isempty(control.bc)
-                vararg = [vararg, 'bc', control.bc];
-                driving.bc = control.bc;
-            end
-            
-            if isfield(control, 'src') && ~isempty(control.src)
-                vararg = [vararg, 'src', control.src];
-                driving.src = control.src;
-            end
+            driving = struct();
         end
         
         function [fn, index] = getVariableField(model, name)
             % Get the index/name mapping for the model (such as where
-            % pressure or water saturation is located in state)
-            index = [];
-            switch(lower(name))
-                case {'t', 'temperature'}
-                    fn = 'T';
-                case {'sw', 'water'}
-                    index = find(strcmpi(model.componentNames, 'sw'));
-                    fn = 's';
-                case {'so', 'oil'}
-                    index = find(strcmpi(model.componentNames, 'so'));
-                    fn = 's';
-                case {'sg', 'gas'}
-                    index = find(strcmpi(model.componentNames, 'sg'));
-                    fn = 's';
-                case {'pressure', 'p'}
-                    index = 1;
-                    fn = 'pressure';
-            end
+            % pressure or water saturation is located in state). This
+            % always result in an error, as this model knows of no variables.
+            [fn, index] = deal([]);
             
             if isempty(index)
-                error('PhysicalModel:UnknownPhase', ...
-                    ['Phase ''', name, ''' is not known to this model']);
+                error('PhysicalModel:UnknownVariable', ...
+                    ['State variable ''', name, ''' is not known to this model']);
             end
         end
         
@@ -280,11 +216,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax)
+        function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
             % Update a state, with optionally a maximum relative change
             % applied.
-            if nargin == 5
+            if nargin < 6
                 relchangemax = inf;
+            end
+            
+            if nargin < 7
+                abschangemax = inf;
             end
             
             val0 = model.getProp(state, name);
@@ -295,13 +235,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % check that this is a part of the model
                 dv = dx;
             end
-            dv    = sign(dv).*min(abs(dv), abs(relchangemax.*val0));
-
-            val     = val0 + dv;
+            biggestChange = max(abs(dv./val0), [], 2);
+            relativeChange = min(relchangemax./biggestChange, 1);
+            
+            biggestChange = max(abs(dv), [], 2);
+            absChange = min(abschangemax./biggestChange, 1);
+            
+            change = min(absChange, relativeChange);
+            
+            val     = val0 + dv.*repmat(change, 1, size(dv, 2));
             state = model.setProp(state, name, val);
 
         end
     end
+
     methods (Static)
 
     end

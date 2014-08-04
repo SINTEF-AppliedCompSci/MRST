@@ -12,13 +12,13 @@ classdef TestSimpleOW < ScheduleTest
 
             fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
             
-            [G, rock, fluid, deck, schedule] = setupADcase(fn);
+            [deck, schedule, model] = setupADcase(fn);
 
             gravity on
             
-            test.state0 = initResSol(G, deck.PROPS.PVCDO(1), [.15, .85]);
+            test.state0 = initResSol(model.G, deck.PROPS.PVCDO(1), [.15, .85]);
             test.schedule = schedule;
-            test.model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
+            test.model = model;
             
         end
         function s = getIdentifier(test, name) %#ok

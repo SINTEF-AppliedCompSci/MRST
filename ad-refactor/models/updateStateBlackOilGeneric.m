@@ -53,13 +53,10 @@ state0 = state;
 W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
-
-
 [disgas, vapoil] = deal(false);
 
 if isprop(model, 'vapoil')
     vapoil = model.vapoil;
-    
 end
 
 if isprop(model, 'disgas')
@@ -95,17 +92,15 @@ if (disgas || vapoil)
     if vapoil
         state = model.updateStateFromIncrement(state, st{2}.*dr, problem, 'rv', model.drsMax);
     end
-    
-    dso = -(dsg + dsw);
-    maxVal = max(abs([dsw, dso, dsg]), [], 2);
-    step   = min(model.dsMax./maxVal, 1);
 
-    if model.water
-        state = model.setProp(state, 'sw', sw + step.*dsw);
-    end
-    state = model.setProp(state, 'so', so + step.*dso);
-    state = model.setProp(state, 'sg', sg + step.*dsg);
+    dso = -(dsg + dsw);
+
+    ds = zeros(numel(so), numel(comp));
+    ds(:, strcmpi(comp, 'sw')) = dsw;
+    ds(:, strcmpi(comp, 'so')) = dso;
+    ds(:, strcmpi(comp, 'sg')) = dsg;
     
+    state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMax);
     % We should *NOT* be solving for oil saturation for this to make sense
     assert(~any(strcmpi(satSolVar, 'so')));
     state = computeFlashBlackOil(state, state0, model, st);
@@ -115,21 +110,27 @@ else
     % link
     fillComponent = setdiff(lower(model.componentNames), satSolVar);
     fillComponent = fillComponent{1};
+    
     % Fill component is whichever component is assumed to fill up the rest of
-    % the pores
-
+    % the pores. This is done by setting that increment equal to the
+    % negation of all others so that sum(s) == 0 at end of update
     solvedFor = ~strcmpi(comp, fillComponent);
-
-    tmp = 1;
+    ds = zeros(model.G.cells.num, numel(comp));
+    
+    tmp = 0;
     for i = 1:numel(comp)
         if solvedFor(i)
-            [state, v] = model.updateStateFromIncrement(state, dx, problem,...
-                                                    comp{i}, model.dsMax);
+            v = model.getIncrement(dx, problem, comp{i});
+            ds(:, i) = v;
+            % Saturations added for active variables must be subtracted
+            % from the last phase
             tmp = tmp - v;
         end
     end
-    % Last phase fills the pores
-    state = model.setProp(state, fillComponent, tmp);
+    ds(:, ~solvedFor) = tmp;
+    % We update all saturations simultanously, since this does not bias the
+    % increment towards one phase in particular.
+    state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
 end
 
 
@@ -142,10 +143,10 @@ dpBH = model.getIncrement(dx, problem, 'bhp');
 if ~isempty(dpBH)
     dpBH = sign(dpBH).*min(abs(dpBH), abs(model.dpMax.*vertcat(state.wellSol.bhp)));
     
-%     wi = strcmpi(comp, 'wg');
-%     oi = strcmpi(comp, 'og');
-%     gi = strcmpi(comp, 'sg');
-    
+    wi = strcmpi(comp, 'sw');
+    oi = strcmpi(comp, 'so');
+    gi = strcmpi(comp, 'sg');
+
     for w = 1:numel(state.wellSol)
         ws = state.wellSol(w);
         ws.bhp  = ws.bhp + dpBH(w);
@@ -165,18 +166,23 @@ if ~isempty(dpBH)
             case 'bhp'
                 ws.bhp = v;
             case 'rate'
-                % TODO: This uses magic counting and should be fixed, but
-                % is dependent on the same being done to the well
-                % computations
-                ws.qWs = v*W(w).compi(1);
-                ws.qOs = v*W(w).compi(2);
-                ws.qGs = v*W(w).compi(3);
+                if model.water
+                    ws.qWs = v*W(w).compi(wi);
+                end
+                if model.oil
+                    ws.qOs = v*W(w).compi(oi);
+                end
+                if model.gas
+                    ws.qGs = v*W(w).compi(gi);
+                end
             case 'orat'
                 ws.qOs = v;
             case 'wrat'
                 ws.qWs = v;
             case 'grat'
                 ws.qGs = v;
+            otherwise
+                error('Unknown well control mode');
         end
         state.wellSol(w) = ws;
     end

@@ -140,12 +140,19 @@ if ~isempty(W)
         pw   = p(wc);
         rhos = [f.rhoWS, f.rhoOS];
         bw   = {bW(wc), bO(wc)};
-        rw   = {};
         mw   = {mobW(wc), mobO(wc)};
-        [eqs(3:5), cqs, state.wellSol] = getWellContributions(...
-            W, state.wellSol, pBH, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
-            'iteration', opt.iteration);
-
+        s = {sW, 1 - sW};
+%         [eqs(3:5), cqs, state.wellSol] = getWellContributions(...
+%             W, state.wellSol, pBH, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
+%             'iteration', opt.iteration);
+        wm = WellModel();
+        [cqs, weqs, ctrleqs, state.wellSol]  = wm.computeWellFlux(model, W, state.wellSol, ...
+                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, s,...
+                                             'nonlinearIteration', opt.iteration);
+                                         
+        eqs(3:4) = weqs;
+        eqs{5} = ctrleqs;
+        
         [wc, cqs] = checkForRepititions(wc, cqs);
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
         eqs{2}(wc) = eqs{2}(wc) - cqs{1};
