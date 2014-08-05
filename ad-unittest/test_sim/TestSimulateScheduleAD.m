@@ -1,4 +1,4 @@
-classdef Test_simulateScheduleAD < matlab.unittest.TestCase
+classdef TestSimulateScheduleAD < matlab.unittest.TestCase
     properties
        storeResults
        outputPath

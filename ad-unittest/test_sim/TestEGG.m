@@ -15,7 +15,9 @@ classdef TestEGG < ScheduleTest
             [deck, schedule, model] = setupADcase(fn);
 
             gravity on
-
+            
+            G = model.G;
+            fluid = model.fluid;
             % Approximate initial conds:
             pr   = 400*barsa;
             rz   = G.cells.centroids(1,3);

@@ -3,10 +3,9 @@ function [state0, schedule, model] = setupSimpleOW()
 
     fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
 
-    [G, rock, fluid, deck, schedule] = setupADcase(fn);
+    [deck, schedule, model] = setupADcase(fn);
 
     gravity on
 
-    state0 = initResSol(G, deck.PROPS.PVCDO(1), [.15, .85]);
-    model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
+    state0 = initResSol(model.G, deck.PROPS.PVCDO(1), [.15, .85]);
 end
