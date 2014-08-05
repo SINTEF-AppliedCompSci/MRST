@@ -1,12 +1,21 @@
-function [state] = updateStateVO(W, state, dx, f, system)
-stepOpts = system.stepOptions;
+function state = updateStateBlackOil(state, dx, drivingForces, fluid, varargin)
+opt = struct('dsMax',       nan, ...
+             'dpMax',       nan, ...
+             'drsMax',      nan, ...
+             'disgas',      false, ...
+             'vapoil',      false);
 
-disgas = system.activeComponents.disgas;
-vapoil = system.activeComponents.vapoil;
+opt = merge_options(opt, varargin{:});
+
+W = drivingForces.Wells;
+assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+    
+disgas = opt.disgas;
+vapoil = opt.vapoil;
 [st1, st2, st3] = getCellStatus(state, disgas, vapoil);
 etol = sqrt(eps);
 
-dpMax = stepOpts.dpMax;
+dpMax = opt.dpMax;
 dp    = dx{1};
 dp    = sign(dp).*min(abs(dp), abs(dpMax.*state.pressure));
 p     = state.pressure + dp;
@@ -17,13 +26,13 @@ dsw = dx{2};
 dsg = st3.*dx{3} - st2.*dsw;
 dso = -dsw-dsg;
 maxVal = max(abs([dsw, dso, dsg]), [], 2);
-step   = min(stepOpts.dsMax./maxVal, 1);
+step   = min(opt.dsMax./maxVal, 1);
 sw = state.s(:,1) + step.*dsw;
 so = state.s(:,2) + step.*dso;
 sg = state.s(:,3) + step.*dsg;
 
 % r updates
-drMax = stepOpts.drsMax;
+drMax = opt.drsMax;
 if disgas
     rs  = state.rs;
     drs = st1.*dx{3};
@@ -46,8 +55,8 @@ if ~disgas
     rsSat  = rsSat0; 
     gasPresent = true;
 else
-    rsSat0 = f.rsSat(state.pressure);
-    rsSat  = f.rsSat(p);
+    rsSat0 = fluid.rsSat(state.pressure);
+    rsSat  = fluid.rsSat(p);
     gasPresent = or(and( sg > 0, ~st1), watOnly); % Obvious case
     % Keep oil saturated if previous sg is sufficiently large:
     ix1 = and( sg < 0, state.s(:,3) > etol);
@@ -68,8 +77,8 @@ if ~vapoil
     rvSat0 = state.rv;
     rvSat  = rvSat0;
 else
-    rvSat0   = f.rvSat(state.pressure);
-    rvSat    = f.rvSat(p);
+    rvSat0   = fluid.rvSat(state.pressure);
+    rvSat    = fluid.rvSat(p);
     oilPresent = or(and( so > 0, ~st2), watOnly); % Obvious case
     % Keep gas saturated if previous so is sufficiently large
     ix1 = and( so < 0, state.s(:,2) > etol);
@@ -110,32 +119,34 @@ dqWs = dx{4};
 dqOs = dx{5};
 dqGs = dx{6};
 dpBH = dx{7};
-dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.bhp)));
+if ~isempty(dpBH)
+    dpBH = sign(dpBH).*min(abs(dpBH), abs(dpMax.*vertcat(state.wellSol.bhp)));
 
-for w = 1:numel(state.wellSol)
-    ws = state.wellSol(w);
-    ws.bhp  = ws.bhp + dpBH(w);
-    ws.qWs  = ws.qWs + dqWs(w);
-    ws.qOs  = ws.qOs + dqOs(w);
-    ws.qGs  = ws.qGs + dqGs(w);
+    for w = 1:numel(state.wellSol)
+        ws = state.wellSol(w);
+        ws.bhp  = ws.bhp + dpBH(w);
+        ws.qWs  = ws.qWs + dqWs(w);
+        ws.qOs  = ws.qOs + dqOs(w);
+        ws.qGs  = ws.qGs + dqGs(w);
 
-    tp = ws.type;
-    v  = ws.val;
-    switch tp
-        case 'bhp'
-            ws.bhp = v;
-        case 'rate'
-            ws.qWs = v*W(w).compi(1);
-            ws.qOs = v*W(w).compi(2);
-            ws.qGs = v*W(w).compi(3);
-        case 'orat'
-            ws.qOs = v;
-        case 'wrat'
-            ws.qWs = v;
-        case 'grat'
-            ws.qGs = v;
+        tp = ws.type;
+        v  = ws.val;
+        switch tp
+            case 'bhp'
+                ws.bhp = v;
+            case 'rate'
+                ws.qWs = v*W(w).compi(1);
+                ws.qOs = v*W(w).compi(2);
+                ws.qGs = v*W(w).compi(3);
+            case 'orat'
+                ws.qOs = v;
+            case 'wrat'
+                ws.qWs = v;
+            case 'grat'
+                ws.qGs = v;
+        end
+        state.wellSol(w) = ws;
     end
-    state.wellSol(w) = ws;
 end
 end
 
