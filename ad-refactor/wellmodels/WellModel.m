@@ -124,7 +124,7 @@ classdef WellModel
                             q_s{1} = assignValue(q_s{1}, v*w.compi(1), k);
                             q_s{2} = assignValue(q_s{2}, v*w.compi(2), k);
                             if numel(q_s)>2
-                                q_s{3} = assignValue(q_s{3}, v*w.compi(1), k);
+                                q_s{3} = assignValue(q_s{3}, v*w.compi(3), k);
                             end
                         case 'orat'
                             q_s{2} = assignValue(q_s{2}, v, k);
