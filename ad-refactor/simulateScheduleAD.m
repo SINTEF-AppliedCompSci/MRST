@@ -177,6 +177,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                             forces{:}, 'controlId', currControl);
         end
         t = toc(timer);
+        simtime(i) = t;
         
         if ~report.Converged
             warning('Nonlinear solver aborted, returning incomplete results!');
