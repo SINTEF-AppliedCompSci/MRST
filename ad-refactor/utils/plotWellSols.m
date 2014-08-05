@@ -22,9 +22,13 @@ function plotWellSols(wellsols, varargin)
     
     opt = struct('lowermargin', .1, ...
                  'plotwidth',   .6, ...
-                 'linewidth',    2);
+                 'linewidth',    2, ...
+                 'datasetnames', {{}});
     opt = merge_options(opt, varargin{:});
     
+    if isempty(opt.datasetnames)
+        opt.datasetnames = arrayfun(@num2str, 1:numel(wellsols), 'UniformOutput', false);
+    end
     df = get(0, 'DefaultFigurePosition');
     
     fh = figure('Position', df.*[1 1 1.75 1]);
@@ -197,15 +201,21 @@ function plotWellSols(wellsols, varargin)
                 
                 tmp = wname;
                 if ndata > 1
-                    tmp = [tmp, ' dataset ', num2str(i)]; %#ok
+                    tmp = [tmp, ' (' opt.datasetnames{i}, ')']; %#ok
                 end
                 l = [l; tmp];
             end
         end
         title(fld)
         
+        if ishandle(legh)
+            lpos = get(legh, 'Position');
+        else
+            lpos = 'NorthEast';
+        end
+        
         if get(useleg, 'Value')
-            legh = legend(l);
+            legh = legend(l, 'Location', lpos);
         elseif ishandle(legh)
             delete(legh);
             legh = nan;
