@@ -244,6 +244,7 @@ function fn = getNamesFromWS(ws)
     fn = fieldnames(ws);
     % Filter non-numerical values and values with multiple values per well
     fn = fn(cellfun(@(x) isnumeric(ws.(x)) && numel(ws.(x)) == 1, fn));
+    fn = fn(end:-1:1);
 end
 
 function f = getFieldString(handle, issingle)
