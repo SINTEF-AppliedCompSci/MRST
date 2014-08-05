@@ -21,7 +21,7 @@ tests = matlab.unittest.TestSuite.fromClass(?TestEGG);
 result_egg = run(tests);
 
 %% Run tests on the nonlinear solver
-tests = matlab.unittest.TestSuite.fromClass(?Test_simulateScheduleAD);
+tests = matlab.unittest.TestSuite.fromClass(?TestSimulateScheduleAD);
 result_sched = run(tests);
 
 %%
