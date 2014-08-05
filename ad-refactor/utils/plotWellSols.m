@@ -108,11 +108,21 @@ function plotWellSols(wellsols, varargin)
               'Position',[.01 .5 .95 .1]);
     legh = nan;
     
+    csum = uicontrol('Units', 'normalized', 'Parent', bg,...
+              'Style', 'checkbox', 'Value', 0, ...
+              'String','Cumulative sum', 'Callback', @drawPlot, ...
+              'Position',[.01 .4 .95 .1]);
+          
+    abst = uicontrol('Units', 'normalized', 'Parent', bg,...
+              'Style', 'checkbox', 'Value', 0, ...
+              'String','Absolute value', 'Callback', @drawPlot, ...
+              'Position',[.01 .3 .95 .1]);
+          
     if hasTimesteps
         showdt = uicontrol('Units', 'normalized', 'Parent', bg,...
                   'Style', 'checkbox', 'Value', hasTimesteps,...
                   'String','Use timesteps', 'Callback', @drawPlot, ...
-                  'Position',[.01 .4 .95 .1]);
+                  'Position',[.01 .2 .95 .1]);
     end
         uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'text',...
@@ -163,6 +173,14 @@ function plotWellSols(wellsols, varargin)
                 
                 
                 d = getData(wname, wellnames, fld, wellsols{i});
+                if get(csum, 'Value')
+                    d = cumsum(d);
+                end
+                
+                if get(abst, 'Value')
+                    d = abs(d);
+                end
+                
                 [d, yl] = getWellUnit(d, fld, getFieldString(unitsel, true));
                 ylabel(yl);
                 if hasTimesteps && get(showdt, 'Value')
@@ -172,6 +190,8 @@ function plotWellSols(wellsols, varargin)
                     x = 1:numel(d);
                     xlabel('Step #')
                 end
+                
+
                 
                 plot(x, d, [m, line], 'LineWidth', get(wsl, 'Value'), 'color', cmap(j, :));
                 
