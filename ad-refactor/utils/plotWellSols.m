@@ -134,7 +134,8 @@ function plotWellSols(wellsols, varargin)
 %               'Style', 'edit', ...
 %               'String','--o', 'Callback', @drawPlot, ...
 %               'Position',[.51 .01 .4 .1]);
-          
+    drawPlot([], []);
+    
     function drawPlot(src, event, varargin)
         fld = getFieldString(fieldsel, true);
         wells = getFieldString(wellsel, false);
