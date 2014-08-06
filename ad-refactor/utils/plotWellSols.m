@@ -271,13 +271,13 @@ function [d, yl] = getWellUnit(d, fld, usys)
                 yl = 'Well surface rate (stb/day)';
                 d = convertTo(d, stb/day);
             end
-        case 'qts'
-            if isMetric
-                yl = 'Temperature (Degrees Kelvin)';
-            else
-                yl = 'Temperature (Degrees Fahrenheit)';
-                d = d*1.8 + 32;
-            end
+%         case 'qts'
+%             if isMetric
+%                 yl = 'Temperature (Degrees Kelvin)';
+%             else
+%                 yl = 'Temperature (Degrees Fahrenheit)';
+%                 d = d*1.8 + 32;
+%             end
         case {'bhp', 'pressure'}
             if isMetric
                 yl = 'Pressure (Pascal)';
