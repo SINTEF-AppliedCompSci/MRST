@@ -11,7 +11,18 @@ function plotWellSols(wellsols, varargin)
     if isa(wellsols{1}, 'struct')
         % Single input, wrap in cell
         wellsols = {wellsols};
+    end
+    
+    if isa(timesteps, 'double')
+        % Single input, wrap in cell
         timesteps = {timesteps};
+    end
+            
+    if numel(timesteps) ~= numel(wellsols)
+        assert(numel(timesteps) == 1);
+        tmp = cell(size(wellsols));
+        [tmp{:}] = deal(timesteps{1});
+        timesteps = tmp; clear tmp
     end
     
     % Grab first and best element for testing
@@ -73,7 +84,7 @@ function plotWellSols(wellsols, varargin)
               'Position',[.01 .8 .45 .05]);
           
     wellsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
-              'Style', 'listbox', 'Max', 1e9,...
+              'Style', 'listbox', 'Max', 1e9, 'Min', 1,...
               'String', wellnames, 'Callback', @drawPlot, ...
               'Position',[.01 .2 .45 .6]);
     
@@ -134,7 +145,7 @@ function plotWellSols(wellsols, varargin)
               'Position',[.01 .12 .99 .05]);
           
     wsl = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
-                'Style', 'slider', 'Min', sqrt(eps), 'Max', 10,...
+                'Style', 'slider', 'Min', 0, 'Max', 10,...
                 'Value', opt.linewidth, ...
                 'String','Apply', 'Callback', @drawPlot, ...
                 'Position',[.01 .01 .99 .1]);
@@ -148,6 +159,7 @@ function plotWellSols(wellsols, varargin)
 %               'Style', 'edit', ...
 %               'String','--o', 'Callback', @drawPlot, ...
 %               'Position',[.51 .01 .4 .1]);
+    prevWells = {};
     drawPlot([], []);
     
     function drawPlot(src, event, varargin)
@@ -196,8 +208,14 @@ function plotWellSols(wellsols, varargin)
                 end
                 
 
+                linew = get(wsl, 'Value');
+                if linew == 0;
+                    % Draw no lines
+                    line = '';
+                    linew = 1;
+                end
                 
-                plot(x, d, [m, line], 'LineWidth', get(wsl, 'Value'), 'color', cmap(j, :));
+                plot(x, d, [m, line], 'LineWidth', linew, 'color', cmap(j, :));
                 
                 tmp = wname;
                 if ndata > 1
@@ -208,7 +226,7 @@ function plotWellSols(wellsols, varargin)
         end
         title(fld)
         
-        if ishandle(legh)
+        if ~isempty(legh) && ishandle(legh) && numel(wells) == numel(prevWells)
             lpos = get(legh, 'Position');
         else
             lpos = 'NorthEast';
@@ -237,6 +255,7 @@ function plotWellSols(wellsols, varargin)
         end
         
         axis tight
+        prevWells = wells;
     end
 end
 
