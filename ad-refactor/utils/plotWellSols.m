@@ -49,7 +49,7 @@ function plotWellSols(wellsols, varargin)
     lm = opt.lowermargin;
     pw = opt.plotwidth;
     
-    plotaxis  = subplot('Position', [.5*lm, lm, pw, 1-2*lm]);
+    plotaxis  = subplot('Position', [.75*lm, lm, pw, 1-2*lm]);
     ctrlpanel = uipanel('Position', [lm+pw, lm, 1-1.25*lm-pw,  1-2*lm], ...
                         'Title',  'Selection');
     
@@ -182,6 +182,7 @@ function plotWellSols(wellsols, varargin)
         cla; hold on;
         
         l = {};
+        tit = '';
         for i = 1:ndata
             for j = 1:nw
                 wname = wells{j};
@@ -189,16 +190,6 @@ function plotWellSols(wellsols, varargin)
                 
                 
                 d = getData(wname, wellnames, fld, wellsols{i});
-                if get(csum, 'Value')
-                    d = cumsum(d);
-                end
-                
-                if get(abst, 'Value')
-                    d = abs(d);
-                end
-                
-                [d, yl] = getWellUnit(d, fld, getFieldString(unitsel, true));
-                ylabel(yl);
                 if hasTimesteps && get(showdt, 'Value')
                     x = timesteps{i}/day;
                     xlabel('Time (days)')
@@ -206,6 +197,18 @@ function plotWellSols(wellsols, varargin)
                     x = 1:numel(d);
                     xlabel('Step #')
                 end
+                
+                if get(csum, 'Value')
+                    d = cumtrapz(x, d);
+                end
+                
+                if get(abst, 'Value')
+                    d = abs(d);
+                end
+                
+                [tit, d, yl] = getWellUnit(d, fld, getFieldString(unitsel, true));
+                ylabel(yl);
+
                 
 
                 linew = get(wsl, 'Value');
@@ -224,7 +227,7 @@ function plotWellSols(wellsols, varargin)
                 l = [l; tmp];
             end
         end
-        title(fld)
+        title(tit)
         
         if ~isempty(legh) && ishandle(legh) && numel(wells) == numel(prevWells)
             lpos = get(legh, 'Position');
@@ -259,30 +262,66 @@ function plotWellSols(wellsols, varargin)
     end
 end
 
-function [d, yl] = getWellUnit(d, fld, usys)
+function [tit, d, yl] = getWellUnit(d, fld, usys)
     isMetric = strcmpi(usys, 'si');
     
     yl = '';
+    tit = fld;
     switch lower(fld)
-        case {'qws', 'qos', 'qgs', 'rate'}
-            if isMetric
-                yl = 'Well surface rate (m^3/s)';
+        case {'qws', 'qos', 'qgs', 'rate', 'qts', 'qwr', 'qgr', 'qor', 'qtr'}
+            switch lower(fld)
+                case {'qos', 'qor'}
+                    ph = 'oil';
+                case {'qws', 'qwr'}
+                    ph = 'water';
+                case {'qgs', 'qgr'}
+                    ph = 'gas';
+                otherwise
+                    ph = 'total';
+            end
+            
+            if numel(fld) == 3 && lower(fld(3)) == 'r'
+                tmp = 'reservoir';
             else
-                yl = 'Well surface rate (stb/day)';
+                tmp = 'surface';
+            end
+            tit = [fld, ': Well ', tmp, ' rate (', ph, ')'];
+            if isMetric
+                yl = 'm^3/s';
+            else
+                yl = 'stb/day';
                 d = convertTo(d, stb/day);
             end
-%         case 'qts'
-%             if isMetric
-%                 yl = 'Temperature (Degrees Kelvin)';
-%             else
-%                 yl = 'Temperature (Degrees Fahrenheit)';
-%                 d = d*1.8 + 32;
-%             end
         case {'bhp', 'pressure'}
+            tit = [fld, ': Bottom hole pressure'];
             if isMetric
-                yl = 'Pressure (Pascal)';
+                yl = 'Pascal';
             else
-                yl = 'Pressure (Barsa)';
+                yl = 'Barsa';
+                d = convertTo(d, barsa);
+            end
+        case 'gor'
+            tit = [fld, ': Gas/oil rate at surface conditions'];
+        case {'ocut', 'wcut', 'gcut'}
+            switch lower(fld(1))
+                case 'o'
+                    t = 'Oil';
+                case 'g'
+                    t = 'Gas';
+                case 'w'
+                    t = 'Water';
+            end
+            tit = [fld, ': ', t, ' fraction at reservoir conditions'];
+        case 'sign'
+            tit = [fld, ': Well sign (+1 for producer, -1 for injector'];
+        case 'val'
+            tit = [fld, ': Well control value'];
+        case 'cdp'
+            tit = [fld, ': Pressure drop from reference depth to first perforation'];
+            if isMetric
+                yl = 'Pascal';
+            else
+                yl = 'Barsa';
                 d = convertTo(d, barsa);
             end
         otherwise

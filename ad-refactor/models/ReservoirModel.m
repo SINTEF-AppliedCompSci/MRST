@@ -157,6 +157,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             active = model.getActivePhases();
             phNames = tmp(active);
         end
+        
+        function i = getPhaseIndex(model, phasename)
+            active = model.getPhaseNames();
+            i = find(active == phasename);
+        end 
     end
 
     methods (Static)

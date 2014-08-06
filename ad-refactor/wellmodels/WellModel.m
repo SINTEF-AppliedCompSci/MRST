@@ -7,7 +7,8 @@ classdef WellModel
         allowCrossflow
         allowControlSwitching
         verbose
-
+        detailedOutput
+        
         % Properties used during calculations
         bfactors
         surfaceDensities
@@ -42,6 +43,7 @@ classdef WellModel
             wellmodel.allowWellSignChange   = false;
             wellmodel.allowCrossflow        = true;
             wellmodel.allowControlSwitching = true;
+            wellmodel.detailedOutput        = true;
             
             wellmodel = merge_options(wellmodel, varargin{:});
             
@@ -101,6 +103,10 @@ classdef WellModel
             % are not summed, they are overwritten).
             wc = vertcat(W.cells);
             [wc, sources] = wellmodel.handleRepeatedPerforatedcells(wc, sources);
+            
+            if wellmodel.detailedOutput
+                wellSol = wellmodel.updateWellSolStatistics(wellSol, model);
+            end
         end
         
         function [wellSol, q_s, bhp] = updateLimits(wellmodel, wellSol, q_s, bhp, model)
@@ -182,9 +188,7 @@ classdef WellModel
             
             
             % Update well properties which are not primary variables
-            w = wellmodel.W;
-            nConn       = cellfun(@numel, {w.cells})'; % # connections of each well
-            perf2well   = rldecode((1:numel(w))', nConn);
+            perf2well = wellmodel.getPerfToWellMap();
             toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
             cq_sDb = cell2mat(toDouble(cq_s));
             
@@ -194,6 +198,64 @@ classdef WellModel
                 wellSol(wnr).cstatus = cstatus(ix);
                 wellSol(wnr).status  = status(wnr);
             end
+        end
+        
+        function ws = updateWellSolStatistics(wellmodel, ws, model)
+            % Store extra output, typically black oil-like
+            perf2well = wellmodel.getPerfToWellMap();
+            
+            gind = model.getPhaseIndex('G');
+            oind = model.getPhaseIndex('O');
+            wind = model.getPhaseIndex('W');
+            bf = cellfun(@double, wellmodel.bfactors, 'UniformOutput', false);
+            for i = 1:numel(ws)
+                % Store reservoir fluxes and total fluxes
+                ws(i).qTs = 0;
+                ws(i).qTr = 0;
+                if model.gas
+                    tmp = ws(i).qGs./bf{gind}(perf2well == i);
+                    ws(i).qGr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qGs;
+                end
+                
+                if model.oil
+                    tmp = ws(i).qOs./bf{oind}(perf2well == i);
+                    ws(i).qOr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qOs;
+                end
+                if model.water
+                    tmp = ws(i).qWs./bf{wind}(perf2well == i);
+                    ws(i).qWr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qWs;
+                end
+                
+                % Phase cuts - fraction of reservoir conditions
+                if model.water
+                    ws(i).wcut = ws(i).qWr./ws(i).qTr;
+                end
+                
+                if model.gas
+                    ws(i).gcut = ws(i).qGr./ws(i).qTr;
+                end
+                
+                if model.oil
+                    ws(i).ocut = ws(i).qOr./ws(i).qTr;
+                end
+                
+                % Gas/oil ratio
+                if model.gas && model.oil
+                    ws(i).gor = ws(i).qGs/ws(i).qOs;
+                end
+            end
+        end
+        
+        function perf2well = getPerfToWellMap(wellmodel)
+            w = wellmodel.W;
+            nConn       = cellfun(@numel, {w.cells})'; % # connections of each well
+            perf2well   = rldecode((1:numel(w))', nConn);
         end
     end
     methods (Static)
@@ -207,6 +269,7 @@ classdef WellModel
                 end
             end
         end
+
     end
 end
 
