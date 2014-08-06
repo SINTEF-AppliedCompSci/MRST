@@ -57,24 +57,37 @@ l = horzcat('Basecase', l);
 wsols = vertcat({wellSols}, ws);
 
 timesteps = cell(numel(reports) + 1, 1);
-timesteps{1} = cumsum(schedule.step.val);
+timesteps{1} = schedule.step.val;
 for i = 1:numel(reports)
     % Read out the actually used timesteps
     [~, t] = convertReportToSchedule(reports{i}, schedule_small);
-    timesteps{i+1} = cumsum(t);
+    timesteps{i+1} = t;
 end
+% Sum up all timesteps to get time at each datapoint
+time = cellfun(@cumsum, timesteps, 'UniformOutput', false);
+
+% Plot the timestep lengths
+figure;
+hold on
+c = lines(numel(timesteps));
+for i = 1:numel(timesteps);
+    plot(time{i}, timesteps{i}, '--o', 'linewidth', 2, 'color', c(i, :))
+    grid on
+end
+legend(l)
+
 %% Compare the solutions interactively
-plotWellSols(wsols, timesteps, 'datasetnames', l)
+plotWellSols(wsols, time, 'datasetnames', l)
 
 %% Find the number of iterations and simulation time taken for all cases
 % Since the timesteps produce substeps we have to find report->control step
 % reports.
 reps = vertcat({report}, reports);
 
-[iterations, time] = deal(zeros(size(targetIts)));
+[iterations, timesteps] = deal(zeros(size(targetIts)));
 for i = 1:numel(targetIts)
     r = reps{i};
-    time(i) = sum(r.SimulationTime);
+    timesteps(i) = sum(r.SimulationTime);
     for j = 1:numel(reps{i})
         for k = 1:numel(r.ControlstepReports)
             if r.Converged
@@ -84,6 +97,6 @@ for i = 1:numel(targetIts)
     end
 end
 figure;
-bar([iterations; time]')
+bar([iterations; timesteps]')
 legend('Non-linear iterations', 'Time taken')
 set(gca, 'XTicklabel', l)
