@@ -105,7 +105,7 @@ classdef WellModel
             [wc, sources] = wellmodel.handleRepeatedPerforatedcells(wc, sources);
             
             if wellmodel.detailedOutput
-                wellSol = wellmodel.updateWellSolStatistics(wellSol, model);
+                wellSol = wellmodel.updateWellSolStatistics(wellSol, sources, model);
             end
         end
         
@@ -200,33 +200,35 @@ classdef WellModel
             end
         end
         
-        function ws = updateWellSolStatistics(wellmodel, ws, model)
+        function ws = updateWellSolStatistics(wellmodel, ws, sources, model)
             % Store extra output, typically black oil-like
             perf2well = wellmodel.getPerfToWellMap();
             
             gind = model.getPhaseIndex('G');
             oind = model.getPhaseIndex('O');
             wind = model.getPhaseIndex('W');
-            bf = cellfun(@double, wellmodel.bfactors, 'UniformOutput', false);
+            bf  = cellfun(@double, wellmodel.bfactors, 'UniformOutput', false);
+            src = cellfun(@double, sources, 'UniformOutput', false);
             for i = 1:numel(ws)
                 % Store reservoir fluxes and total fluxes
                 ws(i).qTs = 0;
                 ws(i).qTr = 0;
                 if model.gas
-                    tmp = ws(i).qGs./bf{gind}(perf2well == i);
+                    tmp = sum(src{gind}(perf2well == i)./bf{gind}(perf2well == i));
                     ws(i).qGr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qGs;
                 end
                 
                 if model.oil
-                    tmp = ws(i).qOs./bf{oind}(perf2well == i);
+                    tmp = sum(src{oind}(perf2well == i)./bf{oind}(perf2well == i));
                     ws(i).qOr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qOs;
                 end
+                
                 if model.water
-                    tmp = ws(i).qWs./bf{wind}(perf2well == i);
+                    tmp = sum(src{wind}(perf2well == i)./bf{wind}(perf2well == i));
                     ws(i).qWr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qWs;
