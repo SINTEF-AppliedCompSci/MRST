@@ -67,11 +67,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.G = G;
         end
         
-        function model = setupOperators(model, G, rock, varargin)
-            % Set up divergence/gradient/transmissibility operators
-            model.operators = setupSimComp(G, rock, varargin{:});
-        end
-        
         function [problem, state] = getEquations(model, state0, state, drivingForces, dt, varargin) %#ok
             % Get the equations governing the system
             error('Base class not meant for direct use')

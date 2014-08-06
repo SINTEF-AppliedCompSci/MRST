@@ -89,6 +89,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Physical model
             model.fluid = fluid;
         end
+        
+        
+        function model = setupOperators(model, G, rock, varargin)
+            % Set up divergence/gradient/transmissibility operators
+            model.operators = setupSimComp(G, rock, varargin{:});
+        end
                    
         function [vararg, driving] = getDrivingForces(model, control) %#ok
             % Setup and pass on driving forces
