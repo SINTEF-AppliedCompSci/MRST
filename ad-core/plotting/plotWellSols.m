@@ -183,7 +183,7 @@ function plotWellSols(wellsols, varargin)
         for i = 1:ndata
             for j = 1:nw
                 wname = wells{j};
-                line = linestyles{mod(i-1, numel(linestyles) + 1) + 1};
+                line = linestyles{mod(i-1, numel(linestyles)) + 1};
                 
                 
                 d = getData(wname, wellnames, fld, wellsols{i});
