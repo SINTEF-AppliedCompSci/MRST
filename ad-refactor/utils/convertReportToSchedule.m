@@ -1,4 +1,4 @@
-function schedule = convertReportToSchedule(report, schedule)
+function [schedule, timesteps] = convertReportToSchedule(report, schedule)
 % Create a new schedule based on actual ministeps from a simulation report
 %
 % SYNOPSIS:
