@@ -26,7 +26,7 @@ classdef WellModel
             
         end
         
-        function [sources, wellEqs, controlEqs, wellSol] = ...
+        function [sources, wellEqs, controlEqs, wc, wellSol] = ...
                             computeWellFlux(wellmodel, model,...
                                             W, wellSol, bhp,...
                                             currentFluxes, pressure,...
@@ -96,6 +96,11 @@ classdef WellModel
             [wellEqs, controlEqs, sources, wellSol] =...
                 wellmodel.assembleEquations(wellSol, currentFluxes, bhp, model);
             
+            % Check for multiple perforations in same cells to account for
+            % a shortcoming in MATLABs indexing behavior (repeated indices
+            % are not summed, they are overwritten).
+            wc = vertcat(W.cells);
+            [wc, sources] = wellmodel.handleRepeatedPerforatedcells(wc, sources);
         end
         
         function [wellSol, q_s, bhp] = updateLimits(wellmodel, wellSol, q_s, bhp, model)
@@ -192,6 +197,16 @@ classdef WellModel
         end
     end
     methods (Static)
+        function [wc, cqs] = handleRepeatedPerforatedcells(wc, cqs)
+            [c, ia, ic] = unique(wc, 'stable');
+            if numel(c) ~= numel(wc)
+                A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
+                wc = c;
+                for k=1:numel(cqs)
+                    cqs{k} = A*cqs{k};
+                end
+            end
+        end
     end
 end
 

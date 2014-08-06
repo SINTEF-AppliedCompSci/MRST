@@ -142,18 +142,15 @@ if ~isempty(W)
         bw   = {bW(wc), bO(wc)};
         mw   = {mobW(wc), mobO(wc)};
         s = {sW, 1 - sW};
-%         [eqs(3:5), cqs, state.wellSol] = getWellContributions(...
-%             W, state.wellSol, pBH, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
-%             'iteration', opt.iteration);
+
         wm = WellModel();
-        [cqs, weqs, ctrleqs, state.wellSol]  = wm.computeWellFlux(model, W, state.wellSol, ...
+        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, state.wellSol, ...
                                              pBH, {qWs, qOs}, pw, rhos, bw, mw, s,...
                                              'nonlinearIteration', opt.iteration);
                                          
         eqs(3:4) = weqs;
         eqs{5} = ctrleqs;
         
-        [wc, cqs] = checkForRepititions(wc, cqs);
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
         eqs{2}(wc) = eqs{2}(wc) - cqs{1};
         
@@ -181,16 +178,7 @@ end
 
 
 
-function [wc, cqs] = checkForRepititions(wc, cqs)
-[c, ia, ic] = unique(wc, 'stable');
-if numel(c) ~= numel(wc)
-    A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
-    wc = c;
-    for k=1:numel(cqs)
-        cqs{k} = A*cqs{k};
-    end
-end
-end
+
 
 
 
