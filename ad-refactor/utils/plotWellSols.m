@@ -149,16 +149,7 @@ function plotWellSols(wellsols, varargin)
                 'Value', opt.linewidth, ...
                 'String','Apply', 'Callback', @drawPlot, ...
                 'Position',[.01 .01 .99 .1]);
-    
-%     % Buttons
-%     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
-%               'String','Apply', 'Callback', @drawPlot, ...
-%               'Position',[.01 .01 .4 .1]);
-%           
-%     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
-%               'Style', 'edit', ...
-%               'String','--o', 'Callback', @drawPlot, ...
-%               'Position',[.51 .01 .4 .1]);
+
     prevWells = {};
     drawPlot([], []);
     
@@ -169,8 +160,14 @@ function plotWellSols(wellsols, varargin)
         ndata = numel(wellsols);
         nw = numel(wells);
         
-        cmap = lines(nw);
-        linestyles = {'-', '--', ':', '-.'};
+        if nw < 8
+            % Relatively few wells, use matlab default
+            cmap = lines(nw);
+        else
+            % Use colorcube for more lines
+            cmap = colorcube(nw+2);
+        end
+        linestyles = {'-', '--', '-.', ':'};
         if get(hasmarker, 'Value')
             m = 'o';
         else
