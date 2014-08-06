@@ -1,4 +1,5 @@
 function model = selectModelFromDeck(G, rock, fluid, deck, varargin)
+    require ad-blackoil
 
     rs = deck.RUNSPEC;
     check = @(name) isfield(rs, upper(name)) && rs.(upper(name));
