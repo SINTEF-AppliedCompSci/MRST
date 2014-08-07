@@ -14,6 +14,9 @@ classdef LinearizedProblem
     
     methods
         function problem = LinearizedProblem(equations, types, names, primary, state, dt)
+            if nargin < 6
+                dt = 0;
+            end
             problem.equations = equations;
             problem.types = types;
             problem.equationNames = names;
