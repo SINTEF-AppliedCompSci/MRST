@@ -255,9 +255,8 @@ classdef WellModel
         end
         
         function perf2well = getPerfToWellMap(wellmodel)
-            w = wellmodel.W;
-            nConn       = cellfun(@numel, {w.cells})'; % # connections of each well
-            perf2well   = rldecode((1:numel(w))', nConn);
+            % Outsource this, but it could be overriden
+            perf2well = getPerforationToWellMapping(wellmodel.W);
         end
     end
     methods (Static)
