@@ -55,11 +55,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         nonlinearTolerance
         % Grid
         G
+        % Verbosity from model routines
+        verbose
     end
     
     methods
         function model = PhysicalModel(G, varargin) %#ok
             model.nonlinearTolerance = 1e-6;
+            model.verbose = mrstVerbose();
             
             model = merge_options(model, varargin{:});
             
@@ -72,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             error('Base class not meant for direct use')
         end
         
-        function [state, report] = updateState(model, state, dx, drivingForces) %#ok
+        function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
             % Update state based on non-linear increment
             error('Base class not meant for direct use')
         end
@@ -92,7 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             values = norm(problem, n);
             convergence = all(values < model.nonlinearTolerance);
             
-            if mrstVerbose()
+            if model.verbose
                 for i = 1:numel(values)
                     fprintf('%s (%s): %2.2e\t', problem.equationNames{i}, problem.types{i}, values(i));
                 end
