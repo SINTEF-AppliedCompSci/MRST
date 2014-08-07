@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.G = G;
         end
         
-        function [problem, state] = getEquations(model, state0, state, drivingForces, dt, varargin) %#ok
+        function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin) %#ok
             % Get the equations governing the system
             error('Base class not meant for direct use')
         end
