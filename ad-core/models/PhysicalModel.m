@@ -76,8 +76,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
-            % Update state based on non-linear increment
-            error('Base class not meant for direct use')
+        % Update state based on Newton increments
+            for i = 1:numel(problem.primaryVariables);
+                 p = problem.primaryVariables{i};
+                 inc = model.getIncrement(dx, problem, p);
+                 % Update the state
+                 state = model.updateStateFromIncrement(state, inc, problem, p);
+            end
+            report = [];
         end
         
         function state = updateAfterConvergence(model, state0, state, drivingForces) %#ok
