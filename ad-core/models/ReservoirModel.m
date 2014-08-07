@@ -144,6 +144,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 case {'pressure', 'p'}
                     index = 1;
                     fn = 'pressure';
+                case 'wellSol'
+                    index = 1;
+                    fn = 'wellSol';
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@PhysicalModel(name);
