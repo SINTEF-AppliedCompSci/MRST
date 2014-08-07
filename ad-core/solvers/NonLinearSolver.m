@@ -268,7 +268,13 @@ function [state, reports, converged, its] = solveMinistep(solver, model, state, 
         [state, stepReport] = ...
             model.stepFunction(state, state0, dt, drivingForces, ...
                                solver.LinearSolver, solver, 'iteration', i);
-        converged  = stepReport.Converged;
+        if i ~= solver.maxIterations
+            converged  = stepReport.Converged;
+        else
+            % Final iteration, we must check if the previous solve resulted
+            % in convergence
+            converged = model.checkConvergence(problem);
+        end
         if converged
             break
         end
