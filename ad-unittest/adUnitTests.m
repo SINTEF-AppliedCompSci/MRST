@@ -1,4 +1,4 @@
-mrstModule add ad-unittest
+mrstModule add ad-unittest ad-core ad-blackoil
 
 %% Run SPE 1
 tests = matlab.unittest.TestSuite.fromClass(?TestSPE1);
