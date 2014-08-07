@@ -98,7 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'Invalid grid/rock pair supplied. Operators have not been set up.')
                 return;
             end
-            model.operators = setupSimComp(G, rock, varargin{:});
+            model.operators = setupOperatorsTPFA(G, rock, varargin{:});
         end
                    
         function [vararg, driving] = getDrivingForces(model, control) %#ok

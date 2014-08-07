@@ -126,10 +126,10 @@ end
 
 % EQUATIONS ---------------------------------------------------------------
 % oil:
-eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.div(bOvO);
+eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) - s.div(bOvO);
 
 % water:
-eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.div(bWvW);
+eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) - s.div(bWvW);
 
 names = {'oil', 'water'};
 types = {'cell', 'cell'};

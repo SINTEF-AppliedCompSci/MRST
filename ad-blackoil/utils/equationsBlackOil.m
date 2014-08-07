@@ -187,26 +187,26 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     names{1} = 'oil';
     if vapoil
         eqs{1} = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
-                              pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
+                              pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) - ...
                  s.div(bOvO + rvbGvG);
     else
-        eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.div(bOvO);
+        eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) - s.div(bOvO);
         
     end
     
     
     % water eq:
     names{2} = 'water';
-    eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
+    eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) - s.div(bWvW);
     
     % gas eq:
     names{3} = 'gas';
     if disgas
         eqs{3} = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-                              pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
+                              pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) - ...
                  s.div(bGvG + rsbOvO);
     else
-        eqs{3} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.div(bGvG);
+        eqs{3} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) - s.div(bGvG);
     end
     
     types = {'cell', 'cell', 'cell'};
