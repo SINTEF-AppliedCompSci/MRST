@@ -79,9 +79,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Update state based on Newton increments
             for i = 1:numel(problem.primaryVariables);
                  p = problem.primaryVariables{i};
-                 inc = model.getIncrement(dx, problem, p);
                  % Update the state
-                 state = model.updateStateFromIncrement(state, inc, problem, p);
+                 state = model.updateStateFromIncrement(state, dx, problem, p);
             end
             report = [];
         end
