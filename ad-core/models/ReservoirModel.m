@@ -93,6 +93,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function model = setupOperators(model, G, rock, varargin)
             % Set up divergence/gradient/transmissibility operators
+            if isempty(G) || isempty(rock)
+                warning('mrst:ReservoirModel', ...
+                'Invalid grid/rock pair supplied. Operators have not been set up.')
+            end
             model.operators = setupSimComp(G, rock, varargin{:});
         end
                    
