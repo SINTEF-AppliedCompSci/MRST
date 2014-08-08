@@ -53,15 +53,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       error(nargchk(1, 2, nargin, 'struct'));                   %#ok<NCHKN>
    end
 
-    if nargin == 1
-        cells = 1:G.cells.num;
-    else
-        cells = varargin{1};
-    end
+   if nargin == 1,
 
-    % Find number of faces per cell
-    nf = diff([G.cells.facePos(cells), G.cells.facePos(cells+1)], [],2);
+      % Simple case.  Create 'cellno' for all cells.
+      cellno = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .';
 
-    % Find the cell index of each face
-    cellno = rldecode(1:numel(cells), nf, 2) .';
+   else
+
+      % Caller specified cell subset.
+      cells = varargin{1};
+
+      nf = G.cells.facePos(cells + 1) - G.cells.facePos(cells);
+
+      % Find the cell index of each face.
+      cellno = rldecode(1 : numel(cells), nf, 2) .';
+
+   end
 end
