@@ -93,11 +93,7 @@ function [press, rs, rv] = ...
       equilibrate_region(deck, G, cells, fluid, pix, eqreg, pvtreg)
    equil = deck.SOLUTION.EQUIL(eqreg, :);
 
-   if isfield(deck.SOLUTION, 'DATUM'),
-      Z0 = deck.SOLUTION.DATUM;
-   else
-      Z0 = equil(1);
-   end
+   Z0   = equil(1);
    P0   = equil(2);
    Zwoc = equil(3);
    Zgoc = equil(5);
