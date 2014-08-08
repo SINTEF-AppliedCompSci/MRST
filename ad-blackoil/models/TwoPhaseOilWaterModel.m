@@ -14,7 +14,7 @@ classdef TwoPhaseOilWaterModel < ReservoirModel
             model.gas = false;
             model.water = true;
             
-            model.componentNames = {'sw', 'so'};
+            model.saturationNames = {'sw', 'so'};
             
             model = merge_options(model, varargin{:});
             

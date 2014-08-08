@@ -3,7 +3,7 @@ function [eqs, cq_s, mix_s, status, cstatus, Rw] = computeWellContributions(well
 W = wellmodel.W;
 p = wellmodel.referencePressure;
 b = wellmodel.bfactors;
-r = wellmodel.pseudocomponents;
+r = wellmodel.components;
 m = wellmodel.mobilities;
 
 numPh       = numel(b); % # phases

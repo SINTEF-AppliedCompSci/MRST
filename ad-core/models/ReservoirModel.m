@@ -61,8 +61,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Oil phase present
         oil
         
-        % Names of each component, corresponding to their order in state.s
+        % Names of each component
         componentNames
+        
+        % Names of each saturation variables, corresponding to their order in state.s
+        saturationNames
         
         % Input data used to instantiate the model
         inputdata
@@ -77,7 +80,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.nonlinearTolerance = 1e-6;
             model.inputdata = [];
             
-            model.componentNames = {'sw', 'so', 'sg'};
+            model.saturationNames = {'sw', 'so', 'sg'};
+            model.componentNames = {};
             
             model = merge_options(model, varargin{:});
             
@@ -130,16 +134,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 case {'t', 'temperature'}
                     fn = 'T';
                 case {'sw', 'water'}
-                    index = find(strcmpi(model.componentNames, 'sw'));
+                    index = find(strcmpi(model.saturationNames, 'sw'));
                     fn = 's';
                 case {'so', 'oil'}
-                    index = find(strcmpi(model.componentNames, 'so'));
+                    index = find(strcmpi(model.saturationNames, 'so'));
                     fn = 's';
                 case {'sg', 'gas'}
-                    index = find(strcmpi(model.componentNames, 'sg'));
+                    index = find(strcmpi(model.saturationNames, 'sg'));
                     fn = 's';
                 case {'s', 'sat', 'saturation'}
-                    index = 1:numel(model.componentNames);
+                    index = 1:numel(model.saturationNames);
                     fn = 's';
                 case {'pressure', 'p'}
                     index = 1;

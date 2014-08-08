@@ -63,10 +63,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     scheduleMRST.control = struct('W', tmp, 'bc', tmp, 'src', tmp);
     
     % Massage phases in compi to match active components in model
-    ncomp = numel(model.componentNames);
+    ncomp = numel(model.saturationNames);
     map = zeros(ncomp, 1);
     for i = 1:ncomp
-        switch lower(model.componentNames{i})
+        switch lower(model.saturationNames{i})
             case 'sw'
                 map(i) = 1;
             case 'so'
@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 map(i) = 3;
             otherwise
                 map(i) = 4;
-                warning('Unknown component, translation directly from deck difficult, setting zero');
+                warning('Unknown phase, translation directly from deck difficult, setting zero');
         end
     end
     

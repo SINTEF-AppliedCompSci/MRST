@@ -15,9 +15,9 @@ classdef WellModel
         mobilities
         pressure
         referencePressure
-        pseudocomponents
-        maxPseudocomponents
+        maxComponents
         components
+        saturations
         nonlinearIteration
         W
     end
@@ -32,12 +32,12 @@ classdef WellModel
                                             W, wellSol, bhp,...
                                             currentFluxes, pressure,...
                                             surfaceDensities, bfactors, ...
-                                            mob, components, varargin)
+                                            mob, satvals, ...
+                                            compvals, varargin)
                                         
             
             wellmodel.verbose = mrstVerbose();
-            wellmodel.pseudocomponents = {};
-            wellmodel.maxPseudocomponents = {};
+            wellmodel.maxComponents = {};
             wellmodel.nonlinearIteration = nan;
             wellmodel.referencePressureIndex = 2;
             wellmodel.allowWellSignChange   = false;
@@ -52,7 +52,8 @@ classdef WellModel
             wellmodel.bfactors = bfactors;
             wellmodel.surfaceDensities = surfaceDensities;
             wellmodel.mobilities = mob;
-            wellmodel.components = components;
+            wellmodel.saturations = satvals;
+            wellmodel.components = compvals;
             wellmodel.W = W;
             clear opt
             
@@ -62,13 +63,13 @@ classdef WellModel
                 return
             end
             
-            ncomp = numel(model.componentNames);
+            nsat = numel(model.saturationNames);
             ph = model.getActivePhases();
             nph = sum(ph);
             
             if ~iscell(pressure)
                 % Support single reference pressure
-                p = cell(ncomp, 1);
+                p = cell(nsat, 1);
                 [p{:}]  = deal(pressure);
             else
                 p = pressure;
@@ -78,15 +79,15 @@ classdef WellModel
             clear pressure
             
             % Assertions to indirectly document the implementation
-            assert(numel(p) == ncomp, ...
-                'Number of component pressure did not match number of components!');
-            assert(numel(mob) == ncomp,...
-                'Number of component mobilities did not match number of components!');
-            assert(numel(currentFluxes) == nph, ...
-                'Number of phase fluxes did not match number of phases!');
-            assert(numel(components) == ncomp,...
-                'Number of provided components did not match number of components!');
-            assert(numel(surfaceDensities) == nph && numel(bfactors) == nph, ...
+            assert(numel(p) == nsat, ...
+                'Number of saturation pressure did not match number of saturation variables!');
+            assert(numel(mob) == nsat,...
+                'Number of saturation mobilities did not match number of saturation variables!');
+            assert(numel(currentFluxes) == nsat, ...
+                'Number of phase fluxes did not match number of saturation variables!');
+            assert(numel(satvals) == nsat,...
+                'Number of provided saturation values did not match number of saturation variables!');
+            assert(numel(surfaceDensities) == nsat && numel(bfactors) == nsat, ...
                 'Number of densities or bfactors did not match number of present phases!');
             
             % Update well pressure

@@ -6,7 +6,7 @@ function sol = updateConnectionDP(wellmodel, model, sol)
 W = wellmodel.W;
 b = wellmodel.bfactors;
 rhos = wellmodel.surfaceDensities;
-rMax = wellmodel.maxPseudocomponents;
+rMax = wellmodel.maxComponents;
 
 
 nConn       = cellfun(@numel, {W.cells})'; % # connections of each well
