@@ -47,6 +47,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   if exist('narginchk', 'builtin'),
+      narginchk(1, 2);
+   else
+      error(nargchk(1, 2, nargin, 'struct'));                   %#ok<NCHKN>
+   end
 
     if nargin == 1
         cells = 1:G.cells.num;
