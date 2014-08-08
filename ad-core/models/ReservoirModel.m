@@ -60,12 +60,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         gas
         % Oil phase present
         oil
-        
-        % Names of each component
-        componentNames
+
         
         % Names of each saturation variables, corresponding to their order in state.s
-        saturationNames
+        saturationVarNames
+        wellVarNames
         
         % Input data used to instantiate the model
         inputdata
@@ -80,8 +79,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.nonlinearTolerance = 1e-6;
             model.inputdata = [];
             
-            model.saturationNames = {'sw', 'so', 'sg'};
-            model.componentNames = {};
+            model.saturationVarNames = {'sw', 'so', 'sg'};
+            model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
             
             model = merge_options(model, varargin{:});
             
@@ -129,21 +128,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function [fn, index] = getVariableField(model, name)
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
-            index = [];
             switch(lower(name))
                 case {'t', 'temperature'}
                     fn = 'T';
+                    index = 1;
                 case {'sw', 'water'}
-                    index = find(strcmpi(model.saturationNames, 'sw'));
+                    index = find(strcmpi(model.saturationVarNames, 'sw'));
                     fn = 's';
                 case {'so', 'oil'}
-                    index = find(strcmpi(model.saturationNames, 'so'));
+                    index = find(strcmpi(model.saturationVarNames, 'so'));
                     fn = 's';
                 case {'sg', 'gas'}
-                    index = find(strcmpi(model.saturationNames, 'sg'));
+                    index = find(strcmpi(model.saturationVarNames, 'sg'));
                     fn = 's';
                 case {'s', 'sat', 'saturation'}
-                    index = 1:numel(model.saturationNames);
+                    index = 1:numel(model.saturationVarNames);
                     fn = 's';
                 case {'pressure', 'p'}
                     index = 1;
@@ -156,7 +155,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     [fn, index] = getVariableField@PhysicalModel(model, name);
             end
         end
-                    
+        
+        function [restVars, satVars, wellVars] = splitPrimaryVariables(model, vars)
+            isSat   = cellfun(@(x) any(strcmpi(model.saturationVarNames, x)), vars);
+            isWells = cellfun(@(x) any(strcmpi(model.wellVarNames, x)), vars);
+            
+            wellVars = vars(isWells);
+            satVars  = vars(isSat);
+                
+            restVars = vars(~isSat & ~isWells);
+        end
+        
+        function [vars, isRemoved] = stripVars(model, vars, names)
+            isRemoved = cellfun(@(x) any(strcmpi(names, x)), vars);
+            vars(isRemoved) = [];
+        end
+        
         function [isActive, phInd] = getActivePhases(model)
             isActive = [model.water, model.oil, model.gas];
             if nargout > 1

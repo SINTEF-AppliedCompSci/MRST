@@ -14,12 +14,12 @@ classdef TwoPhaseOilWaterModel < ReservoirModel
             model.gas = false;
             model.water = true;
             
-            model.saturationNames = {'sw', 'so'};
+            model.saturationVarNames = {'sw', 'so'};
+            model.wellVarNames = {'qWs', 'qOs', 'bhp'};
             
             model = merge_options(model, varargin{:});
             
-            % Name and operators
-            model.name = 'OilWater_2ph';
+            % Setup operators
             model = model.setupOperators(G, rock, 'deck', model.inputdata);
         end
         

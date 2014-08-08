@@ -47,8 +47,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     properties
-        % Model name
-        name 
         % Operators used for construction of systems
         operators
         % Inf norm tolerance for nonlinear iterations
@@ -108,12 +106,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, varargin)
+        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, onlyCheckConvergence, varargin)
             % Make a single linearized timestep
             [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
             [convergence, values] = model.checkConvergence(problem);
             
-            if ~convergence
+            if ~(convergence && ~onlyCheckConvergence)
                 % Get increments for Newton solver
                 [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
                 

@@ -49,7 +49,7 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
             model.oil = true;
             model.gas = true;
             model.water = true;
-            model.saturationNames = {'sw', 'so', 'sg'};
+            model.saturationVarNames = {'sw', 'so', 'sg'};
             
             model = merge_options(model, varargin{:});
             
@@ -66,16 +66,6 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
                     error('Unknown dataset format!')
                 end
             end
-            
-            model.componentNames = {};
-            if model.vapoil
-                model.componentNames{end+1} = 'rv';
-            end
-            if model.disgas
-                model.componentNames{end+1} = 'rs';
-            end
-            
-            model.name = 'BlackOil_3ph';
             model = model.setupOperators(G, rock, 'deck', model.inputdata);
         end
         

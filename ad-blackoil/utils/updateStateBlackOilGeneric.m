@@ -62,14 +62,16 @@ end
 if isprop(model, 'disgas')
     disgas = model.disgas;
 end
+[restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables); 
+
 
 state = model.updateStateFromIncrement(state, dx, problem,...
                                             'pressure', model.dpMax);
+restVars = model.stripVars(restVars, 'pressure');
 
-saturations = lower(model.saturationNames);
-comp = lower(model.componentNames);
+saturations = lower(model.saturationVarNames);
+% satSolVar = intersect(lower(problem.primaryVariables), saturations);
 
-satSolVar = intersect(lower(problem.primaryVariables), saturations);
 
 if (disgas || vapoil)
     % Black oil with dissolution
@@ -103,18 +105,18 @@ if (disgas || vapoil)
     
     state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMax);
     % We should *NOT* be solving for oil saturation for this to make sense
-    assert(~any(strcmpi(satSolVar, 'so')));
+    assert(~any(strcmpi(satVars, 'so')));
     state = computeFlashBlackOil(state, state0, model, st);
     state.s  = bsxfun(@rdivide, state.s, sum(state.s, 2));
     
     %  We have explicitly dealt with rs/rv properties, remove from list
     %  meant for autoupdate.
-    comp(strcmpi(comp, 'rs')) = [];
-    comp(strcmpi(comp, 'rv')) = [];
+    restVars = model.stripVars(restVars, {'rs', 'rv', 'x'});
 else
     % Solution variables should be saturations directly, find the missing
     % link
-    fillsat = setdiff(lower(model.saturationNames), satSolVar);
+    fillsat = setdiff(lower(model.saturationVarNames), lower(satVars));
+    assert(numel(fillsat) == 1)
     fillsat = fillsat{1};
     
     % Fill component is whichever saturation is assumed to fill up the rest of
@@ -140,8 +142,8 @@ else
 end
 
 % Update components
-for i = 1:numel(comp);
-     p = comp{i};
+for i = 1:numel(restVars);
+     p = restVars{i};
      % Update the state
      state = model.updateStateFromIncrement(state, dx, problem, p);
 end

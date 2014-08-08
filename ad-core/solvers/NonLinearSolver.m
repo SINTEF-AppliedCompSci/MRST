@@ -264,17 +264,16 @@ function [state, reports, converged, its] = solveMinistep(solver, model, state, 
     omega0 = solver.relaxationParameter;
     
     r = [];
-    for i = 1:solver.maxIterations
+    for i = 1:(solver.maxIterations + 1)
+        % If we are past maximum number of iterations, step function will
+        % just check convergence and return
+        onlyCheckConvergence = i > solver.maxIterations;
         [state, stepReport] = ...
             model.stepFunction(state, state0, dt, drivingForces, ...
-                               solver.LinearSolver, solver, 'iteration', i);
-        if i ~= solver.maxIterations
-            converged  = stepReport.Converged;
-        else
-            % Final iteration, we must check if the previous solve resulted
-            % in convergence
-            converged = model.checkConvergence(problem);
-        end
+                               solver.LinearSolver, solver, ...
+                               onlyCheckConvergence, 'iteration', i);
+        converged  = stepReport.Converged;
+
         if converged
             break
         end

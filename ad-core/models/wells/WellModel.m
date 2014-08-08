@@ -63,7 +63,7 @@ classdef WellModel
                 return
             end
             
-            nsat = numel(model.saturationNames);
+            nsat = numel(model.saturationVarNames);
             ph = model.getActivePhases();
             nph = sum(ph);
             
