@@ -271,7 +271,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % Update face mobility and Af for the definition of well rates
       [cmob, cdmob] = impesComputeMobility(state, fluid, opt.bc, ...
                                            opt.wells, opt.wdp);
-      [luAc, dAc, Af, mob] = ...
+      [Af, Af, Af, mob] = ...
          eval_fluid_data(state, G, fluid, cmob, cdmob, opt, OP);       %#ok
    end
 
@@ -459,9 +459,7 @@ function [F, fcontrib_dp, wcontrib_dp, grav_term] = ...
 
       [Fw, wcontrib_dp] = residual_well(opt.wells, opt.wdp, state, ...
                                         wdyntrans_s, wdyntrans_r);
-      %F  = [F; Fw];
-      F  = [F; dt*Fw];
-      wcontrib_dp=dt*wcontrib_dp;
+      F = [ F ; Fw ];
    end
 end
 
