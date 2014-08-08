@@ -268,8 +268,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       [u, u, u, u] = fluid.pvt(state.pressure, state.z);               %#ok
       state.s      = bsxfun(@rdivide, u, sum(u, 2));
 
-      % update face mobility and Af for the definition of
-      % well rates
+      % Update face mobility and Af for the definition of well rates
       [cmob, cdmob] = impesComputeMobility(state, fluid, opt.bc, ...
                                            opt.wells, opt.wdp);
       [luAc, dAc, Af, mob] = ...
