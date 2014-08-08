@@ -62,8 +62,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         oil
 
         
-        % Names of each saturation variables, corresponding to their order in state.s
+        % Names of primary variables interpreted as saturations, i.e. so
+        % that they will sum to one when updated.
         saturationVarNames
+        % Names of well fields that may be updated by the model.
         wellVarNames
         
         % Input data used to instantiate the model
