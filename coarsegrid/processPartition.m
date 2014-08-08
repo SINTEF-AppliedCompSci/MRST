@@ -98,7 +98,7 @@ for k = 1 : numel(non_empty),
    [p, r, r] = dmperm(adj);   nComp = numel(r) - 1;                    %#ok
 
    %  4) Assign new block numbers to the individual connected components
-   %     found in step 5 while taking care to preserve the original block
+   %     found in step 3 while taking care to preserve the original block
    %     number of the first (and, possibly, only) block (i.e., component).
    %     This ensures that the output partition equals the input partition
    %     if no coarse blocks must be split.  As a special case, array
