@@ -1,10 +1,10 @@
-function [G, rock, fluid, ...
-   state, wells, trans, dt, deck] = initEclipseModel(inputfile)
+function [G, rock, fluid, state, wells, ...
+      htrans, trans, dt, deck] = initEclipseModel(inputfile)
 %Initialise basic MRST objects from ECLIPSE input file (*.DATA)
 %
 % SYNOPSIS:
-%   [G, rock, fluid, ...
-%    state, wells, trans, dt, deck] = initEclipseModel(inputfile)
+%   [G, rock, fluid, state, wells, ...
+%    htrans, trans, dt, deck] = initEclipseModel(inputfile)
 %
 % DESCRIPTION:
 %   Function 'initEclipseModel' constructs the fundamental MRST simulation
@@ -27,9 +27,13 @@ function [G, rock, fluid, ...
 %   wells - Initial well object as defined by function 'processWells'. This
 %           structure is derived from the initial well configuration.
 %
-%   trans - Background (absolute) one-sided ("half-face")
-%           transmissibilities as defined by functions 'computeTrans' and
-%           'computeTranMult'.
+%   htrans -
+%           Background (absolute) one-sided transmissibilities as defined
+%           by functions 'computeTrans' and 'computeTranMult'.
+%
+%   trans - Background (absolute) connection transmissibilities defined by
+%           harmonic averaging of the one-sided transmissibilities (htrans)
+%           while including fault-related transmissibility multipliers too.
 %
 %   dt    - Report step sequence derived from 'TSTEP' and 'DATES'.
 %
@@ -81,11 +85,30 @@ function [G, rock, fluid, ...
    end
    %state  = computeFacePressure(state, G, htrans, fluid);
 
-   trans = computeTrans(G, rock);
-   m     = computeTranMult(G, deck.GRID);
-   if any(m),
-      trans = trans.*m;
-   end
+   [htrans, trans] = transmissibility(G, rock, deck);
 
    dt = deck.SCHEDULE.step.val;
+end
+
+%--------------------------------------------------------------------------
+
+function [htrans, trans] = transmissibility(G, rock, deck)
+   htrans = computeTrans   (G, rock);
+   htmult = computeTranMult(G, deck.GRID);
+
+   if ~isempty(htmult),
+      htrans = htrans .* htmult;
+   end
+
+   trans = 1 ./ accumarray(G.cells.faces(:,1), ...
+                           1 ./ htrans,        ...
+                           [G.faces.num, 1]);
+
+   flt = processFaults(G, deck.GRID);
+   if ~isempty(flt),
+      trans = trans .* accumarray(vertcat(flt.faces), ...
+                                  rldecode(vertcat(flt.mult), ...
+                                           vertcat(flt.numf)), ...
+                                  [G.faces.num, 1], @prod, 1);
+   end
 end
