@@ -63,6 +63,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % Caller specified cell subset.
       cells = varargin{1};
 
+      assert (isnumeric(cells) && ~isempty(cells) && ...
+              (1 <= min(cells)) && (max(cells) <= G.cells.num), ...
+             ['Cell subset ''c'' must be numeric indices in the ', ...
+              'range [1 .. %d]'], G.cells.num);
+
       nf = G.cells.facePos(cells + 1) - G.cells.facePos(cells);
 
       % Find the cell index of each face.
