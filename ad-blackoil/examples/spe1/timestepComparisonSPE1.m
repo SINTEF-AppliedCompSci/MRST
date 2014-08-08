@@ -84,8 +84,8 @@ plotWellSols(wsols, time, 'datasetnames', l)
 % reports.
 reps = vertcat({report}, reports);
 
-[iterations, timesteps] = deal(zeros(size(targetIts)));
-for i = 1:numel(targetIts)
+[iterations, timesteps] = deal(zeros(numel(reps), 1));
+for i = 1:numel(reps)
     r = reps{i};
     timesteps(i) = sum(r.SimulationTime);
     for j = 1:numel(reps{i})
@@ -97,6 +97,6 @@ for i = 1:numel(targetIts)
     end
 end
 figure;
-bar([iterations; timesteps]')
+bar([iterations, timesteps])
 legend('Non-linear iterations', 'Time taken')
 set(gca, 'XTicklabel', l)
