@@ -110,7 +110,6 @@ for k = 1 : numel(non_empty),
    partition2(c(p)) = rldecode(blkNo, reshape(diff(r), 1, []), 2);
 
    maxBlk = maxBlk + max(nComp - 1, 0);
-
 end
 
 assert (all(partition2 > 0));
