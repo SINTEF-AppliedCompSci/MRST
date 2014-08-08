@@ -29,7 +29,8 @@ function [G, rock, fluid, state, wells, ...
 %
 %   htrans -
 %           Background (absolute) one-sided transmissibilities as defined
-%           by functions 'computeTrans' and 'computeTranMult'.
+%           by functions 'computeTrans' and 'computeTranMult'.  Also
+%           incorporates net-to-gross factors if available.
 %
 %   trans - Background (absolute) connection transmissibilities defined by
 %           harmonic averaging of the one-sided transmissibilities (htrans)
@@ -98,6 +99,21 @@ function [htrans, trans] = transmissibility(G, rock, deck)
 
    if ~isempty(htmult),
       htrans = htrans .* htmult;
+   end
+
+   if isfield(rock, 'ntg') && (numel(rock.ntg) == G.cells.num),
+      assert (all(isnumeric(rock.ntg)) && ...
+              all(isfinite (rock.ntg)) && ...
+              ~ any(rock.ntg < 0),        ...
+             ['NTG must have one non-negative, finite value ', ...
+              'for each active cell']);
+
+      i         = false([max(G.cells.faces(:,2)), 1]);
+      i(1 : 4)  = true;
+
+      j         = i(G.cells.faces(:,2));
+      cellno    = gridCellNo(G);
+      htrans(j) = htrans(j) .* rock.ntg(cellno(j));
    end
 
    trans = 1 ./ accumarray(G.cells.faces(:,1), ...
