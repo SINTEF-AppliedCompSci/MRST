@@ -33,7 +33,9 @@ classdef LinearizedProblem
            % Assemble the Jacobian and right hand side and store them if
            % they aren't already created
            if isempty(problem.A)
-               eqs = cat(problem.equations{:});
+               % Ignore empty equations
+               iseq = cellfun(@(x) ~isempty(x), problem.equations);
+               eqs = cat(problem.equations{iseq});
                problem.A = -eqs.jac{1};
                problem.b = eqs.val;
            end
@@ -53,7 +55,7 @@ classdef LinearizedProblem
         %%%%%  Overloaded functions  %%%%%
         function values = norm(problem, varargin)
             % Overload norm for convergence testing
-            values = cellfun(@(x) norm(x.val, varargin{:}), problem.equations);
+            values = cellfun(@(x) norm(double(x), varargin{:}), problem.equations);
         end
         
         function n = numel(problem)
