@@ -276,6 +276,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             change = min(maxAbsCh./biggestChange, 1);
             dv = dv.*repmat(change, 1, size(dv, 2));
         end
+        
+        function [vars, isRemoved] = stripVars(vars, names)
+            isRemoved = cellfun(@(x) any(strcmpi(names, x)), vars);
+            vars(isRemoved) = [];
+        end
     end
 
 end
