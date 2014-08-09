@@ -124,21 +124,8 @@ for i = 1:numel(restVars);
 end
 
 % Update the wells
-for i = 1:numel(wellVars)
-    wf = wellVars{i};
-    dv = model.getIncrement(dx, problem, wf);
-    
-    if strcmpi(wf, 'bhp')
-        % Bottom hole is a bit special - we apply the pressure update
-        % limits here as well.
-        bhp = vertcat(state.wellSol.bhp);
-        dv = model.limitUpdateRelative(dv, bhp, model.dpMax);
-    end
-    
-    for j = 1:numel(state.wellSol)
-        state.wellSol(j).(wf) = state.wellSol(j).(wf) + dv(j);
-    end
-end
+state.wellSol = model.updateWellSol(state.wellSol, dx, problem, wellVars);
+
 
 % Handle the directly assigned values (i.e. can be deduced directly from
 % the well controls.

@@ -231,6 +231,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % increment towards one phase in particular.
             state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
         end
+        
+        function wellSol = updateWellSol(model, wellSol, dx, problem, wellVars)
+            % Update the wellSol struct
+            if nargin < 4
+                % Get the well variables directly from the problem,
+                % otherwise assume that they are known by the user
+                [~, ~, wellVars] = ...
+                    splitPrimaryVariables(model, problem.primaryVariables);
+            end
+            
+            for i = 1:numel(wellVars)
+                wf = wellVars{i};
+                dv = model.getIncrement(dx, problem, wf);
+
+                if strcmpi(wf, 'bhp')
+                    % Bottom hole is a bit special - we apply the pressure update
+                    % limits here as well.
+                    bhp = vertcat(wellSol.bhp);
+                    dv = model.limitUpdateRelative(dv, bhp, model.dpMax);
+                end
+
+                for j = 1:numel(wellSol)
+                    wellSol(j).(wf) = wellSol(j).(wf) + dv(j);
+                end
+            end
+        end
     end
 
     methods (Static)
