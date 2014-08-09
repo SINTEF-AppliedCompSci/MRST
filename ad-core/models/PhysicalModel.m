@@ -108,9 +108,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, onlyCheckConvergence, varargin)
             % Make a single linearized timestep
-            [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
+            [problem, state] = model.getEquations(state0, state, dt, drivingForces, ...
+                                       'ResOnly', onlyCheckConvergence, varargin{:});
             [convergence, values] = model.checkConvergence(problem);
             
+            % Defaults
+            failureMsg = '';
+            failure = false;
+            [linearReport, updateReport] = deal(struct());
             if ~(convergence && ~onlyCheckConvergence)
                 % Get increments for Newton solver
                 [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
@@ -120,18 +125,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 dx = nonlinsolve.stabilizeNewtonIncrements(problem, dx);
                 
                 % Finally update the state. The physical model knows which
-                % properties are actually physical.
+                % properties are actually physically reasonable.
                 [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
-                failure = any(cellfun(@(d) ~all(isfinite(d)), dx));
-            else
-                failure = false;
-                [linearReport, updateReport] = deal(struct());
+                if any(cellfun(@(d) ~all(isfinite(d)), dx))
+                    failure = true;
+                    failureMsg = 'Linear solver produced non-finite values.';
+                end
             end
-            report = struct('LinearSolver', linearReport, ...
+            report = model.makeStepReport(...
+                            'LinearSolver', linearReport, ...
                             'UpdateState',  updateReport, ...
                             'Failure',      failure, ...
+                            'FailureMsg',   failureMsg, ...
                             'Converged',    convergence, ...
                             'Residuals',    values);
+        end
+        
+        function report = makeStepReport(model, varargin) %#ok
+            report = struct('LinearSolver', [], ...
+                            'UpdateState',  [], ...
+                            'Failure',      false, ...
+                            'FailureMsg',   '', ...
+                            'Converged',    false, ...
+                            'Residuals',    []);
+            report = merge_options(report, varargin{:});
         end
         
         function [gradient, result, report] = solveAdjoint(model, solver, getState,...

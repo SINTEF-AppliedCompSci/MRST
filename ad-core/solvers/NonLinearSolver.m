@@ -156,7 +156,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     isFinalMinistep = true;
                     dt = dT - t_local;
                 end
-                [state, nonlinearReports, converged, its] = ...
+                [state, converged, failure, its, nonlinearReports] = ...
                         solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
                 
                 % Store timestep info
@@ -191,13 +191,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         ministates{acceptCount} = state;
                     end
                 else
+                    % Model did not converge, we are in some kind of
+                    % trouble.
+                    
                     state = state0_inner;
                     % Beat timestep with a hammer
                     warning('Solver did not converge, cutting timestep')
                     ministepNo = 2*ministepNo;
                     dt = dt/2;
-                    if ministepNo > solver.maxSubsteps
-                        msg = 'Did not find a solution. Reached maximum amount of substeps';
+                    if ministepNo > solver.maxSubsteps || failure
+                        msg = 'Did not find a solution: ';
+                        if failure
+                            % Failure means something is seriously wrong,
+                            % and we should abort the entire control step
+                            % immediately. The last report should include a
+                            % FailureMsg field that tells the user what
+                            % went wrong.
+                            msg = [msg, 'Model step resulted in failure state. Reason: ', ...
+                                   nonlinearReports{end}.FailureMsg];
+                        else
+                            msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
+                        end
                         if solver.errorOnFailure
                             error(msg);
                         else
@@ -258,7 +272,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [state, reports, converged, its] = solveMinistep(solver, model, state, state0, dt, drivingForces)
+function [state, converged, failure, its, reports] = solveMinistep(solver, model, state, state0, dt, drivingForces)
     % Attempt to solve a single mini timestep. Detect oscillations.
     reports = cell(solver.maxIterations, 1);
     omega0 = solver.relaxationParameter;
@@ -273,12 +287,14 @@ function [state, reports, converged, its] = solveMinistep(solver, model, state, 
                                solver.LinearSolver, solver, ...
                                onlyCheckConvergence, 'iteration', i);
         converged  = stepReport.Converged;
-
+        failure    = stepReport.Failure;
         if converged
             break
         end
         reports{i} = stepReport;
-        
+        if failure
+            break
+        end
         
         if i > 1 && solver.useRelaxation
             % Check relative improvement
