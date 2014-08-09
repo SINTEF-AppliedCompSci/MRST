@@ -123,59 +123,30 @@ for i = 1:numel(restVars);
      state = model.updateStateFromIncrement(state, dx, problem, p);
 end
 
-% Wells -------------------------------------------------------------------
-dqWs = model.getIncrement(dx, problem, 'qWs');
-dqOs = model.getIncrement(dx, problem, 'qOs');
-dqGs = model.getIncrement(dx, problem, 'qGs');
-dpBH = model.getIncrement(dx, problem, 'bhp');
-
-if ~isempty(dpBH)
-    dpBH = sign(dpBH).*min(abs(dpBH), abs(model.dpMax.*vertcat(state.wellSol.bhp)));
+% Update the wells
+for i = 1:numel(wellVars)
+    wf = wellVars{i};
+    dv = model.getIncrement(dx, problem, wf);
     
-    wi = strcmpi(saturations, 'sw');
-    oi = strcmpi(saturations, 'so');
-    gi = strcmpi(saturations, 'sg');
-
-    for w = 1:numel(state.wellSol)
-        ws = state.wellSol(w);
-        ws.bhp  = ws.bhp + dpBH(w);
-        if model.water
-            ws.qWs  = ws.qWs + dqWs(w);
-        end
-        if model.oil
-            ws.qOs  = ws.qOs + dqOs(w);
-        end
-        if model.gas
-            ws.qGs  = ws.qGs + dqGs(w);
-        end
-        
-        tp = ws.type;
-        v  = ws.val;
-        switch tp
-            case 'bhp'
-                ws.bhp = v;
-            case 'rate'
-                if model.water
-                    ws.qWs = v*W(w).compi(wi);
-                end
-                if model.oil
-                    ws.qOs = v*W(w).compi(oi);
-                end
-                if model.gas
-                    ws.qGs = v*W(w).compi(gi);
-                end
-            case 'orat'
-                ws.qOs = v;
-            case 'wrat'
-                ws.qWs = v;
-            case 'grat'
-                ws.qGs = v;
-            otherwise
-                error('Unknown well control mode');
-        end
-        state.wellSol(w) = ws;
+    if strcmpi(wf, 'bhp')
+        % Bottom hole is a bit special - we apply the pressure update
+        % limits here as well.
+        bhp = vertcat(state.wellSol.bhp);
+        dv = model.limitUpdateRelative(dv, bhp, model.dpMax);
+    end
+    
+    for j = 1:numel(state.wellSol)
+        state.wellSol(j).(wf) = state.wellSol(j).(wf) + dv(j);
     end
 end
+
+% Handle the directly assigned values (i.e. can be deduced directly from
+% the well controls.
+wi = strcmpi(saturations, 'sw');
+oi = strcmpi(saturations, 'so');
+gi = strcmpi(saturations, 'sg');
+
+state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
 end
 
 function st = getCellStatus(state, oil, wat, gas, disgas, vapoil)

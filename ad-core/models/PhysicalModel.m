@@ -237,15 +237,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function [state, val, val0] = updateStateFromIncrement(model, state, dx, problem, name, relchangemax, abschangemax)
             % Update a state, with optionally a maximum relative change
             % applied.
-            if nargin < 6
-                relchangemax = inf;
-            end
-            
-            if nargin < 7
-                abschangemax = inf;
-            end
-            
-            val0 = model.getProp(state, name);
             if iscell(dx)
                 dv = model.getIncrement(dx, problem, name);
             else
@@ -253,22 +244,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % check that this is a part of the model
                 dv = dx;
             end
-            biggestChange = max(abs(dv./val0), [], 2);
-            relativeChange = min(relchangemax./biggestChange, 1);
             
-            biggestChange = max(abs(dv), [], 2);
-            absChange = min(abschangemax./biggestChange, 1);
+            val0 = model.getProp(state, name);
             
-            change = min(absChange, relativeChange);
+            [changeRel, changeAbs] = deal(1);
+            if nargin > 5
+                [~, changeRel] = model.limitUpdateRelative(dv, val0, relchangemax);
+            end
+            if nargin > 6
+                [~, changeAbs] = model.limitUpdateAbsolute(dv, abschangemax);
+            end            
+            % Limit update by lowest of the relative and absolute limits 
+            change = min(changeAbs, changeRel);
             
-            val     = val0 + dv.*repmat(change, 1, size(dv, 2));
+            val   = val0 + dv.*repmat(change, 1, size(dv, 2));
             state = model.setProp(state, name, val);
-
         end
     end
 
     methods (Static)
-
+        function [dv, change] = limitUpdateRelative(dv, val, maxRelCh)
+            % Limit a update by relative limit
+            biggestChange = max(abs(dv./val), [], 2);
+            change = min(maxRelCh./biggestChange, 1);
+            dv = dv.*repmat(change, 1, size(dv, 2));
+        end
+        
+        function [dv, change] = limitUpdateAbsolute(dv, maxAbsCh)
+            % Limit a update by absolute limit
+            biggestChange = max(abs(dv), [], 2);
+            change = min(maxAbsCh./biggestChange, 1);
+            dv = dv.*repmat(change, 1, size(dv, 2));
+        end
     end
 
 end
