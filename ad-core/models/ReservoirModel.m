@@ -95,7 +95,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.fluid = fluid;
         end
         
-        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            % Generic update function for reservoir models containing wells
+
+            % Split variables into three categories: Regular/rest variables, saturation
+            % variables (which sum to 1 after updates) and well variables (which live
+            % in wellSol and are in general more messy to work with).
+            [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
+            
+            % Handle pressure seperately
+            state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMax);
+            restVars = model.stripVars(restVars, 'pressure');
+            
+            % Update saturations in one go
+            state  = model.updateSaturations(state, dx, problem, satVars);
+
+            % Update remaining variables (tracers, temperature etc)
+            for i = 1:numel(restVars);
+                 state = model.updateStateFromIncrement(state, dx, problem, restVars{i});
+            end
+
+            % Update the wells
+            state.wellSol = model.updateWellSol(state.wellSol, dx, problem, wellVars);
+            report = [];
+        end
+
         function model = setupOperators(model, G, rock, varargin)
             % Set up divergence/gradient/transmissibility operators
             if isempty(G) || isempty(rock)
