@@ -103,16 +103,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % in wellSol and are in general more messy to work with).
             [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
             
-            % Handle pressure seperately
-            state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMax);
-            restVars = model.stripVars(restVars, 'pressure');
-            
             % Update saturations in one go
             state  = model.updateSaturations(state, dx, problem, satVars);
+            
+            if ~isempty(restVars)
+                % Handle pressure seperately
+                state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMax);
+                restVars = model.stripVars(restVars, 'pressure');
 
-            % Update remaining variables (tracers, temperature etc)
-            for i = 1:numel(restVars);
-                 state = model.updateStateFromIncrement(state, dx, problem, restVars{i});
+                % Update remaining variables (tracers, temperature etc)
+                for i = 1:numel(restVars);
+                     state = model.updateStateFromIncrement(state, dx, problem, restVars{i});
+                end
             end
 
             % Update the wells
@@ -194,11 +196,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             restVars = vars(~isSat & ~isWells);
         end
         
-        function [vars, isRemoved] = stripVars(model, vars, names)
-            isRemoved = cellfun(@(x) any(strcmpi(names, x)), vars);
-            vars(isRemoved) = [];
-        end
-        
         function [isActive, phInd] = getActivePhases(model)
             isActive = [model.water, model.oil, model.gas];
             if nargout > 1
@@ -226,6 +223,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % Get the saturation names directly from the problem
                 [~, satVars] = ...
                     splitPrimaryVariables(model, problem.primaryVariables);
+            end
+            if isempty(satVars)
+                % No saturations passed, nothing to do here.
+                return
             end
             % Solution variables should be saturations directly, find the missing
             % link
