@@ -192,6 +192,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             active = model.getPhaseNames();
             i = find(active == phasename);
         end 
+        
+        function state = updateSaturations(model, state, dx, problem, satVars)
+            % Update saturations (likely state.s) under the constraint that
+            % the sum of volume fractions is always equal to 1. This
+            % assumes that we have solved for n - 1 phases when n phases
+            % are present.
+            if nargin < 5
+                % Get the saturation names directly from the problem
+                [~, satVars] = ...
+                    splitPrimaryVariables(model, problem.primaryVariables);
+            end
+            % Solution variables should be saturations directly, find the missing
+            % link
+            saturations = lower(model.saturationVarNames);
+            fillsat = setdiff(saturations, lower(satVars));
+            assert(numel(fillsat) == 1)
+            fillsat = fillsat{1};
+
+            % Fill component is whichever saturation is assumed to fill up the rest of
+            % the pores. This is done by setting that increment equal to the
+            % negation of all others so that sum(s) == 0 at end of update
+            solvedFor = ~strcmpi(saturations, fillsat);
+            ds = zeros(model.G.cells.num, numel(saturations));
+
+            tmp = 0;
+            for i = 1:numel(saturations)
+                if solvedFor(i)
+                    v = model.getIncrement(dx, problem, saturations{i});
+                    ds(:, i) = v;
+                    % Saturations added for active variables must be subtracted
+                    % from the last phase
+                    tmp = tmp - v;
+                end
+            end
+            ds(:, ~solvedFor) = tmp;
+            % We update all saturations simultanously, since this does not bias the
+            % increment towards one phase in particular.
+            state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
+        end
     end
 
     methods (Static)

@@ -113,32 +113,7 @@ if (disgas || vapoil)
     %  meant for autoupdate.
     restVars = model.stripVars(restVars, {'rs', 'rv', 'x'});
 else
-    % Solution variables should be saturations directly, find the missing
-    % link
-    fillsat = setdiff(lower(model.saturationVarNames), lower(satVars));
-    assert(numel(fillsat) == 1)
-    fillsat = fillsat{1};
-    
-    % Fill component is whichever saturation is assumed to fill up the rest of
-    % the pores. This is done by setting that increment equal to the
-    % negation of all others so that sum(s) == 0 at end of update
-    solvedFor = ~strcmpi(saturations, fillsat);
-    ds = zeros(model.G.cells.num, numel(saturations));
-    
-    tmp = 0;
-    for i = 1:numel(saturations)
-        if solvedFor(i)
-            v = model.getIncrement(dx, problem, saturations{i});
-            ds(:, i) = v;
-            % Saturations added for active variables must be subtracted
-            % from the last phase
-            tmp = tmp - v;
-        end
-    end
-    ds(:, ~solvedFor) = tmp;
-    % We update all saturations simultanously, since this does not bias the
-    % increment towards one phase in particular.
-    state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
+    state = model.updateSaturations(state, dx, problem, satVars);
 end
 
 % Update components
