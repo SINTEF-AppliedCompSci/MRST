@@ -150,7 +150,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     index = 1;
                     fn = 'pressure';
                 case 'wellsol'
-                    index = 1;
+                    % Use colon to get all variables, since the wellsol may
+                    % be empty
+                    index = ':';
                     fn = 'wellSol';
                 otherwise
                     % This will throw an error for us
