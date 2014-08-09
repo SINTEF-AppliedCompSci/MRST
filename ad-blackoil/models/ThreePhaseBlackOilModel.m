@@ -7,7 +7,8 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
         vapoil
         
         % Maximum Rs/Rv increment
-        drsMax
+        drsMaxRel
+        drsMaxAbs
         
         % Use alternate tolerance scheme
         useCNVConvergence
@@ -37,7 +38,8 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
             model.disgas = true;
            
             % Max increments
-            model.drsMax = inf;
+            model.drsMaxAbs = inf;
+            model.drsMaxRel = inf;
             
             model.useCNVConvergence = true;
             model.toleranceCNV = 1e-3;
@@ -117,7 +119,7 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
                 % explicitly.
                 state0 = state;
                 
-                state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMax);
+                state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
                 [vars, ix] = model.stripVars(vars, 'pressure');
                 removed(~removed) = removed(~removed) | ix;
                 
@@ -136,11 +138,13 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
                 dsg = st{3}.*dr - st{2}.*dsw;
 
                 if model.disgas
-                    state = model.updateStateFromIncrement(state, st{1}.*dr, problem, 'rs', model.drsMax);
+                    state = model.updateStateFromIncrement(state, st{1}.*dr, problem, ...
+                                                           'rs', model.drsMaxRel, model.drsMaxAbs);
                 end
 
                 if model.vapoil
-                    state = model.updateStateFromIncrement(state, st{2}.*dr, problem, 'rv', model.drsMax);
+                    state = model.updateStateFromIncrement(state, st{2}.*dr, problem, ...
+                                                           'rv', model.drsMaxRel, model.drsMaxAbs);
                 end
 
                 dso = -(dsg + dsw);
@@ -150,7 +154,7 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
                 ds(:, oi) = dso;
                 ds(:, gi) = dsg;
 
-                state = model.updateStateFromIncrement(state, ds, problem, 's', inf, model.dsMax);
+                state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
                 % We should *NOT* be solving for oil saturation for this to make sense
                 assert(~any(strcmpi(vars, 'so')));
                 state = computeFlashBlackOil(state, state0, model, st);

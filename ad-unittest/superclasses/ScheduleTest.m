@@ -20,9 +20,8 @@ classdef ScheduleTest < matlab.unittest.TestCase
             test.caseIsBig = false;
             
             % Attempt to be a clean MRST state
-            mrstModule reset ad-unittest
+            mrstModule reset ad-unittest ad-blackoil ad-core
             gravity reset off
-            mrstVerbose off
 
             test.outputPath = fullfile(...
                 mrstPath('query', 'ad-unittest'),...

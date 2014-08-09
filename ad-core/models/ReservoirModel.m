@@ -50,18 +50,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fluid
         
         % Maximum relative pressure change
-        dpMax
+        dpMaxRel
+        dpMaxAbs
         % Maximum absolute saturation change
-        dsMax
-        
+        dsMaxRel
+        dsMaxAbs
         % Water phase present
         water
         % Gas phase present
         gas
         % Oil phase present
         oil
-
-        
         % Names of primary variables interpreted as saturations, i.e. so
         % that they will sum to one when updated.
         saturationVarNames
@@ -76,8 +75,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function model = ReservoirModel(G, rock, fluid, varargin) %#ok
             model = model@PhysicalModel(G);
             
-            model.dpMax = inf;
-            model.dsMax = .2;
+            model.dpMaxRel = inf;
+            model.dpMaxAbs = inf;
+            
+            model.dsMaxAbs = .2;
+            model.dsMaxRel = inf;
+            
             model.nonlinearTolerance = 1e-6;
             model.inputdata = [];
             
@@ -108,7 +111,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             if ~isempty(restVars)
                 % Handle pressure seperately
-                state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMax);
+                state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
                 restVars = model.stripVars(restVars, 'pressure');
 
                 % Update remaining variables (tracers, temperature etc)
@@ -254,7 +257,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ds(:, ~solvedFor) = tmp;
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
-            state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMax);
+            state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
         end
         
         function wellSol = updateWellSol(model, wellSol, dx, problem, wellVars)
@@ -274,7 +277,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     % Bottom hole is a bit special - we apply the pressure update
                     % limits here as well.
                     bhp = vertcat(wellSol.bhp);
-                    dv = model.limitUpdateRelative(dv, bhp, model.dpMax);
+                    dv = model.limitUpdateRelative(dv, bhp, model.dpMaxRel);
+                    dv = model.limitUpdateAbsolute(dv, model.dpMaxAbs);
                 end
 
                 for j = 1:numel(wellSol)
