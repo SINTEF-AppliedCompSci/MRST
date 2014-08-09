@@ -83,6 +83,10 @@ s.faceUpstr = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
 
 % Include neighbor relations since eqsfiOW needs it...
 s.N = N;
+
+% ce
+aC = bsxfun(@rdivide,0.5*abs(C),G.faces.areas(intInx))';
+s.cellAvg = @(x) aC*x;
 end
 
 function xu = faceUpstr(flag, x, N, sz)
