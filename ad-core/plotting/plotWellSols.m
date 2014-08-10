@@ -38,7 +38,7 @@ function plotWellSols(wellsols, varargin)
     opt = merge_options(opt, varargin{:});
     
     if isempty(opt.datasetnames)
-        opt.datasetnames = arrayfun(@num2str, 1:numel(wellsols), 'UniformOutput', false);
+        opt.datasetnames = arrayfun(@(x) ['data', num2str(x)], 1:numel(wellsols), 'UniformOutput', false);
     end
     df = get(0, 'DefaultFigurePosition');
     
@@ -50,7 +50,7 @@ function plotWellSols(wellsols, varargin)
     pw = opt.plotwidth;
     
     plotaxis  = subplot('Position', [.75*lm, lm, pw, 1-2*lm]);
-    ctrlpanel = uipanel('Position', [lm+pw, lm, 1-1.25*lm-pw,  1-2*lm], ...
+    ctrlpanel = uipanel('Position', [lm+pw, .25*lm, 1-1.25*lm-pw,  1-1.25*lm], ...
                         'Title',  'Selection');
     
     % Top row
@@ -141,16 +141,30 @@ function plotWellSols(wellsols, varargin)
     end
         uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'text',...
-              'String', 'Linewidth', ...
-              'Position',[.01 .12 .99 .05]);
+              'String', 'Plot line width', ...
+              'Position',[.01 .14 .99 .05]);
           
     wsl = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
                 'Style', 'slider', 'Min', 0, 'Max', 10,...
-                'Value', opt.linewidth, ...
-                'String','Apply', 'Callback', @drawPlot, ...
-                'Position',[.01 .01 .99 .1]);
+                'Value', opt.linewidth, 'Callback', @drawPlot, ...
+                'Position',[.01 .1 .99 .05]);
+            
+    uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
+                'String','Save as image', 'Callback', @savePlotAsFigure, ...
+                'Position',[.01 .01 .485 .08]);
+            
+    uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
+                'String','Save to workspace', ...
+                'Callback', @saveDataToWorkSpace, ...
+                'Position',[.51 .01 .485 .08]);
+
+            
 
     prevWells = {};
+    wells = {};
+    fld = '';
+    currentdata = {};
+    
     drawPlot([], []);
     
     function drawPlot(src, event, varargin)
@@ -179,7 +193,9 @@ function plotWellSols(wellsols, varargin)
         cla; hold on;
         
         l = {};
+
         tit = '';
+        currentdata = cell(ndata, 1);
         for i = 1:ndata
             for j = 1:nw
                 wname = wells{j};
@@ -206,8 +222,6 @@ function plotWellSols(wellsols, varargin)
                 [tit, d, yl] = getWellUnit(d, fld, getFieldString(unitsel, true));
                 ylabel(yl);
 
-                
-
                 linew = get(wsl, 'Value');
                 if linew == 0;
                     % Draw no lines
@@ -222,6 +236,7 @@ function plotWellSols(wellsols, varargin)
                     tmp = [tmp, ' (' opt.datasetnames{i}, ')']; %#ok
                 end
                 l = [l; tmp];
+                currentdata{i} = [currentdata{i}, d];
             end
         end
         title(tit)
@@ -256,6 +271,69 @@ function plotWellSols(wellsols, varargin)
         
         axis tight
         prevWells = wells;
+    end
+
+    function savePlotAsFigure(src, event)
+        plotname = fld;
+        if numel(wells) > 0
+            plotname = [plotname, sprintf('_%s', wells{:})];
+        end
+        ext = '*.jpg; *.tif; *.png; *.gif; *.eps; *.pdf';
+        [file, path] = ...
+        uiputfile({ext, 'Images'; '*.*', 'All Files'} ,...
+                  'Save Image', plotname);
+       
+       if isnumeric(file) && file == 0
+           % User aborted action
+           return
+       end
+       % Need this to make a copy of the axis
+       dap = get(0, 'DefaultAxesPosition');
+       
+       dims = get(fh, 'Position');
+       newdims = dims.*[1, 1, pw + dap(1), 1];
+       tmpfig = figure('Position', newdims);
+       ax = copyobj(plotaxis, tmpfig);
+       % Approx same dimensions as the gui reference
+       set(ax, 'Position', dap)
+       
+       if exist('export_fig', 'file') == 2
+           % Export fig is installed and we can call it
+           export_fig([path, file], '-transparent');
+           close(tmpfig);
+           return
+       end
+       
+       fileext = strsplit(file, '.');
+       fileext = fileext{end};
+       
+       switch(lower(fileext))
+           case {'jpg', 'jpeg'}
+               popt = '-djpeg';
+           case {'tif', 'tiff'}
+               popt = '-dtiff';
+           case 'png'
+               popt = '-dpng';
+           case 'pdf'
+               popt = '-dpdf';
+           case 'eps'
+               popt = '-depsc';
+           otherwise
+               error(['Unable to save file. Unknown file extension ', fileext]); 
+               close(tmpfig);
+       end
+       print(tmpfig, popt, [path, file]);
+       close(tmpfig);
+    end
+
+    function saveDataToWorkSpace(src, event)
+        clean = @(x) x(~isspace(x));
+        varnames = cellfun(@(x) clean(x), opt.datasetnames, 'UniformOutput', false);
+        
+        % All current datasets + names of selected wells
+        export2wsdlg([opt.datasetnames, 'Selected well names'], ...
+                     [varnames, 'wellnames'], ...
+                     {currentdata{:}, wells})
     end
 end
 
