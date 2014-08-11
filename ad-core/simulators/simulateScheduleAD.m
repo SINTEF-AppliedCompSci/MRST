@@ -188,7 +188,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         simtime(i) = t;
         
         if ~report.Converged
-            warning('Nonlinear solver aborted, returning incomplete results!');
+            warning('NonLinear:Failure', ...
+                   ['Nonlinear solver aborted, ', ...
+                    'returning incomplete results']);
             failure = true;
             break;
         end
