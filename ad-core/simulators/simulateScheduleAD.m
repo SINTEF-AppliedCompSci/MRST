@@ -119,15 +119,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = merge_options(opt, varargin{:});
 
-    vb = opt.Verbose;
-    %--------------------------------------------------------------------------
+    %----------------------------------------------------------------------
 
     dt = schedule.step.val;
-    tm = cumsum(dt);
-    dispif(vb, '*****************************************************************\n')
-    dispif(vb, '********** Starting simulation: %5.0f steps, %5.0f days *********\n', numel(dt), tm(end)/day)
-    dispif(vb, '*****************************************************************\n')
-    
+    tm = [0 ; reshape(cumsum(dt), [], 1)];
+
+    if opt.Verbose,
+       simulation_header(numel(dt), tm(end));
+    end
+
+    step_header = create_step_header(opt.Verbose, tm);
+
     solver = opt.NonLinearSolver;
     if isempty(solver)
         solver = NonLinearSolver('linearSolver', opt.LinearSolver);
@@ -154,8 +156,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
+
     for i = 1:nSteps
-        fprintf('Solving timestep %d of %d at %s\n', i, nSteps, formatTimeRange(tm(i)));
+        step_header(i);
+
         currControl = schedule.step.control(i);
         if prevControl ~= currControl 
             W = schedule.control(currControl).W;
@@ -164,8 +168,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         timer = tic();
-        
-        
+
         state0 = state;
         state0.wellSol = initWellSolAD(W, model, state);
         
@@ -176,6 +179,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [state, report] = solver.solveTimestep(state0, dt(i), model,...
                                             forces{:}, 'controlId', currControl);
         end
+
         t = toc(timer);
         simtime(i) = t;
         
@@ -184,12 +188,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             failure = true;
             break;
         end
-        dispif(vb, 'Completed %d iterations in %2.2f seconds (%2.2fs per iteration)\n', ...
-                    report.Iterations, t, t/report.Iterations);
-        
+
+        if opt.Verbose,
+           disp_step_convergence(report.Iterations, t);
+        end
 
         W = updateSwitchedControls(state.wellSol, W);
-        
         
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
@@ -248,4 +252,46 @@ function validateSchedule(schedule)
     assert(numel(steps.val) == numel(steps.control));
     assert(numel(schedule.control) >= max(schedule.step.control))
     assert(min(schedule.step.control) > 0);
+end
+
+%--------------------------------------------------------------------------
+
+function simulation_header(nstep, tot_time)
+   starline = @(n) repmat('*', [1, n]);
+
+   fprintf([starline(65), '\n', starline(10), ...
+            sprintf(' Starting simulation: %5d steps, %5.0f days ', ...
+                    nstep, convertTo(tot_time, day)), ...
+            starline(9), '\n', starline(65), '\n']);
+end
+
+%--------------------------------------------------------------------------
+
+function header = create_step_header(verbose, tm)
+   nSteps  = numel(tm) - 1;
+   nDigits = floor(log10(nSteps)) + 1;
+
+   if verbose,
+      % Verbose mode.  Don't align '->' token in report-step range
+      nChar = 0;
+   else
+      % Non-verbose mode.  Do align '->' token in report-step range
+      nChar = numel(formatTimeRange(tm(end)));
+   end
+
+   header = @(i) ...
+      fprintf('Solving timestep %0*d/%0*d: %-*s -> %s\n', ...
+              nDigits, i, nDigits, nSteps, nChar, ...
+              formatTimeRange(tm(i + 0)), ...
+              formatTimeRange(tm(i + 1)));
+end
+
+%--------------------------------------------------------------------------
+
+function disp_step_convergence(its, cputime)
+   if its ~= 1, pl_it = 's'; else pl_it = ''; end
+
+   fprintf(['Completed %d iteration%s in %2.2f seconds ', ...
+            '(%2.2fs per iteration)\n\n\n'], ...
+            its, pl_it, cputime, cputime/its);
 end
