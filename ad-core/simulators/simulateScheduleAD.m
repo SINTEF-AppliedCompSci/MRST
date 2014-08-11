@@ -136,10 +136,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     elseif ~isempty(opt.LinearSolver)
         % We got a nonlinear solver, but we still want to override the
         % actual linear solver passed to the higher level schedule function
-        % we're currently in
+        % we're currently in.
+        assert (isa(opt.LinearSolver, 'LinearSolverAD'), ...
+               ['Passed linear solver is not an instance ', ...
+                'of LinearSolverAD class!'])
+
         solver.LinearSolver = opt.LinearSolver;
-        assert(isa(solver.LinearSolver, 'LinearSolverAD'), ...
-        'Passed linear solver is not an instance of LinearSolverAD class!')
     end
     nSteps = numel(dt);
 
