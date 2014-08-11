@@ -13,20 +13,96 @@ classdef LinearizedProblem
     end
     
     methods
-        function problem = LinearizedProblem(equations, types, names, primary, state, dt)
-            if nargin < 6
-                dt = 0;
+
+        function problem = LinearizedProblem(varargin)
+            if nargin == 5 || nargin == 6
+                % Call syntax:
+                % LinearizedProblem(eqs, eqtypes, eqnames, primaryvars, state, dt)
+                eqs         = varargin{1};
+                eqtypes     = varargin{2};
+                eqNames    = varargin{3};
+                primaryVars = varargin{4};
+                modelState  = varargin{5};
+
+            if nargin == 5
+                timestep = 0;
+            else
+                timestep = varargin{6};
             end
-            problem.equations = equations;
-            problem.types = types;
-            problem.equationNames = names;
-            problem.primaryVariables = primary;
+            
+            elseif nargin == 2 || nargin == 3
+                % Call syntax:
+                % LinearizedProblem(primaryVariables, state, dt)
+                [eqs, eqtypes, eqNames] = deal({});
+                
+                primaryVars = varargin{1};
+                modelState = varargin{2};
+                if nargin == 2
+                    timestep = 0;
+                else
+                    timestep = varargin{3};
+                end
+            else
+                error('Bad number of input arguments');
+            end
+            [eqs, eqtypes, eqNames] = problem.checkInputs(eqs, eqtypes, eqNames);
+            if ischar(primaryVars)
+                primaryVars = {primaryVars};
+            end
+            
+            problem.equations = eqs;
+            problem.types = eqtypes;
+            problem.equationNames = eqNames;
+            problem.primaryVariables = primaryVars;
+            
+            assert(all([numel(eqtypes), numel(eqNames)] == numel(eqs)), ...
+                'Inconsistent number of types/names/equation numbers.');
+            
             problem.A = [];
             problem.b = [];
-            problem.dt = dt;
+            problem.dt = timestep;
             problem.iterationNo = nan;
             
-            problem.state = state;
+            problem.state = modelState;
+        end
+        
+        function problem = prependEquations(problem, equations, types, names)
+            % Add one or more equations to the end of the current list of
+            % equations.
+            [equations, types, names] = problem.checkInputs(equations, types, names);
+
+            problem.equations = [equations, problem.equations];
+            problem.types     = [types, problem.types];
+            problem.equationNames     = [names, problem.equationNames];
+            
+            % Reset linear system
+            problem.A = [];
+            problem.b = [];
+        end
+        
+        function problem = appendEquations(problem, equations, types, names)
+            % Add one or more equations to the beginning of the current
+            % list of equations.
+            [equations, types, names] = checkInputs(problem, equations, types, names);
+            problem.equations = [problem.equations, equations];
+            problem.types     = [problem.types, types];
+            problem.equationNames     = [problem.equationNames, names];
+            % Reset linear system
+            problem.A = [];
+            problem.b = [];
+        end
+        
+        function [equations, types, names] = checkInputs(problem, equations, types, names)
+            if iscell(equations)
+                % For multiple inputs, we want them to be of the same
+                % length
+                assert(all([numel(types), numel(names)] == numel(equations)), ...
+                    'Inconsistent number of types/names/equation numbers.');
+            else
+                equations = {equations};
+                types = {types};
+                names = {names};
+            end
         end
         
         function problem = assembleSystem(problem)
