@@ -47,16 +47,31 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   if exist('narginchk', 'builtin'),
+      narginchk(1, 2);
+   else
+      error(nargchk(1, 2, nargin, 'struct'));                   %#ok<NCHKN>
+   end
 
-    if nargin == 1
-        cells = 1:G.cells.num;
-    else
-        cells = varargin{1};
-    end
+   if nargin == 1,
 
-    % Find number of faces per cell
-    nf = diff([G.cells.facePos(cells), G.cells.facePos(cells+1)], [],2);
+      % Simple case.  Create 'cellno' for all cells.
+      cellno = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .';
 
-    % Find the cell index of each face
-    cellno = rldecode(1:numel(cells), nf, 2) .';
+   else
+
+      % Caller specified cell subset.
+      cells = varargin{1};
+
+      assert (isnumeric(cells) && ~isempty(cells) && ...
+              (1 <= min(cells)) && (max(cells) <= G.cells.num), ...
+             ['Cell subset ''c'' must be numeric indices in the ', ...
+              'range [1 .. %d]'], G.cells.num);
+
+      nf = G.cells.facePos(cells + 1) - G.cells.facePos(cells);
+
+      % Find the cell index of each face.
+      cellno = rldecode(1 : numel(cells), nf, 2) .';
+
+   end
 end
