@@ -40,15 +40,15 @@ function [wellSols, states, schedulereport] = ...
 %                         control is to be used for the timestep.
 %                         schedule.step.val is the timestep used for that
 %                         control step.
-% 
+%
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   
+%
 %  'Verbose'        - Indicate if extra output is to be printed such as
-%                     detailed convergence reports and so on. 
-%                    
+%                     detailed convergence reports and so on.
+%
 %
 %  'OutputMinisteps' - The solver may not use timesteps equal to the
-%                      control steps depending on problem stiffness and 
+%                      control steps depending on problem stiffness and
 %                      timestep selection. Enabling this option will make
 %                      the solver output the states and reports for all
 %                      steps actually taken and not just at the control
@@ -109,9 +109,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     assert (isa(model, 'PhysicalModel'), ...
             'The model must be derived from PhyiscalModel');
-    
+
     validateSchedule(schedule);
-    
+
     opt = struct('Verbose',         mrstVerbose(),...
                  'OutputMinisteps', false, ...
                  'NonLinearSolver', [], ...
@@ -155,7 +155,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~isfield(state, 'wellSol')
         state.wellSol = initWellSolAD(getWell(1), model, state);
     end
-    
+
     failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
@@ -164,7 +164,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         step_header(i);
 
         currControl = schedule.step.control(i);
-        if prevControl ~= currControl 
+        if prevControl ~= currControl
             W = schedule.control(currControl).W;
             forces = model.getDrivingForces(schedule.control(currControl));
             prevControl = currControl;
@@ -178,7 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         state0 = state;
         state0.wellSol = initWellSolAD(W, model, state);
-        
+
         if opt.OutputMinisteps
            [state, report, ministeps] = solveStep(state0, dt(i));
         else
@@ -187,7 +187,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         t = toc(timer);
         simtime(i) = t;
-        
+
         if ~report.Converged
             warning('NonLinear:Failure', ...
                    ['Nonlinear solver aborted, ', ...
@@ -201,7 +201,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         W = updateSwitchedControls(state.wellSol, W);
-        
+
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
             % We have potentially several ministeps desired as output
@@ -220,25 +220,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
                                 'UniformOutput', false);
-        
+
         wellSols(ind) = wellSols_step;
-        
+
         if ~isempty(opt.OutputHandler)
             opt.OutputHandler{ind} = states_step;
         end
-        
+
         if wantStates
             states(ind) = states_step;
         end
-        
+
         if wantReport
             reports{i} = report;
         end
     end
-    
+
     if wantReport
         reports = reports(~cellfun(@isempty, reports));
-        
+
         schedulereport = struct();
         schedulereport.ControlstepReports = reports;
         schedulereport.ReservoirTime = cumsum(schedule.step.val);
