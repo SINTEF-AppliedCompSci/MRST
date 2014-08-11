@@ -1,4 +1,5 @@
-function [wellSols, states, schedulereport] = simulateScheduleAD(initState, model, schedule, varargin)
+function [wellSols, states, schedulereport] = ...
+      simulateScheduleAD(initState, model, schedule, varargin)
 % Run a schedule for a non-linear physical model using an automatic differention
 %
 % SYNOPSIS:
@@ -106,8 +107,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    assert(isa(model, 'PhysicalModel'), ...
-        'The model must have PhyiscalModel as its base class!')
+    assert (isa(model, 'PhysicalModel'), ...
+            'The model must be derived from PhyiscalModel');
     
     validateSchedule(schedule);
     
@@ -216,7 +217,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ind = i;
             states_step = {state};
         end
-        wellSols_step = cellfun(@(x) x.wellSol, states_step, 'UniformOutput', false);
+
+        wellSols_step = cellfun(@(x) x.wellSol, states_step, ...
+                                'UniformOutput', false);
         
         wellSols(ind) = wellSols_step;
         
