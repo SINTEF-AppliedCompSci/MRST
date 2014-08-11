@@ -247,14 +247,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function validateSchedule(schedule)
-    assert(isfield(schedule, 'control'));
-    assert(isfield(schedule, 'step'));
-    
+    assert (all(isfield(schedule, {'control', 'step'})));
+
     steps = schedule.step;
-    
-    assert(isfield(steps, 'val'));
-    assert(isfield(steps, 'control'));
-    
+
+    assert (all(isfield(steps, {'val', 'control'})));
+
     assert(numel(steps.val) == numel(steps.control));
     assert(numel(schedule.control) >= max(schedule.step.control))
     assert(min(schedule.step.control) > 0);
