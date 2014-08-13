@@ -20,31 +20,18 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     disgas = model.disgas;
     vapoil = model.vapoil;
 
-    % Oil pressure
-    p  = model.getProp(state, 'pressure');
-    p0 = model.getProp(state0, 'pressure');
-
-    % Water saturation
-    sW  = model.getProp(state,  'water');
-    sW0 = model.getProp(state0, 'water');
-    
-    % Gas saturation
-    sG  = model.getProp(state,  'gas');
-    sG0 = model.getProp(state0, 'gas');
-    
-    % Gas component in oil phase
-    rs  = model.getProp(state,  'rs');
-    rs0 = model.getProp(state0, 'rs');
-    
-    % Oil component in gas phase
-    rv  = model.getProp(state,  'rv');
-    rv0 = model.getProp(state0, 'rv');
+    % Properties at current timestep
+    [p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...
+                                    'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
+    % Properties at previous timestep
+    [p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
+                                    'pressure', 'water', 'gas', 'rs', 'rv');
 
 
-    bhp = vertcat(state.wellSol.bhp);
-    qWs    = vertcat(state.wellSol.qWs);
-    qOs    = vertcat(state.wellSol.qOs);
-    qGs    = vertcat(state.wellSol.qGs);
+    bhp    = vertcat(wellSol.bhp);
+    qWs    = vertcat(wellSol.qWs);
+    qOs    = vertcat(wellSol.qOs);
+    qGs    = vertcat(wellSol.qGs);
     
     %Initialization of primary variables ----------------------------------
     [st1 , st2  , st3 ] = getCellStatus(state , disgas, vapoil);
@@ -237,7 +224,7 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
             mw    = {mobW(wc), mobO(wc), mobG(wc)};
             s = {sW, 1 - sW - sG, sG};
             
-            [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, state.wellSol, ...
+            [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
                                                  bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
                                                  'maxComponents', rSatw, ...
                                                  'nonlinearIteration', opt.iteration);

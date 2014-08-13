@@ -27,24 +27,14 @@ f = model.fluid;
 
 hst = opt.history;
 
-% current variables: ------------------------------------------------------
+[p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
 
-p  = model.getProp(state, 'pressure');
-p0 = model.getProp(state0, 'pressure');
+[p0, sW0] = model.getProps(state0, 'pressure', 'water');
 
-sW  = model.getProp(state,  'water');
-sW0 = model.getProp(state0, 'water');
 
-pBH = vertcat(state.wellSol.bhp);
-qWs  = vertcat(state.wellSol.qWs);
-qOs    = vertcat(state.wellSol.qOs);
-%mixs  = vertcat(state.wellSol.mixs);
-%mixWs = mixs(:,1);
-
-% previous variables ------------------------------------------------------
-
-%--------------------------------------------------------------------------
-
+pBH    = vertcat(wellSol.bhp);
+qWs    = vertcat(wellSol.qWs);
+qOs    = vertcat(wellSol.qOs);
 
 %Initialization of independent variables ----------------------------------
 
@@ -142,10 +132,9 @@ if ~isempty(W)
         s = {sW, 1 - sW};
 
         wm = WellModel();
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, state.wellSol, ...
+        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
                                              pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
                                              'nonlinearIteration', opt.iteration);
-                                         
         eqs(3:4) = weqs;
         eqs{5} = ctrleqs;
         
