@@ -4,7 +4,9 @@ classdef ResultHandlerTest < matlab.unittest.TestCase
     end
     
     methods
-        function test = ResultHandlerTest(varargin)
+        function test = ResultHandlerTest()
+            mrstModule reset
+            mrstModule add ad-unittest ad-core
         end
     end
     
@@ -52,6 +54,9 @@ classdef ResultHandlerTest < matlab.unittest.TestCase
         function testInput(test, index, input, memory)
             handler = ResultHandler('storeInMemory', memory, ...
                                     'writeToDisk',  ~memory);
+            if ~memory
+                handler.resetData();
+            end
             tmp = {};
             
             if iscell(input)
@@ -65,10 +70,10 @@ classdef ResultHandlerTest < matlab.unittest.TestCase
             end
 
             
+
             % Test curly braces
-            out = handler{index};
-            test.verifyEqual(out, tmp{index});
-            
+            out = {handler{index}};
+            test.verifyEqual(out, {tmp{index}});
             if numel(index) > 0
                 % Test paranthesis
                 out = handler(index);
