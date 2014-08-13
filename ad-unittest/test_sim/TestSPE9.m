@@ -10,7 +10,7 @@ classdef TestSPE9 < ScheduleTest
             
             test = merge_options(test, varargin{:});
 
-            mrstModule add deckformat ad-fi ad-refactor
+            mrstModule add ad-fi deckformat
             
             fn = fullfile('SPE', 'SPE9', 'BENCH_SPE9.DATA');
             
@@ -31,9 +31,9 @@ classdef TestSPE9 < ScheduleTest
             test.schedule = schedule;
             test.model = model;
             
-            test.model.drsMax = .2;
-            test.model.dpMax  = .2;
-            test.model.dsMax  = .05;
+            test.model.drsMaxRel = .2;
+            test.model.dpMaxRel  = .2;
+            test.model.dsMaxAbs  = .05;
 
         end
         function s = getIdentifier(test, name) %#ok
