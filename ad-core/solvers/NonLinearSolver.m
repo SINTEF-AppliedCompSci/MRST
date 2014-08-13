@@ -224,10 +224,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 done = isFinalMinistep && converged;
             end
+
+            if acceptCount ~= 1, pl_mini = 's'; else pl_mini = ''; end
+            if itCount     ~= 1, pl_it   = 's'; else pl_it   = ''; end
+
             dispif(solver.verbose, ...
-                'Solved timestep with %d accepted ministeps (%d rejected, %d total iterations)\n',...
-                acceptCount, stepCount - acceptCount, itCount);
-            
+                  ['Solved timestep with %d accepted ministep%s', ...
+                   ' (%d rejected, %d total iteration%s)\n'], ...
+                   acceptCount, pl_mini, stepCount - acceptCount, ...
+                   itCount, pl_it);
+
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
             report = struct('Iterations',       itCount,...
