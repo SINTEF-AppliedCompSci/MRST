@@ -64,6 +64,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Flags passed on to MATLAB builtin 'save'. Consider '-v7' if
         % results are huge.
         saveflags
+        % Clear directory on startup
+        cleardir
         
         % Internal data storage
         data
@@ -82,6 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             handler.dataPrefix = 'state';
             handler.dataFolder = 'cache';
             handler.saveflags = '';
+            handler.cleardir = true;
             
             handler.verbose = mrstVerbose();
             
@@ -110,8 +113,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 try
                     d = ls(fullfile(p, [handler.dataPrefix, '*.mat']));
                     if ~isempty(d)
-                        warning('ResultHandler:FilesExist', ...
-                            'Input directory not clean, consider calling ''resetData''');
+                        if ~handler.cleardir
+                            warning('ResultHandler:FilesExist', ...
+                                'Input directory not clean, consider calling ''resetData''');
+                        else
+                            handler.resetData();
+                        end
                     end
                 catch e
                     if ~strcmp(e.identifier, 'MATLAB:ls:OSError')
