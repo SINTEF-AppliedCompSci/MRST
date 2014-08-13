@@ -210,6 +210,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             p = state.(fn)(:, index);
         end
         
+        function varargout = getProps(model, state, varargin)
+            % Get multiple properties based on the name
+            varargout = cellfun(@(x) model.getProp(state, x), ...
+                                varargin, 'UniformOutput', false);
+        end
+        
         function state = incrementProp(model, state, name, increment)
             % Increment property based on name
             [fn, index] = model.getVariableField(name);
