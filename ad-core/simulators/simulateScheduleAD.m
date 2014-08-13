@@ -168,10 +168,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             W = schedule.control(currControl).W;
             forces = model.getDrivingForces(schedule.control(currControl));
             prevControl = currControl;
-
-            solveStep = @(state0, dt) ...
-               solver.solveTimestep(state0, dt, model, forces{:}, ...
-                                    'controlId', currControl);
         end
 
         timer = tic();
@@ -180,9 +176,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         state0.wellSol = initWellSolAD(W, model, state);
 
         if opt.OutputMinisteps
-           [state, report, ministeps] = solveStep(state0, dt(i));
+            [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
+                                            forces{:}, 'controlId', currControl);
         else
-           [state, report]            = solveStep(state0, dt(i));
+            [state, report] = solver.solveTimestep(state0, dt(i), model,...
+                                            forces{:}, 'controlId', currControl);
         end
 
         t = toc(timer);
