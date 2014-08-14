@@ -7,8 +7,7 @@ function output = runTestsAD(varargin)
     opt = merge_options(opt, varargin{:});
     
     import matlab.unittest.TestRunner;
-    import matlab.unittest.plugins.TAPPlugin;
-    import matlab.unittest.plugins.ToFile;
+
     suites = {};
     names = {};
     if opt.runUnit
@@ -30,7 +29,9 @@ function output = runTestsAD(varargin)
                 mkdir(outd);
             end
             tapFile = fullfile(outd, [names{i}, '.tap']);
-            plugin = TAPPlugin.producingOriginalFormat(ToFile(tapFile));
+            f = matlab.unittest.plugins.ToFile(tapFile);
+            
+            plugin = matlab.unittest.plugins.TAPPlugin.producingOriginalFormat(f);
             runner.addPlugin(plugin);
         end
         output = [output; runner.run(suites{i})]; %#ok
