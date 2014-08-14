@@ -228,8 +228,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 p = handler.getDataPath();
                 
                 l = ls(p);
-                for i = 1:size(l, 1)
-                    line = l(i, :);
+                if size(l, 1) > 1
+                    % Windows behavior
+                    % Pad with a space at the end and reshape into a single
+                    % long string.
+                    pad = repmat(' ', size(l, 1), 1);
+                    l = reshape([l, pad]', 1, []);
+                end
+                l = strsplit(l, ' ');
+                for i = 1:numel(l);
+                    line = l{i};
                     [s, e] = regexp(line, [handler.dataPrefix, '\d+']);
                     if isempty(s); continue; end
                     ids = [ids, str2double(line((s+numel(handler.dataPrefix)):e))];
