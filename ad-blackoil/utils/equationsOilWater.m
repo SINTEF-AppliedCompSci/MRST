@@ -50,8 +50,9 @@ if ~opt.resOnly,
             zeros(size(qOs)), ...
             zeros(size(pBH)));                          %#ok
     end
-    primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
 end
+primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
+
 clear tmp
 g  = norm(gravity);
 
