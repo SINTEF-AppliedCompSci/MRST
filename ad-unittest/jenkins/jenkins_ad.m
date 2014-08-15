@@ -19,6 +19,6 @@ mrstPath('addroot', names{:});
 
 
 mrstModule add ad-unittest ad-core ad-blackoil
-runTestsAD('runIntegration', false, 'runUnit', true, 'writeToDisk', true)
+runTestsAD('runIntegration', true, 'runUnit', true, 'writeToDisk', true)
 % Disable matlab
 exit();
