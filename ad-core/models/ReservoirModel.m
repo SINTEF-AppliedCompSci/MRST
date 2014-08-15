@@ -69,6 +69,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         % Input data used to instantiate the model
         inputdata
+        % Add extra output to wellsol/states for derived quantities
+        extraStateOutput
     end
     
     methods
@@ -86,6 +88,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             model.saturationVarNames = {'sw', 'so', 'sg'};
             model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
+            
+            model.extraStateOutput = false;
             
             model = merge_options(model, varargin{:});
             
