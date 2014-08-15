@@ -34,6 +34,6 @@ function output = runTestsAD(varargin)
             plugin = matlab.unittest.plugins.TAPPlugin.producingOriginalFormat(f);
             runner.addPlugin(plugin);
         end
-        output = [output; runner.run(suites{i})]; %#ok
+        output = [output, runner.run(suites{i})]; %#ok
     end
 end
