@@ -8,7 +8,7 @@ classdef TestSimpleOW < ScheduleTest
             test = test@ScheduleTest();
             test = merge_options(test, varargin{:});
 
-            mrstModule add deckformat ad-fi ad-refactor
+            mrstModule add deckformat ad-fi ad-blackoil ad-core
 
             fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
             

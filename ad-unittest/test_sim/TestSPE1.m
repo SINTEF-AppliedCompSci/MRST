@@ -10,7 +10,7 @@ classdef TestSPE1 < ScheduleTest
             
             test = merge_options(test, varargin{:});
 
-            mrstModule add deckformat ad-fi ad-refactor
+            mrstModule add deckformat ad-fi ad-core ad-blackoil
             
             fn = fullfile('SPE', 'SPE1', 'BENCH_SPE1.DATA');
             
