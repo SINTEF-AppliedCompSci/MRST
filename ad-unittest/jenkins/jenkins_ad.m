@@ -1,4 +1,6 @@
-run mrst-core/startup;
+cd('../../../')
+ls
+run('mrst-core/startup.m');
 
 % Set up module directories
 names = {'autodiff', ...
@@ -16,7 +18,7 @@ names = cellfun(@(x) fullfile(ROOTDIR, '..', x), names, ...
 mrstPath('addroot', names{:});
 
 
-mrstModule add ad-unittest
+mrstModule add ad-unittest ad-core ad-blackoil
 runTestsAD('runIntegration', false, 'runUnit', true, 'writeToDisk', true)
 % Disable matlab
 exit();
