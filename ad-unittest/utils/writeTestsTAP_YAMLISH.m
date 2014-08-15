@@ -17,13 +17,12 @@ function writeTestsTAP_YAMLISH(tests, filename)
         
         fprintf(h, '%s %d - %s', okstr, i, n{1});
         if numel(n) > 1
-            fprintf(h, '#%s', n{2});
+            fprintf(h, '/%s', n{2});
         end
         fprintf(h, '\n');
         fprintf(h, '  ---\n');
-        fprintf(h, '  Duration: %f\n', test.Duration);
+        fprintf(h, '  duration_ms: %f\n', 1000*test.Duration);
         fprintf(h, '  ...\n');
-        fprintf(h, '\n');
     end
     fclose(h);
 end
