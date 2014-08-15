@@ -266,6 +266,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             val   = val0 + dv.*repmat(change, 1, size(dv, 2));
             state = model.setProp(state, name, val);
         end
+        
+        function state = capProperty(model, state, name, minvalue, maxvalue)
+            % Cap values to min/max values
+            v = model.getProp(state, name);
+            v = max(minvalue, v);
+            if nargin > 4
+                v = min(v, maxvalue);
+            end
+            state = model.setProp(state, name, v);
+        end
     end
 
     methods (Static)
