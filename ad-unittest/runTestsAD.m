@@ -1,4 +1,4 @@
-function output = runTestsAD(varargin)
+function results = runTestsAD(varargin)
     opt = struct(...
         'runUnit', true, ...
         'runIntegration', true, ...
@@ -20,20 +20,18 @@ function output = runTestsAD(varargin)
         names{end+1} = 'integration';
     end
     
-    output = [];
+    results = [];
     for i = 1:numel(suites)
         runner = TestRunner.withTextOutput;
-        if opt.writeToDisk
-            outd = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'TAP');
-            if exist(outd, 'dir') == 0
-                mkdir(outd);
-            end
-            tapFile = fullfile(outd, [names{i}, '.tap']);
-            f = matlab.unittest.plugins.ToFile(tapFile);
-            
-            plugin = matlab.unittest.plugins.TAPPlugin.producingOriginalFormat(f);
-            runner.addPlugin(plugin);
+        results = [results, runner.run(suites{i})]; %#ok
+    end
+    
+    if opt.writeToDisk
+        outd = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'TAP');
+        if exist(outd, 'dir') == 0
+            mkdir(outd);
         end
-        output = [output, runner.run(suites{i})]; %#ok
+        tapFile = fullfile(outd, [names{i}, '.tap']);
+        writeTestsTAP_YAMLISH(results, tapFile)
     end
 end
