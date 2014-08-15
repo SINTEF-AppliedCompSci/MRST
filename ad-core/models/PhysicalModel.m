@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             failureMsg = '';
             failure = false;
             [linearReport, updateReport] = deal(struct());
-            if ~(convergence && ~onlyCheckConvergence)
+            if (~convergence && ~onlyCheckConvergence)
                 % Get increments for Newton solver
                 [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
                 
