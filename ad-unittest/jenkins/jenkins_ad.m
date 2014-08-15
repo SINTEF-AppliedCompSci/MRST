@@ -10,11 +10,11 @@ names = cellfun(@(x) fullfile(ROOTDIR, '..', ['mrst-', x]), names, ...
                     'UniformOutput', false);
 mrstPath('addroot', names{:});
 
-names = {'test-datasets', 'hnil-agmg'};
+names = {'test-datasets'};
 names = cellfun(@(x) fullfile(ROOTDIR, '..', x), names, ...
                     'UniformOutput', false);
 
-
+mrstPath('register', 'agmg', 'hnil-agmg');
 mrstPath('addroot', names{:});
 
 
