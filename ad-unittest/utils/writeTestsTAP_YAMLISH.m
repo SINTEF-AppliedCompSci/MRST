@@ -21,7 +21,7 @@ function writeTestsTAP_YAMLISH(tests, filename)
         end
         fprintf(h, '\n');
         fprintf(h, '  ---\n');
-        fprintf(h, '  duration_ms: %f\n', 1000*test.Duration);
+        fprintf(h, '  duration_ms: %f\n', test.Duration);
         fprintf(h, '  ...\n');
     end
     fclose(h);
