@@ -125,7 +125,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
 
             % Update the wells
-            state.wellSol = model.updateWellSol(state.wellSol, dx, problem, wellVars);
+            state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
             report = [];
         end
 
@@ -264,9 +264,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
         end
         
-        function wellSol = updateWellSol(model, wellSol, dx, problem, wellVars)
+        function wellSol = updateWellSol(model, wellSol, problem, dx, drivingForces, wellVars) %#ok
             % Update the wellSol struct
-            if nargin < 4
+            if nargin < 6
                 % Get the well variables directly from the problem,
                 % otherwise assume that they are known by the user
                 [~, ~, wellVars] = ...
