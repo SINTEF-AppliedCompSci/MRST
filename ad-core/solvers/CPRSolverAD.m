@@ -78,7 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pressureIndex = find(isPressure);
             
             
-            edd = 1e-2;
+            edd = 0.5;
             
             % Eliminate the non-cell variables first
             isCell = problem.indexOfType('cell');
@@ -129,12 +129,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             isElliptic(all(isElliptic == 0, 2), pressureIndex) = true;
             
             bad = ~isElliptic(:, pressureIndex);
-
+            %sum(isElliptic~=true)
             if any(bad)
+                bad = find(bad);
                 % Switch equations for non-elliptic jacobian components with
                 % some other equation that has an elliptic pressure jacobian
                 [r, c] = find(isElliptic(bad, :));
-                sb = sum(bad);
+                sb = numel(bad);
+                %sb = sum(bad);
                 if sb == 1
                     % Find gets confused for a single element
                     r = r(:);
@@ -149,7 +151,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     end
                     % Standard switching with some overloaded indexing in
                     % the ad objects
-                    isCurrent = replacementInd == i;
+                    %isCurrent = replacementInd == i;
+                    isCurrent = bad(replacementInd == i);
                     tmp = eqs{pressureIndex}(isCurrent);
                     eqs{pressureIndex}(isCurrent) = eqs{i}(isCurrent);
                     eqs{i}(isCurrent) = tmp;
@@ -195,6 +198,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [L, U] = ilu(A, struct('type', 'nofill'));
 
             Ap = -problem.equations{pressureIndex}.jac{pressureIndex};
+            %condest(Ap)
             % We have only cell variables present, and these will have
             % offsets of cellnum long each
             pInx = (1:nCell).' + nCell*(pressureIndex-1);
@@ -207,7 +211,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             prec = @(r) applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
             [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
                                                 min(solver.maxIterations, size(A, 1)), prec);
-            
+            %fprintf('  %d %d  ', its)
             % Undo pressure scaling
             if solver.pressureScaling ~= 1;
                 cprSol(pInx) = cprSol(pInx) ./ solver.pressureScaling;
