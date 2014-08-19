@@ -47,6 +47,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         pressureScaling
         % LinearSolverAD subclass suitable for the elliptic submatrix.
         ellipticSolver
+        % Diagonal tolerance in [0,1].
+        diagonalTol
     end
     methods
         function solver = CPRSolverAD(varargin)
@@ -56,6 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.ellipticSolver = [];
             solver.relativeTolerance = 1e-2;
             solver.pressureScaling = 1/(200*barsa);
+            solver.diagonalTol = 1e-2;
             
             solver = merge_options(solver, varargin{:});
             
@@ -77,9 +80,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             isPressure = problem.indexOfPrimaryVariable('pressure');
             pressureIndex = find(isPressure);
             
-            
-            edd = 0.5;
-            
             % Eliminate the non-cell variables first
             isCell = problem.indexOfType('cell');
             cellIndex = find(isCell);
@@ -88,9 +88,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Find number of "cell" like variables
             nCell = problem.getEquationVarNum(cellIndex(1));
             nP = numel(problem);
-            
-
-            
                         
             % Get and apply scaling
             eqs = problem.equations;
@@ -123,7 +120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 sod = sum(abs(pressureJacobi), 2) - abs(pressureDiag);
                 % Find "bad" equations, i.e. equations where the current
                 % pressure index does not give a good elliptic jacobian
-                isElliptic(pressureDiag./sod > edd, i) = true;
+                isElliptic(pressureDiag./sod > solver.diagonalTol, i) = true;
             end
             
             isElliptic(all(isElliptic == 0, 2), pressureIndex) = true;
