@@ -18,19 +18,16 @@ schedule = convertDeckScheduleToMRST(G, model, rock, deck);
 %% Make a smaller schedule
 % Because the SPE1 benchmark only has a single well configuration during
 % the entire simulation, we are (relatively) free to choose timesteps. To
-% demonstrate this, we create a simpler schedule consisting of two
-% timesteps: 
-% (1) A ministep consisting of a single day to initialize the timestepping
-%     algorithm
-% (2) A long step for the rest of the remaining 1215 days in the schedule.
-%
-%
-schedule_small = schedule;
-schedule_small.step.val     = [1*day; sum(schedule.step.val) - 1*day];
-% Fixed controls
-schedule_small.step.control = [1; 1];
+% demonstrate this, we create a simpler schedule consisting of a single
+% very long timestep.
 
-%%
+schedule_small = schedule;
+schedule_small.step.val     = sum(schedule.step.val);
+schedule_small.step.control = 1;
+
+%% Run various number of target iterations
+% Small step to get the solver started
+rampup = 1*day;
 targetIts = [4 8 15 25];
 [reports, ws] = deal(cell(numel(targetIts), 1));
 for i = 1:numel(targetIts)
@@ -38,6 +35,7 @@ for i = 1:numel(targetIts)
     timestepper = GustafssonLikeStepSelector('targetIterationCount', targetIts(i),...
                                              'minRelativeAdjustment', sqrt(eps),...
                                              'maxRelativeAdjustment', inf, ...
+                                             'firstRampupStep',       rampup, ...
                                              'verbose', true);
     % Instansiate a non-linear solver with the timestep class as a
     % construction argument.
