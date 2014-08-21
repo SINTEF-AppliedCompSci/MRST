@@ -61,6 +61,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Flag indicating that the controls have changed
         controlsChanged
         
+        % The first ministep attempted after controls have changed. Could
+        % be set to a low value to get the timestep controller started with
+        % some estimate of problem stiffness.
+        firstRampupStep
+        
         % Ensure that dt_next < dt_suggested*maxRelativeAdjustment
         maxRelativeAdjustment
         % Ensure that dt_next > dt_suggested*minRelativeAdjustment
@@ -84,6 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             selector.maxRelativeAdjustment = 2;
             selector.minRelativeAdjustment = .5;
             
+            selector.firstRampupStep = inf;
             selector.verbose = mrstVerbose();
             
             selector = merge_options(selector, varargin{:});
@@ -107,6 +113,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function dt = pickTimestep(selector, dt, model, solver)
+            if selector.isStartOfCtrlStep
+                dt = min(dt, selector.firstRampupStep);
+            end
             dt0 = dt;
             dt_new = selector.computeTimestep(dt, model, solver);
 
@@ -134,7 +143,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 selector.stepLimitedByHardLimits = false;
             end
+            % If we originally were at the start of a control step, we are
+            % no longer at the beginning. Reset those indicators.
             selector.isStartOfCtrlStep = false;
+            selector.controlsChanged = false;
         end
         
         function newControlStep(selector, control)
