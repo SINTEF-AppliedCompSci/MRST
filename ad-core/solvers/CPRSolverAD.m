@@ -133,7 +133,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % some other equation that has an elliptic pressure jacobian
                 [r, c] = find(isElliptic(bad, :));
                 sb = numel(bad);
-                %sb = sum(bad);
                 if sb == 1
                     % Find gets confused for a single element
                     r = r(:);
@@ -195,7 +194,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [L, U] = ilu(A, struct('type', 'nofill'));
 
             Ap = -problem.equations{pressureIndex}.jac{pressureIndex};
-            %condest(Ap)
             % We have only cell variables present, and these will have
             % offsets of cellnum long each
             pInx = (1:nCell).' + nCell*(pressureIndex-1);
