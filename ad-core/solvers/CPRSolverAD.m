@@ -129,9 +129,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             %sum(isElliptic~=true)
             if any(bad)
                 bad = find(bad);
+                % first identify zero diagonal elems of eqs{pressureIndex}
+                isZeroDiag = false(numel(bad), 3);
+                for i = 1:cellEqNo
+                    d = diag(eqs{pressureIndex}.jac{i});
+                    isZeroDiag(:,i) = d(bad)==0;
+                end
                 % Switch equations for non-elliptic jacobian components with
                 % some other equation that has an elliptic pressure jacobian
-                [r, c] = find(isElliptic(bad, :));
+                [r, c] = find(and(isElliptic(bad, :),~isZeroDiag));
+                %[r, c] = find(isElliptic(bad, :));
                 sb = numel(bad);
                 if sb == 1
                     % Find gets confused for a single element
@@ -149,27 +156,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     % the ad objects
                     %isCurrent = replacementInd == i;
                     isCurrent = bad(replacementInd == i);
-                    tmp = eqs{pressureIndex}(isCurrent);
-                    eqs{pressureIndex}(isCurrent) = eqs{i}(isCurrent);
-                    eqs{i}(isCurrent) = tmp;
+                    %tmp = eqs{pressureIndex}(isCurrent);
+                    problem.equations{i}(isCurrent) = eqs{pressureIndex}(isCurrent);
+                    problem.equations{pressureIndex}(isCurrent) = eqs{i}(isCurrent);
+                    %eqs{i}(isCurrent) = tmp;
                     
-                    isElliptic(isCurrent, pressureIndex) = true;
-                    isElliptic(isCurrent, i) = false;
+                    %isElliptic(isCurrent, pressureIndex) = true;
+                    %isElliptic(isCurrent, i) = false;
                 end
             end
             
+            problem.equations{pressureIndex} = isElliptic(:,1).*eqs{pressureIndex};
             for i = 1:cellEqNo
                 % Add together all the equations to get a "pressure
                 % equation" where we know that all submatrices should be as
                 % close as possible to M-matrices (because of switching,
                 % which does not actually alter the solution)
+                ok = isElliptic(:, i);
                 if i == pressureIndex
                     continue
                 end
-                ok = isElliptic(:, i);
-                eqs{pressureIndex}(ok) = eqs{pressureIndex}(ok) + eqs{i}(ok);
+                problem.equations{pressureIndex} = ...
+                    problem.equations{pressureIndex} + ok.*eqs{i};
+                %eqs{pressureIndex}(ok) = eqs{pressureIndex}(ok) + eqs{i}(ok);
             end
-            problem.equations = eqs;
+            %problem.equations = eqs;
             
             % Set up storage for all variables, including those we
             % eliminated previously
