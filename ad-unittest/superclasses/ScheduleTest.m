@@ -53,10 +53,27 @@ classdef ScheduleTest < matlab.unittest.TestCase
                 import matlab.unittest.constraints.IsEqualTo;
 
                 % Compare with ref
-                ref = load(fn);
+                tmp = load(fn);
+                ref = tmp.states;
                 reltol = RelativeTolerance(test.relativeTolerance);
                 
-                test.verifyThat(states, IsEqualTo(ref.states,...
+                if isfield(ref{1}, 's')
+                    for i = 1:numel(ref)
+                        % Validate sum of saturations for solution -
+                        % physical constraint.
+                        s = states{i}.s;
+                        test.verifyThat(sum(s, 2), ...
+                            IsEqualTo(ones(size(s, 1), 1), ...
+                            'Within', RelativeTolerance(1e-6)), ...
+                            'Saturations  did not sum to one.');
+                        
+                        % Avoid zero comparison for saturations by adding a
+                        % reasonable constant before comparison
+                        states{i}.s = states{i}.s + .1;
+                        ref{i}.s = ref{i}.s + .1;
+                    end
+                end
+                test.verifyThat(states, IsEqualTo(ref,...
                                     'Within', reltol));
             end
         end
