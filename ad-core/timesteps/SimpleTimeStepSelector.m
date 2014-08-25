@@ -115,6 +115,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function dt = pickTimestep(selector, dt, model, solver)
             if selector.isStartOfCtrlStep
                 dt = min(dt, selector.firstRampupStep);
+                selector.stepLimitedByHardLimits = true;
             end
             dt0 = dt;
             dt_new = selector.computeTimestep(dt, model, solver);
@@ -161,7 +162,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 selector.controlsChanged = false;
             end
-            
+            % We are at the beginning of a new control step and should
+            % reset the selector accordingly
+            selector.reset();
         end
         
         function dt = computeTimestep(selector, dt, model, solver) %#ok
