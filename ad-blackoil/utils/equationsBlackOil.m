@@ -78,7 +78,12 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
         if disgas, rsSat = f.rsSat(p); else rsSat = rs; end
         if vapoil, rvSat = f.rvSat(p); else rvSat = rv; end
     end
-    primaryVars = {'pressure', 'sW', 'x', 'qWs', 'qOs', 'qGs', 'bhp'};
+    if disgas || vapoil
+        gvar = 'x';
+    else
+        gvar = 'sG';
+    end
+    primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
     
     %----------------------------------------------------------------------
     %check for p-dependent tran mult:
