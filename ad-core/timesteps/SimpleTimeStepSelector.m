@@ -113,7 +113,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function dt = pickTimestep(selector, dt, model, solver)
-            if selector.isStartOfCtrlStep
+            if selector.controlsChanged
                 dt = min(dt, selector.firstRampupStep);
                 selector.stepLimitedByHardLimits = true;
             end
