@@ -255,7 +255,7 @@ function y = effads(c, cmax, f)
 end
 
 function [wc, cqs] = checkForRepetitions(wc, cqs)
-[c, ia, ic] = uniqueStable(wc);
+[c, ic, ic] = uniqueStable(wc);                                 %#ok<ASGLU>
 if numel(c) ~= numel(wc)
     A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
     wc = c;
