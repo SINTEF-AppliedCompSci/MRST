@@ -159,12 +159,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if isempty(prev) || prev.controlId ~= control.controlId
                 selector.controlsChanged = true;
                 selector.previousControl = control;
+                % We are at the beginning of a new control step and should
+                % reset the selector accordingly
+                selector.reset();
             else
                 selector.controlsChanged = false;
             end
-            % We are at the beginning of a new control step and should
-            % reset the selector accordingly
-            selector.reset();
         end
         
         function dt = computeTimestep(selector, dt, model, solver) %#ok
