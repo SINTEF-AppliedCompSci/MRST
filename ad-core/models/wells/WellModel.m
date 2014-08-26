@@ -262,7 +262,7 @@ classdef WellModel
     end
     methods (Static)
         function [wc, cqs] = handleRepeatedPerforatedcells(wc, cqs)
-            [c, ia, ic] = unique(wc, 'stable');
+            [c, ia, ic] = uniqueStable(wc);
             if numel(c) ~= numel(wc)
                 A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
                 wc = c;
