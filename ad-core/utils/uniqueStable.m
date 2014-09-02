@@ -26,6 +26,12 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 %   'rows' - Exact string 'rows' indicating that we should compute unique
 %            rows of 'a' rather than merely unique single elements.
 %
+%   'use_fallback' -
+%            Exact string 'use_fallback'.  This is mainly intended for
+%            testing and development purposes.  The option bypasses the
+%            MATLAB version check logic and forces the use of the fall-back
+%            implementation.
+%
 % RETURNS:
 %   c  - Unique elements (or rows) from input array 'a', in order of
 %        appearance in the input array.
@@ -81,9 +87,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   if ~exist('verLessThan', 'file') || verLessThan('matlab', '7.14'),
-      % UNIQUE(..., 'stable') introduced in R2012a (a.k.a MATLAB 7.14).
-      % Simulate the desired effect in prior releases.
+   if force_fallback(varargin{:}) || ...
+         ~exist('verLessThan', 'file') || ...
+         verLessThan('matlab', '7.14'),
+
+      % Caller explicitly requested that the fall-back option be used or
+      % we're currently targeting an older release of MATLAB.  Feature
+      % UNIQUE(..., 'stable') was introduced in R2012a (a.k.a MATLAB 7.14).
 
       [c, ia, ic] = fall_back(a, varargin{:});
 
@@ -95,7 +105,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 end
 
-%-------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+
+function b = force_fallback(varargin)
+   b = (nargin > 0) && iscellstr(varargin) && ...
+      any(strcmpi(varargin, 'use_fallback'));
+end
+
+%--------------------------------------------------------------------------
 
 function [c, ia, ic] = fall_back(a, varargin)
    opt   = get_options(varargin{:});
