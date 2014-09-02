@@ -215,15 +215,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
 
             prec = @(r) applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
-            [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
-                                                min(solver.maxIterations, size(A, 1)), prec);
-            %fprintf('  %d %d  ', its)
+            try
+                [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
+                                                    min(solver.maxIterations, size(A, 1)), prec);
+            catch exception
+                % Ensure external memory etc is deallocated properly if the
+                % solve failed in some spectacular manner
+                solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
+                rethrow(exception)
+            end
+            % Clean up elliptic solver
+            solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
+
             % Undo pressure scaling
             if solver.pressureScaling ~= 1;
                 cprSol(pInx) = cprSol(pInx) ./ solver.pressureScaling;
             end
-            % Clean up elliptic solver
-            solver.ellipticSolver = solver.ellipticSolver.cleanupSolver(Ap, b(pInx));
             
             %dispif(solver.verbose, 'GMRES converged in %d iterations\n', its(2));
             dxCell = solver.storeIncrements(problem, cprSol);
