@@ -10,6 +10,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        basis
        localSolver
        coarsegrid
+       setupTime
    end
    methods
        function solver = MultiscaleVolumeSolverAD(coarsegrid, varargin)
@@ -23,6 +24,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            
            solver = merge_options(solver, varargin{:});
            
+           solver.setupTime = 0;
            solver.coarsegrid = coarsegrid;
        end
        
@@ -58,6 +60,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            if isempty(solver.basis)
                A_basis = A - diag(sum(A, 2));
                disp('Constructing basis!')
+               timer = tic();
                switch solver.prolongationType
                    case 'mstpfa'
                         fb = createFaceBasis(CG, A_basis);
@@ -71,9 +74,11 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                        error('Error!')
                end
                disp('Basis constructed!')
+               solver.setupTime = toc(timer);
                solver.prolongationOperator = I;
            elseif solver.updateBasis
                A_basis = A - diag(sum(A, 2));
+               timer = tic();
                switch solver.prolongationType
                    case 'smoothed'
                        % Just redo iterations until we are below increment
@@ -85,7 +90,8 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
                    otherwise
                        error('Error!')
                end
-                solver.prolongationOperator = I;
+               solver.setupTime = solver.setupTime + toc(timer);
+               solver.prolongationOperator = I;
            end
        end
    end
