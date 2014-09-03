@@ -68,7 +68,7 @@ function [converged, values] = CNV_MBConvergence(model, problem)
 
     % OIL
     if model.oil,
-        if model.disgas
+        if isprop(model, 'disgas') && model.disgas
             % If we have liveoil, BO is defined not only by pressure, but
             % also by oil solved in gas which must be calculated in cells
             % where gas saturation is > 0.
@@ -87,7 +87,7 @@ function [converged, values] = CNV_MBConvergence(model, problem)
 
     % GAS
     if model.gas,
-        if model.vapoil
+        if isprop(model, 'vapoil') && model.vapoil
             BG = 1./fluid.bG(state.pressure, state.rv, state.s(:,2)>0); % need to fix index...
         else
             BG = 1./fluid.bG(state.pressure);

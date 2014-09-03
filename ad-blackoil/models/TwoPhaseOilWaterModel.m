@@ -14,6 +14,9 @@ classdef TwoPhaseOilWaterModel < ReservoirModel
             model.gas = false;
             model.water = true;
             
+            % Blackoil -> use CNV style convergence 
+            model.useCNVConvergence = true;
+            
             model.saturationVarNames = {'sw', 'so'};
             model.wellVarNames = {'qWs', 'qOs', 'bhp'};
             

@@ -67,6 +67,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Names of well fields that may be updated by the model.
         wellVarNames
         
+        % Use alternate tolerance scheme
+        useCNVConvergence
+        
+        % CNV tolerance (inf-norm-like)
+        toleranceCNV;
+        
+        % MB tolerance values (2-norm-like)
+        toleranceMB;
+        % Well tolerance if CNV is being used
+        toleranceWellBHP;
+        % Well tolerance if CNV is being used
+        toleranceWellRate;
+        
         % Input data used to instantiate the model
         inputdata
         % Add extra output to wellsol/states for derived quantities
@@ -85,6 +98,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             model.nonlinearTolerance = 1e-6;
             model.inputdata = [];
+            
+            model.useCNVConvergence = false;
+            model.toleranceCNV = 1e-3;
+            model.toleranceMB = 1e-7;
+            model.toleranceWellBHP = 1*barsa;
+            model.toleranceWellRate = 1/day;
             
             model.saturationVarNames = {'sw', 'so', 'sg'};
             model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
@@ -138,7 +157,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             model.operators = setupOperatorsTPFA(G, rock, varargin{:});
         end
-                   
+        
+        function [convergence, values] = checkConvergence(model, problem, varargin)
+            if model.useCNVConvergence
+                % Use convergence model similar to commercial simulator
+                [conv_cells, v_cells] = CNV_MBConvergence(model, problem);
+                [conv_wells, v_wells] = checkWellConvergence(model, problem);
+                
+                convergence = all(conv_cells) && all(conv_wells);
+                values = [v_cells, v_wells];
+            else
+                % Use strict tolerances on the residual without any 
+                % fingerspitzengefuhlen by calling the parent class
+                [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
+            end            
+        end
+        
         function [vararg, driving] = getDrivingForces(model, control) %#ok
             % Setup and pass on driving forces
             vararg = {};

@@ -9,22 +9,6 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
         % Maximum Rs/Rv increment
         drsMaxRel
         drsMaxAbs
-        
-        % Use alternate tolerance scheme
-        useCNVConvergence
-        
-        % CNV tolerance (inf-norm-like)
-        toleranceCNV;
-        
-        % MB tolerance values (2-norm-like)
-        toleranceMB;
-        % Well tolerance if CNV is being used
-        toleranceWellBHP;
-        % Well tolerance if CNV is being used
-        toleranceWellRate;
-        
-        % Update wells
-        
     end
     
     methods
@@ -41,12 +25,9 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
             model.drsMaxAbs = inf;
             model.drsMaxRel = inf;
             
+            % Blackoil -> use CNV style convergence 
             model.useCNVConvergence = true;
-            model.toleranceCNV = 1e-3;
-            model.toleranceMB = 1e-7;
-            model.toleranceWellBHP = 1*barsa;
-            model.toleranceWellRate = 1/day;
-                        
+                                    
             % All phases are present
             model.oil = true;
             model.gas = true;
@@ -83,21 +64,6 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
                     % Basic phases are known to the base class
                     [fn, index] = getVariableField@ReservoirModel(model, name);
             end
-        end
-
-        function [convergence, values] = checkConvergence(model, problem, varargin)
-            if model.useCNVConvergence
-                % Use convergence model similar to commercial simulator
-                [conv_cells, v_cells] = CNV_MBConvergence(model, problem);
-                [conv_wells, v_wells] = checkWellConvergence(model, problem);
-                
-                convergence = all(conv_cells) && all(conv_wells);
-                values = [v_cells, v_wells];
-            else
-                % Use strict tolerances on the residual without any 
-                % fingerspitzengefuhlen by calling the parent class
-                [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
-            end            
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
