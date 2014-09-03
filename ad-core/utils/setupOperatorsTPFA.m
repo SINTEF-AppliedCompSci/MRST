@@ -84,8 +84,9 @@ s.faceUpstr = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
 % Include neighbor relations since eqsfiOW needs it...
 s.N = N;
 
-% ce
-aC = bsxfun(@rdivide,0.5*abs(C),G.faces.areas(intInx))';
+% Average face values to cells
+fvg = 0.5*bsxfun(@rdivide, ones(n,2), G.faces.areas(intInx));
+aC  = sparse( [(1:n)'; (1:n)'], N, fvg, n, G.cells.num);
 s.cellAvg = @(x) aC*x;
 end
 
