@@ -76,6 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function [dx, result, report] = solveLinearProblem(solver, problem, model)
             % Solve a linearized problem using a constrained pressure
             % residual preconditioner
+            timer = tic();
             
             isPressure = problem.indexOfPrimaryVariable('pressure');
             pressureIndex = find(isPressure);
@@ -245,6 +246,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 dx{pos} = dVal;
                 recovered(pos) = true;
             end
+            solvetime = toc(timer);
             
             if nargout > 1
                 result = vertcat(dx{:});
@@ -253,6 +255,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if nargout > 2
                 report = struct('IterationsGMRES', its(2), ...
                                 'FlagGMRES',       fl, ...
+                                'SolverTime',      solvetime, ...
                                 'FinalResidual',   relres);
                 if solver.extraReport
                     report.ResidualHistory = resvec;
