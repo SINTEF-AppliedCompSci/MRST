@@ -50,9 +50,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     properties
         % The max number of iterations during a ministep.
         maxIterations
-        % The maximum number of timesteps allowed due to cutting of the
-        % timestep when faced with convergence issues.
-        maxSubsteps
+        % The maximum number of times the timestep can be halved before it
+        % is counted as a failed run
+        maxTimestepCuts
         % The solver used to solve the linearized problems during the
         % simulation.
         LinearSolver
@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % For successive over-relaxation (SOR)
         %       x_new = x_old + dx*w + dx_prev*(1-w)
         relaxationType
-        % INternal bookkeeping.
+        % Internal bookkeeping.
         previousIncrement
 
         % If error on failure is not enabled, the solver will return even
@@ -86,10 +86,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     methods
         function solver = NonLinearSolver(varargin)            
-            solver.maxIterations = 25;
-            solver.verbose       = mrstVerbose();
-            solver.maxSubsteps   = 32;
-            solver.LinearSolver  = [];
+            solver.maxIterations   = 25;
+            solver.verbose         = mrstVerbose();
+            solver.maxTimestepCuts = 6;
+            solver.LinearSolver    = [];
             
             solver.relaxationParameter = 1;
             solver.relaxationType = 'dampen';
@@ -126,7 +126,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Number of nonlinear iterations total
             itCount = 0;
             % Number of ministeps due to cutting 
-            ministepNo = 1;
+            cuttingCount = 0;
             % Number of steps
             stepCount = 0;
             % Number of accepted steps
@@ -139,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             
             wantMinistates = nargout > 2;
-            [reports, ministates] = deal(cell(solver.maxSubsteps, 1));
+            [reports, ministates] = deal(cell(2^solver.maxTimestepCuts, 1));
             
             state = state0;
             
@@ -197,9 +197,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     state = state0_inner;
                     % Beat timestep with a hammer
                     warning('Solver did not converge, cutting timestep')
-                    ministepNo = 2*ministepNo;
+                    cuttingCount = cuttingCount + 1;
                     dt = dt/2;
-                    if ministepNo > solver.maxSubsteps || failure
+                    if cuttingCount > solver.maxTimestepCuts || failure
                         msg = 'Did not find a solution: ';
                         if failure
                             % Failure means something is seriously wrong,
@@ -236,9 +236,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             % Truncate reports from step functions
             reports = reports(~cellfun(@isempty, reports));
-            report = struct('Iterations',       itCount,...
-                            'Converged',        converged,...
-                            'MinistepCount', 	ministepNo);
+            report = struct('Iterations',           itCount,...
+                            'Converged',            converged,...
+                            'MinistepHalvingCount', cuttingCount);
             % Add seperately because struct constructor interprets cell
             % arrays as repeated structs.
             report.StepReports = reports;
@@ -284,6 +284,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
     omega0 = solver.relaxationParameter;
     
     r = [];
+    prev_best = inf;
     for i = 1:(solver.maxIterations + 1)
         % If we are past maximum number of iterations, step function will
         % just check convergence and return
@@ -302,6 +303,15 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
             break
         end
         
+        if i > 1
+            if all(stepReport.Residuals >= prev_best)
+                % We are not seeing reduction, but rather increase in the
+                % residuals. Break and let the solver decide to either
+                % abort or cut the timestep.
+                break;
+            end
+        end
+        
         if i > 1 && solver.useRelaxation
             % Check relative improvement
             improvement = (r_prev - stepReport.Residuals)./r_prev;
@@ -315,6 +325,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
             end
         end
         r_prev = stepReport.Residuals;
+        prev_best = min(prev_best, stepReport.Residuals);
     end
     % If we converged, the last step did not solve anything
     its = i - converged;
