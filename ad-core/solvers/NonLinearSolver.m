@@ -139,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             
             wantMinistates = nargout > 2;
-            [reports, ministates] = deal(cell(2^solver.maxTimestepCuts, 1));
+            [reports, ministates] = deal(cell(min(2^solver.maxTimestepCuts, 128), 1));
             
             state = state0;
             
