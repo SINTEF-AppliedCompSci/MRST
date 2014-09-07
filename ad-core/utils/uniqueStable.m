@@ -39,7 +39,7 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 %
 %   ia - Index into input 'a' such that ALL(ALL(c == a(ia, :)))
 %
-%   ja - Index into output 'c' such that ALL(ALL(c(ic, :) == a)).
+%   ic - Index into output 'c' such that ALL(ALL(c(ic, :) == a)).
 %
 % NOTE:
 %   This function uses SORTROWS.
