@@ -4,6 +4,7 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 % SYNOPSIS:
 %   [c, ia, ic] = uniqueStable(a)
 %   [c, ia, ic] = uniqueStable(a, 'rows')
+%   [c, ia, ic] = uniqueStable(..., 'use_fallback')
 %
 % DESCRIPTION:
 %   This is a pure MATLAB compatibility implementation of
