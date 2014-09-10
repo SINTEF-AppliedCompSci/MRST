@@ -4,6 +4,7 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 % SYNOPSIS:
 %   [c, ia, ic] = uniqueStable(a)
 %   [c, ia, ic] = uniqueStable(a, 'rows')
+%   [c, ia, ic] = uniqueStable(..., 'use_fallback')
 %
 % DESCRIPTION:
 %   This is a pure MATLAB compatibility implementation of
@@ -38,7 +39,7 @@ function [c, ia, ic] = uniqueStable(a, varargin)
 %
 %   ia - Index into input 'a' such that ALL(ALL(c == a(ia, :)))
 %
-%   ja - Index into output 'c' such that ALL(ALL(c(ic, :) == a)).
+%   ic - Index into output 'c' such that ALL(ALL(c(ic, :) == a)).
 %
 % NOTE:
 %   This function uses SORTROWS.
