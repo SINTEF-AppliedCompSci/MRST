@@ -90,3 +90,21 @@ function testStableRowIC(t)                                     %#ok<DEFNU>
 
    verifyEqual(t, c(ic,:), t.TestData.a);
 end
+
+%--------------------------------------------------------------------------
+
+function testStableRowsOnColumn(t)                              %#ok<DEFNU>
+   % Check that 'rows' on column vector is equivalent to no 'rows' at all
+
+   e = [ 3 ; 4 ; 2 ; 1 ];
+
+   [c, ia, ic] = uniqueStable(t.TestData.a(:,2), 'rows', 'use_fallback');
+   verifyEqual(t, c    , e);
+   verifyEqual(t, c    , t.TestData.a(ia,2));
+   verifyEqual(t, c(ic), t.TestData.a(: ,2));
+
+   [c2, ia2, ic2] = uniqueStable(t.TestData.a(:,2),      'use_fallback');
+   verifyEqual(t, c , c2 );
+   verifyEqual(t, ia, ia2);
+   verifyEqual(t, ic, ic2);
+end
