@@ -15,9 +15,9 @@ function varargout = implicitupwind_mex(varargin)
 
    SRC = {'implicitupwind_mex.c', 'twophasetransport.c', 'nlsolvers.c', ...
           'reordersequence.c', 'tarjan.c', 'twophase.c', 'fluid.c',...
-          fullfile(d, '..','..', 'mrst_api', 'mrst_api.c'),};
+          fullfile(d, '..','..', '..', 'mrst_api', 'mrst_api.c'),};
 
-   INCLUDE = { ['-I', fullfile(d, '..','..', 'mrst_api')] };
+   INCLUDE = { ['-I', fullfile(d, '..','..', '..', 'mrst_api')] };
 
    OPTS = {'-output', ['implicitupwind_mex.', mexext], ...
       '-largeArrayDims', ['-DMATLABVERSION=', v], '-O'};

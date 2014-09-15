@@ -13,9 +13,9 @@ function varargout = reordersequence_mex(varargin)
              '-Wchar-subscripts', '-Wredundant-decls"'};
 
    SRC = {'reordersequence_mex.c', 'reordersequence.c', 'tarjan.c',...
-          fullfile(d, '..', 'mrst_api', 'mrst_api.c'),};
+          fullfile(d, '..', '..', '..', 'mrst_api', 'mrst_api.c'),};
 
-   INCLUDE = { ['-I', fullfile(d, '..', 'mrst_api')] };
+   INCLUDE = { ['-I', fullfile(d, '..', '..', '..', 'mrst_api')] };
 
    OPTS = {'-output', ['reordersequence_mex.', mexext], ...
       '-largeArrayDims', ['-DMATLABVERSION=', v], '-O'};
