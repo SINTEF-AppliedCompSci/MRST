@@ -109,7 +109,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          break
       end
 
-      p(bfix(p)) = pfixed(bfix(p), i)*max(p) + p(bfix(p));
+      pick    = bfix(p);
+      p(pick) = p(pick) + max(p)*pfixed(pick, i);
 
       p = compressPartition(p);
       blockIndicator = blkInd(p);
