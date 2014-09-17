@@ -101,6 +101,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       bfix = false([1, max(p)]);
       bfix(blockIndicator > upper_bound) = true;
 
+      if ~any(bfix),
+         % No blocks violate upper bound so there is no need to consider
+         % further background partitions.  Terminate refinement to omit
+         % moderatly costly and otherwise idempotent updates to partition
+         % vector 'p' and derived 'blockIndicator'.
+         break
+      end
+
       p(bfix(p)) = pfixed(bfix(p), i)*max(p) + p(bfix(p));
 
       p = compressPartition(p);
