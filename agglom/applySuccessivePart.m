@@ -98,7 +98,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    for i = 1 : size(pfixed, 2),
-      bfix = false([1, max(p)]);
+      nblk = max(p);
+
+      bfix = false([nblk, 1]);
       bfix(blockIndicator > upper_bound) = true;
 
       if ~any(bfix),
@@ -110,7 +112,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
       pick    = bfix(p);
-      p(pick) = p(pick) + max(p)*pfixed(pick, i);
+      p(pick) = p(pick) + nblk*pfixed(pick, i);
 
       p = compressPartition(p);
       blockIndicator = blkInd(p);
