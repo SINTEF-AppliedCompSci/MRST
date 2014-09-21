@@ -16,6 +16,10 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
         cfluid
         bfluid
         
+        % @@ hacked
+        dpMax
+        dsMax
+        
     end
     % ============================== Public methods ==============================
     methods %(Access = public)
@@ -64,7 +68,14 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
                                       model.T_grad, opt.constantVerticalDensity);
             model.bfluid = setupFluid(opt.EOSBRINE, opt.mu(2), opt.slope, ...
                                       model.T_grad, opt.constantVerticalDensity);
-          
+
+            % @@hack
+           model.dpMax = inf;
+           model.dsMax = .2;
+           
+            
+            
+            
         end
         
         function state = includeComputedCaprockValues(model, state, quick)
@@ -183,7 +194,6 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
 
         %           [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-           
             % computing pressure increment
             dp = dx{problem.indexOfPrimaryVariable('pressure')};
             dp = sign(dp) .* min(abs(dp), abs(model.dpMax .* state.pressure));
@@ -194,7 +204,7 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
             dh    = sign(dh) .* min(abs(dh), dhMax);
             
             % computting well-related increments
-            dq   = dx{problem.indexOfPrimaryVariable('q')};
+            dq   = dx{problem.indexOfPrimaryVariable('qGs')};
             dbhp = dx{problem.indexOfPrimaryVariable('bhp')};
             
             % Updating state with the new incrmeents
