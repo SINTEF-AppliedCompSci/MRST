@@ -87,8 +87,8 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     % Rebalancing the conservation equations
     for i = [1:2]   eqs{i} = eqs{i} * dt/year;   end %#ok
 
-    primary = {'pressure' ,'height', 'q', 'bhp'};
-    problem = linearProblem(eqs, types, names, primary, state);
+    primary = {'pressure' ,'height', 'qGs', 'bhp'};
+    problem = LinearizedProblem(eqs, types, names, primary, state);
     
     %% Adding extra information to state object (not used in equations, but
     %% useful for later analysis)

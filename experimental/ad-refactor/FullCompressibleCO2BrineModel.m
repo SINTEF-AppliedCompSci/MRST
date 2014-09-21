@@ -1,4 +1,4 @@
-classdef fullCompressibleCO2BrineModel < physicalModel
+classdef FullCompressibleCO2BrineModel < ReservoirModel
 
     % ============================= Class properties =============================
     properties
@@ -18,17 +18,20 @@ classdef fullCompressibleCO2BrineModel < physicalModel
         
     end
     % ============================== Public methods ==============================
-    methods (Access = public)
+    methods %(Access = public)
 
         %% Constructor
-        function model = fullCompressibleCO2BrineModel(Gt, rock, tinfo, varargin)
+        function model = FullCompressibleCO2BrineModel(Gt, rock, tinfo, varargin)
             opt.EOSCO2   = []; 
             opt.EOSBRINE = [];
+            opt.verbose  = mrstVerbose();
             opt.slope    = 0;                       % in radians
             opt.slopedir = [1 0];                   % default is slope towards east
             opt.rhoBrine = 1020 * kilogram / meter^3; % if EOS not provided
             opt.mu       = [5.36108e-5, 5.4e-5];    % Default mu values [CO2, brine]
             opt.constantVerticalDensity = false;    % true for semi-compressible model
+            opt.nonlinearTolerance = 1e-6;
+            
             opt = merge_options(opt, varargin{:});
             
             % Ensuring equations of state are defined
@@ -37,18 +40,19 @@ classdef fullCompressibleCO2BrineModel < physicalModel
                 opt.EOSCO2 = CO2props('rho_big_trunc','');
             end
             if isempty(opt.EOSBRINE)
-                opt.EOSBRINE = fullCompressibleCO2BrineModel.makeConstantEOS(opt.rhoBrine);
+                opt.EOSBRINE = FullCompressibleCO2BrineModel.makeConstantEOS(opt.rhoBrine);
             end
-            opt.EOSCO2   = fullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSCO2);
-            opt.EOSBRINE = fullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSBRINE);
+            opt.EOSCO2   = FullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSCO2);
+            opt.EOSBRINE = FullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSBRINE);
             
-            % Inherited properties
-            model.G         = Gt;
-            model.name      = 'fully_compressible_CO2_brine';
-            model           = model.setupOperators(Gt, rock, varargin{:});
-            model.oil       = false;
-            model.gas       = true;
-            model.water     = true;
+            % Inherited properties.  The 'fluid' field of ReservoirModel will
+            % remain empty, as we use the fields 'cfluid' and 'bfluid' instead.
+            model@ReservoirModel(Gt, rock, []);
+            model.water = true;
+            model.gas   = true;
+            model.oil   = false;
+
+            model = model.setupOperators(Gt, rock, varargin{:});
             
             % Other properties
             model.T_ref       = tinfo{1}; 
@@ -116,7 +120,7 @@ classdef fullCompressibleCO2BrineModel < physicalModel
         end
     end
     % ============================== Private methods ==============================
-    methods (Access = protected)
+    methods %(Access = protected)
 
         function model = setupOperators(model, Gt, rock, varargin)
             
@@ -137,10 +141,49 @@ classdef fullCompressibleCO2BrineModel < physicalModel
                                               model.T_grad, model.slope, ...
                                               model.slopedir, varargin{:});
         end
+    % ----------------------------------------------------------------------------
+    function [fn, index] = getVariableField(model, name)
+    % Get the index/name mapping for the model (such as where
+    % pressure or water saturation is located in state)
+       switch(lower(name))
+         case {'h', 'height'}
+           fn = 'h';
+           index = 1;
+         % case {'t', 'temperature'}
+         %   fn = 'T';
+         %   index = 1;
+         % case {'sw', 'water'}
+         %   index = find(strcmpi(model.saturationVarNames, 'sw'));
+         %   fn = 's';
+         % case {'so', 'oil'}
+         %   index = find(strcmpi(model.saturationVarNames, 'so'));
+         %   fn = 's';
+         % case {'sg', 'gas'}
+         %   index = find(strcmpi(model.saturationVarNames, 'sg'));
+         %   fn = 's';
+         % case {'s', 'sat', 'saturation'}
+         %   index = 1:numel(model.saturationVarNames);
+         %   fn = 's';
+         case {'pressure', 'p'}
+           index = 1;
+           fn = 'pressure';
+         % case 'wellsol'
+         %   % Use colon to get all variables, since the wellsol may
+         %   % be empty
+         %   index = ':';
+         %   fn = 'wellSol';
+         otherwise
+           % This will throw an error for us
+           [fn, index] = getVariableField@PhysicalModel(model, name);
+       end
+    end
+    
         
     % ----------------------------------------------------------------------------    
-        function state = updateState(model, state, problem, dx, drivingForces) %#ok
+        function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
 
+        %           [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+           
             % computing pressure increment
             dp = dx{problem.indexOfPrimaryVariable('pressure')};
             dp = sign(dp) .* min(abs(dp), abs(model.dpMax .* state.pressure));
@@ -172,6 +215,9 @@ classdef fullCompressibleCO2BrineModel < physicalModel
             state.h(state.h<0) = 0;
             ex_ix              = (state.h > model.G.cells.H);
             state.h(ex_ix)     = model.G.cells.H(ex_ix);
+            
+            % Report is dummy, for now
+            report = [];
         end
     end
 
