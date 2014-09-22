@@ -83,51 +83,53 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
         % corresponding values at the caprock level (pressure and density)
             
         %tempFun  = @(x,i) state.extras.tI(i) - (x - state.h(i) .* cos(model.slope) / 1000;
-            cos_theta = cos(model.slope);
-            
-            if quick
-                % 'quick and dirty', using Taylor
-                [IEta,~, Eta] = model.cfluid.h_integrals(state.pressure, state.extras.tI);
-                
-                state.extras.tTop = state.extras.tI - ...
-                                    state.h * cos_theta .* model.T_grad / 1000;
-                
-                pdiff = double(state.h) * norm(gravity) * cos_theta .* double(state.extras.rhoI);
-                if ~isempty(IEta)
-                    pdiff = pdiff .* double(IEta(-state.h));
-                end
-                state.extras.pTop   = state.pressure - pdiff;
-                state.extras.rhoTop = state.extras.rhoI .* Eta(-state.h);
-            else 
-                % use integration to get more exact values
-                
-                num_cells           = numel(double(state.h));
-                state.extras.tTop   = zeros(num_cells, 1);
-                state.extras.pTop   = zeros(num_cells, 1);
-                state.extras.rhoTop = zeros(num_cells, 1);
-                
-                for i = 1:num_cells
-                    tempFun = @(z) state.extras.tI(i) - (z - state.h(i)) * cos_theta / 1000;
-                    state.extras.tTop(i) = tempFun(0);
-                    state.extras.pTop(i) = numIntTopPress(state.pressure(i), ...
-                                                          tempFun, ...
-                                                          state.h(i), ...
-                                                          model.cfluid.rho, ...
-                                                          norm(gravity) * cos_theta);
-                end
-                state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop); 
-            end
-        
-            % @@ If 'quick' has been requested, we could also imagine using
-            % Taylor to compute the density at top. 
-            state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop);
-            if ~isempty(IEta)
-                
-            else
-                % Density is either constant in height or always constant
-                
-            end
-        
+           cos_theta = cos(model.slope);
+           
+           if quick
+              % 'quick and dirty', using Taylor
+              [IEta, ~, Eta] = model.cfluid.h_integrals(state.pressure, state.extras.tI);
+              
+              state.extras.tTop = state.extras.tI - ...
+                  state.h * cos_theta .* model.T_grad / 1000;
+              
+              pdiff = double(state.h) * norm(gravity) * cos_theta .* double(state.extras.rhoI);
+              rho_modif = 1; % default is no modification
+              if ~isempty(IEta)
+                 pdiff     = pdiff .* double(IEta(-state.h));
+                 rho_modif = Eta(-state.h);
+              end
+              state.extras.pTop   = state.pressure - pdiff;
+              state.extras.rhoTop = state.extras.rhoI .* rho_modif;
+           else 
+              % use integration to get more exact values
+              
+              num_cells           = numel(double(state.h));
+              state.extras.tTop   = zeros(num_cells, 1);
+              state.extras.pTop   = zeros(num_cells, 1);
+              state.extras.rhoTop = zeros(num_cells, 1);
+              
+              for i = 1:num_cells
+                 tempFun = @(z) state.extras.tI(i) - (z - state.h(i)) * cos_theta / 1000;
+                 state.extras.tTop(i) = tempFun(0);
+                 state.extras.pTop(i) = numIntTopPress(state.pressure(i), ...
+                                                       tempFun, ...
+                                                       state.h(i), ...
+                                                       model.cfluid.rho, ...
+                                                       norm(gravity) * cos_theta);
+              end
+              state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop); 
+           end
+           
+           % % @@ If 'quick' has been requested, we could also imagine using
+           % % Taylor to compute the density at top. 
+           % state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop);
+           % if ~isempty(IEta)
+              
+           % else
+           %    % Density is either constant in height or always constant
+              
+           % end
+           
         end
     end
     % ============================== Private methods ==============================
@@ -135,10 +137,10 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
 
         function model = setupOperators(model, Gt, rock, varargin)
             
-            operators = setupSimCompVe(Gt, rock, varargin{:});
-            operators.pv = operators.pv ./ Gt.cells.H; % @@ Necessary since
-                                                       % we use a height-formulation.
-            model.operators = operators;
+           operators = setupSimCompVe(Gt, rock, 'useNewStandard', true);
+           operators.pv = operators.pv ./ Gt.cells.H; % @@ Necessary since
+                                                      % we use a height-formulation.
+           model.operators = operators;
         end 
     % ----------------------------------------------------------------------------
         function [problem, state] = ...
@@ -189,20 +191,41 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
        end
     end
     
-        
+    % % ----------------------------------------------------------------------------
+    % function [convergence, values] = checkConvergence(model, problem, n)
+    % % Check and report convergence based on residual tolerances
+    %    disp('hello world\n');
+    %    if nargin == 2
+    %       n = 1;
+    %    end
+       
+    %    values = norm(problem, n);
+    %    convergence = all(values < model.nonlinearTolerance);
+       
+    %    if model.verbose
+    %       for i = 1:numel(values)
+    %          fprintf('%s (%s): %2.2e\t', problem.equationNames{i}, problem.types{i}, values(i));
+    %       end
+    %       fprintf('\n')
+    %    end
+    % end
+
     % ----------------------------------------------------------------------------    
         function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
 
-        %           [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-            % computing pressure increment
+        %     [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+        % @@ Use custom code for the time being, until it is clear how
+        % inactive wells should be treated in updateState@ReservoirModel.
+           
+           % computing pressure increment
             dp = dx{problem.indexOfPrimaryVariable('pressure')};
             dp = sign(dp) .* min(abs(dp), abs(model.dpMax .* state.pressure));
-            
+           
             % computing height increment
             dh    = dx{problem.indexOfPrimaryVariable('height')};
             dhMax = model.dsMax .* model.G.cells.H;
             dh    = sign(dh) .* min(abs(dh), dhMax);
-            
+           
             % computting well-related increments
             dq   = dx{problem.indexOfPrimaryVariable('qGs')};
             dbhp = dx{problem.indexOfPrimaryVariable('bhp')};
@@ -220,11 +243,11 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
                     state.wellSol(w).qGs(n_ix) = 0;
                 end
             end
-            
+           
             % capping values where necessary
-            state.h(state.h<0) = 0;
-            ex_ix              = (state.h > model.G.cells.H);
-            state.h(ex_ix)     = model.G.cells.H(ex_ix);
+            state.h(state.h < 0) = 0;
+            ex_ix                = (state.h > model.G.cells.H);
+            state.h(ex_ix)       = model.G.cells.H(ex_ix);
             
             % Report is dummy, for now
             report = [];

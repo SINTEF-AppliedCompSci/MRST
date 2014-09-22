@@ -140,7 +140,7 @@ end
 function eq = contEquation(s, dt, h, h0, rho, rho0, intflux, bcells, bflux, wcells, wrate)
 % Function to construct the continuity equation.
 % ----------------------------------------------------------------------------
-    eq = (s.pv/dt) .* ((rho .*h) - (rho0 .* h0)) + s.div(intflux);
+    eq = (s.pv/dt) .* ((rho .*h) - (rho0 .* h0)) + (-s.div(intflux));
     
     eq(wcells) = eq(wcells) - wrate; % correct for wells 
 
