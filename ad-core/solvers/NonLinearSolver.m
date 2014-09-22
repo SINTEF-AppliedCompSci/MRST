@@ -77,6 +77,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         relaxationType
         % Internal bookkeeping.
         previousIncrement
+        % Abort a timestep if no reduction is residual is happening.
+        enforceResidualDecrease
 
         % If error on failure is not enabled, the solver will return even
         % though it did not converge. May be useful for debugging. Results
@@ -94,6 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relaxationParameter = 1;
             solver.relaxationType = 'dampen';
             solver.useRelaxation = false;
+            solver.enforceResidualDecrease = true;
             
             solver.errorOnFailure = true;
             
@@ -303,7 +306,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
             break
         end
         
-        if i > 1
+        if i > 1 && solver.enforceResidualDecrease
             if all(stepReport.Residuals >= prev_best)
                 % We are not seeing reduction, but rather increase in the
                 % residuals. Break and let the solver decide to either
