@@ -1,4 +1,7 @@
 function W = updateSwitchedControls(sol, W)
+if isempty(W)
+    return
+end
 % Check if producers are becoming injectors and vice versa
 % Nothing is done here for now, these should be shut down
 wsg = vertcat(W(:).sign);
