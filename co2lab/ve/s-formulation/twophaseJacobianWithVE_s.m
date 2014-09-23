@@ -333,7 +333,7 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux, pcJac,
       end
 
       % Fbc = m(pc_bc,2).*f(pc_bc,2).*pc_bc*Trans(bc.faces);
-      if(~isempty(Trans))
+      if(~isempty(Trans) && ~isempty(bc))
         dFbc= dm(bc_cells,2).*f(bc_cells).*pc_bc+...
                 m(bc_cells,2).*df(bc_cells).*pc_bc+...
                 m(bc_cells,2).*f(bc_cells).*dpc_bc;
@@ -436,7 +436,7 @@ function F = Residual (resSol, resSol_0, dt, fluid, dflux, gflux, pcflux,...
    F   = resSol.s(:,1) - resSol_0.s(:,1);
    F   = F+dt.*(1./pv).*(accumarray([ic1; ic2], [v_water; -v_water]) - Q);
    % handle capillary pressure at boundary
-   if(~isempty(Trans) && isfield(fluid, {'pc'}))
+   if(~isempty(Trans) && isfield(fluid, {'pc'}) && ~isempty(bc))
     bc_cells =  sum(G.faces.neighbors(bc.face,:),2);
     pc       = fluid.pc(resSol);
     pc_bc = pc(bc_cells);%fluid.pc(resSol.s(bc_cells,1));
