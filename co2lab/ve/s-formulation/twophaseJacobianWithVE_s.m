@@ -488,12 +488,19 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
            'Got %d tensors, expected %d (== number of cells).'],   ...
            size(K,1), G.cells.num);
 
-   C = zeros(numel(G.faces.neighbors(:,1)), dim);
-
-   %_all = G.cells.centroids(G.faces.neighbors(:,1))-G.cells.centroids(G.faces.neighbors(:,2),:);
-   C(is_int,:)=G.cells.centroids(G.faces.neighbors(is_int,1),:)...
-       -G.cells.centroids(G.faces.neighbors(is_int,2),:);
-   nC=sqrt(sum(C(is_int,:).*C(is_int,:),2));
+   % Computing C and nC only needed in certain situations.  In other
+   % situations, it's not needed and may cause problem if grid geometry has
+   % not been computed.  Hence, we only compute it if needed, using the test below.
+   C_needed = (~any(strcmpi(G.type, 'topSurfaceGrid'))) || (isempty(Trans));
+   
+   if C_needed
+      C = zeros(numel(G.faces.neighbors(:,1)), dim);
+      %_all = G.cells.centroids(G.faces.neighbors(:,1))-G.cells.centroids(G.faces.neighbors(:,2),:);
+      C(is_int,:)=G.cells.centroids(G.faces.neighbors(is_int,1),:)...
+          -G.cells.centroids(G.faces.neighbors(is_int,2),:);
+      nC=sqrt(sum(C(is_int,:).*C(is_int,:),2));
+   end
+   
    d_pc = @(cell_pc) (cell_pc(G.faces.neighbors(is_int,1),:)- ...
                      cell_pc(G.faces.neighbors(is_int,2),:));%./nC; %...
                      %.*G.faces.areas(is_int); %blir med i nKC
@@ -524,7 +531,8 @@ function [f, g, pc_flux, pcJac] = getFluxCap(G,state, rock, rho, fluid, vert_avr
    else
        if (any(strcmp(G.type, 'topSurfaceGrid')))
 
-          assert(size(G.cells.centroids,2)==2);
+          %assert(size(G.cells.centroids,2)==2);
+          assert(size(G.nodes.coords,2)==2);
           if(isempty(Trans))
            harm_g(is_int) =  -norm(g_fac)*harm_c(is_int).*...
                (G.cells.z(G.faces.neighbors(is_int,1))...
