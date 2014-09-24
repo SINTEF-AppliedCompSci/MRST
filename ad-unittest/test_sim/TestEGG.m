@@ -12,7 +12,7 @@ classdef TestEGG < ScheduleTest
 
             fn = fullfile('external', 'TUDelft-EGG', 'BENCH_EGG.DATA');
             
-            [deck, schedule, model] = setupADcase(fn);
+            [deck, schedule, model, rock] = setupADcase(fn);
 
             gravity on
             
@@ -30,6 +30,7 @@ classdef TestEGG < ScheduleTest
             test.state0 = initResSol(G, p0, [0.1, .90]);
             test.schedule = schedule;
             test.model = model;
+            test.rock = rock;
             
         end
         function s = getIdentifier(test, name) %#ok

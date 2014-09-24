@@ -1,4 +1,4 @@
-function [deck, schedule, model] = setupADcase(fn)
+function [deck, schedule, model, rock] = setupADcase(fn)
     moddir = mrstPath('query', 'ad-testdata');
     fn = fullfile(moddir, fn);
     if ~exist(fn, 'file')

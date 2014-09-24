@@ -14,7 +14,7 @@ classdef TestSPE3 < ScheduleTest
             
             fn = fullfile('SPE', 'SPE3', 'BENCH_SPE3.DATA');
             
-            [deck, schedule, model] = setupADcase(fn);
+            [deck, schedule, model, rock] = setupADcase(fn);
             
             % The case includes gravity
             gravity on
@@ -29,6 +29,7 @@ classdef TestSPE3 < ScheduleTest
             
             test.schedule = schedule;
             test.model = model;
+            test.rock = rock;
             test.model.disgas = false;
         end
         function s = getIdentifier(test, name) %#ok
