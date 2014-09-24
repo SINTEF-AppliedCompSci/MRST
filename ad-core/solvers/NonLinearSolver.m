@@ -96,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relaxationParameter = 1;
             solver.relaxationType = 'dampen';
             solver.useRelaxation = false;
-            solver.enforceResidualDecrease = true;
+            solver.enforceResidualDecrease = false;
             
             solver.errorOnFailure = true;
             
