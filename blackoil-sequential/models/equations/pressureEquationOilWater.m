@@ -105,7 +105,7 @@ if ~isempty(W)
 end
 
 eqs{1} = oil./bO + wat./bW;
-names{1} = {'pressure'};
+names{1} = 'pressure';
 types{1} = 'cell';
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

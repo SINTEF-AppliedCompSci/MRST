@@ -72,7 +72,7 @@ bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Go - Gw));
 
 if ~isempty(W)
     perf2well = getPerforationToWellMapping(W);
-    wc = horzcat(W.cells);
+    wc = vertcat(W.cells);
     
     mobWw = mobW(wc);
     mobOw = mobO(wc);
