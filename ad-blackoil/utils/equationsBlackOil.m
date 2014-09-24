@@ -34,44 +34,44 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     qGs    = vertcat(wellSol.qGs);
     
     %Initialization of primary variables ----------------------------------
-    [st1 , st2  , st3 ] = getCellStatus(state , disgas, vapoil);
-    [st1p, st2p , st3p] = getCellStatus(state0, disgas, vapoil);
+    st  = getCellStatusVO(state,  1-sW-sG,   sW,  sG,  disgas, vapoil);
+    st0 = getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0, disgas, vapoil);
     if ~opt.resOnly,
         if ~opt.reverseMode,
             % define primary varible x and initialize
-            x = st1.*rs + st2.*rv + st3.*sG;
+            x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
 
             [p, sW, x, qWs, qOs, qGs, bhp] = ...
                 initVariablesADI(p, sW, x, qWs, qOs, qGs, bhp);
             % define sG, rs and rv in terms of x
-            sG = st2.*(1-sW) + st3.*x;
+            sG = st{2}.*(1-sW) + st{3}.*x;
             if disgas
                 rsSat = f.rsSat(p);
-                rs = (~st1).*rsSat + st1.*x;
+                rs = (~st{1}).*rsSat + st{1}.*x;
             else % otherwise rs = rsSat = const
                 rsSat = rs;
             end
             if vapoil
                 rvSat = f.rvSat(p);
-                rv = (~st2).*rvSat + st2.*x;
+                rv = (~st{2}).*rvSat + st{2}.*x;
             else % otherwise rv = rvSat = const
                 rvSat = rv;
             end
         else
-            x0 = st1p.*rs0 + st2p.*rv0 + st3p.*sG0;
+            x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
 
             [p0, sW0, x0, zw, zw, zw, zw] = ...
                 initVariablesADI(p0, sW0, x0, ...
                 zeros(size(qWs)) , zeros(size(qOs)) , ...
                 zeros(size(qGs)) , zeros(size(bhp)));                %#ok
-            sG0 = st2p.*(1-sW0) + st3p.*x0;
+            sG0 = st0{2}.*(1-sW0) + st0{3}.*x0;
             if disgas
                 rsSat0 = f.rsSat(p0);
-                rs0 = (~st1p).*rsSat0  + st1p.*x0;
+                rs0 = (~st0{1}).*rsSat0  + st0{1}.*x0;
             end
             if vapoil
                 rvSat0 = f.rvSat(p0);
-                rv0 = (~st2p).*rvSat0  + st2p.*x0;
+                rv0 = (~st0{2}).*rvSat0  + st0{2}.*x0;
             end
         end
     else % resOnly-case compute rsSat and rvSat for use in well eqs
@@ -129,8 +129,8 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     
     % OIL PROPS
     if disgas
-        bO  = f.bO(p, rs, ~st1);
-        muO = f.muO(p, rs, ~st1);
+        bO  = f.bO(p, rs, ~st{1});
+        muO = f.muO(p, rs, ~st{1});
     else
         bO  = f.bO(p);
         muO = f.muO(p);
@@ -149,8 +149,8 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
 
     % GAS PROPS (calculated at oil pressure)
     if vapoil
-        bG  = f.bG(p, rv, ~st2);
-        muG = f.muG(p, rv, ~st2);
+        bG  = f.bG(p, rv, ~st{2});
+        muG = f.muG(p, rv, ~st{2});
     else
         bG  = f.bG(p);
         muG = f.muG(p);
@@ -172,8 +172,8 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     sO0 = 1- sW0 - sG0;
 
     bW0 = f.bW(p0);
-    if disgas, bO0 = f.bO(p0, rs0, ~st1p); else bO0 = f.bO(p0); end
-    if vapoil, bG0 = f.bG(p0, rv0, ~st2p); else bG0 = f.bG(p0); end
+    if disgas, bO0 = f.bO(p0, rs0, ~st0{1}); else bO0 = f.bO(p0); end
+    if vapoil, bG0 = f.bG(p0, rv0, ~st0{2}); else bG0 = f.bG(p0); end
 
     % oil eq:
     names{1} = 'oil';
@@ -259,44 +259,5 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     problem.iterationNo = opt.iteration;
-end
-%--------------------------------------------------------------------------
-function [st1, st2, st3] = getCellStatus(state, disgas, vapoil)
-% Status should be passed on from updateStateVO (to be sure definition is
-% identical). rs and rv are assumed to be compatible, i.e. rx = rxSat for
-% saturated cells and rx <= rxSat for undersaturated. Three values of
-% status are:
-% status 0: should not occur (almost water only -> state 3)
-% status 1 oil, no gas  : x = rs, sg = 0    , rv = rvMax
-% status 2 gas, no oil  : x = rv, sg = 1-sw , rs = rsMax
-% status 3 oil and gas  : x = sg, rs = rsMax, rv = rvMax
-if isfield(state, 'status')
-    status = state.status;
-else
-    s = state.s;
-    watOnly    = s(:,1) > 1- sqrt(eps);
-    if ~vapoil
-        oilPresent = true;
-    else
-        oilPresent = or(s(:,2) > 0, watOnly);
-    end
-    if ~disgas
-        gasPresent = true;
-    else
-        gasPresent = or(s(:,3) > 0, watOnly);
-    end
-    status = oilPresent + 2*gasPresent;
-end
-if ~disgas
-    st1 = false;
-else
-    st1 = status==1;
-end
-if ~vapoil
-    st2 = false;
-else
-    st2 = status==2;
-end
-st3 = status == 3;
 end
 
