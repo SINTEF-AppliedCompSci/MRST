@@ -94,11 +94,11 @@ if ~isempty(W)
     eqs(2:3) = weqs;
     eqs{4} = ctrleqs;
     
-    qW = cqs{1};
-    qO = cqs{2};
+    qW = cqs{1}./bw{1};
+    qO = cqs{2}./bw{1};
     
-    oil(wc) = oil(wc) - qO;
-    wat(wc) = wat(wc) - qW;
+    oil(wc) = oil(wc) - cqs{2};
+    wat(wc) = wat(wc) - cqs{1};
 
     names(2:4) = {'oilWells', 'waterWells', 'closureWells'};
     types(2:4) = {'perf', 'perf', 'well'};
