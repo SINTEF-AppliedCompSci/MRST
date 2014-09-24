@@ -1,16 +1,23 @@
 classdef TransportOilWaterModel < TwoPhaseOilWaterModel
     % Two phase oil/water system without dissolution
     properties
-
+        conserveWater
+        conserveOil
     end
     
     methods
         function model = TransportOilWaterModel(G, rock, fluid, varargin)
             
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);
-
+            
+            model.conserveWater = false;
+            model.conserveOil   = true;
+            
             model = merge_options(model, varargin{:});
-
+            
+            assert(~(model.conserveWater && model.conserveOil), ... 
+                            'Sequential form only conserves n-1 phases');
+            
             % Ensure simple tolerances
             model.useCNVConvergence = false;
         end
@@ -19,8 +26,17 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
             [problem, state] = transportEquationOilWater(state0, state, model,...
                             dt, ...
                             drivingForces,...
+                            'solveForOil',   model.conserveOil, ...
+                            'solveForWater', model.conserveWater, ...
                             varargin{:});
             
         end
+        
+        function [convergence, values] = checkConvergence(model, problem, varargin)
+            [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
+            % Always make at least one iteration.
+            convergence = convergence && problem.iterationNo > 1;
+        end
+
     end
 end

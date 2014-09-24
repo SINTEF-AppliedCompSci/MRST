@@ -5,6 +5,8 @@ opt = struct('Verbose', mrstVerbose, ...
              'scaling', [],...
              'resOnly', false,...
              'history', [],...
+             'solveForWater', false, ...
+             'solveForOil', true, ...
              'iteration', -1, ...
              'stepOptions', []);  % Compatibility only
 
@@ -16,6 +18,8 @@ assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 s = model.operators;
 f = model.fluid;
 G = model.G;
+
+assert(~(opt.solveForWater && opt.solveForOil));
 
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
 
@@ -66,10 +70,6 @@ vT = state.flux(intx);
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 
-f_w = mobWf./(mobOf + mobWf);
-bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Go - Gw));
-
-
 if ~isempty(W)
     perf2well = getPerforationToWellMapping(W);
     wc = vertcat(W.cells);
@@ -108,12 +108,31 @@ if isfield(f, 'pvMultR')
     pvMult =  f.pvMultR(p);
     pvMult0 = f.pvMultR(p0);
 end
-wat = (s.pv/dt).*(pvMult.*bW.*sW       - pvMult0.*f.bW(p0).*sW0    ) - s.div(bWvW);
-wat(wc) = wat(wc) - bWqW;
 
-eqs{1} = wat;
-types = {'cell'};
-names = {'water'};
+if opt.solveForWater
+    f_w = mobWf./(mobOf + mobWf);
+    bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Go - Gw));
+
+    wat = (s.pv/dt).*(pvMult.*bW.*sW       - pvMult0.*f.bW(p0).*sW0    ) - s.div(bWvW);
+    wat(wc) = wat(wc) - bWqW;
+    
+    eqs{1} = wat;
+    names = {'water'};
+    types = {'cell'};
+else
+    f_o = mobOf./(mobOf + mobWf);
+    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT;
+
+    oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) - s.div(bOvO);
+    oil(wc) = oil(wc) - bOqO;
+    
+    eqs{1} = oil;
+    names = {'oil'};
+    types = {'cell'};
+end
+
+
+
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 problem.iterationNo = opt.iteration;
