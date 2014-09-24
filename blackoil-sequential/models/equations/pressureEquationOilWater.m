@@ -119,5 +119,8 @@ end
 
 intx = ~any(G.faces.neighbors == 0, 2);
 state.upstream = [upcw, upco];
+if ~isfield(state, 'flux')
+    state.flux = zeros(G.faces.num, 1);
+end
 state.flux(intx) = double(vW + vO);
 end

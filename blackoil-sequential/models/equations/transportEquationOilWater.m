@@ -121,7 +121,7 @@ if opt.solveForWater
     types = {'cell'};
 else
     f_o = mobOf./(mobOf + mobWf);
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT;
+    bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + s.T.*mobWf.*(Gw - Go));
 
     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) - s.div(bOvO);
     oil(wc) = oil(wc) - bOqO;
