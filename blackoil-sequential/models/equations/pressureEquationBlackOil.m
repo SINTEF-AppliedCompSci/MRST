@@ -215,23 +215,19 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
         mw    = {mobW(wc), mobO(wc), mobG(wc)};
         s = {sW, 1 - sW - sG, sG};
 
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
+        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
                                              bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
                                              'maxComponents', rSatw, ...
                                              'nonlinearIteration', opt.iteration);
         eqs(2:4) = weqs;
         eqs{5} = ctrleqs;
 
+        qW = double(cqr{1});
+        qO = double(cqr{2});
+        qG = double(cqr{3});
         
-        qG = (cqs{3} - rsw.*cqs{2})./(1 - rsw.*rvw);
-        qO = (cqs{2} - rvw.*cqs{3})./(1 - rsw.*rvw);
-        
-        qW = cqs{1};
-%         qO = cqs{2};
-%         qG = cqs{3};
-
         oil(wc) = oil(wc) - cqs{2}; % Add src to oil eq
-        wat(wc) = wat(wc) - qW; % Add src to water eq
+        wat(wc) = wat(wc) - cqs{1}; % Add src to water eq
         gas(wc) = gas(wc) - cqs{3}; % Add src to gas eq
 
         names(2:5) = {'oilWells', 'waterWells', 'gasWells', 'closureWells'};
@@ -249,9 +245,10 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     
     % Store fluxes for the transport solver
     perf2well = getPerforationToWellMapping(W);
+    fluxt = qW + qO + qG;
     for i = 1:numel(W)
         wp = perf2well == i;
-        state.wellSol(i).flux = double(qW(wp)) + double(qO(wp)) + double(qG(wp));
+        state.wellSol(i).flux = fluxt(wp);
     end
     
 

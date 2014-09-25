@@ -88,14 +88,14 @@ if ~isempty(W)
     s = {sW, 1 - sW};
 
     wm = WellModel();
-    [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
+    [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
                                          pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
                                          'nonlinearIteration', opt.iteration);
     eqs(2:3) = weqs;
     eqs{4} = ctrleqs;
     
-    qW = cqs{1}./bw{1};
-    qO = cqs{2}./bw{1};
+    qW = cqr{1};
+    qO = cqr{2};
     
     oil(wc) = oil(wc) - cqs{2};
     wat(wc) = wat(wc) - cqs{1};

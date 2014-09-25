@@ -44,6 +44,7 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
             
             % define sG, rs and rv in terms of x
             sG = st{2}.*(1-sW) + st{3}.*x;
+
             if disgas
                 rsSat = f.rsSat(p);
                 rs = (~st{1}).*rsSat + st{1}.*x;
@@ -70,6 +71,15 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     end
     primaryVars = {'sW', gvar};
     
+%     if ~opt.resOnly,
+%     tmp = 1 - sW - sG;
+%     tmp.val = 0*tmp.val;
+%     
+%     sG = sG - st{1}.*tmp;
+%     end
+    
+%     tmp = (1-sW-sG).*rs;
+%     sG.jac{1}(st{1}, :) = tmp.jac{1}(st{1}, :);
     %----------------------------------------------------------------------
     %check for p-dependent tran mult:
     trMult = 1;
@@ -209,18 +219,47 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
         mobGw = mobG(wc);
         totMobw = mobWw + mobOw + mobGw;
 
-        f_w_w = mobWw./totMobw;
-        f_o_w = mobOw./totMobw;
-        f_g_w = mobGw./totMobw;
-
+        
         isInj = wflux > 0;
         compWell = vertcat(W.compi);
         compPerf = compWell(perf2well, :);
+        
+        
+        for i = 1:numel(W)
+            if isInj(i)
+                subs = perf2well == i;
+                switch(find(W(i).compi == 1))
+                    case 1
+                        mobWw(subs) = totMobw(subs);
+                        mobOw(subs) = 0*mobOw(subs);
+                        mobGw(subs) = 0*mobGw(subs);
+                    case 2
+                        mobWw(subs) = 0*mobWw(subs);
+                        mobOw(subs) = totMobw(subs);
+                        mobGw(subs) = 0*mobGw(subs);
+                    case 3
+                        mobWw(subs) = 0*mobWw(subs);
+                        mobOw(subs) = 0*mobOw(subs);
+                        mobGw(subs) = totMobw(subs);
+                    otherwise
+                        error()
+                end
+            end
+        end
 
-        f_w_w(isInj) = compPerf(isInj, 1);
-        f_o_w(isInj) = compPerf(isInj, 2);
-        f_g_w(isInj) = compPerf(isInj, 3);
+        f_w_w = mobWw./totMobw;
+        f_o_w = mobOw./totMobw;
+        f_g_w = mobGw./totMobw;
+        
+        
+%         f_w_w(isInj) = compPerf(isInj, 1);
+%         f_o_w(isInj) = compPerf(isInj, 2);
+%         f_g_w(isInj) = compPerf(isInj, 3);
 
+
+%         f_o_w(1) = 1;
+%         f_g_w(1) = 0;
+        
         bWqW = bW(wc).*f_w_w.*wflux;
         bOqO = bO(wc).*f_o_w.*wflux;
         bGqG = bG(wc).*f_g_w.*wflux;
@@ -267,6 +306,12 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
         else
             gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) - s.div(bGvG);
         end
+%         for i = 1:numel(wc)
+%             if isa(gas, 'ADI')
+%                 gas.jac{1}(wc(i), wc(i)) = 0;
+%             end
+%         end
+        
         gas(wc) = gas(wc) - bGqG - bOqO.*rsw;
         
         eqs{eqInd}   = gas;
