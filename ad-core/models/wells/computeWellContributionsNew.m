@@ -1,4 +1,4 @@
-function [eqs, cq_s, mix_s, status, cstatus, Rw] = computeWellContributions(wellmodel, model, sol, pBH, q_s)
+function [eqs, cq_s, mix_s, status, cstatus, Rw, cq_r] = computeWellContributions(wellmodel, model, sol, pBH, q_s)
 
 W = wellmodel.W;
 p = wellmodel.referencePressure;
@@ -104,6 +104,12 @@ cqt_is = cqt_i./volRat;
 cq_s = cell(1,numPh);
 for ph = 1:numPh
     cq_s{ph} = cq_ps{ph} + (Rw*mix_s{ph}).*cqt_is;
+end
+
+% Reservoir condition fluxes
+cq_r = cell(1, numPh);
+for ph = 1:numPh
+    cq_r{ph} = connInjInx.*cqt_i.*compi(:,ph) + ~connInjInx.*cq_p{ph};
 end
 %---------------------- WELL EQUATIONS     -------------------------------
 % Well equations
