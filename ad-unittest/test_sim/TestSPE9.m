@@ -14,7 +14,7 @@ classdef TestSPE9 < ScheduleTest
             
             fn = fullfile('SPE', 'SPE9', 'BENCH_SPE9.DATA');
             
-            [deck, schedule, model] = setupADcase(fn);
+            [deck, schedule, model, rock] = setupADcase(fn);
             
             gravity on
             
@@ -30,6 +30,7 @@ classdef TestSPE9 < ScheduleTest
             
             test.schedule = schedule;
             test.model = model;
+            test.rock = rock;
             
             test.model.drsMaxRel = .2;
             test.model.dpMaxRel  = .2;

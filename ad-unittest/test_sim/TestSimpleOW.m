@@ -12,13 +12,14 @@ classdef TestSimpleOW < ScheduleTest
 
             fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
             
-            [deck, schedule, model] = setupADcase(fn);
+            [deck, schedule, model, rock] = setupADcase(fn);
 
             gravity on
             
             test.state0 = initResSol(model.G, deck.PROPS.PVCDO(1), [.15, .85]);
             test.schedule = schedule;
             test.model = model;
+            test.rock = rock;
             
         end
         function s = getIdentifier(test, name) %#ok

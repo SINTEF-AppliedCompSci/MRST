@@ -2,6 +2,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
     properties
         model
         schedule
+        rock
         state0
         storeResults
         outputPath
