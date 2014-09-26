@@ -31,11 +31,15 @@ function ws = defaultWellSol(state, W, model)
 
    if nw == 0
       % Create fake well. Could be made neater...
+      W = [];
       W.cells = 1;
-      W.name = "FAKE_WELL";
+      W.name = 'FAKE_WELL';
       W.sign = 1;
       W.compi = [1; 0; 0];
-      ws = singleDefaultWell(state, W, model)
+      ws = singleDefaultWell(state, W, model);
+      % Make wellSol structure empty (but the structure fields are kept, they are
+      % needed when equations are assembled.)
+      ws = repmat(ws, 0, 1);
    end
 
    % additional fields depending on model
@@ -98,17 +102,21 @@ end
 function wellSol = extractMatchingWells(state, W, model)
    ws = state.wellSol;
    wellSol = [];
-   [lia, locb] = ismember({W.name}, {ws.name});
-   for iw = 1 : numel(W)
-      % We compare only number of cell connections to identify the wells since the
-      % position of the connections is not given in the state0.wellSol structure.
-      if lia(iw) && (numel(ws(locb(iw)).cdp) ==  numel(W(iw).cells))
-         wellSol = [wellSol; ws(locb(iw))];
-      else
-         wellSol = [wellSol; singleDefaultWell(state, W(iw), model)];
+   if numel(W) == 0 
+      wellSol = defaultWellSol(state, W, model);
+   else
+      
+      [lia, locb] = ismember({W.name}, {ws.name});
+      for iw = 1 : numel(W)
+         % We compare only number of cell connections to identify the wells since the
+         % position of the connections is not given in the state0.wellSol structure.
+         if lia(iw) && (numel(ws(locb(iw)).cdp) ==  numel(W(iw).cells))
+            wellSol = [wellSol; ws(locb(iw))];
+         else
+            wellSol = [wellSol; singleDefaultWell(state, W(iw), model)];
+         end
       end
    end
-
 end
 
 function ws = assignFromSchedule(W, ws)
