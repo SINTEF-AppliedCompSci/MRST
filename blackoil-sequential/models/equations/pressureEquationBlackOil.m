@@ -106,8 +106,8 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     
     % water upstream-index
     upcw  = (double(dpW)>=0);
-    vW   = s.faceUpstr(upcw, mobW).*s.T.*dpW;
-    bWvW = s.faceUpstr(upcw, bW).*vW;
+    vW   = -s.faceUpstr(upcw, mobW).*s.T.*dpW;
+    bWvW =  s.faceUpstr(upcw, bW).*vW;
     if any(bW < 0)
         warning('Negative water compressibility present!')
     end
@@ -129,8 +129,8 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     dpO    = s.grad(p) - g*(rhoOf.*dz);
     % oil upstream-index
     upco = (double(dpO)>=0);
-    vO     = s.faceUpstr(upco, bO).*s.T.*dpO;
-    bOvO   = s.faceUpstr(upco, mobO).*vO;
+    vO     = -s.faceUpstr(upco, mobO).*s.T.*dpO;
+    bOvO   =  s.faceUpstr(upco, bO).*vO;
     if disgas,
         rsbOvO = s.faceUpstr(upco, rs).*bOvO;
     end
@@ -152,8 +152,8 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     dpG    = s.grad(p+pcOG) - g*(rhoGf.*dz);
     % gas upstream-index
     upcg    = (double(dpG)>=0);
-    vG     = s.faceUpstr(upcg, mobG).*s.T.*dpG;
-    bGvG   = s.faceUpstr(upcg, bG).*vG;
+    vG     = -s.faceUpstr(upcg, mobG).*s.T.*dpG;
+    bGvG   =  s.faceUpstr(upcg, bG).*vG;
     if vapoil, 
         rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
     end
@@ -172,21 +172,21 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
                               pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) - ...
                  s.div(bOvO + rvbGvG);
     else
-        oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) - s.div(bOvO);
+        oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.div(bOvO);
         
     end
     
     
     % water eq:
-    wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) - s.div(bWvW);
+    wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
     
     % gas eq:
     if disgas
         gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-                              pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) - ...
+                              pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
                  s.div(bGvG + rsbOvO);
     else
-        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) - s.div(bGvG);
+        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.div(bGvG);
     end
     
     
@@ -234,7 +234,11 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
         types(2:5) = {'perf', 'perf', 'perf', 'well'};
     end
     % Create actual pressure equation
-    cfac = 1./(1 - rs.*rv);
+    if disgas && vapoil
+        cfac = 1./(1 - rs.*rv);
+    else
+        cfac = 1;
+    end
     a_o = cfac.*(1./bO - rs./bG);
     a_g = cfac.*(1./bG - rv./bO);
     a_w = 1./bW;

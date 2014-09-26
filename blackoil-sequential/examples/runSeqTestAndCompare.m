@@ -13,8 +13,10 @@ rock     = testcase.rock;
 G        = model.G;
 state.wellSol = initWellSolAD(schedule.control(1).W, model, state);
 
-schedule.step.val = schedule.step.val(1:10);
-schedule.step.control = schedule.step.control(1:10);
+
+% lim = 15;
+% schedule.step.val = schedule.step.val(1:lim);
+% schedule.step.control = schedule.step.control(1:lim);
 
 %%
 solver = NonLinearSolver('enforceResidualDecrease', false, 'useRelaxation', true);
@@ -68,3 +70,6 @@ for i = 1:2
     view(-10, 60)
     title(t)
 end
+
+%%
+figure; plotToolbar(G, states_fi{1}.s - states_split{1}.s)
