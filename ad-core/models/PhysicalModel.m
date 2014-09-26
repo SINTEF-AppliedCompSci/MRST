@@ -55,6 +55,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         G
         % Verbosity from model routines
         verbose
+        % Model step function is guaranteed to converge in a single step.
+        % Do not enable this unless you are very certain that it is the
+        % case!
+        stepFunctionIsLinear
     end
     
     methods
@@ -66,6 +70,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             % Physical model
             model.G = G;
+            
+            model.stepFunctionIsLinear = false;
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin) %#ok

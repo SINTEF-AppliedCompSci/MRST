@@ -84,6 +84,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % though it did not converge. May be useful for debugging. Results
         % should not be relied upon if this is enabled.
         errorOnFailure
+        % If errorOnFailure is disabled, the solver will continue after a
+        % failed timestep, treating it as a simply non-converged result
+        % with the maximum number of iterations
+        continueOnFailure
     end
     
     methods
@@ -99,6 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.enforceResidualDecrease = false;
             
             solver.errorOnFailure = true;
+            solver.continueOnFailure = false;
             
             solver = merge_options(solver, varargin{:});
             
@@ -220,7 +225,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         else
                             warning(msg);
                             converged = false;
-                            break;
+                            if ~(solver.continueOnFailure && failure)
+                                % Unless this was a failure and a special
+                                % option was set, we are all done here.
+                                break;
+                            end
                         end
                     end
                     isFinalMinistep = false;
@@ -302,7 +311,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
             break
         end
         reports{i} = stepReport;
-        if failure
+        if failure || model.stepFunctionIsLinear
             break
         end
         
