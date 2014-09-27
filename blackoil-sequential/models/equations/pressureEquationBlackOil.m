@@ -239,11 +239,24 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     else
         cfac = 1;
     end
-    a_o = cfac.*(1./bO - rs./bG);
-    a_g = cfac.*(1./bG - rv./bO);
-    a_w = 1./bW;
     
-    eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
+    if 1
+        a_w = 1./bW;
+        a_o = cfac.*(1./bO - rs./bG);
+        a_g = cfac.*(1./bG - rv./bO);
+
+        eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
+    else
+        a_w = 1./bW;
+        a_o = 1./bO - rs./bG;
+        a_g = 1./bG;
+        
+        wat = wat.*a_w;
+        oil = oil.*a_o;
+        gas = gas.*a_g;
+        
+        eqs{1} = wat + oil + gas;
+    end
     names{1} = 'pressure';
     types{1} = 'cell';
     
