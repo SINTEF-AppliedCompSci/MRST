@@ -5,6 +5,7 @@ opt = struct('Verbose', mrstVerbose, ...
              'scaling', [],...
              'resOnly', false,...
              'history', [],...
+             'redistributeRS', false, ...
              'iteration', -1, ...
              'stepOptions', []);  % Compatibility only
 
@@ -65,7 +66,12 @@ else % resOnly-case compute rsSat and rvSat for use in well eqs
     if disgas, rsSat = f.rsSat(p); else rsSat = rs; end
     if vapoil, rvSat = f.rvSat(p); else rvSat = rv; end
 end
+sO  = 1- sW  - sG;
+sO0 = 1- sW0 - sG0;
 
+if disgas && opt.redistributeRS
+    [sG, rs] = redistributeRS(f, p, rs, sG, sO);
+end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
 
     %----------------------------------------------------------------------
@@ -159,8 +165,6 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     end
 
     % EQUATIONS -----------------------------------------------------------
-    sO  = 1- sW  - sG;
-    sO0 = 1- sW0 - sG0;
 
     bW0 = f.bW(p0);
     if disgas, bO0 = f.bO(p0, rs0, ~st0{1}); else bO0 = f.bO(p0); end
@@ -239,11 +243,24 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     else
         cfac = 1;
     end
-    a_o = cfac.*(1./bO - rs./bG);
-    a_g = cfac.*(1./bG - rv./bO);
-    a_w = 1./bW;
     
-    eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
+    if 1
+        a_w = 1./bW;
+        a_o = cfac.*(1./bO - rs./bG);
+        a_g = cfac.*(1./bG - rv./bO);
+
+        eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
+    else
+        a_w = 1./bW;
+        a_o = 1./bO - rs./bG;
+        a_g = 1./bG;
+        
+        wat = wat.*a_w;
+        oil = oil.*a_o;
+        gas = gas.*a_g;
+        
+        eqs{1} = wat + oil + gas;
+    end
     names{1} = 'pressure';
     types{1} = 'cell';
     
@@ -267,4 +284,32 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     problem.iterationNo = opt.iteration;
+end
+
+
+function [sG, rs] = redistributeRS(f, p, rs, sG, sO)
+    rsSat = f.rsSat(p);
+    isSat = rs >= rsSat;
+
+    bG = f.bG(p);
+    bO = f.bO(p, rs, isSat);
+
+    assert(all(bO>0))
+
+    % Find total Rs if everything was dissolved, i.e. sort of the mass
+    % of gas for fixed compressibility
+    dRs = sG.*bG./(max(double(sO), 0.001).*bO);
+    rs = rs + dRs;
+    rs(~isfinite(double(rs))) = 0;
+    rs(double(rs)<0) = 0;
+
+    sG = 0*sG;
+
+    % Work out the overflow and put it into the gas phase
+    above = rs>rsSat;
+    overflow = rs(above) - rsSat(above);
+
+    rs(above) = rsSat(above);
+
+    sG(above) = overflow.*sO(above).*bO(above)./bG(above);
 end

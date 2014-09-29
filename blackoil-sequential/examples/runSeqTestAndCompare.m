@@ -14,7 +14,7 @@ G        = model.G;
 state.wellSol = initWellSolAD(schedule.control(1).W, model, state);
 
 
-% lim = 15;
+% lim = 20;
 % schedule.step.val = schedule.step.val(1:lim);
 % schedule.step.control = schedule.step.control(1:lim);
 
@@ -29,7 +29,7 @@ if isa(model, 'TwoPhaseOilWaterModel')
     transportModel = TransportOilWaterModel(G, rock, model.fluid, 'nonlinearTolerance', 1e-6);
 else
     pressureModel  = PressureBlackOilModel(G, rock, model.fluid);
-    transportModel = TransportBlackOilModel(G, rock, model.fluid, 'nonlinearTolerance', 5e-3, ...
+    transportModel = TransportBlackOilModel(G, rock, model.fluid, 'nonlinearTolerance', 1e-8, ...
         'conserveWater', false, 'conserveOil', true, 'conserveGas', true);
 end
 
@@ -49,7 +49,7 @@ seqModel = SequentialPressureTransportModel(pressureModel, transportModel);
 % We setup interactive viewers for both well solutions and the reservoir
 % states.
 
-time = {report_fi.ReservoirTime, report_split.ReservoirTime};
+time = {report_fi.ReservoirTime, report_split.ReservoirTime}; 
 ws = {ws_fi, ws_split};
 
 plotWellSols(ws, time, 'datasetnames', {'FI', 'sequential'})
@@ -73,3 +73,9 @@ end
 
 %%
 figure; plotToolbar(G, states_fi{1}.s - states_split{1}.s)
+
+%%
+for i = 1:numel(states_split)
+    states_split{i}.v = faceFlux2cellVelocity(G, states_split{i}.flux);
+end
+figure; plotToolbar(G, states_split); axis tight off; colorbar

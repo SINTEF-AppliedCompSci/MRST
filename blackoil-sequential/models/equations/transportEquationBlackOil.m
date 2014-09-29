@@ -155,8 +155,8 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     upcg  = state.upstream(:, 3);
     
     % Upstream weighted face mobilities
-    mobOf = s.faceUpstr(upco, mobO);
     mobWf = s.faceUpstr(upcw, mobW);
+    mobOf = s.faceUpstr(upco, mobO);
     mobGf = s.faceUpstr(upcg, mobG);
     % Tot mob
     totMob = mobOf + mobWf + mobGf;
@@ -168,22 +168,27 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     Go = g*(rhoOf.*dz);
     
     Gw = g*(rhoWf.*dz);
-    if numel(pcOW) > 1
+    if numel(double(pcOW)) > 1
         Gw = Gw - s.grad(pcOW);
     end
     
     Gg = g*(rhoGf.*dz);
-    if numel(pcOG) > 1
+    if numel(double(pcOG)) > 1
         Gg = Gg - s.grad(pcOG);
     end
+    
+    % Sign difference from old implementation of grad
+    Gw = -Gw;
+    Go = -Go;
+    Gg = -Gg;
     
     vW = f_w.*(vT + s.T.*mobOf.*(Go - Gw) + s.T.*mobGf.*(Gg - Gw));
     vO = f_o.*(vT + s.T.*mobWf.*(Gw - Go) + s.T.*mobGf.*(Gg - Go));
     vG = f_g.*(vT + s.T.*mobWf.*(Gw - Gg) + s.T.*mobOf.*(Go - Gg));
-
+    
+    bWvW = s.faceUpstr(upcw, bW).*vW;
     bOvO = s.faceUpstr(upco, bO).*vO;
     bGvG = s.faceUpstr(upcg, bG).*vG;
-    bWvW = s.faceUpstr(upcw, bW).*vW;
     
     if disgas
         rsbOvO = s.faceUpstr(upco, rs).*bOvO;
@@ -221,23 +226,24 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
         bOqO = bO(wc).*f_o_w.*wflux;
         bGqG = bG(wc).*f_g_w.*wflux;
         
-        [rsw, rvw] = deal(0);
+        % Store well fluxes
+        wflux_O = bOqO;
+        wflux_W = bWqW;
+        wflux_G = bGqG;
+
         if disgas
-            rsw = rs(wc);
-        end
-        if vapoil
-            rvw = rv(wc);
+            wflux_G = wflux_G + bOqO.*rs(wc);
         end
         
-        % Store well fluxes
-        wflux_O = double(bOqO);
-        wflux_W = double(bWqW);
-        wflux_G = double(bGqG);
+        if vapoil
+            wflux_O = wflux_O + bGqG.*rv(wc);
+        end
+        
         for i = 1:numel(W)
             perfind = perf2well == i;
-            state.wellSol(i).qOs = sum(wflux_O(perfind));
-            state.wellSol(i).qWs = sum(wflux_W(perfind));
-            state.wellSol(i).qGs = sum(wflux_G(perfind));
+            state.wellSol(i).qOs = sum(double(wflux_O(perfind)));
+            state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
+            state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
         end
     end
     
@@ -246,7 +252,7 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     if opt.solveForWater
         % water eq:
         wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
-        wat(wc) = wat(wc) - bWqW;
+        wat(wc) = wat(wc) - wflux_W;
         eqs{eqInd}   = wat;
         
         names{eqInd} = 'water';
@@ -264,7 +270,7 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
             gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.div(bGvG);
         end
         
-        gas(wc) = gas(wc) - bGqG - bOqO.*rsw;
+        gas(wc) = gas(wc) - wflux_G;
         
         eqs{eqInd}   = gas;
         names{eqInd} = 'gas';
@@ -281,7 +287,7 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
         else
             oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.div(bOvO);
         end
-        oil(wc) = oil(wc) - bOqO - bGqG.*rvw;
+        oil(wc) = oil(wc) - wflux_O;
         
         eqs{eqInd}   = oil;
         names{eqInd} = 'oil';
