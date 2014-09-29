@@ -23,13 +23,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     properties
         % Desired number of nonlinear iterations per timestep.
         targetIterationCount
+        % Offset to make iteration a bit smoother as a response function.
+        iterationOffset
     end
     methods
         function selector = GustafssonLikeStepSelector(varargin)
             selector = selector@SimpleTimeStepSelector();
             
             selector.targetIterationCount = 5;
-                        
+            selector.iterationOffset = 5;
+            
             selector = merge_options(selector, varargin{:});
         end
         
@@ -51,17 +54,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 restart = true;
             end
+            maxits = solver.maxIterations + selector.iterationOffset;
+            offset = selector.iterationOffset;
             
-           
-            tol = selector.targetIterationCount/solver.maxIterations;
+            tol = (selector.targetIterationCount + offset)/maxits;
 
-            le1 = hist(end).Iterations/solver.maxIterations;
+            le1 = (hist(end).Iterations + offset)/maxits;
             dt1 = hist(end).Timestep;
             
             if restart
                 dt_new = (tol/le1)*dt1;
             else
-                le0 = hist(end-1).Iterations/solver.maxIterations;
+                le0 = (hist(end-1).Iterations + offset)/maxits;
                 dt0 = hist(end-1).Timestep;
                 dt_new = (dt1/dt0)*(tol*le0/le1^2)*dt1; 
             end
