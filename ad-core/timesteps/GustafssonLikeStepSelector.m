@@ -45,6 +45,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 return
             end
             
+            if model.stepFunctionIsLinear
+                switch class(model)
+                    case 'SequentialPressureTransportModel'
+                        % Use transport solver as the iteration counter as
+                        % the pressure equation should be less nonlinear.
+                        getIts = @(x) x.NonlinearReport{end}.TransportSolver.Iterations;
+                    otherwise
+                        error(['Step function is linear, but I do not know',...
+                            ' how to calculate the iterations for models of type ', ...
+                            class(model)]);
+                end 
+            else
+                getIts = @(x) x.Iterations;
+            end
+            
             if nHist > 1
                 % We consider this a restart if we were limited by bounds
                 % outside of the function or if the previous step was the
@@ -59,13 +74,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             tol = (selector.targetIterationCount + offset)/maxits;
 
-            le1 = (hist(end).Iterations + offset)/maxits;
+            le1 = (getIts(hist(end)) + offset)/maxits;
             dt1 = hist(end).Timestep;
             
             if restart
                 dt_new = (tol/le1)*dt1;
             else
-                le0 = (hist(end-1).Iterations + offset)/maxits;
+                le0 = (getIts(hist(end-1)) + offset)/maxits;
                 dt0 = hist(end-1).Timestep;
                 dt_new = (dt1/dt0)*(tol*le0/le1^2)*dt1; 
             end

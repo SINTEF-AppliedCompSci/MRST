@@ -307,10 +307,10 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
                                onlyCheckConvergence, 'iteration', i);
         converged  = stepReport.Converged;
         failure    = stepReport.Failure;
+        reports{i} = stepReport;
         if converged
             break
         end
-        reports{i} = stepReport;
         if failure || model.stepFunctionIsLinear
             break
         end

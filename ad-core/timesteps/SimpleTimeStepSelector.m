@@ -101,6 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function reset(selector)
             selector.history = [];
+            selector.previousControl = [];
         end
         
         function storeTimestep(selector, report)
@@ -157,11 +158,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             prev = selector.previousControl;
             
             if isempty(prev) || prev.controlId ~= control.controlId
-                selector.controlsChanged = true;
-                selector.previousControl = control;
                 % We are at the beginning of a new control step and should
                 % reset the selector accordingly
                 selector.reset();
+                selector.controlsChanged = true;
+                selector.previousControl = control;
             else
                 selector.controlsChanged = false;
             end
