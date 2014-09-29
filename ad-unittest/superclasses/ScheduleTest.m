@@ -47,7 +47,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
             fn = [fullfile(test.outputPath, name), '.mat'];
             if test.storeResults || ~(exist(fn, 'file') == 2)
                 disp(['Storing test results for test ''', name, '''']);
-                save(fn, 'states');
+                save(fn, 'res_states');
                 ref_states = [];
             else
                 import matlab.unittest.constraints.RelativeTolerance;
