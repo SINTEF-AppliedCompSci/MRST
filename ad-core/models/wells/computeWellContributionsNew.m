@@ -109,7 +109,7 @@ end
 % Reservoir condition fluxes
 cq_r = cell(1, numPh);
 for ph = 1:numPh
-    cq_r{ph} = connInjInx.*cqt_i.*compi(:,ph) + ~connInjInx.*cq_p{ph};
+    cq_r{ph} = connInjInx.*cqt_i.*compi(perf2well,ph) + ~connInjInx.*cq_p{ph};
 end
 %---------------------- WELL EQUATIONS     -------------------------------
 % Well equations
