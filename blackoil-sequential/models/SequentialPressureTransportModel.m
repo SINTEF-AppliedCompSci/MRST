@@ -2,22 +2,40 @@ classdef SequentialPressureTransportModel < ReservoirModel
     properties
         pressureModel
         transportModel
+        
+        pressureNonLinearSolver
+        transportNonLinearSolver
     end
     
     methods
-        function model = SequentialPressureTransportModel(pressureModel, transportModel)
+        function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
             model = model@ReservoirModel([], [], []);
              
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;
+            
+            model = merge_options(model, varargin{:});
+            
+            if isempty(model.pressureNonLinearSolver)
+                model.pressureNonLinearSolver = NonLinearSolver();
+            end
+            
+            if isempty(model.transportNonLinearSolver)
+                model.transportNonLinearSolver = NonLinearSolver();
+            end
+            
+            model.stepFunctionIsLinear = true;
         end
         
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nonlinsolve,...
                                                 onlyCheckConvergence, varargin)
             % Solve pressure
+            psolver = model.pressureNonLinearSolver;
+            tsolver = model.transportNonLinearSolver;
+            
             [state, pressureReport] = ...
-                nonlinsolve.solveTimestep(state0, dt, model.pressureModel,...
+                psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'Wells', drivingForces.Wells, ...
                             'bc', drivingForces.bc, ...
                             'src', drivingForces.src);
@@ -26,7 +44,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             if pressure_ok
                 % Solve transport
                 [state, transportReport] = ...
-                    nonlinsolve.solveTimestep(state, dt, model.transportModel,...
+                    tsolver.solveTimestep(state, dt, model.transportModel,...
                                 'Wells', drivingForces.Wells, ...
                                 'bc', drivingForces.bc, ...
                                 'src', drivingForces.src);
@@ -44,12 +62,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
             else
                 FailureMsg = '';
             end
-            
-%             if converged
-%                 values = transportReport.Residuals;
-%             else
-                values = [];
-%             end
+
+            values = [];
             report = model.makeStepReport(...
                                     'Failure',         ~converged, ...
                                     'Converged',       converged, ...
