@@ -55,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   require coarsegrid
+   require coarsegrid mrst-experimental
 
    opt = struct('ufactor', 1.5, ...
                 'ncuts',   1, ...
