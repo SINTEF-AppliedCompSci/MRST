@@ -39,8 +39,8 @@ classdef ScheduleTest < matlab.unittest.TestCase
     end
     
     methods
-        function [states, ref] = runSchedule(test, name, varargin)
-            [states, failure] = runSimulationProblem(test.model, test.state0, ...
+        function [res_states, ref_states] = runSchedule(test, name, varargin)
+            [res_states, failure] = runSimulationProblem(test.model, test.state0, ...
                 test.schedule, varargin{:});
             test.assertFalse(failure, 'Non-linear solver was unable to complete timestep');
             
@@ -48,38 +48,72 @@ classdef ScheduleTest < matlab.unittest.TestCase
             if test.storeResults || ~(exist(fn, 'file') == 2)
                 disp(['Storing test results for test ''', name, '''']);
                 save(fn, 'states');
-                ref = [];
+                ref_states = [];
             else
                 import matlab.unittest.constraints.RelativeTolerance;
+                import matlab.unittest.constraints.AbsoluteTolerance;
                 import matlab.unittest.constraints.IsEqualTo;
 
                 % Compare with ref
                 tmp = load(fn);
-                ref = tmp.states;
+                ref_states = tmp.states;
                 reltol = RelativeTolerance(test.relativeTolerance);
+                abstol = RelativeTolerance(0.1);
                 
-                if isfield(ref{1}, 's')
-                    for i = 1:numel(ref)
-                        % Validate sum of saturations for solution -
-                        % physical constraint.
-                        s = states{i}.s;
+                for i = 1:numel(ref_states)
+                    ref = ref_states{i};
+                    res = res_states{i};
+                    test.compareStates(ref, res, reltol, abstol, i);
+                end
+            end
+        end
+    
+        function compareStates(test, ref, res, reltol, abstol, i)
+            import matlab.unittest.constraints.IsEqualTo;
+            import matlab.unittest.constraints.RelativeTolerance;
+            import matlab.unittest.constraints.AbsoluteTolerance;
+
+
+
+            fn_ref = sort(fieldnames(ref));
+            fn_res = sort(fieldnames(res));
+            test.verifyEqual(fn_ref, fn_res, ...
+                ['Field names differ in state ', num2str(i)]);
+
+            for j = 1:numel(fn_ref)
+                fn = fn_ref{j};
+                e = ['Comperator failed for field ', fn, ' at state number ', num2str(i)];
+                
+                switch(lower(fn))
+                    case 's'
+                        s = res.(fn);
                         test.verifyThat(sum(s, 2), ...
                             IsEqualTo(ones(size(s, 1), 1), ...
                             'Within', RelativeTolerance(1e-6)), ...
-                            'Saturations  did not sum to one.');
-                        
-                        % Avoid zero comparison for saturations by adding a
-                        % reasonable constant before comparison
-                        states{i}.s = states{i}.s + .1;
-                        ref{i}.s = ref{i}.s + .1;
-                    end
+                            ['Saturations  did not sum to one for state ' num2str(i)]);
+
+                        test.verifyThat(ref.(fn), ...
+                            IsEqualTo(res.(fn), 'Within', abstol), ...
+                            ['Saturations were not equal for state ' num2str(i)]);
+                    case 'wellsol'
+                        for k = 1:numel(ref.(fn))
+                            % Recursive definition
+                            test.compareStates(ref.(fn)(k), res.(fn)(k), reltol, abstol, i);
+                        end
+                    case {'qws', 'qgs', 'qos', 'qts', 'qs', 'cqs'}
+                        % Misc well fields that may be close to zero
+                        fudge = 1e8;
+                        a = round(fudge*res.(fn))/fudge;
+                        b = round(fudge*ref.(fn))/fudge;
+                        test.verifyThat(a, IsEqualTo(b, 'Within', reltol), e);
+                    otherwise
+                        test.verifyThat(ref.(fn), ...
+                            IsEqualTo(res.(fn), 'Within', reltol), e);
                 end
-                test.verifyThat(states, IsEqualTo(ref,...
-                                    'Within', reltol));
             end
         end
-        
     end
+
     
     methods (Test)
         
