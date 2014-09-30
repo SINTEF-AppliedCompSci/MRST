@@ -20,6 +20,12 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
         dpMax
         dsMax
         
+        % plot function (if present, called after each ministep)
+        plotfun 
+        
+        % locking pressure for use with indeterminate pressure systems
+        locking_pressure
+        
     end
     % ============================== Public methods ==============================
     methods %(Access = public)
@@ -34,7 +40,10 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
             opt.rhoBrine = 1020 * kilogram / meter^3; % if EOS not provided
             opt.mu       = [5.36108e-5, 5.4e-5];    % Default mu values [CO2, brine]
             opt.constantVerticalDensity = false;    % true for semi-compressible model
-            opt.nonlinearTolerance = 1e-6;
+            opt.nonlinearTolerance = 1e-14;
+            opt.plotfun = [];
+            opt.trans   = [];
+            opt.locking_pressure = [];
             
             opt = merge_options(opt, varargin{:});
             
@@ -51,31 +60,30 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
             
             % Inherited properties.  The 'fluid' field of ReservoirModel will
             % remain empty, as we use the fields 'cfluid' and 'bfluid' instead.
-            model@ReservoirModel(Gt, rock, []);
+            model@ReservoirModel(Gt, rock, [], 'nonlinearTolerance', opt.nonlinearTolerance);
             model.water = true;
             model.gas   = true;
             model.oil   = false;
 
-            model = model.setupOperators(Gt, rock, varargin{:});
+            model = model.setupOperators(Gt, rock, 'trans', opt.trans);
             
             % Other properties
-            model.T_ref       = tinfo{1}; 
-            model.T_ref_depth = tinfo{2}; 
-            model.T_grad      = tinfo{3}; 
-            model.slope       = opt.slope;
-            model.slopedir    = opt.slopedir;
-            model.cfluid = setupFluid(opt.EOSCO2,   opt.mu(1), opt.slope, ...
-                                      model.T_grad, opt.constantVerticalDensity);
-            model.bfluid = setupFluid(opt.EOSBRINE, opt.mu(2), opt.slope, ...
-                                      model.T_grad, opt.constantVerticalDensity);
+            model.T_ref            = tinfo{1}; 
+            model.T_ref_depth      = tinfo{2}; 
+            model.T_grad           = tinfo{3}; 
+            model.slope            = opt.slope;
+            model.slopedir         = opt.slopedir;
+            model.cfluid           = setupFluid(opt.EOSCO2,   opt.mu(1), opt.slope, ...
+                                                model.T_grad, opt.constantVerticalDensity);
+            model.bfluid           = setupFluid(opt.EOSBRINE, opt.mu(2), opt.slope, ...
+                                                model.T_grad, opt.constantVerticalDensity);
+            model.plotfun          = opt.plotfun;
+            model.locking_pressure = opt.locking_pressure;
 
             % @@hack
-           model.dpMax = inf;
-           model.dsMax = .2;
-           
-            
-            
-            
+            model.dpMax = inf;
+            model.dsMax = .2;
+                       
         end
         
         function state = includeComputedCaprockValues(model, state, quick)
@@ -131,13 +139,27 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
            % end
            
         end
+    
+        % Following function called by the solver after each ministep.  We can
+        % therefore use it to call functions we want to be run after each
+        % converged step
+        function state = updateAfterConvergence(model, state0, state, drivingForces)
+           
+        % If user provided a plotting function, call it here
+           if ~isempty(model.plotfun)
+              model.plotfun(model.G, state, state0, drivingForces);
+              drawnow;
+              %pause(1);
+           end
+        end
     end
+    
     % ============================== Private methods ==============================
     methods %(Access = protected)
 
         function model = setupOperators(model, Gt, rock, varargin)
             
-           operators = setupSimCompVe(Gt, rock, 'useNewStandard', true);
+           operators = setupSimCompVe(Gt, rock, 'useNewStandard', true, varargin{:});
            operators.pv = operators.pv ./ Gt.cells.H; % @@ Necessary since
                                                       % we use a height-formulation.
            model.operators = operators;
@@ -152,7 +174,9 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
                                               model.cfluid, model.bfluid, ...
                                               model.T_ref, model.T_ref_depth, ...
                                               model.T_grad, model.slope, ...
-                                              model.slopedir, varargin{:});
+                                              model.slopedir, ...
+                                              'pressure_lock', model.locking_pressure, ...
+                                              varargin{:});
         end
     % ----------------------------------------------------------------------------
     function [fn, index] = getVariableField(model, name)

@@ -4,12 +4,17 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
                                                           T_ref, T_ref_depth, T_grad, ...
                                                           slope, slopedir, ...
                                                           varargin)
-    opt = struct('reverseMode' , false, 'resOnly', false, 'iteration', -1);
+   % NB, 'pressure_lock' options only intended for use on systems that would
+   % otherwise have indeterminate pressure, i.e. incompressible systems with
+   % no pressure boundary conditions.
+    opt = struct('reverseMode' , false, 'resOnly', false, 'iteration', -1, ...
+                 'pressure_lock', []);
     opt = merge_options(opt, varargin{:});
+    
     
     %% Ensure that the state's wellSol struct is present if and only if there
     %% are wells present
-    if isempty(drivingForces.Wells) && isfield(state, 'wellSol')
+    if isempty(drivingForces.Wells) && isfield(state, 'wellSol') && ~isempty(state.wellSol)
         % no wells present - remove wellSol structure
         state.wellSol.qGs = [];
         state.wellSol.bhp = [];
@@ -48,10 +53,21 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     % NB: s.grad gives _negative_gradient, hence the additional '-' sign) 
     dpI  = -s.grad(pI);              % gradient of interface pressure
     dInt = -s.grad(Gt.cells.z + h);  % gradient of interface position
-    
+
+    % Override periodic boundary condition faces, if any
+    if ~isempty(drivingForces.bcp)
+       iface_ixs = interiorFaces(Gt);
+       reindex(iface_ixs) = 1:numel(iface_ixs);
+       bcp = drivingForces.bcp; % for convenience
+       dpI(reindex(bcp.face)) = bcp.value .* bcp.sign;
+    end
+
     % combined gravity/interface slope term
-    v = compute_parall_slopevec(Gt, interiorFaces(Gt), slopedir);
-    mod_term = (g_cos_t .* dInt + g_sin_t .* v);
+    mod_term = g_cos_t .* dInt;
+    if norm(g_sin_t) > 0
+       v        = compute_parall_slopevec(Gt, interiorFaces(Gt), slopedir);
+       mod_term = mod_term + g_sin_t .* v;
+    end
     
     intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, s.T, -1, ...
                              dpI, mod_term, -s.grad(rhoC), rhoC, muC, h,   H, g_cos_t); 
@@ -84,6 +100,12 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     types(1:2) = {'cell', 'cell'};
     names(1:2) = {'CO2', 'brine'};
 
+    if ~isempty(opt.pressure_lock)
+       % Replacing one of the equations of the presumably degenerate system
+       % with an equation linking the pressure of a cell to the requested pressure
+       eqs{1}(1) = pI(1) - opt.pressure_lock;
+    end
+    
     % Rebalancing the conservation equations
     for i = [1:2]   eqs{i} = eqs{i} * dt/year;   end %#ok
 
@@ -93,10 +115,6 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     %% Adding extra information to state object (not used in equations, but
     %% useful for later analysis)
     state.extras = addedInfoForAnalysis(tI, rhoC, intFluxCO2, intFluxBri);
-
-    % if ~isempty(IetaCO2)    krull1 = IetaCO2(-h);    else krull1 = ones(100,1); end;
-    % if ~isempty(INupEtaCO2) krull2 = INupEtaCO2(-h); else krull2 = ones(100,1); end;
-    %state.extras.h50 = [double(state.h(50)), double(krull1(50)), double(krull2(50))]; @@ REMOVE
 end
 
 % ----------------------------------------------------------------------------
@@ -178,7 +196,12 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
 
     % Computing the slope across boundary faces, and correcting for faces
     % whose face normals don't point 'out'. 
-    bv         = compute_parall_slopevec(Gt, bc.face, slopedir);
+    if norm(slope) > 0
+       bv = compute_parall_slopevec(Gt, bc.face, slopedir);
+    else
+       bv = zeros(numel(bc.face), 1);
+    end
+    
     inv_ix     = find(Gt.faces.neighbors(bc.face,1) == 0);
     bv(inv_ix) = -bv(inv_ix);
 
@@ -308,7 +331,7 @@ function [p, h, q, bhp] = extract_vars(st, initADI)
         [q, bhp] = deal(vertcat(st.wellSol.qGs), ...
                         vertcat(st.wellSol.bhp));
     else
-        q = 0; bhp = 0;
+        q = []; bhp = [];
     end
     
 
