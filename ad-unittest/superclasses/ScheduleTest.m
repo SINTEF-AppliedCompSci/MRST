@@ -40,7 +40,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
     
     methods
         function [res_states, ref_states] = runSchedule(test, name, varargin)
-            [res_states, failure, report] = runSimulationProblem(test.model, test.state0, ...
+            [res_states, failure] = runSimulationProblem(test.model, test.state0, ...
                 test.schedule, varargin{:});
             test.assertFalse(failure, 'Non-linear solver was unable to complete timestep');
             
