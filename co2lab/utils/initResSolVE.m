@@ -11,10 +11,16 @@ function resSol = initResSolVE(G, p0, s0, varargin)
     % Create initial reservoir solution
     resSol = initResSol(G, p0, s0, varargin{:});
 
-    % Height of the plume is assumed to be zero at t=0
-    resSol.h     = zeros(size(resSol.s));
+    % Height of the plume set to correspond with the requested saturation
+    resSol.h     = resSol.s .* G.cells.H;
     resSol.h_max = resSol.h;
+
     resSol.extSat= repmat(resSol.s, 1, 2);
+
+    % % Height of the plume is assumed to be zero at t=0
+    % resSol.h     = zeros(size(resSol.s));
+    % resSol.h_max = resSol.h;
+    % resSol.extSat= repmat(resSol.s, 1, 2);
     
     % @@ Clarify role vis-a-vis extSat 
     resSol.smin  = resSol.s; 
