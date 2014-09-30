@@ -40,7 +40,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
     
     methods
         function [res_states, ref_states] = runSchedule(test, name, varargin)
-            [res_states, failure] = runSimulationProblem(test.model, test.state0, ...
+            [res_states, failure, report] = runSimulationProblem(test.model, test.state0, ...
                 test.schedule, varargin{:});
             test.assertFalse(failure, 'Non-linear solver was unable to complete timestep');
             
@@ -56,7 +56,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
 
                 % Compare with ref
                 tmp = load(fn);
-                ref_states = tmp.ref_states;
+                ref_states = tmp.res_states;
                 reltol = RelativeTolerance(test.relativeTolerance);
                 abstol = RelativeTolerance(0.1);
                 
@@ -65,6 +65,18 @@ classdef ScheduleTest < matlab.unittest.TestCase
                     res = res_states{i};
                     test.compareStates(ref, res, reltol, abstol, i);
                 end
+            end
+            
+            % Store well sols
+            if isfield(res_states{1}, 'wellSol')
+                d = clock();
+                clockstr = [sprintf('%02d', d(4)), ':', sprintf('%02d', d(5))];
+                datestr = [date(), '-', clockstr];
+                
+                fn = [fullfile(test.outputPath, [name, '-wellsols-', datestr]), '.mat'];
+                timesteps = test.schedule.step.val; %#ok 
+                wellSols = cellfun(@(x) x.wellSol, res_states, 'UniformOutput', false); %#ok
+                save(fn, 'wellSols', 'timesteps');
             end
         end
     
