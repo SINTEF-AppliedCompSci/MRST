@@ -98,10 +98,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    for i = 1 : size(pfixed, 2),
-      bfix = false([1, max(p)]);
+      nblk = max(p);
+
+      bfix = false([nblk, 1]);
       bfix(blockIndicator > upper_bound) = true;
 
-      p(bfix(p)) = pfixed(bfix(p), i)*max(p) + p(bfix(p));
+      if ~any(bfix),
+         % No blocks violate upper bound so there is no need to consider
+         % further background partitions.  Terminate refinement to omit
+         % moderatly costly and otherwise idempotent updates to partition
+         % vector 'p' and derived 'blockIndicator'.
+         break
+      end
+
+      pick    = bfix(p);
+      p(pick) = p(pick) + nblk*pfixed(pick, i);
 
       p = compressPartition(p);
       blockIndicator = blkInd(p);
