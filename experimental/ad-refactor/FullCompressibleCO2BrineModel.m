@@ -38,7 +38,7 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
             opt.slope    = 0;                       % in radians
             opt.slopedir = [1 0];                   % default is slope towards east
             opt.rhoBrine = 1020 * kilogram / meter^3; % if EOS not provided
-            opt.mu       = [5.36108e-5, 5.4e-5];    % Default mu values [CO2, brine]
+            opt.mu       = [5.36108e-5, 5.4e-4];    % Default mu values [CO2, brine]
             opt.constantVerticalDensity = false;    % true for semi-compressible model
             opt.nonlinearTolerance = 1e-14;
             opt.plotfun = [];
