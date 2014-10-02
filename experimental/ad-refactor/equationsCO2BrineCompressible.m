@@ -327,7 +327,7 @@ function [p, h, q, bhp] = extract_vars(st, initADI)
 % ----------------------------------------------------------------------------
     
     [p, h] = deal(st.pressure, st.h);
-    if ~isempty(st.wellSol)
+    if isfield(st, 'wellSol') && ~isempty(st.wellSol)
         [q, bhp] = deal(vertcat(st.wellSol.qGs), ...
                         vertcat(st.wellSol.bhp));
     else
