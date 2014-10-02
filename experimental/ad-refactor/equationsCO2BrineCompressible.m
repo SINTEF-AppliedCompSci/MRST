@@ -59,7 +59,7 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
        iface_ixs = interiorFaces(Gt);
        reindex(iface_ixs) = 1:numel(iface_ixs);
        bcp = drivingForces.bcp; % for convenience
-       dpI(reindex(bcp.face)) = bcp.value .* bcp.sign;
+       dpI(reindex(bcp.face)) = dpI(reindex(bcp.face)) + bcp.value .* bcp.sign;
     end
 
     % combined gravity/interface slope term
