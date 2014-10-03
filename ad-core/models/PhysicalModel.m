@@ -106,7 +106,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             
             values = norm(problem, n);
-            convergence = all(values < model.nonlinearTolerance);
+            convergence = all(values < model.nonlinearTolerance) & problem.iterationNo>1;
             
             if model.verbose
                 for i = 1:numel(values)
