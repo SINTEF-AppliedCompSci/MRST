@@ -1,6 +1,6 @@
 function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
                                                           Gt, drivingForces, s, ...
-                                                          co2fluid, brinefluid, ...
+                                                          fluid, ...
                                                           T_ref, T_ref_depth, T_grad, ...
                                                           slope, slopedir, ...
                                                           varargin)
@@ -38,15 +38,15 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     tI  = imposed_iface_temp(Gt, slope, slopedir, h,  T_ref, T_ref_depth, T_grad);
     tI0 = imposed_iface_temp(Gt, slope, slopedir, h0, T_ref, T_ref_depth, T_grad);
     % density and viscosity at interface conditions
-    rhoC  = co2fluid.rho(pI,  tI)  ;   rhoB  = brinefluid.rho(pI,  tI);
-    rhoC0 = co2fluid.rho(pI0, tI0) ;   rhoB0 = brinefluid.rho(pI0, tI0);
-    muC   = co2fluid.mu(pI, tI)    ;   muB   = brinefluid.mu(pI, tI);
+    rhoC  = fluid.gas.rho(pI,  tI)  ;   rhoB  = fluid.wat.rho(pI,  tI);
+    rhoC0 = fluid.gas.rho(pI0, tI0) ;   rhoB0 = fluid.wat.rho(pI0, tI0);
+    muC   = fluid.gas.mu(pI, tI)    ;   muB   = fluid.wat.mu(pI, tI);
     
     %% Setting up density-corrective integrals
-    [IetaCO2, INupEtaCO2, ~] = co2fluid.h_integrals(pI, tI);
-    [Ieta0CO2, ~, ~]         = co2fluid.h_integrals(pI0, tI0);
-    [IetaBri, INupEtaBri, ~] = brinefluid.h_integrals(pI, tI);
-    [Ieta0Bri, ~, ~]         = brinefluid.h_integrals(pI0, tI0);
+    [IetaCO2, INupEtaCO2, ~] = fluid.gas.h_integrals(pI, tI);
+    [Ieta0CO2, ~, ~]         = fluid.gas.h_integrals(pI0, tI0);
+    [IetaBri, INupEtaBri, ~] = fluid.wat.h_integrals(pI, tI);
+    [Ieta0Bri, ~, ~]         = fluid.wat.h_integrals(pI0, tI0);
     
     %% Computing interior fluxes
     
@@ -69,14 +69,14 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
        mod_term = mod_term + g_sin_t .* v;
     end
     
-    intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, s.T, -1, ...
-                             dpI, mod_term, -s.grad(rhoC), rhoC, muC, h,   H, g_cos_t); 
-    intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaBri, s.T,  1, ...
-                             dpI, mod_term, -s.grad(rhoB), rhoB, muB, H-h, H, g_cos_t);
+    intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, fluid.gas.kr, s.T, -1, ...
+                             dpI, mod_term, -s.grad(rhoC), rhoC, muC, h, g_cos_t); 
+    intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaBri, fluid.wat.kr, s.T,  1, ...
+                             dpI, mod_term, -s.grad(rhoB), rhoB, muB, H-h, g_cos_t);
     
     %% Computing boundary fluxes, if any
     [bc_cell, bc_fC, bc_fB] = ...
-        BCFluxes(Gt, s, drivingForces.bc, pI, h, slope, slopedir, ...
+        BCFluxes(Gt, fluid, s, drivingForces.bc, pI, h, slope, slopedir, ...
                  rhoC, muC, INupEtaCO2, rhoB, muB, INupEtaBri);
     
     %% Handling wells (setting up equations, rates)
@@ -172,7 +172,7 @@ end
 
 
 %-------------------------------------------------------------------------------
-function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
+function [cells, fluxC, fluxB] = BCFluxes(Gt, fluid, s, bc, p, h, slope, slopedir, ...
                                           rhoC, muC, INEfunC, rhoB, muB, INEfunB)
 %-------------------------------------------------------------------------------
     if isempty(bc);
@@ -220,11 +220,13 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     ustr     = @(i, x) bcond_ustr(i, x, nc);
     bINEfunC = make_restrict_fun(INEfunC, cells, rhoC); % @@ Suboptimal solution.  Candidate
     bINEfunB = make_restrict_fun(INEfunB, cells, rhoB); %    for optimization if necessary.
+    bkrG     = make_restrict_fun(fluid.gas.kr, cells, rhoC);
+    bkrW     = make_restrict_fun(fluid.wat.kr, cells, rhoB);
     gct      = norm(gravity) * cos(slope);
     
     % Computing fluxes
-    fluxC = computeFlux(avg, ustr, bINEfunC, Tbc, -1, bdp, mterm, 0, brC, bmC, bh,    bH, gct);
-    fluxB = computeFlux(avg, ustr, bINEfunB, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, bH, gct);
+    fluxC = computeFlux(avg, ustr, bINEfunC, bkrG, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, gct);
+    fluxB = computeFlux(avg, ustr, bINEfunB, bkrW, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, gct);
 end
 
 % ----------------------------------------------------------------------------
@@ -253,21 +255,33 @@ function res = make_restrict_fun(fun, ix, model)
         return;
     end
     
+    % function v = f(x)
+    %     tmp = model*0; % We just need an empty (possible ADI) variable of
+    %                    % the size expected by the function 'fun'
+    %     tmp(ix) = x;   % We only need the evaluations of 'fun' for the        
+    %     v = fun(tmp);  % indices 'ix'.  Give these indices a non-dummy value, 
+    %     v = v(ix);     % compute the function, and extract only the resulting 
+    % end                % components.                                          
+    
+    N = numel(ix);    
     function v = f(x)
-        tmp = model*0; % We just need an empty (possible ADI) variable of
-                       % the size expected by the function 'fun'
-        tmp(ix) = x;   % We only need the evaluations of 'fun' for the        
-        v = fun(tmp);  % indices 'ix'.  Give these indices a non-dummy value, 
-        v = v(ix);     % compute the function, and extract only the resulting 
-    end                % components.                                          
-        
+       tmp_faces = model * 0;
+       tmp_cells = model * 0;
+       tmp_faces(ix) = x(1:N);
+       tmp_cells(ix) = x(N+1:2*N);
+       v_faces = fun(tmp_faces);
+       v_cells = fun(tmp_cells);
+       v = [v_faces(ix); v_cells(ix)];
+    end
+    
+    
     res = @f;
 end
 
 
 %-------------------------------------------------------------------------------
-function flux = computeFlux(faceAvgFun, UpstrFun, INupEtaFun, ...
-                            trans, dir, dpI, modif_term, drho, rho, mu, h, H, gct)
+function flux = computeFlux(faceAvgFun, UpstrFun, INupEtaFun, relPermFun,...
+                            trans, dir, dpI, modif_term, drho, rho, mu, h, gct)
 %-------------------------------------------------------------------------------  
     
     pterm = dpI - faceAvgFun(rho) .* modif_term;
@@ -281,10 +295,7 @@ function flux = computeFlux(faceAvgFun, UpstrFun, INupEtaFun, ...
     end
     
     upc  = logical(pterm < 0);
-
-    % Division by 'H' necessary here, as the transmissibility 's.tI' has been
-    % scaled by H 
-    flux = -UpstrFun(upc, rho .* h ./ mu ./ H) .* trans .* pterm;
+    flux = -UpstrFun(upc, rho .* relPermFun(h) ./ mu) .* trans .* pterm;
     
 end
 

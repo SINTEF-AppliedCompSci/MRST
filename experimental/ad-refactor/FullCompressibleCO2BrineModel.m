@@ -12,10 +12,6 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
         slope
         slopedir
         
-        % custom fluid objects for brine and CO2
-        cfluid
-        bfluid
-        
         % @@ hacked
         dpMax
         dsMax
@@ -31,15 +27,9 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
     methods %(Access = public)
 
         %% Constructor
-        function model = FullCompressibleCO2BrineModel(Gt, rock, tinfo, varargin)
-            opt.EOSCO2   = []; 
-            opt.EOSBRINE = [];
-            opt.verbose  = mrstVerbose();
+        function model = FullCompressibleCO2BrineModel(Gt, rock, fluid, tinfo, varargin)
             opt.slope    = 0;                       % in radians
             opt.slopedir = [1 0];                   % default is slope towards east
-            opt.rhoBrine = 1020 * kilogram / meter^3; % if EOS not provided
-            opt.mu       = [5.36108e-5, 5.4e-4];    % Default mu values [CO2, brine]
-            opt.constantVerticalDensity = false;    % true for semi-compressible model
             opt.nonlinearTolerance = 1e-14;
             opt.plotfun = [];
             opt.trans   = [];
@@ -47,36 +37,26 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
             
             opt = merge_options(opt, varargin{:});
             
-            % Ensuring equations of state are defined
-            
-            if isempty(opt.EOSCO2)
-                opt.EOSCO2 = CO2props('rho_big_trunc','');
-            end
-            if isempty(opt.EOSBRINE)
-                opt.EOSBRINE = FullCompressibleCO2BrineModel.makeConstantEOS(opt.rhoBrine);
-            end
-            opt.EOSCO2   = FullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSCO2);
-            opt.EOSBRINE = FullCompressibleCO2BrineModel.defineAdditionalDerivatives(opt.EOSBRINE);
-            
-            % Inherited properties.  The 'fluid' field of ReservoirModel will
-            % remain empty, as we use the fields 'cfluid' and 'bfluid' instead.
-            model@ReservoirModel(Gt, rock, [], 'nonlinearTolerance', opt.nonlinearTolerance);
+            % Inherited properties.  
+            model@ReservoirModel(Gt, rock, fluid, 'nonlinearTolerance', opt.nonlinearTolerance);
             model.water = true;
             model.gas   = true;
             model.oil   = false;
 
             model = model.setupOperators(Gt, rock, 'trans', opt.trans);
+
+            % Temperature and slope properties
+            model.T_ref       = tinfo{1}; 
+            model.T_ref_depth = tinfo{2}; 
+            model.T_grad      = tinfo{3}; 
+            model.slope       = opt.slope;
+            model.slopedir    = opt.slopedir;
             
-            % Other properties
-            model.T_ref            = tinfo{1}; 
-            model.T_ref_depth      = tinfo{2}; 
-            model.T_grad           = tinfo{3}; 
-            model.slope            = opt.slope;
-            model.slopedir         = opt.slopedir;
-            model.cfluid           = setupFluid(opt.EOSCO2,   opt.mu(1), opt.slope, ...
-                                                model.T_grad, opt.constantVerticalDensity);
-            model.bfluid           = setupFluid(opt.EOSBRINE, opt.mu(2), opt.slope, ...
-                                                model.T_grad, opt.constantVerticalDensity);
+            % Fluid
+            model.fluid.gas.h_integrals = model.fluid.gas.h_integrals(model.slope, model.T_grad);
+            model.fluid.wat.h_integrals = model.fluid.wat.h_integrals(model.slope, model.T_grad);
+            
+            % Other stuff
             model.plotfun          = opt.plotfun;
             model.locking_pressure = opt.locking_pressure;
 
@@ -95,7 +75,7 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
            
            if quick
               % 'quick and dirty', using Taylor
-              [IEta, ~, Eta] = model.cfluid.h_integrals(state.pressure, state.extras.tI);
+              [IEta, ~, Eta] = model.fluid.gas.h_integrals(state.pressure, state.extras.tI);
               
               state.extras.tTop = state.extras.tI - ...
                   state.h * cos_theta .* model.T_grad / 1000;
@@ -122,21 +102,11 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
                  state.extras.pTop(i) = numIntTopPress(state.pressure(i), ...
                                                        tempFun, ...
                                                        state.h(i), ...
-                                                       model.cfluid.rho, ...
+                                                       model.fluid.gas.rho, ...
                                                        norm(gravity) * cos_theta);
               end
-              state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop); 
+              state.extras.rhoTop = model.fluid.gas.rho(state.extras.pTop, state.extras.tTop); 
            end
-           
-           % % @@ If 'quick' has been requested, we could also imagine using
-           % % Taylor to compute the density at top. 
-           % state.extras.rhoTop = model.cfluid.rho(state.extras.pTop, state.extras.tTop);
-           % if ~isempty(IEta)
-              
-           % else
-           %    % Density is either constant in height or always constant
-              
-           % end
            
         end
     
@@ -169,12 +139,12 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
                 getEquations(model, state0, state, dt, drivingForces, varargin)
             
             [problem, state] = ...
-                equationsCO2BrineCompressible(state0, state, dt, model.G, ...
-                                              drivingForces, model.operators, ...
-                                              model.cfluid, model.bfluid, ...
-                                              model.T_ref, model.T_ref_depth, ...
-                                              model.T_grad, model.slope, ...
-                                              model.slopedir, ...
+                equationsCO2BrineCompressible(state0, state, dt, model.G,              ...
+                                              drivingForces, model.operators,          ...
+                                              model.fluid,                             ...
+                                              model.T_ref, model.T_ref_depth,          ...
+                                              model.T_grad, model.slope,               ...
+                                              model.slopedir,                          ...
                                               'pressure_lock', model.locking_pressure, ...
                                               varargin{:});
         end
@@ -215,25 +185,6 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
        end
     end
     
-    % % ----------------------------------------------------------------------------
-    % function [convergence, values] = checkConvergence(model, problem, n)
-    % % Check and report convergence based on residual tolerances
-    %    disp('hello world\n');
-    %    if nargin == 2
-    %       n = 1;
-    %    end
-       
-    %    values = norm(problem, n);
-    %    convergence = all(values < model.nonlinearTolerance);
-       
-    %    if model.verbose
-    %       for i = 1:numel(values)
-    %          fprintf('%s (%s): %2.2e\t', problem.equationNames{i}, problem.types{i}, values(i));
-    %       end
-    %       fprintf('\n')
-    %    end
-    % end
-
     % ----------------------------------------------------------------------------    
         function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
 
@@ -283,85 +234,71 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
     methods(Static)
         
         % ----------------------------------------------------------------------------
-        function EOS = makeConstantEOS(rho)
-            EOS.rho = @(p, t) rho * ones(numel(double(p)), 1);
-        end
-        
-        % ----------------------------------------------------------------------------
        
-        function EOS = defineAdditionalDerivatives(EOS)
-        % add beta2, gamma2 and chi functions if they are not already there, and if
-        % the functions to construct them are avaialble.
-            if isfield(EOS, 'rhoDPP') && ~isfield(EOS, 'beta2')
-                EOS.beta2  = @(p,t) EOS.rhoDPP(p, t) ./ EOS.rho(p,t);
-            end
-            if isfield(EOS, 'rhoDTT') && ~isfield(EOS, 'gamma2')
-                EOS.gamma2 = @(p,t) EOS.rhoDTT(p, t) ./ EOS.rho(p,t);
-            end
-            if isfield(EOS, 'rhoDPT') && ~isfield(EOS, 'chi')
-                EOS.chi = @(p,t) EOS.rhoDPT(p, t) ./ EOS.rho(p, t);
-            end
-        end
+        % function EOS = add_extras(EOS, slope, Tgrad, vconst)
+        % % add beta2, gamma2 and chi functions if they are not already there, and if
+        % % the functions to construct them are avaialble.
+        %     if isfield(EOS, 'rhoDPP') && ~isfield(EOS, 'beta2')
+        %         EOS.beta2  = @(p,t) EOS.rhoDPP(p, t) ./ EOS.rho(p,t);
+        %     end
+        %     if isfield(EOS, 'rhoDTT') && ~isfield(EOS, 'gamma2')
+        %         EOS.gamma2 = @(p,t) EOS.rhoDTT(p, t) ./ EOS.rho(p,t);
+        %     end
+        %     if isfield(EOS, 'rhoDPT') && ~isfield(EOS, 'chi')
+        %         EOS.chi = @(p,t) EOS.rhoDPT(p, t) ./ EOS.rho(p, t);
+        %     end
+        %     EOS.h_integrals = etaIntegralFunctions(EOS, slope, Tgrad, vconst);            
+        % end
     end
 end
 
 % ====================== Helper functions (not methods) ======================
 
-
-% ----------------------------------------------------------------------------
-
-function fluid = setupFluid(EOS, mu, slope, Tgrad, vconst)
-    fluid.mu  = @(p, t) mu * ones(numel(double(p)), 1); % @@ can be rewritten to allow variable mu
-    fluid.rho = @EOS.rho;   % Should be a function of p and t
-    
-    % define functions to correct for variable vertical density
-    fluid.h_integrals = etaIntegralFunctions(EOS, slope, Tgrad, vconst);
-end
-
-% ----------------------------------------------------------------------------
-
-function [Ieta, INupEta, Eta] = IetaAndINupEtaAndEta(p, t, EOS, Gct, gct)
-    EOS.compressible = 'full'; % required by the etaIntegrals function
-    [Ieta, INupEta, ~, ~, Eta] = etaIntegrals(EOS, p , t, Gct, gct); 
-end
-
-% ----------------------------------------------------------------------------
-
-function fun = etaIntegralFunctions(EOS, slope, Tgrad, vconst)
-    if complete_eos(EOS) && ~vconst
-        gct = norm(gravity) * cos(slope);
-        Gct = Tgrad / 1000  * cos(slope);
-        fun = @(p, t) IetaAndINupEtaAndEta(p, t, EOS, Gct, gct);
-    else
-        % We do not have a complete, compressible equation of state, or
-        % alternatively, the user has requested constant vertical
-        % density, so the correction functions are empty
-        fun = @(p, t) deal([], [], []);
-    end
-end
-
-% ----------------------------------------------------------------------------
-
-function res = complete_eos(EOS)
-% Check if EOS has all the required functions to be useable for
-% approximating vertical density profiles
-    
-    if isfield(EOS, 'compressible') && ~strcmp(EOS.compressible, 'full')
-        res = false;  % the EOS has explicitly been declared not to support
-                      % vertical density profiles.  @@ Not particularly
-                      % elegant, but a compatibility issue with older code.
-        return;
-    end
-
-    contains = @(name) isfield(EOS, name) && isa(EOS.(name), 'function_handle');
-    
-    % Return true if EOS contains all of the following functions:
-    res = all(cellfun(contains, {'rho', 'beta', 'gamma', 'chi', 'beta2', 'gamma2'}));
-end
-
-% ----------------------------------------------------------------------------
-
 function Ptop = numIntTopPress(Pref, tfun, h, rhofun, g_cos_t)
     res = ode23(@(z, p) g_cos_t * rhofun(p, tfun(z)), [h, 0], Pref);
     Ptop = res.y(end);
 end
+
+% ----------------------------------------------------------------------------
+
+% function [Ieta, INupEta, Eta] = IetaAndINupEtaAndEta(p, t, EOS, Gct, gct)
+%     EOS.compressible = 'full'; % required by the etaIntegrals function
+%     [Ieta, INupEta, ~, ~, Eta] = etaIntegrals(EOS, p , t, Gct, gct); 
+% end
+
+% ----------------------------------------------------------------------------
+
+% function fun = etaIntegralFunctions(EOS, slope, Tgrad, vconst)
+%     if complete_eos(EOS) && ~vconst
+%         gct = norm(gravity) * cos(slope);
+%         Gct = Tgrad / 1000  * cos(slope);
+%         fun = @(p, t) IetaAndINupEtaAndEta(p, t, EOS, Gct, gct);
+%     else
+%         % We do not have a complete, compressible equation of state, or
+%         % alternatively, the user has requested constant vertical
+%         % density, so the correction functions are empty
+%         fun = @(p, t) deal([], [], []);
+%     end
+% end
+
+% ----------------------------------------------------------------------------
+
+% function res = complete_eos(EOS)
+% % Check if EOS has all the required functions to be useable for
+% % approximating vertical density profiles
+    
+%     if isfield(EOS, 'compressible') && ~strcmp(EOS.compressible, 'full')
+%         res = false;  % the EOS has explicitly been declared not to support
+%                       % vertical density profiles.  @@ Not particularly
+%                       % elegant, but a compatibility issue with older code.
+%         return;
+%     end
+
+%     contains = @(name) isfield(EOS, name) && isa(EOS.(name), 'function_handle');
+    
+%     % Return true if EOS contains all of the following functions:
+%     res = all(cellfun(contains, {'rho', 'beta', 'gamma', 'chi', 'beta2', 'gamma2'}));
+% end
+
+% ----------------------------------------------------------------------------
+
