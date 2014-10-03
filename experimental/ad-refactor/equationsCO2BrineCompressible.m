@@ -184,14 +184,20 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     
     Tbc   = s.T_all(bc.face);
     cells = sum(Gt.faces.neighbors(bc.face, :), 2);
+    nc    = numel(cells);
 
     %assert(numel(unique(cells)) == numel(cells)); % only support one bc per 
 
-    % prepare boundary-cell-specific values
-    bh  = h(cells)     ;  bH  = Gt.cells.H(cells);
-    brC = rhoC(cells)  ;  brB = rhoB(cells);
-    bmC = muC(cells)   ;  bmB = muB(cells);
-    bp  = bc.value + brB * norm(gravity) .* bh * cos(slope);
+    % prepare boundary-cell-specific values (first: face values, then: cell values)
+    bh  = repmat(h(cells),    2, 1)  ;  bH  = repmat(Gt.cells.H(cells), 2, 1);
+    brC = repmat(rhoC(cells), 2, 1)  ;  brB = repmat(rhoB(cells),       2, 1);
+    bmC = repmat(muC(cells),  2, 1)  ;  bmB = repmat(muB(cells),        2, 1);
+    if ~isempty(bc.sat)
+       % Adjusting h-value at boundary according to prescribed saturation there.
+       bh(1:nc) = bc.sat .* bH(1:nc);
+    end
+    
+    bp  = bc.value + brB(1:nc) * norm(gravity) .* bh(1:nc) * cos(slope);
     bdp = bp - p(cells);
 
     % Computing the slope across boundary faces, and correcting for faces
@@ -210,14 +216,31 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, s, bc, p, h, slope, slopedir, ...
     mterm = norm(gravity) * sin(slope) * bv;
 
     % Manually setting up the relevant discretization operators for the boundary
-    avg   = @(x) x;     % x will already refer to boundary faces here, so nothing to do.
-    ustr  = @(i, x) x; % ditto
+    avg      = @(x)    bcond_average(x, nc);
+    ustr     = @(i, x) bcond_ustr(i, x, nc);
     bINEfunC = make_restrict_fun(INEfunC, cells, rhoC); % @@ Suboptimal solution.  Candidate
     bINEfunB = make_restrict_fun(INEfunB, cells, rhoB); %    for optimization if necessary.
-    gct   = norm(gravity) * cos(slope);    
-    fluxC = computeFlux(avg, ustr, bINEfunC, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, bH, gct);
+    gct      = norm(gravity) * cos(slope);
+    
+    % Computing fluxes
+    fluxC = computeFlux(avg, ustr, bINEfunC, Tbc, -1, bdp, mterm, 0, brC, bmC, bh,    bH, gct);
     fluxB = computeFlux(avg, ustr, bINEfunB, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, bH, gct);
+end
 
+% ----------------------------------------------------------------------------
+function res = bcond_ustr(i, x, numel)
+% ----------------------------------------------------------------------------
+%   res = x(numel+1:2*numel);
+   res     = x(1:numel);         % face values
+   cvals   = x(numel+1:2*numel); % make separate vector of cell values
+   res(i) = cvals(i);            % insert cell values into result vector where required
+end
+
+% ----------------------------------------------------------------------------
+function res = bcond_average(x, numel)
+% ----------------------------------------------------------------------------
+%res = x(numel+1: 2*numel);
+res = 0.5 * (x(1:numel) + x(numel+1:2*numel));
 end
 
 % ----------------------------------------------------------------------------
@@ -360,3 +383,9 @@ function target = accumarrayADI(subs, val, target)
         target(ix) = target(ix) + inc;
     end
 end    
+
+% ----------------------------------------------------------------------------
+function res = ifelse(cond, yes, no)
+% ----------------------------------------------------------------------------
+   if (cond) res = yes; else yes = no; end
+end
