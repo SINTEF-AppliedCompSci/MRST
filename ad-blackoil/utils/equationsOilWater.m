@@ -8,7 +8,8 @@ opt = struct('Verbose', mrstVerbose, ...
              'resOnly', false,...
              'history', [],...
              'iteration', -1, ...
-             'stepOptions', []);  % Compatibility only
+             'stepOptions', [],...
+             'addflux',false);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
 
@@ -111,6 +112,16 @@ if isfield(f, 'BOxmuO')
 else
     mobO   = trMult.*krO./f.muO(p);
     bOvO   = s.faceUpstr(upc, bO.*mobO).*trans.*dpO;
+end
+if(opt.addflux)
+   state.bOvO=bOvO;
+   if isfield(f, 'BOxmuO')
+     state.OvO=s.faceUpstr(upc, mobO./b0).*trans.*dpO;
+   else
+     state.OvO=s.faceUpstr(upc, mobO).*trans.*dpO;
+   end
+   state.bWvW=bWvW;
+   state.WvW= s.faceUpstr(upc, mobW).*trans.*dpW;
 end
 
 % EQUATIONS ---------------------------------------------------------------
