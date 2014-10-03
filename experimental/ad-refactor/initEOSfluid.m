@@ -1,14 +1,12 @@
-function fluid = initEOSfluidHform(Gt, EOSGAS, EOSWATER, varargin)
+function fluid = initEOSfluid(EOSGAS, EOSWATER, varargin)
 % Construct a fluid object that can be used with FullCompressibleCO2BrineModel
 %
 % SYNOPSIS:
-%   function fluid = initEOSfluidHform(Gt, EOSGAS, EOSWATER, varargin)
+%   function fluid = initEOSfluid(Gt, EOSGAS, EOSWATER, varargin)
 %
 % DESCRIPTION:
 %
 % PARAMETERS:
-%   Gt       - The top surface grid used (necessary for computing linear
-%              relperms; not used if relperms are externally provided)
 %   EOSGAS   - CO2 equation of state.  Must contain the functions 'rho(p,t)'
 %              and 'mu(p,t)', _or_ constants 'rho' and 'mu'.  For fully
 %              compressible model, higher derivatives is also needed.
@@ -23,8 +21,8 @@ function fluid = initEOSfluidHform(Gt, EOSGAS, EOSWATER, varargin)
 %           fluid.gas.mu (p,t)   [gas viscosity function]
 %           fluid.wat.rho(p,t)   [water densty function]
 %           fluid.wat.mu (p,t)   [water viscosity function]
-%           fluid.gas.kr(h)      [gas relperm function]
-%           fluid.wat.kr(h)      [water relperm function, as a function of h_wat]
+%           fluid.gas.kr(s)      [gas relperm function]
+%           fluid.wat.kr(s)      [water relperm function, as a function of s_wat]
 %
 %           If used with a fully compressible model, the following higher
 %           derivatives are needed (and must be provided in EOSGAS and/or
@@ -59,8 +57,8 @@ function fluid = initEOSfluidHform(Gt, EOSGAS, EOSWATER, varargin)
    % Set relperm functions
    [fluid.gas.kr, fluid.wat.kr] = deal(opt.krG, opt.krW);
    
-   if ~isa(fluid.gas.kr, 'function_handle') fluid.gas.kr = @(h_gas) h_gas ./ Gt.cells.H; end;
-   if ~isa(fluid.wat.kr, 'function_handle') fluid.wat.kr = @(h_wat) h_wat ./ Gt.cells.H; end;
+   if ~isa(fluid.gas.kr, 'function_handle') fluid.gas.kr = @(s_gas) s_gas; end;
+   if ~isa(fluid.wat.kr, 'function_handle') fluid.wat.kr = @(s_wat) s_wat; end;
    
    % Set depth integrals for fully compressible model
    fluid.gas.h_integrals = setup_h_integral_fun(EOSGAS,   opt.constant_vertical_density);

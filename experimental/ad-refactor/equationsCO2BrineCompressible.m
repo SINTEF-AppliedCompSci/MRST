@@ -70,9 +70,9 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     end
     
     intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, fluid.gas.kr, s.T, -1, ...
-                             dpI, mod_term, -s.grad(rhoC), rhoC, muC, h, g_cos_t); 
+                             dpI, mod_term, -s.grad(rhoC), rhoC, muC, h, H, g_cos_t); 
     intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaBri, fluid.wat.kr, s.T,  1, ...
-                             dpI, mod_term, -s.grad(rhoB), rhoB, muB, H-h, g_cos_t);
+                             dpI, mod_term, -s.grad(rhoB), rhoB, muB, H-h, H, g_cos_t);
     
     %% Computing boundary fluxes, if any
     [bc_cell, bc_fC, bc_fB] = ...
@@ -225,8 +225,8 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, fluid, s, bc, p, h, slope, slopedi
     gct      = norm(gravity) * cos(slope);
     
     % Computing fluxes
-    fluxC = computeFlux(avg, ustr, bINEfunC, bkrG, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, gct);
-    fluxB = computeFlux(avg, ustr, bINEfunB, bkrW, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, gct);
+    fluxC = computeFlux(avg, ustr, bINEfunC, bkrG, Tbc, -1, bdp, mterm, 0, brC, bmC, bh, bH, gct);
+    fluxB = computeFlux(avg, ustr, bINEfunB, bkrW, Tbc,  1, bdp, mterm, 0, brB, bmB, bH-bh, bH, gct);
 end
 
 % ----------------------------------------------------------------------------
@@ -281,7 +281,7 @@ end
 
 %-------------------------------------------------------------------------------
 function flux = computeFlux(faceAvgFun, UpstrFun, INupEtaFun, relPermFun,...
-                            trans, dir, dpI, modif_term, drho, rho, mu, h, gct)
+                            trans, dir, dpI, modif_term, drho, rho, mu, h, H, gct)
 %-------------------------------------------------------------------------------  
     
     pterm = dpI - faceAvgFun(rho) .* modif_term;
@@ -295,7 +295,7 @@ function flux = computeFlux(faceAvgFun, UpstrFun, INupEtaFun, relPermFun,...
     end
     
     upc  = logical(pterm < 0);
-    flux = -UpstrFun(upc, rho .* relPermFun(h) ./ mu) .* trans .* pterm;
+    flux = -UpstrFun(upc, rho .* relPermFun(h./H) ./ mu) .* trans .* pterm;
     
 end
 
