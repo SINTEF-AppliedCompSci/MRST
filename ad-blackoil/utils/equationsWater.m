@@ -1,5 +1,5 @@
 function [problem, state] = equationsWater(state0, state, model, dt, drivingForces, varargin)
-% Get linearized problem for oil/water system with black oil-style
+% Get linearized problem for single phase water system with black oil-style
 % properties
 
 opt = struct('Verbose', mrstVerbose, ...
@@ -7,9 +7,7 @@ opt = struct('Verbose', mrstVerbose, ...
              'scaling', [],...
              'resOnly', false,...
              'history', [],...
-             'iteration', -1, ...
-             'stepOptions', [],...
-             'addflux',false);  % Compatibility only
+             'iteration', -1);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
 
@@ -85,11 +83,18 @@ rhoWf  = s.faceAvg(rhoW);
 mobW   = trMult./f.muW(p);
 dpW     = s.grad(p) - g*(rhoWf.*s.grad(G.cells.centroids(:,end)));
 % water upstream-index
-upc = (double(dpW)>=0);
-bWvW = s.faceUpstr(upc, bW.*mobW).*trans.*dpW;
-if(opt.addflux)
-    state.bWvW = bWvW;
-    state.WvW = s.faceUpstr(upc, mobW).*trans.*dpW;
+upcw = (double(dpW)>=0);
+vW = s.faceUpstr(upcw, mobW).*trans.*dpW;
+bWvW = s.faceUpstr(upcw, bW).*vW;
+
+if model.outputFluxes
+    state = model.storeFluxes(state, vW, [], []);
+end
+
+if model.extraStateOutput
+    state = model.storebfactors(state, bW, [], []);
+    state = model.storeMobilities(state, mobW, [], []);
+    state = model.storeUpstreamIndices(state, upcw, [], []);
 end
 % EQUATIONS ---------------------------------------------------------------
 % water:

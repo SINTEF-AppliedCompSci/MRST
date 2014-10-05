@@ -56,19 +56,22 @@ sO = 1 - sW;
 [bW, rhoW, mobW, dpW, Gw] = propsOW_water(sW, krW, g, dZ, f, p, s);
 [bO, rhoO, mobO, dpO, Go] = propsOW_oil(  sO, krO, g, dZ, f, p, s);
 
-if 1
-    upco = state.upstream(:, 2);
-    upcw = state.upstream(:, 1);
-else
-    upcw = (double(dpW)>=0);
-    upco = (double(dpO)>=0);
-end
 
-intx = ~any(G.faces.neighbors == 0, 2);
-vT = state.flux(intx);
+% Get total flux from state
+flux = sum(state.flux, 2);
+vT = flux(model.operators.internalConn);
+
+% Stored upstream indices
+upcw  = state.upstreamFlag(:, 1);
+upco  = state.upstreamFlag(:, 2);
 
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
+    
+if model.extraStateOutput
+    state = model.storebfactors(state, bW, bO, []);
+    state = model.storeMobilities(state, mobW, mobO, []);
+end
 
 if ~isempty(W)
     perf2well = getPerforationToWellMapping(W);

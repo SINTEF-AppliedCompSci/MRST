@@ -146,13 +146,13 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     if vapoil, bG0 = f.bG(p0, rv0, ~st0{2}); else bG0 = f.bG(p0); end
 
     % Get total flux from state
-    intx = ~any(G.faces.neighbors == 0, 2);
-    vT = state.flux(intx);
-    
+    flux = sum(state.flux, 2);
+    vT = flux(model.operators.internalConn);
+
     % Stored upstream indices
-    upcw  = state.upstream(:, 1);
-    upco  = state.upstream(:, 2);
-    upcg  = state.upstream(:, 3);
+    upcw  = state.upstreamFlag(:, 1);
+    upco  = state.upstreamFlag(:, 2);
+    upcg  = state.upstreamFlag(:, 3);
     
     % Upstream weighted face mobilities
     mobWf = s.faceUpstr(upcw, mobW);
@@ -197,7 +197,11 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     if vapoil;
         rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
     end
-
+    
+    if model.extraStateOutput
+        state = model.storebfactors(state, bW, bO, bG);
+        state = model.storeMobilities(state, mobW, mobO, mobG);
+    end
     % well equations
     if ~isempty(W)
         perf2well = getPerforationToWellMapping(W);
