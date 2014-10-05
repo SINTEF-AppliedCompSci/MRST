@@ -81,8 +81,9 @@ s.faceAvg = @(x)M*x;
 % faceUpstr - as multiplication with matrix
 s.faceUpstr = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
 
-% Include neighbor relations since eqsfiOW needs it...
+% Include neighbor relations
 s.N = N;
+s.internalConn = intInx;
 
 % Average face values to cells
 fvg = 0.5*bsxfun(@rdivide, ones(n,2), G.faces.areas(intInx));
