@@ -84,6 +84,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         inputdata
         % Add extra output to wellsol/states for derived quantities
         extraStateOutput
+        % Output fluxes
+        outputFluxes
     end
     
     methods
@@ -109,6 +111,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
             
             model.extraStateOutput = false;
+            model.outputFluxes = true;
             
             model = merge_options(model, varargin{:});
             
@@ -323,6 +326,57 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     wellSol(j).(wf) = wellSol(j).(wf) + dv(j);
                 end
             end
+        end
+        
+        function state = setPhaseData(model, state, data, fld, subs)
+            % Given a structure field name and a cell array of data for
+            % each phase, store them as columns with the given field name
+            if nargin == 4
+                subs = ':';
+            end
+            isActive = model.getActivePhases();
+            
+            ind = 1;
+            for i = 1:numel(data)
+                if isActive(i)
+                    state.(fld)(subs, ind) = data{i};
+                    ind = ind + 1;
+                end
+            end
+        end
+        
+        function state = storeFluxes(model, state, vW, vO, vG)
+            isActive = model.getActivePhases();
+            
+            internal = model.operators.internalConn;
+            state.flux = zeros(numel(internal), sum(isActive));
+            phasefluxes = {double(vW), double(vO), double(vG)};
+            state = model.setPhaseData(state, phasefluxes, 'flux', internal);
+        end
+        
+        function state = storeMobilities(model, state, mobW, mobO, mobG)
+            isActive = model.getActivePhases();
+            
+            state.mob = zeros(model.G.cells.num, sum(isActive));
+            mob = {double(mobW), double(mobO), double(mobG)};
+            state = model.setPhaseData(state, mob, 'mob');
+        end
+        
+        function state = storeUpstreamIndices(model, state, upcw, upco, upcg)
+            isActive = model.getActivePhases();
+            
+            nInterfaces = size(model.operators.N, 1);
+            state.upstreamFlag = false(nInterfaces, sum(isActive));
+            mob = {upcw, upco, upcg};
+            state = model.setPhaseData(state, mob, 'upstreamFlag');
+        end
+        
+        function state = storebfactors(model, state, bW, bO, bG)
+            isActive = model.getActivePhases();
+            
+            state.mob = zeros(model.G.cells.num, sum(isActive));
+            b = {double(bW), double(bO), double(bG)};
+            state = model.setPhaseData(state, b, 'bfactor');
         end
     end
 
