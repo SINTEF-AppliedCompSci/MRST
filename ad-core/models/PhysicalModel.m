@@ -59,14 +59,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Do not enable this unless you are very certain that it is the
         % case!
         stepFunctionIsLinear
-        addflux
     end
     
     methods
         function model = PhysicalModel(G, varargin) %#ok
             model.nonlinearTolerance = 1e-6;
             model.verbose = mrstVerbose();
-            model.addflux = false;             
             model = merge_options(model, varargin{:});            
             % Physical model
             model.G = G;
@@ -93,10 +91,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Update state based on non-linear increment after timestep has
             % converged. Defaults to doing nothing since not all models
             % require this.
-            dt=1*day;% fake NB fluxed defined correctly independent of dt
-            if(model.addflux)
-                [~,state] = model.getEquations(state0, state, dt, drivingForces, 'addflux',true,'resOnly',true);
-            end
         end
         
         function [convergence, values] = checkConvergence(model, problem, n)
