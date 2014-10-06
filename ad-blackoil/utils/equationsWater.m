@@ -90,6 +90,7 @@ eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
 
 if(~isempty(bc))
     if(isfield(bc,'cell2bcface'))
+        % uses mrst-autodiff/ad-fi/experimental/bc2ADbc.m
         pX={p};rhoX={rhoW};mobX={mobW};bX={bW};
         bXqXbc = pressureBCContribADI(G,s,pX, rhoX, mobX, bX, bc);
         for i=1:numel(bXqXbc)
