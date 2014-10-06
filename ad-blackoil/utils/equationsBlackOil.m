@@ -2,11 +2,8 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
 % Generate linearized problem for a volatile 3Ph system (wet-gas, live-oil).
     opt = struct('Verbose',     mrstVerbose,...
                  'reverseMode', false,...
-                 'scaling',     [],...
                  'resOnly',     false,...
-                 'history',     [],  ...
-                 'iteration',   -1,  ...
-                 'stepOptions', []);
+                 'iteration',   -1);
 
     opt = merge_options(opt, varargin{:});
     
@@ -121,8 +118,9 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     mobW   = trMult.*krW./f.muW(p);
     dpW    = s.grad(p-pcOW) - g*(rhoWf.*dz);
     % water upstream-index
-    upc  = (double(dpW)>=0);
-    bWvW = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
+    upcw  = (double(dpW)>=0);
+    vW = s.faceUpstr(upcw, mobW).*s.T.*dpW;
+    bWvW = s.faceUpstr(upcw, bW).*vW;
     if any(bW < 0)
         warning('Negative water compressibility present!')
     end
@@ -143,9 +141,12 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     mobO   = trMult.*krO./muO;
     dpO    = s.grad(p) - g*(rhoOf.*dz);
     % oil upstream-index
-    upc = (double(dpO)>=0);
-    bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
-    if disgas, rsbOvO = s.faceUpstr(upc, rs).*bOvO;end
+    upco = (double(dpO)>=0);
+    vO   = s.faceUpstr(upco, mobO).*s.T.*dpO;
+    bOvO   = s.faceUpstr(upco, bO).*vO;
+    if disgas
+        rsbOvO = s.faceUpstr(upco, rs).*bOvO;
+    end
 
     % GAS PROPS (calculated at oil pressure)
     if vapoil
@@ -163,9 +164,22 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
     mobG   = trMult.*krG./muG;
     dpG    = s.grad(p+pcOG) - g*(rhoGf.*dz);
     % gas upstream-index
-    upc    = (double(dpG)>=0);
-    bGvG   = s.faceUpstr(upc, bG.*mobG).*s.T.*dpG;
-    if vapoil, rvbGvG = s.faceUpstr(upc, rv).*bGvG; end
+    upcg    = (double(dpG)>=0);
+    vG = s.faceUpstr(upcg, mobG).*s.T.*dpG;
+    bGvG   = s.faceUpstr(upcg, bG).*vG;
+    if vapoil
+        rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
+    end
+
+    if model.outputFluxes
+        state = model.storeFluxes(state, vW, vO, vG);
+    end
+    
+    if model.extraStateOutput
+        state = model.storebfactors(state, bW, bO, bG);
+        state = model.storeMobilities(state, mobW, mobO, mobG);
+        state = model.storeUpstreamIndices(state, upcw, upco, upcg);
+    end
 
     % EQUATIONS -----------------------------------------------------------
     sO  = 1- sW  - sG;

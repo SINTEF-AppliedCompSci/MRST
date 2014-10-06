@@ -68,6 +68,10 @@ upco = (double(dpO)>=0);
 vO = s.faceUpstr(upco, mobO).*s.T.*dpO;
 bOvO = s.faceUpstr(upco, bO).*vO;
 
+% These are needed in transport solver, so we output them regardless of
+% any flags set in the model.
+state = model.storeFluxes(state, vW, vO, []);
+state = model.storeUpstreamIndices(state, upcw, upco, []);
 
 % EQUATIONS ---------------------------------------------------------------
 % oil:

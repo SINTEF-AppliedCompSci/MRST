@@ -4,20 +4,10 @@ function [problem, state] = equationsOilWater(state0, state, model, dt, drivingF
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
-             'scaling', [],...
              'resOnly', false,...
-             'history', [],...
-             'iteration', -1, ...
-             'stepOptions', [],...
-             'addflux',false);  % Compatibility only
+             'iteration', -1);
 
 opt = merge_options(opt, varargin{:});
-
-if ~isempty(opt.scaling)
-    scalFacs = opt.scaling;
-else
-    scalFacs.rate = 1; scalFacs.pressure = 1;
-end
 
 W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
@@ -25,8 +15,6 @@ assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 s = model.operators;
 G = model.G;
 f = model.fluid;
-
-hst = opt.history;
 
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
 
@@ -94,8 +82,9 @@ rhoWf  = s.faceAvg(rhoW);
 mobW   = trMult.*krW./f.muW(p-pcOW);
 dpW     = s.grad(p-pcOW) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
 % water upstream-index
-upc = (double(dpW)>=0);
-bWvW = s.faceUpstr(upc, bW.*mobW).*trans.*dpW;
+upcw = (double(dpW)>=0);
+vW  = s.faceUpstr(upcw, mobW).*trans.*dpW;
+bWvW = s.faceUpstr(upcw, bW).*vW;
 
 
 % oil props
@@ -104,24 +93,26 @@ rhoO   = bO.*f.rhoOS;
 rhoOf  = s.faceAvg(rhoO);
 dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.centroids(:,3)));
 % oil upstream-index
-upc = (double(dpO)>=0);
+upco = (double(dpO)>=0);
 if isfield(f, 'BOxmuO')
     % mob0 is already multplied with b0
     mobO   = trMult.*krO./f.BOxmuO(p);
-    bOvO   = s.faceUpstr(upc, mobO).*trans.*dpO;
+    bOvO   = s.faceUpstr(upco, mobO).*trans.*dpO;
+    vO = bOvO./s.faceUpstr(upco, bO);
 else
     mobO   = trMult.*krO./f.muO(p);
-    bOvO   = s.faceUpstr(upc, bO.*mobO).*trans.*dpO;
+    vO = s.faceUpstr(upco, mobO).*trans.*dpO;
+    bOvO   = s.faceUpstr(upco, bO).*vO;
 end
-if(opt.addflux)
-   state.bOvO=bOvO;
-   if isfield(f, 'BOxmuO')
-     state.OvO=s.faceUpstr(upc, mobO./b0).*trans.*dpO;
-   else
-     state.OvO=s.faceUpstr(upc, mobO).*trans.*dpO;
-   end
-   state.bWvW=bWvW;
-   state.WvW= s.faceUpstr(upc, mobW).*trans.*dpW;
+
+if model.outputFluxes
+    state = model.storeFluxes(state, vW, vO, []);
+end
+
+if model.extraStateOutput
+    state = model.storebfactors(state, bW, bO, []);
+    state = model.storeMobilities(state, mobW, mobO, []);
+    state = model.storeUpstreamIndices(state, upcw, upco, []);
 end
 
 % EQUATIONS ---------------------------------------------------------------

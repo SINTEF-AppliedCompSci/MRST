@@ -163,7 +163,12 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     if vapoil, 
         rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
     end
-
+    
+    % These are needed in transport solver, so we output them regardless of
+    % any flags set in the model.
+    state = model.storeFluxes(state, vW, vO, vG);
+    state = model.storeUpstreamIndices(state, upcw, upco, upcg);
+    
     % EQUATIONS -----------------------------------------------------------
 
     bW0 = f.bW(p0);
@@ -271,16 +276,6 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
         wp = perf2well == i;
         state.wellSol(i).flux = fluxt(wp);
     end
-    
-
-    
-    state.upstream = [upcw, upco, upcg];
-    
-    intx = ~any(G.faces.neighbors == 0, 2);
-    if ~isfield(state, 'flux')
-        state.flux = zeros(G.faces.num, 1);
-    end
-    state.flux(intx) = double(vW + vO + vG);
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     problem.iterationNo = opt.iteration;
