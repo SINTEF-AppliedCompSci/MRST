@@ -4,18 +4,10 @@ function [problem, state] = equationsWater(state0, state, model, dt, drivingForc
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
-             'scaling', [],...
              'resOnly', false,...
-             'history', [],...
              'iteration', -1);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
-
-if ~isempty(opt.scaling)
-    scalFacs = opt.scaling;
-else
-    scalFacs.rate = 1; scalFacs.pressure = 1;
-end
 
 W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
@@ -23,8 +15,6 @@ assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 s = model.operators;
 G = model.G;
 f = model.fluid;
-
-hst = opt.history;
 
 [p, wellSol] = model.getProps(state, 'pressure', 'wellsol');
 
