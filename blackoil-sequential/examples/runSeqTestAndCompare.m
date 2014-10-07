@@ -19,22 +19,27 @@ state.wellSol = initWellSolAD(schedule.control(1).W, model, state);
 % schedule.step.control = schedule.step.control(1:lim);
 
 %%
+mrstModule add agmg
 solver = NonLinearSolver('enforceResidualDecrease', false, 'useRelaxation', true);
 
 clear pressureModel transportModel seqModel
 mrstModule add blackoil-sequential
 
+
+tol = 1e-5;
 if isa(model, 'TwoPhaseOilWaterModel')
-    pressureModel  = PressureOilWaterModel(G, rock, model.fluid);
-    transportModel = TransportOilWaterModel(G, rock, model.fluid, 'nonlinearTolerance', 1e-8);
+    pressureModel  = PressureOilWaterModel(G, rock, model.fluid, 'nonlinearTolerance', tol);
+    transportModel = TransportOilWaterModel(G, rock, model.fluid, 'nonlinearTolerance', tol);
 else
-    pressureModel  = PressureBlackOilModel(G, rock, model.fluid);
-    transportModel = TransportBlackOilModel(G, rock, model.fluid, 'nonlinearTolerance', 1e-8, ...
+    pressureModel  = PressureBlackOilModel(G, rock, model.fluid, 'nonlinearTolerance', tol);
+    transportModel = TransportBlackOilModel(G, rock, model.fluid, 'nonlinearTolerance', tol, ...
         'conserveWater', false, 'conserveOil', true, 'conserveGas', true);
 end
 
+
+amgSolver = AGMGSolverAD();
 mrstVerbose on
-seqModel = SequentialPressureTransportModel(pressureModel, transportModel, 'pressureLinearSolver', AGMGSolverAD());
+seqModel = SequentialPressureTransportModel(pressureModel, transportModel, 'pressureLinearSolver', amgSolver);
 
 timer = tic();
 [ws_split, states_split, report_split] = simulateScheduleAD(state, seqModel, schedule, 'NonLinearSolver', solver);
@@ -42,8 +47,10 @@ t_split = toc(timer);
 
 
 %% Run the entire schedule
+cprsolver = CPRSolverAD('ellipticSolver', amgSolver);
+
 timer = tic();
-[ws_fi, states_fi, report_fi] = simulateScheduleAD(state, model, schedule);
+[ws_fi, states_fi, report_fi] = simulateScheduleAD(state, model, schedule, 'LinearSolver', cprsolver);
 t_fi = toc(timer);
 
 
@@ -79,6 +86,6 @@ figure; plotToolbar(G, states_fi{1}.s - states_split{1}.s)
 
 %%
 for i = 1:numel(states_split)
-    states_split{i}.v = faceFlux2cellVelocity(G, states_split{i}.flux);
+    states_split{i}.v = faceFlux2cellVelocity(G, states_split{i}.flux(:, 1));
 end
 figure; plotToolbar(G, states_split); axis tight off; colorbar
