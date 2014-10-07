@@ -33,15 +33,36 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
    properties
-       
+       setupDone
    end
    methods
        function solver = AGMGSolverAD(varargin)
             require agmg
             solver = solver@LinearSolverAD(varargin{:});
+            solver.setupDone = false;
+       end
+       
+       function [dx, result, report] = solveLinearProblem(solver, problem, model)
+           hasMixedVar = ~all(strcmpi(problem.types, 'cell'));
+           if hasMixedVar
+               % Eliminate non-cell equations
+               problem0 = problem;
+               [problem, eliminated] = problem.reduceToSingleVariableType('cell');
+           end
+           
+           [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
+           if hasMixedVar
+               % Recover increments from eliminated variables
+               dx = problem.recoverFromSingleVariableType(problem0, dx, eliminated);
+           end
        end
        
        function [result, report] = solveLinearSystem(solver, A, b)
+           cleanAfter = false;
+           if ~solver.setupDone
+               solver.setupSolver(A, b);
+               cleanAfter = true;
+           end
            % Solve the linear system to a given tolerance
            [result, flag, relres, iter, resvec] = agmg(A, b, [],...
                         solver.tolerance, solver.maxIterations, [], [], 2);
@@ -51,16 +72,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if solver.extraReport
                 report.ResidualHistory = resvec;
             end
+            
+            if cleanAfter
+                solver.cleanupSolver(A, b);
+            end
        end
        
        function solver = setupSolver(solver, A, b, varargin) %#ok 
            % Run setup on a solver for a given system
            agmg(A,[],[],[],[],[],[], 1);
+           solver.setupDone = true;
        end
        
        function  solver = cleanupSolver(solver, A, b, varargin) %#ok 
            % Clean up solver after use (if needed)
            agmg(A,[],[],[],[],[],[], -1);
+           solver.setupDone = false;
        end
    end
 end
