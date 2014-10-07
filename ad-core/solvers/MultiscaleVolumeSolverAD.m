@@ -28,7 +28,64 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            solver.coarsegrid = coarsegrid;
        end
        
+       function [dx, result, report] = solveLinearProblem(solver, problem, model)
+           
+            % Eliminate the non-cell variables first
+            isCell = problem.indexOfType('cell');
+            cellIndex = find(isCell);
+            cellEqNo = numel(cellIndex);
+            
+            % Find number of "cell" like variables
+            nCell = problem.getEquationVarNum(cellIndex(1));
+            nP = numel(problem);
+                        
+            % Eliminate non-cell variables (well equations etc)
+            problem = problem.clearSystem();
+            
+            notCellIndex = find(~isCell);
+            
+            eliminated = cell(numel(notCellIndex), 1);
+            elimNames = problem.equationNames(notCellIndex);
+            
+            for i = 1:numel(notCellIndex)
+                [problem, eliminated{i}] = problem.eliminateVariable(elimNames{i});
+            end
+            % SOLVE HERE
+           % Solve a linearized problem
+           problem = problem.assembleSystem();
+           
+           timer = tic();
+           [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
+%            tmp = BackslashSolverAD();
+%            [result, report] = tmp.solveLinearSystem(problem.A, problem.b); 
+           report.SolverTime = toc(timer);
+
+           dxCell = solver.storeIncrements(problem, result);
+           
+            % Set up storage for all variables, including those we
+            % eliminated previously
+            dx = cell(nP, 1);
+            
+            % Recover non-cell variables
+            recovered = false(nP, 1);
+            recovered(cellIndex) = true;
+            
+            % Put the recovered variables into place
+            dx(recovered) = dxCell;
+            
+            for i = numel(eliminated):-1:1
+                pos = notCellIndex(i);
+                dVal = recoverVars(eliminated{i}, cellEqNo + 1, dx(recovered));
+                dx{pos} = dVal;
+                recovered(pos) = true;
+            end
+       end
+       
        function [result, report] = solveLinearSystem(solver, A, b)
+           if isempty(solver.prolongationOperator)
+               solver.setupSolver(A, b);
+           end
+           
            I = solver.prolongationOperator;
            
            if solver.useGalerkinRestriction
@@ -104,5 +161,5 @@ function restrict = restrictOperator(partition)
     i = (1:n) .';
     j = partition(i);
     v = ones(n, 1);
-    restrict = sparse(j, i, v, n, m);
+    restrict = sparse(i, j, v, n, m)';
 end
