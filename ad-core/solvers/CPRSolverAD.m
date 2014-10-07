@@ -115,7 +115,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if any(bad)
                 bad = find(bad);
                 % first identify zero diagonal elems of eqs{pressureIndex}
-                isZeroDiag = false(numel(bad), 3);
+                isZeroDiag = false(size(bad));
                 for i = 1:cellEqNo
                     d = diag(eqs{pressureIndex}.jac{i});
                     isZeroDiag(:,i) = d(bad)==0;
