@@ -264,13 +264,7 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
             names(4:7) = {'empty', 'empty', 'empty', 'empty'};
             types(4:7) = {'none', 'none', 'none', 'none'};
         end
-    else
-        eqs(4:7) = {bhp, bhp, bhp, bhp};  % empty  ADIs
-        names(4:7) = {'empty', 'empty', 'empty', 'empty'};
-        types(4:7) = {'none', 'none', 'none', 'none'};
     end
-     
-    
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
     problem.iterationNo = opt.iteration;
 end

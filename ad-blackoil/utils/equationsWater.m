@@ -20,10 +20,8 @@ f = model.fluid;
 
 [p0] = model.getProps(state0, 'pressure');
 
-
 pBH    = vertcat(wellSol.bhp);
 qWs    = vertcat(wellSol.qWs);
-%qOs    = vertcat(wellSol.qOs);
 
 %Initialization of independent variables ----------------------------------
 
@@ -64,12 +62,10 @@ end
 trans=s.T.*transMult;
 % -------------------------------------------------------------------------
 % water props (calculated at oil pressure OK?)
-%bW     = f.bW(p);
 bW     = f.bW(p);
 rhoW   = bW.*f.rhoWS;
 % rhoW on face, avarge of neighboring cells (E100, not E300)
 rhoWf  = s.faceAvg(rhoW);
-%mobW   = trMult.*krW./f.muW(p);
 mobW   = trMult./f.muW(p);
 dpW     = s.grad(p) - g*(rhoWf.*s.grad(G.cells.centroids(:,end)));
 % water upstream-index
@@ -122,10 +118,6 @@ if ~isempty(W)
         names(2:3) = {'empty', 'empty'};
         types(2:3) = {'none', 'none'};
     end
-else % no wells
-    eqs(2:3) = {pBH, pBH};  % empty  ADIs
-    names(2:3) = {'empty', 'empty'};
-    types(2:3) = {'none', 'none'};
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 problem.iterationNo = opt.iteration;

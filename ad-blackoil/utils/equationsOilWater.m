@@ -156,10 +156,6 @@ if ~isempty(W)
         names(3:5) = {'empty', 'empty', 'empty'};
         types(3:5) = {'none', 'none', 'none'};
     end
-else % no wells
-    eqs(3:5) = {pBH, pBH, pBH};  % empty  ADIs
-    names(3:5) = {'empty', 'empty', 'empty'};
-    types(3:5) = {'none', 'none', 'none'};
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 problem.iterationNo = opt.iteration;
