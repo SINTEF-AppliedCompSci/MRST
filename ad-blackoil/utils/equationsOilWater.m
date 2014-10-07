@@ -1,7 +1,6 @@
 function [problem, state] = equationsOilWater(state0, state, model, dt, drivingForces, varargin)
 % Get linearized problem for oil/water system with black oil-style
 % properties
-
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
@@ -12,21 +11,21 @@ opt = merge_options(opt, varargin{:});
 W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
+% Operators, grid and fluid model.
 s = model.operators;
 G = model.G;
 f = model.fluid;
 
+% Properties at current timestep
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
-
+% Properties at previous timestep
 [p0, sW0] = model.getProps(state0, 'pressure', 'water');
-
 
 pBH    = vertcat(wellSol.bhp);
 qWs    = vertcat(wellSol.qWs);
 qOs    = vertcat(wellSol.qOs);
 
-%Initialization of independent variables ----------------------------------
-
+% Initialize independent variables.
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
@@ -38,71 +37,78 @@ if ~opt.resOnly,
             zeros(size(qWs)), ...
             zeros(size(qOs)), ...
             zeros(size(pBH)));                          %#ok
+        clear tmp
     end
 end
+% We will solve for pressure, water saturation (oil saturation follows via
+% the definition of saturations) and well rates + bhp.
 primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
 
-clear tmp
-g  = norm(gravity);
-
-%--------------------
-%check for p-dependent tran mult:
-trMult = 1;
-if isfield(f, 'tranMultR'), trMult = f.tranMultR(p); end
-
-%check for p-dependent porv mult:
-pvMult = 1; pvMult0 = 1;
+% Pressure dependent transmissibility multiplier 
+[trMult, pvMult, pvMult0, transMult] = deal(1);
+if isfield(f, 'tranMultR')
+    trMult = f.tranMultR(p);
+end
+% Pressure dependent pore volume multiplier
 if isfield(f, 'pvMultR')
     pvMult =  f.pvMultR(p);
     pvMult0 = f.pvMultR(p0);
 end
-transMult=1;
 if isfield(f, 'transMult')
-   transMult=f.transMult(p); 
+   transMult = f.transMult(p); 
 end
-%check for capillary pressure (p_cow)
+% Check for capillary pressure (p_cow)
 pcOW = 0;
 if isfield(f, 'pcOW')
     pcOW  = f.pcOW(sW);
 end
+% Gravity contribution, assert that it is aligned with z-dir
+grav = gravity();
+assert(grav(1) == 0 && grav(2) == 0);
+g  = norm(grav);
+dz = s.grad(G.cells.centroids(:,3));
 
-trans=s.T.*transMult;
-% -------------------------------------------------------------------------
+
+% Compute transmissibility
+T = s.T.*transMult;
+
+% Evaluate relative permeability
 [krW, krO] = f.relPerm(sW);
-%krW = f.krW(sW);
-%krO = f.krO(1-sW);
 
-% water props (calculated at oil pressure OK?)
-%bW     = f.bW(p);
-bW     = f.bW(p-pcOW);
+% Water props
+bW     = f.bW(p);
 rhoW   = bW.*f.rhoWS;
-% rhoW on face, avarge of neighboring cells (E100, not E300)
+% rhoW on face, average of neighboring cells
 rhoWf  = s.faceAvg(rhoW);
-%mobW   = trMult.*krW./f.muW(p);
-mobW   = trMult.*krW./f.muW(p-pcOW);
-dpW     = s.grad(p-pcOW) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
+mobW   = trMult.*krW./f.muW(p);
+dpW     = s.grad(p-pcOW) - g*(rhoWf.*dz);
 % water upstream-index
 upcw = (double(dpW)>=0);
-vW  = s.faceUpstr(upcw, mobW).*trans.*dpW;
+vW   = s.faceUpstr(upcw, mobW).*T.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
-
+if any(bW < 0)
+    warning('Negative water compressibility present!')
+end
 
 % oil props
 bO     = f.bO(p);
 rhoO   = bO.*f.rhoOS;
 rhoOf  = s.faceAvg(rhoO);
-dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.centroids(:,3)));
+dpO    = s.grad(p) - g*(rhoOf.*dz);
 % oil upstream-index
 upco = (double(dpO)>=0);
 if isfield(f, 'BOxmuO')
     % mob0 is already multplied with b0
     mobO   = trMult.*krO./f.BOxmuO(p);
-    bOvO   = s.faceUpstr(upco, mobO).*trans.*dpO;
+    bOvO   = s.faceUpstr(upco, mobO).*T.*dpO;
     vO = bOvO./s.faceUpstr(upco, bO);
 else
     mobO   = trMult.*krO./f.muO(p);
-    vO = s.faceUpstr(upco, mobO).*trans.*dpO;
+    vO = s.faceUpstr(upco, mobO).*T.*dpO;
     bOvO   = s.faceUpstr(upco, bO).*vO;
+end
+if any(bO < 0)
+    warning('Negative oil compressibility present!')
 end
 
 if model.outputFluxes
@@ -160,13 +166,3 @@ end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 problem.iterationNo = opt.iteration;
 end
-%--------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
