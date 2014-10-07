@@ -1,7 +1,7 @@
 mrstModule add ad-unittest
 % [G, rock, fluid, deck, state] = setupSPE1();
-testcase = TestSPE1();
-% testcase = TestEGG();
+% testcase = TestSPE1();
+testcase = TestEGG();
 
 mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil blackoil-sequential ad-unittest
 
@@ -21,12 +21,12 @@ state.wellSol = initWellSolAD(schedule.control(1).W, model, state);
 %%
 solver = NonLinearSolver('enforceResidualDecrease', false, 'useRelaxation', true);
 
-clear pressureModel transportModel
+clear pressureModel transportModel seqModel
 mrstModule add blackoil-sequential
 
 if isa(model, 'TwoPhaseOilWaterModel')
     pressureModel  = PressureOilWaterModel(G, rock, model.fluid);
-    transportModel = TransportOilWaterModel(G, rock, model.fluid, 'nonlinearTolerance', 1e-6);
+    transportModel = TransportOilWaterModel(G, rock, model.fluid, 'nonlinearTolerance', 1e-8);
 else
     pressureModel  = PressureBlackOilModel(G, rock, model.fluid);
     transportModel = TransportBlackOilModel(G, rock, model.fluid, 'nonlinearTolerance', 1e-8, ...
@@ -34,14 +34,17 @@ else
 end
 
 mrstVerbose on
-seqModel = SequentialPressureTransportModel(pressureModel, transportModel);
+seqModel = SequentialPressureTransportModel(pressureModel, transportModel, 'pressureLinearSolver', AGMGSolverAD());
 
+timer = tic();
 [ws_split, states_split, report_split] = simulateScheduleAD(state, seqModel, schedule, 'NonLinearSolver', solver);
+t_split = toc(timer);
 
 
 %% Run the entire schedule
+timer = tic();
 [ws_fi, states_fi, report_fi] = simulateScheduleAD(state, model, schedule);
-
+t_fi = toc(timer);
 
 
 
