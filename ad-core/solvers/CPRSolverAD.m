@@ -73,23 +73,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             error('Not supported directly - this is a preconditioner')
         end
         
-        function [dx, result, report] = solveLinearProblem(solver, problem, model)
+        function [dx, result, report] = solveLinearProblem(solver, problem0, model)
             % Solve a linearized problem using a constrained pressure
             % residual preconditioner
             timer = tic();
             
-            isPressure = problem.indexOfPrimaryVariable('pressure');
+            isPressure = problem0.indexOfPrimaryVariable('pressure');
             pressureIndex = find(isPressure);
             
-            % Eliminate the non-cell variables first
-            isCell = problem.indexOfType('cell');
-            cellIndex = find(isCell);
-            cellEqNo = numel(cellIndex);
+            [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
+            isCurrent = problem.indexOfType('cell');
+            cellIndex = find(isCurrent);
             
-            % Find number of "cell" like variables
-            nCell = problem.getEquationVarNum(cellIndex(1));
-            nP = numel(problem);
-                        
+            cellEqNo = numel(cellIndex);
+            nCell = problem.getEquationVarNum(1);
+            
             % Get and apply scaling
             eqs = problem.equations;
             scale = getScaling(problem, model);
@@ -97,19 +95,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 eqs{eqn} = eqs{eqn}.*scale(eqn);
             end
             problem.equations = eqs;
-            
-            % Eliminate non-cell variables (well equations etc)
-            problem = problem.clearSystem();
-            
-            notCellIndex = find(~isCell);
-            
-            eliminated = cell(numel(notCellIndex), 1);
-            elimNames = problem.equationNames(notCellIndex);
-            
-            for i = 1:numel(notCellIndex)
-                [problem, eliminated{i}] = problem.eliminateVariable(elimNames{i});
-            end
-            eqs = problem.equations;
             
             isElliptic = false(nCell, cellEqNo);
             for i = 1:cellEqNo
@@ -155,15 +140,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     end
                     % Standard switching with some overloaded indexing in
                     % the ad objects
-                    %isCurrent = replacementInd == i;
                     isCurrent = bad(replacementInd == i);
-                    %tmp = eqs{pressureIndex}(isCurrent);
                     problem.equations{i}(isCurrent) = eqs{pressureIndex}(isCurrent);
                     problem.equations{pressureIndex}(isCurrent) = eqs{i}(isCurrent);
-                    %eqs{i}(isCurrent) = tmp;
-                    
-                    %isElliptic(isCurrent, pressureIndex) = true;
-                    %isElliptic(isCurrent, i) = false;
                 end
             end
             
@@ -179,17 +158,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 problem.equations{pressureIndex} = ...
                     problem.equations{pressureIndex} + ok.*eqs{i};
-                %eqs{pressureIndex}(ok) = eqs{pressureIndex}(ok) + eqs{i}(ok);
             end
-            %problem.equations = eqs;
             
-            % Set up storage for all variables, including those we
-            % eliminated previously
-            dx = cell(nP, 1);
-            
-            % Recover non-cell variables
-            recovered = false(nP, 1);
-            recovered(cellIndex) = true;
+
             
             % Solve cell equations
             if solver.pressureScaling ~= 1
@@ -233,19 +204,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 cprSol(pInx) = cprSol(pInx) ./ solver.pressureScaling;
             end
             
-            %dispif(solver.verbose, 'GMRES converged in %d iterations\n', its(2));
+            
             dxCell = solver.storeIncrements(problem, cprSol);
+            dx = problem.recoverFromSingleVariableType(problem0, dxCell, eliminated);
             
-            % Put the recovered variables into place
-            dx(recovered) = dxCell;
-            
-            assert(all(diff(cellIndex) == 1), 'This solver currently assumes that the cell variables comes first!')
-            for i = numel(eliminated):-1:1
-                pos = notCellIndex(i);
-                dVal = recoverVars(eliminated{i}, cellEqNo + 1, dx(recovered));
-                dx{pos} = dVal;
-                recovered(pos) = true;
-            end
+            %dispif(solver.verbose, 'GMRES converged in %d iterations\n', its(2));
+            % Recover stuff
             solvetime = toc(timer);
             
             if nargout > 1

@@ -201,6 +201,61 @@ classdef LinearizedProblem
             problem.primaryVariables = problem.primaryVariables(solveInx);
         end
         
+        function [problem, eliminated] = reduceToSingleVariableType(problem, type)
+            % Eliminate the non-cell variables first
+            isCurrent = problem.indexOfType(type);
+
+            % Eliminate all variables that are not of that type
+            problem = problem.clearSystem();
+            
+            notCellIndex = find(~isCurrent);
+            
+            eliminated = cell(numel(notCellIndex), 1);
+            elimNames = problem.equationNames(notCellIndex);
+            % Gradually peel off problems
+            for i = 1:numel(notCellIndex)
+                [problem, eliminated{i}] = problem.eliminateVariable(elimNames{i});
+            end
+            
+        end
         
+        function dx = recoverFromSingleVariableType(reducedProblem, originalProblem, incrementsReduced, eliminated)
+            % Reduced problem (problem resulting from a call to
+            % reduceToSingleVariableType)
+            
+            % originalProblem is the problem before reduction
+            
+            % increments reduced is the cell array of increments from the
+            % solution of the reduced problem
+            
+            % eliminated is the eliminated equations.
+            
+            nP = numel(originalProblem);
+            
+            type = reducedProblem.types{1};
+            current = originalProblem.indexOfType(type);
+            notCellIndex = find(~current);
+            cellIndex = find(current);
+            cellEqNo = numel(cellIndex);
+            
+            % Set up storage for all variables, including those we
+            % eliminated previously
+            dx = cell(nP, 1);
+            
+            % Recover non-cell variables
+            recovered = false(nP, 1);
+            recovered(cellIndex) = true;
+            
+            % Put the recovered variables into place
+            dx(recovered) = incrementsReduced;
+            
+            assert(all(diff(cellIndex) == 1), 'This solver currently assumes that the cell variables comes first!')
+            for i = numel(eliminated):-1:1
+                pos = notCellIndex(i);
+                dVal = recoverVars(eliminated{i}, cellEqNo + 1, dx(recovered));
+                dx{pos} = dVal;
+                recovered(pos) = true;
+            end
+        end
     end
 end
