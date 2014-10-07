@@ -299,6 +299,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % We update all saturations simultanously, since this does not bias the
             % increment towards one phase in particular.
             state = model.updateStateFromIncrement(state, ds, problem, 's', model.dsMaxRel, model.dsMaxAbs);
+            
+            % Ensure that values are within zero->one interval, and
+            % re-normalize if any values were capped
+            bad = any((state.s > 1) | (state.s < 0), 2);
+            if any(bad)
+                state.s(bad, :) = min(state.s(bad, :), 1);
+                state.s(bad, :) = max(state.s(bad, :), 0);
+                state.s(bad, :) = bsxfun(@rdivide, state.s(bad, :), sum(state.s(bad, :), 2));
+            end
         end
         
         function wellSol = updateWellSol(model, wellSol, problem, dx, drivingForces, wellVars) %#ok

@@ -5,6 +5,9 @@ classdef SequentialPressureTransportModel < ReservoirModel
         
         pressureNonLinearSolver
         transportNonLinearSolver
+        
+        pressureLinearSolver
+        transportLinearSolver
     end
     
     methods
@@ -22,6 +25,16 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             if isempty(model.transportNonLinearSolver)
                 model.transportNonLinearSolver = NonLinearSolver();
+            end
+            
+            if ~isempty(model.pressureLinearSolver)
+                model.pressureNonLinearSolver.LinearSolver = ...
+                                model.pressureLinearSolver;
+            end
+            
+            if ~isempty(model.transportLinearSolver)
+                model.transportNonLinearSolver.LinearSolver = ...
+                                model.transportLinearSolver;
             end
             
             model.stepFunctionIsLinear = true;

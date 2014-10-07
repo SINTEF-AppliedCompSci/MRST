@@ -120,11 +120,4 @@ for i = 1:numel(W)
     wp = perf2well == i;
     state.wellSol(i).flux = double(qW(wp) + qO(wp));
 end
-
-intx = ~any(G.faces.neighbors == 0, 2);
-state.upstream = [upcw, upco];
-if ~isfield(state, 'flux')
-    state.flux = zeros(G.faces.num, 1);
-end
-state.flux(intx) = double(vW + vO);
 end
