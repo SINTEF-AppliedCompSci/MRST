@@ -45,6 +45,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
+if ~isfield(state.wellSol, 'flux') && isfield(state.wellSol, 'cqs')
+   for i=1:numel(state.wellSol)
+      state.wellSol(i).flux = sum(state.wellSol(i).cqs, 2);
+   end
+end
+
 ni = numel(D.inj);
 np = numel(D.prod);
 
