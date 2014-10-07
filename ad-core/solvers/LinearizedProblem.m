@@ -205,7 +205,7 @@ classdef LinearizedProblem
             % Eliminate the non-cell variables first
             isCurrent = problem.indexOfType(type);
 
-            % Eliminate all variables that are not of that type
+            % Eliminate all equations that are not of that type
             problem = problem.clearSystem();
             
             notCellIndex = find(~isCurrent);
