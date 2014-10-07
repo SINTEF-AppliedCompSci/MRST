@@ -112,7 +112,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             isElliptic(all(isElliptic == 0, 2), pressureIndex) = true;
             
             bad = ~isElliptic(:, pressureIndex);
-            %sum(isElliptic~=true)
             if any(bad)
                 bad = find(bad);
                 % first identify zero diagonal elems of eqs{pressureIndex}
