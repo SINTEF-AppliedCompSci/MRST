@@ -86,6 +86,18 @@ assert (isfield(rock, 'poro')         && ...
          'for each cell in the grid.']);
 assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
 
+% Check whether the state object has total flux and if necessary construct
+% this flux from black-oil or similar type of model
+if isfield(state,'flux')
+   state.flux = sum(state.flux,2);
+else
+   error('Reservoir state must provide total Darcy flux');
+end
+if ~isfield(state.wellSol, 'flux') && isfield(state.wellSol, 'cqs')
+   for i=1:numel(state.wellSol)
+      state.wellSol(i).flux = sum(state.wellSol(i).cqs, 2);
+   end
+end
 
 % Find injectors and producers
 iwells = cellfun(@sum, {state.wellSol.flux})>0;
