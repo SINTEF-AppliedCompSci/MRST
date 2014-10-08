@@ -137,6 +137,7 @@ opt = struct('maxiter', 25, ...
              'verbose', mrstVerbose, ...
              'linsolve', @mldivide, ...
              'msbasis', [], ...
+             'autoscalealpha', true, ...
              'alphamod', 10);
 
 opt = merge_options(opt, varargin{:});
@@ -174,8 +175,11 @@ objval = obj0;
 objectivevalues = [];
 
 % Scale initial alpha value
-alpha_0 = abs(opt.alpha*grad.objective.val/max(abs(grad.well)));
-alpha = alpha_0;
+if opt.autoscalealpha
+    alpha = abs(opt.alpha*grad.objective.val/max(abs(grad.well)));
+else
+    alpha = opt.alpha;
+end
 
 dispif(opt.verbose, 'Obj: %2.6g at initial controls \n', objval);
 outeriter = 0;
