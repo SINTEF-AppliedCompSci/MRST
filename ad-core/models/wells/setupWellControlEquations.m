@@ -78,8 +78,8 @@ if ~isempty(setToZeroRate)
     eq(setToZeroRate) = qt_s(setToZeroRate);
 end
 
-%In the case of wells not comunicating with reservoir, just set bhp to zero
+% In the case when wells are shut, always impose zero bhp (possibly overwrite previously set eqs)
 if ~isempty(setToZeroBHP)
-    eq(setToZeroBHP) = qt_s(setToZeroBHP);
+    eq(setToZeroBHP) = pBH(setToZeroBHP);
 end
 end
