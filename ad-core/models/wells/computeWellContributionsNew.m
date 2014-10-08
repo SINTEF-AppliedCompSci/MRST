@@ -42,13 +42,14 @@ connInjInx  = (drawdown <0 ); %current injecting connections
 % flow-direction to the well total flow
 crossFlowConns = connInjInx ~= Rw*isInj;
 % If crossflow is not alowed, close connections by setting WI=0
-closedConns    = false(size(crossFlowConns));
+closedConns = ~vertcat(sol.cstatus);
+%closedConns    = false(size(crossFlowConns));
 if ~wellmodel.allowCrossflow
-    closedConns     = crossFlowConns;
-    Tw(closedConns) = 0;
-    % Remove closedConns from connInjInx
-    connInjInx      = and(connInjInx, ~closedConns);
+    closedConns     = or(closedConns, crossFlowConns);
 end
+Tw(closedConns) = 0;
+% Remove closedConns from connInjInx
+connInjInx      = and(connInjInx, ~closedConns);
 
 % ------------------ HANDLE FLOW INTO WELLBORE -------------------------
 % producing connections phase volumerates:
