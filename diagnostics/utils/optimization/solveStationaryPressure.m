@@ -120,6 +120,7 @@ opt = struct('objective',       [],...
              'maxiter',         10,...
              'src',             zeros(G.cells.num, 1),...
              'linsolve',        @mldivide,...
+             'msbasis',         [], ...
              'computeTracer',   true);
 
 opt = merge_options(opt, varargin{:});
@@ -142,14 +143,14 @@ while ~converged && j < opt.maxiter
     [pressure, fluxes, bhp]  = initVariablesADI(state.pressure, fluxes, bhp);
 
     % Assemble and solve the pressure
-    [eq_p faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, [], []);
+    [eq_p, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, [], []);
 
 
     converged = all(cellfun(@(x) norm(x.val, inf), eq_p) < 1e-5);
     % Currently this is a simple incompressible solver
     if j > 1; break; end
 
-    sol = solveEqs(eq_p, opt.linsolve);
+    sol = solveEqs(eq_p, opt.linsolve, opt.msbasis);
 
     j = j + 1;
     % Update state
@@ -171,7 +172,7 @@ end
 if nargout > 1
     % If requested, solve time of flight equations as well
     [pressure, fluxes, bhp, tau_forward, tau_backward]  = initVariablesADI(state.pressure, double(fluxes), double(bhp), zeros(G.cells.num, 1), zeros(G.cells.num, 1));
-    [eq faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, tau_forward, tau_backward);
+    [eq, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, tau_forward, tau_backward);
 
 
     D = SolveTOFEqsADI(eq, state, W, opt.computeTracer);
@@ -186,7 +187,7 @@ if nargout > 2
     scaling.well = getWellScaling(W);
     [pressure, fluxes, bhp, tau_forward, tau_backward]  = initVariablesADI(state.pressure, double(fluxes), double(bhp), D.tof(:,1), D.tof(:,2));
     [eq, faceMob] = assemblePressureEq(state, G, W, T, pressure, fluid, s, fluxes, bhp, pv, opt, tau_forward, tau_backward);
-    varargout{2} = SolveAdjointTOFEqs(eq, D, opt.objective(state, D), scaling, perf2well);
+    varargout{2} = SolveAdjointTOFEqs(eq, D, opt.objective(state, D), scaling, opt.msbasis);
 end
 
 end
@@ -307,7 +308,7 @@ function totMob = getTotalMobility(fluid, state, pressure)
     totMob = l_oil + l_wat + l_gas;
 end
 
-function dx = solveEqs(eqs, linsolve)
+function dx = solveEqs(eqs, linsolve, msbasis)
     %eqs{1} = eqs{1}(inx1);
     %eqs{1}.jac{1} = eqs{1}.jac{1}(:, inx1);
 
@@ -325,7 +326,15 @@ function dx = solveEqs(eqs, linsolve)
     J = -eqs_c.jac{:};
     % We now have an elliptic system that can be solved using e.g.
     % multigrid 
-    tmp = linsolve(J, eqs_c.val);
+    
+    if isempty(msbasis)
+        tmp = linsolve(J, eqs_c.val);
+    else
+        R = msbasis.R;
+        B = msbasis.B;
+        
+        tmp = B*((R*J*B)\(R*eqs_c.val));
+    end
     dx{1} = tmp;
 
     % recover variables
@@ -333,7 +342,7 @@ function dx = solveEqs(eqs, linsolve)
     dx{2} = recoverVars(eq_r, 2,    {dx{1}, dx{3}});
 end
 
-function grad = SolveAdjointTOFEqs(eqs, D, objk, scaling, perf2well)
+function grad = SolveAdjointTOFEqs(eqs, D, objk, scaling, msbasis)
     ni = size(D.itracer, 2);
     np = size(D.ptracer, 2);
     numVars = cellfun(@numval, eqs)';
@@ -357,10 +366,26 @@ function grad = SolveAdjointTOFEqs(eqs, D, objk, scaling, perf2well)
     l_backward(~isfinite(l_backward)) = deal(0);
 
     p_ind = 1:3;
+    
+
+    hasbasis  = ~isempty(msbasis);
+    if hasbasis
+        R = msbasis.R;
+        B = msbasis.B;
+        
+        for i = 1:numel(eqs{1}.jac)
+            eqs{i}.jac{1} =   eqs{i}.jac{1}*B;
+            eqs{1}.jac{i} = R*eqs{1}.jac{i};
+        end
+        objk.jac{1} = objk.jac{1}*B;
+        numVars(1) = size(B, 2);
+    end
+    
     A = flattenJacobian(eqs{1}.jac, p_ind);
     q = flattenJacobian(eqs{2}.jac, p_ind);
     c = flattenJacobian(eqs{3}.jac, p_ind);
 
+    
     A_sys = [A; q; c] .';
 
     rhs_sys = full(flattenJacobian(objk.jac, p_ind)) .';
@@ -373,11 +398,13 @@ function grad = SolveAdjointTOFEqs(eqs, D, objk, scaling, perf2well)
     % dTOF/dPressure terms...
     rhs_sys(pressure_i) = rhs_sys(pressure_i) + sum(eqs{4}.jac{1} .' * l_forward, 2)...
                                               + sum(eqs{5}.jac{1} .' * l_backward, 2) ;
-
-
+    
     l_p = -A_sys\rhs_sys;
 
     grad.pressure = l_p(1:numVars(1));
+    if hasbasis
+        grad.pressure = B*grad.pressure;
+    end
     grad.fluxes = l_p(q_ind);
     grad.well = scaling.well.*l_p(sum(numVars(1:2)) + 1: sum(numVars(1:3)));
 
