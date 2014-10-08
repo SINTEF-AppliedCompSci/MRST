@@ -115,7 +115,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if opt.DepthReorder
       W = reorderByDepth(G, W);
    end
-
+   
+   % for now, connection status can only be true if well status is true  
+   for k = 1:numel(W)
+       W(k).cstatus = and(W(k).status, W(k).cstatus);
+   end
 end
 
 %--------------------------------------------------------------------------
