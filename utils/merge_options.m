@@ -87,7 +87,7 @@ if nargin > 1,
       all(iscellstr(varargin(1 : 2 : end))),
       st = dbstack(1);
       try
-         caller = st(1).name;
+         caller = regexprep(st(1).name, '\W', '_');
       catch  %#ok
          caller = 'BASE';
       end
