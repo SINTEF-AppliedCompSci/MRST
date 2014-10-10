@@ -23,8 +23,8 @@ function [xc,Wc]=expandWellCompletions(x,W,cexp)
 %   c - nx2 vector that specifies how to expand individual wells into a
 %       set of pseudo wells. That is, the completions of well number
 %       c(i,1) are assigned to c(i,2) bins using a load-balanced
-%       linear distribution and then the well is replaced with c(i,1)
-%       psseudo wells, one for each bin of completions.
+%       linear distribution and then the well is replaced with c(i,2)
+%       pseudo wells, one for each bin of completions.
 %
 % RETURNS:
 %   Wn  - Well structure containing the pseudo wells
