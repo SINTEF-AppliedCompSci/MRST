@@ -221,7 +221,7 @@ function lst = add_modules(lst, mods)
                   reshape(mods(j), [], 1));
 
    lst(unique(i(match))) = [];
-   lst = [ mods, lst ];
+   lst = [ fliplr(reshape(mods, 1, [])), lst ];
 end
 
 %--------------------------------------------------------------------------
