@@ -121,7 +121,9 @@ end
 % return mix_s(just values), connection and well status:
 mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
-status  = ~deadWells;%any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
+%status  = ~deadWells;
+% For now, don't change status here
+status = vertcat(sol.status);
 if(mrstVerbose && any(deadWells) )
 %     warning('It exist deadWells')
 end
