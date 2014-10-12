@@ -5,12 +5,11 @@ classdef TestSimulateScheduleAD < matlab.unittest.TestCase
     end
     
     methods
-        function test = Test_simulateScheduleAD(varargin)
+        function test = TestSimulateScheduleAD(varargin)
             test.storeResults = false;
             
-            
             % Attempt to be a clean MRST state
-            mrstModule reset ad-unittest ad-refactor
+            mrstModule reset ad-unittest ad-core ad-blackoil
             gravity reset off
             mrstVerbose off
 
@@ -36,6 +35,8 @@ classdef TestSimulateScheduleAD < matlab.unittest.TestCase
         function testMinistepOutput(test)
             [state0, schedule, model] = setupSimpleOW();
             
+            % Disable flux output for comparison purposes
+            model.outputFluxes = false;
             % Override schedule with a single timestep
             schedule.step.val = 1*day;
             schedule.step.control = 1;
