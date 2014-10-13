@@ -76,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       data = splitString(strtrim(data));
 
       % Detect "default" strings of the form n*.
-      is_def = regexp(data, '(\d+)\*', 'tokens', 'once');
+      is_def = regexp(data, '^(\d+)\*$', 'tokens', 'once');
       i      = ~cellfun(@isempty, is_def);
 
       if ~all(i),
