@@ -71,8 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'GCONPROD', w = readGConProd(fid, w);
       case 'GECON'   , w = readGEcon   (fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
-      case {'WELOPEN', 'WELLOPEN'},
-         w = readWelOpen (fid, w);
+      case 'WELOPEN',  w = readWelOpen (fid, w);
       case {'WELTARG', 'WELLTARG'},
          w = readWelTarg(fid, w);
       otherwise
