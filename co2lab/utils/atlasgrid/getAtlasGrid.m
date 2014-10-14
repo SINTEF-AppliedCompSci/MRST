@@ -253,6 +253,8 @@ function avgrock = getAvgRock(name)
     switch lower(name)
         case 'utsira'
             tmp = [1000, 0.2112];
+        case 'skade'
+            tmp = [1000, 0.2112];
         case 'sandnes'
             tmp = [150, 0.0875];
         case 'sognefjord'
