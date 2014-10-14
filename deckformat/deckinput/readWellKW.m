@@ -48,10 +48,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   % Unless we're defining a new set of wells, there had better be some
-   % previously defined wells.
+   % Unless we're defining a new set of wells (or a well group hierarchy),
+   % there had better be some previously defined wells.
    %
-   assert (strcmp(kw, 'WELSPECS') || ~isempty(w.WELSPECS), ...
+   assert (any(strcmp(kw, { 'GRUPTREE', 'WELSPECS' })) || ...
+           ~isempty(w.WELSPECS), ...
           ['Well keyword ''%s'' encountered before any wells have ', ...
            'been declared using ''WELSPECS''.'], kw);
 
