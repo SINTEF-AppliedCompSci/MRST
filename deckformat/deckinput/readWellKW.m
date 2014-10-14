@@ -286,47 +286,37 @@ function w = readWelOpen(fid, w)
               'well connections through ''WELOPEN''.']);
    end
 
-   for ikw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
-      if isfield(w, ikw{1}) && ...
-            ~ (isempty(data) || isempty(w.(ikw{1}))),
-         ix = ismember(data(:,1), w.(ikw{1})(:,1));
+   for kw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
+      if isfield(w, kw{1}) && ...
+            ~ (isempty(data) || isempty(w.(kw{1}))),
 
-         injectors  = data(ix, :) .';
-         data(ix,:) = [];
+         [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
 
-         for i = injectors,
-            well = i{1};
-            mode = i{2};
+         w.(kw{1})(rec, 3) = rldecode(data(ix, 2), diff(pos));
 
-            ix = strcmp(well, w.(ikw{1})(:,1));
-            w.(ikw{1}){ix, 3} = mode;
-         end
-
-         clear injectors ix
+         data(ix, :) = [];
       end
    end
 
-   for pkw = { 'WCONPROD', 'WCONHIST' },
-      if isfield(w, pkw{1}) && ...
-            ~ (isempty(data) || isempty(w.(pkw{1}))),
-         ix = ismember(data(:,1), w.(pkw{1})(:,1));
+   for kw = { 'WCONPROD', 'WCONHIST' },
+      if isfield(w, kw{1}) && ...
+            ~ (isempty(data) || isempty(w.(kw{1}))),
 
-         producers  = data(ix, :) .';
-         data(ix,:) = [];
+         [ix, pos, rec] = matchWells(data(:,1), w.(kw{1})(:,1));
 
-         for i = producers,
-            well = i{1};
-            mode = i{2};
+         w.(kw{1})(rec, 2) = rldecode(data(ix, 2), diff(pos));
 
-            ix = strcmp(well, w.(pkw{1})(:,1));
-            w.(pkw{1}){ix, 2} = mode;
-         end
-
-         clear producers ix
+         data(ix, :) = [];
       end
    end
 
-   assert (isempty(data), 'Internal error processing ''WELOPEN''.');
+   if ~ isempty(data),
+      if all(strncmpi('*', data(:,1), 1)),
+         dispif(mrstVerbose, 'Well LIST ignored in ''WELOPEN''\n');
+      else
+         error('Internal error processing ''WELOPEN''');
+      end
+   end
 end
 
 %--------------------------------------------------------------------------
