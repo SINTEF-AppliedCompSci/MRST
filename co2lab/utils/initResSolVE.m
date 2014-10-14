@@ -12,7 +12,8 @@ function resSol = initResSolVE(G, p0, s0, varargin)
     resSol = initResSol(G, p0, s0, varargin{:});
 
     % Height of the plume set to correspond with the requested saturation
-    resSol.h     = resSol.s .* G.cells.H;
+    resSol.h     = resSol.s(:,end) .* G.cells.H; % in case there are two
+                                                 % columns, we use the last
     resSol.h_max = resSol.h;
 
     resSol.extSat= repmat(resSol.s, 1, 2);
