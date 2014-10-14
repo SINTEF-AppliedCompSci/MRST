@@ -57,23 +57,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            'been declared using ''WELSPECS''.'], kw);
 
    switch kw,
-      case 'WELSPECS', w = readWellSpec(fid, w);
+      % Keywords related to individual wells
       case 'COMPDAT' , w = readCompDat (fid, w);
       case 'WCONHIST', w = readWConHist(fid, w);
       case 'WCONINJ' , w = readWConInj (fid, w);
       case 'WCONINJE', w = readWConInje(fid, w);
       case 'WCONINJH', w = readWConInjh(fid, w);
       case 'WCONPROD', w = readWConProd(fid, w);
-      case 'GRUPTREE', w = readGrupTree(fid, w);
-      case 'GRUPNET' , w = readGrupNet (fid, w);
-      case 'WGRUPCON', w = readWGrupCon(fid, w);
+      case 'WELOPEN' , w = readWelOpen (fid, w);
+      case 'WELSPECS', w = readWellSpec(fid, w);
+      case 'WPOLYMER', w = readWPolymer(fid, w);
+      case {'WELTARG', 'WELLTARG'},
+         w = readWelTarg(fid, w);
+
+      % -------------------------------------------------------------------
+
+      % Keywords related to well groups
       case 'GCONINJE', w = readGConInje(fid, w);
       case 'GCONPROD', w = readGConProd(fid, w);
       case 'GECON'   , w = readGEcon   (fid, w);
-      case 'WPOLYMER', w = readWPolymer(fid, w);
-      case 'WELOPEN',  w = readWelOpen (fid, w);
-      case {'WELTARG', 'WELLTARG'},
-         w = readWelTarg(fid, w);
+      case 'GRUPNET' , w = readGrupNet (fid, w);
+      case 'GRUPTREE', w = readGrupTree(fid, w);
+      case 'WGRUPCON', w = readWGrupCon(fid, w);
+
       otherwise
          fclose(fid);
          error(msgid('WellKW:Unsupported'), ...
