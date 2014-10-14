@@ -281,8 +281,9 @@ function w = readWelOpen(fid, w)
    data = toDouble(data, numeric);
 
    if ~ all([ data{:, 3:end} ] < 0),
-      warning(['MRST does not support opening/closing individual ', ...
-             'well connections through ''WELOPEN''.']);
+      warning('WELOPEN:Connection', ...
+             ['MRST does not support opening/closing individual ', ...
+              'well connections through ''WELOPEN''.']);
    end
 
    for ikw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
