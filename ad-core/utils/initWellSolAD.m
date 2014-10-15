@@ -42,7 +42,8 @@ ws = repmat(struct(...
     'cqs',    []), [1, nw]);
 % additional fields depending on model
 if isfield(state, 'c') % polymer model
-   ws(1).poly = [];
+   %ws(1).poly = [];
+   ws(1).qWPoly = [];
 end
 % just initialize fields that are not assigned in assignFromSchedule
 for k = 1:nw
@@ -77,6 +78,9 @@ for k = 1:nw
     ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
     ws(k).cqs  = zeros(nConn,nPh);
+    if isfield(state, 'c') % polymer model
+       ws(k).qWPoly = 0;
+    end
 end
 end
 
