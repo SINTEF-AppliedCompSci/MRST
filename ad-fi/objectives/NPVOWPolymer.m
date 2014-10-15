@@ -43,9 +43,12 @@ for step = 1:numSteps
     pBHP = zeros(nW, 1); %place-holder
     qWs  = vertcat(sol.qWs);
     qOs  = vertcat(sol.qOs);
-    poly =  vertcat(sol.poly);
+    if isfield(sol, 'poly')
+        poly = vertcat(sol.poly);
+    else
+        poly = vertcat(sol.qWPoly) ./ vertcat(sol.qWs);
+    end
     injPoly = [sol.qWs] > 0 & [sol.sign] == 1;
-    poly = poly(injPoly);
 
 
     if opt.ComputePartials
@@ -54,6 +57,7 @@ for step = 1:numSteps
 
         clear ignore
     end
+    poly = poly(injPoly);
 
     dt = dts(step);
     time = time + dt;
