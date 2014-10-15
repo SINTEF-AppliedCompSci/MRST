@@ -5,9 +5,9 @@
 
 %% Load the required modules
 try
-   require upscaling coarsegrid
+   require upscaling coarsegrid mimetic
 catch %#ok<CTCH>
-   mrstModule add upscaling coarsegrid
+   mrstModule add upscaling coarsegrid mimetic
 end
 verbose = true;
 
@@ -34,7 +34,7 @@ G_ups     = computeGeometry(G_ups);
 % In our case, this is simple: the coarse grid is uniform partition of the
 % fine grid.
 p  = partitionUI(G, upscaled);
-p  = processPartition  (G, p, 'Verbose', verbose);
+p  = processPartition  (G, p);
 CG = generateCoarseGrid(G, p, 'Verbose', verbose);
 
 rockUps.perm = upscalePerm(G, CG, rock, 'Verbose', verbose);
