@@ -156,12 +156,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function [gradient, result, report] = solveAdjoint(model, solver, getState,...
-                                    getObjective, schedule, gradient, itNo, scaling)
-            % Solve adjoints
-            if nargin == 7
-               scaling = struct('rate', 1, 'pressure', 1);
-            end
-            
+                                    getObjective, schedule, gradient, itNo)
             dt_steps = schedule.step.val;
             
             current = getState(itNo);
@@ -170,7 +165,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             lookupCtrl = @(step) schedule.control(schedule.step.control(step));
             [~, forces] = model.getDrivingForces(lookupCtrl(itNo));
-            problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'scaling', scaling);
+            problem = model.getEquations(before, current, dt, forces, 'iteration', inf);
             
             if itNo < numel(dt_steps)
                 after    = getState(itNo + 1);
@@ -178,7 +173,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 
                 [~, forces_p] = model.getDrivingForces(lookupCtrl(itNo + 1));
                 problem_p = model.getEquations(current, after, dt_next, forces_p,...
-                                    'iteration', inf, 'reverseMode', true, 'scaling', scaling);
+                                    'iteration', inf, 'reverseMode', true);
             else
                 problem_p = [];
             end

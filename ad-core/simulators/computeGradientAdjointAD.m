@@ -74,7 +74,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('ControlVariables', 'well', ...
-                 'Scaling',          [], ...
                  'LinearSolver',     []);
     opt = merge_options(opt, varargin{:});
     
@@ -86,12 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         linsolve = opt.LinearSolver;
     end
     
-    if isempty(opt.Scaling)
-        opt.Scaling = struct('rate', 1, 'pressure', 1);
-    end
-    
     if iscell(opt.ControlVariables)
-        % Path presently not supported by merge_options limitations
         ncv = numel(opt.ControlVariables);
     else
         ncv = 1;
@@ -102,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nt = nstep;
     for step = nt:-1:1
         [dg, grad, report] = model.solveAdjoint(linsolve, getState, ...
-                                         getObjective, schedule, grad, step, opt.Scaling);
+                                         getObjective, schedule, grad, step);
         gradstep(step, :) = getRequestedGradients(dg, report, opt.ControlVariables);
     end
     
