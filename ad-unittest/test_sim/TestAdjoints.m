@@ -19,7 +19,7 @@ classdef TestAdjoints < matlab.unittest.TestCase
             [obj_adj, obj_num] = test.getObjectiveNPVOW(G, wellSols, schedule);
             
             numgrad = computeGradientPerturbationAD(state0, model, schedule, obj_num, 'scaling', scalFacs);
-            adjgrad = computeGradientAdjointAD(state0, states, model, schedule, obj_adj, 'scaling', scalFacs);
+            adjgrad = computeGradientAdjointAD(state0, states, model, schedule, obj_adj);
             
             import matlab.unittest.constraints.RelativeTolerance;
             import matlab.unittest.constraints.IsEqualTo;
@@ -57,3 +57,4 @@ classdef TestAdjoints < matlab.unittest.TestCase
     methods
     end
 end
+
