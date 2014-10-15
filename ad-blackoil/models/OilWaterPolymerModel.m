@@ -35,9 +35,12 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                state, problem,  dx, drivingForces);
             
             if model.polymer
-                state.c = min(state.c, model.fluid.cmax);
-                state.c = max(state.c, 0);
-                state.cmax = max(state.cmax, state.c);
+                c = model.getProp(state, 'polymer');
+                c = min(c, model.fluid.cmax);
+                state = model.setProp(state, 'polymer', max(c, 0) );
+                
+                cmax = model.getProp(state, 'polymermax');
+                state = model.setProp(state, 'polymermax', max(cmax, c) );
             end
         end
         
@@ -45,10 +48,10 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             % Get the index/name mapping for the model (such as where
             % pressure or water saturation is located in state)
             switch(lower(name))
-                case {'c', 'polymer'}
+                case {'polymer'}
                     index = 1;
                     fn = 'c';
-                case {'cmax', 'polymermax'}
+                case {'polymermax'}
                     index = 1;
                     fn = 'cmax';
                 otherwise
