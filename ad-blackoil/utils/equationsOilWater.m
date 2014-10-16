@@ -94,7 +94,7 @@ end
 bO     = f.bO(p);
 rhoO   = bO.*f.rhoOS;
 rhoOf  = s.faceAvg(rhoO);
-dpO    = s.Grad(p) - rhoOf.*gdz);
+dpO    = s.Grad(p) - rhoOf.*gdz;
 % oil upstream-index
 upco = (double(dpO)<=0);
 if isfield(f, 'BOxmuO')
