@@ -183,9 +183,9 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     %Go = -Go;
     %Gg = -Gg;
     
-    vW = f_w.*(vT + s.T.*mobOf.*(Go - Gw) + s.T.*mobGf.*(Gg - Gw));
-    vO = f_o.*(vT + s.T.*mobWf.*(Gw - Go) + s.T.*mobGf.*(Gg - Go));
-    vG = f_g.*(vT + s.T.*mobWf.*(Gw - Gg) + s.T.*mobOf.*(Go - Gg));
+    vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
+    vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
+    vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
     
     bWvW = s.faceUpstr(upcw, bW).*vW;
     bOvO = s.faceUpstr(upco, bO).*vO;
