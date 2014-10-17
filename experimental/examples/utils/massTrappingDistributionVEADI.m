@@ -45,7 +45,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
         pvMult =  fluidADI.pvMultR(p);
     end
     pv       = rock.poro .* Gt.cells.volumes .* pvMult;%effective area
-    rhoCO2   = fluidADI.rhoG .* fluidADI.bG(p);
+    rhoCO2   = fluidADI.rhoGS .* fluidADI.bG(p);
     gasPhase = sum(pv .* (rhoCO2 .* SG));
     
     if isfield(trapstruct, 'z_spill_loc')
@@ -80,7 +80,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
     freeMov   = plumeVol * (1 - sw - sr);                          % non-trapped, flowing, non-res
     resTrap   = sum(max(hm_eff - max(zt, h_eff),0) .* ...
                     rhoCO2 .* pv ) .* sr;                          % non-trapped, non-flowing, res
-    resDis    = fluidADI.rhoG .* sum(pv.* (rs .* fluidADI.bO(p) .* SF)); % dissolved
+    resDis    = fluidADI.rhoGS .* sum(pv.* (rs .* fluidADI.bO(p) .* SF)); % dissolved
     subtrap   = sum((hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2);
 
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc, subtrap, freeMov], 0);
