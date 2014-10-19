@@ -72,10 +72,10 @@ if isfield(f, 'pcOW')
 end
 % Gravity contribution, assert that it is aligned with z-dir
 grav = gravity();
-assert(grav(1) == 0 && grav(2) == 0);
-g  = norm(grav);
-dz = s.grad(G.cells.centroids(:,3));
-
+%assert(grav(1) == 0 && grav(2) == 0);
+%g  = norm(grav);
+%dz = s.grad(G.cells.centroids(:,3));
+gdz = s.Grad(G.cells.centroids) * grav';
 
 % Compute transmissibility
 T = s.T.*transMult;
@@ -100,10 +100,10 @@ rhoWf  = s.faceAvg(rhoW);
 muW    = f.muW(p-pcOW);
 muWeff = muWMult.*muW;
 mobW   = trMult.*krW./muWeff;
-dpW     = s.grad(p-pcOW) - g*(rhoWf.*dz);
+dpW     = s.Grad(p-pcOW) - rhoWf.*gdz;
 % water upstream-index
-upcw = (double(dpW)>=0);
-vW   = s.faceUpstr(upcw, mobW).*T.*dpW;
+upcw = (double(dpW)<=0);
+vW   = - s.faceUpstr(upcw, mobW).*T.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 if any(bW < 0)
     warning('Negative water compressibility present!')
@@ -111,24 +111,24 @@ end
 
 % Polymer
 mobP = (mobW.*c)./(a + (1-a)*cbar);
-vP   = s.faceUpstr(upcw, mobP).*s.T.*dpW;
+vP   = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
 bWvP = s.faceUpstr(upcw, bW).*vP;
 
 % oil props
 bO     = f.bO(p);
 rhoO   = bO.*f.rhoOS;
 rhoOf  = s.faceAvg(rhoO);
-dpO    = s.grad(p) - g*(rhoOf.*dz);
+dpO    = s.Grad(p) - rhoOf.*gdz;
 % oil upstream-index
-upco = (double(dpO)>=0);
+upco = (double(dpO)<=0);
 if isfield(f, 'BOxmuO')
     % mob0 is already multplied with b0
     mobO   = trMult.*krO./f.BOxmuO(p);
-    bOvO   = s.faceUpstr(upco, mobO).*T.*dpO;
+    bOvO   = - s.faceUpstr(upco, mobO).*T.*dpO;
     vO = bOvO./s.faceUpstr(upco, bO);
 else
     mobO   = trMult.*krO./f.muO(p);
-    vO = s.faceUpstr(upco, mobO).*T.*dpO;
+    vO = - s.faceUpstr(upco, mobO).*T.*dpO;
     bOvO   = s.faceUpstr(upco, bO).*vO;
 end
 if any(bO < 0)
@@ -147,17 +147,17 @@ end
 
 % EQUATIONS ---------------------------------------------------------------
 % oil:
-eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) - s.div(bOvO);
+eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
 
 % water:
-eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) - s.div(bWvW);
+eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);
 
 % polymer in water:
 poro =  s.pv./G.cells.volumes;
 eqs{3} = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
    pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
    ( f.rhoR.*((1-poro)./poro).*(effads(c, cmax, f)- ...
-     effads(c0, cmax0, f)) ) - s.div(bWvP);
+     effads(c0, cmax0, f)) ) + s.Div(bWvP);
 
 names = {'oil', 'water', 'polymer'};
 types = {'cell', 'cell', 'cell'};

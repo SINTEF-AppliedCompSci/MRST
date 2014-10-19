@@ -94,10 +94,10 @@ end
 
 % Gravity contribution, assert that it is aligned with z-dir
 grav = gravity();
-assert(grav(1) == 0 && grav(2) == 0);
-g  = norm(grav);
-dz = s.grad(G.cells.centroids(:,3));
-
+%assert(grav(1) == 0 && grav(2) == 0);
+%g  = norm(grav);
+%dz = s.Grad(G.cells.centroids(:,3));
+gdz = s.Grad(G.cells.centroids) * grav';
 % Compute transmissibility
 T = s.T.*transMult;
 
@@ -111,10 +111,10 @@ rhoW   = bW.*f.rhoWS;
 % rhoW on face, avarge of neighboring cells (E100, not E300)
 rhoWf  = s.faceAvg(rhoW);
 mobW   = trMult.*krW./f.muW(p);
-dpW    = s.grad(p-pcOW) - g*(rhoWf.*dz);
+dpW    = s.Grad(p-pcOW) - rhoWf.*gdz;
 % water upstream-index
-upcw  = (double(dpW)>=0);
-vW = s.faceUpstr(upcw, mobW).*T.*dpW;
+upcw  = (double(dpW)<=0);
+vW = - s.faceUpstr(upcw, mobW).*T.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 if any(bW < 0)
     warning('Negative water compressibility present!')
@@ -136,10 +136,10 @@ end
 rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
 rhoOf  = s.faceAvg(rhoO);
 mobO   = trMult.*krO./muO;
-dpO    = s.grad(p) - g*(rhoOf.*dz);
+dpO    = s.Grad(p) - rhoOf.*gdz;
 % oil upstream-index
-upco = (double(dpO)>=0);
-vO   = s.faceUpstr(upco, mobO).*T.*dpO;
+upco = (double(dpO)<=0);
+vO   = - s.faceUpstr(upco, mobO).*T.*dpO;
 bOvO   = s.faceUpstr(upco, bO).*vO;
 if disgas
     rsbOvO = s.faceUpstr(upco, rs).*bOvO;
@@ -161,10 +161,10 @@ end
 rhoG   = bG.*(rv*f.rhoOS + f.rhoGS);
 rhoGf  = s.faceAvg(rhoG);
 mobG   = trMult.*krG./muG;
-dpG    = s.grad(p+pcOG) - g*(rhoGf.*dz);
+dpG    = s.Grad(p+pcOG) - rhoGf.*gdz;
 % gas upstream-index
-upcg    = (double(dpG)>=0);
-vG = s.faceUpstr(upcg, mobG).*T.*dpG;
+upcg    = (double(dpG)<=0);
+vG = - s.faceUpstr(upcg, mobG).*T.*dpG;
 bGvG   = s.faceUpstr(upcg, bG).*vG;
 if vapoil
     rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
@@ -188,25 +188,25 @@ sO0 = 1 - sW0 - sG0;
 names{1} = 'oil';
 if vapoil
     eqs{1} = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
-        pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) - ...
-        s.div(bOvO + rvbGvG);
+        pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
+        s.Div(bOvO + rvbGvG);
 else
-    eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) - s.div(bOvO);
+    eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
 end
 
 
 % water eq:
 names{2} = 'water';
-eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) - s.div(bWvW);
+eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
 % gas eq:
 names{3} = 'gas';
 if disgas
     eqs{3} = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
-        pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) - ...
-        s.div(bGvG + rsbOvO);
+        pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
+        s.Div(bGvG + rsbOvO);
 else
-    eqs{3} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) - s.div(bGvG);
+    eqs{3} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
 end
 types = {'cell', 'cell', 'cell'};
 

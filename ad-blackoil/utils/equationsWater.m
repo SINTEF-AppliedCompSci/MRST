@@ -41,8 +41,8 @@ end
 primaryVars = {'pressure','qWs', 'bhp'};
 
 clear tmp
-g  = norm(gravity);
-
+grav  = gravity;
+gdz   = s.Grad(G.cells.centroids) * grav';
 %--------------------
 %check for p-dependent tran mult:
 trMult = 1;
@@ -67,10 +67,10 @@ rhoW   = bW.*f.rhoWS;
 % rhoW on face, avarge of neighboring cells (E100, not E300)
 rhoWf  = s.faceAvg(rhoW);
 mobW   = trMult./f.muW(p);
-dpW     = s.grad(p) - g*(rhoWf.*s.grad(G.cells.centroids(:,end)));
+dpW     = s.Grad(p) - rhoWf.*gdz;
 % water upstream-index
-upcw = (double(dpW)>=0);
-vW = s.faceUpstr(upcw, mobW).*trans.*dpW;
+upcw = (double(dpW)<=0);
+vW = - s.faceUpstr(upcw, mobW).*trans.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
 if model.outputFluxes
@@ -84,7 +84,7 @@ if model.extraStateOutput
 end
 % EQUATIONS ---------------------------------------------------------------
 % water:
-eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) - s.div(bWvW);
+eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
 
 names = {'water'};
 types = {'cell'};
