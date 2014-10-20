@@ -127,8 +127,8 @@ function state = incompMimetic(state, g, s, fluid, varargin)
 %   If there are no external influences, i.e., if all of the structures
 %   'W', 'bc', and 'src' are empty and there are no effects of gravity, and
 %   no system right hand side has been supplied externally, then the input
-%   values 'xr' and 'xw' are returned unchanged and a warning is printed in
-%   the command window.  This warning is printed with message ID
+%   state is returned unchanged and a warning is printed in the command
+%   window.  This warning is printed with message ID
 %
 %           'incompMimetic:DrivingForce:Missing'
 %

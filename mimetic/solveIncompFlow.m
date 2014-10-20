@@ -1,9 +1,9 @@
 function varargout = solveIncompFlow(varargin)
-%Solve incompressible flow problem (fluxes/pressures).
+%Solve incompressible flow problem (fluxes/pressures). [DEPRECATED]
 %
 % SYNOPSIS:
-%   state = incompMimetic(state, G, S, fluid)
-%   state = incompMimetic(state, G, S, fluid, 'pn1', pv1, ...)
+%   state = solveIncompFlow(state, G, S, fluid)
+%   state = solveIncompFlow(state, G, S, fluid, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   This function assembles and solves a (block) system of linear equations
@@ -15,7 +15,7 @@ function varargout = solveIncompFlow(varargin)
 % REQUIRED PARAMETERS:
 %   state  - Reservoir and well solution structure either properly
 %            initialized from function 'initState', or the results from a
-%            previous call to function 'incompMimetic' and, possibly, a
+%            previous call to function 'solveIncompFlow' and, possibly, a
 %            transport solver such as function 'explicitTransport'.
 %
 %   G, S   - Grid and (mimetic) linear system data structures as defined by
@@ -47,7 +47,7 @@ function varargout = solveIncompFlow(varargin)
 %            needs to modify the system of linear equations directly, e.g.,
 %            the 'adjoint' code.
 %
-%   Solver - Which solver mode function 'incompMimetic' should employ in
+%   Solver - Which solver mode function 'solveIncompFlow' should employ in
 %            assembling and solving the block system of linear equations.
 %            String.  Default value: Solver = 'hybrid'.
 %
@@ -92,7 +92,7 @@ function varargout = solveIncompFlow(varargin)
 %
 %   MatrixOutput -
 %            Whether or not to return the final system matrix 'A' to the
-%            caller of function 'incompMimetic'.
+%            caller of function 'solveIncompFlow'.
 %            Logical.  Default value: MatrixOutput = FALSE.
 %
 % RETURNS:
@@ -131,14 +131,14 @@ function varargout = solveIncompFlow(varargin)
 %   If there are no external influences, i.e., if all of the structures
 %   'W', 'bc', and 'src' are empty and there are no effects of gravity, and
 %   no system right hand side has been supplied externally, then the input
-%   values 'xr' and 'xw' are returned unchanged and a warning is printed in
-%   the command window.  This warning is printed with message ID
+%   state is returned unchanged and a warning is printed in the command
+%   window.  This warning is printed with message ID
 %
 %           'incompMimetic:DrivingForce:Missing'
 %
 % SEE ALSO:
 %   computeMimeticIP, addBC, addSource, addWell, initSimpleFluid
-%   initState, solveIncompFlowMS.
+%   initState, solveIncompFlowMS, incompMimetic.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
