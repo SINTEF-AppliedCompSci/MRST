@@ -1,9 +1,9 @@
-function state = solveIncompFlow(state, g, s, fluid, varargin)
+function state = incompMimetic(state, g, s, fluid, varargin)
 %Solve incompressible flow problem (fluxes/pressures).
 %
 % SYNOPSIS:
-%   state = solveIncompFlow(state, G, S, fluid)
-%   state = solveIncompFlow(state, G, S, fluid, 'pn1', pv1, ...)
+%   state = incompMimetic(state, G, S, fluid)
+%   state = incompMimetic(state, G, S, fluid, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   This function assembles and solves a (block) system of linear equations
@@ -15,7 +15,7 @@ function state = solveIncompFlow(state, g, s, fluid, varargin)
 % REQUIRED PARAMETERS:
 %   state  - Reservoir and well solution structure either properly
 %            initialized from function 'initState', or the results from a
-%            previous call to function 'solveIncompFlow' and, possibly, a
+%            previous call to function 'incompMimetic' and, possibly, a
 %            transport solver such as function 'explicitTransport'.
 %
 %   G, S   - Grid and (mimetic) linear system data structures as defined by
@@ -47,7 +47,7 @@ function state = solveIncompFlow(state, g, s, fluid, varargin)
 %            needs to modify the system of linear equations directly, e.g.,
 %            the 'adjoint' code.
 %
-%   Solver - Which solver mode function 'solveIncompFlow' should employ in
+%   Solver - Which solver mode function 'incompMimetic' should employ in
 %            assembling and solving the block system of linear equations.
 %            String.  Default value: Solver = 'hybrid'.
 %
@@ -92,7 +92,7 @@ function state = solveIncompFlow(state, g, s, fluid, varargin)
 %
 %   MatrixOutput -
 %            Whether or not to return the final system matrix 'A' to the
-%            caller of function 'solveIncompFlow'.
+%            caller of function 'incompMimetic'.
 %            Logical.  Default value: MatrixOutput = FALSE.
 %
 % RETURNS:
@@ -130,7 +130,7 @@ function state = solveIncompFlow(state, g, s, fluid, varargin)
 %   values 'xr' and 'xw' are returned unchanged and a warning is printed in
 %   the command window.  This warning is printed with message ID
 %
-%           'solveIncompFlow:DrivingForce:Missing'
+%           'incompMimetic:DrivingForce:Missing'
 %
 % SEE ALSO:
 %   computeMimeticIP, addBC, addSource, addWell, initSimpleFluid
@@ -244,7 +244,7 @@ end
 %--------------------------------------------------------------------------
 
 function s = id(s)
-   s = ['solveIncompFlow:', s];
+   s = ['incompMimetic:', s];
 end
 
 %--------------------------------------------------------------------------
