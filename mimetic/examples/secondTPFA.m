@@ -68,7 +68,7 @@ IP = computeMimeticIP(G, rock, 'Verbose', true, ...
 
 %%
 % Solve mimetic linear hybrid system
-resSol2 = solveIncompFlow(resSol2, G, IP, fluid, 'wells', W);
+resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W);
 
 %% Report results
 % Report pressure drop computed by the two solvers.
@@ -122,7 +122,7 @@ resSol1 = incompTPFA(resSol1, G, T, fluid, 'wells', W, 'Verbose', true);
 
 %% APPROACH 2: Mimetic with TPFA-inner product
 resSol2 = initState(G, W, 0, [1, 0]);
-resSol2 = solveIncompFlow(resSol2, G, IP, fluid, 'wells', W);
+resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W);
 
 %% Report results
 % Report pressure drop computed by the two solvers.
