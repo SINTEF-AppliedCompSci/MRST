@@ -121,7 +121,7 @@ resSol2 = initState(G, W, 0, [1, 0]);
 
 %%
 % Solve mimetic linear hybrid system
-resSol2 = solveIncompFlow(resSol2, G, IP, fluid, 'wells', W);
+resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W);
 
 %% Report results
 % Report pressure drop computed by the two solvers.

@@ -122,10 +122,10 @@ display(S);
 
 %% Solve the linear system
 % Solve linear system construced from S and bc to obtain solution for flow
-% and pressure in the reservoir. The <matlab:help('solveIncompFlow')
+% and pressure in the reservoir. The <matlab:help('incompMimetic')
 % option> 'MatrixOutput=true' adds the system matrix A to resSol to enable
 % inspection of the matrix.
-resSol = solveIncompFlow(resSol, G, S, fluid, ...
+resSol = incompMimetic(resSol, G, S, fluid, ...
                          'bc', bc, 'MatrixOutput', true);
 display(resSol);
 
