@@ -147,7 +147,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
 
             % Update the wells
-            state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
+            if isfield(state, 'wellSol')
+                state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
+            end
             report = [];
         end
 
@@ -312,6 +314,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function wellSol = updateWellSol(model, wellSol, problem, dx, drivingForces, wellVars) %#ok
             % Update the wellSol struct
+            if numel(wellSol) == 0
+                % Nothing to be done if there are no wells
+                return
+            end
             if nargin < 6
                 % Get the well variables directly from the problem,
                 % otherwise assume that they are known by the user
