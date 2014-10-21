@@ -59,17 +59,49 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       % Coordinate mapping function.
       f  = @(x,y) value * sin(pi * x) .* sin(3 * (-pi/2 + pi*y));
-
+      dfdx=@(x,y) value*[pi*cos(pi * x).* sin(3 * (-pi/2 + pi*y)),3*pi*sin(pi * x).*cos(3 * (-pi/2 + pi*y))];
+      
       % Normalize coordinates to interval [0,1].
       xi = bsxfun(@rdivide,                    ...
                   bsxfun(@minus, pt, min(pt)), ...
                   max(pt) - min(pt));
-
+    
       % Create new coordinates.
-      pt(:,1:2) = bsxfun(@times, ...
-                         [xi(:,1) + f(xi(:,1), xi(:,2)),  ...
-                          xi(:,2) - f(xi(:,2), xi(:,1))], ...
-                         max(pt(:,1:2)) - min(pt(:,1:2)));
+      if(false)
+          pt(:,1:2) = bsxfun(@times, ...
+              [xi(:,1) + f(xi(:,1), xi(:,2)),  ...
+              xi(:,2) - f(xi(:,2), xi(:,1))], ...
+              max(pt(:,1:2)) - min(pt(:,1:2)));
+      else
+          xinew=xi;
+          xinew(:,1:2) = [xinew(:,1) + f(xi(:,1), xi(:,2)),  ...
+              xinew(:,2) - f(xi(:,2), xi(:,1))];
+          
+          if(size(pt,2)>2)
+              xinew(:,2:3) = [xinew(:,2) + f(xi(:,2), xi(:,3)),  ...
+                  xinew(:,3) - f(xi(:,3), xi(:,2))];
+              xinew(:,[1 3]) = [xinew(:,1) + f(xi(:,1), xi(:,3)),  ...
+                  xinew(:,3) - f(xi(:,3), xi(:,1))];
+          end
+          pt = bsxfun(@times, ...
+              xinew, ...
+              max(pt) - min(pt));
+          
+      end
+   
+                     
+      dpt=repmat(zeros(size(pt)),1,2);               
+      dpt(:,1:4) = [bsxfun(@plus,dfdx(xi(:,1), xi(:,2)),[1,0])  ...
+                           bsxfun(@plus,dfdx(xi(:,2), xi(:,1)),[0 1])];
+      % calculate determinant
+      detpt=dpt(:,1).*dpt(:,4)-dpt(:,2).*dpt(:,3);
+      if(any(detpt<0))
+          warning('transformation can give inverted cells');
+      end
+                       
+      % calculate determinant
+      
+                     
    else
       error(msgid('DataType:Unknown'), ...
             'Don''t know how to handle input data type ''%s''', class(pt));

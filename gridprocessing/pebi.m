@@ -96,15 +96,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    %% Make cells oriented
-
+assert(H.nodes.num==numel(unique(H.faces.nodes)));
+   assert(H.nodes.num==max(H.faces.nodes));
    H = sortCellFaces(H);
    H = mergeBoundaryFaces(H);
-
+assert(H.nodes.num==numel(unique(H.faces.nodes)));
+   assert(H.nodes.num==max(H.faces.nodes));
    %H = sortCellFaces(H);
    H.type    = { mfilename };
    H.griddim = 2;
 
    H = removeDuplicateNodes(H);
+   
+   H=sortCellFaces(H);
+   assert(H.nodes.num==numel(unique(H.faces.nodes)));
+   assert(H.nodes.num==max(H.faces.nodes));
 end
 
 function H = removeDuplicateNodes(H)
@@ -215,6 +221,7 @@ function G = mergeBoundaryFaces(G)
    neigh(:,1) = c(isparallel);
 
    G = addFaces(H, fnodes, nnodes, neigh);
+   G=remapNodes(G);
 end
 
 % Remove nodes N.  Remove faces and cells associated with N.
@@ -241,11 +248,32 @@ function H = removeNodes(G, nodes)
    fnodes = reshape(tmp(:,3:4)', [], 1);
    nnodes = repmat(2, [size(tmp, 1), 1]);
    H = addFaces(G, fnodes, nnodes, neigh);
-
    H = removeCells(H, find(diff(H.cells.facePos)<3));
+   % renumber nodes all nodes has to be on a face
+   %{
+   [newnodes,ia,ic]=unique(G.faces.nodes);
+   %
+   if(numel(newnodes)< G.nodes.num)
+    G.faces.nodes=G.faces.node(ic);
+    G.nodes.coords=G.nodes.coords(newnodes,:);
+    G.node.num=numel(newnodes);
+   end
+   %}
+   H=remapNodes(H);
+   
+   
 end
-
-
+function G=remapNodes(G)
+[newnodes,ia,ic]=unique(G.faces.nodes);
+   %
+   if(numel(newnodes)< G.nodes.num)
+    G.faces.nodes=ic;
+    G.nodes.coords=G.nodes.coords(newnodes,:);
+    G.nodes.num=numel(newnodes);
+   end
+   assert(G.nodes.num==numel(unique(G.faces.nodes)));
+   assert(G.nodes.num==max(G.faces.nodes));
+end
 function t = grid2tri(G)
 % Extract (n x 3) array of triangle node numbers from grid
    assert(all(diff(G.faces.nodePos) == 2)); % 2D-grid

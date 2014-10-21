@@ -49,7 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   dim = numel(g.cartDims);
+   dim = numel(g.cartDims);% need to be a corner point grid to get this working
 
    cellNo = rldecode(1:g.cells.num, double(diff(g.cells.facePos)), 2) .';
    cf     = double(g.cells.faces);
