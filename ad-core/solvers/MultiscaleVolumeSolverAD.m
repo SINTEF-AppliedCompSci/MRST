@@ -59,7 +59,9 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
 %            tmp = BackslashSolverAD();
 %            [result, report] = tmp.solveLinearSystem(problem.A, problem.b); 
            report.SolverTime = toc(timer);
-
+           report.A = problem.A;
+           report.b = problem.b;
+           
            dxCell = solver.storeIncrements(problem, result);
            
             % Set up storage for all variables, including those we
@@ -93,10 +95,13 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            else
                R = solver.restrictionOperator;
            end
-           coarseValues = (R*A*I)\(R*b);
+           A_c = (R*A*I);
+           b_c = R*b;
+           coarseValues = A_c\b_c;
            result = I*coarseValues;
            % Nothing to report
-           report = struct();
+           report = struct('A_coarse', A_c, ...
+                           'b_coarse', b_c);
        end
        
        function solver = setupSolver(solver, A, b, varargin) %#ok 
