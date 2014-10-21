@@ -40,7 +40,7 @@ end
 primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
 
 clear tmp
-g  = norm(gravity);
+grav  = gravity;
 
 
 %check for p-dependent porv mult:
@@ -52,20 +52,22 @@ end
 
 % -------------------------------------------------------------------------
 [krW, krO] = f.relPerm(sW);
-dZ = s.grad(G.cells.centroids(:,3));
+%dZ = s.grad(G.cells.centroids(:,3));
+gdz = s.Grad(G.cells.centroids) * grav';
+
 % Water
-[bW, rhoW, mobW, dpW] = propsOW_water(sW, krW, g, dZ, f, p, s);
+[bW, rhoW, mobW, dpW] = propsOW_water(sW, krW, gdz, f, p, s);
 
 % water upstream-index
-upcw = (double(dpW)>=0);
-vW = s.faceUpstr(upcw, mobW).*s.T.*dpW;
+upcw = (double(dpW)<=0);
+vW = - s.faceUpstr(upcw, mobW).*s.T.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
 
-[bO, rhoO, mobO, dpO] = propsOW_oil(1 - sW, krO, g, dZ, f, p, s);
+[bO, rhoO, mobO, dpO] = propsOW_oil(1 - sW, krO, gdz, f, p, s);
 % oil upstream-index
-upco = (double(dpO)>=0);
-vO = s.faceUpstr(upco, mobO).*s.T.*dpO;
+upco = (double(dpO)<=0);
+vO = - s.faceUpstr(upco, mobO).*s.T.*dpO;
 bOvO = s.faceUpstr(upco, bO).*vO;
 
 % These are needed in transport solver, so we output them regardless of
@@ -75,10 +77,10 @@ state = model.storeUpstreamIndices(state, upcw, upco, []);
 
 % EQUATIONS ---------------------------------------------------------------
 % oil:
-oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) - s.div(bOvO);
+oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
 
 % water:
-wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) - s.div(bWvW);
+wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);
 
 [eqs, names, types] = deal({});
 

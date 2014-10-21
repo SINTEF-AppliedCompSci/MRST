@@ -107,6 +107,9 @@ classdef ScheduleTest < matlab.unittest.TestCase
                         test.verifyThat(ref.(fn), ...
                             IsEqualTo(res.(fn), 'Within', abstol), ...
                             ['Saturations were not equal for state ' num2str(i)]);
+                    case {'flux', 'cmax'}
+                        % Ignore fields intentionally, numerically not that
+                        % stable for comparison.
                     case 'wellsol'
                         for k = 1:numel(ref.(fn))
                             % Recursive definition

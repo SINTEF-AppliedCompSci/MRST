@@ -89,8 +89,9 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
 
     % FLIUD PROPERTIES ---------------------------------------------------
     [krW, krO, krG] = f.relPerm(sW, sG);
-    g  = norm(gravity);
-    dz = s.grad(G.cells.centroids(:,3));
+    grav  = gravity;
+    %dz = s.grad(G.cells.centroids(:,3));
+    gdz = s.Grad(G.cells.centroids) * grav'; 
     
     % WATER PROPS (calculated at oil pressure)
     bW     = f.bW(p);
@@ -165,26 +166,26 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     f_o = mobOf./totMob;
     f_g = mobGf./totMob;
 
-    Go = g*(rhoOf.*dz);
+    Go = rhoOf.*gdz;
     
-    Gw = g*(rhoWf.*dz);
+    Gw = rhoWf.*gdz;
     if numel(double(pcOW)) > 1
-        Gw = Gw - s.grad(pcOW);
+        Gw = Gw - s.Grad(pcOW);
     end
     
-    Gg = g*(rhoGf.*dz);
+    Gg = rhoGf.*gdz;
     if numel(double(pcOG)) > 1
-        Gg = Gg - s.grad(pcOG);
+        Gg = Gg - s.Grad(pcOG);
     end
     
-    % Sign difference from old implementation of grad
-    Gw = -Gw;
-    Go = -Go;
-    Gg = -Gg;
+    % Sign difference from old implementation of grad 
+    %Gw = -Gw;
+    %Go = -Go;
+    %Gg = -Gg;
     
-    vW = f_w.*(vT + s.T.*mobOf.*(Go - Gw) + s.T.*mobGf.*(Gg - Gw));
-    vO = f_o.*(vT + s.T.*mobWf.*(Gw - Go) + s.T.*mobGf.*(Gg - Go));
-    vG = f_g.*(vT + s.T.*mobWf.*(Gw - Gg) + s.T.*mobOf.*(Go - Gg));
+    vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
+    vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
+    vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
     
     bWvW = s.faceUpstr(upcw, bW).*vW;
     bOvO = s.faceUpstr(upco, bO).*vO;
@@ -255,7 +256,7 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     eqInd = 1;
     if opt.solveForWater
         % water eq:
-        wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
+        wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
         wat(wc) = wat(wc) - wflux_W;
         eqs{eqInd}   = wat;
         
@@ -269,9 +270,9 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
         if disgas
             gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.*sO) - ...
                                   pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-                     s.div(bGvG + rsbOvO);
+                     s.Div(bGvG + rsbOvO);
         else
-            gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.div(bGvG);
+            gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
         end
         
         gas(wc) = gas(wc) - wflux_G;
@@ -287,9 +288,9 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
         if vapoil
             oil = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
                                   pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
-                     s.div(bOvO + rvbGvG);
+                     s.Div(bOvO + rvbGvG);
         else
-            oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.div(bOvO);
+            oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
         end
         oil(wc) = oil(wc) - wflux_O;
         

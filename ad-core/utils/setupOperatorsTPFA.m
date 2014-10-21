@@ -69,8 +69,10 @@ s.pv = pv;
 n = size(N,1);
 C  = sparse( [(1:n)'; (1:n)'], N, ones(n,1)*[1 -1], n, G.cells.num);
 s.C = C;
-s.grad = @(x) C*x;
-s.div  = @(x) -C'*x;
+%s.grad = @(x) C*x;
+s.Grad = @(x) -C*x;
+%s.div  = @(x) -C'*x;
+s.Div  = @(x) C'*x;
 
 % faceAvg - as multiplication with matrix
 nc = max(max(N));

@@ -99,8 +99,9 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
 
     % FLIUD PROPERTIES ---------------------------------------------------
     [krW, krO, krG] = f.relPerm(sW, sG);
-    g  = norm(gravity);
-    dz = s.grad(G.cells.centroids(:,3));
+    grav  = gravity;
+%    dz = s.grad(G.cells.centroids(:,3));
+    gdz = s.Grad(G.cells.centroids) * grav';
 
     % WATER PROPS (calculated at oil pressure)
     bW     = f.bW(p);
@@ -108,10 +109,10 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     % rhoW on face, avarge of neighboring cells (E100, not E300)
     rhoWf  = s.faceAvg(rhoW);
     mobW   = trMult.*krW./f.muW(p);
-    dpW    = s.grad(p-pcOW) - g*(rhoWf.*dz);
+    dpW    = s.Grad(p-pcOW) - rhoWf.*gdz;
     
     % water upstream-index
-    upcw  = (double(dpW)>=0);
+    upcw  = (double(dpW)<=0);
     vW   = -s.faceUpstr(upcw, mobW).*s.T.*dpW;
     bWvW =  s.faceUpstr(upcw, bW).*vW;
     if any(bW < 0)
@@ -132,9 +133,9 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
     rhoOf  = s.faceAvg(rhoO);
     mobO   = trMult.*krO./muO;
-    dpO    = s.grad(p) - g*(rhoOf.*dz);
+    dpO    = s.Grad(p) - rhoOf.*gdz;
     % oil upstream-index
-    upco = (double(dpO)>=0);
+    upco = (double(dpO)<=0);
     vO     = -s.faceUpstr(upco, mobO).*s.T.*dpO;
     bOvO   =  s.faceUpstr(upco, bO).*vO;
     if disgas,
@@ -155,9 +156,9 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     rhoG   = bG.*(rv*f.rhoOS + f.rhoGS);
     rhoGf  = s.faceAvg(rhoG);
     mobG   = trMult.*krG./muG;
-    dpG    = s.grad(p+pcOG) - g*(rhoGf.*dz);
+    dpG    = s.Grad(p+pcOG) - rhoGf.*gdz;
     % gas upstream-index
-    upcg    = (double(dpG)>=0);
+    upcg    = (double(dpG)<=0);
     vG     = -s.faceUpstr(upcg, mobG).*s.T.*dpG;
     bGvG   =  s.faceUpstr(upcg, bG).*vG;
     if vapoil, 
@@ -178,24 +179,24 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     % oil eq:
     if vapoil
         oil = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
-                              pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) - ...
-                 s.div(bOvO + rvbGvG);
+                              pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
+                 s.Div(bOvO + rvbGvG);
     else
-        oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.div(bOvO);
+        oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
         
     end
     
     
     % water eq:
-    wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
+    wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
     
     % gas eq:
     if disgas
         gas = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
                               pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
-                 s.div(bGvG + rsbOvO);
+                 s.Div(bGvG + rsbOvO);
     else
-        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.div(bGvG);
+        gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
     end
     
     
