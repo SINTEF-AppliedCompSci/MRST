@@ -8,6 +8,7 @@ function plotWellSols(wellsols, varargin)
         hasTimesteps = false;
         timesteps = [];
     end
+    
     if isa(wellsols{1}, 'struct')
         % Single input, wrap in cell
         wellsols = {wellsols};
@@ -17,12 +18,22 @@ function plotWellSols(wellsols, varargin)
         % Single input, wrap in cell
         timesteps = {timesteps};
     end
-            
+    
+    % Single set of matching timesteps for multiple well sols
     if numel(timesteps) ~= numel(wellsols)
         assert(numel(timesteps) == 1);
         tmp = cell(size(wellsols));
         [tmp{:}] = deal(timesteps{1});
         timesteps = tmp; clear tmp
+    end
+    
+    % Timesteps are either cumulative or individual timesteps. Try to
+    % detect if timesteps are actually decreasing or repeated, even though
+    % it is not officially supported.
+    for ind = 1:numel(timesteps)
+        if any(diff(timesteps{ind}) <= 0)
+            timesteps{ind} = cumsum(timesteps{ind});
+        end
     end
     
     % Grab first and best element for testing
@@ -182,10 +193,11 @@ function plotWellSols(wellsols, varargin)
             cmap = colorcube(nw+2);
         end
         linestyles = {'-', '--', '-.', ':'};
+        
         if get(hasmarker, 'Value')
-            m = 'o';
+            markerstyles = {'o', '.', 'd', '*'};
         else
-            m = '';
+            markerstyles = {''};
         end
             
         
@@ -200,7 +212,7 @@ function plotWellSols(wellsols, varargin)
             for j = 1:nw
                 wname = wells{j};
                 line = linestyles{mod(i-1, numel(linestyles)) + 1};
-                
+                m = markerstyles{mod(i-1, numel(markerstyles)) + 1};
                 
                 d = getData(wname, wellnames, fld, wellsols{i});
                 if hasTimesteps && get(showdt, 'Value')
