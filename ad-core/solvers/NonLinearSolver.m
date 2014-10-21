@@ -79,6 +79,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         previousIncrement
         % Abort a timestep if no reduction is residual is happening.
         enforceResidualDecrease
+        % Stagnation tolerance - used in relaxation to determine of a
+        % residual value is no longer decreasing
+        stagnateTol
 
         % If error on failure is not enabled, the solver will return even
         % though it did not converge. May be useful for debugging. Results
@@ -101,6 +104,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relaxationType = 'dampen';
             solver.useRelaxation = false;
             solver.enforceResidualDecrease = false;
+            solver.stagnateTol = 1e-2;
             
             solver.errorOnFailure = true;
             solver.continueOnFailure = false;
@@ -287,16 +291,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             solver.previousIncrement = dx;
         end
+        
+        function isOscillating = checkForOscillations(solver, res, index) %#ok
+            % Check if residuals are oscillating. They are oscillating of
+            % the ratio of forward and backwards differences for a specific
+            % residual is negative.
+            if index < 3
+                isOscillating = false(1, size(res, 2));
+                return
+            end
+            
+            old = res(index - 2, :);
+            mid = res(index - 1, :);
+            next = res(index,    :);
+            dfdb = (next - mid)./(mid - old);
+            isOscillating = dfdb < 0;
+        end
+        
+        function isStagnated = checkForStagnation(solver, res, index)
+            % Check if residuals have stagnated. Residuals are flagged as
+            % stagnating if the relative change is smaller than
+            % the tolerance (in absolute value).
+            if index < 2
+                isStagnated = false(1, size(res, 2));
+                return
+            end
+            prev = res(index - 1, :);
+            next = res(index,     :);
+
+            isStagnated = abs(next - prev)./prev < solver.stagnateTol;
+        end
     end
 end
+
 
 function [state, converged, failure, its, reports] = solveMinistep(solver, model, state, state0, dt, drivingForces)
     % Attempt to solve a single mini timestep. Detect oscillations.
     reports = cell(solver.maxIterations, 1);
     omega0 = solver.relaxationParameter;
-    
-    r = [];
-    prev_best = inf;
+
     for i = 1:(solver.maxIterations + 1)
         % If we are past maximum number of iterations, step function will
         % just check convergence and return
@@ -324,20 +357,29 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
             end
         end
         
-        if i > 1 && solver.useRelaxation
-            % Check relative improvement
-            improvement = (r_prev - stepReport.Residuals)./r_prev;
-            % Remove NaN / inf due to converged / not active vars
-            improvement = improvement(isfinite(improvement));
-            r = [r; sum(improvement)]; %#ok
-            if i > 3 && sum(sign(r(end-2:end))) > 0
+        if solver.useRelaxation
+            % Store residual history during nonlinear loop to detect
+            % stagnation or oscillations in residuals.
+            if i == 1
+                res = nan(solver.maxIterations + 1, numel(stepReport.Residuals));
+            end
+            res(i, :) = stepReport.Residuals;
+            
+            isOk = res(i, :) <= model.nonlinearTolerance;
+            isOscillating = solver.checkForOscillations(res, i);
+            isStagnated = solver.checkForStagnation(res, i);
+            % We will use relaxations if all non-converged residuals are
+            % either stagnating or oscillating.
+            bad = (isOscillating | isStagnated) | isOk;
+            relax = all(bad) && ~all(isOk);
+            if relax
+                dispif(solver.verbose, ...
+                    'Convergence issues detected. Applying relaxation to Newton solver.\n');
                 solver.relaxationParameter = max(solver.relaxationParameter - 0.1, .5);
             else
                 solver.relaxationParameter = min(solver.relaxationParameter + 0.1, 1);
             end
         end
-        r_prev = stepReport.Residuals;
-        prev_best = min(prev_best, stepReport.Residuals);
     end
     % If we converged, the last step did not solve anything
     its = i - converged;
