@@ -83,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if nargin > 1,
       if mod(numel(varargin), 2) == 0 && ...
-            all(iscellstr(varargin(1 : 2 : end))),
+            iscellstr(varargin(1 : 2 : end)),
          st = dbstack(1);
          try
             caller = regexprep(st(1).name, '\W', '_');
