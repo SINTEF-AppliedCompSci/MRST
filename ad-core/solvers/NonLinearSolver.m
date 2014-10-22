@@ -356,6 +356,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
                 break;
             end
         end
+        prev_best = stepReport.Residuals;
         
         if solver.useRelaxation
             % Store residual history during nonlinear loop to detect
