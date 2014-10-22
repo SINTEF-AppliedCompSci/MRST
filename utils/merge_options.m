@@ -5,25 +5,25 @@ function prm = merge_options(prm, varargin)
 %   prm = merge_options(prm, 'pn1', pv1, ...)
 %
 % PARAMETERS:
-%   prm       - Original/default control option structure.  The contents of
-%               this structure is problem specific and defined by caller.
+%   prm -
+%      Original/default option structure.  The contents of this structure
+%      is problem specific and defined by the caller.
 %
-%   'pn1'/pv1 - 'key'/value pairs overriding default options in `prm'.  A
-%               WARNING is issued, and no assignment made, if a given 'key'
-%               is not already present in FIELDNAMES(prm).  Key names are
-%               case insensitive.
+%   'pn'/pv -
+%      List of 'key'/value pairs overriding default options in 'prm'.
 %
-%               The ``message identifier'' of this warning is
+%      A warning is issued, and no assignment made, if a particular 'key'
+%      is not already present in FIELDNAMES(prm).  The message identifier
+%      of this warning is
 %
-%                   [<FUNCTIONNAME>, ':Option:Unsupported']
+%          [<FUNCTIONNAME>, ':Option:Unsupported']
 %
-%               with <FUNCTIONNAME> being the name of the function calling
-%               MERGE_OPTIONS or the string 'BASE' if MERGE_OPTIONS is
-%               called directly from the base workspace.
+%      with <FUNCTIONNAME> being the name of function MERGE_OPTIONS' caller
+%      or the string 'BASE' if MERGE_OPTIONS is used directly from the base
+%      workspace (i.e., the Command Window).
 %
-%               Function MERGE_OPTIONS will fail (and call ERROR) if the
-%               class of the new value is different from the class of the
-%               existing value.
+%      Function MERGE_OPTIONS will fail (and call ERROR) if the new value's
+%      class is different from the class of the existing value.
 %
 % RETURNS:
 %   prm - Modified parameter structure.
