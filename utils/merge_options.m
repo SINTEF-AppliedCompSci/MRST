@@ -81,49 +81,56 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-if nargin > 1,
-   if mod(numel(varargin), 2) == 0 && ...
-      all(iscellstr(varargin(1 : 2 : end))),
-      st = dbstack(1);
-      try
-         caller = regexprep(st(1).name, '\W', '_');
-      catch  %#ok
-         caller = 'BASE';
-      end
-      ofn = fieldnames(prm);
-      nfn = varargin(1 : 2 : end);
-      nfv = varargin(2 : 2 : end);
-
-      for n = 1 : numel(nfn),
-         ix = find(strcmpi(nfn{n}, ofn));
-
-         if ~isempty(ix),
-            if iscell(prm.(ofn{ix})) && ~iscell(nfv{n}),
-               % Original is CELL -> accept anything by turning "new"
-               % into CELL too.
-               nfv{n} = nfv(n);
-            end
-
-            oclass = class(prm.(ofn{ix}));
-            nclass = class(nfv{n});
-            empty = isempty(prm.(ofn{ix})) || isempty(nfv{n});
-            if empty || isequal(oclass, nclass),
-               prm.(ofn{ix}) = nfv{n};
-            else
-               error([caller, ':Option:ValueWrongClass'], ...
-                     ['Option ''', nfn{n}, ''' has value of ', ...
-                      'unsupported type.\nExpected ''', oclass, ...
-                      ''', but got ''', nclass, ''' in its place.']);
-            end
-         else
-            warning([caller, ':Option:Unsupported'], ...
-                    ['Option `', nfn{n}, ''' is not supported']);
+   if nargin > 1,
+      if mod(numel(varargin), 2) == 0 && ...
+            all(iscellstr(varargin(1 : 2 : end))),
+         st = dbstack(1);
+         try
+            caller = regexprep(st(1).name, '\W', '_');
+         catch  %#ok
+            caller = 'BASE';
          end
+
+         prm = process_options(prm, caller, varargin{:});
+
+      else
+         error(msgid('Input:Huh'), ...
+               'Huh? Did you remember to unpack VARARGIN?!?');
       end
-   else
-      error(msgid('Input:Huh'), ...
-            'Huh? Did you remember to unpack VARARGIN?!?');
    end
 end
+
+%--------------------------------------------------------------------------
+
+function prm = process_options(prm, caller, varargin)
+   ofn = fieldnames(prm);
+   nfn = varargin(1 : 2 : end);
+   nfv = varargin(2 : 2 : end);
+
+   for n = 1 : numel(nfn),
+      ix = find(strcmpi(nfn{n}, ofn));
+
+      if ~isempty(ix),
+         if iscell(prm.(ofn{ix})) && ~iscell(nfv{n}),
+            % Original is CELL -> accept anything by turning "new"
+            % into CELL too.
+            nfv{n} = nfv(n);
+         end
+
+         oclass = class(prm.(ofn{ix}));
+         nclass = class(nfv{n});
+         empty = isempty(prm.(ofn{ix})) || isempty(nfv{n});
+         if empty || isequal(oclass, nclass),
+            prm.(ofn{ix}) = nfv{n};
+         else
+            error([caller, ':Option:ValueWrongClass'], ...
+                  ['Option ''', nfn{n}, ''' has value of ', ...
+                   'unsupported type.\nExpected ''', oclass, ...
+                   ''', but got ''', nclass, ''' in its place.']);
+         end
+      else
+         warning([caller, ':Option:Unsupported'], ...
+                 ['Option `', nfn{n}, ''' is not supported']);
+      end
+   end
 end
