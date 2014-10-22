@@ -82,8 +82,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    if nargin > 1,
+      % Caller passed additional input.  Verify that that extra input can
+      % be interpreted as a list of 'key'/value pairs.
+
       if mod(numel(varargin), 2) == 0 && ...
             iscellstr(varargin(1 : 2 : end)),
+         % Additional input is structurally sound from the point of view of
+         % being an apparent list of 'key'/value pairs.  Process options.
+
          st = dbstack(1);
          try
             caller = regexprep(st(1).name, '\W', '_');
@@ -94,6 +100,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          prm = process_options(prm, caller, varargin{:});
 
       else
+         % Additional input does not appear to be a list of 'key'/value
+         % pairs.  The most common case of this happening is the caller
+         % using the syntax
+         %
+         %   prm = merge_options(prm, varargin)
+         %
+         % rather than
+         %
+         %   prm = merge_options(prm, varargin{:})
+         %
+         % Alert the caller/user to that possibility.
 
          error(msgid('Input:NotKeyValuePairs'), ...
               ['Input arguments do not appear to be a list of ', ...
