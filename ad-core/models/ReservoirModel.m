@@ -48,6 +48,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     properties
         % The fluid model
         fluid
+        % The rock (perm/poro/ntg)
+        rock
         
         % Maximum relative pressure change
         dpMaxRel
@@ -89,7 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     methods
-        function model = ReservoirModel(G, rock, fluid, varargin) %#ok
+        function model = ReservoirModel(G, rock, fluid, varargin)
             model = model@PhysicalModel(G);
             
             model.dpMaxRel = inf;
@@ -122,6 +124,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             % Physical model
             model.fluid = fluid;
+            model.rock  = rock;
         end
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
