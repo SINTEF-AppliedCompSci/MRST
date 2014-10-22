@@ -94,8 +94,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          prm = process_options(prm, caller, varargin{:});
 
       else
-         error(msgid('Input:Huh'), ...
-               'Huh? Did you remember to unpack VARARGIN?!?');
+
+         error(msgid('Input:NotKeyValuePairs'), ...
+              ['Input arguments do not appear to be a list of ', ...
+               '''key''/value pairs.\nDid you unpack VARARGIN?']);
       end
    end
 end
