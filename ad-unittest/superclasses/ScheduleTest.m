@@ -115,8 +115,8 @@ classdef ScheduleTest < matlab.unittest.TestCase
                             % Recursive definition
                             test.compareStates(ref.(fn)(k), res.(fn)(k), reltol, abstol, i);
                         end
-                    case {'qws', 'qgs', 'qos', 'qts', 'qs', 'cqs'}
-                        % Misc well fields that may be close to zero
+                    case {'qws', 'qgs', 'qos', 'qts', 'qs', 'cqs', 'c'}
+                        % Misc fields that may be close to zero
                         fudge = 1e8;
                         a = round(fudge*res.(fn))/fudge;
                         b = round(fudge*ref.(fn))/fudge;
