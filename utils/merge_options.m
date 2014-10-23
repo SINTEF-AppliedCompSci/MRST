@@ -25,6 +25,14 @@ function prm = merge_options(prm, varargin)
 %      Function MERGE_OPTIONS will fail (and call ERROR) if the new value's
 %      class is different from the class of the existing value.
 %
+%      In the interest of convenience for the typical case of using MRST
+%      interactively from the Command Window, MERGE_OPTIONS matches keys
+%      (option names) using case insensitive search (i.e., using function
+%      STRCMPI).  If multiple option fields match a given name, such as in
+%      the case of several fields differing only by capitalisation, the
+%      MERGE_OPTIONS function resorts to exact and case sensitive string
+%      matching (STRCMP) to disambiguate options.
+%
 % RETURNS:
 %   prm - Modified parameter structure.
 %
@@ -60,7 +68,7 @@ function prm = merge_options(prm, varargin)
 %   plot(prm.d{end}, '.-')
 %
 % SEE ALSO:
-%   FIELDNAMES, WARNING, STRUCT.
+%   FIELDNAMES, WARNING, STRCMPI, STRCMP.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
