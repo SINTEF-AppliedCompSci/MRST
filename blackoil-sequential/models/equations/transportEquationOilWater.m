@@ -113,8 +113,11 @@ if isfield(f, 'pvMultR')
     pvMult0 = f.pvMultR(p0);
 end
 
+totMob = (mobOf + mobWf);
+totMob = max(totMob, sqrt(eps));
+
 if opt.solveForWater
-    f_w = mobWf./(mobOf + mobWf);
+    f_w = mobWf./totMob;
     bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Gw - Go));
 
     wat = (s.pv/dt).*(pvMult.*bW.*sW       - pvMult0.*f.bW(p0).*sW0    ) + s.Div(bWvW);
@@ -124,7 +127,7 @@ if opt.solveForWater
     names = {'water'};
     types = {'cell'};
 else
-    f_o = mobOf./(mobOf + mobWf);
+    f_o = mobOf./totMob;
     bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + s.T.*mobWf.*(Go - Gw));
 
     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);

@@ -161,7 +161,8 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     mobGf = s.faceUpstr(upcg, mobG);
     % Tot mob
     totMob = mobOf + mobWf + mobGf;
-        
+    totMob = max(totMob, sqrt(eps));
+    
     f_w = mobWf./totMob;
     f_o = mobOf./totMob;
     f_g = mobGf./totMob;
@@ -177,11 +178,6 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     if numel(double(pcOG)) > 1
         Gg = Gg - s.Grad(pcOG);
     end
-    
-    % Sign difference from old implementation of grad 
-    %Gw = -Gw;
-    %Go = -Go;
-    %Gg = -Gg;
     
     vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
     vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
