@@ -11,13 +11,13 @@ function up = multiphaseUpwindIndices(G, vT, T, K, upstr)
     [G, sortInd] = sort(G, 2);
 
     
-    theta = repmat(vT, 1, nPh + 1);
+    theta = repmat(vT, 1, nPh);
     for i = 1:nPh
         for j = 1:nPh
             if j == i
                 continue
             end
-            flag = (i > j);
+            flag = (i < j);
             kj = zeros(nC, 1);
             for k = 1:nPh
                 % Upstream weight mobility
@@ -31,16 +31,13 @@ function up = multiphaseUpwindIndices(G, vT, T, K, upstr)
             theta(:, i) = theta(:, i) + T.*(G(:, i) - G(:, j)).*kj;
         end
     end
-    theta(:, nPh + 1) = 1;
     [ix, r] = max(theta > 0, [], 2);
-    
-    % All are positive...
-    r(r == nPh + 1) = 1;
+    r = r - 1;
    
     up = false(nF, nPh);
     for i = 1:nPh
         % Check sign here
-        up(:, i) = sortInd(:, i) < r;
+        up(:, i) = sortInd(:, i) > r;
     end
 end
 

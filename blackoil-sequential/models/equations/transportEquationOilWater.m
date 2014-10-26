@@ -109,7 +109,7 @@ flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
 % Stored upstream indices
-if 1
+if model.staticUpwind
     flag = state.upstreamFlag;
 else
     flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);

@@ -149,11 +149,29 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     % Get total flux from state
     flux = sum(state.flux, 2);
     vT = flux(model.operators.internalConn);
-
+    
+    % Sat dependent pressure terms
+    Go = rhoOf.*gdz;
+    Gw = rhoWf.*gdz;
+    if numel(double(pcOW)) > 1
+        Gw = Gw - s.Grad(pcOW);
+    end
+    
+    Gg = rhoGf.*gdz;
+    if numel(double(pcOG)) > 1
+        Gg = Gg - s.Grad(pcOG);
+    end
+    
     % Stored upstream indices
-    upcw  = state.upstreamFlag(:, 1);
-    upco  = state.upstreamFlag(:, 2);
-    upcg  = state.upstreamFlag(:, 3);
+    if model.staticUpwind
+        flag = state.upstreamFlag;
+    else
+        flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
+    end
+    
+    upcw  = flag(:, 1);
+    upco  = flag(:, 2);
+    upcg  = flag(:, 3);
     
     % Upstream weighted face mobilities
     mobWf = s.faceUpstr(upcw, mobW);
@@ -167,17 +185,7 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     f_o = mobOf./totMob;
     f_g = mobGf./totMob;
 
-    Go = rhoOf.*gdz;
-    
-    Gw = rhoWf.*gdz;
-    if numel(double(pcOW)) > 1
-        Gw = Gw - s.Grad(pcOW);
-    end
-    
-    Gg = rhoGf.*gdz;
-    if numel(double(pcOG)) > 1
-        Gg = Gg - s.Grad(pcOG);
-    end
+
     
     vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
     vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
