@@ -58,16 +58,6 @@ sO = 1 - sW;
 [bO, rhoO, mobO, dpO, Go] = propsOW_oil(  sO, krO, gdz, f, p, s);
 
 
-% Get total flux from state
-flux = sum(state.flux, 2);
-vT = flux(model.operators.internalConn);
-
-% Stored upstream indices
-upcw  = state.upstreamFlag(:, 1);
-upco  = state.upstreamFlag(:, 2);
-
-mobOf = s.faceUpstr(upco, mobO);
-mobWf = s.faceUpstr(upcw, mobW);
     
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
@@ -112,6 +102,25 @@ if isfield(f, 'pvMultR')
     pvMult =  f.pvMultR(p);
     pvMult0 = f.pvMultR(p0);
 end
+
+
+% Get total flux from state
+flux = sum(state.flux, 2);
+vT = flux(model.operators.internalConn);
+
+% Stored upstream indices
+if 1
+    flag = state.upstreamFlag;
+else
+    flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+end
+
+upcw  = flag(:, 1);
+upco  = flag(:, 2);
+
+    
+mobOf = s.faceUpstr(upco, mobO);
+mobWf = s.faceUpstr(upcw, mobW);
 
 totMob = (mobOf + mobWf);
 totMob = max(totMob, sqrt(eps));
