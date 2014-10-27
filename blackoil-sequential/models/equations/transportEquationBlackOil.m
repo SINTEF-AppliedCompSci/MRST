@@ -153,11 +153,12 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     % Sat dependent pressure terms
     Go = rhoOf.*gdz;
     Gw = rhoWf.*gdz;
+    Gg = rhoGf.*gdz;
+
     if numel(double(pcOW)) > 1
         Gw = Gw - s.Grad(pcOW);
     end
     
-    Gg = rhoGf.*gdz;
     if numel(double(pcOG)) > 1
         Gg = Gg - s.Grad(pcOG);
     end
@@ -166,7 +167,8 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     if model.staticUpwind
         flag = state.upstreamFlag;
     else
-        flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
+        flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, s.T, ...
+                {mobW.*bW, mobO.*bO, mobG.*bG}, s.faceUpstr);
     end
     
     upcw  = flag(:, 1);
