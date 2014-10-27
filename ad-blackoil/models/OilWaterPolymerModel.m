@@ -62,7 +62,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                     index = 1;
                     fn = 'cmax';
                 otherwise
-                    [fn, index] = getVariableField@ReservoirModel(...
+                    [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                                     model, name);
             end
         end
