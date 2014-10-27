@@ -38,11 +38,18 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 c = model.getProp(state, 'polymer');
                 c = min(c, model.fluid.cmax);
                 state = model.setProp(state, 'polymer', max(c, 0) );
-                
-                cmax = model.getProp(state, 'polymermax');
-                state = model.setProp(state, 'polymermax', max(cmax, c) );
             end
         end
+        
+        function state = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            state = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
+            if model.polymer
+                c     = model.getProp(state, 'polymer');
+                cmax  = model.getProp(state, 'polymermax');
+                state = model.setProp(state, 'polymermax', max(cmax, c));
+            end
+        end
+
         
         function [fn, index] = getVariableField(model, name)
             % Get the index/name mapping for the model (such as where
