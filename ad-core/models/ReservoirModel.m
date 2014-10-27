@@ -210,13 +210,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     fn = 'T';
                     index = 1;
                 case {'sw', 'water'}
-                    index = find(strcmpi(model.saturationVarNames, 'sw'));
+                    index = model.satVarIndex('sw');
                     fn = 's';
                 case {'so', 'oil'}
-                    index = find(strcmpi(model.saturationVarNames, 'so'));
+                    index = model.satVarIndex('so');
                     fn = 's';
                 case {'sg', 'gas'}
-                    index = find(strcmpi(model.saturationVarNames, 'sg'));
+                    index = model.satVarIndex('sg');
                     fn = 's';
                 case {'s', 'sat', 'saturation'}
                     index = 1:numel(model.saturationVarNames);
@@ -395,6 +395,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             state.mob = zeros(model.G.cells.num, sum(isActive));
             b = {double(bW), double(bO), double(bG)};
             state = model.setPhaseData(state, b, 'bfactor');
+        end
+        function i = satVarIndex(model, name)
+            i = find(strcmpi(model.saturationVarNames, name));
         end
     end
 
