@@ -1,16 +1,11 @@
-function up = multiphaseUpwindIndices(G, vT, T, K, upstr)
+function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
     nPh = numel(G);
     nF  = numel(T);
-    
-    
     G = flattenAndMakeDouble(G);
     K = flattenAndMakeDouble(K);
-    
     nC  = size(K, 1);
     
     [G, sortInd] = sort(G, 2);
-
-    
     theta = repmat(vT, 1, nPh);
     for i = 1:nPh
         for j = 1:nPh
@@ -33,10 +28,10 @@ function up = multiphaseUpwindIndices(G, vT, T, K, upstr)
     end
     [ix, r] = max(theta > 0, [], 2);
     r = r - 1;
-   
+    r(all(theta < 0, 2)) = nPh;
+    
     up = false(nF, nPh);
     for i = 1:nPh
-        % Check sign here
         up(:, i) = sortInd(:, i) > r;
     end
 end
