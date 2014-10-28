@@ -33,9 +33,9 @@ catch me
 end
 
 try
-   require coarsegrid
+   require agglom coarsegrid
 catch me
-   mrstModule add coarsegrid;
+   mrstModule add agglom coarsegrid;
 end
 
 [G, W, rock] = SPE10_setup(25);

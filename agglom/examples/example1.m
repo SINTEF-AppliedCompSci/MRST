@@ -25,9 +25,9 @@
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
 try
-   require coarsegrid
+   require agglom coarsegrid
 catch me
-   mrstModule add coarsegrid;
+   mrstModule add agglom coarsegrid
 end
 %% Create a simple model
 % We consider an 8x8 Cartesian grid with an artificial flow indicator in

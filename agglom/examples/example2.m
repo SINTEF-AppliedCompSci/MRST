@@ -10,9 +10,9 @@
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
 try
-   require coarsegrid
+   require agglom coarsegrid
 catch me
-   mrstModule add coarsegrid;
+   mrstModule add agglom coarsegrid;
 end
 %% Model with two facies
 % As a first case, we consider 40x40 fine grid for which the image
