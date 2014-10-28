@@ -92,6 +92,11 @@ s.cellAvg = @(x) aC*x;
 end
 
 function xu = faceUpstr(flag, x, N, sz)
+    if numel(flag) == 1
+        flag = repmat(flag, size(N, 1), 1);
+    end
+    assert(numel(flag) == size(N, 1) && islogical(flag), ...
+        'One logical upstream flag must'' be supplied per interface.');
     upCell       = N(:,2);
     upCell(flag) = N(flag,1);
     xu = sparse((1:sz(1))', upCell, 1, sz(1), sz(2))*x;
