@@ -69,7 +69,7 @@ T  = readTabulatedJFluidFile(fn);
 fprintf('\n');
 fprintf(' Sw          | Krw         | Kro         | J-func\n')
 fprintf('-------------|-------------|-------------|------------\n')
-fprintf(' %+1.4e | %+1.4e | %+1.4e | %+1.4e\n', T{1})
+fprintf(' %+1.4e | %+1.4e | %+1.4e | %+1.4e\n', T{1} .')
 fprintf('\n');
 
 fluid = initSWOFFluidJfunc('mu' , [   10,  100] .* centi*poise     , ...
