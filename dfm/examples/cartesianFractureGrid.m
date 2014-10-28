@@ -9,6 +9,12 @@
 % will be chosen instead of the core MRST functions. If this is not taken
 % care of, strange error messages will probably result
 
+try
+   require dfm
+catch
+   mrstModule add dfm
+end
+
 % Initialize a grid
 Nx = [10 10];
 G = cartGrid(Nx,[10 10]);

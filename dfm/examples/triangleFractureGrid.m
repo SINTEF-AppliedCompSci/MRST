@@ -9,6 +9,13 @@
 % used in the odp-file; the filter is not robust with respect to inexact
 % color specifications. Sorry..
 % If colors are not specified, each fracture gets assigned a unique tag.
+
+try
+   require dfm
+catch
+   mrstModule add dfm
+end
+
 fractures = fullfile(ROOTDIR, 'modules', 'dfm', 'simpleSystem.odp');
 fracInfo = struct('fractures', fractures, ...
     'color',[0 1 0;1 0 0], ...
