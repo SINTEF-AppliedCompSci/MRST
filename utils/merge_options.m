@@ -137,6 +137,16 @@ function prm = process_options(prm, caller, varargin)
    for n = 1 : numel(nfn),
       ix = find(strcmpi(nfn{n}, ofn));
 
+      if numel(ix) > 1,
+         % Case insensitive match hits more than one field name.  Defer to
+         % case sensitive matching as arbiter/disambiguator.  If we then
+         % don't match *any* option, proceed to next field name.  Note: Due
+         % to guarantees implied by ofn = FIELDNAMES(prm) we either match
+         % zero or one field name here.
+
+         ix = find(strcmp(nfn{n}, ofn));
+      end
+
       if ~isempty(ix),
          if iscell(prm.(ofn{ix})) && ~iscell(nfv{n}),
             % Original is CELL -> accept anything by turning "new"
