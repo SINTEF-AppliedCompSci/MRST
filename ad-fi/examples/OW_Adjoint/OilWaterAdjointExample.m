@@ -4,13 +4,18 @@
 % a given schedule and, using the adjoint equations, we compute the derivative of a given
 % net present value (NPV) function with respect to the control variables.
 
-
-%% Setup the grid and the rock and fluid structures
-% We read the deck and create the grid, rock and fluid structures from the resulting
-% output. 
+%% Read the problem from a deckfile
+% The problem is defined in 'INPUT_NUMGRAD.DATA' which is a simple
+% $10\times1\times10$ Cartesian grid with uniform permeability. We read the
+% deck and create the grid, rock and fluid structures from the resulting
+% output. This requires the deckformat module.
 
 % This requires the deckformat module.
-require deckformat ad-fi
+try
+   require deckformat ad-core ad-fi
+catch
+   mrstModule add deckformat ad-core ad-fi
+end
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'simple10x1x10.data');

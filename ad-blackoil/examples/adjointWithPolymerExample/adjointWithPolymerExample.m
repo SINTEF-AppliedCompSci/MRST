@@ -7,10 +7,15 @@
 % polymer, followed by a water flooding phase without polymer. Finally, the
 % water rate is reduced for the final time steps.
 %
-mrstModule add ad-core ad-blackoil ad-fi deckformat % gridtools
+
+try
+   require add ad-core ad-blackoil ad-fi deckformat
+catch
+   mrstModule add ad-core ad-blackoil ad-fi deckformat
+end
 
 current_dir = fileparts(mfilename('fullpath'));
-fn    = fullfile(current_dir, 'POLYMER.DATA');
+fn    = fullfile(current_dir, 'polymer.data');
 
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);

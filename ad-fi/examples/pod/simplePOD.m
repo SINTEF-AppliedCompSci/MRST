@@ -4,8 +4,13 @@
 % meant to illustrate the principles, not best practice for real cases.
 
 %% Setup
-%  required modules and set random stream
-require deckformat ad-fi
+% Load required modules and set random stream
+try
+   require deckformat ad-core ad-fi
+catch
+   mrstModule add deckformat ad-core ad-fi
+end
+
 s = RandStream('mcg16807', 'Seed', 0);
 try
    s0 = RandStream.setGlobalStream(s);
