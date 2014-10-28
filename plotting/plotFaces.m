@@ -41,6 +41,12 @@ function varargout = plotFaces(G, faces, varargin)
 %             This list will be passed directly on to function PATCH
 %             meaning all properties supported by PATCH are valid.
 %
+%             As a special case function plotFaces supports a separate
+%             boolean option 'outline' which, when set, draws the outline
+%             edge of the 'faces' input argument.  The outline is defined
+%             as those edges that appear exactly once in the edge list
+%             implied by 'faces'.
+%
 % RETURNS:
 %   h - Handle to resulting PATCH object.  The patch object is added to the
 %       current AXES object.
@@ -249,18 +255,10 @@ end
 function [plotOutline, varargin] = do_outline_p(varargin)
    % Does caller of 'plotFaces' request an outline plot?
 
-   plotOutline = false;
-   if numel(varargin) > 0,
-      i = 1 + isnumeric(varargin{1});
-      v = find(strcmpi(varargin(i : 2 : end), 'outline'));
-      if ~isempty(v),
-         % Find argument following last 'outline'
-         plotOutline = varargin{i + 2*v(end) - 1};
+   opt = struct('outline', false);
+   [opt, varargin] = merge_options(opt, varargin{:});
 
-         % Remove pairs of 'outline'/value from varargin.
-         varargin([i+2*v-2, i+2*v-1]) = [];
-      end
-   end
+   plotOutline = opt.outline;
 end
 
 %--------------------------------------------------------------------------
