@@ -34,7 +34,7 @@ G_ups     = computeGeometry(G_ups);
 % In our case, this is simple: the coarse grid is uniform partition of the
 % fine grid.
 p  = partitionUI(G, upscaled);
-p  = processPartition  (G, p);
+p  = processPartition  (G, p, 'Verbose', verbose);
 CG = generateCoarseGrid(G, p, 'Verbose', verbose);
 
 rockUps.perm = upscalePerm(G, CG, rock, 'Verbose', verbose);

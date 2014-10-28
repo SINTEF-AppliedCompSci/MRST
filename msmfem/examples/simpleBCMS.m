@@ -10,7 +10,11 @@
 % example is built upon the setup used in the <simpleBC.html "Basic
 % Flow-Solver Tutorial">.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 % We construct the Cartesian grid, set a lognormal anisotropic

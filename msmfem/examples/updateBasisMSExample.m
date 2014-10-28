@@ -18,7 +18,11 @@
 % mobility changes more than a given tolerance. After the simulation is
 % done we compare the fine scale and coarse scale saturation profiles.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 % We construct the Cartesian grid, set the permeability to 100 mD, and

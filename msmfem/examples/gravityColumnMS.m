@@ -10,7 +10,11 @@
 % without going into specific details. More details can be found in the
 % <simpleBCMS.html "Basic Multiscale Tutorial">.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define the model
 % The domain [0,1]x[0,1]x[0,30] is discretized using a Cartesian grid with

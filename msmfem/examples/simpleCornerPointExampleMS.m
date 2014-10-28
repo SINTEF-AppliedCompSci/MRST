@@ -9,7 +9,11 @@
 % <simpleCornerPointExample.html "A Simple Corner-Point Model">, but herein
 % we generate a different version of the test grid that has a single fault.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 % We construct a corner-point grid that with sloping pillars and wavy

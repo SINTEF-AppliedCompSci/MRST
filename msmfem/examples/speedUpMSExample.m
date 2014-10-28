@@ -18,7 +18,11 @@
 % <simpleWellExampleMS.html>. It is recommended that you look at this
 % tutorial first.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define the model and set data
 % We construct the Cartesian grid, set the permeability to 100 mD, and

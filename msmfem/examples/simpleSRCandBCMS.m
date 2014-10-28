@@ -10,7 +10,11 @@
 % Tutorial"> and the flow-solver tutorial <simpleSRCandBC.html "How to
 % Specify Sources and Boundary Conditions">.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 % We construct the Cartesian grid, set a lognormal, layered, isotropic
