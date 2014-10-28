@@ -1,8 +1,9 @@
-function prm = merge_options(prm, varargin)
+function [prm, varargout] = merge_options(prm, varargin)
 %Override default control options.
 %
 % SYNOPSIS:
-%   prm = merge_options(prm, 'pn1', pv1, ...)
+%    prm         = merge_options(prm, 'pn1', pv1, ...)
+%   [prm, extra] = merge_options(prm, 'pn1', pv1, ...)
 %
 % PARAMETERS:
 %   prm -
@@ -34,7 +35,23 @@ function prm = merge_options(prm, varargin)
 %      matching (STRCMP) to disambiguate options.
 %
 % RETURNS:
-%   prm - Modified parameter structure.
+%   prm -
+%      Modified parameter structure.
+%
+%   extra -
+%      Cell array of 'key'/value pairs from the 'pn'/pv list that were not
+%      matched by any option in the control structure 'prm'.  This allows
+%      using function MERGE_OPTIONS in an intermediate layer to define a
+%      set of options and to pass other options unchanged on to lower-level
+%      implementation functions--for instance to wrap a pressure solver in
+%      a higher-level structure.
+%
+%      If the caller requests extra output be returned, then no diagnostic
+%      message will be emitted for unsupported/undeclared option pairs in
+%      the input list.
+%
+%      If there are no unsupported options in the input list then 'extra'
+%      is an empty cell array.
 %
 % SPECIAL CASE:
 %   If the value of a field of the input parameters ('prm') is a CELL
@@ -105,7 +122,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             caller = 'BASE';
          end
 
-         prm = process_options(prm, caller, varargin{:});
+         [prm, extra] = process_options(prm, caller, varargin{:});
+
+         if nargout == 2,
+            % Caller requested that unused options be returned.  Abide by
+            % this request and don't emit any diagnostics.
+            varargout{1} = extra;
+
+         elseif ~isempty(extra),
+            % Caller did not request that unused options be returned
+            % unmodified but there were unused options in the input.
+            % Report those unused options to the Command Window.
+
+            pl = ''; if numel(extra(1:2:end)) > 1, pl = 's'; end
+
+            warning([caller, ':Option:Unsupported'], ...
+                    'Unsupported option%s in %s%s', pl, caller, ...
+                    sprintf('\n * %s', extra{1 : 2 : end}));
+
+         elseif nargout > 2,
+            error(msgid('NargOut:TooMany'), ...
+                  'Too many output arguments: %d', nargout);
+         end
 
       else
          % Additional input does not appear to be a list of 'key'/value
@@ -129,10 +167,12 @@ end
 
 %--------------------------------------------------------------------------
 
-function prm = process_options(prm, caller, varargin)
+function [prm, extra] = process_options(prm, caller, varargin)
    ofn = fieldnames(prm);
    nfn = varargin(1 : 2 : end);
    nfv = varargin(2 : 2 : end);
+
+   unused = false(size(nfv));
 
    for n = 1 : numel(nfn),
       ix = find(strcmpi(nfn{n}, ofn));
@@ -166,8 +206,9 @@ function prm = process_options(prm, caller, varargin)
                    ''', but got ''', nclass, ''' in its place.']);
          end
       else
-         warning([caller, ':Option:Unsupported'], ...
-                 ['Option `', nfn{n}, ''' is not supported']);
+         unused(n) = true;
       end
    end
+
+   extra = reshape([ nfn(unused) ; nfv(unused) ], 1, []);
 end
