@@ -120,7 +120,7 @@ W1 = generateCoarseWellSystem(G, S, CG, CS, mob, rock, W1, ...
 
 % Fine scale reference solution:
 ref = initState(G, W, 0, [0, 1]);
-ref = solveIncompFlow(ref, G, S, fluid, 'wells', W);
+ref = incompMimetic(ref, G, S, fluid, 'wells', W);
 
 % Coarse scale - no overlap:
 s = initState(G, W, 0, [1, 0]);

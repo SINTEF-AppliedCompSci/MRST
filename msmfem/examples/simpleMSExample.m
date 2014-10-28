@@ -68,7 +68,7 @@ CS = generateCoarseSystem (G, rock, S, CG, ones([G.cells.num, 1]), ...
 
 W = generateCoarseWellSystem(G, S, CG, CS, ones([G.cells.num, 1]), rock, W);
 
-xRef = solveIncompFlow  (xRef, G, S, fluid, 'wells', W, 'Solver', 'hybrid');
+xRef = incompMimetic    (xRef, G, S, fluid, 'wells', W, 'Solver', 'hybrid');
 xMs  = solveIncompFlowMS(xMs, G, CG, p, S, CS, fluid, 'wells', W, ...
                          'Solver', 'hybrid');
 

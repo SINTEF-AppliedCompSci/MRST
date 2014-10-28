@@ -43,7 +43,7 @@ W = generateCoarseWellSystem(G, S, CG, CS, ones([G.cells.num, 1]), rock, W);
 xRef = initState(G, W, 0);
 xMs  = initState(G, W, 0);
 
-xRef = solveIncompFlow  (xRef, G, S, fluid, 'bc', bc, 'wells', W);
+xRef = incompMimetic    (xRef, G, S, fluid, 'bc', bc, 'wells', W);
 xMs  = solveIncompFlowMS(xMs, G, CG, p, S, CS, fluid, 'wells', W, ...
                          'bc', bc);
 

@@ -124,7 +124,7 @@ W = generateCoarseWellSystem(G, S, CG, CS, mob, rock, W);
 %% Solve the global flow problems and check time consumption
 
 tic
-xRef = solveIncompFlow  (xRef, G, S, fluid, 'wells', W, 'Solver', S.type);
+xRef = incompMimetic(xRef, G, S, fluid, 'wells', W, 'Solver', S.type);
 t_fine = toc;
 
 tic

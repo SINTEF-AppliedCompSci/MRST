@@ -89,8 +89,8 @@ CG = generateCoarseGrid(G, p, 'Verbose', verbose);
 % Finally, we assemble the mimetic system in hybrid form and solve the
 % corresponding linear equations.
 S = computeMimeticIP(G, rock, 'Verbose', true);
-xRef = solveIncompFlow(initResSol(G, 0), G, S, fluid, ...
-                       'MatrixOutput', true, 'bc', bc);
+xRef = incompMimetic(initResSol(G, 0), G, S, fluid, ...
+                     'MatrixOutput', true, 'bc', bc);
 
 mu  = fluid.properties(xRef);
 kr  = fluid.relperm(ones([G.cells.num, 1]), xRef);

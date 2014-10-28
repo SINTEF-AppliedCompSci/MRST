@@ -52,7 +52,7 @@ function simpleMSSourceExample(varargin)
    CS = generateCoarseSystem (G, rock, S, CG, ones([G.cells.num, 1]), ...
                               'Verbose', verbose, 'src', src);
 
-   xRef = solveIncompFlow  (xRef, G, S, fluid, 'src', src);
+   xRef = incompMimetic    (xRef, G, S, fluid, 'src', src);
    xMs  = solveIncompFlowMS(xMs , G, CG, p, S, CS, fluid, 'src', src);
 
    % Plot result:
@@ -66,7 +66,7 @@ function simpleMSSourceExample(varargin)
    src = addSource([], [100; 200], [-1; 1], 'sat', [1, 0, 0; 1, 0, 0]);
    [S, CS] = putSourceMS(G, S, CG, CS, rock, src);
 
-   xrRef = solveIncompFlow  (xrRef, [], G, S, fluid, ...
+   xrRef = incompMimetic    (xrRef, [], G, S, fluid, ...
                              'src', src);
    xrMs  = solveIncompFlowMS(initResSol(G, 0.0), [], ...
                              G, CG, p, S, CS, fluid, 'src', src)
@@ -78,7 +78,7 @@ function simpleMSSourceExample(varargin)
    [S, CS] = rmSourceMS(G, S, CG, CS, rock, [100 200]);
    %{
 
-   xrRef = solveIncompFlow  (xrRef, [], G, S, fluid, ...
+   xrRef = incompMimetic    (xrRef, [], G, S, fluid, ...
                              'src', src);
    xrMs  = solveIncompFlowMS(initResSol(G, 0.0), [], ...
                              G, CG, p, S, CS, fluid, 'src', src);

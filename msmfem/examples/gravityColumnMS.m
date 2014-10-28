@@ -34,7 +34,7 @@ bc         = pside([], G, 'TOP', 100.*barsa);
 
 %% Assemble and solve the fine-scale linear system
 S   = computeMimeticIP(G, rock);
-sol = solveIncompFlow(initResSol(G , 0.0), G, S, fluid, 'bc', bc);
+sol = incompMimetic(initResSol(G , 0.0), G, S, fluid, 'bc', bc);
 
 %% Plot the fine-scale solution
 newplot;
