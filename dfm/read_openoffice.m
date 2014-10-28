@@ -4,7 +4,11 @@ function [vertices, edges, box] = read_openoffice (filename, ext, opts)
 %
 % Copyright (C) 2006-2007 Uni Research AS
 % This file is licensed under the GNU General Public License v3.0.
-%
+
+if exist(filename, 'file') ~= 2,
+   error(['Fracture input file ''%s'' ', ...
+          'does not exist on local system'], filename);
+end
 
 % directory of this function contains the stylesheets
 dir = fileparts (which (mfilename ()));
@@ -14,9 +18,16 @@ vertices = [];
 
 % extract the style file and use it to find out the maximum and minimum
 % coordinates of the figure
-system (sprintf (['unzip -p "%s" styles.xml | xsltproc --novalid ' ...
-    '"%s" - > %sbox.mat'], filename, fullfile (dir, ['box-' ext '.xsl']), ...
-    [dir, filesep]));
+[stat, res] = ...
+   system (sprintf (['unzip -p "%s" styles.xml |', ...
+                     'xsltproc --novalid "%s" - > %sbox.mat'], ...
+                     filename, fullfile (dir, ['box-', ext, '.xsl']), ...
+           [dir, filesep]));
+
+if stat ~= 0,
+   error('Failed to convert fracture input file ''%s'':\n\t%s', ...
+         filename, res);
+end
 
 % create a bounding box from the min./max. coordinates
 

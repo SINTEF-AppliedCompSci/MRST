@@ -16,7 +16,13 @@ catch
    mrstModule add dfm
 end
 
-fractures = fullfile(ROOTDIR, 'modules', 'dfm', 'simpleSystem.odp');
+fractures = fullfile(mfilename('fullpath'), 'simpleSystem.odp');
+
+if exist(fractures, 'file') ~= 2,
+   error(['Fracture file ''simpleSystem.odp'' ', ...
+          'does not exist on this system']);
+end
+
 fracInfo = struct('fractures', fractures, ...
     'color',[0 1 0;1 0 0], ...
     'precision', 1e-2);
