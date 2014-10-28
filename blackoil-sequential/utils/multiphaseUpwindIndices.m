@@ -3,16 +3,16 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
     nF  = numel(T);
     G = flattenAndMakeDouble(G);
     K = flattenAndMakeDouble(K);
-    
+
     [G, sortInd] = sort(G, 2);
     theta = repmat(vT, 1, nPh);
-    for i = 1:nPh
+    for l = 1:nPh
         for j = 1:nPh
-            if j == i
+            if j == l
                 continue
             end
-            flag = (i < j);
-            kj = zeros(nF, 1);
+            flag = repmat(j > l, nF, 1);
+            kj = nan(nF, 1);
             for k = 1:nPh
                 % Upstream weight mobility
                 kloc = upstr(flag, K(:, k));
@@ -22,7 +22,7 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
   
                 kj(ind) = kloc(ind);
             end
-            theta(:, i) = theta(:, i) + T.*(G(:, i) - G(:, j)).*kj;
+            theta(:, l) = theta(:, l) + T.*(G(:, l) - G(:, j)).*kj;
         end
     end
     [ix, r] = max(theta > 0, [], 2);
@@ -30,8 +30,8 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
     r(all(theta < 0, 2)) = nPh;
     
     up = false(nF, nPh);
-    for i = 1:nPh
-        up(:, i) = (sortInd(:, i) > r);
+    for l = 1:nPh
+        up(:, l) = (sortInd(:, l) > r);
     end
 end
 

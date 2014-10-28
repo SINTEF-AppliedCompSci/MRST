@@ -112,7 +112,7 @@ vT = flux(model.operators.internalConn);
 if model.staticUpwind
     flag = state.upstreamFlag;
 else
-    flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {bW.*mobW, bO.*mobO}, s.faceUpstr);
+    flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
 end
 
 upcw  = flag(:, 1);

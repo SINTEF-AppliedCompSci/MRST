@@ -168,9 +168,9 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
         flag = state.upstreamFlag;
     else
         flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, s.T, ...
-                {mobW.*bW, mobO.*bO, mobG.*bG}, s.faceUpstr);
+                {mobW, mobO, mobG}, s.faceUpstr);
     end
-    
+
     upcw  = flag(:, 1);
     upco  = flag(:, 2);
     upcg  = flag(:, 3);
