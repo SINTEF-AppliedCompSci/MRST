@@ -19,7 +19,11 @@
 % # useful routines for visualizing and interacting with the grids and
 % simulation results.
 
-require mimetic
+try
+   require mimetic
+catch
+   mrstModule add mimetic
+end
 
 %% Define geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell

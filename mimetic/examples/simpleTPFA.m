@@ -34,7 +34,11 @@
 %
 % The grid and the wells will be the same for both approaches.
 
-require mimetic
+try
+   require mimetic
+catch
+   mrstModule add mimetic
+end
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
