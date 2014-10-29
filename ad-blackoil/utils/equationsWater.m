@@ -120,7 +120,6 @@ if ~isempty(W)
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-problem.iterationNo = opt.iteration;
 end
 %--------------------------------------------------------------------------
 
