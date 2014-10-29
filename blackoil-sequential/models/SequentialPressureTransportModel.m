@@ -42,7 +42,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
         
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nonlinsolve,...
-                                                onlyCheckConvergence, varargin)
+                                                iteration, varargin)
             % Solve pressure
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
