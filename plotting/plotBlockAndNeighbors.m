@@ -102,9 +102,7 @@ opt = struct('PlotFaults', true([1, 2]), ...
              'Alpha'     , ones([1, 4]));
 [opt, varargin] = process_options(opt, varargin{:});
 
-assert (numel(opt.Alpha) >= 2 + find(opt.PlotFaults, 1, 'last'), ...
-       ['Option ''Alpha'' must specify enough AlphaData values ', ...
-        'to cover the requested plotting modes.']);
+check_input(opt);
 
 % Initialize parameters
 p = CG.partition;
@@ -208,3 +206,26 @@ f0 = @(b) find(any(N == b, 2));
 f1 = @(i) i(G.faces.tag(i) > 0);
 
 f  = @(b) f1(f0(b));
+
+%--------------------------------------------------------------------------
+
+function check_input(opt)
+p = find(opt.PlotFaults, 1, 'last');
+if isempty(p),
+   % Caller doesn't want faults.  Specify position zero to avoid ASSERT
+   % failing with a diagnostic that's hard to comprehend:
+   %
+   %    Error using >=
+   %    Matrix dimensions must agree.
+   %
+   % That results from what would effectively be
+   %
+   %    NUMEL(opt.Alpha) >= 2 + []
+   %
+   % otherwise.
+   p = 0;
+end
+
+assert (numel(opt.Alpha) >= 2 + p, ...
+       ['Option ''Alpha'' must specify enough AlphaData values ', ...
+        'to cover the requested plotting modes.']);
