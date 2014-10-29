@@ -9,6 +9,12 @@
 % or not defined is removed, giving a GRDECL file defining the intersection
 % of these datasets.
 
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
 %% Example: Utsira formation
 % The formations discussed in the atlas cover large areas, and even though
 % the spatial resolution in the geographical data is low compared with
