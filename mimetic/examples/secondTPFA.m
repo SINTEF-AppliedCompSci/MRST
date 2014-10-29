@@ -5,8 +5,12 @@
 % the classical way using transmissibilities and formulated as a mimetic
 % method with a two-point inner product; see <simpleTPFA.html
 % "simpleTPFA.m"> for more details.
-%
-require mimetic
+
+try
+   require mimetic
+catch
+   mrstModule add mimetic
+end
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
@@ -164,4 +168,3 @@ subplot('position', [0.1, 0.1, 0.8, 0.25])
 % </font>
 % </html>
 displayEndOfDemoMessage(mfilename)
-

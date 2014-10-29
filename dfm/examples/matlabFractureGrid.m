@@ -4,6 +4,12 @@
 % then discretized with both two- and multi-point flux expressions, and a
 % two-phase transport problem is solved.
 
+try
+   require dfm
+catch
+   mrstModule add dfm
+end
+
 % Create an initial distribution of points
 N     = 20;
 N1    = N;

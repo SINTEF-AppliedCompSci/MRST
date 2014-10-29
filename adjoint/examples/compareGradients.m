@@ -20,6 +20,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+try
+   require adjoint mimetic
+catch
+   mrstModule add adjoint mimetic
+end
 
 verbose = true;
 verboseLevel = 1;
