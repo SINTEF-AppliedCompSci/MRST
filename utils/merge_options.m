@@ -5,25 +5,33 @@ function prm = merge_options(prm, varargin)
 %   prm = merge_options(prm, 'pn1', pv1, ...)
 %
 % PARAMETERS:
-%   prm       - Original/default control option structure.  The contents of
-%               this structure is problem specific and defined by caller.
+%   prm -
+%      Original/default option structure.  The contents of this structure
+%      is problem specific and defined by the caller.
 %
-%   'pn1'/pv1 - 'key'/value pairs overriding default options in `prm'.  A
-%               WARNING is issued, and no assignment made, if a given 'key'
-%               is not already present in FIELDNAMES(prm).  Key names are
-%               case insensitive.
+%   'pn'/pv -
+%      List of 'key'/value pairs overriding default options in 'prm'.
 %
-%               The ``message identifier'' of this warning is
+%      A warning is issued, and no assignment made, if a particular 'key'
+%      is not already present in FIELDNAMES(prm).  The message identifier
+%      of this warning is
 %
-%                   [<FUNCTIONNAME>, ':Option:Unsupported']
+%          [<FUNCTIONNAME>, ':Option:Unsupported']
 %
-%               with <FUNCTIONNAME> being the name of the function calling
-%               MERGE_OPTIONS or the string 'BASE' if MERGE_OPTIONS is
-%               called directly from the base workspace.
+%      with <FUNCTIONNAME> being the name of function MERGE_OPTIONS' caller
+%      or the string 'BASE' if MERGE_OPTIONS is used directly from the base
+%      workspace (i.e., the Command Window).
 %
-%               Function MERGE_OPTIONS will fail (and call ERROR) if the
-%               class of the new value is different from the class of the
-%               existing value.
+%      Function MERGE_OPTIONS will fail (and call ERROR) if the new value's
+%      class is different from the class of the existing value.
+%
+%      In the interest of convenience for the typical case of using MRST
+%      interactively from the Command Window, MERGE_OPTIONS matches keys
+%      (option names) using case insensitive search (i.e., using function
+%      STRCMPI).  If multiple option fields match a given name, such as in
+%      the case of several fields differing only by capitalisation, the
+%      MERGE_OPTIONS function resorts to exact and case sensitive string
+%      matching (STRCMP) to disambiguate options.
 %
 % RETURNS:
 %   prm - Modified parameter structure.
@@ -60,7 +68,7 @@ function prm = merge_options(prm, varargin)
 %   plot(prm.d{end}, '.-')
 %
 % SEE ALSO:
-%   FIELDNAMES, WARNING, STRUCT.
+%   FIELDNAMES, WARNING, STRCMPI, STRCMP.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -81,49 +89,85 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   if nargin > 1,
+      % Caller passed additional input.  Verify that that extra input can
+      % be interpreted as a list of 'key'/value pairs.
 
-if nargin > 1,
-   if mod(numel(varargin), 2) == 0 && ...
-      all(iscellstr(varargin(1 : 2 : end))),
-      st = dbstack(1);
-      try
-         caller = regexprep(st(1).name, '\W', '_');
-      catch  %#ok
-         caller = 'BASE';
-      end
-      ofn = fieldnames(prm);
-      nfn = varargin(1 : 2 : end);
-      nfv = varargin(2 : 2 : end);
+      if mod(numel(varargin), 2) == 0 && ...
+            iscellstr(varargin(1 : 2 : end)),
+         % Additional input is structurally sound from the point of view of
+         % being an apparent list of 'key'/value pairs.  Process options.
 
-      for n = 1 : numel(nfn),
-         ix = find(strcmpi(nfn{n}, ofn));
-
-         if ~isempty(ix),
-            if iscell(prm.(ofn{ix})) && ~iscell(nfv{n}),
-               % Original is CELL -> accept anything by turning "new"
-               % into CELL too.
-               nfv{n} = nfv(n);
-            end
-
-            oclass = class(prm.(ofn{ix}));
-            nclass = class(nfv{n});
-            empty = isempty(prm.(ofn{ix})) || isempty(nfv{n});
-            if empty || isequal(oclass, nclass),
-               prm.(ofn{ix}) = nfv{n};
-            else
-               error([caller, ':Option:ValueWrongClass'], ...
-                     ['Option ''', nfn{n}, ''' has value of ', ...
-                      'unsupported type.\nExpected ''', oclass, ...
-                      ''', but got ''', nclass, ''' in its place.']);
-            end
-         else
-            warning([caller, ':Option:Unsupported'], ...
-                    ['Option `', nfn{n}, ''' is not supported']);
+         st = dbstack(1);
+         try
+            caller = regexprep(st(1).name, '\W', '_');
+         catch  %#ok
+            caller = 'BASE';
          end
+
+         prm = process_options(prm, caller, varargin{:});
+
+      else
+         % Additional input does not appear to be a list of 'key'/value
+         % pairs.  The most common case of this happening is the caller
+         % using the syntax
+         %
+         %   prm = merge_options(prm, varargin)
+         %
+         % rather than
+         %
+         %   prm = merge_options(prm, varargin{:})
+         %
+         % Alert the caller/user to that possibility.
+
+         error(msgid('Input:NotKeyValuePairs'), ...
+              ['Input arguments do not appear to be a list of ', ...
+               '''key''/value pairs.\nDid you unpack VARARGIN?']);
       end
-   else
-      error(msgid('Input:Huh'), ...
-            'Huh? Did you remember to unpack VARARGIN?!?');
    end
 end
+
+%--------------------------------------------------------------------------
+
+function prm = process_options(prm, caller, varargin)
+   ofn = fieldnames(prm);
+   nfn = varargin(1 : 2 : end);
+   nfv = varargin(2 : 2 : end);
+
+   for n = 1 : numel(nfn),
+      ix = find(strcmpi(nfn{n}, ofn));
+
+      if numel(ix) > 1,
+         % Case insensitive match hits more than one field name.  Defer to
+         % case sensitive matching as arbiter/disambiguator.  If we then
+         % don't match *any* option, proceed to next field name.  Note: Due
+         % to guarantees implied by ofn = FIELDNAMES(prm) we either match
+         % zero or one field name here.
+
+         ix = find(strcmp(nfn{n}, ofn));
+      end
+
+      if ~isempty(ix),
+         if iscell(prm.(ofn{ix})) && ~iscell(nfv{n}),
+            % Original is CELL -> accept anything by turning "new"
+            % into CELL too.
+            nfv{n} = nfv(n);
+         end
+
+         oclass = class(prm.(ofn{ix}));
+         nclass = class(nfv{n});
+         empty = isempty(prm.(ofn{ix})) || isempty(nfv{n});
+         if empty || isequal(oclass, nclass),
+            prm.(ofn{ix}) = nfv{n};
+         else
+            error([caller, ':Option:ValueWrongClass'], ...
+                  ['Option ''', nfn{n}, ''' has value of ', ...
+                   'unsupported type.\nExpected ''', oclass, ...
+                   ''', but got ''', nclass, ''' in its place.']);
+         end
+      else
+         warning([caller, ':Option:Unsupported'], ...
+                 ['Option `', nfn{n}, ''' is not supported']);
+      end
+   end
 end
