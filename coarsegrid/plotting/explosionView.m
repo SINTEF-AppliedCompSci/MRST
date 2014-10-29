@@ -5,6 +5,8 @@ function explosionView(G, q, varargin)
 %   explosionView(G, p)
 %   explosionView(G, p, r)
 %   explosionView(G, p, r, o)
+%   explosionView(G, p, r, o)
+%   explosionView(G, p, r, o, a, 'pn', 'pv', ..)
 %
 % PARAMETERS:
 %   G - Grid data structure.
@@ -12,6 +14,7 @@ function explosionView(G, q, varargin)
 %   r - radius multiplier, will determine the relative distance each grid
 %       block will be moved in the radial direction (r>0, default: 0.2)  
 %   o - origin to use for the explosion view (default: grid center)
+%   a - transparency value for faces, one value per coarse block 
 %
 % EXAMPLES:
 %   1) Partition a 2D Cartesian grid
@@ -64,7 +67,12 @@ else
    o = varargin{1}; varargin=varargin(2:end);
    assert(numel(o)==G.griddim,'Origin must be a valid coordinate');
 end
-
+if isempty(varargin) || ~isnumeric(varargin{1})
+   alpha = ones(max(q),1);
+else
+   alpha = varargin{1}; varargin=varargin(2:end);
+   assert(numel(alpha)==max(q),'One transparency entry per block');
+end
 a = max(G.cells.centroids) - min(G.cells.centroids); a=a./max(a);
 if G.griddim==2
    for i=1:max(q)
@@ -87,7 +95,8 @@ elseif G.griddim==3
       g.nodes.coords = ...
          bsxfun(@plus, g.nodes.coords, sgn.*[x,y,z].*a);
       bf = boundaryFaces(g);
-      plotFaces(g, bf, i*ones(numel(bf),1), 'EdgeColor', 'k', varargin{:});
+      plotFaces(g, bf, i*ones(numel(bf),1), 'EdgeColor', 'k', ...
+         'FaceAlpha', alpha(i), varargin{:});
     end
 end
 
