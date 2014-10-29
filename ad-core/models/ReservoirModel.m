@@ -403,7 +403,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function varargout = evaluteRelPerm(model, sat, varargin)
             active = model.getActivePhases();
             nph = sum(active);
-            
+            assert(nph == numel(sat), ...
+            'The number of saturations must equal the number of active phases.')
             varargout = cell(1, nph);
             names = model.getPhaseNames();
             
