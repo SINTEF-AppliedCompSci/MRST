@@ -32,11 +32,10 @@ function [x, y, Z, angle] = readIrapClassicAsciiSurf(filename)
 %}
 
 % Open the file for reading
-fid = fopen(filename,'r');          % 'rt' means read text
+[fid, msg] = fopen(filename,'r');          % 'rt' means read text
 
 if (fid < 0)
-    errormsg = horzcat('Could not open file ', filename, ' for reading.');
-    error(errormsg);   % just abort if error
+   error('Could not open file ''%s'' for reading: %s', filename, msg);
 end
 
 %%
