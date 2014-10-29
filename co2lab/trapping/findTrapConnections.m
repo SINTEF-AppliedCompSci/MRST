@@ -53,10 +53,8 @@ function trap_con = findTrapConnections(Gnew,z_spill_loc)
 %     plotGrid(Gnew,{trap_con.cell_lines{:}})
 %     axis tight; axis off;view(2);
 % 
-%
 % SEE ALSO:
 %   topSurfaceGrid, trapAnalysis, findTrappingStructure
-%
 
 mlist = mrstModule();
 mrstModule add coarsegrid matlab_bgl

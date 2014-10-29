@@ -90,7 +90,7 @@ function trap=findTrappingStructure(Gt, varargin)
 %
 % SEE ALSO:
 %   topSurfaceGrid, trapAnalysis, findCellLines, findTrapConnections
-% 
+
 opt = struct('use_multipoint',false);
 opt = merge_options(opt, varargin{:});
 
