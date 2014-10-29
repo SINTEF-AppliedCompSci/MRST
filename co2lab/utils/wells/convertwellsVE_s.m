@@ -29,7 +29,7 @@ function W = convertwellsVE_s(W, G, Gt, rock2D,inner_product)
         W_2D(nw).WI= W_2D(nw).WI.*Gt.cells.H(W_2D(nw).cells);              %#ok
         W_2D(nw).dZ = Gt.cells.H(W_2D(nw).cells)*0.0;%#ok
         if( isfield(W(nw),'bhpLimit') )
-          W_2D(nw).bhpLimit=W(nw).bhpLimit;
+          W_2D(nw).bhpLimit=W(nw).bhpLimit; %#ok<AGROW>
         end
     end
     W = W_2D;
