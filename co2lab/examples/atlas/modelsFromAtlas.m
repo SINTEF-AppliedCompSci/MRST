@@ -90,7 +90,7 @@ end
 res = cell(ng,1);
 fprintf('------------------------------------------------\n');
 for i=1:ng
-   fprintf('Processing %s ....', grdecls{i}.name);
+   fprintf('Processing %s ... ', grdecls{i}.name);
    grdecl  = getAtlasGrid(grdecls{i}.name, 'coarsening', 1);
    G       = mprocessGRDECL(grdecl{1});
    G       = mcomputeGeometry(G(1));
