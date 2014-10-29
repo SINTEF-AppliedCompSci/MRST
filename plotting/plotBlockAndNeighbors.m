@@ -100,7 +100,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 opt = struct('PlotFaults', true([1, 2]), ...
              'Alpha'     , ones([1, 4]));
-[opt, varargin] = process_options(opt, varargin{:});
+[opt, varargin] = merge_options(opt, varargin{:});
 
 check_input(opt);
 
@@ -171,29 +171,6 @@ end
 axis tight off; view(3);
 
 if nargout > 0, varargout{1} = h; end
-
-%--------------------------------------------------------------------------
-
-function [opt, va] = process_options(opt, varargin)
-assert (mod(numel(varargin), 2) == 0, ...
-        'Options must be list of ''key''/value pairs');
-
-known = fieldnames(opt);
-suppl = varargin(1 : 2 : end);
-
-assert (iscellstr(suppl), 'Option names must be strings');
-
-[i, j] = blockDiagIndex(numel(known), numel(suppl));
-
-m = strcmpi(reshape(known(i), [], 1), ...
-            reshape(suppl(j), [], 1));
-
-this = [ known(i(m))' ; varargin(2 * j(m)) ];
-opt  = merge_options(opt, this{:});
-
-excl = false([numel(varargin), 1]);
-excl(mcolon(2*j(m) - 1, 2*j(m))) = true;
-va = varargin(~ excl);
 
 %--------------------------------------------------------------------------
 
