@@ -6,7 +6,11 @@
 % partitioning the fine-grid uniformly in logical Cartesian space. We end
 % by visualizing some of the coarse blocks and how they are connected with
 % their neighbors.
-require coarsegrid
+try
+   require coarsegrid
+catch
+   mrstModule add coarsegrid
+end
 
 %% Check for existence of input model data
 grdecl = fullfile(ROOTDIR, 'examples', 'grids', 'GSmodel.grdecl');

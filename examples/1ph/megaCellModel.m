@@ -25,7 +25,11 @@ G = cartGrid([nx, ny, nz], [10, 10, 4]);
 % cells and centroids, normals, and areas for the faces) is significantly
 % faster if one uses the C-accelerated routine instead of the standard call
 % to computeGeometry(G)
-mrstModule add mex/libgeometry
+try
+   require libgeometry
+catch
+   mrstModule add libgeometry
+end
 G = mcomputeGeometry(G);
 
 %% Set rock and fluid data

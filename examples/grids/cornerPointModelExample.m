@@ -2,7 +2,11 @@
 % In this example we will show several examples how to manipulate and plot
 % corner-point data. As an example, we will use a family of simple models
 % with a single fault, which can be realized in different resolutions.
-require coarsegrid
+try
+   require coarsegrid
+catch
+   mrstModule add coarsegrid
+end
 
 %% Creating and visualizing a small realization of the model
 % We start by generating an input stream in the Eclipse format (GRDECL) for
