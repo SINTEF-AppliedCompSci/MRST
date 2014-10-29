@@ -73,7 +73,10 @@ gdz = s.Grad(G.cells.centroids) * grav';
 T = s.T.*transMult;
 
 % Evaluate relative permeability
-[krW, krO] = f.relPerm(sW);
+sO  = 1 - sW  - sG;
+sO0 = 1 - sW0 - sG0;
+
+[krW, krO] = model.evaluteRelPerm({sW, sO});
 
 % Water props
 bW     = f.bW(p);
@@ -123,7 +126,7 @@ end
 
 % EQUATIONS ---------------------------------------------------------------
 % oil:
-eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(bOvO);
 
 % water:
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);

@@ -88,7 +88,10 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     end
 
     % FLIUD PROPERTIES ---------------------------------------------------
-    [krW, krO, krG] = f.relPerm(sW, sG);
+    sO  = 1 - sW  - sG;
+    sO0 = 1 - sW0 - sG0;
+
+    [krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
     grav  = gravity;
     %dz = s.grad(G.cells.centroids(:,3));
     gdz = s.Grad(G.cells.centroids) * grav'; 
@@ -139,9 +142,6 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
 
 
     % EQUATIONS -----------------------------------------------------------
-    sO  = 1- sW  - sG;
-    sO0 = 1- sW0 - sG0;
-
     bW0 = f.bW(p0);
     if disgas, bO0 = f.bO(p0, rs0, ~st0{1}); else bO0 = f.bO(p0); end
     if vapoil, bG0 = f.bG(p0, rv0, ~st0{2}); else bG0 = f.bG(p0); end

@@ -98,9 +98,8 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     end
 
     % FLIUD PROPERTIES ---------------------------------------------------
-    [krW, krO, krG] = f.relPerm(sW, sG);
+    [krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
     grav  = gravity;
-%    dz = s.grad(G.cells.centroids(:,3));
     gdz = s.Grad(G.cells.centroids) * grav';
 
     % WATER PROPS (calculated at oil pressure)

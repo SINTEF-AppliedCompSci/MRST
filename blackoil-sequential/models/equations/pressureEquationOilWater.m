@@ -51,7 +51,11 @@ if isfield(f, 'pvMultR')
 end
 
 % -------------------------------------------------------------------------
-[krW, krO] = f.relPerm(sW);
+sO  = 1 - sW  - sG;
+sO0 = 1 - sW0 - sG0;
+
+[krW, krO] = model.evaluteRelPerm({sW, sO});
+
 %dZ = s.grad(G.cells.centroids(:,3));
 gdz = s.Grad(G.cells.centroids) * grav';
 
@@ -77,7 +81,7 @@ state = model.storeUpstreamIndices(state, upcw, upco, []);
 
 % EQUATIONS ---------------------------------------------------------------
 % oil:
-oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0) + s.Div(bOvO);
 
 % water:
 wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);

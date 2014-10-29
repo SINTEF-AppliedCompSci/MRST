@@ -40,19 +40,14 @@ end
 primaryVars = {'sW'};
 
 clear tmp
-g  = norm(gravity);
-
 
 % -------------------------------------------------------------------------
-[krW, krO] = f.relPerm(sW);
+sO = 1 - sW;
+[krW, krO] = model.evaluteRelPerm({sW, sO});
 
-clear krW_o krO_o
-
-%dZ = s.grad(G.cells.centroids(:,3));
 grav = gravity;
 gdz = s.Grad(G.cells.centroids) * grav';
 
-sO = 1 - sW;
 % Water
 [bW, rhoW, mobW, dpW, Gw] = propsOW_water(sW, krW, gdz, f, p, s);
 [bO, rhoO, mobO, dpO, Go] = propsOW_oil(  sO, krO, gdz, f, p, s);
