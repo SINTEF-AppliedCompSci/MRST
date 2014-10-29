@@ -10,9 +10,8 @@ function W = convertwellsVE_s(W, G, Gt, rock2D,inner_product)
 % Converts wells into a suitable format for vertical equilibrium
 % simulations on a top grid. Wells must be definable by one and only
 % one logical index in ij-plane.
-% 
 
-    [i, j, k] = ind2sub(G.cartDims, G.cells.indexMap);
+    [i, j, k] = ind2sub(G.cartDims, G.cells.indexMap);          %#ok<NASGU>
     [i2, j2] = ind2sub(Gt.cartDims, Gt.cells.indexMap);
     W_2D = [];
     for nw = 1:numel(W)

@@ -174,7 +174,7 @@ while t < T_tot;
     t = t + dT;
     
     % Plotting
-    [s h] = normalizeValuesVE(Gt, sol, fluid);
+    [s, h] = normalizeValuesVE(Gt, sol, fluid);
     
     % Plot the whole formation
     subplot(2,1,1)

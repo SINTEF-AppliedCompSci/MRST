@@ -55,7 +55,7 @@ function h=contourAtlas(info, varargin)
                      linspace(yl, (dims(2) - 1)*h + yl, dims(2) ));
     
     % Lineplot to avoid colormap messup
-    [C h] = contour3(X,Y,d, N, '-'); %#ok
+    [C, h] = contour3(X,Y,d, N, '-');                           %#ok<ASGLU>
     set(h,'LineWidth', 1);
     
     data = get(h, 'UserData');

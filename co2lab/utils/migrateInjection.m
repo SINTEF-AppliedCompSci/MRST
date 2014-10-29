@@ -134,7 +134,7 @@ sol = initResSolVE_s(Gt, pressure(Gt.cells.z), 0);
 sol.wellSol = initWellSol(W2D, 0);
 sol.h = zeros(Gt.cells.num, 1);
 
-[ii jj] = ind2sub(G.cartDims, G.cells.indexMap);
+[ii, jj] = ind2sub(G.cartDims, G.cells.indexMap);
 
 opts = {'slice',     double([ii(wellCell), jj(wellCell)]),...
         'Saxis',     [0 1-fluid.sw], ...
@@ -188,7 +188,7 @@ while t < T_tot;
     t = t + dT;
 
     % Plotting
-    [s h hm] = normalizeValuesVE(Gt, sol, fluid);
+    [s, h, hm] = normalizeValuesVE(Gt, sol, fluid);
     sol.h = h;
     sol.h_max = hm;
     if ~ishandle(fh) || veSimAborted

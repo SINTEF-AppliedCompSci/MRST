@@ -86,7 +86,7 @@ function varargout = interactiveTrapping(inp, varargin)
     elseif ischar(inp)
         % Assume input is the name of a CO2 Storage Atlas grid
 
-        [gr data petroinfo] = getAtlasGrid(inp, 'coarsening', opt.coarsening , 'nz', 1);
+        [gr, data, petroinfo] = getAtlasGrid(inp, 'coarsening', opt.coarsening , 'nz', 1);
 
         % Grab topgrid
         top = data(cellfun(@(x) strcmpi(x.variant, 'top'), data));
@@ -338,7 +338,7 @@ function plotMain(Gt, res, bf, atlasdata)
        plotPartitionOutlineTopsurface(Gtmp, partition, 'LineWidth', 1.5, 'EdgeColor', outline)
        
        if isfield(res, 'cell_lines')
-          [x y z] = getPlotRivers(Gt, [res.cell_lines{[unique(subt) trap]}], res);
+          [x, y, z] = getPlotRivers(Gt, [res.cell_lines{[unique(subt) trap]}], res);
        end
        plot3(x, y, z, 'k', 'LineWidth', 2);
     
@@ -431,7 +431,7 @@ function subtraps = getMigrationTree(G, A, trap, depth, fn)
     subtraps = [reshape(subtraps, 1, []) reshape(tmp, 1, [])];
 end
 
-function [c f] = nearestCellLine(G, bf, pts)
+function [c, f] = nearestCellLine(G, bf, pts)
 % Find a point on the surface based on a click.
     N = numel(bf);
     x1 = repmat(pts(1,:), N, 1);
@@ -467,7 +467,7 @@ function c = findRegion(G, m, M, radius)
     end
 end
 
-function [x y z] = getPlotRivers(Gt, cell_lines, res)
+function [x, y, z] = getPlotRivers(Gt, cell_lines, res)
 % Plot rivers
     cc=[Gt.cells.centroids, Gt.cells.z];
     [x,y,z] = deal([]);
@@ -624,7 +624,7 @@ function v = boolToToggle(boolvar)
 end
 
 function s = getReport(Gt, c)
-    [i j] = ind2sub(Gt.cartDims, c);
+    [i, j] = ind2sub(Gt.cartDims, c);
     s = '';
     s = [s sprintf('Reservoir with geometric volume of %2.4g m^3 and %d cells\n', sum(Gt.cells.volumes.*Gt.cells.H), Gt.cells.num)];
     s = [s sprintf('Injection site located at cell %d at \n\tx: %1.2f   y: \t%1.2f      i: %d   j: %d', c, Gt.cells.centroids(c, 1:2), i, j)];

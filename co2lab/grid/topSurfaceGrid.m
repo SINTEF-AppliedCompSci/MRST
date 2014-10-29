@@ -313,7 +313,7 @@ g_top.parent=g;
 %%% Add faults
 % Not well tested, but is analogous to what is done in examples
 if opt.AddFaults && any(g.faces.tag)
-    [g_top c_fault] = add_faults(g, g_top, ijk);
+    [g_top, c_fault] = add_faults(g, g_top, ijk);
     g_top = computeGeometryVE_2D(g_top);
     
     % Adjust the z values of the corresponding cells
@@ -464,7 +464,7 @@ g = G(1);
 
 end
 
-function [g_top c_full] = add_faults(g, g_top, ijk)
+function [g_top, c_full] = add_faults(g, g_top, ijk)
 
 f_fault = (g.faces.neighbors(:,1) == 0 | ...
    g.faces.neighbors(:,2) == 0) & g.faces.tag~=0;
