@@ -162,6 +162,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               ['Input arguments do not appear to be a list of ', ...
                '''key''/value pairs.\nDid you unpack VARARGIN?']);
       end
+
+   elseif nargout == 2,
+      % Caller requested that unmatched options be returned, but there were
+      % no option pairs in the input list (i.e., ISEMPTY(varargin)).
+      %
+      % Return an empty CELL array to honour requirements of interface lest
+      % we fail with a diagnostic of the form
+      %
+      %   Output argument "varargout" (and maybe others) not assigned ...
+
+      varargout{1} = {};
+
    end
 end
 
