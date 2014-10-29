@@ -100,14 +100,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
 
-   [plotOutline, varargin] = do_outline_p(varargin{:});
-
    if mod(numel(varargin), 2) == 0,
       colour   = 'yellow';
    else
       colour   = varargin{1};
       varargin = varargin(2 : end);
    end
+   
+   [plotOutline, varargin] = do_outline_p(varargin{:});
+
 
    % Extract face topology for subset of grid faces and the coordinates for
    % the actual vertices ('verts') present in this topology.
