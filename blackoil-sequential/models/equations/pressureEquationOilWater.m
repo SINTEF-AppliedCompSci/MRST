@@ -51,8 +51,8 @@ if isfield(f, 'pvMultR')
 end
 
 % -------------------------------------------------------------------------
-sO  = 1 - sW  - sG;
-sO0 = 1 - sW0 - sG0;
+sO  = 1 - sW;
+sO0 = 1 - sW0;
 
 [krW, krO] = model.evaluteRelPerm({sW, sO});
 
