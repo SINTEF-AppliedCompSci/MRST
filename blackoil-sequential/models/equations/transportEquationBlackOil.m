@@ -306,6 +306,5 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     end
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-    problem.iterationNo = opt.iteration;
 end
 

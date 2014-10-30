@@ -100,7 +100,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             
             values = norm(problem, n);
-            convergence = all(values < model.nonlinearTolerance) & problem.iterationNo>1;
+            convergence = all(values < model.nonlinearTolerance);
             
             if model.verbose
                 for i = 1:numel(values)
@@ -110,11 +110,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, onlyCheckConvergence, varargin)
+        function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin)
             % Make a single linearized timestep
+            onlyCheckConvergence = iteration > nonlinsolve.maxIterations;
+            
             [problem, state] = model.getEquations(state0, state, dt, drivingForces, ...
-                                       'ResOnly', onlyCheckConvergence, varargin{:});
+                                       'ResOnly', onlyCheckConvergence, ...
+                                       'iteration', iteration, ...
+                                       varargin{:});
+            problem.iterationNo = iteration;
+            
             [convergence, values] = model.checkConvergence(problem);
+            % Minimum number of iterations can be prescribed, i.e. we
+            % always want at least one set of updates regardless of
+            % convergence criterion.
+            convergence = convergence & iteration > nonlinsolve.minIterations;
             
             % Defaults
             failureMsg = '';

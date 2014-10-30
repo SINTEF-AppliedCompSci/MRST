@@ -50,6 +50,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     properties
         % The max number of iterations during a ministep.
         maxIterations
+        % The minimum number of solves during a ministep.
+        minIterations
         % The maximum number of times the timestep can be halved before it
         % is counted as a failed run
         maxTimestepCuts
@@ -96,6 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     methods
         function solver = NonLinearSolver(varargin)            
             solver.maxIterations   = 25;
+            solver.minIterations   = 1;
             solver.verbose         = mrstVerbose();
             solver.maxTimestepCuts = 6;
             solver.LinearSolver    = [];
@@ -333,11 +336,10 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
     for i = 1:(solver.maxIterations + 1)
         % If we are past maximum number of iterations, step function will
         % just check convergence and return
-        onlyCheckConvergence = i > solver.maxIterations;
         [state, stepReport] = ...
             model.stepFunction(state, state0, dt, drivingForces, ...
                                solver.LinearSolver, solver, ...
-                               onlyCheckConvergence, 'iteration', i);
+                               i);
         converged  = stepReport.Converged;
         failure    = stepReport.Failure;
         reports{i} = stepReport;
