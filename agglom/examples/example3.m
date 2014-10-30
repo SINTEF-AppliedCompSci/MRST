@@ -33,9 +33,9 @@ catch me
 end
 
 try
-   require coarsegrid
+   require agglom coarsegrid
 catch me
-   mrstModule add coarsegrid;
+   mrstModule add agglom coarsegrid;
 end
 
 [G, W, rock] = SPE10_setup(25);
@@ -43,7 +43,7 @@ rock.poro = max(rock.poro, 1e-4);
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 rS = initState(G, W, 0);
 S  = computeMimeticIP(G, rock);
-rS = solveIncompFlow(rS, G, S, fluid, 'wells', W);
+rS = incompMimetic(rS, G, S, fluid, 'wells', W);
 
 %%
 % We will use the following cell-wise indicators:

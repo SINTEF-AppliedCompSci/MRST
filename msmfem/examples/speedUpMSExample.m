@@ -18,7 +18,11 @@
 % <simpleWellExampleMS.html>. It is recommended that you look at this
 % tutorial first.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define the model and set data
 % We construct the Cartesian grid, set the permeability to 100 mD, and
@@ -120,7 +124,7 @@ W = generateCoarseWellSystem(G, S, CG, CS, mob, rock, W);
 %% Solve the global flow problems and check time consumption
 
 tic
-xRef = solveIncompFlow  (xRef, G, S, fluid, 'wells', W, 'Solver', S.type);
+xRef = incompMimetic(xRef, G, S, fluid, 'wells', W, 'Solver', S.type);
 t_fine = toc;
 
 tic

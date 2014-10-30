@@ -10,7 +10,11 @@
 % Tutorial"> and the flow-solver tutorial <simpleSRCandBC.html "How to
 % Specify Sources and Boundary Conditions">.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 % We construct the Cartesian grid, set a lognormal, layered, isotropic
@@ -77,7 +81,7 @@ CS = generateCoarseSystem(G, rock, S, CG, ones([G.cells.num, 1]), ...
                           'bc', bc, 'src', src);
 
 %% Solve the global flow problems
-xRef = solveIncompFlow  (initResSol(G, 0.0), G, S, fluid, ...
+xRef = incompMimetic    (initResSol(G, 0.0), G, S, fluid, ...
                          'src', src, 'bc', bc);
 xMs  = solveIncompFlowMS(initResSol(G, 0.0), G, CG, p, S, CS, fluid,  ...
                          'src', src, 'bc', bc);

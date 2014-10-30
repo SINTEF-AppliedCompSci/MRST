@@ -57,7 +57,11 @@
 %
 %  This example shows the use of overlap around the well.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 nx = 40; ny = 40; nz = 2;
@@ -132,7 +136,7 @@ W1 = generateCoarseWellSystem(G, S, CG, CS, totmob, rock, W1, ...
 
 % Fine scale reference solution:
 xRef = initState(G, W, 0);
-xRef = solveIncompFlow(xRef, G, S, fluid, 'wells', W);
+xRef = incompMimetic(xRef, G, S, fluid, 'wells', W);
 
 % Coarse scale - no overlap:
 xMs   = initState(G, W, 0);

@@ -10,7 +10,11 @@
 %
 % This example shows the use of overlap around the well.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% What is overlap?
 % Overlap means that we extend the support of the multiscale basis
@@ -116,7 +120,7 @@ W1 = generateCoarseWellSystem(G, S, CG, CS, mob, rock, W1, ...
 
 % Fine scale reference solution:
 ref = initState(G, W, 0, [0, 1]);
-ref = solveIncompFlow(ref, G, S, fluid, 'wells', W);
+ref = incompMimetic(ref, G, S, fluid, 'wells', W);
 
 % Coarse scale - no overlap:
 s = initState(G, W, 0, [1, 0]);

@@ -10,7 +10,11 @@
 % example is built upon the setup used in the <simpleBC.html "Basic
 % Flow-Solver Tutorial">.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 % We construct the Cartesian grid, set a lognormal anisotropic
@@ -132,7 +136,7 @@ subplot(1,2,2),
 
 
 %% Solve the global flow problems
-xRef = solveIncompFlow  (initResSol(G, 0.0),  G, S, fluid, ...
+xRef = incompMimetic    (initResSol(G, 0.0),  G, S, fluid, ...
                          'bc', bc, 'MatrixOutput',true);
 xMs  = solveIncompFlowMS(initResSol(G, 0.0), G, CG, p, S, CS, fluid, ...
                          'bc', bc, 'MatrixOutput', true, 'Solver', 'hybrid');

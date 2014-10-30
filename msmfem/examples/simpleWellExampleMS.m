@@ -8,7 +8,11 @@
 % example is built upon the flow-solver tutorial <simpleWellExample.html
 % "Using Peacemann well models">.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define the model and set data
 % We construct the Cartesian grid, set the permeability to 100 mD, and
@@ -87,7 +91,7 @@ disp('W(2):'); display(W(2));
 
 
 %% Solve the global flow problems
-xRef = solveIncompFlow  (xRef, G, S, fluid, 'wells', W, ...
+xRef = incompMimetic    (xRef, G, S, fluid, 'wells', W, ...
                          'Solver', S.type, 'MatrixOutput', true);
 xMs  = solveIncompFlowMS(xMs , G, CG, p, S, CS, fluid, 'wells', W, ...
                          'Solver', S.type, 'MatrixOutput', true);

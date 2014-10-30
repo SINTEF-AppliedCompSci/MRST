@@ -18,7 +18,11 @@
 % mobility changes more than a given tolerance. After the simulation is
 % done we compare the fine scale and coarse scale saturation profiles.
 
-require mimetic coarsegrid
+try
+   require coarsegrid mimetic msmfem
+catch
+   mrstModule add coarsegrid mimetic msmfem
+end
 
 %% Define and visualize the model
 % We construct the Cartesian grid, set the permeability to 100 mD, and
@@ -83,7 +87,7 @@ CS = generateCoarseSystem (G, rock, S, CG, mob, ...
 
 W = generateCoarseWellSystem(G, S, CG, CS, ones([G.cells.num, 1]), rock, W);
 
-xRef = solveIncompFlow  (xRef, G, S, fluid, 'wells', W);
+xRef = incompMimetic    (xRef, G, S, fluid, 'wells', W);
 xMs  = solveIncompFlowMS(xMs, G, CG, p, S, CS, fluid, 'wells', W);
 
 
@@ -131,7 +135,7 @@ while t < T,
    assert(max(s) < 1+eps && min(s) > -eps);
 
    % Update solution of pressure equation.
-   xRef = solveIncompFlow  (xRef, G, S, fluid, 'wells', W);
+   xRef = incompMimetic    (xRef, G, S, fluid, 'wells', W);
    xMs  = solveIncompFlowMS(xMs , G, CG, p, S, CS, fluid, 'wells', W);
 
    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

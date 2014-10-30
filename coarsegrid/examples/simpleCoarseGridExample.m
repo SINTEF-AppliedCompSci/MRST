@@ -1,4 +1,8 @@
-require coarsegrid
+try
+   require coarsegrid
+catch
+   mrstModule add coarsegrid
+end
 
 %% Partition a Cartesian 2D grid
 % We use partitionUI which exploits the logical structure and creates a

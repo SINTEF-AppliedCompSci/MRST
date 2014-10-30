@@ -8,9 +8,9 @@
 
 %% Load the required modules
 try
-   require upscaling spe10
+   require mimetic upscaling spe10
 catch %#ok<CTCH>
-   mrstModule add upscaling spe10
+   mrstModule add mimetic upscaling spe10
 end
 
 %% Set up a simple grid with periodic boundaries
@@ -69,7 +69,7 @@ T  = readTabulatedJFluidFile(fn);
 fprintf('\n');
 fprintf(' Sw          | Krw         | Kro         | J-func\n')
 fprintf('-------------|-------------|-------------|------------\n')
-fprintf(' %+1.4e | %+1.4e | %+1.4e | %+1.4e\n', T{1})
+fprintf(' %+1.4e | %+1.4e | %+1.4e | %+1.4e\n', T{1} .')
 fprintf('\n');
 
 fluid = initSWOFFluidJfunc('mu' , [   10,  100] .* centi*poise     , ...

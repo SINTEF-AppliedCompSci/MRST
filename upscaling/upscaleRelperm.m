@@ -88,9 +88,10 @@ end
 
 psolver = opt.psolver;
 if isempty(psolver)
-     psolver = @(state, Grid, Fluid, BCP, BC, Rock) solveIncompFlow( ...
-                 state, Grid, computeMimeticIPGp(G, Grid, Rock, opt.periodic), ...
-                 Fluid, 'bcp', BCP, 'bc', BC);
+   IP = @(Grid, Rock) computeMimeticIPGp(G, Grid, Rock, opt.periodic);
+   psolver = @(state, Grid, Fluid, BCP, BC, Rock) ...
+      incompMimetic(state, Grid, IP(Grid, Rock), ...
+                    Fluid, 'bcp', BCP, 'bc', BC);
 end
 
 periodic    = opt.periodic;

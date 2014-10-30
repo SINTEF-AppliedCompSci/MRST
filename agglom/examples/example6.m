@@ -51,9 +51,9 @@ catch me
 end
 
 try
-   require coarsegrid
+   require agglom coarsegrid
 catch me
-   mrstModule add coarsegrid;
+   mrstModule add agglom coarsegrid;
 end
 
 gravity off
@@ -77,7 +77,7 @@ DT          = T / (param.nPres * param.nSub);
 %% Compute initial fine-grid solution
 rf = initState(G, [], 0, 0);
 S  = computeMimeticIP(G, rock);
-rf = solveIncompFlow(rf, G, S, fluid, 'src', src);
+rf = incompMimetic(rf, G, S, fluid, 'src', src);
 
 %% Create basic coarse grid and supporting data structures
 % We generate a quite coarse grid used for estimatating which regions to
@@ -280,15 +280,15 @@ for i = 1:param.nPres,
    end
 
    % Update fine-grid pressure
-   rf  = solveIncompFlow(rf, G, S, fluid, 'src', src);
+   rf  = incompMimetic(rf, G, S, fluid, 'src', src);
 
    % Update fine-grid pressure for CG, convert fluxes to coarse structure
-   rc = solveIncompFlow(rc, G, S, fluid, 'src', src);
+   rc = incompMimetic(rc, G, S, fluid, 'src', src);
    rcC.flux = accumarray(cfC, sgnC .* rc.flux(subC), [CG.faces.num, 1]);
 
    % Update fine-grid pressure for aG1 and aG2
-   ra1 = solveIncompFlow(ra1, G, S, fluid, 'src', src);
-   ra2 = solveIncompFlow(ra2, G, S, fluid, 'src', src);
+   ra1 = incompMimetic(ra1, G, S, fluid, 'src', src);
+   ra2 = incompMimetic(ra2, G, S, fluid, 'src', src);
 
    % Compute net flux along underlying coarse grid
    ra1C.cflux = accumarray(cfC, sgnC .* ra1.flux(subC), [CG.faces.num, 1]);
