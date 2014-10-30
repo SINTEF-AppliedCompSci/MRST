@@ -57,15 +57,19 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
    end
 end
 
+%--------------------------------------------------------------------------
 
 function qt = getTotalRate(sol)
    typelist = {'qWs', 'qOs', 'qGs'};
-   typeindex = isfield(sol(1), typelist);
-   types = typelist(typeindex);
-   qt = zeros(numel(sol), 1);
+   types    = typelist(isfield(sol(1), typelist));
+   qt       = zeros([numel(sol), 1]);
+
    for w = 1:numel(sol)
-      for i = 1:numel(types)
-         qt(w) = qt(w) + sol(w).(types{i});
+      for t = reshape(types, 1, []),
+         x = sol(w).(t{1});
+         if ~isempty(x),
+            qt(w) = qt(w) + x;
+         end
       end
    end
 end
