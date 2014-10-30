@@ -123,7 +123,7 @@ for i = 2:numel(states)
         % Create isosurfaces based on the gas saturation
         plotGridVolumes(G, states{i}.s(:,3), 'N', 100, 'extrudefaces', false)
     else
-        plotCellData(G, states{i}.s(:,3));
+        plotCellData(G, states{i}.s(:,3),'EdgeColor',[.1 .1 .1],'LineWidth',.1);
     end
     time = sum(schedule.step.val(1:i-1));
     title(['Step ' num2str(i) ' (' formatTimeRange(time) ')'])
@@ -163,12 +163,17 @@ clf
 ecl = convertFrom(smry.get('PRODUCER', 'WGOR', ind), 1000*ft^3/stb)';
 mrst = qGs(:,prod)./qOs(:,prod);
 
-hold on
-plot(T, mrst)
-plot(Tcomp, ecl, 'r');
-legend({'MRST', 'Eclipse'})
+hold on, set(gca,'FontSize',14);
+plot(T, mrst, '-','LineWidth',2)
+plot(Tcomp, ecl, '-r','LineWidth',2);
+legend({'MRST', 'Eclipse'},4)
 xlabel('Years')
 title('Gas rate / Oil rate')
+axes('position',[.21 .58 .35 .31]);
+hold on
+plot(T,     mrst, '-', 'Marker', '.', 'MarkerSize',16)
+plot(Tcomp, ecl,  '-r','Marker', '.', 'MarkerSize',16);
+set(gca,'Xlim', [0 0.5]);
 
 %% Plot Injector Bottom Hole Pressure
 % The injector is rate controlled and so the bottom hole pressure is solved
@@ -177,23 +182,33 @@ figure(3)
 clf
 ecl = convertFrom(smry.get('PRODUCER', 'WBHP', ind), psia)';
 mrst = bhp(:,prod);
-hold on
-plot(T,     convertTo(mrst, barsa))
-plot(Tcomp, convertTo(ecl, barsa), 'r');
-legend({'MRST', 'Eclipse'})
+hold on, set(gca,'FontSize',14);
+plot(T,     convertTo(mrst, barsa),'-',  'LineWidth',2)
+plot(Tcomp, convertTo(ecl, barsa), '-r', 'LineWidth', 2);
+legend({'MRST', 'Eclipse'},4)
 xlabel('Years')
 ylabel('bar')
 title('Bottom hole pressure (Producer)')
+axes('position',[.21 .6 .35 .31]);
+hold on
+plot(T,     convertTo(mrst, barsa),'-',  'Marker', '.', 'MarkerSize',16)
+plot(Tcomp, convertTo(ecl, barsa), '-r', 'Marker', '.', 'MarkerSize',16);
+set(gca,'Xlim', [2.8 3.2]);
 
 %% Plot Injector Bottom Hole Pressure
 figure(4)
 clf
 ecl = convertFrom(smry.get('INJECTOR', 'WBHP', ind), psia)';
 mrst = bhp(:,inj);
-hold on
-plot(T,     convertTo(mrst, barsa))
-plot(Tcomp, convertTo(ecl, barsa), 'r');
-legend({'MRST', 'Eclipse'})
+hold on, set(gca,'FontSize',14);
+plot(T,     convertTo(mrst, barsa),'-',  'LineWidth',2)
+plot(Tcomp, convertTo(ecl, barsa), '-r', 'LineWidth', 2);
+legend({'MRST', 'Eclipse'},4)
 xlabel('Years')
 ylabel('bar')
 title('Bottom hole pressure (Injector)')
+axes('position',[.21 .6 .35 .31]);
+hold on
+plot(T,     convertTo(mrst, barsa),'-',  'Marker', '.', 'MarkerSize',16)
+plot(Tcomp, convertTo(ecl, barsa), '-r', 'Marker', '.', 'MarkerSize',16);
+set(gca,'Xlim', [.1 0.6]);
