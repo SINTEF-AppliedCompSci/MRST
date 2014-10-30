@@ -4,7 +4,7 @@ function [qWs, qOs, qGs, bhp] = wellSolToVector(wellsols)
     nw = numel(wellsols{1});
     ws = vertcat(wellsols{:});
 
-    fix = @(v) reshape(v, nt, nw);
+    fix = @(v) reshape(v, nw, nt)';
     sgn = fix([ws.sign]);
     bhp = fix([ws.bhp]);
     qWs = sgn.*fix([ws.qWs]);
