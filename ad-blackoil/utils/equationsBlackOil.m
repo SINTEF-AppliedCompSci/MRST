@@ -102,7 +102,10 @@ gdz = s.Grad(G.cells.centroids) * grav';
 T = s.T.*transMult;
 
 % Evaluate relative permeability
-[krW, krO, krG] = f.relPerm(sW, sG);
+sO  = 1 - sW  - sG;
+sO0 = 1 - sW0 - sG0;
+
+[krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
 
 % Water props (calculated at oil pressure)
 bW     = f.bW(p);
@@ -181,8 +184,6 @@ if model.extraStateOutput
 end
 
 % EQUATIONS -----------------------------------------------------------
-sO  = 1 - sW  - sG;
-sO0 = 1 - sW0 - sG0;
 
 % oil eq:
 names{1} = 'oil';

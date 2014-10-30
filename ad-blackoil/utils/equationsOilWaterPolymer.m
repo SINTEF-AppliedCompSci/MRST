@@ -72,16 +72,16 @@ if isfield(f, 'pcOW')
 end
 % Gravity contribution, assert that it is aligned with z-dir
 grav = gravity();
-%assert(grav(1) == 0 && grav(2) == 0);
-%g  = norm(grav);
-%dz = s.grad(G.cells.centroids(:,3));
 gdz = s.Grad(G.cells.centroids) * grav';
 
 % Compute transmissibility
 T = s.T.*transMult;
 
 % Evaluate relative permeability
-[krW, krO] = f.relPerm(sW);
+sO  = 1 - sW;
+sO0 = 1 - sW0;
+
+[krW, krO] = model.evaluteRelPerm({sW, sO});
 
 % Multipliers due to polymer
 mixpar = f.mixPar;
@@ -147,7 +147,7 @@ end
 
 % EQUATIONS ---------------------------------------------------------------
 % oil:
-eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0) + s.Div(bOvO);
 
 % water:
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);

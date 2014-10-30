@@ -399,11 +399,64 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function i = satVarIndex(model, name)
             i = find(strcmpi(model.saturationVarNames, name));
         end
+        
+        function varargout = evaluteRelPerm(model, sat, varargin)
+            active = model.getActivePhases();
+            nph = sum(active);
+            assert(nph == numel(sat), ...
+            'The number of saturations must equal the number of active phases.')
+            varargout = cell(1, nph);
+            names = model.getPhaseNames();
+            
+            if nph > 1
+                fn = ['relPerm', names];
+                [varargout{:}] = model.(fn)(sat{:}, model.fluid, varargin{:});
+            elseif nph == 1
+                % Call fluid interface directly if single phase
+                varargout{1} = model.fluid.(['kr', names])(sat{:}, varargin{:});
+            end
+        end
     end
 
     methods (Static)
-
+        function [krW, krO, krG] = relPermWOG(sw, so, sg, f, varargin)
+            swcon = f.sWcon;
+            swcon = min(swcon, double(sw)-1e-5);
+            
+            d  = (sg+sw-swcon);
+            ww = (sw-swcon)./d;
+            krW = f.krW(sw, varargin{:});
+            
+            wg = 1-ww;
+            krG = f.krG(sg, varargin{:});
+            
+            krow = f.krOW(so, varargin{:});
+            krog = f.krOG(so,  varargin{:});
+            krO  = wg.*krog + ww.*krow;
+        end
+        
+        function [krW, krO] = relPermWO(so, sw, f, varargin)
+            krW = f.krW(sw, varargin{:});
+            if isfield(f, 'krO')
+                krO = f.krO(so, varargin{:});
+            else
+                krO = f.krOW(so, varargin{:});
+            end
+        end
+        
+        function [krO, krG] = relPermOG(so, sg, f, varargin)
+            krG = f.krG(sg, varargin{:});
+            if isfield(f, 'krO')
+                krO = f.krO(so, varargin{:});
+            else
+                krO = f.krOG(so, varargin{:});
+            end
+        end
+        
+        function [krW, krG] = relPermWG(sw, sg, f, varargin)
+            krG = f.krG(sg, varargin{:});
+            krW = f.krW(sw, varargin{:});
+        end
     end
-
 end
 
