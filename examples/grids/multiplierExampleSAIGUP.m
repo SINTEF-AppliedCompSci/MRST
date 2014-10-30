@@ -30,7 +30,11 @@
 close all hidden
 clear
 
-require mimetic
+try
+   require mimetic
+catch
+   mrstModule add mimetic
+end
 
 %%
 % Second, don't emit informational messages unless explicitly requested and

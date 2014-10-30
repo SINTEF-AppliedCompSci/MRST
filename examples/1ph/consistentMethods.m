@@ -155,7 +155,7 @@ resSol2 = initState(G, W, 0);
 
 %%
 % Solve mimetic linear hybrid system
-resSol2 = solveIncompFlow(resSol2, G, IP, fluid, 'wells', W_mim,'bc',bc);
+resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W_mim, 'bc', bc);
 
 %% APPROACH 3: MPFA method
 % Initialize solution structure with reservoir pressure equal 0.

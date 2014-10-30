@@ -100,11 +100,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 opt = struct('PlotFaults', true([1, 2]), ...
              'Alpha'     , ones([1, 4]));
-[opt, varargin] = process_options(opt, varargin{:});
+[opt, varargin] = merge_options(opt, varargin{:});
 
-assert (numel(opt.Alpha) >= 2 + find(opt.PlotFaults, 1, 'last'), ...
-       ['Option ''Alpha'' must specify enough AlphaData values ', ...
-        'to cover the requested plotting modes.']);
+check_input(opt);
 
 % Initialize parameters
 p = CG.partition;
@@ -176,29 +174,6 @@ if nargout > 0, varargout{1} = h; end
 
 %--------------------------------------------------------------------------
 
-function [opt, va] = process_options(opt, varargin)
-assert (mod(numel(varargin), 2) == 0, ...
-        'Options must be list of ''key''/value pairs');
-
-known = fieldnames(opt);
-suppl = varargin(1 : 2 : end);
-
-assert (iscellstr(suppl), 'Option names must be strings');
-
-[i, j] = blockDiagIndex(numel(known), numel(suppl));
-
-m = strcmpi(reshape(known(i), [], 1), ...
-            reshape(suppl(j), [], 1));
-
-this = [ known(i(m))' ; varargin(2 * j(m)) ];
-opt  = merge_options(opt, this{:});
-
-excl = false([numel(varargin), 1]);
-excl(mcolon(2*j(m) - 1, 2*j(m))) = true;
-va = varargin(~ excl);
-
-%--------------------------------------------------------------------------
-
 function f = findFaultFaces(G, p)
 p = [ 0 ; reshape(p, [], 1) ];
 N = p(G.faces.neighbors + 1);
@@ -208,3 +183,26 @@ f0 = @(b) find(any(N == b, 2));
 f1 = @(i) i(G.faces.tag(i) > 0);
 
 f  = @(b) f1(f0(b));
+
+%--------------------------------------------------------------------------
+
+function check_input(opt)
+p = find(opt.PlotFaults, 1, 'last');
+if isempty(p),
+   % Caller doesn't want faults.  Specify position zero to avoid ASSERT
+   % failing with a diagnostic that's hard to comprehend:
+   %
+   %    Error using >=
+   %    Matrix dimensions must agree.
+   %
+   % That results from what would effectively be
+   %
+   %    NUMEL(opt.Alpha) >= 2 + []
+   %
+   % otherwise.
+   p = 0;
+end
+
+assert (numel(opt.Alpha) >= 2 + p, ...
+       ['Option ''Alpha'' must specify enough AlphaData values ', ...
+        'to cover the requested plotting modes.']);

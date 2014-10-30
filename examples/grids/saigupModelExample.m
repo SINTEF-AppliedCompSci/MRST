@@ -15,7 +15,11 @@
 % by visualizing some of the coarse blocks and how they are connected with
 % their neighbors.
 % </html>
-require coarsegrid
+try
+   require coarsegrid
+catch
+   mrstModule add coarsegrid
+end
 
 %% Check for existence of input model data
 % The model can be downloaded from the the MRST page
