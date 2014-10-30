@@ -9,6 +9,12 @@
 % or not defined is removed, giving a GRDECL file defining the intersection
 % of these datasets.
 
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
 %% Example: Utsira formation
 % The formations discussed in the atlas cover large areas, and even though
 % the spatial resolution in the geographical data is low compared with
@@ -84,7 +90,7 @@ end
 res = cell(ng,1);
 fprintf('------------------------------------------------\n');
 for i=1:ng
-   fprintf('Processing %s ....', grdecls{i}.name);
+   fprintf('Processing %s ... ', grdecls{i}.name);
    grdecl  = getAtlasGrid(grdecls{i}.name, 'coarsening', 1);
    G       = mprocessGRDECL(grdecl{1});
    G       = mcomputeGeometry(G(1));

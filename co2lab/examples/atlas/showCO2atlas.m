@@ -23,7 +23,13 @@
 % the NPD webpages. If you have not done so, you can use the following
 % command: downloadDataSets('atlas')
 
-moduleCheck('co2lab', 'deckformat');
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
+moduleCheck deckformat
 
 fprintf('Loading atlas data (this may take a few minutes)..');
 [grdecls, rawdata] = getAtlasGrid(); %#ok

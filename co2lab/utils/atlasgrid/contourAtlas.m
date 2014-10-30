@@ -1,4 +1,4 @@
-function h=contourAtlas(info, varargin)
+function varargout = contourAtlas(info, varargin)
 % Plot contour lines in 3D for height data
 %
 % SYNOPSIS:
@@ -55,7 +55,7 @@ function h=contourAtlas(info, varargin)
                      linspace(yl, (dims(2) - 1)*h + yl, dims(2) ));
     
     % Lineplot to avoid colormap messup
-    [C h] = contour3(X,Y,d, N, '-'); %#ok
+    [C, h] = contour3(X,Y,d, N, '-');                           %#ok<ASGLU>
     set(h,'LineWidth', 1);
     
     data = get(h, 'UserData');
@@ -69,5 +69,9 @@ function h=contourAtlas(info, varargin)
        end
     else
        set(h,'Color',color);
+    end
+
+    if nargout > 0,
+       varargout{1} = h;
     end
 end

@@ -185,7 +185,7 @@ end
 
 function datasets = readAtlasGrids(names, coarsening)
 
-[grids gdir] = getNames();
+[grids, gdir] = getNames();
 
 datasets = {};
 for i = 1:numel(grids)
@@ -235,7 +235,7 @@ for i = 1:numel(grids)
 end
 end
 
-function [n gdir] = getNames()
+function [n, gdir] = getNames()
     gdir = fullfile(mrstPath('co2lab'), 'data', 'atlas');
 
     dir_grid = dir(gdir);

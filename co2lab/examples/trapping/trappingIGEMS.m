@@ -24,6 +24,12 @@
 % Link: <http://www.nr.no/nb/IGEMS>
 % Data description: <http://files.nr.no/igems/data.pdf>
 
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
 %% Read and prepare grid structure
 % The project developed both full 3D grid saved in the ECLIPSE format and
 % surfaces saved in the IRAP formate.  The ECLIPSE files are huge (588 MB)
@@ -161,4 +167,3 @@ plotGrid(Gt, trap_field>0, 'FaceColor', 'k', 'EdgeColor','none');
 nreg = max(ts.trap_regions);
 colormap((colorcube(nreg+1)+2*ones(nreg+1,3))/3); 
 view(-90,90); axis equal tight
-

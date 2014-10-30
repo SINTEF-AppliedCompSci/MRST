@@ -13,6 +13,12 @@
 % The example also sets up a complete input deck (in Eclipse format) which
 % can be used for simulation by traditional solvers
 
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
 %% Background
 % We start with the multiphase version of Darcy's law:
 %
@@ -55,9 +61,8 @@
 % Notice, however, that the fractional flow functions $f$ and the capillary
 % pressure function $p_c$ have a different interpretation than in a
 % standard fractional flow model.
-%
 
-moduleCheck('deckformat','mimetic');
+moduleCheck deckformat mimetic
 
 %% Parameters for the simulation
 gravity on

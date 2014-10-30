@@ -19,10 +19,16 @@
 % 3000x3000 m^2. The resolution in both grids is fairly large in compared
 % with typical simulation grids in petroleum application.
 
-moduleCheck('coarsegrid', 'deckformat');
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
+moduleCheck coarsegrid deckformat
 
 N = 6;
-[Grids res] = deal(cell(numel(N),1));
+[Grids, res] = deal(cell(numel(N),1));
 for i = 1:N
     fprintf(1,'\nLoading Johansen formation (coarsening factor: %d)...\n', i);
     gr = getAtlasGrid('Johansenfm', 'coarsening', i);

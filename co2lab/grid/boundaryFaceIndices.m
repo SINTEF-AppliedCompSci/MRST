@@ -41,9 +41,9 @@ function ix = boundaryFaceIndices(G, direction, i1, i2, i3)
 % $Date: 2012-01-30 11:41:03 +0100 (Mon, 30 Jan 2012) $
 % $Revision: 9020 $
 
-if exist('i1') == 0  i1 = []; end;
-if exist('i2') == 0  i2 = []; end;
-if exist('i3') == 0  i3 = []; end;
+if ~exist('i1', 'var'), i1 = []; end
+if ~exist('i2', 'var'), i2 = []; end
+if ~exist('i3', 'var'), i3 = []; end
 
 i1 = reshape(i1, [], 1);
 i2 = reshape(i2, [], 1);
