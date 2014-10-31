@@ -1,4 +1,4 @@
-classdef GustafssonLikeStepSelector < SimpleTimeStepSelector
+classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
 % Experimental iteration count selector
 
 %{
@@ -27,7 +27,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         iterationOffset
     end
     methods
-        function selector = GustafssonLikeStepSelector(varargin)
+        function selector = IterationCountTimeStepSelector(varargin)
             selector = selector@SimpleTimeStepSelector();
             
             selector.targetIterationCount = 5;
