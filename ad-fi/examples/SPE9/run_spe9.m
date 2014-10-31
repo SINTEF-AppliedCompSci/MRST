@@ -56,9 +56,12 @@ plotCellData(G,log10(convertTo(rock.perm(:,1),milli*darcy))); view(3);
 h = colorbar('horiz');
 set(h,'XTickLabel', num2str(10.^(get(h,'XTick')')), ...
    'YTick', .5, 'YTickLabel','[mD]','Position',[.13 .05 .77 .03]);
- W = processWellsLocal(G,rock, schedule.control(1));
-plotWell(G,W(1),'color','b','linewidth',3,'fontsize',12);
-plotWell(G,W(2:end),'color','k','linewidth',3,'fontsize',12);
+
+W = processWellsLocal(G,rock, schedule.control(1));
+W(1).name='I'; for i=2:numel(W); W(i).name=['I',num2str(i-1)]; end
+
+plotWell(G, W(1),    'color','b','linewidth',3,'fontsize',14);
+plotWell(G, W(2:end),'color','k','linewidth',3,'fontsize',14);
 axis tight, view(40,55);
 
 %% Run schedule
