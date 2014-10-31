@@ -12,7 +12,14 @@
 % necessary to run the example can be downloaded from the
 % <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 % website>.
-moduleCheck('mimetic');
+
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
+moduleCheck mimetic
 
 %% Display header
 clc;

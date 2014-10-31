@@ -12,7 +12,11 @@
 % * processgrid (replaces processGRDECL)
 % * mcomputegeometry (replaces computeGeometry)
 
-%moduleCheck('mex');
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
 
 %% Write header
 clc;

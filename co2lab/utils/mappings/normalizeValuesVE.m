@@ -1,4 +1,4 @@
-function [s h hmax]  = normalizeValuesVE(g_top, sol, fluid, varargin)
+function [s, h, hmax]  = normalizeValuesVE(g_top, sol, fluid, varargin)
 % Normalizes values for different VE grids and formulations.
 %
 %

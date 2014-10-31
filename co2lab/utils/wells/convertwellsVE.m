@@ -16,7 +16,7 @@ function W = convertwellsVE(W, G, Gt, rock2D, varargin)
     else
         inner_product = 'ip_simple';
     end
-    [i j k] = ind2sub(G.cartDims, G.cells.indexMap);
+    [i, j, k] = ind2sub(G.cartDims, G.cells.indexMap); %#ok<NASGU>
     [i2, j2] = ind2sub(Gt.cartDims, Gt.cells.indexMap);
     W_2D = [];
     for nw = 1:numel(W)

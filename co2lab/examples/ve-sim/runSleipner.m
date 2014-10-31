@@ -28,6 +28,12 @@
 % The last mentioned function requires that you have built the solver in
 % the src/VEmex directory.
 
+try
+   require co2lab
+catch
+   mrstModule add co2lab
+end
+
 %% Display header
 clc
 disp('================================================================');
@@ -35,7 +41,8 @@ disp('   Vertical averaging applied to the Sleipner model');
 disp('   using C++ accelleration in the transport solver');
 disp('================================================================');
 disp(' ');
-moduleCheck('mimetic');
+
+moduleCheck mimetic
 
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).

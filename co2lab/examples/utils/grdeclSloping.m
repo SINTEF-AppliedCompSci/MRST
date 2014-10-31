@@ -76,7 +76,7 @@ end
    %Z = sort(Z, 3);
 %end
 
-Z = Z;% .* physDims(3);
+%Z = Z;% .* physDims(3);
 
 % Make pillars
 n = prod(dims(1:2) + 1);
