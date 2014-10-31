@@ -1,8 +1,17 @@
-require ad-fi deckformat
+%% Ninth Comparative Solution Project
+% This example runs the model from Killough, J. E. 1995. Ninth SPE
+% comparative solution project: A reexamination of black-oil simulation. In
+% SPE Reservoir Simulation Symposium,  12-15 February 1995, San Antonio,
+% Texas. SPE 29110-MS, doi: 10.2118/29110-MS
+try
+   require ad-fi deckformat
+catch %#ok<CTCH>
+   mrstModule add ad-fi deckformat
+end
 
 mrstVerbose true
 
-% Read and process file.
+%% Read and process file.
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'SPE9.DATA');
 deck = readEclipseDeck(fn);
@@ -17,7 +26,7 @@ rock  = compressRock(rock, G.cells.indexMap);
 fluid = initDeckADIFluid(deck);
 gravity on
 
-% Initial solution
+%% Initial solution
 p0  = deck.SOLUTION.PRESSURE;
 sw0 = deck.SOLUTION.SWAT;
 sg0 = deck.SOLUTION.SGAS;
@@ -41,11 +50,23 @@ system.stepOptions.dsMax  = .05;
 system.nonlinear.cprRelTol = 1e-3;
 system.pscale = 1/(200*barsa);
 
+%% Plot reservoir and wells
+figure, 
+plotCellData(G,log10(convertTo(rock.perm(:,1),milli*darcy))); view(3); 
+h = colorbar('horiz');
+set(h,'XTickLabel', num2str(10.^(get(h,'XTick')')), ...
+   'YTick', .5, 'YTickLabel','[mD]','Position',[.13 .05 .77 .03]);
+ W = processWellsLocal(G,rock, schedule.control(1));
+plotWell(G,W(1),'color','b','linewidth',3,'fontsize',12);
+plotWell(G,W(2:end),'color','k','linewidth',3,'fontsize',12);
+axis tight, view(40,55);
+
+%% Run schedule
 timer = tic;
 [wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
 toc(timer)
 
-% plot solutions
+%% Plot solutions
 T     = convertTo(cumsum(schedule.step.val), day);
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 injInx = 1;
