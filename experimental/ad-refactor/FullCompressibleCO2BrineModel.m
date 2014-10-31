@@ -30,7 +30,7 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
         function model = FullCompressibleCO2BrineModel(Gt, rock, fluid, tinfo, varargin)
             opt.slope    = 0;                       % in radians
             opt.slopedir = [1 0];                   % default is slope towards east
-            opt.nonlinearTolerance = 1e-14;
+            opt.nonlinearTolerance = 1e-11; % 1e-14
             opt.plotfun = [];
             opt.trans   = [];
             opt.locking_pressure = [];
@@ -113,7 +113,7 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
         % Following function called by the solver after each ministep.  We can
         % therefore use it to call functions we want to be run after each
         % converged step
-        function state = updateAfterConvergence(model, state0, state, drivingForces)
+        function state = updateAfterConvergence(model, state0, state, dt, drivingForces)
            
         % If user provided a plotting function, call it here
            if ~isempty(model.plotfun)

@@ -1,4 +1,5 @@
-function h = columnHeight(Pcap, Tcap, Tgrad, CO2props, rhoWater, theta, mass, col_area, poro, quick)
+function h = columnHeight(Pcap, Tcap, Tgrad, CO2props, rhoWater, theta, mass, ...
+                          col_area, poro, quick, fully_compressible)
 % 
 % Compute the column height necessary to contain 'mass' amount of CO2.  It
 % is assumed that the reference surface \zeta_R is that of the CO2/water interface.
@@ -6,16 +7,17 @@ function h = columnHeight(Pcap, Tcap, Tgrad, CO2props, rhoWater, theta, mass, co
 %   function h = columnHeight(Pcap, Tcap, Tgrad, CO2Props)
 %
 % PARAMETERS:
-%   Pcap       - hydrostatic pressure at CAPROCK level 
-%   Tcap       - temperature at CAPROCK level
-%   Tgrad      - global temperature gradient (in BASE UNITS, deg/m)
-%   CO2props   - CO2 properties object
-%   rhoWater   - density of brine (considered constant)
-%   theta      - inclination of coordinate system
-%   mass       - desired column mass
-%   col_area   - column base area
-%   poro       - column rock porosity (considered constant in height)    
-%   quick      - if 'true', use Taylor expansion rather than solving the ODE    
+%   Pcap               - hydrostatic pressure at CAPROCK level 
+%   Tcap               - temperature at CAPROCK level
+%   Tgrad              - global temperature gradient (in BASE UNITS, deg/m)
+%   CO2props           - CO2 properties object
+%   rhoWater           - density of brine (considered constant)
+%   theta              - inclination of coordinate system
+%   mass               - desired column mass
+%   col_area           - column base area
+%   poro               - column rock porosity (considered constant in height)    
+%   quick              - if 'true', use Taylor expansion rather than solving the ODE    
+%   fully_compressible - if 'false', density variations in depth can be ignored
 %
 % RETURNS:
 %   h - height of the column
@@ -39,6 +41,9 @@ function h = columnHeight(Pcap, Tcap, Tgrad, CO2props, rhoWater, theta, mass, co
     % start value for height
     h0  = mass1D / CO2props.rho(Pcap, Tcap);
 
+    % hack to satisfy 'etaIntegrals' function
+    CO2props.compressible = fully_compressible;
+    
     % computing height
     if quick % approximate using Taylor expansion
         h = fzero(@(x) compute_column_mass_Taylor(pressFun(x), tempFun(x), x, CO2props, G_cos_t, g_cos_t) - mass1D, h0);

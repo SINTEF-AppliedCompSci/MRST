@@ -49,13 +49,11 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     [Ieta0Bri, ~, ~]         = fluid.wat.h_integrals(pI0, tI0);
     
     %% Computing interior fluxes
-    
-    % NB: s.grad gives _negative_gradient, hence the additional '-' sign) 
-    dpI  = -s.grad(pI);              % gradient of interface pressure
-    dInt = -s.grad(Gt.cells.z + h);  % gradient of interface position
+    dpI  = s.Grad(pI);              % gradient of interface pressure
+    dInt = s.Grad(Gt.cells.z + h);  % gradient of interface position
 
     % Override periodic boundary condition faces, if any
-    if ~isempty(drivingForces.bcp)
+    if isfield(drivingForces, 'bcp') && ~isempty(drivingForces.bcp)
        iface_ixs = interiorFaces(Gt);
        reindex(iface_ixs) = 1:numel(iface_ixs);
        bcp = drivingForces.bcp; % for convenience
@@ -70,9 +68,9 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
     end
     
     intFluxCO2 = computeFlux(s.faceAvg, s.faceUpstr, INupEtaCO2, fluid.gas.kr, s.T, -1, ...
-                             dpI, mod_term, -s.grad(rhoC), rhoC, muC, h, H, g_cos_t); 
+                             dpI, mod_term, s.Grad(rhoC), rhoC, muC, h, H, g_cos_t); 
     intFluxBri = computeFlux(s.faceAvg, s.faceUpstr, INupEtaBri, fluid.wat.kr, s.T,  1, ...
-                             dpI, mod_term, -s.grad(rhoB), rhoB, muB, H-h, H, g_cos_t);
+                             dpI, mod_term, s.Grad(rhoB), rhoB, muB, H-h, H, g_cos_t);
     
     %% Computing boundary fluxes, if any
     [bc_cell, bc_fC, bc_fB] = ...
@@ -111,6 +109,7 @@ function [problem, state] = equationsCO2BrineCompressible(state0, state, dt, ...
 
     primary = {'pressure' ,'height', 'qGs', 'bhp'};
     problem = LinearizedProblem(eqs, types, names, primary, state);
+    problem.iterationNo = opt.iteration; % @ should ideally be unnecessary
     
     %% Adding extra information to state object (not used in equations, but
     %% useful for later analysis)
@@ -158,7 +157,7 @@ end
 function eq = contEquation(s, dt, h, h0, rho, rho0, intflux, bcells, bflux, wcells, wrate)
 % Function to construct the continuity equation.
 % ----------------------------------------------------------------------------
-    eq = (s.pv/dt) .* ((rho .*h) - (rho0 .* h0)) + (-s.div(intflux));
+    eq = (s.pv/dt) .* ((rho .*h) - (rho0 .* h0)) + (s.Div(intflux));
     
     eq(wcells) = eq(wcells) - wrate; % correct for wells 
 
