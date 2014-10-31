@@ -1,5 +1,32 @@
 classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
-% Experimental iteration count selector
+% Adjust timesteps based with target iteration count, based on history
+%
+% SYNOPSIS:
+%   selector = IterationCountTimeStepSelector();
+%   selector = IterationCountTimeStepSelector('targetIterationCount', 5);
+%
+% DESCRIPTION:
+%   Routine used for dynamic timestepping 
+%
+% REQUIRED PARAMETERS:
+%   None.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   targetIterationCount  - Desired number of iterations.
+%
+%   iterationOffset       - Uses [actual + iterationOffset] to calculate
+%                           the parameter. Larger values makes the step
+%                           selector less aggressive for iteration targets
+%                           near zero.
+%
+%   (Other options)       - Inherited from SimpleTimeStepSelector.
+%
+% RETURNS:
+%   Time step selector.
+%
+%
+% SEE ALSO:
+%   SimpleTimeStepSelector, NonLinearSolver
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -19,6 +46,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+
 
     properties
         % Desired number of nonlinear iterations per timestep.
