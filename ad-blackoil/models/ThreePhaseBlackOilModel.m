@@ -19,7 +19,7 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
             % Typical black oil is disgas / dead oil, but all combinations
             % are supported
             model.vapoil = false;
-            model.disgas = true;
+            model.disgas = false;
            
             % Max increments
             model.drsMaxAbs = inf;

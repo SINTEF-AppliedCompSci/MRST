@@ -1,5 +1,32 @@
 classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
-% Experimental iteration count selector
+% Adjust timesteps based with target iteration count, based on history
+%
+% SYNOPSIS:
+%   selector = IterationCountTimeStepSelector();
+%   selector = IterationCountTimeStepSelector('targetIterationCount', 5);
+%
+% DESCRIPTION:
+%   Routine used for dynamic timestepping 
+%
+% REQUIRED PARAMETERS:
+%   None.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   targetIterationCount  - Desired number of iterations.
+%
+%   iterationOffset       - Uses [actual + iterationOffset] to calculate
+%                           the parameter. Larger values makes the step
+%                           selector less aggressive for iteration targets
+%                           near zero.
+%
+%   (Other options)       - Inherited from SimpleTimeStepSelector.
+%
+% RETURNS:
+%   Time step selector.
+%
+%
+% SEE ALSO:
+%   SimpleTimeStepSelector, NonLinearSolver
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -19,91 +46,75 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+
+
     properties
+        % Desired number of nonlinear iterations per timestep.
         targetIterationCount
-        
-        useLinearization
-        adjustmentFactor
-        
-        lowerTargetIterationCount
-        upperTargetIterationCount
+        % Offset to make iteration a bit smoother as a response function.
+        iterationOffset
     end
     methods
         function selector = IterationCountTimeStepSelector(varargin)
             selector = selector@SimpleTimeStepSelector();
             
-            selector.useLinearization = true;
-            
-            selector.lowerTargetIterationCount = 5;
-            selector.upperTargetIterationCount = 10;
             selector.targetIterationCount = 5;
-            
-            selector.adjustmentFactor = 2;
+            selector.iterationOffset = 5;
             
             selector = merge_options(selector, varargin{:});
         end
         
         function dt = computeTimestep(selector, dt, model, solver)
-            h = selector.history;
-            historyLength = numel(h);
-            dt0 = dt;
-            dt_new = dt;
+            % Dynamically compute timestep
+            hist = selector.history;
+            nHist = numel(hist);
             
-            if isempty(h) || ~h(end).Converged
-                % Non-linear solver handles this case
+            if nHist == 0 || ~hist(end).Converged || selector.controlsChanged
                 return
             end
             
-            if historyLength > 0
-                if historyLength > 1 && ...
-                   h(end).Iterations > selector.targetIterationCount && ...
-                   selector.useLinearization
-                    % We have a bunch of datapoints for iteration counts,
-                    % use this for a finite difference estimation
-                    dt_1 = h(end).Timestep;
-                    dt_0 = h(end-1).Timestep;
-
-                    F_1 = h(end).Iterations;
-                    F_0 = h(end-1).Iterations;
-
-                    % Estimate derivative of iterations function based on
-                    % timestep length
-                    dFdt = (F_1 - F_0)/(dt_1 - dt_0);
-
-                    % Calculate new timestep using this linearization
-                    dt_new = dt_1 + (selector.targetIterationCount - F_1)./dFdt;
-                end
-
-                if historyLength == 1 || isinf(dt_new) || ...
-                        dt_new < 0 || ~selector.useLinearization;
-                    % We either do not have enough data to estimate
-                    % convergence rates or we got a bad timestep from
-                    % difference approximation
-                    prev = h(end).Iterations;
-                    dt_prev = h(end).Timestep;
-                    
-                    sf = selector.adjustmentFactor;
-                    if prev > selector.upperTargetIterationCount
-                        dt_new = dt_prev/sf;
-                    elseif prev < selector.lowerTargetIterationCount
-                        dt_new = sf*dt_prev;
-                    end
-                end
+            if model.stepFunctionIsLinear
+                switch class(model)
+                    case 'SequentialPressureTransportModel'
+                        % Use transport solver as the iteration counter as
+                        % the pressure equation should be less nonlinear.
+                        getIts = @(x) x.NonlinearReport{end}.TransportSolver.Iterations;
+                    otherwise
+                        error(['Step function is linear, but I do not know',...
+                            ' how to calculate the iterations for models of type ', ...
+                            class(model)]);
+                end 
             else
-                % Do nothing, we have no data to work with. Let's hope the
-                % first timestep at least converges, so we can do something
-                % on the next pass.
+                getIts = @(x) x.Iterations;
+            end
+            
+            if nHist > 1
+                % We consider this a restart if we were limited by bounds
+                % outside of the function or if the previous step was the
+                % first that converged
+                restart = selector.stepLimitedByHardLimits |...
+                          ~hist(end-1).Converged;
+            else
+                restart = true;
+            end
+            maxits = solver.maxIterations + selector.iterationOffset;
+            offset = selector.iterationOffset;
+            
+            tol = (selector.targetIterationCount + offset)/maxits;
+
+            le1 = (getIts(hist(end)) + offset)/maxits;
+            dt1 = hist(end).Timestep;
+            
+            if restart
+                dt_new = (tol/le1)*dt1;
+            else
+                le0 = (getIts(hist(end-1)) + offset)/maxits;
+                dt0 = hist(end-1).Timestep;
+                dt_new = (dt1/dt0)*(tol*le0/le1^2)*dt1; 
             end
             
             dt = dt_new;
-
-            if selector.verbose && dt ~= dt0
-                if historyLength
-                    fprintf('Its was: %d ', h(end).Iterations);
-                end
-                fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
-                    dt/dt0, formatTimeRange(dt0), formatTimeRange(dt));
-            end
         end
     end
 end

@@ -23,7 +23,7 @@ classdef SimpleTimeStepSelector < handle
 %
 %
 % SEE ALSO:
-%   IterationCountTimeStepSelector, GustafssonLikeStepSelector
+%   IterationCountTimeStepSelector, NonLinearSolver
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -65,6 +65,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % be set to a low value to get the timestep controller started with
         % some estimate of problem stiffness.
         firstRampupStep
+        % Same as firstRampupStep, but interpreted in a relative fashion
+        % (i.e. if timestep is 5*days, the ramp up step will then be
+        % 5*days*firstRampupStepRelative.
+        firstRampupStepRelative
         
         % Ensure that dt_next < dt_suggested*maxRelativeAdjustment
         maxRelativeAdjustment
@@ -90,9 +94,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             selector.minRelativeAdjustment = .5;
             
             selector.firstRampupStep = inf;
+            selector.firstRampupStepRelative = 1;
+            
             selector.verbose = mrstVerbose();
             
             selector = merge_options(selector, varargin{:});
+            
+            assert(selector.firstRampupStepRelative <= 1 && ...
+                   selector.firstRampupStepRelative >  0);
             
             selector.isStartOfCtrlStep = true;
             selector.controlsChanged = true;
@@ -115,6 +124,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function dt = pickTimestep(selector, dt, model, solver)
             if selector.controlsChanged
+                % First relative check
+                dt = min(dt, selector.firstRampupStepRelative*dt);
+                % Then absolute check
                 dt = min(dt, selector.firstRampupStep);
                 selector.stepLimitedByHardLimits = true;
             end
