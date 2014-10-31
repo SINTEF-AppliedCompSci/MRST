@@ -5,32 +5,8 @@ classdef TestSPE3 < ScheduleTest
     
     methods
         function test = TestSPE3(varargin)
-            test = test@ScheduleTest();
-            
-            
+            test = test@ScheduleTest('spe3');
             test = merge_options(test, varargin{:});
-
-            mrstModule add deckformat ad-fi ad-refactor
-            
-            fn = fullfile('SPE', 'SPE3', 'BENCH_SPE3.DATA');
-            
-            [deck, schedule, model, rock] = setupADcase(fn);
-            
-            % The case includes gravity
-            gravity on
-            
-            p0  = deck.SOLUTION.PRESSURE;
-            sw0 = deck.SOLUTION.SWAT;
-            sg0 = deck.SOLUTION.SGAS;
-            s0  = [sw0, 1-sw0-sg0, sg0];
-            rv0 = deck.SOLUTION.RV;
-            rs0 = 0;
-            test.state0 = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
-            
-            test.schedule = schedule;
-            test.model = model;
-            test.rock = rock;
-            test.model.disgas = false;
         end
         function s = getIdentifier(test, name) %#ok
             s = [mfilename('class'), '_', name];

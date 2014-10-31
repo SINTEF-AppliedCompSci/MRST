@@ -13,7 +13,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
     end
     
     methods
-        function test = ScheduleTest(varargin)
+        function test = ScheduleTest(name, varargin)
             test.storeResults = false;
             test.schedule = [];
             test.state0 = [];
@@ -34,7 +34,20 @@ classdef ScheduleTest < matlab.unittest.TestCase
             
             if ~(exist(test.outputPath, 'dir') == 7)
                 mkdir(test.outputPath);
-            end            
+            end
+            % Get model
+            [s, m, s0] = getBenchmarkAD(name);
+            
+            % Avoid outputting a lot of extra data derived from primary
+            % variables.
+            m.extraStateOutput = false;
+            m.extraWellSolOutput = false;
+            
+            test.state0 = s0;
+            test.schedule = s;
+            test.model = m;
+            test.rock = m.rock;
+            
         end
     end
     
