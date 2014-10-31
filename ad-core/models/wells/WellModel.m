@@ -43,7 +43,7 @@ classdef WellModel
             wellmodel.allowWellSignChange   = false;
             wellmodel.allowCrossflow        = true;
             wellmodel.allowControlSwitching = true;
-            wellmodel.detailedOutput        = model.extraStateOutput;
+            wellmodel.detailedOutput        = model.extraWellSolOutput;
             
             wellmodel = merge_options(wellmodel, varargin{:});
             

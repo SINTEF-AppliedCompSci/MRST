@@ -86,6 +86,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         inputdata
         % Add extra output to wellsol/states for derived quantities
         extraStateOutput
+        % Output extra information for wells
+        extraWellSolOutput
         % Output fluxes
         outputFluxes
     end
@@ -113,6 +115,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
             
             model.extraStateOutput = false;
+            model.extraWellSolOutput = true;
             model.outputFluxes = true;
             
             model = merge_options(model, varargin{:});
