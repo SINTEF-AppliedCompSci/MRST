@@ -141,13 +141,5 @@ else
     names = {'oil'};
     types = {'cell'};
 end
-
-
-
-
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-problem.iterationNo = opt.iteration;
-
-% perf2well = getPerforationToWellMapping(W);
-
 end

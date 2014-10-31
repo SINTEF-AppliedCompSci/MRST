@@ -10,7 +10,9 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.Wells;
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+%assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+assert(isempty(drivingForces.src))
+bc = drivingForces.bc;
 
 s = model.operators;
 G = model.G;
@@ -86,6 +88,27 @@ end
 % water:
 eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
 
+if(~isempty(bc))
+    if(isfield(bc,'cell2bcface'))
+        % uses mrst-autodiff/ad-fi/experimental/bc2ADbc.m
+        pX={p};rhoX={rhoW};mobX={mobW};bX={bW};
+        bXqXbc = pressureBCContribADI(G,s,pX, rhoX, mobX, bX, bc);
+        for i=1:numel(bXqXbc)
+            eqs{i}  = eqs{i}+ bc.bcface2cell*bXqXbc{i};
+        end
+    else
+        pX={p};rhoX={rhoW};mobX={mobW};bX={bW};
+        [bXqXbc,bc_cell] = pressureBCContrib(G,s,pX, rhoX, mobX, bX, bc);
+        for i=1:numel(bXqXbc)
+            eqs{i}(bc_cell)  = eqs{i}(bc_cell)+ bXqXbc{i};
+        end
+    end
+end
+
+
+
+
+
 names = {'water'};
 types = {'cell'};
 % well equations
@@ -120,7 +143,6 @@ if ~isempty(W)
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-problem.iterationNo = opt.iteration;
 end
 %--------------------------------------------------------------------------
 

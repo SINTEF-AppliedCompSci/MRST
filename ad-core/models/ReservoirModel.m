@@ -438,7 +438,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             krO  = wg.*krog + ww.*krow;
         end
         
-        function [krW, krO] = relPermWO(so, sw, f, varargin)
+        function [krW, krO] = relPermWO(sw, so, f, varargin)
             krW = f.krW(sw, varargin{:});
             if isfield(f, 'krO')
                 krO = f.krO(so, varargin{:});

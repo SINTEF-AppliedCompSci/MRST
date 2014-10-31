@@ -278,7 +278,6 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
     end
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-    problem.iterationNo = opt.iteration;
 end
 
 

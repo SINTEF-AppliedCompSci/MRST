@@ -132,30 +132,30 @@ classdef ScheduleTest < matlab.unittest.TestCase
     
     methods (Test)
         
-        function singleStep(test)
+        function states = singleStep(test)
             if test.caseIsBig
                 usecpr = true;
             else
                 usecpr = false;
             end
             name = test.getIdentifier('singlestep');
-            test.runSchedule(name, 'stepcount', 1, 'useCPR', usecpr);
+            states = test.runSchedule(name, 'stepcount', 1, 'useCPR', usecpr);
         end
         
-        function baseline(test)
+        function states = baseline(test)
             if test.caseIsBig
                 test.assertFail('Test is too big for mldivide direct solver')
             end
             name = test.getIdentifier('baseline');
-            test.runSchedule(name);
+            states = test.runSchedule(name);
         end
         
-        function CPR_mldivide(test)
+        function states = CPR_mldivide(test)
             name = test.getIdentifier('cpr_mldivide');
-            test.runSchedule(name, 'useCPR', true, 'useAGMG', false);
+            states = test.runSchedule(name, 'useCPR', true, 'useAGMG', false);
         end
                 
-        function CPR_AGMG(test)
+        function states = CPR_AGMG(test)
 
             name = test.getIdentifier('cpr_agmg');
             mrstModule add agmg
@@ -166,8 +166,8 @@ classdef ScheduleTest < matlab.unittest.TestCase
                     'AGMG is not installed properly, test cannot proceed')
                 return
             end
-            test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
+            states = test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
         end
     end
-
 end
+

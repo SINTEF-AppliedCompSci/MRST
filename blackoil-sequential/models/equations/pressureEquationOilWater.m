@@ -119,7 +119,6 @@ names{1} = 'pressure';
 types{1} = 'cell';
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-problem.iterationNo = opt.iteration;
 
 perf2well = getPerforationToWellMapping(W);
 for i = 1:numel(W)
