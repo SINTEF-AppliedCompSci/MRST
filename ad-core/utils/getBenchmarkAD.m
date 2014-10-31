@@ -32,11 +32,7 @@ function [schedule, model, state0] = getBenchmarkAD(name)
             rhoMix  = .1*rhoW + .9*rhoO;
             p0   = pr + norm(gravity)*rhoMix*dz;      
             
-            test.state0 = initResSol(G, p0, [0.1, .90]);
-            test.schedule = schedule;
-            test.model = model;
-            test.rock = rock;
-            
+            state0 = initResSol(G, p0, [0.1, .90]);            
         case 'simpleow'
             % Simple oil/water test.
             [schedule, model] = readAndSetup('SINTEF', 'simpleOW', 'simple10x1x10.data');
