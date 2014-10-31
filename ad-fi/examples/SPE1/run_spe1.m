@@ -1,9 +1,18 @@
-%% SPE1 case for fully implicit black oil solver
-% This example solves the SPE1 problem which consists of gas injection in a
-% small ($10\times10\times3$) reservoir with a single producer and
-% injector. The problem is parsed and solved from the problem file
-% "odeh_adi" and the result is then compared to output from a major
-% commercial reservoir simulator (Eclipse 100).
+%% SPE1 case 
+% This <http://dx.doi.org/10.2118/9723-PA first comparative solution
+% project> consists of a gas injection problem in a small
+% ($10\times10\times3$) reservoir with a single producer and a single
+% injector. It is set up to be solved using a black-oil model. The data set
+% we provide is a modified version of input files belonging to the
+% <http://www.ntnu.edu/studies/courses/TPG4535 course in reservoir
+% engineering and petrophysics> at NTNU (Trondheim, Norway) and available at
+% <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>. The
+% results are compared to the output from a major commercial reservoir
+% simulator (Eclipse 100).
+
+%% Read input files
+% The input files follow Eclipse format. MRST contains a dedicated module
+% which can handle standard Eclipse keywords.
 
 require ad-fi deckformat mrst-gui
 
@@ -22,23 +31,19 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
-% Create a special ADI fluid which can produce differentiated fluid
-% properties.
+% Create a special ADI fluid which can produce differentiated fluid properties.
 fluid = initDeckADIFluid(deck);
 
 % The case includes gravity
 gravity on
 
-%%
+%% Setup initial state
 % The initial state is a pressure field that is constant in each layer, a
 % uniform mixture of water (Sw=0.12) and oil (So=0.88) with no initial free
-% gas (Sg=0.0) and a constant dissolved gas/oil ratio ("Rs") throughout the
-% model.
-%
-% The pressure and Rs values are derived through external means.
-clear prod
-[k, k] = ind2sub([prod(G.cartDims(1:2)), G.cartDims(3)], ...
-                  G.cells.indexMap);  %#ok
+% gas (Sg=0.0) and a constant dissolved gas/oil ratio (|Rs|) throughout the
+% model. The pressure and Rs values are derived through external means.
+
+[k, k, k] = gridLogicalIndices(G);
 
 p0    = [ 329.7832774859256 ; ...  % Top layer
           330.2313357125603 ; ...  % Middle layer
@@ -49,22 +54,25 @@ s0    = repmat([ 0.12, 0.88, 0.0 ], [G.cells.num, 1]);
 rs0   = repmat( 226.1966570852417 , [G.cells.num, 1]);
 rv0   = 0; % dry gas
 
-state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
+state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   
+clear k p0 s0 rs0;
 
-%% Plot well and permeability
+%% Plot wells and permeability
 % The permeability consists of three layers going from high to low
 % permeability along the z axis. The wells are completed in the upper and
 % lower layer for the injector and producer respectively. To get a well
 % object, we simply process the first control from the schedule.
 %
-% Note that a schedule is not necessary to solve problems using the fully
-% implicit solver: solvefiADI is capable of taking a well object directly
-% and solving for a single time step in a manner similar to the other MRST
-% solvers.
+% Note that it is not necessary to construct a schedule to solve problems
+% using the fully implicit solver: solvefiADI is capable of taking a well
+% object directly and solving for a single time step in a manner similar to
+% the other MRST solvers.
+
+figure(1)
 clf;
 W = processWells(G, rock, deck.SCHEDULE.control(1));
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
-            'EdgeAlpha', .3, 'EdgeColor', 'k');
+             'EdgeAlpha', .3, 'EdgeColor', 'k');
 plotWell(G, W);
 title('Permeability (mD)')
 axis tight;
@@ -72,30 +80,24 @@ view(35, 40);
 colorbar('SouthOutside');
 
 %% Initialize schedule and system before solving for all timesteps
-% We extract the schedule from the read deck and create a ADI system for
-% our problem. The system autodetects a black oil problem and sets up
-% default values for the various options. The only thing we change is to
-% disable the CPR preconditioner as the problem is too small to benefit
-% from preconditioning: The overhead required for the preconditioner is
-% bigger than the benefits offered by a specialized solver.
+% We extract the schedule from the read deck and create a ADI system for our
+% problem. The system autodetects a black oil problem and sets up default
+% values for the various options. The only thing we change is that we
+% disable the CPR preconditioner as the problem is too small to benefit from
+% preconditioning: The overhead required for the preconditioner is bigger
+% than the benefits offered by a specialized solver.
 %
 % During some time steps (67 and 91) the Newton iterations oscillate. The
 % solver detects this, and dampens or relaxes the step length when this
 % behavior is observed.
 %
-% To see detailed convergence analysis during each time step, set verbose
-% to on using
-%
-% mrstVerbose on
-
-figure;
-[h, plotcallback] = plotToolbar(G, state);
-axis tight off
+% To see detailed convergence analysis during each time step, set verbose to
+% on by using: |mrstVerbose on|
 
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', false);
 timer = tic;
-[wellSols states iter] = runScheduleADI(state, G, rock, system, schedule, 'plotCallback', plotcallback);
+[wellSols states iter] = runScheduleADI(state, G, rock, system, schedule);
 toc(timer)
 
 %% Plot the solution
@@ -105,9 +107,9 @@ toc(timer)
 % false.
 
 oglcapable = opengl('data');
-useVolume = ~oglcapable.Software;
+useVolume  = ~oglcapable.Software;
 
-figure(1)
+figure(2)
 view(35, 40);
 for i = 2:numel(states)
     [az el] = view();
@@ -133,24 +135,23 @@ for i = 2:numel(states)
 
 end
 %% Set up plotting
-% Load summary from binary file and find indices of the producer and
-% injector.
-load SPE1_smry
+% Load summary from binary file and find indices of the producer and injector.
 
-inj = find([wellSols{1}.sign] == 1);
-prod = find([wellSols{1}.sign] == -1);
+load SPE1_smry % loads structure smry
 
 % Since there are zero values in the first step of the summary, we ignore
 % the first entry to get better plot axes.
 ind = 2:118;
+Tcomp =  smry.get(':+:+:+:+', 'YEARS', ind);
+
+inj = find([wellSols{1}.sign] == 1);
+prod = find([wellSols{1}.sign] == -1);
 
 % Put the well solution data into a format more suitable for plotting
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 
 % Get timesteps for both the reference and the MRST run
 T = convertTo(cumsum(schedule.step.val), year);
-Tcomp =  smry.get(':+:+:+:+', 'YEARS', ind);
-
 
 
 %% Plot Producer Gas/Oil ratio
@@ -158,6 +159,7 @@ Tcomp =  smry.get(':+:+:+:+', 'YEARS', ind);
 % producer. We convert the field units and plot the dimensionless ratio.
 % As should be apparent from the figure, the implicit solver is able to
 % qualitatively reproduce the same outflow profile.
+
 figure(2)
 clf
 ecl = convertFrom(smry.get('PRODUCER', 'WGOR', ind), 1000*ft^3/stb)';
@@ -175,9 +177,11 @@ plot(T,     mrst, '-', 'Marker', '.', 'MarkerSize',16)
 plot(Tcomp, ecl,  '-r','Marker', '.', 'MarkerSize',16);
 set(gca,'Xlim', [0 0.5]);
 
-%% Plot Injector Bottom Hole Pressure
-% The injector is rate controlled and so the bottom hole pressure is solved
-% in the implicit loop. Plot it to verify accuracy.
+%% Plot injector and producer bottom hole pressure
+% The wells are rate controlled so that the bottom hole pressure is solved
+% in the implicit loop. We plot the bottom hole pressure for the injector
+% and producer to verify accuracy.
+
 figure(3)
 clf
 ecl = convertFrom(smry.get('PRODUCER', 'WBHP', ind), psia)';
@@ -195,7 +199,6 @@ plot(T,     convertTo(mrst, barsa),'-',  'Marker', '.', 'MarkerSize',16)
 plot(Tcomp, convertTo(ecl, barsa), '-r', 'Marker', '.', 'MarkerSize',16);
 set(gca,'Xlim', [2.8 3.2]);
 
-%% Plot Injector Bottom Hole Pressure
 figure(4)
 clf
 ecl = convertFrom(smry.get('INJECTOR', 'WBHP', ind), psia)';

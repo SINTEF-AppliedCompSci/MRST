@@ -40,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    % Get the equations given current states
-   [eqs, state, history] = eqsfiBlackOil(state0, state, dt, G, W, s, fluid, ...
+   [eqs, state, history] = eqsfiBlackOil(state0, state, dt, G, W, system, fluid, ...
        'stepOptions', system.stepOptions, 'history', meta.history, ...
        'iteration', meta.iteration);
 
@@ -94,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if system.nonlinear.linesearch
       stepOptions = system.stepOptions;
       stepOptions.solveWellEqs = false;
-      getEqs = @(state) eqsfiBlackOil(state0, state, dt, G, W, s, fluid, 'stepOptions', stepOptions, 'history', meta.history, 'resOnly', true);
+      getEqs = @(state) eqsfiBlackOil(state0, state, dt, G, W, system, fluid, 'stepOptions', stepOptions, 'history', meta.history, 'resOnly', true);
       upState = @(dx, explTrms) updateState(W, state, dx, fluid, system);
       [state, dx, searchfail] = linesearchADI(state, dx, system, getEqs, upState, true);
    end

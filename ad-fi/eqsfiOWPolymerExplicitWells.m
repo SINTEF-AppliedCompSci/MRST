@@ -1,4 +1,4 @@
-function [eqs, hst] = eqsfiOWPolymerExplicitWells(state0, state, dt, G, W, s, f, varargin)
+function [eqs, hst] = eqsfiOWPolymerExplicitWells(state0, state, dt, G, W, system, f, varargin)
 % Generate equations for a Oil-Water-Polymer system.
 
 opt = struct('Verbose'    , mrstVerbose, ...
@@ -18,6 +18,7 @@ else
 end
 
 hst = opt.history;
+s = system.s;
 
 % current variables: ------------------------------------------------------
 p     = state.pressure;
@@ -32,7 +33,7 @@ qOs  = vertcat(state.wellSol.qOs);
 % poly_num  = vertcat(state.wellSol.poly);
 % poly = poly_num;
 
-[wPoly, wciPoly] = getWellPolymer(W);
+wPoly = getWellPolymer(W);
 wPoly_num = wPoly;
 
 % previous variables ------------------------------------------------------
@@ -97,6 +98,9 @@ muWMult  = muWMult.*permRed;
 
 % polymer injection well:
 cw        = c(wc);
+inj   = vertcat(W.sign)==1;
+ind = rldecode((1 : nnz(inj)).', cellfun(@numel, {W(inj).cells}));
+wciPoly = wPoly(ind);
 cw(iInxW) = wciPoly;
 cbarw     = cw/f.cmax;
 % muWMultMax = a + (1-a)*cbarw;
@@ -233,16 +237,14 @@ end
 %--------------------------------------------------------------------------
 
 
-function [wPoly, wciPoly] = getWellPolymer(W)
+function wPoly = getWellPolymer(W)
     if isempty(W)
-        wciPoly = [];
         return
     end
     inj   = vertcat(W.sign)==1;
     polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
     wPoly = zeros(nnz(inj), 1);
     wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
 end
 
 

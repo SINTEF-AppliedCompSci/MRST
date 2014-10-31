@@ -1,13 +1,22 @@
+%% 2 phases system with polymer
+% In this example, we look at a 2 phases system with polymer. The polymer model uses the
+% <http://dx.doi.org/10.2118/3484-PA Todd-Longstaff mixing model> and also accounts for
+% dead pore space, adsorption and reduced permeability. All these properties are given in
+% the file |poly.inc| which follows Eclipse format. Polymer are used to increase the water
+% viscosity and establish a more favorable ratio between the oil and water mobilities.
+% This example contains a simple $31\times31\times3$ fine grid with two injectors in
+% opposite corners and one producer in the middle of the domain. All wells are completed
+% in the top layers of cells. We build up a polymer plug by first injecting water with
+% polymer (concentration $c=c_{max}$ and $c=\frac14c_{max}$ in the first and second
+% injection wells, respectively) and, then, water without polymer to maintain the pressure
+% gradient in the reservoir.
+
+
 %% Read case from file
-% This example contains a simple $31\times31\times3$ fine grid containing
-% two injectors in opposite corners and one producer in the middle of the
-% domain. All wells are completed in the top layers of cells.
 %
-% The schedule being used contains first a period of injection with
-% polymer, followed by a water flooding phase without polymer. Finally, the
-% water rate is reduced for the final time steps.
-%
-mrstModule add deckformat gridtools ad-fi
+
+% Required modules
+mrstModule add deckformat ad-fi
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'polymer.data');
@@ -23,11 +32,23 @@ rock  = compressRock(rock, G.cells.indexMap);
 
 fluid = initDeckADIFluid(deck);
 
-% Oil rel-perm from 2p OW system.
-% Needed by equation implementation function 'eqsfiOWExplictWells'.
-fluid.krO = fluid.krOW;
-
 gravity on
+
+
+%% Plot wells and permeability
+% 
+
+figure(1)
+clf;
+W = processWells(G, rock, deck.SCHEDULE.control(1));
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
+            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotWell(G, W);
+title('Permeability (mD)')
+axis tight;
+view(35, 40);
+colorbar('SouthOutside');
+
 
 %% Set up simulation parameters
 % We want a layer of oil on top of the reservoir and water on the bottom.
@@ -43,11 +64,11 @@ state0.s(ijk{3} == 2, 2) = .8;
 % Enforce s_w + s_o = 1;
 state0.s(:,1) = 1 - state0.s(:,2);
 
-% Add zero polymer concentration to the state.
+% Add zero polymer concentration to the initial state.
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = zeros(G.cells.num, 1);
-s = setupSimComp(G, rock, 'deck', deck);
 
+figure(2)
 clf
 plotCellData(G, state0.s(:,2));
 plotGrid(G, 'facec', 'none')
@@ -57,15 +78,19 @@ view(70, 30);
 colorbar;
 
 %% Plot polymer properties
-% When polymer is added to the water phase, the viscosity of the water
-% phase containing polymer is increased. Because mobility is defined as
-% $\lambda_w = \frac{K}{mu_w}$, this makes the water much less mobile. As a
-% problem with water injection with regards to oil production is that the
-% water is much more mobile than the hydrocarbons we are trying to
-% displace, injecting a polymer may be beneficial towards oil recovery.
+% When polymer is added to the water phase, the viscosity of the water phase containing
+% polymer is increased. Because mobility is defined as $\lambda_w = \frac{K}{mu_w}$, this
+% makes the water less mobile. Polymer is used in cases where the water is much more
+% mobile than the hydrocarbons we are trying to displace. The viscosity of the polymer
+% solution depends on the polymer concentration. In the fully mixed case (mixing parameter
+% $\omega=1$), then the effective water viscosity is given by
+% $\mu_{w,eff}(c)=\mu_w\mu_c(c)$ where $\mu_c$ is the viscosity multiplier and $\mu_w$
+% the water viscosity without polymer.
+figure(3)
+clf
 dc = 0:.1:fluid.cmax;
 plot(dc, fluid.muWMult(dc))
-title('muW Multiplier')
+title('viscosity multiplier $\mu_c$')
 xlabel('Polymer concentration')
 ylabel('kg/m^3')
 
@@ -87,6 +112,7 @@ systemOW.activeComponents      %# ok
 % Once a system has been created it is trivial to run the schedule. Any
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
+
 [wellSolsPolymer, statesPolymer] = ...
    runScheduleADI(state0, G, rock, systemPolymer, schedule);
 
@@ -94,18 +120,14 @@ systemOW.activeComponents      %# ok
    runScheduleADI(state0, G, rock, systemOW, schedule);
 
 %% Objective functions
-% Create objective functions for the different systems. We set up
-% approximate prices in USD for both the oil price and the injection cost
-% of the different phases. The polymer injection cost is per kg injected.
+% Create objective functions for the different systems. We set up approximate prices in
+% USD for both the oil price and the injection cost of the different phases. The polymer
+% injection cost is 0.1 dollar per kg injected.
+
 prices = {'OilPrice',            100  , ...
           'WaterProductionCost',   1  , ...
           'WaterInjectionCost',    0.1, ...
           'DiscountFactor',        0.1 };
-
-objectivePolymerAdjoint = ...
-   @(tstep) NPVOWPolymer(G, wellSolsPolymer, schedule, ...
-                         'ComputePartials', true, 'tStep', tstep, ...
-                         prices{:});
 
 % We first calculate the NPV of the pure oil/water solution.
 objectiveOW = NPVOW(G, wellSolsOW, schedule, prices{:});
@@ -119,23 +141,33 @@ objectiveCheapPolymer     = objectivePolymer( 1.0);
 objectiveRegularPolymer   = objectivePolymer( 5.0);
 objectiveExpensivePolymer = objectivePolymer(15.0);
 
+% We define the objective function for the adjoint computation by setting the option
+% 'computePartials' to true.
+objectivePolymerAdjoint = ...
+   @(tstep) NPVOWPolymer(G, wellSolsPolymer, schedule, ...
+                         'ComputePartials', true, 'tStep', tstep, ...
+                         prices{:}, 'PolymerInjectionCost', 5);
+
+
+
 %% Plot accumulated present value
-% In each time step the objective function is now the net present value of
-% the reservoir, i.e. the cost of doing that timestep. However, the most
-% interesting value is here the accumulated net present value, as it will
-% show us the profit for the lifetime of the reservoir. We plot the three
-% different polymer cost as well as the total profit without polymer
-% injection.
+% In each time step the objective function is now the net present value of the reservoir,
+% i.e. the cost of doing that timestep. However, the most interesting value is here the
+% accumulated net present value, as it will show us the profit for the lifetime of the
+% reservoir. We plot the three different polymer cost as well as the total profit without
+% polymer injection.
 %
-% While polymer injection is happening, the polymer value is lower than
-% without polymer as there is an increased cost. Once the polymer injection
-% phase is over, we reap the benefits and get an increased oil output
-% resulting in a bigger total value for the reservoir lifetime.
+% While polymer injection is happening, the value with polymer is lower because there is
+% an increased cost due to the polymer price. Once the polymer injection phase is over, we
+% reap the benefits and get an increased oil output resulting in a bigger total value for
+% the reservoir lifetime.
+
 cumt = cumsum(schedule.step.val);
 
 v = @(value) cumsum([value{:}]);
 
-
+figure(4)
+clf
 plot(convertTo(cumt, year), ...
      convertTo([v(objectiveOW)            ; ...
                 v(objectiveCheapPolymer)  ; ...
@@ -152,10 +184,11 @@ ylabel('Million USD')
 xlabel('Years')
 
 %% Compute gradient using the adjoint formulation
-% We pass a function handle to the polymer equations and calculate the
-% gradient with regards to our control variables. The control variables are
-% defined as the last two variables, i.e. well closure (rate/BHP) and
-% polymer injection rate.
+% We pass a function handle to the polymer equations and calculate the gradient with
+% regards to our control variables. The control variables are defined as the last two
+% variables, i.e. polymer injection concentration and well closure (in this case, all the
+% wells are controled by rate).
+
 ctrl = [6, 7];
 adjointGradient = ...
    runAdjointADI(G, rock, fluid, schedule, objectivePolymerAdjoint, ...
@@ -169,21 +202,42 @@ adjointGradient = ...
 % using some external algorithm we could optimize the polymer injection
 % rate with regards to the total reservoir value.
 
+figure(5)
 clf
 ng = numel(adjointGradient);
-for i = 1:ng
-    subplot(2,ng,i)
+for i = 1: ng
+    h = subplot('position', [(i-1)/ng, 0, 1/ng, 0.9]);
+    set(h, 'outerposition', [(i-1)/ng, 0, 1/ng, 0.9]);
     plot(adjointGradient{i}(1:2), '*');
-    title(['Polymer step ' num2str(i) ])
-    set(gca, 'xtick', [1;2], 'xlim', [0.5;2.5]);
-    axis 'auto y'
-    subplot(2,ng,i+3)
-    plot(adjointGradient{i}(3:end), '*'); axis tight
-    title(['Wells control step ' num2str(i) ])
-    set(gca, 'xtick', [1;2;3], 'xlim', [0.5; 3.5]);
-    axis 'auto y'
-    xlabel('Well #')
+    title(['step ' num2str(i) ]);
+    set(gca, 'xtick', [1; 2], 'xlim', [0.5; 2.5]);
+    xlabel('Injection well number');
+    ylabel('dollar/(polymer concentration)');
 end
+h = subplot('position', [0.5, 0.95, 0.01, 0.01]);
+set(h,'visible', 'off')
+text(0, 0, ['Gradient of total NPV with respect to polymer concentration injection at ' ...
+            '' ']each step'], 'fontsize', 14, 'horizontalalignment', 'center', 'fontweight', ...
+     'bold');
+
+figure(6)
+clf
+for i = 1: ng
+    h = subplot('position', [(i-1)/ng, 0, 1/ng, 0.9]);
+    set(h, 'outerposition', [(i-1)/ng, 0, 1/ng, 0.9]);
+    plot(adjointGradient{i}(3:end)*day, '*'); axis tight
+    title(['step ' num2str(i) ])
+    set(gca, 'xtick', [1; 2; 3], 'xlim', [0.5; 3.5]);
+    axis 'auto y'
+    ylabel('dollar/(m^3/day)')
+    xlabel('Well number')
+end
+h = subplot('position', [0.5, 0.95, 0.01, 0.01]);
+set(h,'visible', 'off')
+text(0, 0, ['Gradient of total NPV with respect to injection and production rates at ' ...
+            'each step'], 'fontsize', 14, 'horizontalalignment', 'center', 'fontweight', ...
+     'bold');
+
 
 %% Plot the schedule
 % We visualize the schedule and plot both the water, oil and polymer
@@ -192,14 +246,14 @@ end
 % with and without polymer injection in a single pie chart.
 
 W = processWells(G, rock, schedule.control(schedule.step.control(1)));
-figure;
+figure(7)
+clf
 view(10,65)
 
 [az, el] = deal(6, 60);
 
 nDigits = floor(log10(numel(statesPolymer) - 1)) + 1;
 
-%%
 for i = 1 : numel(statesPolymer) - 1,
     injp  = wellSolsPolymer{i}(3);
     injow = wellSolsOW{i}(3);
@@ -230,8 +284,10 @@ for i = 1 : numel(statesPolymer) - 1,
 end
 
 %% Plot the accumulated water and oil production for both cases
-% We concat the well solutions and plot the accumulated producer rates for
-% both the polymer and the non-polymer run. The result shows that
+% We concat the well solutions and plot the production rates for
+% both the polymer and the non-polymer run. 
+
+figure(8)
 clf;
 wspoly = vertcat(wellSolsPolymer{:});
 wsow = vertcat(wellSolsOW{:});
@@ -240,11 +296,16 @@ data = -([ [wsow(:,3).qWs]   ; ...
            [wspoly(:,3).qWs] ; ...
            [wsow(:,3).qOs]   ; ...
            [wspoly(:,3).qOs] ] .');
-data = bsxfun(@times, data, schedule.step.val);
 
-plot(convertTo(cumt, year), convertTo(data, stb));
+% We process the values to do bar plots.
+cumtbar = cumt(1 : end - 1);
+cumtbar = rldecode(cumtbar, 2*ones(numel(cumtbar), 1));
+cumtbar = [0;  cumtbar; cumt(end)];
+databar = rldecode(data, 2*ones(size(data, 1), 1));
+
+plot(convertTo(cumtbar, year), convertTo(databar, stb));
 legend('Water without polymer', 'Water with polymer', ...
        'Oil without polymer', 'Oil with polymer', 2)
-
+title('Production rates')
 ylabel('stb')
 xlabel('Years')

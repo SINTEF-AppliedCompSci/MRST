@@ -1,4 +1,4 @@
-function [eqs, state, hst] = eqsfiOWT(state0, state, dt, G, W, s, f, varargin)
+function [eqs, state, hst] = eqsfiOWT(state0, state, dt, G, W, system, f, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -19,6 +19,7 @@ else
 end
 
 hst = opt.history;
+s = system.s;
 
 % current variables: ------------------------------------------------------
 p    = state.pressure;

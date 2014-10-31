@@ -34,36 +34,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       meta.history = [];
    end
 
-   if ~isfield(meta, 'gmresflag')
-      meta.gmresflag = 0;
-      meta.gmresits = [0 0];
-   end
-
    % Get the equations given current states
-   [eqs, state] = eqsfiVO(state0, state, dt, G, W, s, fluid, system, ...
+   [eqs, state] = eqsfiVO(state0, state, dt, G, W, system, fluid, ...
                 'stepOptions', system.stepOptions, ...
                 'iteration', meta.iteration);
 
-   [meta, residuals] = getResiduals(meta, eqs, system, meta.gmresflag);
+   [meta, residuals] = getResiduals(meta, eqs, system, meta.linsolver_diverged);
 
    % Check convergence
    [converged, CNV, MB] = getConvergence(state, eqs, fluid, system, dt);
    %  add well convergence: qWs, qOs, qGs order of flow
    wellConverged = and(all(residuals(4:6)<1/day), residuals(7)<1*barsa );
+
    if ~system.nonlinear.use_ecltol
        % Override ecl convergence, but keep CNV/MB numbers for printout
        converged = all(residuals <= system.nonlinear.tol);
    end
-   if meta.iteration == 1, converged = false;end
-   meta.converged = converged&&wellConverged;
 
-   if opt.Verbose
-      eqnnames = {'Oil', 'Water', 'Gas', 'qWs', 'qOs', 'qGs', 'control'};
-      printResidual(residuals, meta.gmresits, eqnnames, meta.iteration, CNV, MB);
+   if meta.iteration == 1
+      converged = false;
    end
-
-   if meta.converged
-       return
+   
+   converged = converged && wellConverged;
+   
+   if converged
+      meta.converged = converged;
+      return
    end
 
 
@@ -85,44 +81,50 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
       sc = [1./bO, 1./bW, 1./bG];
       %sc = [1./bO-rs./bG, 1./bW, 1./bG];
-      [dx, gmresits, gmresflag] = ...
-         cprGeneric(eqs, system,                                      ...
-                    'ellipSolve', system.nonlinear.cprEllipticSolver, ...
-                    'cprType',    system.nonlinear.cprType,           ...
-                    'relTol',     system.nonlinear.cprRelTol,         ...
-                    'eqScale',       sc);
+      [dx, gmresits, linsolver_diverged] = cprGeneric(eqs, system, 'ellipSolve', ...
+                                                      system.nonlinear.cprEllipticSolver, 'cprType', ...
+                                                      system.nonlinear.cprType, 'relTol', ...
+                                                      system.nonlinear.cprRelTol, 'eqScale', ...
+                                                      sc);
    else
-      dx = SolveEqsADI(eqs, system.podbasis);
+      [dx, linsolver_diverged] = SolveEqsADI(eqs, system.podbasis);
       gmresits = [0 0];
-      gmresflag = 0;
    end
+
    meta.gmresits = gmresits;
+   meta.linsolver_diverged = linsolver_diverged;
+   
+   if ~linsolver_diverged
+      searchfail = true;
+      if system.nonlinear.linesearch
+         stepOptions = system.stepOptions;
+         stepOptions.solveWellEqs = false;
+         getEqs = @(state) eqsfiBlackOil(state0, state, dt, G, W, system, fluid, 'stepOptions', stepOptions, 'history', meta.history, 'resOnly', true);
+         upState = @(dx, explTrms) updateState(W, state, dx, fluid, system);
+         [state, dx, searchfail] = linesearchADI(state, dx, system, getEqs, upState, true);
+      end
 
-   %
-   searchfail = true;
-   if system.nonlinear.linesearch
-      stepOptions = system.stepOptions;
-      stepOptions.solveWellEqs = false;
-      getEqs = @(state) eqsfiBlackOil(state0, state, dt, G, W, s, fluid, 'stepOptions', stepOptions, 'history', meta.history, 'resOnly', true);
-      upState = @(dx, explTrms) updateState(W, state, dx, fluid, system);
-      [state, dx, searchfail] = linesearchADI(state, dx, system, getEqs, upState, true);
+      % Update reservoir conditions once a delta has been found.
+      if searchfail
+         dispif(mrstVerbose && system.nonlinear.linesearch, 'Linesearch failed!\n')
+         [dx, meta] = stabilizeNewton(dx, meta, system);
+         % If the line search failed, uncritically accept the first step and
+         % pray the other measures (relaxation / dampening) handle the error.
+         state = updateStateVO(W, state, dx, fluid, system);
+      end
+   else
+      meta.linsolver_diverged = linsolver_diverged;
+      converged = false;
    end
 
-   % Update reservoir conditions once a delta has been found.
-   if searchfail
-      dispif(mrstVerbose && system.nonlinear.linesearch, 'Linesearch failed!\n')
-      [dx, meta] = stabilizeNewton(dx, meta, system);
-      % If the line search failed, uncritically accept the first step and
-      % pray the other measures (relaxation / dampening) handle the error.
-      state = updateStateVO(W, state, dx, fluid, system);
+   if opt.Verbose
+      eqnnames = {'Oil', 'Water', 'Gas', 'qWs', 'qOs', 'qGs', 'control'};
+      printResidual(residuals, meta.gmresits, eqnnames, meta.iteration, CNV, MB);
    end
-
-
-
-
-   meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~converged;
-%   meta.history = history;
-   meta.gmresflag = gmresflag;
+      
+   meta.converged = converged;
+   meta.stopped = ((meta.iteration == system.nonlinear.maxIterations) && ~converged) | ...
+       linsolver_diverged;
 end
 
 
