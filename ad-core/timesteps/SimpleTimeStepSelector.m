@@ -68,8 +68,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Same as firstRampupStep, but interpreted in a relative fashion
         % (i.e. if timestep is 5*days, the ramp up step will then be
         % 5*days*firstRampupStepRelative.
-        
         firstRampupStepRelative
+        
         % Ensure that dt_next < dt_suggested*maxRelativeAdjustment
         maxRelativeAdjustment
         % Ensure that dt_next > dt_suggested*minRelativeAdjustment
