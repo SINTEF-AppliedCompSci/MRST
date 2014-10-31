@@ -389,7 +389,7 @@ function [tit, d, yl] = getWellUnit(d, fld, usys)
                 d = convertTo(d, barsa);
             end
         case 'gor'
-            tit = [fld, ': Gas/oil rate at surface conditions'];
+            tit = [fld, ': Gas/oil ratio at surface conditions'];
         case {'ocut', 'wcut', 'gcut'}
             switch lower(fld(1))
                 case 'o'
