@@ -112,7 +112,7 @@ classdef TestSimulateScheduleAD < matlab.unittest.TestCase
             
             sel = {ts};
             
-            sel = {sel{:}, GustafssonLikeStepSelector('targetIterationCount', 3, ...
+            sel = {sel{:}, IterationCountTimeStepSelector('targetIterationCount', 3, ...
                                                       opt{:})};
             
             mrstVerbose on
