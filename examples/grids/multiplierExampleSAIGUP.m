@@ -309,11 +309,11 @@ xtpf = initState(G, Wtpf, 100*barsa, [0, 1]);
 
 %% Solve flow problems with and without multiplier effects
 % Mimetic discretisation *without* multipliers.
-x0    = solveIncompFlow(xi  , G, S0    , fluid, 'Wells', W);
+x0    = incompMimetic  (xi  , G, S0    , fluid, 'Wells', W);
 
 %%
 % Mimetic discretisation *with* multipliers.
-x1    = solveIncompFlow(xi  , G, S1    , fluid, 'Wells', W);
+x1    = incompMimetic  (xi  , G, S1    , fluid, 'Wells', W);
 
 %%
 % Solve the system using TPFA *without* multipliers.
