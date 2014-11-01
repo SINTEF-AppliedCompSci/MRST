@@ -66,6 +66,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Names of primary variables interpreted as saturations, i.e. so
         % that they will sum to one when updated.
         saturationVarNames
+        % Names of components
+        componentVarNames
         % Names of well fields that may be updated by the model.
         wellVarNames
         
@@ -112,6 +114,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             model.toleranceWellRate = 1/day;
             
             model.saturationVarNames = {'sw', 'so', 'sg'};
+            model.componentVarNames  = {};
             model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
             
             model.extraStateOutput = false;
@@ -399,8 +402,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             b = {double(bW), double(bO), double(bG)};
             state = model.setPhaseData(state, b, 'bfactor');
         end
+        
         function i = satVarIndex(model, name)
             i = find(strcmpi(model.saturationVarNames, name));
+        end
+        
+        function i = compVarIndex(model, name)
+            i = find(strcmpi(model.componentVarNames, name));
         end
         
         function varargout = evaluteRelPerm(model, sat, varargin)
