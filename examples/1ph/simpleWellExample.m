@@ -51,6 +51,7 @@ T = computeTrans(G, rock, 'Verbose', true);
 cellsWell1 =  1 : nx*ny : nx*ny*nz;
 radius     = .1;
 W = addWell([], G, rock, cellsWell1, 'Type', 'rate', ...
+            'InnerProduct', 'ip_tpf', ...
             'Val', 1.0/day(), 'Radius', radius, 'name', 'I');
 disp('Well #1: '); display(W(1));
 
@@ -63,6 +64,7 @@ disp('Well #1: '); display(W(1));
 %
 cellsWell2 = nx : ny : nx*ny;
 W = addWell(W, G, rock, cellsWell2, 'Type', 'bhp', ...
+            'InnerProduct', 'ip_tpf', ...
             'Val', 1.0e5, 'Radius', radius, 'Dir', 'y', 'name', 'P');
 disp('Well #2: '); display(W(2));
 
