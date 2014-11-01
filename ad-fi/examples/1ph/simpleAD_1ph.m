@@ -3,6 +3,11 @@
 % simulation with a single horizontal well using the automatic
 % differentiation framework.
 
+
+%% Setup grid
+%
+
+% required modules
 require ad-fi
 
 % Setup 10x10x10 grid of 200x200x50 m model.
@@ -10,6 +15,9 @@ nx = 10;    ny = 10;    nz = 10;
 Dx = 200;   Dy = 200;   Dz = 50;
 G = cartGrid([nx, ny, nz], [Dx, Dy, Dz]);
 G = computeGeometry(G);
+
+%% Setup rock properties
+%
 
 % Assume homogeneous/isotropic rock.
 permX = 30*milli*darcy;
@@ -20,7 +28,7 @@ rock.poro = repmat(poro , [G.cells.num, 1]);
 % Set rock compressibility:
 cr = 1e-6/barsa;
 
-%% Rock properties
+%%
 % In the case of non-zero rock-compressiblity cr, the input rock porosity
 % is taken as reference at a given reference pressure p_r. The grid pore
 % volume (pv) becomes a function of pressure given by the differential
@@ -30,13 +38,16 @@ cr = 1e-6/barsa;
 %                 pv(p) = pv_r e^( cr(p-p_r) )
 % in which pv_r is the reference pore volume (rock.poro x volume) and p_r
 % is the reference pressure. We assume the reference pressure is 200 Bar:
+
 pv_r = poreVolume(G, rock);
 p_r  = 200*barsa;
+
 % Finally, the pressure-dependent function for pore-volumes becomes:
+
 pv   = @(p) pv_r .* exp( cr .* (p - p_r) );
 
 %% Fluid (oil) properties
-% Assume constant viscosity:
+% We Assume constant viscosity:
 mu   = 5*centi*poise;
 % Assume that the oil compressibility can be approximated as constant in
 % the reservoir:
@@ -59,6 +70,8 @@ rho   = @(p) rho_r .* exp( c .* (p - p_r) );
 rhoS = 750*kilogram/meter^3;
 
 %% Single horizontal well in J direction
+% We consider a well with 8 connections in the J direction. 
+
 W = [];
 nperf = 8;
 I = repmat(2, [nperf, 1]);
@@ -71,12 +84,15 @@ cellInx = sub2ind(G.cartDims, I, J, K);
 W = addWell(W, G, rock, cellInx, 'Name', 'producer');
 
 % Plotting
-f = [ figure(1), figure(2) ];
+f = [figure(1), figure(2)];
 set(0, 'CurrentFigure', f(1));
 clf
 plotGrid(G, 'FaceColor', 'g', 'FaceAlpha', .3, 'EdgeColor', 'w');
 plotWell(G, W);
-axis off, set(f(1), 'Color', 'w'), camproj perspective, view(3)
+axis off;
+set(f(1), 'Color', 'w'); 
+camproj perspective;
+view(3);
 
 %% Initial conditions
 % We assume that the reservoir is initially at equilibrium. This means that
@@ -85,6 +101,7 @@ axis off, set(f(1), 'Color', 'w'), camproj perspective, view(3)
 % where g is the gavitational accelleration. This relation can be solved
 % analytically for p, but alternatively one can solve the above ODE with
 % 'initial condtition' p(z_0) = p_r:
+
 gravity reset on
 g = norm(gravity);
 [z_0, z_max] = deal(0, max(G.cells.centroids(:,3)) + 5);
@@ -106,7 +123,7 @@ cf = G.cells.faces(:,1);
 nf = G.faces.num;
 T  = 1 ./ accumarray(cf, 1 ./ hT, [nf, 1]);
 T  = T(intInx);
-% In setting up the equations, we need descrete forms of the divergence and
+% In setting up the equations, we need discrete forms of the divergence and
 % gradient operators, and we represent these as multiplication by sparse
 % matrices. In particular, we construct the 'gradient matrix' C as folows:
 n = size(N,1);
@@ -145,10 +162,13 @@ wellRates = ...
 pIx = 1:G.cells.num; bhpIx = G.cells.num + 1; qSIx = G.cells.num + 2;
 
 %% Set up simulation parameters
+%
+
 numSteps = 52;
 totTime  = 365*day;
 dt       = totTime / numSteps;
-tol      = 1e-5;
+% Tolerance and maximum number of iterations for the Newton solver.
+tol      = 1e-5; 
 maxits   = 10;
 
 % Save output in array 'sol'
@@ -161,18 +181,28 @@ sol(1).bhp      = double(bhp_ad);
 sol(1).qS       = double(qS_ad);
 
 % Set up plot
-set(0, 'CurrentFigure', f(2)), clf, set(f(2), 'Color', 'w')
+set(0, 'CurrentFigure', f(2));
+clf
+set(f(2), 'Color', 'w')
 subplot(2,1,1),
-    plotCellData(G, convertTo(p_init, barsa));
-    title('pressure [bar]', 'EdgeColor', 'w');
-    colorbar, view(3), camproj perspective
+plotCellData(G, convertTo(p_init, barsa));
+title('pressure [bar]', 'EdgeColor', 'w');
+colorbar; view(3);
+camproj perspective
 
 subplot(2,1,2);
-   axis([0, convertTo(totTime,day), 0, 300]);
-   title('Surface volume rate [m^3/day]'); hold on
+axis([0, convertTo(totTime,day), 0, 300]);
+title('Surface volume rate [m^3/day]'); 
+hold on
+
 
 %% Main simulation
-t = 0; step = 0;
+% We solve the equations implicitely. At each time step, the equations are assembled and
+% the automatic differentiation framework takes care automatically of the computation of
+% the Jacobian.
+
+t = 0; 
+step = 0;
 nDigits = floor(log10(maxits)) + 1;
 while t < totTime,
     t = t + dt;
@@ -225,8 +255,7 @@ while t < totTime,
         % Plot evolution
         set(0, 'CurrentFigure', f(2));
         subplot(2,1,1), cla, caxis([120, 205])
-        plotCellData(G, convertTo(sol(step+1).pressure, barsa), ...
-                     'EdgeColor', 'w');
+        plotCellData(G, convertTo(sol(step+1).pressure, barsa), 'EdgeColor', 'w');
 
         subplot(2,1,2)
         plot(convertTo(sol(step+1).time, day), ...

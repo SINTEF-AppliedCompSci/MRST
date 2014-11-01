@@ -5,7 +5,9 @@ numVars = cellfun(@numval, eqs)';
 cumVars = cumsum(numVars);
 ii = [[1;cumVars(1:end-1)+1], cumVars];
 
-if iscell(objk), objk = objk{:};end
+if iscell(objk)
+   objk = objk{:};
+end
 objk = cat(objk);
 
 % Above CAT means '.jac' is a single element cell array.  Extract contents.

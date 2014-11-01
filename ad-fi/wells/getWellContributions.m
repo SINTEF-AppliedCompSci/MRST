@@ -40,7 +40,8 @@ opt = struct('model',                   []      ,...
              'iteration',               -1      ,...
              'allowControlSwitching',   true    ,...
              'allowWellSignChange',     false   ,...
-             'allowCrossFlow',          true);
+             'allowCrossFlow',          true    ,...
+             'Verbose',                 mrstVerbose);
 opt = merge_options(opt, varargin{:});
 
 % If model is not given, decide based on input (this is a temporary
@@ -70,8 +71,8 @@ end
 
 %--------------------------------------------------------------------------
 % Check and switch control limits if allowed
-if opt.allowControlSwitching
-    [sol, withinLims] = updateControls(W, sol, pBH, q_s, model, opt.allowWellSignChange);
+if opt.allowControlSwitching 
+    [sol, withinLims] = updateControls(W, sol, pBH, q_s, model);
     [pBH, q_s] = updateVars(pBH, q_s, sol, W, withinLims);
 end
 
