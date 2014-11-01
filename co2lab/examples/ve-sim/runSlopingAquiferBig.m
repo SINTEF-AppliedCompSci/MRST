@@ -60,7 +60,8 @@ wellIx = [G.cartDims(1:2)/5, G.cartDims([3 3])];
 rate   = 2.8e4*meter^3/day;
 W      = verticalWell([], G, rock, wellIx(1), wellIx(2), ...
                       wellIx(3):wellIx(4), 'Type', 'rate', 'Val', rate, ...
-                      'Radius', 0.1, 'comp_i', [1,0], 'name', 'I');
+                      'Radius', 0.1, 'comp_i', [1,0], 'name', 'I', ...
+                      'InnerProduct', 'ip_simple');
 
 % Well in 2D model
 WVE = convertwellsVE(W, G, Gt, rock2D);
