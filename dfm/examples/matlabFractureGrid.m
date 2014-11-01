@@ -164,8 +164,8 @@ wellRate = 1;
 injInd = delTri.pointLocation(3, 1);
 prodInd = delTri.pointLocation(16, 17);
 
-W = addWell([],G,rock,injInd,'type','rate','val',wellRate,'comp_i',[1 0]);
-W = addWell(W,G,rock,prodInd,'type','rate','val',-wellRate,'comp_i',[0 1]);
+W = addWell([],G,rock,injInd,'type','rate','val',wellRate,'comp_i',[1 0],'InnerProduct','ip_simple');
+W = addWell(W,G,rock,prodInd,'type','rate','val',-wellRate,'comp_i',[0 1],'InnerProduct','ip_simple');
 
 state = initState(G,W,0,[0 1]);
 
