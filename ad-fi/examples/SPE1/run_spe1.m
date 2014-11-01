@@ -14,7 +14,11 @@
 % The input files follow Eclipse format. MRST contains a dedicated module
 % which can handle standard Eclipse keywords.
 
-require ad-fi deckformat mrst-gui
+try
+   require ad-fi ad-core deckformat mrst-gui
+catch
+   mrstModule add ad-fi ad-core deckformat mrst-gui
+end
 
 % Read and process file.
 current_dir = fileparts(mfilename('fullpath'));

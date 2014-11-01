@@ -4,9 +4,9 @@
 % SPE Reservoir Simulation Symposium,  12-15 February 1995, San Antonio,
 % Texas. SPE 29110-MS, doi: 10.2118/29110-MS
 try
-   require ad-fi deckformat mrst-gui
+   require ad-fi ad-core deckformat mrst-gui
 catch %#ok<CTCH>
-   mrstModule add ad-fi deckformat mrst-gui
+   mrstModule add ad-fi ad-core deckformat mrst-gui
 end
 
 mrstVerbose true

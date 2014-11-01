@@ -16,9 +16,9 @@
 % which can handle standard Eclipse keywords.
 
 try
-   require ad-fi deckformat
+   require ad-fi ad-core deckformat
 catch
-   mrstModule add ad-fi deckformat
+   mrstModule add ad-fi ad-core deckformat
 end
 
 % Read and process file.
