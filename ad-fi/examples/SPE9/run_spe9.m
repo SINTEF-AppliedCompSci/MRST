@@ -16,9 +16,10 @@ mrstVerbose true
 % injection problem in a highly heterogenous reservoir. There is one
 % injector and 25 producers. The problem is set up to be solved using a
 % black-oil model. The data set we provide is a modified version of input
-% files belonging to the <http://www.ntnu.edu/studies/courses/TPG4535 course
-% in reservoir engineering and petrophysics> at NTNU (Trondheim, Norway) and
-% available at % <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
+% files belonging to the <http://www.ntnu.edu/studies/courses/TPG4535
+% course in reservoir engineering and petrophysics> at NTNU (Trondheim,
+% Norway) and available at
+% <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
 
 %% Read input files
 current_dir = fileparts(mfilename('fullpath'));
@@ -43,24 +44,23 @@ s0  = [sw0, 1-sw0-sg0, sg0];
 rs0 = deck.SOLUTION.RS;
 rv0 = 0;
 
-state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);   clear k p0 s0 rs0
+state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
+clear k p0 s0 rs0
 
 %% Plot well and permeability
-% To appreciate the heterogeneity of the reservoir, toggle the log button in
-% the toolbar in the figure.
-%
+% To appreciate the heterogeneity of the reservoir, toggle the log button
+% in the toolbar in the figure.
 
 figure(1)
-clf;
+clf
 W = processWells(G, rock, deck.SCHEDULE.control(1));
-plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
-            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
+            'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
 plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
 title('Permeability (mD)')
 axis tight;
 view(35, 40);
 colorbar('SouthOutside');
-
 
 %% Set up the schedule
 % There are three control periods and the controls change after 300 and 360
@@ -87,22 +87,27 @@ system.nonlinear.cprRelTol = 1e-3;
 
 %% Plot reservoir and wells
 figure, 
-plotCellData(G,log10(convertTo(rock.perm(:,1),milli*darcy))); view(3); 
+plotCellData(G, log10(convertTo(rock.perm(:,1), milli*darcy))); view(3)
 h = colorbar('horiz');
-set(h,'XTickLabel', num2str(10.^(get(h,'XTick')')), ...
-   'YTick', .5, 'YTickLabel','[mD]','Position',[.13 .05 .77 .03]);
+set(h, 'XTickLabel', num2str(10 .^ (get(h, 'XTick') .')), ...
+    'YTick', 0.5, 'YTickLabel', '[mD]', ...
+    'Position', [0.13, 0.05, 0.77, 0.03]);
 
 W = processWellsLocal(G,rock, schedule.control(1));
-W(1).name='I'; for i=2:numel(W); W(i).name=['I',num2str(i-1)]; end
+nm = [ { 'I' }, ...
+       arrayfun(@(w) sprintf('P-%02d', w - 1), 2 : numel(W), ...
+                'UniformOutput', false) ];
+[ W.name ] = nm{:}; clear nm
 
-plotWell(G, W(1),    'color','b','linewidth',3,'fontsize',14);
-plotWell(G, W(2:end),'color','k','linewidth',3,'fontsize',14);
+plotWell(G, W(1),    'color', 'b', 'LineWidth', 3, 'FontSize', 14);
+plotWell(G, W(2:end),'color', 'k', 'LineWidth', 3, 'FontSize', 14);
 axis tight, view(40,55);
 
 %% Run schedule
 % We use the fully implicit solver
 timer = tic;
-[wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
+[wellSols, states, iter] = ...
+   runScheduleADI(state, G, rock, system, schedule);
 toc(timer)
 
 %% Plot solutions
@@ -113,17 +118,17 @@ figure(1)
 clf
 view(35, 40);
 for i = 2:numel(states)
-    [az, el] = view();
-    clf;
-    plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
-    plotCellData(G, states{i}.s(:,2));
-    time = sum(schedule.step.val(1:i-1));
-    title(['Oil saturation. Step ' num2str(i) ' (' formatTimeRange(time) ')'])
-    axis tight off
-    view(az, el);
-    pause(0.1)
+   [az, el] = view();
+   clf
+   plotWell(G, W, 'FontSize', 10, 'LineWidth', 1);
+   plotCellData(G, states{i}.s(:,2));
+   time = sum(schedule.step.val(1:i-1));
+   title(['Oil saturation. Step ', num2str(i), ...
+          ' (', formatTimeRange(time) ')'])
+   axis tight off
+   view(az, el);
+   pause(0.1)
 end
-
 
 %% Plot of the production and injection rates.
 % We observe that the rates are not constant in the control periods given
@@ -156,5 +161,7 @@ end
 set(gcf, 'position', [100, 100, 1500, 1000])
 
 figure(4)
-plot(T, convertTo(qGs(:, prdInx), meter^3/day, '-*')
-xlabel('Time [days]'), title('Gas production rates [m^3/day]')
+plot(T, convertTo(qGs(:, prdInx), 1e3*meter^3/day), '-*')
+xlabel('Time [days]'), title('Gas production rates [10^3 m^3/day]')
+a = axis; axis([a(1:2), -15, a(4)])
+line(a(1:2), [0, 0], 'Color', 'k', 'LineStyle', '--', 'LineWidth', 1)

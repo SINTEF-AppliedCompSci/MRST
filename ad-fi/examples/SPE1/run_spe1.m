@@ -5,9 +5,9 @@
 % injector. It is set up to be solved using a black-oil model. The data set
 % we provide is a modified version of input files belonging to the
 % <http://www.ntnu.edu/studies/courses/TPG4535 course in reservoir
-% engineering and petrophysics> at NTNU (Trondheim, Norway) and available at
-% <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>. The
-% results are compared to the output from a major commercial reservoir
+% engineering and petrophysics> at NTNU (Trondheim, Norway) and available
+% at <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
+% The results are compared to the output from a major commercial reservoir
 % simulator (Eclipse 100).
 
 %% Read input files
@@ -35,7 +35,8 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
-% Create a special ADI fluid which can produce differentiated fluid properties.
+% Create a special ADI fluid which can produce differentiated fluid
+% properties.
 fluid = initDeckADIFluid(deck);
 
 % The case includes gravity
@@ -47,7 +48,7 @@ gravity on
 % gas (Sg=0.0) and a constant dissolved gas/oil ratio (|Rs|) throughout the
 % model. The pressure and Rs values are derived through external means.
 
-[k, k, k] = gridLogicalIndices(G);
+[k, k, k] = gridLogicalIndices(G); %#ok<ASGLU>
 
 p0    = [ 329.7832774859256 ; ...  % Top layer
           330.2313357125603 ; ...  % Middle layer
@@ -73,15 +74,15 @@ clear k p0 s0 rs0;
 % the other MRST solvers.
 
 figure(1)
-clf;
+clf
 W = processWells(G, rock, deck.SCHEDULE.control(1));
-plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
-             'EdgeAlpha', .3, 'EdgeColor', 'k');
-plotWell(G, W);
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
+             'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
+plotWell(G, W)
 title('Permeability (mD)')
-axis tight;
-view(35, 40);
-colorbar('SouthOutside');
+axis tight
+view(35, 40)
+colorbar('SouthOutside')
 
 %% Initialize schedule and system before solving for all timesteps
 % We extract the schedule from the read deck and create a ADI system for our
@@ -101,7 +102,8 @@ colorbar('SouthOutside');
 schedule = deck.SCHEDULE;
 system = initADISystem(deck, G, rock, fluid, 'cpr', false);
 timer = tic;
-[wellSols states iter] = runScheduleADI(state, G, rock, system, schedule);
+[wellSols, states, iter] = ...
+   runScheduleADI(state, G, rock, system, schedule);
 toc(timer)
 
 %% Plot the solution
@@ -116,28 +118,31 @@ useVolume  = ~oglcapable.Software;
 figure(2)
 view(35, 40);
 for i = 2:numel(states)
-    [az el] = view();
-    clf;
+    [az, el] = view();
+    clf
 
     % Plot the wells
     plotWell(G, W);
     if useVolume
         % Plot the grid as a transparent box colorized by the permeability
         plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
-                           'FaceAlpha', .2, 'EdgeAlpha', .1, 'EdgeColor', 'k');
+                     'FaceAlpha', 0.2, 'EdgeAlpha', 0.1, 'EdgeColor', 'k');
 
         % Create isosurfaces based on the gas saturation
-        plotGridVolumes(G, states{i}.s(:,3), 'N', 100, 'extrudefaces', false)
+        plotGridVolumes(G, states{i}.s(:,3), 'N', 100, ...
+                        'extrudefaces', false)
     else
-        plotCellData(G, states{i}.s(:,3),'EdgeColor',[.1 .1 .1],'LineWidth',.1);
+        plotCellData(G, states{i}.s(:,3), ...
+                     'EdgeColor', [0.1, 0.1, 0.1], 'LineWidth', 0.1);
     end
+
     time = sum(schedule.step.val(1:i-1));
-    title(['Step ' num2str(i) ' (' formatTimeRange(time) ')'])
+    title(['Step ', num2str(i), ' (', formatTimeRange(time), ')'])
     axis tight off
     view(az, el);
-    pause(.1)
-
+    pause(0.1)
 end
+
 %% Set up plotting
 % Load summary from binary file and find indices of the producer and injector.
 
@@ -167,19 +172,19 @@ T = convertTo(cumsum(schedule.step.val), year);
 figure(2)
 clf
 ecl = convertFrom(smry.get('PRODUCER', 'WGOR', ind), 1000*ft^3/stb)';
-mrst = qGs(:,prod)./qOs(:,prod);
+mrst = qGs(:,prod) ./ qOs(:,prod);
 
-hold on, set(gca,'FontSize',14);
-plot(T, mrst, '-','LineWidth',2)
-plot(Tcomp, ecl, '-r','LineWidth',2);
-legend({'MRST', 'Eclipse'},4)
-xlabel('Years')
+hold on, set(gca, 'FontSize', 14);
+plot(T, mrst, '-','LineWidth', 2)
+plot(Tcomp, ecl, '-r', 'LineWidth', 2);
+legend('MRST', 'Eclipse', 4)
+xlabel('Time [Years]')
 title('Gas rate / Oil rate')
-axes('position',[.21 .58 .35 .31]);
+axes('position', [0.21, 0.58, 0.35, 0.31]);
 hold on
-plot(T,     mrst, '-', 'Marker', '.', 'MarkerSize',16)
-plot(Tcomp, ecl,  '-r','Marker', '.', 'MarkerSize',16);
-set(gca,'Xlim', [0 0.5]);
+plot(T,     mrst, '-', 'Marker', '.', 'MarkerSize', 16)
+plot(Tcomp, ecl,  '-r','Marker', '.', 'MarkerSize', 16);
+set(gca, 'Xlim', [0, 0.5]);
 
 %% Plot injector and producer bottom hole pressure
 % The wells are rate controlled so that the bottom hole pressure is solved
@@ -190,32 +195,32 @@ figure(3)
 clf
 ecl = convertFrom(smry.get('PRODUCER', 'WBHP', ind), psia)';
 mrst = bhp(:,prod);
-hold on, set(gca,'FontSize',14);
-plot(T,     convertTo(mrst, barsa),'-',  'LineWidth',2)
+hold on, set(gca, 'FontSize', 14);
+plot(T,     convertTo(mrst, barsa),'-',  'LineWidth', 2)
 plot(Tcomp, convertTo(ecl, barsa), '-r', 'LineWidth', 2);
-legend({'MRST', 'Eclipse'},4)
-xlabel('Years')
+legend('MRST', 'Eclipse', 4)
+xlabel('Time [Years]')
 ylabel('bar')
 title('Bottom hole pressure (Producer)')
-axes('position',[.21 .6 .35 .31]);
+axes('position', [0.21, 0.6, 0.35, 0.31]);
 hold on
-plot(T,     convertTo(mrst, barsa),'-',  'Marker', '.', 'MarkerSize',16)
-plot(Tcomp, convertTo(ecl, barsa), '-r', 'Marker', '.', 'MarkerSize',16);
-set(gca,'Xlim', [2.8 3.2]);
+plot(T,     convertTo(mrst, barsa),'-',  'Marker', '.', 'MarkerSize', 16)
+plot(Tcomp, convertTo(ecl, barsa), '-r', 'Marker', '.', 'MarkerSize', 16);
+set(gca, 'Xlim', [2.8, 3.2]);
 
 figure(4)
 clf
 ecl = convertFrom(smry.get('INJECTOR', 'WBHP', ind), psia)';
 mrst = bhp(:,inj);
-hold on, set(gca,'FontSize',14);
-plot(T,     convertTo(mrst, barsa),'-',  'LineWidth',2)
+hold on, set(gca,'FontSize', 14);
+plot(T,     convertTo(mrst, barsa),'-',  'LineWidth', 2)
 plot(Tcomp, convertTo(ecl, barsa), '-r', 'LineWidth', 2);
 legend({'MRST', 'Eclipse'},4)
-xlabel('Years')
+xlabel('Time [Years]')
 ylabel('bar')
 title('Bottom hole pressure (Injector)')
-axes('position',[.21 .6 .35 .31]);
+axes('position', [0.21, 0.6, 0.35, 0.31]);
 hold on
-plot(T,     convertTo(mrst, barsa),'-',  'Marker', '.', 'MarkerSize',16)
-plot(Tcomp, convertTo(ecl, barsa), '-r', 'Marker', '.', 'MarkerSize',16);
-set(gca,'Xlim', [.1 0.6]);
+plot(T,     convertTo(mrst, barsa),'-',  'Marker', '.', 'MarkerSize', 16)
+plot(Tcomp, convertTo(ecl, barsa), '-r', 'Marker', '.', 'MarkerSize', 16);
+set(gca, 'Xlim', [0.1, 0.6]);

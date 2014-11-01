@@ -14,71 +14,71 @@ end
 s = RandStream('mcg16807', 'Seed', 0);
 try
    s0 = RandStream.setGlobalStream(s);
-catch  %#ok
+catch %#ok
    s0 = RandStream.setDefaultStream(s);  %#ok Backwards compatibility
 end
 
 %%
-% We set up a training simulation and an actual problem. The training
-% simulation has the same well and grid setup, but the BHP of the
-% producers varies in the different simulations.
+% We set up a training simulation and an actual problem.  The training
+% simulation has the same well and grid setup, but the BHP of the producers
+% varies in the different simulations.
 
 current_dir = fileparts(mfilename('fullpath'));
-fn    = fullfile(current_dir, 'training.data');
+getDeck     = @(fn) ...
+   converDeckUnits(readEclipseDeck(fullfile(current_dir, fn)));
 
-deck_training = readEclipseDeck(fn);
-deck_training = convertDeckUnits(deck_training);
-
-
-fn   = fullfile(current_dir, 'problem.data');
-deck_problem = readEclipseDeck(fn);
-deck_problem = convertDeckUnits(deck_problem);
+deck_training = getDeck('training.data');
+deck_problem  = getDeck('problem.data' );
 
 % The grid is common for both simulations
-grd = deck_training.GRID;
-
-G = initEclipseGrid(deck_training);
-G = computeGeometry(G);
+G = computeGeometry(initEclipseGrid(deck_training));
 
 %% Setup rock porosity
-% We choose a randomly distributed porosity and the corresponding permeability.
+% We choose a randomly distributed porosity and the corresponding
+% permeability.
 
-poro = gaussianField(G.cartDims, [.4 .8], [11 3 3], 2.5);
-K = poro.^3.*(1e-5)^2./(0.81*72*(1-poro).^2);
-rock.perm    = K(:);
-rock.poro = poro(:);
+poro = gaussianField(G.cartDims, [0.4, 0.8], [11, 3, 3], 2.5);
+K    = poro.^3 .* (1e-5)^2 ./ (0.81 * 72 * (1 - poro).^2);
+
+rock = struct('perm', reshape(K   , [], 1), ...
+              'poro', reshape(poro, [], 1));
 
 % fluid
 fluid = initDeckADIFluid(deck_training);
 
 gravity off
 
-state.pressure = 1.5e7*ones(G.cells.num, 1);
-state.s        = ones(G.cells.num,1)*[0, 1];
+state.pressure = repmat(150*barsa, [G.cells.num, 1]);
+state.s        = repmat([0, 1]   , [G.cells.num, 1]);
 
 schedule_training = deck_training.SCHEDULE;
 schedule_problem  = deck_problem.SCHEDULE;
 
 %% Solve full system for various parameters to create snapshot ensamble
 
-systemOW = initADISystem({'Oil', 'Water'}, G, rock, fluid, 'allowControlSwitching', false);
+systemOW = initADISystem({'Oil', 'Water'}, G, rock, fluid, ...
+                         'allowControlSwitching', false);
 
-[wsol, states] = runScheduleADI(state, G, rock, systemOW, schedule_training);
+[wsol, states] = ...
+   runScheduleADI(state, G, rock, systemOW, schedule_training);
 
 %% Plot the simulation for all time steps
 % The dominant producer switches between each control. This is obviously
 % not a good schedule for oil production, but it gives a highly dynamic
 % flow pattern.
-figure(1);
+figure(1)
 for i = 1:numel(states)
-    clf;
-    subplot(2,1,1)
-    plotCellData(G, states{i}.pressure)
-    title('Pressure')
-    subplot(2,1,2)
-    plotCellData(G, states{i}.s(:,1))
-    title('Water saturation')
-    pause(.1);
+   clf
+
+   subplot(2,1,1)
+   plotCellData(G, convertTo(states{i}.pressure, barsa))
+   title('Pressure')
+
+   subplot(2,1,2)
+   plotCellData(G, states{i}.s(:,1))
+   title('Water saturation')
+
+   pause(0.1)
 end
 
 %% Create basis for proper orthogonal decomposition
@@ -99,12 +99,13 @@ end
 ns = nan;
 np = 25;
 
-basis_no_cluster = basisOW(states,...
-                'energyfraction_pressure',  1,...
-                'energyfraction_saturation',1,...
-                 'maxno_pressure',          np,...
-                 'maxno_saturation',        ns...
-                 );
+basis_no_cluster = ...
+   basisOW(states, ...
+           'energyfraction_pressure'  , 1 , ...
+           'energyfraction_saturation', 1 , ...
+           'maxno_pressure'           , np, ...
+           'maxno_saturation'         , ns  ...
+           );
 
 basis = basis_no_cluster;
 
@@ -129,15 +130,19 @@ systemOW_basis.nonlinear.maxIterations = 6;
 % setting the convergence limits based on the amount of reduction done.
 
 timer = tic;
-[wsol_full, states_full] = runScheduleADI(state, G, rock, systemOW, schedule_problem);
+[wsol_full, states_full] = ...
+   runScheduleADI(state, G, rock, systemOW, schedule_problem);
 tfull = toc(timer);
 
 warning('off', 'newt:maxit')
 warning('off', 'newt:stagnate')
+
 timer = tic;
-[wsol_pod, states_pod]   = runScheduleADI(state, G, rock, systemOW_basis, schedule_problem, ...
-                                          'stop_if_not_converged', false);
+[wsol_pod, states_pod]   = ...
+   runScheduleADI(state, G, rock, systemOW_basis, schedule_problem, ...
+                  'stop_if_not_converged', false);
 tpod = toc(timer);
+
 warning('on', 'newt:maxit')
 warning('on', 'newt:stagnate')
 
@@ -146,36 +151,37 @@ warning('on', 'newt:stagnate')
 v = [0, 90];
 figure(1);
 for i = 1:numel(states_pod)
-    clf;
+    clf
+
     subplot(2,2,1)
-    plotCellData(G, states_full{i}.pressure)
-    title('Pressure, full solve');
-    axis tight;
+    plotCellData(G, convertTo(states_full{i}.pressure, barsa))
+    title('Pressure, full solve')
+    axis tight
     cp = caxis();
+
     subplot(2,2,2)
     plotCellData(G, states_full{i}.s(:,1))
-    title('Water saturation, full solve');
-    axis tight;
-    colorbar();
+    title('Water saturation, full solve')
+    axis tight
+    colorbar()
     cs = caxis();
-    view(v);
+    view(v)
 
     subplot(2,2,3)
-    plotCellData(G, states_pod{i}.pressure)
-    title('Pressure, reduced solve');
-    axis tight;
-    caxis(cp);
+    plotCellData(G, convertTo(states_pod{i}.pressure, barsa))
+    title('Pressure, reduced solve')
+    axis tight
+    caxis(cp)
+
     subplot(2,2,4)
     plotCellData(G, states_pod{i}.s(:,1))
-    title('Water saturation, reduced solve');
+    title('Water saturation, reduced solve')
+    caxis(cs)
+    axis tight
 
-    caxis(cs);
-    axis tight;
-    err = @(x, y) abs(x-y)/x;
-
-    colorbar();
-    view(v);
-    pause(.1);
+    colorbar()
+    view(v)
+    pause(0.1)
 end
 
 %% Plot the well rates
@@ -188,22 +194,24 @@ end
 % setting up the linear systems is large compared to the cost of solving
 % the actual systems.
 
-time = cumsum(schedule_problem.step.val) /day;
+time = convertTo(cumsum(schedule_problem.step.val), day);
+
 % Put the well solution data into a format more suitable for plotting
 [qWsp, qOsp, qGsp, bhpp] = wellSolToVector(wsol_pod);
 [qWsf, qOsf, qGsf, bhpf] = wellSolToVector(wsol_full);
 for i = 2:5
-    figure(i);
-    clf;
-    subplot(1,2,1)
-    plot(time, [qWsf(:,i) , qWsp(:,i)]*day)
-    xlabel('time (days)')
-    ylabel('rate (m^3/day)')
-    title(['Water rate ' wsol_full{1}(i).name])
-    subplot(1,2,2)
-    plot(time, [qOsf(:,i) , qOsp(:,i)]*day)
-    xlabel('time (days)')
-    ylabel('rate (m^3/day)')
-    title(['Oil rate ' wsol_full{1}(i).name])
-    legend({'Full simulation', 'POD simulation'})
+   figure(i), clf
+
+   subplot(1,2,1)
+   plot(time, convertTo([qWsf(:,i) , qWsp(:,i)], meter^3/day))
+   xlabel('time (days)')
+   ylabel('rate (m^3/day)')
+   title(['Water rate ', wsol_full{1}(i).name])
+
+   subplot(1,2,2)
+   plot(time, convertTo([qOsf(:,i) , qOsp(:,i)], meter^3/day))
+   xlabel('time (days)')
+   ylabel('rate (m^3/day)')
+   title(['Oil rate ', wsol_full{1}(i).name])
+   legend('Full simulation', 'POD simulation')
 end

@@ -1,15 +1,17 @@
 %% 2 phases system with polymer
-% In this example, we look at a 2 phases system with polymer. The polymer model uses the
-% <http://dx.doi.org/10.2118/3484-PA Todd-Longstaff mixing model> and also accounts for
-% dead pore space, adsorption and reduced permeability. All these properties are given in
-% the file |poly.inc| which follows Eclipse format. Polymer are used to increase the water
-% viscosity and establish a more favorable ratio between the oil and water mobilities.
-% This example contains a simple $31\times31\times3$ fine grid with two injectors in
-% opposite corners and one producer in the middle of the domain. All wells are completed
-% in the top layers of cells. We build up a polymer plug by first injecting water with
-% polymer (concentration $c=c_{max}$ and $c=\frac14c_{max}$ in the first and second
-% injection wells, respectively) and, then, water without polymer to maintain the pressure
-% gradient in the reservoir.
+% In this example, we look at a 2 phases system with polymer. The polymer
+% model uses the <http://dx.doi.org/10.2118/3484-PA Todd-Longstaff mixing
+% model> and also accounts for dead pore space, adsorption and reduced
+% permeability. All these properties are given in the file |poly.inc| which
+% follows Eclipse format. Polymer are used to increase the water viscosity
+% and establish a more favorable ratio between the oil and water
+% mobilities. This example contains a simple $31\times31\times3$ fine grid
+% with two injectors in opposite corners and one producer in the middle of
+% the domain. All wells are completed in the top layers of cells. We build
+% up a polymer plug by first injecting water with polymer (concentration
+% $c=c_{max}$ and $c=\frac14c_{max}$ in the first and second injection
+% wells, respectively) and, then, water without polymer to maintain the
+% pressure gradient in the reservoir.
 
 
 %% Read case from file
@@ -78,14 +80,15 @@ view(70, 30);
 colorbar;
 
 %% Plot polymer properties
-% When polymer is added to the water phase, the viscosity of the water phase containing
-% polymer is increased. Because mobility is defined as $\lambda_w = \frac{K}{mu_w}$, this
-% makes the water less mobile. Polymer is used in cases where the water is much more
-% mobile than the hydrocarbons we are trying to displace. The viscosity of the polymer
-% solution depends on the polymer concentration. In the fully mixed case (mixing parameter
-% $\omega=1$), then the effective water viscosity is given by
-% $\mu_{w,eff}(c)=\mu_w\mu_c(c)$ where $\mu_c$ is the viscosity multiplier and $\mu_w$
-% the water viscosity without polymer.
+% When polymer is added to the water phase, the viscosity of the water
+% phase containing polymer is increased. Because mobility is defined as
+% $\lambda_w = \frac{K}{mu_w}$, this makes the water less mobile. Polymer
+% is used in cases where the water is much more mobile than the
+% hydrocarbons we are trying to displace. The viscosity of the polymer
+% solution depends on the polymer concentration. In the fully mixed case
+% (mixing parameter $\omega=1$), then the effective water viscosity is
+% given by $\mu_{w,eff}(c)=\mu_w\mu_c(c)$ where $\mu_c$ is the viscosity
+% multiplier and $\mu_w$ the water viscosity without polymer.
 figure(3)
 clf
 dc = 0:.1:fluid.cmax;
@@ -120,9 +123,10 @@ systemOW.activeComponents      %# ok
    runScheduleADI(state0, G, rock, systemOW, schedule);
 
 %% Objective functions
-% Create objective functions for the different systems. We set up approximate prices in
-% USD for both the oil price and the injection cost of the different phases. The polymer
-% injection cost is 0.1 dollar per kg injected.
+% Create objective functions for the different systems. We set up
+% approximate prices in USD for both the oil price and the injection cost
+% of the different phases. The polymer injection cost is 0.1 dollar per kg
+% injected.
 
 prices = {'OilPrice',            100  , ...
           'WaterProductionCost',   1  , ...
@@ -151,16 +155,18 @@ objectivePolymerAdjoint = ...
 
 
 %% Plot accumulated present value
-% In each time step the objective function is now the net present value of the reservoir,
-% i.e. the cost of doing that timestep. However, the most interesting value is here the
-% accumulated net present value, as it will show us the profit for the lifetime of the
-% reservoir. We plot the three different polymer cost as well as the total profit without
-% polymer injection.
+% In each time step the objective function is now the net present value of
+% the reservoir, i.e. the cost of doing that timestep. However, the most
+% interesting value is here the accumulated net present value, as it will
+% show us the profit for the lifetime of the reservoir. We plot the three
+% different polymer cost as well as the total profit without polymer
+% injection.
 %
-% While polymer injection is happening, the value with polymer is lower because there is
-% an increased cost due to the polymer price. Once the polymer injection phase is over, we
-% reap the benefits and get an increased oil output resulting in a bigger total value for
-% the reservoir lifetime.
+% While polymer injection is happening, the value with polymer is lower
+% because there is an increased cost due to the polymer price. Once the
+% polymer injection phase is over, we reap the benefits and get an
+% increased oil output resulting in a bigger total value for the reservoir
+% lifetime.
 
 cumt = cumsum(schedule.step.val);
 
@@ -184,10 +190,10 @@ ylabel('Million USD')
 xlabel('Years')
 
 %% Compute gradient using the adjoint formulation
-% We pass a function handle to the polymer equations and calculate the gradient with
-% regards to our control variables. The control variables are defined as the last two
-% variables, i.e. polymer injection concentration and well closure (in this case, all the
-% wells are controled by rate).
+% We pass a function handle to the polymer equations and calculate the
+% gradient with regards to our control variables. The control variables are
+% defined as the last two variables, i.e. polymer injection concentration
+% and well closure (in this case, all the wells are controled by rate).
 
 ctrl = [6, 7];
 adjointGradient = ...
