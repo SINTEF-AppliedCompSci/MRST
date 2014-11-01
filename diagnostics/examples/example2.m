@@ -30,7 +30,8 @@ W = [];
 for w = 1 : numel(wtype),
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
-                    'Radius', wrad(w), 'Name', wname{w});
+                    'Radius', wrad(w), 'Name', wname{w}, ...
+                    'InnerProduct', 'ip_tpf');
 end
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 

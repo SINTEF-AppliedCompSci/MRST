@@ -41,11 +41,11 @@ rock.perm = ones(G.cells.num, 1);
 
 W = [];
 % Left injector
-W = verticalWell(W, G, rock, 1, 1, [], 'Val', 1/day, 'Type', 'rate', 'Name', 'Injector 1');
+W = verticalWell(W, G, rock, 1, 1, [], 'Val', 1/day, 'Type', 'rate', 'Name', 'Injector 1', 'InnerProduct', 'ip_tpf');
 % Right injnector
-W = verticalWell(W, G, rock, N, 1, [], 'Val', 1/day, 'Type', 'rate', 'Name', 'Injector 2');
+W = verticalWell(W, G, rock, N, 1, [], 'Val', 1/day, 'Type', 'rate', 'Name', 'Injector 2', 'InnerProduct', 'ip_tpf');
 % Add producer with zero bottom hole pressure for pressure support
-W = verticalWell(W, G, rock, mid, 1, [], 'Val', 0, 'Type', 'bhp', 'Name', 'Producer');
+W = verticalWell(W, G, rock, mid, 1, [], 'Val', 0, 'Type', 'bhp', 'Name', 'Producer', 'InnerProduct', 'ip_tpf');
 
 
 T = computeTrans(G, rock);
