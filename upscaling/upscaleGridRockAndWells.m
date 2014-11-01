@@ -53,6 +53,8 @@ rock_cg.cr=cr;
 % per cell
 W_cg =[];
 for i=1:numel(W)
-   W_cg  = addWell(W_cg, CG, rock_cg, CG.partion(W(i).cells), 'Comp_i', W(i).compi, 'type', W(i).type, 'val', W(i).val);
+   W_cg = addWell(W_cg, CG, rock_cg, CG.partion(W(i).cells), ...
+                  'Comp_i', W(i).compi, 'type', W(i).type, ...
+                  'val', W(i).val, 'InnerProduct', 'ip_simple');
 end
 end

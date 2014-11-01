@@ -69,8 +69,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   require mimetic coarsegrid
+   try
+      require mimetic coarsegrid
+   catch
+      mrstModule add mimetic coarsegrid
+   end
 
    assert (isfield(g, 'cartDims'))
 
@@ -173,8 +176,8 @@ function k = upscale_block_mimetic(subG, BI, subS, dims, fluid, linsolve)
       bc = addBC([], faces1, 'pressure', 1*barsa);
       bc = addBC(bc, faces2, 'pressure', 0);
 
-      rSol = solveIncompFlow(rSol, subG, subS, fluid, 'bc', bc, ...
-                             'LinSolve', linsolve);
+      rSol = incompMimetic(rSol, subG, subS, fluid, 'bc', bc, ...
+                           'LinSolve', linsolve);
 
       area = sum(subG.faces.areas(faces2,:));
       L    = abs(subG.faces.centroids(faces1(1), i) - ...

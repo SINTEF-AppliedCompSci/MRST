@@ -73,6 +73,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   try
+      require mimetic
+   catch
+      mrstModule add mimetic
+   end
 
 opt =struct('fluid_nc',    [],...
             'psolver',     [],... % @(state, fluid) format
@@ -112,8 +117,8 @@ opt =struct('fluid_nc',    [],...
    if isempty(opt.psolver)
        if isempty(opt.bcp)
            S = computeMimeticIP(G, rock);
-           opt.psolver = @(state, fluid, dummy) solveIncompFlow(state, G, S,...
-                                         fluid, 'bc', opt.bc);
+           opt.psolver = @(state, fluid, dummy) ...
+              incompMimetic(state, G, S, fluid, 'bc', opt.bc);
        else
            error(['Please provide pressure solver through option psolver'...
                ' with a @(state, fluid, bc/bcp) format']);
