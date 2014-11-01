@@ -12,8 +12,12 @@ rock.perm = ones(G.cells.num, 1);
 
 % Make two wells
 W = [];
-W = verticalWell(W, G, rock, round(G.cartDims(1)/2), round(G.cartDims(1)/2), []);
-W = verticalWell(W, G, rock, 1, 1, []);
+W = verticalWell(W, G, rock, ...
+                 round(G.cartDims(1)/2), ...
+                 round(G.cartDims(1)/2), [], ...
+                 'InnerProduct', 'ip_tpf');
+W = verticalWell(W, G, rock, 1, 1, [], ...
+                 'InnerProduct', 'ip_tpf');
 
 %% Show two different refinements per well
 p = p0;
