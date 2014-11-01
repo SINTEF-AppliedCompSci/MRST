@@ -152,7 +152,7 @@ classdef WellModel
         end
         
         function [wellSol, flux, bhp] = updatePressure(wellmodel, wellSol, flux, bhp, model)
-            if isnan(wellmodel.nonlinearIteration)
+            if isnan(wellmodel.nonlinearIteration) || wellmodel.nonlinearIteration < 0
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate welbore pressure-drop will never be updated']);
             end
