@@ -15,7 +15,7 @@ catch
 end
 
 current_dir = fileparts(mfilename('fullpath'));
-fn    = fullfile(current_dir, 'polymer.data');
+fn    = fullfile(current_dir, 'POLYMER.DATA');
 
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
