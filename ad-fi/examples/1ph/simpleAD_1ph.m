@@ -81,7 +81,7 @@ K = repmat(5, [nperf, 1]);
 % Convert IJK-indices to linear index (as used in G)
 cellInx = sub2ind(G.cartDims, I, J, K);
 
-W = addWell(W, G, rock, cellInx, 'Name', 'producer');
+W = addWell(W, G, rock, cellInx, 'Name', 'producer', 'InnerProduct', 'ip_tpf');
 
 % Plotting
 f = [figure(1), figure(2)];
