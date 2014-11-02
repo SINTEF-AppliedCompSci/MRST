@@ -117,6 +117,7 @@ caxis auto; colorbar, view(-150,50)
 % position.
 w = load([sector, '_Well.txt']);
 W = verticalWell([], G, rock,  w(1,1), w(1,2), w(1,3):w(1,4),  ...
+                 'InnerProduct', 'ip_tpf', ...
                  'Radius', 0.1, 'name', 'I');
 plotWell(G,W,'height',1000,'color','r');
 zoom out
