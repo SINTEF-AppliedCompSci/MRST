@@ -23,6 +23,7 @@ function [G, W, rock] = SPE10_setup(varargin)
 % RETURNS:
 %   G    - SAMSIM grid structure as described in grid_structure.
 %   W    - Well structure.  Injector at 500 Bar, producers at 200 Bar.
+%          Inner product 'ip_tpf'.
 %   rock - Rock structure having fields 'perm' and 'poros' pertaining to
 %          the specified layers.
 %
@@ -74,5 +75,5 @@ for w = 1 : numel(wtype),
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), [], ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
                     'Radius', wrad(w), 'Name', wname{w}, ...
-                    'Sign', sgn(w));
+                    'Sign', sgn(w), 'InnerProduct', 'ip_tpf');
 end
