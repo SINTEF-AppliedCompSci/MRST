@@ -6,7 +6,11 @@
 %
 % for a Cartesian grid with isotropic, homogeneous permeability
 
-require mimetic coarsegrid
+try
+   require mimetic coarsegrid
+catch
+   mrstModule add mimetic coarsegrid
+end
 
 nx = 20;
 ny = 20;
@@ -24,9 +28,10 @@ fluid     = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
 % Set two wells, one vertical and one horizontal
 W = struct([]);
 W = verticalWell(W, G, rock, nx, ny, nz, ...
+                 'InnerProduct', 'ip_simple', ...
                  'Type', 'rate', 'Val', 1*meter^3/day, ...
                  'Radius', .1, 'Name', 'I');
-W = addWell(W, G, rock, 1, 'Type','bhp', ...
+W = addWell(W, G, rock, 1, 'Type', 'bhp', 'InnerProduct', 'ip_simple', ...
             'Val', 0, 'Radius', .1, 'Dir', 'x', 'Name', 'P');
 
 src = [];
@@ -59,8 +64,8 @@ CG = generateCoarseGrid(G, p, 'Verbose', verbose);
 
 S  = computeMimeticIP(G, rock, 'Verbose', verbose);
 
-xRef = solveIncompFlow(xRef, G, S, fluid, 'wells', W, 'bc', bc, ...
-                       'src', src, 'Solver', 'hybrid');
+xRef = incompMimetic(xRef, G, S, fluid, 'wells', W, 'bc', bc, ...
+                     'src', src, 'Solver', 'hybrid');
 
 CS  = generateCoarseSystem(G, rock, S, CG, ones([G.cells.num, 1]), ...
                            'global_inf', xRef.flux,                ...

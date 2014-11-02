@@ -28,8 +28,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   require mimetic
+   try
+      require mimetic
+   catch
+      mrstModule add mimetic
+   end
 
    dfaces = cell([Gp.griddim, 1]);
    vmat   = nan(Gp.griddim);
@@ -47,7 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          bcp_new.value(bcp.tags == j) = dp_mat(j,i);%/L(j);
       end
 
-      state = solveIncompFlow(state, Gp, Sp, fluid_pure, 'bcp', bcp_new);
+      state = incompMimetic(state, Gp, Sp, fluid_pure, 'bcp', bcp_new);
 
       for j = 1 : Gp.griddim,
          flux = sum(state.flux(dfaces{j}) .* bcp.sign(bcp.tags == j));
