@@ -11,6 +11,8 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.Wells;
+perf2well = getPerforationToWellMapping(W);
+
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
@@ -50,6 +52,22 @@ if isfield(f, 'pvMultR')
     pvMult0 = f.pvMultR(p0);
 end
 
+if 0 && isfield(wellSol, 'flux')
+    % Linearize saturations in well cells to get mobilities at end of time
+    % integration sort-of-right.
+    bW = f.bW(p);
+    bO = f.bO(p);
+    
+    flux = vertcat(wellSol.flux);
+    wc = vertcat(W.cells);
+    
+    perfcells = wc(perf2well);    
+    in = flux*dt./repmat(s.pv(perfcells), 1, 2);
+    
+    sW(perfcells) = sW(perfcells) + in(:, 1)./bW(perfcells) - in(:, 2)./bO(perfcells);
+    sW = min(sW, 1);
+    sW = max(sW, 0);
+end
 % -------------------------------------------------------------------------
 sO  = 1 - sW;
 sO0 = 1 - sW0;
@@ -120,9 +138,8 @@ types{1} = 'cell';
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
-perf2well = getPerforationToWellMapping(W);
 for i = 1:numel(W)
     wp = perf2well == i;
-    state.wellSol(i).flux = double(qW(wp) + qO(wp));
+    state.wellSol(i).flux = [double(qW(wp)), double(qO(wp))];
 end
 end

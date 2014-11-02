@@ -25,7 +25,7 @@ assert(~(opt.solveForWater && opt.solveForOil));
 
 [p0, sW0] = model.getProps(state0, 'pressure', 'water');
 
-wflux = vertcat(wellSol.flux);
+wflux = sum(vertcat(wellSol.flux), 2);
 
 %Initialization of independent variables ----------------------------------
 
