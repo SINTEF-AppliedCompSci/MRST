@@ -208,7 +208,7 @@ while tstep <= numel(schedule.step.val)
    if useMrstSchedule && uniformSchedule
       state0.wellSol = initWellSolLocal(W(openWells), state, wellSol_init(openWells));
    else
-      state0.wellSol = initWellSolLocal(W, state);
+      state0.wellSol = initWellSolLocal(W(openWells), state);
    end
 
    dt = schedule.step.val(tstep);
