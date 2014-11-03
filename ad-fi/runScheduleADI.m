@@ -35,8 +35,13 @@ function varargout = ...
 %                 when states becomes too big to solve in memory or when
 %                 running adjoint simulations.
 %
-%   outputName  - The string which prefixes .mat files written if
+%   outputName  - The string which prefixes output files if
 %                 writeOutput is enabled. Defaults to 'state'.
+%
+%   outputWellSolName - The string which prefixes well output files if writeOutput is enabled. Defaults to 'wellSol'.
+%
+%   outputSchedule - If true, write updated schedule for given time step. Useful
+%   when time splitting is used and we want to restart a computation at a given time-step.
 %
 %
 % RETURNS:
@@ -76,17 +81,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 default_outputDir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 
-opt = struct('Verbose'       , mrstVerbose      , ...
-             'writeOutput'   , false            , ...
-             'outputName'    , 'state'          , ...
-             'scaling'       , []               , ...
-             'startAt'       , 1                , ...
-             'outputDir'     , default_outputDir, ...
-             'plotCallback'  , [],  ...
-             'outputNameFunc', [], ...
-             'force_step'    , true, ...
+opt = struct('Verbose'          , mrstVerbose      , ...
+             'writeOutput'      , false            , ...
+             'outputName'       , 'state'          , ...
+             'outputWellSolName', 'wellSol'        , ...
+             'outputSchedule'   , false        , ...
+             'scaling'          , []               , ...
+             'startAt'          , 1                , ...
+             'outputDir'        , default_outputDir, ...
+             'plotCallback'     , [],  ...
+             'outputNameFunc'   , [], ...
+             'force_step'       , true, ...
              'stop_if_not_converged', true, ...
-             'minStepSize'   , 0);
+             'minStepSize'      , 0);
 
 opt = merge_options(opt, varargin{:});
 
@@ -121,9 +128,15 @@ if opt.writeOutput
     end
 
     if isempty(opt.outputNameFunc)
-       outNm  = @(tstep)fullfile(opt.outputDir, [opt.outputName, sprintf('%05.0f', tstep)]);
+       outNm  = @(tstep)fullfile(opt.outputDir, sprintf('%s%05.0f', opt.outputName, tstep));
     else
        outNm  = @(tstep)fullfile(opt.outputDir, opt.outputNameFunc(tstep));
+    end
+    wellOutNm = @(tstep)fullfile(opt.outputDir, sprintf('%s%05.0f', opt.outputWellSolName, ...
+                                                      tstep));
+    if opt.outputSchedule
+       scheduleOutNm = @(tstep)fullfile(opt.outputDir, sprintf('schedule%05.0f', ...
+                                                         tstep));
     end
 end
 
@@ -131,7 +144,7 @@ end
 %--------------------------------------------------------------------------
 % output initState
 state = initState;
-if opt.writeOutput, save(outNm(0), 'state');end;
+if opt.writeOutput, save(outNm(0), 'state'); end;
 
 %--------------------------------------------------------------------------
 % collect all wellsols in cell wellsols
@@ -200,7 +213,7 @@ while tstep <= numel(schedule.step.val)
    if useMrstSchedule && uniformSchedule
       state0.wellSol = initWellSolLocal(W(openWells), state, wellSol_init(openWells));
    else
-      state0.wellSol = initWellSolLocal(W, state);
+      state0.wellSol = initWellSolLocal(W(openWells), state);
    end
 
    dt = schedule.step.val(tstep);
@@ -246,11 +259,13 @@ while tstep <= numel(schedule.step.val)
       
       if useMrstSchedule && uniformSchedule
          wellSol_init(openWells) = state.wellSol;
-         ws = wellSol_zero;
-         ws(openWells) = state.wellSol;
-         state.wellSol = ws;
+         wellSol = wellSol_zero;
+         wellSol(openWells) = state.wellSol;
+         state.wellSol = wellSol;
+      else
+         wellSol = state.wellSol;
       end
-      wellSols{tstep} = state.wellSol;
+      wellSols{tstep} = wellSol;
       wellSols{tstep} = addWellInfo(wellSols{tstep}, W);
       if outputStates
          states{tstep + 1} = state;
@@ -263,6 +278,10 @@ while tstep <= numel(schedule.step.val)
       if opt.writeOutput && schedule.step.repStep(tstep)
          repStep = repStep + 1;
          save(outNm(repStep), 'state');
+         save(wellOutNm(repStep), 'wellSol');
+         if opt.outputSchedule
+            save(scheduleOutNm(repStep), 'schedule');
+         end
       end
       convergence = [convergence; conv]; %#ok
       dispif(~opt.Verbose, 'Step %4g of %4g (Used %3g iterations)\n', ...
