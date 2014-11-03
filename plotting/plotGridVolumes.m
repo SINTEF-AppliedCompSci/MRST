@@ -134,6 +134,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     [x,y,z] = meshgrid(tmp{:});
 
+    if (ispc || ismac) && ~strcmpi(get(gcf, 'Renderer'), 'OpenGL'),
+        set(gcf, 'Renderer', 'OpenGL');
+    end
+
     c = opt.cmap(N);
     if isempty(opt.interpolant)
         if exist('TriScatteredInterp', 'file'),
