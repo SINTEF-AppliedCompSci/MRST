@@ -118,7 +118,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       v= [v,G.nodes.z(verts)];
    end
 
-
+   if need_render_fixes(varargin{:}),
+      set(gcf, 'Renderer', 'OpenGL');
+   end
 
    % Massage colour data into form suitable for 'FaceVertexCData' property.
    %
@@ -204,6 +206,28 @@ end
 
 %--------------------------------------------------------------------------
 
+function b = need_render_fixes(varargin)
+   b = false;
+
+   if (ispc || ismac) && ~isempty(varargin),
+      % Render fixes (possibly) needed on Microsoft Windows and MacOS X.
+      opt = varargin(1 : 2 : end);
+      val = varargin(2 : 2 : end);
+
+      % Look for *LAST* occurrence of 'FaceAlpha' as that will determine
+      % whether or not we need to override rendering options.
+      %
+      i = find(strncmpi('facea', opt, numel('facea')), 1, 'last');
+      if ~isempty(i),
+         % Render fixes needed for non-scalar 'FaceAlpha' or when
+         % FaceAlpha < 1.
+         b = (numel(val{i}) > 1) || ...
+             ((numel(val{i}) == 1) && (val{i} < 1));
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
 
 function rgb = get_rgb(colour)
    switch lower(colour),
