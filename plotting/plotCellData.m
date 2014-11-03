@@ -159,6 +159,6 @@ if size(data, 1) < G.cells.num,
    assert (all(c > 0) && all(c <= size(data, 1)));
 end
 
-h = plotFaces(G, f, data(c, :), 'EdgeColor', 'k', varargin{:});
+h = plotFaces(G, f, data(c, :), 'EdgeColor', [0.4 0.4 0.4], varargin{:});
 
 if nargout > 0, varargout{1} = h; end
