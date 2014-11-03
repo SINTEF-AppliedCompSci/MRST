@@ -87,5 +87,10 @@ classdef SequentialPressureTransportModel < ReservoirModel
             report.PressureSolver =  pressureReport;
             report.TransportSolver= transportReport;
         end
+        
+        function varargout = getActivePhases(model)
+            [varargout{:}] = model.transportModel.getActivePhases(model);
+        end
+        
     end
 end
