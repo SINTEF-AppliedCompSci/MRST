@@ -134,7 +134,7 @@ if opt.writeOutput
     end
     wellOutNm = @(tstep)fullfile(opt.outputDir, sprintf('%s%05.0f', opt.outputWellSolName, ...
                                                       tstep));
-    if isempty(opt.outputSchedule)
+    if opt.outputSchedule
        scheduleOutNm = @(tstep)fullfile(opt.outputDir, sprintf('schedule%05.0f', ...
                                                          tstep));
     end
