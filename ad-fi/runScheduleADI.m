@@ -40,7 +40,8 @@ function varargout = ...
 %
 %   outputWellSolName - The string which prefixes well output files if writeOutput is enabled. Defaults to 'wellSol'.
 %
-%
+%   outputSchedule - If true, write updated schedule for given time step. Useful
+%   when time splitting is used and we want to restart a computation at a given time-step.
 %
 %
 % RETURNS:
@@ -84,6 +85,7 @@ opt = struct('Verbose'          , mrstVerbose      , ...
              'writeOutput'      , false            , ...
              'outputName'       , 'state'          , ...
              'outputWellSolName', 'wellSol'        , ...
+             'outputSchedule'   , false        , ...
              'scaling'          , []               , ...
              'startAt'          , 1                , ...
              'outputDir'        , default_outputDir, ...
@@ -132,7 +134,10 @@ if opt.writeOutput
     end
     wellOutNm = @(tstep)fullfile(opt.outputDir, sprintf('%s%05.0f', opt.outputWellSolName, ...
                                                       tstep));
-
+    if isempty(opt.outputSchedule)
+       scheduleOutNm = @(tstep)fullfile(opt.outputDir, sprintf('schedule%05.0f', ...
+                                                         tstep));
+    end
 end
 
 
@@ -274,6 +279,9 @@ while tstep <= numel(schedule.step.val)
          repStep = repStep + 1;
          save(outNm(repStep), 'state');
          save(wellOutNm(repStep), 'wellSol');
+         if opt.outputSchedule
+            save(scheduleOutNm(repStep), 'schedule');
+         end
       end
       convergence = [convergence; conv]; %#ok
       dispif(~opt.Verbose, 'Step %4g of %4g (Used %3g iterations)\n', ...
