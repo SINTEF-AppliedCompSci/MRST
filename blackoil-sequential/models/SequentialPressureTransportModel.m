@@ -42,6 +42,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                                 model.transportLinearSolver;
             end
             
+            model.transportNonLinearSolver.errorOnFailure = false;
             model.stepFunctionIsLinear = true;
         end
         
@@ -75,15 +76,13 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             if ~pressure_ok
                 FailureMsg = 'Pressure failed to converge!';
-            elseif ~transport_ok
-                FailureMsg = 'Transport failed to converge!';
             else
                 FailureMsg = '';
             end
 
             values = [];
             report = model.makeStepReport(...
-                                    'Failure',         ~converged, ...
+                                    'Failure',        ~pressure_ok, ...
                                     'Converged',       converged, ...
                                     'FailureMsg',      FailureMsg, ...
                                     'Residuals',       values ...
