@@ -10,7 +10,7 @@
 % prior to release R2011a, this is relatively inefficient.  Starting from
 % 2011a however, the bottleneck of direct indexing has been largely
 % removed.
-mrstModule add ad-fi deckformat spe10
+mrstModule add ad-core ad-fi deckformat spe10
 
 % Read and process file.
 current_dir = fileparts(mfilename('fullpath'));

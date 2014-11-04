@@ -28,8 +28,8 @@ figure;
 % Pick the only well control present
 W = schedule.control(1).W;
 
-plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), 'FaceAlpha', .5, ...
-            'EdgeAlpha', .3, 'EdgeColor', 'k');
+plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
+             'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
 plotWell(G, W);
 title('Permeability (mD)')
 axis tight;
@@ -85,7 +85,7 @@ hold on
 plot(T, mrst)
 plot(Tcomp, ecl, 'r');
 legend({'MRST', 'Eclipse'})
-xlabel('Years')
+xlabel('Time [Years]')
 title('Gas rate / Oil rate')
 
 %% Plot Injector Bottom Hole Pressure
@@ -99,7 +99,7 @@ hold on
 plot(T,     convertTo(mrst, barsa))
 plot(Tcomp, convertTo(ecl, barsa), 'r');
 legend({'MRST', 'Eclipse'})
-xlabel('Years')
+xlabel('Time [Years]')
 ylabel('bar')
 title('Bottom hole pressure (Producer)')
 
@@ -112,6 +112,6 @@ hold on
 plot(T,     convertTo(mrst, barsa))
 plot(Tcomp, convertTo(ecl, barsa), 'r');
 legend({'MRST', 'Eclipse'})
-xlabel('Years')
+xlabel('Time [Years]')
 ylabel('bar')
 title('Bottom hole pressure (Injector)')

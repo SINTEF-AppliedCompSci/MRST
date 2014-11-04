@@ -34,7 +34,7 @@ plotGrid(G, [prod, inj1, inj2]);
 
 %%
 mrstVerbose true
-mrstModule add deckformat gridtools
+mrstModule add deckformat ad-core ad-fi
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'mouse.data');
@@ -46,9 +46,12 @@ fluid = initDeckADIFluid(deck);
 
 schedule = deck.SCHEDULE;
 
-W = addWell([], G, rock, inj1, 'Type', 'rate', 'Val', 1);
-W = addWell(W, G, rock, inj2, 'Type', 'rate', 'Val', 1);
-W = addWell(W, G, rock, prod, 'Type', 'bhp', 'Val', 1, 'Sign', -1);
+W = addWell([], G, rock, inj1, 'Type', 'rate', 'Val', 1, ...
+            'InnerProduct', 'ip_tpf');
+W = addWell(W, G, rock, inj2, 'Type', 'rate', 'Val', 1, ...
+            'InnerProduct', 'ip_tpf');
+W = addWell(W, G, rock, prod, 'Type', 'bhp', 'Val', 1, 'Sign', -1, ...
+            'InnerProduct', 'ip_tpf');
 
 W(1).poly = .01;
 W(2).poly = .01;

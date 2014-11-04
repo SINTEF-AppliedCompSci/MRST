@@ -4,11 +4,12 @@
 % differentiation framework.
 
 
-%% Setup grid
-%
-
-% required modules
-require ad-fi
+% Required modules
+try
+   require ad-fi
+catch
+   mrstModule add ad-fi
+end
 
 % Setup 10x10x10 grid of 200x200x50 m model.
 nx = 10;    ny = 10;    nz = 10;
@@ -81,7 +82,7 @@ K = repmat(5, [nperf, 1]);
 % Convert IJK-indices to linear index (as used in G)
 cellInx = sub2ind(G.cartDims, I, J, K);
 
-W = addWell(W, G, rock, cellInx, 'Name', 'producer');
+W = addWell(W, G, rock, cellInx, 'Name', 'producer', 'InnerProduct', 'ip_tpf');
 
 % Plotting
 f = [figure(1), figure(2)];

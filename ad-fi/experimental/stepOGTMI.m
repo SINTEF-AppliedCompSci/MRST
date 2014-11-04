@@ -1,4 +1,4 @@
-function [state, meta] = stepOGTMI(state0, state, meta, dt, W, G, system, fluid, varargin)
+function [state, meta] = stepOGTMI(state0, state, meta, dt, W, G, system, varargin)
 % Do a single step of a nonlinear solve for a Oil-Water system
 % This function should in general not be called directly and is as such not
 % documented with regards to input/output: See solvefiADI for an

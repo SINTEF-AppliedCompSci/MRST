@@ -1,16 +1,22 @@
 %% Two phases flow simulation using AD and including adjoint computations
-% The problem is defined in 'INPUT_NUMGRAD.DATA' which is a simple $10\times1\times10$
-% Cartesian grid with uniform permeability. We simulate the evolution of the reservoir for
-% a given schedule and, using the adjoint equations, we compute the derivative of a given
-% net present value (NPV) function with respect to the control variables.
+% The problem is defined in 'INPUT_NUMGRAD.DATA' which is a simple
+% $10\times1\times10$ Cartesian grid with uniform permeability. We simulate
+% the evolution of the reservoir for a given schedule and, using the
+% adjoint equations, we compute the derivative of a given net present value
+% (NPV) function with respect to the control variables.
 
-
-%% Setup the grid and the rock and fluid structures
-% We read the deck and create the grid, rock and fluid structures from the resulting
-% output. 
+%% Read the problem from a deckfile
+% The problem is defined in 'INPUT_NUMGRAD.DATA' which is a simple
+% $10\times1\times10$ Cartesian grid with uniform permeability. We read the
+% deck and create the grid, rock and fluid structures from the resulting
+% output. This requires the deckformat module.
 
 % This requires the deckformat module.
-require deckformat ad-fi
+try
+   require deckformat ad-core ad-fi
+catch
+   mrstModule add deckformat ad-core ad-fi
+end
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'simple10x1x10.data');
@@ -116,22 +122,24 @@ scalFacs.pressure = 100*barsa;
 scalFacs.rate     = 100/day;
 
 %% Run the whole schedule
-% We setup the oil water system by calling the function |initADIsystem| and the equations
-% are solved implicitely by calling |runScheduleADI|.
+% We setup the oil water system by calling the function |initADIsystem| and
+% the equations are solved implicitely by calling |runScheduleADI|.
 timer = tic;
 system = initADISystem({'Oil', 'Water'}, G, rock, fluid);
-[wellSols states] = runScheduleADI(state, G, rock, system, schedule);
+[wellSols, states] = runScheduleADI(state, G, rock, system, schedule);
 t_forward = toc(timer);
 
 %% Create objective functions
-% We can then create objective functions, which are here net profit worth.  Since the
-% adjoint formulation uses one forward run (runScheduleADI) to get the values for the
-% objective function and one backward run (runAdjointADI) to get the gradients, we create
-% an objective function based on the earlier solution. Since we will compare with the more
-% computationally intensive numerical gradient, we also define an objective function which
-% will be used for approximating the gradient of the objective function in a difference
-% scheme. We set up approximate prices in USD for both the oil price and the injection
-% cost of the different phases.
+% We can then create objective functions, which are here net profit worth.
+% Since the adjoint formulation uses one forward run (runScheduleADI) to
+% get the values for the objective function and one backward run
+% (runAdjointADI) to get the gradients, we create an objective function
+% based on the earlier solution. Since we will compare with the more
+% computationally intensive numerical gradient, we also define an objective
+% function which will be used for approximating the gradient of the
+% objective function in a difference scheme. We set up approximate prices
+% in USD for both the oil price and the injection cost of the different
+% phases.
 
 prices = {'OilPrice',            100  , ...
           'WaterProductionCost',   1  , ...
@@ -143,16 +151,18 @@ objective_adjoint = @(tstep)NPVOW(G, wellSols, schedule, 'ComputePartials', true
 objective_numerical = @(wellSols)NPVOW(G, wellSols, schedule, prices{:});
 
 %% Compute derivatives using the adjoint formulation
-% We pass in the objective function of the previous run. The objective function had a cost
-% equal to one simulation for each timestep. The backward simulation requires one
-% simulation per timestep, for a total of two simulations per timestep in the schedule to
-% find the gradient. Note that the reverse timesteps are much cheaper to compute because
-% only one iteration is required per timestep since the system is linear. Because the
-% setup in this example is relatively small, we store the states in memory and input them
-% as a keyword argument. If the forward simulation would be too big to store in full in
-% memory, it can be saved to disk by running runScheduleADI with the 'writeOutput'
-% parameter set to true.  runAdjointADI will then read the files if not supplied with
-% forward simulations directly. ('ForwardStates' not supplied or empty)
+% We pass in the objective function of the previous run. The objective
+% function had a cost equal to one simulation for each timestep. The
+% backward simulation requires one simulation per timestep, for a total of
+% two simulations per timestep in the schedule to find the gradient. Note
+% that the reverse timesteps are much cheaper to compute because only one
+% iteration is required per timestep since the system is linear. Because
+% the setup in this example is relatively small, we store the states in
+% memory and input them as a keyword argument. If the forward simulation
+% would be too big to store in full in memory, it can be saved to disk by
+% running runScheduleADI with the 'writeOutput' parameter set to true.
+% runAdjointADI will then read the files if not supplied with forward
+% simulations directly. ('ForwardStates' not supplied or empty)
 timer = tic;
 adjointGradient = runAdjointADI(G, rock, fluid, schedule, objective_adjoint, system,  'Verbose', verbose, 'ForwardStates', states);
 t_adjoint = toc(timer);
@@ -203,4 +213,3 @@ set(gca, 'XTickLabel', {'Adjoint', 'Numerical'})
 legend('Adjoint (Forward)', 'Adjoint (Backwards)', 'Numerical', 'location', 'NorthOutside')
 ylabel('t (seconds)')
 title('Time used')
-
