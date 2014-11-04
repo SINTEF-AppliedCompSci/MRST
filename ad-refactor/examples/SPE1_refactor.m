@@ -1,4 +1,15 @@
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil
+%% SPE1 case for fully implicit black oil solver
+% This example solves the SPE1 problem which consists of gas injection in a
+% small ($10\times10\times3$) reservoir with a single producer and
+% injector. The problem is parsed and solved from the problem file
+% "odeh_adi" and the result is then compared to output from a major
+% commercial reservoir simulator (Eclipse 100).
+
+try
+   require ad-fi deckformat mrst-gui ad-blackoil
+catch
+   mrstModule add ad-fi deckformat mrst-gui ad-blackoil
+end
 
 % Read and process file.
 current_dir = fileparts(mfilename('fullpath'));

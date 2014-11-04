@@ -4,11 +4,12 @@
 % differentiation framework.
 
 
-%% Setup grid
-%
-
-% required modules
-require ad-fi
+% Required modules
+try
+   require ad-fi
+catch
+   mrstModule add ad-fi
+end
 
 % Setup 10x10x10 grid of 200x200x50 m model.
 nx = 10;    ny = 10;    nz = 10;

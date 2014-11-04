@@ -1,21 +1,26 @@
 %% SPE3 case using fully implicit black oil solver
 % This <http://dx.doi.org/10.2118/12278-PA third SPE comparative solution
-% project> consists of a gas injection problem in a small (9x9x4) reservoir.
-% The problem is originally set up to be solved using a compositional solver.
-% Using PVTi, the physical datas have been processed to obtain an equivalent
-% blackoil problem and the resulting blackoil parameters are provided in the
-% file "SPE3.DATA". The data set we provide is a modified version of input
-% files belonging to the <http://www.ntnu.edu/studies/courses/TPG4535 course in
-% reservoir engineering and petrophysics> at NTNU (Trondheim, Norway) and
-% available at % <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
-% The oil can vaporize but the gas cannot dissolve in oil so that the gas/oil
-% ratio remains equal to zero during the whole simulation. The data are
+% project> consists of a gas injection problem in a small (9x9x4)
+% reservoir. The problem is originally set up to be solved using a
+% compositional solver. Using PVTi, the physical datas have been processed
+% to obtain an equivalent blackoil problem and the resulting blackoil
+% parameters are provided in the file "SPE3.DATA". The data set we provide
+% is a modified version of input files belonging to the
+% <http://www.ntnu.edu/studies/courses/TPG4535 course in reservoir
+% engineering and petrophysics> at NTNU (Trondheim, Norway) and available
+% at <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
+% The oil can vaporize but the gas cannot dissolve in oil so that the
+% gas/oil ratio remains equal to zero during the whole simulation.
 
 %% Read input files
 % The input files follow Eclipse format. MRST contains a dedicated module
 % which can handle standard Eclipse keywords.
 
-require ad-fi deckformat
+try
+   require ad-fi ad-core deckformat
+catch
+   mrstModule add ad-fi ad-core deckformat
+end
 
 % Read and process file.
 current_dir = fileparts(mfilename('fullpath'));
@@ -86,11 +91,10 @@ prod = find([wellSols{1}.sign] == -1);
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 figure(1)
 clf
-gor = qGs(:,prod)./qOs(:,prod);
+gor = qGs(:,prod) ./ qOs(:,prod);
 plot(T, gor, '-*b')
 xlabel('Days')
 title('Gas rate / Oil rate')
-
 
 %% Plot of Bottom Hole Pressure and gas production/injection rate
 % The wells are controlled by gas rate but also constrained by pressure. For
@@ -115,21 +119,21 @@ ylabel('bar')
 title('Bottom hole pressure (Injector)')
 
 subplot(2,2,3)
-qGs_p = day*qGs(:,prod);
+qGs_p = convertTo(qGs(:,prod), meter^3/day);
 plot(T, qGs_p, '-*b')
 xlabel('Days')
 ylabel('m^3/day')
 title('Gas production rate (m^3/day)')
 
 subplot(2,2,4)
-qGs_i = day*qGs(:,inj);
+qGs_i = convertTo(qGs(:,inj), meter^3/day);
 plot(T, qGs_i, '-*b')
 xlabel('Days')
 ylabel('m^3/day')
 title('Gas injection rate (m^3/day)')
 
 % Compute first time producing well switches to bhp control
-ct = cellfun(@(w)(w(2).type), wellSols, 'uniformoutput', false);
+ct = cellfun(@(w) w(2).type, wellSols, 'UniformOutput', false);
 ind = find(strcmp('bhp', ct), 1);
 subplot(2,2,1)
 text(T(ind), bhp_p(ind), ...

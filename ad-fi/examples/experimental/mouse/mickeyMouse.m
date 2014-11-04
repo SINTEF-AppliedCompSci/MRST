@@ -34,7 +34,7 @@ plotGrid(G, [prod, inj1, inj2]);
 
 %%
 mrstVerbose true
-mrstModule add deckformat gridtools
+mrstModule add deckformat ad-core ad-fi
 
 current_dir = fileparts(mfilename('fullpath'));
 fn    = fullfile(current_dir, 'mouse.data');
