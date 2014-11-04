@@ -19,6 +19,11 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             model = merge_options(model, varargin{:});
             
+            % Transport model determines the active phases
+            model.water = model.transportModel.water;
+            model.oil   = model.transportModel.oil;
+            model.gas   = model.transportModel.gas;
+            
             if isempty(model.pressureNonLinearSolver)
                 model.pressureNonLinearSolver = NonLinearSolver();
             end
@@ -89,7 +94,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
         end
         
         function varargout = getActivePhases(model)
-            [varargout{:}] = model.transportModel.getActivePhases(model);
+            varargout = cell(1, nargout);
+            [varargout{:}] = model.transportModel.getActivePhases();
         end
         
     end
