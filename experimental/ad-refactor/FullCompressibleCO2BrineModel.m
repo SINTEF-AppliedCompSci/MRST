@@ -220,6 +220,8 @@ classdef FullCompressibleCO2BrineModel < ReservoirModel
             end
            
             % capping values where necessary
+            pmin = 0;%5.0663e+04;%0;
+            state.pressure(state.pressure < pmin) = pmin;
             state.h(state.h < 0) = 0;
             ex_ix                = (state.h > model.G.cells.H);
             state.h(ex_ix)       = model.G.cells.H(ex_ix);
