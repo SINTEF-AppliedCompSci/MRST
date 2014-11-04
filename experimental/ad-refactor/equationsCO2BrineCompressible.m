@@ -186,7 +186,6 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, fluid, s, bc, p, h, slope, slopedi
     nc    = numel(cells);
 
     %assert(numel(unique(cells)) == numel(cells)); % only support one bc per 
-
     % prepare boundary-cell-specific values (first: face values, then: cell values)
     bh  = repmat(h(cells),    2, 1)  ;  bH  = repmat(Gt.cells.H(cells), 2, 1);
     brC = repmat(rhoC(cells), 2, 1)  ;  brB = repmat(rhoB(cells),       2, 1);
@@ -212,7 +211,7 @@ function [cells, fluxC, fluxB] = BCFluxes(Gt, fluid, s, bc, p, h, slope, slopedi
 
     % Computing the modification term (ignoring caprock shape at boundary,
     % since we cannot really know that...)
-    mterm = norm(gravity) * sin(slope) * bv;
+    mterm = (bh(1:nc) - bh(nc+1:2*nc)) + norm(gravity) * sin(slope) * bv;
 
     % Manually setting up the relevant discretization operators for the boundary
     avg      = @(x)    bcond_average(x, nc);
