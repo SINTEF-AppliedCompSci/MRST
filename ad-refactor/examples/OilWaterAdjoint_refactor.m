@@ -6,8 +6,7 @@
 mrstModule add deckformat ad-fi ad-refactor
 
 current_dir = fileparts(mfilename('fullpath'));
-fn    = fullfile(current_dir, 'simple10x1x10.data');
-deck = readEclipseDeck(fn);
+deck = readEclipseDeck(fullfile(current_dir, 'simple10x1x10.data'));
 
 % Convert to MRST units (SI)
 deck = convertDeckUnits(deck);

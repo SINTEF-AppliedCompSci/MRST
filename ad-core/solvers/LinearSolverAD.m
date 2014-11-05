@@ -130,5 +130,56 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            % For overloading when for example calling multigrid solvers as
            % a preconditioner
        end
+       
+        function [dx, result, report] = solveCellReducedLinearProblem(solver, problem, model)
+            % Reduce a problem to cell-variables, solve and then recover
+            % the eliminated variables afterwards.
+            
+            % Eliminate the non-cell variables
+            isCell = problem.indexOfType('cell');
+            cellIndex = find(isCell);
+            cellEqNo = numel(cellIndex);
+            
+            % Find number of "cell" like variables
+            nP = numel(problem);
+            
+            % Eliminate non-cell variables (well equations etc)
+            problem = problem.clearSystem();
+            
+            notCellIndex = find(~isCell);
+            
+            eliminated = cell(numel(notCellIndex), 1);
+            elimNames = problem.equationNames(notCellIndex);
+            
+            for i = 1:numel(notCellIndex)
+                [problem, eliminated{i}] = problem.eliminateVariable(elimNames{i});
+            end
+            % Solve a linearized problem
+            problem = problem.assembleSystem();
+            
+            timer = tic();
+            [result, report] = solver.solveLinearSystem(problem.A, problem.b);
+            report.SolverTime = toc(timer);
+            
+            dxCell = solver.storeIncrements(problem, result);
+            
+            % Set up storage for all variables, including those we
+            % eliminated previously
+            dx = cell(nP, 1);
+            
+            % Recover non-cell variables
+            recovered = false(nP, 1);
+            recovered(cellIndex) = true;
+            
+            % Put the recovered variables into place
+            dx(recovered) = dxCell;
+            
+            for i = numel(eliminated):-1:1
+                pos = notCellIndex(i);
+                dVal = recoverVars(eliminated{i}, cellEqNo + 1, dx(recovered));
+                dx{pos} = dVal;
+                recovered(pos) = true;
+            end
+        end
    end
 end

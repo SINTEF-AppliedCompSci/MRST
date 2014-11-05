@@ -1,7 +1,7 @@
 %% Read case from file
 % SPE1 model
 
-mrstModule add deckformat gridtools ad-fi
+mrstModule add deckformat ad-fi
 
 % Read and process file.
 current_dir = fileparts(mfilename('fullpath'));

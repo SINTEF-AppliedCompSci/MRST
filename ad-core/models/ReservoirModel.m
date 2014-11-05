@@ -468,6 +468,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             krG = f.krG(sg, varargin{:});
             krW = f.krW(sw, varargin{:});
         end
+        
+        function ds = adjustStepFromSatBounds(s, ds)
+            % Ensure that cellwise increment for each phase is done with
+            % the same length, in a manner that avoids saturation
+            % violations.
+            tmp = s + ds;
+            
+            violateUpper =     max(tmp - 1, 0);
+            violateLower = abs(min(tmp    , 0));
+            
+            violate = max(violateUpper, violateLower);
+            
+            [worst, jj]= max(violate, [], 2);
+            
+            bad = worst > 0;
+            if any(bad)
+                w = ones(size(s, 1), 1);
+                for i = 1:size(s, 2)
+                    ind = bad & jj == i;
+                    dworst = abs(ds(ind, i));
+                    
+                    w(ind) = (dworst - worst(ind))./dworst;
+                end
+                ds(bad, :) = bsxfun(@times, ds(bad, :), w(bad, :));
+            end
+        end
     end
 end
 
