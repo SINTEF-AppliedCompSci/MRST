@@ -396,7 +396,7 @@ function [tit, d, yl] = getWellUnit(d, fld, usys)
             end
         case {'bhp', 'pressure'}
             tit = [fld, ': Bottom hole pressure'];
-            if isMetric
+            if ~isMetric
                 yl = 'Pascal';
             else
                 yl = 'Barsa';
@@ -420,7 +420,7 @@ function [tit, d, yl] = getWellUnit(d, fld, usys)
             tit = [fld, ': Well control value'];
         case 'cdp'
             tit = [fld, ': Pressure drop from reference depth to first perforation'];
-            if isMetric
+            if ~isMetric
                 yl = 'Pascal';
             else
                 yl = 'Barsa';
