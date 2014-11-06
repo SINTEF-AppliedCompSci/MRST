@@ -151,7 +151,7 @@ for i = 1:numel(csubs)
         ref = solutions{ci, aj}.ref;
         
         % Plot multiscale pressure
-        figure(h1);
+        set(0, 'CurrentFigure', h1);
         subplot(numel(csubs), numel(asubs), i + (j-1)*numel(csubs))
         plotCellData(G, ms)
         axis tight off
@@ -159,13 +159,13 @@ for i = 1:numel(csubs)
         
         caxis([min(ref), max(ref)])
         
-        figure(h2);
+        set(0, 'CurrentFigure', h2);
         subplot(numel(csubs), numel(asubs), i + (j-1)*numel(csubs))
         plotCellData(G, ref)
         axis tight off
         title(['Reference pressure: Contrast ', num2str(contrasts(ci)), ' aspect ', num2str(aspects(aj))])
 
-        figure(h3);
+        set(0, 'CurrentFigure', h3);
         subplot(numel(csubs), numel(asubs), i + (j-1)*numel(csubs))
         plotCellData(G, abs(ms - ref)./ref)
         axis tight off
