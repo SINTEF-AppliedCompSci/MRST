@@ -25,7 +25,7 @@ end
 
 current_dir = fileparts(mfilename('fullpath'));
 getDeck     = @(fn) ...
-   converDeckUnits(readEclipseDeck(fullfile(current_dir, fn)));
+   convertDeckUnits(readEclipseDeck(fullfile(current_dir, fn)));
 
 deck_training = getDeck('training.data');
 deck_problem  = getDeck('problem.data' );
