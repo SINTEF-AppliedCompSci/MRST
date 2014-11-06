@@ -20,9 +20,9 @@ function plotCoarseningStep(p, G, I1, I2, L, U, no, flag)
 clf
 subplot(2,3,[1 4]),
 if nargin<8
-   plotCellData(G, mod(p, 17));
+   plotCellData(G, mod(p, 17), 'EdgeColor', 'none');
 else
-   plotCellData(G, I2,'FaceAlpha',.5);
+   plotCellData(G, I2,'FaceAlpha',.5, 'EdgeColor', 'none');
    h=outlineCoarseGrid(G, p);
 end
 view(2), axis tight off;

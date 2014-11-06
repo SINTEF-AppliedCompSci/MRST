@@ -31,7 +31,7 @@ DG = partitionUIdual(CG, Cdims);
 im = double(imread('perm_mono.gif'))';
 
 clf;
-plotCellData(G, im(:))
+plotCellData(G, im(:), 'EdgeColor', 'none')
 view(0, 90)
 axis tight
 title('Permeability dataset with coarse grids')
@@ -153,7 +153,7 @@ for i = 1:numel(csubs)
         % Plot multiscale pressure
         set(0, 'CurrentFigure', h1);
         subplot(numel(csubs), numel(asubs), i + (j-1)*numel(csubs))
-        plotCellData(G, ms)
+        plotCellData(G, ms, 'EdgeColor', 'none')
         axis tight off
         title(['MS pressure: Contrast ', num2str(contrasts(ci)), ' aspect ', num2str(aspects(aj)), ' error: ', num2str(errors(ci, aj))])
         
@@ -161,13 +161,13 @@ for i = 1:numel(csubs)
         
         set(0, 'CurrentFigure', h2);
         subplot(numel(csubs), numel(asubs), i + (j-1)*numel(csubs))
-        plotCellData(G, ref)
+        plotCellData(G, ref, 'EdgeColor', 'none')
         axis tight off
         title(['Reference pressure: Contrast ', num2str(contrasts(ci)), ' aspect ', num2str(aspects(aj))])
 
         set(0, 'CurrentFigure', h3);
         subplot(numel(csubs), numel(asubs), i + (j-1)*numel(csubs))
-        plotCellData(G, abs(ms - ref)./ref)
+        plotCellData(G, abs(ms - ref)./ref, 'EdgeColor', 'none')
         axis tight off
         colorbar
         title(['Error in multiscale: Contrast ', num2str(contrasts(ci)), ' aspect ', num2str(aspects(aj)), ' error: ', num2str(errors(ci, aj))])

@@ -151,11 +151,11 @@ plotCoarseningStep(pC, G, rock.poro, iVel, NL, NU, 4, 1);
 % high-flow and low-flow regions
 clf,
 subplot(1,3,1)
-plotCellData(G,log10(rock.perm)); axis tight off
+plotCellData(G,log10(rock.perm),'EdgeColor','none'); axis tight off
 
 subplot(1,3,2)
 mrstModule add streamlines
-plotCellData(G,rSol.pressure,'FaceAlpha',.5);
+plotCellData(G,rSol.pressure,'FaceAlpha',.5,'EdgeColor','none');
 nx = G.cartDims(1);
 cells = [...
    (-nx/6:nx/6) + W(5).cells - 4*nx, (-nx/6:nx/6) + W(5).cells + 4*nx, ...
@@ -169,4 +169,5 @@ rSol.flux = -rSol.flux;
 plotWell(G,W); axis tight off
 
 subplot(1,3,3)
-plotCellData(G,iVel); outlineCoarseGrid(G, p); axis tight off
+plotCellData(G,iVel,'EdgeColor','none')
+outlineCoarseGrid(G, p); axis tight off

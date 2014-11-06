@@ -240,21 +240,21 @@ for i = 1:param.nPres,
       % Plotting of saturations
       clf
       axes('position',[.04 .35 .2 .6])
-      plotCellData(G, rf.s), axis equal tight off
+      plotCellData(G, rf.s, 'EdgeColor', 'none'), axis equal tight off
       title(sprintf('Fine: %d cells', G.cells.num));
 
       axes('position',[.28 .35 .2 .6])
-      plotCellData(G, rc.s), axis equal tight off
+      plotCellData(G, rc.s, 'EdgeColor', 'none'), axis equal tight off
       outlineCoarseGrid(G, CG.partition, 'EdgeColor', 'w', 'EdgeAlpha', 0.3);
       title(sprintf('Coarse: %d blocks', CG.cells.num));
 
       axes('position',[.52 .35 .2 .6])
-      plotCellData(G, ra1.s), axis equal tight off
+      plotCellData(G, ra1.s, 'EdgeColor', 'none'), axis equal tight off
       outlineCoarseGrid(G, aG1.partition, 'EdgeColor', 'w', 'EdgeAlpha', 0.3);
       title(sprintf('Adaptive #1: %d blocks', aG1.cells.num))
 
       axes('position',[.76 .35 .2 .6])
-      plotCellData(G, ra2.s), axis equal tight off
+      plotCellData(G, ra2.s, 'EdgeColor', 'none'), axis equal tight off
       outlineCoarseGrid(G, aG2.partition, 'EdgeColor', 'w', 'EdgeAlpha', 0.3);
       title(sprintf('Adaptive #2: %d blocks', aG2.cells.num));
 

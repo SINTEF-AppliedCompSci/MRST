@@ -55,18 +55,18 @@ rS = incompMimetic(rS, G, S, fluid, 'wells', W);
 % For all indicators, we perform a logarithmic scaling
 clf
 iK = log10(rock.perm(:,1)); iK = iK - min(iK) + 1;
-subplot(1,3,1); plotCellData(G,iK); axis tight off
+subplot(1,3,1); plotCellData(G,iK,'EdgeColor','none'); axis tight off
 title('Permeability')
 
 v  = faceFlux2cellVelocity(G, rS.flux); v  = sqrt(sum(v .^ 2, 2));
 iV = log10(v); iV = iV - min(iV) + 1;
-subplot(1,3,2); plotCellData(G,iV); axis tight off;
+subplot(1,3,2); plotCellData(G,iV,'EdgeColor','none'); axis tight off;
 title('Velocity')
 
 T  = computeTimeOfFlight(rS, G, rock, 'wells', W);
 Tr = computeTimeOfFlight(rS, G, rock, 'wells', W, 'reverse', true);
 iT = -log10(T.*Tr); iT = iT - min(iT) + 1;
-subplot(1,3,3); plotCellData(G,iT); axis tight off;
+subplot(1,3,3); plotCellData(G,iT,'EdgeColor','none'); axis tight off;
 title('Time-of-flight')
 
 %% Uniform Refinement of High-Flow Zones
@@ -109,7 +109,8 @@ for i=1:3
    p = mergeBlocks2(p, G, rock.poro, I(:,i), NL, NU);
    p = refineGreedy2(p, G, I(:,i), NU);
    p = mergeBlocks2(p, G, rock.poro, I(:,i), NL, NU);
-   subplot(1,3,i), plotCellData(G, I(:,i)), outlineCoarseGrid(G,p);
+   subplot(1,3,i), plotCellData(G, I(:,i), 'EdgeColor', 'none')
+   outlineCoarseGrid(G,p);
    axis tight off, title(sprintf('%d blocks', max(p)));
 end
 
@@ -124,7 +125,8 @@ for i=1:2
    p = mergeBlocks(p, G, rock.poro, iV, NL);
    p = refineGreedy2(p, G, iV, NU, 'nlevel',i);
    p = mergeBlocks(p, G, rock.poro, iV, NL);
-   subplot(1,2,i), plotCellData(G, iV), outlineCoarseGrid(G,p);
+   subplot(1,2,i), plotCellData(G, iV, 'EdgeColor', 'none')
+   outlineCoarseGrid(G,p);
    axis tight off, title(sprintf('%d-neighbour: %d blocks', 2^(i+1)+1, max(p)));
 end
 %%
@@ -139,6 +141,7 @@ for i=1:3
    p = mergeBlocks2(p, G, rock.poro, I(:,i), NL, NU);
    p = refineUniformShape(p, G, I(:,i), NU, 'CartDims',[2,2,1]);
    p = mergeBlocks2(p, G, rock.poro, I(:,i), NL, NU);
-   subplot(1,3,i), plotCellData(G, I(:,i)), outlineCoarseGrid(G,p);
+   subplot(1,3,i), plotCellData(G, I(:,i), 'EdgeColor', 'none')
+   outlineCoarseGrid(G,p);
    axis tight off, title(sprintf('%d blocks', max(p)));
 end

@@ -83,9 +83,11 @@ clear f k;
 
 clf,
 subplot(2,2,1)
-plotCellData(G, facies), axis equal tight, title('Facies')
+plotCellData(G, facies, 'EdgeColor', 'none')
+axis equal tight, title('Facies')
 subplot(2,2,2)
-plotCellData(G,log10(rock.perm)), axis equal tight, title('log10(K)')
+plotCellData(G,log10(rock.perm),'EdgeColor','none')
+axis equal tight, title('log10(K)')
 
 
 %%
@@ -97,9 +99,11 @@ p       = processPartition(G, p);
 [b,  p] = findConfinedBlocks(G, p);
 
 subplot(2,2,3), cla
-plotCellData(G,facies), axis equal tight, title('Partition');
+plotCellData(G,facies,'EdgeColor','none')
+axis equal tight, title('Partition');
 h=outlineCoarseGrid(G,p,'w'); set(h,'LineWidth',1);
 
 subplot(2,2,4), cla
-plotCellData(G,facies), axis equal tight, title('Details of partition');
+plotCellData(G,facies,'EdgeColor','none')
+axis equal tight, title('Details of partition');
 outlineCoarseGrid(G,p,'w'); axis([130 300 320 490])

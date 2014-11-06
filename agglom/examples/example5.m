@@ -51,12 +51,18 @@ p1 = segmentIndicator(G, iV, 4);
 pS = partitionUI(G, [3,6,1]);
 [b, i, p] = unique([pS, p1], 'rows'); %#ok<*ASGLU>
 p  = processPartition(G, p);
+
 subplot(1,3,1), title('Segmented')
-plotCellData(G,iV), outlineCoarseGrid(G,p1); axis equal tight off
+plotCellData(G,iV,'EdgeColor','none')
+outlineCoarseGrid(G,p1); axis equal tight off
+
 subplot(1,3,2), title('Static')
-plotCellData(G,iV), outlineCoarseGrid(G,pS); axis equal tight off
+plotCellData(G,iV,'EdgeColor','none')
+outlineCoarseGrid(G,pS); axis equal tight off
+
 subplot(1,3,3), title('Combined')
-plotCellData(G,iV), outlineCoarseGrid(G,p); axis equal tight off
+plotCellData(G,iV,'EdgeColor','none')
+outlineCoarseGrid(G,p); axis equal tight off
 
 %%
 % If the _a priori_ partitioning should be preserved throughout
@@ -71,12 +77,12 @@ p2 = mergeBlocks(p, G, iV, iV, 30, 'static_partition', pS);
 % preserved in |p2|.
 clf;
 subplot(1,2,1);
-plotCellData(G, iV);
+plotCellData(G, iV, 'EdgeColor', 'none');
 h1 = outlineCoarseGrid(G, p1); axis equal tight off;
 title('Without preserved partitioning');
 
 subplot(1,2,2);
-plotCellData(G, iV);
+plotCellData(G, iV, 'EdgeColor', 'none');
 outlineCoarseGrid(G, pS,'EdgeColor',[.8 .8 .8],'LineWidth',4);
 h2 = outlineCoarseGrid(G, p2); axis equal tight off;
 title('With preserved static partitioning');
@@ -119,7 +125,7 @@ p = refineGreedy3(p, G, iT, NU);
 p = mergeBlocks(p, G, rock.poro, iT, NL);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,1)
-plotCellData(G, iT), outlineCoarseGrid(G,p);
+plotCellData(G, iT, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
 axis tight off, title(sprintf('TOF:\n%d blocks', max(p)));
 
 p = mergeBlocks(pt, G, rock.poro, iT, NL);
@@ -127,7 +133,7 @@ p = refineUniformShape(p, G, iT, NU, 'fixPart', pu);
 p = mergeBlocks(p, G, rock.poro, iT, 0.75*NL);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,2)
-plotCellData(G, iT), outlineCoarseGrid(G,p);
+plotCellData(G, iT, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
 axis tight off, title(sprintf('Hybrid TOF:\n%d blocks', max(p)));
 
 pv = segmentIndicator(G, iV, 10);
@@ -136,7 +142,7 @@ p = refineGreedy3(p, G, iT, NU);
 p = mergeBlocks(p, G, rock.poro, iT, NL);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,3)
-plotCellData(G, iV), outlineCoarseGrid(G,p);
+plotCellData(G, iV, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
 axis tight off, title(sprintf('Vel:\n%d blocks', max(p)));
 
 ps = partitionUI(G, [6 22 1]);
@@ -147,7 +153,7 @@ p = refineGreedy3(p, G, iV, NU);
 p = mergeBlocks(p, G, rock.poro, iV, NL, 'static_partition', ps);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,4)
-plotCellData(G, iV), outlineCoarseGrid(G,p);
+plotCellData(G, iV, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
 axis tight off, title(sprintf('Hybrid vel:\n%d blocks', max(p)));
 
 %%
