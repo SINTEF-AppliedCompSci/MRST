@@ -1,4 +1,4 @@
-mrstModule add ad-blackoil ad-core mrst-gui
+mrstModule add ad-blackoil ad-core mrst-gui ad-unittest
 [schedule, model, state0] = getBenchmarkAD('spe3');
 G    = model.G;
 rock = model.rock;
