@@ -47,21 +47,6 @@ rv0 = 0;
 state = struct('s', s0, 'rs', rs0, 'rv', rv0, 'pressure', p0);
 clear k p0 s0 rs0
 
-%% Plot well and permeability
-% To appreciate the heterogeneity of the reservoir, toggle the log button
-% in the toolbar in the figure.
-
-figure(1)
-clf
-W = processWells(G, rock, deck.SCHEDULE.control(1));
-plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
-            'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
-plotWell(G, W, 'fontsize', 10, 'linewidth', 1);
-title('Permeability (mD)')
-axis tight;
-view(35, 40);
-colorbar('SouthOutside');
-
 %% Set up the schedule
 % There are three control periods and the controls change after 300 and 360
 % days. However, well control can switch if the well constraints are not
