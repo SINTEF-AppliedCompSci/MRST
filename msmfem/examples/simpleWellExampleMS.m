@@ -124,13 +124,13 @@ subplot('Position', [0.54 0.52 0.42 0.40]),
    title('Producer inflow profile')
 
 subplot('Position', [0.02 0.02 0.46 0.42]),
-   plotCellData(G, convertTo(xRef.pressure(1:G.cells.num), barsa))
+   plotCellData(G, convertTo(xRef.pressure, barsa), 'EdgeAlpha', 0.125)
    title('Pressure, fine [bar]')
    view(3), camproj perspective, axis tight equal off, camlight headlight
    cax = caxis; colorbar
 
 subplot('Position', [0.52 0.02 0.46 0.42]),
-   plotCellData(G, convertTo(xMs.pressure(1:G.cells.num), barsa));
+   plotCellData(G, convertTo(xMs.pressure, barsa), 'EdgeAlpha', 0.125);
    title('Pressure, coarse [bar]')
    view(3), camproj perspective, axis tight equal off, camlight headlight
    caxis(cax); colorbar

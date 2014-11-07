@@ -160,7 +160,7 @@ disp(['DeltaP - Ms overlap:    ', dp(xMs1)])
 %% Plot solution
 cellNo    = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .';
 diverg    = @(v) accumarray(cellNo, abs(convertTo(v, meter^3/day)));
-plot_flux = @(v) plotCellData(G, diverg(v));
+plot_flux = @(v) plotCellData(G, diverg(v), 'EdgeAlpha', 0.125);
 well_bas  = @(w) S.BI * sparse(w.CS.basis{1}{1}, 1, w.CS.basis{1}{3}, ...
                                size(G.cells.faces,1), 1);
 figure;

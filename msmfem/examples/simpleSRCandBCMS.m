@@ -89,7 +89,7 @@ xMs  = solveIncompFlowMS(initResSol(G, 0.0), G, CG, p, S, CS, fluid,  ...
 %% Plot solution
 clf,
 cellNo  = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
-plot_var  = @(x) plotCellData(G, x);
+plot_var  = @(x) plotCellData(G, x, 'EdgeAlpha', 0.125);
 plot_pres = @(x) plot_var(convertTo(x.pressure(1:G.cells.num), barsa()));
 plot_flux = @(x) plot_var(log10(accumarray(cellNo, ...
    abs(convertTo(faceFlux2cellFlux(G, x.flux), meter^3/day)))));

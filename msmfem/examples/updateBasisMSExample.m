@@ -140,11 +140,10 @@ while t < T,
    xRef = incompMimetic    (xRef, G, S, fluid, 'wells', W);
    xMs  = solveIncompFlowMS(xMs , G, CG, p, S, CS, fluid, 'wells', W);
 
-   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   %% Check if we need to update basis functions
+   % Check if we need to update basis functions
    mob = totmob(xMs.s);
-   [CS, faces] = updateBasisFunc(S, CS, G, CG, rock, mob, 'mobOld', mobOld, ...
-                                 'mobTol', 0);
+   [CS, faces] = updateBasisFunc(S, CS, G, CG, rock, mob, ...
+                                 'mobOld', mobOld, 'mobTol', 0);
 
    % find which blocks have been updated (use for ploting)
    updateBlocks = false([CG.cells.num + 1, 1]);
@@ -165,31 +164,30 @@ while t < T,
 
    subplot(2, 1, 1),
    cla
-   %plotCellData(G, xRef.s(:,1))
-   plotGrid(G, 'faceColor', 'none');
-   plotCellData(G, mod(CG.partition(fineCells), 3), find(fineCells));% view(3)
-   view(3), axis equal off, title([he])
+   plotGrid(G, 'faceColor', 'none', 'EdgeAlpha', 0.125);
+   plotCellData(G, mod(CG.partition(fineCells), 3), ...
+                find(fineCells), 'EdgeAlpha', 0.125);
+   view(3), axis equal off, title(he)
+
    subplot(2, 1, 2),
    cla
-   plotCellData(G, xMs.s(:,1));
-   view(3), axis equal off, title([hi heading])
-   drawnow
+   plotCellData(G, xMs.s(:,1), 'EdgeAlpha', 0.125);
+   view(3), axis equal off, title([hi, heading])
 
-   %plotNo = plotNo+1;
+   drawnow
 end
 
-%% Compare multiscale saturation against fine scale
-%% plot output
+%% Compare multiscale saturation against fine scale plot output
 f = figure;
 
 subplot(2,1,1)
-   plotCellData(G, xRef.s(:,1));
+   plotCellData(G, xRef.s(:,1), 'EdgeAlpha', 0.125);
    title('Saturation Fine')
    view(3), camproj perspective, axis tight equal, camlight headlight
    caxis([0 1]); colorbar
 
 subplot(2,1,2)
-   plotCellData(G, xMs.s(:,1));
+   plotCellData(G, xMs.s(:,1), 'EdgeAlpha', 0.125);
    title('Saturation Coarse')
    view(3), camproj perspective, axis tight equal, camlight headlight
    caxis([0 1]); colorbar
