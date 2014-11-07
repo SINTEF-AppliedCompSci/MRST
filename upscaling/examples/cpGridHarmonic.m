@@ -66,4 +66,4 @@ h=get(gca,'Children');
 set(h(1),'FaceColor',[0 0 0.4])
 set(h(2),'FaceColor',[0.7 0 0],'FaceAlpha',.4)
 legend('original','upscaled');
-title('permeability histogram'); xlabel('mD');
+title('permeability histogram'); xlabel('mD')
