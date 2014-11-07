@@ -147,9 +147,10 @@ while t < T,
                                  'mobTol', 0);
 
    % find which blocks have been updated (use for ploting)
-   updateBlocks = unique(reshape(CG.faces.neighbors(faces, :), [], 1));
-   updateBlocks = updateBlocks(updateBlocks>0);
-   fineCells = ismember(CG.partition, updateBlocks);
+   updateBlocks = false([CG.cells.num + 1, 1]);
+   updateBlocks(CG.faces.neighbors(faces, :) + 1) = true;
+   updateBlocs(1) = false;
+   fineCells = updateBlocks(CG.partition + 1);
 
    % Measure water saturation in production cells in saturation
    e = [e; sum(abs(xRef.s(:,1) - xMs.s(:,1)).*pv)/sum(pv)]; %#ok
