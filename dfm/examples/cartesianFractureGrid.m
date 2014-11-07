@@ -77,8 +77,8 @@ T = computeTrans_DFM(G,rock,'hybrid',true);
 
 wellRate = 1;
 % Injection well in lower left corner, production in upper right
-W = addWell([],G,rock,1,'type','rate','val',wellRate,'comp_i',[1 0]);
-W = addWell(W,G,rock,prod(Nx),'type','rate','val',-wellRate,'comp_i',[0 1]);
+W = addWell([],G,rock,1,'type','rate','val',wellRate,'comp_i',[1 0],'InnerProduct','ip_tpf');
+W = addWell(W,G,rock,prod(Nx),'type','rate','val',-wellRate,'comp_i',[0 1],'InnerProduct','ip_tpf');
 
 state = initState(G,W,0,[0 1]);
 

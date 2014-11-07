@@ -53,10 +53,10 @@ objectiveFunction = str2func('simpleNPV');
 
 % Introduce wells
 radius = .1;
-W = addWell([], G, rock, 1         , 'Type', 'bhp' , 'Val',  100*barsa, 'Radius', radius, 'Name', 'i1', 'Comp_i', [1, 0]);
-W = addWell( W, G, rock, nx        , 'Type', 'rate', 'Val',  -.5/day  , 'Radius', radius, 'Name', 'p1', 'Comp_i', [0, 1]);
-W = addWell( W, G, rock, nx*ny-nx+1, 'Type', 'rate', 'Val',  -.5/day  , 'Radius', radius, 'Name', 'p3', 'Comp_i', [0, 1]);
-W = addWell( W, G, rock, nx*ny     , 'Type', 'rate', 'Val',  -.5/day  , 'Radius', radius, 'Name', 'p3', 'Comp_i', [0, 1]);
+W = addWell([], G, rock, 1         , 'Type', 'bhp' , 'Val',  100*barsa, 'Radius', radius, 'Name', 'i1', 'Comp_i', [1, 0], 'InnerProduct', 'ip_tpf');
+W = addWell( W, G, rock, nx        , 'Type', 'rate', 'Val',  -.5/day  , 'Radius', radius, 'Name', 'p1', 'Comp_i', [0, 1], 'InnerProduct', 'ip_tpf');
+W = addWell( W, G, rock, nx*ny-nx+1, 'Type', 'rate', 'Val',  -.5/day  , 'Radius', radius, 'Name', 'p3', 'Comp_i', [0, 1], 'InnerProduct', 'ip_tpf');
+W = addWell( W, G, rock, nx*ny     , 'Type', 'rate', 'Val',  -.5/day  , 'Radius', radius, 'Name', 'p3', 'Comp_i', [0, 1], 'InnerProduct', 'ip_tpf');
 
 W = assembleWellSystem(G, W, 'Type', 'comp_hybrid');
 

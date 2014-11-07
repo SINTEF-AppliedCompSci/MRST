@@ -56,7 +56,7 @@ posInj  = round(pos);
 for k = 1:nInj
     nm = ['inj', num2str(k)];
     W = addWell(W, G, rock, 1+(posInj(k)-1)*nx, 'Type', 'rate' , 'Val', (1/nInj)*totVol/totTime, ...
-                'Radius', radius, 'Name', nm, 'Comp_i', [1, 0], 'Sign', 1);
+                'Radius', radius, 'Name', nm, 'Comp_i', [1, 0], 'Sign', 1, 'InnerProduct', 'ip_tpf');
 end
 % Producers along right side:
 nProd = 5; % >1
@@ -65,7 +65,7 @@ posProd  = round(pos);
 for k = 1:nProd
     nm = ['prod', num2str(k)];
     W = addWell(W, G, rock, nx+(posProd(k)-1)*nx, 'Type', 'rate' , 'Val', -(1/nProd)*totVol/totTime, ...
-                'Radius', radius, 'Name', nm, 'Comp_i', [1, 0], 'Sign', -1);
+                'Radius', radius, 'Name', nm, 'Comp_i', [1, 0], 'Sign', -1, 'InnerProduct', 'ip_simple');
 end
 
 % System components -------------------------------------------------------
