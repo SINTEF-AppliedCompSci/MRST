@@ -664,7 +664,7 @@ function replotPatch(varargin)
             delete(ph);
             ph = ph2;
         else
-            ph = plotCellData(G, d, subset, varargin{:});
+            ph = plotCellData(G, d, subset, 'EdgeColor', 'none', varargin{:});
         end
     end
 
