@@ -33,13 +33,20 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
    properties
+       % Internal book-keeping variable
        setupDone
+       % Will reuse the setup phase to improve speed for e.g. a GMRES loop
+       % with the same matrix system. However, some systems report
+       % segfaults with this option enabled.
+       reuseSetup
    end
    methods
        function solver = AGMGSolverAD(varargin)
             require agmg
-            solver = solver@LinearSolverAD(varargin{:});
+            solver = solver@LinearSolverAD();
             solver.setupDone = false;
+            solver.reuseSetup = false;
+            solver = merge_options(solver, varargin{:});
        end
        
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
@@ -64,8 +71,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                cleanAfter = true;
            end
            % Solve the linear system to a given tolerance
-           [result, flag, relres, iter, resvec] = agmg(A, b, [],...
-                        solver.tolerance, solver.maxIterations, [], [], 2);
+           if solver.reuseSetup
+               fn = @(A, b) agmg(A, b, [], solver.tolerance, ...
+                                    solver.maxIterations, [], [], 1);
+           else
+               fn = @(A, b) agmg(A, b, [], solver.tolerance, ...
+                                    solver.maxIterations);
+           end
+           [result, flag, relres, iter, resvec] = fn(A, b);
            report = struct('Converged', flag < 1, ...
                            'RelativeResidual', relres, ...
                            'Iterations',   iter);
@@ -80,14 +93,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        
        function solver = setupSolver(solver, A, b, varargin) %#ok 
            % Run setup on a solver for a given system
-           agmg(A,[],[],[],[],[],[], 1);
-           solver.setupDone = true;
+           if solver.reuseSetup
+               agmg(A,[],[],[],[],[],[], 1);
+               solver.setupDone = true;
+           end
        end
        
        function  solver = cleanupSolver(solver, A, b, varargin) %#ok 
            % Clean up solver after use (if needed)
-           agmg(A,[],[],[],[],[],[], -1);
-           solver.setupDone = false;
+           if solver.reuseSetup
+               agmg(A,[],[],[],[],[],[], -1);
+               solver.setupDone = false;
+           end
        end
    end
 end
