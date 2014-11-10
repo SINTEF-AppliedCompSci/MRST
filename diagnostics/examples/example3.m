@@ -6,7 +6,7 @@
 % producers at each of the four corners.
 
 %% Set up fine-scale problem
-mrstModule add spe10 coarsegrid
+mrstModule add diagnostics spe10 coarsegrid
 fprintf(1,'Setting up fine-scale problem ...');
 cartDims = [  60,  220, 15];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
