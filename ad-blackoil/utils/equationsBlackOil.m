@@ -94,6 +94,7 @@ end
 
 % Gravity contribution, assert that it is aligned with z-dir
 grav = gravity();
+grav = grav(1:G.griddim);
 %assert(grav(1) == 0 && grav(2) == 0);
 %g  = norm(grav);
 %dz = s.Grad(G.cells.centroids(:,3));
