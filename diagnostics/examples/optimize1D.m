@@ -41,12 +41,18 @@ rock.perm = ones(G.cells.num, 1);
 
 W = [];
 % Left injector
-W = verticalWell(W, G, rock, 1, 1, [], 'Val', 1/day, 'Type', 'rate', 'Name', 'Injector 1', 'InnerProduct', 'ip_tpf');
-% Right injnector
-W = verticalWell(W, G, rock, N, 1, [], 'Val', 1/day, 'Type', 'rate', 'Name', 'Injector 2', 'InnerProduct', 'ip_tpf');
-% Add producer with zero bottom hole pressure for pressure support
-W = verticalWell(W, G, rock, mid, 1, [], 'Val', 0, 'Type', 'bhp', 'Name', 'Producer', 'InnerProduct', 'ip_tpf');
+W = verticalWell(W, G, rock, 1, 1, [], 'Val', 1*meter^3/day, ...
+                 'Type', 'rate', 'Name', 'Injector 1', ...
+                 'InnerProduct', 'ip_tpf');
 
+% Right injector
+W = verticalWell(W, G, rock, N, 1, [], 'Val', 1*meter^3/day, ...
+                 'Type', 'rate', 'Name', 'Injector 2', ...
+                 'InnerProduct', 'ip_tpf');
+
+% Add producer with zero bottom hole pressure for pressure support
+W = verticalWell(W, G, rock, mid, 1, [], 'Val', 0, 'Type', 'bhp', ...
+                 'Name', 'Producer', 'InnerProduct', 'ip_tpf');
 
 T = computeTrans(G, rock);
 pv = poreVolume(G, rock);
@@ -87,14 +93,13 @@ grid on
 ylim([0, 1.1])
 hold on
 colors = {'r', 'g', 'b'};
-l = {'Porosity'};
 % Plot each well
 for i = 1:numel(W)
     c = W(i).cells(1);
     plot(x(c, 1), rock.poro(c), 'O', 'MarkerEdgeColor', 'k', ...
                     'MarkerFaceColor', colors{i}, 'MarkerSize', 8);
-    l = [l; W(i).name];
 end
+l = {'Porosity', W.name };
 legend(l, 'location', 'southeast')
 title('Porosity and well placements')
 ylabel('Porosity')
