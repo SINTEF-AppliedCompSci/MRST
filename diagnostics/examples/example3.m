@@ -6,7 +6,13 @@
 % producers at each of the four corners.
 
 %% Set up fine-scale problem
-mrstModule add diagnostics spe10 coarsegrid
+mrstModule add diagnostics spe10 coarsegrid AGMG
+
+if ~exist('agmg', 'file') || ...
+      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,
+   error('This example requires the AGMG linear solver package');
+end
+
 fprintf(1,'Setting up fine-scale problem ...');
 cartDims = [  60,  220, 15];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
@@ -33,7 +39,6 @@ fprintf(1,'done\n');
 
 %% Solve flow problem and compute flow diagnostics
 fprintf(1,'Solving fine-scale problem ...');
-mrstModule('add', fullfile(ROOTDIR, 'mex', 'AGMG'))
 rS = initState(G, W, 0);
 T  = computeTrans(G, rock);
 rS = incompTPFA(rS, G, T, fluid, 'wells', W, 'LinSolve', @(A,b) agmg(A,b,1));
