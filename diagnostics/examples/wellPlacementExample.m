@@ -38,17 +38,11 @@ Ny = 60;
 Nz = 1;
 
 switch lower(rocktype)
-    case 'ness'
-        offset = 65;
-        uniformRock = false;
-    case 'tarbert'
-        offset = 0;
-        uniformRock = false;
-    case 'uniform'
-        offset = 0;
-        uniformRock = true;
-    otherwise
-        error('Unknown setup!')
+   case 'ness',    [offset, uniformRock] = deal(65, false);
+   case 'tarbert', [offset, uniformRock] = deal(0 , false);
+   case 'uniform', [offset, uniformRock] = deal(0 , true );
+   otherwise
+      error('Unknown setup!')
 end
 
 if uniformRock
@@ -66,14 +60,14 @@ end
 
 % Grid setup
 dims = [Nx, Ny, Nz];
-pdims = dims.*[20 10 2].*ft();
+pdims = dims.*[20, 10, 2].*ft();
 
 G = cartGrid(dims, pdims);
 G = computeGeometry(G);
 % Rock setup
 if uniformRock
-    rock.poro = 0.3*ones(G.cells.num, 1);
-    rock.perm = 100*milli*darcy*ones(G.cells.num, 1);
+    rock.poro = repmat(0.3,             [G.cells.num, 1]);
+    rock.perm = repmat(100*milli*darcy, [G.cells.num, 1]);
 else
     rock = SPE10_rock(1:Nx, 1:Ny, (1:Nz) + offset);
     rock.perm = convertFrom(rock.perm, milli*darcy);
@@ -89,7 +83,8 @@ W_prod = [];
 
 % Inject pore volume over 10 years per injector
 inRate = sum(pv)/(10*year);
-addw =  @(W, i, j, k) verticalWell(W, G, rock, i, j, k, 'Val', inRate, 'Type', 'rate');
+addw =  @(W, i, j, k) verticalWell(W, G, rock, i, j, k, ...
+                                   'Val', inRate, 'Type', 'rate');
 
 midx = ceil(Nx/2);
 midy = ceil(Ny/2);
@@ -107,7 +102,8 @@ for i = -1:2:1
     end
 end
 % Producer
-W_prod = verticalWell(W_prod, G, rock, midx, midy, [], 'Val', 0, 'Type', 'bhp', 'Name', 'Producer');
+W_prod = verticalWell(W_prod, G, rock, midx, midy, [], ...
+                      'Val', 0, 'Type', 'bhp', 'Name', 'Producer');
 
 nw = numel(W);
 % Setup well struct so the first four wells are the injectors, and then the
@@ -119,9 +115,9 @@ W = [W; W_prod];
 state0 = initResSol(G, 0*barsa, [0 1 0]);
 
 % Fluid, ad system
-mu = [1 1 1];
-n = [1 1 1];
-fluid_ad = initSimpleADIFluid('mu', mu*centi*poise, 'n', n);
+mu = [1, 1, 1].*centi*poise;
+n  = [1, 1, 1];
+fluid_ad = initSimpleADIFluid('mu', mu, 'n', n);
 sys = initADISystem({'Oil', 'Water'}, G, rock, fluid_ad);
 
 % Minimum fluid injection is 1/4 of the injection rate. This can be
@@ -130,7 +126,7 @@ minRate = inRate/4;
 
 % Finally, plot everything together
 close all
-plotCellData(G, log10(rock.perm(:, 1)));
+plotCellData(G, log10(rock.perm(:, 1)), 'EdgeAlpha', 0.125);
 plotWell(G, W);
 axis equal tight
 %% Set up objective functions and optimize
@@ -140,22 +136,30 @@ axis equal tight
 % Lorenz coefficient
 objective = getObjectiveDiagnostics(G, rock, 'minlorenz');
 % Function handle for pressure solve
-solvePressure = @(W, varargin) solveStationaryPressure(G, state0, sys, W, fluid_ad, pv, T, 'objective', objective, varargin{:});
+solvePressure = @(W, varargin) ...
+   solveStationaryPressure(G, state0, sys, W, fluid_ad, pv, T, ...
+                           'objective', objective, varargin{:});
 
 [state, D, grad0] = solvePressure(W);
 % Disp initial objective value
 grad0.objective.val
-optWells = @(W, varargin) optimizeWellPlacementDiagnostics(G, W, rock, objective, targets, D, minRate, state0, fluid_ad, pv, T, sys, varargin{:});
-optTOF = @(W, varargin) optimizeTOF(G, W, fluid_ad, pv, T, sys,...
-                         state0, minRate, objective, ...
-                         'targets', targets, ...
-                         'plotProgress', true, varargin{:});
+optWells = @(W, varargin) ...
+   optimizeWellPlacementDiagnostics(G, W, rock, objective, targets, ...
+                                    D, minRate, state0, fluid_ad, pv, ...
+                                    T, sys, varargin{:});
+
+optTOF = @(W, varargin) ...
+   optimizeTOF(G, W, fluid_ad, pv, T, sys,state0, minRate, objective, ...
+               'targets', targets, 'plotProgress', true, varargin{:});
 
 if optimizePlacement
-    [W_opt, wellHistory, optHistory] = optWells(W, 'optimizesubsteps', optimizeSubsteps, 'searchRadius', wradius, 'wellSteps', 1, 'plotProgress', true);
+    [W_opt, wellHistory, optHistory] = ...
+       optWells(W, 'optimizesubsteps', optimizeSubsteps, ...
+                'searchRadius', wradius, 'wellSteps', 1, ...
+                'plotProgress', true);
     [state_o, D_best, grad] = solvePressure(W_opt, 'linsolve', @mldivide);
 else
-    [D_best W_best history] = optTOF(W);
+    [D_best, W_best, history] = optTOF(W);
     wellHistory = [];
 end
 
@@ -170,21 +174,29 @@ if uniformRock
 else
     ec = 'none';
 end
-plotCellData(G, rock.poro, 'FaceAlpha', 1, 'EdgeColor', ec, 'edgea', .1)
+plotCellData(G, rock.poro, 'FaceAlpha', 1, 'EdgeColor', ec, 'EdgeAlpha', 0.1)
 gc = G.cells.centroids;
 colors = {'r', 'g', 'b', 'y'};
 for i = 1:numel(targets)
     v = W(targets(i)).cells;
     for j = 1:numel(wellHistory)
-        v = [v; wellHistory{j}(i).visited];
+        v = [v; wellHistory{j}(i).visited];                     %#ok<AGROW>
     end
-    plot3(gc(v, 1), gc(v, 2), -ones(numel(v), 1), ['o--', colors{i}], 'LineWidth', 2, 'MarkerSize', 10, 'MarkerEdgeColor', 'black', 'MarkerFaceColor', colors{i})
+
+    plot3(gc(v, 1), gc(v, 2), -ones(numel(v), 1), ...
+          ['o--', colors{i}], 'LineWidth', 2, 'MarkerSize', 10, ...
+          'MarkerEdgeColor', 'black', 'MarkerFaceColor', colors{i})
 end
 axis tight equal off
 view(0, 89.9)
 pc = W_opt(end).cells;
-plot3(gc(pc, 1), gc(pc, 2), -ones(numel(v), 1), ['o--', 'w'], 'LineWidth', 2, 'MarkerSize', 10, 'MarkerEdgeColor', 'black', 'MarkerFaceColor', 'w')
-plot3(gc([W_opt.cells], 1), gc([W_opt.cells], 2), -ones(numel([W_opt.cells]), 1), ['X', colors{i}], 'LineWidth', 2, 'MarkerSize', 10, 'MarkerEdgeColor', 'black', 'MarkerFaceColor', colors{i})
+plot3(gc(pc, 1), gc(pc, 2), -ones(numel(v), 1), ['o--', 'w'], ...
+      'LineWidth', 2, 'MarkerSize', 10, 'MarkerEdgeColor', 'black', ...
+      'MarkerFaceColor', 'w')
+plot3(gc([W_opt.cells], 1), gc([W_opt.cells], 2), ...
+      -ones(numel([W_opt.cells]), 1), ['X', colors{i}], 'LineWidth', 2, ...
+      'MarkerSize', 10, 'MarkerEdgeColor', 'black', ...
+      'MarkerFaceColor', colors{i})
 
 %% Plot total travel time for both base and optimized case
 % We plot the total travel time (sum of backward and forward time of
@@ -209,7 +221,7 @@ for i = 1:numel(Wells)
     Lc = computeLorenz(F, Phi);
 
     subplot(2,1, i)
-    plotCellData(G, log10(sum(Dx.tof, 2)))
+    plotCellData(G, log10(sum(Dx.tof, 2)), 'EdgeAlpha', 0.125)
     if exist('cx', 'var')
         caxis(cx)
     else
@@ -220,8 +232,8 @@ for i = 1:numel(Wells)
 
     axis tight equal off
     colorbar
-    Phis = [Phis, Phi];
-    Fs = [Fs, F];
+    Phis = [Phis, Phi];                                         %#ok<AGROW>
+    Fs = [Fs, F];                                               %#ok<AGROW>
 end
 % Add the baseline optimal case (i.e. a linear function of Phi)
 Phis = [Phis, Phi];
@@ -243,7 +255,8 @@ title('F / Phi-curve before and after optimization');
 xlabel('\Phi');
 ylabel('F');
 grid on
-legend({fs, 'Improved well placement', 'Idealized displacement'}, 'location', 'South')
+legend({fs, 'Improved well placement', 'Idealized displacement'}, ...
+       'location', 'South')
 
 %% Run two-phase simulation to validate the results
 % To validate that the optimization correlates with the simulated oil
@@ -260,7 +273,6 @@ legend({fs, 'Improved well placement', 'Idealized displacement'}, 'location', 'S
 % optimization procedure still has merit when extended to multiphase
 % problems. For simplicity, the problem is incompressible and uses a
 % pressure/transport splitting for speed.
-%
 
 % Define recovery via pore volume
 recov = @(state) 1 - sum(state.s(:,2).*pv)/sum(pv);
@@ -275,15 +287,15 @@ for i = 1:numel(W_initial)
 end
 
 % Set up fluids
-fluids = cell(2,1);
-fluids{1} = initSimpleFluid('mu' , [   1,  1]*centi*poise     , ...
-                      'rho', [1000, 1000]*kilogram/meter^3, ...
-                      'n'  , [   1,   1]);
+fluids = cell([2, 1]);
+fluids{1} = initSimpleFluid('mu' , [   1,    1]*centi*poise     , ...
+                            'rho', [1000, 1000]*kilogram/meter^3, ...
+                            'n'  , [   1,    1]);
 fluids{1}.name = 'unitary';
 
 fluids{2} = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
-                      'rho', [1000, 700]*kilogram/meter^3, ...
-                      'n'  , [   1,   1]);
+                            'rho', [1000, 700]*kilogram/meter^3, ...
+                            'n'  , [   1,   1]);
 fluids{2}.name = 'oil-water';
 
 % Store the different states in cell arrays
@@ -301,11 +313,13 @@ for i = 1:numel(fluids)
     improved = [];
 
     % Pressure solve - TPFA discretization
-    psolve = @(state, w) incompTPFA(state, G, T, fluid, 'wells', w, 'Verbose', false);
+    psolve = @(state, w) ...
+       incompTPFA(state, G, T, fluid, 'wells', w, 'Verbose', false);
 
     % Transport solve - implicit transport solver
-    tsolve = @(state, w, dT) implicitTransport(state, G, dT, rock, ...
-                                                    fluid, 'wells', w, 'Verbose', false);
+    tsolve = @(state, w, dT) ...
+       implicitTransport(state, G, dT, rock, fluid, ...
+                         'wells', w, 'Verbose', false);
 
     % Make convenient function handle for doing both pressure and
     % transport
@@ -317,6 +331,7 @@ for i = 1:numel(fluids)
     % Five year horizont
 
     endtime = 5*year;
+    ntschar = numel(formatTimeRange(endtime - dt));
     while Time < endtime
         % Solve the timestep and store the data
         state_a = solve(state_a, W_initial, dt);
@@ -332,21 +347,21 @@ for i = 1:numel(fluids)
         % Plot the base case
         set(0, 'CurrentFigure', h);
         subplot(2,2,1)
-        plotCellData(G, sa);
+        plotCellData(G, sa, 'EdgeAlpha', 0.125);
         title('Oil saturation, base case')
         caxis([0, 1])
         axis tight off
 
         % Plot the improved case
         subplot(2,2,2)
-        plotCellData(G, sb);
+        plotCellData(G, sb, 'EdgeAlpha', 0.125);
         title('Oil saturation, optimized')
         caxis([0, 1])
         axis tight off
 
         % Plot the historic oil production underway
         subplot(2,2, 3:4)
-        plot(cumsum(ones(numel(initial), 1)*dt)/year, ...
+        plot(convertTo(cumsum(repmat(dt, [numel(initial), 1])), year), ...
             100*arrayfun(recov, [initial, improved]), '-', 'LineWidth', 2)
         xlim([0, endtime/year])
         ylim([0, 100]);
@@ -358,16 +373,15 @@ for i = 1:numel(fluids)
         drawnow
 
         % Ouput to terminal...
-        fprintf('Recovery after %s: Initial: %2.1f%%, Modified: %2.1f%%\n',  ...
-        formatTimeRange(Time), ...
-        100*recov(state_a), ...
-        100*recov(state_b))
-
-
+        fprintf(['Recovery after %-*s: ', ...
+                 'Initial: %4.1f%%, Modified: %4.1f%%\n'],  ...
+                 ntschar, formatTimeRange(Time), ...
+                 100*recov(state_a), ...
+                 100*recov(state_b))
     end
+
     states_initial{i} = initial;
     states_improved{i} = improved;
-
 end
 %% Plot the recovery at the half-way point
 % If we simulate long enough, almost all oil will certainly be recovered.
@@ -384,19 +398,21 @@ for i = 1:nr
     sb = improved(ind).s(:,2);
 
     subplot(2, nr, 1 + (i-1)*nr)
-    plotCellData(G, sa)
+    plotCellData(G, sa, 'EdgeAlpha', 0.125)
     plotWellsPrint(G, W, D)
     view(0, 89);
-    title(sprintf('Recovery baseline, %s: %2.1f%%', fluids{i}.name, 100*recov(initial(ind))))
+    title(sprintf('Recovery baseline, %s: %4.1f%%', ...
+                  fluids{i}.name, 100 * recov(initial(ind))))
     axis tight off
     colorbar
     caxis([0, 1])
 
     subplot(2, nr, 2 + (i-1)*nr)
-    plotCellData(G, sb)
+    plotCellData(G, sb, 'EdgeAlpha', 0.125)
     plotWellsPrint(G, W_opt, D)
     view(0, 89);
-    title(sprintf('Recovery improved, %s: %2.1f%%', fluids{i}.name, 100*recov(improved(ind))))
+    title(sprintf('Recovery improved, %s: %4.1f%%', ...
+                  fluids{i}.name, 100 * recov(improved(ind))))
     colorbar
     caxis([0, 1])
 
@@ -409,10 +425,15 @@ end
 % significant.
 
 clf
-t = cumsum(ones(numel(states_initial{1}), 1)*dt)/year;
-y = [states_initial{1}, states_initial{2}, states_improved{1}, states_improved{2}];
+t = convertTo(cumsum(repmat(dt, [numel(states_initial{1}), 1])), year);
+y = [states_initial{1}, states_initial{2}, ...
+     states_improved{1}, states_improved{2}];
 plot(t, 100*arrayfun(recov, y), 'LineWidth', 2)
 grid on
 xlabel('Years')
 ylabel('Oil recovery (%)')
-legend({'Five spot, unit fluids', 'Five spot, oil/water', 'Optimized wells, unit fluids', 'Optimized wells, oil/water',}, 'location', 'southeast')
+legend('Five spot, unit fluids',       ...
+       'Five spot, oil/water',         ...
+       'Optimized wells, unit fluids', ...
+       'Optimized wells, oil/water',   ...
+       'Location', 'SouthEast')
