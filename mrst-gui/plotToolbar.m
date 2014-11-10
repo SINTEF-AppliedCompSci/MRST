@@ -148,6 +148,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~isfield(G, 'cartDims')
         G.cartDims = ones(1, G.griddim);
     end
+    
+    if G.griddim == 2
+        G.cells.sortedCellNodes = getSortedCellNodes(G);
+    end
+    
     ijk = cell(size(G.cartDims));
     [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
 
