@@ -104,18 +104,18 @@ subplot('Position', [0.15,0.4,0.7, 0.08])
 colorbar south; caxis(cax);axis tight off;
 
 subplot('position', [0.1, 0.1, 0.8, 0.25])
-   plot(-resSol1.wellSol(2).flux .* day(), 'b-*'); hold on
-   plot(-resSol2.wellSol(2).flux .* day(), 'r--');
+   plot(-convertTo(resSol1.wellSol(2).flux, meter^3/day), 'b-*'); hold on
+   plot(-convertTo(resSol2.wellSol(2).flux, meter^3/day), 'r--');
    legend('Direct','Mimetic')
    title('Producer inflow profile [m^3/d]');
 
 
 %% Rate controlled wells
 W = addWell([], G, rock, cellsWell1,          ...
-            'Type', 'rate', 'Val', 5.0/day(), ...
+            'Type', 'rate', 'Val', 5.0*meter^3/day, ...
             'InnerProduct', 'ip_tpf', 'Comp_i', [1, 0], 'name', 'I');
 W = addWell(W, G, rock, cellsWell2,      ...
-            'Type', 'rate' , 'Val', -5.0/day(), ...
+            'Type', 'rate' , 'Val', -5.0*meter^3/day, ...
             'InnerProduct', 'ip_tpf', 'Comp_i', [0, 1], 'name', 'P');
 
 
@@ -156,15 +156,10 @@ subplot('Position', [0.15,0.4,0.7, 0.08])
 colorbar south; caxis(cax);axis tight off;
 
 subplot('position', [0.1, 0.1, 0.8, 0.25])
-   plot(-resSol1.wellSol(2).flux .* day(), 'b-*'); hold on
-   plot(-resSol2.wellSol(2).flux .* day(), 'r--');
+   plot(-convertTo(resSol1.wellSol(2).flux, meter^3/day), 'b-*'); hold on
+   plot(-convertTo(resSol2.wellSol(2).flux, meter^3/day), 'r--');
    legend('Direct','Mimetic')
    title('Producer inflow profile [m^3/d]');
 
 %%
-% <html>
-% <font size="-1">
-%   Last time modified:
-% </font>
-% </html>
 displayEndOfDemoMessage(mfilename)
