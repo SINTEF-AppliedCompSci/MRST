@@ -191,7 +191,12 @@ if ~isempty(W)
         bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
         eqs{3}(wc) = eqs{3}(wc) - bWqP;
         
-        eqs{6} = qWs.*cw - qWPoly;
+        % Well polymer rate for each well is water rate in each perforation
+        % multiplied with polymer concentration in that perforated cell.
+        eqs{6} = -qWPoly;
+        for i = 1:numel(W)
+            eqs{6}(i) = eqs{6}(i) + sum(cqs{1}(wc == i).*cw(wc == i));
+        end
         
         names(4:7) = {'oilWells', 'waterWells', 'polymerWells', ...
            'closureWells'};
