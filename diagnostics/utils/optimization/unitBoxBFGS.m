@@ -7,13 +7,14 @@ opt = struct('gradTol',             1e-3, ...
              'wolfe1',              1e-3, ...
              'wolfe2',              0.9,  ...
              'safeguardFac',        0.0001, ...  
-             'stepIncreaseTol',     5,    ...
+             'stepIncreaseTol',     10,    ...
              'useBFGS',             true);
 opt = merge_options(opt, varargin{:});
 step    = opt.stepInit;
 
 % do initial evaluation of objective and gradient:
 [v0, g0] = f(u0);
+[v,u] = deal(v0,u0);
 % if not provided, set initial step 
 if step <= 0, step = 1; end
 
@@ -34,6 +35,7 @@ while ~success
     % Search direction is along projection of inv(H)*g. If problems occur,
     % Hi might be set to previous, or even to I (worst case)
     [d, Hi] = getSearchDirection(u0, g0, Hi, HiPrev);
+    if isempty(d), break; end
     % Perform line-search
     [u, v, g, lsinfo] = lineSearch(u0, v0, g0, d, f, opt);
     
@@ -73,7 +75,7 @@ for k = 1:3
     if k==2
         Hi = HiPrev;
     elseif k==3
-        Hi = 1;
+        Hi = -1;
     end
     nonActive     = true(size(u0));
     nonActivePrev = false(size(u0));
@@ -94,7 +96,8 @@ for k = 1:3
     end
 end
 if d'*g0 < 0
-    error('Function decreasing along gradient')
+    fprintf('All controls on constraints or function decreasing along gradient\n')
+    d = [];
 end
 end
 

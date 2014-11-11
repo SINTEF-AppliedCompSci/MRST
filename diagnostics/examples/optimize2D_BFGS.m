@@ -2,9 +2,9 @@ mrstModule add ad-fi diagnostics ad-props spe10
 %clear functions
 
 useBasis = false;
-useAGMG  = true;
+useAGMG  = false;
 
-[G, W, rock] = SPE10_setup(1);
+[G, W, rock] = SPE10_setup(75);
 rock.poro = max(rock.poro, 1e-4);
 
 
@@ -59,7 +59,8 @@ uInit = well2control(W, 'scaling', scaling, 'targets', targets);
 [v, u, hst] = unitBoxBFGS(uInit, f);
 
 % get timing
-t_lin = reshape(linsolveWithTimings, [6, numel(tt)/6]).';
+t_lin = linsolveWithTimings;
+t_lin = reshape(t_lin, [6, numel(t_lin)/6]).';
 
 % display optimal well-controls
 Wopt = control2well(u, W, 'scaling', scaling, 'targets', targets);

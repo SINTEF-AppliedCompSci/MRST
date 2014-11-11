@@ -64,9 +64,14 @@ while ~lineSearchDone && it < maxIt
         flag = 1;
     else
         if (p.a > aMax*(1-sqrt(eps))) && (p.dv > 0) % max step-length reached
-            lineSearchDone  = true;
-            flag = -1;
-            fprintf('Wolfe conditions not satisfied for this step ...\n');
+            if p.v > p1.v
+                lineSearchDone  = true;
+                flag = -1;
+                fprintf('Wolfe conditions not satisfied for this step ...\n');
+            else % oscillating derivative, half interval
+                a = (p1.a+p2.a)/2;
+                fprintf('Oscillating derivative, cutting interval in half ...\n')
+            end
         else % logic for refining/expanding interval of interest [p1 p2]
             if p.a > p2.a
                 if w1(p2)
