@@ -1,8 +1,8 @@
 function downloadMBGL
    fex = 'http://www.mathworks.com/matlabcentral/fileexchange/';
-   pth = 'downloads/97722/akamai/';
+   pth = 'downloads/6038';  % Probably not stable over time...
    zip = 'matlab_bgl-4.0.1.zip';
-   url = [fex, pth, zip];
+   url = [fex, pth];
 
    % Ouput directory.
    dest = fullfile(ROOTDIR, 'utils', '3rdparty', 'matlab_bgl');
