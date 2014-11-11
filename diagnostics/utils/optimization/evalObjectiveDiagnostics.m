@@ -2,6 +2,7 @@ function [val, der, W, state, D] = evalObjectiveDiagnostics(u, obj, state, syste
 opt = struct('targets', (1:numel(W))', ...
              'verbose', mrstVerbose, ...
              'linsolve', @mldivide, ...
+             'linsolveTOF', @mldivide, ...
              'msbasis', []);
 opt = merge_options(opt, varargin{:});
 minu = min(u);
@@ -23,7 +24,7 @@ end
 W = control2well(u, W, 'scaling', scaling, 'targets', opt.targets);
 
 [state, D, grd] = solveStationaryPressure(G, state, system, W, fluid, pv, T, 'objective', obj,...
-                    'linsolve', opt.linsolve, 'msbasis', opt.msbasis);
+                    'linsolve', opt.linsolve, 'linsolveTOF', opt.linsolveTOF, 'msbasis', opt.msbasis);
 % scaled objective
 val = -grd.objective.val/objScaling;
 der = scaleGradient(-grd.well(opt.targets), boxLims, objScaling);
