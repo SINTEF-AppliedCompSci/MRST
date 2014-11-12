@@ -235,7 +235,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     pad = repmat(' ', size(l, 1), 1);
                     l = reshape([l, pad]', 1, []);
                 end
-                l = strsplit(l, ' ');
+                l = regexp(l,'\s+','split');
                 for i = 1:numel(l);
                     line = l{i};
                     [s, e] = regexp(line, [handler.dataPrefix, '\d+']);

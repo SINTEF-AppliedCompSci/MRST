@@ -331,8 +331,8 @@ function plotWellSols(wellsols, varargin)
            return
        end
        
-       fileext = strsplit(file, '.');
-       fileext = fileext{end};
+       [fileext, fileext, fileext] = fileparts(file); %#ok
+       fileext = fileext(2:end);
        
        switch(lower(fileext))
            case {'jpg', 'jpeg'}
