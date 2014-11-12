@@ -194,10 +194,9 @@ if ~isempty(W)
         % Well polymer rate for each well is water rate in each perforation
         % multiplied with polymer concentration in that perforated cell.
         perf2well = getPerforationToWellMapping(W);
-        eqs{6} = -qWPoly;
-        for i = 1:numel(W)
-            eqs{6}(i) = eqs{6}(i) + sum(cqs{1}(perf2well == i).*cw(perf2well == i));
-        end
+        Rw = sparse((1:numel(perf2well))', perf2well, 1, ...
+           numel(perf2well), numel(W));
+        eqs{6} = qWPoly - Rw'*(cqs{1}.*cw);
         
         names(4:7) = {'oilWells', 'waterWells', 'polymerWells', ...
            'closureWells'};

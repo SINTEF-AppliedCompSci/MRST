@@ -267,6 +267,7 @@ end
 %--------------------------------------------------------------------------
 
 function W = process_wpolymer(W, control, G, rock, well_id, p, opt)
+   [W.poly] = deal(0); % set all wells to zero
    for i = 1 : size(control.WPOLYMER, 1)
       for j = 1:size(W,1)
          if strcmp(W(j).name, control.WPOLYMER{i,1})

@@ -73,14 +73,14 @@ for k = 1:nw
     if model.gas
         ws(k).qGs  = W(k).sign*irate;
     end
+    if model.polymer
+       ws(k).qWPoly = W(k).poly*ws(k).qWs;
+    end
     
     ws(k).mixs = W(k).compi(actPh);
     ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
     ws(k).cqs  = zeros(nConn,nPh);
-    if isfield(state, 'c') % polymer model
-       ws(k).qWPoly = 0;
-    end
 end
 end
 
@@ -113,6 +113,9 @@ for k = 1:numel(W)
             end
             if model.gas
                 ws(k).qGs = v*W(k).compi(3);
+            end
+            if model.polymer
+                ws(k).qWPoly = W(k).poly*ws(k).qWs;
             end
         case 'orat'
             ws(k).qOs = v;
