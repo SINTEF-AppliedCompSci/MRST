@@ -30,5 +30,6 @@ function wellSol = assignWellValuesFromControl(model, wellSol, W, wi, oi, gi)
             otherwise
                 error('Unknown well control mode');
         end
+        wellSol(w) = ws;
     end
 end
