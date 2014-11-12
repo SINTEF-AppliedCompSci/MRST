@@ -73,7 +73,7 @@ for k = 1:nw
     if model.gas
         ws(k).qGs  = W(k).sign*irate;
     end
-    if model.polymer
+    if isprop(model, 'polymer') && model.polymer
        ws(k).qWPoly = W(k).poly*ws(k).qWs;
     end
     
@@ -114,7 +114,7 @@ for k = 1:numel(W)
             if model.gas
                 ws(k).qGs = v*W(k).compi(3);
             end
-            if model.polymer
+            if isprop(model, 'polymer') && model.polymer
                 ws(k).qWPoly = W(k).poly*ws(k).qWs;
             end
         case 'orat'
