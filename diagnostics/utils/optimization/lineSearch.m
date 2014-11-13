@@ -54,10 +54,12 @@ a  = 1;
 lineSearchDone   = false;
 it = 0;
 % XXX figure(2), clf
+best = struct('u', u0, 'v', v0);
 while ~lineSearchDone && it < maxIt
     it = it +1;
     u = u0 + a*d;
     [v, g]  = f(u); % function evaluation / simulation
+    if v > best.v, best = struct('u', u, 'v', v); end
     p = assignPoint(a, v, d'*g); % new point
     if w1(p) && w2(p)
         lineSearchDone = true;
@@ -105,6 +107,7 @@ end
 if ~lineSearchDone
     flag = -2;
     fprintf('Line search unable to succeed in %d iterations ...\n', maxIt);
+    [v, u] = deal(best.v, best.u);
 end
 info = struct('flag', flag, 'step', a, 'nits', it);
 end

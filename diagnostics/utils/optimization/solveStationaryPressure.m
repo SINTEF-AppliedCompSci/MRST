@@ -319,10 +319,12 @@ function totMob = getTotalMobility(fluid, state, pressure)
     totMob = l_oil + l_wat + l_gas;
 end
 
-function dx = solveEqs(eqs, linsolve, msbasis)
+function dx = solveEqs(eqs, linsolve, msbasis, transposeBasis)
     %eqs{1} = eqs{1}(inx1);
     %eqs{1}.jac{1} = eqs{1}.jac{1}(:, inx1);
-
+    if nargin < 4
+        transposeBasis = false;
+    end
     numVars = cellfun(@numval, eqs)';
     cumVars = cumsum(numVars);
     ii = [[1;cumVars(1:end-1)+1], cumVars];
@@ -341,9 +343,13 @@ function dx = solveEqs(eqs, linsolve, msbasis)
     if isempty(msbasis)
         tmp = linsolve(J, eqs_c.val);
     else
-        R = msbasis.R;
-        B = msbasis.B;
-        
+        if ~transposeBasis
+            R = msbasis.R;
+            B = msbasis.B;
+        else
+            R = msbasis.B.';
+            B = msbasis.R.';  
+        end
         %tmp = B*((R*J*B)\(R*eqs_c.val));
         tmp = B*linsolve(R*J*B, R*eqs_c.val);
     end
@@ -418,7 +424,7 @@ function grad = SolveAdjointTOFEqs(eqs, D, objk, scaling, msbasis, linsolve, lin
     eqsT{2}.val = eqsT{2}.val + sum(eqs{4}.jac{2}.' * l_forward, 2)...  
                               + sum(eqs{5}.jac{2}.' * l_backward, 2);
     
-    l = solveEqs(eqsT, linsolve, msbasis);
+    l = solveEqs(eqsT, linsolve, msbasis, true);
     
     grad.pressure = l{1};
     grad.fluxes = l{2};
