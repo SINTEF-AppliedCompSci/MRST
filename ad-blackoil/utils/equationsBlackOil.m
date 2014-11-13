@@ -223,6 +223,7 @@ if ~isempty(W)
         rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
         bw    = {bW(wc), bO(wc), bG(wc)};
         if ~disgas
+           % rs supposed to be scalar in this case
             rsw = ones(nperf,1)*rs; rsSatw = ones(nperf,1)*rsSat; %constants
         else
             rsw = rs(wc); rsSatw = rsSat(wc);
@@ -230,6 +231,7 @@ if ~isempty(W)
         if ~vapoil
             rvw = ones(nperf,1)*rv; rvSatw = ones(nperf,1)*rvSat; %constants
         else
+           % rv supposed to be scalar in this case
             rvw = rv(wc); rvSatw = rvSat(wc);
         end
         rw    = {rsw, rvw};
