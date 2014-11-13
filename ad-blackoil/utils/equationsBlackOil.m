@@ -94,6 +94,7 @@ end
 
 % Gravity contribution, assert that it is aligned with z-dir
 grav = gravity();
+grav = grav(1:G.griddim);
 %assert(grav(1) == 0 && grav(2) == 0);
 %g  = norm(grav);
 %dz = s.Grad(G.cells.centroids(:,3));
@@ -222,6 +223,7 @@ if ~isempty(W)
         rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
         bw    = {bW(wc), bO(wc), bG(wc)};
         if ~disgas
+           % rs supposed to be scalar in this case
             rsw = ones(nperf,1)*rs; rsSatw = ones(nperf,1)*rsSat; %constants
         else
             rsw = rs(wc); rsSatw = rsSat(wc);
@@ -229,6 +231,7 @@ if ~isempty(W)
         if ~vapoil
             rvw = ones(nperf,1)*rv; rvSatw = ones(nperf,1)*rvSat; %constants
         else
+           % rv supposed to be scalar in this case
             rvw = rv(wc); rvSatw = rvSat(wc);
         end
         rw    = {rsw, rvw};
