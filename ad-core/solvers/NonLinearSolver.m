@@ -389,6 +389,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
     reports = reports(~cellfun(@isempty, reports));
     solver.relaxationParameter = omega0;
     if converged
-        state = model.updateAfterConvergence(state0, state, dt, drivingForces);
+        [state, r] = model.updateAfterConvergence(state0, state, dt, drivingForces);
+        reports{end}.FinalUpdate = r;
     end
 end

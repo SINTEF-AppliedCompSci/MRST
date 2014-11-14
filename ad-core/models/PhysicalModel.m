@@ -87,10 +87,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             report = [];
         end
         
-        function state = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
             % Update state based on non-linear increment after timestep has
             % converged. Defaults to doing nothing since not all models
             % require this.
+            report = [];
         end
         
         function [convergence, values] = checkConvergence(model, problem, n)
@@ -161,6 +162,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             'Failure',      false, ...
                             'FailureMsg',   '', ...
                             'Converged',    false, ...
+                            'FinalUpdate',  [],...
                             'Residuals',    []);
             report = merge_options(report, varargin{:});
         end
