@@ -1,4 +1,4 @@
-function [state_opt, D_init, D_opt, info] = optimizeDiagnosticsBFGS(G, W, fluid, pv, T, s, state, boxLims, objective, varargin)
+function [states, Ds, info] = optimizeDiagnosticsBFGS(G, W, fluid, pv, T, s, state, boxLims, objective, varargin)
 % Optimize well rates/bhps to minimize/maximize objective 
 %
 % SYNOPSIS:
@@ -127,12 +127,14 @@ opt = {'targets', (1:numel(W)).', ...
 optBFGS = {'gradTol',             1e-3, ...
            'objChangeTol',        1e-4, ...
            'maxIt',               100,   ...
-           'lineSearchMaxIt',     10,   ...
+           'lineSearchMaxIt',     5,   ...
+           'stepInit',            -1,   ...
            'wolfe1',              1e-3, ...
            'wolfe2',              0.9,  ...
            'safeguardFac',        0.0001, ...  
            'stepIncreaseTol',     10,    ...
-           'useBFGS',             true};
+           'useBFGS',             true, ...
+           'linEq',                 []};
        
 opt = struct(opt{:}, optBFGS{:});
 opt = merge_options(opt, varargin{:});
@@ -144,24 +146,30 @@ useBasis = or(opt.computeBasis, ~isempty(opt.mbasis));
 % compute default basis if required:
 basis = opt.mbasis;
 if opt.computeBasis
-    basis = computeDefaultBasis([], G, state0, s, W, fluid_ad, pv, T, 'linsolve', ls_basis);
+    basis = computeDefaultBasis([], G, state, s, W, fluid, pv, T, 'linsolve', ls_basis);
     if opt.reportTimings
-        t_basis = linSolveWithTimings;
+        t_basis = linsolveWithTimings;
     end
 end
 
 % evaluate initial state/objective
-[st, D_init, grad] = solveStationaryPressure(G, state, s, W, fluid, pv, T, 'objective', objective,...
-                    'linsolve', opt.linsolve, 'msbasis', basis);
+[states(1), Ds(1), grad] = solveStationaryPressure(G, state, s, W, fluid, pv, T, 'objective', objective,...
+                    'linsolve', ls_pres, 'linsolveTOF', ls_TOF, 'msbasis', basis);
                 
 % set up objective scaling
 sc = opt.objectiveScaling;
 if isempty(sc) 
     v0 = grad.objective.val;
-    sc = max(0.5, abs(v0));
+    sc = max(sqrt(eps), abs(v0));
 end
 scaling.boxLims = boxLims;
 scaling.obj     = sc;     
+% Set initial controls
+uInit = well2control(W, 'scaling', scaling, 'targets', opt.targets);
+% Scale linear equality cons
+linEqSc = scaleCons(opt.linEq, scaling.boxLims);
+opt.linEq = linEqSc;
+
 
 % set up objective evalueation
 f = @(u)evalObjectiveDiagnostics(u, objective, state, s, G, fluid, pv, T, W, scaling, ...
@@ -171,17 +179,15 @@ f = @(u)evalObjectiveDiagnostics(u, objective, state, s, G, fluid, pv, T, W, sca
                                                 'msbasis',  basis,      ...
                                                 'minimize', opt.minimize);
 
-
-% set initial controls and run optimization
-uInit = well2control(W, 'scaling', scaling, 'targets', opt.targets);
-[v, u, hst] = unitBoxBFGS(uInit, f);
-
+[v, u, hst] = unitBoxBFGS(uInit, f, opt);
 
 % final evaluation
-[v, ~, W_opt, state_opt, D_opt] = f(u);
+[v, ~, W_opt, states(2), Ds(2)] = f(u);
 
-v*sc
+disp(['Final objective value: ' num2str(v*sc)]);
 info.history = hst;
+info.scaling = scaling;
+info.W_opt   = W_opt;
 if opt.reportTimings
     t_lin = linsolveWithTimings;
     info.t_lin = reshape(t_lin, [6, numel(t_lin)/6]).';
@@ -210,6 +216,15 @@ else
         ls_pres = @(A,x)linsolveWithTimings(A,x,linsolve); 
     end
     ls_TOF   = @linsolveWithTimings;
+end
+end
+
+function linEqSc = scaleCons(linEq, bx)
+if ~isempty(linEq)
+    linEqSc.A = linEq.A*diag(bx(:,2)-bx(:,1));
+    linEqSc.b = linEq.b - linEq.A*bx(:,1);
+else
+    linEqSc = [];
 end
 end
 

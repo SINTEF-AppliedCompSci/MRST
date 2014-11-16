@@ -43,11 +43,11 @@ w2 = @(p) abs(p.dv) <= c2*abs(p0.dv);
 
 % maximal step-length s.t. u = u0+aMax*d is feasible, i.e. s.t. 0 <= u <= 1
 aMax = getAlphaMax(u0, d);
-assert(aMax>=1);
+assert(aMax>=1-sqrt(eps));
 
 % end-points of initial interval
 p1 = p0;
-p2 = assignPoint(aMax, -inf, -inf);
+p2 = assignPoint(max(aMax, 1), -inf, -inf);
 % initial step-length:
 a  = 1;
 
