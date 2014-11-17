@@ -55,7 +55,7 @@ for i = 5:12:G.cartDims(1)
                 pi = pi + 1;
             end
 
-            W = addWell(W, G, rock, c, 'Type', type, 'Val', val, 'Name', name);
+            W = addWell(W, G, rock, c, 'Type', type, 'Val', val, 'Name', name, 'InnerProduct', 'ip_tpf');
         end
     end
 end

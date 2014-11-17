@@ -6,7 +6,7 @@
 %% Set up problem
 % As our example, we consider a subsample of Model 2 from the 10th SPE
 % Comparative Solution Project, but with a different well pattern
-mrstModule add spe10
+mrstModule add diagnostics spe10
 
 cartDims = [  60,  220,  15];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
@@ -30,7 +30,8 @@ W = [];
 for w = 1 : numel(wtype),
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
-                    'Radius', wrad(w), 'Name', wname{w});
+                    'Radius', wrad(w), 'Name', wname{w}, ...
+                    'InnerProduct', 'ip_tpf');
 end
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 

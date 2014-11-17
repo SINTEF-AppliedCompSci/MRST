@@ -1,4 +1,7 @@
-function [W wellHistory history] = optimizeWellPlacementDiagnostics(G, W, rock, objective, targetWells, D, wlimit, state0, fluid_ad, pv, T, s, varargin)
+function [W, wellHistory, history] = ...
+      optimizeWellPlacementDiagnostics(G, W, rock, objective, ...
+                                       targetWells, D, wlimit, ...
+                                       state0, fluid_ad, pv, T, s, varargin)
 %Optimize the placement of wells using flow diagnostics
 %
 % SYNOPSIS:
@@ -111,8 +114,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     hist = [];
     targets = targetWells;
 
-    psolve = @(W, state)  solveStationaryPressure(G, state, s, W, fluid_ad, pv, T,...
-        'objective', objective, 'computeTracer', false, 'linsolve', opt.linsolve);
+    psolve = @(W, state) ...
+       solveStationaryPressure(G, state, s, W, fluid_ad, pv, T, ...
+                               'objective', objective, 'computeTracer', ...
+                               false, 'linsolve', opt.linsolve);
 
     optim = @(W, state) optimizeTOF(G,W, fluid_ad, pv, T, s,...
                          state, wlimit, objective, ...
@@ -120,17 +125,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     state = state0;
     state.wellSol = initWellSol(W, 0);
-    [state D0 grad0] = psolve(W, state);
+    [state, D0, grad0] = psolve(W, state);                      %#ok<ASGLU>
     bestobj = grad0.objective.val;
 
-
     outIter = 0;
-    while 1
+    while true,
         if outIter >= opt.maxIter
             break;
         end
         changed = false;
-        h = struct('objective', cell(numel(targetWells),1), 'visited', cell(numel(targetWells),1));
+        h = struct('objective', cell([numel(targetWells), 1]), ...
+                   'visited'  , cell([numel(targetWells), 1]));
 
         for i = 1:numel(targetWells)
             tw = targetWells(i);
@@ -139,7 +144,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             state0.wellSol = initWellSol(W, 0);
 
             if opt.optimizeSubsteps
-                [D W hist] = optim(W, state0);
+                [D, W, hist] = optim(W, state0);                %#ok<ASGLU>
                 bestobj = min(hist.gradient(end).objective.val, bestobj);
             end
 
@@ -147,16 +152,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             objlist = [];
 
             iter = 1;
-            while 1
+            while true
                 state0.wellSol = initWellSol(W, 0);
-                [W, success, bestobj, D] = optimizeGhost(G, rock, state0, W, ijk, tw, bestobj, optim, psolve, opt);
+                [W, success, bestobj, D] = ...
+                   optimizeGhost(G, rock, state0, W, ijk, tw, ...
+                                 bestobj, optim, psolve, opt);
+
                 changed = changed || success;
                 vc = W(tw).cells(end);
                 if any(cellfun(@(x) any(x(i).visited == vc), wellHistory)) ||...
                         any(visited == vc)
                     break
                 end
-
 
                 visited = [visited; vc];
                 objlist = [objlist; bestobj];
@@ -173,8 +180,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         figure(2); clf;
                     end
                     ftof = log10(D.tof(:,1));
-                    plotCellData(G, ftof);
-%                     plotCellData(G, D.ipart + ftof./(max(ftof)));
+                    plotCellData(G, ftof, 'EdgeAlpha', 0.125);
                     if G.griddim == 3
                         plotWell(G, W, 'height', 1, 'color', 'w');
                     else
@@ -191,6 +197,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             h(i).objective = objlist;
             h(i).visited = visited;
         end
+
         wellHistory = [wellHistory; h];
         history = [history; hist];
         outIter = outIter + 1;
@@ -219,15 +226,18 @@ function W_ghost = addGhostWells(G, W_target, rock, ijk, W_all, opt)
         ix = ix(1);
         jx = jx(1);
     end
+
     W_ghost = [];
     for i = max(ix-r, 1):opt.searchIncrement:min(ix+r, G.cartDims(1))
         for j = max(jx-r, 1):opt.searchIncrement:min(jx+r, G.cartDims(2))
             if i == ix && j == jx || any(existing(:, 1) == i & existing(:, 2) == j)
                 continue
             end
-            w = verticalWell([], G, rock, double(i), double(j), [], 'Type', 'rate', 'val', 0, 'Name', 'MrGhost', 'Sign', 1);
+            w = verticalWell([], G, rock, double(i), double(j), [], ...
+                             'Type', 'rate', 'val', 0, 'Name', ...
+                             'MrGhost', 'Sign', 1);
             if ~isempty(w.cells)
-                W_ghost = [W_ghost; w];
+                W_ghost = [W_ghost; w];                         %#ok<AGROW>
             end
         end
     end
@@ -237,7 +247,9 @@ function v = getObj(history)
     v = history.gradient(end).objective.val;
 end
 
-function [W, success, obj, D] = optimizeGhost(G, rock, state0, W0, ijk, target, obj0, optimize, psolve, opt)
+function [W, success, obj, D] = ...
+      optimizeGhost(G, rock, state0, W0, ijk, target, ...
+                    obj0, optimize, psolve, opt)
         success = false;
 
         W = reshape(W0, [], 1);
@@ -256,7 +268,7 @@ function [W, success, obj, D] = optimizeGhost(G, rock, state0, W0, ijk, target, 
 
         state = state0;
         state.wellSol = initWellSol(W_all, 0);
-        [state D grad] = psolve(W_all, state);
+        [state, D, grad] = psolve(W_all, state);                %#ok<ASGLU>
 
         if isinf(obj0)
             obj0 = grad.objective.val;
@@ -270,7 +282,7 @@ function [W, success, obj, D] = optimizeGhost(G, rock, state0, W0, ijk, target, 
         else
             % Smallest gradient in value (i.e. maximum negative)
             ghostGrad = (grad.well(ghostInd:end));
-            [v gi] = min(ghostGrad);
+            [v, gi] = min(ghostGrad);                           %#ok<ASGLU>
         end
 
         W_ghost(gi).val = W_target.val;
@@ -282,10 +294,10 @@ function [W, success, obj, D] = optimizeGhost(G, rock, state0, W0, ijk, target, 
 
         if opt.optimizeSubsteps
             % Optimize the rates of the new well
-            [D, W_all, history] = optimize(W, state0);
+            [D, W_all, history] = optimize(W, state0);          %#ok<ASGLU>
             obj = getObj(history);
         else
-            [state, D, grad] = psolve(W, state0);
+            [state, D, grad] = psolve(W, state0);               %#ok<ASGLU>
             obj = grad.objective.val;
         end
 
