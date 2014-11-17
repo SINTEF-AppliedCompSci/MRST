@@ -116,7 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     optim = @(W, state) optimizeTOF(G,W, fluid_ad, pv, T, s,...
                          state, wlimit, objective, ...
-                         'targets', targets);
+                         'targets', targets, 'linsolve', opt.linsolve);
 
     state = state0;
     state.wellSol = initWellSol(W, 0);

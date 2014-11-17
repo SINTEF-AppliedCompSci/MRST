@@ -140,7 +140,8 @@ opt = struct('maxiter', 25, ...
 
 opt = merge_options(opt, varargin{:});
 
-[st, D, grad] = solveStationaryPressure(G, state, s, W, fluid, pv, T, 'objective', objective, 'linsolve', opt.linsolve);
+[st, D, grad] = solveStationaryPressure(G, state, s, W, fluid, pv, T,...
+   'objective', objective, 'linsolve', opt.linsolve);
 if isempty(opt.targets)
     tmp = false(numel(W), 1);
     tmp(D.inj) = true;
@@ -197,7 +198,8 @@ while true
         W_vals = [W_vals; values .']; %#ok
 
         % Calculate time of flight and gradients
-        [st, D, gradnew] = solveStationaryPressure(G, state, s, W, fluid, pv, T, 'objective', objective);
+        [st, D, gradnew] = solveStationaryPressure(G, state, ...
+           s, W, fluid, pv, T, 'objective', objective, 'linsolve', opt.linsolve);
         newobj = gradnew.objective.val;
 
 
