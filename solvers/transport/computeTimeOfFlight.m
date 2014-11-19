@@ -153,9 +153,20 @@ i  = ~any(G.faces.neighbors==0, 2);
 n  = double(G.faces.neighbors(i,:));
 nc = G.cells.num;
 qp = max(q+qb, 0);
-A  = sparse(n(:,2), n(:,1),  max(state.flux(i), 0), nc, nc)...
-   + sparse(n(:,1), n(:,2), -min(state.flux(i), 0), nc, nc);
-A  = -A + spdiags(sum(A,2)+2*qp, 0, nc, nc);
+
+out = min(state.flux(i), 0);
+in  = max(state.flux(i), 0);
+% Inflow flux matrix
+A  = sparse(n(:,2), n(:,1),  in, nc, nc)...
+   + sparse(n(:,1), n(:,2), -out, nc, nc);
+% Outflow flux matrix
+A_out  = sparse(n(:,2), n(:,1),  out, nc, nc)...
+       + sparse(n(:,1), n(:,2), -in, nc, nc);
+% The diagonal entries are equal to the sum of outfluxes, plus the absolute
+% value of any source terms to ensure that the cell has the value after it
+% is half-filled
+d = -(sum(A_out, 2) - abs(q + qb));
+A = -A + spdiags(d, 0, nc, nc);
 
 % Subtract the divergence of the velocity minus any source terms from the
 % diagonal to account for compressibility effects. Inflow/outflow from
