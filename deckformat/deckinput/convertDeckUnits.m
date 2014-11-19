@@ -259,6 +259,12 @@ function props = convertPROPS(props, u)                                %#ok
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
+         case 'PLYSHEAR',
+             unt = [u.length/u.time, 1];
+             for t = 1 : numel(props.(key)),
+                props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
          case 'PVCDO',
             unt         = [u.press, 1, u.compr, u.viscosity, u.compr];
             props.(key) = convertFrom(props.(key), unt);
