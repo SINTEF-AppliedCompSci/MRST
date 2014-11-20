@@ -86,6 +86,8 @@ classdef ThreePhaseBlackOilModel < ReservoirModel
                 state0 = state;
                 
                 state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
+                state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
+
                 [vars, ix] = model.stripVars(vars, 'pressure');
                 removed(~removed) = removed(~removed) | ix;
                 

@@ -57,6 +57,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Maximum absolute saturation change
         dsMaxRel
         dsMaxAbs
+        
+        % Maximum pressure allowed in reservoir
+        maximumPressure
+        % Minimum pressure allowed in reservoir
+        minimumPressure
+        
         % Water phase present
         water
         % Gas phase present
@@ -100,6 +106,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             model.dpMaxRel = inf;
             model.dpMaxAbs = inf;
+            
+            model.minimumPressure = -inf;
+            model.maximumPressure =  inf;
             
             model.dsMaxAbs = .2;
             model.dsMaxRel = inf;
@@ -147,6 +156,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isempty(restVars)
                 % Handle pressure seperately
                 state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
+                state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
                 restVars = model.stripVars(restVars, 'pressure');
 
                 % Update remaining variables (tracers, temperature etc)
