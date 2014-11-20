@@ -1,4 +1,4 @@
-function [convergence, values] = checkWellConvergence(model, problem)
+function [convergence, values, evaluated] = checkWellConvergence(model, problem)
     % Compute convergence for wells.
     %
     % SYNOPSIS:
@@ -22,7 +22,11 @@ function [convergence, values] = checkWellConvergence(model, problem)
     %                 LinearizedProblem has converged.
     %                  
     %   values      - Residual inf of wells.
- 
+    %
+    %   evaluated   - Logical array into problem.equations indicating which
+    %                 residual equations we have actually checked 
+    %                 convergence for.
+
     %{
     Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
 
@@ -44,6 +48,7 @@ function [convergence, values] = checkWellConvergence(model, problem)
     isperf = problem.indexOfType('perf');
     iswell = problem.indexOfType('well');
     
+    evaluated = isperf | iswell;
     
     ratevals = problem.equations(isperf);
     bhpvals = problem.equations(iswell);

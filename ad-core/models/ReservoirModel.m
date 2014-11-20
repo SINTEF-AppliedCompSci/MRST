@@ -191,10 +191,20 @@ methods
     function [convergence, values] = checkConvergence(model, problem, varargin)
         if model.useCNVConvergence
             % Use convergence model similar to commercial simulator
-            [conv_cells, v_cells] = CNV_MBConvergence(model, problem);
-            [conv_wells, v_wells] = checkWellConvergence(model, problem);
+            [conv_cells, v_cells, isWOG] = CNV_MBConvergence(model, problem);
+            [conv_wells, v_wells, isWell] = checkWellConvergence(model, problem);
 
-            convergence = all(conv_cells) && all(conv_wells);
+            % Get the values for all equations, just in case there are some
+            % values that are not either wells or standard 3ph conservation
+            % equations
+            values_all = norm(problem, inf);
+            rest = ~(isWOG | isWell);
+            
+            tol = model.nonlinearTolerance;
+            convergence = all(conv_cells) && ...
+                          all(conv_wells) && ...
+                          all(values_all(rest) < tol);
+                      
             values = [v_cells, v_wells];
         else
             % Use strict tolerances on the residual without any 
