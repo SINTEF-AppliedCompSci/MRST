@@ -122,6 +122,7 @@ opt = struct('bc',          [], ...
              'wells',       [], ...
              'reverse',     false,...
              'allowInf',    false, ...
+             'badTol',      0.001, ...
              'tracer',      {{}});
 opt = merge_options(opt, varargin{:});
 
@@ -176,9 +177,9 @@ d = -(outflow - abs(q + qb));
 % Any cells that have no inflow and no source terms are problematic for the
 % formulation. These cells can occur from a non-converged pressure solution
 % or if the problem is not incompressible.
-isSingular = full(inflow == 0 & q == 0 & qb == 0);
+isSingular = full(inflow./mean(inflow) < opt.badTol & q == 0 & qb == 0);
 % Set inflow/outflow for those cells to zero
-in(isSingular(n(:, 1)))  = 0;
+in (isSingular(n(:, 1))) = 0;
 out(isSingular(n(:, 2))) = 0;
 
 % Set diagonal to 1 and pv to one so that the cell gets infinite tof
