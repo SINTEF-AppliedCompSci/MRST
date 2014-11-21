@@ -41,8 +41,8 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             end
         end
         
-        function state = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            state = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
             if model.polymer
                 c     = model.getProp(state, 'polymer');
                 cmax  = model.getProp(state, 'polymermax');
