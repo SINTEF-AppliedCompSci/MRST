@@ -183,6 +183,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function dt = computeTimestep(selector, dt, model, solver) %#ok
         % Compute timestep dynamically - generic base class version
         
+           hist = selector.history;
+           nHist = numel(hist);
+            
+           if nHist == 0 || ~hist(end).Converged || selector.controlsChanged
+              return
+           end
+            
            % Relies on pickTimestep to turn dt down to something sane.
            dt = inf;
         end
