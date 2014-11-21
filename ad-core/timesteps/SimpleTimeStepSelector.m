@@ -179,9 +179,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 selector.controlsChanged = false;
             end
         end
-        
-        function dt = computeTimestep(selector, dt, model, solver) %#ok
             % Compute timestep dynamically - does nothing for base class
+        function dt = computeTimestep(selector, dt, model, solver) %#ok
+        % Compute timestep dynamically - generic base class version
+        
+           % Relies on pickTimestep to turn dt down to something sane.
+           dt = inf;
         end
     end
 end
