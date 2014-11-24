@@ -51,10 +51,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       %
       % Note: Extracting block-to-cell mapping requires SORTROWS.
 
-      [b2c_p1, b2c_1, p1] = block_cells(p1);
-      [b2c_p2, b2c_2, p2] = block_cells(p2);
+      [b2c_p1, b2c_1] = block_cells(p1);
+      [b2c_p2, b2c_2] = block_cells(p2);
 
-      if numel(b2c_p1) == numel(b2c_p2),
+      if sum(diff(b2c_p1) > 0) == sum(diff(b2c_p2) > 0),
          % Same number of active blocks.  Possibly same partition.
          %
          % Check if fine-scale cells partition equally in both vectors.
@@ -71,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          % Loop representative (first) cells from each block of p1 and see
          % if the blocks containing those cells have the same contents in
          % both p1 and p2.
-         b = all(arrayfun(eq, b2c_1(b2c_p1(1 : (end - 1)))));
+         b = all(arrayfun(eq, b2c_1(b2c_p1(diff(b2c_p1) > 0))));
       else
          % Different number of active blocks so p1 and p2 do definitely not
          % represent the same cell partitions.  Note: This assignment is,
@@ -90,7 +90,6 @@ end
 
 %--------------------------------------------------------------------------
 
-function [pos, b2c, p] = block_cells(p)
-   p          = compressPartition(p);
-   [pos, b2c] = invertPartition(p);
+function [pos, b2c] = block_cells(p)
+   [pos, b2c] = invertPartition(reshape(p, [], 1));
 end
