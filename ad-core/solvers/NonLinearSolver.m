@@ -77,6 +77,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % For successive over-relaxation (SOR)
         %       x_new = x_old + dx*w + dx_prev*(1-w)
         relaxationType
+        % Relaxation is reduced by this when stagnation occurs
+        relaxationIncrement
+        % Lowest possible relaxation factor
+        minRelaxation
+        % Largest possible relaxation factor
+        maxRelaxation
+        
         % Internal bookkeeping.
         previousIncrement
         % Abort a timestep if no reduction is residual is happening.
@@ -106,6 +113,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relaxationParameter = 1;
             solver.relaxationType = 'dampen';
             solver.useRelaxation = false;
+            solver.relaxationIncrement = 0.1;
+            solver.minRelaxation = 0.5;
+            solver.maxRelaxation = 1;
+            
             solver.enforceResidualDecrease = false;
             solver.stagnateTol = 1e-2;
             
@@ -379,9 +390,9 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
             if relax
                 dispif(solver.verbose, ...
                     'Convergence issues detected. Applying relaxation to Newton solver.\n');
-                solver.relaxationParameter = max(solver.relaxationParameter - 0.1, .5);
+                solver.relaxationParameter = max(solver.relaxationParameter - relaxationIncrement, solver.minRelaxation);
             else
-                solver.relaxationParameter = min(solver.relaxationParameter + 0.1, 1);
+                solver.relaxationParameter = min(solver.relaxationParameter + relaxationIncrement, solver.maxRelaxation);
             end
         end
     end
