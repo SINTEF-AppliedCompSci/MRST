@@ -18,7 +18,7 @@ function b = isSamePartition(p1, p2)
 % EXAMPLE:
 %   p1 = partitionCartGrid([9, 9, 9], [3, 3, 3]);
 %   i  = randperm(max(p1));
-%   p2 = i(p1);
+%   p2 = 10 * i(p1);              % Note: Holes in partition vector.
 %   b  = isSamePartition(p1, p2)
 
 %{
