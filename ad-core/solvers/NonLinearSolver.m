@@ -163,6 +163,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             stepsel = solver.timeStepSelector;
             stepsel.newControlStep(drivingForces);
             
+            dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
                 dt = stepsel.pickTimestep(dt, model, solver);
                 
@@ -214,7 +215,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     warning('Solver did not converge, cutting timestep')
                     cuttingCount = cuttingCount + 1;
                     dt = dt/2;
-                    if cuttingCount > solver.maxTimestepCuts || failure
+                    if dt < dtMin || failure
                         msg = 'Did not find a solution: ';
                         if failure
                             % Failure means something is seriously wrong,
@@ -257,7 +258,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             reports = reports(~cellfun(@isempty, reports));
             report = struct('Iterations',           itCount,...
                             'Converged',            converged,...
-                            'MinistepHalvingCount', cuttingCount);
+                            'MinistepCuttingCount', cuttingCount);
             % Add seperately because struct constructor interprets cell
             % arrays as repeated structs.
             report.StepReports = reports;
