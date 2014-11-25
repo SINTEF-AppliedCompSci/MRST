@@ -25,7 +25,7 @@ function varargout = plotWell(G, W, varargin)
 %                           Default value: cylpts = 10
 %             'fontsize' -- The size of the font used for the label texts.
 %                           Default value: fontsize = 16
-%               'ambstr' -- The ambient strenght of the well cylinder.
+%               'ambstr' -- The ambient strength of the well cylinder.
 %                           Default value: ambstr = 0.8
 %             linewidth' -- The width of the line above the well.
 %                           Default value: linewidth = 2
