@@ -517,7 +517,7 @@ function [upscaled, ok] = ...
        end
     end
 
-    dispif(~ ok, 'something\n')
+    dispif(~ ok, 'something is not ok.\n')
 end
 
 %--------------------------------------------------------------------------
