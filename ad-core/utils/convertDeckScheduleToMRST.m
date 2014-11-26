@@ -46,7 +46,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('StepLimit', inf);
+    opt = struct('StepLimit', inf, ...
+                 'EnsureConsistent', true);
     opt = merge_options(opt, varargin{:});
 
 
@@ -93,5 +94,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~isinf(opt.StepLimit)
         scheduleMRST.step.val     = scheduleMRST.step.val(1:opt.StepLimit);
         scheduleMRST.step.control = scheduleMRST.step.control(1:opt.StepLimit);
+    end
+    
+    if opt.EnsureConsistent
+        scheduleMRST = makeScheduleConsistent(scheduleMRST);
     end
 end
