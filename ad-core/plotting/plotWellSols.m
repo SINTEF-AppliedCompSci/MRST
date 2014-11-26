@@ -255,6 +255,12 @@ function plotWellSols(wellsols, varargin)
                     linew = 1;
                 end
                 
+                if isfield(wellsols{i}{1}, 'status')
+                    % Mask away inactive data points
+                    status = getData(wname, wellnames, 'status', wellsols{i});
+                    d(status == 0, :) = nan;
+                end
+
                 plot(x, d, [m, line], 'LineWidth', linew, 'color', cmap(j, :), plotvararg{:});
                 
                 tmp = wname;
