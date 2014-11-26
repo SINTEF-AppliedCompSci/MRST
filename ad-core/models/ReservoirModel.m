@@ -495,7 +495,10 @@ methods (Static)
     % --------------------------------------------------------------------%
     function [krW, krO, krG] = relPermWOG(sw, so, sg, f, varargin)
         % Three phase, water / oil / gas relperm.
-        swcon = f.sWcon;
+        swcon = 0;
+        if isfield(f, 'sWcon')
+            swcon = f.sWcon;
+        end
         swcon = min(swcon, double(sw)-1e-5);
 
         d  = (sg+sw-swcon);
