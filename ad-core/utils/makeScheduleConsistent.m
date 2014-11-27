@@ -145,6 +145,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     fn = restfields{k};
                     W_all(j).(fn) = W(sub).(fn); %#ok
                 end
+                
+                if ~W_all(j).status
+                    W_all(j).cstatus = W_all(j).cstatus & false;
+                end
             end
         end
         W = W_all;
