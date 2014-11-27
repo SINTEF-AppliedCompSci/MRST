@@ -12,6 +12,10 @@ else
     q_s   = cell2mat( cellfun(@double, q_s, 'UniformOutput', false) );
 
     for wnr = 1:numel(sol)
+        if isfield(W(wnr), 'status') && ~W(wnr).status
+            % Inactive well, skip any limit checks
+            continue
+        end
         lims = W(wnr).lims;
         if ~allowWellSignChange
             lims.vrat = -inf;
