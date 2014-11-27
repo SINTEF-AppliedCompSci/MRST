@@ -99,15 +99,14 @@ classdef WellModel
             [wellEqs, controlEqs, sources, sources_reservoir, wellSol] =...
                 wellmodel.assembleEquations(wellSol, currentFluxes, bhp, model);
             
+            if wellmodel.detailedOutput
+                wellSol = wellmodel.updateWellSolStatistics(wellSol, sources, model);
+            end
             % Check for multiple perforations in same cells to account for
             % a shortcoming in MATLABs indexing behavior (repeated indices
             % are not summed, they are overwritten).
             wc = vertcat(W.cells);
             [wc, sources] = wellmodel.handleRepeatedPerforatedcells(wc, sources);
-            
-            if wellmodel.detailedOutput
-                wellSol = wellmodel.updateWellSolStatistics(wellSol, sources, model);
-            end
         end
         
         function [wellSol, q_s, bhp] = updateLimits(wellmodel, wellSol, q_s, bhp, model)
