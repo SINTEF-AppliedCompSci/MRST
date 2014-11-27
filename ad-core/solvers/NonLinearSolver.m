@@ -390,9 +390,9 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
             if relax
                 dispif(solver.verbose, ...
                     'Convergence issues detected. Applying relaxation to Newton solver.\n');
-                solver.relaxationParameter = max(solver.relaxationParameter - relaxationIncrement, solver.minRelaxation);
+                solver.relaxationParameter = max(solver.relaxationParameter - solver.relaxationIncrement, solver.minRelaxation);
             else
-                solver.relaxationParameter = min(solver.relaxationParameter + relaxationIncrement, solver.maxRelaxation);
+                solver.relaxationParameter = min(solver.relaxationParameter + solver.relaxationIncrement, solver.maxRelaxation);
             end
         end
     end
