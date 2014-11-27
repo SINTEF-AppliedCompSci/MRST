@@ -10,6 +10,7 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
        active = true(size(W));
    end
    W_tmp = W(active);
+   sol   = sol(active);
    
    opt = struct('allowWellSignChange', false, ...
                 'allowControlSwitching', true, ...
