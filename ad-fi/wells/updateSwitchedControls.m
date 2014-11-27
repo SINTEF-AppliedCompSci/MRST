@@ -1,6 +1,6 @@
 function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
+   wells_shut = false;
    if isempty(W) || isempty(sol)
-      wells_shut = false;
       return
    end
    
@@ -9,6 +9,11 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
    else 
        active = true(size(W));
    end
+   
+   if ~any(active)
+       return
+   end
+   
    W_tmp = W(active);
    sol   = sol(active);
    
@@ -30,8 +35,7 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
    inx = inx & ~strcmp('bhp', wtype) & (wval ~= 0);
 
    inx = find(inx);
-   wells_shut = false;
-   if ~opt.allowWellSignChange & opt.allowControlSwitching
+   if ~opt.allowWellSignChange && opt.allowControlSwitching
       if any(inx)
          wells_shut = true;
          ostring = 'Wells ';
@@ -68,11 +72,14 @@ end
 %--------------------------------------------------------------------------
 
 function qt = getTotalRate(sol)
+   ns = numel(sol);
+   qt       = zeros([ns, 1]);
+   if ns == 0
+       return
+   end
    typelist = {'qWs', 'qOs', 'qGs'};
    types    = typelist(isfield(sol(1), typelist));
-   qt       = zeros([numel(sol), 1]);
-
-   for w = 1:numel(sol)
+   for w = 1:ns
       for t = reshape(types, 1, []),
          x = sol(w).(t{1});
          if ~isempty(x),
