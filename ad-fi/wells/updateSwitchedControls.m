@@ -1,10 +1,16 @@
 function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
-
    if isempty(W) || isempty(sol)
       wells_shut = false;
       return
    end
-
+   
+   if isfield(W, 'status')
+       active = vertcat(W.status);
+   else 
+       active = true(size(W));
+   end
+   W_tmp = W(active);
+   
    opt = struct('allowWellSignChange', false, ...
                 'allowControlSwitching', true, ...
                 'Verbose', mrstVerbose);
@@ -12,14 +18,14 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
 
    % Check if producers are becoming injectors and vice versa. The indexes
    % of such wells are stored in inx.
-   wsg = vertcat(W(:).sign);
+   wsg = vertcat(W_tmp(:).sign);
    ssg = sign(getTotalRate(sol));
    inx = wsg ~= ssg;
 
    % A well can be set to zero rate without beeing shut down. We update inx
    % to take into account this fact.
-   wval = vertcat(W(:).val);
-   wtype = {W(:).type}';
+   wval = vertcat(W_tmp(:).val);
+   wtype = {W_tmp(:).type}';
    inx = inx & ~strcmp('bhp', wtype) & (wval ~= 0);
 
    inx = find(inx);
@@ -30,8 +36,8 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
          ostring = 'Wells ';
 
          for k = 1:numel(inx)
-            W(inx(k)).status = false;
-            ostring = [ostring,  W(inx(k)).name, ', '];
+            W_tmp(inx(k)).status = false;
+            ostring = [ostring,  W_tmp(inx(k)).name, ', '];
          end
 
          if opt.Verbose,
@@ -41,20 +47,21 @@ function [W, wells_shut] = updateSwitchedControls(sol, W, varargin)
    end
 
    % Check if well-controls have been switch, if so, update W
-   inx = find(~arrayfun(@(x,y)strcmp(x.type,y.type), W(:), sol(:)));
+   inx = find(~arrayfun(@(x,y)strcmp(x.type,y.type), W_tmp(:), sol(:)));
    for k = 1:numel(inx)
-      fromTp = W(inx(k)).type;
+      fromTp = W_tmp(inx(k)).type;
       toTp   = sol(inx(k)).type;
 
       if opt.Verbose
-         fprintf(['Well ', W(inx(k)).name,       ...
+         fprintf(['Well ', W_tmp(inx(k)).name,       ...
                   ' has switched from ', fromTp, ...
                   ' to ', toTp, '.\n']);
       end
 
-      W(inx(k)).type = toTp;
-      W(inx(k)).val  = sol(inx(k)).val;
+      W_tmp(inx(k)).type = toTp;
+      W_tmp(inx(k)).val  = sol(inx(k)).val;
    end
+   W(active) = W_tmp;
 end
 
 %--------------------------------------------------------------------------
