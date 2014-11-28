@@ -232,13 +232,15 @@ function plotWellSols(wellsols, varargin)
                 if hasTimesteps && get(showdt, 'Value')
                     x = timesteps{i}/day;
                     xlabel('Time (days)')
+                    xunit = day;
                 else
                     x = 1:numel(d);
+                    xunit = 1;
                     xlabel('Step #')
                 end
                 
                 if get(csum, 'Value')
-                    d = cumtrapz(x, d);
+                    d = cumtrapz(x*xunit, d);
                 end
                 
                 if get(abst, 'Value')
