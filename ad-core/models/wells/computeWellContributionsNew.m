@@ -16,8 +16,11 @@ Tw    = vertcat(W(:).WI);
 % [~, actPh] = model.getActivePhases();
 
 compi = vertcat(W(:).compi);
-% Commented out - we will handle this properly from now on
-% compi = compi(:, actPh);
+
+cWstatus = vertcat(W(:).cstatus);
+% Closed shut connection by setting WI = 0
+Tw(~cWstatus) = 0;
+
 
 % Well total volume rate at std conds:
 qt_s = q_s{1};
@@ -70,7 +73,8 @@ isInj = double(qt_s)>0;
 wbq = cell(1, numPh);
 for ph = 1:numPh
     %wbq{ph} = isInj.*q_s{ph} - q_ps{ph};
-    wbq{ph} = (isInj.*compi(:,ph)).*qt_s - q_ps{ph};
+    wbq{ph} = (isInj.*compi(:,ph)).*qt_s + ~isInj.*q_s{ph}.*(q_s{ph}>0) - q_ps{ph};
+%     wbq{ph} = (isInj.*compi(:,ph)).*qt_s - q_ps{ph};
 end
 % compute wellbore total volumetric rates at std conds.
 wbqt = wbq{1};
