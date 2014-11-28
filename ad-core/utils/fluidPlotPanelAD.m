@@ -89,9 +89,6 @@ function plotStuff(model, fields)
                 xl = 'Saturation';
             case {'bo', 'bg', 'bw'}
                 data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
-                % Subtract from lowest value to avoid scaling issues with
-                % graph
-                data(:, ctr) = data(:, ctr) - data(1, ctr);
                 x = p/barsa;
                 xl = 'Pressure (barsa)';
             case {'muw', 'muo', 'mug'}
