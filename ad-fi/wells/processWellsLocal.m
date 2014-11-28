@@ -113,7 +113,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if opt.DepthReorder
-      W = reorderByDepth(G, W);
+      W = reorderWellPerforationsByDepth(W);
    end
    
    % for now, connection status can only be true if well status is true  
@@ -592,24 +592,6 @@ function perf = active_perf(G, comp)
    [ijk{1:3}] = ndgrid(comp{2}, comp{3}, comp{4} : comp{5});
    i    = sub2ind(G.cartDims, ijk{1}(:), ijk{2}(:), ijk{3}(:));
    perf = cart2active(G, i);
-end
-
-
-function W = reorderByDepth(G, W)
-   for i = 1:numel(W)
-      cells   = W(i).cells;
-      WI      = W(i).WI;
-      dZ      = W(i).dZ;
-      cstatus = W(i).cstatus;
-      
-      % depth = G.cells.centroids(cells, 3);
-      index = (1:numel(cells))';
-      new_index = sortrows(horzcat(dZ, index, cells, WI, cstatus));
-      W(i).dZ      = new_index(:, 1);
-      W(i).cells   = new_index(:, 3);
-      W(i).WI      = new_index(:, 4);
-      W(i).cstatus = new_index(:, 5);
-   end
 end
 
 function W = createDefaultWell(G, rock)
