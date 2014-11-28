@@ -257,6 +257,7 @@ function validateSchedule(schedule)
     assert(numel(steps.val) == numel(steps.control));
     assert(numel(schedule.control) >= max(schedule.step.control))
     assert(min(schedule.step.control) > 0);
+    assert(all(schedule.step.val > 0));
 end
 
 %--------------------------------------------------------------------------

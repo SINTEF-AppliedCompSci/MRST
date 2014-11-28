@@ -143,6 +143,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             drivingForces = merge_options(drivingForces, varargin{:});
             
+            assert(dT > 0, 'Negative timestep detected.');
             
             converged = false;
             done = false;
