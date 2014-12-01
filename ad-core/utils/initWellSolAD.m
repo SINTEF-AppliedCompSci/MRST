@@ -79,13 +79,8 @@ for k = 1:numel(W)
     ws(k).cstatus = W(k).cstatus;
 
     tp = W(k).type;
-    if ws(k).status
-        v  = W(k).val;
-    else
-        v = 0;
-        ws(k).bhp = 0;
-        ws(k).val = 0;
-    end
+    v  = W(k).val;
+
     switch tp
         case 'bhp'
             ws(k).bhp = v;
