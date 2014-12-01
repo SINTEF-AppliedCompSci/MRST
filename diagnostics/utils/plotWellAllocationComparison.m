@@ -115,9 +115,9 @@ for i=1:numel(wp1)
    set(gca,'YDir','reverse', 'YLim', [zm zM] + [-.2 .2]*(zM-zm));
 
    if max(wp1(i).alloc(:))>0
-      hl=legend(h(i),'wseg',4); set(hl,'FontSize',8); legend boxoff
+      hl=legend(h(i),wp1(i).name,4); set(hl,'FontSize',8); legend boxoff
    else
-      hl=legend(h(i),'wseg',3); set(hl,'FontSize',8); legend boxoff
+      hl=legend(h(i),wp1(i).name,3); set(hl,'FontSize',8); legend boxoff
    end
 end
 cmap = jet(nit+npt);
