@@ -171,6 +171,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % that we also have the correct signs for all wells.
     for i = 1:numel(schedule.control)
         active = vertcat(schedule.control(i).W.status);
+        W = schedule.control(i).W;
         W(~active) = W_closed(~active);
         schedule.control(i).W = setWellSign(W);
     end
