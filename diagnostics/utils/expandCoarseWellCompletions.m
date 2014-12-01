@@ -57,12 +57,18 @@ for i=1:numel(Wdf)
       flag(unique(p(vertcat(Wdf(i).cells))))=true;
       ind = flag(WC(j).cells);
       if ~sum(ind), continue, end;
+      
       nW = WC(j);
+      nW.name = Wdf(i).name;
       nW.cells = WC(j).cells(ind);
-      nW.r     = WC(j).r(ind);
-      nW.dir   = WC(j).dir(ind);
-      nW.WI    = WC(j).WI(ind);
-      nW.dZ    = WC(j).dZ(ind);
+      if numel(WC(j).r)==1
+         nW.r = WC(j).r;
+      else
+         nW.r = WC(j).r(ind);
+      end
+      nW.dir = WC(j).dir(ind);
+      nW.WI  = WC(j).WI(ind);
+      nW.dZ  = WC(j).dZ(ind);
       eWC = [eWC; nW];                                          %#ok<AGROW>
       n = n+1;
       exc.wellSol(n).flux = xc.wellSol(j).flux(ind);
