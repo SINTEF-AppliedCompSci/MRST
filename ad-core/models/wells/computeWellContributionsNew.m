@@ -12,21 +12,24 @@ perf2well   = rldecode((1:numel(W))', nConn);
 % helpful matrix in dealing with all wells at one go
 Rw    = sparse((1:numel(perf2well))', perf2well, 1, numel(perf2well), numel(W));
 Tw    = vertcat(W(:).WI);
-%active phases
-% [~, actPh] = model.getActivePhases();
 
 compi = vertcat(W(:).compi);
 
-cWstatus = vertcat(W(:).cstatus);
+wellStatus = vertcat(W.status);
+% Perforations/completions are closed if the well are closed or they are
+% individually closed
+perfStatus = vertcat(W.cstatus).*wellStatus(perf2well);
 % Closed shut connection by setting WI = 0
-Tw(~cWstatus) = 0;
+Tw(~perfStatus) = 0;
 
 
 % Well total volume rate at std conds:
 qt_s = q_s{1};
 for ph = 2:numPh
-    qt_s = qt_s + q_s{ph};
+    qt_s = (qt_s + q_s{ph}).*wellStatus;
 end
+
+
 % Get well signs, default should be that wells are not allowed to change sign
 % (i.e., prod <-> inj)
 if ~wellmodel.allowWellSignChange % injector <=> w.sign>0, prod <=> w.sign<0
@@ -103,7 +106,7 @@ end
 cqt_i = -(connInjInx.*Tw).*(mt.*drawdown);
 % volume ratio between connection and standard conditions
 volRat  = compVolRat(mix_s, b, r, Rw, model);
-% injceting connections total volumerates at standard condintions
+% injecting connections total volumerates at standard condintions
 cqt_is = cqt_i./volRat;
 % connection phase volumerates at standard conditions (for output):
 cq_s = cell(1,numPh);
@@ -122,15 +125,19 @@ eqs = cell(1, numPh);
 for ph = 1:numPh
     eqs{ph} = q_s{ph} - Rw'*cq_s{ph};
 end
+
+if ~all(wellStatus)
+    % Overwrite equations with trivial equations for inactive wells
+    subs = ~wellStatus;
+    for ph = 1:numPh
+        eqs{ph}(subs) = q_s{ph}(subs) - double(q_s{ph}(subs));
+    end
+end
 % return mix_s(just values), connection and well status:
 mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
-%status  = ~deadWells;
 % For now, don't change status here
 status = vertcat(sol.status);
-if(mrstVerbose && any(deadWells) )
-%     warning('It exist deadWells')
-end
 end
 
 %--------------------------------------------------------------------------

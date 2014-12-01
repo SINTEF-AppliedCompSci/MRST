@@ -14,29 +14,31 @@ end
 
 type = {sol.type}';
 val  = vertcat(sol.val);
+bhp  = vertcat(sol.bhp);
+
 qt_s = q_s{1};
 for ph = 2:numel(q_s)
     qt_s = qt_s + q_s{ph};
 end
 
 setToZeroRate = and(val ==0, ~cellfun(@(x)strcmp('bhp',x), type));
-setToZeroBHP  = ~status;
+disabledWells  = ~status;
 
 eq = pBH; %just to initialize to whatever class pBH is
 % bhp (injector or producer)
-inx = find(cellfun(@(x)strcmp('bhp',x), type));
+inx = getIndicesPerControl(type, status, 'bhp');
 if ~isempty(inx)
     eq(inx) = pBH(inx) - val(inx);
 end
 
 %rate (injector
-inx = find(cellfun(@(x)strcmp('rate',x), type));
+inx = getIndicesPerControl(type, status, 'rate');
 if ~isempty(inx)
     eq(inx) = qt_s(inx) - val(inx);
 end
 
 %orat (producer)
-inx = find(cellfun(@(x)strcmp('orat',x), type));
+inx = getIndicesPerControl(type, status, 'orat');
 if ~isempty(inx)
     eq(inx) = q_s{io}(inx)-val(inx);
     prob    = mix_s(inx,io)==0;
@@ -44,7 +46,7 @@ if ~isempty(inx)
 end
 
 %wrat (producer)
-inx = find(cellfun(@(x)strcmp('wrat',x), type));
+inx = getIndicesPerControl(type, status, 'wrat');
 if ~isempty(inx)
     eq(inx) = q_s{iw}(inx)-val(inx);
     prob    = mix_s(inx,iw)==0;
@@ -52,7 +54,7 @@ if ~isempty(inx)
 end
 
 %grat (producer)
-inx = find(cellfun(@(x)strcmp('grat',x), type));
+inx = getIndicesPerControl(type, status, 'grat');
 if ~isempty(inx)
     eq(inx) = q_s{ig}(inx)-val(inx);
     prob    = mix_s(inx,ig)==0;
@@ -60,7 +62,7 @@ if ~isempty(inx)
 end
 
 %lrat (producer)
-inx = find(cellfun(@(x)strcmp('lrat',x), type));
+inx = getIndicesPerControl(type, status, 'lrat');
 if ~isempty(inx)
     eq(inx) = q_s{iw}(inx)+q_s{io}(inx)-val(inx);
     prob    = (mix_s(inx,iw)+mix_s(inx,io))==0;
@@ -68,7 +70,7 @@ if ~isempty(inx)
 end
 
 %vrat (producer) - special volume rate
-inx = find(cellfun(@(x)strcmp('vrat',x), type));
+inx = getIndicesPerControl(type, status, 'vrat');
 if ~isempty(inx)
     eq(inx) = qt_s(inx)-val(inx);
 end
@@ -78,8 +80,14 @@ if ~isempty(setToZeroRate)
     eq(setToZeroRate) = qt_s(setToZeroRate);
 end
 
-% In the case when wells are shut, always impose zero bhp (possibly overwrite previously set eqs)
-if ~isempty(setToZeroBHP)
-    eq(setToZeroBHP) = pBH(setToZeroBHP);
+% In the case when wells are shut, set a trivial condition
+if ~isempty(disabledWells)
+    rateScale = max(mean(abs(double(qt_s))), sqrt(eps));
+    bhpScale  = max(mean(abs(bhp)),          1);
+    eq(disabledWells) = rateScale*(pBH(disabledWells) - bhp(disabledWells))./bhpScale;
 end
+end
+
+function inx = getIndicesPerControl(type, active, name)
+    inx = find(cellfun(@(x)strcmp(name, x), type) & active);
 end

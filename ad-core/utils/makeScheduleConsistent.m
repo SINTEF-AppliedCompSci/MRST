@@ -108,6 +108,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % The schedule can now be updated from the original schedule, using the
     % superset wells that contains all wells from both the present, past
     % and future.
+    passed = false(numel(W_all), 1);
     for i = 1:numel(schedule.control)       
         W = schedule.control(i).W;
         active = false(numel(W_all), 1);
@@ -147,11 +148,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 
                 if ~W_all(j).status
-                    W_all(j).cstatus = W_all(j).cstatus & false;
+                    W_all(j).cstatus = W_all(j).cstatus & false; %#ok
+                end
+                
+                if ~passed(j) && W_all(j).status
+                    % Grab the first active value for the closed set
+                    W_closed(j).val  = w.val;
+                    W_closed(j).type = w.type;
+                    W_closed(j).sign = w.sign;
+                    passed(j) = true;
                 end
             end
         end
         W = W_all;
+        W(~active) = W_closed(~active);
+    end
+    
+    % At this point, the schedule contains all the controls. We now want to
+    % ensure that the disabled wells contain the controls from the first
+    % time they are activated (so that any initialized well solutions are
+    % reasonable for when they appear). Do another pass through, and ensure
+    % that we also have the correct signs for all wells.
+    for i = 1:numel(schedule.control)
+        active = vertcat(schedule.control(i).W.status);
         W(~active) = W_closed(~active);
         schedule.control(i).W = setWellSign(W);
     end
