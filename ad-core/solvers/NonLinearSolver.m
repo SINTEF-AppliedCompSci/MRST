@@ -184,6 +184,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     isFinalMinistep = true;
                     dt = dT - t_local;
                 end
+                if solver.verbose && dt < dT
+                    fprintf('Solving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
+                        formatTimeRange(dt), dt/dT, t_local / dT)
+                end
                 [state, converged, failure, its, nonlinearReports] = ...
                         solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
                 
