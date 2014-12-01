@@ -64,7 +64,7 @@ for k = 1:nw
     ws(k).cqs  = zeros(nConn,nPh);
     % Additional model dependent fields
     if isprop(model, 'polymer') && model.polymer% polymer model
-       ws(1).qWPoly = 0;
+       ws(k).qWPoly = 0;
     end
 end
 end
