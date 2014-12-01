@@ -162,6 +162,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         W = W_all;
         W(~active) = W_closed(~active);
+        schedule.control(i).W = W;
     end
     
     % At this point, the schedule contains all the controls. We now want to
