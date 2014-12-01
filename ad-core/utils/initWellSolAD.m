@@ -1,16 +1,5 @@
 function wellSol = initWellSolAD(W, model, state0, wellSolInit)
-% model = someFunction(state)
-% initialization should depend on model, for now just dstinguish between 2
-% and three phases
-wellSolGiven =  (nargin == 4);
-
-% if size(state0.s, 2) == 2
-%     model = 'OW';
-% else
-%     model = '3P';
-% end
-
-
+wellSolGiven = (nargin == 4);
 
 if wellSolGiven
     wellSol = wellSolInit;
@@ -40,11 +29,7 @@ ws = repmat(struct(...
     'cstatus',[],...
     'cdp',    [],...
     'cqs',    []), [1, nw]);
-% additional fields depending on model
-if isfield(state, 'c') % polymer model
-   %ws(1).poly = [];
-   ws(1).qWPoly = [];
-end
+
 % just initialize fields that are not assigned in assignFromSchedule
 for k = 1:nw
     nConn = numel(W(k).cells);
@@ -57,13 +42,9 @@ for k = 1:nw
     % don't know wht a decent pressure is ...
     % The increment should depend on the problem and the 5bar could be a
     % pit-fall... (also used in initializeBHP in updateConnDP)
-    %if W(k).dZ(1) == 0
-        ws(k).bhp = state.pressure(W(k).cells(1)) + 5*W(k).sign*barsa;
-    %else
-    %    ws(k).bhp = -inf;
-    %end
+    ws(k).bhp = state.pressure(W(k).cells(1)) + 5*W(k).sign*barsa;
+
     irate = eps;
-    ws(k).qTs  = 0;
     if model.water
         ws(k).qWs  = W(k).sign*irate;
     end
@@ -81,6 +62,10 @@ for k = 1:nw
     ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
     ws(k).cqs  = zeros(nConn,nPh);
+    % Additional model dependent fields
+    if isprop(model, 'polymer') && model.polymer% polymer model
+       ws(1).qWPoly = 0;
+    end
 end
 end
 
