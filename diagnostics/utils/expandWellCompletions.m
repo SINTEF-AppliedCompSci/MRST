@@ -79,6 +79,7 @@ for i=1:nw
       Wc(n).dir   = W(i).dir(b==j);
       Wc(n).WI    = W(i).WI(b==j);
       Wc(n).dZ    = W(i).dZ(b==j);
+      Wc(n).name  = [W(i).name ':' num2str(j)];
       xc.wellSol(n).flux = x.wellSol(i).flux(b==j);
    end
 end

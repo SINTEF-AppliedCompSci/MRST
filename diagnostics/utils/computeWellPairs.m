@@ -81,6 +81,7 @@ for i=1:ni
    cj  = D.ptracer(W(D.inj(i)).cells,:);
    WP.inj(i).alloc = repmat(qik.*ci, 1, np) .* cj;% / sum(qik);
    WP.inj(i).z     = W(D.inj(i)).dZ + W(D.inj(i)).refDepth;
+   WP.inj(i).name  = W(D.inj(i)).name;
 end
 for i=1:np
    qjk = state.wellSol(D.prod(i)).flux;
@@ -88,6 +89,7 @@ for i=1:np
    cj  = D.ptracer(W(D.prod(i)).cells,i);
    WP.prod(i).alloc = repmat(qjk.*cj, 1, ni) .* ci;% / sum(qjk);
    WP.prod(i).z     = W(D.prod(i)).dZ + W(D.prod(i)).refDepth;
+   WP.prod(i).name  = W(D.prod(i)).name;
 end
 end
 
