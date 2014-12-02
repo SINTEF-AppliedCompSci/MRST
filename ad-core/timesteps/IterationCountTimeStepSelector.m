@@ -70,7 +70,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             hist = selector.history;
             nHist = numel(hist);
             
-            if nHist == 0 || ~hist(end).Converged || selector.controlsChanged
+            if nHist == 0 || ~hist(end).Converged ||...
+               (selector.controlsChanged && selector.resetOnControlsChanged)
                 return
             end
             
