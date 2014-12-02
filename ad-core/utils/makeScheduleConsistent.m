@@ -129,18 +129,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isempty(sub)
                 if cellsChangedFlag(j)
                     % Only some perforations are actually active.
-                    cstatus = ismember(W_all(j).cells, w.cells);
+                    isActivePerf = ismember(W_all(j).cells, w.cells(w.cstatus));
                 else
                     % This well does not change the number of completions
-                    cstatus = true(size(W_all(j).cells));
+                    isActivePerf = true(size(W_all(j).cells));
                 end
                 
-                W_all(j).cstatus = cstatus; %#ok
+                W_all(j).cstatus = ismember(W_all(j).cells, w.cells(w.cstatus)); %#ok
                 
                 for k = 1:numel(perffields)
                     pf = perffields{k};
                     % Take the values from the active perforations
-                    W_all(j).(pf)(cstatus, :) = W(sub).(pf); %#ok
+                    W_all(j).(pf)(isActivePerf, :) = W(sub).(pf); %#ok
                 end
                 % Treat rest of the fields, whatever they may be
                 for k = 1:numel(restfields)
@@ -148,15 +148,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     W_all(j).(fn) = W(sub).(fn); %#ok
                 end
                 
-                if ~W_all(j).status
-                    W_all(j).cstatus = W_all(j).cstatus.*false; %#ok
-                end
-                
                 if ~passed(j) && W_all(j).status
                     % Grab the first active value for the closed set
                     W_closed(j).val  = w.val;
                     W_closed(j).type = w.type;
                     W_closed(j).sign = w.sign;
+                    
                     passed(j) = true;
                 end
             end
