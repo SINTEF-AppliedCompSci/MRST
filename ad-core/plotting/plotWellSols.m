@@ -206,7 +206,7 @@ function plotWellSols(wellsols, varargin)
             % Use colorcube for more lines
             cmap = colorcube(nw+2);
         end
-        linestyles = {'-', '--', '-.', ':'};
+        linestyles = {'--', ':', '-', '-.'};
         
         if get(hasmarker, 'Value')
             markerstyles = {'o', '.', 'd', '*'};
