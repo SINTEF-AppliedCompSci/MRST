@@ -101,6 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pf  = perffields{j};
             W_all(i).(pf) = zeros(numel(c),  size(W_all(i).(pf), 2)); %#ok
         end
+        W_all(i).cstatus = false(numel(c), 1);
         W_all(i).status = false; %#ok
     end
     W_closed = W_all;
@@ -148,7 +149,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 
                 if ~W_all(j).status
-                    W_all(j).cstatus = W_all(j).cstatus & false; %#ok
+                    W_all(j).cstatus = W_all(j).cstatus.*false; %#ok
                 end
                 
                 if ~passed(j) && W_all(j).status
