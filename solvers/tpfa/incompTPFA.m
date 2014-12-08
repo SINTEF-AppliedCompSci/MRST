@@ -331,9 +331,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       state.A   = A;
       state.rhs = rhs;
    end
-   timer = tic();
    p = opt.LinSolve(A, rhs);
-   state.t_solve = toc(timer);
    tocif(opt.Verbose, t0);
 
    clear A rhs;
