@@ -92,13 +92,8 @@ if isfield(f, 'pcOG')
     pcOG  = f.pcOG(sG);
 end
 
-% Gravity contribution, assert that it is aligned with z-dir
-grav = gravity();
-grav = grav(1:G.griddim);
-%assert(grav(1) == 0 && grav(2) == 0);
-%g  = norm(grav);
-%dz = s.Grad(G.cells.centroids(:,3));
-gdz = s.Grad(G.cells.centroids) * grav';
+% Gravity contribution
+gdz = model.getGravityGradient();
 % Compute transmissibility
 T = s.T.*transMult;
 

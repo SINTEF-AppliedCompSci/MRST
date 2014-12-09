@@ -70,9 +70,8 @@ pcOW = 0;
 if isfield(f, 'pcOW')
     pcOW  = f.pcOW(sW);
 end
-% Gravity contribution, assert that it is aligned with z-dir
-grav = gravity();
-gdz = s.Grad(G.cells.centroids) * grav';
+% Gravity contribution
+gdz = model.getGravityGradient();
 
 % Compute transmissibility
 T = s.T.*transMult;

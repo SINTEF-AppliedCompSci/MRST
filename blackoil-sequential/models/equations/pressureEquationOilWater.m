@@ -42,8 +42,6 @@ end
 primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
 
 clear tmp
-grav  = gravity;
-
 
 %check for p-dependent porv mult:
 pvMult = 1; pvMult0 = 1;
@@ -74,8 +72,8 @@ sO0 = 1 - sW0;
 
 [krW, krO] = model.evaluteRelPerm({sW, sO});
 
-%dZ = s.grad(G.cells.centroids(:,3));
-gdz = s.Grad(G.cells.centroids) * grav';
+% Gravity contribution
+gdz = model.getGravityGradient();
 
 % Water
 [bW, rhoW, mobW, dpW] = propsOW_water(sW, krW, gdz, f, p, s);

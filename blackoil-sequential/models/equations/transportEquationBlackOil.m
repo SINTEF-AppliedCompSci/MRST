@@ -92,9 +92,8 @@ function [problem, state] = transportEquationBlackOil(state0, state, model, dt, 
     sO0 = 1 - sW0 - sG0;
 
     [krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
-    grav  = gravity;
-    %dz = s.grad(G.cells.centroids(:,3));
-    gdz = s.Grad(G.cells.centroids) * grav'; 
+    % Gravity contribution
+    gdz = model.getGravityGradient();
     
     % WATER PROPS (calculated at oil pressure)
     bW     = f.bW(p);

@@ -45,8 +45,8 @@ clear tmp
 sO = 1 - sW;
 [krW, krO] = model.evaluteRelPerm({sW, sO});
 
-grav = gravity;
-gdz = s.Grad(G.cells.centroids) * grav';
+% Gravity contribution
+gdz = model.getGravityGradient();
 
 % Water
 [bW, rhoW, mobW, dpW, Gw] = propsOW_water(sW, krW, gdz, f, p, s);
