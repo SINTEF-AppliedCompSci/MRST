@@ -482,7 +482,12 @@ end
 
 function J = lMultDiag(d, J1)
 n = numel(d);
-D = sparse((1:n)', (1:n)', d, n, n);
+if any(d)
+    ix = (1:n)';
+    D = sparse(ix, ix, d, n, n);
+else
+    D = 0;
+end
 J = cell(1, numel(J1));
 for k = 1:numel(J)
     J{k} = D*J1{k};
@@ -493,10 +498,13 @@ end
 
 function J = timesJac(v1, v2, J1, J2)
 n = numel(v1);
-D1 = sparse((1:n)', (1:n)', v1, n, n);
-D2 = sparse((1:n)', (1:n)', v2, n, n);
-J = cell(1, numel(J1));
-for k = 1:numel(J)
+ix = (1:n)';
+D1 = sparse(ix, ix, v1, n, n);
+D2 = sparse(ix, ix, v2, n, n);
+
+nj = numel(J1);
+J = cell(1, nj);
+for k = 1:nj
     J{k} = D1*J2{k} + D2*J1{k};
 end
 end
