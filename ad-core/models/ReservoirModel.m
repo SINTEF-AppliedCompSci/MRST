@@ -100,6 +100,9 @@ properties
     extraWellSolOutput
     % Output fluxes
     outputFluxes
+    
+    % Vector for the gravitational force
+    gravity
 end
 
 methods
@@ -132,7 +135,9 @@ methods
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
-
+        
+        % Gravity defaults to the global variable
+        model.gravity = gravity(); %#ok
         model = merge_options(model, varargin{:});
 
         % Base class does not support any phases
@@ -488,6 +493,28 @@ methods
             % Call fluid interface directly if single phase
             varargout{1} = model.fluid.(['kr', names])(sat{:}, varargin{:});
         end
+    end
+    
+    % --------------------------------------------------------------------%
+    function g = getGravityVector(model)
+        % Get the gravity vector used to instantiate the model
+        if isfield(model.G, 'griddim')
+            dims = 1:model.G.griddim;
+        else
+            dims = ':';
+        end
+        g = model.gravity(dims);
+    end
+    
+    % --------------------------------------------------------------------%
+    function gdxyz = getGravityGradient(model)
+        % Get gradient of gravity on the faces
+        assert(isfield(model.G, 'cells'), 'Missing cell field on grid');
+        assert(isfield(model.G.cells, 'centroids'),...
+            'Missing centroids field on grid. Consider using computeGeometry first.');
+        
+        g = model.getGravityVector();
+        gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
     end
 end
 
