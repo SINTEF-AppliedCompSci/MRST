@@ -7,7 +7,6 @@ nPh = sum(model.getActivePhases);
 N = G.faces.neighbors(bc.face,:);
 
 % Validation
-assert(all(strcmp(bc.type,'pressure')), 'only pressure bc allowed');
 assert(size(bc.sat, 2) == nPh);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
 
@@ -25,6 +24,12 @@ isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 
 qRes = cell(numel(pressure),1);
 
+% Use sat field to determine what any inflow cells produce.
+sat = bc.sat;
+noSat = all(sat == 0, 2);
+hasNoSat = any(noSat);
+
+% Store total mobility
 totMob = double2ADI(zeros(nbc, 1), mob{1});
 for i = 1:nPh
     totMob = totMob + cell2bcMap*mob{i};
@@ -38,23 +43,38 @@ for i = 1:nPh
     rhoBC = cell2bcMap*rho{i};
     bBC   = cell2bcMap*b{i};
     mobBC = cell2bcMap*mob{i};
+    sBC   = cell2bcMap*s{i};
+    
+    if hasNoSat
+        % If no saturations are defined, we explicitly set it to mirror the
+        % cell values on the other side of the interface
+        sBC = double(sBC);
+        sat(noSat, i) = sBC(noSat);
+    end
     
     % Treat pressure BC
     dP = bc.value(isP) - pBC(isP) + rhoBC(isP).*dzbc(isP);
 
     % Determine if pressure bc are injecting or producing
     inj = dP > 0;
-    injP = inj & isP;
+    
+    injP = isP;
+    injP(isP) = inj;
+    
+    % Write out the flux equation over the interface
+    q(isP & ~injP)  = -bBC(isP & ~injP).*mobBC(isP & ~injP).*T(isP & ~injP).*dP(~inj);
 
-    q(~injP)  = -bBC(~injP).*mobBC(~injP).*T(~injP).*dP(~inj);
-
-    % Pressure drives flow inwards, we get the injection rate
+    % In this case, pressure drives flow inwards, we get the injection rate
     % determined by the sat field
-    q( injP)  = -bBC( injP).*totMob(injP).*T( injP).*dP(inj).*bc.sat(injP, i);
+    q( isP & injP)  = -bBC( isP & injP).*totMob(isP & injP).*T( isP & injP).*dP(inj).*sat(isP & injP, i);
 
     % Treat flux / Neumann BC
-    q(~isP) = bc.value(~isP).*bc.sat(~isP, i);
-
+    inj = bc.value > 0;
+    % Injection
+    q(~isP &  inj) = -bc.value(~isP & inj).*sat(~isP & inj, i);
+    % Production
+    q(~isP & ~inj) = -bc.value(~isP & ~inj).*sBC(~isP & ~inj);
+    
     qRes{i} = q;
 end
 end

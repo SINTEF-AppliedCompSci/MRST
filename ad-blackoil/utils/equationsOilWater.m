@@ -9,7 +9,7 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.Wells;
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+assert(isempty(drivingForces.src))
 
 % Operators, grid and fluid model.
 s = model.operators;
@@ -127,6 +127,14 @@ eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(bOvO);
 % water:
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);
 
+eqs([2, 1]) = addBoundaryConditionFluxesAD(model, eqs([2, 1]), gdz, ...
+                                               {p - pcOW, p},...
+                                               {rhoW,     rhoO},...
+                                               {mobW,     mobO}, ...
+                                               {bW, bO},  ...
+                                               {sW, sO}, ...
+                                               drivingForces.bc);
+
 names = {'oil', 'water'};
 types = {'cell', 'cell'};
 % well equations
@@ -162,5 +170,8 @@ if ~isempty(W)
         types(3:5) = {'none', 'none', 'none'};
     end
 end
+
+
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
