@@ -27,7 +27,7 @@ dzbc = dz*g';
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 
-qRes = cell(numel(pressure),1);
+qRes = cell(nPh,1);
 
 % Use sat field to determine what any inflow cells produce.
 sat = bc.sat;
@@ -78,11 +78,11 @@ for i = 1:nPh
     end
     % Treat flux / Neumann BC
     injNeu = bc.value > 0;
-    if any(injNeu)
+    if any(~isP &  injNeu)
         % Injection
         q(~isP &  injNeu) = bc.value(~isP & injNeu).*sat(~isP & injNeu, i);
     end
-    if any(~injNeu)
+    if any(~isP & ~injNeu)
         % Production
         q(~isP & ~injNeu) = bc.value(~isP & ~injNeu).*sBC(~isP & ~injNeu);
     end
