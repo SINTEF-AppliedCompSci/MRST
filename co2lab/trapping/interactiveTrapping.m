@@ -220,7 +220,7 @@ function clickHandler(Gt, res, bf, data, src, event)                       %#ok
         plotGrid(res.Gflat, currTrap, 'facec', 'red')
         % Plot ceiling of trap
         plotGrid(Gt, currTrap & currRegion, 'facec', 'blue', 'facea', .8, 'edgec', 'none')
-        plotCellData(Gt, Gt.cells.z, ~currTrap & currRegion, 'facea', .3);
+        plotCellData(Gt, Gt.cells.z, ~currTrap & currRegion, 'facea', .3, 'edgec', 'none');
         
         axis off tight
         view(-20, 45)
@@ -278,7 +278,7 @@ function plotMain(Gt, res, bf, atlasdata)
         set(h, 'FaceVertexCData', map(tmp + 1, :))
     else
         % Plot heightdata
-        h = plotCellData(Gt, zdata, 'ButtonDownFcn', fn);
+        h = plotCellData(Gt, zdata, 'ButtonDownFcn', fn, 'EdgeColor','none');
         map = jet(64);
         v = interp1(linspace(0,1,64), map, zrange );
         set(h, 'FaceVertexCData', v);
