@@ -11,7 +11,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -40,7 +40,7 @@ G = computeGeometry(G(1));
 % scene to better reveal reliefs in the top surface of the reservoir.
 % These folds can be a target for structural trapping of migrating CO2.
 clf;
-plotCellData(G, G.cells.volumes)
+plotCellData(G, G.cells.volumes, 'EdgeColor','none')
 title('Utsira formation - full grid with thickness and heightmap')
 axis tight off
 light('Position',[-1 -1 -1],'Style','infinite');
