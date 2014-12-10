@@ -48,6 +48,12 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
             bc = pside(bc, G, 'xmax', 0, 'sat', sat);
         end
         
+        function bc = mixedBC(test, G, sat, time, sgn)
+            injRate = 5*sgn*sum(G.cells.volumes)/time;
+            bc = [];
+            bc = fluxside(bc, G, 'xmin', -injRate, 'sat', sat);
+            bc = pside(bc, G, 'xmax', 0, 'sat', sat);
+        end
         
         function VerifyDirichletBC(test, state0, model, cases)
             import matlab.unittest.constraints.RelativeTolerance;
@@ -82,6 +88,35 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
                     expected, 'Within', RelativeTolerance(1e-2)) );
             end
         end
+        
+        function VerifyMixedBC(test, state0, model, cases, sgn)
+            import matlab.unittest.constraints.RelativeTolerance;
+            import matlab.unittest.constraints.AbsoluteTolerance;
+            import matlab.unittest.constraints.IsEqualTo;
+            
+            G = model.G;
+            for i = 1:size(cases, 1)
+                sat = cases(i, :);
+                                
+                dT = 10*year;
+                n = 10;
+                
+                bc = test.mixedBC(model.G, sat, dT*n, sgn);
+                
+                state = state0;
+                solver = NonLinearSolver();
+
+                for j = 1:n
+                    state = solver.solveTimestep(state, dT, model, 'bc', bc);
+                end
+                % We assume stationary flow, i.e. the bc completely
+                % determine the saturations at the endpoint
+                expected = repmat(sat, G.cells.num, 1);
+                test.verifyThat(state.s, ...
+                    matlab.unittest.constraints.IsEqualTo(...
+                    expected, 'Within', AbsoluteTolerance(1e-2)) );
+            end
+        end
     end
     
     
@@ -104,8 +139,23 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
             test.VerifyDirichletBC(state0, model, cases);
         end
         
-        function states = TestMixedBC(test)
+        function TestMixedBC_BO(test)
+            [state0, model] = test.getSimpleBO();
             
+            cases = [eye(3); [1 1 1]/3];
+            
+            test.VerifyMixedBC(state0, model, cases, -1);
+            test.VerifyMixedBC(state0, model, cases, +1);
+        end
+
+        function TestMixedBC_OW(test)
+            [state0, model] = test.getSimpleOW();
+            
+            cases = [0,   1; ...
+                    0.5, 0.5;...
+                    1,   0];
+            test.VerifyMixedBC(state0, model, cases, -1);
+            test.VerifyMixedBC(state0, model, cases, +1);
         end
         
         function states = TestSourceTerms(test)
