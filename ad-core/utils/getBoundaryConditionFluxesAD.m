@@ -9,6 +9,8 @@ N = G.faces.neighbors(bc.face,:);
 % Validation
 assert(size(bc.sat, 2) == nPh);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
+ss = sum(bc.sat, 2);
+assert(all(ss == 1 | ss == 0));
 
 % Mapping
 BCcells = sum(N, 2);
