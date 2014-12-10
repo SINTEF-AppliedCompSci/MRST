@@ -62,7 +62,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -136,7 +136,7 @@ end
 G = readIGEMSIRAP('OSS', 1, 'coarse', [2 2]);
 Gt = topSurfaceGrid(G);
 
-%% Activate trapping
+% Activate trapping
 h = interactiveTrapping(Gt, 'method', method);
 view(180, 50)
 

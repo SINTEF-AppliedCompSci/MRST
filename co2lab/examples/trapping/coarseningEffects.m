@@ -21,7 +21,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -54,7 +54,7 @@ y = G.cells.centroids(:,2);
 subset = x > subdomain(1,1) & x < subdomain(2,1) &...
          y > subdomain(1,2) & y < subdomain(2,2);
 clf;
-plotCellData(G, G.cells.z)
+plotCellData(G, G.cells.z,'EdgeColor','none')
 plotGrid(G, subset, 'EdgeColor', 'None', 'FaceColor', 'black', 'FaceAlpha', .5)
 
 axis tight off
