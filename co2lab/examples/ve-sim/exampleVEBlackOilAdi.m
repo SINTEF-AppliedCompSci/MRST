@@ -6,7 +6,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -76,11 +76,13 @@ for nn=1:numel(states)
     
     subplot(2,2,1),cla
     title('pressure')
-    plotCellData(G,state.pressure/barsa);colorbar('horiz'), caxis([100 200])
+    plotCellData(G,state.pressure/barsa,'EdgeColor','none');
+    colorbar('horiz'), caxis([100 200])
     
     subplot(2,2,2),cla
     title('saturation')
-    plotCellData(G,state.s(:,1));colorbar('horiz'), caxis([0 1])
+    plotCellData(G,state.s(:,1),'EdgeColor','none');
+    colorbar('horiz'), caxis([0 1])
     
     % plot as VE
     subplot(2,2,3),cla

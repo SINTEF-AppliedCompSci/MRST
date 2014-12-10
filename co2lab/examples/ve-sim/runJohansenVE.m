@@ -15,7 +15,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -106,7 +106,7 @@ opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], 'maxH', 100, ...
 plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,4), opts{:});
 
 
-% Main loop
+%% Main loop
 % Run the simulation using a sequential splitting with pressure and
 % transport computed in separate steps. The transport solver is formulated
 % with the height of the CO2 plume as the primary unknown and the relative
