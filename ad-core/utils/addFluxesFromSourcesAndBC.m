@@ -1,4 +1,4 @@
-function eqs = addBoundaryConditionFluxesAD(model, eqs, pressure, rho, mob, b, s, forces)
+function eqs = addFluxesFromSourcesAndBC(model, eqs, pressure, rho, mob, b, s, forces)
     if isempty(forces.bc) && isempty(forces.src)
         return
     end
