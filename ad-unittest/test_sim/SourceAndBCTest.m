@@ -55,6 +55,16 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
             bc = pside(bc, G, 'xmax', 0, 'sat', sat);
         end
         
+        function [bc, src] = srcWithBC(test, G, sat, time)
+            [src, bc] = deal([]);
+            injRate = 5*sum(G.cells.volumes)/time;
+            src = addSource(src, ceil(G.cells.num/2), injRate, 'sat', sat);
+            src = addSource(src, G.cells.num, -injRate, 'sat', sat);
+            % BC to fixate pressure - avoid singular values
+            bc = pside(bc, G, 'xmin', 0*barsa, 'sat', sat);
+
+        end
+        
         function VerifyDirichletBC(test, state0, model, cases)
             import matlab.unittest.constraints.RelativeTolerance;
             import matlab.unittest.constraints.AbsoluteTolerance;
@@ -117,6 +127,29 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
                     expected, 'Within', AbsoluteTolerance(1e-2)) );
             end
         end
+        
+        function VerifySRC(test, state0, model, cases)
+            import matlab.unittest.constraints.RelativeTolerance;
+            import matlab.unittest.constraints.AbsoluteTolerance;
+            import matlab.unittest.constraints.IsEqualTo;
+            
+            G = model.G;
+            for i = 1:size(cases, 1)
+                sat = cases(i, :);
+                                
+                dT = 10*year;
+                n = 10;
+                
+                [bc, src] = test.srcWithBC(G, sat, dT*n);
+                
+                state = state0;
+                solver = NonLinearSolver();
+
+                for j = 1:n
+                    state = solver.solveTimestep(state, dT, model, 'bc', bc, 'src', src);
+                end
+            end
+        end
     end
     
     
@@ -158,8 +191,16 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
             test.VerifyMixedBC(state0, model, cases, +1);
         end
         
-        function states = TestSourceTerms(test)
-            
+        function TestSourceTermsBO(test)
+            [state0, model] = test.getSimpleBO();
+            cases = [eye(3); [1 1 1]/3];
+            test.VerifySRC(state0, model, cases);
+        end
+        
+        function TestSourceTermsOW(test)
+            [state0, model] = test.getSimpleOW();
+            cases = [eye(2); [1 1]/2];
+            test.VerifySRC(state0, model, cases);
         end
     end
 end
