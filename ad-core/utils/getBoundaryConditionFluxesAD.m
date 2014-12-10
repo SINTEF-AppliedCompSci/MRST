@@ -1,4 +1,4 @@
-function [qRes, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, gdz, pressure, rho, mob, b, s, bc)
+function [qRes, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
 
 % Basic quanitites
 T = model.operators.T_all(bc.face);
@@ -21,7 +21,9 @@ cellToBCMap = sparse((1:nbc)', BCcells, 1, nbc, G.cells.num);
 BCTocellMap = cellToBCMap';
 
 % Gravity gradient per bc face 
-dzbc = gdz(bc.face);
+g = model.getGravityVector();
+dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
+dzbc = dz*g';
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 
@@ -59,25 +61,31 @@ for i = 1:nPh
     dP = bc.value(isP) - pBC(isP) + rhoBC(isP).*dzbc(isP);
 
     % Determine if pressure bc are injecting or producing
-    inj = dP > 0;
+    injDir = dP > 0;
     
     injP = isP;
-    injP(isP) = inj;
+    injP(isP) = injDir;
     
-    % Write out the flux equation over the interface
-    q(isP & ~injP)  = bBC(isP & ~injP).*mobBC(isP & ~injP).*T(isP & ~injP).*dP(~inj);
-
-    % In this case, pressure drives flow inwards, we get the injection rate
-    % determined by the sat field
-    q( isP & injP)  = bBC( isP & injP).*totMob(isP & injP).*T( isP & injP).*dP(inj).*sat(isP & injP, i);
-
+    if any(~injDir)
+        % Write out the flux equation over the interface
+        q(isP & ~injP)  = bBC(isP & ~injP).*mobBC(isP & ~injP).*T(isP & ~injP).*dP(~injDir);
+    end
+    
+    if any(injDir)
+        % In this case, pressure drives flow inwards, we get the injection rate
+        % determined by the sat field
+        q( isP & injP)  = bBC( isP & injP).*totMob(isP & injP).*T( isP & injP).*dP(injDir).*sat(isP & injP, i);
+    end
     % Treat flux / Neumann BC
-    inj = bc.value > 0;
-    % Injection
-    q(~isP &  inj) = bc.value(~isP & inj).*sat(~isP & inj, i);
-    % Production
-    q(~isP & ~inj) = bc.value(~isP & ~inj).*sBC(~isP & ~inj);
-    
+    injNeu = bc.value > 0;
+    if any(injNeu)
+        % Injection
+        q(~isP &  injNeu) = bc.value(~isP & injNeu).*sat(~isP & injNeu, i);
+    end
+    if any(~injNeu)
+        % Production
+        q(~isP & ~injNeu) = bc.value(~isP & ~injNeu).*sBC(~isP & ~injNeu);
+    end
     qRes{i} = q;
 end
 end
