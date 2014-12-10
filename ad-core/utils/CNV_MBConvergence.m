@@ -117,8 +117,8 @@ function [converged, values, evaluated] = CNV_MBConvergence(model, problem)
 
     % Check if material balance for each phase fullfills residual
     % convergence criterion
-    MB = abs([BO_avg*sum(RO), BW_avg*sum(RW) BG_avg*sum(RG)]);
-    converged_MB  = MB < tol_mb*pvsum/problem.dt;
+    MB = problem.dt*abs([BO_avg*sum(RO), BW_avg*sum(RW) BG_avg*sum(RG)])/pvsum;
+    converged_MB  = MB < tol_mb;
 
     % Check maximum normalized residuals (maximum mass error)
     CNV = [CNVO CNVW CNVG] ;
