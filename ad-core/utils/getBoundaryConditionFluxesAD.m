@@ -1,4 +1,4 @@
-function [qRes, bc2cellMap, bc_cell] = getBoundaryConditionFluxesAD(model, gdz, pressure, rho, mob, b, s, bc)
+function [qRes, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, gdz, pressure, rho, mob, b, s, bc)
 
 % Basic quanitites
 T = model.operators.T_all(bc.face);
@@ -11,14 +11,17 @@ assert(size(bc.sat, 2) == nPh);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
 
 % Mapping
-bc_cell = sum(N, 2);
+BCcells = sum(N, 2);
 nbc = numel(bc.face);
-cell2bcMap = sparse((1:nbc)', bc_cell, 1, nbc, G.cells.num);
-bc2cellMap = cell2bcMap';
+% This mapping takes us from cell values to bc values and vice versa. We
+% use sparse matrices to add in fluxes because using sub-indices will
+% overwrite values when multiple BC are applied to the same cell (i.e. a
+% corner cell with BC on multiple sides).
+cellToBCMap = sparse((1:nbc)', BCcells, 1, nbc, G.cells.num);
+BCTocellMap = cellToBCMap';
 
+% Gravity gradient per bc face 
 dzbc = gdz(bc.face);
-
-
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 
@@ -32,18 +35,18 @@ hasNoSat = any(noSat);
 % Store total mobility
 totMob = double2ADI(zeros(nbc, 1), mob{1});
 for i = 1:nPh
-    totMob = totMob + cell2bcMap*mob{i};
+    totMob = totMob + cellToBCMap*mob{i};
 end
 
 for i = 1:nPh
     
     q = double2ADI(zeros(nbc, 1), mob{i});
     
-    pBC   = cell2bcMap*pressure{i};
-    rhoBC = cell2bcMap*rho{i};
-    bBC   = cell2bcMap*b{i};
-    mobBC = cell2bcMap*mob{i};
-    sBC   = cell2bcMap*s{i};
+    pBC   = cellToBCMap*pressure{i};
+    rhoBC = cellToBCMap*rho{i};
+    bBC   = cellToBCMap*b{i};
+    mobBC = cellToBCMap*mob{i};
+    sBC   = cellToBCMap*s{i};
     
     if hasNoSat
         % If no saturations are defined, we explicitly set it to mirror the
@@ -62,18 +65,18 @@ for i = 1:nPh
     injP(isP) = inj;
     
     % Write out the flux equation over the interface
-    q(isP & ~injP)  = -bBC(isP & ~injP).*mobBC(isP & ~injP).*T(isP & ~injP).*dP(~inj);
+    q(isP & ~injP)  = bBC(isP & ~injP).*mobBC(isP & ~injP).*T(isP & ~injP).*dP(~inj);
 
     % In this case, pressure drives flow inwards, we get the injection rate
     % determined by the sat field
-    q( isP & injP)  = -bBC( isP & injP).*totMob(isP & injP).*T( isP & injP).*dP(inj).*sat(isP & injP, i);
+    q( isP & injP)  = bBC( isP & injP).*totMob(isP & injP).*T( isP & injP).*dP(inj).*sat(isP & injP, i);
 
     % Treat flux / Neumann BC
     inj = bc.value > 0;
     % Injection
-    q(~isP &  inj) = -bc.value(~isP & inj).*sat(~isP & inj, i);
+    q(~isP &  inj) = bc.value(~isP & inj).*sat(~isP & inj, i);
     % Production
-    q(~isP & ~inj) = -bc.value(~isP & ~inj).*sBC(~isP & ~inj);
+    q(~isP & ~inj) = bc.value(~isP & ~inj).*sBC(~isP & ~inj);
     
     qRes{i} = q;
 end

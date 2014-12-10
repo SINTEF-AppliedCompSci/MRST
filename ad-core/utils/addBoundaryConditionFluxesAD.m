@@ -2,9 +2,11 @@ function eqs = addBoundaryConditionFluxesAD(model, eqs, gdz, pressure, rho, mob,
     if isempty(bc)
         return
     end
-    [qRes, bcface2cellMap] = getBoundaryConditionFluxesAD(model, gdz, pressure, rho, mob, b, s, bc);
+    % Setup the fluxes from the boundary condition
+    [qRes, BCTocellMap] = getBoundaryConditionFluxesAD(model, gdz, pressure, rho, mob, b, s, bc);
     
     for i = 1:numel(qRes)
-        eqs{i}  = eqs{i} + bcface2cellMap*qRes{i};
+        % Subtract fluxes
+        eqs{i}  = eqs{i} - BCTocellMap*qRes{i};
     end
 end
