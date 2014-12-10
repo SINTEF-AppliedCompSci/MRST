@@ -12,12 +12,14 @@ function [qRes, cells] = getSourceFluxesAD(model, mob, b, s, src)
         q = double2ADI(zeros(nsrc, 1), mob{i});
         
         if any(inj)
+            % Injection rates are given in surface conditions
             q(inj) = src.rate(inj).*src.sat(inj, i);
         end
         
         if any(~inj)
             c = cells(~inj);
             sc = s{i}(c);
+            % Production rates must be converted to surface conditions
             q(~inj) = b{i}(c).*src.rate(~inj).*sc;
         end
         qRes{i} = q;
