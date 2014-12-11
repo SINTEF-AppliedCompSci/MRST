@@ -167,6 +167,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function dx = recoverResult(solver, dxElim, eliminatedEqs, keep)
             kept = find(keep);
+            left = find(~keep);
             keptEqNo = numel(kept);
             
             % Find number of variables
@@ -184,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             dx(recovered) = dxElim;
             
             for i = numel(eliminatedEqs):-1:1
-                pos = notCellIndex(i);
+                pos = left(i);
                 dVal = recoverVars(eliminatedEqs{i}, keptEqNo + 1, dx(recovered));
                 dx{pos} = dVal;
                 recovered(pos) = true;
