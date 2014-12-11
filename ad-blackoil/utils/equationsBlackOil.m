@@ -8,7 +8,6 @@ opt = struct('Verbose',     mrstVerbose,...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.Wells;
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 % Operators, grid and fluid model.
 s = model.operators;
@@ -205,6 +204,15 @@ if disgas
 else
     eqs{3} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
 end
+
+eqs([2, 1, 3]) = addFluxesFromSourcesAndBC(model, eqs([2, 1, 3]), ...
+                                               {p - pcOW, p, p+pcOG},...
+                                               {rhoW,     rhoO, rhoG},...
+                                               {mobW,     mobO, mobG}, ...
+                                               {bW, bO, bG},  ...
+                                               {sW, sO, sG}, ...
+                                               drivingForces);
+
 types = {'cell', 'cell', 'cell'};
 
 wm = WellModel();
