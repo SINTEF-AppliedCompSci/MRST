@@ -135,25 +135,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Reduce a problem to cell-variables, solve and then recover
             % the eliminated variables afterwards.
             
-            % Eliminate the non-cell variables
-            isCell = problem.indexOfType('cell');
-            cellIndex = find(isCell);
-            cellEqNo = numel(cellIndex);
-            
-            % Find number of "cell" like variables
-            nP = numel(problem);
-            
             % Eliminate non-cell variables (well equations etc)
-            problem = problem.clearSystem();
+            keep = problem.indexOfType('cell');
             
-            notCellIndex = find(~isCell);
+            [problem, eliminated] = solver.reduceToVariable(problem, keep);
             
-            eliminated = cell(numel(notCellIndex), 1);
-            elimNames = problem.equationNames(notCellIndex);
-            
-            for i = 1:numel(notCellIndex)
-                [problem, eliminated{i}] = problem.eliminateVariable(elimNames{i});
-            end
             % Solve a linearized problem
             problem = problem.assembleSystem();
             
@@ -163,20 +149,43 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             dxCell = solver.storeIncrements(problem, result);
             
+            dx = solver.recoverResult(dxCell, eliminated, keep);
+        end
+        
+        function [problem, eliminated] = reduceToVariable(solver, problem, keep)
+            remove = find(~keep);
+            
+            problem = problem.clearSystem();
+            
+            eliminated = cell(numel(remove), 1);
+            elimNames = problem.equationNames(remove);
+            
+            for i = 1:numel(remove)
+                [problem, eliminated{i}] = problem.eliminateVariable(elimNames{i});
+            end
+        end
+        
+        function dx = recoverResult(solver, dxElim, eliminatedEqs, keep)
+            kept = find(keep);
+            keptEqNo = numel(kept);
+            
+            % Find number of variables
+            nP = numel(keep);
+            
             % Set up storage for all variables, including those we
             % eliminated previously
             dx = cell(nP, 1);
             
             % Recover non-cell variables
             recovered = false(nP, 1);
-            recovered(cellIndex) = true;
+            recovered(kept) = true;
             
             % Put the recovered variables into place
-            dx(recovered) = dxCell;
+            dx(recovered) = dxElim;
             
-            for i = numel(eliminated):-1:1
+            for i = numel(eliminatedEqs):-1:1
                 pos = notCellIndex(i);
-                dVal = recoverVars(eliminated{i}, cellEqNo + 1, dx(recovered));
+                dVal = recoverVars(eliminatedEqs{i}, keptEqNo + 1, dx(recovered));
                 dx{pos} = dVal;
                 recovered(pos) = true;
             end
