@@ -1,4 +1,4 @@
-function [bW, rhoW, mobW, dpW, Gw] = propsOW_water(sW, krW, gdz, f, p, s)
+function [bW, rhoW, mobW, Gw] = propsOW_water(sW, krW, gdz, f, p, s)
 
     if isfield(f, 'tranMultR');
         trMult = f.tranMultR(p);
@@ -24,9 +24,5 @@ function [bW, rhoW, mobW, dpW, Gw] = propsOW_water(sW, krW, gdz, f, p, s)
     if hasCap
         Gw = Gw - s.Grad(pcOW);
     end
-    dpW = s.Grad(p) - Gw;
-    
-%     bW = ensurePositiveADValue(bW);
-%     mobW = ensurePositiveADValue(mobW);
 
 end

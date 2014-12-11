@@ -5,6 +5,7 @@ opt = struct('Verbose', mrstVerbose, ...
              'scaling', [],...
              'resOnly', false,...
              'history', [],...
+             'propsPressure', [], ...
              'iteration', -1, ...
              'stepOptions', []);  % Compatibility only
 
@@ -41,20 +42,25 @@ if ~opt.resOnly,
 end
 primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
 
+p_prop = opt.propsPressure;
+if isempty(p_prop)
+    p_prop = p;
+end
+
 clear tmp
 
 %check for p-dependent porv mult:
 pvMult = 1; pvMult0 = 1;
 if isfield(f, 'pvMultR')
-    pvMult =  f.pvMultR(p);
+    pvMult =  f.pvMultR(p_prop);
     pvMult0 = f.pvMultR(p0);
 end
 
 if 0 && isfield(wellSol, 'flux')
     % Linearize saturations in well cells to get mobilities at end of time
     % integration sort-of-right.
-    bW = f.bW(p);
-    bO = f.bO(p);
+    bW = f.bW(p_prop);
+    bO = f.bO(p_prop);
     
     flux = vertcat(wellSol.flux);
     wc = vertcat(W.cells);
@@ -76,7 +82,8 @@ sO0 = 1 - sW0;
 gdz = model.getGravityGradient();
 
 % Water
-[bW, rhoW, mobW, dpW] = propsOW_water(sW, krW, gdz, f, p, s);
+[bW, rhoW, mobW, Gw] = propsOW_water(sW, krW, gdz, f, p_prop, s);
+dpW = s.Grad(p) - Gw;
 
 % water upstream-index
 upcw = (double(dpW)<=0);
@@ -84,7 +91,8 @@ vW = - s.faceUpstr(upcw, mobW).*s.T.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
 
-[bO, rhoO, mobO, dpO] = propsOW_oil(1 - sW, krO, gdz, f, p, s);
+[bO, rhoO, mobO, Go] = propsOW_oil(1 - sW, krO, gdz, f, p_prop, s);
+dpO = s.Grad(p) - Go;
 % oil upstream-index
 upco = (double(dpO)<=0);
 vO = - s.faceUpstr(upco, mobO).*s.T.*dpO;

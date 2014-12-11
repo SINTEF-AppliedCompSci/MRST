@@ -49,8 +49,8 @@ sO = 1 - sW;
 gdz = model.getGravityGradient();
 
 % Water
-[bW, rhoW, mobW, dpW, Gw] = propsOW_water(sW, krW, gdz, f, p, s);
-[bO, rhoO, mobO, dpO, Go] = propsOW_oil(  sO, krO, gdz, f, p, s);
+[bW, rhoW, mobW, Gw] = propsOW_water(sW, krW, gdz, f, p, s);
+[bO, rhoO, mobO, Go] = propsOW_oil(  sO, krO, gdz, f, p, s);
 
 
     
