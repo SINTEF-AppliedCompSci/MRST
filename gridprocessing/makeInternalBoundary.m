@@ -22,6 +22,11 @@ function [G, N] = makeInternalBoundary(G, faces, varargin)
 %                         faces on the internal boundary.  Integral scalar.
 %                         Default value: tag = -1.
 %
+%               'check' - Whether or not to check for repeated face indices
+%                         in input 'faces'.  Emit diagnostic when set and
+%                         in presence of repeated indices.  Logical scalar.
+%                         Default value: check = LOGICAL(mrstVerbose).
+%
 % RETURNS:
 %   H - Modified grid structure.
 %
@@ -37,7 +42,7 @@ function [G, N] = makeInternalBoundary(G, faces, varargin)
 %       boundary or to remove the internal boundary at some later point.
 %
 % SEE ALSO:
-%   removeInternalBoundary.
+%   removeInternalBoundary, mrstVerbose.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -58,7 +63,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('tag', -1, 'check', true);
+opt = struct('tag', -1, 'check', logical(mrstVerbose));
 opt = merge_options(opt, varargin{:});
 
 [faces, iu] = unique_faces(faces, inputname(2), opt);
