@@ -99,11 +99,11 @@ N         = NaN([numel(int), 2]);
 N(int, :) = G.faces.num + reshape(1 : (numel(neigh) / 2), 2, []) .';
 N         = N(iu, :);
 
-if any(tags)
-   [G,new_faces]      = addFaces(G, fnodes, nnodes, neigh, tags);
+if any(tags),
+   [G, new_faces]         = addFaces(G, fnodes, nnodes, neigh, tags);
    G.faces.tag(new_faces) = opt.tag;
 else
-   [G,new_faces]      = addFaces(G, fnodes, nnodes, neigh);
+   G = addFaces(G, fnodes, nnodes, neigh);
 end
 
 G.type = [G.type, { mfilename }];
