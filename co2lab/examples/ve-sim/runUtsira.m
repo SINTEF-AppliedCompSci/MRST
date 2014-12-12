@@ -146,7 +146,8 @@ si = findEnclosingCell(Gt, sleipnerPos);
 
 % Add an injector well for the CO2
 W = addWell([], G, rock, si,...
-   'Type', 'rate', 'Val', rate, 'comp_i', [1,0], 'name', 'Sleipner field');
+   'Type', 'rate', 'Val', rate, 'comp_i', [1,0], ...
+   'name', 'Sleipner field', 'InnerProduct', 'ip_tpf');
 
 % Add pressure boundary 
 bnd = boundaryFaces(Gt);

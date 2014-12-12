@@ -119,7 +119,8 @@ T = T.*Gt.cells.H(gridCellNo(Gt));
 % Add an injector well for the CO2 with Mt annual injection
 rate = opt.amount*1e9*kilogram/(year*rhoc*kilogram*meter^3);
 W = addWell([], G, rock, wellCell,...
-   'Type', 'rate', 'Val', rate, 'comp_i', [1,0], 'name', 'Injector');
+   'Type', 'rate', 'Val', rate, 'comp_i', [1,0], 'name', 'Injector', ...
+   'InnerProduct', 'ip_tpf');
 
 % Add pressure boundary
 bnd = boundaryFaces(Gt);
