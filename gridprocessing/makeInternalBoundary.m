@@ -1,14 +1,15 @@
 function [G, N] = makeInternalBoundary(G, faces, varargin)
-%Make internal boundary in grid along FACES
+%Make internal boundary in grid along specified faces.
 %
 % SYNOPSIS:
-%   G = makeInternalBoundary(G, f)
-%   G = makeInternalBoundary(G, f, 'pn', pv)
+%    H     = makeInternalBoundary(G, faces)
+%    H     = makeInternalBoundary(G, faces, 'pn1', pv1, ...)
+%   [H, N] = makeInternalBoundary(...)
 %
 % PARAMETERS:
 %   G       - Grid structure as described by grid_structure.
 %
-%   f       - Faces along which a boundary will be inserted.  Vector of
+%   faces   - Faces along which a boundary will be inserted.  Vector of
 %             face indices.  Repeated indices are supported but generally
 %             discouraged.  One pair of new grid faces will be created in
 %             the output grid for each unique face in 'faces' provided the
@@ -22,21 +23,21 @@ function [G, N] = makeInternalBoundary(G, faces, varargin)
 %                         Default value: tag = -1.
 %
 % RETURNS:
-%   G - Modified grid structure.
+%   H - Modified grid structure.
 %
 %   N - An n-by-2 array of face indices. Each pair in the array corresponds
-%       to a face in 'f'.  In particular, 'f(i)' in the input grid
+%       to a face in 'faces'.  In particular, 'faces(i)' in the input grid
 %       'G' is replaced by the pair of faces [N(i,1), N(i,2)] in the result
-%       grid.
+%       grid 'H'.
 %
-%       If any of the faces in 'f' are on the boundary, then the
+%       If any of the faces in 'faces' are on the boundary, then the
 %       corresponding rows in 'N' is 'NaN' in both columns.
 %
 %       The quantity 'N' is sufficient to create flow over the internal
 %       boundary or to remove the internal boundary at some later point.
 %
 % SEE ALSO:
-%  removeInteralBoundary
+%   removeInternalBoundary.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
