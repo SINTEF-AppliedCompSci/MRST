@@ -50,7 +50,8 @@ classdef ScheduleConsistencyTest < matlab.unittest.TestCase
             w.dZ = w.dZ(subs);
             w.cells = w.cells(subs);
             w.WI = w.WI(subs);
-
+            w.cstatus = w.cstatus(subs);
+            
             schedule.control(1).W(1) = w;
             schedule = makeScheduleConsistent(schedule);
 

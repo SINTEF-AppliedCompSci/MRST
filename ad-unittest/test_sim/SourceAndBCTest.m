@@ -5,8 +5,8 @@ classdef SourceAndBCTest < matlab.unittest.TestCase
     
     methods
         function test = SourceAndBCTest(varargin)
-            
-            
+            mrstModule reset
+            mrstModule add ad-core ad-blackoil ad-fi ad-unittest
         end
     end
     
