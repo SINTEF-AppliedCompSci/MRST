@@ -247,7 +247,7 @@ end
 
 
 function [wc, cqs] = checkForRepititions(wc, cqs)
-[c, ia, ic] = unique(wc, 'stable');
+[c, ic, ic] = uniqueStable(wc);                                 %#ok<ASGLU>
 if numel(c) ~= numel(wc)
     A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
     wc = c;

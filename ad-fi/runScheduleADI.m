@@ -35,8 +35,17 @@ function varargout = ...
 %                 when states becomes too big to solve in memory or when
 %                 running adjoint simulations.
 %
-%   outputName  - The string which prefixes .mat files written if
+%   outputName  - The string which prefixes output files if
 %                 writeOutput is enabled. Defaults to 'state'.
+%
+%   outputWellSolName - The string which prefixes well output files if writeOutput is enabled. Defaults to 'wellSol'.
+%
+%   outputSchedule - If true, write updated schedule for given time step. Useful
+%   when time splitting is used and we want to restart a computation at a given time-step.
+%
+%
+%   wellDepthReorder - If true, well's connections are reordered by depth (default value : false). 
+%
 %
 %
 % RETURNS:
@@ -76,21 +85,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 default_outputDir = fullfile(fileparts(mfilename('fullpath')), 'cache');
 
-opt = struct('Verbose'       , mrstVerbose      , ...
-             'writeOutput'   , false            , ...
-             'outputName'    , 'state'          , ...
-             'scaling'       , []               , ...
-             'startAt'       , 1                , ...
-             'outputDir'     , default_outputDir, ...
-             'plotCallback'  , [],  ...
-             'outputNameFunc', []);
+opt = struct('Verbose'          , mrstVerbose      , ...
+             'writeOutput'      , false            , ...
+             'outputName'       , 'state'          , ...
+             'outputWellSolName', 'wellSol'        , ...
+             'outputSchedule'   , false            , ...
+             'wellDepthReorder' , false            , ...
+             'scaling'          , []               , ...
+             'startAt'          , 1                , ...
+             'outputDir'        , default_outputDir, ...
+             'plotCallback'     , [],  ...
+             'outputNameFunc'   , [], ...
+             'force_step'       , true, ...
+             'stop_if_not_converged', true, ...
+             'minStepSize'      , 0);
 
 opt = merge_options(opt, varargin{:});
 
 vb = opt.Verbose;
-outputStates =      nargout > 1;
-outputIter =        nargout > 2;
-outputConvergence = nargout > 3;
+outputStates      = nargout > 1;
+outputSchedule    = nargout > 2; % Refined schedule is given as output. Useful when time refinement
+                                 % is used (force_step = false)
+outputIter        = nargout > 3;
+outputConvergence = nargout > 4;
 
 %--------------------------------------------------------------------------
 
@@ -116,9 +133,15 @@ if opt.writeOutput
     end
 
     if isempty(opt.outputNameFunc)
-       outNm  = @(tstep)fullfile(opt.outputDir, [opt.outputName, sprintf('%05.0f', tstep)]);
+       outNm  = @(tstep)fullfile(opt.outputDir, sprintf('%s%05.0f', opt.outputName, tstep));
     else
        outNm  = @(tstep)fullfile(opt.outputDir, opt.outputNameFunc(tstep));
+    end
+    wellOutNm = @(tstep)fullfile(opt.outputDir, sprintf('%s%05.0f', opt.outputWellSolName, ...
+                                                      tstep));
+    if opt.outputSchedule
+       scheduleOutNm = @(tstep)fullfile(opt.outputDir, sprintf('schedule%05.0f', ...
+                                                         tstep));
     end
 end
 
@@ -126,7 +149,7 @@ end
 %--------------------------------------------------------------------------
 % output initState
 state = initState;
-if opt.writeOutput, save(outNm(0), 'state');end;
+if opt.writeOutput, save(outNm(0), 'state'); end;
 
 %--------------------------------------------------------------------------
 % collect all wellsols in cell wellsols
@@ -138,7 +161,7 @@ if outputStates
     states{1} = initState;
 end
 
-iter = zeros(numel(dt),1);
+iter = [];
 
 %--------------------------------------------------------------------------
 % default is to report all steps
@@ -156,82 +179,140 @@ if useMrstSchedule
     uniformSchedule = all(nw == nw(1));
     if uniformSchedule
         W_temp = schedule.control(1).W;
-        for k=1:numel(W_temp), W_temp(k).status = true; end
-        wellSol_init = initWellSolLocal(W_temp, state);  % initial guess (udated after each time-step)
-        for k=1:numel(W_temp), W_temp(k).status = false; end
+        for k = 1 : numel(W_temp) 
+           W_temp(k).status = true; 
+        end
+        wellSol_init = initWellSolLocal(W_temp, state);  % initial guess (updated after each time-step)
+        for k = 1 : numel(W_temp)
+           W_temp(k).status = false; % Default well is shut down 
+        end
         wellSol_zero = initWellSolLocal(W_temp, state);  % default 0-well-sol
     end
 end
 
+tstep = 1;
+t = 0;
 
-for tstep = 1:numel(dt)
-    dispif(vb, 'Time step %5.0f of %d\n', tstep, numel(dt));
-    control = schedule.step.control(tstep);
-    if control ~= prevControl
-        if control == 0, % when is control == 0 ?
-           W = processWellsLocal(G, rock, [], 'createDefaultWell', true);
-        else
-           if ~useMrstSchedule
-               W = processWellsLocal(G, rock, schedule.control(control), ...
-                                 'Verbose', opt.Verbose, ...
-                                 'DepthReorder', false);
-           else
-               W = schedule.control(control).W;
-           end
-           if(~isempty(W))
-            openWells = vertcat(W.status);
-            assert(all(islogical(openWells)));% avoid errors due to setting status to 1;
-            W = W(openWells);
-           end
-        end
-    end
-    dispif(vb, 'Time step length: %g day.\n', convertTo(dt(tstep), day))
-    state0 = state;
-    if useMrstSchedule && uniformSchedule && ~isempty(W)
-        state0.wellSol = initWellSolLocal(W, state, wellSol_init(openWells));
-    else
-        state0.wellSol = initWellSolLocal(W, state);
-    end
+% ref_dt gives an estimate of a time step which yields a number of Newton iterations equal to targetIts.
+ref_dt = schedule.step.val(1);
+   
+while tstep <= numel(schedule.step.val)
+   dispif(vb, 'Time step %5.0f of %d\n', tstep, numel(schedule.step.val));
+   control = schedule.step.control(tstep);
+   if control ~= prevControl
+      if control == 0, % when is control == 0 ?
+         W = processWellsLocal(G, rock, [], 'createDefaultWell', true);
+      else
+         if ~useMrstSchedule
+            W = processWellsLocal(G, rock, schedule.control(control), ...
+                                  'Verbose', opt.Verbose, ...
+                                  'DepthReorder', opt.wellDepthReorder);
+         else
+            W = schedule.control(control).W;
+         end
+      end
+   end
+   openWells = vertcat(W.status);
+   dispif(vb, 'Time step length: %g day.\n', convertTo(schedule.step.val(tstep), day))
+   state0 = state;
+   if useMrstSchedule && uniformSchedule
+      state0.wellSol = initWellSolLocal(W(openWells), state, wellSol_init(openWells));
+   else
+      state0.wellSol = initWellSolLocal(W(openWells), state);
+   end
 
-    [state, its, conv] = solvefiADI(state0, dt(tstep), W, G, system);
-    % check if any controls have been switched, and if so update W
-    if(~isempty(W))
-        W = updateSwitchedControls(state.wellSol, W);
-    end
-    wellSols{tstep} = state.wellSol;
-    wellSols{tstep} = addWellInfo(wellSols{tstep}, W);
+   dt = schedule.step.val(tstep);
+   
+   [state, its, conv] = solvefiADI(state0, schedule.step.val(tstep), W(openWells), G, system);
 
-    iter(tstep) = its;
-    if useMrstSchedule && uniformSchedule && ~isempty(W)
-        if(any(openWells))
-            wellSol_init(openWells) = state.wellSol;
-            ws = wellSol_zero;
-            ws(openWells) = state.wellSol;
-            state.wellSol = ws;
-        else
-           wellSol_init = state.wellSol;
-           ws = wellSol_zero;
-           ws = state.wellSol;
-           state.wellSol=ws;
-        end
-    end
-    wellSols{tstep} = state.wellSol;
-    wellSols{tstep} = addWellInfo(wellSols{tstep}, W);
-    if outputStates
-        states{tstep + 1} = state;
-    end
-    if ~isempty(opt.plotCallback)
-        opt.plotCallback(G, state)
-    end
+   proceed_to_next_step = true;
+   
+   if ~(conv.converged) 
+      if opt.force_step & opt.stop_if_not_converged
+         error(['You may try time step refinement: set ''force_step'' option equal to false in ', ...
+                'runScheduleADI.']);
+      elseif ~opt.force_step
+         % split time step
+         fprintf('Cutting time step!\n');
+         schedule = splitTimeStep(schedule, tstep);
+         fprintf('New step size: %.5g day.\n', schedule.step.val(tstep)/day);
+         ref_dt = ref_dt/2;
+         if ref_dt < opt.minStepSize 
+            if opt.stop_if_not_converged
+               error('Minimum step size refinement has been reached.')
+            else
+               proceed_to_next_step = true;
+            end
+         else
+            state = state0;
+            proceed_to_next_step = false;
+         end
+      end
+   end         
+   
+   if proceed_to_next_step
+   
+      % check if any controls have been switched, and if so update W
+      optloc = {'allowWellSignChange', system.well.allowWellSignChange, 'allowControlSwitching', ...
+                system.well.allowControlSwitching, 'Verbose', opt.Verbose};
+      W(openWells) = updateSwitchedControls(state.wellSol, W(openWells), ...
+                                            optloc{:});
+      
+      
+      iter = [iter; its];
+      t  = t + schedule.step.val(tstep);
+      
+      if useMrstSchedule && uniformSchedule
+         wellSol_init(openWells) = state.wellSol;
+         wellSol = wellSol_zero;
+         wellSol(openWells) = state.wellSol;
+         state.wellSol = wellSol;
+      else
+         wellSol = state.wellSol;
+      end
+      wellSols{tstep} = wellSol;
+      wellSols{tstep} = addWellInfo(wellSols{tstep}, W);
+      if outputStates
+         states{tstep + 1} = state;
+      end
+      if ~isempty(opt.plotCallback)
+         opt.plotCallback(G, state)
+      end
 
-    prevControl = control;
-    if opt.writeOutput && schedule.step.repStep(tstep)
-        repStep = repStep + 1;
-        save(outNm(repStep), 'state');
-    end
-    convergence = [convergence; conv]; %#ok
-    dispif(~opt.Verbose, 'Step %4g of %4g (Used %3g iterations)\n', ...
-           tstep, numel(dt), its);
+      prevControl = control;
+      if opt.writeOutput && schedule.step.repStep(tstep)
+         repStep = repStep + 1;
+         save(outNm(repStep), 'state');
+         save(wellOutNm(repStep), 'wellSol');
+         if opt.outputSchedule
+            save(scheduleOutNm(repStep), 'schedule');
+         end
+      end
+      convergence = [convergence; conv]; %#ok
+      dispif(~opt.Verbose, 'Step %4g of %4g (Used %3g iterations)\n', ...
+             tstep, numel(schedule.step.val), its);
+
+      dt_history=[];
+
+      if ~opt.force_step
+         [dt_new, dt_history] = simpleStepSelector(dt_history, ref_dt, its,...
+                                                   'targetIts', 10, ...
+                                                   'stepModifier', 1.5);
+
+         if tstep < numel(schedule.step.val) && dt_new < schedule.step.val(tstep + 1)
+            schedule = refineSchedule(t, dt_new, schedule);
+            if ref_dt < dt_new
+               fprintf('*** Increased time step\n');
+            elseif ref_dt > dt_new
+               fprintf('*** Decreased time step\n');
+            end
+            ref_dt = dt_new;
+         end
+      end
+      
+      tstep = tstep + 1;
+   end
+   
 end
 
 timend = toc(timero);
@@ -244,15 +325,19 @@ if opt.writeOutput
 end
 
 if outputStates
-    varargout{2} = states;
+   varargout{2} = states;
+end
+
+if outputSchedule
+   varargout{3} = schedule;
 end
 
 if outputIter
-    varargout{3} = iter;
+   varargout{4} = iter;
 end
 
 if outputConvergence
-    varargout{4} = convergence;
+   varargout{5} = convergence;
 end
 
 end
@@ -260,7 +345,7 @@ end
 %--------------------------------------------------------------------------
 
 function wellSol = addWellInfo(wellSol, W)
-   %nm = fieldnames(W);
+%nm = fieldnames(W);
    nm = {'name', 'sign'};
    for k = 1:numel(nm)
       for wnum = 1:numel(W)

@@ -1,4 +1,4 @@
-function [eqs, state, hst] = eqsfiBlackOil(state0, state, dt, G, W, s, f, varargin)
+function [eqs, state, hst] = eqsfiBlackOil(state0, state, dt, G, W, system, f, varargin)
 % Generate equations for a Black Oil system (oil, water and gas with gas dissolved in oil).
     opt = struct('Verbose',     mrstVerbose,...
                  'reverseMode', false,...
@@ -18,6 +18,7 @@ function [eqs, state, hst] = eqsfiBlackOil(state0, state, dt, G, W, s, f, vararg
     end
 
     hst = opt.history;
+    s = system.s;
 
     % current variables: ------------------------------------------------------
     p    = state.pressure;

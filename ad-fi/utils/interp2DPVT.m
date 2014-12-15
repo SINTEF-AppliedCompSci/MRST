@@ -26,10 +26,14 @@ for k = 1:nreg
 
         ixl = (bin==(tn-1));
         ixr = (bin==tn);
-        if reginx{k} ~= ':'
-            ixl = ixl.*reginx{k};
-            ixr = ixr.*reginx{k};
+        if ~(ischar(reginx{k}) && reginx{k} == ':')
+%             ixl = ixl.*reginx{k};
+%             ixr = ixr.*reginx{k};
+            ixl = reginx{k}(ixl);
+            ixr = reginx{k}(ixr);        
         end
+        
+        
         yil(ixl) = interpTable(tab(:,1), tab(:,2), xi(ixl));
         yir(ixr) = interpTable(tab(:,1), tab(:,2), xi(ixr));
         if compDer

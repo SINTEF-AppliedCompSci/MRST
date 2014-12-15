@@ -1,4 +1,4 @@
-function [eqs, state, hst] = eqsfiOW(state0, state, dt, G, W, s, f, varargin)
+function [eqs, state, hst] = eqsfiOW(state0, state, dt, G, W, system, f, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -19,6 +19,7 @@ else
 end
 
 hst = opt.history;
+s = system.s;
 
 % current variables: ------------------------------------------------------
 p    = state.pressure;
@@ -30,8 +31,11 @@ qOs    = vertcat(state.wellSol.qOs);
 %mixWs = mixs(:,1);
 
 % previous variables ------------------------------------------------------
-p0  = state0.pressure;
-sW0 = state0.s(:,1);
+p0   = state0.pressure;
+sW0  = state0.s(:,1);
+pBH0 = vertcat(state0.wellSol.bhp);
+qWs0 = vertcat(state0.wellSol.qWs);
+qOs0 = vertcat(state0.wellSol.qOs);
 %--------------------------------------------------------------------------
 
 
@@ -45,9 +49,9 @@ if ~opt.resOnly,
     else
         [p0, sW0, tmp, tmp, tmp] = ...
             initVariablesADI(p0, sW0,          ...
-            zeros(size(qWs)), ...
-            zeros(size(qOs)), ...
-            zeros(size(pBH)));                          %#ok
+            zeros(size(qWs0)), ...
+            zeros(size(qOs0)), ...
+            zeros(size(pBH0)));                          %#ok
     end
 end
 clear tmp
@@ -111,28 +115,6 @@ else
 end
 
 
-% %WELLS ----------------------------------------------------------------
-% bWw     = bW(wc);
-% bOw     = bO(wc);
-% mobWw  = mobW(wc);
-% mobOw  = mobO(wc);
-%
-% %producer mobility
-% bWmobWw  = bWw.*mobWw;
-% bOmobOw  = bOw.*mobOw;
-%
-% %set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
-%
-% bWmobWw(iInxW) = bWw(iInxW).*(mobWw(iInxW) + mobOw(iInxW));
-% bOmobOw(iInxW) = 0;
-% bWmobWw(iInxO) = 0;
-% bOmobOw(iInxO) = bOw(iInxO).*(mobWw(iInxO) + mobOw(iInxO));
-%
-% pw  = p(wc);
-%
-% bWqW  = -bWmobWw.*Tw.*(pBHP(perf2well) - pw + 0.0*pcOWw + g*dzw.*rhoW(wc));
-% bOqO  = -bOmobOw.*Tw.*(pBHP(perf2well) - pw + g*dzw.*rhoO(wc));
-
 % EQUATIONS ---------------------------------------------------------------
 % oil:
 eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.div(bOvO);
@@ -151,9 +133,14 @@ if ~isempty(W)
         bw   = {bW(wc), bO(wc)};
         rw   = {};
         mw   = {mobW(wc), mobO(wc)};
-        [eqs(3:5), cqs, state.wellSol] = getWellContributions(...
-            W, state.wellSol, pBH, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
-            'iteration', opt.iteration);
+        optloc = {'iteration', opt.iteration, ...
+                  'model', 'OW', ...
+                  'allowWellSignChange', system.well.allowWellSignChange, ...
+                  'allowControlSwitching', system.well.allowControlSwitching};
+        
+        [eqs(3:5), cqs, state.wellSol] = getWellContributions(W, state.wellSol, pBH, {qWs, qOs}, ...
+                                                                 pw, rhos, bw, rw, rw, mw, ...
+                                                                 optloc{:});
 
         [wc, cqs] = checkForRepititions(wc, cqs);
         eqs{1}(wc) = eqs{1}(wc) - cqs{2};
@@ -161,7 +148,7 @@ if ~isempty(W)
     else
         % in reverse mode just gather zero-eqs of correct size
         for eqn = 3:5
-            nw = numel(state0.wellSol);
+            nw = numel(state.wellSol);
             zw = double2ADI(zeros(nw,1), p0);
             eqs(3:5) = {zw, zw, zw};
         end
@@ -175,7 +162,7 @@ end
 
 
 function [wc, cqs] = checkForRepititions(wc, cqs)
-[c, ia, ic] = unique(wc, 'stable');
+[c, ic, ic] = uniqueStable(wc);                                 %#ok<ASGLU>
 if numel(c) ~= numel(wc)
     A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
     wc = c;

@@ -2,6 +2,10 @@ function deck = resetSchedule(deck, smry)
 nm = smry.getNms('TIME'); nm = nm{1};
 tms = smry.get(nm, 'TIME', :); tms = tms(:);
 
+if isfield(deck.RUNSPEC, 'SI')
+   tms = convertFrom(tms, day);
+end
+
 tmr = [0; cumsum( deck.SCHEDULE.step.val )];
 
 isRepStep = false(numel(tms), 1);

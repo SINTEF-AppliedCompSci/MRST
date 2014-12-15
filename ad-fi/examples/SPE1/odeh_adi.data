@@ -328,18 +328,14 @@ COMPDAT
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
 WCONPROD
      'PRODUCER' 'OPEN' 'ORAT' 20000  4*                      1000 /
---     'PRODUCER' 'OPEN' 'ORAT' 0  4*                      1000 /
   /
 
 -- INJECTION WELL CONTROLS
 --
 --      WELL     INJ   OPEN/  CNTL    FLOW
 --      NAME    TYPE   SHUT   MODE    RATE
--- WCONINJ
---     'INJECTOR' 'GAS' 'OPEN' 'RATE'  100000  /
 WCONINJE
      'INJECTOR' 'GAS' 'OPEN' 'RATE' 100000 100000 50000/
---     'INJECTOR' 'GAS' 'OPEN' 'RATE' 0 /
   /
 
 --  YEAR 1

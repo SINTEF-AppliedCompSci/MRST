@@ -1,4 +1,4 @@
-function dx = SolveEqsADI(eqs, phi)
+function [dx, linsolver_diverged] = SolveEqsADI(eqs, phi)
 useBasis = ~isempty(phi);
 
 if useBasis
@@ -26,8 +26,14 @@ end
 
 tmp = J\eqs.val;
 
-assert(all(isfinite(tmp)), 'Linear solver produced non-finite values!')
-
+linsolver_diverged = false;
+if ~all(isfinite(tmp))
+   linsolver_diverged = true;
+   warning('Linear solver produced non-finite values! Stop simulation.\n');
+   dx = [];
+   return
+end
+   
 eqn = size(ii,1);
 dx = cell(eqn,1);
 for i = 1:eqn

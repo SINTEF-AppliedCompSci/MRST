@@ -1,4 +1,4 @@
-function [eqs, state, hst] = eqsfiOWT(state0, state, dt, G, W, s, f, varargin)
+function [eqs, state, hst] = eqsfiOWT(state0, state, dt, G, W, system, f, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -21,6 +21,7 @@ else
 end
 
 hst = opt.history;
+s = system.s;
 
 % current variables: ------------------------------------------------------
 p    = state.pressure;
@@ -258,7 +259,7 @@ end
 
 
 function [wc, cqs] = checkForRepititions(wc, cqs)
-[c, ia, ic] = unique(wc, 'stable');
+[c, ic, ic] = uniqueStable(wc);                                 %#ok<ASGLU>
 if numel(c) ~= numel(wc)
     A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
     wc = c;

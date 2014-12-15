@@ -1,4 +1,4 @@
-function [eqs, hst] = eqsfiOWPolymerExplicitWells(state0, state, dt, G, W, s, f, varargin)
+function [eqs, hst] = eqsfiOWPolymerExplicitWells(state0, state, dt, G, W, system, f, varargin)
 % Generate equations for a Oil-Water-Polymer system.
 
 opt = struct('Verbose'    , mrstVerbose, ...
@@ -18,6 +18,7 @@ else
 end
 
 hst = opt.history;
+s = system.s;
 
 % current variables: ------------------------------------------------------
 p     = state.pressure;
@@ -32,7 +33,7 @@ qOs  = vertcat(state.wellSol.qOs);
 % poly_num  = vertcat(state.wellSol.poly);
 % poly = poly_num;
 
-[wPoly, wciPoly] = getWellPolymer(W);
+wPoly = getWellPolymer(W);
 wPoly_num = wPoly;
 
 % previous variables ------------------------------------------------------
@@ -92,11 +93,14 @@ b = 1./(1-cbar+cbar./a);
 
 muWMult = b.*f.muWMult(c).^mixpar;
 
-permRed = 1 + ((f.rrf-1)./f.adsMax).*f.ads(max(c, cmax));
+permRed = 1 + ((f.rrf-1)./f.adsMax).*effads(c, cmax, f);
 muWMult  = muWMult.*permRed;
 
 % polymer injection well:
 cw        = c(wc);
+inj   = vertcat(W.sign)==1;
+ind = rldecode((1 : nnz(inj)).', cellfun(@numel, {W(inj).cells}));
+wciPoly = wPoly(ind);
 cw(iInxW) = wciPoly;
 cbarw     = cw/f.cmax;
 % muWMultMax = a + (1-a)*cbarw;
@@ -178,11 +182,11 @@ bOqO  = -bOmobOw.*Tw.*(pBHP(perf2well) - pw + g*dzw.*rhoO(wc));
 
 % oil:
 eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.div(bOvO);
-eqs{1}(wc) = eqs{1}(wc) + bOqO;
+% eqs{1}(wc) = eqs{1}(wc) + bOqO;
 
 % water:
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW     - pvMult0.*f.bW(p0).*sW0     ) + s.div(bWvW);
-eqs{2}(wc) = eqs{2}(wc) + bWqW;
+% eqs{2}(wc) = eqs{2}(wc) + bWqW;
 
 % polymer in water:
 poro =  s.pv./G.cells.volumes;
@@ -190,33 +194,57 @@ f.effads =  @(c, cmax)(effads(c, cmax, f));
 eqs{3} =   (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
     (f.rhoR.*((1-poro)./poro).*(f.effads(c, cmax)-f.effads(c0, cmax0))) + s.div(bWvP);
 
-eqs{3}(wc) = eqs{3}(wc) + bWqP;
+% eqs{3}(wc) = eqs{3}(wc) + bWqP;
 
 % well equations
 zeroW = 0*zw;
 zeroWPoly = 0*zwPoly;
+% well equations
+if ~isempty(W)
+    if ~opt.reverseMode
+        wc    = vertcat(W.cells);
+        pw   = p(wc);
+        rhos = [f.rhoWS, f.rhoOS];
+        bw   = {bW(wc), bO(wc)};
+        rw   = {};
+        mw   = {mobW(wc), mobO(wc)};
+        [eqs([4, 5, 7]), cqs, state.wellSol] = getWellContributions(...
+            W, state.wellSol, pBHP, {qWs, qOs}, pw, rhos, bw, rw, rw, mw, ...
+            'iteration', opt.iteration);
 
-eqs{4} = Rw'*bWqW + qWs + zeroW;
-eqs{5} = Rw'*bOqO + qOs + zeroW;
-% Trivial constraint - this is only to get the adjoint partial derivatives
-eqs{6} = wPoly - wPoly_num + zeroWPoly;
+        [wc, cqs] = checkForRepetitions(wc, cqs);
+        eqs{1}(wc) = eqs{1}(wc) - cqs{2};
+        eqs{2}(wc) = eqs{2}(wc) - cqs{1};
 
-% Last eq: boundary cond
-eqs{7} = handleBC(W, pBHP, qWs, qOs, [], scalFacs) + zeroW;
+        % Divide away water mobility and add in polymer
+        bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
+        eqs{3}(wc) = eqs{3}(wc) - bWqP;
+
+        eqs{6} = wPoly - wPoly_num + zeroWPoly;
+
+    else
+        % in reverse mode just gather zero-eqs of correct size
+        for eqn = 4:7
+            nw = numel(state0.wellSol);
+            zw = double2ADI(zeros(nw,1), p0);
+            eqs(4:7) = {zw, zw, zwPoly, zw};
+        end
+    end
+else % no wells
+    eqs(4:7) = {pBH, pBH, pBH, pBH};  % empty  ADIs
+end
 end
 %--------------------------------------------------------------------------
 
 
-function [wPoly, wciPoly] = getWellPolymer(W)
+function wPoly = getWellPolymer(W)
     if isempty(W)
-        wciPoly = [];
         return
     end
     inj   = vertcat(W.sign)==1;
     polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
     wPoly = zeros(nnz(inj), 1);
     wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
 end
 
 
@@ -226,4 +254,15 @@ function y = effads(c, cmax, f)
    else
       y = f.ads(c);
    end
+end
+
+function [wc, cqs] = checkForRepetitions(wc, cqs)
+[c, ic, ic] = uniqueStable(wc);                                 %#ok<ASGLU>
+if numel(c) ~= numel(wc)
+    A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
+    wc = c;
+    for k=1:numel(cqs)
+        cqs{k} = A*cqs{k};
+    end
+end
 end

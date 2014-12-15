@@ -36,10 +36,18 @@ obj = repmat({[]}, numSteps, 1);
 
 for step = 1:numSteps
     sol = wellSols{tSteps(step)};
-    nW  = numel(sol);
-    pBHP = zeros(nW, 1); %place-holder
     qWs  = vertcat(sol.qWs);
     qOs  = vertcat(sol.qOs);
+    injInx  = (vertcat(sol.sign) > 0);
+    status = vertcat(sol.status);
+
+    % Remove closed well.
+    qWs = qWs(status);
+    qOs = qOs(status);
+    injInx = injInx(status);
+    nW  = numel(qWs);
+    pBHP = zeros(nW, 1); %place-holder
+
 
     if opt.ComputePartials
         [qWs, qWs, qWs, qOs, ignore] = ...
@@ -51,7 +59,6 @@ for step = 1:numSteps
     dt = dts(step);
     time = time + dt;
 
-    injInx  = (vertcat(sol.sign) > 0);
     prodInx = ~injInx;
     obj{step} = ( dt*(1+d)^(-time/year) )*...
                 spones(ones(1, nW))*( (-ro*prodInx).*qOs ...

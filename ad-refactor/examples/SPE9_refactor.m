@@ -1,13 +1,13 @@
-mrstModule add ad-fi deckformat
+mrstModule add ad-fi deckformat ad-core ad-blackoil
 
 % use new code for wells; currently located at
 % projects/wells_ad-fi
 
-mrstVerbose true
+% mrstVerbose true
 
 % Read and process file.
-% filedir = '~/simmatlab/projects/ad-fi_benchmarks/b2-SPE9/';
-filedir = 'D:/Jobb/ad-fi_benchmarks/b2-SPE9/';
+filedir = '~/simmatlab/projects/ad-fi_benchmarks/b2-SPE9/';
+% filedir = 'D:/Jobb/ad-fi_benchmarks/b2-SPE9/';
 fn    = fullfile(filedir, 'BENCH_SPE9.DATA');
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
@@ -31,53 +31,47 @@ rs0 = deck.SOLUTION.RS;
 state = struct('s', s0, 'rs', rs0, 'pressure', p0);   clear k p0 s0 rs0
 state.rv = 0;
 
-schedule = deck.SCHEDULE;
-system = initADISystem(deck, G, rock, fluid, 'cpr', true);
-% Hack until this is handled by initADISystem
-system.activeComponents.vapoil = 0;
-% switch off individual well solves:
-system.stepOptions.solveWellEqs = false;
-% use new cpr based on dnr
-system.nonlinear.cprBlockInvert = false;
-% convergence is overall better for quite strict limits on update 
-system.stepOptions.drsMax = .2;
-system.stepOptions.dpMax  = .2;
-system.stepOptions.dsMax  = .05;
-% gmres tol needs to be quite strict
-system.nonlinear.cprRelTol = 1e-3;
-system.pscale = 1/(200*barsa);
 
-schedule.step.control = schedule.step.control(1);
-schedule.step.val = schedule.step.val(1);
-
-%%
-timer = tic;
-[wellSols, states, iter] = runScheduleADI(state, G, rock, system, schedule);
-t_standard = toc(timer);
-
-
-%%
-for i = 1:numel(schedule.control)
-    W = processWellsLocal(G, rock, schedule.control(i), ...
-                                     'Verbose', false, ...
-                                     'DepthReorder', false);
-    schedule.control(i).W = W;
-end
 clear boModel
 clear nonlinear
 % clear CPRSolverAD
 clear linsolve
 
-boModel = threePhaseBlackOilModel(G, rock, fluid, ...
-                                        'drsMax', .2,...
-                                        'dpMax', .2', ...
-                                        'dsMax', .05, ...
-                                        'deck', deck);
-linsolve = CPRSolverAD();
+model = selectModelFromDeck(G, rock, fluid, deck);
+model.drsMaxRel = .2;
+model.dpMaxRel  = .2;
+model.dsMaxAbs  = .05;
+
+schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+
+%%
+% amgsolver = AGMGSolverAD();
+amgsolver = BackslashSolverAD();
+
+
+linsolve = CPRSolverAD('ellipticSolver', amgsolver, 'diagonalTol', .5);
+% 
 % linsolve = mldivideSolverAD();
+
 % nonlinear = nonlinearSolver();
 % [state, status] = nonlinear.solveTimestep(state, 1*day, boModel)
 
 timer = tic();
-[wellSols, states] = runScheduleRefactor(state, boModel, schedule, 'linearSolver', linsolve);
+[wellSols, states] = simulateScheduleAD(state, model, schedule, 'linearSolver', linsolve);
 t_class = toc(timer);
+
+%%
+compressedSchedule = compressSchedule(schedule);
+
+rampup = 1*day;
+timestepper = GustafssonLikeStepSelector('targetIterationCount', 5,...
+                                         'minRelativeAdjustment', sqrt(eps),...
+                                         'maxRelativeAdjustment', inf, ...
+                                         'firstRampupStep',       rampup, ...
+                                         'verbose', true);
+nonlinear = NonLinearSolver('timeStepSelector', timestepper, 'verbose', true);
+timer = tic();
+[ws, s, reports] =  simulateScheduleAD(state, model, compressedSchedule, ...
+    'nonlinearSolver', nonlinear, 'linearSolver', linsolve, 'OutputMinisteps', true);
+t_step = toc(timer);
+

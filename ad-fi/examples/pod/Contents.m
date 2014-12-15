@@ -1,5 +1,5 @@
 % Files
-%   simplePODExample.m - Reservoir simulation using Proper Orthogonal Decomposition (POD)
+%   simplePOD.m - Reservoir simulation using Proper Orthogonal Decomposition (POD)
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.

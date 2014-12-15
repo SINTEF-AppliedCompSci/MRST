@@ -27,7 +27,10 @@ compi = compi(:, actPh);
 if ~allowWellSignChange % injector <=> w.sign>0, prod <=> w.sign<0
     isInj = vertcat(W.sign)>0;
 else
-    %qt_s =sol.qWs+sol.qOs+sol.qGs;
+   qt_s = q_s{1};
+   for ph = 2:numPh
+      qt_s = qt_s + q_s{ph};
+   end
     isInj = double(qt_s)>0;   % sign determined from solution
 end
 
@@ -39,7 +42,7 @@ connInjInx  = (drawdown <0 ); %current injecting connections
 % A cross-flow connection is is defined as a connection which has opposite
 % flow-direction to the well total flow
 crossFlowConns = connInjInx ~= Rw*isInj;
-% If crossflow is not alowed, close connections by setting WI=0
+% If crossflow is not allowed, close connections by setting WI=0
 closedConns    = false(size(crossFlowConns));
 if ~allowCrossflow
     closedConns     = crossFlowConns;
@@ -100,7 +103,7 @@ end
 cqt_i = -(connInjInx.*Tw).*(mt.*drawdown);
 % volume ratio between connection and standard conditions
 volRat  = compVolRat(mix_s, b, r, Rw, model);
-% injceting connections total volumerates at standard condintions
+% injecting connections total volume rates at standard conditions
 cqt_is = cqt_i./volRat;
 % connection phase volumerates at standard conditions (for output):
 cq_s = cell(1,numPh);
@@ -116,9 +119,13 @@ end
 % return mix_s(just values), connection and well status:
 mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
-status  = ~deadWells;%any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
-if(mrstVerbose && any(deadWells) )
-    warning('It exist deadWells')
+status  = ~deadWells; %any(~deadWells, Rw'*cstatus); % 0 if dead or all conns closed
+if mrstVerbose && any(deadWells),
+   dW = {W(deadWells).name};
+   dW = cellfun(@(w)([w, ' ']), dW, 'UniformOutput', false);
+   dW = horzcat(dW{:});
+   dW = dW(1:end - 1);
+   fprintf('Inactive wells: %s.\n', dW);
 end
 end
 

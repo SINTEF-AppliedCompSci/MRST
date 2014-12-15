@@ -1,18 +1,21 @@
 function [lambda, its, fl] = cprAdjoint(eqs, rhs, system, varargin)
 %% Description of the cpr preconditioner
-% Let $A$ denote the full matrix given by the jacobian _cat(eqs{:})_ and $d$ denote the right-hand
-% side given by_rhs_.  We want to solve $A^t \lambda = d$.  The CPR preconditioner of $A$ is applied
-% after the following three preprocessing steps.
-%
-% # We switch the columns of $A$ so that the _main_ variables are $p$ (pressure), $s_w$ (water
-% saturation) and for the last ones: $s_g$ (gas saturation) for the cells where oil is saturated and
-% $R_s$ (gas/oil ratio) for the cells where oil is unsaturated.
-% # We remove directly the well variables.
+% Let $A$ denote the full matrix given by the jacobian |cat(eqs{:})| and $d$ denote the
+% right-hand side given by |rhs|.  We want to solve $A^t \lambda = d$.  From
+% |eqsfiVO|, the columns of $A$  corresponding to the _main_ variables are $p$ (pressure), $s_w$
+% (water saturation) and the last ones depends on the composition (oil, no gas or no oil,
+% gas, or oil and gas). The CPR
+% preconditioner of $A$ is applied after the following three preprocessing steps. 
+%  
+% # We switch the columns of $A$ so that the _main_ variables are $p$ (pressure), $s_w$
+% (water saturation) and the last one corresponds to the remaining degree of freedom ($s_g$
+% if oil and gas, $R_s$ if oil and no gas, $R_v$ if gas and no oil)
+% # We remove directly the well variables.  
 % # We assemble the pressure equations.
 %
 % Let $N_c$ be the number of cells and $N_w$ be the number of well variables. For each cell, we have
-% $3$ equations for mass conservation (water, oil, gas) and a closure equation. Thus, $A$ is a
-% square matrix of dimension $N=4N_c+N_w$.
+% $3$ equations for mass conservation (water, oil, gas). Thus, $A$ is a
+% square matrix of dimension $N=3N_c+N_w$.
 %
 % The first preprocessing step (column switching) can be written as a right multiplication by a
 % matrix which we denote $R$.
@@ -89,7 +92,7 @@ function [lambda, its, fl] = cprAdjoint(eqs, rhs, system, varargin)
 %% Implementation
 %
 
-   opt = struct('cprType', 'colSum', 'ellipSolve', @mldivide, 'relTol', 2e-2);
+   opt = struct('cprType', 'colSum', 'cprEllipticSolver', @mldivide, 'relTol', 2e-2);
    opt = merge_options(opt, varargin{:});
 
 
@@ -104,16 +107,20 @@ function [lambda, its, fl] = cprAdjoint(eqs, rhs, system, varargin)
    % *First preprocesing step.*
    %
 
-   if ~isempty(g)
-      % for unsaturated cells, switch respective columns of dx/ds and dx/drs
-      unSat = logical(full(diag(eqs{g(2)}.jac{g(1)})));
-      index = getEquationInxs(eqs);
-      [eqs, rhs] = switchCols(eqs, rhs, index, g, unSat);
-   end
+   % If the equation were obtained via |eqsfiBlackOil|, we had to take
+   % if ~isempty(g)
+   %    % for unsaturated cells, switch respective columns of dx/ds and dx/drs
+   %    unSat = logical(full(diag(eqs{g(2)}.jac{g(1)})));
+   %    index = getEquationInxs(eqs);
+   %    [eqs, rhs] = switchCols(eqs, rhs, index, g, unSat);
+   % end
+   %
+   % However, the black oil equations are now by default assembled by ¦eqsfiVO| and in
+   % this case, we do not have to reorder.
 
    %%
-   % The variables _eqs_ and _rhs_ have now been update so that the full jacobi of eqs
-   % corresponds to $AR$ and _rhs_ to $R^td$.
+   % The variables |eqs| and |rhs| have now been update so that the full jacobi of eqs
+   % corresponds to $AR$ and |rhs| to $R^td$.
    %
 
    full_eqs = cat(eqs{:});
@@ -125,7 +132,7 @@ function [lambda, its, fl] = cprAdjoint(eqs, rhs, system, varargin)
    % *Second preprocessing step*.
    %
    % We eliminate the well variables. We construct the matrices $L$, $\pi$ which is given by _proj_
-   % and $\pi_c$ which is given by _proj_orth_.
+   % and $\pi_c$ which is given by |proj_orth|.
    %
 
    n_elim = ne-active;
@@ -152,12 +159,12 @@ function [lambda, its, fl] = cprAdjoint(eqs, rhs, system, varargin)
 
 
    %%
-   % We compute $\lambda_{1,2}$ which is given here by _lambda_wells_.
+   % We compute $\lambda_{1,2}$ which is given here by |lambda_wells|.
    %
    lambda_wells = (proj_orth*fullA'*proj_orth')\(proj_orth*rhs);
 
    %%
-   % Now, we set _rhs_ as $\pi\hat{d} - \pi\hat{A}^t\pi_c^t\lambda_{1,2}$:
+   % Now, we set |rhs| as $\pi\hat{d} - \pi\hat{A}^t\pi_c^t\lambda_{1,2}$:
    %
    rhs = proj*(rhs - fullA'*proj_orth'*lambda_wells);
 
@@ -168,23 +175,23 @@ function [lambda, its, fl] = cprAdjoint(eqs, rhs, system, varargin)
    prec  = getTwoStagePrecAdj(A, pInx, opt);
 
    %%
-   % We compute $\lambda_2$ which is here given by _lambda_cells_:
+   % We compute $\lambda_2$ which is here given by |lambda_cells|:
    %
    [lambda_cells, fl, relres, its] = gmres(A', rhs, [], opt.relTol, 20, prec);
 
    %%
-   % _lambda_cells_ is updated to $\lambda_{1,1}$:
+   % |lambda|cells_ is updated to $\lambda_{1,1}$:
    %
    lambda_cells = Lp'*lambda_cells;
 
    %%
-   % We compute $\lambda_1$ which is given here by _lambda_:
+   % We compute $\lambda_1$ which is given here by |lambda|:
    %
 
    lambda = proj'*lambda_cells + proj_orth'*lambda_wells;
 
    %%
-   % _lambda_ is updated to $\lambda, the solution of the adjoint equation:
+   % |lambda| is updated to $\lambda$, the solution of the adjoint equation:
 
    lambda = L'*lambda;
 
@@ -386,7 +393,7 @@ function x = applyTwoStagePrecAdj(r, A, L, U, Ap, pInx, opt)
    p = zeros(size(r));
    q = U\(L\r);
    s = r - A'*q;
-   p(pInx) = opt.ellipSolve(Ap', s(pInx));
+   p(pInx) = opt.cprEllipticSolver(Ap', s(pInx));
    x = p + q;
 end
 

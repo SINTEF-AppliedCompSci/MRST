@@ -9,7 +9,6 @@ for ph = 2:numel(q_s)
 end
 
 setToZeroRate = and(val ==0, ~cellfun(@(x)strcmp('bhp',x), type));
-setToZeroBHP  = ~status;
 
 eq = pBH; %just to initialize to whatever class pBH is
 % bhp (injector or producer)
@@ -67,10 +66,6 @@ if ~isempty(setToZeroRate)
     eq(setToZeroRate) = qt_s(setToZeroRate);
 end
 
-%In the case of wells not comunicating with reservoir, just set bhp to zero
-if ~isempty(setToZeroBHP)
-    eq(setToZeroBHP) = qt_s(setToZeroBHP);
-end
 end
 %--------------------------------------------------------------------------
 function [iw, io, ig] = getPhaseInx(model)

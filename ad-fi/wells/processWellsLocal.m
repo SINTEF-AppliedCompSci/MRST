@@ -113,9 +113,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    if opt.DepthReorder
-      W = reorderByDepth(G, W);
+      W = reorderWellPerforationsByDepth(W);
    end
-
+   
+   % for now, connection status can only be true if well status is true  
+   for k = 1:numel(W)
+       W(k).cstatus = and(W(k).status, W(k).cstatus);
+   end
 end
 
 %--------------------------------------------------------------------------
@@ -263,6 +267,7 @@ end
 %--------------------------------------------------------------------------
 
 function W = process_wpolymer(W, control, G, rock, well_id, p, opt)
+   [W.poly] = deal(0); % set all wells to zero
    for i = 1 : size(control.WPOLYMER, 1)
       for j = 1:size(W,1)
          if strcmp(W(j).name, control.WPOLYMER{i,1})
@@ -481,7 +486,7 @@ function W = buildWell(W, G, rock, control, i, p, ...
    Kh    = rldecode([comp{:,10}], nperf, 2) .';
    WI    = rldecode([comp{:, 8}], nperf, 2) .';
    Wdiam = rldecode([comp{:, 9}], nperf, 2) .';
-   openShutFlag = rldecode(vertcat({comp{:, 6}}), nperf, 2) .';
+   openShutFlag = rldecode(comp(:, 6), nperf);
 
    % Zero input value means to calculate quantities ourselves.
    % Set negative whence 'addWell' will DTRT[tm].
@@ -587,21 +592,6 @@ function perf = active_perf(G, comp)
    [ijk{1:3}] = ndgrid(comp{2}, comp{3}, comp{4} : comp{5});
    i    = sub2ind(G.cartDims, ijk{1}(:), ijk{2}(:), ijk{3}(:));
    perf = cart2active(G, i);
-end
-
-
-function W = reorderByDepth(G, W)
-   for i = 1:numel(W)
-      cells = W(i).cells;
-      WI = W(i).WI;
-      dZ = W(i).dZ;
-      % depth = G.cells.centroids(cells, 3);
-      index = (1:numel(cells))';
-      new_index = sortrows(horzcat(dZ, index, cells, WI));
-      W(i).dZ = new_index(:, 1);
-      W(i).cells = new_index(:, 3);
-      W(i).WI = new_index(:, 4);
-   end
 end
 
 function W = createDefaultWell(G, rock)
