@@ -31,5 +31,11 @@ classdef PressureBlackOilModel < ThreePhaseBlackOilModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
         end
+%         
+%         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
+%             [problem, state] = model.getEquations(state0, state, dt, drivingForces, 'converged', true, 'iteration', inf);
+%             
+%             report = [];
+%         end
     end
 end

@@ -1,4 +1,4 @@
-function [bO, rhoO, mobO, Go] = propsOW_oil(sO, krO, gdz, f, p, s)
+function [bO, rhoO, mobO, Go, muO] = propsOW_oil(sO, krO, gdz, f, p, s)
 
     if isfield(f, 'tranMultR');
         trMult = f.tranMultR(p);
@@ -15,9 +15,10 @@ function [bO, rhoO, mobO, Go] = propsOW_oil(sO, krO, gdz, f, p, s)
     
     if isfield(f, 'BOxmuO')
         % mob0 is already multplied with b0
-        mobO   = (trMult.*krO./f.BOxmuO(p))./bO;
+        muO = f.BOxmuO(p).*bO;
     else
-        mobO   = trMult.*krO./f.muO(p);
+        muO = f.muO(p);
     end
+    mobO   = trMult.*krO./muO;
 
 end

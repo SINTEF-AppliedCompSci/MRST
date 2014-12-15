@@ -114,7 +114,8 @@ bW     = f.bW(p_prop);
 rhoW   = bW.*f.rhoWS;
 % rhoW on face, avarge of neighboring cells (E100, not E300)
 rhoWf  = s.faceAvg(rhoW);
-mobW   = trMult.*krW./f.muW(p_prop);
+muW = f.muW(p_prop);
+mobW   = trMult.*krW./muW;
 dpW    = s.Grad(p-pcOW) - rhoWf.*gdz;
 
 % water upstream-index
@@ -215,7 +216,7 @@ if ~isempty(W)
     nperf = numel(wc);
     pw    = p(wc);
     rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-    bw    = {bW(wc), bO(wc), bG(wc)};
+    
     if ~disgas
         rsw = ones(nperf,1)*rs; rsSatw = ones(nperf,1)*rsSat; %constants
     else
@@ -228,7 +229,52 @@ if ~isempty(W)
     end
     rw    = {rsw, rvw};
     rSatw = {rsSatw, rvSatw};
-    mw    = {mobW(wc), mobO(wc), mobG(wc)};
+    
+    
+    if 1
+        sG_w = sG(wc) + dt*qGs./(bG(wc).*s.pv(wc));
+        sO_w = sO(wc) + dt*qOs./(bO(wc).*s.pv(wc));
+        sW_w = sW(wc) + dt*qWs./(bW(wc).*s.pv(wc));
+        
+        sG_w = min(max(sG_w, 0), 1);
+        sO_w = min(max(sO_w, 0), 1);
+        sW_w = 1 - sG_w - sO_w;
+%         sW_w = min(max(sW_w, 0), 1);
+        
+        pw = p_prop(wc);
+        
+        
+        sub = double(sG_w) > 0;
+        rw{1}(sub) = f.rsSat(pw(sub));        
+        
+        if 1
+            muG_w = muG(wc);
+            muW_w = muW(wc);
+            muO_w = muO(wc);
+        else
+            muG_w = f.muG(pw);
+            if model.disgas
+    %             muO_w = f.muO(pw, rw{1}, sG_w > 0);
+                muO_w = f.muO(pw, rs(wc), ~st{1}(wc));
+            else
+                muO_w = f.muO(pw);
+            end
+            muW_w = f.muW(pw);
+        end
+        [krW_w, krO_w, krG_w] = model.evaluteRelPerm({sW_w, sO_w, sG_w});
+        
+        mobWw = krW_w./muW_w;
+        mobOw = krO_w./muO_w;
+        mobGw = krG_w./muG_w;
+        
+        mw    = {mobWw, mobOw, mobGw};
+        bw    = {bW(wc), f.bO(pw, rw{1}, sG_w > 0), bG(wc)};
+%         bw    = {bW(wc), bO(wc), bG(wc)};
+    else
+        mw    = {mobW(wc), mobO(wc), mobG(wc)};
+        bw    = {bW(wc), bO(wc), bG(wc)};
+    end
+    
     s = {sW, 1 - sW - sG, sG};
 
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...

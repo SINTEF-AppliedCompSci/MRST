@@ -79,7 +79,7 @@ sO0 = 1 - sW0;
 gdz = model.getGravityGradient();
 
 % Water
-[bW, rhoW, mobW, Gw] = propsOW_water(sW, krW, gdz, f, p_prop, s);
+[bW, rhoW, mobW, Gw, muW] = propsOW_water(sW, krW, gdz, f, p_prop, s);
 dpW = s.Grad(p) - Gw;
 
 % water upstream-index
@@ -88,7 +88,7 @@ vW = - s.faceUpstr(upcw, mobW).*s.T.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
 
-[bO, rhoO, mobO, Go] = propsOW_oil(1 - sW, krO, gdz, f, p_prop, s);
+[bO, rhoO, mobO, Go, muO] = propsOW_oil(1 - sW, krO, gdz, f, p_prop, s);
 dpO = s.Grad(p) - Go;
 % oil upstream-index
 upco = (double(dpO)<=0);
@@ -118,6 +118,33 @@ if ~isempty(W)
     mw   = {mobW(wc), mobO(wc)};
     s = {sW, 1 - sW};
 
+    
+    if 1
+        sO_w = sO(wc) + dt*qOs./(bO(wc).*model.operators.pv(wc));
+        sW_w = sW(wc) + dt*qWs./(bW(wc).*model.operators.pv(wc));
+        
+        sO_w = min(max(sO_w, 0), 1);
+        sW_w = min(max(sW_w, 0), 1);
+        
+        pw = p_prop(wc);
+        
+        
+        muW_w = muW(wc);
+        muO_w = muO(wc);
+
+        [krW_w, krO_w] = model.evaluteRelPerm({sW_w, sO_w});
+        
+        mobWw = krW_w./muW_w;
+        mobOw = krO_w./muO_w;
+        
+        mw    = {mobWw, mobOw};        
+        bw    = {bW(wc), bO(wc)};
+    else
+        mw    = {mobW(wc), mobO(wc)};
+        bw    = {bW(wc), bO(wc)};
+    end
+
+    
     wm = WellModel();
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
                                          pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
