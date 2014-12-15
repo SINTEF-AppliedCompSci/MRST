@@ -8,7 +8,8 @@ opt = struct('Verbose', mrstVerbose, ...
              'temperature', false,...
              'minerals', false, ...
              'iteration', -1, ...
-             'stepOptions', []);  % Compatibility only
+             'stepOptions', [],...
+             'addfluxes',true);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
 
@@ -32,8 +33,17 @@ qOs    = vertcat(state.wellSol.qOs);
 
 % previous variables ------------------------------------------------------
 p0  = state0.pressure;
+pO0=p0;
 sW0 = state0.s(:,1);
 T0  = state0.T;
+%%
+pcOW0 = 0;
+if isfield(f, 'pcOW')
+    pcOW0  = f.pcOW(sW0);
+end
+pW0=p0-pcOW0;
+assert(all(pW0>0 ))
+
 %--------------------------------------------------------------------------
 
 
@@ -71,6 +81,7 @@ if isfield(f, 'transMult')
    transMult=f.transMult(p); 
 end
 %check for capillary pressure (p_cow)
+
 pcOW = 0;
 if isfield(f, 'pcOW')
     pcOW  = f.pcOW(sW);
@@ -84,12 +95,13 @@ trans=s.T.*transMult;
 
 % water props (calculated at oil pressure OK?)
 %bW     = f.bW(p);
-bW     = f.bW(p-pcOW,T);
+pW=p-pcOW;
+bW     = f.bW(pW,T);
 rhoW   = bW.*f.rhoWS;
 % rhoW on face, avarge of neighboring cells (E100, not E300)
 rhoWf  = s.faceAvg(rhoW);
 %mobW   = trMult.*krW./f.muW(p);
-mobW   = trMult.*krW./f.muW(p-pcOW,T);
+mobW   = trMult.*krW./f.muW(pW,T);
 dpW     = s.grad(p-pcOW) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
 % water upstream-index
 upc = (double(dpW)>=0);
@@ -148,9 +160,9 @@ eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
     bFsF0={bO0.*sO0,bW0.*sW0};
 
     bFvF={bOvO,bWvW};
-    eF={f.uO(p,T) , f.uW(p,T)};
-    eF0={f.uO(p0,T0) , f.uW(p0,T0)};
-    hF={f.hO(p,T), f.hW(p,T)};
+    eF={f.uO(p,T) , f.uW(pW,T)};
+    eF0={f.uO(pO0,T0) , f.uW(pW0,T0)};
+    hF={f.hO(p,T), f.hW(pW,T)};
 
     uR=f.uR(T);uR0=f.uR(T0);
     vQ = s.T_r .* s.grad(T);
@@ -163,7 +175,7 @@ eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.div(bWvW);
     vol=G.cells.volumes;
     eqs{3} = (1./dt).*((vol-pvMult.*s.pv).*uR-(vol-pvMult0.*s.pv).*uR0) + s.div( vQ);
     %eqs{3}=eqs{3};
-    %eqs{5}(wc) = eqs{5}(wc)-vQqQ;
+    %eqs{3}(wc) = eqs{3}(wc)-vQqQ;
     for i=1:numel(eF)       
         eqs{3}  =  eqs{3} + ((s.pv/dt).*( pvMult.*eF{i}.*rhoS{i}.*bFsF{i} - pvMult0.*eF0{i}.*rhoS{i}.*bFsF0{i} )...
                 +  s.div( s.faceUpstr(bFvF{i}>0, rhoS{i}.*hF{i}) .* bFvF{i}));         
@@ -197,7 +209,7 @@ if ~isempty(W)
 else % no wells
     eqs(4:6) = {pBH, pBH, pBH};  % empty  ADIs
 end
-
+if(~isempty(W))
 bFqF={cqs{2},cqs{1}};
 hFwp=cell(2,1);
 
@@ -222,8 +234,13 @@ end
 for i=1:2
     eqs{3}(wc) = eqs{3}(wc)  -  HqH{i};
 end
+end
 eqs{3}=eqs{3}/1e6;
-
+if(opt.addfluxes)
+    for i=1:numel(bFvF)
+        state.bFvF{i}=double(bFvF{i});
+    end
+end
 end
 %--------------------------------------------------------------------------
 
