@@ -72,6 +72,8 @@ function [iw, io, ig] = getPhaseInx(model)
 switch model
     case 'OW'
         iw = 1; io = 2; ig = [];
+    case 'WG'
+        iw = 1; io = []; ig = 1;
     case {'3P', 'BO', 'VO'}
         iw = 1; io = 2; ig = 3;
 end
