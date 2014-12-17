@@ -3,10 +3,13 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     W = drivingForces.Wells;
     
     inj = vertcat(drivingForces.Wells.sign) > 0;
+    
+    active = inj;
+    active = true(numel(W), 1);
 %     perf2well = getPerforationToWellMapping(W);
 %     active = inj(perf2well);
     
-    cells = vertcat(W(inj).cells);
+    cells = vertcat(W(active).cells);
     
     dt = problem.dt;
     
@@ -23,17 +26,18 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     
     pv = repmat(model.operators.pv(cells), 1, size(s, 2));
     
-    cqs = vertcat(state.wellSol(inj).cqs);
+    cqs = vertcat(state.wellSol(active).cqs);
     
     
     divV = b.*(div*state.flux(intx, :));
     
     mass0 = s0.*b0;
-    mass = s.*b;
     
-    GI = 3;
-    OI = 2;
     if model.disgas
+        assert(model.water && model.gas && model.oil);
+        GI = 3;
+        OI = 2;
+
         rs = state.rs(cells);
         rs0 = state.rs0(cells);
         
@@ -62,42 +66,23 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
         overflow = max(rsnew - rsSat, 0);
         state.s(cells, 3) = overflow.*(b(:, OI).*s(:, OI))./b(:, GI);
         
-%         overflow
-        
         rsnew = min(rsnew, rsSat);
-        if norm(rsnew - state.rs(cells), inf) > 1;
-%             disp([state.rs(cells), rsnew, rsSat])
+%         state.rs(cells) = rsnew;
+        if norm((rsnew - rs0)./rs0, inf) > 0.1;
             state.rs(cells) = rsnew;
         end
-    end
-%     [state.s(cells, :), sum(state.s(cells, :))]
-
-%     ds
-    
-%     state.s(cells, :)
-%     state.s(cells, :) = state.s(cells, :) + ds;
-    
+    end    
     state.s = cap(state.s);
-%     state.s(:, 1) = 1 - state.s(:, 2) - state.s(:, 3);
-    state.s(:, 2) = 1 - state.s(:, 1) - state.s(:, 3);
-%     state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
+    if 1
+%         state.s(:, 1) = 1 - state.s(:, 2) - state.s(:, 3);
+        ind = 1:size(state.s, 2);
+        
+        isfill = ind == 2;
+        state.s(cells, isfill) = 1 - sum(state.s(cells, ~isfill), 2);
+    else
+        state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
+    end
     
     above = state.s(:, 3) > 0;
     state.rs(above) = state.rsSat(above);
-    
-    
-    
-%     snew = cap((dt*(cqs - divV)./pv + s0.*b0)./b);
-%     snew = cap(dt*(cqs - divV)./(pv.*b) + s0);
-%     if 0
-%         snew = bsxfun(@rdivide, snew, sum(snew, 2));
-%     else
-%         snew(:, 2) = 1 - snew(:, 1) - snew(:, 3);
-%     end
-%     
-%     if s0(:, 3) > 0
-%         return
-%     end
-%     state.s(cells, :) = snew;
-   
 end

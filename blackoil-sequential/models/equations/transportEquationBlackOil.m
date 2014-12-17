@@ -28,7 +28,7 @@ vapoil = model.vapoil;
                                 'pressure', 'water', 'gas', 'rs', 'rv');
 
 wflux = vertcat(wellSol.flux);
-
+cqs = vertcat(wellSol.cqs);
 %Initialization of primary variables ----------------------------------
 st  = getCellStatusVO(state,  1-sW-sG,   sW,  sG,  disgas, vapoil);
 st0 = getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0, disgas, vapoil);
@@ -207,50 +207,99 @@ if model.extraStateOutput
 end
 % well equations
 if ~isempty(W)
-    perf2well = getPerforationToWellMapping(W);
-    wc    = vertcat(W.cells);
+    if 0
+        wm = WellModel();
+        wc    = vertcat(W.cells);
+        nperf = numel(wc);
+        pw    = p(wc);
+        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
 
-    mobWw = mobW(wc);
-    mobOw = mobO(wc);
-    mobGw = mobG(wc);
-    totMobw = mobWw + mobOw + mobGw;
+        if ~disgas
+            rsw = ones(nperf,1)*rs; rsSatw = ones(nperf,1)*rsSat; %constants
+        else
+            rsw = rs(wc); rsSatw = rsSat(wc);
+        end
+        if ~vapoil
+            rvSat = 1;
+            rvw = ones(nperf,1)*rv; rvSatw = ones(nperf,1)*rvSat; %constants
+        else
+            rvw = rv(wc); rvSatw = rvSat(wc);
+        end
+        rw    = {rsw, rvw};
+        rSatw = {rsSatw, rvSatw};
+
+        mw    = {mobW(wc), mobO(wc), mobG(wc)};
+        bw    = {bW(wc), bO(wc), bG(wc)};
+
+        sats = {sW, 1 - sW - sG, sG};
+
+        bhp = vertcat(wellSol.bhp);
+        qWs = vertcat(wellSol.qWs);
+        qOs = vertcat(wellSol.qOs);
+        qGs = vertcat(wellSol.qGs);
+        
+        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
+                                             bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sats, rw,...
+                                             'maxComponents', rSatw, ...
+                                             'nonlinearIteration', inf);
+%         eqs(2:4) = weqs;
+%         eqs{5} = ctrleqs;
+
+        wflux_O = cqs{2};
+        wflux_W = cqs{1}; 
+        wflux_G = cqs{3}; 
+    else
+        perf2well = getPerforationToWellMapping(W);
+        wc    = vertcat(W.cells);
+
+        mobWw = mobW(wc);
+        mobOw = mobO(wc);
+        mobGw = mobG(wc);
+        totMobw = mobWw + mobOw + mobGw;
 
 
-    isInj = wflux > 0;
-    compWell = vertcat(W.compi);
-    compPerf = compWell(perf2well, :);
+        isInj = wflux > 0;
+        compWell = vertcat(W.compi);
+        compPerf = compWell(perf2well, :);
 
-    f_w_w = mobWw./totMobw;
-    f_o_w = mobOw./totMobw;
-    f_g_w = mobGw./totMobw;
+        f_w_w = mobWw./totMobw;
+        f_o_w = mobOw./totMobw;
+        f_g_w = mobGw./totMobw;
 
 
-    f_w_w(isInj) = compPerf(isInj, 1);
-    f_o_w(isInj) = compPerf(isInj, 2);
-    f_g_w(isInj) = compPerf(isInj, 3);
+        f_w_w(isInj) = compPerf(isInj, 1);
+        f_o_w(isInj) = compPerf(isInj, 2);
+        f_g_w(isInj) = compPerf(isInj, 3);
 
-    bWqW = bW(wc).*f_w_w.*wflux;
-    bOqO = bO(wc).*f_o_w.*wflux;
-    bGqG = bG(wc).*f_g_w.*wflux;
 
-    % Store well fluxes
-    wflux_O = bOqO;
-    wflux_W = bWqW;
-    wflux_G = bGqG;
+        bWqW = bW(wc).*f_w_w.*wflux;
+        bOqO = bO(wc).*f_o_w.*wflux;
+        bGqG = bG(wc).*f_g_w.*wflux;
+            
+        if 1
+            bWqW(isInj) = cqs(isInj, 1);
+            bOqO(isInj) = cqs(isInj, 2);
+            bGqG(isInj) = cqs(isInj, 3);
+        end
+        % Store well fluxes
+        wflux_O = bOqO;
+        wflux_W = bWqW;
+        wflux_G = bGqG;
 
-    if disgas
-        wflux_G = wflux_G + bOqO.*rs(wc);
-    end
+        if disgas
+            wflux_G = wflux_G + bOqO.*rs(wc);
+        end
 
-    if vapoil
-        wflux_O = wflux_O + bGqG.*rv(wc);
-    end
+        if vapoil
+            wflux_O = wflux_O + bGqG.*rv(wc);
+        end
 
-    for i = 1:numel(W)
-        perfind = perf2well == i;
-        state.wellSol(i).qOs = sum(double(wflux_O(perfind)));
-        state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
-        state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
+        for i = 1:numel(W)
+            perfind = perf2well == i;
+            state.wellSol(i).qOs = sum(double(wflux_O(perfind)));
+            state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
+            state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
+        end
     end
 end
 
