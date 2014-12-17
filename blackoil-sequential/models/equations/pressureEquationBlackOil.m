@@ -176,7 +176,10 @@ end
 % any flags set in the model.
 state = model.storeFluxes(state, vW, vO, vG);
 state = model.storeUpstreamIndices(state, upcw, upco, upcg);
-
+if model.extraStateOutput
+    state = model.storebfactors(state, bW, bO, bG);
+    state = model.storeMobilities(state, mobW, mobO, mobG);
+end
 % EQUATIONS -----------------------------------------------------------
 
 bW0 = f.bW(p0);
@@ -231,7 +234,7 @@ if ~isempty(W)
     rSatw = {rsSatw, rvSatw};
     
     
-    if 1
+    if 0
         sG_w = sG(wc) + dt*qGs./(bG(wc).*s.pv(wc));
         sO_w = sO(wc) + dt*qOs./(bO(wc).*s.pv(wc));
         sW_w = sW(wc) + dt*qWs./(bW(wc).*s.pv(wc));
@@ -330,7 +333,17 @@ for i = 1:numel(W)
     state.wellSol(i).flux = fluxt(wp);
 end
 
+
+% Hacking away...
+state.s0 = state0.s;
+state.bfactor0 = [double(bW0), double(bO0), double(bG0)];
+% problem.state.state0 = state0;
+% if isfield(problem.state.state0, 'state0')
+%     problem.state.state0 = rmfield(problem.state.state0, 'state0');
+% end
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
 end
 
 
@@ -359,4 +372,8 @@ function [sG, rs] = redistributeRS(f, p, rs, sG, sO)
     rs(above) = rsSat(above);
 
     sG(above) = overflow.*sO(above).*bO(above)./bG(above);
+end
+
+function s = estimateSaturationEndpoint()
+    
 end
