@@ -26,15 +26,27 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     cqs = vertcat(state.wellSol(inj).cqs);
     
     
-    divV = div*state.flux(intx, :);
+    divV = b.*(div*state.flux(intx, :));
     
     if model.disgas
         rs = state.rs(cells);
-        divV(:, 3) = divV(:, 2)*rs;
+        divV(:, 3) = divV(:, 3) + divV(:, 2)*rs;
     end
     
     
     cap = @(x) min(max(x, 0), 1);
-    state.s(cells, :) = cap((dt*(cqs - divV)./pv + s0.*b0)./b);
     
+    snew = cap((dt*(cqs - divV)./pv + s0.*b0)./b);
+%     snew = cap(dt*(cqs - divV)./(pv.*b) + s0);
+    if 0
+        snew = bsxfun(@rdivide, snew, sum(snew, 2));
+    else
+        snew(:, 2) = 1 - snew(:, 1) - snew(:, 3);
+    end
+    
+%     if s0(:, 3) > 0
+%         return
+%     end
+    state.s(cells, :) = snew;
+   
 end

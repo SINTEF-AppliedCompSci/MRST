@@ -30,11 +30,26 @@ classdef PressureBlackOilModel < ThreePhaseBlackOilModel
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+            
+            
+            if 1
+            state0 = state;
             state = updateWellCellSaturationsExplicit(model, state, problem, dx, drivingForces);
+            
+            
+            so = model.getProp(state, 'so');
+            sw = model.getProp(state, 'sw');
+            sg = model.getProp(state, 'sg');
+
+            st = getCellStatusVO(state0, so, sw, sg, model.disgas, model.vapoil);
+            state = computeFlashBlackOil(state, state0, model, st);
+            end
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
             state.s = state0.s;
+            state.rv = state0.rv;
+            state.rs = state0.rs;
             report = [];
         end
     end
