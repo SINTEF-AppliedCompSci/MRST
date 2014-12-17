@@ -77,10 +77,13 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
 %     state.s(cells, :)
 %     state.s(cells, :) = state.s(cells, :) + ds;
     
-%     state.s = cap(state.s);
+    state.s = cap(state.s);
+%     state.s(:, 1) = 1 - state.s(:, 2) - state.s(:, 3);
     state.s(:, 2) = 1 - state.s(:, 1) - state.s(:, 3);
+%     state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
     
-    
+    above = state.s(:, 3) > 0;
+    state.rs(above) = state.rsSat(above);
     
     
     
