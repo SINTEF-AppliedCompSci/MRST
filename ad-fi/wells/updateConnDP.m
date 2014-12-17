@@ -134,6 +134,7 @@ function volRat = compVolRat(mixs, b, rMax, model)
 x = mixs;
 switch model
     case 'OW' %done
+    case 'WG' %done
     case '3P' %done
     case 'BO'
         x(:,3) = x(:,3) - rMax(:,1).*mixs(:,2);
@@ -153,15 +154,6 @@ switch model
         error(['Unknown model: ', model]);
 end
 volRat = sum(x./b ,2);
-end
-
-function actPh = getActivePhases(model)
-switch model
-    case 'OW'
-        actPh = [1, 2];
-    otherwise
-        actPh = [1, 2, 3];
-end
 end
 
 

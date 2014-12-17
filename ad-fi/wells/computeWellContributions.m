@@ -12,13 +12,7 @@ perf2well   = rldecode((1:numel(W))', nConn);
 Rw    = sparse((1:numel(perf2well))', perf2well, 1, numel(perf2well), numel(W));
 Tw    = vertcat(W(:).WI);
 %active phases
-if strcmp(model, 'OW')
-    actPh = [1, 2];
-elseif any(strcmp(model, {'3P', 'BO', 'VO'}))
-    actPh = [1, 2, 3];
-else
-    error('Model not supported');
-end
+actPh = getActivePhases(model);
 compi = vertcat(W(:).compi);
 compi = compi(:, actPh);
 
@@ -142,6 +136,7 @@ end
 vs = bv;
 switch model
     case 'OW' %done
+    case 'WG' %done
     case '3P' %done
     case 'BO'
         vs{3} = vs{3} + r{1}.*bv{2};
@@ -163,6 +158,7 @@ end
 tmp = cmix_s;
 switch model
     case 'OW' %done
+    case 'WG' %done
     case '3P' %done
     case 'BO'
         tmp{3} = tmp{3} - r{1}.*cmix_s{2};

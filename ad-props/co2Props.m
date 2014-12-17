@@ -148,7 +148,10 @@ function res = calcMulti(P, T, fun, fun_dp, fun_dt)
             %res = ADI(res, lMultDiag(dres_dp, P.jac) + lMultDiag(dres_dt, T.jac));
             tmp1 = lMultDiag(dres_dp, P.jac);
             tmp2 = lMultDiag(dres_dt, T.jac);
-            res = ADI(res, {tmp1{1} + tmp2{1}, tmp1{2} + tmp2{2}});
+            for i=1:numel(tmp2)
+                tmp1{i}=tmp1{i}+tmp2{i};
+            end                       
+            res = ADI(res, tmp1);
         else
             res = ADI(res, lMultDiag(dres_dp, P.jac));
        end
@@ -402,7 +405,7 @@ function v = gasViscosity(T,p,co2pr)
 
         if(T < 275.) %// regularisation
         
-            temperature = 275;
+            T = 275;
             %Dune::dgrave << "Temperature below 275K in viscosity function:"
             %        << "Regularizing tempereature to 275K. " << std::endl;
         end
