@@ -336,6 +336,8 @@ end
 
 % Hacking away...
 state.s0 = state0.s;
+state.rs0 = state0.rs;
+state.rsSat = double(rsSat);
 state.bfactor0 = [double(bW0), double(bO0), double(bG0)];
 % problem.state.state0 = state0;
 % if isfield(problem.state.state0, 'state0')

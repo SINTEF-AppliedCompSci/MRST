@@ -37,12 +37,12 @@ classdef PressureBlackOilModel < ThreePhaseBlackOilModel
             state = updateWellCellSaturationsExplicit(model, state, problem, dx, drivingForces);
             
             
-            so = model.getProp(state, 'so');
-            sw = model.getProp(state, 'sw');
-            sg = model.getProp(state, 'sg');
-
-            st = getCellStatusVO(state0, so, sw, sg, model.disgas, model.vapoil);
-            state = computeFlashBlackOil(state, state0, model, st);
+%             so = model.getProp(state, 'so');
+%             sw = model.getProp(state, 'sw');
+%             sg = model.getProp(state, 'sg');
+% 
+%             st = getCellStatusVO(state0, so, sw, sg, model.disgas, model.vapoil);
+%             state = computeFlashBlackOil(state, state0, model, st);
             end
         end
         

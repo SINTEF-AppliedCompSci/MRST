@@ -28,25 +28,73 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     
     divV = b.*(div*state.flux(intx, :));
     
+    mass0 = s0.*b0;
+    mass = s.*b;
+    
+    GI = 3;
+    OI = 2;
     if model.disgas
         rs = state.rs(cells);
-        divV(:, 3) = divV(:, 3) + divV(:, 2)*rs;
+        rs0 = state.rs0(cells);
+        
+        divV(:, GI) = divV(:, GI) + divV(:, OI).*rs;
+        
+        % mass(:, GI) = mass(:, GI) + mass(:, OI).*rs;
+        mass0(:, GI) = mass0(:, GI) + mass0(:, OI).*rs0;
     end
     
     
     cap = @(x) min(max(x, 0), 1);
     
-    snew = cap((dt*(cqs - divV)./pv + s0.*b0)./b);
-%     snew = cap(dt*(cqs - divV)./(pv.*b) + s0);
-    if 0
-        snew = bsxfun(@rdivide, snew, sum(snew, 2));
-    else
-        snew(:, 2) = 1 - snew(:, 1) - snew(:, 3);
-    end
+    dmass = dt*(cqs - divV)./pv;
+    ds = dmass./b;
     
+    mass = mass0 + dmass;
+    
+    
+    state.s(cells, :) = state.s(cells, :) + ds;
+    
+    if model.disgas
+        rsSat = state.rsSat(cells);
+        
+        rsnew = mass(:, GI)./(b(:, OI).*s(:, OI));
+        
+        overflow = max(rsnew - rsSat, 0);
+        state.s(cells, 3) = overflow.*(b(:, OI).*s(:, OI))./b(:, GI);
+        
+%         overflow
+        
+        rsnew = min(rsnew, rsSat);
+        if norm(rsnew - state.rs(cells), inf) > 1;
+%             disp([state.rs(cells), rsnew, rsSat])
+            state.rs(cells) = rsnew;
+        end
+    end
+%     [state.s(cells, :), sum(state.s(cells, :))]
+
+%     ds
+    
+%     state.s(cells, :)
+%     state.s(cells, :) = state.s(cells, :) + ds;
+    
+%     state.s = cap(state.s);
+    state.s(:, 2) = 1 - state.s(:, 1) - state.s(:, 3);
+    
+    
+    
+    
+    
+%     snew = cap((dt*(cqs - divV)./pv + s0.*b0)./b);
+%     snew = cap(dt*(cqs - divV)./(pv.*b) + s0);
+%     if 0
+%         snew = bsxfun(@rdivide, snew, sum(snew, 2));
+%     else
+%         snew(:, 2) = 1 - snew(:, 1) - snew(:, 3);
+%     end
+%     
 %     if s0(:, 3) > 0
 %         return
 %     end
-    state.s(cells, :) = snew;
+%     state.s(cells, :) = snew;
    
 end
