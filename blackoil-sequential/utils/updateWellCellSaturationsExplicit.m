@@ -33,7 +33,7 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     
     mass0 = s0.*b0;
     
-    if model.disgas
+    if model.gas && model.disgas
         assert(model.water && model.gas && model.oil);
         GI = 3;
         OI = 2;
@@ -58,7 +58,7 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     
     state.s(cells, :) = state.s(cells, :) + ds;
     
-    if model.disgas
+    if model.gas && model.disgas
         rsSat = state.rsSat(cells);
         
         rsnew = mass(:, GI)./(b(:, OI).*s(:, OI));
@@ -83,6 +83,8 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
         state.s = bsxfun(@rdivide, state.s, sum(state.s, 2));
     end
     
-    above = state.s(:, 3) > 0;
-    state.rs(above) = state.rsSat(above);
+    if model.gas && model.disgas
+        above = state.s(:, 3) > 0;
+        state.rs(above) = state.rsSat(above);
+    end
 end

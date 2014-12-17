@@ -27,5 +27,10 @@ classdef PressureOilWaterModel < TwoPhaseOilWaterModel
             % Always make at least one update so that the problem actually changes.
             convergence = convergence && problem.iterationNo > 1;
         end
+        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
+%             state = updateWellCellSaturationsExplicit(model, state, problem, dx, drivingForces);
+        end
     end
 end
