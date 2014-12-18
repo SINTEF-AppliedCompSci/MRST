@@ -29,7 +29,7 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     cqs = vertcat(state.wellSol(active).cqs);
     
     
-    divV = b.*(div*state.flux(intx, :));
+    bdivV = b.*(div*state.flux(intx, :));
     
     mass0 = s0.*b0;
     
@@ -41,7 +41,7 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
         rs = state.rs(cells);
         rs0 = state.rs0(cells);
         
-        divV(:, GI) = divV(:, GI) + divV(:, OI).*rs;
+        bdivV(:, GI) = bdivV(:, GI) + bdivV(:, OI).*rs;
         
         % mass(:, GI) = mass(:, GI) + mass(:, OI).*rs;
         mass0(:, GI) = mass0(:, GI) + mass0(:, OI).*rs0;
@@ -50,14 +50,16 @@ function state = updateWellCellSaturationsExplicit(model, state, problem, dx, dr
     
     cap = @(x) min(max(x, 0), 1);
     
-    dmass = dt*(cqs - divV)./pv;
+    dmass = dt*(cqs - bdivV)./pv;
     ds = dmass./b;
     
     mass = mass0 + dmass;
     
     
-    state.s(cells, :) = state.s(cells, :) + ds;
+%     state.s(cells, :) = state.s(cells, :).*(b0./b) + ds;
+    state.s(cells, :) = s0.*(b0./b) + ds;
     
+%     s = state.s(cells, :);
     if model.gas && model.disgas
         rsSat = state.rsSat(cells);
         
