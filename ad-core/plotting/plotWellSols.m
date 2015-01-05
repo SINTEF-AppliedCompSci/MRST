@@ -49,6 +49,7 @@ function plotWellSols(wellsols, varargin)
     fnIndex = find(strcmpi(fn, opt.field));
     if isempty(fnIndex)
         warning(['Unknown field ''', opt.field, '''.']);
+        fnIndex = 1;
     end
     
     wellnames = arrayfun(@(x) x.name, wellsols{1}{1}, 'UniformOutput', false);
