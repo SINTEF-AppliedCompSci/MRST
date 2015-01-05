@@ -278,7 +278,7 @@ if ~isempty(W)
         bw    = {bW(wc), bO(wc), bG(wc)};
     end
     
-    s = {sW, 1 - sW - sG, sG};
+    s = {sW(wc), 1 - sW(wc) - sG(wc), sG(wc)};
 
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
                                          bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...

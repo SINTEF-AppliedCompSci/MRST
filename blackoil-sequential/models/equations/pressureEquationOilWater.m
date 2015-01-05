@@ -122,7 +122,7 @@ if ~isempty(W)
     rhos = [f.rhoWS, f.rhoOS];
     bw   = {bW(wc), bO(wc)};
     mw   = {mobW(wc), mobO(wc)};
-    s = {sW, 1 - sW};
+    s = {sW(wc), 1 - sW(wc)};
 
     
     if 0

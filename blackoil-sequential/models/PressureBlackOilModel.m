@@ -32,7 +32,7 @@ classdef PressureBlackOilModel < ThreePhaseBlackOilModel
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
             
             
-            if 1
+            if 0
             state0 = state;
             state = updateWellCellSaturationsExplicit(model, state, problem, dx, drivingForces);
             
