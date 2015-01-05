@@ -57,10 +57,7 @@ classdef WellModel
             clear opt
             
             
-            if model.upstreamWeightInjectors
-                wellmodel = setUpstreamMobility(wellmodel, model, bhp, currentFluxes);
-            end
-            
+
             if isempty(W)
                 sources = {};
                 controlEqs = {};
@@ -98,6 +95,10 @@ classdef WellModel
             [wellSol, currentFluxes, bhp] = wellmodel.updatePressure(wellSol, currentFluxes, bhp, model);
             % Update well limits
             [wellSol, currentFluxes, bhp] = wellmodel.updateLimits(wellSol, currentFluxes, bhp, model);
+            
+            if model.upstreamWeightInjectors
+                wellmodel = setUpstreamMobility(wellmodel, model, wellSol, bhp, currentFluxes);
+            end
             
             % Set up the actual equations
             [wellEqs, controlEqs, sources, sources_reservoir, wellSol] =...
@@ -258,7 +259,7 @@ classdef WellModel
             end
         end
         
-        function wellmodel = setUpstreamMobility(wellmodel, model, bhp, q_s)
+        function wellmodel = setUpstreamMobility(wellmodel, model, wellSol, bhp, q_s)
             % Upstream weighting of injection mobilities
             wellStatus = vertcat(wellmodel.W.status);
             % Well total volume rate at std conds:
@@ -268,14 +269,17 @@ classdef WellModel
                 qt_s = (qt_s + q_s{ph}).*wellStatus;
             end
             inj = double(qt_s) > 0;
-            
-            
-            compi = vertcat(wellmodel.W.compi);
             perf2well = wellmodel.getPerfToWellMap();            
+            compi = vertcat(wellmodel.W.compi);
+            perfcompi = compi(perf2well, :);
+
+            Rw    = sparse((1:numel(perf2well))', perf2well, 1, numel(perf2well), numel(wellmodel.W));
+            drawdown = -(Rw*bhp+vertcat(wellSol.cdp)) + wellmodel.referencePressure;
+            
             
             [kr, mu, sat] = deal(cell(1, nph));
             for i = 1:nph
-                sat{i} = compi(perf2well, i);
+                sat{i} = perfcompi(:, i);
             end
             [kr{:}] = model.evaluteRelPerm(sat);
             
@@ -283,29 +287,33 @@ classdef WellModel
             f = model.fluid;
             ix = 1;
             if model.water
-                mu{ix} = f.muW(bhp);
+                mu{ix} = f.muW(drawdown);
                 ix = ix + 1;
             end
             
             if model.oil
-                if model.disgas
+                if isprop(model, 'disgas') && model.disgas
                     isgas = sat{ix} > 0;
-                    rs = model.fluid.rsSat(bhp);
-                    mu{ix} = f.muO(bhp, rs.*isgas, isgas);
+                    rs = model.fluid.rsSat(drawdown);
+                    mu{ix} = f.muO(drawdown, rs.*isgas, isgas);
                 else
-                    mu{ix} = f.muO(bhp);
+                    if isfield(f, 'BOxmuO')
+                        mu{ix} = f.BOxmuO(drawdown).*f.bO(drawdown);
+                    else
+                        mu{ix} = f.muO(drawdown);
+                    end
                 end
                 ix = ix + 1;
             end
             
             if model.gas
-                if model.vapoil
+                if isprop(model, 'vapoil') && model.vapoil
                     % Strange case
                     isoil = sat{ix} > 0;
-                    rv = model.fluid.rvSat(bhp);
-                    mu{ix} = f.muG(bhp, rv.*isoil, isoil);
+                    rv = model.fluid.rvSat(drawdown);
+                    mu{ix} = f.muG(drawdown, rv.*isoil, isoil);
                 else
-                    mu{ix} = f.muG(bhp);
+                    mu{ix} = f.muG(drawdown);
                 end
                 ix = ix + 1;
             end
@@ -313,7 +321,7 @@ classdef WellModel
             
             for i = 1:nph
                 injperf = inj(perf2well);
-                wellmodel.mobilities{i}(injperf) = mob{i}(injperf).*compi(injperf, i);
+                wellmodel.mobilities{i}(injperf) = mob{i}(injperf).*perfcompi(injperf, i);
             end
         end
         
