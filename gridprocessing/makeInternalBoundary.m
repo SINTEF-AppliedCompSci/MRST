@@ -1,31 +1,48 @@
 function [G, N] = makeInternalBoundary(G, faces, varargin)
-%Make internal boundary in grid along FACES
+%Make internal boundary in grid along specified faces.
 %
 % SYNOPSIS:
-%   G = makeInternalBoundary(G, f)
-%   G = makeInternalBoundary(G, f, 'pn', pv)
+%    H     = makeInternalBoundary(G, faces)
+%    H     = makeInternalBoundary(G, faces, 'pn1', pv1, ...)
+%   [H, N] = makeInternalBoundary(...)
 %
 % PARAMETERS:
 %   G       - Grid structure as described by grid_structure.
 %
-%   f       - (unique) faces along which a boundary will be inserted.
+%   faces   - Faces along which a boundary will be inserted.  Vector of
+%             face indices.  Repeated indices are supported but generally
+%             discouraged.  One pair of new grid faces will be created in
+%             the output grid for each unique face in 'faces' provided the
+%             identified face is not located on the boundary of 'G'.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   'pn'/pv - List of 'key'/value pairs defining optional parameters.
+%             Supported options are:
 %
-%   tag    -  Tag inserted in G.faces.tag for faces on the internal
-%             boundary.
+%               'tag'   - Tag inserted into 'G.faces.tag' (if present) for
+%                         faces on the internal boundary.  Integral scalar.
+%                         Default value: tag = -1.
+%
+%               'check' - Whether or not to check for repeated face indices
+%                         in input 'faces'.  Emit diagnostic when set and
+%                         in presence of repeated indices.  Logical scalar.
+%                         Default value: check = LOGICAL(mrstVerbose).
 %
 % RETURNS:
-%   G       - Modified grid structure.
+%   H - Modified grid structure.
 %
-%   N       - An n x 2 array of face numbers.  Each pair in the array
-%             correspond to a face in FACES.  N is sufficient to create
-%             flow over the internal boundary or to remove the boundary.
+%   N - An n-by-2 array of face indices. Each pair in the array corresponds
+%       to a face in 'faces'.  In particular, 'faces(i)' in the input grid
+%       'G' is replaced by the pair of faces [N(i,1), N(i,2)] in the result
+%       grid 'H'.
 %
-% COMMENTS:
+%       If any of the faces in 'faces' are on the boundary, then the
+%       corresponding rows in 'N' is 'NaN' in both columns.
+%
+%       The quantity 'N' is sufficient to create flow over the internal
+%       boundary or to remove the internal boundary at some later point.
 %
 % SEE ALSO:
-%  removeInteralBoundary
+%   removeInternalBoundary, mrstVerbose.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
@@ -46,52 +63,92 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-
-opt = struct('tag', -1);
+opt = struct('tag', -1, 'check', logical(mrstVerbose));
 opt = merge_options(opt, varargin{:});
 
-ind = all(G.faces.neighbors(faces,:)~=0, 2);
-n   = numel(faces(ind));
+[faces, iu] = unique_faces(faces, inputname(2), opt);
 
+int = ~ any(G.faces.neighbors(faces,:) == 0, 2);
+n   = sum(int);
 if n == 0,
-    error('No internal faces given')
+   % All of the supplied 'faces' are on the boundary.  Don't change input
+   % grid and return an all-NaN 'N' result.
+   warning(msgid('IFaces:NotSupplied'), 'No internal faces supplied.');
+   N = NaN([numel(iu), 2]);
+   return
 end
 
-% Repeated faces generate exotic grid errors.
-uf = unique(faces);
-if numel(faces) ~= numel(uf),
-   warning('List of faces contains repeated face indices.');
-   faces = uf;
-   clear uf
-end
+% Extract face info for user-specified, internal faces.
+faces = faces(int);
+[fnodes, nnodes, neigh, tags] = copyFaces(G, faces);
 
-% Copy face info
-[fnodes, nnodes, neigh, tags] = copyFaces(G, faces(ind));
-
-% Remove faces
-G      = removeFaces(G, faces(ind));
-
-% Double number of faces, introducing 0-neighbors
-neigh  = reshape([neigh(:,1), zeros(n,2), neigh(:,2)]', 2, [])';
+% Double number of faces, introducing zero (outside) neighbours/tags.
+expand = @(a) reshape([a(:,1), zeros([n, 2]), a(:,2)] .', 2, []) .';
+neigh  = expand(neigh);
 if ~isempty(tags),
-   tags   = reshape([tags(:,1), zeros(n,2), tags(:,2)]', 2, [])';
+   tags = expand(tags);
 end
 
-pos    = cumsum([1;double(nnodes)]);
-p1     = rldecode(pos(1:end-1), 2*ones(n,1));
-p2     = rldecode(pos(2:end)-1, 2*ones(n,1));
-ix     = mcolon(p1,p2);
-nnodes = rldecode(nnodes, 2*ones(n,1));
-fnodes = fnodes(ix);
+% Remove user-specified faces.
+G = removeFaces(G, faces);
 
-% Add replacement faces
-N      = G.faces.num+reshape(1:numel(neigh)/2, 2, []) .';
-if any(tags)
-   [G,new_faces]      = addFaces(G, fnodes, nnodes, neigh, tags);
+% Create independent copies of the nodes to go with the copied faces.  This
+% enables, e.g., grid splitting to go with mechanic fracturing processes.
+[coords, fnodes, nnodes] = copy_facenodes(G.nodes.coords, fnodes, nnodes);
+
+G.nodes.coords = coords;
+G.nodes.num    = size(coords, 1);
+
+% Add replacement faces.
+N         = NaN([numel(int), 2]);
+N(int, :) = G.faces.num + reshape(1 : (numel(neigh) / 2), 2, []) .';
+N         = N(iu, :);
+
+if any(tags),
+   [G, new_faces]         = addFaces(G, fnodes, nnodes, neigh, tags);
    G.faces.tag(new_faces) = opt.tag;
 else
-   [G,new_faces]      = addFaces(G, fnodes, nnodes, neigh);
+   G = addFaces(G, fnodes, nnodes, neigh);
 end
 
 G.type = [G.type, { mfilename }];
+end
+
+%--------------------------------------------------------------------------
+
+function [faces, iu] = unique_faces(faces, iname, opt)
+   select_1st_nonempty_str = @(varargin) ...
+      varargin { ...
+      find(cellfun(@(x) ~isempty(x) && ischar(x), varargin), 1) };
+
+  % Repeated faces generate exotic grid errors.
+  [faces, iu, iu] = unique(faces);                              %#ok<ASGLU>
+
+  dispif(opt.check && (numel(faces) < numel(iu)), ...
+         ' * Input ''%s'' contains repeated indices. *\n', ...
+         select_1st_nonempty_str(iname, 'faces'));
+end
+
+%--------------------------------------------------------------------------
+
+function [coords, fnodes, nnodes] = copy_facenodes(coords, fnodes, nnodes)
+   copied = false([size(coords, 1), 1]);
+   newnod = NaN  (size(copied));  % NaN sentinel for errors.
+
+   % Detect affected nodes and create independent identities for those to
+   % go with the copies.
+   copied(fnodes) = true;
+   newnod(copied) = numel(copied) + (1 : sum(copied));
+
+   % Assign copied nodes to copied faces.
+   fnodes = [ fnodes(:), newnod(fnodes(:)) ];
+
+   assert (all(isfinite(fnodes(:,2))), 'Internal error');
+
+   col    = repmat([ 1 ; 2 ], [numel(nnodes), 1]);
+   [I, J] = blockDiagIndex(nnodes, repmat(2, [numel(nnodes), 1]));
+
+   coords = [ coords ; coords(copied, :) ];
+   fnodes = fnodes(sub2ind(size(fnodes), I, col(J)));
+   nnodes = rldecode(nnodes, 2);
+end

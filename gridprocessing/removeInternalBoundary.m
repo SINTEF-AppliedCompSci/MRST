@@ -57,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       return;
    end
 
-   N = N(N(:,1) ~= N(:,2), :);
+   N = unique(N(~any(isnan(N), 2) & (N(:,1) ~= N(:,2)), :), 'rows');
    % Save faces on each side of boundary
    f1 = N(:,1);
    f2 = N(:,2);
