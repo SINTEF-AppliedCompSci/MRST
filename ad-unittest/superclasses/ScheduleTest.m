@@ -120,7 +120,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
                         test.verifyThat(ref.(fn), ...
                             IsEqualTo(res.(fn), 'Within', abstol), ...
                             ['Saturations were not equal for state ' num2str(i)]);
-                    case {'flux', 'cmax'}
+                    case {'flux', 'cmax', 'c'}
                         % Ignore fields intentionally, numerically not that
                         % stable for comparison.
                     case 'wellsol'
@@ -128,7 +128,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
                             % Recursive definition
                             test.compareStates(ref.(fn)(k), res.(fn)(k), reltol, abstol, i);
                         end
-                    case {'qws', 'qgs', 'qos', 'qts', 'qs', 'cqs', 'c'}
+                    case {'qws', 'qgs', 'qos', 'qts', 'qs', 'cqs'}
                         % Misc fields that may be close to zero
                         fudge = 1e8;
                         a = round(fudge*res.(fn))/fudge;
