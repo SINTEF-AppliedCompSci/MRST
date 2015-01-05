@@ -1,6 +1,5 @@
 classdef WellModel
     properties
-        
         referencePressureIndex
         physicalModelIdentifier
         allowWellSignChange
@@ -56,6 +55,11 @@ classdef WellModel
             wellmodel.components = compvals;
             wellmodel.W = W;
             clear opt
+            
+            
+            if model.upstreamWeightInjectors
+                wellmodel = setUpstreamMobility(wellmodel, model, bhp, currentFluxes);
+            end
             
             if isempty(W)
                 sources = {};
@@ -251,6 +255,65 @@ classdef WellModel
                 if model.gas && model.oil
                     ws(i).gor = ws(i).qGs/ws(i).qOs;
                 end
+            end
+        end
+        
+        function wellmodel = setUpstreamMobility(wellmodel, model, bhp, q_s)
+            % Upstream weighting of injection mobilities
+            wellStatus = vertcat(wellmodel.W.status);
+            % Well total volume rate at std conds:
+            qt_s = q_s{1};
+            nph = numel(q_s);
+            for ph = 2:nph
+                qt_s = (qt_s + q_s{ph}).*wellStatus;
+            end
+            inj = double(qt_s) > 0;
+            
+            
+            compi = vertcat(wellmodel.W.compi);
+            perf2well = wellmodel.getPerfToWellMap();            
+            
+            [kr, mu, sat] = deal(cell(1, nph));
+            for i = 1:nph
+                sat{i} = compi(perf2well, i);
+            end
+            [kr{:}] = model.evaluteRelPerm(sat);
+            
+            
+            f = model.fluid;
+            ix = 1;
+            if model.water
+                mu{ix} = f.muW(bhp);
+                ix = ix + 1;
+            end
+            
+            if model.oil
+                if model.disgas
+                    isgas = sat{ix} > 0;
+                    rs = model.fluid.rsSat(bhp);
+                    mu{ix} = f.muO(bhp, rs.*isgas, isgas);
+                else
+                    mu{ix} = f.muO(bhp);
+                end
+                ix = ix + 1;
+            end
+            
+            if model.gas
+                if model.vapoil
+                    % Strange case
+                    isoil = sat{ix} > 0;
+                    rv = model.fluid.rvSat(bhp);
+                    mu{ix} = f.muG(bhp, rv.*isoil, isoil);
+                else
+                    mu{ix} = f.muG(bhp);
+                end
+                ix = ix + 1;
+            end
+            mob = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
+            
+            for i = 1:nph
+                injperf = inj(perf2well);
+                wellmodel.mobilities{i}(injperf) = mob{i}(injperf).*compi(injperf, i);
             end
         end
         

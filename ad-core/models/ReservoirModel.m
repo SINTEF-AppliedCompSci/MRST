@@ -100,6 +100,8 @@ properties
     extraWellSolOutput
     % Output fluxes
     outputFluxes
+    % Upstream weighting of injection cells
+    upstreamWeightInjectors
     
     % Vector for the gravitational force
     gravity
@@ -135,6 +137,7 @@ methods
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
+        model.upstreamWeightInjectors = false;
         
         % Gravity defaults to the global variable
         model.gravity = gravity(); %#ok
