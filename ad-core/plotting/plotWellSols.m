@@ -200,12 +200,18 @@ function plotWellSols(wellsols, varargin)
         ndata = numel(wellsols);
         nw = numel(wells);
         
-        if nw < 8
+        if nw == 1
+            ncolors = ndata;
+        else
+            ncolors = nw;
+        end
+        
+        if ncolors < 8
             % Relatively few wells, use matlab default
-            cmap = lines(nw);
+            cmap = lines(ncolors);
         else
             % Use colorcube for more lines
-            cmap = colorcube(nw+2);
+            cmap = colorcube(ncolors+2);
         end
         linestyles = {'--', ':', '-', '-.'};
         
@@ -263,8 +269,12 @@ function plotWellSols(wellsols, varargin)
                     status = getData(wname, wellnames, 'status', wellsols{i});
                     d(status == 0, :) = nan;
                 end
-
-                plot(x, d, [m, line], 'LineWidth', linew, 'color', cmap(j, :), plotvararg{:});
+                if nw == 1 
+                    c = cmap(i, :);
+                else
+                    c = cmap(j, :);
+                end
+                plot(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
                 
                 tmp = wname;
                 if ndata > 1
