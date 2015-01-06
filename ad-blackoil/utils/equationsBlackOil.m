@@ -240,7 +240,7 @@ if ~isempty(W)
         rw    = {rsw, rvw};
         rSatw = {rsSatw, rvSatw};
         mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        s = {sW, 1 - sW - sG, sG};
+        s = {sW(wc), 1 - sW(wc) - sG(wc), sG(wc)};
         
         [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
             bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...

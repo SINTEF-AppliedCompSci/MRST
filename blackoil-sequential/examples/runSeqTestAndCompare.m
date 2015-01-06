@@ -13,10 +13,32 @@ rock     = testcase.rock;
 G        = model.G;
 
 
-% lim = 20;
+% lim = 10;
 % schedule.step.val = schedule.step.val(1:lim);
 % schedule.step.control = schedule.step.control(1:lim);
 
+
+% model.disgas = false;
+% model.fluid.bO = @(p, varargin) model.fluid.bO(p, state.rs, false);
+% model.fluid.muO = @(p, varargin) model.fluid.muO(p, state.rs, false);
+% state.rs = mean(state.rs);
+
+% for i = 1:numel(schedule.control)
+%     for j = 1:numel(schedule.control(i).W)
+%         w = schedule.control(i).W(j);
+%         w.cells = w.cells(1);
+%         w.dir = w.dir(1);
+%         w.r = w.r(1);
+%         w.WI = w.WI(1);
+%         w.dZ = w.dZ(1);
+%         w.cstatus = w.cstatus(1);
+%         
+%         
+%         
+%         schedule.control(i).W(j) = w;
+% %         schedule.control(i).W(j) = rmfield(schedule.control(i).W(j), 'topo');
+%     end
+% end
 %%
 mrstModule add agmg
 solver = NonLinearSolver('enforceResidualDecrease', false, 'useRelaxation', true);
@@ -28,6 +50,11 @@ mrstModule add blackoil-sequential
 amgSolver = AGMGSolverAD();
 mrstVerbose on
 seqModel = getSequentialModelFromFI(model, 'pressureLinearSolver', amgSolver);
+
+model.extraWellSolOutput = true;
+seqModel.pressureModel.extraWellSolOutput = true;
+seqModel.transportModel.extraWellSolOutput = true;
+
 
 timer = tic();
 [ws_split, states_split, report_split] = simulateScheduleAD(state, seqModel, schedule, 'NonLinearSolver', solver);
