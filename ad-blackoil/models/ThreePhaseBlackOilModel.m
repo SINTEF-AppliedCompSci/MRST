@@ -14,7 +14,7 @@ end
 
 methods
     function model = ThreePhaseBlackOilModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid);
+        model = model@ReservoirModel(G, rock, fluid, varargin{:});
 
         % Typical black oil is disgas / dead oil, but all combinations
         % are supported
@@ -51,7 +51,6 @@ methods
                 error('Unknown dataset format!')
             end
         end
-        model = model.setupOperators(G, rock, 'deck', model.inputdata);
     end
     
     % --------------------------------------------------------------------%

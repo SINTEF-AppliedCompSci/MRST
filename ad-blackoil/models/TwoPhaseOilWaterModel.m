@@ -6,7 +6,7 @@ end
 
 methods
     function model = TwoPhaseOilWaterModel(G, rock, fluid, varargin)
-        model = model@ReservoirModel(G, rock, fluid);
+        model = model@ReservoirModel(G, rock, fluid, varargin{:});
 
         % This is the model parameters for oil/water
         model.oil = true;
@@ -20,9 +20,6 @@ methods
         model.wellVarNames = {'qWs', 'qOs', 'bhp'};
 
         model = merge_options(model, varargin{:});
-
-        % Setup operators
-        model = model.setupOperators(G, rock, 'deck', model.inputdata);
     end
     
     % --------------------------------------------------------------------%

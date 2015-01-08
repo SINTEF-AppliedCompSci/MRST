@@ -109,9 +109,26 @@ end
 
 methods
     % --------------------------------------------------------------------%
-    function model = ReservoirModel(G, rock, fluid, varargin)
+    function model = ReservoirModel(G, varargin)
         model = model@PhysicalModel(G);
 
+        if nargin == 1 || ischar(varargin{1})
+            % We were given only grid + any keyword arguments
+            doSetup = false;
+        else
+            assert(nargin >= 3)
+            % We are being called in format
+            % ReservoirModel(G, rock, fluid, ...)
+            model.rock  = varargin{1};
+            model.fluid = varargin{2};
+            
+            % Rest of arguments should be keyword/value pairs.
+            varargin = varargin(3:end);
+            % We have been provided the means, so we will execute setup
+            % phase after parsing other inputs and defaults.
+            doSetup = true;
+        end
+        
         model.dpMaxRel = inf;
         model.dpMaxAbs = inf;
 
@@ -141,16 +158,21 @@ methods
         
         % Gravity defaults to the global variable
         model.gravity = gravity(); %#ok
-        model = merge_options(model, varargin{:});
+        [model, unparsed] = merge_options(model, varargin{:}); %#ok
 
         % Base class does not support any phases
         model.water = false;
         model.gas = false;
         model.oil = false;
-
-        % Physical model
-        model.fluid = fluid;
-        model.rock  = rock;
+        
+        if doSetup
+            if isempty(G) || isempty(model.rock)
+                warning('mrst:ReservoirModel', ...
+                    'Invalid grid/rock pair supplied. Operators have not been set up.')
+            else
+                model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
+            end
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -187,11 +209,6 @@ methods
     % --------------------------------------------------------------------%
     function model = setupOperators(model, G, rock, varargin)
         % Set up divergence/gradient/transmissibility operators
-        if isempty(G) || isempty(rock)
-            warning('mrst:ReservoirModel', ...
-            'Invalid grid/rock pair supplied. Operators have not been set up.')
-            return;
-        end
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
     end
 
