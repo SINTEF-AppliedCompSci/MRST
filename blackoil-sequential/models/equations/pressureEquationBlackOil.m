@@ -3,7 +3,7 @@ function [problem, state] = pressureEquationBlackOil(state0, state, model, dt, d
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
-             'redistributeRS', false, ...
+             'redistributeRS', true, ...
              'propsPressure', [], ...
              'iteration', -1);
 
@@ -35,6 +35,7 @@ qGs    = vertcat(wellSol.qGs);
 
 %Initialization of independent variables ----------------------------------
 st  = getCellStatusVO(state,  1-sW-sG,   sW,  sG,  disgas, vapoil);
+
 st0 = getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0, disgas, vapoil);
 p_prop = opt.propsPressure;
 if ~opt.resOnly,
@@ -75,7 +76,10 @@ sO  = 1- sW  - sG;
 sO0 = 1- sW0 - sG0;
 
 if disgas && opt.redistributeRS
-    [sG, rs] = redistributeRS(f, p_prop, rs, sG, sO);
+    [sG, rs] = redistributeRS(f, p_prop, rs, sG, sO, ~st{1});
+    sO  = 1 - sW  - sG;
+    st  = getCellStatusVO(state,  sO,   sW,  sG,  disgas, vapoil);
+    % Sett statusflag på nytt...?
 end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
 
@@ -277,7 +281,7 @@ if ~isempty(W)
         mw    = {mobW(wc), mobO(wc), mobG(wc)};
         bw    = {bW(wc), bO(wc), bG(wc)};
     end
-    
+%     bw = cellfun(@double, bw, 'unif', false);
     s = {sW(wc), 1 - sW(wc) - sG(wc), sG(wc)};
 
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
@@ -349,9 +353,9 @@ problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 
-function [sG, rs] = redistributeRS(f, p, rs, sG, sO)
+function [sG, rs] = redistributeRS(f, p, rs, sG, sO, isSat)
     rsSat = f.rsSat(p);
-    isSat = rs >= rsSat;
+    % isSat = rs >= rsSat;
 
     bG = f.bG(p);
     bO = f.bO(p, rs, isSat);
