@@ -12,7 +12,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
     
     methods
         function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
-            model = model@ReservoirModel([], [], []);
+            model = model@ReservoirModel([]);
              
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;
