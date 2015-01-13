@@ -341,7 +341,41 @@ classdef WellModel
                 end
             end
         end
-
+        
+        function [rw, rsatw] = getResSatWell(model, cells, rs, rv, rsSat, rvSat)
+            nperf = numel(cells);
+            if model.disgas
+                % Sample the cells
+                rsw = rs(cells); 
+                rsSatw = rsSat(cells);
+            else
+               % rs supposed to be scalar in this case
+                rsw = ones(nperf,1)*rs; 
+                rsSatw = ones(nperf,1)*rsSat; 
+            end
+            if model.vapoil
+                rvw = rv(cells); 
+                rvSatw = rvSat(cells);
+            else
+                % rs supposed to be scalar in this case
+                rvw = ones(nperf,1)*rv; 
+                rvSatw = ones(nperf,1)*rvSat; 
+            end
+            
+            rw = {rsw, rvw};
+            rsatw = {rsSatw, rvSatw};
+        end
+        
+        function [eqs, names, types] = createReverseModeWellEquations(model, wellSol, sampleVariable)
+            nph = sum(model.getActivePhases());
+            nw = numel(wellSol);
+            zw = double2ADI(zeros(nw,1), sampleVariable);
+            
+            [eqs, names, types] = deal(cell(1, nph));
+            [eqs{:}]   = deal(zw);
+            [names{:}] = deal('empty');
+            [types{:}] = deal('none');
+        end
     end
 end
 

@@ -160,27 +160,12 @@ wm = WellModel();
 if ~isempty(W)
     wc    = vertcat(W.cells);
     if ~opt.reverseMode
-        nperf = numel(wc);
+        
         pw    = p(wc);
         rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
         bw    = {bW(wc), bO(wc), bG(wc)};
-        if ~disgas
-           % rs supposed to be scalar in this case
-            rsw = ones(nperf,1)*rs; 
-            rsSatw = ones(nperf,1)*rsSat; %constants
-        else
-            rsw = rs(wc); 
-            rsSatw = rsSat(wc);
-        end
-        if ~vapoil
-            rvw = ones(nperf,1)*rv; 
-            rvSatw = ones(nperf,1)*rvSat; %constants
-        else
-           % rv supposed to be scalar in this case
-            rvw = rv(wc); rvSatw = rvSat(wc);
-        end
-        rw    = {rsw, rvw};
-        rSatw = {rsSatw, rvSatw};
+        
+        [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
         mw    = {mobW(wc), mobO(wc), mobG(wc)};
         s = {sW(wc), sO(wc), sG(wc)};
         
@@ -188,6 +173,7 @@ if ~isempty(W)
             bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
             'maxComponents', rSatw, ...
             'nonlinearIteration', opt.iteration);
+        
         eqs(4:6) = weqs;
         eqs{7} = ctrleqs;
         
@@ -198,12 +184,7 @@ if ~isempty(W)
         names(4:7) = {'waterWells', 'oilWells', 'gasWells', 'closureWells'};
         types(4:7) = {'perf', 'perf', 'perf', 'well'};
     else
-        % Force wells to be ADI variables.
-        nw = numel(state0.wellSol);
-        zw = double2ADI(zeros(nw,1), p0);
-        eqs(4:7) = {zw, zw, zw, zw};
-        names(4:7) = {'empty', 'empty', 'empty', 'empty'};
-        types(4:7) = {'none', 'none', 'none', 'none'};
+        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
