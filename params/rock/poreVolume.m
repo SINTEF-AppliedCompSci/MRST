@@ -18,7 +18,7 @@ function pv = poreVolume(G, rock, varargin)
 %          handles non-unit net-to-gross factors as well.
 %
 % SEE ALSO:
-%  computeGeometry.
+%  computeGeometry, makeRock.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.

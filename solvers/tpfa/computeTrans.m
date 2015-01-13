@@ -50,7 +50,7 @@ function T = computeTrans(G, rock, varargin)
 %   'computeGeometry'.
 %
 % SEE ALSO:
-%   computeGeometry, computeMimeticIP, darcy, permTensor.
+%   computeGeometry, computeMimeticIP, darcy, permTensor, makeRock.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
