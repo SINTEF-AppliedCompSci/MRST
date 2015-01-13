@@ -1,4 +1,4 @@
-function st = getCellStatusVO(state, oil, wat, gas, disgas, vapoil)
+function st = getCellStatusVO(model, state, oil, wat, gas)
 % Status should be passed on from updateStateVO (to be sure definition is
 % identical). rs and rv are assumed to be compatible, i.e. rx = rxSat for
 % saturated cells and rx <= rxSat for undersaturated. Three values of
@@ -11,12 +11,12 @@ function st = getCellStatusVO(state, oil, wat, gas, disgas, vapoil)
         status = state.status;
     else
         watOnly    = wat > 1- sqrt(eps);
-        if ~vapoil
+        if ~model.vapoil
             oilPresent = true;
         else
             oilPresent = or(oil > 0, watOnly);
         end
-        if ~disgas
+        if ~model.disgas
             gasPresent = true;
         else
             gasPresent = or(gas > 0, watOnly);
@@ -24,12 +24,12 @@ function st = getCellStatusVO(state, oil, wat, gas, disgas, vapoil)
         status = oilPresent + 2*gasPresent;
     end
 
-    if ~disgas
+    if ~model.disgas
         st1 = false;
     else
         st1 = status==1;
     end
-    if ~vapoil
+    if ~model.vapoil
         st2 = false;
     else
         st2 = status==2;

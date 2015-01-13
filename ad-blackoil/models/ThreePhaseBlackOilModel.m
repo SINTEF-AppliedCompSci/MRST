@@ -98,7 +98,7 @@ methods
             sg = model.getProp(state, 'sg');
 
             % Magic status flag, see inside for doc
-            st = getCellStatusVO(state0, so, sw, sg, model.disgas, model.vapoil);
+            st = getCellStatusVO(model, state0, so, sw, sg);
 
             dr = model.getIncrement(dx, problem, 'x');
             dsw = model.getIncrement(dx, problem, 'sw');
