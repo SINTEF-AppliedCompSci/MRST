@@ -66,81 +66,44 @@ end
 % follows via the definition of saturations) and well rates + bhp.
 primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
 
+% Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-[pcOW, pcOG] = getCapillaryPressureBO(sW, sG);
+% Capillary pressure
+[~, pcOG] = getCapillaryPressureBO(model.fluid, sW, sG);
+
+% Evaluate relative permeability
+sO  = 1 - sW  - sG;
+sO0 = 1 - sW0 - sG0;
+[krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
+krW = mobMult.*krW;
+krO = mobMult.*krO;
+
 
 % Gravity contribution
 gdz = model.getGravityGradient();
 % Compute transmissibility
 T = s.T.*transMult;
 
-% Evaluate relative permeability
-sO  = 1 - sW  - sG;
-sO0 = 1 - sW0 - sG0;
-
-[krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
-
-% Water props (calculated at oil pressure)
-bW     = f.bW(p);
+[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
 bW0 = f.bW(p0);
-rhoW   = bW.*f.rhoWS;
-% rhoW on face, avarge of neighboring cells (E100, not E300)
-rhoWf  = s.faceAvg(rhoW);
-mobW   = mobMult.*krW./f.muW(p);
-dpW    = s.Grad(p-pcOW) - rhoWf.*gdz;
-% water upstream-index
-upcw  = (double(dpW)<=0);
-vW = - s.faceUpstr(upcw, mobW).*T.*dpW;
 bWvW = s.faceUpstr(upcw, bW).*vW;
-if any(bW < 0)
-    warning('Negative water compressibility present!')
-end
+
 
 % Oil props
-if disgas
-    bO  = f.bO(p,  rs, ~st{1});
-    bO0 = f.bO(p0, rs0, ~st0{1}); 
-    muO = f.muO(p, rs, ~st{1});
-else
-    bO  = f.bO(p);
-    bO0 = f.bO(p0);
-    muO = f.muO(p);
-end
-if any(bO < 0)
-    warning('Negative oil compressibility present!')
-end
-rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
-rhoOf  = s.faceAvg(rhoO);
-mobO   = mobMult.*krO./muO;
-dpO    = s.Grad(p) - rhoOf.*gdz;
-% oil upstream-index
-upco = (double(dpO)<=0);
-vO   = - s.faceUpstr(upco, mobO).*T.*dpO;
+bO0 = getbO_BO(model, p0, rs0, ~st0{1});
+[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
+
 bOvO   = s.faceUpstr(upco, bO).*vO;
 if disgas
     rsbOvO = s.faceUpstr(upco, rs).*bOvO;
 end
 
-% Gas props (calculated at oil pressure)
-if vapoil
-    bG  = f.bG(p, rv, ~st{2});
-    bG0 = f.bG(p0, rv0, ~st0{2});
-    muG = f.muG(p, rv, ~st{2});
-else
-    bG  = f.bG(p);
-    bG0 = f.bG(p0);
-    muG = f.muG(p);
-end
-if any(bG < 0)
-    warning('Negative gas compressibility present!')
-end
-rhoG   = bG.*(rv*f.rhoOS + f.rhoGS);
-rhoGf  = s.faceAvg(rhoG);
-mobG   = mobMult.*krG./muG;
-dpG    = s.Grad(p+pcOG) - rhoGf.*gdz;
-% gas upstream-index
-upcg    = (double(dpG)<=0);
-vG = - s.faceUpstr(upcg, mobG).*T.*dpG;
+% Gas props
+bG0 = getbG_BO(model, p0, rv0, ~st0{2});
+[vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
+
+
+
 bGvG   = s.faceUpstr(upcg, bG).*vG;
 if vapoil
     rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
@@ -184,7 +147,7 @@ else
 end
 
 eqs([2, 1, 3]) = addFluxesFromSourcesAndBC(model, eqs([2, 1, 3]), ...
-                                               {p - pcOW, p, p+pcOG},...
+                                               {pW, p, pG},...
                                                {rhoW,     rhoO, rhoG},...
                                                {mobW,     mobO, mobG}, ...
                                                {bW, bO, bG},  ...

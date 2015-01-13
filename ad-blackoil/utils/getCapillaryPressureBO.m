@@ -1,4 +1,4 @@
-function [pcOW, pcOG] = getCapillaryPressureBO(sW, sG)
+function [pcOW, pcOG] = getCapillaryPressureBO(f, sW, sG)
     [pcOW, pcOG] = deal(0);
     
     % Check for capillary pressure (p_cow)
