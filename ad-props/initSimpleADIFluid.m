@@ -30,7 +30,7 @@ function fluid = initSimpleADIFluid(varargin)
 %           * muX(p)       - viscosity functions (constant)
 %           * krX(s)       - rel.perm for X
 %           * krOX(s)      - 
-%           * rsSat()      - residual saturation (always returns 0)
+%           * rsSat()      - saturation value for dissolved gas (always returns 0)
 
    opt = struct('mu', [1 1 1], 'rho', [1 1 1], 'n', [1 1 1]);
    opt = merge_options(opt, varargin{:});

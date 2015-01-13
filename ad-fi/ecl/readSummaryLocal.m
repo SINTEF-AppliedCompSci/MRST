@@ -25,6 +25,7 @@ d = dir(smry_file);
 estNum = floor(d.bytes/(4*numFull));
 
 data = zeros(nlist, estNum);
+ministeps = false(1, estNum);
 
 [fid, msg] = fopen(smry_file, 'r', 'ieee-be');
 if fid < 0, error([smry_file, ': ', msg]); end
@@ -41,12 +42,13 @@ while ~feof(fid)
     end
     if strcmp(name, 'PARAMS')
         data(:, ministep+1) = field.values(rowInx);
+        ministeps(ministep+1) = true;
     end
 end
 fclose(fid);
 fprintf(['\nActual number of ministeps: ', num2str(ministep+1), '\n']);
 
-data = data(:, 1:(ministep+1));
+data = data(:, ministeps);
 
 smry.WGNAMES  = names;
 smry.KEYWORDS = kwrds;
