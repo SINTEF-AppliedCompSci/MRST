@@ -66,30 +66,8 @@ end
 % follows via the definition of saturations) and well rates + bhp.
 primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
 
-% Pressure dependent transmissibility multiplier 
-[trMult, pvMult, pvMult0, transMult] = deal(1);
-if isfield(f, 'tranMultR')
-    trMult = f.tranMultR(p);
-end
-% Pressure dependent pore volume multiplier
-if isfield(f, 'pvMultR')
-    pvMult =  f.pvMultR(p);
-    pvMult0 = f.pvMultR(p0);
-end
-if isfield(f, 'transMult')
-   transMult = f.transMult(p); 
-end
-
-% Check for capillary pressure (p_cow)
-pcOW = 0;
-if isfield(f, 'pcOW')
-    pcOW  = f.pcOW(sW);
-end
-%C heck for capillary pressure (p_cog)
-pcOG = 0;
-if isfield(f, 'pcOG')
-    pcOG  = f.pcOG(sG);
-end
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+[pcOW, pcOG] = getCapillaryPressureBO(sW, sG);
 
 % Gravity contribution
 gdz = model.getGravityGradient();
@@ -108,7 +86,7 @@ bW0 = f.bW(p0);
 rhoW   = bW.*f.rhoWS;
 % rhoW on face, avarge of neighboring cells (E100, not E300)
 rhoWf  = s.faceAvg(rhoW);
-mobW   = trMult.*krW./f.muW(p);
+mobW   = mobMult.*krW./f.muW(p);
 dpW    = s.Grad(p-pcOW) - rhoWf.*gdz;
 % water upstream-index
 upcw  = (double(dpW)<=0);
@@ -133,7 +111,7 @@ if any(bO < 0)
 end
 rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
 rhoOf  = s.faceAvg(rhoO);
-mobO   = trMult.*krO./muO;
+mobO   = mobMult.*krO./muO;
 dpO    = s.Grad(p) - rhoOf.*gdz;
 % oil upstream-index
 upco = (double(dpO)<=0);
@@ -158,7 +136,7 @@ if any(bG < 0)
 end
 rhoG   = bG.*(rv*f.rhoOS + f.rhoGS);
 rhoGf  = s.faceAvg(rhoG);
-mobG   = trMult.*krG./muG;
+mobG   = mobMult.*krG./muG;
 dpG    = s.Grad(p+pcOG) - rhoGf.*gdz;
 % gas upstream-index
 upcg    = (double(dpG)<=0);
