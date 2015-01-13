@@ -83,8 +83,8 @@ gdz = model.getGravityGradient();
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
-bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 [vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
+bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 
 % Evaluate gas properties
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});

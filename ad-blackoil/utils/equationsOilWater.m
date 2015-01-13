@@ -9,11 +9,7 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.Wells;
-
-% Operators, grid and fluid model.
 s = model.operators;
-G = model.G;
-f = model.fluid;
 
 % Properties at current timestep
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
@@ -28,44 +24,16 @@ qOs    = vertcat(wellSol.qOs);
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, qWs, qOs, pBH] = ...
-            initVariablesADI(p, sW, qWs, qOs, pBH);
+        [p, sW, qWs, qOs, pBH] = initVariablesADI(p, sW, qWs, qOs, pBH);
     else
-        [p0, sW0, tmp, tmp, tmp] = ...
-            initVariablesADI(p0, sW0,          ...
-            zeros(size(qWs)), ...
-            zeros(size(qOs)), ...
-            zeros(size(pBH)));                          %#ok
-        clear tmp
+        zw = zeros(size(bhp));
+        [p0, sW0, zw, zw, zw] = initVariablesADI(p0, sW0, zw, zw, zw); %#ok
+        clear zw
     end
 end
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations) and well rates + bhp.
 primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
-
-% Pressure dependent transmissibility multiplier 
-[trMult, pvMult, pvMult0, transMult] = deal(1);
-if isfield(f, 'tranMultR')
-    trMult = f.tranMultR(p);
-end
-% Pressure dependent pore volume multiplier
-if isfield(f, 'pvMultR')
-    pvMult =  f.pvMultR(p);
-    pvMult0 = f.pvMultR(p0);
-end
-if isfield(f, 'transMult')
-   transMult = f.transMult(p); 
-end
-% Check for capillary pressure (p_cow)
-pcOW = 0;
-if isfield(f, 'pcOW')
-    pcOW  = f.pcOW(sW);
-end
-% Gravity contribution
-gdz = model.getGravityGradient();
-
-% Compute transmissibility
-T = s.T.*transMult;
 
 % Evaluate relative permeability
 sO  = 1 - sW;
@@ -73,46 +41,29 @@ sO0 = 1 - sW0;
 
 [krW, krO] = model.evaluteRelPerm({sW, sO});
 
-% Water props
-bW     = f.bW(p);
-rhoW   = bW.*f.rhoWS;
-% rhoW on face, average of neighboring cells
-rhoWf  = s.faceAvg(rhoW);
-mobW   = trMult.*krW./f.muW(p);
-dpW     = s.Grad(p-pcOW) - rhoWf.*gdz;
-% water upstream-index
-upcw = (double(dpW)<=0);
-vW   = - s.faceUpstr(upcw, mobW).*T.*dpW;
-bWvW = s.faceUpstr(upcw, bW).*vW;
-if any(bW < 0)
-    warning('Negative water compressibility present!')
-end
+% Multipliers for properties
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
-% oil props
-bO     = f.bO(p);
-rhoO   = bO.*f.rhoOS;
-rhoOf  = s.faceAvg(rhoO);
-dpO    = s.Grad(p) - rhoOf.*gdz;
-% oil upstream-index
-upco = (double(dpO)<=0);
-if isfield(f, 'BOxmuO')
-    % mob0 is already multplied with b0
-    mobO   = trMult.*krO./f.BOxmuO(p);
-    bOvO   = - s.faceUpstr(upco, mobO).*T.*dpO;
-    vO = bOvO./s.faceUpstr(upco, bO);
-else
-    mobO   = trMult.*krO./f.muO(p);
-    vO = - s.faceUpstr(upco, mobO).*T.*dpO;
-    bOvO   = s.faceUpstr(upco, bO).*vO;
-end
-if any(bO < 0)
-    warning('Negative oil compressibility present!')
-end
+% Modifiy relperm by mobility multiplier (if any)
+krW = mobMult.*krW; krO = mobMult.*krO;
+
+% Compute transmissibility
+T = s.T.*transMult;
+
+% Gravity contribution
+gdz = model.getGravityGradient();
+
+% Evaluate water properties
+[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+bW0 = model.fluid.bW(p0);
+
+% Evaluate oil properties
+[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
+bO0 = getbO_BO(model, p0);
 
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, []);
 end
-
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, []);
@@ -120,57 +71,60 @@ if model.extraStateOutput
 end
 
 % EQUATIONS ---------------------------------------------------------------
-% oil:
-eqs{1} = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0 ) + s.Div(bOvO);
+% Upstream weight b factors and multiply by interface fluxes to obtain the
+% fluxes at standard conditions.
+bOvO = s.faceUpstr(upco, bO).*vO;
+bWvW = s.faceUpstr(upcw, bW).*vW;
 
-% water:
-eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);
+% Conservation of mass for water
+water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
-eqs([2, 1]) = addFluxesFromSourcesAndBC(model, eqs([2, 1]), ...
-                                               {p - pcOW, p},...
-                                               {rhoW,     rhoO},...
-                                               {mobW,     mobO}, ...
-                                               {bW, bO},  ...
-                                               {sW, sO}, ...
-                                               drivingForces);
+% Conservation of mass for oil
+oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
 
-names = {'oil', 'water'};
+eqs = {water, oil};
+names = {'water', 'oil'};
 types = {'cell', 'cell'};
-% well equations
+
+% Add in any fluxes / source terms prescribed as boundary conditions.
+eqs = addFluxesFromSourcesAndBC(model, eqs, ...
+                                       {pW, p},...
+                                       {rhoW,     rhoO},...
+                                       {mobW,     mobO}, ...
+                                       {bW, bO},  ...
+                                       {sW, sO}, ...
+                                       drivingForces);
+% Finally, add in and setup well equations
 if ~isempty(W)
+    wm = WellModel();
     if ~opt.reverseMode
         wc    = vertcat(W.cells);
         pw   = p(wc);
         rhos = [f.rhoWS, f.rhoOS];
         bw   = {bW(wc), bO(wc)};
         mw   = {mobW(wc), mobO(wc)};
-        s = {sW(wc), 1 - sW(wc)};
+        s = {sW(wc), sO(wc)};
 
-        wm = WellModel();
         [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
                                              pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
                                              'nonlinearIteration', opt.iteration);
+        % Store the well equations (relate well bottom hole pressures to
+        % influx).
         eqs(3:4) = weqs;
+        % Store the control equations (trivial equations ensuring that each
+        % well will have values corresponding to the prescribed value)
         eqs{5} = ctrleqs;
+        % Add source terms to the equations. Negative sign may be
+        % surprising if one is used to source terms on the right hand side,
+        % but this is the equations on residual form.
+        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
+        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
         
-        eqs{1}(wc) = eqs{1}(wc) - cqs{2};
-        eqs{2}(wc) = eqs{2}(wc) - cqs{1};
-        
-        names(3:5) = {'oilWells', 'waterWells', 'closureWells'};
+        names(3:5) = {'waterWells', 'oilWells', 'closureWells'};
         types(3:5) = {'perf', 'perf', 'well'};
     else
-        % in reverse mode just gather zero-eqs of correct size
-        for eqn = 3:5
-            nw = numel(state0.wellSol);
-            zw = double2ADI(zeros(nw,1), p0);
-            eqs(3:5) = {zw, zw, zw};
-        end
-        names(3:5) = {'empty', 'empty', 'empty'};
-        types(3:5) = {'none', 'none', 'none'};
+        [eqs(3:5), names(3:5), types(3:5)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
 end
-
-
-
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
