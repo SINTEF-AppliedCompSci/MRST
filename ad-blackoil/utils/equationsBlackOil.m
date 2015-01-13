@@ -41,7 +41,6 @@ if ~opt.resOnly,
         % define primary varible x and initialize
         [p, sW, x, qWs, qOs, qGs, bhp] = ...
             initVariablesADI(p, sW, x, qWs, qOs, qGs, bhp);
-        [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, 1-sW, x, rs, rv, p);
     else
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
         % Set initial gradient to zero
@@ -51,7 +50,11 @@ if ~opt.resOnly,
         clear zw
         [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW, x0, rs0, rv0, p0);
     end
-else
+end
+    
+if ~opt.reverseMode
+    % Compute values from status flags. If we are in reverse mode, these
+    % values have already converged in the forward simulation.
     [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, st, 1-sW, x, rs, rv, p);
 end
 % We will solve for pressure, water and gas saturation (oil saturation
