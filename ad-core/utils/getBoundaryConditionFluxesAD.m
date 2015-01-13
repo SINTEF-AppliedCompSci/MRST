@@ -7,7 +7,9 @@ nPh = sum(model.getActivePhases);
 N = G.faces.neighbors(bc.face,:);
 
 % Validation
-assert(size(bc.sat, 2) == nPh);
+assert(size(bc.sat, 2) == nPh, ...
+    ['Wrong number of columns in BC sat field: Expected columns', ...
+    num2str(nPh), ', but input had ', num2str(size(bc.sat, 2)), ' columns.']);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
 ss = sum(bc.sat, 2);
 assert(all(ss == 1 | ss == 0));
