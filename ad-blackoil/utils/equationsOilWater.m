@@ -100,7 +100,7 @@ if ~isempty(W)
     if ~opt.reverseMode
         wc    = vertcat(W.cells);
         pw   = p(wc);
-        rhos = [f.rhoWS, f.rhoOS];
+        rhos = [model.fluid.rhoWS, model.fluid.rhoOS];
         bw   = {bW(wc), bO(wc)};
         mw   = {mobW(wc), mobO(wc)};
         s = {sW(wc), sO(wc)};
