@@ -11,7 +11,6 @@ W = drivingForces.Wells;
 
 % Operators, grid and fluid model.
 s = model.operators;
-G = model.G;
 f = model.fluid;
 
 % Can gas dissolve into oil phase (Rs)?
@@ -68,8 +67,6 @@ primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
-% Capillary pressure
-[~, pcOG] = getCapillaryPressureBO(model.fluid, sW, sG);
 
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
@@ -77,37 +74,31 @@ sO0 = 1 - sW0 - sG0;
 [krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
 krW = mobMult.*krW;
 krO = mobMult.*krO;
-
+krG = mobMult.*krG;
 
 % Gravity contribution
 gdz = model.getGravityGradient();
 % Compute transmissibility
 T = s.T.*transMult;
 
+% Water props
 [vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
 bW0 = f.bW(p0);
-bWvW = s.faceUpstr(upcw, bW).*vW;
-
 
 % Oil props
 bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 [vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
 
-bOvO   = s.faceUpstr(upco, bO).*vO;
-if disgas
-    rsbOvO = s.faceUpstr(upco, rs).*bOvO;
-end
-
 % Gas props
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
 [vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
+% Upstream weight b factors and multiply by interface fluxes to obtain the
+% fluxes at standard conditions.
 
-
-bGvG   = s.faceUpstr(upcg, bG).*vG;
-if vapoil
-    rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
-end
+bOvO = s.faceUpstr(upco, bO).*vO;
+bWvW = s.faceUpstr(upcw, bW).*vW;
+bGvG = s.faceUpstr(upcg, bG).*vG;
 
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vG);
@@ -121,9 +112,14 @@ end
 
 % EQUATIONS -----------------------------------------------------------
 
-% oil eq:
+% Conservation of mass for oil
 names{1} = 'oil';
 if vapoil
+    % The model allows oil to vaporize into the gas phase. The conservation
+    % equation for oil must then include the fraction present in the gas
+    % phase.
+    rvbGvG = s.faceUpstr(upcg, rv).*bGvG;
+    
     eqs{1} = (s.pv/dt).*( pvMult.* (bO.* sO  + rv.* bG.* sG) - ...
         pvMult0.*(bO0.*sO0 + rv0.*bG0.*sG0) ) + ...
         s.Div(bOvO + rvbGvG);
@@ -132,13 +128,15 @@ else
 end
 
 
-% water eq:
+% Conservation of mass for water
 names{2} = 'water';
 eqs{2} = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
-% gas eq:
+% Conservation of mass for gas
 names{3} = 'gas';
 if disgas
+    rsbOvO = s.faceUpstr(upco, rs).*bOvO;
+
     eqs{3} = (s.pv/dt).*( pvMult.* (bG.* sG  + rs.* bO.* sO) - ...
         pvMult0.*(bG0.*sG0 + rs0.*bO0.*sO0 ) ) + ...
         s.Div(bGvG + rsbOvO);
@@ -168,12 +166,15 @@ if ~isempty(W)
         bw    = {bW(wc), bO(wc), bG(wc)};
         if ~disgas
            % rs supposed to be scalar in this case
-            rsw = ones(nperf,1)*rs; rsSatw = ones(nperf,1)*rsSat; %constants
+            rsw = ones(nperf,1)*rs; 
+            rsSatw = ones(nperf,1)*rsSat; %constants
         else
-            rsw = rs(wc); rsSatw = rsSat(wc);
+            rsw = rs(wc); 
+            rsSatw = rsSat(wc);
         end
         if ~vapoil
-            rvw = ones(nperf,1)*rv; rvSatw = ones(nperf,1)*rvSat; %constants
+            rvw = ones(nperf,1)*rv; 
+            rvSatw = ones(nperf,1)*rvSat; %constants
         else
            % rv supposed to be scalar in this case
             rvw = rv(wc); rvSatw = rvSat(wc);
@@ -181,7 +182,7 @@ if ~isempty(W)
         rw    = {rsw, rvw};
         rSatw = {rsSatw, rvSatw};
         mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        s = {sW(wc), 1 - sW(wc) - sG(wc), sG(wc)};
+        s = {sW(wc), sO(wc), sG(wc)};
         
         [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
             bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
