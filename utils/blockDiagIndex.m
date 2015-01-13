@@ -37,7 +37,7 @@ function varargout = blockDiagIndex(m, n)
 %   n      = [ 2 ; 3 ; 4 ];
 %   [i, j] = blockDiagIndex(m, n);
 %   A      = sparse(i, j, 1 : sum(m .* n));
-%   full(A)
+%   full(A), spy(A)
 %
 % SEE ALSO:
 %   rldecode, mcolon, sub2ind.
