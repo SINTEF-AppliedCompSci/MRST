@@ -5,7 +5,7 @@
 % 
 
 % Required modules
-mrstModule add deckformat ad-core ad-fi mrst-gui
+mrstModule add deckformat ad-core ad-blackoil ad-fi mrst-gui
 
 
 %% Setup case
@@ -86,9 +86,9 @@ colorbar;
 ijk = gridLogicalIndices(G);
 srcCells = find(ijk{1}==5  & ijk{2}==5  & ijk{3}==2);
 snkCells = find(ijk{1}==26 & ijk{2}==26 & ijk{3}==2);
-srcVals  = 0.004.*ones(numel(srcCells),1);
+srcVals  = 0.001.*ones(numel(srcCells),1);
 src = addSource( [], srcCells,  srcVals, 'sat', [1 0]);
-src = addSource(src, snkCells, -srcVals, 'sat', [1 0]);
+src = addSource(src, snkCells, -srcVals, 'sat', [0 0]);
 src.poly = 4.*ones(size(src.sat,1), 1);
 schedule.control(1).bc  = [];
 schedule.control(1).src = src;
