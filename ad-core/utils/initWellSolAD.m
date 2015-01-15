@@ -30,6 +30,12 @@ ws = repmat(struct(...
     'cdp',    [],...
     'cqs',    []), [1, nw]);
 
+ 
+% Additional model dependent fields
+if isprop(model, 'polymer') && model.polymer % polymer model
+	 [ws(:).qWPoly] = deal(0);
+end
+
 % just initialize fields that are not assigned in assignFromSchedule
 for k = 1:nw
     nConn = numel(W(k).cells);
@@ -62,10 +68,6 @@ for k = 1:nw
     ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
     ws(k).cqs  = zeros(nConn,nPh);
-    % Additional model dependent fields
-    if isprop(model, 'polymer') && model.polymer% polymer model
-       ws(k).qWPoly = 0;
-    end
 end
 end
 
