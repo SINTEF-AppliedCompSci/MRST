@@ -72,24 +72,34 @@ for i = 1:nPh
     
     if any(~injDir)
         % Write out the flux equation over the interface
-        q(isP & ~injP)  = bBC(isP & ~injP).*mobBC(isP & ~injP).*T(isP & ~injP).*dP(~injDir);
+        subs = isP & ~injP;
+        q(subs) = bBC(subs).*mobBC(subs).*T(subs).*dP(~injDir);
+        clear subs
     end
     
     if any(injDir)
         % In this case, pressure drives flow inwards, we get the injection rate
         % determined by the sat field
-        q( isP & injP)  = bBC( isP & injP).*totMob(isP & injP).*T( isP & injP).*dP(injDir).*sat(isP & injP, i);
+        subs = isP & injP;
+        q(subs)  = bBC(subs).*totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
+        clear subs
     end
     % Treat flux / Neumann BC
     injNeu = bc.value > 0;
-    if any(~isP &  injNeu)
+    
+    subs = ~isP &  injNeu;
+    if any(subs)
         % Injection
-        q(~isP &  injNeu) = bc.value(~isP & injNeu).*sat(~isP & injNeu, i);
+        q(subs) = bBC(subs).*bc.value(subs).*sat(subs, i);
     end
-    if any(~isP & ~injNeu)
-        % Production
-        q(~isP & ~injNeu) = bc.value(~isP & ~injNeu).*sBC(~isP & ~injNeu);
+    subs = ~isP & ~injNeu;
+    if any(subs)
+        % Production fluxes, use fractional flow of total mobility to
+        % estimate how much mass will be removed.
+        f = mobBC(subs)./totMob(subs);
+        q(subs) = bBC(subs).*f.*bc.value(subs).*sBC(subs);
     end
     qRes{i} = q;
 end
 end
+
