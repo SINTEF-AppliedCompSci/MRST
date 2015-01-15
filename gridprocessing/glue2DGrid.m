@@ -202,6 +202,14 @@ end
 function G = glue_impl(G1, G2, tag, col)
    [f1, n1, i1, x1] = select_bfaces(G1, tag(1));
    [f2, n2, i2, x2] = select_bfaces(G2, tag(2));
+   if(sum(n1)>sum(n2))
+       [ftmp,ntmp,itemp,xtmp]=deal(f1, n1, i1, x1);
+       Gtmp=G1;
+       [f1, n1, i1, x1]=deal(f2, n2, i2, x2);
+       G1=G2;
+       [f2, n2, i2, x2]=deal(ftmp,ntmp,itemp,xtmp);
+       G2=Gtmp;
+   end
 
    common   = intersection(x1, x2, col);
    affected = @(x) between(common(1), common(2), x(:, col));
@@ -289,6 +297,7 @@ function [f, n, i, x] = select_bfaces(G, tag)
    bf        = boundary_faces(G);
    cf        = G.cells.faces(bf.i, :);
    f         = cf(bf.e(cf(:,1)) & (cf(:,2) == tag), 1);
+   %f         = cf(bf.e(cf(:,1)), 1);
    [n, i, x] = face_nodes(G, f);
 end
 
