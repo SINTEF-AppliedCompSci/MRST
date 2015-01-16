@@ -97,7 +97,7 @@ for i = 1:nPh
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
         f = mobBC(subs)./totMob(subs);
-        q(subs) = bBC(subs).*f.*bc.value(subs).*sBC(subs);
+        q(subs) = bBC(subs).*f.*bc.value(subs);
     end
     qRes{i} = q;
 end
