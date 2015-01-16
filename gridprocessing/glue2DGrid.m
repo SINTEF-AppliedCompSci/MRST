@@ -90,6 +90,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       G     = connect(t{order});
 
       G.type = { mfilename };
+      G_old=G;
+      % get read of extra nodes HACK???
+      [coords,ii,jj]=unique(G_old.nodes.coords,'rows');
+       G=G_old;
+       G.nodes.coords=coords;
+       G.nodes.num=numel(ii);
+       G.faces.nodes=jj(G.faces.nodes);
+       %G=sortEdges(G);
 
 %{
       % Last step: Guarantee counter-clockwise cycle ordering of faces.
@@ -199,10 +207,15 @@ end
 
 %--------------------------------------------------------------------------
 
+
 function G = glue_impl(G1, G2, tag, col)
    [f1, n1, i1, x1] = select_bfaces(G1, tag(1));
    [f2, n2, i2, x2] = select_bfaces(G2, tag(2));
-   if(sum(n1)>sum(n2))
+   %if(col==2)
+       
+       
+   %end
+   if(sum(n1)>sum(n2))% || col==2)
        [ftmp,ntmp,itemp,xtmp]=deal(f1, n1, i1, x1);
        Gtmp=G1;
        [f1, n1, i1, x1]=deal(f2, n2, i2, x2);
@@ -225,7 +238,11 @@ function G = glue_impl(G1, G2, tag, col)
    fe2 = elim(G2, f2, i2, affected(x2));
    ir  = i2(fnod(G2, fe2));  xr = x2(ir, col);
 
-   [N, ii] = intersection_topology(G1, G2, fe1, fe2, xl, xr);
+   %if(col==2)
+   %[N, ii] = intersection_topology(G1, G2, fe1, fe2, xl(end:-1:1), xr(end:-1:1));
+   %else
+   [N, ii] = intersection_topology(G1, G2, fe1, fe2, xl, xr,col);
+   %end
    inodes  = intersection_geometry(G1.nodes.num, ii, n1, n2, il, ir);
 
    % Remove existing grid faces affected by common intersection.
@@ -238,7 +255,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr)
+function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr,col)
    mby2 = @(a) reshape(a, 2, []) .';
 
    [u, ii, iu] = unique([xl ; xr], 'first');
@@ -254,6 +271,11 @@ function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr)
    merge = NaN([numel(u) - 1, 2]);
    pl    = 1;
    pr    = 1;
+   if(col==1)
+      left=left(:,end:-1:1)
+      right=right(:,end:-1:1)     
+   end
+   
    for ival = 1 : (numel(u) - 1),
       % Left pointer
       [merge, pl] = record_interval(merge, pl, ival, 1, ol, left(pl,:));
