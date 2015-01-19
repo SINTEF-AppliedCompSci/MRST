@@ -92,13 +92,14 @@ end
 % Remove user-specified faces.
 G = removeFaces(G, faces);
 
-% Create independent copies of the nodes to go with the copied faces.  This
-% enables, e.g., grid splitting to go with mechanic fracturing processes.
-[coords, fnodes, nnodes] = copy_facenodes(G.nodes.coords, fnodes, nnodes);
 
-G.nodes.coords = coords;
-G.nodes.num    = size(coords, 1);
 
+pos    = cumsum([1;double(nnodes)]);
+p1     = rldecode(pos(1:end-1), 2*ones(n,1));
+p2     = rldecode(pos(2:end)-1, 2*ones(n,1));
+ix     = mcolon(p1,p2);
+nnodes = rldecode(nnodes, 2*ones(n,1));
+fnodes = fnodes(ix);
 % Add replacement faces.
 N         = NaN([numel(int), 2]);
 N(int, :) = G.faces.num + reshape(1 : (numel(neigh) / 2), 2, []) .';
@@ -127,28 +128,4 @@ function [faces, iu] = unique_faces(faces, iname, opt)
   dispif(opt.check && (numel(faces) < numel(iu)), ...
          ' * Input ''%s'' contains repeated indices. *\n', ...
          select_1st_nonempty_str(iname, 'faces'));
-end
-
-%--------------------------------------------------------------------------
-
-function [coords, fnodes, nnodes] = copy_facenodes(coords, fnodes, nnodes)
-   copied = false([size(coords, 1), 1]);
-   newnod = NaN  (size(copied));  % NaN sentinel for errors.
-
-   % Detect affected nodes and create independent identities for those to
-   % go with the copies.
-   copied(fnodes) = true;
-   newnod(copied) = numel(copied) + (1 : sum(copied));
-
-   % Assign copied nodes to copied faces.
-   fnodes = [ fnodes(:), newnod(fnodes(:)) ];
-
-   assert (all(isfinite(fnodes(:,2))), 'Internal error');
-
-   col    = repmat([ 1 ; 2 ], [numel(nnodes), 1]);
-   [I, J] = blockDiagIndex(nnodes, repmat(2, [numel(nnodes), 1]));
-
-   coords = [ coords ; coords(copied, :) ];
-   fnodes = fnodes(sub2ind(size(fnodes), I, col(J)));
-   nnodes = rldecode(nnodes, 2);
 end
