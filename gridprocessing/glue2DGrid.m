@@ -270,11 +270,26 @@ function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr,col)
 
    merge = NaN([numel(u) - 1, 2]);
    pl    = 1;
-   pr    = 1;
+   pr    = 1;   
    if(col==1)
       left=left(:,end:-1:1)
       right=right(:,end:-1:1)     
    end
+%{
+   % possible correct method???
+   %if(numel(xr)>numel(xl))
+    sgn2=G2.faces.neighbors(f2,1)~=0;
+    right(sgn2,:)=right(sgn2,end:-1:1);
+    sgn1=G1.faces.neighbors(f1,1)==0;
+    left(sgn1,:)=left(sgn1,end:-1:1);
+   %else
+     %sgn2=G2.faces.neighbors(f2,1)==0;
+     %right(sgn2,:)=right(sgn2,end:-1:1);
+      %sgn1=G1.faces.neighbors(f1,1)~=0;
+      %left(sgn1,:)=left(sgn1,end:-1:1);  
+       
+   %end
+%}
    
    for ival = 1 : (numel(u) - 1),
       % Left pointer
