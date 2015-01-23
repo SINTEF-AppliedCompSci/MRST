@@ -78,6 +78,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % residual preconditioner
             timer = tic();
             
+            % In the case that we have a oil equation, we generally want
+            % this to be the first entry as most black oil models are
+            % parametrized by oil pressure as the primary variable.
+            isOilEq = problem0.indexOfEquationName('oil');
+            if any(isOilEq) && ~isOilEq(1)
+                indices = 1:numel(problem0);
+                indices(isOilEq) = 1;
+                indices(1)   = find(isOilEq);
+                problem0 = problem0.reorderEquations(indices);
+            end
+            
             isPressure = problem0.indexOfPrimaryVariable('pressure');
             pressureIndex = find(isPressure);
             
