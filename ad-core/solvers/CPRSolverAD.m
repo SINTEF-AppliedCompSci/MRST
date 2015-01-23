@@ -88,8 +88,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             cellEqNo = numel(cellIndex);
             nCell = problem.getEquationVarNum(1);
             
-
-            eqs = problem.equations;            
+            % Get and apply scaling
+            scale = model.getScalingFactorsCPR(problem, problem.equationNames);
+            
+            for i = 1:numel(scale)
+                if numel(scale{i}) > 1 || scale{i} ~= 0
+                     problem.equations{i} = problem.equations{i}.*scale{i};
+                end
+            end
+            eqs = problem.equations;
+                      
             isElliptic = false(nCell, cellEqNo);
             for i = 1:cellEqNo
                 % Find the derivative of current cell block w.r.t the
@@ -139,9 +147,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
             
-            % Get and apply scaling
-            scale = model.getScalingFactorsCPR(problem, problem.equationNames);
-            
             problem.equations{pressureIndex} = isElliptic(:,1).*eqs{pressureIndex};
             for i = 1:cellEqNo
                 % Add together all the equations to get a "pressure
@@ -153,12 +158,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     continue
                 end
                 problem.equations{pressureIndex} = ...
-                    problem.equations{pressureIndex} + ok.*(scale{i}.*eqs{i});
-                
-                problem.equations{i} = problem.equations{i}.*scale{i};
+                    problem.equations{pressureIndex} + ok.*eqs{i};
             end
-            
-
             
             % Solve cell equations
             if solver.pressureScaling ~= 1
