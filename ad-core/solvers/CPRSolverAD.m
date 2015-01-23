@@ -154,6 +154,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 problem.equations{pressureIndex} = ...
                     problem.equations{pressureIndex} + ok.*(scale{i}.*eqs{i});
+                
+                problem.equations{i} = problem.equations{i}.*scale{i};
             end
             
 
@@ -232,41 +234,4 @@ function x = applyTwoStagePreconditioner(r, A, L, U, pInx, ellipticSolver)
 
    r = r - A*x;
    x = x + U\(L\r);
-end
-
-function scale = getScaling(problem, model)
-    state = problem.state;
-    fluid = model.fluid;
-    p  = mean(state.pressure);
-    
-    if model.water
-        bW = fluid.bW(p);
-    end
-    
-    scale = ones(numel(problem), 1);
-    
-    isBO = isa(model, 'ThreePhaseBlackOilModel');
-    
-    if isBO && model.disgas
-        rs = fluid.rsSat(p);
-        bO = fluid.bO(p, rs, true);
-    elseif model.oil
-        bO = fluid.bO(p);
-    end
-    if isBO && model.vapoil
-        rv = fluid.rvSat(p);
-        bG = fluid.bG(p, rv, true);
-    elseif model.gas
-        bG = fluid.bG(p);
-    end
-
-    if model.oil
-        scale(problem.indexOfEquationName('oil')) = 1./bO;
-    end
-    if model.gas
-        scale(problem.indexOfEquationName('gas')) = 1./bG;
-    end
-    if model.water
-        scale(problem.indexOfEquationName('water')) = 1./bW;
-    end
 end
