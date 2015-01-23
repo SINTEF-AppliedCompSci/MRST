@@ -98,15 +98,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     assert(size(poro, 2) == 1, 'Porosity must be single column');
     lowporo = poro <= 0;
     if any(lowporo)
-        warning(['Zero or negative porosity found in cells: ', num2str(find(lowporo)')]);
+        warning(['Zero or negative porosity found in cells: ', ...
+                num2str(find(lowporo)')]);
     end
     rock = struct('perm', perm, 'poro', poro);
     
     if ~isempty(opt.ntg)
         rock.ntg = expandToCell(opt.ntg, nc);
-        assert(size(rock.ntg, 2) == 1, 'Net-to-gross must be single column');
+        assert(size(rock.ntg, 2) == 1, ...
+               'Net-to-gross must be single column');
     end
 end
+
+%--------------------------------------------------------------------------
 
 function vals = expandToCell(vals, nc)
     if size(vals, 1) == 1
