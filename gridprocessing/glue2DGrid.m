@@ -275,13 +275,40 @@ function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr,col)
       left=left(:,end:-1:1)
       right=right(:,end:-1:1)     
    end
-%{
+%%{
    % possible correct method???
    %if(numel(xr)>numel(xl))
-    sgn2=G2.faces.neighbors(f2,1)~=0;
-    right(sgn2,:)=right(sgn2,end:-1:1);
-    sgn1=G1.faces.neighbors(f1,1)==0;
-    left(sgn1,:)=left(sgn1,end:-1:1);
+   sgn2=G2.faces.neighbors(f2,1)~=0;
+   sgn1=G1.faces.neighbors(f1,1)==0;
+   if(~(all([sgn1;sgn2]) || all(not([sgn1;sgn2]))))
+    if(~all(sgn1) & all(sgn2))   
+        %sgn2=G2.faces.neighbors(f2,1)~=0;
+        right(~sgn2,:)=right(~sgn2,end:-1:1);
+        %sgn1=G1.faces.neighbors(f1,1)~=0;
+        left(~sgn1,:)=left(~sgn1,end:-1:1);
+    elseif (~all(sgn1) & all(not(sgn2)))
+        right(sgn2,:)=right(sgn2,end:-1:1);
+        %sgn1=G1.faces.neighbors(f1,1)~=0;
+        left(sgn1,:)=left(sgn1,end:-1:1);
+    elseif(all(sgn1) & ~all(sgn2))
+        %right(sgn2,:)=right(sgn2,end:-1:1);
+        right(~sgn2,:)=right(~sgn2,end:-1:1);
+        %sgn1=G1.faces.neighbors(f1,1)~=0;
+        %left(~sgn1,:)=left(~sgn1,end:-1:1);
+    elseif(all(not(sgn1)) & ~all(sgn2))
+        right(sgn2,:)=right(sgn2,end:-1:1);
+        %right(~sgn2,:)=right(~sgn2,end:-1:1);
+        %sgn1=G1.faces.neighbors(f1,1)~=0;
+        %left(sgn1,:)=left(sgn1,end:-1:1);
+    else
+      %sgn2=G2.faces.neighbors(f2,1)~=0;
+      right(~sgn2,:)=right(~sgn2,end:-1:1);
+      %sgn1=G1.faces.neighbors(f1,1)~=0;
+      left(~sgn1,:)=left(~sgn1,end:-1:1);  
+    end
+   else
+      assert(all([sgn1;sgn2]) || all(not([sgn1;sgn2]))) 
+   end
    %else
      %sgn2=G2.faces.neighbors(f2,1)==0;
      %right(sgn2,:)=right(sgn2,end:-1:1);
@@ -289,8 +316,11 @@ function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr,col)
       %left(sgn1,:)=left(sgn1,end:-1:1);  
        
    %end
-%}
+%} 
    
+   %assert(all(sgn2))
+   %assert(all(sgn1))
+   %assert(all([sgn1;sgn2]) || all(not([sgn1;sgn2])))
    for ival = 1 : (numel(u) - 1),
       % Left pointer
       [merge, pl] = record_interval(merge, pl, ival, 1, ol, left(pl,:));
