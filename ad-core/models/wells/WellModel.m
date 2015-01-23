@@ -350,16 +350,16 @@ classdef WellModel
                 rsSatw = rsSat(cells);
             else
                % rs supposed to be scalar in this case
-                rsw = ones(nperf,1)*rs; 
-                rsSatw = ones(nperf,1)*rsSat; 
+                rsw = ones(nperf,1)*mean(rs); 
+                rsSatw = ones(nperf,1)*mean(rsSat); 
             end
             if model.vapoil
                 rvw = rv(cells); 
                 rvSatw = rvSat(cells);
             else
                 % rs supposed to be scalar in this case
-                rvw = ones(nperf,1)*rv; 
-                rvSatw = ones(nperf,1)*rvSat; 
+                rvw = ones(nperf,1)*mean(rv); 
+                rvSatw = ones(nperf,1)*mean(rvSat); 
             end
             
             rw = {rsw, rvw};
