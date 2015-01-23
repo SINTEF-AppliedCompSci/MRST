@@ -357,7 +357,7 @@ classdef WellModel
                 rvw = rv(cells); 
                 rvSatw = rvSat(cells);
             else
-                % rs supposed to be scalar in this case
+                % rv supposed to be scalar in this case
                 rvw = ones(nperf,1)*mean(rv); 
                 rvSatw = ones(nperf,1)*mean(rvSat); 
             end
