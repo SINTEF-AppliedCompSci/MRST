@@ -536,6 +536,20 @@ methods
         g = model.getGravityVector();
         gdxyz = model.operators.Grad(model.G.cells.centroids) * g';
     end
+    
+% --------------------------------------------------------------------%
+    function scaling = getScalingFactorsCPR(model, problem, names)%#ok
+        % Return cell array of scaling factors for approximate pressure
+        % equation in CPR preconditioner.
+        %
+        % Either one value per equation, or one cell wise value per
+        % equation.
+        %
+        % Scaling should be the size of the names sent in.
+        scaling = cell(numel(names), 1);
+        [scaling{:}] = deal(1);
+    end
+
 end
 
 methods (Static)

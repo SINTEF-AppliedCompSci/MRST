@@ -151,5 +151,54 @@ methods
         W = drivingForces.Wells;
         state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
     end
+    
+    % --------------------------------------------------------------------%
+    function scaling = getScalingFactorsCPR(model, problem, names)
+        nNames = numel(names);
+        
+        scaling = cell(nNames, 1);
+        handled = false(nNames, 1);
+        
+        % Take averaged pressure for scaling factors
+        state = problem.state;
+        fluid = model.fluid;
+        p = mean(state.pressure);
+        
+        for iter = 1:nNames
+            name = lower(names{iter});
+            switch name
+                case 'oil'
+                    if model.disgas
+                       rs = fluid.rsSat(p);
+                       bO = fluid.bO(p, rs, true);
+                    else
+                       bO = fluid.bO(p);
+                    end
+                    scaling{iter} = 1./bO;
+                case 'water'
+                    bW = fluid.bW(p);
+                    s = 1./bW;
+                case 'gas'
+                    if model.vapoil
+                        rv = fluid.rvSat(p);
+                        bG = fluid.bG(p, rv, true);
+                    elseif model.gas
+                        bG = fluid.bG(p);
+                    end
+                    s = 1./bG;
+                otherwise
+                    continue
+            end
+            sub = strcmpi(problem.equationNames, name);
+            
+            scaling{iter} = s;
+            handled(sub) = true;
+        end
+        if ~all(handled)
+            % Get rest of scaling factors from parent class
+            other = getScalingFactorsCPR@ReservoirModel(model, problem, names(~handled));
+            [scaling{~handled}] = other{:};
+        end
+    end
 end
 end

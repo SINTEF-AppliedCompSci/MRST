@@ -88,14 +88,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             cellEqNo = numel(cellIndex);
             nCell = problem.getEquationVarNum(1);
             
-            % Get and apply scaling
-            eqs = problem.equations;
-            scale = getScaling(problem, model);
-            for eqn = 1:cellEqNo
-                eqs{eqn} = eqs{eqn}.*scale(eqn);
-            end
-            problem.equations = eqs;
-            
+
+            eqs = problem.equations;            
             isElliptic = false(nCell, cellEqNo);
             for i = 1:cellEqNo
                 % Find the derivative of current cell block w.r.t the
@@ -145,6 +139,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
             
+            % Get and apply scaling
+            scale = model.getScalingFactorsCPR(problem, problem.equationNames);
+            
             problem.equations{pressureIndex} = isElliptic(:,1).*eqs{pressureIndex};
             for i = 1:cellEqNo
                 % Add together all the equations to get a "pressure
@@ -152,11 +149,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % close as possible to M-matrices (because of switching,
                 % which does not actually alter the solution)
                 ok = isElliptic(:, i);
-                if i == pressureIndex
+                if i == pressureIndex || scale{i} == 0
                     continue
                 end
                 problem.equations{pressureIndex} = ...
-                    problem.equations{pressureIndex} + ok.*eqs{i};
+                    problem.equations{pressureIndex} + ok.*(scale{i}.*eqs{i});
             end
             
 
