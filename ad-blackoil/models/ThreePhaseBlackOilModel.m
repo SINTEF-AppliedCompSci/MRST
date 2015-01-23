@@ -174,7 +174,7 @@ methods
                     else
                        bO = fluid.bO(p);
                     end
-                    scaling{iter} = 1./bO;
+                    s = 1./bO;
                 case 'water'
                     bW = fluid.bW(p);
                     s = 1./bW;
