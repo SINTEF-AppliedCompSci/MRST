@@ -1,10 +1,12 @@
 function [eqs, qBC, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(model, eqs, pressure, rho, mob, b, s, forces)
-    if isempty(forces.bc) && isempty(forces.src)
-        return
-    end
     
     [qBC, qSRC] = deal(cell(numel(mob), 1));
     [BCTocellMap, srcCells] = deal([]);
+    
+    if isempty(forces.bc) && isempty(forces.src)
+        return
+    end
+
     if ~isempty(forces.bc)
         % Setup the fluxes from the boundary condition
         [qBC, BCTocellMap] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, forces.bc);
