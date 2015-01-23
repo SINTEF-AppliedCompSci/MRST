@@ -162,6 +162,20 @@ methods
     end
     
     % --------------------------------------------------------------------%
+    function problem = reorderEquations(problem, newIndices)
+        % Reorder equations to new ordering
+        assert(numel(problem) == numel(newIndices));
+        
+        problem.equations = problem.equations(newIndices);
+        if ~isempty(problem.types)
+            problem.types = problem.types(newIndices);
+        end
+        if ~isempty(problem.equationNames)
+            problem.equationNames = problem.equationNames(newIndices);
+        end
+    end
+    
+    % --------------------------------------------------------------------%
     function varnum = getEquationVarNum(problem, n)
         % Get number of variables for one or more equations. Single
         % input argument defaults to all equations.
