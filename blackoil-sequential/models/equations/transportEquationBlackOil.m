@@ -30,8 +30,8 @@ vapoil = model.vapoil;
 wflux = vertcat(wellSol.flux);
 cqs = vertcat(wellSol.cqs);
 %Initialization of primary variables ----------------------------------
-st  = getCellStatusVO(state,  1-sW-sG,   sW,  sG,  disgas, vapoil);
-st0 = getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0, disgas, vapoil);
+st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
+st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize

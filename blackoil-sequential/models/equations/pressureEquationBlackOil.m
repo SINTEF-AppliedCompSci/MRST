@@ -34,9 +34,8 @@ qGs    = vertcat(wellSol.qGs);
 
 
 %Initialization of independent variables ----------------------------------
-st  = getCellStatusVO(state,  1-sW-sG,   sW,  sG,  disgas, vapoil);
-
-st0 = getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0, disgas, vapoil);
+st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
+st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
 p_prop = opt.propsPressure;
 if ~opt.resOnly,
     if ~opt.reverseMode,
@@ -78,7 +77,7 @@ sO0 = 1- sW0 - sG0;
 if disgas && opt.redistributeRS
     [sG, rs] = redistributeRS(f, p_prop, rs, sG, sO, ~st{1});
     sO  = 1 - sW  - sG;
-    st  = getCellStatusVO(state,  sO,   sW,  sG,  disgas, vapoil);
+    st  = getCellStatusVO(model, state,  sO,   sW,  sG);
     % Sett statusflag på nytt...?
 end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
