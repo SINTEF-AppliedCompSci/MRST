@@ -1,4 +1,4 @@
-function W = getWellFromPath(W0, G, rock, wellpath, varargin)
+function [W, segInd] = getWellFromPath(W0, G, rock, wellpath, varargin)
 % Convert well path to MRST well.
 %
 % SYNOPSIS:
