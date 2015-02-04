@@ -99,6 +99,7 @@ mask(1) = true;
 
 W.topo = topo(mask, :);
 W.status = true;
+W.cstatus = true(nperf, 1);
 
 W = [W0; W];
 end
