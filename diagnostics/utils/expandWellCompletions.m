@@ -1,4 +1,4 @@
-function [xc,Wc]=expandWellCompletions(x,W,cexp)
+function [xc,Wc]=expandWellCompletions(state, W, expansion)
 %Pseudo-wells for computation of flow diagnostics for completions
 %
 % SYNOPSIS:
@@ -20,11 +20,19 @@ function [xc,Wc]=expandWellCompletions(x,W,cexp)
 %
 %   W - Well structure as defined by function 'addWell'.
 %
-%   c - nx2 vector that specifies how to expand individual wells into a
+%   expansion - Either of two alternatives:
+%       
+%     a)
+%       nx2 vector that specifies how to expand individual wells into a
 %       set of pseudo wells. That is, the completions of well number
 %       c(i,1) are assigned to c(i,2) bins using a load-balanced
 %       linear distribution and then the well is replaced with c(i,1)
-%       psseudo wells, one for each bin of completions.
+%       pseudo wells, one for each bin of completions.
+%
+%     b) 
+%       Cell array of length n. Entry number i in this cell array should be
+%       the same length as W(i).cells and contain the bins that will be
+%       used to expand the well.
 %
 % RETURNS:
 %   Wn  - Well structure containing the pseudo wells
@@ -54,11 +62,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 nw = numel(W);
-split=ones(1,nw); split(cexp(:,1)) = cexp(:,2);
-ind = rldecode(1:nw, split, 2);
+if iscell(expansion)
+    % Bins were provided to us, we simply count and use them.
+    split = cellfun(@(x) numel(unique(x)), expansion);
+    bins = expansion;
+else
+    % split the completions into B bins
+    split = ones(1,nw);
+    split(expansion(:,1)) = expansion(:,2);
+    
+    bins = cell(nw, 1);
+    for i = 1:nw
+       M = numel(W(i).cells);
+       b = 0:M-1;
+       B = split(i);
+       L = floor(M ./ B);
+       R = mod(M, B);
+       bins{i} = max(floor(b ./(L+1)), floor((b - R)./L))+1;
+    end
+end
+state = validateStateForDiagnostics(state);
 
-xc = x;
-xc.wellSol = x.wellSol(ind);
+ind = rldecode(1:nw, split, 2);
+xc = state;
+xc.wellSol = state.wellSol(ind);
 Wc = W(ind);
 n=0;
 for i=1:nw
@@ -66,19 +93,13 @@ for i=1:nw
    if split(i)==1, continue, end
    n = n-1;
 
-   % split the completions into B bins
-   M = numel(W(i).cells);
-   b = 0:M-1;
-   B = split(i);
-   L = floor(M ./ B);
-   R = mod(M, B);
-   b = max(floor(b ./(L+1)), floor((b - R)./L))+1;
-   for j=1:B
+   b = bins{i};
+   for j = 1:split(i)
       n = n+1;
       Wc(n).cells = W(i).cells(b==j);
       Wc(n).dir   = W(i).dir(b==j);
       Wc(n).WI    = W(i).WI(b==j);
       Wc(n).dZ    = W(i).dZ(b==j);
-      xc.wellSol(n).flux = x.wellSol(i).flux(b==j);
+      xc.wellSol(n).flux = state.wellSol(i).flux(b==j);
    end
 end
