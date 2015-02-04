@@ -108,10 +108,11 @@ rock = makeRock(G, 300*milli*darcy, 0.5);
 time = 10*year;
 rate = .25*sum(poreVolume(G, rock))/time;
 
+segInd = cell(2, 1);
 W = [];
-W = getWellFromPath(W, G, rock, wellpath_fork, ...
+[W, segInd{1}]  = getWellFromPath(W, G, rock, wellpath_fork, ...
     'comp_i', [1 0], 'val', 300*barsa, 'type', 'bhp', 'sign', -1, 'Name', 'Producer');
-W = getWellFromPath(W, G, rock, wellpath_comb,...
+[W, segInd{2}] = getWellFromPath(W, G, rock, wellpath_comb,...
     'comp_i', [1 0], 'val', rate, 'type', 'rate', 'sign', 1, 'Name', 'Injector');
 
 %% Set up simulation model
@@ -121,6 +122,9 @@ fluid = initSimpleADIFluid('rho', [1000, 700, 100]*kilogram/meter^3, ...
                            'mu', [1, 10 1]*centi*poise);
 
 model = TwoPhaseOilWaterModel(G, rock, fluid);
+
+model.extraStateOutput = true;
+model.extraWellSolOutput = true;
 %% Build a schedule
 n = 50;
 dt = time/n;
@@ -155,3 +159,15 @@ for i = 1:numel(states)
     title(formatTimeRange(T(i)));
     pause(0.25)
 end
+%% Apply some flow diagnostics...
+diagstate = states{end};
+mrstModule add diagnostics
+D  = computeTOFandTracer(diagstate, G, rock, 'wells', W);
+%% Split completions
+[statec, Wc] = expandWellCompletions(diagstate, W, segInd);
+D  = computeTOFandTracer(statec, G, rock, 'wells', Wc);
+
+%% Plot results
+figure; plotToolbar(G, D)
+plotWellPath(wellpath_comb);
+plotWellPath(wellpath_fork);
