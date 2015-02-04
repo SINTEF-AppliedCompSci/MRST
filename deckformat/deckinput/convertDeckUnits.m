@@ -260,10 +260,20 @@ function props = convertPROPS(props, u)                                %#ok
             end
 
          case 'PLYSHEAR',
-             unt = [u.length/u.time, 1];
-             for t = 1 : numel(props.(key)),
-                props.(key){t} = convertFrom(props.(key){t}, unt);
+            unt = [u.length/u.time, 1];
+            for t = 1 : numel(props.(key)),
+               props.(key){t} = convertFrom(props.(key){t}, unt);
             end
+
+         case 'PLYSHLOG'
+             unt = [u.concentr, u.concentr, 1];
+             % the last one should be TEMPERATURE, while we DONOT support
+             % unit conversion for temperature at the moment.
+             props.(key).refcondition = convertFrom(props.(key).refcondition, unt);
+             unt = [u.length/u.time, 1];
+             for t = 1 : numel(props.(key).data),
+                props.(key).data{t} = convertFrom(props.(key).data{t}, unt);
+             end
 
          case 'PVCDO',
             unt         = [u.press, 1, u.compr, u.viscosity, u.compr];
