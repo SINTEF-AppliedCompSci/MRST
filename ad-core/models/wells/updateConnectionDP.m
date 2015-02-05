@@ -87,10 +87,18 @@ end
 
 
 function C = wb2in(w)
+    conn = w.topo(2:end, :);
+    % Number of connections between perforations
+    nconn = size(conn, 1);
+    % Number of perforations
     nperf = numel(w.cells);
-    ii = [w.topo(:,2); w.topo(2:end, 1)];
-    jj = [(1:nperf)'; (2:nperf)'];
-    vv = [ones(nperf, 1); -ones(nperf-1, 1)];
+    
+    id = (1:nperf)';
+    % First identity, then honor topology.
+    ii = [id; conn(:, 1)];
+    jj = [id; conn(:, 2)];
+    vv = [ones(nperf, 1); -ones(nconn, 1)]; 
+
     C = sparse(ii, jj, vv, nperf, nperf);
 end
 
