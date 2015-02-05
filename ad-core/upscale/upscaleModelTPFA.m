@@ -56,7 +56,7 @@ function rock_c = getRock(rock, CG, opt)
         for i = 1:nK
             perm_c = accumarray(p, 1./rock.perm(:, i));
         end
-        perm_c = bsxfun(@rdivide, perm_c, cellcount);
+        perm_c = 1./bsxfun(@rdivide, perm_c, cellcount);
     end
     rock_c = makeRock(CG, perm_c, poro_c);
 end
