@@ -26,11 +26,23 @@ N = opt.neighbors;
 if isempty(N)
    % Get neighbors for internal faces from grid.
    N  = double(G.faces.neighbors);
-   intInx = (prod(N,2)~=0);
+   intInx = all(N ~= 0, 2);
    N  = N(intInx, :);
 else
-   % neighbors are given for internal faces.
-   intInx = 1:size(N, 1);
+   % neighbors are given
+   n_if = size(N, 1);
+   intInx = true(n_if, 1);
+   if isfield(G, 'faces')
+       % Try to match given interfaces to actual grid.
+       intInxGrid = all(G.faces.neighbors ~= 0, 2);
+       if sum(intInxGrid) == n_if
+           % Given neighbors correspond to internal interfaces
+           intInx = intInxGrid;
+       elseif n_if == G.faces.num
+           % Given neighbors correspond to *all* interfaces
+           intInx = all(N ~= 0, 2);
+       end
+   end
 end
 
 if isempty(T)
