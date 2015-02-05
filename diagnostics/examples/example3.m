@@ -6,7 +6,13 @@
 % producers at each of the four corners.
 
 %% Set up fine-scale problem
-mrstModule add spe10 coarsegrid
+mrstModule add diagnostics spe10 coarsegrid AGMG
+
+if ~exist('agmg', 'file') || ...
+      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,
+   error('This example requires the AGMG linear solver package');
+end
+
 fprintf(1,'Setting up fine-scale problem ...');
 cartDims = [  60,  220, 15];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
@@ -25,14 +31,14 @@ W = [];
 for w = 1 : numel(wtype),
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
-                    'Radius', wrad(w), 'Name', wname{w});
+                    'Radius', wrad(w), 'Name', wname{w}, ...
+                    'InnerProduct', 'ip_tpf');
 end
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 fprintf(1,'done\n');
 
 %% Solve flow problem and compute flow diagnostics
 fprintf(1,'Solving fine-scale problem ...');
-mrstModule('add', fullfile(ROOTDIR, 'mex', 'AGMG'))
 rS = initState(G, W, 0);
 T  = computeTrans(G, rock);
 rS = incompTPFA(rS, G, T, fluid, 'wells', W, 'LinSolve', @(A,b) agmg(A,b,1));
@@ -75,7 +81,8 @@ for w = 1 : numel(wtype),
    Wc = verticalWell(Wc, Gc, crock, cwloc(1,w), cwloc(2,w), ...
                      1 : (cartDims(end)/cfac(end)), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
-                    'Radius', wrad(w), 'Name', wname{w});
+                    'Radius', wrad(w), 'Name', wname{w}, ...
+                    'InnerProduct', 'ip_tpf');
 end
 fprintf(1,'done\n');
 

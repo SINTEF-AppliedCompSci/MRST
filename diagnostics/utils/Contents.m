@@ -5,7 +5,10 @@
 %   computeTOFandTracer.m   - Compute time-of-flight and tracer distribution using finite-volume scheme.
 %   computeWellPairs.m      - Compute volumes and fluxes associated with each flux pair
 %   expandWellCompletions.m - Pseudo-wells for computation of flow diagnostics for completions
-
+%   expandCoarseWellCompletions.m  - Pseudo-wells for flow diagnostics in coarsened models
+%   interactiveDiagnostics.m       - Launch an interactive diagnostics session
+%   plotTracerBlend.m              - Plot tracer partition, gray color for multiple tracers present
+%   plotWellAllocationComparison.m - Panel comparing well allocation factors for two different models
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
 

@@ -203,7 +203,8 @@ while true
         W_vals = [W_vals; values .']; %#ok
 
         % Calculate time of flight and gradients
-        [st, D, gradnew] = solveStationaryPressure(G, state, s, W, fluid, pv, T, 'objective', objective);
+        [st, D, gradnew] = solveStationaryPressure(G, state, ...
+           s, W, fluid, pv, T, 'objective', objective, 'linsolve', opt.linsolve);
         newobj = gradnew.objective.val;
 
 

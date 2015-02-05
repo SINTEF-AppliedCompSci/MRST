@@ -26,7 +26,7 @@ function [xc,Wc]=expandWellCompletions(state, W, expansion)
 %       nx2 vector that specifies how to expand individual wells into a
 %       set of pseudo wells. That is, the completions of well number
 %       c(i,1) are assigned to c(i,2) bins using a load-balanced
-%       linear distribution and then the well is replaced with c(i,1)
+%       linear distribution and then the well is replaced with c(i,2)
 %       pseudo wells, one for each bin of completions.
 %
 %     b) 
@@ -100,6 +100,7 @@ for i=1:nw
       Wc(n).dir   = W(i).dir(b==j);
       Wc(n).WI    = W(i).WI(b==j);
       Wc(n).dZ    = W(i).dZ(b==j);
-      xc.wellSol(n).flux = state.wellSol(i).flux(b==j);
+      Wc(n).name  = [W(i).name ':' num2str(j)];
+      xc.wellSol(n).flux = x.wellSol(i).flux(b==j);
    end
 end
