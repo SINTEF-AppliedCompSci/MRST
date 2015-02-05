@@ -101,7 +101,8 @@ for i = 1:2
 end
 %% Set up actual simulation wells from the well paths
 % Initial reservoir state
-state = initResSol(G, 200*barsa, [.1, .9]);
+initSat = [.1, .9];
+state = initResSol(G, 200*barsa, initSat);
 % Rock
 rock = makeRock(G, 300*milli*darcy, 0.5);
 
@@ -138,8 +139,6 @@ figure;
 plotToolbar(G, states);
 axis tight off
 view(40, 56);
-
-
 T = cumsum(schedule.step.val);
 
 plotWellSols(ws, T)
@@ -161,13 +160,86 @@ for i = 1:numel(states)
 end
 %% Apply some flow diagnostics...
 diagstate = states{end};
-mrstModule add diagnostics
-D  = computeTOFandTracer(diagstate, G, rock, 'wells', W);
-%% Split completions
-[statec, Wc] = expandWellCompletions(diagstate, W, segInd);
-D  = computeTOFandTracer(statec, G, rock, 'wells', Wc);
-
+[state_split, Wc] = expandWellCompletions(diagstate, W, segInd);
+D  = computeTOFandTracer(state_split, G, rock, 'wells', Wc);
+WP = computeWellPairs(state_split, G, rock, Wc, D);
 %% Plot results
 figure; plotToolbar(G, D)
 plotWellPath(wellpath_comb);
 plotWellPath(wellpath_fork);
+%%
+% partition = D.ipart + D.ppart*max(D.ipart);
+% partition = partition + max(partition)*partitionUI(G, [10 10 1]);
+partition = partitionUI(G, [10 10 1]);
+
+coarsemodel = upscaleModelTPFA(model, partition);
+
+coarseschedule = upscaleSchedule(coarsemodel, schedule);
+%%
+coarsestate = upscaleState(coarsemodel, model, state);
+%%
+
+[wsc, statesc] = simulateScheduleAD(coarsestate, coarsemodel, coarseschedule);
+statec_plot = coarseDataToFine(coarsemodel.G, statesc);
+
+%%
+figure;
+plotToolbar(G, statec_plot);
+outlineCoarseGrid(G, coarsemodel.G.partition)
+axis tight off
+view(40, 56);
+
+figure;
+plotToolbar(G, states);
+axis tight off
+view(40, 56);
+
+plotWellSols({ws, wsc}, T)
+%%
+CG = coarsemodel.G;
+rockc = coarsemodel.rock;
+
+coarseW = coarseschedule.control(1).W;
+
+csegInd = segInd;
+for i = 1:numel(csegInd)
+    csegInd{i} = csegInd{i}(coarseW(i).parentIndices);
+end
+
+diagstate = statesc{end};
+[coarsestate_split, coarseWc] = expandWellCompletions(diagstate, coarseW, csegInd);
+Dcoarse  = computeTOFandTracer(coarsestate_split, CG, rockc, 'wells', coarseWc);
+WPcoarse = computeWellPairs(coarsestate_split, CG, rockc, coarseWc, Dcoarse);
+
+%%
+figure;
+plotToolbar(G, D);
+axis tight off
+view(40, 56);
+
+figure;
+plotToolbar(G, coarseDataToFine(CG, Dcoarse));
+outlineCoarseGrid(G, coarsemodel.G.partition)
+axis tight off
+view(40, 56);
+
+%%
+for i = 1:numel(WP.inj)
+    n = numel(WP.inj(i).z);
+    WP.inj(i).z = (1:n)./n;
+    
+    n = numel(WPcoarse.inj(i).z);
+    WPcoarse.inj(i).z = (1:n)./n;
+end
+
+for i = 1:numel(WP.prod)
+    n = numel(WP.prod(i).z);
+    WP.prod(i).z = (1:n)./n;
+    
+    n = numel(WPcoarse.prod(i).z);
+    WPcoarse.prod(i).z = (1:n)./n;
+end
+
+%%
+close all
+plotWellAllocationComparison(D, WP, Dcoarse, WPcoarse, 'useZ', false)
