@@ -3,10 +3,12 @@ function schedule = upscaleSchedule(model, schedule, varargin)
 
     for i = 1:numel(schedule.control)
         W = schedule.control(i).W;
+        W_coarse = [];
         for j = 1:numel(W)
-            W(j) = handleWell(model, W(j));
+            w = handleWell(model, W(j));
+            W_coarse = [W_coarse; w]; %#ok
         end
-        schedule.control(i).W = W;
+        schedule.control(i).W = W_coarse;
     end
 end
 
@@ -50,6 +52,7 @@ function Wc = handleWell(model, W)
     newtopo = newtopo(newtopo(:,1) ~= newtopo(:, 2), :);
     
     Wc.topo = newtopo;
+    Wc.parentIndices = firstInd;
 end
 
 function bc = handleBC(model, bc)
