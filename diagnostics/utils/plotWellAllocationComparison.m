@@ -1,4 +1,4 @@
-function plotWellAllocationComparison(D1, WP1, D2, WP2)
+function plotWellAllocationComparison(D1, WP1, D2, WP2, varargin)
 %Plot a panel comparing well-allocation from models with different resolution
 %
 % SYNOPSIS
@@ -45,7 +45,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+opt = struct('useZ', true);
+opt = merge_options(opt, varargin{:});
+if ~opt.useZ
+    % Create fake z values based on the cell numbering in the well. Useful
+    % whenever the well isn't vertical.
+    for i = 1:numel(WP1.inj)
+        n = numel(WP1.inj(i).z);
+        WP1.inj(i).z = (1:n)./n;
 
+        n = numel(WP2.inj(i).z);
+        WP2.inj(i).z = (1:n)./n;
+    end
+
+    for i = 1:numel(WP1.prod)
+        n = numel(WP1.prod(i).z);
+        WP1.prod(i).z = (1:n)./n;
+
+        n = numel(WP2.prod(i).z);
+        WP2.prod(i).z = (1:n)./n;
+    end
+end
 % Extract and format the well-allocation factors for model 1
 nit = numel(D1.inj);
 npt = numel(D1.prod);
@@ -112,7 +132,7 @@ for i=1:numel(wp1)
    barh(z,a,'stacked','FaceColor','none','LineWidth',2);
    hold off
    zm = min(wp2(i).z); zM = max(wp2(i).z);
-   set(gca,'YDir','reverse', 'YLim', [zm zM] + [-.2 .2]*(zM-zm));
+   set(gca,'YDir','reverse', 'YLim', [zm zM + sqrt(eps)] + [-.2 .2]*(zM-zm));
 
    if max(wp1(i).alloc(:))>0
       hl=legend(h(i),wp1(i).name,4); set(hl,'FontSize',8); legend boxoff
