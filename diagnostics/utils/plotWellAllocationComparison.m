@@ -122,7 +122,7 @@ for i=1:numel(wp1)
    h = barh(z, a,'stacked','BarWidth',bwidth);
    hold on
    if numel(wp2(i).z) == 1  % Need to trick Matlab
-      z = [wp2(i).z; wp2(i)+1];
+      z = [wp2(i).z; wp2(i).z+1];
       a = [cumsum(wp2(i).alloc,1); zeros(1,numel(wp2(i).alloc))];
    else
       z = flipud(wp2(i).z);
