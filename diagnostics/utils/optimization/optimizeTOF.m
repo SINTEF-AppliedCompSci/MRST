@@ -136,12 +136,14 @@ opt = struct('maxiter', 25, ...
              'plotProgress', false, ...
              'verbose', mrstVerbose, ...
              'linsolve', @mldivide, ...
+             'msbasis', [], ...
+             'autoscalealpha', true, ...
              'alphamod', 10);
 
 opt = merge_options(opt, varargin{:});
 
-[st, D, grad] = solveStationaryPressure(G, state, s, W, fluid, pv, T,...
-   'objective', objective, 'linsolve', opt.linsolve);
+[st, D, grad] = solveStationaryPressure(G, state, s, W, fluid, pv, T, 'objective', objective,...
+                    'linsolve', opt.linsolve, 'msbasis', opt.msbasis);
 if isempty(opt.targets)
     tmp = false(numel(W), 1);
     tmp(D.inj) = true;
@@ -173,8 +175,11 @@ objval = obj0;
 objectivevalues = [];
 
 % Scale initial alpha value
-alpha_0 = abs(opt.alpha*grad.objective.val/max(abs(grad.well)));
-alpha = alpha_0;
+if opt.autoscalealpha
+    alpha = abs(opt.alpha*grad.objective.val/max(abs(grad.well)));
+else
+    alpha = opt.alpha;
+end
 
 dispif(opt.verbose, 'Obj: %2.6g at initial controls \n', objval);
 outeriter = 0;

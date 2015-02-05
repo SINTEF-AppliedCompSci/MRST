@@ -1,4 +1,4 @@
-function D = SolveTOFEqsADI(eqs, state, W, computeTracer)
+function D = SolveTOFEqsADI(eqs, state, W, computeTracer, linsolve)
 %Solve the time of flight equations for solveStationaryPressure.
 %
 % SYNOPSIS:
@@ -41,10 +41,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+if nargin < 5
+    linsolve = @mldivide;
+end
 
-
-[tof1, itracer, inj] = solveTOF(eqs, 'forward', state, W, computeTracer);
-[tof2, ptracer, prod] = solveTOF(eqs, 'backward', state, W, computeTracer);
+[tof1, itracer, inj] = solveTOF(eqs, 'forward', state, W, computeTracer, linsolve);
+[tof2, ptracer, prod] = solveTOF(eqs, 'backward', state, W, computeTracer, linsolve);
 
 D.tof = [tof1, tof2];
 D.itracer = itracer;
@@ -64,7 +66,7 @@ end
 
 
 
-function [tof, tracer, isInj] = solveTOF(eqs, direction, state, W, computeTracer)
+function [tof, tracer, isInj] = solveTOF(eqs, direction, state, W, computeTracer, linsolve)
 
     if strcmpi(direction, 'forward')
         self = 4;
@@ -108,7 +110,7 @@ function [tof, tracer, isInj] = solveTOF(eqs, direction, state, W, computeTracer
             rhs(:, i+1) = tmp;
         end
     end
-    sol = A\rhs;
+    sol = linsolve(A,rhs);
     sol(isnan(sol)) = deal(0);
     sol(isinf(sol)) = deal(max(sol(~isinf(sol))));
 

@@ -113,6 +113,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 obj = @(state, D) minTargetTOF(state, D, varargin{:});
             case 'oilvoldisc'
                 obj = @(state, D) phaseDiscount(state, D, varargin{:});
+            case 'maximizeNPV'
+                obj = @(state, D) maximizeNPV(state, D, varargin{:});
             otherwise
                 error('I do not know that objective function...')
         end
@@ -323,6 +325,54 @@ function obj = minimizeLayeredLorenz(G, state, D, pv, removeOutliers)
         end
     end
 
+end
+
+function obj = maximizeNPV(state, D, varargin)
+    % diagnistics NPV:
+    %  * values   : value (in dollars) for each grid-cell (or constant value)
+    %  * discount : discount factor
+    %  * rateCost : cost (in dollars) for injecting one unit volume for
+    %               each well
+    opt = struct('values',            1, ...
+                 'discount',        0.1, ...
+                 'rateCost',         [], ...
+                 'endTime',      1*year, ...
+                 'cutoffSmoothing', 0.1);
+    opt = merge_options(opt, varargin{:});
+    
+    ws    = state.wellSol;
+    nw    = numel(ws);
+    nperf = arrayfun(@(x)numel(x.flux), ws);
+    isInj = arrayfun(@(x)(sum(x.flux) > 0), ws);
+    if ~isempty(opt.rateCost)
+        rateCost = opt.rateCost;
+    else
+        rateCost = zeros(nw,1);
+    end
+    
+    fac = rldecode(isInj(:).*rateCost(:), nperf(:));
+    
+    [p, fluxes, bhp, forward_tof, forward_tracer, backward_tof, backward_tracer] = getValues(state, D);
+    tau    = backward_tof;
+    tauMax = opt.endTime;
+    
+    values = opt.values;
+    if numel(values) == 1
+        values = ones(numel(state.pressure), 1)*values;
+    end
+    values = values(:);
+    % use a smooth cut-off of at endTime
+    if opt.cutoffSmoothing > 0
+        dTau  = tauMax-tau;
+        epsi  = opt.cutoffSmoothing*tauMax;
+        cutoff = .5*dTau.*(dTau.^2+epsi^2).^(-.5)+.5;
+    else
+        cutoff = ones(size(values));
+    end
+    
+    d = opt.discount; 
+    costFac = (1-(1+d)^(-opt.endTime))/log(1+d);
+    obj = values' * (cutoff.*(1+opt.discount).^(-tau)) - (fac'*fluxes)*costFac;
 end
 
 function c = expandMatrix(data)
