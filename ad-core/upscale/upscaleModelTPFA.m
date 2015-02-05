@@ -10,15 +10,18 @@ function model = upscaleModelTPFA(model, partition, varargin)
     % Handle grid
     mrstModule add coarsegrid
     
-    CG = getGrid(model.G, partition, opt);
+    G = model.G;
+    rock = model.rock;
     
-    rock_c = getRock(CG, opt);
+    CG = getGrid(G, partition, opt);
+    
+    rock_c = getRock(rock, CG, opt);
     
     [Tc, Nc] = getTransmissibility(CG, rock_c, opt);
     
     model.G = CG;
     model.rock = rock_c;
-    model = model.setupOperatorsTPFA(CG, rock_c, 'neighbors', Nc, 'trans', Tc);
+    model = model.setupOperators(CG, rock_c, 'neighbors', Nc, 'trans', Tc);
 end
 
 function CG = getGrid(G, partition, opt)
@@ -30,7 +33,7 @@ function CG = getGrid(G, partition, opt)
     CG = coarsenGeometry(CG);
 end
 
-function rock_c = getRock(CG, opt)
+function rock_c = getRock(rock, CG, opt)
     % Handle rock
     poro_c = opt.poroCoarse;
     perm_c = opt.permCoarse;
@@ -58,7 +61,7 @@ function rock_c = getRock(CG, opt)
     rock_c = makeRock(CG, perm_c, poro_c);
 end
 
-function [Tc, N] = getTransmissibility(CG, rock_c, opt)
+function [Tc, N_int] = getTransmissibility(CG, rock_c, opt)
     N = opt.neighborship;
     if isempty(N)
         N = CG.faces.neighbors;
@@ -96,4 +99,5 @@ function [Tc, N] = getTransmissibility(CG, rock_c, opt)
             ' interface count (', num2str(nIF), ') or facecount (', num2str(nF), ').'];
         error(msg);
     end
+    N_int = N(intx, :);
 end
