@@ -58,6 +58,7 @@ end
 
 function [schedule, model, state0] = readAndSetup(varargin)
     fn = fullfile(varargin{:});
+    mrstModule add ad-unittest
     [deck, schedule, model] = setupADcase(fn);
     if nargout > 2
         state0 = stateFromDeckSolution(deck);
