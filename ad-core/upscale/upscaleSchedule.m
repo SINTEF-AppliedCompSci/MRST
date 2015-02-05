@@ -45,6 +45,7 @@ function Wc = handleWell(model, W)
     newtopo = mp(W.topo + 1);    
     % eliminate redundant connections due to cell collapsing in coarser
     % model
+    newtopo = sort(newtopo, 2);
     newtopo = uniqueStable(newtopo, 'rows');
     newtopo = newtopo(newtopo(:,1) ~= newtopo(:, 2), :);
     
