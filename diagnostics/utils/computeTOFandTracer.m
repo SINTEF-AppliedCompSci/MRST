@@ -89,7 +89,8 @@ assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
 state = validateStateForDiagnostics(state);
 
 % Find injectors and producers
-iwells = cellfun(@sum, {state.wellSol.flux})>0;
+wflux = getTotalWellSolFlux(state.wellSol);
+iwells = wflux > 0;
 D.inj  = find( iwells);
 D.prod = find(~iwells);
 
@@ -106,3 +107,19 @@ t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:end);
 [val,D.ppart] = max(D.ptracer,[],2);
+end
+
+function flux = getTotalWellSolFlux(wellSol)
+    nw = numel(wellSol);
+    flux = zeros(1, nw);
+    for i = 1:nw
+        ws = wellSol(i);
+        f = sum(ws.flux);
+        if isempty(f) || f == 0 && ~isempty(ws.sign)
+            % If we have a sign for well and there is no flux defined, set
+            % it to a small value of right sign instead.
+            f = sqrt(eps)*ws.sign;
+        end
+        flux(i) = f;
+    end
+end
