@@ -1,18 +1,19 @@
 function schedule = upscaleSchedule(model, schedule, varargin)
-    
+    opt = struct('wellUpscaleMethod', 'sum');
+    opt = merge_options(opt, varargin{:});
 
     for i = 1:numel(schedule.control)
         W = schedule.control(i).W;
         W_coarse = [];
         for j = 1:numel(W)
-            w = handleWell(model, W(j));
+            w = handleWell(model, W(j), opt);
             W_coarse = [W_coarse; w]; %#ok
         end
         schedule.control(i).W = W_coarse;
     end
 end
 
-function Wc = handleWell(model, W)
+function Wc = handleWell(model, W, opt)
     % Handle a single well
     p = model.G.partition;
     Wc = W;
@@ -33,7 +34,17 @@ function Wc = handleWell(model, W)
     Wc.dir = dr(firstInd);
     
     % Upscale well index using harmonic average...
-    Wc.WI = 1./(accumarray(newMap, 1./W.WI(s))./counts);
+    switch lower(opt.wellUpscaleMethod)
+        case 'sum'
+            fn = @(WI, map, counts) accumarray(map, WI);
+        case 'harmonic'
+            fn = @(WI, map, counts) 1./(accumarray(map, 1./WI(s))./counts);
+        case 'mean'
+            fn = @(WI, map, counts)accumarray(map, WI)./counts;
+            otherwise
+        error('Unknown')
+    end
+    Wc.WI = fn(W.WI(s), newMap, counts);
 
     % dZ
     z = model.G.cells.centroids(Wc.cells, 3);
