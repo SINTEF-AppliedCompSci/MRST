@@ -47,6 +47,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 opt = struct('useZ', true);
 opt = merge_options(opt, varargin{:});
+
+WP1 = addDummyData(WP1);
+WP2 = addDummyData(WP2);
 if ~opt.useZ
     % Create fake z values based on the cell numbering in the well. Useful
     % whenever the well isn't vertical.
@@ -131,7 +134,9 @@ for i=1:numel(wp1)
    %barh(z,a,'stacked','FaceColor','none','EdgeColor','k','LineWidth',2);
    barh(z,a,'stacked','FaceColor','none','LineWidth',2);
    hold off
-   zm = min(wp2(i).z); zM = max(wp2(i).z);
+   zm = min(min(wp1(i).z),min(wp2(i).z));
+   zM = max(max(wp1(i).z),max(wp2(i).z));
+   
    set(gca,'YDir','reverse', 'YLim', [zm zM + sqrt(eps)] + [-.2 .2]*(zM-zm));
 
    if max(wp1(i).alloc(:))>0
@@ -144,4 +149,21 @@ cmap = jet(nit+npt);
 c = 0.9*cmap + .1*ones(size(cmap)); colormap(c);
 drawnow;
 
+end
+
+function WP = addDummyData(WP)
+    ni = numel(WP.inj);
+    np = numel(WP.prod);
+    for i = 1:ni
+        if isempty(WP.inj(i).alloc)
+            WP.inj(i).alloc = zeros(1, np);
+            WP.inj(i).z = 1;
+        end
+    end
+    for i = 1:np
+        if isempty(WP.prod(i).alloc)
+            WP.prod(i).alloc = zeros(1, ni);
+            WP.prod(i).z = 1;
+        end
+    end
 end
