@@ -1,4 +1,4 @@
-function [xc,Wc]=expandWellCompletions(state, W, expansion)
+function [xc,Wc]=expandWellCompletions(state, W, expansion, split)
 %Pseudo-wells for computation of flow diagnostics for completions
 %
 % SYNOPSIS:
@@ -64,22 +64,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 nw = numel(W);
 if iscell(expansion)
     % Bins were provided to us, we simply count and use them.
-    split = cellfun(@(x) numel(unique(x)), expansion);
+    % split = cellfun(@(x) numel(unique(x)), expansion);
     bins = expansion;
 else
     % split the completions into B bins
-    split = ones(1,nw);
-    split(expansion(:,1)) = expansion(:,2);
+    splitNum = ones(1,nw);
+    splitNum(expansion(:,1)) = expansion(:,2);
     
     bins = cell(nw, 1);
     for i = 1:nw
        M = numel(W(i).cells);
        b = 0:M-1;
-       B = split(i);
+       B = splitNum(i);
        L = floor(M ./ B);
        R = mod(M, B);
        bins{i} = max(floor(b ./(L+1)), floor((b - R)./L))+1;
     end
+end
+if nargin < 4
+    split = cellfun(@max, bins);
 end
 state = validateStateForDiagnostics(state);
 
@@ -96,11 +99,12 @@ for i=1:nw
    b = bins{i};
    for j = 1:split(i)
       n = n+1;
-      Wc(n).cells = W(i).cells(b==j);
-      Wc(n).dir   = W(i).dir(b==j);
-      Wc(n).WI    = W(i).WI(b==j);
-      Wc(n).dZ    = W(i).dZ(b==j);
+      loc = b == j;
+      Wc(n).cells = W(i).cells(loc);
+      Wc(n).dir   = W(i).dir(loc);
+      Wc(n).WI    = W(i).WI(loc);
+      Wc(n).dZ    = W(i).dZ(loc);
       Wc(n).name  = [W(i).name ':' num2str(j)];
-      xc.wellSol(n).flux = state.wellSol(i).flux(b==j);
+      xc.wellSol(n).flux = state.wellSol(i).flux(loc);
    end
 end
