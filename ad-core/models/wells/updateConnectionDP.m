@@ -93,6 +93,12 @@ function C = wb2in(w)
     % Number of perforations
     nperf = numel(w.cells);
     
+    if nconn + 1 ~= nperf
+        warning(['Mismatch between connection count (', num2str(nconn+1),...
+                ') and perforation count (', num2str(nperf), '). Well model', ...
+                'Does not appear to be a tree.']);
+    end
+
     id = (1:nperf)';
     % First identity, then honor topology.
     ii = [id; conn(:, 1)];
