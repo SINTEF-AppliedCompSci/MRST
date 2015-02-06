@@ -69,13 +69,14 @@ hold on
 if ~iscell(wellpaths)
     wellpaths = {wellpaths};
 end
+h = [];
 for wp = 1:numel(wellpaths)
     wellpath = wellpaths{wp};
     
     npts = numel(wellpath.points);
 
     % Preallocate storage for handles to well trajectories & markers
-    h = nan(npts, 2);
+    h_loc = nan(npts, 2);
 
     for i = 1:npts
         pts = wellpath.points{i};
@@ -93,17 +94,18 @@ for wp = 1:numel(wellpaths)
 
         % Make the curves for current segment
         if ~isempty(opt.Color)
-            h(i, 1) = plot3(vals(:, 1), vals(:, 2), vals(:, 3),...
+            h_loc(i, 1) = plot3(vals(:, 1), vals(:, 2), vals(:, 3),...
                 'LineWidth', opt.LineWidth, 'Color', opt.Color);
         else
-            h(i, 1) = plot3(vals(:, 1), vals(:, 2), vals(:, 3),...
+            h_loc(i, 1) = plot3(vals(:, 1), vals(:, 2), vals(:, 3),...
                 'LineWidth', opt.LineWidth);
         end
         % Plot control points (note that pts are the prescribed values, and
         % not interpolated).
-        h(i, 2) = plot3(pts(:, 1), pts(:, 2), pts(:, 3), 'ro', 'MarkerFaceColor', opt.MarkerColor);
+        h_loc(i, 2) = plot3(pts(:, 1), pts(:, 2), pts(:, 3), 'ro', 'MarkerFaceColor', opt.MarkerColor);
 
     end
+    h = [h; h_loc];
 end
 % Return hold state to whatever it was before we started.
 if ~washeld
