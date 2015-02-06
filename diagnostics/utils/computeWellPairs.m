@@ -22,7 +22,10 @@ function WP = computeWellPairs(state, G, rock, W, D )
 %           See documentation of computeTOFandTracer
 % RETURNS:
 %   WP - struct containing well-pair diagnostics
-%       'pairs'   - list of well pairs
+%       'pairs'   - list of well pairs (as text strings using well names)
+%       'pairsIx' - list of well pairs (indices in a N_pair x 2 list. Pair
+%                   number i has injector pairsIx(i, 1) and producer
+%                   pairsIx(i, 2);
 %       'vols'    - pore volumes associated with each pair
 
 %{
@@ -74,6 +77,9 @@ cij = repmat(D.itracer, 1, np) .* rldecode(D.ptracer, ni,2);
 % Volumes associated with each well pair
 WP.vols = sum(cij .* repmat(poreVolume(G, rock),1, ni*np));
 
+% Numerical indices of each pair
+WP.pairIx = [repmat(1:ni, 1, np);...
+             reshape(repmat(1:np, ni, 1), 1, [])]';
 % Compute allocation factors
 for i=1:ni
    qik = state.wellSol(D.inj(i)).flux;
