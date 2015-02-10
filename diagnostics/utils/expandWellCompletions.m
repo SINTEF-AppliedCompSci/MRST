@@ -21,7 +21,7 @@ function [xc,Wc]=expandWellCompletions(state, W, expansion, split)
 %   W - Well structure as defined by function 'addWell'.
 %
 %   expansion - Either of two alternatives:
-%       
+%
 %     a)
 %       nx2 vector that specifies how to expand individual wells into a
 %       set of pseudo wells. That is, the completions of well number
@@ -29,7 +29,7 @@ function [xc,Wc]=expandWellCompletions(state, W, expansion, split)
 %       linear distribution and then the well is replaced with c(i,2)
 %       pseudo wells, one for each bin of completions.
 %
-%     b) 
+%     b)
 %       Cell array of length n. Entry number i in this cell array should be
 %       the same length as W(i).cells and contain the bins that will be
 %       used to expand the well.
@@ -73,12 +73,12 @@ else
     
     bins = cell(nw, 1);
     for i = 1:nw
-       M = numel(W(i).cells);
-       b = 0:M-1;
-       B = splitNum(i);
-       L = floor(M ./ B);
-       R = mod(M, B);
-       bins{i} = max(floor(b ./(L+1)), floor((b - R)./L))+1;
+        M = numel(W(i).cells);
+        b = 0:M-1;
+        B = splitNum(i);
+        L = floor(M ./ B);
+        R = mod(M, B);
+        bins{i} = max(floor(b ./(L+1)), floor((b - R)./L))+1;
     end
 end
 if nargin < 4
@@ -90,21 +90,54 @@ ind = rldecode(1:nw, split, 2);
 xc = state;
 xc.wellSol = state.wellSol(ind);
 Wc = W(ind);
-n=0;
-for i=1:nw
-   n = n+1;
-   if split(i)==1, continue, end
-   n = n-1;
+n = 0;
 
-   b = bins{i};
-   for j = 1:split(i)
-      n = n+1;
-      loc = b == j;
-      Wc(n).cells = W(i).cells(loc);
-      Wc(n).dir   = W(i).dir(loc);
-      Wc(n).WI    = W(i).WI(loc);
-      Wc(n).dZ    = W(i).dZ(loc);
-      Wc(n).name  = [W(i).name ':' num2str(j)];
-      xc.wellSol(n).flux = state.wellSol(i).flux(loc);
-   end
+wfields = {'cells', 'dir', 'WI', 'dZ'};
+for i=1:nw
+    n = n+1;
+    if split(i)==1, continue, end
+    n = n-1;
+    b = bins{i};
+    ws = state.wellSol(i);
+    for j = 1:split(i)
+        n = n+1;
+        ws_new = xc.wellSol(n);
+        loc = b == j;
+        % Setup new well
+        for k = 1:numel(wfields);
+            % handle well fields
+            wf = wfields{k};
+            Wc(n).(wf) = W(i).(wf)(loc, :);
+        end
+        % Make new well sol
+        ws_new.flux = ws.flux(loc);
+        if isfield(ws, 'cqs')
+            % AD-like well state, we should sum up rates as well
+            ws_new.cqs = ws.cqs(loc, :);
+            ws_new.cdp = ws.cdp(loc, :);
+            ws_new.cstatus = ws.cstatus(loc, :);
+            % Assign new rates based on cqs field
+            ws_new = setRates(ws_new);
+        end
+        % Well name
+        name = [W(i).name ':' num2str(j)];
+        Wc(n).name  = name;
+        ws_new.name = name;
+        % Write new, split well sol
+        xc.wellSol(n) = ws_new;
+    end
+end
+end
+
+function isActive = getActivePhases(ws)
+    isActive = cellfun(@(x) ~isempty(x), {ws.qWs, ws.qOs, ws.qGs});
+end
+
+function ws = setRates(ws)
+    isactive = getActivePhases(ws);
+    names = {'qWs', 'qOs', 'qGs'};
+    active = find(isactive);
+    for i = 1:numel(active)
+        ws.(names{active(i)}) = sum(ws.cqs(:, i));
+    end
 end
