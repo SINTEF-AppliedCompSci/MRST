@@ -1,4 +1,4 @@
-function [cells, segment, ptsind, DT] = findWellPathCells(G, wellpath, varargin)
+function [cells, segment, param, ptsind, DT] = findWellPathCells(G, wellpath, varargin)
 %Convert well path to the intersected cells
 %
 % SYNOPSIS:

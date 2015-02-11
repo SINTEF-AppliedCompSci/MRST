@@ -1,4 +1,4 @@
-function [W, segInd] = getWellFromPath(W0, G, rock, wellpath, varargin)
+function [W, segInd, param] = getWellFromPath(W0, G, rock, wellpath, varargin)
 % Convert well path to MRST well.
 %
 % SYNOPSIS:
@@ -53,7 +53,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-[cells, segInd, ptInd] = findWellPathCells(G, wellpath);
+[cells, segInd, param, ptInd] = findWellPathCells(G, wellpath);
 W = addWell([], G, rock, cells, varargin{:});
 
 
