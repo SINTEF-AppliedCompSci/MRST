@@ -83,6 +83,9 @@ WP.pairIx = [repmat(1:ni, 1, np);...
 % Compute allocation factors
 for i=1:ni
    qik = state.wellSol(D.inj(i)).flux;
+   if isempty(qik)
+       continue;
+   end
    ci  = D.itracer(W(D.inj(i)).cells,i);
    cj  = D.ptracer(W(D.inj(i)).cells,:);
    WP.inj(i).alloc = repmat(qik.*ci, 1, np) .* cj;% / sum(qik);
@@ -91,6 +94,9 @@ for i=1:ni
 end
 for i=1:np
    qjk = state.wellSol(D.prod(i)).flux;
+   if isempty(qjk)
+       continue;
+   end
    ci  = D.itracer(W(D.prod(i)).cells,:);
    cj  = D.ptracer(W(D.prod(i)).cells,i);
    WP.prod(i).alloc = repmat(qjk.*cj, 1, ni) .* ci;% / sum(qjk);
