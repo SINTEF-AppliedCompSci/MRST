@@ -95,7 +95,7 @@ z(2*i2+1:end, 2*j2+1:end, :) = z(2*i2+1:end, 2*j2+1:end, :) - 3;
 % Pinch layers with negative thickness
 z = cumsum(cat(3, z(:,:,1), max(0, diff(z, 1, 3))), 3);
 
-g.ZCORN = z(:);
+g.ZCORN = -z(:);
 
 %% Assign active cells
 actnum = ones(dims);
