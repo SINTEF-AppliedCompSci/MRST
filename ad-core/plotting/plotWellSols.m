@@ -39,6 +39,8 @@ function plotWellSols(wellsols, varargin)
                  'plotwidth',   .6, ...
                  'linewidth',    2, ...
                  'field',       'bhp', ...
+                 'linestyles', {{'--', ':', '-', '-.'}}, ...
+                 'markerstyles', {{'o', '.', 'd', '*'}}, ...
                  'datasetnames', {{}});
     [opt, plotvararg] = merge_options(opt, varargin{:});
     
@@ -213,10 +215,10 @@ function plotWellSols(wellsols, varargin)
             % Use colorcube for more lines
             cmap = colorcube(ncolors+2);
         end
-        linestyles = {'--', ':', '-', '-.'};
+        linestyles = opt.linestyles;
         
         if get(hasmarker, 'Value')
-            markerstyles = {'o', '.', 'd', '*'};
+            markerstyles = opt.markerstyles;
         else
             markerstyles = {''};
         end
