@@ -32,7 +32,7 @@ if ~opt.resOnly,
         [p, sW, c, qWs, qOs, qWPoly, pBH] = ...
             initVariablesADI(p, sW, c, qWs, qOs, qWPoly, pBH);
     else
-        zw = zeros(size(bhp));
+        zw = zeros(size(pBH));
         [p0, sW0, c0, zw, zw, zw, zw] = ...
             initVariablesADI(p0, sW0, c0, zw, zw, zw, zw); %#ok
         clear zw
@@ -177,8 +177,12 @@ if ~isempty(W)
             'closureWells'};
         types(4:7) = {'perf', 'perf', 'perf', 'well'};
     else
-        [eqs(4:7), names(4:7), types(4:7)] = ...
+        [eq, n, typ] = ...
             wm.createReverseModeWellEquations(model, state0.wellSol, p0);
+        % Add another equation for polymer well rates
+        [eqs{4:7}] = deal(eq{1});
+        [names{4:7}] = deal(n{1});
+        [types{4:7}] = deal(typ{1});
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
