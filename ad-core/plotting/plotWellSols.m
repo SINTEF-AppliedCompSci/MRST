@@ -159,13 +159,19 @@ function plotWellSols(wellsols, varargin)
               'String','Absolute value', 'Callback', @drawPlot, ...
               'Position',[.01 .3 .95 .1]);
           
+    % Zoom to data range
+    zoomt = uicontrol('Units', 'normalized', 'Parent', bg,...
+              'Style', 'checkbox', 'Value', 0, ...
+              'String','Zoom to data', 'Callback', @drawPlot, ...
+              'Position',[.01 .2 .95 .1]);
+
     if hasTimesteps
         % Toggle to use timesteps for spacing, otherwise the x nodes will
         % be equidistant.
         showdt = uicontrol('Units', 'normalized', 'Parent', bg,...
                   'Style', 'checkbox', 'Value', hasTimesteps,...
                   'String','Use timesteps', 'Callback', @drawPlot, ...
-                  'Position',[.01 .2 .95 .1]);
+                  'Position',[.01 .1 .95 .1]);
     end
     % Line width of the plot
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
@@ -231,6 +237,8 @@ function plotWellSols(wellsols, varargin)
 
         tit = '';
         currentdata = cell(ndata, 1);
+        Mv = -inf;
+        mv =  inf;
         for i = 1:ndata
             for j = 1:nw
                 wname = wells{j};
@@ -277,6 +285,8 @@ function plotWellSols(wellsols, varargin)
                     c = cmap(j, :);
                 end
                 plot(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
+                Mv = max(Mv, max(d));
+                mv = min(mv, min(d));
                 
                 tmp = wname;
                 if ndata > 1
@@ -317,6 +327,21 @@ function plotWellSols(wellsols, varargin)
         end
         
         axis tight
+        if ~get(zoomt, 'Value')
+            % We should ensure that zero axis is included
+            sM = sign(Mv); sm = sign(mv);
+            if sM == sm
+                if sM > 0
+                    ylm = [0, Mv];
+                else
+                    ylm = [mv, 0];
+                end
+            else
+                ylm = [min(mv, 0), max(Mv, 0) + eps];
+            end
+            ylim(ylm);
+        end
+
         prevWells = wells;
     end
 
