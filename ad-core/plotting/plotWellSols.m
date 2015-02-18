@@ -337,9 +337,9 @@ function plotWellSols(wellsols, varargin)
                     ylm = [mv, 0];
                 end
             else
-                ylm = [min(mv, 0), max(Mv, 0) + eps];
+                ylm = [min(mv, 0), max(Mv, 0)];
             end
-            ylim(ylm);
+            ylim(ylm + [-eps, eps]);
         end
 
         prevWells = wells;
