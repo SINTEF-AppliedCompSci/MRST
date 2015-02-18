@@ -95,6 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     gradstep = cell(nstep, ncv);
     nt = nstep;
     for step = nt:-1:1
+        fprintf('Solving reverse mode step step %d of %d\n', nt - step + 1, nt);
         [dg, grad, report] = model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, grad, step);
         gradstep(step, :) = getRequestedGradients(dg, report, opt.ControlVariables);
