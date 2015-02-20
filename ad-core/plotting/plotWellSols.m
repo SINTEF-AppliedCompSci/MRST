@@ -301,7 +301,8 @@ function plotWellSols(wellsols, varargin)
         if ~isempty(legh) && ishandle(legh) && numel(wells) == numel(prevWells)
             lpos = get(legh, 'Position');
         else
-            lpos = 'NorthEast';
+            % lpos = 'NorthEast';
+            lpos = 'Best';
         end
         
         if get(useleg, 'Value')
@@ -366,7 +367,12 @@ function plotWellSols(wellsols, varargin)
        dims = get(fh, 'Position');
        newdims = dims.*[1, 1, pw + dap(1), 1];
        tmpfig = figure('Position', newdims);
-       ax = copyobj(plotaxis, tmpfig);
+       if isnan(double(legh))
+           ax = copyobj(plotaxis, tmpfig);
+       else
+           ax = copyobj([legh, plotaxis], tmpfig);
+           ax = ax(2);
+       end
        % Approx same dimensions as the gui reference
        set(ax, 'Position', dap)
        
