@@ -10,9 +10,10 @@ function g = makeModel3(dims, varargin)
 %             the three coordinate directions.
 %
 %  physdims - A 3-vector [hx, hy, hz] giving the physical extent (in units
-%             of meters) of the bounding box in which the geometry is
-%             constructed. OPTIONAL.  Default value: [1000, 600, 15],
-%             meaning the geometry discretises the physical domain
+%             of meters) of the original sandbox before the transformations
+%             that emulate geological activity. OPTIONAL.  Default value:
+%             [1000, 600, 15],  meaning the geometry discretises a sandbox
+%             of the following size in physical domain:
 %
 %                    [0,1000]-by-[0,600]-by-[0,15]
 %
@@ -65,7 +66,7 @@ fun = @(x, y, a, s) -5 *sin(pi * (x - 1/2)) - ...
 for k = 1 : dims(3) + 1,
    xi       = X(:,:,k) ./ physDims(1);
    eta      = Y(:,:,k) ./ physDims(2);
-   Z(:,:,k) = Z(:,:,k) +  fun(xi, eta, a(k), s(k,:));
+   Z(:,:,k) = Z(:,:,k) -  fun(xi, eta, a(k), s(k,:));
 end
 
 
@@ -89,13 +90,13 @@ j1 = round((0.5 * physDims(2)) / h(2));   assert (j1 > 0);
 i2 = round((0.5 * physDims(1)) / h(1));   assert (i2 > 0);
 j2 = round((1/3 * physDims(2)) / h(2));   assert (j2 > 0);
 
-z(1:2*i1,     1:2*j1,     :) = z(1:2*i1,     1:2*j1,     :) + 2;
-z(2*i2+1:end, 2*j2+1:end, :) = z(2*i2+1:end, 2*j2+1:end, :) - 3;
+z(1:2*i1,     1:2*j1,     :) = z(1:2*i1,     1:2*j1,     :) - 2;
+z(2*i2+1:end, 2*j2+1:end, :) = z(2*i2+1:end, 2*j2+1:end, :) + 3;
 
 % Pinch layers with negative thickness
 z = cumsum(cat(3, z(:,:,1), max(0, diff(z, 1, 3))), 3);
 
-g.ZCORN = -z(:);
+g.ZCORN = z(:);
 
 %% Assign active cells
 actnum = ones(dims);
