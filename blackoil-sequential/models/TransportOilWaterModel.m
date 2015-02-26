@@ -1,4 +1,4 @@
-classdef TransportOilWaterPolymerModel < TwoPhaseOilWaterModel
+classdef TransportOilWaterModel < TwoPhaseOilWaterModel
     % Two phase oil/water system without dissolution
     properties
         conserveWater

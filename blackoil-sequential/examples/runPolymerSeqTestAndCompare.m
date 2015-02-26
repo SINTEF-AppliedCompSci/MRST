@@ -13,31 +13,93 @@ rock     = testcase.rock;
 G        = model.G;
 
 
-%% Load polymer fluid from example in ad-blackoil
+%% TEST: Pure Oil/Water case
 
-fn    = 'ad-blackoil/examples/polymerExamples/POLYMER.DATA';
-deck  = readEclipseDeck(fn);
-deck  = convertDeckUnits(deck);
-fluid = initDeckADIFluid(deck);
-
+%model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
 model = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck);
 
-% Remove gass component from wells
+% Injector: water injection
 schedule.control.W(1).compi = [1 0];
-schedule.control.W(2).compi = [0 1];
+schedule.control.W(1).type  = 'rate';
+schedule.control.W(1).val   = 3000 * (meter^3) / day;
 
-% Inject polymer
-schedule.control.W(1).poly = 4;
+% Producer
+schedule.control.W(2).compi = [0 1];
+schedule.control.W(2).type  = 'bhp';
+schedule.control.W(2).val   = 300*barsa;
 
 % Set initial state
 state.s = state.s(:,1:2);
 state.c = zeros(G.cells.num, 1);
 state.cmax = zeros(G.cells.num, 1);
 
-% Oil rel-perm from 2p OW system.
-% Needed by equation implementation function 'eqsfiOWExplictWells'.
-%fluid.krO = fluid.krOW;
+% Reduce schedule
+nsteps = 10;
+schedule.step.control = schedule.step.control(1:nsteps);
+schedule.step.val     = schedule.step.val(1:nsteps);
 
+
+%% Load polymer fluid from example in ad-blackoil
+
+% % fn    = 'ad-blackoil/examples/polymerExamples/POLYMER.DATA';
+% % deck  = readEclipseDeck(fn);
+% % deck  = convertDeckUnits(deck);
+% % fluid = initDeckADIFluid(deck);
+% 
+% %model = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck);
+% model = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
+% 
+% % Remove gass component from wells
+% schedule.control.W(1).compi = [1 0];
+% schedule.control.W(2).compi = [0 1];
+% 
+% % Test
+% %schedule.control.W(2).lims.bhp = 300*barsa;
+% schedule.control.W(2).type = 'bhp';
+% schedule.control.W(2).val  = 300*barsa;
+% 
+% ijk = gridLogicalIndices(G);
+% schedule.control.W(1).cells = find(ijk{1}==1 & ijk{2}==1);
+% schedule.control.W(1).dir   = repmat('Z',3,1);
+% schedule.control.W(1).cstatus = ones(3,1);
+% schedule.control.W(2).cells = find(ijk{1}==max(ijk{1}) & ...
+%     ijk{2}==max(ijk{2}));
+% schedule.control.W(2).dir   = repmat('Z',3,1);
+% schedule.control.W(2).cstatus = ones(3,1);
+% 
+% W = addWell([], G, rock, find(ijk{1}==1 & ijk{2}==1), 'type', 'rate', ...
+%     'val', 300*barsa, 'radius', 0.01, 'dir', 'z', 'sign', 1, ...
+%     'comp_i', [1 0], 'name', 'INJECTOR');
+% W = addWell(W, G, rock, find(ijk{1}==max(ijk{1}) & ...
+%     ijk{2}==max(ijk{2})), 'type', 'rate', ...
+%     'val', 4000*meter^3/day, 'radius', 0.01, 'dir', 'z', 'sign', 1, ...
+%     'comp_i', [1 0], 'name', 'INJECTOR');
+% 
+% % Inject polymer
+% %schedule.control.W(1).poly = 0;
+% 
+% % Set initial state
+% state.s = state.s(:,1:2);
+% %state.c = zeros(G.cells.num, 1);
+% %state.cmax = zeros(G.cells.num, 1);
+% 
+% % Oil rel-perm from 2p OW system.
+% % Needed by equation implementation function 'eqsfiOWExplictWells'.
+% %fluid.krO = fluid.krOW;
+
+
+
+%% Plot initial data
+
+if false
+    %%
+    figure;
+    plotCellData(G, state.s(:,1), 'facealpha', 0.7);
+    %plotCellData(G, state.pressure./barsa, 'facealpha', 0.7);
+    view([-16,20]); axis tight; colorbar;
+    plotWell(G, schedule.control(1).W);
+    xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
+end
 
 %% Run sequential simulation
 
@@ -64,7 +126,7 @@ timer = tic();
    seqModel, schedule, 'NonLinearSolver', solver);
 t_split = toc(timer);
 
-
+return;
 
 %% Run fully implicit simulation
 
@@ -89,7 +151,7 @@ plotWellSols(ws, time, 'datasetnames', {'FI', 'sequential'})
 
 %% Plot each solution
 
-for i = 1:2
+for i = 2:2
     if i == 1
         states = states_fi;
         t = 'fully implicit';

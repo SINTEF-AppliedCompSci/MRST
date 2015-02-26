@@ -60,7 +60,7 @@ ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
 [~, ~, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
-    krW, T, gdz);
+    krW, s.T, gdz);
 
 % Water
 %[bW, rhoW, mobW, Gw] = propsOW_water(sW, krW, gdz, f, p, s);

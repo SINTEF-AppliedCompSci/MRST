@@ -168,8 +168,26 @@ if ~isempty(W)
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
                                          pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
                                          'nonlinearIteration', opt.iteration);
-    eqs(2:3) = weqs;
-    eqs{4} = ctrleqs;
+    
+	% Store the well equations (relate well bottom hole pressures to
+    % influx).
+	eqs(2:3) = weqs;
+    
+    % Store the control equations (trivial equations ensuring that each
+    % well will have values corresponding to the prescribed value)
+    eqs{5} = ctrleqs;
+    
+    % Polymer well equations
+    [~, wciPoly, iInxW] = getWellPolymer(W);
+    cw        = c(wc);
+    cw(iInxW) = wciPoly;
+    
+    % Well polymer rate for each well is water rate in each perforation
+    % multiplied with polymer concentration in that perforated cell.
+    perf2well = getPerforationToWellMapping(W);
+    Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
+       numel(W), numel(perf2well));
+    eqs{4} = qWPoly - Rw*(cqs{1}.*cw);
     
     qW = cqr{1};
     qO = cqr{2};
@@ -177,8 +195,9 @@ if ~isempty(W)
     oil(wc) = oil(wc) - cqs{2};
     wat(wc) = wat(wc) - cqs{1};
 
-    names(2:4) = {'oilWells', 'waterWells', 'closureWells'};
-    types(2:4) = {'perf', 'perf', 'well'};
+    names(2:5) = {'oilWells', 'waterWells', 'polymerWells', ...
+        'closureWells'};
+    types(2:5) = {'perf', 'perf', 'perf', 'well'};
 end
 
 eqs{1} = oil./bO + wat./bW;
