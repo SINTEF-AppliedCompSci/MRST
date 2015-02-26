@@ -1,5 +1,5 @@
-classdef TransportOilWaterPolymerModel < TwoPhaseOilWaterModel
-    % Two phase oil/water system without dissolution
+classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
+    % Two phase oil/water system with polymer
     properties
         conserveWater
         conserveOil
@@ -7,9 +7,9 @@ classdef TransportOilWaterPolymerModel < TwoPhaseOilWaterModel
     end
     
     methods
-        function model = TransportOilWaterModel(G, rock, fluid, varargin)
+        function model = TransportOilWaterPolymerModel(G, rock, fluid, varargin)
             
-            model = model@TwoPhaseOilWaterModel(G, rock, fluid);
+            model = model@OilWaterPolymerModel(G, rock, fluid);
             
             model.conserveWater = false;
             model.conserveOil   = true;
@@ -26,7 +26,7 @@ classdef TransportOilWaterPolymerModel < TwoPhaseOilWaterModel
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = transportEquationOilWater(state0, state, model,...
+            [problem, state] = transportEquationOilWaterPolymer(state0, state, model,...
                             dt, ...
                             drivingForces,...
                             'solveForOil',   model.conserveOil, ...
