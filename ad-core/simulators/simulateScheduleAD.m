@@ -152,8 +152,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     getWell = @(index) schedule.control(schedule.step.control(index)).W;
     state = initState;
-    if ~isfield(state, 'wellSol')
-        state.wellSol = initWellSolAD(getWell(1), model, state);
+    if ~isfield(state, 'wellSol') || isempty(state.wellSol),
+       if isfield(state, 'wellSol'),
+          state = rmfield(state, 'wellSol');
+       end
+
+       state.wellSol = initWellSolAD(getWell(1), model, state);
     end
 
     failure = false;
