@@ -136,12 +136,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function [state, report, ministates] = solveTimestep(solver, state0, dT, model, varargin)
             % Solve a timestep for a non-linear system using one or more substeps
-            drivingForces = struct('Wells', [],...
-                                   'bc',    [],...
-                                   'src',   [],...
-                                   'controlId', nan);
             
-            drivingForces = merge_options(drivingForces, varargin{:});
+            opt = struct('initialGuess', state0);
+            
+            drivingForces = struct('Wells',         [],...
+                                   'bc',            [],...
+                                   'src',           [],...
+                                   'controlId',     nan);
+            
+            [opt, forcesArg] = merge_options(opt, varargin{:});
+            drivingForces = merge_options(drivingForces, forcesArg{:});
             
             assert(dT > 0, 'Negative timestep detected.');
             
@@ -168,7 +172,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             wantMinistates = nargout > 2;
             [reports, ministates] = deal(cell(min(2^solver.maxTimestepCuts, 128), 1));
             
-            state = state0;
+            state = opt.initialGuess;
             
             % Let the step selector know that we are at start of timestep
             % and what the current driving forces are
