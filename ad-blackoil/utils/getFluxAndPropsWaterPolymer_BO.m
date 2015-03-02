@@ -1,25 +1,26 @@
-function [vW, vP, bW, mobW, mobP, rhoW, pW, upcw, a] = ...
+function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = ...
         getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, ...
         krW, T, gdz)
     fluid = model.fluid;
     s = model.operators;
-    
+
     % Check for capillary pressure (p_cow)
     pcOW = 0;
     if isfield(fluid, 'pcOW') && ~isempty(sW)
         pcOW  = fluid.pcOW(sW);
     end
     pW = pO - pcOW;
-    
+
     % Multipliers due to polymer
     mixpar = fluid.mixPar;
     cbar   = c/fluid.cmax;
     a = fluid.muWMult(fluid.cmax).^(1-mixpar);
     b = 1./(1-cbar+cbar./a);
-    muWMult = b.*fluid.muWMult(c).^mixpar;
+    % The viscosity multiplier only result from the polymer mixing.
+    muWeffMult = b.*fluid.muWMult(c).^mixpar;
     permRed = 1 + ((fluid.rrf-1)./fluid.adsMax).*ads;
-    muWMult  = muWMult.*permRed;
-    
+    muWMult  = muWeffMult.*permRed;
+
     % Water props
     bW     = fluid.bW(pO);
     rhoW   = bW.*fluid.rhoWS;
@@ -35,11 +36,11 @@ function [vW, vP, bW, mobW, mobP, rhoW, pW, upcw, a] = ...
     if any(bW < 0)
         warning('Negative water compressibility present!')
     end
-    
+
     % Polymer
     mobP = (mobW.*c)./(a + (1-a)*cbar);
     vP   = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
-    
+
 end
 
 

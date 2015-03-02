@@ -65,7 +65,7 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, mobW, mobP, rhoW, pW, upcw, a] = ...
+[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
     krW, T, gdz);
 bW0 = model.fluid.bW(p0);
@@ -143,7 +143,7 @@ if ~isempty(W)
             wm.computeWellFlux(model, W, wellSol, ...
             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
             'nonlinearIteration', opt.iteration);
-        
+
         % Store the well equations (relate well bottom hole pressures to
         % influx).
         eqs(4:5) = weqs;
@@ -155,24 +155,24 @@ if ~isempty(W)
         % but this is the equations on residual form.
         eqs{1}(wc) = eqs{1}(wc) - cqs{1};
         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-        
+
         % Polymer well equations
         [~, wciPoly, iInxW] = getWellPolymer(W);
         cw        = c(wc);
         cw(iInxW) = wciPoly;
         cbarw     = cw/f.cmax;
-        
+
         % Divide away water mobility and add in polymer
         bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
         eqs{3}(wc) = eqs{3}(wc) - bWqP;
-        
+
         % Well polymer rate for each well is water rate in each perforation
         % multiplied with polymer concentration in that perforated cell.
         perf2well = getPerforationToWellMapping(W);
         Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
            numel(W), numel(perf2well));
         eqs{6} = qWPoly - Rw*(cqs{1}.*cw);
-        
+
         names(4:7) = {'waterWells', 'oilWells', 'polymerWells', ...
             'closureWells'};
         types(4:7) = {'perf', 'perf', 'perf', 'well'};
@@ -204,7 +204,7 @@ function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
     wPoly = zeros(nnz(inj), 1);
     wPoly(polInj) = vertcat(W(inj(polInj)).poly);
     wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
-    
+
     % Injection cells
     nPerf = cellfun(@numel, {W.cells})';
     nw    = numel(W);
