@@ -1,7 +1,7 @@
 function obj = CO2props(varargin); %rhofile, hfile, noassert)
 
-  opt.rhofile              = 'rho_huge';
-  opt.mufile               = 'mu_huge';
+  opt.rhofile              = 'rho_extensive';
+  opt.mufile               = 'mu_extensive';
   opt.hfile                = 'h_small';
   opt.assert               = true;
   opt.sharp_phase_boundary = true;
