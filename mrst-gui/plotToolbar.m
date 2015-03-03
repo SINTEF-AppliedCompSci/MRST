@@ -758,6 +758,7 @@ function [d, fun, subset] = getData()
         delete(vecToggle);
     end
     d = fun(double(data));
+    d = full(d);
 end
 
 
