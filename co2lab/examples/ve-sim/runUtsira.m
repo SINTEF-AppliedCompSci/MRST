@@ -6,7 +6,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -86,7 +86,7 @@ G = G(1);
 try
     % Try accelerated geometry calculations.
     G = mcomputeGeometry(G);
-catch ex %#ok
+catch ex 
     % Fall back to pure MATLAB code.
     G = computeGeometry(G);
 end
@@ -105,7 +105,7 @@ end
 figure;
 Gplot = G;
 Gplot.nodes.coords(:,3) = Gplot.nodes.coords(:,3) + 100;
-plotCellData(Gt, Gt.cells.H)
+plotCellData(Gt, Gt.cells.H, 'EdgeColor','none')
 plotGrid(Gplot, 'edgea', .1)
 light
 lighting phong
@@ -146,7 +146,8 @@ si = findEnclosingCell(Gt, sleipnerPos);
 
 % Add an injector well for the CO2
 W = addWell([], G, rock, si,...
-   'Type', 'rate', 'Val', rate, 'comp_i', [1,0], 'name', 'Sleipner field');
+   'Type', 'rate', 'Val', rate, 'comp_i', [1,0], ...
+   'name', 'Sleipner field', 'InnerProduct', 'ip_tpf');
 
 % Add pressure boundary 
 bnd = boundaryFaces(Gt);
@@ -161,7 +162,7 @@ sol = initResSolVE_s(Gt, pressure(Gt.cells.z), 0);
 sol.wellSol = initWellSol(W2D, 0);
 
 clf;
-plotCellData(Gt, sol.pressure);
+plotCellData(Gt, sol.pressure, 'EdgeColor','none');
 view(v); axis tight off; colorbar
 
 %% Run the simulation

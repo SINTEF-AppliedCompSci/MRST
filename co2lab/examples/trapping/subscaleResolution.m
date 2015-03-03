@@ -18,7 +18,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -68,9 +68,9 @@ region = min(xs) < x & x < max(xs) & min(ys) < y & y < max(ys);
 
 % Plot the grid
 clf;
-plotGrid(Gt_utsira, region, 'facec', 'red')
-plotGrid(Gt_sleipner, res_sleipner.traps == 0, 'facea', .3, 'facec', 'white')
-plotCellData(Gt_sleipner, res_sleipner.traps, res_sleipner.traps ~= 0)
+plotGrid(Gt_utsira, region, 'facec', [1 .6 .6])
+plotGrid(Gt_sleipner, res_sleipner.traps == 0, 'facec', 'none', 'edgea',.2)
+plotCellData(Gt_sleipner, res_sleipner.traps, res_sleipner.traps ~= 0, 'edgec', 'none')
 view(-40, 50)
 axis tight off
 title('Utsira subset and Sleipner grid')
@@ -137,10 +137,10 @@ res_adjusted = trapAnalysis(Gt_adjusted, true);
 clf;
 % Plot adjusted grid with traps
 plotGrid(Gt_adjusted, res_adjusted.traps == 0, 'facea', .5, 'facec', 'green')
-plotCellData(Gt_adjusted, res_adjusted.traps, res_adjusted.traps ~= 0)
+plotCellData(Gt_adjusted, res_adjusted.traps, res_adjusted.traps ~= 0, 'edgec','none')
 
 % Plot original grid with traps
-plotCellData(Gt_sleipner, res_sleipner.traps, res_sleipner.traps~=0)
+plotCellData(Gt_sleipner, res_sleipner.traps, res_sleipner.traps~=0, 'edgec','none')
 plotGrid(Gt_sleipner, res_sleipner.traps == 0, 'facea', .3, 'facec', 'blue')
 
 % Plot the Utsira grid showing the general trend being removed

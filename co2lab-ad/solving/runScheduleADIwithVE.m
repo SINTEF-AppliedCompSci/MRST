@@ -129,7 +129,7 @@ for tstep = 1:numel(dt)
             end
             if isempty(W)
                 rock.perm = ones(G.cells.num,1);
-                W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', 'sign', 1);
+                W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', 'sign', 1, 'InnerProduct', 'ip_tpf');
                 W.poly = 0;
                 W.bhpLimit = 0;
             end

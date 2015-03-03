@@ -25,7 +25,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -111,18 +111,40 @@ for i = 1:ng
     grids{i} = computeGeometry(gd(1));
 end
 clf;
+mymap = [
+         0         0    1.0000
+         0    1.0000         0
+    1.0000         0         0
+         0         0    0.5000
+         0    0.5000         0
+    0.7500         0         0         
+         0    1.0000    1.0000
+    1.0000         0    1.0000
+    1.0000    1.0000         0
+    0.8500    0.8500    0.8500
+    0.4000    0.4000    0.4000    
+         0         0         0
+    0.2500    0.5000    1.0000
+    0.5000    0.2500    0.7500
+    0.7500    0.2500    0.5000
+    0.7500    0.5000    0.2500
+    0.2500    1.0000    0.5000
+    0.5000    1.0000    0.2500
+         ];
 hold on
 
 for i=1:ng;
     G = grids{i};
-    % We want to colorize each grid differently
-    data = repmat(i, G.cells.num, 1);
-    plotCellData(grids{i}, data, 'facea', .3, 'edgea', .05, 'edgec', 'k');
+    bf = boundaryFaces(G);
+    ind = G.faces.normals(bf,3)==0;
+    plotFaces(G,bf(ind), 'FaceColor', 'none', 'EdgeColor', mymap(i,:), 'LineWidth',2);
+%    % We want to colorize each grid differently
+%    data = repmat(i, G.cells.num, 1);
+%    plotCellData(grids{i}, data, 'facea', .3, 'edgea', .05, 'edgec', 'k');
 end
 
 legend(cellfun(@(x) x.name, grdecls, 'UniformOutput', false), ...
    'Location', 'EastOutside')
-
 box on
 view(2)
 set(gcf,'Color',[0.8 0.8 0.8]);set(gca,'Color',[0.8 0.8 0.8]);

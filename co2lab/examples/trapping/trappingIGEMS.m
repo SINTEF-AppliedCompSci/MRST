@@ -26,7 +26,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -75,7 +75,7 @@ num_traps = max(ts.traps) %#ok
 figure; p = get(gcf,'Position'); set(gcf,'Position', p + [0 -300 0 300]);
 trap_field = zeros(size(ts.traps));
 trap_field(ts.traps>0) = 2;
-plot_opts = {'edgeColor', 'k', 'edgeAlpha', 0.1};
+plot_opts = {'EdgeColor', 'k', 'EdgeAlpha', 0.1};
 plotCellData(Gt, trap_field, plot_opts{:});
 view(-65,25); axis tight, colormap('jet');
 
@@ -93,7 +93,8 @@ for r = [ts.cell_lines{:}]'
 end
  
 clf;
-plotCellData(Gt, max(trap_field, river_field));
+plot_opts = {'EdgeColor','none'};
+plotCellData(Gt, max(trap_field, river_field), plot_opts{:});
 view(-90,90); axis equal tight
 
 
@@ -134,7 +135,8 @@ fprintf(['\nTogether, these traps cover %6.2e m3, which represents %3.1f ' ...
 % the remaining traps in yellow):
 largest_traps_field = zeros(size(ts.traps));
 largest_traps_field(ismember(ts.traps, sorted_ix(1:10))) = 3;
-clf; plotCellData(Gt, max(trap_field, largest_traps_field));
+clf; 
+plotCellData(Gt, max(trap_field, largest_traps_field), plot_opts{:});
 view(-90,90);axis equal tight
 
 %%
@@ -143,7 +145,8 @@ for i = 1:num_traps
     trap_field(ts.traps == i) = trap_volumes(i);
 end
 clf; 
-plotCellData(Gt, trap_field); axis equal tight; view(-90,90); colorbar;
+plotCellData(Gt, trap_field, plot_opts{:});
+axis equal tight; view(-90,90); colorbar;
 
 
 %%
@@ -162,7 +165,7 @@ plotCellData(Gt, trap_field); axis equal tight; view(-90,90); colorbar;
 % them as a field on the grid, and use a colormap with sharp variations in
 % color:
 
-clf; plotCellData(Gt, ts.trap_regions, trap_field==0);
+clf; plotCellData(Gt, ts.trap_regions, trap_field==0,plot_opts{:});
 plotGrid(Gt, trap_field>0, 'FaceColor', 'k', 'EdgeColor','none');
 nreg = max(ts.trap_regions);
 colormap((colorcube(nreg+1)+2*ones(nreg+1,3))/3); 

@@ -6,7 +6,7 @@ function res = computeNodeTraps(Gt)
 % traps"). 
 % 
 % SYNOPSIS
-%    [traps, z_vals, trap_regions, connectivity] = compute_traps(Gt);
+%    res = computeNodeTraps(Gt);
 % 
 % PARAMETERS:
 %    Gt - 2D-grid with z-values assigned to the nodes (Gt.nodes.z should

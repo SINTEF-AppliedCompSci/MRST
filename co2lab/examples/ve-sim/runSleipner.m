@@ -30,7 +30,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -172,8 +172,7 @@ while t<T
       w  = []; dT = 5*year(); dTplot = dT;
    else
       ind = min(floor(t/year)+1, numel(rates));
-      rate = rates(ind);
-      w.val = rate;
+      w.val = rates(ind);
    end
 
    % Plotting

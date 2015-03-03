@@ -15,7 +15,7 @@
 
 try
    require co2lab
-catch
+catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
@@ -64,7 +64,8 @@ fluidVE = initVEFluidHForm(Gt, 'mu' , [muc muw] .* centi*poise, ...
 wellIx = [51, 51, 6, 6];
 rate = 1.4e4*meter^3/day;
 W = verticalWell([], G, rock, wellIx(1), wellIx(2), wellIx(3):wellIx(4),...
-   'Type', 'rate', 'Val', rate, 'Radius', 0.1, 'comp_i', [1,0], 'name', 'I');
+   'Type', 'rate', 'Val', rate, 'Radius', 0.1, 'comp_i', [1,0], ...
+   'name', 'I', 'InnerProduct', 'ip_simple');
 
 % Well and BC in 2D model
 WVE = convertwellsVE(W, G, Gt, rock2D);
@@ -106,7 +107,7 @@ opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], 'maxH', 100, ...
 plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,4), opts{:});
 
 
-% Main loop
+%% Main loop
 % Run the simulation using a sequential splitting with pressure and
 % transport computed in separate steps. The transport solver is formulated
 % with the height of the CO2 plume as the primary unknown and the relative
