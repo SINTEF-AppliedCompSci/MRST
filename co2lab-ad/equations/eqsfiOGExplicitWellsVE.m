@@ -16,7 +16,7 @@ if ~isempty(opt.scaling)
 else
     scalFacs.rate = 1; scalFacs.pressure = 1;
 end
-s=system.s;
+s=system;
 hst = opt.history;
 
 % current variables: ------------------------------------------------------

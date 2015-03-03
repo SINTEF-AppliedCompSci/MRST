@@ -41,12 +41,12 @@ function res = SampledProp2D(name, file, varargin)
    function cfuns = setup_cfuns(t, const_derivatives)
 
    % Calculating the interpolated values 
-      cfuns.calcVal = @(v1, v2) extractValues(v1, v2, t.v1.span, t.v2.span, t.vals, t.vals, t.vals);
+      cfuns.calcVal = @(v1, v2) extractValues(v1, v2, t.v1.span, t.v2.span, t.vals, t.vals, t.vals, false, false);
       
       if opt.const_derivatives
          %% We only need first partial derivatives, and do not shrink domain
-         cfuns.calcD1   = @(v1, v2) extractValues(v1, v2, t.v1.span, t.v2.span, t.sup.d1, t.liq.d1, t.gas.d1, true);
-         cfuns.calcD2   = @(v1, v2) extractValues(v1, v2, t.v1.span, t.v2.span, t.sup.d2, t.liq.d2, t.gas.d2, true);
+         cfuns.calcD1   = @(v1, v2) extractValues(v1, v2, t.v1.span, t.v2.span, t.sup.d1, t.liq.d1, t.gas.d1, true, false);
+         cfuns.calcD2   = @(v1, v2) extractValues(v1, v2, t.v1.span, t.v2.span, t.sup.d2, t.liq.d2, t.gas.d2, false, true);
          cfuns.calcD11  = @noder;
          cfuns.calcD22  = @noder;
          cfuns.calcD12  = @noder;
@@ -58,44 +58,40 @@ function res = SampledProp2D(name, file, varargin)
          %% First partial derivative interpolating functions
          v1span = shrink_span(t.v1.span, t.v1.stepsize);
          v2span = shrink_span(t.v2.span, t.v2.stepsize);
-         cfuns.calcD1 = @(v1, v2) extractValues(v1, v2, v1span, t.v2.span, t.sup.d1, t.liq.d1, t.gas.d1);
-         cfuns.calcD2 = @(v1, v2) extractValues(v1, v2, t.v1.span, v2span, t.sup.d2, t.liq.d2, t.gas.d2);
+         cfuns.calcD1 = @(v1, v2) extractValues(v1, v2, v1span, t.v2.span, t.sup.d1, t.liq.d1, t.gas.d1, false, false);
+         cfuns.calcD2 = @(v1, v2) extractValues(v1, v2, t.v1.span, v2span, t.sup.d2, t.liq.d2, t.gas.d2, false, false);
 
          %% Second partial derivative interpolating functions
          v1span = shrink_span(t.v1.span, 2 * t.v1.stepsize);
          v2span = shrink_span(t.v2.span, 2 * t.v2.stepsize);
-         cfuns.calcD11 = @(v1, v2) extractValues(v1, v2, v1span, t.v2.span, t.sup.d11, t.liq.d11, t.gas.d11); 
-         cfuns.calcD22 = @(v1, v2) extractValues(v1, v2, t.v1.span, v2span, t.sup.d22, t.liq.d22, t.gas.d22);
+         cfuns.calcD11 = @(v1, v2) extractValues(v1, v2, v1span, t.v2.span, t.sup.d11, t.liq.d11, t.gas.d11, false, false);
+         cfuns.calcD22 = @(v1, v2) extractValues(v1, v2, t.v1.span, v2span, t.sup.d22, t.liq.d22, t.gas.d22, false, false);
          
          %% Cross derivative
          v1span = shrink_span(t.v1.span, t.v1.stepsize);
          v2span = shrink_span(t.v2.span, t.v2.stepsize);
-         cfuns.calcD12 = @(v1, v2) extractValues(v1, v2, v1span, v2span, t.sup.d12, t.liq.d12, t.gas.d12);
+         cfuns.calcD12 = @(v1, v2) extractValues(v1, v2, v1span, v2span, t.sup.d12, t.liq.d12, t.gas.d12, false, false);
          
          %% Third order partial derivatives
          v1span = shrink_span(t.v1.span, 3 * t.v1.stepsize);
          v2span = shrink_span(t.v2.span, 3 * t.v2.stepsize);
-         cfuns.calcD111 = @(v1, v2) extractValues(v1, v2, v1span, t.v2.span, t.sup.d111, t.liq.d111, t.gas.d111);
-         cfuns.calcD222 = @(v1, v2) extractValues(v1, v2, t.v1.span, v2span, t.sup.d222, t.liq.d222, t.gas.d222);
+         cfuns.calcD111 = @(v1, v2) extractValues(v1, v2, v1span, t.v2.span, t.sup.d111, t.liq.d111, t.gas.d111, false,false);
+         cfuns.calcD222 = @(v1, v2) extractValues(v1, v2, t.v1.span, v2span, t.sup.d222, t.liq.d222, t.gas.d222, false,false);
          
          %% Third order mixed partial derivatives
          v1span = shrink_span(t.v1.span, 2 * t.v1.stepsize);
          v2span = shrink_span(t.v2.span, 1 * t.v2.stepsize);
-         cfuns.calcD112 = @(v1, v2) extractValues(v1, v2, v1span, v2span, t.sup.d112, t.liq.d112, t.gas.d112);
+         cfuns.calcD112 = @(v1, v2) extractValues(v1, v2, v1span, v2span, t.sup.d112, t.liq.d112, t.gas.d112, false, false);
          v1span = shrink_span(t.v1.span, 1 * t.v1.stepsize);
          v2span = shrink_span(t.v2.span, 2 * t.v2.stepsize);
-         cfuns.calcD122 = @(v1, v2) extractValues(v1, v2, v1span, v2span, t.sup.d122, t.liq.d122, t.gas.d122);
+         cfuns.calcD122 = @(v1, v2) extractValues(v1, v2, v1span, v2span, t.sup.d122, t.liq.d122, t.gas.d122, false, false);
          
       end
    end
    
    % ----------------------------------------------------------------------------
-   function res = extractValues(v1, v2, span_v1, span_v2, supsamples, liqsamples, gassamples, no_interp)
+   function res = extractValues(v1, v2, span_v1, span_v2, supsamples, liqsamples, gassamples, const_v1, const_v2)
 
-      if ~exist('no_interp', 'var')
-         no_interp = false;
-      end
-      
       if opt.assert_in_range
          assert_in_range(v1, span_v1);
          assert_in_range(v2, span_v2);
@@ -109,9 +105,9 @@ function res = SampledProp2D(name, file, varargin)
       gph      = (phase == 2);
       
       res      = nan * ones(numel(v1), 1);
-      res(sph) = extract_val_vectorized(supsamples, span_v1, span_v2, v1(sph), v2(sph), no_interp);
-      res(lph) = extract_val_vectorized(liqsamples, span_v1, span_v2, v1(lph), v2(lph), no_interp);
-      res(gph) = extract_val_vectorized(gassamples, span_v1, span_v2, v1(gph), v2(gph), no_interp);
+      res(sph) = extract_val_vectorized(supsamples, span_v1, span_v2, v1(sph), v2(sph), const_v1, const_v2);
+      res(lph) = extract_val_vectorized(liqsamples, span_v1, span_v2, v1(lph), v2(lph), const_v1, const_v2);
+      res(gph) = extract_val_vectorized(gassamples, span_v1, span_v2, v1(gph), v2(gph), const_v1, const_v2);
       
    end
 
@@ -177,25 +173,24 @@ end
 
 % ----------------------------------------------------------------------------
 
-function res = extract_val_vectorized(grid, span_v1, span_v2, v1, v2, no_interp)
+function res = extract_val_vectorized(grid, span_v1, span_v2, v1, v2, const_v1, const_v2)
 % Vectorized version of 'extract_val', where v1 and v2 are 
 % allowed to be vectors
    [p_ix, t_ix, p, t, nans] = ix_and_local_par(grid, span_v1, span_v2, v1, v2);
    res = NaN * ones(numel(v1), 1);
    lines = size(grid, 1);   
 
-   if no_interp
-      res(~nans) = grid(p_ix   + lines * (t_ix - 1));
-   else
-      corners = [grid(p_ix   + lines * (t_ix - 1)), ...
-                 grid(p_ix+1 + lines * (t_ix - 1)), ...
-                 grid(p_ix   + lines * (t_ix    )), ...
-                 grid(p_ix+1 + lines * (t_ix    ))];
+   if const_v1  p = 0; end
+   if const_v2  t = 0; end
+   
+   corners = [grid(p_ix   + lines * (t_ix - 1)), ...
+              grid(p_ix+1 + lines * (t_ix - 1)), ...
+              grid(p_ix   + lines * (t_ix    )), ...
+              grid(p_ix+1 + lines * (t_ix    ))];
       
-      weight = [(1-p).*(1-t), p.*(1-t), (1-p).*t, p.*t];
+   weight = [(1-p).*(1-t), p.*(1-t), (1-p).*t, p.*t];
       
-      res(~nans) = sum(corners .* weight, 2);
-   end
+   res(~nans) = sum(corners .* weight, 2);
 end
 
 % ----------------------------------------------------------------------------
