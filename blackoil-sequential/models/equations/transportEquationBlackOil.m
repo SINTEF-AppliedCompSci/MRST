@@ -61,103 +61,44 @@ else
 end
 primaryVars = {'sW', gvar};
 
-%----------------------------------------------------------------------
-%check for p-dependent tran mult:
-trMult = 1;
-if isfield(f, 'tranMultR'), trMult = f.tranMultR(p); end
-
-%check for p-dependent porv mult:
-pvMult = 1; pvMult0 = 1;
-if isfield(f, 'pvMultR')
-    pvMult =  f.pvMultR(p);
-    pvMult0 = f.pvMultR(p0);
-end
-
-%check for capillary pressure (p_cow)
-pcOW = 0;
-if isfield(f, 'pcOW')
-    pcOW  = f.pcOW(sW);
-end
-%check for capillary pressure (p_cog)
-pcOG = 0;
-if isfield(f, 'pcOG')
-    pcOG  = f.pcOG(sG);
-end
-
-% FLIUD PROPERTIES ---------------------------------------------------
+% Evaluate relative permeability
 sO  = 1 - sW  - sG;
 sO0 = 1 - sW0 - sG0;
-
 [krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
-% Gravity contribution
+
+% Multipliers for properties
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+
+% Modifiy relperm by mobility multiplier (if any)
+krW = mobMult.*krW; krO = mobMult.*krO; krG = mobMult.*krG;
+
+% Compute transmissibility
+T = s.T.*transMult;
+
+% Gravity gradient per face
 gdz = model.getGravityGradient();
 
-% WATER PROPS (calculated at oil pressure)
-bW     = f.bW(p);
-rhoW   = bW.*f.rhoWS;
-% rhoW on face, avarge of neighboring cells (E100, not E300)
-rhoWf  = s.faceAvg(rhoW);
-mobW   = trMult.*krW./f.muW(p);
-
-
-
-if any(bW < 0)
-    warning('Negative water compressibility present!')
-end
-
-% OIL PROPS
-if disgas
-    bO  = f.bO(p, rs, ~st{1});
-    muO = f.muO(p, rs, ~st{1});
-else
-    bO  = f.bO(p);
-    muO = f.muO(p);
-end
-if any(bO < 0)
-    warning('Negative oil compressibility present!')
-end
-rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
-rhoOf  = s.faceAvg(rhoO);
-mobO   = trMult.*krO./muO;
-
-
-% GAS PROPS (calculated at oil pressure)
-if vapoil
-    bG  = f.bG(p, rv, ~st{2});
-    muG = f.muG(p, rv, ~st{2});
-else
-    bG  = f.bG(p);
-    muG = f.muG(p);
-end
-if any(bG < 0)
-    warning('Negative gas compressibility present!')
-end
-rhoG   = bG.*(rv*f.rhoOS + f.rhoGS);
-rhoGf  = s.faceAvg(rhoG);
-mobG   = trMult.*krG./muG;
-
-
-% EQUATIONS -----------------------------------------------------------
+% Evaluate water properties
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
 bW0 = f.bW(p0);
-if disgas, bO0 = f.bO(p0, rs0, ~st0{1}); else bO0 = f.bO(p0); end
-if vapoil, bG0 = f.bG(p0, rv0, ~st0{2}); else bG0 = f.bG(p0); end
+
+% Evaluate oil properties
+[vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
+bO0 = getbO_BO(model, p0, rs0, ~st0{1});
+
+% Evaluate gas properties
+bG0 = getbG_BO(model, p0, rv0, ~st0{2});
+[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
 % Get total flux from state
 flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
 % Sat dependent pressure terms
-Go = rhoOf.*gdz;
-Gw = rhoWf.*gdz;
-Gg = rhoGf.*gdz;
-
-if numel(double(pcOW)) > 1
-    Gw = Gw - s.Grad(pcOW);
-end
-
-if numel(double(pcOG)) > 1
-    Gg = Gg - s.Grad(pcOG);
-end
+gp = s.Grad(p);
+Gw = gp - dpW;
+Go = gp - dpO;
+Gg = gp - dpG;
 
 % Stored upstream indices
 if model.staticUpwind
@@ -183,8 +124,6 @@ f_w = mobWf./totMob;
 f_o = mobOf./totMob;
 f_g = mobGf./totMob;
 
-
-
 vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
 vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
 vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
@@ -207,99 +146,57 @@ if model.extraStateOutput
 end
 % well equations
 if ~isempty(W)
-    if 0
-        wm = WellModel();
-        wc    = vertcat(W.cells);
-        nperf = numel(wc);
-        pw    = p(wc);
-        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
 
-        if ~disgas
-            rsw = ones(nperf,1)*rs; rsSatw = ones(nperf,1)*rsSat; %constants
-        else
-            rsw = rs(wc); rsSatw = rsSat(wc);
-        end
-        if ~vapoil
-            rvSat = 1;
-            rvw = ones(nperf,1)*rv; rvSatw = ones(nperf,1)*rvSat; %constants
-        else
-            rvw = rv(wc); rvSatw = rvSat(wc);
-        end
-        rw    = {rsw, rvw};
-        rSatw = {rsSatw, rvSatw};
+    perf2well = getPerforationToWellMapping(W);
+    wc    = vertcat(W.cells);
 
-        mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        bw    = {bW(wc), bO(wc), bG(wc)};
-
-        sats = {sW, 1 - sW - sG, sG};
-
-        bhp = vertcat(wellSol.bhp);
-        qWs = vertcat(wellSol.qWs);
-        qOs = vertcat(wellSol.qOs);
-        qGs = vertcat(wellSol.qGs);
-        
-        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sats, rw,...
-                                             'maxComponents', rSatw, ...
-                                             'nonlinearIteration', inf);
-%         eqs(2:4) = weqs;
-%         eqs{5} = ctrleqs;
-
-        wflux_O = cqs{2};
-        wflux_W = cqs{1}; 
-        wflux_G = cqs{3}; 
-    else
-        perf2well = getPerforationToWellMapping(W);
-        wc    = vertcat(W.cells);
-
-        mobWw = mobW(wc);
-        mobOw = mobO(wc);
-        mobGw = mobG(wc);
-        totMobw = mobWw + mobOw + mobGw;
+    mobWw = mobW(wc);
+    mobOw = mobO(wc);
+    mobGw = mobG(wc);
+    totMobw = mobWw + mobOw + mobGw;
 
 
-        isInj = wflux > 0;
-        compWell = vertcat(W.compi);
-        compPerf = compWell(perf2well, :);
+    isInj = wflux > 0;
+    compWell = vertcat(W.compi);
+    compPerf = compWell(perf2well, :);
 
-        f_w_w = mobWw./totMobw;
-        f_o_w = mobOw./totMobw;
-        f_g_w = mobGw./totMobw;
-
-
-        f_w_w(isInj) = compPerf(isInj, 1);
-        f_o_w(isInj) = compPerf(isInj, 2);
-        f_g_w(isInj) = compPerf(isInj, 3);
+    f_w_w = mobWw./totMobw;
+    f_o_w = mobOw./totMobw;
+    f_g_w = mobGw./totMobw;
 
 
-        bWqW = bW(wc).*f_w_w.*wflux;
-        bOqO = bO(wc).*f_o_w.*wflux;
-        bGqG = bG(wc).*f_g_w.*wflux;
-            
-        if 1
-            bWqW(isInj) = cqs(isInj, 1);
-            bOqO(isInj) = cqs(isInj, 2);
-            bGqG(isInj) = cqs(isInj, 3);
-        end
-        % Store well fluxes
-        wflux_O = bOqO;
-        wflux_W = bWqW;
-        wflux_G = bGqG;
+    f_w_w(isInj) = compPerf(isInj, 1);
+    f_o_w(isInj) = compPerf(isInj, 2);
+    f_g_w(isInj) = compPerf(isInj, 3);
 
-        if disgas
-            wflux_G = wflux_G + bOqO.*rs(wc);
-        end
 
-        if vapoil
-            wflux_O = wflux_O + bGqG.*rv(wc);
-        end
+    bWqW = bW(wc).*f_w_w.*wflux;
+    bOqO = bO(wc).*f_o_w.*wflux;
+    bGqG = bG(wc).*f_g_w.*wflux;
 
-        for i = 1:numel(W)
-            perfind = perf2well == i;
-            state.wellSol(i).qOs = sum(double(wflux_O(perfind)));
-            state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
-            state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
-        end
+    if 1
+        bWqW(isInj) = cqs(isInj, 1);
+        bOqO(isInj) = cqs(isInj, 2);
+        bGqG(isInj) = cqs(isInj, 3);
+    end
+    % Store well fluxes
+    wflux_O = bOqO;
+    wflux_W = bWqW;
+    wflux_G = bGqG;
+
+    if disgas
+        wflux_G = wflux_G + bOqO.*rs(wc);
+    end
+
+    if vapoil
+        wflux_O = wflux_O + bGqG.*rv(wc);
+    end
+
+    for i = 1:numel(W)
+        perfind = perf2well == i;
+        state.wellSol(i).qOs = sum(double(wflux_O(perfind)));
+        state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
+        state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
     end
 end
 
