@@ -157,7 +157,7 @@ function river = join_rivers(r1, r2, Gt, fillnodes)
         start  = find(fillnodes == r1(end));
         target = find(fillnodes == r2(1));
 
-        M = subregionConnectivityMatrix(Gt, fillnodes);
+        M = subregionConnectivityMatrix(Gt, fillnodes, true);
         path = shortestPath(M, start, target);
         path = fillnodes(path);
         river = [r1(1:end-1); path(1:end-1); r2];
@@ -299,7 +299,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
                 enodes  = sort([nodes_ix(i) nodes_ix(i+1)], 2, 'ascend');
                 edge_ix = enodes_lookup(enodes(1), enodes(2));
 
-                if edge_ix == 0
+                if full(edge_ix) == 0
                     % No such edge.  The river is here going diagonally
                     % across a cell.  Determine this cell, and add it as a
                     % river cell
