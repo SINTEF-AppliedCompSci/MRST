@@ -1,4 +1,4 @@
-function [vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, pO, sW, krW, T, gdz)
+function [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, pO, sW, krW, T, gdz)
     fluid = model.fluid;
     s = model.operators;
     % Check for capillary pressure (p_cow)

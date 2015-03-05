@@ -1,4 +1,4 @@
-function [vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, pO, sG, krG, T, gdz, rv, isSat)
+function [vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, pO, sG, krG, T, gdz, rv, isSat)
     fluid = model.fluid;
     s = model.operators;
     % Check for capillary pressure (p_cow)
