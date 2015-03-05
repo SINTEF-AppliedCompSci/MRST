@@ -37,6 +37,7 @@ qGs    = vertcat(wellSol.qGs);
 st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
 st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
 p_prop = opt.propsPressure;
+otherPropPressure = ~isempty(p_prop);
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
@@ -44,7 +45,7 @@ if ~opt.resOnly,
 
         [p, qWs, qOs, qGs, bhp] = ...
             initVariablesADI(p, qWs, qOs, qGs, bhp);
-        if isempty(p_prop)
+        if ~otherPropPressure
             p_prop = p;
         end
         % define sG, rs and rv in terms of x
@@ -85,7 +86,7 @@ primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
 [krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
 
 % Multipliers for properties
-[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p_prop, p0);
 
 % Modifiy relperm by mobility multiplier (if any)
 krW = mobMult.*krW; krO = mobMult.*krO; krG = mobMult.*krG;
@@ -97,16 +98,27 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p_prop, sW, krW, T, gdz);
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p_prop, sO, krO, T, gdz, rs, ~st{1});
 bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 
 % Evaluate gas properties
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
+[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p_prop, sG, krG, T, gdz, rv, ~st{2});
+
+if otherPropPressure
+    % We have used a different pressure for property evaluation, undo the
+    % effects of this on the fluxes.
+    dp_diff = s.Grad(p) - s.Grad(p_prop);
+    
+    vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
+    vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
+    vG = -s.faceUpstr(upcg, mobG).*s.T.*(dpG + dp_diff);
+end
+
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
