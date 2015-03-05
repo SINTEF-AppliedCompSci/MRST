@@ -1,7 +1,7 @@
 function fluid = initSimpleVEFluid_s(varargin)
 % Initialize incompressible two-phase fluid model for vertical average
-% calculation with both densities equal. This gives a simple realitic
-% hysteres model with linear relperm functions
+% calculation with both densities equal. This gives a simple realistic
+% hysteresis model with linear relperm functions
 % 
 %
 % SYNOPSIS:

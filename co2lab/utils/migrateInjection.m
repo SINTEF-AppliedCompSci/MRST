@@ -76,8 +76,8 @@ mu  = [muc  muw ] .* centi*poise;
 rho = [rhoc rhow] .* kilogram/meter^3;
 
 fluid = initSimpleVEFluid_s('mu' , mu , 'rho', rho, ...
-                                'height'  , Gt.cells.H,...
-                                'sr', [srco2, sw],'kwm',kwm);
+                            'height'  , Gt.cells.H, ...
+                            'sr', [srco2, sw],'kwm',kwm);
 fluid.sr = srco2;
 fluid.sw = sw;
 

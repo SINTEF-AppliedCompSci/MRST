@@ -10,21 +10,21 @@ function c = myCOColor(ind)
 %
 % To look at the colors
 %   image(repmat(1:5,2,1)); colormap(myCOColor(1:5))
-red = [1 0 0]; blue = [0 0 1]; white = [1 1 1]; black = [0 0 0];
-mix = @(a,b,c) (a*c + b*(100-c))/100;
+red = [1 0 0]; blue = [0 0 1]; white = [1 1 1]; black = [0 0 0]; 
+mix = @(a, b, c) (a * c + b * (100 - c)) / 100; 
 
-c = zeros(numel(ind),3);
-for i=1:numel(ind)
+c = zeros(numel(ind), 3); 
+for i = 1:numel(ind)
    switch ind(i)
-      case 1
-         c(i,:) = mix(mix(red,white,40),black,80);
-      case 2
-         c(i,:) = mix(red,white,40);
-      case 3
-         c(i,:) = mix(mix(red,blue,50),white,20);
-      case 4
-         c(i,:) = mix(blue,white,20);
-      case 5
-         c(i,:) = mix(blue,white,30);
+     case 1
+       c(i, :) = mix(mix(red, white, 40), black, 80); 
+     case 2
+       c(i, :) = mix(red, white, 40); 
+     case 3
+       c(i, :) = mix(mix(red, blue, 50), white, 20); 
+     case 4
+       c(i, :) = mix(blue, white, 20); 
+     case 5
+       c(i, :) = mix(blue, white, 30);
    end
 end 
