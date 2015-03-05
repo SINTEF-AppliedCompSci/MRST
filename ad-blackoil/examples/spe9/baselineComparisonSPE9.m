@@ -179,6 +179,7 @@ disp(schedule.control(1).W(wno).lims)
 
 T = convertTo(cumsum(schedule.step.val), year);
 plotWellSols(wellsols, T)
+h = gcf;
 %% Load comparison data from commercial solver
 % To validate the simulator output, we load in a pre-run dataset from a
 % industry standard commercial solver run using the same inputs.
@@ -191,6 +192,9 @@ Tcomp =  smry.get(':+:+:+:+', 'YEARS', compd);
 %% Set up plotting functions
 % We will plot the timesteps with different colors to see the difference
 % between the results clearly.
+if ishandle(h);
+    close(h);
+end
 mrstplot = @(data) plot(T, data, '-b', 'linewidth', 2);
 compplot = @(data) plot(Tcomp, data, 'ro', 'linewidth', 2);
 %% Plot two different injectors 
