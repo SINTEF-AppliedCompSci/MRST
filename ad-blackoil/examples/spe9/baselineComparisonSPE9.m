@@ -165,11 +165,183 @@ title('Controls for PROD2')
 clc
 disp(['Well limits for ', schedule.control(1).W(wno).name, ':'])
 disp(schedule.control(1).W(wno).lims)
+
+%% Plot relative permeability curves
+% For a three phase model we  have four relative permeability curves. One
+% for both gas and water and two curves for the oil phase. The oil relative
+% permeability is tabulated for both water-oil and oil-gas systems.
+f = model.fluid;
+s = (0:0.05:1)';
+
+figure;
+plot(s, f.krW(s), 'linewidth', 2)
+grid on
+xlabel('Water saturation');
+title('Water relative permeability curve')
+ylabel('k_r')
+
+figure;
+plot(s, [f.krOW(s), f.krOG(s)], 'linewidth', 2)
+grid on
+xlabel('Oil saturation');
+legend('Oil-Water system', 'Oil-Gas system', 'location', 'northwest')
+title('Oil relative permeability curves')
+ylabel('k_r')
+
+figure;
+plot(s, f.krG(s), 'linewidth', 2)
+grid on
+xlabel('Gas saturation');
+title('Gas relative permeability curve')
+ylabel('k_r')
+
+%% Plot three-phase relative permeability
+% For a simulation model the situation where all three phases are presen
+% simultaneously in a single cell using some function to combine these
+% curves in a reasonable manner, resulting in a two dimensional relative
+% permeability model. We use the Stone I model.
+%
+close all
+
+[x, y] = meshgrid(s);
+[krW, krO, krG] = model.relPermWOG(x, 1-x-y, y, f);
+figure;
+surf(x, y, krO)
+xlabel('sW')
+ylabel('sG')
+title('Oil relative permeability')
+view(150, 50)
+axis tight
+%% Plot capillary pressure curves
+% SPE9 contains significant capillary pressure, making the problem more
+% nonlinear as the flow directions and phase potential gradients are highly
+% saturation dependent. Again we have two curves, one for the contact
+% between oil and gas and another for the water-oil contact.
+close all
+figure;
+[ax, l1, l2] = plotyy(s, f.pcOG(s), s, f.pcOW(1 - s));
+set([l1, l2], 'LineWidth', 2);
+grid on
+legend('Oil-Gas capillary pressure', 'Oil-Water capillary pressure', 'location', 'southeast')
+xlabel('Oil saturation (Two phase)')
+%% Plot compressibility
+% The Black-Oil model treats fluid compressibility through tabulated
+% functions often referred to as B-factors. To find the mass of a given
+% volume at a specific reservoir pressure $p_R$, we write
+%
+% $$ M_\alpha = V_R \rho_\alpha^s b_\alpha (p_R) $$
+%
+% where $\alpha$ refers to either the phase, V_R the volume taken up at
+% reservoir conditions and $\rho_\alpha^s$ the surface / reference density
+% where the b-factor is 1.
+%
+% Note that MRST by convention only uses small b to describe fluid models.
+% The relation between B and b is simply the reciprocal $b = 1/B$ and will
+% be calculated when needed.
+%
+% We begin by plotting the b-factors/compressibility for the water and gas
+% phases. Note that the water compressibility is minimal, as water is close
+% to incompressible in most models. The gas compressibility varies several
+% orders of magnitude.
+%
+% The rock compressibility is included as well. Rock compressibility is
+% modelling the poroelastic expansion of the pore volume available for
+% flow. As the rock itself shrinks, more fluid can fit inside it.
+%
+% Note that while the curves shown are all approximately linear, there's no
+% such requirement on the fluid model.
+pressure = (50:10:350)'*barsa;
+
+close all
+figure;
+plot(pressure, f.bW(pressure), 'LineWidth', 2);
+grid on
+title('Water compressibility')
+ylabel('b_w')
+xlabel('Pressure');
+
+figure; 
+plot(pressure, f.bG(pressure), 'LineWidth', 2);
+grid on
+title('Gas compressibility')
+ylabel('b_g')
+xlabel('Pressure');
+
+figure; 
+plot(pressure, f.pvMultR(pressure), 'LineWidth', 2);
+grid on
+title('Rock compressibility')
+ylabel('1 + c_r (p - p_s)')
+xlabel('Pressure');
+%% Plot oil compressibility
+% Since we allow the gas phase to dissolve into the oil phase,
+% compressibility does not only depend on the pressure: The amount of
+% dissolved gas will also change how much the fluid can be compressed.
+%
+% We handle this by having saturated and undersatured tables for the
+% compressibility. This is reflected in the figure: Unsaturated
+% compressibility curves will diverge into from the main downwards sloping
+% trend into almost constant curves sloping upwards.
+%
+% Physically, the undersaturated oil will swell as more gas is being
+% introduced into the oil, increasing the volume more than the pressure
+% decreases the volume of the oil itself. When the oil is completely
+% saturated, the volume decrease is due to the gas taking up less space in
+% the oil.
+rs = 0:25:320;
+[p_g, rs_g] = meshgrid(pressure, rs);
+rssat = f.rsSat(p_g);
+
+saturated = rs_g >= rssat;
+rs_g0 = rs_g;
+rs_g(saturated) = rssat(saturated);
+
+figure;
+plot(p_g'/barsa, f.bO(p_g, rs_g, saturated)', 'LineWidth', 2)
+grid on
+title('Oil compressibility')
+ylabel('b_o')
+xlabel('Pressure')
+
+%% Plot the viscosity
+% The viscosity can also depend on the pressure and dissolved components in
+% a very similar manner as the compressibility. Again we note that the
+% water phase is unaffected by the pressure, the gas changes viscosity
+% quite a bit. As with $b_o$, the oil viscosibility depends more on the
+% amount of dissolved gas than the pressure itself and we have undersatured
+% tables to show.
+%
+% SPE9 only allows gas to dissolve into oil, and not the other way around.
+% Generally, the black-oil model is a pseudo-compositional model where both
+% gas in oil ($R_v$) and oil in gas ($R_v$) can be included.
+close all
+figure;
+plot(pressure, f.muW(pressure), 'LineWidth', 2);
+grid on
+title('Water viscosity')
+ylabel('\mu_w')
+xlabel('Pressure');
+ylim([0, 1.5e-3])
+
+figure; 
+plot(pressure, f.muG(pressure), 'LineWidth', 2);
+grid on
+title('Gas viscosity')
+ylabel('\mu_g')
+xlabel('Pressure');
+
+figure;
+plot(p_g'/barsa, f.muO(p_g, rs_g, saturated)', 'LineWidth', 2)
+grid on
+title('Oil viscosity')
+ylabel('\mu_o')
+xlabel('Pressure')
 %% Simulate the schedule
 % We run the schedule. We provide the initial state, the model (containing
 % the black oil model in this case) and the schedule with well controls,
 % and control time steps. The simulator may use other timesteps internally,
 % but it will always return values at the specified control steps.
+model.verbose = false;
 [wellsols, states, reports] =...
     simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
 
@@ -178,7 +350,7 @@ disp(schedule.control(1).W(wno).lims)
 % choice for interactive viewing.
 
 T = convertTo(cumsum(schedule.step.val), year);
-plotWellSols(wellsols, T)
+plotWellSols(wellsols, T, 'field', 'qWs')
 h = gcf;
 %% Load comparison data from commercial solver
 % To validate the simulator output, we load in a pre-run dataset from a
