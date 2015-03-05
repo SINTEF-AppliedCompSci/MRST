@@ -96,7 +96,7 @@ eqs = addFluxesFromSourcesAndBC(model, eqs, ...
                                        drivingForces);
 % Finally, add in and setup well equations
 if ~isempty(W)
-    wm = WellModel();
+    wm = model.wellmodel;
     if ~opt.reverseMode
         wc    = vertcat(W.cells);
         pw   = p(wc);

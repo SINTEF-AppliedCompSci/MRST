@@ -157,7 +157,7 @@ eqs = addFluxesFromSourcesAndBC(model, eqs, ...
                                        drivingForces);
 % Finally, add in and setup well equations
 if ~isempty(W)
-    wm = WellModel();
+    wm = model.wellmodel;
     if ~opt.reverseMode
         % Store cell wise well variables in cell arrays and send to ewll
         % model to get the fluxes and well control equations.

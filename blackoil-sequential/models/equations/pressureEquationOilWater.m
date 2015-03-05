@@ -110,7 +110,7 @@ if ~isempty(W)
     mw   = {mobW(wc), mobO(wc)};
     s = {sW(wc), 1 - sW(wc)};
 
-    wm = WellModel();
+    wm = model.wellmodel;
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
                                          pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
                                          'nonlinearIteration', opt.iteration);

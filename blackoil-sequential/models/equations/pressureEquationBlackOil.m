@@ -184,7 +184,7 @@ end
 [eqs, names, types] = deal(cell(1, 5));
 % well equations
 if ~isempty(W)
-    wm = WellModel();
+    wm = model.wellmodel;
     % Store cell wise well variables in cell arrays and send to ewll
     % model to get the fluxes and well control equations.
     wc    = vertcat(W.cells);

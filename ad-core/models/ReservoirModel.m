@@ -105,6 +105,9 @@ properties
     
     % Vector for the gravitational force
     gravity
+    
+    % Well model used to compute fluxes etc from well controls
+    wellmodel
 end
 
 methods
@@ -156,6 +159,7 @@ methods
         model.outputFluxes = true;
         model.upstreamWeightInjectors = false;
         
+        model.wellmodel = WellModel();
         % Gravity defaults to the global variable
         model.gravity = gravity(); %#ok
         [model, unparsed] = merge_options(model, varargin{:}); %#ok
