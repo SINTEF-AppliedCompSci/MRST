@@ -11,6 +11,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
         
         outerTolerance
         outerCheckWellConvergence
+        maxOuterIterations
     end
     
     methods
@@ -21,6 +22,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             model.transportModel = transportModel;
             model.outerTolerance = 1e-3;
             model.outerCheckWellConvergence = false;
+            model.maxOuterIterations = 2;
             
             model = merge_options(model, varargin{:});
             
@@ -93,6 +95,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 else
                     converged = values(1) < model.outerTolerance;
                 end
+                converged = converged || iteration > model.maxOuterIterations;
             end
             if ~pressure_ok
                 FailureMsg = 'Pressure failed to converge!';
