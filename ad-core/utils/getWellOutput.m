@@ -14,7 +14,7 @@ function [welldata, wellnames, fldnames] = getWellOutput(wellsols, fldnames, wel
     
     % Valid fields are fields with exactly one value per well
     validfields = fieldnames(ws0);
-    singledata = cellfun(@(x) numel(ws0.(x)) == 1, validfields);
+    singledata = cellfun(@(x) numel(ws0(1).(x)) == 1, validfields);
     validfields = validfields(singledata);
     if nargin < 2
         fldnames = validfields;
