@@ -55,7 +55,7 @@ C   = scanner(fid, '%f', opt{:});
 
 pos = ftell(fid);
 lin = fgetl(fid);
-while ischar(lin) && (isempty(lin) || matches(lin, ['^\*|^\s+$|^', cs])),
+while ischar(lin) && (isempty(lin) || matches(lin, ['^\*|^\s+$|^\s*', cs])),
    if strncmp('*', lin, 1),
       % Repeat description of the form
       %      N*value
