@@ -18,7 +18,7 @@ function T = expandPVCOintoPVTO(tbl, ntab)
         
         t.data(satix, :) = sat_tbl;
         t.data(usatix, :) = makeUsatTable(sat_tbl, tloc(:, 5:6));
-        t.key = (1:2:(2*npts + 1));
+        t.pos = (1:2:(2*npts + 1))';
         
         T{i} = t;
     end
