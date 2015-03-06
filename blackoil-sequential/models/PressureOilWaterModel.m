@@ -30,7 +30,6 @@ classdef PressureOilWaterModel < TwoPhaseOilWaterModel
         
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-            % state = updateWellCellSaturationsExplicit(model, state, problem, dx, drivingForces);
         end
     end
 end

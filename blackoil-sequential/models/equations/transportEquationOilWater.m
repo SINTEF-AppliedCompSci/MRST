@@ -45,15 +45,28 @@ clear tmp
 sO = 1 - sW;
 [krW, krO] = model.evaluteRelPerm({sW, sO});
 
-% Gravity contribution
+% Multipliers for properties
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
+
+% Modifiy relperm by mobility multiplier (if any)
+krW = mobMult.*krW; krO = mobMult.*krO;
+
+% Compute transmissibility
+T = s.T.*transMult;
+
+% Gravity gradient per face
 gdz = model.getGravityGradient();
 
-% Water
-[bW, rhoW, mobW, Gw] = propsOW_water(sW, krW, gdz, f, p, s);
-[bO, rhoO, mobO, Go] = propsOW_oil(  sO, krO, gdz, f, p, s);
+% Evaluate water properties
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
 
+% Evaluate oil properties
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
 
-    
+gp = s.Grad(p);
+Gw = gp - dpW;
+Go = gp - dpO;
+
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, []);
@@ -91,13 +104,6 @@ if ~isempty(W)
     end
 
 end
-%check for p-dependent porv mult:
-pvMult = 1; pvMult0 = 1;
-if isfield(f, 'pvMultR')
-    pvMult =  f.pvMultR(p);
-    pvMult0 = f.pvMultR(p0);
-end
-
 
 % Get total flux from state
 flux = sum(state.flux, 2);
@@ -113,7 +119,6 @@ end
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
 
-    
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 

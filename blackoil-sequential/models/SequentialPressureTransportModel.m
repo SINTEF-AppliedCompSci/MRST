@@ -8,6 +8,10 @@ classdef SequentialPressureTransportModel < ReservoirModel
         
         pressureLinearSolver
         transportLinearSolver
+        
+        outerTolerance
+        outerCheckWellConvergence
+        maxOuterIterations
     end
     
     methods
@@ -16,6 +20,9 @@ classdef SequentialPressureTransportModel < ReservoirModel
              
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;
+            model.outerTolerance = 1e-3;
+            model.outerCheckWellConvergence = false;
+            model.maxOuterIterations = 2;
             
             model = merge_options(model, varargin{:});
             
@@ -44,6 +51,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             model.transportNonLinearSolver.errorOnFailure = false;
             model.stepFunctionIsLinear = true;
+            
         end
         
         function [state, report] = stepFunction(model, state, state0, dt,...
@@ -57,6 +65,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             [state, pressureReport] = ...
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
+                            'initialGuess', state, ...
                             'Wells', drivingForces.Wells, ...
                             'bc', drivingForces.bc, ...
                             'src', drivingForces.src);
@@ -68,7 +77,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 
                 % Solve transport
                 [state, transportReport] = ...
-                    tsolver.solveTimestep(state, dt, model.transportModel,...
+                    tsolver.solveTimestep(state0, dt, model.transportModel,...
+                                'initialGuess', state, ...
                                 'Wells', drivingForces.Wells, ...
                                 'bc', drivingForces.bc, ...
                                 'src', drivingForces.src);
@@ -80,15 +90,28 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 transport_ok = false;
                 transportReport = [];
             end
-            converged = pressure_ok && transport_ok;
+            values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals;
             
+            converged = pressure_ok && transport_ok;
+            if converged && ~model.stepFunctionIsLinear
+                problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+                % Is the pressure still converged when accounting for the
+                % mobilities?
+                [~, values] = model.pressureModel.checkConvergence(problem);
+                if model.outerCheckWellConvergence
+                    converged = all(values < model.outerTolerance);
+                else
+                    converged = values(1) < model.outerTolerance;
+                end
+                converged = converged || iteration > model.maxOuterIterations;
+            end
             if ~pressure_ok
                 FailureMsg = 'Pressure failed to converge!';
             else
                 FailureMsg = '';
             end
 
-            values = [];
+            
             report = model.makeStepReport(...
                                     'Failure',        ~pressure_ok, ...
                                     'Converged',       converged, ...
