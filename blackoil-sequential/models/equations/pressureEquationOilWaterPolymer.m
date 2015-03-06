@@ -184,11 +184,12 @@ function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
         iInxW = [];
         return
     end
-    inj   = vertcat(W.sign)==1;
-    polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
-    wPoly = zeros(nnz(inj), 1);
-    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
+    inj = vertcat(W.sign) == 1;
+    injix   = find(inj);
+    polInj = cellfun(@(x)~isempty(x), {W(injix).poly});
+    wPoly = zeros(nnz(injix), 1);
+    wPoly(polInj) = vertcat(W(injix(polInj)).poly);
+    wciPoly = rldecode(wPoly, cellfun(@numel, {W(injix).cells}));
 
     % Injection cells
     nPerf = cellfun(@numel, {W.cells})';

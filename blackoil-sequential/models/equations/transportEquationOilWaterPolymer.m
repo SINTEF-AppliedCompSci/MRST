@@ -109,7 +109,7 @@ if ~isempty(W)
     
     % Polymer injection
     wpolyi = vertcat(W.poly);
-    bWqP = bW(wc).*f_p_w.*wpolyi.*wflux;
+    bWqP = bW(wc).*f_p_w.*wpolyi(perf2well).*wflux;
 
     % Store well fluxes
     wflux_O = double(bOqO);
@@ -162,6 +162,8 @@ if opt.solveForWater
     poly = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
         pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
         ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
+    
+    poly(wc) = poly(wc) - bWqP;
     
     eqs{1} = wat;
     eqs{2} = poly;
