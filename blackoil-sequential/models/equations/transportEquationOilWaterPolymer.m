@@ -5,8 +5,8 @@ opt = struct('Verbose', mrstVerbose, ...
              'scaling', [],...
              'resOnly', false,...
              'history', [],...
-             'solveForWater', false, ...
-             'solveForOil', true, ...
+             'solveForWater', true, ...
+             'solveForOil', false, ...
              'iteration', -1, ...
              'stepOptions', []);  % Compatibility only
 
@@ -58,9 +58,21 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[~, ~, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
+[~, ~, bW, ~, mobW, mobP, rhoW, ~, ~, a] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
     krW, s.T, gdz);
+
+% TODO: A bit of double work here:
+% Merge propsOW_water and getFluxAndPropsWaterPolymer_BO perhaps?
+rhoWf  = s.faceAvg(rhoW);
+Gw = rhoWf.*gdz;
+hasCap = isfield(f,  'pcOW');
+if hasCap
+    pcOW  = f.pcOW(sW);
+    Gw = Gw - s.Grad(pcOW);
+end
+
+
 
 % Water
 %[bW, rhoW, mobW, Gw] = propsOW_water(sW, krW, gdz, f, p, s);
@@ -131,20 +143,23 @@ flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
 % Stored upstream indices
-% if model.staticUpwind
-%     flag = state.upstreamFlag;
-% else
-%     flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
-% end
-% 
-% upcw  = flag(:, 1);
-% upco  = flag(:, 2);
+if model.staticUpwind
+    flag = state.upstreamFlag;
+else
+    flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+end
+
+upcw  = flag(:, 1);
+upco  = flag(:, 2);
 
 % oil upstream-index
-upco = (double(dpO)<=0);
+% upco = (double(dpO)<=0);
 
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
+
+%mobPf = s.faceUpstr(upcw, mobP);
+vP   = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
 
 % m(c) = muweff / mupeff => vwp = m(c)*vw
 mc = c./(a + (1-a).*(c/f.cmax));

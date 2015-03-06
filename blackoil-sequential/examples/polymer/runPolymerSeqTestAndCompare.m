@@ -1,0 +1,131 @@
+%% Add required modules
+
+mrstModule add ad-core ad-blackoil ad-fi deckformat
+
+
+%% Setup example
+
+fn    = 'POLYMER.DATA';
+deck  = readEclipseDeck(fn);
+deck  = convertDeckUnits(deck);
+G     = initEclipseGrid(deck);
+G     = computeGeometry(G);
+rock  = initEclipseRock(deck);
+rock  = compressRock(rock, G.cells.indexMap);
+fluid = initDeckADIFluid(deck);
+
+% Create models
+modelTFI = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
+modelPFI = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck);
+modelTSQ = getSequentialModelFromFI(modelTFI);
+modelPSQ = getSequentialModelFromFI(modelPFI);
+
+
+%%
+
+% Create schedule
+schedule = convertDeckScheduleToMRST(G, modelPfi, rock, deck);
+
+% Reduce schedule
+nsteps = 30;
+scheduleOW = schedule;
+scheduleOW.step.control  = 2.*ones(nsteps,1); % control 2 has no polymer
+scheduleOW.step.val      = 10*day.*ones(nsteps,1);
+scheduleOW.step.val(1)   = 3*day; % step
+scheduleOW.step.val(2:3) = 5*day;
+
+% Oil rel-perm from 2p OW system.
+% Needed by equation implementation function 'eqsfiOWExplictWells'.
+fluid.krO = fluid.krOW;
+
+gravity on
+
+
+%% Set up simulation parameters
+% We want a layer of oil on top of the reservoir and water on the bottom.
+% To do this, we alter the initial state based on the logical height of
+% each cell. The resulting oil concentration is then plotted.
+
+ijk = gridLogicalIndices(G);
+state0 = initResSol(G, 300*barsa, [ .9, .1]);
+state0.s(ijk{3} == 1, 2) = .9;
+state0.s(ijk{3} == 2, 2) = .8;
+state0.s(:,1) = 1 - state0.s(:,2); % Enforce s_w + s_o = 1;
+
+% Add zero polymer concentration to the state.
+state0.c    = zeros(G.cells.num, 1);
+state0.cmax = zeros(G.cells.num, 1);
+
+
+%% Plot grid
+
+figure;
+plotCellData(G, rock.perm(:,1)./(milli*darcy), 'facealpha', 0.7);
+view([-16,20]); axis tight; colorbar;
+plotWell(G, scheduleOW.control(1).W);
+xlabel('x-axis');ylabel('y-axis');zlabel('z-axis');
+
+
+%% Run fully implicit schedules
+
+fprintf('Running Oil-Water fully implicit model...\n');
+tic;
+[wsTFI, statesTFI] = simulateScheduleAD(state0, modelTFI, scheduleOW);
+toc
+
+fprintf('Running Oil-Water-Polymer fully implicit model...\n');
+tic;
+[wsPFI, statesPFI] = simulateScheduleAD(state0, modelPFI, scheduleOW);
+toc
+
+
+%% Run sequential schedules
+
+fprintf('Running Oil-Water sequential model...\n');
+tic;
+[wsTSQ, statesTSQ] = simulateScheduleAD(state0, modelTSQ, scheduleOW);
+toc
+
+%%
+fprintf('Running Oil-Water-Polymer sequential model...\n');
+tic;
+[wsPSQ, statesPSQ] = simulateScheduleAD(state0, modelPSQ, scheduleOW);
+toc
+
+%% Plot the accumulated water and oil production
+
+
+wsTFIvc = vertcat(wsTFI{:});
+wsPFIvc = vertcat(wsPFI{:});
+wsTSQvc = vertcat(wsTSQ{:});
+
+qWs  = -([ [wsTFIvc(:,3).qWs] ; ...
+           [wsPFIvc(:,3).qWs] ; ...
+           [wsTSQvc(:,3).qWs] ] .');
+qWs  = bsxfun(@times, qWs, scheduleOW.step.val);
+qOs  = -([ [wsTFIvc(:,3).qOs] ; ...
+           [wsPFIvc(:,3).qOs] ; ...
+           [wsTSQvc(:,3).qOs] ] .');
+qOs  = bsxfun(@times, qOs, scheduleOW.step.val);
+cumt = cumsum(scheduleOW.step.val);
+
+nCases = size(qWs, 2);
+colors = lines(nCases);
+linest = {'-','--','-'};
+
+fh = figure;
+op = get(fh, 'OuterPosition');
+set(fh, 'OuterPosition', op.*[1 1 2 1]); %[left bottom width height]
+hold on;
+for i=1:nCases
+	plot(convertTo(cumt, year), convertTo(qWs(:,i), stb), ...
+    	'Color', colors(i,:), 'LineStyle', linest{i});
+    plot(convertTo(cumt, year), convertTo(qOs(:,i), stb), ...
+    	'Color', colors(i,:), 'LineStyle', linest{i});
+end
+legend({'Water, TFI', 'Oil, TFI', 'Water, PFI', 'Oil, PFI', ...
+    'Water, TSQ', 'Oil, TSQ'}, ...
+	'Location', 'NorthEastOutside');
+ylabel('Stb'); xlabel('Years');
+
+

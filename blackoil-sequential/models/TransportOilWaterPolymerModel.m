@@ -11,8 +11,8 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
             
             model = model@OilWaterPolymerModel(G, rock, fluid);
             
-            model.conserveWater = false;
-            model.conserveOil   = true;
+            model.conserveWater = true;
+            model.conserveOil   = false;
             
             model.staticUpwind  = false;
 
