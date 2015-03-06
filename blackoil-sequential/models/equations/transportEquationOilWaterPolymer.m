@@ -162,8 +162,13 @@ if opt.solveForWater
     poly = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
         pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
         ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
-    
     poly(wc) = poly(wc) - bWqP;
+    
+    % Fix for (almost) zero water in the well
+    epsilon = 1.e-8;
+    epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
+    bad     = abs(diag(poly.jac{2})) < epsilon;
+    poly(bad) = c(bad);
     
     eqs{1} = wat;
     eqs{2} = poly;
