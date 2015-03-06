@@ -65,6 +65,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case {'PVDG', 'PVDO'},
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 3);
+        
+         case 'PVCO'
+            tbl = readImmisciblePVTTable(fid, ntpvt, 6);
+            assert(~isfield(prp, 'PVTO'));
+            prp.PVTO = expandPVCOintoPVTO(tbl, ntpvt);
 
          case {'PVTG', 'PVTO'},
             prp.(kw) = readMisciblePVTTable(fid, ntpvt, 3, kw);
