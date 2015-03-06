@@ -34,6 +34,10 @@ scheduleOW.step.val      = 10*day.*ones(nsteps,1);
 scheduleOW.step.val(1)   = 3*day; % step
 scheduleOW.step.val(2:3) = 5*day;
 
+% Polymer schedule
+scheduleP = scheduleOW;
+scheduleP.step.control  = 1.*ones(nsteps,1); % control 1 has polymer
+
 % Oil rel-perm from 2p OW system.
 % Needed by equation implementation function 'eqsfiOWExplictWells'.
 fluid.krO = fluid.krOW;
@@ -130,5 +134,64 @@ legend({'Water, TFI', 'Oil, TFI', 'Water, PFI', 'Oil, PFI', ...
     'Water, TSQ', 'Oil, TSQ', 'Water, PSQ', 'Oil, PSQ'}, ...
 	'Location', 'NorthEastOutside');
 ylabel('Stb'); xlabel('Years');
+
+
+%% Run POLYMER fully implicit schedule
+
+fprintf('Running Oil-Water-Polymer fully implicit model...\n');
+tic;
+[wsPFI, statesPFI] = simulateScheduleAD(state0, modelPFI, scheduleP);
+toc
+
+
+%% Run POLYMER sequential schedule
+
+fprintf('Running Oil-Water-Polymer sequential model...\n');
+tic;
+[wsPSQ, statesPSQ] = simulateScheduleAD(state0, modelPSQ, scheduleP);
+toc
+
+
+%% Plot the accumulated water and oil production
+
+
+wsTFIvc = vertcat(wsTFI{:});
+wsPFIvc = vertcat(wsPFI{:});
+wsTSQvc = vertcat(wsTSQ{:});
+wsPSQvc = vertcat(wsPSQ{:});
+
+qWs  = -([ [wsTFIvc(:,3).qWs] ; ...
+           [wsPFIvc(:,3).qWs] ; ...
+           [wsTSQvc(:,3).qWs] ; ...
+           [wsPSQvc(:,3).qWs] ] .');
+qWs  = bsxfun(@times, qWs, scheduleOW.step.val);
+qOs  = -([ [wsTFIvc(:,3).qOs] ; ...
+           [wsPFIvc(:,3).qOs] ; ...
+           [wsTSQvc(:,3).qOs] ; ...
+           [wsPSQvc(:,3).qOs] ] .');
+qOs  = bsxfun(@times, qOs, scheduleOW.step.val);
+cumt = cumsum(scheduleOW.step.val);
+
+nCases = size(qWs, 2);
+colors = lines(nCases);
+linest = {'-','-','--','--'};
+
+fh = figure;
+op = get(fh, 'OuterPosition');
+set(fh, 'OuterPosition', op.*[1 1 2 1]); %[left bottom width height]
+hold on;
+for i=1:nCases
+	plot(convertTo(cumt, year), convertTo(qWs(:,i), stb), ...
+    	'Color', colors(i,:), 'LineStyle', linest{i});
+    plot(convertTo(cumt, year), convertTo(qOs(:,i), stb), ...
+    	'Color', colors(i,:), 'LineStyle', linest{i});
+end
+legend({'Water, TFI', 'Oil, TFI', 'Water, PFI', 'Oil, PFI', ...
+    'Water, TSQ', 'Oil, TSQ', 'Water, PSQ', 'Oil, PSQ'}, ...
+	'Location', 'NorthEastOutside');
+ylabel('Stb'); xlabel('Years');
+
+
+
 
 
