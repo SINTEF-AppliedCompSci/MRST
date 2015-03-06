@@ -24,7 +24,7 @@ modelPSQ = getSequentialModelFromFI(modelPFI);
 %%
 
 % Create schedule
-schedule = convertDeckScheduleToMRST(G, modelPfi, rock, deck);
+schedule = convertDeckScheduleToMRST(G, modelPFI, rock, deck);
 
 % Reduce schedule
 nsteps = 30;
@@ -98,20 +98,23 @@ toc
 wsTFIvc = vertcat(wsTFI{:});
 wsPFIvc = vertcat(wsPFI{:});
 wsTSQvc = vertcat(wsTSQ{:});
+wsPSQvc = vertcat(wsPSQ{:});
 
 qWs  = -([ [wsTFIvc(:,3).qWs] ; ...
            [wsPFIvc(:,3).qWs] ; ...
-           [wsTSQvc(:,3).qWs] ] .');
+           [wsTSQvc(:,3).qWs] ; ...
+           [wsPSQvc(:,3).qWs] ] .');
 qWs  = bsxfun(@times, qWs, scheduleOW.step.val);
 qOs  = -([ [wsTFIvc(:,3).qOs] ; ...
            [wsPFIvc(:,3).qOs] ; ...
-           [wsTSQvc(:,3).qOs] ] .');
+           [wsTSQvc(:,3).qOs] ; ...
+           [wsPSQvc(:,3).qOs] ] .');
 qOs  = bsxfun(@times, qOs, scheduleOW.step.val);
 cumt = cumsum(scheduleOW.step.val);
 
 nCases = size(qWs, 2);
 colors = lines(nCases);
-linest = {'-','--','-'};
+linest = {'-','--','-','--'};
 
 fh = figure;
 op = get(fh, 'OuterPosition');
@@ -124,7 +127,7 @@ for i=1:nCases
     	'Color', colors(i,:), 'LineStyle', linest{i});
 end
 legend({'Water, TFI', 'Oil, TFI', 'Water, PFI', 'Oil, PFI', ...
-    'Water, TSQ', 'Oil, TSQ'}, ...
+    'Water, TSQ', 'Oil, TSQ', 'Water, PSQ', 'Oil, PSQ'}, ...
 	'Location', 'NorthEastOutside');
 ylabel('Stb'); xlabel('Years');
 

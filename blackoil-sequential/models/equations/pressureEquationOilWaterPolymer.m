@@ -1,4 +1,5 @@
-function [problem, state] = pressureEquationOilWaterPolymer(state0, state, model, dt, drivingForces, varargin)
+function [problem, state] = pressureEquationOilWaterPolymer(state0, ...
+    state, model, dt, drivingForces, varargin)
 
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -7,9 +8,6 @@ opt = struct('Verbose', mrstVerbose, ...
              'iteration', -1);
 
 opt = merge_options(opt, varargin{:});
-
-% We depend on the getFluxAndPropsWaterPolymer_BO
-require ad-blackoil
 
 W = drivingForces.Wells;
 perf2well = getPerforationToWellMapping(W);
@@ -20,11 +18,8 @@ s = model.operators;
 f = model.fluid;
 G = model.G;
 
-% Properties at current timestep
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
     'polymer', 'polymermax', 'wellsol');
-
-% Properties at previous timestep
 [p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', ...
    'polymer', 'polymermax');
 
@@ -48,83 +43,78 @@ end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qWPoly', 'bhp'};
 
 p_prop = opt.propsPressure;
-if isempty(p_prop)
+otherPropPressure = ~isempty(p_prop);
+if ~otherPropPressure
     p_prop = p;
 end
 
-clear tmp
-
-%check for p-dependent porv mult:
-pvMult = 1; pvMult0 = 1;
-if isfield(f, 'pvMultR')
-    pvMult =  f.pvMultR(p_prop);
-    pvMult0 = f.pvMultR(p0);
-end
-
-if 0 && isfield(wellSol, 'flux')
-    % Linearize saturations in well cells to get mobilities at end of time
-    % integration sort-of-right.
-    bW = f.bW(p_prop);
-    bO = f.bO(p_prop);
-    
-    flux = vertcat(wellSol.flux);
-    wc = vertcat(W.cells);
-    
-    perfcells = wc(perf2well);    
-    in = flux*dt./repmat(s.pv(perfcells), 1, 2);
-    
-    sW(perfcells) = sW(perfcells) + in(:, 1)./bW(perfcells) - in(:, 2)./bO(perfcells);
-    sW = min(sW, 1);
-    sW = max(sW, 0);
-    
-    % TODO Add for polymer here
-    error('Polymer need to be fixed here??')
-end
-
 % -------------------------------------------------------------------------
-
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
 [krW, krO] = model.evaluteRelPerm({sW, sO});
 
+% Multipliers for properties
+[pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, ...
+    p_prop, p0);
+
+% Modifiy relperm by mobility multiplier (if any)
+krW = mobMult.*krW; krO = mobMult.*krO;
+
+% Compute transmissibility
+T = s.T.*transMult;
+
 % Gravity contribution
 gdz = model.getGravityGradient();
 
+% % Evaluate water properties
+% [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p_prop, sW, krW, T, gdz);
+% bW0 = f.bW(p0);
+
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
-%ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
-    krW, s.T, gdz);
-bWvW = s.faceUpstr(upcw, bW).*vW;
-%bWvP = s.faceUpstr(upcw, bW).*vP;
+ads0 = effads(c0, cmax0, model);
+[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
+    getFluxAndPropsWaterPolymer_BO(model, p_prop, sW, c, ads, ...
+    krW, T, gdz);
+bW0 = model.fluid.bW(p0);
 
-[bO, rhoO, mobO, Go, muO] = propsOW_oil(1 - sW, krO, gdz, f, p_prop, s);
-dpO = s.Grad(p) - Go;
-% oil upstream-index
-upco = (double(dpO)<=0);
-vO = - s.faceUpstr(upco, mobO).*s.T.*dpO;
-bOvO = s.faceUpstr(upco, bO).*vO;
+% Evaluate oil properties
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, ...
+    p_prop, sO, krO, T, gdz);
+bO0 = getbO_BO(model, p0);
+
+if otherPropPressure
+    % We have used a different pressure for property evaluation, undo the
+    % effects of this on the fluxes.
+    dp_diff = s.Grad(p) - s.Grad(p_prop);
+    
+    vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
+    vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
+    vP = -s.faceUpstr(upcw, mobP).*s.T.*(dpW + dp_diff);
+end
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
 state = model.storeFluxes(state, vW, vO, vP);
-state = model.storeUpstreamIndices(state, upcw, upco, []);
+state = model.storeUpstreamIndices(state, upcw, upco, upcw);
 if model.extraStateOutput
-    state = model.storebfactors(state, bW, bO, []);
+    state = model.storebfactors(state, bW, bO, bW);
     state = model.storeMobilities(state, mobW, mobO, mobP);
 end
 
 % EQUATIONS ---------------------------------------------------------------
-% oil:
-bO0 = f.bO(p0);
-bW0 = f.bW(p0);
+% Upstream weight b factors and multiply by interface fluxes to obtain the
+% fluxes at standard conditions.
 
-oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*f.bO(p0).*sO0) + s.Div(bOvO);
+bOvO = s.faceUpstr(upco, bO).*vO;
+bWvW = s.faceUpstr(upcw, bW).*vW;
 
-% water:
-wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0 ) + s.Div(bWvW);
+% Oil
+oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0) + s.Div(bOvO);
+
+% Water
+wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
 [eqs, names, types] = deal({});
 
@@ -137,70 +127,35 @@ if ~isempty(W)
     mw   = {mobW(wc), mobO(wc)};
     s = {sW(wc), 1 - sW(wc)};
 
-    
-    if 0
-        sO_w = sO(wc) + dt*qOs./(bO(wc).*model.operators.pv(wc));
-        sW_w = sW(wc) + dt*qWs./(bW(wc).*model.operators.pv(wc));
-        
-        sO_w = min(max(sO_w, 0), 1);
-        sW_w = min(max(sW_w, 0), 1);
-        
-        pw = p_prop(wc);
-        
-        
-        muW_w = muW(wc);
-        muO_w = muO(wc);
-
-        [krW_w, krO_w] = model.evaluteRelPerm({sW_w, sO_w});
-        
-        mobWw = krW_w./muW_w;
-        mobOw = krO_w./muO_w;
-        
-        mw    = {mobWw, mobOw};        
-        bw    = {bW(wc), bO(wc)};
-    else
-        mw    = {mobW(wc), mobO(wc)};
-        bw    = {bW(wc), bO(wc)};
-    end
-
-    
-    wm = WellModel();
-    [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                                         pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-                                         'nonlinearIteration', opt.iteration);
-    
-	% Store the well equations (relate well bottom hole pressures to
-    % influx).
-	eqs(2:3) = weqs;
-    
-    % Store the control equations (trivial equations ensuring that each
-    % well will have values corresponding to the prescribed value)
+    wm = model.wellmodel;
+    [cqs, weqs, ctrleqs, wc, state.wellSol, cqr] = ...
+        wm.computeWellFlux(model, W, wellSol, pBH, {qWs, qOs}, pw, ...
+        rhos, bw, mw, s, {}, 'nonlinearIteration', opt.iteration);
+    eqs(2:3) = weqs;
     eqs{5} = ctrleqs;
-    
-    % Polymer well equations
-    [~, wciPoly, iInxW] = getWellPolymer(W);
-    cw        = c(wc);
-    cw(iInxW) = wciPoly;
-    
-    % Well polymer rate for each well is water rate in each perforation
-    % multiplied with polymer concentration in that perforated cell.
-    perf2well = getPerforationToWellMapping(W);
-    Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
-       numel(W), numel(perf2well));
-    eqs{4} = qWPoly - Rw*(cqs{1}.*cw);
     
     qW = cqr{1};
     qO = cqr{2};
     
-    oil(wc) = oil(wc) - cqs{2};
     wat(wc) = wat(wc) - cqs{1};
-
+    oil(wc) = oil(wc) - cqs{2};
+    
+    % Polymer well equations
+    % Well polymer rate for each well is water rate in each perforation
+    % multiplied with polymer concentration in that perforated cell.
+    [~, wciPoly, iInxW] = getWellPolymer(W);
+    cw        = c(wc);
+    cw(iInxW) = wciPoly;
+    Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
+       numel(W), numel(perf2well));
+    eqs{4} = qWPoly - Rw*(cqs{1}.*cw);
+    
     names(2:5) = {'oilWells', 'waterWells', 'polymerWells', ...
         'closureWells'};
     types(2:5) = {'perf', 'perf', 'perf', 'well'};
 end
 
-eqs{1} = oil./bO + wat./bW;
+eqs{1}   = oil./bO + wat./bW;
 names{1} = 'pressure';
 types{1} = 'cell';
 
@@ -212,12 +167,14 @@ for i = 1:numel(W)
 end
 
 state.s0 = state0.s;
+state.c0 = state0.c;
 state.bfactor0 = [double(bW0), double(bO0)];
 
 end
 
 
-
+%--------------------------------------------------------------------------
+% Helper functions
 %--------------------------------------------------------------------------
 
 function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
@@ -251,8 +208,6 @@ function y = effads(c, cmax, model)
       y = model.fluid.ads(c);
    end
 end
-
-
 
 
 
