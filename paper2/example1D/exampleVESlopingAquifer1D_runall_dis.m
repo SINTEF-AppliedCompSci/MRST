@@ -1,13 +1,13 @@
-%% VE simulation in a standard black - oil solver
-% In this example we show how to set up a standard format black - oil
+%% VE simulation in a standard black-oil solver
+% In this example we show how to set up a standard format black-oil
 % model that can be used to simulate a VE model. For the actual
-% simulation, we use the fully - implicit solver in MRST from the 'ad - fi'
+% simulation, we use the fully-implicit solver in MRST from the 'ad-fi'
 % module, which is based on automatic differentiation. 
 
 try
-   require deckformat ad - fi
+   require deckformat ad-fi
 catch% #ok<CTCH>
-   mrstModule add deckformat ad - fi
+   mrstModule add deckformat ad-fi
 end
 data_dir = 'data_all_results_after / '; 
 mkdir(data_dir); 
@@ -44,8 +44,8 @@ for use_dis = [true, false];
             phi = 0.03; % Porosity
             
             %% Create input deck and construct grid
-            % Create an input deck that can be used together with the fully - implicit
-            % solver from the 'ad - fi' module. Since the grid is constructed as part of
+            % Create an input deck that can be used together with the fully-implicit
+            % solver from the 'ad-fi' module. Since the grid is constructed as part of
             % setting up the input deck, we obtain it directly. 
             G = cartGrid([nx, ny, nz], [Lx, Ly, H]); 
             x = G.nodes.coords(:, 1); 
@@ -73,9 +73,9 @@ for use_dis = [true, false];
             %% Initialize data structures
             % First, we convert the input deck to SI units, which is the unit system
             % used by MRST. Second, we initialize the rock parameters from the deck; 
-            % the resulting data structure may have to be post - processed to remove
-            % inactive cells. Then we set up the fluid object and tell the ad - fi solver
-            % that that we are working with an oil - gas system.
+            % the resulting data structure may have to be post-processed to remove
+            % inactive cells. Then we set up the fluid object and tell the ad-fi solver
+            % that that we are working with an oil-gas system.
             % deck = convertDeckUnits(deck); 
             % rock = initEclipseRock(deck); 
             % rock = compressRock(rock, G.cells.indexMap); 
@@ -112,7 +112,7 @@ for use_dis = [true, false];
             % defnine relperm
             fluid = {}
             fluidADI.surface_tension = 30e-3; 
-            ff_names = {'sharp interface', 'linear cap.', 'P - scaled table', 'P - K - scaled table', 'S table'}; 
+            ff_names = {'sharp interface', 'linear cap.', 'P-scaled table', 'P-K-scaled table', 'S table'}; 
             
             leg = {}; 
             rock2D = averageRock(rock, Gt); 
@@ -182,7 +182,7 @@ for use_dis = [true, false];
                                                 'table_co2', table_co2_1d,...
                                                 'table_water', table_water_1d); 
                  
-                 case 'P - scaled table'
+                 case 'P-scaled table'
                    C = max(opt.Gt.cells.H) * 0.4 * drho * norm(gravity); 
                    alpha = 0.5; 
                    beta = 3; 
@@ -202,7 +202,7 @@ for use_dis = [true, false];
                                                         'table_co2', table_co2_1d,...
                                                         'table_water', table_water_1d,...
                                                         'kr_pressure', true); 
-                 case 'P - K - scaled table'        
+                 case 'P-K-scaled table'        
                    
                    kscale = sqrt(rock2D.poro ./ (rock2D.perm)) * fluid.surface_tension; 
                    C = 1; 
@@ -253,7 +253,7 @@ for use_dis = [true, false];
                % x0 = initEclipseState(G, deck, initEclipseFluid(deck)); 
                z = G.cells.centroids(:, 3); 
                clear x0; 
-               % x0.pressure = ipress * barsa + (z(:) - z(end)) * norm(gravity) * fluid.rhoOS; 
+               % x0.pressure = ipress * barsa + (z(:)-z(end)) * norm(gravity) * fluid.rhoOS; 
                x0.pressure = W(2).val + (z(:) - z(W(2).cells)) * norm(gravity) * fluid.rhoOS; 
                x0.s(:, 1) = ones(G.cells.num, 1); 
                x0.s(:, 2) = zeros(G.cells.num, 1); 
