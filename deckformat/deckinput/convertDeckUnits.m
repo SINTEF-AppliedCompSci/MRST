@@ -270,10 +270,17 @@ function props = convertPROPS(props, u)                                %#ok
              % the last one should be TEMPERATURE, while we DONOT support
              % unit conversion for temperature at the moment.
              props.(key).refcondition = convertFrom(props.(key).refcondition, unt);
-             unt = [u.length/u.time, 1];
+             if isfield(props, 'SHRATE')
+                 unt = [1/u.time, 1];
+             else
+                 unt = [u.length/u.time, 1];
+             end
              for t = 1 : numel(props.(key).data),
                 props.(key).data{t} = convertFrom(props.(key).data{t}, unt);
              end
+         case 'SHRATE'
+            unt = 1;
+            props.(key) = convertFrom(props.(key), unt);
 
          case 'PVCDO',
             unt         = [u.press, 1, u.compr, u.viscosity, u.compr];

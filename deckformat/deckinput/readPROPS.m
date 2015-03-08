@@ -70,6 +70,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              prp.(kw).data = data;
              clear data;
 
+         case 'SHRATE',
+             tmpl(1:1) = {'4.8'};
+             data = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
+             prp.(kw) = to_double(data); clear tmpl
+
          case 'PVCDO',
             tmpl(1:5) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
