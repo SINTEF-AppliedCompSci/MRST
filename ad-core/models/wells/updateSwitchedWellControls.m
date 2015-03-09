@@ -17,15 +17,16 @@ else
             continue
         end
         lims = W(wnr).lims;
-        if ~allowWellSignChange
-            lims.vrat = -inf;
-        else
-            lims.vrat = -inf;
-        end
+
         pBHw  = pBH(wnr);
         q_sw  = q_s(wnr,:);
         qt_sw = sum(q_sw);
         if ~isnumeric(W(wnr).lims)
+            if ~allowWellSignChange
+                lims.vrat = -inf;
+            else
+                lims.vrat = -inf;
+            end
             if sol(wnr).sign > 0   % injector
                 modes   = {'bhp', 'rate', 'rate'};
                 flags = [pBHw > lims.bhp, qt_sw > lims.rate, qt_sw < lims.vrat];
