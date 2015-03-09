@@ -76,15 +76,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             
             if model.stepFunctionIsLinear
-                switch class(model)
-                    case 'SequentialPressureTransportModel'
-                        % Use transport solver as the iteration counter as
-                        % the pressure equation should be less nonlinear.
-                        getIts = @(x) x.NonlinearReport{end}.TransportSolver.Iterations;
-                    otherwise
-                        error(['Step function is linear, but I do not know',...
-                            ' how to calculate the iterations for models of type ', ...
-                            class(model)]);
+                if isa(model, 'SequentialPressureTransportModel')
+                    % Use transport solver as the iteration counter as
+                    % the pressure equation should be less nonlinear.
+                    getIts = @(x) x.NonlinearReport{end}.TransportSolver.Iterations;
+                else
+                    error(['Step function is linear, but I do not know',...
+                        ' how to calculate the iterations for models of type ', ...
+                        class(model)]);
                 end 
             else
                 getIts = @(x) x.Iterations;
