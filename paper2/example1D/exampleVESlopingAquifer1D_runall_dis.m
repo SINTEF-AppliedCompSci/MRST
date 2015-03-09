@@ -9,7 +9,7 @@ try
 catch% #ok<CTCH>
    mrstModule add deckformat ad-fi
 end
-data_dir = 'data_all_results_after / '; 
+data_dir = 'data_all_results_after/'; 
 mkdir(data_dir); 
 %% Parameters for the simulation
 % close all
@@ -17,31 +17,26 @@ mkdir(data_dir);
 mrstVerbose true
 gravity on
 force_timesteps = false; 
-if(true)
-   n_fac = 10; 
-   T_inj = 50 * year; dt_inj = 10 * year / 5; 
-   T_mig = 2000 * year; dt_mig = 100 * year / 5; 
-else
-   n_fac = 1; 
-   T_inj = 50 * year; dt_inj = 5 * year; 
-   T_mig = 100 * year; dt_mig = 20 * year; 
-end
+
+n_fac = 10; 
+T_inj = 50 * year; dt_inj = 10 * year / 5; 
+T_mig = 2000 * year; dt_mig = 100 * year / 5; 
 
 t1 = tic; 
 
-%%{
+%%
 for use_dis = [true, false]; 
    for depth = [2300, 1300]
       for smooth = [false, true]
-         for res_fluid = [true, false]% , false]
-                                      %}
+         for res_fluid = [true, false]
+                                      
             [nx, ny, nz] = deal(100 * n_fac, 1, 1); % Cells in Cartsian grid
-            [Lx, Ly, H] = deal(30e3, 10e3, 50); % Physical dimensions of reservoir
-            total_time = 5 * year; % Total simulation time
-            nsteps = 40; % Number of time steps in simulation
-            dt = total_time / nsteps; % Time step length
-            perm = 1000; % Permeability in milli darcies
-            phi = 0.03; % Porosity
+            [Lx, Ly, H]  = deal(30e3, 10e3, 50); % Physical dimensions of reservoir
+            total_time   = 5 * year; % Total simulation time
+            nsteps       = 40; % Number of time steps in simulation
+            dt           = total_time / nsteps; % Time step length
+            perm         = 1000; % Permeability in milli darcies
+            phi          = 0.03; % Porosity
             
             %% Create input deck and construct grid
             % Create an input deck that can be used together with the fully-implicit
@@ -53,15 +48,14 @@ for use_dis = [true, false];
             if(smooth)
                G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth - LL * sin(x / LL) * tan(phi);
             else
-               G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth - LL * sin(x / LL) * tan(phi) + 2 * sin(2 * pi * x / 0.3e3); 
+               G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth - LL * sin(x / LL) * tan(phi) ...
+                                      + 2 * sin(2 * pi * x / 0.3e3); 
             end
             G = computeGeometry(G); 
-            rock = struct('perm', 100 * milli * darcy * ones(G.cells.num, 1), 'poro', 0.2 * ones(G.cells.num, 1)); 
-            % Alternatively, we could read deck from file and construct the grid
-            % deck = readEclipseDeck( ...
-            % fullfile(VEROOTDIR, 'data', 'decks', 'sinusDeckAdi.DATA'); 
-            % G = initEclipseGrid(deck); 
-            %% 
+            rock = struct('perm', 100 * milli * darcy * ones(G.cells.num, 1), ...
+                          'poro', 0.2 * ones(G.cells.num, 1)); 
+
+            %%
             W = []; 
             W = createSampleWell(W, G, rock, floor(0.1 * nx),...
                                  'Type', 'rate', 'Val', 1 * 1e6 / year,...
@@ -76,10 +70,7 @@ for use_dis = [true, false];
             % the resulting data structure may have to be post-processed to remove
             % inactive cells. Then we set up the fluid object and tell the ad-fi solver
             % that that we are working with an oil-gas system.
-            % deck = convertDeckUnits(deck); 
-            % rock = initEclipseRock(deck); 
-            % rock = compressRock(rock, G.cells.indexMap); 
-            % fluid = initDeckADIFluid(deck); 
+
             % set the capillary pressure and the VE relperms explicitely
             Gt = topSurfaceGrid(G); 
             
