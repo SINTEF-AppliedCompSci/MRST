@@ -28,7 +28,7 @@ end
  
 function tbl = makeUsatTable(sat_tbl, cv)
     p0 = sat_tbl(:, 1);
-    p = 0.75*p0;
+    p = 1.25*p0;
     
     % Interpolate using constants
     b  = sat_tbl(:, 2).*exp(-(p - p0).*cv(:, 1));
