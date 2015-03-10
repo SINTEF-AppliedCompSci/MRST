@@ -74,6 +74,11 @@ if isempty(pv)
     else
         pv = poreVolume(G, rock);
     end
+    zeropv = find(pv == 0);
+    if ~isempty(zeropv)
+        warning(['I computed zero pore volumes in ', num2str(numel(zeropv)), ...
+                 ' cells. Consider adjusting poro / ntg fields or grid.']);
+    end
 end
 s.pv = pv;
 
