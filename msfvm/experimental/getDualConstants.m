@@ -1,6 +1,7 @@
 function DG = getDualConstants(CG, DG)
     G = CG.parent;
-    [~, DG] = createPermutationMatrix(sparse(G.cells.num, G.cells.num), DG, CG, 'Speedup', true);
+    is3d = CG.griddim == 3 && G.cartDims(3) > 1;
+    [~, DG] = createPermutationMatrix(sparse(G.cells.num, G.cells.num), DG, CG, 'Speedup', is3d);
 
     P = double(DG.P);
     X = restrictOperator(CG, DG, DG.N);

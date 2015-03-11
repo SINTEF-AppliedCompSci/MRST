@@ -39,15 +39,23 @@ if numel(blockSizes) == 2
 end
 G = CG.parent;
 n = G.cells.num;
+
+if G.griddim == 3 && G.cartDims(3) > 1
+    dimension = 3;
+else
+    dimension = 2;
+end
+
 % Decrement all positions because working with zero indexing is easier
 % to work with when partitioning...
 cells = G.cells.indexMap-1;
 % Find positions of all the nodes in ijk space
-spaces = cell(G.griddim,1);
+spaces = cell(dimension,1);
 [spaces{:}] = ind2sub(G.cartDims, G.cells.indexMap);
-uniques = cell(G.griddim,1);
+uniques = cell(dimension,1);
 
-for d = 1:G.griddim
+
+for d = 1:dimension
     ms = min(spaces{d});
     Ms = max(spaces{d});
     % Find the number of positions in the current dimension
@@ -72,8 +80,8 @@ if ~any(strcmp(G.type,'cartGrid'))
     warning('warn:logicalcart','Logical partitioning on non-Cartesian grid!');
 end
 % Gather all the different positions in each D where the grid has dual edges
-tmp = zeros(n,G.griddim);
-for d = 1:G.griddim
+tmp = zeros(n,dimension);
+for d = 1:dimension
     ii = uniques{d};
     for i = 1:numel(ii)
         tmp(:,d) = tmp(:,d) | spaces{d} == ii(i);
@@ -81,13 +89,13 @@ for d = 1:G.griddim
 end
 % The central nodes are those which are in two sets of edges in 2D, and 3
 % sets of edges in 3D. Increment to get one indexing.
-dual.nn =  cells(sum(tmp,2)==G.griddim)+1;
+dual.nn =  cells(sum(tmp,2)==dimension)+1;
 % Any node which exists in more than one edge must be filtered to
 % decouple the edge system. Increment to get original indexing.
 dual.lineedge = cells(sum(tmp,2)>1)+1';
 % Do an OR on each dimension to find all nodes corresponding to the
 % midpoints of each primal coarse block
-if G.griddim == 3
+if dimension == 3
     tmp = tmp(:,1) | tmp(:,2) | tmp(:,3);
 else
     tmp = tmp(:,1) | tmp(:,2);
