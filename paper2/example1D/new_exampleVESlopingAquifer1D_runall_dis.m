@@ -27,11 +27,12 @@ function new_exampleVESlopingAquifer1D_runall_dis(varargin)
                for c_ix = 1:numel(cap_type) % capillarity model to use 
                   
                   Gt        = setup_grid  (opt, smooth, depth);
-                  fluid     = setup_fluid (opt, cap_type{c_ix}, res_sat, use_dis);
+                  fluid     = makeADIFluid(cap_type{c_ix}, res_sat);
                   rock2D    = averageRock (rock, Gt);
                   initState = setup_state (opt);
-                  model     = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
-                  
+                  model     = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, ...
+                                                     'disgas', use_dis, ...
+                                                     'disrate', opt.disrate);
                   [wellSols, states] = ...
                       simulateScheduleAD(initState, model, schedule);
                   
@@ -39,7 +40,6 @@ function new_exampleVESlopingAquifer1D_runall_dis(varargin)
                                            cap_type(c_ix)); 
                   
                   save_result(opt.savedir_name, filename, Gt, result, @@)
-               
                end
             end
          end
@@ -66,13 +66,6 @@ end
 
 function filename = make_filename(dis, depth, smooth, res_sat, ctype)
    
-end
-
-
-% ----------------------------------------------------------------------------
-
-function fluid = setup_fluid(opt, cap_type, use_residual)
-@@
 end
 
 % ----------------------------------------------------------------------------
@@ -129,6 +122,8 @@ function opt = set_options(varargin)
    opt.rho = [760 1100] * kilogram / meter^3; % density   [CO2, brine]
    opt.sr = 0.21; % residual saturation, CO2   (if option is active)
    opt.sw = 0.11; % residual saturation, water (if option is active)
+   opt.disrate = 5e-11;
+   
    
    % Time-related parameters
    opt.T_inj = 50 * year; 
