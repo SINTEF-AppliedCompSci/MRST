@@ -40,7 +40,6 @@ G=removeCells(G,rm_cells);
 G.nodes.coords(:,3)=G.nodes.coords(:,3)+depth;
 G=computeGeometry(G);
 Gt=topSurfaceGrid(G);
-%clear G;
 
 % set the permeability and porosity
 rock.poro = repmat(petrodata.avgporo, Gt.cells.num, 1);

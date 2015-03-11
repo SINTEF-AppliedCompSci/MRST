@@ -1,15 +1,15 @@
-%% VE simulation in a standard black - oil solver
-% In this example we show how to set up a standard format black - oil
+%% VE simulation in a standard black-oil solver
+% In this example we show how to set up a standard format black-oil
 % model that can be used to simulate a VE model. For the actual
-% simulation, we use the fully - implicit solver in MRST from the 'ad - fi'
+% simulation, we use the fully-implicit solver in MRST from the 'ad-fi'
 % module, which is based on automatic differentiation. 
 
 try
-   require deckformat ad - fi
+   require deckformat ad-fi
 catch% #ok<CTCH>
-   mrstModule add deckformat ad - fi
+   mrstModule add deckformat ad-fi
 end
-data_dir = 'data_all_results_after / '; 
+data_dir = 'data_all_results_after/'; 
 mkdir(data_dir); 
 %% Parameters for the simulation
 % close all
@@ -17,35 +17,30 @@ mkdir(data_dir);
 mrstVerbose true
 gravity on
 force_timesteps = false; 
-if(true)
-   n_fac = 10; 
-   T_inj = 50 * year; dt_inj = 10 * year / 5; 
-   T_mig = 2000 * year; dt_mig = 100 * year / 5; 
-else
-   n_fac = 1; 
-   T_inj = 50 * year; dt_inj = 5 * year; 
-   T_mig = 100 * year; dt_mig = 20 * year; 
-end
+
+n_fac = 10; 
+T_inj = 50 * year; dt_inj = 10 * year / 5; 
+T_mig = 2000 * year; dt_mig = 100 * year / 5; 
 
 t1 = tic; 
 
-%%{
+%%
 for use_dis = [true, false]; 
    for depth = [2300, 1300]
       for smooth = [false, true]
-         for res_fluid = [true, false]% , false]
-                                      %}
+         for res_fluid = [true, false]
+                                      
             [nx, ny, nz] = deal(100 * n_fac, 1, 1); % Cells in Cartsian grid
-            [Lx, Ly, H] = deal(30e3, 10e3, 50); % Physical dimensions of reservoir
-            total_time = 5 * year; % Total simulation time
-            nsteps = 40; % Number of time steps in simulation
-            dt = total_time / nsteps; % Time step length
-            perm = 1000; % Permeability in milli darcies
-            phi = 0.03; % Porosity
+            [Lx, Ly, H]  = deal(30e3, 10e3, 50); % Physical dimensions of reservoir
+            total_time   = 5 * year; % Total simulation time
+            nsteps       = 40; % Number of time steps in simulation
+            dt           = total_time / nsteps; % Time step length
+            perm         = 1000; % Permeability in milli darcies
+            phi          = 0.03; % Porosity
             
             %% Create input deck and construct grid
-            % Create an input deck that can be used together with the fully - implicit
-            % solver from the 'ad - fi' module. Since the grid is constructed as part of
+            % Create an input deck that can be used together with the fully-implicit
+            % solver from the 'ad-fi' module. Since the grid is constructed as part of
             % setting up the input deck, we obtain it directly. 
             G = cartGrid([nx, ny, nz], [Lx, Ly, H]); 
             x = G.nodes.coords(:, 1); 
@@ -53,15 +48,14 @@ for use_dis = [true, false];
             if(smooth)
                G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth - LL * sin(x / LL) * tan(phi);
             else
-               G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth - LL * sin(x / LL) * tan(phi) + 2 * sin(2 * pi * x / 0.3e3); 
+               G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth - LL * sin(x / LL) * tan(phi) ...
+                                      + 2 * sin(2 * pi * x / 0.3e3); 
             end
             G = computeGeometry(G); 
-            rock = struct('perm', 100 * milli * darcy * ones(G.cells.num, 1), 'poro', 0.2 * ones(G.cells.num, 1)); 
-            % Alternatively, we could read deck from file and construct the grid
-            % deck = readEclipseDeck( ...
-            % fullfile(VEROOTDIR, 'data', 'decks', 'sinusDeckAdi.DATA'); 
-            % G = initEclipseGrid(deck); 
-            %% 
+            rock = struct('perm', 100 * milli * darcy * ones(G.cells.num, 1), ...
+                          'poro', 0.2 * ones(G.cells.num, 1)); 
+
+            %%
             W = []; 
             W = createSampleWell(W, G, rock, floor(0.1 * nx),...
                                  'Type', 'rate', 'Val', 1 * 1e6 / year,...
@@ -73,13 +67,10 @@ for use_dis = [true, false];
             %% Initialize data structures
             % First, we convert the input deck to SI units, which is the unit system
             % used by MRST. Second, we initialize the rock parameters from the deck; 
-            % the resulting data structure may have to be post - processed to remove
-            % inactive cells. Then we set up the fluid object and tell the ad - fi solver
-            % that that we are working with an oil - gas system.
-            % deck = convertDeckUnits(deck); 
-            % rock = initEclipseRock(deck); 
-            % rock = compressRock(rock, G.cells.indexMap); 
-            % fluid = initDeckADIFluid(deck); 
+            % the resulting data structure may have to be post-processed to remove
+            % inactive cells. Then we set up the fluid object and tell the ad-fi solver
+            % that that we are working with an oil-gas system.
+
             % set the capillary pressure and the VE relperms explicitely
             Gt = topSurfaceGrid(G); 
             
@@ -112,7 +103,7 @@ for use_dis = [true, false];
             % defnine relperm
             fluid = {}
             fluidADI.surface_tension = 30e-3; 
-            ff_names = {'sharp interface', 'linear cap.', 'P - scaled table', 'P - K - scaled table', 'S table'}; 
+            ff_names = {'sharp interface', 'linear cap.', 'P-scaled table', 'P-K-scaled table', 'S table'}; 
             
             leg = {}; 
             rock2D = averageRock(rock, Gt); 
@@ -182,7 +173,7 @@ for use_dis = [true, false];
                                                 'table_co2', table_co2_1d,...
                                                 'table_water', table_water_1d); 
                  
-                 case 'P - scaled table'
+                 case 'P-scaled table'
                    C = max(opt.Gt.cells.H) * 0.4 * drho * norm(gravity); 
                    alpha = 0.5; 
                    beta = 3; 
@@ -202,7 +193,7 @@ for use_dis = [true, false];
                                                         'table_co2', table_co2_1d,...
                                                         'table_water', table_water_1d,...
                                                         'kr_pressure', true); 
-                 case 'P - K - scaled table'        
+                 case 'P-K-scaled table'        
                    
                    kscale = sqrt(rock2D.poro ./ (rock2D.perm)) * fluid.surface_tension; 
                    C = 1; 
@@ -253,7 +244,7 @@ for use_dis = [true, false];
                % x0 = initEclipseState(G, deck, initEclipseFluid(deck)); 
                z = G.cells.centroids(:, 3); 
                clear x0; 
-               % x0.pressure = ipress * barsa + (z(:) - z(end)) * norm(gravity) * fluid.rhoOS; 
+               % x0.pressure = ipress * barsa + (z(:)-z(end)) * norm(gravity) * fluid.rhoOS; 
                x0.pressure = W(2).val + (z(:) - z(W(2).cells)) * norm(gravity) * fluid.rhoOS; 
                x0.s(:, 1) = ones(G.cells.num, 1); 
                x0.s(:, 2) = zeros(G.cells.num, 1); 
