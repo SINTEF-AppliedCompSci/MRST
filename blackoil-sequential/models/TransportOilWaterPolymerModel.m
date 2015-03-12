@@ -25,18 +25,26 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
             model.useCNVConvergence = false;
         end
         
-        function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = transportEquationOilWaterPolymer(state0, state, model,...
-                            dt, ...
-                            drivingForces,...
-                            'solveForOil',   model.conserveOil, ...
-                            'solveForWater', model.conserveWater, ...
-                            varargin{:});
-            
+        function [problem, state] = getEquations(model, state0, state, ...
+                dt, drivingForces, varargin)
+            [problem, state] = transportEquationOilWaterPolymer(...
+                state0, state, model, dt, drivingForces,...
+                'solveForOil',   model.conserveOil, ...
+                'solveForWater', model.conserveWater, ...
+                varargin{:});
         end
         
         function [convergence, values] = checkConvergence(model, problem, varargin)
-            [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
+%             [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
+            
+            model.oil = false;
+            [convergence, values] = checkConvergence@ReservoirModel(model, problem, varargin{:});
+            model.oil = true;
+            
+            % Remove polymer residual from conv criterion
+%             values = values(~strcmpi(problem.equationNames, 'polymer'));
+%             convergence = all(values < model.nonlinearTolerance);
+            
             % Always make at least one update so that the problem actually changes.
             convergence = convergence && problem.iterationNo > 1;
         end

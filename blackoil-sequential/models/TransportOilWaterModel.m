@@ -32,7 +32,6 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
                             'solveForOil',   model.conserveOil, ...
                             'solveForWater', model.conserveWater, ...
                             varargin{:});
-            
         end
         
         function [convergence, values] = checkConvergence(model, problem, varargin)

@@ -165,13 +165,16 @@ if opt.solveForWater
     poly(wc) = poly(wc) - bWqP;
     
     % Fix for (almost) zero water in the well
-    epsilon = 1.e-8;
-    epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
-    bad     = abs(diag(poly.jac{2})) < epsilon;
-    poly(bad) = c(bad);
+    if isa(poly, 'ADI')
+       epsilon = 1.e-8;
+       epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
+       bad     = abs(diag(poly.jac{2})) < epsilon;
+       poly(bad) = c(bad);
+    end
     
     eqs{1} = wat;
-    eqs{2} = poly;
+    eqs{2} = poly./f.cmax; % scale with cmax
+    
     names = {'water', 'polymer'};
     types = {'cell', 'cell'};
 else

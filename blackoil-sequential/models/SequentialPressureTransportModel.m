@@ -61,8 +61,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
             
-            fprintf('@@@ PRESSURE STEP\n');
-            
             [state, pressureReport] = ...
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
@@ -72,9 +70,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
             pressure_ok = pressureReport.Converged;
             
             if pressure_ok
-                
-                fprintf('@@@ TRANSPORT STEP\n');
-                
                 % Solve transport
                 [state, transportReport] = ...
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
@@ -84,9 +79,6 @@ classdef SequentialPressureTransportModel < ReservoirModel
                                 'src', drivingForces.src);
                 transport_ok = transportReport.Converged;
             else
-                
-                fprintf('@@@ pressure step not ok\n');
-                
                 transport_ok = false;
                 transportReport = [];
             end
