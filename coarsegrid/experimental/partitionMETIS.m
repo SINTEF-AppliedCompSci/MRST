@@ -29,6 +29,10 @@
 %
 %  ncuts   - Passed onto METIS.
 %
+%  useLog  - Log_10 transform transmissibilities before creating connection
+%            matrix. This can be useful when transmissibilities vary
+%            by several orders of magnitude locally.
+%
 % RETURNS:
 %   p - Partition vector.  Contains no empty or multiply connected blocks.
 %
@@ -60,6 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('ufactor', 1.5, ...
                 'ncuts',   1, ...
                 'seed',    0, ...
+                'useLog',  false, ...
                 'no2hop',  false);
    opt = merge_options(opt, varargin{:});
 
@@ -69,6 +74,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %
    % Note: Use a no-op linear solver to avoid costly linear solve that's
    % not actually needed in this case.
+   if opt.useLog
+       T = log10(T);
+   end
    x = incompTPFA(initState(G, [], 0), G, T, fluid, ...
                   'LinSolve', @(A, x) zeros(size(x)), ...
                   'use_trans',  numel(T) == G.faces.num, ...
