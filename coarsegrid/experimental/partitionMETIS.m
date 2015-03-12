@@ -70,6 +70,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    fluid = initSingleFluid('mu', 1, 'rho', 0*kilogram/meter^3);
 
+   nr = ceil(n);
+   if nr ~= n
+       warning(['Number of blocks should be a natural number! Rounding up: ', ...
+           num2str(n), ' -> ', num2str(nr), '.']);
+      n = nr;
+   end
    % Assemble matrix of connection strengths.
    %
    % Note: Use a no-op linear solver to avoid costly linear solve that's
