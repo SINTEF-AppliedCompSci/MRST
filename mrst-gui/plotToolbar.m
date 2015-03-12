@@ -154,7 +154,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     ijk = cell(size(G.cartDims));
-    [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
+    if isfield(G.cells, 'indexMap');
+        [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
+    end
 
 
     % Plotting parameters
