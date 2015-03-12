@@ -5,7 +5,7 @@ function [wellSols, states, schedulereport] = ...
 % SYNOPSIS:
 %   wellSols = simulateScheduleAD(initState, model, schedule)
 %
-%   [wellSols, state, report]  = simulateScheduleAD(initState, model)
+%   [wellSols, state, report]  = simulateScheduleAD(initState, model, schedule)
 %
 % DESCRIPTION:
 %   This function takes in a valid schedule file (see required parameters)
