@@ -53,16 +53,20 @@ function Wc = handleWell(model, W, opt)
     % cstatus
     Wc.cstatus = true(nc, 1);
     
-    % Extract topology.
-    mp = [0; newMap];
-    newtopo = mp(W.topo + 1);    
-    % eliminate redundant connections due to cell collapsing in coarser
-    % model
-    newtopo = sort(newtopo, 2);
-    newtopo = uniqueStable(newtopo, 'rows');
-    newtopo = newtopo(newtopo(:,1) ~= newtopo(:, 2), :);
-    
-    Wc.topo = newtopo;
+    if isfield(W, 'topo')
+        % Extract topology.
+        mp = [0; newMap];
+        newtopo = mp(W.topo + 1);    
+        % eliminate redundant connections due to cell collapsing in coarser
+        % model
+        newtopo = sort(newtopo, 2);
+        newtopo = uniqueStable(newtopo, 'rows');
+        newtopo = newtopo(newtopo(:,1) ~= newtopo(:, 2), :);
+
+        newtopo = sortrows(newtopo);
+
+        Wc.topo = newtopo;
+    end
     Wc.parentIndices = firstInd;
 end
 
