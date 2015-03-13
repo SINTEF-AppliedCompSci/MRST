@@ -117,7 +117,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-opt = struct('bc', [], 'src', [], 'wells', [], 'reverse', false, 'tracer', {{}});
+opt = struct('bc',          [], ...
+             'src',         [], ...
+             'wells',       [], ...
+             'reverse',     false,...
+             'allowInf',    false, ...
+             'badTol',      0.001, ...
+             'tracer',      {{}});
 opt = merge_options(opt, varargin{:});
 
 assert (~all([isempty(opt.src), isempty(opt.bc), isempty(opt.wells)]), ...
@@ -136,6 +142,8 @@ if ~iscell(tr), tr = {tr}; end
 % fluxes from boundary conditions.
 [q,qb] = computeSourceTerm(state, G, opt.wells, opt.src, opt.bc);
 
+pv = poreVolume(G, rock);
+
 if opt.reverse,
    q  = -q;
    qb = -qb;
@@ -153,9 +161,36 @@ i  = ~any(G.faces.neighbors==0, 2);
 n  = double(G.faces.neighbors(i,:));
 nc = G.cells.num;
 qp = max(q+qb, 0);
-A  = sparse(n(:,2), n(:,1),  max(state.flux(i), 0), nc, nc)...
-   + sparse(n(:,1), n(:,2), -min(state.flux(i), 0), nc, nc);
-A  = -A + spdiags(sum(A,2)+2*qp, 0, nc, nc);
+
+out = min(state.flux(i), 0);
+in  = max(state.flux(i), 0);
+
+% Cell wise total out/inflow
+outflow = accumarray([n(:, 2); n(:, 1)], [out; -in]);
+inflow  = accumarray([n(:, 2); n(:, 1)], [in; -out]);
+
+% The diagonal entries are equal to the sum of outfluxes, plus the absolute
+% value of any source terms to ensure that the cell has the value after it
+% is half-filled
+d = -(outflow - abs(q + qb));
+
+% Any cells that have no inflow and no source terms are problematic for the
+% formulation. These cells can occur from a non-converged pressure solution
+% or if the problem is not incompressible.
+isSingular = full(inflow./mean(inflow) < opt.badTol & q == 0 & qb == 0);
+% Set inflow/outflow for those cells to zero
+in (isSingular(n(:, 1))) = 0;
+out(isSingular(n(:, 2))) = 0;
+
+% Set diagonal to 1 and pv to one so that the cell gets infinite tof
+% without producing an ill-posed linear system.
+d(isSingular) = 1;
+pv(isSingular) = inf;
+
+% Inflow flux matrix
+A  = sparse(n(:,2), n(:,1),  in, nc, nc)...
+   + sparse(n(:,1), n(:,2), -out, nc, nc);
+A = -A + spdiags(d, 0, nc, nc);
 
 % Subtract the divergence of the velocity minus any source terms from the
 % diagonal to account for compressibility effects. Inflow/outflow from
@@ -174,7 +209,16 @@ for i=1:numTrRHS,
 end
 
 % Time of flight for a divergence-free velocity field.
-T  = A \ [poreVolume(G,rock) TrRHS];
+T  = A \ [pv TrRHS];
+
+if ~opt.allowInf
+    % User does not want inf values in output (could be problematic for
+    % some automatic post processing). Set those values to the maximum
+    % non-infinite value found in the remaining cells.
+    bad = isinf(T(:, 1));
+    T(bad, 1) = max(T(~bad, 1));
+end
+
 end
 
 
