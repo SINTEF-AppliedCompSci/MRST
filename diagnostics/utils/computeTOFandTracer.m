@@ -72,19 +72,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % Process optional parameters
 opt = struct('bc', [], 'src', [], 'wells', []);
 opt = merge_options(opt, varargin{:});
-assert(~isempty(opt.wells));
-assert(isempty(opt.src), 'Source terms not supported yet');
-assert(isempty(opt.bc),  'Boundary conditions not supported yet');
-%assert (isempty(opt.src) || ~isempty(opt.src.sat), ...
-%   'Source terms must have a valid ''sat'' field.');
-%assert (isempty(opt.bc) || ~isempty(opt.bc.sat), ...
-%   'Boundary conditions must have a valid ''sat'' field.');
 
-assert (isfield(rock, 'poro')         && ...
-        numel(rock.poro)==G.cells.num,   ...
-        ['The rock input must have a field poro with porosity ',...
-         'for each cell in the grid.']);
-assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
+check_input(G, rock, opt);
 
 state = validateStateForDiagnostics(state);
 
@@ -108,6 +97,23 @@ D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:end);
 [val,D.ppart] = max(D.ptracer,[],2);
 end
+
+%--------------------------------------------------------------------------
+
+function check_input(G, rock, opt)
+   assert(~isempty(opt.wells));
+   assert(isempty(opt.src), 'Source terms not supported yet');
+   assert(isempty(opt.bc),  'Boundary conditions not supported yet');
+
+   assert (isfield(rock, 'poro')         && ...
+           numel(rock.poro)==G.cells.num,   ...
+          ['The rock input must have a field poro with porosity ',...
+           'for each cell in the grid.']);
+
+   assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
+end
+
+%--------------------------------------------------------------------------
 
 function flux = getTotalWellSolFlux(wellSol)
     nw = numel(wellSol);
