@@ -1,4 +1,4 @@
-function plotWellSols(wellsols, varargin)
+function [fh, inject] = plotWellSols(wellsols, varargin)
 
     if mod(numel(varargin), 2) == 1
         timesteps = varargin{1};
@@ -14,18 +14,7 @@ function plotWellSols(wellsols, varargin)
         wellsols = {wellsols};
     end
     
-    if isa(timesteps, 'double')
-        % Single input, wrap in cell
-        timesteps = {timesteps};
-    end
-    
-    % Single set of matching timesteps for multiple well sols
-    if numel(timesteps) ~= numel(wellsols)
-        assert(numel(timesteps) == 1);
-        tmp = cell(size(wellsols));
-        [tmp{:}] = deal(timesteps{1});
-        timesteps = tmp; clear tmp
-    end
+    timesteps = validateTimesteps(wellsols, timesteps);
     
     % Timesteps are either cumulative or individual timesteps. Try to
     % detect if timesteps are actually decreasing or repeated, even though
@@ -41,6 +30,7 @@ function plotWellSols(wellsols, varargin)
                  'field',       'bhp', ...
                  'linestyles', {{'--', ':', '-', '-.'}}, ...
                  'markerstyles', {{'o', '.', 'd', '*'}}, ...
+                 'figure',      [], ...
                  'datasetnames', {{}});
     [opt, plotvararg] = merge_options(opt, varargin{:});
     
@@ -65,7 +55,11 @@ function plotWellSols(wellsols, varargin)
     end
     % Make a figure that's wider than the default.
     df = get(0, 'DefaultFigurePosition');
-    fh = figure('Position', df.*[1 1 1.75 1]);
+    if isempty(opt.figure) || ~ishandle(fh)
+        fh = figure('Position', df.*[1 1 1.75 1]);
+    else
+        fh = opt.figure;
+    end
     % We want to ensure that the lines are nice and pretty even if the user
     % has messed with the defaults.
     set(fh, 'Renderer', 'painters');
@@ -414,6 +408,17 @@ function plotWellSols(wellsols, varargin)
                      [varnames, 'wellnames'], ...
                      {currentdata{:}, wells})
     end
+
+    function injectDataset(ws, steps)
+        if nargin == 1
+            hasTimesteps = false;
+            steps = [];
+        end
+        wellsols = ws;
+        timesteps = validateTimesteps(wellsols, steps);
+        drawPlot([], []);
+    end
+    inject = @(ws, varargin) injectDataset(ws, varargin{:});
 end
 
 function [tit, d, yl] = getWellUnit(d, fld, usys)
@@ -505,4 +510,19 @@ function d = getData(wellname, wellnames, field, ws)
     ind = find(strcmpi(wellname, wellnames));
     assert(numel(ind) == 1, 'Multiple wells with same name!');
     d = cellfun(@(x) x(ind).(field), ws);
+end
+
+function timesteps = validateTimesteps(wellsols, timesteps)
+    if isa(timesteps, 'double')
+        % Single input, wrap in cell
+        timesteps = {timesteps};
+    end
+    
+    % Single set of matching timesteps for multiple well sols
+    if numel(timesteps) ~= numel(wellsols)
+        assert(numel(timesteps) == 1);
+        tmp = cell(size(wellsols));
+        [tmp{:}] = deal(timesteps{1});
+        timesteps = tmp; clear tmp
+    end
 end
