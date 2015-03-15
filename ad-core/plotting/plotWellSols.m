@@ -196,6 +196,7 @@ function [fh, inject] = plotWellSols(wellsols, varargin)
     drawPlot([], []);
     
     function drawPlot(src, event, varargin)
+        set(0, 'CurrentFigure', fh);
         fld = getFieldString(fieldsel, true);
         wells = getFieldString(wellsel, false);
         

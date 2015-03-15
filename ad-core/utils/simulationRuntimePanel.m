@@ -11,7 +11,6 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
         snd = findobj('Tag', 'playsound');
         
         pause(sqrt(eps));
-        get(cancel, 'Value')
         playSound = get(snd, 'Value');
         if stepNo == 1
             set(cancel, 'Value', false);
@@ -117,12 +116,12 @@ function h = getPanel()
     if isempty(h)
         h = createPanel();
     end
-    clf;
+    clf(h);
 end
 
 function simpleUIbar(parent, data, start, height, txt)
     h = height/2;
-    figure(parent);
+    set(0, 'CurrentFigure', parent);
     axes('position', [0.1, start + h, .8, h])
     plotProgress(data)
     

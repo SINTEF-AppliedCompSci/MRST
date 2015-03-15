@@ -35,7 +35,7 @@ function [model, states, reports, ok] = afterStepFunction(model, states, reports
     end
     
     if ~isnan(hwell) && ishandle(hwell)
-        figure(hwell);
+        set(0, 'CurrentFigure', hwell);
         ws = cellfun(@(x) x.wellSol, st, 'uniformoutput', false);
         % Note: We are not actually considering the case where ministeps
         % are being inputed, which would result in an error
