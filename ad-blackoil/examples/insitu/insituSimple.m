@@ -8,8 +8,10 @@ mrstModule add ad-core ad-blackoil ad-props ad-fi mrst-gui
 
 %% Simulate the problem
 close all
-fn = getPlotAfterStep(state0, model, schedule);
-%%
+fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, 'plotReservoir', false);
+
 
 [wellSols, states, report] = simulateScheduleAD(state0, model, schedule, ...
     'Verbose', true, 'afterStepFn', fn);
+%%
+close all

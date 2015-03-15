@@ -1,26 +1,36 @@
-function fn = getPlotAfterStep(state0, model, schedule)
+function fn = getPlotAfterStep(state0, model, schedule, varargin)
+    opt = struct('plotWell', true, 'plotReservoir', true);
+    opt = merge_options(opt, varargin{:});
+    
     G = model.G;
     
     W = schedule.control(1).W;
     
-    if ~isempty(W)
+    if ~isempty(W) && opt.plotWell
         ws = initWellSolAD(schedule.control(1).W, model, state0);
         ws0 = {ws; ws};
         [hwell, injectWell] = plotWellSols(ws0);
     else
         [hwell, injectWell] = deal(nan);
     end
-    hdata = figure;
-    [~, injData] = plotToolbar(G, {state0; state0});
-    fn = @(model, states, reports, schedule) afterStepFunction(model, states, reports, schedule, injData, injectWell, hdata, hwell);
+    
+    if opt.plotReservoir
+        hdata = figure;
+        [~, injData] = plotToolbar(G, {state0; state0});
+    else
+        [hdata, injData] = deal(nan);
+    end
+    fn = @(model, states, reports, schedule, simtime) afterStepFunction(model, states, reports, schedule, simtime, injData, injectWell, hdata, hwell);
 end
 
-function [model, states, reports, ok] = afterStepFunction(model, states, reports, schedule, injData, injectWell, hdata, hwell)
+function [model, states, reports, ok] = afterStepFunction(model, states, reports, schedule, simtime, injData, injectWell, hdata, hwell)
     computed = cellfun(@(x) ~isempty(x), states);
     current = find(computed, 1, 'last');
     
-    st = states(computed);    
-    if ishandle(hdata)
+    st = states(computed);   
+    rep = reports(computed);
+    simtime = simtime(computed);
+    if ~isnan(hwell) && ishandle(hdata)
         injData(model.G, st, current);
     end
     
@@ -37,4 +47,9 @@ function [model, states, reports, ok] = afterStepFunction(model, states, reports
     end
     
     ok = true;
+    if 1
+        ok = ok & simulationRuntimePanel(model, reports, schedule, simtime);
+    end
+    
+
 end
