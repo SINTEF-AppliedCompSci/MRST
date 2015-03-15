@@ -116,6 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'OutputMinisteps', false, ...
                  'NonLinearSolver', [], ...
                  'OutputHandler',   [], ...
+                 'afterStepFn',     [], ...
                  'LinearSolver',    []);
 
     opt = merge_options(opt, varargin{:});
@@ -235,6 +236,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if wantReport
             reports{i} = report;
+        end
+        
+        if ~isempty(opt.afterStepFn)
+            [model, states, reports, ok] = opt.afterStepFn(model, states, reports, schedule);
+            if ~ok
+                warning('Aborting due to external function');
+                break
+            end
         end
     end
 
