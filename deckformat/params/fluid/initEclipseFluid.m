@@ -71,8 +71,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [pvtfun, rho_s, n, info1, incomp] = eclipsePhaseProperties(deck);
    [relperm, pcap, info2]            = eclipseRelperm        (deck);
 
-   pvtfun = clear_absent(pvtfun, n);
-
    fluid.names = n;
    fluid.info  = [info1, info2];
    if isfield(deck.RUNSPEC, 'TITLE'),
@@ -85,6 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % Multiple PVT regions not supported.  Pick region one.
       rho_s     = rho_s(1, :);
       func      = cellfun(@(f) f{1}, pvtfun, 'UniformOutput', false);
+      func      = clear_absent(func, n);
       fluid.pvt = @(p, z) blackOilPVT(func, rho_s, p, z);
       clear func
 
@@ -92,6 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ['Multiple PVT regions not supported.\n', ...
              '\t-> Using region one (1) only.\n\n']);
    else
+      pvtfun = clear_absent(pvtfun, n);
       fluid.pvt = @(p, z) blackOilPVT(pvtfun, rho_s, p, z);
    end
 
