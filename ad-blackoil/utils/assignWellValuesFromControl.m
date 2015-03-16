@@ -27,6 +27,8 @@ function wellSol = assignWellValuesFromControl(model, wellSol, W, wi, oi, gi)
                 ws.qWs = v;
             case 'grat'
                 ws.qGs = v;
+            case 'lrat'
+                % Do nothing
             otherwise
                 error('Unknown well control mode');
         end
