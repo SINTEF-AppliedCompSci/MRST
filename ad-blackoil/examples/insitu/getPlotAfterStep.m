@@ -8,10 +8,12 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
     
     if ~isempty(W) && opt.plotWell
         ws = initWellSolAD(schedule.control(1).W, model, state0);
-        sources = {vertcat(ws.qWs), vertcat(ws.qOs), vertcat(ws.qGs)};
+        nc = numel(vertcat(W.cells));
+        d = ones(nc, 1);
+        sources = {d, d, d};
         
         model.wellmodel.W = W;
-%         ws = model.wellmodel.updateWellSolStatistics(ws, sources, model);
+        ws = model.wellmodel.updateWellSolStatistics(ws, sources, model);
 
         ws0 = {ws; ws};
         
@@ -34,11 +36,13 @@ end
 
 function [model, states, reports, solver, ok] = afterStepFunction(model, states, reports, solver, schedule, simtime, injData, injectWell, hdata, hwell)
     computed = cellfun(@(x) ~isempty(x), states);
+    ctrl_computed = cellfun(@(x) ~isempty(x), reports);
+    
     current = find(computed, 1, 'last');
     
     st = states(computed);   
-    rep = reports(cellfun(@(x) ~isempty(x), reports));
-    simtime = simtime(computed);
+    rep = reports(ctrl_computed);
+    simtime = simtime(ctrl_computed);
     if ~isnan(hwell) && ishandle(hdata)
         injData(model.G, st, current);
     end
@@ -63,7 +67,9 @@ function T = getTimesteps(reports)
     for i = 1:numel(reports)
         for j = 1:numel(reports{i}.StepReports)
             r = reports{i}.StepReports{j};
-            T = [T; r.Timestep];
+            if r.Converged
+                T = [T; r.Timestep];
+            end
         end
     end
     T = cumsum(T);

@@ -1,7 +1,7 @@
 %% Gravity segregation using two phase AD solvers
 mrstVerbose on
 mrstModule add ad-core ad-blackoil ad-props ad-fi mrst-gui
-[schedule, model, state0] = getBenchmarkAD('spe1');
+[schedule, model, state0] = getBenchmarkAD('spe9');
 
 % lim = 10;
 % schedule.step.val = schedule.step.val(1:lim);
