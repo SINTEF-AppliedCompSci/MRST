@@ -14,4 +14,4 @@ fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, 'plotReservoir'
 mrstModule add agmg
 linsolve = CPRSolverAD('ellipticSolver', AGMGSolverAD());
 [wellSols, states, report] = simulateScheduleAD(state0, model, schedule, ...
-    'Verbose', true, 'afterStepFn', fn, 'linearsolver', linsolve);
+    'Verbose', true, 'afterStepFn', fn, 'linearsolver', linsolve, 'outputministeps', true);

@@ -37,7 +37,7 @@ function [model, states, reports, solver, ok] = afterStepFunction(model, states,
     current = find(computed, 1, 'last');
     
     st = states(computed);   
-    rep = reports(computed);
+    rep = reports(cellfun(@(x) ~isempty(x), reports));
     simtime = simtime(computed);
     if ~isnan(hwell) && ishandle(hdata)
         injData(model.G, st, current);
@@ -48,10 +48,7 @@ function [model, states, reports, solver, ok] = afterStepFunction(model, states,
         ws = cellfun(@(x) x.wellSol, st, 'uniformoutput', false);
         % Note: We are not actually considering the case where ministeps
         % are being inputed, which would result in an error
-        T  = cumsum(schedule.step.val(computed));
-        if numel(T) ~= numel(ws)
-            T = (1:numel(ws))';
-        end
+        T = getTimesteps(rep);
         injectWell({ws}, T)
     end
     
@@ -59,6 +56,15 @@ function [model, states, reports, solver, ok] = afterStepFunction(model, states,
     if 1
         ok = ok & simulationRuntimePanel(model, states, reports, solver, schedule, simtime);
     end
-    
+end
 
+function T = getTimesteps(reports)
+    T = [];
+    for i = 1:numel(reports)
+        for j = 1:numel(reports{i}.StepReports)
+            r = reports{i}.StepReports{j};
+            T = [T; r.Timestep];
+        end
+    end
+    T = cumsum(T);
 end
