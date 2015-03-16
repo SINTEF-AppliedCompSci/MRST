@@ -20,6 +20,8 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
     else
         [hdata, injData] = deal(nan);
     end
+    hdata = double(hdata);
+    hwell = double(hwell);
     fn = @(model, states, reports, schedule, simtime) afterStepFunction(model, states, reports, schedule, simtime, injData, injectWell, hdata, hwell);
 end
 

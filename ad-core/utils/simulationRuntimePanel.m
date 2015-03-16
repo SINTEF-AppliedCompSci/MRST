@@ -86,9 +86,9 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
     
     uicontrol(p, 'units', 'Normalized', ...
         'Style', 'text', 'string', txt,...
-        'position', [0.1, 0.15, .8, .05])
+        'position', [0.1, 0.10, .8, .05])
     
-    p2 = uipanel(p, 'position', [0 0 1 .15]);
+    p2 = uipanel(p, 'position', [0 0 1 .10]);
     uicontrol(p2, 'units', 'Normalized', ...
         'Tag', 'cancelsim', ...
         'Style', 'togglebutton', 'string', 'Abort',...
@@ -108,7 +108,13 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
 end
 
 function p = createPanel()
-    p = figure('Tag', 'mrst-simpanel', 'Color', [1 1 1]);
+    try
+        c = get(0,'defaultUicontrolBackgroundColor');
+    catch
+        c = [1 1 1];
+    end
+    df = get(0, 'defaultFigurePosition');
+    p = figure('Tag', 'mrst-simpanel', 'Color', c, 'position', df.*[1 1 1 1.5]);
 end
 
 function h = getPanel()
