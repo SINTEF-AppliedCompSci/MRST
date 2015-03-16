@@ -6,6 +6,16 @@ function f  = makeFluidModel(aquifer, varargin)
 %   f = makeFluidModel(aquifer, 'pn1','pv1')
 %
 % PARAMETERS:
+%    - aquifer     : structure representing the aquifer.  Has two fields:
+%                    - 'G'      - the original 3D grid
+%                    - 'Gt'     - a top surface grid representation of 'G'
+%                    - 'rock'   - a structure containing the rock parameters
+%                                 (permeability and porosity) for the original
+%                                 3D grid
+%                    - 'rock2D' - a structure containing the rock parameters
+%                                 for the vertically averaged grid.
+%                    - 'W'      - wells structure
+%
 %   'pn'/pv - List of property names/property values that decide which type
 %   of model to use. These are the parameters and values:
 %    - residual    : true/false. Default: true
@@ -20,7 +30,7 @@ function f  = makeFluidModel(aquifer, varargin)
 %                    no variation ('smooth'), accretion layer model ('inf
 %                    rough'), sinusoidal geometry ('sinus'), step function
 %                    ('square'). Default: 'smooth'
-%    - only_pvt    : do not give relperm functions, usefulle for plotting
+%    - only_pvt    : do not give relperm functions, useful for plotting
 %                    values are true or false
 %    - co2_type    : choose between different pvt calculations, all options
 %                    else than default need third party pvt calculations
@@ -179,7 +189,7 @@ if(~opt.only_pvt)
            'table_water' , tabW                                           ,...
            'kr_pressure' , true); 
        
-     case 'P - K - scaled table'
+     case 'P-K-scaled table'
        C = 1; 
        kscale = sqrt(aquifer.rock2D.poro ./ (aquifer.rock2D.perm)) * f.surface_tension; 
        table_co2_1d = makeVEtables(...

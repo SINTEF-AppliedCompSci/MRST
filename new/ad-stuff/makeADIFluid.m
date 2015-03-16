@@ -90,7 +90,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = constant_density(rhoS, fluid)
+function fluid = constant_density(fluid, rhoS)
    
    fluid = setfield(fluid, 'rhoWS', rhoS(1));
    fluid = setfield(fluid, 'rhoGS', rhoS(2));
@@ -99,7 +99,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = constant_viscosity(mu, fluid)
+function fluid = constant_viscosity(fluid, mu)
 
    fluid = setfield(fluid, 'muW', as_function_of_p(mu(1)));
    fluid = setfield(fluid, 'muG', as_function_of_p(mu(2)));
@@ -118,7 +118,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = residual_saturations(resSat, fluid)
+function fluid = residual_saturations(fluid, resSat)
 
    fluid = setfield(fluid, 'res_water', resSat(1));
    fluid = setfield(fluid, 'res_gas'  , resSat(2));
@@ -157,10 +157,10 @@ end
 
 function fluid = makeSimpleFluid(G, opt)
 
-   fluid = constant_density(opt.rhoS, fluid);       % 'rhoWS'    , 'rhoGS'
-   fluid = constant_viscosity(opt.mu, fluid);       % 'muW'      , 'muG'
+   fluid = constant_density([], opt.rhoS);          % 'rhoWS'    , 'rhoGS'
+   fluid = constant_viscosity(fluid, opt.mu);       % 'muW'      , 'muG'
    fluid = linear_relperms(fluid);                  % 'krW'      , 'krG', 'kr3D'
-   fluid = residual_saturations(opt.resSat, fluid); % 'res_water', 'res_gas'
+   fluid = residual_saturations(fluid, opt.resSat); % 'res_water', 'res_gas'
    fluid = constant_formation_factors(fluid);       % 'bW', 'BW' ,  'bG', 'BG'
    fluid = sharp_interface_cap_pressure(fluid, G);  % 'pcWG'     , 'invPc3D'
    
@@ -169,6 +169,25 @@ end
 % ----------------------------------------------------------------------------
 
 function fluid = makeIntegratedFluid(G, opt)
+   
+   fluid = addVERelpermIntegratedFluid;
+   
+
+%           * rhoXS        - density of X at reference level (e.g. surface)
+%           * bX(p), BX(p) - formation volume factors and their inverses
+%           * muX(p)       - viscosity functions 
+%           * krX(s)       - rel.perm for X
+%           * rsSat(p)     - pressure-dependent max saturation value for
+%                            dissolved gas 
+%           * pcWG(sG, p)  - capillary pressure function
+%           * dis_max      - maximum saturation value for dissolved gas
+%           * dis_rate     - rate of dissolution of gas into water
+%           * res_gas      - residual gas saturation
+%           * res_water    - residual oil saturation
+%           * kr3D         - @@
+%           * invPc3D      - @@
+   
+   
    
 end
 
