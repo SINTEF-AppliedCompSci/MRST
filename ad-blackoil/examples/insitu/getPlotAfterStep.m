@@ -8,7 +8,13 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
     
     if ~isempty(W) && opt.plotWell
         ws = initWellSolAD(schedule.control(1).W, model, state0);
+        sources = {vertcat(ws.qWs), vertcat(ws.qOs), vertcat(ws.qGs)};
+        
+        model.wellmodel.W = W;
+        ws = model.wellmodel.updateWellSolStatistics(ws, sources, model);
+
         ws0 = {ws; ws};
+        
         [hwell, injectWell] = plotWellSols(ws0);
     else
         [hwell, injectWell] = deal(nan);
@@ -17,6 +23,7 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
     if opt.plotReservoir
         hdata = figure;
         [~, injData] = plotToolbar(G, {state0; state0});
+        axis tight
     else
         [hdata, injData] = deal(nan);
     end
