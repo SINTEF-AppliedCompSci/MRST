@@ -239,7 +239,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         if ~isempty(opt.afterStepFn)
-            [model, states, reports, ok] = opt.afterStepFn(model, states, reports, schedule, simtime);
+            [model, states, reports, solver, ok] = opt.afterStepFn(model, states,  reports, solver, schedule, simtime);
             if ~ok
                 warning('Aborting due to external function');
                 break

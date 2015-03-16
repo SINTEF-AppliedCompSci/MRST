@@ -29,10 +29,10 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
     end
     hdata = double(hdata);
     hwell = double(hwell);
-    fn = @(model, states, reports, schedule, simtime) afterStepFunction(model, states, reports, schedule, simtime, injData, injectWell, hdata, hwell);
+    fn = @(model, states, reports, solver, schedule, simtime) afterStepFunction(model, states, reports, solver, schedule, simtime, injData, injectWell, hdata, hwell);
 end
 
-function [model, states, reports, ok] = afterStepFunction(model, states, reports, schedule, simtime, injData, injectWell, hdata, hwell)
+function [model, states, reports, solver, ok] = afterStepFunction(model, states, reports, solver, schedule, simtime, injData, injectWell, hdata, hwell)
     computed = cellfun(@(x) ~isempty(x), states);
     current = find(computed, 1, 'last');
     
@@ -57,7 +57,7 @@ function [model, states, reports, ok] = afterStepFunction(model, states, reports
     
     ok = true;
     if 1
-        ok = ok & simulationRuntimePanel(model, reports, schedule, simtime);
+        ok = ok & simulationRuntimePanel(model, states, reports, solver, schedule, simtime);
     end
     
 

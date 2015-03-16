@@ -159,11 +159,11 @@ function [fh, inject] = plotWellSols(wellsols, varargin)
               'String','Zoom to data', 'Callback', @drawPlot, ...
               'Position',[.01 .2 .95 .1]);
 
-    if hasTimesteps
+    if hasTimesteps || nargout > 1
         % Toggle to use timesteps for spacing, otherwise the x nodes will
         % be equidistant.
         showdt = uicontrol('Units', 'normalized', 'Parent', bg,...
-                  'Style', 'checkbox', 'Value', hasTimesteps,...
+                  'Style', 'checkbox', 'Value', hasTimesteps ,...
                   'String','Use timesteps', 'Callback', @drawPlot, ...
                   'Position',[.01 .1 .95 .1]);
     end
@@ -414,6 +414,8 @@ function [fh, inject] = plotWellSols(wellsols, varargin)
         if nargin == 1
             hasTimesteps = false;
             steps = [];
+        else
+            hasTimesteps = true;
         end
         wellsols = ws;
         timesteps = validateTimesteps(wellsols, steps);

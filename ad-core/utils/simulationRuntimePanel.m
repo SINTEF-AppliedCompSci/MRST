@@ -1,9 +1,5 @@
-function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, varargin)
-    persistent simAbort simPause simDebug simPlaySound
-    if isempty(simAbort)
-        simAbort = false;
-        simPause = false;
-    end
+function ok = simulationRuntimePanel(model, states, ctrl_reports, solver, schedule, simtime, varargin)
+    persistent simAbort simDebug simPlaySound simDump
     pause(0.01);
     
     opt = struct('figure', []);
@@ -14,8 +10,8 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
     stepNo = numel(ctrl_reports);
     
     panelExists = ~isempty(findobj('Tag', 'mrst-simpanel'));
-    if ~panelExists
-        [simAbort, simPause, simPlaySound] = deal(false);
+    if isempty(simAbort) || ~panelExists
+        [simAbort, simDebug, simPlaySound, simDump] = deal(false);
     end
     ok = true;
 
@@ -89,7 +85,7 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
     end
 
     function dbstopHandler(src, event)
-        simDebug = get(src, 'Value');
+       simDebug = get(src, 'Value');
     end
 
     function soundHandler(src, event)
@@ -99,7 +95,25 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
     function abortHandler(src, event)
         simAbort = true;
     end
+
+    function dumpHandler(src, event)
+        simDump = true;
+    end
     
+    function timestepHandler(src, event, factor)
+        dt0 = solver.timeStepSelector.maxTimestep;
+        if isinf(dt0)
+            dt_new = 30*day;
+        else
+            dt_new = dt0*factor;
+        end
+        
+        fprintf('**** Adjusted timestep interactively (dt: %s -> %s)\n', ...
+                            formatTimeRange(dt0), formatTimeRange(dt_new));
+        
+        solver.timeStepSelector.maxTimestep = dt_new;
+    end
+
     p2 = uipanel(p, 'position', [0 0 1 .10]);
     uicontrol(p2, 'units', 'Normalized', ...
         'Tag', 'cancelsim', ...
@@ -114,10 +128,33 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
         'position', [0.35, .05, .3, .4])
     
     uicontrol(p2, 'units', 'Normalized', ...
-        'Tag', 'playsound', 'value', false,...
+        'value', false,...
         'callback', @pauseHandler, ...
         'Style', 'togglebutton', 'string', 'Pause',...
         'position', [0.65, .05, .3, .4])
+    
+    
+    p2 = uipanel(p, 'position', [0 0 1 .10]);
+    uicontrol(p2, 'units', 'Normalized', ...
+        'Tag', 'dbstop', ...
+        'callback', @dbstopHandler, ...
+        'Style', 'pushbutton', 'string', 'Debug',...
+        'position', [0.05, .55, .3, .4])
+    
+    uicontrol(p2, 'units', 'Normalized', ...
+        'callback', @dumpHandler, ...
+        'Style', 'pushbutton', 'string', 'Dump to workspace',...
+        'position', [0.35, .55, .3, .4])
+    
+    uicontrol(p2, 'units', 'Normalized', ...
+        'callback', @(src, event) timestepHandler(src, event, 2), ...
+        'Style', 'pushbutton', 'string', 'dtMax*2',...
+        'position', [0.65, .55, .15, .4])
+    
+    uicontrol(p2, 'units', 'Normalized', ...
+        'callback', @(src, event) timestepHandler(src, event, 1/2), ...
+        'Style', 'pushbutton', 'string', 'dtMax/2',...
+        'position', [0.8, .55, .15, .4])
     
     if simPlaySound && completed
         d = load('gong.mat');
@@ -131,11 +168,22 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
         return
     end
     
-    if simDebug
-        dbstop
+    if simDump
+        data = struct();
+        data.states = states;
+        data.simtime = simtime;
+        data.reports = ctrl_reports;
+        assignin('base', 'simdata', data);
+        simDump = false;
     end
     
-    
+    if simDebug
+       stck = dbstack();
+       c = stck(1);
+       ln = sprintf('%d', c(1).line + 6);
+       dbstop('in', c(1).file, 'at', ln)
+       simDebug = false;
+    end
     drawnow
 end
 
