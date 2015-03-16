@@ -212,7 +212,12 @@ classdef WellModel
             gind = model.getPhaseIndex('G');
             oind = model.getPhaseIndex('O');
             wind = model.getPhaseIndex('W');
-            bf  = cellfun(@double, wellmodel.bfactors, 'UniformOutput', false);
+            if ~isempty(wellmodel.bfactors)
+                bf  = cellfun(@double, wellmodel.bfactors, 'UniformOutput', false);
+            else
+                bf = cell(numel(sources), 1);
+                [bf{:}] = deal(ones(size(perf2well)));
+            end
             src = cellfun(@double, sources, 'UniformOutput', false);
             for i = 1:numel(ws)
                 % Store reservoir fluxes and total fluxes
