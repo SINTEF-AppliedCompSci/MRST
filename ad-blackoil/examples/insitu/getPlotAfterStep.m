@@ -11,7 +11,7 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
         sources = {vertcat(ws.qWs), vertcat(ws.qOs), vertcat(ws.qGs)};
         
         model.wellmodel.W = W;
-        ws = model.wellmodel.updateWellSolStatistics(ws, sources, model);
+%         ws = model.wellmodel.updateWellSolStatistics(ws, sources, model);
 
         ws0 = {ws; ws};
         

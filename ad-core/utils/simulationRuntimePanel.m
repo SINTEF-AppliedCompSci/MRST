@@ -1,4 +1,11 @@
 function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, varargin)
+    persistent simAbort simPause simDebug simPlaySound
+    if isempty(simAbort)
+        simAbort = false;
+        simPause = false;
+    end
+    pause(0.01);
+    
     opt = struct('figure', []);
     opt = merge_options(opt, varargin{:});
     
@@ -6,26 +13,12 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
     ctrl_reports = ctrl_reports(cellfun(@(x) ~isempty(x), ctrl_reports));
     stepNo = numel(ctrl_reports);
     
-    cancel = findobj('Tag', 'cancelsim');
-    if ~isempty(cancel)
-        snd = findobj('Tag', 'playsound');
-        
-        pause(sqrt(eps));
-        playSound = get(snd, 'Value');
-        if stepNo == 1
-            set(cancel, 'Value', false);
-            ok = true;
-        else
-            ok = ~get(cancel, 'Value');
-        end
-    else
-        playSound = false;
-        ok = true;
+    panelExists = ~isempty(findobj('Tag', 'mrst-simpanel'));
+    if ~panelExists
+        [simAbort, simPause, simPlaySound] = deal(false);
     end
-    
-    if ~ok
-        return
-    end
+    ok = true;
+
     % Redraw plot
     p = getPanel();
     
@@ -88,21 +81,60 @@ function ok = simulationRuntimePanel(model, ctrl_reports, schedule, simtime, var
         'Style', 'text', 'string', txt,...
         'position', [0.1, 0.10, .8, .05])
     
+    function pauseHandler(src, event)
+        if get(src, 'Value');
+            pause(.1)
+            pauseHandler(src, event);
+        end
+    end
+
+    function dbstopHandler(src, event)
+        simDebug = get(src, 'Value');
+    end
+
+    function soundHandler(src, event)
+        simPlaySound = get(src, 'Value');
+    end
+    
+    function abortHandler(src, event)
+        simAbort = true;
+    end
+    
     p2 = uipanel(p, 'position', [0 0 1 .10]);
     uicontrol(p2, 'units', 'Normalized', ...
         'Tag', 'cancelsim', ...
-        'Style', 'togglebutton', 'string', 'Abort',...
-        'position', [0.1, .05, .4, .9])
+        'callback', @abortHandler, ...
+        'Style', 'pushbutton', 'string', 'Abort',...
+        'position', [0.05, .05, .3, .4])
     
     uicontrol(p2, 'units', 'Normalized', ...
-        'Tag', 'playsound', 'value', playSound,...
+        'Tag', 'playsound', 'value', simPlaySound,...
+        'callback', @soundHandler, ...
         'Style', 'togglebutton', 'string', 'Play sound when done',...
-        'position', [0.5, .05, .4, .9])
+        'position', [0.35, .05, .3, .4])
     
-    if playSound && completed
+    uicontrol(p2, 'units', 'Normalized', ...
+        'Tag', 'playsound', 'value', false,...
+        'callback', @pauseHandler, ...
+        'Style', 'togglebutton', 'string', 'Pause',...
+        'position', [0.65, .05, .3, .4])
+    
+    if simPlaySound && completed
         d = load('gong.mat');
         soundsc(d.y);
     end
+    
+    
+    if simAbort
+        simAbort = false;
+        ok = false;
+        return
+    end
+    
+    if simDebug
+        dbstop
+    end
+    
     
     drawnow
 end
@@ -167,3 +199,5 @@ function txt = getStats(model)
         end
     end
 end
+
+
