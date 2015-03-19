@@ -37,5 +37,8 @@ function model = getSequentialModelFromFI(fimodel, varargin)
             error('mrst:getSequentialModelFromFI', ...
             ['Sequential model not implemented for ''' class(fimodel), '''']);
     end
+    pressureModel.operators = fimodel.operators;
+    transportModel.operators = fimodel.operators;
+    
     model = SequentialPressureTransportModel(pressureModel, transportModel, varargin{:});
 end
