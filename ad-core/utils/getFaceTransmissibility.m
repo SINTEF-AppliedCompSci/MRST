@@ -1,5 +1,5 @@
 function T = getFaceTransmissibility(G, rock, deck, varargin)
-    if nargin == 2
+    if nargin == 2 || isempty(deck)
         deck = struct('GRID', struct());
     end
     
