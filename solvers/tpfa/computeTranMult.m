@@ -76,7 +76,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
+   if isempty(rockprop)
+       % No input given
+       m = [];
+       return
+   end
    if size(G.cells.faces, 2) < 2,
       error(['Function ''%s'' is only supported in corner-point ', ...
              'grids which identify cardinal directions.'], mfilename);
