@@ -585,6 +585,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rS = incompTPFA(rS, G, T, opt.tracerfluid, 'wells', W, 'LinSolve', opt.LinSolve);
         else
             rS = initState(G, W, 0);
+            if isfield(opt.state, 'wellSol')
+                rS.wellSol = opt.state.wellSol;
+            end
             rS.flux     = opt.state.flux;
             rS.pressure = opt.state.pressure;
         end
