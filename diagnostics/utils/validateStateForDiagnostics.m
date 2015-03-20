@@ -49,11 +49,15 @@ if isfield(state, 'flux')
 else
    error('Reservoir state must provide total Darcy flux');
 end
-if  isfield(state, 'wellSol') && ...
-   ~isfield(state.wellSol, 'flux') && ...
-    isfield(state.wellSol, 'cqs')
-   for i=1:numel(state.wellSol)
-      state.wellSol(i).flux = sum(state.wellSol(i).cqs, 2);
+if  isfield(state, 'wellSol') 
+    if isfield(state.wellSol, 'flux')
+       for i=1:numel(state.wellSol)
+          state.wellSol(i).flux = sum(state.wellSol(i).flux, 2);
+       end
+    elseif isfield(state.wellSol, 'cqs')
+       for i=1:numel(state.wellSol)
+          state.wellSol(i).flux = sum(state.wellSol(i).cqs, 2);
+       end
    end
 end
 end
