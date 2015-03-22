@@ -1,4 +1,4 @@
-function fluid = makeADIFluid(G, type, varargin)
+function fluid = makeADIFluid(G, relperm_model, varargin)
 %
 % Construct an ADI fluid with properties specific to a chosen model
 % 
@@ -40,14 +40,49 @@ function fluid = makeADIFluid(G, type, varargin)
 %
 % SEE ALSO:
 %
+   % Wheter to include temperature as an argument in property functions
+   opt.fixedT = []; % value of constant temperature, or empty (if
+                    % temperature should be an argument to the property
+                    % functions. 
 
-   %mu(3), rho(3), n(3), sr, sw, pvMultR, bW, bG, surface_tension
-   opt.rhoS = ; % reference brine and gas densities
-   opt.mu   = ; % brine and gas viscosities (constants or functions)
-   opt.res  = ; % residual brine and residual gas
+   % Density of CO2 and brine
+   opt.co2_rho_ref   =  760 * kilogram / meter^3; % Reference rho for CO2
+   opt.wat_rho_ref   = 1100 * kilogram / meter^3; % Reference rho for brine
+   opt.co2_rho_pvt = []; % empty, function of (P) or of (P, T), or [pmin, pmax, tmin, tmax] 
+   opt.wat_rho_pvt = []; % fct of (P, T); or name of sampled pv-table (if empty: constant rho)
 
+   % Viscosity of CO2 and brine
+   opt.co2_mu_ref = 6e-5 * Pascal * second;    % reference CO2 viscosity
+   opt.wat_mu_ref = 8e-4 * Pascal * second;    % reference brine viscosity
+   opt.co2_mu_pvt = []; % fct of (P, T); or name of sampled pv-table (if empty: constant mu)
+   opt.wat_mu_pvt = []; % fct of (P, T); or name of sampled pv-table (if empty: constant mu)
+
+   % Residual saturations [brine, co2]
+   opt.residual = [0 0]; % default is no residual saturation for either phase
+   
+   % Dissolution of CO2 into brine
+   opt.dissolution = false; % true or false
+   opt.dis_rate    = 0;     % 0 means 'instantaneous'.  Otherwise, dissolution rate 
+
+   opt = merge_options(opt, varargin{:});
+   fluid = []; % construct fluid from empty object
+   
+   %% Adding density and viscosity properties
+   
+   % Adding viscosity
+   fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
+   fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt , opt.fixedT);
+
+   % Adding density
+   fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
+   fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, opt.fixedT);
+
+   % Add density functions of the black-oil formulation type
+   fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
+   fluid = include_BO_form(fluid, 'W', opt.wat_rho_ref);
+   
    %% adding type-specific modifications
-   switch type
+   switch relperm_model
      case 'simple' %@@ tested anywhere?
        fluid = makeSimpleFluid(G, opt);
      case 'integrated' %@@ tested anywhere? 
@@ -69,6 +104,55 @@ function fluid = makeADIFluid(G, type, varargin)
 end
 
 % ============================================================================
+
+function fluid = include_BO_form(fluid, shortname, ref_val)
+   
+   % Add reference value
+   fluid.(['rho', shortname, 'S']) = ref_val; 
+   
+   rhofun = fluid.(['rho', shortname]);
+   
+   if nargin(rhofun) > 1
+      % density is considered function of P and T
+      bfun = @(P, T) rhofun(P, T) ./ ref_val;
+   else
+      % density is considered a function of P only
+      bfun = @(P) rhofun(P) ./ ref_val;
+   end
+   
+   % Add fluid formation factor
+   fluid.(['b', shortname]) = bfun;
+      
+end
+
+% ----------------------------------------------------------------------------
+
+function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt, fixedT)
+
+   if isempty(prop_pvt)
+      % use constant property (based on reference property).  Whether it is a
+      % function of P only, or of both P and T, is irrelevant here.
+      fluid.([propname, shortname]) = as_function_of_p(prop_ref);
+      
+   elseif isa(prop_pvt, 'function_handle')
+      
+      % The exact function requested is already provided.  Just add it to
+      % the fluid object.
+      fluid.([propname, shortname]) = prop_pvt;
+      
+   else
+      assert(isvector(prop_pvt) && numel(prop_pvt) == 4);
+
+      fluid = addSampledFluidProperties(fluid, shortname, ...
+                                        'pspan', prop_pvt(1:2), ...
+                                        'tspan', prop_pvt(3:4), ...
+                                        'props', [strcmpi(propname, 'rho'), ...
+                                                  strcmpi(propname, 'mu'),  ...
+                                                  strcmpi(propname, 'h')]);
+   end
+end
+
+% ----------------------------------------------------------------------------
 
 function fun = as_function_of_p(val)
 
