@@ -128,7 +128,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     elseif strcmpi(class(dataset), 'ResultHandler')
         N = dataset.numelData();
         accessdata = @(x) dataset{x};
-        disp 'hello'
     end
 
     datasetname = inputname(2);
@@ -154,7 +153,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     ijk = cell(size(G.cartDims));
-    [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
+    if isfield(G.cells, 'indexMap');
+        [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
+    end
 
 
     % Plotting parameters
@@ -284,7 +285,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargout > 0
         varargout{1} = ph;
         if nargout > 1
-            varargout{2} = @(newDataset, varargin) injectDataset(newDataset, varargin{:});
+            varargout{2} = @(newGrid, newDataset, varargin) injectDataset(newGrid, newDataset, varargin{:});
         end
     end
 
@@ -301,8 +302,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          ni = varargin{1};
      end
      dataset = newDataset;
-     data = readStructField(dataset(ni), selectionName);
-     addSelector();
+     if iscell(dataset)
+         d = dataset{ni};
+     else
+         d = dataset(ni);
+     end
+     data = readStructField(d, selectionName);
+     
+     oldsel = findobj(fig, 'Tag', 'mrst-activedataset');
+     addSelector(get(oldsel, 'value'));
      replotPatch();
      drawnow
  end
@@ -332,7 +340,10 @@ function h = getHandle()
     h = ph;
 end
 
-function addSelector()
+function addSelector(ix)
+    if nargin == 0
+        ix = 1;
+    end
     if N > 1 || ~isscalar
         set(0, 'CurrentFigure', fig)
 
@@ -343,7 +354,7 @@ function addSelector()
         dsheight = .06;
         hmod = .1;
         subplot('Position', [hmod, dsheight + hmod, 1 - 2*hmod, 1-dsheight - 2*hmod]);
-        datasetSelector(G, dataset, 'Parent', gcf, 'Location', [0, 0, 1, dsheight], 'Callback', @selectdata, 'Setname', datasetname);
+        datasetSelector(G, dataset, 'Parent', gcf, 'Location', [0, 0, 1, dsheight], 'Callback', @selectdata, 'Setname', datasetname, 'active', ix);
         set(fig, 'ResizeFcn', @handleFigureResize);
         handleFigureResize(fig, []);
    end
@@ -758,6 +769,7 @@ function [d, fun, subset] = getData()
         delete(vecToggle);
     end
     d = fun(double(data));
+    d = full(d);
 end
 
 
