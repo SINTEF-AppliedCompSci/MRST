@@ -1,4 +1,45 @@
 function res = SampledProp2D(name, file, varargin)
+% Create a structure with functions to interpolate a 2D sampled property and its
+% derivatives, optionally with a discontinuity (phase boundary)
+%
+% SYNOPSIS:
+%   function res = SampledProp2D(name, file, varargin)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   name     - name of property (e.g. 'density', 'viscosity', 'rho', ...)
+%   file     - filename containing the sampled values as MATLAB objects.  The
+%              objects should be: 
+%              * A 2D matrix named 'vals', representing the actual sampled
+%                values
+%              * Two structs, representing the two variables for which the
+%                table has been sampled.  The structs contain the fields:
+%                - num      - number of sample points for this variable
+%                - span     - vector with 2 components, representing the range
+%                             of the variable
+%                - stepsize - the size of each step.  Should equal diff(span)/num.
+%              
+%   varargin - optional parameters (as key/value pairs) are:
+%                - 'assert_in_range':   If 'true', throw an error if user tried
+%                                       to extrapolate outside valid range.
+%                                       Otherwise, return a NaN value.
+%                - 'phase_boundary':    Cell array.  If nonempty, the first
+%                                       cell contains the parameter values for
+%                                       the critical point (start of the
+%                                       discontinuity line).  The second cell
+%                                       contains a function that describes the
+%                                       dicontinuity line as a relation between
+%                                       the two variables, on the form v2 = f(v1).
+%                - 'const_derivatives': If 'true' (default), only first-order
+%                                       partial derivatives are included.
+%                                       Otherwise, second-order partial
+%                                       derivatives are included as well.
+%
+% RETURNS:
+%   res - Struct containing the generated functions.
+%
+
    
    opt.assert_in_range   = true; % throw error if sampled outside range
    opt.phase_boundary    = [];   % {[critical point], boundary fun v1 = f(v2)}
