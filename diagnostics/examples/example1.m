@@ -29,15 +29,16 @@ rS = incompTPFA(rS, G, T, fluid, 'wells', W);
 % velocity field, we can cmopute the reverse time-of-flight (the travel
 % time from an arbitrary point to the nearest producer) and the drainage
 % volumes of each producer.
+pargs = {'EdgeColor','none'};
 D = computeTOFandTracer(rS, G, rock, 'wells', W);
-subplot(1,2,1); plotCellData(G,D.ppart); axis equal tight
-subplot(1,2,2); plotCellData(G,log10(sum(D.tof,2))); axis equal tight
+subplot(1,2,1); plotCellData(G,D.ppart,pargs{:}); axis equal tight
+subplot(1,2,2); plotCellData(G,log10(sum(D.tof,2)),pargs{:}); axis equal tight
 
 %%
 % Threshold the tracer regions using time-of-flight to show the development
 % of flooded regions
 for i=1:4
-   subplot(2,2,i); plotCellData(G,D.ppart, D.tof(:,1)<5*i*year);
+   subplot(2,2,i); plotCellData(G,D.ppart, D.tof(:,1)<5*i*year,pargs{:});
    title(['Flooded after ' num2str(i*5) ' years']); axis equal tight off;
 end
 
