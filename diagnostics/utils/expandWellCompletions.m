@@ -124,6 +124,9 @@ for i=1:nw
         Wc(n).name  = name;
         ws_new.name = name;
         % Write new, split well sol
+        if ~isfield(xc.wellSol(n),'name'), 
+           xc.wellSol(n).name = [];
+        end
         xc.wellSol(n) = ws_new;
     end
 end
