@@ -28,7 +28,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
 %            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
 
     % Extracting relevant information from 'sol'
-    sw=fluidADI.res_oil;%liquid residual saturation (scalar)
+    sw=fluidADI.res_water;%liquid residual saturation (scalar)
     sr=fluidADI.res_gas;%gas residual saturation (scalar)
     p = state.pressure;
     sF = state.s(:,1);

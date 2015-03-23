@@ -31,7 +31,7 @@ end
 %     h_max(h<=0)=sG(h<=0).*G.cells.H(h<=0)/(f.res_gas);
 %     h(h<=0)=0*h(h<=0);
 %     min_rs1=(1-f.res_gas).*(h_max-h).*f.dis_max...% rs in the oil/water sone
-%                 +(f.res_oil).*h.*f.dis_max;
+%                 +(f.res_water).*h.*f.dis_max;
 %     min_rs1=min_rs1/G.cells.H;        
 %     %}
 

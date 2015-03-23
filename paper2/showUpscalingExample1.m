@@ -28,7 +28,7 @@ for i=1:numel(surf_topos)
    state = results{i}.states{pstep};% 
    
    sG = free_sg(state.s(:,2),state.smax(:,2), ...
-      struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));% calulate the free CO2
+      struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));% calulate the free CO2
    hold on
    plot(res.xc, filter2(results{i}.ff,sG.*upAquifer.Gt.columns.dz), linetype{i}, 'LineWidth', 2);     
 end

@@ -36,7 +36,7 @@ switch fluid_case
         fluid = addVERelpermTable('Sdp_table',Sdp_table,'dpkrS_table',dpkrS_table,'Gt',Gt);        
     case 'hystersis'
         res_gas = 0.5;
-        fluid = addVERelperm(fluid, Gt,'res_oil',0,'res_gas',res_gas);
+        fluid = addVERelperm(fluid, Gt,'res_water',0,'res_gas',res_gas);
     case 'cap_1D_table_simple'
         %
         S_tab=linspace(0,1,10)';

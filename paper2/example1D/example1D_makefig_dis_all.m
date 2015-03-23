@@ -112,10 +112,10 @@ for k=1:numel(results)
         if(cases{k}.res_fluid)
             %sr= 0.21;sw= 0.11
            opt.res_gas=0.21;
-           opt.res_oil=0.11; 
+           opt.res_water=0.11; 
         else
            opt.res_gas=0;
-           opt.res_oil=0;
+           opt.res_water=0;
         end
         if(cases{k}.use_dis)
           opt.dis_max=0.03;
@@ -127,7 +127,7 @@ for k=1:numel(results)
          smax=state.sGmax;
          sGmax=state.sGmax;
          sG=free_sg(state.s(:,2),smax,opt);%sG= state.s(:,2);         
-         h_res=(-((sG.*opt.res_oil/(1-opt.res_oil)+(sGmax-sG)*(1-opt.res_gas)/(1-opt.res_oil))*opt.dis_max-state.s(:,1).*state.rs)).*Gt.cells.H./opt.dis_max;
+         h_res=(-((sG.*opt.res_water/(1-opt.res_water)+(sGmax-sG)*(1-opt.res_gas)/(1-opt.res_water))*opt.dis_max-state.s(:,1).*state.rs)).*Gt.cells.H./opt.dis_max;
           
         else        
             smax=state.smax(:,2);
@@ -136,8 +136,8 @@ for k=1:numel(results)
             
         end
         diff=max(zt)-min(zt); 
-        h=(sG.*Gt.cells.H)./(1-opt.res_oil);
-        h_max=(sGmax.*Gt.cells.H)./(1-opt.res_oil);
+        h=(sG.*Gt.cells.H)./(1-opt.res_water);
+        h_max=(sGmax.*Gt.cells.H)./(1-opt.res_water);
         assert(all(isfinite(h)));
          
        

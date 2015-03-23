@@ -76,10 +76,10 @@ fluid = makeFluidModel(aquifer, 'residual', residual_c, ...
 %%{
 if(~dissolution_c)
     sG_free = free_sg(state.s(:,2),state.smax(:,2), ...
-        struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+        struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
 else
     sG_free = free_sg(state.s(:,2),state.sGmax, ...
-        struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+        struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
 end
 %}
 % plot

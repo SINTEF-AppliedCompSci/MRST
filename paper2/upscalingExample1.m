@@ -100,7 +100,7 @@ for i=1:numel(surf_topos)
    %% Plot results
    state = states{end-70};
    sG = free_sg(state.s(:,2),state.smax(:,2), ...
-      struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+      struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
    hold on
    plot(xc, filter2(ff,sG.*Gt.columns.dz), linetype{k}, 'LineWidth', 2);
    hold off

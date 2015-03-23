@@ -49,11 +49,11 @@ all_fluids=cell(size(fluid_names));
 for j=1:numel(all_fluids)
     fluid_comp =  makeVEFluidsForTest(fluid_org, fluid_names{j},...
         'res_gas', 0,...
-        'res_oil', 0,...
+        'res_water', 0,...
         'Gt', Gt, 'rock', rock);
     fluid_incomp =  makeVEFluidsForTest(fluid_incomp_org, fluid_names{j},...
         'res_gas', 0,...
-        'res_oil', 0,...
+        'res_water', 0,...
         'Gt', Gt, 'rock', rock);
     all_fluids{j}=fluid_comp;
     all_fluids{j}.ok=true;
@@ -62,7 +62,7 @@ for j=1:numel(all_fluids)
     all_fluids{j}.ok_vector=ok_vector;
     all_fluids{j}.ok_vector=derive_ok_vector;
     for res_gas= dsrg
-        for res_oil= dsrw
+        for res_water= dsrw
             for kk=1:2
                 if(kk==1)
                     fluid = fluid_incomp;
@@ -71,7 +71,7 @@ for j=1:numel(all_fluids)
                 end
                 fluid =  makeVEFluidsForTest(fluid, all_fluids{j}.name,...
                     'res_gas', res_gas,...
-                    'res_oil', res_oil,...
+                    'res_water', res_water,...
                     'Gt', Gt, 'rock', rock);
                 fluid_ok=true;
                 derive_ok=true;
@@ -145,12 +145,12 @@ for j=1:numel(all_fluids)
                     ok_vector(1)=false;
                     if(kk==1)
                         ok_vector(2) = false;
-                        if((res_gas==0) && (res_oil==0))
+                        if((res_gas==0) && (res_water==0))
                             ok_vector(3) = false;
                         end
                     else
                         ok_vector(4)=false;
-                        if((res_gas==0) && (res_oil==0))
+                        if((res_gas==0) && (res_water==0))
                             ok_vector(5) = false;
                         end
                     end
@@ -159,12 +159,12 @@ for j=1:numel(all_fluids)
                     derive_ok_vector(1)=false;
                     if(kk==1)
                         derive_ok_vector(2) = false;
-                        if((res_gas==0) && (res_oil==0))
+                        if((res_gas==0) && (res_water==0))
                             derive_ok_vector(3) = false;
                         end
                     else
                         derive_ok_vector(4)=false;
-                        if((res_gas==0) && (res_oil==0))
+                        if((res_gas==0) && (res_water==0))
                             derive_ok_vector(5) = false;
                         end
                     end

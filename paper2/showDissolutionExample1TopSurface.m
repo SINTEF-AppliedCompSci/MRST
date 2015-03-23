@@ -51,10 +51,10 @@ kk=1;
                 'dissolution', dissolution, 'fluidType', fluid_types{i},'only_pvt',true);%,'co2_type','coolprops');
             if(~dissolution)
                 sG = free_sg(state.s(:,2),state.smax(:,2), ...
-                    struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+                    struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
             else
                 sG = free_sg(state.s(:,2),state.sGmax, ...
-                    struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+                    struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
             end            
             hold on
             if(dissolution)
@@ -65,7 +65,7 @@ kk=1;
             ff=res.results{9}.ff;            
             plot(res.xc, filter2(ff,sG.*Gt.cells.H), mline, 'LineWidth', 2);    
             %fff=1;plot(res.xc, filter2(fff,sG.*Gt.cells.H), mline, 'LineWidth', 1);    
-            fprintf('Residual %f %f\t',fluid.res_gas, fluid.res_oil)
+            fprintf('Residual %f %f\t',fluid.res_gas, fluid.res_water)
             fprintf(' flat %i \t', n)
             if(dissolution)
                 fprintf('disolution %f %f\n',fluid.dis_max, fluid.dis_rate)

@@ -356,9 +356,9 @@ if(isfield(f,'dis_rate'))
         %column is  field with CO2 in one go
         lsrc=dis_rate;
         tmp=(s.pv/dt).*...
-            (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+lsrc;
+            (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_water)+lsrc;
         tmp2=(s.pv/dt).*...
-        (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+lsrc;
+        (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_water)+lsrc;
       
         ind1= (tmp2<0);% & (sGmax <= sGmax0);% & (~is_sat_loc);        
         if(any(ind1))

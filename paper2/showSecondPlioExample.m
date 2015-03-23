@@ -179,7 +179,7 @@ for step=mysteps
           sGmax=state.smax(:,2);
       end
       sG = free_sg(sG, sGmax, ...
-                    struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+                    struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
       fluid=fluids{methods(m)};
       drho=fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p); 
       h=(fluid.pcOG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
@@ -251,9 +251,9 @@ for m=1:3
             sGmax=state.smax(:,2);
         end
         sG_free = free_sg(sG, sGmax, ...
-            struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+            struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
         if(m==2)
-            sGmax=-((1-fluid.res_oil-fluid.res_gas)*sG_free -(1 - fluid.res_oil) * sG)./fluid.res_gas;
+            sGmax=-((1-fluid.res_water-fluid.res_gas)*sG_free -(1 - fluid.res_water) * sG)./fluid.res_gas;
         end
         assert(all(sGmax>=0));
         
@@ -267,11 +267,11 @@ for m=1:3
         else
             h_res_diff=0*Gt.cells.H;
         end
-        h_max_tmp=(sGmax/(1-fluid.res_oil)).*Gt.cells.H;
-        h_tmp=(sG_free/(1-fluid.res_oil)).*Gt.cells.H;
+        h_max_tmp=(sGmax/(1-fluid.res_water)).*Gt.cells.H;
+        h_tmp=(sG_free/(1-fluid.res_water)).*Gt.cells.H;
         
-        ss=(h*(1-fluid.res_oil)+(h_max-h)*fluid.res_gas)./Gt.cells.H;
-        ss_max=((1-fluid.res_oil)*h_max)./Gt.cells.H;
+        ss=(h*(1-fluid.res_water)+(h_max-h)*fluid.res_gas)./Gt.cells.H;
+        ss_max=((1-fluid.res_water)*h_max)./Gt.cells.H;
         assert(all(abs(state.s(:,2)-ss)<1e-3))
         assert(all(abs(h_max-h_max_tmp)<1e-3));% valid for sharp interface when mass calculation is valid
         assert(all(abs(h-h_tmp)<1e-3));% valid for sharp interface when mass calculation is valid

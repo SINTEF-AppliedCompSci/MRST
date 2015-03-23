@@ -32,14 +32,14 @@ for residual= [false,true] %residual saturation or not
                 'dissolution', dissolution, 'fluidType', 'sharp interface','only_pvt',true);%,'co2_type','coolprops');  
             if(~dissolution)
                 sG = free_sg(state.s(:,2),state.smax(:,2), ...
-                    struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+                    struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
             else
                 sG = free_sg(state.s(:,2),state.sGmax, ...
-                    struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+                    struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
             end                                   
             hold on
             plot(res.xc, filter2(res.results{kk}.ff,sG.*Gt.columns.dz), linetype{k}, 'LineWidth', 2);
-            fprintf('Residual %f %f\t',fluid.res_gas, fluid.res_oil)
+            fprintf('Residual %f %f\t',fluid.res_gas, fluid.res_water)
             fprintf(' flat %i \t', n)
             if(dissolution)
                 fprintf('disolution %f %f\n',fluid.dis_max, fluid.dis_rate)

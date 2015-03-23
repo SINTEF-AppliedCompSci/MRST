@@ -92,7 +92,7 @@ for n=1:2,
       %% Plot results
       state = states{end-70};
       sG = free_sg(state.s(:,2),state.smax(:,2), ...
-         struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+         struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
       hold on
       plot(xc, filter2(ff,sG.*Gt.columns.dz), linetype{k}, 'LineWidth', 2);
       hold off
@@ -118,7 +118,7 @@ p = get(gcf,'Position'); set(gcf,'Position',[p(1:2) 900 300]);
 % Main plot
 state = results{3}.states{end-70};
 ff = results{3}.ff;
-sG = free_sg(state.s(:,2),state.smax(:,2), struct('res_gas',0,'res_oil',0));
+sG = free_sg(state.s(:,2),state.smax(:,2), struct('res_gas',0,'res_water',0));
 z1 = sG.*Gt.columns.dz;
 z2 = filter2(ff,z1);
 hold on

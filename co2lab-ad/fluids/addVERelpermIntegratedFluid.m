@@ -1,5 +1,5 @@
 function fluid = addVERelpermIntegratedFluid(fluid, varargin)
-   opt = struct('res_oil'     , 0     , ...  
+   opt = struct('res_water'     , 0     , ...  
                 'res_gas'     , 0     , ...
                 'kr_pressure' , false , ...
                 'Gt'          , []    , ...
@@ -40,11 +40,11 @@ function fluid = addVERelpermIntegratedFluid(fluid, varargin)
    fluid.invPc3D = @(p) invPc3D(p, opt); 
    fluid.kr3D = @(s) s; 
    fluid.res_gas = opt.res_gas;
-   fluid.res_oil = opt.res_oil;
+   fluid.res_water = opt.res_water;
 end
 
 function s = invPc3D(p,opt)
-         s=(sign(p+eps)+1)/2*(1-opt.res_oil);
+         s=(sign(p+eps)+1)/2*(1-opt.res_water);
          s=1-s;
 end
 %---------------------------------------------------------------------
@@ -80,7 +80,7 @@ function kr = krG(sg, opt, varargin)
    else
      kr  = integrateVertically(opt.rock.parent.perm(:,1), h, opt.Gt);  
    end
-   kr=kr*(1-opt.res_oil);
+   kr=kr*(1-opt.res_water);
    assert(all(kr>=0));
    kr = kr./opt.kr_H;%bsxfun(@rdivide,kr,opt.kr_H);
 end
@@ -118,15 +118,15 @@ function [h h_max] = saturation2Height(sg, opt, loc_opt)
    % s_max*H = h_max*(1-sr(2))
    
    s = free_sg(sg,loc_opt.sGmax,opt);
-   h_max=loc_opt.sGmax.*opt.Gt.cells.H./(1-opt.res_oil);
-   h= s.*(opt.Gt.cells.H)./(1-opt.res_oil);
+   h_max=loc_opt.sGmax.*opt.Gt.cells.H./(1-opt.res_water);
+   h= s.*(opt.Gt.cells.H)./(1-opt.res_water);
    %assert(all(s_max>=s));
    %h_max=bsxfun(@rdivide,s_max.*opt.H,(1-opt.sr(2)));
    %
    %h=s.*opt.H-bsxfun(@times,h_max,opt.sr(1));
    %h=s.*opt.Gt.cells.H - h_max*opt.res_gas;
-   %h=bsxfun(@rdivide,h,(1-opt.res_oil-opt.res_gas));
-   %h=h./(1-opt.res_oil-opt.res_gas);
+   %h=bsxfun(@rdivide,h,(1-opt.res_water-opt.res_gas));
+   %h=h./(1-opt.res_water-opt.res_gas);
    %eee=1e-10;
 %   assert(all(h./opt.H>-eee) & all(h./opt.H<1+eee))
    if(any(h<0))
@@ -144,9 +144,9 @@ function [h h_max] = saturation2HeightIntPoro(sg, opt, loc_opt)
    s_max = loc_opt.sGmax;   
    s = sg;
    assert(numel(s)==numel(opt.H));
-   Vh_max=bsxfun(@rdivide,s_max.*opt.volumes,(1-opt.res_oil));
+   Vh_max=bsxfun(@rdivide,s_max.*opt.volumes,(1-opt.res_water));
    V_h=s.*opt.volumes-bsxfun(@times,Vh_max,opt.res_gas);
-   V_h=bsxfun(@rdivide,V_h,(1-opt.res_oil-opt.res_gas));
+   V_h=bsxfun(@rdivide,V_h,(1-opt.res_water-opt.res_gas));
    h = opt.Vinv(V_h);
    h_max= opt.Vinv(Vh_max);
 

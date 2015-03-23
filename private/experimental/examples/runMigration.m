@@ -404,7 +404,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
             
         case 'adi_simple'
            s=setupSimCompVe(Gt,rock2D);
-           fluidADI = addVERelperm(fluidADI, Gt,'res_oil',sw,'res_gas',sr);
+           fluidADI = addVERelperm(fluidADI, Gt,'res_water',sw,'res_gas',sr);
            systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                'simComponents',s,'VE',true);
 
@@ -414,7 +414,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
            fluidADI.bG = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
            fluidADI.BG = @(p) 1./fluidADI.bG(p);
            s=setupSimCompVe(Gt,rock2D);
-           fluidADI = addVERelperm(fluidADI, Gt, 'res_oil',sw,'res_gas',sr);
+           fluidADI = addVERelperm(fluidADI, Gt, 'res_water',sw,'res_gas',sr);
            systemOG = initADISystemVE({'Oil', 'Gas'}, Gt, rock2D, fluidADI,...
                'simComponents',s,'VE',true);
 
@@ -447,7 +447,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
             s=setupSimCompVe(Gt,rock2D);
             % important that add relperm is added after fluid properiece
             % since it is bounded to the  density
-            fluidADI = addVERelperm(fluidADI, Gt,'res_oil',sw,'res_gas',sr);
+            fluidADI = addVERelperm(fluidADI, Gt,'res_water',sw,'res_gas',sr);
             systemOG = initADISystemVE({'Oil', 'Gas','DisGas'}, Gt, rock2D, fluidADI,...
                 'simComponents',s,'VE',true,'tol',1e-5);
             systemOG.getEquations = @eqsfiBlackOilExplicitWellsOGVE_new;   
@@ -529,13 +529,13 @@ function sol = transport_adiOGD_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,flui
     %sol.h_max(sol.h<=0)=state.sGmax(sol.h<=0)/(fluidADI.res_gas);
     
     %sol.h_max(sol.h<=0)=state.s(sol.h<=0,2).*Gt.cells.H(sol.h<=0)/(fluidADI.res_gas);
-    s_tmp=(h.*(1-fluidADI.res_oil)+(h_max-h).*fluidADI.res_gas)./Gt.cells.H;
+    s_tmp=(h.*(1-fluidADI.res_water)+(h_max-h).*fluidADI.res_gas)./Gt.cells.H;
     assert(all(abs(s_tmp-state.s(:,2))<1e-3))
     sol.rs=state.rs;
     %Gt.cells.H.*(1-sol.s).*sol.rs/fluidADI.dis_max;
     rs_diff=(Gt.cells.H.*(1-sol.s).*sol.rs)...% all rs
         -(1-fluidADI.res_gas).*(h_max-h).*fluidADI.dis_max...% rs in the oil/water sone
-        -(fluidADI.res_oil).*h.*fluidADI.dis_max;...%
+        -(fluidADI.res_water).*h.*fluidADI.dis_max;...%
     assert(all(rs_diff>-1e-1))    
     sol.rsH=max(0,rs_diff)/fluidADI.dis_max+h_max;
     sol.state = state;
@@ -577,12 +577,12 @@ function sol = transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluid
     h=pc./drho;
     h_max=pcmax./drho;
     h_max(h<=0)=state.s(h<=0,2).*Gt.cells.H(h<=0)/(fluidADI.res_gas);
-    s_tmp=(h.*(1-fluidADI.res_oil)+(h_max-h).*fluidADI.res_gas)./Gt.cells.H;
+    s_tmp=(h.*(1-fluidADI.res_water)+(h_max-h).*fluidADI.res_gas)./Gt.cells.H;
     assert(all(abs(s_tmp-state.s(:,2))<1e-3))
     
     %j=find(abs(s_tmp-state.s(:,2))>1e-3),
     % minum s if no compressible effects
-    %state.smax(j,2)*fluidADI.res_gas/(1-fluidADI.res_oil)
+    %state.smax(j,2)*fluidADI.res_gas/(1-fluidADI.res_water)
     %[s h hm] = normalizeValuesVE(Gt, sol, fluidVE_s);%#ok
     sol.h = h;
     sol.h_max = h_max;

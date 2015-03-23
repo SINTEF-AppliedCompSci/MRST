@@ -12,7 +12,7 @@ opt = struct('height',[],...
              'table_water',[],...
              'kr_pressure',true,...
              'rock',[],...
-             'res_oil',0,...
+             'res_water',0,...
              'res_gas',0);
 opt = merge_options(opt, varargin{:});
 
@@ -42,7 +42,7 @@ end
 fluid.is_kscaled=opt.table_co2.is_kscaled;
 fluid.kr3D  =@(s) opt.table_co2.kr3D(s);
 fluid.res_gas=opt.res_gas;
-fluid.res_oil=opt.res_oil;
+fluid.res_water=opt.res_water;
 end
 
 %---------------------------------------------------------------------
@@ -108,7 +108,7 @@ function varargout = krG(sg, p, fluid, opt, varargin)
    h_ind=h_int>opt.height;
    
    if(any(h_ind))
-       dpH=opt.height(h_ind).*drho(h_ind);%*(1-opt.res_oil);
+       dpH=opt.height(h_ind).*drho(h_ind);%*(1-opt.res_water);
        disp(['Capillary is larger than H for ', num2str(sum(h_ind)),'values'])       
        if(opt.table_co2.is_kscaled)
            dpH=dpH./kscale(h_ind);           
@@ -120,7 +120,7 @@ function varargout = krG(sg, p, fluid, opt, varargin)
        end
        
        kr_H=interpTable(opt.table_co2.p,opt.table_co2.krP,dpH)./dpH;
-       kr_end=1;%opt.table_co2.kr3D(1-opt.res_oil);
+       kr_end=1;%opt.table_co2.kr3D(1-opt.res_water);
        kr(h_ind)=kr_H+((sg(h_ind)-sH./H(h_ind))./(1-sH./H(h_ind))).*(kr_end-kr_H);
         %kr(h_ind)=kr_H+((sg(h_ind)-sH./H(h_ind))).*(1-kr_H);
     %   dkr(p>dpH)=(1./(1-(sH./H(p>dpH)))).*(1-kr_H);

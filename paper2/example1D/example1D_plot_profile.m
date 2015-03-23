@@ -40,9 +40,9 @@ else
     %sr= 0.21
 end
 fluid.res_gas=sr;
-fluid.res_oil=sw;
+fluid.res_water=sw;
 opt.res_gas=sr;
-opt.res_oil=sw;
+opt.res_water=sw;
 example1D_makeparam
 %if(use_dis)
 %   fluid.dis_max=0.03; 
@@ -66,8 +66,8 @@ for nn=[40,50,70]
         sG=state.s(:,2);
         %rsH=Gt.cells.H.*state.s(:,1).*state.rs/fluid.dis_max;
         rsH=Gt.cells.H.*(state.s(:,1).*state.rs-...
-            (sGmax-sG)*fluid.dis_max*(1-fluid.res_gas)/(1-fluid.res_oil)-...
-            (sG)*fluid.dis_max*(fluid.res_oil)/(1-fluid.res_oil) )/fluid.dis_max;
+            (sGmax-sG)*fluid.dis_max*(1-fluid.res_gas)/(1-fluid.res_water)-...
+            (sG)*fluid.dis_max*(fluid.res_water)/(1-fluid.res_water) )/fluid.dis_max;
         assert(all(rsH>-1e-4))
         rsH=max(rsH,0)
      else        
@@ -96,7 +96,7 @@ for nn=[40,50,70]
      clf
      sG=free_sg(state.s(:,2),smax,opt);
     %
-     h=(sG.*Gt.cells.H)./(1-fluid.res_oil);
+     h=(sG.*Gt.cells.H)./(1-fluid.res_water);
     %c(7)=patch(xc([1 1:end end]), [zt(end)-20; zt; zt(end)-20],.7*[1 1 1]);
     %c(6)=patch(xc([1 1:end end]), [zb(1)+20; zb; zb(1)+20],.7*[1 1 1]);
     clear c;
@@ -106,8 +106,8 @@ for nn=[40,50,70]
   %%{
     %sGmax=state.sGmax;
    
-    h_max=(sGmax.*Gt.cells.H)./(1-fluid.res_oil);
-    h_res=(-((sG.*fluid.res_oil/(1-fluid.res_oil)+(sGmax-sG)*(1-fluid.res_gas)/(1-fluid.res_oil))*fluid.dis_max-state.s(:,1).*state.rs)).*Gt.cells.H./fluid.dis_max;
+    h_max=(sGmax.*Gt.cells.H)./(1-fluid.res_water);
+    h_res=(-((sG.*fluid.res_water/(1-fluid.res_water)+(sGmax-sG)*(1-fluid.res_gas)/(1-fluid.res_water))*fluid.dis_max-state.s(:,1).*state.rs)).*Gt.cells.H./fluid.dis_max;
     assert(all(h_res>-1e-4))
     c(1)=patch(xc([1:end end:-1:1]), ...
       [zt + h; zt(end:-1:1)+h_max(end:-1:1)],myCOColor(3))

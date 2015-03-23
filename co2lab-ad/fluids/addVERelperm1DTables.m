@@ -7,7 +7,7 @@ function fluid = addVERelperm1DTables(fluid,varargin)
 % $Date: 2012-01-30 11:41:03 +0100 (Mon, 30 Jan 2012) $
 % $Revision: 9020 $
 
-opt = struct('height',[],'table_co2',[],'table_water',[],'res_gas',0,'res_oil',0);
+opt = struct('height',[],'table_co2',[],'table_water',[],'res_gas',0,'res_water',0);
 opt = merge_options(opt, varargin{:});
 
 
@@ -23,7 +23,7 @@ else
 end
 fluid.kr3D   = @(s) opt.table_co2.kr3D(s);
 fluid.res_gas=opt.res_gas;
-fluid.res_oil=opt.res_oil;
+fluid.res_water=opt.res_water;
 
 end
 

@@ -63,9 +63,9 @@ else
     %sr= 0.21
 end
 fluid.res_gas=sr;
-fluid.res_oil=sw;
+fluid.res_water=sw;
 opt.res_gas=sr;
-opt.res_oil=sw;
+opt.res_water=sw;
 
 %if(use_dis)
 %   fluid.dis_max=0.03; 
@@ -93,8 +93,8 @@ for nn=[50,80]
         %rsH=Gt.cells.H.*state.s(:,1).*state.rs/fluid.dis_max;
         %{
         rsH=Gt.cells.H.*(state.s(:,1).*state.rs-...
-            (sGmax-sG)*fluid.dis_max*(1-fluid.res_gas)/(1-fluid.res_oil)-...
-            (sG)*fluid.dis_max*(fluid.res_oil)/(1-fluid.res_oil) )/fluid.dis_max;
+            (sGmax-sG)*fluid.dis_max*(1-fluid.res_gas)/(1-fluid.res_water)-...
+            (sG)*fluid.dis_max*(fluid.res_water)/(1-fluid.res_water) )/fluid.dis_max;
         assert(all(rsH>-1e-4))
         rsH=max(rsH,0)
         %}
@@ -131,9 +131,9 @@ for nn=[50,80]
         %assert(all(abs((h_res1-h_res))<1e-6))
     else
         sG_free=free_sg(state.s(:,2),smax,opt);
-        h=(sG_free.*Gt.cells.H)./(1-fluid.res_oil);
-        h_max=(sGmax.*Gt.cells.H)./(1-fluid.res_oil);
-        h_res=h_max+(-((sG.*fluid.res_oil/(1-fluid.res_oil)+(sGmax-sG)*(1-fluid.res_gas)/(1-fluid.res_oil))*fluid.dis_max-state.s(:,1).*state.rs)).*Gt.cells.H./fluid.dis_max;
+        h=(sG_free.*Gt.cells.H)./(1-fluid.res_water);
+        h_max=(sGmax.*Gt.cells.H)./(1-fluid.res_water);
+        h_res=h_max+(-((sG.*fluid.res_water/(1-fluid.res_water)+(sGmax-sG)*(1-fluid.res_gas)/(1-fluid.res_water))*fluid.dis_max-state.s(:,1).*state.rs)).*Gt.cells.H./fluid.dis_max;
     end
     patch(xc([1 1:end end]), [zt(end)-20; zt; zt(end)-20],.7*[1 1 1]);
     patch(xc([1 1:end end]), [zb(1)+20; zb; zb(1)+20],.7*[1 1 1]);

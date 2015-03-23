@@ -1,10 +1,10 @@
 function fluid = addVERelpermCapLinear(fluid,varargin)   
-    opt=struct('res_oil',0,'res_gas',0,'beta',1,'H',[],'cap_scale',[],'kr_pressure',false);
+    opt=struct('res_water',0,'res_gas',0,'beta',1,'H',[],'cap_scale',[],'kr_pressure',false);
     opt = merge_options(opt,varargin{:});    
     % should also include endpoint scaling
     assert(~isempty(opt.cap_scale))
     opt=merge_options(opt, varargin{:});
-    end_scale=(1-opt.res_oil).^opt.beta;
+    end_scale=(1-opt.res_water).^opt.beta;
     if(~opt.kr_pressure)
         fake_pressure=200*barsa;
         fluid.krG=@(sg, p, varargin) end_scale.*krG(sg, fake_pressure, fluid, opt, varargin{:});
@@ -19,15 +19,15 @@ function fluid = addVERelpermCapLinear(fluid,varargin)
         fluid.pcOG=@(sg, p, varargin) pcOG(sg, p,fluid,opt,varargin{:});
         fluid.cutValues=@(state,varargin) cutValues(state,opt);
     end
-    fluid.res_oil=opt.res_oil;
+    fluid.res_water=opt.res_water;
     fluid.res_gas=opt.res_gas;    
     fluid.invPc3D =@(p) invPc(p,opt);
-    fluid.kr3D =@(s) end_scale.*(s./(1-opt.res_oil)).^opt.beta;
+    fluid.kr3D =@(s) end_scale.*(s./(1-opt.res_water)).^opt.beta;
 end
 
 function s= invPc(p,opt)
-    s=(p/opt.cap_scale).*(1-opt.res_oil);
-    s(s>(1-opt.res_oil))=1-opt.res_oil;
+    s=(p/opt.cap_scale).*(1-opt.res_water);
+    s(s>(1-opt.res_water))=1-opt.res_water;
     s(s<0)=0;
     s=1-s;
 end
@@ -125,7 +125,7 @@ function h = invS(S, p, fluid, opt)
     end
     %}
     
-    S=S/(1-opt.res_oil);
+    S=S/(1-opt.res_water);
     C=opt.cap_scale;  
     drho  =  (fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p));
     %drho  =  (fluid.rhoOS-fluid.rhoGS);

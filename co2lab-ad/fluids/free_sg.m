@@ -18,12 +18,12 @@ function fsg = free_sg(sg, sGmax, opt)
 %   sGmax - historically maximum saturation
 %   opt   - structure expected to contain the following fields:
 %           * opt.res_gas : residual gas saturation
-%           * opt.res_oil : residual oil saturation
+%           * opt.res_water : residual oil saturation
 % RETURNS:
 %   fsg - the free part of the present saturation (fsg <= sg)
 
     %% aliases for better readability
-    rw = opt.res_oil; % 'wetting phase'
+    rw = opt.res_water; % 'wetting phase'
     rn = opt.res_gas; % 'non-wetting phase'
     
     %% Computing free part of current saturation

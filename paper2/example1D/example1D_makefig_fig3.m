@@ -110,10 +110,10 @@ for k=1:numel(results)
         if(cases{k}.res_fluid)
             %sr= 0.21;sw= 0.11
            opt.res_gas=0.21;
-           opt.res_oil=0.11; 
+           opt.res_water=0.11; 
         else
            opt.res_gas=0;
-           opt.res_oil=0;
+           opt.res_water=0;
         end
         sG=free_sg(state.s(:,2),smax,opt);
         if(use_filter==false)

@@ -61,7 +61,7 @@ switch fluid_case
        res_gas=0;
     case 'hystersis'
         res_gas = 0.7;
-        fluid = addVE3DRelperm(fluid,'res_oil',0,'res_gas',res_gas,'Gt',Gt);
+        fluid = addVE3DRelperm(fluid,'res_water',0,'res_gas',res_gas,'Gt',Gt);
     otherwise
        disp('Use deck as fluid')
 end

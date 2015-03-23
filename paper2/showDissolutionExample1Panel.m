@@ -71,11 +71,11 @@ for nn=[40,50,70]
         'dissolution', dissolution, 'fluidType', 'sharp interface','only_pvt',false);%,'co2_type','coolprops');
     if(~dissolution)
         sG_free = free_sg(state.s(:,2),state.smax(:,2), ...
-            struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+            struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
         sGmax=state.smax(:,2);
     else
         sG_free = free_sg(state.s(:,2),state.sGmax, ...
-            struct('res_gas',fluid.res_gas, 'res_oil', fluid.res_oil));
+            struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
         sGmax=state.sGmax;
     end
     
@@ -85,7 +85,7 @@ for nn=[40,50,70]
     diff=max(zt)-min(zt); 
     
     
-    h=(sG_free.*Gt.cells.H)./(1-fluid.res_oil);
+    h=(sG_free.*Gt.cells.H)./(1-fluid.res_water);
     
     patch(xc([1 1:end end]), [zt(end)-20; zt; zt(end)-20],.7*[1 1 1]);
     patch(xc([1 1:end end]), [zb(1)+20; zb; zb(1)+20],.7*[1 1 1]);
@@ -94,7 +94,7 @@ for nn=[40,50,70]
     patch(xc([1:end end:-1:1]), ...
       [zt + h; zt(end:-1:1)+h_trap(end:-1:1)], myCOColor(2))
  
-    h_max=(sGmax.*Gt.cells.H)./(1-fluid.res_oil);
+    h_max=(sGmax.*Gt.cells.H)./(1-fluid.res_water);
     if(dissolution)
         mm=minRs(p,sG,sGmax,fluid,Gt);%.*Gt.cells.H;
         h_res=Gt.cells.H.*((1-sG).*state.rs-mm)/fluid.dis_max;

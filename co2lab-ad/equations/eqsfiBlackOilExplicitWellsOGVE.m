@@ -347,13 +347,13 @@ if(isfield(f,'dis_rate'))
     % Default equation: force 'sGmax' to equal 'sG'
     eqs{7}=(sGmax-sG).*(s.pv/dt);
     tmp=(s.pv/dt).*...
-        (pvMult.*bG.*sGmax- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+        (pvMult.*bG.*sGmax- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_water)+dis_rate;
     tmp2=(s.pv/dt).*...
-         (pvMult.*double(bG).*double(sG)- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+         (pvMult.*double(bG).*double(sG)- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_water)+dis_rate;
     % tmp=(s.pv/dt).*...
-    %     (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+    %     (pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_water)+dis_rate;
     % tmp2=(s.pv/dt).*...
-    %      (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+dis_rate;
+    %      (pvMult.*double(bG).*double(sG)- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_water)+dis_rate;
     %%{
     % the case of disolution do not manage to remove all residual
     % saturation  and the new state do not is not fully dissolved
@@ -367,8 +367,8 @@ if(isfield(f,'dis_rate'))
     ind3= is_sat_loc & (sGmax < sGmax0) & (sGmax > sG);
     if(any(ind3))
         tmp = (s.pv/dt).*...
-        (pvMult.*bG.*sGmax- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
-        %(pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_oil)+(rs-rs0);
+        (pvMult.*bG.*sGmax- pvMult.*f.bG(pG).*sGmax0)*f.res_gas./(1-f.res_water)+(rs-rs0);
+        %(pvMult.*bG.*sGmax- pvMult0.*f.bG(pG0).*sGmax0)*f.res_gas./(1-f.res_water)+(rs-rs0);
         eqs{7}(ind3)= tmp(ind3);
     end
     

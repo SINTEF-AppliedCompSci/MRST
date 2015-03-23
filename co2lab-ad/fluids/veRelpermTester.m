@@ -33,7 +33,7 @@ function [s,pc,kr,SH,krH, s_max,fval]= veRelpermTester(hs, p, fluid, H, varargin
       s_max=SH_max./H;
       %s=SH./H;
       if(~opt.const_res)
-        SH=((SH_max-SH)/(1-fluid.res_oil))*fluid.res_gas+SH;
+        SH=((SH_max-SH)/(1-fluid.res_water))*fluid.res_gas+SH;
       else
         SH=SH+(min(opt.hs_max,H)-min(hs,H))*fluid.res_gas;
       end
@@ -48,7 +48,7 @@ end
 %function fsg = free_sg(sg,sGmax,opt)
 %        ineb=sg>sGmax;
 %        %sg_free=sg-(loc_opt.sGmax-sg)*opt.res_gas;                
-%        fsg=((1-opt.res_oil)*sg-(sGmax*opt.res_gas))./(1-opt.res_gas-opt.res_oil);
+%        fsg=((1-opt.res_water)*sg-(sGmax*opt.res_gas))./(1-opt.res_gas-opt.res_water);
 %        %assert(all(fsg>=-sqrt(eps)));
 %        fsg(ineb)=sg(ineb);
 %        %fsg(fsg<0)=0.0*fsg(fsg<0);

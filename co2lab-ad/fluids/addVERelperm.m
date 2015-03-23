@@ -13,7 +13,7 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %   fluid    - Fluid object to modify
 %   Gt       - Top surface grid
 %   varargin - Option/value pairs, where the following options are available:
-%              res_oil   - residual oil saturation (scalar)
+%              res_water   - residual oil saturation (scalar)
 %              res_gas   - residual gas saturation (scalar)
 %              kro       - rel. perm of oil at full flowing saturation
 %              krg       - rel. perm of gas at full flowing saturation
@@ -25,7 +25,7 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %   fluid - The modified fluid object, endowed with the additional
 %   functions/fields:
 %   res_gas   - residual gas saturation (scalar)
-%   res_oil   - residual oil saturation (scalar)
+%   res_water   - residual oil saturation (scalar)
 %   krG       - upscaled rel.perm. of gas as a function of (gas) saturation
 %   krOG      - upscaled rel.perm. of oil as a function of (oil) saturation
 %   pcOG      - upscaled 'capillary pressure' as a function of gas saturation
@@ -37,7 +37,7 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %               equal to the input saturation.
 
 
-    opt=struct('res_oil',       0,...
+    opt=struct('res_water',       0,...
                'res_gas',       0,...
                'kro',           1,...
                'krg',           1,...
@@ -55,16 +55,16 @@ function fluid = addVERelperm(fluid, Gt, varargin)
     fluid.invPc3D   = @(p) invPc3D(p,opt);
     fluid.kr3D      = @(s) s;
     fluid.res_gas   = opt.res_gas;
-    fluid.res_oil   = opt.res_oil;
+    fluid.res_water   = opt.res_water;
 
 end
 
 % ============================================================================
 function s = invPc3D(p, opt)
 % Fine-scale oil saturation, considered equal to residual saturation
-% ('res_oil') in the gas zone and 1 in the oil zone.  @@ It doesn't take
+% ('res_water') in the gas zone and 1 in the oil zone.  @@ It doesn't take
 % hysteresis into account).
-         s=(sign(p+eps)+1)/2*(1-opt.res_oil);
+         s=(sign(p+eps)+1)/2*(1-opt.res_water);
          s=1-s;
 end
 
@@ -131,16 +131,16 @@ function kr= krOG(so,opt,varargin)
         ineb = (sg) > loc_opt.sGmax;
         sg_res = (loc_opt.sGmax - sg);
 
-        so_free = 1 - (loc_opt.sGmax / (1 - opt.res_oil));
+        so_free = 1 - (loc_opt.sGmax / (1 - opt.res_water));
         kr=so_free+(1-opt.res_gas)*sg_res;
         % this to avoid errors in ADI derivative
 
         if any(ineb) % test necessary since otherwise we risk subtracting an
                      % array of size 0 from a scalar, which will crash
-            %kr = kr.*double(~ineb)+ double(~ineb).*(1-sg/(1-opt.res_oil));      
-            %kr(ineb)=(1-sg(ineb)/(1-opt.res_oil));
-            kr=ifcond(kr,1-sg/(1-opt.res_oil),~ineb);
-            %kr=min(kr,(1-sg/(1-opt.res_oil))
+            %kr = kr.*double(~ineb)+ double(~ineb).*(1-sg/(1-opt.res_water));      
+            %kr(ineb)=(1-sg(ineb)/(1-opt.res_water));
+            kr=ifcond(kr,1-sg/(1-opt.res_water),~ineb);
+            %kr=min(kr,(1-sg/(1-opt.res_water))
         end
         %kr(kr<0)=0.0*kr(kr<0);
         kr=max(kr,0.0);
@@ -150,8 +150,8 @@ function kr= krOG(so,opt,varargin)
     end
     %kr=kr.*opt.krg;
     kr=kr.*opt.kro;  % @@ Odd: the above line most likely a typo...?
-    assert(all(double(kr)==0 | double(so)>opt.res_oil));
-    %assert(all(double(kr(double(so)<=opt.res_oil))==0));
+    assert(all(double(kr)==0 | double(so)>opt.res_water));
+    %assert(all(double(kr(double(so)<=opt.res_water))==0));
 end
 
 % ----------------------------------------------------------------------------
@@ -168,7 +168,7 @@ function pc = pcOG(sg, p, fluid, Gt, opt, varargin)
        pc = (fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)) * ...
             norm(gravity) .*sg.*Gt.cells.H;
     end
-    pc = pc / (1-opt.res_oil);
+    pc = pc / (1-opt.res_water);
 end
 
 % ----------------------------------------------------------------------------
@@ -177,7 +177,7 @@ function state = cutValues(state, opt)
     %sGmax=state.smax(:,2);
     %sg=max(sGmax*opt.res_gas,sg);
     %sg=min(sg,1);
-    %sg=min(sg,1-opt.res_oil);
+    %sg=min(sg,1-opt.res_water);
     sg = max(sg,0);
     state.s = [1-sg, sg];
     state.rs = max(state.rs, 0);  % @@ Anything missing?  state.rs capped,
