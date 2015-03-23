@@ -448,8 +448,9 @@ function c = cell_adder(c1, c2)
 end
 
 function assert_in_range(val, range)
-    assert(all(val >= range(1)))
-    assert(all(val <= range(2)))
+   if (any(val < range(1)) || any (val > range(2)))
+      error('Tried to extrapolate outside range of sampled table.');
+   end
 end
 
 % ----------------------------------------------------------------------------
