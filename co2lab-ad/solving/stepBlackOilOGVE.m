@@ -70,7 +70,7 @@ meta.stopped = meta.iteration == system.nonlinear.maxIterations && ~meta.converg
 meta.history = history;
 
 if opt.Verbose    
-    eqnnames = {'Oil', 'Gas', 'Dis.Gas', 'qOs', 'qGs', 'pBHP','sGmax'};
+    eqnnames = {'Oil', 'Gas', 'Dis.Gas', 'qWs', 'qGs', 'pBHP','sGmax'};
     
     %printResidualVE(residuals, gmresits, eqnnames, meta.iteration, CNV, MB);
     printResidualVE(residuals, eqnnames, meta.iteration);
@@ -219,16 +219,16 @@ end
 
 
 %--------------
-%eqnnames = {'Oil', 'Gas', 'Dis.Gas', 'qOs', 'qGs', 'pBHP'};
+%eqnnames = {'Oil', 'Gas', 'Dis.Gas', 'qWs', 'qGs', 'pBHP'};
 dpBHP = dx{6}; %maybe put some limit on this?
-dqOs  = dx{4};
+dqWs  = dx{4};
 dqGs  = dx{5};
 
 
 
 for w = 1:numel(state.wellSol)    
     state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);   
-    state.wellSol(w).qOs      = state.wellSol(w).qOs + dqOs(w);
+    state.wellSol(w).qWs      = state.wellSol(w).qWs + dqWs(w);
     state.wellSol(w).qGs      = state.wellSol(w).qGs + dqGs(w);
 end
 
@@ -254,7 +254,7 @@ if isfield(explTrms, 'conPr')
 end
 end
 
-function wsol = updateWellSol(w, wsol, dp, dqO, dqG)
+function wsol = updateWellSol(w, wsol, dp, dqW, dqG)
 
     dmod = 1;
     pressure = wsol.pressure + dp;
@@ -266,7 +266,7 @@ function wsol = updateWellSol(w, wsol, dp, dqO, dqG)
     end
     wsol.pressure = pressure;
     % Ensure that we take a step equal to 
-    wsol.qOs = wsol.qOs + dmod*dqO;
+    wsol.qWs = wsol.qWs + dmod*dqW;
     wsol.qGs = wsol.qGs + dmod*dqG;
 end
 

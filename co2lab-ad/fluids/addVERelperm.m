@@ -27,8 +27,8 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %   res_gas   - residual gas saturation (scalar)
 %   res_water   - residual oil saturation (scalar)
 %   krG       - upscaled rel.perm. of gas as a function of (gas) saturation
-%   krOG      - upscaled rel.perm. of oil as a function of (oil) saturation
-%   pcOG      - upscaled 'capillary pressure' as a function of gas saturation
+%   krWG      - upscaled rel.perm. of oil as a function of (oil) saturation
+%   pcWG      - upscaled 'capillary pressure' as a function of gas saturation
 %   invPc3D   - Fine-scale oil saturation as function of cap. pressure
 %   cutValues - Function to ensure consistency and nonzero values in
 %               saturation fields of the 'state' variable ('state.s' and
@@ -47,9 +47,9 @@ function fluid = addVERelperm(fluid, Gt, varargin)
     opt = merge_options(opt, varargin{:});
 
     fluid.krG=@(sg, p, varargin) krG(sg, Gt, opt, varargin{:});
-    fluid.krOG=@(so, p, varargin) krOG(so,opt,varargin{:});
+    fluid.krWG=@(so, p, varargin) krWG(so,opt,varargin{:});
 
-    fluid.pcOG=@(sg, p, varargin) pcOG(sg, p ,fluid, Gt, opt, varargin{:});
+    fluid.pcWG=@(sg, p, varargin) pcWG(sg, p ,fluid, Gt, opt, varargin{:});
 
     fluid.cutValues = @(state,varargin) cutValues(state,opt);
     fluid.invPc3D   = @(p) invPc3D(p,opt);
@@ -120,7 +120,7 @@ function kr= krG(sg, Gt, opt,varargin)
 end
 
 % ----------------------------------------------------------------------------
-function kr= krOG(so,opt,varargin)
+function kr= krWG(so,opt,varargin)
 
     loc_opt=struct('sGmax',[]);
     loc_opt=merge_options(loc_opt,varargin{:});
@@ -155,17 +155,17 @@ function kr= krOG(so,opt,varargin)
 end
 
 % ----------------------------------------------------------------------------
-function pc = pcOG(sg, p, fluid, Gt, opt, varargin)
+function pc = pcWG(sg, p, fluid, Gt, opt, varargin)
     loc_opt = struct('sGmax',[]);
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
         % could been put in separate function
         sg_free = free_sg(sg, loc_opt.sGmax, opt);
         assert(all(sg_free>=0));
-        pc = (fluid.rhoOS .* fluid.bO(p) - fluid.rhoGS .* fluid.bG(p)) * ...
+        pc = (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) * ...
              norm(gravity) .* sg_free .* Gt.cells.H;
     else
-       pc = (fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)) * ...
+       pc = (fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)) * ...
             norm(gravity) .*sg.*Gt.cells.H;
     end
     pc = pc / (1-opt.res_water);

@@ -13,8 +13,8 @@ opt = merge_options(opt, varargin{:});
 
 %prop = @(  varargin) properties(opt, varargin{:});
 fluid.krG   = @(sg, p, varargin) krG(sg, p, opt.height, fluid, opt,varargin{:});
-fluid.krOG   = @(so, p, varargin) krOG(so, p, opt.height,  fluid, opt,varargin{:});
-fluid.pcOG   = @(sg, p, varargin) cap_press(sg, p, opt.height, fluid, opt, varargin{:});
+fluid.krWG   = @(so, p, varargin) krWG(so, p, opt.height,  fluid, opt,varargin{:});
+fluid.pcWG   = @(sg, p, varargin) cap_press(sg, p, opt.height, fluid, opt, varargin{:});
 if(opt.table_co2.is_kscaled)
     kscale=sqrt(opt.rock.perm/opt.rock.poro)*fluid.surf_tension;
     fluid.invPc3D  = @(p) opt.table_co2.invPc3D(p./kscale);
@@ -40,7 +40,7 @@ function varargout = cap_press(sg, p, H, fluid, opt, varargin)
    if(any(h>H))
        disp('Some hight lager than H')
    end
-   drho= (fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p))*norm(gravity);   
+   drho= (fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p))*norm(gravity);   
    varargout{1} = h.*drho;%(bsxfun(@times,h,drho));
    %if nargout==2
    %  varargout{2} = drho*dh;
@@ -72,7 +72,7 @@ function varargout = krG(sg, p, H, fluid, opt, varargin)
    varargout{1} = kr;
    %varargout{2} = dkr.*dgh;
 end
-function varargout = krOG(so, p, H, fluid, opt, varargin)
+function varargout = krWG(so, p, H, fluid, opt, varargin)
    %kr=interpTable(opt.table_water.h,opt.table_water.krH, so);
    %dkr=dinterpTable(opt.table_water.S,opt.table_water.kr, so); 
    %varargout{1} = kr;

@@ -21,15 +21,15 @@ opt = merge_options(opt, varargin{:});
 if(~opt.kr_pressure)
         fake_pressure=200*barsa;
         fluid.krG=@(sg,varargin) krG(sg, fake_pressure, fluid, opt, varargin{:});
-        fluid.krOG=@(so,varargin) krOG(so, fake_pressure, fluid, opt, varargin{:});
-        fluid.pcOG=@(sg, p, varargin) pcOG(sg,p ,fluid,opt, varargin{:});
+        fluid.krWG=@(so,varargin) krWG(so, fake_pressure, fluid, opt, varargin{:});
+        fluid.pcWG=@(sg, p, varargin) pcWG(sg,p ,fluid,opt, varargin{:});
         fluid.cutValues=@(state,varargin) cutValues(state,opt);
         %fluid.S3D=@(SVE, samples, H) S3D(SVE,fake_pressure, samples, H, fluid, opt);
         
 else
         fluid.krG=@(sg, p, varargin) krG(sg, p, fluid, opt, varargin{:});
-        fluid.krOG=@(so, p,varargin) krOG(so, p, fluid,  opt, varargin{:});
-        fluid.pcOG=@(sg, p, varargin) pcOG(sg, p,fluid,opt,varargin{:});
+        fluid.krWG=@(so, p,varargin) krWG(so, p, fluid,  opt, varargin{:});
+        fluid.pcWG=@(sg, p, varargin) pcWG(sg, p,fluid,opt,varargin{:});
         fluid.cutValues=@(state,varargin) cutValues(state,opt);
 
 end
@@ -46,13 +46,13 @@ fluid.res_water=opt.res_water;
 end
 
 %---------------------------------------------------------------------
-function varargout = pcOG(sg, p, fluid, opt, varargin)
+function varargout = pcWG(sg, p, fluid, opt, varargin)
    % this trasformation has to be doen twise as long as
    % pc aand relperm i separate functions
    loc_opt=struct('sGmax',[]);
    loc_opt=merge_options(loc_opt,varargin{:});
    sg = free_sg(sg,loc_opt.sGmax,opt);
-   drho=((fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS*fluid.bG(p))*norm(gravity));
+   drho=((fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS*fluid.bG(p))*norm(gravity));
    H=opt.height;   
    dSP=H.*drho;
    SP= sg.*dSP;
@@ -85,7 +85,7 @@ function varargout = krG(sg, p, fluid, opt, varargin)
    loc_opt=merge_options(loc_opt,varargin{:});
    sg = free_sg(sg,loc_opt.sGmax,opt);
    H=opt.height;
-   drho=((fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS*fluid.bG(p))*norm(gravity));
+   drho=((fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS*fluid.bG(p))*norm(gravity));
    dSP=H.*drho;
    SP= sg.*dSP;   
    if(opt.table_co2.is_kscaled)
@@ -129,7 +129,7 @@ function varargout = krG(sg, p, fluid, opt, varargin)
    varargout{1} = kr;%./H;
    %varargout{2} = dkr;%./H;%.*dh;
 end
-function kr = krOG(so, p, fluid, opt, varargin)
+function kr = krWG(so, p, fluid, opt, varargin)
    kr=interpTable(opt.table_water.S,opt.table_water.kr, 1-so);
    %dkr=dinterpTable(opt.table_water.S,opt.table_water.kr, so); 
    %varargout{1} = kr;

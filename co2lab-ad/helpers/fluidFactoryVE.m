@@ -33,14 +33,14 @@ function [fluid, system, sol] = fluidFactoryVE(Gt, rock, varargin)
                                    'rho',  rho(phaseSub),...
                                    'n',   [1 1 1]); 
         % Strip some fields not relevant here
-        badfields = {'krO', 'krW','krG','pcOG','pcOW'};
+        badfields = {'krW', 'krO','krG','pcOG','pcOW'};
         fluid = rmfield(fluid, badfields(isfield(fluid, badfields)));
         
         % Compressibilities...
         fluid.pvMultR = @(p) 1 + opt.rockCompressibility*(p-opt.referencePressure);
         
-        fluid.bO = @(p, varargin) 1 + opt.waterCompressibility*(p-opt.referencePressure);
-        fluid.BO = @(p, varargin) 1./fluid.bO(p);
+        fluid.bW = @(p, varargin) 1 + opt.waterCompressibility*(p-opt.referencePressure);
+        fluid.BW = @(p, varargin) 1./fluid.bW(p);
         
         if opt.useTabulatedCO2
             fluid.bG  =  boCO2(opt.referenceTemperature, fluid.rhoG);

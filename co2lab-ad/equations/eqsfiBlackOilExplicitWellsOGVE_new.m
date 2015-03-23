@@ -29,7 +29,7 @@ sGmax=state.sGmax;
 
 rs   = state.rs;
 pBHP = vertcat(state.wellSol.bhp);
-qOs  = vertcat(state.wellSol.qOs);
+qWs  = vertcat(state.wellSol.qWs);
 qGs  = vertcat(state.wellSol.qGs);
 
 % previous variables ------------------------------------------------------
@@ -61,19 +61,19 @@ if opt.resOnly
     % ADI variables aren't needed since we are only computing the residual.
     
 elseif ~opt.reverseMode
-    [p, sG, rs, qOs, qGs, pBHP,sGmax]  = initVariablesADI(p, sG, rs, qOs, qGs, pBHP,sGmax);
+    [p, sG, rs, qWs, qGs, pBHP,sGmax]  = initVariablesADI(p, sG, rs, qWs, qGs, pBHP,sGmax);
 else
     [p0, sG0, rs0, ~, ~, zw] = initVariablesADI(p0, sG0, rs0,...
         zeros(size(qGs)),...
-        zeros(size(qOs)), ...
+        zeros(size(qWs)), ...
         zeros(size(pBHP)));
 end
 
 
 g  = norm(gravity);
-%[Tw, dzw, Rw, wc, perf2well, pInx, iInxW] = getWellStuffOG(W);
+%[Tw, dzw, Rw, wc, perf2well, pInx, iInxW] = getWellStuffWG(W);
 if(~isempty(W))
-    [Tw, dzw, Rw, wc, perf2well, pInx, iInxG, iInxO] = getWellStuffOG(W);
+    [Tw, dzw, Rw, wc, perf2well, pInx, iInxG, iInxW] = getWellStuffWG(W);
 end
 %--------------------
 %check for p-dependent tran mult:
@@ -90,53 +90,53 @@ end
 %check for capillary pressure (p_cow)
 
 %check for capillary pressure (p_cog)
-pcOG = 0;
-if isfield(f, 'pcOG')
-    pcOG  = f.pcOG(sG,p,'sGmax',sGmax.val);
-    %pcOG  = f.pcOG(sG0,p0,'sGmax',sGmax0);
+pcWG = 0;
+if isfield(f, 'pcWG')
+    pcWG  = f.pcWG(sG,p,'sGmax',sGmax.val);
+    %pcWG  = f.pcWG(sG0,p0,'sGmax',sGmax0);
     pG=p;
-    pG0=p0;%+pcOG
+    pG0=p0;%+pcWG
 end
 
 % -------------------------------------------------------------------------
-%[krW, krO, krG] = f.relPerm(sW, sG);
-krO = f.krOG(1-sG, p,'sGmax',sGmax);
+%[krW, krW, krG] = f.relPerm(sW, sG);
+krW = f.krWG(1-sG, p,'sGmax',sGmax);
 krG = f.krG(sG, p,'sGmax',sGmax);
 % water props (calculated at oil pressure OK?)
 
 % oil props
-bO     = f.bO(p, rs, isSat);
-rhoO   = bO.*(rs*f.rhoGS + f.rhoOS);
-rhoOf  = s.faceAvg(rhoO);
-muO=f.muO(p,rs,isSat);
-mobO   = trMult.*krO./muO;
+bW     = f.bW(p, rs, isSat);
+rhoW   = bW.*(rs*f.rhoGS + f.rhoWS);
+rhoWf  = s.faceAvg(rhoW);
+muW=f.muW(p,rs,isSat);
+mobW   = trMult.*krW./muW;
 if(~any(strcmp(G.type,'topSurfaceGrid')))
-    dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.centroids(:,3)));
+    dpW    = s.grad(p) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
     
 else
-    dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.z));
+    dpW    = s.grad(p) - g*(rhoWf.*s.grad(G.cells.z));
 end
 
 % oil upstream-index
-upc = (double(dpO)>=0);
-bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
-rsbOvO = s.faceUpstr(upc, rs).*bOvO;
+upc = (double(dpW)>=0);
+bWvW   = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
+rsbWvW = s.faceUpstr(upc, rs).*bWvW;
 
 % gas props (calculated at oil pressure OK?)
 bG     = f.bG(pG);
 
-%bG     = f.bG(p+pcOG);
+%bG     = f.bG(p+pcWG);
 rhoG   = bG.*f.rhoGS;
 rhoGf  = s.faceAvg(rhoG);
-muG = f.muG(pG);%+pcOG);
+muG = f.muG(pG);%+pcWG);
 mobG = trMult.*krG./muG;
-%mobG = trMult.*krG./f.muG(p+pcOG);
-assert(all(double(rhoG)<double(rhoO)))
+%mobG = trMult.*krG./f.muG(p+pcWG);
+assert(all(double(rhoG)<double(rhoW)))
 
 if(~any(strcmp(G.type,'topSurfaceGrid')))
-    dpG     = s.grad(p+pcOG) - g*(rhoGf.*s.grad(G.cells.centroids(:,3)));
+    dpG     = s.grad(p+pcWG) - g*(rhoGf.*s.grad(G.cells.centroids(:,3)));
 else
-    dpG     = s.grad(p+pcOG) - g*(rhoGf.*s.grad(G.cells.z));
+    dpG     = s.grad(p+pcWG) - g*(rhoGf.*s.grad(G.cells.z));
 end
 
 % water upstream-index
@@ -145,18 +145,18 @@ bGvG = s.faceUpstr(upc,bG.*mobG).*s.T.*dpG;
 
 %WELLS ----------------------------------------------------------------
 %mobWw  = mobW(wc);
-%mobOw  = mobO(wc);
+%mobWw  = mobW(wc);
 %mobGw  = mobG(wc);
 
 % well bore head term computed explicitly, also compute connection phase
 % volume fractions (alpha)
 
 if(~isempty(W))
-    pcOGw = pcOG(wc);
+    pcWGw = pcWG(wc);
     if ~opt.resOnly
-        rhow          = [rhoO.val(wc), rhoG.val(wc)];
+        rhow          = [rhoW.val(wc), rhoG.val(wc)];
     else
-        rhow          = [rhoO(wc), rhoG(wc)];
+        rhow          = [rhoW(wc), rhoG(wc)];
     end
     [Hw, alpha]   = computeWellHeadOG(W, state.wellSol, rhow);
     
@@ -165,13 +165,13 @@ if(~isempty(W))
     %isInj    = double(drawdown) < 0;
     
     % connection mobilities
-    bOw = bO(wc);
+    bWw = bW(wc);
     bGw = bG(wc);
     rsw = rs(wc);
     if(false)
-        [mobOw, mobGw, crossFlow] = ...
-            computeWellMobilitiesOG(W, qOs, qGs, mobO(wc), mobG(wc), ...
-            bOw, bGw, rsw, isInj);
+        [mobWw, mobGw, crossFlow] = ...
+            computeWellMobilitiesOG(W, qWs, qGs, mobW(wc), mobG(wc), ...
+            bWw, bGw, rsw, isInj);
         
         if any(crossFlow)
             %    fprintf('Crossflow in %2.0d connections\n', nnz(crossFlow));
@@ -179,47 +179,47 @@ if(~isempty(W))
     end
     %set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
     mobGw  = mobG(wc);
-    mobOw  = mobO(wc);
+    mobWw  = mobW(wc);
     if(false)
-        mobGw(iInxG) = (mobGw(iInxG) + mobOw(iInxG));
-        mobOw(iInxG) = 0;
-        mobGw(iInxO) = 0;
-        mobOw(iInxO) = (mobGw(iInxO) + mobOw(iInxO));
+        mobGw(iInxG) = (mobGw(iInxG) + mobWw(iInxG));
+        mobWw(iInxG) = 0;
+        mobGw(iInxW) = 0;
+        mobWw(iInxW) = (mobGw(iInxW) + mobWw(iInxW));
     else
         mobGw(iInxG) = 1./1e-3;%muG(wc(iInxG));  @@ Magic number?
-        mobOw(iInxG) = 0;
-        mobGw(iInxO) = 0;
-        mobOw(iInxO) = 1./1e-3;%muO(wc(iInxO));
+        mobWw(iInxG) = 0;
+        mobGw(iInxW) = 0;
+        mobWw(iInxW) = 1./1e-3;%muW(wc(iInxW));
         %rs(iInxG)=0;
-        %rs(iInxO)=0;
+        %rs(iInxW)=0;
     end
-    assert(all(mobOw>=0))
+    assert(all(mobWw>=0))
     assert(all(mobGw>=0))
     
     if(false)
-        qO = (-Tw).*mobOw.*drawdown;
+        qW = (-Tw).*mobWw.*drawdown;
         qG = (-Tw).*mobGw.*drawdown;
     else
-        qO = (-Tw).*mobOw.*(-(pBHP(perf2well) + 0.0*Hw) + p(wc));
-        qG = (-Tw).*mobGw.*(-(pBHP(perf2well) + 0.0*Hw+0.0*pcOGw) + p(wc));
+        qW = (-Tw).*mobWw.*(-(pBHP(perf2well) + 0.0*Hw) + p(wc));
+        qG = (-Tw).*mobGw.*(-(pBHP(perf2well) + 0.0*Hw+0.0*pcWGw) + p(wc));
     end
     
-    bOqO  = bOw.*qO;
+    bWqW  = bWw.*qW;
     bGqG  = bGw.*qG;
     
     %bWqW  = -bWmobWw.*Tw.*(pBHP(perf2well) - pw + pcOWw + g*dzw.*rhoW(wc));
-    %bOqO  = -bOmobOw.*Tw.*(pBHP(perf2well) - pw + g*dzw.*rhoO(wc));
-    %bGqG  = -bGmobGw.*Tw.*(pBHP(perf2well) - pw - pcOGw + g*dzw.*rhoG(wc));
+    %bWqW  = -bWmobWw.*Tw.*(pBHP(perf2well) - pw + g*dzw.*rhoW(wc));
+    %bGqG  = -bGmobGw.*Tw.*(pBHP(perf2well) - pw - pcWGw + g*dzw.*rhoG(wc));
     
     % Compute explicit terms
-    explTrms.wellFlux = [double(qO), double(qG)];
+    explTrms.wellFlux = [double(qW), double(qG)];
     
     if ~all(sign(Rw'*sum(explTrms.wellFlux,2))==vertcat(W.sign))
         %     warning('Some producers are becoming injectors or vice versa !!!!!!')
         %     fprintf('Wells changing roles...\n')
     end
 else
-    explTrms.wellFlux = [];%[double(qO), double(qG)];
+    explTrms.wellFlux = [];%[double(qW), double(qG)];
 end
 
 if(~isempty(opt.bc))
@@ -230,23 +230,23 @@ if(~isempty(opt.bc))
     %bc_cell_loc(bc_cell_nr)=true;
     % assume cappillary pressure zero outside
     dzbc=(G.cells.z(bc_cell)-G.faces.z(opt.bc.face));
-    pObc=p(bc_cell);rhoObc=rhoO(bc_cell);
-    dpbc_o=opt.bc.value-pObc+g*(rhoObc.*dzbc);
-    pGbc= pObc+pcOG(bc_cell);rhoGbc=rhoG(bc_cell);
+    pWbc=p(bc_cell);rhoWbc=rhoW(bc_cell);
+    dpbc_o=opt.bc.value-pWbc+g*(rhoWbc.*dzbc);
+    pGbc= pWbc+pcWG(bc_cell);rhoGbc=rhoG(bc_cell);
     dpbc_g=opt.bc.value-(pGbc)+g*(rhoGbc.*dzbc);
     bGmobGbc = bG(bc_cell).*mobG(bc_cell);
-    bOmobObc = bO(bc_cell).*mobO(bc_cell);
+    bWmobWbc = bW(bc_cell).*mobW(bc_cell);
     bGmobGbc(dpbc_g>0)=0;
     rsbc    = rs(bc_cell);
     %bGmobGbc(dpbc_o>0)=0;
-    %bOmobObc(dpbc_g>0)=0;
+    %bWmobWbc(dpbc_g>0)=0;
     if(any(dpbc_o>0))
-        bOmobObc(dpbc_o>0)=bO(bc_cell(dpbc_o>0)).*(mobO(bc_cell(dpbc_o>0))+mobG(bc_cell(dpbc_o>0)));
-        %bOmobObc(dpbc_o>0)=bO(bc_cell(dpbc_o>0)).*(mobO(bc_cell(dpbc_o>0)));
+        bWmobWbc(dpbc_o>0)=bW(bc_cell(dpbc_o>0)).*(mobW(bc_cell(dpbc_o>0))+mobG(bc_cell(dpbc_o>0)));
+        %bWmobWbc(dpbc_o>0)=bW(bc_cell(dpbc_o>0)).*(mobW(bc_cell(dpbc_o>0)));
         rsbc(dpbc_o>0) = 0;
     end
     bGqGbc  = -bGmobGbc.*Tbc.*(dpbc_g);
-    bOqObc  = -bOmobObc.*Tbc.*(dpbc_o);
+    bWqWbc  = -bWmobWbc.*Tbc.*(dpbc_o);
 else
     bc_cell=[];
 end
@@ -258,41 +258,41 @@ rsSat  = f.rsSat(p);
 
 
 % oil:
-eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sG) - pvMult0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) + s.div(bOvO);
+eqs{1} = (s.pv/dt).*( pvMult.*bW.*(1-sG) - pvMult0.*f.bW(p0,rs0,isSat0).*(1-sG0) ) + s.div(bWvW);
 if(~isempty(W))
-    eqs{1}(wc) = eqs{1}(wc) - bOqO;
+    eqs{1}(wc) = eqs{1}(wc) - bWqW;
 end
-%eqs{1} = addToVals(eqs{1}, wc, bOqO);
+%eqs{1} = addToVals(eqs{1}, wc, bWqW);
 %eqs{2} = addToVals(eqs{2}, wc, bWqW);
 % gas:
 eqs{2} = (s.pv/dt).*...
-    ( pvMult.*(bG.*sG + rs.*bO.*(1-sG) ) -...
-    pvMult0.*(f.bG(pG0).*sG0 + rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
-    s.div(bGvG + rsbOvO);
+    ( pvMult.*(bG.*sG + rs.*bW.*(1-sG) ) -...
+    pvMult0.*(f.bG(pG0).*sG0 + rs0.*f.bW(p0,rs0,isSat0).*(1-sG0) ) )+ ...
+    s.div(bGvG + rsbWvW);
 
 
 if(~isempty(W))
     eqs{2}(wc(iInxG)) = eqs{2}(wc(iInxG)) - bGqG(iInxG);
-    eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx) - rsw(pInx).*bOqO(pInx);
+    eqs{2}(wc(pInx)) = eqs{2}(wc(pInx)) - bGqG(pInx) - rsw(pInx).*bWqW(pInx);
 end
 if(~isempty(opt.bc))
-    eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
-    eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bGqGbc+ rsbc.*bOqObc;%could add dissolved gas
-    assert(all(double(bGqGbc+ rsbc.*bOqObc))>=0)
+    eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bWqWbc;
+    eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bGqGbc+ rsbc.*bWqWbc;%could add dissolved gas
+    assert(all(double(bGqGbc+ rsbc.*bWqWbc))>=0)
 end
 
 % closing eqs:
 if(isfield(f,'dis_rate'))
     eqs{3} = (s.pv/dt).*...
-        ( pvMult.*(rs.*bO.*(1-sG) ) -...
-        pvMult0.*(rs0.*f.bO(p0,rs0,isSat0).*(1-sG0) ) )+ ...
-        s.div(rsbOvO);
+        ( pvMult.*(rs.*bW.*(1-sG) ) -...
+        pvMult0.*(rs0.*f.bW(p0,rs0,isSat0).*(1-sG0) ) )+ ...
+        s.div(rsbWvW);
     
     if(~isempty(W))
-        eqs{3}(wc(pInx)) = eqs{3}(wc(pInx)) - rsw(pInx).*bOqO(pInx);
+        eqs{3}(wc(pInx)) = eqs{3}(wc(pInx)) - rsw(pInx).*bWqW(pInx);
     end
     if(~isempty(opt.bc))
-        eqs{3}(bc_cell)  = eqs{3}(bc_cell) + rsbc.*bOqObc; 
+        eqs{3}(bc_cell)  = eqs{3}(bc_cell) + rsbc.*bWqWbc; 
     end
     % store flow part conservation of rs
     eqs_org{3}=eqs{3};
@@ -390,9 +390,9 @@ end
 % Last eq: boundary cond
     zeroW=0*pBHP;
 if(~isempty(W))
-    eqs{4} = -Rw'*bOqO + qOs + zeroW;
-    eqs{5} = -Rw'*(bGqG + rsw.*bOqO) + qGs + zeroW;
-    eqs{6} = handleBC(W, pBHP, [], qOs, qGs, scalFacs) + zeroW; 
+    eqs{4} = -Rw'*bWqW + qWs + zeroW;
+    eqs{5} = -Rw'*(bGqG + rsw.*bWqW) + qGs + zeroW;
+    eqs{6} = handleBC(W, pBHP, [], qWs, qGs, scalFacs) + zeroW; 
 else
     eqs{4} = zeroW;
     eqs{5}  = zeroW;
@@ -462,14 +462,14 @@ end
 
 %--------------------------------------------------------------------------
 
-function [mO, mG, crossFlow] = computeWellMobilitiesOG(W, qOs, qGs, mO,  mG,  bO, bG, rs, isInj)
+function [mO, mG, crossFlow] = computeWellMobilitiesOG(W, qWs, qGs, mO,  mG,  bW, bG, rs, isInj)
 % for producer producing connections, m = [mW mO mG] remains unchanged
 % for producer injecting connections the (assumed uniform) flow in the
 % well-bore is calculated by
 %   qW = qWs/bW
-%   qO = qOs/bO
-%   qG = (qGs-rs*qOs)/bG
-% and the mobility as m = [qW qO qG]*(mW+mO+mG)/(qW+qO+qG)
+%   qW = qWs/bW
+%   qG = (qGs-rs*qWs)/bG
+% and the mobility as m = [qW qW qG]*(mW+mO+mG)/(qW+qW+qG)
 %
 % for injector injecting connections the mobility is calculated by
 % m = compi*(mW+mO+mG)
@@ -495,9 +495,9 @@ crossFlow = and(~iInx,isInj);
 if any(crossFlow)
     ix = find(crossFlow);
     perf2well = rldecode((1:numel(W))', nPerf);
-    qO = qOs(perf2well(ix))./bO(ix);
-    qG = (qGs(perf2well(ix))-rs(ix).*qOs(perf2well(ix)))./bG(ix);
-    qt =  qO + qG;
+    qW = qWs(perf2well(ix))./bW(ix);
+    qG = (qGs(perf2well(ix))-rs(ix).*qWs(perf2well(ix)))./bG(ix);
+    qt =  qW + qG;
     
     % don't bother with connections having almost zero flow
     %     zeroInx = abs(qt.val)<1e-6/day;
@@ -507,7 +507,7 @@ if any(crossFlow)
         fprintf('%d ', unique(perf2well(ix)))
         fprintf('\n')
         mt =  mO(ix) + mG(ix);
-        mO(ix) = qO.*mt./qt;
+        mO(ix) = qW.*mt./qt;
         mG(ix) = qG.*mt./qt;
         
     end

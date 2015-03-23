@@ -80,9 +80,9 @@ else
     %sr= 0.21
 end
 fluidADI = initSimpleADIFluid('mu',[mu(2) mu(2) mu(1)],...
-                                'rho',[rho(2) rho(2), rho(1)],...
-                                'n',[1 1 1]); 
-wfields={'krO''krW','krG','pcOG','pcOW'};
+                              'rho',[rho(2) rho(2), rho(1)],...
+                              'n',[1 1 1]); 
+wfields={'krO', 'krW','krG','pcOG','pcOW'};
 for i=1:numel(wfields)
     if(isfield(fluidADI,wfields{i}))
         fluidADI=rmfield(fluidADI,wfields{i});
@@ -90,8 +90,8 @@ for i=1:numel(wfields)
 end
 %%
 fluidADI.pvMultR =@(p) 1+(1e-5/barsa)*(p-100*barsa);
-fluidADI.bO = @(p,varargin) 1+(4.3e-5/barsa)*(p-100*barsa);
-fluidADI.BO = @(p, varargin) 1./fluidADI.bO(p);
+fluidADI.bW = @(p,varargin) 1+(4.3e-5/barsa)*(p-100*barsa);
+fluidADI.BW = @(p, varargin) 1./fluidADI.bW(p);
 Temp=Gt.cells.z*30/1e3+274+12;
 p0=Gt.cells.z(:)*norm(gravity)*1100;
 fluidADI.bG  =  boCO2(Temp, fluidADI.rhoGS);fluidADI.BG = @(p) 1./fluidADI.bG(p);
@@ -99,9 +99,9 @@ fluidADI.bG  =  boCO2(Temp, fluidADI.rhoGS);fluidADI.BG = @(p) 1./fluidADI.bG(p)
 %{
 fluidADI.bG= @(p) 1+0*p;
 fluidADI.BG=@(p)  1+0*p;
-fluidADI.bO= @(p,varargin) 1+0*p;
-fluidADI.BO=@(p,varargin)  1+0*p;
-fluidADI.rhoGS=600;fluidADI.rhoOS=1000;
+fluidADI.bW= @(p,varargin) 1+0*p;
+fluidADI.BW=@(p,varargin)  1+0*p;
+fluidADI.rhoGS=600;fluidADI.rhoWS=1000;
 %}
 %fluid={}
 fluidADI.surface_tension = 30e-3;
@@ -129,13 +129,13 @@ else
 end
 %%
 
- drho=(fluidADI.rhoOS-fluidADI.rhoGS);
+ drho=(fluidADI.rhoWS-fluidADI.rhoGS);
  fluid=fluidADI;
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krOG=@(so,varargin) so;
-       fluid.pcOG=@(sg, p, varargin) norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*opt.Gt.cells.H;       
+       fluid.krWG=@(so,varargin) so;
+       fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*opt.Gt.cells.H;       
        fluid.res_gas=0;
        fluid.res_water=0;
        fluid.invPc3D=@(p) 1-(sign(p+eps)+1)/2;
@@ -158,11 +158,11 @@ switch fluid_case
                                       'res_gas',opt.res_gas,...
                                       'res_water',opt.res_water,...
                                       'beta',2,...
-                                      'cap_scale',0.2*max(opt.Gt.cells.H)*10*(fluid.rhoOS-fluid.rhoGS),...
+                                      'cap_scale',0.2*max(opt.Gt.cells.H)*10*(fluid.rhoWS-fluid.rhoGS),...
                                       'H',opt.Gt.cells.H,'kr_pressure',true);
         %{                          
             fluid = addVERelpermCapLinear(fluid,'res_gas',0.1,'beta',4,'cap_scale',...
-                    0.3*H*10*(fluid.rhoOS-fluid.rhoGS),...
+                    0.3*H*10*(fluid.rhoWS-fluid.rhoGS),...
                     'H',Gt.cells.H,'kr_pressure',false);
         %}                              
      case 'S table' 
@@ -243,6 +243,6 @@ else
     fluid.dis_rate=dis_rate;
     dis_max=0.03;
     fluid.dis_max=dis_max;
-    fluid.muO=@(po,rs,flag,varargin) fluidADI.muO(po);
+    fluid.muW=@(po,rs,flag,varargin) fluidADI.muW(po);
     fluid.rsSat=@(po,rs,flag,varargin)   (po*0+1)*dis_max;
 end

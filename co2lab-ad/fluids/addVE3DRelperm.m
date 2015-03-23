@@ -2,8 +2,8 @@ function fluid = addVE3DRelperm(fluid,varargin)
     opt=struct('res_water',0,'res_gas',0,'Gt',[]);
     opt=merge_options(opt, varargin{:});        
     fluid.krG=@(sg,varargin) krG(sg,opt,varargin{:});
-    fluid.krOG=@(so,varargin) krOG(so,opt,varargin{:});
-    fluid.pcOG=@(sg, varargin) pcOG(sg,fluid,opt,varargin{:});
+    fluid.krWG=@(so,varargin) krWG(so,opt,varargin{:});
+    fluid.pcWG=@(sg, varargin) pcWG(sg,fluid,opt,varargin{:});
     fluid.cutValues=@(state,varargin) cutValues(state,opt);
     fluid.invPc3D = @(p) (sign(p)+1)/2;
     fluid.kr3D =@(s) s;
@@ -25,7 +25,7 @@ function kr= krG(sg,opt,varargin)
         kr = sg;
     end
 end
-function kr= krOG(so,opt,varargin)
+function kr= krWG(so,opt,varargin)
     loc_opt=struct('sGmax',[]);    
     loc_opt=merge_options(loc_opt,varargin{:});
     if(~isempty(loc_opt.sGmax))
@@ -43,7 +43,7 @@ function kr= krOG(so,opt,varargin)
         kr = so;
     end
 end
-function pc= pcOG(sg, fluid,opt,varargin)
+function pc= pcWG(sg, fluid,opt,varargin)
     loc_opt=struct('sGmax',[]);    
     loc_opt=merge_options(loc_opt,varargin{:});
     if(~isempty(loc_opt.sGmax))
@@ -54,9 +54,9 @@ function pc= pcOG(sg, fluid,opt,varargin)
         sg_free(sg_free<0)=0.0*sg_free(sg_free<0);
         
         assert(all(sg_free>=0))
-        pc = norm(gravity)*(fluid.rhoOS-fluid.rhoGS).*sg_free.*opt.Gt.cells.H;
+        pc = norm(gravity)*(fluid.rhoWS-fluid.rhoGS).*sg_free.*opt.Gt.cells.H;
     else
-       pc = norm(gravity)*(fluid.rhoOS-fluid.rhoGS).*sg.*opt.Gt.cells.H;
+       pc = norm(gravity)*(fluid.rhoWS-fluid.rhoGS).*sg.*opt.Gt.cells.H;
     end
 end
 function state = cutValues(state,opt);

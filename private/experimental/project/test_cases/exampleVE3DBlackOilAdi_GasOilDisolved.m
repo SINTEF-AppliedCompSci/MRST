@@ -63,20 +63,20 @@ if(explicit_VE)
     switch pressure_case
         case 'simple_time_mix'
             l_fac=1e-10
-            fluid.bO=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
-            fluid.BO=@(po,rs,flag,varargin) 1./fluid.bO(po,rs,flag,varargin);
+            fluid.bW=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
+            fluid.BW=@(po,rs,flag,varargin) 1./fluid.bW(po,rs,flag,varargin);
             fluid.dis_rate=5e-13;
         case 'simple_instant'
             l_fac=1e-6
-            fluid.bO=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
-            fluid.BO=@(po,rs,flag,varargin) 1./fluid.bO(po,rs,flag,varargin);
+            fluid.bW=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
+            fluid.BW=@(po,rs,flag,varargin) 1./fluid.bW(po,rs,flag,varargin);
         otherwise
     end
     
     
     fluid.bG=@(pg,varargin) pg*0.0+1;
     fluid.BG=@(pg,varargin) pg*0.0+1;
-    fluid.muO=@(po,rs,flag,varargin) 0.4e-3*(po*0+1);
+    fluid.muW=@(po,rs,flag,varargin) 0.4e-3*(po*0+1);
     fluid.muG=@(pg,varargin) 1e-4*(pg*0+1);
     dis_max=0.01;
     fluid.rsSat=@(po,rs,flag,varargin)   (po*0+1)*dis_max;
@@ -86,8 +86,8 @@ if(explicit_VE)
     switch relperm_case
         case 'simple'
             fluid.krG=@(sg,varargin) sg;
-            fluid.krOG=@(so,varargin) so;
-            fluid.pcOG=@(sg,varargin) norm(gravity)*(fluid.rhoOS-fluid.rhoGS)*(sg).*Gt.cells.H;
+            fluid.krWG=@(so,varargin) so;
+            fluid.pcWG=@(sg,varargin) norm(gravity)*(fluid.rhoWS-fluid.rhoGS)*(sg).*Gt.cells.H;
             fluid=rmfield(fluid,'relPerm');
             %fluid.re
         case 'hysteresis'

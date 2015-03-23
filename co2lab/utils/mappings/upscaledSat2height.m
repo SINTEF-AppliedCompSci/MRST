@@ -23,11 +23,11 @@ function [h, h_max] = upscaledSat2height(S, S_max, Gt, varargin)
 %                             residual CO2 saturation.
 %              * If a _general_ model is assumed, then the function needs the
 %              following argument:
-%                - pcOG(S, p, S_max) - upscaled capillary pressure as a
+%                - pcWG(S, p, S_max) - upscaled capillary pressure as a
 %                                      funciton of upscaled saturation,
 %                                      current pressure and max. upscaled
 %                                      saturation.
-%                - rhoO(p)           - density of water [oil] phase, as a
+%                - rhoW(p)           - density of water [oil] phase, as a
 %                                      function of pressure.
 %                - rhoG(p)           - density of CO2 [gas] phase, as a
 %                                      function of pressure.
@@ -48,11 +48,11 @@ function [h, h_max] = upscaledSat2height(S, S_max, Gt, varargin)
 %
 % SEE ALSO:
 %
-    opt = struct('rock2D', [], 'resSat', [], 'pcOG', [], 'p', [], 'rhoO', [], ...
+    opt = struct('rock2D', [], 'resSat', [], 'pcWG', [], 'p', [], 'rhoW', [], ...
                  'rhoG', []);
     opt = merge_options(opt, varargin{:});
     
-    if isempty(opt.pcOG)
+    if isempty(opt.pcWG)
         % We assume a sharp-interface model
         assert(~isempty(opt.resSat));
         sw    = opt.resSat(1);
@@ -65,11 +65,11 @@ function [h, h_max] = upscaledSat2height(S, S_max, Gt, varargin)
         % Capillary pressure function provided - we assume a general model
         assert(~isempty(opt.p));
         assert(~isempty(p));
-        assert(~isempty(rhoO));
+        assert(~isempty(rhoW));
         assert(~isempty(rhoG));
-        pc    = opt.pcOG(S, p, 'sGmax', S_max);
-        pcmax = opt.pcOG(S_max, p, 'sGmax', S_max);
-        drho  = norm(gravity) * (rhoO(p) - rhoG(p));
+        pc    = opt.pcWG(S, p, 'sGmax', S_max);
+        pcmax = opt.pcWG(S_max, p, 'sGmax', S_max);
+        drho  = norm(gravity) * (rhoW(p) - rhoG(p));
         h     = pc ./ drho;
         h_max = pcmax ./ drho;
     end

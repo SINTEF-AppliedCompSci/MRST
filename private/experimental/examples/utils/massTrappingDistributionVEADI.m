@@ -80,7 +80,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
     freeMov   = plumeVol * (1 - sw - sr);                          % non-trapped, flowing, non-res
     resTrap   = sum(max(hm_eff - max(zt, h_eff),0) .* ...
                     rhoCO2 .* pv ) .* sr;                          % non-trapped, non-flowing, res
-    resDis    = fluidADI.rhoGS .* sum(pv.* (rs .* fluidADI.bO(p) .* SF)); % dissolved
+    resDis    = fluidADI.rhoGS .* sum(pv.* (rs .* fluidADI.bW(p) .* SF)); % dissolved
     subtrap   = sum((hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2);
 
     masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc, subtrap, freeMov], 0);

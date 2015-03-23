@@ -55,8 +55,8 @@ fluid_case='simple';
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krOG=@(so,varargin) so;
-       fluid.pcOG=@(sg,varargin) norm(gravity)*(fluid.rhoOS-fluid.rhoGS)*(sg).*Gt.cells.H;
+       fluid.krWG=@(so,varargin) so;
+       fluid.pcWG=@(sg,varargin) norm(gravity)*(fluid.rhoWS-fluid.rhoGS)*(sg).*Gt.cells.H;
        fluid=rmfield(fluid,'relPerm');
        res_gas=0;
     case 'hystersis'

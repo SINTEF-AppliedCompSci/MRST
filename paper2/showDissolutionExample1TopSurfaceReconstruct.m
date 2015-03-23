@@ -92,9 +92,9 @@ if(dissolution_c)
 else
     sGmax=state.smax(:,2);
 end
-drho=fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p);
-h=(fluid.pcOG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
-h_max=(fluid.pcOG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
+drho=fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p);
+h=(fluid.pcWG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
+h_max=(fluid.pcWG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
 if(dissolution_c)
         mm=minRs(p,sG,sGmax,fluid,Gt);%.*Gt.cells.H;
         h_res_diff=Gt.cells.H.*((1-sG).*state.rs-mm)/fluid.dis_max;
@@ -203,7 +203,7 @@ for i=1:numel(cells)
     assert(abs(s_free-sG_free(cell))<mtol);
     assert(abs(s-sG(cell))<mtol);
     assert(abs(s_max-sGmax(cell))<mtol);
-    pc_cells=fluid.pcOG(sG,p,'sGmax',sGmax);
+    pc_cells=fluid.pcWG(sG,p,'sGmax',sGmax);
     assert(abs(pc-pc_cells(cell))<mtol);
     krG=fluid.krG(sG,p,'sGmax',sGmax);
     assert(abs(kr-krG(cell))<mtol);

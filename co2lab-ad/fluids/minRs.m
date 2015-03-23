@@ -1,11 +1,11 @@
 function min_rs= minRs(p,sG,sGmax,f, G)
     
     % computing |g|.(rho_w - rho_g)
-    drho=norm(gravity)*(f.rhoOS.*f.bO(p)-f.rhoGS.*f.bG(p));
+    drho=norm(gravity)*(f.rhoWS.*f.bW(p)-f.rhoGS.*f.bG(p));
     
     % Computing position of the h_max interface, consistent with the current
     % value of sGmax.
-    pcmax=f.pcOG(sGmax, p,'sGmax',double(sGmax));       
+    pcmax=f.pcWG(sGmax, p,'sGmax',double(sGmax));       
     h_max=pcmax./drho;
     assert(all(double(h_max)>=0));
 
@@ -25,8 +25,8 @@ end
 
 % -------------------------------- DEPRECATED --------------------------------
 %     %{
-%     pcOG=f.pcOG(sG,p,'sGmax',double(sGmax));
-%     h=pcOG./drho;
+%     pcWG=f.pcWG(sG,p,'sGmax',double(sGmax));
+%     h=pcWG./drho;
 %     assert(all(double(h)>=0));
 %     h_max(h<=0)=sG(h<=0).*G.cells.H(h<=0)/(f.res_gas);
 %     h(h<=0)=0*h(h<=0);

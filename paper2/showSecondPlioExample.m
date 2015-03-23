@@ -181,9 +181,9 @@ for step=mysteps
       sG = free_sg(sG, sGmax, ...
                     struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
       fluid=fluids{methods(m)};
-      drho=fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p); 
-      h=(fluid.pcOG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
-      h_max=(fluid.pcOG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
+      drho=fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p); 
+      h=(fluid.pcWG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
+      h_max=(fluid.pcWG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
       if(n==3)
           mm=minRs(p,sG,sGmax,fluid,Gt);%.*Gt.cells.H;
           h_res_diff=Gt.cells.H.*((1-sG).*state.rs-mm)/fluid.dis_max;
@@ -258,9 +258,9 @@ for m=1:3
         assert(all(sGmax>=0));
         
         fluid=fluids{m};
-        drho=fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p);
-        h=(fluid.pcOG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
-        h_max=(fluid.pcOG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
+        drho=fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p);
+        h=(fluid.pcWG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
+        h_max=(fluid.pcWG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
         if(n==3)
             mm=minRs(p,sG,sGmax,fluid,Gt);%.*Gt.cells.H;
             h_res_diff=Gt.cells.H.*((1-sG).*state.rs-mm)/fluid.dis_max;

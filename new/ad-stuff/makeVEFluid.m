@@ -1,4 +1,4 @@
-function fluid = makeVEFluid(Gt, relperm_model, varargin)
+function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %
 % Construct a VE fluid with properties specific to a chosen model
 % 
@@ -41,7 +41,7 @@ function fluid = makeVEFluid(Gt, relperm_model, varargin)
 % SEE ALSO:
 %
    
-   opt = merge_options(default_options, varargin{:});
+   opt = merge_options(default_options(), varargin{:});
    fluid = []; % construct fluid from empty object
    
    %% Adding density and viscosity properties
@@ -61,9 +61,9 @@ function fluid = makeVEFluid(Gt, relperm_model, varargin)
    %% adding type-specific modifications
    switch relperm_model
      case 'simple' %@@ tested anywhere?
-       fluid = setup_simple_fluid(fluid, G, opt);
+       fluid = setup_simple_fluid(fluid, G, opt.residual);
      case 'integrated' %@@ tested anywhere? 
-       fluid = setup_integrated_fluid(fluid, G, opt);
+       fluid = setup_integrated_fluid(fluid, G, rock, opt.residual);
      case 'sharp interface'
        fluid = make_sharp_interface_fluid(fluid, G, opt);
      case 'linear cap.'
@@ -213,21 +213,23 @@ end
 
 % ============================================================================
 
-function fluid = setup_simple_fluid(fluid, G, opt)
+function fluid = setup_simple_fluid(fluid, G, residual)
 
    fluid = linear_relperms(fluid);                    % 'krW'      , 'krG', 'kr3D'
-   fluid = residual_saturations(fluid, opt.residual); % 'res_water', 'res_gas'
+   fluid = residual_saturations(fluid, residual);     % 'res_water', 'res_gas'
    fluid = sharp_interface_cap_pressure(fluid, G);    % 'pcWG'     , 'invPc3D'
    
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = setup_integrated_fluid(fluid, Gt, opt)
+function fluid = setup_integrated_fluid(fluid, Gt, rock, residual)
    
-   fluid = addVERelpermIntegratedFluid(fluid, 'Gt', Gt, 
-   
-
+   fluid = addVERelpermIntegratedFluid(fluid       , ...
+                                       'Gt'        , Gt          , ...
+                                       'rock'      , rock        , ...
+                                       'res_water' , residual(1) , ...
+                                       'res_gas'   , residual(2));
 end
 
 % ----------------------------------------------------------------------------

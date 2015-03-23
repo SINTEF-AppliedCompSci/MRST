@@ -143,7 +143,7 @@ for k=1:3
         otherwise
             error('No such case')
     end
-    assert(fluid.rhoOS==rhow);
+    assert(fluid.rhoWS==rhow);
     assert(fluid.rhoGS==rhoc);
     
     system.nonlinear.linesearch    = false;
@@ -155,7 +155,7 @@ for k=1:3
     clear x0;
     
     
-    x0.pressure = z(:)*norm(gravity)*fluid.rhoOS;
+    x0.pressure = z(:)*norm(gravity)*fluid.rhoWS;
     x0.s(:,1)   = ones(G.cells.num,1);
     x0.s(:,2)   = zeros(G.cells.num,1);
     x0.rs       = ones(G.cells.num,1)*0.0;

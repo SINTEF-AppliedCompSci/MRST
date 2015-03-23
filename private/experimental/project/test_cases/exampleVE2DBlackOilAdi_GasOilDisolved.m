@@ -67,22 +67,22 @@ dis_max=0.01;
 switch pressure_case
     case 'simple_time_mix'
         l_fac=1e-10
-        fluid.bO=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
-        fluid.BO=@(po,rs,flag,varargin) 1./fluid.bO(po,rs,flag,varargin);
+        fluid.bW=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
+        fluid.BW=@(po,rs,flag,varargin) 1./fluid.bW(po,rs,flag,varargin);
         dis_par=0.5;% meter per year;
         fluid.dis_rate=dis_par*max(rock.poro)*dis_max/year;
         %fluid.dis_rate=5e-13*H;
     case 'simple_instant'
         l_fac=1e-6
-        fluid.bO=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
-        fluid.BO=@(po,rs,flag,varargin) 1./fluid.bO(po,rs,flag,varargin);
+        fluid.bW=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
+        fluid.BW=@(po,rs,flag,varargin) 1./fluid.bW(po,rs,flag,varargin);
     otherwise
 end
 
     
 fluid.bG=@(pg,varargin) pg*0.0+1;
 fluid.BG=@(pg,varargin) pg*0.0+1;
-fluid.muO=@(po,rs,flag,varargin) 0.4e-3*(po*0+1);
+fluid.muW=@(po,rs,flag,varargin) 0.4e-3*(po*0+1);
 fluid.muG=@(pg,varargin) 1e-4*(pg*0+1);
 fluid.rsSat=@(po,rs,flag,varargin)   (po*0+1)*dis_max;
 
@@ -99,8 +99,8 @@ res_water= 0.0;
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krOG=@(so,varargin) so;
-       fluid.pcOG=@(sg, p, varargin) norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
+       fluid.krWG=@(so,varargin) so;
+       fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
        fluid=rmfield(fluid,'relPerm');
        res_gas=0;
     case 'sharp_interface'    
@@ -115,7 +115,7 @@ switch fluid_case
                                       'res_gas',res_gas,...
                                       'res_water',res_water,...
                                       'beta',1,...
-                                      'cap_scale',0.5*max(Gt.cells.H)*10*(fluid.rhoOS-fluid.rhoGS),...
+                                      'cap_scale',0.5*max(Gt.cells.H)*10*(fluid.rhoWS-fluid.rhoGS),...
                                       'H',Gt.cells.H,'kr_pressure',true);
     case 'cap_1D_table_P'
         drho=400;
@@ -257,9 +257,9 @@ for nn=1:numel(states)
     %smax=state.smax(:,2);
     smax=state.sGmax;
     p=state.pressure;
-    pc=fluid.pcOG(state.s(:,2), p,'sGmax',smax);
-    pcmax=fluid.pcOG(smax, p,'sGmax',smax);
-    drho=norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p));
+    pc=fluid.pcWG(state.s(:,2), p,'sGmax',smax);
+    pcmax=fluid.pcWG(smax, p,'sGmax',smax);
+    drho=norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p));
     h=pc./drho;
     h_max=pcmax./drho;   
     cells=1:ceil(nx/9):nx;

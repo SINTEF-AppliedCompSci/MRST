@@ -1,12 +1,12 @@
 fluid=[];
 l_fac=0e-6;
-fluid.rhoOS=1000;
+fluid.rhoWS=1000;
 fluid.rhoGS=600;
-fluid.bO=@(po,varargin) (po-200*barsa)*l_fac+1;
-fluid.BO=@(po,varargin) 1./fluid.bO(po,varargin);
+fluid.bW=@(po,varargin) (po-200*barsa)*l_fac+1;
+fluid.BW=@(po,varargin) 1./fluid.bW(po,varargin);
 fluid.bG=@(pg,varargin) pg*0.0+1;
 fluid.BG=@(pg,varargin) pg*0.0+1;
-fluid.muO=@(po,varargin) 0.4e-3*(po*0+1);
+fluid.muW=@(po,varargin) 0.4e-3*(po*0+1);
 fluid.muG=@(pg,varargin) 1e-4*(pg*0+1);
 
 fluid_case='hystersis';
@@ -23,13 +23,13 @@ Gt.cells.H=10*ones(size(sg));
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krOG=@(so,varargin) so;
-       fluid.pcOG=@(sg, p, varargin) norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
+       fluid.krWG=@(so,varargin) so;
+       fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
        %fluid=rmfield(fluid,'relPerm');
        res_gas=0;
     case 'simple_cap'
         res_gas = 0.0;
-        fluid = addVERelpermCapLinear(fluid,'res_gas',0.1,'beta',4,'cap_scale',0.3*H*10*(fluid.rhoOS-fluid.rhoGS),'H',Gt.cells.H,'kr_pressure',false);
+        fluid = addVERelpermCapLinear(fluid,'res_gas',0.1,'beta',4,'cap_scale',0.3*H*10*(fluid.rhoWS-fluid.rhoGS),'H',Gt.cells.H,'kr_pressure',false);
     case 'cap_general'
         pc3D =@(s) 10*barsa./s.^2;
         [dpS_table, dpkrS_table] = makeSdp_table('pc3D',pc3D,'maxdP',H*drho*10*(4));
@@ -116,5 +116,5 @@ end
 subplot(n,1,2),cla
 hold on
 for smax=[0:0.2:1]
-    plot(sg, fluid.pcOG(sg, p, 'sGmax',smax.*ones(size(sg)))/barsa);
+    plot(sg, fluid.pcWG(sg, p, 'sGmax',smax.*ones(size(sg)))/barsa);
 end

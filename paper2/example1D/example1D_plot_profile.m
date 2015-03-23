@@ -57,9 +57,9 @@ for nn=[40,50,70]
     state=states{nn};
     p=state.pressure;sG=state.s(:,2);sGmax=state.sGmax;
     rs=state.rs;
-    bO=fluid.bO(p,rs);bG=fluid.bG(p);
+    bW=fluid.bW(p,rs);bG=fluid.bG(p);
     pv=fluid.pvMultR(p).*Gt.cells.volumes.*Gt.cells.H.*rock.poro;
-    mass(nn,:)=[sum(pv.*(bG.*sG + rs.*bO.*(1-sG))),sum(pv.*(rs.*bO.*(1-sG)))];%,sum(pv.*(bG.*))) ; 
+    mass(nn,:)=[sum(pv.*(bG.*sG + rs.*bW.*(1-sG))),sum(pv.*(rs.*bW.*(1-sG)))];%,sum(pv.*(bG.*))) ; 
     if(isfield(fluid,'dis_max'))
         smax=state.sGmax;
         sGmax=state.sGmax;

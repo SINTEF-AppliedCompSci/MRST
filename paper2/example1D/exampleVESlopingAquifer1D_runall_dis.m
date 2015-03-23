@@ -84,7 +84,7 @@ for use_dis = [true, false];
             fluidADI = initSimpleADIFluid('mu', [mu(2) mu(2) mu(1)],...
                                           'rho', [rho(2) rho(2), rho(1)],...
                                           'n', [1 1 1]); 
-            wfields = {'krO', 'krW', 'krG', 'pcOG', 'pcOW'}; 
+            wfields = {'krW', 'krO', 'krG', 'pcOG', 'pcOW'}; 
             for i = 1:numel(wfields)
                if(isfield(fluidADI, wfields{i}))
                   fluidADI = rmfield(fluidADI, wfields{i}); 
@@ -92,14 +92,14 @@ for use_dis = [true, false];
             end
             
             fluidADI.pvMultR = @(p) 1 + (1e-5 / barsa) * (p - 100 * barsa); 
-            fluidADI.bO = @(p, varargin) 1 + (4.3e-5 / barsa) * (p - 100 * barsa); 
-            fluidADI.BO = @(p, varargin) 1 ./ fluidADI.bO(p); 
+            fluidADI.bW = @(p, varargin) 1 + (4.3e-5 / barsa) * (p - 100 * barsa); 
+            fluidADI.BW = @(p, varargin) 1 ./ fluidADI.bW(p); 
             Temp = Gt.cells.z * 30 / 1e3 + 274 + 12; 
             p0 = Gt.cells.z(:) * norm(gravity) * 1100; 
             fluidADI.bG = boCO2(Temp, fluidADI.rhoGS); fluidADI.BG = @(p) 1 ./ fluidADI.bG(p); 
 
             %% 
-            W(2).val = fluidADI.rhoOS * Gt.cells.z(W(2).cells) * norm(gravity); 
+            W(2).val = fluidADI.rhoWS * Gt.cells.z(W(2).cells) * norm(gravity); 
             % defnine relperm
             fluid = {}
             fluidADI.surface_tension = 30e-3; 
@@ -115,13 +115,13 @@ for use_dis = [true, false];
             for i = 1:numel(ff_names); 
                fluid = fluidADI; 
                fluid_case = ff_names{i}
-               drho = (fluid.rhoOS - fluid.rhoGS); 
+               drho = (fluid.rhoWS - fluid.rhoGS); 
                switch fluid_case
                  case 'simple'
                    fluid.krG = @(sg, varargin) sg; 
-                   fluid.krOG = @(so, varargin) so; 
-                   fluid.pcOG = @(sg, p, varargin) norm(gravity) *       ...
-                                 (fluid.rhoOS .* fluid.bO(p) -           ...
+                   fluid.krWG = @(so, varargin) so; 
+                   fluid.pcWG = @(sg, p, varargin) norm(gravity) *       ...
+                                 (fluid.rhoWS .* fluid.bW(p) -           ...
                                   fluid.rhoGS .* fluid.bG(p)) .* (sg) .* ...
                                  opt.Gt.cells.H; 
                    fluid.res_gas = 0; 
@@ -148,7 +148,7 @@ for use_dis = [true, false];
                                                  'res_water'   , opt.res_water                      ,...
                                                  'beta'      , 2                                ,...
                                                  'cap_scale' , 0.2 * max(opt.Gt.cells.H) *      ...
-                                                               10 * (fluid.rhoOS - fluid.rhoGS) ,...  
+                                                               10 * (fluid.rhoWS - fluid.rhoGS) ,...  
                                                  'H'         , opt.Gt.cells.H , 'kr_pressure' , true); 
                  
                  case 'S table' 
@@ -231,7 +231,7 @@ for use_dis = [true, false];
                   fluid.dis_rate = dis_rate; 
                   dis_max = 0.03; 
                   fluid.dis_max = dis_max; 
-                  fluid.muO = @(po, rs, flag, varargin) fluidADI.muO(po); 
+                  fluid.muW = @(po, rs, flag, varargin) fluidADI.muW(po); 
                   fluid.rsSat = @(po, rs, flag, varargin)   (po * 0 + 1) * dis_max; 
                               systemOG = initADISystemVE({'Oil', 'Gas', 'DisGas'}, Gt, rock2D, fluid, 'simComponents', s, 'VE', true); 
                               
@@ -244,8 +244,8 @@ for use_dis = [true, false];
                % x0 = initEclipseState(G, deck, initEclipseFluid(deck)); 
                z = G.cells.centroids(:, 3); 
                clear x0; 
-               % x0.pressure = ipress * barsa + (z(:)-z(end)) * norm(gravity) * fluid.rhoOS; 
-               x0.pressure = W(2).val + (z(:) - z(W(2).cells)) * norm(gravity) * fluid.rhoOS; 
+               % x0.pressure = ipress * barsa + (z(:)-z(end)) * norm(gravity) * fluid.rhoWS; 
+               x0.pressure = W(2).val + (z(:) - z(W(2).cells)) * norm(gravity) * fluid.rhoWS; 
                x0.s(:, 1) = ones(G.cells.num, 1); 
                x0.s(:, 2) = zeros(G.cells.num, 1); 
                x0.rs = ones(G.cells.num, 1) * 0.0; 

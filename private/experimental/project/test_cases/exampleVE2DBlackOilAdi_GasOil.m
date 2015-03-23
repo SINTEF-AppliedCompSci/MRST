@@ -58,11 +58,11 @@ rock.parent=rock;
 clear G;
 
 l_fac=0e-6;
-fluid.bO=@(po,varargin) (po-200*barsa)*l_fac+1;
-fluid.BO=@(po,varargin) 1./fluid.bO(po,varargin);
+fluid.bW=@(po,varargin) (po-200*barsa)*l_fac+1;
+fluid.BW=@(po,varargin) 1./fluid.bW(po,varargin);
 fluid.bG=@(pg,varargin) pg*0.0+1;
 fluid.BG=@(pg,varargin) pg*0.0+1;
-fluid.muO=@(po,varargin) 0.4e-3*(po*0+1);
+fluid.muW=@(po,varargin) 0.4e-3*(po*0+1);
 fluid.muG=@(pg,varargin) 1e-4*(pg*0+1);
 
 fluid_case='hystersis';
@@ -77,8 +77,8 @@ res_water= 0.2;
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krOG=@(so,varargin) so;
-       fluid.pcOG=@(sg, p, varargin) norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
+       fluid.krWG=@(so,varargin) so;
+       fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
        fluid=rmfield(fluid,'relPerm');
        res_gas=0;
     case 'sharp_interface'    
@@ -93,7 +93,7 @@ switch fluid_case
                                       'res_gas',res_gas,...
                                       'res_water',res_water,...
                                       'beta',4,...
-                                      'cap_scale',0.5*max(Gt.cells.H)*10*(fluid.rhoOS-fluid.rhoGS),...
+                                      'cap_scale',0.5*max(Gt.cells.H)*10*(fluid.rhoWS-fluid.rhoGS),...
                                       'H',Gt.cells.H,'kr_pressure',true);
     case 'cap_1D_table_P'
         drho=400;
@@ -222,9 +222,9 @@ z=linspace(0,H,1000);
 for nn=1:numel(states)
     state=states{nn};
     p=state.pressure;
-    pc=fluid.pcOG(state.s(:,2), p,'sGmax',state.smax(:,2));
-    pcmax=fluid.pcOG(state.smax(:,2), p,'sGmax',state.smax(:,2));
-    drho=norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p));
+    pc=fluid.pcWG(state.s(:,2), p,'sGmax',state.smax(:,2));
+    pcmax=fluid.pcWG(state.smax(:,2), p,'sGmax',state.smax(:,2));
+    drho=norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p));
     h=pc./drho;
     h_max=pcmax./drho;   
     cells=1:ceil(nx/9):nx;

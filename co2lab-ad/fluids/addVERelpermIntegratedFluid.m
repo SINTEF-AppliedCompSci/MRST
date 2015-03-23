@@ -1,5 +1,5 @@
 function fluid = addVERelpermIntegratedFluid(fluid, varargin)
-   opt = struct('res_water'     , 0     , ...  
+   opt = struct('res_water'   , 0     , ...  
                 'res_gas'     , 0     , ...
                 'kr_pressure' , false , ...
                 'Gt'          , []    , ...
@@ -11,9 +11,8 @@ function fluid = addVERelpermIntegratedFluid(fluid, varargin)
 
    assert(~isempty(opt.Gt)); 
    assert(~isempty(opt.rock)); 
+
    % precalculate the complete perm and pore volume
-   % g_top = opt.Gt; 
-   % opt.H = g_top.cells.H; 
    kr_H = integrateVertically(opt.rock.parent.perm(:, 1), opt.Gt.cells.H, opt.Gt); 
    opt.perm2D = kr_H ./ opt.Gt.cells.H; 
    assert(norm(opt.perm2D - opt.rock.perm) ./ norm(opt.rock.perm)<1e-6); 
@@ -23,23 +22,19 @@ function fluid = addVERelpermIntegratedFluid(fluid, varargin)
    opt.volumes = integrateVertically(pv_3D', inf, opt.Gt) .* opt.Gt.cells.volumes; 
    
    if(~opt.kr_pressure)
-      fake_pressure = 200 * barsa; 
-      fluid.krG = @(sg, varargin) krG(sg, opt, varargin{:}); 
-      fluid.krOG = @(so, varargin) krOG(so, opt, varargin{:}); 
-      fluid.pcOG = @(sg, p, varargin) pcOG(sg, p, fluid, opt, varargin{:}); 
-      fluid.cutValues = @(state, varargin) cutValues(state, opt); 
-      fluid.S3D = @(SVE, samples, H) S3D(SVE, fake_pressure, samples, H, fluid, opt); 
-      
+      fake_pressure = 200 * barsa;  % @@ magical constant?
+      fluid.krG     = @(sg, varargin) krG(sg, opt, varargin{:}); 
+      fluid.krWG    = @(so, varargin) krWG(so, opt, varargin{:}); 
+      fluid.pcWG    = @(sg, p, varargin) pcWG(sg, p, fluid, opt, varargin{:}); 
+      fluid.S3D     = @(SVE, samples, H) S3D(SVE, fake_pressure, samples, H, fluid, opt); 
    else
-      fluid.krG = @(sg, p, varargin) krG(sg, opt, varargin{:}); 
-      fluid.krOG = @(so, p, varargin) krOG(so, opt, varargin{:}); 
-      fluid.pcOG = @(sg, p, varargin) pcOG(sg, p, fluid, opt, varargin{:}); 
-      fluid.cutValues = @(state, varargin) cutValues(state, opt); 
-
+      fluid.krG  = @(sg, p, varargin) krG(sg, opt, varargin{:}); 
+      fluid.krWG = @(so, p, varargin) krWG(so, opt, varargin{:}); 
+      fluid.pcWG = @(sg, p, varargin) pcWG(sg, p, fluid, opt, varargin{:}); 
    end 
-   fluid.invPc3D = @(p) invPc3D(p, opt); 
-   fluid.kr3D = @(s) s; 
-   fluid.res_gas = opt.res_gas;
+   fluid.invPc3D   = @(p) invPc3D(p, opt); 
+   fluid.kr3D      = @(s) s; 
+   fluid.res_gas   = opt.res_gas;
    fluid.res_water = opt.res_water;
 end
 
@@ -48,7 +43,7 @@ function s = invPc3D(p,opt)
          s=1-s;
 end
 %---------------------------------------------------------------------
-function pc = pcOG(sg, p, fluid, opt, varargin)
+function pc = pcWG(sg, p, fluid, opt, varargin)
    % this trasformation has to be doen twise as long as
    % pc aand relperm i separate functions
    loc_opt=struct('sGmax',[]);
@@ -60,7 +55,7 @@ function pc = pcOG(sg, p, fluid, opt, varargin)
       [h, h_max] = saturation2Height(sg, opt, loc_opt);
    end   
    assert(all(h>=0));
-   drho=((fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS*fluid.bG(p))*norm(gravity));   
+   drho=((fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS*fluid.bG(p))*norm(gravity));   
    pc = drho.*h;
 end
 
@@ -84,7 +79,7 @@ function kr = krG(sg, opt, varargin)
    assert(all(kr>=0));
    kr = kr./opt.kr_H;%bsxfun(@rdivide,kr,opt.kr_H);
 end
-function kr = krOG(sg, opt, varargin)
+function kr = krWG(sg, opt, varargin)
    loc_opt=struct('sGmax',[]);
    loc_opt=merge_options(loc_opt,varargin{:});
    if opt.int_poro

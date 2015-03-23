@@ -13,7 +13,7 @@ function [s,pc,kr, s_max, s_free,fval]= veRelpermTesterCell(hs, drho, fluid, H, 
     assert(all(hs<H));
     h=linspace(0,hs,opt.samples)';
     dh=h(2)-h(1);
-    %drho=(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p))*norm(gravity);
+    %drho=(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p))*norm(gravity);
     drho=drho*norm(gravity);
     s_h = invPc3D(h.*drho); 
     sg_h=1-s_h;

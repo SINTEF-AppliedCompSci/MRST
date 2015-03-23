@@ -4,7 +4,7 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
    opt.tspan = [10 500] + 273.15;
    opt.pnum  = 200; % number of pressure samples
    opt.tnum  = 200; % number of temperature samples
-   opt.ref   = [100 * barsa, 35 + 273.15]; % BO reference temperature/pressure
+   opt.ref   = [100 * barsa, 35 + 273.15]; % BW reference temperature/pressure
    opt.props = [true false false]; % which props to include [rho, mu, h]
    
 

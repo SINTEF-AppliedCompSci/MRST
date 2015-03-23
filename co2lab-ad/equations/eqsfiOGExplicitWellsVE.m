@@ -30,7 +30,7 @@ else
 end
 pBHP = vertcat(state.wellSol.bhp);
 qGs  = vertcat(state.wellSol.qGs);
-qOs  = vertcat(state.wellSol.qOs);
+qWs  = vertcat(state.wellSol.qWs);
 
 % previous variables ------------------------------------------------------
 p0  = state0.pressure;
@@ -44,18 +44,18 @@ zw = zeros(size(pBHP));
 if opt.resOnly
     % ADI variables aren't needed since we are only computing the residual.
 elseif ~opt.reverseMode
-    [p, sG, qGs, qOs, pBHP]  = initVariablesADI(p, sG, qGs, qOs, pBHP);
+    [p, sG, qGs, qWs, pBHP]  = initVariablesADI(p, sG, qGs, qWs, pBHP);
 else
     [p0, sG0, ~, ~, zw] = initVariablesADI(p0, sG0,...
                                             zeros(size(qGs)), ...
-                                            zeros(size(qOs)), ...
+                                            zeros(size(qWs)), ...
                                             zeros(size(pBHP))...
                                             );
 end
 
 g  = norm(gravity);
 if(~isempty(W))
-    [Tw, dzw, Rw, wc, perf2well, pInx, iInxG, iInxO] = getWellStuffOG(W);
+    [Tw, dzw, Rw, wc, perf2well, pInx, iInxG, iInxW] = getWellStuffWG(W);
 end
 
 %--------------------
@@ -73,20 +73,20 @@ end
 
 
 % -------------------------------------------------------------------------
-% [krW, krO] = f.relPerm(sW);
+% [krW, krW] = f.relPerm(sW);
 krG = f.krG(sG, p, 'sGmax',sGmax);
-krO = f.krOG(1-sG, p, 'sGmax',sGmax);
+krW = f.krWG(1-sG, p, 'sGmax',sGmax);
 %check for capillary pressure (p_cow)
-pcOG = 0;
-if isfield(f, 'pcOG') 
-    pcOG  = f.pcOG(sG, p,'sGmax',sGmax);
-    %pcOG0  = f.pcOG(sG0, p0,'sGmax',sGmax0);
+pcWG = 0;
+if isfield(f, 'pcWG') 
+    pcWG  = f.pcWG(sG, p,'sGmax',sGmax);
+    %pcWG0  = f.pcWG(sG0, p0,'sGmax',sGmax0);
     % this is used for all density evaluations
-    pG=p;%+pcOG;
-    pG0=p0;%+pcOG0;%+
+    pG=p;%+pcWG;
+    pG0=p0;%+pcWG0;%+
     
 else
-   pG=p;%+pcOG;
+   pG=p;%+pcWG;
    pG0=p0; 
 end
 % water props (calculated at oil pressure OK?)
@@ -98,9 +98,9 @@ rhoGf  = s.faceAvg(rhoG);
 %mobW   = trMult.*krW./f.muW(p);
 mobG   = trMult.*krG./f.muG(pG);
 if(~any(strcmp(G.type,'topSurfaceGrid')))
-    dpG     = s.grad(p+pcOG) - g*(rhoGf.*s.grad(G.cells.centroids(:,3)));
+    dpG     = s.grad(p+pcWG) - g*(rhoGf.*s.grad(G.cells.centroids(:,3)));
 else
-    dpG     = s.grad(pG+pcOG) - g*(rhoGf.*s.grad(G.cells.z));
+    dpG     = s.grad(pG+pcWG) - g*(rhoGf.*s.grad(G.cells.z));
 end
 % water upstream-index
 upc = (double(dpG)>=0);
@@ -108,50 +108,50 @@ bGvG = s.faceUpstr(upc, bG.*mobG).*s.T.*dpG;
 
 
 % oil props
-bO     = f.bO(p);
-rhoO   = bO.*f.rhoOS;
-rhoOf  = s.faceAvg(rhoO);
-%mobO   = trMult.*krO./f.BOxmuO(p);
-mobO   = trMult.*krO./(f.BO(p).*f.muO(p));
+bW     = f.bW(p);
+rhoW   = bW.*f.rhoWS;
+rhoWf  = s.faceAvg(rhoW);
+%mobW   = trMult.*krW./f.BWxmuW(p);
+mobW   = trMult.*krW./(f.BW(p).*f.muW(p));
 if(~any(strcmp(G.type,'topSurfaceGrid')))
-    dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.centroids(:,3)));
+    dpW    = s.grad(p) - g*(rhoWf.*s.grad(G.cells.centroids(:,3)));
 else
-    dpO    = s.grad(p) - g*(rhoOf.*s.grad(G.cells.z));
+    dpW    = s.grad(p) - g*(rhoWf.*s.grad(G.cells.z));
 end
 % oil upstream-index
-upc = (double(dpO)>=0);
-bOvO   = s.faceUpstr(upc, bO.*mobO).*s.T.*dpO;
+upc = (double(dpW)>=0);
+bWvW   = s.faceUpstr(upc, bW.*mobW).*s.T.*dpW;
 
 
 %WELLS ----------------------------------------------------------------
 if(~isempty(W))
-    pcOGw = pcOG(wc);
+    pcWGw = pcWG(wc);
     bGw     = bG(wc);
-    bOw     = bO(wc);
+    bWw     = bW(wc);
     mobGw  = mobG(wc);
-    mobOw  = mobO(wc);
+    mobWw  = mobW(wc);
 
 %producer mobility
 bGmobGw  = bGw.*mobGw;
-bOmobOw  = bOw.*mobOw;
+bWmobWw  = bWw.*mobWw;
 
 %set water injector mobility: mobw = mobw+mobo+mobg, mobo = 0;
 if(true)
-    bGmobGw(iInxG) = bGw(iInxG).*(mobGw(iInxG) + mobOw(iInxG));
-    bOmobOw(iInxG) = 0;
-    bGmobGw(iInxO) = 0; 
-    bOmobOw(iInxO) = bOw(iInxO).*(mobGw(iInxO) + mobOw(iInxO));
+    bGmobGw(iInxG) = bGw(iInxG).*(mobGw(iInxG) + mobWw(iInxG));
+    bWmobWw(iInxG) = 0;
+    bGmobGw(iInxW) = 0; 
+    bWmobWw(iInxW) = bWw(iInxW).*(mobGw(iInxW) + mobWw(iInxW));
 else
    bGmobGw(iInxG) = bGw(iInxG)./1e-3;
-   bOmobOw(iInxG) = 0;
-   bGmobGw(iInxO) = 0; 
-   bOmobOw(iInxO) = bOw(iInxO)./1e-3;
+   bWmobWw(iInxG) = 0;
+   bGmobGw(iInxW) = 0; 
+   bWmobWw(iInxW) = bWw(iInxW)./1e-3;
 end
    
 pw  = p(wc);
 perfP=pBHP(perf2well);
-bGqG  = -bGmobGw.*Tw.*(perfP - pw + 0.0*pcOGw + 0.0*g*dzw.*rhoG(wc));
-bOqO  = -bOmobOw.*Tw.*(perfP - pw + 0.0*g*dzw.*rhoO(wc));
+bGqG  = -bGmobGw.*Tw.*(perfP - pw + 0.0*pcWGw + 0.0*g*dzw.*rhoG(wc));
+bWqW  = -bWmobWw.*Tw.*(perfP - pw + 0.0*g*dzw.*rhoW(wc));
 end
 % add contributions from boundary
 if(~isempty(opt.bc))
@@ -162,20 +162,20 @@ if(~isempty(opt.bc))
     %bc_cell_loc(bc_cell_nr)=true;
     % assume cappillary pressure zero outside
     dzbc=(G.cells.z(bc_cell)-G.faces.z(opt.bc.face));
-    pObc=p(bc_cell);rhoObc=rhoO(bc_cell);    
-    dpbc_o=opt.bc.value-pObc+g*(rhoObc.*dzbc);
-    pGbc= pObc+pcOG(bc_cell);rhoGbc=rhoG(bc_cell);
+    pWbc=p(bc_cell);rhoWbc=rhoW(bc_cell);    
+    dpbc_o=opt.bc.value-pWbc+g*(rhoWbc.*dzbc);
+    pGbc= pWbc+pcWG(bc_cell);rhoGbc=rhoG(bc_cell);
     dpbc_g=opt.bc.value-(pGbc)+g*(rhoGbc.*dzbc);
     bGmobGbc = bG(bc_cell).*mobG(bc_cell);
-    bOmobObc = bO(bc_cell).*mobO(bc_cell);
+    bWmobWbc = bW(bc_cell).*mobW(bc_cell);
     bGmobGbc(dpbc_g>0)=0;
     %bGmobGbc(dpbc_o>0)=0;
-    %bOmobObc(dpbc_g>0)=0;
+    %bWmobWbc(dpbc_g>0)=0;
     if(any(dpbc_o>0))
-        bOmobObc(dpbc_o>0)=bO(bc_cell(dpbc_o>0)).*(mobO(bc_cell(dpbc_o>0))+mobG(bc_cell(dpbc_o>0)));
+        bWmobWbc(dpbc_o>0)=bW(bc_cell(dpbc_o>0)).*(mobW(bc_cell(dpbc_o>0))+mobG(bc_cell(dpbc_o>0)));
     end
     bGqGbc  = -bGmobGbc.*Tbc.*(dpbc_g);
-    bOqObc  = -bOmobObc.*Tbc.*(dpbc_o);
+    bWqWbc  = -bWmobWbc.*Tbc.*(dpbc_o);
 else
     bc_cell=[];
 end
@@ -185,21 +185,21 @@ end
 
 
 % oil:
-eqs{1} = (s.pv/dt).*( pvMult.*bO.*(1-sG) - pvMult0.*f.bO(p0).*(1-sG0) ) + s.div(bOvO);
+eqs{1} = (s.pv/dt).*( pvMult.*bW.*(1-sG) - pvMult0.*f.bW(p0).*(1-sG0) ) + s.div(bWvW);
 
 
 % water:
 eqs{2} = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*f.bG(pG0).*sG0 ) + s.div(bGvG);
 
     if(~isempty(W))
-        [wc, cqs] = checkForRepititions(wc, {bOqO,bGqG});
+        [wc, cqs] = checkForRepititions(wc, {bWqW,bGqG});
         eqs{1}(wc) = eqs{1}(wc) + cqs{1};
         eqs{2}(wc) = eqs{2}(wc) + cqs{2};
-        %eqs{1}(wc) = eqs{1}(wc) + bOqO;
+        %eqs{1}(wc) = eqs{1}(wc) + bWqW;
         %eqs{2}(wc) = eqs{2}(wc) + bGqG;
     end
     if(~isempty(opt.bc))
-        eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bOqObc;
+        eqs{1}(bc_cell)  = eqs{1}(bc_cell) + bWqWbc;
         eqs{2}(bc_cell)  = eqs{2}(bc_cell) + bGqGbc;
         assert(sum(double(bGqGbc))>=0)
     end
@@ -209,10 +209,10 @@ if(~opt.reverseMode)
     zeroW = 0*pBHP;
     if(~isempty(W))
         eqs{3} = Rw'*bGqG + qGs + zeroW;
-        eqs{4} = Rw'*bOqO + qOs + zeroW;
+        eqs{4} = Rw'*bWqW + qWs + zeroW;
         
         % Last eq: boundary cond
-        eqs{5} = handleBC(W, pBHP, [] , qOs, qGs, scalFacs) + zeroW;
+        eqs{5} = handleBC(W, pBHP, [] , qWs, qGs, scalFacs) + zeroW;
     else
         eqs{3}=zeroW;
         eqs{4}=zeroW;

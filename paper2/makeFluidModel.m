@@ -65,15 +65,15 @@ f = initSimpleADIFluid('mu'  , mu([2 2 1])  ,...
                        'rho' , rho([2 2 1]) ,...
                        'n'   , [1 1 1]); 
 
-for wfield = {'krO', 'krW', 'krG', 'pcOG', 'pcOW'}
+for wfield = {'krO', 'krW', 'krG', 'pcWG', 'pcOG'}
    if (isfield(f, wfield))
       f = rmfield(f, wfield);
     end
 end
 
 f.pvMultR = @(p) 1 + (1e-5 / barsa) * (p - 100 * barsa); 
-f.bO      = @(p, varargin) 1 + (4.3e-5 / barsa) * (p - 100 * barsa); 
-f.BO      = @(p, varargin) 1 ./ f.bO(p); 
+f.bW      = @(p, varargin) 1 + (4.3e-5 / barsa) * (p - 100 * barsa); 
+f.BW      = @(p, varargin) 1 ./ f.bW(p); 
 T_res     = aquifer.Gt.cells.z * opt.temp_grad + (274 + opt.surf_temp); % tempratures
 
 switch opt.co2_type
@@ -90,7 +90,7 @@ switch opt.co2_type
     f.bG       = @(p) co2.density(p, T_res) ./ f.rhoGS; 
   case  'coolprops_linear' 
     assert(norm(gravity)>0)
-    p_ref      = aquifer.Gt.cells.z * f.rhoOS * norm(gravity); 
+    p_ref      = aquifer.Gt.cells.z * f.rhoWS * norm(gravity); 
     co2        = coolProps2Pvt('co2'); 
     [p_ref, i] = max(p_ref); 
     co2        = pvt2Linear(co2, p_ref, T_res(i)); 
@@ -103,7 +103,7 @@ f.BG      = @(p) 1./f.bG(p);
 f.surface_tension = 30e-3;
 
 % Constants and definitions shared by several models
-drho    = f.rhoOS - f.rhoGS; 
+drho    = f.rhoWS - f.rhoGS; 
 g       = norm(gravity); 
 C       = 0.4 * g * max(aquifer.Gt.cells.H) * drho; 
 alpha   = 0.5; 
@@ -115,7 +115,7 @@ tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
 if opt.dissolution
     f.dis_rate = 5e-11;
     f.dis_max  = 0.03;
-    f.muO      = @(po,rs,flag,varargin) f.muO(po);
+    f.muW      = @(po,rs,flag,varargin) f.muW(po);
     f.rsSat    = @(po,rs,flag,varargin) (po*0+1)*f.dis_max;
 end
 
@@ -123,9 +123,9 @@ if(~opt.only_pvt)
    switch opt.fluidType
      case 'simple'
        f.krG     = @(sg, varargin) sg; 
-       f.krOG    = @(so, varargin) so; 
-       f.pcOG    = @(sg, p, varargin) ...
-                    g * ( f.rhoOS .* f.bO(p) - f.rhoGS .* f.bG(p) ) .* ...
+       f.krWG    = @(so, varargin) so; 
+       f.pcWG    = @(sg, p, varargin) ...
+                    g * ( f.rhoWS .* f.bW(p) - f.rhoGS .* f.bG(p) ) .* ...
                     (sg) .* aquifer.Gt.cells.H; 
        f.res_gas = 0; 
        f.res_water = 0; 

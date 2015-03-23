@@ -80,9 +80,9 @@ for nn=[50,80]
     state=states{nn};
     %p=state.pressure;sG=state.s(:,2);sGmax=state.sGmax;
     %rs=state.rs;
-    %bO=fluid.bO(p,rs);bG=fluid.bG(p);
+    %bW=fluid.bW(p,rs);bG=fluid.bG(p);
     %pv=fluid.pvMultR(p).*Gt.cells.volumes.*Gt.cells.H.*rock.poro;
-    %mass(nn,:)=[sum(pv.*(bG.*sG + rs.*bO.*(1-sG))),sum(pv.*(rs.*bO.*(1-sG)))];%,sum(pv.*(bG.*))) ; 
+    %mass(nn,:)=[sum(pv.*(bG.*sG + rs.*bW.*(1-sG))),sum(pv.*(rs.*bW.*(1-sG)))];%,sum(pv.*(bG.*))) ; 
     if(isfield(fluid,'dis_max'))
         smax=state.sGmax;
         sGmax=state.sGmax;
@@ -123,9 +123,9 @@ for nn=[50,80]
         p=state.pressure;
         sG=state.s(:,2);
         sGmax=state.sGmax;
-        drho=fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p);
-        h=(fluid.pcOG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
-        h_max=(fluid.pcOG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
+        drho=fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p);
+        h=(fluid.pcWG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
+        h_max=(fluid.pcWG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
         %h_res1=(Gt.cells.H-(1-state.rs/fluid.dis_max).*Gt.cells.H);
         h_res=h_max+((state.rs.*state.s(:,1)-min_rs)./fluid.dis_max).*Gt.cells.H;
         %assert(all(abs((h_res1-h_res))<1e-6))
@@ -191,13 +191,13 @@ set(gca,'Color','none')
  %%
 
 %rhoG =@(p) proj*fluid.rhoGS.*fluid.rhoGS(p*porl);
-%rhoO =@(p) proj*fluid.rhoOS.*fluid.rhoOS(p*porl);
+%rhoW =@(p) proj*fluid.rhoWS.*fluid.rhoWS(p*porl);
 %p=state.pressure;
 %sG=state.s(:,2);
 %sGmax=state.sGmax;
-%drho=fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p);
-%h=(fluid.pcOG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
-%h_max=(fluid.pcOG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
+%drho=fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p);
+%h=(fluid.pcWG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
+%h_max=(fluid.pcWG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
 %h_res_b1=state.s(:,1).*(1-state.rs./fluid.dis_max).*Gt.cells.H;
 %h_res_b=((state.rs.*state.s(:,1)-min_rs)./fluid.dis_max).*Gt.cells.H;
 %plassert(all(abs(h_max+h_res_b+h_res_b1-Gt.cells.H)<1e-2))

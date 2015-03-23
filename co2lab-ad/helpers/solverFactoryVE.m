@@ -156,9 +156,9 @@ function [sol, its, convergence] = transport_adiOGD_simple(sol, Gt, systemOG, bc
     
     smax=state.sGmax;
     p=state.pressure;
-    pc=fluidADI.pcOG(state.s(:,2), p,'sGmax',smax);
-    pcmax=fluidADI.pcOG(smax, p,'sGmax',smax);
-    drho=norm(gravity)*(fluidADI.rhoOS.*fluidADI.bO(p)-fluidADI.rhoGS.*fluidADI.bG(p));   
+    pc=fluidADI.pcWG(state.s(:,2), p,'sGmax',smax);
+    pcmax=fluidADI.pcWG(smax, p,'sGmax',smax);
+    drho=norm(gravity)*(fluidADI.rhoWS.*fluidADI.bW(p)-fluidADI.rhoGS.*fluidADI.bG(p));   
     h=pc./drho;
     h_max=pcmax./drho;
     h_tol=1e-1;
@@ -218,9 +218,9 @@ function [sol, its, convergence] = transport_adiOG_simple(sol, Gt, systemOG, bcV
     %
     smax=state.smax(:,2);
     p=state.pressure;
-    pc=fluidADI.pcOG(state.s(:,2), p,'sGmax',smax);
-    pcmax=fluidADI.pcOG(smax, p,'sGmax',smax);
-    drho=norm(gravity)*(fluidADI.rhoOS.*fluidADI.bO(p)-fluidADI.rhoGS.*fluidADI.bG(p));
+    pc=fluidADI.pcWG(state.s(:,2), p,'sGmax',smax);
+    pcmax=fluidADI.pcWG(smax, p,'sGmax',smax);
+    drho=norm(gravity)*(fluidADI.rhoWS.*fluidADI.bW(p)-fluidADI.rhoGS.*fluidADI.bG(p));
     h=pc./drho;
     h_max=pcmax./drho;
     h_max(h<=0)=state.s(h<=0,2).*Gt.cells.H(h<=0)/(fluidADI.res_gas);

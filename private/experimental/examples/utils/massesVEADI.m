@@ -35,11 +35,11 @@ function masses = massesVEADI(G, sol, rock, fluidADI, fluid,ts)
     pvMult =  fluidADI.pvMultR(sol.state.pressure);
    end
    if(isfield(sol.state,'sGmax'))
-    pcOG  = fluidADI.pcOG(sol.state.s(:,2),sol.state.pressure,'sGmax',sol.state.sGmax);
+    pcWG  = fluidADI.pcWG(sol.state.s(:,2),sol.state.pressure,'sGmax',sol.state.sGmax);
    else
-     pcOG  = fluidADI.pcOG(sol.state.s(:,2),sol.state.pressure,'sGmax',sol.state.smax(:,2));  
+     pcWG  = fluidADI.pcWG(sol.state.s(:,2),sol.state.pressure,'sGmax',sol.state.smax(:,2));  
    end
-   rhoCO2=fluidADI.rhoG.*fluidADI.bG(sol.state.pressure);%+pcOG);
+   rhoCO2=fluidADI.rhoG.*fluidADI.bG(sol.state.pressure);%+pcWG);
     pv = rock.poro.*G.cells.volumes.*pvMult;
     gasPhase =  sum(pv.*(rhoCO2.*G.cells.H.*(sol.state.s(:,2))));
     %%
@@ -52,11 +52,11 @@ function masses = massesVEADI(G, sol, rock, fluidADI, fluid,ts)
         free    = sum(sol.h.*pv)*(1-fluid.sw);
         vol     = [trapped free];
         else
-          rhoW=fluidADI.rhoO.*fluidADI.bO(sol.state.pressure);%,sol.state.rs,sol.state.s(:,2)>0);
+          rhoW=fluidADI.rhoW.*fluidADI.bW(sol.state.pressure);%,sol.state.rs,sol.state.s(:,2)>0);
           %gasPhase =  sum(pv.*(fluidADI.bG(sol.state.pressure).*(sol.state.s(:,2)))); 
           watPhase =  sum(pv.*(rhoW.*G.cells.H.*(sol.state.s(:,1))));  
           if(isfield(sol.state,'rs'))
-            resDis    = fluidADI.rhoG.*sum(pv.*(sol.state.rs.*fluidADI.bO(sol.state.pressure)...
+            resDis    = fluidADI.rhoG.*sum(pv.*(sol.state.rs.*fluidADI.bW(sol.state.pressure)...
                 .*G.cells.H.*(sol.state.s(:,1))));   
           else
              resDis=0;
@@ -89,7 +89,7 @@ function masses = massesVEADI(G, sol, rock, fluidADI, fluid,ts)
        freeMov   = plumeVol*(1-fluid.sw - fluid.sr);
        resTrap   = sum(max(sol.h_max - max(zt, sol.h),0).*rhoCO2.*pv ).*fluid.sr;
        
-       resDis    = fluidADI.rhoG.*sum(pv.*(sol.state.rs.*fluidADI.bO(sol.state.pressure).*G.cells.H.*(sol.state.s(:,1)))); 
+       resDis    = fluidADI.rhoG.*sum(pv.*(sol.state.rs.*fluidADI.bW(sol.state.pressure).*G.cells.H.*(sol.state.s(:,1)))); 
        
        masses       = max([resDis, resStruc, resTrap, freeRes, freeStruc, freeMov],0);
        if(abs(sum(masses(2:end))-gasPhase)>1e-3*gasPhase)

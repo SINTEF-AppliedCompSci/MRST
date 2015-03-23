@@ -31,7 +31,7 @@ function masses = phaseMassesVEADI(Gt, state, rock, fluid)
     SG     = sG .* Gt.cells.H;   % vertically integrated saturation, gas
     pv     = rock.poro .* Gt.cells.volumes .* pvMult; % pore volumes
     rhoCO2 = fluid.rhoG .* fluid.bG(p);
-    rhoW   = fluid.rhoO .* fluid.bO(p);
+    rhoW   = fluid.rhoW .* fluid.bW(p);
 
     % compute mass of undissolved gas
     gasPhase =  sum(pv .* rhoCO2 .* SG);
@@ -41,7 +41,7 @@ function masses = phaseMassesVEADI(Gt, state, rock, fluid)
     
     % compute mass of dissolved gas
     if(isfield(state,'rs'))
-        resDis = fluid.rhoG .* sum(pv .* state.rs .* fluid.bO(p) .* SF);
+        resDis = fluid.rhoG .* sum(pv .* state.rs .* fluid.bW(p) .* SF);
     else
         resDis=0;
     end

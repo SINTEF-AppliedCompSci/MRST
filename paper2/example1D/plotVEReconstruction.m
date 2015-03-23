@@ -26,23 +26,23 @@ for kk=1:size(param,1)
     rock=struct('perm',1000*milli*darcy*ones(G.cells.num,1),'poro',0.4*ones(G.cells.num,1));
     rock.parent=rock;
     fluidADI = initSimpleADIFluid('mu',[mu(2) mu(2) mu(1)],...
-        'rho',[rho(2) rho(2), rho(1)],...
-        'n',[1 1 1]);
-    wfields={'krO''krW','krG','pcOG','pcOW'};
+                                  'rho',[rho(2) rho(2), rho(1)],...
+                                  'n',[1 1 1]);
+    wfields={'krW', 'krO','krG','pcOG','pcOW'};
     for i=1:numel(wfields)
         if(isfield(fluidADI,wfields{i}))
             fluidADI=rmfield(fluidADI,wfields{i});
         end
     end
     fluidADI.pvMultR =@(p) 1+(1e-5/barsa)*(p-100*barsa);
-    fluidADI.bO = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
-    fluidADI.BO = @(p) 1./fluidADI.bO(p);
+    fluidADI.bW = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
+    fluidADI.BW = @(p) 1./fluidADI.bW(p);
     
     fluidADI.bG  =  boCO2(T_ref, fluidADI.rhoGS);
     fluidADI.BG = @(p) 1./fluidADI.bG(p);
     
-    fluidADI.bG= @(p) 1+0*p;fluidADI.BG=@(p)  1+0*p;fluidADI.bO= @(p) 1+0*p;fluidADI.BO=@(p)  1+0*p;
-    fluidADI.rhoGS=600;fluidADI.rhoOS=1000;
+    fluidADI.bG= @(p) 1+0*p;fluidADI.BG=@(p)  1+0*p;fluidADI.bW= @(p) 1+0*p;fluidADI.BW=@(p)  1+0*p;
+    fluidADI.rhoGS=600;fluidADI.rhoWS=1000;
     
     
     clear fluid
@@ -89,15 +89,15 @@ for kk=1:size(param,1)
         subplot(2,1,1),hold on
         plot(s,fluid{i}.krG(s,p,'sGmax',s),'b',s,fluid{i}.krG(s,p,'sGmax',sco_max),'r')
         subplot(2,1,2),hold on
-        plot(s,fluid{i}.pcOG(s,p,'sGmax',s),'b',s,fluid{i}.pcOG(s,p,'sGmax',sco_max),'r')
+        plot(s,fluid{i}.pcWG(s,p,'sGmax',s),'b',s,fluid{i}.pcWG(s,p,'sGmax',sco_max),'r')
     end
     %%
-    krG=[];krGm=[];pcOG=[];pcOGm=[];
+    krG=[];krGm=[];pcWG=[];pcWGm=[];
     for i=1:numel(fluid)
         krG=[krG, fluid{i}.krG(s,p,'sGmax',s)+i*1e-3];%#ok
         krGm=[krGm, fluid{i}.krG(s,p,'sGmax',sco_max)];%#ok
-        pcOG=[pcOG,fluid{i}.pcOG(s,p,'sGmax',s)];%#ok
-        pcOGm=[pcOGm,fluid{i}.pcOG(s,p,'sGmax',sco_max)];%#ok
+        pcWG=[pcWG,fluid{i}.pcWG(s,p,'sGmax',s)];%#ok
+        pcWGm=[pcWGm,fluid{i}.pcWG(s,p,'sGmax',sco_max)];%#ok
         leg{i}=fluid{i}.name;%#ok
     end
     %%
@@ -116,10 +116,10 @@ for kk=1:size(param,1)
     %%
     dpH=9.8*400*H/barsa;
     figure(12),clf,hold on;
-    plot(s,pcOG/barsa,'-','LineWidth',2)
+    plot(s,pcWG/barsa,'-','LineWidth',2)
     legend(leg{:},'Location','NorthWest')
     if(plot_hyst)
-        plot(s,pcOGm/barsa,'--','LineWidth',2)
+        plot(s,pcWGm/barsa,'--','LineWidth',2)
     end
     box on
     line([0 1],[dpH dpH],'LineWidth',4,'Color','k')
@@ -127,14 +127,14 @@ for kk=1:size(param,1)
     set(gca,'FontSize',16)
     set(gca,'LineWidth',2)
     %my
-    print(['figs/relperm/',myname,'_pcOG'])
+    print(['figs/relperm/',myname,'_pcWG'])
     %%
     dpH=9.8*400*H;
     figure(13),clf,hold on;
-    plot(s,pcOG/dpH,'-','LineWidth',2)
+    plot(s,pcWG/dpH,'-','LineWidth',2)
     legend(leg{:},'Location','NorthWest')
     if(plot_hyst)
-        plot(s,pcOGm/dpH,'--','LineWidth',2)
+        plot(s,pcWGm/dpH,'--','LineWidth',2)
     end
     box on
     line([0 1],[1 1],'LineWidth',4,'Color','k')

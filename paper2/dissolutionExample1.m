@@ -85,8 +85,8 @@ for residual= [false,true] %residual saturation or not
             z  = G.cells.centroids(:,3);
             clear x0;
             W  = aquifer.W;
-            W(2).val = fluid.rhoOS * Gt.cells.z(W(2).cells)*norm(gravity);
-            x0.pressure = W(2).val +(z(:)-z(W(2).cells))*norm(gravity)*fluid.rhoOS;
+            W(2).val = fluid.rhoWS * Gt.cells.z(W(2).cells)*norm(gravity);
+            x0.pressure = W(2).val +(z(:)-z(W(2).cells))*norm(gravity)*fluid.rhoWS;
             x0.s(:,1)   = ones(G.cells.num,1);
             x0.s(:,2)   = zeros(G.cells.num,1);
             x0.rs       = ones(G.cells.num,1)*0.0;

@@ -323,7 +323,7 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
     fluidADI = initSimpleADIFluid('mu',[mu(2) mu(2) mu(1)],...
                                 'rho',[rho(2) rho(2), rho(1)],...
                                 'n',[1 1 1]); 
-    wfields={'krO''krW','krG','pcOG','pcOW'};
+    wfields={'krW', 'krO','krG','pcOG','pcOW'};
     for i=1:numel(wfields)
         if(isfield(fluidADI,wfields{i}))
         fluidADI=rmfield(fluidADI,wfields{i});
@@ -332,8 +332,8 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
     
     fluidADI.pvMultR =@(p) 1+(1e-5/barsa)*(p-100*barsa);
     if(true)
-        fluidADI.bO = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
-        fluidADI.BO = @(p) 1./fluidADI.bO(p);
+        fluidADI.bW = @(p) 1+(4.3e-5/barsa)*(p-100*barsa);
+        fluidADI.BW = @(p) 1./fluidADI.bW(p);
         %p_ref=mean(Gt.cells.z).*norm(gravity).*rho(2);%average hydrostatic pressure
         T_ref=mean(Gt.cells.z) *30/1e3+273+4;% average temprature
         %[fluidADI.bG fluidADI.rhoCO2] =  boCO2(p_ref, T_ref);
@@ -384,20 +384,20 @@ function [transport_solver fluidVE_h fluidVE_s fluidADI]= makeTransportSolver(so
             switch solver
                 case 'adi_OGD_simple_mix'
                     %l_fac=1e-10;
-                    %fluidADI.bO=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
-                    %fluidADI.BO=@(po,rs,flag,varargin) 1./fluid.bO(po,rs,flag,varargin);
+                    %fluidADI.bW=@(po,rs,flag,varargin) (po-200*barsa)*l_fac+1;
+                    %fluidADI.BW=@(po,rs,flag,varargin) 1./fluid.bW(po,rs,flag,varargin);
                     dis_par=0.1;% meter per year;
                     fluidADI.dis_rate=dis_par*dis_max/year;
                     %fluid.dis_rate=5e-13*H;
-                    fluidADI.bO=@(po,rs,flag,varargin) fluidADI.bO(po);%(po-200*barsa)*l_fac+1;
-                    fluidADI.BO=@(po,rs,flag,varargin) 1./fluidADI.bO(po,rs,flag,varargin);
+                    fluidADI.bW=@(po,rs,flag,varargin) fluidADI.bW(po);%(po-200*barsa)*l_fac+1;
+                    fluidADI.BW=@(po,rs,flag,varargin) 1./fluidADI.bW(po,rs,flag,varargin);
                 case 'adi_OGD_simple_inst'
                     %l_fac=0;
-                    fluidADI.bO=@(po,rs,flag,varargin) fluidADI.bO(po);%(po-200*barsa)*l_fac+1;
-                    fluidADI.BO=@(po,rs,flag,varargin) 1./fluidADI.bO(po,rs,flag,varargin);
+                    fluidADI.bW=@(po,rs,flag,varargin) fluidADI.bW(po);%(po-200*barsa)*l_fac+1;
+                    fluidADI.BW=@(po,rs,flag,varargin) 1./fluidADI.bW(po,rs,flag,varargin);
                 otherwise
             end
-            fluidADI.muO=@(po,rs,flag,varargin) fluidADI.muO(po);
+            fluidADI.muW=@(po,rs,flag,varargin) fluidADI.muW(po);
             fluidADI.rsSat=@(po,rs,flag,varargin)   (po*0+1)*dis_max;
             s=setupSimCompVe(Gt,rock2D);
             % important that add relperm is added after fluid properiece
@@ -464,9 +464,9 @@ function sol = transport_adiOGD_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,flui
     
     smax=state.sGmax;
     p=state.pressure;
-    pc=fluidADI.pcOG(state.s(:,2), p,'sGmax',smax);
-    pcmax=fluidADI.pcOG(smax, p,'sGmax',smax);
-    drho=norm(gravity)*(fluidADI.rhoOS.*fluidADI.bO(p)-fluidADI.rhoGS.*fluidADI.bG(p));   
+    pc=fluidADI.pcWG(state.s(:,2), p,'sGmax',smax);
+    pcmax=fluidADI.pcWG(smax, p,'sGmax',smax);
+    drho=norm(gravity)*(fluidADI.rhoWS.*fluidADI.bW(p)-fluidADI.rhoGS.*fluidADI.bG(p));   
     h=pc./drho;
     h_max=pcmax./drho;
     h_tol=1e-1;
@@ -524,9 +524,9 @@ function sol = transport_adiOG_simple(sol, Gt, systemOG, bcVE_s, WVE_s, dT,fluid
     %%
     smax=state.smax(:,2);
     p=state.pressure;
-    pc=fluidADI.pcOG(state.s(:,2), p,'sGmax',smax);
-    pcmax=fluidADI.pcOG(smax, p,'sGmax',smax);
-    drho=norm(gravity)*(fluidADI.rhoOS.*fluidADI.bO(p)-fluidADI.rhoGS.*fluidADI.bG(p));
+    pc=fluidADI.pcWG(state.s(:,2), p,'sGmax',smax);
+    pcmax=fluidADI.pcWG(smax, p,'sGmax',smax);
+    drho=norm(gravity)*(fluidADI.rhoWS.*fluidADI.bW(p)-fluidADI.rhoGS.*fluidADI.bG(p));
     h=pc./drho;
     h_max=pcmax./drho;
     h_max(h<=0)=state.s(h<=0,2).*Gt.cells.H(h<=0)/(fluidADI.res_gas);

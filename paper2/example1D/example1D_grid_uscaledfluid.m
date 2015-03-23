@@ -112,9 +112,9 @@ rho= [760 1100] .* kilogram/meter^3;
 %end
 %sr= 0.21;sw= 0.11;kwm= [1 1];
 fluidADI = initSimpleADIFluid('mu',[mu(2) mu(2) mu(1)],...
-                                'rho',[rho(2) rho(2), rho(1)],...
-                                'n',[1 1 1]); 
-wfields={'krO''krW','krG','pcOG','pcOW'};
+                              'rho',[rho(2) rho(2), rho(1)],...
+                              'n',[1 1 1]); 
+wfields={'krO', 'krW','krG','pcOG', 'pcOW'};
 for i=1:numel(wfields)
     if(isfield(fluidADI,wfields{i}))
         fluidADI=rmfield(fluidADI,wfields{i});
@@ -122,13 +122,13 @@ for i=1:numel(wfields)
 end
 %%
 fluidADI.pvMultR =@(p) 1+(1e-5/barsa)*(p-100*barsa);
-fluidADI.bO = @(p,varargin) 1+(4.3e-5/barsa)*(p-100*barsa);
-fluidADI.BO = @(p, varargin) 1./fluidADI.bO(p);
+fluidADI.bW = @(p,varargin) 1+(4.3e-5/barsa)*(p-100*barsa);
+fluidADI.BW = @(p, varargin) 1./fluidADI.bW(p);
 %Temp=mean(Gt.cells.z*20/1e3+273+15);
 Temp=Gt.cells.z*30/1e3+274+12;
 %Temp=(Gt.cells.z-1000)*10/1e3+274+40;
 p0=Gt.cells.z(:)*norm(gravity)*1100;
-%pp0 = W(2).val +(z(:)-z(W(2).cells))*norm(gravity)*fluid.rhoOS;
+%pp0 = W(2).val +(z(:)-z(W(2).cells))*norm(gravity)*fluid.rhoWS;
 fluidADI.bG  =  boCO2(Temp, fluidADI.rhoGS);fluidADI.BG = @(p) 1./fluidADI.bG(p);
 figure(44),clf,plot(fluidADI.bG(p0)*fluidADI.rhoGS,Gt.cells.z);axis([0 1000 0 3000]);set(gca,'YDir','reverse')
 figure(99),clf,plot(Gt.cells.centroids(:,1)/1e3,fluidADI.bG(p0)*fluidADI.rhoGS);set(gca,'YDir','reverse')
@@ -141,9 +141,9 @@ grid on
 %{
 fluidADI.bG= @(p) 1+0*p;
 fluidADI.BG=@(p)  1+0*p;
-fluidADI.bO= @(p,varargin) 1+0*p;
-fluidADI.BO=@(p,varargin)  1+0*p;
-fluidADI.rhoGS=600;fluidADI.rhoOS=1000;
+fluidADI.bW= @(p,varargin) 1+0*p;
+fluidADI.BW=@(p,varargin)  1+0*p;
+fluidADI.rhoGS=600;fluidADI.rhoWS=1000;
 %}
 
 % defnine relperm
@@ -214,18 +214,18 @@ figure(33),clf,hold on
 ns=100;
 sGv=linspace(0,1*4/50,ns);
 krG=nan(Gt.cells.num,ns);
-krO=nan(Gt.cells.num,ns);
+krW=nan(Gt.cells.num,ns);
 cno=floor(1000*20/30);
-muO=fluid{1}.muO(300*barsa);
+muW=fluid{1}.muW(300*barsa);
 muG=fluid{1}.muG(300*barsa);
 markers={'k','g','m','r','b'}
 for k=1:numel(fluid)
     for j=1:numel(sGv)
         sG=sGv(j)*ones(Gt.cells.num,1);
         krG(:,j)=fluid{k}.krG(sG,p0);
-        krO(:,j)=fluid{k}.krO(1-sG,p0);
+        krW(:,j)=fluid{k}.krW(1-sG,p0);
     end
-    %fw=(krO.*krG/(muO.*muG))./((krG./muG) + (krO./muO));
+    %fw=(krW.*krG/(muW.*muG))./((krG./muG) + (krW./muW));
     plot(sGv*50,krG(cno,:),markers{k},'LineWidth',2)
     %plot(sGv*50,fw(cno,:))
 end

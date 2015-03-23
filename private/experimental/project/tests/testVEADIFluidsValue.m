@@ -20,19 +20,19 @@ fluid=[];
 l_fac_o=1e-9;
 l_fac_g=1e-8;
 fluid.surface_tension = 100;
-fluid.rhoOS=1000;
+fluid.rhoWS=1000;
 fluid.rhoGS=600;
-fluid.bO=@(po,varargin) (po-200*barsa)*l_fac_o+1;
-fluid.BO=@(po,varargin) 1./fluid.bO(po,varargin);
+fluid.bW=@(po,varargin) (po-200*barsa)*l_fac_o+1;
+fluid.BW=@(po,varargin) 1./fluid.bW(po,varargin);
 fluid.bG=@(pg,varargin) (pg-200*barsa)*l_fac_g+1;
 fluid.BG=@(pg,varargin) 1./fluid.bG(pg,varargin);
-fluid.muO=@(po,varargin) 0.4e-3*(po*0+1);
+fluid.muW=@(po,varargin) 0.4e-3*(po*0+1);
 fluid.muG=@(pg,varargin) 1e-4*(pg*0+1);
 fluid_org=fluid;
 l_fac_o=0e-9;
 l_fac_g=0e-8;
-fluid.bO=@(po,varargin) (po-200*barsa)*l_fac_o+1;
-fluid.BO=@(po,varargin) 1./fluid.bO(po,varargin);
+fluid.bW=@(po,varargin) (po-200*barsa)*l_fac_o+1;
+fluid.BW=@(po,varargin) 1./fluid.bW(po,varargin);
 fluid.bG=@(pg,varargin) (pg-200*barsa)*l_fac_g+1;
 fluid.BG=@(pg,varargin) 1./fluid.bG(pg,varargin);
 fluid_incomp_org=fluid;
@@ -90,7 +90,7 @@ for j=1:numel(all_fluids)
                         kr(i)=kkr;
                     end
                     krg = fluid.krG(s, p,'sGmax', s_max);
-                    pcog = fluid.pcOG(s,  p,'sGmax', s_max);
+                    pcog = fluid.pcWG(s,  p,'sGmax', s_max);
                     if(any(abs(krg-kr)>mtol))
                         if(verbose)
                             fprintf('Test of fluid : %s for kr failed\n', fluid.name);
@@ -118,7 +118,7 @@ for j=1:numel(all_fluids)
                             subplot(1,2,1)
                             plot(s,fluid.krG(s,p),'*',s,kr)
                             subplot(1,2,2)
-                            plot(s,fluid.pcOG(s,p),'*',s,pc)
+                            plot(s,fluid.pcWG(s,p),'*',s,pc)
                             return
                         end
                     end

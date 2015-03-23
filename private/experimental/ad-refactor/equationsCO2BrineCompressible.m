@@ -143,8 +143,8 @@ function [eqs, wcells, wrates, tp, nm] = setupWellEquations(W, p, q, bhp, rhoC, 
     % at the moment, only injectors of CO2 are allowed
     assert(all(cellfun(@(x)strcmp('rate', x), {W.type}')));
     
-    % Use getWellStuffOG to get the (limited) information we need
-    [Tw, ~, Rw, wcells, perf2well] = getWellStuffOG(W);
+    % Use getWellStuffWG to get the (limited) information we need
+    [Tw, ~, Rw, wcells, perf2well] = getWellStuffWG(W);
     
     wrates = rhoC(wcells) .* (-Tw) ./ muC(wcells) .* (p(wcells) - bhp(perf2well));
     eqs{1} = -Rw' * wrates + q;  % @@ Why has the other code a +zeroW here?

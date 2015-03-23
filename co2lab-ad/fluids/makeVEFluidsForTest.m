@@ -31,8 +31,8 @@ function fluid = makeVEFluidsForTest(fluid,fluid_case,varargin)
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krOG=@(so,varargin) so;
-       fluid.pcOG=@(sg, p, varargin) norm(gravity)*(fluid.rhoOS.*fluid.bO(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*opt.Gt.cells.H;       
+       fluid.krWG=@(so,varargin) so;
+       fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*opt.Gt.cells.H;       
        fluid.res_gas=0;
        fluid.res_water=0;
        fluid.invPc3D=@(p) 1-(sign(p+eps)+1)/2;
@@ -60,9 +60,9 @@ switch fluid_case
                                       'res_gas',opt.res_gas,...
                                       'res_water',opt.res_water,...
                                       'beta',2,...
-                                      'cap_scale',0.1*max(opt.Gt.cells.H)*10*(fluid.rhoOS-fluid.rhoGS),...
+                                      'cap_scale',0.1*max(opt.Gt.cells.H)*10*(fluid.rhoWS-fluid.rhoGS),...
                                       'H',opt.Gt.cells.H,'kr_pressure',true);                                 
-        %fluid = addVERelpermCapLinear(fluid,'res_gas',0.1,'beta',4,'cap_scale',0.3*H*10*(fluid.rhoOS-fluid.rhoGS),'H',Gt.cells.H,'kr_pressure',false);
+        %fluid = addVERelpermCapLinear(fluid,'res_gas',0.1,'beta',4,'cap_scale',0.3*H*10*(fluid.rhoWS-fluid.rhoGS),'H',Gt.cells.H,'kr_pressure',false);
     case 'VE_1D_table_test'
         %
         S_tab=linspace(0,1,10)';
