@@ -27,10 +27,10 @@ function fluid = addVERelpermCapLinear(fluid, cap_scale, varargin)
 end
 
 function s = invPc(p, cap_scale, opt)
-    s=(p/cap_scale).*(1-opt.res_water);
-    s(s>(1-opt.res_water))=1-opt.res_water;
-    s(s<0)=0;
-    s=1-s;
+   s = (p / cap_scale) .* (1 - opt.res_water); 
+   s(s > (1 - opt.res_water)) = 1 - opt.res_water; 
+   s(s < 0) = 0; 
+   s = 1 - s; 
 end
 
 function kr= krG(sg, p, fluid, cap_scale, opt, varargin)
@@ -38,10 +38,6 @@ function kr= krG(sg, p, fluid, cap_scale, opt, varargin)
     loc_opt=merge_options(loc_opt,varargin{:});
     if(~isempty(loc_opt.sGmax))
         sg_free = free_sg(sg,loc_opt.sGmax,opt);
-        %ineb=sg>loc_opt.sGmax;
-        %sg_free=sg-(loc_opt.sGmax-sg)*opt.res_gas;
-        %sg_free(ineb)=sg(ineb);
-        %sg_free(sg_free<0)=0.0*sg_free(sg_free<0);
         h = invS(sg_free, p, fluid, cap_scale, opt);
         kr = S_beta(h, p, opt.beta, fluid, cap_scale, opt);
     else

@@ -283,6 +283,9 @@ end
 
 function fluid = make_lin_cap_fluid(fluid, G, residual)
    
+   % A model using a linear capillary fringe.  Rock considered vertically
+   % uniform; no impact from caprock rugosity.
+      
    % Local constants used:
    beta = 2;
    fac  = 0.2;
@@ -290,29 +293,35 @@ function fluid = make_lin_cap_fluid(fluid, G, residual)
    drho = fluid.rhoWS - fluid.rhoGS;
    
    fluid = addVERelpermCapLinear(fluid, ...
-                                 'res_water'   , residual(1)                      , ...
-                                 'res_gas'     , residual(2)                      , ...
-                                 'beta'        , 2                                , ...
-                                 'cap_scale'   , fac * g * max(Gt.cells.H) * drho , ...
-                                 'H'           , Gt.cells.H                       , ...
-                                 'kr_pressure' , true);
+                     'res_water'   , residual(1)                      , ...
+                     'res_gas'     , residual(2)                      , ...
+                     'beta'        , 2                                , ...
+                     'cap_scale'   , fac * g * max(Gt.cells.H) * drho , ...
+                     'H'           , Gt.cells.H                       , ...
+                     'kr_pressure' , true);
 end
 
 % ----------------------------------------------------------------------------
 
 function fluid = make_s_table_fluid(fluid, G, opt)
    
+   % Exact relationships
+      
 end
 
 % ----------------------------------------------------------------------------
 
 function fluid = make_p_scaled_fluid(fluid, G, opt)
    
+   % Integral transformed from dz to dp
+   
 end
 
 % ----------------------------------------------------------------------------
 
 function fluid = make_p_k_scaled_fluid(fluid, G, opt)
+   
+   % Integral transformed from dz to dp, and using Leverett's J-function
    
 end
 
