@@ -75,7 +75,7 @@ end
 % -------------------------------------------------------------------------
 % [krW, krW] = f.relPerm(sW);
 krG = f.krG(sG, p, 'sGmax',sGmax);
-krW = f.krWG(1-sG, p, 'sGmax',sGmax);
+krW = f.krW(1-sG, p, 'sGmax',sGmax);
 %check for capillary pressure (p_cow)
 pcWG = 0;
 if isfield(f, 'pcWG') 

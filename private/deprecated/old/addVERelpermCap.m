@@ -7,14 +7,14 @@ function fluid = addVERelpermCap(fluid,varargin)
     if(~opt.kr_pressure)
         fake_pressure=200*barsa;
         fluid.krG=@(sg,varargin) krG(sg, fake_pressure, fluid, opt, varargin{:});
-        fluid.krWG=@(so,varargin) krWG(so, fake_pressure, fluid, opt, varargin{:});
+        fluid.krW=@(so,varargin) krW(so, fake_pressure, fluid, opt, varargin{:});
         fluid.pcWG=@(sg, p, varargin) pcWG(sg,p ,fluid,opt, varargin{:});
         fluid.cutValues=@(state,varargin) cutValues(state,opt);
         fluid.S3D=@(SVE, samples, H) S3D(SVE,fake_pressure, samples, H, fluid, opt);
         
     else
         fluid.krG=@(sg,varargin) krG(sg, p, opt, fluid, varargin{:});
-        fluid.krWG=@(so,varargin) krWG(so, p,opt, fluid, varargin{:});
+        fluid.krW=@(so,varargin) krW(so, p,opt, fluid, varargin{:});
         fluid.pcWG=@(sg, p, varargin) pcWG(sg, p,fluid,opt,varargin{:});
         fluid.cutValues=@(state,varargin) cutValues(state,opt);
 
@@ -30,7 +30,7 @@ function kr= krG(sg,p, fluid, opt,varargin)
     bind=sg>sGH;
     kr(bind) = krGH(bind)+(1-krGH(bind)).*(sg(bind)-sGH(bind));
 end
-function kr= krWG(so,opt,varargin)%#ok
+function kr= krW(so,opt,varargin)%#ok
     %beta=1;
     % fo now linear
     kr = so;

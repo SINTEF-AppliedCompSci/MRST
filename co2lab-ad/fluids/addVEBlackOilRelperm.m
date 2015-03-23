@@ -2,7 +2,7 @@ function fluid = addVEBlackOilRelperm(fluid,varargin)
     opt=struct('res_water',0,'res_gas',0,'Gt',[]);
     opt=merge_options(opt, varargin{:});        
     fluid.krG=@(sg,varargin) krG(sg,opt,varargin{:});
-    fluid.krWG=@(so,varargin) krWG(so,opt,varargin{:});
+    fluid.krW=@(so,varargin) krW(so,opt,varargin{:});
     fluid.pcWG=@(sg,varargin) pcWG(sg,fluid,opt,varargin{:});
     fluid.cutValues=@(state,varargin) cutValues(state,opt);
     fluid.invPc3D = @(p) (sign(p)+1)/2;
@@ -25,7 +25,7 @@ function kr= krG(sg,opt,varargin)
         kr = sg;
     end
 end
-function kr= krWG(so,opt,varargin)
+function kr= krW(so,opt,varargin)
     loc_opt=struct('sGmax',[]);    
     loc_opt=merge_options(loc_opt,varargin{:});
     if(~isempty(loc_opt.sGmax))

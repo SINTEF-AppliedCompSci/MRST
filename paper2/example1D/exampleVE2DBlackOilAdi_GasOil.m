@@ -77,7 +77,7 @@ res_water= 0.2;
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krWG=@(so,varargin) so;
+       fluid.krW=@(so,varargin) so;
        fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
        fluid=rmfield(fluid,'relPerm');
        res_gas=0;
@@ -89,11 +89,10 @@ switch fluid_case
         res_gas = 0.0;
         fluid = addVERelpermCap(fluid,'alpha',1,'beta',1,'cap_scale',100*barsa,'H',Gt.cells.H,'kr_pressure',false);
     case 'cap_linear'
-        fluid = addVERelpermCapLinear(fluid,...
+        fluid = addVERelpermCapLinear(fluid,0.5*max(Gt.cells.H)*10*(fluid.rhoWS-fluid.rhoGS), ...
                                       'res_gas',res_gas,...
                                       'res_water',res_water,...
                                       'beta',4,...
-                                      'cap_scale',0.5*max(Gt.cells.H)*10*(fluid.rhoWS-fluid.rhoGS),...
                                       'H',Gt.cells.H,'kr_pressure',true);
     case 'cap_1D_table_P'
         drho=400;

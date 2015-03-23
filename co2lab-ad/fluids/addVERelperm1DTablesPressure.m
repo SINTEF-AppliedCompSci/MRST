@@ -21,14 +21,14 @@ opt = merge_options(opt, varargin{:});
 if(~opt.kr_pressure)
         fake_pressure=200*barsa;
         fluid.krG=@(sg,varargin) krG(sg, fake_pressure, fluid, opt, varargin{:});
-        fluid.krWG=@(so,varargin) krWG(so, fake_pressure, fluid, opt, varargin{:});
+        fluid.krW=@(so,varargin) krW(so, fake_pressure, fluid, opt, varargin{:});
         fluid.pcWG=@(sg, p, varargin) pcWG(sg,p ,fluid,opt, varargin{:});
         fluid.cutValues=@(state,varargin) cutValues(state,opt);
         %fluid.S3D=@(SVE, samples, H) S3D(SVE,fake_pressure, samples, H, fluid, opt);
         
 else
         fluid.krG=@(sg, p, varargin) krG(sg, p, fluid, opt, varargin{:});
-        fluid.krWG=@(so, p,varargin) krWG(so, p, fluid,  opt, varargin{:});
+        fluid.krW=@(so, p,varargin) krW(so, p, fluid,  opt, varargin{:});
         fluid.pcWG=@(sg, p, varargin) pcWG(sg, p,fluid,opt,varargin{:});
         fluid.cutValues=@(state,varargin) cutValues(state,opt);
 
@@ -129,7 +129,7 @@ function varargout = krG(sg, p, fluid, opt, varargin)
    varargout{1} = kr;%./H;
    %varargout{2} = dkr;%./H;%.*dh;
 end
-function kr = krWG(so, p, fluid, opt, varargin)
+function kr = krW(so, p, fluid, opt, varargin)
    kr=interpTable(opt.table_water.S,opt.table_water.kr, 1-so);
    %dkr=dinterpTable(opt.table_water.S,opt.table_water.kr, so); 
    %varargout{1} = kr;

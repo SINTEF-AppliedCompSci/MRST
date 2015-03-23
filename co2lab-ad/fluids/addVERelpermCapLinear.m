@@ -1,38 +1,39 @@
-function fluid = addVERelpermCapLinear(fluid,varargin)   
-    opt=struct('res_water',0,'res_gas',0,'beta',1,'H',[],'cap_scale',[],'kr_pressure',false);
-    opt = merge_options(opt,varargin{:});    
-    % should also include endpoint scaling
-    assert(~isempty(opt.cap_scale))
-    opt=merge_options(opt, varargin{:});
-    end_scale=(1-opt.res_water).^opt.beta;
-    if(~opt.kr_pressure)
-        fake_pressure=200*barsa;
-        fluid.krG=@(sg, p, varargin) end_scale.*krG(sg, fake_pressure, fluid, opt, varargin{:});
-        fluid.krWG=@(so, p, varargin) krWG(so,  opt, varargin{:});
-        fluid.pcWG=@(sg, p, varargin) pcWG(sg,p ,fluid,opt, varargin{:});
-        fluid.cutValues=@(state,varargin) cutValues(state,opt);
-        fluid.S3D=@(SVE, samples, H) S3D(SVE,fake_pressure, samples, H, fluid, opt);
-        
-    else
-        fluid.krG=@(sg, p, varargin) end_scale.*krG(sg, p, fluid, opt, varargin{:});
-        fluid.krWG=@(so, p, varargin) krWG(so,  opt, varargin{:});
-        fluid.pcWG=@(sg, p, varargin) pcWG(sg, p,fluid,opt,varargin{:});
-        fluid.cutValues=@(state,varargin) cutValues(state,opt);
-    end
-    fluid.res_water=opt.res_water;
-    fluid.res_gas=opt.res_gas;    
-    fluid.invPc3D =@(p) invPc(p,opt);
-    fluid.kr3D =@(s) end_scale.*(s./(1-opt.res_water)).^opt.beta;
+function fluid = addVERelpermCapLinear(fluid, cap_scale, varargin)
+   opt = struct('res_water', 0, 'res_gas', 0, 'beta', 1, 'H', [], 'kr_pressure', false); 
+   opt = merge_options(opt, varargin{:}); 
+   
+   % should also include endpoint scaling
+   
+   end_scale = (1 - opt.res_water).^opt.beta; 
+   if(~opt.kr_pressure)
+      fake_pressure = 200 * barsa; 
+      fluid.krG = @(sg, p, varargin) end_scale .* krG(sg, fake_pressure, fluid, ...
+                                                      cap_scale, opt, varargin{:}); 
+      fluid.krW = @(so, p, varargin) krW(so, opt, varargin{:}); 
+      fluid.pcWG = @(sg, p, varargin) pcWG(sg, p, fluid, cap_scale, opt, varargin{:}); 
+      % fluid.S3D = @(SVE, samples, H) S3D(SVE, fake_pressure, samples, H, fluid, ...
+      %                                    cap_scale, opt); 
+      
+   else
+      fluid.krG = @(sg, p, varargin) end_scale .* krG(sg, p, fluid, cap_scale, ...
+                                                      opt, varargin{:}); 
+      fluid.krW = @(so, p, varargin) krW(so, opt, varargin{:}); 
+      fluid.pcWG = @(sg, p, varargin) pcWG(sg, p, fluid, cap_scale, opt, varargin{:}); 
+   end
+   fluid.res_water = opt.res_water; 
+   fluid.res_gas = opt.res_gas; 
+   fluid.invPc3D = @(p) invPc(p, cap_scale, opt); 
+   fluid.kr3D = @(s) end_scale .* (s ./ (1 - opt.res_water)).^opt.beta; 
 end
 
-function s= invPc(p,opt)
-    s=(p/opt.cap_scale).*(1-opt.res_water);
+function s = invPc(p, cap_scale, opt)
+    s=(p/cap_scale).*(1-opt.res_water);
     s(s>(1-opt.res_water))=1-opt.res_water;
     s(s<0)=0;
     s=1-s;
 end
 
-function kr= krG(sg, p, fluid,opt,varargin)
+function kr= krG(sg, p, fluid, cap_scale, opt, varargin)
     loc_opt=struct('sGmax',[]);    
     loc_opt=merge_options(loc_opt,varargin{:});
     if(~isempty(loc_opt.sGmax))
@@ -41,15 +42,15 @@ function kr= krG(sg, p, fluid,opt,varargin)
         %sg_free=sg-(loc_opt.sGmax-sg)*opt.res_gas;
         %sg_free(ineb)=sg(ineb);
         %sg_free(sg_free<0)=0.0*sg_free(sg_free<0);
-        h = invS(sg_free, p, fluid, opt);
-        kr = S_beta(h, p, opt.beta, fluid, opt);
+        h = invS(sg_free, p, fluid, cap_scale, opt);
+        kr = S_beta(h, p, opt.beta, fluid, cap_scale, opt);
     else
-        h = invS(sg, p, fluid, opt);
-        kr = S_beta(h,p, opt.beta, fluid, opt);        
+        h = invS(sg, p, fluid, cap_scale, opt);
+        kr = S_beta(h,p, opt.beta, fluid, cap_scale, opt);        
     end
 end
 
-function kr= krWG(so,opt,varargin)
+function kr= krW(so,opt,varargin)
     %beta=1;
     % fo now linear
     loc_opt=struct('sGmax',[]);    
@@ -69,7 +70,7 @@ function kr= krWG(so,opt,varargin)
         kr = so;
     end
 end
-function pc= pcWG(sg, p, fluid,opt,varargin)
+function pc= pcWG(sg, p, fluid, cap_scale, opt, varargin)
     %h = invS(sg, p, fluid, opt);    
     loc_opt=struct('sGmax',[]);    
     loc_opt=merge_options(loc_opt,varargin{:});
@@ -80,7 +81,7 @@ function pc= pcWG(sg, p, fluid,opt,varargin)
         %sg_free=sg-(loc_opt.sGmax-sg)*opt.res_gas;        
         %sg_free(ineb)=sg(ineb);
         %sg_free(sg_free<0)=0.0*sg_free(sg_free<0);
-        h = invS(sg_free, p, fluid, opt);
+        h = invS(sg_free, p, fluid, cap_scale, opt);
         assert(all(sg_free>=0))
         pc = norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*h;
     else
@@ -88,18 +89,10 @@ function pc= pcWG(sg, p, fluid,opt,varargin)
        pc = norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*h;
     end
 end
-function state = cutValues(state,opt)
-    sg=state.s(:,2);
-    sGmax=state.smax(:,2);
-    sg=max(sGmax*opt.res_gas,sg);
-    sg=min(sg,1);
-    state.s=[1-sg,sg];
-    state.rs=max(state.rs,0);
-    %state.rs=min(state.rs,max_rs);
-end
-function S_out = S_beta(h, p, beta, fluid, opt)
+
+function S_out = S_beta(h, p, beta, fluid, cap_scale, opt)
 % integral of power of Saturation
-    C=opt.cap_scale;  
+    C=cap_scale;  
     drho  =  (fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p));
     cap_norm=(C./(drho*norm(gravity)))./opt.H;
     %V_cap=cap_norm.^(beta+1)/(beta+1);
@@ -113,7 +106,8 @@ function S_out = S_beta(h, p, beta, fluid, opt)
         S_out(ind)=S_out(ind)-((h_norm(ind)-1)./cap_norm(ind)).^(beta+1)/(beta+1).*cap_norm(ind);
     end
 end
-function h = invS(S, p, fluid, opt)
+
+function h = invS(S, p, fluid, cap_scale, opt)
     % scale availabe gas volume
     % hack to avoid inf
     %{
@@ -126,7 +120,7 @@ function h = invS(S, p, fluid, opt)
     %}
     
     S=S/(1-opt.res_water);
-    C=opt.cap_scale;  
+    C=cap_scale;  
     drho  =  (fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p));
     %drho  =  (fluid.rhoWS-fluid.rhoGS);
     cap_norm=(C./(drho*norm(gravity)))./opt.H;
@@ -168,24 +162,24 @@ function h = invS(S, p, fluid, opt)
     end
     %}
 end
-function [s, z_out] = S3D(SVE,p, samples, H, fluid, opt)
-    % utility function for plotting saturation frofile and definition of
-    % the saturation profile the other functions are obtained from    
-    C=opt.cap_scale;  
-    drho  =  (fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p));
-    cap_norm=(C./(drho*norm(gravity)))./H;
-    %vol_cap=cap_norm.^2/2;
-    vol_cap=1/2*cap_norm;
-    vol_capb=vol_cap+1-cap_norm;
-    h=invS(S,p,fluid,opt);
-    z=linspace(0,h,samples);
-    if(SVE<vol_cap)
-       s=z*(h./(opt.H*cap_norm));
-    else (SVE<vol_capb)
-       s=1; 
-       s(z<cap_norm*opt.H)=z./(cap_norm*opt.H); 
-    end
-    z_out=h-z;
-    s=s(end:-1:1);
-end
+% function [s, z_out] = S3D(SVE,p, samples, H, fluid, cap_scale, opt)
+%     % utility function for plotting saturation frofile and definition of
+%     % the saturation profile the other functions are obtained from    
+%     C=cap_scale;  
+%     drho  =  (fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p));
+%     cap_norm=(C./(drho*norm(gravity)))./H;
+%     %vol_cap=cap_norm.^2/2;
+%     vol_cap=1/2*cap_norm;
+%     vol_capb=vol_cap+1-cap_norm;
+%     h=invS(S,p,fluid,opt);
+%     z=linspace(0,h,samples);
+%     if(SVE<vol_cap)
+%        s=z*(h./(opt.H*cap_norm));
+%     else (SVE<vol_capb)
+%        s=1; 
+%        s(z<cap_norm*opt.H)=z./(cap_norm*opt.H); 
+%     end
+%     z_out=h-z;
+%     s=s(end:-1:1);
+% end
  

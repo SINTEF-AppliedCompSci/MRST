@@ -90,7 +90,7 @@ end
 
 % -------------------------------------------------------------------------
 
-krW = f.krWG(1-sG, p,'sGmax',sGmax);
+krW = f.krW(1-sG, p,'sGmax',sGmax);
 krG = f.krG(sG, p,'sGmax',sGmax);
 % water props (calculated at oil pressure OK?)
 

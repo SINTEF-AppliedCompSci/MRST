@@ -61,23 +61,34 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    %% adding type-specific modifications
    switch relperm_model
      case 'simple' %@@ tested anywhere?
-       fluid = setup_simple_fluid(fluid, G, opt.residual);
+       fluid = setup_simple_fluid(fluid, Gt, opt.residual);
      case 'integrated' %@@ tested anywhere? 
-       fluid = setup_integrated_fluid(fluid, G, rock, opt.residual);
+       fluid = setup_integrated_fluid(fluid, Gt, rock, opt.residual);
      case 'sharp interface'
-       fluid = make_sharp_interface_fluid(fluid, G, opt);
+       fluid = make_sharp_interface_fluid(fluid, Gt, opt.residual);
      case 'linear cap.'
-       fluid = make_lin_cap_fluid(fluid, G, opt);     
+       fluid = make_lin_cap_fluid(fluid, Gt, opt.residual);     
      case 'S table'
-       fluid = make_s_table_fluid(fluid, G, opt);
+       fluid = make_s_table_fluid(fluid, Gt, opt);
      case 'P-scaled table'
-       fluid = make_p_scaled_fluid(fluid, G, opt);
+       fluid = make_p_scaled_fluid(fluid, Gt, opt);
      case 'P-K-scaled table'
-       fluid = make_p_k_scaled_fluid(fluid, G, opt);
+       fluid = make_p_k_scaled_fluid(fluid, Gt, opt);
      otherwise
        error([type, ': no such fluid case.']);
    end
-         
+   
+   %% Adding dissolution-related modifications
+   if opt.dissolution
+      f.dis_rate = opt.dis_rate;
+      f.dis_max  = opt.dis_max;
+      f.rsSat    = @(pw, rs, flag, varargin) (pw*0+1) * f.dis_max;
+   end
+            
+   %% Adding other modifications
+   f.pvMultR = @(p) 1 + opt.pvMult_fac * (p - opt.pvMult_p_ref);
+   f.surface_tension = opt.surface_tension;
+   
 end
 
 % ============================================================================
@@ -105,9 +116,24 @@ function opt = default_options()
    
    % Dissolution of CO2 into brine
    opt.dissolution = false; % true or false
-   opt.dis_rate    = 0;     % 0 means 'instantaneous'.  Otherwise, dissolution rate 
+   opt.dis_rate    = 5e-11; % 0 means 'instantaneous'.  Otherwise, dissolution rate 
+   opt.dis_max     = 0.03;  % maximum dissolution
+
+   % Caprock rugosity parameters (only used for the relperm model 'sharp
+   % interface')
+   opt.top_trap = [];
+   opt.surf_topo = 'smooth'; % Choices are 'smooth', 'sinus', 'inf_rough',
+                             % and 'square'.
+                                
+   % Various parameters
+   opt.pvMult_p_ref    = 100 * barsa;  % reference pressure for pore volume multiplier
+   opt.pvMult_fac      = 1e-5 / barsa; % pore volume compressibility
+   opt.surface_tension = 30e-3;        % Surface tension - used in some models
+
+   
 end
 
+% ----------------------------------------------------------------------------
 
 function fluid = include_BO_form(fluid, shortname, ref_val)
    
@@ -196,7 +222,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = sharp_interface_cap_pressure(fluid, G)
+function fluid = sharp_interface_cap_pressure(fluid, Gt)
    
    % When function is called, the following fields are needed
    require_fields(fluid, {'bW', 'bG', 'rhoWS', 'rhoGS'});
@@ -205,19 +231,22 @@ function fluid = sharp_interface_cap_pressure(fluid, G)
                                     norm(gravity) *                         ...
                                     (fluid.rhoWS .* fluid.bW(p) -           ...
                                      fluid.rhoGS .* fluid.bG(p)) .* (sg) .* ...
-                                    G.cells.H); 
+                                    Gt.cells.H); 
    
    fluid = setfield(fluid, 'invPc3D', @(p) 1 - (sign(p + eps) + 1) / 2);
 
 end
 
-% ============================================================================
+% ----------------------------------------------------------------------------
 
-function fluid = setup_simple_fluid(fluid, G, residual)
-
+function fluid = setup_simple_fluid(fluid, Gt, residual)
+   
+% Sharp interface; rock considered vertically uniform; no impact from caprock
+% rugosity 
+   
    fluid = linear_relperms(fluid);                    % 'krW'      , 'krG', 'kr3D'
    fluid = residual_saturations(fluid, residual);     % 'res_water', 'res_gas'
-   fluid = sharp_interface_cap_pressure(fluid, G);    % 'pcWG'     , 'invPc3D'
+   fluid = sharp_interface_cap_pressure(fluid, Gt);    % 'pcWG'     , 'invPc3D'
    
 end
 
@@ -225,23 +254,48 @@ end
 
 function fluid = setup_integrated_fluid(fluid, Gt, rock, residual)
    
-   fluid = addVERelpermIntegratedFluid(fluid       , ...
-                                       'Gt'        , Gt          , ...
-                                       'rock'      , rock        , ...
-                                       'res_water' , residual(1) , ...
-                                       'res_gas'   , residual(2));
+% Sharp interface; vertical variations in rock properties taken into account;
+% caprock rugosity influences CO2 relperm
+   
+   fluid = addVERelpermIntegratedFluid(fluid         , ...
+                                       'Gt'          , Gt          , ...
+                                       'rock'        , rock        , ...
+                                       'kr_pressure' , true        , ...
+                                       'res_water'   , residual(1) , ...
+                                       'res_gas'     , residual(2));
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_sharp_interface_fluid(fluid, G, opt)
+function fluid = make_sharp_interface_fluid(fluid, Gt, residual)
+
+% Sharp interface; rock considered vertically uniform; caprock rugosity
+% influences relperm
    
+   fluid = addVERelperm(fluid       , Gt           , ...
+                        'res_water' , residual(1)  , ...
+                        'res_gas'   , residual(2)  , ...
+                        'top_trap'  , opt.top_trap , ...
+                        'surf_topo' , opt.surf_topo);
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_lin_cap_fluid(fluid, G, opt)
+function fluid = make_lin_cap_fluid(fluid, G, residual)
    
+   % Local constants used:
+   beta = 2;
+   fac  = 0.2;
+   g    = norm(gravity);
+   drho = fluid.rhoWS - fluid.rhoGS;
+   
+   fluid = addVERelpermCapLinear(fluid, ...
+                                 'res_water'   , residual(1)                      , ...
+                                 'res_gas'     , residual(2)                      , ...
+                                 'beta'        , 2                                , ...
+                                 'cap_scale'   , fac * g * max(Gt.cells.H) * drho , ...
+                                 'H'           , Gt.cells.H                       , ...
+                                 'kr_pressure' , true);
 end
 
 % ----------------------------------------------------------------------------

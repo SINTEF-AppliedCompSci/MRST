@@ -86,7 +86,7 @@ if(explicit_VE)
     switch relperm_case
         case 'simple'
             fluid.krG=@(sg,varargin) sg;
-            fluid.krWG=@(so,varargin) so;
+            fluid.krW=@(so,varargin) so;
             fluid.pcWG=@(sg,varargin) norm(gravity)*(fluid.rhoWS-fluid.rhoGS)*(sg).*Gt.cells.H;
             fluid=rmfield(fluid,'relPerm');
             %fluid.re

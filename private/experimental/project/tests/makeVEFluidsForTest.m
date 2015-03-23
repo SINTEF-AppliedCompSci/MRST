@@ -29,7 +29,7 @@ function fluid = makeVEFluidsForTest(fluid,fluid_case,varargin)
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krWG=@(so,varargin) so;
+       fluid.krW=@(so,varargin) so;
        fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*opt.Gt.cells.H;       
        fluid.res_gas=0;
        fluid.res_water=0;

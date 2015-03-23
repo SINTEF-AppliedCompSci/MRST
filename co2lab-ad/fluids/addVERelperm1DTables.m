@@ -13,7 +13,7 @@ opt = merge_options(opt, varargin{:});
 
 %prop = @(  varargin) properties(opt, varargin{:});
 fluid.krG   = @(sg, p, varargin) krG(sg, p, opt.height, fluid, opt,varargin{:});
-fluid.krWG   = @(so, p, varargin) krWG(so, p, opt.height,  fluid, opt,varargin{:});
+fluid.krW   = @(so, p, varargin) krW(so, p, opt.height,  fluid, opt,varargin{:});
 fluid.pcWG   = @(sg, p, varargin) cap_press(sg, p, opt.height, fluid, opt, varargin{:});
 if(opt.table_co2.is_kscaled)
     kscale=sqrt(opt.rock.perm/opt.rock.poro)*fluid.surf_tension;
@@ -72,7 +72,7 @@ function varargout = krG(sg, p, H, fluid, opt, varargin)
    varargout{1} = kr;
    %varargout{2} = dkr.*dgh;
 end
-function varargout = krWG(so, p, H, fluid, opt, varargin)
+function varargout = krW(so, p, H, fluid, opt, varargin)
    %kr=interpTable(opt.table_water.h,opt.table_water.krH, so);
    %dkr=dinterpTable(opt.table_water.S,opt.table_water.kr, so); 
    %varargout{1} = kr;

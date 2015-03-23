@@ -23,7 +23,7 @@ Gt.cells.H=10*ones(size(sg));
 switch fluid_case
     case 'simple'
        fluid.krG=@(sg,varargin) sg;
-       fluid.krWG=@(so,varargin) so;
+       fluid.krW=@(so,varargin) so;
        fluid.pcWG=@(sg, p, varargin) norm(gravity)*(fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)).*(sg).*Gt.cells.H;
        %fluid=rmfield(fluid,'relPerm');
        res_gas=0;
