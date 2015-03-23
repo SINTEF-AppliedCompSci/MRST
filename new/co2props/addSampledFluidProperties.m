@@ -13,7 +13,7 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
    % Determine full fluid name 
    switch shortname
      case 'G'
-       fluidname = 'Carbon dioxide';
+       fluidname = 'CarbonDioxide';
      case 'W'
        fluidname = 'Water';
      otherwise

@@ -1,6 +1,6 @@
-function fluid = makeADIFluid(G, relperm_model, varargin)
+function fluid = makeVEFluid(Gt, relperm_model, varargin)
 %
-% Construct an ADI fluid with properties specific to a chosen model
+% Construct a VE fluid with properties specific to a chosen model
 % 
 % SYNOPSIS:
 %   function fluid = makeADIFluid(type, opt, varargin)
@@ -10,8 +10,8 @@ function fluid = makeADIFluid(G, relperm_model, varargin)
 % @@ _complete_me_
 %
 % PARAMETERS:
-%   G            - @@ 
-%   type         - @@
+%   Gt            - @@ 
+%   relperm_model         - @@
 %   varargin     - @@
 %
 % RETURNS:
@@ -40,6 +40,49 @@ function fluid = makeADIFluid(G, relperm_model, varargin)
 %
 % SEE ALSO:
 %
+   
+   opt = merge_options(default_options, varargin{:});
+   fluid = []; % construct fluid from empty object
+   
+   %% Adding density and viscosity properties
+   
+   % Adding viscosity
+   fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
+   fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt , opt.fixedT);
+
+   % Adding density
+   fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
+   fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, opt.fixedT);
+
+   % Add density functions of the black-oil formulation type
+   fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
+   fluid = include_BO_form(fluid, 'W', opt.wat_rho_ref);
+   
+   %% adding type-specific modifications
+   switch relperm_model
+     case 'simple' %@@ tested anywhere?
+       fluid = setup_simple_fluid(fluid, G, opt);
+     case 'integrated' %@@ tested anywhere? 
+       fluid = setup_integrated_fluid(fluid, G, opt);
+     case 'sharp interface'
+       fluid = make_sharp_interface_fluid(fluid, G, opt);
+     case 'linear cap.'
+       fluid = make_lin_cap_fluid(fluid, G, opt);     
+     case 'S table'
+       fluid = make_s_table_fluid(fluid, G, opt);
+     case 'P-scaled table'
+       fluid = make_p_scaled_fluid(fluid, G, opt);
+     case 'P-K-scaled table'
+       fluid = make_p_k_scaled_fluid(fluid, G, opt);
+     otherwise
+       error([type, ': no such fluid case.']);
+   end
+         
+end
+
+% ============================================================================
+
+function opt = default_options()
    % Wheter to include temperature as an argument in property functions
    opt.fixedT = []; % value of constant temperature, or empty (if
                     % temperature should be an argument to the property
@@ -63,47 +106,8 @@ function fluid = makeADIFluid(G, relperm_model, varargin)
    % Dissolution of CO2 into brine
    opt.dissolution = false; % true or false
    opt.dis_rate    = 0;     % 0 means 'instantaneous'.  Otherwise, dissolution rate 
-
-   opt = merge_options(opt, varargin{:});
-   fluid = []; % construct fluid from empty object
-   
-   %% Adding density and viscosity properties
-   
-   % Adding viscosity
-   fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
-   fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt , opt.fixedT);
-
-   % Adding density
-   fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
-   fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, opt.fixedT);
-
-   % Add density functions of the black-oil formulation type
-   fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
-   fluid = include_BO_form(fluid, 'W', opt.wat_rho_ref);
-   
-   %% adding type-specific modifications
-   switch relperm_model
-     case 'simple' %@@ tested anywhere?
-       fluid = makeSimpleFluid(G, opt);
-     case 'integrated' %@@ tested anywhere? 
-       fluid = makeIntegratedFluid(G, opt);
-     case 'sharp interface'
-       fluid = makeSharpInterfaceFluid(G, opt);
-     case 'linear cap.'
-       fluid = makeLinCapFluid(G, opt);     
-     case 'S table'
-       fluid = makeSTableFluid(G, opt);
-     case 'P-scaled table'
-       fluid = makePScaledFluid(G, opt);
-     case 'P-K-scaled table'
-       fluid = makePKScaledFluid(G, opt);
-     otherwise
-       error([type, ': no such fluid case.']);
-   end
-         
 end
 
-% ============================================================================
 
 function fluid = include_BO_form(fluid, shortname, ref_val)
    
@@ -171,52 +175,22 @@ function require_fields(fluid, fields)
    end
 end
 
-
-% ----------------------------------------------------------------------------
-
-function fluid = constant_density(fluid, rhoS)
-   
-   fluid = setfield(fluid, 'rhoWS', rhoS(1));
-   fluid = setfield(fluid, 'rhoGS', rhoS(2));
-   
-end
-
-% ----------------------------------------------------------------------------
-
-function fluid = constant_viscosity(fluid, mu)
-
-   fluid = setfield(fluid, 'muW', as_function_of_p(mu(1)));
-   fluid = setfield(fluid, 'muG', as_function_of_p(mu(2)));
-   
-end
-
 % ----------------------------------------------------------------------------
 
 function fluid = linear_relperms(fluid)
 
    fluid = setfield(fluid, 'krW' , @(sw, varargin) sg);
    fluid = setfield(fluid, 'krG' , @(sg, varargin) sg);
-   fluid = setfield(fluid, 'kr3D', @(s           )  s);
+   % fluid = setfield(fluid, 'kr3D', @(s           )  s); @@ Used anywhere?
    
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = residual_saturations(fluid, resSat)
+function fluid = residual_saturations(fluid, residual)
 
-   fluid = setfield(fluid, 'res_water', resSat(1));
-   fluid = setfield(fluid, 'res_gas'  , resSat(2));
-   
-end
-
-% ----------------------------------------------------------------------------
-
-function fluid = constant_formation_factors(fluid)
-
-   fluid = setfield(fluid, 'bW', as_function_of_p(1));
-   fluid = setfield(fluid, 'BW', as_function_of_p(1));
-   fluid = setfield(fluid, 'bG', as_function_of_p(1));
-   fluid = setfield(fluid, 'BG', as_function_of_p(1));
+   fluid = setfield(fluid, 'res_water', residual(1));
+   fluid = setfield(fluid, 'res_gas'  , residual(2));
    
 end
 
@@ -239,69 +213,50 @@ end
 
 % ============================================================================
 
-function fluid = makeSimpleFluid(G, opt)
+function fluid = setup_simple_fluid(fluid, G, opt)
 
-   fluid = constant_density([], opt.rhoS);          % 'rhoWS'    , 'rhoGS'
-   fluid = constant_viscosity(fluid, opt.mu);       % 'muW'      , 'muG'
-   fluid = linear_relperms(fluid);                  % 'krW'      , 'krG', 'kr3D'
-   fluid = residual_saturations(fluid, opt.resSat); % 'res_water', 'res_gas'
-   fluid = constant_formation_factors(fluid);       % 'bW', 'BW' ,  'bG', 'BG'
-   fluid = sharp_interface_cap_pressure(fluid, G);  % 'pcWG'     , 'invPc3D'
+   fluid = linear_relperms(fluid);                    % 'krW'      , 'krG', 'kr3D'
+   fluid = residual_saturations(fluid, opt.residual); % 'res_water', 'res_gas'
+   fluid = sharp_interface_cap_pressure(fluid, G);    % 'pcWG'     , 'invPc3D'
    
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = makeIntegratedFluid(G, opt)
+function fluid = setup_integrated_fluid(fluid, Gt, opt)
    
-   fluid = addVERelpermIntegratedFluid;
+   fluid = addVERelpermIntegratedFluid(fluid, 'Gt', Gt, 
    
 
-%           * rhoXS        - density of X at reference level (e.g. surface)
-%           * bX(p), BX(p) - formation volume factors and their inverses
-%           * muX(p)       - viscosity functions 
-%           * krX(s)       - rel.perm for X
-%           * rsSat(p)     - pressure-dependent max saturation value for
-%                            dissolved gas 
-%           * pcWG(sG, p)  - capillary pressure function
-%           * dis_max      - maximum saturation value for dissolved gas
-%           * dis_rate     - rate of dissolution of gas into water
-%           * res_gas      - residual gas saturation
-%           * res_water    - residual oil saturation
-%           * kr3D         - @@
-%           * invPc3D      - @@
-   
-   
+end
+
+% ----------------------------------------------------------------------------
+
+function fluid = make_sharp_interface_fluid(fluid, G, opt)
    
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = makeSharpInterfaceFluid(G, opt)
+function fluid = make_lin_cap_fluid(fluid, G, opt)
    
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = makeLinCapFluid(G, opt)
+function fluid = make_s_table_fluid(fluid, G, opt)
    
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = makeSTableFluid(G, opt)
+function fluid = make_p_scaled_fluid(fluid, G, opt)
    
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = makePScaledFluid(G, opt)
-   
-end
-
-% ----------------------------------------------------------------------------
-
-function fluid = makePKScaledFluid(G, opt)
+function fluid = make_p_k_scaled_fluid(fluid, G, opt)
    
 end
 

@@ -1,46 +1,46 @@
 function fluid = addVERelpermIntegratedFluid(fluid, varargin)
-    opt=struct('res_oil',0,...  
-                'res_gas',0,...
-                'kr_pressure',false,...
-                'Gt',[],'int_poro',false,...
-                'rock',[]);
-    opt = merge_options(opt, varargin{:});
-    % should also include endpoint scaling    
+   opt = struct('res_oil'     , 0     , ...  
+                'res_gas'     , 0     , ...
+                'kr_pressure' , false , ...
+                'Gt'          , []    , ...
+                'int_poro'    , false , ...
+                'rock'        , []); 
 
-   assert(~isempty(opt.Gt));
-   assert(~isempty(opt.rock));
+   opt = merge_options(opt, varargin{:}); 
+   % should also include endpoint scaling    
+
+   assert(~isempty(opt.Gt)); 
+   assert(~isempty(opt.rock)); 
    % precalculate the complete perm and pore volume
-   %g_top = opt.Gt;
-   %opt.H=g_top.cells.H;
-   kr_H = integrateVertically(opt.rock.parent.perm(:,1), opt.Gt.cells.H, opt.Gt);
-   opt.perm2D=kr_H./opt.Gt.cells.H;
-   assert(norm(opt.perm2D-opt.rock.perm)./norm(opt.rock.perm)<1e-6);
-   opt.kr_H=kr_H;
-   pv_3D(opt.Gt.columns.cells)=opt.rock.parent.poro(opt.Gt.columns.cells)...
-          .*rldecode(opt.Gt.cells.volumes,diff(opt.Gt.cells.columnPos));
-   opt.volumes = integrateVertically(pv_3D', inf, opt.Gt).*opt.Gt.cells.volumes;
-  
-   
+   % g_top = opt.Gt; 
+   % opt.H = g_top.cells.H; 
+   kr_H = integrateVertically(opt.rock.parent.perm(:, 1), opt.Gt.cells.H, opt.Gt); 
+   opt.perm2D = kr_H ./ opt.Gt.cells.H; 
+   assert(norm(opt.perm2D - opt.rock.perm) ./ norm(opt.rock.perm)<1e-6); 
+   opt.kr_H = kr_H; 
+   pv_3D(opt.Gt.columns.cells) = opt.rock.parent.poro(opt.Gt.columns.cells)...
+       .* rldecode(opt.Gt.cells.volumes, diff(opt.Gt.cells.columnPos)); 
+   opt.volumes = integrateVertically(pv_3D', inf, opt.Gt) .* opt.Gt.cells.volumes; 
    
    if(~opt.kr_pressure)
-        fake_pressure=200*barsa;
-        fluid.krG=@(sg,varargin) krG(sg, opt, varargin{:});
-        fluid.krOG=@(so,varargin) krOG(so, opt, varargin{:});
-        fluid.pcOG=@(sg, p, varargin) pcOG(sg, p ,fluid, opt, varargin{:});
-        fluid.cutValues=@(state,varargin) cutValues(state,opt);
-        fluid.S3D=@(SVE, samples, H) S3D(SVE,fake_pressure, samples, H, fluid, opt);
-        
-    else
-        fluid.krG=@(sg, p,varargin) krG(sg, opt, varargin{:});
-        fluid.krOG=@(so, p,varargin) krOG(so, opt, varargin{:});
-        fluid.pcOG=@(sg, p, varargin) pcOG(sg, p, fluid, opt,varargin{:});
-        fluid.cutValues=@(state,varargin) cutValues(state,opt);
+      fake_pressure = 200 * barsa; 
+      fluid.krG = @(sg, varargin) krG(sg, opt, varargin{:}); 
+      fluid.krOG = @(so, varargin) krOG(so, opt, varargin{:}); 
+      fluid.pcOG = @(sg, p, varargin) pcOG(sg, p, fluid, opt, varargin{:}); 
+      fluid.cutValues = @(state, varargin) cutValues(state, opt); 
+      fluid.S3D = @(SVE, samples, H) S3D(SVE, fake_pressure, samples, H, fluid, opt); 
+      
+   else
+      fluid.krG = @(sg, p, varargin) krG(sg, opt, varargin{:}); 
+      fluid.krOG = @(so, p, varargin) krOG(so, opt, varargin{:}); 
+      fluid.pcOG = @(sg, p, varargin) pcOG(sg, p, fluid, opt, varargin{:}); 
+      fluid.cutValues = @(state, varargin) cutValues(state, opt); 
 
    end 
-   fluid.invPc3D = @(p) invPc3D(p,opt);
-    fluid.kr3D =@(s) s;
-    fluid.res_gas = opt.res_gas;
-    fluid.res_oil =opt.res_oil;
+   fluid.invPc3D = @(p) invPc3D(p, opt); 
+   fluid.kr3D = @(s) s; 
+   fluid.res_gas = opt.res_gas;
+   fluid.res_oil = opt.res_oil;
 end
 
 function s = invPc3D(p,opt)
