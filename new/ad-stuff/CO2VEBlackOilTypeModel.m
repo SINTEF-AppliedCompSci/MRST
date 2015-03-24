@@ -2,9 +2,11 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
    
    % ============================= Class properties ==========================
    properties
-      disgas;  % if 'true', include dissolution effect
-      disrate; % Dissolution rate (if dissolution is active).  A value of 0
-               % means instantaneous dissolution.
+
+      % Equation is chosen based on whether fluid object includes dissolution
+      % effects or not 
+      equation
+      
    end
       
    % ============================== Public methods ===========================
@@ -13,17 +15,20 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
       %% Constructor
       function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
          
-         opt.disgas = false; % default: do not include dissolution effect
-         opt.disrate = 0;    % default: instantaneous dissolution (if included)
          opt = merge_options(opt, varargin{:});
          
          model@reservoirModel(Gt, rock2d, fluid);
          model.water   = true;
          model.gas     = true;
          model.oil     = false;
-         model.disgas  = opt.disgas;
-         model.disrate = opt.disrate;
          
+         if isfield(fluid, 'dis_rate')
+            % use model equations with dissolution
+            model.equation = @eqsfiWGVEdisgas;
+         else
+            % use basic model equations (no dissolution)
+            model.equation = @eqsfiWGVEbasic;
+         end
       end
       
    % =========================== Private methods ============================
@@ -44,7 +49,7 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
    
    % ------------------------------------------------------------------------
       function [fn, index] = getVariableField(model, name)
-   
+         
       end
    % ------------------------------------------------------------------------
    

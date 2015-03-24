@@ -10,7 +10,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 % @@ _complete_me_
 %
 % PARAMETERS:
-%   Gt            - @@ 
+%   Gt            -  
 %   relperm_model         - @@
 %   varargin     - @@
 %
@@ -181,11 +181,19 @@ function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt
       assert(isvector(prop_pvt) && numel(prop_pvt) == 4);
 
       fluid = addSampledFluidProperties(fluid, shortname, ...
-                                        'pspan', prop_pvt(1:2), ...
-                                        'tspan', prop_pvt(3:4), ...
-                                        'props', [strcmpi(propname, 'rho'), ...
-                                                  strcmpi(propname, 'mu'),  ...
-                                                  strcmpi(propname, 'h')]);
+                                        'pspan',  prop_pvt(1:2), ...
+                                        'tspan',  prop_pvt(3:4), ...
+                                        'props',  [strcmpi(propname, 'rho'), ...
+                                                   strcmpi(propname, 'mu'),  ...
+                                                   strcmpi(propname, 'h')], ...
+                                        'fixedT', fixedT);
+      
+      if ~isempty(fixedT)
+         % Temperature is given (and fixed).  Properties become functions of pressure only.
+         
+      end
+      
+         
    end
 end
 
