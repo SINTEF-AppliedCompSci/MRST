@@ -24,10 +24,10 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
          
          if isfield(fluid, 'dis_rate')
             % use model equations with dissolution
-            model.equation = @eqsfiWGVEdisgas;
+            model.equation = @equationsWGVEdisgas;
          else
             % use basic model equations (no dissolution)
-            model.equation = @eqsfiWGVEbasic;
+            model.equation = @equationsWGVEbasic;
          end
       end
       
