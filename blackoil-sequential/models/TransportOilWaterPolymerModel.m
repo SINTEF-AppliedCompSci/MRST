@@ -37,10 +37,30 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
         function [convergence, values] = checkConvergence(model, problem, varargin)
 %             [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
             
-            model.oil = false;
-            [convergence, values] = checkConvergence@ReservoirModel(model, problem, varargin{:});
-            model.oil = true;
-            
+%             model.oil = false;
+%             [convergence, values] = checkConvergence@ReservoirModel(...
+%                 model, problem, varargin{:});
+%             model.oil = true;
+
+            if model.useCNVConvergence
+                
+                % Use convergence model similar to commercial simulator
+                model.oil = false;
+                [conv_cells, v_cells] = CNV_MBConvergence(model, problem);
+                model.oil = true;
+                
+                % We do not include the polymer equation in the convergence
+                convergence = all(conv_cells);
+                
+                values = v_cells;
+            else
+                % Use strict tolerances on the residual without any 
+                % fingerspitzengefuhlen by calling the parent class
+                [convergence, values] = checkConvergence@PhysicalModel(...
+                    model, problem, varargin{:});
+            end  
+
+
             % Remove polymer residual from conv criterion
 %             values = values(~strcmpi(problem.equationNames, 'polymer'));
 %             convergence = all(values < model.nonlinearTolerance);

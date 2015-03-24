@@ -126,6 +126,7 @@ if ~isempty(W)
 end
 
 % Get total flux from state
+assert(size(state.flux,2)==2, 'Not the flux expected');
 flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
