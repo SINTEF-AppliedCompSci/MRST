@@ -16,7 +16,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %
 % RETURNS:
 %   fluid - struct containing the following functions (where X = 'W' [water]
-%           and 'G' [gas])  
+%           and 'Gt' [gas])  
 %           * rhoXS        - density of X at reference level (e.g. surface)
 %           * bX(p), BX(p) - formation volume factors and their inverses
 %           * muX(p)       - viscosity functions 
@@ -28,11 +28,12 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %           * dis_rate     - rate of dissolution of gas into water
 %           * res_gas      - residual gas saturation
 %           * res_water    - residual oil saturation
-%           * kr3D         - @@
-%           * invPc3D      - @@
+%           * kr3D         - fine-scale relperm function
+%           * invPc3D      - inverse fine-scale capillary pressure function
 %
 %           The following fields are optional, but may be returned by some
-%           models 
+%           models:
+%
 %           * tranMultR(p) - mobility multiplier function
 %           * transMult(p) - transmissibility multiplier function
 %           * pvMult(p)    - pore volume multiplier function
@@ -47,15 +48,15 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    %% Adding density and viscosity properties
    
    % Adding viscosity
-   fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
+   fluid = include_property(fluid, 'Gt', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
    fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt , opt.fixedT);
 
    % Adding density
-   fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
+   fluid = include_property(fluid, 'Gt', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
    fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, opt.fixedT);
 
    % Add density functions of the black-oil formulation type
-   fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
+   fluid = include_BO_form(fluid, 'Gt', opt.co2_rho_ref);
    fluid = include_BO_form(fluid, 'W', opt.wat_rho_ref);
    
    %% adding type-specific modifications
@@ -69,11 +70,11 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
      case 'linear cap.'
        fluid = make_lin_cap_fluid(fluid, Gt, opt.residual);     
      case 'S table'
-       fluid = make_s_table_fluid(fluid, Gt, opt);
+       fluid = make_s_table_fluid(fluid, Gt, opt.residual, opt.C, opt.alpha, opt.beta);
      case 'P-scaled table'
-       fluid = make_p_scaled_fluid(fluid, Gt, opt);
+       fluid = make_p_scaled_fluid(fluid, Gt, opt.residual, opt.C, opt.alpha, opt.beta);
      case 'P-K-scaled table'
-       fluid = make_p_k_scaled_fluid(fluid, Gt, opt);
+       fluid = make_p_k_scaled_fluid(fluid, Gt, rock, opt.residual, opt.alpha, opt.beta);
      otherwise
        error([type, ': no such fluid case.']);
    end
@@ -94,7 +95,8 @@ end
 % ============================================================================
 
 function opt = default_options()
-   % Wheter to include temperature as an argument in property functions
+
+   % Whether to include temperature as an argument in property functions
    opt.fixedT = []; % value of constant temperature, or empty (if
                     % temperature should be an argument to the property
                     % functions. 
@@ -124,12 +126,17 @@ function opt = default_options()
    opt.top_trap = [];
    opt.surf_topo = 'smooth'; % Choices are 'smooth', 'sinus', 'inf_rough',
                              % and 'square'.
-                                
+   
+   % Parameters used for relperms and capillary pressures based on table
+   % lookup (i.e. 'S-table', 'P-scaled table' and 'P-K-scaled table)
+   opt.C               = 0.4;   % scaling factor in Brooks-Corey type capillary pressure curve
+   opt.alpha           = 0.5;   % Exponent used in Brooks-Corey type capillary pressure curve
+   opt.beta            = 3;     % Exponent of Brooks-Corey type relperm curve
+   opt.surface_tension = 30e-3; % Surface tension used in 'P-K-scaled table'
+   
    % Various parameters
    opt.pvMult_p_ref    = 100 * barsa;  % reference pressure for pore volume multiplier
    opt.pvMult_fac      = 1e-5 / barsa; % pore volume compressibility
-   opt.surface_tension = 30e-3;        % Surface tension - used in some models
-
    
 end
 
@@ -242,7 +249,8 @@ end
 function fluid = setup_simple_fluid(fluid, Gt, residual)
    
 % Sharp interface; rock considered vertically uniform; no impact from caprock
-% rugosity 
+% rugosity  @@ with linear relperms without scaling, how can we ensure
+% residual saturation?
    
    fluid = linear_relperms(fluid);                    % 'krW'      , 'krG', 'kr3D'
    fluid = residual_saturations(fluid, residual);     % 'res_water', 'res_gas'
@@ -281,7 +289,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_lin_cap_fluid(fluid, G, residual)
+function fluid = make_lin_cap_fluid(fluid, Gt, residual)
    
    % A model using a linear capillary fringe.  Rock considered vertically
    % uniform; no impact from caprock rugosity.
@@ -303,26 +311,92 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_s_table_fluid(fluid, G, opt)
+function fluid = make_s_table_fluid(fluid, Gt, residual, C, alpha, beta)
    
-   % Exact relationships
-      
+   % Exact relationships   
+   
+   % Local constants used
+   drho    = fluid.rhoWS - fluid.rhoGS;
+   samples = 100;
+   tabSw   = linspace(0, 1, 10)'; 
+   tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []); 
+   
+   table_co2_1d = makeVEtables(...
+        'invPc3D'    , @(p) max((C ./ (p + C)).^(1 / alpha) , residual(1)) , ...
+        'is_kscaled' , false                                               , ...
+        'kr3D'       , @(s) s.^beta                                        , ...
+        'drho'       , drho                                                , ...
+        'Gt'         , Gt                                                  , ...
+        'samples'    , samples); 
+
+   fluid = addVERelperm1DTables(fluid , ...
+        'res_water'   , residual(1)   , ...
+        'res_gas'     , residual(2)   , ...
+        'height'      , Gt.cells.H    , ...
+        'table_co2'   , table_co2_1d  , ...
+        'table_water' , tabW); 
 end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_p_scaled_fluid(fluid, G, opt)
+function fluid = make_p_scaled_fluid(fluid, Gt, residual, C, alpha, beta)
    
    % Integral transformed from dz to dp
-   
-end
+
+   % Local constants used
+   drho    = fluid.rhoWS - fluid.rhoGS;
+   samples = 100;
+   tabSw   = linspace(0, 1, 10)'; 
+   tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []); 
+      
+   table_co2_1d = makeVEtables(...
+       'invPc3D'    , @(p) max((C ./ (p + C)).^(1 / alpha) , residual(1)) , ...
+       'is_kscaled' , false                                               , ...
+       'kr3D'       , @(s) s.^beta                                        , ...
+       'drho'       , drho                                                , ...
+       'Gt'         , Gt                                                  , ...
+       'samples'    , samples); 
+
+   fluid = addVERelperm1DTablesPressure(fluid , ...
+       'res_water'   , residual(1)            , ...
+       'res_gas'     , residual(2)            , ...
+       'height'      , Gt.cells.H             , ...
+       'table_co2'   , table_co2_1d           , ...
+       'table_water' , tabW                   , ...
+       'kr_pressure' , true); 
+ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_p_k_scaled_fluid(fluid, G, opt)
+function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, alpha, beta)
    
    % Integral transformed from dz to dp, and using Leverett's J-function
+
+   % Local constants used 
+   kscale = sqrt(rock.poro ./ (rock.perm)) * fluid.surface_tension; 
+   drho    = fluid.rhoWS - fluid.rhoGS;
+   samples = 100;
+   tabSw   = linspace(0, 1, 10)'; 
+   tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []); 
    
+   table_co2_1d = makeVEtables(...
+       'invPc3D'    , @(p) max((1 ./ (p + 1)).^(1 / alpha) , residual(1)) , ...
+       'is_kscaled' , true                                                , ...
+       'kr3D'       , @(s) s.^beta                                        , ...
+       'drho'       , drho                                                , ...
+       'Gt'         , Gt                                                  , ...
+       'samples'    , samples                                             , ...
+       'kscale'     , kscale); 
+
+   fluid = addVERelperm1DTablesPressure(fluid , ...
+       'res_water'   , residual(1)            , ...
+       'res_gas'     , residual(2)            , ...
+       'height'      , Gt.cells.H             , ...
+       'table_co2'   , table_co2_1d           , ...
+       'table_water' , tabW                   , ...
+       'rock'        , rock                   , ...  % @@ should this take full 3D rock?
+       'kr_pressure' , true); 
+
 end
 
 % ----------------------------------------------------------------------------
