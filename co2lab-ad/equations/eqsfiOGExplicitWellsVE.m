@@ -89,25 +89,25 @@ else
    pG=p;%+pcWG;
    pG0=p0; 
 end
-% water props (calculated at oil pressure OK?)
-%bW     = f.bW(p);
+% gas props 
+
 bG     = f.bG(pG);
 rhoG   = bG.*f.rhoGS;
-% rhoW on face, avarge of neighboring cells (E100, not E300)
+
 rhoGf  = s.faceAvg(rhoG);
-%mobW   = trMult.*krW./f.muW(p);
+
 mobG   = trMult.*krG./f.muG(pG);
 if(~any(strcmp(G.type,'topSurfaceGrid')))
     dpG     = s.grad(p+pcWG) - g*(rhoGf.*s.grad(G.cells.centroids(:,3)));
 else
     dpG     = s.grad(pG+pcWG) - g*(rhoGf.*s.grad(G.cells.z));
 end
-% water upstream-index
+% gas upstream-index
 upc = (double(dpG)>=0);
 bGvG = s.faceUpstr(upc, bG.*mobG).*s.T.*dpG;
 
 
-% oil props
+% water props
 bW     = f.bW(p);
 rhoW   = bW.*f.rhoWS;
 rhoWf  = s.faceAvg(rhoW);
