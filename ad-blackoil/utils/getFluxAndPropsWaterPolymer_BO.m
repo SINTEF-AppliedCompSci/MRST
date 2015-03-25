@@ -13,14 +13,16 @@ function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
 
     % Multipliers due to polymer
     mixpar = fluid.mixPar;
-    cbar   = c/fluid.cmax;
+    cbar   = c./fluid.cmax;
     a = fluid.muWMult(fluid.cmax).^(1-mixpar);
     b = 1./(1-cbar+cbar./a);
     % The viscosity multiplier only result from the polymer mixing.
-    muWMult = b.*fluid.muWMult(c).^mixpar;
+    muWMult  = fluid.muWMult(c);
+    muWMultT = b.*muWMult.^mixpar;
+    %muWMult = b.*fluid.muWMult(c).^mixpar;
     permRed = 1 + ((fluid.rrf-1)./fluid.adsMax).*ads;
-    muWMultT  = muWMult.*permRed;
-
+    muWMultT  = muWMultT.*permRed;
+    
     % Water props
     bW     = fluid.bW(pO);
     rhoW   = bW.*fluid.rhoWS;
@@ -40,7 +42,9 @@ function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
     % Polymer
     mobP = (mobW.*c)./(a + (1-a)*cbar);
     vP   = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
-
+    
+    %muPeff = muWeff.*(a + (1-a)*cbar);
+    
 end
 
 

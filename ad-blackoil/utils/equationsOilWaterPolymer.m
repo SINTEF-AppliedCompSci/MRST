@@ -162,7 +162,7 @@ if ~isempty(W)
         [~, wciPoly, iInxW] = getWellPolymer(W);
         cw        = c(wc);
         cw(iInxW) = wciPoly;
-        cbarw     = cw/f.cmax;
+        %cbarw     = cw./f.cmax;
         
         if usingShear
             % Compute shear rate multiplier for wells
@@ -216,7 +216,8 @@ if ~isempty(W)
         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
 
         % Divide away water mobility and add in polymer
-        bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
+        %bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
+        bWqP = cw.*cqs{1};
         eqs{3}(wc) = eqs{3}(wc) - bWqP;
 
         % Well polymer rate for each well is water rate in each perforation
@@ -244,29 +245,6 @@ end
 
 %--------------------------------------------------------------------------
 
-
-function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
-    if isempty(W)
-        wPoly = [];
-        wciPoly = [];
-        iInxW = [];
-        return
-    end
-    inj   = vertcat(W.sign)==1;
-    polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
-    wPoly = zeros(nnz(inj), 1);
-    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
-
-    % Injection cells
-    nPerf = cellfun(@numel, {W.cells})';
-    nw    = numel(W);
-    perf2well = rldecode((1:nw)', nPerf);
-    compi = vertcat(W.compi);
-    iInx  = rldecode(inj, nPerf);
-    iInx  = find(iInx);
-    iInxW = iInx(compi(perf2well(iInx),1)==1);
-end
 
 % Effective adsorption, depending of desorption or not
 function y = effads(c, cmax, model)
