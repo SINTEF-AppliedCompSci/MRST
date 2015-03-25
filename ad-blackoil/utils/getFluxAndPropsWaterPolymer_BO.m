@@ -1,4 +1,4 @@
-function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
+function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
         getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, ...
         krW, T, gdz)
     fluid = model.fluid;
@@ -17,9 +17,9 @@ function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
     a = fluid.muWMult(fluid.cmax).^(1-mixpar);
     b = 1./(1-cbar+cbar./a);
     % The viscosity multiplier only result from the polymer mixing.
-    muWeffMult = b.*fluid.muWMult(c).^mixpar;
+    muWMult = b.*fluid.muWMult(c).^mixpar;
     permRed = 1 + ((fluid.rrf-1)./fluid.adsMax).*ads;
-    muWMult  = muWeffMult.*permRed;
+    muWMultT  = muWMult.*permRed;
 
     % Water props
     bW     = fluid.bW(pO);
@@ -27,7 +27,7 @@ function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
     muW    = fluid.muW(pO);
-    muWeff = muWMult.*muW;
+    muWeff = muWMultT.*muW;
     mobW   = krW./muWeff;
     dpW    = s.Grad(pO-pcOW) - rhoWf.*gdz;
     % water upstream-index

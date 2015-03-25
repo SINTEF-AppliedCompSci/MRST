@@ -11,6 +11,10 @@ opt = merge_options(opt, varargin{:});
 
 W = drivingForces.Wells;
 s = model.operators;
+f = model.fluid;
+
+% Shear thinning/thickening
+usingShear = isfield(f, 'plyshearMult');
 
 % Properties at current timestep
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
@@ -65,13 +69,14 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
     krW, T, gdz);
 bW0 = model.fluid.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
+[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, ...
+    krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
 if model.outputFluxes
@@ -82,6 +87,21 @@ if model.extraStateOutput
     state = model.storeMobilities(state, mobW, mobO, mobP);
     state = model.storeUpstreamIndices(state, upcw, upco, []);
 end
+
+% Change velocitites due to polymer shear thinning / thickening
+if usingShear
+    poro      = s.pv./model.G.cells.volumes;
+    poroFace  = s.faceAvg(poro);
+    faceArea  = model.G.faces.areas(s.internalConn);
+    Vw        = vW./(poroFace .* faceArea);
+    muWMultf  = s.faceUpstr(upcw, muWMult); % TODO: muWMult correct !?
+    
+    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+    
+    vW = vW .* shearMult;
+    vP = vP .* shearMult;
+end
+
 
 % EQUATIONS ---------------------------------------------------------------
 % Upstream weight b factors and multiply by interface fluxes to obtain the
@@ -98,7 +118,6 @@ oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
 
 % Conservation of polymer in water:
 poro = model.rock.poro;
-f    = model.fluid;
 polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
    pvMult0.*bW0.*sW0.*c0) + (s.pv/dt).* ...
    ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
@@ -130,7 +149,7 @@ end
 
 % Finally, add in and setup well equations
 if ~isempty(W)
-    wm = model.wellmodel;
+    wm = WellModel();
     if ~opt.reverseMode
         wc   = vertcat(W.cells);
         pw   = p(wc);
@@ -138,7 +157,47 @@ if ~isempty(W)
         bw   = {bW(wc), bO(wc)};
         mw   = {mobW(wc), mobO(wc)};
         s    = {sW(wc), sO(wc)};
-
+        
+        % Polymer well equations
+        [~, wciPoly, iInxW] = getWellPolymer(W);
+        cw        = c(wc);
+        cw(iInxW) = wciPoly;
+        cbarw     = cw/f.cmax;
+        
+        if usingShear
+            % Compute shear rate multiplier for wells
+            % The water velocity is computed using a the reprensentative 
+            % radius rR.
+            % rR = sqrt(rW * rA)
+            % rW is the well bore radius.
+            % rA is the equivalent radius of the grid block in which the well
+            %       is completed.
+            
+            assert(isfield(W, 'rR'), ...
+                'The representative radius needs to be suppplied.');
+            
+            muWMultW = muWMult(wc);
+            % Maybe should also apply this for PRODUCTION wells.
+            muWMultW((iInxW(wciPoly==0))) = 1;
+            
+            cqs = wm.computeWellFlux(model, W, wellSol, pBH, ...
+                {qWs, qOs}, pw, rhos, bw, mw, s, {},...
+                'nonlinearIteration', opt.iteration);
+            
+            % The following formulations assume that the wells are always
+            % in the z direction 
+            % IMPROVED HERE LATER
+            [~, ~, dz] = cellDims(model.G, wc);
+            
+            rR = vertcat(W.rR);
+            VwW = double(bW(wc)).*double(cqs{1})./(poro(wc).*rR.*dz*2*pi);
+            shearMultW = getPolymerShearMultiplier(model, VwW, muWMultW);
+            
+            % Apply shear multiplier
+            mw{1} = mw{1}.*shearMultW;
+        end
+        
+        
         [cqs, weqs, ctrleqs, wc, state.wellSol] = ...
             wm.computeWellFlux(model, W, wellSol, ...
             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
@@ -155,12 +214,6 @@ if ~isempty(W)
         % but this is the equations on residual form.
         eqs{1}(wc) = eqs{1}(wc) - cqs{1};
         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-
-        % Polymer well equations
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        cw        = c(wc);
-        cw(iInxW) = wciPoly;
-        cbarw     = cw/f.cmax;
 
         % Divide away water mobility and add in polymer
         bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
@@ -192,6 +245,29 @@ end
 %--------------------------------------------------------------------------
 
 
+function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
+    if isempty(W)
+        wPoly = [];
+        wciPoly = [];
+        iInxW = [];
+        return
+    end
+    inj   = vertcat(W.sign)==1;
+    polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
+    wPoly = zeros(nnz(inj), 1);
+    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
+    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
+
+    % Injection cells
+    nPerf = cellfun(@numel, {W.cells})';
+    nw    = numel(W);
+    perf2well = rldecode((1:nw)', nPerf);
+    compi = vertcat(W.compi);
+    iInx  = rldecode(inj, nPerf);
+    iInx  = find(iInx);
+    iInxW = iInx(compi(perf2well(iInx),1)==1);
+end
+
 % Effective adsorption, depending of desorption or not
 function y = effads(c, cmax, model)
    if model.fluid.adsInx == 2
@@ -201,5 +277,53 @@ function y = effads(c, cmax, model)
    end
 end
 
+
+function [dx, dy, dz] = cellDims(G, ix)
+% cellDims -- Compute physical dimensions of all cells in single well
+%
+% SYNOPSIS:
+%   [dx, dy, dz] = cellDims(G, ix)
+%
+% PARAMETERS:
+%   G  - Grid data structure.
+%   ix - Cells for which to compute the physical dimensions
+%
+% RETURNS:
+%   dx, dy, dz -- [dx(k) dy(k)] is bounding box in xy-plane, while dz(k) =
+%                 V(k)/dx(k)*dy(k)
+
+    n = numel(ix);
+    [dx, dy, dz] = deal(zeros([n, 1]));
+
+    ixc = G.cells.facePos;
+    ixf = G.faces.nodePos;
+
+    for k = 1 : n,
+       c = ix(k);                                     % Current cell
+       f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
+       e = mcolon(ixf(f), ixf(f + 1) - 1);            % Edges on cell
+
+       nodes  = unique(G.faces.nodes(e, 1));          % Unique nodes...
+       coords = G.nodes.coords(nodes,:);            % ... and coordinates
+
+       % Compute bounding box
+       m = min(coords);
+       M = max(coords);
+
+       % Size of bounding box
+       dx(k) = M(1) - m(1);
+       if size(G.nodes.coords, 2) > 1,
+          dy(k) = M(2) - m(2);
+       else
+          dy(k) = 1;
+       end
+
+       if size(G.nodes.coords, 2) > 2,
+          dz(k) = G.cells.volumes(ix(k))/(dx(k)*dy(k));
+       else
+          dz(k) = 0;
+       end
+    end
+end
 
 
