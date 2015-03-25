@@ -187,13 +187,6 @@ function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt
                                                    strcmpi(propname, 'mu'),  ...
                                                    strcmpi(propname, 'h')], ...
                                         'fixedT', fixedT);
-      
-      if ~isempty(fixedT)
-         % Temperature is given (and fixed).  Properties become functions of pressure only.
-         
-      end
-      
-         
    end
 end
 

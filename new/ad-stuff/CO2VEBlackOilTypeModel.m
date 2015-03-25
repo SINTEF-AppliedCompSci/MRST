@@ -21,6 +21,13 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
          model.water   = true;
          model.gas     = true;
          model.oil     = false;
+         model.saturationVarNames = {'sw', 'sg'}; % @@ Design: ideally, we
+                                                  % should not have to set
+                                                  % both this _and_ the
+                                                  % 'water', 'gas' and 'oil'
+                                                  % flags above. Check with
+                                                  % maintainer of parent class.
+         model.wellVarNames = {'qWs', 'qGs', 'bhp'};
          
          if isfield(fluid, 'dis_rate')
             % use model equations with dissolution
@@ -28,6 +35,13 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
          else
             % use basic model equations (no dissolution)
             model.equation = @equationsWGVEbasic;
+         end
+         
+         % This object and its equation does not support temporal variation
+         % in temperatures, so if dependence is detected, throw an error
+         if nargin(@fluid.bG) > 1
+            error(['This model requires that fluid properties are function of ' ...
+                   'pressure only.']);
          end
       end
       
@@ -45,15 +59,52 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel
       function [problem, state] = ...
              getEquations(model, state0, state, dt, drivingForces, varargin)
       
+         [problem, state] = model.equation(model         , ...
+                                           state0        , ...
+                                           state         , ...
+                                           dt            , ...
+                                           drivingForces , ...
+                                           varargin{:});
       end
    
    % ------------------------------------------------------------------------
+
       function [fn, index] = getVariableField(model, name)
-         
+
+         switch(lower(name))
+           case {'sGmax'}
+             index = 1;
+             fn = 'sGmax';
+           otherwise
+             [fn, index] = getVariableField@Reservoirmodel(model, name);
+         end
       end
-   % ------------------------------------------------------------------------
+
+% ------------------------------------------------------------------------
    
-      function [state, report] = updateState(model, state, problem, dx, drivingForces)
+      function [state, report] = ...
+         updateAfterConvergence(model, state0, state, dt, drivingForces)
+         
+         % Here, we update the hysteresis variable 'sGmax'.  If the residual
+         % saturation of gas is 0 (i.e. model.fluid.residuals(2) == 0),
+         % keeping track of 'sGmax' is not strictly necessary for
+         % computation, but it may still be useful information for
+         % interpretation, and to simplify program logic we compute it at all
+         % times.
+            
+         sGmax0 = model.getProp(state0, 'sGmax');
+         sG     = model.getProp(state, 'sg');
+         
+         state = model.setProp(state, 'sGmax', max(sG, sGmax0));
          
       end
+% ----------------------------------------------------------------------------
+
+      function gdz = getGravityGradient(model)
+         s  = model.operators;
+         Gt = model.G;
+         g  = norm(model.getGravityVector()); %@@ requires theta=0
+         gdz = s.grad(G.cells.z);
+      end
+
 end   
