@@ -32,6 +32,13 @@ else
                 flags = [pBHw > lims.bhp, qt_sw > lims.rate, qt_sw < lims.vrat];
             else            % producer
                 modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
+                
+                % insert dummy limits for missing fields
+                missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+                for f = missing_fields
+                   lims = setfield(lims, f{:}, -inf);
+                end
+                
                 flags = [pBHw       < lims.bhp,  ...
                     q_sw(2)         < lims.orat, ...
                     q_sw(1)+q_sw(2) < lims.lrat, ...
