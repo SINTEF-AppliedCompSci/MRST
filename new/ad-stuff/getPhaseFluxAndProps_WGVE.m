@@ -15,7 +15,7 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
        bX   = fluid.bW(pW);
        rhoX = bX .* fluid.rhoWS;
        mobX = krX ./ fluid.muW(pW);
-       bX   = pW;
+       pX   = pW;
      otherwise
        error('Indicated phase must be ''G'' (gas) or ''W'' (water)');
    end

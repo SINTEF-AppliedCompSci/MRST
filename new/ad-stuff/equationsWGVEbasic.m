@@ -1,7 +1,10 @@
-function [problem, state] = equationsWGVEbasic(state0, state, model, dt, drivingForces, varargin)
+function [problem, state] = equationsWGVEbasic(model, state0, state, dt, drivingForces, varargin)
    
    opt = struct('reverseMode', false, ...
-                'resOnly', false);
+                'resOnly', false, ...
+                'iteration', -1);
+   
+   opt = merge_options(opt, varargin{:});
    
    assert(isempty(drivingForces.src)); % unsupported
    W  = drivingForces.Wells;
@@ -52,11 +55,12 @@ function [problem, state] = equationsWGVEbasic(state0, state, model, dt, driving
    gdz = model.getGravityGradient();
 
    % CO2 phase pressure
-   pg = p + pcWG(sG, p, 'sGmax', sGmax);
+   pW = p;
+   pG = p + f.pcWG(sG, p, 'sGmax', sGmax);
    
    % Evaluate water and CO2 properties 
-   [vW, bW, mobW, rhoW, upcw, dpW] = getPhaseFluxAndProps_WGVE(model, pw, pg, krW, trans, gdz, 'W');
-   [vG, bG, mobG, rhoG, upcg, dpG] = getPhaseFluxAndProps_WGVE(model, pw, pg, krG, trans, gdz, 'G');
+   [vW, bW, mobW, rhoW, upcw, dpW] = getPhaseFluxAndProps_WGVE(model, pW, pG, krW, trans, gdz, 'W');
+   [vG, bG, mobG, rhoG, upcg, dpG] = getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G');
    bW0 = f.bW(pW);
    bG0 = f.bG(pW); % Yes, using water pressure also for gas here
    
@@ -66,24 +70,63 @@ function [problem, state] = equationsWGVEbasic(state0, state, model, dt, driving
    bGvG = s.faceUpstr(upcg, bG) .* vG;
    
    
-   %% Setting up equations 
+   %% Setting up brine and CO2 equations 
    
    % Gas (CO2)
-   eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.div(bWvW);
+   eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.Div(bWvW);
    
    % Water (Brine)
-   eqs{2} = (s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0) + s.div(bGvG);
+   eqs{2} = (s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0) + s.Div(bGvG);
    
+   % Include influence of boundary conditions
+   eqs = addFluxesFromSourcesAndBC(model, ...
+           eqs, {pG, pW}, {rhoG, rhoW}, {mobG, mobW}, {bG, bW}, {sG, sW}, drivingForces);
+
    
-   % ADD BOUNDARY STUFF
-   
-   % SETUP WELL EQUATIONS
-   
+   %% Setting up well equations
+   if ~isempty(W)
+      wm = model.wellmodel;
+      if ~opt.reverseMode
+         wc = vertcat(W.cells);
+         [cqs, weqs, ctrleqs, wc, state.wellSol] =                       ...
+             wm.computeWellFlux(model, W, wellSol, bhp                 , ...
+                                {qWs, qGs}                             , ...
+                                p(wc)                                  , ...
+                                [model.fluid.rhoWS, model.fluid.rhoGS] , ...
+                                {bW(wc), bG(wc)}                       , ...
+                                {mobW(wc), mobG(wc)}                   , ...
+                                {sW(wc), sG(wc)}                       , ...
+                                {}, 'nonlinearIteration', opt.iteration);
+         % Store the separate well equations (relate well bottom hole
+         % pressures to influx)
+         eqs(3:4) = weqs;
+         
+         % Store the control equations (ensuring that each well has values
+         % corresponding to the prescribed value)
+         eqs{5} = ctrleqs;
+         
+         % Add source term to equations.  Negative sign may be surprising if
+         % one is used to source terms on the right hand side, but this is
+         % the equations on residual form
+         eqs{1}(wc) = eqs{1}(wc) - cqs{1};
+         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
+      
+      else 
+         [eqs(3:5), names(3:5), types(3:5)] = ...
+             wm.createReverseModeWellEquations(model, state0, wellSol, p0);
+      end
+   end
    
    %% Setting up problem
-   types = {'cell', 'cell', 'cell', well};
-   names = {'water', 'gas', wellstuff};
-   primaryVars = {'pressure', 'sG', 'bhp', 'qWs', 'qGs'};
+   primaryVars = {'pressure' , 'sG'   , 'bhp'        , 'qWs'      , 'qGs'};
+   types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well'};
+   names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells'};
+   if isempty(W)
+      % Remove names/types associated with wells, as no well exist
+      types = types(1:2);
+      names = names(1:2);
+   end
+      
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
    
 end

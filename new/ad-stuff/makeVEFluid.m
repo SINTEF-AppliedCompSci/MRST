@@ -48,15 +48,15 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    %% Adding density and viscosity properties
    
    % Adding viscosity
-   fluid = include_property(fluid, 'Gt', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
+   fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
    fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt , opt.fixedT);
 
    % Adding density
-   fluid = include_property(fluid, 'Gt', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
+   fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
    fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, opt.fixedT);
 
    % Add density functions of the black-oil formulation type
-   fluid = include_BO_form(fluid, 'Gt', opt.co2_rho_ref);
+   fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
    fluid = include_BO_form(fluid, 'W', opt.wat_rho_ref);
    
    %% adding type-specific modifications
@@ -213,7 +213,7 @@ end
 
 function fluid = linear_relperms(fluid)
 
-   fluid = setfield(fluid, 'krW' , @(sw, varargin) sg);
+   fluid = setfield(fluid, 'krW' , @(sw, varargin) sw);
    fluid = setfield(fluid, 'krG' , @(sg, varargin) sg);
    % fluid = setfield(fluid, 'kr3D', @(s           )  s); @@ Used anywhere?
    
