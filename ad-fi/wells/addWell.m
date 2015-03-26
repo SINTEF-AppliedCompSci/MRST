@@ -168,6 +168,12 @@ if isempty(opt.refDepth),
 end
 ip = opt.InnerProduct;
 
+% Compute the representative radius for the grid block in which the well is
+% completed. It is needed for computing the shear rate of the wells.
+
+rR = radiusRep(G, opt.Radius, opt.Dir, ...
+                reshape(cellInx, [], 1));
+
 % Initialize Well index - WI. ---------------------------------------------
 % Check if we need to calculate WI or if it is supplied.
 
@@ -208,6 +214,7 @@ W  = [W; struct('cells'   , cellInx(:),           ...
                 'val'     , opt.Val,              ...
                 'r'       , opt.Radius,           ...
                 'dir'     , opt.Dir,              ...
+                'rR'      , rR,                    ...
                 'WI'      , WI,                   ...
                 'dZ'      , getDepth(G, cellInx(:))-opt.refDepth, ...
                 'name'    , opt.Name,             ...
@@ -470,3 +477,34 @@ end
 
 function s = id(s)
 s = ['addWell:', s];
+
+%--------------------------------------------------------------------------
+% A funciton to compute the representative radius of the grid block in which
+% the well is completed.
+% rR = sqrt(re * rw).
+% The current formulation only works for Cartisian grid.
+% TODO: REMAIN TO BE VERIFIED.
+function rr = radiusRep(G, radius, welldir, cells)
+
+if(isfield(G,'nodes'))
+   [dx, dy, dz] = cellDims(G, cells);
+else
+   [dx, dy, dz] = cellDimsCG(G, cells);
+end
+
+welldir = lower(welldir);
+
+re = zeros( size(welldir, 1), 1);
+
+% The following formualtion only works for Cartisian mesh
+ci = welldir == 'x';
+re(ci) = sqrt(dy(ci) .* dz(ci) / pi);
+
+ci = welldir == 'y';
+re(ci) = sqrt(dx(ci) .* dz(ci) / pi);
+
+ci = welldir == 'z';
+re(ci) = sqrt(dy(ci) .* dx(ci) / pi);
+
+rr = sqrt( re .* radius);
+
