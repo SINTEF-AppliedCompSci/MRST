@@ -64,7 +64,7 @@ for k = 1:nw
        ws(k).qWPoly = W(k).poly*ws(k).qWs;
     end
     
-    ws(k).mixs = W(k).compi(actPh);
+    ws(k).mixs = W(k).compi;
     ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
     ws(k).cqs  = zeros(nConn,nPh);
