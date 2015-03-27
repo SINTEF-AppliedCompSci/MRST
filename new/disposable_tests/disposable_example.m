@@ -1,5 +1,6 @@
 function disposable_example()
-   
+
+   gravity on;
    moduleCheck('ad-core');
 % Example constructed to test the new framework.  Throw away when things work
 
