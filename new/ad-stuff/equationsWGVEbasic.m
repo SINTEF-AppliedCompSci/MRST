@@ -55,14 +55,15 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    gdz = model.getGravityGradient();
 
    % CO2 phase pressure
-   pW = p;
-   pG = p + f.pcWG(sG, p, 'sGmax', sGmax);
+   pW  = p;
+   pW0 = p0;
+   pG  = p + f.pcWG(sG, p, 'sGmax', sGmax);
    
    % Evaluate water and CO2 properties 
    [vW, bW, mobW, rhoW, upcw, dpW] = getPhaseFluxAndProps_WGVE(model, pW, pG, krW, trans, gdz, 'W');
    [vG, bG, mobG, rhoG, upcg, dpG] = getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G');
-   bW0 = f.bW(pW);
-   bG0 = f.bG(pW); % Yes, using water pressure also for gas here
+   bW0 = f.bW(pW0);
+   bG0 = f.bG(pW0); % Yes, using water pressure also for gas here
    
    % Multiply upstream b-factors by interface fluxes to obtain fluxes at
    % standard conditions
@@ -72,15 +73,15 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    
    %% Setting up brine and CO2 equations 
    
-   % Gas (CO2)
+   % Water (Brine)
    eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.Div(bWvW);
    
-   % Water (Brine)
+   % Gas (CO2)
    eqs{2} = (s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0) + s.Div(bGvG);
    
    % Include influence of boundary conditions
    eqs = addFluxesFromSourcesAndBC(model, ...
-           eqs, {pG, pW}, {rhoG, rhoW}, {mobG, mobW}, {bG, bW}, {sG, sW}, drivingForces);
+           eqs, {pW, pG}, {rhoW, rhoG}, {mobW, mobG}, {bW, bG}, {sW, sG}, drivingForces);
 
    
    %% Setting up well equations

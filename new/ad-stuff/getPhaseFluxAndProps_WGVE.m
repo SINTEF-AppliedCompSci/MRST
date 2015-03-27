@@ -28,7 +28,7 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
    dpX  = s.Grad(pX) + rhoXf .* gdz; % @@ minus or plus? (new operators!)
    
    % Identifying upstream side
-   upc = double(dpX) >= 0;
+   upc = double(dpX) <= 0;
    
    % Computing flux
    vX = -s.faceUpstr(upc, mobX) .* T .* dpX;

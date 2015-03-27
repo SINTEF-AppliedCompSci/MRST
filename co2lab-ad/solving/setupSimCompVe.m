@@ -28,11 +28,11 @@ function s = setupSimCompVe(Gt, rock2D, varargin)
    if opt.useNewStandard
       s = setupOperatorsTPFA(Gt, rock2D, 'porv', pv, 'trans', T); 
    else
-      error(['Using old standard for the operator structure, which uses ' ...
+      warning(['Using old standard for the operator structure, which uses ' ...
              'different signs for gradient and divergence term.  Consider ' ...
              'migrating to the new standard, as implemented in ' ...
              '''setupOperatorsTPFA''']); 
-      % s = setupSimComp(Gt, rock2D, 'porv', pv, 'trans', T); 
+       s = setupSimComp(Gt, rock2D, 'porv', pv, 'trans', T); 
    end
 
    s.T_all = T_all; 

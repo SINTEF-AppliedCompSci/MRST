@@ -1,4 +1,4 @@
-function disposable_example()
+function [Gt, wellSols, states] =  disposable_example()
 
    gravity on;
    moduleCheck('ad-core');
@@ -52,16 +52,15 @@ mstep = linspace(0.5*year, dTm, 5)';
 mstep = [mstep; ones(floor((Tm-sum(mstep))/dTm),1)*dTm];
 mstep = [mstep; Tm-sum(mstep)];
 
-schedule = struct('control', [struct('W', aquifer.W), ...
-                              struct('W', aquifer.W(2))], ...
+Wctrl1 = aquifer.W;
+Wctrl2 = Wctrl1;
+Wctrl2(1).val = 0;
+schedule = struct('control', [struct('W', Wctrl1), struct('W', Wctrl2)], ...
                   'step', struct('control', [ones(size(istep)); 2 * ones(size(mstep))], ...
                                  'val', [istep; mstep]));
                
 % Run simulation
 [wellSols, states] = simulateScheduleAD(initState, model, schedule);
-
-
-
 
 end
          

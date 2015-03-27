@@ -97,7 +97,7 @@ methods
       sG     = model.getProp(state, 'sg');
       
       state = model.setProp(state, 'sGmax', max(sG, sGmax0));
-      
+      report = [];
    end
 
 % ----------------------------------------------------------------------------
