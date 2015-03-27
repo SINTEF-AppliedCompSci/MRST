@@ -66,7 +66,7 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
     krW, T, gdz);
 
@@ -89,12 +89,10 @@ if ~isempty(W)
     
     mobWw = mobW(wc);
     mobOw = mobO(wc);
-    mobPw = mobP(wc);
     totMobw = mobWw + mobOw;
 
     f_w_w = mobWw./totMobw;
     f_o_w = mobOw./totMobw;
-    f_p_w = mobPw./totMobw;
 
     isInj = wflux > 0;
     compWell = vertcat(W.compi);
@@ -102,15 +100,17 @@ if ~isempty(W)
 
     f_w_w(isInj) = compPerf(isInj, 1);
     f_o_w(isInj) = compPerf(isInj, 2);
-    f_p_w(isInj) = compPerf(isInj, 1);
 
     bWqW = bW(wc).*f_w_w.*wflux;
     bOqO = bO(wc).*f_o_w.*wflux;
     
     % Polymer injection
-    wpolyi = vertcat(W.poly);
-    bWqP = bW(wc).*f_p_w.*wpolyi(perf2well).*wflux;
-
+    cw = c(wc);
+    wpoly = vertcat(W.poly);
+    wpoly = wpoly(perf2well);
+    cw(isInj) = wpoly(isInj);
+    bWqP = cw.*bWqW;
+    
     % Store well fluxes
     wflux_O = double(bOqO);
     wflux_W = double(bWqW);

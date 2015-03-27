@@ -16,7 +16,6 @@ assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
-G = model.G;
 
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
     'polymer', 'polymermax', 'wellsol');
@@ -67,14 +66,9 @@ T = s.T.*transMult;
 % Gravity contribution
 gdz = model.getGravityGradient();
 
-% % Evaluate water properties
-% [vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p_prop, sW, krW, T, gdz);
-% bW0 = f.bW(p0);
-
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
-ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
     getFluxAndPropsWaterPolymer_BO(model, p_prop, sW, c, ads, ...
     krW, T, gdz);
 bW0 = model.fluid.bW(p0);
@@ -120,12 +114,12 @@ wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
 % well equations
 if ~isempty(W)
-    wc    = vertcat(W.cells);
+    wc   = vertcat(W.cells);
     pw   = p(wc);
     rhos = [f.rhoWS, f.rhoOS];
     bw   = {bW(wc), bO(wc)};
     mw   = {mobW(wc), mobO(wc)};
-    s = {sW(wc), 1 - sW(wc)};
+    s    = {sW(wc), 1-sW(wc)};
 
     wm = model.wellmodel;
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr] = ...
