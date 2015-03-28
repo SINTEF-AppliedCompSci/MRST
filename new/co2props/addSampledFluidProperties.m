@@ -22,13 +22,13 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
    
    % Add density, viscosity and enthalpy properties
    if opt.props(1)
-      fluid.(['rho', shortname]) = load_property(opt, 'D', fluidname, fixedT); 
+      fluid.(['rho', shortname]) = load_property(opt, 'D', fluidname, opt.fixedT); 
    end
    if opt.props(2)
-      fluid.(['mu' , shortname]) = load_property(opt, 'V', fluidname, fixedT); 
+      fluid.(['mu' , shortname]) = load_property(opt, 'V', fluidname, opt.fixedT); 
    end
    if opt.props(3)
-      fluid.(['h'  , shortname]) = load_property(opt, 'H', fluidname, fixedT);
+      fluid.(['h'  , shortname]) = load_property(opt, 'H', fluidname, opt.fixedT);
       
       if opt.props(1) % we have both enthalpy and density - we can also
                       % include internal energy
@@ -57,7 +57,7 @@ function pfun = load_property(opt, pname, fluidname, fixedT)
    % We return the main evaluator function (which also works in an ADI-setting)
    pfun = obj.([pname]);
    
-   if isempty(fixedT)
+   if ~isempty(fixedT)
       % Temperature should be considered fixed -> property becomes function
       % of pressure only.
       pfun = @(p) pfun(p, fixedT);

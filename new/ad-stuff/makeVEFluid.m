@@ -66,7 +66,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
      case 'integrated' %@@ tested anywhere? 
        fluid = setup_integrated_fluid(fluid, Gt, rock, opt.residual);
      case 'sharp interface'
-       fluid = make_sharp_interface_fluid(fluid, Gt, opt.residual);
+       fluid = make_sharp_interface_fluid(fluid, Gt, opt.residual, opt.top_trap, opt.surf_topo);
      case 'linear cap.'
        fluid = make_lin_cap_fluid(fluid, Gt, opt.residual);     
      case 'S table'
@@ -104,14 +104,14 @@ function opt = default_options()
    % Density of CO2 and brine
    opt.co2_rho_ref   =  760 * kilogram / meter^3; % Reference rho for CO2
    opt.wat_rho_ref   = 1100 * kilogram / meter^3; % Reference rho for brine
-   opt.co2_rho_pvt = []; % empty, function of (P) or of (P, T), or [pmin, pmax, tmin, tmax] 
-   opt.wat_rho_pvt = []; % fct of (P, T); or name of sampled pv-table (if empty: constant rho)
+   opt.co2_rho_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
+   opt.wat_rho_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
 
    % Viscosity of CO2 and brine
    opt.co2_mu_ref = 6e-5 * Pascal * second;    % reference CO2 viscosity
    opt.wat_mu_ref = 8e-4 * Pascal * second;    % reference brine viscosity
-   opt.co2_mu_pvt = []; % fct of (P, T); or name of sampled pv-table (if empty: constant mu)
-   opt.wat_mu_pvt = []; % fct of (P, T); or name of sampled pv-table (if empty: constant mu)
+   opt.co2_mu_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax] 
+   opt.wat_mu_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax] 
 
    % Residual saturations [brine, co2]
    opt.residual = [0 0]; % default is no residual saturation for either phase
@@ -151,10 +151,10 @@ function fluid = include_BO_form(fluid, shortname, ref_val)
    
    if nargin(rhofun) > 1
       % density is considered function of P and T
-      bfun = @(P, T) rhofun(P, T) ./ ref_val;
+      bfun = @(p, t, varargin) rhofun(p, t) ./ ref_val;
    else
       % density is considered a function of P only
-      bfun = @(P) rhofun(P) ./ ref_val;
+      bfun = @(p, varargin) rhofun(p) ./ ref_val;
    end
    
    % Add fluid formation factor
@@ -165,17 +165,16 @@ end
 % ----------------------------------------------------------------------------
 
 function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt, fixedT)
-
    if isempty(prop_pvt)
       % use constant property (based on reference property).  Whether it is a
       % function of P only, or of both P and T, is irrelevant here.
       fluid.([propname, shortname]) = as_function_of_p(prop_ref);
       
-   elseif isa(prop_pvt, 'function_handle')
-      
-      % The exact function requested is already provided.  Just add it to
-      % the fluid object.
-      fluid.([propname, shortname]) = prop_pvt;
+   elseif numel(prop_pvt) == 2
+      % Linear compressibility
+      cw    = prop_pvt(1);
+      ref_p = prop_pvt(2);
+      fluid.([propname, shortname]) = @(p, varargin) prop_ref * (1 + cw * (p - ref_p));
       
    else
       assert(isvector(prop_pvt) && numel(prop_pvt) == 4);
@@ -276,16 +275,16 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_sharp_interface_fluid(fluid, Gt, residual)
+function fluid = make_sharp_interface_fluid(fluid, Gt, residual, top_trap, surf_topo)
 
 % Sharp interface; rock considered vertically uniform; caprock rugosity
 % influences relperm
    
-   fluid = addVERelperm(fluid       , Gt           , ...
-                        'res_water' , residual(1)  , ...
-                        'res_gas'   , residual(2)  , ...
-                        'top_trap'  , opt.top_trap , ...
-                        'surf_topo' , opt.surf_topo);
+   fluid = addVERelperm(fluid       , Gt          , ...
+                        'res_water' , residual(1) , ...
+                        'res_gas'   , residual(2) , ...
+                        'top_trap'  , top_trap    , ...
+                        'surf_topo' , surf_topo);
 end
 
 % ----------------------------------------------------------------------------
