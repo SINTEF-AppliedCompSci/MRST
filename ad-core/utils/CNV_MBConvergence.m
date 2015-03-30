@@ -128,10 +128,12 @@ function [converged, values, evaluated] = CNV_MBConvergence(model, problem)
     values = [CNV, MB];
     
     if mrstVerbose()
+        inx = [model.oil, model.water, model.gas];
         if problem.iterationNo == 1
-            fprintf('CNVO\t\tCNVW\t\tCNVG\t\tMBO\t\tMBW\t\tMBG\n');
+            text = {'CNVO','CNVW','CNVG','MBO','MBW','MBG'};
+            fprintf('%s\n', sprintf('%s\t\t',text{[inx inx]}) );
         end
-        fprintf('%2.2e\t', values);
+        fprintf('%2.2e\t', values([inx inx]));
         fprintf('\n')
     end
 end
