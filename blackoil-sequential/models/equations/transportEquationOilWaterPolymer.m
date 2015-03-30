@@ -20,11 +20,16 @@ s = model.operators;
 f = model.fluid;
 G = model.G;
 
+% Polymer shear thinning/thickening
+usingShear = isfield(f, 'plyshearMult');
+
 assert(~(opt.solveForWater && opt.solveForOil));
 
+% Properties at current timestep
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
     'polymer', 'polymermax', 'wellsol');
 
+% Properties at previous timestep
 [p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', ...
    'polymer', 'polymermax');
 
@@ -89,6 +94,7 @@ if ~isempty(W)
     
     mobWw = mobW(wc);
     mobOw = mobO(wc);
+    
     totMobw = mobWw + mobOw;
 
     f_w_w = mobWw./totMobw;
@@ -110,6 +116,8 @@ if ~isempty(W)
     wpoly = wpoly(perf2well);
     cw(isInj) = wpoly(isInj);
     bWqP = cw.*bWqW;
+    
+    % TODO: Add shear multiplier to these well values!??
     
     % Store well fluxes
     wflux_O = double(bOqO);
@@ -144,6 +152,22 @@ upco  = flag(:, 2);
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 mobPf = s.faceUpstr(upcw, mobP);
+
+%% TEMP TODO TEST
+% Change velocitites due to polymer shear thinning / thickening
+if usingShear
+    poro      = s.pv./model.G.cells.volumes;
+    poroFace  = s.faceAvg(poro);
+    faceArea  = model.G.faces.areas(s.internalConn);
+    Vw        = vW./(poroFace .* faceArea);
+    muWMultf  = s.faceUpstr(upcw, muWMult);
+
+    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+    
+    mobWf = mobWf .* shearMult;
+    mobPf = mobPf .* shearMult;
+end
+%%
 
 totMob = (mobOf + mobWf);
 totMob = max(totMob, sqrt(eps));

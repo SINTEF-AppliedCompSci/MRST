@@ -79,6 +79,21 @@ bW0 = model.fluid.bW(p0);
     krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
+% Change velocitites due to polymer shear thinning / thickening
+if usingShear
+    poro      = s.pv./model.G.cells.volumes;
+    poroFace  = s.faceAvg(poro);
+    faceArea  = model.G.faces.areas(s.internalConn);
+    Vw        = vW./(poroFace .* faceArea);
+    muWMultf  = s.faceUpstr(upcw, muWMult);
+
+    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+    
+    vW   = vW .* shearMult;
+    vP   = vP .* shearMult;
+end
+
+
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vP);
 end
@@ -86,20 +101,6 @@ if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, mobP);
     state = model.storeUpstreamIndices(state, upcw, upco, []);
-end
-
-% Change velocitites due to polymer shear thinning / thickening
-if usingShear
-    poro      = s.pv./model.G.cells.volumes;
-    poroFace  = s.faceAvg(poro);
-    faceArea  = model.G.faces.areas(s.internalConn);
-    Vw        = vW./(poroFace .* faceArea);
-    muWMultf  = s.faceUpstr(upcw, muWMult); % TODO: muWMult correct !?
-    
-    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
-    
-    vW = vW .* shearMult;
-    vP = vP .* shearMult;
 end
 
 
@@ -162,7 +163,6 @@ if ~isempty(W)
         [~, wciPoly, iInxW] = getWellPolymer(W);
         cw        = c(wc);
         cw(iInxW) = wciPoly;
-        %cbarw     = cw./f.cmax;
         
         if usingShear
             % Compute shear rate multiplier for wells

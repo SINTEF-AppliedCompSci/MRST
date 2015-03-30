@@ -1,34 +1,34 @@
 function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
         getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, ...
         krW, T, gdz)
-    fluid = model.fluid;
+    f = model.fluid;
     s = model.operators;
 
     % Check for capillary pressure (p_cow)
     pcOW = 0;
-    if isfield(fluid, 'pcOW') && ~isempty(sW)
-        pcOW  = fluid.pcOW(sW);
+    if isfield(f, 'pcOW') && ~isempty(sW)
+        pcOW  = f.pcOW(sW);
     end
     pW = pO - pcOW;
 
     % Multipliers due to polymer
-    mixpar = fluid.mixPar;
-    cbar   = c./fluid.cmax;
-    a = fluid.muWMult(fluid.cmax).^(1-mixpar);
-    b = 1./(1-cbar+cbar./a);
+    mixpar = f.mixPar;
+    cbar   = c./f.cmax;
+    a      = f.muWMult(f.cmax).^(1-mixpar);
+    b      = 1./(1-cbar+cbar./a);
+    
     % The viscosity multiplier only result from the polymer mixing.
-    muWMult  = fluid.muWMult(c);
+    muWMult  = f.muWMult(c);
     muWMultT = b.*muWMult.^mixpar;
-    %muWMult = b.*fluid.muWMult(c).^mixpar;
-    permRed = 1 + ((fluid.rrf-1)./fluid.adsMax).*ads;
-    muWMultT  = muWMultT.*permRed;
+    permRed  = 1 + ((f.rrf-1)./f.adsMax).*ads;
+    muWMultT = muWMultT.*permRed;
     
     % Water props
-    bW     = fluid.bW(pO);
-    rhoW   = bW.*fluid.rhoWS;
+    bW     = f.bW(pO);
+    rhoW   = bW.*f.rhoWS;
     % rhoW on face, average of neighboring cells
     rhoWf  = s.faceAvg(rhoW);
-    muW    = fluid.muW(pO);
+    muW    = f.muW(pO);
     muWeff = muWMultT.*muW;
     mobW   = krW./muWeff;
     dpW    = s.Grad(pO-pcOW) - rhoWf.*gdz;
@@ -44,6 +44,7 @@ function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
     vP   = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
     
     %muPeff = muWeff.*(a + (1-a)*cbar);
+    
     
 end
 
