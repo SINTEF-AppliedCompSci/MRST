@@ -152,7 +152,9 @@ assert (numel(opt.Kh)   == numC);
 assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1);
 %assert (strcmp(opt.Type, 'rate') || strcmp(opt.Type, 'bhp'));
 
-if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1]));  end
+if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1])); end
+if numel(opt.Dir) == 1,  opt.Dir = repmat(opt.Dir, [numC, 1]); end
+assert(numel(opt.Dir) == numC);
 
 % Set reference depth default value.
 if isempty(opt.refDepth),
@@ -170,9 +172,7 @@ ip = opt.InnerProduct;
 
 % Compute the representative radius for the grid block in which the well is
 % completed. It is needed for computing the shear rate of the wells.
-
-rR = radiusRep(G, opt.Radius, opt.Dir, ...
-                reshape(cellInx, [], 1));
+rR = radiusRep(G, opt.Radius, opt.Dir, reshape(cellInx, [], 1));
 
 % Initialize Well index - WI. ---------------------------------------------
 % Check if we need to calculate WI or if it is supplied.
@@ -224,11 +224,6 @@ W  = [W; struct('cells'   , cellInx(:),           ...
                 'sign'    , opt.Sign,             ...
                 'status'  , true,                    ...
                 'cstatus' , true(numel(cellInx),1))];
-
-if numel(W(end).dir) == 1,
-   W(end).dir = repmat(W(end).dir, [numel(W(end).cells), 1]);
-end
-assert (numel(W(end).dir) == numel(W(end).cells));
 
 %--------------------------------------------------------------------------
 % Private helper functions follow
