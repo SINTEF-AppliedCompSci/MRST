@@ -11,6 +11,19 @@
 moduleCheck('co2lab', 'ad-fi');
 gravity reset on
 
+%% Check whether to recompute, or re-use old result
+savefilename = 'data/residualExample1Data';
+if (exist([savefilename, '.mat'])==2 && ...
+    ask_user('Saved result found.  Re-use? [y/n] '))
+   fprintf('Re-using old result.\n');
+   recompute = false;
+   load([savefilename, '.mat']);
+else
+   fprintf('Recomputing result.\n');
+   results = cell(4,1);     
+   recompute = true;
+end
+
 %% Time steps for injection and migration
 Ti = 50 * year; 
 dTi = 2 * year; 
@@ -26,12 +39,13 @@ mstep = [mstep; Tm - sum(mstep)];
 
 legendtext = {'No residual (A=0)', 'Residual (A=0)', ...
               'No residual (A=2)', 'Residual (A=2)'};
-results = cell(4,1);
+
+k = 1;
 for n=1:2,
    %% Create model
    if n==1
       aquifer = makeAquiferModel_new('A', 0);
-      linetype = {'b-', 'r-'}; k = 1;
+      linetype = {'b-', 'r-'}; 
       xc = aquifer.Gt.cells.centroids(:, 1) / 1e3; 
       ff = 1;
    else
@@ -49,7 +63,7 @@ for n=1:2,
    Gt = aquifer.Gt;
    
    for residual = [false, true]
-      
+            
       %% Make fluid model
       surf_temp   = 12; % in Celsius
       temp_grad   = 30 / (kilo*meter); % thermal gradient
@@ -84,23 +98,25 @@ for n=1:2,
       schedule.step    = struct('control', [ones(size(istep)); 2 * ones(size(mstep))], ...
                                 'val', [istep; mstep]);
       
-      %% Run the schedule setup
-      t2 = tic; 
-      model = CO2VEBlackOilTypeModel(Gt, aquifer.rock2D, fluid); 
-      [wellSols, states] = simulateScheduleAD(state, model, schedule); 
-      t2 = toc(t2); 
-      xc = Gt.cells.centroids(:, 1)/1e3;
+      if recompute
+         %% Run the schedule setup
+         t2 = tic; 
+         model = CO2VEBlackOilTypeModel(Gt, aquifer.rock2D, fluid); 
+         [wellSols, states] = simulateScheduleAD(state, model, schedule); 
+         t2 = toc(t2); 
+         xc = Gt.cells.centroids(:, 1)/1e3;
+         results{k} = struct('states', {states}, 'ff', ff); 
+      end
       
       %% Plot results
-      state = states{end - 70}; 
+      state = results{k}.states{end - 70}; 
       sG = free_sg(state.s(:, 2), state.sGmax,... % @@ state.smax(:, 2) ??
            struct('res_gas', fluid.res_gas, 'res_water', fluid.res_water)); 
       hold on
       plot(xc, filter2(ff, sG .* Gt.columns.dz), linetype{k}, 'LineWidth', 2); 
       hold off
       drawnow;
-      
-      results{k} = struct('states', {states}, 'ff', ff); 
+
       k = k + 1; 
    end
    axis tight
@@ -142,9 +158,9 @@ x = xc(i);
 zt = Gt.cells.z(i); 
 zc = zt + z1(i); 
 h4 = axes('Position', get(h1, 'Position') * 0.3 + [0.6, 0.2, 0, 0]); 
-patch([x; x(end: - 1:1)], [zt; zt(end: - 1:1) + 50], myCOColor(5)); 
-patch([x; x(end: - 1:1)], [zt; zc(end: - 1:1)], myCOColor(2)); 
+patch([x; x(end:-1:1)], [zt; zt(end:-1:1) + 50], myCOColor(5)); 
+patch([x; x(end:-1:1)], [zt; zc(end:-1:1)], myCOColor(2)); 
 set(gca, 'YDir', 'reverse'); axis tight
 set(gca, 'YLim', min(zt) + [0 25]); 
-save('data / residualExample1Data', 'xc', 'results','control')
+save('data/residualExample1Data', 'xc', 'results','control')
 % print -depsc2 figs/ex1-fig2.eps;
