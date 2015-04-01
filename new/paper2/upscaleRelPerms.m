@@ -13,6 +13,8 @@ sat_mat=nan(N,n);
 t = cell(1,2); t{1}=zeros(N,n,4); t{2}=zeros(N,n,4);
 [kr,Kkr] = deal(t); clear t;
 
+hf = figure;
+
 for j=1:numel(theta_vec)
    theta=theta_vec(j);
    
@@ -86,7 +88,7 @@ for j=1:numel(theta_vec)
          'nltol',1.0e-6,'lstrials',10, 'maxnewt',20, 'tsref',1,'max_it',100,...
          'max_newton',200,'solve_pressure', true);
       
-      figure(1),clf
+      figure(hf); clf;
       plot(G.cells.centroids(:,1), G.cells.z,'b*',...
          G.cells.centroids(:,1), G.cells.z-state.s.*G.cells.H,'r*',...
          G.cells.centroids(:,1), G.cells.z-G.cells.H,'b*')
@@ -95,7 +97,7 @@ for j=1:numel(theta_vec)
       else
          sim_ok(i,j)=true;
       end
-      
+      drawnow;
       %% Single phase calculation to find phase fluxes
       kr_tmp = fluid.relperm(state.s,state);
       for kk=1:2;
@@ -136,7 +138,7 @@ for j=1:numel(theta_vec)
 end
 
 %% Plot final results
-figure(2),clf, hold on
+figure,clf, hold on
 plot(sat_mat*H,kr{1}(:,:,1),'*-')
 krCO2=kr{1};
 krW=kr{2};
