@@ -81,14 +81,14 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    
    %% Adding dissolution-related modifications
    if opt.dissolution
-      f.dis_rate = opt.dis_rate;
-      f.dis_max  = opt.dis_max;
-      f.rsSat    = @(pw, rs, flag, varargin) (pw*0+1) * f.dis_max;
+      fluid.dis_rate = opt.dis_rate;
+      fluid.dis_max  = opt.dis_max;
+      fluid.rsSat    = @(pw, rs, flag, varargin) (pw*0+1) * fluid.dis_max;
    end
             
    %% Adding other modifications
-   f.pvMultR = @(p) 1 + opt.pvMult_fac * (p - opt.pvMult_p_ref);
-   f.surface_tension = opt.surface_tension;
+   fluid.pvMultR = @(p) 1 + opt.pvMult_fac * (p - opt.pvMult_p_ref);
+   fluid.surface_tension = opt.surface_tension;
    
 end
 

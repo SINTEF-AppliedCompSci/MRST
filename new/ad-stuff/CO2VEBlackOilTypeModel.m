@@ -18,7 +18,8 @@ methods
       opt = {};
       opt = merge_options(opt, varargin{:});
    
-      model@ReservoirModel(Gt, rock2D, fluid);
+      model@ReservoirModel(Gt);
+      model.fluid   = fluid;
       model.water   = true;
       model.gas     = true;
       model.oil     = false;
@@ -37,6 +38,8 @@ methods
          % use basic model equations (no dissolution)
          model.equation = @equationsWGVEbasic;
       end
+      
+      model = model.setupOperators(Gt, rock2D);
       
       % This object and its equation does not support temporal variation
       % in temperatures, so if dependence is detected, throw an error
@@ -106,7 +109,13 @@ methods
       s  = model.operators;
       Gt = model.G;
       g  = norm(model.getGravityVector()); %@@ requires theta=0
-      gdz = s.Grad(Gt.cells.z);
+      gdz = g * s.Grad(Gt.cells.z);
+   end
+
+% --------------------------------------------------------------------%
+   function g = getGravityVector(model)
+       % Get the gravity vector used to instantiate the model
+       g = model.gravity;
    end
 end
 end   

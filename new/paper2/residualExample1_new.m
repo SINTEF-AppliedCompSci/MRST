@@ -54,34 +54,31 @@ for n=1:2,
       surf_temp   = 12; % in Celsius
       temp_grad   = 30 / (kilo*meter); % thermal gradient
       temperature = aquifer.Gt.cells.z * temp_grad + (274 + surf_temp);
-      p_range     = [1,  100] * mega * Pascal;
+      p_range     = [1,  150] * mega * Pascal;
       t_range     = [12, 150] + 274;
       res_vals    = [.11, .21] * residual;
       cw          = 4.3e-5 / barsa; % linear water compressibility
-      % fluid = makeVEFluid(Gt, aquifer.rock2D, 'sharp interface' , ...
-      %                     'fixedT'      , temperature           , ...
-      %                     'co2_rho_pvt' , [p_range, t_range]    , ...
-      %                     'wat_rho_pvt' , [cw, 100 * barsa]     , ...
-      %                     'residual'    , res_vals);
+
       fluid = makeVEFluid(Gt, aquifer.rock2D, 'sharp interface' , ...
                           'fixedT'      , temperature           , ...
-                          'co2_rho_pvt' , [], ...
-                          'wat_rho_pvt' , [], ...
+                          'co2_rho_pvt' , [p_range, t_range]    , ...
+                          'wat_rho_pvt' , [cw, 100 * barsa]     , ...
                           'residual'    , res_vals);
-      
+
       %% Create well schedule and initial state object
       z  = G.cells.centroids(:,3);
       % Setting up wells (separate versions for injection and migration phase)
       Winj = aquifer.W;
-      Winj(2).val = fluid.rhoWS * Gt.cells.z(W(2).cells)*norm(gravity);
+      Winj(2).val = fluid.rhoWS * Gt.cells.z(Winj(2).cells)*norm(gravity);
       Wmig = Winj;
       Wmig(1).val = 0;
 
       % Initializing initial state object
-      state.pressure = W(2).val +(z(:)-z(W(2).cells))*norm(gravity)*fluid.rhoWS;
+      clear state;
+      state.pressure = Winj(2).val +(z(:)-z(Winj(2).cells))*norm(gravity)*fluid.rhoWS;
       state.s = [ones(G.cells.num, 1), zeros(G.cells.num,1)];
       state.sGmax = state.s(:,2);
-      
+
       % Defining schedule
       schedule.control = [struct('W', Winj), struct('W', Wmig)];
       schedule.step    = struct('control', [ones(size(istep)); 2 * ones(size(mstep))], ...
@@ -96,7 +93,7 @@ for n=1:2,
       
       %% Plot results
       state = states{end - 70}; 
-      sG = free_sg(state.s(:, 2), state.smax(:, 2),...
+      sG = free_sg(state.s(:, 2), state.sGmax,... % @@ state.smax(:, 2) ??
            struct('res_gas', fluid.res_gas, 'res_water', fluid.res_water)); 
       hold on
       plot(xc, filter2(ff, sG .* Gt.columns.dz), linetype{k}, 'LineWidth', 2); 
@@ -110,8 +107,6 @@ for n=1:2,
    set(gca, 'YDir', 'reverse', 'FontSize', 16); 
    legend(legendtext{:}, 4);
 end
-%print -depsc2 figs/ex1-fig1b.eps;
-%save('ex1D-1','results','xc');
 
 %% Plot solution in physical space
 % To this end, we will use the second last case with no residual
@@ -123,7 +118,7 @@ p = get(gcf, 'Position'); set(gcf, 'Position', [p(1:2) 900 300]);
 % Main plot
 state = results{3}.states{end - 70}; 
 ff = results{3}.ff; 
-sG = free_sg(state.s(:, 2), state.smax(:, 2), struct('res_gas', 0, 'res_water', 0)); 
+sG = free_sg(state.s(:, 2), state.sGmax, struct('res_gas', 0, 'res_water', 0)); 
 z1 = sG .* Gt.columns.dz; 
 z2 = filter2(ff, z1); 
 hold on

@@ -25,7 +25,7 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
    
    % Compute pressure gradient, also taking into account the apparent gravity
    % component resulting from nonflat caprock geometry.
-   dpX  = s.Grad(pX) + rhoXf .* gdz; % @@ minus or plus? (new operators!)
+   dpX  = s.Grad(pX) - rhoXf .* gdz; % @@ minus or plus? (new operators!)
    
    % Identifying upstream side
    upc = double(dpX) <= 0;
