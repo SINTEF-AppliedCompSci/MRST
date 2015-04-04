@@ -8,6 +8,7 @@
 % give a retardation effect on the plume. Finally, we show one of the
 % solutions in more detail in physical space.
 
+clear all;
 moduleCheck('co2lab', 'ad-fi', 'ad-core')
 gravity reset on
 
@@ -59,23 +60,40 @@ figure; hold on
 k = 1;
 linetype = {'k-', 'b-','r-','g-'};
 surf_topos = {'smooth', 'inf_rough', 'square', 'sinus'}; 
-res_vals   = [.11, .21] * residual;
+res_vals   = [.11, .21];
 
 for i = 1:numel(surf_topos)
       
    %% Make fluid model
+   surf_temp   = 12; % in Celsius
+   temp_grad   = 30 / (kilo*meter); % thermal gradient
+   p_range     = [1,  150] * mega * Pascal;
+   t_range     = [12, 150] + 274;
+   cw          = 4.3e-5 / barsa; % linear water compressibility
+
    if strcmp(surf_topos{i},'smooth')
       aquifer = fAquifer;
-      fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface',  ...
-                          'residual', res_vals);
+      temperature = aquifer.Gt.cells.z * temp_grad + (274 + surf_temp);
+
+      fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface' , ...
+                          'fixedT'      , temperature           , ...
+                          'co2_rho_pvt' , [p_range, t_range]    , ...
+                          'wat_rho_pvt' , [cw, 100 * barsa]     , ...
+                          'residual'    , res_vals);
    else
       aquifer = upAquifer;
-      fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface', ...
-                          'residual', res_vals, ...
-                          'top_trap', hts , ...
-                          'surf_topo', surf_topos{i});
+      temperature = aquifer.Gt.cells.z * temp_grad + (274 + surf_temp);
+
+      fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface' , ...
+                          'fixedT'      , temperature           , ...
+                          'co2_rho_pvt' , [p_range, t_range]    , ...
+                          'wat_rho_pvt' , [cw, 100 * barsa]     , ...
+                          'residual'    , res_vals              , ...
+                          'top_trap'    , hts                   , ...
+                          'surf_topo'   , surf_topos{i});
    end
    Gt = aquifer.Gt;
+   G = aquifer.G;
 
    %% Create well schedule and initial state object
    z  = G.cells.centroids(:,3);
@@ -123,7 +141,7 @@ set(gca, 'YDir', 'reverse', 'FontSize', 12);
 h = legend(legendtext{:}, 4); set(h, 'FontSize', 14); 
 set(gcf, 'Position', [680 580 800 420]); 
 if recompute
-   save(savefilename, 'xc', 'results', 'control')
+   save(savefilename, 'xc', 'results')
 end
 
 % this data can be plotted later with showUpscalingExample1.m

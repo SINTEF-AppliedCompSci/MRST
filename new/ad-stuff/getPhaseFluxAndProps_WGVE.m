@@ -1,5 +1,5 @@
 function [vX, bX, mobX, rhoX, upc, dpX] = ...
-   getPhaseFluxAndProps_WGVE(model, pW, pG, krX, T, gdz, phase)
+   getPhaseFluxAndProps_WGVE(model, pW, pG, krX, T, gdz, phase, rs)
    
    fluid = model.fluid;
    s     = model.operators;
@@ -13,7 +13,7 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
        pX   = pG;
      case 'W'
        bX   = fluid.bW(pW);
-       rhoX = bX .* fluid.rhoWS;
+       rhoX = bX .* (fluid.rhoWS + rs * fluid.rhoGS);
        mobX = krX ./ fluid.muW(pW);
        pX   = pW;
      otherwise
@@ -25,7 +25,7 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
    
    % Compute pressure gradient, also taking into account the apparent gravity
    % component resulting from nonflat caprock geometry.
-   dpX  = s.Grad(pX) - rhoXf .* gdz; % @@ minus or plus? (new operators!)
+   dpX  = s.Grad(pX) - rhoXf .* gdz; 
    
    % Identifying upstream side
    upc = double(dpX) <= 0;

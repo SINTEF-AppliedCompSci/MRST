@@ -15,10 +15,10 @@ methods
    %% Constructor
    function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
    
-      opt = {};
-      opt = merge_options(opt, varargin{:});
+      opt = struct();
+      [opt, unparsed] = merge_options(opt, varargin{:});
    
-      model@ReservoirModel(Gt);
+      model@ReservoirModel(Gt, varargin{:});
       model.fluid   = fluid;
       model.water   = true;
       model.gas     = true;
@@ -79,10 +79,34 @@ methods
         case {'sgmax'}
           index = 1;
           fn = 'sGmax';
+        case {'rs'}
+          index = 1;
+          fn = 'rs';
         otherwise
           [fn, index] = getVariableField@ReservoirModel(model, name);
       end
    end
+
+% ----------------------------------------------------------------------------
+function [state, report] = updateState(model, state, problem, dx, drivingForces)
+
+   [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
+                                                drivingForces);
+   
+   if isfield(model.fluid, 'dis_rate')
+      % The model includes dissolution
+      if model.fluid.dis_rate > 0
+         % rate-driven dissolution
+         error('unimplemented');
+      else
+         % instantaneous dissolution
+         diff=1e-3; % @@ magic constant - necessary for convergence in some cases
+         state.rs = min(state.rs, model.fluid.rsSat(state.pressure) + diff);
+      end
+   end
+end
+
+
    
 % ------------------------------------------------------------------------
    
@@ -95,12 +119,15 @@ methods
       % computation, but it may still be useful information for
       % interpretation, and to simplify program logic we compute it at all
       % times.
-      
+      report = []; % not used
+      if isfield(model.fluid, 'dis_rate')
+         return; % sGmax already updated along with other ADI variables
+      end
+         
       sGmax0 = model.getProp(state0, 'sGmax');
       sG     = model.getProp(state, 'sg');
       
       state = model.setProp(state, 'sGmax', max(sG, sGmax0));
-      report = [];
    end
 
 % ----------------------------------------------------------------------------

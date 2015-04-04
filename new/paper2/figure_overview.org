@@ -1,0 +1,40 @@
+* DONE Figure 1: Illustration of injection and trapping
+- inkScape figure
+* DONE Figure 2:
+** DONE Main: Schematic of vertical section of aquifer
+- tikz-figure
+** DONE Inlet: Inventory
+- tikz-figure
+* DONE Figure 3: Schematic of fluid distribution
+- tikz-figure
+* DONE Figure 4:
+** DONE Left: Geometry of example 1
+- showAquiferModel
+** DONE Right: Density of CO2 given hydrostatic pressure
+- showDensityVariation
+* DONE Figure 5: Thickness of CO2 plume by sharp-interface models
+- residualExample1_new
+* DONE Figure 6: Sharp-interface simulation
+- residualExample1_new
+* DONE Figure 7: Injection into Plioscenesand aquifer
+- firstPlioExample
+* DONE Figure 8: Plioscenesand - detailed inventory
+- firstPlioExample
+* DONE Figure 9: Upscaling of small-scale caprock undulations
+- tikz-figures
+* DONE Figure 10: Estimation of the parameter characterizing sub-scale undulations
+- showUpscaledRelPerms
+* DONE Figure 11: Upscaling of sub-scale caprock topographies
+** DONE Left:  Fine-scale solution
+- upscalingExample1_new  
+** DONE Right: Corresponding relative permeabilities
+- upscaleRelPerms
+- showUpscaledRelPerms
+* Figure 12: Evolution of CO2 distribution, dissolution
+* Figure 13: CO2 distribution in global coordinates
+* Figure 14: 900 years after injection
+- dissolutionExample1
+* DONE Figure 15: Conceptual fluid distribution
+- tikz figure
+* Figure 16: Modeling of effects of dissolution, Pliocenesand
+- secondPlioExample

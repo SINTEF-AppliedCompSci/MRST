@@ -8,7 +8,8 @@
 % give a retardation effect on the plume. Finally, we show one of the
 % solutions in more detail in physical space.
 
-moduleCheck('co2lab', 'ad-fi');
+clear all;
+moduleCheck('co2lab', 'ad-fi', 'ad-core');
 gravity reset on
 
 %% Check whether to recompute, or re-use old result
@@ -98,8 +99,8 @@ for n=1:2,
       schedule.step    = struct('control', [ones(size(istep)); 2 * ones(size(mstep))], ...
                                 'val', [istep; mstep]);
       
+      %% Run the schedule setup, if requested
       if recompute
-         %% Run the schedule setup
          t2 = tic; 
          model = CO2VEBlackOilTypeModel(Gt, aquifer.rock2D, fluid); 
          [wellSols, states] = simulateScheduleAD(state, model, schedule); 
@@ -162,5 +163,7 @@ patch([x; x(end:-1:1)], [zt; zt(end:-1:1) + 50], myCOColor(5));
 patch([x; x(end:-1:1)], [zt; zc(end:-1:1)], myCOColor(2)); 
 set(gca, 'YDir', 'reverse'); axis tight
 set(gca, 'YLim', min(zt) + [0 25]); 
-save('data/residualExample1Data', 'xc', 'results','control')
+if recompute
+   save(savefilename, 'xc', 'results')
+end
 % print -depsc2 figs/ex1-fig2.eps;
