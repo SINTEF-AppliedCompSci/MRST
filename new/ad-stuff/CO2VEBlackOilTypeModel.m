@@ -97,7 +97,7 @@ function [state, report] = updateState(model, state, problem, dx, drivingForces)
       % The model includes dissolution
       if model.fluid.dis_rate > 0
          % rate-driven dissolution
-         error('unimplemented');
+         % (nothing particular done here for the time being)
       else
          % instantaneous dissolution
          diff=1e-3; % @@ magic constant - necessary for convergence in some cases
