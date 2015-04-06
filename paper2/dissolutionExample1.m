@@ -38,7 +38,7 @@ results = {};%cell(4,1);
 
 depth=1300;
 % left and right panel of figure 15
-for residual= [false,true] %residual saturation or not
+for residual= true%@@[false,true] %residual saturation or not
     figure(),clf,
     k=1;
     for n=1:2, % flat or non flat topsurface
@@ -62,7 +62,7 @@ for residual= [false,true] %residual saturation or not
         
         
         %% Make fluid model
-        for dissolution=[false,true]
+        for dissolution=true%@@[false,true]
         %for dissolution=[true]    
             
             fluid = makeFluidModel(aquifer, 'residual', residual, ...

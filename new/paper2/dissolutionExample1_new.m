@@ -12,7 +12,7 @@
 % The data from the simulations are also stored and can be inspected the
 % figures can be generate by showDissolutionExample1.m
 
-%clear all; @@@
+clear all;
 moduleCheck('co2lab', 'ad-fi', 'ad-core');
 
 gravity reset on
@@ -52,7 +52,7 @@ legendtext = {'No dissolution (A=0)' , ...
 
 linetype = {'b--', 'r--', 'b-', 'r-'};
 
-for residual= [false,true] %residual saturation or not
+for residual= true; %@@[false,true] %residual saturation or not
     figure(),clf;
     k = 1;
     for n=1:2, % flat or non flat topsurface
@@ -82,7 +82,7 @@ for residual= [false,true] %residual saturation or not
         cw          = 4.3e-5 / barsa; % linear water compressibility
         temperature = Gt.cells.z * temp_grad + (274 + surf_temp);
         
-        for dissolution = true; % @@ dissolution=[false,true]
+        for dissolution = true%@@[false,true]
 
            fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface' , ...
                                'fixedT'      , temperature        , ...
@@ -121,19 +121,20 @@ for residual= [false,true] %residual saturation or not
 
            %% Run the schedule setup, if requested
            if recompute
-              % schedule.step.control = schedule.step.control(46:end);
-              % schedule.step.val = schedule.step.val(46:end);
-              % load debugstate; state = debugstate;% @@
               t2 = tic; 
               model = CO2VEBlackOilTypeModel(Gt, aquifer.rock2D, fluid, ...
                                              'minimumPressure', p_range(1), ...
                                              'maximumPressure', p_range(2)); 
+              
+              % load('debugstate');
+              % state = debugstate;
+              % schedule.step.control = schedule.step.control(41:end);
+              % schedule.step.val     = schedule.step.val(41:end);
+              
               [wellSols, states] = simulateScheduleAD(state, model, schedule); 
               t2 = toc(t2); 
               xc = Gt.cells.centroids(:, 1)/1e3;
               results{k} = struct('states', {states}, 'ff', ff); 
-              % save states; % @@
-              % return; % @@
            end
 
            %% Plot results

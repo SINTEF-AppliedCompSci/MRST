@@ -97,10 +97,21 @@ function [state, report] = updateState(model, state, problem, dx, drivingForces)
       % The model includes dissolution
       if model.fluid.dis_rate > 0
          % rate-driven dissolution
-         % (nothing particular done here for the time being)
+         
+         f           = model.fluid;
+         sg          = state.s(:,2);
+         sg          = min(1, max(0,sg));
+         state.s     = [1-sg, sg];    
+         state.sGmax = min(1,state.sGmax);
+         state.sGmax = max(0,state.sGmax);
+         state.sGmax = max(state.sGmax,sg);
+         min_rs      = minRs(state.pressure,state.s(:,2),state.sGmax,f,model.G);
+         min_rs      = min_rs./state.s(:,1);
+         state.rs    = max(min_rs,state.rs);
+         state.rs    = min(state.rs,f.rsSat(state.pressure));         
       else
          % instantaneous dissolution
-         diff=1e-3; % @@ magic constant - necessary for convergence in some cases
+         diff = 1e-3; % @@ magic constant - necessary for convergence in some cases
          state.rs = min(state.rs, model.fluid.rsSat(state.pressure) + diff);
       end
    end
