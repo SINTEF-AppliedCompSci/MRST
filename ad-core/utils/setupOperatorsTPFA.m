@@ -47,17 +47,7 @@ end
 
 if isempty(T)
    % half-trans -> trans and reduce to interior
-   m = [];
-   if ~isempty(opt.deck)
-      m = computeTranMult(G, opt.deck.GRID);
-   end
-   if isempty(m)
-      m = 1;
-   end
-   T = m.*computeTrans(G, rock);
-   cf = G.cells.faces(:,1);
-   nf = G.faces.num;
-   T  = 1 ./ accumarray(cf, 1./T, [nf, 1]);
+   T = getFaceTransmissibility(G, rock, opt.deck);
    s.T_all = T;
    T = T(intInx);
 else

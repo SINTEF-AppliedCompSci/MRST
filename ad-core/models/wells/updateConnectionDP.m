@@ -22,7 +22,7 @@ numPh = size(b,2);
 %     model = getModel(size(b,2), size(r,2));
 % end
 % actPh = getActivePhases(model);
-[isActive, actPh] = model.getActivePhases();
+%[isActive, actPh] = model.getActivePhases();
 
 
 for k = 1:numel(sol);
@@ -49,7 +49,7 @@ for k = 1:numel(sol);
     % if flux is zero - just use compi
     zi = wbqst == 0;
     if any( zi )
-        wbqs(zi,:)  = ones(nnz(zi),1)*w.compi(actPh);
+        wbqs(zi,:)  = ones(nnz(zi),1)*w.compi;
         wbqst(zi,:) = sum(wbqs(zi,:), 2);
     end
     % Compute mixture at std conds:

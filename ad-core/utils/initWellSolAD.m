@@ -64,7 +64,7 @@ for k = 1:nw
        ws(k).qWPoly = W(k).poly*ws(k).qWs;
     end
     
-    ws(k).mixs = W(k).compi(actPh);
+    ws(k).mixs = W(k).compi;
     ws(k).qs   = W(k).sign*ones(1, nPh)*irate;
     ws(k).cdp  = zeros(nConn,1);
     ws(k).cqs  = zeros(nConn,nPh);
@@ -91,10 +91,12 @@ for k = 1:numel(W)
                 ws(k).qWs = v*W(k).compi(1);
             end
             if model.oil
-                ws(k).qOs = v*W(k).compi(2);
+                ix = 1 + model.water;
+                ws(k).qOs = v*W(k).compi(ix);
             end
             if model.gas
-                ws(k).qGs = v*W(k).compi(3);
+                ix = 1 + model.water + model.oil;
+                ws(k).qGs = v*W(k).compi(ix);
             end
             if isprop(model, 'polymer') && model.polymer
                 ws(k).qWPoly = W(k).poly*ws(k).qWs;

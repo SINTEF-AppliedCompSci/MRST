@@ -43,13 +43,19 @@ function model = getSequentialModelFromFI(fimodel, varargin)
                                                     'oil',     fimodel.oil, ...
                                                     'water',   fimodel.water, ...
                                                     'polymer', fimodel.polymer);
+            pressureModel.operators = fimodel.operators;
+            transportModel.operators = fimodel.operators;
             model = SequentialPressureTransportModelPolymer(...
                 pressureModel, transportModel, varargin{:});
         otherwise
             error('mrst:getSequentialModelFromFI', ...
             ['Sequential model not implemented for ''' class(fimodel), '''']);
     end
+    
     if isempty(model)
+        pressureModel.operators = fimodel.operators;
+        transportModel.operators = fimodel.operators;
         model = SequentialPressureTransportModel(pressureModel, transportModel, varargin{:});
     end
+    
 end

@@ -103,7 +103,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            % Extract the results from a vector into a cell array with one
            % entry per primary variable in the linearized problem.
            
-           numVars = cellfun(@numval, problem.equations)';
+           % Find first index corresponding to ADI equation
+           ix = find(cellfun(@(x) isa(x, 'ADI'), problem.equations), 1);
+           % Calculate positions in newton increment
+           numVars = cellfun(@(x) size(x, 2), problem.equations{ix}.jac)';
            cumVars = cumsum(numVars);
            ii = [[1;cumVars(1:end-1)+1], cumVars];
            
