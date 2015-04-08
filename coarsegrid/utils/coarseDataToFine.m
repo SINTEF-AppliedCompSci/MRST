@@ -1,5 +1,8 @@
 function data = coarseDataToFine(CG, data)
 % Convert coarse grid dataset into fine grid representation
+    if isempty(data)
+        return
+    end
     if isnumeric(data);
         data = getData(CG, data);
         return
