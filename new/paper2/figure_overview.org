@@ -30,11 +30,21 @@
 ** DONE Right: Corresponding relative permeabilities
 - upscaleRelPerms
 - showUpscaledRelPerms
-* Figure 12: Evolution of CO2 distribution, dissolution
-* Figure 13: CO2 distribution in global coordinates
-* Figure 14: 900 years after injection
-- dissolutionExample1
+* STARTED Figure 12: Evolution of CO2 distribution, dissolution
+- dissolutionExample1_new
+- showDissolutionExample1Panel
+* STARTED Figure 13: CO2 distribution in global coordinates
+- dissolutionExample1_new
+- showDissolutionExample1Detail
+* STARTED Figure 14: 900 years after injection
+- dissolutionExample1_new
+- showDissolutionExample1
 * DONE Figure 15: Conceptual fluid distribution
 - tikz figure
 * Figure 16: Modeling of effects of dissolution, Pliocenesand
 - secondPlioExample
+
+
+* Other:
+- the script 'dissolutionTopSurfaceExample1' doesn't seem to converge properly, and isn't used for any of the illustrations as far as I can see, so it is left out from the final compilation.
+- 
