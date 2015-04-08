@@ -230,7 +230,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     % Model did not converge, we are in some kind of
                     % trouble.
 
-                    state = state0_inner;
+                    if acceptCount == 0
+                        % We are still at the beginning, and we must honor
+                        % the initial guess for current state
+                        state = opt.initialGuess;
+                    else
+                        % Otherwise we reset the initial guess to the
+                        % previous step, as we are between ministeps.
+                        state = state0_inner;
+                    end
                     % Beat timestep with a hammer
                     warning('Solver did not converge, cutting timestep')
                     cuttingCount = cuttingCount + 1;
