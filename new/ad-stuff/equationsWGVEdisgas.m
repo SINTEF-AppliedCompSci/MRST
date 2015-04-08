@@ -22,7 +22,7 @@ function [problem, state] = equationsWGVEdisgas(model, state0, state, dt, drivin
    rsSat  = f.rsSat(p);
    s_tol  = 0; %(f.dis_rate == 0) * sqrt(eps); % small nonzero if instantaneous dissolution model
    isSat  = (sG > s_tol) | (rs > rsSat);
-   isSat0 = (sG0 > s_tol);
+   %isSat0 = (sG0 > s_tol);
          
    %% Initialization of independent variables
    
@@ -78,7 +78,7 @@ function [problem, state] = equationsWGVEdisgas(model, state0, state, dt, drivin
    rsbWvW = s.faceUpstr(upcw, rs) .* bWvW;
    
    %% Setting up brine and CO2 equations 
-   
+      
    % Water (Brine) conservation
    eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.Div(bWvW);
    
@@ -147,11 +147,10 @@ function [problem, state] = equationsWGVEdisgas(model, state0, state, dt, drivin
       eqs{i} = eqs{i} * dt / year;
    end
    
-   
    %% Setting up problem
    primaryVars = {'pressure' , 'sG'   , 'sGmax' , 'rs'    , 'qWs'      , 'qGs'          , 'bhp'       };
    types = {'cell'           , 'cell' , 'cell'  , 'cell'  , 'perf'     , 'well'         , 'perf'      };
-   names = {'water'          , 'gas'  , 'sGmax' , 'dissol', 'gasWells' , 'closureWells' , 'waterWells'};
+   names = {'water'          , 'gas'  , 'dissol' , 'sGmax', 'gasWells' , 'closureWells' , 'waterWells'};
    if isempty(W)
       % Remove names/types associated with wells, as no well exist
       types = types(1:4);
@@ -184,11 +183,14 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                              % by CO2/brine interface area
                                              % in cell
 
+      meps=eps*1000;
+      rate = rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
+      
       % Add a tad of smoothing around the state where dissolution ceases
       a = 200; 
       tanhyp = @(x) ((exp(a * x) - exp( - a * x)) ./ (exp(a * x) + exp( - a * x))); 
       s_fac = tanhyp(sG); % approximately one, but goes to 0 for very small values of sG
-      rs_eps = (rsSat - rs) ./ f.rsSat(p); 
+      rs_eps = (rsSat - rs) ./ rsSat; 
       rs_fac = tanhyp(rs_eps); 
       rate = rate .* s_fac .* rs_fac; % smoothly turn down dissolution rate when
                                       % sG goes to 0, or when dissolved value
@@ -215,7 +217,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
       
       % Computing minimum allowed residual saturation per cell (the upper region where
       % both CO2 and brine phase is present should have saturated brine)
-      min_rs = minRs(p,sG, sGmax, f, Gt);
+      min_rs = minRs(p, sG, sGmax, f, Gt);
       
       % Computing a hypothetic equation involving only minimum allowed
       % saturation.  We use this equation to identify where the real solution
@@ -252,38 +254,25 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
       % than sG, since any residual saturation is not fully eaten away by
       % dissolution (either due to rate being too slow, or due to saturation
       % of CO2 in brine being reached).
-      tmp = (s.pv / dt) .*...
-            (pvMult .* bG .* sGmax - pvMult .* f.bG(p) .* sGmax0) *...
-            f.res_gas ./ (1 - f.res_water) + rate; 
-      tmp2 = (s.pv / dt) .*...
-             (pvMult .* double(bG) .* double(sG) - pvMult .* f.bG(p) .* sGmax0) *...
+      tmp = (s.pv / dt) .* ...
+            pvMult .* bG .* (sGmax - sGmax0) * ...
+            f.res_gas ./ (1-f.res_water);
+      tmp2 = (s.pv / dt) .* ...
+             pvMult .* double(bG) .* (double(sG) - sGmax0) * ...
              f.res_gas ./ (1 - f.res_water) + rate;
-      % tmp = (s.pv / dt) .*...
-      %       (pvMult .* bG .* sGmax - pvMult .* f.bG(p0) .* sGmax0) *...
-      %       f.res_gas ./ (1 - f.res_water) + rate; 
-      % tmp2 = (s.pv / dt) .*...
-      %        (pvMult .* double(bG) .* double(sG) - pvMult .* f.bG(p0) .* sGmax0) *...
-      %        f.res_gas ./ (1 - f.res_water) + rate;
       
       % Special case 1: New state remains UNSATURATED, but dissolution too slow to
       % deplete all residual saturation
-      ix = (tmp2 < 0) & ~is_sat;
+      ix = (tmp2 < 0) & ~is_sat ;
       if any(ix)
-         eqs{2}(ix) = tmp(ix);
+         eqs{2}(ix) = tmp(ix) + rate(ix);
       end
       
       % Special case 2: New state reaches SATURATED value before all residual
       % saturation has been depleted
       ix = is_sat & (sGmax < sGmax0) & (sGmax > sG);
       if any(ix)
-         tmp = (s.pv/dt).*...
-               (pvMult.*bG.*sGmax- pvMult.*f.bG(p).*sGmax0)*f.res_gas./(1- ...
-                                                           f.res_water)+(rs-rs0);
-         eqs{2}(ix) = tmp(ix);
-         %         eqs{7}(ix)= tmp(ix);
-         
-         % eqs{2}(ix) = tmp(ix) - rate(ix) + (rs(ix) - rs0(ix));
+         eqs{2}(ix) = tmp(ix) + (rs(ix) - rs0(ix));
       end
    end
-   
 end

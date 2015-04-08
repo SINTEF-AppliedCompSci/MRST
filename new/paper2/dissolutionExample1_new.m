@@ -16,7 +16,7 @@ clear all;
 moduleCheck('co2lab', 'ad-fi', 'ad-core');
 
 gravity reset on
-do_print = true; mkdir('figs')
+
 depth = 1300;
 
 %% Check whether to recompute or re-use old result
@@ -52,7 +52,7 @@ legendtext = {'No dissolution (A=0)' , ...
 
 linetype = {'b--', 'r--', 'b-', 'r-'};
 
-for residual= true; %@@[false,true] %residual saturation or not
+for residual = [false,true] %residual saturation or not
     figure(),clf;
     k = 1;
     for n=1:2, % flat or non flat topsurface
@@ -82,21 +82,20 @@ for residual= true; %@@[false,true] %residual saturation or not
         cw          = 4.3e-5 / barsa; % linear water compressibility
         temperature = Gt.cells.z * temp_grad + (274 + surf_temp);
         
-        for dissolution = true%@@[false,true]
+        for dissolution = [false,true]
 
-           fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface' , ...
-                               'fixedT'      , temperature        , ...
-                               'co2_rho_pvt' , [p_range, t_range] , ...
-                               'wat_rho_pvt' , [cw, 100 * barsa]  , ...
-                               'dissolution' , dissolution        , ...
-                               'residual'    , res_vals);
-           %'dis_rate'    , 0, ... % @@@@
+           % fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface' , ...
+           %                     'fixedT'      , temperature        , ...
+           %                     'co2_rho_pvt' , [p_range, t_range] , ...
+           %                     'wat_rho_pvt' , [cw, 100 * barsa]  , ...
+           %                     'dissolution' , dissolution        , ...
+           %                     'residual'    , res_vals);
+           % %'dis_rate'    , 0, ... % @@@@
             
            % p_range(2) = 100000000 * 0.99;
-           % fluid = makeFluidModel(aquifer, 'residual', residual, ...
-           %                        'dissolution', dissolution, 'fluidType', 'sharp interface');
-           % fluid.dis_rate = 0;
-           
+           fluid = makeFluidModel(aquifer, 'residual', residual, ...
+                                  'dissolution', dissolution, 'fluidType', 'sharp interface');
+
            %% Create well schedule and initial state object
            
            z  = G.cells.centroids(:,3);
@@ -126,12 +125,8 @@ for residual= true; %@@[false,true] %residual saturation or not
                                              'minimumPressure', p_range(1), ...
                                              'maximumPressure', p_range(2)); 
               
-              % load('debugstate');
-              % state = debugstate;
-              % schedule.step.control = schedule.step.control(41:end);
-              % schedule.step.val     = schedule.step.val(41:end);
-              
-              [wellSols, states] = simulateScheduleAD(state, model, schedule); 
+              [wellSols, states] = simulateScheduleAD(state, model, schedule);
+                                                      
               t2 = toc(t2); 
               xc = Gt.cells.centroids(:, 1)/1e3;
               results{k} = struct('states', {states}, 'ff', ff); 
@@ -146,19 +141,12 @@ for residual= true; %@@[false,true] %residual saturation or not
            hold off
            drawnow; 
            
-           k = k +1;
+           k = k + 1;
         end
     end
     axis tight
     set(gca,'YDir','reverse','FontSize',16);
     legend(legendtext{:}, 4);
-    if(do_print)
-        if(~residual)
-            print -depsc2 figs/ex1-fig3a.eps;
-        else
-            print -depsc2 figs/ex1-fig3b.eps;
-        end
-    end
 end
 
 if recompute
