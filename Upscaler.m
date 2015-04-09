@@ -7,24 +7,33 @@ properties
     rock
     fluid
     periodic
+    partition
+    blocks
 end
 
 methods
     
-    function upscaler = Upscaler(G, rock, fluid, varargin)
-        upscaler.verbose  = mrstVerbose();
-        upscaler.periodic = false;
+    function upscaler = Upscaler(G, rock, varargin)
+        upscaler.verbose   = mrstVerbose();
+        upscaler.periodic  = false;
+        upscaler.fluid     = [];
+        upscaler.partition = [];
+        upscaler.blocks    = [];
         upscaler = merge_options(upscaler, varargin{:});
         
         upscaler.G     = G;
         upscaler.rock  = rock;
-        upscaler.fluid = fluid;
     end
     
-    function [data, report] = upscale(upscaler, partition)
+    function [data, report] = upscale(upscaler)
         
-        nblocks = max(partition);
-        assert(numel(partition)==upscaler.G.cells.num, ...
+        p  = upscaler.partition;
+        bl = upscaler.blocks;
+        if isempty(bl)
+            bl = unique(p);
+        end
+        nblocks = numel(bl);
+        assert(numel(p)==upscaler.G.cells.num, ...
             'Invalid partition');
         
         report = [];
@@ -33,10 +42,10 @@ methods
             report.time = nan(nblocks,1);
         end
         
-        %data = struct([]);
-        
         % Loop over blocks and perform upscaling on each block
-        for b=1:nblocks
+        for i = 1:nblocks
+            
+            b = bl(i); % Current block
             
             if upscaler.verbose
                 fprintf('Block number %d of %d\n', b, nblocks);
@@ -47,45 +56,44 @@ methods
             end
             
             % Create grid, rock and fluid for sub block
-            cells = find(partition==b);
-            [BG, BRock, BFluid] = createBlock(upscaler, cells);
+            cells = find(p==b);
+            block = createBlock(upscaler, cells);
             
             % Perform upscaling
-            data(b) = upscaler.upscaleBlock(BG, BRock, BFluid); %#ok<AGROW>
+            data(i) = upscaler.upscaleBlock(block); %#ok<AGROW>
             
             if wantReport
-                report.time(b) = toc(t);
+                report.time(i) = toc(t);
             end
         end
         
     end
     
-    function [BG, BRock, BFluid] = createBlock(upscaler, cells)
+    function block = createBlock(upscaler, cells)
         % Create grid, rock and fluid for the sub block represented by the
         % given cells.
         
         % Create block grid
-        BG = extractSubgrid(upscaler.G, cells);
-        %BG.cartDims = subGriddim(cells);
-        %BG.cells.indexMap = (1 : BG.cells.num)';
-        
-        % Create periodic grid
-        if upscaler.periodic
-            error('Periodic grid not implemented')
-        end
+        b = extractSubgrid(upscaler.G, cells);
         
         % Create block rock
-        BRock.perm = upscaler.rock.perm(cells, :);
-        BRock.poro = upscaler.rock.poro(cells, :);
+        r.perm = upscaler.rock.perm(cells, :);
+        r.poro = upscaler.rock.poro(cells, :);
         if isfield(upscaler.rock, 'cr')
-            BRock.cr = upscaler.rock.cr;
+            r.cr = upscaler.rock.cr;
         end
         
         % Create block fluid
-        BFluid = createBlockFluid(upscaler.fluid, cells);
+        f = [];
+        if ~isempty(upscaler.fluid)
+            f = createBlockFluid(upscaler.fluid, cells);
+        end
+        
+        % Create block object
+        block = GridBlock(b, r, 'fluid', f);
     end
     
-    function data = upscaleBlock(upscaler, BG, BRock, BFluid)
+    function data = upscaleBlock(upscaler, block)
         error('Method needs to be overridden');
     end
     
