@@ -9,6 +9,7 @@ properties
     periodic
     partition
     blocks
+    cellinx % fluid property
 end
 
 methods
@@ -19,13 +20,16 @@ methods
         upscaler.fluid     = [];
         upscaler.partition = [];
         upscaler.blocks    = [];
+        upscaler.cellinx   = false;
         upscaler = merge_options(upscaler, varargin{:});
         
         upscaler.G     = G;
         upscaler.rock  = rock;
     end
     
-    function [data, report] = upscale(upscaler)
+    function data = upscale(upscaler)
+        
+        startTime = tic;
         
         p  = upscaler.partition;
         bl = upscaler.blocks;
@@ -36,12 +40,6 @@ methods
         assert(numel(p)==upscaler.G.cells.num, ...
             'Invalid partition');
         
-        report = [];
-        wantReport = nargout>1;
-        if wantReport
-            report.time = nan(nblocks,1);
-        end
-        
         % Loop over blocks and perform upscaling on each block
         for i = 1:nblocks
             
@@ -51,20 +49,28 @@ methods
                 fprintf('Block number %d of %d\n', b, nblocks);
             end
             
-            if wantReport
-                t = tic;
-            end
-            
             % Create grid, rock and fluid for sub block
+            t = tic;
             cells = find(p==b);
-            block = createBlock(upscaler, cells);
+            block = upscaler.createBlock(cells); %#ok<FNDSB>
+            t = toc(t);
+            if upscaler.verbose
+                fprintf('  Setup block:  % 2.3f sec.\n', t);
+            end
             
             % Perform upscaling
+            t = tic;
             data(i) = upscaler.upscaleBlock(block); %#ok<AGROW>
-            
-            if wantReport
-                report.time(i) = toc(t);
+            if upscaler.verbose
+                t = toc(t);
+                fprintf('  Total time:   % 2.3f sec.\n', t);
             end
+        end
+        
+        if upscaler.verbose
+            totalTime = toc(startTime);
+            fprintf('Completed upscaling of %d blocks in %1.2f sec.\n', ...
+                nblocks, totalTime);
         end
         
     end
@@ -75,6 +81,9 @@ methods
         
         % Create block grid
         b = extractSubgrid(upscaler.G, cells);
+        ijk = gridLogicalIndices(upscaler.G);
+        b.cartDims = cellfun(@(x) max(x(cells))-min(x(cells))+1, ijk);
+        b.cells.indexMap = (1 : numel(cells))';
         
         % Create block rock
         r.perm = upscaler.rock.perm(cells, :);
@@ -86,7 +95,8 @@ methods
         % Create block fluid
         f = [];
         if ~isempty(upscaler.fluid)
-            f = createBlockFluid(upscaler.fluid, cells);
+            f = createBlockFluid(upscaler.fluid, cells, ...
+                'cellInx', upscaler.cellinx);
         end
         
         % Create block object
@@ -98,6 +108,8 @@ methods
     end
     
 end
+
+
     
 end
 

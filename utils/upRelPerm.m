@@ -1,9 +1,10 @@
 function updata = upRelPerm(block, updata, method, varargin)
 
 opt = struct(...
-    'nvalues',   20, ...
-    'dims',      1:3, ...  % Dimensions to upscale
-    'dp',        1*barsa ...  % Pressure drop
+    'nvalues',     20, ...
+    'viscousmob',  true, ...
+    'dims',        1:3, ...  % Dimensions to upscale
+    'dp',          1*barsa ...  % Pressure drop
     );
 opt = merge_options(opt, varargin{:});
 
@@ -14,11 +15,11 @@ rock  = block.rock;
 fluid = block.fluid;
 
 assert(isa(block, 'GridBlock'));
-assert(isfield(updata, 'K'), 'One phase upscaling must be run first.');
+assert(isfield(updata, 'perm'), 'One phase upscaling must be run first.');
 assert(~isempty(method), 'Method must be set');
 
 % Get upscaled absolute permeability
-Kup = updata.K;
+Kup = updata.perm;
 assert(numel(Kup)==ndims);
 
 % Pore volume
@@ -67,39 +68,86 @@ for iv = 1:nvals
         % Set permeability as K*kr
         rock_Kkr = rock;
         
-        
-        % Loop over phases
-        for p = 1:2
-            rock_Kkr.perm = rock.perm(:, permCol(d)) .* kr{p};
-
-            if all(rock_Kkr.perm == 0)
+        if strcmpi(method, 'viscous') && opt.viscousmob
+            % For the viscous limit upscaling, we may use the total
+            % mobility and only call the one phase upscaling once.
+            
+            % TODO how to chose pressure?
+            pref = 200*barsa; % viscosity reference pressure
+            muW = fluid.muW(pref, 'cellInx', 1);
+            if isfield(fluid,'muO')
+                muO = fluid.muO(pref, 'cellInx', 1);
+            else
+                muO = fluid.BOxmuO(pref, 'cellInx', 1) / ...
+                    fluid.BO(pref, 'cellInx', 1);
+            end
+            
+            mobTot = kr{1}./muO + kr{2}./muW;
+            rock_KmobT = rock;
+            rock_KmobT.perm = rock.perm(:, permCol(d)) .* mobTot;
+            
+            if all(rock_KmobT.perm == 0)
                 % We will get no fluid motion
-                krKU = 0;
+                KMobTU = 0;
             else
                 if any(rock_Kkr.perm < 0)
                     error('Some pseudo perm values are negative!');
                 end
-
-                % Perform one phase upscaling with the altered permeability
-                % field
-                block.rock = rock_Kkr;
-                krKU = upAbsPerm(block, 'dims', d, 'dp', opt.dp);
+                
+                % Perform one phase upscaling with the altered
+                % permeability field
+                block.rock = rock_KmobT;
+                KMobTU = upAbsPerm(block, 'dims', d, 'dp', opt.dp);
             end
+            
+            % For viscous limit, the value is fractional flow
+            ff = val;
+            krwat = muW * ff * KMobTU / Kup(id); % water
+            kroil = muO * (1 - ff) * KMobTU / Kup(id); % oil
+            krO{id}(iv,:) = [sWup, kroil];
+            krW{id}(iv,:) = [sWup, krwat];
+            
+        else
+            
+            % Loop over phases
+            for p = 1:2
+                rock_Kkr.perm = rock.perm(:, permCol(d)) .* kr{p};
 
-            % Compute upscaled relperm value
-            krup = krKU / Kup(id);
+                if all(rock_Kkr.perm == 0)
+                    % We will get no fluid motion
+                    krKU = 0;
+                else
+                    if any(rock_Kkr.perm < 0)
+                        error('Some pseudo perm values are negative!');
+                    end
 
-            if p==1
-                krO{id}(iv,:) = [sWup, krup];
-            else
-                krW{id}(iv,:) = [sWup, krup];
+                    % Perform one phase upscaling with the altered
+                    % permeability field
+                    block.rock = rock_Kkr;
+                    krKU = upAbsPerm(block, 'dims', d, 'dp', opt.dp);
+                end
+
+                % Compute upscaled relperm value
+                krup = krKU / Kup(id);
+
+                if p==1
+                    krO{id}(iv,:) = [sWup, krup];
+                else
+                    krW{id}(iv,:) = [sWup, krup];
+                end
             end
+        
         end
         
     end % End of dimension loop
     
 end % End of input value loop
 
+% If only one direction, we do not use cell array
+if ndims==1
+    krO = krO{1};
+    krW = krW{1};
+end
 
 % Store upscaled data to structure
 updata.krO = krO;

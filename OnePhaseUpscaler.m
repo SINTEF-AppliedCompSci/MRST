@@ -17,8 +17,19 @@ methods
     end
        
     function data = upscaleBlock(upscaler, block)
-        data.K = upAbsPerm(block, 'dims', upscaler.dims, ...
+        
+        % Absolute permeability
+        t = tic;        
+        data.perm = upAbsPerm(block, 'dims', upscaler.dims, ...
             'dp', upscaler.dp);
+        if upscaler.verbose
+            t = toc(t);
+            fprintf('  Abs.perm:     % 2.3f sec.\n', t);
+        end
+        
+        % Porosity
+        data.poro = sum(block.pv) / sum(block.G.cells.volumes);
+        
     end
     
 end

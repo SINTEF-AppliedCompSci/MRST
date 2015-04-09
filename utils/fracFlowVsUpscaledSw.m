@@ -65,7 +65,9 @@ for i = 1:nPointsExtra+1 % Note: last iteration is just a check
       end
       break;
    elseif i == nPointsExtra+1
-      warning('Max number of points reached, but tolerence not met.');
+      if mrstVerbose
+         warning('Max number of points reached, but tolerence not met.');
+      end
       break;
    end
    

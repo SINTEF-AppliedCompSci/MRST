@@ -44,38 +44,50 @@ p = compressPartition(p);
 
 %%
 
-figure;
-plotCellData(G, p);
-view(3); axis tight;
+% figure;
+% plotCellData(G, p);
+% view(3); axis tight;
 
-%%
+%% Settings
 
-mrstVerbose off
-t = tic;
-upscaler = OnePhaseUpscaler(G, rock);
-upscaler.partition = p;
-%upscaler.blocks = 2;
-upscaler.dims = 1:3;
-dataOP = upscaler.upscale();
-toc(t)
-
+dims = 1:3;
+method = 'viscous';
 
 %%
 
 
 
+% mrstVerbose off
+% t = tic;
+% upscaler = TwoPhaseUpscaler(G, rock, fluid);
+% upscaler.partition = p;
+% %upscaler.blocks = 2;
+% upscaler.dims = dims;
+% upscaler.nrelperm = 19;
+% upscaler.npcow = 200;
+% upscaler.method = method;
+% upscaler.verbose = true;
+% dataTP = upscaler.upscale();
+% toc(t)
+
+
+%%
+
+
+
 mrstVerbose off
 t = tic;
-upscaler = TwoPhaseUpscaler(G, rock, fluid);
+upscaler = TwoPhaseStepwiseUpscaler(G, rock, fluid);
 upscaler.partition = p;
-%upscaler.blocks = 2;
-upscaler.dims = 1;
-upscaler.nvalues = 19;
-upscaler.method = 'capillary';
-upscaler.verbose = true;
+upscaler.nrelperm  = 19;
+upscaler.npcow     = 200;
+upscaler.method1   = 'capillary';
+upscaler.dim1      = 3;
+upscaler.method2   = 'viscous';
+upscaler.dim2      = 1;
+upscaler.verbose   = true;
 dataTP = upscaler.upscale();
 toc(t)
-
 
 
 
@@ -90,8 +102,8 @@ CG.cells.indexMap = (1:CG.cells.num)';
 mrstVerbose off
 t = tic;
 upscaled = exampleUpscale(G, rock, fluid, 'CG', CG, ...
-    'method', 'capillary', 'save', false, 'periodic', false, ...
-    'dims', 1);
+    'method', method, 'save', false, 'periodic', false, ...
+    'dims', dims);
 toc(t)
 
 % 
@@ -100,10 +112,37 @@ toc(t)
 
 %% Check that the upscaling is the same
 
+maxNorm = 0;
 for i=1:max(p)
-    
-    norm( data(i).K(:) - KU(i,:)' )
-    
+    n = norm( dataTP(i).K(:) - upscaled.perm(i,:)' );
+    maxNorm = max(maxNorm, n );
 end
+fprintf('Max norm K:   %1.2e\n', maxNorm);
+
+maxNorm = 0;
+for i=1:max(p)
+    for j=1:numel(dims)
+        n = norm(dataTP(i).krW{j}(:,2)-upscaled.krRaw{i}.krW(:,j));
+        maxNorm = max(maxNorm, n);
+    end
+end
+fprintf('Max norm krW: %1.2e\n', maxNorm);
+
+maxNorm = 0;
+for i=1:max(p)
+    for j=1:numel(dims)
+        n = norm(dataTP(i).krO{j}(:,2)-upscaled.krRaw{i}.krO(:,j));
+        maxNorm = max(maxNorm, n);
+    end
+end
+fprintf('Max norm krO: %1.2e\n', maxNorm);
+
+maxNorm = 0;
+for i=1:max(p)
+    n = norm(dataTP(i).pcOW(:,2) - upscaled.pcOW{i}(:,2));
+    maxNorm = max(maxNorm, n);
+end
+fprintf('Max norm pc:  %1.2e\n', maxNorm);
+
 
 

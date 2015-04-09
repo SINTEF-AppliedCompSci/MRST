@@ -3,7 +3,9 @@ classdef TwoPhaseUpscaler < OnePhaseUpscaler
 
 properties
     method
-    nvalues
+    nrelperm
+    pcow
+    npcow
 end
 
 methods
@@ -11,8 +13,10 @@ methods
     function upscaler = TwoPhaseUpscaler(G, rock, fluid, varargin)
         upscaler = upscaler@OnePhaseUpscaler(G, rock, 'fluid', fluid);
         
-        upscaler.method  = [];
-        upscaler.nvalues = 20;
+        upscaler.method   = [];
+        upscaler.nrelperm = 20;
+        upscaler.pcow     = true; % Upscale pcow or not
+        upscaler.npcow    = 100;
         upscaler = merge_options(upscaler, varargin{:});
     end
        
@@ -21,10 +25,25 @@ methods
         % Perform one phase upscaling first
         data = upscaleBlock@OnePhaseUpscaler(upscaler, block);
         
-        % Two phsase upscaling
+        % Relative permeability upscaling
+        t = tic;
         data = upRelPerm(block, data, upscaler.method, ...
-            'nvalues', upscaler.nvalues, 'dims', upscaler.dims, ...
+            'nvalues', upscaler.nrelperm, 'dims', upscaler.dims, ...
             'dp', upscaler.dp);
+        if upscaler.verbose
+            t = toc(t);
+            fprintf('  Rel.perm:     %1.3f sec.\n', t);
+        end
+        
+        % Capillary pressure upscaling
+        if upscaler.pcow
+            t = tic;
+            data = upPcOW(block, data, 'nvalues', upscaler.npcow);
+            if upscaler.verbose
+                t = toc(t);
+                fprintf('  Cap.pres:     %1.3f sec.\n', t);
+            end
+        end
         
     end
     
