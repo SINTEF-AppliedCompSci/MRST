@@ -55,7 +55,7 @@ methods
             block = upscaler.createBlock(cells); %#ok<FNDSB>
             t = toc(t);
             if upscaler.verbose
-                fprintf('  Setup block:  % 2.3f sec.\n', t);
+                fprintf('  Setup block:  %6.3f sec.\n', t);
             end
             
             % Perform upscaling
@@ -63,7 +63,7 @@ methods
             data(i) = upscaler.upscaleBlock(block); %#ok<AGROW>
             if upscaler.verbose
                 t = toc(t);
-                fprintf('  Total time:   % 2.3f sec.\n', t);
+                fprintf('  Total time:   %6.3f sec.\n', t);
             end
         end
         

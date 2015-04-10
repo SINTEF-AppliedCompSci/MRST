@@ -32,7 +32,7 @@ methods
             'dp', upscaler.dp);
         if upscaler.verbose
             t = toc(t);
-            fprintf('  Rel.perm:     %1.3f sec.\n', t);
+            fprintf('  Rel.perm:     %6.3f sec.\n', t);
         end
         
         % Capillary pressure upscaling
@@ -41,7 +41,7 @@ methods
             data = upPcOW(block, data, 'nvalues', upscaler.npcow);
             if upscaler.verbose
                 t = toc(t);
-                fprintf('  Cap.pres:     %1.3f sec.\n', t);
+                fprintf('  Cap.pres:     %6.3f sec.\n', t);
             end
         end
         

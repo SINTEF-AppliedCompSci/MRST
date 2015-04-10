@@ -120,7 +120,14 @@ for iv = 1:nvals
                     if any(rock_Kkr.perm < 0)
                         error('Some pseudo perm values are negative!');
                     end
-
+                    if any(rock_Kkr.perm == 0)
+                        % To avoid a singular matrix when performing one
+                        % phase upscaling, the zero permeabilities are set
+                        % to something larger than zero.
+                        ep = eps(mean(rock_Kkr.perm(rock_Kkr.perm>0)));
+                        rock_Kkr.perm(rock_Kkr.perm == 0) = ep*1e1;
+                    end
+                    
                     % Perform one phase upscaling with the altered
                     % permeability field
                     block.rock = rock_Kkr;

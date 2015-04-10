@@ -53,7 +53,7 @@ methods
         
         if upscaler.verbose
             t = toc(t);
-            fprintf('  Rel.perm #1:  % 2.3f sec.\n', t);
+            fprintf('  Rel.perm #1:  %6.3f sec.\n', t);
         end
         
         %------------------------------------------------------------------
@@ -86,9 +86,9 @@ methods
         
         if upscaler.verbose
             t = toc(t);
-            fprintf('  Rel.perm #2:  % 2.3f sec.\n', t);
+            fprintf('  Rel.perm #2:  %6.3f sec.\n', t);
             t = toc(t_relperm);
-            fprintf('  Rel.perm tot: % 2.3f sec.\n', t);
+            fprintf('  Rel.perm tot: %6.3f sec.\n', t);
         end
         
         
@@ -100,7 +100,7 @@ methods
             data = upPcOW(block, data, 'nvalues', upscaler.npcow);
             if upscaler.verbose
                 t = toc(t);
-                fprintf('  Cap.pres:     % 2.3f sec.\n', t);
+                fprintf('  Cap.pres:     %6.3f sec.\n', t);
             end
         end
         

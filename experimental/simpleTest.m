@@ -50,25 +50,31 @@ p = compressPartition(p);
 
 %% Settings
 
-dims = 1:3;
-method = 'viscous';
+dims = 1;
+method = 'capillary';
 
 %%
 
 
 
-% mrstVerbose off
-% t = tic;
-% upscaler = TwoPhaseUpscaler(G, rock, fluid);
-% upscaler.partition = p;
-% %upscaler.blocks = 2;
-% upscaler.dims = dims;
-% upscaler.nrelperm = 19;
-% upscaler.npcow = 200;
-% upscaler.method = method;
-% upscaler.verbose = true;
-% dataTP = upscaler.upscale();
-% toc(t)
+mrstVerbose off
+t = tic;
+upscaler = TwoPhaseUpscaler(G, rock, fluid);
+upscaler.partition = p;
+%upscaler.blocks = 2;
+upscaler.dims     = dims;
+upscaler.nrelperm = 19;
+upscaler.npcow    = 200;
+upscaler.method   = method;
+upscaler.verbose  = true;
+dataTP = upscaler.upscale();
+toc(t)
+
+%%
+
+figure; hold on;
+arrayfun(@(x) plot(x.krW(:,1), x.krW(:,2)), dataTP);
+arrayfun(@(x) plot(x.krO(:,1), x.krO(:,2)), dataTP);
 
 
 %%
@@ -86,9 +92,14 @@ upscaler.dim1      = 3;
 upscaler.method2   = 'viscous';
 upscaler.dim2      = 1;
 upscaler.verbose   = true;
-dataTP = upscaler.upscale();
+dataStep = upscaler.upscale();
 toc(t)
 
+%%
+
+figure; hold on;
+arrayfun(@(x) plot(x.krW(:,1), x.krW(:,2)), dataStep);
+arrayfun(@(x) plot(x.krO(:,1), x.krO(:,2)), dataStep);
 
 
 %% Old method
