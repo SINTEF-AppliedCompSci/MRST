@@ -24,7 +24,7 @@ methods
             'dp', upscaler.dp);
         if upscaler.verbose
             t = toc(t);
-            fprintf('  Abs.perm:     % 2.3f sec.\n', t);
+            fprintf('  Abs.perm:     % 2.3fs\n', t);
         end
         
         % Porosity

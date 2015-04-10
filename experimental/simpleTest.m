@@ -2,6 +2,7 @@
 
 mrstModule add coarsegrid upscaling
 mrstModule add deckformat ad-fi
+mrstModule add upscale-sindre
 
 clear variables
 
@@ -77,7 +78,7 @@ figure; hold on;
 arrayfun(@(x) plot(x.krW(:,1), x.krW(:,2)), dataTP);
 arrayfun(@(x) plot(x.krO(:,1), x.krO(:,2)), dataTP);
 
-
+return
 %%
 
 

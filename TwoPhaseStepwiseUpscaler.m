@@ -30,6 +30,10 @@ methods
         
         upscaler = merge_options(upscaler, varargin{:});
         
+        % The absolute permeability will be evaluated in the second
+        % dimension chosen.
+        upscaler.dims = upscaler.dim2;
+        
     end
        
     function data = upscaleBlock(upscaler, block)
@@ -58,7 +62,7 @@ methods
         
         if upscaler.verbose
             t = toc(t);
-            fprintf('  Rel.perm #1:  %6.3f sec.\n', t);
+            fprintf('  Rel.perm #1:  %6.3fs\n', t);
         end
         
         %------------------------------------------------------------------
@@ -88,7 +92,7 @@ methods
         data.krO = updata2.krO;
         data.krW = updata2.krW;
         
-        if uspcaler.saveStep1
+        if upscaler.saveStep1
             % Save data from the first upscaling step, if requested
             data.krStep1 = updata1;
             data.krStep1.method    = upscaler.method1;
@@ -98,9 +102,9 @@ methods
         
         if upscaler.verbose
             t = toc(t);
-            fprintf('  Rel.perm #2:  %6.3f sec.\n', t);
+            fprintf('  Rel.perm #2:  %6.3fs\n', t);
             t = toc(t_relperm);
-            fprintf('  Rel.perm tot: %6.3f sec.\n', t);
+            fprintf('  Rel.perm tot: %6.3fs\n', t);
         end
         
         
@@ -112,7 +116,7 @@ methods
             data = upPcOW(block, data, 'npointsmax', upscaler.npcow);
             if upscaler.verbose
                 t = toc(t);
-                fprintf('  Cap.pres:     %6.3f sec.\n', t);
+                fprintf('  Cap.pres:     %6.3fs\n', t);
             end
         end
         

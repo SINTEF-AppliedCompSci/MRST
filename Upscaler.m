@@ -2,14 +2,19 @@ classdef Upscaler
 %Base class for upscaling classes
 
 properties
+    
     verbose
+    timeest % Estimate time remaining
+    
     G
     rock
     fluid
     periodic
     partition
     blocks
-    cellinx % fluid property
+    blockMap % Index map for the blocks. Equal index means equal block.
+    
+    cellinx % Boolean. True if ALL fluid properties takes 'cellInx'.
 end
 
 methods
@@ -20,6 +25,7 @@ methods
         upscaler.fluid     = [];
         upscaler.partition = [];
         upscaler.blocks    = [];
+        upscaler.blockMap  = [];
         upscaler.cellinx   = false;
         upscaler = merge_options(upscaler, varargin{:});
         
@@ -28,26 +34,67 @@ methods
     end
     
     function data = upscale(upscaler)
+        % Given some partition, we loop over the coarse blocks in the grid
+        % and upscale each of them in turn.
         
         startTime = tic;
         
+        % The partition gives the coarse block number for each fine cell
         p  = upscaler.partition;
-        bl = upscaler.blocks;
-        if isempty(bl)
-            bl = unique(p);
+        nBlocksTot = numel(unique(p)); % Total number of coarse blocks
+        
+        % Check given partition
+        assert(~isempty(p), 'Empty partition');
+        assert(numel(p)==upscaler.G.cells.num, 'Invalid partition');
+        assert(max(p)==nBlocksTot, 'Invalid partition numbering');
+        
+        if upscaler.verbose
+            fprintf(['Partition divides %d cells into %d coarse '...
+                'blocks.\n'], upscaler.G.cells.num, nBlocksTot);
         end
-        nblocks = numel(bl);
-        assert(numel(p)==upscaler.G.cells.num, ...
-            'Invalid partition');
+        
+        % Block numbers requested to be upscaled (if user do not wish to
+        % upscale all coarse blocks in partition).
+        requestedBlocks = upscaler.blocks;
+        if isempty(requestedBlocks)
+            requestedBlocks = (1:nBlocksTot)'; % all blocks
+        end
+        nBlocksReq = numel(requestedBlocks); % Total number of blocks
+        
+        if upscaler.verbose && nBlocksReq<nBlocksTot
+            fprintf(['Only requested to upscale %d of totally %d '...
+                'coarse blocks.\n'], upscaler.G.cells.num, nBlocksTot);
+        end
+        
+        % If given, the blockMap gives identical block, which may reduce
+        % the number of blocks needed to be upscaled
+        if ~isempty(upscaler.blockMap)
+            bm = upscaler.blockMap(requestedBlocks);
+            [~, inx] = unique(bm); % Choose one cell from each block
+            blocksToUpscale = requestedBlocks(inx);
+        else
+            blocksToUpscale = requestedBlocks;
+        end
+        nBlocksUp = numel(blocksToUpscale);
+        
+        if upscaler.verbose
+            if nBlocksUp<nBlocksReq
+                fprintf(['Need only upscale %d of %d coarse blocks as '...
+                    'some blocks are idential.\n'], nBlocksUp, nBlocksReq);
+            else
+                fprintf(['No blocks are identical, so all need to be '...
+                    'upscaled.\n']);
+            end
+        end
         
         % Loop over blocks and perform upscaling on each block
-        for i = 1:nblocks
-            
-            b = bl(i); % Current block
+        for i = 1:nBlocksUp
             
             if upscaler.verbose
-                fprintf('Block number %d of %d\n', b, nblocks);
+                fprintf('Block number %d of %d\n', i, nBlocksUp);
             end
+            
+            b = blocksToUpscale(i); % Current block
             
             % Create grid, rock and fluid for sub block
             t = tic;
@@ -55,7 +102,7 @@ methods
             block = upscaler.createBlock(cells); %#ok<FNDSB>
             t = toc(t);
             if upscaler.verbose
-                fprintf('  Setup block:  %6.3f sec.\n', t);
+                fprintf('  Setup block:  %6.3fs\n', t);
             end
             
             % Perform upscaling
@@ -63,14 +110,21 @@ methods
             data(i) = upscaler.upscaleBlock(block); %#ok<AGROW>
             if upscaler.verbose
                 t = toc(t);
-                fprintf('  Total time:   %6.3f sec.\n', t);
+                fprintf('  Total time:   %6.3fs\n', t);
+                if upscaler.timeest
+                    totalTime  = toc(startTime);
+                    estTimeRem = totalTime*(nBlocksUp/i - 1);
+                    timeStr = Upscaler.timingString(estTimeRem);
+                    fprintf('  Estimated time left is %s\n', timeStr);
+                end
+                fprintf('\n');
             end
         end
         
         if upscaler.verbose
-            totalTime = toc(startTime);
-            fprintf('Completed upscaling of %d blocks in %1.2f sec.\n', ...
-                nblocks, totalTime);
+            timeStr = Upscaler.timingString(toc(startTime));
+            fprintf('Completed upscaling of %d blocks in %s.\n', ...
+                nBlocksUp, timeStr);
         end
         
     end
@@ -105,6 +159,24 @@ methods
     
     function data = upscaleBlock(upscaler, block)
         error('Method needs to be overridden');
+    end
+    
+end
+
+
+methods (Static)
+    
+    function str = timingString(seconds)
+        h = floor(seconds/(60*60)); seconds = seconds - h*60*60;
+        m = floor(seconds/60);      seconds = seconds - m*60;
+        s = floor(seconds);
+        if h>0
+            str = sprintf('%dh %dm %ds', h, m, s);
+        elseif m>0
+            str = sprintf('%dm %ds', m, s);
+        else
+            str = sprintf('%ds',s);
+        end
     end
     
 end

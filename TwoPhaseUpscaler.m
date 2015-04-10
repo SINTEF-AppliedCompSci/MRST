@@ -31,7 +31,7 @@ methods
             data = upPcOW(block, data, 'npointsmax', upscaler.npcow);
             if upscaler.verbose
                 t = toc(t);
-                fprintf('  Cap.pres:     %6.3f sec.\n', t);
+                fprintf('  Cap.pres:     %6.3fs\n', t);
             end
         end
         
@@ -42,7 +42,7 @@ methods
             'dp', upscaler.dp);
         if upscaler.verbose
             t = toc(t);
-            fprintf('  Rel.perm:     %6.3f sec.\n', t);
+            fprintf('  Rel.perm:     %6.3fs\n', t);
         end
         
     end
