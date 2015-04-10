@@ -13,19 +13,55 @@ else
 end
 
 
-% Two phase data ----------------------------------------------------------
+%--------------------------------------------------------------------------
+% Two phase data
+%--------------------------------------------------------------------------
 
 s2c = @(fn) arrayfun(@(x) x.(fn), updata, 'UniformOutput', false);
 
-T = s2c('krW');
-fluid.krW = @(sw, varargin) krW(T,   sw, reg, varargin{:});
-T = s2c('krO');
-fluid.krO = @(so, varargin) krO(T, 1-so, reg, varargin{:});
+
+%--------------------------------------------------------------------------
+% Relative permeability
+
+TW = s2c('krW');
+fluid.krW = @(sw, varargin) prop(TW,   sw, reg, varargin{:});
+TO = s2c('krO');
+fluid.krO = @(so, varargin) prop(TO, 1-so, reg, varargin{:});
 fluid.krOW = fluid.krO;
+
+%--------------------------------------------------------------------------
+% Invert frac flow function
+
+pref = 200*barsa; % viscosity reference pressure % TODO how to choose?
+muW = f.muW(pref, 'cellInx', 1);
+if isfield(f,'muO')
+    muO = f.muO(pref, 'cellInx', 1);
+else
+    muO = f.BOxmuO(pref, 'cellInx', 1) / f.BO(pref, 'cellInx', 1);
+end
+% Fractional flow = (krW/muW) / ( (krW/muW) + (krO/muO) )
+T = cell(size(TW));
+for i=1:numel(TW)
+    ff   = (TW{i}(:,2)/muW) ./ (TW{i}(:,2)/muW + TO{i}(:,2)/muO);
+    T{i} = [ff, TW{i}(:,1)];
+end
+fluid.fracFlowInv = @(ff, varargin) prop(T, ff, reg, varargin{:});
+
+%--------------------------------------------------------------------------
+% Capillary pressure
 
 if isfield(updata, 'pcOW')
     T = s2c('pcOW');
-    fluid.pcOW = @(sw, varargin) pcOW(T, sw, reg, varargin{:});
+    fluid.pcOW = @(sw, varargin) prop(T, sw, reg, varargin{:});
+    
+    % Invert pcOW curve
+    for i=1:numel(T)
+        T{i} = [T{i}(:,2) T{i}(:,1)];
+        if T{i}(1,1)>T{i}(2,1)
+            T{i} = flipud(T{i}); % flip if reversed order
+        end
+    end
+    fluid.pcOWInv = @(pc, varargin) prop(T, pc, reg, varargin{:});
 end
 
 
@@ -41,39 +77,38 @@ end
 end
 
 
-
-
 %--------------------------------------------------------------------------
 % HELPER FUNCTIONS
 %--------------------------------------------------------------------------
 
-function c = struct2CellArray(s, fn)
-assert(isstruct(s) && isfield(s, fn));
-c = cell(numel(s),1);
-
-end
-
-
-% Water Relperm
-function v = krW(T, sw, reg, varargin)
+% General frunction
+function v = prop(T, sw, reg, varargin)
 satInx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
 T = extendTab(T);
 v = interpReg(T, sw, satInx);  
 end
 
-% Oil Relperm
-function v = krO(T, sw, reg, varargin)
-satInx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
-T = extendTab(T);
-v = interpReg(T, sw, satInx); 
-end
-
-% Capillary Pressure
-function v = pcOW(T, sw, reg, varargin)
-satInx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
-T = extendTab(T);
-v = interpReg(T, sw, satInx);
-end
+% 
+% % Water Relperm
+% function v = krW(T, sw, reg, varargin)
+% satInx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
+% T = extendTab(T);
+% v = interpReg(T, sw, satInx);  
+% end
+% 
+% % Oil Relperm
+% function v = krO(T, sw, reg, varargin)
+% satInx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
+% T = extendTab(T);
+% v = interpReg(T, sw, satInx); 
+% end
+% 
+% % Capillary Pressure
+% function v = pcOW(T, sw, reg, varargin)
+% satInx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
+% T = extendTab(T);
+% v = interpReg(T, sw, satInx);
+% end
 
 
 

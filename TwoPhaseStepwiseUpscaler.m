@@ -9,6 +9,8 @@ properties
     nrelperm
     pcow
     npcow
+    
+    saveStep1
 end
 
 methods
@@ -60,8 +62,7 @@ methods
         % Relative permeability upscaling, part 2
         % (Upscale in direction 2, using method 2)
         %------------------------------------------------------------------
-        t = tic;
-        
+        t = tic;        
         % Create coarse grid from partition1
         CG = generateCoarseGrid(block.G, p1);
         CG = coarsenGeometry(CG);
@@ -97,7 +98,7 @@ methods
         %------------------------------------------------------------------
         if upscaler.pcow
             t = tic;
-            data = upPcOW(block, data, 'nvalues', upscaler.npcow);
+            data = upPcOW(block, data, 'npointsmax', upscaler.npcow);
             if upscaler.verbose
                 t = toc(t);
                 fprintf('  Cap.pres:     %6.3f sec.\n', t);

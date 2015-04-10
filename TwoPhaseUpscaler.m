@@ -25,6 +25,16 @@ methods
         % Perform one phase upscaling first
         data = upscaleBlock@OnePhaseUpscaler(upscaler, block);
         
+        % Capillary pressure upscaling
+        if upscaler.pcow
+            t = tic;
+            data = upPcOW(block, data, 'npointsmax', upscaler.npcow);
+            if upscaler.verbose
+                t = toc(t);
+                fprintf('  Cap.pres:     %6.3f sec.\n', t);
+            end
+        end
+        
         % Relative permeability upscaling
         t = tic;
         data = upRelPerm(block, data, upscaler.method, ...
@@ -33,16 +43,6 @@ methods
         if upscaler.verbose
             t = toc(t);
             fprintf('  Rel.perm:     %6.3f sec.\n', t);
-        end
-        
-        % Capillary pressure upscaling
-        if upscaler.pcow
-            t = tic;
-            data = upPcOW(block, data, 'nvalues', upscaler.npcow);
-            if upscaler.verbose
-                t = toc(t);
-                fprintf('  Cap.pres:     %6.3f sec.\n', t);
-            end
         end
         
     end

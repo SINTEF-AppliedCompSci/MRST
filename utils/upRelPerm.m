@@ -36,7 +36,7 @@ if size(rock.perm, 2) == 3
 end
 
 % Get input values depending on the method
-values = getValues(block, method, nvals);
+values = getValues(block, updata, method, nvals);
 
 
 % Loop over the input values
@@ -168,7 +168,7 @@ end
 % HELPER FUNCTIONS
 %--------------------------------------------------------------------------
 
-function values = getValues(block, method, nvals)
+function values = getValues(block, updata, method, nvals)
 
 switch method
     case 'flow'
@@ -176,10 +176,12 @@ switch method
         sW = linspace(swUMin, swUMax, nvals)';
         
     case 'capillary'
-        [pcFun, swUMin, swUMax] = pcVsUpscaledSw(block.G, ...
-            block.rock, block.fluid);
-        sW = linspace(swUMin, swUMax, nvals)';
-        values = pcFun(sW); % sW upscaled -> pcOW
+        assert(isfield(updata, 'pcOW'), ...
+            'Run capillary curve upscaling first');
+        swUMin = updata.pcOW(1,1);
+        swUMax = updata.pcOW(end,1);
+        sW     = linspace(swUMin, swUMax, nvals)';
+        values = interp1(updata.pcOW(:,1), updata.pcOW(:,2), sW);
         
     case 'viscous'
         [ffFun, swUMin, swUMax] = fracFlowVsUpscaledSw(block.G, ...
@@ -318,6 +320,7 @@ switch method
 end
 
 end
+
 
 
 
