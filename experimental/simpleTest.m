@@ -51,7 +51,8 @@ p = compressPartition(p);
 %% Settings
 
 dims = 1;
-method = 'capillary';
+%method = 'capillary';
+method = 'viscous';
 
 %%
 

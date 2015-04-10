@@ -184,10 +184,11 @@ switch method
         values = interp1(updata.pcOW(:,1), updata.pcOW(:,2), sW);
         
     case 'viscous'
-        [ffFun, swUMin, swUMax] = fracFlowVsUpscaledSw(block.G, ...
-            block.rock, block.fluid);
-        sW = linspace(swUMin, swUMax, nvals)';
-        values = ffFun(sW); % sW upscaled -> fractional flow
+        ffdata = upFracFlowOW(block, []);
+        swUMin = ffdata.ffW(1,1);
+        swUMax = ffdata.ffW(end,1);
+        sW     = linspace(swUMin, swUMax, nvals)';
+        values = interp1(ffdata.ffW(:,1), ffdata.ffW(:,2), sW);
         
     case 'gravcapillary'
         [pcFun, swUMin, swUMax] = pcVsUpscaledSwGravityBinary(block.G, ...

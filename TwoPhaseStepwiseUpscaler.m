@@ -18,13 +18,16 @@ methods
     function upscaler = TwoPhaseStepwiseUpscaler(G, rock, fluid, varargin)
         upscaler = upscaler@OnePhaseUpscaler(G, rock, 'fluid', fluid);
         
-        upscaler.method1  = [];
-        upscaler.method2  = [];
-        upscaler.dim1     = [];
-        upscaler.dim2     = [];
-        upscaler.nrelperm = 20;
-        upscaler.pcow     = true; % Upscale pcow or not
-        upscaler.npcow    = 100;
+        upscaler.method1   = [];
+        upscaler.method2   = [];
+        upscaler.dim1      = [];
+        upscaler.dim2      = [];
+        upscaler.nrelperm  = 20;
+        upscaler.pcow      = true; % Upscale pcow or not
+        upscaler.npcow     = 100;
+        
+        upscaler.saveStep1 = false; % save data from first upscaling
+        
         upscaler = merge_options(upscaler, varargin{:});
         
     end
@@ -84,6 +87,14 @@ methods
         updata2  = upscaler2.upscale();
         data.krO = updata2.krO;
         data.krW = updata2.krW;
+        
+        if uspcaler.saveStep1
+            % Save data from the first upscaling step, if requested
+            data.krStep1 = updata1;
+            data.krStep1.method    = upscaler.method1;
+            data.krStep1.dim       = upscaler.dim1;
+            data.krStep1.partition = p1;
+        end
         
         if upscaler.verbose
             t = toc(t);
