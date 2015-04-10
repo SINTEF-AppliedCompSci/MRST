@@ -3,7 +3,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 % Construct a VE fluid with properties specific to a chosen model
 % 
 % SYNOPSIS:
-%   function fluid = makeADIFluid(type, opt, varargin)
+%   function fluid = makeVEFluid(type, opt, varargin)
 %
 % DESCRIPTION:
 %
