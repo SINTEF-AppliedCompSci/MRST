@@ -16,15 +16,14 @@ methods
         upscaler = merge_options(upscaler, varargin{:});
     end
        
-    function data = upscaleBlock(upscaler, block)
+    function [data, report] = upscaleBlock(upscaler, block)
         
         % Absolute permeability
-        t = tic;        
-        data.perm = upAbsPerm(block, 'dims', upscaler.dims, ...
+        [data.perm, report] = upAbsPerm(block, 'dims', upscaler.dims, ...
             'dp', upscaler.dp);
+        
         if upscaler.verbose
-            t = toc(t);
-            fprintf('  Abs.perm:     % 2.3fs\n', t);
+            fprintf('  Abs.perm:     % 2.3fs\n', report.time);
         end
         
         % Porosity

@@ -20,29 +20,43 @@ methods
         upscaler = merge_options(upscaler, varargin{:});
     end
        
-    function data = upscaleBlock(upscaler, block)
+    function [data, report] = upscaleBlock(upscaler, block)
+        
+        wantReport = nargout > 1;
+        startTime  = tic;
         
         % Perform one phase upscaling first
-        data = upscaleBlock@OnePhaseUpscaler(upscaler, block);
+        [data, rep] = upscaleBlock@OnePhaseUpscaler(upscaler, block);
+        if wantReport
+            report.onephase = rep;
+        end
         
         % Capillary pressure upscaling
         if upscaler.pcow
-            t = tic;
-            data = upPcOW(block, data, 'npointsmax', upscaler.npcow);
+            [data, rep] = upPcOW(block, data, ...
+                'npointsmax', upscaler.npcow);
+            if wantReport
+                report.pcow = rep;
+            end
             if upscaler.verbose
-                t = toc(t);
-                fprintf('  Cap.pres:     %6.3fs\n', t);
+                fprintf('  Cap.pres:     %6.3fs\n', rep.time);
             end
         end
         
         % Relative permeability upscaling
-        t = tic;
-        data = upRelPerm(block, data, upscaler.method, ...
+        [data, rep] = upRelPerm(block, data, upscaler.method, ...
             'nvalues', upscaler.nrelperm, 'dims', upscaler.dims, ...
             'dp', upscaler.dp);
+        if wantReport
+            report.relperm = rep;
+        end
         if upscaler.verbose
-            t = toc(t);
-            fprintf('  Rel.perm:     %6.3fs\n', t);
+            fprintf('  Rel.perm:     %6.3fs\n', rep.time);
+        end
+        
+        if wantReport
+            totalTime   = toc(startTime);
+            report.time = totalTime;
         end
         
     end

@@ -1,4 +1,4 @@
-function updata = upPcOW(block, updata, varargin)
+function [updata, report] = upPcOW(block, updata, varargin)
 % Upscale capillary pressure curves.
 %
 % It is assumed that all capillary pressure curves are monotone.
@@ -10,6 +10,9 @@ opt = struct(...
     'relTolPc',    0.01 ...  % Relative to pc scale
     );
 opt = merge_options(opt, varargin{:});
+
+wantReport = nargout > 1;
+timeStart = tic;
 
 G     = block.G;
 fluid = block.fluid;
@@ -108,6 +111,13 @@ assert( all(diff(pcOWup(:,1)) > 0), ...
 
 % Add upscaled data to structure
 updata.pcOW = pcOWup;
+
+totalTime = toc(timeStart);
+if wantReport
+    report.swreldiff = maxDiffSw;
+    report.pcreldiff = maxDiffPc;
+    report.time      = totalTime;
+end
 
 end
 

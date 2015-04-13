@@ -1,4 +1,4 @@
-function updata = upRelPerm(block, updata, method, varargin)
+function [updata, report] = upRelPerm(block, updata, method, varargin)
 
 opt = struct(...
     'nvalues',     20, ...
@@ -7,6 +7,9 @@ opt = struct(...
     'dp',          1*barsa ...  % Pressure drop
     );
 opt = merge_options(opt, varargin{:});
+
+wantReport = nargout > 1;
+timeStart = tic;
 
 dims  = opt.dims;
 ndims = length(dims);
@@ -37,7 +40,6 @@ end
 
 % Get input values depending on the method
 values = getValues(block, updata, method, nvals);
-
 
 % Loop over the input values
 for iv = 1:nvals
@@ -71,6 +73,10 @@ for iv = 1:nvals
         if strcmpi(method, 'viscous') && opt.viscousmob
             % For the viscous limit upscaling, we may use the total
             % mobility and only call the one phase upscaling once.
+            
+            if wantReport
+                report.viscousmob = true;
+            end
             
             % TODO how to chose pressure?
             pref = 200*barsa; % viscosity reference pressure
@@ -159,6 +165,15 @@ end
 % Store upscaled data to structure
 updata.krO = krO;
 updata.krW = krW;
+
+totalTime = toc(timeStart);
+if wantReport
+    report.method  = method;
+    report.dims    = dims;
+    report.nvalues = nvals;
+    report.dp      = opt.dp;
+    report.time    = totalTime;
+end
 
 
 end

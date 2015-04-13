@@ -1,9 +1,12 @@
-function Kup = upAbsPerm(block, varargin)
+function [Kup, report] = upAbsPerm(block, varargin)
 opt = struct(...
     'dp',         1*barsa, ...
     'dims',       1:3 ...
     );
 opt = merge_options(opt, varargin{:});
+
+wantReport = nargout > 1;
+timeStart = tic;
 
 % Handle input
 dims  = opt.dims; % Dimensions to upscale
@@ -81,6 +84,13 @@ else
 end
 Kup = Kup';
 
+totalTime = toc(timeStart);
+if wantReport
+    report.periodic = isPeriodic;
+    report.dims     = dims;
+    report.dp       = dp;
+    report.time     = totalTime;
+end
 
 end
 

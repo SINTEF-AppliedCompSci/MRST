@@ -36,7 +36,10 @@ methods
         
     end
        
-    function data = upscaleBlock(upscaler, block)
+    function [data, report] = upscaleBlock(upscaler, block)
+        
+        wantReport = nargout > 1;
+        startTime  = tic;
         
         assert(~isempty(upscaler.method1) && ...
             ~isempty(upscaler.method2), 'Methods must be given.');
@@ -44,7 +47,10 @@ methods
             ~isempty(upscaler.dim2), 'Dimensions must be given.');
         
         % Perform one phase upscaling first
-        data = upscaleBlock@OnePhaseUpscaler(upscaler, block);
+        [data, rep] = upscaleBlock@OnePhaseUpscaler(upscaler, block);
+        if wantReport
+            report.onephase = rep;
+        end
         
         %------------------------------------------------------------------
         % Relative permeability upscaling, part 1
@@ -58,11 +64,17 @@ methods
             'partition', p1, 'method', upscaler.method1, ...
             'dims', upscaler.dim1, 'nrelperm', upscaler.nrelperm, ...
             'pcow', true, 'verbose', false);
-        updata1 = upscaler1.upscale();
+        if wantReport
+            [updata1, rep] = upscaler1.upscale();
+            report.relperm.method = 'stepwise';
+            report.relperm.step1  = rep;
+        else
+            updata1 = upscaler1.upscale();
+        end
+        relperm1Time = toc(t);
         
         if upscaler.verbose
-            t = toc(t);
-            fprintf('  Rel.perm #1:  %6.3fs\n', t);
+            fprintf('  Rel.perm #1:  %6.3fs\n', relperm1Time);
         end
         
         %------------------------------------------------------------------
@@ -88,9 +100,15 @@ methods
             'partition', p2, 'method', upscaler.method2, ...
             'dims', upscaler.dim2, 'nrelperm', upscaler.nrelperm, ...
             'pcow', false, 'verbose', false, 'cellinx', true);
-        updata2  = upscaler2.upscale();
+        if wantReport
+            [updata2, rep] = upscaler2.upscale();
+            report.relperm.step2 = rep;
+        else
+            updata2 = upscaler2.upscale();
+        end
         data.krO = updata2.krO;
         data.krW = updata2.krW;
+        relperm2Time = toc(t);
         
         if upscaler.saveStep1
             % Save data from the first upscaling step, if requested
@@ -101,10 +119,9 @@ methods
         end
         
         if upscaler.verbose
-            t = toc(t);
-            fprintf('  Rel.perm #2:  %6.3fs\n', t);
-            t = toc(t_relperm);
-            fprintf('  Rel.perm tot: %6.3fs\n', t);
+            fprintf('  Rel.perm #2:  %6.3fs\n', relperm2Time);
+            totalTime = toc(t_relperm);
+            fprintf('  Rel.perm tot: %6.3fs\n', totalTime);
         end
         
         
@@ -112,13 +129,20 @@ methods
         % Capillary pressure upscaling
         %------------------------------------------------------------------
         if upscaler.pcow
-            t = tic;
-            data = upPcOW(block, data, 'npointsmax', upscaler.npcow);
+            [data, rep] = upPcOW(block, data, 'npointsmax', upscaler.npcow);
+            if wantReport
+                report.pcow = rep;
+            end
             if upscaler.verbose
-                t = toc(t);
-                fprintf('  Cap.pres:     %6.3fs\n', t);
+                fprintf('  Cap.pres:     %6.3fs\n', rep.time);
             end
         end
+        
+        if wantReport
+            totalTime   = toc(startTime);
+            report.time = totalTime;
+        end
+        
         
     end
     

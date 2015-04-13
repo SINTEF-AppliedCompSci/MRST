@@ -33,11 +33,12 @@ methods
         upscaler.rock  = rock;
     end
     
-    function data = upscale(upscaler)
+    function [data, report] = upscale(upscaler)
         % Given some partition, we loop over the coarse blocks in the grid
         % and upscale each of them in turn.
         
         startTime = tic;
+        wantReport = nargout > 1;
         
         % The partition gives the coarse block number for each fine cell
         p  = upscaler.partition;
@@ -87,8 +88,18 @@ methods
             end
         end
         
+        % Store report
+        if wantReport
+            report.numBlocksTot = nBlocksTot;
+            report.reqBlockInx = requestedBlocks;
+            report.upsBlockInx = blocksToUpscale;
+            report.blocks = cell(nBlocksUp,1);
+        end
+        
         % Loop over blocks and perform upscaling on each block
         for i = 1:nBlocksUp
+            
+            t = tic;
             
             if upscaler.verbose
                 fprintf('Block number %d of %d\n', i, nBlocksUp);
@@ -97,20 +108,26 @@ methods
             b = blocksToUpscale(i); % Current block
             
             % Create grid, rock and fluid for sub block
-            t = tic;
             cells = find(p==b);
             block = upscaler.createBlock(cells); %#ok<FNDSB>
-            t = toc(t);
+            
+            setupTime = toc(t);
             if upscaler.verbose
-                fprintf('  Setup block:  %6.3fs\n', t);
+                fprintf('  Setup block:  %6.3fs\n', setupTime);
             end
             
             % Perform upscaling
-            t = tic;
-            data(i) = upscaler.upscaleBlock(block); %#ok<AGROW>
+            [data(i), blockReport] = upscaler.upscaleBlock(block); %#ok<AGROW>
+            blockTime = toc(t);
+            
+            % Store report
+            if wantReport
+                report.blocks{i} = blockReport;
+            end
+            
+            % Print info
             if upscaler.verbose
-                t = toc(t);
-                fprintf('  Total time:   %6.3fs\n', t);
+                fprintf('  Total time:   %6.3fs\n', blockTime);
                 if upscaler.timeest
                     totalTime  = toc(startTime);
                     estTimeRem = totalTime*(nBlocksUp/i - 1);
@@ -121,8 +138,15 @@ methods
             end
         end
         
+        totalTime = toc(startTime);
+        
+        % Store report
+        if wantReport
+            report.time = totalTime;
+        end
+        
         if upscaler.verbose
-            timeStr = Upscaler.timingString(toc(startTime));
+            timeStr = Upscaler.timingString(totalTime);
             fprintf('Completed upscaling of %d blocks in %s.\n', ...
                 nBlocksUp, timeStr);
         end
