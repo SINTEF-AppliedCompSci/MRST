@@ -178,8 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % and what the current driving forces are
             stepsel = solver.timeStepSelector;
             stepsel.newControlStep(drivingForces);
-
-            dtMin = dT/(2^solver.maxTimestepCuts);
+            
             while ~done
                 dt = stepsel.pickTimestep(dt, model, solver);
 
@@ -239,11 +238,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         % previous step, as we are between ministeps.
                         state = state0_inner;
                     end
-                    % Beat timestep with a hammer
-                    warning('Solver did not converge, cutting timestep')
-                    cuttingCount = cuttingCount + 1;
-                    dt = dt/2;
-                    if dt < dtMin || failure
+                    
+                    %if dt < dtMin || failure
+                    if cuttingCount+1 > solver.maxTimestepCuts || failure
                         msg = 'Did not find a solution: ';
                         if failure
                             % Failure means something is seriously wrong,
@@ -268,6 +265,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             end
                         end
                     end
+                    
+                    % Beat timestep with a hammer
+                    warning('Solver did not converge, cutting timestep')
+                    cuttingCount = cuttingCount + 1;
+                    dt = dt/2;
+                    
                     isFinalMinistep = false;
                 end
                 done = isFinalMinistep && converged;
