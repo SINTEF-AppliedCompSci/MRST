@@ -636,11 +636,17 @@ function wconinj = convertWConInje(wconinj, u)
                                 'UniformOutput', false);
    end
 
+   % Handle default pressure
+   i = isnan(vertcat(wconinj{:,7}));
+   wconinj( i,7) = { 100e3*psia };
+   wconinj(~i,7) = cellfun(@(x) convertFrom(x, u.press), ...
+                           wconinj(~i,7), 'UniformOutput', false);
+
    % General case.
    % Items 12:14 are dimensionless numbers.  Just skip them.
    %
-   c = [6                , 7      , 8      , 11                   ];
-   u = [u.liqvol_r/u.time, u.press, u.press, u.gasvol_s/u.liqvol_s];
+   c = [6                , 8      , 11                   ];
+   u = [u.liqvol_r/u.time, u.press, u.gasvol_s/u.liqvol_s];
 
    for n = 1 : numel(c),
       wconinj(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
