@@ -43,6 +43,7 @@
 - tikz figure
 * Figure 16: Modeling of effects of dissolution, Pliocenesand
 - secondPlioExample
+- showSecondPlioExample
 
 
 * Other:
