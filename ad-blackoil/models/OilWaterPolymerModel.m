@@ -21,7 +21,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             model.polymer = true;
             
             % Tolerance for the change in polymer concentration
-            model.tolerancePolymer = 1e-4;
+            model.tolerancePolymer = model.toleranceCNV;
             
             model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
             
@@ -64,7 +64,10 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 % order to check the remaining equations, the polymer is
                 % removed from the problem before the parent is called.
                 problem_org = problem;
-                problem = problem.eliminateVariable('polymer');
+                problem.equations(polyEqnInx) = [];
+                problem.types(polyEqnInx) = [];
+                problem.equationNames(polyEqnInx) = [];
+                problem.primaryVariables(polyEqnInx) = [];
                 if model.useCNVConvergence
                     % Hack to print CNV convergence including polymer
                     wasVerbose  = mrstVerbose();
