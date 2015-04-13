@@ -7,6 +7,9 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         % Polymer present
         polymer
         
+        % Polymer differene tolerence
+        tolerancePolymer
+        
     end
     
     methods
@@ -16,6 +19,9 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             
             % This is the model parameters for oil/water/polymer
             model.polymer = true;
+            
+            % Tolerance for the change in polymer concentration
+            model.tolerancePolymer = 1e-4;
             
             model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
             
@@ -31,6 +37,13 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         
         function [state, report] = updateState(model, state, problem, ...
                 dx, drivingForces)
+            
+            if model.polymer
+                % Store the polymer from previous iteration to use in
+                % convergence criteria
+                c_prev = model.getProp(state, 'polymer');
+            end
+            
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
                state, problem,  dx, drivingForces);
             
@@ -38,7 +51,58 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 c = model.getProp(state, 'polymer');
                 c = min(c, model.fluid.cmax);
                 state = model.setProp(state, 'polymer', max(c, 0) );
+                state.c_prev = c_prev;
             end
+        end
+        
+        function [convergence, values] = checkConvergence(model, ...
+                problem, varargin)
+            
+            polyEqnInx = find(problem.indexOfEquationName('polymer'));
+            if polyEqnInx
+                % The convergence of polymer equation is checked below. In
+                % order to check the remaining equations, the polymer is
+                % removed from the problem before the parent is called.
+                problem_org = problem;
+                problem = problem.eliminateVariable('polymer');
+                if model.useCNVConvergence
+                    % Hack to print CNV convergence including polymer
+                    wasVerbose  = mrstVerbose();
+                    mrstVerbose(false);
+                end
+            end
+            
+            % Check convergence of all equations except the polymer eqn
+            [convergence, values] = ...
+                checkConvergence@TwoPhaseOilWaterModel(model, ...
+                problem, varargin{:});
+            
+            if polyEqnInx
+                problem = problem_org;
+                polyNorm = Inf;
+                if problem.iterationNo > 1
+                    % Check polymer change from previous iteration
+                    polyNorm = norm(problem.state.c - ...
+                        problem.state.c_prev, Inf) / model.fluid.cmax;
+                    convergence = convergence && ...
+                        polyNorm < model.tolerancePolymer;
+                end
+                if model.useCNVConvergence
+                    % Hack to print CNV convergence including polymer
+                    mrstVerbose(wasVerbose);
+                    if mrstVerbose()
+                        inx = [model.oil, model.water];
+                        if problem.iterationNo == 1
+                            text = {'CNVO','CNVW','MBO','MBW','POLY'};
+                            text = text([inx inx model.polymer]);
+                            fprintf('%s\n', sprintf('%s\t\t',text{:}) );
+                        end
+                        fprintf('%2.2e\t', [values polyNorm]);
+                        fprintf('\n')
+                    end
+                end
+            end
+            
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
@@ -47,6 +111,11 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 c     = model.getProp(state, 'polymer');
                 cmax  = model.getProp(state, 'polymermax');
                 state = model.setProp(state, 'polymermax', max(cmax, c));
+                
+                if isfield(state, 'c_prev')
+                    % Remove the temporary field used for convergence
+                    state = rmfield(state, 'c_prev');
+                end
             end
         end
 

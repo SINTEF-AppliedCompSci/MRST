@@ -39,11 +39,13 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
             % To use the convergence methods, we need to temporarily remove
             % oil from the method, as we do not have an oil equation.
             model.oil = false;
-            [convergence, values] = checkConvergence@ReservoirModel(...
-                model, problem, varargin{:});
+            [convergence, values] = ...
+                checkConvergence@OilWaterPolymerModel(model, problem, ...
+                varargin{:});
             model.oil = true;
             
-            % Always make at least one update so that the problem actually changes.
+            % Always make at least one update so that the problem actually 
+            % changes.
             convergence = convergence && problem.iterationNo > 1;
         end
     end
