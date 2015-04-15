@@ -175,45 +175,47 @@ totMob = max(totMob, sqrt(eps));
 if opt.solveForWater
     f_w = mobWf./totMob;
     bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Gw - Go));
-    
-    f_p = mobPf./totMob;
-    bWvP   = s.faceUpstr(upcw, bW).*f_p.*(vT + s.T.*mobOf.*(Gw - Go));
 
     wat = (s.pv/dt).*(pvMult.*bW.*sW - pvMult0.*f.bW(p0).*sW0) + ...
         s.Div(bWvW);
     wat(wc) = wat(wc) - bWqW;
     
-    poro = model.rock.poro;
-    poly = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
-        pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
-        ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
-    poly(wc) = poly(wc) - bWqP;
-    
-    % Fix for (almost) zero water in the well
-    if isa(poly, 'ADI')
-       epsilon = 1.e-8;
-       epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
-       bad     = abs(diag(poly.jac{2})) < epsilon;
-       poly(bad) = c(bad);
-    end
-    
     eqs{1} = wat;
-    eqs{2} = poly./f.cmax; % scale with cmax
-    
-    names = {'water', 'polymer'};
-    types = {'cell', 'cell'};
+    name1  = 'water';
 else
-    error('Not implemented for polymer')
     f_o = mobOf./totMob;
     bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + s.T.*mobWf.*(Go - Gw));
-
-    oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
+    
+    oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - ...
+        pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
     oil(wc) = oil(wc) - bOqO;
     
     eqs{1} = oil;
-    names = {'oil'};
-    types = {'cell'};
+    name1  = 'oil';
 end
+
+% Polymer equations
+f_p = mobPf./totMob;
+bWvP   = s.faceUpstr(upcw, bW).*f_p.*(vT + s.T.*mobOf.*(Gw - Go));
+
+poro = model.rock.poro;
+poly = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
+    pvMult0.*f.bW(p0).*sW0.*c0) + (s.pv/dt).* ...
+    ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
+poly(wc) = poly(wc) - bWqP;
+
+% Fix for (almost) zero water in the well
+if isa(poly, 'ADI')
+   epsilon = 1.e-8;
+   epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
+   bad     = abs(diag(poly.jac{2})) < epsilon;
+   poly(bad) = c(bad);
+end
+
+eqs{2} = poly./f.cmax; % scale with cmax
+names  = {name1 'polymer'};
+types  = {'cell',  'cell'};
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

@@ -36,13 +36,22 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
         
         function [convergence, values] = checkConvergence(model, problem, varargin)
             
+            % TODO: HACK
             % To use the convergence methods, we need to temporarily remove
-            % oil from the method, as we do not have an oil equation.
-            model.oil = false;
+            % the phase from the model that we do not have an equation for.
+            if model.conserveWater
+                model.oil = false;
+            elseif model.conserveOil
+                model.water = false;
+            end
             [convergence, values] = ...
                 checkConvergence@OilWaterPolymerModel(model, problem, ...
                 varargin{:});
-            model.oil = true;
+            if model.conserveWater
+                model.oil = true;
+            elseif model.conserveOil
+                model.water = true;
+            end
             
             % Always make at least one update so that the problem actually 
             % changes.
