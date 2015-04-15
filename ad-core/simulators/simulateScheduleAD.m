@@ -170,8 +170,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
-            W = schedule.control(currControl).W;
-            forces = model.getDrivingForces(schedule.control(currControl));
+            [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
+            W = fstruct.Wells;
             prevControl = currControl;
         end
 
