@@ -156,6 +156,16 @@ for iv = 1:nvals
     
 end % End of input value loop
 
+% Check for upscaled values outside range. We simply force the values
+% inside valid range.
+outside = false;
+for id = 1:ndims
+	inx=krO{id}(:,2)>1; krO{id}(inx,2)=1; if any(inx),outside=true; end
+    inx=krO{id}(:,2)<0; krO{id}(inx,2)=0; if any(inx),outside=true; end
+    inx=krW{id}(:,2)>1; krW{id}(inx,2)=1; if any(inx),outside=true; end
+    inx=krW{id}(:,2)<0; krW{id}(inx,2)=0; if any(inx),outside=true; end
+end
+
 % If only one direction, we do not use cell array
 if ndims==1
     krO = krO{1};
@@ -173,6 +183,7 @@ if wantReport
     report.nvalues = nvals;
     report.dp      = opt.dp;
     report.time    = totalTime;
+    report.valsOutsideRange = outside;
 end
 
 
