@@ -82,25 +82,36 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             
             if polyEqnInx
                 problem = problem_org;
-                polyNorm = Inf;
+                polyStr = sprintf('-\t');
                 if problem.iterationNo > 1
                     % Check polymer change from previous iteration
                     polyNorm = norm(problem.state.c - ...
                         problem.state.c_prev, Inf) / model.fluid.cmax;
                     convergence = convergence && ...
                         polyNorm < model.tolerancePolymer;
+                    polyStr = sprintf('%2.2e', polyNorm);
                 end
                 if model.useCNVConvergence
                     % Hack to print CNV convergence including polymer
                     mrstVerbose(wasVerbose);
                     if mrstVerbose()
-                        inx = [model.oil, model.water];
+                        pinx  = [model.oil, model.water];
+                        np    = 2*sum(pinx);
                         if problem.iterationNo == 1
-                            text = {'CNVO','CNVW','MBO','MBW','POLY'};
-                            text = text([inx inx model.polymer]);
+                            ptext = {'CNVO','CNVW','MBO','MBW'};
+                            winx  = problem.indexOfType('perf') | ...
+                                    problem.indexOfType('well');
+                            wtext = problem.equationNames(winx);
+                            wtext = strrep(wtext, 'waterWells', 'WATERW');
+                            wtext = strrep(wtext, 'oilWells', 'OILW');
+                            wtext = strrep(wtext, 'polymerWells', 'POLYW');
+                            wtext = strrep(wtext, 'closureWells', 'CLOSE');
+                            text  = [ptext([pinx pinx]) {'POLY'} wtext];
                             fprintf('%s\n', sprintf('%s\t\t',text{:}) );
                         end
-                        fprintf('%2.2e\t', [values polyNorm]);
+                        fprintf('%2.2e\t', values(1:np));
+                        fprintf('%s\t',    polyStr);
+                        fprintf('%2.2e\t', values(np+1:end));
                         fprintf('\n')
                     end
                 end
