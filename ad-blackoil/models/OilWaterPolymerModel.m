@@ -21,7 +21,7 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             model.polymer = true;
             
             % Tolerance for the change in polymer concentration
-            model.tolerancePolymer = model.toleranceCNV;
+            model.tolerancePolymer = 1e-3;
             
             model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
             
