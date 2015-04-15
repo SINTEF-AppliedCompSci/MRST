@@ -30,7 +30,7 @@ if isfield(deck.PROPS, 'PVCDO')
          'viscosity is used.']);
    end
 elseif isfield(deck.PROPS, 'PVDO')
-    muO = deck.PROPS.PVDO(3); % oil viscosity
+    muO = deck.PROPS.PVDO{1}(1,3); % oil viscosity
 elseif isfield(fluid, 'muO')
    %muO = fluid.muO(100*barsa
    error('Have to be implemented')
