@@ -29,6 +29,8 @@ if isfield(deck.PROPS, 'PVCDO')
       warning(['There is nonzero water viscosibility. Only the reference '...
          'viscosity is used.']);
    end
+elseif isfield(deck.PROPS, 'PVDO')
+    muO = deck.PROPS.PVDO(3); % oil viscosity
 elseif isfield(fluid, 'muO')
    %muO = fluid.muO(100*barsa
    error('Have to be implemented')
