@@ -8,6 +8,7 @@ function varargout = mrstPath(varargin)
 %      3) mrstPath [search] module list
 %         paths = mrstPath('search', module list)
 %         paths = mrstPath(module list)
+%         paths = mrstPath
 %
 % PARAMETERS:
 %   Mode 1)
@@ -103,6 +104,10 @@ function varargout = mrstPath(varargin)
 %               arguments, function 'mrstPath' will display the known
 %               mapping of the requested modules (all modules if module
 %               list is empty) in the Command Window.
+%
+%               If called with a single output argument and no input
+%               arguments, then the output will be a cell array of strings
+%               containing the currently registered modules.
 %
 %               NOTE: As a special case the return value will be a string
 %               (not a cell array of strings) if function 'mrstPath' is
@@ -244,12 +249,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       mrstPath list
 
+   elseif nargout == 1,
+
+      varargout{1} = active_modules(CACHE);
+
    else
 
       error(msgid('Syntax:Error'), ...
            ['Call syntax is\n\t', ...
             mfilename, ' <command> [module list]  or\n\t', ...
-            'map = ', mfilename, '(''search'', module list)']);
+            'map = ', mfilename, '(''search'', module list)  or\n\t', ...
+            'map = ', mfilename]);
 
    end
 end
@@ -382,6 +392,16 @@ function list_modules(cache)
       fprintf('Currently registered modules\n');
       print_list(map);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function mod = active_modules(cache)
+   map = cache_to_map(cache);
+
+   assert (size(map, 2) == 2, 'Internal error.');
+
+   mod = map(:,1);
 end
 
 %--------------------------------------------------------------------------
