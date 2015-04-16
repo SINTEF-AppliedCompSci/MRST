@@ -203,7 +203,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            disp_step_convergence(report.Iterations, t);
         end
 
-        W = updateSwitchedControls(state.wellSol, W);
+        W = updateSwitchedControls(state.wellSol, W, ...
+                'allowWellSignChange',   model.wellmodel.allowWellSignChange, ...
+                'allowControlSwitching', model.wellmodel.allowControlSwitching);
 
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
