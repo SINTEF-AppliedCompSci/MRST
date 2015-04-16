@@ -75,7 +75,7 @@ clear k p0 s0 rs0;
 
 figure(1)
 clf
-W = processWells(G, rock, deck.SCHEDULE.control(1));
+W = processWellsLocal(G, rock, deck.SCHEDULE.control(1));
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
              'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
 plotWell(G, W)

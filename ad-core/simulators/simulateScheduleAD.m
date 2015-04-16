@@ -116,6 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'OutputMinisteps', false, ...
                  'NonLinearSolver', [], ...
                  'OutputHandler',   [], ...
+                 'afterStepFn',     [], ...
                  'LinearSolver',    []);
 
     opt = merge_options(opt, varargin{:});
@@ -169,8 +170,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
-            W = schedule.control(currControl).W;
-            forces = model.getDrivingForces(schedule.control(currControl));
+            [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
+            W = fstruct.Wells;
             prevControl = currControl;
         end
 
@@ -202,7 +203,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            disp_step_convergence(report.Iterations, t);
         end
 
-        W = updateSwitchedControls(state.wellSol, W);
+        W = updateSwitchedControls(state.wellSol, W, ...
+                'allowWellSignChange',   model.wellmodel.allowWellSignChange, ...
+                'allowControlSwitching', model.wellmodel.allowControlSwitching);
 
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
@@ -235,6 +238,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if wantReport
             reports{i} = report;
+        end
+        
+        if ~isempty(opt.afterStepFn)
+            [model, states, reports, solver, ok] = opt.afterStepFn(model, states,  reports, solver, schedule, simtime);
+            if ~ok
+                warning('Aborting due to external function');
+                break
+            end
         end
     end
 
