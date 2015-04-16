@@ -29,6 +29,10 @@ function varargout = mrstModule(varargin)
 %                                      mrstModule clear
 %                                      mrstModule add [module list]
 %
+%                       o) gui   -- Launch user interface for loading and
+%                                   unloading modules. Equivialent to
+%                                   calling moduleGUI() directly.
+%
 %     [module list] - A sequence of strings naming individual add-on
 %                     modules for MRST.  The mapping of module names to
 %                     system paths is performed by function 'mrstPath'.
@@ -119,6 +123,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                MODLIST = add_modules(MODLIST, mods);
             end
 
+         case 'gui'
+            moduleGUI();
+              
          otherwise,
             error(msgid('Command:Unsupported'), ...
                  ['Command word ''%s'' unsupported. Must be one of ', ...
