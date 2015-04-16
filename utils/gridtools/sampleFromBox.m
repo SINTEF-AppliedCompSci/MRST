@@ -10,6 +10,8 @@ function q = sampleFromBox(G, p, c)
 %    G  - grid structure
 %    p  - input array to sample from. The array is assumed to be values
 %         on a uniform Cartesian grid covers the bounding box of grid G.
+%         The values should be given as a Nx by Ny matrix where Nx and Ny
+%         is the number of values in the x and y direction respectively.
 %    c  - array specifying a subset of cells in G in which values will be
 %         sampled
 %
