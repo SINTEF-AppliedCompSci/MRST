@@ -12,7 +12,8 @@ function schedule = makeScheduleConsistent(schedule, varargin)
 %   simulator output will be normalized and easier to work with.
 %
 % PARAMETERS:
-%   schedule - schedule to be improved upon.
+%   schedule - Schedule with possibly inconsistent numbers of wells and
+%              perforations.
 %
 % RETURNS:
 %   schedule - Equivialent schedule that is consistent in the well and cell

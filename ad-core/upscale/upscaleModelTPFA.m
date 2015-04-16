@@ -1,4 +1,64 @@
 function model = upscaleModelTPFA(model, partition, varargin)
+%Upscale a fine model into a coarser version using a partition vector
+%
+% SYNOPSIS:
+%   modelcoarse = upscaleModelTPFA(model, partition)
+%
+% DESCRIPTION:
+%   Given a fine model and a partition vector (created using standard
+%   coarsegrid tools such as partitionUI), this routine makes a coarser
+%   model with upscaled properties. Using somewhat reasonable defaults,
+%   most parts of the routine can be overriden by better values if the user
+%   already knows for instance transmissibilities.
+%
+% REQUIRED PARAMETERS:
+%   model     - Fine scale model. Subclass of ReservoirModel.
+%
+%   partition - Partition vector. Length equal to model.G.cells.num, with
+%               positive indicator values. All cells with the same
+%               indicator will be agglomerated into a single coarse block.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+% 'validatePartition' - Ensure partition is connected on the grid, and
+%                       numbered from 1...N without gaps.
+% 
+% 'transCoarse'       - Coarse transmissibilities. Will be calculated from
+%                       upscaled permeability if not provided.
+%
+% 'permCoarse'        - Coarse permeability. Will be calculated using
+%                       harmonic averaging if not provided.
+%
+% 'neighborship'      - Coarse neighborship (matching transCoarse). Will be
+%                       derived from fine grid if not provided.
+%
+% 'poroCoarse'        - Coarse porosities. Computed from fine model using a
+%                       simple sum if not provided.
+%
+% RETURNS:
+%   model  - Coarse model.
+%
+% SEE ALSO:
+%   upscaleSchedule, generateCoarseGrid
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     opt = struct('validatePartition', true,...
                  'transCoarse',       [], ...
                  'permCoarse',        [], ...

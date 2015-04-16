@@ -1,4 +1,55 @@
 function [welldata, wellnames, fldnames] = getWellOutput(wellsols, fldnames, wells)
+%Extract values from wellsols.
+%
+% SYNOPSIS:
+%   [wd, wn, flds]= getWellOutput(wellSols, 'bhp')
+%   [wd, wn, flds]= getWellOutput(wellSols, {'bhp', 'qWs'}, 'W1')
+%
+% DESCRIPTION:
+%   Given a cell array of well solution structures representing multiple
+%   timesteps, this routine extracts requested values in matrix form ready
+%   for plotting / inspection.
+%
+% REQUIRED PARAMETERS:
+%   wellSols - Cell array of NSTEP length, each containing a struct with
+%              NWELL entries. All wells must exist at all timesteps.
+%                
+%   fldnames - (OPTIONAL) Either a single string, or a cell array of
+%              desired fields for output. Bottom hole pressures, rates, ...
+%              Defaults to all fields.
+%
+%   wells    - (OPTIONAL) Either a single string, or a cell array of well
+%              names for which output is desired. Defaults to all wells.
+% RETURNS:
+%   welldata - A NSTEP by NWELL by NFIELDS matrix. For instance, for
+%   calling
+%
+%   D = getWellOutput(wellsols, {'bhp', 'qWs'}, {'Injector', 'Producer'})
+%   
+%   will give bottom hole pressures for the producer in D(:, 1, 2);
+%             
+%
+% SEE ALSO:
+%   plotWellSols
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     assert(iscell(wellsols))
     nsteps = numel(wellsols);
     if nsteps == 0

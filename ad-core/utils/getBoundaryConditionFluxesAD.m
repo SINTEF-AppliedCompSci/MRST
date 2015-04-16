@@ -1,4 +1,62 @@
-function [qRes, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+function [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+%Get boundary condition fluxes for a given set of values
+%
+% SYNOPSIS:
+%   [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+%
+% DESCRIPTION:
+%   Given a set of boundary conditions, this function computes the fluxes
+%   induced for a given set of reservoir parameters (density, mobility,
+%   saturations etc).
+%
+% REQUIRED PARAMETERS:
+%
+%   model      - Subclass of ReservoirModel implementing the current
+%                simulation model.
+%
+%   pressure   - Cell values of pressure. Should be a nph long cell array,
+%                containing the phase pressures.
+%
+%   rho        - Surface densities of each phase, as a nph long cell array.
+%
+%   b          - Reservoir to standard condition factors per phase, as a
+%                nph long array.
+%
+%   s          - Phase saturations per cell, as a nph long array.
+%
+%   bc         - Boundary condition struct, with valid .sat field with
+%                length nph. Typically made using addBC, pside or fluxside.
+%
+% RETURNS:
+%   qSurf      - Cell array of phase fluxes.
+%
+%   BCTocellMap - Matrix used to add in bc fluxes to cells. Implemented as
+%                 a matrix to efficiently account for cells with multiple
+%                 faces with boundary conditions.
+%
+%   cells       - The cells affected by boundary conditions.
+%
+% SEE ALSO:
+%   addBC, pside, fluxside
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
 % Basic quanitites
 T = model.operators.T_all(bc.face);
@@ -31,7 +89,7 @@ dzbc = dz*g';
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 
-qRes = cell(nPh,1);
+qSurf = cell(nPh,1);
 
 % Use sat field to determine what any inflow cells produce.
 sat = bc.sat;
@@ -99,7 +157,7 @@ for i = 1:nPh
         f = mobBC(subs)./totMob(subs);
         q(subs) = bBC(subs).*f.*bc.value(subs);
     end
-    qRes{i} = q;
+    qSurf{i} = q;
 end
 end
 
