@@ -74,12 +74,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                    'Style', 'pushbutton', ...
                                                    'String', label, ...
                                                    varargin{:});
-    addbutton(0.15, 'Unload all', 'Callback', @clearModules)
-    addbutton(0.4, 'List paths', 'Callback', @(src, event) mrstPath('list'))
-    addbutton(0.65, 'Update', 'Callback', @(src, event) updateButtons());
-    
-    
-    disp('Done')
+    addbutton(0.05, 'Unload all', 'Callback', @clearModules)
+    addbutton(0.2 + 3*0.025, 'List paths', 'Callback', @(src, event) mrstPath('list'))
+    addbutton(0.4 + 4*0.025, 'Update', 'Callback', @(src, event) updateButtons());
+    addbutton(0.6 + 5*0.025, 'Exit', 'Callback', @(src, event) close(f));
+
     function updateButtons()
         active = getActive(modules);
         for modNo = 1:Nc
