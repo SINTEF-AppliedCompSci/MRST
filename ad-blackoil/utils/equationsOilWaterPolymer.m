@@ -247,6 +247,9 @@ end
 
 
 % Effective adsorption, depending of desorption or not
+% adsInx=1: The polymer adsorption isotherm is retraced whenever the local 
+%           polymer concentration in the solution decreases.
+% adsInx=2: No polymer desorption may occur.
 function y = effads(c, cmax, model)
    if model.fluid.adsInx == 2
       y = model.fluid.ads(max(c, cmax));
