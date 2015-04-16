@@ -167,11 +167,6 @@ s.faceUpstr = @(flag, x)faceUpstr(flag, x, N, [nf, nc]);
 % Include neighbor relations
 s.N = N;
 s.internalConn = intInx;
-
-% Average cell values to faces
-fvg = 0.5*bsxfun(@rdivide, ones(n,2), G.faces.areas(intInx));
-aC  = sparse( [(1:n)'; (1:n)'], N, fvg, n, G.cells.num);
-s.cellAvg = @(x) aC*x;
 end
 
 function xu = faceUpstr(flag, x, N, sz)
