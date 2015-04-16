@@ -125,7 +125,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'gui'
             moduleGUI();
-              
+
          otherwise,
             error(msgid('Command:Unsupported'), ...
                  ['Command word ''%s'' unsupported. Must be one of ', ...
