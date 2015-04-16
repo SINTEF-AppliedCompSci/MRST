@@ -38,7 +38,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       'Position',[0 .1 1 .9]);
 
     % Put modules in alphabetic order
-    modules = sort(mrstPath('list'));
+    modules = sort(mrstPath());
 
     Nc = numel(modules);
 
@@ -117,7 +117,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function active = getActive(modules)
-    current = mrstModule('list');
+    current = mrstModule();
 
     active = cellfun(@(x) any(strcmpi(current, x)), modules);
 end
