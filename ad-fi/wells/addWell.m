@@ -141,7 +141,7 @@ opt = struct('InnerProduct', 'ip_tpf',                     ...
              'Skin'        , zeros(numC, 1),               ...
              'refDepth'    , 0,                            ...
              'lims'        , [],                          ...
-             'Sign'        , []);
+             'Sign'        , 0);
 
 opt = merge_options(opt, varargin{:});
 
@@ -180,7 +180,7 @@ end
 
 % Set well sign (injection = 1 or production = -1)
 % for bhp wells or rate controlled wells with rate = 0.
-if ~isempty(opt.Sign),
+if opt.Sign == 0,
    if sum(opt.Sign == [-1, 1]) ~= 1,
       error(msgid('Sign:NonUnit'), 'Sign must be -1 or 1');
    end
