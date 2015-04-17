@@ -66,28 +66,38 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %             Default value:  Comp_i = [1, 0, 0] (water injection)
 %
 %   Sign   -- Well type: Production (Sign = -1) or Injection (Sign = 1).
-%             Default value: [] (no sign).
+%             Default value: 0 (Undetermined sign. Will be derived from
+%             rates if possible).
 %
 %   Name   -- Well name (string).
 %             Default value: SPRINTF('W%d', numel(W) + 1)
 %
+%  refDepth -- Reference depth for the well, i.e. the value for which
+%              bottom hole pressures are defined.
+%
 % RETURNS:
 %   W - Updated (or freshly created) well structure, each element of which
 %       has the following fields:
-%          cells -- Grid cells perforated by this well (== cellInx).
-%          type  -- Well control type (== Type).
-%          val   -- Target control value (== Val).
-%          r     -- Well bore radius (== Radius).
-%          dir   -- Well direction (== Dir).
-%          WI    -- Well productivity index.
-%          dZ    -- Displacement of each well perforation measured from
+%         cells   -- Grid cells perforated by this well (== cellInx).
+%         type    -- Well control type (== Type).
+%         val     -- Target control value (== Val).
+%         r       -- Well bore radius (== Radius).
+%         dir     -- Well direction (== Dir).
+%         WI      -- Well productivity index.
+%         dZ      -- Displacement of each well perforation measured from
 %                   'highest' horizontal contact (i.e., the 'TOP' contact
 %                   with the minimum 'Z' value counted amongst all cells
 %                   perforated by this well).
-%          name  -- Well name (== Name).
-%          compi -- Fluid composition--only used for injectors (== Comp_i).
-%          sign  -- injection (+) or production (-) flag.
-%
+%         name    -- Well name (== Name).
+%         compi   -- Fluid composition--only used for injectors (== Comp_i).
+%         sign    -- injection (+) or production (-) flag.
+%         status  -- Boolean indicating if the well is open or shut.
+%         cstatus -- One entry per cell, indicating if the completion is
+%                   open.
+%         lims    -- Limits for the well. Contains subfields for the types
+%                    of limits applicable to the well (bhp, rate, orat, ...)
+%                    Injectors generally have upper limits, while producers
+%                    have lower limits.
 % EXAMPLE:
 %   simpleWellExample
 %
@@ -124,10 +134,6 @@ end
 error(nargchk(4, inf, nargin, 'struct'));
 numC = numel(cellInx);
 
-% if numC == 0
-%     warning(msgid('cellInx:EmptyCellList', ...
-%         'Provided empty list of well perforations, will not add well'));
-% end
 
 opt = struct('InnerProduct', 'ip_tpf',                     ...
              'Dir'         , 'z',                          ...
@@ -150,14 +156,12 @@ WI = reshape(opt.WI, [], 1);
 assert (numel(WI)       == numC)
 assert (numel(opt.Kh)   == numC);
 assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1);
-%assert (strcmp(opt.Type, 'rate') || strcmp(opt.Type, 'bhp'));
 
 if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1]));  end
 
 % Set reference depth default value.
 if isempty(opt.refDepth),
    g_vec = gravity();
-   %dims  = size(G.nodes.coords, 2);
    dims  = G.griddim;
    if norm(g_vec(1:dims)) > 0,
       g_vec = g_vec ./ norm(g_vec);
@@ -353,7 +357,7 @@ function [dx, dy, dz] = cellDimsCG(G,ix)
 %   [dx, dy, dz] = cellDims(G, ix)
 %
 % PARAMETERS:
-%   CG  - Grid data structure.
+%   G  - Grid data structure.
 %   ix - Cells for which to compute the physical dimensions (bounding
 %        boxes).
 %
@@ -363,7 +367,6 @@ function [dx, dy, dz] = cellDimsCG(G,ix)
 n = numel(ix);
 [dx, dy, dz] = deal(zeros([n, 1]));
 ixc = G.cells.facePos;
-%ixf = G.faces.nodePos;
 
 for k = 1 : n,
    c = ix(k);                                     % Current cell
