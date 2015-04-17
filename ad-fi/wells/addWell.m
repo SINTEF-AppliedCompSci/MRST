@@ -184,7 +184,7 @@ end
 
 % Set well sign (injection = 1 or production = -1)
 % for bhp wells or rate controlled wells with rate = 0.
-if opt.Sign == 0,
+if opt.Sign ~= 0,
    if sum(opt.Sign == [-1, 1]) ~= 1,
       error(msgid('Sign:NonUnit'), 'Sign must be -1 or 1');
    end
