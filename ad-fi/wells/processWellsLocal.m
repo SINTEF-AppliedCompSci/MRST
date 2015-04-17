@@ -15,36 +15,51 @@ function W = processWellsLocal(G, rock, control, varargin)
 %
 %   'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
 %             supported options are:
-%               - InnerProduct -- The inner product with which to define
-%                                 the mass matrix.
-%                                 String.  Default value = 'ip_tpf'.
-%                 Supported values are:
-%                   - 'ip_simple'
-%                   - 'ip_tpf'
-%                   - 'ip_quasitpf'
-%                   - 'ip_rt'
-%
-%               - Verbose -- Whether or not to emit informational messages
+%           - InnerProduct -- The inner product with which to define
+%                             the mass matrix.
+%                             String.  Default value = 'ip_tpf'.
+%             Supported values are:
+%               - 'ip_simple'
+%               - 'ip_tpf'
+%               - 'ip_quasitpf'
+%               - 'ip_rt'
+% 
+%           - Verbose      -- Whether or not to emit informational messages
 %                            if any requested well control mode is
 %                            unsupported.
 %                            Logical.  Default value = false.
+%           - DepthReorder -- Boolean indicating if we should attempt to
+%                             reorder the perforations by depth. Should
+%                             only be used for vertical wells. Default off.
+%           - createDefaultWell -- If enabled, this function will not parse
+%                              any wells, but simply return a default well
+%                              structure suitable for further modification.
 %
 % RETURNS:
 %   W  - Updated (or freshly created) well structure, each element of which
 %        has the following fields:
-%          cells -- Grid cells perforated by this well.
-%          type  -- Well control type.
-%          val   -- Target control value.
-%          r     -- Well bore radius.
-%          dir   -- Well direction.
-%          WI    -- Well index.
-%          dZ    -- Vertical displacement of each well perforation measured
+%        cells   -- Grid cells perforated by this well.
+%        type    -- Well control type.
+%        val     -- Target control value.
+%        r       -- Well bore radius.
+%        dir     -- Well direction.
+%        WI      -- Well index.
+%        dZ      -- Vertical displacement of each well perforation measured
 %                   from 'highest' horizontal contact (i.e., the 'TOP'
 %                   contact with the minimum 'Z' value counted amongst all
 %                   cells perforated by this well).
-%          name  -- Well name.
-%          compi -- Fluid composition--only used for injectors.
-%          sign  -- injection (+) or production (-) flag.
+%       name     -- Well name.
+%       compi    -- Fluid composition--only used for injectors.
+%       sign     -- injection (+) or production (-) flag.
+%       status   -- Boolean indicating if the well is open or shut.
+%       cstatus  -- One entry per cell, indicating if the completion is
+%                   open.
+%       lims     -- Limits for the well. Contains subfields for the types
+%                   of limits applicable to the well (bhp, rate, orat, ...)
+%                   Injectors generally have upper limits, while producers
+%                   have lower limits.
+%       poly     -- Polymer concentration in well. Only applicable for
+%                   polymer models.
 %
 % SEE ALSO:
 %   readSCHEDULE, readWellKW, addWell.
@@ -69,7 +84,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %}
 
 
-   opt = struct('InnerProduct', 'ip_tpf', 'Verbose', mrstVerbose, 'DepthReorder', false, ...
+   opt = struct('InnerProduct',     'ip_tpf', ...
+                'Verbose',           mrstVerbose(), ...
+                'DepthReorder',      false, ...
                 'createDefaultWell', false);
    opt = merge_options(opt, varargin{:});
 
@@ -130,11 +147,6 @@ function W = process_wconinj(W, control, G, rock, well_id, p, opt)
    for i = 1 : size(control.WCONINJ, 1),
       nm = control.WCONINJ{i,1};
       status = strcmp(control.WCONINJ{i,3}, 'OPEN');
-%       if ~strcmp(control.WCONINJ{i,3}, 'OPEN'),
-%          warning(msgid('Injector:Shut'), ...
-%                  'Injector ''%s'' shut on input.  Ignored.\n', nm);
-%          continue;
-%       end
 
       type = lower(control.WCONINJ{i,4});
       switch type,
@@ -178,11 +190,6 @@ function W = process_wconinje(W, control, G, rock, well_id, p, opt)
    for i = 1 : size(control.WCONINJE, 1),
       nm = control.WCONINJE{i,1};
       status = strcmp(control.WCONINJE{i,3}, 'OPEN');
-%       if ~strcmp(control.WCONINJE{i,3}, 'OPEN'),
-%          warning(msgid('Injector:Shut'), ...
-%                  'Injector ''%s'' shut on input.  Ignored.\n', nm);
-%          continue;
-%       end
 
       type = lower(control.WCONINJE{i,4});
       switch type,
@@ -232,11 +239,6 @@ function W = process_wconinjh(W, control, G, rock, well_id, p, opt)
    for i = 1 : size(control.WCONINJH, 1),
       nm = control.WCONINJH{i,1};
       status = strcmp(control.WCONINJH{i,3}, 'OPEN');
-%       if ~strcmp(control.WCONINJH{i,3}, 'OPEN'),
-%          warning(msgid('Injector:Shut'), ...
-%                  'Injector ''%s'' shut on input.  Ignored.\n', nm);
-%          continue;
-%       end
 
       type = 'rate'; % History matched well are always rate controlled
       val = control.WCONINJH{i, 4};
@@ -283,11 +285,6 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
    for i = 1 : size(control.WCONHIST, 1),
       nm = control.WCONHIST{i,1};
       status = strcmp(control.WCONHIST{i,2}, 'OPEN');
-%       if ~strcmp(control.WCONHIST{i,2}, 'OPEN'),
-%          warning(msgid('Producer:Shut'), ...
-%                  'Producer ''%s'' shut on input.  Ignored.\n', nm);
-%          continue;
-%       end
 
       type = lower(control.WCONHIST{i,3});
       switch type
@@ -367,11 +364,6 @@ function W = process_wconprod(W, control, G, rock, well_id, p, opt)
    for i = 1 : size(control.WCONPROD,1),
       nm = control.WCONPROD{i,1};
       status = strcmp(control.WCONPROD{i,2}, 'OPEN');
-%       if ~strcmp(control.WCONPROD{i,2}, 'OPEN'),
-%          dispif(opt.Verbose, ...
-%                 'Producer ''%s'' shut on input.  Ignored.\n', nm);
-%          continue;
-%       end
 
       type = lower(control.WCONPROD{i,3});
       switch type,
@@ -595,7 +587,6 @@ function perf = active_perf(G, comp)
 end
 
 function W = createDefaultWell(G, rock)
-
 % default well will be handled as injector in checkLims
    rock.perm = ones(G.cells.num,1);
    W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', 'sign', 1, 'Comp_i', 1/3*[1, 1, 1], 'refDepth', G.cells.centroids(1,3));
@@ -604,19 +595,3 @@ function W = createDefaultWell(G, rock)
    W.lims.bhp  = inf;
 
 end
-
-% function control = reorderByDepth(G, control, p)
-%     c = G.cartDims;
-%     for i = 1:numel(p)-1
-%         index = (p(i):p(i + 1)-1)';
-%         num = numel(index);
-%         comp  = control.COMPDAT(index, :);
-%         cells = zeros(num, 1);
-%         for j = 1:num
-%             cells(j) = cart2active(G, sub2ind(G.cartDims, comp{j, 2}, comp{j, 3}, comp{j, 4}));
-%         end
-%         depth = G.cells.centroids(cells, 3);
-%         new_index = sortrows(horzcat(depth, index));
-%         control.COMPDAT(p(i) : p(i + 1) - 1, :) = control.COMPDAT(new_index(:, 2), :);
-%     end
-% end
