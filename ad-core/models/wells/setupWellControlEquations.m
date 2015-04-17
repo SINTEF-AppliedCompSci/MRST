@@ -1,5 +1,44 @@
 function eq = setupWellControlEquations(sol, pBH, q_s, status, mix_s, model)
+%Setup well controll (residual) equations 
+%
+% SYNOPSIS:
+%   eq = setupWellControlEquations(sol, pBH, q_s, status, mix_s, model)
+%
+% PARAMETERS:
+%   sol         - List of current well solution structures containing
+%                 control type for each well 
+%   pBH         - Vector of well bhps
+%   q_s         - List of vectors of well component volume-rates 
+%                 (surface conds) 
+%   status      - Logic vector of well statuses
+%   mix_s       - List of vectors containing volumetric mixture of components 
+%                 in wellbroe at connections (surface conds).
+%   model       - Simulation model.
+%
+% RETURNS:
+%   eq          - Well control equations
+%
+% SEE ALSO:
+%   WellModel, computeWellContributionsNew.
 
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+   %}
 [iw, io, ig] = deal([]);
 if model.water
     iw = 1;
