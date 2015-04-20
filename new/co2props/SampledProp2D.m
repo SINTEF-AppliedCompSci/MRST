@@ -23,7 +23,9 @@ function res = SampledProp2D(name, file, varargin)
 %   varargin - optional parameters (as key/value pairs) are:
 %                - 'assert_in_range':   If 'true', throw an error if user tried
 %                                       to extrapolate outside valid range.
-%                                       Otherwise, return a NaN value.
+%                - 'nan_outside_range': If 'true' (default), return NaN
+%                                       values outside valid range.
+%                                       Otherwise, extrapolate as constant function.
 %                - 'phase_boundary':    Cell array.  If nonempty, the first
 %                                       cell contains the parameter values for
 %                                       the critical point (start of the
@@ -42,6 +44,7 @@ function res = SampledProp2D(name, file, varargin)
 
    
    opt.assert_in_range   = true; % throw error if sampled outside range
+   opt.nan_outside_range = true; % return NaN values if sampled outside range
    opt.phase_boundary    = [];   % {[critical point], boundary fun v1 = f(v2)}
    opt.const_derivatives = true; % consider constant derivative between each
                                  % sample point (precludes functions with
@@ -137,7 +140,7 @@ function res = SampledProp2D(name, file, varargin)
          assert_in_range(v1, span_v1);
          assert_in_range(v2, span_v2);
       else
-         [v1, v2] = truncate_vectorized(v1, v2, span_v1, span_v2);
+         [v1, v2] = truncate_vectorized(v1, v2, span_v1, span_v2, opt.nan_outside_range);
       end
       
       phase    = phase_of(v1, v2, opt.phase_boundary);
@@ -488,6 +491,8 @@ function c = cell_adder(c1, c2)
     end
 end
 
+% ----------------------------------------------------------------------------
+
 function assert_in_range(val, range)
    if (any(val < range(1)) || any (val > range(2)))
       error('Tried to extrapolate outside range of sampled table.');
@@ -496,10 +501,24 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [v1, v2] = truncate_vectorized(v1, v2, v1_span, v2_span)
-  
-    v1(v1 < v1_span(1) | v1 > v1_span(2)) = NaN;
-    v2(v2 < v2_span(1) | v2 > v2_span(2)) = NaN;
+function [v1, v2] = truncate_vectorized(v1, v2, v1_span, v2_span, use_nan)
+
+   if (use_nan)
+      v1(v1 < v1_span(1) | v1 > v1_span(2)) = NaN;
+      v2(v2 < v2_span(1) | v2 > v2_span(2)) = NaN;
+   else
+      v1_tr_1 = v1 < v1_span(1);
+      v1_tr_2 = v1 > v1_span(2);
+      v2_tr_1 = v2 < v2_span(1);
+      v2_tr_2 = v2 > v2_span(2);
+      if any(v1_tr_1 | v1_tr_2 | v2_tr_1 | v2_tr_2)
+         warning(['There were values outside sampled table range.  Truncating.']);
+         v1(v1_tr_1) = v1_span(1);
+         v1(v1_tr_2) = v1_span(2);
+         v2(v2_tr_1) = v2_span(1);
+         v2(v2_tr_2) = v2_span(2);
+      end
+   end
 end
 % ----------------------------------------------------------------------------
 function span = shrink_span(span, ds)

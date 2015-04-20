@@ -4,9 +4,10 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
    opt.tspan  = [10 500] + 273.15;
    opt.pnum   = 200; % number of pressure samples
    opt.tnum   = 200; % number of temperature samples
-   opt.ref    = [100 * barsa, 35 + 273.15]; % BW reference temperature/pressure
    opt.props  = [true false false]; % which props to include [rho, mu, h]
    opt.fixedT = [];
+   opt.assert_range = false;
+   opt.nan_outside_range = false;
 
    opt = merge_options(opt, varargin{:});
    
@@ -22,13 +23,16 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
    
    % Add density, viscosity and enthalpy properties
    if opt.props(1)
-      fluid.(['rho', shortname]) = load_property(opt, 'D', fluidname, opt.fixedT); 
+      fluid.(['rho', shortname]) = load_property(opt, 'D', fluidname, opt.fixedT, ...
+                                                 opt.assert_range, opt.nan_outside_range); 
    end
    if opt.props(2)
-      fluid.(['mu' , shortname]) = load_property(opt, 'V', fluidname, opt.fixedT); 
+      fluid.(['mu' , shortname]) = load_property(opt, 'V', fluidname, opt.fixedT, ...
+                                                 opt.assert_range, opt.nan_outside_range); 
    end
    if opt.props(3)
-      fluid.(['h'  , shortname]) = load_property(opt, 'H', fluidname, opt.fixedT);
+      fluid.(['h'  , shortname]) = load_property(opt, 'H', fluidname, opt.fixedT, ...
+                                                 opt.assert_range, opt.nan_outside_range); 
       
       if opt.props(1) % we have both enthalpy and density - we can also
                       % include internal energy
@@ -40,7 +44,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function pfun = load_property(opt, pname, fluidname, fixedT)
+function pfun = load_property(opt, pname, fluidname, fixedT, assert_range, nan_outside)
 
    fname = propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname);
    
@@ -52,7 +56,9 @@ function pfun = load_property(opt, pname, fluidname, fixedT)
 
    % We here load the generated table, and construct an object with evaluator
    % functions 
-   obj = SampledProp2D(pname, fname);
+   obj = SampledProp2D(pname, fname, ...
+                       'assert_in_range', assert_range, ...
+                       'nan_outside_range', nan_outside);
    
    % We return the main evaluator function (which also works in an ADI-setting)
    pfun = obj.([pname]);
