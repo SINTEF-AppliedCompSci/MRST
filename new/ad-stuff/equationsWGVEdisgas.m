@@ -64,9 +64,9 @@ function [problem, state] = equationsWGVEdisgas(model, state0, state, dt, drivin
    
    % Evaluate water and CO2 properties 
    [vW, bW, mobW, rhoW, upcw, dpW] = ...
-       getPhaseFluxAndProps_WGVE(model, pW, pG, krW, trans, gdz, 'W', rs);
+       getPhaseFluxAndProps_WGVE(model, pW, pG, krW, trans, gdz, 'W', rs, 0);
    [vG, bG, mobG, rhoG, upcg, dpG] = ...
-       getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G', 0);
+       getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G', 0, 0);
 
    bW0 = f.bW(pW0);
    bG0 = f.bG(pW0); % Yes, using water pressure also for gas here
@@ -133,6 +133,8 @@ function [problem, state] = equationsWGVEdisgas(model, state0, state, dt, drivin
          [eqs(5:7), names(5:7), types(5:7)] = ...
              wm.createReverseModeWellEquations(model, state0, wellSol, p0);
       end
+   else 
+      eqs(5:7) = {bhp, bhp, bhp}; % empty ADIs
    end
 
    %% Setting up dissolution equations

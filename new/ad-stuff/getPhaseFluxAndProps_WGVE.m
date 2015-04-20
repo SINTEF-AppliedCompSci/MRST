@@ -43,10 +43,12 @@ end
 
 function [bfun, mufun] = bind_temperature(bfun, mufun, temp)
 
-   if nargin(bfun) > 1
+% A property function will be considered as dependent of temperature if it
+% takes two arguments (not counting 'varargin')
+   if (nargin(bfun) > 1) || (nargin(bfun) < -2)
       bfun = @(p) bfun(p, temp);
    end
-   if nargin(mufun) > 1
+   if (nargin(mufun) > 1) || (nargin(bfun) < -2)
       mufun = @(p) mufun(p, temp);
       end
 end
