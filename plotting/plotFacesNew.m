@@ -41,6 +41,12 @@ function varargout = plotFacesNew(G, varargin)
 %             This list will be passed directly on to function PATCH
 %             meaning all properties supported by PATCH are valid.
 %
+%             As a special case function plotFaces supports a separate
+%             boolean option 'outline' which, when set, draws the outline
+%             edge of the 'faces' input argument.  The outline is defined
+%             as those edges that appear exactly once in the edge list
+%             implied by 'faces'.
+%
 % RETURNS:
 %   h - Handle to resulting PATCH object.  The patch object is added to the
 %       current AXES object.
