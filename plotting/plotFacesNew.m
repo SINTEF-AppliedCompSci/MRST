@@ -99,7 +99,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % There should be an even number of elements in varargin here:
    assert(~mod(numel(varargin), 2), 'Huh?!');
-
+   
+   [plotOutline, varargin] = do_outline_p(varargin{:});
+   
    color = 'y';
    switch numel(other_input),
       case 0,
@@ -129,6 +131,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       otherwise
          error('What!?');
    end
+   
 
    assert (min(faces) > 0, 'Cannot plot zero or negative face numbers');
    assert (max(faces) <= G.faces.num, ...
@@ -245,6 +248,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          if ~holdstate, hold off; end
       end
    end
+   
+   if plotOutline,
+      pts = findFaceOutline(G, faces);
+      do_hold = ishold();
+      hold on, plot3(pts(:,1), pts(:,2), pts(:,3), 'k');
+      if ~do_hold, hold off, end
+   end
+   
    if nargout > 0
        varargout{1} = h;
    end
@@ -286,4 +297,58 @@ end
 function [d, p] = copyRowsFromPackedData(d, p, rows)
    d = d(mcolon(p(rows), p(rows+1) - 1));
    p = cumsum([1 ; double(p(rows+1) - p(rows))]);
+end
+
+%--------------------------------------------------------------------------
+
+function [plotOutline, varargin] = do_outline_p(varargin)
+   % Does caller of 'plotFaces' request an outline plot?
+
+   opt = struct('outline', false);
+   [opt, varargin] = merge_options(opt, varargin{:});
+
+   plotOutline = opt.outline;
+end
+
+%--------------------------------------------------------------------------
+
+function pts = findFaceOutline(g, faces)
+   assert (size(g.nodes.coords, 2) == 3);
+   % Find points on border of collection of grid faces.
+   if numel(faces)==0, pts = zeros(0,3); return; end
+
+   cellNo = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
+   sgn    = 2*(cellNo == g.faces.neighbors(g.cells.faces(:,1), 1)) - 1;
+   faceNo = rldecode(1:g.faces.num, diff(g.faces.nodePos), 2) .';
+
+   fi     = false(g.faces.num, 1); fi(faces) = true;
+   fn     = g.faces.nodes(fi(faceNo));
+
+   nodeflag     = false([g.nodes.num, 1]);
+   nodeflag(fn) = true;
+
+   fe = faceEdges(g);
+   fe(sgn(faceNo)<0, :) = fe(sgn(faceNo)<0, [2,1]);
+
+   fe = fe (fi(faceNo),:);
+   nodes = double(fe(all(nodeflag(fe), 2), :));
+
+   if numel(nodes) > 0,
+      % Remove edges which appear more than once.  These edges are
+      % considered internal in the collection of faces.  The remaining
+      % edges are on the outer boundary.
+      [nodes, n] = rlencode(sortrows(sort(nodes, 2)));
+      nodes(n>1,:) = [];
+   end
+
+   pts = nan(size(nodes, 1)*3, 3);
+   pts (1:3:end,:) = g.nodes.coords(nodes(:,1),:);
+   pts (2:3:end,:) = g.nodes.coords(nodes(:,2),:);
+end
+
+%--------------------------------------------------------------------------
+
+function fe = faceEdges(g)
+   fe = [g.faces.nodes, g.faces.nodes([2:end,1])];
+   fe(g.faces.nodePos(2:end)-1,2) = fe(g.faces.nodePos(1:end-1),1);
 end
