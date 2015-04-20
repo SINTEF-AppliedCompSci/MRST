@@ -2,9 +2,9 @@
 % This formation has a very low percentage (0.02%) of trapping compared to
 % the overall volume of the whole model
 try
-    require coarsegrid deckformat mex
+    require coarsegrid deckformat mex ad-fi ad-props
 catch %#ok<CTCH>
-    mrstModule add coarsegrid deckformat mex
+    mrstModule add coarsegrid deckformat mex ad-fi ad-props
 end
 
 grdecl = getAtlasGrid('Pliocenesand');

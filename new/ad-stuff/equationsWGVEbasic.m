@@ -61,9 +61,9 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    
    % Evaluate water and CO2 properties 
    [vW, bW, mobW, rhoW, upcw, dpW] = ...
-       getPhaseFluxAndProps_WGVE(model, pW, pG, krW, trans, gdz, 'W', 0);
+       getPhaseFluxAndProps_WGVE(model, pW, pG, krW, trans, gdz, 'W', 0, 0);
    [vG, bG, mobG, rhoG, upcg, dpG] = ...
-       getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G', 0);
+       getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G', 0, 0);
    bW0 = f.bW(pW0);
    bG0 = f.bG(pW0); % Yes, using water pressure also for gas here
    
@@ -120,7 +120,10 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
          [eqs(3:5), names(3:5), types(3:5)] = ...
              wm.createReverseModeWellEquations(model, state0, wellSol, p0);
       end
+   else
+      eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
    end
+   
    
    %% Setting up problem
    primaryVars = {'pressure' , 'sG'   , 'bhp'        , 'qWs'      , 'qGs'};

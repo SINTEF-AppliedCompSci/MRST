@@ -1,5 +1,5 @@
 function [vX, bX, mobX, rhoX, upc, dpX] = ...
-   getPhaseFluxAndProps_WGVE(model, pW, pG, krX, T, gdz, phase, rs)
+   getPhaseFluxAndProps_WGVE(model, pW, pG, krX, T, gdz, phase, rs, temp)
    
    fluid = model.fluid;
    s     = model.operators;
@@ -7,14 +7,16 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
    % Properties always computed using water pressure @@ why?
    switch upper(phase)
      case 'G'
-       bX   = fluid.bG(pW);
+       [bfun, mufun] = bind_temperature(fluid.bG, fluid.muG, temp);
+       bX   = bfun(pW);
        rhoX = bX .* fluid.rhoGS;
-       mobX = krX ./ fluid.muG(pW);
+       mobX = krX ./ mufun(pW);
        pX   = pG;
      case 'W'
-       bX   = fluid.bW(pW);
+       [bfun, mufun] = bind_temperature(fluid.bW, fluid.muW, temp);
+       bX   = bfun(pW);
        rhoX = bX .* (fluid.rhoWS + rs * fluid.rhoGS);
-       mobX = krX ./ fluid.muW(pW);
+       mobX = krX ./ mufun(pW);
        pX   = pW;
      otherwise
        error('Indicated phase must be ''G'' (gas) or ''W'' (water)');
@@ -35,4 +37,18 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
    if any (bX < 0)
       warning('Negative water compressibility present!');
    end
+end
+
+% ----------------------------------------------------------------------------
+
+function [bfun, mufun] = bind_temperature(bfun, mufun, temp)
+
+% A property function will be considered as dependent of temperature if it
+% takes two arguments (not counting 'varargin')
+   if (nargin(bfun) > 1) || (nargin(bfun) < -2)
+      bfun = @(p) bfun(p, temp);
+   end
+   if (nargin(mufun) > 1) || (nargin(bfun) < -2)
+      mufun = @(p) mufun(p, temp);
+      end
 end
