@@ -547,10 +547,10 @@ function compdat = insertDefaultCOMPDAT(control, id, nlayers)
    end
 
    % Fill in defaulted (I,J) locations (of well heel).
-   i = vertcat(compdat{:,2}) == -1;
+   i = vertcat(compdat{:,2}) < 1;
    compdat(i,2) = control.WELSPECS(vertcat(compdat{i,1}), 3);
 
-   i = vertcat(compdat{:,3}) == -1;
+   i = vertcat(compdat{:,3}) < 1;
    compdat(i,3) = control.WELSPECS(vertcat(compdat{i,1}), 4);
 end
 
