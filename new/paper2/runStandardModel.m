@@ -7,11 +7,12 @@ function runStandardModel(save_filename, plot_routine, varargin)
    if (exist([save_filename, '.mat'], 'file') && ...
        ask_user('Saved result found.  Re-use? [y/n] '))
       fprintf('Re-using old result.\n');
-      sim_outcome = load([savefilename, '.mat']);
+      loaded_data = load([save_filename, '.mat']);
+      sim_outcome = loaded_data.sim_outcome;
    else
       fprintf('Recomputing result. \n');
       sim_outcome = run_standard_simulation(varargin{:});
-      save(save_filename, sim_outcome);
+      save(save_filename, 'sim_outcome');
    end
    
    %% Plot result to produce the figures
@@ -81,7 +82,9 @@ function outcomes = run_standard_simulation(varargin)
                
                % Storing outcome
                outcomes{simulation_count} = struct('states', {states}, ...
-                                                   'wellSols', wellSols);
+                                                   'wellSols', {wellSols}, ...
+                                                   'Gt', {aquifer.Gt}, ...
+                                                   'fluid', {fluid});
                simulation_count = simulation_count + 1;
             end
          end
