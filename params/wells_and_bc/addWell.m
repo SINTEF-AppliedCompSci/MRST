@@ -66,27 +66,38 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %             Default value:  Comp_i = [1, 0, 0] (water injection)
 %
 %   Sign   -- Well type: Production (Sign = -1) or Injection (Sign = 1).
-%             Default value: [] (no sign).
+%             Default value: 0 (Undetermined sign. Will be derived from
+%             rates if possible).
 %
 %   Name   -- Well name (string).
 %             Default value: SPRINTF('W%d', numel(W) + 1)
 %
+%  refDepth -- Reference depth for the well, i.e. the value for which
+%              bottom hole pressures are defined.
+%
 % RETURNS:
 %   W - Updated (or freshly created) well structure, each element of which
 %       has the following fields:
-%          cells -- Grid cells perforated by this well (== cellInx).
-%          type  -- Well control type (== Type).
-%          val   -- Target control value (== Val).
-%          r     -- Well bore radius (== Radius).
-%          dir   -- Well direction (== Dir).
-%          WI    -- Well productivity index.
-%          dZ    -- Displacement of each well perforation measured from
+%         cells   -- Grid cells perforated by this well (== cellInx).
+%         type    -- Well control type (== Type).
+%         val     -- Target control value (== Val).
+%         r       -- Well bore radius (== Radius).
+%         dir     -- Well direction (== Dir).
+%         WI      -- Well productivity index.
+%         dZ      -- Displacement of each well perforation measured from
 %                   'highest' horizontal contact (i.e., the 'TOP' contact
 %                   with the minimum 'Z' value counted amongst all cells
 %                   perforated by this well).
-%          name  -- Well name (== Name).
-%          compi -- Fluid composition--only used for injectors (== Comp_i).
-%
+%         name    -- Well name (== Name).
+%         compi   -- Fluid composition--only used for injectors (== Comp_i).
+%         sign    -- injection (+) or production (-) flag.
+%         status  -- Boolean indicating if the well is open or shut.
+%         cstatus -- One entry per cell, indicating if the completion is
+%                   open.
+%         lims    -- Limits for the well. Contains subfields for the types
+%                    of limits applicable to the well (bhp, rate, orat, ...)
+%                    Injectors generally have upper limits, while producers
+%                    have lower limits.
 % EXAMPLE:
 %   simpleWellExample
 %
@@ -122,6 +133,8 @@ end
 
 error(nargchk(4, inf, nargin, 'struct'));
 numC = numel(cellInx);
+
+
 opt = struct('InnerProduct', 'ip_tpf',                     ...
              'Dir'         , 'z',                          ...
              'Name'        , sprintf('W%d', numel(W) + 1), ...
@@ -132,8 +145,9 @@ opt = struct('InnerProduct', 'ip_tpf',                     ...
              'WI'          , -1*ones(numC,1),              ...
              'Kh'          , -1*ones(numC,1),              ...
              'Skin'        , zeros(numC, 1),               ...
-             'refDepth'    , [],                           ...
-             'Sign'        , []);
+             'refDepth'    , 0,                            ...
+             'lims'        , [],                          ...
+             'Sign'        , 0);
 
 opt = merge_options(opt, varargin{:});
 
@@ -142,15 +156,13 @@ WI = reshape(opt.WI, [], 1);
 assert (numel(WI)       == numC)
 assert (numel(opt.Kh)   == numC);
 assert (numel(opt.Skin) == numC || numel(opt.Skin) == 1);
-assert (strcmp(opt.Type, 'rate') || strcmp(opt.Type, 'bhp'));
 
 if numel(opt.Skin) == 1, opt.Skin = opt.Skin(ones([numC, 1]));  end
 
 % Set reference depth default value.
 if isempty(opt.refDepth),
    g_vec = gravity();
-   dims  = size(G.nodes.coords, 2);
-
+   dims  = G.griddim;
    if norm(g_vec(1:dims)) > 0,
       g_vec = g_vec ./ norm(g_vec);
       opt.refDepth = min(G.nodes.coords * g_vec(1:dims)');
@@ -172,7 +184,7 @@ end
 
 % Set well sign (injection = 1 or production = -1)
 % for bhp wells or rate controlled wells with rate = 0.
-if ~isempty(opt.Sign),
+if opt.Sign ~= 0,
    if sum(opt.Sign == [-1, 1]) ~= 1,
       error(msgid('Sign:NonUnit'), 'Sign must be -1 or 1');
    end
@@ -195,23 +207,20 @@ end
 
 % Add well to well structure. ---------------------------------------------
 %
-W1 = struct('cells'   , cellInx(:),           ...
-            'type'    , opt.Type,             ...
-            'val'     , opt.Val,              ...
-            'r'       , opt.Radius,           ...
-            'dir'     , opt.Dir,              ...
-            'WI'      , WI,                   ...
-            'dZ'      , getDepth(G, cellInx(:))-opt.refDepth, ...
-            'name'    , opt.Name,             ...
-            'compi'   , opt.Comp_i,           ...
-            'refDepth', opt.refDepth,         ...
-            'sign'    , opt.Sign);
-
-if ~isempty(W),
-   W = [W; W1];
-else
-   W = W1;
-end
+W  = [W; struct('cells'   , cellInx(:),           ...
+                'type'    , opt.Type,             ...
+                'val'     , opt.Val,              ...
+                'r'       , opt.Radius,           ...
+                'dir'     , opt.Dir,              ...
+                'WI'      , WI,                   ...
+                'dZ'      , getDepth(G, cellInx(:))-opt.refDepth, ...
+                'name'    , opt.Name,             ...
+                'compi'   , opt.Comp_i,           ...
+                'refDepth', opt.refDepth,         ...
+                'lims'    , opt.lims,         ...
+                'sign'    , opt.Sign,             ...
+                'status'  , true,                    ...
+                'cstatus' , true(numel(cellInx),1))];
 
 if numel(W(end).dir) == 1,
    W(end).dir = repmat(W(end).dir, [numel(W(end).cells), 1]);
@@ -225,8 +234,12 @@ assert (numel(W(end).dir) == numel(W(end).cells));
 
 function WI = wellInx(G, rock, radius, welldir, cells, innerProd, opt, inx)
 
-[dx, dy, dz] = cellDims(G, cells);
-if size(G.nodes.coords, 2) > 2,
+if(isfield(G,'nodes'))
+   [dx, dy, dz] = cellDims(G, cells);
+else
+   [dx, dy, dz] = cellDimsCG(G, cells);
+end
+if G.griddim > 2,
    k = permDiag3D(rock, cells);
 else
    if ~all(lower(welldir) == 'z') || numel(cells) > 1,
@@ -270,7 +283,7 @@ re  = reshape(re1 ./ re2, [], 1);
 ke  = sqrt(k1 .* k2);
 
 Kh = reshape(opt.Kh, [], 1); i = Kh < 0;
-if size(G.nodes.coords, 2) > 2,
+if G.griddim > 2,
    Kh(i) = ell(i) .* ke(i);
 else
    Kh(i) =           ke(i);
@@ -326,7 +339,7 @@ end
 
 function Z = getDepth(G, cells)
 direction = gravity();
-dims      = size(G.nodes.coords, 2);
+dims      = G.griddim;
 if norm(direction(1:dims)) > 0,
    direction = direction ./ norm(direction(1:dims));
 else
@@ -337,7 +350,7 @@ Z = G.cells.centroids(cells, :) * direction(1:dims).';
 
 %--------------------------------------------------------------------------
 
-function [dx, dy, dz] = cellDims(G, ix)
+function [dx, dy, dz] = cellDimsCG(G,ix)
 % cellDims -- Compute physical dimensions of all cells in single well
 %
 % SYNOPSIS:
@@ -351,6 +364,43 @@ function [dx, dy, dz] = cellDims(G, ix)
 % RETURNS:
 %   dx, dy, dz -- Size of bounding box for each cell.  In particular,
 %                 [dx(k),dy(k),dz(k)] is Cartesian BB for cell ix(k).
+n = numel(ix);
+[dx, dy, dz] = deal(zeros([n, 1]));
+ixc = G.cells.facePos;
+
+for k = 1 : n,
+   c = ix(k);                                     % Current cell
+   f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
+   assert(numel(f)==6);
+   if(true)
+      [n,ff]=sortrows(abs(G.faces.normals(f,:)));
+      f=f(ff(end:-1:1));
+      dx(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(1:2))));
+      dy(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(3:4))));
+      dz(k)=2*G.cells.volumes(c)/(sum(G.faces.areas(f(5:6))));
+   else
+      fa=sum(G.faces.normals(f,:),1)/2;
+      dx(k)=G.cells.volumes(c)/fa(1);
+      dy(k)=G.cells.volumes(c)/fa(2);
+      dz(k)=G.cells.volumes(c)/fa(3);
+   end
+end
+
+
+
+function [dx, dy, dz] = cellDims(G, ix)
+% cellDims -- Compute physical dimensions of all cells in single well
+%
+% SYNOPSIS:
+%   [dx, dy, dz] = cellDims(G, ix)
+%
+% PARAMETERS:
+%   G  - Grid data structure.
+%   ix - Cells for which to compute the physical dimensions
+%
+% RETURNS:
+%   dx, dy, dz -- [dx(k) dy(k)] is bounding box in xy-plane, while dz(k) =
+%                 V(k)/dx(k)*dy(k)
 
 n = numel(ix);
 [dx, dy, dz] = deal(zeros([n, 1]));
@@ -364,7 +414,7 @@ for k = 1 : n,
    e = mcolon(ixf(f), ixf(f + 1) - 1);            % Edges on cell
 
    nodes  = unique(G.faces.nodes(e, 1));          % Unique nodes...
-   coords = G.nodes.coords(nodes,:);              % ... and coordinates
+   coords = G.nodes.coords(nodes,:);            % ... and coordinates
 
    % Compute bounding box
    m = min(coords);
@@ -372,10 +422,14 @@ for k = 1 : n,
 
    % Size of bounding box
    dx(k) = M(1) - m(1);
-   dy(k) = M(2) - m(2);
+   if size(G.nodes.coords, 2) > 1,
+      dy(k) = M(2) - m(2);
+   else
+      dy(k) = 1;
+   end
 
    if size(G.nodes.coords, 2) > 2,
-      dz(k) = M(3) - m(3);
+      dz(k) = G.cells.volumes(ix(k))/(dx(k)*dy(k));
    else
       dz(k) = 0;
    end
