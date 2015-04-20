@@ -128,7 +128,16 @@ assert (size(data, 1) == G.cells.num || ...
         'The DATA should have one value for each grid cell in output.');
 
 if G.griddim == 3,
-   [f, c] = boundaryFaces(G, cells);
+   % Define the boundary to be the boundary faces of the selected subset
+   % where the values are not nan.
+   selectcells = cells;
+   datanan = any(isnan(data), 2);
+   if any(datanan)
+       selectcells = false(G.cells.num, 1);
+       selectcells(cells) = true;
+       selectcells = find(selectcells & ~datanan);
+   end
+   [f, c] = boundaryFaces(G, selectcells);
    if isfield(G, 'parent'),
          [f, i] = getSubFaces(G, f);
          c = c(i);
