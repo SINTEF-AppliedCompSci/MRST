@@ -7,11 +7,9 @@
 % compared to the overall volume of the whole sand body. To store CO2, one
 % can therefore not rely on structural trapping and should instead consider
 % residual trapping.
-try
-   %require co2lab coarsegrid deckformat mex
-catch %#ok<CTCH>
-   %mrstModule add co2lab coarsegrid deckformat mex
-end
+
+moduleCheck('co2lab', 'ad-fi', 'ad-core');
+gravity reset on;
 
 grdecl = getAtlasGrid('Pliocenesand');
 G      = processGRDECL(grdecl{1});

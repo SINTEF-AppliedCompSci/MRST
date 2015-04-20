@@ -16,10 +16,12 @@
 - residualExample1_new
 * DONE Figure 6: Sharp-interface simulation
 - residualExample1_new
-* DONE Figure 7: Injection into Plioscenesand aquifer
+* INMIND Figure 7: Injection into Plioscenesand aquifer
 - firstPlioExample
-* DONE Figure 8: Plioscenesand - detailed inventory
+- NB: Final results differ significantly from illustrations in paper
+* INMIND Figure 8: Plioscenesand - detailed inventory
 - firstPlioExample
+- NB: Final results differ significantly from illustrations in paper
 * DONE Figure 9: Upscaling of small-scale caprock undulations
 - tikz-figures
 * DONE Figure 10: Estimation of the parameter characterizing sub-scale undulations

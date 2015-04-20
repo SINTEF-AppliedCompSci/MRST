@@ -25,10 +25,10 @@ end
 function outcomes = run_standard_simulation(varargin)
 
    % Loop parameters
-   opt.A             = 0;                   % magnitudes of subscale undulations
-   opt.residual      = false;               % whether to enable residual saturation
-   opt.relperm_types = {'sharp interface'}; % relperm model(s) to use
-   opt.dis_types     = {'none'};            % dissol. types ('none'/'rate'/'instant')
+   opt.A              = 0;                   % magnitudes of subscale undulations
+   opt.residual       = false;               % whether to enable residual saturation
+   opt.subscale_types = {'smooth'};          % subscale geometry model(s) to use
+   opt.dis_types      = {'none'};            % dissol. types ('none'/'rate'/'instant')
 
    % Timestepping parameters
    opt.Ti   = 50   * year; % duration of injection phase
@@ -47,28 +47,35 @@ function outcomes = run_standard_simulation(varargin)
    opt = merge_options(opt, varargin{:});
    
    simulation_count = 1; % global count of simulation runs
-   total_count = numel(opt.A) * numel(opt.residual) * numel(opt.relperm_types) ...
+   total_count = numel(opt.A) * numel(opt.residual) * numel(opt.subscale_types) ...
        * numel(opt.dis_types);
    outcomes = cell(total_count, 1);
    
    %% Loop over grid types
    for A = opt.A
 
-      % Constructing aquifer
-      aquifer = makeAquiferModel_new('A', A);
-      
       %% Loop over whether or not to use residual saturation
       for residual = opt.residual
 
          %% Loop over relperm models
-         for relperm_type = opt.relperm_types
+         for subscale_type = opt.subscale_types
             
             %% Loop over dissolution types
             for dis_type = opt.dis_types
 
+               % Constructing aquifer
+               if ~strcmpi(subscale_type{:}, 'smooth')
+                  % We model upscaled caprock undulations implicitly, so the
+                  % geometrical caprock model itself will be smooth
+                  aquifer = makeAquiferModel_new('A', 0);
+               else
+                  aquifer = makeAquiferModel_new('A', A);
+               end
+               
                % Make fluid model
                fluid = setup_fluid_model(opt, aquifer, residual, ...
-                                              relperm_type{:}, dis_type{:});
+                                              toptrap(subscale_type{:}, A), ...
+                                              subscale_type{:}, dis_type{:});
 
                % Defining injection schedule
                [schedule, Winj] = setup_schedule(opt, fluid, aquifer.W, aquifer.Gt);
@@ -89,6 +96,28 @@ function outcomes = run_standard_simulation(varargin)
             end
          end
       end
+   end
+end
+
+% ----------------------------------------------------------------------------
+
+function hts = toptrap(subscale_type, A)
+  
+   if strcmpi(subscale_type, 'smooth')
+      hts = []; % no implicit subscale undulations - all geometry is
+                % described explicitly by the model grid
+   else
+      % Create a model of the subscale undulations
+      aquifer = makeAquiferModel_new('A', A);
+      z = aquifer.Gt.cells.z; 
+      zt = max(z) * ones(size(z)); 
+      for i = 2:numel(zt) - 1
+         zt(i) = max(z(i:end)); 
+      end
+      zt(end) = max(zt(end -1), z(end)); 
+      ht = zt - z; 
+      ff = exp(-linspace( -25, 25, 501).^2); ff = ff' / sum(ff); 
+      hts = filter2(ff, ht);
    end
 end
 
@@ -136,13 +165,14 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = setup_fluid_model(opt, aquifer, residual, relperm_type, dis_type)
+function fluid = setup_fluid_model(opt, aquifer, residual, top_trap, subscale_type, dis_type)
 
    T = aquifer.Gt.cells.z * opt.temp_grad + (274 + opt.surf_temp); % add 274 to get Kelvin
    res_vals = opt.res_vals * residual; % becomes zero if 'residual' is false
    
-   
-   fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, relperm_type   , ...
+   fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface', ...
+                       'top_trap'    , top_trap, ...
+                       'surf_topo'   , subscale_type, ...
                        'fixedT'      , T                          , ...
                        'co2_rho_pvt' , [opt.p_range, opt.t_range] , ...
                        'wat_rho_pvt' , [opt.cw, 100 * barsa]      , ...
