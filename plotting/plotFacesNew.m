@@ -1,4 +1,4 @@
-function h = plotFacesNew(G, varargin)
+function varargout = plotFacesNew(G, varargin)
 %Plot selection of coloured grid faces to current axes (reversed Z axis).
 %
 % SYNOPSIS:
@@ -11,7 +11,8 @@ function h = plotFacesNew(G, varargin)
 % PARAMETERS:
 %   G       - Grid data structure.
 %
-%   faces   - Vector of face indices.  The graphical output of 'plotFaces'
+%   faces   - Vector of face indices or a logical vector of length
+%             G.faces.num.  The graphical output of 'plotFaces'
 %             will be restricted to the subset of grid faces from 'G'
 %             represented by 'faces'.
 %
@@ -243,6 +244,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          if ~holdstate, hold off; end
       end
+   end
+   if nargout > 0
+       varargout{1} = h;
    end
 end
 
