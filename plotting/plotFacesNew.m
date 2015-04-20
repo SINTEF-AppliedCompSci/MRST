@@ -99,10 +99,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       varargin = {};
    end
 
-%   if mod(numel(varargin), 2) && numel(varargin{1}) == 1,
-%      varargin = {'edgecolor', varargin{1}, 'facecolor', varargin{:}};
-%   end
-
    % There should be an even number of elements in varargin here:
    assert(~mod(numel(varargin), 2), 'Huh?!');
    
@@ -123,6 +119,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 1
          faces = other_input{1};
          if islogical(faces)
+            assert(numel(faces) == G.faces.num);
             faces = find(faces);
          end
          if ~any(strcmpi(varargin, 'FaceColor')),
