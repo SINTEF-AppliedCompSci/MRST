@@ -1,4 +1,4 @@
-function varargout = plotGridNew(G, varargin)
+function varargout = plotGrid(G, varargin)
 %PLOTGRID plots exterior grid faces to current axes.
 %
 % SYNOPSIS:

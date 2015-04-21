@@ -1,4 +1,4 @@
-function varargout = plotFacesNew(G, varargin)
+function varargout = plotFaces(G, varargin)
 %Plot selection of coloured grid faces to current axes (reversed Z axis).
 %
 % SYNOPSIS:

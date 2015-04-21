@@ -1,4 +1,4 @@
-function varargout = plotCellDataNew(G, data, varargin)
+function varargout = plotCellData(G, data, varargin)
 %Plot exterior grid faces, coloured by given data, to current axes.
 %
 % SYNOPSIS:
