@@ -2,7 +2,7 @@
 % This formation has a very low percentage (0.02%) of trapping compared to
 % the overall volume of the whole model
 
-moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-fi', 'ad-props');
+moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-fi', 'ad-props');
 
 grdecl = getAtlasGrid('Pliocenesand');
 G      = processGRDECL(grdecl{1});
@@ -25,14 +25,14 @@ petrodata.avgporo = 0.25;
 depth=1200;
 
 % cut grid to avoid calculation on not relevant domain
-wpos=Gt.parent.cells.centroids(5280,1:2);
-wpos(:,1)=4.85e5;
-G=Gt.parent;
-rm_cells=abs(Gt.cells.centroids(:,2)-wpos(:,2))>2.5e4;
-G=removeCells(G,rm_cells);
-G.nodes.coords(:,3)=G.nodes.coords(:,3)+depth;
-G=computeGeometry(G);
-Gt=topSurfaceGrid(G);
+wpos = Gt.parent.cells.centroids(5280, 1:2); 
+wpos(:, 1) = 4.85e5; 
+G = Gt.parent; 
+rm_cells = abs(Gt.cells.centroids(:, 2) - wpos(:, 2))>2.5e4; 
+G = removeCells(G, rm_cells); 
+G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth; 
+G = computeGeometry(G);
+Gt = topSurfaceGrid(G);
 
 % set the permeability and porosity
 rock.poro = repmat(petrodata.avgporo, Gt.cells.num, 1);
@@ -75,17 +75,17 @@ mstep = [mstep; Tm-sum(mstep)];
 amount = 5; %Mt/year
 
 % convert mass flux at surface to surface reference volume/"surface volume
-rhoc=760;rhow=1100;
-rate = amount*1e9*kilogram./(year*rhoc*kilogram*meter^3);
+rhoc = 760; rhow = 1100; 
+rate = amount * 1e9 * kilogram ./ (year * rhoc * kilogram *meter^3);
 
 % Specify residual saturations
 res_water = 0.11;
 res_gas = 0.21;
 
 % find well position
-dist=sqrt(sum(bsxfun(@minus,Gt.cells.centroids(:,1:2),wpos).^2,2));
-[dd,cellnum]=min(dist);
-[ix,iy]=ind2sub(Gt.cartDims,Gt.cells.indexMap(cellnum));
+dist = sqrt(sum(bsxfun(@minus, Gt.cells.centroids(:, 1:2), wpos).^2, 2)); 
+[dd, cellnum] = min(dist); 
+[ix, iy] = ind2sub(Gt.cartDims, Gt.cells.indexMap(cellnum)); 
 wellIx = double([ix iy]);
 
 % make well
@@ -97,7 +97,7 @@ W_shut = W;
 W_shut.val = 0;
 
 % specify boundary conditions
-bc = addBC([], bcIxVE, 'pressure', Gt.faces.z(bcIxVE)*rhow*norm(gravity));
+bc = addBC([], bcIxVE, 'pressure', Gt.faces.z(bcIxVE) * rhow * norm(gravity)); 
 bc.sat = [ones(numel(bc.face), 1), zeros(numel(bc.face), 1)];
 
 % make schedule
@@ -106,15 +106,28 @@ schedule.step = struct('control', [ones(size(istep));ones(size(mstep))*2], ...
                        'val', [istep; mstep]);
 
 %% start loop over cases
-k = 1;
-for dis_model = {'none', 'instant', 'rate'};
+% k = 1;
+% for dis_model = {'none', 'instant', 'rate'};
+k = 3;
+for dis_model = {'rate'};
 
+   % Set up fluid model
+   p_range = [1,  150] * mega * Pascal; % CO2 supported pressure range
+   t_range = [12, 150] + 274;           % CO2 supported temperature range
+   cw      = 4.3e-5 / barsa; % water linear compressibility
+   temp_grad = 30 / (kilo*meter); % temperature gradient
+   surf_temp = 12; % surface temperature in Celsius
+   temperature = Gt.cells.z .* temp_grad + (274 + surf_temp); % fixed temperature
+   
    fluid = makeVEFluid(Gt, rock2D, 'sharp interface', ...
                        'residual', [res_water, res_gas], ...
                        'co2_rho_ref', rhoc , ...
                        'wat_rho_ref', rhow , ...
                        'co2_mu_ref', 6e-5 , ...
                        'wat_mu_ref', 8e-4 , ...
+                       'co2_rho_pvt', [p_range, t_range], ...
+                       'wat_rho_pvt', [cw, 100 * barsa], ...
+                       'fixedT', temperature, ...
                        'dissolution', ~strcmpi(dis_model{:}, 'none'), ...
                        'dis_rate', strcmpi(dis_model{:}, 'rate') * 5e-11, ...
                        'dis_max' , 0.03);
@@ -131,10 +144,11 @@ for dis_model = {'none', 'instant', 'rate'};
    t2 = tic;
    [wellSols, states] = simulateScheduleAD(initState, model, schedule);
    t2 = toc(t2);
-
+   
+   states = [initState; states]; % Include initial state
    ensure_path_exists('data/');
    save(['data/secondPlioExample_',num2str(depth),'_',num2str(k),'.mat'], ...
-        't2','states','wellSols','schedule', 'Gt', 'fluid');
+        't2','states','wellSols','schedule', 'Gt', 'fluid', 'rock2D');
    k = k+1;
 end
 
