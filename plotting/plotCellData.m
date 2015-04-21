@@ -158,7 +158,7 @@ if false && numel(data) < G.cells.num,
    assert (all(c > 0) && all(c <= numel(data)));
 end
 if isfield(G, 'parent'), G = G.parent; end
-h = plotPatches(G, f, data(c, :), 'EdgeColor', 'none', varargin{:});
+h = plotPatches(G, f, data(c, :), 'EdgeColor', [0.4, 0.4, 0.4], varargin{:});
 if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
 
 if nargout > 0, varargout{1} = h; end
