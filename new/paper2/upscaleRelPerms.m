@@ -2,7 +2,7 @@
 % Compute numerically upscaled relative permeabilities for a set of
 % representative dip angles.
 
-mrstModule add upscaling mimetic
+moduleCheck('co2lab', 'upscaling', 'mimetic');
 gravity on;
 
 % Preallocate memory
@@ -142,4 +142,6 @@ figure,clf, hold on
 plot(sat_mat*H,kr{1}(:,:,1),'*-')
 krCO2=kr{1};
 krW=kr{2};
-save('data/upscaled_relperm_theta','sat_mat','krCO2','krW')
+filename = 'data/upscaled_relperm_theta';
+ensure_path_exists(filename);
+save(filename,'sat_mat','krCO2','krW')

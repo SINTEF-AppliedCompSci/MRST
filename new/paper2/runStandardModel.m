@@ -12,6 +12,7 @@ function runStandardModel(save_filename, plot_routine, varargin)
    else
       fprintf('Recomputing result. \n');
       sim_outcome = run_standard_simulation(varargin{:});
+      ensure_path_exists(save_filename);
       save(save_filename, 'sim_outcome');
    end
    
@@ -26,6 +27,7 @@ function outcomes = run_standard_simulation(varargin)
 
    % Loop parameters
    opt.A              = 0;                   % magnitudes of subscale undulations
+   opt.depth          = 2300;                % depth of aquifer
    opt.residual       = false;               % whether to enable residual saturation
    opt.subscale_types = {'smooth'};          % subscale geometry model(s) to use
    opt.dis_types      = {'none'};            % dissol. types ('none'/'rate'/'instant')
@@ -67,9 +69,9 @@ function outcomes = run_standard_simulation(varargin)
                if ~strcmpi(subscale_type{:}, 'smooth')
                   % We model upscaled caprock undulations implicitly, so the
                   % geometrical caprock model itself will be smooth
-                  aquifer = makeAquiferModel_new('A', 0);
+                  aquifer = makeAquiferModel_new('A', 0, 'D', opt.depth);
                else
-                  aquifer = makeAquiferModel_new('A', A);
+                  aquifer = makeAquiferModel_new('A', A, 'D', opt.depth);
                end
                
                % Make fluid model
@@ -81,7 +83,7 @@ function outcomes = run_standard_simulation(varargin)
                [schedule, Winj] = setup_schedule(opt, fluid, aquifer.W, aquifer.Gt);
 
                % Defining initial state
-               initState = setup_init_state(fluid, aquifer.G, Winj);
+               initState = setup_init_state(fluid, aquifer.G, Winj, dis_type);
                   
                % Set up and run complete model
                model = CO2VEBlackOilTypeModel(aquifer.Gt, aquifer.rock2D, fluid);
@@ -150,7 +152,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function initState = setup_init_state(fluid, G, Winj)
+function initState = setup_init_state(fluid, G, Winj, dis_type)
    
    W_val   = Winj(2).val;
    W_depth = G.cells.centroids(Winj(2).cells, 3);
@@ -161,6 +163,11 @@ function initState = setup_init_state(fluid, G, Winj)
    initState = struct('pressure', pfun(G.cells.centroids(:, 3)), ...
                       's'       , [ones(nc, 1), zeros(nc, 1)], ...
                       'sGmax'   , zeros(nc, 1));
+   
+   if ~strcmpi(dis_type, 'none')
+      % We will model dissolution too
+      initState.rs = zeros(nc, 1);
+   end
 end
 
 % ----------------------------------------------------------------------------
@@ -183,3 +190,6 @@ function fluid = setup_fluid_model(opt, aquifer, residual, top_trap, subscale_ty
       fluid.dis_rate = 0; % value of zero indicates instant dissolution
    end
 end
+
+% ----------------------------------------------------------------------------
+

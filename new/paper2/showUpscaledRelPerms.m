@@ -2,6 +2,7 @@
 % In this example, we show how to generate analytically upscaled fluid
 % objects from an 1D aquifer model having small-scale caprock undulations.
 
+clear all;
 moduleCheck('co2lab');
 
 %% Make aquifer models
@@ -79,7 +80,7 @@ end
 % whole aquifer at a time. Therefore we insert a constant CO2 saturation in
 % the whole model when evaluating the relative permeability for each height
 % value. 
-f1 = figure, hold on
+f1 = figure; hold on
 H = max(Gt.cells.H); 
 sGv = linspace(0, 4.0 / H, 100); 
 krG = zeros(size(sGv)); 

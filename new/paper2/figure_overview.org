@@ -30,15 +30,14 @@
 ** DONE Left:  Fine-scale solution
 - upscalingExample1_new  
 ** DONE Right: Corresponding relative permeabilities
-- upscaleRelPerms
-- showUpscaledRelPerms
-* STARTED Figure 12: Evolution of CO2 distribution, dissolution
+- showUpscaledRelPerms (calls upscaleRelPerms)
+* DONE Figure 12: Evolution of CO2 distribution, dissolution
 - dissolutionExample1_new
 - showDissolutionExample1Panel
-* STARTED Figure 13: CO2 distribution in global coordinates
+* DONE Figure 13: CO2 distribution in global coordinates
 - dissolutionExample1_new
 - showDissolutionExample1Detail
-* STARTED Figure 14: 900 years after injection
+* DONE Figure 14: 900 years after injection
 - dissolutionExample1_new
 - showDissolutionExample1
 * DONE Figure 15: Conceptual fluid distribution

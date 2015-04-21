@@ -30,6 +30,7 @@ methods
                                                % flags above. Check with
                                                % maintainer of parent class.
       model.wellVarNames = {'qWs', 'qGs', 'bhp'};
+      model.gravity = [0 norm(gravity)];
       
       if isfield(fluid, 'dis_rate')
          % use model equations with dissolution
@@ -151,9 +152,9 @@ end
    end
 
 % --------------------------------------------------------------------%
-   function g = getGravityVector(model)
-       % Get the gravity vector used to instantiate the model
-       g = model.gravity;
-   end
+   % function g = getGravityVector(model)
+   %     % Get the gravity vector used to instantiate the model
+   %     g = model.gravity;
+   % end
 end
 end   

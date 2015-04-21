@@ -140,7 +140,7 @@ leg_methods = {'Compressible', ...
    'Instant dissolution','Dissolution rate', ''};
 
 % Plot contours
-methods   = [1,3,2];
+models   = [1,3,2];
 mysteps   = [69 91];% time 940 1490
 %ptimes=[950 1500]
 %ptimes=[955 1455]
@@ -149,8 +149,8 @@ ptimes=[710 1510];
 
 %ptimes=[100 1500]
 %mysteps   = [10 30];% time 940 1490
-leg_methods=leg_methods(methods);
-m = numel(methods);
+leg_methods=leg_methods(models);
+m = numel(models);
 col = .5*(lines(m) + ones(m,3));
 x = Gt.cells.centroids(:,1);
 y = Gt.cells.centroids(:,2);
@@ -167,10 +167,10 @@ for step=mysteps
    figure, hold on;
    has_rs=[];
    for n=1:3     
-       time_tmp=[0;cumsum(res{methods(n)}.control.step.val)/year];
+       time_tmp=[0;cumsum(res{models(n)}.control.step.val)/year];
        assert(time_tmp(step)==time(step));
       % calculate properties
-      state=res{methods(n)}.states{step};
+      state=res{models(n)}.states{step};
       p= state.pressure;
       sG= state.s(:,2);
       if(n>1)
@@ -180,7 +180,7 @@ for step=mysteps
       end
       sG = free_sg(sG, sGmax, ...
                     struct('res_gas',fluid.res_gas, 'res_water', fluid.res_water));
-      fluid=fluids{methods(m)};
+      fluid=fluids{models(m)};
       drho=fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p); 
       h=(fluid.pcWG(sG,p,'sGmax',sGmax))./(drho*norm(gravity()));
       h_max=(fluid.pcWG(sGmax,p,'sGmax',sGmax))./(drho*norm(gravity()));
@@ -309,11 +309,11 @@ end
 %% Draw inventory plot
 
 figure(); set(gcf,'Position',[100 100 1400 600]);
-xw = 0.8/numel(methods);
-xa = 0.2/(numel(methods)+1);
-for i=1:numel(methods)
+xw = 0.8/numel(models);
+xa = 0.2/(numel(models)+1);
+for i=1:numel(models)
    ind=[1:5,7,8]; 
-   masses=res{methods(i)}.masses(:,ind);   
+   masses=res{models(i)}.masses(:,ind);   
    masses(:,end) = masses(:,end)-sum(masses(:,1:end-1),2);      
    axes('position',[(i-1)*xw+i*xa, .17, xw, .78]);%#ok
    set(gca,'FontSize',14);
