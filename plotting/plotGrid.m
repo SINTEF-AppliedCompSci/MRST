@@ -1,5 +1,5 @@
-function varargout = plotGrid(G, varargin)
-%Plot exterior grid faces to current axes (reversed Z axis).
+function varargout = plotGridNew(G, varargin)
+%PLOTGRID plots exterior grid faces to current axes.
 %
 % SYNOPSIS:
 %       plotGrid(G)
@@ -11,10 +11,9 @@ function varargout = plotGrid(G, varargin)
 % PARAMETERS:
 %   G       - Grid data structure.
 %
-%   cells   - Vector of cell indices or logical vector defining sub grid.
-%             The graphical output of function 'plotGrid' will be
-%             restricted to the subset of cells from 'G' represented by
-%             'cells'.
+%   cells   - Vector of cell indices defining sub grid.  The graphical
+%             output of function 'plotGrid' will be restricted to the
+%             subset of cells from 'G' represented by 'cells'.
 %
 %             If unspecified, function 'plotGrid' will behave as if the
 %             caller defined
@@ -112,19 +111,48 @@ end
 % intended for PATCH.
 %
 if ~isempty(varargin)
-   assert (iscellstr(varargin(1 : 2 : end)), ...
-          ['Additional arguments to plotGrid should be ', ...
-           '''key''/value pairs.']);
+  assert (~mod(numel(varargin), 2) && ...
+           all(cellfun(@ischar, varargin(1 : 2 : end))), ...
+     'Additional arguments to plotGrid should be ''prop''/value pairs.');
 end
 
-
-if ~all(diff(G.faces.nodePos)==2),
+if G.griddim == 3,
    f = boundaryFaces(G, cells);
+   subFaces = @getSubFaces;
 else
-   % For 2D grids, the faces to plot are the actual individual grid cells.
    f = cells;
+   subFaces = @getSubCells;
 end
 
-h = plotFaces(G, f, 'EdgeColor', 'k', 'FaceColor', 'y', varargin{:});
+if isfield(G, 'parent'),
+   % Separate otions: edge-related stuff is sent to plotFaceOutline
+   ix           = rldecode(strncmpi('edge', varargin(1:2:end), 4), 2);
+   outline_opts = varargin(ix);
+   varargin     = varargin(~ix);
+   ix           = rldecode(strncmpi('line', varargin(1:2:end), 4), 2);
+   outline_opts = [outline_opts varargin(ix)];
+   varargin     = varargin(~ix);
+
+   h  = plotPatches(G.parent, subFaces(G, f), ...
+      'EdgeColor', 'none', 'FaceColor', 'y', varargin{:});
+   if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
+   h  = [h; plotFaceOutline(G, f, outline_opts{:})];
+
+else
+   h = plotPatches(G, f, 'EdgeColor', 'k', 'FaceColor', 'y', varargin{:});
+   if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
+end
 
 if nargout > 0, varargout{1} = h; end
+end
+
+function subf = getSubFaces(G, f)
+   ix   = mcolon(G.faces.connPos(f), G.faces.connPos(f+1)-1);
+   subf = G.faces.fconn(ix);
+end
+
+function subcells = getSubCells(G, cells)
+   ix        = false(G.cells.num, 1);
+   ix(cells) = true;
+   subcells  = find(ix(G.partition));
+end

@@ -1,4 +1,4 @@
-function varargout = plotFaces(G, faces, varargin)
+function varargout = plotFacesNew(G, varargin)
 %Plot selection of coloured grid faces to current axes (reversed Z axis).
 %
 % SYNOPSIS:
@@ -86,169 +86,220 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   if isempty(faces),
-      if nargout > 0, varargout(1 : nargout) = { [] }; end
-      return
-   end
+   % Split input and options, assuming first string input is an option
+   i     = cellfun(@ischar, varargin);
+   first = find(i, 1, 'first');
+   if mod(numel(varargin)-first+1, 2), first = first + 1; end
 
-   if ~isnumeric(faces),
-      if islogical(faces) && numel(faces) == G.faces.num
-          faces = find(faces);
-      else
-          error(msgid('FaceList:NonNumeric'), ...
-                'Face list ''faces'' is not numeric or a boolean per face.')
-      end
-   end
-
-   if mod(numel(varargin), 2) == 0,
-      colour   = 'yellow';
+   if any(first),
+      other_input = varargin(1:first-1);
+      varargin    = varargin(first:end);
    else
-      colour   = varargin{1};
-      varargin = varargin(2 : end);
+      other_input = varargin;
+      varargin = {};
    end
+
+   % There should be an even number of elements in varargin here:
+   assert(~mod(numel(varargin), 2), 'Huh?!');
    
    [plotOutline, varargin] = do_outline_p(varargin{:});
+   
+   color = 'y';
+   switch numel(other_input),
+      case 0,
+         if G.griddim == 2,
+            faces = 1:G.faces.num;
+         else
+            faces = boundaryFaces(G, 1:G.cells.num);
+         end
 
-
-   % Extract face topology for subset of grid faces and the coordinates for
-   % the actual vertices ('verts') present in this topology.
-   %
-   face_topo  = str2func(sprintf('get_face_topo_%dd', G.griddim));
-   [f, verts] = face_topo     (G, faces);
-   v          = G.nodes.coords(verts, :);
-
-   if isfield(G.nodes, 'z'),
-      assert (size(v,2) == 2, ...
-             ['Vertex Z coordinate cannot be specified in ', ...
-              'a general 3D grid']);
-
-      v = [v, G.nodes.z(verts)];
+         if ~any(strcmpi(varargin, 'FaceColor')),
+            varargin = [varargin, {'FaceColor', 'y'}];
+         end
+      case 1
+         faces = other_input{1};
+         if islogical(faces)
+            assert(numel(faces) == G.faces.num);
+            faces = find(faces);
+         end
+         if ~any(strcmpi(varargin, 'FaceColor')),
+            varargin = [varargin, {'FaceColor', 'y'}];
+         end
+      case 2
+         faces = other_input{1};
+         if islogical(faces)
+            faces = find(faces);
+         end
+         color = other_input{2};
+      otherwise
+         error('What!?');
    end
+   
 
-   % Massage colour data into form suitable for 'FaceVertexCData' property.
-   %
-   % From here, we assume that 'colour' is an m-by-1 (for indexed
-   % colouring) or m-by-3 (for 'true colour' colouring) array.
-   % Furthermore, 'm' is assumed to be either 1 (meaning all 'faces' should
-   % be coloured using a single colour), NUMEL(faces) when the individual
-   % faces are coloured separately, or G.nodes.num for interpolated face
-   % colouring.
-   %
-   if ischar(colour), colour = get_rgb(colour); end
+   assert (min(faces) > 0, 'Cannot plot zero or negative face numbers');
+   assert (max(faces) <= G.faces.num, ...
+           'Faces in face list exceed number of faces in grid.');
 
-   if any(size(colour,1) == [1, numel(faces)]),
-      fc     = 'flat';
-   elseif size(colour,1) == G.nodes.num,
-      colour = colour(verts,:);
-      fc     = 'interp';
-   end
+   if G.griddim == 3,
+      % If G is a coarsegrid, lookup finegrid data in parent
+      if isfield(G, 'parent'),
+         [f, fno] = getSubFaces(G, faces);
+         if mod(numel(varargin), 2), varargin{1} = varargin{1}(fno);end
 
-   if size(f, 1) == size(v, 1)
-   % plotFaces uses FaceVertexCData to plot face data. The internal MATLAB
-   % patch function decides if the data is given per vertex or face based
-   % on a check of lengths. However, if the sizes are exactly *equal* it
-   % defaults to vertex data. This can happen when dynamically plotting
-   % subsets of fronts. In this case, we add a dummy vertex consisting of
-   % NaN which has no influence on the plot, but ensures that the data is
-   % interpreted as face data.
-       v = [v; NaN(1, size(v, 2))];
-   end
+         % Marker-related otions are collected in marker_opts
+         ix          = rldecode(strncmpi('marker', varargin(1:2:end), 6), 2);
+         marker_opts = varargin(ix);
+         varargin    = varargin(~ix);
 
-   % Build final patch for graphical output (Note: added to GCA).
-   if size(colour,1) == 1 && (numel(faces) ~= 1 || size(colour,2) == 3)
-      % Separate one-colour treatment to enable vector graphics (e.g.,
-      % PRINT('-depsc2', ...)).
 
-      h = patch('Faces'    , f     , 'Vertices', v, ...
-                'FaceColor', colour, varargin{:});
+         % Edge-related options are collected in edge_opts
+         ix = rldecode(strncmpi('edge', varargin(1:2:end), 4)', 2) | ...
+            rldecode(strncmpi('line', varargin(1:2:end), 4)', 2);
+         edge_opts = varargin(ix);
+         varargin  = varargin(~ix);
+
+
+         h = plotPatches(G.parent, f, 'edgec', 'none', varargin{:});
+         set(get(h, 'Parent'), 'ZDir', 'reverse')
+         h = [h; plotFaceOutline(G, faces, edge_opts{:})];
+
+         if numel(marker_opts) > 0,
+            if isfield(G, 'parent'),
+               cg = G;
+               % [f, fno]  = getSubFaces(G, faces);
+               G  = G.parent;
+            else
+               f  = faces;
+            end
+
+            % try
+            %   faceno = rldecode(faces(:), (cg.faces.connPos(faces+1)-cg.faces.connPos(faces))*2, 1);
+            % catch
+            %   faceno = rldecode(faces(:), 2);
+            % end
+
+            ff = cg.faces.fconn;
+            ffno = rldecode(1:cg.faces.num, diff(cg.faces.connPos), 2)';
+
+            % Bug here:  A node is shared by two (or more) faces in 2D and
+            % three (or more faces) in 3D.  This definition does not
+            % coincide with "shared by two edges" hack above.
+
+            % This check must be done per block: Check implementation of
+            % cellNodes!
+
+            [d, p] = copyRowsFromPackedData(G.faces.nodes, G.faces.nodePos, ff);
+            fedges = [d, d(rot(p, 1))];
+            faceno = rldecode(ffno, diff(p));
+            tmp    = rlencode(sortrows([faceno, fedges(:,1); faceno, fedges(:,2)], [2,1]));
+            [n,n]  = rlencode(tmp(:,2)); N=rldecode(n,n);
+            nodes  = rlencode(tmp(N>2, :));
+
+            holdstate   = ishold;
+            hold on;
+            %plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes, 2), G.nodes.coords(nodes, 3), 'linestyle','none', marker_opts{:});
+            if ~holdstate, hold off; end
+
+            %warning('Nodes in 3d is currently not supported');
+         end
+
+      else
+         h = plotPatches(G, faces, color, 'EdgeColor', 'k', varargin{:});
+         set(get(h, 'Parent'), 'ZDir', 'reverse')
+      end
+
    else
-      h = patch('Faces'          , f      , 'Vertices' , v , ...
-                'FaceVertexCData', colour , 'FaceColor', fc, varargin{:});
-   end
-   set(get(h, 'Parent'), 'ZDir', 'reverse')
 
+      % If G is a coarsegrid, lookup finegrid data in parent
+      if isfield(G, 'parent'),
+         cg = G;
+         f  = getSubFaces(G, faces);
+         G  = G.parent;
+      else
+         f  = faces;
+      end
+
+      % Separate otions: marker-related stuff is sent to separate plotting
+      ix          = rldecode(strncmpi('marker', varargin(1:2:end), 6), 2);
+      marker_opts = varargin(ix);
+      varargin    = varargin(~ix);
+
+      % Plot fine grid edges specified by either coarse or fine grid.
+      ix          = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
+      edges       = reshape(G.faces.nodes(ix), 2, []) .';
+      h           = plotLineSegments(G, edges, varargin{:});
+
+      % Find unique endpoints - if varargin contains 'marker*'
+      if numel(marker_opts) > 0
+         try
+            faceno = rldecode(faces(:), (cg.faces.connPos(faces+1)-cg.faces.connPos(faces))*2, 1);
+         catch %#ok
+            faceno = rldecode(faces(:), 2);
+         end
+
+         e     = reshape(G.faces.nodes, 2, [])';
+         e     = reshape(e(f,:)', [], 1);
+         [E,n] = rlencode(sortrows([faceno, e]));
+         nodes = E(n==1,2);
+
+         holdstate = ishold;
+
+         hold on;
+         patch('vertices', G.nodes.coords(nodes,:), ...
+               'faces'   , (1:numel(nodes)) .', marker_opts{:});
+
+         if ~holdstate, hold off; end
+      end
+   end
+   
    if plotOutline,
       pts = findFaceOutline(G, faces);
       do_hold = ishold();
       hold on, plot3(pts(:,1), pts(:,2), pts(:,3), 'k');
       if ~do_hold, hold off, end
    end
-
-   if nargout > 0, varargout{1} = h; end
-end
-
-%--------------------------------------------------------------------------
-% Private helpers follow.
-%--------------------------------------------------------------------------
-
-function [f, present] = get_face_topo_2d(G, cells)  %#ok
-   eIX = G.cells.facePos;
-   nn  = double(diff([G.cells.facePos(cells), ...
-                      G.cells.facePos(cells + 1)], [], 2));
-
-   cellNodes = getSortedCellNodes(G);
-
-   cn  = double(cellNodes(mcolon(eIX(cells), eIX(cells + 1) - 1), 1));
-
-   m   = numel(cells);
-   n   = max(nn);
-   f   = nan([n, m]);
-
-   % Extract only those nodes/vertices actually present in the subset of
-   % grid faces represented by 'faces'.  Create local numbering for these
-   % vertices.
-   %
-   present           = false([G.nodes.num, 1]);
-   present(cn)       = true;
-
-   node_num          = zeros([G.nodes.num, 1]);
-   node_num(present) = 1 : sum(double(present));
-
-   off = reshape((0 : m - 1) .* n, [], 1);
-
-   f(mcolon(off + 1, off + nn)) = node_num(cn);
-
-   % PATCH requires that the 'Faces' property be a matrix of size
-   % (number of faces)-by-(number of vertices).
-   %
-   f = f .';
+   
+   if nargout > 0
+       varargout{1} = h;
+   end
 end
 
 %--------------------------------------------------------------------------
 
-function [f, present] = get_face_topo_3d(G, faces)  %#ok
-   eIX = G.faces.nodePos;
-   nn  = double(diff([G.faces.nodePos(faces), ...
-                      G.faces.nodePos(faces + 1)], [], 2));
-   fn  = double(G.faces.nodes(mcolon(eIX(faces), eIX(faces + 1) - 1), 1));
+function h = plotLineSegments(G, e, varargin)
+% Plot all line segments given by node pairs in each row in e.
+   e = unique([e ; fliplr(e)], 'rows');
+   h = patch('vertices', G.nodes.coords, 'faces', e, varargin{:});
+end
 
-   m   = numel(faces);
-   n   = max(nn);
-   f   = nan([n, m]);
+%--------------------------------------------------------------------------
 
-   % Extract only those nodes/vertices actually present in the subset of
-   % grid faces represented by 'faces'.  Create local numbering for these
-   % vertices.
-   %
-   present           = false([G.nodes.num, 1]);
-   present(fn)       = true;
+function [subf, fno] = getSubFaces(G, f)
+   ix   = mcolon(G.faces.connPos(f), G.faces.connPos(f + 1) - 1);
+   subf = G.faces.fconn(ix);
+   fno  = rldecode(1 : numel(f), ...
+                   G.faces.connPos(f + 1) - G.faces.connPos(f), 2) .';
+end
 
-   node_num          = zeros([G.nodes.num, 1]);
-   node_num(present) = 1 : sum(double(present));
+%--------------------------------------------------------------------------
 
-   off = reshape((0 : m - 1) .* n, [], 1);
+function ix = rot(pos, offset)
+   num    = diff(pos);
+   offset = mod(offset, num); % net offset
+   ix     = zeros(max(pos)-1, 1);
 
-   f(mcolon(off + 1, off + nn)) = node_num(fn);
+   ix(mcolon(pos(1:end-1), pos(1:end-1) + num - offset - 1)) = ...
+      mcolon(pos(1:end-1) + offset, pos(2:end) - 1);
 
-   tmp=isfinite(f);
-   nnode=sum(tmp,1);
-   ind=sub2ind(size(f),nnode,1:size(f,2));
-   tmp=repmat(f(ind),size(f,1),1);
-   f(isnan(f))=tmp(isnan(f));
-   % PATCH requires that the 'Faces' property be a matrix of size
-   % (number of faces)-by-(number of vertices).
-   %
-   f = f .';
+   ix(mcolon(pos(1:end-1) + num - offset, pos(2:end) - 1)) = ...
+      mcolon(pos(1:end-1), pos(2:end) - 1 - num + offset);
+end
+
+%--------------------------------------------------------------------------
+
+function [d, p] = copyRowsFromPackedData(d, p, rows)
+   d = d(mcolon(p(rows), p(rows+1) - 1));
+   p = cumsum([1 ; double(p(rows+1) - p(rows))]);
 end
 
 %--------------------------------------------------------------------------
@@ -260,22 +311,6 @@ function [plotOutline, varargin] = do_outline_p(varargin)
    [opt, varargin] = merge_options(opt, varargin{:});
 
    plotOutline = opt.outline;
-end
-
-%--------------------------------------------------------------------------
-
-function rgb = get_rgb(colour)
-   switch lower(colour),
-      case {'y', 'yellow' }, rgb = [1, 1, 0];
-      case {'m', 'magenta'}, rgb = [1, 0, 1];
-      case {'c', 'cyan'   }, rgb = [0, 1, 1];
-      case {'r', 'red'    }, rgb = [1, 0, 0];
-      case {'g', 'green'  }, rgb = [0, 1, 0];
-      case {'b', 'blue'   }, rgb = [0, 0, 1];
-      case {'w', 'white'  }, rgb = [1, 1, 1];
-      case {'k', 'black'  }, rgb = [0, 0, 0];
-      otherwise            , rgb = [0, 0, 1]; % Unknown colour -> 'blue'.
-   end
 end
 
 %--------------------------------------------------------------------------

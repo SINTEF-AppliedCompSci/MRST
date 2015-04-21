@@ -1,4 +1,4 @@
-function varargout = plotCellData(G, data, varargin)
+function varargout = plotCellDataNew(G, data, varargin)
 %Plot exterior grid faces, coloured by given data, to current axes.
 %
 % SYNOPSIS:
@@ -120,19 +120,11 @@ end
 % intended for PATCH.
 %
 if ~isempty(varargin),
-   assert (iscellstr(varargin(1 : 2 : end)), ...
-           'Additional parameters should be ''key''/value pairs.');
+   assert (all(iscellstr(varargin(1 : 2 : end))), ...
+           'All property names must be strings');
 end
-
-assert (ndims(data) == 2, ...
-       ['Function ''%s'' only supports 2D data arrays ', ...
-        '(i.e., vectors or matrices).'], mfilename);
-
-assert (any(size(data, 2) == [1, 3]), ...
-        'Function ''%s'' colour data must be m-by-1 or m-by-3 array.', ...
-        mfilename);
-
-assert (any(size(data, 1) == [G.cells.num, numel(cells)]),  ...
+assert (size(data, 1) == G.cells.num || ...
+        size(data, 1) == numel(cells),  ...
         'The DATA should have one value for each grid cell in output.');
 
 if G.griddim == 3,
@@ -146,19 +138,40 @@ if G.griddim == 3,
        selectcells = find(selectcells & ~datanan);
    end
    [f, c] = boundaryFaces(G, selectcells);
+   if isfield(G, 'parent'),
+         [f, i] = getSubFaces(G, f);
+         c = c(i);
+   end
 else
    % For 2D grids, the faces to plot are the actual individual grid cells.
    [f, c] = deal(cells);
+   if isfield(G, 'parent'),
+      f = getSubCells(G, cells);
+      c = G.partition(f);
+   end
 end
-
-if size(data, 1) < G.cells.num,
+if false && numel(data) < G.cells.num,
    renum        = zeros([G.cells.num, 1]);
    renum(cells) = 1 : numel(cells);
    c            = renum(c);
 
-   assert (all(c > 0) && all(c <= size(data, 1)));
+   assert (all(c > 0) && all(c <= numel(data)));
 end
-
-h = plotFaces(G, f, data(c, :), 'EdgeColor', [0.4 0.4 0.4], varargin{:});
+if isfield(G, 'parent'), G = G.parent; end
+h = plotPatches(G, f, data(c, :), 'EdgeColor', 'none', varargin{:});
+if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
 
 if nargout > 0, varargout{1} = h; end
+end
+
+function [subf, fno] = getSubFaces(G, f)
+   ix   = mcolon(G.faces.connPos(f), G.faces.connPos(f+1)-1);
+   subf = G.faces.fconn(ix);
+   fno  = rldecode(1:numel(f), G.faces.connPos(f+1)-G.faces.connPos(f), 2)';
+end
+
+function subc = getSubCells(G, c)
+   ix    = false(G.cells.num, 1);
+   ix(c) = true;
+   subc  = find(ix(G.partition));
+end
