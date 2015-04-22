@@ -82,7 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:nc
         % Parse well
-        W = processWellsLocal(G, rock, scheduleDeck.control(i));
+        W = processWells(G, rock, scheduleDeck.control(i));
         
         for j = 1:numel(W)
             c = [W(j).compi, 0];
