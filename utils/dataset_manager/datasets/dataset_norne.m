@@ -1,0 +1,36 @@
+function [info, present] = dataset_norne()
+% Info function for Norne dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
+    [info, present] = datasetInfoStruct(...
+        'name', 'Norne', ...
+        'website', 'http://www.ipt.ntnu.no/~norne/wiki/doku.php?id=english:nornebenchmarkcase2', ...
+        'fileurl', '', ...
+        'hasGrid', true, ...
+        'hasRock', true, ...
+        'hasFluid', true, ...
+        'cells', 44420, ...
+        'instructions', 'See IPT website for download instructions and license agreement', ...
+        'description', 'Real world field model in the Norwegian Sea operated by Statoil. Available to researchers via the Norwegian University of Science and technology. ', ...
+        'modelType', 'Three phase black oil corner point' ...
+         );
+end
