@@ -26,11 +26,8 @@ end
 %
 % http://www.sintef.no/Projectweb/MRST/
 
-grdecl = fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP', 'SAIGUP.GRDECL');
-
-if ~exist(grdecl, 'file'),
-   error('SAIGUP model data is not available.')
-end
+pth = getDatasetPath('SAIGUP');
+grdecl = fullfile(pth, 'SAIGUP.GRDECL');
 
 %% Read and process the model
 % We start by reading the model from a file in the Eclipse format (GRDECL)

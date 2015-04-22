@@ -30,11 +30,8 @@
 %
 % http://www.sintef.no/Projectweb/MRST/
 
-grdecl = fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP', 'SAIGUP.GRDECL');
-
-if ~exist(grdecl, 'file'),
-   error('SAIGUP model data is not available.')
-end
+pth = getDatasetPath('SAIGUP');
+grdecl = fullfile(pth, 'SAIGUP.GRDECL');
 
 %% Read model data and convert units
 % The model data is provided as an ECLIPSE input file that can be read
