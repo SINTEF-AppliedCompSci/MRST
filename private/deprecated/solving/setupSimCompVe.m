@@ -1,7 +1,6 @@
 function s = setupSimCompVe(Gt, rock2D, varargin)
 % Wrapper for setupSimComp to produce a vertically - integrated version.
    
-   opt.useNewStandard = false; 
    opt.trans = []; 
    opt = merge_options(opt, varargin{:}); 
    
@@ -25,15 +24,7 @@ function s = setupSimCompVe(Gt, rock2D, varargin)
    
    % Calling setupSimComp, substituting the pore-volume and transmissiblity
    % values it computes with our vertically-integrated quantities.
-   if opt.useNewStandard
-      s = setupOperatorsTPFA(Gt, rock2D, 'porv', pv, 'trans', T); 
-   else
-      warning(['Using old standard for the operator structure, which uses ' ...
-             'different signs for gradient and divergence term.  Consider ' ...
-             'migrating to the new standard, as implemented in ' ...
-             '''setupOperatorsTPFA''']); 
-       s = setupSimComp(Gt, rock2D, 'porv', pv, 'trans', T); 
-   end
+   s = setupOperatorsTPFA(Gt, rock2D, 'porv', pv, 'trans', T); 
 
    s.T_all = T_all; 
 end

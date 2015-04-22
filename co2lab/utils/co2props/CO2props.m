@@ -1,8 +1,8 @@
-function obj = CO2props_new(varargin)
-   
-   opt.rhofile              = 'rho_huge';
-   opt.mufile               = 'mu_huge';
-   opt.hfile                = 'h_small';
+function obj = CO2props(varargin)
+%% @@ Document me
+   opt.rhofile              = 'sampled_tables/rho_huge';
+   opt.mufile               = 'sampled_tables/mu_huge';
+   opt.hfile                = 'sampled_tables/h_small';
    opt.const_derivatives    = false;
    opt.assert               = true;
    opt.sharp_phase_boundary = true;

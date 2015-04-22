@@ -1,8 +1,40 @@
 * Stuff to do
 ** Tidy up code
-*** Go through co2lab-ad, reorganise (move to deprecated or elsewhere)
+*** Make a list of all examples expected to be working
+**** examples/atlas
+- modelsFromAtlas
+- showCO2atlas
+**** examples/trapping
+- firstTrappingExample
+- showTopSurfaceGrids
+- showTrapsInteractively
+- subscaleResolution
+- trappingIGEMS
+**** examples/utils
+- grdeclSloping
+- makeJohansenVEgrid
+- makeSleipnerVEmodel
+- makeSlopingAquiferBig
+- makeSlopingAquifer
+- readIGEMSIRAP
+- readIrapClassicAsciiSurf
+- sinusDeckAdiVE
+- sinusDeck
+**** examples/ve-sim
+- compareMethods
+- exampleVEBlackOilAdi
+- runJohansenVE
+- runSleipner
+- runSlopingAquiferBig
+- runSlopingAquifer
+- runUtsira
+**** paper1
+**** paper2
+**** paper3
+*** DONE Go through co2lab-ad, reorganise (move to deprecated or elsewhere)
 *** Placement of the new code in appropriate places
 *** Document new code
+*** Write READMEs for all the papers
 *** Delint
 *** Address all @@
 ** Decide how to deal with the CO2 object, CoolProps and data files
