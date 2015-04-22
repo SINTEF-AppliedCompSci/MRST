@@ -1,0 +1,102 @@
+* Stuff to do
+** Tidy up code
+*** Go through co2lab-ad, reorganise (move to deprecated or elsewhere)
+*** Placement of the new code in appropriate places
+*** Document new code
+*** Delint
+*** Address all @@
+** Decide how to deal with the CO2 object, CoolProps and data files
+** Finish off code for paper3 (at least what there is time for)
+** Incorporate Olav's changes
+** Run through all examples once more
+* Notes paper1
+* Notes paper2
+** DONE Figure 1: Illustration of injection and trapping
+- inkScape figure
+** DONE Figure 2:
+*** DONE Main: Schematic of vertical section of aquifer
+- tikz-figure
+*** DONE Inlet: Inventory
+- tikz-figure
+** DONE Figure 3: Schematic of fluid distribution
+- tikz-figure
+** DONE Figure 4:
+*** DONE Left: Geometry of example 1
+- showAquiferModel
+*** DONE Right: Density of CO2 given hydrostatic pressure
+- showDensityVariation
+** DONE Figure 5: Thickness of CO2 plume by sharp-interface models
+- residualExample1_new
+** DONE Figure 6: Sharp-interface simulation
+- residualExample1_new
+** INMIND Figure 7: Injection into Plioscenesand aquifer
+- firstPlioExample
+- NB: Final results differ significantly from illustrations in paper
+** INMIND Figure 8: Plioscenesand - detailed inventory
+- firstPlioExample
+- NB: Final results differ significantly from illustrations in paper
+** DONE Figure 9: Upscaling of small-scale caprock undulations
+- tikz-figures
+** DONE Figure 10: Estimation of the parameter characterizing sub-scale undulations
+- showUpscaledRelPerms
+** DONE Figure 11: Upscaling of sub-scale caprock topographies
+*** DONE Left:  Fine-scale solution
+- upscalingExample1_new  
+*** DONE Right: Corresponding relative permeabilities
+- showUpscaledRelPerms (calls upscaleRelPerms)
+** DONE Figure 12: Evolution of CO2 distribution, dissolution
+- dissolutionExample1_new
+- showDissolutionExample1Panel
+** DONE Figure 13: CO2 distribution in global coordinates
+- dissolutionExample1_new
+- showDissolutionExample1Detail
+** DONE Figure 14: 900 years after injection
+- dissolutionExample1_new
+- showDissolutionExample1
+** DONE Figure 15: Conceptual fluid distribution
+- tikz figure
+** INMIND Figure 16: Modeling of effects of dissolution, Pliocenesand
+- secondPlioExample
+- showSecondPlioExample
+*** TODO *Convergence issues for rate-driven dissolution model*
+
+
+** Other:
+- the script 'dissolutionTopSurfaceExample1' doesn't seem to converge properly, and isn't used for any of the illustrations as far as I can see, so it is left out from the final compilation.
+- 
+
+* Notes paper3
+** DONE Figure 1: Schematic of vertical section
+by tikz
+** DONE Figure 2: Schematic of coordinate system
+by tikz
+** DONE Figure 3: Diagram of phase pressures
+by tikz
+** DONE Figure 4: Parameter dependency graph
+by tikz
+** DONE Figure 5: Four types of vertical saturation distribution
+by tikz
+** TODO Figure 6: Reconstructed saturation distributions
+plotVEReconstruction (presumably)
+** TODO Figure 7: Fine-scale relperm with hystereis
+*** Left
+by tikz
+*** Right
+????
+** TODO Figure 8: Endpoint model
+*** Left
+???
+*** Middle
+???
+*** Right
+???
+** TODO Figure 9: Assumptions on capillary-pressure
+plotVEProfilesAndRelperms (presumably)
+** TODO Figure 10: Efective cap. pressure/relperm
+plotVEProfilesAndRelperms (presumably)
+** TODO Figure 11: CO2 distribution in global coordinates
+dissolutionExample1TopSurface
+showDissolutionExample1TopSurfaceReconstruction
+** TODO Figure 12: Flowing CO2 computed by different models
+dissoluitonExample1TopSurface
+showDissolutionExampleTopSurface
