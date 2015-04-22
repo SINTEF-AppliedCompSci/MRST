@@ -131,13 +131,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                'n'  , [   2,   2]);
 
     oilwater.names = {'Water', 'Oil', 'Gas'};
+    
+    window_title = 'Interactive Diagnostics';
 
     opt = struct('state',               [],...
                  'tracerfluid',         water, ...
                  'LinSolve',            @mldivide, ...
                  'computeFlux',         true, ...
                  'useMobilityArrival',  false,...
-                 'fluid',               oilwater ...
+                 'fluid',               oilwater, ...
+                 'window_title',        window_title ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -157,7 +160,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [D, WP] = deal([]);
 
 
-    fig_main = figure;
+    fig_main = figure('name', opt.window_title);
     
     % Check for which version of handle graphics MATLAB is currently
     % running
@@ -179,6 +182,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      tofext,...
      hdataset,...
      ni, np] = deal(NaN);
+    
+    % Setup "persistent" variables
+    pm_htop = [];
+    pm_htext = [];
+    pm_hs = [];
+    pm_hline = [];
+    pm_mainph = [];
+    pm_outlineph = [];
+    phiPlot = []; % Used in plotPhi
+    pwc_wch = []; % Used in plotWellConnections
 
     % Precompute TOF etc.
     pv = poreVolume(G, rock);
@@ -195,8 +208,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Set up figure handles
         if ~ishandle(fig_ctrl)
             pos = get(fig_main, 'OuterPosition');
-            fig_ctrl = figure('Position',[pos(1:2)-[300 0],  [475 550]], 'Toolbar','none', 'MenuBar', 'none');
-            set(fig_ctrl, 'Name', 'Controller');
+            size_xy = [475 550];
+            pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
+            fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none');
+            set(fig_ctrl, 'Name', ['Controller ', opt.window_title]);
         else
             clf(fig_ctrl)
         end
@@ -268,7 +283,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         cellfields = getStructFields(G, datasets, dsname);
         perm = strcat({'X', 'Y', 'Z'}, ' permeability');
-
+        
         hdataset = uicontrol(confp, 'Style', 'popupmenu',...
                                     'Units', 'normalized',...
                                     'Position', [.2 0 .6 1],...
@@ -316,10 +331,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'Callback', @plotWellConnections...
                    );
 
-        end
+    end
 
     function plotMain(src, event)
-        persistent htop htext hs hline mainph outlineph
 
         [cdata clim cmap] = selectDataset();
 
@@ -329,17 +343,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             figure(fig_main);
         end
 
-        if any(ishandle(mainph))
-            delete(mainph);
+        if any(ishandle(pm_mainph))
+            delete(pm_mainph);
         end
 
-        if ~any(ishandle(outlineph))
+        if ~any(ishandle(pm_outlineph))
             if isHG1
-                outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
+                pm_outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
             else
-                outlineph = plotGrid(G, 'facec', 'none', 'edgec', 'black');
+                pm_outlineph = plotGrid(G, 'facec', 'none', 'edgec', 'black');
             end
-            set(outlineph, 'UserData', 'gridoutline');
+            set(pm_outlineph, 'UserData', 'gridoutline');
         end
 
         % Limit dataset based on tof
@@ -364,22 +378,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Plot selection
         selection = (isubset & isubs) | (psubset & psubs);
         if any(selection)
-            mainph = plotCellData(G, cdata, selection, 'EdgeColor', 'none', 'FaceAlpha', alpha);
+            pm_mainph = plotCellData(G, cdata, selection, 'EdgeColor', 'none', 'FaceAlpha', alpha);
         end
 
 
         fastRotateButton();
 
         % Plot wells
-        if ~all(ishandle([htop, htext, hs])) || isempty([htop, htext, hs])
+        if ~all(ishandle([pm_htop, pm_htext, pm_hs])) || isempty([pm_htop, pm_htext, pm_hs])
 
-            [htop, htext, hs, hline] = plotWell(G, W,  'color', 'red', 'height',  0);
+            [pm_htop, pm_htext, pm_hs, pm_hline] = plotWell(G, W,  'color', 'red', 'height',  0);
             for i = 1:numel(W)
                 color = colorizeWell('global', i, D);
-                set([htop(i) htext(i) hs(i)],    'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
-                set([htop(i) hs(i)], 'FaceColor', color, 'EdgeColor', color)
-                set([htext(i) hline(i)], 'Color', color)
-                set(htext(i), 'FontWeight', 'bold', 'Interpreter', 'none')
+                set([pm_htop(i) pm_htext(i) pm_hs(i)],    'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
+                set([pm_htop(i) pm_hs(i)], 'FaceColor', color, 'EdgeColor', color)
+                set([pm_htext(i) pm_hline(i)], 'Color', color)
+                set(pm_htext(i), 'FontWeight', 'bold', 'Interpreter', 'none')
             end
 
         end
@@ -503,7 +517,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotPhi(src, event)
-        persistent phiPlot
         if isempty(phiPlot) || ~ishandle(phiPlot)
             phiPlot = figure;
         else
@@ -515,7 +528,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotWellConnections(src, event)
-        persistent wch;
 
         if get(src, 'Value')
             if ishandle(fig_main)
@@ -525,13 +537,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 axis tight off
                 plotMain();
             end
-            if ~any(ishandle(wch))
-                wch = plotWellPairConnections(G, WP, D, W, pv);
+            if ~any(ishandle(pwc_wch))
+                pwc_wch = plotWellPairConnections(G, WP, D, W, pv);
             end
         else
 
-           delete(wch)
-            wch = [];
+            delete(pwc_wch)
+            pwc_wch = [];
         end
 
     end
