@@ -196,7 +196,7 @@ A = -A + spdiags(d, 0, nc, nc);
 % diagonal to account for compressibility effects. Inflow/outflow from
 % boundary conditions are accounted for in the divergence, and hence we
 % only need to subtract q (and not qb).
-div = accumarray(gridCellNo(G), faceFlux2cellFlux(G, state.flux));
+div = accumarray(getCellNoFaces(G), faceFlux2cellFlux(G, state.flux));
 A   = A - spdiags(div-q, 0, nc, nc);
 
 % Build right-hand sides for tracer equations. Since we have doubled the
