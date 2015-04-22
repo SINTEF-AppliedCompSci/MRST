@@ -93,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Work out if a image is attached to the dataset
     pth = fileparts(mfilename('fullpath'));
-    imgdir = fullfile(pth, 'datasets', 'img');
+    imgdir = fullfile(pth, '..', 'datasets', 'img');
     imgs = dir(imgdir);
     
     imgNames = {imgs.name};
