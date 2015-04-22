@@ -265,6 +265,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [mtofsh, mtofeh]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF');
         [Mtofsh, Mtofeh]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF');
         [alfash, alfaeh]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha');
+        
+        % Set special functions for the min/max time of flight slider
+        % handle
+        function mtofs_callback(src, event)
+            if (get(src, 'Value') == get(src, 'Min'))
+                set(mtofeh, 'String', sprintf('%.1f', -Inf));
+            else
+                set(mtofeh, 'String', sprintf('%.1f', get(src, 'Value')));
+            end
+        end
+        function Mtofs_callback(src, event)
+            if (get(src, 'Value') == get(src, 'Max'))
+                set(Mtofeh, 'String', sprintf('%.1f', +Inf));
+            else
+                set(Mtofeh, 'String', sprintf('%.1f', get(src, 'Value')));
+            end
+        end
+        set(mtofsh, 'Callback', @mtofs_callback);
+        set(mtofeh, 'String', num2str(-Inf))
+        set(Mtofsh, 'Callback', @Mtofs_callback);
+        set(Mtofeh, 'String', num2str(+Inf))
 
         uicontrol(tofp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
@@ -368,7 +389,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Limit dataset based on tof
         min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
         max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
-
 
         alpha   = get(alfash, 'Value');
 
