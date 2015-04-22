@@ -16,12 +16,7 @@ by tikz
 ** Right
 ????
 * TODO Figure 8: Endpoint model
-** Left
-???
-** Middle
-???
-** Right
-???
+plotVEReconstruction
 * TODO Figure 9: Assumptions on capillary-pressure
 plotVEProfilesAndRelperms (presumably)
 * TODO Figure 10: Efective cap. pressure/relperm
