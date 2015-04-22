@@ -34,7 +34,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % Make a figure with a button group for the modules, leaving some space for
 % pushbuttons at the bottom.
-f = figure('ToolBar', 'none');
+f = figure('Toolbar', 'none', 'NumberTitle', 'off', 'MenuBar', 'none');
 bg = uibuttongroup('Visible','on',...
                    'Position',[0 .1 1 .9]);
 
