@@ -52,10 +52,21 @@ methods
       
 % =========================== Private methods ============================
    function model = setupOperators(model, Gt, rock, varargin)
-      
-   % @@ remove need for 'useNewStandard' parameter passing
-      model.operators = ...
-          setupSimCompVe(Gt, rock, 'useNewStandard', true, varargin{:}); 
+
+      % Compute vertially-integrated transmissibilities if not provided
+      rock_tmp      = rock; 
+      rock_tmp.perm = rock.perm .* Gt.cells.H; 
+      T             = computeTrans(Gt, rock_tmp); 
+      cf            = Gt.cells.faces(:, 1); 
+      nf            = Gt.faces.num; 
+      T             = 1 ./ accumarray(cf, 1 ./ T, [nf, 1]);       
+
+      % Computing vertically-integrated pore - volume
+      pv = poreVolume(Gt, rock); 
+      pv = pv .* Gt.cells.H; 
+
+      model.operators = setupOperatorsTPFA(Gt, rock, 'porv', pv, 'trans', T);
+      model.operators.T_all = T;
       
       % @@ In case of a height-formulation, operators.pv should be divided
       % by height, i.e. model.operators.pv = model.operators.pv ./ Gt.cells.H
