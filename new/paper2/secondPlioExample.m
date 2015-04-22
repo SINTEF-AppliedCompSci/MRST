@@ -106,10 +106,8 @@ schedule.step = struct('control', [ones(size(istep));ones(size(mstep))*2], ...
                        'val', [istep; mstep]);
 
 %% start loop over cases
-% k = 1;
-% for dis_model = {'none', 'instant', 'rate'};
-k = 3;
-for dis_model = {'rate'};
+k = 1;
+for dis_model = {'none', 'instant', 'rate'};
 
    % Set up fluid model
    p_range = [1,  150] * mega * Pascal; % CO2 supported pressure range
@@ -145,7 +143,7 @@ for dis_model = {'rate'};
    [wellSols, states] = simulateScheduleAD(initState, model, schedule);
    t2 = toc(t2);
    
-   states = [initState; states]; % Include initial state
+   states = {initState, states{:}}'; % Include initial state
    ensure_path_exists('data/');
    save(['data/secondPlioExample_',num2str(depth),'_',num2str(k),'.mat'], ...
         't2','states','wellSols','schedule', 'Gt', 'fluid', 'rock2D');

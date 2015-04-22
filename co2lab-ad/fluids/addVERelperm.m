@@ -27,7 +27,7 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %   res_gas   - residual gas saturation (scalar)
 %   res_water   - residual oil saturation (scalar)
 %   krG       - upscaled rel.perm. of gas as a function of (gas) saturation
-%   krW      - upscaled rel.perm. of oil as a function of (water) saturation
+%   krW      - upscaled rel.perm. of water as a function of (water) saturation
 %   pcWG      - upscaled 'capillary pressure' as a function of gas saturation
 %   invPc3D   - Fine-scale water saturation as function of cap. pressure
 %   kr3D      - Dummy function, returning a rel.perm. value that is simply
