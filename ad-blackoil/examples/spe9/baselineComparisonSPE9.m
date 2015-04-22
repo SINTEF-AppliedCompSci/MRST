@@ -14,11 +14,25 @@
 % Norway) and available at
 % <http://www.ipt.ntnu.no/~kleppe/pub/SPE-COMPARATIVE/ECLIPSE_DATA/>.
 %
-% We have outsourced the setup of the schedule, model and initial state to
-% the getBenchmarkAD function. 
+% We have put most of the boilerplate setup into the setupSPE9 function.
 
-mrstModule add ad-blackoil ad-core mrst-gui ad-unittest
-[schedule, model, state0] = getBenchmarkAD('spe9');
+mrstModule add ad-blackoil ad-core mrst-gui ad-props
+[G, rock, fluid, deck, state0] = setupSPE9();
+
+
+% Determine the model automatically from the deck. It should be a
+% three-phase black oil model with gas dissoluton.
+model = selectModelFromDeck(G, rock, fluid, deck);
+% Set maximum limits on saturation, Rs and pressure changes
+model.drsMaxRel = .2;
+model.dpMaxRel  = .2;
+model.dsMaxAbs  = .05;
+
+% Show the model
+model %#ok, intentional display
+
+% Convert the deck schedule into a MRST schedule by parsing the wells
+schedule = convertDeckScheduleToMRST(G, model, rock, deck);
 
 %% Set up linear solver
 % We proceed to setup a CPR-type
