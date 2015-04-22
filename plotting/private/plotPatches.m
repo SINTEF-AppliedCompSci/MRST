@@ -137,6 +137,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       fc     = 'interp';
    end
 
+   if size(f, 1) == size(v, 1)
+       % plotPatches uses FaceVertexCData to plot face data. The internal
+       % MATLAB patch function decides if the data is given per vertex or
+       % face based on a check of lengths. However, if the sizes are
+       % exactly *equal* it defaults to vertex data. This can happen when
+       % dynamically plotting subsets of fronts. In this case, we add a
+       % dummy vertex consisting of NaN which has no influence on the plot,
+       % but ensures that the data is interpreted as face data.
+       v = [v; NaN(1, size(v, 2))];
+   end
+
    % Build final patch for graphical output (Note: added to GCA).
    if size(colour,1) == 1,
       % Separate one-colour treatment to enable vector graphics (e.g.,
