@@ -59,7 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargin == 0 && nargout == 0
         fprintf('The current MRST data directory is set to:\n\t%s\n', ...
                  DATADIR);
-    else
+    elseif nargin > 0
         newDir = varargin{1};
         assert(ischar(newDir), 'Data directory must be a string');
         if isdir(newDir)

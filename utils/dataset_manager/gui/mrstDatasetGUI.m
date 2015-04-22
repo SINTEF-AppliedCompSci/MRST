@@ -168,7 +168,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % Do nothing
         end
     end
-   if narogut > 0
+   if nargout > 0
        varargout{1} = h;
    end
 end
