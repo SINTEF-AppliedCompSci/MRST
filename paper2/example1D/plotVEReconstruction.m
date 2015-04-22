@@ -1,4 +1,4 @@
-moduleCheck('co2lab','ad-fi','ad-props','co2lab-ad');
+moduleCheck('co2lab','ad-fi','ad-props');
 %%
 % parameters for plotting
 param=[0.0,0.2;...

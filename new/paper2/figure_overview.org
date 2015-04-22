@@ -42,9 +42,10 @@
 - showDissolutionExample1
 * DONE Figure 15: Conceptual fluid distribution
 - tikz figure
-* Figure 16: Modeling of effects of dissolution, Pliocenesand
+* WAITING Figure 16: Modeling of effects of dissolution, Pliocenesand
 - secondPlioExample
 - showSecondPlioExample
+- *There are issues with convergence for the rate-driven dissolution model.  There are also issues with plotting, which may or may not be related.*
 
 
 * Other:

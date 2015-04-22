@@ -15,11 +15,11 @@ function showSecondPlioExample_new()
       secondPlioExample; % running script
    
    end   
-   outcomes = cellfun(@(name) load(name), savefiles);
-   Gt = outcomes(1).Gt;
-   W  = outcomes(1).schedule.control(1).W;
-   time = [0;cumsum(outcomes(1).schedule.step.val)/year];
-   rock2D = outcomes(1).rock2D;
+   outcomes = cellfun(@(name) load(name), savefiles, 'uniformoutput', false);
+   Gt = outcomes{1}.Gt;
+   W  = outcomes{1}.schedule.control(1).W;
+   time = [0;cumsum(outcomes{1}.schedule.step.val)/year];
+   rock2D = outcomes{1}.rock2D;
    
    
    %% Pliocenesand: effect of dissolution
@@ -45,15 +45,15 @@ function showSecondPlioExample_new()
       figure; hold on;
       has_rs = []; 
       for n = 1:3
-         time_tmp = [0; cumsum(outcomes(models(n)).schedule.step.val) / year]; 
+         time_tmp = [0; cumsum(outcomes{models(n)}.schedule.step.val) / year]; 
          assert(time_tmp(step) == time(step));
 
          % calculate properties
-         state=outcomes(models(n)).states{step};
+         state=outcomes{models(n)}.states{step};
          p= state.pressure;
          sG= state.s(:,2);
          sGmax=state.sGmax;
-         fluid = outcomes(models(n)).fluid;
+         fluid = outcomes{models(n)}.fluid;
 
          sG = free_sg(sG, sGmax, ...
                       struct('res_gas',fluid.res_gas, 'res_water', ...
@@ -107,13 +107,13 @@ function showSecondPlioExample_new()
    
    % Calculating all masses
    for m=1:3
-      nsteps = numel(outcomes(m).states); 
-      outcomes(m).tot_masses = nan(nsteps, 3); % #ok
-      outcomes(m).masses = nan(nsteps, 8); % #ok
-      schedule = outcomes(m).schedule;
-      for step=1:numel(outcomes(m).states)
+      nsteps = numel(outcomes{m}.states); 
+      outcomes{m}.tot_masses = nan(nsteps, 3); % #ok
+      outcomes{m}.masses = nan(nsteps, 8); % #ok
+      schedule = outcomes{m}.schedule;
+      for step=1:numel(outcomes{m}.states)
          % calculate properties
-         state=outcomes(m).states{step};
+         state=outcomes{m}.states{step};
          p= state.pressure;
          sG= state.s(:,2);
          sGmax=state.sGmax;
@@ -125,7 +125,7 @@ function showSecondPlioExample_new()
         end
         assert(all(sGmax>=0));
         
-        fluid = outcomes(m).fluid; 
+        fluid = outcomes{m}.fluid; 
         drho = fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p); 
         h = (fluid.pcWG(sG, p, 'sGmax', sGmax)) ./ (drho * norm(gravity())); 
         h_max = (fluid.pcWG(sGmax, p, 'sGmax', sGmax)) ./ (drho *norm(gravity()));
@@ -159,7 +159,7 @@ function showSecondPlioExample_new()
         end
         
         masses = phaseMassesVEADI(Gt, state, rock2D, fluid); 
-        outcomes(m).tot_masses(step, :) = masses; % #ok
+        outcomes{m}.tot_masses(step, :) = masses; % #ok
         co2mass = masses(1) + masses(3); 
         % h and h_max; 
         state.h = h; 
@@ -168,7 +168,7 @@ function showSecondPlioExample_new()
         dh = Gt.cells.z * 0; % no subscale trapping
         masses = massTrappingDistributionVEADI(Gt, state, rock2D, fluid, ta, dh); 
         % store all masses as a matrix with rows repersenting time
-        outcomes(m).masses(step, :) = [masses, totMass]; % #ok
+        outcomes{m}.masses(step, :) = [masses, totMass]; % #ok
     end
 end
 
@@ -179,11 +179,11 @@ xw = 0.8 / numel(models);
 xa = 0.2 / (numel(models) + 1); 
 for i = 1:numel(models)
    ind = [1:5, 7, 8]; 
-   masses = outcomes(models(i)).masses(:, ind); 
+   masses = outcomes{models(i)}.masses(:, ind); 
    masses(:, end) = masses(:, end) - sum(masses(:, 1:end - 1), 2); 
    axes('position', [(i - 1) * xw + i * xa,.17, xw,.78]); % #ok
    set(gca, 'FontSize', 14); 
-   hp = area(time(2:end), masses / 1e9);  % @@
+   hp = area(time, masses / 1e9); 
    col = getInventoryColors(1:7); 
    for j = 1:numel(hp), set(hp(j), 'FaceColor', col(j, :)); end
    axis tight
