@@ -258,7 +258,14 @@ end
 function h = plotLineSegments(G, e, varargin)
 % Plot all line segments given by node pairs in each row in e.
    e = unique([e ; fliplr(e)], 'rows');
-   h = patch('vertices', G.nodes.coords, 'faces', e, varargin{:});
+   if isfield(G.nodes, 'z')
+       % Grid is 2d, but contains z coordinates in extra field.
+       coord = [G.nodes.coords, G.nodes.z];
+   else
+       % Expected case.
+       coord = G.nodes.coords;
+   end
+   h = patch('vertices', coord, 'faces', e, varargin{:});
 end
 
 %--------------------------------------------------------------------------
