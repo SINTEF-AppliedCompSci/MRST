@@ -132,7 +132,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     oilwater.names = {'Water', 'Oil', 'Gas'};
     
-    window_title = 'Interactive Diagnostics';
+    name = 'Interactive Diagnostics';
 
     opt = struct('state',               [],...
                  'tracerfluid',         water, ...
@@ -140,7 +140,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'computeFlux',         true, ...
                  'useMobilityArrival',  false,...
                  'fluid',               oilwater, ...
-                 'window_title',        window_title ...
+                 'name',                name ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -190,7 +190,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     computeValues();
     
     %Create main figure
-    fig_main = figure('name', opt.window_title);
+    fig_main = figure('name', opt.name);
     
     % Check for which version of handle graphics MATLAB is currently
     % running
@@ -212,7 +212,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             size_xy = [475 550];
             pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
             fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none');
-            set(fig_ctrl, 'Name', ['Controller ', opt.window_title]);
+            set(fig_ctrl, 'Name', ['Controller ', opt.name]);
         else
             clf(fig_ctrl)
         end
