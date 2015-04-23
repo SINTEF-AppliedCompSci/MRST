@@ -68,7 +68,8 @@ for i = 1:nrow
         hb(j) = uicontrol(bg, 'Style', 'checkbox', 'String', m,...
                            'Units', 'normalized', 'Position', dims, ...
                            'TooltipString', mrstPath('query', m), ...
-                           'Callback', @buttonPressed);
+                           'ButtonDownFcn', @buttonClicked, ...
+                           'Callback', @buttonCallback);
     end
 
 end
@@ -99,8 +100,8 @@ function updateButtons()
     end
 end
 
-function buttonPressed(src, event) %#ok
-    % Button pressed
+function buttonCallback(src, event) %#ok
+    % Button has changed status
     v = get(src, 'Value');
     name = get(src, 'String');
     if v
@@ -114,6 +115,18 @@ function buttonPressed(src, event) %#ok
         active = active & ~strcmpi(modules, name);
         mrstModule('reset', modules{active});
         updateButtons();
+    end
+end
+
+function buttonClicked(src, event)
+    % Button was clicked (right mouse button or mousewheel).
+    name = get(src, 'String');
+    pth =  mrstPath(name);
+    fprintf('* Directory listing for module %s \n', name)
+    fprintf('* <a href="%s">%s</a>\n', pth, pth); 
+    files = dir(pth);
+    for ix = 1:numel(files)
+        listStr(pth, files(ix))
     end
 end
 
@@ -135,3 +148,21 @@ function active = getActive(modules)
     active = cellfun(@(x) any(strcmpi(current, x)), modules);
 end
 
+function listStr(pth, x)
+    name = x.name;
+    if x.isdir
+        if strncmp(name, '.', 1)
+            return
+        end
+        fprintf('<a href="%s">%s</a>\n', fullfile(pth, name), name);
+    else
+        [tmp, tmp, ext] = fileparts(name); %#ok
+        if strcmpi(ext, '.m')
+            % Print edit link to .m-file
+            fprintf('<a href="matlab:edit %s">%s</a>\n', fullfile(pth, name), name);
+        else
+            % Just print the name without a link, it isn't a m-file.
+            fprintf('%s\n', name);
+        end
+    end
+end
