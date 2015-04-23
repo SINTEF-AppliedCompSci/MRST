@@ -32,8 +32,14 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+persistent f
 % Make a figure with a button group for the modules, leaving some space for
 % pushbuttons at the bottom.
+if ~isempty(f) && ishandle(f)
+    % Avoid creating more than one window, since we can't rely on close all
+    % to get rid of them.
+    close(f)
+end
 f = figure('Toolbar',           'none', ...
            'NumberTitle',       'off', ...
            'MenuBar',           'none');

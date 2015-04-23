@@ -41,6 +41,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    persistent h
+    if ~isempty(h) && ishandle(h)
+        % Avoid creating more than one window, since we can't rely on close all
+        % to get rid of them.
+        close(h)
+    end
 
     h = figure('Toolbar', 'none', 'NumberTitle', 'off', 'MenuBar', 'none');
     [info, present, sh] = deal([]);
