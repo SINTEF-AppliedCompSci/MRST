@@ -93,8 +93,12 @@ faces = @(sz,i,j) [sub2ind(sz, i  , j  ), ... % lower left  vertex
                    sub2ind(sz, i+1, j  ), ... % lower right vertex
                    sub2ind(sz, i+1, j+1), ... % upper right vertex
                    sub2ind(sz, i  , j+1)];    % upper left  vertex
-
-ztop =  min(G.nodes.coords(:,3)) - prm.height;
+if isfield(G, 'parent')
+    zcoord = G.parent.nodes.coords(:, 3);
+else
+    zcoord = G.nodes.coords(:, 3);
+end
+ztop =  min(zcoord) - prm.height;
 for w = 1 : nW,
    % Plot cylinder
    c = G.cells.centroids(W(w).cells, :);
@@ -194,7 +198,7 @@ for w = 1 : nW,
 
    % Plot a line to somewhere above the model
    c = c([1 1:end],:);
-   c(1,3) = min(G.nodes.coords(:,3)) - prm.height;
+   c(1,3) = min(zcoord) - prm.height;
    hline(w) = plot3(c(:,1), c(:,2), c(:,3), ...
              'color', prm.color, 'LineWidth', prm.linewidth);
 
