@@ -171,6 +171,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if nargout > 0
        varargout{1} = h;
    end
+   set(h, 'HandleVisibility',  'Callback')
 end
 
 function listfiles(info)
