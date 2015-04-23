@@ -159,15 +159,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Main scope variables for tracers and tof
     [D, WP] = deal([]);
 
-
-    fig_main = figure('name', opt.window_title);
-    
-    % Check for which version of handle graphics MATLAB is currently
-    % running
-    isHG1 = isnumeric(fig_main);
-    
-    axis tight off
-
     % Main scope variables for control panel
     [fig_ctrl,...
      wellPlot,...
@@ -197,6 +188,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Precompute TOF etc.
     pv = poreVolume(G, rock);
     computeValues();
+    
+    %Create main figure
+    fig_main = figure('name', opt.window_title);
+    
+    % Check for which version of handle graphics MATLAB is currently
+    % running
+    isHG1 = isnumeric(fig_main);
+    
+    axis tight off
 
     % Create control panel
     createMainControl();
@@ -485,6 +485,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         winj = repmat(D.inj,[1,np]);
         wpro = rldecode(D.prod,ni,2);
+        
+        wp = [];
 
         isInj = ismember(wk, D.inj);
         if isInj
@@ -492,7 +494,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             sub = winj == wk;
 
             % well pair stuff
-            wp = @(x) WP.inj(x);
+            if (numel(WP) > 0)
+                wp = @(x) WP.inj(x);
+            end
             otherNames = {W(D.prod).name};
 
             % set plots to match piecharts
@@ -505,7 +509,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             sub = wpro == wk;
 
             % well pair stuff
-            wp = @(x) WP.prod(x);
+            if (numel(WP) > 0)
+                wp = @(x) WP.prod(x);
+            end
             otherNames = {W(D.inj).name};
 
             v = find(strcmpi(get(hdataset, 'String'), 'flooding region'));
@@ -515,10 +521,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         if isempty(wellPlot) || ~ishandle(wellPlot)
-            wellPlot = figure;
+            wellPlot = figure();
         else
             set(0, 'CurrentFigure', wellPlot); clf
         end
+        set(wellPlot, 'name', ['Well ', W(wk).name]);
 
         plotArrival = ~isempty(opt.state) && ~isInj;
 
@@ -528,32 +535,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             subplot(2, 2,[1 3])
         end
 
-        pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
-        title('Pore volumes')
+        if (numel(WP) > 0) 
+            pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
+            title('Pore volumes')
+        end
         if plotArrival
             subplot(2,2,3);  cla;
             plotTOFArrival(opt.state, W, pv, opt.fluid, find(D.prod == wk), D, opt.useMobilityArrival)
         end
 
         subplot(2,2,[2 4])
-        tmp = wp(ik);
-        if numel(tmp.z) > 1
-            % Allocation factors by depth does not make sense for only one
-            % perforation!
-            [z, zind] = sort(tmp.z, 'descend');
-            alloc = tmp.alloc(zind, :);
-            % Always some allocation - avoid division by zero
-            alloc(alloc == 0) = eps;
-            walloc = bsxfun(@rdivide, cumsum(alloc,1), sum(alloc(:)));
-            area(z, walloc, eps); axis tight;
-            hold on
-            plot(z, zeros(numel(z, 1)), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
-            % Flip it around, xlabel is really ylabel
-            view(90, -90);
-            set(gca, 'XDir', 'reverse')
-            legend(otherNames, 'Location', 'EastOutside');
-            xlabel('Depth')
-            title(['Allocation factors by depth for ', W(wk).name]);
+        if (numel(wp) > 0)
+            tmp = wp(ik);
+            if numel(tmp.z) > 1
+                % Allocation factors by depth does not make sense for only one
+                % perforation!
+                [z, zind] = sort(tmp.z, 'descend');
+                alloc = tmp.alloc(zind, :);
+                % Always some allocation - avoid division by zero
+                alloc(alloc == 0) = eps;
+                walloc = bsxfun(@rdivide, cumsum(alloc,1), sum(alloc(:)));
+                area(z, walloc, eps); axis tight;
+                hold on
+                plot(z, zeros(numel(z, 1)), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
+                % Flip it around, xlabel is really ylabel
+                view(90, -90);
+                set(gca, 'XDir', 'reverse')
+                legend(otherNames, 'Location', 'EastOutside');
+                xlabel('Depth')
+                title(['Allocation factors by depth for ', W(wk).name]);
+            end
         end
 
         plotMain();
@@ -649,11 +660,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         D = computeTOFandTracer(rS, G, rock, 'wells', W);
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
+        
         % Cap tof to maximum tof for unreachable areas for the time being
         tf = D.tof(:);
-        D.tof(isinf(D.tof)) = max(tf(isfinite(tf)));
-
-        WP = computeWellPairs(rS, G, rock, W, D);
+        if (all(isinf(tf)))
+            warning('Time of flight returned inf. Are there both injectors and producers present?')
+        else
+            D.tof(isinf(D.tof)) = max(tf(isfinite(tf)));
+            WP = computeWellPairs(rS, G, rock, W, D);
+        end
     end
 
     function changeWells()
