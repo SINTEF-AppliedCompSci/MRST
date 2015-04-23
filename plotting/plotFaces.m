@@ -217,6 +217,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       ix          = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
       edges       = reshape(G.faces.nodes(ix), 2, []) .';
       h           = plotLineSegments(G, edges, varargin{:});
+      set(get(h, 'Parent'), 'ZDir', 'reverse');
 
       % Find unique endpoints - if varargin contains 'marker*'
       if numel(marker_opts) > 0

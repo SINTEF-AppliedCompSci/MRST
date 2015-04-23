@@ -135,12 +135,12 @@ if isCoarseGrid(G),
 
    h  = plotPatches(G.parent, subFaces(G, f), ...
       'EdgeColor', 'none', 'FaceColor', 'y', varargin{:});
-   if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
+   set(get(h, 'Parent'), 'ZDir', 'reverse');
    h  = [h; plotFaceOutline(G, f, outline_opts{:})];
 
 else
    h = plotPatches(G, f, 'EdgeColor', 'k', 'FaceColor', 'y', varargin{:});
-   if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
+   set(get(h, 'Parent'), 'ZDir', 'reverse');
 end
 
 if nargout > 0, varargout{1} = h; end
