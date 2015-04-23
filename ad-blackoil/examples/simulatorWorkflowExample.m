@@ -88,9 +88,9 @@ title('K_x (mD)')
 % Once we have defined the fluid, we further modify the oil compressibility
 % by changing the bO-factor to have some constant compressibility using
 % an anonymous function of pressure (using the standard Matlab builtin exp)
-% to get a function on the form
-%
-% $ b_o(p) = b_0 e^{(p - p_0) c} $
+% to get a function on the form $b_o(p) = b_0 e^{(p - p_0) c}$. Since the
+% fluid model is a struct containing function handles, it is simple to
+% modify the fluid to use alternate functions.
 %
 % We then pass the fundamental structures (grid, rock and fluid) onto the
 % two-phase oil/water model constructor.
@@ -129,7 +129,6 @@ state0 = initResSol(G, p_res, sat);
 % Once we have defined the schedule (dynamic controls and time), model
 % (mathematical description of how to advance the solution) and the initial
 % solution, we can simulate the problem.
-mrstVerbose on
 [wellSols, states] = simulateScheduleAD(state0, model, schedule);
 %% Plot results
 % We launch a plotting tool for both the reservoir quantities (pressures
@@ -145,8 +144,8 @@ plotWellSols(wellSols, simtime, 'field', 'qOs');
 %% Create a upscaled, coarser model
 % The fine scale model has approximately 10000 cells. If we want a smaller
 % model we can easily define an upscaled model. Here we set up a simple
-% uniform partition of approximately 50 cells based on the logical
-% partition.
+% uniform partition of approximately 50 cells based on the IJK-indices of
+% the grid.
 mrstModule add coarsegrid
 cdims = [5, 5, 2];
 p0 = partitionUI(G, cdims);
@@ -182,7 +181,9 @@ title('Partition after processing by faults');
 % example we will use the defaults.
 %
 % Once we have a upscaled model, we can again simulate the new schedule and
-% observe that the time taken is greatly reduced.
+% observe that the time taken is greatly reduced. For instance, on a Intel
+% Core i7 desktop computer, the fine model takes little under a minute to
+% run, while the upscaled model takes 4 seconds.
 model_c = upscaleModelTPFA(model, p);
 G_c    = model_c.G;
 rock_c = model_c.rock;
