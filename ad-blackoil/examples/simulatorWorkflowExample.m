@@ -15,6 +15,7 @@
 % Note that this example shows a simple conceptual model designed to show
 % the workflow rather than a problem representing a realistic scenario in
 % terms of well locations and fluid physics.
+mrstModule add ad-core ad-blackoil ad-props mrst-gui
 
 % Define grid
 grdecl = makeModel3([50, 50, 5], [1000, 1000, 5]*meter);
@@ -93,8 +94,6 @@ title('K_x (mD)')
 %
 % We then pass the fundamental structures (grid, rock and fluid) onto the
 % two-phase oil/water model constructor.
-mrstModule add ad-core ad-blackoil ad-props
-
 fluid = initSimpleADIFluid('mu',    [1, 5, 0]*centi*poise, ...
                            'rho',   [1000, 700, 0]*kilogram/meter^3, ...
                            'n',     [2, 2, 0]);
@@ -136,7 +135,6 @@ mrstVerbose on
 % We launch a plotting tool for both the reservoir quantities (pressures
 % and saturations, located in states) and the well solution (well rates and
 % bottom hole pressures, located in wellSols).
-mrstModule add mrst-gui
 clf
 plotToolbar(G, states)
 view(50, 50);
