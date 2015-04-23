@@ -89,7 +89,7 @@ title('K_x (mD)')
 % an anonymous function of pressure (using the standard Matlab builtin exp)
 % to get a function on the form
 %
-% $$ b_o(p) = b_0 e^{(p - p_0) c} $$
+% $ b_o(p) = b_0 e^{(p - p_0) c} $
 %
 % We then pass the fundamental structures (grid, rock and fluid) onto the
 % two-phase oil/water model constructor.
