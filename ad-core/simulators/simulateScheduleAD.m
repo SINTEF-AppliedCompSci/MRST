@@ -260,6 +260,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         schedulereport.SimulationTime = simtime;
         schedulereport.Failure = failure;
     end
+    fprintf('*** Simulation complete. Solved %d control steps in %s ***\n',...
+                                  nSteps, formatTimeRange((sum(simtime))));
 end
 
 function validateSchedule(schedule)
