@@ -1,0 +1,9 @@
+function [A, rhs] = getSystemIncompTPFA(state, G, T, fluid, varargin)
+    s = incompTPFA(state, G, T, fluid, varargin{:}, ...
+                                               'MatrixOutput', true, ...
+                                               'use_trans', numel(T) == G.faces.num, ...
+                                               'LinSolve', @(A, x) zeros(size(x, 1), 1));
+    
+    A = s.A;
+    rhs = s.rhs;
+end
