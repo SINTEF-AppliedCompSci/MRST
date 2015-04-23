@@ -107,7 +107,8 @@ clf;
 p0 = (100:10:500)*barsa;
 plot(p0/barsa, fluid.bO(p0))
 xlabel('Pressure (bar)')
-ylabel('Reference to reservoir density ratio for the oil phase (bO)')
+ylabel('Ratio')
+title('Reference to reservoir density ratio for the oil phase (bO)')
 gravity reset on
 model = TwoPhaseOilWaterModel(G, rock, fluid);
 %% Define initial state
@@ -250,5 +251,5 @@ title('Drainage regions, coarse model');
 % We can also examine the diagnostics interactively using the diagnostics
 % viewer.
 close all;
-interactiveDiagnostics(G, rock, schedule.control.W, 'state', states{end}, 'computeFlux', false);
-interactiveDiagnostics(G_c, rock_c, schedule_c.control.W, 'state', states_c{end}, 'computeFlux', false);
+interactiveDiagnostics(G, rock, schedule.control.W, 'state', states{end}, 'computeFlux', false, 'name', 'Fine model');
+interactiveDiagnostics(G_c, rock_c, schedule_c.control.W, 'state', states_c{end}, 'computeFlux', false, 'name', 'Coarse model');
