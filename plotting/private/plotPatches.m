@@ -79,7 +79,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   assert(~isfield(G, 'parent'), ...
+   assert(~isCoarseGrid(G), ...
       'Do not send coarse grids to plotPatches');
 
    if isempty(faces),

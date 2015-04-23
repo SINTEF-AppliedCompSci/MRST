@@ -142,7 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if G.griddim == 3,
       % If G is a coarsegrid, lookup finegrid data in parent
-      if isfield(G, 'parent'),
+      if isCoarseGrid(G),
          [f, fno] = getSubFaces(G, faces);
          if mod(numel(varargin), 2), varargin{1} = varargin{1}(fno);end
 
@@ -164,22 +164,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          h = [h; plotFaceOutline(G, faces, edge_opts{:})];
 
          if numel(marker_opts) > 0,
-            if isfield(G, 'parent'),
-               cg = G;
-               % [f, fno]  = getSubFaces(G, faces);
-               G  = G.parent;
-            else
-               f  = faces;
-            end
+            CG = G;
+            G  = G.parent;
 
-            % try
-            %   faceno = rldecode(faces(:), (cg.faces.connPos(faces+1)-cg.faces.connPos(faces))*2, 1);
-            % catch
-            %   faceno = rldecode(faces(:), 2);
-            % end
-
-            ff = cg.faces.fconn;
-            ffno = rldecode(1:cg.faces.num, diff(cg.faces.connPos), 2)';
+            ff = CG.faces.fconn;
+            ffno = rldecode(1:CG.faces.num, diff(CG.faces.connPos), 2)';
 
             % Bug here:  A node is shared by two (or more) faces in 2D and
             % three (or more faces) in 3D.  This definition does not
@@ -212,7 +201,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       % If G is a coarsegrid, lookup finegrid data in parent
       if isfield(G, 'parent'),
-         cg = G;
+         CG = G;
          f  = getSubFaces(G, faces);
          G  = G.parent;
       else
@@ -232,7 +221,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % Find unique endpoints - if varargin contains 'marker*'
       if numel(marker_opts) > 0
          try
-            faceno = rldecode(faces(:), (cg.faces.connPos(faces+1)-cg.faces.connPos(faces))*2, 1);
+            faceno = rldecode(faces(:), (CG.faces.connPos(faces+1)-CG.faces.connPos(faces))*2, 1);
          catch %#ok
             faceno = rldecode(faces(:), 2);
          end

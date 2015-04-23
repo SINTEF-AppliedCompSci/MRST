@@ -138,14 +138,14 @@ if G.griddim == 3,
        selectcells = find(selectcells & ~datanan);
    end
    [f, c] = boundaryFaces(G, selectcells);
-   if isfield(G, 'parent'),
+   if isCoarseGrid(G),
          [f, i] = getSubFaces(G, f);
          c = c(i);
    end
 else
    % For 2D grids, the faces to plot are the actual individual grid cells.
    [f, c] = deal(cells);
-   if isfield(G, 'parent'),
+   if isCoarseGrid(G),
       f = getSubCells(G, cells);
       c = G.partition(f);
    end
@@ -157,7 +157,7 @@ if false && numel(data) < G.cells.num,
 
    assert (all(c > 0) && all(c <= numel(data)));
 end
-if isfield(G, 'parent'), G = G.parent; end
+if isCoarseGrid(G), G = G.parent; end
 h = plotPatches(G, f, data(c, :), 'EdgeColor', [0.4, 0.4, 0.4], varargin{:});
 if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
 

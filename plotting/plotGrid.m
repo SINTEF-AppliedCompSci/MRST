@@ -124,7 +124,7 @@ else
    subFaces = @getSubCells;
 end
 
-if isfield(G, 'parent'),
+if isCoarseGrid(G),
    % Separate otions: edge-related stuff is sent to plotFaceOutline
    ix           = rldecode(strncmpi('edge', varargin(1:2:end), 4), 2);
    outline_opts = varargin(ix);

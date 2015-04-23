@@ -93,7 +93,7 @@ faces = @(sz,i,j) [sub2ind(sz, i  , j  ), ... % lower left  vertex
                    sub2ind(sz, i+1, j  ), ... % lower right vertex
                    sub2ind(sz, i+1, j+1), ... % upper right vertex
                    sub2ind(sz, i  , j+1)];    % upper left  vertex
-if isfield(G, 'parent')
+if isCoarseGrid(G)
     zcoord = G.parent.nodes.coords(:, 3);
 else
     zcoord = G.nodes.coords(:, 3);
