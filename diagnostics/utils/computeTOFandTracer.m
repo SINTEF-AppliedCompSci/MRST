@@ -83,6 +83,16 @@ iwells = wflux > 0;
 D.inj  = find( iwells);
 D.prod = find(~iwells);
 
+%Check that we actually have both injectors and producers
+if (numel(D.inj) * numel(D.prod) == 0)
+    D.tof = Inf(G.cells.num, 2);
+    D.itracer = NaN(1, numel(D.inj));
+    D.ipart = NaN;
+    D.ptracer = NaN(1, numel(D.prod));
+    D.ppart = NaN;
+    return;
+end
+
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'tracer', {opt.wells(D.inj).cells});
