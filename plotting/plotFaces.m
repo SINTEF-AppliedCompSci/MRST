@@ -200,7 +200,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    else
 
       % If G is a coarsegrid, lookup finegrid data in parent
-      if isfield(G, 'parent'),
+      if isCoarseGrid(G),
          CG = G;
          f  = getSubFaces(G, faces);
          G  = G.parent;
