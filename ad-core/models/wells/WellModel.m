@@ -1,23 +1,89 @@
 classdef WellModel
+%Well model for three phase flow with black oil-style fluids
+%
+% SYNOPSIS:
+%   wm = WellModel();
+%
+% DESCRIPTION:
+%   This well model implements well equations, source terms and logic
+%   related to controls switching for three phase black oil-like models
+%   (possibly with dissolved gas and oil in the vapor phase).
+%
+% REQUIRED PARAMETERS:
+%   None.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%
+%   (See documented class properties)
+%
+% RETURNS:
+%   WellModel class instance.
+%
+%
+% SEE ALSO:
+%   ReservoirModel, ThreePhaseBlackOilModel
+
+%{
+Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     properties
+        % Index into list of phase pressures corresponding to the pressure
+        % used for properties (typically oil pressure for black oil)
         referencePressureIndex
-        physicalModelIdentifier
+        % If enabled, injectors becoming producers and vice versa will not
+        % be shut down.
         allowWellSignChange
+        % Allow different sign per completion rate
         allowCrossflow
+        % Allow wells to switch controls if limits are hit (otherwise shut
+        % down).
         allowControlSwitching
+        % Extra output to command line
         verbose
+        % Include extra fields in well sol (gas / oil ratio, rates at
+        % reservoir conditions etc).
         detailedOutput
         
-        % Properties used during calculations
+        %  Properties used during calculations. These are not set by the
+        %  constructor, but rather used during function calls. All values
+        %  are given per well cell.
+        
+        % Cell array of number of phases b-factors
         bfactors
+        % Surface density for each phase
         surfaceDensities
+        % Cell mobilities for each phase
         mobilities
+        % Phase pressures
         pressure
+        % The pressure used as the global pressure (typically oil pressure)
         referencePressure
+        % max Rs / maxRv, if applicable
         maxComponents
+        % Rs and Rv in cells
         components
+        % Saturations per phase in well cells
         saturations
+        % Indicator for nonlinear iteration number. Some features will only
+        % be computed during the first nonlinear iteration of a timestep.
         nonlinearIteration
+        % The current well controls
         W
     end
     
@@ -55,18 +121,13 @@ classdef WellModel
             wellmodel.components = compvals;
             wellmodel.W = W;
             clear opt
-            
-            
 
             if isempty(W)
                 sources = {};
                 controlEqs = {};
                 return
             end
-            
             nsat = numel(model.saturationVarNames);
-            ph = model.getActivePhases();
-            nph = sum(ph);
             
             if ~iscell(pressure)
                 % Support single reference pressure
@@ -115,6 +176,7 @@ classdef WellModel
         end
         
         function [wellSol, q_s, bhp] = updateLimits(wellmodel, wellSol, q_s, bhp, model)
+            % Update the switched well controls based on current values
             if ~wellmodel.allowControlSwitching
                 return
             end
@@ -156,6 +218,8 @@ classdef WellModel
         end
         
         function [wellSol, flux, bhp] = updatePressure(wellmodel, wellSol, flux, bhp, model)
+            % Update pressure drop along well bore. Will typically only do
+            % work at the first nonlinear iteration.
             if isnan(wellmodel.nonlinearIteration) || wellmodel.nonlinearIteration < 0
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate welbore pressure-drop will never be updated']);
@@ -187,6 +251,9 @@ classdef WellModel
         
         function  [wellEqs, controlEqs, cq_s, cq_r, wellSol] = assembleEquations(wellmodel,...
                                                 wellSol, q_s, bhp, model)
+            % Assemble well model equations (Peaceman type), well control
+            % equations, completion surface and reservoir rates, plus an
+            % updated wellSol corresponding to the current limits.
             [wellEqs, cq_s, mix_s, status, cstatus, Rw, cq_r] = ...
                             computeWellContributionsNew(wellmodel, model, wellSol, bhp, q_s);
             controlEqs =  setupWellControlEquations(wellSol, bhp, q_s, status, mix_s, model);
@@ -337,6 +404,9 @@ classdef WellModel
     end
     methods (Static)
         function [wc, cqs] = handleRepeatedPerforatedcells(wc, cqs)
+            % This function treats repeated indices in wc (typically due to
+            % multiple wells intersecting a single cell). The output will
+            % have no repeats in wc, and add together any terms in cqs.
             [c, ic, ic] = uniqueStable(wc);                     %#ok<ASGLU>
             if numel(c) ~= numel(wc)
                 A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
