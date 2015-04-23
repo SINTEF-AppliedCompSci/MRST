@@ -39,11 +39,14 @@ function plotTOFArrival(state, W, pv, fluid, prod, D, useMob)
     else
         names = arrayfun(@(x) ['Phase ', num2str(x)], 1:nPh, 'UniformOutput', false);
     end
-    for i = 1:nPh
-        localVolume = convertTo(sum(data(:,i).*D.ptracer(:, prod)), stb);
-        names{i} = [names{i}, sprintf(' (%2.1G stb)', localVolume)];
+    
+    if (~isnan(D.ptracer))
+        for i = 1:nPh
+            localVolume = convertTo(sum(data(:,i).*D.ptracer(:, prod)), stb);
+            names{i} = [names{i}, sprintf(' (%2.1G stb)', localVolume)];
+        end
+        legend(names);
     end
-    legend(names);
 
     ch = get(ah, 'Children');
     for i = 1:numel(ch);
