@@ -18,7 +18,7 @@ function G = tetrahedralGrid(p, varargin)
 %   G  - Valid grid definition.
 %
 % SEE ALSO:
-%   triagonleGrid, grid_structure.
+%   triangleGrid, grid_structure.
 
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
