@@ -1,4 +1,18 @@
 function runStandardModel(save_filename, plot_routine, varargin)
+% Script used to generate several of the published examples where different
+% models are compared againt each other.  Arguments are:
+%
+% 'save_filename' - name of file where simulation results will be
+%                   stored/retrieved
+% 
+% 'plot_routine'  - handle to a function that takes a cell array of
+%                   simulation results as argument, and does the
+%                   corresponding analysis / generates plots.
+%
+% 'varargin'      - Various arguments that specify the specifics of the
+%                   simulation(s) to be carried out, provided as 'key'/value
+%                   pairs.  See documentation of options (fields of the 'opt'
+%                   structure) in the function 'run_standard_simulation' below.
 
    moduleCheck('co2lab', 'ad-fi', 'ad-core');
    gravity reset on;
