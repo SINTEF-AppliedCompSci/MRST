@@ -1,6 +1,40 @@
+* Bring up:
+- default sampling for CO2 object?
+- include last example of paper2 (not guaranteed to converge)
+- is the solution chosen for dsxy2figxy OK?
 * Stuff to do
+** INMIND Finish off code for paper3 (at least what there is time for)
+- last example needs to be tested
+** INMIND Last attempt to fix last example of paper2
+- can this be made to run if we change timestep size?
 ** Tidy up code
-*** Make a list of all examples expected to be working
+*** DONE Go through co2lab-ad, reorganise (move to deprecated or elsewhere)
+*** DONE Placement of the new code in appropriate places
+*** CANCELED +Write READMEs for all the papers+
+Not necessary, as there is a common README script for them all.
+*** INMIND What to do about the file dsxy2figxy_new ?
+- ask Knut-Andreas whether my solution is acceptable
+*** Document new code
+**** Decide how to deal with the CO2 object, CoolProps and data files
+**** Code that needs documentation:
+***** DONE getPhaseFluxAndProps_WGVE
+***** DONE CO2VEBlackOilTypeModel
+***** DONE SampledProp2D
+***** DONE CO2props  (add documentation of default ranges!)
+***** DONE boCO2
+***** generatePropsTable
+***** addSampledFluidProperties
+***** makeVEFluid
+***** runAllExamples_paper1
+***** runAllExamples_paper2
+***** runAllExamples_paper3
+***** runStandardModel
+*** Delint
+*** Address all @@
+*** Run script to remove all trailing whitespace from all m-files
+** Run through all examples once more
+*** Verify that scripts run even when clear all has been called first, and that all modules are loaded when necessary
+*** List of all examples expected to be working
 **** examples/atlas
 - modelsFromAtlas
 - showCO2atlas
@@ -31,16 +65,7 @@
 **** paper1
 **** paper2
 **** paper3
-*** DONE Go through co2lab-ad, reorganise (move to deprecated or elsewhere)
-*** Placement of the new code in appropriate places
-*** Document new code
-*** Write READMEs for all the papers
-*** Delint
-*** Address all @@
-** Decide how to deal with the CO2 object, CoolProps and data files
-** Finish off code for paper3 (at least what there is time for)
 ** Incorporate Olav's changes
-** Run through all examples once more
 * Notes paper1
 * Notes paper2
 ** DONE Figure 1: Illustration of injection and trapping
@@ -108,20 +133,15 @@ by tikz
 by tikz
 ** DONE Figure 5: Four types of vertical saturation distribution
 by tikz
-** TODO Figure 6: Reconstructed saturation distributions
-plotVEReconstruction (presumably)
+** DONE Figure 6: Reconstructed saturation distributions
+plotVEReconstruction_new
 ** TODO Figure 7: Fine-scale relperm with hystereis
 *** Left
 by tikz
 *** Right
 ????
-** TODO Figure 8: Endpoint model
-*** Left
-???
-*** Middle
-???
-*** Right
-???
+** DONE Figure 8: Endpoint model
+plotVEReconstruction_new
 ** TODO Figure 9: Assumptions on capillary-pressure
 plotVEProfilesAndRelperms (presumably)
 ** TODO Figure 10: Efective cap. pressure/relperm
@@ -132,3 +152,6 @@ showDissolutionExample1TopSurfaceReconstruction
 ** TODO Figure 12: Flowing CO2 computed by different models
 dissoluitonExample1TopSurface
 showDissolutionExampleTopSurface
+
+
+

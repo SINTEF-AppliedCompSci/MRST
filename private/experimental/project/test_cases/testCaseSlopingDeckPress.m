@@ -20,7 +20,7 @@ gravity on
 n = 30; %100; %100;
 L = 2000; %5000;
 dim3 = 1; % cells in the vertical direction
-H = 15; % hight of resevoir
+H = 15; % height of resevoir
 dy = 1000; % with of slize
 total_time=100*year; %500*year;
 nsteps=20; % number of steps
@@ -181,7 +181,7 @@ for i=1:numel(W_3D)
     W_3D_2ph(i).type='rate';
    end
    %  well indices is correct since they are calculated in 3D which 
-   % include the hight in the WI
+   % include the height in the WI
 end
 % make VE wels for s and h formulation
 % we will use mimetic for the h formulation with ip_simple innerproduct

@@ -40,7 +40,7 @@ plot(diff(diff(diff(injectiondata(:,3)))),'*')
 %%
 %plot in figure 1 and 2
 plotRelPerm(g_top,rock)
-figure(4)%the permeability is almost only hight correlated and the z permeability is 10 times permX
+figure(4)%the permeability is almost only height correlated and the z permeability is 10 times permX
 plot(g.cells.centroids(:,3),rock.perm(:,3),'.')
 stats = @(v) [min(v); max(v); mean(v); std(v)]
 orgperm=max(rock.perm(:,1))...

@@ -1,5 +1,7 @@
 function [vX, bX, mobX, rhoX, upc, dpX] = ...
    getPhaseFluxAndProps_WGVE(model, pW, pG, krX, T, gdz, phase, rs, temp)
+   % Function to compute phase fluxes, volume factors, mobilities,
+   % densities, upstream indices and pressure gradients   
    
    fluid = model.fluid;
    s     = model.operators;

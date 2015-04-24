@@ -60,6 +60,9 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    fluid = include_BO_form(fluid, 'W', opt.wat_rho_ref);
    
    %% adding type-specific modifications
+   fluid.surface_tension = opt.surface_tension;  
+   drho = fluid.rhoWS - fluid.rhoGS;
+   C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
    switch relperm_model
      case 'simple' %@@ tested anywhere?
        fluid = setup_simple_fluid(fluid, Gt, opt.residual);
@@ -70,9 +73,9 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
      case 'linear cap.'
        fluid = make_lin_cap_fluid(fluid, Gt, opt.residual);     
      case 'S table'
-       fluid = make_s_table_fluid(fluid, Gt, opt.residual, opt.C, opt.alpha, opt.beta);
+       fluid = make_s_table_fluid(fluid, Gt, opt.residual, C, opt.alpha, opt.beta);
      case 'P-scaled table'
-       fluid = make_p_scaled_fluid(fluid, Gt, opt.residual, opt.C, opt.alpha, opt.beta);
+       fluid = make_p_scaled_fluid(fluid, Gt, opt.residual, C, opt.alpha, opt.beta);
      case 'P-K-scaled table'
        fluid = make_p_k_scaled_fluid(fluid, Gt, rock, opt.residual, opt.alpha, opt.beta);
      otherwise
@@ -88,7 +91,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
             
    %% Adding other modifications
    fluid.pvMultR = @(p) 1 + opt.pvMult_fac * (p - opt.pvMult_p_ref);
-   fluid.surface_tension = opt.surface_tension;
+
    
 end
 
@@ -301,12 +304,12 @@ function fluid = make_lin_cap_fluid(fluid, Gt, residual)
    drho = fluid.rhoWS - fluid.rhoGS;
    
    fluid = addVERelpermCapLinear(fluid, ...
-                     'res_water'   , residual(1)                      , ...
-                     'res_gas'     , residual(2)                      , ...
-                     'beta'        , 2                                , ...
-                     'cap_scale'   , fac * g * max(Gt.cells.H) * drho , ...
-                     'H'           , Gt.cells.H                       , ...
-                     'kr_pressure' , true);
+                                 fac * g * max(Gt.cells.H) * drho , ...
+                                 'res_water'   , residual(1)      , ...
+                                 'res_gas'     , residual(2)      , ...
+                                 'beta'        , 2                , ...
+                                 'H'           , Gt.cells.H       , ...
+                                 'kr_pressure' , true);
 end
 
 % ----------------------------------------------------------------------------

@@ -31,7 +31,8 @@ function outcomes = run_standard_simulation(varargin)
    opt.residual       = false;               % whether to enable residual saturation
    opt.subscale_types = {'smooth'};          % subscale geometry model(s) to use
    opt.dis_types      = {'none'};            % dissol. types ('none'/'rate'/'instant')
-
+   opt.fluid_types    = {'sharp interface'}; % Fluid model to use (for
+                                             % upscaled relperm/capillarity)
    % Timestepping parameters
    opt.Ti   = 50   * year; % duration of injection phase
    opt.dTi  = 2    * year; % timestep size during injection
@@ -50,7 +51,7 @@ function outcomes = run_standard_simulation(varargin)
    
    simulation_count = 1; % global count of simulation runs
    total_count = numel(opt.A) * numel(opt.residual) * numel(opt.subscale_types) ...
-       * numel(opt.dis_types);
+       * numel(opt.dis_types) * numel(opt.fluid_types);
    outcomes = cell(total_count, 1);
    
    %% Loop over grid types
@@ -59,42 +60,47 @@ function outcomes = run_standard_simulation(varargin)
       %% Loop over whether or not to use residual saturation
       for residual = opt.residual
 
-         %% Loop over relperm models
-         for subscale_type = opt.subscale_types
-            
-            %% Loop over dissolution types
-            for dis_type = opt.dis_types
-
-               % Constructing aquifer
-               if ~strcmpi(subscale_type{:}, 'smooth')
-                  % We model upscaled caprock undulations implicitly, so the
-                  % geometrical caprock model itself will be smooth
-                  aquifer = makeAquiferModel_new('A', 0, 'D', opt.depth);
-               else
-                  aquifer = makeAquiferModel_new('A', A, 'D', opt.depth);
-               end
+         %% Loop over fluid type
+         for fluid_type = opt.fluid_types
+         
+            %% Loop over topsurface type
+            for subscale_type = opt.subscale_types
                
-               % Make fluid model
-               fluid = setup_fluid_model(opt, aquifer, residual, ...
-                                              toptrap(subscale_type{:}, A), ...
-                                              subscale_type{:}, dis_type{:});
-
-               % Defining injection schedule
-               [schedule, Winj] = setup_schedule(opt, fluid, aquifer.W, aquifer.Gt);
-
-               % Defining initial state
-               initState = setup_init_state(fluid, aquifer.G, Winj, dis_type);
+               %% Loop over dissolution types
+               for dis_type = opt.dis_types
                   
-               % Set up and run complete model
-               model = CO2VEBlackOilTypeModel(aquifer.Gt, aquifer.rock2D, fluid);
-               [wellSols, states] = simulateScheduleAD(initState, model, schedule);
-               
-               % Storing outcome
-               outcomes{simulation_count} = struct('states', {states}, ...
-                                                   'wellSols', {wellSols}, ...
-                                                   'Gt', {aquifer.Gt}, ...
-                                                   'fluid', {fluid});
-               simulation_count = simulation_count + 1;
+                  % Constructing aquifer
+                  if ~strcmpi(subscale_type{:}, 'smooth')
+                     % We model upscaled caprock undulations implicitly, so the
+                     % geometrical caprock model itself will be smooth
+                     aquifer = makeAquiferModel_new('A', 0, 'D', opt.depth);
+                  else
+                     aquifer = makeAquiferModel_new('A', A, 'D', opt.depth);
+                  end
+                  
+                  % Make fluid model
+                  fluid = setup_fluid_model(opt, aquifer, residual, ...
+                                                 fluid_type{:}, ...
+                                                 toptrap(subscale_type{:}, A), ...
+                                                 subscale_type{:}, dis_type{:});
+                  
+                  % Defining injection schedule
+                  [schedule, Winj] = setup_schedule(opt, fluid, aquifer.W, aquifer.Gt);
+                  
+                  % Defining initial state
+                  initState = setup_init_state(fluid, aquifer.G, Winj, dis_type);
+                  
+                  % Set up and run complete model
+                  model = CO2VEBlackOilTypeModel(aquifer.Gt, aquifer.rock2D, fluid);
+                  [wellSols, states] = simulateScheduleAD(initState, model, schedule);
+                  
+                  % Storing outcome
+                  outcomes{simulation_count} = struct('states', {states}, ...
+                                                      'wellSols', {wellSols}, ...
+                                                      'Gt', {aquifer.Gt}, ...
+                                                      'fluid', {fluid});
+                  simulation_count = simulation_count + 1;
+               end
             end
          end
       end
@@ -172,12 +178,13 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = setup_fluid_model(opt, aquifer, residual, top_trap, subscale_type, dis_type)
+function fluid = setup_fluid_model(opt, aquifer, residual, fluid_type, top_trap, ...
+                                        subscale_type, dis_type) 
 
    T = aquifer.Gt.cells.z * opt.temp_grad + (274 + opt.surf_temp); % add 274 to get Kelvin
    res_vals = opt.res_vals * residual; % becomes zero if 'residual' is false
    
-   fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, 'sharp interface', ...
+   fluid = makeVEFluid(aquifer.Gt, aquifer.rock2D, fluid_type, ...
                        'top_trap'    , top_trap, ...
                        'surf_topo'   , subscale_type, ...
                        'fixedT'      , T                          , ...

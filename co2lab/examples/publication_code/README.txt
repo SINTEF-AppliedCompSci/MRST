@@ -15,6 +15,12 @@ paper4/  : Analysis of CO2 Trapping Capacities and Long-Term Migration for
 
 The directories contain MATLAB code that can be used with co2lab to generate the
 examples within.  Minor discrepancies may occur as a side effect of later code
-maintenance.  
+maintenance.
 
 The articles marked with (*) has not yet all code prepared for publication.  
+
+In each of the paper directories, there is a Matlab script called
+'runAllExamples_paperX'. This script documents the exact calls to other scripts
+and functions used to generate the diagrams/graphs of each specific figure in
+that paper. The script is thus not intended to be run through from beginning to
+end, but to document how each specific figure is generated.

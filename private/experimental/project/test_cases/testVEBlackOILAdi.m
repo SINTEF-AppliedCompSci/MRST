@@ -16,7 +16,7 @@ require ad-fi
 n = 40; % number of cells
 L = 2000; % length of reservoir
 dim3 = 1; % only one cell in the z direction
-H = 15; % hight of the reservoir
+H = 15; % height of the reservoir
 dy = 1000; % with of the reservoir
 total_time=5*year; % total simulation time
 nsteps=10; % number of steps

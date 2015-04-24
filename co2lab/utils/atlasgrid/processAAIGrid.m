@@ -8,7 +8,7 @@ function G = processAAIGrid(meta, data, topgrid, cstrids)
 %
 %   meta    - meta data of the grid
 %
-%   data    - data defining hight of surface
+%   data    - data defining height of surface
 %
 %   topgrid - if true make topsurface grid
 %

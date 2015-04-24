@@ -308,5 +308,3 @@ if(do_print)
 end
 end
 end
-
-

@@ -1,4 +1,33 @@
 classdef CO2VEBlackOilTypeModel < ReservoirModel
+% Black-oil type model for vertically integrated gas/water flow
+% 
+% SYNOPSIS:
+%    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
+%
+% DESCRIPTION:
+%   Class representing a model with vertically-integrated two-phase flow (CO2
+%   and brine), based on the s-formulation where upscaled saturation is a
+%   primary variable), and with optional support for dissolution of gas into
+%   the water phase.
+%
+% REQUIRED PARAMETERS:
+%   Gt     - Top surface grid, generated from a regular 3D simulation grid
+%            using the 'topSurfaceGrid' function in MRST-co2lab
+%   
+%   rock2D - Vertically averaged rock structure, generated from regular 3D
+%            rock structure using the 'averageRock' function in MRST-co2lab.
+% 
+%   fluid  - Fluid object, representing the properties of the water and gas
+%            phases.  The fluid object can be constructed using the
+%            'makeVEFluid' function in MRST-co2lab.  This object also
+%            specifies whether or not gas dissolves into water, and if so,
+%            whether to model dissolution as an instantaneous or rate-driven
+%            process. 
+% RETURNS:
+%   Class instance.
+%
+% SEE ALSO:
+% topSurfaceGrid, averageRock, makeVEFluid, ReservoirModel
    
 % ============================= Class properties ==========================
 properties
