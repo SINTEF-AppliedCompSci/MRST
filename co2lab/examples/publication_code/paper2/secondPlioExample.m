@@ -110,8 +110,8 @@ k = 1;
 for dis_model = {'none', 'instant', 'rate'};
 
    % Set up fluid model
-   p_range = [1,  150] * mega * Pascal; % CO2 supported pressure range
-   t_range = [12, 150] + 274;           % CO2 supported temperature range
+   p_range = [0.1,  200] * mega * Pascal; % CO2 supported pressure range
+   t_range = [4, 200] + 274;              % CO2 supported temperature range
    cw      = 4.3e-5 / barsa; % water linear compressibility
    temp_grad = 30 / (kilo*meter); % temperature gradient
    surf_temp = 12; % surface temperature in Celsius

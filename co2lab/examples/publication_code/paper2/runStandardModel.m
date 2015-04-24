@@ -42,8 +42,8 @@ function outcomes = run_standard_simulation(varargin)
    % fluid model parameters
    opt.surf_temp = 12;                        % in Celsius
    opt.temp_grad = 30 / (kilo*meter);         % thermal gradient
-   opt.p_range   = [1,  150] * mega * Pascal; % fluid object supported pressure range
-   opt.t_range   = [12, 150] + 274;           % fluid object supported temp. range
+   opt.p_range   = [0.1, 200] * mega * Pascal; % fluid object supported pressure range
+   opt.t_range   = [4, 200] + 274;           % fluid object supported temp. range
    opt.res_vals  = [.11, .21];                % residual saturation values (if enabled)
    opt.cw        = 4.3e-5 / barsa;            % linear water compressibility
    
