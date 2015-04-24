@@ -236,13 +236,10 @@ end
 end
 
 function [n, gdir] = getNames()
-    gdir = fullfile(mrstPath('co2lab'), 'data', 'atlas');
+    gdir = getDatasetPath('co2atlas');
 
     dir_grid = dir(gdir);
     n = {dir_grid(~[dir_grid.isdir]).name};
-    if isempty(n)
-        error('Missing dataset! Please run ''downloadDataSets(''atlas'')'' to continue')
-    end
 end
 
 

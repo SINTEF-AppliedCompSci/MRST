@@ -507,15 +507,8 @@ function c = greyMask(c)
 end
 
 function plotPartitionOutlineTopsurface(Gt, p, varargin)
-    % Hack together a sort of 3d-grid to plot z correctly
-    Gtmp = Gt;
-    Gtmp.nodes.coords = [Gtmp.nodes.coords, Gtmp.nodes.z];
-    Gtmp.faces.centroids = [Gtmp.faces.centroids, Gtmp.faces.z];
-    Gtmp.cells.centroids = [Gtmp.cells.centroids, Gtmp.cells.z];
-    Gtmp.cartDims = [Gtmp.cartDims 1];
-    Gtmp.nodes = rmfield(Gtmp.nodes, 'z');
-    Gtmp.griddim = 3;
-    outlineCoarseGrid(Gtmp, p, 'FaceColor', 'none', varargin{:})
+    cg = generateCoarseGrid(Gt, p);
+    plotFaces(cg, varargin{:});
 end
 
 function runSimulation(Gt, res, src, event) %#ok<INUSD>
