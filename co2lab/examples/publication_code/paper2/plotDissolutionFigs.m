@@ -24,7 +24,7 @@ function produce_panel_plots(simres)
 
    k     = 4; % case with residual saturation, dissolution and A = 0
    Gt    = simres{k}.Gt;
-   fluid = simres{k}.fluid;
+   fluid = setup_fluid(simres{k}.fluid_params);
    xc    = Gt.cells.centroids(:,1) / 1e3;
    zt    = zeros(size(xc));
    zb    = zt + Gt.cells.H;
@@ -72,7 +72,7 @@ function produce_detail_plot(simres)
 
    k     = 8; % case with residual saturation, dissolution and A = 0
    Gt    = simres{8}.Gt;
-   fluid = simres{k}.fluid;
+   fluid = setup_fluid(simres{k}.fluid_params);
    xc    = Gt.cells.centroids(:,1) / 1e3;
    zt    = Gt.cells.z;
    zb    = zt + Gt.cells.H;
@@ -233,7 +233,7 @@ function produce_graphs(simres)
          for dissolution = [false, true]
             k = 1 + (n - 1) * 4 + 2 * double(residual) + double(dissolution);
             state = simres{k}.states{70};
-            fluid = simres{k}.fluid;
+            fluid = setup_fluid(simres{k}.fluid_params);
             sG = free_sg(state.s(:, 2), state.sGmax,...
                          struct('res_gas', fluid.res_gas, 'res_water', fluid.res_water));
             hold on
@@ -260,5 +260,14 @@ function ff = filter_fun(n, xc)
       xx = xc(150:650);
       ff = exp( -((xx - xc(400)) / (0.3)).^2);
       ff = ff / sum(ff);
+   end
+end
+
+% ----------------------------------------------------------------------------
+
+function fluid = setup_fluid(fluid_params)
+   fluid = makeVEFluid(fluid_params.args{:});
+   if fluid_params.is_instant
+      fluid.dis_rate = 0;
    end
 end

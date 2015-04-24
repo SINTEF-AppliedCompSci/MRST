@@ -13,7 +13,12 @@ function plotResidualFigs(simres)
 
    ff = ffun(1);
    for k = 1:2
-      fluid = simres{k}.fluid;
+      fluid_params = simres{k}.fluid_params;
+      fluid = makeVEFluid(fluid_params.args{:});
+      if fluid_params.is_instant
+         fluid.dis_rate = 0;
+      end
+      
       state = simres{k}.states{end-70};
       linetype = {'b-', 'r-'};
       sG = free_sg(state.s(:, 2), state.sGmax ,...
@@ -29,7 +34,12 @@ function plotResidualFigs(simres)
    figure; hold on;
 
    for k = 1:4
-      fluid = simres{k}.fluid;
+      fluid_params = simres{k}.fluid_params;
+      fluid = makeVEFluid(fluid_params.args{:});
+      if fluid_params.is_instant
+         fluid.dis_rate = 0;
+      end
+      
       state = simres{k}.states{end-70};
       linetype = {'b--', 'r--', 'b-', 'r-'};
       ff = ffun(k);

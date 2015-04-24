@@ -53,7 +53,7 @@ function plot_plume_shapes(res)
          for dissolution = [false, true]
 
             state = res{count}.states{end-70};
-            fluid = res{count}.fluid;
+            fluid = setup_fluid(res{count}.fluid_params);
             sG = free_sg(state.s(:,2),state.sGmax, ...
                          struct('res_gas',fluid.res_gas, ...
                                 'res_water', fluid.res_water));
@@ -117,7 +117,7 @@ function top_surface_reconstruction(res)
 
    for f_ix = 1:3 % fluid type
 
-      fluid = res{f_ix}.fluid;
+      fluid = setup_fluid(res{f_ix}.fluid_params);
       Gt    = res{f_ix}.Gt;
 
       for nn = [50 80] % time step
@@ -287,5 +287,12 @@ function top_surface_reconstruction(res)
             axis off;
          end
       end
+   end
+end
+
+function fluid = setup_fluid(fluid_params)
+   fluid = makeVEFluid(fluid_params.args{:});
+   if fluid_params.is_instant
+      fluid.dis_rate = 0;
    end
 end

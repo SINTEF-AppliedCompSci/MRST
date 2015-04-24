@@ -44,7 +44,7 @@ function varargout = cap_press(sg, p, H, fluid, opt, varargin)
    h = interpTable(opt.table_co2.SH, opt.table_co2.h, SH); 
    % dh = dinterpTable(opt.table_co2.SH, opt.table_co2.h, SH) .* H; 
    if(any(h>H))
-      disp('Some height lager than H')
+      disp('Some height are larger than H')
    end
    drho = (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) * norm(gravity); 
    varargout{1} = h .* drho; % (bsxfun(@times, h, drho)); 

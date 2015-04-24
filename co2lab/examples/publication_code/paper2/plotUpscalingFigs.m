@@ -11,7 +11,12 @@ function plotUpscalingFigs(simres)
       Gt = simres{k}.Gt;
       xc = Gt.cells.centroids(:, 1) / 1e3;
       state = simres{k}.states{end - 70};
-      fluid = simres{k}.fluid;
+      
+      fluid_params = simres{k}.fluid_params;
+      fluid = makeVEFluid(fluid_params.args{:});
+      if fluid_params.is_instant
+         fluid.dis_rate = 0;
+      end
 
       sG = free_sg(state.s(:, 2), state.sGmax,...
                    struct('res_gas', fluid.res_gas, ...
