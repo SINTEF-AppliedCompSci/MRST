@@ -446,7 +446,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             nw = numel(wellSol);
             zw = double2ADI(zeros(nw,1), sampleVariable);
             
-            [eqs, names, types] = deal(cell(1, nph));
+            [eqs, names, types] = deal(cell(1, nph+1));
             [eqs{:}]   = deal(zw);
             [names{:}] = deal('empty');
             [types{:}] = deal('none');
