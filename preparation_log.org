@@ -1,7 +1,3 @@
-* Bring up:
-- default sampling for CO2 object?
-- include last example of paper2 (not guaranteed to converge)
-- is the solution chosen for dsxy2figxy OK?
 * Stuff to do
 ** INMIND Last attempt to fix last example of paper2
 - can this be made to run if we change timestep size?
@@ -15,7 +11,7 @@ Not necessary, as there is a common README script for them all.
 *** DONE What to do about the file dsxy2figxy_new ?
 - ask Knut-Andreas whether my solution is acceptable
 *** Document new code
-**** Decide how to deal with the CO2 object, CoolProps and data files
+**** DONE Decide how to deal with the CO2 object, CoolProps and data files
 **** Code that needs documentation:
 ***** DONE runStandardModel
 ***** DONE getPhaseFluxAndProps_WGVE
@@ -26,9 +22,9 @@ Not necessary, as there is a common README script for them all.
 ***** DONE runAllExamples_paper1
 ***** DONE runAllExamples_paper2
 ***** DONE runAllExamples_paper3
-***** generatePropsTable
-***** addSampledFluidProperties
-***** makeVEFluid
+***** DONE generatePropsTable
+***** DONE addSampledFluidProperties
+***** DONE makeVEFluid
 *** Delint
 *** Address all @@
 *** Run script to remove all trailing whitespace from all m-files
@@ -68,7 +64,7 @@ Not necessary, as there is a common README script for them all.
 ** Incorporate Olav's changes
 - routines using `getAtlasGrid`
 - examples using IGEMS and SlopingAquifer.
-* Notes paper1
+* DONE Notes paper1
 * Notes paper2
 ** DONE Figure 1: Illustration of injection and trapping
 - inkScape figure
@@ -119,12 +115,7 @@ Not necessary, as there is a common README script for them all.
 - showSecondPlioExample
 *** TODO *Convergence issues for rate-driven dissolution model*
 
-
-** Other:
-- the script 'dissolutionTopSurfaceExample1' doesn't seem to converge properly, and isn't used for any of the illustrations as far as I can see, so it is left out from the final compilation.
-- 
-
-* Notes paper3
+* DONE Notes paper3
 ** DONE Figure 1: Schematic of vertical section
 by tikz
 ** DONE Figure 2: Schematic of coordinate system
@@ -137,23 +128,21 @@ by tikz
 by tikz
 ** DONE Figure 6: Reconstructed saturation distributions
 plotVEReconstruction_new
-** TODO Figure 7: Fine-scale relperm with hystereis
-*** Left
-by tikz
-*** Right
-????
+** DONE Figure 7: Fine-scale relperm with hystereis
 ** DONE Figure 8: Endpoint model
 plotVEReconstruction_new
-** TODO Figure 9: Assumptions on capillary-pressure
+** DONE Figure 9: Assumptions on capillary-pressure
 plotVEProfilesAndRelperms (presumably)
-** TODO Figure 10: Efective cap. pressure/relperm
+** DONE Figure 10: Efective cap. pressure/relperm
 plotVEProfilesAndRelperms (presumably)
-** TODO Figure 11: CO2 distribution in global coordinates
+** DONE Figure 11: CO2 distribution in global coordinates
 dissolutionExample1TopSurface
 showDissolutionExample1TopSurfaceReconstruction
-** TODO Figure 12: Flowing CO2 computed by different models
+** DONE Figure 12: Flowing CO2 computed by different models
 dissoluitonExample1TopSurface
 showDissolutionExampleTopSurface
 
 
 
+
+averageRock

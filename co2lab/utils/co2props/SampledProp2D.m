@@ -37,6 +37,10 @@ function res = SampledProp2D(name, file, varargin)
 %                                       partial derivatives are included.
 %                                       Otherwise, second-order partial
 %                                       derivatives are included as well.
+%                                       For code based on automatic
+%                                       differentiation, it is recommended to
+%                                       avoid the second-order partial
+%                                       derivatives.
 %
 % RETURNS:
 %   res - Struct containing the generated functions.
