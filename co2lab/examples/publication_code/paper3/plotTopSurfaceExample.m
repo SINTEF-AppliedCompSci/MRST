@@ -8,7 +8,7 @@ function plotTopSurfaceExample(simres)
    % oscillations, residual saturation and one of the fluid types 'sharp
    % interface', 'linear cap.' and 'P-scaled table'.
    ix = [10 12 14];
-   %   top_surface_reconstruction(simres(ix));
+   top_surface_reconstruction(simres(ix));
    
 %% Produce graphs for figure 12
 
@@ -39,11 +39,9 @@ function plot_plume_shapes(res)
    hts = filter2(ff, ht);
    
    % Now setting z to the smooth version of the caprock
-   z  = Gt.cells.z;   
    
    fluid_types = {'sharp interface','linear cap','P-scaled table', ...
                   'P-K-scaled table'};   
-   residual = true;
    count = 1;
    for smooth = [true false]
 
@@ -83,17 +81,17 @@ function plot_plume_shapes(res)
       end
       
       axis tight;
-      ax = axis(); 
+      ax = axis();%#ok
       set(gca, 'YDir', 'reverse', 'FontSize', 16); 
       % Add to legends one for color and one for linestyle
       ivec = [1, 2, 4, 3]; 
       if smooth
-         addLegends(gca, {fluid_types{ivec}}, {line_colors{ivec}}, {legendtext{1:2}}, ...
+         addLegends(gca, fluid_types(ivec), line_colors(ivec), legendtext(1:2), ...
                     {' - ', ' -- '}); 
       else
-         addLegends(gca, {fluid_types{ivec}}, {line_colors{ivec}}, {legendtext{3:4}}, ...
+         addLegends(gca, fluid_types(ivec), line_colors(ivec), legendtext(3:4), ...
                     {' - ', ' -- '});
-    end
+      end
    end
 end
 

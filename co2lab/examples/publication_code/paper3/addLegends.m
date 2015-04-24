@@ -20,7 +20,7 @@ function addLegends(ax, leg_linecolors, linecolors, leg_linetypes, linetypes)
    
    set(h3, 'FontSize', 16); 
    bb = legend(leg_names, 'Location', 'SouthEast', 'FontSize', 16); 
-   loc = get(bb, 'Position')
+   loc = get(bb, 'Position');
    loc(2) = loc(2) + 0.15; 
    set(bb, 'Position', loc)
    set(gca, 'FontSize', 19)
