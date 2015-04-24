@@ -1,10 +1,81 @@
 function [state, report] = incompMultiscale(state, CG, T, fluid, basis, varargin)
+%Solve incompressible TPFA flow problem using approximate multiscale method
+%
+% SYNOPSIS:
+%   [state, report] = incompMultiscale(state, CG, T, fluid, basis)
+%
+% DESCRIPTION:
+%   This function supports the same types of problems as incompTPFA.
+%   Requires precomputed basis and coarsegrids. Supports flux
+%   reconstruction and iterative improvement of solution.
+%
+% REQUIRED PARAMETERS:
+%   state  - See incompTPFA.
+%
+%   CG     - Coarsegrid used to generate basis functions
+%
+%   T      - See incompTPFA.
+%
+%   fluid  - See incompTPFA.
+%
+%   basis  - Basis functions from getMultiscaleBasis.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   ** See incompTPFA for flow-related options **
+%
+%  getSmoother - Smoother function from getSmootherFunction. Required if
+%                iterations is set to anything larger than zero.
+%
+%  iterations  - Number of multiscale iterations. Requires getSmoother
+%                option. Default option is zero, which means that the
+%                multiscale system will be solved a single time without any
+%                application of smoothers.
+%
+%  tolerance   - Tolerance for iterative solver. Interpreted as 
+%                |A*x - b|_2 / |b|_2 <= tolerance for convergence.
+%  
+%  useGMRES    - If enabled, GMRES will be used to accelerate the
+%                iterations.
+% 
+%  LinSolve    - Linear solver function handle for coarse scale system.
+%                Typically only required if the coarse grid has several
+%                thousand blocks.
+%
+%  reconstruct - If enabled, the solver will reconstruct a divergence-free
+%                velocity field suitable for transport. This is not
+%                required if the number of iterations is large enough that
+%                the pressure is completely resolved. Note that this
+%                requires that the restriction operator uses a
+%                control-volume form.
+% RETURNS:
+%
+%  state       - Solved reservoir state.
+%
+%  report      - Report from linear iterative solver.
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     opt = struct('getSmoother',    [], ...
                  'iterations',  0,...
                  'tolerance',   1e-6, ...
                  'useGMRES',    false, ...
                  'LinSolve',    @mldivide, ...
-                 'Verbose',     true, ...
                  'reconstruct', true);
     [opt, incompOpt] = merge_options(opt, varargin{:});
     

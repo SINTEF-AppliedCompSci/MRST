@@ -1,4 +1,54 @@
 function [p_ms, report] = solveMultiscaleIteratively(A, q, basis, getSmootherFn, tol, iterations, LinSolve, useGMRES)
+%Apply iterations to a multiscale problem
+%
+% SYNOPSIS:
+%   [p_ms, report] = solveMultiscaleIteratively(A, q, basis, getSmootherFn, tol, iterations, LinSolve, useGMRES)
+%
+% DESCRIPTION:
+%   Iteratively improve upon a solution using a multiscale preconditioner,
+%   either as standalone or accelerated by GMRES.
+%
+% REQUIRED PARAMETERS:
+%   A, q   - Linear system and right hand side. This solver attempts to
+%            solve Ap = q.
+%
+%   basis  - Basis functions as given by getMultiscaleBasis.
+%
+%   getSmootherFn - Smoother handle from getSmootherFunction.
+%
+%   tol    - Tolerance for convergence. A solution x is deemed to be
+%            converged if norm(A*x -q, 2)/norm(q) <= tol.
+%
+%   iterations - Maximum number of iterations to apply.
+%
+%   LinSolve - (OPTIONAL) Linear solver for coarse scale system.
+%
+%   useGMRES - (OPTIONAL) Boolean indicating if GMRES should be used to
+%              accelerate the solution process. Default false.
+%
+% RETURNS:
+%   p_ms     - Solution, either converged or stopped by max iterations.
+%
+%   report   - Convergence report.
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     if nargin < 8
         useGMRES = false;
         if nargin < 7

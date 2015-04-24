@@ -9,9 +9,8 @@
 % will result in channelized formations that are considered to be
 % significantly more challenging to upscale.
 
-layerNo = 45;
-% layerNo = 1:5;
-% layerNo = 85;
+layerNo = 85;
+% layerNo = 1;
 
 mrstModule add mrst-gui spe10 coarsegrid
 [G, ~, rock] = SPE10_setup(layerNo);
@@ -44,7 +43,6 @@ state = incompTPFA(state, G, T, fluid, 'MatrixOutput', true, 'bc', bc);
 mrstModule add new-multiscale
 
 coarsen = [5 10 5];
-% coarsen = [10 20 5];
 coarsedims = ceil(G.cartDims./coarsen);
 
 % Generate partition vector
@@ -54,38 +52,51 @@ CG = generateCoarseGrid(G, p);
 % Add centroids / geometry information on coarse grid
 CG = coarsenGeometry(CG);
 % Store the support of each cell (used by multiscale basis construction)
-CG = storeInteractionRegion(CG);
+CG = storeInteractionRegionCart(CG);
 
 mrstModule add msfvm
 DG = partitionUIdual(CG, coarsedims);
 DG = makeExplicitDual(CG, DG);
 CG.dual = DG;
-%%
+%% Set up basis functions
 A = getIncomp1PhMatrix(G, T);
 % B = iteratedJacobiBasis(A, CG);
 % R = controlVolumeRestriction(CG.partition);
 % basis = struct('B', B, 'R', R);
-basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', false);
+basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 basis_fv = getMultiscaleBasis(CG, A, 'type', 'msfv');
 
 basises = {basis_sb, basis_fv};
-%%
+
+%% Set up smoother function
 fn = getSmootherFunction('type', 'ilu');
 
-%%
+%% Compute multiscale solutions
 nb = numel(basises);
 
 [states, reports] = deal(cell(nb, 1));
     
 for i = 1:nb
     basis = basises{i};
-    [states{i}, reports{i}] = incompMultiscale(state, CG, T, fluid, basis, 'bc', bc,...
-        'getSmoother', fn, 'iterations', 0, 'useGMRES', true);
+    states{i} = incompMultiscale(state, CG, T, fluid, basis, 'bc', bc);
+end
+
+%% Solve using MS-GMRES
+for i = 1:nb
+    basis = basises{i};
+    [~, reports{i}] = incompMultiscale(state, CG, T, fluid, basis, 'bc', bc,...
+        'getSmoother', fn, 'iterations', 100, 'useGMRES', true);
 end
 
 
-%%
+%% Plot results
 close all
+figure;
+plotToolbar(G, state.pressure)
+colormap jet
+view(90, 90)
+axis tight off
+title('Fine scale')
 for i = 1:nb
     figure;
     plotToolbar(G, states{i}.pressure)
@@ -93,6 +104,7 @@ for i = 1:nb
     view(90, 90)
     axis tight off
     caxis([min(state.pressure), max(state.pressure)])
+    title(basises{i}.type)
 end
 
 figure;
@@ -102,5 +114,6 @@ if size(tmp, 1) == 1
     tmp = [tmp; tmp];
 end
 names = cellfun(@(x) x.type, basises, 'uniformoutput', false);
-semilogy(tmp)
+semilogy(tmp, '*-')
 legend(names)
+title('Convergence of GMRES')

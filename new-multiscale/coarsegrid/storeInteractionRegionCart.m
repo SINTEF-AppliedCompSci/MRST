@@ -1,4 +1,48 @@
 function CG = storeInteractionRegionCart(CG)
+% Store MPFA-like interaction region for coarse grid made from logical partitioning.
+%
+% SYNOPSIS:
+%   CG = storeInteractionRegionCart(CG)
+%
+% DESCRIPTION:
+%   This function quickly computes the interaction regions based on logical
+%   indices for a coarse grid. The interaction region for a given coarse
+%   block I is defined as any cells within the convex hull of the coarse
+%   centroids from the nodal neighbors of I. This version relies on logical
+%   indices for speed, but it is not applicable for general grids.
+%
+% REQUIRED PARAMETERS:
+%   CG - Coarse grid.
+%
+% RETURNS:
+%   CG - Coarse grid with added field "CG.cells.interaction", which is a
+%        cell array of length equal to CG.cells.num. Each entry j contains
+%        a list of fine cells designated as interacting with coarse block
+%        j.
+%
+% SEE ALSO:
+%   storeInteractionRegion
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
     % For when grid was created by partitionUI
     G = CG.parent;
     

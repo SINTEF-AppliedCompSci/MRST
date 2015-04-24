@@ -1,4 +1,46 @@
 function [I, interactionMap, res] = iteratedJacobiBasis(A, CG, varargin)
+%Set up basis function for the MsRSB (multiscale restricted smoothed basis) method
+%
+% SYNOPSIS:
+%   I = iteratedJacobiBasis(A, CG)
+%
+% DESCRIPTION:
+%   This function constructs basis functions iteratively by Jacobi-like
+%   iterations to a initial interpolator. The method is formulated as
+%   matrix-matrix products to get reasonable speed in Matlab.
+%
+% REQUIRED PARAMETERS:
+%   A   - System matrix.
+%   CG  - Coarse grid for which to construct basis functions. Should have
+%   interaction regions stored in CG.cells.interaction beforehand.
+%
+%
+% RETURNS:
+%   I   - Basis function interpolator
+%
+% SEE ALSO:
+%   getMultiscaleBasis
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
     opt = struct('enforceCenter', false, ...
                  'iterations',    round(10*CG.parent.cells.num/CG.cells.num), ...
                  'incrementTol',  1e-3, ...
