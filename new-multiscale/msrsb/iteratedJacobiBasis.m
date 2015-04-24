@@ -15,23 +15,16 @@ function [I, interactionMap, res] = iteratedJacobiBasis(A, CG, varargin)
     
     
     A = A - diag(sum(A, 2));
-%     interactionMap = false(CG.parent.cells.num, CG.cells.num);
-
-    % TODO: Whatever shall we do with the boundary faces of neighbors?
+    
     if ~isfield(CG.cells, 'interaction')
         CG = storeInteractionRegion(CG);
     end
     
-    if 1
-        lens = cellfun(@numel, CG.cells.interaction);
-        blocks = rldecode((1:CG.cells.num)', lens);
-        interaction = vertcat(CG.cells.interaction{:});
-        interactionMap = sparse(interaction, blocks, ones(size(interaction)), CG.parent.cells.num, CG.cells.num);
-    else
-        for i = 1:CG.cells.num
-            interactionMap(CG.cells.interaction{i}, i) = true;
-        end
-    end
+    lens = cellfun(@numel, CG.cells.interaction);
+    blocks = rldecode((1:CG.cells.num)', lens);
+    interaction = vertcat(CG.cells.interaction{:});
+    interactionMap = sparse(interaction, blocks, ones(size(interaction)), CG.parent.cells.num, CG.cells.num);
+
     G = CG.parent;
     
     isNode = false(G.cells.num, 1);
@@ -79,8 +72,6 @@ function [I, interactionMap, res] = iteratedJacobiBasis(A, CG, varargin)
             break
         end
         dispif(opt.verbose, '%d of %d iterations in basis\n', i, opt.iterations)
-%         fprintf('|e|_2 = %g, |e|_infty = %g after %d iterations\n', ...
-%                             norm(nval, 2)/G.cells.num, norm(nval, inf), i)
         
         I = I - w*def;
         I = bsxfun(@rdivide, I, sum(I, 2));
@@ -91,9 +82,6 @@ function [I, interactionMap, res] = iteratedJacobiBasis(A, CG, varargin)
 end
 
 function increment = removeOutOfBounds(increment, interactionMap)
-%     for i = 1:size(increment, 2);
-%         increment(~interactionMap(:, i), i) = 0;
-%     end
+
     increment = increment.*interactionMap;
-%     increment(~interactionMap) = 0;
 end

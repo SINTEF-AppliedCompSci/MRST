@@ -1,6 +1,50 @@
 function [CG, interaction, triangulations] = storeInteractionRegion(CG, varargin)
+%Store interaction region for coarse grid
+%
+% SYNOPSIS:
+%   CG = storeInteractionRegion(CG);
+%
+% DESCRIPTION:
+%   Compute and store the interaction regions for coarse blocks. Each
+%   coares block will be assigned a set of fine cells for which a MsRSB
+%   basis function will be supported. The underlying functions use
+%   delaunay triangulation to get the support for unstructured models.
+%
+% REQUIRED PARAMETERS:
+%   CG     - Desired coarse grid.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   TODO
+%
+% RETURNS:
+%  CG
+%
+% EXAMPLE:
+%    
+%
+% SEE ALSO:
+%   storeIteractionRegionCart
 
-    
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
     opt = struct('adjustCenters', true, ...
                  'skipSingleCellBlocks', false, ...
                  'simpleCellGrouping', false, ...
@@ -210,15 +254,11 @@ function faceCentroids = extrudeFaceCentroids(CG, faceCentroids, cellCentroids)
         cellCentroids = CG.cells.centroids;
     end
     bf = any(CG.faces.neighbors == 0, 2);
-%     bndSign = 2*(CG.faces.neighbors(bf, 1) == 0) - 1;
 
     faceNo = sum(CG.faces.neighbors(bf, :), 2);
 
     fc = faceCentroids(bf, :);
     cc = cellCentroids(faceNo, :);
-
-%     faceCentroids(bf, :) = fc +...
-%                         repmat(bndSign, 1, CG.parent.griddim).*(fc - cc);
     faceCentroids(bf, :) = fc + 2*(fc - cc);
 
 end
