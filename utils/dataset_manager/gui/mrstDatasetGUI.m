@@ -106,12 +106,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         onDisk = present(current);
         
         if onDisk
-            statusstr = 'Downloaded';
+            statusstr = 'Present';
             fc = [0 1 0];
         else
             if canDownload
-                statusstr = 'Can download';
+                statusstr = 'Available for download';
                 fc = [1, 165/255, 0];
+            elseif isempty(I.website);
+                statusstr = 'Not available for download';
+                fc = [1, 0, 0];
             else
                 statusstr = 'See website';
                 fc = [1, 0, 0];
@@ -138,7 +141,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       'Callback', @(src, event) getDataset(I, present(current)))
         addbutton(.2, 'Delete', onDisk, 'Callback', @(src, event) deleteDataset(I))
         addbutton(.4, 'Webpage', ~isempty(I.website), 'Callback', @(src, event) web(I.website))
-        addbutton(.6, 'List files', true, 'Callback', @(src, event) listfiles(I))
+        addbutton(.6, 'List files', present(current), 'Callback', @(src, event) listfiles(I))
         addbutton(.8, 'Examples', ~isempty(I.examples), 'Callback', @(src, event) listDatasetExamples(I))
     end
 
