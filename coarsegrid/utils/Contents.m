@@ -6,7 +6,7 @@
 %   invertPartition.m  - Invert partition (cell->block mapping) to create block->cell mapping.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

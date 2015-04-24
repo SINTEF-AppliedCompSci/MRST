@@ -57,7 +57,7 @@ function p = refineGreedy3(p, G, IFlw, NU, varargin)
 %   refineGreedy, refineGreedy2, mergeBlocks, refineBlocks, processPartition.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

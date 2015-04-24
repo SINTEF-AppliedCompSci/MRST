@@ -20,7 +20,7 @@ function sc = coarse_sat(s, p, pv, nc)
 %   sc - Coarse saturation field, length nc.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -40,7 +40,7 @@ function [b2c_pos, b2c, locno] = invertPartition(p)
 %   partitionUI, compressPartition, processPartition, sortrows.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

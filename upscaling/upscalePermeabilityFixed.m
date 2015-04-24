@@ -11,7 +11,7 @@ function perm = upscalePermeabilityFixed(G,dp_scale,psolver,fluid_pure,rock,L)
 %  fluid_pure - one phase fluid
 %{
 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

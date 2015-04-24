@@ -23,7 +23,7 @@ function rock_cg = convertRock2Coarse(G, CG, rock)
 %   rock_cg - Rock data structure defined on coarse grid, 'CG'.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

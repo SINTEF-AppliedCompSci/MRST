@@ -4,7 +4,7 @@ function [rock_cg,CG,W_cg] = upscaleGridRockAndWells(G,rock,coarseDim,W)
 % solvers
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

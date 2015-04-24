@@ -2,7 +2,7 @@ function f_inv = compFracFlowInv(krw, kro, mu, swco, sowcr)
 % only valid for S in [swco, sowcr]
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

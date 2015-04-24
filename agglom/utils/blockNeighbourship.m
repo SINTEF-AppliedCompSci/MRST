@@ -26,7 +26,7 @@ function bN = blockNeighbourship(N, p, varargin)
 %   grid_structure, generateCoarseGrid, sortrows.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

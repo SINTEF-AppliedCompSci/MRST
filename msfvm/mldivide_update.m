@@ -8,7 +8,7 @@ function x = mldivide_update(A, b, x_old, targets, complist)
 % A should have the same graph, but not the same values as A_old
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

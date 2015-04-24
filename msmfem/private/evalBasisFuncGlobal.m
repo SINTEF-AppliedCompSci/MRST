@@ -115,7 +115,7 @@ function [V, P] = evalBasisFuncGlobal(faces, g, cg, BI, C, D, w, mob, ...
 %   computeMimeticIP, mrstVerbose.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
