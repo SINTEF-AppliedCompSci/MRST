@@ -1,4 +1,5 @@
 function [val, der, wellSols, states] = evalObjective(u, obj, state0, model, schedule, scaling)
+% Objective (and gradient) evaluation function based on input control vector u
 minu = min(u);
 maxu = max(u);
 if or(minu < -eps , maxu > 1+eps)
@@ -32,25 +33,9 @@ if nargout > 1
 end
 end
 
-% function schedule = control2schedule(u, schedule, boxLims)
-% nc = numel(schedule.control);
-% nw = numel(schedule.control(1).W);
-% [umin, umax] = deal(boxLims(:,1), boxLims(:,2));
-% c  = 0;
-% for cs = 1:nc
-%     for w = 1:nw
-%         c = c+1;
-%         schedule.control(cs).W(w).val = u(c) *(umax(w)-umin(w))+umin(w);
-%     end
-% end
-% end
-
 function grd = scaleGradient(grd, schedule, boxLims, objScaling)
-%dtc = accumarray(schedule.step.control, schedule.step.val);
-%tScale = sum(dtc)./dtc;
 dBox   = boxLims(:,2) - boxLims(:,1);
 for k = 1:numel(schedule.control)
-%    grd{k} = (tScale(k)*dBox/objScaling).*grd{k};
     grd{k} = (dBox/objScaling).*grd{k};
 end
 end

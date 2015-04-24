@@ -31,17 +31,18 @@ end
 xOpt = xe + shift;
     
 %--------------------------------------------------------------------------
-figure(99), clf, hold on
-x1 = p1.a; x2 = p2.a;
-xi = x1/2:(x2-x1)/50:2*x2;
-plot(xi+shift, polyval(poly, xi));
-plot(xe+shift, polyval(poly, xe), 'o', 'Markersize', 14, 'MarkerEdgeColor', 'r');
-plot(p1.a+shift, p1.v, 'o', 'Markersize', 14);
-plot(p2.a+shift, p2.v, 'o', 'Markersize', 14);
-l0 = p1.dv*xi + p1.v -p1.dv*p1.a;
-lx = p2.dv*xi + p2.v -p2.dv*p2.a;
-plot(xi+shift, l0, '--k')
-plot(xi+shift, lx, '--k')
-drawnow
+% % Uncomment for debugging purposes: 
+% figure(99), clf, hold on
+% x1 = p1.a; x2 = p2.a;
+% xi = x1/2:(x2-x1)/50:2*x2;
+% plot(xi+shift, polyval(poly, xi));
+% plot(xe+shift, polyval(poly, xe), 'o', 'Markersize', 14, 'MarkerEdgeColor', 'r');
+% plot(p1.a+shift, p1.v, 'o', 'Markersize', 14);
+% plot(p2.a+shift, p2.v, 'o', 'Markersize', 14);
+% l0 = p1.dv*xi + p1.v -p1.dv*p1.a;
+% lx = p2.dv*xi + p2.v -p2.dv*p2.a;
+% plot(xi+shift, l0, '--k')
+% plot(xi+shift, lx, '--k')
+% drawnow
 end
 

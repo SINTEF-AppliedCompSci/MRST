@@ -1,4 +1,6 @@
 function linConstS   = setupConstraints(linConst, schedule, scaling)
+% Setup linear constraints for scaled problem. Assumes linConst applies to
+% all control steps.
 [umin, umax] = deal(scaling.boxLims(:,1), scaling.boxLims(:,2));
 D = diag(umax-umin);
 A = linConst.A*D;

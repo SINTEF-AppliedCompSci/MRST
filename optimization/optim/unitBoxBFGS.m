@@ -1,4 +1,9 @@
 function [v, u, history] = unitBoxBFGS(u0, f, varargin)
+% Iterative line search optimization using BFGS intended for scaled 
+% problems, i.e., 0<=u<=1 and f~O(1) 
+% 
+% SYNOPSIS:
+% [v, u, history] = unitBoxBFGS(u0, f, opt)
 opt = struct(   'gradTol',             1e-3, ...
                 'objChangeTol',        1e-4, ...
                 'maxIt',               100,   ...
@@ -10,10 +15,14 @@ opt = struct(   'gradTol',             1e-3, ...
                 'stepIncreaseTol',     10,    ...
                 'useBFGS',             true, ...
                 'linEq',                 [], ...
-                'linIneq',               []);
+                'linIneq',               [], ...
+                'plotEvolution',       true);
 opt  = merge_options(opt, varargin{:});
 step = opt.stepInit;
 
+if numel(u0) > 1e3
+    warning('''unitBoxBFGS'' uses non-sparse representation of Hessian and constraints, and is no recommended for large (~>1000) number of controls')
+end
 % Perform initial evaluation of objective and gradient:
 [v0, g0] = f(u0);
 [v,u] = deal(v0,u0);
@@ -29,7 +38,6 @@ history = [];
 % name|obj.val.|contr.|norm proj.grad.|ls-step|ls-its|ls-flag|hessian 
 history = gatherInfo(history, v0, u0, nan, nan, nan, nan, Hi);
 
-
 it = 0;
 success = false;
 while ~success
@@ -39,8 +47,6 @@ while ~success
     if ~(norm(pg,inf) < opt.gradTol)
         % Perform line-search
         [u, v, g, lsinfo] = lineSearch(u0, v0, g0, d, f, c, opt);
-        % ensure u lies within feasible domain to machiene precision
-        %u = projectToFeasible(u, c);
         
         % Update Hessian approximation
         if opt.useBFGS && lsinfo.flag == 1
@@ -50,7 +56,6 @@ while ~success
                 r = 1/(du'*dg);
                 V = eye(numel(u)) - r*dg*du';
                 Hi = V'*Hi*V + r*(du*du');
-                %eig(Hi)
             else
                 fprintf('Hessian not updated during iteration %d.\n', it)
             end
@@ -63,15 +68,16 @@ while ~success
     end
     
     %Check stopping criteria
-    %pg = max(0, min(1, u+g)) - u;
-    %pg = d;
     success = (it >= opt.maxIt) || (norm(pg,inf) < opt.gradTol) || ...
               (abs(v-v0) < opt.objChangeTol);
 
     [u0, v0, g0] = deal(u, v, g);
-    plotInfo(10, history)
+    if opt.plotEvolution
+        plotInfo(10, history)
+    end
 end
 end
+%--------------------------------------------------------------------------
 
 function c = getConstraints(u, opt)
 % Box constraints, always 0<= u <= 1
@@ -95,9 +101,10 @@ else
     c.e.b = [];
 end
 end
+%--------------------------------------------------------------------------
 
 function hst = gatherInfo(hst, val, u, pg, alpha, lsit, lsfl, hess)   
-% name|obj.val.|contr.|norm proj.grad.|ls-step|ls-its 
+% obj.val | contr | norm proj.grad | ls-step | ls-its | ls-flag | hessian 
 if isempty(hst)
     hst = struct('val', val, 'u', {u}, 'pg', pg, ...
                  'alpha', alpha, 'lsit', lsit, 'lsfl', lsfl, ...
@@ -124,6 +131,7 @@ subplot(5,1,4), bar(xt,hst.lsit), title('Line search iterations');
 subplot(5,1,5), bar(hst.u{end}), title('Current scaled controls');
 drawnow
 end
+%--------------------------------------------------------------------------
 
 function [d, Hi, pg] = getSearchDirection(u0, g0, Hi, HiPrev, c)
 % Find search-direaction which is the projection of Hi*g0 restricted to
@@ -139,10 +147,8 @@ for k = 1:3
     end
     % Check for active inequality constraints and project
     [na, na_prev] = deal(0, -inf);
-    %gr = g0;
     [Q,~] = qr(c.e.A', 0);
     d     = - projQ(g0, Q, Hi);
-    %d  =  Hi*g0;
     while na > na_prev
         ac = and(c.i.A*u0>=c.i.b-sqrt(eps), c.i.A*d >= -sqrt(eps));
         [Q,~]  = qr([c.i.A(ac,:)', c.e.A'], 0);
@@ -159,13 +165,9 @@ for k = 1:3
         [ix, s] = findNextCons(c.i.A, c.i.b, u0+d, dr, ac);
         if ~isempty(ix);
             ac(ix) = true;
-   %         if (d+s*dr)'*g0 >= 0
                 d  = d + s*dr;
                 gr = (1-s)*gr;
                 Q  = expandQ(Q, c.i.A(ix,:)');
-   %         else
-   %             done = true;
-   %         end
         else
             d = d+dr;
             done = true;
@@ -187,42 +189,7 @@ if d'*g0 < 0
     d = [];
 end
 end
-
-function u = projectToFeasible(u, c)
-% Iteratively project u until Ae*u=be and Ai*u >= bi
-% Only intended for fixing "slight" violations  
-[Ai, bi] = deal(c.i.A/norm(c.i.A), c.i.b/norm(c.i.A));
-[Ae, be] = deal(c.e.A/norm(c.e.A), c.e.b/norm(c.e.A));
-
-cnt = 0; 
-ok  = false;
-while and(~ok, cnt<10)
-    cnt = cnt +1;
-    ac  = Ai*u>bi;
-    [A, b] = deal([Ai(ac,:);Ae], [bi(ac);be]);
-    r = A*u-b;
-    if norm(r) > eps
-        du = A\r;
-        u  = u + du;
-    else
-        ok = true;
-    end
-end
-end
-
-
-function u = projLinEq(u, linEq)
-% project u s.t. Au=b with minimal update
-[A, b] = deal(linEq.A, linEq.b);
-if rank(A)==size(A,1)
-    res = b-A*u;
-    du  = A'*((A*A')\res);
-    u   = u + du;
-    if norm(du) > sqrt(eps)
-        warning('Linear equality constraints violated by %5.2e.\n',norm(du));
-    end
-end
-end
+%--------------------------------------------------------------------------
 
 function w = projQ(v, Q, H)
 if nargin < 3
@@ -231,6 +198,7 @@ end
     tmp = H*(v-Q*(Q'*v));
     w   = tmp - Q*(Q'*tmp);
 end
+%--------------------------------------------------------------------------
 
 function [ix, s] = findNextCons(A, b, u, d, ac)
 s = (b-A*u)./(A*d);
@@ -241,6 +209,7 @@ if s >= 1
     ix = [];
 end
 end
+%--------------------------------------------------------------------------
 
 function Q = expandQ(Q, v)
 v = v - Q*(Q'*v);
@@ -250,3 +219,4 @@ else
     fprintf('Newly active constraint is linear combination of other active constraints ??!!\n')
 end
 end
+%--------------------------------------------------------------------------

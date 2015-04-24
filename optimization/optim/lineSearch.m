@@ -3,7 +3,7 @@ function [u, v, g, info] = lineSearch(u0, v0, g0, d, f, c, opt)
 % Wolfe-conditions. 
 % 
 % SYNOPSIS:
-% [u, v, g, info] = lineSearch(u0, v0, g0, d, f, opt)
+% [u, v, g, info] = lineSearch(u0, v0, g0, d, f, c, opt)
 %
 % PARAMETERS:
 % u0 :  current control vector
@@ -11,6 +11,7 @@ function [u, v, g, info] = lineSearch(u0, v0, g0, d, f, c, opt)
 % g0 :  current gradient
 % d  :  search direction, returns an error unless d'*g0 > 0
 % f  :  objective function s.t. [v,g] = f(u)
+% c  :  struct with linear inequality and equality constraints
 % opt:  struct of parameters for line search
 %
 % RETURNS:
@@ -30,31 +31,31 @@ sgf     = opt.safeguardFac;
 incTol  = opt.stepIncreaseTol;
 maxIt   = opt.lineSearchMaxIt;
 
+% Assert search direction is increasing
 assert(d'*g0 >=0)
-% convenience-function to gather info for a "point" in a struct, where
-% a is the step-length, v is the value and dv is the dirctional derivative
-% along d
+
+% Define convenience-function to gather info for a "point", where a is the 
+% step-length, v is the value and dv is the dirctional derivative:
 assignPoint = @(a,v,dv)struct('a', a, 'v', v, 'dv', dv);
 p0          = assignPoint(0, v0, d'*g0);  % 0-point
 
-% function for wolfe conditions wrt p0
+% Function handles for wolfe conditions wrt p0
 w1 = @(p) p.v >= p0.v + c1*p.v*p0.dv;
 w2 = @(p) abs(p.dv) <= c2*abs(p0.dv);
 
-% maximal step-length s.t. u = u0+aMax*d is feasible
+% Maximal step-length s.t. u = u0+aMax*d is feasible (should always be >= 1)
 aMax = getAlphaMax(u0, d, c);
 assert(aMax>1-sqrt(eps));
 aMax = max(1, aMax);
 
-% end-points of initial interval
+% End-points of initial interval
 p1 = p0;
 p2 = assignPoint(aMax, -inf, -inf);
-% initial step-length:
+% Initial step-length:
 a  = 1;
 
 lineSearchDone   = false;
 it = 0;
-% XXX figure(2), clf
 while ~lineSearchDone && it < maxIt
     it = it +1;
     u = u0 + a*d;
@@ -81,9 +82,9 @@ while ~lineSearchDone && it < maxIt
                     p1 = p;
                 end
             end
-            % find next candidate-step by interpolation
+            % Find next candidate-step by interpolation
             a = argmaxCubic(p1, p2);
-            % safe-guarding and thresholding:
+            % Safe-guarding and thresholding:
             if a > p2.a
                 a = max(a, (1+sgf)*p2.a);
                 a = min(a, min(incTol*p2.a, aMax));
@@ -97,7 +98,7 @@ while ~lineSearchDone && it < maxIt
         end
     end
 end
-% check if line search succeeded
+% Check if line search succeeded
 if ~lineSearchDone
     flag = -2;
     fprintf('Line search unable to succeed in %d iterations ...\n', maxIt);
@@ -106,19 +107,10 @@ info = struct('flag', flag, 'step', a, 'nits', it);
 end
 
 function alphaMax = getAlphaMax(u, d, c)
-% find maximal a s.t. Ai*(u+a*d) <= b
+% Find maximal a s.t. Ai*(u+a*d) <= bi
 [A, b] = deal(c.i.A, c.i.b);
 s = (b-A*u)./(A*d);
 alphaMax = min(s(s>eps));
-% step0 = inf(numel(u),1);
-% ix0   = and(abs(d)>eps, d<0);
-% step0(ix0) = -u(ix0)./d(ix0);
-% 
-% step1 = inf(numel(u),1);
-% ix1   = and(abs(d)>eps, d>0);
-% step1(ix1) = (1-u(ix1))./d(ix1);
-% 
-% alphaMax = min(min(step0), min(step1));
 end
 
    

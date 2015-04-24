@@ -1,4 +1,5 @@
 function u = schedule2control(schedule, scaling)
+% Convert schedule to control vector
 nc = numel(schedule.control);
 [umin, umax] = deal(scaling.boxLims(:,1), scaling.boxLims(:,2));
 u = cell(nc, 1);
