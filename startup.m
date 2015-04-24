@@ -51,6 +51,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if exist(local, 'file') == 2
        run_local(local);
    end
+
+   % Automatically load selected modules for backwards compatibility.
+   autoload = { 'incomp' };
+   p = mrstPath('search', autoload{:});
+
+   if isempty(p),
+      autoload = {};
+   elseif iscellstr(p),
+      autoload = autoload(cellfun(@isempty, p));
+   end
+
+   if ~isempty(autoload),
+      pl = 's'; if numel(autoload) == 1, pl = ''; end
+
+      fprintf(['Note: Automatically loading selected ', ...
+               'module%s for backwards compatibility:\n'], pl);
+
+      fprintf('  * %s\n', autoload{:});
+
+      mrstModule('add', autoload{:})
+   end
 end
 
 %--------------------------------------------------------------------------
