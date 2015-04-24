@@ -3,32 +3,32 @@
 - include last example of paper2 (not guaranteed to converge)
 - is the solution chosen for dsxy2figxy OK?
 * Stuff to do
-** INMIND Finish off code for paper3 (at least what there is time for)
-- last example needs to be tested
 ** INMIND Last attempt to fix last example of paper2
 - can this be made to run if we change timestep size?
+** DONE Finish off code for paper3 (at least what there is time for)
+- last example needs to be tested
 ** Tidy up code
 *** DONE Go through co2lab-ad, reorganise (move to deprecated or elsewhere)
 *** DONE Placement of the new code in appropriate places
 *** CANCELED +Write READMEs for all the papers+
 Not necessary, as there is a common README script for them all.
-*** INMIND What to do about the file dsxy2figxy_new ?
+*** DONE What to do about the file dsxy2figxy_new ?
 - ask Knut-Andreas whether my solution is acceptable
 *** Document new code
 **** Decide how to deal with the CO2 object, CoolProps and data files
 **** Code that needs documentation:
+***** DONE runStandardModel
 ***** DONE getPhaseFluxAndProps_WGVE
 ***** DONE CO2VEBlackOilTypeModel
 ***** DONE SampledProp2D
 ***** DONE CO2props  (add documentation of default ranges!)
 ***** DONE boCO2
+***** DONE runAllExamples_paper1
+***** DONE runAllExamples_paper2
+***** DONE runAllExamples_paper3
 ***** generatePropsTable
 ***** addSampledFluidProperties
 ***** makeVEFluid
-***** runAllExamples_paper1
-***** runAllExamples_paper2
-***** runAllExamples_paper3
-***** runStandardModel
 *** Delint
 *** Address all @@
 *** Run script to remove all trailing whitespace from all m-files
@@ -66,6 +66,8 @@ Not necessary, as there is a common README script for them all.
 **** paper2
 **** paper3
 ** Incorporate Olav's changes
+- routines using `getAtlasGrid`
+- examples using IGEMS and SlopingAquifer.
 * Notes paper1
 * Notes paper2
 ** DONE Figure 1: Illustration of injection and trapping
