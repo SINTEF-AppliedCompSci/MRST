@@ -7,7 +7,7 @@
 %   test_mpfa.m              - Example demonstrating basic use of the MPFA-O pressure solver.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
