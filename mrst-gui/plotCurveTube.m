@@ -1,5 +1,69 @@
 function plotCurveTube(curve, radius, varargin)
+%Plot a curve as a tube with variable width
+%
+% SYNOPSIS:
+%   plotCurveTube(points, radius)
+%   plotCurveTube(points, radius, 'data', data)
+%
+% DESCRIPTION:
+%   Plot a curve given by consecutive points as a variable radius tube,
+%   with optional colorization based on some underlying dataset. Typical
+%   usage is for plotting of well trajectories.
+%
+% REQUIRED PARAMETERS:
+%   curve   - N by 3 array where each row corresponds to the 3D coordinates
+%             of points along the curve.
+%
+%   radius  - Either one value per point in "curve", or a single point
+%             to be used for all points. The radius determines the radius
+%             of the tube plotted.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   data    - Dataset with one value per curve point given as a column
+%             vector. Will be used to colorize the tube based on the
+%             current figure colormap.
+%
+%   interpMethod - Type of interpolation used when refining the curve. Uses
+%                  standard Matlab interp1 options. Default: Linear.
+%
+%   interpDataMethod - Type of interpolation used to interpolate data
+%                      between points. Default: Linear.
+%
+%   EdgeColor - Edge color for final patch object.
+%
+%   Refine    - Refinement factor for curve. Default to 1, which is no
+%               refinement. Larger values will give a smoother curve when
+%               using e.g. spline interpolation.
+%
+% RETURNS:
+%   Nothing.
+%
+% EXAMPLE:
+%    pts = [0, 0, 5; 0 0 -1; .25 .25 -5; .25, .25, -10];
+%    plotCurveTube(pts, 0.1, 'data', pts(:, 3), 'interpMethod', 'spline',...
+%                 'refine', 10)
+%
+% SEE ALSO:
+%   
 
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     opt = struct('data',    [], ...
                  'interpMethod', 'linear', ...
                  'interpDataMethod', 'linear', ...
