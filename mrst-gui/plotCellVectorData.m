@@ -60,7 +60,7 @@ function handles = plotCellVectorData(G, data, varargin)
 %   plotCellData, plotToolbar, quiver3, quiver
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -96,9 +96,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         varargin = varargin(2:end);
     end
+    dfcmap = colormap();
     opt = struct('LineWidth', 2,...
                  'Scale', 1,...
-                 'Colormap', @(n) interp1(1:64, colormap(), 1:n),...
+                 'Colormap', @(n) interp1(1:size(dfcmap, 1), dfcmap, 1:size(dfcmap, 1)),...
                  'N', 64);
 
     opt = merge_options(opt, varargin{:});

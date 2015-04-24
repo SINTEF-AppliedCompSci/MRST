@@ -97,7 +97,7 @@ function [state, varargout] = solveStationaryPressure(G, state, system, W, fluid
 %                    obviously be provided for this to work.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
