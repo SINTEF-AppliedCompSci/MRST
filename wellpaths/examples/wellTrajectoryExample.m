@@ -1,4 +1,5 @@
 %% Define a model
+mrstModule add ad-core ad-blackoil diagnostics wellpaths
 km = kilo*meter;
 pdims = [5, 4, 0.01]'*km;
 
@@ -61,7 +62,7 @@ end
 wellpath_comb = combineWellPaths(wellpaths);
 
 %% Determine the cells
-[cells_fork, segInd_fork, ~, DT] = findWellPathCells(G, wellpath_fork);
+[cells_fork, segInd_fork, ~, ~, DT] = findWellPathCells(G, wellpath_fork);
 [cells_comb, segInd_comb] = findWellPathCells(G, wellpath_comb, 'triangulation', DT);
 
 %% Plot the well trajectories
@@ -167,79 +168,4 @@ WP = computeWellPairs(state_split, G, rock, Wc, D);
 figure; plotToolbar(G, D)
 plotWellPath(wellpath_comb);
 plotWellPath(wellpath_fork);
-%%
-% partition = D.ipart + D.ppart*max(D.ipart);
-% partition = partition + max(partition)*partitionUI(G, [10 10 1]);
-partition = partitionUI(G, [10 10 1]);
 
-coarsemodel = upscaleModelTPFA(model, partition);
-
-coarseschedule = upscaleSchedule(coarsemodel, schedule);
-%%
-coarsestate = upscaleState(coarsemodel, model, state);
-%%
-
-[wsc, statesc] = simulateScheduleAD(coarsestate, coarsemodel, coarseschedule);
-statec_plot = coarseDataToFine(coarsemodel.G, statesc);
-
-%%
-figure;
-plotToolbar(G, statec_plot);
-outlineCoarseGrid(G, coarsemodel.G.partition)
-axis tight off
-view(40, 56);
-
-figure;
-plotToolbar(G, states);
-axis tight off
-view(40, 56);
-
-plotWellSols({ws, wsc}, T)
-%%
-CG = coarsemodel.G;
-rockc = coarsemodel.rock;
-
-coarseW = coarseschedule.control(1).W;
-
-csegInd = segInd;
-for i = 1:numel(csegInd)
-    csegInd{i} = csegInd{i}(coarseW(i).parentIndices);
-end
-
-diagstate = statesc{end};
-[coarsestate_split, coarseWc] = expandWellCompletions(diagstate, coarseW, csegInd);
-Dcoarse  = computeTOFandTracer(coarsestate_split, CG, rockc, 'wells', coarseWc);
-WPcoarse = computeWellPairs(coarsestate_split, CG, rockc, coarseWc, Dcoarse);
-
-%%
-figure;
-plotToolbar(G, D);
-axis tight off
-view(40, 56);
-
-figure;
-plotToolbar(G, coarseDataToFine(CG, Dcoarse));
-outlineCoarseGrid(G, coarsemodel.G.partition)
-axis tight off
-view(40, 56);
-
-%%
-for i = 1:numel(WP.inj)
-    n = numel(WP.inj(i).z);
-    WP.inj(i).z = (1:n)./n;
-    
-    n = numel(WPcoarse.inj(i).z);
-    WPcoarse.inj(i).z = (1:n)./n;
-end
-
-for i = 1:numel(WP.prod)
-    n = numel(WP.prod(i).z);
-    WP.prod(i).z = (1:n)./n;
-    
-    n = numel(WPcoarse.prod(i).z);
-    WPcoarse.prod(i).z = (1:n)./n;
-end
-
-%%
-close all
-plotWellAllocationComparison(D, WP, Dcoarse, WPcoarse, 'useZ', false)
