@@ -3,7 +3,7 @@
 - can this be made to run if we change timestep size?
 ** DONE Finish off code for paper3 (at least what there is time for)
 - last example needs to be tested
-** Tidy up code
+** DONE Tidy up code
 *** DONE Go through co2lab-ad, reorganise (move to deprecated or elsewhere)
 *** DONE Placement of the new code in appropriate places
 *** CANCELED +Write READMEs for all the papers+
@@ -26,7 +26,7 @@ Not necessary, as there is a common README script for them all.
 ***** DONE makeVEFluid
 *** DONE Delint
 *** DONE Run script to remove all trailing whitespace from all m-files
-*** Address all @@
+*** DONE Address all @@
 ** Run through all examples once more
 *** Verify that scripts run even when clear all has been called first, and that all modules are loaded when necessary
 *** List of all examples expected to be working
