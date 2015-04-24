@@ -56,13 +56,13 @@ set(gca,'XColor',[0,0,0])
 set(gca,'YColor',[0,0,0]);
 
 ax = axis();
-load(fullfile(mrstPath('co2lab'), 'data', 'atlas', 'norway.mat'));
+load(fullfile(getDatasetPath('co2atlas'), 'norway.mat'));
 for k=1:length(norway), 
     line(norway{k}(:,1) + 6.8e5, norway{k}(:,2)); 
 end;
 axis(ax)
 
 hold on
-load(fullfile(mrstPath('co2lab'), 'data', 'atlas', 'welldata.mat'));
+load(fullfile(getDatasetPath('co2atlas'), 'welldata.mat'));
 plot(welldata(:,2), welldata(:,1), '.k', 'MarkerSize', 5)
 hold off
