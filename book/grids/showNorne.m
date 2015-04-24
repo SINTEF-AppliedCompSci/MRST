@@ -97,7 +97,7 @@ plotFaces(g,find(g.faces.tag>0),'FaceColor','b','EdgeColor','b','FaceAlpha',.5);
 axis tight off, view(180,27); zoom(1.7)
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -118,7 +118,7 @@ caxis([0 50]);
 h=colorbar; set(h,'Position',[0.88 0.15 0.03 0.67]);
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

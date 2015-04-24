@@ -180,7 +180,7 @@ view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
 colorbar('horiz');
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

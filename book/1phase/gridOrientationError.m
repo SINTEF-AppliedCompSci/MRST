@@ -59,7 +59,7 @@ hb = streamline(pollock(G, s_mi, seed, 'substeps', 1, 'reverse' , true));
 set ([ hf ; hb ], 'Color' , 'k' );
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

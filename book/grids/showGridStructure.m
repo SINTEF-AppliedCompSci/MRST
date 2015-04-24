@@ -112,7 +112,7 @@ fprintf(fp,' %3d %3d\n', G.faces.neighbors');
 fclose(fp);
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

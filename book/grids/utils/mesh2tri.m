@@ -1,14 +1,8 @@
 function t = mesh2tri(n,m)
-[I,J]=ndgrid(1:n-1, 1:m-1); p1=sub2ind([n,m],I(:),J(:));
-[I,J]=ndgrid(2:n  , 1:m-1); p2=sub2ind([n,m],I(:),J(:));
-[I,J]=ndgrid(1:n-1, 2:m  ); p3=sub2ind([n,m],I(:),J(:));
-[I,J]=ndgrid(2:n  , 1:m-1); p4=sub2ind([n,m],I(:),J(:));
-[I,J]=ndgrid(2:n  , 2:m  ); p5=sub2ind([n,m],I(:),J(:));
-[I,J]=ndgrid(1:n-1, 2:m  ); p6=sub2ind([n,m],I(:),J(:));
-t = [p1 p2 p3; p4 p5 p6];
+%Undocumented function
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -25,3 +19,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+[I,J]=ndgrid(1:n-1, 1:m-1); p1=sub2ind([n,m],I(:),J(:));
+[I,J]=ndgrid(2:n  , 1:m-1); p2=sub2ind([n,m],I(:),J(:));
+[I,J]=ndgrid(1:n-1, 2:m  ); p3=sub2ind([n,m],I(:),J(:));
+[I,J]=ndgrid(2:n  , 1:m-1); p4=sub2ind([n,m],I(:),J(:));
+[I,J]=ndgrid(2:n  , 2:m  ); p5=sub2ind([n,m],I(:),J(:));
+[I,J]=ndgrid(1:n-1, 2:m  ); p6=sub2ind([n,m],I(:),J(:));
+t = [p1 p2 p3; p4 p5 p6];

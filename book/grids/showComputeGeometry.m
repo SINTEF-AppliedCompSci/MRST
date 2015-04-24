@@ -97,7 +97,7 @@ hold off;
 view(75,30), axis tight off, zoom(1.3), set(gca,'zdir','reverse');
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
