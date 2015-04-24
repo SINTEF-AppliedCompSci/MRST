@@ -52,7 +52,7 @@ function plot_plume_shapes(res)
 
          for dissolution = [false, true]
 
-            state = res{count}.states{end-70};
+            state = res{count}.states{end-140};
             fluid = setup_fluid(res{count}.fluid_params);
             sG = free_sg(state.s(:,2),state.sGmax, ...
                          struct('res_gas',fluid.res_gas, ...
@@ -120,7 +120,7 @@ function top_surface_reconstruction(res)
       fluid = setup_fluid(res{f_ix}.fluid_params);
       Gt    = res{f_ix}.Gt;
 
-      for nn = [50 80] % time step
+      for nn = [100 160] % time step
          state = res{f_ix}.states{nn};
 
          sG_free = free_sg(state.s(:,2),state.sGmax, ...
