@@ -48,7 +48,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         close(h)
     end
 
-    h = figure('Toolbar', 'none', 'NumberTitle', 'off', 'MenuBar', 'none');
+    h = figure('Toolbar',       'none', ...
+               'NumberTitle',   'off', ...
+               'MenuBar',       'none');
     [info, present, sh] = deal([]);
     function startupGUI()
         [info, present] = getAvailableDatasets();
@@ -70,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         current = get(src, 'Value');
         I = info(current);
         
-        set(h, 'Name', names{current});
+        set(h, 'Name', ['MRST Dataset manager: ', names{current}]);
         
         % Check for image. If we have a image, we allocate some room and
         % place it in the panel.
