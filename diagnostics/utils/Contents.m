@@ -10,7 +10,7 @@
 %   plotTracerBlend.m              - Plot tracer partition, gray color for multiple tracers present
 %   plotWellAllocationComparison.m - Panel comparing well allocation factors for two different models
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

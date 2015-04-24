@@ -2,7 +2,7 @@ function [c f] = nearestCellLine(G, bf, pts)
 % Find the cell nearest to a line defined by two points. Undocumented helper.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

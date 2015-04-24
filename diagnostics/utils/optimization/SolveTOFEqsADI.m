@@ -24,7 +24,7 @@ function D = SolveTOFEqsADI(eqs, state, W, computeTracer, linsolve)
 %   D     - Time of flight / tracer structure.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
