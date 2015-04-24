@@ -1,7 +1,7 @@
 function deck = readGRID(fid, dirname, deck)
 % deck = readGRID(fid, dirname, deck)
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

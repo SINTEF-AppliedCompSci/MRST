@@ -5,7 +5,7 @@
 %   trangensteinBellFluid.m        - Construct PVT and relperm functions, constant compressibility three-phase
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

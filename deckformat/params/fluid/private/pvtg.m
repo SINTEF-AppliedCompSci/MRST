@@ -21,7 +21,7 @@ function [B, dB, R, dR, mu, P] = pvtg(tab, p, volratio, varargin)
 %   pvto, pvdx.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

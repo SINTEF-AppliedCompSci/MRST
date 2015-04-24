@@ -22,7 +22,7 @@ function G = processgrid(varargin)
 %   processGRDECL, readGRDECL, splitDisconnectedGrid.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -40,7 +40,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% Copyright 2009 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 % Mex gateway by Jostein R. Natvig, SINTEF ICT.
 
 

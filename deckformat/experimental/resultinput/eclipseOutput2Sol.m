@@ -21,7 +21,7 @@ function refSol = eclipseOutput2Sol(G, output, active)
 %   refSol - Reference solution as an MRST rSol-type object/structure.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

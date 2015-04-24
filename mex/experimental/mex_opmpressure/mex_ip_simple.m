@@ -51,7 +51,7 @@ function varargout = mex_ip_simple(varargin)
 %   computeMimeticIP, solveIncompFlow, blockDiagIndex.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
