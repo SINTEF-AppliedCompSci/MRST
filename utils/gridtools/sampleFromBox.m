@@ -19,7 +19,7 @@ function q = sampleFromBox(G, p, c)
 %    q  - output vector sampled at the centroids of grid cells in G
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

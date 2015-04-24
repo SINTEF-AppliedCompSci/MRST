@@ -3,7 +3,7 @@ function G2 = transform3Dto2Dgrid(G)
 % 3D grid must be constant in either x-, y- or z-direction.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

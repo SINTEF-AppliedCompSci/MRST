@@ -2,7 +2,7 @@ function [info, present] = dataset_spe3()
 % Info function for SPE3 dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
