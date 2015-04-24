@@ -1,5 +1,5 @@
 %% Gradient-based search for optimium of a quadratic function on unit square
-
+mrstModule add ad-core optimization
 % Define test-function parameters:
 opts = {'th', pi/10, ...
         'rx', 4 ,    ...
