@@ -122,7 +122,7 @@ for i=1:nw
         % Well name
         name = [W(i).name ':' num2str(j)];
         Wc(n).name  = name;
-        if isfield(ws_new, 'name'),
+        if ~isfield(ws_new, 'name'),
            ws_new.name = name;
         end
         % Write new, split well sol
