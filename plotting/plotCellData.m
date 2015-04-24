@@ -150,7 +150,7 @@ else
       c = G.partition(f);
    end
 end
-if false && numel(data) < G.cells.num,
+if numel(data) < G.cells.num,
    renum        = zeros([G.cells.num, 1]);
    renum(cells) = 1 : numel(cells);
    c            = renum(c);
