@@ -44,7 +44,7 @@ function bG = boCO2(T_ref, rhoG, varargin)
 % SEE ALSO:
 %  CO2props, SampledProp2D
    
-    opt.rho_datafile = 'rho_big_trunc';
+    opt.rho_datafile = 'CarbonDioxide_100000_400000000_278_524_800_800_D';
     opt.sharp_phase_boundary = true;
     opt = merge_options(opt, varargin{:});
     

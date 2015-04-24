@@ -19,16 +19,16 @@ function obj = CO2props(varargin)
 %   include:
 %
 %   - rhofile - location of sampled table with density values.  The default
-%               table covers the pressure/temperature range [0.6, 100] MPa,
-%               [279, 500] K. (1000 x 1164 samples).
+%               table covers the pressure/temperature range [0.1, 400] MPa,
+%               [278, 524] K. (400 x 400 samples).
 %
 %   - mufile  - location of sampled table with viscosity values.  The default
-%               table covers the pressure/temperature range [0.1, 15] MPa,
-%               [270, 350] K. (2000 x 2000 samples).
+%               table covers the pressure/temperature range [0.1, 400] MPa,
+%               [278, 524] K. (400 x 400 samples).
 %
 %   - hfile   - location of sampled table with enthalpy values.  The default
-%               table covers the pressure/temperature range [0.1, 100] MPa,
-%               [280, 400] K. (500 x 60 samples).
+%               table covers the pressure/temperature range [0.1, 400] MPa,
+%               [278, 524] K. (400 x 400 samples).
 %
 %   - const_derivatives - true or false.  If 'true', only first-order
 %                         derivative functions will be included.
@@ -58,9 +58,9 @@ function obj = CO2props(varargin)
 %   SampledProp2D
 
 %% @@ Document me
-   opt.rhofile              = 'sampled_tables/rho_big_trunc';
-   opt.mufile               = 'sampled_tables/mu_huge';
-   opt.hfile                = 'sampled_tables/h_small';
+   opt.rhofile              = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_D.mat';
+   opt.mufile               = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_H.mat';
+   opt.hfile                = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_V.mat';
    opt.const_derivatives    = false;
    opt.assert               = true;
    opt.nan_outside_range    = true;

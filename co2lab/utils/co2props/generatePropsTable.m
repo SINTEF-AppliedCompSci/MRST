@@ -1,4 +1,4 @@
-function generatePropsTable(fluidname, pname, P_range, T_range, P_num, T_num)
+function generatePropsTable(savedir, fluidname, pname, P_range, T_range, P_num, T_num)
 % Generates and saves a sampled table of fluid properties, using 'coolprops'.
 %  
 % NB: 'coolprops' needs to be available, which means that the directory
@@ -24,7 +24,7 @@ function generatePropsTable(fluidname, pname, P_range, T_range, P_num, T_num)
 %
    [P, T, vals]  = make_prop_table(P_range, T_range, P_num, T_num, fluidname, pname);
 
-   save(propFilename(P_range, T_range, P_num, T_num, fluidname, pname), 'P', 'T' , 'vals');
+   save([savedir propFilename(P_range, T_range, P_num, T_num, fluidname, pname)], 'P', 'T' , 'vals');
 
 end
 

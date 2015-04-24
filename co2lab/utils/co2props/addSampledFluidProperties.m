@@ -1,9 +1,9 @@
 function fluid = addSampledFluidProperties(fluid, shortname, varargin)
 
-   opt.pspan  = [10 410] * barsa;
-   opt.tspan  = [10 500] + 273.15;
-   opt.pnum   = 200; % number of pressure samples
-   opt.tnum   = 200; % number of temperature samples
+   opt.pspan  = [0.1, 400] * mega * Pascal; % CO2 default pressure range
+   opt.tspan  = [  4, 250] + 274;           % CO2 default temperature range
+   opt.pnum   = 800; % number of pressure samples
+   opt.tnum   = 800; % number of temperature samples
    opt.props  = [true false false]; % which props to include [rho, mu, h]
    opt.fixedT = [];
    opt.assert_range = false;
@@ -46,12 +46,27 @@ end
 
 function pfun = load_property(opt, pname, fluidname, fixedT, assert_range, nan_outside)
 
-   fname = propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname);
+   tabledir = [fileparts(mfilename('fullpath')) '/sampled_tables/'];
+   fname = [tabledir, propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname)];
    
    if (exist(fname) ~= 2)
       % data table not yet generated.  The following command will generate
       % and save them.   @@ User need 'coolprops' for this to work!
-      generatePropsTable(fluidname, pname, opt.pspan, opt.tspan, opt.pnum, opt.tnum);
+      try
+         generatePropsTable(tabledir, fluidname, pname, opt.pspan, opt.tspan, opt.pnum, ...
+                            opt.tnum);
+      catch ME
+         if strcmp(ME.identifier, 'MATLAB:UndefinedFunction')
+            error(['Failed to generate property tables, as CoolProps could not ' ...
+                   'be found.  Make sure you have CoolProps installed with ' ...
+                   'the Matlab wrapper, and that the directory of the ' ...
+                   'corresponding ''PropsSI'' is in your Matlab search ' ...
+                   'path.']);
+         else
+            error(['Generating new property table failed due to an unknown ' ...
+                   'error.']);
+         end
+      end
    end
 
    % We here load the generated table, and construct an object with evaluator

@@ -12,7 +12,7 @@ rhoW  = 1100 * kilogram / meter^3;
 z     = linspace(300, 3000, 100)' * meter; 
 T     = z * 30 / 1e3 + 274 + 12; 
 p0    = z(:) * norm(gravity) * rhoW; 
-co2   = SampledProp2D('rho', 'rho_big_trunc');
+co2   = SampledProp2D('rho','CarbonDioxide_100000_400000000_278_524_800_800_D');
 rhoG  = co2.rho(p0, T);
 frhoG = @(zz) interpTable(z, rhoG, zz);
 
