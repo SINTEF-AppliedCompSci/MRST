@@ -84,7 +84,7 @@ function plotCurveTube(curve, radius, varargin)
         d = repmat(data, 1, size(z, 2));
         surf(x, y, z, d, 'EdgeColor', opt.EdgeColor)
     else
-        surf(x, y, z, 'EdgeColor', opt.EdgeColor, 'FaceColor', opt.color)
+        surf(x, y, z, 'EdgeColor', opt.EdgeColor, 'FaceColor', opt.color, 'CData', [])
     end
     
     % Plot circles at the endpoints
