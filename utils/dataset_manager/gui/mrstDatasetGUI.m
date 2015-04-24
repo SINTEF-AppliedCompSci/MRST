@@ -83,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         'position', [0, .5, 1, .5]);
             c = imread(I.image);
             image(c, 'parent', ax);
-            axis tight off
+            axis equal tight off
         else
             voffset = .5;
         end
@@ -99,6 +99,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                        'horizontalAlignment', 'left', ...
                        'Max', 1000, 'Min', 0, ...
                        'position', [0, .2, 1, .30 + voffset],...
+                       'BackgroundColor', 'w', ...
                        'Style', 'Edit', 'String', txt);
         
         canDownload = ~isempty(I.fileurl);
