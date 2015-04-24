@@ -25,12 +25,12 @@ petrodata.avgporo = 0.25;
 depth=1200;
 
 % cut grid to avoid calculation on not relevant domain
-wpos = Gt.parent.cells.centroids(5280, 1:2); 
-wpos(:, 1) = 4.85e5; 
-G = Gt.parent; 
-rm_cells = abs(Gt.cells.centroids(:, 2) - wpos(:, 2))>2.5e4; 
-G = removeCells(G, rm_cells); 
-G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth; 
+wpos = Gt.parent.cells.centroids(5280, 1:2);
+wpos(:, 1) = 4.85e5;
+G = Gt.parent;
+rm_cells = abs(Gt.cells.centroids(:, 2) - wpos(:, 2))>2.5e4;
+G = removeCells(G, rm_cells);
+G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + depth;
 G = computeGeometry(G);
 Gt = topSurfaceGrid(G);
 
@@ -75,7 +75,7 @@ mstep = [mstep; Tm-sum(mstep)];
 amount = 5; %Mt/year
 
 % convert mass flux at surface to surface reference volume/"surface volume
-rhoc = 760; rhow = 1100; 
+rhoc = 760; rhow = 1100;
 rate = amount * 1e9 * kilogram ./ (year * rhoc * kilogram *meter^3);
 
 % Specify residual saturations
@@ -83,21 +83,21 @@ res_water = 0.11;
 res_gas = 0.21;
 
 % find well position
-dist = sqrt(sum(bsxfun(@minus, Gt.cells.centroids(:, 1:2), wpos).^2, 2)); 
-[dd, cellnum] = min(dist); 
-[ix, iy] = ind2sub(Gt.cartDims, Gt.cells.indexMap(cellnum)); 
+dist = sqrt(sum(bsxfun(@minus, Gt.cells.centroids(:, 1:2), wpos).^2, 2));
+[dd, cellnum] = min(dist);
+[ix, iy] = ind2sub(Gt.cartDims, Gt.cells.indexMap(cellnum));
 wellIx = double([ix iy]);
 
 % make well
 assert(G.cartDims(3)==1)
-W = createSampleWell_new([],Gt.parent, rock, cellnum ,     ...
-                         'Type', 'rate', 'Val', rate, ...
-                         'Radius', 0.125, 'Name', 'I','Comp_i',[0 1]);
+W = createSampleWell([],Gt.parent, rock, cellnum ,     ...
+                        'Type', 'rate', 'Val', rate, ...
+                        'Radius', 0.125, 'Name', 'I','Comp_i',[0 1]);
 W_shut = W;
 W_shut.val = 0;
 
 % specify boundary conditions
-bc = addBC([], bcIxVE, 'pressure', Gt.faces.z(bcIxVE) * rhow * norm(gravity)); 
+bc = addBC([], bcIxVE, 'pressure', Gt.faces.z(bcIxVE) * rhow * norm(gravity));
 bc.sat = [ones(numel(bc.face), 1), zeros(numel(bc.face), 1)];
 
 % make schedule
@@ -110,13 +110,13 @@ k = 1;
 for dis_model = {'none', 'instant', 'rate'};
 
    % Set up fluid model
-   p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range   
+   p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range
    t_range = [  4, 250] + 274;           % CO2 default temperature range
    cw      = 4.3e-5 / barsa; % water linear compressibility
    temp_grad = 30 / (kilo*meter); % temperature gradient
    surf_temp = 12; % surface temperature in Celsius
    temperature = Gt.cells.z .* temp_grad + (274 + surf_temp); % fixed temperature
-   
+
    fluid = makeVEFluid(Gt, rock2D, 'sharp interface', ...
                        'residual', [res_water, res_gas], ...
                        'co2_rho_ref', rhoc , ...
@@ -129,24 +129,23 @@ for dis_model = {'none', 'instant', 'rate'};
                        'dissolution', ~strcmpi(dis_model{:}, 'none'), ...
                        'dis_rate', strcmpi(dis_model{:}, 'rate') * 5e-11, ...
                        'dis_max' , 0.03);
-   
+
    % Set up initial conditions
    nc = Gt.cells.num;
    initState = struct('pressure', Gt.cells.z(:)*norm(gravity)*fluid.rhoWS, ...
                       's'       , [ones(nc, 1), zeros(nc, 1)], ...
                       'sGmax'   , zeros(nc, 1), ...
                       'rs'      , zeros(G.cells.num, 1));
-   
+
    % Setup model and run simulation
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
    t2 = tic;
    [wellSols, states] = simulateScheduleAD(initState, model, schedule);
    t2 = toc(t2);
-   
-   states = {initState, states{:}}'; % Include initial state
+
+   states = {initState, states{:}}';%#ok  % Include initial state
    ensure_path_exists('data/');
    save(['data/secondPlioExample_',num2str(depth),'_',num2str(k),'.mat'], ...
         't2','states','wellSols','schedule', 'Gt', 'fluid', 'rock2D');
    k = k+1;
 end
-

@@ -22,7 +22,7 @@ function fluid = addVERelpermIntegratedFluid(fluid, varargin)
    opt.volumes = integrateVertically(pv_3D', inf, opt.Gt) .* opt.Gt.cells.volumes; 
    
    if(~opt.kr_pressure)
-      fake_pressure = 200 * barsa;  % @@ magical constant? 
+      fake_pressure = 200 * barsa;  % @@ make the value of this constant optional?
       fluid.krG     = @(sg, varargin) krG(sg, opt, varargin{:}); 
       fluid.krW    = @(so, varargin) krW(so, opt, varargin{:}); 
       fluid.pcWG    = @(sg, p, varargin) pcWG(sg, p, fluid, opt, varargin{:}); 

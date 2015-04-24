@@ -12,7 +12,7 @@ function obj = CO2props(varargin)
 %   are also provided.  The functions are computed using sampled tables
 %   (which can be changed), and support automatic differentiation as provided
 %   within the MRST framework.
-% 
+%
 % PARAMETERS:
 %   There are no required parameters.  A number of optional parameters can be
 %   specified as key/value pairs on the form ('key'/value ...).  These
@@ -32,16 +32,16 @@ function obj = CO2props(varargin)
 %
 %   - const_derivatives - true or false.  If 'true', only first-order
 %                         derivative functions will be included.
-% 
+%
 %   - assert  - if 'true', a property function will throw an error if user
 %               tries to extrapolate outside the pressure/temperature range
 %               covered by the corresponding sampled table.  If 'false',
 %               either NaN values or extrapolated values will be returned in
 %               this case, depending on whether the optional parameter
 %               'nan_outside_range' is set to 'true' or 'false'.
-% 
+%
 %   - nan_outside_range - See documentation of 'assert' option above.
-% 
+%
 %   - sharp_phase_boundary - If 'true', will use one-sided evaluation of
 %                            derivatives near the liquid-vapor boundary, in
 %                            order to avoid smearing or the derivatives across
@@ -57,7 +57,7 @@ function obj = CO2props(varargin)
 % SEE ALSO:
 %   SampledProp2D
 
-%% @@ Document me
+%% 
    opt.rhofile              = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_D.mat';
    opt.mufile               = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_H.mat';
    opt.hfile                = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_V.mat';
@@ -66,7 +66,7 @@ function obj = CO2props(varargin)
    opt.nan_outside_range    = true;
    opt.sharp_phase_boundary = true;
    opt = merge_options(opt, varargin{:});
-   
+
    boundary = [];
    if opt.sharp_phase_boundary
       [p_c, t_c]= CO2CriticalPoint();
@@ -84,11 +84,11 @@ function obj = CO2props(varargin)
    obj = add_fields(obj, setupfun('mu' , opt.mufile));
    obj = add_fields(obj, setupfun('h'  , opt.hfile));
 
-      
+
    %%%%
    obj.beta  = @(P, T)   obj.rhoDP(P, T) ./ obj.rho(P, T);  % Compressibility coef.
    obj.gamma = @(P, T) - obj.rhoDT(P, T) ./ obj.rho(P, T);  % Coef. of thermal expansion
-  
+
   % compressibility factor cross derivative (equal for both Pbeta and Tbeta)
   obj.betaDPDT = @(P,T) (obj.rhoDPT(P, T) + obj.rhoDP(P, T) .* obj.rhoDT(P, T)) ./ obj.rho(P, T);
 

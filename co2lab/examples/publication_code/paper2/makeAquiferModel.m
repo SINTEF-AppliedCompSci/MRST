@@ -1,4 +1,4 @@
-function aquifer = makeAquiferModel_new(varargin)
+function aquifer = makeAquiferModel(varargin)
 % Make a model of a 1D antiform aquifer with small-scale caprock undulations
 %
 % SYNOPSIS
@@ -37,41 +37,40 @@ function aquifer = makeAquiferModel_new(varargin)
 
    opt = struct(...
        'Lx', 30e3, 'Ly', 10e3, 'H', 50, 'nx', 1000,...
-       'D', 2300, 'A', 2, 'L1', 20e3, 'L2',.3e3, 'phi', 0.03); 
+       'D', 2300, 'A', 2, 'L1', 20e3, 'L2',.3e3, 'phi', 0.03);
 
    opt = merge_options(opt, varargin{:});
 
    % Create the grid
-   G = cartGrid([opt.nx, 1, 1], [opt.Lx, opt.Ly, opt.H]); 
-   x = G.nodes.coords(:, 1); 
+   G = cartGrid([opt.nx, 1, 1], [opt.Lx, opt.Ly, opt.H]);
+   x = G.nodes.coords(:, 1);
    G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + opt.D ...
        - opt.L1 * sin(x / opt.L1) * tan(opt.phi) ...
-       + opt.A * sin(2 * pi * x / opt.L2); 
+       + opt.A * sin(2 * pi * x / opt.L2);
 
-   G = computeGeometry(G); 
-   Gt = topSurfaceGrid(G); 
+   G = computeGeometry(G);
+   Gt = topSurfaceGrid(G);
 
    % Create petrophysical model
    rock = struct('perm', 100 * milli * darcy * ones(G.cells.num, 1),...
-                 'poro', 0.2 * ones(G.cells.num, 1)); 
+                 'poro', 0.2 * ones(G.cells.num, 1));
    rock2D = averageRock(rock, Gt);
 
    % Set well position
    wc = [floor(0.1 * opt.nx), G.cartDims(1)];
-   
-   W = createSampleWell_new([], G, rock, wc(1), ...
-                            'refDepth', G.cells.centroids(wc(1), 3), ...
-                            'Type', 'rate', 'Val', 1e6 / year,...
-                            'Radius', 0.125, 'Name', 'I', 'Comp_i', [0 1]); 
-   W = createSampleWell_new(W, G, rock, wc(2), ...
-                            'refDepth', G.cells.centroids(wc(2), 3), ...
-                            'Type', 'bhp', 'Val', 300 * barsa,...
-                            'Radius', 0.125, 'Name', 'P', 'Sign', -1, 'Comp_i', [1 0]); 
 
-   aquifer.G = G; 
-   aquifer.Gt = Gt; 
-   aquifer.rock = rock; 
-   aquifer.rock2D = rock2D; 
-   aquifer.W = W; 
+   W = createSampleWell([], G, rock, wc(1), ...
+                        'refDepth', G.cells.centroids(wc(1), 3), ...
+                        'Type', 'rate', 'Val', 1e6 / year,...
+                        'Radius', 0.125, 'Name', 'I', 'Comp_i', [0 1]);
+   W = createSampleWell(W, G, rock, wc(2), ...
+                        'refDepth', G.cells.centroids(wc(2), 3), ...
+                        'Type', 'bhp', 'Val', 300 * barsa,...
+                        'Radius', 0.125, 'Name', 'P', 'Sign', -1, 'Comp_i', [1 0]);
+
+   aquifer.G = G;
+   aquifer.Gt = Gt;
+   aquifer.rock = rock;
+   aquifer.rock2D = rock2D;
+   aquifer.W = W;
 end
-

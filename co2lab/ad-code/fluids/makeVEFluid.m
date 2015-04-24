@@ -88,9 +88,9 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    drho = fluid.rhoWS - fluid.rhoGS;
    C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
    switch relperm_model
-     case 'simple' %@@ tested anywhere?
+     case 'simple' 
        fluid = setup_simple_fluid(fluid, Gt, opt.residual);
-     case 'integrated' %@@ tested anywhere?
+     case 'integrated' 
        fluid = setup_integrated_fluid(fluid, Gt, rock, opt.residual);
      case 'sharp interface'
        fluid = make_sharp_interface_fluid(fluid, Gt, opt.residual, opt.top_trap, opt.surf_topo);
@@ -437,7 +437,7 @@ function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, alpha, beta)
        'height'      , Gt.cells.H             , ...
        'table_co2'   , table_co2_1d           , ...
        'table_water' , tabW                   , ...
-       'rock'        , rock                   , ...  % @@ should this take full 3D rock?
+       'rock'        , rock                   , ...  % @@ full 3D rock?
        'kr_pressure' , true);
 
 end

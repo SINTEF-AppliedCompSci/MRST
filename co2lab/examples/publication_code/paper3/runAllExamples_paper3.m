@@ -4,7 +4,7 @@
 
 %% Figure 6
 
-plotVEReconstruction_new(6);
+plotVEReconstruction(6);
 
 %% Figure 7, 9 and 10
 
@@ -12,7 +12,7 @@ plotVEProfilesAndRelperms;
 
 %% Figure 8
 
-plotVEReconstruction_new(8);
+plotVEReconstruction(8);
 
 %% Figure 11 and 12
 

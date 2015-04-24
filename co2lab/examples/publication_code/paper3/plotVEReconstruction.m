@@ -1,4 +1,4 @@
-function plotVEReconstruction_new(fig_num)
+function plotVEReconstruction(fig_num)
 
    moduleCheck('co2lab','ad-fi','ad-props');
    gravity on;

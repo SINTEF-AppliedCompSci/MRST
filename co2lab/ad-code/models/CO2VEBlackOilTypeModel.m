@@ -45,7 +45,7 @@ methods
    function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
    
       opt = struct();
-      [opt, unparsed] = merge_options(opt, varargin{:});
+      [opt, unparsed] = merge_options(opt, varargin{:});%#ok
    
       model@ReservoirModel(Gt, varargin{:});
       model.fluid   = fluid;
@@ -152,7 +152,7 @@ function [state, report] = updateState(model, state, problem, dx, drivingForces)
          state.rs    = min(state.rs,f.rsSat(state.pressure));         
       else
          % instantaneous dissolution
-         diff = 1e-3; % @@ magic constant - necessary for convergence in some cases
+         diff = 1e-3; % @@  necessary for convergence in some cases
          state.rs = min(state.rs, model.fluid.rsSat(state.pressure) + diff);
       end
    end
@@ -163,7 +163,7 @@ end
 % ------------------------------------------------------------------------
    
    function [state, report] = ...
-       updateAfterConvergence(model, state0, state, dt, drivingForces)
+       updateAfterConvergence(model, state0, state, dt, drivingForces)%#ok
       
       % Here, we update the hysteresis variable 'sGmax'.  If the residual
       % saturation of gas is 0 (i.e. model.fluid.residuals(2) == 0),
@@ -191,10 +191,5 @@ end
       gdz = g * s.Grad(Gt.cells.z);
    end
 
-% --------------------------------------------------------------------%
-   % function g = getGravityVector(model)
-   %     % Get the gravity vector used to instantiate the model
-   %     g = model.gravity;
-   % end
 end
 end   

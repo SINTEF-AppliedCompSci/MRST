@@ -17,7 +17,7 @@ G      = computeGeometry(G(1));
 Gt     = topSurfaceGrid(G);
 ta     = trapAnalysis(Gt, false);
 
-%% 
+%%
 % The formation describes a ridge that ends up in a relatively large plain;
 figure; plotGrid(G,'EdgeAlpha',.05);
 axis tight; view(120,40);
@@ -43,7 +43,7 @@ migrateInjection(Gt, ta, petrodata, 5280, ...
                  'Nm',          10,  ... % time steps during migration
                  'plotPanel',   true);
 
-%% 
+%%
 % Rearrange the plot
 chld = get(gcf,'Children');
 view(chld(7),105,50);

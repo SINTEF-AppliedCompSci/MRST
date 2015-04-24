@@ -120,7 +120,7 @@ function pfun = load_property(opt, pname, fluidname, fixedT, assert_range, nan_o
 
    if (exist(fname) ~= 2)%#ok
       % data table not yet generated.  The following command will generate
-      % and save them.   @@ User need 'coolprops' for this to work!
+      % and save them. 
       try
          generatePropsTable(tabledir, fluidname, pname, opt.pspan, opt.tspan, opt.pnum, ...
                             opt.tnum);

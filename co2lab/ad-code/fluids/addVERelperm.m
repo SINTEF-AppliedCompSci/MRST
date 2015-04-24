@@ -89,9 +89,9 @@ function kr= krG(sg, Gt, opt,varargin)
       case 'sinus'
         kr2 = ((sg_free .* Gt.cells.H).^2 - opt.top_trap.^2) ./...
               (Gt.cells.H.^2 - opt.top_trap.^2); 
-        factor = 1e-4; % @@ Adding small 'fudge factor' to avoid singularity
+        factor = 1e-4; % Adding small 'fudge factor' to avoid singularity
                        % kr2 = kr2 + 1e-4 * sg_free; 
-        kr2(kr2<0) = 0 * sg_free(kr2<0); % @@ Really necessary?? 
+        kr2(kr2<0) = 0 * sg_free(kr2<0); % @@ Really necessary?
         kr = (kr2).^(0.5); 
         kr(kr2<factor) = (kr2(kr2<factor) / factor) * (factor^(0.5)); 
 
@@ -146,8 +146,7 @@ function kr= krW(sw,opt,varargin)
    else
       kr = sw; 
    end
-   % kr = kr .* opt.krg; 
-   kr = kr .* opt.krw; % @@ Odd: the above line most likely a typo...?
+   kr = kr .* opt.krw; 
    assert(all(double(kr) == 0 | double(sw)>opt.res_water));
    % assert(all(double(kr(double(sw) <= opt.res_water)) == 0));
 end

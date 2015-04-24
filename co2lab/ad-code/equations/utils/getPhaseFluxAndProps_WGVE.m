@@ -1,12 +1,12 @@
 function [vX, bX, mobX, rhoX, upc, dpX] = ...
    getPhaseFluxAndProps_WGVE(model, pW, pG, krX, T, gdz, phase, rs, temp)
    % Function to compute phase fluxes, volume factors, mobilities,
-   % densities, upstream indices and pressure gradients   
-   
+   % densities, upstream indices and pressure gradients
+
    fluid = model.fluid;
    s     = model.operators;
-   
-   % Properties always computed using water pressure @@ why?
+
+   % Properties always computed using water pressure 
    switch upper(phase)
      case 'G'
        [bfun, mufun] = bind_temperature(fluid.bG, fluid.muG, temp);
@@ -23,17 +23,17 @@ function [vX, bX, mobX, rhoX, upc, dpX] = ...
      otherwise
        error('Indicated phase must be ''G'' (gas) or ''W'' (water)');
    end
-   
+
    % rhoX on face, average of neighboring cells
    rhoXf = s.faceAvg(rhoX);
-   
+
    % Compute pressure gradient, also taking into account the apparent gravity
    % component resulting from nonflat caprock geometry.
-   dpX  = s.Grad(pX) - rhoXf .* gdz; 
-   
+   dpX  = s.Grad(pX) - rhoXf .* gdz;
+
    % Identifying upstream side
    upc = double(dpX) <= 0;
-   
+
    % Computing flux
    vX = -s.faceUpstr(upc, mobX) .* T .* dpX;
    if any (bX < 0)
@@ -52,5 +52,5 @@ function [bfun, mufun] = bind_temperature(bfun, mufun, temp)
    end
    if (nargin(mufun) > 1) || (nargin(bfun) < -2)
       mufun = @(p) mufun(p, temp);
-      end
+   end
 end

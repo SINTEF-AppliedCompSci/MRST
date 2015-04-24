@@ -1,4 +1,4 @@
-%% 1D Aquifer: numerical upscaling of relative permeabilities 
+%% 1D Aquifer: numerical upscaling of relative permeabilities
 % Compute numerically upscaled relative permeabilities for a set of
 % representative dip angles.
 
@@ -17,7 +17,7 @@ hf = figure;
 
 for j=1:numel(theta_vec)
    theta=theta_vec(j);
-   
+
    %% Create grid and fluid models
    [L,H] = deal(.3e3, 50);
    G = cartGrid([100 2 1],[L L H]);
@@ -25,11 +25,11 @@ for j=1:numel(theta_vec)
    G.nodes.coords(:,3) = ff(G.nodes.coords(:,1)) + G.nodes.coords(:,3);
    G = topSurfaceGrid(computeGeometry(G));
    G = computeGeometry(G);
-   
+
    G.grav_pressure = @(g,omega) zeros(numel(g.cells.faces(:,1)),1);
    cellno = rldecode((1:G.cells.num)',diff(G.cells.facePos));
    dhfz   = -(G.cells.z(cellno)-G.faces.z(G.cells.faces(:,1)));
-   
+
    fluid = initSimpleVEFluid_s( 'mu',[6e-5 8e-4], 'rho',[760 1100], ...
       'sr',[0 0],'height', G.cells.H);
    rock.poro = ones(G.cells.num,1)*.2;
@@ -76,18 +76,18 @@ for j=1:numel(theta_vec)
    for i=1:numel(sat_vec);
       sat = sat_vec(i);
       state.s = ones(size(state.s))*sat;
-      
+
       %% search for stationary state
       mu     = fluid.properties();
       V_i    = perm(1,1)*1.0/(L(1)*min(mu));
       DT_min = min(0.5*L(1)/V_i, year);
-      
+
       [state, report] = simulateToSteadyState(state, Gp, rock, fluid, DT_min,...
          'psolver',psolver_transport,'bcp',bcp,'trans',hTp,...
          'dhfz',dhfzp, 'verbose',false,...
          'nltol',1.0e-6,'lstrials',10, 'maxnewt',20, 'tsref',1,'max_it',100,...
          'max_newton',200,'solve_pressure', true);
-      
+
       figure(hf); clf;
       plot(G.cells.centroids(:,1), G.cells.z,'b*',...
          G.cells.centroids(:,1), G.cells.z-state.s.*G.cells.H,'r*',...
@@ -107,12 +107,12 @@ for j=1:numel(theta_vec)
          if isempty(min_kr)
             min_kr = 0;
          end
-         
+
          aa = max(min_kr*1e-5, kr_tmp(:,kk));
          srock.perm = bsxfun(@times, rock.perm, aa);
          hT = computeTrans(G, srock);
          hT = hT(Gp.cells.faces(:,end));
-         
+
          % Single-phase upscaling in all direction given the stationary
          % state
          if(~all(hT==0));

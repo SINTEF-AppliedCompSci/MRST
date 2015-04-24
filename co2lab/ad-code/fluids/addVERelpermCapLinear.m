@@ -6,7 +6,7 @@ function fluid = addVERelpermCapLinear(fluid, cap_scale, varargin)
    
    end_scale = (1 - opt.res_water).^opt.beta; 
    if(~opt.kr_pressure)
-      fake_pressure = 200 * barsa; % @@ Magic constant?
+      fake_pressure = 200 * barsa; % @@ Make the value of this constant optional?
       fluid.krG = @(sg, p, varargin) end_scale .* krG(sg, fake_pressure, fluid, ...
                                                       cap_scale, opt, varargin{:}); 
       fluid.krW = @(sw, p, varargin) krW(sw, opt, varargin{:}); 

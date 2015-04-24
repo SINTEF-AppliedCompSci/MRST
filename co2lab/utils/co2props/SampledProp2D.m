@@ -272,7 +272,7 @@ function [liq, gas] = prepare_by_phase(base, span_v1, span_v2, boundary)
     % Determining largest column number below critical temperature (i.e. the
     % largest column for which extrapolation of values across discontinuity
     % is needed below)
-    maxcol = max(find((cellfun(@(x)any(isnan(x)), num2cell(gas(end,:), 1)))));
+    maxcol = max(find((cellfun(@(x)any(isnan(x)), num2cell(gas(end,:), 1)))));%#ok
     %dc = 1:maxcol+1;
     dc = 1:maxcol+3; %@ Strictly speaking, we should extrapolate along
                      %T-direction in order to get the additional values
@@ -280,10 +280,10 @@ function [liq, gas] = prepare_by_phase(base, span_v1, span_v2, boundary)
                      %Currently, extrapolation is only in T.  Fix when time.
 
     % Determining row indices along discontinuity (column indices is given by (1:maxcol))
-    dr = cellfun(@(x)min(find(~isnan(x)))-1, num2cell(liq(:, dc), 1));
+    dr = cellfun(@(x)min(find(~isnan(x)))-1, num2cell(liq(:, dc), 1));%#ok
 
     % Removing an extra row of values on each side of discontinuity, to
-    % ensure that no value ended on the 'wrong side' (a bit of a hack  @@)
+    % ensure that no value ended on the 'wrong side'
     drl = dr+1;
     drg = dr-1;
     liq(sub2ind(size(liq), drl, 1:maxcol+3)) = NaN;
@@ -469,8 +469,7 @@ function res = get_varnames(prop)
 end
 
 % ----------------------------------------------------------------------------
-% @@ THIS FUNCTION TAKEN FROM ADI.M, WHERE IT WAS A PRIVATE FUNCTION.  SO
-% IT IS A BIT OF A HACK TO PASTE IT HERE.
+% @@ taken from ADI.m, where it is a private function
 function J = lMultDiag(d, J1)
     n = numel(d);
     D = sparse((1:n)', (1:n)', d, n, n);

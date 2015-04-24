@@ -22,7 +22,7 @@ function generatePropsTable(savedir, fluidname, pname, P_range, T_range, P_num, 
 %   Nothing.  The generated table is saved directly, along with the
 %             information on pressure and temperature ranges. 
 %
-   [P, T, vals]  = make_prop_table(P_range, T_range, P_num, T_num, fluidname, pname);
+   [P, T, vals]  = make_prop_table(P_range, T_range, P_num, T_num, fluidname, pname);%#ok
 
    save([savedir propFilename(P_range, T_range, P_num, T_num, fluidname, pname)], 'P', 'T' , 'vals');
 

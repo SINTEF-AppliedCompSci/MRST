@@ -36,18 +36,18 @@ function bG = boCO2(T_ref, rhoG, varargin)
 %                                      code using automatic differentiation,
 %                                      since the discontinuous derivatives may
 %                                      prevent the nonlinear solver from
-%                                      converging. 
+%                                      converging.
 %
 % RETURNS:
 %   bG - CO2 formation volume factor (a function of pressure)
 %
 % SEE ALSO:
 %  CO2props, SampledProp2D
-   
+
     opt.rho_datafile = 'CarbonDioxide_100000_400000000_278_524_800_800_D';
     opt.sharp_phase_boundary = true;
     opt = merge_options(opt, varargin{:});
-    
+
     obj= CO2props('rhofile', opt.rho_datafile, ...
                   'sharp_phase_boundary', opt.sharp_phase_boundary);
     rhoCO2 =@(p) obj.rho(p, T_ref);
