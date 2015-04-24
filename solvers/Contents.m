@@ -1,11 +1,10 @@
-% Routines for solving the pressure and transport equations.
+%Routines for computing transmissibilities and defining initial states
 %
 % Files
-%   capPressureRHS.m     - Compute capillary pressure contribution to system RHS
-%   computePressureRHS.m - Compute right-hand side contributions to pressure linear system.
-%   initResSol.m         - Initialize reservoir solution data structure.
-%   initState.m          - Initialise state object for reservoir and wells.
-%   initWellSol.m        - Initialize well solution data structure.
+%   computeTrans - Compute transmissibilities.
+%   initResSol   - Initialise incompressible reservoir solution data structure
+%   initState    - Initialise state object for reservoir and wells.
+%   initWellSol  - Initialize well solution data structure.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
