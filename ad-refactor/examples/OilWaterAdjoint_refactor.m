@@ -3,7 +3,7 @@
 % $10\times1\times10$ Cartesian grid with uniform permeability. We read the
 % deck and create the grid, rock and fluid structures from the resulting
 % output. This requires the deckformat module.
-mrstModule add deckformat ad-fi ad-refactor
+mrstModule add deckformat ad-fi ad-refactor optimization
 
 current_dir = fileparts(mfilename('fullpath'));
 deck = readEclipseDeck(fullfile(current_dir, 'simple10x1x10.data'));

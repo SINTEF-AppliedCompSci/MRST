@@ -9,9 +9,9 @@
 %
 
 try
-   require add ad-core ad-blackoil ad-fi deckformat
+   require add ad-core ad-blackoil ad-fi deckformat optimization
 catch
-   mrstModule add ad-core ad-blackoil ad-fi deckformat
+   mrstModule add ad-core ad-blackoil ad-fi deckformat optimization
 end
 
 current_dir = fileparts(mfilename('fullpath'));
