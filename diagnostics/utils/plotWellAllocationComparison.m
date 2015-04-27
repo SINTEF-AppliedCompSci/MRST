@@ -24,6 +24,9 @@ function plotWellAllocationComparison(D1, WP1, D2, WP2, varargin)
 %   the same flux allocation, the color bars and the solid lines should be
 %   matching.
 %
+%   If D2 and WP2 are empty, they are set equal D1 and WP1, and a graph is
+%   produced which shows the well allocation for the wells in WP1.
+%
 % SEE ALSO:
 %   computeTOFandTracer, computeWellParis, expandWellCompletions
 
@@ -47,6 +50,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 opt = struct('useZ', true);
 opt = merge_options(opt, varargin{:});
+
+if (isempty(D2) || isempty(WP2))
+    D2 = D1;
+    WP2 = WP1;
+end
 
 WP1 = addDummyData(WP1);
 WP2 = addDummyData(WP2);

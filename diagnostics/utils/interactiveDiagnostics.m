@@ -216,6 +216,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pm_outlineph = [];
     phiPlot = []; % Used in plotPhi
     pwc_wch = []; % Used in plotWellConnections
+    wah_fig = []; % plotWellAllocations
 
     % Precompute TOF etc.
     pv = poreVolume(G, rock);
@@ -346,10 +347,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         tof_N = 5;
         tof_h = 1/tof_N;
-        [speedsh, speedeh] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution');
-        [mtofsh, mtofeh]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF');
-        [Mtofsh, Mtofeh]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF');
-        [alfash, alfaeh]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha');
+        [speedsh, speedeh] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution', []);
+        [mtofsh, mtofeh]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @plotMain);
+        [Mtofsh, Mtofeh]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @plotMain);
+        [alfash, alfaeh]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha', @plotMain);
         
         % Set special functions for the min/max time of flight slider
         % handle
@@ -366,6 +367,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 set(mtofeh, 'String', sprintf('%.1f', cur_val));
             end
+            plotMain(src, event);
         end
         
         function Mtofs_callback(src, event)
@@ -381,6 +383,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 set(Mtofeh, 'String', sprintf('%.1f', cur_val));
             end
+            plotMain(src, event);
         end
         
         set(mtofsh, 'Callback', @mtofs_callback);
@@ -431,17 +434,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         bheight = .05;
         bwidth = .2;
 
+
         uicontrol(confp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
                    'Position', [0 bheight bwidth .5],...
-                   'String', 'Apply',...
-                   'Callback', @(src, event) plotMain(src, event)...
-                   );
-
-
-        uicontrol(confp, 'Style', 'pushbutton',...
-                   'Units', 'normalized',...
-                   'Position', [0 + bwidth*1 bheight bwidth .5],...
                    'String', 'Phi/F diagram',...
                    'Callback', @(src, event) plotPhi(src, event)...
                    );
@@ -458,8 +454,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         wctoggle = uicontrol(confp, 'Style', 'togglebutton',...
                    'Units', 'normalized',...
                    'Position', [0 + bwidth*3 bheight bwidth .5],...
-                   'String', 'Wellpairs',...
+                   'String', 'Well pairs',...
                    'Callback', @plotWellConnections...
+                   );
+               
+        uicontrol(confp, 'Style', 'pushbutton',...
+                   'Units', 'normalized',...
+                   'Position', [0 + bwidth*4 bheight bwidth .5],...
+                   'String', 'Well allocations',...
+                   'Callback', @plotWellAllocations...
                    );
 
     end
@@ -680,6 +683,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         title(sprintf('Lorenz coefficient: %f\n', computeLorenz(F,Phi)));
     end
 
+    function plotWellAllocations(src, event)
+        if ishandle(wah_fig)
+            set(0, 'CurrentFigure', wah_fig);
+        else
+            wah_fig = figure('Name', 'Well allocations');
+        end
+        plotWellAllocationComparison(D, WP, [], []);
+    end
+
     function plotWellConnections(src, event)
         if get(wctoggle, 'Value')
             if ishandle(fig_main)
@@ -789,7 +801,7 @@ end
 
 
 
-function [sliderhandle, edithandle] = linkedSlider(parent, pos, fieldsize, ext, defaultval, title)
+function [sliderhandle, edithandle] = linkedSlider(parent, pos, fieldsize, ext, defaultval, title, callback)
     x = pos(1);
     y = pos(2);
     minval = abs(ext(1));
@@ -802,10 +814,31 @@ function [sliderhandle, edithandle] = linkedSlider(parent, pos, fieldsize, ext, 
     cap = @(x) max(minval, min(x, maxval));
 
     edithandle = uicontrol(parent, 'Style', 'edit', 'Units', 'normalized', 'Value', defaultval, 'Position', [x + (1-fieldsize)*dims(1), y, fieldsize*dims(1) dims(2)], 'String', sprintf('%.1f', defaultval));
-    fun = @(src, event) set(edithandle, 'String', sprintf('%.1f', get(src, 'Value')));
-
-    sliderhandle = uicontrol(parent, 'Style', 'slider', 'Units', 'normalized', 'Position', [x + fieldsize*dims(1), y, (1-2*fieldsize)*dims(1) dims(2)], 'Min', minval, 'Max', maxval, 'Value', defaultval, 'Callback', fun);
-    fun2 = @(src, event) set(sliderhandle, 'Value', cap(sscanf(get(src, 'String'), '%f')));
-    set(edithandle, 'Callback', fun2);
+    sliderhandle = uicontrol(parent, 'Style', 'slider', 'Units', 'normalized', 'Position', [x + fieldsize*dims(1), y, (1-2*fieldsize)*dims(1) dims(2)], 'Min', minval, 'Max', maxval, 'Value', defaultval);
+    
+    
+    slidercallback2 = @(src, event) set(edithandle, 'String', sprintf('%.1f', get(src, 'Value')));
+    editcallback2 = @(src, event) set(sliderhandle, 'Value', cap(sscanf(get(src, 'String'), '%f')));
+    
+    function slidercallback3(src, event)
+        callback(src, event);
+        slidercallback2(src, event);
+    end
+    function editcallback3(src, event)
+        callback(src, event);
+        editcallback2(src, event);
+    end
+        
+    if (~isempty(callback))
+        set(sliderhandle, 'Callback', @slidercallback3);
+    else 
+        set(sliderhandle, 'Callback', slidercallback2);
+    end
+    
+    if (~isempty(callback))
+        set(edithandle, 'Callback', @editcallback3);
+    else
+        set(edithandle, 'Callback', editcallback2);
+    end
 end
 
