@@ -93,15 +93,15 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
    % Add density, viscosity and enthalpy properties
    if opt.props(1)
       fluid.(['rho', shortname]) = load_property(opt, 'D', fluidname, opt.fixedT, ...
-                                                 opt.assert_range, opt.nan_outside_range);
+                                                 opt.assert_in_range, opt.nan_outside_range);
    end
    if opt.props(2)
       fluid.(['mu' , shortname]) = load_property(opt, 'V', fluidname, opt.fixedT, ...
-                                                 opt.assert_range, opt.nan_outside_range);
+                                                 opt.assert_in_range, opt.nan_outside_range);
    end
    if opt.props(3)
       fluid.(['h'  , shortname]) = load_property(opt, 'H', fluidname, opt.fixedT, ...
-                                                 opt.assert_range, opt.nan_outside_range);
+                                                 opt.assert_in_range, opt.nan_outside_range);
 
       if opt.props(1) % we have both enthalpy and density - we can also
                       % include internal energy
@@ -113,7 +113,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function pfun = load_property(opt, pname, fluidname, fixedT, assert_range, nan_outside)
+function pfun = load_property(opt, pname, fluidname, fixedT, assert_in_range, nan_outside)
 
    tabledir = [fileparts(mfilename('fullpath')) '/sampled_tables/'];
    fname = [tabledir, propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname)];
@@ -141,7 +141,7 @@ function pfun = load_property(opt, pname, fluidname, fixedT, assert_range, nan_o
    % We here load the generated table, and construct an object with evaluator
    % functions
    obj = SampledProp2D(pname, fname, ...
-                       'assert_in_range', assert_range, ...
+                       'assert_in_range', assert_in_range, ...
                        'nan_outside_range', nan_outside);
 
    % We return the main evaluator function (which also works in an ADI-setting)
