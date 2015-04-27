@@ -150,32 +150,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     assert(opt.computeFlux || ~isempty(opt.state),...
         'If computeFlux is off a state must be provided!')
+    
+    if (isfield(W, 'cells'))
+        W = {W};
+    end
         
     state = [];
     state_idx = 1;
     if (~isempty(opt.state))        
         if (numel(opt.state) == 1)
-            assert(isfield(W, 'cells'), 'W doesn''t appear to be valid')
             state = {opt.state};
-            W = {W};
         else
             state = opt.state;
         end
+        
+        assert(numel(W) == numel(state), ...
+            'W and state must have equal number of elements');
     end
 
     if (~isempty(datasets))
         if (numel(datasets) == 1)
             datasets = {datasets};
         end
-    else
+        
+        assert(numel(W) == numel(datasets), ...
+            'W and datasets must have equal number of elements');
+    elseif(isempty(datasets) && ~isempty(state))
         dsname = 'State';
         datasets = state;
+    else
+        dsname = '';
+        datasets = cell(1,1);
     end
     
-    assert(numel(W) == numel(opt.state), ...
-        'W and state must have equal number of elements');
-    assert(numel(W) == numel(datasets), ...
-        'W and datasets must have equal number of elements');
 
     % Currently playing back
     playback = false;
