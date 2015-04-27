@@ -151,7 +151,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     assert(opt.computeFlux || ~isempty(opt.state),...
         'If computeFlux is off a state must be provided!')
     
-    if (isfield(W, 'cells'))
+    if (isstruct(W))
         W = {W};
     end
         
@@ -506,17 +506,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         isubset = data >= min_tof & data <= max_tof;
 
         % Find the selection
-        tmp = get(hset_op, 'Value');
-        set_op_strs = get(hset_op, 'String');
-        set_op_str = set_op_strs{tmp};
         selection = [];
-        if (any(regexpi(set_op_str, 'union')))
+        switch(get(hset_op, 'Value'))
+            case 1
             selection = (isubset & isubs) | (psubset & psubs);
-        elseif (any(regexpi(set_op_str, 'intersection')))
+            case 2
             selection = (isubset & isubs) & (psubset & psubs);
-        elseif (any(strcmpi(set_op_str, 'flood')))
+            case 3
             selection = (isubset & isubs);
-        elseif (any(strcmpi(set_op_str, 'drain')))
+            case 4
             selection = (psubset & psubs);
         end
         
