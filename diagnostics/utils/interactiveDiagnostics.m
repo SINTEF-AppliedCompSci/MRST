@@ -147,11 +147,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     assert(opt.computeFlux || ~isempty(opt.state),...
         'If computeFlux is off a state must be provided!')
-
-    if isempty(datasets) && ~isempty(opt.state)
-        dsname = 'State';
-        datasets = opt.state;
+        
+    state = [];
+    state_idx = 1;
+    if (~isempty(opt.state))        
+        if (numel(opt.state) == 1)
+            assert(isfield(W, 'cells'), 'W doesn''t appear to be valid')
+            state = {opt.state};
+            W = {W};
+        else
+            state = opt.state;
+        end
     end
+
+    if (~isempty(datasets))
+        if (numel(datasets) == 1)
+            datasets = {datasets};
+        end
+    else
+        dsname = 'State';
+        datasets = state;
+    end
+    
+    assert(numel(W) == numel(opt.state), ...
+        'W and state must have equal number of elements');
+    assert(numel(W) == numel(datasets), ...
+        'W and datasets must have equal number of elements');
 
     % Currently playing back
     playback = false;
@@ -164,6 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      wellPlot,...
      draintoggle,...
      floodtoggle,...
+     wctoggle,...
      speedsh,...
      mtofsh,...
      mtofeh,...
@@ -216,12 +238,61 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             clf(fig_ctrl)
         end
-        % Drainage / flooding controls
-        gpw = .5;
-        gph = .55;
+        
+        function selectdata(datas, index, fullname)
+            state_idx = index;
+            computeValues();
+            tofext = adjustTOF(D);
+            plotMain();
+            plotWellConnections([], []);
+            
+            %Update min/max
+            set(mtofsh, 'Min', tofext(1));
+            set(mtofsh, 'Max', tofext(2));
+            
+            set(Mtofsh, 'Min', tofext(1));
+            set(Mtofsh, 'Max', tofext(2));
+            
+            %Make sure slider is within range
+            curval = get(mtofsh, 'Value');
+            set(mtofsh, 'Value', min(max(curval, tofext(1)), tofext(2)));
+            Mtofs_callback([], []);
+            
+            curval = get(Mtofsh, 'Value');
+            set(Mtofsh, 'Value', min(max(curval, tofext(1)), tofext(2)));
+            Mtofs_callback([], []);
+        end
+        
+        %Add time-varying dataset slider
+        if (~isempty(state) && numel(state) > 1)
+            
+            ds_panel = uipanel('Parent', fig_ctrl, ...
+                'Units', 'normalized',...
+                'Title', 'Dataset Selection', ...
+                'Position', [0, 0.475, 1, .075]);
+            
+            uicontrol(ds_panel,'Style','text',...
+                'Units', 'normalized',...
+                'HorizontalAlignment', 'left',...
+                'String','Simulation timestep',...
+                'Position',[0 0 0.4 1]);
+            
+            datasetSelector(G, state, 'Parent', ds_panel, 'Location', ...
+                [0.4, 0, 0.6, 1], 'Callback', @selectdata, ...
+                'Setname', 'testing', 'active', 1, 'Nofields', true);
+            mrst_ds = findobj('Tag', 'mrst-datasetselector');
+            set(mrst_ds, 'BorderType', 'None');
+        end
 
-        drainp = uibuttongroup('Parent', fig_ctrl, 'Title', 'Drainage volumes', 'Position', [0 .45 gpw gph]);
-        floodp = uibuttongroup('Parent', fig_ctrl, 'Title', 'Flooding volumes', 'Position', [.5 .45 gpw gph]);
+        % Drainage / flooding controls
+        gpy = 0.45;
+        gph = .55;
+        if (~isempty(state) && numel(state) > 1)
+            gpy = gpy + 0.15;
+            gph = gph - 0.15;
+        end
+        drainp = uibuttongroup('Parent', fig_ctrl, 'Title', 'Drainage volumes', 'Position', [0 gpy .5 gph]);
+        floodp = uibuttongroup('Parent', fig_ctrl, 'Title', 'Flooding volumes', 'Position', [.5 gpy .5 gph]);
 
         pp = unique(D.ppart);
         ip = unique(D.ipart);
@@ -236,7 +307,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                         'Units', 'normalized',...
                                         'Max', 2, ...
                                         'Min', 0, ...
-                                        'String', {W(D.prod).name},...
+                                        'String', {W{state_idx}(D.prod).name},...
                                         'Value', [], ...
                                         'Callback', @plotMain, ...
                                         'Position', [0 0 1 1]);
@@ -245,20 +316,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                         'Units', 'normalized',...
                                         'Max', 2, ...
                                         'Min', 0, ...
-                                        'String', {W(D.inj).name},...
+                                        'String', {W{state_idx}(D.inj).name},...
                                         'Value', 1:numel(D.inj), ...
                                         'Callback', @plotMain, ...
                                         'Position', [0 0 1 1]);
         % TOF adjustment
-        tofp = uipanel('Parent', fig_ctrl, 'Title', 'Time of flight', 'Position', [0 .2 1 .25]);
-        tof = D.tof(:);
+        tofp = uipanel('Parent', fig_ctrl, 'Title', 'Range selector', 'Position', [0 0 1 .225]);
         
-        isNeg = tof <= 0;
-        tof(isNeg) = min(tof(~isNeg));
-        
-        tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
-        tofext(2) = max(tofext(2), 15);
+        function tofext = adjustTOF(D)
+            tof = D.tof(:);
+            isNeg = tof <= 0;
+            tof(isNeg) = min(tof(~isNeg));
 
+            tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
+            tofext(2) = max(tofext(2), 15);
+        end
+        
+        tofext = adjustTOF(D);
+        
         tof_N = 5;
         tof_h = 1/tof_N;
         [speedsh, speedeh] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution');
@@ -269,19 +344,35 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Set special functions for the min/max time of flight slider
         % handle
         function mtofs_callback(src, event)
-            if (get(src, 'Value') == get(src, 'Min'))
+            min_val = get(mtofsh, 'Min');
+            max_val = get(mtofsh, 'Max');
+            cur_val = get(mtofsh, 'Value');
+            if (cur_val <= min_val)
+                set(mtofsh, 'Value', min_val);
                 set(mtofeh, 'String', sprintf('%.1f', -Inf));
+            elseif (cur_val >= max_val)
+                set(mtofsh, 'Value', max_val);
+                set(mtofeh, 'String', sprintf('%.1f', Inf));
             else
-                set(mtofeh, 'String', sprintf('%.1f', get(src, 'Value')));
+                set(mtofeh, 'String', sprintf('%.1f', cur_val));
             end
         end
+        
         function Mtofs_callback(src, event)
-            if (get(src, 'Value') == get(src, 'Max'))
-                set(Mtofeh, 'String', sprintf('%.1f', +Inf));
+            min_val = get(Mtofsh, 'Min');
+            max_val = get(Mtofsh, 'Max');
+            cur_val = get(Mtofsh, 'Value');
+            if (cur_val <= min_val)
+                set(Mtofsh, 'Value', min_val);
+                set(Mtofeh, 'String', sprintf('%.1f', -Inf));
+            elseif (cur_val >= max_val)
+                set(Mtofsh, 'Value', max_val);
+                set(Mtofeh, 'String', sprintf('%.1f', Inf));
             else
-                set(Mtofeh, 'String', sprintf('%.1f', get(src, 'Value')));
+                set(Mtofeh, 'String', sprintf('%.1f', cur_val));
             end
         end
+        
         set(mtofsh, 'Callback', @mtofs_callback);
         set(mtofeh, 'String', num2str(-Inf))
         set(Mtofsh, 'Callback', @Mtofs_callback);
@@ -290,19 +381,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         uicontrol(tofp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
                    'Position', [0 0, .2 1/tof_N],...
-                   'String', 'Play',...
+                   'String', 'Play TOF',...
                    'Callback', @(src, event) playBackTof(src, event)...
                    );
         uicontrol(tofp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
                    'Position', [.2 0, .2 1/tof_N],...
-                   'String', 'Stop',...
+                   'String', 'Stop TOF',...
                    'Callback', @(src, event) stopPlayBackTof(src, event)...
                    );
         % General config
-        confp = uipanel('Parent', fig_ctrl, 'Title', 'Configuration', 'Position', [0 0 1 .2]);
+        confp = uipanel('Parent', fig_ctrl, 'Title', 'TOF Configuration', 'Position', [0 .275 1 .15]);
 
-        cellfields = getStructFields(G, datasets, dsname);
+        cellfields = getStructFields(G, datasets{state_idx}, dsname);
         perm = strcat({'X', 'Y', 'Z'}, ' permeability');
         
         hdataset = uicontrol(confp, 'Style', 'popupmenu',...
@@ -322,10 +413,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                    'Units', 'normalized',...
                                    'Position', [.525 0 .475 1],...
                                    'Callback', @plotMain,...
-                                   'String', {'Union (Flood, Drain)',...
-                                              'Intersection (Flood, Drain)',...
-                                              'Flood',...
-                                              'Drain'}...
+                                   'String', {'Union {Flood, Drain} volumes',...
+                                              'Intersection {Flood, Drain} volumes',...
+                                              'Flood volumes',...
+                                              'Drain volumes'}...
                                    );
         bheight = .05;
         bwidth = .2;
@@ -354,7 +445,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                        );
         end
 
-        uicontrol(confp, 'Style', 'togglebutton',...
+        wctoggle = uicontrol(confp, 'Style', 'togglebutton',...
                    'Units', 'normalized',...
                    'Position', [0 + bwidth*3 bheight bwidth .5],...
                    'String', 'Wellpairs',...
@@ -365,7 +456,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function plotMain(src, event)
 
-        [cdata clim cmap] = selectDataset();
+        [cdata, clim, cmap] = selectDataset();
 
         if ishandle(fig_main)
             set(0, 'CurrentFigure', fig_main);
@@ -430,8 +521,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Plot wells
         if ~all(ishandle([pm_htop, pm_htext, pm_hs])) || isempty([pm_htop, pm_htext, pm_hs])
 
-            [pm_htop, pm_htext, pm_hs, pm_hline] = plotWell(G, W,  'color', 'red', 'height',  0);
-            for i = 1:numel(W)
+            [pm_htop, pm_htext, pm_hs, pm_hline] = plotWell(G, W{state_idx},  'color', 'red', 'height',  0);
+            for i = 1:numel(W{state_idx})
                 color = colorizeWell('global', i, D);
                 set([pm_htop(i) pm_htext(i) pm_hs(i)],    'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
                 set([pm_htop(i) pm_hs(i)], 'FaceColor', color, 'EdgeColor', color)
@@ -497,7 +588,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (numel(WP) > 0)
                 wp = @(x) WP.inj(x);
             end
-            otherNames = {W(D.prod).name};
+            otherNames = {W{state_idx}(D.prod).name};
 
             % set plots to match piecharts
             v = find(strcmpi(get(hdataset, 'String'), 'drainage region'));
@@ -512,7 +603,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (numel(WP) > 0)
                 wp = @(x) WP.prod(x);
             end
-            otherNames = {W(D.inj).name};
+            otherNames = {W{state_idx}(D.inj).name};
 
             v = find(strcmpi(get(hdataset, 'String'), 'flooding region'));
             set(hdataset, 'Value', v(1))
@@ -525,9 +616,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             set(0, 'CurrentFigure', wellPlot); clf
         end
-        set(wellPlot, 'name', ['Well ', W(wk).name]);
+        set(wellPlot, 'name', ['Well ', W{state_idx}(wk).name]);
 
-        plotArrival = ~isempty(opt.state) && ~isInj;
+        plotArrival = ~isempty(state) && ~isInj;
 
         if plotArrival;
             subplot(2, 2, 1);
@@ -541,7 +632,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         if plotArrival
             subplot(2,2,3);  cla;
-            plotTOFArrival(opt.state, W, pv, opt.fluid, find(D.prod == wk), D, opt.useMobilityArrival)
+            plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, opt.useMobilityArrival)
         end
 
         subplot(2,2,[2 4])
@@ -563,7 +654,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 set(gca, 'XDir', 'reverse')
                 legend(otherNames, 'Location', 'EastOutside');
                 xlabel('Depth')
-                title(['Allocation factors by depth for ', W(wk).name]);
+                title(['Allocation factors by depth for ', W{state_idx}(wk).name]);
             end
         end
 
@@ -582,8 +673,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotWellConnections(src, event)
-
-        if get(src, 'Value')
+        if get(wctoggle, 'Value')
             if ishandle(fig_main)
                 set(0, 'CurrentFigure', fig_main);
             else
@@ -591,9 +681,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 axis tight off
                 plotMain();
             end
-            if ~any(ishandle(pwc_wch))
-                pwc_wch = plotWellPairConnections(G, WP, D, W, pv);
+            if any(ishandle(pwc_wch))
+                delete(pwc_wch)
+                pwc_wch = [];
             end
+            pwc_wch = plotWellPairConnections(G, WP, D, W{state_idx}, pv);
         else
 
             delete(pwc_wch)
@@ -602,7 +694,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     end
 
-    function [cdata clim cmap] = selectDataset()
+    function [cdata, clim, cmap] = selectDataset()
         dataind = get(hdataset, 'Value');
         datanames = get(hdataset, 'String');
         clim = [];
@@ -634,7 +726,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'z permeability'
                 cdata = log10(rock.perm(:,3));
             otherwise
-                cdata = readStructField(datasets, datanames{dataind});
+                cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
         if isempty(clim)
             m = min(cdata(:));
@@ -646,18 +738,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function computeValues()
         if opt.computeFlux
-            rS = initState(G, W, 0);
+            rS = initState(G, W{state_idx}, 0);
             T  = computeTrans(G, rock);
-            rS = incompTPFA(rS, G, T, opt.tracerfluid, 'wells', W, 'LinSolve', opt.LinSolve);
+            rS = incompTPFA(rS, G, T, opt.tracerfluid, 'wells', W{state_idx}, 'LinSolve', opt.LinSolve);
         else
-            rS = initState(G, W, 0);
-            if isfield(opt.state, 'wellSol')
-                rS.wellSol = opt.state.wellSol;
+            rS = initState(G, W{state_idx}, 0);
+            if isfield(state{state_idx}, 'wellSol')
+                rS.wellSol = state{state_idx}.wellSol;
             end
-            rS.flux     = opt.state.flux;
-            rS.pressure = opt.state.pressure;
+            rS.flux     = state{state_idx}.flux;
+            rS.pressure = state{state_idx}.pressure;
         end
-        D = computeTOFandTracer(rS, G, rock, 'wells', W);
+        
+        D = computeTOFandTracer(rS, G, rock, 'wells', W{state_idx});
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         
@@ -667,12 +760,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             warning('Time of flight returned inf. Are there both injectors and producers present?')
         else
             D.tof(isinf(D.tof)) = max(tf(isfinite(tf)));
-            WP = computeWellPairs(rS, G, rock, W, D);
+            WP = computeWellPairs(rS, G, rock, W{state_idx}, D);
         end
     end
 
     function changeWells()
-        W = editWells(G, W, rock);
+        W{state_idx} = editWells(G, W{state_idx}, rock);
         recomputeValues();
         createMainControl();
     end
