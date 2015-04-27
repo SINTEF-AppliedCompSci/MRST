@@ -38,6 +38,9 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %     visualization of the well pair connections, Phi/F diagram with
 %     Lorenz' coefficient etc.
 %
+%     A player controller (experimental), if a time-series of wells (and
+%     states) are supplied.
+%
 %
 % REQUIRED PARAMETERS:
 %
