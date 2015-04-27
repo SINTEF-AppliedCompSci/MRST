@@ -75,7 +75,7 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
    opt.tnum   = 800; % number of temperature samples
    opt.props  = [true false false]; % which props to include [rho, mu, h]
    opt.fixedT = [];
-   opt.assert_range = false;
+   opt.assert_in_range = false;
    opt.nan_outside_range = false;
 
    opt = merge_options(opt, varargin{:});
