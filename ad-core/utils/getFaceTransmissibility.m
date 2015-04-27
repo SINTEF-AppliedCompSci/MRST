@@ -46,21 +46,28 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    hasDeck = true;
     if nargin == 2 || isempty(deck)
         deck = struct('GRID', struct());
+        hasDeck = false;
     end
     
     if mod(numel(varargin), 2) == 1
         varargin = {deck, varargin{:}};
         deck = struct('GRID', struct());
+        hasDeck = false;
     end
     T = computeTrans(G, rock, varargin{:});
     
     % Multiply inn transmissibility multipliers
-    m = computeTranMult(G, deck.GRID);
-    if ~isempty(m)
-        T = m.*T;
+    if hasDeck
+        require deckformat
+        m = computeTranMult(G, deck.GRID);
+        if ~isempty(m)
+            T = m.*T;
+        end
     end
+
     % Reduce half-face trans for face transmissibility
     cf = G.cells.faces(:,1);
     nf = G.faces.num;
