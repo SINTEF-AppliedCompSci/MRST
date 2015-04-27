@@ -22,7 +22,11 @@
 % for a Cartesian grid and isotropic, homogeneous permeability. See the
 % <simpleBC.html basic flow-solver tutorial> for more details
 % on the grid structure, the structure used to hold the solutions, etc.
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 
 %% Define grid, rock and fluid data
 % Construct a Cartesian grid of size 20-by-20-by-5 cells, where each cell

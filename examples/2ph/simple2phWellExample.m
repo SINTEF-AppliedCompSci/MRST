@@ -25,7 +25,11 @@
 % more details on the grid structure, the structure used to hold the
 % solutions, etc.
 % </html>
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 
 %% Define geometry and rock parameters
 % Construct a Cartesian grid of size 20-by-20-by-5 cells, where each cell

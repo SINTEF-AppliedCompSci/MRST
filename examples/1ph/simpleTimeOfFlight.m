@@ -11,7 +11,11 @@
 %
 % In this example, we will show how to compute time-of-flight from a given
 % flux field.
-
+try
+    require incomp diagnostics
+catch
+    mrstModule add incomp diagnostics
+end
 %% Setup model
 % As our model, we will use a logically Cartesian grid in which the
 % node perturbed so that grid lines form curves and not lines. For

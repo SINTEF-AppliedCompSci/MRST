@@ -26,9 +26,9 @@ G = cartGrid([nx, ny, nz], [10, 10, 4]);
 % faster if one uses the C-accelerated routine instead of the standard call
 % to computeGeometry(G)
 try
-   require libgeometry
+   require libgeometry incomp
 catch
-   mrstModule add libgeometry
+   mrstModule add libgeometry incomp
 end
 G = mcomputeGeometry(G);
 
@@ -58,7 +58,7 @@ bc     = pside   (bc, G, 'RIGHT', 0);
 % and pressure in the reservoir. When working with large models, one cannot
 % use the standard MLDIVIDE ('\') solver in MATLAB. Here, we use the AGMG
 % algebraic multigrid solver.
-mrstModule add mex/AGMG
+mrstModule add agmg
 resSol = incompTPFA(resSol, G, T, fluid, 'bc', bc, ...
                     'LinSolve', @(A,b) agmg(A,b,1));
 

@@ -3,7 +3,11 @@
 % conditions and is a continuation of two previous examples, <simpleBC.html
 % the basic flow-solver tutorial> and the <gravityColumn.html gravity
 % column example>.
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 
 %% Define grid, rock and fluid data
 % Construct a Cartesian grid of size nx-by-ny-by-nz cells, where each cell

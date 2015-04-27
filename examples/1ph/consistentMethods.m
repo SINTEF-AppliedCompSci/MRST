@@ -47,7 +47,7 @@
 
 verbose = false;
 MODS = mrstModule;
-mrstModule add mimetic mpfa
+mrstModule add mimetic mpfa incomp
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell

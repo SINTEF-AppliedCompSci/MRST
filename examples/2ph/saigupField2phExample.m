@@ -20,7 +20,11 @@
 % example</a>, in which we solved the corresponding single-phase problem
 % using the corner-point geometry of a synthetic reservoir model that has
 % faults and inactive cells. </html>
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 %% Decide which linear solver to use
 %
 % We use MATLAB(R)'s built-in <matlab:doc('mldivide') |mldivide|>

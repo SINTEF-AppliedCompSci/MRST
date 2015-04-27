@@ -24,7 +24,11 @@
 % href="../../2ph/html/realField2phExample.html">
 % another example</a>, in which we solve a simplified two-phase model.
 % </html>
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 
 %% Check for existence of input model data
 grdecl = fullfile(ROOTDIR, 'examples', 'grids', 'GSmodel.grdecl');

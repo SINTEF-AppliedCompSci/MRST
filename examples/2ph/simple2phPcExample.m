@@ -16,7 +16,11 @@
 % porosity and linear capillary pressure curve and is based on the example
 % <a href="simple2phWellExample.html>simple2phWellExample.m</a>.
 % </html>
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 %% Construct simple Cartesian test case
 nx = 40; ny = 40; nz = 1;
 G         = cartGrid([nx ny nz]);

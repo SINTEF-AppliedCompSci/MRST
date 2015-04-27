@@ -1,6 +1,12 @@
 %% Inclined Gravity Column
 % In this example, we simulate the injection of a light fluid (CO2) into
 % a heavier fluid (brine) inside an inclined sandbox.
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
+
 n      = [ 20,  2,  100];
 box_sz = [100, 10, 200];
 G = cartGrid(n, box_sz);
@@ -84,6 +90,7 @@ for k = 1 : numel(dT),
    hs = plotCellData(G, xr.s, find(xr.s < thresh), 'EdgeColor', 'k', ...
                      'EdgeAlpha', 0.1, 'FaceAlpha', 0.25);
    set(hs, 'Parent', trans)
+   caxis([0, 1]);
     view(0,0)
    drawnow
 

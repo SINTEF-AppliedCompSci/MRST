@@ -16,7 +16,11 @@
 % href="../../grids/html/cornerPointModelExample.html">separate
 % example</a>.
 % </html>
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 
 %% Generate the corner-point grid
 % The corner-point grid is generated using a standard MATLAB(R) meshgrid

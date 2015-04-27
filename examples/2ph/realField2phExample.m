@@ -21,7 +21,11 @@
 % corner-point geometry of a real-field model that has faults and inactive
 % cells.
 % </html>
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 linsolve = @mldivide;
 
 %% Check for existence of input model data

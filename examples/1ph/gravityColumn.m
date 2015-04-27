@@ -33,6 +33,11 @@ bc  = pside([], G, 'TOP', 100.*barsa());
 % equation. This is done in two steps: first we compute the
 % transmissibilities and then we assemble and solve the corresponding
 % discrete system.
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 T   = computeTrans(G, rock);
 sol = incompTPFA(initResSol(G, 0.0), G, T, fluid, 'bc', bc);
 
