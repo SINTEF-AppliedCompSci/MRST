@@ -6,7 +6,6 @@
 % models> based on available seismic and well data. Herein, we
 % will inspect one instance of the model in more detail.
 
-
 %% Faults and active/inactive cells
 % We start by reading the model from a file in the Eclipse format (GRDECL),
 % picking the sector model with five vertical layers in the Johansen
@@ -15,15 +14,10 @@
 % The file contains both active and inactive cells. We take the chance that
 % the inactive cells do not contain garbage and visualize the whole model,
 % marking with red color all faults found during processing.
-clear
-
-% Load grid geometry - you will most likely have to change the path,
-% depending upon where you have stored the Johansen data-set
-sector = fullfile(ROOTDIR, 'examples', 'data', 'johansen', 'NPD5');
+dpath = getDatasetPath('johansen');
+sector = fullfile(dpath, 'NPD5');
 filename = [sector, '.grdecl'];
-if ~exist(filename, 'file'),
-   error('Johansen data set not found');
-end
+
 grdecl        = readGRDECL(filename);  clear filename
 actnum        = grdecl.ACTNUM;
 grdecl.ACTNUM = ones(prod(grdecl.cartDims),1);

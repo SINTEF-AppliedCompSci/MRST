@@ -31,9 +31,9 @@ close all hidden
 clear
 
 try
-   require mimetic
+   require mimetic incomp deckformat
 catch
-   mrstModule add mimetic
+   mrstModule add mimetic incomp deckformat
 end
 
 %%
@@ -47,11 +47,8 @@ gravity off
 %
 % http://www.sintef.no/Projectweb/MRST/
 
-grdecl = fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP', 'SAIGUP.GRDECL');
-
-if ~exist(grdecl, 'file'),
-   error('SAIGUP model data is not available.')
-end
+pth = getDatasetPath('SAIGUP');
+grdecl = fullfile(pth, 'SAIGUP.GRDECL');
 
 %% Read model data and convert units
 %
@@ -271,21 +268,11 @@ facetrans = ftrans(G.cells.faces(i,1)) .* (m(i) ./ (1 - m(i)));
 % transmissibility.  Note that we employ the |'ip_quasirt'| inner product
 % when constructing the discretisations.  This is consistent with the well
 % object defined above.
-%
-% The <matlab:doc('double') |double|> type conversion of the cell-to-face
-% mapping in the first column of the |'FaceTrans'| option argument is
-% needed to work around a type compatibility issue between the
-% |processGRDECL| and the <matlab:doc('computeMimeticIP') computeMimeticIP>
-% function.  In particular, the former generates a cell-to-face mapping of
-% type <matlab:doc('int32') |int32|> to conserve memory while the latter
-% expects that the |'FaceTrans'| option argument is a |double| array, the
-% first column of which contains integral indices.  During mixed-type array
-% operations involving integer classes, however, the MATLAB(R) software
-% chooses a result type that matches the integer class.
+
 S0 = computeMimeticIP(G, rock, 'InnerProduct', 'ip_quasirt');
 S1 = computeMimeticIP(G, rock, 'InnerProduct', 'ip_quasirt', ...
                       'FaceTrans', ...
-                      [double(G.cells.faces(i,1)), facetrans]);
+                      [G.cells.faces(i,1), facetrans]);
 
 %% Create a reservoir fluid
 % This model problem uses a standard, incompressible fluid with a factor

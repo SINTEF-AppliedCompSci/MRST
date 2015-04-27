@@ -3,7 +3,11 @@
 % create visualizations of grids and results. This tutorial show how to
 % visualize grids, subsets of grids and details the different routines
 % included in MRST.
-
+try
+    require incomp
+catch
+    mrstModule add incomp
+end
 
 %% We define a simple two phase example
 % The following is only meant as an example for the visualization and will
