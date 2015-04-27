@@ -1,4 +1,4 @@
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil
+mrstModule add ad-props deckformat mrst-gui ad-core ad-blackoil
 
 % Because several examples use the SPE1 dataset, the initial setup is
 % delegated to a helper function. See the inside for documentation.
@@ -19,12 +19,11 @@ schedule = convertDeckScheduleToMRST(G, model, rock, deck);
 % Because the SPE1 benchmark only has a single well configuration during
 % the entire simulation, we are (relatively) free to choose timesteps. To
 % demonstrate this, we create a simpler schedule consisting of a single
-% very long timestep.
+% very long timestep. The compressSchedule routine reduces a schedule to
+% the minimal number of timesteps required to honor the distinct control
+% steps. In this case, we only have a single control step.
 
-schedule_small = schedule;
-schedule_small.step.val     = sum(schedule.step.val);
-schedule_small.step.control = 1;
-
+schedule_small = compressSchedule(schedule);
 %% Run various number of target iterations
 % Small step to get the solver started
 rampup = 1*day;
@@ -35,14 +34,14 @@ for i = 1:numel(targetIts)
     timestepper = ...
        IterationCountTimeStepSelector('targetIterationCount', targetIts(i),...
                                       'minRelativeAdjustment', sqrt(eps),...
-                                      'maxRelativeAdjustment', inf, ...
+                                      'maxRelativeAdjustment', 4, ...
                                       'firstRampupStep',       rampup, ...
                                       'verbose', true);
 
     % Instansiate a non-linear solver with the timestep class as a
     % construction argument.
     nonlinear = NonLinearSolver('timeStepSelector', timestepper, ...
-                                'maxiterations', 100);
+                                'maxiterations', 4*targetIts(i));
     % Solve and store results.
     [ws{i}, ~, reports{i}] = simulateScheduleAD(state, model, schedule_small,...
                         'nonlinearSolver', nonlinear, 'outputMinisteps', true);
@@ -77,7 +76,7 @@ end
 legend(l)
 
 %% Compare the solutions interactively
-plotWellSols(wsols, time, 'datasetnames', l)
+plotWellSols(wsols, time, 'datasetnames', l);
 
 %% Find the number of iterations and simulation time taken for all cases
 % Since the timesteps produce substeps we have to find report->control step
