@@ -112,9 +112,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     try
-      require mrst-gui
+       require mrst-gui incomp
     catch %#ok<CTCH>
-       mrstModule add mrst-gui
+       mrstModule add mrst-gui incomp
     end
 
     if nargin > 3 && mod(numel(varargin), 2) == 1
