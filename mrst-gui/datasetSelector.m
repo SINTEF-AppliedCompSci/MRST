@@ -108,6 +108,8 @@ else
     elseif strcmpi(class(datasets), 'ResultHandler')
         nsets = datasets.numelData();
         accessfcn = @(x) datasets{x};
+    else
+        error(['datasetSelector does not work for class ', class(datasets)])
     end
 end
 N = opt.N;
