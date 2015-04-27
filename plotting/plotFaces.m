@@ -135,7 +135,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          error('What!?');
    end
    
-
+   if isempty(faces),
+      if nargout > 0, varargout(1 : nargout) = { [] }; end
+      return
+   end
    assert (min(faces) > 0, 'Cannot plot zero or negative face numbers');
    assert (max(faces) <= G.faces.num, ...
            'Faces in face list exceed number of faces in grid.');
