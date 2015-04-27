@@ -48,7 +48,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         close(h)
     end
 
-    h = figure('Toolbar',       'none', ...
+    figNo = 100;
+    while ishandle(figNo)
+        figNo = figNo + 1;
+    end
+    h = figure(figNo);
+    set(h,     'Toolbar',       'none', ...
                'NumberTitle',   'off', ...
                'MenuBar',       'none');
     [info, present, sh] = deal([]);
