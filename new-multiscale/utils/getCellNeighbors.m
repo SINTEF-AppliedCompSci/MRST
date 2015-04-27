@@ -19,9 +19,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-n = G.faces.neighbors(any(G.faces.neighbors == c, 2), :);
-n = n(:);
-n = n(n~=0);
+n = getNeighbourship(G, 'Topological', false);
+n = n(n(:, 1) == c | n(:, 2) == c, :);
+n = unique(n(:));
 n = n(n~=c);
-n = unique(n);
 end
