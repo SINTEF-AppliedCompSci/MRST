@@ -20,9 +20,9 @@
 % simulation results.
 
 try
-   require mimetic
+   require mimetic incomp
 catch
-   mrstModule add mimetic
+   mrstModule add mimetic incomp
 end
 
 %% Define geometry

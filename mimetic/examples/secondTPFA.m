@@ -7,9 +7,9 @@
 % "simpleTPFA.m"> for more details.
 
 try
-   require mimetic
+   require mimetic incomp
 catch
-   mrstModule add mimetic
+   mrstModule add mimetic incomp
 end
 
 %% Define and process geometry

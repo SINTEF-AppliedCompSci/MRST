@@ -35,9 +35,9 @@
 % The grid and the wells will be the same for both approaches.
 
 try
-   require mimetic
+   require mimetic incomp
 catch
-   mrstModule add mimetic
+   mrstModule add mimetic incomp
 end
 
 %% Define and process geometry
