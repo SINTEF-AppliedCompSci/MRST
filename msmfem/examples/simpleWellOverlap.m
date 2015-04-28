@@ -11,9 +11,9 @@
 % This example shows the use of overlap around the well.
 
 try
-   require coarsegrid mimetic msmfem
+   require coarsegrid mimetic msmfem incomp
 catch
-   mrstModule add coarsegrid mimetic msmfem
+   mrstModule add coarsegrid mimetic msmfem incomp
 end
 
 %% What is overlap?

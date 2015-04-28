@@ -12,7 +12,7 @@
 layerNo = 85;
 % layerNo = 1;
 
-mrstModule add mrst-gui spe10 coarsegrid
+mrstModule add mrst-gui spe10 coarsegrid incomp
 [G, ~, rock] = SPE10_setup(layerNo);
 
 % Boundary conditions corresponding to unit pressure drop over the entire

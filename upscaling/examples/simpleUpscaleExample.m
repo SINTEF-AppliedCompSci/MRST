@@ -5,9 +5,9 @@
 
 %% Load the required modules
 try
-   require upscaling coarsegrid mimetic
+   require upscaling coarsegrid mimetic incomp
 catch %#ok<CTCH>
-   mrstModule add upscaling coarsegrid mimetic
+   mrstModule add upscaling coarsegrid mimetic incomp
 end
 verbose = true;
 

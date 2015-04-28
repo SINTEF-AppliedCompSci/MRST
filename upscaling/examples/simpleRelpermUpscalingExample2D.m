@@ -3,9 +3,9 @@ function [kr]=simpleRelpermUpscalingExample2D(perm_case,fluid_case)
 %  The default setup is a quasi 1D case
 
 try
-   require mimetic upscaling
+   require mimetic upscaling incomp
 catch
-   mrstModule add mimetic upscaling
+   mrstModule add mimetic upscaling incomp
 end
 
 warning('off','mrst:periodic_bc');

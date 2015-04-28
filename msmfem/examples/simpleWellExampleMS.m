@@ -9,9 +9,9 @@
 % "Using Peacemann well models">.
 
 try
-   require coarsegrid mimetic msmfem
+   require coarsegrid mimetic msmfem incomp
 catch
-   mrstModule add coarsegrid mimetic msmfem
+   mrstModule add coarsegrid mimetic msmfem incomp
 end
 
 %% Define the model and set data

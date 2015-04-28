@@ -2,9 +2,9 @@
 % The example shows how to put Dirichlet boundary conditions on the system.
 
 try
-   require coarsegrid mimetic msmfem
+   require coarsegrid mimetic msmfem incomp
 catch
-   mrstModule add coarsegrid mimetic msmfem
+   mrstModule add coarsegrid mimetic msmfem incomp
 end
 
 cellDims = [40, 40, 10];

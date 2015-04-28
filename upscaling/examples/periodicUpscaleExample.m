@@ -8,9 +8,9 @@
 
 %% Load the required modules
 try
-   require mimetic upscaling spe10
+   require mimetic upscaling spe10 incomp deckformat
 catch %#ok<CTCH>
-   mrstModule add mimetic upscaling spe10
+   mrstModule add mimetic upscaling spe10 incomp deckformat
 end
 
 %% Set up a simple grid with periodic boundaries

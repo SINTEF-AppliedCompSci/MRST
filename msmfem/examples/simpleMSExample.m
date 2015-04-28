@@ -7,9 +7,9 @@
 % for a Cartesian grid with isotropic, homogeneous permeability
 
 try
-   require coarsegrid mimetic msmfem
+   require coarsegrid mimetic msmfem incomp
 catch
-   mrstModule add coarsegrid mimetic msmfem
+   mrstModule add coarsegrid mimetic msmfem incomp
 end
 
 %% Define and visualize the model

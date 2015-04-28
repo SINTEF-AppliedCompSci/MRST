@@ -20,16 +20,13 @@ end
 %% Load and process data
 % We assume that the data has been downloaded and placed in the appropriate
 % data directory under the MRST root directory.
-try
-   grdecl = readGRDECL(fullfile(ROOTDIR, 'examples', 'data', ...
-                                'SAIGUP', 'SAIGUP.GRDECL'));
-   grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
-   G      = processGRDECL(grdecl);
-   G      = computeGeometry(G);
-   rock   = grdecl2Rock(grdecl, G.cells.indexMap);
-catch me
-   error('SAIGUP model data is not available.')
-end
+saigupPath = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
+grdecl = readGRDECL(saigupPath);
+grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
+G      = processGRDECL(grdecl);
+G      = computeGeometry(G);
+rock   = grdecl2Rock(grdecl, G.cells.indexMap);
+
 
 %% Upscale model
 % Upscale the model by a factor 5x5x5 using a simple harmonic average for
