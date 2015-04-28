@@ -1,4 +1,4 @@
-function [fh, inject] = plotWellSols(wellsols, varargin)
+function varargout = plotWellSols(wellsols, varargin)
 %Plot well solutions from AD-solvers
 %
 % SYNOPSIS:
@@ -482,6 +482,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         drawPlot([], []);
     end
     inject = @(ws, varargin) injectDataset(ws, varargin{:});
+    if nargout > 0
+        varargout{1} = fh;
+        if nargout > 1
+            varargout{2} = inject;
+        end
+    end
 end
 
 function [tit, d, yl] = getWellUnit(d, fld, usys)
