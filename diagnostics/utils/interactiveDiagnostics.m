@@ -231,6 +231,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fig_main = figure('name', opt.name);
     
     axis tight off
+    if (~isempty(opt.daspect))
+        daspect(opt.daspect);
+    end
+    view(3);
 
     % Create control panel
     createMainControl();
@@ -491,11 +495,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pm_outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
             set(pm_outlineph, 'UserData', 'gridoutline');
         end
-        
-        if (~isempty(opt.daspect))
-            daspect(opt.daspect);
-        end
-        view(3);
 
         % Limit dataset based on tof
         min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
