@@ -257,20 +257,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             plotMain();
             plotWellConnections([], []);
             
-            %Update min/max
+            %Update min/max and current value
+            min_val = tofext(1);
+            max_val = tofext(2);
+            cur_m_val = str2double(get(mtofeh, 'String'));
+            cur_m_val = max(min(cur_m_val, max_val), min_val);
+            
+            cur_M_val = str2double(get(Mtofeh, 'String'));
+            cur_M_val = max(min(cur_M_val, max_val), min_val);
+            
             set(mtofsh, 'Min', tofext(1));
             set(mtofsh, 'Max', tofext(2));
+            set(mtofsh, 'Value', cur_m_val);
+            %set(mtofeh, 'String', num2str(cur_m_val));
+            mtofs_callback([], []);
             
             set(Mtofsh, 'Min', tofext(1));
             set(Mtofsh, 'Max', tofext(2));
-            
-            %Make sure slider is within range
-            curval = get(mtofsh, 'Value');
-            set(mtofsh, 'Value', min(max(curval, tofext(1)), tofext(2)));
-            Mtofs_callback([], []);
-            
-            curval = get(Mtofsh, 'Value');
-            set(Mtofsh, 'Value', min(max(curval, tofext(1)), tofext(2)));
+            set(Mtofsh, 'Value', cur_M_val);
+            %set(Mtofeh, 'String', num2str(cur_M_val));
             Mtofs_callback([], []);
         end
         
