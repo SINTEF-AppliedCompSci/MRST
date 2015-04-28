@@ -139,19 +139,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     oilwater.names = {'Water', 'Oil', 'Gas'};
     
-    name = 'Interactive Diagnostics';
-
     opt = struct('state',               [],...
                  'tracerfluid',         water, ...
                  'LinSolve',            @mldivide, ...
                  'computeFlux',         true, ...
                  'useMobilityArrival',  false,...
                  'fluid',               oilwater, ...
-                 'name',                name, ...
-                 'daspect',       [] ...
+                 'name',                [], ...
+                 'daspect',             [] ...
     );
 
     opt = merge_options(opt, varargin{:});
+    
+    if (isempty(opt.name))
+        opt.name = {'Interactive Diagnostics'};
+    elseif (isa(opt.name, 'char'))
+        opt.name = {opt.name};
+    end
 
     assert(opt.computeFlux || ~isempty(opt.state),...
         'If computeFlux is off a state must be provided!')
@@ -162,6 +166,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
     state = [];
     state_idx = 1;
+    name_idx = 1;
     if (~isempty(opt.state))        
         if (numel(opt.state) == 1)
             state = {opt.state};
@@ -228,7 +233,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     computeValues();
     
     %Create main figure
-    fig_main = figure('name', opt.name);
+    fig_main = figure('Name', opt.name{1});
     
     axis tight off
     if (~isempty(opt.daspect))
@@ -250,7 +255,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             size_xy = [475 550];
             pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
             fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none');
-            set(fig_ctrl, 'Name', ['Controller ', opt.name]);
+            set(fig_ctrl, 'Name', ['Controller ', opt.name{1}]);
         else
             clf(fig_ctrl)
         end
@@ -259,8 +264,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             state_idx = index;
             computeValues();
             tofext = adjustTOF(D);
+            
+            %Update main plot
             plotMain();
             plotWellConnections([], []);
+            
+            %Update aux plots
+            if (ishandle(phiPlot))
+                plotPhi([], []);                
+            end
+            if (ishandle(wah_fig))
+                plotWellAllocations([], [])
+            end
             
             %Update min/max and current value
             min_val = tofext(1);
@@ -282,11 +297,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             set(Mtofsh, 'Value', cur_M_val);
             %set(Mtofeh, 'String', num2str(cur_M_val));
             Mtofs_callback([], []);
+            
+            %Set name of windows
+            name_idx = min(state_idx, numel(opt.name));
+            if(ishandle(fig_ctrl))
+                set(fig_ctrl, 'Name', ['Controller ', opt.name{name_idx}]);
+            end
+            if(ishandle(fig_main))
+                set(fig_main, 'Name', opt.name{name_idx});
+            end
         end
         
         %Add time-varying dataset slider
         if (~isempty(state) && numel(state) > 1)
-            
             ds_panel = uipanel('Parent', fig_ctrl, ...
                 'Units', 'normalized',...
                 'Title', 'Dataset Selection', ...
@@ -484,7 +507,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if ishandle(fig_main)
             set(0, 'CurrentFigure', fig_main);
         else
-            figure(fig_main);
+            fig_main = figure();
         end
 
         if any(ishandle(pm_mainph))
@@ -680,21 +703,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function plotPhi(src, event)
         if isempty(phiPlot) || ~ishandle(phiPlot)
-            phiPlot = figure;
+            phiPlot = figure();
         else
             set(0, 'CurrentFigure', phiPlot);
         end
+        set(phiPlot, 'Name', ['Phi/F diagram (', opt.name{name_idx}, ')']);
         [F,Phi] = computeFandPhi(pv,D.tof);
         plot(Phi,F,'.');
         title(sprintf('Lorenz coefficient: %f\n', computeLorenz(F,Phi)));
     end
 
     function plotWellAllocations(src, event)
-        if ishandle(wah_fig)
-            set(0, 'CurrentFigure', wah_fig);
+        if isempty(wah_fig) || ~ishandle(wah_fig)
+            wah_fig = figure();
         else
-            wah_fig = figure('Name', 'Well allocations');
+            set(0, 'CurrentFigure', wah_fig);
         end
+        set(wah_fig, 'Name', ['Well allocations (', opt.name{name_idx}, ')']);
         plotWellAllocationComparison(D, WP, [], []);
     end
 
