@@ -1,8 +1,11 @@
 function test_mpfa()
 %Example demonstrating basic use of the MPFA-O pressure solver.
 
-require mimetic
-
+try
+    require incomp mimetic mpfa
+catch
+    mrstModule add incomp mimetic mpfa
+end
 gravity off
 
 g = cartGrid([30, 30]);
@@ -36,7 +39,7 @@ tic
 S = computeMimeticIP(g, rock);
 fluid = initSingleFluid('mu' ,    1*centi*poise     , ...
                         'rho', 1014*kilogram/meter^3);
-xr1 = solveIncompFlow(initResSol(g, 0, 0), g, S, fluid, ...
+xr1 = incompMimetic(initResSol(g, 0, 0), g, S, fluid, ...
                       'src', src, 'bc', bc);
 toc
 
