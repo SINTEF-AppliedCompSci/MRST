@@ -106,8 +106,10 @@ end
 function state = setFluxes(state, CG, T, fluid, A, rhs, pressure, recover, opt, incompOpt)
     G = CG.parent;
     
+    [N, isNNC] = getNeighbourship(G, 'topological', true);
+    
     setFlux = @(p) ...
-        incompTPFA(state, G, T, fluid, 'LinSolve', @(varargin) p, 'use_trans', numel(T) == G.faces.num, incompOpt{:});
+        incompTPFA(state, G, T, fluid, 'LinSolve', @(varargin) p, 'use_trans', numel(T) == size(N, 1), incompOpt{:});
     
     p_primal = recover(pressure);
     state = setFlux(p_primal);
@@ -118,7 +120,14 @@ function state = setFluxes(state, CG, T, fluid, A, rhs, pressure, recover, opt, 
         
         state_o = setFlux(sp);
         flux = state_o.flux;
+
         flux(CG.faces.fconn) = state.flux(CG.faces.fconn);
+        if any(isNNC)
+            isCrossBlock = CG.partition(G.nnc.cells(:, 1)) ~= CG.partition(G.nnc.cells(:, 2));
+            bndFaceNNC = isNNC;
+            bndFaceNNC(isNNC) = bndFaceNNC(isNNC) & isCrossBlock;
+            flux(bndFaceNNC) = state.flux(bndFaceNNC);
+        end
         state.flux = flux;
         state.reconstructedPressure = sp(1:G.cells.num);
         if isfield(state_o, 'wellSol')
