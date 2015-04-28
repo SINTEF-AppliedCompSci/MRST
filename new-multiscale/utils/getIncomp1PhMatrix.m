@@ -27,7 +27,8 @@ if nargin < 4
     fluid = initSingleFluid('rho', 1, 'mu', 1);
 end
 
-use_trans = numel(T) == G.faces.num;
+nf = size(getNeighbourship(G, 'topological', true), 1);
+use_trans = numel(T) == nf;
 state = incompTPFA(state, G, T, fluid, 'MatrixOutput', true, ...
                 'LinSolve', @(A, x) 0*x, 'use_trans', use_trans);
 A = state.A;
