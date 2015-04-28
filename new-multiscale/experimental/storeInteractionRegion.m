@@ -52,6 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'centerOverride',    [], ...
                  'largeBasis',        false, ...
                  'useFaces',         true, ...
+                 'edgeBoundaryCenters', true, ...
                  'localTriangulation',   true, ...
                  'useMultipoint', true);
     opt = merge_options(opt, varargin{:});
@@ -67,6 +68,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     else
         blockPts = CG.cells.centroids;
+    end
+    
+    if opt.edgeBoundaryCenters
+        bf = boundaryFaces(CG);
+        for i = 1:numel(bf)
+            f = bf(i);
+            c = sum(CG.faces.neighbors(f, :), 2);
+            
+            cc = blockPts(c, :);
+            fc = CG.faces.centroids(f, :);
+            N = CG.faces.normals(f, :);
+            d = norm(cc - fc, 2);
+            N = N./norm(N, 2);
+            blockPts(c, :) = cc - N*d;
+        end
     end
     
     if ~isempty(opt.centerOverride)
