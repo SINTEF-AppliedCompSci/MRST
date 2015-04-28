@@ -15,7 +15,7 @@
 % operator and a poor prolongation operator if the contrast is large.
 %
 
-mrstModule add mrst-gui coarsegrid msfvm 
+mrstModule add mrst-gui coarsegrid msfvm incomp
 
 G = cartGrid([30 30]);
 G = computeGeometry(G);

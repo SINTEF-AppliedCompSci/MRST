@@ -6,7 +6,7 @@
 % includes the grids. If the stored binary file is not found, it is
 % downloaded from the Internet (approximately 15 MB download)
 
-mrstModule add msfvm mrst-gui mex agglom coarsegrid
+mrstModule add msfvm mrst-gui mex agglom coarsegrid incomp
 
 if ~exist('pebi_with_dual.mat', 'file')
     disp('Did not find grid, downloading (~15.0 MB)')

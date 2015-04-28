@@ -4,7 +4,7 @@
 % was produced by an inhouse algorithm.
 
 %% Load the modules required for the example
-mrstModule add coarsegrid msfvm
+mrstModule add coarsegrid msfvm incomp
 %% Define grid
 % We define a fine grid of a Cartesian block divided by a sloping fault,
 % with skewed pillars via the GRDECL format. A coarse grid with block size

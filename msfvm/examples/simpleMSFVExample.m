@@ -16,7 +16,7 @@
 
 %% Load the modules required for the example
 % We will use streamlines and coarse grids.
-mrstModule add coarsegrid streamlines msfvm
+mrstModule add coarsegrid streamlines msfvm incomp
 %% We define a simple 2D Cartesian grid
 % The fine scale grid will consist of $50\times50$ fine cells, with a
 % coarse grid of $3\times3$ coarse blocks.

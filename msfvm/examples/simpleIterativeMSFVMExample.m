@@ -14,7 +14,7 @@ iterations = 100;
 cycles = round(iterations/subiter);
 
 %% Load required modules
-mrstModule add coarsegrid msfvm
+mrstModule add coarsegrid msfvm incomp
 %% Define a simple 2D Cartesian grid
 % We create a $50 \times 50$ fine grid, and a coarse grid of $5 \times 5$
 % giving each coarse block $10\times10$ fine cells. We also add geometry
