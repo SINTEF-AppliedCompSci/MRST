@@ -6,7 +6,7 @@
 % producers at each of the four corners.
 
 %% Set up fine-scale problem
-mrstModule add diagnostics spe10 coarsegrid AGMG
+mrstModule add diagnostics spe10 coarsegrid agmg incomp
 
 if ~exist('agmg', 'file') || ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,

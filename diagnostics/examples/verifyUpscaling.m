@@ -5,9 +5,9 @@
 % completion that can be attributed to a pair of injection and production
 % wells.
 try
-   require agglom upscaling coarsegrid diagnostics;
+   require agglom upscaling coarsegrid diagnostics incomp;
 catch %#ok<CTCH>
-   mrstModule add agglom upscaling coarsegrid diagnostics;
+   mrstModule add agglom upscaling coarsegrid diagnostics incomp;
 end
 
 %% Make model

@@ -5,8 +5,8 @@
 % is to create the interactive figures produced by interactiveDiagnostics.
 %
 %% Set up grid and rock
-mrstModule add diagnostics mrst-gui
-grdecl = fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP', 'SAIGUP.GRDECL');
+mrstModule add diagnostics mrst-gui incomp
+grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 
 if ~exist(grdecl, 'file'),
    error('SAIGUP model data is not available.')

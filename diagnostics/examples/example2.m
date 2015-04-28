@@ -6,7 +6,7 @@
 %% Set up problem
 % As our example, we consider a subsample of Model 2 from the 10th SPE
 % Comparative Solution Project, but with a different well pattern
-mrstModule add diagnostics spe10
+mrstModule add diagnostics spe10 incomp
 
 cartDims = [  60,  220,  15];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
