@@ -34,15 +34,9 @@
 % we assume that the user has downloaded to a specific data directory using
 % the functions supplied as part of the MRST data sets.
 try
-   require spe10
+   require agglom coarsegrid spe10 incomp
 catch me
-   mrstModule add spe10;
-end
-
-try
-   require agglom coarsegrid
-catch me
-   mrstModule add agglom coarsegrid;
+   mrstModule add agglom coarsegrid spe10 incomp;
 end
 
 [G, W, rock] = SPE10_setup(25);

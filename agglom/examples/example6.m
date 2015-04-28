@@ -39,21 +39,9 @@ fluxTol = 1e-2;      % refine on both sides when net flux is below fluxTol
 % we use a quarter five-spot source/sink configuration, instead of the
 % five-spot well configuration.
 try
-   require mimetic
+   require agglom coarsegrid spe10 diagnostics incomp mimetic
 catch me
-   mrstModule add mimetic
-end
-
-try
-   require spe10
-catch me
-   mrstModule add spe10;
-end
-
-try
-   require agglom coarsegrid
-catch me
-   mrstModule add agglom coarsegrid;
+   mrstModule add agglom coarsegrid spe10 diagnostics incomp mimetic;
 end
 
 gravity off
@@ -133,7 +121,8 @@ rcC.s          = coarse_sat(rf.s, CG.partition, pv, CG.cells.num);
 
 
 %% Time loop
-clf, set(gcf, 'OuterPosition', [444 454 820 640]);
+p0 = get(gcf, 'OuterPosition');
+clf, set(gcf, 'OuterPosition', [p0(1:2), 820, 640]);
 wc  = zeros(param.nPres*param.nSub+1, 4); wc(2:end,:) = NaN;
 err = zeros(param.nPres*param.nSub+1, 3); err(2:end,:) = NaN;
 T   = 0:DT:T;

@@ -14,15 +14,9 @@
 % As our example, we consider a standard five spot with heterogeneity
 % sampled from Model 2 of the 10th SPE Comparative Solution Project.
 try
-   require spe10
+   require agglom coarsegrid spe10 incomp diagnostics
 catch me
-   mrstModule add spe10;
-end
-
-try
-   require agglom coarsegrid
-catch me
-   mrstModule add agglom coarsegrid;
+   mrstModule add agglom coarsegrid spe10 incomp diagnostics;
 end
 
 [G, W, rock] = SPE10_setup(25);

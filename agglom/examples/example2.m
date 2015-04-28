@@ -21,7 +21,7 @@ end
 % represented also in the coarse model. To this end, we will partition the
 % grid into a uniform 5x5 coarse grid and in addition preserve the edges
 % of the object.
-exdir = fileparts(mfilename('fullpath'));
+exdir = fullfile(mrstPath('agglom'), 'examples');
 if isempty(exdir), exdir = pwd; end
 imload = @(fn) ...
    flipud(double(sum(imread(fullfile(exdir, 'data', fn)), 3))) .';
