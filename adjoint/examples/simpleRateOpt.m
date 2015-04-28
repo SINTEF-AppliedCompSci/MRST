@@ -20,9 +20,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 try
-   require adjoint mimetic
+   require adjoint mimetic incomp
 catch
-   mrstModule add adjoint mimetic
+   mrstModule add adjoint mimetic incomp
 end
 
 % whether or not to show output
