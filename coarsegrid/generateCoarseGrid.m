@@ -145,6 +145,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    cg.faces.neighbors = conn;
    cg.faces.connPos   = cpos;
    cg.faces.fconn     = fconn;
+   % Coarsen non-neighboring connections
+   if isfield(G, 'nnc')
+       cg.nnc = coarsenNonNeighboringConnections(G, p);
+   end
 
    %  3) Preserve original partition vector
    cg.partition = p;
@@ -175,4 +179,16 @@ function Ic = indicator(G, varargin)
       Ic = [Ic, varargin{1}];
 
    end
+end
+
+function nnc = coarsenNonNeighboringConnections(G, p)
+    nnc = struct();
+    if isfield(G.nnc, 'cells')
+        % Use unique to remove merged blocks
+        cells = uniqueStable(p(G.nnc.cells), 'rows');
+        % Remove NNC between cells that have been placed in the same coarse
+        % block.
+        cells = cells(cells(:, 1) ~= cells(:, 2), :);
+        nnc.cells = cells;
+    end
 end
