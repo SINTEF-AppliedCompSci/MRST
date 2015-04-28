@@ -11,12 +11,12 @@
 % If colors are not specified, each fracture gets assigned a unique tag.
 
 try
-   require dfm
+   require dfm incomp
 catch
-   mrstModule add dfm
+   mrstModule add dfm incomp
 end
 
-fractures = fullfile(mfilename('fullpath'), 'simpleSystem.odp');
+fractures = fullfile(mrstPath('dfm'), 'simpleSystem.odp');
 
 if exist(fractures, 'file') ~= 2,
    error(['Fracture file ''simpleSystem.odp'' ', ...
@@ -49,7 +49,7 @@ boundaryEdges = [boundaryEdges , (-1 : -1 : -4)'];
 edges = [fractures ; boundaryEdges];
 
 % Triangulate using Triangle
-mrstModule add mex
+mrstModule add triangle
 G = mex_triangleGrid(pts, edges(:,1:2), 'maxArea', 0.3,'segmentmarkers',edges(:,3));
 G = computeGeometry(G);
 

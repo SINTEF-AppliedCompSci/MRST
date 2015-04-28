@@ -5,9 +5,9 @@
 % two-phase transport problem is solved.
 
 try
-   require dfm
+   require dfm incomp
 catch
-   mrstModule add dfm
+   mrstModule add dfm incomp
 end
 
 % Create an initial distribution of points
@@ -187,17 +187,17 @@ plotCellData_DFM(G,state_TPFA.pressure)
 plotFractures(G,hybridInd,state_TPFA.pressure)
 title('TPFA')
 axis off, axis equal
-
-% Transmissibilities with MPFA
-T_MPFA = computeMultiPointTrans_DFM(G,rock,'hybrid',true);
-[G,T_MPFA] = computeHybridMPTrans(G,T_MPFA);
-state_MPFA = incompMPFA_DFM(state,G,T_MPFA,fluid,'wells',W,'cellConnections',true);
-
-figure
-plotCellData_DFM(G,state_MPFA.pressure)
-plotFractures(G,hybridInd,state_MPFA.pressure)
-title('TPFA')
-axis off, axis equal
+% 
+% % Transmissibilities with MPFA
+% T_MPFA = computeMultiPointTrans_DFM(G,rock,'hybrid',true);
+% [G,T_MPFA] = computeHybridMPTrans(G,T_MPFA);
+% state_MPFA = incompMPFA_DFM(state,G,T_MPFA,fluid,'wells',W,'cellConnections',true);
+% 
+% figure
+% plotCellData_DFM(G,state_MPFA.pressure)
+% plotFractures(G,hybridInd,state_MPFA.pressure)
+% title('TPFA')
+% axis off, axis equal
 
 %% Solve two-phase problem.
 
@@ -227,36 +227,36 @@ while t < T
     % Transport solve with both methods. We use implicit transport to avoid
     % severe time step restrictions due to high flow rates and small cells
     state_TPFA =  implicitTransport_DFM(state_TPFA,G,t + dt,rock,fluid,'wells',W);
-    state_MPFA =  implicitTransport_DFM(state_MPFA,G,t + dt,rock,fluid,'wells',W);
+%     state_MPFA =  implicitTransport_DFM(state_MPFA,G,t + dt,rock,fluid,'wells',W);
 
     wellConcentration(iter + 1,1) = state_TPFA.s(prodInd,1);
-    wellConcentration(iter + 1,2) = state_MPFA.s(prodInd,1);
+%     wellConcentration(iter + 1,2) = state_MPFA.s(prodInd,1);
 
     % Update pressure solution
     state_TPFA = incompTPFA_DFM(state_TPFA,G,T_TPFA,fluid,'wells',W,'c2cTrans',T_TPFA_2);
-    state_MPFA = incompMPFA_DFM(state_MPFA,G,T_MPFA,fluid,'wells',W,'cellConnections',true);
+%     state_MPFA = incompMPFA_DFM(state_MPFA,G,T_MPFA,fluid,'wells',W,'cellConnections',true);
 
     iter = iter + 1;
     t = t + dt;
 
     % Plotting
-    if t >= nextSatPlot
-        figure,
-        subplot(2,1,1)
+%     if t >= nextSatPlot
+        figure(1); clf
+%         subplot(2,1,1)
         plotCellData_DFM(G,state_TPFA.s(:,1));
         plotFractures(G,hybridInd,state_TPFA.s(:,1));
         title('TPFA')
         axis off, axis equal
-
-
-        subplot(2,1,2)
-        plotCellData_DFM(G,state_MPFA.s(:,1));
-        plotFractures(G,hybridInd,state_MPFA.s(:,1));
-        title('MPFA')
-        axis off, axis equal
-
-        nextSatPlot = nextSatPlot + dtSatPlot;
-    end
+        drawnow
+% 
+%         subplot(2,1,2)
+%         plotCellData_DFM(G,state_MPFA.s(:,1));
+%         plotFractures(G,hybridInd,state_MPFA.s(:,1));
+%         title('MPFA')
+%         axis off, axis equal
+% 
+%         nextSatPlot = nextSatPlot + dtSatPlot;
+%     end
 
 end
 

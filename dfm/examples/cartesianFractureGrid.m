@@ -10,9 +10,9 @@
 % care of, strange error messages will probably result
 
 try
-   require dfm
+   require dfm incomp
 catch
-   mrstModule add dfm
+   mrstModule add dfm incomp
 end
 
 % Initialize a grid
