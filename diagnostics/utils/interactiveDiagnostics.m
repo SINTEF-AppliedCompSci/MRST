@@ -78,6 +78,10 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %                         However, this plot is often dominated by very
 %                         mobile gas regions.
 %
+%  'daspect' - Data aspect ratio, in a format understood by daspect()
+%
+%  'name' - Name to use for windows
+%
 % RETURNS:
 %
 %   Nothing. Creates two figures.
@@ -143,7 +147,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'computeFlux',         true, ...
                  'useMobilityArrival',  false,...
                  'fluid',               oilwater, ...
-                 'name',                name ...
+                 'name',                name, ...
+                 'daspect',       [] ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -224,10 +229,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %Create main figure
     fig_main = figure('name', opt.name);
-    
-    % Check for which version of handle graphics MATLAB is currently
-    % running
-    isHG1 = isnumeric(fig_main);
     
     axis tight off
 
@@ -487,13 +488,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         if ~any(ishandle(pm_outlineph))
-            if isHG1
-                pm_outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
-            else
-                pm_outlineph = plotGrid(G, 'facec', 'none', 'edgec', 'black');
-            end
+            pm_outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
             set(pm_outlineph, 'UserData', 'gridoutline');
         end
+        
+        if (~isempty(opt.daspect))
+            daspect(opt.daspect);
+        end
+        view(3);
 
         % Limit dataset based on tof
         min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
