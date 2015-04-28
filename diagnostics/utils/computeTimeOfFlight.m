@@ -216,7 +216,12 @@ if ~opt.allowInf
     % some automatic post processing). Set those values to the maximum
     % non-infinite value found in the remaining cells.
     bad = isinf(T(:, 1));
-    T(bad, 1) = max(T(~bad, 1));
+    
+    if (all(bad))
+        warning('All elements in time of flight are Inf')
+    else
+        T(bad, 1) = max(T(~bad, 1));
+    end
 end
 
 end
