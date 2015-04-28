@@ -1,4 +1,8 @@
-require mimetic
+try
+    require mimetic incomp streamlines
+catch
+    mrstModule add mimetic incomp streamlines
+end
 
 G = cartGrid([25,25]);
 G = computeGeometry(G);
@@ -14,7 +18,7 @@ IP = computeMimeticIP(G, rock);
 src = addSource([], [1, G.cells.num], [1.1, -1.1]);
 
 x = initResSol(G, 0, 0);
-x = solveIncompFlow(x, G, IP, fluid, 'src', src);
+x = incompMimetic(x, G, IP, fluid, 'src', src);
 
 
 h = plotGrid(G, 'facea', 0.3, 'edgea',0.1);
