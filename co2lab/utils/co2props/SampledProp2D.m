@@ -507,7 +507,7 @@ function [v1, v2] = truncate_vectorized(v1, v2, v1_span, v2_span, use_nan)
       v2_tr_1 = v2 < v2_span(1);
       v2_tr_2 = v2 > v2_span(2);
       if any(v1_tr_1 | v1_tr_2 | v2_tr_1 | v2_tr_2)
-         warning('There were values outside sampled table range.  Truncating.');
+         % warning('There were values outside sampled table range.  Truncating.');
          v1(v1_tr_1) = v1_span(1);
          v1(v1_tr_2) = v1_span(2);
          v2(v2_tr_1) = v2_span(1);
