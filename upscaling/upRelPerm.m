@@ -164,21 +164,7 @@ end % End of input value loop
 % Check for upscaled values outside range. We simply force the values
 % inside valid range.
 outside = false;
-krWmin = nan;
-krWmax = nan;
-krOlim = [Inf, -Inf];
 for id = 1:ndims
-% 	inx=krO{id}(:,2)>1;
-%     if any(inx)
-%         if isempty(krWmax)
-%             krWmax = max(krO{id}(inx,2));
-%         else
-%             krWmax = max(krWmax, max(krO{id}(inx,2)) );
-%         end
-%         krO{id}(inx,2) = 1;
-%         
-%         outside=true; 
-%     end
     inx=krO{id}(:,2)>1; krO{id}(inx,2)=1; if any(inx),outside=true; end
     inx=krO{id}(:,2)<0; krO{id}(inx,2)=0; if any(inx),outside=true; end
     inx=krW{id}(:,2)>1; krW{id}(inx,2)=1; if any(inx),outside=true; end

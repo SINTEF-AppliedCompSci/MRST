@@ -9,7 +9,7 @@ end
 methods
     
     function upscaler = OnePhaseUpscaler(G, rock, varargin)
-        upscaler = upscaler@Upscaler(G, rock);
+        upscaler = upscaler@Upscaler(G, rock, varargin{:});
         
         upscaler.dp   = 1*barsa;
         upscaler.dims = 1:3;

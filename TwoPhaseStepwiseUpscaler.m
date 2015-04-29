@@ -32,7 +32,7 @@ methods
         
         % The absolute permeability will be evaluated in the second
         % dimension chosen.
-        upscaler.dims = upscaler.dim2;
+        % upscaler.dims = upscaler.dim2;
         
     end
        
@@ -129,7 +129,8 @@ methods
         % Capillary pressure upscaling
         %------------------------------------------------------------------
         if upscaler.pcow
-            [data, rep] = upPcOW(block, data, 'npointsmax', upscaler.npcow);
+            [data, rep] = upPcOW(block, data, ...
+                'npointsmax', upscaler.npcow);
             if wantReport
                 report.pcow = rep;
             end

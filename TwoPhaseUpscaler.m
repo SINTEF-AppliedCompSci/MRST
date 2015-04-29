@@ -6,17 +6,23 @@ properties
     nrelperm
     pcow
     npcow
+    
+    relpermdims
+    
 end
 
 methods
     
     function upscaler = TwoPhaseUpscaler(G, rock, fluid, varargin)
-        upscaler = upscaler@OnePhaseUpscaler(G, rock, 'fluid', fluid);
+        upscaler = upscaler@OnePhaseUpscaler(G, rock, 'fluid', fluid, ...
+            varargin{:});
         
         upscaler.method   = [];
         upscaler.nrelperm = 20;
         upscaler.pcow     = true; % Upscale pcow or not
         upscaler.npcow    = 100;
+        upscaler.relpermdims = upscaler.dims;
+        
         upscaler = merge_options(upscaler, varargin{:});
     end
        
@@ -30,6 +36,8 @@ methods
         if wantReport
             report.onephase = rep;
         end
+        
+        data.relpermdims = upscaler.relpermdims;
         
         % Capillary pressure upscaling
         if upscaler.pcow
@@ -45,7 +53,7 @@ methods
         
         % Relative permeability upscaling
         [data, rep] = upRelPerm(block, data, upscaler.method, ...
-            'nvalues', upscaler.nrelperm, 'dims', upscaler.dims, ...
+            'nvalues', upscaler.nrelperm, 'dims', upscaler.relpermdims, ...
             'dp', upscaler.dp);
         if wantReport
             report.relperm = rep;
