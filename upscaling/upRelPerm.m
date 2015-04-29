@@ -23,6 +23,11 @@ assert(~isempty(method), 'Method must be set');
 
 % Get upscaled absolute permeability
 Kup = updata.perm;
+if numel(Kup)>ndims && numel(Kup)==3
+    % We are given upscaled absperm in all three dimensions
+    % Extract the dimensions we need
+    Kup = Kup(dims);
+end
 assert(numel(Kup)==ndims);
 
 % Pore volume
@@ -159,18 +164,32 @@ end % End of input value loop
 % Check for upscaled values outside range. We simply force the values
 % inside valid range.
 outside = false;
+krWmin = nan;
+krWmax = nan;
+krOlim = [Inf, -Inf];
 for id = 1:ndims
-	inx=krO{id}(:,2)>1; krO{id}(inx,2)=1; if any(inx),outside=true; end
+% 	inx=krO{id}(:,2)>1;
+%     if any(inx)
+%         if isempty(krWmax)
+%             krWmax = max(krO{id}(inx,2));
+%         else
+%             krWmax = max(krWmax, max(krO{id}(inx,2)) );
+%         end
+%         krO{id}(inx,2) = 1;
+%         
+%         outside=true; 
+%     end
+    inx=krO{id}(:,2)>1; krO{id}(inx,2)=1; if any(inx),outside=true; end
     inx=krO{id}(:,2)<0; krO{id}(inx,2)=0; if any(inx),outside=true; end
     inx=krW{id}(:,2)>1; krW{id}(inx,2)=1; if any(inx),outside=true; end
     inx=krW{id}(:,2)<0; krW{id}(inx,2)=0; if any(inx),outside=true; end
 end
 
 % If only one direction, we do not use cell array
-if ndims==1
-    krO = krO{1};
-    krW = krW{1};
-end
+% if ndims==1
+%     krO = krO{1};
+%     krW = krW{1};
+% end
 
 % Store upscaled data to structure
 updata.krO = krO;
@@ -305,6 +324,9 @@ function sW = directionDistribution(block, method, sW, dp)
 switch method
     case 'flow' % Flow based simulation
         
+        error('Need update') % TODO: We need to get d here.
+        % TODO: Also, should we update the saturation in each direction?
+        
         G = block.G;
         isPeriodic = block.periodic;
         
@@ -347,6 +369,7 @@ switch method
 end
 
 end
+
 
 
 

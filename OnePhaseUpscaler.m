@@ -18,6 +18,8 @@ methods
        
     function [data, report] = upscaleBlock(upscaler, block)
         
+        data.dims = upscaler.dims;
+        
         % Absolute permeability
         [data.perm, report] = upAbsPerm(block, 'dims', upscaler.dims, ...
             'dp', upscaler.dp);
