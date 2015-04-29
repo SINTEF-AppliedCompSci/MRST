@@ -78,8 +78,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         p(isnan(p)) = 1;
         
         % Distribute the pressure solutions to the correct primal coarse block
-        for j = 1:numel(e.nodes)
-            globalCoarse = CG.partition(e.nodes(j));
+        nodes = sort(e.nodes);
+        for j = 1:numel(nodes)
+            globalCoarse = CG.partition(nodes(j));
             basis.localSol(globalCoarse).p_local{end+1} = p(:, j);
             basis.localSol(globalCoarse).cells{end+1} = isAll;
         end
