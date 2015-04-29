@@ -17,7 +17,10 @@ end
 % Two phase data
 %--------------------------------------------------------------------------
 
-s2c = @(fn) arrayfun(@(x) x.(fn), updata, 'UniformOutput', false);
+if numel(updata(1).krW) > 1 || numel(updata(1).krO) > 1
+    warning('Multidim relperm. Using only first dimension!');
+end
+s2c = @(fn) arrayfun(@(x) x.(fn){1}, updata, 'UniformOutput', false);
 
 
 %--------------------------------------------------------------------------
@@ -51,7 +54,7 @@ fluid.fracFlowInv = @(ff, varargin) prop(T, ff, reg, varargin{:});
 % Capillary pressure
 
 if isfield(updata, 'pcOW')
-    T = s2c('pcOW');
+    T = arrayfun(@(x) x.pcOW, updata, 'UniformOutput', false);
     fluid.pcOW = @(sw, varargin) prop(T, sw, reg, varargin{:});
     
     % Invert pcOW curve
