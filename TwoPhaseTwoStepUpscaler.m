@@ -1,4 +1,4 @@
-classdef TwoPhaseStepwiseUpscaler < OnePhaseUpscaler
+classdef TwoPhaseTwoStepUpscaler < OnePhaseUpscaler
 %Two phase upscaling
 
 properties
@@ -11,11 +11,12 @@ properties
     npcow
     
     saveStep1
+    twostepz
 end
 
 methods
     
-    function upscaler = TwoPhaseStepwiseUpscaler(G, rock, fluid, varargin)
+    function upscaler = TwoPhaseTwoStepUpscaler(G, rock, fluid, varargin)
         upscaler = upscaler@OnePhaseUpscaler(G, rock, 'fluid', fluid);
         
         upscaler.method1   = [];
@@ -27,6 +28,7 @@ methods
         upscaler.npcow     = 100;
         
         upscaler.saveStep1 = false; % save data from first upscaling
+        upscaler.twostepz  = false;
         
         upscaler = merge_options(upscaler, varargin{:});
         
@@ -41,9 +43,8 @@ methods
         wantReport = nargout > 1;
         startTime  = tic;
         
-        % Separate special upscaling in the z-direction is implemented, but
-        % is set as unreachable code for now. The method is questionable.
-        upscalez   = true;
+        % Separate special upscaling in the z-direction is implemented.
+        upscalez = upscaler.twostepz;
         
         assert(~isempty(upscaler.method1) && ...
             ~isempty(upscaler.method2), 'Methods must be given.');
@@ -57,7 +58,7 @@ methods
         end
         
         %------------------------------------------------------------------
-        % Relative permeability upscaling, part 1
+        % Relative permeability upscaling, step 1
         % (Upscale in direction 1, using method 1)
         %------------------------------------------------------------------
         
@@ -80,7 +81,7 @@ methods
             'pcow', true, 'verbose', false);
         if wantReport
             [updata1, rep] = upscaler1.upscale();
-            report.relperm.method = 'stepwise';
+            report.relperm.method = 'twostep';
             report.relperm.step1  = rep;
         else
             updata1 = upscaler1.upscale();
@@ -91,10 +92,13 @@ methods
             fprintf('  Rel.perm #1:  %6.3fs\n', relperm1Time);
         end
         
+        
         %------------------------------------------------------------------
-        % Relative permeability upscaling, part 2
+        % Relative permeability upscaling, step 2
         % (Upscale in direction 2, using method 2)
         %------------------------------------------------------------------
+        
+        % Direction 2 is typically x or y
         
         t = tic;
         
@@ -121,39 +125,60 @@ methods
             'partition', p2, 'method', upscaler.method2, ...
             'dims', upscaler.dim2, 'nrelperm', upscaler.nrelperm, ...
             'pcow', false, 'verbose', false, 'cellinx', true);
-        if wantReport
+        if upscalez
+            upscaler2.savesat = true; % save sat. distributions
             [updata2, rep] = upscaler2.upscale();
-            report.relperm.step2 = rep;
+            satdist = rep.blocks{1}.relperm.satdist;
+            rep.blocks{1}.relperm = rmfield(rep.blocks{1}.relperm, ...
+                'satdist');
+        elseif wantReport
+            [updata2, rep] = upscaler2.upscale();
         else
             updata2 = upscaler2.upscale();
+        end
+        if wantReport
+            report.relperm.step2 = rep;
         end
         krO = updata2.krO;
         krW = updata2.krW;
         
+        % Upscale relperm in z-direction in a special manner if requested.
         if upscalez
-            % Upscale relperm in z-direction in a special manner
             sW   = krO{1}(:,1);
-            krzW = nan(numel(sW), 1);
-            krzO = nan(numel(sW), 1);
-            for is=1:numel(sW)
-                % Get relperm value in each intermediate block for current sW
-                int  = @(kr) interp1(kr(:,1), kr(:,2), sW(is));
-                intW = arrayfun(@(x) int(extendTab(x.krW{2})), updata1);
-                intO = arrayfun(@(x) int(extendTab(x.krO{2})), updata1);
-
-                % The upscaled relperm value is taken as the arithmetic mean
-                krzW(is) = mean(intW);
-                krzO(is) = mean(intO);
+            nsat = numel(sW);
+            krWz = nan(nsat, 1);
+            krOz = nan(nsat, 1);
+            
+            % interp function
+            int  = @(T,x) interp1(T(:,1), T(:,2), x, 'linear', 'extrap');
+            
+            % Loop over saturation distributions found in the first step of
+            % the upscaling. That is, distributions on the intermediate
+            % coarse grid.
+            for is=1:numel(satdist)
+                dist = satdist{is};
+                
+                % Find the relperm value in each cell of the inter. grid
+                krWi = nan(nsat, 1);
+                krOi = nan(nsat, 1);
+                for ic=1:numel(dist) % loop over cells
+                    krWi(ic) = int(updata1(ic).krW{2}, dist(ic));
+                    krOi(ic) = int(updata1(ic).krO{2}, dist(ic));
+                end
+                
+                % The upscaled relperm value is taken as the arithmetic
+                % mean of the block relperms
+                krWz(is) = mean(krWi);
+                krOz(is) = mean(krOi);
             end
             
-            % Enforce endpoints to zero (this is not true in general when
-            % simply using the arithmetic mean)
-            krzW(1)   = 0;
-            krzO(end) = 0;
+            % Ensure endpoints are at zero
+%             krWz(1)   = 0;
+%             krOz(end) = 0;
             
             % Using x-direction also in y-direcion (or vica versa)
-            krW = {krW{1}, krW{1}, [sW krzW]};
-            krO = {krO{1}, krO{1}, [sW krzO]};
+            krW = {krW{1}, krW{1}, [sW krWz]};
+            krO = {krO{1}, krO{1}, [sW krOz]};
         end
         
         % Save to structure

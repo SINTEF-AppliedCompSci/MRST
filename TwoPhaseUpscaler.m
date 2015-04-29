@@ -7,7 +7,8 @@ properties
     pcow
     npcow
     
-    relpermdims
+    relpermdims  % Dimensions to upscale relperm in
+    savesat      % Save saturation distributions
     
 end
 
@@ -22,14 +23,15 @@ methods
         upscaler.pcow     = true; % Upscale pcow or not
         upscaler.npcow    = 100;
         upscaler.relpermdims = upscaler.dims;
+        upscaler.savesat  = false; % Save saturation distributions
         
         upscaler = merge_options(upscaler, varargin{:});
     end
        
     function [data, report] = upscaleBlock(upscaler, block)
         
-        wantReport = nargout > 1;
-        startTime  = tic;
+        wantReport  = nargout > 1;
+        startTime   = tic;
         
         % Perform one phase upscaling first
         [data, rep] = upscaleBlock@OnePhaseUpscaler(upscaler, block);
@@ -52,11 +54,14 @@ methods
         end
         
         % Relative permeability upscaling
-        [data, rep] = upRelPerm(block, data, upscaler.method, ...
+        up = @() upRelPerm(block, data, upscaler.method, ...
             'nvalues', upscaler.nrelperm, 'dims', upscaler.relpermdims, ...
-            'dp', upscaler.dp);
+            'dp', upscaler.dp, 'savesat', upscaler.savesat);
         if wantReport
+            [data, rep] = up();
             report.relperm = rep;
+        else
+            data = up();
         end
         if upscaler.verbose
             fprintf('  Rel.perm:     %6.3fs\n', rep.time);

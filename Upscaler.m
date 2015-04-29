@@ -96,8 +96,10 @@ methods
             report.blocks = cell(nBlocksUp,1);
         end
         
-        % Line break before starting
-        fprintf('\n');
+        if upscaler.verbose
+            % Line break before starting
+            fprintf('\n');
+        end
         
         % Loop over blocks and perform upscaling on each block
         for i = 1:nBlocksUp

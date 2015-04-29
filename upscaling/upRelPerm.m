@@ -1,15 +1,18 @@
-function [updata, report] = upRelPerm(block, updata, method, varargin)
+function [updata, report] = upRelPerm(block, updata, ...
+    method, varargin)
 
 opt = struct(...
     'nvalues',     20, ...
     'viscousmob',  true, ...
     'dims',        1:3, ...  % Dimensions to upscale
-    'dp',          1*barsa ...  % Pressure drop
+    'dp',          1*barsa, ...  % Pressure drop
+    'savesat',     false ... % save saturation distributions
     );
 opt = merge_options(opt, varargin{:});
 
-wantReport = nargout > 1;
-timeStart = tic;
+wantReport  = nargout > 1;
+wantSatDist = opt.savesat && wantReport;
+timeStart   = tic;
 
 dims  = opt.dims;
 ndims = length(dims);
@@ -36,6 +39,9 @@ pvTot = sum(block.pv);
 % Allocate space
 krW = cell(1, ndims);
 krO = cell(1, ndims);
+if wantSatDist
+	satdist = cell(nvals,1);
+end
 
 % Select columns depending on isotropic perm or not
 permCol = [1 1 1];
@@ -53,6 +59,11 @@ for iv = 1:nvals
     
     % Get saturation distribution for this input value
     sW0 = valueDistribution(block, method, val);
+    
+    % Save if requested
+    if wantSatDist
+        satdist{iv} = sW0;
+    end
     
     % Loop over the dimension
     for id = 1:ndims
@@ -171,12 +182,6 @@ for id = 1:ndims
     inx=krW{id}(:,2)<0; krW{id}(inx,2)=0; if any(inx),outside=true; end
 end
 
-% If only one direction, we do not use cell array
-% if ndims==1
-%     krO = krO{1};
-%     krW = krW{1};
-% end
-
 % Store upscaled data to structure
 updata.krO = krO;
 updata.krW = krW;
@@ -189,6 +194,9 @@ if wantReport
     report.dp      = opt.dp;
     report.time    = totalTime;
     report.valsOutsideRange = outside;
+    if wantSatDist
+        report.satdist = satdist;
+    end
 end
 
 
