@@ -215,6 +215,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      tofext,...
      hdataset,...
      hset_op,...
+     mrst_ds,...
      ni, np] = deal(NaN);
     
     % Setup "persistent" variables
@@ -309,7 +310,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         %Add time-varying dataset slider
-        if (~isempty(state) && numel(state) > 1)
+        if ((~isempty(state) && numel(state) > 1) || ...
+             (~isempty(W) && numel(W) > 1))
             ds_panel = uipanel('Parent', fig_ctrl, ...
                 'Units', 'normalized',...
                 'Title', 'Dataset Selection', ...
@@ -321,7 +323,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'String','Simulation timestep',...
                 'Position',[0 0 0.4 1]);
             
-            datasetSelector(G, state, 'Parent', ds_panel, 'Location', ...
+            selector_datasets = [];
+            if (numel(state) > 1)
+                selector_datasets = state;
+            elseif(numel(W) > 1)
+                selector_datasets = W;
+            else
+                error('Programmer error');
+            end
+                
+            datasetSelector(G, selector_datasets, 'Parent', ds_panel, 'Location', ...
                 [0.4, 0, 0.6, 1], 'Callback', @selectdata, ...
                 'Setname', 'testing', 'active', 1, 'Nofields', true);
             mrst_ds = findobj('Tag', 'mrst-datasetselector');
@@ -331,7 +342,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Drainage / flooding controls
         gpy = 0.45;
         gph = .55;
-        if (~isempty(state) && numel(state) > 1)
+        if (ishandle(mrst_ds))
             gpy = gpy + 0.15;
             gph = gph - 0.15;
         end

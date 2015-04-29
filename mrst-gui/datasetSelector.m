@@ -47,8 +47,8 @@ function varargout = datasetSelector(G, datasets, varargin)
 %               input suitable for plotCellData, N is the index in the
 %               datasets array and name is the name of the dataset.
 %
-%   Nofields  - Disable the popup for the different fields of the datasets.
-%               The first field will the be the default.
+%   Nofields  - Disables selecting / checking fields. 
+%               Implies that both data and name will be [].
 %
 %
 % RETURNS:
@@ -181,20 +181,20 @@ if hasOutput
     width = width - .2;
 end
 
-cellfields = getStructFields(G, accessfcn(N), setname);
-if isempty(opt.active) || numel(cellfields) < opt.active
-    opt.active = 1;
-end
-structh = uicontrol(ph,  'Style', 'popupmenu',...
-                            'Tag', 'mrst-activedataset', ...
-                            'Value', opt.active, ...
-                            'Units', 'normalized',...
-                            'Position', [spos 0 max(width, eps) 1],...
-                            'Callback', @applySelection, ...
-                            'String', cellfields...
-                           );
-if (opt.Nofields)
-    set(structh, 'Visible', 'off');
+if (~opt.Nofields)
+    cellfields = getStructFields(G, accessfcn(N), setname);
+    assert(numel(cellfields) > 0, 'Number of plottable fields must be > 0');
+    if isempty(opt.active) || numel(cellfields) < opt.active
+        opt.active = 1;
+    end
+    structh = uicontrol(ph,  'Style', 'popupmenu',...
+                                'Tag', 'mrst-activedataset', ...
+                                'Value', opt.active, ...
+                                'Units', 'normalized',...
+                                'Position', [spos 0 max(width, eps) 1],...
+                                'Callback', @applySelection, ...
+                                'String', cellfields...
+                               );
 end
 
 if nargout > 0
@@ -202,15 +202,17 @@ if nargout > 0
 end
 
 function selectionCallback(src, event)
-    name = cellfields{get(structh, 'Value')};
     N = get(src, 'Value');
-    cellfields = getStructFields(G, accessfcn(N), setname);
-    set(structh, 'String', cellfields)
-    nameind = find(strcmpi(cellfields, name));
-    if isempty(nameind)
-        nameind = 1;
+    if (~opt.Nofields)
+        name = cellfields{get(structh, 'Value')};
+        cellfields = getStructFields(G, accessfcn(N), setname);
+        set(structh, 'String', cellfields)
+        nameind = find(strcmpi(cellfields, name));
+        if isempty(nameind)
+            nameind = 1;
+        end
+        set(structh, 'Value', nameind) 
     end
-    set(structh, 'Value', nameind)
     applySelection();
 end
 
@@ -222,11 +224,11 @@ function incrementDataset(src, event, step)
         if N == nsets;
             N = 1;
         end
-        while N < nsets
+        for NN = N:nsets
             if ~get(src, 'Value')
                 break;
             end
-            set(ith, 'Value', N + 1);
+            set(ith, 'Value', NN);
             selectionCallback(ith, []);
             pause(.1)
         end
@@ -235,8 +237,13 @@ function incrementDataset(src, event, step)
 end
 
 function applySelection(src, event)
-    name = cellfields {get(structh, 'Value')};
-    d = readStructField(accessfcn(N), name);
+    if (opt.Nofields)
+        name = [];
+        d = [];
+    else
+        name = cellfields {get(structh, 'Value')};
+        d = readStructField(accessfcn(N), name);
+    end
     if hasOutput
         varargout{1} = d;
         varargout{2} = N;
