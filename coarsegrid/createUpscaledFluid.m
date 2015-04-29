@@ -18,7 +18,8 @@ end
 %--------------------------------------------------------------------------
 
 if numel(updata(1).krW) > 1 || numel(updata(1).krO) > 1
-    warning('Multidim relperm. Using only first dimension!');
+    warning('SteadyState:MultidimRelperm', ...
+        'Multidim relperm. Using only first dimension!');
 end
 s2c = @(fn) arrayfun(@(x) x.(fn){1}, updata, 'UniformOutput', false);
 

@@ -83,8 +83,8 @@ methods
                 fprintf(['Need only upscale %d of %d coarse blocks as '...
                     'some blocks are idential.\n'], nBlocksUp, nBlocksReq);
             else
-                fprintf(['No blocks are identical, so all need to be '...
-                    'upscaled.\n']);
+                fprintf(['No blocks are identical, so all blocks '...
+                    'need to be upscaled.\n']);
             end
         end
         
@@ -95,6 +95,9 @@ methods
             report.upsBlockInx = blocksToUpscale;
             report.blocks = cell(nBlocksUp,1);
         end
+        
+        % Line break before starting
+        fprintf('\n');
         
         % Loop over blocks and perform upscaling on each block
         for i = 1:nBlocksUp
