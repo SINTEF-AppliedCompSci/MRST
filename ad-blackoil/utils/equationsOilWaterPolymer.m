@@ -69,7 +69,7 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz);
 bW0 = model.fluid.bW(p0);
 
@@ -94,9 +94,15 @@ if model.outputFluxes
 end
 
 if model.extraStateOutput
-    state = model.storebfactors(state, bW, bO, bW);
+    state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, mobP);
-    state = model.storeUpstreamIndices(state, upcw, upco, upcw);
+    state = model.storeUpstreamIndices(state, upcw, upco, []);
+end
+
+if model.extraPolymerOutput
+    state = model.storeShearMultiplier(state, shearMult);
+    state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
+    state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
 end
 
 

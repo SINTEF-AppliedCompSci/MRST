@@ -1,5 +1,6 @@
-function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW] = ...
-    getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
+function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, ...
+    extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ...
+    ads, krW, T, gdz)
 
 f = model.fluid;
 s = model.operators;
@@ -37,6 +38,15 @@ end
 % Polymer
 mobP   = (mobW.*c)./(a + (1-a)*cbar);
 vP     = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
+
+% Return extra output if requested
+if model.extraPolymerOutput
+    extraOutput.muWeff = muWeff;
+    muPeff = muWeff.*(a + (1-a)*cbar);
+    extraOutput.muPeff = muPeff;
+else
+    extraOutput = [];
+end
 
 end
 

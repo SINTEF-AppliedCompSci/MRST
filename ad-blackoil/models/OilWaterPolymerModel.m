@@ -10,6 +10,9 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         % Polymer differene tolerence
         tolerancePolymer
         
+        % Add extra output to wellsol/states for polymer quantities
+        extraPolymerOutput
+        
     end
     
     methods
@@ -22,6 +25,8 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             
             % Tolerance for the change in polymer concentration
             model.tolerancePolymer = 1e-3;
+            
+            model.extraPolymerOutput = false;
             
             model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
             
@@ -175,6 +180,40 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 [scaling{~handled}] = other{:};
             end
         end
-
+        
+        function state = storeFluxes(model, state, vW, vO, vP) %#ok<INUSL>
+            % Utility function for storing the interface fluxes in the
+            % state
+            state.flux = [double(vW), double(vO), double(vP)];
+        end
+        
+        function state = storeMobilities(model, state, mobW, mobO, mobP) %#ok<INUSL>
+            % Utility function for storing the mobilities in the state
+            state.mob = [double(mobW), double(mobO), double(mobP)];
+        end
+        
+        function state = storeShearMultiplier(model, state, ...
+                shearMult) %#ok<INUSL>
+            % Utility function for storing the polymer shear thinning /
+            % thickening velocity multiplier in the state. Note that this
+            % is the reciprocal of the viscosity multiplier.
+            state.shearMult = double(shearMult);
+        end
+        
+        function state = storeEffectiveWaterVisc(model, state, ...
+                muWeff) %#ok<INUSL>
+            % Utility function for storing the effective water viscosity
+            % due to the presence of polymer.
+            state.muWeff = double(muWeff);
+        end
+        
+        function state = storeEffectivePolymerVisc(model, state, ...
+                muPeff) %#ok<INUSL>
+            % Utility function for storing the effective water viscosity
+            % due to the presence of polymer.
+            state.muPeff = double(muPeff);
+        end
+        
     end
 end
+

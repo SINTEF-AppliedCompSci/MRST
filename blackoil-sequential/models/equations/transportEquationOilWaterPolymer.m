@@ -83,7 +83,7 @@ Gw = gp - dpW;
 Go = gp - dpO;
 
 if model.extraStateOutput
-    state = model.storebfactors(state, bW, bO, bW);
+    state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, mobP);
 end
 
