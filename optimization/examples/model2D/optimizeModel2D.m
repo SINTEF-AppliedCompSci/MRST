@@ -31,4 +31,5 @@ f = @(u)evalObjective(u, obj, state0, model, schedule, scaling);
 %% Run optimization with default options
 [v, u_opt, history] = unitBoxBFGS(u_base, f);
 schedule_opt = control2schedule(u_opt, schedule, scaling);
-save schedule_opt schedule_opt
+pth = fullfile(mrstPath('optimization'), 'examples', 'model2D', 'schedule_opt.mat');
+save(pth, 'schedule_opt')
