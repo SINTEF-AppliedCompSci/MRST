@@ -121,7 +121,12 @@ end
 end
   
 function [] = plotInfo(fig, hst)
-figure(fig)
+if ~ishandle(fig)
+    figure(fig)
+else
+    % Avoid stealing focus if figure already exists
+    set(0, 'CurrentFigure', fig);
+end
 xt = 0:(numel(hst.val)-1);
 ch = [0, hst.val(2:end)-hst.val(1:end-1)];
 subplot(5,1,1), plot(xt, hst.val, '.-','LineWidth', 2, 'MarkerSize', 20), title('Objective');
