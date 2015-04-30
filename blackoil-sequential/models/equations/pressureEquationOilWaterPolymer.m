@@ -73,7 +73,7 @@ gdz = model.getGravityGradient();
 
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW] = ...
     getFluxAndPropsWaterPolymer_BO(model, p_prop, sW, c, ads, ...
     krW, T, gdz);
 bW0 = model.fluid.bW(p0);
@@ -95,16 +95,13 @@ end
 
 % Change velocitites due to polymer shear thinning / thickening
 if usingShear
-    poro      = s.pv./model.G.cells.volumes;
-    poroFace  = s.faceAvg(poro);
+    poroFace  = s.faceAvg(model.rock.poro);
     faceArea  = model.G.faces.areas(s.internalConn);
-    Vw        = vW./(poroFace .* faceArea);
+    Vw        = vW./(poroFace .* faceArea); % water velocity
     muWMultf  = s.faceUpstr(upcw, muWMult);
-
     shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
-    
-    vW   = vW .* shearMult;
-    vP   = vP .* shearMult;
+    vW        = vW .* shearMult;
+    vP        = vP .* shearMult;
 end
 
 % These are needed in transport solver, so we output them regardless of

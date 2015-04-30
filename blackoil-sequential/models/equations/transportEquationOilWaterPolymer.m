@@ -71,9 +71,8 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
-    krW, T, gdz);
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW] = ...
+    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz);
 
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, ...
@@ -152,6 +151,7 @@ upco  = flag(:, 2);
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 mobPf = s.faceUpstr(upcw, mobP);
+
 
 %% TEMP TODO TEST
 % Change velocitites due to polymer shear thinning / thickening

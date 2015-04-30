@@ -69,9 +69,8 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
-    krW, T, gdz);
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw] = ...
+    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz);
 bW0 = model.fluid.bW(p0);
 
 % Evaluate oil properties
@@ -81,22 +80,19 @@ bO0 = getbO_BO(model, p0);
 
 % Change velocitites due to polymer shear thinning / thickening
 if usingShear
-    poro      = s.pv./model.G.cells.volumes;
-    poroFace  = s.faceAvg(poro);
+    poroFace  = s.faceAvg(model.rock.poro);
     faceArea  = model.G.faces.areas(s.internalConn);
-    Vw        = vW./(poroFace .* faceArea);
+    Vw        = vW./(poroFace .* faceArea); % water velocity
     muWMultf  = s.faceUpstr(upcw, muWMult);
-
     shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
-    
-    vW   = vW .* shearMult;
-    vP   = vP .* shearMult;
+    vW        = vW .* shearMult;
+    vP        = vP .* shearMult;
 end
-
 
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vP);
 end
+
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, mobP);

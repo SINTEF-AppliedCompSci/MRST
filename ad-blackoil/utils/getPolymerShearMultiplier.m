@@ -1,28 +1,43 @@
-function mult = getPolymerShearMultiplier(model, vW0, muWmultf)
-% Compute the velocity multiplier caused by polymer shear thinning
+function mult = getPolymerShearMultiplier(model, VW0, muWmultf)
+% Compute the velocity multiplier due to polymer shear thinning/thickening
 % 
+% SYNOPSIS:
+%   mult = getPolymerShearMultiplier(model, vW0, muWmultf)
+%
+% PARAMETERS:
+%   model    - Model structure
+%   vW0      - Water velocity on faces without shear thinning (see below)
+%   muWmultf - Viscosity multiplier on faces
+%
 % The viscoisty of a polymer solution may be changed by the shear rate,
-% which is related to the flow velocity. This function returns a multiplier
-% M, such that vWsh = vW.*M, and vPsh = vP.*M, where vWsh and vPsh are the
-% shear modified velocities of pure water and water with polymer,
-% respectively.
+% which is related to the flow velocity. This function returns a velocity 
+% multiplier mult, such that
+%   vWsh = vW.*mult,   and,   vPsh = vP.*mult,
+% where vWsh and vPsh are the shear modified velocities of pure water and 
+% water with polymer, respectively.
+% 
+% The water given water face velocity is computed as
+%   VW = vW/(poro*area)
+% where poro is the average porosity between neighboring cells, and area is
+% the face area.
 % 
 
 f = model.fluid;
 
 % Compute the flow velocity
-vW0      = abs(double(vW0));
+VW0      = abs(double(VW0));
 muWmultf = double(muWmultf);
 
 % Setup equation for the shear modified velocity. This is an equation on
 % the faces of the domain.
-eqn = @(v) v .* (1 + f.plyshearMult(v).*(muWmultf-1)) - vW0.*muWmultf;
+eqn = @(VW) VW .* (1 + f.plyshearMult(VW).*(muWmultf-1)) - VW0.*muWmultf;
 
 % Solve for shear modified velocity
-v   = solveNonlinearEqn(eqn, vW0);
+VW  = solveNonlinearEqn(eqn, VW0);
 
-% Compute multiplier from solution
-mult = muWmultf ./ ( 1 + f.plyshearMult(v).*(muWmultf-1) );
+% Compute velocity multiplier from solution
+% Note that this is the reciprocal of the viscosity multiplier
+mult = muWmultf ./ ( 1 + f.plyshearMult(VW).*(muWmultf-1) );
 
 end
 
