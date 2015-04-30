@@ -82,6 +82,9 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %
 %  'name' - Name to use for windows
 %
+%  'leaveOpenOnClose' - Default false. Leaves all figures open when closing
+%                       the controller.
+%
 % RETURNS:
 %
 %   Nothing. Creates two figures.
@@ -146,7 +149,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'useMobilityArrival',  false,...
                  'fluid',               oilwater, ...
                  'name',                [], ...
-                 'daspect',             [] ...
+                 'daspect',             [], ...
+                 'leaveOpenOnClose',    false ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -249,13 +253,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     plotMain()
 
     % Private helpers
+    function ctrl_close_func(src, event)
+        if (~opt.leaveOpenOnClose)
+            if any(ishandle(pm_mainph))
+                delete(pm_mainph);
+            end
+            if any(ishandle(fig_ctrl))
+                delete(fig_ctrl);
+            end
+            if any(ishandle(pwc_wch))
+                delete(pwc_wch);
+            end
+            if any(ishandle(wah_fig))
+                delete(wah_fig);
+            end
+            if any(ishandle(phiPlot))
+                delete(phiPlot);
+            end
+            if any(ishandle(fig_main))
+                delete(fig_main);
+            end
+            if any(ishandle(wellPlot))
+                delete(wellPlot);
+            end
+        end
+    end
+
     function createMainControl()
         % Set up figure handles
         if ~ishandle(fig_ctrl)
             pos = get(fig_main, 'OuterPosition');
             size_xy = [475 550];
             pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
-            fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none');
+            fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none', 'CloseRequestFcn', @ctrl_close_func);
             set(fig_ctrl, 'Name', ['Controller ', opt.name{1}]);
         else
             clf(fig_ctrl)
