@@ -94,9 +94,9 @@ if model.outputFluxes
 end
 
 if model.extraStateOutput
-    state = model.storebfactors(state, bW, bO, []);
+    state = model.storebfactors(state, bW, bO, bW);
     state = model.storeMobilities(state, mobW, mobO, mobP);
-    state = model.storeUpstreamIndices(state, upcw, upco, []);
+    state = model.storeUpstreamIndices(state, upcw, upco, upcw);
 end
 
 
@@ -186,8 +186,8 @@ if ~isempty(W)
             [~, ~, dz] = cellDims(model.G, wc);
             
             rR = vertcat(W.rR);
-            VwW = double(bW(wc)).*double(cqs{1})./(poro(wc).*rR.*dz*2*pi);
-            shearMultW = getPolymerShearMultiplier(model, VwW, muWMultW);
+            VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*rR.*dz*2*pi);
+            shearMultW = getPolymerShearMultiplier(model, VW0W, muWMultW);
             
             % Apply shear multiplier
             mw{1} = mw{1}.*shearMultW;
