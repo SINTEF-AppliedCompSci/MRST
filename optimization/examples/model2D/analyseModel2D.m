@@ -44,14 +44,19 @@ model  = TwoPhaseOilWaterModel(G, rock, fluid);
 state0 = initResSol(G, 200*barsa, [0, 1]);
 [wellSols, states]         = simulateScheduleAD(state0, model, schedule);
 [wellSols_opt, states_opt] = simulateScheduleAD(state0, model, schedule_opt);
-
+%%
 % Plot oil and water production for producer wells for both scenarios:
 dtime = schedule.step.val/day;
 time  = cumsum(dtime);
 qOs     = - getWellOutput(wellSols, 'qOs', 3:4);
 qOs_opt = - getWellOutput(wellSols_opt, 'qOs', 3:4);
 figure, plot(time, qOs*day, '--', 'LineWidth', 2)
-hold on, ax = gca; ax.ColorOrderIndex = 1;
+hold on, 
+ax = gca; 
+if ~isnumeric(ax)
+    ax.ColorOrderIndex = 1;
+end
+
 plot(time, qOs_opt*day, '-'  ,'LineWidth', 2)
 axis([0 600 0 550]), set(gca, 'FontSize', 14)
 legend([W(3).name, '-base'] , [W(4).name, '-base'], [W(3).name, '-opt'] , [W(4).name, '-opt'] )
@@ -60,7 +65,12 @@ title('Oil production rates')
 qWs     = - getWellOutput(wellSols, 'qWs', 3:4);
 qWs_opt = - getWellOutput(wellSols_opt, 'qWs', 3:4);
 figure, plot(time, qWs*day, '--','LineWidth', 2)
-hold on, ax = gca; ax.ColorOrderIndex = 1;
+hold on, 
+ax = gca; 
+if ~isnumeric(ax)
+    ax.ColorOrderIndex = 1;
+end
+
 plot(time, qWs_opt*day, '-'  ,'LineWidth', 2)
 axis([0 600 0 550]), set(gca, 'FontSize', 14)
 legend([W(3).name, '-base'] , [W(4).name, '-base'], [W(3).name, '-opt'] , ...
@@ -134,7 +144,7 @@ line([0 600], [0 0], 'color', 'r'), set(gca, 'FontSize', 14)
 title('Net cash-flow [$]'), legend('Base', 'Optimal')
 % Find index of first occuring time > 10 days, where net cashflow becomes
 % negative:
-inx = find(and(vals<0, time>10*days), 1, 'first');
+inx = find(and(vals<0, time>10), 1, 'first');
 
 % Plot evolution of NPV and indicate peak value:
 npv = cumsum(vals);
