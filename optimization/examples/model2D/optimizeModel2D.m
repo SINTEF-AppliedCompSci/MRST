@@ -1,4 +1,6 @@
-
+% optimizeModel2D - optimize NPV for example-model of this folder
+% Require modules 
+require ad-core ad-blackoil ad-props optimization spe10
 setupModel2D
 % Create model-object of class TwoPhaseOilWaterModel
 model  = TwoPhaseOilWaterModel(G, rock, fluid);
