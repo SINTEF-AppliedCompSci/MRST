@@ -214,6 +214,19 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             state.muPeff = double(muPeff);
         end
         
+        function state = storePolymerAdsorption(model, state, ...
+                ads) %#ok<INUSL>
+            % Utility function for storing the polymer adsorption.
+            state.ads = double(ads);
+        end
+        
+        function state = storeRelpermReductionFactor(model, state, ...
+                Rk) %#ok<INUSL>
+            % Utility function for storing the relative permeability
+            % reduction factor due to the presence of polymer.
+            state.Rk = double(Rk);
+        end
+        
     end
 end
 

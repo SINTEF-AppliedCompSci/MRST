@@ -103,6 +103,8 @@ if model.extraPolymerOutput
     state = model.storeShearMultiplier(state, shearMult);
     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
+    state = model.storePolymerAdsorption(state, ads);
+    state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
 end
 
 
@@ -172,8 +174,8 @@ if ~isempty(W)
             % radius rR.
             % rR = sqrt(rW * rA)
             % rW is the well bore radius.
-            % rA is the equivalent radius of the grid block in which the well
-            %       is completed.
+            % rA is the equivalent radius of the grid block in which the 
+            %    wellis completed.
             
             assert(isfield(W, 'rR'), ...
                 'The representative radius needs to be suppplied.');
@@ -195,7 +197,7 @@ if ~isempty(W)
             VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*rR.*dz*2*pi);
             shearMultW = getPolymerShearMultiplier(model, VW0W, muWMultW);
             
-            % Apply shear multiplier
+            % Apply shear velocity multiplier
             mw{1} = mw{1}.*shearMultW;
         end
         

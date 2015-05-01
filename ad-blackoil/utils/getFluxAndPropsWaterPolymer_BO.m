@@ -44,6 +44,7 @@ if model.extraPolymerOutput
     extraOutput.muWeff = muWeff;
     muPeff = muWeff.*(a + (1-a)*cbar);
     extraOutput.muPeff = muPeff;
+    extraOutput.Rk = Rk;
 else
     extraOutput = [];
 end
