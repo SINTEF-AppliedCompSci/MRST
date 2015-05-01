@@ -194,7 +194,8 @@ if ~isempty(W)
             [~, ~, dz] = cellDims(model.G, wc);
             
             rR = vertcat(W.rR);
-            VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*rR.*dz*2*pi);
+            A  = rR.*dz*2*pi; % representative area of each well cell
+            VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*A);
             shearMultW = getPolymerShearMultiplier(model, VW0W, muWMultW);
             
             % Apply shear velocity multiplier
@@ -229,8 +230,20 @@ if ~isempty(W)
         perf2well = getPerforationToWellMapping(W);
         Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
            numel(W), numel(perf2well));
-        eqs{6} = qWPoly - Rw*(cqs{1}.*cw);
-
+        cqsPoly = Rw*(cqs{1}.*cw);
+        eqs{6}  = qWPoly - cqsPoly;
+        
+        if model.extraPolymerOutput
+            % Save extra polymer welldata if requested
+            cqsPoly    = double(cqsPoly);
+            shearMultW = double(shearMultW);
+            for wnr = 1:numel(state.wellSol)
+                ix = perf2well == wnr;
+                state.wellSol(wnr).cqsPoly = cqsPoly(ix);
+                state.wellSol(wnr).shearMult = shearMultW(ix);
+            end
+        end
+        
         names(4:7) = {'waterWells', 'oilWells', 'polymerWells', ...
             'closureWells'};
         types(4:7) = {'perf', 'perf', 'perf', 'well'};
