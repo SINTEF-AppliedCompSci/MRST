@@ -181,10 +181,12 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             end
         end
         
-        function state = storeFluxes(model, state, vW, vO, vP) %#ok<INUSL>
+        function state = storeFluxes(model, state, vW, vO, vP)
             % Utility function for storing the interface fluxes in the
             % state
-            state.flux = [double(vW), double(vO), double(vP)];
+            internal = model.operators.internalConn;
+            state.flux = zeros(numel(internal), 3);
+            state.flux(internal,:) = [double(vW), double(vO), double(vP)];
         end
         
         function state = storeMobilities(model, state, mobW, mobO, mobP) %#ok<INUSL>

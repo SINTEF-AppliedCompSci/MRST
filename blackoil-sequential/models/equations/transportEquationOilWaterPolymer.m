@@ -65,13 +65,10 @@ T = s.T.*transMult;
 % Gravity gradient per face
 gdz = model.getGravityGradient();
 
-% Evaluate water properties
-%[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
-
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz);
 
 % Evaluate oil properties
@@ -85,6 +82,14 @@ Go = gp - dpO;
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, mobP);
+end
+
+if model.extraPolymerOutput
+%     state = model.storeShearMultiplier(state, shearMult);
+%     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
+%     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
+%     state = model.storePolymerAdsorption(state, ads);
+%     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
 end
 
 if ~isempty(W)
@@ -133,8 +138,8 @@ if ~isempty(W)
 end
 
 % Get total flux from state
-assert(size(state.flux,2)==2, 'Not the flux expected');
-flux = sum(state.flux, 2);
+assert(size(state.flux,2)==3, 'Not the flux expected');
+flux = sum(state.flux(:,1:2), 2);
 vT = flux(model.operators.internalConn);
 
 % Stored upstream indices
@@ -156,16 +161,16 @@ mobPf = s.faceUpstr(upcw, mobP);
 %% TEMP TODO TEST
 % Change velocitites due to polymer shear thinning / thickening
 if usingShear
-    poro      = s.pv./model.G.cells.volumes;
-    poroFace  = s.faceAvg(poro);
-    faceArea  = model.G.faces.areas(s.internalConn);
-    Vw        = vW./(poroFace .* faceArea);
-    muWMultf  = s.faceUpstr(upcw, muWMult);
-
-    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
-    
-    mobWf = mobWf .* shearMult;
-    mobPf = mobPf .* shearMult;
+%     poro      = s.pv./model.G.cells.volumes;
+%     poroFace  = s.faceAvg(poro);
+%     faceArea  = model.G.faces.areas(s.internalConn);
+%     Vw        = vW./(poroFace .* faceArea);
+%     muWMultf  = s.faceUpstr(upcw, muWMult);
+% 
+%     shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+%     
+%     mobWf = mobWf .* shearMult;
+%     mobPf = mobPf .* shearMult;
 end
 %%
 

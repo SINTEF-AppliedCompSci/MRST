@@ -73,7 +73,7 @@ gdz = model.getGravityGradient();
 
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
     getFluxAndPropsWaterPolymer_BO(model, p_prop, sW, c, ads, ...
     krW, T, gdz);
 bW0 = model.fluid.bW(p0);
@@ -107,10 +107,18 @@ end
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
 state = model.storeFluxes(state, vW, vO, vP);
-state = model.storeUpstreamIndices(state, upcw, upco, upcw);
+state = model.storeUpstreamIndices(state, upcw, upco, []);
 if model.extraStateOutput
-    state = model.storebfactors(state, bW, bO, bW);
+    state = model.storebfactors(state, bW, bO, []);
     state = model.storeMobilities(state, mobW, mobO, mobP);
+end
+
+if model.extraPolymerOutput
+    state = model.storeShearMultiplier(state, shearMult);
+    state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
+    state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
+    state = model.storePolymerAdsorption(state, ads);
+    state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
 end
 
 % EQUATIONS ---------------------------------------------------------------
@@ -169,7 +177,8 @@ if ~isempty(W)
         [~, ~, dz] = cellDims(model.G, wc);
 
         rR = vertcat(W.rR);
-        VwW = double(bW(wc)).*double(cqs{1})./(poro(wc).*rR.*dz*2*pi);
+        VwW = double(bW(wc)).*double(cqs{1}) ./ ...
+              (model.rock.poro(wc).*rR.*dz*2*pi);
         shearMultW = getPolymerShearMultiplier(model, VwW, muWMultW);
 
         % Apply shear multiplier to water
