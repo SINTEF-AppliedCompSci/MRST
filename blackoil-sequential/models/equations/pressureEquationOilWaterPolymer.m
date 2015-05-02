@@ -74,7 +74,7 @@ gdz = model.getGravityGradient();
 ads  = effads(c, cmax, model);
 [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
     getFluxAndPropsWaterPolymer_BO(model, p_prop, sW, c, ads, ...
-    krW, T, gdz);
+    krW, T, gdz, 'shear', ~otherPropPressure);
 bW0 = model.fluid.bW(p0);
 
 % Evaluate oil properties
@@ -90,18 +90,21 @@ if otherPropPressure
     vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
     vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
     vP = -s.faceUpstr(upcw, mobP).*s.T.*(dpW + dp_diff);
+    
+    % If other property pressure is used, then the shear thinning is
+    % computed here, and not above
+    if usingShear
+        poroFace  = s.faceAvg(model.rock.poro);
+        faceArea  = model.G.faces.areas(s.internalConn);
+        Vw        = vW./(poroFace .* faceArea); % water velocity
+        muWMultf  = s.faceUpstr(upcw, muWMult);
+        shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+        vW        = vW .* shearMult;
+        vP        = vP .* shearMult;
+        extraOutput.shearMult = shearMult;
+    end
 end
 
-% Change velocitites due to polymer shear thinning / thickening
-if usingShear
-    poroFace  = s.faceAvg(model.rock.poro);
-    faceArea  = model.G.faces.areas(s.internalConn);
-    Vw        = vW./(poroFace .* faceArea); % water velocity
-    muWMultf  = s.faceUpstr(upcw, muWMult);
-    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
-    vW        = vW .* shearMult;
-    vP        = vP .* shearMult;
-end
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
@@ -118,7 +121,7 @@ if model.extraPolymerOutput
     state = model.storePolymerAdsorption(state, ads);
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
     if usingShear
-        state = model.storeShearMultiplier(state, shearMult);
+        state = model.storeShearMultiplier(state, extraOutput.shearMult);
     end
 end
 
@@ -164,11 +167,22 @@ if ~isempty(W)
 
         assert(isfield(W, 'rR'), ...
             'The representative radius needs to be suppplied.');
-
+        
         muWMultW = muWMult(wc);
         % Maybe should also apply this for PRODUCTION wells.
-        muWMultW((iInxW(wciPoly==0))) = 1;
-
+        pinx = wciPoly==0;
+        if isfield(wellSol, 'poly_prev')
+            % Special hack for the sequential solver with shear thinning.
+            % If a well control has changed such that the polymer injection
+            % has gone down, we can get a peak in the bhp at the next
+            % timestep if we set the shear multiplier to zero. Therefore,
+            % we do not force the multiplier to zero the first timestep.
+            chinx = ([wellSol.poly_prev]>[W.poly])';
+            chinx = chinx(perf2well);
+            pinx  = pinx & ~chinx(iInxW);
+        end
+        muWMultW(iInxW(pinx)) = 1;
+        
         cqs = wm.computeWellFlux(model, W, wellSol, pBH, ...
             {qWs, qOs}, pw, rhos, bw, mw, s, {},...
             'nonlinearIteration', opt.iteration);
@@ -203,7 +217,7 @@ if ~isempty(W)
     % Well polymer rate for each well is water rate in each perforation
     % multiplied with polymer concentration in that perforated cell.
     Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
-       numel(W), numel(perf2well));
+        numel(W), numel(perf2well));
     eqs{4} = qWPoly - Rw*(cqs{1}.*cw);
     
     names(2:5) = {'oilWells', 'waterWells', 'polymerWells', ...

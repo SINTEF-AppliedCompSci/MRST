@@ -1,6 +1,10 @@
 function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, ...
     extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ...
-    ads, krW, T, gdz)
+    ads, krW, T, gdz, varargin)
+opt = struct(...
+    'shear',   true ...
+    );
+opt = merge_options(opt, varargin{:});
 
 f = model.fluid;
 s = model.operators;
@@ -39,12 +43,28 @@ end
 mobP   = (mobW.*c)./(a + (1-a)*cbar);
 vP     = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
 
+% Change viscositites (and hence mobilities and fluxes) due to polymer
+% shear thinning/thickening
+usingShear = isfield(f, 'plyshearMult') && opt.shear;
+if usingShear
+    poroFace  = s.faceAvg(model.rock.poro);
+    faceArea  = model.G.faces.areas(s.internalConn);
+    Vw        = vW./(poroFace .* faceArea); % water velocity
+    muWMultf  = s.faceUpstr(upcw, muWMult);
+    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+    vW        = vW .* shearMult;
+    vP        = vP .* shearMult;
+end
+
 % Return extra output if requested
 if model.extraPolymerOutput
     extraOutput.muWeff = muWeff;
     muPeff = muWeff.*(a + (1-a)*cbar);
     extraOutput.muPeff = muPeff;
     extraOutput.Rk = Rk;
+    if usingShear
+        extraOutput.shearMult = shearMult;
+    end
 else
     extraOutput = [];
 end

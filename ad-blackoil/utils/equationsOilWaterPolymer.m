@@ -78,20 +78,6 @@ bW0 = model.fluid.bW(p0);
     krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
-% Change velocitites due to polymer shear thinning / thickening
-if usingShear
-    poroFace  = s.faceAvg(model.rock.poro);
-    faceArea  = model.G.faces.areas(s.internalConn);
-    Vw        = vW./(poroFace .* faceArea); % water velocity
-    muWMultf  = s.faceUpstr(upcw, muWMult);
-    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
-    vW        = vW .* shearMult;
-    vP        = vP .* shearMult;
-    
-    % TODO: SHOULD WE ALSO ADJUST MOBILITIES? these are used in the well
-    % equations
-end
-
 if model.outputFluxes
     state = model.storeFluxes(state, vW, vO, vP);
 end
@@ -108,7 +94,7 @@ if model.extraPolymerOutput
     state = model.storePolymerAdsorption(state, ads);
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
     if usingShear
-        state = model.storeShearMultiplier(state, shearMult);
+        state = model.storeShearMultiplier(state, extraOutput.shearMult);
     end
 end
 

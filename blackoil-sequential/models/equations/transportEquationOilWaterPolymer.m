@@ -20,13 +20,6 @@ s = model.operators;
 f = model.fluid;
 G = model.G;
 
-% Polymer shear thinning/thickening
-usingShear = isfield(f, 'plyshearMult');
-
-%% TODO TEMP
-usingShear = false;
-%%
-
 assert(~(opt.solveForWater && opt.solveForOil));
 
 % Properties at current timestep
@@ -71,7 +64,8 @@ gdz = model.getGravityGradient();
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
 [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz);
+    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz, ...
+    'shear', false); % shear effect is not used in transport
 
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, ...
@@ -116,38 +110,6 @@ if ~isempty(W)
     cw(iInxW) = wciPoly;
     bWqP      = cw.*bWqW;
     
-    if usingShear
-        % Compute shear rate multiplier for wells
-        % The water velocity is computed using a the reprensentative 
-        % radius rR.
-        % rR = sqrt(rW * rA)
-        % rW is the well bore radius.
-        % rA is the equivalent radius of the grid block in which the 
-        %    wellis completed.
-        
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        
-        assert(isfield(W, 'rR'), ...
-            'The representative radius needs to be suppplied.');
-
-        muWMultW = muWMult(wc);
-        % Maybe should also apply this for PRODUCTION wells.
-        muWMultW((iInxW(wciPoly==0))) = 1;
-
-        % The following formulations assume that the wells are always
-        % in the z direction 
-        % IMPROVED HERE LATER
-        [~, ~, dz] = cellDims(model.G, wc);
-        
-        rR = vertcat(W.rR);
-        VW0W = double(bWqW)./(model.rock.poro(wc).*rR.*dz*2*pi);
-        shearMultW = getPolymerShearMultiplier(model, VW0W, muWMultW);
-
-        % Apply shear velocity multiplier
-        bWqW = bWqW.*shearMultW;
-        bWqP = bWqP.*shearMultW;
-    end
-    
     % Store well fluxes
     wflux_O = double(bOqO);
     wflux_W = double(bWqW);
@@ -182,25 +144,11 @@ mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 mobPf = s.faceUpstr(upcw, mobP);
 
-% Change velocitites due to polymer shear thinning / thickening
-if usingShear
-    poroFace  = s.faceAvg(model.rock.poro);
-    faceArea  = model.G.faces.areas(s.internalConn);
-    Vw        = vW./(poroFace .* faceArea);
-    muWMultf  = s.faceUpstr(upcw, muWMult);
-    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
-    mobWf     = mobWf .* shearMult;
-    mobPf     = mobPf .* shearMult;
-end
-
 if model.extraPolymerOutput
     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
     state = model.storePolymerAdsorption(state, ads);
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
-%     if usingShear
-%         state = model.storeShearMultiplier(state, shearMult);
-%     end
 end
 
 totMob = (mobOf + mobWf);
@@ -268,56 +216,6 @@ function y = effads(c, cmax, model)
    else
       y = model.fluid.ads(c);
    end
-end
-
-
-
-function [dx, dy, dz] = cellDims(G, ix)
-% cellDims -- Compute physical dimensions of all cells in single well
-%
-% SYNOPSIS:
-%   [dx, dy, dz] = cellDims(G, ix)
-%
-% PARAMETERS:
-%   G  - Grid data structure.
-%   ix - Cells for which to compute the physical dimensions
-%
-% RETURNS:
-%   dx, dy, dz -- [dx(k) dy(k)] is bounding box in xy-plane, while dz(k) =
-%                 V(k)/dx(k)*dy(k)
-
-    n = numel(ix);
-    [dx, dy, dz] = deal(zeros([n, 1]));
-
-    ixc = G.cells.facePos;
-    ixf = G.faces.nodePos;
-
-    for k = 1 : n,
-       c = ix(k);                                     % Current cell
-       f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
-       e = mcolon(ixf(f), ixf(f + 1) - 1);            % Edges on cell
-
-       nodes  = unique(G.faces.nodes(e, 1));          % Unique nodes...
-       coords = G.nodes.coords(nodes,:);            % ... and coordinates
-
-       % Compute bounding box
-       m = min(coords);
-       M = max(coords);
-
-       % Size of bounding box
-       dx(k) = M(1) - m(1);
-       if size(G.nodes.coords, 2) > 1,
-          dy(k) = M(2) - m(2);
-       else
-          dy(k) = 1;
-       end
-
-       if size(G.nodes.coords, 2) > 2,
-          dz(k) = G.cells.volumes(ix(k))/(dx(k)*dy(k));
-       else
-          dz(k) = 0;
-       end
-    end
 end
 
 

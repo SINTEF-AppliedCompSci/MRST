@@ -1,4 +1,5 @@
-classdef SequentialPressureTransportModelPolymer < SequentialPressureTransportModel
+classdef SequentialPressureTransportModelPolymer < ...
+        SequentialPressureTransportModel
     properties
         polymer
     end
@@ -15,5 +16,6 @@ classdef SequentialPressureTransportModelPolymer < SequentialPressureTransportMo
                model.polymer = model.transportModel.polymer;
             end
         end
+        
     end
 end
