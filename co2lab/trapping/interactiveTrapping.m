@@ -508,7 +508,13 @@ end
 
 function plotPartitionOutlineTopsurface(Gt, p, varargin)
     cg = generateCoarseGrid(Gt, p);
-    plotFaces(cg, varargin{:});
+    flag = true(cg.faces.num,1);
+    flag(boundaryFaces(cg))=false;
+    if sum(flag)==0
+       plotFaces(cg, varargin{:});
+    else
+       plotFaces(cg, flag, varargin{:});
+    end
 end
 
 function runSimulation(Gt, res, src, event) %#ok<INUSD>
