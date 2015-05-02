@@ -32,7 +32,7 @@ tree        = trees(i);
 % graymap to indicate the relief in the top surface
 [zx,zy] = gradient(reshape(Gt.cells.z,Gt.cartDims));
 zgrad   = sqrt(zx.^2 + zy.^2);
-plotCellData(Gt, zgrad(:));
+plotCellData(Gt, zgrad(:),'EdgeColor','none');
 colormap(flipud(gray(128)).^4);
 axis equal tight off, view(-90,90);
 
@@ -64,7 +64,7 @@ for v=0:0.25:1
    delete(ht); ht = [];
    for i=1:numel(tree.traps)
       subset = res.traps==tree.traps(i);
-      h = plotCellData(Gt,ones(sum(subset),1), subset, ...
+      h = plotGrid(Gt, subset, 'EdgeColor','none',...
          'FaceColor',[1-fill(i) 1-0.25*fill(i) .4]);
       ht = [ht; h];
    end

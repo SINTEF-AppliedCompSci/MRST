@@ -55,7 +55,7 @@ view(-20,40); axis tight
 light('Position',[-1 -1 -1],'Style','infinite');lighting phong
 colormap(hsv(6)); 
 colorbar('horiz'); caxis([.5 6.5]);
-set(gca,'XTickLabel',[],'YTickLabel',[]);
+set(gca,'XTickLabel',[],'YTickLabel',[],'zdir','reverse');
 
 % Make table with the number of traps and corresponding volumes as computed
 % by the node-based algorithm
@@ -90,7 +90,7 @@ plotCellData(Gt, pc_inv(ta.traps+1)-1, (ta.traps ~= 0), 'EdgeColor', 'k')
 view(-20,40); axis tight
 light('Position',[-1 -1 -1],'Style','infinite');lighting phong
 colorbar('horiz'); caxis([.5 6.5]);
-set(gca,'XTickLabel',[],'YTickLabel',[]);
+set(gca,'XTickLabel',[],'YTickLabel',[],'zdir','reverse');
 
 % Make table with the number of traps and corresponding volumes as computed
 % by the cell-based algorithm

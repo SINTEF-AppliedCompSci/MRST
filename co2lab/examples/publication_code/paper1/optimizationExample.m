@@ -106,7 +106,8 @@ clf;
 plotted = false(G.cells.num, 1);
 for i = 1:numel(trees)
     cells = ismember(res.traps, trees(i).traps);
-    plotCellData(G, repmat(v(i), G.cells.num, 1), cells & ~plotted);
+    plotCellData(G, repmat(v(i), G.cells.num, 1), cells & ~plotted, ...
+                 'EdgeColor','none');
     plotted = plotted | cells;
 end
 
@@ -139,7 +140,8 @@ subplot(1,2,2);
 plotted = false(G.cells.num, 1);
 for i = 1:numel(trees)
     cells = ismember(res.traps, trees(i).traps);
-    plotCellData(G, repmat(v(i), G.cells.num, 1), cells & ~plotted);
+    plotCellData(G, repmat(v(i), G.cells.num, 1), cells & ~plotted, ...
+                 'EdgeColor','none');
     plotted = plotted | cells;
 end
 colormap(jet(128));
@@ -154,15 +156,16 @@ plotBar(treestart, trapcells, @(x) sprintf('%1.1f%%', perc(x)))
 
 subplot(1,2,1);
 for i=1:n
-   plotFacesNew(G,boundaryFaces(G,res.trap_regions==i), ...
+   plotFaces(G,boundaryFaces(G,res.trap_regions==i), ...
       'EdgeColor','none','FaceColor', .5*c(i,:)+.5*ones(1,3));
 end
-plotFacesNew(G,boundaryFaces(G,res.trap_regions==0), ...
+plotFaces(G,boundaryFaces(G,res.trap_regions==0), ...
    'EdgeColor','none','FaceColor', .85*ones(1,3));
 plotted = false(G.cells.num, 1);
 for i = 1:numel(trees)
     cells = ismember(res.traps, trees(i).traps);
-    plotCellData(G, repmat(v(i), G.cells.num, 1), cells & ~plotted);
+    plotCellData(G, repmat(v(i), G.cells.num, 1), cells & ~plotted, ...
+                 'EdgeColor', 'none');
     plotted = plotted | cells;
 end
 colormap(jet(128));
