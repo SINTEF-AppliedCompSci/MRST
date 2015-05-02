@@ -87,6 +87,9 @@ if usingShear
     shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
     vW        = vW .* shearMult;
     vP        = vP .* shearMult;
+    
+    % TODO: SHOULD WE ALSO ADJUST MOBILITIES? these are used in the well
+    % equations
 end
 
 if model.outputFluxes
@@ -132,6 +135,15 @@ polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
 eqs   = {water, oil, polymer};
 names = {'water', 'oil', 'polymer'};
 types = {'cell', 'cell', 'cell'};
+
+% TODO: % Fix for (almost) zero water in the well
+% if isa(poly, 'ADI')
+%    epsilon = 1.e-8;
+%    epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
+%    bad     = abs(diag(poly.jac{2})) < epsilon;
+%    poly(bad) = c(bad);
+% end
+
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
 [eqs, qBC, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
@@ -202,8 +214,6 @@ if ~isempty(W)
             rR = vertcat(W.rR);
             A  = rR.*dz*2*pi; % representative area of each well cell
             VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*A);
-            %VW0W = double(cqs{1})./( poro(wc).*A.*double(bW(wc)) );
-            %VW0W = double(cqs{1})./( poro(wc).*A );
             [shearMultW, VW1W] = getPolymerShearMultiplier(model, ...
                 VW0W, muWMultW);
             
@@ -242,8 +252,8 @@ if ~isempty(W)
         cqsPoly = Rw*(cqs{1}.*cw);
         eqs{6}  = qWPoly - cqsPoly;
         
+        % Save extra polymer welldata if requested
         if model.extraPolymerOutput
-            % Save extra polymer welldata if requested
             cqsPoly    = double(cqsPoly);
             if usingShear
                 shearMultW = double(shearMultW);
@@ -251,11 +261,11 @@ if ~isempty(W)
             for wnr = 1:numel(state.wellSol)
                 ix = perf2well == wnr;
                 state.wellSol(wnr).cqsPoly = cqsPoly(ix);
-                
                 if usingShear
                     state.wellSol(wnr).shearMult = shearMultW(ix);
 
-                    % TODO TEMP: More for debugging
+                    % We save many fields for debugging. Some of these may
+                    % be removed later.
                     state.wellSol(wnr).VW0 = VW0W(ix);
                     state.wellSol(wnr).VW1 = VW1W(ix);
                     tmp_bW = double(bW(wc));

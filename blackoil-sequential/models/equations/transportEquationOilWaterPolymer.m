@@ -23,6 +23,10 @@ G = model.G;
 % Polymer shear thinning/thickening
 usingShear = isfield(f, 'plyshearMult');
 
+%% TODO TEMP
+usingShear = false;
+%%
+
 assert(~(opt.solveForWater && opt.solveForOil));
 
 % Properties at current timestep
@@ -32,8 +36,6 @@ assert(~(opt.solveForWater && opt.solveForOil));
 % Properties at previous timestep
 [p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', ...
    'polymer', 'polymermax');
-
-wflux = sum(vertcat(wellSol.flux), 2);
 
 %Initialization of independent variables ----------------------------------
 
@@ -84,15 +86,9 @@ if model.extraStateOutput
     state = model.storeMobilities(state, mobW, mobO, mobP);
 end
 
-if model.extraPolymerOutput
-%     state = model.storeShearMultiplier(state, shearMult);
-%     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
-%     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
-%     state = model.storePolymerAdsorption(state, ads);
-%     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
-end
-
 if ~isempty(W)
+    
+    wflux = sum(vertcat(wellSol.flux), 2);
     perf2well = getPerforationToWellMapping(W);
     wc = vertcat(W.cells);
     
@@ -114,18 +110,11 @@ if ~isempty(W)
     bWqW = bW(wc).*f_w_w.*wflux;
     bOqO = bO(wc).*f_o_w.*wflux;
     
-    % Polymer injection
-%     cw = c(wc);
-%     wpoly = vertcat(W.poly);
-%     wpoly = wpoly(perf2well);
-%     cw(isInj) = wpoly(isInj);
-    
     % Polymer well equations
     [~, wciPoly, iInxW] = getWellPolymer(W);
     cw        = c(wc);
     cw(iInxW) = wciPoly;
-    
-    bWqP = cw.*bWqW;
+    bWqP      = cw.*bWqW;
     
     if usingShear
         % Compute shear rate multiplier for wells
@@ -193,8 +182,6 @@ mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 mobPf = s.faceUpstr(upcw, mobP);
 
-
-%% TEMP TODO TEST
 % Change velocitites due to polymer shear thinning / thickening
 if usingShear
     poroFace  = s.faceAvg(model.rock.poro);
@@ -205,11 +192,21 @@ if usingShear
     mobWf     = mobWf .* shearMult;
     mobPf     = mobPf .* shearMult;
 end
-%%
+
+if model.extraPolymerOutput
+    state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
+    state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
+    state = model.storePolymerAdsorption(state, ads);
+    state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
+%     if usingShear
+%         state = model.storeShearMultiplier(state, shearMult);
+%     end
+end
 
 totMob = (mobOf + mobWf);
 totMob = max(totMob, sqrt(eps));
 
+% Use concervation equation either for water or for oil
 if opt.solveForWater
     f_w = mobWf./totMob;
     bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Gw - Go));

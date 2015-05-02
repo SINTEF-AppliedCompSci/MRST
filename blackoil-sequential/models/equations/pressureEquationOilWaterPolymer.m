@@ -12,7 +12,6 @@ opt = merge_options(opt, varargin{:});
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 W = drivingForces.Wells;
-perf2well = getPerforationToWellMapping(W);
 s = model.operators;
 f = model.fluid;
 
@@ -114,11 +113,13 @@ if model.extraStateOutput
 end
 
 if model.extraPolymerOutput
-    state = model.storeShearMultiplier(state, shearMult);
     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
     state = model.storePolymerAdsorption(state, ads);
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
+    if usingShear
+        state = model.storeShearMultiplier(state, shearMult);
+    end
 end
 
 % EQUATIONS ---------------------------------------------------------------
@@ -138,6 +139,7 @@ wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
 % well equations
 if ~isempty(W)
+    perf2well = getPerforationToWellMapping(W);
     wm   = model.wellmodel;
     wc   = vertcat(W.cells);
     pw   = p(wc);
@@ -177,9 +179,9 @@ if ~isempty(W)
         [~, ~, dz] = cellDims(model.G, wc);
 
         rR = vertcat(W.rR);
-        VwW = double(bW(wc)).*double(cqs{1}) ./ ...
-              (model.rock.poro(wc).*rR.*dz*2*pi);
-        shearMultW = getPolymerShearMultiplier(model, VwW, muWMultW);
+        A  = rR.*dz*2*pi; % representative area of each well cell
+        VW0W = double(bW(wc)).*double(cqs{1}) ./ (model.rock.poro(wc).*A);
+        shearMultW = getPolymerShearMultiplier(model, VW0W, muWMultW);
 
         % Apply shear multiplier to water
         mw{1} = mw{1}.*shearMultW;
