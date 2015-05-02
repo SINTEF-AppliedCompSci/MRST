@@ -100,11 +100,13 @@ if model.extraStateOutput
 end
 
 if model.extraPolymerOutput
-    state = model.storeShearMultiplier(state, shearMult);
     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
     state = model.storePolymerAdsorption(state, ads);
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
+    if usingShear
+        state = model.storeShearMultiplier(state, shearMult);
+    end
 end
 
 
@@ -193,10 +195,17 @@ if ~isempty(W)
             % IMPROVED HERE LATER
             [~, ~, dz] = cellDims(model.G, wc);
             
+            % TODO TEMP
+            cqsW0 = double(cqs{1});
+            mobW0 = double(mw{1});
+            
             rR = vertcat(W.rR);
             A  = rR.*dz*2*pi; % representative area of each well cell
             VW0W = double(bW(wc)).*double(cqs{1})./(poro(wc).*A);
-            shearMultW = getPolymerShearMultiplier(model, VW0W, muWMultW);
+            %VW0W = double(cqs{1})./( poro(wc).*A.*double(bW(wc)) );
+            %VW0W = double(cqs{1})./( poro(wc).*A );
+            [shearMultW, VW1W] = getPolymerShearMultiplier(model, ...
+                VW0W, muWMultW);
             
             % Apply shear velocity multiplier
             mw{1} = mw{1}.*shearMultW;
@@ -236,11 +245,30 @@ if ~isempty(W)
         if model.extraPolymerOutput
             % Save extra polymer welldata if requested
             cqsPoly    = double(cqsPoly);
-            shearMultW = double(shearMultW);
+            if usingShear
+                shearMultW = double(shearMultW);
+            end
             for wnr = 1:numel(state.wellSol)
                 ix = perf2well == wnr;
                 state.wellSol(wnr).cqsPoly = cqsPoly(ix);
-                state.wellSol(wnr).shearMult = shearMultW(ix);
+                
+                if usingShear
+                    state.wellSol(wnr).shearMult = shearMultW(ix);
+
+                    % TODO TEMP: More for debugging
+                    state.wellSol(wnr).VW0 = VW0W(ix);
+                    state.wellSol(wnr).VW1 = VW1W(ix);
+                    tmp_bW = double(bW(wc));
+                    state.wellSol(wnr).bW = tmp_bW(ix);
+                    cqsW1 = double(cqs{1});
+                    state.wellSol(wnr).cqsW0 = cqsW0(ix);
+                    state.wellSol(wnr).cqsW1 = cqsW1(ix);
+                    state.wellSol(wnr).mobW0 = mobW0(ix);
+                    mobW1 = double(mw{1});
+                    state.wellSol(wnr).mobW1 = mobW1(ix);
+                    muWMultW = double(muWMultW);
+                    state.wellSol(wnr).muWMult = muWMultW(ix);
+                end
             end
         end
         
@@ -323,5 +351,6 @@ function [dx, dy, dz] = cellDims(G, ix)
        end
     end
 end
+
 
 
