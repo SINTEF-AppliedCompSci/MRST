@@ -130,8 +130,8 @@ function state = setFluxes(state, CG, T, fluid, A, rhs, pressure, recover, opt, 
         end
         state.flux = flux;
         state.reconstructedPressure = sp(1:G.cells.num);
-        if isfield(state_o, 'wellSol')
-            state.wellSol = state_o.wellSol;
-        end
+%         if isfield(state_o, 'wellSol')
+%             state.wellSol = state_o.wellSol;
+%         end
     end
 end
