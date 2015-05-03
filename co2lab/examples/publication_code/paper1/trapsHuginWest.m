@@ -25,9 +25,9 @@ Gt = topSurfaceGrid(G);
 clear cntrd cDims;
 
 % Initialize plotting
-clf; 
+clf;
 fcol   = get(gcf,'Color');
-map    = (1*hsv(6) + 1.5*repmat(fcol, 6, 1))./2.5; 
+map    = (1*hsv(6) + 1.5*repmat(fcol, 6, 1))./2.5;
 map    = map([1 1:end],:); map(1,:) = fcol;
 p      = get(gcf,'Position'); set(gcf,'Position', [p(1:2) 840 420]);
 
@@ -53,9 +53,9 @@ plotCellData(Gt, pn_inv(ta.traps+1)-1, (ta.traps ~= 0), 'EdgeColor', 'k')
 % Fix axis, set light and colorbar
 view(-20,40); axis tight
 light('Position',[-1 -1 -1],'Style','infinite');lighting phong
-colormap(hsv(6)); 
+colormap(hsv(6));
 colorbar('horiz'); caxis([.5 6.5]);
-set(gca,'XTickLabel',[],'YTickLabel',[],'zdir','reverse');
+set(gca,'XTickLabel',[],'YTickLabel',[]);
 
 % Make table with the number of traps and corresponding volumes as computed
 % by the node-based algorithm
@@ -90,13 +90,13 @@ plotCellData(Gt, pc_inv(ta.traps+1)-1, (ta.traps ~= 0), 'EdgeColor', 'k')
 view(-20,40); axis tight
 light('Position',[-1 -1 -1],'Style','infinite');lighting phong
 colorbar('horiz'); caxis([.5 6.5]);
-set(gca,'XTickLabel',[],'YTickLabel',[],'zdir','reverse');
+set(gca,'XTickLabel',[],'YTickLabel',[]);
 
 % Make table with the number of traps and corresponding volumes as computed
 % by the cell-based algorithm
 tcc = accumarray(ta.traps+1,1);
 tvc = volumesOfTraps(Gt,ta,1:6);
 fprintf('\n\nCell-based method:\n');
-fprintf('Trap     ');  fprintf('& %7d ', 1:6); fprintf('\\\\\\hline\n');
+fprintf('Trap     '); fprintf('& %7d ', 1:6); fprintf('\\\\\\hline\n');
 fprintf('Cells    '); fprintf('& %7d ', tcc(pc(2:end)+1)); fprintf('\\\\\n');
 fprintf('Volume   '); fprintf('& %4.1e ',tvc(pc(2:end))); fprintf('\\\\\\hline\n\n');
