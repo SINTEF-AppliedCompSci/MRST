@@ -159,7 +159,9 @@ if size(data, 1) < G.cells.num,
 end
 if isCoarseGrid(G), G = G.parent; end
 h = plotPatches(G, f, data(c, :), 'EdgeColor', [0.4, 0.4, 0.4], varargin{:});
-if G.griddim==3, set(get(h, 'Parent'), 'ZDir', 'reverse'), end;
+if G.griddim==3 || isfield(G.cells,'z'), 
+   set(get(h, 'Parent'), 'ZDir', 'reverse'),
+end;
 
 if nargout > 0, varargout{1} = h; end
 end
