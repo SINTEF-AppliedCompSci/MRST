@@ -71,6 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             examples(i) = ex;
         end
     end
+    if nex==0, examples = {}; end
     
     if nargout > 0
         varargout{1} = examples;
@@ -80,7 +81,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function s = infostruct(name)
-    v = strsplit(name, ':');
+    v = regexp(name, ':', 'split');
     if numel(v) == 1
         % Example is a part of core
         module = '';
