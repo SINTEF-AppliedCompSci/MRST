@@ -18,7 +18,7 @@
 % </html>
 try
     require incomp
-catch
+catch %#ok<CTCH>
     mrstModule add incomp
 end
 %% Construct simple Cartesian test case

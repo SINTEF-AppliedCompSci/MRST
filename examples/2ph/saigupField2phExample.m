@@ -22,7 +22,7 @@
 % faults and inactive cells. </html>
 try
     require incomp
-catch
+catch %#ok<CTCH>
     mrstModule add incomp
 end
 %% Decide which linear solver to use

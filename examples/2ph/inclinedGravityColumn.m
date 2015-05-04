@@ -3,7 +3,7 @@
 % a heavier fluid (brine) inside an inclined sandbox.
 try
     require incomp
-catch
+catch %#ok<CTCH>
     mrstModule add incomp
 end
 

@@ -26,7 +26,7 @@
 % </html>
 try
     require incomp
-catch
+catch %#ok<CTCH>
     mrstModule add incomp
 end
 %% Check for existence of input model data

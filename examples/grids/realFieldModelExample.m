@@ -188,9 +188,9 @@ subplot('position',[0.025 0.025 0.95 0.95])
 % the neighbouring blocks
 % * a cellFaces array as in the fine-grid structure
 CG = generateCoarseGrid(G, blockIx);
-CG             %#ok  (intentional display)
-CG.cells       %#ok  (intentional display)
-CG.faces       %#ok  (intentional display)
+CG             %#ok<NOPTS> (intentional display)
+CG.cells       %  (intentional display)
+CG.faces       %  (intentional display)
 
 %%
 % Let us now use CG to inspect some of the blocks in the coarse grid. To

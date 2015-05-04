@@ -223,8 +223,8 @@ end
 % * a cellFaces array as in the fine-grid structure
 CG = generateCoarseGrid(G, blockIx);
 CG             %#ok  (intentional display)
-CG.cells       %#ok  (intentional display)
-CG.faces       %#ok  (intentional display)
+CG.cells       %  (intentional display)
+CG.faces       %  (intentional display)
 
 %%
 % Let us now use CG to inspect some of the blocks in the coarse grid. To
