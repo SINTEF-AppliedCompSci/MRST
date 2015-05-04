@@ -8,7 +8,7 @@
 % their neighbors.
 try
    require coarsegrid
-catch
+catch %#ok<CTCH>
    mrstModule add coarsegrid
 end
 

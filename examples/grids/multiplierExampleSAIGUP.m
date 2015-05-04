@@ -32,7 +32,7 @@ clear
 
 try
    require mimetic incomp deckformat
-catch
+catch %#ok<CTCH>
    mrstModule add mimetic incomp deckformat
 end
 

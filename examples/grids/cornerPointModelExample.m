@@ -4,7 +4,7 @@
 % with a single fault, which can be realized in different resolutions.
 try
    require coarsegrid
-catch
+catch  %#ok<CTCH>
    mrstModule add coarsegrid
 end
 

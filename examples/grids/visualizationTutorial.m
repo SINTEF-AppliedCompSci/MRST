@@ -5,7 +5,7 @@
 % included in MRST.
 try
     require incomp
-catch
+catch %#ok<CTCH>
     mrstModule add incomp
 end
 
