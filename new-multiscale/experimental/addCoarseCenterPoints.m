@@ -3,6 +3,8 @@ function CG = addCoarseCenterPoints(CG, varargin)
                  'centerOverride',    [], ...
                  'adjustDims',        1:CG.parent.griddim, ...
                  'edgeBoundaryCenters', true);
+    opt = merge_options(opt, varargin{:});
+    
     G = CG.parent;
     if opt.adjustCenters
         blockPts = zeros(CG.cells.num, G.griddim);
