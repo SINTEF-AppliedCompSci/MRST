@@ -75,6 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'iterations',  0,...
                  'tolerance',   1e-6, ...
                  'useGMRES',    false, ...
+                 'eliminateWells', false, ...
                  'LinSolve',    @mldivide, ...
                  'reconstruct', true);
     [opt, incompOpt] = merge_options(opt, varargin{:});
@@ -82,22 +83,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     G = CG.parent;
     nc = G.cells.num;
     
-    [A, q] = getSystemIncompTPFA(state, G, T, fluid, incompOpt{:});
-    
+    [A, q] = getSystemIncompTPFA(state, G, T, fluid, incompOpt{:});    
     if numel(q) > nc
-        [A, q, A_ww, A_wp, q_w] = eliminateWellEquations(A, q, nc);
-        
-        recover = @(p) recoverWellSolution(A_ww, A_wp, q_w, p);
+        if opt.eliminateWells
+            % Solve reduced system for wells
+            [A, q, A_ww, A_wp, q_w] = eliminateWellEquations(A, q, nc);
+
+            recover = @(p) recoverWellSolution(A_ww, A_wp, q_w, p);
+        else
+            % Add degrees of freedom corresponding to wells on coarse scale
+            nw = numel(q) - nc;
+            Bw = speye(nw, nw);
+            rm = sparse(nc, nw);
+            rw = sparse(nw, CG.cells.num);
+            basis.B = [basis.B, rm; rw, Bw];
+            basis.R = [basis.R, rw'; rm', Bw'];
+            CG.partition = [CG.partition; (1:nw)' + max(CG.partition)];
+            recover = @(p) p;
+        end
     else
         recover = @(p) p;
     end
-    
+        
     [p_ms, report] = solveMultiscaleIteratively(A, q, basis, opt.getSmoother, ...
                                                              opt.tolerance,...
                                                              opt.iterations, ...
                                                              opt.LinSolve, ...
                                                              opt.useGMRES);
-
     
     state = setFluxes(state, CG, T, fluid, A, q, p_ms, recover, opt, incompOpt);
     
@@ -130,8 +142,12 @@ function state = setFluxes(state, CG, T, fluid, A, rhs, pressure, recover, opt, 
         end
         state.flux = flux;
         state.reconstructedPressure = sp(1:G.cells.num);
-%         if isfield(state_o, 'wellSol')
-%             state.wellSol = state_o.wellSol;
-%         end
+        
+        tmp = struct('Wells', []);
+        [tmp, ~] = merge_options(tmp, incompOpt{:});
+        if ~isempty(tmp.Wells)
+            isBHP = arrayfun(@(x) strcmpi(x.type, 'bhp'), tmp.Wells);
+            state.wellSol(isBHP) = state_o.wellSol(isBHP);
+        end
     end
 end
