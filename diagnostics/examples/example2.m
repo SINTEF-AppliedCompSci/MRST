@@ -83,7 +83,7 @@ for i=1:numel(D.prod)
 end
 
 %% Look at individual completions
-% To llok more closely at the performance of the different completions
+% To look more closely at the performance of the different completions
 % along the well path, we can divide the completion intervals into bins and
 % assign a corresponding set of pseudo wells for which we recompute flow
 % diagnostics. As an example, we split the completions of I1 into three
