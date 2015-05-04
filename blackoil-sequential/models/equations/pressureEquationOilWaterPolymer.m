@@ -191,11 +191,17 @@ if ~isempty(W)
         % in the z direction 
         % IMPROVED HERE LATER
         [~, ~, dz] = cellDims(model.G, wc);
-
+        
+        if model.extraPolymerOutput
+            cqsW0 = double(cqs{1});
+            mobW0 = double(mw{1});
+        end
+        
         rR = vertcat(W.rR);
         A  = rR.*dz*2*pi; % representative area of each well cell
         VW0W = double(bW(wc)).*double(cqs{1}) ./ (model.rock.poro(wc).*A);
-        shearMultW = getPolymerShearMultiplier(model, VW0W, muWMultW);
+        [shearMultW, VW1W] = getPolymerShearMultiplier(model, VW0W, ...
+            muWMultW);
 
         % Apply shear multiplier to water
         mw{1} = mw{1}.*shearMultW;
@@ -218,7 +224,38 @@ if ~isempty(W)
     % multiplied with polymer concentration in that perforated cell.
     Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
         numel(W), numel(perf2well));
-    eqs{4} = qWPoly - Rw*(cqs{1}.*cw);
+    cqsPoly = Rw*(cqs{1}.*cw);
+    eqs{4}  = qWPoly - cqsPoly;
+    
+    % Save extra polymer welldata if requested
+    if model.extraPolymerOutput
+        cqsPoly    = double(cqsPoly);
+        if usingShear
+            shearMultW = double(shearMultW);
+        end
+        for wnr = 1:numel(state.wellSol)
+            ix = perf2well == wnr;
+            state.wellSol(wnr).cqsPoly = cqsPoly(ix);
+            if usingShear
+                state.wellSol(wnr).shearMult = shearMultW(ix);
+
+                % We save many fields for debugging. Some of these may
+                % be removed later.
+                state.wellSol(wnr).VW0 = VW0W(ix);
+                state.wellSol(wnr).VW1 = VW1W(ix);
+                tmp_bW = double(bW(wc));
+                state.wellSol(wnr).bW = tmp_bW(ix);
+                cqsW1 = double(cqs{1});
+                state.wellSol(wnr).cqsW0 = cqsW0(ix);
+                state.wellSol(wnr).cqsW1 = cqsW1(ix);
+                state.wellSol(wnr).mobW0 = mobW0(ix);
+                mobW1 = double(mw{1});
+                state.wellSol(wnr).mobW1 = mobW1(ix);
+                muWMultW = double(muWMultW);
+                state.wellSol(wnr).muWMult = muWMultW(ix);
+            end
+        end
+    end
     
     names(2:5) = {'oilWells', 'waterWells', 'polymerWells', ...
         'closureWells'};

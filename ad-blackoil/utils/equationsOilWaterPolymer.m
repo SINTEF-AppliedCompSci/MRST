@@ -193,9 +193,10 @@ if ~isempty(W)
             % IMPROVED HERE LATER
             [~, ~, dz] = cellDims(model.G, wc);
             
-            % TODO TEMP
-            cqsW0 = double(cqs{1});
-            mobW0 = double(mw{1});
+            if model.extraPolymerOutput
+                cqsW0 = double(cqs{1});
+                mobW0 = double(mw{1});
+            end
             
             rR = vertcat(W.rR);
             A  = rR.*dz*2*pi; % representative area of each well cell
