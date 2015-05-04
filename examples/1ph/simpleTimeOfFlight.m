@@ -13,7 +13,7 @@
 % flux field.
 try
     require incomp diagnostics
-catch
+catch %#ok<CTCH>
     mrstModule add incomp diagnostics
 end
 %% Setup model

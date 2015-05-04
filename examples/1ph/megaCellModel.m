@@ -27,7 +27,7 @@ G = cartGrid([nx, ny, nz], [10, 10, 4]);
 % to computeGeometry(G)
 try
    require libgeometry incomp
-catch
+catch %#ok<CTCH>
    mrstModule add libgeometry incomp
 end
 G = mcomputeGeometry(G);

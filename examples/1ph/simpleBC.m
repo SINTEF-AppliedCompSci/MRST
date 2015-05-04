@@ -19,7 +19,7 @@
 % simulation results.
 try
     require incomp
-catch
+catch %#ok<CTCH>
     mrstModule add incomp
 end
 %% Define geometry

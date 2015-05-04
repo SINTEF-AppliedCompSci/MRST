@@ -24,7 +24,7 @@
 % on the grid structure, the structure used to hold the solutions, etc.
 try
     require incomp
-catch
+catch %#ok<CTCH>
     mrstModule add incomp
 end
 
