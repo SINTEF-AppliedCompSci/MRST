@@ -56,17 +56,20 @@ if usingShear
     vP        = vP .* shearMult;
 end
 
+
+extraOutput = [];
+if usingShear
+    % The shear multiplier is returned in any case, as it is needed in the
+    % sequential solver
+    extraOutput.shearMult = shearMult;
+end
+
 % Return extra output if requested
 if model.extraPolymerOutput
     extraOutput.muWeff = muWeff;
     muPeff = muWeff.*(a + (1-a)*cbar);
     extraOutput.muPeff = muPeff;
     extraOutput.Rk = Rk;
-    if usingShear
-        extraOutput.shearMult = shearMult;
-    end
-else
-    extraOutput = [];
 end
 
 end

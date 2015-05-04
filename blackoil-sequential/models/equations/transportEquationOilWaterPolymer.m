@@ -13,12 +13,14 @@ opt = struct('Verbose', mrstVerbose, ...
 
 opt = merge_options(opt, varargin{:});
 
-W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
+W = drivingForces.Wells;
 s = model.operators;
 f = model.fluid;
-G = model.G;
+
+% Polymer shear thinning/thickening
+usingShear = isfield(f, 'plyshearMult');
 
 assert(~(opt.solveForWater && opt.solveForOil));
 
@@ -89,6 +91,12 @@ if ~isempty(W)
     mobWw = mobW(wc);
     mobOw = mobO(wc);
     
+    if usingShear
+        % The shear multipliers from the pressure solver are used
+        shearMultW = vertcat(state.wellSol.shearMult);
+        mobWw = mobWw.*shearMultW;
+    end
+    
     totMobw = mobWw + mobOw;
 
     f_w_w = mobWw./totMobw;
@@ -143,6 +151,12 @@ upco  = flag(:, 2);
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 mobPf = s.faceUpstr(upcw, mobP);
+
+if usingShear
+    % The shear multipliers from the pressure solver are used
+    mobWf = mobWf.*state.shearMult;
+    mobPf = mobPf.*state.shearMult;
+end
 
 if model.extraPolymerOutput
     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);

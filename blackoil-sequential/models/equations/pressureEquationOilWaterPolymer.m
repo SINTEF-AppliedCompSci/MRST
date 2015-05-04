@@ -115,14 +115,16 @@ if model.extraStateOutput
     state = model.storeMobilities(state, mobW, mobO, mobP);
 end
 
+if usingShear
+    % The shear multipliers are stored for use in the transport solver
+    state = model.storeShearMultiplier(state, extraOutput.shearMult);
+end
+
 if model.extraPolymerOutput
     state = model.storeEffectiveWaterVisc(state, extraOutput.muWeff);
     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
     state = model.storePolymerAdsorption(state, ads);
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
-    if usingShear
-        state = model.storeShearMultiplier(state, extraOutput.shearMult);
-    end
 end
 
 % EQUATIONS ---------------------------------------------------------------
@@ -177,9 +179,9 @@ if ~isempty(W)
             % has gone down, we can get a peak in the bhp at the next
             % timestep if we set the shear multiplier to zero. Therefore,
             % we do not force the multiplier to zero the first timestep.
-            chinx = ([wellSol.poly_prev]>[W.poly])';
-            chinx = chinx(perf2well);
-            pinx  = pinx & ~chinx(iInxW);
+            polyRedInx  = ([wellSol.poly_prev]>[W.poly])';
+            polyRedWell = polyRedInx(perf2well);
+            pinx  = pinx & ~polyRedWell(iInxW);
         end
         muWMultW(iInxW(pinx)) = 1;
         
@@ -205,6 +207,7 @@ if ~isempty(W)
 
         % Apply shear multiplier to water
         mw{1} = mw{1}.*shearMultW;
+        
     end
     
     [cqs, weqs, ctrleqs, wc, state.wellSol, cqr] = ...
@@ -227,18 +230,23 @@ if ~isempty(W)
     cqsPoly = Rw*(cqs{1}.*cw);
     eqs{4}  = qWPoly - cqsPoly;
     
+    if usingShear
+        % Store well shear multipliers as these are needed in the transport
+        % solver
+        shearMultW = double(shearMultW);
+        for wnr = 1:numel(state.wellSol)
+            ix = perf2well == wnr;
+            state.wellSol(wnr).shearMult = shearMultW(ix);
+        end
+    end
+    
     % Save extra polymer welldata if requested
     if model.extraPolymerOutput
         cqsPoly    = double(cqsPoly);
-        if usingShear
-            shearMultW = double(shearMultW);
-        end
         for wnr = 1:numel(state.wellSol)
             ix = perf2well == wnr;
             state.wellSol(wnr).cqsPoly = cqsPoly(ix);
             if usingShear
-                state.wellSol(wnr).shearMult = shearMultW(ix);
-
                 % We save many fields for debugging. Some of these may
                 % be removed later.
                 state.wellSol(wnr).VW0 = VW0W(ix);
@@ -253,6 +261,12 @@ if ~isempty(W)
                 state.wellSol(wnr).mobW1 = mobW1(ix);
                 muWMultW = double(muWMultW);
                 state.wellSol(wnr).muWMult = muWMultW(ix);
+                
+                % Special flag (see above for this hack)
+                state.wellSol(wnr).shearFixFlag = false;
+                if isfield(wellSol, 'poly_prev')
+                    state.wellSol(wnr).shearFixFlag = polyRedWell(wnr);
+                end
             end
         end
     end
