@@ -77,7 +77,7 @@ clf
 zm = min(Ga.nodes.coords(:,3));
 zM = max(Ga.nodes.coords(:,3));
 
-plotCellData(Ga,Ga.cells.centroids(:,3),'FaceAlpha',.95);
+plotCellData(Ga,Ga.cells.centroids(:,3),'FaceAlpha',.95,'EdgeColor','none');
 plotGrid(Gf,'FaceColor','none','EdgeAlpha',.2,'EdgeColor','r');
 plotGrid(Gs,'FaceColor','none','EdgeAlpha',.4,'EdgeColor','k');
 axis tight, view(-62,60);
