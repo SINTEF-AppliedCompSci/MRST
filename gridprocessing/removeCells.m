@@ -140,7 +140,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           'Every grid must record its origin in the field ''type''.');
 
   % Alter geometry
-  if any(strcmp(G.type, 'computeGeometry'))
+  if or(any(strcmp(G.type, 'computeGeometry')), any(strcmp(G.type, 'mcomputeGeometry')))
       G.cells.centroids(cells,:) = [];
       G.cells.volumes(cells,:)   = [];
       G.faces.areas(ind)         = [];
