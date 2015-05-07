@@ -249,6 +249,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     phiPlot = []; % Used in plotPhi
     pwc_wch = []; % Used in plotWellConnections
     wah_fig = []; % plotWellAllocations
+    selection = []; % Selection of cells
+    tof_valid = false;
 
     % Precompute TOF etc.
 	pv = poreVolume(computeGrid, rock);
@@ -265,7 +267,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Create control panel
     createMainControl();
-
+    
     % Plot initial setup
     plotMain()
 
@@ -296,6 +298,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
+    function val = clamp_real(in_val)
+        val = max(-realmax, min(realmax, in_val));
+    end
+
+    function tofext = getTOFRange(D)
+        tof = D.tof(:);
+        isNeg = (tof <= 0);
+        tof(isNeg) = min(tof(~isNeg));
+
+        tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
+        tofext(2) = clamp_real(max(tofext(2), 15));
+    end
+
     function createMainControl()
         % Set up figure handles
         if ~ishandle(fig_ctrl)
@@ -311,7 +326,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function selectdata(datas, index, fullname)
             state_idx = index;
             computeValues();
-            tofext = getTOFRange(D);
             
             %Update main plot
             plotMain();
@@ -425,29 +439,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % TOF adjustment
         tofp = uipanel('Parent', fig_ctrl, 'Title', 'Range selector', 'Position', [0 0 1 .225]);
         
-        function tofext = getTOFRange(D)
-            if (all(isinf(D.tof)))
-                %Arbitrary selection of max here, as it really should have been Inf
-                %"realmax('double')" does not appear to work properly.
-                tofext = [0, realmax('single')]; 
-            else
-                tof = D.tof(:);
-                isNeg = tof <= 0;
-                tof(isNeg) = min(tof(~isNeg));
-
-                tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
-                tofext(2) = max(tofext(2), 15);
-            end
-        end
-        
-        tofext = getTOFRange(D);
-        
         tof_N = 5;
         tof_h = 1/tof_N;
-        [speedsh, speedeh] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution', []);
+        [speedsh, ~] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution', []);
         [mtofsh, mtofeh]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @plotMain);
         [Mtofsh, Mtofeh]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @plotMain);
-        [alfash, alfaeh]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha', @plotMain);
+        [alfash, ~]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha', @plotMain);
         
         % Set special functions for the min/max time of flight slider
         % handle
@@ -464,7 +461,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 set(mtofeh, 'String', sprintf('%.1f', cur_val));
             end
-            plotMain(src, event);
+            
+            %Only plot if src is nonempty (true callback)
+            if (~isempty(src))
+                plotMain(src, event);
+            end
         end
         
         function Mtofs_callback(src, event)
@@ -480,7 +481,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             else
                 set(Mtofeh, 'String', sprintf('%.1f', cur_val));
             end
-            plotMain(src, event);
+            
+            %Only plot if src is nonempty (true callback)
+            if (~isempty(src))
+                plotMain(src, event);
+            end
         end
         
         set(mtofsh, 'Callback', @mtofs_callback);
@@ -538,6 +543,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'String', 'Phi/F diagram',...
                    'Callback', @(src, event) plotPhi(src, event)...
                    );
+               
+        uicontrol(confp, 'Style', 'pushbutton',...
+                   'Units', 'normalized',...
+                   'Position', [0 + 1*bwidth bheight bwidth .5],...
+                   'String', 'Export to WS', ...
+                   'Callback', @saveDataToWorkSpace...
+                   );
+               
+        % Function which saves variables to the workspace on demand
+        function saveDataToWorkSpace(src, event)
+            indices = find(selection);
+            
+            labels = {'Sector model', 'Sector model (index map)'};
+            varnames = labels;
+            vars = {indices, computeGrid.cells.indexMap(indices)};
+            
+            %Clean the varnames of spaces
+            clean = @(x) lower(regexprep(x,'[^a-zA-Z0-9]','_'));
+            varnames = cellfun(@(x) clean(x), varnames, 'UniformOutput', false);
+
+            export2wsdlg(labels, varnames, vars)
+        end
 
         if opt.computeFlux
             uicontrol(confp, 'Style', 'pushbutton',...
@@ -563,6 +590,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    );
 
     end
+
 
     function plotMain(src, event)
 
@@ -602,7 +630,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         isubset = data >= min_tof & data <= max_tof;
 
         % Find the selection
-        selection = [];
         switch(get(hset_op, 'Value'))
             case 1
             selection = (isubset & isubs) | (psubset & psubs);
@@ -621,7 +648,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'EdgeColor', 'none', 'FaceAlpha', alpha);
         end
 
-
         fastRotateButton();
 
         % Plot wells
@@ -639,8 +665,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
 
         end
-         axis tight
-        if all(isfinite(clim)) && clim(2) > clim(1)
+        axis tight
+        if (clim(2) > clim(1))
+            caxis(clim);
+        else
+            clim(1) = clamp_real(clim(1)-eps(clim(1)));
+            clim(2) = clamp_real(clim(2)+eps(clim(1)));
             caxis(clim);
         end
     end
@@ -770,6 +800,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotPhi(src, event)
+        if (~tof_valid)
+            warning('It appears that the time of flight is invalid');
+            return
+        end
+        
         if isempty(phiPlot) || ~ishandle(phiPlot)
             phiPlot = figure();
         else
@@ -782,6 +817,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotWellAllocations(src, event)
+        if (~tof_valid)
+            warning('It appears that the time of flight is invalid');
+            return
+        end
+        
         if isempty(wah_fig) || ~ishandle(wah_fig)
             wah_fig = figure();
         else
@@ -792,6 +832,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotWellConnections(src, event)
+        if (~tof_valid)
+            warning('It appears that the time of flight is invalid');
+            return
+        end
+        
         if get(wctoggle, 'Value')
             if ishandle(fig_main)
                 set(0, 'CurrentFigure', fig_main);
@@ -804,7 +849,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 delete(pwc_wch)
                 pwc_wch = [];
             end
-            pwc_wch = plotWellPairConnections(G, WP, D, W{state_idx}, pv);
+            pwc_wch = plotWellPairConnections(computeGrid, WP, D, W{state_idx}, pv);
         else
 
             delete(pwc_wch)
@@ -818,24 +863,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         datanames = get(hdataset, 'String');
         clim = [];
         cmap = 'jet';
+        
         switch lower(datanames{dataind})
             case 'forward tof'
                 cdata = log10(D.tof(:,1));
-                clim = log10(convertFrom(tofext, year));
+                clim = log10(clamp_real(convertFrom(tofext, year)));
             case 'backward tof'
                 cdata = log10(D.tof(:,2));
-                clim = log10(convertFrom(tofext, year));
+                clim = log10(clamp_real(convertFrom(tofext, year)));
             case 'sum of tofs'
                 data = sum(D.tof(:,1:2), 2);
                 cdata = log10(data);
-                clim = log10(convertFrom([min(data), tofext(2)], year));
+                clim = log10(clamp_real(convertFrom([min(data), tofext(2)], year)));
             case 'drainage region'
                 cmap = 'gray';
                 cdata = D.ppart;
-                clim = [1, max(D.ppart)];
+                clim = clamp_real([1, max(D.ppart)]);
             case 'flooding region'
                 cdata = D.ipart;
-                clim = [1, max(D.ipart)];
+                clim = clamp_real([1, max(D.ipart)]);
             case 'porosity'
                 cdata = rock.poro;
             case 'x permeability'
@@ -877,10 +923,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         tf = D.tof(:);
         if (all(isinf(tf)))
             warning('Time of flight returned inf. Are there both active injectors and producers present?')
+            
+            %Replace Inf with a very large number instead
+            D.tof = repmat(realmax, size(D.tof));
+            tof_valid = false;
+            tofext = [0, realmax];
         else
             D.tof(isinf(D.tof)) = max(tf(isfinite(tf)));
             WP = computeWellPairs(rS, computeGrid, rock, W{state_idx}, D);
+            tof_valid = true;
+            tofext = getTOFRange(D);
         end
+        
     end
 
     function changeWells()
