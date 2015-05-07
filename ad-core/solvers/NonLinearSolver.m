@@ -413,7 +413,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
         if converged
             break
         end
-        if failure || model.stepFunctionIsLinear
+        if failure
             break
         end
 

@@ -134,13 +134,13 @@ methods
         % Minimum number of iterations can be prescribed, i.e. we
         % always want at least one set of updates regardless of
         % convergence criterion.
-        convergence = convergence & iteration > nonlinsolve.minIterations;
+        doneMinIts = iteration > nonlinsolve.minIterations;
 
         % Defaults
         failureMsg = '';
         failure = false;
         [linearReport, updateReport] = deal(struct());
-        if (~convergence && ~onlyCheckConvergence)
+        if (~(convergence && doneMinIts) && ~onlyCheckConvergence)
             % Get increments for Newton solver
             [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
 
@@ -156,12 +156,13 @@ methods
                 failureMsg = 'Linear solver produced non-finite values.';
             end
         end
+        isConverged = convergence || (model.stepFunctionIsLinear && doneMinIts);
         report = model.makeStepReport(...
                         'LinearSolver', linearReport, ...
                         'UpdateState',  updateReport, ...
                         'Failure',      failure, ...
                         'FailureMsg',   failureMsg, ...
-                        'Converged',    convergence, ...
+                        'Converged',    isConverged, ...
                         'Residuals',    values);
     end
 
