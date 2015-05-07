@@ -56,6 +56,9 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %  'state' - Reservoir state containing fluid saturations and optionally
 %            flux and pressure (if 'computeFlux' is false)
 %
+%  'computeGrid' - Use G for plotting, but computeGrid for computing time
+%                  of flight etc.
+%
 %  'tracerfluid' - Fluid used for tracer computation. This defaults to a
 %            trivial fluid.
 %
@@ -143,6 +146,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     oilwater.names = {'Water', 'Oil', 'Gas'};
     
     opt = struct('state',               [],...
+                 'computeGrid',         [],...
                  'tracerfluid',         water, ...
                  'LinSolve',            @mldivide, ...
                  'computeFlux',         true, ...
@@ -166,6 +170,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if (isstruct(W))
         W = {W};
+    end
+    
+    %Create anonymous function for remapping
+    %values from the compute grid to fit the plotting grid G
+    cdataToPlotGrid = @(f) f;
+    wellsToPlotGrid = @(f) f;
+    computeGrid = G;
+    if (~isempty(opt.computeGrid))
+        assert(isfield(G.cells, 'eMap'), ...
+            'G must have an eMap field when using a separate computeGrid');
+        cdataToPlotGrid = @(cdata) cdata(G.cells.eMap);
+        wellsToPlotGrid = @(wells) remapWells(G, wells);
+        computeGrid = opt.computeGrid;
     end
         
     state = [];
@@ -234,7 +251,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wah_fig = []; % plotWellAllocations
 
     % Precompute TOF etc.
-    pv = poreVolume(G, rock);
+	pv = poreVolume(computeGrid, rock);
     computeValues();
     
     %Create main figure
@@ -294,7 +311,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function selectdata(datas, index, fullname)
             state_idx = index;
             computeValues();
-            tofext = adjustTOF(D);
+            tofext = getTOFRange(D);
             
             %Update main plot
             plotMain();
@@ -408,16 +425,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % TOF adjustment
         tofp = uipanel('Parent', fig_ctrl, 'Title', 'Range selector', 'Position', [0 0 1 .225]);
         
-        function tofext = adjustTOF(D)
-            tof = D.tof(:);
-            isNeg = tof <= 0;
-            tof(isNeg) = min(tof(~isNeg));
+        function tofext = getTOFRange(D)
+            if (all(isinf(D.tof)))
+                %Arbitrary selection of max here, as it really should have been Inf
+                %"realmax('double')" does not appear to work properly.
+                tofext = [0, realmax('single')]; 
+            else
+                tof = D.tof(:);
+                isNeg = tof <= 0;
+                tof(isNeg) = min(tof(~isNeg));
 
-            tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
-            tofext(2) = max(tofext(2), 15);
+                tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
+                tofext(2) = max(tofext(2), 15);
+            end
         end
         
-        tofext = adjustTOF(D);
+        tofext = getTOFRange(D);
         
         tof_N = 5;
         tof_h = 1/tof_N;
@@ -593,7 +616,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         % Plot selection
         if any(selection)
-            pm_mainph = plotCellData(G, cdata, selection, 'EdgeColor', 'none', 'FaceAlpha', alpha);
+            pm_mainph = plotCellData(G, ...
+                cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
+                'EdgeColor', 'none', 'FaceAlpha', alpha);
         end
 
 
@@ -602,10 +627,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Plot wells
         if ~all(ishandle([pm_htop, pm_htext, pm_hs])) || isempty([pm_htop, pm_htext, pm_hs])
 
-            [pm_htop, pm_htext, pm_hs, pm_hline] = plotWell(G, W{state_idx},  'color', 'red', 'height',  0);
+            [pm_htop, pm_htext, pm_hs, pm_hline] = ...
+                plotWell(G, wellsToPlotGrid(W{state_idx}), ...
+                    'color', 'red', 'height',  0);
             for i = 1:numel(W{state_idx})
                 color = colorizeWell('global', i, D);
-                set([pm_htop(i) pm_htext(i) pm_hs(i)],    'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
+                set([pm_htop(i) pm_htext(i) pm_hs(i)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
                 set([pm_htop(i) pm_hs(i)], 'FaceColor', color, 'EdgeColor', color)
                 set([pm_htext(i) pm_hline(i)], 'Color', color)
                 set(pm_htext(i), 'FontWeight', 'bold', 'Interpreter', 'none')
@@ -842,17 +869,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rS.pressure = state{state_idx}.pressure;
         end
         
-        D = computeTOFandTracer(rS, G, rock, 'wells', W{state_idx});
+        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W{state_idx});
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         
         % Cap tof to maximum tof for unreachable areas for the time being
         tf = D.tof(:);
         if (all(isinf(tf)))
-            warning('Time of flight returned inf. Are there both injectors and producers present?')
+            warning('Time of flight returned inf. Are there both active injectors and producers present?')
         else
             D.tof(isinf(D.tof)) = max(tf(isfinite(tf)));
-            WP = computeWellPairs(rS, G, rock, W{state_idx}, D);
+            WP = computeWellPairs(rS, computeGrid, rock, W{state_idx}, D);
         end
     end
 
