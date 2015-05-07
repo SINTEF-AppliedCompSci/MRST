@@ -12,7 +12,7 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    opt.obj_fun = @(G, wellSols, states, schedule) ...
-                  leak_penalizer(G, wellSols, states, schedule, opt.leak_penalty);
+                  leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty);
    
    opt = merge_options(opt, varargin{:});
    
@@ -64,6 +64,50 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    optim.obj_val_total = cumsum(cell2mat(optim.obj_val_steps));
    
 end
+
+% ----------------------------------------------------------------------------
+
+function obj = leak_penalizer(model, wellSols, states, schedule, leak_penalty)
+% obj is here a cell array with one cell per timestep in the schedule
+   
+   pvol = model.G.cells.volumes .* model.rock.poro;
+   if isfield(model.fluid, 'pvMultR')
+      pvMult = @model.fluid.pvMultR;
+   else
+      pvMult = @(p) ones(size(p));
+   end
+   
+   numSteps = schedule.step.val;
+   assert(numel(states) == numSteps);
+   obj = repmat({[]}, numSteps, 1);
+
+   total_injected = 0;
+   previous_total_leaked = 0;
+   for step = 1:numSteps
+      st = states{step};
+      dt = schedule.step.val(step);
+      
+      inx = (vertcat(wellSols.sign) > 0); % @@ Check this!
+      qGs = vertcat(wellSols.qGs);
+      recently_injected = sum(qGs(inx)) * dt;
+      total_injected = total_injected + recently_injected;
+
+      total_in_place = sum(pvol .* pvMult(st.pressure) .* ...
+                           st.s(:,2) .* model.fluid.bG(st.pressure));
+
+      total_leaked = total_injected - total_in_place;
+      recently_leaked = total_leaked - previous_total_leaked;
+      previous_total_leaked = total_leaked;
+      
+      % Objective value for this timestep equals the amount injected during
+      % this step, less the amount leaked during the step multiplied by a
+      % weight. 
+      obj{step} = recently_injected - leak_penalty * recently_leaked;
+      
+   end
+   
+end
+
 
 % ----------------------------------------------------------------------------
 
