@@ -127,7 +127,7 @@ function state = setFluxes(state, CG, T, fluid, A, rhs, pressure, recover, opt, 
     state = setFlux(p_primal);
     
     if opt.reconstruct
-        sp = reconstructPressure(CG, pressure, A, rhs);
+        sp = reconstructPressure(CG.partition, pressure, A, rhs);
         sp = recover(sp);
         
         state_o = setFlux(sp);

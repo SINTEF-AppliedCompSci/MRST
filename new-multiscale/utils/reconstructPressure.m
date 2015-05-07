@@ -1,4 +1,4 @@
-function [p, solvetime] = reconstructPressure(CG, pressure, A, rhs)
+function [p, solvetime] = reconstructPressure(partition, pressure, A, rhs)
 % Solve reconstruction problem for multiscale methods
 
 %{
@@ -19,7 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    D = formReconstructionMatrix(A, CG.partition);
+    D = formReconstructionMatrix(A, partition);
     
     tmp1 = warning('query','MATLAB:nearlySingularMatrix');
     tmp2 = warning('query','MATLAB:singularMatrix');
