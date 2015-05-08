@@ -11,8 +11,8 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
             
             model = model@OilWaterPolymerModel(G, rock, fluid);
             
-            model.conserveWater = true;
-            model.conserveOil   = false;
+            model.conserveWater = false;
+            model.conserveOil   = true;
             
             model.staticUpwind  = false;
 
@@ -34,7 +34,8 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
                 varargin{:});
         end
         
-        function [convergence, values] = checkConvergence(model, problem, varargin)
+        function [convergence, values] = checkConvergence(model, ...
+                problem, varargin)
             
             % TODO: HACK
             % To use the convergence methods, we need to temporarily remove
