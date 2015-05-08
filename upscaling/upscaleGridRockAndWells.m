@@ -47,13 +47,15 @@ CG.cartDims=coarseDim;
 rock_cg.perm=upscalePerm(G,CG,rock);
 % upscale poro
 rock_cg.poro=accumarray(CG.partition,poreVolume(G,rock))./accumarray(CG.partition,G.cells.volumes);
-rock_cg.cr=cr;
+if isfield(rock, 'cr')
+   rock_cg.cr=rock.cr;
+end
 % make
 % only work for default arguments, may make more than one perforation
 % per cell
 W_cg =[];
 for i=1:numel(W)
-   W_cg = addWell(W_cg, CG, rock_cg, CG.partion(W(i).cells), ...
+   W_cg = addWell(W_cg, CG, rock_cg, CG.partition(W(i).cells), ...
                   'Comp_i', W(i).compi, 'type', W(i).type, ...
                   'val', W(i).val, 'InnerProduct', 'ip_simple');
 end
