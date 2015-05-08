@@ -687,6 +687,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         D_int.inj_sum = zeros(numel(W{1}),1);
         D_int.prod_sum = zeros(numel(W{1}),1);
         
+        %Find timestep sizes
+        times = cellfun(@(x) x.time, state);
+        times = [0; times];
+        dts = (times(2:end) - times(1:end-1)) / times(end);
+        
         %Accumulate tracer and subsets
         h = waitbar(0, 'Step 0');
         N = numel(W);
@@ -696,18 +701,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 continue;
             end
             
+            dt = dts(idx);
+            
             %Accumulate TOF and tracer values, etc
-            D_int.tof = D_int.tof + D.tof;
-            D_int.itracer = D_int.itracer + D.itracer;
-            D_int.ptracer = D_int.ptracer + D.ptracer;
-            D_int.inj_sum(D.inj) = D_int.inj_sum(D.inj) + 1;
-            D_int.prod_sum(D.prod) = D_int.prod_sum(D.prod) + 1;
+            D_int.tof = D_int.tof + dt*D.tof;
+            D_int.itracer = D_int.itracer + dt*D.itracer;
+            D_int.ptracer = D_int.ptracer + dt*D.ptracer;
+            D_int.inj_sum(D.inj) = D_int.inj_sum(D.inj) + dt;
+            D_int.prod_sum(D.prod) = D_int.prod_sum(D.prod) + dt;
             
             %Find the subset fulfilling current min/max values
             [isubset, psubset] = getSubset(D);
             
-            D_int.isubset = D_int.isubset + isubset;
-            D_int.psubset = D_int.psubset + psubset;
+            D_int.isubset = D_int.isubset + dt*isubset;
+            D_int.psubset = D_int.psubset + dt*psubset;
             
             waitbar(idx/N,h,['Step ', num2str(idx)])
         end
