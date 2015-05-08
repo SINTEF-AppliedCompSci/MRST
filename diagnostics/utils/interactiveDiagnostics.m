@@ -688,9 +688,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         D_int.prod_sum = zeros(numel(W{1}),1);
         
         %Find timestep sizes
-        times = cellfun(@(x) x.time, state);
-        times = [0; times];
-        dts = (times(2:end) - times(1:end-1)) / times(end);
+        if (isfield(state{1}, 'time'))
+            times = cellfun(@(x) x.time, state);
+            times = [0; times];
+            dts = (times(2:end) - times(1:end-1)) / times(end);
+        else
+            N = numel(W);
+            dt = 1/N;
+            dts = repmat(dt, N);
+        end
         
         %Accumulate tracer and subsets
         h = waitbar(0, 'Step 0');
@@ -737,8 +743,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if (compute_time_integral)
             window_name = 'Integral over time';
         else
-            name_idx = min(state_idx, numel(opt.name));
-            window_name = opt.name{name_idx};
+            if (numel(opt.name) == 1)
+                window_name = [opt.name{1}, ' timestep ', num2str(state_idx)];
+            else
+                window_name = opt.name{state_idx};
+            end
         end
         
         if(ishandle(fig_ctrl))
