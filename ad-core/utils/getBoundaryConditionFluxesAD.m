@@ -148,14 +148,14 @@ for i = 1:nPh
     subs = ~isP &  injNeu;
     if any(subs)
         % Injection
-        q(subs) = bBC(subs).*bc.value(subs).*sat(subs, i);
+        q(subs) = bc.value(subs).*sat(subs, i);
     end
     subs = ~isP & ~injNeu;
     if any(subs)
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
         f = mobBC(subs)./totMob(subs);
-        q(subs) = bBC(subs).*f.*bc.value(subs);
+        q(subs) = f.*bc.value(subs);
     end
     qSurf{i} = q;
 end

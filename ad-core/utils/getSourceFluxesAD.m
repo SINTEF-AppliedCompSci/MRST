@@ -69,19 +69,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         q = double2ADI(zeros(nsrc, 1), mob{i});
         
         if any(inj)
-            c = cells(inj);
             % Injection rates are given in reservoir conditions
-            q(inj) = b{i}(c).*src.rate(inj).*src.sat(inj, i);
+            q(inj) = src.rate(inj).*src.sat(inj, i);
         end
         
         if any(~inj)
             c = cells(~inj);
             sc = s{i}(c);
-            % Production rates are given in reservoir conditions. Use
-            % mobilities ratios to ensure that immobile fluids are not
+            % Use mobilities ratios to ensure that immobile fluids are not
             % removed from the reservoir.
             f = mob{i}(c)./totMob(c);
-            q(~inj) = b{i}(c).*f.*src.rate(~inj).*sc;
+            q(~inj) = f.*src.rate(~inj).*sc;
         end
         qSurf{i} = q;
     end
