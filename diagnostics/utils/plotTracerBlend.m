@@ -86,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    rgb = bsxfun(@plus, bsxfun(@times, 1 - w.^p, cmap(partition, :)), ...
                 w.^p .* bc);
 
-   h = plotCellData(G, rgb);
+   h = plotCellData(G, rgb, 'EdgeColor', 'none');
 
    if nargout > 0, varargout{1} = h; end
 end
