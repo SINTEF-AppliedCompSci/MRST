@@ -226,6 +226,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      wellPlot,...
      draintoggle,...
      floodtoggle,...
+     play_button,...
+     stop_button,...
      wctoggle,...
      speedsh,...
      mtofsh,...
@@ -236,7 +238,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      tofext,...
      hdataset,...
      hset_op,...
+     time_integral,...
      mrst_ds,...
+     ds_panel,...
      ni, np] = deal(NaN);
     
     % Setup "persistent" variables
@@ -250,14 +254,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     pwc_wch = []; % Used in plotWellConnections
     wah_fig = []; % plotWellAllocations
     selection = []; % Selection of cells
-    tof_valid = false;
+    
+    %State variables
+    compute_time_integral = false;
+    D_int = [];
+    window_name = opt.name{1};
 
-    % Precompute TOF etc.
+    % Precompute TOF etc. for creating main control
 	pv = poreVolume(computeGrid, rock);
-    computeValues();
+    computeValues(state_idx);
     
     %Create main figure
-    fig_main = figure('Name', opt.name{1});
+    fig_main = figure('Name', window_name);
     
     axis tight off
     if (~isempty(opt.daspect))
@@ -318,18 +326,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             size_xy = [475 550];
             pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
             fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none', 'CloseRequestFcn', @ctrl_close_func);
-            set(fig_ctrl, 'Name', ['Controller ', opt.name{1}]);
+            set(fig_ctrl, 'Name', ['Controller ', window_name]);
         else
             clf(fig_ctrl)
         end
         
         function selectdata(datas, index, fullname)
             state_idx = index;
-            computeValues();
+            computeValues(state_idx);
             
             %Update main plot
             plotMain();
-            plotWellConnections([], []);
             
             %Update aux plots
             if (ishandle(phiPlot))
@@ -359,15 +366,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             set(Mtofsh, 'Value', cur_M_val);
             %set(Mtofeh, 'String', num2str(cur_M_val));
             Mtofs_callback([], []);
-            
-            %Set name of windows
-            name_idx = min(state_idx, numel(opt.name));
-            if(ishandle(fig_ctrl))
-                set(fig_ctrl, 'Name', ['Controller ', opt.name{name_idx}]);
-            end
-            if(ishandle(fig_main))
-                set(fig_main, 'Name', opt.name{name_idx});
-            end
         end
         
         %Add time-varying dataset slider
@@ -395,7 +393,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 
             datasetSelector(G, selector_datasets, 'Parent', ds_panel, 'Location', ...
                 [0.4, 0, 0.6, 1], 'Callback', @selectdata, ...
-                'Setname', 'testing', 'active', 1, 'Nofields', true);
+                'active', 1, 'Nofields', true);
             mrst_ds = findobj('Tag', 'mrst-datasetselector');
             set(mrst_ds, 'BorderType', 'None');
         end
@@ -439,16 +437,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % TOF adjustment
         tofp = uipanel('Parent', fig_ctrl, 'Title', 'Range selector', 'Position', [0 0 1 .225]);
         
+        function dirtyPlotMain(src, event)
+            if (compute_time_integral)
+                D_int = [];
+            end
+            plotMain(src, event);
+        end
+        
         tof_N = 5;
         tof_h = 1/tof_N;
         [speedsh, ~] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution', []);
-        [mtofsh, mtofeh]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @plotMain);
-        [Mtofsh, Mtofeh]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @plotMain);
+        [mtofsh, mtofeh]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @dirtyPlotMain);
+        [Mtofsh, Mtofeh]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @dirtyPlotMain);
         [alfash, ~]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha', @plotMain);
         
         % Set special functions for the min/max time of flight slider
         % handle
         function mtofs_callback(src, event)
+            if (compute_time_integral)
+                D_int = [];
+            end
             min_val = get(mtofsh, 'Min');
             max_val = get(mtofsh, 'Max');
             cur_val = get(mtofsh, 'Value');
@@ -469,6 +477,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function Mtofs_callback(src, event)
+            if (compute_time_integral)
+                D_int = [];
+            end
             min_val = get(Mtofsh, 'Min');
             max_val = get(Mtofsh, 'Max');
             cur_val = get(Mtofsh, 'Value');
@@ -493,13 +504,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         set(Mtofsh, 'Callback', @Mtofs_callback);
         set(Mtofeh, 'String', num2str(+Inf))
 
-        uicontrol(tofp, 'Style', 'pushbutton',...
+        play_button = uicontrol(tofp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
                    'Position', [0 0, .2 1/tof_N],...
                    'String', 'Play TOF',...
                    'Callback', @(src, event) playBackTof(src, event)...
                    );
-        uicontrol(tofp, 'Style', 'pushbutton',...
+        stop_button = uicontrol(tofp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
                    'Position', [.2 0, .2 1/tof_N],...
                    'String', 'Stop TOF',...
@@ -513,7 +524,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         hdataset = uicontrol(confp, 'Style', 'popupmenu',...
                                     'Units', 'normalized',...
-                                    'Position', [.0 0 .475 1],...
+                                    'Position', [.0 0.55 .33 .4],...
                                     'Callback', @plotMain,...
                                     'String', {'Forward TOF',...
                                                'Backward TOF',...
@@ -524,29 +535,83 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                perm{1:size(rock.perm, 2)},...
                                                cellfields{:}}...
                                    );
+        %Options specific when using the integral over timesteps of the TOF
+        time_integral_options = {
+            'Forward TOF frequency',...
+            'Backward TOF frequency',...
+            'Sum TOF frequency'};
+        
         hset_op = uicontrol(confp, 'Style', 'popupmenu',...
                                    'Units', 'normalized',...
-                                   'Position', [.525 0 .475 1],...
+                                   'Position', [.34 0.55 .3 .4],...
                                    'Callback', @plotMain,...
                                    'String', {'Union {Flood, Drain} volumes',...
                                               'Intersection {Flood, Drain} volumes',...
                                               'Flood volumes',...
                                               'Drain volumes'}...
                                    );
+                               
+        function handleIntegralChange(src, event)            
+            %Check if we are to compute the integral over time
+            %or for an instantaneous snapshot.
+            if (ishandle(time_integral))
+                compute_time_integral = logical(get(time_integral, 'Value'));
+                if (compute_time_integral)
+                    set(ds_panel, 'Visible', 'off');
+                    set(play_button, 'Visible', 'off');
+                    set(stop_button, 'Visible', 'off');
+
+                    %Add new integral options
+                    old_options = get(hdataset, 'String');
+                    new_options = {old_options{:}, time_integral_options{:}};
+                    set(hdataset, 'String', new_options);
+                else
+                    set(ds_panel, 'Visible', 'on');
+                    set(play_button, 'Visible', 'on');
+                    set(stop_button, 'Visible', 'on');
+
+                    %Remove integral options
+                    options = get(hdataset, 'String');
+                    for idx=1:numel(time_integral_options)
+                        mask = ~ismember(options, time_integral_options{idx});
+                        options = options(mask);
+                    end
+                    set(hdataset, 'String', options);
+                    curr_val = get(hdataset, 'Value');
+                    if (curr_val > numel(options))
+                        set(hdataset, 'Value', 1);
+                    else
+                        set(hdataset, 'Value', curr_val);
+                    end
+                end
+            end
+            
+            plotMain(src, event);
+        end
+                               
+        %Control for showing / computing integral over time of e.g., TOF
+        if (ishandle(mrst_ds))
+            time_integral = uicontrol(confp, 'Style', 'checkbox',...
+                                       'Units', 'normalized',...
+                                       'Position', [.67 .55 .33 .4],...
+                                       'Callback', @handleIntegralChange,...
+                                       'String', 'Integrate over timesteps'...
+                                       );
+        end
+        
         bheight = .05;
         bwidth = .2;
 
-
         uicontrol(confp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
-                   'Position', [0 bheight bwidth .5],...
+                   'Position', [0 bheight bwidth .45],...
                    'String', 'Phi/F diagram',...
                    'Callback', @(src, event) plotPhi(src, event)...
                    );
                
         uicontrol(confp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
-                   'Position', [0 + 1*bwidth bheight bwidth .5],...
+                   'Position', [0 + 1*bwidth bheight bwidth .45],...
                    'String', 'Export to WS', ...
                    'Callback', @saveDataToWorkSpace...
                    );
@@ -569,7 +634,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.computeFlux
             uicontrol(confp, 'Style', 'pushbutton',...
                        'Units', 'normalized',...
-                       'Position', [0 + bwidth*2 bheight bwidth .5],...
+                       'Position', [0 + bwidth*2 bheight bwidth .45],...
                        'String', 'Edit wells',...
                        'Callback', @(src, event) changeWells()...
                        );
@@ -577,14 +642,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         wctoggle = uicontrol(confp, 'Style', 'togglebutton',...
                    'Units', 'normalized',...
-                   'Position', [0 + bwidth*3 bheight bwidth .5],...
+                   'Position', [0 + bwidth*3 bheight bwidth .45],...
                    'String', 'Well pairs',...
                    'Callback', @plotWellConnections...
                    );
                
         uicontrol(confp, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
-                   'Position', [0 + bwidth*4 bheight bwidth .5],...
+                   'Position', [0 + bwidth*4 bheight bwidth .45],...
                    'String', 'Well allocations',...
                    'Callback', @plotWellAllocations...
                    );
@@ -592,15 +657,92 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
 
+    function [isubset, psubset] = getSubset(D)
+        % Get current TOF settings
+        min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
+        max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
+        
+        % Drainage volumes
+        data = D.tof(:,2);
+        psubset = data >= min_tof & data <= max_tof;
+
+        % Flooding volumes
+        data = D.tof(:,1);
+        isubset = data >= min_tof & data <= max_tof;
+    end
+
+    function computeTimeIntegral()
+        %Initialize our integral of D over time
+        D_int.tof = zeros(size(D.tof));
+        D_int.itracer = zeros(size(D.itracer));
+        D_int.ptracer = zeros(size(D.ptracer));
+        D_int.ipart = zeros(size(D.ipart));
+        D_int.ppart = zeros(size(D.ppart));
+        
+        D_int.isubset = zeros(size(D.ipart));
+        D_int.psubset = zeros(size(D.ppart));
+        
+        D_int.inj_sum = zeros(numel(W{1}),1);
+        D_int.prod_sum = zeros(numel(W{1}),1);
+        
+        %Accumulate tracer and subsets
+        h = waitbar(0, 'Step 0');
+        N = numel(W);
+        for idx=1:N
+            [D, ~] = computeTOFAndTracerAndWellPairs(W{idx}, state{idx});
+            if (~D.isvalid)
+                continue;
+            end
+            
+            %Accumulate TOF and tracer values, etc
+            D_int.tof = D_int.tof + D.tof;
+            D_int.itracer = D_int.itracer + D.itracer;
+            D_int.ptracer = D_int.ptracer + D.ptracer;
+            D_int.inj_sum(D.inj) = D_int.inj_sum(D.inj) + 1;
+            D_int.prod_sum(D.prod) = D_int.prod_sum(D.prod) + 1;
+            
+            %Find the subset fulfilling current min/max values
+            [isubset, psubset] = getSubset(D);
+            
+            D_int.isubset = D_int.isubset + isubset;
+            D_int.psubset = D_int.psubset + psubset;
+            
+            
+            waitbar(idx/N,h,['Step ', num2str(idx)])
+        end
+        delete(h);
+        
+        %Now, partition the domain
+        [~,D_int.ipart] = max(D_int.itracer,[],2);
+        [~,D_int.ppart] = max(D_int.ptracer,[],2);
+        
+        %Determine which wells are injectors / producers.
+        injectors = D_int.inj_sum > D_int.prod_sum;
+        D_int.inj = find(injectors);
+        D_int.prod = find(~injectors);
+        
+        D_int.isvalid = true;
+    end
+
+
     function plotMain(src, event)
-
-        [cdata, clim, cmap] = selectDataset();
-
+        if (compute_time_integral)
+            window_name = 'Integral over time';
+        else
+            name_idx = min(state_idx, numel(opt.name));
+            window_name = opt.name{name_idx};
+        end
+        
+        if(ishandle(fig_ctrl))
+            set(fig_ctrl, 'Name', ['Controller ', window_name]);
+        end            
+            
         if ishandle(fig_main)
             set(0, 'CurrentFigure', fig_main);
         else
             fig_main = figure();
         end
+        set(fig_main, 'Name', window_name);
 
         if any(ishandle(pm_mainph))
             delete(pm_mainph);
@@ -610,26 +752,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pm_outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
             set(pm_outlineph, 'UserData', 'gridoutline');
         end
+        
+        %Get setting for drain/flood wells
+        drain_wells = get(draintoggle, 'Value');
+        flood_wells = get(floodtoggle, 'Value');
 
-        % Limit dataset based on tof
-        min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
-        max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
-
-        alpha   = get(alfash, 'Value');
-
-        % Drainage volumes
-        tmp = get(draintoggle, 'Value');
-        psubs = ismember(D.ppart, tmp);
-        data = D.tof(:,2);
-        psubset = data >= min_tof & data <= max_tof;
-
-        % Flooding volumes
-        tmp = get(floodtoggle, 'Value');
-        isubs = ismember(D.ipart, tmp);
-        data = D.tof(:,1);
-        isubset = data >= min_tof & data <= max_tof;
-
-        % Find the selection
+        %Check if we are to compute the integral over time
+        %or for an instantaneous snapshot.
+        if (compute_time_integral)
+            if (isempty(D_int))
+                computeTimeIntegral();
+            end
+            %Set D as the computed integral 
+            D = D_int;
+            isubset = D.isubset;
+            psubset = D.psubset;
+        else
+            computeValues(state_idx);
+            [isubset, psubset] = getSubset(D);
+        end
+        
+        psubs = ismember(D.ppart, drain_wells);
+        isubs = ismember(D.ipart, flood_wells);
+        
+        
+        % Use logical operation on the selection
         switch(get(hset_op, 'Value'))
             case 1
             selection = (isubset & isubs) | (psubset & psubs);
@@ -641,7 +788,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             selection = (psubset & psubs);
         end
         
-        % Plot selection
+        [cdata, clim, ~] = selectDataset();
+
+        alpha   = get(alfash, 'Value');
+
+        % Plot current selection
         if any(selection)
             pm_mainph = plotCellData(G, ...
                 cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
@@ -668,11 +819,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         axis tight
         if (clim(2) > clim(1))
             caxis(clim);
-        else
-            clim(1) = clamp_real(clim(1)-eps(clim(1)));
-            clim(2) = clamp_real(clim(2)+eps(clim(1)));
-            caxis(clim);
         end
+        
+        %Update plot of wells (if enabled)
+        plotWellConnections();
     end
 
     function playBackTof(src, event)
@@ -800,7 +950,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotPhi(src, event)
-        if (~tof_valid)
+        if (~D.isvalid)
             warning('It appears that the time of flight is invalid');
             return
         end
@@ -810,14 +960,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             set(0, 'CurrentFigure', phiPlot);
         end
-        set(phiPlot, 'Name', ['Phi/F diagram (', opt.name{name_idx}, ')']);
+        set(phiPlot, 'Name', ['Phi/F diagram (', window_name, ')']);
         [F,Phi] = computeFandPhi(pv,D.tof);
         plot(Phi,F,'.');
         title(sprintf('Lorenz coefficient: %f\n', computeLorenz(F,Phi)));
     end
 
     function plotWellAllocations(src, event)
-        if (~tof_valid)
+        if (~D.isvalid)
             warning('It appears that the time of flight is invalid');
             return
         end
@@ -827,17 +977,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             set(0, 'CurrentFigure', wah_fig);
         end
-        set(wah_fig, 'Name', ['Well allocations (', opt.name{name_idx}, ')']);
+        set(wah_fig, 'Name', ['Well allocations (', window_name, ')']);
         plotWellAllocationComparison(D, WP, [], []);
     end
 
-    function plotWellConnections(src, event)
-        if (~tof_valid)
-            warning('It appears that the time of flight is invalid');
-            return
-        end
-        
-        if get(wctoggle, 'Value')
+    function plotWellConnections(src, event)        
+        if get(wctoggle, 'Value')            
             if ishandle(fig_main)
                 set(0, 'CurrentFigure', fig_main);
             else
@@ -845,24 +990,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 axis tight off
                 plotMain();
             end
+            
             if any(ishandle(pwc_wch))
                 delete(pwc_wch)
                 pwc_wch = [];
             end
-            pwc_wch = plotWellPairConnections(computeGrid, WP, D, W{state_idx}, pv);
+            
+            if (D.isvalid)
+                pwc_wch = plotWellPairConnections(computeGrid, WP, D, W{state_idx}, pv);
+            else
+                return
+            end
         else
-
             delete(pwc_wch)
             pwc_wch = [];
         end
-
     end
 
     function [cdata, clim, cmap] = selectDataset()
         dataind = get(hdataset, 'Value');
         datanames = get(hdataset, 'String');
-        clim = [];
-        cmap = 'jet';
         
         switch lower(datanames{dataind})
             case 'forward tof'
@@ -890,9 +1037,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 cdata = log10(rock.perm(:,2));
             case 'z permeability'
                 cdata = log10(rock.perm(:,3));
+            case 'forward tof frequency'
+                cdata = D.psubset;
+            case 'backward tof frequency'
+                cdata = D.isubset;
+            case 'sum tof frequency'
+                cdata = D.isubset + D.psubset;
             otherwise
+                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
                 cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
+        
+        clim = [];
+        cmap = 'jet';
+        
         if isempty(clim)
             m = min(cdata(:));
             M = max(cdata(:));
@@ -901,40 +1059,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function computeValues()
+    function [D, WP] = computeTOFAndTracerAndWellPairs(W_step, state_step)
         if opt.computeFlux
-            rS = initState(G, W{state_idx}, 0);
+            rS = initState(G, W_step, 0);
             T  = computeTrans(G, rock);
-            rS = incompTPFA(rS, G, T, opt.tracerfluid, 'wells', W{state_idx}, 'LinSolve', opt.LinSolve);
+            rS = incompTPFA(rS, G, T, opt.tracerfluid, 'wells', W_step, 'LinSolve', opt.LinSolve);
         else
-            rS = initState(G, W{state_idx}, 0);
-            if isfield(state{state_idx}, 'wellSol')
-                rS.wellSol = state{state_idx}.wellSol;
+            rS = initState(G, W_step, 0);
+            if isfield(state_step, 'wellSol')
+                rS.wellSol = state_step.wellSol;
             end
-            rS.flux     = state{state_idx}.flux;
-            rS.pressure = state{state_idx}.pressure;
+            rS.flux     = state_step.flux;
+            rS.pressure = state_step.pressure;
         end
         
-        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W{state_idx});
+        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step);
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         
         % Cap tof to maximum tof for unreachable areas for the time being
         tf = D.tof(:);
         if (all(isinf(tf)))
-            warning('Time of flight returned inf. Are there both active injectors and producers present?')
-            
-            %Replace Inf with a very large number instead
-            D.tof = repmat(realmax, size(D.tof));
-            tof_valid = false;
-            tofext = [0, realmax];
+            D.isvalid = false;
+            WP = [];
         else
             D.tof(isinf(D.tof)) = max(tf(isfinite(tf)));
-            WP = computeWellPairs(rS, computeGrid, rock, W{state_idx}, D);
-            tof_valid = true;
+            D.isvalid = true;
+            WP = computeWellPairs(rS, computeGrid, rock, W_step, D);
+        end
+    end
+
+    function computeValues(idx)
+        [D, WP] = computeTOFAndTracerAndWellPairs(W{idx}, state{idx});
+
+        if (~D.isvalid || isempty(WP))
+            warning('Time of flight returned inf. Are there both active injectors and producers present?')
+            tofext = [0, realmax];
+        else
             tofext = getTOFRange(D);
         end
-        
     end
 
     function changeWells()
@@ -944,7 +1107,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function recomputeValues()
-        computeValues()
+        computeValues(state_idx)
         if ishandle(fig_main)
             close(fig_main)
         end
@@ -968,7 +1131,6 @@ function [sliderhandle, edithandle] = linkedSlider(parent, pos, fieldsize, ext, 
 
     edithandle = uicontrol(parent, 'Style', 'edit', 'Units', 'normalized', 'Value', defaultval, 'Position', [x + (1-fieldsize)*dims(1), y, fieldsize*dims(1) dims(2)], 'String', sprintf('%.1f', defaultval));
     sliderhandle = uicontrol(parent, 'Style', 'slider', 'Units', 'normalized', 'Position', [x + fieldsize*dims(1), y, (1-2*fieldsize)*dims(1) dims(2)], 'Min', minval, 'Max', maxval, 'Value', defaultval);
-    
     
     slidercallback2 = @(src, event) set(edithandle, 'String', sprintf('%.1f', get(src, 'Value')));
     editcallback2 = @(src, event) set(sliderhandle, 'Value', cap(sscanf(get(src, 'String'), '%f')));
