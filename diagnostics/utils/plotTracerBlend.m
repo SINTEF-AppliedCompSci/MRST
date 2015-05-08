@@ -31,6 +31,10 @@ function varargout = plotTracerBlend(G, partition, maxconc, varargin)
 %                     Default value: p = 1.  No special highlighting or
 %                     amplification of smearing regions.
 %
+%   'cells'   - List of cells as expected by plotCellData()
+%
+%   Any non-matching parameter is passed through to plotCellData(). 
+%
 % RETURNS:
 %   h - Patch handle as defined by function 'plotCellData'.  Only returned
 %       if specifically requested.
@@ -73,20 +77,24 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt  = struct('p', 1);
-   opt  = merge_options(opt, varargin{:});
+    opt = struct('p', 1, 'cells', []);
+    [opt, unrecognized] = merge_options(opt, varargin{:});
 
-   nreg = max(partition);
-   cmap = colorcube(max(nreg, 8));
+    nreg = max(partition);
+    cmap = colorcube(max(nreg, 8));
 
-   p   = opt.p;  if ~ (p > 0), p = 1; end
+    p   = opt.p;  if ~ (p > 0), p = 1; end
 
-   w   = min(max(2 * (1 - maxconc), 0), 1);
-   bc  = 0.5;
-   rgb = bsxfun(@plus, bsxfun(@times, 1 - w.^p, cmap(partition, :)), ...
+    w   = min(max(2 * (1 - maxconc), 0), 1);
+    bc  = 0.5;
+    rgb = bsxfun(@plus, bsxfun(@times, 1 - w.^p, cmap(partition, :)), ...
                 w.^p .* bc);
 
-   h = plotCellData(G, rgb, 'EdgeColor', 'none');
+    if (isempty(opt.cells))
+        h = plotCellData(G, rgb, 'EdgeColor', 'none', unrecognized{:});
+    else
+        h = plotCellData(G, rgb, opt.cells, 'EdgeColor', 'none', unrecognized{:});
+    end
 
-   if nargout > 0, varargout{1} = h; end
+    if nargout > 0, varargout{1} = h; end
 end

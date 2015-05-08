@@ -531,6 +531,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                'Sum of TOFs',...
                                                'Drainage region',...
                                                'Flooding region',...
+                                               'Drainage blend',...
+                                               'Flooding blend',...
                                                'Porosity', ...
                                                perm{1:size(rock.perm, 2)},...
                                                cellfields{:}}...
@@ -707,7 +709,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             D_int.isubset = D_int.isubset + isubset;
             D_int.psubset = D_int.psubset + psubset;
             
-            
             waitbar(idx/N,h,['Step ', num2str(idx)])
         end
         delete(h);
@@ -788,15 +789,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             selection = (psubset & psubs);
         end
         
-        [cdata, clim, ~] = selectDataset();
+        dataind = get(hdataset, 'Value');
+        [cdata, clim, ~] = selectDataset(dataind);
 
         alpha   = get(alfash, 'Value');
 
         % Plot current selection
         if any(selection)
-            pm_mainph = plotCellData(G, ...
-                cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
-                'EdgeColor', 'none', 'FaceAlpha', alpha);
+            if (dataind == 6 || dataind == 7)
+                pm_mainph = plotTracerBlend(G, ...
+                    cdataToPlotGrid(cdata{1}), ...
+                    cdataToPlotGrid(cdata{2}), ...
+                    'cells', cdataToPlotGrid(selection), ...
+                    'FaceAlpha', alpha);
+            else
+                pm_mainph = plotCellData(G, ...
+                    cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
+                    'EdgeColor', 'none', 'FaceAlpha', alpha);
+            end
         end
 
         fastRotateButton();
@@ -1007,9 +1017,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function [cdata, clim, cmap] = selectDataset()
-        dataind = get(hdataset, 'Value');
+    function [cdata, clim, cmap] = selectDataset(dataind)
         datanames = get(hdataset, 'String');
+        clim = [];
+        cmap = 'jet';
         
         switch lower(datanames{dataind})
             case 'forward tof'
@@ -1029,6 +1040,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'flooding region'
                 cdata = D.ipart;
                 clim = clamp_real([1, max(D.ipart)]);
+            case 'drainage blend'
+                cdata = {D.ppart, max(D.ptracer, [], 2)};
+                clim = [1, max(D.ipart)];
+            case 'flooding blend'
+                cdata = {D.ipart, max(D.itracer, [], 2)};
+                clim = [1, max(D.ipart)];
             case 'porosity'
                 cdata = rock.poro;
             case 'x permeability'
@@ -1047,9 +1064,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
                 cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
-        
-        clim = [];
-        cmap = 'jet';
         
         if isempty(clim)
             m = min(cdata(:));
