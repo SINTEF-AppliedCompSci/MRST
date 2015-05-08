@@ -26,7 +26,7 @@ if ~opt.resOnly,
     if ~opt.reverseMode,
         [p, sW, qWs, qOs, pBH] = initVariablesADI(p, sW, qWs, qOs, pBH);
     else
-        zw = zeros(size(bhp));
+        zw = zeros(size(pBH));
         [p0, sW0, zw, zw, zw] = initVariablesADI(p0, sW0, zw, zw, zw); %#ok
         clear zw
     end

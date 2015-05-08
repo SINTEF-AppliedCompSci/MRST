@@ -11,7 +11,7 @@
 %
 % We begin by defining a simple homogenous reservoir of 1 by 1 by 5 meters
 % and 250 simulation cells.
-mrstModule add ad-core ad-blackoil ad-props ad-fi mrst-gui
+mrstModule add ad-core ad-blackoil ad-props mrst-gui
 
 dims = [5 5 10]; 
 G = cartGrid(dims, [1, 1, 5]*meter);

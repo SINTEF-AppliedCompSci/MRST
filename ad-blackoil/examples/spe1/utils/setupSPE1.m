@@ -1,7 +1,7 @@
 function [G, rock, fluid, deck, state] = setupSPE1()
     % Read and process file.
-    current_dir = fileparts(mfilename('fullpath'));
-    fn    = fullfile(current_dir, 'odeh_adi.data');
+    pth = getDatasetPath('spe1');
+    fn  = fullfile(pth, 'BENCH_SPE1.DATA');
 
     deck = readEclipseDeck(fn);
 

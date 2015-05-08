@@ -9,9 +9,9 @@
 %
 
 try
-   require add ad-core ad-blackoil ad-fi deckformat
+   require add ad-core ad-blackoil ad-props deckformat optimization
 catch
-   mrstModule add ad-core ad-blackoil ad-fi deckformat
+   mrstModule add ad-core ad-blackoil ad-props deckformat optimization
 end
 
 current_dir = fileparts(mfilename('fullpath'));
@@ -51,7 +51,6 @@ state0.s(:,1) = 1 - state0.s(:,2);
 % Add zero polymer concentration to the state.
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = zeros(G.cells.num, 1);
-s = setupSimComp(G, rock, 'deck', deck);
 
 clf
 plotCellData(G, state0.s(:,2));

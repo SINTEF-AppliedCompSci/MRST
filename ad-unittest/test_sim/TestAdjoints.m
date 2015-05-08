@@ -4,7 +4,7 @@ classdef TestAdjoints < matlab.unittest.TestCase
     
     methods
         function test = TestAdjoints(varargin)
-            mrstModule add ad-unittest ad-blackoil ad-core
+            mrstModule add ad-unittest ad-blackoil ad-core optimization
         end
         
 

@@ -12,7 +12,8 @@ function schedule = makeScheduleConsistent(schedule, varargin)
 %   simulator output will be normalized and easier to work with.
 %
 % PARAMETERS:
-%   schedule - schedule to be improved upon.
+%   schedule - Schedule with possibly inconsistent numbers of wells and
+%              perforations.
 %
 % RETURNS:
 %   schedule - Equivialent schedule that is consistent in the well and cell
@@ -22,7 +23,7 @@ function schedule = makeScheduleConsistent(schedule, varargin)
 %   convertDeckScheduleToMRST
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -89,7 +89,7 @@ function [wellSols, states, schedulereport] = ...
 %   computeGradientAdjointAD, PhysicalModel
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -260,6 +260,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         schedulereport.SimulationTime = simtime;
         schedulereport.Failure = failure;
     end
+    fprintf('*** Simulation complete. Solved %d control steps in %s ***\n',...
+                                  nSteps, formatTimeRange((sum(simtime))));
 end
 
 function validateSchedule(schedule)
@@ -313,6 +315,6 @@ function disp_step_convergence(its, cputime)
    if its ~= 1, pl_it = 's'; else pl_it = ''; end
 
    fprintf(['Completed %d iteration%s in %2.2f seconds ', ...
-            '(%2.2fs per iteration)\n\n\n'], ...
+            '(%2.2fs per iteration)\n\n'], ...
             its, pl_it, cputime, cputime/its);
 end

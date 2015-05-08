@@ -1,4 +1,54 @@
 function wellSol = initWellSolAD(W, model, state0, wellSolInit)
+%Set up well solution struct for a automatic differentiation model
+%
+% SYNOPSIS:
+%   wellSol = initWellSolAD(W, model, state0);
+%   wellSol = initWellSolAD(W, model, state0, ws);
+%
+% DESCRIPTION:
+%   Create or extract the wellSol, and ensure that it contains the correct
+%   fields for advanced solvers with well limits and variable perforation
+%   counts. This function will first look for a explicitly passed wellSol
+%   to modify, then it will consider any wellSol residing in state0. If
+%   neither is found, it will attempt to construct one based on W.
+%
+% REQUIRED PARAMETERS:
+%   W          - Control well for which we are going to create a well
+%                solution structure.
+%
+%   model      - Subclass of ReservoirModel. Used to determine how many
+%                and which phases are present.
+%
+%   state0     - State, possibly with a wellSol given already (see
+%                initResSol/initState).
+%
+%   wellSolInit - Initial wellSol.
+%
+%
+% RETURNS:
+%   wellSol     - Well solution struct with additional fields ready for
+%                 simulation.
+%
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 wellSolGiven = (nargin == 4);
 
 if wellSolGiven

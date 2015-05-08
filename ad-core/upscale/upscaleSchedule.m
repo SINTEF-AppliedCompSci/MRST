@@ -1,8 +1,53 @@
 function schedule = upscaleSchedule(model, schedule, varargin)
+%Upscale a schedule to a coarser model
+%
+% SYNOPSIS:
+%   schedule = upscaleSchedule(model, schedule)
+%
+% REQUIRED PARAMETERS:
+%   model      - The coarse model the schedule is to be converted to.
+%                Assumed to be derived from the fine model used with
+%                schedule.
+%
+%   schedule   - Schedule to be upscaled.
+%
+% RETURNS:
+%   schedule   - Schedule upscaled for the coarse model.
+%
+% NOTE:
+%   DOES CURRENTLY ONLY SUPPORT WELLS, NOT BC OR SRC
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     opt = struct('wellUpscaleMethod', 'sum');
     opt = merge_options(opt, varargin{:});
 
     for i = 1:numel(schedule.control)
+        % Sources
+        if isfield(schedule.control(i), 'src')
+            assert(isempty(schedule.control(i).src), 'SRC is not supported yet');
+        end
+        % Boundary conditions
+        if isfield(schedule.control(i), 'bc')
+            assert(isempty(schedule.control(i).bc), 'BC is not supported yet');
+        end
+        % Wells
         W = schedule.control(i).W;
         W_coarse = [];
         for j = 1:numel(W)

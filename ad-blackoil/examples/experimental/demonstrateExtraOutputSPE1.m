@@ -1,7 +1,5 @@
-clear all
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil
-
-
+%%
+mrstModule add ad-props deckformat mrst-gui ad-core ad-blackoil
 [G, rock, fluid, deck, state] = setupSPE1();
 model = selectModelFromDeck(G, rock, fluid, deck);
 

@@ -1,5 +1,65 @@
-function [fh, inject] = plotWellSols(wellsols, varargin)
+function varargout = plotWellSols(wellsols, varargin)
+%Plot well solutions from AD-solvers
+%
+% SYNOPSIS:
+%   plotWellSols(wellSols, time);
+%   plotWellSols(wellSols);
+%
+% DESCRIPTION:
+%   Open interactive plotting interface for well solutions.
+%
+% REQUIRED PARAMETERS:
+%   wellSols - Cell array of NSTEP by 1, each containing a uniform struct
+%              array of well solution structures. For example, the first
+%              output from simulateScheduleAD. Can also be a cell array of
+%              such cell arrays, for comparing multiple simulation
+%              scenarios.
+%
+%  time     - (OPTIONAL) The time for each timestep. If not provided, the
+%             plotter will use step number as the x axis intead. If
+%             wellSols is a cell array of multiple datasets, time should
+%             also be a cell array, provided not all datasets use the same
+%             timesteps.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   'field'   -  Initial field for plotting (default: 'bhp').
+%
+%   'linestyles' - Cell array of line styles used for different datasets.
+%
+%   'markerstyles' - Marker array of line styles used for different
+%                    datasets. 
+%
+%   'datasetnames' - A cell array of dataset names used for the legend when
+%                    plotting multiple datasets.
+% RETURNS:
+%   fh     - figure handle to plotting panel
+%
+%   inject - function handle used to dynamically inject new datasets into
+%            the viewer (for example, from a running simulation). Same
+%            syntax as the base function, but does not support additional
+%            varargin.
+%
+% SEE ALSO:
+%   simulateScheduleAD
 
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     if mod(numel(varargin), 2) == 1
         timesteps = varargin{1};
         hasTimesteps = true;
@@ -422,6 +482,12 @@ function [fh, inject] = plotWellSols(wellsols, varargin)
         drawPlot([], []);
     end
     inject = @(ws, varargin) injectDataset(ws, varargin{:});
+    if nargout > 0
+        varargout{1} = fh;
+        if nargout > 1
+            varargout{2} = inject;
+        end
+    end
 end
 
 function [tit, d, yl] = getWellUnit(d, fld, usys)

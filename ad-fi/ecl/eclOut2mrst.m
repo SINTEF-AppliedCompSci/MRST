@@ -16,16 +16,21 @@ else
     zcorn  = grid.ZCORN.values;
 end
 
-actNum   = and(anGrid, init.PORV.values > 0);
+actNum   = int32(and(anGrid, init.PORV.values > 0));
 
 
 grdecl = struct('cartDims', cartDims, ...
                 'COORD'   , convertFrom(coord, u.length), ...
                 'ZCORN'   , convertFrom(zcorn, u.length), ...
                 'ACTNUM'  , actNum );
-
-G = processGRDECL(grdecl, 'SplitDisconnected', false);
-G = computeGeometry(G);
+try 
+    mrstModule add libgeometry mex opm_gridprocessing
+    G = mprocessGRDECL(grdecl, 'SplitDisconnected', false);
+    G = mcomputeGeometry(G);
+catch
+    G = processGRDECL(grdecl, 'SplitDisconnected', false);
+    G = computeGeometry(G);
+end
 G.cells.centroids(:,3) = convertFrom(init.DEPTH.values, u.length);
 G.PORV  = convertFrom(init.PORV.values(actNum), u.resvol);
 G.DX    = convertFrom(init.DX.values, u.length);

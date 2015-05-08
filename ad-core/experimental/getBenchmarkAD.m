@@ -1,5 +1,5 @@
 function [schedule, model, state0] = getBenchmarkAD(name)
-    mrstModule add deckformat ad-fi ad-core ad-blackoil
+    mrstModule add deckformat ad-fi ad-core ad-blackoil ad-props
     name = lower(name);
     gravity reset on
     switch name

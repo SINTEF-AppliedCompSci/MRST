@@ -55,7 +55,7 @@ function gradients = computeGradientAdjointAD(state0, states, model, schedule, g
 %   computeGradientPerturbationAD, simulateScheduleAD
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

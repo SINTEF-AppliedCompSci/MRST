@@ -31,7 +31,7 @@ function state = updateStateBlackOilGeneric(model, state, problem, dx, drivingFo
 %   state - Updated state.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

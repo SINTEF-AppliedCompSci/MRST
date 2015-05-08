@@ -1,4 +1,43 @@
 function states = convertReservoirFluxesToSurface(model, states)
+%Compute surface fluxes from reservoir fluxes
+%
+% SYNOPSIS:
+%   states = convertReservoirFluxesToSurface(model, states)
+%
+% DESCRIPTION:
+%   This function, given states with .bfactors and .flux, will compute the
+%   surface/standard condition fluxes and place them under the field
+%   surfaceFlux. To ensure bfactors and fluxes are added to states during a
+%   simulation, enable the flag "model.extraStateOutput" before simulating.
+%
+% REQUIRED PARAMETERS:
+%   model   - ReservoirModel subclass used to produce the states.
+%
+%   states  - States with valid fields .flux and .bfactors.
+%
+%
+% RETURNS:
+%   states  - States with additional field surfaceFlux.
+%
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     if numel(states) > 1
         assert(iscell(states));
     else

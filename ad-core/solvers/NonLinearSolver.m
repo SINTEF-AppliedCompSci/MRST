@@ -29,7 +29,7 @@ classdef NonLinearSolver < handle
 %   simulateScheduleAD, LinearSolverAD, SimpleTimeStepSelector
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -136,6 +136,41 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         function [state, report, ministates] = solveTimestep(solver, state0, dT, model, varargin)
             % Solve a timestep for a non-linear system using one or more substeps
+            % REQUIRED PARAMETERS:
+            %   state0    - State at the beginning of the timestep
+            %   dT        - Timestep size. The solver will move forwards
+            %               either as a single step or multiple substeps
+            %               depending on convergence rates and sub timestep
+            %               selection.
+            %   model     - Model inheriting from PhysicalModel with a
+            %               valid implementation of the "stepFunction"
+            %               member function.
+            %
+            % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+            %   'Wells'   - Wells for the timestep. (struct)
+            %   'bc'      - Boundary conditions for the problem (struct).
+            %   'src'     - Source terms for the timestep (struct).
+            %   
+            %   NOTE: Wells, boundary conditions and source terms are the
+            %         standard types of external forces in MRST. However,
+            %         the model input determines which of these are
+            %         actually implemented for that specific step function.
+            %         Not all combinations are meaningful for all models.
+            %
+            % RETURNS:
+            %  state      - Problem state after timestep, i.e. if state0
+            %               held pressure, saturations, ... at T_0, state
+            %               now holds the same values at T_0 + dT.
+            %  report     - Report struct, containing some standard
+            %               information (iteration count, convergence
+            %               status etc) in addition to any reports the
+            %               stepFunction contains.
+            %  ministates - Cell array containing all ministeps used to get
+            %               to T = T_0 + dt. If the solver decided to take
+            %               a single step and was successful, this will
+            %               just be {state}.
+            % SEE ALSO:
+            %   PhysicalModel
 
             opt = struct('initialGuess', state0);
 
@@ -299,7 +334,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function dx = stabilizeNewtonIncrements(solver, problem, dx)
-            % Attempt to stabilize newton increment
+            % Attempt to stabilize newton increment by changing the values
+            % of the increments.
+            
             dx_prev = solver.previousIncrement;
 
             w = solver.relaxationParameter;
@@ -361,7 +398,8 @@ end
 
 
 function [state, converged, failure, its, reports] = solveMinistep(solver, model, state, state0, dt, drivingForces)
-    % Attempt to solve a single mini timestep. Detect oscillations.
+    % Attempt to solve a single mini timestep while trying to avoid
+    % stagnation or oscillating residuals.
     reports = cell(solver.maxIterations, 1);
     omega0 = solver.relaxationParameter;
 
@@ -378,7 +416,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
         if converged
             break
         end
-        if failure || model.stepFunctionIsLinear
+        if failure
             break
         end
 

@@ -13,9 +13,9 @@
 
 % This requires the deckformat module.
 try
-   require deckformat ad-core ad-fi
+   require deckformat ad-core ad-fi optimization
 catch
-   mrstModule add deckformat ad-core ad-fi
+   mrstModule add deckformat ad-core ad-fi optimization
 end
 
 current_dir = fileparts(mfilename('fullpath'));

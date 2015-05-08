@@ -1,4 +1,4 @@
-mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil
+mrstModule add ad-fi ad-props deckformat mrst-gui ad-core ad-blackoil
 
 % Because several examples use the SPE1 dataset, the initial setup is
 % delegated to a helper function. See the inside for documentation.
