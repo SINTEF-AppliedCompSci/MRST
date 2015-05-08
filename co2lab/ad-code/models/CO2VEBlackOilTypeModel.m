@@ -48,6 +48,7 @@ methods
       [opt, unparsed] = merge_options(opt, varargin{:});%#ok
    
       model@ReservoirModel(Gt, varargin{:});
+      model.rock    = rock2D;
       model.fluid   = fluid;
       model.water   = true;
       model.gas     = true;

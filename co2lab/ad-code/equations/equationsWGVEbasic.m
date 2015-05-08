@@ -116,7 +116,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
 
       else
          [eqs(3:5), names(3:5), types(3:5)] = ...
-             wm.createReverseModeWellEquations(model, state0, wellSol, p0);%#ok
+             wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
       end
    else
       eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
