@@ -83,13 +83,16 @@ iwells = wflux > 0;
 D.inj  = find( iwells);
 D.prod = find(~iwells);
 
-%Check that we actually have both injectors and producers
-if (numel(D.inj) * numel(D.prod) == 0)
+%Check that we actually a meaningful TOF scenario. If all wells are shut
+%off, return Inf.
+sum_flux = cell2mat(arrayfun(@(x) sum(x.flux), state.wellSol, 'UniformOutput', false));
+if (all(sum_flux) == 0.0)
+    assert(numel(D.inj)*numel(D.prod) > 0, 'Number of injectors and number of producers must be greater than zero');
     D.tof = Inf(G.cells.num, 2);
-    D.itracer = NaN(1, numel(D.inj));
-    D.ipart = NaN;
-    D.ptracer = NaN(1, numel(D.prod));
-    D.ppart = NaN;
+    D.itracer = NaN(G.cells.num, 1);
+    D.ipart = repmat(D.inj(1), [G.cells.num, 1]) ;
+    D.ptracer = NaN(G.cells.num, 1);
+    D.ppart = repmat(D.prod(1), [G.cells.num, 1]) ;
     return;
 end
 
