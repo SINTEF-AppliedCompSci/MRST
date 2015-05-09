@@ -74,6 +74,24 @@ methods
         
     end
     
+    function block = createBlock(upscaler, cells)
+        % Create grid, rock and fluid for the sub block represented by the
+        % given cells.
+        
+        block = createBlock@OnePhaseUpscaler(upscaler, cells);
+        
+        if ~isempty(block.deck)
+            
+            % To use capillary upscaling, we need a function pcOWInv
+            block.fluid = addPcOWInvADIFluid(block.fluid, block.deck);
+            
+            % To use viscous upscaling, we need a function fracFlowInv
+            block.fluid = addFracFlowInvADIFluid(block.fluid, block.deck);
+            
+        end
+        
+    end
+    
 end
 
 end

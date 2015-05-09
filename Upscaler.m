@@ -6,6 +6,7 @@ properties
     verbose
     timeest % Estimate time remaining
     
+    deck
     G
     rock
     fluid
@@ -22,6 +23,7 @@ methods
     function upscaler = Upscaler(G, rock, varargin)
         upscaler.verbose   = mrstVerbose();
         upscaler.periodic  = false;
+        upscaler.deck      = [];
         upscaler.fluid     = [];
         upscaler.partition = [];
         upscaler.blocks    = [];
@@ -162,28 +164,57 @@ methods
         % Create grid, rock and fluid for the sub block represented by the
         % given cells.
         
-        % Create block grid
-        b = extractSubgrid(upscaler.G, cells);
-        ijk = gridLogicalIndices(upscaler.G);
-        b.cartDims = cellfun(@(x) max(x(cells))-min(x(cells))+1, ijk);
-        b.cells.indexMap = (1 : numel(cells))';
         
-        % Create block rock
-        r.perm = upscaler.rock.perm(cells, :);
-        r.poro = upscaler.rock.poro(cells, :);
-        if isfield(upscaler.rock, 'cr')
-            r.cr = upscaler.rock.cr;
+        if ~isempty(upscaler.deck)
+            
+            % We have a deck available, and so we create the block using
+            % the deck directly instead of using the grid and fluid.
+            
+            blockDeck = Upscaler.createBlockDeck(upscaler.deck, cells);
+            
+            b = initEclipseGrid(blockDeck);
+            try
+                b = mcomputeGeometry(b); % Use MEX version if possible
+            catch %#ok<CTCH>
+                b = computeGeometry(b);
+            end
+            r = initEclipseRock(blockDeck);
+            
+            f = [];
+            if ~isempty(upscaler.fluid)
+                f = initDeckADIFluid(blockDeck);
+            end
+            
+            % Create block object
+            block = GridBlock(b, r, 'fluid', f, 'deck', blockDeck);
+            
+        else
+            
+            % Create block grid
+            b = extractSubgrid(upscaler.G, cells);
+            ijk = gridLogicalIndices(upscaler.G);
+            b.cartDims = cellfun(@(x) max(x(cells))-min(x(cells))+1, ijk);
+            b.cells.indexMap = (1 : numel(cells))';
+            
+            % Create block rock
+            r.perm = upscaler.rock.perm(cells, :);
+            r.poro = upscaler.rock.poro(cells, :);
+            if isfield(upscaler.rock, 'cr')
+                r.cr = upscaler.rock.cr;
+            end
+            
+            % Create block fluid
+            f = [];
+            if ~isempty(upscaler.fluid)
+                f = createBlockFluid(upscaler.fluid, cells, ...
+                    'cellInx', upscaler.cellinx);
+            end
+            
+            % Create block object
+            block = GridBlock(b, r, 'fluid', f);
+            
         end
         
-        % Create block fluid
-        f = [];
-        if ~isempty(upscaler.fluid)
-            f = createBlockFluid(upscaler.fluid, cells, ...
-                'cellInx', upscaler.cellinx);
-        end
-        
-        % Create block object
-        block = GridBlock(b, r, 'fluid', f);
     end
     
     function data = upscaleBlock(upscaler, block)
@@ -206,6 +237,82 @@ methods (Static)
         else
             str = sprintf('%ds',s);
         end
+    end
+    
+    function db = createBlockDeck(deck, cells)
+        % Create a sub deck for the block based on the given cells
+        % NOTE: This function assumes a Cartesian grid.
+        
+        if isempty(deck)
+            db = [];
+            return;
+        end
+        
+        if isfield(deck.RUNSPEC, 'cartDims')
+            cartDims = deck.RUNSPEC.cartDims;
+        elseif isfield(deck.RUNSPEC, 'DIMENS')
+            cartDims = deck.RUNSPEC.DIMENS;
+        else
+            error('Unable to find dimensions of grid from deck');    
+        end
+        
+        db = deck;
+        nc = prod(cartDims); % number of cells in whole grid
+        
+        % Compute block dimensions
+        [I,J,K]   = ind2sub(cartDims, cells);
+        dim       = @(V) max(V)-min(V)+1;
+        bGridDims = [dim(I) dim(J) dim(K)];
+        
+        % RUNSPEC
+        if isfield(deck.RUNSPEC, 'cartDims')
+            db.RUNSPEC.cartDims = bGridDims;
+        end
+        if isfield(deck.RUNSPEC, 'DIMENS')
+            db.RUNSPEC.DIMENS = bGridDims;
+        end
+        
+        % GRID
+        assert(all(isfield(deck.GRID, {'DX','DY','DZ'})), ...
+            'This function only accepts grids given by DX, DY, DZ.');
+        cfns = {'DX','DY','DZ','PERMX','PERMY','PERMZ', 'PORO'};
+        for i=1:numel(cfns)
+            fn = cfns{i};
+            if isfield(deck.GRID, fn) && numel(deck.GRID.(fn))==nc
+                db.GRID.(fn) = deck.GRID.(fn)(cells);
+            end
+        end
+        if isfield(db.GRID, 'TOPS')
+            % We specifically remove TOPS. This is not needed in the
+            % upscaling, but it may cause errors if transported directly to
+            % a subgrid.
+            db.GRID = rmfield(db.GRID, 'TOPS');
+        end
+        if isfield(deck.GRID, 'cartDims')
+            db.GRID.cartDims = bGridDims;
+        end
+        
+        % PROPS
+        % No nothing
+        
+        % REGIONS
+        cfns = {'PVTNUM','SATNUM'};
+        for i=1:numel(cfns)
+            fn = cfns{i};
+            if isfield(deck.REGIONS, fn) && numel(deck.REGIONS.(fn))==nc
+                db.REGIONS.(fn) = deck.REGIONS.(fn)(cells);
+            end
+        end
+        
+        % SOLUTION
+        % No nothing
+        
+        % SUMMARY
+        % No nothing
+        
+        % SCHEDULEf
+        % No nothing
+        
     end
     
 end

@@ -3,6 +3,7 @@ classdef GridBlock
 
 properties
     verbose
+    deck      % deck for the block only. May be empty.
     G         % Grid structure for the block. May be periodic.
     rock      % Rock structure for the block. Used for upscaling.
     rockorg   % Original rock structure.
@@ -21,6 +22,7 @@ methods
     function block = GridBlock(G, rock, varargin)
         block.verbose  = mrstVerbose();
         block.periodic = false;
+        block.deck     = [];
         block.faces    = [];
         block.lengths  = [];
         block.areas    = [];
