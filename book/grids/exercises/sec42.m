@@ -55,6 +55,6 @@ pt = unique(pt,'rows');
 G = pebi(triangleGrid(pt));
 clf
 G = removeCells(G, unique(sum(G.faces.neighbors(any(G.faces.neighbors==0,2),:),2)));
-plotGrid(G, 'FaceColor','none','EdgeColor','k','EdgeAlpha',1); axis tight
+plotGrid(G, 'FaceColor','none','LineWidth',1); axis tight
 %hold on; plot(pt(:,1),pt(:,2),'ro'); hold off
 hold on; plot(x1,y1,'-k',x2,y2,'-k','LineWidth',3); hold off;
