@@ -60,7 +60,8 @@ methods
                                                % flags above. Check with
                                                % maintainer of parent class.
       model.wellVarNames = {'qWs', 'qGs', 'bhp'};
-      model.gravity = [0 norm(gravity)];
+      %model.gravity = [0 norm(gravity)];
+      model.gravity = gravity;
       
       if isfield(fluid, 'dis_rate')
          % use model equations with dissolution

@@ -6,11 +6,21 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
 % optim.schedule
 % optim.wellSols
 % optim.states
-   
+
+% opt.obj_fun should have the following interface
+% function obj = obj_fun(wellSols, states, schedule, varargin);
+% Where 'varargin' should support 'ComputePartials' and 'tStep'
+% 'obj' should here be a cell array with objective values per timestep.  If
+% 'ComputePartials' is given, then the values should be ADI.
+% @@ Do ADI variables need to be exactly as in the equation??
+
+
    moduleCheck('ad-core', 'ad-props', 'optimization');
 
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
+   opt.last_control_is_migration = false; % if true, constrain last control to zero rate
+
    opt.obj_fun = @(wellSols, states, schedule, varargin) ...
                   leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty, ...
                                  varargin{:});
@@ -34,7 +44,7 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
       init.obj_val_total = sum(init.obj_val_steps);
       
       % Use value of objective function before optimization as scaling.
-      opt.obj_scaling = init.obj_val_total;
+      opt.obj_scaling = abs(init.obj_val_total);
    end
    
    
@@ -49,13 +59,11 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    %% Call optimization routine
    
    u = schedule2control(schedule, scaling);
-   u = u(1:end-num_wells); % ignore last well configuration, which represent
-                           % migration stage (wells should be shut off)
    [opt_val, u_opt, history] = unitBoxBFGS(u, obj_evaluator);
    
    %% Preparing solution structures
    
-   optim.schedule = control2schedule([u_opt; zeros(num_wells,1)], schedule, scaling);
+   optim.schedule = control2schedule(u_opt, schedule, scaling);
 
    [optim.wellSols, optim.states] = simulateScheduleAD(initState, ...
                                                        model, ...
@@ -63,8 +71,6 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    
    optim.obj_val_steps = opt.obj_fun(optim.wellSols, optim.states, optim.schedule);
    optim.obj_val_total = sum(cell2mat(optim.obj_val_steps));
-
-   assert(opt_val == optim.obj_val_total);
 end
 
 % ----------------------------------------------------------------------------
@@ -117,8 +123,8 @@ function obj = leak_penalizer(model, wellSols, states, schedule, leak_penalty, v
       % Objective value for this timestep equals the amount injected during
       % this step, less the amount leaked during the step multiplied by a
       % weight. 
-      %obj{step} = recently_injected - leak_penalty * recently_leaked;
-      obj{step} = -recently_injected;
+      obj{step} = recently_injected - leak_penalty * recently_leaked;
+      %obj{step} = -recently_injected;
    end
    
    if ~isempty(opt.tStep)
@@ -160,8 +166,8 @@ function obj = leak_penalizer(model, wellSols, states, schedule, leak_penalty, v
          recently_leaked = recently_leaked - total_leaked(opt.tStep-1);
       end
       
-      %obj = recently_injected - leak_penalty * recently_leaked;
-      obj = -recently_injected;
+      obj = recently_injected - leak_penalty * recently_leaked;
+      %obj = -recently_injected;
    end
    
 end
@@ -180,14 +186,14 @@ function [val, der, wellSols, states] = ...
 
    boxLims = scaling.boxLims;
    if isfield(scaling, 'obj')
-      objScaling = scaling.obj;
+      objScaling = abs(scaling.obj);
    else
       objScaling = 1;
    end
    
    % update schedule:
    Wnum = numel(schedule.control(1).W);
-   schedule = control2schedule([u; zeros(Wnum,1)], schedule, scaling);
+   schedule = control2schedule(u, schedule, scaling);
    
    % run simulation:
    [wellSols, states] = simulateScheduleAD(initState, model, schedule);
@@ -202,7 +208,6 @@ function [val, der, wellSols, states] = ...
       g    = computeGradientAdjointAD(initState, states, model, schedule, objh);
       % scale gradient:
       der = scaleGradient(g, schedule, boxLims, objScaling);
-      der = der(1:end - Wnum);
       der = vertcat(der{:});
    end
 end

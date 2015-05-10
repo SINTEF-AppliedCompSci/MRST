@@ -266,7 +266,7 @@ end
 function fluid = residual_saturations(fluid, residual)
 
    fluid.res_water = residual(1);
-   fluid.res_gas   = resiudal(2);
+   fluid.res_gas   = residual(2);
 
 end
 
