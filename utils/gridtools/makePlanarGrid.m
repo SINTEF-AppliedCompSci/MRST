@@ -2,7 +2,7 @@ function G = makePlanarGrid(H, faces, sgn)
 %Construct 2D surface grid from faces of 3D grid.
 %
 % SYNOPSIS:
-%   g = makeSurfaceGrid(G, faces, sgn)
+%   g = makePlanarGrid(G, faces, sgn)
 %
 % PARAMETERS:
 %   G      - Valid grid definition containing connectivity, cell
