@@ -50,3 +50,13 @@ G = removeCells(G,repmat(img==1,n,1));
 rock.perm = repmat((950*img+50)*milli*darcy,n,1); 
 rock.perm=rock.perm(G.cells.indexMap);
 clf, plotCellData(G,rock.perm,'EdgeAlpha',.3); view(53,88); axis tight off
+
+%% Same version, but with the penny data set
+load penny
+n = 5;
+G = cartGrid([size(P),n]);
+G = removeCells(G,repmat(P(:)<20,n,1));
+rock.perm = repmat((950*P(:) + 50)*milli*darcy,n,1);
+rock.perm = rock.perm(G.cells.indexMap);
+clf, plotCellData(G,log10(rock.perm),'EdgeAlpha',.1);
+view(80,80); axis tight off
