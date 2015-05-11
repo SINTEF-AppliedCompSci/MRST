@@ -47,7 +47,6 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
       opt.obj_scaling = abs(init.obj_val_total);
    end
    
-   
    %% Define limits, scaling and objective function
    
    scaling.boxLims = [min_rates(:), max_rates(:)];
@@ -55,11 +54,26 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    
    obj_evaluator = @(u) evaluate_objective(u, opt.obj_fun, model, initState, ...
                                            schedule, scaling); 
+
+   %% Define constraints
+   
+   linEqS = [];
+   if opt.last_control_is_migration
+      % Constrain rates of last step to zero
+      linEq = struct('A', eye(num_wells), 'b', min_rates(:));
+      linEqS = setupConstraints(linEq, schedule, scaling);
+      
+      % keep only the relations pertaining to the last control step
+      last_step_ix = num_wells * (numel(schedule.control) - 1) + 1;
+      linEqS.A = linEqS.A(last_step_ix:end, :);
+      linEqS.b = linEqS.b(last_step_ix:end);
+   end
+   
    
    %% Call optimization routine
    
    u = schedule2control(schedule, scaling);
-   [opt_val, u_opt, history] = unitBoxBFGS(u, obj_evaluator);
+   [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, 'lineSearchMaxIt', 20);
    
    %% Preparing solution structures
    
@@ -75,103 +89,58 @@ end
 
 % ----------------------------------------------------------------------------
 
-function obj = leak_penalizer(model, wellSols, states, schedule, leak_penalty, varargin)
-% obj is here a cell array with one cell per timestep in the schedule
+function obj = leak_penalizer(model, wellSols, states, schedule, penalty, varargin)
    
    opt.ComputePartials = false;
    opt.tStep = [];
    opt = merge_options(opt, varargin{:});
-
-   assert(xor(opt.ComputePartials, isempty(opt.tStep)));
    
-   pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro;
-   if isfield(model.fluid, 'pvMultR')
-      pvMult = model.fluid.pvMultR;
+   num_timesteps = numel(schedule.step.val);
+   tSteps = opt.tStep;
+   if isempty(tSteps)
+      numSteps = numel(states);
+      tSteps = (1:numSteps)';
+      dts = schedule.step.val;
    else
-      pvMult = @(p) ones(size(p));
+      assert(numel(tSteps) == 1);
+      numSteps = 1;
+      dts = schedule.step.val(opt.tStep);
    end
    
-   numSteps = numel(schedule.step.val);
-   assert(numel(states) == numSteps);
    obj = repmat({[]}, numSteps, 1);
-
-   total_injected = zeros(numSteps, 1);
-   total_leaked = zeros(numSteps, 1);
-   prev_injected = 0;
-   prev_total_leaked = 0;
+   krull = 0; % @@
    for step = 1:numSteps
-      st = states{step};
-      dt = schedule.step.val(step);
-      
-      inx = ([wellSols{step}.sign] > 0)';
-      qGs = [wellSols{step}.qGs]';
-      P   = st.pressure;
-      sG  = st.s(:,2);
-
-      recently_injected = sum(qGs(inx)) * dt;
-      total_injected(step) = prev_injected + recently_injected;
-      prev_injected = total_injected(step);
-      
-      
-      total_in_place = sum(pvol .* pvMult(P) .* sG .* model.fluid.bG(P));
-
-      total_leaked(step) = total_injected(step) - total_in_place;
-      
-      recently_leaked = total_leaked(step) - prev_total_leaked;
-      prev_total_leaked = total_leaked(step);
-                        
-      % Objective value for this timestep equals the amount injected during
-      % this step, less the amount leaked during the step multiplied by a
-      % weight. 
-      obj{step} = recently_injected - leak_penalty * recently_leaked;
-      %obj{step} = -recently_injected;
-   end
-   
-   if ~isempty(opt.tStep)
-      assert(opt.ComputePartials);
-
-      st = states{opt.tStep};
-      dt = schedule.step.val(opt.tStep);
-      
-      inx = ([wellSols{opt.tStep}.sign] > 0)';
-      qGs = [wellSols{opt.tStep}.qGs]';
-      P   = st.pressure;
-      sG  = st.s(:,2);
-      
+      sol = wellSols{tSteps(step)};
+      state = states{tSteps(step)}; %@@ +1?
+      nW = numel(sol);
+      pBHP = zeros(nW, 1); % place holder
+      qGs = vertcat(sol.qGs);
+      qWs = vertcat(sol.qWs);
+      p = state.pressure;
+      sG = state.s(:,2);
       if opt.ComputePartials
-         numWells = numel(qGs);
-         bhp = zeros(numWells, 1); % placeholder
-         qWs = zeros(numWells, 1); % placeholder
-         [P, sG, dummy, dummy, qGs] = initVariablesADI(P, sG, bhp, qWs, qGs); %#ok
+         [p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
       end
+      dt = dts(step);
+      injInx = (vertcat(sol.sign) > 0);
+      obj{step} = dt * spones(ones(1, nW)) * ((1-penalty) * injInx .* qGs);
 
-      sum_qGs = qGs(inx);
-      if numel(double(sum_qGs)) > 1
-         % Hack to get around a bug in ADI @@ report this!
-         sum_qGs = sum(sum_qGs);
+      krull = krull +  dt * spones(ones(1, nW)) * ( injInx .* qGs);
+      
+      if (tSteps(step) == num_timesteps)
+         bG = model.fluid.bG(p);
+         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro;      
+         vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
+         obj{step} = obj{step} + penalty * vol;
+         if ~opt.ComputePartials
+            fprintf('Total injected: %f\n', double(krull));
+            fprintf('Total leaked: %f\n', double(krull - vol));
+            fprintf('Score: %f\n\n', double(krull) - penalty * double(krull-vol));
+         end
       end
-      
-      recently_injected = sum_qGs * dt;
-      
-      total_in_place = sum(pvol .* pvMult(P) .* sG .* model.fluid.bG(P));
-      
-      tot_inj = recently_injected;
-      if opt.tStep > 1
-         tot_inj = tot_inj + total_injected(opt.tStep-1);
-      end
-      
-      recently_leaked = tot_inj - total_in_place;
-      
-      if opt.tStep > 1
-         recently_leaked = recently_leaked - total_leaked(opt.tStep-1);
-      end
-      
-      obj = recently_injected - leak_penalty * recently_leaked;
-      %obj = -recently_injected;
+      obj{step} = obj{step} * model.fluid.rhoGS/1e12; %@@
    end
-   
 end
-
 
 % ----------------------------------------------------------------------------
 
@@ -192,7 +161,6 @@ function [val, der, wellSols, states] = ...
    end
    
    % update schedule:
-   Wnum = numel(schedule.control(1).W);
    schedule = control2schedule(u, schedule, scaling);
    
    % run simulation:

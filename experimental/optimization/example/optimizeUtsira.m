@@ -1,4 +1,4 @@
-function optimizeUtsira(varargin)
+function [Gt, optim, init, history] = optimizeUtsira(varargin)
 
    moduleCheck('ad-core');
    
@@ -35,7 +35,8 @@ function optimizeUtsira(varargin)
                                 opt.sw, opt.ref_temp, opt.ref_depth, opt.temp_grad, ...
                                 opt.well_buffer_dist); 
       opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
-                                     opt.itime, opt.msteps , opt.mtime, true);
+                                     opt.itime, opt.msteps , opt.mtime, true, ...
+                                     'minval', sqrt(eps));
    else
       tmp = load(opt.schedule);
       name = fields(tmp);
@@ -57,9 +58,10 @@ function optimizeUtsira(varargin)
    %% Set up model and run optimization
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
    min_rates = sqrt(eps) * ones(opt.num_wells, 1);
-   max_rates = 20 * sum([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
+   max_rates = 3 * max([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
    [optim, init, history] = ...
-       optimizeRates(initState, model, opt.schedule, min_rates, max_rates);  
+       optimizeRates(initState, model, opt.schedule, min_rates, max_rates, ...
+                     'last_control_is_migration', true);  
 end
 
 % ----------------------------------------------------------------------------

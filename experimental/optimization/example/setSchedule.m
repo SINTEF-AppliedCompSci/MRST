@@ -1,6 +1,10 @@
 function schedule = setSchedule(Gt, rock, wcells, qtot, ...
-                                isteps, itime, msteps, mtime, single_control)
-
+                                isteps, itime, msteps, mtime, single_control, ...
+                                varargin)
+                                    
+   opt.minval = 0;
+   opt = merge_options(opt, varargin{:});
+   
     assert(isteps>0);
     if msteps == 1
         msteps = 2;
@@ -44,7 +48,7 @@ function schedule = setSchedule(Gt, rock, wcells, qtot, ...
     if msteps > 0
         schedule.control(cpos).W = W;
         for i = 1:numel(schedule.control(cpos).W)
-            schedule.control(cpos).W(i).val = 0;
+            schedule.control(cpos).W(i).val = opt.minval;
         end
         cpos = cpos+1;
     end
