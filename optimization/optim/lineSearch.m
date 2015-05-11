@@ -40,7 +40,8 @@ assignPoint = @(a,v,dv)struct('a', a, 'v', v, 'dv', dv);
 p0          = assignPoint(0, v0, d'*g0);  % 0-point
 
 % Function handles for wolfe conditions wrt p0
-w1 = @(p) p.v >= p0.v + c1*p.v*p0.dv;
+%w1 = @(p) p.v >= p0.v + c1*p.v*p0.dv;
+w1 = @(p) p.v >= p0.v + c1*p.a*p0.dv;
 w2 = @(p) abs(p.dv) <= c2*abs(p0.dv);
 
 % Maximal step-length s.t. u = u0+aMax*d is feasible (should always be >= 1)

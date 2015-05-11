@@ -40,6 +40,7 @@ history = gatherInfo(history, v0, u0, nan, nan, nan, nan, Hi);
 
 it = 0;
 success = false;
+g = g0;
 while ~success
     it = it+1;
     [d, Hi, pg] = getSearchDirection(u0, g0, Hi, HiPrev, c);
@@ -152,12 +153,29 @@ for k = 1:3
     end
     % Check for active inequality constraints and project
     [na, na_prev] = deal(0, -inf);
-    [Q,~] = qr(c.e.A', 0);
-    d     = - projQ(g0, Q, Hi);
+
+    %[Q,~] = qr(c.e.A', 0);
+    
+    [Q, s] = svd(c.e.A', 0);
+    s = diag(s);
+    if ~isempty(s)
+       Q = Q(:, s> sqrt(eps) * s(1));
+    end
+
+    d = - projQ(g0, Q, Hi);
+    
     while na > na_prev
         ac = and(c.i.A*u0>=c.i.b-sqrt(eps), c.i.A*d >= -sqrt(eps));
-        [Q,~]  = qr([c.i.A(ac,:)', c.e.A'], 0);
-        d     = - projQ(g0, Q, Hi);
+    
+        %[Q,~]  = qr([c.i.A(ac,:)', c.e.A'], 0);
+
+        [Q, s] = svd([c.i.A(ac,:)', c.e.A'], 0);
+        s = diag(s);
+        if ~isempty(s)
+           Q = Q(:, s > sqrt(eps)*s(1));
+        end
+
+        d  = - projQ(g0, Q, Hi);
         na_prev = na;
         na = nnz(ac);
     end
