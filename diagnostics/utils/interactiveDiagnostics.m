@@ -230,6 +230,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      stop_button,...
      wctoggle,...
      speedsh,...
+     speedgh,...
+     tofsh,...
+     tofgh,...
      mtofsh,...
      mtofeh,...
      Mtofsh,...
@@ -259,10 +262,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     compute_time_integral = false;
     D_int = [];
     window_name = opt.name{1};
-
-    % Precompute TOF etc. for creating main control
-	pv = poreVolume(computeGrid, rock);
-    computeValues(state_idx);
     
     %Create main figure
     fig_main = figure('Name', window_name);
@@ -274,10 +273,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     view(3);
 
     % Create control panel
+    % Precompute TOF etc. for creating main control
+	pv = poreVolume(computeGrid, rock);
+    [D, WP] = computeTOFAndTracerAndWellPairs(W{state_idx}, state{state_idx});
+    tofext = getTOFRange(D);
     createMainControl();
+    [D.isubset, D.psubset] = getSubset(D);
     
-    % Plot initial setup
-    plotMain()
+    % Trigger plot initial setup
+    plotMain();
 
     % Private helpers
     function ctrl_close_func(src, event)
@@ -311,25 +315,93 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function tofext = getTOFRange(D)
-        tof = D.tof(:);
-        isNeg = (tof <= 0);
-        tof(isNeg) = min(tof(~isNeg));
+        if (D.isvalid)
+            tof = D.tof(:);
+            isNeg = (tof <= 0);
+            tof(isNeg) = min(tof(~isNeg));
 
-        tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
-        tofext(2) = clamp_real(max(tofext(2), 15));
+            tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
+            tofext(2) = clamp_real(max(tofext(2), 15));
+        else
+            tofext = [0 1];
+        end
+    end
+        
+    function setTOFSliderExtents()
+        %Update min/max and current value
+        min_val = tofext(1);
+        max_val = tofext(2);
+        cur_m_val = str2double(get(mtofeh, 'String'));
+        cur_m_val = max(min(cur_m_val, max_val), min_val);
+
+        cur_M_val = str2double(get(Mtofeh, 'String'));
+        cur_M_val = max(min(cur_M_val, max_val), min_val);
+
+        set(mtofsh, 'Min', tofext(1));
+        set(mtofsh, 'Max', tofext(2));
+        set(mtofsh, 'Value', cur_m_val);
+        %set(mtofeh, 'String', num2str(cur_m_val));
+        mtofs_callback([], []);
+
+        set(Mtofsh, 'Min', tofext(1));
+        set(Mtofsh, 'Max', tofext(2));
+        set(Mtofsh, 'Value', cur_M_val);
+        %set(Mtofeh, 'String', num2str(cur_M_val));
+        Mtofs_callback([], []);
     end
 
-    function createMainControl()
-        % Set up figure handles
-        if ~ishandle(fig_ctrl)
-            pos = get(fig_main, 'OuterPosition');
-            size_xy = [475 550];
-            pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
-            fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none', 'CloseRequestFcn', @ctrl_close_func);
-            set(fig_ctrl, 'Name', ['Controller ', window_name]);
+    % Set special functions for the min/max time of flight slider
+    % handle
+    function mtofs_callback(src, event)
+        min_val = get(mtofsh, 'Min');
+        max_val = get(mtofsh, 'Max');
+        cur_val = get(mtofsh, 'Value');
+        if (cur_val <= min_val)
+            set(mtofsh, 'Value', min_val);
+            set(mtofeh, 'String', sprintf('%.1f', -Inf));
+        elseif (cur_val >= max_val)
+            set(mtofsh, 'Value', max_val);
+            set(mtofeh, 'String', sprintf('%.1f', Inf));
         else
-            clf(fig_ctrl)
+            set(mtofeh, 'String', sprintf('%.1f', cur_val));
         end
+
+        %Only plot if src is nonempty (true callback)
+        if (~isempty(src))
+            if (compute_time_integral)
+                D_int = [];
+                computeTimeIntegral();
+            end
+            plotMain(src, event);
+        end
+    end
+
+    function Mtofs_callback(src, event)
+        min_val = get(Mtofsh, 'Min');
+        max_val = get(Mtofsh, 'Max');
+        cur_val = get(Mtofsh, 'Value');
+        if (cur_val <= min_val)
+            set(Mtofsh, 'Value', min_val);
+            set(Mtofeh, 'String', sprintf('%.1f', -Inf));
+        elseif (cur_val >= max_val)
+            set(Mtofsh, 'Value', max_val);
+            set(Mtofeh, 'String', sprintf('%.1f', Inf));
+        else
+            set(Mtofeh, 'String', sprintf('%.1f', cur_val));
+        end
+
+        %Only plot if src is nonempty (true callback)
+        if (~isempty(src))
+            if (compute_time_integral)
+                D_int = [];
+                computeTimeIntegral();
+            end
+            plotMain(src, event);
+        end
+    end
+
+
+    function createMainControl()
         
         function selectdata(datas, index, fullname)
             state_idx = index;
@@ -345,27 +417,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (ishandle(wah_fig))
                 plotWellAllocations([], [])
             end
-            
-            %Update min/max and current value
-            min_val = tofext(1);
-            max_val = tofext(2);
-            cur_m_val = str2double(get(mtofeh, 'String'));
-            cur_m_val = max(min(cur_m_val, max_val), min_val);
-            
-            cur_M_val = str2double(get(Mtofeh, 'String'));
-            cur_M_val = max(min(cur_M_val, max_val), min_val);
-            
-            set(mtofsh, 'Min', tofext(1));
-            set(mtofsh, 'Max', tofext(2));
-            set(mtofsh, 'Value', cur_m_val);
-            %set(mtofeh, 'String', num2str(cur_m_val));
-            mtofs_callback([], []);
-            
-            set(Mtofsh, 'Min', tofext(1));
-            set(Mtofsh, 'Max', tofext(2));
-            set(Mtofsh, 'Value', cur_M_val);
-            %set(Mtofeh, 'String', num2str(cur_M_val));
-            Mtofs_callback([], []);
+        end
+        
+        % Set up figure handles
+        if ~ishandle(fig_ctrl)
+            pos = get(fig_main, 'OuterPosition');
+            size_xy = [475 550];
+            pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
+            fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none', 'CloseRequestFcn', @ctrl_close_func);
+            set(fig_ctrl, 'Name', ['Controller ', window_name]);
+        else
+            clf(fig_ctrl)
         end
         
         %Add time-varying dataset slider
@@ -440,64 +502,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function dirtyPlotMain(src, event)
             if (compute_time_integral)
                 D_int = [];
+                computeTimeIntegral();
             end
             plotMain(src, event);
         end
         
         tof_N = 5;
         tof_h = 1/tof_N;
-        [speedsh, ~] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution', []);
-        [mtofsh, mtofeh]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @dirtyPlotMain);
-        [Mtofsh, Mtofeh]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @dirtyPlotMain);
-        [alfash, ~]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha', @plotMain);
+        [tofsh, ~, tofgh]   = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [0 1], 0.25, 'TOF Freq.', @plotMain);
+        [speedsh, ~, speedgh] = linkedSlider(tofp, [0 1*tof_h 1 tof_h], .15, [1 1000], 50, 'Resolution', []);
+        [mtofsh, mtofeh, ~]   = linkedSlider(tofp, [0 2*tof_h 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @dirtyPlotMain);
+        [Mtofsh, Mtofeh, ~]   = linkedSlider(tofp, [0 3*tof_h 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @dirtyPlotMain);
+        [alfash, ~, ~]   = linkedSlider(tofp, [0 4*tof_h 1 tof_h], .15, [0 1], 1, 'Alpha', @plotMain);
         
-        % Set special functions for the min/max time of flight slider
-        % handle
-        function mtofs_callback(src, event)
-            if (compute_time_integral)
-                D_int = [];
-            end
-            min_val = get(mtofsh, 'Min');
-            max_val = get(mtofsh, 'Max');
-            cur_val = get(mtofsh, 'Value');
-            if (cur_val <= min_val)
-                set(mtofsh, 'Value', min_val);
-                set(mtofeh, 'String', sprintf('%.1f', -Inf));
-            elseif (cur_val >= max_val)
-                set(mtofsh, 'Value', max_val);
-                set(mtofeh, 'String', sprintf('%.1f', Inf));
-            else
-                set(mtofeh, 'String', sprintf('%.1f', cur_val));
-            end
-            
-            %Only plot if src is nonempty (true callback)
-            if (~isempty(src))
-                plotMain(src, event);
-            end
-        end
-        
-        function Mtofs_callback(src, event)
-            if (compute_time_integral)
-                D_int = [];
-            end
-            min_val = get(Mtofsh, 'Min');
-            max_val = get(Mtofsh, 'Max');
-            cur_val = get(Mtofsh, 'Value');
-            if (cur_val <= min_val)
-                set(Mtofsh, 'Value', min_val);
-                set(Mtofeh, 'String', sprintf('%.1f', -Inf));
-            elseif (cur_val >= max_val)
-                set(Mtofsh, 'Value', max_val);
-                set(Mtofeh, 'String', sprintf('%.1f', Inf));
-            else
-                set(Mtofeh, 'String', sprintf('%.1f', cur_val));
-            end
-            
-            %Only plot if src is nonempty (true callback)
-            if (~isempty(src))
-                plotMain(src, event);
-            end
-        end
+        set(tofgh, 'Visible', 'off');
         
         set(mtofsh, 'Callback', @mtofs_callback);
         set(mtofeh, 'String', num2str(-Inf))
@@ -562,15 +580,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     set(ds_panel, 'Visible', 'off');
                     set(play_button, 'Visible', 'off');
                     set(stop_button, 'Visible', 'off');
+                    set(speedgh, 'Visible', 'off');
 
+                    set(tofgh, 'Visible', 'on');
+                    
                     %Add new integral options
                     old_options = get(hdataset, 'String');
                     new_options = {old_options{:}, time_integral_options{:}};
                     set(hdataset, 'String', new_options);
+                    
+                    computeTimeIntegral();
                 else
                     set(ds_panel, 'Visible', 'on');
                     set(play_button, 'Visible', 'on');
                     set(stop_button, 'Visible', 'on');
+                    set(speedgh, 'Visible', 'on');
+                    
+                    set(tofgh, 'Visible', 'off');
 
                     %Remove integral options
                     options = get(hdataset, 'String');
@@ -585,7 +611,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     else
                         set(hdataset, 'Value', curr_val);
                     end
+                    
+                    computeValues(state_idx);
                 end
+                
             end
             
             plotMain(src, event);
@@ -674,68 +703,76 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function computeTimeIntegral()
-        %Initialize our integral of D over time
-        D_int.tof = zeros(size(D.tof));
-        D_int.itracer = zeros(size(D.itracer));
-        D_int.ptracer = zeros(size(D.ptracer));
-        D_int.ipart = zeros(size(D.ipart));
-        D_int.ppart = zeros(size(D.ppart));
-        
-        D_int.isubset = zeros(size(D.ipart));
-        D_int.psubset = zeros(size(D.ppart));
-        
-        D_int.inj_sum = zeros(numel(W{1}),1);
-        D_int.prod_sum = zeros(numel(W{1}),1);
-        
-        %Find timestep sizes
-        if (isfield(state{1}, 'time'))
-            times = cellfun(@(x) x.time, state);
-            times = [0; times];
-            dts = (times(2:end) - times(1:end-1)) / times(end);
+        if (~isempty(D_int))
+            D = D_int;
         else
-            N = numel(W);
-            dt = 1/N;
-            dts = repmat(dt, N);
-        end
-        
-        %Accumulate tracer and subsets
-        h = waitbar(0, 'Step 0');
-        N = numel(W);
-        for idx=1:N
-            [D, ~] = computeTOFAndTracerAndWellPairs(W{idx}, state{idx});
-            if (~D.isvalid)
-                continue;
+            %Initialize our integral of D over time to zeros
+            D_int.tof = zeros(size(D.tof));
+            D_int.itracer = zeros(size(D.itracer));
+            D_int.ptracer = zeros(size(D.ptracer));
+            D_int.ipart = zeros(size(D.ipart));
+            D_int.ppart = zeros(size(D.ppart));
+
+            D_int.isubset = zeros(size(D.ipart));
+            D_int.psubset = zeros(size(D.ppart));
+
+            D_int.inj_sum = zeros(numel(W{1}),1);
+            D_int.prod_sum = zeros(numel(W{1}),1);
+
+            D = D_int;
+
+            %Find timestep sizes
+            if (isfield(state{1}, 'time'))
+                times = cellfun(@(x) x.time, state);
+                times = [0; times];
+                dts = (times(2:end) - times(1:end-1)) / times(end);
+            else
+                N = numel(W);
+                dt = 1/N;
+                dts = repmat(dt, N);
             end
+
+            %Accumulate tracer and subsets
+            h = waitbar(0, 'Step 0');
+            N = numel(W);
+            for idx=1:N
+                [D_new, ~] = computeTOFAndTracerAndWellPairs(W{idx}, state{idx});
+                if (~D_new.isvalid)
+                    continue;
+                end
+
+                dt = dts(idx);
+
+                %Accumulate TOF and tracer values, etc
+                D_int.tof = D_int.tof + dt*D_new.tof;
+                D_int.itracer = D_int.itracer + dt*D_new.itracer;
+                D_int.ptracer = D_int.ptracer + dt*D_new.ptracer;
+                D_int.inj_sum(D_new.inj) = D_int.inj_sum(D_new.inj) + dt;
+                D_int.prod_sum(D_new.prod) = D_int.prod_sum(D_new.prod) + dt;
+
+                %Find the subset fulfilling current min/max values
+                [isubset, psubset] = getSubset(D_new);
+
+                D_int.isubset = D_int.isubset + dt*isubset;
+                D_int.psubset = D_int.psubset + dt*psubset;
+
+                waitbar(idx/N,h,['Step ', num2str(idx)])
+            end
+            delete(h);
+
+            %Now, partition the domain
+            [~,D_int.ipart] = max(D_int.itracer,[],2);
+            [~,D_int.ppart] = max(D_int.ptracer,[],2);
+
+            %Determine which wells are injectors / producers.
+            injectors = D_int.inj_sum > D_int.prod_sum;
+            D_int.inj = find(injectors);
+            D_int.prod = find(~injectors);
+
+            D_int.isvalid = true;
             
-            dt = dts(idx);
-            
-            %Accumulate TOF and tracer values, etc
-            D_int.tof = D_int.tof + dt*D.tof;
-            D_int.itracer = D_int.itracer + dt*D.itracer;
-            D_int.ptracer = D_int.ptracer + dt*D.ptracer;
-            D_int.inj_sum(D.inj) = D_int.inj_sum(D.inj) + dt;
-            D_int.prod_sum(D.prod) = D_int.prod_sum(D.prod) + dt;
-            
-            %Find the subset fulfilling current min/max values
-            [isubset, psubset] = getSubset(D);
-            
-            D_int.isubset = D_int.isubset + dt*isubset;
-            D_int.psubset = D_int.psubset + dt*psubset;
-            
-            waitbar(idx/N,h,['Step ', num2str(idx)])
+            D = D_int;
         end
-        delete(h);
-        
-        %Now, partition the domain
-        [~,D_int.ipart] = max(D_int.itracer,[],2);
-        [~,D_int.ppart] = max(D_int.ptracer,[],2);
-        
-        %Determine which wells are injectors / producers.
-        injectors = D_int.inj_sum > D_int.prod_sum;
-        D_int.inj = find(injectors);
-        D_int.prod = find(~injectors);
-        
-        D_int.isvalid = true;
     end
 
 
@@ -770,28 +807,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             set(pm_outlineph, 'UserData', 'gridoutline');
         end
         
+        if (compute_time_integral)
+            tofext = getTOFRange(D);
+            isubset = D.isubset;
+            psubset = D.psubset;
+            
+            % Get current TOF frequency threshold
+            frequency = (psubset+isubset) / 2.0;
+            tof_freq = get(tofsh, 'Value');
+            psubset = psubset & (frequency >= tof_freq);
+            isubset = isubset & (frequency >= tof_freq);
+            
+            setTOFSliderExtents();
+        else        
+            [isubset, psubset] = getSubset(D);
+            tofext = getTOFRange(D);
+            setTOFSliderExtents();
+        end
+        
         %Get setting for drain/flood wells
         drain_wells = get(draintoggle, 'Value');
         flood_wells = get(floodtoggle, 'Value');
-
-        %Check if we are to compute the integral over time
-        %or for an instantaneous snapshot.
-        if (compute_time_integral)
-            if (isempty(D_int))
-                computeTimeIntegral();
-            end
-            %Set D as the computed integral 
-            D = D_int;
-            isubset = D.isubset;
-            psubset = D.psubset;
-        else
-            computeValues(state_idx);
-            [isubset, psubset] = getSubset(D);
-        end
         
         psubs = ismember(D.ppart, drain_wells);
         isubs = ismember(D.ipart, flood_wells);
-        
         
         % Use logical operation on the selection
         switch(get(hset_op, 'Value'))
@@ -1124,9 +1163,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if (~D.isvalid || isempty(WP))
             warning('Time of flight returned inf. Are there both active injectors and producers present?')
-            tofext = [0, realmax];
-        else
-            tofext = getTOFRange(D);
         end
     end
 
@@ -1147,20 +1183,18 @@ end
 
 
 
-function [sliderhandle, edithandle] = linkedSlider(parent, pos, fieldsize, ext, defaultval, title, callback)
-    x = pos(1);
-    y = pos(2);
+function [sliderhandle, edithandle, grouphandle] = linkedSlider(parent, pos, fieldsize, ext, defaultval, title, callback)
     minval = abs(ext(1));
     maxval = abs(ext(2));
-    dims = pos(3:4);
     defaultval = abs(defaultval);
     
-    uicontrol(parent, 'Style', 'text', 'Units', 'normalized', 'Position', [x, y, fieldsize*dims(1) dims(2)], 'string', title)
+    grouphandle = uibuttongroup(parent, 'Units', 'normalized', 'Position', pos, 'BorderType', 'None');
+    uicontrol(grouphandle, 'Style', 'text', 'Units', 'normalized', 'Position', [0, 0, fieldsize 1], 'string', title)
 
     cap = @(x) max(minval, min(x, maxval));
 
-    edithandle = uicontrol(parent, 'Style', 'edit', 'Units', 'normalized', 'Value', defaultval, 'Position', [x + (1-fieldsize)*dims(1), y, fieldsize*dims(1) dims(2)], 'String', sprintf('%.1f', defaultval));
-    sliderhandle = uicontrol(parent, 'Style', 'slider', 'Units', 'normalized', 'Position', [x + fieldsize*dims(1), y, (1-2*fieldsize)*dims(1) dims(2)], 'Min', minval, 'Max', maxval, 'Value', defaultval);
+    edithandle = uicontrol(grouphandle, 'Style', 'edit', 'Units', 'normalized', 'Value', defaultval, 'Position', [0 + (1-fieldsize), 0, fieldsize 1], 'String', sprintf('%.1f', defaultval));
+    sliderhandle = uicontrol(grouphandle, 'Style', 'slider', 'Units', 'normalized', 'Position', [fieldsize, 0, (1-2*fieldsize) 1], 'Min', minval, 'Max', maxval, 'Value', defaultval);
     
     slidercallback2 = @(src, event) set(edithandle, 'String', sprintf('%.1f', get(src, 'Value')));
     editcallback2 = @(src, event) set(sliderhandle, 'Value', cap(sscanf(get(src, 'String'), '%f')));
