@@ -70,24 +70,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 % Process optional parameters
-opt = struct('bc', [], 'src', [], 'wells', []);
+opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', []);
 opt = merge_options(opt, varargin{:});
 
 check_input(G, rock, opt);
 
 state = validateStateForDiagnostics(state);
+% If opt.tracerWells is empty include all
+if isempty(opt.tracerWells)
+    opt.tracerWells = true(numel(opt.wells), 1);
+end
+opt.tracerWells = opt.tracerWells(:)';
 
 % Find injectors and producers
 wflux = getTotalWellSolFlux(state.wellSol);
 iwells = wflux > 0;
-D.inj  = find( iwells);
-D.prod = find(~iwells);
+D.inj  = find( iwells & opt.tracerWells);
+D.prod = find(~iwells & opt.tracerWells);
 
 %Check that we actually a meaningful TOF scenario. If all wells are shut
 %off, return Inf.
 sum_flux = cell2mat(arrayfun(@(x) sum(x.flux), state.wellSol, 'UniformOutput', false));
 if (all(sum_flux) == 0.0)
-    assert(numel(D.inj)*numel(D.prod) > 0, 'Number of injectors and number of producers must be greater than zero');
+    %assert(numel(D.inj)*numel(D.prod) > 0, 'Number of injectors and number of producers must be greater than zero');
     D.tof = Inf(G.cells.num, 2);
     D.itracer = NaN(G.cells.num, numel(D.inj));
     D.ipart = NaN(G.cells.num, 1);
@@ -102,6 +107,8 @@ t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
 D.tof     = t(:,1);
 D.itracer = t(:,2:end);
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
+% set 'non-traced' cells to zero
+D.ipart(val==0) = 0;
 
 % Compute time-of-flight and tracer partition from producers
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
@@ -109,6 +116,7 @@ t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:end);
 [val,D.ppart] = max(D.ptracer,[],2);
+D.ppart(val==0) = 0;
 end
 
 %--------------------------------------------------------------------------
@@ -124,6 +132,8 @@ function check_input(G, rock, opt)
            'for each cell in the grid.']);
 
    assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
+   assert(or(isempty(opt.tracerWells), numel(opt.tracerWells)==numel(opt.wells)), ...
+           'Input tracerWells must be a logical vector of length equal to number of wells')
 end
 
 %--------------------------------------------------------------------------
