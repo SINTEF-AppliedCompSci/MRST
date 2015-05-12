@@ -123,7 +123,8 @@ opt = struct('bc',          [], ...
              'reverse',     false,...
              'allowInf',    false, ...
              'maxTOF',      [], ...
-             'tracer',      {{}});
+             'tracer',      {{}}, ...
+             'solver',      []);
 opt = merge_options(opt, varargin{:});
 
 assert (~all([isempty(opt.src), isempty(opt.bc), isempty(opt.wells)]), ...
@@ -215,7 +216,15 @@ for i=1:numTrRHS,
 end
 
 % Time of flight for a divergence-free velocity field.
-T  = A \ [pv TrRHS];
+if isempty(opt.solver)
+    T  = A \ [pv TrRHS];
+else
+    T = zeros(size(TrRHS)+[0, 1]);
+    T(:, 1) = opt.solver(A, pv);
+    for k = 2:size(T, 2)
+        T(:, k) = opt.solver(A, TrRHS(:, k-1));
+    end
+end
 
 % reset all tof > maxTOF to maxTOF
 if ~opt.allowInf

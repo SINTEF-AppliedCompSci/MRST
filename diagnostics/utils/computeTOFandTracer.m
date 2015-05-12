@@ -70,7 +70,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 % Process optional parameters
-opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', []);
+opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', [], ...
+             'solver', []);
 opt = merge_options(opt, varargin{:});
 
 check_input(G, rock, opt);
@@ -103,7 +104,7 @@ end
 
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
-   'tracer', {opt.wells(D.inj).cells});
+   'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver);
 D.tof     = t(:,1);
 D.itracer = t(:,2:end);
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
@@ -112,7 +113,7 @@ D.ipart(val==0) = 0;
 
 % Compute time-of-flight and tracer partition from producers
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
-   'tracer', {opt.wells(D.prod).cells}, 'reverse', true);
+   'tracer', {opt.wells(D.prod).cells}, 'reverse', true, 'solver', opt.solver);
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:end);
 [val,D.ppart] = max(D.ptracer,[],2);
