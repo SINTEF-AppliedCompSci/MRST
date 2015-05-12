@@ -187,7 +187,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
     state = [];
     state_idx = 1;
-    name_idx = 1;
     if (~isempty(opt.state))        
         if (numel(opt.state) == 1)
             state = {opt.state};
@@ -358,7 +357,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         cur_val = get(mtofsh, 'Value');
         if (cur_val <= min_val)
             set(mtofsh, 'Value', min_val);
-            set(mtofeh, 'String', sprintf('%.1f', -Inf));
+            set(mtofeh, 'String', sprintf('%.1f', 0));
         elseif (cur_val >= max_val)
             set(mtofsh, 'Value', max_val);
             set(mtofeh, 'String', sprintf('%.1f', Inf));
@@ -626,7 +625,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                        'Units', 'normalized',...
                                        'Position', [.67 .55 .33 .4],...
                                        'Callback', @handleIntegralChange,...
-                                       'String', 'Integrate over timesteps'...
+                                       'String', 'Average over timesteps'...
                                        );
         end
         
@@ -655,7 +654,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             varnames = labels;
             vars = {indices, computeGrid.cells.indexMap(indices)};
             
-            %Clean the varnames of spaces
+            %Clean the varnames of spaces etc
             clean = @(x) lower(regexprep(x,'[^a-zA-Z0-9]','_'));
             varnames = cellfun(@(x) clean(x), varnames, 'UniformOutput', false);
 
@@ -706,71 +705,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if (~isempty(D_int))
             D = D_int;
         else
-            %Initialize our integral of D over time to zeros
-            D_int.tof = zeros(size(D.tof));
-            D_int.itracer = zeros(size(D.itracer));
-            D_int.ptracer = zeros(size(D.ptracer));
-            D_int.ipart = zeros(size(D.ipart));
-            D_int.ppart = zeros(size(D.ppart));
-
-            D_int.isubset = zeros(size(D.ipart));
-            D_int.psubset = zeros(size(D.ppart));
-
-            D_int.inj_sum = zeros(numel(W{1}),1);
-            D_int.prod_sum = zeros(numel(W{1}),1);
-
-            D = D_int;
-
-            %Find timestep sizes
+            extra_args = {};
             if (isfield(state{1}, 'time'))
                 times = cellfun(@(x) x.time, state);
                 times = [0; times];
-                dts = (times(2:end) - times(1:end-1)) / times(end);
-            else
-                N = numel(W);
-                dt = 1/N;
-                dts = repmat(dt, N);
+                dt = (times(2:end) - times(1:end-1)) / times(end);
+                extra_args = {extra_args{:}, 'dt', dt};
             end
-
-            %Accumulate tracer and subsets
-            h = waitbar(0, 'Step 0');
-            N = numel(W);
-            for idx=1:N
-                [D_new, ~] = computeTOFAndTracerAndWellPairs(W{idx}, state{idx});
-                if (~D_new.isvalid)
-                    continue;
-                end
-
-                dt = dts(idx);
-
-                %Accumulate TOF and tracer values, etc
-                D_int.tof = D_int.tof + dt*D_new.tof;
-                D_int.itracer = D_int.itracer + dt*D_new.itracer;
-                D_int.ptracer = D_int.ptracer + dt*D_new.ptracer;
-                D_int.inj_sum(D_new.inj) = D_int.inj_sum(D_new.inj) + dt;
-                D_int.prod_sum(D_new.prod) = D_int.prod_sum(D_new.prod) + dt;
-
-                %Find the subset fulfilling current min/max values
-                [isubset, psubset] = getSubset(D_new);
-
-                D_int.isubset = D_int.isubset + dt*isubset;
-                D_int.psubset = D_int.psubset + dt*psubset;
-
-                waitbar(idx/N,h,['Step ', num2str(idx)])
-            end
-            delete(h);
-
-            %Now, partition the domain
-            [~,D_int.ipart] = max(D_int.itracer,[],2);
-            [~,D_int.ppart] = max(D_int.ptracer,[],2);
-
-            %Determine which wells are injectors / producers.
-            injectors = D_int.inj_sum > D_int.prod_sum;
-            D_int.inj = find(injectors);
-            D_int.prod = find(~injectors);
-
-            D_int.isvalid = true;
             
+            min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
+            max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
+            D_int = computeTOFandTracerAverage(state, computeGrid, rock, ...
+                'wells', W, ...
+                'max_tof', max_tof,...
+                'min_tof', min_tof,...
+                extra_args{:});
+                
             D = D_int;
         end
     end
