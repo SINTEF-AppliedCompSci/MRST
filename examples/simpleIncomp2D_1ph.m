@@ -23,8 +23,9 @@ fl = [10 10 40 40; 10 40 40 10];
 
 a = 1/25; % fracture aperture
 min_size = 1; % minimum fracture cell size
-cell_size = 4; % desired mean fracutre cell size
+cell_size = 2; % desired mean fracutre cell size
 [G,fracture] = processFracture2D(G,fl,'verbose',true); fracture.aperture = a;
+
 G = CIcalculator2D(G,fracture);
 [G,F,fracture] = gridFracture2D(G,fracture,'min_size',min_size,...
     'cell_size',cell_size,'verbose',true);
@@ -70,7 +71,7 @@ A = A.A; A(1,1) = A(1,1)/2; % undo magic done in incompTPFA due to no source
 % Several partitioning options can be specified. see getRsbGrids_HFM for
 % more details.
 
-coarsen = [15 15]; % coarsening factor in each direction
+coarsen = [12 12]; % coarsening factor in each direction
 dof_frac = 5; % fracture degrees of freedom at coarse scale
 [CG, CGf] = getRsbGrids_HFM(G, F, fracture.network, 'coarsen', coarsen, ...
     'dof_frac',dof_frac,'sysMatrix',A);
@@ -100,7 +101,7 @@ state_ms = incompMultiscale(state, CG, T, fluid, basis_sb, 'Wells', W, ...
 
 sol = struct('FS',state_fs,'MS',state_ms); solvers = {'FS', 'MS'};
 
-clf; set(gcf,'Position',get(0,'screensize'));
+clf
 %-------------------------------Patch-------------------------------------%
 for figs = 1:2
     subplot(1,2,figs);
@@ -117,7 +118,7 @@ for figs = 1:2
 end
 
 %-----------------------------Time of Flight------------------------------%
-figure('Position',get(0,'screensize'));
+figure
 for figs = 1:2
     subplot(1,2,figs);
     state = getfield(sol,solvers{1,figs}); %#ok
