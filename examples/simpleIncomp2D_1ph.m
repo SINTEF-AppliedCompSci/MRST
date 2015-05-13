@@ -23,8 +23,9 @@ fl = [10 10 40 40; 10 40 40 10];
 
 a = 1/25; % fracture aperture
 min_size = 1; % minimum fracture cell size
-cell_size = 4; % desired mean fracutre cell size
+cell_size = 2; % desired mean fracutre cell size
 [G,fracture] = processFracture2D(G,fl,'verbose',true); fracture.aperture = a;
+
 G = CIcalculator2D(G,fracture);
 [G,F,fracture] = gridFracture2D(G,fracture,'min_size',min_size,...
     'cell_size',cell_size,'verbose',true);
