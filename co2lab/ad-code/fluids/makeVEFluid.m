@@ -72,12 +72,16 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    %% Adding density and viscosity properties
 
    % Adding viscosity
-   fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt , opt.fixedT);
-   fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt , opt.fixedT);
+   fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt ...
+                            , opt.fixedT, opt.pnum, opt.tnum);
+   fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt ...
+                            , opt.fixedT, opt.pnum, opt.tnum);
 
    % Adding density
-   fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, opt.fixedT);
-   fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, opt.fixedT);
+   fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, ...
+                            opt.fixedT, opt.pnum, opt.tnum);   
+   fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, ...
+                            opt.fixedT, opt.pnum, opt.tnum):
 
    % Add density functions of the black-oil formulation type
    fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
@@ -132,8 +136,10 @@ function opt = default_options()
    opt.co2_rho_ref   =  760 * kilogram / meter^3; % Reference rho for CO2
    opt.wat_rho_ref   = 1100 * kilogram / meter^3; % Reference rho for brine
 
-   p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range
-   t_range = [  4, 250] + 274;           % CO2 default temperature range
+   opt.p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range
+   opt.t_range = [  4, 250] + 274;           % CO2 default temperature range
+   opt.pnum    = 800; % number of samples (if using EOS)
+   opt.tnum    = 800; % number of samples (if using EOS)
 
    % The following options are used to specify whether CO2 and brine
    % densities should be considered constant, linear, or sampled from a
@@ -208,7 +214,8 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt, fixedT)
+function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt, ...
+                                  fixedT, pnum, tnum)
    if isempty(prop_pvt)
       % use constant property (based on reference property).  Whether it is a
       % function of P only, or of both P and T, is irrelevant here.
@@ -226,6 +233,8 @@ function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt
       fluid = addSampledFluidProperties(fluid, shortname, ...
                                         'pspan',  prop_pvt(1:2), ...
                                         'tspan',  prop_pvt(3:4), ...
+                                        'pnum',   pnum, ...
+                                        'tnum',   tnum, ...
                                         'props',  [strcmpi(propname, 'rho'), ...
                                                    strcmpi(propname, 'mu'),  ...
                                                    strcmpi(propname, 'h')], ...
