@@ -71,7 +71,7 @@ A = A.A; A(1,1) = A(1,1)/2; % undo magic done in incompTPFA due to no source
 % Several partitioning options can be specified. see getRsbGrids_HFM for
 % more details.
 
-coarsen = [12 12]; % coarsening factor in each direction
+coarsen = [15 15]; % coarsening factor in each direction
 dof_frac = 5; % fracture degrees of freedom at coarse scale
 [CG, CGf] = getRsbGrids_HFM(G, F, fracture.network, 'coarsen', coarsen, ...
     'dof_frac',dof_frac,'sysMatrix',A);
@@ -101,7 +101,7 @@ state_ms = incompMultiscale(state, CG, T, fluid, basis_sb, 'Wells', W, ...
 
 sol = struct('FS',state_fs,'MS',state_ms); solvers = {'FS', 'MS'};
 
-clf
+clf; set(gcf,'Position',get(0,'screensize'));
 %-------------------------------Patch-------------------------------------%
 for figs = 1:2
     subplot(1,2,figs);
@@ -118,7 +118,7 @@ for figs = 1:2
 end
 
 %-----------------------------Time of Flight------------------------------%
-figure
+figure('Position',get(0,'screensize'));
 for figs = 1:2
     subplot(1,2,figs);
     state = getfield(sol,solvers{1,figs}); %#ok

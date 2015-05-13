@@ -44,7 +44,7 @@ startp = [unique(out.intMatrixX(out.intAdjacencyMatrix)), unique(out.intMatrixY(
 if isempty(new_endp)
     error('End points not being recognized by inpolygon !');
 end
-new_endp = new_endp(~ismember(new_endp,startp,'rows'),:);
+new_endp = new_endp(~ismembertol(new_endp,startp,eps*100,'ByRows',true),:);
 ratio = pdist_euclid([startp;true_endp])/pdist_euclid([startp;unique(new_endp,'rows')]);
 %{
 figure;triplot(tri); hold on; plotGrid(G,'FaceColor','none','EdgeAlpha',0.02); plot(frac_endp)

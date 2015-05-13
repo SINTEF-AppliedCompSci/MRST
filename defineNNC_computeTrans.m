@@ -7,7 +7,7 @@ function [G,T] = defineNNC_computeTrans(G,F,fracture)
 % assembleGlobalGrid  and computeTrans internally.
 
 %{
-Copyright 2009-2015: Swej Shah and SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

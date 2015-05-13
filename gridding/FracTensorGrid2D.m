@@ -60,10 +60,10 @@ for i = 1:numel(F)
     endp = [coords(1,:);coords(end,:)];
     diff1 = diff(endp,1);
     if abs(diff1(2)) < eps*100 % // to x-axis
-        temp = tensorGrid(coords(:,1),unique([coords(1,2);coords(1,2)+a(i)],'rows','stable'));
+        temp = tensorGrid(coords(:,1),uniquetol([coords(1,2);coords(1,2)+a(i)],eps,'ByRows',true));
         Gf.(fieldname) = computeGeometry(temp);
     elseif abs(diff1(1)) < eps*100 % // to y-axis
-        temp = tensorGrid(unique([coords(:,1); coords(:,1)+a(i)],'rows','stable'),coords(:,2));
+        temp = tensorGrid(uniquetol([coords(:,1); coords(:,1)+a(i)],eps,'ByRows',true),coords(:,2));
         Gf.(fieldname) = computeGeometry(temp);
     else
         new_coords = translateLine(coords,a(i));

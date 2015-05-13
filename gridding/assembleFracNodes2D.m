@@ -325,6 +325,9 @@ else
                 % flag = 1 if only 1 fracture intersects at 1 face only.
                 
                 if numel([G.cells.fracture.line_num{ci,1},G.cells.fracture.dfm_line_num{ci,1}])>1 % More than 1 fracture in the cell
+                    % Check if they intersect first. Option 1 does not yet deal
+                    % with multiple intersections in 1 cell. If that is the
+                    % case use Option 2
                     fl2 = [G.cells.fracture.line_num{ci,1},G.cells.fracture.dfm_line_num{ci,1}];
                     fl2 = fl2(fl2~=fl);
                     fracp2 = fracture.lines(fl2).endp; % Can only be 1 fracture
@@ -335,16 +338,16 @@ else
                         fendp = [frac_endp(1:2);frac_endp(3:4)];
                         [in,~] = inpolygon(fendp(:,1),fendp(:,2),tri.Points(K,1),tri.Points(K,2));
                         if find(in)==1 % fracture starting point
-                            fracp = [fendp(in,:); unique(xi,'stable'), unique(yi,'stable')];
+                            fracp = [fendp(in,:); uniquetol(xi,eps), uniquetol(yi,eps)];
                         else % fracture end point
-                            fracp = [unique(xi,'stable'), unique(yi,'stable');fendp(in,:)];
+                            fracp = [uniquetol(xi,eps), uniquetol(yi,eps);fendp(in,:)];
                         end
                         out = lineSegmentIntersect([fracp(1,:),fracp(2,:)],fracp2);
                         if out.intAdjacencyMatrix % Intersection=true
                             flag = 3;
                         end
                     else
-                        fracp = unique([xi,yi],'rows','stable');
+                        fracp = uniquetol([xi,yi],eps,'ByRows',true);
                         out = lineSegmentIntersect([fracp(1,:),fracp(2,:)],fracp2);
                         if out.intAdjacencyMatrix % Intersection = true
                             flag = 2;
@@ -354,7 +357,7 @@ else
                 %%
                 switch flag
                     case 0 % 1 fracture in cell cutting at 2 faces (i.e. going through)
-                        fracp = unique([xi,yi],'rows','stable');
+                        fracp = uniquetol([xi,yi],eps,'ByRows',true);
                         ccount = ccount+1;
                         coords(ncount+1:ncount+2,:) = fracp;
                         ncount = ncount+2;
@@ -364,7 +367,7 @@ else
                         K = convexHull(tri);
                         fendp = [frac_endp(1:2);frac_endp(3:4)];
                         [in,~] = inpolygon(fendp(:,1),fendp(:,2),tri.Points(K,1),tri.Points(K,2));
-                        fracp = [fendp(in,:); unique(xi,'stable'), unique(yi,'stable')];
+                        fracp = [fendp(in,:); uniquetol(xi,eps), uniquetol(yi,eps)];
                         ccount = ccount+1;
                         coords(ncount+1:ncount+2,:) = fracp;
                         ncount = ncount+2;
@@ -393,7 +396,7 @@ else
                         end
                 end
             end
-            coords = unique(coords,'rows','stable');
+            coords = uniquetol(coords,eps,'ByRows',true);
             F(fl).nodes.coords = coords;
             ncells = size(coords,1)-1;
             if ncells~=ccount && ncells~=ccount/2, warning('Possible error in indexing'), end
@@ -413,7 +416,7 @@ end
 
 for i = 1:numel(F)
     coords = F(i).nodes.coords;
-    unique(coords,'rows','stable');
+    uniquetol(coords,eps,'ByRows',true);
     endp = [coords(1,:);coords(end,:)];
     diff1 = diff(endp,1);
     if abs(diff1(2)) < eps*100 % // to x-axis
