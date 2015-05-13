@@ -91,16 +91,16 @@ D.prod = find(~iwells & opt.tracerWells);
 
 %Check that we actually a meaningful TOF scenario. If all wells are shut
 %off, return Inf.
-sum_flux = cell2mat(arrayfun(@(x) sum(x.flux), state.wellSol, 'UniformOutput', false));
-if (all(sum_flux) == 0.0)
-    %assert(numel(D.inj)*numel(D.prod) > 0, 'Number of injectors and number of producers must be greater than zero');
-    D.tof = Inf(G.cells.num, 2);
-    D.itracer = NaN(G.cells.num, numel(D.inj));
-    D.ipart = NaN(G.cells.num, 1);
-    D.ptracer = NaN(G.cells.num, numel(D.prod));
-    D.ppart = NaN(G.cells.num, 1);
-    return;
-end
+% sum_flux = cell2mat(arrayfun(@(x) sum(x.flux), state.wellSol, 'UniformOutput', false));
+% if (all(sum_flux) == 0.0)
+%     %assert(numel(D.inj)*numel(D.prod) > 0, 'Number of injectors and number of producers must be greater than zero');
+%     D.tof = Inf(G.cells.num, 2);
+%     D.itracer = NaN(G.cells.num, numel(D.inj));
+%     D.ipart = NaN(G.cells.num, 1);
+%     D.ptracer = NaN(G.cells.num, numel(D.prod));
+%     D.ppart = NaN(G.cells.num, 1);
+%     return;
+% end
 
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
