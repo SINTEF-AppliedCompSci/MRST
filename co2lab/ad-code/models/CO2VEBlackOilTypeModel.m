@@ -189,7 +189,7 @@ end
    function gdz = getGravityGradient(model)
       s  = model.operators;
       Gt = model.G;
-      g  = norm(model.getGravityVector()); %@@ requires theta=0
+      g  = model.gravity(3); % @@ requires theta=0
       gdz = g * s.Grad(Gt.cells.z);
    end
 
