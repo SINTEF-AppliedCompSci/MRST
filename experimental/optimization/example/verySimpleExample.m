@@ -2,7 +2,7 @@ function [Gt, optim] = verySimpleExample(varargin)
 
    opt.res = 33;
    opt.timesteps = 4;
-   opt.min_rate = 0.01;
+   opt.min_rate = 0.5;
    opt.max_rate = 10;
    opt.timestep_len = 1 * day;
    opt = merge_options(opt, varargin{:});
@@ -11,7 +11,7 @@ function [Gt, optim] = verySimpleExample(varargin)
    gravity on;
    
    ref_pressure = 100 * barsa;
-   rate = 0.5; %0.18;%5;%sqrt(eps);
+   rate = 1; %0.18;%5;%sqrt(eps);
    
    G = computeGeometry(cartGrid([opt.res opt.res 1], [1 1 0.02] * kilo * meter));
    Gt = topSurfaceGrid(G);

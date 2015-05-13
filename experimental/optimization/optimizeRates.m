@@ -177,6 +177,21 @@ function [val, der, wellSols, states] = ...
       % scale gradient:
       der = scaleGradient(g, schedule, boxLims, objScaling);
       der = vertcat(der{:});
+      
+      % %% @@ 
+      % % Compute numeric derivative, to verify gradient
+      % vd = u*0;
+      % du = 1e-7;
+      % for i = 1:numel(u)
+      %    u_tmp = u;
+      %    u_tmp(i) = u_tmp(i) + du; % to compute partial derivative along i
+      %    tmp_schedule = control2schedule(u_tmp, schedule, scaling);
+      %    [ws, st] = simulateScheduleAD(initState, model, tmp_schedule);
+      %    tmp_val = obj_fun(ws, st, tmp_schedule);
+      %    tmp_val = sum(cell2mat(tmp_val))/abs(objScaling);
+      %    vd(i) = (tmp_val - val) / du;
+      % end
+      % vd;
    end
 end
 
