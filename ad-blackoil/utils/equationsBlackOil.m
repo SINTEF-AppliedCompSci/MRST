@@ -48,7 +48,7 @@ if ~opt.resOnly,
         [p0, sW0, x0, zw, zw, zw, zw] = ...
             initVariablesADI(p0, sW0, x0, zw, zw, zw, zw); %#ok
         clear zw
-        [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW, x0, rs0, rv0, p0);
+        [sG0, rs0, rv0] = calculateHydrocarbonsFromStatusBO(model, st0, 1-sW0, x0, rs0, rv0, p0);
     end
 end
     
