@@ -153,18 +153,25 @@ end
 
 % ----------------------------------------------------------------------------
 function pc = pcWG(sg, p, fluid, Gt, opt, varargin)
-    loc_opt = struct('sGmax',[]);
+    loc_opt = struct('sGmax',[], 'T', []);
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
-        % could been put in separate function
+       % Adjusting the gas saturation to be used for computing cap. press
         sg_free = free_sg(sg, loc_opt.sGmax, opt);
         assert(all(sg_free>=0));
-        pc = (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) * ...
-             norm(gravity) .* sg_free .* Gt.cells.H;
-    else
-       pc = (fluid.rhoWS.*fluid.bW(p)-fluid.rhoGS.*fluid.bG(p)) * ...
-            norm(gravity) .*sg.*Gt.cells.H;
+        sg = sg_free; % to be used below
     end
+
+    if isempty(loc_opt.T)
+       pc = (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) *...
+            norm(gravity) .* sg .* Gt.cells.H;
+    else
+       % temperature-dependent formation-volume factors
+       pc = (fluid.rhoWS .* fluid.bW(p, loc_opt.T) -...
+             fluid.rhoGS .* fluid.bG(p, loc_opt.T)) *... 
+            norm(gravity) .* sg .* Gt.cells.H; 
+    end
+    
     pc = pc / (1-opt.res_water);
 end
 
