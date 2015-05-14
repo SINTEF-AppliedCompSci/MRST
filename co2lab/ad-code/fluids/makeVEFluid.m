@@ -81,7 +81,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
    fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, ...
                             opt.fixedT, opt.pnum, opt.tnum);   
    fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, ...
-                            opt.fixedT, opt.pnum, opt.tnum):
+                            opt.fixedT, opt.pnum, opt.tnum);
 
    % Add density functions of the black-oil formulation type
    fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
@@ -150,7 +150,7 @@ function opt = default_options()
    % compressibility constant and 'p_ref' the pressure at which density
    % equals reference density.  The same explanation goes for water density,
    % as specified by 'opt.wat_rho_pvt'.
-   opt.co2_rho_pvt = [p_range, t_range]; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
+   opt.co2_rho_pvt = [opt.p_range, opt.t_range]; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
    opt.wat_rho_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
 
    % Viscosity of CO2 and brine
