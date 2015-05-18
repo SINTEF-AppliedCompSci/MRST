@@ -34,10 +34,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
             if isempty(model.pressureNonLinearSolver)
                 model.pressureNonLinearSolver = NonLinearSolver();
             end
+            model.pressureNonLinearSolver.identifier = 'PRESSURE';
             
             if isempty(model.transportNonLinearSolver)
                 model.transportNonLinearSolver = NonLinearSolver();
             end
+            model.transportNonLinearSolver.identifier = 'TRANSPORT';
             
             if ~isempty(model.pressureLinearSolver)
                 model.pressureNonLinearSolver.LinearSolver = ...
