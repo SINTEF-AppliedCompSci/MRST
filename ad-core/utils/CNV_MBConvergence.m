@@ -1,4 +1,4 @@
-function [converged, values, evaluated] = CNV_MBConvergence(model, problem)
+function [converged, values, evaluated, names] = CNV_MBConvergence(model, problem)
     % Compute convergence based on total mass balance and maximum residual mass balance.
     %
     % SYNOPSIS:
@@ -126,12 +126,5 @@ function [converged, values, evaluated] = CNV_MBConvergence(model, problem)
 
     converged = converged_MB & converged_CNV;
     values = [CNV, MB];
-    
-    if mrstVerbose()
-        if problem.iterationNo == 1
-            fprintf('CNVO\t\tCNVW\t\tCNVG\t\tMBO\t\tMBW\t\tMBG\n');
-        end
-        fprintf('%2.2e\t', values);
-        fprintf('\n')
-    end
+    names = {'CNV_W', 'CNV_O', 'CNV_G', 'MB_W', 'MB_O', 'MB_G'};
 end

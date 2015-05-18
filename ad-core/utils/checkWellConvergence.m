@@ -1,4 +1,4 @@
-function [convergence, values, evaluated] = checkWellConvergence(model, problem)
+function [convergence, values, evaluated, names] = checkWellConvergence(model, problem)
     % Compute convergence for wells.
     %
     % SYNOPSIS:
@@ -63,4 +63,6 @@ function [convergence, values, evaluated] = checkWellConvergence(model, problem)
     convergence = false(size(tmp));
     convergence(isperf) = values(isperf) < model.toleranceWellRate;
     convergence(iswell) = values(iswell) < model.toleranceWellBHP;
+    
+    names = strcat(problem.equationNames(evaluated), ' (', problem.types(evaluated), ')');
 end

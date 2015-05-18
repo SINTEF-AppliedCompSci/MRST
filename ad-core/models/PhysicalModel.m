@@ -102,7 +102,7 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function [convergence, values] = checkConvergence(model, problem, n)
+    function [convergence, values, names] = checkConvergence(model, problem, n)
         % Check and report convergence based on residual tolerances
         if nargin == 2
             n = inf;
@@ -110,6 +110,7 @@ methods
 
         values = norm(problem, n);
         convergence = all(values < model.nonlinearTolerance);
+        names = strcat(problem.equationNames, ' (', problem.types, ')');
     end
 
     % --------------------------------------------------------------------%
@@ -123,7 +124,7 @@ methods
                                    varargin{:});
         problem.iterationNo = iteration;
 
-        [convergence, values] = model.checkConvergence(problem);
+        [convergence, values, resnames] = model.checkConvergence(problem);
         % Minimum number of iterations can be prescribed, i.e. we
         % always want at least one set of updates regardless of
         % convergence criterion.
@@ -152,8 +153,7 @@ methods
         isConverged = convergence || (model.stepFunctionIsLinear && doneMinIts);
         
         if model.verbose
-            shortnames = strcat(problem.equationNames, ' (', problem.types, ')');
-            printConvergenceReport(shortnames, values, isConverged, iteration);
+            printConvergenceReport(resnames, values, isConverged, iteration);
         end
         report = model.makeStepReport(...
                         'LinearSolver', linearReport, ...
