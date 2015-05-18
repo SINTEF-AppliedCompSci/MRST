@@ -1,4 +1,53 @@
 function D = computeTOFandTracerAverage(state, G, rock, varargin)
+%Executes computeTOFandTracer for a series of states and averages
+%
+% SYNOPSIS:
+%   computeTOFandTracerAverage(state, G, rock, W, 'pn1', pv1, ...);
+%
+% DESCRIPTION:
+%   Computes time of flight for a series of time steps and avarages.
+%
+%
+% REQUIRED PARAMETERS:
+%   G     - Grid structure.
+%
+%   rock  - Rock data structure.
+%           Must contain a valid porosity field, 'rock.poro'.
+%
+%   state - Reservoir and well solution structure either properly
+%           initialized from functions 'initResSol' and 'initWellSol'
+%           respectively, or the results from a call to function
+%           'solveIncompFlow'.  Must contain valid cell interface fluxes,
+%           'state.flux'.
+%
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   wells   - Well structure as defined by function 'addWell'.  May be empty
+%             (i.e., wells = []) which is interpreted as a model without any
+%             wells.
+%   dt      - List of timesteps to use in averaging
+%   max_tof - Threshold
+%
+% RETURNS:
+%   D - struct that contains the basis for computing flow diagnostics:
+%       'inj'     - list of injection wells
+%       'prod'    - list of production wells
+%       'tof'     - time-of-flight and reverse time-of-flight returned
+%                   as an (G.cells.num x 2) vector
+%       'itracer' - steady-state tracer distribution for injectors
+%       'ipart'   - tracer partition for injectors
+%       'ptracer' - steady-state tracer distribution for producers
+%       'ppart'   - tracer partition for producers
+%       'isubset' - flooding volumes which satisfy the min/max tof
+%                   thresholds (if set). Represents a kind of frequency.
+%       'psubset' - drainage volumes which satisfy the min/max tof
+%                   thresholds (if set). Represents a kind of frequency.
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%   computeTOFandTracer
+
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
@@ -37,7 +86,7 @@ opt = struct(...
 if (~isempty(opt.dt))
     dts = opt.dt;
 else
-    N = numel(W);
+    N = numel(state);
     dt = 1/N;
     dts = repmat(dt, N);
 end
