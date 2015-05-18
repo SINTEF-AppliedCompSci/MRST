@@ -101,7 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         res = norm(A*p_ms - q, 2)/norm(q, 2);
         residuals = res;
     end
-    dispif(mrstVerbose, 'Converged to %g after %d iterations\n', res, itcount);
+    dispif(mrstVerbose(), 'Final residual: %g after %d iterations (tolerance: %g)\n', res, itcount, tol);
     report.iterations = itcount;
     report.finalResidual = res;
     report.resvec = residuals;
