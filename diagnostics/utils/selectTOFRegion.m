@@ -2,18 +2,37 @@ function selection = selectTOFRegion(D, max_tof, min_tof, varargin)
 %Select a subset of cells based on TOF criteria
 %
 % SYNOPSIS:
-%   selectTOFRegion(...);
+%   selectTOFRegion(D, max_tof, min_tof, ...);
 %
 % DESCRIPTION:
-%
+%   Selects a subset of a grid based on TOF information and selection
+%   criteria.
 %
 % REQUIRED PARAMETERS:
 %
-%   ...    - ...
+%   D - Time of flight object computed by computeTOFandTracer.
+%   max_tof - All TOF-regions higher than this will be discarded.
+%   min_tof - All TOF-regions less than this will be discarded.
 %
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%
+%       'drain_wells' - List of draining (production) wells to consider.
+%                       Other wells will be ignored
+%       'flood_wells' - List of flooding (injecting) wells to consider.
+%                       Other wells will be ignored
+%       'set_op'	  - Operation op to perform, so that the computed
+%                       selection is op(flood, drain) where flood and drain
+%                       are the flooding and drainage volumes,
+%                       respectively.
+%       'near_well_max_tof' - Threshold for near well regions to include.
+%                             Set to zero to disable including near-well
+%                             regions.
+%       'psubset' - User specified draining / production region to
+%                   consider. When this is enabled, max_tof and min_tof
+%                   will not be used to find the selected drainage region.
+%       'isubset' - User specified flooding / injection region to consider.
+%                   When this is enabled, max_tof and min_tof will not be
+%                   used to find the selected flooding region.
 %
 % RETURNS:
 %
