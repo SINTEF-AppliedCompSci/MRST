@@ -725,8 +725,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         %Enable/disable the correct controls by firing callback on
         %time_integral button
-        f = get(time_integral, 'Callback');
-        f([], []);
+        if (ishandle(time_integral))
+            f = get(time_integral, 'Callback');
+            f([], []);
+        end
     end
 
     function [isubset, psubset] = getSubset(D)
@@ -896,7 +898,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         N = round(get(speedsh, 'Value'));
         
-        if (get(time_integral, 'Value'))
+        if (ishandle(time_integral) && get(time_integral, 'Value'))
             t_0 = 1;
             t_end = get(tofsh, 'Value');
             callback = get(tofsh, 'Callback');
@@ -917,7 +919,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 return
             end
             
-            if (get(time_integral, 'Value'))
+            if (ishandle(time_integral) && get(time_integral, 'Value'))
                 set(tofsh, 'Value', t_0 + i*(t_end - t_0)/N);
                 callback(tofsh, []);
             else
