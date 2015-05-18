@@ -110,13 +110,6 @@ methods
 
         values = norm(problem, n);
         convergence = all(values < model.nonlinearTolerance);
-
-        if model.verbose
-            for i = 1:numel(values)
-                fprintf('%s (%s): %2.2e\t', problem.equationNames{i}, problem.types{i}, values(i));
-            end
-            fprintf('\n')
-        end
     end
 
     % --------------------------------------------------------------------%
@@ -157,6 +150,11 @@ methods
             end
         end
         isConverged = convergence || (model.stepFunctionIsLinear && doneMinIts);
+        
+        if model.verbose
+            shortnames = strcat(problem.equationNames, ' (', problem.types, ')');
+            printConvergenceReport(shortnames, values, isConverged, iteration);
+        end
         report = model.makeStepReport(...
                         'LinearSolver', linearReport, ...
                         'UpdateState',  updateReport, ...
