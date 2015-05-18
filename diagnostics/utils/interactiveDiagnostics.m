@@ -240,6 +240,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      time_integral,...
      mrst_ds,...
      ds_panel,...
+     time_varying,...
      ni, np] = deal(NaN);
     
     % Setup "persistent" variables
@@ -261,6 +262,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     compute_time_integral = false;
     D_int = [];
     window_name = opt.name{1};
+    time_varying = (~isempty(state) && numel(state) > 1) || (~isempty(W) && numel(W) > 1);
     
     %Create main figure
     fig_main = figure('Name', window_name);
@@ -277,7 +279,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [D, WP] = computeTOFAndTracerAndWellPairs(W{state_idx}, state{state_idx});
     tofext = getTOFRange(D);
     createMainControl();
-    [D.isubset, D.psubset] = getSubset(D);
     
     % Trigger plot initial setup
     plotMain();
@@ -503,8 +504,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         set(Mtofsh, 'Callback', @Mtofs_callback);
         set(Mtofeh, 'String', num2str(+Inf))
         
-        [tofsh, tofeh, ~]   = linkedSlider(tof_panel, [0 2*tof_H 1 tof_h], .15, [0 1], 0.25, 'TOF Freq.', @plotMain);
-        time_integral_handles = [time_integral_handles(:); tofsh; tofeh];
+        if (time_varying)
+            [tofsh, tofeh, ~]   = linkedSlider(tof_panel, [0 2*tof_H 1 tof_h], .15, [0 1], 0.25, 'TOF Freq.', @plotMain);
+            time_integral_handles = [time_integral_handles(:); tofsh; tofeh];
+        end
         
         
         uicontrol(tof_panel, 'Style', 'pushbutton',...
@@ -718,7 +721,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         addVisualizationControls(vis_controls_tab, [0 .6 1 .4]); 
         
         %Add time-varying dataset slider
-        if ((~isempty(state) && numel(state) > 1) || (~isempty(W) && numel(W) > 1))
+        if (time_varying)
             data_controls_tab = uitab(tabgp, 'Title', 'Dataset selection');
             addTimestepSelector(data_controls_tab, [0 0.7 1 0.3]);
         end
@@ -729,20 +732,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             f = get(time_integral, 'Callback');
             f([], []);
         end
-    end
-
-    function [isubset, psubset] = getSubset(D)
-        % Get current TOF settings
-        min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
-        max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
-        
-        % Drainage volumes
-        data = D.tof(:,2);
-        psubset = data >= min_tof & data <= max_tof;
-
-        % Flooding volumes
-        data = D.tof(:,1);
-        isubset = data >= min_tof & data <= max_tof;
     end
 
     function computeTimeIntegral()
@@ -769,6 +758,51 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
+    function selection = getTOFSelection()
+        %Get options for TOF region selection
+        drain_wells = get(draintoggle, 'Value');
+        flood_wells = get(floodtoggle, 'Value');
+        near_well_max_tof = convertFrom(get(nwtofsh, 'Value'), year);
+        min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
+        max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
+        switch(get(hset_op, 'Value'))
+            case 1
+                set_op = 'union';
+            case 2
+                set_op = 'intersection';
+            case 3
+                set_op = 'flood';
+            case 4
+            	set_op = 'drain';
+        end
+        
+        %Get TOF region
+        if (compute_time_integral)
+            % Get current TOF frequency threshold
+            tof_freq = get(tofsh, 'Value');
+            
+            isubset = D.isubset;
+            psubset = D.psubset;
+            
+            frequency = (psubset+isubset) / 2.0;
+            psubset = psubset & (frequency >= tof_freq);
+            isubset = isubset & (frequency >= tof_freq);
+            
+            selection = selectTOFRegion(D, max_tof, min_tof, ...
+                                        'drain_wells', drain_wells, ...
+                                        'flood_wells', flood_wells, ...
+                                        'set_op', set_op, ...
+                                        'near_well_max_tof', near_well_max_tof, ...
+                                        'psubset', psubset, ...
+                                        'isubset', isubset);
+        else
+            selection = selectTOFRegion(D, max_tof, min_tof, ...
+                                        'drain_wells', drain_wells, ...
+                                        'flood_wells', flood_wells, ...
+                                        'set_op', set_op, ...
+                                        'near_well_max_tof', near_well_max_tof);
+        end
+    end
 
     function plotMain(src, event)
         if (compute_time_integral)
@@ -801,50 +835,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             set(pm_outlineph, 'UserData', 'gridoutline');
         end
         
-        if (compute_time_integral)
-            tofext = getTOFRange(D);
-            isubset = D.isubset;
-            psubset = D.psubset;
-            
-            % Get current TOF frequency threshold
-            frequency = (psubset+isubset) / 2.0;
-            tof_freq = get(tofsh, 'Value');
-            psubset = psubset & (frequency >= tof_freq);
-            isubset = isubset & (frequency >= tof_freq);
-            
-            setTOFSliderExtents();
-        else        
-            [isubset, psubset] = getSubset(D);
-            tofext = getTOFRange(D);
-            setTOFSliderExtents();
-        end
-        
-        %Get setting for drain/flood wells
-        drain_wells = get(draintoggle, 'Value');
-        flood_wells = get(floodtoggle, 'Value');
-        
-        psubs = ismember(D.ppart, drain_wells);
-        isubs = ismember(D.ipart, flood_wells);
-        
-        % Use logical operation on the selection
-        switch(get(hset_op, 'Value'))
-            case 1
-            selection = (isubset & isubs) | (psubset & psubs);
-            case 2
-            selection = (isubset & isubs) & (psubset & psubs);
-            case 3
-            selection = (isubset & isubs);
-            case 4
-            selection = (psubset & psubs);
-        end
-        
-        %Grow selection to include near-well regions
-        near_well_tof = convertFrom(get(nwtofsh, 'Value'), year);
-        isubset = D.tof(:,1) <= near_well_tof;
-        psubset = D.tof(:,2) <= near_well_tof;
-        near_well_selection = (isubset & isubs) | (psubset & psubs);
-        selection  = near_well_selection | selection;
-        
+        tofext = getTOFRange(D);
+        setTOFSliderExtents();
+        selection = getTOFSelection();
         
         dataind = get(hdataset, 'Value');
         [cdata, clim, ~] = selectDataset(dataind);
@@ -898,7 +891,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         N = round(get(speedsh, 'Value'));
         
-        if (ishandle(time_integral) && get(time_integral, 'Value'))
+        if (compute_time_integral)
             t_0 = 1;
             t_end = get(tofsh, 'Value');
             callback = get(tofsh, 'Callback');
@@ -919,7 +912,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 return
             end
             
-            if (ishandle(time_integral) && get(time_integral, 'Value'))
+            if (compute_time_integral)
                 set(tofsh, 'Value', t_0 + i*(t_end - t_0)/N);
                 callback(tofsh, []);
             else
