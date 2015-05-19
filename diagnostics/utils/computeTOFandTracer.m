@@ -7,9 +7,9 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %
 % DESCRIPTION:
 %   Construct the basis for flow diagnostic by computing
-%     1) time-of-flight        :   \nablaÂ·(v T) = \phi,
-%     2) reverse time-of-flight:  -\nablaÂ·(v T) = \phi,
-%     3) stationary tracer     :  -\nablaÂ·(v C) = 0
+%     1) time-of-flight        :   \nabla·(v T) = \phi,
+%     2) reverse time-of-flight:  -\nabla·(v T) = \phi,
+%     3) stationary tracer     :  -\nabla·(v C) = 0
 %   using a first-order finite-volume method with upwind flux.
 %
 % REQUIRED PARAMETERS:
@@ -38,6 +38,18 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           to the reservoir flow.  May be empty (i.e., bc = []) which is
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
+%
+%   tracerWells - Logical index vector indicating subset of wells for which 
+%           tracer-fields will be computed. Empty matrix (default) is 
+%           interpeted as all true, i.e., compute tracer fields for all 
+%           wells.
+%
+%   solver - Function handle to solver for use in TOF/tracer equations.
+%           Default (empty) is matlab mldivide (i.e., \)
+%
+%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
+%           systems. Default (empty) is 50*PVI (pore-volumes-injected).  
+%   
 % RETURNS:
 %   D - struct that contains the basis for computing flow diagnostics:
 %       'inj'     - list of injection wells
@@ -71,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % Process optional parameters
 opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', [], ...
-             'solver', []);
+             'solver', [], 'maxTOF', []);
 opt = merge_options(opt, varargin{:});
 
 check_input(G, rock, opt);
@@ -103,7 +115,8 @@ end
 
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
-   'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver);
+   'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
+   'maxTOF', opt.maxTOF);
 D.tof     = t(:,1);
 D.itracer = t(:,2:end);
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
@@ -112,7 +125,8 @@ D.ipart(val==0) = 0;
 
 % Compute time-of-flight and tracer partition from producers
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
-   'tracer', {opt.wells(D.prod).cells}, 'reverse', true, 'solver', opt.solver);
+   'tracer', {opt.wells(D.prod).cells}, 'reverse', true, ...
+   'solver', opt.solver, 'maxTOF', opt.maxTOF);
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:end);
 [val,D.ppart] = max(D.ptracer,[],2);

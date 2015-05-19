@@ -10,7 +10,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 % DESCRIPTION:
 %   Compute time-of-flight by solving
 %
-%       vÂ·\nabla T = \phi
+%       v·\nabla T = \phi
 %
 %   using a first-order finite-volume method with upwind flux. Here, 'v' is
 %   the Darcy velocity, '\phi' is the porosity, and T is time-of-flight.
@@ -60,12 +60,23 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %           additional right-hand side to the original tof-system. Output
 %           given as additional columns in T.
 %
+%   allowInf - Switch to turn off (true) or on (false) maximal TOF 
+%           thresholding. Default is false.
+%
+%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
+%           systems. Default (empty) is 50*PVI (pore-volumes-injected). 
+%           Only takes effect if 'allowInf' is set to false.
+%
+%   solver - Function handle to solver for use in TOF/tracer equations.
+%           Default (empty) is matlab mldivide (i.e., \)
+%   
+%
 %
 % RETURNS:
 %   T - Cell values of a piecewise constant approximation to time-of-flight
 %       computed as the solution of the boundary-value problem
 %
-%           (*)    v Â· \nabla T = \phi
+%           (*)    v · \nabla T = \phi
 %
 %       using a finite-volume scheme with single-point upwind approximation
 %       to the flux.
@@ -78,7 +89,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %
 %       where F_ij = -F_ji is the flux from cell i to cell j
 %
-%           F_ij = A_ijÂ·n_ijÂ·v_ij.
+%           F_ij = A_ij·n_ij·v_ij.
 %
 %       and n_ij is the outward-pointing normal of cell i for grid face ij.
 %       The discretization uses a simple model for cells containing inflow.
@@ -166,8 +177,7 @@ qp = max(q+qb, 0);
 out = min(state.flux(i), 0);
 in  = max(state.flux(i), 0);
 
-% Cell wise total out/inflow
-%outflow = accumarray([n(:, 2); n(:, 1)], [out; -in]);
+% Cell wise total inflow
 inflow  = accumarray([n(:, 2); n(:, 1)], [in; -out]);
 
 % The diagonal entries are equal to the sum of outfluxes minus divergence 
@@ -218,7 +228,7 @@ end
 % Time of flight for a divergence-free velocity field.
 if isempty(opt.solver)
     T  = A \ [pv TrRHS];
-else
+else % if other solver, iterate over RHSs
     T = zeros(size(TrRHS)+[0, 1]);
     T(:, 1) = opt.solver(A, pv);
     for k = 2:size(T, 2)
