@@ -28,16 +28,15 @@ model.cmup  = 2e-3/barsa;
 model.cmut  = 1e-3;
 model.T_r   = 300;
 
-model.cf    = 1e-3/barsa;
-model.ch    = 1*1e-4;    % nloop*1e-4;
+model.alpha = 1e-3/barsa;
+model.beta  = 5e-4;
 model.rho_r = 850*kilogram/meter^3;
 model.rho_S = 750*kilogram/meter^3;
 rho = @(p,T) ...
-   model.rho_r .* (1+(model.cf*(p-model.p_r))).*exp(-model.ch*(T-model.T_r) );
+   model.rho_r .* (1+model.beta*(p-model.p_r)).*exp(-model.alpha*(T-model.T_r) );
 
 %% Quantities for energy equation
-model.Cw = 1e3;
-model.Cr = model.Cw/2;
+model.Cp = 4e3;
 
 %% Assume a single horizontal well
 nperf = floor(G.cartDims(2)*(ny-2)/ny);
@@ -117,8 +116,8 @@ t = 0; step = 0;
 while t < totTime,
    t = t + model.dt;
    step = step + 1;
-%   fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
-%      step, convertTo(t - model.dt, day), convertTo(t, day));
+   fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
+      step, convertTo(t - model.dt, day), convertTo(t, day));
 
    % Newton loop
    resNorm = 1e99;
@@ -133,7 +132,7 @@ while t < totTime,
       state = state + upd;
       resNorm = norm(res);
       nit     = nit + 1;
- %     fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
+      fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
    end
 
    if nit > maxits,
@@ -182,7 +181,7 @@ for i=1:numel(steps)
    axis tight off; zoom(1.4)
    text(200,170,-8,[num2str(round(steps(i)*dt/day)) ' days'],'FontSize',12);
 end
-h=colorbar('horiz','Position',[.1 .05 .8 .025]);
+colorbar('horiz','Position',[.1 .05 .8 .025]);
 colormap(jet(55));
 %%
 wc = W(1).cells;
@@ -221,19 +220,19 @@ sv0  = G.cells.volumes - pv0;
 pf   = m.avg(p);
 Tf   = m.avg(T);
 muf  = m.mu0*(1+m.cmup*(pf-m.p_r)).*exp(-m.cmut*(Tf-m.T_r));
-rho  = m.rho_r .* (1+(m.cf*(p -m.p_r))).*exp(-m.ch*(T -m.T_r));
-rho0 = m.rho_r .* (1+(m.cf*(p0-m.p_r))).*exp(-m.ch*(T0-m.T_r));
+rho  = m.rho_r .* (1+m.beta*(p -m.p_r)).*exp(-m.alpha*(T -m.T_r));
+rho0 = m.rho_r .* (1+m.beta*(p0-m.p_r)).*exp(-m.alpha*(T0-m.T_r));
 rhof = m.avg(rho);
-Hf   =  m.Cr*T + (1-m.T_r*m.ch).*(p -m.p_r)./rho;
-Hf0  =  m.Cr*T0 + (1-m.T_r*m.ch).*(p0-m.p_r)./rho0;
-Ef   =  Hf  - p ./rho;
-Ef0  =  Hf0 - p0./rho0;
-Er   =  m.Cr*T;
-Er0  =  m.Cr*T0;
+Hf   =  m.Cp*T  + (1-m.T_r*m.alpha).*(p -m.p_r)./rho;
+Hf0  =  m.Cp*T0 + (1-m.T_r*m.alpha).*(p0-m.p_r)./rho0;
+Er   =  m.Cp*T;
+Er0  =  m.Cp*T0;
+Efrho  =  Hf.*rho  - p;
+Efrho0 =  Hf0.*rho0 - p0;
 
 v   = -(m.Tp./muf).*(m.grad(p) - rhof.*m.gdz);
 pEq = (1/m.dt)*(pv.*rho - pv0.*rho0) + m.div(rhof.*v);
-hEq = (1/m.dt)*(pv.*rho.*Ef + sv.*Er - pv0.*rho0.*Ef0 - sv0.*Er0) ...
+hEq = (1/m.dt)*(pv.*Efrho + sv.*Er - pv0.*Efrho0 - sv0.*Er0) ...
      + m.div( m.upw(Hf,v>0).*rhof.*v) + m.div( -m.Th.*m.grad(T));
 
 wc = W(1).cells;
@@ -243,21 +242,21 @@ dz  = W(1).dZ;
 bhT = ones(size(wc))*200;
 g = norm(gravity);
 
-rhob = m.rho_r .* (1+(m.cf*(bhp -m.p_r))).*exp(-m.ch*(bhT -m.T_r));
-Hfb  =  m.Cr*bhT + (1-m.T_r*m.ch).*(bhp -m.p_r)./rhob;
-muW  = m.mu0*(1+m.cmup*(p(wc)-m.p_r)).*exp(-m.cmut*(T(wc)-m.T_r));
-p_conn  = bhp + g*dz.*rhob;
-q_conn  = WI .* (rho(wc)./muW) .* (p_conn-p(wc));
+rhob   = m.rho_r .* (1+m.beta*(bhp -m.p_r)).*exp(-m.alpha*(bhT -m.T_r));
+Hfb    = m.Cp*bhT + (1-m.T_r*m.ch).*(bhp -m.p_r)./rhob;
+muW    = m.mu0*(1+m.cmup*(p(wc)-m.p_r)).*exp(-m.cmut*(T(wc)-m.T_r));
+p_conn = bhp + g*dz.*rhob;
+q_conn = WI .* (rho(wc)./muW).*(p_conn-p(wc));
 
-pEq(wc) = pEq(wc) - q_conn;
-qw = q_conn;
-hq  = Hfb.*qw;
+pEq(wc)  = pEq(wc) - q_conn;
+qw       = q_conn;
+hq       = Hfb.*qw;
 hq(qw<0) = Hf(wc(qw<0)).*qw(qw<0);
-hEq(wc) = hEq(wc) - hq;
+hEq(wc)  = hEq(wc) - hq;
 
 rateEq = qS - sum(q_conn)/m.rho_S;
 ctrlEq = bhp-100*barsa;
 
-eqs = {pEq, hEq/m.Cw, rateEq, ctrlEq};
+eqs = {pEq, hEq, rateEq, ctrlEq};
 eqs = cat(eqs{:});
 end

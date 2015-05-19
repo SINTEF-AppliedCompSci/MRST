@@ -30,18 +30,18 @@ cmut  = 1e-3;
 T_r   = 300;
 mu    = @(p,T)  mu0*(1+cmup*(p-p_r)).*exp(-cmut*(T-T_r));
 
-cf    = 1e-3/barsa;
-ch    = 1*1e-4;    % nloop*1e-4;
+beta  = 1e-3/barsa;
+alpha = 5e-3;
 rho_r = 850*kilogram/meter^3;
 rho_S = 750*kilogram/meter^3;
-rho   = @(p,T) rho_r .* (1+(cf*(p-p_r))).*exp(-ch*(T-T_r) );
+rho   = @(p,T) rho_r .* (1+beta*(p-p_r)).*exp(-alpha*(T-T_r) );
 
 %% Quantities for energy equation
-Cw = 1e3;
-Cr = Cw/2;
-Hf = @(p,T) Cr*T+(1-T_r*ch).*(p-p_r)./rho(p,T);
+Cp = 4e3;
+Cr = 2*Cp;
+Hf = @(p,T) Cp*T+(1-T_r*alpha).*(p-p_r)./rho(p,T);
 Ef = @(p,T) Hf(p,T) - p./rho(p,T);
-Er = @(T)   Cr*T;
+Er = @(T)   Cp*T;
 
 %% Assume a single horizontal well
 nperf = floor(G.cartDims(2)*(ny-2)/ny);
@@ -146,8 +146,8 @@ t = 0; step = 0;
 while t < totTime,
    t = t + dt;
    step = step + 1;
-%   fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
-%      step, convertTo(t - dt, day), convertTo(t, day));
+   fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
+      step, convertTo(t - dt, day), convertTo(t, day));
 
    % Newton loop
    resNorm = 1e99;
@@ -166,8 +166,8 @@ while t < totTime,
       eq2      = hEq(p_ad,T_ad, p0, T0,dt);
       eq2(wc)  = eq2(wc) - hq;
 
-      % Collect all equations
-      eqs = {eq1, eq2/Cw, rateEq(p_ad,T_ad, bhp_ad, qS_ad), ctrlEq(bhp_ad)};
+      % Collect all equations. Scale residual of energy equation
+      eqs = {eq1, eq2/Cp, rateEq(p_ad,T_ad, bhp_ad, qS_ad), ctrlEq(bhp_ad)};
 
       % Concatenate equations and solve for update:
       eq  = cat(eqs{:});
@@ -183,7 +183,7 @@ while t < totTime,
 
       resNorm = norm(res);
       nit     = nit + 1;
- %     fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
+      fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
    end
 
    if nit > maxits,
@@ -194,7 +194,7 @@ while t < totTime,
 			    'T', double(T_ad), 'qH', sum(double(hq)));
    end
 end
-%{
+
 %% Plot production rate
 clf, set(gca,'FontSize',20);
 stairs([sol(2:end).time]/day,-[sol(2:end).qS]*day,'LineWidth',2);
@@ -250,16 +250,41 @@ for i=1:numel(sol)
    PM(i) = max(sol(i).pressure./barsa);
    Pa(i) = mean(sol(i).pressure./barsa);
 end
-figure; plot(t,Pm,t,PM,t,Pa,t,Pw,'.k','LineWidth',2);
-legend('min(p)', 'max(p)', 'avg(p)', 'wells');
-figure; plot(t,Tm,t,TM,t,Ta,t,Tw,'.k','LineWidth',2);
-legend('min(T)', 'max(T)', 'avg(T)', 'wells');
+figure; plot(t,Pm,t,Pa,t,PM,t,Pw,'.k','LineWidth',2);
+legend('min(p)', 'avg(p)', 'max(p)', 'wells');
+figure; plot(t,Tm,t,Ta,t,TM,t,Tw,'.k','LineWidth',2);
+legend('min(T)', 'avg(T)', 'max(T)', 'wells');
 
-%subplot(2,5,nloop); plot(t,Tm,t,TM,t,Ta,'LineWidth',2);
-%title(['ct=', num2str(nloop) 'e-4']);
-%axis tight; drawnow
-%}
+%% Compute the three different expansion temperatures
+[p,T] = initVariablesADI(p_r,T_r);
+dp   = Pm(end)*barsa-p_r;
 
+% Joule-Thomson
+hf   = Hf(p,T);
+dHdp = hf.jac{1};
+dHdT = hf.jac{2};
+Tjt  = T_r - dHdp*dp/dHdT;
+hold on, plot(t([1 end]), [Tjt Tjt],'--k'); hold off
+text(t(5), Tjt+.25, 'Joule-Tompson');
+
+% linearized adiabatic temperature
+hf   = Ef(p,T) + double(p)./rho(p,T);
+dHdp = hf.jac{1};
+dHdT = hf.jac{2};
+Tab  = T_r - dHdp*dp/dHdT;
+hold on, plot(t([1 end]), [Tab Tab],'--k'); hold off
+text(t(2), Tab-.35, 'Adiabatic expansion');
+
+% free expansion
+hf = Ef(p,T);
+dHdp = hf.jac{1};
+dHdT = hf.jac{2};
+Tfr  = T_r - dHdp*dp/dHdT;
+hold on, plot(t([1 end]), [Tfr Tfr],'--k'); hold off
+text(t(end/2), Tfr+.25, 'Free expansion');
+set(gca,'XLim',t([1 end]));
+
+%%
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
