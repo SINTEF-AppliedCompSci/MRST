@@ -20,9 +20,6 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
             
             assert(~(model.conserveWater && model.conserveOil), ... 
                             'Sequential form only conserves n-1 phases');
-            
-            % Ensure simple tolerances
-            model.useCNVConvergence = false;
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
