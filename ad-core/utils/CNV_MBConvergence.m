@@ -29,6 +29,9 @@ function [converged, values, evaluated, names] = CNV_MBConvergence(model, proble
     %   evaluated   - Logical array into problem.equations indicating which
     %                 residual equations we have actually checked 
     %                 convergence for.
+    %
+    %   names       - Cell array of same length as values with short names
+    %                 for printing/debugging.
  
     %{
     Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
@@ -60,14 +63,21 @@ function [converged, values, evaluated, names] = CNV_MBConvergence(model, proble
     tol_cnv = model.toleranceCNV;
 
     evaluated = false(1, numel(problem));
-    if model.water,
+    
+    subW = problem.indexOfEquationName('water');
+    subO = problem.indexOfEquationName('oil');
+    subG = problem.indexOfEquationName('gas');
+    
+    active = [false, false, false];
+    if any(subW),
+        assert(model.water);
         BW = 1./fluid.bW(state.pressure);
-        sub = problem.indexOfEquationName('water');
-        RW = double(problem.equations{sub});
+        RW = double(problem.equations{subW});
         BW_avg = sum(BW)/nc;
         CNVW = BW_avg*problem.dt*max(abs(RW)./pv);
         
-        evaluated(sub) = true;
+        evaluated(subW) = true;
+        active(1) = true;
     else
         BW_avg = 0;
         CNVW   = 0;
@@ -75,7 +85,8 @@ function [converged, values, evaluated, names] = CNV_MBConvergence(model, proble
     end
 
     % OIL
-    if model.oil,
+    if any(subO),
+        assert(model.oil);
         if isprop(model, 'disgas') && model.disgas
             % If we have liveoil, BO is defined not only by pressure, but
             % also by oil solved in gas which must be calculated in cells
@@ -84,12 +95,13 @@ function [converged, values, evaluated, names] = CNV_MBConvergence(model, proble
         else
             BO = 1./fluid.bO(state.pressure);
         end
-        sub = problem.indexOfEquationName('oil');
-        RO = double(problem.equations{sub});
+        
+        RO = double(problem.equations{subO});
         BO_avg = sum(BO)/nc;
         CNVO = BO_avg*problem.dt*max(abs(RO)./pv);
         
-        evaluated(sub) = true;
+        evaluated(subO) = true;
+        active(2) = true;
     else
         BO_avg = 0;
         CNVO   = 0;
@@ -97,18 +109,19 @@ function [converged, values, evaluated, names] = CNV_MBConvergence(model, proble
     end
 
     % GAS
-    if model.gas,
+    if any(subG),
+        assert(model.gas);
         if isprop(model, 'vapoil') && model.vapoil
             BG = 1./fluid.bG(state.pressure, state.rv, state.s(:,2)>0); % need to fix index...
         else
             BG = 1./fluid.bG(state.pressure);
         end
-        sub = problem.indexOfEquationName('gas');
-        RG = double(problem.equations{sub});
+        RG = double(problem.equations{subG});
         BG_avg = sum(BG)/nc;
         CNVG = BG_avg*problem.dt*max(abs(RG)./pv);
         
-        evaluated(sub) = true;
+        evaluated(subG) = true;
+        active(3) = true;
     else
         BG_avg = 0;
         CNVG   = 0;
@@ -117,14 +130,16 @@ function [converged, values, evaluated, names] = CNV_MBConvergence(model, proble
 
     % Check if material balance for each phase fullfills residual
     % convergence criterion
-    MB = problem.dt*abs([BO_avg*sum(RO), BW_avg*sum(RW) BG_avg*sum(RG)])/pvsum;
+    MB = problem.dt*abs([BW_avg*sum(RW), BO_avg*sum(RO), BG_avg*sum(RG)])/pvsum;
     converged_MB  = MB < tol_mb;
 
     % Check maximum normalized residuals (maximum mass error)
-    CNV = [CNVO CNVW CNVG] ;
-    converged_CNV = CNV < tol_cnv;
+    CNV = [CNVW CNVO CNVG] ;
+    converged_CNV = CNV <= tol_cnv;
 
-    converged = converged_MB & converged_CNV;
-    values = [CNV, MB];
-    names = {'CNV_W', 'CNV_O', 'CNV_G', 'MB_W', 'MB_O', 'MB_G'};
+    converged = converged_MB(active) & converged_CNV(active);
+    values = [CNV(active), MB(active)];
+    cnv_names = {'CNV_W', 'CNV_O', 'CNV_G'};
+    mb_names = {'MB_W', 'MB_O', 'MB_G'};
+    names = horzcat(cnv_names(active), mb_names(active));
 end
