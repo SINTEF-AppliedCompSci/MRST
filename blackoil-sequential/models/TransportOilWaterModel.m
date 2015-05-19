@@ -34,11 +34,5 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
                             varargin{:});
             
         end
-        
-        function [convergence, values] = checkConvergence(model, problem, varargin)
-            [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
-            % Always make at least one update so that the problem actually changes.
-            convergence = convergence && problem.iterationNo > 1;
-        end
     end
 end
