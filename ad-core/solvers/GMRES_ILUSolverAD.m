@@ -47,6 +47,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         udiagReplacement
         % Pivoting threshold for ilupt. Default 1.
         pivotThreshold
+        % Reorder equations when diagonal entries are zero for ilu0
+        reorderEquations
     end
     methods
         function solver = GMRES_ILUSolverAD(varargin)
@@ -57,12 +59,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.modifiedIncompleteILU = 'off';
             solver.udiagReplacement      = true;
             solver.pivotThreshold        = 1;
+            solver.reorderEquations      = true;
             
             solver = merge_options(solver, varargin{:});
         end
         
         function [result, report] = solveLinearSystem(solver, A, b)
             nel = size(A, 1);
+            if solver.reorderEquations
+                [A, b] = reorderForILU(A, b);
+            end
             [L, U] = ilu(A, solver.getOptsILU());
             prec = @(x) U\(L\x);
             [result, flag, res, its] = gmres(A, b, [], ...
@@ -70,8 +76,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 min(solver.maxIterations, nel), ...
                 prec);
             report = struct('GMRESFlag',  flag, ...
-                'residual',   res,...
-                'iterations', its);
+                            'residual',   res,...
+                            'iterations', its);
         end
         
         function opts = getOptsILU(solver)
