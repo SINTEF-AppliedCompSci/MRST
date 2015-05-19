@@ -72,7 +72,7 @@ n = 1;
 for method=1:2
 
    for i=1:numel(mu_const)
-      
+
       mu = @(p) mu0*(1+mu_const(i)*(p-p_r));
 
       gradz = grad(G.cells.centroids(:,3));
@@ -88,21 +88,21 @@ for method=1:2
             %
             v  = @(p) -hlam(mu,p).*( grad(p) - g*avg(rho(p)).*gradz );
       end
-      
+
       presEq = @(p, p0, dt) (1/dt)*(pv(p).*rho(p) - pv(p0).*rho(p0)) ...
          + div( avg(rho(p)).*v(p) );
-      
+
       % Define well equations
       wc = W(1).cells; % connection grid cells
       WI = W(1).WI;    % well-indices
       dz = W(1).dZ;    % connection depth relative to bottom-hole
-      
+
       p_conn  = @(bhp)  bhp + g*dz.*rho(bhp); %connection pressures
       q_conn  = @(p,bhp) WI .* (rho(p(wc)) ./ mu(p(wc))) .* (p_conn(bhp) - p(wc));
-      
+
       rateEq = @(p,bhp,qS)  qS-sum(q_conn(p, bhp))/rhoS;
       ctrlEq = @(bhp)       bhp-100*barsa;
-      
+
       % Initialize for solution loop
       [p_ad, bhp_ad, qS_ad] = initVariablesADI(p_init, p_init(wc(1)), 0);
       nc = G.cells.num;
@@ -110,7 +110,7 @@ for method=1:2
       sol = repmat(struct('time',[],'pressure',[],'bhp',[],'qS',[]),[numSteps+1,1]);
       sol(1)  = struct('time', 0, 'pressure', double(p_ad), ...
          'bhp', double(bhp_ad), 'qS', double(qS_ad));
-      
+
       % Time loop
       t = 0; step = 0;
       while t < totTime,
@@ -137,11 +137,11 @@ for method=1:2
             p_ad.val   = p_ad.val   + upd(pIx);
             bhp_ad.val = bhp_ad.val + upd(bhpIx);
             qS_ad.val  = qS_ad.val  + upd(qSIx);
-            
+
             resNorm = norm(res);
             nit     = nit + 1;
           end
-         
+
          if nit > maxits,
             error('Newton solves did not converge')
          else % store solution
