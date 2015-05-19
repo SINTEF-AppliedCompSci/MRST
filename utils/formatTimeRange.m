@@ -2,8 +2,8 @@ function s = formatTimeRange(time)
 % Small utility which returns a human readable string from seconds.
     s = '';
 
-    timesys = {year, day, hour, second};
-    timen = {'Year', 'Day', 'Hour', 'Second'};
+    timesys = {year, day, hour, second, second/1000};
+    timen = {'Year', 'Day', 'Hour', 'Second', 'Millisecond'};
     added = false;
     for i = 1:numel(timesys)
         a = floor(time/timesys{i});
