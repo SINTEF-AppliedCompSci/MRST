@@ -10,7 +10,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 % DESCRIPTION:
 %   Compute time-of-flight by solving
 %
-%       vÂ·\nabla T = \phi
+%       v·\nabla T = \phi
 %
 %   using a first-order finite-volume method with upwind flux. Here, 'v' is
 %   the Darcy velocity, '\phi' is the porosity, and T is time-of-flight.
@@ -60,12 +60,23 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %           additional right-hand side to the original tof-system. Output
 %           given as additional columns in T.
 %
+%   allowInf - Switch to turn off (true) or on (false) maximal TOF 
+%           thresholding. Default is false.
+%
+%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
+%           systems. Default (empty) is 50*PVI (pore-volumes-injected). 
+%           Only takes effect if 'allowInf' is set to false.
+%
+%   solver - Function handle to solver for use in TOF/tracer equations.
+%           Default (empty) is matlab mldivide (i.e., \)
+%   
+%
 %
 % RETURNS:
 %   T - Cell values of a piecewise constant approximation to time-of-flight
 %       computed as the solution of the boundary-value problem
 %
-%           (*)    v Â· \nabla T = \phi
+%           (*)    v · \nabla T = \phi
 %
 %       using a finite-volume scheme with single-point upwind approximation
 %       to the flux.
@@ -78,7 +89,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %
 %       where F_ij = -F_ji is the flux from cell i to cell j
 %
-%           F_ij = A_ijÂ·n_ijÂ·v_ij.
+%           F_ij = A_ij·n_ij·v_ij.
 %
 %       and n_ij is the outward-pointing normal of cell i for grid face ij.
 %       The discretization uses a simple model for cells containing inflow.
@@ -122,8 +133,9 @@ opt = struct('bc',          [], ...
              'wells',       [], ...
              'reverse',     false,...
              'allowInf',    false, ...
-             'badTol',      0.001, ...
-             'tracer',      {{}});
+             'maxTOF',      [], ...
+             'tracer',      {{}}, ...
+             'solver',      []);
 opt = merge_options(opt, varargin{:});
 
 assert (~all([isempty(opt.src), isempty(opt.bc), isempty(opt.wells)]), ...
@@ -165,39 +177,44 @@ qp = max(q+qb, 0);
 out = min(state.flux(i), 0);
 in  = max(state.flux(i), 0);
 
-% Cell wise total out/inflow
-outflow = accumarray([n(:, 2); n(:, 1)], [out; -in]);
+% Cell wise total inflow
 inflow  = accumarray([n(:, 2); n(:, 1)], [in; -out]);
 
-% The diagonal entries are equal to the sum of outfluxes, plus the absolute
-% value of any source terms to ensure that the cell has the value after it
-% is half-filled
-d = -(outflow - abs(q + qb));
+% The diagonal entries are equal to the sum of outfluxes minus divergence 
+% which equals the influx plus 2x the positive source terms. 
+d = inflow + 2*qp; 
 
-% Any cells that have no inflow and no source terms are problematic for the
-% formulation. These cells can occur from a non-converged pressure solution
-% or if the problem is not incompressible.
-isSingular = full(inflow./mean(inflow) < opt.badTol & q == 0 & qb == 0);
-% Set inflow/outflow for those cells to zero
-in (isSingular(n(:, 1))) = 0;
-out(isSingular(n(:, 2))) = 0;
-
-% Set diagonal to 1 and pv to one so that the cell gets infinite tof
-% without producing an ill-posed linear system.
-d(isSingular) = 1;
-pv(isSingular) = inf;
+%--------------------------------------------------------------------------
+% Handling of t -> inf (if opt.allowInf == false):
+% We locate cells that have sufficiently small influx to reach maxTOF
+% locally, i.e., t-t_up >= maxTOF <=> pv/influx >= maxTOF. System is
+% modified such that these cells are set to maxTOF and upstream connections
+% are removed.
+% If no maxTOF is given, it is set to the time it takes to fill 50
+% pore volumes (subject to change)
+if ~opt.allowInf
+    if isempty(opt.maxTOF)
+        if ~opt.reverse, str = 'Forward '; else str = 'Backward'; end
+        opt.maxTOF = 50*sum(pv)/sum(qp);
+        fprintf('%s maximal TOF set to %5.2f years.\n', str, opt.maxTOF/year)
+    end
+    
+    % Find cells that reach max TOF locally
+    maxIn = max(d);
+    aboveMax = full(pv./ (max(d, eps*maxIn)) ) > opt.maxTOF;
+    
+    % Set aboveMax-cells to maxTOF
+    d(aboveMax)  = maxIn;
+    pv(aboveMax) = maxIn*opt.maxTOF;
+    % remove upstream connections
+    in(aboveMax(n(:,2)))  = 0;
+    out(aboveMax(n(:,1))) = 0;
+end
 
 % Inflow flux matrix
 A  = sparse(n(:,2), n(:,1),  in, nc, nc)...
    + sparse(n(:,1), n(:,2), -out, nc, nc);
 A = -A + spdiags(d, 0, nc, nc);
-
-% Subtract the divergence of the velocity minus any source terms from the
-% diagonal to account for compressibility effects. Inflow/outflow from
-% boundary conditions are accounted for in the divergence, and hence we
-% only need to subtract q (and not qb).
-div = accumarray(getCellNoFaces(G), faceFlux2cellFlux(G, state.flux));
-A   = A - spdiags(div-q, 0, nc, nc);
 
 % Build right-hand sides for tracer equations. Since we have doubled the
 % rate in any cells with a positive source, we need to also double the rate
@@ -209,19 +226,19 @@ for i=1:numTrRHS,
 end
 
 % Time of flight for a divergence-free velocity field.
-T  = A \ [pv TrRHS];
-
-if ~opt.allowInf
-    % User does not want inf values in output (could be problematic for
-    % some automatic post processing). Set those values to the maximum
-    % non-infinite value found in the remaining cells.
-    bad = isinf(T(:, 1));
-    
-    if (all(bad))
-        warning('All elements in time of flight are Inf')
-    else
-        T(bad, 1) = max(T(~bad, 1));
+if isempty(opt.solver)
+    T  = A \ [pv TrRHS];
+else % if other solver, iterate over RHSs
+    T = zeros(size(TrRHS)+[0, 1]);
+    T(:, 1) = opt.solver(A, pv);
+    for k = 2:size(T, 2)
+        T(:, k) = opt.solver(A, TrRHS(:, k-1));
     end
+end
+
+% reset all tof > maxTOF to maxTOF
+if ~opt.allowInf
+    T(T>opt.maxTOF) = opt.maxTOF;
 end
 
 end

@@ -7,9 +7,9 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %
 % DESCRIPTION:
 %   Construct the basis for flow diagnostic by computing
-%     1) time-of-flight        :   \nablaÂ·(v T) = \phi,
-%     2) reverse time-of-flight:  -\nablaÂ·(v T) = \phi,
-%     3) stationary tracer     :  -\nablaÂ·(v C) = 0
+%     1) time-of-flight        :   \nabla·(v T) = \phi,
+%     2) reverse time-of-flight:  -\nabla·(v T) = \phi,
+%     3) stationary tracer     :  -\nabla·(v C) = 0
 %   using a first-order finite-volume method with upwind flux.
 %
 % REQUIRED PARAMETERS:
@@ -38,6 +38,18 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %           to the reservoir flow.  May be empty (i.e., bc = []) which is
 %           interpreted as all external no-flow (homogeneous Neumann)
 %           conditions.
+%
+%   tracerWells - Logical index vector indicating subset of wells for which 
+%           tracer-fields will be computed. Empty matrix (default) is 
+%           interpeted as all true, i.e., compute tracer fields for all 
+%           wells.
+%
+%   solver - Function handle to solver for use in TOF/tracer equations.
+%           Default (empty) is matlab mldivide (i.e., \)
+%
+%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
+%           systems. Default (empty) is 50*PVI (pore-volumes-injected).  
+%   
 % RETURNS:
 %   D - struct that contains the basis for computing flow diagnostics:
 %       'inj'     - list of injection wells
@@ -70,24 +82,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 % Process optional parameters
-opt = struct('bc', [], 'src', [], 'wells', []);
+opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', [], ...
+             'solver', [], 'maxTOF', []);
 opt = merge_options(opt, varargin{:});
 
 check_input(G, rock, opt);
 
 state = validateStateForDiagnostics(state);
+% If opt.tracerWells is empty include all
+if isempty(opt.tracerWells)
+    opt.tracerWells = true(numel(opt.wells), 1);
+end
+opt.tracerWells = opt.tracerWells(:)';
 
 % Find injectors and producers
 wflux = getTotalWellSolFlux(state.wellSol);
 iwells = wflux > 0;
-D.inj  = find( iwells);
-D.prod = find(~iwells);
+D.inj  = find( iwells & opt.tracerWells);
+D.prod = find(~iwells & opt.tracerWells);
 
 %Check that we actually a meaningful TOF scenario. If all wells are shut
 %off, return Inf.
-sum_flux = cell2mat(arrayfun(@(x) sum(x.flux), state.wellSol, 'UniformOutput', false));
-if (all(sum_flux) == 0.0)
-    assert(numel(D.inj)*numel(D.prod) > 0, 'Number of injectors and number of producers must be greater than zero');
+sum_flux = cell2mat(arrayfun(@(x) sum(abs(x.flux)), state.wellSol, 'UniformOutput', false));
+if (sum(sum_flux) == 0.0)
     D.tof = Inf(G.cells.num, 2);
     D.itracer = NaN(G.cells.num, numel(D.inj));
     D.ipart = NaN(G.cells.num, 1);
@@ -98,17 +115,22 @@ end
 
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
-   'tracer', {opt.wells(D.inj).cells});
+   'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
+   'maxTOF', opt.maxTOF);
 D.tof     = t(:,1);
 D.itracer = t(:,2:end);
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
+% set 'non-traced' cells to zero
+D.ipart(val==0) = 0;
 
 % Compute time-of-flight and tracer partition from producers
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
-   'tracer', {opt.wells(D.prod).cells}, 'reverse', true);
+   'tracer', {opt.wells(D.prod).cells}, 'reverse', true, ...
+   'solver', opt.solver, 'maxTOF', opt.maxTOF);
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:end);
 [val,D.ppart] = max(D.ptracer,[],2);
+D.ppart(val==0) = 0;
 end
 
 %--------------------------------------------------------------------------
@@ -124,6 +146,8 @@ function check_input(G, rock, opt)
            'for each cell in the grid.']);
 
    assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
+   assert(or(isempty(opt.tracerWells), numel(opt.tracerWells)==numel(opt.wells)), ...
+           'Input tracerWells must be a logical vector of length equal to number of wells')
 end
 
 %--------------------------------------------------------------------------
