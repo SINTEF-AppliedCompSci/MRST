@@ -101,12 +101,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert ((size(state.s,2) < 3) || all(state.s(:,3) == 0), ...
            'Function ''%s'' is for two-phase flow only', mfilename);
 
+   assert(all(isfinite(state.flux)), 'Passed state contained non-finite fluxes');
    % All source terms, i.e., boundary conditions, source terms and wells.
    compi = { 'use_compi', true };
    q = computeTransportSourceTerm(state, G, opt.wells, ...
                                   opt.src, opt.bc, compi{:});
    q = assembleTransportSource(q, G.cells.num, compi{:});
-
+   assert(all(isfinite(q)))
    % Extract (constant) fluid densities.
    [rho, rho] = fluid.properties(state);
 
