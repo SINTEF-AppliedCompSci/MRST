@@ -131,9 +131,11 @@ end
 % check for "dead wells":
 deadWells = double(wbqt)==0;
 if any(deadWells)
-    wbq = wbq.*deadWells;
-    % Avoid division by zero
-    wbqt = wbq.*deadWells + sqrt(eps)*~deadWells;
+    for ph = 1:numPh
+        wbq{ph} = wbq{ph}.*(~deadWells) + compi(:, ph).*deadWells;
+        % Avoid division by zero
+    end
+    wbqt(deadWells) = 1;
 end
 % compute wellbore mixture at std conds
 mix_s = cell(1, numPh);
