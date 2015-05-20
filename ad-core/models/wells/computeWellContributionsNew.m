@@ -1,4 +1,4 @@
-function [eqs, cq_s, mix_s, status, cstatus, Rw, cq_r] = computeWellContributionsNew(wellmodel, model, sol, pBH, q_s)
+function [eqs, cq_s, mix_s, status, cstatus, cq_r] = computeWellContributionsNew(wellmodel, model, sol, pBH, q_s)
 %Setup well (residual) equations and compute corresponding source terms.
 %
 % SYNOPSIS:
@@ -52,11 +52,9 @@ b = wellmodel.bfactors;
 r = wellmodel.components;
 m = wellmodel.mobilities;
 
+perf2well = wellmodel.perf2well;
+Rw = wellmodel.Rw;
 numPh       = numel(b); % # phases
-nConn       = cellfun(@numel, {W.cells})'; % # connections of each well
-perf2well   = rldecode((1:numel(W))', nConn);
-% helpful matrix in dealing with all wells at one go
-Rw    = sparse((1:numel(perf2well))', perf2well, 1, numel(perf2well), numel(W));
 Tw    = vertcat(W(:).WI);
 
 compi = vertcat(W(:).compi);
