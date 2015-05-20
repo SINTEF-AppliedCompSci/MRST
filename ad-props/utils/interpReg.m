@@ -11,7 +11,7 @@ function [yi, dyidxi] = interpReg(T, xi, reginx)
    if nreg > 0 && ischar(reginx{1}) && strcmp(reginx{1}, ':'),
       % Special case denoting entire domain in single region.
 
-      yi = interpTable(T{1}(:,1), T{1}(:,2), xi);
+      yi = fastInterpTable(T{1}(:,1), T{1}(:,2), xi);
    
    elseif nreg > 0
       
@@ -19,7 +19,7 @@ function [yi, dyidxi] = interpReg(T, xi, reginx)
 
       for k = 1:nreg,
          if ~isempty(reginx{k})
-            yi(reginx{k}) = interpTable(T{k}(:,1), T{k}(:,2), ...
+            yi(reginx{k}) = fastInterpTable(T{k}(:,1), T{k}(:,2), ...
                                         xi(reginx{k}));
          end
       end
