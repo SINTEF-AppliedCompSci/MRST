@@ -12,6 +12,7 @@ function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO
     if disgas
         bO  = fluid.bO(p,  rs, isSat);
         muO = fluid.muO(p, rs, isSat);
+        rhoO   = bO.*(rs*fluid.rhoGS + fluid.rhoOS);
     else
         bO  = fluid.bO(p);
         if isfield(fluid, 'BOxmuO')
@@ -19,12 +20,13 @@ function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO
         else
             muO = fluid.muO(p);
         end
+        rhoO   = bO.*fluid.rhoOS;
     end
         
     if any(bO < 0)
         warning('Negative oil compressibility present!')
     end
-    rhoO   = bO.*(rs*fluid.rhoGS + fluid.rhoOS);
+    
     rhoOf  = s.faceAvg(rhoO);
     mobO   = krO./muO;
     dpO    = s.Grad(p) - rhoOf.*gdz;
