@@ -1,10 +1,10 @@
 % Routines supporting the MPFA-O method for the pressure equation.
 %
 % Files
-%   computeMultiPointTrans.m - Compute multi-point transmissibilities.
-%   incompMPFA.m             - Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
-%   matrixBlocksFromSparse.m - Extract block-diagonal matrix elements from sparse matrix
-%   test_mpfa.m              - Example demonstrating basic use of the MPFA-O pressure solver.
+%   computeMultiPointTrans.m   - Compute multi-point transmissibilities.
+%   incompMPFA.m               - Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
+%   matrixBlocksFromSparse.m   - Extract block-diagonal matrix elements from sparse matrix
+%   examples/showGridEffects.m - Example demonstrating basic use of the MPFA-O pressure solver.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
