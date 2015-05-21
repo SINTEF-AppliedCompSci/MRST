@@ -12,7 +12,7 @@
 % The model can be downloaded from the the MRST page
 %
 % http://www.sintef.no/Projectweb/MRST/
-grdecl = fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP', 'SAIGUP.GRDECL');
+grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 if ~exist(grdecl, 'file'),
    error('SAIGUP model data is not available.')
 end

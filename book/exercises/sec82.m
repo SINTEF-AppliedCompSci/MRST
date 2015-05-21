@@ -148,7 +148,7 @@ set(h,'position',[0.13 0.01 0.8 0.03],'YTick',1,'YTickLabel','[year]');
 
 %% Shallow-marine case: set up model
 % Grid
-grdecl = fullfile(mrstDataDirectory, 'SAIGUP', 'SAIGUP.GRDECL');
+grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 if ~exist(grdecl, 'file'),
    error('SAIGUP model data is not available.')
 end
