@@ -8,7 +8,7 @@
 
 try
    require mimetic incomp
-catch
+catch  %#ok<CTCH>
    mrstModule add mimetic incomp
 end
 
