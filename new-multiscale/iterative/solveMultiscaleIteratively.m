@@ -1,4 +1,4 @@
-function [p_ms, report] = solveMultiscaleIteratively(A, q, basis, getSmootherFn, tol, iterations, LinSolve, useGMRES)
+function [p_ms, report] = solveMultiscaleIteratively(A, q, basis, getSmootherFn, tol, iterations, LinSolve, useGMRES, verbose)
 %Apply iterations to a multiscale problem
 %
 % SYNOPSIS:
@@ -49,10 +49,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    if nargin < 8
-        useGMRES = false;
-        if nargin < 7
-            LinSolve = @(A, b) mldivide(A, b);
+    if nargin < 9
+        verbose = mrstVerbose();
+        if nargin < 8
+            useGMRES = false;
+            if nargin < 7
+                LinSolve = @(A, b) mldivide(A, b);
+            end
         end
     end
     B = basis.B;
@@ -94,14 +97,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if flag == 1 || flag == 2 || flag == 3
             itcount = iterations;
-            dispif(mrstVerbose(), 'Multiscale solver did not converge to desired precision\n');
+            dispif(verbose, 'Multiscale solver did not converge to desired precision\n');
         end
     else
         itcount = 0;
         res = norm(A*p_ms - q, 2)/norm(q, 2);
         residuals = res;
     end
-    dispif(mrstVerbose(), 'Final residual: %g after %d iterations (tolerance: %g)\n', res, itcount, tol);
+    dispif(verbose, 'Final residual: %g after %d iterations (tolerance: %g)\n', res, itcount, tol);
     report.iterations = itcount;
     report.finalResidual = res;
     report.resvec = residuals;
