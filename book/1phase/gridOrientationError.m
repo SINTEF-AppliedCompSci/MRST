@@ -3,7 +3,10 @@
 % Rectangular reservoir with a skew grid.
 G = cartGrid([41,20],[2,1]);
 makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
-G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
+%G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
+G.nodes.coords = twister(G.nodes.coords);
+G.nodes.coords(:,1) = 2*G.nodes.coords(:,1);
+
 
 % Homogeneous reservoir properties
 rock.poro = .2*ones(G.cells.num,1);
@@ -36,7 +39,7 @@ plotCellData(G, s_tp.pressure, 'EdgeColor', 'k', 'EdgeAlpha', .05);
 mrstModule add mimetic
 S = computeMimeticIP(G, rock);
 s_mi = initState(G, [], 0);
-s_mi = solveIncompFlow(s_mi, G, S, fluid, 'src', src);
+s_mi = incompMimetic(s_mi, G, S, fluid, 'src', src);
 subplot(2,2,2);
 plotCellData(G, s_mi.pressure, 'EdgeColor', 'k', 'EdgeAlpha', .05); 
 
@@ -45,7 +48,7 @@ plotCellData(G, s_mi.pressure, 'EdgeColor', 'k', 'EdgeAlpha', .05);
 mrstModule add streamlines
 subplot(2,2,3);
 tof_tp = computeTimeOfFlight(s_tp, G, rock, 'src', src);
-plotCellData(G, tof_tp, tof_tp<.2); caxis([0 .2]); box on
+plotCellData(G, tof_tp, tof_tp<.2,'EdgeColor','none'); caxis([0 .2]); box on
 seed = floor(G.cells.num/5)+(1:G.cartDims(1))';
 hf = streamline(pollock(G, s_tp, seed, 'substeps', 1) );
 hb = streamline(pollock(G, s_tp, seed, 'substeps', 1, 'reverse' , true));
@@ -53,7 +56,7 @@ set ([ hf ; hb ], 'Color' , 'k' );
 
 subplot(2,2,4);
 tof_mi = computeTimeOfFlight(s_mi, G, rock, 'src', src);
-plotCellData(G, tof_mi, tof_mi<.2); caxis([0 .2]); box on
+plotCellData(G, tof_mi, tof_mi<.2,'EdgeColor','none'); caxis([0 .2]); box on
 hf = streamline(pollock(G, s_mi, seed, 'substeps', 1) );
 hb = streamline(pollock(G, s_mi, seed, 'substeps', 1, 'reverse' , true));
 set ([ hf ; hb ], 'Color' , 'k' );

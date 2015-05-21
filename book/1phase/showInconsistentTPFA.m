@@ -47,7 +47,7 @@ for i=1:1:30
       hold off
 
       subplot(2,3,4:5);
-      plotCellData(G, tof, tof<.2); caxis([0 .2]); box on
+      plotCellData(G, tof, tof<.2, 'EdgeColor','none'); caxis([0 .2]); box on
       seed = floor(G.cells.num/5)+(1:G.cartDims(1))';
       hf = streamline(pollock(G, state, seed, 'substeps', 1) );
       hb = streamline(pollock(G, state, seed, 'substeps', 1, 'reverse' , true));
