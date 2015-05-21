@@ -7,9 +7,9 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %
 % DESCRIPTION:
 %   Construct the basis for flow diagnostic by computing
-%     1) time-of-flight        :   \nabla·(v T) = \phi,
-%     2) reverse time-of-flight:  -\nabla·(v T) = \phi,
-%     3) stationary tracer     :  -\nabla·(v C) = 0
+%     1) time-of-flight        :   \nablaÂ·(v T) = \phi,
+%     2) reverse time-of-flight:  -\nablaÂ·(v T) = \phi,
+%     3) stationary tracer     :  -\nablaÂ·(v C) = 0
 %   using a first-order finite-volume method with upwind flux.
 %
 % REQUIRED PARAMETERS:
@@ -49,6 +49,11 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %
 %   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
 %           systems. Default (empty) is 50*PVI (pore-volumes-injected).  
+%
+%   processCycles - Extend TOF thresholding to strongly connected
+%           components in flux graph by considering Dulmage-Mendelsohn 
+%           decomposition (dmperm). Recommended for highly cyclic flux 
+%           fields. Only takes effect if 'allowInf' is set to false.   
 %   
 % RETURNS:
 %   D - struct that contains the basis for computing flow diagnostics:
@@ -83,7 +88,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % Process optional parameters
 opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', [], ...
-             'solver', [], 'maxTOF', []);
+             'solver', [], 'maxTOF', [], 'processCycles', false);
 opt = merge_options(opt, varargin{:});
 
 check_input(G, rock, opt);
@@ -116,7 +121,7 @@ end
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
-   'maxTOF', opt.maxTOF);
+   'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles);
 D.tof     = t(:,1);
 D.itracer = t(:,2:end);
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
@@ -126,7 +131,8 @@ D.ipart(val==0) = 0;
 % Compute time-of-flight and tracer partition from producers
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'tracer', {opt.wells(D.prod).cells}, 'reverse', true, ...
-   'solver', opt.solver, 'maxTOF', opt.maxTOF);
+   'solver', opt.solver, 'maxTOF', opt.maxTOF, ...
+   'processCycles', opt.processCycles);
 D.tof(:,2) = t(:,1);
 D.ptracer  = t(:,2:end);
 [val,D.ppart] = max(D.ptracer,[],2);

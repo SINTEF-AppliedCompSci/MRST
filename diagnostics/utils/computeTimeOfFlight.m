@@ -1,4 +1,4 @@
-function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
+function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %Compute time of flight using finite-volume scheme.
 %
 % SYNOPSIS:
@@ -10,7 +10,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 % DESCRIPTION:
 %   Compute time-of-flight by solving
 %
-%       v·\nabla T = \phi
+%       vÂ·\nabla T = \phi
 %
 %   using a first-order finite-volume method with upwind flux. Here, 'v' is
 %   the Darcy velocity, '\phi' is the porosity, and T is time-of-flight.
@@ -69,6 +69,11 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %
 %   solver - Function handle to solver for use in TOF/tracer equations.
 %           Default (empty) is matlab mldivide (i.e., \)
+%
+%   processCycles - Extend TOF thresholding to strongly connected
+%           components in flux graph by considering Dulmage-Mendelsohn 
+%           decomposition (dmperm). Recommended for highly cyclic flux 
+%           fields. Only takes effect if 'allowInf' is set to false.      
 %   
 %
 %
@@ -76,7 +81,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %   T - Cell values of a piecewise constant approximation to time-of-flight
 %       computed as the solution of the boundary-value problem
 %
-%           (*)    v · \nabla T = \phi
+%           (*)    v Â· \nabla T = \phi
 %
 %       using a finite-volume scheme with single-point upwind approximation
 %       to the flux.
@@ -89,7 +94,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock,  varargin)
 %
 %       where F_ij = -F_ji is the flux from cell i to cell j
 %
-%           F_ij = A_ij·n_ij·v_ij.
+%           F_ij = A_ij n_ij Â· v_ij.
 %
 %       and n_ij is the outward-pointing normal of cell i for grid face ij.
 %       The discretization uses a simple model for cells containing inflow.
@@ -128,23 +133,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-opt = struct('bc',          [], ...
-             'src',         [], ...
-             'wells',       [], ...
-             'reverse',     false,...
-             'allowInf',    false, ...
-             'maxTOF',      [], ...
-             'tracer',      {{}}, ...
-             'solver',      []);
+opt = struct('bc',              [], ...
+             'src',             [], ...
+             'wells',           [], ...
+             'reverse',         false,...
+             'allowInf',        false, ...
+             'maxTOF',          [], ...
+             'tracer',          {{}}, ...
+             'solver',          [], ...
+             'processCycles',   false);
+         
 opt = merge_options(opt, varargin{:});
 
-assert (~all([isempty(opt.src), isempty(opt.bc), isempty(opt.wells)]), ...
-    'Must have inflow described as boundary conditions, sources, or wells');
-assert (isfield(rock, 'poro')         && ...
-        numel(rock.poro)==G.cells.num,   ...
-        ['The rock input must have a field poro with porosity ',...
-         'for each cell in the grid.']);
-assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
+checkInput(G, rock, opt)
 
 tr = opt.tracer;
 if ~iscell(tr), tr = {tr}; end
@@ -196,7 +197,8 @@ if ~opt.allowInf
     if isempty(opt.maxTOF)
         if ~opt.reverse, str = 'Forward '; else str = 'Backward'; end
         opt.maxTOF = 50*sum(pv)/sum(qp);
-        fprintf('%s maximal TOF set to %5.2f years.\n', str, opt.maxTOF/year)
+        dispif(mrstVerbose, ...
+               '%s maximal TOF set to %5.2f years.\n', str, opt.maxTOF/year)
     end
     
     % Find cells that reach max TOF locally
@@ -216,6 +218,10 @@ A  = sparse(n(:,2), n(:,1),  in, nc, nc)...
    + sparse(n(:,1), n(:,2), -out, nc, nc);
 A = -A + spdiags(d, 0, nc, nc);
 
+if ~opt.allowInf && opt.processCycles 
+    [A, pv] = thresholdConnectedComponents(A, pv, maxIn, opt);
+end
+
 % Build right-hand sides for tracer equations. Since we have doubled the
 % rate in any cells with a positive source, we need to also double the rate
 % on the right-hand side here.
@@ -225,15 +231,15 @@ for i=1:numTrRHS,
    TrRHS(tr{i},i) = 2*qp(tr{i});
 end
 
-% Time of flight for a divergence-free velocity field.
+% Time of flight for velocity field.
 if isempty(opt.solver)
-    T  = A \ [pv TrRHS];
+   T  = A \ [pv TrRHS];
 else % if other solver, iterate over RHSs
-    T = zeros(size(TrRHS)+[0, 1]);
-    T(:, 1) = opt.solver(A, pv);
-    for k = 2:size(T, 2)
-        T(:, k) = opt.solver(A, TrRHS(:, k-1));
-    end
+   T = zeros(size(TrRHS)+[0, 1]);
+   T(:, 1) = opt.solver(A, pv);
+   for k = 2:size(T, 2)
+       T(:, k) = opt.solver(A, TrRHS(:, k-1));
+   end
 end
 
 % reset all tof > maxTOF to maxTOF
@@ -283,3 +289,48 @@ function [q, qb] = computeSourceTerm(state, G, W, src, bc)
       qb = sparse(G.cells.num,1);
    end
 end
+
+
+function [A, pv] = thresholdConnectedComponents(A, pv, maxIn, opt)
+    % Find strongly connected components in flux-matrix:
+    [p,r,r]= dmperm(A); %#ok
+    % Pick components containing more than a single cell
+    d = diff(r);
+    ix = find(diff(r)>1);
+    nc = numel(p);
+    % Retrieve cell-indices to components, and construct sparse index-mapping
+    c  = arrayfun(@(b,e)p(b:e)', r(ix), r(ix+1)-1, 'UniformOutput', false);
+    rc = rldecode( (1:numel(c))', cellfun(@numel, c)');
+    C  = sparse(vertcat(c{:}), rc, 1, nc, numel(c));
+    % Compute influx to each component
+    q_in = full(diag(C'*A*C));
+    % Threshold
+    compAboveMax = full((C'*pv)./ (max(q_in, eps*maxIn)) ) > opt.maxTOF;
+
+    if any(compAboveMax)
+        badCells = (vertcat(c{compAboveMax}));
+        dispif(mrstVerbose, 'Found %d strongly connected components, ', nnz(compAboveMax));
+        dispif(mrstVerbose, 'total of %d cells, with influx below threshold.\n', numel(badCells));
+        % Modify system setting tof to maxTOF and remove upstream connections
+        A(badCells,:) = sparse((1:numel(badCells))', badCells, maxIn, numel(badCells), nc);
+        pv(badCells)  = maxIn*opt.maxTOF;
+    end
+end
+
+
+function checkInput(G, rock, opt)
+    assert (~all([isempty(opt.src), isempty(opt.bc), isempty(opt.wells)]), ...
+        'Must have inflow described as boundary conditions, sources, or wells');
+    assert (isfield(rock, 'poro')         && ...
+        numel(rock.poro)==G.cells.num,   ...
+        ['The rock input must have a field poro with porosity ',...
+        'for each cell in the grid.']);
+    assert(min(rock.poro) > 0, 'Rock porosities must be positive numbers.');
+    if ~isempty(opt.maxTOF) && opt.allowInf
+        warning('Input value for ''maxTOF'' ignored since option ''allowInf'' has value ''true''.')
+    end
+    if opt.processCycles && opt.allowInf
+        warning('Input request to process cycles ignored since option ''allowInf'' has value ''true''.')
+    end
+end
+
