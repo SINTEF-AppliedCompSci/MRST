@@ -42,11 +42,13 @@ plotGrid(G,'EdgeAlpha',.1,'FaceColor','none'); axis off
 %%
 mrstModule add coarsegrid streamlines
 cla
-plotCellData(G,D.ipart,p>1,'EdgeAlpha',.1,'EdgeColor','k','FaceAlpha',.7);
+p = partitionUI(G,[1 1 G.cartDims(3)]);
+plotCellData(G,D.ipart,p>1,'EdgeAlpha',.1,'EdgeColor','k','FaceAlpha',.6);
 ip = find( (abs(G.cells.centroids(:,1)-15.5)<.6) & (p==1) & ...
    ((G.cells.centroids(:,2)<35) | (G.cells.centroids(:,2)>65)));
 h=streamline(pollock(G,state,ip(1:1:end),'reverse',true)); 
-set(h,'Color',.95*[1 1 1],'LineWidth',.5);
+set(h,'Color',.4*[1 1 1],'LineWidth',.5);
 h=streamline(pollock(G,state,ip(1:1:end)));
-set(h,'Color',.95*[1 1 1],'LineWidth',.5);
+set(h,'Color',.4*[1 1 1],'LineWidth',.5);
 plotWell(G,W,'Color','k','FontSize',0,'height',12,'radius',2);
+set(gca,'dataasp',[1.25 2 .4]); zoom(1.2)
