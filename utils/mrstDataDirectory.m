@@ -27,7 +27,7 @@ function varargout = mrstDataDirectory(varargin)
 %   under the mrst root directory (see ROOTDIR())
 %
 % SEE ALSO:
-%   mrstModule, mrstDatasetGUI, mrstPath
+%   mrstModule, mrstDatasetGUI, mrstPath, getDatasetPath
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
