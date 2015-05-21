@@ -31,8 +31,8 @@ G = computeGeometry(G);
 
 % To speed up the processing, one can use a C-accelerated versions of the
 % gridprocessing routines (provided you have a compatible compiler):
-% mrstModule add libgeometry
-% G = mcomputeGeometry(processgrid(G));
+% mrstModule add libgeometry opm_gridprocessing
+% G = mcomputeGeometry(processgrid(grdecl));
 
 %% Get petrophysical data
 % The input data of the permeability in the SAIGUP realisation is an
