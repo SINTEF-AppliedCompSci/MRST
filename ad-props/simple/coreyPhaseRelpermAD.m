@@ -29,7 +29,7 @@ function kr = coreyRelperm(s, n, sr, kwm, sr_tot)
     if isa(sat, 'ADI')
         sat.val = max(min(sat.val, 1), 0);
     else
-        sat = min(max(sat, 1), 0);
+        sat = max(min(sat, 1), 0);
     end
     
     kr = kwm*sat.^n;
