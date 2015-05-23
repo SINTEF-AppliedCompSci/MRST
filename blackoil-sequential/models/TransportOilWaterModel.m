@@ -20,9 +20,6 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
             
             assert(~(model.conserveWater && model.conserveOil), ... 
                             'Sequential form only conserves n-1 phases');
-            
-            % Ensure simple tolerances
-            model.useCNVConvergence = false;
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -32,12 +29,6 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
                             'solveForOil',   model.conserveOil, ...
                             'solveForWater', model.conserveWater, ...
                             varargin{:});
-        end
-        
-        function [convergence, values] = checkConvergence(model, problem, varargin)
-            [convergence, values] = checkConvergence@PhysicalModel(model, problem, varargin{:});
-            % Always make at least one update so that the problem actually changes.
-            convergence = convergence && problem.iterationNo > 1;
         end
     end
 end

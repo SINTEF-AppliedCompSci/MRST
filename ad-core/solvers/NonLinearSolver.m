@@ -60,6 +60,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         LinearSolver
         % Verbose flag used to get extra output during simulation.
         verbose
+        % Identifier for the nonlinear solver
+        identifier
         % Subclass of SimpleTimeStepSelector used to select timesteps
         % during simulation. By default no dynamic timestepping will be
         % enabled.
@@ -106,6 +108,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         function solver = NonLinearSolver(varargin)
             solver.maxIterations   = 25;
             solver.minIterations   = 1;
+            solver.identifier      = '';
             solver.verbose         = mrstVerbose();
             solver.maxTimestepCuts = 6;
             solver.LinearSolver    = [];
@@ -182,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [opt, forcesArg] = merge_options(opt, varargin{:});
             drivingForces = merge_options(drivingForces, forcesArg{:});
 
-            assert(dT > 0, 'Negative timestep detected.');
+            assert(dT > 0, [solver.getId(), 'Negative timestep detected.']);
 
             converged = false;
             done = false;
@@ -213,7 +216,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % and what the current driving forces are
             stepsel = solver.timeStepSelector;
             stepsel.newControlStep(drivingForces);
-            
+
+            dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
                 dt = stepsel.pickTimestep(dt, model, solver);
 
@@ -223,8 +227,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     dt = dT - t_local;
                 end
                 if solver.verbose && dt < dT
-                    fprintf('Solving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
-                        formatTimeRange(dt), dt / dT * 100, t_local / dT * 100)
+                    fprintf('%sSolving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
+                        solver.getId(), formatTimeRange(dt), dt / dT * 100, t_local / dT * 100)
                 end
                 [state, converged, failure, its, nonlinearReports] = ...
                         solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
@@ -273,10 +277,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         % previous step, as we are between ministeps.
                         state = state0_inner;
                     end
-                    
-                    %if dt < dtMin || failure
-                    if cuttingCount+1 > solver.maxTimestepCuts || failure
-                        msg = 'Did not find a solution: ';
+                    % Beat timestep with a hammer
+                    warning([solver.getId(), 'Solver did not converge, cutting timestep'])
+                    cuttingCount = cuttingCount + 1;
+                    dt = dt/2;
+                    if dt < dtMin || failure
+                        msg = [solver.getId(), 'Did not find a solution: '];
                         if failure
                             % Failure means something is seriously wrong,
                             % and we should abort the entire control step
@@ -300,12 +306,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             end
                         end
                     end
-                    
-                    % Beat timestep with a hammer
-                    warning('Solver did not converge, cutting timestep')
-                    cuttingCount = cuttingCount + 1;
-                    dt = dt/2;
-                    
                     isFinalMinistep = false;
                 end
                 done = isFinalMinistep && converged;
@@ -315,7 +315,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if itCount     ~= 1, pl_it   = 's'; else pl_it   = ''; end
 
             dispif(solver.verbose, ...
-                  ['Solved timestep with %d accepted ministep%s', ...
+                  [solver.getId(), ...
+                   'Solved timestep with %d accepted ministep%s', ...
                    ' (%d rejected, %d total iteration%s)\n'], ...
                    acceptCount, pl_mini, stepCount - acceptCount, ...
                    itCount, pl_it);
@@ -392,6 +393,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             next = res(index,     :);
 
             isStagnated = abs(next - prev)./prev < solver.stagnateTol;
+        end
+        
+        function str = getId(solver)
+            if isempty(solver.identifier)
+                str = '';
+            else
+                str = [solver.identifier, ': '];
+            end
         end
     end
 end
