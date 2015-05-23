@@ -34,7 +34,7 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
                 varargin{:});
         end
         
-        function [convergence, values] = checkConvergence(model, ...
+        function [convergence, values, names] = checkConvergence(model, ...
                 problem, varargin)
             
             % TODO: HACK
@@ -45,7 +45,7 @@ classdef TransportOilWaterPolymerModel < OilWaterPolymerModel
             elseif model.conserveOil
                 model.water = false;
             end
-            [convergence, values] = ...
+            [convergence, values, names] = ...
                 checkConvergence@OilWaterPolymerModel(model, problem, ...
                 varargin{:});
             if model.conserveWater
