@@ -247,7 +247,7 @@ if ~isempty(W)
             end
             for wnr = 1:numel(state.wellSol)
                 ix = perf2well == wnr;
-                state.wellSol(wnr).cqsPoly = cqsPoly(ix);
+                state.wellSol(wnr).cqsPoly = cqsPoly(wnr);
                 if usingShear
                     state.wellSol(wnr).shearMult = shearMultW(ix);
 

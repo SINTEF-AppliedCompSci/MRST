@@ -245,7 +245,7 @@ if ~isempty(W)
         cqsPoly    = double(cqsPoly);
         for wnr = 1:numel(state.wellSol)
             ix = perf2well == wnr;
-            state.wellSol(wnr).cqsPoly = cqsPoly(ix);
+            state.wellSol(wnr).cqsPoly = cqsPoly(wnr);
             if usingShear
                 % We save many fields for debugging. Some of these may
                 % be removed later.
