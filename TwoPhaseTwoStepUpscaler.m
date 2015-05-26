@@ -124,7 +124,7 @@ methods
         upscaler2 = TwoPhaseUpscaler(CG, CRock, CFluid, ...
             'partition', p2, 'method', upscaler.method2, ...
             'dims', upscaler.dim2, 'nrelperm', upscaler.nrelperm, ...
-            'pcow', false, 'verbose', false, 'cellinx', true);
+            'pcow', false, 'verbose', false);
         if upscalez
             upscaler2.savesat = true; % save sat. distributions
             [updata2, rep] = upscaler2.upscale();
@@ -220,6 +220,25 @@ methods
             report.time = totalTime;
         end
         
+        
+    end
+    
+    
+    function block = createBlock(upscaler, cells)
+    % Create grid, rock and fluid for the sub block represented by the
+    % given cells.
+        
+        block = createBlock@OnePhaseUpscaler(upscaler, cells);
+        
+        if ~isempty(block.deck)
+            
+            % To use capillary upscaling, we need a function pcOWInv
+            block.fluid = addPcOWInvADIFluid(block.fluid, block.deck);
+            
+            % To use viscous upscaling, we need a function fracFlowInv
+            block.fluid = addFracFlowInvADIFluid(block.fluid, block.deck);
+            
+        end
         
     end
     

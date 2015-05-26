@@ -15,7 +15,6 @@ properties
     blocks
     blockMap % Index map for the blocks. Equal index means equal block.
     
-    cellinx % Boolean. True if ALL fluid properties takes 'cellInx'.
 end
 
 methods
@@ -28,7 +27,6 @@ methods
         upscaler.partition = [];
         upscaler.blocks    = [];
         upscaler.blockMap  = [];
-        upscaler.cellinx   = false;
         upscaler = merge_options(upscaler, varargin{:});
         
         upscaler.G     = G;
@@ -176,7 +174,7 @@ methods
             try
                 b = mcomputeGeometry(b); % Use MEX version if possible
             catch %#ok<CTCH>
-                b = computeGeometry(b);
+                b = computeGeometry(b); % Fallback; use Matlab version
             end
             r = initEclipseRock(blockDeck);
             
@@ -206,8 +204,7 @@ methods
             % Create block fluid
             f = [];
             if ~isempty(upscaler.fluid)
-                f = createBlockFluid(upscaler.fluid, cells, ...
-                    'cellInx', upscaler.cellinx);
+                f = createBlockFluid(upscaler.fluid, cells);
             end
             
             % Create block object
