@@ -154,7 +154,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          marker_opts = varargin(ix);
          varargin    = varargin(~ix);
 
-
          % Edge-related options are collected in edge_opts
          ix = rldecode(strncmpi('edge', varargin(1:2:end), 4)', 2) | ...
             rldecode(strncmpi('line', varargin(1:2:end), 4)', 2);
