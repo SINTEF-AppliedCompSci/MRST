@@ -46,7 +46,7 @@ end
 function pvtnum= getPVTNUM(po, reg, varargin)
 pvtinx = getRegMap(po, reg.PVTNUM, reg.PVTINX, varargin{:});
 
-if(pvtinx{1}==':')
+if strcmp(pvtinx{1}, ':')
    pvtnum=ones(size(po));
    assert(numel(pvtinx)==1);
 else

@@ -41,10 +41,11 @@ vbw  = pvtw(pvtnum,5); % viscosibility
 Y = -vbw.*(pw-pwr);
 v = muwr./(1+Y+Y.^2/2);
 end
+
 function pvtnum= getPVTNUM(pw, reg, varargin)
 pvtinx = getRegMap(pw, reg.PVTNUM, reg.PVTINX, varargin{:});
 
-if(pvtinx{1}==':')
+if strcmp(pvtinx{1}, ':')
    pvtnum=ones(size(pw));
    assert(numel(pvtinx)==1);
 else
