@@ -118,8 +118,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       v= [v,G.nodes.z(verts)];
    end
 
-   if need_render_fixes(varargin{:}) && ...
-         ~strcmpi(get(gcf, 'Renderer'), 'OpenGL'),
+   if ~strcmpi(get(gcf, 'Renderer'), 'OpenGL') && ...
+         need_render_fixes(varargin{:}),
       set(gcf, 'Renderer', 'OpenGL');
    end
 
