@@ -120,7 +120,7 @@ if ~isempty(setToZeroRate)
 end
 
 % In the case when wells are shut, set a trivial condition
-if ~isempty(disabledWells)
+if any(disabledWells)
     rateScale = max(mean(abs(double(qt_s))), sqrt(eps));
     bhpScale  = max(mean(abs(bhp)),          1);
     eq(disabledWells) = rateScale*(pBH(disabledWells) - bhp(disabledWells))./bhpScale;

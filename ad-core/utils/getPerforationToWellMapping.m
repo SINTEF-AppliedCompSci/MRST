@@ -1,4 +1,4 @@
-function perf2well = getPerforationToWellMapping(w)
+function [perf2well, Rw] = getPerforationToWellMapping(w)
 %Get map from global perforation number to global well index.
 %
 % SYNOPSIS:
@@ -32,7 +32,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    nw = numel(w);
     nConn       = cellfun(@numel, {w.cells})'; % # connections of each well
-    perf2well   = rldecode((1:numel(w))', nConn);
+    perf2well   = rldecode((1:nw)', nConn);
+    if nargout > 1
+        nperf = numel(perf2well);
+        if nperf == nw;
+            Rw = 1;
+        else
+            Rw = sparse((1:nperf)', perf2well, 1, nperf, nw);
+        end
+    end
 end

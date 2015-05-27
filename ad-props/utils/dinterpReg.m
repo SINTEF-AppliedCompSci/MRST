@@ -26,8 +26,8 @@ if nreg > 1
 end
 for k = 1:nreg
     if reginx{k} == ':' %for improved eff seperate this case
-        dyi = dinterpTable(T{k}(:,1), T{k}(:,2), xi);
+        dyi = dinterpq1(T{k}(:,1), T{k}(:,2), xi);
     elseif ~isempty(reginx{k})
-        dyi(reginx{k}) = dinterpTable(T{k}(:,1), T{k}(:,2), xi(reginx{k}));
+        dyi(reginx{k}) = dinterpq1(T{k}(:,1), T{k}(:,2), xi(reginx{k}));
     end
 end

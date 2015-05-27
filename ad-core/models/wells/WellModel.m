@@ -85,6 +85,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         nonlinearIteration
         % The current well controls
         W
+        % 
+        Rw
+        perf2well
     end
     
     methods
@@ -120,6 +123,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             wellmodel.saturations = satvals;
             wellmodel.components = compvals;
             wellmodel.W = W;
+            [wellmodel.perf2well, wellmodel.Rw] = getPerfToWellMap(wellmodel);
+            
             clear opt
 
             if isempty(W)
@@ -254,18 +259,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Assemble well model equations (Peaceman type), well control
             % equations, completion surface and reservoir rates, plus an
             % updated wellSol corresponding to the current limits.
-            [wellEqs, cq_s, mix_s, status, cstatus, Rw, cq_r] = ...
+            [wellEqs, cq_s, mix_s, status, cstatus, cq_r] = ...
                             computeWellContributionsNew(wellmodel, model, wellSol, bhp, q_s);
             controlEqs =  setupWellControlEquations(wellSol, bhp, q_s, status, mix_s, model);
             
             
             % Update well properties which are not primary variables
-            perf2well = wellmodel.getPerfToWellMap();
             toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
             cq_sDb = cell2mat(toDouble(cq_s));
             
             for wnr = 1:numel(wellSol)
-                ix = perf2well == wnr;
+                ix = wellmodel.perf2well == wnr;
                 wellSol(wnr).cqs     = cq_sDb(ix,:);
                 wellSol(wnr).cstatus = cstatus(ix);
                 wellSol(wnr).status  = status(wnr);
@@ -397,9 +401,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function perf2well = getPerfToWellMap(wellmodel)
+        function varargout = getPerfToWellMap(wellmodel)
             % Outsource this, but it could be overriden
-            perf2well = getPerforationToWellMapping(wellmodel.W);
+            varargout = cell(nargout, 1);
+            [varargout{:}] = getPerforationToWellMapping(wellmodel.W);
         end
     end
     methods (Static)

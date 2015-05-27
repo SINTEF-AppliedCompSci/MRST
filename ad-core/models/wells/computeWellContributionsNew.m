@@ -1,4 +1,4 @@
-function [eqs, cq_s, mix_s, status, cstatus, Rw, cq_r] = computeWellContributionsNew(wellmodel, model, sol, pBH, q_s)
+function [eqs, cq_s, mix_s, status, cstatus, cq_r] = computeWellContributionsNew(wellmodel, model, sol, pBH, q_s)
 %Setup well (residual) equations and compute corresponding source terms.
 %
 % SYNOPSIS:
@@ -52,11 +52,9 @@ b = wellmodel.bfactors;
 r = wellmodel.components;
 m = wellmodel.mobilities;
 
+perf2well = wellmodel.perf2well;
+Rw = wellmodel.Rw;
 numPh       = numel(b); % # phases
-nConn       = cellfun(@numel, {W.cells})'; % # connections of each well
-perf2well   = rldecode((1:numel(W))', nConn);
-% helpful matrix in dealing with all wells at one go
-Rw    = sparse((1:numel(perf2well))', perf2well, 1, numel(perf2well), numel(W));
 Tw    = vertcat(W(:).WI);
 
 compi = vertcat(W(:).compi);
@@ -70,9 +68,9 @@ Tw(~perfStatus) = 0;
 
 
 % Well total volume rate at std conds:
-qt_s = q_s{1};
+qt_s = q_s{1}.*wellStatus;
 for ph = 2:numPh
-    qt_s = (qt_s + q_s{ph}).*wellStatus;
+    qt_s = qt_s + q_s{ph}.*wellStatus;
 end
 
 
@@ -106,8 +104,9 @@ connInjInx      = and(connInjInx, ~closedConns);
 % ------------------ HANDLE FLOW INTO WELLBORE -------------------------
 % producing connections phase volumerates:
 cq_p = cell(1, numPh);
+conEff = ~connInjInx.*Tw;
 for ph = 1:numPh
-    cq_p{ph} = -(~connInjInx.*Tw).*(m{ph}.*drawdown);
+    cq_p{ph} = -conEff.*m{ph}.*drawdown;
 end
 % producing connections phase volumerates at standard conditions:
 cq_ps = conn2surf(cq_p, b, r, model);
@@ -119,11 +118,10 @@ end
 
 isInj = double(qt_s)>0;
 % compute avg wellbore phase volumetric rates at std conds.
+qt_s_inj = isInj.*qt_s;
 wbq = cell(1, numPh);
 for ph = 1:numPh
-    %wbq{ph} = isInj.*q_s{ph} - q_ps{ph};
-    wbq{ph} = (isInj.*compi(:,ph)).*qt_s + ~isInj.*q_s{ph}.*(q_s{ph}>0) - q_ps{ph};
-%     wbq{ph} = (isInj.*compi(:,ph)).*qt_s - q_ps{ph};
+    wbq{ph} = compi(:,ph).*qt_s_inj + ~isInj.*q_s{ph}.*(q_s{ph}>0) - q_ps{ph};
 end
 % compute wellbore total volumetric rates at std conds.
 wbqt = wbq{1};
@@ -131,16 +129,18 @@ for ph = 2:numPh
     wbqt = wbqt + wbq{ph};
 end
 % check for "dead wells":
-deadWells =  double(wbqt)==0;
+deadWells = double(wbqt)==0;
+if any(deadWells)
+    for ph = 1:numPh
+        wbq{ph} = wbq{ph}.*(~deadWells) + compi(:, ph).*deadWells;
+        % Avoid division by zero
+    end
+    wbqt(deadWells) = 1;
+end
 % compute wellbore mixture at std conds
 mix_s = cell(1, numPh);
 for ph = 1:numPh
-    if isa(pBH, 'ADI')
-        mix_s{ph} = double2ADI(compi(:,ph), pBH);
-    else
-        mix_s{ph} = zeros(size(pBH));
-    end
-    mix_s{ph}(~deadWells) = wbq{ph}(~deadWells)./wbqt(~deadWells);
+    mix_s{ph} = wbq{ph}./wbqt;
 end
 % ------------------ HANDLE FLOW OUT FROM WELLBORE -----------------------
 % total mobilities:
