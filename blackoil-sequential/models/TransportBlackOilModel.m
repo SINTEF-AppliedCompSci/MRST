@@ -16,7 +16,7 @@ classdef TransportBlackOilModel < ThreePhaseBlackOilModel
             model.conserveOil   = true;
             model.conserveGas   = true;
             
-            model.staticUpwind  = false;
+            model.staticUpwind  = true;
 
             model = merge_options(model, varargin{:});
             

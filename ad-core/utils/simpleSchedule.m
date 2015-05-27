@@ -55,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     assert(sz(1) == 1 || sz(2) == 1, ...
         'Timesteps must be given as a row or column vector');
     
-    dt = reshape(dt, 1, []);
+    dt = reshape(dt, [], 1);
     nstep = numel(dt);
     
     schedule = struct();

@@ -29,7 +29,11 @@ classdef PressureOilWaterModel < TwoPhaseOilWaterModel
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             p0 = state.pressure;
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, drivingForces);
-            state.dpRel = (state.pressure - p0)./p0;
+            range = max(p0) - min(p0);
+            if range == 0
+                range = 1;
+            end
+            state.dpRel = (state.pressure - p0)./range;
         end
         
         function  [convergence, values, names] = checkConvergence(model, problem)
