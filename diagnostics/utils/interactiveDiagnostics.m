@@ -138,11 +138,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         dsname = '';
         datasets = [];
     end
+    
     water    = initSingleFluid('mu' , 1*centi*poise, 'rho', 1000*kilogram/meter^3);
     oilwater = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
                                'rho', [1000, 859]*kilogram/meter^3, ...
                                'n'  , [   2,   2]);
-
     oilwater.names = {'Water', 'Oil', 'Gas'};
     
     opt = struct('state',               [],...
@@ -197,6 +197,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         assert(numel(W) == numel(state), ...
             'W and state must have equal number of elements');
     end
+    
 
     if (~isempty(datasets))
         if (numel(datasets) == 1)
@@ -214,18 +215,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
 
-    % Currently playing back
-    playback = false;
 
     % Main scope variables for tracers and tof
-    [D, WP] = deal([]);
+    [D, D_int, WP] = deal([]);
 
-    % Main scope variables for control panel
-    [fig_ctrl,...
-     wellPlot,...
-     draintoggle,...
-     floodtoggle,...
-     wctoggle,...
+    % Main figures
+    [fig_main,... 
+     fig_ctrl,...
+     fig_well,...
+     fig_phi,...
+     fig_well_alloc,...
+    ] = deal(NaN);
+
+    %Gui elements
+    [ctrl_drain_vols,...
+     ctrl_flood_vols,...
+     ctrl_well_conn,...
+     ctrl_use_average,...
      speedsh,...
      tofsh,...
      nwtofsh,...
@@ -237,41 +243,50 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      tofext,...
      hdataset,...
      hset_op,...
-     time_integral,...
      mrst_ds,...
      ds_panel,...
-     time_varying,...
      ni, np] = deal(NaN);
     
-    % Setup "persistent" variables
-    pm_htop = [];
-    pm_htext = [];
-    pm_hs = [];
-    pm_hline = [];
-    pm_mainph = [];
-    pm_outlineph = [];
-    phiPlot = []; % Used in plotPhi
-    pwc_wch = []; % Used in plotWellConnections
-    wah_fig = []; % plotWellAllocations
+    %Handles for well plot in main figure
+    fig_main_wells = {};
+    [fig_main_wells.htop,...
+     fig_main_wells.htext,...
+     fig_main_wells.hs,...
+     fig_main_wells.hline] = deal([]); 
+    fig_main_wells.dirty = true;
+    
+    %Handles for cell data in main figure
+    fig_main_cell_data = []; % "Grid with cell values"
+    fig_main_grid = []; %Grid outline
+    
+    %Well connection pairs in main figure
+    fig_main_well_conns = []; 
+    
+    %Handles that should be enabled / disabled
+    %according to if we're using averaged or single 
+    %timestep values
+    average_gui_handles = [];
+    non_average_gui_handles = [];
+    
+    %"GUI State" variables
+    window_name = opt.name{state_idx};
+    compute_average = false;
+    playback = false; %Play back TOF?
+    time_varying = (~isempty(state) && numel(state) > 1) || (~isempty(W) && numel(W) > 1);
     selection = []; % Selection of cells
     
-    time_integral_handles = [];
-    static_handles = [];
     
-    %State variables
-    compute_time_integral = false;
-    D_int = [];
-    window_name = opt.name{1};
-    time_varying = (~isempty(state) && numel(state) > 1) || (~isempty(W) && numel(W) > 1);
     
     %Create main figure
     fig_main = figure('Name', window_name);
     
+    %Set scaling etc.
     axis tight off
+    view(3);
     if (~isempty(opt.daspect))
         daspect(opt.daspect);
     end
-    view(3);
+    
 
     % Create control panel
     % Precompute TOF etc. for creating main control
@@ -283,37 +298,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Trigger plot initial setup
     plotMain();
 
-    % Private helpers
-    function ctrl_close_func(src, event)
-        if (~opt.leaveOpenOnClose)
-            if any(ishandle(pm_mainph))
-                delete(pm_mainph);
-            end
-            if any(ishandle(fig_ctrl))
-                delete(fig_ctrl);
-            end
-            if any(ishandle(pwc_wch))
-                delete(pwc_wch);
-            end
-            if any(ishandle(wah_fig))
-                delete(wah_fig);
-            end
-            if any(ishandle(phiPlot))
-                delete(phiPlot);
-            end
-            if any(ishandle(fig_main))
-                delete(fig_main);
-            end
-            if any(ishandle(wellPlot))
-                delete(wellPlot);
-            end
-        end
-    end
-
+    
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %Only function definitions from here on %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    %%% Clamp real: Clamps data to real valued numbers (non-inf)
     function val = clamp_real(in_val)
         val = max(-realmax, min(realmax, in_val));
     end
 
+    %
     function tofext = getTOFRange(D)
         if (D.isvalid)
             tof = D.tof(:);
@@ -368,9 +365,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         %Only plot if src is nonempty (true callback)
         if (~isempty(src))
-            if (compute_time_integral)
+            if (compute_average)
                 D_int = [];
-                computeTimeIntegral();
+                computeAverage();
             end
             plotMain(src, event);
         end
@@ -392,9 +389,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         %Only plot if src is nonempty (true callback)
         if (~isempty(src))
-            if (compute_time_integral)
+            if (compute_average)
                 D_int = [];
-                computeTimeIntegral();
+                computeAverage();
             end
             plotMain(src, event);
         end
@@ -412,7 +409,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [alfash, ~, ~]   = linkedSlider(vis_control, [0 2*vis_H 1 vis_h], .15, [0 1], 1, 'Alpha', @plotMain);
         
         
-        wctoggle = uicontrol(vis_control, 'Style', 'checkbox',...
+        ctrl_well_conn = uicontrol(vis_control, 'Style', 'checkbox',...
                    'Units', 'normalized',...
                    'Position', [0 1*vis_H bwidth vis_h],...
                    'String', 'Well pairs',...
@@ -449,9 +446,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function addTOFControls(parent, pos)
         %Function that forces update of time integral TOF
         function dirtyPlotMain(src, event)
-            if (compute_time_integral)
+            if (compute_average)
                 D_int = [];
-                computeTimeIntegral();
+                computeAverage();
             end
             plotMain(src, event);
         end
@@ -506,7 +503,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         if (time_varying)
             [tofsh, tofeh, ~]   = linkedSlider(tof_panel, [0 2*tof_H 1 tof_h], .15, [0 1], 0.25, 'TOF Freq.', @plotMain);
-            time_integral_handles = [time_integral_handles(:); tofsh; tofeh];
+            average_gui_handles = [average_gui_handles(:); tofsh; tofeh];
         end
         
         
@@ -578,11 +575,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             %Update main plot
             plotMain();
             
+            %Update producers / injectors selection boxes
+            
             %Update aux plots
-            if (ishandle(phiPlot))
+            if (ishandle(fig_phi))
                 plotPhi([], []);                
             end
-            if (ishandle(wah_fig))
+            if (ishandle(fig_well_alloc))
                 plotWellAllocations([], [])
             end
         end
@@ -593,10 +592,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         mrst_ds = findobj('Tag', 'mrst-datasetselector');
         set(mrst_ds, 'BorderType', 'None');
         mrst_ds_children = allchild(mrst_ds);
-        static_handles = [static_handles(:); mrst_ds_children];
+        non_average_gui_handles = [non_average_gui_handles(:); mrst_ds_children];
 
         %Control for showing / computing average over time of e.g., TOF
-        time_integral = uicontrol(ds_panel, 'Style', 'checkbox',...
+        ctrl_use_average = uicontrol(ds_panel, 'Style', 'checkbox',...
                                    'Units', 'normalized',...
                                    'Position', [0 0 1 0.5],...
                                    'Callback', @handleIntegralChange,...
@@ -613,21 +612,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             %Check if we are to compute the average over time
             %or for an instantaneous snapshot.
-            if (ishandle(time_integral))
-                compute_time_integral = logical(get(time_integral, 'Value'));
-                if (compute_time_integral)
-                    set(time_integral_handles, 'Enable', 'on');
-                    set(static_handles, 'Enable', 'off');
+            if (ishandle(ctrl_use_average))
+                compute_average = logical(get(ctrl_use_average, 'Value'));
+                if (compute_average)
+                    set(average_gui_handles, 'Enable', 'on');
+                    set(non_average_gui_handles, 'Enable', 'off');
                     
                     %Add new integral options
                     old_options = get(hdataset, 'String');
                     new_options = {old_options{:}, time_integral_options{:}};
                     set(hdataset, 'String', new_options);
                     
-                    computeTimeIntegral();
+                    computeAverage();
                 else
-                    set(time_integral_handles, 'Enable', 'off');
-                    set(static_handles, 'Enable', 'on');
+                    set(average_gui_handles, 'Enable', 'off');
+                    set(non_average_gui_handles, 'Enable', 'on');
 
                     %Remove integral options
                     options = get(hdataset, 'String');
@@ -663,7 +662,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pos = get(fig_main, 'OuterPosition');
             size_xy = [475 550];
             pos_xy = pos(1:2) + pos(3:4) - size_xy - [400 0];
-            fig_ctrl = figure('Position',[pos_xy,  size_xy], 'Toolbar','none', 'MenuBar', 'none', 'CloseRequestFcn', @ctrl_close_func);
+            fig_ctrl = figure('Position',[pos_xy,  size_xy], ...
+                'Toolbar','none',...
+                'MenuBar', 'none',...
+                'CloseRequestFcn', @close_all_func);
             set(fig_ctrl, 'Name', ['Controller ', window_name]);
         else
             clf(fig_ctrl)
@@ -676,8 +678,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         np = numel(pp);
         ni = numel(ip);
 
-        draintoggle = zeros(np, 1);
-        floodtoggle = zeros(ni, 1);
+        ctrl_drain_vols = zeros(np, 1);
+        ctrl_flood_vols = zeros(ni, 1);
         
         gpy = 0.45;
         gph = .55;
@@ -693,7 +695,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                    'Units', 'normalized',...
                                    'Position', [.5 gpy .5 gph]);
 
-        draintoggle = uicontrol(drainp, 'Style', 'listbox', ...
+        ctrl_drain_vols = uicontrol(drainp, 'Style', 'listbox', ...
                                           'Units', 'normalized',...
                                           'Max', 2, ...
                                           'Min', 0, ...
@@ -702,7 +704,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                           'Callback', @plotMain, ...
                                           'Position', [0 0 1 1]);
 
-        floodtoggle = uicontrol(floodp, 'Style', 'listbox', ...
+        ctrl_flood_vols = uicontrol(floodp, 'Style', 'listbox', ...
                                           'Units', 'normalized',...
                                           'Max', 2, ...
                                           'Min', 0, ...
@@ -714,7 +716,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                       
         tabgp = uitabgroup(fig_ctrl,'Position', [0 0 1 .4]);
         
-        tof_controls_tab = uitab(tabgp, 'Title', 'Time of flight controls');
+        tof_controls_tab = uitab(tabgp, 'Title', 'Time of flight region');
         addTOFControls(tof_controls_tab, [0 .1 1 .9]); 
         
         vis_controls_tab = uitab(tabgp, 'Title', 'Visualization config');
@@ -728,13 +730,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         %Enable/disable the correct controls by firing callback on
         %time_integral button
-        if (ishandle(time_integral))
-            f = get(time_integral, 'Callback');
+        if (ishandle(ctrl_use_average))
+            f = get(ctrl_use_average, 'Callback');
             f([], []);
         end
     end
 
-    function computeTimeIntegral()
+    function computeAverage()
         if (~isempty(D_int))
             D = D_int;
         else
@@ -760,8 +762,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function selection = getTOFSelection()
         %Get options for TOF region selection
-        drain_wells = get(draintoggle, 'Value');
-        flood_wells = get(floodtoggle, 'Value');
+        drain_wells = get(ctrl_drain_vols, 'Value');
+        flood_wells = get(ctrl_flood_vols, 'Value');
         near_well_max_tof = convertFrom(get(nwtofsh, 'Value'), year);
         min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
         max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
@@ -777,7 +779,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         %Get TOF region
-        if (compute_time_integral)
+        if (compute_average)
             % Get current TOF frequency threshold
             tof_freq = get(tofsh, 'Value');
             
@@ -805,7 +807,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotMain(src, event)
-        if (compute_time_integral)
+        if (compute_average)
             window_name = 'Average over timesteps';
         else
             if (numel(opt.name) == 1)
@@ -826,13 +828,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         set(fig_main, 'Name', window_name);
 
-        if any(ishandle(pm_mainph))
-            delete(pm_mainph);
-        end
-
-        if ~any(ishandle(pm_outlineph))
-            pm_outlineph = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
-            set(pm_outlineph, 'UserData', 'gridoutline');
+        if ~any(ishandle(fig_main_grid))
+            fig_main_grid = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
+            set(fig_main_grid, 'UserData', 'gridoutline');
         end
         
         tofext = getTOFRange(D);
@@ -845,15 +843,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         alpha   = get(alfash, 'Value');
 
         % Plot current selection
+        if any(ishandle(fig_main_cell_data))
+            delete(fig_main_cell_data);
+        end
         if any(selection)
             if (dataind == 6 || dataind == 7)
-                pm_mainph = plotTracerBlend(G, ...
+                fig_main_cell_data = plotTracerBlend(G, ...
                     cdataToPlotGrid(cdata{1}), ...
                     cdataToPlotGrid(cdata{2}), ...
                     'cells', cdataToPlotGrid(selection), ...
                     'FaceAlpha', alpha);
             else
-                pm_mainph = plotCellData(G, ...
+                fig_main_cell_data = plotCellData(G, ...
                     cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
                     'EdgeColor', 'none', 'FaceAlpha', alpha);
             end
@@ -861,21 +862,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         fastRotateButton();
 
-        % Plot wells
-        if ~all(ishandle([pm_htop, pm_htext, pm_hs])) || isempty([pm_htop, pm_htext, pm_hs])
-
-            [pm_htop, pm_htext, pm_hs, pm_hline] = ...
-                plotWell(G, wellsToPlotGrid(W{state_idx}), ...
-                    'color', 'red', 'height',  0);
-            for i = 1:numel(W{state_idx})
-                color = colorizeWell('global', i, D);
-                set([pm_htop(i) pm_htext(i) pm_hs(i)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
-                set([pm_htop(i) pm_hs(i)], 'FaceColor', color, 'EdgeColor', color)
-                set([pm_htext(i) pm_hline(i)], 'Color', color)
-                set(pm_htext(i), 'FontWeight', 'bold', 'Interpreter', 'none')
-            end
-
-        end
+        plotWells();
+        
+        
         axis tight
         if (clim(2) > clim(1))
             caxis(clim);
@@ -891,7 +880,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         N = round(get(speedsh, 'Value'));
         
-        if (compute_time_integral)
+        if (compute_average)
             t_0 = 1;
             t_end = get(tofsh, 'Value');
             callback = get(tofsh, 'Callback');
@@ -912,7 +901,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 return
             end
             
-            if (compute_time_integral)
+            if (compute_average)
                 set(tofsh, 'Value', t_0 + i*(t_end - t_0)/N);
                 callback(tofsh, []);
             else
@@ -955,8 +944,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % set plots to match piecharts
             v = find(strcmpi(get(hdataset, 'String'), 'drainage region'));
             set(hdataset, 'Value', v(1))
-            set(floodtoggle, 'Value', ik)
-            set(draintoggle, 'Value', []);
+            set(ctrl_flood_vols, 'Value', ik)
+            set(ctrl_drain_vols, 'Value', []);
         else
             ik = find(D.prod == wk);
             sub = wpro == wk;
@@ -969,16 +958,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             v = find(strcmpi(get(hdataset, 'String'), 'flooding region'));
             set(hdataset, 'Value', v(1))
-            set(draintoggle, 'Value', ik)
-            set(floodtoggle, 'Value', []);
+            set(ctrl_drain_vols, 'Value', ik)
+            set(ctrl_flood_vols, 'Value', []);
         end
 
-        if isempty(wellPlot) || ~ishandle(wellPlot)
-            wellPlot = figure();
+        if isempty(fig_well) || ~ishandle(fig_well)
+            fig_well = figure();
         else
-            set(0, 'CurrentFigure', wellPlot); clf
+            set(0, 'CurrentFigure', fig_well); clf
         end
-        set(wellPlot, 'name', ['Well ', W{state_idx}(wk).name]);
+        set(fig_well, 'name', ['Well ', W{state_idx}(wk).name]);
 
         plotArrival = ~isempty(state) && ~isInj;
 
@@ -1029,34 +1018,65 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             return
         end
         
-        if isempty(phiPlot) || ~ishandle(phiPlot)
-            phiPlot = figure();
+        if isempty(fig_phi) || ~ishandle(fig_phi)
+            fig_phi = figure();
         else
-            set(0, 'CurrentFigure', phiPlot);
+            set(0, 'CurrentFigure', fig_phi);
         end
-        set(phiPlot, 'Name', ['Phi/F diagram (', window_name, ')']);
+        set(fig_phi, 'Name', ['Phi/F diagram (', window_name, ')']);
         [F,Phi] = computeFandPhi(pv,D.tof);
         plot(Phi,F,'.');
         title(sprintf('Lorenz coefficient: %f\n', computeLorenz(F,Phi)));
     end
 
-    function plotWellAllocations(src, event)
+    function plotWells()
+        % Plot wells
+        if (fig_main_wells.dirty)
+            if (any(ishandle(fig_main_wells.htop)))
+                delete(fig_main_wells.htop);
+            end
+            if (any(ishandle(fig_main_wells.htext)))
+                delete(fig_main_wells.htext);
+            end
+            if (any(ishandle(fig_main_wells.hs)))
+                delete(fig_main_wells.hs);
+            end
+            if (any(ishandle(fig_main_wells.hline)))
+                delete(fig_main_wells.hline);
+            end
+            
+            [fig_main_wells.htop, fig_main_wells.htext, fig_main_wells.hs, fig_main_wells.hline] = ...
+                plotWell(G, wellsToPlotGrid(W{state_idx}), ...
+                    'color', 'red', 'height',  0);
+            for i = 1:numel(W{state_idx})
+                color = colorizeWell('global', i, D);
+                set([fig_main_wells.htop(i) fig_main_wells.htext(i) fig_main_wells.hs(i)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
+                set([fig_main_wells.htop(i) fig_main_wells.hs(i)], 'FaceColor', color, 'EdgeColor', color)
+                set([fig_main_wells.htext(i) fig_main_wells.hline(i)], 'Color', color)
+                set(fig_main_wells.htext(i), 'FontWeight', 'bold', 'Interpreter', 'none')
+            end
+            
+            fig_main_wells.dirty = false;
+        end
+    end
+
+    function plotWellAllocations()
         if (~D.isvalid)
             warning('It appears that the time of flight is invalid');
             return
         end
         
-        if isempty(wah_fig) || ~ishandle(wah_fig)
-            wah_fig = figure();
+        if isempty(fig_well_alloc) || ~ishandle(fig_well_alloc)
+            fig_well_alloc = figure();
         else
-            set(0, 'CurrentFigure', wah_fig);
+            set(0, 'CurrentFigure', fig_well_alloc);
         end
-        set(wah_fig, 'Name', ['Well allocations (', window_name, ')']);
+        set(fig_well_alloc, 'Name', ['Well allocations (', window_name, ')']);
         plotWellAllocationComparison(D, WP, [], []);
     end
 
-    function plotWellConnections(src, event)        
-        if get(wctoggle, 'Value')            
+    function plotWellConnections(~, ~)
+        if get(ctrl_well_conn, 'Value')            
             if ishandle(fig_main)
                 set(0, 'CurrentFigure', fig_main);
             else
@@ -1065,19 +1085,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 plotMain();
             end
             
-            if any(ishandle(pwc_wch))
-                delete(pwc_wch)
-                pwc_wch = [];
+            if any(ishandle(fig_main_well_conns))
+                delete(fig_main_well_conns)
+                fig_main_well_conns = [];
             end
             
             if (D.isvalid)
-                pwc_wch = plotWellPairConnections(computeGrid, WP, D, W{state_idx}, pv);
+                fig_main_well_conns = plotWellPairConnections(computeGrid, WP, D, W{state_idx}, pv);
             else
                 return
             end
         else
-            delete(pwc_wch)
-            pwc_wch = [];
+            delete(fig_main_well_conns)
+            fig_main_well_conns = [];
         end
     end
 
@@ -1177,56 +1197,74 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function changeWells()
         W{state_idx} = editWells(G, W{state_idx}, rock);
-        recomputeValues();
+        computeValues();
         createMainControl();
-    end
-
-    function recomputeValues()
-        computeValues(state_idx)
-        if ishandle(fig_main)
-            close(fig_main)
-        end
+        
+        fig_main_wells.dirty = true;
+        
         plotMain();
     end
+
+
+
+    function [sliderhandle, edithandle, grouphandle] = linkedSlider(parent, pos, fieldsize, ext, defaultval, title, callback)
+        minval = abs(ext(1));
+        maxval = abs(ext(2));
+        defaultval = abs(defaultval);
+
+        grouphandle = uipanel(parent, 'Units', 'normalized', 'Position', pos, 'BorderType', 'None');
+        uicontrol(grouphandle, 'Style', 'text', 'Units', 'normalized', 'Position', [0, 0, fieldsize 1], 'string', title)
+
+        cap = @(x) max(minval, min(x, maxval));
+
+        edithandle = uicontrol(grouphandle, 'Style', 'edit', 'Units', 'normalized', 'Value', defaultval, 'Position', [0 + (1-fieldsize), 0, fieldsize 1], 'String', sprintf('%.1f', defaultval));
+        sliderhandle = uicontrol(grouphandle, 'Style', 'slider', 'Units', 'normalized', 'Position', [fieldsize, 0, (1-2*fieldsize) 1], 'Min', minval, 'Max', maxval, 'Value', defaultval);
+
+        slidercallback2 = @(src, event) set(edithandle, 'String', sprintf('%.1f', get(src, 'Value')));
+        editcallback2 = @(src, event) set(sliderhandle, 'Value', cap(sscanf(get(src, 'String'), '%f')));
+
+        function slidercallback3(src, event)
+            callback(src, event);
+            slidercallback2(src, event);
+        end
+        function editcallback3(src, event)
+            callback(src, event);
+            editcallback2(src, event);
+        end
+
+        if (~isempty(callback))
+            set(sliderhandle, 'Callback', @slidercallback3);
+        else 
+            set(sliderhandle, 'Callback', slidercallback2);
+        end
+
+        if (~isempty(callback))
+            set(edithandle, 'Callback', @editcallback3);
+        else
+            set(edithandle, 'Callback', editcallback2);
+        end
+    end
+
+
+    % Private helpers
+    function close_all_func(src, event)
+        if (~opt.leaveOpenOnClose)
+            if any(ishandle(fig_ctrl))
+                delete(fig_ctrl);
+            end
+            if any(ishandle(fig_well_alloc))
+                delete(fig_well_alloc);
+            end
+            if any(ishandle(fig_phi))
+                delete(fig_phi);
+            end
+            if any(ishandle(fig_main))
+                delete(fig_main);
+            end
+            if any(ishandle(fig_well))
+                delete(fig_well);
+            end
+        end
+    end
+
 end
-
-
-
-function [sliderhandle, edithandle, grouphandle] = linkedSlider(parent, pos, fieldsize, ext, defaultval, title, callback)
-    minval = abs(ext(1));
-    maxval = abs(ext(2));
-    defaultval = abs(defaultval);
-    
-    grouphandle = uipanel(parent, 'Units', 'normalized', 'Position', pos, 'BorderType', 'None');
-    uicontrol(grouphandle, 'Style', 'text', 'Units', 'normalized', 'Position', [0, 0, fieldsize 1], 'string', title)
-
-    cap = @(x) max(minval, min(x, maxval));
-
-    edithandle = uicontrol(grouphandle, 'Style', 'edit', 'Units', 'normalized', 'Value', defaultval, 'Position', [0 + (1-fieldsize), 0, fieldsize 1], 'String', sprintf('%.1f', defaultval));
-    sliderhandle = uicontrol(grouphandle, 'Style', 'slider', 'Units', 'normalized', 'Position', [fieldsize, 0, (1-2*fieldsize) 1], 'Min', minval, 'Max', maxval, 'Value', defaultval);
-    
-    slidercallback2 = @(src, event) set(edithandle, 'String', sprintf('%.1f', get(src, 'Value')));
-    editcallback2 = @(src, event) set(sliderhandle, 'Value', cap(sscanf(get(src, 'String'), '%f')));
-    
-    function slidercallback3(src, event)
-        callback(src, event);
-        slidercallback2(src, event);
-    end
-    function editcallback3(src, event)
-        callback(src, event);
-        editcallback2(src, event);
-    end
-        
-    if (~isempty(callback))
-        set(sliderhandle, 'Callback', @slidercallback3);
-    else 
-        set(sliderhandle, 'Callback', slidercallback2);
-    end
-    
-    if (~isempty(callback))
-        set(edithandle, 'Callback', @editcallback3);
-    else
-        set(edithandle, 'Callback', editcallback2);
-    end
-end
-
