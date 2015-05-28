@@ -1,4 +1,4 @@
-function [Gt, optim, init, history] = optimizeUtsira(varargin)
+function [Gt, optim, init, history, other] = optimizeFormation(varargin)
 
    moduleCheck('ad-core');
    
@@ -6,7 +6,7 @@ function [Gt, optim, init, history] = optimizeUtsira(varargin)
    opt = merge_options(opt_defaults(), varargin{:});
    
    %% Physical grid and rock
-   [Gt, rock2D, ~] = getFormationTopGrid('utsirafm', opt.coarse_level);
+   [Gt, rock2D, ~] = getFormationTopGrid(opt.modelname, opt.coarse_level);
    
    %% Spill-point analysis objec
    ta = trapAnalysis(Gt, false);
@@ -15,7 +15,11 @@ function [Gt, optim, init, history] = optimizeUtsira(varargin)
    co2 = CO2props();
    
    %% Load subscale trapping function, if present
-   dh = []; % @@ Implement loading of this.  Empty for now.
+   if ~isempty(opt.trapfile_name)
+      dh = computeToptraps(load(opt.trapfile_name), Gt, true);
+   else
+      dh = [];
+   end
 
    %% Defining fluid
    
@@ -57,6 +61,12 @@ function [Gt, optim, init, history] = optimizeUtsira(varargin)
    initState.s = repmat([1 0], Gt.cells.num, 1);
    initState.sGmax = initState.s(:,2);
    
+   
+   other.fluid = fluid;
+   other.rock = rock2D;
+   other.residual = [opt.sw, opt.sr];
+   other.traps = ta;
+
    %% Set up model and run optimization
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
    min_rates = sqrt(eps) * ones(opt.num_wells, 1);
@@ -196,6 +206,7 @@ end
 
 function opt = opt_defaults()
 
+    opt.modelname = 'utsirafm';
     opt.schedule = [];
     opt.optimise = false;
     opt.coarse_level = 3;
@@ -239,4 +250,5 @@ function opt = opt_defaults()
                                              % this distance of spill region boundary
     % directory for saving reslts
     opt.report_basedir = './simulateUtsira_results/';
+    opt.trapfile_name = ''; % 'utsira_subtrap_function_3'
 end
