@@ -288,7 +288,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         max_G = max(G.cells.centroids);
         min_G = min(G.cells.centroids);
-        da = (max_G - min_G);
+        da = max_G - min_G;
+        da(da == 0) = 1;
         daspect(da);
     end
 
