@@ -576,7 +576,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             fprintf(fid, 'FLUXNUM\n');
             out_format = [repmat('%d\t', 1, 20), '\n'];
-            fprintf(fid, out_format, selection');
+            fprintf(fid, out_format, selection);
             fprintf(fid, '/\n');
             fclose(fid);
         end
@@ -617,14 +617,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             error('Programmer error');
         end
         
-        function selecttimestep(datas, index, fullname)
+        function selectTimeStep(datas, index, fullname)
+            %Get ID of currently selected wells
+            drain_wells = get(ctrl_drain_vols, 'Value');
+            flood_wells = get(ctrl_flood_vols, 'Value');
+            drain_selection = D.prod(drain_wells);
+            flood_selection = D.inj(flood_wells);
+            well_selection = [drain_selection, flood_selection];
+            
             state_idx = index;
             computeValues(state_idx);
             
             %Update main plot
             plotMain();
             
-            %Update producers / injectors selection boxes
+            %Update producers / injectors selection box text
+            set(ctrl_drain_vols, 'String', {W{state_idx}(D.prod).name});
+            set(ctrl_flood_vols, 'String', {W{state_idx}(D.inj).name});
+            
+            %Find out which items we should be selecting
+            drain_wells = find(ismember(D.prod, well_selection));
+            flood_wells = find(ismember(D.inj, well_selection));
+            
+            %Set selections
+            set(ctrl_drain_vols, 'Value', drain_wells);
+            set(ctrl_flood_vols, 'Value', flood_wells);
             
             %Update aux plots
             if (ishandle(fig_phi))
@@ -636,7 +653,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         datasetSelector(G, selector_datasets, 'Parent', ds_panel, 'Location', ...
-            [0.4, 0.5, 0.6, .5], 'Callback', @selecttimestep, ...
+            [0.4, 0.5, 0.6, .5], 'Callback', @selectTimeStep, ...
             'active', 1, 'Nofields', true,...
             'Tag', 'datasetselector');
         mrst_ds = findobj('Tag', 'datasetselector', '-and', 'Parent', ds_panel);
@@ -759,7 +776,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                           'Max', 2, ...
                                           'Min', 0, ...
                                           'String', {W{state_idx}(D.inj).name},...
-                                          'Value', 1:numel(D.inj), ...
+                                          'Value', [], ...
                                           'Callback', @plotMain, ...
                                           'Position', [0 0 1 1]);
         
