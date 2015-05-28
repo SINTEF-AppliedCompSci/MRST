@@ -278,15 +278,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     %Create main figure
-    fig_main = figure('Name', window_name);
+    fig_main = figure('Name', window_name);    
     
     %Set scaling etc.
     axis tight off
     view(3);
     if (~isempty(opt.daspect))
         daspect(opt.daspect);
+    else
+        max_G = max(G.cells.centroids);
+        min_G = min(G.cells.centroids);
+        da = (max_G - min_G);
+        daspect(da);
     end
-    
 
     % Create control panel
     % Precompute TOF etc. for creating main control
@@ -297,6 +301,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Trigger plot initial setup
     plotMain();
+    
 
     
     
