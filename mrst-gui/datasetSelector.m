@@ -49,6 +49,8 @@ function varargout = datasetSelector(G, datasets, varargin)
 %
 %   Nofields  - Disables selecting / checking fields. 
 %               Implies that both data and name will be [].
+%   
+%   Tag       - Tag to use for the panel containing the selector
 %
 %
 % RETURNS:
@@ -88,7 +90,8 @@ opt = struct('Location', [0 0 1 1],...
              'active',   [], ...
              'N',        1, ...
              'Nofields', false,...
-             'Callback', []);
+             'Callback', [],...
+             'Tag',      'mrst-datasetselector');
 
 opt = merge_options(opt, varargin{:});
 
@@ -99,7 +102,7 @@ else
     parent = opt.Parent;
 end
 ph = uipanel(parent, 'Position', opt.Location, ...
-                     'Tag', 'mrst-datasetselector');
+                     'Tag', opt.Tag);
 
 if isnumeric(datasets)
     nsets = size(datasets, 2);

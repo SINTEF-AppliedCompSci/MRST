@@ -637,8 +637,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         datasetSelector(G, selector_datasets, 'Parent', ds_panel, 'Location', ...
             [0.4, 0.5, 0.6, .5], 'Callback', @selecttimestep, ...
-            'active', 1, 'Nofields', true);
-        mrst_ds = findobj('Tag', 'mrst-datasetselector');
+            'active', 1, 'Nofields', true,...
+            'Tag', 'datasetselector');
+        mrst_ds = findobj('Tag', 'datasetselector', '-and', 'Parent', ds_panel);
         set(mrst_ds, 'BorderType', 'None');
         mrst_ds_children = allchild(mrst_ds);
         non_average_gui_handles = [non_average_gui_handles(:); mrst_ds_children];
