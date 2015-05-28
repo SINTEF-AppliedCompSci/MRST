@@ -105,6 +105,19 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             
         end
         
+        function [state, report] = stepFunction(model, state, state0, ...
+                dt, drivingForces, linsolve, nonlinsolve, iteration, ...
+                varargin)
+            [state, report] = stepFunction@TwoPhaseOilWaterModel(...
+                model, state, state0, dt, drivingForces, linsolve, ...
+                nonlinsolve, iteration, varargin{:});
+            
+            if model.polymer && isfield(state, 'ShearThinningReport')
+                report.ShearThinning = state.ShearThinningReport;
+                state = rmfield(state, 'ShearThinningReport');
+            end
+        end
+        
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, drivingForces);
             if model.polymer

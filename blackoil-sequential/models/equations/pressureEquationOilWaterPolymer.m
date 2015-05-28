@@ -98,10 +98,12 @@ if otherPropPressure
         faceArea  = model.G.faces.areas(s.internalConn);
         Vw        = vW./(poroFace .* faceArea); % water velocity
         muWMultf  = s.faceUpstr(upcw, muWMult);
-        shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+        [shearMult, ~, shearReport] = ...
+            getPolymerShearMultiplier(model, Vw, muWMultf);
         vW        = vW .* shearMult;
         vP        = vP .* shearMult;
-        extraOutput.shearMult = shearMult;
+        extraOutput.shearMult   = shearMult;
+        extraOutput.shearReport = shearReport;
     end
 end
 
@@ -125,6 +127,9 @@ if model.extraPolymerOutput
     state = model.storeEffectivePolymerVisc(state, extraOutput.muPeff);
     state = model.storePolymerAdsorption(state, ads);
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
+    if usingShear
+        state.ShearThinningReport = extraOutput.shearReport;
+    end
 end
 
 % EQUATIONS ---------------------------------------------------------------

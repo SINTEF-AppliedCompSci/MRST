@@ -1,9 +1,11 @@
-function [mult, VW] = getPolymerShearMultiplier(model, VW0, muWmult)
+function [mult, VW, report] = getPolymerShearMultiplier(model, ...
+    VW0, muWmult)
 % Compute the flux multiplier due to polymer shear thinning/thickening
 %
 % SYNOPSIS:
-%   mult      = getPolymerShearMultiplier(model, VW0, muWmult)
-%   [mult,VW] = getPolymerShearMultiplier(model, VW0, muWmult)
+%   mult           = getPolymerShearMultiplier(model, VW0, muWmult)
+%   [mult,VW]      = getPolymerShearMultiplier(...)
+%   [mult,VW,iter] = getPolymerShearMultiplier(...)
 %
 % DESCRIPTION:
 %   The viscoisty of a polymer solution may be changed by the shear rate,
@@ -22,12 +24,14 @@ function [mult, VW] = getPolymerShearMultiplier(model, VW0, muWmult)
 %   model    - Model structure
 %   VW0      - Water velocity on faces without shear thinning
 %   muWmult  - Viscosity multiplier on faces
+%   iter     - Number of non-linear iterations
 %
 % RETURNS:
 %   mult     - Flux multiplier (reciprocal of the viscosity multiplier)
 %   VW       - Water velocity as solution of nonlinear shear equation
 %
 
+t = tic;
 f = model.fluid;
 
 % Compute the flow velocity
@@ -39,11 +43,14 @@ muWmult = double(muWmult);
 eqn = @(VW) VW .* (1 + f.plyshearMult(VW).*(muWmult-1)) - VW0.*muWmult;
 
 % Solve for shear modified velocity
-VW  = solveNonlinearEqn(eqn, VW0);
+[VW, report]  = solveNonlinearEqn(eqn, VW0);
 
 % Compute velocity multiplier from solution
 % Note that this is the reciprocal of the viscosity multiplier
 mult = muWmult ./ ( 1 + f.plyshearMult(VW).*(muWmult-1) );
+
+% Add timing to report
+report.time = toc(t);
 
 end
 
@@ -53,7 +60,7 @@ end
 % HELPER FUNCTIONS
 %--------------------------------------------------------------------------
 
-function x = solveNonlinearEqn(fun, x0)
+function [x, report] = solveNonlinearEqn(fun, x0)
 % Simple Newton solver to find the root of the nonlienar shear equation
 
 % Hardcoded settings
@@ -90,6 +97,10 @@ if resnorm > abstol
 end
 
 x = double(x);
+
+report.iterations = iter;
+report.residual   = resnorm;
+report.converged  = resnorm <= abstol;
 
 end
 

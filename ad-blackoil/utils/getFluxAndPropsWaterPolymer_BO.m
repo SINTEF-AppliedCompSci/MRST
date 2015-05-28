@@ -51,7 +51,8 @@ if usingShear
     faceArea  = model.G.faces.areas(s.internalConn);
     Vw        = vW./(poroFace .* faceArea); % water velocity
     muWMultf  = s.faceUpstr(upcw, muWMult);
-    shearMult = getPolymerShearMultiplier(model, Vw, muWMultf);
+    [shearMult, ~, shearReport] = ...
+        getPolymerShearMultiplier(model, Vw, muWMultf);
     vW        = vW .* shearMult;
     vP        = vP .* shearMult;
 end
@@ -61,7 +62,8 @@ extraOutput = [];
 if usingShear
     % The shear multiplier is returned in any case, as it is needed in the
     % sequential solver
-    extraOutput.shearMult = shearMult;
+    extraOutput.shearMult   = shearMult;
+    extraOutput.shearReport = shearReport;
 end
 
 % Return extra output if requested
