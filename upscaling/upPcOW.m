@@ -3,6 +3,12 @@ function [updata, report] = upPcOW(block, updata, varargin)
 %
 % It is assumed that all capillary pressure curves are monotone.
 % 
+% The upscaling is done my looping over different values of the capillery
+% pressure. For each value, this value is set in all cells, and then the
+% capillary pressure function is inverted to find the saturation
+% distribution. The saturation is then upscaled, and we have a pair of
+% saturation/pcOW.
+% 
 opt = struct(...
     'nPointsInit', 20, ...   % Number of initial points
     'nPointsMax',  50, ...   % Maximum number of points
