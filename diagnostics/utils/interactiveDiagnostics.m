@@ -1082,7 +1082,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function plotPhi(src, event)
         if (~D.isvalid)
-            warning('It appears that the time of flight is invalid');
+            warndlg('It appears that the time of flight is invalid. Aborting.');
             return
         end
         
@@ -1128,9 +1128,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function plotWellAllocations()
+    function plotWellAllocations(~, ~)
         if (~D.isvalid)
-            warning('It appears that the time of flight is invalid');
+            warndlg('It appears that the time of flight is invalid. Aborting');
             return
         end
         
@@ -1140,7 +1140,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             set(0, 'CurrentFigure', fig_well_alloc);
         end
         set(fig_well_alloc, 'Name', ['Well allocations (', window_name, ')']);
-        plotWellAllocationComparison(D, WP, [], []);
+        
+        %Filter well pairs to only include selected wells
+        drain_wells = get(ctrl_drain_vols, 'Value');
+        flood_wells = get(ctrl_flood_vols, 'Value');
+        
+        flood_pairs = ismember(WP.pairIx(:,1), flood_wells);
+        drain_pairs = ismember(WP.pairIx(:,2), drain_wells);
+        
+        active_pairs = find(flood_pairs | drain_pairs);
+        
+        plotWellAllocationComparison(D, WP, [], [], 'plotOnly', active_pairs);
     end
 
     function plotWellConnections(~, ~)
