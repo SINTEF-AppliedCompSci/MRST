@@ -154,7 +154,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'fluid',               oilwater, ...
                  'name',                [], ...
                  'daspect',             [], ...
-                 'leaveOpenOnClose',    false ...
+                 'leaveOpenOnClose',    false, ...
+                 'simpleWellPlot',      true ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -865,12 +866,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if ~all(ishandle([pm_htop, pm_htext, pm_hs])) || isempty([pm_htop, pm_htext, pm_hs])
 
             [pm_htop, pm_htext, pm_hs, pm_hline] = ...
-                plotWell(G, wellsToPlotGrid(W{state_idx}), ...
-                    'color', 'red', 'height',  0);
+                plotWellData(G, wellsToPlotGrid(W{state_idx}), ...
+                    'color', [1 0 0], 'linePlot', opt.simpleWellPlot);
+
             for i = 1:numel(W{state_idx})
                 color = colorizeWell('global', i, D);
                 set([pm_htop(i) pm_htext(i) pm_hs(i)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
-                set([pm_htop(i) pm_hs(i)], 'FaceColor', color, 'EdgeColor', color)
+                if ~opt.simpleWellPlot
+                    set([pm_htop(i) pm_hs(i)], 'FaceColor', color, 'EdgeColor', color)
+                else
+                    set(pm_htop(i), 'Color', color, 'MarkerFaceColor', color);
+                    set(pm_hs(i), 'Color', color);
+                end
                 set([pm_htext(i) pm_hline(i)], 'Color', color)
                 set(pm_htext(i), 'FontWeight', 'bold', 'Interpreter', 'none')
             end
