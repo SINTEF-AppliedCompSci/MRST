@@ -1,4 +1,4 @@
-function plotCurveTube(curve, radius, varargin)
+function [hs, htop] = plotCurveTube(curve, radius, varargin)
 %Plot a curve as a tube with variable width
 %
 % SYNOPSIS:
@@ -146,17 +146,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if hasData
         d = repmat(data, 1, size(z, 2));
-        surf(x, y, z, d, 'EdgeColor', opt.EdgeColor)
+        hs = surf(x, y, z, d, 'EdgeColor', opt.EdgeColor);
     else
-        surf(x, y, z, 'EdgeColor', opt.EdgeColor, 'FaceColor', opt.color, 'CData', [])
+        hs = surf(x, y, z, 'EdgeColor', opt.EdgeColor, 'FaceColor', opt.color, 'CData', []);
     end
     
     % Plot circles at the endpoints
-    for i = [1, size(x, 1)];
+    for i = 1 %[1, size(x, 1)];
         if hasData
-            patch(x(i, :), y(i, :), z(i, :), d(i, :))
+            htop = patch(x(i, :), y(i, :), z(i, :), d(i, :));
         else
-            patch(x(i, :), y(i, :), z(i, :), nan, 'FaceColor', opt.color)
+            htop = patch(x(i, :), y(i, :), z(i, :), nan, 'FaceColor', opt.color);
         end
     end
 end
