@@ -49,6 +49,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ellipticSolver
         % Diagonal tolerance in [0,1].
         diagonalTol
+        % Name of elliptic-like variable which will be solved using
+        % elliptic solver.
+        ellipticVarName
     end
     methods
         function solver = CPRSolverAD(varargin)
@@ -59,6 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relativeTolerance = 1e-2;
             solver.pressureScaling = 1/(200*barsa);
             solver.diagonalTol = 1e-2;
+            solver.ellipticVarName = 'pressure';
             
             solver = merge_options(solver, varargin{:});
             
@@ -89,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 problem0 = problem0.reorderEquations(indices);
             end
             
-            isPressure = problem0.indexOfPrimaryVariable('pressure');
+            isPressure = problem0.indexOfPrimaryVariable(solver.ellipticVarName);
             pressureIndex = find(isPressure);
             
             [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
