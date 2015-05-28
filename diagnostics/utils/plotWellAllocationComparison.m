@@ -48,12 +48,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-opt = struct('useZ', true);
+opt = struct('useZ', true,...
+             'plotOnly', NaN);
 opt = merge_options(opt, varargin{:});
 
 if (isempty(D2) || isempty(WP2))
     D2 = D1;
     WP2 = WP1;
+end
+
+if (isnan(opt.plotOnly))
+    num_wells = numel(WP1.inj) + numel(WP1.prod);
+    opt.plotOnly = ones(1,num_wells);
+else
+    if (numel(opt.plotOnly) == 0)
+        warndlg('plotWellAllocationComparison asked to plot zero wells... Aborting.');
+        return;
+    end
+    num_wells = numel(WP1.inj) + numel(WP1.prod);
+    tmp = zeros(1, num_wells);
+    tmp(opt.plotOnly) = 1;
+    opt.plotOnly = tmp;
 end
 
 WP1 = addDummyData(WP1);
@@ -115,8 +130,23 @@ wp2(D2.prod) = WP2.prod(:);
 
 % Plot the well-allocation factors for fine/coarse scale models
 nsp = floor( (numel(wp1)+1)/2);
+current_fig = gcf();
+wb = waitbar(0, 'Well 1');
+set(0, 'CurrentFigure', current_fig);
 for i=1:numel(wp1)
    subplot(2,nsp,i);
+   if (opt.plotOnly(i) == 0)
+       hold on;
+       for j=1:numel(wp1)
+           h = patch([0, 1], [0, 1], j); 
+           if (i==j)
+                hl=legend(h, wp1(i).name); set(hl,'FontSize',8); legend boxoff
+           end
+           %set(h, 'visible', 'off');
+       end
+       hold off;
+       continue;
+   end
    
    [~,ix]   = sort(wp1(i).z);
    wp1(i).z = wp1(i).z(ix);
@@ -152,10 +182,12 @@ for i=1:numel(wp1)
    else
       hl=legend(h(i),wp1(i).name,3); set(hl,'FontSize',8); legend boxoff
    end
+   waitbar(i/numel(wp1),wb,['Well ', num2str(i+1)])
 end
 cmap = jet(nit+npt);
 c = 0.9*cmap + .1*ones(size(cmap)); colormap(c);
 drawnow;
+delete(wb);
 
 end
 
