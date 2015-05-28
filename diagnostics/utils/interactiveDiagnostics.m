@@ -538,11 +538,55 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             export2wsdlg(labels, varnames, vars)
         end
         
+        function saveDataToFile(src, event)
+            title = 'Export selection to FLUXNUM';
+            num_lines = 1;
+            prompt = {'Enter filename:'};
+            default = {'fluxnum.data'};
+            
+            while (true)
+                answer = inputdlg(prompt, title, num_lines, default);
+                if (numel(answer) == 0)
+                    return;
+                end
+
+                filename = answer{1};
+                if (exist(filename, 'file'))
+                    choice = questdlg('File already exists. Do you want to overwrite?', ...
+                        'File exists', ...
+                        'Yes','No', 'No');
+                    if (strcmp(choice, 'Yes'))
+                        break;
+                    end
+                else
+                    break;
+                end
+            end
+            
+            [fid, msg] = fopen(filename, 'wt');
+            if fid < 0
+                errordlg(['Failed to open output file ', msg, '. Aborting.']);
+                return
+            end
+            
+            fprintf(fid, 'FLUXNUM\n');
+            out_format = [repmat('%d\t', 1, 20), '\n'];
+            fprintf(fid, out_format, selection');
+            fprintf(fid, '/\n');
+            fclose(fid);
+        end
+        
         uicontrol(tof_panel, 'Style', 'pushbutton',...
                    'Units', 'normalized',...
                    'Position', [0 0*tof_H 0.3 tof_h],...
-                   'String', 'Export selection', ...
+                   'String', 'Save to workspace', ...
                    'Callback', @saveDataToWorkSpace...
+                   );
+        uicontrol(tof_panel, 'Style', 'pushbutton',...
+                   'Units', 'normalized',...
+                   'Position', [0.3 0*tof_H 0.3 tof_h],...
+                   'String', 'Save to file', ...
+                   'Callback', @saveDataToFile...
                    );
     end
 
