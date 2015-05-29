@@ -95,6 +95,7 @@ if model.extraPolymerOutput
     state = model.storeRelpermReductionFactor(state, extraOutput.Rk);
     if usingShear
         state = model.storeShearMultiplier(state, extraOutput.shearMult);
+        state.ShearThinningReport = extraOutput.shearReport;
     end
 end
 

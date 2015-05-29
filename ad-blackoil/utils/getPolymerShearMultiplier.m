@@ -50,7 +50,7 @@ eqn = @(VW) VW .* (1 + f.plyshearMult(VW).*(muWmult-1)) - VW0.*muWmult;
 mult = muWmult ./ ( 1 + f.plyshearMult(VW).*(muWmult-1) );
 
 % Add timing to report
-report.time = toc(t);
+report.Time = toc(t);
 
 end
 
@@ -98,9 +98,9 @@ end
 
 x = double(x);
 
-report.iterations = iter;
-report.residual   = resnorm;
-report.converged  = resnorm <= abstol;
+report.Iterations = iter;
+report.Residual   = resnorm;
+report.Converged  = resnorm <= abstol;
 
 end
 
