@@ -451,14 +451,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function addTOFControls(parent, pos)
         %Function that forces update of time integral TOF
-        function dirtyPlotMain(src, event)
+        function dirtyTOFPlotMain(src, event)
             if (compute_average)
                 D_int = [];
                 computeAverage();
             end
             plotMain(src, event);
         end
-        
         
         % Panel for Time of flight selection parameters
         tof_panel = uipanel('Parent', parent, 'Units', 'normalized', 'Position', pos, 'BorderType', 'none');
@@ -499,9 +498,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                               'Drain volumes'}...
                                    );
         
-        [nwtofsh, ~, ~]   = linkedSlider(tof_panel, [0 5*tof_H 1 tof_h], .15, [0 1], 0.2, 'Near well TOF', @dirtyPlotMain);
-        [Mtofsh, Mtofeh, ~]   = linkedSlider(tof_panel, [0 4*tof_H 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @dirtyPlotMain);
-        [mtofsh, mtofeh, ~]   = linkedSlider(tof_panel, [0 3*tof_H 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @dirtyPlotMain);
+        [nwtofsh, ~, ~]   = linkedSlider(tof_panel, [0 5*tof_H 1 tof_h], .15, [0 1], 0.2, 'Near well TOF', @dirtyTOFPlotMain);
+        [Mtofsh, Mtofeh, ~]   = linkedSlider(tof_panel, [0 4*tof_H 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @dirtyTOFPlotMain);
+        [mtofsh, mtofeh, ~]   = linkedSlider(tof_panel, [0 3*tof_H 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @dirtyTOFPlotMain);
         set(mtofsh, 'Callback', @mtofs_callback);
         set(mtofeh, 'String', num2str(-Inf))
         set(Mtofsh, 'Callback', @Mtofs_callback);
@@ -625,6 +624,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             drain_selection = D.prod(drain_wells);
             flood_selection = D.inj(flood_wells);
             well_selection = [drain_selection, flood_selection];
+            fig_main_wells.dirty = true;
             
             state_idx = index;
             computeValues(state_idx);
@@ -763,13 +763,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                    'Units', 'normalized',...
                                    'Position', [.5 gpy .5 gph]);
 
+        function dirtyWellsPlotMain(src, event)
+            fig_main_wells.dirty = true;
+            plotMain(src, event);
+        end
+        
         ctrl_drain_vols = uicontrol(drainp, 'Style', 'listbox', ...
                                           'Units', 'normalized',...
                                           'Max', 2, ...
                                           'Min', 0, ...
                                           'String', {W{state_idx}(D.prod).name},...
                                           'Value', [], ...
-                                          'Callback', @plotMain, ...
+                                          'Callback', @dirtyWellsPlotMain, ...
                                           'Position', [0 0 1 1]);
 
         ctrl_flood_vols = uicontrol(floodp, 'Style', 'listbox', ...
@@ -778,7 +783,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                           'Min', 0, ...
                                           'String', {W{state_idx}(D.inj).name},...
                                           'Value', [], ...
-                                          'Callback', @plotMain, ...
+                                          'Callback', @dirtyWellsPlotMain, ...
                                           'Position', [0 0 1 1]);
         
                                       
@@ -818,6 +823,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
             min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
             max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
+
             D_int = computeTOFandTracerAverage(state, computeGrid, rock, ...
                 'wells', W, ...
                 'max_tof', max_tof,...
@@ -1112,16 +1118,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (any(ishandle(fig_main_wells.hline)))
                 delete(fig_main_wells.hline);
             end
+    
+            %Get the selected wells only
+            drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
+            flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
+            sel_wells = [drain_wells, flood_wells];
             
-            [fig_main_wells.htop, fig_main_wells.htext, fig_main_wells.hs, fig_main_wells.hline] = ...
-                plotWell(G, wellsToPlotGrid(W{state_idx}), ...
-                    'color', 'red', 'height',  0);
-            for i = 1:numel(W{state_idx})
-                color = colorizeWell('global', i, D);
-                set([fig_main_wells.htop(i) fig_main_wells.htext(i) fig_main_wells.hs(i)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
-                set([fig_main_wells.htop(i) fig_main_wells.hs(i)], 'FaceColor', color, 'EdgeColor', color)
-                set([fig_main_wells.htext(i) fig_main_wells.hline(i)], 'Color', color)
-                set(fig_main_wells.htext(i), 'FontWeight', 'bold', 'Interpreter', 'none')
+            if (numel(sel_wells) > 0)
+                W_sel = W{state_idx}(sel_wells);
+
+                [fig_main_wells.htop, ...
+                    fig_main_wells.htext, ...
+                    fig_main_wells.hs, ...
+                    fig_main_wells.hline] = plotWell(G, wellsToPlotGrid(W_sel), ...
+                                                    'color', 'red', 'height',  0);
+
+                for j = 1:numel(W_sel)
+                    i = sel_wells(j);
+                    color = colorizeWell('global', i, D);
+                    set([fig_main_wells.htop(j) fig_main_wells.htext(j) fig_main_wells.hs(j)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
+                    set([fig_main_wells.htop(j) fig_main_wells.hs(j)], 'FaceColor', color, 'EdgeColor', color)
+                    set([fig_main_wells.htext(j) fig_main_wells.hline(j)], 'Color', color)
+                    set(fig_main_wells.htext(j), 'FontWeight', 'bold', 'Interpreter', 'none')
+                end
             end
             
             fig_main_wells.dirty = false;
