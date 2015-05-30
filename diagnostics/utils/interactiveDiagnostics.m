@@ -1161,15 +1161,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         set(fig_well_alloc, 'Name', ['Well allocations (', window_name, ')']);
         
         %Filter well pairs to only include selected wells
-        drain_wells = get(ctrl_drain_vols, 'Value');
-        flood_wells = get(ctrl_flood_vols, 'Value');
+        drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
+        flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
+        sel_wells = [drain_wells, flood_wells];
         
-        flood_pairs = ismember(WP.pairIx(:,1), flood_wells);
-        drain_pairs = ismember(WP.pairIx(:,2), drain_wells);
-        
-        active_pairs = find(flood_pairs | drain_pairs);
-        
-        plotWellAllocationComparison(D, WP, [], [], 'plotOnly', active_pairs);
+        plotWellAllocationComparison(D, WP, [], [], 'plotOnly', sel_wells);
     end
 
     function plotWellConnections(~, ~)
