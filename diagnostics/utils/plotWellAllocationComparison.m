@@ -135,15 +135,18 @@ wb = waitbar(0, 'Well 1');
 set(0, 'CurrentFigure', current_fig);
 for i=1:numel(wp1)
    subplot(2,nsp,i);
+   
+   %Trick to skip the expensive plotting of barh for non-selected wells
    if (opt.plotOnly(i) == 0)
+       cla('reset');
        hold on;
        for j=1:numel(wp1)
-           h = patch([0, 1], [0, 1], j); 
+           h = patch([0.25, 0.75], [0.25, 0.75], j); 
            if (i==j)
                 hl=legend(h, wp1(i).name); set(hl,'FontSize',8); legend boxoff
            end
-           %set(h, 'visible', 'off');
        end
+       axis([0 1 0 1])
        hold off;
        continue;
    end
