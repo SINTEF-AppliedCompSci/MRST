@@ -40,7 +40,7 @@ axes('Position',[.1 .09 .6 .1]);
 hist(rock.poro,linspace(.2,.4,101)); axis tight off
 set(gca,'XLim',[.2 .4])
 h = findobj(gca,'Type','patch');
-set(h,'FaceColor','none','EdgeColor',[.3 .3 .3]); 
+set(h,'FaceColor','none','EdgeColor',[.1 .1 .1]); 
 set(gcf,'PaperPositionMode','auto');
 print -dpng illUpscaling-fine.png;
 
@@ -70,9 +70,9 @@ plotGrid(CG,1,'FaceColor','none','EdgeColor','k','LineWidth',1.5);
 colorbar('SouthOutside','Position',[.35 .05 .6 .03],'FontSize',12);
 caxis([0.2 0.4]);
 axes('Position',[.35 .09 .6 .1]);
-hist(crock.poro,linspace(.2,.4,101)); axis tight off
-axis([.2 .4 -.25 11]);
+hist(crock.poro,linspace(.2,.4,41)); axis tight off
+axis([.2 .4 -.25 20]);
 h = findobj(gca,'Type','patch');
-set(h,'FaceColor','none','EdgeColor',[.3 .3 .3]); 
+set(h,'FaceColor','none','EdgeColor',[.1 .1 .1]); 
 set(gcf,'PaperPositionMode','auto');
 print -dpng illUpscaling-coarse.png;
