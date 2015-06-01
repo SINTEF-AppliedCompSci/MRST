@@ -951,8 +951,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         plotWells();
         
-        
-        axis tight
         if (clim(2) > clim(1))
             caxis(clim);
         end
