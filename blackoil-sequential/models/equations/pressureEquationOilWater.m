@@ -4,12 +4,12 @@ opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
              'propsPressure', [], ...
+             'staticWells',  false, ...
              'iteration', -1);
 
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.Wells;
-perf2well = getPerforationToWellMapping(W);
 
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
@@ -104,27 +104,38 @@ wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 % well equations
 if ~isempty(W)
     wc    = vertcat(W.cells);
-    pw   = p(wc);
-    rhos = [f.rhoWS, f.rhoOS];
-    bw   = {bW(wc), bO(wc)};
-    mw   = {mobW(wc), mobO(wc)};
-    s = {sW(wc), 1 - sW(wc)};
+    perf2well = getPerforationToWellMapping(W);
+    if opt.staticWells
+        q = vertcat(state.wellSol.flux);
+        
+        qW = q(:, 1);
+        qO = q(:, 2);
+        
+        cqs = {bW(wc).*qW, bO(wc).*qO};
+    else
+        pw   = p(wc);
+        rhos = [f.rhoWS, f.rhoOS];
+        bw   = {bW(wc), bO(wc)};
+        mw   = {mobW(wc), mobO(wc)};
+        s = {sW(wc), 1 - sW(wc)};
 
-    wm = model.wellmodel;
-    [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                                         pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-                                         'nonlinearIteration', opt.iteration);
-    eqs(2:3) = weqs;
-    eqs{4} = ctrleqs;
-    
-    qW = cqr{1};
-    qO = cqr{2};
+        wm = model.wellmodel;
+        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
+                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
+                                             'nonlinearIteration', opt.iteration);
+        eqs(2:3) = weqs;
+        eqs{4} = ctrleqs;
+
+        qW = cqr{1};
+        qO = cqr{2};
+        
+        names(2:4) = {'oilWells', 'waterWells', 'closureWells'};
+        types(2:4) = {'perf', 'perf', 'well'};
+
+    end
     
     wat(wc) = wat(wc) - cqs{1};
     oil(wc) = oil(wc) - cqs{2};
-
-    names(2:4) = {'oilWells', 'waterWells', 'closureWells'};
-    types(2:4) = {'perf', 'perf', 'well'};
 end
 
 eqs{1} = oil./bO + wat./bW;
@@ -137,8 +148,5 @@ for i = 1:numel(W)
     wp = perf2well == i;
     state.wellSol(i).flux = [double(qW(wp)), double(qO(wp))];
 end
-
-state.s0 = state0.s;
-state.bfactor0 = [double(bW0), double(bO0)];
 
 end

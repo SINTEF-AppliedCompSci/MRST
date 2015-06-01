@@ -4,6 +4,7 @@ opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
              'redistributeRS', false, ...
+             'staticWells',  false, ...
              'propsPressure', [], ...
              'iteration', -1);
 
@@ -14,7 +15,6 @@ assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
-G = model.G;
 
 disgas = model.disgas;
 vapoil = model.vapoil;
@@ -184,35 +184,55 @@ end
 [eqs, names, types] = deal(cell(1, 5));
 % well equations
 if ~isempty(W)
-    wm = model.wellmodel;
-    % Store cell wise well variables in cell arrays and send to ewll
-    % model to get the fluxes and well control equations.
     wc    = vertcat(W.cells);
-    pw    = p(wc);
-    rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-    bw    = {bW(wc), bO(wc), bG(wc)};
-
+    perf2well = getPerforationToWellMapping(W);
+    
+    wm = model.wellmodel;
     [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-    mw    = {mobW(wc), mobO(wc), mobG(wc)};
-    s = {sW(wc), sO(wc), sG(wc)};
+    
+    if opt.staticWells
+        q = vertcat(state.wellSol.flux);
+        
+        qW = q(:, 1);
+        qO = q(:, 2);
+        qG = q(:, 2);
+        
+        cqs = {...
+               bW(wc).*qW, ...
+               bO(wc).*(qO + qG.*rw{2}), ...
+               bG(wc).*(qG + qO.*rw{1}), ...
+               };
 
-    [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-        bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
-        'maxComponents', rSatw, ...
-        'nonlinearIteration', opt.iteration);
-    eqs(2:4) = weqs;
-    eqs{5} = ctrleqs;
+    else
+        % Store cell wise well variables in cell arrays and send to ewll
+        % model to get the fluxes and well control equations.
+        pw    = p(wc);
+        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
+        bw    = {bW(wc), bO(wc), bG(wc)};
 
-    qW = double(cqr{1});
-    qO = double(cqr{2});
-    qG = double(cqr{3});
+        
+        mw    = {mobW(wc), mobO(wc), mobG(wc)};
+        s = {sW(wc), sO(wc), sG(wc)};
 
+        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
+            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
+            'maxComponents', rSatw, ...
+            'nonlinearIteration', opt.iteration);
+        eqs(2:4) = weqs;
+        eqs{5} = ctrleqs;
+
+        qW = double(cqr{1});
+        qO = double(cqr{2});
+        qG = double(cqr{3});
+
+        names(2:5) = {'oilWells', 'waterWells', 'gasWells', 'closureWells'};
+        types(2:5) = {'perf', 'perf', 'perf', 'well'};
+    end
+    
     wat(wc) = wat(wc) - cqs{1}; % Add src to water eq
     oil(wc) = oil(wc) - cqs{2}; % Add src to oil eq
     gas(wc) = gas(wc) - cqs{3}; % Add src to gas eq
 
-    names(2:5) = {'oilWells', 'waterWells', 'gasWells', 'closureWells'};
-    types(2:5) = {'perf', 'perf', 'perf', 'well'};
 end
 % Create actual pressure equation
 cfac = 1./(1 - disgas*vapoil*rs.*rv);
@@ -227,7 +247,6 @@ names{1} = 'pressure';
 types{1} = 'cell';
 
 % Store fluxes for the transport solver
-perf2well = getPerforationToWellMapping(W);
 fluxt = qW + qO + qG;
 for i = 1:numel(W)
     wp = perf2well == i;
