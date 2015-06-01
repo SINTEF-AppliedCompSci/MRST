@@ -739,11 +739,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         % Drainage / flooding controls
-        pp = numel(D.prod);
-        ip = numel(D.inj);
-
-        np = numel(pp);
-        ni = numel(ip);
+        np = numel(D.prod);
+        ni = numel(D.inj);
 
         ctrl_drain_vols = zeros(np, 1);
         ctrl_flood_vols = zeros(ni, 1);
