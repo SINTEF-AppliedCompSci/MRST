@@ -58,10 +58,10 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, p, sW, krW, T, gdz);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, p, sO, krO, T, gdz);
 
 gp = s.Grad(p);
 Gw = gp - dpW;
@@ -113,7 +113,7 @@ vT = flux(model.operators.internalConn);
 if model.staticUpwind
     flag = state.upstreamFlag;
 else
-    flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+    flag = multiphaseUpwindIndices({Gw, Go}, vT, T, {mobW, mobO}, s.faceUpstr);
 end
 
 upcw  = flag(:, 1);
@@ -127,7 +127,7 @@ totMob = max(totMob, sqrt(eps));
 
 if opt.solveForWater
     f_w = mobWf./totMob;
-    bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Gw - Go));
+    bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + T.*mobOf.*(Gw - Go));
 
     wat = (s.pv/dt).*(pvMult.*bW.*sW       - pvMult0.*f.bW(p0).*sW0    ) + s.Div(bWvW);
     wat(wc) = wat(wc) - bWqW;
@@ -137,7 +137,7 @@ if opt.solveForWater
     types = {'cell'};
 else
     f_o = mobOf./totMob;
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + s.T.*mobWf.*(Go - Gw));
+    bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + T.*mobWf.*(Go - Gw));
 
     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
     oil(wc) = oil(wc) - bOqO;
