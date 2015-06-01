@@ -5,13 +5,15 @@ opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
              'propsPressure', [], ...
+             'staticWells',  false, ...
              'iteration', -1);
 
 opt = merge_options(opt, varargin{:});
 
+W = drivingForces.Wells;
+
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
-W = drivingForces.Wells;
 s = model.operators;
 f = model.fluid;
 
@@ -107,7 +109,6 @@ if otherPropPressure
     end
 end
 
-
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
 state = model.storeFluxes(state, vW, vO, vP);
@@ -132,10 +133,10 @@ if model.extraPolymerOutput
     end
 end
 
+
 % EQUATIONS ---------------------------------------------------------------
 % Upstream weight b factors and multiply by interface fluxes to obtain the
 % fluxes at standard conditions.
-
 bOvO = s.faceUpstr(upco, bO).*vO;
 bWvW = s.faceUpstr(upcw, bW).*vW;
 
@@ -149,139 +150,152 @@ wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
 % well equations
 if ~isempty(W)
+    wc    = vertcat(W.cells);
     perf2well = getPerforationToWellMapping(W);
-    wm   = model.wellmodel;
-    wc   = vertcat(W.cells);
-    pw   = p(wc);
-    rhos = [f.rhoWS, f.rhoOS];
-    bw   = {bW(wc), bO(wc)};
-    mw   = {mobW(wc), mobO(wc)};
-    s    = {sW(wc), 1-sW(wc)};
-    
-    % Polymer well equations
-    [~, wciPoly, iInxW] = getWellPolymer(W);
-    cw        = c(wc);
-    cw(iInxW) = wciPoly;
-    
-    if usingShear
-        % Compute shear rate multiplier for wells
-        % The water velocity is computed using a the reprensentative 
-        % radius rR.
-        % rR = sqrt(rW * rA)
-        % rW is the well bore radius.
-        % rA is the equivalent radius of the grid block in which the well
-        %       is completed.
-
-        assert(isfield(W, 'rR'), ...
-            'The representative radius needs to be suppplied.');
+    if opt.staticWells
         
-        muWMultW = muWMult(wc);
-        % Maybe should also apply this for PRODUCTION wells.
-        pinx = wciPoly==0;
-        if isfield(wellSol, 'poly_prev')
-            % Special hack for the sequential solver with shear thinning.
-            % If a well control has changed such that the polymer injection
-            % has gone down, we can get a peak in the bhp at the next
-            % timestep if we set the shear multiplier to zero. Therefore,
-            % we do not force the multiplier to zero the first timestep.
-            polyRedInx  = ([wellSol.poly_prev]>[W.poly])';
-            polyRedWell = polyRedInx(perf2well);
-            pinx  = pinx & ~polyRedWell(iInxW);
+        error('Static Wells not implemented for polymer');
+        
+        q = vertcat(state.wellSol.flux);
+        
+        qW = q(:, 1);
+        qO = q(:, 2);
+        
+        cqs = {bW(wc).*qW, bO(wc).*qO};
+    else
+        pw   = p(wc);
+        rhos = [f.rhoWS, f.rhoOS];
+        bw   = {bW(wc), bO(wc)};
+        mw   = {mobW(wc), mobO(wc)};
+        s    = {sW(wc), 1 - sW(wc)};
+        wm   = model.wellmodel;
+        
+        % Polymer well equations
+        [~, wciPoly, iInxW] = getWellPolymer(W);
+        cw        = c(wc);
+        cw(iInxW) = wciPoly;
+        
+        if usingShear
+            % Compute shear rate multiplier for wells
+            % The water velocity is computed using a the reprensentative 
+            % radius rR.
+            % rR = sqrt(rW * rA)
+            % rW is the well bore radius.
+            % rA is the equivalent radius of the grid block in which the well
+            %       is completed.
+
+            assert(isfield(W, 'rR'), ...
+                'The representative radius needs to be suppplied.');
+
+            muWMultW = muWMult(wc);
+            % Maybe should also apply this for PRODUCTION wells.
+            pinx = wciPoly==0;
+            if isfield(wellSol, 'poly_prev')
+                % Special hack for the sequential solver with shear thinning.
+                % If a well control has changed such that the polymer injection
+                % has gone down, we can get a peak in the bhp at the next
+                % timestep if we set the shear multiplier to zero. Therefore,
+                % we do not force the multiplier to zero the first timestep.
+                polyRedInx  = ([wellSol.poly_prev]>[W.poly])';
+                polyRedWell = polyRedInx(perf2well);
+                pinx  = pinx & ~polyRedWell(iInxW);
+            end
+            muWMultW(iInxW(pinx)) = 1;
+
+            cqs = wm.computeWellFlux(model, W, wellSol, pBH, ...
+                {qWs, qOs}, pw, rhos, bw, mw, s, {},...
+                'nonlinearIteration', opt.iteration);
+
+            % The following formulations assume that the wells are always
+            % in the z direction 
+            % IMPROVED HERE LATER
+            [~, ~, dz] = cellDims(model.G, wc);
+
+            if model.extraPolymerOutput
+                cqsW0 = double(cqs{1});
+                mobW0 = double(mw{1});
+            end
+
+            rR = vertcat(W.rR);
+            A  = rR.*dz*2*pi; % representative area of each well cell
+            VW0W = double(bW(wc)).*double(cqs{1}) ./ (model.rock.poro(wc).*A);
+            [shearMultW, VW1W] = getPolymerShearMultiplier(model, VW0W, ...
+                muWMultW);
+
+            % Apply shear multiplier to water
+            mw{1} = mw{1}.*shearMultW;
+
         end
-        muWMultW(iInxW(pinx)) = 1;
         
-        cqs = wm.computeWellFlux(model, W, wellSol, pBH, ...
-            {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-            'nonlinearIteration', opt.iteration);
+        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = ...
+            wm.computeWellFlux(model, W, wellSol, pBH, {qWs, qOs}, pw, ...
+            rhos, bw, mw, s, {}, 'nonlinearIteration', opt.iteration);
+        eqs(2:3) = weqs;
+        eqs{5} = ctrleqs;
 
-        % The following formulations assume that the wells are always
-        % in the z direction 
-        % IMPROVED HERE LATER
-        [~, ~, dz] = cellDims(model.G, wc);
+        qW = cqr{1};
+        qO = cqr{2};
         
+        % Polymer well equations
+        % Well polymer rate for each well is water rate in each perforation
+        % multiplied with polymer concentration in that perforated cell.
+        Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
+            numel(W), numel(perf2well));
+        cqsPoly = Rw*(cqs{1}.*cw);
+        eqs{4}  = qWPoly - cqsPoly;
+
+        if usingShear
+            % Store well shear multipliers as these are needed in the
+            % transport solver
+            shearMultW = double(shearMultW);
+            for wnr = 1:numel(state.wellSol)
+                ix = perf2well == wnr;
+                state.wellSol(wnr).shearMult = shearMultW(ix);
+            end
+        end
+
+        % Save extra polymer welldata if requested
         if model.extraPolymerOutput
-            cqsW0 = double(cqs{1});
-            mobW0 = double(mw{1});
-        end
-        
-        rR = vertcat(W.rR);
-        A  = rR.*dz*2*pi; % representative area of each well cell
-        VW0W = double(bW(wc)).*double(cqs{1}) ./ (model.rock.poro(wc).*A);
-        [shearMultW, VW1W] = getPolymerShearMultiplier(model, VW0W, ...
-            muWMultW);
+            cqsPoly    = double(cqsPoly);
+            for wnr = 1:numel(state.wellSol)
+                ix = perf2well == wnr;
+                state.wellSol(wnr).cqsPoly = cqsPoly(wnr);
+                if usingShear
+                    % We save many fields for debugging. Some of these may
+                    % be removed later.
+                    state.wellSol(wnr).VW0 = VW0W(ix);
+                    state.wellSol(wnr).VW1 = VW1W(ix);
+                    tmp_bW = double(bW(wc));
+                    state.wellSol(wnr).bW = tmp_bW(ix);
+                    cqsW1 = double(cqs{1});
+                    state.wellSol(wnr).cqsW0 = cqsW0(ix);
+                    state.wellSol(wnr).cqsW1 = cqsW1(ix);
+                    state.wellSol(wnr).mobW0 = mobW0(ix);
+                    mobW1 = double(mw{1});
+                    state.wellSol(wnr).mobW1 = mobW1(ix);
+                    muWMultW = double(muWMultW);
+                    state.wellSol(wnr).muWMult = muWMultW(ix);
 
-        % Apply shear multiplier to water
-        mw{1} = mw{1}.*shearMultW;
-        
-    end
-    
-    [cqs, weqs, ctrleqs, wc, state.wellSol, cqr] = ...
-        wm.computeWellFlux(model, W, wellSol, pBH, {qWs, qOs}, pw, ...
-        rhos, bw, mw, s, {}, 'nonlinearIteration', opt.iteration);
-    eqs(2:3) = weqs;
-    eqs{5} = ctrleqs;
-    
-    qW = cqr{1};
-    qO = cqr{2};
-    
-    wat(wc) = wat(wc) - cqs{1};
-    oil(wc) = oil(wc) - cqs{2};
-    
-    % Polymer well equations
-    % Well polymer rate for each well is water rate in each perforation
-    % multiplied with polymer concentration in that perforated cell.
-    Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
-        numel(W), numel(perf2well));
-    cqsPoly = Rw*(cqs{1}.*cw);
-    eqs{4}  = qWPoly - cqsPoly;
-    
-    if usingShear
-        % Store well shear multipliers as these are needed in the transport
-        % solver
-        shearMultW = double(shearMultW);
-        for wnr = 1:numel(state.wellSol)
-            ix = perf2well == wnr;
-            state.wellSol(wnr).shearMult = shearMultW(ix);
-        end
-    end
-    
-    % Save extra polymer welldata if requested
-    if model.extraPolymerOutput
-        cqsPoly    = double(cqsPoly);
-        for wnr = 1:numel(state.wellSol)
-            ix = perf2well == wnr;
-            state.wellSol(wnr).cqsPoly = cqsPoly(wnr);
-            if usingShear
-                % We save many fields for debugging. Some of these may
-                % be removed later.
-                state.wellSol(wnr).VW0 = VW0W(ix);
-                state.wellSol(wnr).VW1 = VW1W(ix);
-                tmp_bW = double(bW(wc));
-                state.wellSol(wnr).bW = tmp_bW(ix);
-                cqsW1 = double(cqs{1});
-                state.wellSol(wnr).cqsW0 = cqsW0(ix);
-                state.wellSol(wnr).cqsW1 = cqsW1(ix);
-                state.wellSol(wnr).mobW0 = mobW0(ix);
-                mobW1 = double(mw{1});
-                state.wellSol(wnr).mobW1 = mobW1(ix);
-                muWMultW = double(muWMultW);
-                state.wellSol(wnr).muWMult = muWMultW(ix);
-                
-                % Special flag (see above for this hack)
-                state.wellSol(wnr).shearFixFlag = false;
-                if isfield(wellSol, 'poly_prev')
-                    state.wellSol(wnr).shearFixFlag = polyRedWell(wnr);
+                    % Special flag (see above for this hack)
+                    state.wellSol(wnr).shearFixFlag = false;
+                    if isfield(wellSol, 'poly_prev')
+                        state.wellSol(wnr).shearFixFlag = polyRedWell(wnr);
+                    end
                 end
             end
         end
+
+        names(2:5) = {'oilWells', 'waterWells', 'polymerWells', ...
+            'closureWells'};
+        types(2:5) = {'perf', 'perf', 'perf', 'well'};
+
     end
     
-    names(2:5) = {'oilWells', 'waterWells', 'polymerWells', ...
-        'closureWells'};
-    types(2:5) = {'perf', 'perf', 'perf', 'well'};
+    wat(wc) = wat(wc) - cqs{1};
+    oil(wc) = oil(wc) - cqs{2};
 end
 
-eqs{1}   = oil./bO + wat./bW;
+eqs{1} = oil./bO + wat./bW;
 names{1} = 'pressure';
 types{1} = 'cell';
 
@@ -291,10 +305,6 @@ for i = 1:numel(W)
     wp = perf2well == i;
     state.wellSol(i).flux = [double(qW(wp)), double(qO(wp))];
 end
-
-state.s0 = state0.s;
-state.c0 = state0.c;
-state.bfactor0 = [double(bW0), double(bO0)];
 
 end
 
