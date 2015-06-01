@@ -244,8 +244,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      hdataset,...
      hset_op,...
      mrst_ds,...
-     ds_panel,...
-     ni, np] = deal(NaN);
+     ds_panel] = deal(NaN);
     
     %Handles for well plot in main figure
     fig_main_wells = {};
@@ -740,8 +739,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         % Drainage / flooding controls
-        pp = unique(D.ppart);
-        ip = unique(D.ipart);
+        pp = numel(D.prod);
+        ip = numel(D.inj);
 
         np = numel(pp);
         ni = numel(ip);
@@ -998,7 +997,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function onClickWell(src, event, wk)
-
+        np = numel(D.prod);
+        ni = numel(D.inj);
+            
         winj = repmat(D.inj,[1,np]);
         wpro = rldecode(D.prod,ni,2);
         
