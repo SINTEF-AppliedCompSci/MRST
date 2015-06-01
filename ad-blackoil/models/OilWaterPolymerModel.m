@@ -1,7 +1,9 @@
 classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
-    % Oil/water/polymer system
-    % This model is a two phase oil/water model, extended with the polymer
-    % phase in addition.
+% Oil/water/polymer system
+%
+% This model is a two phase oil/water model, extended with polymer
+% concentration. The polymer is assumed to not affect the oil phase.
+% 
     
     properties
         % Polymer present
@@ -44,8 +46,8 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 dx, drivingForces)
             
             if model.polymer
-                % Store the polymer from previous iteration to use in
-                % convergence criteria
+                % Store the polymer from previous iteration temporarily to
+                % use in convergence criteria
                 c_prev = model.getProp(state, 'polymer');
             end
             
@@ -53,10 +55,21 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                state, problem,  dx, drivingForces);
             
             if model.polymer
+                % Limit polymer concentration to [0, fluid.cmax]
                 c = model.getProp(state, 'polymer');
                 c = min(c, model.fluid.cmax);
                 state = model.setProp(state, 'polymer', max(c, 0) );
                 state.c_prev = c_prev;
+                
+                % Shear Thinning Report               
+                % We (may) have stored the shear thinning report
+                % temporarily in the state structure. We move this over to
+                % the report structure instead. The reason for this is that
+                % there is no report returned from the equations.
+                if isfield(state, 'ShearThinningReport')
+                    report.ShearThinning = state.ShearThinningReport;
+                    state = rmfield(state, 'ShearThinningReport');
+                end
             end
         end
         
@@ -82,6 +95,8 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             
             if polyEqnInx
                 problem = problem_org;
+                
+                % Compute the convergence norm for polymer
                 polyNorm = Inf;
                 if problem.iterationNo > 1
                     % Check polymer change from previous iteration
@@ -99,23 +114,12 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 else
                     inx = nwo + 1; % after water and oil
                 end
+                
+                % Insert polymer data into values
                 values = [values(1:inx-1)  polyNorm   values(inx:end)];
                 names  = [ names(1:inx-1) {'poly (cell)'}  names(inx:end)];
             end
             
-        end
-        
-        function [state, report] = stepFunction(model, state, state0, ...
-                dt, drivingForces, linsolve, nonlinsolve, iteration, ...
-                varargin)
-            [state, report] = stepFunction@TwoPhaseOilWaterModel(...
-                model, state, state0, dt, drivingForces, linsolve, ...
-                nonlinsolve, iteration, varargin{:});
-            
-            if model.polymer && isfield(state, 'ShearThinningReport')
-                report.ShearThinning = state.ShearThinningReport;
-                state = rmfield(state, 'ShearThinningReport');
-            end
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
@@ -138,9 +142,12 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             % pressure or water saturation is located in state)
             switch(lower(name))
                 case {'polymer'}
+                    % The current polymer concentration in a cell
                     index = 1;
                     fn = 'c';
                 case {'polymermax'}
+                    % The maximum polymer conctration throughout the
+                    % simulation for each cell
                     index = 1;
                     fn = 'cmax';
                 otherwise
@@ -174,6 +181,11 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 [scaling{~handled}] = other{:};
             end
         end
+        
+        
+        %------------------------------------------------------------------
+        % FUNCTIONS FOR STORING STATE DATA
+        %------------------------------------------------------------------
         
         function state = storeFluxes(model, state, vW, vO, vP)
             % Utility function for storing the interface fluxes in the
