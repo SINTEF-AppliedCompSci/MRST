@@ -63,12 +63,12 @@ end
         %ixl = (bin==(tn-1));
         ixr = (bin==tn);
         if(any(ixr))
-            yil(ixr) = interpTable(xval, tab(:,1), vi_k(ixr));        
-            yir(ixr) = interpTable(xval, tab(:,2), vi_k(ixr));
+            yil(ixr) = fastInterpTable(xval, tab(:,1), vi_k(ixr));        
+            yir(ixr) = fastInterpTable(xval, tab(:,2), vi_k(ixr));
         end
         if compDer
-            dyidxil(ixr) = dinterpTable(xval, tab(:,1), vi_k(ixr));
-            dyidxir(ixr) = dinterpTable(xval, tab(:,2), vi_k(ixr));
+            dyidxil(ixr) = dinterpq1(xval, tab(:,1), vi_k(ixr));
+            dyidxir(ixr) = dinterpq1(xval, tab(:,2), vi_k(ixr));
         end
     end
 %end

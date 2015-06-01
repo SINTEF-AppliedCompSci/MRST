@@ -34,11 +34,11 @@ for k = 1:nreg
         end
         
         
-        yil(ixl) = interpTable(tab(:,1), tab(:,2), xi(ixl));
-        yir(ixr) = interpTable(tab(:,1), tab(:,2), xi(ixr));
+        yil(ixl) = fastInterpTable(tab(:,1), tab(:,2), xi(ixl));
+        yir(ixr) = fastInterpTable(tab(:,1), tab(:,2), xi(ixr));
         if compDer
-            dyidxil(ixl) = dinterpTable(tab(:,1), tab(:,2), xi(ixl));
-            dyidxir(ixr) = dinterpTable(tab(:,1), tab(:,2), xi(ixr));
+            dyidxil(ixl) = dinterpq1(tab(:,1), tab(:,2), xi(ixl));
+            dyidxir(ixr) = dinterpq1(tab(:,1), tab(:,2), xi(ixr));
         end
     end
 end
