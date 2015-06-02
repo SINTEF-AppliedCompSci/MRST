@@ -185,7 +185,7 @@ if ~isempty(W)
         
         qW = q(:, 1);
         qO = q(:, 2);
-        qG = q(:, 2);
+        qG = q(:, 3);
         
         bOqO = bO(wc).*qO;
         bWqW = bW(wc).*qW;
