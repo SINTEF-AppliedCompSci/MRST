@@ -37,14 +37,8 @@ if ~opt.resOnly,
 end
 primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
 
-otherPropPressure = ~isempty(opt.propsPressure);
-if isa(p, 'ADI') && 1
-    p_prop = p;
-    p_prop.val = opt.propsPressure;
-else
-    p_prop = opt.propsPressure;
-end
-if ~otherPropPressure
+p_prop = opt.propsPressure;
+if isempty(opt.propsPressure)
     p_prop = p;
 end
 
