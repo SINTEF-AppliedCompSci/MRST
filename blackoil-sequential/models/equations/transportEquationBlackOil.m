@@ -143,7 +143,7 @@ end
 % well equations
 if ~isempty(W)
 
-    wflux = vertcat(wellSol.flux);
+    wflux = sum(vertcat(wellSol.flux), 2);
     cqs = vertcat(wellSol.cqs);
 
     perf2well = getPerforationToWellMapping(W);

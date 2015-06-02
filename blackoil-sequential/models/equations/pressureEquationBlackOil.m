@@ -223,10 +223,10 @@ if ~isempty(W)
     gas(wc) = gas(wc) - cqs{3}; % Add src to gas eq
     
     % Store fluxes for the transport solver
-    fluxt = qW + qO + qG;
+    flux = [double(qW), double(qO), double(qG)];
     for i = 1:numel(W)
         wp = perf2well == i;
-        state.wellSol(i).flux = fluxt(wp);
+        state.wellSol(i).flux = flux(wp, :);
     end
 else
     [eqs, names, types] = deal({});
