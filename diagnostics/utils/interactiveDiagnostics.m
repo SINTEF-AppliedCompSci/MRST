@@ -556,7 +556,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             title = 'Export selection to FLUXNUM';
             num_lines = 1;
             prompt = {'Enter filename:'};
-            default = {'fluxnum.data'};
+            default = {'FLUXNUM.PROP'};
             
             while (true)
                 answer = inputdlg(prompt, title, num_lines, default);
@@ -584,8 +584,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             
             fprintf(fid, 'FLUXNUM\n');
+            var = zeros(prod(computeGrid.cartDims), 1);
+            var( computeGrid.cells.indexMap(selection) ) = 1;
             out_format = [repmat('%d\t', 1, 20), '\n'];
-            fprintf(fid, out_format, selection);
+            fprintf(fid, out_format, var);
             fprintf(fid, '/\n');
             fclose(fid);
         end
