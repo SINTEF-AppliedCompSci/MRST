@@ -191,7 +191,7 @@ if ~isempty(W)
         bWqW = bW(wc).*qW;
         bGqG = bG(wc).*qG;
         
-        cqs = {bWqW, bOqO + bGqG.*rw{1}, bGqG + bOqO.*rw{2}};
+        cqs = {bWqW, bOqO + bGqG.*rw{2}, bGqG + bOqO.*rw{1}};
     else
         % Store cell wise well variables in cell arrays and send to ewll
         % model to get the fluxes and well control equations.
