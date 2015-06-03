@@ -1279,7 +1279,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rS.pressure = state_step.pressure;
         end
         
-        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step);
+        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true);
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         
