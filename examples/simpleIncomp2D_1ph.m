@@ -1,6 +1,6 @@
 % simpleIncomp2D_1ph
 close all
-mrstModule add hfm coarsegrid incomp new-multiscale
+mrstModule add hfm coarsegrid incomp new-multiscale ad-core mrst-gui diagnostics
 hasLSI = checkLineSegmentIntersect();
 
 %% Define a grid and fracture lines
