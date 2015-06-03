@@ -45,7 +45,7 @@ G.rock.perm = ones(G.cells.num,1)*darcy();
 G.rock.poro = 0.2*ones(G.cells.num, 1);
 K_star = 10000; % Scaling factor = K_frac/K_mat (Darcy)
 poro_frac = 0.5;
-G = setRockFrac(G, K_star, 'permtype','homogeneous','rockporo',poro_frac);
+G = makeRockFrac(G, K_star, 'permtype','homogeneous','rockporo',poro_frac);
 fluid = initSingleFluid('mu' , 1*centi*poise, ...
     'rho', 1000*kilogram/meter^3);
 

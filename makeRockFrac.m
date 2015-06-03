@@ -1,4 +1,4 @@
-function G = setRockFrac(G, K_star, varargin)
+function G = makeRockFrac(G, K_star, varargin)
 % Sets rock properties inside fracture grid stored in G.FracGrid given a
 % permeability ratio between matrix and fractures.
 %
@@ -10,7 +10,7 @@ function G = setRockFrac(G, K_star, varargin)
 % REQUIRED PARAMETERS:
 %
 %   G      - Grid data structure containing fracture grids (for each
-%            fracture line) in G.FracGrid as defined by FracTensorGrid2D.
+%            fracture line or plane) in G.FracGrid
 %
 %   K_star - Used to scale fracture permeability by K_star orders of
 %            magnitude higher than matrix permeability
@@ -29,7 +29,7 @@ function G = setRockFrac(G, K_star, varargin)
 %   This function uses randi() to generate a random permeability field.
 %
 % SEE ALSO:
-%   FracTensorGrid2D
+%   FracTensorGrid2D, makeLayers
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
@@ -67,7 +67,7 @@ for i = 1:numel(fieldnames(G.FracGrid))
     else
         G.FracGrid.(['Line',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_star;
     end
-    if isnumeric(opt.rockporo)
+    if ~isempty(opt.rockporo)
         assert(opt.rockporo<1 && opt.rockporo>0,...
             'Rock porosity must be a single real number between 0 and 1');
         G.FracGrid.(['Line',num2str(i)]).rock.poro = ...

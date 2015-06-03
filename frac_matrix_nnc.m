@@ -21,9 +21,9 @@ function G = frac_matrix_nnc(G,F,fracture)
 %              markcells.
 %
 % RETURNS:
-%   G - Grid structure with fracture-matrix connections  at fine scaleand
-%       their transmissibilities added in G.nnc as lists 'G.nnc.cells' and
-%       'G.nnc.T' respectively. To aid in detecting specific NNC types,
+%   G - Grid structure with fracture-matrix connections  at fine scale and
+%       their corresponding CI added in G.nnc as lists 'G.nnc.cells' and
+%       'G.nnc.CI' respectively. To aid in detecting specific NNC types,
 %       these intersections are added as 'frac-matrix' type in the list
 %       G.nnc.type
 %
@@ -156,7 +156,7 @@ for i = 1:numel(F)
         else
             node = find(in&~on); % only ones inside cell
             flag = 0;
-            %----this can be done in a much smarter way. Check again------%
+            %-----------------------------REDO----------------------------%
             if node(1) ~= numel(in) && node(1)~=1 && ~any(node == numel(in))  % Fracture passes through this cell
                 flag = 1;
                 node_new = [node(1)-1;node]; % fracture grid cell numbers 
@@ -195,10 +195,15 @@ for i = 1:numel(F)
                     out = lineSegmentIntersect(ncoords(1,:), edges);
                     pi = unique([out.intMatrixX(out.intAdjacencyMatrix).',...
                         out.intMatrixY(out.intAdjacencyMatrix).'],'rows');
-                    if isempty(pi) && any(abs(out.intNormalizedDistance1To2)<1e-10)
+                    if isempty(pi)
+                        if any(abs(out.intNormalizedDistance1To2)<1e-10)
                         % For the unlikely case that lineSegmentIntersect
                         % does not detect a point on the edges 
-                        points = F(i).nodes.coords(node,:);
+                            points = F(i).nodes.coords(node,:);
+                        else
+                            ind = closestNode(ncoords,G.nodes.coords(cnodes,:));
+                            points = [G.nodes.coords(cnodes(ind),:);F(i).nodes.coords(node(2:end),:)];
+                        end
                     else
                         points = [pi;F(i).nodes.coords(node(2:end),:)];
                     end
@@ -206,10 +211,15 @@ for i = 1:numel(F)
                     out = lineSegmentIntersect(ncoords(end,:), edges);
                     pi = unique([out.intMatrixX(out.intAdjacencyMatrix).',...
                         out.intMatrixY(out.intAdjacencyMatrix).'],'rows');
-                    if isempty(pi) && any(abs(out.intNormalizedDistance2To1)<1e-10)
+                    if isempty(pi) 
+                        if any(abs(out.intNormalizedDistance2To1)<1e-10)
                         % For the unlikely case that lineSegmentIntersect
                         % does not detect a point on the edges
-                        points = F(i).nodes.coords(node,:);
+                            points = F(i).nodes.coords(node,:);
+                        else
+                            ind = closestNode(ncoords,G.nodes.coords(cnodes,:));
+                            points = [F(i).nodes.coords(node(2:end),:);G.nodes.coords(cnodes(ind),:)];
+                        end    
                     else
                         points = [F(i).nodes.coords(node(1:end-1),:);pi];
                     end
@@ -253,3 +263,31 @@ for i = 1:numel(F)
 end
 G.nnc.type = repmat({'frac-matrix'},numel(G.nnc.CI),1);
 return
+
+function ni = closestNode(endp,npoints)
+%
+endp = [endp(1:2);endp(3:4)];
+slope = diff(endp(:,2))/diff(endp(:,1));
+if isinf(slope)
+    A = 1; B = 0; C = -endp(1,1);
+elseif slope == 0
+    A = 0; B = 1; C = -endp(1,2);
+else
+    A = -slope;
+    B = 1;
+    C = -endp(1,2)+endp(1,1)*slope;
+end
+%
+d = abs(A*npoints(:,1)+B*npoints(:,2)+C)./(sqrt(A^2+B^2));
+[~,mind] = min(d);
+if numel(mind) == 1
+    ni = mind; return
+else
+    for nps = 1:numel(mind)
+        dsum = pdist_euclid([npoints(mind(nps),:);endp]);
+        if abs(sum(dsum(1:2))-dsum(3))<1e-10
+            ni = mind(nps);
+            return
+        end
+    end
+end
