@@ -1,3 +1,8 @@
+%% Assessment of upscaling accuracy on 8x8x8 grid
+% We upscale a small 8x8x8 cube with three different permeability
+% realizations and measure the ratio between the outflows computed on the
+% upscaled and the original fine-scale model.
+
 G = computeGeometry(cartGrid([8 8 8]));
 coarse = [1 1 1];
 cG = computeGeometry(cartGrid(coarse,G.cartDims));
@@ -51,18 +56,18 @@ for n=1:3
    %% Compare upscaling
    for j=1:numel(fl)
       % Fine-scale problem
-      bc    = pside([], G, fl{j}, 0);
+      bc    = pside([], G, fl{j}, barsa);
       faces = bc.face;
-      bc    = pside(bc, G, fr{j}, barsa());
+      bc    = pside(bc, G, fr{j}, 0);
       hT    = computeTrans(G, rock);
       xr    = incompTPFA(initResSol(G,0), G, hT, fluid, 'bc', bc);
       flux  = sum(xr.flux(faces));
 
       fprintf('  %5s -> %6s: ', fl{j}, fr{j});
       for i=1:3
-         cbc    = pside([], cG, fl{j}, 0);
+         cbc    = pside([], cG, fl{j}, barsa);
          cfaces = cbc.face;
-         cbc    = pside(cbc, cG, fr{j}, barsa);
+         cbc    = pside(cbc, cG, fr{j}, 0);
          chT    = computeTrans(cG, crock{i});
          x      = incompTPFA(initResSol(cG,0), cG, chT, fluid, 'bc', cbc);
          fprintf('\t%f', x.flux(cfaces) / flux);

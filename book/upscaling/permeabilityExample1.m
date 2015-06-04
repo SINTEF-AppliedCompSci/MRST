@@ -22,13 +22,14 @@ clf, plotCellData(G,rock.perm/(milli*darcy),'EdgeColor','none'); colorbar
 
 %% Structures with boundary conditions
 d = G.griddim;
-[bcl,bcr]=deal(cell(d,1));
+[bcl,bcr, Dp]=deal(cell(d,1));
 bcsides = {'XMin', 'XMax'; 'YMin', 'YMax'; 'ZMin', 'ZMax'};
 for j = 1:d;
    bcl{j} = pside([], G, bcsides{j, 1}, 0);
    bcr{j} = pside([], G, bcsides{j, 2}, 0);
+   Dp{j}  = 0;
 end
-Dp = {4*barsa, 0};
+Dp{1} = 4*barsa;
 L  = max(G.faces.centroids)-min(G.faces.centroids);
 
 
