@@ -66,12 +66,12 @@ gdz = model.getGravityGradient();
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
 [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz, ...
-    'shear', false); % shear effect is not used in transport
+    getFluxAndPropsWaterPolymer_BO(model, p, p, sW, c, ads, krW, T, ...
+    gdz, 'shear', false); % shear effect is not used in transport
 
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, ...
-    sO, krO, T, gdz);
+    p, sO, krO, T, gdz);
 
 gp = s.Grad(p);
 Gw = gp - dpW;

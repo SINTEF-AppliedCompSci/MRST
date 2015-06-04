@@ -1,6 +1,6 @@
 function [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, ...
-    extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ...
-    ads, krW, T, gdz, varargin)
+    extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, p_prop, ...
+    sW, c, ads, krW, T, gdz, varargin)
 opt = struct(...
     'shear',   true ...
     );
@@ -14,7 +14,7 @@ pcOW = 0;
 if isfield(f, 'pcOW') && ~isempty(sW)
     pcOW  = f.pcOW(sW);
 end
-pW = pO - pcOW;
+pW = p_prop - pcOW;
 
 % Multipliers due to polymer
 mixpar   = f.mixPar;
@@ -25,10 +25,10 @@ muWMult  = f.muWMult(c); % viscosity multiplier from polymer mixing
 muWMultT = b.*muWMult.^mixpar;
 
 % Water props
-bW      = f.bW(pO);
+bW      = f.bW(p_prop);
 rhoW    = bW.*f.rhoWS;
 rhoWf   = s.faceAvg(rhoW); % rhoW on face, average of neighboring cells
-muW     = f.muW(pO);
+muW     = f.muW(p_prop);
 muWeff  = muWMultT.*muW;
 Rk      = 1 + ((f.rrf-1)./f.adsMax).*ads;
 mobW    = krW./(muWeff.*Rk);

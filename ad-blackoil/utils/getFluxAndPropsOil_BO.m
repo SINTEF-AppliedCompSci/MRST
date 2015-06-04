@@ -1,4 +1,5 @@
-function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, p_prop, sO, krO, T, gdz, rs, isSat)
+function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(...
+        model, p, p_prop, sO, krO, T, gdz, rs, isSat)
     disgas = isprop(model, 'disgas') && model.disgas;
     
     if nargin < 7
