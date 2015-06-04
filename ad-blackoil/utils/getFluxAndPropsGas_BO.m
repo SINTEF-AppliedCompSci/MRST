@@ -1,4 +1,4 @@
-function [vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, pO, sG, krG, T, gdz, rv, isSat)
+function [vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, pO, p_prop, sG, krG, T, gdz, rv, isSat)
     fluid = model.fluid;
     s = model.operators;
     % Check for capillary pressure (p_cow)
@@ -6,7 +6,7 @@ function [vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, pO, 
     if isfield(fluid, 'pcOG') && ~isempty(sG)
         pcOG  = fluid.pcOG(sG);
     end
-    pG = pO + pcOG;
+    pG = p_prop + pcOG;
     
     
     if nargin < 7
@@ -16,11 +16,11 @@ function [vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, pO, 
     
     % Gas props (calculated at oil pressure)
     if model.vapoil
-        bG  = fluid.bG(pO, rv, isSat);
-        muG = fluid.muG(pO, rv, isSat);
+        bG  = fluid.bG(p_prop, rv, isSat);
+        muG = fluid.muG(p_prop, rv, isSat);
     else
-        bG  = fluid.bG(pO);
-        muG = fluid.muG(pO);
+        bG  = fluid.bG(p_prop);
+        muG = fluid.muG(p_prop);
     end
     
     if any(bG < 0)

@@ -1,4 +1,4 @@
-function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, isSat)
+function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, p_prop, sO, krO, T, gdz, rs, isSat)
     disgas = isprop(model, 'disgas') && model.disgas;
     
     if nargin < 7
@@ -10,15 +10,15 @@ function [vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO
     s = model.operators;
     % Oil props
     if disgas
-        bO  = fluid.bO(p,  rs, isSat);
-        muO = fluid.muO(p, rs, isSat);
+        bO  = fluid.bO(p_prop,  rs, isSat);
+        muO = fluid.muO(p_prop, rs, isSat);
         rhoO   = bO.*(rs*fluid.rhoGS + fluid.rhoOS);
     else
-        bO  = fluid.bO(p);
+        bO  = fluid.bO(p_prop);
         if isfield(fluid, 'BOxmuO')
-            muO = fluid.BOxmuO(p).*bO;
+            muO = fluid.BOxmuO(p_prop).*bO;
         else
-            muO = fluid.muO(p);
+            muO = fluid.muO(p_prop);
         end
         rhoO   = bO.*fluid.rhoOS;
     end

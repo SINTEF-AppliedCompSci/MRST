@@ -79,16 +79,16 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, p, sW, krW, T, gdz);
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
+[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, p, sO, krO, T, gdz, rs, ~st{1});
 bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 
 % Evaluate gas properties
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
+[vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, p, sG, krG, T, gdz, rv, ~st{2});
 
 % Store fluxes / properties for debugging / plotting, if requested.
 if model.outputFluxes

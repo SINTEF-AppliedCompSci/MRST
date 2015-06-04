@@ -14,7 +14,6 @@ W = drivingForces.Wells;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
-G = model.G;
 f = model.fluid;
 
 disgas = model.disgas;
@@ -26,9 +25,6 @@ vapoil = model.vapoil;
 % Properties at previous timestep
 [p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
                                 'pressure', 'water', 'gas', 'rs', 'rv');
-
-wflux = vertcat(wellSol.flux);
-cqs = vertcat(wellSol.cqs);
 %Initialization of primary variables ----------------------------------
 st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
 st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
@@ -79,16 +75,16 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, p, sW, krW, T, gdz);
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
+[vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, p, sO, krO, T, gdz, rs, ~st{1});
 bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 
 % Evaluate gas properties
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
+[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p, p, sG, krG, T, gdz, rv, ~st{2});
 
 % Get total flux from state
 flux = sum(state.flux, 2);
@@ -104,7 +100,7 @@ Gg = gp - dpG;
 if model.staticUpwind
     flag = state.upstreamFlag;
 else
-    flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, s.T, ...
+    flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, T, ...
             {mobW, mobO, mobG}, s.faceUpstr);
 end
 
@@ -124,9 +120,9 @@ f_w = mobWf./totMob;
 f_o = mobOf./totMob;
 f_g = mobGf./totMob;
 
-vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
-vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
-vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
+vW = f_w.*(vT + T.*mobOf.*(Gw - Go) + T.*mobGf.*(Gw - Gg));
+vO = f_o.*(vT + T.*mobWf.*(Go - Gw) + T.*mobGf.*(Go - Gg));
+vG = f_g.*(vT + T.*mobWf.*(Gg - Gw) + T.*mobOf.*(Gg - Go));
 
 bWvW = s.faceUpstr(upcw, bW).*vW;
 bOvO = s.faceUpstr(upco, bO).*vO;
@@ -146,6 +142,9 @@ if model.extraStateOutput
 end
 % well equations
 if ~isempty(W)
+
+    wflux = sum(vertcat(wellSol.flux), 2);
+    cqs = vertcat(wellSol.cqs);
 
     perf2well = getPerforationToWellMapping(W);
     wc    = vertcat(W.cells);
@@ -198,6 +197,8 @@ if ~isempty(W)
         state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
         state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
     end
+else
+    [wflux_W, wflux_O, wflux_G, wc] = deal([]);
 end
 
 [eqs, names, types] = deal(cell(1,2));

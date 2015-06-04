@@ -98,27 +98,16 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p_prop, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, p_prop, sW, krW, T, gdz);
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p_prop, sO, krO, T, gdz, rs, ~st{1});
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, p_prop, sO, krO, T, gdz, rs, ~st{1});
 bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 
 % Evaluate gas properties
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p_prop, sG, krG, T, gdz, rv, ~st{2});
-
-if otherPropPressure
-    % We have used a different pressure for property evaluation, undo the
-    % effects of this on the fluxes.
-    dp_diff = s.Grad(p) - s.Grad(p_prop);
-    
-    vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
-    vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
-    vG = -s.faceUpstr(upcg, mobG).*s.T.*(dpG + dp_diff);
-end
-
+[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p, p_prop, sG, krG, T, gdz, rv, ~st{2});
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
@@ -181,9 +170,10 @@ end
 %                                        drivingForces);
 % [wat, oil, gas] = phaseEqs{:};
 
-[eqs, names, types] = deal(cell(1, 5));
 % well equations
 if ~isempty(W)
+    [eqs, names, types] = deal(cell(1, 5));
+
     wc    = vertcat(W.cells);
     perf2well = getPerforationToWellMapping(W);
     
@@ -195,14 +185,13 @@ if ~isempty(W)
         
         qW = q(:, 1);
         qO = q(:, 2);
-        qG = q(:, 2);
+        qG = q(:, 3);
         
-        cqs = {...
-               bW(wc).*qW, ...
-               bO(wc).*(qO + qG.*rw{2}), ...
-               bG(wc).*(qG + qO.*rw{1}), ...
-               };
-
+        bOqO = bO(wc).*qO;
+        bWqW = bW(wc).*qW;
+        bGqG = bG(wc).*qG;
+        
+        cqs = {bWqW, bOqO + bGqG.*rw{2}, bGqG + bOqO.*rw{1}};
     else
         % Store cell wise well variables in cell arrays and send to ewll
         % model to get the fluxes and well control equations.
@@ -232,7 +221,15 @@ if ~isempty(W)
     wat(wc) = wat(wc) - cqs{1}; % Add src to water eq
     oil(wc) = oil(wc) - cqs{2}; % Add src to oil eq
     gas(wc) = gas(wc) - cqs{3}; % Add src to gas eq
-
+    
+    % Store fluxes for the transport solver
+    flux = [double(qW), double(qO), double(qG)];
+    for i = 1:numel(W)
+        wp = perf2well == i;
+        state.wellSol(i).flux = flux(wp, :);
+    end
+else
+    [eqs, names, types] = deal({});
 end
 % Create actual pressure equation
 cfac = 1./(1 - disgas*vapoil*rs.*rv);
@@ -246,12 +243,7 @@ eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
 names{1} = 'pressure';
 types{1} = 'cell';
 
-% Store fluxes for the transport solver
-fluxt = qW + qO + qG;
-for i = 1:numel(W)
-    wp = perf2well == i;
-    state.wellSol(i).flux = fluxt(wp);
-end
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
