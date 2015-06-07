@@ -25,6 +25,9 @@ rock.poro(ind) = p1(ind);
 figure('Position', [680 280 560 540]);
 plotCellData(G,rock.poro,'EdgeColor','k','edgealpha',.1); 
 view(3); axis tight off
+[hc,hh]=colorbarHist(rock.poro,[.2 .4],'South', 80);
+pos=get(hc,'Position'); set(hc,'Position',pos - [.02 0 .2 -.01],'FontSize',12);
+pos=get(hh,'Position'); set(hh,'Position',pos - [.02 0.02 .2 -.01]);
 set(gca,'Position',[.13 .2 .775 .775])
 
 % Generate and plot coarse grid block
@@ -32,15 +35,6 @@ p = partitionCartGrid(G.cartDims, G.cartDims/5);
 CG = generateCoarseGrid(G, p);
 crock.poro = accumarray(p, rock.poro)./accumarray(p,1);
 plotGrid(CG,1,'FaceColor','none','EdgeColor','k','LineWidth',1.5);
-
-% Add colorbar and histogram
-colorbar('SouthOutside','Position',[.1 .05 .6 .03],'FontSize',12);
-caxis([0.2 0.4]);
-axes('Position',[.1 .09 .6 .1]);
-hist(rock.poro,linspace(.2,.4,101)); axis tight off
-set(gca,'XLim',[.2 .4])
-h = findobj(gca,'Type','patch');
-set(h,'FaceColor','none','EdgeColor',[.1 .1 .1]); 
 set(gcf,'PaperPositionMode','auto');
 print -dpng illUpscaling-fine.png;
 
@@ -61,18 +55,13 @@ print -dpng illUpscaling-block.png;
 figure('Position', [680 280 560 540]);
 plotCellData(cG,crock.poro,'EdgeColor','k','edgealpha',.1); 
 view(3); axis tight off
-set(gca,'Position',[.13 .2 .775 .775])
 
 % Generate and plot coarse grid block
 plotGrid(CG,1,'FaceColor','none','EdgeColor','k','LineWidth',1.5);
 
-% Add colorbar and histogram
-colorbar('SouthOutside','Position',[.35 .05 .6 .03],'FontSize',12);
-caxis([0.2 0.4]);
-axes('Position',[.35 .09 .6 .1]);
-hist(crock.poro,linspace(.2,.4,41)); axis tight off
-axis([.2 .4 -.25 20]);
-h = findobj(gca,'Type','patch');
-set(h,'FaceColor','none','EdgeColor',[.1 .1 .1]); 
+[hc,hh]=colorbarHist(crock.poro,[.2 .4],'South', 40);
+pos=get(hc,'Position'); set(hc,'Position',pos + [.2    0 -.2 .01],'FontSize',12);
+pos=get(hh,'Position'); set(hh,'Position',pos + [.2 -.025 -.2 .01]);
+set(gca,'Position',[.13 .2 .775 .775])
 set(gcf,'PaperPositionMode','auto');
 print -dpng illUpscaling-coarse.png;

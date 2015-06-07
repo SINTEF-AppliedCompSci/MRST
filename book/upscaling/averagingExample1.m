@@ -3,6 +3,7 @@
 % techniques, we consider a single layer of the SPE10 model and compare
 % the effective permeabilities obtained by arithmetic, harmonic, and
 % harmonic-arithmetic averaging.
+mrstModule add spe10;
 fine = [40 60];
 G    = cartGrid(fine, fine);
 G    = computeGeometry(G);
@@ -64,17 +65,7 @@ perm{3} = log10(crock2.perm(:,2));
 perm{4} = log10(crock3.perm(:,2));
 
 for i=1:4
-   subplot(1,4,i); ha = gca;
-   h=colorbar('SouthOutside');
-   apos = get(ha,'Position');
-   pos=get(h,'Position'); set(h,'Position',pos - [0 .09 0 .03]);
+   subplot(1,4,i);
+   [h,ax] = colorbarHist(perm{i},[-18 -10],'South');
    set(h,'XTick',-16:2:-12,'XTickLabel',{'.1', '10', '1000'});
-   
-   set(ha,'Position',apos);
-   axes('Position',pos + [0 -.03 0 .03]);
-   hist(perm{i}, linspace(-18,-10,51));
-   axis tight off, set(gca,'XLim',[-18 -10]);
-   h = findobj(gca,'Type','patch');
-   set(h,'FaceColor','none','EdgeColor',[.1 .1 .1]);
-   set(gcf, 'CurrentAxes', ha)
 end
