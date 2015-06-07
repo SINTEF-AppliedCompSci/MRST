@@ -57,10 +57,10 @@ caxis(lim)
 hcb = colorbar(cbPos);
 apos = get(ha,'Position');
 pos=get(hcb,'Position');
-set(hcb,'Position',pos + cbAdd, 'YAxisLocation', cbLoc);
+set(hcb,'Position',max(pos + cbAdd,.01), 'YAxisLocation', cbLoc);
    
 set(ha,'Position',apos);
-hax = axes('Position',pos + axAdd);
+hax = axes('Position',max(pos + axAdd,.01));
 hbar(bins,counts)
 axis tight off, axis(axLim);
 h = findobj(gca,'Type','patch');
