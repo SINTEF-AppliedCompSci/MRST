@@ -161,9 +161,9 @@ for i=1:numel(wp1)
    else
       z = flipud(wp1(i).z);
       a = cumsum(flipud(wp1(i).alloc),1);
-      bwidth=.8;
+      bwidth=.98;
    end
-   h = barh(z, a,'stacked','BarWidth',bwidth);
+   h = barh(z, a,'stacked','BarWidth',bwidth, 'EdgeColor','none');
    hold on
    if numel(wp2(i).z) == 1  % Need to trick Matlab
       z = [wp2(i).z; wp2(i).z+1];
@@ -173,7 +173,7 @@ for i=1:numel(wp1)
       a = cumsum(flipud(wp2(i).alloc),1);
    end
    %barh(z,a,'stacked','FaceColor','none','EdgeColor','k','LineWidth',2);
-   barh(z,a,'stacked','FaceColor','none','LineWidth',2);
+   barh(z,a,'stacked','FaceColor','none');
    hold off
    zm = min(min(wp1(i).z),min(wp2(i).z));
    zM = max(max(wp1(i).z),max(wp2(i).z));
