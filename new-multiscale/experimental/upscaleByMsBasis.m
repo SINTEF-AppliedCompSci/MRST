@@ -6,7 +6,7 @@ function Tc = upscaleByMsBasis(CG, T, varargin)
     A_c = basis.R*A*basis.B;
     
     [ic, jc, vc] = find(A_c);
-    Tc = zeros(CG.faces.num, 1);
+    Tc = ones(CG.faces.num, 1)*sqrt(eps)*max(abs(vc));
 
     for i = 1:CG.cells.num
         fa = gridCellFaces(CG, i);
