@@ -1,4 +1,4 @@
-function [varargout] = plotWellData(G, W, varargin)
+function h = plotWellData(G, W, varargin)
     if mod(numel(varargin), 2) == 1
         data = varargin{1};
         varargin = varargin(2:end);
@@ -27,42 +27,22 @@ function [varargout] = plotWellData(G, W, varargin)
     if isempty(opt.TextColor)
         opt.TextColor = opt.color;
     end
-    nW    = numel(W);
-    htop  = zeros([1, nW]);
-    htext = zeros([1, nW]);
-    hs    = zeros([1, nW]);
-    hline = zeros([1, nW]);
-    
+    nW     = numel(W);
+    h = repmat({zeros([1, 4])}, 1, nW);
     dohold = ishold();
-    
     hold on
-    for i = 1:numel(W)
+    for i = 1:nW
         if ~opt.linePlot
-            [hs(i), htop(i)] = plotSingleWell(G, W(i), data{i}, opt);
+            [h{i}(4), h{i}(3)] = plotSingleWell(G, W(i), data{i}, opt); 
         else
-            [hs(i), htop(i)] = plotSingleWellTraj(G, W(i), data{i}, opt);
+            [h{i}(4), h{i}(3)] = plotSingleWellTraj(G, W(i), data{i}, opt);
         end
-        [htext(i), hline(i)] = plotSingleWellLabel(G, W(i), opt);
+        [h{i}(1), h{i}(2)] = plotSingleWellLabel(G, W(i), opt);
     end
     
     
     if ~dohold
         hold off
-    end
-    if nargout > 0
-        varargout{1} = htop;
-    end
-    
-    if nargout > 1
-        varargout{2} = htext;
-    end
-    
-    if nargout > 2
-        varargout{3} = hs;
-    end
-    
-    if nargout > 3
-        varargout{4} = hline;
     end
 end
 
