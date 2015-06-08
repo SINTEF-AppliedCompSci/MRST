@@ -291,6 +291,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         da = max_G - min_G;
         da(da == 0) = 1;
         daspect(da);
+        axis([min_G(1), max_G(1), min_G(2), max_G(2), min_G(3), max_G(3)]);
     end
 
     % Create control panel
@@ -421,7 +422,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'Position', [0 1*vis_H bwidth vis_h],...
                    'String', 'Show grid',...
                    'Callback', @plotMain, ...
-                   'Value', 1 ...
+                   'Value', 0 ...
                    );
                
         ctrl_well_conn = uicontrol(vis_control, 'Style', 'checkbox',...
@@ -1279,7 +1280,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rS.pressure = state_step.pressure;
         end
         
-        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true);
+        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true, 'maxTOF', 1000*year);
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         
