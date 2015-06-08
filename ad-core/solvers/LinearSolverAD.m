@@ -58,6 +58,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            solver.extraReport   = false;
            solver.verbose       = mrstVerbose();
            solver = merge_options(solver, varargin{:});
+           
+           assert(solver.maxIterations >= 0);
+           assert(solver.tolerance >= 0);
        end
        
        function [result, report] = solveLinearSystem(solver, A, b) %#ok
