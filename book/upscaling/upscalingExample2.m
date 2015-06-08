@@ -28,9 +28,9 @@ if ~exist('agmg', 'file') || ...
 end
 
 fprintf(1,'Setting up fine-scale problem ...');
-cartDims = [  60,  220, 36];
+cartDims = [  60,  220, 85];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
-rock = SPE10_rock([1 1:cartDims(end)-1]);
+rock = SPE10_rock(1:cartDims(end));
 rock.perm = convertFrom(rock.perm, milli*darcy);
 rock.poro = max(rock.poro, 1e-4);
 G  = cartGrid(cartDims, physDims);
@@ -64,7 +64,7 @@ amax = -inf;
 for method=1:4
     %% Upscale petrophysical data
     fprintf(1,'Upscaling ...');
-    cfac = [10 10 3];
+    cfac = [10 10 5];
     p  = partitionUI(G, cartDims./cfac);
     switch method
         case 1  % harmonic averaging
@@ -99,14 +99,6 @@ for method=1:4
                 'handleNegative', 'ignore', ...
                 'fluxThreshold', sqrt(eps), 'LinSolve', @(A,b) agmg(A,b,1));
             Gc = CG;
-        case 5
-            CG = coarsenGeometry(generateCoarseGrid(G, p));
-            Tf = 1./accumarray(G.cells.faces(:,1), 1./hT, [G.faces.num, 1]);
-            [~, Tc] = upscaleTransNew(CG, Tf, 'match_method', 'max_flux', ...
-                'bc_method', 'bc_simple', 'LinSolve', @(A,b) agmg(A,b,1));
-            [~,~,Wc]   = upscaleTransNew(CG, Tf, 'match_method', 'lsq_flux', ...
-                'bc_method', 'wells_simple', 'wells', {W}, ...
-                'LinSolve', @(A,b) agmg(A,b,1));
     end
     crock.poro = accumarray(p, rock.poro)./accumarray(p,1);
     fprintf(1,'done\n');
@@ -146,7 +138,14 @@ for method=1:4
     lh=legend(W(D.prod).name,4);
     hold on
     cwp = cumsum(WP.inj(2).alloc,1);  amax = max([sum(cwp,2); amax]);
-    barh(WP.inj(2).z, cwp, 'stacked','BarWidth', .98, 'FaceColor','none');
+    if size(cwp,1)<20
+        barh(WP.inj(2).z, cwp, 'stacked','BarWidth', .98, 'FaceColor','none');
+    else
+        c = cumsum(cwp,2);
+        z =  WP.inj(2).z; dz = min(diff(z));
+        n = size(c,2);
+        stairs([zeros(1,n); c], repmat(z([1:end end]),1,n), '-k','LineWidth',1);
+    end
     hold off, axis tight
     set(lh,'units','pixels','FontSize',8);
     title(tittel);
