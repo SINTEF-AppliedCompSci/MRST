@@ -65,6 +65,8 @@ trans = 1 ./ accumarray(G.cells.faces(:,1), 1 ./ hT, [G.faces.num, 1]);
 dfluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
                          'rho', [1014, 859]*kilogram/meter^3, ...
                          'n', [2 2]);
+gravity reset off;
+
 % Pressure solution
 xd  = initState(G, W, 100*barsa);
 nw = numel(W);
