@@ -28,7 +28,7 @@ if ~exist('agmg', 'file') || ...
 end
 
 fprintf(1,'Setting up fine-scale problem ...');
-cartDims = [  60,  220, 36];
+cartDims = [  60,  220, 12];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
 rock = SPE10_rock([1 1:cartDims(end)-1]);
 rock.perm = convertFrom(rock.perm, milli*darcy);
@@ -60,18 +60,21 @@ D  = computeTOFandTracer(rS, G, rock, 'wells', W);
 WP = computeWellPairs(rS, G, rock, W, D);
 fprintf(1,'done\n');
 
+amax = -inf;
 for method=1:4
     %% Upscale petrophysical data
     fprintf(1,'Upscaling ...');
-    cfac = [5 5 3];
+    cfac = [10 10 3];
     p  = partitionUI(G, cartDims./cfac);
     switch method
         case 1  % harmonic averaging
+            tittel = 'Harmonic';
             for i=1:3;
                 crock.perm(:,i) = accumarray(p,1)./accumarray(p,1./rock.perm(:,i));
             end
       
         case 2  % harmonic-arithmetic
+            tittel = 'Harmonic-arithmetic';
             for i=1:3;
                 coarse = cartDims./cfac;
                 dims = G.cartDims; dims(i)=coarse(i);
@@ -81,25 +84,28 @@ for method=1:4
             end
         
         case 3  % local, flow-based with axial pressure drop
+            tittel = 'Flow-based, pressure drop';
             CG = generateCoarseGrid(G, p);
             crock.perm = upscalePerm(G, CG, rock, 'Verbose', true);
        
         case 4  % global, flow-based with upscaling of well index
+            tittel = 'Global, flow-based';
             CG = coarsenGeometry(generateCoarseGrid(G, p));
             Tf = hT2T(G,hT);
             Wc = coarsenWells(CG, W);
             Wc = addDefaultWellFields(Wc);
             [Tc, Wc] = upscaleTransGlobal(CG, Wc, Tf, ...
-                'GlobalFieldCases', 'revolving', ...
+                'GlobalFieldCases', 'single', ...
             'handleNegative', 'setToZero', ...
             'fluxThreshold', sqrt(eps), 'LinSolve', @(A,b) agmg(A,b,1));
         case 5
             CG = coarsenGeometry(generateCoarseGrid(G, p));
             Tf = 1./accumarray(G.cells.faces(:,1), 1./hT, [G.faces.num, 1]);
             [~, Tc] = upscaleTransNew(CG, Tf, 'match_method', 'max_flux', ...
-                'bc_method', 'bc_simple'); % 'LinSolve', @(A,b) agmg(A,b,1));
+                'bc_method', 'bc_simple', 'LinSolve', @(A,b) agmg(A,b,1));
             [~,~,Wc]   = upscaleTransNew(CG, Tf, 'match_method', 'lsq_flux', ...
-                'bc_method', 'wells_simple', 'wells', {W}); %'LinSolve', @(A,b) agmg(A,b,1));
+                'bc_method', 'wells_simple', 'wells', {W}, ...
+                'LinSolve', @(A,b) agmg(A,b,1));
     end
     crock.poro = accumarray(p, rock.poro)./accumarray(p,1);
     fprintf(1,'done\n');
@@ -133,19 +139,15 @@ for method=1:4
     fprintf(1,'done\n');
 
     %% Compare allocation factors
-    figure; colormap(.6*jet+.4*ones(size(jet)));
-    for i=1:numel(D.inj)
-        subplot(1,2,i)
-        barh(WP.inj(i).z, cumsum(WP.inj(i).alloc,1), ...
-            'stacked','BarWidth', .98, 'EdgeColor','none');
-        lh=legend(W(D.prod).name,4);
-        hold on
-        barh(WPc.inj(i).z, -cumsum(WPc.inj(i).alloc,1),...
-            'stacked', 'BarWidth', .98);
-        barh(WP.inj(i).z, -cumsum(WP.inj(i).alloc,1),'stacked',...
-            'BarWidth', .98, 'FaceColor','none');
-        hold off, axis tight
-        set(lh,'units','pixels','FontSize',8);
-        title(W(D.inj(i)).name);
-    end
+    subplot(2,2,method); colormap(.6*jet+.4*ones(size(jet)));
+    cwp = cumsum(WPc.inj(2).alloc,1); amax = max([sum(cwp,2); amax]);
+    barh(WPc.inj(2).z, cwp, 'stacked', 'BarWidth', .98, 'EdgeColor','none');
+    lh=legend(W(D.prod).name,4);
+    hold on
+    cwp = cumsum(WP.inj(2).alloc,1);  amax = max([sum(cwp,2); amax]);
+    barh(WP.inj(2).z, cwp, 'stacked','BarWidth', .98, 'FaceColor','none');
+    hold off, axis tight
+    set(lh,'units','pixels','FontSize',8);
+    title(tittel);
 end
+for i=1:4, subplot(2,2,i), set(gca,'XLim',[0 amax]); end
