@@ -297,23 +297,25 @@ function [A, pv] = thresholdConnectedComponents(A, pv, maxIn, opt)
     % Pick components containing more than a single cell
     d = diff(r);
     ix = find(diff(r)>1);
-    nc = numel(p);
-    % Retrieve cell-indices to components, and construct sparse index-mapping
-    c  = arrayfun(@(b,e)p(b:e)', r(ix), r(ix+1)-1, 'UniformOutput', false);
-    rc = rldecode( (1:numel(c))', cellfun(@numel, c)');
-    C  = sparse(vertcat(c{:}), rc, 1, nc, numel(c));
-    % Compute influx to each component
-    q_in = full(diag(C'*A*C));
-    % Threshold
-    compAboveMax = full((C'*pv)./ (max(q_in, eps*maxIn)) ) > opt.maxTOF;
-
-    if any(compAboveMax)
-        badCells = (vertcat(c{compAboveMax}));
-        dispif(mrstVerbose, 'Found %d strongly connected components, ', nnz(compAboveMax));
-        dispif(mrstVerbose, 'total of %d cells, with influx below threshold.\n', numel(badCells));
-        % Modify system setting tof to maxTOF and remove upstream connections
-        A(badCells,:) = sparse((1:numel(badCells))', badCells, maxIn, numel(badCells), nc);
-        pv(badCells)  = maxIn*opt.maxTOF;
+    if ~isempty(ix)
+        nc = numel(p);
+        % Retrieve cell-indices to components, and construct sparse index-mapping
+        c  = arrayfun(@(b,e)p(b:e)', r(ix), r(ix+1)-1, 'UniformOutput', false);
+        rc = rldecode( (1:numel(c))', cellfun(@numel, c)');
+        C  = sparse(vertcat(c{:}), rc, 1, nc, numel(c));
+        % Compute influx to each component
+        q_in = full(diag(C'*A*C));
+        % Threshold
+        compAboveMax = full((C'*pv)./ (max(q_in, eps*maxIn)) ) > opt.maxTOF;
+        
+        if any(compAboveMax)
+            badCells = (vertcat(c{compAboveMax}));
+            dispif(mrstVerbose, 'Found %d strongly connected components, ', nnz(compAboveMax));
+            dispif(mrstVerbose, 'total of %d cells, with influx below threshold.\n', numel(badCells));
+            % Modify system setting tof to maxTOF and remove upstream connections
+            A(badCells,:) = sparse((1:numel(badCells))', badCells, maxIn, numel(badCells), nc);
+            pv(badCells)  = maxIn*opt.maxTOF;
+        end
     end
 end
 
