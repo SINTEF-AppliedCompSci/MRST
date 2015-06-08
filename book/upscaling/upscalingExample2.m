@@ -28,7 +28,7 @@ if ~exist('agmg', 'file') || ...
 end
 
 fprintf(1,'Setting up fine-scale problem ...');
-cartDims = [  60,  220, 12];
+cartDims = [  60,  220, 36];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
 rock = SPE10_rock([1 1:cartDims(end)-1]);
 rock.perm = convertFrom(rock.perm, milli*darcy);
@@ -95,9 +95,10 @@ for method=1:4
             Wc = coarsenWells(CG, W);
             Wc = addDefaultWellFields(Wc);
             [Tc, Wc] = upscaleTransGlobal(CG, Wc, Tf, ...
-                'GlobalFieldCases', 'single', ...
-            'handleNegative', 'setToZero', ...
-            'fluxThreshold', sqrt(eps), 'LinSolve', @(A,b) agmg(A,b,1));
+                'GlobalFieldCases', 'revolving', ...
+                'handleNegative', 'ignore', ...
+                'fluxThreshold', sqrt(eps), 'LinSolve', @(A,b) agmg(A,b,1));
+            Gc = CG;
         case 5
             CG = coarsenGeometry(generateCoarseGrid(G, p));
             Tf = 1./accumarray(G.cells.faces(:,1), 1./hT, [G.faces.num, 1]);
@@ -112,9 +113,9 @@ for method=1:4
 
     %% Setup the coarse-scale problem
     fprintf(1,'Setting up coarse-scale problem ...');
-    Gc  = cartGrid(cartDims./cfac, physDims);
-    Gc  = computeGeometry(Gc);
     if method<4
+        Gc  = cartGrid(cartDims./cfac, physDims);
+        Gc  = computeGeometry(Gc);
         Tc = computeTrans(Gc, crock);
         Tc = 1./accumarray(Gc.cells.faces(:,1), 1./Tc);
         cwloc(1,:) = ceil(wloc(1,:)/cfac(1));
