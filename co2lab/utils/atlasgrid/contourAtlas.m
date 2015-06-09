@@ -58,10 +58,9 @@ function varargout = contourAtlas(info, varargin)
     [C, h] = contour3(X,Y,d, N, '-');                           %#ok<ASGLU>
     set(h,'LineWidth', 1);
     
-    data = get(h, 'UserData');
-    dpts = unique([data{:}]);
-
     if isempty(color)
+       data = get(h, 'UserData');
+       dpts = unique([data{:}]);
        colors = flipud(jet(N+1));
        for i = 1:numel(h)
           set(h(i), 'LineWidth', l)
