@@ -40,6 +40,7 @@ function resTiltUtsira(varargin)
     %% Display sampled grids, and difference surface
     figure(1); 
     subplot(1,2,1); 
+    hold on;
     mesh(x, y, smpl_U); mesh(x, y, smpl_S); title('Recentered surfaces');
     set(gca,'zdir', 'reverse'); hold on; view(-62,22);
     subplot(1,2,2); 
