@@ -16,16 +16,26 @@ function exploreSimulation(varargin)
    opt.res_sat_co2 = 0.21; 
    opt.res_sat_wat = 0.11;
    opt.dis_max = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
+   opt.max_num_wells = 10;
+   opt.default_rate = 1 * mega * 1e3 / year / rhoCref; % default injection rate
+   opt.max_rate = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate
+   
    
    opt = merge_options(opt, varargin{:});
 
    var.Gt                = []; % to be set by the call to 'set_formation'
-   var.rock2D            = [];
-   var.ta                = [];
-   var.current_formation = '';
-   var.data              = [];
+   var.rock2D            = []; % rock properties of current formation
+   var.ta                = []; % trapping analysis of current formation
+   var.current_formation = ''; % name of formation currently loaded
+   var.data              = []; % current face data to plot
+   var.loops             = []; % one or more loops of boundary faces
+   var.loops_bc          = []; % bc for all faces (0: closed, 1: semi-open, 2: open)
    var.co2               = CO2props('sharp_phase_boundary', false, 'rhofile', 'rho_demo');
-   var.interaction_mode  = 'set bc'; % valids are 'set bc', 'set wells' and 'none'
+   var.wells             = reset_wells(opt.max_num_wells);
+   % Temporary variables used by different functions
+   temps = [];
+   
+   
    
    set_formation(opt.default_formation, false);
 
@@ -45,35 +55,257 @@ function exploreSimulation(varargin)
                     'position', [0.05, 0.0 0.3 0.05], ...
                     'string', listify(names), ...
                     'value', formation_number(var.current_formation));
-   set (fsel, 'Callback', @(es, ed) set_formation(names{get(es, 'Value')}, true));
+   set (fsel, 'Callback', @(es, ed) set_formation(names{get(es, 'Value')}, ...
+                                                  true));
+   
+   % Group for setting boundaries
+   bc_group = setup_bc_group([.56 .8 .16 .15]);
+
+   % Group for setting interaction mode
+   imode_group = setup_imode_group([.8 .8 .16 .15]);
+   
+   % Group for displaying and modifying wells
+   [well_group, well_entries] = setup_well_group([.56 .25, .4, .50]);
+
+   % launch button
+   launch_button = uicontrol('parent', var.h, ...
+                             'style', 'pushbutton', ...
+                             'units', 'normalized', ...
+                             'position', [.66 .11 .2 .1], ...
+                             'string', 'Launch simulation!', ...
+                             'callback', @(varargin) launch_simulation());
+                       
    
    %% Launching by calling redraw function
    redraw();
    
    
    % ============================= LOCAL HELPER FUNCTIONS =============================
+
+   function launch_simulation()
+      disp('simulation launched');
+   end
+   
+   function wells = reset_wells(num)
+      wells = repmat(struct('pos', [], 'rate', 0), num, 1);
+   end
+      
+   function res = get_interaction_type()
+      res = get(get(imode_group, 'selectedobject'), 'string');
+   end
+   
+   function res = get_active_bc_type()
+      res = 0;
+      switch(get(get(bc_group, 'selectedobject'), 'string'))
+        case 'Closed'
+          res = 0;
+        case 'Semi-open'
+          res = 1;
+        case 'Open'
+          res = 2;
+        otherwise
+          error('missing case');
+      end
+   end
+   
+   function set_uniform_bc_callback(varargin)
+      bc_type = get_active_bc_type();
+      for l = 1:numel(var.loops_bc)
+         var.loops_bc{l} = var.loops_bc{l} * 0 + bc_type;
+      end
+      redraw();
+   end
+   
+   function group = setup_imode_group(pos)
+      
+      % Create group
+      group = uibuttongroup('Visible', 'off',...
+                             'units', 'normalized', ...
+                             'position', pos);
+      % Create radiobuttons
+      b1 = uicontrol(group, 'style', 'radiobutton', ...
+                            'string', 'Edit boundaries', ...
+                            'units', 'normalized', ...
+                            'position', [.1 .1 .9 .3]);
+      b2 = uicontrol(group, 'style', 'radiobutton', ...
+                            'string', 'Select wellsites', ...
+                            'units', 'normalized', ...
+                            'position', [.1 .5 .9 .3]);
+                            
+      set(group, 'visible', 'on');      
+   end
+
+   function [group, entries] = setup_well_group(pos)
+      % Create group
+      group = uipanel('Visible', 'off',...
+                      'units', 'normalized', ...
+                      'position', pos);
+      
+      entries = [];
+      
+      for i = 1:opt.max_num_wells
+         ypos    = ((opt.max_num_wells - (i)) / opt.max_num_wells) * 0.95;
+         yheight = (1 / opt.max_num_wells) * 0.95;
+         entries = [entries; add_well_entry(group, [0.1, ypos, 0.9, yheight], i)]; 
+      end
+      set(group, 'visible', 'on');
+   end
+   
+   function we = add_well_entry(group, pos, index)
+      we.name = uicontrol('parent', group, ...
+                          'style', 'edit',...
+                          'string', sprintf('Well %i:', index), ...
+                          'horizontalalignment', 'left', ...
+                          'units', 'normalized', ...
+                          'enable', 'inactive', ...
+                          'fontsize', 8, ...
+                          'handlevisibility', 'off', ...
+                          'position', [pos(1), pos(2), pos(3)*0.1, pos(4)]);
+
+      we.status = uicontrol('parent', group, ...
+                            'style', 'edit',... % 'edit' rather than 'text' for vertical alignment
+                            'string', '<none>', ...
+                            'enable', 'inactive', ...
+                            'horizontalalignment', 'center', ...
+                            'units', 'normalized', ...
+                            'fontsize', 8, ...
+                            'handlevisibility', 'off', ...
+                            'position', [pos(1) + pos(3)*0.1, pos(2), pos(3)*0.3, pos(4)]);
+      
+      we.delete = uicontrol('parent', group, ...
+                            'style', 'pushbutton', ...
+                            'string', 'X', ...
+                            'units', 'normalized', ...
+                            'position', [pos(1) + pos(3)*0.4, pos(2), pos(3)*0.1, pos(4)], ...
+                            'handlevisibility', 'off', ...
+                            'callback', @(varargin) clear_well_callback(index));
+      we.rate = uicontrol('parent', group, ...
+                          'style', 'slider', ...
+                          'units','normalized', ...
+                          'position', [pos(1) + pos(3)*0.51, pos(2), pos(3) * 0.35, pos(4)], ...
+                          'value', opt.default_rate, ...
+                          'min', 0, ...
+                          'max', opt.max_rate, ...
+                          'callback', @(varargin) set_new_rate_callback(index));
+      we.rate_view = uicontrol('parent', group, ...
+                            'style', 'edit',... % 'edit' rather than 'text' for vertical alignment
+                            'string', sprintf('%3.1f Mt', opt.default_rate * year * rhoCref/1e9), ...
+                            'enable', 'inactive', ...
+                            'horizontalalignment', 'left', ...
+                            'units', 'normalized', ...
+                            'fontsize', 8, ...
+                            'handlevisibility', 'off', ...
+                            'position', [pos(1) + pos(3)*0.87, pos(2), pos(3)*0.11, pos(4)]);
+   end
+   
+   function set_new_rate_callback(ix)
+      if isempty(var.wells(ix).pos)
+         % well is inactive, keep rate to default value
+         set(well_entries(ix).rate, 'value', opt.default_rate);
+      else
+         var.wells(ix).rate = get(well_entries(ix).rate, 'value');
+      end      
+      redraw();
+   end
+   
+   function clear_well_callback(ix)
+      
+      % shifting remaining wells up
+      for i = ix:(numel(var.wells)-1)
+         var.wells(i) = var.wells(i+1);
+      end
+      var.wells(end) = struct('pos', [], 'rate', 0);
+
+      % redraw with new well information
+      redraw();
+   end
+   
+   function group = setup_bc_group(pos)
+
+      % create radiobutton group
+      group = uibuttongroup('Visible', 'off',...
+                            'units', 'normalized', ...
+                            'position', pos);
+      % create radiobuttons
+      b1 = uicontrol(group, 'style', 'radiobutton', ...
+                            'string', 'Closed', ...
+                            'units', 'normalized', ...
+                            'position', [.1 .1 .9 .27], ...
+                            'HandleVisibility', 'off');
+      b2 = uicontrol(group, 'style', 'radiobutton', ...
+                            'string', 'Semi-open', ...
+                            'units', 'normalized', ...
+                            'position', [.1 .4 .9 .27], ...
+                            'HandleVisibility', 'off');
+      b3 = uicontrol(group, 'style', 'radiobutton', ...
+                            'string', 'Open', ...
+                            'units', 'normalized', ...
+                            'position', [.1 .7 .9 .27], ...
+                            'HandleVisibility', 'off');
+      pb1 = uicontrol(group, 'style', 'pushbutton', ...
+                             'string', 'Set all', ...
+                             'units', 'normalized', ...
+                             'position', [.6 .7 .35 .2], ...
+                             'handlevisibility', 'off', ...
+                             'callback', @set_uniform_bc_callback);
+      
+      set(group, 'visible', 'on');
+   end
    
    function click_handler(varargin)
 
-      persistent segment_start = [];
-      
       pt = get(gca,'CurrentPoint'); pt = pt(end,:); 
+      fn = [];
+ 
+      switch get_interaction_type()
+        case 'Edit boundaries'
+          if ~isfield(temps, 'bc_segment_start')
+             [temps.bc_segment_start, temps.bc_segment_loop_ix] = ...
+                 closest_bface(var.Gt, pt, var.loops);
+             fn = @() plot(pt(1), pt(2), '*r');
+          else
+             bc_segment_end = closest_bface(var.Gt, pt, var.loops, temps.bc_segment_loop_ix);
+             
+             cur_loop = var.loops{temps.bc_segment_loop_ix};
+             ix1 = find(cur_loop == temps.bc_segment_start, 1);
+             ix2 = find(cur_loop ==  bc_segment_end, 1);
+             if ix1 > ix2 % ensure ix2 > ix1
+                tmp = ix1;
+                ix1 = ix2;
+                ix2 = tmp;
+             end
+             if ix2-ix1 < numel(cur_loop)/2;
+                seq = ix1:ix2;
+             else
+                seq = [ix2:numel(cur_loop), 1:ix1];
+             end
 
-      switch var.interaction_mode
-        case 'set bc'
-        ix = closest_cell(var.Gt, pt, boundary_cells_and_faces(var.Gt));
-        if isempty(segment_start)
-           segment_start = ix;
-        else
-           face_ixs = shortest_path(segment_start, ix);
-           segment_start = 0;
-           
+             var.loops_bc{temps.bc_segment_loop_ix}(seq) = get_active_bc_type();
+             
+             temps = rmfield(temps, 'bc_segment_start');
+             temps = rmfield(temps, 'bc_segment_loop_ix');
+          end
+        case 'Select wellsites'
+
+          % find first empty slot
+          for i = 1:numel(var.wells)
+             if isempty(var.wells(i).pos)
+                break;
+             end
+          end
+          full = (i==numel(var.wells) && ~isempty(var.wells(i).pos));
+          if full
+             % Discard oldest well, shift others downwards
+             var.wells(1:end-1) = var.wells(2:end);
+          end
+          var.wells(i).pos = pt(1:2);
+          var.wells(i).rate = opt.default_rate;
         
         otherwise
           disp('unimplemented');
           return;
       end
-      redraw();
+      redraw(fn);
       
       
       % %disp(pts);
@@ -82,11 +314,51 @@ function exploreSimulation(varargin)
       % redraw();
    end
    
-   function redraw()
+   function redraw(post_fnx)
       axes(var.ax); cla;
       axis auto;
       cla;
+      
+      % Draw current field
       plotCellData(var.Gt, var.data, 'buttondownfcn', @click_handler);
+      
+      % Draw boundary conditions
+      for i = 1:numel(var.loops)
+         loop = var.loops{i};
+         loop_bc = var.loops_bc{i};
+         plotFaces(var.Gt, loop(loop_bc==0), 'edgecolor', 'r', 'linewidth', 4); % closed
+         plotFaces(var.Gt, loop(loop_bc==1), 'edgecolor', 'y', 'linewidth', 4); % closed
+         plotFaces(var.Gt, loop(loop_bc==2), 'edgecolor', 'g', 'linewidth', 4); % closed
+      end
+      
+      % Draw wells
+      for i = 1:opt.max_num_wells
+         w = var.wells(i);
+         if ~isempty(w.pos)
+            hold on;
+            lon = w.pos(1);
+            lat = w.pos(2);
+            wellcell = closest_cell(var.Gt, [w.pos,0], 1:var.Gt.cells.num);
+            plotWell(var.Gt.parent, ...
+                     addWell([], var.Gt.parent, var.rock2D, wellcell, 'name', sprintf('W%i', i)), ...
+                     'color', 'k', 'fontsize', 20);
+            plot3(lon, lat, var.Gt.cells.z(wellcell)*0.98, 'ro', 'markersize', 8, ...
+                  'MarkerFaceColor',[0 0 0]);
+            set(well_entries(i).status, 'string', sprintf('(%4.2e, %4.2e)', lon, lat));
+         else
+            set(well_entries(i).status, 'string', '<none>');
+         end
+         annual_rate = var.wells(i).rate * year * rhoCref/1e9;
+         set(well_entries(i).rate_view, 'string', sprintf('%3.1f Mt', annual_rate));
+         set(well_entries(i).rate, 'value', var.wells(i).rate);
+      end
+      
+      % Call optional function to complete redraw process
+      if nargin>0 && ~isempty(post_fnx)
+         hold on;
+         post_fnx();
+      end
+      
       view(0, 90);
    end
       
@@ -112,14 +384,21 @@ function exploreSimulation(varargin)
       
       % Run trapping analysis (we need this information to compute
       % inventories)
-      var.ta = trapAnalysis(var.Gt, false);
+      var.ta = trapAnalysis(var.Gt,true); %@@ false
+      
+      var.data = var.Gt.cells.z; 
+      var.loops = find_boundary_loops(var.Gt);
+      % Setting all boundary conditions to open (2)
+      var.loops_bc = cellfun(@(x) 0 * x + 2, var.loops, 'uniformoutput', false);
+
+      var.wells = reset_wells(opt.max_num_wells);
+      temps = []; % reset all temporary variables
       
       % Call 'redraw' if requested
       if do_redraw
          redraw();
       end
       
-      var.data = zeros(var.Gt.cells.num, 1);
    end
    
 end
@@ -179,16 +458,60 @@ end
 
 % ----------------------------------------------------------------------------
 
-function neighbor_mat = find_boundary_face_neighbors(Gt)
+function loops = find_boundary_loops(Gt)
 
    [~, fix] = boundary_cells_and_faces(Gt); % boundary face indices
    nix = unique(Gt.faces.neighbors(fix,:)); % boundary node indices
 
-   tmp = [(1:numel(fix))', Gt.faces.neighbors(fix, 1); ...
-          (1:numel(fix))', Gt.faces.neighbors(fix, 2)];
+   tmp = [fix, Gt.faces.nodes(Gt.faces.nodePos(fix));
+          fix, Gt.faces.nodes(Gt.faces.nodePos(fix)+1)];
    tmp = sortrows(tmp, 2);
    tmp = reshape(tmp(:,1), 2, []); % columns now express face neighborships
    
-   neighbor_mat = sparse(tmp(1,:), tmp(2,:), 1, Gt.faces.num, Gt.faces.num);
+   % defining connectivity matrix
+   M = sparse(tmp(1,:), tmp(2,:), 1, Gt.faces.num, Gt.faces.num);
+   M = spones(M+M');
+   num_loops = 0;
+   while nnz(M) > 0
+      num_loops = num_loops + 1;
+      [loop,~] = find(M, 1);
+      next = find(M(loop, :), 1); % find one of the two neighbor faces
+      while ~isempty(next)
+         M(loop(end), next) = 0;
+         M(next, loop(end)) = 0;
+         loop = [loop; next];
+         next = find(M(next, :)); 
+         assert(numel(next) <= 1);
+      end
+      assert(loop(1) == loop(end));
+      loops{num_loops} = loop(1:end-1);
+   end
+end
+
+% ----------------------------------------------------------------------------
+
+function [face_ix, loop_ix] = closest_bface(Gt, pt, loops, imposed_loop)
+
+   if (nargin > 3)
+      loops_ixs = imposed_loop;
+   else
+      loops_ixs = 1:numel(loops);
+   end
+   
+   closest_face = [];
+   
+   for l = loops_ixs
+      % computing closest face for this loop
+      loop = loops{l};
+      loop_coords = [Gt.faces.centroids(loop,:), Gt.faces.z(loop,:)];
+      dist = bsxfun(@minus, loop_coords, pt);
+      dist = sum(dist.^2, 2);
+      [dmin, num] = min(dist);
+      closest_face = [closest_face; [dmin, num]];
+   end
+   
+   [~, i] = min(closest_face(:,1));
+   loop_ix = loops_ixs(i);
+   face_ix = loops{loop_ix}(closest_face(i, 2));
    
 end
