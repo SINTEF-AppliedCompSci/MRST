@@ -388,7 +388,7 @@ function plotMain(Gt, res, bf, atlasdata)
     for k=1:3, set(hp(2*k-1), 'FaceColor', pcm(k,:)); end
     hl = legend('Primary', 'Migration', 'Not Filled', ...
        'Location','SouthOutside','Orientation','horizontal');
-    set(hl,'FontSize',8,'Color',get(gcf,'Color')+.1);
+    set(hl, 'FontSize', 8, 'Color', min(get(gcf,'Color')+.1, 1));
 
     %%%  Plot barchart
     subplot('position', [.775 .025 .2 .45]); cla
@@ -410,7 +410,9 @@ function plotMain(Gt, res, bf, atlasdata)
     else
        set(hbar, 'FaceVertexCData', colorizeDepth(1:N, N, colorizePath));
     end
-    set(gca, 'YTickLabel', sprintf('%2.3g|', 10.^(get(gca, 'YTick')*max(ldata))))
+    yt = get(gca, 'YTick');
+    ytl = arrayfun(@(y) sprintf('%2.3g', 10.^(y*max(ldata))), yt, 'UniformOutput', false);
+    set(gca, 'YTickLabel', ytl)
     set(gca, 'YTickMode', 'manual')
     axis tight
     xlabel('Trap graph distance')
