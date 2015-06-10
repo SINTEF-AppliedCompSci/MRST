@@ -31,6 +31,7 @@ function exploreSimulation(varargin)
    opt.mig_time = 3000 * year;
    opt.mig_steps = 30;
    opt.well_radius = 0.3;
+   opt.subtrap_file = 'utsira_subtrap_function_3.mat';
    
    opt = merge_options(opt, varargin{:});
 
@@ -98,7 +99,23 @@ function exploreSimulation(varargin)
 
    function launch_simulation()
 
-      use_dissolution = get(opt_choices.dissolution, 'value');
+      if isempty(var.wells(1).pos)
+         % no wells present
+         msgbox('Add at least one well before running the simulation', ...
+                      'No wells present', 'error', 'modal');
+         return;
+      end
+      
+      
+      use_dissolution = logical(get(opt_choices.dissolution, 'value'));
+      use_trapping    = logical(get(opt_choices.subscale,    'value'));
+      
+      dh = [];
+      topo = 'smooth';
+      if use_trapping
+         dh = computeToptraps(load(opt.subtrap_file), var.Gt, true);
+         topo = 'inf_rough';
+      end
       
       % Set up input parameters
       fluid     = makeVEFluid(var.Gt, var.rock2D, 'sharp interface', ...
@@ -106,15 +123,17 @@ function exploreSimulation(varargin)
                               'wat_rho_pvt' , [opt.water_compr_val  , opt.water_compr_p_ref] , ...                              
                               'residual'    , [opt.water_residual   , opt.co2_residual]      , ...
                               'dissolution' , use_dissolution                                , ...
-                              'dis_max'     , opt.dis_max);
+                              'dis_max'     , opt.dis_max                                    , ...
+                              'surf_topo'   , topo                                           , ...
+                              'top_trap'    , dh);
                               
       model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
       initState = setup_initstate();
       schedule  = setup_schedule();
   
       % spawn simulation window 
-      visualSimulation(initState, model, schedule, 'rhoCref', rhoCref);
-   
+      visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, 'trapstruct', var.ta, 'dh', dh);
+
    end
 
    % ----------------------------------------------------------------------------
@@ -137,11 +156,25 @@ function exploreSimulation(varargin)
       end
       W_shut = W;
       for i = 1:numel(W_shut)
-         W_shut(i).rate = 0;
+         W_shut(i).val = 0;
       end
       
-      % Define schedule
-      schedule.control = [W, W_shut];
+      
+      schedule.control(1).W = W;
+      schedule.control(2).W = W_shut;
+      
+      % Define boundary conditionsx
+      open_faces = [];
+      for i = 1:numel(var.loops)
+         faces = var.loops{i};
+         bcs   = var.loops_bc{i};
+         open_faces = [open_faces; faces(bcs>0)];%#ok
+      end
+      schedule.control(1).bc = addBC([], open_faces, ...
+                                     'pressure', ...
+                                     var.Gt.faces.z(open_faces) * opt.water_density * norm(gravity), ...
+                                     'sat', [1 0]);
+      schedule.control(2).bc = schedule.control(1).bc;
       
       dTi = opt.inj_time / opt.inj_steps;
       dTm = opt.mig_time / opt.mig_steps;
@@ -171,7 +204,7 @@ function exploreSimulation(varargin)
       state.sGmax = state.s(:,2);
       
       % If dissolution is activated, we need to add a field for that too
-      if (get(opt.choices.dissolution, 'value'))
+      if logical(get(opt_choices.dissolution, 'value'))
          state.rs = 0 * state.sGmax;
       end
       
@@ -238,14 +271,26 @@ function exploreSimulation(varargin)
       choices.dissolution = uicontrol('parent', group, ...
                                       'style', 'checkbox', ...
                                       'units', 'normalized', ...
-                                      'position' , [.1, .45, .2, .2]);
+                                      'position' , [.1, .30, .2, .2]);
 
       label = uicontrol('parent', group, ...
                         'style', 'text', ...
                         'units', 'normalized', ...
-                        'position', [.2, .43, .55, .2], ...
+                        'horizontalalignment', 'left', ...
+                        'position', [.2, .28, .55, .2], ...
                         'string', 'Include dissolution');%#ok
-                           
+
+      choices.subscale = uicontrol('parent', group, ...
+                                      'style', 'checkbox', ...
+                                      'units', 'normalized', ...
+                                      'position' , [.1, .60, .2, .2]);
+
+      label2 = uicontrol('parent', group, ...
+                         'style', 'text', ...
+                         'units', 'normalized', ...
+                         'horizontalalignment', 'left', ...
+                         'position', [.2, .58, .80, .2], ...
+                         'string', 'Include subscale trapping');%#ok
       
       set(group, 'visible', 'on');      
    end
