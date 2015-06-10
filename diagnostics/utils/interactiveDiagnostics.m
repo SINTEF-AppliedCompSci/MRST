@@ -292,8 +292,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         da(da == 0) = 1;
         daspect(da);
     end
-    axis tight off
-    view(3);
     % Create control panel
     % Precompute TOF etc. for creating main control
 	pv = poreVolume(computeGrid, rock);
@@ -303,7 +301,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Trigger plot initial setup
     plotMain();
-    
+    axis tight off
+    view(3);
 
     
     
