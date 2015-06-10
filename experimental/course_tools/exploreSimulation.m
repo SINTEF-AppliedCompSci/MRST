@@ -31,6 +31,9 @@ function exploreSimulation(varargin)
    opt.mig_steps         = 30;
    opt.well_radius       = 0.3;
    opt.subtrap_file      = 'utsira_subtrap_function_3.mat';
+   opt.outside_distance  = 100 * kilo * meter; % used to adjust
+                                               % transmissibilities of
+                                               % semiopen faces
    
    opt = merge_options(opt, varargin{:});
 
@@ -134,13 +137,36 @@ function exploreSimulation(varargin)
                               
       model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
       schedule  = setup_schedule();
-  
+
+      semiopen_faces = get_bfaces_of_type(1);
+      if ~isempty(semiopen_faces)
+         % modifying transmissibilities for semi-open boundary faces
+
+         semiopen_cells = sum(var.Gt.faces.neighbors(semiopen_faces,:), 2); 
+         d = var.Gt.cells.centroids(semiopen_cells) - var.Gt.faces.centroids(semiopen_faces);
+         d = sqrt(sum(d.^2, 2)); % norm of distance
+         
+         model.operators.T_all(semiopen_faces) = ...
+             model.operators.T_all(semiopen_faces) .* d ./ (d + opt.outside_distance);
+      end
+      
       % spawn simulation window 
       visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, ...
                        'trapstruct', var.ta, 'dh', dh);
    end
 
    % ----------------------------------------------------------------------------
+
+   function res = get_bfaces_of_type(type)
+      
+      res = [];
+      for i = 1:numel(var.loops)
+         faces = var.loops{i};
+         bcs   = var.loops_bc{i};
+         res = [res; faces(bcs==type)];%#ok
+      end
+   end
+   
    
    function schedule = setup_schedule()
 
@@ -168,12 +194,8 @@ function exploreSimulation(varargin)
       schedule.control(2).W = W_shut;
       
       % Define boundary conditions
-      open_faces = [];
-      for i = 1:numel(var.loops)
-         faces = var.loops{i};
-         bcs   = var.loops_bc{i};
-         open_faces = [open_faces; faces(bcs>0)];%#ok
-      end
+      open_faces = [get_bfaces_of_type(1); get_bfaces_of_type(2)];
+
       schedule.control(1).bc = addBC([], open_faces, ...
                                      'pressure', ...
                                      var.Gt.faces.z(open_faces) * opt.water_density * norm(gravity), ...
