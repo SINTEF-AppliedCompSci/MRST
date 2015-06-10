@@ -19,7 +19,17 @@ function exploreSimulation(varargin)
    opt.max_num_wells = 10;
    opt.default_rate = 1 * mega * 1e3 / year / rhoCref; % default injection rate
    opt.max_rate = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate
-   
+   opt.seafloor_depth = 100 * meter;
+   opt.seafloor_temp  =  7; % in Celsius
+   opt.temp_gradient  = 35.6; % degrees per kilometer
+   opt.water_compr_val = 4.3e-5/barsa;
+   opt.water_compr_p_ref = 100 * barsa;
+   opt.water_residual = 0.11;
+   opt.co2_residual = 0.21;
+   opt.inj_time = 50 * year;
+   opt.inj_steps = 10;
+   opt.mig_time = 3000 * year;
+   opt.mig_steps = 30;
    
    opt = merge_options(opt, varargin{:});
 
@@ -71,10 +81,13 @@ function exploreSimulation(varargin)
    launch_button = uicontrol('parent', var.h, ...
                              'style', 'pushbutton', ...
                              'units', 'normalized', ...
-                             'position', [.66 .11 .2 .1], ...
+                             'position', [.56 .12 .18 .11], ...
                              'string', 'Launch new simulation!', ...
                              'callback', @(varargin) launch_simulation());
                        
+   
+   % Other options
+   [opt_group, opt_choices] = setup_opt_group([.76, .12, .20, .11]);
    
    %% Launching by calling redraw function
    redraw();
@@ -83,16 +96,82 @@ function exploreSimulation(varargin)
    % ============================= LOCAL HELPER FUNCTIONS =============================
 
    function launch_simulation()
-      disp('simulation launched');
+
+      %       if get(opt.choices.dissolution, 'value')
+      %    % model with dissolution
+      % else
+      %    % model without dissolution
+         
+      %    end
+      % model = ;
+      
+      % Set up input parameters
+      fluid     = makeVEFluid(var.Gt, var.rock2D, 'sharp interface', ...
+                              'fixedT', caprock_temperature(), ...
+                              'wat_rho_pvt', [opt.water_compr_val, opt.water_compr_p_ref], ...                              
+                              'residual' , [opt.water_residual, opt.co2_residual], ...
+                              'dissolution', true, 'dis_max', opt.dis_max);
+                              
+      model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
+      initState = setup_initstate();
+      schedule  = setup_schedule();
+  
+      % spawn simulation window 
+      visualSimulation(initState, model, schedule, 'rhoCref', rhoCref);
+   
    end
+
+   % ----------------------------------------------------------------------------
+   
+   function schedule = setup_schedule()
+
+      
+      
+   end
+   
+   opt.inj_time = 50 * year;
+   opt.inj_steps = 10;
+   opt.mig_time = 3000 * year;
+   opt.mig_steps = 30;
+
+   
+   % ----------------------------------------------------------------------------
+   
+   function T = caprock_temperature()
+      % Return temperature in Kelvin
+      T = 273.15 + ...
+          opt.seafloor_temp + ...
+          (var.Gt.cells.z - opt.seafloor_depth) / 1e3 * opt.temp_gradient;
+   end
+   
+   % ----------------------------------------------------------------------------
+   
+   function state = setup_initstate()
+   
+      state.pressure = var.Gt.cells.z * norm(gravity) * opt.water_density;
+      state.s = repmat([1 0], var.Gt.cells.num, 1);
+      state.sGmax = state.s(:,2);
+      
+      % If dissolution is activated, we need to add a field for that too
+      if (get(opt.choices.dissolution, 'value'))
+         state.rs = 0 * state.sGmax;
+      end
+      
+   end
+      
+   % ----------------------------------------------------------------------------
    
    function wells = reset_wells(num)
       wells = repmat(struct('pos', [], 'rate', 0), num, 1);
    end
       
+   % ----------------------------------------------------------------------------
+   
    function res = get_interaction_type()
       res = get(get(imode_group, 'selectedobject'), 'string');
    end
+   
+   % ----------------------------------------------------------------------------
    
    function res = get_active_bc_type()
       res = 0;
@@ -108,6 +187,8 @@ function exploreSimulation(varargin)
       end
    end
    
+   % ----------------------------------------------------------------------------
+   
    function set_uniform_bc_callback(varargin)
       bc_type = get_active_bc_type();
       for l = 1:numel(var.loops_bc)
@@ -115,6 +196,8 @@ function exploreSimulation(varargin)
       end
       redraw();
    end
+   
+   % ----------------------------------------------------------------------------
    
    function set_rotate_state_callback()
       sel = get(get(imode_group, 'selectedobject'), 'string');
@@ -125,6 +208,32 @@ function exploreSimulation(varargin)
       end
    end
    
+   % ----------------------------------------------------------------------------
+   
+   function [group, choices] =  setup_opt_group(pos)
+      
+      % Create group
+      group = uipanel('Visible', 'off',...
+                      'units', 'normalized', ...
+                      'position', pos);
+      
+      % create widgets
+      choices.dissolution = uicontrol('parent', group, ...
+                                      'style', 'checkbox', ...
+                                      'units', 'normalized', ...
+                                      'position' , [.1, .45, .2, .2]);
+
+      label = uicontrol('parent', group, ...
+                        'style', 'text', ...
+                        'units', 'normalized', ...
+                        'position', [.2, .43, .55, .2], ...
+                        'string', 'Include dissolution');
+                           
+      
+      set(group, 'visible', 'on');      
+   end
+   
+   % ----------------------------------------------------------------------------
    
    function group = setup_imode_group(pos)
       
@@ -149,6 +258,8 @@ function exploreSimulation(varargin)
                             
       set(group, 'visible', 'on');      
    end
+   
+   % ----------------------------------------------------------------------------
 
    function [group, entries] = setup_well_group(pos)
       % Create group
@@ -165,6 +276,8 @@ function exploreSimulation(varargin)
       end
       set(group, 'visible', 'on');
    end
+   
+   % ----------------------------------------------------------------------------
    
    function we = add_well_entry(group, pos, index)
       we.name = uicontrol('parent', group, ...
@@ -212,6 +325,8 @@ function exploreSimulation(varargin)
                             'handlevisibility', 'off', ...
                             'position', [pos(1) + pos(3)*0.87, pos(2), pos(3)*0.11, pos(4)]);
    end
+
+   % ----------------------------------------------------------------------------
    
    function set_new_rate_callback(ix)
       if isempty(var.wells(ix).pos)
@@ -222,6 +337,8 @@ function exploreSimulation(varargin)
       end      
       redraw();
    end
+   
+   % ----------------------------------------------------------------------------
    
    function clear_well_callback(ix)
       
@@ -234,6 +351,8 @@ function exploreSimulation(varargin)
       % redraw with new well information
       redraw();
    end
+   
+   % ----------------------------------------------------------------------------
    
    function group = setup_bc_group(pos)
 
@@ -266,6 +385,8 @@ function exploreSimulation(varargin)
       
       set(group, 'visible', 'on');
    end
+   
+   % ----------------------------------------------------------------------------
    
    function click_handler(varargin)
 
@@ -330,6 +451,8 @@ function exploreSimulation(varargin)
       % var.data(ix) = 1;
       % redraw();
    end
+
+   % ----------------------------------------------------------------------------
    
    function redraw(post_fnx)
       axes(var.ax); cla;
@@ -378,7 +501,9 @@ function exploreSimulation(varargin)
       
       view(0, 90);
    end
-      
+
+   % ----------------------------------------------------------------------------
+   
    function set_formation(name, do_redraw)
    
       % Default values, in case values are lacking in model file.
