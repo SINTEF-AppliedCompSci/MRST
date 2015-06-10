@@ -281,7 +281,7 @@ function exploreCapacity(varargin)
       
       if isnan(var.Gt_cached.(var.current_formation).poro)
          warning(['NaN porosity value encountered.  Replacing with default ' ...
-                  'vlaue']);
+                  'value']);
          var.Gt_cached.(var.current_formation).poro = default_poro;
       end
       

@@ -72,7 +72,7 @@ function exploreSimulation(varargin)
                              'style', 'pushbutton', ...
                              'units', 'normalized', ...
                              'position', [.66 .11 .2 .1], ...
-                             'string', 'Launch simulation!', ...
+                             'string', 'Launch new simulation!', ...
                              'callback', @(varargin) launch_simulation());
                        
    
@@ -116,12 +116,23 @@ function exploreSimulation(varargin)
       redraw();
    end
    
+   function set_rotate_state_callback()
+      sel = get(get(imode_group, 'selectedobject'), 'string');
+      if strcmpi(sel, 'Rotate model')
+         rotate3d(var.ax, 'on'); 
+      else
+         rotate3d(var.ax, 'off');
+      end
+   end
+   
+   
    function group = setup_imode_group(pos)
       
       % Create group
       group = uibuttongroup('Visible', 'off',...
                              'units', 'normalized', ...
-                             'position', pos);
+                             'position', pos, ...
+                             'selectionchangefcn', @(varargin) set_rotate_state_callback());
       % Create radiobuttons
       b1 = uicontrol(group, 'style', 'radiobutton', ...
                             'string', 'Edit boundaries', ...
@@ -130,7 +141,11 @@ function exploreSimulation(varargin)
       b2 = uicontrol(group, 'style', 'radiobutton', ...
                             'string', 'Select wellsites', ...
                             'units', 'normalized', ...
-                            'position', [.1 .5 .9 .3]);
+                            'position', [.1 .38 .9 .3]);
+      b3 = uicontrol(group, 'style', 'radiobutton', ...
+                            'string', 'Rotate model', ...
+                            'units', 'normalized', ...
+                            'position', [.1 .66 .9 .3]);
                             
       set(group, 'visible', 'on');      
    end
@@ -256,7 +271,7 @@ function exploreSimulation(varargin)
 
       pt = get(gca,'CurrentPoint'); pt = pt(end,:); 
       fn = [];
- 
+      
       switch get_interaction_type()
         case 'Edit boundaries'
           if ~isfield(temps, 'bc_segment_start')
@@ -300,7 +315,9 @@ function exploreSimulation(varargin)
           end
           var.wells(i).pos = pt(1:2);
           var.wells(i).rate = opt.default_rate;
-        
+        case 'Rotate model'
+          % do nothing - the radio button itself has toggled on rotate when activated
+          % rotate3d(var.ax, 'on');
         otherwise
           disp('unimplemented');
           return;
