@@ -285,6 +285,10 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
                   sparse(diag2(:,1), diag2(:,2), (1:Gt.cells.num)', nnum, nnum);
     
     cell_rivers = cell(size(edge_rivers, 1), 1);
+    if numel(edge_rivers) == 0
+       return; % nothing to do
+    end
+    
     for trap_ix = 1:size(edge_rivers, 1)
         for r_ix = 1:numel(edge_rivers{trap_ix})
             nodes_ix = edge_rivers{trap_ix}{r_ix};

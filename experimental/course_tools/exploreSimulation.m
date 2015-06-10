@@ -614,7 +614,7 @@ function exploreSimulation(varargin)
       
       % Run trapping analysis (we need this information to compute
       % inventories)
-      var.ta = trapAnalysis(var.Gt,true); %@@ false
+      var.ta = trapAnalysis(var.Gt,false);
       
       var.data = var.Gt.cells.z; 
       var.loops = find_boundary_loops(var.Gt);

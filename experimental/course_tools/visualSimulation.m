@@ -12,7 +12,7 @@ function visualSimulation(initState, model, schedule, varargin)
    opt = merge_options(opt, varargin{:});
    
    if isempty(opt.trapstruct)
-      opt.trapstruct = trapAnalysis(model.G, true);
+      opt.trapstruct = trapAnalysis(model.G, false);
    end
       
    %% Setting up interactive interface

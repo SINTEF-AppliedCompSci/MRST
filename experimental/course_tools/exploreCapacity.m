@@ -126,7 +126,9 @@ function exploreCapacity(varargin)
       % computing structural trap heights (H1) for each cell
       trapcells     = find(ta.traps);
       H1            = zeros(Gt.cells.num, 1);
-      H1(trapcells) = ta.trap_z(ta.traps(trapcells)) - Gt.cells.z(trapcells);
+      if ~isempty(trapcells)
+         H1(trapcells) = ta.trap_z(ta.traps(trapcells)) - Gt.cells.z(trapcells);
+      end
       H1=min(H1,Gt.cells.H);
       H2 = Gt.cells.H - H1;
       assert(all(H1<=Gt.cells.H));
@@ -289,7 +291,9 @@ function exploreCapacity(varargin)
          redraw();
       end
    end
-
+   
+   % ----------------------------------------------------------------------------
+   
    function str = capacity_report()
       [~, strap, btrap_res, btrap_dis] = recompute_trapcap();
       
