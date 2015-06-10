@@ -154,7 +154,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'fluid',               oilwater, ...
                  'name',                [], ...
                  'daspect',             [], ...
-                 'leaveOpenOnClose',    false ...
+                 'leaveOpenOnClose',    false, ...
+                 'lineWells',           false, ...
+                 'maxTOF',              [] ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -296,7 +298,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Precompute TOF etc. for creating main control
 	pv = poreVolume(computeGrid, rock);
     [D, WP] = computeTOFAndTracerAndWellPairs(W{state_idx}, state{state_idx});
-    tofext = getTOFRange(D);
+    tofext = getTOFRange(D, opt);
     createMainControl();
     
     % Trigger plot initial setup
@@ -316,14 +318,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     %
-    function tofext = getTOFRange(D)
+    function tofext = getTOFRange(D, opt)
         if (D.isvalid)
+            if ~isempty(opt.maxTOF)
+                tofext = convertTo([0, opt.maxTOF], year);
+            else
             tof = D.tof(:);
             isNeg = (tof <= 0);
             tof(isNeg) = min(tof(~isNeg));
 
             tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
             tofext(2) = clamp_real(max(tofext(2), 15));
+            end
         else
             tofext = [0 1];
         end
@@ -921,7 +927,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        tofext = getTOFRange(D);
+        tofext = getTOFRange(D, opt);
         setTOFSliderExtents();
         selection = getTOFSelection();
         
@@ -1065,35 +1071,52 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             subplot(2, 2,[1 3])
         end
 
-        if (numel(WP) > 0) 
-            pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
-            title('Pore volumes')
+        if (numel(WP) > 0)
+            tmp = wp(ik);
+            salloc = abs(sum(tmp.alloc,1));
+            [sa, tmp_ix] = sort(salloc, 'descend');
+            ssa = sum(sa);
+            ix = min(5, find(sa > .01*ssa, 1, 'last'));
+            [sa, tmp_ix] = deal(sa(ix:-1:1), tmp_ix(ix:-1:1));
+            pie(sa/ssa, otherNames(tmp_ix))
+            %pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
+            title('Well allocation factors')
+            if isInj
+               set(ctrl_drain_vols, 'Value', tmp_ix);
+            else
+               set(ctrl_flood_vols, 'Value', tmp_ix); 
+            end
+            fig_main_wells.dirty = true;
         end
         if plotArrival
             subplot(2,2,3);  cla;
-            plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, opt.useMobilityArrival)
+            plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, opt.useMobilityArrival, 'inj_ix', tmp_ix)
+            
         end
 
-        subplot(2,2,[2 4])
-        if (numel(wp) > 0)
-            tmp = wp(ik);
+        
+        if (numel(WP) > 0)
             if numel(tmp.z) > 1
-                % Allocation factors by depth does not make sense for only one
+                subplot(2,2,[2 4])
+                % Allocation factors by connection does not make sense for only one
                 % perforation!
-                [z, zind] = sort(tmp.z, 'descend');
-                alloc = tmp.alloc(zind, :);
-                % Always some allocation - avoid division by zero
-                alloc(alloc == 0) = eps;
-                walloc = bsxfun(@rdivide, cumsum(alloc,1), sum(alloc(:)));
-                area(z, walloc, eps); axis tight;
+                %[z, zind] = sort(tmp.z, 'descend');
+                alloc  = abs(tmp.alloc(:, tmp_ix));
+                na = size(alloc,1);
+                % reverse cumsum
+                calloc = cumsum(alloc, 1, 'reverse');
+                % Use standard units
+                calloc = convertTo(calloc, 1/day);
+                area((1:na)', calloc); axis tight;
                 hold on
-                plot(z, zeros(numel(z, 1)), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
+                plot((1:na)', zeros(na,1), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
                 % Flip it around, xlabel is really ylabel
                 view(90, -90);
                 set(gca, 'XDir', 'reverse')
-                legend(otherNames, 'Location', 'EastOutside');
-                xlabel('Depth')
-                title(['Allocation factors by depth for ', W{state_idx}(wk).name]);
+                %legend(otherNames, 'Location', 'EastOutside');
+                xlabel('Connection #')
+                ylabel('Accumulated flux [m^3/day]')
+                title('Allocation by connection');
             end
         end
 
