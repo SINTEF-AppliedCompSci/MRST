@@ -30,6 +30,7 @@ function exploreSimulation(varargin)
    opt.inj_steps = 10;
    opt.mig_time = 3000 * year;
    opt.mig_steps = 30;
+   opt.well_radius = 0.3;
    
    opt = merge_options(opt, varargin{:});
 
@@ -75,7 +76,7 @@ function exploreSimulation(varargin)
    imode_group = setup_imode_group([.8 .8 .16 .15]);
    
    % Group for displaying and modifying wells
-   [well_group, well_entries] = setup_well_group([.56 .25, .4, .50]);
+   [well_group, well_entries] = setup_well_group([.56 .25, .4, .50]);%#ok
 
    % launch button
    launch_button = uicontrol('parent', var.h, ...
@@ -83,11 +84,11 @@ function exploreSimulation(varargin)
                              'units', 'normalized', ...
                              'position', [.56 .12 .18 .11], ...
                              'string', 'Launch new simulation!', ...
-                             'callback', @(varargin) launch_simulation());
+                             'callback', @(varargin) launch_simulation()); %#ok
                        
    
    % Other options
-   [opt_group, opt_choices] = setup_opt_group([.76, .12, .20, .11]);
+   [opt_group, opt_choices] = setup_opt_group([.76, .12, .20, .11]);%#ok
    
    %% Launching by calling redraw function
    redraw();
@@ -97,20 +98,15 @@ function exploreSimulation(varargin)
 
    function launch_simulation()
 
-      %       if get(opt.choices.dissolution, 'value')
-      %    % model with dissolution
-      % else
-      %    % model without dissolution
-         
-      %    end
-      % model = ;
+      use_dissolution = get(opt_choices.dissolution, 'value');
       
       % Set up input parameters
       fluid     = makeVEFluid(var.Gt, var.rock2D, 'sharp interface', ...
-                              'fixedT', caprock_temperature(), ...
-                              'wat_rho_pvt', [opt.water_compr_val, opt.water_compr_p_ref], ...                              
-                              'residual' , [opt.water_residual, opt.co2_residual], ...
-                              'dissolution', true, 'dis_max', opt.dis_max);
+                              'fixedT'      , caprock_temperature()                          , ...
+                              'wat_rho_pvt' , [opt.water_compr_val  , opt.water_compr_p_ref] , ...                              
+                              'residual'    , [opt.water_residual   , opt.co2_residual]      , ...
+                              'dissolution' , use_dissolution                                , ...
+                              'dis_max'     , opt.dis_max);
                               
       model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
       initState = setup_initstate();
@@ -125,16 +121,38 @@ function exploreSimulation(varargin)
    
    function schedule = setup_schedule()
 
+      % Create wells 
+      W = [];
+      for i = 1:opt.max_num_wells
+
+         if ~isempty(var.wells(i).pos)
+            wcell_ix = closest_cell(var.Gt, [var.wells(i).pos,0], 1:var.Gt.cells.num);
+            W = addWell(W, var.Gt, var.rock2D, wcell_ix, ...
+                        'type', 'rate', ...
+                        'val', var.wells(i).rate, ...
+                        'radius', opt.well_radius, ...
+                        'comp_i', [0 1], ...
+                        'name', ['I', num2str(i)]);
+         end
+      end
+      W_shut = W;
+      for i = 1:numel(W_shut)
+         W_shut(i).rate = 0;
+      end
       
+      % Define schedule
+      schedule.control = [W, W_shut];
+      
+      dTi = opt.inj_time / opt.inj_steps;
+      dTm = opt.mig_time / opt.mig_steps;
+      istepvec = ones(opt.inj_steps, 1) * dTi;
+      mstepvec = ones(opt.mig_steps, 1) * dTm;
+      
+      schedule.step.val = [istepvec; mstepvec];
+      schedule.step.control = [ones(opt.inj_steps, 1); ones(opt.mig_steps, 1) * 2];
       
    end
-   
-   opt.inj_time = 50 * year;
-   opt.inj_steps = 10;
-   opt.mig_time = 3000 * year;
-   opt.mig_steps = 30;
 
-   
    % ----------------------------------------------------------------------------
    
    function T = caprock_temperature()
@@ -174,7 +192,6 @@ function exploreSimulation(varargin)
    % ----------------------------------------------------------------------------
    
    function res = get_active_bc_type()
-      res = 0;
       switch(get(get(bc_group, 'selectedobject'), 'string'))
         case 'Closed'
           res = 0;
@@ -227,7 +244,7 @@ function exploreSimulation(varargin)
                         'style', 'text', ...
                         'units', 'normalized', ...
                         'position', [.2, .43, .55, .2], ...
-                        'string', 'Include dissolution');
+                        'string', 'Include dissolution');%#ok
                            
       
       set(group, 'visible', 'on');      
@@ -246,15 +263,15 @@ function exploreSimulation(varargin)
       b1 = uicontrol(group, 'style', 'radiobutton', ...
                             'string', 'Edit boundaries', ...
                             'units', 'normalized', ...
-                            'position', [.1 .1 .9 .3]);
+                            'position', [.1 .1 .9 .3]);%#ok
       b2 = uicontrol(group, 'style', 'radiobutton', ...
                             'string', 'Select wellsites', ...
                             'units', 'normalized', ...
-                            'position', [.1 .38 .9 .3]);
+                            'position', [.1 .38 .9 .3]);%#ok
       b3 = uicontrol(group, 'style', 'radiobutton', ...
                             'string', 'Rotate model', ...
                             'units', 'normalized', ...
-                            'position', [.1 .66 .9 .3]);
+                            'position', [.1 .66 .9 .3]);%#ok
                             
       set(group, 'visible', 'on');      
    end
@@ -272,7 +289,7 @@ function exploreSimulation(varargin)
       for i = 1:opt.max_num_wells
          ypos    = ((opt.max_num_wells - (i)) / opt.max_num_wells) * 0.95;
          yheight = (1 / opt.max_num_wells) * 0.95;
-         entries = [entries; add_well_entry(group, [0.1, ypos, 0.9, yheight], i)]; 
+         entries = [entries; add_well_entry(group, [0.1, ypos, 0.9, yheight], i)];%#ok
       end
       set(group, 'visible', 'on');
    end
@@ -365,23 +382,23 @@ function exploreSimulation(varargin)
                             'string', 'Closed', ...
                             'units', 'normalized', ...
                             'position', [.1 .1 .9 .27], ...
-                            'HandleVisibility', 'off');
-      b2 = uicontrol(group, 'style', 'radiobutton', ...
+                            'HandleVisibility', 'off');%#ok
+      b2 = uicontrol(group, 'style', 'radiobutton', ... 
                             'string', 'Semi-open', ...
                             'units', 'normalized', ...
                             'position', [.1 .4 .9 .27], ...
-                            'HandleVisibility', 'off');
+                            'HandleVisibility', 'off');%#ok
       b3 = uicontrol(group, 'style', 'radiobutton', ...
                             'string', 'Open', ...
                             'units', 'normalized', ...
                             'position', [.1 .7 .9 .27], ...
-                            'HandleVisibility', 'off');
+                            'HandleVisibility', 'off');%#ok
       pb1 = uicontrol(group, 'style', 'pushbutton', ...
                              'string', 'Set all', ...
                              'units', 'normalized', ...
                              'position', [.6 .7 .35 .2], ...
                              'handlevisibility', 'off', ...
-                             'callback', @set_uniform_bc_callback);
+                             'callback', @set_uniform_bc_callback);%#ok
       
       set(group, 'visible', 'on');
    end
@@ -603,7 +620,6 @@ end
 function loops = find_boundary_loops(Gt)
 
    [~, fix] = boundary_cells_and_faces(Gt); % boundary face indices
-   nix = unique(Gt.faces.neighbors(fix,:)); % boundary node indices
 
    tmp = [fix, Gt.faces.nodes(Gt.faces.nodePos(fix));
           fix, Gt.faces.nodes(Gt.faces.nodePos(fix)+1)];
@@ -619,14 +635,14 @@ function loops = find_boundary_loops(Gt)
       [loop,~] = find(M, 1);
       next = find(M(loop, :), 1); % find one of the two neighbor faces
       while ~isempty(next)
-         M(loop(end), next) = 0;
-         M(next, loop(end)) = 0;
-         loop = [loop; next];
+         M(loop(end), next) = 0; %#ok
+         M(next, loop(end)) = 0; %#ok
+         loop = [loop; next]; %#ok
          next = find(M(next, :)); 
          assert(numel(next) <= 1);
       end
       assert(loop(1) == loop(end));
-      loops{num_loops} = loop(1:end-1);
+      loops{num_loops} = loop(1:end-1); %#ok
    end
 end
 
@@ -649,7 +665,7 @@ function [face_ix, loop_ix] = closest_bface(Gt, pt, loops, imposed_loop)
       dist = bsxfun(@minus, loop_coords, pt);
       dist = sum(dist.^2, 2);
       [dmin, num] = min(dist);
-      closest_face = [closest_face; [dmin, num]];
+      closest_face = [closest_face; [dmin, num]]; %#ok
    end
    
    [~, i] = min(closest_face(:,1));
