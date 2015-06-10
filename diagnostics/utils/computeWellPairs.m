@@ -72,10 +72,12 @@ if np == 1
 end
 
 % Fraction of cell associated with each well pair
-cij = repmat(D.itracer, 1, np) .* rldecode(D.ptracer, ni,2);
+%cij = repmat(D.itracer, 1, np) .* rldecode(D.ptracer, ni,2);
 
+vols = D.itracer'*bsxfun(@times, poreVolume(G, rock), D.ptracer);
 % Volumes associated with each well pair
-WP.vols = sum(cij .* repmat(poreVolume(G, rock),1, ni*np));
+WP.vols = vols(:)';
+%WP.vols = sum(cij .* repmat(poreVolume(G, rock),1, ni*np));
 
 % Numerical indices of each pair
 WP.pairIx = [repmat(1:ni, 1, np);...
