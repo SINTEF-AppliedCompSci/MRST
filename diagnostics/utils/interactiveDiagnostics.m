@@ -1103,7 +1103,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 alloc  = abs(tmp.alloc(:, tmp_ix));
                 na = size(alloc,1);
                 % reverse cumsum
-                calloc = cumsum(alloc, 1, 'reverse');
+                calloc = cumsum(flipud(alloc), 1);
+                calloc = flipud(calloc);
                 % Use standard units
                 calloc = convertTo(calloc, 1/day);
                 area((1:na)', calloc); axis tight;
@@ -1300,7 +1301,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rS.pressure = state_step.pressure;
         end
         
-        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true);
+        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true, 'maxTOF', opt.maxTOF);
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         
