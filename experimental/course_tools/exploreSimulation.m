@@ -5,33 +5,32 @@ function exploreSimulation(varargin)
 
    rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
    
-   opt.grid_coarsening = 4;
+   opt.grid_coarsening   = 4;
    opt.default_formation = 'Utsirafm';
-   opt.window_size = [1200 900];
-   opt.seafloor_depth = 100 * meter;
-   opt.seafloor_temp  =  7; % in Celsius
-   opt.temp_gradient  = 35.6; % degrees per kilometer
-   opt.water_density  = 1000; % kg per m3
-   opt.press_deviation = 0; % pressure devation from hydrostatic (percent)
-   opt.res_sat_co2 = 0.21; 
-   opt.res_sat_wat = 0.11;
-   opt.dis_max = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
-   opt.max_num_wells = 10;
-   opt.default_rate = 1 * mega * 1e3 / year / rhoCref; % default injection rate
-   opt.max_rate = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate
-   opt.seafloor_depth = 100 * meter;
-   opt.seafloor_temp  =  7; % in Celsius
-   opt.temp_gradient  = 35.6; % degrees per kilometer
-   opt.water_compr_val = 4.3e-5/barsa;
-   opt.water_compr_p_ref = 100 * barsa;
-   opt.water_residual = 0.11;
-   opt.co2_residual = 0.21;
-   opt.inj_time = 50 * year;
-   opt.inj_steps = 10;
-   opt.mig_time = 3000 * year;
-   opt.mig_steps = 30;
-   opt.well_radius = 0.3;
-   opt.subtrap_file = 'utsira_subtrap_function_3.mat';
+   opt.window_size       = [1200 900];
+   opt.seafloor_depth    = 100 * meter;
+   opt.seafloor_temp     =  7; % in Celsius
+   opt.temp_gradient     = 35.6; % degrees per kilometer
+   opt.water_density     = 1000; % kg per m3
+   opt.res_sat_co2       = 0.21; 
+   opt.res_sat_wat       = 0.11;
+   opt.dis_max           = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
+   opt.max_num_wells     = 10;
+   opt.default_rate      = 1 * mega * 1e3 / year / rhoCref; % default injection rate
+   opt.max_rate          = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate
+   opt.seafloor_depth    = 100 * meter;
+   opt.seafloor_temp     =  7; % in Celsius
+   opt.temp_gradient     = 35.6; % degrees per kilometer
+   opt.water_compr_val   = 4.3e-5/barsa;
+   opt.pvMult            = 1e-5/barsa; % pore volume multiplier
+   opt.water_residual    = 0.11;
+   opt.co2_residual      = 0.21;
+   opt.inj_time          = 50 * year;
+   opt.inj_steps         = 10;
+   opt.mig_time          = 3000 * year;
+   opt.mig_steps         = 30;
+   opt.well_radius       = 0.3;
+   opt.subtrap_file      = 'utsira_subtrap_function_3.mat';
    
    opt = merge_options(opt, varargin{:});
 
@@ -118,22 +117,27 @@ function exploreSimulation(varargin)
       end
       
       % Set up input parameters
+      initState = setup_initstate();
+      ref_p     = mean(initState.pressure); % use mean pressure as reference
+                                            % pressure for linear compressibilities
       fluid     = makeVEFluid(var.Gt, var.rock2D, 'sharp interface', ...
-                              'fixedT'      , caprock_temperature()                          , ...
-                              'wat_rho_pvt' , [opt.water_compr_val  , opt.water_compr_p_ref] , ...                              
-                              'residual'    , [opt.water_residual   , opt.co2_residual]      , ...
-                              'dissolution' , use_dissolution                                , ...
-                              'dis_max'     , opt.dis_max                                    , ...
-                              'surf_topo'   , topo                                           , ...
+                              'fixedT'      , caprock_temperature()                   , ...
+                              'wat_rho_pvt' , [opt.water_compr_val, ref_p]            , ...
+                              'wat_rho_ref' , opt.water_density                       , ...
+                              'pvMult_p_ref', ref_p                                   , ...
+                              'pvMult_fac'  , opt.pvMult                              , ...
+                              'residual'    , [opt.water_residual,  opt.co2_residual] , ...
+                              'dissolution' , use_dissolution                         , ...
+                              'dis_max'     , opt.dis_max                             , ...
+                              'surf_topo'   , topo                                    , ...
                               'top_trap'    , dh);
                               
       model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
-      initState = setup_initstate();
       schedule  = setup_schedule();
   
       % spawn simulation window 
-      visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, 'trapstruct', var.ta, 'dh', dh);
-
+      visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, ...
+                       'trapstruct', var.ta, 'dh', dh);
    end
 
    % ----------------------------------------------------------------------------
@@ -163,7 +167,7 @@ function exploreSimulation(varargin)
       schedule.control(1).W = W;
       schedule.control(2).W = W_shut;
       
-      % Define boundary conditionsx
+      % Define boundary conditions
       open_faces = [];
       for i = 1:numel(var.loops)
          faces = var.loops{i};
