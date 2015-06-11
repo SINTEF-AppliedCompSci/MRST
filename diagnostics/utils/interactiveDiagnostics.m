@@ -155,8 +155,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'name',                [], ...
                  'daspect',             [], ...
                  'leaveOpenOnClose',    false, ...
-                 'lineWells',           false, ...
-                 'maxTOF',              [] ...
+                 'lineWells',           true, ...
+                 'maxTOF',              [], ...
+                 'useLight',            true ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -251,10 +252,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %Handles for well plot in main figure
     fig_main_wells = {};
-    [fig_main_wells.htop,...
-     fig_main_wells.htext,...
-     fig_main_wells.hs,...
-     fig_main_wells.hline] = deal([]); 
+    fig_main_wells.hwells = [];
+%     [fig_main_wells.htop,...
+%      fig_main_wells.htext,...
+%      fig_main_wells.hs,...
+%      fig_main_wells.hline] = deal([]); 
     fig_main_wells.dirty = true;
     
     %Handles for cell data in main figure
@@ -303,7 +305,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     plotMain();
     axis tight off
     view(3);
+    % lighting (set both above and beneath..)
+    if opt.useLight
+        ax = axis;
+        [p1, p2] = deal(ax([2,3,5]), ax([1,4,6]));
+        light('Position', p1 + 3*(p2-p1));
+        [p1, p2] = deal(ax([2,3,6]), ax([1,4,5]));
+        light('Position', p1 + 3*(p2-p1));
+    end
+    
+    
 
+    
     
     
     
@@ -987,6 +1000,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         playback = true;
         % Pop figure to front explicitly before loop
         figure(fig_main);
+        set(gca, 'XLimMode', 'manual', ...
+                 'YLimMode', 'manual', ...
+                 'ZLimMode', 'manual');
         for i = 0:N
             if ~playback
                 return
@@ -1006,7 +1022,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % The whole event should take a minimum of 10 seconds
             pause(min(0, 10/N - toc(timer)));
         end
-        
+        set(gca, 'XLimMode', 'auto', ...
+                 'YLimMode', 'auto', ...
+                 'ZLimMode', 'auto');
         playback = false;
     end
 
@@ -1143,43 +1161,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function plotWells()
         % Plot wells
         if (fig_main_wells.dirty)
-            if (any(ishandle(fig_main_wells.htop)))
-                delete(fig_main_wells.htop);
+            if isempty(fig_main_wells.hwells)
+                fig_main_wells.hwells = plotWellData(G, wellsToPlotGrid(W{state_idx}), ...
+                    'color', [0 0 0], 'linePlot', opt.lineWells);
+                for j = 1:numel(W{state_idx})
+                    color = colorizeWell('global', j, D);
+                    set(fig_main_wells.hwells(j).label, 'ButtonDownFcn', @(src, event) onClickWell(src, event, j));
+                    set([fig_main_wells.hwells(j).label, fig_main_wells.hwells(j).connector], 'Color', color);
+                    set(fig_main_wells.hwells(j).label, 'FontWeight', 'bold', 'Interpreter', 'none')
+                    for k = 1:numel(fig_main_wells.hwells(j).body)
+                        if any(strcmp(get(fig_main_wells.hwells(2).body(k), 'type'), {'patch', 'surface'}))
+                            set(fig_main_wells.hwells(j).body(k), 'FaceColor', color, 'EdgeColor', 'none');
+                        else
+                            set(fig_main_wells.hwells(j).body(k), 'Color', color);
+                        end
+                    end
+                end
             end
-            if (any(ishandle(fig_main_wells.htext)))
-                delete(fig_main_wells.htext);
-            end
-            if (any(ishandle(fig_main_wells.hs)))
-                delete(fig_main_wells.hs);
-            end
-            if (any(ishandle(fig_main_wells.hline)))
-                delete(fig_main_wells.hline);
-            end
-    
-            %Get the selected wells only
+            
+            % update selected visible
             drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
             flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
             sel_wells = [drain_wells, flood_wells];
             
-            if (numel(sel_wells) > 0)
-                W_sel = W{state_idx}(sel_wells);
-
-                [fig_main_wells.htop, ...
-                    fig_main_wells.htext, ...
-                    fig_main_wells.hs, ...
-                    fig_main_wells.hline] = plotWell(G, wellsToPlotGrid(W_sel), ...
-                                                    'color', 'red', 'height',  0);
-
-                for j = 1:numel(W_sel)
-                    i = sel_wells(j);
-                    color = colorizeWell('global', i, D);
-                    set([fig_main_wells.htop(j) fig_main_wells.htext(j) fig_main_wells.hs(j)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
-                    set([fig_main_wells.htop(j) fig_main_wells.hs(j)], 'FaceColor', color, 'EdgeColor', color)
-                    set([fig_main_wells.htext(j) fig_main_wells.hline(j)], 'Color', color)
-                    set(fig_main_wells.htext(j), 'FontWeight', 'bold', 'Interpreter', 'none')
-                end
-            end
-            
+            vis = repmat({'off'}, [numel(W{state_idx}), 1]);
+            [vis{sel_wells}] = deal('on');
+            for j = 1: numel(W{state_idx})
+                set([fig_main_wells.hwells(j).label, ...
+                     fig_main_wells.hwells(j).connector, ...
+                     fig_main_wells.hwells(j).body], 'Visible', vis{j});
+            end          
             fig_main_wells.dirty = false;
         end
     end
