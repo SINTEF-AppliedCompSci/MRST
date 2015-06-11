@@ -1161,7 +1161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function plotWells()
         % Plot wells
         if (fig_main_wells.dirty)
-            if isempty(fig_main_wells.hwells)
+            if isempty(fig_main_wells.hwells) || ~ishandle(fig_main_wells.hwells(1).label)
                 fig_main_wells.hwells = plotWellData(G, wellsToPlotGrid(W{state_idx}), ...
                     'color', [0 0 0], 'linePlot', opt.lineWells);
                 for j = 1:numel(W{state_idx})
