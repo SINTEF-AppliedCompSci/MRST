@@ -157,7 +157,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'leaveOpenOnClose',    false, ...
                  'lineWells',           true, ...
                  'maxTOF',              [], ...
-                 'useLight',            true ...
+                 'useLight',            true, ...
+                 'fastRotate',          true ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -183,7 +184,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if (~isempty(opt.computeGrid))
         assert(isfield(G.cells, 'eMap'), ...
             'G must have an eMap field when using a separate computeGrid');
-        cdataToPlotGrid = @(cdata) cdata(G.cells.eMap);
+        cdataToPlotGrid = @(cdata) cdata(G.cells.eMap,:);
         wellsToPlotGrid = @(wells) remapWells(G, wells);
         computeGrid = opt.computeGrid;
     end
@@ -303,8 +304,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Trigger plot initial setup
     plotMain();
-    axis tight off
+    axis vis3d tight off
     view(3);
+    colormap jet
     % lighting (set both above and beneath..)
     if opt.useLight
         ax = axis;
@@ -966,7 +968,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        fastRotateButton();
+        if opt.fastRotate
+            fastRotateButton();
+        end
 
         plotWells();
         
@@ -1285,8 +1289,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 cdata = D.isubset;
             case 'sum tof frequency'
                 cdata = D.isubset + D.psubset;
+            case 'state.s'
+                cdata = state{state_idx}.s(:, [2 3 1]);
             otherwise
-                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
+%                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
                 cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
         
