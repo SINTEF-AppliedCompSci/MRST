@@ -1101,7 +1101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ssa = sum(sa);
             ix = min(5, find(sa > .01*ssa, 1, 'last'));
             [sa, tmp_ix] = deal(sa(ix:-1:1), tmp_ix(ix:-1:1));
-            if ~isempty(sa) || ssa~=0
+            if ~isempty(sa) && ssa~=0
                 pie(sa/ssa, otherNames(tmp_ix));
                 %pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
                 title('Well allocation factors')
