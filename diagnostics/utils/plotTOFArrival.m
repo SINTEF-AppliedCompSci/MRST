@@ -1,9 +1,10 @@
 function plotTOFArrival(state, W, pv, fluid, prod, D, useMob, varargin)
-opt = struct('maxTOF',   1.25*min( D.tof( W(D.prod(prod)).cells, 1 ) ) , ...
-             'inj_ix', []);
-opt = merge_options(opt, varargin{:});
+    opt = struct('maxTOF',   inf, ...
+             'inj_ix', 1:numel(D.inj));
+    opt = merge_options(opt, varargin{:});
+    opt.maxTOF = min(opt.maxTOF, 1.25*min( D.tof( W(D.prod(prod)).cells, 1 )) );
     tof = D.tof(:,2)./year;
-    tof_ix  = find(and(D.ppart == prod,  tof < opt.maxTOF/year ));
+    tof_ix  = find(and(D.ppart == prod,  tof < .99*opt.maxTOF/year ));
     [tof, ix] = sort(tof(tof_ix));
     tof_ix = tof_ix(ix);
     
@@ -59,16 +60,14 @@ opt = merge_options(opt, varargin{:});
     end
 
     function plotTOFPhase(phase)
+        inj_ix = opt.inj_ix;
         figure;
-        if isempty(opt.inj_ix)
-            inj_ix = 1:numel(D.inj);
-        else
-            inj_ix = opt.inj_ix;
-        end
-        sphase = bsxfun(@times, data(:, phase), D.itracer(tof_ix, inj_ix));
-        area(tof, cumsum(sphase));    
-
-        legend(arrayfun(@(x) x.name, W(D.inj(inj_ix)), 'uniformoutput', false),'Location', 'NorthWest')
+        itr = D.itracer(tof_ix, :);
+        itr = [itr 1-itr];
+        sphase = bsxfun(@times, data(:, phase), itr(:, inj_ix));
+        area(tof, cumsum(sphase));
+        nms = {W(D.inj).name, 'reservoir'};     
+        legend(nms{inj_ix},'Location', 'NorthWest')
         title([W(D.prod(prod)).name ': Injector distribution for ' names{phase}]);
     end
 end
