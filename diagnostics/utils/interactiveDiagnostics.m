@@ -1054,7 +1054,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (numel(WP) > 0)
                 wp = @(x) WP.inj(x);
             end
-            otherNames = {W{state_idx}(D.prod).name};
+            otherNames = {W{state_idx}(D.prod).name, 'reservoir'};
 
             % set plots to match piecharts
             v = find(strcmpi(get(hdataset, 'String'), 'drainage region'));
@@ -1069,7 +1069,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (numel(WP) > 0)
                 wp = @(x) WP.prod(x);
             end
-            otherNames = {W{state_idx}(D.inj).name};
+            otherNames = {W{state_idx}(D.inj).name, 'reservoir'};
 
             v = find(strcmpi(get(hdataset, 'String'), 'flooding region'));
             set(hdataset, 'Value', v(1))
@@ -1094,7 +1094,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         if (numel(WP) > 0)
             tmp = wp(ik);
-            salloc = abs(sum(tmp.alloc,1));
+            %salloc = abs(sum(tmp.alloc,1));
+            alloc = [tmp.alloc, tmp.ralloc];
+            salloc = abs(sum(alloc));
             [sa, tmp_ix] = sort(salloc, 'descend');
             ssa = sum(sa);
             ix = min(5, find(sa > .01*ssa, 1, 'last'));
@@ -1104,17 +1106,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 %pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
                 title('Well allocation factors')
                 if isInj
-                    set(ctrl_drain_vols, 'Value', tmp_ix);
+                    set(ctrl_drain_vols, 'Value', tmp_ix(tmp_ix<=numel(D.prod)));
                 else
-                    set(ctrl_flood_vols, 'Value', tmp_ix);
+                    set(ctrl_flood_vols, 'Value', tmp_ix(tmp_ix<=numel(D.inj)));
                 end
             end
             fig_main_wells.dirty = true;
         end
         if plotArrival
             subplot(2,2,3);  cla;
-            plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, opt.useMobilityArrival, 'inj_ix', tmp_ix)
-            
+            plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, ...
+                    opt.useMobilityArrival, 'inj_ix', tmp_ix, 'maxTOF', opt.maxTOF);
         end
 
         
@@ -1124,7 +1126,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 % Allocation factors by connection does not make sense for only one
                 % perforation!
                 %[z, zind] = sort(tmp.z, 'descend');
-                alloc  = abs(tmp.alloc(:, tmp_ix));
+                %alloc  = abs(tmp.alloc(:, tmp_ix));
+                alloc  = abs(alloc(:, tmp_ix));
                 na = size(alloc,1);
                 % reverse cumsum
                 calloc = cumsum(flipud(alloc), 1);
