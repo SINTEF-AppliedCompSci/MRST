@@ -1099,13 +1099,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ssa = sum(sa);
             ix = min(5, find(sa > .01*ssa, 1, 'last'));
             [sa, tmp_ix] = deal(sa(ix:-1:1), tmp_ix(ix:-1:1));
-            pie(sa/ssa, otherNames(tmp_ix))
-            %pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
-            title('Well allocation factors')
-            if isInj
-               set(ctrl_drain_vols, 'Value', tmp_ix);
-            else
-               set(ctrl_flood_vols, 'Value', tmp_ix); 
+            if ~isempty(sa) || ssa~=0
+                pie(sa/ssa, otherNames(tmp_ix));
+                %pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
+                title('Well allocation factors')
+                if isInj
+                    set(ctrl_drain_vols, 'Value', tmp_ix);
+                else
+                    set(ctrl_flood_vols, 'Value', tmp_ix);
+                end
             end
             fig_main_wells.dirty = true;
         end
@@ -1129,16 +1131,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 calloc = flipud(calloc);
                 % Use standard units
                 calloc = convertTo(calloc, 1/day);
-                area((1:na)', calloc); axis tight;
-                hold on
-                plot((1:na)', zeros(na,1), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
-                % Flip it around, xlabel is really ylabel
-                view(90, -90);
-                set(gca, 'XDir', 'reverse')
-                %legend(otherNames, 'Location', 'EastOutside');
-                xlabel('Connection #')
-                ylabel('Accumulated flux [m^3/day]')
-                title('Allocation by connection');
+                if ~isempty(calloc)
+                    area((1:na)', calloc); axis tight;
+                    hold on
+                    plot((1:na)', zeros(na,1), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
+                    % Flip it around, xlabel is really ylabel
+                    view(90, -90);
+                    set(gca, 'XDir', 'reverse')
+                    %legend(otherNames, 'Location', 'EastOutside');
+                    xlabel('Connection #')
+                    ylabel('Accumulated flux [m^3/day]')
+                    title('Allocation by connection');
+                end
             end
         end
 
