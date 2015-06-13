@@ -1,4 +1,4 @@
-function plotTOFArrival(state, W, pv, fluid, prod, D, useMob, varargin)
+function plotTOFArrival(state, W, pv, fluid, prod, D, varargin)
     opt = struct('maxTOF',   [], ...
              'inj_ix', 1:numel(D.inj));
     opt = merge_options(opt, varargin{:});
@@ -13,18 +13,14 @@ function plotTOFArrival(state, W, pv, fluid, prod, D, useMob, varargin)
     
     nPh = size(state.s, 2);
     % Compute fluid mobilities
-    if useMob
-        % Use mobility as data based on fluid.
-        if nPh == 3
-            [mu rho] = fluid.properties(state);
-        else
-            [mu rho] = fluid.properties();
-        end
-        data = fluid.relperm(state.s)./repmat(mu, size(state.s, 1), 1);
+    if isfield(state, 'mob')
+        % Use fraction of total mobility to estimate how much will flow
+        data = bsxfun(@rdivide, state.mob, sum(state.mob, 2));
     else
         data = state.s;
     end
-    data = data.*repmat(pv, 1, nPh);
+    % Weight by pore volumes to get actual volumes that will flow
+    data = bsxfun(@times, data, pv);
     data = data(tof_ix,:);
 
     
