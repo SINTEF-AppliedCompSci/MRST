@@ -16,7 +16,6 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %     the component ratios inside a drainage volume. The flux from this
 %     state can also be used to calculate time of flight if "computeFlux"
 %     is disabled, for instance if the user has some external means of
-%     computing fluxes.
 %
 %   Once the initialization is complete, two windows will be produced:
 %     - A plotting window, showing the reservoir along with the wells and
@@ -280,7 +279,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     time_varying = (~isempty(state) && numel(state) > 1) || (~isempty(W) && numel(W) > 1);
     selection = []; % Selection of cells
     
-    
+    % Storage for diagnostics and wellpair computations
+    [WellPairs, Diagnostics] = deal(cell(numel(state), 1));
     
     %Create main figure
     fig_main = figure('Name', window_name);    
@@ -298,7 +298,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Create control panel
     % Precompute TOF etc. for creating main control
 	pv = poreVolume(computeGrid, rock);
-    [D, WP] = computeTOFAndTracerAndWellPairs(W{state_idx}, state{state_idx});
+    [D, WP] = getDiagnostics(state_idx);
     tofext = getTOFRange(D, opt);
     createMainControl();
     
@@ -315,12 +315,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [p1, p2] = deal(ax([2,3,6]), ax([1,4,5]));
         light('Position', p1 + 3*(p2-p1));
     end
-    
-    
 
-    
-    
-    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Only function definitions from here on %
@@ -851,10 +846,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
             max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
 
+            % Precompute all diagnostics states
+            computeAllSteps();
+            
             D_int = computeTOFandTracerAverage(state, computeGrid, rock, ...
                 'wells', W, ...
                 'max_tof', max_tof,...
                 'min_tof', min_tof,...
+                'diagnostics', Diagnostics, ...
                 extra_args{:});
                 
             D = D_int;
@@ -1341,12 +1340,36 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function computeValues(idx)
-        [D, WP] = computeTOFAndTracerAndWellPairs(W{idx}, state{idx});
-
-        if (~D.isvalid || isempty(WP))
-            warning('Time of flight returned inf. Are there both active injectors and producers present?')
+    function computeValues(stepNo)
+        if isempty(Diagnostics{stepNo})
+            disp('New state encountered, computing diagnostics...');
+            [D, WP] = ...
+                computeTOFAndTracerAndWellPairs(W{stepNo}, state{stepNo});
+            Diagnostics{stepNo} = D;
+            WellPairs{stepNo}   = WP;
+            if (~D.isvalid || isempty(WP))
+                warning('Time of flight returned inf. Are there both active injectors and producers present?')
+            end
         end
+    end
+
+    function computeAllSteps()
+        h = waitbar(0, 'Computing diagnostics...');
+        for ix = 1:numel(state)
+            if isempty(Diagnostics{ix})
+                waitbar(ix/numel(state), h, 'Computing diagnostics...');
+            end
+            computeValues(ix);
+        end
+        if ishandle(h)
+            close(h);
+        end
+    end
+
+    function [D, WP] = getDiagnostics(stepNo)
+        computeValues(stepNo);
+        D = Diagnostics{stepNo};
+        WP = WellPairs{stepNo};
     end
 
     function changeWells()
