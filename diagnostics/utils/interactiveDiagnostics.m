@@ -807,7 +807,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                           'Callback', @dirtyWellsPlotMain, ...
                                           'Position', [0 0 1 1]);
         
-                                      
+        warning('off', 'MATLAB:uitabgroup:OldVersion');
         tabgp = uitabgroup(fig_ctrl,'Position', [0 0 1 .4]);
         
         tof_controls_tab = uitab(tabgp, 'Title', 'Time of flight region');
