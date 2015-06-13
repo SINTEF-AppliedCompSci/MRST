@@ -1,7 +1,10 @@
 function plotTOFArrival(state, W, pv, fluid, prod, D, useMob, varargin)
-    opt = struct('maxTOF',   inf, ...
+    opt = struct('maxTOF',   [], ...
              'inj_ix', 1:numel(D.inj));
     opt = merge_options(opt, varargin{:});
+    if isempty(opt.maxTOF)
+        opt.maxTOF = inf;
+    end
     opt.maxTOF = min(opt.maxTOF, 1.25*min( D.tof( W(D.prod(prod)).cells, 1 )) );
     tof = D.tof(:,2)./year;
     tof_ix  = find(and(D.ppart == prod,  tof < .99*opt.maxTOF/year ));
