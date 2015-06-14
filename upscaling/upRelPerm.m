@@ -241,37 +241,6 @@ switch method
         swUMax = updata.pcOW_bot(end,1);
         sW     = linspace(swUMin, swUMax, nvals)';
         values = interp1(updata.pcOW_bot(:,1), updata.pcOW_bot(:,2), sW);
-%         
-%         TEMP CODE
-%         fluid = block.fluid;
-%         G = block.G;
-%         if isfield(fluid, 'rhoO')
-%             rhoO = fluid.rhoO;
-%         else
-%             rhoO = fluid.rhoOS;
-%         end
-%         if isfield(fluid, 'rhoW')
-%             rhoW = fluid.rhoW;
-%         else
-%             rhoW = fluid.rhoWS;
-%         end
-%         dRho = rhoW - rhoO;
-%         g    = 9.8066; % HARDCODED
-%         zi   = max(G.cells.centroids(:,3)) - G.cells.centroids(:,3);
-%         grav = -dRho.*g.*zi;
-%         
-%         pv    = block.pv;
-%         pvTot = sum(pv);
-%         
-%         sup = nan(nvals,1);
-%         for i=1:nvals
-%             pcOW = values(i);
-%             s    = fluid.pcOWInv(pcOW - grav);
-%             sup(i)  = sum(s.*pv) / pvTot;
-%         end
-%         
-%         disp('Done');
-%         
         
     otherwise
         error(['Method ''' method ''' not recognized.']);
@@ -339,17 +308,10 @@ switch method
         dRho = rhoW - rhoO;
         g    = 9.8066; % HARDCODED
         zi   = max(G.cells.centroids(:,3)) - G.cells.centroids(:,3);
-        grav = -dRho.*g.*zi;
+        grav = -dRho.*g.*zi; % NOTE: Not sure about sign here
         
         sW   = fluid.pcOWInv(pcOW - grav);
         
-        % TEMP CODE
-        pv    = block.pv;
-        pvTot = sum(pv);
-        sWstart = sum(sW.*pv) / pvTot;
-        
-        disp(['mean(sW)=' num2str(mean(sW))]);
-        tmp=1*1;
     otherwise
         error(['Method ''' method ''' not recognized.']);
 end

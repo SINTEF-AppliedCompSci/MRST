@@ -19,7 +19,7 @@ methods
             varargin{:});
         
         upscaler.method   = [];
-        upscaler.nrelperm = 40;
+        upscaler.nrelperm = 20;
         upscaler.pcow     = true; % Upscale pcow or not
         upscaler.npcow    = 100;
         upscaler.relpermdims = upscaler.dims;
