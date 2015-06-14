@@ -43,9 +43,23 @@ methods
         
         % Capillary pressure upscaling
         if upscaler.pcow
-            useGravity  = ~isempty(regexpi(upscaler.method, '_grav$'));
-            [data, rep] = upPcOW(block, data, ...
-                'npointsmax', upscaler.npcow, 'gravity', useGravity);
+            
+            if ~isempty(regexpi(upscaler.method, '_grav$'));
+                % We upscale with gravity
+                [data, rep] = upPcOW(block, data, ...
+                    'npointsmax', upscaler.npcow, 'gravity', 'centroid');
+                % We also need the bottom pcow curve for relperm upscaling
+                [d, r] = upPcOW(block, [], ...
+                    'npointsmax', upscaler.npcow, 'gravity', 'bottom');
+                data.pcOW_bot = d.pcOW;
+                if wantReport
+                    report.pcow_bot = r;
+                end
+            else
+                % Default: no gravity
+                [data, rep] = upPcOW(block, data, ...
+                    'npointsmax', upscaler.npcow);
+            end
             if wantReport
                 report.pcow = rep;
             end

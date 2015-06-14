@@ -14,13 +14,12 @@ opt = struct(...
     'nPointsMax',  50, ...   % Maximum number of points
     'relTolSw',    0.01, ... % Relative to saturation scale
     'relTolPc',    0.01, ...  % Relative to pc scale
-    'gravity',     false ...
+    'gravity',     'none' ...
     );
 opt = merge_options(opt, varargin{:});
 
 wantReport = nargout > 1;
 timeStart = tic;
-useGravity = opt.gravity;
 
 G     = block.G;
 fluid = block.fluid;
@@ -40,8 +39,12 @@ nPointsMax  = opt.nPointsMax;
 relTolSw    = opt.relTolSw;
 relTolPc    = opt.relTolPc;
 
-if useGravity
-    % Gravity force value for each cell in the grid
+% Handle gravity
+useGravity  = false;
+grav        = 0;
+if any(strcmpi(opt.gravity, {'centroid', 'bottom'}))
+    useGravity = true;
+    
     if isfield(fluid, 'rhoO')
         rhoO = fluid.rhoO;
     else
@@ -55,19 +58,21 @@ if useGravity
     dRho = rhoW - rhoO;
     g    = 9.8066; % HARDCODED
     
-    % Compute an estimate of the centroid of the grid block. This will be
-    % the correct centroid is the grid is Cartesian, but otherwise, it may
-    % be off.
-    zCent = mean([max(G.cells.centroids(:,3)), ...
-                  min(G.cells.centroids(:,3))]);
+    if strcmpi(opt.gravity, 'centroid')
+        % Compute an estimate of the centroid of the grid block. This will
+        % be the correct centroid is the grid is Cartesian, but otherwise,
+        % it may be off.
+        zCent = mean([max(G.cells.centroids(:,3)), ...
+                      min(G.cells.centroids(:,3))]);
 
-    % Set height relative to the zCent. Thus the returned xvec is the
-    % capillary pressure at the height zCent.
-    zi   = G.cells.centroids(:,3) - zCent;
+        % Set height relative to the zCent. Thus the returned xvec is the
+        % capillary pressure at the height zCent.
+        zi   = zCent - G.cells.centroids(:,3);
+    elseif strcmpi(opt.gravity, 'bottom')
+        zi   = max(G.cells.centroids(:,3)) - G.cells.centroids(:,3);
+    end
     
-    grav = dRho.*g.*zi;
-else
-    grav = 0;
+    grav = -dRho.*g.*zi; % NOTE: Not sure about sign here
 end
 
 % Find minimum and maximum pc in block
