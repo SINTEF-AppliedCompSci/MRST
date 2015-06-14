@@ -100,8 +100,13 @@ for iv = 1:nvals
             if isfield(fluid,'muO')
                 muO = fluid.muO(pref, 'cellInx', 1);
             else
-                muO = fluid.BOxmuO(pref, 'cellInx', 1) / ...
-                    fluid.BO(pref, 'cellInx', 1);
+                try
+                    muO = fluid.BOxmuO(pref, 'cellInx', 1) / ...
+                        fluid.BO(pref, 'cellInx', 1);
+                catch
+                    % Fallback to support old syntax
+                    muO = fluid.BOxmuO(pref) / fluid.BO(pref);
+                end
             end
             
             mobTot = kr{1}./muO + kr{2}./muW;
@@ -214,7 +219,7 @@ switch method
         error('TODO: Need to determine swU min and max here')
         sW = linspace(swUMin, swUMax, nvals)';
         
-    case 'capillary'
+    case {'capillary', 'capillary_grav'}
         assert(isfield(updata, 'pcOW'), ...
             'Run capillary curve upscaling first');
         swUMin = updata.pcOW(1,1);
@@ -228,12 +233,6 @@ switch method
         swUMax = ffdata.ffW(end,1);
         sW     = linspace(swUMin, swUMax, nvals)';
         values = interp1(ffdata.ffW(:,1), ffdata.ffW(:,2), sW);
-        
-    case 'gravcapillary'
-        [pcFun, swUMin, swUMax] = pcVsUpscaledSwGravityBinary(block.G, ...
-            block.rock, block.fluid);
-        sW = linspace(swUMin, swUMax, nvals)';
-        values = pcFun(sW); % sW upscaled -> pcOW
         
     otherwise
         error(['Method ''' method ''' not recognized.']);
@@ -282,11 +281,12 @@ switch method
         ff   = val;
         sW   = fluid.fracFlowInv(ff.*ones(G.cells.num,1));
         
-    case 'gravcapillary' % Capillary limit with gravity
+    case 'capillary_grav' % Capillary limit with gravity
         % The pcOW values are given at some chosen datum
         assert(isfield(fluid, 'pcOWInv'), ['To use capillary limit '...
             'upscaling, the fluid must have field ''pcOWInv''.']);
         pcOW = val; % pcOW at some level
+        
         if isfield(fluid, 'rhoO')
             rhoO = fluid.rhoO;
         else
@@ -297,13 +297,15 @@ switch method
         else
             rhoW = fluid.rhoWS;
         end
-        dRho = rhoO - rhoW;
-        %g    = norm(gravity);
+        dRho = rhoW - rhoO;
         g    = 9.8066; % HARDCODED
-        zi   = max(G.cells.centroids(:,3)) - G.cells.centroids(:,3);
+        %zi   = max(G.cells.centroids(:,3)) - G.cells.centroids(:,3);
+        zi   = G.cells.centroids(:,3) - min(G.cells.centroids(:,3));
         grav = dRho.*g.*zi;
-        sW   = fluid.pcOWInv(pcOW - grav);
         
+        sW   = fluid.pcOWInv(pcOW - grav);
+        disp(['mean(sW)=' num2str(mean(sW))]);
+        tmp=1*1;
     otherwise
         error(['Method ''' method ''' not recognized.']);
 end
@@ -356,7 +358,7 @@ switch method
         % Do nothing.
     case 'viscous' % Vuscous limit
         % Do nothing.
-    case 'gravcapillary' % Capillary limit with gravity
+    case 'capillary_grav' % Capillary limit with gravity
         % Do nothing.
     otherwise
         error(['Method ''' method ''' not recognized.']);

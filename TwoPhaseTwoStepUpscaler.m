@@ -9,6 +9,7 @@ properties
     nrelperm
     pcow
     npcow
+    gravity
     
     saveStep1
     twostepz
@@ -26,6 +27,7 @@ methods
         upscaler.nrelperm  = 20;
         upscaler.pcow      = true; % Upscale pcow or not
         upscaler.npcow     = 100;
+        upscaler.gravity   = false;
         
         upscaler.saveStep1 = false; % save data from first upscaling
         upscaler.twostepz  = false;

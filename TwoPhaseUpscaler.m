@@ -19,7 +19,7 @@ methods
             varargin{:});
         
         upscaler.method   = [];
-        upscaler.nrelperm = 20;
+        upscaler.nrelperm = 40;
         upscaler.pcow     = true; % Upscale pcow or not
         upscaler.npcow    = 100;
         upscaler.relpermdims = upscaler.dims;
@@ -43,8 +43,9 @@ methods
         
         % Capillary pressure upscaling
         if upscaler.pcow
+            useGravity  = ~isempty(regexpi(upscaler.method, '_grav$'));
             [data, rep] = upPcOW(block, data, ...
-                'npointsmax', upscaler.npcow);
+                'npointsmax', upscaler.npcow, 'gravity', useGravity);
             if wantReport
                 report.pcow = rep;
             end

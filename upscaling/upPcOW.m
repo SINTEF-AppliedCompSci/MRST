@@ -13,18 +13,20 @@ opt = struct(...
     'nPointsInit', 20, ...   % Number of initial points
     'nPointsMax',  50, ...   % Maximum number of points
     'relTolSw',    0.01, ... % Relative to saturation scale
-    'relTolPc',    0.01 ...  % Relative to pc scale
+    'relTolPc',    0.01, ...  % Relative to pc scale
+    'gravity',     false ...
     );
 opt = merge_options(opt, varargin{:});
 
 wantReport = nargout > 1;
 timeStart = tic;
+useGravity = opt.gravity;
 
 G     = block.G;
 fluid = block.fluid;
 
 if ~isfield(fluid, 'pcOW')
-    updata.pcOW = [];
+	updata.pcOW = [];
     return
 end
 
@@ -38,9 +40,39 @@ nPointsMax  = opt.nPointsMax;
 relTolSw    = opt.relTolSw;
 relTolPc    = opt.relTolPc;
 
+if useGravity
+    % Gravity force value for each cell in the grid
+    if isfield(fluid, 'rhoO')
+        rhoO = fluid.rhoO;
+    else
+        rhoO = fluid.rhoOS;
+    end
+    if isfield(fluid, 'rhoW')
+        rhoW = fluid.rhoW;
+    else
+        rhoW = fluid.rhoWS;
+    end
+    dRho = rhoW - rhoO;
+    g    = 9.8066; % HARDCODED
+    
+    % Compute an estimate of the centroid of the grid block. This will be
+    % the correct centroid is the grid is Cartesian, but otherwise, it may
+    % be off.
+    zCent = mean([max(G.cells.centroids(:,3)), ...
+                  min(G.cells.centroids(:,3))]);
+
+    % Set height relative to the zCent. Thus the returned xvec is the
+    % capillary pressure at the height zCent.
+    zi   = G.cells.centroids(:,3) - zCent;
+    
+    grav = dRho.*g.*zi;
+else
+    grav = 0;
+end
+
 % Find minimum and maximum pc in block
-pc0   = fluid.pcOW( zeros(G.cells.num,1) );
-pc1   = fluid.pcOW( ones(G.cells.num,1) );
+pc0   = fluid.pcOW( zeros(G.cells.num,1) ) + grav;
+pc1   = fluid.pcOW( ones(G.cells.num,1) ) + grav;
 pcMin = min(min(pc0), min(pc1));
 pcMax = max(max(pc0), max(pc1));
 
@@ -51,7 +83,7 @@ pcOWup = nan(nPointsMax, 2); % Each row is a pair of [sWup, pcOWup]
 pcOWup(1:nPointsInit, 2) = linspace(pcMin, pcMax, nPointsInit)';
 for i = 1:nPointsInit
    pc = pcOWup(i,2)*ones(G.cells.num, 1); % Set same pc in all cells
-   sw = fluid.pcOWInv(pc); % Invert capillary pressure curves
+   sw = fluid.pcOWInv(pc - grav); % Invert capillary pressure curves
    pcOWup(i,1) = sum(sw.*pv) / pvTot; % Compute corresp. upscaled sat
 end
 sWMin = min(pcOWup(1:nPointsInit, 1));
@@ -96,7 +128,7 @@ for i = 1:nPointsExtra+1 % Note: last iteration is just a check
    end
    pcup = mean(pcOWup([inx, inx+1],2));
    pc   = pcup*ones(G.cells.num,1); % Set same pc in all cells
-   sw   = fluid.pcOWInv(pc); % Invert capillary pressure curves
+   sw   = fluid.pcOWInv(pc - grav); % Invert capillary pressure curves
    swup = sum(sw.*pv) / pvTot; % Compute corresp. upscaled sat
    
    % Insert new values at correct place to keep sorted order
@@ -122,6 +154,7 @@ totalTime = toc(timeStart);
 if wantReport
     report.swreldiff = maxDiffSw;
     report.pcreldiff = maxDiffPc;
+    report.gravity   = useGravity;
     report.time      = totalTime;
 end
 
