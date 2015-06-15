@@ -1038,7 +1038,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function onClickWell(src, event, wk)
         clickType = get(gcf, 'SelectionType');
         if ~isempty(opt.wellPlotFn) && strcmpi(clickType, 'alt')
-            opt.wellPlotFn(src, event, wk);
+            opt.wellPlotFn(src, event, W{state_idx}(wk).name, state{state_idx}.time);
             return
         end
         np = numel(D.prod);
@@ -1300,9 +1300,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'sum tof frequency'
                 cdata = D.isubset + D.psubset;
             case 'state.s'
-                cdata = state{state_idx}.s(:, [2 3 1]);
+                if size(state{state_idx}.s, 2) == 3
+                    cdata = state{state_idx}.s(:, [2 3 1]);
+                else
+                    cdata = state{state_idx}.s;
+                end
+            case 'state.mob'
+                if size(state{state_idx}.s, 2) == 3
+                    cdata = state{state_idx}.mob(:, [2 3 1]);
+                else
+                    cdata = state{state_idx}.mob;
+                end                 
             otherwise
-%                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
+                %                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
                 cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
         
