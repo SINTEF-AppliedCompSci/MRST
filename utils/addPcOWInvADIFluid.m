@@ -9,29 +9,37 @@ assert(isfield(deck.PROPS, 'SWOF'), 'Only property ''SWOF'' supported.');
 
 reg   = handleRegions(deck, varargin{:});
 swof  = deck.PROPS.SWOF;
-fluid = assignSWOF(fluid, swof, reg);
+fluid = assignPcOWInv(fluid, swof, reg);
 
 end
 
 % Remaining code is a slight modification of assignSWOF
 
-function f = assignSWOF(f, swof, reg)
+function f = assignPcOWInv(f, swof, reg)
 T = swof;
 %T = cellfun(@(x)x(:,[4,1]), swof, 'UniformOutput', false);
+haspcow = false;
 for i=1:numel(T)
-   t = T{i}(:,[4,1]);
-   if t(1,1)>t(2,1)
-      t = flipud(t); % pcow values are decreasing, flip data
-   end
-   T{i} = extendTab(t);
+    if ~haspcow && any(T{i}(:,4) > 0)
+        haspcow = true;
+    end
+    t = T{i}(:,[4,1]);
+    if t(1,1)>t(2,1)
+        t = flipud(t); % pcow values are decreasing, flip data
+    end
+    T{i} = extendTab(t);
 end
 
-f.pcOWInv = @(pc, varargin)pcOWInv(pc, T, reg, varargin{:});
+% Only add pcOWInv if we have nonzero pcOW
+if haspcow
+    f.pcOWInv = @(pc, varargin)pcOWInv(pc, T, reg, varargin{:});
+end
+
 end
 
 
 function v = pcOWInv(pc, T, reg, varargin)
-satinx = getRegMap(pc, reg.SATNUM, reg.SATINX, varargin{:});
-v = interpReg(T, pc, satinx);
+    satinx = getRegMap(pc, reg.SATNUM, reg.SATINX, varargin{:});
+    v = interpReg(T, pc, satinx);
 end
 
