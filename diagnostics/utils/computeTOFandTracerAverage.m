@@ -128,8 +128,8 @@ for idx=1:N
         end
 
         num_wells = numel(D_new.inj) + numel(D_new.prod);
-        D.inj_avg = zeros(num_wells, 1);
-        D.prod_avg = zeros(num_wells, 1);
+        D.inj_avg = zeros(1, num_wells);
+        D.prod_avg = zeros(1, num_wells);
     end
     
     dt = dts(idx);
