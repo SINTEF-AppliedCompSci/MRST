@@ -42,12 +42,12 @@ rS = incompTPFA(rS, G, T, fluid, 'wells', W);
 D = computeTOFandTracer(rS, G, rock, 'wells', W);
 
 clf, subplot(2,1,1);
-plotCellData(G,D.ppart,'EdgeColor','w','EdgeAlpha',.05);
+plotCellData(G,D.ppart,D.ppart>0,'EdgeColor','w','EdgeAlpha',.05);
 axis tight; plotWell(G,W); title('Drainage volumes');
 set(gca,'dataaspect',[1 1 0.1]), view(-60,15)
 
 subplot(2,1,2);
-plotCellData(G,D.ipart,'EdgeColor','w','EdgeAlpha',.05);
+plotCellData(G,D.ipart,D.ipart>0,'EdgeColor','w','EdgeAlpha',.05);
 axis tight; plotWell(G,W); title('Flooded volumes');
 set(gca,'dataaspect',[1 1 0.1]), view(-60,15)
 
@@ -95,7 +95,7 @@ Dp = computeTOFandTracer(rSp, G, rock, 'wells', Wp);
 % Display flooded regions for I1
 figure,
 subplot(2,2,1);
-plotCellData(G,Dp.ipart, Dp.ipart<4,'EdgeColor','w','EdgeAlpha',.05);
+plotCellData(G,Dp.ipart, (Dp.ipart<4) & (Dp.ipart>0),'EdgeColor','w','EdgeAlpha',.05);
 view(3), plotWell(G,W,'radius',3); axis tight off;
 for i=1:3
    subplot(2,2,i+1)
