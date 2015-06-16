@@ -185,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         computeGrid = opt.computeGrid;
     end
         
-    state = [];
+    state = {[]};
     state_idx = 1;
     if (~isempty(opt.state))        
         if (numel(opt.state) == 1)
