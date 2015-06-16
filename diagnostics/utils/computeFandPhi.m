@@ -17,10 +17,10 @@ function [F,Phi] = computeFandPhi(pv, tof)
 %         time-of-flight from producer, one value per cell
 %
 % RETURNS:
-%   F   - flow capacity = cummulative flux for increasing time-of-flight
+%   F   - flow capacity = cumulative flux for increasing time-of-flight
 %         values, where the flux per cell is defined from the relation
 %                volume = flux * total_travel_time
-%   Phi - storage capacity = cummulative pore volume for increasing
+%   Phi - storage capacity = cumulative pore volume for increasing
 %         time-of-flight values
 %
 % SEE ALSO:
@@ -53,10 +53,9 @@ t      = sum(tof,2);     % total travel time
 v      = pv(order);      % put volumes in order
 Phi    = cumsum(v);      % cumulative sum
 vt     = full(Phi(end)); % total volume of region
-v      = v./vt;          % normalize to units of pore volumes
 Phi    = [0; Phi/vt];    % normalize to units of pore volumes
-flux   = v./ts/vt;       % back out flux based on incompressible flow
-ff     = cumsum(flux);   % cummulative sum
+flux   = v./ts;          % back out flux based on incompressible flow
+ff     = cumsum(flux);   % cumulative sum
 ft     = full(ff(end));  % total flux computed
 F      = [0; ff/ft];     % normalize and store flux
 end
