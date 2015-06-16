@@ -1364,6 +1364,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (~D.isvalid || isempty(WP))
                 warning('Time of flight returned inf. Are there both active injectors and producers present?')
             end
+        else
+            [D, WP] = getDiagnostics(stepNo);
         end
     end
 
