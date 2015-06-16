@@ -652,7 +652,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             fig_main_wells.dirty = true;
             
             state_idx = index;
-            computeValues(state_idx);
+            [D, WP] = getDiagnostics(state_idx);
             
             %Update main plot
             plotMain();
@@ -735,7 +735,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         set(hdataset, 'Value', curr_val);
                     end
                     
-                    computeValues(state_idx);
+                    [D, WP] = getDiagnostics(state_idx);
                 end
                 
             end
@@ -1357,15 +1357,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function computeValues(stepNo)
         if isempty(Diagnostics{stepNo})
             disp('New state encountered, computing diagnostics...');
-            [D, WP] = ...
+            [d, wp] = ...
                 computeTOFAndTracerAndWellPairs(W{stepNo}, state{stepNo});
-            Diagnostics{stepNo} = D;
-            WellPairs{stepNo}   = WP;
-            if (~D.isvalid || isempty(WP))
+            Diagnostics{stepNo} = d;
+            WellPairs{stepNo}   = wp;
+            if (~d.isvalid || isempty(wp))
                 warning('Time of flight returned inf. Are there both active injectors and producers present?')
             end
-        else
-            [D, WP] = getDiagnostics(stepNo);
         end
     end
 
@@ -1390,7 +1388,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function changeWells()
         W{state_idx} = editWells(G, W{state_idx}, rock);
-        computeValues();
+        [D, WP] = getDiagnostics(state_idx);
         createMainControl();
         
         fig_main_wells.dirty = true;
