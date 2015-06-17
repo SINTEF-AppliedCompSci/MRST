@@ -242,6 +242,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      Mtofeh,...
      alfash,...
      tofext,...
+     extents,...
      hdataset,...
      hset_op,...
      mrst_ds,...
@@ -277,18 +278,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     
+    
     %Create main figure
     fig_main = figure('Name', window_name);    
-    
-    %Set scaling etc.
+
+    %Set scaling
     if (~isempty(opt.daspect))
         daspect(opt.daspect);
     else
-        max_G = max(G.cells.centroids);
-        min_G = min(G.cells.centroids);
+        max_G = max(G.faces.centroids);
+        min_G = min(G.faces.centroids);
         da = max_G - min_G;
         da(da == 0) = 1;
         daspect(da);
+        
+        extents = zeros(1,6);
+        extents(1:2:end) = min_G*0.95;
+        extents(2:2:end) = max_G*1.05;
     end
     % Create control panel
     % Precompute TOF etc. for creating main control
@@ -296,10 +302,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [D, WP] = computeTOFAndTracerAndWellPairs(W{state_idx}, state{state_idx});
     tofext = getTOFRange(D);
     createMainControl();
-    
+        
     % Trigger plot initial setup
     plotMain();
-    axis tight off
+    axis tight off;
+    axis(extents);
     view(3);
 
     
@@ -957,6 +964,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         %Update plot of wells (if enabled)
         plotWellConnections();
+        
+        %Try forcing manual axis when plotting to avoid rescaling
+        axis(extents);
     end
 
     function playBackTof(src, event)
