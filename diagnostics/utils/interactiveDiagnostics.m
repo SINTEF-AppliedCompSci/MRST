@@ -233,6 +233,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      ctrl_well_conn,...
      ctrl_use_average,...
      ctrl_show_grid,...
+     ctrl_plot_all_wells,...
      speedsh,...
      tofsh,...
      nwtofsh,...
@@ -434,6 +435,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'Position', [bwidth 1*vis_H bwidth vis_h],...
                    'String', 'Well pairs',...
                    'Callback', @plotWellConnections ...
+                   );
+               
+        function allWellsChange(src, event)
+            fig_main_wells.dirty = true;
+            plotMain(src, event)
+        end
+        ctrl_plot_all_wells = uicontrol(vis_control, 'Style', 'checkbox',...
+                   'Units', 'normalized',...
+                   'Position', [2*bwidth 1*vis_H bwidth vis_h],...
+                   'String', 'Plot all wells',...
+                   'Callback', @allWellsChange, ...
+                   'Value', 0 ...
                    );
                
                
@@ -893,7 +906,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function plotMain(src, event)
+    function plotMain(src, event)        
         if (compute_average)
             window_name = 'Average over timesteps';
         else
@@ -1142,10 +1155,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 delete(fig_main_wells.hline);
             end
     
-            %Get the selected wells only
-            drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
-            flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
-            sel_wells = [drain_wells, flood_wells];
+            %Plot all wells
+            if (get(ctrl_plot_all_wells, 'Value'))
+                sel_wells = [D.prod, D.inj];
+            else %Or the selected wells only
+                drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
+                flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
+                sel_wells = [drain_wells, flood_wells];
+            end
             
             if (numel(sel_wells) > 0)
                 W_sel = W{state_idx}(sel_wells);
@@ -1183,12 +1200,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         set(fig_well_alloc, 'Name', ['Well allocations (', window_name, ')']);
         
-        %Filter well pairs to only include selected wells
-        drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
-        flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
-        sel_wells = [drain_wells, flood_wells];
-        
-        plotWellAllocationComparison(D, WP, [], [], 'plotOnly', sel_wells);
+        %Plot all wells
+        if (get(ctrl_plot_all_wells, 'Value'))
+            plotWellAllocationComparison(D, WP, [], []);
+        else %Or the selected wells only
+            drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
+            flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
+            sel_wells = [drain_wells, flood_wells];
+            plotWellAllocationComparison(D, WP, [], [], 'plotOnly', sel_wells);
+        end
     end
 
     function plotWellConnections(~, ~)
