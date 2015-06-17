@@ -500,7 +500,7 @@ end
 
 function histClickHandler(src, event, x, h, d)
     seltype = get(histh, 'SelectionType');
-    inside = abs(d - x) <= h/2;
+    inside = abs(d - x) <= 1.0001*h/2;
     switch seltype
         case 'normal'
             % Normal click
