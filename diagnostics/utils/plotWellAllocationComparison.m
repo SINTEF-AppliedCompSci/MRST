@@ -59,16 +59,12 @@ end
 
 if (isnan(opt.plotOnly))
     num_wells = numel(WP1.inj) + numel(WP1.prod);
-    opt.plotOnly = ones(1,num_wells);
+    opt.plotOnly = 1:num_wells;
 else
     if (numel(opt.plotOnly) == 0)
         warndlg('plotWellAllocationComparison asked to plot zero wells... Aborting.');
         return;
     end
-    num_wells = numel(WP1.inj) + numel(WP1.prod);
-    tmp = zeros(1, num_wells);
-    tmp(opt.plotOnly) = 1;
-    opt.plotOnly = tmp;
 end
 
 WP1 = addDummyData(WP1);
@@ -128,28 +124,26 @@ end
 wp2(D2.inj)  = WP2.inj(:);
 wp2(D2.prod) = WP2.prod(:);
 
-% Plot the well-allocation factors for fine/coarse scale models
-nsp = floor( (numel(wp1)+1)/2);
+%Calculate number of plots in 2D grid
+num_plots = numel(opt.plotOnly);
+if (numel(opt.plotOnly) < numel(wp1))
+    clf(); %Since we most probably may change number of subplots, clear figure...
+    num_plots = num_plots + 1;
+end
+nx = ceil(sqrt(num_plots));
+ny = nx-1;
+if (nx*ny < num_plots)
+    ny = nx;
+end
+
 current_fig = gcf();
 wb = waitbar(0, 'Well 1');
 set(0, 'CurrentFigure', current_fig);
-for i=1:numel(wp1)
-   subplot(2,nsp,i);
-   
-   %Trick to skip the expensive plotting of barh for non-selected wells
-   if (opt.plotOnly(i) == 0)
-       cla('reset');
-       hold on;
-       for j=1:numel(wp1)
-           h = patch([0.25, 0.75], [0.25, 0.75], j); 
-           if (i==j)
-                hl=legend(h, wp1(i).name); set(hl,'FontSize',8); legend boxoff
-           end
-       end
-       axis([0 1 0 1])
-       hold off;
-       continue;
-   end
+
+% Plot the well-allocation factors for fine/coarse scale models
+for j=1:numel(opt.plotOnly)
+   subplot(nx,ny,j);
+   i = opt.plotOnly(j);
    
    [~,ix]   = sort(wp1(i).z);
    wp1(i).z = wp1(i).z(ix);
@@ -185,8 +179,40 @@ for i=1:numel(wp1)
    else
       hl=legend(h(i),wp1(i).name,3); set(hl,'FontSize',8); legend boxoff
    end
-   waitbar(i/numel(wp1),wb,['Well ', num2str(i+1)])
+   waitbar(j/numel(opt.plotOnly),wb,['Well ', num2str(i+1)])
 end
+
+
+%Final plot contains all non-plotted colors in a legend
+if (numel(opt.plotOnly) < numel(wp1))
+    subplot(nx,ny,numel(opt.plotOnly)+1);
+    cla('reset');
+    hold on;
+    axis off;
+    
+    h = [];
+    
+    %Make a simple patch for each color
+    for i=1:numel(wp1)
+       h1 = patch([0.25, 0.75], [0.25, 0.75], i);
+       %Store the colors we actually want in legend in h
+       if (not(any(opt.plotOnly == i)))
+           h = [h, h1];
+       end
+    end
+    
+    %Find labels
+    labels_sel = ones(1, numel(wp1));
+    labels_sel(opt.plotOnly) = 0;
+    labels={wp1(find(labels_sel)).name};
+    
+    %Create legend
+    pos = get(gca(), 'Position');
+    hl=legend(h, labels, 'Location', 'none', 'Position', pos); 
+    set(hl,'FontSize',8);
+end
+
+%Set colormap
 cmap = jet(nit+npt);
 c = 0.9*cmap + .1*ones(size(cmap)); colormap(c);
 drawnow;
