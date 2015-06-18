@@ -525,7 +525,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                               'Drain volumes'}...
                                    );
         
-        [nwtofsh, ~, ~]   = linkedSlider(tof_panel, [0 5*tof_H 1 tof_h], .15, [0 1], 0.2, 'Near well TOF', @dirtyTOFPlotMain);
+        [nwtofsh, ~, ~]   = linkedSlider(tof_panel, [0 5*tof_H 1 tof_h], .15, [0 1], 0.0, 'Near well TOF', @dirtyTOFPlotMain);
         [Mtofsh, Mtofeh, ~]   = linkedSlider(tof_panel, [0 4*tof_H 1 tof_h], .15, tofext, tofext(2), 'Max TOF', @dirtyTOFPlotMain);
         [mtofsh, mtofeh, ~]   = linkedSlider(tof_panel, [0 3*tof_H 1 tof_h], .15, tofext, tofext(1), 'Min TOF', @dirtyTOFPlotMain);
         set(mtofsh, 'Callback', @mtofs_callback);
