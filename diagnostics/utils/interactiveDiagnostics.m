@@ -294,8 +294,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         daspect(da);
         
         extents = zeros(1,6);
-        extents(1:2:end) = min_G*0.95;
-        extents(2:2:end) = max_G*1.05;
+        extents(1:2:end) = min_G - 0.05*(max_G-min_G);
+        extents(2:2:end) = max_G + 0.05*(max_G-min_G);
     end
     % Create control panel
     % Precompute TOF etc. for creating main control
