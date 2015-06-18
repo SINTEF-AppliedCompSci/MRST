@@ -43,12 +43,18 @@ state = initResSol(G, 0);
 
 %%
 ref = incompTPFA(state, G, T, fluid, 'bc', bc);
-
-%%
-p = partitionMETIS(G, T, 200);
+%% Grid of roughly same dimensions
+dims = max(G.nodes.coords);
+Gc = cartGrid([30, 30, 60], dims);
+Gc = computeGeometry(Gc);
+%% Make coarse grid
+p = partitionUI(Gc, [6, 6, 5]);
+p = reshape(p, Gc.cartDims);
+p = sampleFromBox(G, p);
+% p = partitionMETIS(G, T, 200);
 CG = generateCoarseGrid(G, p);
 CG = coarsenGeometry(CG);
-CG = storeInteractionRegion(CG, 'edgeBoundaryCenters', false, 'adjustCenters', false);
+CG = storeInteractionRegion(CG, 'edgeBoundaryCenters', true, 'adjustCenters', true);
 %%
 A = getIncomp1PhMatrix(G, T, state, fluid);
 basis = getMultiscaleBasis(CG, A, 'type', 'msrsb', 'iterations', 150);
@@ -64,3 +70,8 @@ title('MS')
 figure;
 plotToolbar(G, ref)
 title('TPFA')
+
+%%
+for i = 1:CG.cells.num
+    basis.B(CG.cells.centers(i), i)
+end
