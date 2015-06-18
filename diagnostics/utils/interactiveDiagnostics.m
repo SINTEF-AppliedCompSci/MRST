@@ -514,7 +514,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                'Porosity', ...
                                                perm{1:size(rock.perm, 2)},...
                                                cellfields{:}}...
-                                   );
+                                   ); %#ok<CCAT>
         hset_op = uicontrol(tof_panel, 'Style', 'popupmenu',...
                                    'Units', 'normalized',...
                                    'Position', [.66 6*tof_H .33 tof_h],...
@@ -556,7 +556,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         
         % Function which saves variables to the workspace on demand
-        function saveDataToWorkSpace(src, event)
+        function saveDataToWorkSpace(src, event) %#ok<*INUSD>
             indices = find(selection);
             
             labels = {'Sector model', 'Sector model (index map)'};
@@ -637,7 +637,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'String','Simulation timestep',...
             'Position', [0 0.5 0.4 .5]);
 
-        selector_datasets = [];
         if (numel(state) > 1)
             selector_datasets = state;
         elseif(numel(W) > 1)
@@ -717,7 +716,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     
                     %Add new integral options
                     old_options = get(hdataset, 'String');
-                    new_options = {old_options{:}, time_integral_options{:}};
+                    new_options = {old_options{:}, time_integral_options{:}}; %#ok<CCAT>
                     set(hdataset, 'String', new_options);
                     
                     computeAverage();
@@ -844,7 +843,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 times = cellfun(@(x) x.time, state);
                 times = [0; times];
                 dt = (times(2:end) - times(1:end-1)) / times(end);
-                extra_args = {extra_args{:}, 'dt', dt};
+                extra_args = {extra_args{:}, 'dt', dt}; %#ok<CCAT>
             end
             
             min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
@@ -1031,7 +1030,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         playback = false;
     end
 
-    function onClickWell(src, event, wk)
+    function onClickWell(src, event, wk) %#ok<INUSL>
         np = numel(D.prod);
         ni = numel(D.inj);
             
