@@ -1102,7 +1102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         set(fig_well, 'name', ['Well ', W{state_idx}(wk).name]);
 
-        plotArrival = ~isempty(state) && ~isInj;
+        plotArrival = ~isempty(state{state_idx}) && ~isInj;
 
         if plotArrival;
             subplot(2, 2, 1);
