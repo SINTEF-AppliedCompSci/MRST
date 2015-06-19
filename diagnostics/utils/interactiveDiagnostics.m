@@ -1291,12 +1291,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         %Plot all wells
         if (get(ctrl_plot_all_wells, 'Value'))
-            plotWellAllocationComparison(D, WP, [], []);
+            plotWellAllocationPanel(D, WP);
         else %Or the selected wells only
             drain_wells = D.prod(get(ctrl_drain_vols, 'Value'));
             flood_wells = D.inj(get(ctrl_flood_vols, 'Value'));
             sel_wells = [drain_wells, flood_wells];
-            plotWellAllocationComparison(D, WP, [], [], 'plotOnly', sel_wells);
+            plotWellAllocationPanel(D, WP, 'plotOnly', sel_wells);
         end
     end
 
