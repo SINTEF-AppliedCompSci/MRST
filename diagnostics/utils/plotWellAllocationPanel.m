@@ -2,7 +2,7 @@ function plotWellAllocationComparison(D1, WP1, D2, WP2, varargin)
 %Plot a panel comparing well-allocation from models with different resolution
 %
 % SYNOPSIS
-%   plotWellAllocationComparision(D1, WP1, D2, WP2)
+%   plotWellWallocationComparision(D1, WP1, D2, WP2)
 %
 % PARAMETERS:
 %   D1, D2   - data structure with basic data for flow diagnostics computed
@@ -24,8 +24,8 @@ function plotWellAllocationComparison(D1, WP1, D2, WP2, varargin)
 %   the same flux allocation, the color bars and the solid lines should be
 %   matching.
 %
-%   If D2 and WP2 are empty, a graph is produced that shows the well
-%   allocation for the wells in WP1.
+%   If D2 and WP2 are empty, they are set equal D1 and WP1, and a graph is
+%   produced which shows the well allocation for the wells in WP1.
 %
 % SEE ALSO:
 %   computeTOFandTracer, computeWellParis, expandWellCompletions
@@ -49,11 +49,21 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 opt = struct('useZ', true,...
+             'plotOnly', NaN, ...
              'bwidth', .98);
 opt = merge_options(opt, varargin{:});
 
 % -------------------------------------------------------------------------
 % check what we should plot
+if (isnan(opt.plotOnly))
+    num_wells = numel(WP1.inj) + numel(WP1.prod);
+    opt.plotOnly = 1:num_wells;
+else
+    if (numel(opt.plotOnly) == 0)
+        warndlg('plotWellAllocationComparison asked to plot zero wells... Aborting.');
+        return;
+    end
+end
 if (isempty(D2) || isempty(WP2))
     plotFlag = false;
 else
@@ -131,7 +141,11 @@ end
 
 % -------------------------------------------------------------------------
 % Calculate number of plots in 2D grid
-num_plots = numel(wp1);
+num_plots = numel(opt.plotOnly);
+if (numel(opt.plotOnly) < numel(wp1))
+    clf();
+    num_plots = num_plots + 1;
+end
 nx = ceil(sqrt(num_plots));
 ny = nx-1;
 if (nx*ny < num_plots)
@@ -144,8 +158,9 @@ set(0, 'CurrentFigure', current_fig);
 
 % -------------------------------------------------------------------------
 % Plot the well-allocation factors for fine/coarse scale models
-for i=1:num_plots
-   subplot(nx,ny,i);
+for j=1:numel(opt.plotOnly)
+   subplot(nx,ny,j);
+   i = opt.plotOnly(j);
    
    % --------------------------------
    % Plot data for model 1
@@ -208,7 +223,37 @@ for i=1:num_plots
    else
       hl=legend(h(i),wp1(i).name,3); set(hl,'FontSize',8); legend boxoff
    end
-   waitbar(i/num_plots,wb,['Well ', num2str(i+1)])
+   waitbar(j/numel(opt.plotOnly),wb,['Well ', num2str(i+1)])
+end
+
+% -------------------------------------------------------------------------
+% Show legend for wells that are not plotted
+if (numel(opt.plotOnly) < numel(wp1))
+    subplot(nx,ny,max(numel(opt.plotOnly)+1,(nx-1)*ny+1):nx*ny);
+    cla('reset');
+    hold on;
+    axis off;
+    
+    h = [];
+    
+    %Make a simple patch for each color
+    for i=1:numel(wp1)
+       h1 = patch([0.25, 0.75], [0.25, 0.75], i);
+       %Store the colors we actually want in legend in h
+       if (not(any(opt.plotOnly == i)))
+           h = [h, h1];
+       end
+    end
+    
+    %Find labels
+    labels_sel = ones(1, numel(wp1));
+    labels_sel(opt.plotOnly) = 0;
+    labels={wp1(find(labels_sel)).name};
+    
+    %Create legend
+    pos = get(gca(), 'Position');
+    hl=legend(h, labels, 'Location', 'none', 'Position', pos); 
+    set(hl,'FontSize',8);
 end
 
 % -------------------------------------------------------------------------
