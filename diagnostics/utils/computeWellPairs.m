@@ -63,19 +63,21 @@ WP.pairs = cellfun(@(i,p) [i, ', ', p], ...
    'UniformOutput', false);
 
 % If only one injector / producer is present, ensure one over the domain
-if ni == 1
-    D.itracer = ones(G.cells.num, 1);
-end
-
-if np == 1
-    D.ptracer = ones(G.cells.num, 1);
-end
+% if ni == 1
+%     D.itracer = ones(G.cells.num, 1);
+% end
+% 
+% if np == 1
+%     D.ptracer = ones(G.cells.num, 1);
+% end
 
 % Fraction of cell associated with each well pair
-cij = repmat(D.itracer, 1, np) .* rldecode(D.ptracer, ni,2);
+%cij = repmat(D.itracer, 1, np) .* rldecode(D.ptracer, ni,2);
 
+vols = D.itracer'*bsxfun(@times, poreVolume(G, rock), D.ptracer);
 % Volumes associated with each well pair
-WP.vols = sum(cij .* repmat(poreVolume(G, rock),1, ni*np));
+WP.vols = vols(:)';
+%WP.vols = sum(cij .* repmat(poreVolume(G, rock),1, ni*np));
 
 % Numerical indices of each pair
 WP.pairIx = [repmat(1:ni, 1, np);...
@@ -88,10 +90,11 @@ for i=1:ni
    end
    ci  = D.itracer(W(D.inj(i)).cells,i);
    cj  = D.ptracer(W(D.inj(i)).cells,:);
-   WP.inj(i).alloc = repmat(qik.*ci, 1, np) .* cj;% / sum(qik);
-   WP.inj(i).z     = W(D.inj(i)).dZ + W(D.inj(i)).refDepth;
-   WP.inj(i).name  = W(D.inj(i)).name;
-end
+   WP.inj(i).alloc  = repmat(qik.*ci, 1, np) .* cj;% / sum(qik);
+   WP.inj(i).ralloc = qik - sum(WP.inj(i).alloc, 2);
+   WP.inj(i).z      = W(D.inj(i)).dZ + W(D.inj(i)).refDepth;
+   WP.inj(i).name   = W(D.inj(i)).name;
+end 
 for i=1:np
    qjk = state.wellSol(D.prod(i)).flux;
    if isempty(qjk)
@@ -99,9 +102,10 @@ for i=1:np
    end
    ci  = D.itracer(W(D.prod(i)).cells,:);
    cj  = D.ptracer(W(D.prod(i)).cells,i);
-   WP.prod(i).alloc = repmat(qjk.*cj, 1, ni) .* ci;% / sum(qjk);
-   WP.prod(i).z     = W(D.prod(i)).dZ + W(D.prod(i)).refDepth;
-   WP.prod(i).name  = W(D.prod(i)).name;
+   WP.prod(i).alloc  = repmat(qjk.*cj, 1, ni) .* ci;% / sum(qjk);
+   WP.prod(i).ralloc = qjk - sum(WP.prod(i).alloc, 2);
+   WP.prod(i).z      = W(D.prod(i)).dZ + W(D.prod(i)).refDepth;
+   WP.prod(i).name   = W(D.prod(i)).name;
 end
 end
 

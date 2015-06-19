@@ -1,4 +1,4 @@
-function [varargout] = plotWellData(G, W, varargin)
+function h = plotWellData(G, W, varargin)
     if mod(numel(varargin), 2) == 1
         data = varargin{1};
         varargin = varargin(2:end);
@@ -27,46 +27,28 @@ function [varargout] = plotWellData(G, W, varargin)
     if isempty(opt.TextColor)
         opt.TextColor = opt.color;
     end
-    nW    = numel(W);
-    htop  = zeros([1, nW]);
-    htext = zeros([1, nW]);
-    hs    = zeros([1, nW]);
-    hline = zeros([1, nW]);
-    
+    nW     = numel(W);
+    h = repmat(struct('label', [], 'connector', [], 'body', []), [1, nW]);
     dohold = ishold();
-    
     hold on
-    for i = 1:numel(W)
+    for i = 1:nW
         if ~opt.linePlot
-            [hs(i), htop(i)] = plotSingleWell(G, W(i), data{i}, opt);
+            if ~strcmp(W(i).type, 'aquifer')
+                [h(i).body] = plotSingleWell(G, W(i), data{i}, opt); 
+            end
         else
-            [hs(i), htop(i)] = plotSingleWellTraj(G, W(i), data{i}, opt);
+            h(i).body = plotSingleWellTraj(G, W(i), data{i}, opt);
         end
-        [htext(i), hline(i)] = plotSingleWellLabel(G, W(i), opt);
+        [h(i).label, h(i).connector] = plotSingleWellLabel(G, W(i), opt);
     end
     
     
     if ~dohold
         hold off
     end
-    if nargout > 0
-        varargout{1} = htop;
-    end
-    
-    if nargout > 1
-        varargout{2} = htext;
-    end
-    
-    if nargout > 2
-        varargout{3} = hs;
-    end
-    
-    if nargout > 3
-        varargout{4} = hline;
-    end
 end
 
-function [hs, htop] = plotSingleWell(G, W, data, opt)
+function body = plotSingleWell(G, W, data, opt)
     [R, curve] = computeEffectiveRadius(G, W, opt);
     
     if opt.radialData && numel(data) > 1
@@ -88,17 +70,18 @@ function [hs, htop] = plotSingleWell(G, W, data, opt)
                                 'EdgeColor', opt.EdgeColor,...
                                 'color', opt.color, ...
                                 'interpMethod', opt.interpMethod);
+    body = [hs, htop];
 end
 
-function [hs, htop] = plotSingleWellTraj(G, W, data, opt)%#ok
+function body = plotSingleWellTraj(G, W, data, opt)%#ok
     if ~isfield(W, 'trajectory')
         traj = G.cells.centroids(W.cells,:);
         warning('Well-trajectory for plotting not found, using connection cells');
     else
         traj = W.trajectory;
     end
-    hs   = plot3(traj(:,1), traj(:,2), traj(:,3), 'LineWidth', 4, 'color', opt.color);
-    htop = plot3(traj([1,end],1), traj([1,end],2), traj([1,end],3), 'o', 'MarkerFaceColor', opt.color, 'color', opt.color);
+    body  = line(traj(:,1), traj(:,2), traj(:,3), 'LineWidth', 5, 'color', opt.color);
+    %htop = plot3(traj([1,end],1), traj([1,end],2), traj([1,end],3), 'o', 'MarkerFaceColor', opt.color, 'color', opt.color);
 end
 
 
@@ -113,7 +96,7 @@ function [htext, hline] = plotSingleWellLabel(G, W, opt)
         dist = 1;
         topBore = [G.cells.centroids(W.cells(1), :), 0];
     end
-    height1 = top - 0.95*opt.labelHeight*dist;
+    height1 = top - 0.9*opt.labelHeight*dist;
     height2 = top - opt.labelHeight*dist;
     
     d = [topBore; topBore];

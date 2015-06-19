@@ -73,7 +73,8 @@ opt = struct(...
     'wells', [],...
     'dt', [],...
     'max_tof', [], ...
-    'min_tof', [] ...
+    'min_tof', [], ...
+    'diagnostics', [] ...
     );
 
 [opt, extra] = merge_options(opt, varargin{:});
@@ -97,10 +98,15 @@ D = [];
 h = waitbar(0, 'Step 0');
 N = numel(state);
 for idx=1:N
-    if (~isempty(opt.wells))
-        extra = {'wells', opt.wells{idx}, extra{:}};
+    if ~isempty(opt.diagnostics)
+        % Use precomptued values
+        D_new = opt.diagnostics{idx};
+    else
+        if (~isempty(opt.wells))
+            extra = {'wells', opt.wells{idx}, extra{:}};
+        end
+        D_new = computeTOFandTracer(state{idx}, G, rock, extra{:});
     end
-    D_new = computeTOFandTracer(state{idx}, G, rock, extra{:});
     
     if (all(isinf(D_new.tof(:))))
         continue;
@@ -122,8 +128,8 @@ for idx=1:N
         end
 
         num_wells = numel(D_new.inj) + numel(D_new.prod);
-        D.inj_avg = zeros(num_wells, 1);
-        D.prod_avg = zeros(num_wells, 1);
+        D.inj_avg = zeros(1, num_wells);
+        D.prod_avg = zeros(1, num_wells);
     end
     
     dt = dts(idx);

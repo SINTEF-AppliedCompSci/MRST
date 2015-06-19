@@ -16,7 +16,6 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %     the component ratios inside a drainage volume. The flux from this
 %     state can also be used to calculate time of flight if "computeFlux"
 %     is disabled, for instance if the user has some external means of
-%     computing fluxes.
 %
 %   Once the initialization is complete, two windows will be produced:
 %     - A plotting window, showing the reservoir along with the wells and
@@ -150,11 +149,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'tracerfluid',         water, ...
                  'LinSolve',            @mldivide, ...
                  'computeFlux',         true, ...
-                 'useMobilityArrival',  false,...
                  'fluid',               oilwater, ...
+                 'wellPlotFn',          [], ...
                  'name',                [], ...
                  'daspect',             [], ...
-                 'leaveOpenOnClose',    false ...
+                 'leaveOpenOnClose',    false, ...
+                 'lineWells',           true, ...
+                 'maxTOF',              [], ...
+                 'useLight',            true, ...
+                 'fastRotate',          true ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -180,7 +183,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if (~isempty(opt.computeGrid))
         assert(isfield(G.cells, 'eMap'), ...
             'G must have an eMap field when using a separate computeGrid');
-        cdataToPlotGrid = @(cdata) cdata(G.cells.eMap);
+        cdataToPlotGrid = @(cdata) cdata(G.cells.eMap,:);
         wellsToPlotGrid = @(wells) remapWells(G, wells);
         computeGrid = opt.computeGrid;
     end
@@ -251,10 +254,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %Handles for well plot in main figure
     fig_main_wells = {};
-    [fig_main_wells.htop,...
-     fig_main_wells.htext,...
-     fig_main_wells.hs,...
-     fig_main_wells.hline] = deal([]); 
+    fig_main_wells.hwells = [];
+%     [fig_main_wells.htop,...
+%      fig_main_wells.htext,...
+%      fig_main_wells.hs,...
+%      fig_main_wells.hline] = deal([]); 
     fig_main_wells.dirty = true;
     
     %Handles for cell data in main figure
@@ -277,7 +281,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     time_varying = (~isempty(state) && numel(state) > 1) || (~isempty(W) && numel(W) > 1);
     selection = []; % Selection of cells
     
-    
+    % Storage for diagnostics and wellpair computations
+    [WellPairs, Diagnostics] = deal(cell(numel(state), 1));
     
     
     %Create main figure
@@ -300,18 +305,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Create control panel
     % Precompute TOF etc. for creating main control
 	pv = poreVolume(computeGrid, rock);
-    [D, WP] = computeTOFAndTracerAndWellPairs(W{state_idx}, state{state_idx});
-    tofext = getTOFRange(D);
+    [D, WP] = getDiagnostics(state_idx);
+    tofext = getTOFRange(D, opt);
     createMainControl();
         
     % Trigger plot initial setup
     plotMain();
-    axis tight off;
+    axis off;
     axis(extents);
     view(3);
+    colormap jet
+    % lighting (set both above and beneath..)
+    if opt.useLight
+        ax = axis;
+        [p1, p2] = deal(ax([2,3,5]), ax([1,4,6]));
+        light('Position', p1 + 3*(p2-p1));
+        [p1, p2] = deal(ax([2,3,6]), ax([1,4,5]));
+        light('Position', p1 + 3*(p2-p1));
+    end
 
-    
-    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %Only function definitions from here on %
@@ -323,14 +335,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     %
-    function tofext = getTOFRange(D)
+    function tofext = getTOFRange(D, opt)
         if (D.isvalid)
+            if ~isempty(opt.maxTOF)
+                tofext = convertTo([0, opt.maxTOF], year);
+            else
             tof = D.tof(:);
             isNeg = (tof <= 0);
             tof(isNeg) = min(tof(~isNeg));
 
             tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
             tofext(2) = clamp_real(max(tofext(2), 15));
+            end
         else
             tofext = [0 1];
         end
@@ -676,7 +692,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             fig_main_wells.dirty = true;
             
             state_idx = index;
-            computeValues(state_idx);
+            [D, WP] = getDiagnostics(state_idx);
             
             %Update main plot
             plotMain();
@@ -759,7 +775,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         set(hdataset, 'Value', curr_val);
                     end
                     
-                    computeValues(state_idx);
+                    [D, WP] = getDiagnostics(state_idx);
                 end
                 
             end
@@ -832,7 +848,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                           'Callback', @dirtyWellsPlotMain, ...
                                           'Position', [0 0 1 1]);
         
-                                      
+        warning('off', 'MATLAB:uitabgroup:OldVersion');
         tabgp = uitabgroup(fig_ctrl,'Position', [0 0 1 .4]);
         
         tof_controls_tab = uitab(tabgp, 'Title', 'Region selection');
@@ -873,10 +889,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             min_tof = convertFrom(str2double(get(mtofeh, 'String')), year);
             max_tof = convertFrom(str2double(get(Mtofeh, 'String')), year);
 
+            % Precompute all diagnostics states
+            computeAllSteps();
+            
             D_int = computeTOFandTracerAverage(state, computeGrid, rock, ...
                 'wells', W, ...
                 'max_tof', max_tof,...
                 'min_tof', min_tof,...
+                'diagnostics', Diagnostics, ...
                 extra_args{:});
                 
             D = D_int;
@@ -963,7 +983,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        tofext = getTOFRange(D);
+        tofext = getTOFRange(D, opt);
         setTOFSliderExtents();
         selection = getTOFSelection();
         
@@ -990,7 +1010,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        fastRotateButton();
+        if opt.fastRotate
+            fastRotateButton();
+        end
 
         plotWells();
         
@@ -1027,6 +1049,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         playback = true;
         % Pop figure to front explicitly before loop
         figure(fig_main);
+        set(gca, 'XLimMode', 'manual', ...
+                 'YLimMode', 'manual', ...
+                 'ZLimMode', 'manual');
         for i = 0:N
             if ~playback
                 return
@@ -1046,7 +1071,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % The whole event should take a minimum of 10 seconds
             pause(min(0, 10/N - toc(timer)));
         end
-        
+        set(gca, 'XLimMode', 'auto', ...
+                 'YLimMode', 'auto', ...
+                 'ZLimMode', 'auto');
         playback = false;
     end
 
@@ -1055,6 +1082,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function onClickWell(src, event, wk) %#ok<INUSL>
+        clickType = get(gcf, 'SelectionType');
+        if ~isempty(opt.wellPlotFn) && strcmpi(clickType, 'alt')
+            opt.wellPlotFn(src, event, W{state_idx}(wk).name, state{state_idx}.time);
+            return
+        end
+        
         np = numel(D.prod);
         ni = numel(D.inj);
             
@@ -1072,7 +1105,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (numel(WP) > 0)
                 wp = @(x) WP.inj(x);
             end
-            otherNames = {W{state_idx}(D.prod).name};
+            otherNames = {W{state_idx}(D.prod).name, 'reservoir'};
 
             % set plots to match piecharts
             v = find(strcmpi(get(hdataset, 'String'), 'drainage region'));
@@ -1087,7 +1120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if (numel(WP) > 0)
                 wp = @(x) WP.prod(x);
             end
-            otherNames = {W{state_idx}(D.inj).name};
+            otherNames = {W{state_idx}(D.inj).name, 'reservoir'};
 
             v = find(strcmpi(get(hdataset, 'String'), 'flooding region'));
             set(hdataset, 'Value', v(1))
@@ -1110,35 +1143,59 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             subplot(2, 2,[1 3])
         end
 
-        if (numel(WP) > 0) 
-            pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
-            title('Pore volumes')
+        if (numel(WP) > 0)
+            tmp = wp(ik);
+            %salloc = abs(sum(tmp.alloc,1));
+            alloc = [tmp.alloc, tmp.ralloc];
+            salloc = abs(sum(alloc));
+            [sa, tmp_ix] = sort(salloc, 'descend');
+            ssa = sum(sa);
+            ix = min(5, find(sa > .01*ssa, 1, 'last'));
+            [sa, tmp_ix] = deal(sa(ix:-1:1), tmp_ix(ix:-1:1));
+            if ~isempty(sa) && ssa~=0
+                pie(sa/ssa, otherNames(tmp_ix));
+                %pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
+                title('Well allocation factors')
+                if isInj
+                    set(ctrl_drain_vols, 'Value', tmp_ix(tmp_ix<=numel(D.prod)));
+                else
+                    set(ctrl_flood_vols, 'Value', tmp_ix(tmp_ix<=numel(D.inj)));
+                end
+            end
+            fig_main_wells.dirty = true;
         end
         if plotArrival
             subplot(2,2,3);  cla;
-            plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, opt.useMobilityArrival)
+            plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, 'inj_ix', tmp_ix, 'maxTOF', opt.maxTOF);
         end
 
-        subplot(2,2,[2 4])
-        if (numel(wp) > 0)
-            tmp = wp(ik);
+        
+        if (numel(WP) > 0)
             if numel(tmp.z) > 1
-                % Allocation factors by depth does not make sense for only one
+                subplot(2,2,[2 4])
+                % Allocation factors by connection does not make sense for only one
                 % perforation!
-                [z, zind] = sort(tmp.z, 'descend');
-                alloc = tmp.alloc(zind, :);
-                % Always some allocation - avoid division by zero
-                alloc(alloc == 0) = eps;
-                walloc = bsxfun(@rdivide, cumsum(alloc,1), sum(alloc(:)));
-                area(z, walloc, eps); axis tight;
-                hold on
-                plot(z, zeros(numel(z, 1)), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
-                % Flip it around, xlabel is really ylabel
-                view(90, -90);
-                set(gca, 'XDir', 'reverse')
-                legend(otherNames, 'Location', 'EastOutside');
-                xlabel('Depth')
-                title(['Allocation factors by depth for ', W{state_idx}(wk).name]);
+                %[z, zind] = sort(tmp.z, 'descend');
+                %alloc  = abs(tmp.alloc(:, tmp_ix));
+                alloc  = abs(alloc(:, tmp_ix));
+                na = size(alloc,1);
+                % reverse cumsum
+                calloc = cumsum(flipud(alloc), 1);
+                calloc = flipud(calloc);
+                % Use standard units
+                calloc = convertTo(calloc, 1/day);
+                if ~isempty(calloc)
+                    area((1:na)', calloc); axis tight;
+                    hold on
+                    plot((1:na)', zeros(na,1), '>', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'black', 'MarkerSize', 5);
+                    % Flip it around, xlabel is really ylabel
+                    view(90, -90);
+                    set(gca, 'XDir', 'reverse')
+                    %legend(otherNames, 'Location', 'EastOutside');
+                    xlabel('Connection #')
+                    ylabel('Accumulated flux [m^3/day]')
+                    title('Allocation by connection');
+                end
             end
         end
 
@@ -1165,17 +1222,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function plotWells()
         % Plot wells
         if (fig_main_wells.dirty)
-            if (any(ishandle(fig_main_wells.htop)))
-                delete(fig_main_wells.htop);
-            end
-            if (any(ishandle(fig_main_wells.htext)))
-                delete(fig_main_wells.htext);
-            end
-            if (any(ishandle(fig_main_wells.hs)))
-                delete(fig_main_wells.hs);
-            end
-            if (any(ishandle(fig_main_wells.hline)))
-                delete(fig_main_wells.hline);
+            if isempty(fig_main_wells.hwells) || ~ishandle(fig_main_wells.hwells(1).label)
+                fig_main_wells.hwells = plotWellData(G, wellsToPlotGrid(W{state_idx}), ...
+                    'color', [0 0 0], 'linePlot', opt.lineWells);
+                for j = 1:numel(W{state_idx})
+                    color = colorizeWell('global', j, D);
+                    set(fig_main_wells.hwells(j).label, 'ButtonDownFcn', @(src, event) onClickWell(src, event, j));
+                    set([fig_main_wells.hwells(j).label, fig_main_wells.hwells(j).connector], 'Color', color);
+                    set(fig_main_wells.hwells(j).label, 'FontWeight', 'bold', 'Interpreter', 'none')
+                    for k = 1:numel(fig_main_wells.hwells(j).body)
+                        if any(strcmp(get(fig_main_wells.hwells(2).body(k), 'type'), {'patch', 'surface'}))
+                            set(fig_main_wells.hwells(j).body(k), 'FaceColor', color, 'EdgeColor', 'none');
+                        else
+                            set(fig_main_wells.hwells(j).body(k), 'Color', color);
+                        end
+                    end
+                end
             end
     
             %Plot all wells
@@ -1187,25 +1249,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 sel_wells = [drain_wells, flood_wells];
             end
             
-            if (numel(sel_wells) > 0)
-                W_sel = W{state_idx}(sel_wells);
-
-                [fig_main_wells.htop, ...
-                    fig_main_wells.htext, ...
-                    fig_main_wells.hs, ...
-                    fig_main_wells.hline] = plotWell(G, wellsToPlotGrid(W_sel), ...
-                                                    'color', 'red', 'height',  0);
-
-                for j = 1:numel(W_sel)
-                    i = sel_wells(j);
-                    color = colorizeWell('global', i, D);
-                    set([fig_main_wells.htop(j) fig_main_wells.htext(j) fig_main_wells.hs(j)], 'ButtonDownFcn', @(src, event) onClickWell(src, event, i));
-                    set([fig_main_wells.htop(j) fig_main_wells.hs(j)], 'FaceColor', color, 'EdgeColor', color)
-                    set([fig_main_wells.htext(j) fig_main_wells.hline(j)], 'Color', color)
-                    set(fig_main_wells.htext(j), 'FontWeight', 'bold', 'Interpreter', 'none')
-                end
-            end
-            
+            vis = repmat({'off'}, [numel(W{state_idx}), 1]);
+            [vis{sel_wells}] = deal('on');
+            for j = 1: numel(W{state_idx})
+                set([fig_main_wells.hwells(j).label, ...
+                     fig_main_wells.hwells(j).connector, ...
+                     fig_main_wells.hwells(j).body], 'Visible', vis{j});
+            end          
             fig_main_wells.dirty = false;
         end
     end
@@ -1303,8 +1353,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 cdata = D.isubset;
             case 'sum tof frequency'
                 cdata = D.isubset + D.psubset;
+            case 'state.s'
+                if size(state{state_idx}.s, 2) == 3
+                    cdata = state{state_idx}.s(:, [2 3 1]);
+                else
+                    cdata = state{state_idx}.s;
+                end
+            case 'state.mob'
+                if size(state{state_idx}.s, 2) == 3
+                    cdata = state{state_idx}.mob(:, [2 3 1]);
+                else
+                    cdata = state{state_idx}.mob;
+                end                 
             otherwise
-                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
+                %                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
                 cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
         
@@ -1330,7 +1392,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rS.pressure = state_step.pressure;
         end
         
-        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true);
+        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true, 'maxTOF', opt.maxTOF);
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         
@@ -1346,17 +1408,41 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function computeValues(idx)
-        [D, WP] = computeTOFAndTracerAndWellPairs(W{idx}, state{idx});
-
-        if (~D.isvalid || isempty(WP))
-            warning('Time of flight returned inf. Are there both active injectors and producers present?')
+    function computeValues(stepNo)
+        if isempty(Diagnostics{stepNo})
+            disp('New state encountered, computing diagnostics...');
+            [d, wp] = ...
+                computeTOFAndTracerAndWellPairs(W{stepNo}, state{stepNo});
+            Diagnostics{stepNo} = d;
+            WellPairs{stepNo}   = wp;
+            if (~d.isvalid || isempty(wp))
+                warning('Time of flight returned inf. Are there both active injectors and producers present?')
+            end
         end
+    end
+
+    function computeAllSteps()
+        h = waitbar(0, 'Computing diagnostics...');
+        for ix = 1:numel(state)
+            if isempty(Diagnostics{ix})
+                waitbar(ix/numel(state), h, 'Computing diagnostics...');
+            end
+            computeValues(ix);
+        end
+        if ishandle(h)
+            close(h);
+        end
+    end
+
+    function [D, WP] = getDiagnostics(stepNo)
+        computeValues(stepNo);
+        D = Diagnostics{stepNo};
+        WP = WellPairs{stepNo};
     end
 
     function changeWells()
         W{state_idx} = editWells(G, W{state_idx}, rock);
-        computeValues();
+        [D, WP] = getDiagnostics(state_idx);
         createMainControl();
         
         fig_main_wells.dirty = true;
