@@ -286,18 +286,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fig_main = figure('Name', window_name);    
 
     %Set scaling
+    max_G = max(G.faces.centroids);
+    min_G = min(G.faces.centroids);
+    extents = zeros(1,6);
+    extents(1:2:end) = min_G - 0.05*(max_G-min_G);
+    extents(2:2:end) = max_G + 0.05*(max_G-min_G);
+    
     if (~isempty(opt.daspect))
         daspect(opt.daspect);
     else
-        max_G = max(G.faces.centroids);
-        min_G = min(G.faces.centroids);
         da = max_G - min_G;
         da(da == 0) = 1;
         daspect(da);
-        
-        extents = zeros(1,6);
-        extents(1:2:end) = min_G - 0.05*(max_G-min_G);
-        extents(2:2:end) = max_G + 0.05*(max_G-min_G);
     end
     % Create control panel
     % Precompute TOF etc. for creating main control
