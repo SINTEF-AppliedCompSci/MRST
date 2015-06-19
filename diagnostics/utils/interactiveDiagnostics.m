@@ -16,6 +16,7 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %     the component ratios inside a drainage volume. The flux from this
 %     state can also be used to calculate time of flight if "computeFlux"
 %     is disabled, for instance if the user has some external means of
+%     computing fluxes.
 %
 %   Once the initialization is complete, two windows will be produced:
 %     - A plotting window, showing the reservoir along with the wells and
@@ -255,10 +256,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %Handles for well plot in main figure
     fig_main_wells = {};
     fig_main_wells.hwells = [];
-%     [fig_main_wells.htop,...
-%      fig_main_wells.htext,...
-%      fig_main_wells.hs,...
-%      fig_main_wells.hline] = deal([]); 
     fig_main_wells.dirty = true;
     
     %Handles for cell data in main figure
@@ -314,7 +311,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     axis off;
     axis(extents);
     view(3);
-    colormap jet
+    
     % lighting (set both above and beneath..)
     if opt.useLight
         ax = axis;
@@ -1049,9 +1046,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         playback = true;
         % Pop figure to front explicitly before loop
         figure(fig_main);
-        set(gca, 'XLimMode', 'manual', ...
-                 'YLimMode', 'manual', ...
-                 'ZLimMode', 'manual');
+        
         for i = 0:N
             if ~playback
                 return
@@ -1071,9 +1066,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % The whole event should take a minimum of 10 seconds
             pause(min(0, 10/N - toc(timer)));
         end
-        set(gca, 'XLimMode', 'auto', ...
-                 'YLimMode', 'auto', ...
-                 'ZLimMode', 'auto');
+        
         playback = false;
     end
 
@@ -1191,7 +1184,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     % Flip it around, xlabel is really ylabel
                     view(90, -90);
                     set(gca, 'XDir', 'reverse')
-                    %legend(otherNames, 'Location', 'EastOutside');
                     xlabel('Connection #')
                     ylabel('Accumulated flux [m^3/day]')
                     title('Allocation by connection');
@@ -1366,7 +1358,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     cdata = state{state_idx}.mob;
                 end                 
             otherwise
-                %                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
+                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
                 cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
         

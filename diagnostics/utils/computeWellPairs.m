@@ -62,22 +62,9 @@ WP.pairs = cellfun(@(i,p) [i, ', ', p], ...
    repmat({W(D.inj).name},[1,np]), rldecode({W(D.prod).name},ni,2), ...
    'UniformOutput', false);
 
-% If only one injector / producer is present, ensure one over the domain
-% if ni == 1
-%     D.itracer = ones(G.cells.num, 1);
-% end
-% 
-% if np == 1
-%     D.ptracer = ones(G.cells.num, 1);
-% end
-
-% Fraction of cell associated with each well pair
-%cij = repmat(D.itracer, 1, np) .* rldecode(D.ptracer, ni,2);
-
 vols = D.itracer'*bsxfun(@times, poreVolume(G, rock), D.ptracer);
 % Volumes associated with each well pair
 WP.vols = vols(:)';
-%WP.vols = sum(cij .* repmat(poreVolume(G, rock),1, ni*np));
 
 % Numerical indices of each pair
 WP.pairIx = [repmat(1:ni, 1, np);...
