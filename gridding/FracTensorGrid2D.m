@@ -11,7 +11,7 @@ function G = FracTensorGrid2D(G,F,a,varargin)
 %
 %   G  - Matrix grid data structure
 %
-%   F  - Structure containing information about partitioned fracture
+%   F  - Structure containing information abo'Frac'ut partitioned fracture
 %        lines as returned by assembleFracNodes2D.
 %
 %   a  - Fracture aperture, Must either have a single value for all
@@ -55,15 +55,15 @@ else assert(numel(a) == numel(F),'Either specify 1 aperture per fracture line or
 Gf = struct();
 face_start = G.faces.num+1;
 for i = 1:numel(F)
-    fieldname = ['Line',num2str(i)];
+    fieldname = ['Frac',num2str(i)];
     coords = F(i).nodes.coords;
     endp = [coords(1,:);coords(end,:)];
     diff1 = diff(endp,1);
     if abs(diff1(2)) < eps*100 % // to x-axis
-        temp = tensorGrid(coords(:,1),uniquetol([coords(1,2);coords(1,2)+a(i)],eps,'ByRows',true));
+        temp = tensorGrid(coords(:,1),uniquetol([coords(1,2);coords(1,2)+a(i)],eps*100,'ByRows',true));
         Gf.(fieldname) = computeGeometry(temp);
     elseif abs(diff1(1)) < eps*100 % // to y-axis
-        temp = tensorGrid(uniquetol([coords(:,1); coords(:,1)+a(i)],eps,'ByRows',true),coords(:,2));
+        temp = tensorGrid(uniquetol([coords(:,1); coords(:,1)+a(i)],eps*100,'ByRows',true),coords(:,2));
         Gf.(fieldname) = computeGeometry(temp);
     else
         new_coords = translateLine(coords,a(i));
@@ -89,7 +89,7 @@ G.FracGrid = Gf;
 if ~isempty(varargin) && strcmp(varargin{1},'plot')
     figure
     for i = 1:numel(fieldnames(Gf))
-        plotGrid(Gf.(['Line',num2str(i)]),'FaceColor','w');
+        plotGrid(Gf.(['Frac',num2str(i)]),'FaceColor','w');
         hold on
     end
     hold off

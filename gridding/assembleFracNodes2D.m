@@ -32,7 +32,7 @@ function [F,fracture] = assembleFracNodes2D(G,fracture,varargin)
 %
 %   assemblyType  - Possible values: 1, 2 or 3.
 %                   1. Partition fracture grid based on a minimum and
-%                      desired cell size as specified by the user.
+%                      mean desired cell size as specified by the user.
 %                   2. Partition fracture grid by specifying a cell size
 %                      ratio (<=1) with respect to total length. ex: If
 %                      cell size ratio is 0.1, then each fracture will be

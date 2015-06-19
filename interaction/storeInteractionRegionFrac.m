@@ -67,6 +67,12 @@ function [CG,CGf] = storeInteractionRegionFrac(CG,CGf,CGm,varargin)
 %   theta     - User defined tolerance for defining acceptability of a
 %               coupling (connection) strength for aggregation.
 %
+%   excludeBoundary - exclude matrix cells at the boundary from fracture
+%                     interaction regions. Useful when BC is applied to
+%                     matrix
+%
+%   fullyCoupled - same as getRsbGrids_HFM
+%
 % RETURNS:
 %   CG - Coarse grid for combined fracture and matrix grid 'G' with basis
 %        supports and coarse node indices in added fields
@@ -109,10 +115,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 opts = struct(...
-    'type'         , 4                                            , ...
-    'sysMatrix'    , []                                           , ...
-    'levels'       , max(ceil(0.25/CG.parent.fractureAperture),5) , ...
-    'theta'        , 0.25 );
+    'type'            , 4                                            , ...
+    'sysMatrix'       , []                                           , ...
+    'levels'          , max(ceil(0.25/CG.parent.fractureAperture),5) , ...
+    'theta'           , 0.25                                         , ...
+    'excludeBoundary' , true                                         , ...
+    'fullyCoupled'    , true );
+
 opts = merge_options(opts, varargin{:});
 G = CG.parent; Gm = G.Matrix; p = CG.partition;
 
@@ -130,8 +139,9 @@ if opts.type >= 4
     end
 end
 
-dof_matrix = max(p(1:G.Matrix.cells.num));
-CGf = storeIRFracInterior(CGf,G,opts.sysMatrix,'simpleInteractionRegion',true,'callStoreInteractionRegion',false);
+dof_matrix = CGm.cells.num;
+callStoreInteractionRegion = G.griddim==3;
+CGf = storeIRFracInterior(CGf,G,opts.sysMatrix,'simpleInteractionRegion',true,'callStoreInteractionRegion',callStoreInteractionRegion);
 CG.cells.centers = [CGm.cells.centers; CGf.cells.centers+G.Matrix.cells.num];
 CG.cells.interaction = cell(numel(CG.cells.num),1);
 CG.cells.interaction(1:dof_matrix,1) = CGm.cells.interaction;
@@ -285,9 +295,16 @@ switch opts.type
         nnc = G.nnc.cells;
         nnc = nnc(ismember(nnc(:,1),1:G.Matrix.cells.num),:);
         Am = abs(Am);
+        if opts.excludeBoundary
+            boundary = any(G.faces.neighbors==0,2);
+            facelist = 1:G.faces.num;
+            bfaces = facelist( boundary);
+            faces = [rldecode(1:G.cells.num,diff(G.cells.facePos),2).' G.cells.faces];
+            rmcells = faces(ismember(faces(:,2),bfaces),1);
+        end
         for i = 1:numel(cg_frac)
-            fcg_fcells = frac_cells(p(frac_cells)==cg_frac(i)).';
-%             fcg_fcells = CGf.cells.interaction{cg_frac(i)-dof_matrix,1}+nm;
+%             fcg_fcells = frac_cells(p(frac_cells)==cg_frac(i)).';
+            fcg_fcells = CGf.cells.interaction{cg_frac(i)-dof_matrix,1}+nm;
             matrix_cells = unique(nnc(ismember(nnc(:,2),fcg_fcells),1));
             start = []; diagAm = zeros(size(matrix_cells));
             for j = 1:numel(matrix_cells)
@@ -305,6 +322,9 @@ switch opts.type
                 end
                 start = startnew;
                 add = [add;start]; %#ok
+            end
+            if opts.excludeBoundary
+                add = add(~ismember(add,rmcells));
             end
             CG.cells.interaction{cg_frac(i),1} = unique(add);
         end
@@ -502,19 +522,26 @@ switch opts.type
         error('Wrong option for defining fracture interaction regions. Argument ''type'' in function call must be an integer between 1-4.');
 end
 
-for i = dof_matrix+1:CG.cells.num
-    j = i-dof_matrix;
-    temp = CG.cells.interaction{i,1};
-    
-    temp2 = CGf.cells.interaction{j,1};
-    remove2 = [CGf.cells.centers(1:j-1);CGf.cells.centers(j+1:end)];
-    CGf.cells.interaction{j,1} = temp2(~ismember(temp2,remove2));
-    
-    temp = [temp(temp<=Gm.cells.num); CGf.cells.interaction{j,1} + G.Matrix.cells.num];
-    remove1 = [CG.cells.centers(1:i-1);CG.cells.centers(i+1:end)];
-    CG.cells.interaction{i,1} = temp(~ismember(temp,remove1));
+for i = 1:CG.cells.num
+    if i>dof_matrix
+        j = i-dof_matrix;
+        temp = CG.cells.interaction{i,1};
+        
+        temp2 = CGf.cells.interaction{j,1};
+        remove2 = [CGf.cells.centers(1:j-1);CGf.cells.centers(j+1:end)];
+        CGf.cells.interaction{j,1} = setdiff(temp2,remove2);
+        
+        temp = [temp(temp<=Gm.cells.num); CGf.cells.interaction{j,1} + G.Matrix.cells.num];
+        remove1 = [CG.cells.centers(1:i-1);CG.cells.centers(i+1:end)];
+        CG.cells.interaction{i,1} = setdiff(temp,remove1);
+    else
+        if opts.fullyCoupled
+            temp = CG.cells.interaction{i,1};
+            remove1 = [CG.cells.centers(1:i-1);CG.cells.centers(i+1:end)];
+            CG.cells.interaction{i,1} = setdiff(temp,remove1);
+        end
+    end
 end
-
 return
 
 
@@ -528,15 +555,15 @@ opt = merge_options(opt, varargin{:});
 
 if opt.callStoreInteractionRegion == true
     CGf = storeInteractionRegion(CGf,...
-    'adjustCenters'              , true  , ... % geometric means
+    'adjustCenters'              , true  , ...
     'skipSingleCellBlocks'       , false , ... 
     'simpleCellGrouping'         , true  , ... % true = no fining at boundary
-    'ensureConnected'            , false , ...
-    'largeBasis'                 , true  , ... % no triangilation
-    'localTriangulation'         , true  , ... % uses a global triangulation if false. smaller IR in some cases
-    'useMultipoint'              , true  );    % false makes IR smaller. Ask Olav
+    'ensureConnected'            , true , ...
+    'largeBasis'                 , false  , ... % no triangulation
+    'localTriangulation'         , true   , ... % uses a global triangulation if false. smaller IR in some cases
+    'useMultipoint'              , false  );  
 elseif opt.simpleInteractionRegion == true
-    CGf = addCoarseCenterPointsFrac(CGf,'option','useCoarseFaceCentroids'); % IR centers
+    CGf = addCoarseCenterPointsFrac(CGf,'option','useCoarseFaceCentroids','meantype','arithmetic'); % IR centers
     Af = A(G.Matrix.cells.num+1:end,G.Matrix.cells.num+1:end);
     Af = Af - diag(diag(Af));
     p = CGf.partition;

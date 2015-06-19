@@ -35,7 +35,7 @@ function [G,fracture] = processFracture2D(G,fl,varargin)
 %   This function calls getIndepNetwork and markcells internally.
 %
 % SEE ALSO:
-%   getIndepNetwork, markcells
+%   getIndepNetwork, markcells2D
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
@@ -66,7 +66,7 @@ fracture = getIndepNetwork(fl);
 
 % Mark cells
 dispif(opt.verbose, 'Marking cells containing fractures...\n\n');
-[G,fracture] = markcells(G,fracture); % Designed for 2D as of now
+[G,fracture] = markcells2D(G,fracture); % Designed for 2D as of now
 
 
 return

@@ -1,4 +1,4 @@
-function G = frac_frac_nnc(G,F,fracture)
+'Frac'function G = frac_frac_nnc(G,F,fracture)
 % frac_frac_nnc assigns NNC connections to fracture-fracture intersections
 % and also assigns a transmissibility to each connection using the
 % star-delta transformation. See see SPE-88812-PA, Karimi-Fard et al, 2004.
@@ -68,8 +68,8 @@ for i = 1:size(fracture.intersections.lines,1) %% 2D for now
             cells_l{j,1} = [Gface(j)-1,Gface(j)];
         end
     end
-    Gf1 = G.FracGrid.(['Line',num2str(lines(1))]);
-    Gf2 = G.FracGrid.(['Line',num2str(lines(2))]);
+    Gf1 = G.FracGrid.(['Frac',num2str(lines(1))]);
+    Gf2 = G.FracGrid.(['Frac',num2str(lines(2))]);
     cells_l{1,1} = Gf1.cells.start-1 + cells_l{1,1};
     cells_l{2,1} = Gf2.cells.start-1 + cells_l{2,1};
 

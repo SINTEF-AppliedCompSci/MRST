@@ -1,4 +1,4 @@
-function [CG, CGf] = getRsbGrids_HFM(G, F, nw, varargin)
+function [CG, CGf] = getRsbGrids_HFM(G, nw, varargin)
 % Computes coarse grid and interaction region for a grid with fractures
 %
 % SYNOPSIS:
@@ -12,7 +12,7 @@ function [CG, CGf] = getRsbGrids_HFM(G, F, nw, varargin)
 %   multiscale solver. There are no restrictions on grid definition.
 %   Fracture partitioning algorithms are graph based.
 %
-% REQUIRED PARAMETERS:
+% REQUIRED PARAMETERS:'Frac'
 %
 %   G  - Grid structure with fractures as defined by assembleGlobalGrid.
 %
@@ -35,7 +35,7 @@ function [CG, CGf] = getRsbGrids_HFM(G, F, nw, varargin)
 %
 %   use_metis   - Use metis to partition matrix.
 %
-%   dof_matrix  - Degrees of freedom in matrix at coarse scale. Required is
+%   dof_matrix  - Degrees of freedom in matrix at coarse scale. Required if
 %                 use_metis == true.
 %
 %   MatrixTrans - Matrix transmissibility. Required if use_metis == true.
@@ -45,21 +45,23 @@ function [CG, CGf] = getRsbGrids_HFM(G, F, nw, varargin)
 %                    Otherwise fractures will be a part of the matrix
 %                    coarse grid and interaction regions.
 %
-%   dof_frac    - Degrees of freedom in each fracture network at coarse
-%                 scale. Must either be a single value < minimum number of
-%                 fine cells in all independant fracture networks or 1
-%                 value per intependant fracture network.
+%   dof_frac     - Degrees of freedom in each fracture network at coarse
+%                  scale. Must either be a single value < minimum number of
+%                  fine cells in all independant fracture networks or 1
+%                  value per intependant fracture network.
 %
-%   sysMatrix   - Fine scale system (transmissibility) matrix A (see
-%                 incompTPFA). Must be specified if use_metis or
-%                 partition_frac are true
+%   sysMatrix    - Fine scale system (transmissibility) matrix A (see
+%                  incompTPFA). Must be specified if use_metis or
+%                  partition_frac are true
 %
-%   fracIRtype  - Matrix support type for the fracture basis. See
-%                 storeInteractionRegionFrac
+%   fracIRtype   - Matrix support type for the fracture basis. See
+%                  storeInteractionRegionFrac
+%
+%   fullyCoupled - Coupled fracture and matrix basis functions
 %
 % RETURNS:
-%   CG - Coarse grid for grid G with basis supports and coarse node
-%        indices. See storeInteractionRegion, generateCoarseGrid.
+%   CG  - Coarse grid for grid G with basis supports and coarse node
+%         indices. See storeInteractionRegion, generateCoarseGrid.
 %
 %   CGf - Fracture coarse grid with similar information as CG but only for
 %         the internal fracture grid Gf as returned by assembleFracGrid.
@@ -97,7 +99,8 @@ opts = struct(...
     'partition_frac'  , true   , ...
     'dof_frac'        , 1      , ...
     'sysMatrix'       , []     , ...
-    'fracIRtype'      , 4      );
+    'fracIRtype'      , 4      , ...
+    'fullyCoupled'    , true  );
 
 opts = merge_options(opts, varargin{:});
 Gm = G.Matrix; nt = G.cells.num;
@@ -108,11 +111,11 @@ if opts.partition_frac == true
     assert(~isempty(opts.sysMatrix) && isequal(size(opts.sysMatrix),[nt nt]),...
         sprintf(['System matrix for the given grid ''G'' is not specified.\n',...
         'It is needed for partitioning fractures using METIS.']));
-    numfc = zeros(1,numel(F));
+    numfc = zeros(1,numel(fieldnames(G.FracGrid)));
     numnc = zeros(1,numel(nw));
     for i = 1:numel(nw)
         for j = 1:numel(nw(i).lines)
-            numfc(nw(i).lines(j)) = F(nw(i).lines(j)).cells.num;
+            numfc(nw(i).lines(j)) = G.FracGrid.(['Frac',num2str(nw(i).lines(j))]).cells.num;
         end
         numnc(i) = sum(numfc(nw(i).lines));
     end
@@ -145,6 +148,7 @@ if opts.use_metis==true
 else
     assert(isfield(Gm,'cartDims'),'Underlying matrix grid must be cartesian if partitionUI is to be used');
 end
+
 if opts.use_metis
     % partition only matrix grid first
     % pass metis options as 'key'/value pairs. 'useLog' may be useful here
@@ -152,14 +156,24 @@ if opts.use_metis
     pm = partitionMETIS(Gm, opts.MatrixTrans, dof_matrix); 
 else
     coarsedims = ceil(Gm.cartDims./opts.coarsen);
-    % Generate partition vector
-    if opts.paddedPartition
-        pm = partitionUniformPadded(Gm, coarsedims);
+    if isfield(Gm,'cartDims')  
+        % Generate partition vector
+        if opts.paddedPartition
+            pm = partitionUniformPadded(Gm, coarsedims);
+        else
+            pm = partitionUI(Gm, coarsedims);
+        end
     else
-        pm = partitionUI(Gm, coarsedims);
+        dims = max(G.nodes.coords);
+        Gc = cartGrid(round(dims), dims);
+        Gc = computeGeometry(Gc);
+        % Make coarse grid
+        pm = partitionUI(Gc, coarsedims);
+        pm = reshape(pm, Gc.cartDims);
+        pm = sampleFromBox(G, pm);
     end
 end
-p = partitionFrac(G, pm, F, nw, opts); % Assign p to fractures or partition them separately
+p = partitionFrac(G, pm, nw, opts); % Assign p to fractures or partition them separately
 pf = p(G.Matrix.cells.num+1:end)-max(p(1:G.Matrix.cells.num));
 
 % Coarse grid structure from partition vector
@@ -169,26 +183,54 @@ CG = coarsenGeometry(CG);
 
 if opts.partition_frac==true
     Gf = assembleFracGrid(G);
-    CGm = generateCoarseGrid(Gm,pm);
+    CGm = generateCoarseGrid(Gm, pm);
     CGf = generateCoarseGrid(Gf, pf);
     CGm = coarsenGeometry(CGm);
     CGf = coarsenGeometry(CGf);
-    CGm = storeInteractionRegion(CGm);
-    [CG,CGf] = storeInteractionRegionFrac(CG,CGf,CGm,...
-        'type',opts.fracIRtype,'sysMatrix',opts.sysMatrix);
+    if opts.fullyCoupled
+        if isfield(Gm, 'cartDims')
+            fullIR = addCoarseCenterPoints(CGm);
+            fullIR = storeInteractionRegionCart(fullIR);
+            fcent = G.cells.centroids(Gm.cells.num:nt,:);
+            for i = 1:CGm.cells.num
+                tempIR = fullIR.cells.interaction{i,1};
+                nn = unique(gridCellNodes(Gm,tempIR));
+                tri = delaunayTriangulation(G.nodes.coords(nn,:));
+                in = pointLocation(tri,fcent);
+                add = find(~isnan(in));
+                fullIR.cells.interaction{i,1} = [tempIR;add];
+            end
+            CGm.cells.centers = fullIR.cells.centers(1:CGm.cells.num);
+            CGm.cells.interaction = fullIR.cells.interaction(1:CGm.cells.num);
+        else
+            fullIR = storeInteractionRegion(CG);
+            CGm.cells.centers = fullIR.cells.centers(1:CGm.cells.num);
+            CGm.cells.interaction = fullIR.cells.interaction(1:CGm.cells.num);
+        end
+    else
+        if isfield(Gm, 'cartDims')
+            CGm = addCoarseCenterPoints(CGm);
+            CGm = storeInteractionRegionCart(CGm);
+        else
+            CGm = storeInteractionRegion(CGm);
+        end
+    end
+    [CG,CGf] = storeInteractionRegionFrac(CG,CGf,CGm,'type',opts.fracIRtype,...
+        'sysMatrix',opts.sysMatrix,'fullyCoupled',opts.fullyCoupled);
 else
+    CGf = struct;
     CG = storeInteractionRegion(CG);
 end
 return
 
 %-------------------------------------------------------------------------%
 
-function pnew = partitionFrac(G, p, F, nw, opts)
+function pnew = partitionFrac(G, p, nw, opts)
 pnew = zeros(G.cells.num,1);
 pnew(1:numel(p)) = p;
 frac_cells = G.Matrix.cells.num+1:G.cells.num;
 if opts.partition_frac == true
-    Af = opts.sysMatrix(G.Matrix.cells.num+1:end,G.Matrix.cells.num+1:end);
+    Af = opts.sysMatrix(frac_cells,frac_cells);
     Af = Af - diag(diag(Af));
     Af = Af + abs(diag(sum(Af,2)));
     mopt = struct('ufactor', 1.5, ...
@@ -205,7 +247,10 @@ if opts.partition_frac == true
         nwcells = [];
         for j = 1:numel(nw(i).lines);
             ll = nw(i).lines(j);
-            nwcells = [nwcells,F(ll).cells.start:(F(ll).cells.start+F(ll).cells.num-1)]; %#ok
+            start = G.FracGrid.(['Frac',num2str(ll)]).cells.start;
+            finish = G.FracGrid.(['Frac',num2str(ll)]).cells.start + ...
+                G.FracGrid.(['Frac',num2str(ll)]).cells.num-1;
+            nwcells = [nwcells,start:finish]; %#ok
         end
         if opts.dof_frac(i) == 1
             pnew(nwcells) = max(pnew) + 1;
@@ -219,7 +264,7 @@ if opts.partition_frac == true
 else
     % no coarsening/multiscale in fractures. Fracture fine-cells belong to
     % matrix coarse cells
-    warning(sprintf(['''partition_frac key'' is set to false in function arguments.',...
+    warning(sprintf(['''partition_frac'' key is set to false in function arguments.',...
         '\nNo multiscale formulation in fractures i.e. no rsb in fractures.']));%#ok
     for i = 1:numel(frac_cells)
         nnc = G.nnc.cells;

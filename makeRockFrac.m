@@ -9,7 +9,7 @@ function G = makeRockFrac(G, K_star, varargin)
 %
 % REQUIRED PARAMETERS:
 %
-%   G      - Grid data structure containing fracture grids (for each
+%   G      - Grid data structure containi'Frac'ng fracture grids (for each
 %            fracture line or plane) in G.FracGrid
 %
 %   K_star - Used to scale fracture permeability by K_star orders of
@@ -58,19 +58,19 @@ if ~isempty(varargin) && strcmp(opt.permtype,'homogeneous')==0 && strcmp(opt.per
         'Setting homogeneous permeability in fractures...\n']);
 end
 for i = 1:numel(fieldnames(G.FracGrid))
-    Gf = G.FracGrid.(['Line',num2str(i)]);
+    Gf = G.FracGrid.(['Frac',num2str(i)]);
     if isempty(varargin) || strcmp(opt.permtype,'homogeneous')
-        G.FracGrid.(['Line',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_star;
+        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_star;
     elseif strcmp(opt.permtype,'heterogeneous')
-        G.FracGrid.(['Line',num2str(i)]).rock.perm = ...
+        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ...
             (randi(100,Gf.cells.num,1)*darcy()./randi(100,Gf.cells.num,1))*K_star;
     else
-        G.FracGrid.(['Line',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_star;
+        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_star;
     end
     if ~isempty(opt.rockporo)
         assert(opt.rockporo<1 && opt.rockporo>0,...
             'Rock porosity must be a single real number between 0 and 1');
-        G.FracGrid.(['Line',num2str(i)]).rock.poro = ...
+        G.FracGrid.(['Frac',num2str(i)]).rock.poro = ...
             opt.rockporo*ones(Gf.cells.num,1);
     end
 end

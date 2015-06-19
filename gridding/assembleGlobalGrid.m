@@ -39,21 +39,25 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
+if isfield(Gm,'Matrix')
+    G = Gm;
+    return
+end
 G = Gm;
 Gm = rmfield(Gm,{'FracGrid','nnc'});
 G.Matrix = Gm;
+name = 'Frac';
 for i = 1:numel(fieldnames(G.FracGrid))
-    Gf = G.FracGrid.(['Line',num2str(i)]);
+    Gf = G.FracGrid.([name,num2str(i)]);
     cell_start = numel(G.cells.volumes); %max(G.cells.indexMap); %Gf.cells.start-1;
     face_start = numel(G.faces.areas);% G.faces.tag %Gf.faces.start-1;
     node_start = size(G.nodes.coords,1); %Gf.nodes.start-1;
-    if isfield(G.cells,'indexMap');
+    if isfield(G.cells,'indexMap')
         G.cells.indexMap = [G.cells.indexMap;Gf.cells.indexMap+cell_start];
     end
     fPos = Gf.cells.facePos+max(G.cells.facePos)-1;
     G.cells.facePos = [G.cells.facePos;fPos(2:end)];
-    if isfield(G,'cartDims') || size(G.cells.faces,2)==2
+    if isfield(G,'cartDims') || (size(G.cells.faces,2)==2 && size(Gf.cells.faces,2)==2)
         G.cells.faces = [G.cells.faces;[Gf.cells.faces(:,1)+face_start, Gf.cells.faces(:,2)]];
     else
         G.cells.faces = [G.cells.faces;Gf.cells.faces(:,1)+face_start];
@@ -69,7 +73,10 @@ for i = 1:numel(fieldnames(G.FracGrid))
     G.faces.neighbors = [G.faces.neighbors;fnbrs];
     nPos = Gf.faces.nodePos+max(G.faces.nodePos)-1;
     G.faces.nodePos = [G.faces.nodePos;nPos(2:end)];
-    if isfield(G.faces,'tag');
+    if isfield(G.faces,'tag') && isfield(Gf.faces,'tag')
+        if ~isfield(Gf.faces,'tag')
+            Gf.faces.tag = zeros(Gf.faces.num,1);
+        end
         G.faces.tag = [G.faces.tag;Gf.faces.tag];
     end
     G.faces.nodes = [G.faces.nodes;Gf.faces.nodes+node_start];

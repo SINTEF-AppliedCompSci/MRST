@@ -43,16 +43,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 FG = G.FracGrid;
 for i = 1:numel(fieldnames(FG))
-    if i == 1, Gf = FG.(['Line',num2str(i)]);
+    if i == 1, Gf = FG.(['Frac',num2str(i)]);
     else
-        Gl = FG.(['Line',num2str(i)]);
+        Gl = FG.(['Frac',num2str(i)]);
         cell_start = max(Gf.cells.indexMap); %Gf.cells.start-1;
-        face_start = numel(Gf.faces.tag); %Gf.faces.start-1;
+        face_start = numel(Gf.faces.areas); %Gf.faces.start-1;
         node_start = size(Gf.nodes.coords,1); %Gf.nodes.start-1;
         Gf.cells.indexMap = [Gf.cells.indexMap;Gl.cells.indexMap+cell_start];
         fPos = Gl.cells.facePos+max(Gf.cells.facePos)-1;
         Gf.cells.facePos = [Gf.cells.facePos;fPos(2:end)];
-        Gf.cells.faces = [Gf.cells.faces;[Gl.cells.faces(:,1)+face_start, Gl.cells.faces(:,2)]];
+        
+        if isfield(Gf,'cartDims') || size(G.cells.faces,2)==2
+            Gf.cells.faces = [Gf.cells.faces;[Gl.cells.faces(:,1)+face_start, Gl.cells.faces(:,2)]];
+        else
+            Gf.cells.faces = [Gf.cells.faces;Gl.cells.faces(:,1)+face_start];
+        end
+        
         Gf.cells.volumes = [Gf.cells.volumes;Gl.cells.volumes];
         Gf.cells.centroids = [Gf.cells.centroids;Gl.cells.centroids];
         fnbrs = Gl.faces.neighbors;
@@ -64,7 +70,9 @@ for i = 1:numel(fieldnames(FG))
         Gf.faces.neighbors = [Gf.faces.neighbors;fnbrs];
         nPos = Gl.faces.nodePos+max(Gf.faces.nodePos)-1;
         Gf.faces.nodePos = [Gf.faces.nodePos;nPos(2:end)];
-        Gf.faces.tag = [Gf.faces.tag;Gl.faces.tag];
+        if isfield(Gf.faces,'tag')
+            Gf.faces.tag = [Gf.faces.tag;Gl.faces.tag];
+        end
         Gf.faces.nodes = [Gf.faces.nodes;Gl.faces.nodes+node_start];
         Gf.faces.areas = [Gf.faces.areas;Gl.faces.areas];
         Gf.faces.normals = [Gf.faces.normals;Gl.faces.normals];
@@ -81,6 +89,8 @@ for i = 1:numel(fieldnames(FG))
     Gf.faces.num = max(Gf.cells.faces(:));
     Gf.nodes.num = size(Gf.nodes.coords,1);
     Gf.cartDims = [Gf.cells.num 1];
-    Gf.nnc.cells = G.nnc.cells(strcmp(G.nnc.type,'star-delta'),:)-G.Matrix.cells.num;
-    Gf.nnc.T = G.nnc.T(strcmp(G.nnc.type,'star-delta'));
+    if isfield(G.nnc,'type')
+        Gf.nnc.cells = G.nnc.cells(strcmp(G.nnc.type,'star-delta'),:)-G.Matrix.cells.num;
+        Gf.nnc.T = G.nnc.T(strcmp(G.nnc.type,'star-delta'));
+    end
 end
