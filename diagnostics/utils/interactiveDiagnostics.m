@@ -158,7 +158,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'lineWells',           true, ...
                  'maxTOF',              [], ...
                  'useLight',            true, ...
-                 'fastRotate',          true ...
+                 'fastRotate',          [] ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -308,7 +308,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
     % Trigger plot initial setup
     plotMain();
-    axis off;
+    axis off vis3d;
     axis(extents);
     view(3);
     
@@ -1007,7 +1007,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        if opt.fastRotate
+        if isempty(opt.fastRotate)
+            if (G.cells.num > 50000)
+                fastRotateButton();
+            end
+        elseif opt.fastRotate
             fastRotateButton();
         end
 
