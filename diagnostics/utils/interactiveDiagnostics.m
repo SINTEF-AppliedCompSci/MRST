@@ -157,7 +157,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'leaveOpenOnClose',    false, ...
                  'lineWells',           true, ...
                  'maxTOF',              [], ...
-                 'useLight',            true, ...
+                 'useLight',            false, ...
                  'fastRotate',          [] ...
     );
 
@@ -251,7 +251,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      hdataset,...
      hset_op,...
      mrst_ds,...
-     ds_panel] = deal(NaN);
+     ds_panel,...
+     lights] = deal(NaN);
     
     %Handles for well plot in main figure
     fig_main_wells = {};
@@ -312,14 +313,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     axis(extents);
     view(3);
     
-    % lighting (set both above and beneath..)
-    if opt.useLight
-        ax = axis;
-        [p1, p2] = deal(ax([2,3,5]), ax([1,4,6]));
-        light('Position', p1 + 3*(p2-p1));
-        [p1, p2] = deal(ax([2,3,6]), ax([1,4,5]));
-        light('Position', p1 + 3*(p2-p1));
-    end
 
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -586,6 +579,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'String', 'Plot all wells',...
                    'Callback', @allWellsChange, ...
                    'Value', 1 ...
+                   );
+               
+               
+        % lighting (set both above and beneath..)
+        function setLights(src, event)
+            if (get(src, 'Value'))
+                set(0, 'CurrentFigure', fig_main);
+                ax = axis;
+                [p1, p2] = deal(ax([2,3,5]), ax([1,4,6]));
+                l1 = light('Position', p1 + 3*(p2-p1));
+                [p1, p2] = deal(ax([2,3,6]), ax([1,4,5]));
+                l2 = light('Position', p1 + 3*(p2-p1));
+                lights = [l1, l2];
+            elseif (numel(lights) > 0)
+                delete(lights);
+            end
+        end
+        uicontrol(adv_panel, 'Style', 'checkbox',...
+                   'Units', 'normalized',...
+                   'Position', [3*bwidth 2*adv_H bwidth adv_h],...
+                   'String', 'Enable lighting',...
+                   'Callback', @setLights, ...
+                   'Value', opt.useLight ...
                    );
         
         % Function which saves variables to the workspace on demand
