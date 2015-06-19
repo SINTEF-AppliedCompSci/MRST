@@ -88,6 +88,10 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %  'leaveOpenOnClose' - Default false. Leaves all figures open when closing
 %                       the controller.
 %
+%  'fastRotate' - Enables fast rotate if true, disables if false. Default
+%                 is enabled for models with > 50000 cells, disabled
+%                 otherwise.
+%
 % RETURNS:
 %
 %   Nothing. Creates two figures.
