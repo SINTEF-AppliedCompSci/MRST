@@ -91,8 +91,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 opts = struct(...
-    'coarsen'         , []     , ...
-    'paddedPartition' , true   , ...
+    'coarseDims'      , []     , ...
+    'sampleDims'      , []     , ...
+    'paddedPartition' , false  , ...
     'use_metis'       , false  , ...
     'dof_matrix'      , 5      , ...
     'MatrixTrans'     , computeTrans(G.Matrix,G.Matrix.rock), ...
@@ -100,17 +101,12 @@ opts = struct(...
     'dof_frac'        , 1      , ...
     'sysMatrix'       , []     , ...
     'fracIRtype'      , 4      , ...
-    'fullyCoupled'    , true  );
+    'fullyCoupled'    , true   );
 
 opts = merge_options(opts, varargin{:});
 Gm = G.Matrix; nt = G.cells.num;
-
+%-------------------------------------------------------------------------%
 if opts.partition_frac == true
-    assert(all(opts.dof_frac>=1),['Degrees of freedom for each fracture ',...
-        'network at coarse scale must be passed as an integer >= 1.']);
-    assert(~isempty(opts.sysMatrix) && isequal(size(opts.sysMatrix),[nt nt]),...
-        sprintf(['System matrix for the given grid ''G'' is not specified.\n',...
-        'It is needed for partitioning fractures using METIS.']));
     numfc = zeros(1,numel(fieldnames(G.FracGrid)));
     numnc = zeros(1,numel(nw));
     for i = 1:numel(nw)
@@ -119,6 +115,9 @@ if opts.partition_frac == true
         end
         numnc(i) = sum(numfc(nw(i).lines));
     end
+    % Frac DOF Related Warnings
+    assert(all(opts.dof_frac>=1),['Degrees of freedom for each fracture ',...
+        'network at coarse scale must be passed as an integer >= 1.']);
     assert(numel(opts.dof_frac)==1 || numel(opts.dof_frac)==numel(nw),...
         sprintf(['Specify either 1 DOF per fracture network or 1 DOF for ',...
         'each fracture network.\nThere are ',num2str(numel(nw)),' independant fracture networks.']));
@@ -143,34 +142,38 @@ if opts.use_metis==true
     assert(opts.dof_matrix>1,sprintf(['Number of blocks into which to ',...
         'partition the grid ''G'' is not specified.\nSpecify a ',...
         'positive integer in the function call using the ''dof_matrix'' flag.']));
-    assert(~isempty(opts.MatrixTrans),sprintf(['Forgot to pass transmissibility ',...
-        'vector for matrix cells ?\nAdd using key ''MatrixTrans'' in argument list.']));
 else
     assert(isfield(Gm,'cartDims'),'Underlying matrix grid must be cartesian if partitionUI is to be used');
 end
-
+%-------------------------------------------------------------------------%
 if opts.use_metis
     % partition only matrix grid first
     % pass metis options as 'key'/value pairs. 'useLog' may be useful here
     dof_matrix = opts.dof_matrix;
     pm = partitionMETIS(Gm, opts.MatrixTrans, dof_matrix); 
 else
-    coarsedims = ceil(Gm.cartDims./opts.coarsen);
-    if isfield(Gm,'cartDims')  
+    dims = max(G.nodes.coords);
+    if isfield(Gm,'cartDims')
         % Generate partition vector
-        if opts.paddedPartition
-            pm = partitionUniformPadded(Gm, coarsedims);
+        if strcmp(G.type{1,1},'processGRDECL')
+            if isempty(opts.sampleDims), opts.sampleDims = G.cartDims/10; end
+            Gc = cartGrid(opts.sampleDims, dims);
+            % Make coarse grid
+            pm = partitionUI(Gc, opts.coarseDims);
+            pm = reshape(pm, Gc.cartDims);
+            pm = compressPartition(sampleFromBox(Gm, pm));
+        elseif opts.paddedPartition
+            pm = compressPartition(partitionUniformPadded(Gm, opts.coarseDims));
         else
-            pm = partitionUI(Gm, coarsedims);
+            pm = compressPartition(partitionUI(Gm, opts.coarseDims));
         end
     else
-        dims = max(G.nodes.coords);
-        Gc = cartGrid(round(dims), dims);
-        Gc = computeGeometry(Gc);
+        if isempty(opts.sampleDims), opts.sampleDims = G.cartDims/10; end
+        Gc = cartGrid(opts.sampleDims, dims);
         % Make coarse grid
-        pm = partitionUI(Gc, coarsedims);
+        pm = partitionUI(Gc, opts.coarseDims);
         pm = reshape(pm, Gc.cartDims);
-        pm = sampleFromBox(G, pm);
+        pm = compressPartition(sampleFromBox(Gm, pm));        
     end
 end
 p = partitionFrac(G, pm, nw, opts); % Assign p to fractures or partition them separately
@@ -187,36 +190,26 @@ if opts.partition_frac==true
     CGf = generateCoarseGrid(Gf, pf);
     CGm = coarsenGeometry(CGm);
     CGf = coarsenGeometry(CGf);
-    if opts.fullyCoupled
-        if isfield(Gm, 'cartDims')
-            fullIR = addCoarseCenterPoints(CGm);
-            fullIR = storeInteractionRegionCart(fullIR);
-            fcent = G.cells.centroids(Gm.cells.num:nt,:);
-            for i = 1:CGm.cells.num
-                tempIR = fullIR.cells.interaction{i,1};
-                nn = unique(gridCellNodes(Gm,tempIR));
-                tri = delaunayTriangulation(G.nodes.coords(nn,:));
-                in = pointLocation(tri,fcent);
-                add = find(~isnan(in));
-                fullIR.cells.interaction{i,1} = [tempIR;add];
-            end
-            CGm.cells.centers = fullIR.cells.centers(1:CGm.cells.num);
-            CGm.cells.interaction = fullIR.cells.interaction(1:CGm.cells.num);
-        else
-            fullIR = storeInteractionRegion(CG);
-            CGm.cells.centers = fullIR.cells.centers(1:CGm.cells.num);
-            CGm.cells.interaction = fullIR.cells.interaction(1:CGm.cells.num);
-        end
+    if isfield(Gm,'cartDims') && ~strcmp(G.type{1,1},'processGRDECL')
+        CGm = addCoarseCenterPoints(CGm);
+        CGm = storeInteractionRegionCart(CGm);
     else
-        if isfield(Gm, 'cartDims')
-            CGm = addCoarseCenterPoints(CGm);
-            CGm = storeInteractionRegionCart(CGm);
-        else
-            CGm = storeInteractionRegion(CGm);
+        CGm = storeInteractionRegion(CGm);
+    end
+    if opts.fullyCoupled
+        % Add fracture cells within region
+        fcent = G.cells.centroids(Gm.cells.num+1:nt,:);
+        for i = 1:CGm.cells.num
+            tempIR = CGm.cells.interaction{i,1};
+            nn = unique(gridCellNodes(Gm,tempIR));
+            tri = delaunayTriangulation(G.nodes.coords(nn,:));
+            in = pointLocation(tri,fcent);
+            add = Gm.cells.num + find(~isnan(in));
+            CGm.cells.interaction{i,1} = [tempIR;add];
         end
     end
-    [CG,CGf] = storeInteractionRegionFrac(CG,CGf,CGm,'type',opts.fracIRtype,...
-        'sysMatrix',opts.sysMatrix,'fullyCoupled',opts.fullyCoupled);
+    [CG,CGf] = storeFractureInteractionRegion(CG, CGf, CGm, 'type', ...
+                opts.fracIRtype, 'fullyCoupled', opts.fullyCoupled, 'excludeBoundary', true);
 else
     CGf = struct;
     CG = storeInteractionRegion(CG);
@@ -229,8 +222,14 @@ function pnew = partitionFrac(G, p, nw, opts)
 pnew = zeros(G.cells.num,1);
 pnew(1:numel(p)) = p;
 frac_cells = G.Matrix.cells.num+1:G.cells.num;
+if isempty(opts.sysMatrix)
+    fprintf('\nSystem matrix not provided, assuming homogeneous fractures.\n');
+    A = getConnectivityMatrix(getNeighbourship(G,'Topological'));
+else
+    A = opts.sysMatrix;
+end
 if opts.partition_frac == true
-    Af = opts.sysMatrix(frac_cells,frac_cells);
+    Af = A(frac_cells,frac_cells);
     Af = Af - diag(diag(Af));
     Af = Af + abs(diag(sum(Af,2)));
     mopt = struct('ufactor', 1.5, ...
