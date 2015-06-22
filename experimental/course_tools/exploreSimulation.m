@@ -5,33 +5,35 @@ function exploreSimulation(varargin)
 
    rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
    
-   opt.grid_coarsening = 4;
+   opt.grid_coarsening   = 4;
    opt.default_formation = 'Utsirafm';
-   opt.window_size = [1200 900];
-   opt.seafloor_depth = 100 * meter;
-   opt.seafloor_temp  =  7; % in Celsius
-   opt.temp_gradient  = 35.6; % degrees per kilometer
-   opt.water_density  = 1000; % kg per m3
-   opt.press_deviation = 0; % pressure devation from hydrostatic (percent)
-   opt.res_sat_co2 = 0.21; 
-   opt.res_sat_wat = 0.11;
-   opt.dis_max = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
-   opt.max_num_wells = 10;
-   opt.default_rate = 1 * mega * 1e3 / year / rhoCref; % default injection rate
-   opt.max_rate = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate
-   opt.seafloor_depth = 100 * meter;
-   opt.seafloor_temp  =  7; % in Celsius
-   opt.temp_gradient  = 35.6; % degrees per kilometer
-   opt.water_compr_val = 4.3e-5/barsa;
-   opt.water_compr_p_ref = 100 * barsa;
-   opt.water_residual = 0.11;
-   opt.co2_residual = 0.21;
-   opt.inj_time = 50 * year;
-   opt.inj_steps = 10;
-   opt.mig_time = 3000 * year;
-   opt.mig_steps = 30;
-   opt.well_radius = 0.3;
-   opt.subtrap_file = 'utsira_subtrap_function_3.mat';
+   opt.window_size       = [1200 900];
+   opt.seafloor_depth    = 100 * meter;
+   opt.seafloor_temp     =  7; % in Celsius
+   opt.temp_gradient     = 35.6; % degrees per kilometer
+   opt.water_density     = 1000; % kg per m3
+   opt.res_sat_co2       = 0.21; 
+   opt.res_sat_wat       = 0.11;
+   opt.dis_max           = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
+   opt.max_num_wells     = 10;
+   opt.default_rate      = 1 * mega * 1e3 / year / rhoCref; % default injection rate
+   opt.max_rate          = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate
+   opt.seafloor_depth    = 100 * meter;
+   opt.seafloor_temp     =  7; % in Celsius
+   opt.temp_gradient     = 35.6; % degrees per kilometer
+   opt.water_compr_val   = 4.3e-5/barsa;
+   opt.pvMult            = 1e-5/barsa; % pore volume multiplier
+   opt.water_residual    = 0.11;
+   opt.co2_residual      = 0.21;
+   opt.inj_time          = 50 * year;
+   opt.inj_steps         = 10;
+   opt.mig_time          = 3000 * year;
+   opt.mig_steps         = 30;
+   opt.well_radius       = 0.3;
+   opt.subtrap_file      = 'utsira_subtrap_function_3.mat';
+   opt.outside_distance  = 100 * kilo * meter; % used to adjust
+                                               % transmissibilities of
+                                               % semiopen faces
    
    opt = merge_options(opt, varargin{:});
 
@@ -118,25 +120,53 @@ function exploreSimulation(varargin)
       end
       
       % Set up input parameters
+      initState = setup_initstate();
+      ref_p     = mean(initState.pressure); % use mean pressure as reference
+                                            % pressure for linear compressibilities
       fluid     = makeVEFluid(var.Gt, var.rock2D, 'sharp interface', ...
-                              'fixedT'      , caprock_temperature()                          , ...
-                              'wat_rho_pvt' , [opt.water_compr_val  , opt.water_compr_p_ref] , ...                              
-                              'residual'    , [opt.water_residual   , opt.co2_residual]      , ...
-                              'dissolution' , use_dissolution                                , ...
-                              'dis_max'     , opt.dis_max                                    , ...
-                              'surf_topo'   , topo                                           , ...
+                              'fixedT'      , caprock_temperature()                   , ...
+                              'wat_rho_pvt' , [opt.water_compr_val, ref_p]            , ...
+                              'wat_rho_ref' , opt.water_density                       , ...
+                              'pvMult_p_ref', ref_p                                   , ...
+                              'pvMult_fac'  , opt.pvMult                              , ...
+                              'residual'    , [opt.water_residual,  opt.co2_residual] , ...
+                              'dissolution' , use_dissolution                         , ...
+                              'dis_max'     , opt.dis_max                             , ...
+                              'surf_topo'   , topo                                    , ...
                               'top_trap'    , dh);
                               
       model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
-      initState = setup_initstate();
       schedule  = setup_schedule();
-  
-      % spawn simulation window 
-      visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, 'trapstruct', var.ta, 'dh', dh);
 
+      semiopen_faces = get_bfaces_of_type(1);
+      if ~isempty(semiopen_faces)
+         % modifying transmissibilities for semi-open boundary faces
+
+         semiopen_cells = sum(var.Gt.faces.neighbors(semiopen_faces,:), 2); 
+         d = var.Gt.cells.centroids(semiopen_cells) - var.Gt.faces.centroids(semiopen_faces);
+         d = sqrt(sum(d.^2, 2)); % norm of distance
+         
+         model.operators.T_all(semiopen_faces) = ...
+             model.operators.T_all(semiopen_faces) .* d ./ (d + opt.outside_distance);
+      end
+      
+      % spawn simulation window 
+      visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, ...
+                       'trapstruct', var.ta, 'dh', dh);
    end
 
    % ----------------------------------------------------------------------------
+
+   function res = get_bfaces_of_type(type)
+      
+      res = [];
+      for i = 1:numel(var.loops)
+         faces = var.loops{i};
+         bcs   = var.loops_bc{i};
+         res = [res; faces(bcs==type)];%#ok
+      end
+   end
+   
    
    function schedule = setup_schedule()
 
@@ -163,13 +193,9 @@ function exploreSimulation(varargin)
       schedule.control(1).W = W;
       schedule.control(2).W = W_shut;
       
-      % Define boundary conditionsx
-      open_faces = [];
-      for i = 1:numel(var.loops)
-         faces = var.loops{i};
-         bcs   = var.loops_bc{i};
-         open_faces = [open_faces; faces(bcs>0)];%#ok
-      end
+      % Define boundary conditions
+      open_faces = [get_bfaces_of_type(1); get_bfaces_of_type(2)];
+
       schedule.control(1).bc = addBC([], open_faces, ...
                                      'pressure', ...
                                      var.Gt.faces.z(open_faces) * opt.water_density * norm(gravity), ...
@@ -588,7 +614,7 @@ function exploreSimulation(varargin)
       
       % Run trapping analysis (we need this information to compute
       % inventories)
-      var.ta = trapAnalysis(var.Gt,true); %@@ false
+      var.ta = trapAnalysis(var.Gt,false);
       
       var.data = var.Gt.cells.z; 
       var.loops = find_boundary_loops(var.Gt);
