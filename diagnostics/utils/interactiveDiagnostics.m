@@ -1101,7 +1101,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function onClickWell(src, event, wk) %#ok<INUSL>
         clickType = get(gcf, 'SelectionType');
         if ~isempty(opt.wellPlotFn) && strcmpi(clickType, 'alt')
-            opt.wellPlotFn(src, event, W{state_idx}(wk).name, state{state_idx}.time);
+            t = state_idx;
+            if isfield(state{state_idx}, 'time')
+                t = state{state_idx}.time;
+            end
+            opt.wellPlotFn(src, event, W{state_idx}(wk).name, t);
             return
         end
         
