@@ -13,6 +13,11 @@ function terniaryWellPlot(wellSols, T, ix, varargin)
     if nargin < 3
         ix = 1:numel(ws0);
     end
+    
+    if ischar(ix)
+        ix = find(strcmpi({ws0.name}, ix));
+    end
+    
     flds = {'bhp', 'qWs', 'qOs', 'qGs'};
      [data, names] = getWellOutput(wellSols, flds, ix);
     for i = 1:numel(ix)
