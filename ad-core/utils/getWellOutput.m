@@ -65,8 +65,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Valid fields are fields with exactly one value per well
     validfields = fieldnames(ws0);
-    singledata = cellfun(@(x) numel(ws0(1).(x)) == 1, validfields);
-    validfields = validfields(singledata);
+    datacounts = cellfun(@(x) numel(ws0(1).(x)), validfields);
+    notMultiple = datacounts <= 1;
+    validfields = validfields(notMultiple);
+    datacounts  = datacounts(notMultiple);
     if nargin < 2
         fldnames = validfields;
     end
@@ -102,8 +104,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:numel(fldnames)
         fld = fldnames{i};
+        fieldNo = strcmpi(validfields, fld);
         assert(any(strcmpi(fld, validfields)),...
             'Only well fields with a single output value can be extracted using getWellOutput');
+        if datacounts(fieldNo) == 0
+            % No data, return NaN
+            continue
+        end
         data = cellfun(@(x) [x(subs).(fld)], wellsols, 'UniformOutput', false);
         welldata(:, :, i) = vertcat(data{:});
     end
