@@ -1167,10 +1167,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             salloc = abs(sum(alloc));
             [sa, tmp_ix] = sort(salloc, 'descend');
             ssa = sum(sa);
-            ix = min(5, find(sa > .01*ssa, 1, 'last'));
+            ix = find(cumsum(sa) > .99*ssa, 1, 'first');
             [sa, tmp_ix] = deal(sa(ix:-1:1), tmp_ix(ix:-1:1));
             if ~isempty(sa) && ssa~=0
-                pie(sa/ssa, otherNames(tmp_ix));
+                pie(sa/ssa,otherNames(tmp_ix));
                 %pie(max(WP.vols(sub), eps), ones(size(WP.vols(sub))))
                 title('Well allocation factors')
                 if isInj
@@ -1181,7 +1181,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             fig_main_wells.dirty = true;
         end
-        if plotArrival
+        if plotArrival && ~isempty(tmp_ix)
             subplot(2,2,3);  cla;
             plotTOFArrival(state{state_idx}, W{state_idx}, pv, opt.fluid, find(D.prod == wk), D, 'inj_ix', tmp_ix, 'maxTOF', opt.maxTOF);
         end
@@ -1382,7 +1382,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     cdata = state{state_idx}.mob;
                 end                 
             otherwise
-                assert(isfield(datasets{state_idx}, datanames{dataind}), 'Trying to access non-existent field');
                 cdata = readStructField(datasets{state_idx}, datanames{dataind});
         end
         
