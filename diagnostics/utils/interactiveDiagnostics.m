@@ -992,7 +992,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if (plot_grid)
             if ~any(ishandle(fig_main_grid))
                 fig_main_grid = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
-                set(fig_main_grid, 'UserData', 'gridoutline');
+                set(fig_main_grid, 'UserData', 'gridoutline', 'HitTest', 'off');
             end
         else
             if (any(ishandle(fig_main_grid)))
@@ -1019,11 +1019,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     cdataToPlotGrid(cdata{1}), ...
                     cdataToPlotGrid(cdata{2}), ...
                     'cells', cdataToPlotGrid(selection), ...
-                    'FaceAlpha', alpha);
+                    'FaceAlpha', alpha, 'HitTest', 'off');
             else
                 fig_main_cell_data = plotCellData(G, ...
                     cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
-                    'EdgeColor', 'none', 'FaceAlpha', alpha);
+                    'EdgeColor', 'none', 'FaceAlpha', alpha, 'HitTest', 'off');
             end
         end
 
@@ -1101,7 +1101,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function onClickWell(src, event, wk) %#ok<INUSL>
         clickType = get(gcf, 'SelectionType');
         if ~isempty(opt.wellPlotFn) && strcmpi(clickType, 'alt')
-            opt.wellPlotFn(src, event, W{state_idx}(wk).name, state{state_idx}.time);
+            t = state_idx;
+            if isfield(state{state_idx}, 'time')
+                t = state{state_idx}.time;
+            end
+            opt.wellPlotFn(src, event, W{state_idx}(wk).name, t);
             return
         end
         
@@ -1243,7 +1247,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     'color', [0 0 0], 'linePlot', opt.lineWells);
                 for j = 1:numel(W{state_idx})
                     color = colorizeWell('global', j, D);
-                    set(fig_main_wells.hwells(j).label, 'ButtonDownFcn', @(src, event) onClickWell(src, event, j));
+                    set([fig_main_wells.hwells(j).label, ...
+                         fig_main_wells.hwells(j).connector,...
+                         fig_main_wells.hwells(j).body], 'ButtonDownFcn', @(src, event) onClickWell(src, event, j));
                     set([fig_main_wells.hwells(j).label, fig_main_wells.hwells(j).connector], 'Color', color);
                     set(fig_main_wells.hwells(j).label, 'FontWeight', 'bold', 'Interpreter', 'none')
                     for k = 1:numel(fig_main_wells.hwells(j).body)
