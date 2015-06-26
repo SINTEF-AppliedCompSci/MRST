@@ -24,7 +24,7 @@ function [meta, data] = readAAIGrid(filename)
     while 1
         line = fgetl(ff);
         subs = regexp(line, ' *','split');
-        if numel(subs{1}) == 0
+        if numel(subs{1}) == 0 || numel(subs) > 2
             break
         end
         meta.(subs{1}) = sscanf(subs{2}, '%e');
