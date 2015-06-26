@@ -992,7 +992,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if (plot_grid)
             if ~any(ishandle(fig_main_grid))
                 fig_main_grid = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
-                set(fig_main_grid, 'UserData', 'gridoutline', 'HitTest', 'off');
+                set(fig_main_grid, 'UserData', 'gridoutline', 'HitTest', 'off', 'PickableParts', 'none');
             end
         else
             if (any(ishandle(fig_main_grid)))
@@ -1019,11 +1019,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     cdataToPlotGrid(cdata{1}), ...
                     cdataToPlotGrid(cdata{2}), ...
                     'cells', cdataToPlotGrid(selection), ...
-                    'FaceAlpha', alpha, 'HitTest', 'off');
+                    'FaceAlpha', alpha, 'HitTest', 'off', 'PickableParts', 'none');
             else
                 fig_main_cell_data = plotCellData(G, ...
                     cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
-                    'EdgeColor', 'none', 'FaceAlpha', alpha, 'HitTest', 'off');
+                    'EdgeColor', 'none', 'FaceAlpha', alpha, 'HitTest', 'off','PickableParts', 'none');
             end
         end
 
