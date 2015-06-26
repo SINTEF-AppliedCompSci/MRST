@@ -97,9 +97,7 @@ wp(D.prod) = WP.prod(:);
 % -------------------------------------------------------------------------
 % Calculate number of plots in 2D grid
 num_plots = numel(opt.plotOnly);
-if (numel(opt.plotOnly) < numel(wp))
-    clf();
-end
+clf();
 nx = ceil(sqrt(num_plots));
 ny = nx-1;
 if (nx*ny < num_plots)
