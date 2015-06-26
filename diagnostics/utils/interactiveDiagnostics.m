@@ -967,7 +967,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotMain(src, event)
-        if strcmp(gcf, 'double') %pre 2014b
+        if strcmp(class(gcf), 'double') %pre 2014b
             grid_plot_opts = {'HitTest', 'off'};
         else
             grid_plot_opts = {'HitTest', 'off', 'PickableParts', 'none'};
