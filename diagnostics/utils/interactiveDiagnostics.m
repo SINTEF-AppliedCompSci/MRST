@@ -966,7 +966,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function plotMain(src, event)        
+    function plotMain(src, event)
+        if strcmp(gcf, 'double') %pre 2014b
+            grid_plot_opts = {'HitTest', 'off'};
+        else
+            grid_plot_opts = {'HitTest', 'off', 'PickableParts', 'none'};
+        end
         if (compute_average)
             window_name = 'Average over timesteps';
         else
@@ -992,7 +997,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if (plot_grid)
             if ~any(ishandle(fig_main_grid))
                 fig_main_grid = plotGrid(G, 'facec', 'none', 'edgea', .05, 'edgec', 'black');
-                set(fig_main_grid, 'UserData', 'gridoutline', 'HitTest', 'off', 'PickableParts', 'none');
+                set(fig_main_grid, 'UserData', 'gridoutline', grid_plot_opts{:});
             end
         else
             if (any(ishandle(fig_main_grid)))
@@ -1019,11 +1024,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     cdataToPlotGrid(cdata{1}), ...
                     cdataToPlotGrid(cdata{2}), ...
                     'cells', cdataToPlotGrid(selection), ...
-                    'FaceAlpha', alpha, 'HitTest', 'off', 'PickableParts', 'none');
+                    'FaceAlpha', alpha, grid_plot_opts{:});
             else
                 fig_main_cell_data = plotCellData(G, ...
                     cdataToPlotGrid(cdata), cdataToPlotGrid(selection), ...
-                    'EdgeColor', 'none', 'FaceAlpha', alpha, 'HitTest', 'off','PickableParts', 'none');
+                    'EdgeColor', 'none', 'FaceAlpha', alpha, grid_plot_opts{:});
             end
         end
 
