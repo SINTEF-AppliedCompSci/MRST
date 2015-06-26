@@ -331,15 +331,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %
     function tofext = getTOFRange(D, opt)
         if (D.isvalid)
-            if ~isempty(opt.maxTOF)
-                tofext = convertTo([0, opt.maxTOF], year);
-            else
             tof = D.tof(:);
-            isNeg = (tof <= 0);
-            tof(isNeg) = min(tof(~isNeg));
+            if ~isempty(opt.maxTOF)
+               tofext = convertTo([min(tof), opt.maxTOF], year);
+            else
+               isNeg = (tof <= 0);
+               tof(isNeg) = min(tof(~isNeg));
 
-            tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
-            tofext(2) = clamp_real(max(tofext(2), 15));
+               tofext = convertTo(([min(tof), 5*10^(mean(log10(tof)))]), year);
+               tofext(2) = clamp_real(max(tofext(2), 15));
             end
         else
             tofext = [0 1];
