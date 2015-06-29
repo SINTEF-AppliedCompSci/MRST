@@ -505,6 +505,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                'Flooding region',...
                                                'Drainage blend',...
                                                'Flooding blend',...
+                                               'Tracer selected injectors',...
+                                               'Tracer selected producers',...
                                                'Porosity', ...
                                                perm{1:size(rock.perm, 2)},...
                                                cellfields{:}}...
@@ -967,7 +969,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotMain(src, event)
-        if strcmp(class(gcf), 'double') %pre 2014b
+        if isa(gcf, 'double') %pre 2014b
             grid_plot_opts = {'HitTest', 'off'};
         else
             grid_plot_opts = {'HitTest', 'off', 'PickableParts', 'none'};
@@ -1366,6 +1368,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'flooding blend'
                 cdata = {D.ipart, max(D.itracer, [], 2)};
                 clim = [1, max(D.ipart)];
+            case 'tracer selected injectors'
+                cdata  = sum(D.itracer(:, get(ctrl_flood_vols, 'Value')), 2);
+            case 'tracer selected producers'
+                cdata  = sum(D.ptracer(:, get(ctrl_drain_vols, 'Value')), 2);
             case 'porosity'
                 cdata = rock.poro;
             case 'x permeability'
