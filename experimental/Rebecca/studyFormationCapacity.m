@@ -2,19 +2,28 @@
 % mrst-co2lab, for the purpose of analyzing a user-specified formation, and
 % estimating its CO2 storage capacity.
 
-%moduleCheck('co2lab', 'mex', 'coarsegrid', 'matlab_bgl', 'libgeometry', 'opm_gridprocessing');
+% If using formations found in Barents Sea, this script assumes you have
+% downloaded the datafiles and placed them under
+% mrst-core/examples/data/CO2Atlas. Format of filename is as follows:
+% "Name_thickness" and "Name_top", where Name is the formation name
+% (however not followed by 'fm').
+
 moduleCheck('co2lab', 'mex',  'libgeometry', 'opm_gridprocessing');
 
 
 %% 1. Load and process a formation.
-N = 2;
-name = 'Sandnesfm'; %'Utsirafm'; %'Johansenfm';
+N = 1;
+name = 'bjarmeland'; %'Sandnesfm'; %'Utsirafm'; %'Sandnesfm';  %'Johansenfm';
 [grdecl] = getAtlasGrid(name, 'coarsening',N);
-G = mprocessGRDECL(grdecl{1}); % use mprocessGRDECL if its big.  % requires mex module
-G = mcomputeGeometry(G); % function requires libgeometry module
+G = mprocessGRDECL(grdecl{1});  % use mprocessGRDECL if its big.  % requires mex module
+G = mcomputeGeometry(G);        % function requires libgeometry module
 
 [Gt, rock] = getFormationTopGrid(name, N);
-rock.poro = unique(rock.poro); % a single value
+rock.poro = unique(rock.poro); % a single value. Use full porosity map instead?
+if isnan(rock.poro)
+    fprintf('Porosity required: Update getAtlasGrid() to include porosity of %s formation.\n', name);
+    return
+end
 
 % Note, one could also use the following function, however this function
 % does not return rock data as output:
@@ -24,10 +33,10 @@ rock.poro = unique(rock.poro); % a single value
 %% 2. Visualize formation grid and top surface.
 figure;
 plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
-plotCellData(Gt, Gt.cells.z)
+plotCellData(Gt, Gt.cells.z) % depth is in units of meters
 
 view(3);
-set(gca,'DataAspect',[1 1 1/100])
+set(gca,'DataAspect',[1 1 1/100]);
 hcb = colorbar;
 hcb.TickLabels = hcb.Ticks/1000;
 hcb.Label.String = 'Depth below sealevel, km';
@@ -39,7 +48,7 @@ xlabel('x-coordinate'); ylabel('y-coordinate'); zlabel('z, m'); grid
 ta = trapAnalysis(Gt, false); % true for cell-based method
 
 plotCellData(Gt, ta.traps, ta.traps~=0, 'FaceColor', 'r', 'EdgeColor','none')
-bf = boundaryFaces(Gt);
+bf = boundaryFaces(Gt, ta.traps~=0);
 plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
 
 ta_volumes = volumesOfTraps(Gt, ta);
@@ -93,8 +102,6 @@ xlabel('x-coordinate'); ylabel('y-coordinate'); zlabel('z, m'); grid
 % range of trapping capacity (such as total and structural). Note: some
 % fluid parameters are fixed to those used in exploreCapacity.
 
-% to pass in: Gt, rock, ta, parameter2vary output: nothing, but
-% cooresponding plots are generated
 
 % Range of values:
 tgrad_range             = 10:1:50; % degrees C (not Kelvin)
@@ -105,51 +112,102 @@ diss_max_range          = [0:2:100];
 
 % computes breakdown given range of one parameter (other parameters will be
 % set to their default values)
-[out_tgrad] = exploreParameterRanges(Gt, name, rock, ta, 'tgrad',           tgrad_range);
-[out_press] = exploreParameterRanges(Gt, name, rock, ta, 'press_deviation', press_deviation_range);
-[out_resco2] = exploreParameterRanges(Gt, name, rock, ta, 'res_co2_sat',    res_co2_sat_range);
-[out_resbri] = exploreParameterRanges(Gt, name, rock, ta, 'res_brine_sat',  res_brine_sat_range);
-[out_dismax] = exploreParameterRanges(Gt, name, rock, ta, 'dis_max',        diss_max_range);
+[out_tgrad]     = exploreParameterRanges(Gt, rock, ta, 'tgrad',           tgrad_range);
+[out_press]     = exploreParameterRanges(Gt, rock, ta, 'press_deviation', press_deviation_range);
+[out_resco2]    = exploreParameterRanges(Gt, rock, ta, 'res_co2_sat',     res_co2_sat_range);
+[out_resbri]    = exploreParameterRanges(Gt, rock, ta, 'res_brine_sat',   res_brine_sat_range);
+[out_dismax]    = exploreParameterRanges(Gt, rock, ta, 'dis_max',         diss_max_range);
+
 
 
 % visualization of trends
-figure;
+% TODO: make following implementation more concise (i.e., put in loop)
+figure; set(gcf,'Position',[100 600 2500 400])
 subplot(1,5,1)
-plot(tgrad_range, out_tgrad.tot_trap_capa_sum, 'x', ...
-    tgrad_range, out_tgrad.strap_mass_co2_sum, 'o');
-legend('total','structural')
+plot(tgrad_range, out_tgrad.tot_trap_capa_sum, 'bx', ...
+    tgrad_range, out_tgrad.strap_mass_co2_sum, 'ro', ...
+    tgrad_range, out_tgrad.btrap_mass_co2_res_sum, 'g+', ...
+    tgrad_range, out_tgrad.btrap_mass_co2_dis_sum, 'mv');
+legend('total','structural','residual','dissolution')
 xlabel({'Temp Gradient, degrees per kilometer';'(other parameters are default values)'});
 ylabel('Trapping Capacity, Gtons');
 title(name)
     
 subplot(1,5,2)
-plot(press_deviation_range, out_press.tot_trap_capa_sum, 'x', ...
-    press_deviation_range, out_press.strap_mass_co2_sum, 'o');
-legend('total','structural')
+plot(press_deviation_range, out_press.tot_trap_capa_sum, 'bx', ...
+    press_deviation_range, out_press.strap_mass_co2_sum, 'ro', ...
+    press_deviation_range, out_press.btrap_mass_co2_res_sum, 'g+', ...
+    press_deviation_range, out_press.btrap_mass_co2_dis_sum, 'mv');
+legend('total','structural','residual','dissolution')
 xlabel({'Pressure deviation from hydrostatic, percent';'(other parameters are default values)'});
 ylabel('Trapping Capacity, Gtons');
 title(name)
     
 subplot(1,5,3)
-plot(res_co2_sat_range, out_resco2.tot_trap_capa_sum, 'x', ...
-    res_co2_sat_range, out_resco2.strap_mass_co2_sum, 'o');
-legend('total','structural')
+plot(res_co2_sat_range, out_resco2.tot_trap_capa_sum, 'bx', ...
+    res_co2_sat_range, out_resco2.strap_mass_co2_sum, 'ro', ...
+    res_co2_sat_range, out_resco2.btrap_mass_co2_res_sum, 'g+', ...
+    res_co2_sat_range, out_resco2.btrap_mass_co2_dis_sum, 'mv');
+legend('total','structural','residual','dissolution')
 xlabel({'Residual CO2 saturation';'(other parameters are default values)'});
 ylabel('Trapping Capacity, Gtons');
 title(name)
 
 subplot(1,5,4)
-plot(res_brine_sat_range, out_resbri.tot_trap_capa_sum, 'x', ...
-    res_brine_sat_range, out_resbri.strap_mass_co2_sum, 'o');
-legend('total','structural')
+plot(res_brine_sat_range, out_resbri.tot_trap_capa_sum, 'bx', ...
+    res_brine_sat_range, out_resbri.strap_mass_co2_sum, 'ro', ...
+    res_brine_sat_range, out_resbri.btrap_mass_co2_res_sum, 'g+', ...
+    res_brine_sat_range, out_resbri.btrap_mass_co2_dis_sum, 'mv');
+legend('total','structural','residual','dissolution')
 xlabel({'Residual Brine saturation';'(other parameters are default values)'});
 ylabel('Trapping Capacity, Gtons');
 title(name)
     
 subplot(1,5,5)
-plot(diss_max_range, out_dismax.tot_trap_capa_sum, 'x', ...
-    diss_max_range, out_dismax.strap_mass_co2_sum, 'o');
-legend('total','structural')
+plot(diss_max_range, out_dismax.tot_trap_capa_sum, 'bx', ...
+    diss_max_range, out_dismax.strap_mass_co2_sum, 'ro', ...
+    diss_max_range, out_dismax.btrap_mass_co2_res_sum, 'g+', ...
+    diss_max_range, out_dismax.btrap_mass_co2_dis_sum, 'mv');
+legend('total','structural','residual','dissolution')
+xlabel({'Maximum Dissolution';'(other parameters are default values)'});
+ylabel('Trapping Capacity, Gtons');
+title(name)
+
+
+% visualization of trends (only structural)
+% TODO: make following implementation more concise (i.e., put in loop)
+figure;  set(gcf,'Position',[100 100 2500 400])
+subplot(1,5,1)
+plot(tgrad_range, out_tgrad.strap_mass_co2_sum, 'ro');
+legend('structural')
+xlabel({'Temp Gradient, degrees per kilometer';'(other parameters are default values)'});
+ylabel('Trapping Capacity, Gtons');
+title(name)
+    
+subplot(1,5,2)
+plot(press_deviation_range, out_press.strap_mass_co2_sum, 'ro');
+legend('structural')
+xlabel({'Pressure deviation from hydrostatic, percent';'(other parameters are default values)'});
+ylabel('Trapping Capacity, Gtons');
+title(name)
+    
+subplot(1,5,3)
+plot(res_co2_sat_range, out_resco2.strap_mass_co2_sum, 'ro');
+legend('structural')
+xlabel({'Residual CO2 saturation';'(other parameters are default values)'});
+ylabel('Trapping Capacity, Gtons');
+title(name)
+
+subplot(1,5,4)
+plot(res_brine_sat_range, out_resbri.strap_mass_co2_sum, 'ro');
+legend('structural')
+xlabel({'Residual Brine saturation';'(other parameters are default values)'});
+ylabel('Trapping Capacity, Gtons');
+title(name)
+    
+subplot(1,5,5)
+plot(diss_max_range, out_dismax.strap_mass_co2_sum, 'ro');
+legend('structural')
 xlabel({'Maximum Dissolution';'(other parameters are default values)'});
 ylabel('Trapping Capacity, Gtons');
 title(name)

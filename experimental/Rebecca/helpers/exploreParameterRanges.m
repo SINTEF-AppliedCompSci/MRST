@@ -1,4 +1,4 @@
-function [output] = exploreParameterRanges(Gt, name, rock, ta, parameter2vary, parameterRange)
+function [output] = exploreParameterRanges(Gt, rock, ta, parameter2vary, parameterRange)
 % Computes the breakdown of structural, residual, and dissolution trapping.
 % 
 % This is assuming CO2 is injected and fills the formation completely,
@@ -21,7 +21,7 @@ function [output] = exploreParameterRanges(Gt, name, rock, ta, parameter2vary, p
 rho_co2         = 760 * kilogram / meter ^3; % reference density (while co2 density is function of p,t)
 rho_brine       = 1000; % kg per m3
 seafloor_temp   = 7; % in Celsius
-seafloor_depth  = 100 * meter; % meter
+seafloor_depth  = 100 * meter; % meter % in North Sea?
 
 
 % Default values:
@@ -86,8 +86,10 @@ end
 % *****************************************
 
 
-tot_trap_capa_sum   = zeros(numPts,1);
-strap_mass_co2_sum  = zeros(numPts,1);
+tot_trap_capa_sum       = zeros(numPts,1);
+strap_mass_co2_sum      = zeros(numPts,1);
+btrap_mass_co2_res_sum  = zeros(numPts,1);
+btrap_mass_co2_dis_sum  = zeros(numPts,1);
 
 for i = 1:numPts;
 
@@ -156,63 +158,18 @@ for i = 1:numPts;
     fprintf('Residual: %f Gtons\n', sum(btrap_mass_co2_res)  / giga / 1e3);
     fprintf('Dissolved: %f Gtons\n', sum(btrap_mass_co2_dis) / giga / 1e3);
 
-    % arrays of data to plot:
-    tot_trap_capa_sum(i,1)  = sum(tot_trap_capa) / giga / 1e3;
-    strap_mass_co2_sum(i,1) = sum(strap_mass_co2) / giga / 1e3;
+    % arrays of data for output:
+    tot_trap_capa_sum(i,1)      = sum(tot_trap_capa) / giga / 1e3;
+    strap_mass_co2_sum(i,1)     = sum(strap_mass_co2) / giga / 1e3;
+    btrap_mass_co2_res_sum(i,1) = sum(btrap_mass_co2_res)  / giga / 1e3;
+    btrap_mass_co2_dis_sum(i,1) = sum(btrap_mass_co2_dis) / giga / 1e3;
 
 end
 
-output.tot_trap_capa_sum = tot_trap_capa_sum;
-output.strap_mass_co2_sum = strap_mass_co2_sum;
-
-
-% Questions:
-% a) how impactful is coarsening level on the shape of these trends?
-% b) how impactful are the default values on the shape of these trends?
-% c) how impactful is cell-based vs node-based trapping analysis methods?
-% d) how impactful is the formation top surface on the shape of these trends?
-
-% % generate appropriate plots to visualize trends:
-% if strcmpi(parameter2vary,'tgrad')
-%     figure;
-%     plot(tgrad_input, tot_trap_capa_sum, 'x');
-%     xlabel({'Temp Gradient, degrees per kilometer';'(other parameters are default values)'});
-%     ylabel('Total Trapping Capacity, Gtons');
-%     title(name)
-%     
-% elseif strcmpi(parameter2vary,'press_deviation')
-%     figure;
-%     plot(press_deviation_input, tot_trap_capa_sum);
-%     xlabel({'Pressure deviation from hydrostatic, percent';'(other parameters are default values)'});
-%     ylabel('Total Trapping Capacity, Gtons');
-%     title(name)
-%     
-% elseif strcmpi(parameter2vary,'res_co2_sat')
-%     figure;
-%     plot(res_co2_sat_input, tot_trap_capa_sum);
-%     xlabel({'Residual CO2 saturation';'(other parameters are default values)'});
-%     ylabel('Total Trapping Capacity, Gtons');
-%     title(name)
-%     
-% elseif strcmpi(parameter2vary,'res_brine_sat')
-%     figure;
-%     plot(res_brine_sat_input, tot_trap_capa_sum);
-%     xlabel({'Residual Brine saturation';'(other parameters are default values)'});
-%     ylabel('Total Trapping Capacity, Gtons');
-%     title(name)
-%     
-% elseif strcmpi(parameter2vary,'dis_max')
-%     figure;
-%     plot(dis_max_input, tot_trap_capa_sum);
-%     xlabel({'Maximum Dissolution';'(other parameters are default values)'});
-%     ylabel('Total Trapping Capacity, Gtons');
-%     title(name) 
-%                 
-% end
-
-
-
-
+output.tot_trap_capa_sum        = tot_trap_capa_sum;
+output.strap_mass_co2_sum       = strap_mass_co2_sum;
+output.btrap_mass_co2_res_sum   = btrap_mass_co2_res_sum;
+output.btrap_mass_co2_dis_sum   = btrap_mass_co2_dis_sum;
 
     
     
