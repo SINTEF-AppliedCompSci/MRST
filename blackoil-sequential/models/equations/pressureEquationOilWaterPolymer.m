@@ -211,7 +211,12 @@ if ~isempty(W)
             % in the z direction 
             % IMPROVED HERE LATER
             [~, ~, dz] = cellDims(model.G, wc);
-
+            
+            % HACK FOR 2D MODELS
+            if all(dz==0)
+                dz(:) = 1;
+            end
+            
             if model.extraPolymerOutput
                 cqsW0 = double(cqs{1});
                 mobW0 = double(mw{1});
