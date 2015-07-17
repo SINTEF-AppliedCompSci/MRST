@@ -88,7 +88,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % Process optional parameters
 opt = struct('bc', [], 'src', [], 'wells', [], 'tracerWells', [], ...
-             'solver', [], 'maxTOF', [], 'processCycles', false);
+             'solver', [], 'maxTOF', [], 'processCycles', false, ...
+              'computeWellTOFs', false);
 opt = merge_options(opt, varargin{:});
 
 check_input(G, rock, opt);
@@ -121,9 +122,13 @@ end
 % Compute time-of-flight and tracer partition from injectors
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'tracer', {opt.wells(D.inj).cells}, 'solver', opt.solver, ...
-   'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles);
+   'maxTOF', opt.maxTOF, 'processCycles', opt.processCycles, ...
+   'computeWellTOFs', opt.computeWellTOFs);
 D.tof     = t(:,1);
-D.itracer = t(:,2:end);
+D.itracer = t(:,2:numel(D.inj)+1);
+if opt.computeWellTOFs
+    D.itof = t(:, numel(D.inj)+2:end);
+end
 [val,D.ipart] = max(D.itracer,[],2); %#ok<*ASGLU>
 % set 'non-traced' cells to zero
 D.ipart(val==0) = 0;
@@ -132,9 +137,13 @@ D.ipart(val==0) = 0;
 t = computeTimeOfFlight(state, G, rock, 'wells', opt.wells, ...
    'tracer', {opt.wells(D.prod).cells}, 'reverse', true, ...
    'solver', opt.solver, 'maxTOF', opt.maxTOF, ...
-   'processCycles', opt.processCycles);
+   'processCycles', opt.processCycles, ...
+    'computeWellTOFs', opt.computeWellTOFs);
 D.tof(:,2) = t(:,1);
-D.ptracer  = t(:,2:end);
+D.ptracer  = t(:,2:numel(D.prod)+1);
+if opt.computeWellTOFs
+    D.ptof = t(:, numel(D.prod)+2:end);
+end
 [val,D.ppart] = max(D.ptracer,[],2);
 D.ppart(val==0) = 0;
 end
