@@ -1,5 +1,11 @@
-function [output] = exploreParameterRanges(Gt, rock, ta, parameter2vary, parameterRange)
+function [output] = exploreParameterRanges(varargin)
 % Computes the breakdown of structural, residual, and dissolution trapping.
+%
+% Ex: output = exploreParameterRanges(Gt, rock, ta, ...
+%                       parameter2vary, parameterRange)
+%
+% parameter2vary and parameterRange are optional. If not specified, no
+% range is used but rather parameters are set to their default values.
 % 
 % This is assuming CO2 is injected and fills the formation completely,
 % i.e., all spill paths are utilized.
@@ -17,6 +23,13 @@ function [output] = exploreParameterRanges(Gt, rock, ta, parameter2vary, paramet
 % OUTPUTS:
 
 
+
+Gt = varargin{1};
+rock = varargin{2};
+ta = varargin{3};
+
+
+
 % Fixed Inputs: (co2_rho, rho_brine, poro, seafloor temp and depth)
 rho_co2         = 760 * kilogram / meter ^3; % reference density (while co2 density is function of p,t)
 rho_brine       = 1000; % kg per m3
@@ -29,61 +42,79 @@ tgrad_default           = 35.6;         % degrees per kilometer
 press_deviation_default = 0;            % pressure deviation from hydrostatic (percent)
 res_co2_sat_default     = 0.21;
 res_brine_sat_default   = 0.11;
-diss_max_default        = (53 * kilogram / meter^3) / rho_co2; % from CO2store    
+diss_max_default        = (53 * kilogram / meter^3) / rho_co2; % from CO2store   
 
 
-% ************ Inputs to Vary: ************
-% Set inputs: (will use either _default or _range)
-if strcmpi(parameter2vary,'tgrad')
-    tgrad_input = parameterRange; numPts = numel(tgrad_input);
-    
-    % tgrad
-    press_deviation_input(1:numPts) = press_deviation_default;
-    res_co2_sat_input(1:numPts)     = res_co2_sat_default;
-    res_brine_sat_input(1:numPts)   = res_brine_sat_default;
-    dis_max_input(1:numPts)         = diss_max_default;
-    
-elseif strcmpi(parameter2vary,'press_deviation')
-    press_deviation_input = parameterRange; numPts = numel(press_deviation_input);
-    
-    tgrad_input(1:numPts)           = tgrad_default;
-    % press
-    res_co2_sat_input(1:numPts)     = res_co2_sat_default;
-    res_brine_sat_input(1:numPts)   = res_brine_sat_default;
-    dis_max_input(1:numPts)         = diss_max_default;
-    
-elseif strcmpi(parameter2vary,'res_co2_sat')
-    res_co2_sat_input  = parameterRange; numPts = numel(res_co2_sat_input);
-    
-    tgrad_input(1:numPts)           = tgrad_default;
-    press_deviation_input(1:numPts) = press_deviation_default;
-    % res_co2
-    res_brine_sat_input(1:numPts)   = res_brine_sat_default;
-    dis_max_input(1:numPts)         = diss_max_default;
-    
-elseif strcmpi(parameter2vary,'res_brine_sat')
-    res_brine_sat_input = parameterRange; numPts = numel(res_brine_sat_input);
-    
-    tgrad_input(1:numPts)           = tgrad_default;
-    press_deviation_input(1:numPts) = press_deviation_default;
-    res_co2_sat_input(1:numPts)     = res_co2_sat_default;
-    % res_brine
-    dis_max_input(1:numPts)         = diss_max_default;
-    
-elseif strcmpi(parameter2vary,'dis_max')
-    dis_max_input = parameterRange * (kilogram/meter^3)/rho_co2; numPts = numel(dis_max_input);
-    
-    tgrad_input(1:numPts)           = tgrad_default;
-    press_deviation_input(1:numPts) = press_deviation_default;
-    res_co2_sat_input(1:numPts)     = res_co2_sat_default;
-    res_brine_sat_input(1:numPts)   = res_brine_sat_default;
-    % dis_max
-    
+
+if numel(varargin)==5
+    parameter2vary = varargin{4};
+    parameterRange = varargin{5};
+
+    % ************ Inputs to Vary: ************
+    % Set inputs: (will use either _default or _range)
+    if strcmpi(parameter2vary,'tgrad')
+        tgrad_input = parameterRange; numPts = numel(tgrad_input);
+
+        % tgrad
+        press_deviation_input(1:numPts) = press_deviation_default;
+        res_co2_sat_input(1:numPts)     = res_co2_sat_default;
+        res_brine_sat_input(1:numPts)   = res_brine_sat_default;
+        dis_max_input(1:numPts)         = diss_max_default;
+
+    elseif strcmpi(parameter2vary,'press_deviation')
+        press_deviation_input = parameterRange; numPts = numel(press_deviation_input);
+
+        tgrad_input(1:numPts)           = tgrad_default;
+        % press
+        res_co2_sat_input(1:numPts)     = res_co2_sat_default;
+        res_brine_sat_input(1:numPts)   = res_brine_sat_default;
+        dis_max_input(1:numPts)         = diss_max_default;
+
+    elseif strcmpi(parameter2vary,'res_co2_sat')
+        res_co2_sat_input  = parameterRange; numPts = numel(res_co2_sat_input);
+
+        tgrad_input(1:numPts)           = tgrad_default;
+        press_deviation_input(1:numPts) = press_deviation_default;
+        % res_co2
+        res_brine_sat_input(1:numPts)   = res_brine_sat_default;
+        dis_max_input(1:numPts)         = diss_max_default;
+
+    elseif strcmpi(parameter2vary,'res_brine_sat')
+        res_brine_sat_input = parameterRange; numPts = numel(res_brine_sat_input);
+
+        tgrad_input(1:numPts)           = tgrad_default;
+        press_deviation_input(1:numPts) = press_deviation_default;
+        res_co2_sat_input(1:numPts)     = res_co2_sat_default;
+        % res_brine
+        dis_max_input(1:numPts)         = diss_max_default;
+
+    elseif strcmpi(parameter2vary,'dis_max')
+        dis_max_input = parameterRange * (kilogram/meter^3)/rho_co2; numPts = numel(dis_max_input);
+
+        tgrad_input(1:numPts)           = tgrad_default;
+        press_deviation_input(1:numPts) = press_deviation_default;
+        res_co2_sat_input(1:numPts)     = res_co2_sat_default;
+        res_brine_sat_input(1:numPts)   = res_brine_sat_default;
+        % dis_max
+        
+    end
+    % *****************************************
+
 else
-    disp('Parameter2vary input is undefined.')
-                
+    disp('Parameter2vary input is undefined: using default values instead.')
+
+    tgrad_input             = tgrad_default;
+    press_deviation_input   = press_deviation_default;
+    res_co2_sat_input       = res_co2_sat_default;
+    res_brine_sat_input     = res_brine_sat_default;
+    dis_max_input           = diss_max_default;
+    numPts                  = 1;
+
 end
-% *****************************************
+    
+    
+    
+
 
 
 tot_trap_capa_sum       = zeros(numPts,1);
@@ -168,6 +199,7 @@ end
 
 output.tot_trap_capa_sum        = tot_trap_capa_sum;
 output.strap_mass_co2_sum       = strap_mass_co2_sum;
+output.strap_mass_co2           = strap_mass_co2;
 output.btrap_mass_co2_res_sum   = btrap_mass_co2_res_sum;
 output.btrap_mass_co2_dis_sum   = btrap_mass_co2_dis_sum;
 

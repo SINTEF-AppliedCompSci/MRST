@@ -23,6 +23,11 @@ function [meta, data] = readAAIGrid(filename)
     meta = struct();
     while 1
         line = fgetl(ff);
+        
+        % replace any commas present with decimal points (which are present
+        % in some of the Norwegian Sea formation data)
+        line = strrep(line,',','.');
+        
         subs = regexp(line, ' *','split');
         if numel(subs{1}) == 0 || numel(subs) > 2
             break
@@ -34,6 +39,11 @@ function [meta, data] = readAAIGrid(filename)
     i = 1;
     while i < meta.nrows;
         line = fgetl(ff);
+        
+        % replace any commas present with decimal points (which are present
+        % in some of the Norwegian Sea formation data)
+        line = strrep(line,',','.');
+        
         vals = sscanf(line, '%e');
         data(i, 1:numel(vals)) = vals;
         i = i + 1;

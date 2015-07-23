@@ -23,7 +23,7 @@ moduleCheck('co2lab', 'opm_gridprocessing');
 % visualization. First, select the sea you want to study, i.e., 'Barents',
 % 'Norwegian', or 'NorwegianNorth'.
 
-studySea = 'Barents';
+studySea = 'Norwegian';
 makeFigures = false;
 saveFigures = true;
 
@@ -32,7 +32,7 @@ if strcmpi(studySea,'Barents')
     'bjarmeland', 'bcuBarentsSea'};
 
 elseif strcmpi(studySea,'Norwegian')
-    names = {'Пre', 'ror', 'not', 'ile', 'garn', 'bcuNorwegianSea', ...
+    names = {'Пre', 'ror', 'not', 'ile', 'Garnfm', 'bcuNorwegianSea', ...
     'baseПre', 'tilje'};
 
 elseif strcmpi(studySea,'NorwegianNorth')
@@ -45,7 +45,7 @@ else
     return
 end
 
-fprintf('Loading %-14s Sea atlas data ...', studySea);
+fprintf('Loading %s Sea atlas data ...', studySea);
 [grdecls, rawdata] = getAtlasGrid(names);
 fprintf('done\n');
 
@@ -60,7 +60,7 @@ fprintf('done\n');
 %   xllcorner/yllcorner variable which indicates the position in ED50
 %   datum space.
 
-fprintf('\nRaw data of %-14s Sea:\n', studySea)
+fprintf('\nRaw data of %s Sea:\n', studySea)
 fprintf('----------------------------------------------------------------\n');
 for i=1:numel(rawdata);
     rd = rawdata{i};
@@ -347,7 +347,7 @@ set(gca, 'Color', get(gcf, 'Color'), 'FontSize', 14, ...
 xlabel('Lateral resolution [m]', 'FontSize', 12);
 axis tight
 
-% Plot cumulative colume covered
+% Plot cumulative column covered
 subplot(2, 2, 2); cla
 hold on;
 cum_max = 0;
