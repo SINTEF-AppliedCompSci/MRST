@@ -85,12 +85,13 @@ function h = mapPlot(h, Gt, varargin)
     % plotting wellcells
     plot(Gt.cells.centroids(opt.wellcells,1), ...
          Gt.cells.centroids(opt.wellcells,2), ...
-         'ok', 'MarkerSize',8, 'MarkerFaceColor', 'k','MarkerEdgeColor','y');
+         'ok', 'MarkerSize',10, 'MarkerFaceColor', 'k','MarkerEdgeColor', ...
+         'y');
     if opt.well_numbering
         xpos = Gt.cells.centroids(opt.wellcells,1);
         ypos = Gt.cells.centroids(opt.wellcells,2);
         labels = [repmat(' ', numel(xpos), 1), num2str([1:numel(xpos)]')];
-        text(xpos, ypos, labels, 'fontsize', 16);
+        text(xpos, ypos, labels, 'fontsize', 24);
     end
     
     % Plotting traps

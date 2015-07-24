@@ -5,3 +5,4 @@ data/atlas/
 data/igems/*
 data/sleipner/*
 data/johansen/*
+/co2lab/utils/co2props/sampled_tables/*.mat
