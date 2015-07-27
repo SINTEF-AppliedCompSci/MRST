@@ -3,7 +3,7 @@ function [updata, report] = upRelPerm(block, updata, ...
 
 opt = struct(...
     'nvalues',     20, ...
-    'viscousmob',  true, ...
+    'viscousmob',  true, ... % viscous upscaling: use total mob method
     'dims',        1:3, ...  % Dimensions to upscale
     'dp',          1*barsa, ...  % Pressure drop
     'savesat',     false ... % save saturation distributions
@@ -111,7 +111,10 @@ for iv = 1:nvals
             
             mobTot = kr{1}./muO + kr{2}./muW;
             rock_KmobT = rock;
-            rock_KmobT.perm = rock.perm(:, permCol(d)) .* mobTot;
+            
+            % If the permeability is anisotropic, we multiply each
+            % direction with the total mobility
+            rock_KmobT.perm = bsxfun(@times, rock.perm, mobTot);
             
             if all(rock_KmobT.perm == 0)
                 % We will get no fluid motion
@@ -128,9 +131,9 @@ for iv = 1:nvals
             end
             
             % For viscous limit, the value is fractional flow
-            ff = val;
-            krwat = muW * ff * KMobTU / Kup(id); % water
-            kroil = muO * (1 - ff) * KMobTU / Kup(id); % oil
+            ffW = val;
+            krwat = muW * ffW * KMobTU / Kup(id); % water
+            kroil = muO * (1 - ffW) * KMobTU / Kup(id); % oil
             krO{id}(iv,:) = [sWup, kroil];
             krW{id}(iv,:) = [sWup, krwat];
             
@@ -138,20 +141,24 @@ for iv = 1:nvals
             
             % Loop over phases
             for p = 1:2
-                rock_Kkr.perm = rock.perm(:, permCol(d)) .* kr{p};
-
-                if all(rock_Kkr.perm == 0)
+                
+                % If the permeability is anisotropic, we multiply each
+                % direction with the relperm kr
+                rock_Kkr.perm = bsxfun(@times, rock.perm, kr{p});
+                
+                if all(all(rock_Kkr.perm == 0))
                     % We will get no fluid motion
                     krKU = 0;
                 else
-                    if any(rock_Kkr.perm < 0)
+                    if any(any(rock_Kkr.perm < 0))
                         error('Some pseudo perm values are negative!');
                     end
-                    if any(rock_Kkr.perm == 0)
+                    if any(any(rock_Kkr.perm == 0))
                         % To avoid a singular matrix when performing one
                         % phase upscaling, the zero permeabilities are set
                         % to something larger than zero.
-                        ep = eps(mean(rock_Kkr.perm(rock_Kkr.perm>0)));
+                        ep = eps(mean(mean(...
+                            rock_Kkr.perm(rock_Kkr.perm>0)) ));
                         rock_Kkr.perm(rock_Kkr.perm == 0) = ep*1e1;
                     end
                     

@@ -1,7 +1,8 @@
 function [Kup, report] = upAbsPerm(block, varargin)
 opt = struct(...
     'dp',         1*barsa, ...
-    'dims',       1:3 ...
+    'dims',       1:3, ...
+    'psolver',    'mimetic' ...
     );
 opt = merge_options(opt, varargin{:});
 
@@ -28,15 +29,32 @@ end
 
 % Setup solver
 fluidPure  = initSingleFluid('mu' ,1, 'rho', 1);
-if isPeriodic
-    bcp = block.bcp;
-    T = computeTransGp(G.parent, G, rock);
-    psolver = @(state0, bcp) incompTPFA(state0, G, ....
-        T, fluidPure, 'bcp', bcp);
-else
-    T = computeTrans(G, rock);
-    psolver = @(state0, bc) incompTPFA(state0, block.G, ...
-        T, fluidPure, 'bc', bc);
+
+switch opt.psolver
+	case 'mimetic'
+        if isPeriodic
+            bcp = block.bcp;
+            S = computeMimeticIP(G, rock);
+            psolver = @(state0, bcp) incompMimetic(state0, G, S, fluidPure, ...
+                'bcp', bcp);
+        else
+            S = computeMimeticIP(G, rock);
+            psolver = @(state0, bc) incompMimetic(state0, G, S, fluidPure, ...
+                'bc', bc);
+        end
+    case 'tpfa'
+        if isPeriodic
+            bcp = block.bcp;
+            T = computeTransGp(G.parent, G, rock);
+            psolver = @(state0, bcp) incompTPFA(state0, G, ....
+                T, fluidPure, 'bcp', bcp);
+        else
+            T = computeTrans(G, rock);
+            psolver = @(state0, bc) incompTPFA(state0, block.G, ...
+                T, fluidPure, 'bc', bc);
+        end
+    otherwise
+        error('Pressure solver type ''%s'' unknown.', opt.psolver);
 end
 
 % Loop over dimensions, apply pressure drop and compute fluxes
@@ -54,7 +72,9 @@ for i = 1:ndims
     
     % Solve pressure equation
     warning('off','mrst:periodic_bc');
+    warning('off','all');
     state1 = psolver(state0, bc);
+    warning('on','all');
     warning('on','mrst:periodic_bc');
     
     if isPeriodic

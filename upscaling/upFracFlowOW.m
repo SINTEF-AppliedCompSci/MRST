@@ -1,7 +1,7 @@
 function updata = upFracFlowOW(block, updata, varargin)
 % Upscale fractional flow curves.
 %
-% It is assumed that all capillary pressure curves are monotone.
+% It is assumed that all fractional flow curves are monotone.
 % 
 opt = struct(...
     'nPointsInit', 20, ...   % Number of initial points
@@ -27,7 +27,7 @@ relTolFf    = opt.relTolFf;
 % Allocate vectors
 ffWup = nan(nPointsMax, 2); % Each row is a pair of [ffup, pcOWup]
 
-% Compute the initial set of equally spaces pc points
+% Compute the initial set of equally spaces ff points
 ffWup(1:nPointsInit, 2) = linspace(0, 1, nPointsInit)';
 for i = 1:nPointsInit
    ff = ffWup(i,2)*ones(G.cells.num, 1); % Set same ff in all cells

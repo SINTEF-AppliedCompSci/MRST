@@ -581,7 +581,8 @@ function [T_cg, HT_cg, cgwells] = fixTrans(cg, T_cg, HT_cg, cgwells, opt)
    ext = any(cg.faces.neighbors == 0, 2);
 
    if any(strcmp(opt.bc_method, {'wells', 'wells_simple'})),
-      warning('Set boundary face trans to zero') %#ok
+      warning('upscaleTransNew:ZeroBoundary', ...
+          'Set boundary face trans to zero');
       hf_ext        = ext(cg.cells.faces(:,1));
       HT_cg(hf_ext) = 0;
       T_cg(ext)     = 0;

@@ -26,8 +26,8 @@ if isfield(deck.PROPS, 'PVCDO')
    % Columns: [REF.PRES., REF.FVF, COMPRESSIBILITY, REF.VISC., VISCOSIBILITY]
    muO   = deck.PROPS.PVCDO(4); % oil viscosity
    if deck.PROPS.PVCDO(5) > 0
-      warning(['There is nonzero water viscosibility. Only the reference '...
-         'viscosity is used.']);
+      warning(['There is nonzero water viscosibility. '...
+          'Only the reference viscosity is used.']);
    end
 elseif isfield(deck.PROPS, 'PVDO')
     muO = deck.PROPS.PVDO{1}(1,3); % oil viscosity

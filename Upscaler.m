@@ -64,7 +64,7 @@ methods
         
         if upscaler.verbose && nBlocksReq<nBlocksTot
             fprintf(['Only requested to upscale %d of totally %d '...
-                'coarse blocks.\n'], upscaler.G.cells.num, nBlocksTot);
+                'coarse blocks.\n'], nBlocksReq, nBlocksTot);
         end
         
         % If given, the blockMap gives identical block, which may reduce
@@ -82,7 +82,7 @@ methods
             if nBlocksUp<nBlocksReq
                 fprintf(['Need only upscale %d of %d coarse blocks as '...
                     'some blocks are idential.\n'], nBlocksUp, nBlocksReq);
-            else
+            elseif nBlocksReq>1
                 fprintf(['No blocks are identical, so all blocks '...
                     'need to be upscaled.\n']);
             end
@@ -148,6 +148,21 @@ methods
         % Store report
         if wantReport
             report.time = totalTime;
+        end
+        
+        % Check for values outside range
+        if wantReport && upscaler.verbose
+            try % Use try block to be sure we don't break something here
+                outsideRange = cellfun(@(x) x.relperm.valsOutsideRange, ...
+                    report.blocks);
+                outsideRange = sum(outsideRange);
+                if outsideRange > 0
+                    fprintf(['There are %d blocks where the upscaled '...
+                        'relperm had values outside valid range!\n'], ...
+                        outsideRange);
+                end
+            catch
+            end
         end
         
         if upscaler.verbose
