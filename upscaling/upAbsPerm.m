@@ -31,6 +31,7 @@ end
 fluidPure  = initSingleFluid('mu' ,1, 'rho', 1);
 
 switch opt.psolver
+    % Mimetic is always consistent, but TPFA seems to be faster.
 	case 'mimetic'
         if isPeriodic
             bcp = block.bcp;

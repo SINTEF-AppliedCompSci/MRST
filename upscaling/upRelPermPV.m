@@ -26,15 +26,16 @@ krW = cell(1, ndims);
 krO = cell(1, ndims);
 
 % Saturation values
-sWmin = min(cellfun(@(x) x(1,1), block.deck.PROPS.SWOF));
-sWmax = min(cellfun(@(x) x(end,1), block.deck.PROPS.SWOF));
-values = linspace(sWmin, sWmax, nvals)';
+satnum = block.deck.REGIONS.SATNUM;
+sWmin  = arrayfun(@(x) block.deck.PROPS.SWOF{x}(1,1), satnum);
+sWmax  = arrayfun(@(x) block.deck.PROPS.SWOF{x}(end,1), satnum);
+
+values = linspace(0, 1, nvals)'; % sat.values unscaled
 
 % Loop over the input values
 for iv = 1:nvals
-    
-    val   = values(iv);
-    sW    = val.*ones(G.cells.num, 1);
+    val   = values(iv); % unscaled sW value
+    sW    = val.*(sWmax-sWmin) + sWmin; % scaled
     sWup  = sum(sW.*block.pv)./pvTot;
     krOup = sum(fluid.krOW(1-sW).*block.pv)./pvTot;
     krWup = sum(fluid.krW(sW).*block.pv)./pvTot;

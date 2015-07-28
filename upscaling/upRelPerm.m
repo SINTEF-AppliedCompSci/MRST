@@ -3,7 +3,7 @@ function [updata, report] = upRelPerm(block, updata, ...
 
 opt = struct(...
     'nvalues',     20, ...
-    'viscousmob',  true, ... % viscous upscaling: use total mob method
+    'viscousmob',  false, ... % viscous upscaling: use total mob method
     'dims',        1:3, ...  % Dimensions to upscale
     'dp',          1*barsa, ...  % Pressure drop
     'savesat',     false ... % save saturation distributions
@@ -84,6 +84,10 @@ for iv = 1:nvals
             % For the viscous limit upscaling, we may use the total
             % mobility and only call the one phase upscaling once.
             
+            % NOTE: We have experienced some issues with this method that
+            % we have not solved. Upscaling of the SPE10 case got some
+            % wrong results with this method.
+            
             if wantReport
                 report.viscousmob = true;
             end
@@ -114,8 +118,16 @@ for iv = 1:nvals
                 % We will get no fluid motion
                 KMobTU = 0;
             else
-                if any(rock_Kkr.perm < 0)
+                if any(rock_KmobT.perm < 0)
                     error('Some pseudo perm values are negative!');
+                end
+                if any(any(rock_KmobT.perm == 0))
+                    % To avoid a singular matrix when performing one
+                    % phase upscaling, the zero permeabilities are set
+                    % to something larger than zero.
+                    ep = eps(mean(mean(...
+                        rock_KmobT.perm(rock_KmobT.perm>0)) ));
+                    rock_KmobT.perm(rock_KmobT.perm == 0) = ep*1e1;
                 end
                 
                 % Perform one phase upscaling with the altered
