@@ -42,7 +42,9 @@ methods
         data.relpermdims = upscaler.relpermdims;
         
         % Capillary pressure upscaling
-        if upscaler.pcow
+        % If using pore volume relperm upscaling, we also upscale the pcOW
+        % in the relperm function, so don't do it here.
+        if upscaler.pcow && ~strcmpi(upscaler.method, 'porevolume')
             
             if ~isempty(regexpi(upscaler.method, '_grav$'));
                 % We upscale with gravity

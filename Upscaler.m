@@ -80,11 +80,11 @@ methods
         
         if upscaler.verbose
             if nBlocksUp<nBlocksReq
-                fprintf(['Need only upscale %d of %d coarse blocks as '...
-                    'some blocks are idential.\n'], nBlocksUp, nBlocksReq);
+                fprintf(['Will only upscale %d of %d coarse blocks as '...
+                    'a block map is given.\n'], nBlocksUp, nBlocksReq);
             elseif nBlocksReq>1
-                fprintf(['No blocks are identical, so all blocks '...
-                    'need to be upscaled.\n']);
+                fprintf(['No block map is given, so all blocks '...
+                    'will be upscaled.\n']);
             end
         end
         

@@ -22,8 +22,9 @@ assert(~isempty(method), 'Method must be set');
 pvTot = sum(block.pv);
 
 % Allocate space
-krW = cell(1, ndims);
-krO = cell(1, ndims);
+krW  = cell(1, ndims); krW(:) = {nan(nvals,2)};
+krO  = cell(1, ndims); krO(:) = {nan(nvals,2)};
+pcOW = nan(nvals, 2);
 
 % Saturation values
 satnum = block.deck.REGIONS.SATNUM;
@@ -34,14 +35,16 @@ values = linspace(0, 1, nvals)'; % sat.values unscaled
 
 % Loop over the input values
 for iv = 1:nvals
-    val   = values(iv); % unscaled sW value
-    sW    = val.*(sWmax-sWmin) + sWmin; % scaled
-    sWup  = sum(sW.*block.pv)./pvTot;
-    krOup = sum(fluid.krOW(1-sW).*block.pv)./pvTot;
-    krWup = sum(fluid.krW(sW).*block.pv)./pvTot;
+    val    = values(iv); % unscaled sW value
+    sW     = val.*(sWmax-sWmin) + sWmin; % scaled
+    sWup   = sum(sW.*block.pv)./pvTot;
+    krOup  = sum(fluid.krOW(1-sW).*block.pv)./pvTot;
+    krWup  = sum(fluid.krW(sW).*block.pv)./pvTot;
+    pcOWup = sum(fluid.pcOW(sW).*block.pv)./pvTot;
     
     krO{1}(iv,:) = [sWup, krOup];
     krW{1}(iv,:) = [sWup, krWup];
+    pcOW(iv,:)   = [sWup, pcOWup];
 end
 
 % Check for upscaled values outside range. We simply force the values
@@ -55,8 +58,9 @@ for id = 1:ndims
 end
 
 % Store upscaled data to structure
-updata.krO = krO;
-updata.krW = krW;
+updata.krO  = krO;
+updata.krW  = krW;
+updata.pcOW = pcOW;
 
 totalTime = toc(timeStart);
 if wantReport
