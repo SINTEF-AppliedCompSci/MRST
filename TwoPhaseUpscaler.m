@@ -69,9 +69,14 @@ methods
         end
         
         % Relative permeability upscaling
-        up = @() upRelPerm(block, data, upscaler.method, ...
-            'nvalues', upscaler.nrelperm, 'dims', upscaler.relpermdims, ...
-            'dp', upscaler.dp, 'savesat', upscaler.savesat);
+        if strcmpi(upscaler.method, 'porevolume')
+            up = @() upRelPermPV(block, data, upscaler.method, ...
+                'nvalues', upscaler.nrelperm);
+        else
+            up = @() upRelPerm(block, data, upscaler.method, ...
+                'nvalues', upscaler.nrelperm, 'dp', upscaler.dp, ...
+                'dims', upscaler.relpermdims, 'savesat', upscaler.savesat);
+        end
         if wantReport
             [data, rep] = up();
             report.relperm = rep;

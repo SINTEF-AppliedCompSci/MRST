@@ -43,12 +43,6 @@ if wantSatDist
 	satdist = cell(nvals,1);
 end
 
-% Select columns depending on isotropic perm or not
-permCol = [1 1 1];
-if size(rock.perm, 2) == 3
-    permCol = [1 2 3];
-end
-
 % Get input values depending on the method
 values = getValues(block, updata, method, nvals);
 
