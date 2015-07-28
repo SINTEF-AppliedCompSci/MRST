@@ -36,7 +36,7 @@ for iv = 1:nvals
     val   = values(iv);
     sW    = val.*ones(G.cells.num, 1);
     sWup  = sum(sW.*block.pv)./pvTot;
-    krOup = sum(fluid.krOW(sW).*block.pv)./pvTot;
+    krOup = sum(fluid.krOW(1-sW).*block.pv)./pvTot;
     krWup = sum(fluid.krW(sW).*block.pv)./pvTot;
     
     krO{1}(iv,:) = [sWup, krOup];
