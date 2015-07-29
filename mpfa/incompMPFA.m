@@ -24,7 +24,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %            function 'implicitTransport'.
 %
 %   G, T   - Grid and half-transmissibilities as computed by the function
-%            'computeTrans'.
+%            'computeMultiPointTrans'.
 %
 %   fluid  - Fluid object as defined by function 'initSimpleFluid'.
 %
@@ -53,7 +53,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %                  Default value: LinSolve = @mldivide (backslash).
 %
 %   MatrixOutput - Whether or not to return the final system matrix 'A' to
-%                  the caller of function 'incompTPFA'.
+%                  the caller of function 'incompMPFA'.
 %                  Logical.  Default value: MatrixOutput = FALSE.
 %
 %   Verbose      - Whether or not to time portions of and emit informational
@@ -90,7 +90,7 @@ function state = incompMPFA(state, g, T, fluid, varargin)
 %   warning is printed in the command window. This warning is printed with
 %   message ID
 %
-%           'incompTPFA:DrivingForce:Missing'
+%           'incompMPFA:DrivingForce:Missing'
 %
 % EXAMPLE:
 %    G   = computeGeometry(cartGrid([3,3,5]));
