@@ -10,6 +10,8 @@
 
 moduleCheck('co2lab', 'mex',  'libgeometry', 'opm_gridprocessing');
 
+mrstVerbose on
+
 studyParameterRanges = false;
 UseInteractiveTrapping = false;
 
@@ -397,6 +399,8 @@ hcb.Label.String = 'Pascals'; set(hcb, 'fontSize', 18)
 rock2D = rock; % TODO: use por/perm maps
 rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
 
+% TODO: specify coordinate and compute corresponding index of cell (which
+% depends on coarsening level)
 wellCellIndex = 1554; %[wellCoord_x wellCoord_y wellCoord_z];
 [i, j] = ind2sub(Gt.cartDims, wellCellIndex);
 wellCoord_x = Gt.cells.centroids(100,1);
@@ -431,7 +435,7 @@ bc = addBC( [], bdryFaces, ...
     'sat', [1 0] );
 % Put into schedule fields --> [injection period; migration period]
 schedule.control(1).bc = bc;
-schdeuld.control(2).bc = bc;
+schedule.control(2).bc = bc;
              
 
 % TIME STEP:
