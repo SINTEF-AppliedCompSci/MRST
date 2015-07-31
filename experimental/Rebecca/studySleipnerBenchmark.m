@@ -2,6 +2,16 @@
 % The following studies the Sleipner benchmark data set which comes from
 % Singh et al 2010 (SPE paper).
 
+% The M9Z1.grdecl file and other necessary files should be downloaded and
+% placed in co2lab/data/sleipner/. The following script will read those
+% files to make the appropriate MRST-type grids (G and Gt). Also 'rock2D'
+% is required. The first time the grids and rock data are generated, they
+% are saved to /co2lab/data/mat/SleipnerGlobalCoords.mat to avoid
+% re-generation every time this script is run. Since the grids are in the
+% physical coordinate system, the injection location is specified in this
+% same coordinate system.
+
+
 % select what you would like plotted:
 plotInitialPressure             = false;
 plotActualVsSimInjectLocation   = false;
@@ -47,36 +57,129 @@ if useOptionA
 else
     
     % Option B --- Load and use Sleipner Benchmark model directly:
-    % (assuming Sleipner.mat has been created using makeSleipnerVEmodel())
-    load Sleipner.mat
-    OriginX = 436000; % used to line up plots between actual coordinates and Sleipner benchmark model centroids
-    OriginY = 6469000;
-    wellCellIndex = sub2ind(Gt.cartDims, 36,78);
     
-    % to inspect set-up of 3D grid and 2D top-surface grid
-    figure;
-    subplot(1,3,1)
-    plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
-    plotCellData(G, G.cells.centroids(:,3))
+    % If using Sleipner.mat, which has been created using makeSleipnerVEmodel()
+    %load Sleipner.mat
+    %OriginX = 436000; % used to line up plots between actual coordinates and Sleipner benchmark model centroids
+    %OriginY = 6469000;
+    %wellCellIndex = sub2ind(Gt.cartDims, 36,78);
     
-    subplot(1,3,2)
-    plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
-    plotCellData(Gt, Gt.cells.z)
+    % If using SleipnerGlobalCoords.mat.
+    % First check to see SleipnerGlobalCoords.mat exists. Otherwise
+    % generate it. (note: code taken from resTiltUtsira.m)
+    try
+        disp(' -> Reading SleipnerGlobalCoords.mat');
+        datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+        load(fullfile(datadir,'SleipnerGlobalCoords')); clear datadir
+        %return;
+    catch %#ok<*CTCH>
+        disp('    SleipnerGlobalCoords.mat has not yet been created.');
+        disp('    Building G, Gt, and rock2D from grdecl files...')
+        
+        % First loading of Sleipner Eclipse grid (to get PERMX, PERMZ,
+        % PORO)
+        sdir    = fullfile('data', 'sleipner');
+        disp([' -> Reading data from: ' sdir]);
+        grdecl  = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
+        % this grdecl contains: cartDims, COORD, ZCORN, ACTNUM, PERMX,
+        % PERMZ, PORO
+        clear sdir
+        
+        % Reshaping
+        lines = reshape(grdecl.COORD,6,[]);
+        grdecl.COORD = lines(:); clear lines
+        
+        % Then, we remove the bottom and top layers that contain shale
+        grdecl.ACTNUM(grdecl.PERMX<200) = 0;
+
+        
+        % Second loading of Sleipner Eclispe grid, to get MAPAXES
+        moduleCheck('deckformat', 'mex');
+        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG 
+        fn      = fopen(sl_file);
+        gr  = readGRID(fn, fileparts(sl_file), initializeDeck());
+        % this grdecl contains: GRID, and others. grdecl.GRID contains
+        % MAPUNITS, MAPAXES, cartDims, COORD, ZCORN, ACTNUM
+        fclose(fn);
+        
+        
+        % Add data loaded from first loading of Sleipner Eclispe grid
+        grdecl.MAPAXES = gr.GRID.MAPAXES;
+        clear gr sl_file
+
     
-    subplot(1,3,3)
-    plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
-    plotCellData(G, G.cells.centroids(:,3))
-    plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r'); view(3)
+        % Recompute X and Y coordinates in terms of the provided axes
+        % (depths, Z, do not require any recomputation)
+        coords        = reshape(grdecl.COORD,3,[])';
+        coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
+        coords        = coords';
+        grdecl.COORD  = coords(:); clear coords
+        
+
+        % Next, we process the grid and compute geometry
+        mrstModule add libgeometry opm_gridprocessing
+        G = processgrid(grdecl);
+        G = mcomputeGeometry(G);
+
+        % Adding tags needed by topSurfaceGrid
+        G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
+
+        % Construct petrophysical model
+        rock = grdecl2Rock(grdecl, G.cells.indexMap);
+        rock.perm = convertFrom(rock.perm, milli*darcy);
+        clear grdecl
+
+        % Construct top-surface grid
+        disp(' -> Constructing top-surface grid');
+        [Gt, G] = topSurfaceGrid(G);
+        rock2D  = averageRock(rock, Gt);
+        
+        
+        % Store data
+        disp(' ')
+        disp(' -> Writing SleipnerGlobalCoords.mat')
+        if ~isdir(datadir)
+           mkdir(datadir);
+        end
+        save(fullfile(datadir,'SleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
+        clear datadir
+        
+        
+    end
     
-    % inspect orientation of grid
-    figure;
+
+    
+    
+%     % to inspect set-up of 3D grid and 2D top-surface grid
+%     figure;
+%     subplot(1,3,1)
+%     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
+%     plotCellData(G, G.cells.centroids(:,3))
+%     
+%     subplot(1,3,2)
+%     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
+%     plotCellData(Gt, Gt.cells.z)
+%     
+%     subplot(1,3,3)
+%     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
+%     plotCellData(G, G.cells.centroids(:,3))
+%     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r'); view(3)
+    
+    % Inspect orientation of grid (compare with orientation shows in Singh
+    % et al 2010, Cavanagh 2013, etc.)
+    figure; set(gcf,'Position',[1000 1000 1000 1000])
     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
     plotCellData(G, G.cells.centroids(:,3))
     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r'); view(3)
     set(gca,'DataAspect',[1 1 0.02]); grid
-    xlabel('x, meters'); ylabel('y, meters'); zlabel('z, meters');
+    xlabel('x'); ylabel('y'); zlabel('z');
+    % Create textarrow
+    view(44,22)
+    annotation(gcf,'textarrow',[0.4734 0.5391],[0.7825 0.81],'String',{'North'});
+    set(gca,'FontSize',14)
     
-    % inspect orientation of grid: x-sectional views
+    
+    % Inspect orientation of grid: x-sectional views
     figure; set(gcf,'Position',[1000 1000 1100 500])
     % facing 
     subplot(2,2,1)
@@ -114,16 +217,16 @@ else
     xlabel('x, meters'); ylabel('y, meters'); zlabel('z, meters');
     title('Facing North')
     
-    % Plot of Sleipner Benchmark Region:
-    % bounds to zoom into:
-    zoomX1 = 0;
-    zoomY1 = 0;
-    zoomX2 = 4000; % meters from origin (x,y) = (0,0)
-    zoomY2 = 6000;
 
-    
 end
 
+
+% Plot of Sleipner Benchmark Region:
+% bounds to zoom into:
+zoomX1 = 0.436e6; % from Fig 2 in Singh et al 2010.
+zoomY1 = 6.469e6;
+zoomX2 = 0.441e6;
+zoomY2 = 6.476e6;
 
 % Get boundary faces of formation (or grid region)
 bf = boundaryFaces(Gt);
@@ -144,11 +247,11 @@ initState.sGmax     = initState.s(:,2);                             % max sat of
 initState.rs        = 0 * initState.sGmax;                          % initially 0
 
 if plotInitialPressure
-figure;
-plotCellData(Gt, initState.pressure)
-title('Initial Pressure (hydrostatic)'); axis off tight equal
-hcb = colorbar;
-hcb.Label.String = 'Pascals'; set(hcb, 'fontSize', 18)
+    figure;
+    plotCellData(Gt, initState.pressure)
+    title('Initial Pressure (hydrostatic)'); axis off tight equal
+    hcb = colorbar;
+    hcb.Label.String = 'Pascals'; set(hcb, 'fontSize', 18)
 end
 
 
@@ -157,7 +260,7 @@ end
 
 % WELLS:
 
-if useOptionA
+%if useOptionA
     
     % Well location at Sleipner: (x,y) = (4.38516e5, 6.47121e6) (Singh et al.
     % 2010)
@@ -190,7 +293,7 @@ if useOptionA
 
     [i, j] = ind2sub(Gt.cartDims, wellCellIndex);
 
-end
+%end
 
 % Check coordinate that wellCellIndex corresponds to:
 wellCoord_x = Gt.cells.centroids(wellCellIndex,1);
