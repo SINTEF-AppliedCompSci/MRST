@@ -13,12 +13,12 @@
 
 
 % select what you would like plotted:
-plotInitialPressure             = false;
-plotActualVsSimInjectLocation   = false;
+plotInitialPressure             = true;
+plotActualVsSimInjectLocation   = true;
 plotInjectRateOverTime          = true;
-plotBHPvsTime                   = false;
+plotBHPvsTime                   = true;
 plotAccumCO2vsTime              = true;
-plotEndOfSimResults             = false;
+plotEndOfSimResults             = true;
 plotCO2simVsCO2obsData          = true;
 plotInventory                   = true;
 
@@ -267,29 +267,31 @@ end
     wellXcoord = 4.38516e5;
     wellYcoord = 6.47121e6;
 
-    % get cell index of specified coordinate location:
-    wellIndexI_candidates = find(Gt.cells.centroids(:,1)<wellXcoord);
-    wellIndexJ_candidates = find(Gt.cells.centroids(:,2)<wellYcoord);
-
-    PossibleIndexI = zeros(Gt.cells.num,1);
-    PossibleIndexI(wellIndexI_candidates) = Gt.cells.centroids(wellIndexI_candidates,1);
-
-    PossibleIndexJ = zeros(Gt.cells.num,1);
-    PossibleIndexJ(wellIndexJ_candidates) = Gt.cells.centroids(wellIndexJ_candidates,2);
-
-    % get the matching PossibleIndexI and PossibleIndexJ that are non-zero, and
-    % get the cell index of the maximum matching value
-    matchingIndex = PossibleIndexI.*PossibleIndexJ;
-    maxMatchingIndex = find(matchingIndex,1,'last');
-
-    wellCellIndex = maxMatchingIndex;
+%     % get cell index of specified coordinate location:
+%     wellIndexI_candidates = find(Gt.cells.centroids(:,1)<wellXcoord);
+%     wellIndexJ_candidates = find(Gt.cells.centroids(:,2)<wellYcoord);
+% 
+%     PossibleIndexI = zeros(Gt.cells.num,1);
+%     PossibleIndexI(wellIndexI_candidates) = Gt.cells.centroids(wellIndexI_candidates,1);
+% 
+%     PossibleIndexJ = zeros(Gt.cells.num,1);
+%     PossibleIndexJ(wellIndexJ_candidates) = Gt.cells.centroids(wellIndexJ_candidates,2);
+% 
+%     % get the matching PossibleIndexI and PossibleIndexJ that are non-zero, and
+%     % get the cell index of the maximum matching value
+%     matchingIndex = PossibleIndexI.*PossibleIndexJ;
+%     maxMatchingIndex = find(matchingIndex,1,'last');
+% 
+%     wellCellIndex = maxMatchingIndex;
 
 
     % OR: compute distances between all cell centroids to specified well
     % location, and use the cell centroid which has the minimum squared norm.
     % TODO.
-    %dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [wellXcoord, wellYcoord]);
-    %[v,i] = min(sum(dv.^2, 2));
+    dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [wellXcoord, wellYcoord]);
+    [v,i] = min(sum(dv.^2, 2));
+    
+    wellCellIndex = i; % or Gt.cells.indexMap(i);
 
     [i, j] = ind2sub(Gt.cartDims, wellCellIndex);
 
@@ -304,22 +306,18 @@ wellCoord_z = 0;
 if plotActualVsSimInjectLocation
 figure; hold on
 
+% actual location
+plot(wellXcoord,wellYcoord,'ok', ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','g',...
+        'MarkerSize',10)
 % simulated location
 plot(wellCoord_x,wellCoord_y,'xk', ...
         'MarkerEdgeColor','k',...
         'MarkerFaceColor','g',...
         'MarkerSize',10)
-    
-% actual location
-if exist('wellXcoord')
-    plot(wellXcoord,wellYcoord,'ok', ...
-        'MarkerEdgeColor','k',...
-        'MarkerFaceColor','g',...
-        'MarkerSize',10)
-    legend('Actual injection location', 'Simulation injection location')
-else
-    legend('Simulated injection location')
-end
+legend('Actual injection location','Simulation injection location')
+
 rectangle('Position',[zoomX1 zoomY1 zoomX2-zoomX1 zoomY2-zoomY1], 'EdgeColor','r', 'LineWidth',3,...
           'LineStyle','--')
 plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
@@ -667,14 +665,14 @@ for i = 1:numel(ReservoirTime2plot)
     % add CO2 plume outline (check matching year):
     if plume{i}.year == Years2plot(i)
         disp('Plotting Observed CO2 plume outline...')
-        if useOptionA
+        %if useOptionA
             line(plume{i}.outline(:,1), plume{i}.outline(:,2), ...
             'LineWidth',4, 'Color','r')
-        else
-            disp('But first converting observed CO2 plume outline coords...')
-            line(plume{i}.outline(:,1)-OriginX, plume{i}.outline(:,2)-OriginY, ...
-            'LineWidth',4, 'Color','r')
-        end
+        %else
+%             disp('But first converting observed CO2 plume outline coords...')
+%             line(plume{i}.outline(:,1)-OriginX, plume{i}.outline(:,2)-OriginY, ...
+%             'LineWidth',4, 'Color','r')
+        %end
     end
     
     % add injection point:
@@ -733,11 +731,13 @@ if plotInventory
 trapstruct = trapAnalysis(Gt, false); % true for cell-based method
 dh = []; % for subscale trapping?
 h2 = figure; plot(1); ax = get(h2, 'currentaxes');
-reports = makeReports(model.G, states, model.rock, model.fluid, schedule, ...
+reports = makeReports(model.G, {initState, states{:}}, model.rock, model.fluid, schedule, ...
                          [model.fluid.res_water, model.fluid.res_gas], ...
                          trapstruct, dh);
 % reports contains soln states; could be used for plotting results.
 directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
+%xlabel('Years since simulation start (1999)')
+ax.XTickLabel = ax.XTick + inj_year(1);
 end
 
 
