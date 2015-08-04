@@ -11,71 +11,72 @@
 % physical coordinate system, the injection location is specified in this
 % same coordinate system.
 
+moduleCheck('ad-core');
+mrstVerbose on
 
-% select what you would like plotted:
+% selection of what will be plotted:
 plotInitialPressure             = true;
 plotActualVsSimInjectLocation   = true;
 plotInjectRateOverTime          = true;
 plotBHPvsTime                   = true;
 plotAccumCO2vsTime              = true;
 plotEndOfSimResults             = true;
-plotCO2simVsCO2obsData          = true;
-plotInventory                   = true;
+plotCO2simVsCO2obsData          = true; ZoomIntoPlume = true; % if false, entire grid is plotted
+plotTrappingInventory           = true;
+plotTrapProfiles                = true;
+plotTrapAndPlumeCompare         = true;
+% Default parameters/inputs:
+
+% select the grid model to load/use:
+useIEAGHG_model     = false;
+useOriginal_model   = true;
+
+
+
+% Merge user-specified inputs with other defaults:
+
+% Select which parameters to modify from original data:
+mod_rock        = true;    
+mod_rhoCO2      = true;
+
+% Then, set parameter modifier factors:
+por_mod     = 0.6;
+perm_mod    = 3;
+rhoCO2_mod  = 2/3;
+
+
+
+%
 
 
 %% 1. Load formation
+% need G, Gt, rock, rock2D
 
-useOptionA = false;
+% Load and use Sleipner Benchmark model directly:
 
-if useOptionA
-    
-    % Option A --- Use CO2 Atlas formation:
-    N = 1;
-    name = ''; %'Sleipnerfm'; %'Utsirafm';
-    [grdecl] = getAtlasGrid(name, 'coarsening',N);
-    G = mprocessGRDECL(grdecl{1});
-    G = mcomputeGeometry(G);
-    % Get top grid, porosity, permeability
-    [Gt, rock2D] = getFormationTopGrid(name, N);
-    % check rock.poro and rock.perm is not NaN
-    if sum(isnan(rock2D.perm))>=1
-        error('NaN permeability found.')
-    end
-    if sum(isnan(rock2D.poro))>=1
-        error('NaN porosity found.')
-    end
-    rock2D.poro = unique(rock2D.poro); % should be 0.36 (Singh et al 2010).
-    % perm should be 2000 mD (Singh et al 2010).
-    
-    % Plot of Sleipner Benchmark Region:
-    % bounds to zoom into:
-    zoomX1 = 0.436e6; % from Fig 2 in Singh et al 2010.
-    zoomY1 = 6.469e6;
-    zoomX2 = 0.441e6;
-    zoomY2 = 6.476e6;
+% If using Sleipner.mat, which has been created using
+% makeSleipnerVEmodel():
+%load Sleipner.mat
+%OriginX = 436000; % used to line up plots between actual coordinates and Sleipner benchmark model centroids
+%OriginY = 6469000;
+%wellCellIndex = sub2ind(Gt.cartDims, 36,78);
 
-else
-    
-    % Option B --- Load and use Sleipner Benchmark model directly:
-    
-    % If using Sleipner.mat, which has been created using makeSleipnerVEmodel()
-    %load Sleipner.mat
-    %OriginX = 436000; % used to line up plots between actual coordinates and Sleipner benchmark model centroids
-    %OriginY = 6469000;
-    %wellCellIndex = sub2ind(Gt.cartDims, 36,78);
-    
-    % If using SleipnerGlobalCoords.mat.
-    % First check to see SleipnerGlobalCoords.mat exists. Otherwise
-    % generate it. (note: code taken from resTiltUtsira.m)
+% If using SleipnerGlobalCoords.mat, first check to see
+% SleipnerGlobalCoords.mat exists. Otherwise generate it. (note: code taken
+% from resTiltUtsira.m)
+if useIEAGHG_model
+
     try
+
         disp(' -> Reading SleipnerGlobalCoords.mat');
         datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
         load(fullfile(datadir,'SleipnerGlobalCoords')); clear datadir
         %return;
+
     catch %#ok<*CTCH>
         disp('    SleipnerGlobalCoords.mat has not yet been created.');
         disp('    Building G, Gt, and rock2D from grdecl files...')
-        
+
         % First loading of Sleipner Eclipse grid (to get PERMX, PERMZ,
         % PORO)
         sdir    = fullfile('data', 'sleipner');
@@ -84,15 +85,15 @@ else
         % this grdecl contains: cartDims, COORD, ZCORN, ACTNUM, PERMX,
         % PERMZ, PORO
         clear sdir
-        
+
         % Reshaping
         lines = reshape(grdecl.COORD,6,[]);
         grdecl.COORD = lines(:); clear lines
-        
+
         % Then, we remove the bottom and top layers that contain shale
         grdecl.ACTNUM(grdecl.PERMX<200) = 0;
 
-        
+
         % Second loading of Sleipner Eclispe grid, to get MAPAXES
         moduleCheck('deckformat', 'mex');
         sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG 
@@ -101,20 +102,20 @@ else
         % this grdecl contains: GRID, and others. grdecl.GRID contains
         % MAPUNITS, MAPAXES, cartDims, COORD, ZCORN, ACTNUM
         fclose(fn);
-        
-        
+
+
         % Add data loaded from first loading of Sleipner Eclispe grid
         grdecl.MAPAXES = gr.GRID.MAPAXES;
         clear gr sl_file
 
-    
+
         % Recompute X and Y coordinates in terms of the provided axes
         % (depths, Z, do not require any recomputation)
         coords        = reshape(grdecl.COORD,3,[])';
         coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
         coords        = coords';
         grdecl.COORD  = coords(:); clear coords
-        
+
 
         % Next, we process the grid and compute geometry
         mrstModule add libgeometry opm_gridprocessing
@@ -133,8 +134,8 @@ else
         disp(' -> Constructing top-surface grid');
         [Gt, G] = topSurfaceGrid(G);
         rock2D  = averageRock(rock, Gt);
-        
-        
+
+
         % Store data
         disp(' ')
         disp(' -> Writing SleipnerGlobalCoords.mat')
@@ -143,12 +144,98 @@ else
         end
         save(fullfile(datadir,'SleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
         clear datadir
+
+    end
+
+elseif useOriginal_model
+    
+    % there should be a directory named "sleipner/original/" which contains
+    % files such as sleipner_prep.data, injection rates, etc.
+    try
+
+        disp(' -> Reading OriginalSleipnerGlobalCoords.mat');
+        datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+        load(fullfile(datadir,'OriginalSleipnerGlobalCoords')); clear datadir
+        %return;
+
+    catch %#ok<*CTCH>
+        disp('    OriginalSleipnerGlobalCoords.mat has not yet been created.');
+        disp('    Building G, Gt, and rock2D from grdecl files...')
+
+        % Open and read original/sleipner_prep.data
+        moduleCheck('deckformat', 'mex');
+        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
+        fn      = fopen(sl_file);
+        grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
+        % this grdecl contains: GRID, and others. grdecl.GRID contains
+        % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
+        % PERMX, PERMY, PERMZ, and PORO
+        fclose(fn);
         
-        
+        % Rename
+        grdecl = grdecl.GRID;
+
+        % Reshaping
+        lines = reshape(grdecl.COORD,6,[]);
+        grdecl.COORD = lines(:); clear lines
+
+        % Then, we remove the bottom and top layers that contain shale
+        grdecl.ACTNUM(grdecl.PERMX<200) = 0;
+
+
+        % Recompute X and Y coordinates in terms of the provided axes
+        % (depths, Z, do not require any recomputation)
+        coords        = reshape(grdecl.COORD,3,[])';
+        coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
+        coords        = coords';
+        grdecl.COORD  = coords(:); clear coords
+
+
+        % Next, we process the grid and compute geometry
+        mrstModule add libgeometry opm_gridprocessing
+        G = processGRDECL(grdecl); % note: processgrid() didn't work
+        G = mcomputeGeometry(G);
+
+        % Adding tags needed by topSurfaceGrid
+        G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
+
+        % Construct petrophysical model
+        rock = grdecl2Rock(grdecl, G.cells.indexMap);
+        rock.perm = convertFrom(rock.perm, milli*darcy);
+        clear grdecl
+
+        % Construct top-surface grid
+        disp(' -> Constructing top-surface grid');
+        [Gt, G] = topSurfaceGrid(G);
+        rock2D  = averageRock(rock, Gt);
+
+
+        % Store data
+        disp(' ')
+        disp(' -> Writing OriginalSleipnerGlobalCoords.mat')
+        if ~isdir(datadir)
+           mkdir(datadir);
+        end
+        save(fullfile(datadir,'OriginalSleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
+        clear datadir
+
     end
     
-
+else
+    error('A model to read or generate has not been specified.')
     
+end
+    
+
+if mod_rock
+    disp('Original rock parameters are being modified ...')
+    
+    % modify parameters
+    rock.poro   = rock.poro * por_mod;
+    rock2D.poro = rock2D.poro * por_mod;
+    rock.perm   = rock.perm * perm_mod;
+    rock2D.perm = rock2D.perm * perm_mod;
+end
     
 %     % to inspect set-up of 3D grid and 2D top-surface grid
 %     figure;
@@ -165,7 +252,7 @@ else
 %     plotCellData(G, G.cells.centroids(:,3))
 %     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r'); view(3)
     
-    % Inspect orientation of grid (compare with orientation shows in Singh
+    % Inspect orientation of grid (compare with orientation shown in Singh
     % et al 2010, Cavanagh 2013, etc.)
     figure; set(gcf,'Position',[1000 1000 1000 1000])
     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
@@ -218,7 +305,6 @@ else
     title('Facing North')
     
 
-end
 
 
 % Plot of Sleipner Benchmark Region:
@@ -227,6 +313,12 @@ zoomX1 = 0.436e6; % from Fig 2 in Singh et al 2010.
 zoomY1 = 6.469e6;
 zoomX2 = 0.441e6;
 zoomY2 = 6.476e6;
+
+% bounds of 2008 plume:
+ZoomX1 = 0.4375e6;
+ZoomY1 = 6.47e6;
+ZoomX2 = 0.4395e6;
+ZoomY2 = 6.474e6;
 
 % Get boundary faces of formation (or grid region)
 bf = boundaryFaces(Gt);
@@ -240,6 +332,11 @@ bf = boundaryFaces(Gt);
 % rename variables:
 water_density = rho(1) * kilogram / meter ^3;
 rhoCref = rho(2) * kilogram / meter ^3;
+
+if mod_rhoCO2
+    disp('Original CO2 density value is being modified ...')
+    rhoCref = rhoCref * rhoCO2_mod; 
+end
 
 initState.pressure  = Gt.cells.z * norm(gravity) * water_density;   % hydrostatic pressure, in Pa=N/m^2
 initState.s         = repmat([1 0], Gt.cells.num, 1);               % sat of water is 1, sat of CO2 is 0
@@ -592,6 +689,21 @@ hcb.Label.String = 'Mt'; set(hcb, 'fontSize', 18)
 end
 
 
+% INVENTORY (from exploreSimulation.m)
+if plotTrappingInventory
+trapstruct = trapAnalysis(Gt, false); % true for cell-based method
+dh = []; % for subscale trapping?
+h2 = figure; plot(1); ax = get(h2, 'currentaxes');
+reports = makeReports(model.G, {initState, states{:}}, model.rock, model.fluid, schedule, ...
+                         [model.fluid.res_water, model.fluid.res_gas], ...
+                         trapstruct, dh);
+% reports contains soln states; could be used for plotting results.
+directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
+%xlabel('Years since simulation start (1999)')
+ax.XTickLabel = ax.XTick + inj_year(1);
+end
+
+
 %% Line plots of CO2 migrating plume data
 % TODO: implement code to download the following .mat files from a repo
 % (and put .mat files onto repo)
@@ -633,7 +745,7 @@ Years2plot          = [1999; 2001; 2002; 2004; 2006; 2008];
 ReservoirTime2plot  = (Years2plot - inj_year(1)+1 ).*(365*24*60*60); % seconds
 CO2plumeOutline_SatTol = (0.01/100); % adjust this value if patch error occurs (which happens when no massCO2 present at specified sat tol)
 if plotCO2simVsCO2obsData
-h = figure;
+h = figure; set(gcf, 'Position', [1000 1000 1500 1100])
 hold on
 
 for i = 1:numel(ReservoirTime2plot)
@@ -647,8 +759,9 @@ for i = 1:numel(ReservoirTime2plot)
     densityCO2  = fluid.rhoG(states{rti}.pressure);  % fluid.rhoG is function handle to get CO2 density
     satCO2      = states{rti}.s(:,2);
     massCO2     = model.rock.poro.*model.G.cells.volumes.* model.G.cells.H.*satCO2.*densityCO2; % kg
+    maxMassCO2(i)= max(massCO2);
     
-    subplot(1,numel(ReservoirTime2plot),i)
+    subplot(2,numel(ReservoirTime2plot)/2,i)
     hold on
 
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
@@ -657,17 +770,17 @@ for i = 1:numel(ReservoirTime2plot)
     hcb = colorbar; hcb.Label.String = 'Mt'; set(hcb, 'fontSize', 18)
 
     % add Sleipner region box:
-    rectangle('Position',[zoomX1 zoomY1 zoomX2-zoomX1 zoomY2-zoomY1], 'EdgeColor','r', 'LineWidth',3,...
-          'LineStyle','--')
-    axis tight
-    xlim([zoomX1 zoomX2]); ylim([zoomY1 zoomY2])
+    %rectangle('Position',[zoomX1 zoomY1 zoomX2-zoomX1 zoomY2-zoomY1], 'EdgeColor','r', 'LineWidth',3,...
+    %      'LineStyle','--')
+    %axis tight
+    %xlim([zoomX1 zoomX2]); ylim([zoomY1 zoomY2])
     
     % add CO2 plume outline (check matching year):
     if plume{i}.year == Years2plot(i)
         disp('Plotting Observed CO2 plume outline...')
         %if useOptionA
             line(plume{i}.outline(:,1), plume{i}.outline(:,2), ...
-            'LineWidth',4, 'Color','r')
+            'LineWidth',3, 'Color','r')
         %else
 %             disp('But first converting observed CO2 plume outline coords...')
 %             line(plume{i}.outline(:,1)-OriginX, plume{i}.outline(:,2)-OriginY, ...
@@ -676,20 +789,43 @@ for i = 1:numel(ReservoirTime2plot)
     end
     
     % add injection point:
-    if exist('wellXcoord')
+    %if exist('wellXcoord')
     % actual location
     plot(wellXcoord,wellYcoord,'o', ...
         'MarkerEdgeColor','k',...
         'MarkerFaceColor','r',...
         'MarkerSize',10)
-    end
+    %end
     % simulated location
     plot(wellCoord_x,wellCoord_y,'x', ...
         'LineWidth',3,  ...
         'MarkerEdgeColor','k',...
         'MarkerFaceColor','k',...
         'MarkerSize',10)
+    
+    axis tight
+    
+    % We visualize the spill paths between structural traps
+    mapPlot(gcf, Gt, 'traps', trapstruct.traps, 'rivers', trapstruct.cell_lines, ...
+        'maplines',20); % default maplines is 40
 
+end
+
+% make plotting adjustments to subplots
+axesHandles = get(gcf,'children');
+
+% set caxis to be between 0 and the max CO2 mass value plotted in any of
+% the subplots
+cmax = max(maxMassCO2./1e9);
+for i=1:numel(axesHandles)
+    if strcmpi(axesHandles(i).Type,'axes')
+        axesHandles(i).CLim = [0 cmax];
+        
+        if ZoomIntoPlume
+           axesHandles(i).XLim = [ZoomX1 ZoomX2];
+           axesHandles(i).YLim = [ZoomY1 ZoomY2];
+        end
+    end
 end
 
 end
@@ -726,18 +862,251 @@ end
 % end
 
 
-% INVENTORY (from exploreSimulation.m)
-if plotInventory
-trapstruct = trapAnalysis(Gt, false); % true for cell-based method
-dh = []; % for subscale trapping?
-h2 = figure; plot(1); ax = get(h2, 'currentaxes');
-reports = makeReports(model.G, {initState, states{:}}, model.rock, model.fluid, schedule, ...
-                         [model.fluid.res_water, model.fluid.res_gas], ...
-                         trapstruct, dh);
-% reports contains soln states; could be used for plotting results.
-directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
-%xlabel('Years since simulation start (1999)')
-ax.XTickLabel = ax.XTick + inj_year(1);
+
+
+
+
+%% 3. Analyze traps with spill-point analysis, and plot structural traps.
+%ta = trapAnalysis(Gt, false); % true for cell-based method
+if plotTrapProfiles
+ta = trapstruct;
+
+figure;
+plotCellData(Gt, ta.traps, ta.traps~=0, 'FaceColor', 'r', 'EdgeColor','none')
+bf = boundaryFaces(Gt, ta.traps~=0);
+plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+
+ta_volumes = volumesOfTraps(Gt, ta);
+
+N = 1;
+fprintf('Coarsening level %d:\n', N);
+fprintf('  Num. global traps: %d\n', numel(ta_volumes));
+fprintf('  Total trap volume: %e m3\n', sum(ta_volumes));
+fprintf('  Avg. global trap size: %e m3\n', mean(ta_volumes));
+
+% plot of structural traps in red:
+title({['Sleipner, coarsening level=' num2str(N)]; ...
+    [num2str(numel(ta_volumes)) ' structural traps shown in red']}, 'FontSize', 14)
+
+axis equal tight
+
+% ****************
+% We can use plotCellData and color the faces according to the trap volume
+% in km^3. The cell of Gt is associated with a particular trap by ta.traps,
+% and is 0 otherwise. The volume of a particular trap is given by
+% ta_volumes.
+figure;
+subplot(1,5,1)
+plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
+
+trapcells = ta.traps~=0;
+cellsTrapVol = zeros(Gt.cells.num,1);
+cellsTrapVol(trapcells) = ta_volumes(ta.traps(trapcells));
+plotCellData(Gt, cellsTrapVol/1e3/1e3/1e3, cellsTrapVol~=0)
+
+set(gca,'DataAspect',[1 1 1/100])
+hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
+hcb.Label.String = 'Trap Volume, km^3';
+grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+
+% Note that it may be more useful to color the faces according to the
+% trapped mass of CO2. This requires using the CO2 density data which can
+% vary with depth (since pressure and temperature gradients exist in the
+% formation), to determine the cooresponding CO2 mass trapped by the traps.
+% Porosity might also be required, in order to compute both trapping
+% volumes and CO2 mass trapping.
+% See functions which produce Utsira plots of traps, catchment area, etc:
+%   co2 = CO2props();
+%   utsiraCapacity('rhoCfun', @co2.rho);
+% The above functions also compute breakdown of CO2 trapping types
+% (structural, residual, and dissolution) without VE simulation.
+
+
+
+
+
+
+%% 3. b) get trapping breakdown (structural, residual, dissoluion)
+% The following section computes the breakdown of structural, residual, and
+% dissolution trapping in the formation, assuming CO2 is injected and fills
+% the formation completely, i.e., all spill paths are utilized. The
+% contents of this section closely follows the implementation found in
+% exploreCapacity(), which is a GUI. Note: some fluid parameters are fixed
+% to those used in exploreCapacity.
+
+% first, use default values to compute theoretical capacity (upper bound):
+out_default = exploreParameterRanges(Gt, rock2D, ta);
+
+% ****************
+% We can visualize the structural traps in terms of CO2 mass, not volume.
+
+% Distributed CO2 mass under structural traps: 
+cellsTrapCO2Mass = zeros(Gt.cells.num,1);
+cellsTrapCO2Mass(trapcells) = out_default.strap_mass_co2(trapcells);
+
+% Cumulative CO2 mass under structural traps:
+trapcaps = accumarray(ta.traps(trapcells), out_default.strap_mass_co2(trapcells));
+trapcap_tot = zeros(Gt.cells.num,1); %ones(size(ta.traps)) * NaN;
+trapcap_tot(trapcells) = trapcaps(ta.traps(trapcells));
+
+% Boundary of formation
+bf = boundaryFaces(Gt);
+
+subplot(1,5,2)
+hold on
+%plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
+plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+plotCellData(Gt, cellsTrapCO2Mass/1e9, cellsTrapCO2Mass~=0)
+
+    % add injection point:
+    %if exist('wellXcoord')
+    % actual location
+    plot(wellXcoord,wellYcoord,'o', ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','r',...
+        'MarkerSize',10)
+    %end
+    % simulated location
+    plot(wellCoord_x,wellCoord_y,'x', ...
+        'LineWidth',3,  ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','k',...
+        'MarkerSize',10)
+
+set(gca,'DataAspect',[1 1 1/100])
+hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
+hcb.Label.String = 'Distributed CO2 Mass under Trap, Mt';
+grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+
+subplot(1,5,3)
+hold on
+%plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
+plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+plotCellData(Gt, trapcap_tot/1e9, trapcap_tot~=0)
+
+    % add injection point:
+    %if exist('wellXcoord')
+    % actual location
+    plot(wellXcoord,wellYcoord,'o', ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','r',...
+        'MarkerSize',10)
+    %end
+    % simulated location
+    plot(wellCoord_x,wellCoord_y,'x', ...
+        'LineWidth',3,  ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','k',...
+        'MarkerSize',10)
+
+set(gca,'DataAspect',[1 1 1/100])
+hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
+hcb.Label.String = 'Accumulated CO2 Mass under Trap, Mt';
+grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+
+
+
+% ****************
+% We can also visualize the reachable structural capacity, which is based
+% on the output of trapAnalysis: ta. Then we compute cumulative structural
+% trap volume reached when injecting at a given cell
+trees = maximizeTrapping(Gt, 'res', ta, 'calculateAll', true, 'removeOverlap', false);
+tvols = [trees.value]; %#ok
+int_tr = find(ta.trap_regions); %#ok ixs of cells spilling into interior trap
+[dummy, reindex] = sort([trees.root], 'ascend'); %#ok
+
+structural_mass_reached = zeros(Gt.cells.num, 1);
+for i = 1:numel(ta.trap_z) % loop over each trap
+
+    % ix of cells spilling directly into this trap
+    cix = find(ta.trap_regions == i);
+
+    % cell indices of all cells of this trap, and its upstream traps
+    aix = find(ismember(ta.traps, [trees(reindex(i)).traps]));
+
+    % compute total structural trap capacity (in mass terms) of these
+    % cells, and store result
+    structural_mass_reached(cix) = sum(out_default.strap_mass_co2(aix)); %#ok
+
+end
+
+subplot(1,5,4)
+hold on
+plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+plotCellData(Gt, structural_mass_reached/1e3/1e6, 'EdgeColor','none');
+
+    % add injection point:
+    %if exist('wellXcoord')
+    % actual location
+    plot(wellXcoord,wellYcoord,'o', ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','r',...
+        'MarkerSize',10)
+    %end
+    % simulated location
+    plot(wellCoord_x,wellCoord_y,'x', ...
+        'LineWidth',3,  ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','k',...
+        'MarkerSize',10)
+
+set(gca,'DataAspect',[1 1 1/100])
+hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
+hcb.Label.String = 'Reachable structural capacity, Mt';
+grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+
+
+% ****************
+% We visualize the spill paths between structural traps
+subplot(1,5,5)
+hold on
+mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
+
+    % add injection point:
+    %if exist('wellXcoord')
+    % actual location
+    plot(wellXcoord,wellYcoord,'o', ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','r',...
+        'MarkerSize',10)
+    %end
+    % simulated location
+    plot(wellCoord_x,wellCoord_y,'x', ...
+        'LineWidth',3,  ...
+        'MarkerEdgeColor','k',...
+        'MarkerFaceColor','k',...
+        'MarkerSize',10)
+    
+grid; axis equal tight;
+
+end
+
+
+%% Show the structural trap
+% After the simulation has completed, we are interested in seeing how the
+% location of the CO2 plume after a long migration time corresponds to the
+% trapping estimates produced by trapAnalysis. This is done by finding the
+% trap index of the well injection cell and then plotting the trap along
+% with the final CO2 plume.
+
+% Well in 2D model
+%WVE = convertwellsVE(W, Gt.parent, Gt, rock2D);
+WVE = reports(end).W; % take well of last control since first control might be initial conditions (no well)
+
+% Generate traps and find the trap corresponding to the well cells
+trap = trapstruct.trap_regions([WVE.cells]);
+
+% Plot the areas with any significant CO2 height along with the trap in red
+if plotTrapAndPlumeCompare
+figure;
+plotCellData(Gt, reports(end).sol.h, reports(end).sol.h > 0.01)
+plotGrid(Gt, trapstruct.traps == trap, 'FaceColor', 'red', 'EdgeColor', 'w')
+plotGrid(Gt, 'FaceColor', 'None', 'EdgeAlpha', .1);
+
+legend({'CO2 Plume', 'Trap'})
+axis tight off
+view(-20, 75)
+title('End of simulation CO2 compared to algorithmically determined trap')
 end
 
 
