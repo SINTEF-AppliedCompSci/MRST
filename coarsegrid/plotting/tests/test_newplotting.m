@@ -2,7 +2,7 @@ function test_newplotting()
 %Demo for new plotting routines
 %
 % SYNOPSIS:
-%   testNewPlotting()
+%   testPlotting()
 %
 % NEW FEATURES
 %   - Coarse grid plotting
@@ -13,7 +13,7 @@ function test_newplotting()
 % grids and fine grids in the same package. Plotting of sub-grid gemoetry
 % of coarse faces happens behind the scenes by extracting necessary data
 % from the (new) coarse grid field 'parent'.
-% If the 'åparent' field is present in the input grid, the plotting options
+% If the 'parent' field is present in the input grid, the plotting options
 % are interpreted as intended modify coarse grid edges, faces and vertices.
 % To plot fine grid edges, faces or vertices, a grid without the 'parent'
 % field must be supplied.
@@ -84,10 +84,10 @@ end
 %% 2D TEST for plotPatches
 %% 2D TEST for plotFaceOutline
 
-%% 2D TESTS for plotFacesNew
+%% 2D TESTS for plotFaces
 function plot2d1(cg)
    f = figure;
-   plotFacesNew(cg, 1:cg.faces.num,'linestyle','--', 'marker','o', ...
+   plotFaces(cg, 1:cg.faces.num,'linestyle','--', 'marker','o', ...
                 'markerfacecolor','b');
    axisTight off
    view(cg.griddim)
@@ -95,12 +95,12 @@ function plot2d1(cg)
    close(f)
 end
 
-%% 2D TESTS for plotGridNew
+%% 2D TESTS for plotGrid
 function plot2d2(cg)
    f = figure;
-   plotGridNew(cg.parent, find(cg.partition==1), 'facec','none', ...
+   plotGrid(cg.parent, find(cg.partition==1), 'facec','none', ...
                'edgea', 0.1, 'edgec', 'b');
-   plotGridNew(cg, 1, 'facea', 0.5, 'edgea', 0.2, 'edgec', 'r');
+   plotGrid(cg, 1, 'facea', 0.5, 'edgea', 0.2, 'edgec', 'r');
    axisTight off
    view(cg.griddim)
    print('-dpng','-r500','plot-2d-2.png');
@@ -114,12 +114,12 @@ end
 %% 3D TEST for plotPatches
 %% 3D TEST for plotFaceOutline
 
-%% 3D TESTS for plotFacesNew
+%% 3D TESTS for plotFaces
 function plot1(cg)
    % Plot all faces if 'faces' argument IS NOT given.
    f = figure;
-   plotFacesNew(cg,        'edgea',0.3,'edgec','r');
-   plotFacesNew(cg.parent, 'edgea',0.05,'edgec','g');
+   plotFaces(cg,        'edgea',0.3,'edgec','r');
+   plotFaces(cg.parent, 'edgea',0.05,'edgec','g');
    view(cg.griddim); axisTight; axis off
    axisTight off
    print('-dpng','-r500','plot1.png');
@@ -128,8 +128,8 @@ end
 function plot2(cg)
    % Plot a selection of faces if 'faces' argument IS given
    f = figure;
-   plotFacesNew(cg,        1:4,  'edgea',0.3,'edgec','r');
-   plotFacesNew(cg.parent, 1:40, 'edgea',0.2,'edgec','b');
+   plotFaces(cg,        1:4,  'edgea',0.3,'edgec','r');
+   plotFaces(cg.parent, 1:40, 'edgea',0.2,'edgec','b');
    if cg.griddim==2, view(2), else view(130, 40); end
    axisTight off
    print('-dpng','-r500','plot2.png');
@@ -137,13 +137,13 @@ function plot2(cg)
 end
 
 
-%% 3D TESTS for plotGridNew
+%% 3D TESTS for plotGrid
 function plot3(cg)
    % Plot all (outer) edges if coarse grid, no æfacesæargument given.
    f = figure;
-   plotGridNew(cg,        'facec', 'g',   'facea', 0.3, 'edgec', 'k', ...
+   plotGrid(cg,        'facec', 'g',   'facea', 0.3, 'edgec', 'k', ...
                           'linewidth', 2);
-   plotGridNew(cg.parent, find(cg.partition==1), 'facec','none', ...
+   plotGrid(cg.parent, find(cg.partition==1), 'facec','none', ...
                           'edgea', 0.2, 'edgec', 'b');
    if cg.griddim==2, view(2), else view(40, 45); end
    axisTight off
@@ -155,7 +155,7 @@ end
 %% 3D TESTS for plotCellData
 function plot4(cg)
    f = figure;
-   plotCellDataNew(cg, rand(cg.cells.num, 1), 1:cg.cells.num-1);
+   plotCellData(cg, rand(cg.cells.num, 1), 1:cg.cells.num-1);
    if cg.griddim==2, view(2), else view(110, 45); end
    camlight
    axisTight off
