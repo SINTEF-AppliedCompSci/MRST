@@ -2,20 +2,77 @@
 % The following studies the Sleipner benchmark data set which comes from
 % Singh et al 2010 (SPE paper).
 
-% The M9Z1.grdecl file and other necessary files should be downloaded and
-% placed in co2lab/data/sleipner/. The following script will read those
-% files to make the appropriate MRST-type grids (G and Gt). Also 'rock2D'
-% is required. The first time the grids and rock data are generated, they
-% are saved to /co2lab/data/mat/SleipnerGlobalCoords.mat to avoid
+% There are several options available to run this benchmark, which are
+% explained below:
+
+    % The first option is related to which Sleipner grid is loaded.
+    % Currently, this script can handle the IEAGHG model (when
+    % 'useIEAGHG_model' is set to true) and the ORIGINAL model (when
+    % 'useOriginal_model' is set to true). Only the ORIGINAL model has the
+    % additional option of performing model refinement (i.e., grid, perm,
+    % poro, etc).
+
+    % The second option is which annual injection rates to use. The
+    % available rates are either those which come from Singh et al 2010
+    % (SPE 134891) (i.e., rates between 1999 and 2009) or those which came
+    % with the original Sleipner benchmark files (i.e., rates between 1999
+    % and 2030).
+
+    % The third option is whether to modify the rock and/or fluid
+    % properties which have been loaded from the model file. Currently,
+    % permeability and porosity are modified when mod_rock=true, and CO2
+    % reference density is modified when mod_rhoCO2=true. The modification
+    % factors must be defined.
+
+    % Other options available in this script coorespond to the typical
+    % input parameters that must be defined such as sea floor temperature,
+    % time step sizes, migration period, etc.
+    
+    
+% Notes about the files needed to load the specified grid:
+
+    % To use the IEAGHG model (i.e., when 'useIEAGHG_model=true'), the
+    % necessary grdecl files are:
+        % M9X1.grdecl, M9X1_perm_X_mD_.inc, M9X1_perm_Y_mD_.inc,
+        % M9X1_poro___.inc, SLEIPNER.DATA
+    % The above files should be downloaded and placed in:
+        % co2lab/data/sleipner/
+
+        
+    % To use the ORIGINAL model (i.e., when 'useORIGINAL_model=true'), the
+    % necessary grdecl files are:
+        % sleipner_prep.data
+    % The above file(s) should be placed in:
+        % co2lab/data/sleipner/original/
+    
+
+% Notes about other files needed for this script to run:
+
+    % CO2 plume outlines - layer9_polygons_XXXX.mat (where XXXX is the
+    % year, such as 1999) files should be created and placed in current
+    % working directory.
+    
+    % Injection rates - SleipnerOriginalInjectionRates.mat should be
+    % created and placed in current working directory.
+
+
+% Note that the following script will read the appropriate grdecl files and
+% make the MRST-type grids (G and Gt). The first time the grids and rock
+% data are generated, they are saved to /co2lab/data/mat/ to avoid
 % re-generation every time this script is run. Since the grids are in the
 % physical coordinate system, the injection location is specified in this
 % same coordinate system.
 
-%mrstModuleClear
+%%
+
 
 moduleCheck('ad-core');
 mrstVerbose on
 gravity on;
+
+
+% ******************** START OF USER OPTIONS ******************************
+
 
 % selection of what will be plotted:
 plotModelGrid                   = true;
@@ -30,35 +87,44 @@ plotTrappingInventory           = true;
 plotTrapProfiles                = true;
 plotTrapAndPlumeCompare         = true;
 
+
+% Trapping analysis method
 isCellBasedMethod = false; % true to use cell-based method, false to use node-based method
+
 
 % FOR PLOTS:
 CO2plumeOutline_SatTol  = (0.01/100); % adjust this value if patch error occurs (which happens when no massCO2 present at specified sat tol)
 press_deviation = 0;  % from hydrostatic (percent) --> used for trapping capacity calculation, not simulation
-N = 1; % coarsening level of grid. (no option yet to re-fine or coarsen Sleipner grid).
+N = 1; % coarsening level of grid. (no option yet to re-fine or coarsen Sleipner grid). ==> in progress
 
-% Plot of Sleipner Benchmark Region:
-% bounds to zoom into:
-zoomX1 = 0.436e6; % from Fig 2 in Singh et al 2010.
-zoomY1 = 6.469e6;
-zoomX2 = 0.441e6;
-zoomY2 = 6.476e6;
 
+% For plotting of CO2 plumes
 % bounds of 2008 plume:
 ZoomX1 = 0.4375e6;
 ZoomY1 = 6.47e6;
 ZoomX2 = 0.4395e6;
 ZoomY2 = 6.474e6;
 
-% Default parameters/inputs:
 
-wellXcoord      = 4.38516e5; % (Singh et al. 2010)
+% OPTION - Select the grid model to load/use:
+useIEAGHG_model     = false;
+useOriginal_model   = true; useRefinedGrid = true;
+if useRefinedGrid
+    refineLevel = 4;
+else
+    refineLevel = []; % or 1?
+end
+
+
+% Physical coordinate of injection well (Singh et al. 2010)
+wellXcoord      = 4.38516e5;
 wellYcoord      = 6.47121e6;
 
-% Well injection rate:
+
+% OPTION - Well injection rate:
 useRatesFromSPE134891 = true; extrapolateRates = false; % TODO - implement for true (i.e., extrapolation)
 useUserDefinedRates = false; % TODO - implement
-useSleipnerOriginalInjectionRates = false;
+useSleipnerOriginalInjectionRates = false; 
 
 if useRatesFromSPE134891
     % Note: variable annual injection rates are given in Singh et al 2010,
@@ -73,10 +139,11 @@ elseif useUserDefinedRates
     %error('TODO: implement user defined rates.')
     
 elseif useSleipnerOriginalInjectionRates
-    % TODO - use sleipner_rates.txt:
-    load SleipnerOriginalInjectionRates.mat
     
-    % only take the years between 1999 and 2030 as injection years since
+    [ CumSurfVol_m3, Mass_kg, ReservoirVol_m3, year ] = getSleipnerOriginalInjectionRates();
+    % OLD: load SleipnerOriginalInjectionRates.mat
+    
+    % We only take the years between 1999 and 2030 as injection years since
     % ReservoirVol_m3 is the cumulative value as of Jan 1st of each year
     % 1999 is taken as first injection year since ReservoirVol_m3 is
     % non-zero starting in 2000 (Jan 1st) which implies there was an
@@ -98,15 +165,16 @@ else
 
 end
 
+
 % Specify and compute time step size for injection period.
-% ***Note: applied to each inj_rate***
-inj_time    = 1 * year; % gets converted to seconds % DEFAULT. CAN ONLY ADJUST NUMBER OF STEPS.
+% ***Note: inj_time and inj_steps are applied to each inj_rate given***
+inj_time    = 1 * year; % DEFAULT. CAN ONLY ADJUST NUMBER OF STEPS.
 inj_steps   = 5;
 dTi         = inj_time / inj_steps; % timestep size in seconds
 
 % Specify and compute time step size for migration period. 
 mig_time    = 1 * year; % CAN ADJUST.
-mig_steps   = 5;        % CAN ADJUST.
+mig_steps   = 1;        % CAN ADJUST.
 dTm         = mig_time / mig_steps; % timestep size in seconds
 
 
@@ -126,16 +194,7 @@ dis_max             = (53 * kilogram / meter^3) / rhoCref; % from CO2store
 % kwm? 0.75, 0.54 in Appendix of Singh et al 2010.
 
 
-
-% select the grid model to load/use:
-useIEAGHG_model     = false;
-useOriginal_model   = true;
-
-
-
-% Merge user-specified inputs with other defaults:
-
-% Select which parameters to modify from original data:
+% OPTION - Select which parameters to modify from original data:
 mod_rock        = true;    
 mod_rhoCO2      = true;
 
@@ -146,24 +205,12 @@ rhoCO2_mod  = 2/3;
 
 
 
-%
+% ************************ END OF USER OPTIONS ****************************
 
 
 %% 1. Load formation
-% need G, Gt, rock, rock2D
+% loads or generates file containing G, Gt, rock, rock2D
 
-% Load and use Sleipner Benchmark model directly:
-
-% If using Sleipner.mat, which has been created using
-% makeSleipnerVEmodel():
-%load Sleipner.mat
-%OriginX = 436000; % used to line up plots between actual coordinates and Sleipner benchmark model centroids
-%OriginY = 6469000;
-%wellCellIndex = sub2ind(Gt.cartDims, 36,78);
-
-% If using SleipnerGlobalCoords.mat, first check to see
-% SleipnerGlobalCoords.mat exists. Otherwise generate it. (note: code taken
-% from resTiltUtsira.m)
 if useIEAGHG_model
 
     try
@@ -247,6 +294,111 @@ if useIEAGHG_model
 
     end
 
+elseif useOriginal_model && useRefinedGrid
+    
+    % there should be a directory named "sleipner/original/" which contains
+    % files such as sleipner_prep.data, injection rates, etc.
+    try
+
+        disp([' -> Reading OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat']);
+        datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+        load(fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel)])); clear datadir
+        %return;
+
+    catch %#ok<*CTCH>
+        disp(['    OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat has not yet been created.']);
+        disp('    Building REFINED G, Gt, and rock2D from grdecl files...')
+
+        % Open and read original/sleipner_prep.data
+        moduleCheck('deckformat', 'mex');
+        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
+        fn      = fopen(sl_file);
+        grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
+        % this grdecl contains: GRID, and others. grdecl.GRID contains
+        % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
+        % PERMX, PERMY, PERMZ, and PORO
+        fclose(fn);
+        
+        % Rename
+        grdecl = grdecl.GRID;
+
+        % Reshaping
+        lines = reshape(grdecl.COORD,6,[]);
+        grdecl.COORD = lines(:); clear lines
+
+        % Then, we remove the bottom and top layers that contain shale
+        grdecl.ACTNUM(grdecl.PERMX<200) = 0;
+
+        
+        % Then we perform a few steps for GRID REFINEMENT:
+        % - first cut the grdecl by removing the top and bottom layers (i.e.,
+        % keep layers 2 to 6, thus remove layers 1 and 7). There will be 5
+        % layers remaining.
+        lowerBound = [1 1 2];
+        upperBound = [grdecl.cartDims(1) grdecl.cartDims(2) 6];
+        ind = [lowerBound; upperBound]';
+        grdecl_cut = cutGrdecl(grdecl, ind);
+        % grdecl_new contains: cartDims, COORD, ZCORN, PERMX, PERMY, PERMZ,
+        % PORO, ACTNUM. These all coorespond to the 5 remaining layers.
+        
+        % - second coarsen the grdecl in the z direction since we don't
+        % need to keep the resolution of 5 layers (i.e., we treat 5 layers
+        % as 1 homogeneous layer for VE). In order to ensure PERMX, PERMY,
+        % PERMZ, and PORO are coarsened, 'only_grid' must be set to false.
+        dim = [1 1 5];
+        grdecl_coarsened = coarseGrdecl(grdecl_cut, dim, 'only_grid',false);
+        % grdecl_new now contains: cartDims, COORD, ZCORN, ACTNUM, PERMX,
+        % PERMY, PERMZ, PORO which correspond to the single layer.
+        
+        % - third refine the grdecl in the X and Y direction (Z already has
+        % a resolution of 1 cell) by the refinement level specified
+        dim = [refineLevel; refineLevel; 1];
+        grdecl_refined = refineGrdecl(grdecl_coarsened, dim);
+        grdecl_refined.MAPAXES = grdecl.MAPAXES;
+        grdecl_refined.MAPUNITS = grdecl.MAPUNITS;
+        
+        
+        % Recompute X and Y coordinates in terms of the provided axes
+        % (depths, Z, do not require any recomputation)
+        coords        = reshape(grdecl_refined.COORD,3,[])';
+        coords(:,1:2) = mapAxes(coords(:,1:2), grdecl_refined.MAPAXES);
+        coords        = coords';
+        grdecl_refined.COORD  = coords(:); clear coords
+
+
+        % Next, we process the grid and compute geometry
+        mrstModule add libgeometry opm_gridprocessing
+        G = processGRDECL(grdecl_refined); % note: processgrid() didn't work
+        G = mcomputeGeometry(G);
+
+        % Adding tags needed by topSurfaceGrid
+        G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
+
+        % Construct petrophysical model
+        rock = grdecl2Rock(grdecl_refined, G.cells.indexMap);
+        rock.perm = convertFrom(rock.perm, milli*darcy);
+        clear grdecl grdecl_cut grdecl_coarsened grdecl_refined
+
+        % Construct top-surface grid
+        disp(' -> Constructing top-surface grid');
+        [Gt, G] = topSurfaceGrid(G);
+        rock2D  = averageRock(rock, Gt);
+
+
+        % Store data
+        disp(' ')
+        disp([' -> Writing OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat'])
+        if ~isdir(datadir)
+           mkdir(datadir);
+        end
+        save( fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat']), ...
+            'G', 'Gt', 'rock', 'rock2D', ...
+            '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
+        clear datadir
+        
+    end
+        
+    
 elseif useOriginal_model
     
     % there should be a directory named "sleipner/original/" which contains
@@ -318,13 +470,15 @@ elseif useOriginal_model
         end
         save(fullfile(datadir,'OriginalSleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
         clear datadir
-
+         
     end
+    
     
 else
     error('A model to read or generate has not been specified.')
-    
+
 end
+
     
 %% Modify original parameters (optional) and visualize model grids
 if mod_rock
@@ -339,8 +493,8 @@ end
     
 if plotModelGrid
     [ hfig, hax ] = plot3DandTopGrids( G, Gt );
+    
 end
-
 
 
 % Get boundary faces of formation (or grid region)
@@ -349,7 +503,7 @@ bf = boundaryFaces(Gt);
 
 %% 2. Basic routine to perform VE simulation, using simulateScheduleAD().
 % _________________________________________________________________________
-% 1) set up initial state, OR get literature data:
+% a) set up initial state, OR get literature data:
 
 
 if mod_rhoCO2
@@ -372,7 +526,7 @@ end
 
 
 % _________________________________________________________________________
-% 2) set up schedule (wells, bc, etc.).
+% b) set up schedule (wells, bc, etc.).
 
 % WELLS:
 
@@ -464,7 +618,7 @@ end
 
 
 % _________________________________________________________________________
-% 3) set up model (grid, rock and fluid properties).
+% c) set up model (grid, rock and fluid properties).
 
 caprock_temperature = 273.15 + seafloor_temp + (Gt.cells.z - seafloor_depth) / 1e3 * temp_gradient; % Kelvin
 
@@ -498,17 +652,16 @@ model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 
 
 % _________________________________________________________________________
-% 4) call to simulateScheduleAD().
+% d) call to simulateScheduleAD().
 [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
 
-% write output file
+% TODO: write output file
 % to save: G, Gt, rock, rock2D, all input parameters, all outputs (results)
 
 
 
 % _________________________________________________________________________
 %% Post-Processing
-% 5) Look at results:
 
 % BHP VS TIME
 if plotBHPvsTime
@@ -564,8 +717,9 @@ end
 
 
 %% Line plots of CO2 migrating plume data
-% TODO: implement code to download the following .mat files from a repo
-% (and put .mat files onto repo)
+% Note: to run the following function, first downloaded the plume .mat
+% files from https://bitbucket.org/mrst/mrst-co2lab/downloads, and place on
+% current working directory path
 plume = getLayer9CO2plumeOutlines();
 
 
@@ -753,15 +907,21 @@ if plotTrapAndPlumeCompare
     % Generate traps and find the trap corresponding to the well cells
     trap = ta.trap_regions([WVE.cells]);
     
-    figure;
+    figure; set(gcf,'Position',[1000 1000 1600 1000])
     plotCellData(Gt, reports(end).sol.h, reports(end).sol.h > 0.01)
     plotGrid(Gt, ta.traps == trap, 'FaceColor', 'red', 'EdgeColor', 'w')
     plotGrid(Gt, 'FaceColor', 'None', 'EdgeAlpha', .1);
 
     legend({'CO2 Plume', 'Trap'})
+    set(gca,'DataAspect',[1 1 1/10])
     axis tight off
-    view(-20, 75)
+    view(20, 25)
     title('End of simulation CO2 compared to algorithmically determined trap')
+    
+    % Create textarrow
+    annotation(gcf,'textarrow',[0.382421875 0.418396875000001],...
+    [0.77 0.857197640117995],'String',{'North'});
+
 end
 
 

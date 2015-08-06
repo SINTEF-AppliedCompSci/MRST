@@ -1,5 +1,13 @@
 function [ plume ] = getLayer9CO2plumeOutlines( )
 
+% the following .mat files which are loaded must be placed on the current
+% working directory path. These files can be downloaded from 
+% https://bitbucket.org/mrst/mrst-co2lab/downloads
+
+% note that the years 2006a and 2006b correspond to the same plume data for
+% the given year, however any connecting lines between separate plume
+% regions have been removed. TODO: use these better polygon files instead
+% of the 2006 polygon file.
 
 load layer9_polygons_1999.mat;
 plume{1}.outline = CO2plumeOutline; clear CO2plumeOutline

@@ -52,6 +52,19 @@ function [ hfig, hax ] = plot3DandTopGrids( G, Gt )
     xlabel('x, meters'); ylabel('y, meters'); zlabel('z, meters');
     title('Facing North')
     
+    
+    % Inspect Top Surface Grid and H
+    figure; set(gcf,'Position',[1000 1000 1000 1000])
+    plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r');
+    plotCellData(Gt, Gt.cells.z)
+    set(gca,'DataAspect',[1 1 0.02]); grid
+    xlabel('x, meters'); ylabel('y, meters'); zlabel('z, meters');
+    title({'Top Surface elevation';['average thickness ',num2str(mean(Gt.cells.H)),' meters']})
+    % Create textarrow
+    view(44,22)
+    annotation(gcf,'textarrow',[0.4734 0.5391],[0.7825 0.81],'String',{'North'});
+    set(gca,'FontSize',14)
+    
     hfig = gcf;
     hax  = gca;
 
