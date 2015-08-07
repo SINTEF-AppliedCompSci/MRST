@@ -19,7 +19,7 @@ function [ hfig, hax ] = plot3DandTopGrids( G, Gt )
     % facing 
     subplot(2,2,1)
     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
-    plotCellData(G, G.cells.centroids(:,3))
+    plotCellData(G, G.cells.centroids(:,3))                                 % ,'EdgeColor','none')
     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r'); view(270,0)
     set(gca,'DataAspect',[1 1 0.02]); grid
     xlabel('x, meters'); ylabel('y, meters'); zlabel('z, meters');

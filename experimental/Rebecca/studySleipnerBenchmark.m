@@ -68,9 +68,9 @@
 
 %%
 
-
+mrstModule add co2lab
 moduleCheck('ad-core','opm_gridprocessing','mex','deckformat', ...
-    'coarsegrid','upscaling','incomp','co2lab');
+    'coarsegrid','upscaling','incomp','mrst-experimental');
 mrstVerbose on
 gravity on;
 
@@ -79,17 +79,17 @@ gravity on;
 
 
 % selection of what will be plotted:
-plotModelGrid                   = true;
-plotInitialPressure             = true;
-plotActualVsSimInjectLocation   = true;
-plotInjectRateOverTime          = true;
-plotBHPvsTime                   = true;
-plotAccumCO2vsTime              = true;
-plotEndOfSimResults             = true;
-plotCO2simVsCO2obsData          = true; ZoomIntoPlume = true; % if false, entire grid is plotted
-plotTrappingInventory           = true;
-plotTrapProfiles                = true;
-plotTrapAndPlumeCompare         = true;
+plotModelGrid                   = false;
+plotInitialPressure             = false;
+plotActualVsSimInjectLocation   = false;
+plotInjectRateOverTime          = false;
+plotBHPvsTime                   = false;
+plotAccumCO2vsTime              = false;
+plotEndOfSimResults             = false;
+plotCO2simVsCO2obsData          = false; ZoomIntoPlume = false; % if false, entire grid is plotted
+plotTrappingInventory           = false;
+plotTrapProfiles                = false;
+plotTrapAndPlumeCompare         = false;
 
 
 % Trapping analysis method
@@ -112,7 +112,9 @@ ZoomY2 = 6.474e6;
 
 % OPTION - Select the grid model to load/use:
 useIEAGHG_model     = false;
-useOriginal_model   = true; useRefinedGrid = true;
+useOriginal_model   = true;
+
+useRefinedGrid = true;
 if useRefinedGrid
     refineLevel = 4;
 else
@@ -216,283 +218,305 @@ rhoCO2_mod  = 2/3;
 % loads or generates file containing G, Gt, rock, rock2D
 
 % TODO: implement function similar to makeSleipnerVEmodel, where the inputs
-% include 'modelName' (options: IEAGHG, ORIGINAL), 'refineLevel' (default
-% is 1 if not specified), etc... Function looks for file or generates it
-% from grdecl files and writes .mat file. Output is the variables G, Gt,
-% rock, rock2D.
-
-if useIEAGHG_model
-
-    % there should be a directory named "co2lab/data/sleipner/" which
-    % contains files such as M9X1.grdecl, M9X1_perm_X_mD_.inc, etc.
-    try
-
-        disp(' -> Reading SleipnerGlobalCoords.mat');
-        datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
-        load(fullfile(datadir,'SleipnerGlobalCoords')); clear datadir
-        %return;
-
-    catch %#ok<*CTCH>
-        disp('    SleipnerGlobalCoords.mat has not yet been created.');
-        disp('    Building G, Gt, and rock2D from grdecl files...')
-
-        % First loading of Sleipner Eclipse grid (to get PERMX, PERMZ,
-        % PORO)
-        sdir    = fullfile('data', 'sleipner');
-        disp([' -> Reading data from: ' sdir]);
-        grdecl  = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
-        % this grdecl contains: cartDims, COORD, ZCORN, ACTNUM, PERMX,
-        % PERMZ, PORO
-        clear sdir
-
-        % Reshaping
-        lines = reshape(grdecl.COORD,6,[]);
-        grdecl.COORD = lines(:); clear lines
-
-        % Then, we remove the bottom and top layers that contain shale
-        grdecl.ACTNUM(grdecl.PERMX<200) = 0;
+% include 'modelName' (options: IEAGHGmodel, ORIGINALmodel. default:
+% IEAGHGmodel), 'refineLevel' (default is 1 if not specified), etc...
+% Function looks for file or generates it from grdecl files and writes .mat
+% file. Output is the variables G, Gt, rock, rock2D.
 
 
-        % Second loading of Sleipner Eclispe grid, to get MAPAXES
-        moduleCheck('deckformat', 'mex');
-        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG 
-        fn      = fopen(sl_file);
-        gr  = readGRID(fn, fileparts(sl_file), initializeDeck());
-        % this grdecl contains: GRID, and others. grdecl.GRID contains
-        % MAPUNITS, MAPAXES, cartDims, COORD, ZCORN, ACTNUM
-        fclose(fn);
-
-
-        % Add data loaded from first loading of Sleipner Eclispe grid
-        grdecl.MAPAXES = gr.GRID.MAPAXES;
-        clear gr sl_file
-
-
-        % Recompute X and Y coordinates in terms of the provided axes
-        % (depths, Z, do not require any recomputation)
-        coords        = reshape(grdecl.COORD,3,[])';
-        coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
-        coords        = coords';
-        grdecl.COORD  = coords(:); clear coords
-
-
-        % Next, we process the grid and compute geometry
-        mrstModule add libgeometry opm_gridprocessing
-        G = processgrid(grdecl);
-        G = mcomputeGeometry(G);
-
-        % Adding tags needed by topSurfaceGrid
-        G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
-
-        % Construct petrophysical model
-        rock = grdecl2Rock(grdecl, G.cells.indexMap);
-        rock.perm = convertFrom(rock.perm, milli*darcy);
-        clear grdecl
-
-        % Construct top-surface grid
-        disp(' -> Constructing top-surface grid');
-        [Gt, G] = topSurfaceGrid(G);
-        rock2D  = averageRock(rock, Gt);
-
-
-        % Store data
-        disp(' ')
-        disp(' -> Writing SleipnerGlobalCoords.mat')
-        if ~isdir(datadir)
-           mkdir(datadir);
-        end
-        save(fullfile(datadir,'SleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
-        clear datadir
-
-    end
-
+if useIEAGHG_model && useRefinedGrid
+    
+    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('refineLevel',refineLevel, 'plotsOn',false);
+    
+elseif useIEAGHG_model 
+    
+    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('plotsOn',false);
+    
     
 elseif useOriginal_model && useRefinedGrid
-    
-    % there should be a directory named "co2lab/data/sleipner/original/"
-    % which contains files such as sleipner_prep.data, etc.
-    % etc.
-    try
 
-        disp([' -> Reading OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat']);
-        datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
-        load(fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel)])); clear datadir
-        %return;
-
-    catch %#ok<*CTCH>
-        disp(['    OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat has not yet been created.']);
-        disp('    Building REFINED G, Gt, and rock2D from grdecl files...')
-
-        % Open and read original/sleipner_prep.data
-        moduleCheck('deckformat', 'mex');
-        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
-        fn      = fopen(sl_file);
-        grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
-        % this grdecl contains: GRID, and others. grdecl.GRID contains
-        % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
-        % PERMX, PERMY, PERMZ, and PORO
-        fclose(fn);
-        
-        % Rename
-        grdecl = grdecl.GRID;
-
-        % Reshaping
-        lines = reshape(grdecl.COORD,6,[]);
-        grdecl.COORD = lines(:); clear lines
-
-        % Then, we remove the bottom and top layers that contain shale
-        grdecl.ACTNUM(grdecl.PERMX<200) = 0;
-
-        
-        % Then we perform a few steps for GRID REFINEMENT:
-        % - first cut the grdecl by removing the top and bottom layers (i.e.,
-        % keep layers 2 to 6, thus remove layers 1 and 7). There will be 5
-        % layers remaining.
-        lowerBound = [1 1 2];
-        upperBound = [grdecl.cartDims(1) grdecl.cartDims(2) 6];
-        ind = [lowerBound; upperBound]';
-        grdecl_cut = cutGrdecl(grdecl, ind);
-        % grdecl_new contains: cartDims, COORD, ZCORN, PERMX, PERMY, PERMZ,
-        % PORO, ACTNUM. These all coorespond to the 5 remaining layers.
-        
-        % - second coarsen the grdecl in the z direction since we don't
-        % need to keep the resolution of 5 layers (i.e., we treat 5 layers
-        % as 1 homogeneous layer for VE). In order to ensure PERMX, PERMY,
-        % PERMZ, and PORO are coarsened, 'only_grid' must be set to false.
-        dim = [1 1 5];
-        grdecl_coarsened = coarseGrdecl(grdecl_cut, dim, 'only_grid',false);
-        % grdecl_new now contains: cartDims, COORD, ZCORN, ACTNUM, PERMX,
-        % PERMY, PERMZ, PORO which correspond to the single layer.
-        
-        % - third refine the grdecl in the X and Y direction (Z already has
-        % a resolution of 1 cell) by the refinement level specified
-        dim = [refineLevel; refineLevel; 1];
-        grdecl_refined = refineGrdecl(grdecl_coarsened, dim);
-        grdecl_refined.MAPAXES = grdecl.MAPAXES;
-        grdecl_refined.MAPUNITS = grdecl.MAPUNITS;
-        
-        
-        % Recompute X and Y coordinates in terms of the provided axes
-        % (depths, Z, do not require any recomputation)
-        coords        = reshape(grdecl_refined.COORD,3,[])';
-        coords(:,1:2) = mapAxes(coords(:,1:2), grdecl_refined.MAPAXES);
-        coords        = coords';
-        grdecl_refined.COORD  = coords(:); clear coords
-
-
-        % Next, we process the grid and compute geometry
-        mrstModule add libgeometry opm_gridprocessing
-        G = processGRDECL(grdecl_refined); % note: processgrid() didn't work
-        G = mcomputeGeometry(G);
-
-        % Adding tags needed by topSurfaceGrid
-        G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
-
-        % Construct petrophysical model
-        rock = grdecl2Rock(grdecl_refined, G.cells.indexMap);
-        rock.perm = convertFrom(rock.perm, milli*darcy);
-        clear grdecl grdecl_cut grdecl_coarsened grdecl_refined
-
-        % Construct top-surface grid
-        disp(' -> Constructing top-surface grid');
-        [Gt, G] = topSurfaceGrid(G);
-        rock2D  = averageRock(rock, Gt);
-
-
-        % Store data
-        disp(' ')
-        disp([' -> Writing OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat'])
-        if ~isdir(datadir)
-           mkdir(datadir);
-        end
-        save( fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat']), ...
-            'G', 'Gt', 'rock', 'rock2D', ...
-            '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
-        clear datadir
-        
-    end
-        
+    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel, 'plotsOn',false);
     
 elseif useOriginal_model
     
-    % there should be a directory named "co2lab/data/sleipner/original/"
-    % which contains files such as sleipner_prep.data, etc.
-    % etc.
-    try
-
-        disp(' -> Reading OriginalSleipnerGlobalCoords.mat');
-        datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
-        load(fullfile(datadir,'OriginalSleipnerGlobalCoords')); clear datadir
-        %return;
-
-    catch %#ok<*CTCH>
-        disp('    OriginalSleipnerGlobalCoords.mat has not yet been created.');
-        disp('    Building G, Gt, and rock2D from grdecl files...')
-
-        % Open and read original/sleipner_prep.data
-        moduleCheck('deckformat', 'mex');
-        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
-        fn      = fopen(sl_file);
-        grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
-        % this grdecl contains: GRID, and others. grdecl.GRID contains
-        % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
-        % PERMX, PERMY, PERMZ, and PORO
-        fclose(fn);
-        
-        % Rename
-        grdecl = grdecl.GRID;
-
-        % Reshaping
-        lines = reshape(grdecl.COORD,6,[]);
-        grdecl.COORD = lines(:); clear lines
-
-        % Then, we remove the bottom and top layers that contain shale
-        grdecl.ACTNUM(grdecl.PERMX<200) = 0;
-
-
-        % Recompute X and Y coordinates in terms of the provided axes
-        % (depths, Z, do not require any recomputation)
-        coords        = reshape(grdecl.COORD,3,[])';
-        coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
-        coords        = coords';
-        grdecl.COORD  = coords(:); clear coords
-
-
-        % Next, we process the grid and compute geometry
-        mrstModule add libgeometry opm_gridprocessing
-        G = processGRDECL(grdecl); % note: processgrid() didn't work
-        G = mcomputeGeometry(G);
-
-        % Adding tags needed by topSurfaceGrid
-        G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
-
-        % Construct petrophysical model
-        rock = grdecl2Rock(grdecl, G.cells.indexMap);
-        rock.perm = convertFrom(rock.perm, milli*darcy);
-        clear grdecl
-
-        % Construct top-surface grid
-        disp(' -> Constructing top-surface grid');
-        [Gt, G] = topSurfaceGrid(G);
-        rock2D  = averageRock(rock, Gt);
-
-
-        % Store data
-        disp(' ')
-        disp(' -> Writing OriginalSleipnerGlobalCoords.mat')
-        if ~isdir(datadir)
-           mkdir(datadir);
-        end
-        save(fullfile(datadir,'OriginalSleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
-        clear datadir
-         
-    end
+    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'plotsOn',false);
     
-    
-else
-    error('A model to read or generate has not been specified.')
-
 end
+
+
+
+% if useIEAGHG_model
+% 
+%     % there should be a directory named "co2lab/data/sleipner/" which
+%     % contains files such as M9X1.grdecl, M9X1_perm_X_mD_.inc, etc.
+%     try
+% 
+%         disp(' -> Reading SleipnerGlobalCoords.mat');
+%         datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+%         load(fullfile(datadir,'SleipnerGlobalCoords')); clear datadir
+%         %return;
+% 
+%     catch %#ok<*CTCH>
+%         disp('    SleipnerGlobalCoords.mat has not yet been created.');
+%         disp('    Building G, Gt, and rock2D from grdecl files...')
+% 
+%         % First loading of Sleipner Eclipse grid (to get PERMX, PERMZ,
+%         % PORO)
+%         sdir    = fullfile('data', 'sleipner');
+%         disp([' -> Reading data from: ' sdir]);
+%         grdecl  = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
+%         % this grdecl contains: cartDims, COORD, ZCORN, ACTNUM, PERMX,
+%         % PERMZ, PORO
+%         clear sdir
+% 
+%         % Reshaping
+%         lines = reshape(grdecl.COORD,6,[]);
+%         grdecl.COORD = lines(:); clear lines
+% 
+%         % Then, we remove the bottom and top layers that contain shale
+%         grdecl.ACTNUM(grdecl.PERMX<200) = 0;
+% 
+% 
+%         % Second loading of Sleipner Eclispe grid, to get MAPAXES
+%         moduleCheck('deckformat', 'mex');
+%         sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG 
+%         fn      = fopen(sl_file);
+%         gr  = readGRID(fn, fileparts(sl_file), initializeDeck());
+%         % this grdecl contains: GRID, and others. grdecl.GRID contains
+%         % MAPUNITS, MAPAXES, cartDims, COORD, ZCORN, ACTNUM
+%         fclose(fn);
+% 
+% 
+%         % Add data loaded from first loading of Sleipner Eclispe grid
+%         grdecl.MAPAXES = gr.GRID.MAPAXES;
+%         clear gr sl_file
+% 
+% 
+%         % Recompute X and Y coordinates in terms of the provided axes
+%         % (depths, Z, do not require any recomputation)
+%         coords        = reshape(grdecl.COORD,3,[])';
+%         coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
+%         coords        = coords';
+%         grdecl.COORD  = coords(:); clear coords
+% 
+% 
+%         % Next, we process the grid and compute geometry
+%         mrstModule add libgeometry opm_gridprocessing
+%         G = processgrid(grdecl);
+%         G = mcomputeGeometry(G);
+% 
+%         % Adding tags needed by topSurfaceGrid
+%         G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
+% 
+%         % Construct petrophysical model
+%         rock = grdecl2Rock(grdecl, G.cells.indexMap);
+%         rock.perm = convertFrom(rock.perm, milli*darcy);
+%         clear grdecl
+% 
+%         % Construct top-surface grid
+%         disp(' -> Constructing top-surface grid');
+%         [Gt, G] = topSurfaceGrid(G);
+%         rock2D  = averageRock(rock, Gt);
+% 
+% 
+%         % Store data
+%         disp(' ')
+%         disp(' -> Writing SleipnerGlobalCoords.mat')
+%         if ~isdir(datadir)
+%            mkdir(datadir);
+%         end
+%         save(fullfile(datadir,'SleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
+%         clear datadir
+% 
+%     end
+% 
+%     
+% elseif useOriginal_model && useRefinedGrid
+%     
+%     % there should be a directory named "co2lab/data/sleipner/original/"
+%     % which contains files such as sleipner_prep.data, etc.
+%     % etc.
+%     try
+% 
+%         disp([' -> Reading OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat']);
+%         datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+%         load(fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel)])); clear datadir
+%         %return;
+% 
+%     catch %#ok<*CTCH>
+%         disp(['    OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat has not yet been created.']);
+%         disp('    Building REFINED G, Gt, and rock2D from grdecl files...')
+% 
+%         % Open and read original/sleipner_prep.data
+%         moduleCheck('deckformat', 'mex');
+%         sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
+%         fn      = fopen(sl_file);
+%         grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
+%         % this grdecl contains: GRID, and others. grdecl.GRID contains
+%         % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
+%         % PERMX, PERMY, PERMZ, and PORO
+%         fclose(fn);
+%         
+%         % Rename
+%         grdecl = grdecl.GRID;
+% 
+%         % Reshaping
+%         lines = reshape(grdecl.COORD,6,[]);
+%         grdecl.COORD = lines(:); clear lines
+% 
+%         % Then, we remove the bottom and top layers that contain shale
+%         grdecl.ACTNUM(grdecl.PERMX<200) = 0;
+% 
+%         
+%         % Then we perform a few steps for GRID REFINEMENT:
+%         % - first cut the grdecl by removing the top and bottom layers (i.e.,
+%         % keep layers 2 to 6, thus remove layers 1 and 7). There will be 5
+%         % layers remaining.
+%         lowerBound = [1 1 2];
+%         upperBound = [grdecl.cartDims(1) grdecl.cartDims(2) 6];
+%         ind = [lowerBound; upperBound]';
+%         grdecl_cut = cutGrdecl(grdecl, ind);
+%         % grdecl_new contains: cartDims, COORD, ZCORN, PERMX, PERMY, PERMZ,
+%         % PORO, ACTNUM. These all coorespond to the 5 remaining layers.
+%         
+%         % - second coarsen the grdecl in the z direction since we don't
+%         % need to keep the resolution of 5 layers (i.e., we treat 5 layers
+%         % as 1 homogeneous layer for VE). In order to ensure PERMX, PERMY,
+%         % PERMZ, and PORO are coarsened, 'only_grid' must be set to false.
+%         dim = [1 1 5];
+%         grdecl_coarsened = coarseGrdecl(grdecl_cut, dim, 'only_grid',false);
+%         % grdecl_new now contains: cartDims, COORD, ZCORN, ACTNUM, PERMX,
+%         % PERMY, PERMZ, PORO which correspond to the single layer.
+%         
+%         % - third refine the grdecl in the X and Y direction (Z already has
+%         % a resolution of 1 cell) by the refinement level specified
+%         dim = [refineLevel; refineLevel; 1];
+%         grdecl_refined = refineGrdecl(grdecl_coarsened, dim);
+%         grdecl_refined.MAPAXES = grdecl.MAPAXES;
+%         grdecl_refined.MAPUNITS = grdecl.MAPUNITS;
+%         
+%         
+%         % Recompute X and Y coordinates in terms of the provided axes
+%         % (depths, Z, do not require any recomputation)
+%         coords        = reshape(grdecl_refined.COORD,3,[])';
+%         coords(:,1:2) = mapAxes(coords(:,1:2), grdecl_refined.MAPAXES);
+%         coords        = coords';
+%         grdecl_refined.COORD  = coords(:); clear coords
+% 
+% 
+%         % Next, we process the grid and compute geometry
+%         mrstModule add libgeometry opm_gridprocessing
+%         G = processGRDECL(grdecl_refined); % note: processgrid() didn't work
+%         G = mcomputeGeometry(G);
+% 
+%         % Adding tags needed by topSurfaceGrid
+%         G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
+% 
+%         % Construct petrophysical model
+%         rock = grdecl2Rock(grdecl_refined, G.cells.indexMap);
+%         rock.perm = convertFrom(rock.perm, milli*darcy);
+%         clear grdecl grdecl_cut grdecl_coarsened grdecl_refined
+% 
+%         % Construct top-surface grid
+%         disp(' -> Constructing top-surface grid');
+%         [Gt, G] = topSurfaceGrid(G);
+%         rock2D  = averageRock(rock, Gt);
+% 
+% 
+%         % Store data
+%         disp(' ')
+%         disp([' -> Writing OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat'])
+%         if ~isdir(datadir)
+%            mkdir(datadir);
+%         end
+%         save( fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat']), ...
+%             'G', 'Gt', 'rock', 'rock2D', ...
+%             '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
+%         clear datadir
+%         
+%     end
+%         
+%     
+% elseif useOriginal_model
+%     
+%     % there should be a directory named "co2lab/data/sleipner/original/"
+%     % which contains files such as sleipner_prep.data, etc.
+%     % etc.
+%     try
+% 
+%         disp(' -> Reading OriginalSleipnerGlobalCoords.mat');
+%         datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+%         load(fullfile(datadir,'OriginalSleipnerGlobalCoords')); clear datadir
+%         %return;
+% 
+%     catch %#ok<*CTCH>
+%         disp('    OriginalSleipnerGlobalCoords.mat has not yet been created.');
+%         disp('    Building G, Gt, and rock2D from grdecl files...')
+% 
+%         % Open and read original/sleipner_prep.data
+%         moduleCheck('deckformat', 'mex');
+%         sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
+%         fn      = fopen(sl_file);
+%         grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
+%         % this grdecl contains: GRID, and others. grdecl.GRID contains
+%         % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
+%         % PERMX, PERMY, PERMZ, and PORO
+%         fclose(fn);
+%         
+%         % Rename
+%         grdecl = grdecl.GRID;
+% 
+%         % Reshaping
+%         lines = reshape(grdecl.COORD,6,[]);
+%         grdecl.COORD = lines(:); clear lines
+% 
+%         % Then, we remove the bottom and top layers that contain shale
+%         grdecl.ACTNUM(grdecl.PERMX<200) = 0;
+% 
+% 
+%         % Recompute X and Y coordinates in terms of the provided axes
+%         % (depths, Z, do not require any recomputation)
+%         coords        = reshape(grdecl.COORD,3,[])';
+%         coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
+%         coords        = coords';
+%         grdecl.COORD  = coords(:); clear coords
+% 
+% 
+%         % Next, we process the grid and compute geometry
+%         mrstModule add libgeometry opm_gridprocessing
+%         G = processGRDECL(grdecl); % note: processgrid() didn't work
+%         G = mcomputeGeometry(G);
+% 
+%         % Adding tags needed by topSurfaceGrid
+%         G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
+% 
+%         % Construct petrophysical model
+%         rock = grdecl2Rock(grdecl, G.cells.indexMap);
+%         rock.perm = convertFrom(rock.perm, milli*darcy);
+%         clear grdecl
+% 
+%         % Construct top-surface grid
+%         disp(' -> Constructing top-surface grid');
+%         [Gt, G] = topSurfaceGrid(G);
+%         rock2D  = averageRock(rock, Gt);
+% 
+% 
+%         % Store data
+%         disp(' ')
+%         disp(' -> Writing OriginalSleipnerGlobalCoords.mat')
+%         if ~isdir(datadir)
+%            mkdir(datadir);
+%         end
+%         save(fullfile(datadir,'OriginalSleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
+%         clear datadir
+%          
+%     end
+%     
+%     
+% else
+%     error('A model to read or generate has not been specified.')
+% 
+% end
 
     
 %% Modify original parameters (optional) and visualize model grids
@@ -533,7 +557,7 @@ initState.rs        = 0 * initState.sGmax;                          % initially 
 
 if plotInitialPressure
     figure;
-    plotCellData(Gt, initState.pressure)
+    plotCellData(Gt, initState.pressure, 'EdgeColor','none')
     title('Initial Pressure (hydrostatic)'); axis off tight equal
     hcb = colorbar;
     hcb.Label.String = 'Pascals'; set(hcb, 'fontSize', 18)
@@ -942,5 +966,11 @@ if plotTrapAndPlumeCompare
     [0.77 0.857197640117995],'String',{'North'});
 
 end
+
+
+%% Save variables in workspace, using data as fileName
+% TODO: implement code to load this .mat file and do post-processing
+%save(strrep(date,'-','_'));
+save(datestr(clock,30));
 
 
