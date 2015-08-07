@@ -63,10 +63,14 @@
 % physical coordinate system, the injection location is specified in this
 % same coordinate system.
 
+% SEE ALSO:
+%   runSleipner
+
 %%
 
 
-moduleCheck('ad-core');
+moduleCheck('ad-core','opm_gridprocessing','mex','deckformat', ...
+    'coarsegrid','upscaling','incomp','co2lab');
 mrstVerbose on
 gravity on;
 
@@ -211,8 +215,16 @@ rhoCO2_mod  = 2/3;
 %% 1. Load formation
 % loads or generates file containing G, Gt, rock, rock2D
 
+% TODO: implement function similar to makeSleipnerVEmodel, where the inputs
+% include 'modelName' (options: IEAGHG, ORIGINAL), 'refineLevel' (default
+% is 1 if not specified), etc... Function looks for file or generates it
+% from grdecl files and writes .mat file. Output is the variables G, Gt,
+% rock, rock2D.
+
 if useIEAGHG_model
 
+    % there should be a directory named "co2lab/data/sleipner/" which
+    % contains files such as M9X1.grdecl, M9X1_perm_X_mD_.inc, etc.
     try
 
         disp(' -> Reading SleipnerGlobalCoords.mat');
@@ -294,10 +306,12 @@ if useIEAGHG_model
 
     end
 
+    
 elseif useOriginal_model && useRefinedGrid
     
-    % there should be a directory named "sleipner/original/" which contains
-    % files such as sleipner_prep.data, injection rates, etc.
+    % there should be a directory named "co2lab/data/sleipner/original/"
+    % which contains files such as sleipner_prep.data, etc.
+    % etc.
     try
 
         disp([' -> Reading OriginalSleipnerGlobalCoords_numRef', num2str(refineLevel), '.mat']);
@@ -401,8 +415,9 @@ elseif useOriginal_model && useRefinedGrid
     
 elseif useOriginal_model
     
-    % there should be a directory named "sleipner/original/" which contains
-    % files such as sleipner_prep.data, injection rates, etc.
+    % there should be a directory named "co2lab/data/sleipner/original/"
+    % which contains files such as sleipner_prep.data, etc.
+    % etc.
     try
 
         disp(' -> Reading OriginalSleipnerGlobalCoords.mat');
@@ -653,6 +668,10 @@ model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 
 % _________________________________________________________________________
 % d) call to simulateScheduleAD().
+
+disp('do you wish to proceed to solver?')
+pause
+
 [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
 
 % TODO: write output file
