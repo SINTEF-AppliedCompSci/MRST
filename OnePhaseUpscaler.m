@@ -4,6 +4,7 @@ classdef OnePhaseUpscaler < Upscaler
 properties
     dp
     dims
+    OnePhaseMethod
 end
 
 methods
@@ -13,6 +14,7 @@ methods
         
         upscaler.dp   = 1*barsa;
         upscaler.dims = 1:3;
+        upscaler.OnePhaseMethod = 'pressure';
         upscaler = merge_options(upscaler, varargin{:});
     end
        
@@ -21,8 +23,16 @@ methods
         data.dims = upscaler.dims;
         
         % Absolute permeability
-        [data.perm, report] = upAbsPerm(block, 'dims', upscaler.dims, ...
-            'dp', upscaler.dp);
+        switch upscaler.OnePhaseMethod
+            case 'pressure'
+                [data.perm, report] = upAbsPerm(block, ...
+                    'dims', upscaler.dims, 'dp', upscaler.dp);
+            case 'porevolume'
+                [data.perm, report] = upAbsPermPV(block, ...
+                    'dims', upscaler.dims);
+            otherwise
+                error('Unknown one-phase upscaling method.');
+        end
         
         if upscaler.verbose
             fprintf('  Abs.perm:     % 2.3fs\n', report.time);
