@@ -24,7 +24,7 @@ end
 
 bf = boundaryFaces(Gt);
 
-figure;
+figure; set(gcf,'Position',[1000 1000 3000 400])
 subplot(1,6,1)
 plotCellData(Gt, caprock_temperature, 'EdgeColor','none')
 title('Caprock Temperature'); axis off equal tight
