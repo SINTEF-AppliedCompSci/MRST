@@ -141,7 +141,8 @@ opt = struct('bc',              [], ...
              'maxTOF',          [], ...
              'tracer',          {{}}, ...
              'solver',          [], ...
-             'processCycles',   false);
+             'processCycles',   false, ...
+             'computeWellTOFs', false);
          
 opt = merge_options(opt, varargin{:});
 
@@ -245,6 +246,28 @@ end
 % reset all tof > maxTOF to maxTOF
 if ~opt.allowInf
     T(T>opt.maxTOF) = opt.maxTOF;
+end
+
+% compute individual well-tofs A*(c_i.*tau_i) = c_i.*pv
+if opt.computeWellTOFs
+    C   = T(:, 2:end);
+    pvi = bsxfun(@times, C, pv);
+    pvi(pvi<0) = 0;
+    if isempty(opt.solver)
+        X  = A \ pvi;
+    else % if other solver, iterate over RHSs
+        X = zeros(size(pvi));
+        for k = 1:size(X, 2)
+            X(:, k) = opt.solver(A, pvi(:, k));
+        end
+    end
+    X(X<0) = 0;
+    % disregard tracer values < sqrt(eps)
+    ix     = and(pvi*opt.maxTOF > X, C > sqrt(eps));
+    X(~ix) = opt.maxTOF;
+    X(ix)  = X(ix)./C(ix);
+    %X      = min(X, opt.maxTOF);
+    T      = [T, X];
 end
 
 end

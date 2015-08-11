@@ -162,7 +162,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'lineWells',           false, ...
                  'maxTOF',              [], ...
                  'useLight',            false, ...
-                 'fastRotate',          [] ...
+                 'fastRotate',          [], ...
+                 'computeWellTOFs'      , false ...
     );
 
     opt = merge_options(opt, varargin{:});
@@ -494,6 +495,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                              'HorizontalAlignment', 'left', ...
                              'Units', 'normalized',...
                              'Position', [.0 tof_N*tof_H .25 tof_h]);
+        % include well-tofs if computed
+        if all(isfield(D, {'itof', 'ptof'}))
+            wtofNms = {'TOF selected injectors', 'TOF selected producers'};
+        else
+            wtofNms = {};
+        end 
         hdataset = uicontrol(tof_panel, 'Style', 'popupmenu',...
                                     'Units', 'normalized',...
                                     'Position', [.4 tof_N*tof_H .6 tof_h],...
@@ -505,6 +512,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                'Flooding region',...
                                                'Drainage blend',...
                                                'Flooding blend',...
+                                               'Tracer selected injectors',...
+                                               'Tracer selected producers',...
+                                               wtofNms{:}, ...
                                                'Porosity', ...
                                                perm{1:size(rock.perm, 2)},...
                                                cellfields{:}}...
@@ -967,7 +977,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotMain(src, event)
-        if strcmp(class(gcf), 'double') %pre 2014b
+        if isa(gcf, 'double') %pre 2014b
             grid_plot_opts = {'HitTest', 'off'};
         else
             grid_plot_opts = {'HitTest', 'off', 'PickableParts', 'none'};
@@ -1366,6 +1376,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             case 'flooding blend'
                 cdata = {D.ipart, max(D.itracer, [], 2)};
                 clim = [1, max(D.ipart)];
+            case 'tracer selected injectors'
+                cdata  = sum(D.itracer(:, get(ctrl_flood_vols, 'Value')), 2);
+            case 'tracer selected producers'
+                cdata  = sum(D.ptracer(:, get(ctrl_drain_vols, 'Value')), 2);
+            case 'tof selected injectors'
+                cdata = log10(tracerAveragedTOF(1));
+                clim =  log10(clamp_real(convertFrom(tofext, year)));
+            case 'tof selected producers'
+                cdata = log10(tracerAveragedTOF(-1));
+                clim =  log10(clamp_real(convertFrom(tofext, year)));
             case 'porosity'
                 cdata = rock.poro;
             case 'x permeability'
@@ -1404,6 +1424,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
+    function tof = tracerAveragedTOF(sgn)
+        if sgn > 0
+            tr  = D.itracer(:, get(ctrl_flood_vols, 'Value'));
+            tof = sum(D.itof(:, get(ctrl_flood_vols, 'Value')).*tr, 2);
+        else
+            tr  = D.ptracer(:, get(ctrl_drain_vols, 'Value'));
+            tof = sum(D.ptof(:, get(ctrl_drain_vols, 'Value')).*tr, 2);
+        end
+        str = sum(tr, 2); 
+        ok  = and(tof < str*opt.maxTOF, str > sqrt(eps));
+        tof(ok)  = tof(ok)./str(ok);
+        tof(~ok) = opt.maxTOF;
+    end
+        
     function [D, WP] = computeTOFAndTracerAndWellPairs(W_step, state_step)
         if opt.computeFlux
             rS = initState(G, W_step, 0);
@@ -1418,7 +1452,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rS.pressure = state_step.pressure;
         end
         
-        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true, 'maxTOF', opt.maxTOF);
+        D = computeTOFandTracer(rS, computeGrid, rock, 'wells', W_step, 'processCycles', true, 'maxTOF', opt.maxTOF, ...
+                                'computeWellTOFs', opt.computeWellTOFs);
         D.itracer(isnan(D.itracer)) = 0;
         D.ptracer(isnan(D.ptracer)) = 0;
         

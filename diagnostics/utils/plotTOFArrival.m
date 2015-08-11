@@ -5,9 +5,11 @@ function plotTOFArrival(state, W, pv, fluid, prod, D, varargin)
     if isempty(opt.maxTOF)
         opt.maxTOF = inf;
     end
+    % Set default maxTOF to 1.25*minimal arrival time: 
     opt.maxTOF = min(opt.maxTOF, 1.25*min( D.tof( W(D.prod(prod)).cells, 1 )) );
     tof = D.tof(:,2)./year;
-    tof_ix  = find(and(D.ppart == prod,  tof < .99*opt.maxTOF/year ));
+    % Don't include maxTOF (avoid jump at maxTOF in plot)
+    tof_ix = find(and(D.ptracer(:,prod)>.01,  tof < .99*opt.maxTOF/year ));
     [tof, ix] = sort(tof(tof_ix));
     tof_ix = tof_ix(ix);
     
@@ -19,23 +21,12 @@ function plotTOFArrival(state, W, pv, fluid, prod, D, varargin)
     else
         data = state.s;
     end
-    % Weight by pore volumes to get actual volumes that will flow
-    data = bsxfun(@times, data, pv);
+    % Weight by pore volumes*travervalue to get actual volumes 
+    data = bsxfun(@times, data, pv.*D.ptracer(:,prod));
     data = data(tof_ix,:);
 
+    %data = cumsum(data);
     
-    
-%     % Bin selection
-%     tof_sub = localtof(localtof < opt.maxTOF/year);
-%     [N, X] = hist(tof_sub, nbins);
-% 
-%     h = X(2) - X(1);
-%     s = zeros(nbins, nPh);
-%     for i = 1:nbins
-%         cind = abs(tof - X(i)) < h/2 & D.ppart == prod;
-%         s(i, :) = sum(data(cind, :), 1);
-%     end
-%     clear i
     ah  = plotNormalizedArrival(tof, data, true);
     
     if isfield(fluid, 'names') && numel(fluid.names) == nPh
@@ -52,7 +43,6 @@ function plotTOFArrival(state, W, pv, fluid, prod, D, varargin)
     %    legend(names);
     %end
 
-   % ch = get(ah, 'Children');
     for i = 1:numel(ah);
         set(ah(i), 'ButtonDownFcn', @(varargin) plotTOFPhase(i));
         set(ah(i), 'HitTest', 'on');
@@ -62,9 +52,12 @@ function plotTOFArrival(state, W, pv, fluid, prod, D, varargin)
         inj_ix = opt.inj_ix;
         figure;
         itr = D.itracer(tof_ix, :);
-        itr = [itr 1-itr];
+        itr = [itr 1-sum(itr,2)];
         sphase = bsxfun(@times, data(:, phase), itr(:, inj_ix));
-        area(tof, cumsum(sphase));
+        sphase = cumsum(sphase);
+        % use approx 50 points in plot
+        di   = ceil(numel(tof)/50);
+        area(tof(1:di:end), sphase(1:di:end,:));
         nms = {W(D.inj).name, 'reservoir'};     
         legend(nms{inj_ix},'Location', 'NorthWest')
         title([W(D.prod(prod)).name ': Injector distribution for ' names{phase}]);
@@ -73,14 +66,18 @@ end
 
 function h = plotNormalizedArrival(X, data, normalize)
     phcol = {[.4 .4 1],[.3 0 0], [.5 1 .5]};
-    cs = cumsum(data, 1);
+    data = cumsum(data);
+    % use approx 50 points in plot
+    di   = ceil(numel(X)/50);
+    X    = X(1:di:end);
+    data = data(1:di:end, :);
     if normalize
-       cs = bsxfun(@rdivide, cs, sum(cs, 2));
+       data = bsxfun(@rdivide, data, sum(data, 2));
     end
-    cs(isnan(cs)) = 0;
+    data(isnan(data)) = 0;
 
     hold on
-    h = area(X, cs);
+    h = area(X, data);
     for ph = 1:numel(h)
         set(h(ph), 'FaceColor', phcol{ph});
     end

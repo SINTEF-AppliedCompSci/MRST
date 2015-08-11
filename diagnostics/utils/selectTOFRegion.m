@@ -33,6 +33,9 @@ function selection = selectTOFRegion(D, max_tof, min_tof, varargin)
 %       'isubset' - User specified flooding / injection region to consider.
 %                   When this is enabled, max_tof and min_tof will not be
 %                   used to find the selected flooding region.
+%       'tracer_threshold' - Tracer-value threshold for including in
+%                   region. For 'intersection', threshold applies to product 
+%                   of inj/prod tracers. Default value: 0.05;
 %
 % RETURNS:
 %
@@ -67,7 +70,8 @@ opt = struct('drain_wells', [],...
              'set_op', 'union',...
              'near_well_max_tof', 0.0,...
              'psubset', [],...
-             'isubset', []);
+             'isubset', [], ...
+             'tracer_threshold', 0.05);
 
 opt = merge_options(opt, varargin{:});
 
@@ -90,30 +94,31 @@ end
 %Find the wells we are interested in
 %If no injection and no production wells are given, select all
 if (isempty(opt.drain_wells) && isempty(opt.flood_wells))
-    psubs = D.ppart > 0;
-    isubs = D.ipart > 0;
+    psubs = D.ppart >= 0;
+    isubs = D.ipart >= 0;
 else
-    psubs = ismember(D.ppart, opt.drain_wells);
-    isubs = ismember(D.ipart, opt.flood_wells);
+    psubs  = sum(D.ptracer(:, opt.drain_wells), 2);
+    isubs  = sum(D.itracer(:, opt.flood_wells), 2);
 end
 
 % Use set operation on the selection
 switch(opt.set_op)
     %Union of injection and production volumes
     case 'union' 
-        selection = (isubset & isubs) | (psubset & psubs);
+        selection = (isubset & isubs > opt.tracer_threshold) | ...
+                    (psubset & psubs > opt.tracer_threshold);
     
     %Intersection of injection and production volumes
     case 'intersection'
-        selection = (isubset & isubs) & (psubset & psubs);
+        selection = (isubset & psubset) & (isubs.*psubs > opt.tracer_threshold);
     
     %Injection / flood volumes only
     case 'flood'
-        selection = (isubset & isubs);
+        selection = (isubset & isubs > opt.tracer_threshold);
     
     %Production / drain volumes only
     case 'drain'
-        selection = (psubset & psubs);
+        selection = (psubset & psubs > opt.tracer_threshold);
     
     otherwise
         selection = [];
