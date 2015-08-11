@@ -6,11 +6,11 @@
 % explained below:
 
     % The first option is related to which Sleipner grid is loaded.
-    % Currently, this script can handle the IEAGHG model (when
-    % 'useIEAGHG_model' is set to true) and the ORIGINAL model (when
-    % 'useOriginal_model' is set to true). Only the ORIGINAL model has the
-    % additional option of performing model refinement (i.e., grid, perm,
-    % poro, etc).
+    % Currently, this script can handle the IEAGHG model or the ORIGINAL
+    % model. Both grids are capable of refinement.
+    % TODO: implement loading/generation of INHOUSE grid (from Statoil).
+    % TODO: keep names consistent; IEAGHG, ORIGINAL = GHGT (in-house),
+    % INHOUSE (Statoil).
 
     % The second option is which annual injection rates to use. The
     % available rates are either those which come from Singh et al 2010
@@ -20,9 +20,9 @@
 
     % The third option is whether to modify the rock and/or fluid
     % properties which have been loaded from the model file. Currently,
-    % permeability and porosity are modified when mod_rock=true, and CO2
-    % reference density is modified when mod_rhoCO2=true. The modification
-    % factors must be defined.
+    % permeability and porosity are modified when "mod_rock=true", and CO2
+    % reference density is modified when "mod_rhoCO2=true". The
+    % modification factors are user-defined.
 
     % Other options available in this script coorespond to the typical
     % input parameters that must be defined such as sea floor temperature,
@@ -31,16 +31,14 @@
     
 % Notes about the files needed to load the specified grid:
 
-    % To use the IEAGHG model (i.e., when 'useIEAGHG_model=true'), the
-    % necessary grdecl files are:
+    % To use the IEAGHG model, the necessary grdecl files are:
         % M9X1.grdecl, M9X1_perm_X_mD_.inc, M9X1_perm_Y_mD_.inc,
         % M9X1_poro___.inc, SLEIPNER.DATA
     % The above files should be downloaded and placed in:
         % co2lab/data/sleipner/
 
         
-    % To use the ORIGINAL model (i.e., when 'useORIGINAL_model=true'), the
-    % necessary grdecl files are:
+    % To use the ORIGINAL model, the necessary grdecl files are:
         % sleipner_prep.data
     % The above file(s) should be placed in:
         % co2lab/data/sleipner/original/
@@ -48,11 +46,11 @@
 
 % Notes about other files needed for this script to run:
 
-    % CO2 plume outlines - layer9_polygons_XXXX.mat (where XXXX is the
+    % CO2 plume outlines - "layer9_polygons_XXXX.mat" (where XXXX is the
     % year, such as 1999) files should be created and placed in current
     % working directory.
     
-    % Injection rates - SleipnerOriginalInjectionRates.mat should be
+    % Injection rates - "SleipnerOriginalInjectionRates.mat" should be
     % created and placed in current working directory.
 
 
@@ -63,8 +61,14 @@
 % physical coordinate system, the injection location is specified in this
 % same coordinate system.
 
+% This script can be used to run an injection scenario as well as perform
+% post-processing of the results. To run a new injection scenario, ensure
+% performPostProcessing = false. To perform post-processing, ensure results
+% of a finished and saved run are successfully loaded into the workspace
+% before script execution.
+
 % SEE ALSO:
-%   runSleipner
+%   runSleipner, analyseSleipner (co2lab/experimental/project/tests/)
 
 %%
 
@@ -77,7 +81,7 @@ gravity on;
 
 % ******************** START OF USER OPTIONS ******************************
 % Is this post-processing or a new injection scenario?
-performPostProcessing = true;
+performPostProcessing = false;
 
 
 if ~performPostProcessing
@@ -88,15 +92,6 @@ plotModelGrid                   = false;
 plotInitialPressure             = false;
 plotActualVsSimInjectLocation   = false;
 plotInjectRateOverTime          = false;
-% post-processing plots only:
-plotBHPvsTime                   = false;
-plotAccumCO2vsTime              = false;
-plotEndOfSimResults             = false;
-plotCO2simVsCO2obsData          = false; ZoomIntoPlume = false; % if false, entire grid is plotted
-plotTrappingInventory           = false;
-plotTrapProfiles                = false;
-plotTrapAndPlumeCompare         = false;
-
 
 
 % Trapping analysis method
@@ -118,15 +113,10 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-useIEAGHG_model     = true;
-useOriginal_model   = false;
+mycase          = 'useOriginal_model';    % 'useIEAGHG_model', 'useOriginal_model'
+myresolution    = 'none';               % 'useRefinedGrid', 'none'
+refineLevel     = 3;                    % only used when "myresolution = useRefinedGrid"
 
-useRefinedGrid = false;
-if useRefinedGrid
-    refineLevel = 4;
-else
-    refineLevel = []; % or 1?
-end
 
 
 % Physical coordinate of injection well (Singh et al. 2010)
@@ -135,47 +125,43 @@ wellYcoord      = 6.47121e6;
 
 
 % OPTION - Well injection rate:
-useRatesFromSPE134891 = true; extrapolateRates = false; % TODO - implement for true (i.e., extrapolation)
-useUserDefinedRates = false; % TODO - implement
-useSleipnerOriginalInjectionRates = false; 
+myInjRates = 'useRatesFromSPE134891';   % 'useRatesFromSPE134891', 'useSleipnerOriginalInjectionRates'
 
-if useRatesFromSPE134891
-    % Note: variable annual injection rates are given in Singh et al 2010,
-    % however it is likely their paper contains a typo. The injection rates
-    % were reported as in units of meter^3/day, however a more realistic value
-    % implies the units are meter^3/year.
-    inj_year   = [1999; 2000; 2001; 2002; 2003; 2004; 2005; 2006; 2007; 2008; 2009];
-    inj_rates  = [2.91e4; 5.92e4; 6.35e4; 8.0e4; 1.09e5; 1.5e5; 2.03e5; 2.69e5; 3.47e5; 4.37e5; 5.4e5] .* meter^3/year;
-    % inj_rates is in meter^3/s
+switch myInjRates
     
-elseif useUserDefinedRates
-    %error('TODO: implement user defined rates.')
-    
-elseif useSleipnerOriginalInjectionRates
-    
-    [ CumSurfVol_m3, Mass_kg, ReservoirVol_m3, year ] = getSleipnerOriginalInjectionRates();
-    % OLD: load SleipnerOriginalInjectionRates.mat
-    
-    % We only take the years between 1999 and 2030 as injection years since
-    % ReservoirVol_m3 is the cumulative value as of Jan 1st of each year
-    % 1999 is taken as first injection year since ReservoirVol_m3 is
-    % non-zero starting in 2000 (Jan 1st) which implies there was an
-    % injection rate for 1999. The ReservoirVol_m3 amount corresponding to
-    % 2031 is used to determine the injection rate in the previous year
-    % (2030), thus we assume no injection occurs in 2031 (or a value could
-    % be extrapolated).
-    inj_year    = year(2:end-1);              clear year
-    inj_rates   = zeros(1,numel(inj_year));
-    
-    ReservoirVol_m3 = ReservoirVol_m3(2:end);
-    for i = 1:numel(ReservoirVol_m3)-1
-        inj_rates(i) = ( ReservoirVol_m3(i+1) - ReservoirVol_m3(i) ); % annual rate
-    end
-    inj_rates = inj_rates * meter^3/year; % in meter^3/second
-    
-else
-    error('The injection rate option was either unvalid or not selected.')
+    case 'useRatesFromSPE134891'
+        % Note: variable annual injection rates are given in Singh et al 2010,
+        % however it is likely their paper contains a typo. The injection rates
+        % were reported as in units of meter^3/day, however a more realistic value
+        % implies the units are meter^3/year.
+        inj_year   = [1999; 2000; 2001; 2002; 2003; 2004; 2005; 2006; 2007; 2008; 2009];
+        inj_rates  = [2.91e4; 5.92e4; 6.35e4; 8.0e4; 1.09e5; 1.5e5; 2.03e5; 2.69e5; 3.47e5; 4.37e5; 5.4e5] .* meter^3/year;
+        % inj_rates is in meter^3/s
+        
+    case 'useSleipnerOriginalInjectionRates'
+        [ CumSurfVol_m3, Mass_kg, ReservoirVol_m3, year ] = getSleipnerOriginalInjectionRates();
+        % OLD: load SleipnerOriginalInjectionRates.mat
 
+        % We only take the years between 1999 and 2030 as injection years since
+        % ReservoirVol_m3 is the cumulative value as of Jan 1st of each year
+        % 1999 is taken as first injection year since ReservoirVol_m3 is
+        % non-zero starting in 2000 (Jan 1st) which implies there was an
+        % injection rate for 1999. The ReservoirVol_m3 amount corresponding to
+        % 2031 is used to determine the injection rate in the previous year
+        % (2030), thus we assume no injection occurs in 2031 (or a value could
+        % be extrapolated).
+        inj_year    = year(2:end-1);              clear year
+        inj_rates   = zeros(1,numel(inj_year));
+
+        ReservoirVol_m3 = ReservoirVol_m3(2:end);
+        for i = 1:numel(ReservoirVol_m3)-1
+            inj_rates(i) = ( ReservoirVol_m3(i+1) - ReservoirVol_m3(i) ); % annual rate
+        end
+        inj_rates = inj_rates * meter^3/year; % in meter^3/second
+        
+    otherwise
+        error('The injection rate option was either unvalid or not selected.')
+        
 end
 
 
@@ -222,28 +208,42 @@ rhoCO2_mod  = 2/3;
 
 
 %% 1. Load formation
-% Function looks for file or generates it from grdecl files and writes .mat
-% file. Output is the variables G, Gt, rock, rock2D.
+% makeSleipnerModelGrid() looks for file or generates it from grdecl files
+% and writes .mat file. Output is the variables G, Gt, rock, rock2D.
+switch mycase
+    
+    case 'useIEAGHG_model'
+        disp(['Your case is set to ' mycase '.'])
+        
+        switch myresolution
+            case 'useRefinedGrid'
+                disp(['You have chosen to refine the model grid ',num2str(refineLevel),' times.'])
+                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('refineLevel',refineLevel);
+                
+            otherwise
+                disp('The model grid will not be refined.')
+                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid();
+                
+        end
+        
+    case 'useOriginal_model'
+        disp(['Your case is set to ' mycase '.'])
+        
+        switch myresolution
+            case 'useRefinedGrid'
+                disp(['You have chosen to refine the model grid ',num2str(refineLevel),' times.'])
+                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel);
+                
+            otherwise
+                disp('The model grid will not be refined.')
+                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel');
+                
+        end
 
-
-if useIEAGHG_model && useRefinedGrid
-    
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('refineLevel',refineLevel, 'plotsOn',false);
-    
-elseif useIEAGHG_model 
-    
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('plotsOn',false);
-    
-    
-elseif useOriginal_model && useRefinedGrid
-
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel, 'plotsOn',false);
-    
-elseif useOriginal_model
-    
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'plotsOn',false);
-    
+    otherwise
+        error('No such case')
 end
+
 
     
 %% Modify original parameters (optional) and visualize model grids
