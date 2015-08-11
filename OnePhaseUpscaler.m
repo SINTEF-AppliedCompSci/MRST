@@ -27,9 +27,10 @@ methods
             case 'pressure'
                 [data.perm, report] = upAbsPerm(block, ...
                     'dims', upscaler.dims, 'dp', upscaler.dp);
-            case 'porevolume'
-                [data.perm, report] = upAbsPermPV(block, ...
-                    'dims', upscaler.dims);
+            case {'arithmetic', 'harmonic', 'geometric'}
+                [data.perm, report] = upAbsPermAvg(block, ...
+                    'dims', upscaler.dims, ...
+                    'method', upscaler.OnePhaseMethod);
             otherwise
                 error('Unknown one-phase upscaling method.');
         end
