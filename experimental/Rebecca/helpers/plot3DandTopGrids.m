@@ -2,7 +2,7 @@ function [ hfig, hax ] = plot3DandTopGrids( G, Gt )
 
 % Inspect orientation of grid (compare with orientation shown in Singh
     % et al 2010, Cavanagh 2013, etc.)
-    figure; set(gcf,'Position',[1000 1000 1000 1000])
+    figure; set(gcf,'Position',[1 1 1000 1000])
     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
     plotCellData(G, G.cells.centroids(:,3))
     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r'); view(3)
@@ -15,7 +15,7 @@ function [ hfig, hax ] = plot3DandTopGrids( G, Gt )
     
     
     % Inspect orientation of grid: x-sectional views
-    figure; set(gcf,'Position',[1000 1000 1100 500])
+    figure; set(gcf,'Position',[1 1 1100 500])
     % facing 
     subplot(2,2,1)
     plotGrid(G, 'FaceColor', 'none', 'EdgeColor', [.8 .8 .8]); view(3)
@@ -54,7 +54,7 @@ function [ hfig, hax ] = plot3DandTopGrids( G, Gt )
     
     
     % Inspect Top Surface Grid and H
-    figure; set(gcf,'Position',[1000 1000 1000 1000])
+    figure; set(gcf,'Position',[1 1 1000 1000])
     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'r');
     plotCellData(Gt, Gt.cells.z)
     set(gca,'DataAspect',[1 1 0.02]); grid

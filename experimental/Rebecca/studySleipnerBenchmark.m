@@ -89,12 +89,12 @@ if ~performPostProcessing
 
 % selection of what will be plotted before simulation starts:
 plotModelGrid                   = false;
-plotInitialPressure             = false;
+plotInitialPressure             = true;
 plotActualVsSimInjectLocation   = false;
 plotInjectRateOverTime          = false;
 
 
-% Trapping analysis method
+% Trapping analysis method (used for Post-processing, not simulation).
 isCellBasedMethod = false; % true to use cell-based method, false to use node-based method
 
 
@@ -286,8 +286,9 @@ if plotInitialPressure
     figure;
     plotCellData(Gt, initState.pressure, 'EdgeColor','none')
     title('Initial Pressure (hydrostatic)'); axis off tight equal
-    hcb = colorbar;
-    hcb.Label.String = 'Pascals'; set(hcb, 'fontSize', 18)
+    % setColorbarHandle() is able to deal with handles of class 'double'
+    % (pre-R2014) and graphic objects (post-R2014)
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Pascals', 'fontSize', 18 );
 end
 
 
@@ -356,6 +357,7 @@ end
 % For simulation schedule
 istepvec = repmat( ones(inj_steps, 1) * dTi , [numel(inj_rates) 1] );
 mstepvec = ones(mig_steps, 1) * dTm;
+
 
 % schedule.step.val and schedule.step.control are same size arrays:
 % schedule.step.val is the timestep (size) used for that control step.
@@ -469,8 +471,8 @@ if plotInitialPressure
     figure;
     plotCellData(Gt, initState.pressure, 'EdgeColor','none')
     title('Initial Pressure (hydrostatic)'); axis off tight equal
-    hcb = colorbar;
-    hcb.Label.String = 'Pascals'; set(hcb, 'fontSize', 18)
+    
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Pascals', 'fontSize', 18 );
 end
 
 if plotActualVsSimInjectLocation
@@ -535,7 +537,7 @@ if plotTrappingInventory
     % reports contains soln states; could be used for plotting results.
     directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
     %xlabel('Years since simulation start (1999)')
-    ax.XTickLabel = ax.XTick + inj_year(1);
+    ax.XTickLabel = ax.XTick + inj_year(1); % *******************TO FIX
 end
 
 
@@ -567,7 +569,24 @@ if plotTrapProfiles
 
     ta_volumes = volumesOfTraps(Gt, ta);
     
-    fprintf('Coarsening level %d:\n', N);
+    
+    % To display analysis method used.
+    if isCellBasedMethod
+        disp('Trap analysis done using cell-based method.')
+    elseif ~isCellBasedMethod
+        disp('Trap analysis done using node-based method.')
+    end
+    
+    
+    % To display refinement level used, if any.
+    if strcmpi(myresolution,'useRefinedGrid') || useRefinedGrid
+        fprintf('Refinement level %d:\n', refineLevel);
+    elseif strcmpi(myresolution,'none') || ~useRefinedGrid
+        disp('No refinement of grid performed.')
+    end
+    
+    
+    % Other output.
     fprintf('  Num. global traps: %d\n', numel(ta_volumes));
     fprintf('  Total trap volume: %e m3\n', sum(ta_volumes));
     fprintf('  Avg. global trap size: %e m3\n', mean(ta_volumes));
@@ -586,7 +605,7 @@ if plotTrapProfiles
 
  
     % PLOT TRAPS COLORED BY CO2 MASS STORAGE CAPACITY
-    figure; set(gcf,'Position',[1000 1000 3000 500])
+    figure; set(gcf,'Position',[1 1 3000 500])
     
     %
     subplot(1,5,1)
@@ -599,9 +618,8 @@ if plotTrapProfiles
     plotCellData(Gt, cellsTrapVol/1e3/1e3/1e3, cellsTrapVol~=0, 'EdgeColor','none')
 
     set(gca,'DataAspect',[1 1 1/100])
-    hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
-    hcb.Label.String = 'Trap Volume, km^3';
-    grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Trap Volume, km^3', 'fontSize', 18 );
+    grid; axis tight; set(gca, 'fontSize', 10);
 
 
     % GET TRAPPING BREAKDOWN: structural, residual, dissoluion
@@ -627,9 +645,8 @@ if plotTrapProfiles
     plotCellData(Gt, cellsTrapCO2Mass/1e9, cellsTrapCO2Mass~=0, 'EdgeColor','none')
 
     set(gca,'DataAspect',[1 1 1/100])
-    hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
-    hcb.Label.String = 'Distributed CO2 Mass under Trap, Mt';
-    grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Distributed CO2 Mass under Trap, Mt', 'fontSize', 18 );
+    grid; axis tight; set(gca, 'fontSize', 10);
 
     
     %
@@ -640,9 +657,8 @@ if plotTrapProfiles
     plotCellData(Gt, trapcap_tot/1e9, trapcap_tot~=0, 'EdgeColor','none')
 
     set(gca,'DataAspect',[1 1 1/100])
-    hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
-    hcb.Label.String = 'Accumulated CO2 Mass under Trap, Mt';
-    grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Accumulated CO2 Mass under Trap, Mt', 'fontSize', 18 );
+    grid; axis tight; set(gca, 'fontSize', 10);
 
 
 
@@ -672,11 +688,10 @@ if plotTrapProfiles
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, structural_mass_reached/1e3/1e6, 'EdgeColor','none');
-
+    
     set(gca,'DataAspect',[1 1 1/100])
-    hcb = colorbar; %hcb.TickLabels = hcb.Ticks;
-    hcb.Label.String = 'Reachable structural capacity, Mt';
-    grid; axis tight; set(hcb, 'fontSize', 18); set(gca, 'fontSize', 10);
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Reachable structural capacity, Mt', 'fontSize', 18 );
+    grid; axis tight; set(gca, 'fontSize', 10);
 
 
     % PLOT SPILL PATHS AND TOPOLOGY
@@ -730,7 +745,7 @@ if plotTrapAndPlumeCompare
     % Generate traps and find the trap corresponding to the well cells
     trap = ta.trap_regions([WVE.cells]);
     
-    figure; set(gcf,'Position',[1000 1000 1600 1000])
+    figure; set(gcf,'Position',[1 1 1600 1000])
     plotCellData(Gt, reports(end).sol.h, reports(end).sol.h > 0.01)
     plotGrid(Gt, ta.traps == trap, 'FaceColor', 'red', 'EdgeColor', 'w')
     plotGrid(Gt, 'FaceColor', 'None', 'EdgeAlpha', .1);
