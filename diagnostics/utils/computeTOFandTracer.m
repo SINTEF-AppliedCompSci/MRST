@@ -106,8 +106,8 @@ iwells = wflux > 0;
 D.inj  = find( iwells & opt.tracerWells);
 D.prod = find(~iwells & opt.tracerWells);
 
-%Check that we actually a meaningful TOF scenario. If all wells are shut
-%off, return Inf.
+% Check that we actually have a meaningful TOF scenario. If all wells are
+% shut off, return Inf.
 sum_flux = cell2mat(arrayfun(@(x) sum(abs(x.flux)), state.wellSol, 'UniformOutput', false));
 if (sum(sum_flux) == 0.0)
     D.tof = Inf(G.cells.num, 2);
