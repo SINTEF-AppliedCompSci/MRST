@@ -102,7 +102,7 @@ disp('Starting new injection scenario.')
     
     
     % ************************ END OF USER OPTIONS ****************************
-    refineLevel = -2;
+    refineLevel = -4;
     [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel, 'plotsOn',false);
     %% Modify original parameters (optional) and visualize model grids
     if mod_rock
@@ -197,6 +197,23 @@ disp('Starting new injection scenario.')
     plume = getLayer9CO2plumeOutlines();
     Years2plot = [1999; 2001; 2002; 2004; 2006; 2008];
     ny=6;
+    X=reshape(Gt.cells.centroids(:,1),G.cartDims(1),G.cartDims(2));
+    Y=reshape(Gt.cells.centroids(:,2),G.cartDims(1),G.cartDims(2));
+    Z=reshape(Gt.cells.z,G.cartDims(1),G.cartDims(2));
+    topsurface=@(coord) interp2(X',Y',Z',coord(:,1),coord(:,2));
     disp(['Outline ', num2str(Years2plot(ny))]);
-    line(plume{ny}.outline(:,1), plume{ny}.outline(:,2), 'LineWidth',3, 'Color','r')
-    
+    line_coord=plume{ny}.outline;
+    line(line_coord(:,1), line_coord(:,2),topsurface(line_coord), 'LineWidth',3, 'Color','r')
+    figure(2)
+    plot(line_coord(:,2),topsurface(line_coord))
+    figure(3),clf,,hold on
+    line(line_coord(:,1), line_coord(:,2),topsurface(line_coord), 'LineWidth',3, 'Color','r')
+    %contour(X,Y,Z,20)
+    cc=contour(X,Y,reshape(states{end}.s(:,2).*Gt.cells.H,Gt.cartDims(1),Gt.cartDims(2)),0.7)
+    %lcc=cc';
+    %line(lcc(:,1), lcc(:,2),topsurface(lcc), 'LineWidth',3, 'Color','r')
+    %contour(X,Y,reshape(states{end}.s(:,2),Gt.cartDims(1),Gt.cartDims(2)),20)
+    %%
+    lcc=cc';
+    figure(4),clf
+    plot(lcc(:,2),topsurface(lcc))
