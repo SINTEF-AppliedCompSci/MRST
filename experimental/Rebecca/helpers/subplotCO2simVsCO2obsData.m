@@ -41,7 +41,8 @@ for i = 1:numel(ReservoirTime2plot)
         line(plume{i}.outline(:,1), plume{i}.outline(:,2), 'LineWidth',3, 'Color','r')
     end
     
-    % add injection point:
+    % (The following could be placed outside the subplot loop)
+    % Add injection point:
     % actual location
     plot(wellXcoord,wellYcoord,'o', ...
         'MarkerEdgeColor','k',...
@@ -59,25 +60,49 @@ for i = 1:numel(ReservoirTime2plot)
     % We visualize the spill paths between structural traps
     mapPlot(gcf, Gt, 'traps', trapstruct.traps, 'rivers', trapstruct.cell_lines, ...
         'maplines',20); % default maplines is 40
+    % caution: adding this map changes values of colorbar (possibly to
+    % elevation?). Thus, it is important to adjust the colorbar afterwards.
 
 end
 
-% make plotting adjustments to subplots
-axesHandles = get(gcf,'children');
+% First adjust x and y limits (must do before adjusting colorbar!)
+if ZoomIntoPlume
+    set(findobj(gcf,'type','axes'),'xlim',[ZoomX1 ZoomX2]);
+    set(findobj(gcf,'type','axes'),'ylim',[ZoomY1 ZoomY2]);
+end
 
-% set caxis to be between 0 and the max CO2 mass value plotted in any of
-% the subplots
+% Then adjust colorbar map. Works for both R2014a/earlier and later releases.
 cmax = max(maxMassCO2./1e9);
-for i=1:numel(axesHandles)
-    if strcmpi(axesHandles(i).Type,'axes')
-        axesHandles(i).CLim = [0 cmax];
-        
-        if ZoomIntoPlume
-           axesHandles(i).XLim = [ZoomX1 ZoomX2];
-           axesHandles(i).YLim = [ZoomY1 ZoomY2];
-        end
-    end
-end
+set(findobj(gcf,'type','axes'),'clim',[0, cmax]);
+
+
+% % only works for R2014a/earlier
+% hfig = gcf;
+% subplots = get(hfig,'Children');
+% 
+% cmax = max(maxMassCO2./1e9);
+% for i=1:length(subplots)
+%     caxis(subplots(i),[0,cmax]);
+% end
+% 
+% % only works for later than R2014a
+% % make plotting adjustments to subplots
+% axesHandles = get(gcf,'children');
+% 
+% % set caxis to be between 0 and the max CO2 mass value plotted in any of
+% % the subplots
+% cmax = max(maxMassCO2./1e9);
+% for i=1:numel(axesHandles)
+%     if strcmpi(axesHandles(i).Type,'axes')
+%         axesHandles(i).CLim = [0 cmax];
+%         
+%         if ZoomIntoPlume
+%            axesHandles(i).XLim = [ZoomX1 ZoomX2];
+%            axesHandles(i).YLim = [ZoomY1 ZoomY2];
+%         end
+%     end
+% end
+
 
 hfig = gcf;
 hax  = gca;

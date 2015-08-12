@@ -81,17 +81,17 @@ gravity on;
 
 % ******************** START OF USER OPTIONS ******************************
 % Is this post-processing or a new injection scenario?
-performPostProcessing = false;
+performPostProcessing = true;
 
 
 if ~performPostProcessing
     disp('Starting new injection scenario.')
 
 % selection of what will be plotted before simulation starts:
-plotModelGrid                   = false;
+plotModelGrid                   = true;
 plotInitialPressure             = true;
-plotActualVsSimInjectLocation   = false;
-plotInjectRateOverTime          = false;
+plotActualVsSimInjectLocation   = true;
+plotInjectRateOverTime          = true;
 
 
 % Trapping analysis method (used for Post-processing, not simulation).
@@ -116,7 +116,6 @@ ZoomY2 = 6.474e6;
 mycase          = 'useOriginal_model';    % 'useIEAGHG_model', 'useOriginal_model'
 myresolution    = 'none';               % 'useRefinedGrid', 'none'
 refineLevel     = 3;                    % only used when "myresolution = useRefinedGrid"
-
 
 
 % Physical coordinate of injection well (Singh et al. 2010)
@@ -223,6 +222,7 @@ switch mycase
             otherwise
                 disp('The model grid will not be refined.')
                 [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid();
+                refineLevel = 0;
                 
         end
         
@@ -237,6 +237,7 @@ switch mycase
             otherwise
                 disp('The model grid will not be refined.')
                 [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel');
+                refineLevel = 0;
                 
         end
 
@@ -285,10 +286,11 @@ initState.rs        = 0 * initState.sGmax;                          % initially 
 if plotInitialPressure
     figure;
     plotCellData(Gt, initState.pressure, 'EdgeColor','none')
-    title('Initial Pressure (hydrostatic)'); axis off tight equal
+    title('Initial Pressure','fontSize', 18);
     % setColorbarHandle() is able to deal with handles of class 'double'
     % (pre-R2014) and graphic objects (post-R2014)
     [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Pascals', 'fontSize', 18 );
+    axis off tight equal
 end
 
 
@@ -470,9 +472,9 @@ end
 if plotInitialPressure
     figure;
     plotCellData(Gt, initState.pressure, 'EdgeColor','none')
-    title('Initial Pressure (hydrostatic)'); axis off tight equal
-    
+    title('Initial Pressure','fontSize', 18);
     [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Pascals', 'fontSize', 18 );
+    axis off tight equal
 end
 
 if plotActualVsSimInjectLocation
@@ -536,8 +538,14 @@ if plotTrappingInventory
                              ta, dh);
     % reports contains soln states; could be used for plotting results.
     directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
-    %xlabel('Years since simulation start (1999)')
-    ax.XTickLabel = ax.XTick + inj_year(1); % *******************TO FIX
+    
+    %ax = gca;
+    %ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    % use R2014a and earlier releases syntax to ensure backwards compatibility 
+    ax  = get(gca, 'XTick');
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)-1), ax, 'UniformOutput', false);
+    set(gca, 'XTickLabel', axl)
+    xlabel('time, years')
 end
 
 
@@ -579,9 +587,9 @@ if plotTrapProfiles
     
     
     % To display refinement level used, if any.
-    if strcmpi(myresolution,'useRefinedGrid') || useRefinedGrid
+    if ( exist('myresolution','var') && strcmpi(myresolution,'useRefinedGrid') ) || ( exist('useRefinedGrid','var') && useRefinedGrid )
         fprintf('Refinement level %d:\n', refineLevel);
-    elseif strcmpi(myresolution,'none') || ~useRefinedGrid
+    elseif ( exist('myresolution','var') && strcmpi(myresolution,'none') ) || ( exist('useRefinedGrid','var') && ~useRefinedGrid )
         disp('No refinement of grid performed.')
     end
     
@@ -606,9 +614,10 @@ if plotTrapProfiles
  
     % PLOT TRAPS COLORED BY CO2 MASS STORAGE CAPACITY
     figure; set(gcf,'Position',[1 1 3000 500])
+    hfig = gcf;
     
     %
-    subplot(1,5,1)
+    subplot(1,5,1); hsub1 = gca; hfsub1 = gcf;
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
 
@@ -639,18 +648,19 @@ if plotTrapProfiles
 
 
     %
-    subplot(1,5,2)
+    subplot(1,5,2); hsub2 = gca; hfsub2 = gcf;
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, cellsTrapCO2Mass/1e9, cellsTrapCO2Mass~=0, 'EdgeColor','none')
 
     set(gca,'DataAspect',[1 1 1/100])
     [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Distributed CO2 Mass under Trap, Mt', 'fontSize', 18 );
-    grid; axis tight; set(gca, 'fontSize', 10);
+    grid; axis tight;
+    set(gca, 'fontSize', 10); % check for R2014a
 
     
     %
-    subplot(1,5,3)
+    subplot(1,5,3); hsub3 = gca; hfsub3 = gcf;
     hold on
     %plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
@@ -684,7 +694,7 @@ if plotTrapProfiles
     end
 
     %
-    subplot(1,5,4)
+    subplot(1,5,4); hsub4 = gca; hfsub4 = gcf;
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, structural_mass_reached/1e3/1e6, 'EdgeColor','none');
@@ -695,33 +705,94 @@ if plotTrapProfiles
 
 
     % PLOT SPILL PATHS AND TOPOLOGY
-    subplot(1,5,5)
+    subplot(1,5,5); hsub5 = gca; hfsub5 = gcf;
     hold on
     mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
 
     grid; axis equal tight;
     
-    % For making plotting adjustments to subplots
-    axesHandles = get(gcf,'children');
     
-    % Add Injection Location In Each Subplot:
-    for i=1:numel(axesHandles)
-        if strcmpi(axesHandles(i).Type,'axes')
-            
-            subplot(axesHandles(i))
-            % actual location
-            plot(wellXcoord,wellYcoord,'o', ...
-                'MarkerEdgeColor','k',...
-                'MarkerFaceColor','r',...
-                'MarkerSize',10)
-            % simulated location
-            plot(wellCoord_x,wellCoord_y,'x', ...
-                'LineWidth',3,  ...
-                'MarkerEdgeColor','k',...
-                'MarkerFaceColor','k',...
-                'MarkerSize',10)
-        end
-    end
+%     hsubs = [hsub1 hsub2 hsub3 hsub4 hsub5]; % handles of subplot axes only (not colorbars)
+%     hfsubs = [hfsub1 hfsub2 hfsub3 hfsub4 hfsub5]; % handles of subplot figures only (not colorbars)
+%     
+%     % For making plotting adjustments to subplots
+%     hax = get(gcf,'children');
+%     hsubs = findobj(hax,'type','axes','Tag','');
+%     
+%     for i = 1:numel(hsubs)
+%        set(0,'currentaxes',hsubs(i))
+%        
+%     end
+%     
+%     % Add Injection Location In Each Subplot:
+%     for i=1:numel(hax)
+%         if strcmpi(hax(i).Type,'axes')
+%             
+%             subplot(hax(i))
+%             % actual location
+%             plot(wellXcoord,wellYcoord,'o', ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','r',...
+%                 'MarkerSize',10)
+%             % simulated location
+%             plot(wellCoord_x,wellCoord_y,'x', ...
+%                 'LineWidth',3,  ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','k',...
+%                 'MarkerSize',10)
+%         end
+%     end
+%     
+%     
+%     
+%     
+%     % % only works for R2014a/earlier
+%     %hfig = gcf;
+%     %hsubplots = get(hfig,'Children');
+%     
+%     for i=1:length(hsubs)
+% 
+%         %subplot(hsubs(i))
+%         axes(hsubs(i))
+%         %set(0, 'currentfigure', hfig);
+%         %set(hfig, 'currentaxes', hsubs(i))
+%         hold on
+%         plot(wellXcoord,wellYcoord,'o', ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','r',...
+%                 'MarkerSize',10)
+%             % simulated location
+%         plot(wellCoord_x,wellCoord_y,'x', ...
+%                 'LineWidth',3,  ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','k',...
+%                 'MarkerSize',10)
+%     end
+    
+    
+    
+% does not work for R2014a/earlier!
+%     % For making plotting adjustments to subplots
+%     axesHandles = get(gcf,'children');
+%     
+%     % Add Injection Location In Each Subplot:
+%     for i=1:numel(axesHandles)
+%         if strcmpi(axesHandles(i).Type,'axes')
+%             
+%             subplot(axesHandles(i))
+%             % actual location
+%             plot(wellXcoord,wellYcoord,'o', ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','r',...
+%                 'MarkerSize',10)
+%             % simulated location
+%             plot(wellCoord_x,wellCoord_y,'x', ...
+%                 'LineWidth',3,  ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','k',...
+%                 'MarkerSize',10)
+%         end
+%     end
     
     hfig = gcf;
     hax  = gca;

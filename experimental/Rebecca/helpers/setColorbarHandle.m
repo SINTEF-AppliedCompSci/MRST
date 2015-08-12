@@ -26,8 +26,8 @@ hcb_curr = colorbar;
     elseif isfloat(hcb_curr)
         % This is 2014a or earlier
         
-        set(hcb_curr, 'XTickLabel', opt.LabelName);
-        
+        %set(hcb_curr, 'XTickLabel', opt.LabelName);
+        ylabel(hcb_curr, opt.LabelName, 'fontSize', opt.fontSize);
         
     end
 
