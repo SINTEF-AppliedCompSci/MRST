@@ -355,9 +355,13 @@ end
         
         % 3- third refine the grdecl in the X and Y direction (Z already has
         % a resolution of 1 cell) by the refinement level specified
-        dim = [opt.refineLevel; opt.refineLevel; 1];
-        grdecl_refined = refineGrdecl(grdecl_coarsened, dim);
-        
+        if(opt.refineLevel>0)
+            dim = [opt.refineLevel; opt.refineLevel; 1];
+            grdecl_refined = refineGrdecl(grdecl_coarsened, dim);
+        else
+            dim = abs([opt.refineLevel; opt.refineLevel; 1])';
+            grdecl_refined = coarseGrdecl(grdecl_coarsened, dim,'only_grid',false);
+        end
         
         % Add some original fields to the refined grdecl structure:
         grdecl_refined.MAPAXES = grdecl.MAPAXES;
