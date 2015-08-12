@@ -9,7 +9,7 @@ ReservoirTime2plot  = (Years2plot - inj_year(1)+1 ).*(365*24*60*60); % seconds
 bf = boundaryFaces(Gt);
 maxMassCO2 = zeros(1,numel(ReservoirTime2plot));
 
-figure; set(gcf, 'Position', [1000 1000 1500 1100])
+figure; set(gcf, 'Position', [1 1 1500 1100])
 hold on
 
 for i = 1:numel(ReservoirTime2plot)
@@ -32,8 +32,8 @@ for i = 1:numel(ReservoirTime2plot)
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, massCO2/1e9, satCO2>CO2plumeOutline_SatTol, 'EdgeColor','none') % only plot plume that has sat > tolerance specified 
     title({'Mass of CO2 at';['year ', num2str(Years2plot(i))]}, 'fontSize', 18); axis equal
-    hcb = colorbar; hcb.Label.String = 'Mt'; set(hcb, 'fontSize', 18)
-
+    %hcb = colorbar; hcb.Label.String = 'Mt'; set(hcb, 'fontSize', 18)
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Mt', 'fontSize', 18 );
     
     % add CO2 plume outline (check matching year):
     if plume{i}.year == Years2plot(i)
