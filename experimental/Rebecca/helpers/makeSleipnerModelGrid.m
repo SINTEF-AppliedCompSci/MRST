@@ -41,7 +41,13 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
 
     catch %#ok<*CTCH>
         disp(['    SleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat has not yet been created.']);
-        disp('    Building G, Gt, and rock2D from grdecl files...')
+        if opt.refineLevel>1
+            disp('    Building REFINED G, Gt, and rock2D from grdecl files...')
+        elseif opt.refineLevel==1 || opt.refineLevel==0
+            disp('    Building G, Gt, and rock2D from grdecl files...')
+        else
+            disp('    Building COARSENED G, Gt, and rock2D from grdecl files...')
+        end
 
         % First loading of Sleipner Eclipse grid (to get PERMX, PERMZ,
         % PORO)
@@ -125,7 +131,14 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
 
     catch %#ok<*CTCH>
         disp(['    OriginalSleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat has not yet been created.']);
-        disp('    Building REFINED G, Gt, and rock2D from grdecl files...')
+        if opt.refineLevel>1
+            disp('    Building REFINED G, Gt, and rock2D from grdecl files...')
+        elseif opt.refineLevel==1 || opt.refineLevel==0
+            disp('    Building G, Gt, and rock2D from grdecl files...')
+        else
+            disp('    Building COARSENED G, Gt, and rock2D from grdecl files...')
+        end
+        
 
         % Open and read original/sleipner_prep.data
         moduleCheck('deckformat', 'mex');
@@ -182,82 +195,6 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         clear datadir
         
     end
-        
-    
-% elseif useOriginal_model
-%     
-%     % there should be a directory named "co2lab/data/sleipner/original/"
-%     % which contains files such as sleipner_prep.data, etc.
-%     % etc.
-%     try
-% 
-%         disp(' -> Reading OriginalSleipnerGlobalCoords.mat');
-%         datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
-%         load(fullfile(datadir,'OriginalSleipnerGlobalCoords')); clear datadir
-%         %return;
-% 
-%     catch %#ok<*CTCH>
-%         disp('    OriginalSleipnerGlobalCoords.mat has not yet been created.');
-%         disp('    Building G, Gt, and rock2D from grdecl files...')
-% 
-%         % Open and read original/sleipner_prep.data
-%         moduleCheck('deckformat', 'mex');
-%         sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
-%         fn      = fopen(sl_file);
-%         grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
-%         % this grdecl contains: GRID, and others. grdecl.GRID contains
-%         % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
-%         % PERMX, PERMY, PERMZ, and PORO
-%         fclose(fn);
-%         
-%         % Rename
-%         grdecl = grdecl.GRID;
-% 
-%         % Reshaping
-%         lines = reshape(grdecl.COORD,6,[]);
-%         grdecl.COORD = lines(:); clear lines
-% 
-%         % Then, we remove the bottom and top layers that contain shale
-%         grdecl.ACTNUM(grdecl.PERMX<200) = 0;
-% 
-% 
-%         % Recompute X and Y coordinates in terms of the provided axes
-%         % (depths, Z, do not require any recomputation)
-%         coords        = reshape(grdecl.COORD,3,[])';
-%         coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
-%         coords        = coords';
-%         grdecl.COORD  = coords(:); clear coords
-% 
-% 
-%         % Next, we process the grid and compute geometry
-%         mrstModule add libgeometry opm_gridprocessing
-%         G = processGRDECL(grdecl); % note: processgrid() didn't work
-%         G = mcomputeGeometry(G);
-% 
-%         % Adding tags needed by topSurfaceGrid
-%         G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
-% 
-%         % Construct petrophysical model
-%         rock = grdecl2Rock(grdecl, G.cells.indexMap);
-%         rock.perm = convertFrom(rock.perm, milli*darcy);
-%         clear grdecl
-% 
-%         % Construct top-surface grid
-%         disp(' -> Constructing top-surface grid');
-%         [Gt, G] = topSurfaceGrid(G);
-%         rock2D  = averageRock(rock, Gt);
-% 
-% 
-%         % Store data
-%         disp(' ')
-%         disp(' -> Writing OriginalSleipnerGlobalCoords.mat')
-%         if ~isdir(datadir)
-%            mkdir(datadir);
-%         end
-%         save(fullfile(datadir,'OriginalSleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D');
-%         clear datadir
-%          
-%     end
     
     
 else

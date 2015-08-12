@@ -113,9 +113,9 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-mycase          = 'useOriginal_model';    % 'useIEAGHG_model', 'useOriginal_model'
-myresolution    = 'none';               % 'useRefinedGrid', 'none'
-refineLevel     = 3;                    % only used when "myresolution = useRefinedGrid"
+mycase          = 'useIEAGHG_model';    % 'useIEAGHG_model', 'useOriginal_model'
+myresolution    = 'useRefinedGrid';               % 'useRefinedGrid', 'none'
+refineLevel     = -2;                    % only used when "myresolution = useRefinedGrid"
 
 
 % Physical coordinate of injection well (Singh et al. 2010)
@@ -431,7 +431,9 @@ pause
 [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
 
 
-% Save variables in workspace: 
+% Save variables in workspace:
+% first, close all figures
+close all
 save(datestr(clock,30));
 % (TODO: used data as fileName rather than clock time)
 
@@ -833,6 +835,77 @@ if plotTrapAndPlumeCompare
 
 end
 
+%% Basic capacity estimates and Show table of Structural trapping details
+if ~exist('mycase','var')
+    if useIEAGHG_model
+        mycase = 'IEAGHG';
+    elseif useOriginal_model
+        mycase = 'GHGT';
+    end
+end
+if ~exist('myresolution','var')
+    if useRefinedGrid
+        myresolution = 'useRefinedGrid';
+    else
+        myresolution = 'none';
+    end
+end
+
+   fprintf('------------------------------------------------\n');
+   fprintf('Processing case: %s , %s (numRef=%d) ....\n', mycase, myresolution, refineLevel);
+   
+   tan     = trapAnalysis(Gt, false);
+   tac     = trapAnalysis(Gt, true);
+   
+   ta_volumes = volumesOfTraps(Gt, ta);
+   
+   i = 1;
+   res{i}.name      = mycase;
+   if strcmpi(myresolution,'useRefinedGrid')
+       res{i}.refLevel  = refineLevel;
+   else
+       res{i}.refLevel  = 0;
+   end
+   res{i}.cells     = Gt.cells.num;
+   res{i}.zmin      = min(Gt.cells.z);
+   res{i}.zmax      = max(Gt.cells.z);
+   res{i}.volume    = sum(G.cells.volumes);
+   res{i}.ctrapvols = volumesOfTraps(Gt,tac);
+   res{i}.ccapacity = sum(res{i}.ctrapvols);
+   res{i}.ntrapvols = volumesOfTraps(Gt,tan);
+   res{i}.ncapacity = sum(res{i}.ntrapvols);
+   fprintf('done\n');
+
+% create table:
+   fprintf('\n\n------------------------------------------------\n');
+   fprintf('%-20s& Refined & Cells  & Min  & Max  & Volume   & Capacity  & Percent &  Capacity & Percent\\\\\n', 'Name');
+
+   fprintf('%-20s&   %2d    & %6d & %4.0f & %4.0f & %4.2e & %4.2e  & %5.2f   & %4.2e  & %5.2f \\\\\n',...
+      res{i}.name, res{i}.refLevel, res{i}.cells, res{i}.zmin, res{i}.zmax, res{i}.volume, ...
+      res{i}.ncapacity, res{i}.ncapacity/res{i}.volume*100, ...
+      res{i}.ccapacity, res{i}.ccapacity/res{i}.volume*100);
+   fprintf('------------------------------------------------\n');
+  
+  
+  fprintf('\n\n---------------Node-based------------------------\n');
+  fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
+   
+  fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
+      res{i}.name, res{i}.refLevel, ...
+      numel(res{i}.ntrapvols), ...
+      sum(res{i}.ntrapvols), ...
+      mean(res{i}.ntrapvols) );
+  fprintf('------------------------------------------------\n');
+  
+    fprintf('\n\n---------------Cell-based------------------------\n');
+  fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
+   
+  fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
+      res{i}.name, res{i}.refLevel, ...
+      numel(res{i}.ctrapvols), ...
+      sum(res{i}.ctrapvols), ...
+      mean(res{i}.ctrapvols) );
+  fprintf('------------------------------------------------\n');
 
 
 
