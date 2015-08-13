@@ -81,7 +81,7 @@ gravity on;
 
 % ******************** START OF USER OPTIONS ******************************
 % Is this post-processing or a new injection scenario?
-performPostProcessing = true;
+performPostProcessing = false;
 
 
 if ~performPostProcessing
@@ -113,9 +113,9 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-mycase          = 'useIEAGHG_model';    % 'useIEAGHG_model', 'useOriginal_model'
-myresolution    = 'useRefinedGrid';               % 'useRefinedGrid', 'none'
-refineLevel     = -2;                    % only used when "myresolution = useRefinedGrid"
+mycase          = 'useInhouse_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
+myresolution    = 'none';               % 'useRefinedGrid', 'none'
+refineLevel     = -6;                    % only used when "myresolution = useRefinedGrid"
 
 
 % Physical coordinate of injection well (Singh et al. 2010)
@@ -209,42 +209,38 @@ rhoCO2_mod  = 2/3;
 %% 1. Load formation
 % makeSleipnerModelGrid() looks for file or generates it from grdecl files
 % and writes .mat file. Output is the variables G, Gt, rock, rock2D.
+
+% get case info:
 switch mycase
     
     case 'useIEAGHG_model'
-        disp(['Your case is set to ' mycase '.'])
-        
-        switch myresolution
-            case 'useRefinedGrid'
-                disp(['You have chosen to refine the model grid ',num2str(refineLevel),' times.'])
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('refineLevel',refineLevel);
-                
-            otherwise
-                disp('The model grid will not be refined.')
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid();
-                refineLevel = 0;
-                
-        end
-        
-    case 'useOriginal_model'
-        disp(['Your case is set to ' mycase '.'])
-        
-        switch myresolution
-            case 'useRefinedGrid'
-                disp(['You have chosen to refine the model grid ',num2str(refineLevel),' times.'])
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel);
-                
-            otherwise
-                disp('The model grid will not be refined.')
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel');
-                refineLevel = 0;
-                
-        end
+        modelname   = 'IEAGHGmodel';
 
+    case 'useOriginal_model'
+        modelname   = 'ORIGINALmodel';
+        
+    case 'useInhouse_model'
+        modelname   = 'INHOUSEmodel';
+        
     otherwise
         error('No such case')
 end
 
+switch myresolution
+    
+    case 'useRefinedGrid'
+        refnum = refineLevel;
+        
+    otherwise
+        refnum = 1;
+end
+
+% make grid model:
+fprintf(['\nYour case is set to ' mycase '.\n'])
+fprintf(['You have chosen to refine the model grid ',num2str(refnum),' times.\n'])
+fprintf('\nGetting grid...\n\n')
+[ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName', modelname, 'refineLevel',refnum);
+fprintf('\n\nGrid obtained.\n')
 
     
 %% Modify original parameters (optional) and visualize model grids
