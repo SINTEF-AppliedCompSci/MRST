@@ -98,11 +98,11 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         %%%%%% Then perform refinement of grdecl data, which includes a
         %%%%%% step to remove the cell layers corresponding to the caprock
         %%%%%% and bottom shale
-        grdecl_refined = getRefinedGrdecl( grdecl, true, false );
+        grdecl_refined = getRefinedGrdecl( grdecl );
         
         
         %%%%%% And assess new grids
-        [G, Gt, rock, rock2D] = getGrids( grdecl_refined );
+        [G, Gt, rock, rock2D] = getGrids( grdecl_refined, true, false );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         
@@ -181,11 +181,11 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         %%%%%% Then perform refinement of grdecl data, which includes a
         %%%%%% step to remove the cell layers corresponding to the caprock
         %%%%%% and bottom shale
-        grdecl_refined = getRefinedGrdecl( grdecl, true, false );
+        grdecl_refined = getRefinedGrdecl( grdecl );
         
         
         %%%%%% And assess new grids
-        [G, Gt, rock, rock2D] = getGrids( grdecl_refined );
+        [G, Gt, rock, rock2D] = getGrids( grdecl_refined, true, false );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         
@@ -315,24 +315,31 @@ end
             % Adding tags needed by topSurfaceGrid
             G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];
 
-            % Construct top-surface grid
-            fprintf(' -> Constructing top-surface grid\n\n');
-            [Gt, G] = topSurfaceGrid(G);
-            
             % Construct petrophysical model
             % TODO: if no PORO or PERMX, PERMY, etc fields exist in grdecl,
             % the average values of the Sleipner benchmark should be
             % retrieved instead.
             fprintf(' -> Constructing rock data\n\n');
             if useAvgRock
-                rock        = getAvgRock(grdecl.name);
-                rock2D.perm = rock.avgperm;
-                rock2D.poro = rock.avgporo;
+                % rock structure for 3D grid.
+                avgrock      = getAvgRock(grdecl.name);
+                rock.perm(1:G.cells.num,1) = avgrock.avgperm;
+                rock.perm(1:G.cells.num,2) = avgrock.avgperm;
+                rock.perm(1:G.cells.num,3) = avgrock.avgperm;
+                rock.poro(1:G.cells.num,1) = avgrock.avgporo;
+                %rock2D.perm = rock.avgperm;
+                %rock2D.poro = rock.avgporo;
             else
                 rock        = grdecl2Rock(grdecl, G.cells.indexMap);
                 rock.perm   = convertFrom(rock.perm, milli*darcy);
-                rock2D      = averageRock(rock, Gt);
             end
+            
+            % Construct top-surface grid
+            fprintf(' -> Constructing top-surface grid\n\n');
+            [Gt, G] = topSurfaceGrid(G);
+            rock2D  = averageRock(rock, Gt);
+            
+
             
 
     end
@@ -418,13 +425,13 @@ end
         % not exist in the grdecl structure, we assume it is the same as
         % PERMX and thus make a copy of it so as to pass it into the
         % function
-        if ~isfield('grdecl_cut','PERMY') && isfield('grdecl_cut','PERMX')
+        if ~isfield(grdecl_cut,'PERMY') && isfield(grdecl_cut,'PERMX')
             grdecl_cut.PERMY = grdecl_cut.PERMX;
         end
         dim = [1 1 numSandLayers];
         
         % perms are coarsened along with grid only if they exist
-        if isfield('grdecl_cut',{'PERMX','PERMY','PERMZ'})
+        if isfield(grdecl_cut,{'PERMX','PERMY','PERMZ'})
             grdecl_coarsened = coarseGrdecl(grdecl_cut, dim, 'only_grid',false);
         else
             grdecl_coarsened = coarseGrdecl(grdecl_cut, dim, 'only_grid',true);
@@ -440,7 +447,7 @@ end
             grdecl_refined = refineGrdecl(grdecl_coarsened, dim);
         else
             dim = abs([opt.refineLevel; opt.refineLevel; 1])';
-            if isfield('grdecl_cut',{'PERMX','PERMY','PERMZ'})
+            if isfield(grdecl_cut,{'PERMX','PERMY','PERMZ'})
                 grdecl_refined = coarseGrdecl(grdecl_coarsened, dim,'only_grid',false);
             else
                 grdecl_refined = coarseGrdecl(grdecl_coarsened, dim,'only_grid',true);

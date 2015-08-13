@@ -866,6 +866,7 @@ end
    res{i}.zmin      = min(Gt.cells.z);
    res{i}.zmax      = max(Gt.cells.z);
    res{i}.volume    = sum(G.cells.volumes);
+   res{i}.surfarea  = sum(Gt.cells.volumes);
    res{i}.ctrapvols = volumesOfTraps(Gt,tac);
    res{i}.ccapacity = sum(res{i}.ctrapvols);
    res{i}.ntrapvols = volumesOfTraps(Gt,tan);
