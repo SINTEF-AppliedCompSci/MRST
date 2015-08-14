@@ -853,7 +853,8 @@ end
    tan     = trapAnalysis(Gt, false);
    tac     = trapAnalysis(Gt, true);
    
-   ta_volumes = volumesOfTraps(Gt, ta);
+   %tan_volumes = volumesOfTraps(Gt, tan);
+   %tac_volumes = volumesOfTraps(Gt, tac);
    
    i = 1;
    res{i}.name      = mycase;
