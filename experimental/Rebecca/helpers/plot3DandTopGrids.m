@@ -1,4 +1,9 @@
-function [ hfig, hax ] = plot3DandTopGrids( G, Gt )
+function [ hfig, hax ] = plot3DandTopGrids( G, Gt, varargin )
+
+% synopsis: 
+%   [ ~,~ ] = plot3DandTopGrids( G, Gt )
+%   [ ~,~ ] = plot3DandTopGrids( G, Gt, 'pn1', pv1, ...)
+%
 
 % Inspect orientation of grid (compare with orientation shown in Singh
     % et al 2010, Cavanagh 2013, etc.)
@@ -64,6 +69,8 @@ function [ hfig, hax ] = plot3DandTopGrids( G, Gt )
     view(44,22)
     annotation(gcf,'textarrow',[0.4734 0.5391],[0.7825 0.81],'String',{'North'});
     set(gca,'FontSize',14)
+    
+   
     
     hfig = gcf;
     hax  = gca;

@@ -88,10 +88,10 @@ if ~performPostProcessing
     disp('Starting new injection scenario.')
 
 % selection of what will be plotted before simulation starts:
-plotModelGrid                   = false;
+plotModelGrid                   = true;
 plotInitialPressure             = true;
-plotActualVsSimInjectLocation   = false;
-plotInjectRateOverTime          = false;
+plotActualVsSimInjectLocation   = true;
+plotInjectRateOverTime          = true;
 
 
 % Trapping analysis method (used for Post-processing, not simulation).
@@ -113,10 +113,9 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-mycase          = 'useOriginal_model';    % 'useIEAGHG_model', 'useOriginal_model'
+mycase          = 'useInhouse_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
 myresolution    = 'none';               % 'useRefinedGrid', 'none'
-refineLevel     = 3;                    % only used when "myresolution = useRefinedGrid"
-
+refineLevel     = -6;                    % only used when "myresolution = useRefinedGrid"
 
 
 % Physical coordinate of injection well (Singh et al. 2010)
@@ -210,40 +209,38 @@ rhoCO2_mod  = 2/3;
 %% 1. Load formation
 % makeSleipnerModelGrid() looks for file or generates it from grdecl files
 % and writes .mat file. Output is the variables G, Gt, rock, rock2D.
+
+% get case info:
 switch mycase
     
     case 'useIEAGHG_model'
-        disp(['Your case is set to ' mycase '.'])
-        
-        switch myresolution
-            case 'useRefinedGrid'
-                disp(['You have chosen to refine the model grid ',num2str(refineLevel),' times.'])
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('refineLevel',refineLevel);
-                
-            otherwise
-                disp('The model grid will not be refined.')
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid();
-                
-        end
-        
-    case 'useOriginal_model'
-        disp(['Your case is set to ' mycase '.'])
-        
-        switch myresolution
-            case 'useRefinedGrid'
-                disp(['You have chosen to refine the model grid ',num2str(refineLevel),' times.'])
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel);
-                
-            otherwise
-                disp('The model grid will not be refined.')
-                [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel');
-                
-        end
+        modelname   = 'IEAGHGmodel';
 
+    case 'useOriginal_model'
+        modelname   = 'ORIGINALmodel';
+        
+    case 'useInhouse_model'
+        modelname   = 'INHOUSEmodel';
+        
     otherwise
         error('No such case')
 end
 
+switch myresolution
+    
+    case 'useRefinedGrid'
+        refnum = refineLevel;
+        
+    otherwise
+        refnum = 1;
+end
+
+% make grid model:
+fprintf(['\nYour case is set to ' mycase '.\n'])
+fprintf(['You have chosen to refine the model grid ',num2str(refnum),' times.\n'])
+fprintf('\nGetting grid...\n\n')
+[ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName', modelname, 'refineLevel',refnum);
+fprintf('\n\nGrid obtained.\n')
 
     
 %% Modify original parameters (optional) and visualize model grids
@@ -285,10 +282,11 @@ initState.rs        = 0 * initState.sGmax;                          % initially 
 if plotInitialPressure
     figure;
     plotCellData(Gt, initState.pressure, 'EdgeColor','none')
-    title('Initial Pressure (hydrostatic)'); axis off tight equal
+    title('Initial Pressure','fontSize', 18);
     % setColorbarHandle() is able to deal with handles of class 'double'
     % (pre-R2014) and graphic objects (post-R2014)
     [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Pascals', 'fontSize', 18 );
+    axis off tight equal
 end
 
 
@@ -429,7 +427,9 @@ pause
 [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
 
 
-% Save variables in workspace: 
+% Save variables in workspace:
+% first, close all figures
+close all
 save(datestr(clock,30));
 % (TODO: used data as fileName rather than clock time)
 
@@ -470,9 +470,9 @@ end
 if plotInitialPressure
     figure;
     plotCellData(Gt, initState.pressure, 'EdgeColor','none')
-    title('Initial Pressure (hydrostatic)'); axis off tight equal
-    
+    title('Initial Pressure','fontSize', 18);
     [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Pascals', 'fontSize', 18 );
+    axis off tight equal
 end
 
 if plotActualVsSimInjectLocation
@@ -536,8 +536,14 @@ if plotTrappingInventory
                              ta, dh);
     % reports contains soln states; could be used for plotting results.
     directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
-    %xlabel('Years since simulation start (1999)')
-    ax.XTickLabel = ax.XTick + inj_year(1); % *******************TO FIX
+    
+    %ax = gca;
+    %ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    % use R2014a and earlier releases syntax to ensure backwards compatibility 
+    ax  = get(gca, 'XTick');
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)-1), ax, 'UniformOutput', false);
+    set(gca, 'XTickLabel', axl)
+    xlabel('time, years')
 end
 
 
@@ -579,9 +585,9 @@ if plotTrapProfiles
     
     
     % To display refinement level used, if any.
-    if strcmpi(myresolution,'useRefinedGrid') || useRefinedGrid
+    if ( exist('myresolution','var') && strcmpi(myresolution,'useRefinedGrid') ) || ( exist('useRefinedGrid','var') && useRefinedGrid )
         fprintf('Refinement level %d:\n', refineLevel);
-    elseif strcmpi(myresolution,'none') || ~useRefinedGrid
+    elseif ( exist('myresolution','var') && strcmpi(myresolution,'none') ) || ( exist('useRefinedGrid','var') && ~useRefinedGrid )
         disp('No refinement of grid performed.')
     end
     
@@ -606,9 +612,10 @@ if plotTrapProfiles
  
     % PLOT TRAPS COLORED BY CO2 MASS STORAGE CAPACITY
     figure; set(gcf,'Position',[1 1 3000 500])
+    hfig = gcf;
     
     %
-    subplot(1,5,1)
+    subplot(1,5,1); hsub1 = gca; hfsub1 = gcf;
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
 
@@ -639,18 +646,19 @@ if plotTrapProfiles
 
 
     %
-    subplot(1,5,2)
+    subplot(1,5,2); hsub2 = gca; hfsub2 = gcf;
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, cellsTrapCO2Mass/1e9, cellsTrapCO2Mass~=0, 'EdgeColor','none')
 
     set(gca,'DataAspect',[1 1 1/100])
     [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Distributed CO2 Mass under Trap, Mt', 'fontSize', 18 );
-    grid; axis tight; set(gca, 'fontSize', 10);
+    grid; axis tight;
+    set(gca, 'fontSize', 10); % check for R2014a
 
     
     %
-    subplot(1,5,3)
+    subplot(1,5,3); hsub3 = gca; hfsub3 = gcf;
     hold on
     %plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
@@ -684,7 +692,7 @@ if plotTrapProfiles
     end
 
     %
-    subplot(1,5,4)
+    subplot(1,5,4); hsub4 = gca; hfsub4 = gcf;
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, structural_mass_reached/1e3/1e6, 'EdgeColor','none');
@@ -695,33 +703,94 @@ if plotTrapProfiles
 
 
     % PLOT SPILL PATHS AND TOPOLOGY
-    subplot(1,5,5)
+    subplot(1,5,5); hsub5 = gca; hfsub5 = gcf;
     hold on
     mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
 
     grid; axis equal tight;
     
-    % For making plotting adjustments to subplots
-    axesHandles = get(gcf,'children');
     
-    % Add Injection Location In Each Subplot:
-    for i=1:numel(axesHandles)
-        if strcmpi(axesHandles(i).Type,'axes')
-            
-            subplot(axesHandles(i))
-            % actual location
-            plot(wellXcoord,wellYcoord,'o', ...
-                'MarkerEdgeColor','k',...
-                'MarkerFaceColor','r',...
-                'MarkerSize',10)
-            % simulated location
-            plot(wellCoord_x,wellCoord_y,'x', ...
-                'LineWidth',3,  ...
-                'MarkerEdgeColor','k',...
-                'MarkerFaceColor','k',...
-                'MarkerSize',10)
-        end
-    end
+%     hsubs = [hsub1 hsub2 hsub3 hsub4 hsub5]; % handles of subplot axes only (not colorbars)
+%     hfsubs = [hfsub1 hfsub2 hfsub3 hfsub4 hfsub5]; % handles of subplot figures only (not colorbars)
+%     
+%     % For making plotting adjustments to subplots
+%     hax = get(gcf,'children');
+%     hsubs = findobj(hax,'type','axes','Tag','');
+%     
+%     for i = 1:numel(hsubs)
+%        set(0,'currentaxes',hsubs(i))
+%        
+%     end
+%     
+%     % Add Injection Location In Each Subplot:
+%     for i=1:numel(hax)
+%         if strcmpi(hax(i).Type,'axes')
+%             
+%             subplot(hax(i))
+%             % actual location
+%             plot(wellXcoord,wellYcoord,'o', ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','r',...
+%                 'MarkerSize',10)
+%             % simulated location
+%             plot(wellCoord_x,wellCoord_y,'x', ...
+%                 'LineWidth',3,  ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','k',...
+%                 'MarkerSize',10)
+%         end
+%     end
+%     
+%     
+%     
+%     
+%     % % only works for R2014a/earlier
+%     %hfig = gcf;
+%     %hsubplots = get(hfig,'Children');
+%     
+%     for i=1:length(hsubs)
+% 
+%         %subplot(hsubs(i))
+%         axes(hsubs(i))
+%         %set(0, 'currentfigure', hfig);
+%         %set(hfig, 'currentaxes', hsubs(i))
+%         hold on
+%         plot(wellXcoord,wellYcoord,'o', ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','r',...
+%                 'MarkerSize',10)
+%             % simulated location
+%         plot(wellCoord_x,wellCoord_y,'x', ...
+%                 'LineWidth',3,  ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','k',...
+%                 'MarkerSize',10)
+%     end
+    
+    
+    
+% does not work for R2014a/earlier!
+%     % For making plotting adjustments to subplots
+%     axesHandles = get(gcf,'children');
+%     
+%     % Add Injection Location In Each Subplot:
+%     for i=1:numel(axesHandles)
+%         if strcmpi(axesHandles(i).Type,'axes')
+%             
+%             subplot(axesHandles(i))
+%             % actual location
+%             plot(wellXcoord,wellYcoord,'o', ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','r',...
+%                 'MarkerSize',10)
+%             % simulated location
+%             plot(wellCoord_x,wellCoord_y,'x', ...
+%                 'LineWidth',3,  ...
+%                 'MarkerEdgeColor','k',...
+%                 'MarkerFaceColor','k',...
+%                 'MarkerSize',10)
+%         end
+%     end
     
     hfig = gcf;
     hax  = gca;
@@ -762,6 +831,79 @@ if plotTrapAndPlumeCompare
 
 end
 
+%% Basic capacity estimates and Show table of Structural trapping details
+if ~exist('mycase','var')
+    if useIEAGHG_model
+        mycase = 'IEAGHG';
+    elseif useOriginal_model
+        mycase = 'GHGT';
+    end
+end
+if ~exist('myresolution','var')
+    if useRefinedGrid
+        myresolution = 'useRefinedGrid';
+    else
+        myresolution = 'none';
+    end
+end
+
+   fprintf('------------------------------------------------\n');
+   fprintf('Processing case: %s , %s (numRef=%d) ....\n', mycase, myresolution, refineLevel);
+   
+   tan     = trapAnalysis(Gt, false);
+   tac     = trapAnalysis(Gt, true);
+   
+   %tan_volumes = volumesOfTraps(Gt, tan);
+   %tac_volumes = volumesOfTraps(Gt, tac);
+   
+   i = 1;
+   res{i}.name      = mycase;
+   if strcmpi(myresolution,'useRefinedGrid')
+       res{i}.refLevel  = refineLevel;
+   else
+       res{i}.refLevel  = 0;
+   end
+   res{i}.cells     = Gt.cells.num;
+   res{i}.zmin      = min(Gt.cells.z);
+   res{i}.zmax      = max(Gt.cells.z);
+   res{i}.volume    = sum(G.cells.volumes);
+   res{i}.surfarea  = sum(Gt.cells.volumes);
+   res{i}.ctrapvols = volumesOfTraps(Gt,tac);
+   res{i}.ccapacity = sum(res{i}.ctrapvols);
+   res{i}.ntrapvols = volumesOfTraps(Gt,tan);
+   res{i}.ncapacity = sum(res{i}.ntrapvols);
+   fprintf('done\n');
+
+% create table:
+   fprintf('\n\n------------------------------------------------\n');
+   fprintf('%-20s& Refined & Cells  & Min  & Max  & Volume   & Capacity  & Percent &  Capacity & Percent\\\\\n', 'Name');
+
+   fprintf('%-20s&   %2d    & %6d & %4.0f & %4.0f & %4.2e & %4.2e  & %5.2f   & %4.2e  & %5.2f \\\\\n',...
+      res{i}.name, res{i}.refLevel, res{i}.cells, res{i}.zmin, res{i}.zmax, res{i}.volume, ...
+      res{i}.ncapacity, res{i}.ncapacity/res{i}.volume*100, ...
+      res{i}.ccapacity, res{i}.ccapacity/res{i}.volume*100);
+   fprintf('------------------------------------------------\n');
+  
+  
+  fprintf('\n\n---------------Node-based------------------------\n');
+  fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
+   
+  fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
+      res{i}.name, res{i}.refLevel, ...
+      numel(res{i}.ntrapvols), ...
+      sum(res{i}.ntrapvols), ...
+      mean(res{i}.ntrapvols) );
+  fprintf('------------------------------------------------\n');
+  
+    fprintf('\n\n---------------Cell-based------------------------\n');
+  fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
+   
+  fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
+      res{i}.name, res{i}.refLevel, ...
+      numel(res{i}.ctrapvols), ...
+      sum(res{i}.ctrapvols), ...
+      mean(res{i}.ctrapvols) );
+  fprintf('------------------------------------------------\n');
 
 
 

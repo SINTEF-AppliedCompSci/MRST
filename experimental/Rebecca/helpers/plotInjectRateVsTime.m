@@ -14,16 +14,25 @@ function [ hfig, hax ] = plotInjectRateVsTime(schedule,inj_year,rhoCref)
     xlabel('time, yr','FontSize',14)
     ylabel('injection rate, m^3/s','FontSize',14)
     hold off
-    ax = gca;
-    ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    %ax = gca;
+    %ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    % use R2014a and earlier releases syntax to ensure backwards compatibility 
+    ax  = get(gca, 'XTick');
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)-1), ax, 'UniformOutput', false);
+    set(gca, 'XTickLabel', axl)
+    
 
     subplot(1,4,2)
     plot(timeSinceInj, rateNow*(rhoCref/1e9*365*24*60*60), 'o--k') % Mt/yr
     xlabel('time, yr','FontSize',14')
     ylabel('injection rate, Mt/year','FontSize',14)
     hold off
-    ax = gca;
-    ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    %ax = gca;
+    %ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    % use R2014a and earlier releases syntax to ensure backwards compatibility 
+    ax  = get(gca, 'XTick');
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)-1), ax, 'UniformOutput', false);
+    set(gca, 'XTickLabel', axl)
 
     subplot(1,4,3) %(compare this plot against Cavanagh 2013, fig 3)
     massNowLast             = 0;
@@ -37,8 +46,12 @@ function [ hfig, hax ] = plotInjectRateVsTime(schedule,inj_year,rhoCref)
     xlabel('time, yr','FontSize',14)
     ylabel('Accumulated mass injected, Mt','FontSize',14)
     hold off
-    ax = gca;
-    ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    %ax = gca;
+    %ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    % use R2014a and earlier releases syntax to ensure backwards compatibility 
+    ax  = get(gca, 'XTick');
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)-1), ax, 'UniformOutput', false);
+    set(gca, 'XTickLabel', axl)
     
     
     subplot(1,4,4) % compare this plot with given Sleipner injection rate data (mass, kg).
@@ -47,8 +60,12 @@ function [ hfig, hax ] = plotInjectRateVsTime(schedule,inj_year,rhoCref)
     xlabel('time, yr','FontSize',14)
     ylabel('Accumulated mass injected, kg','FontSize',14)
     hold off
-    ax = gca;
-    ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    %ax = gca;
+    %ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    % use R2014a and earlier releases syntax to ensure backwards compatibility 
+    ax  = get(gca, 'XTick');
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)-1), ax, 'UniformOutput', false);
+    set(gca, 'XTickLabel', axl)
     
     hfig = gcf;
     hax  = gca;
