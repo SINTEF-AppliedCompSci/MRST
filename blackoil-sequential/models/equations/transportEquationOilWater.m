@@ -12,7 +12,7 @@ opt = struct('Verbose', mrstVerbose, ...
 
 opt = merge_options(opt, varargin{:});
 
-W = drivingForces.Wells;
+W = drivingForces.W;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
