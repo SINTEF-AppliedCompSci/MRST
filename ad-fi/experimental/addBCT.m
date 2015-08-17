@@ -106,7 +106,7 @@ end
 
 t = lower(t);
 
-assert (all(strcmpi(t, 'temprature') ), ...
+assert (all(strcmpi(t, 'temperature') ), ...
         'Boundary condition type should be  ''temprature''');
 
 % Validate saturation input.
