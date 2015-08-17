@@ -1,7 +1,10 @@
 % small program to test out calculation of sensitivties and optimization 8
 % years of injection
 disp('Starting new injection scenario.')
-    clear schedule      
+moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
+    'coarsegrid','upscaling','incomp','mrst-experimental','optimization');
+    clear schedule 
+    gravity on
     % Trapping analysis method
     isCellBasedMethod = false; % true to use cell-based method, false to use node-based method
     % FOR PLOTS:
@@ -69,7 +72,7 @@ disp('Starting new injection scenario.')
     
     % Specify and compute time step size for injection period.
     % ***Note: inj_time and inj_steps are applied to each inj_rate given***
-    num_years   = 9;
+    num_years   = 10;
     inj_time    = 1 * year; % DEFAULT. CAN ONLY ADJUST NUMBER OF STEPS.
     inj_steps   = 1;
     dTi         = inj_time / inj_steps; % timestep size in seconds
@@ -102,7 +105,7 @@ disp('Starting new injection scenario.')
     
     
     % ************************ END OF USER OPTIONS ****************************
-    refineLevel = -4;
+    refineLevel = 1;
     [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel, 'plotsOn',false);
     %% Modify original parameters (optional) and visualize model grids
     if mod_rock
@@ -190,30 +193,76 @@ disp('Starting new injection scenario.')
         'dissolution' , isDissOn, 'dis_max', dis_max);
     model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);  
     [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
- 
+    
+    %%
+    clear CO2VEBlackOilTypeModelSens
+    smodel = CO2VEBlackOilTypeModelSens(Gt, rock2D, fluid);
+    initState.dz=zeros(G.cells.num,1);
+    for i=1:numel(schedule.control)
+        schedule.control(i).dz=zeros(G.cells.num,1);
+    end
+    %
+    [wellSols, states, sim_report] = simulateScheduleAD(initState, smodel, schedule);
+    
     %% Save variables in workspace:
     %save(datestr(clock,30));
     figure(1),clf,plotCellData(Gt,states{end}.s(:,1)),colorbar
-    plume = getLayer9CO2plumeOutlines();
-    Years2plot = [1999; 2001; 2002; 2004; 2006; 2008];
-    ny=6;
+    plumes = getLayer9CO2plumeOutlines();
+    plumes = makeSurfaceData(plumes,Gt);
+    states = addHightData(states,Gt,fluid)
+    ny=1;
     X=reshape(Gt.cells.centroids(:,1),G.cartDims(1),G.cartDims(2));
     Y=reshape(Gt.cells.centroids(:,2),G.cartDims(1),G.cartDims(2));
     Z=reshape(Gt.cells.z,G.cartDims(1),G.cartDims(2));
     topsurface=@(coord) interp2(X',Y',Z',coord(:,1),coord(:,2));
-    disp(['Outline ', num2str(Years2plot(ny))]);
-    line_coord=plume{ny}.outline;
-    line(line_coord(:,1), line_coord(:,2),topsurface(line_coord), 'LineWidth',3, 'Color','r')
-    figure(2)
-    plot(line_coord(:,2),topsurface(line_coord))
-    figure(3),clf,,hold on
-    line(line_coord(:,1), line_coord(:,2),topsurface(line_coord), 'LineWidth',3, 'Color','r')
-    %contour(X,Y,Z,20)
-    cc=contour(X,Y,reshape(states{end}.s(:,2).*Gt.cells.H,Gt.cartDims(1),Gt.cartDims(2)),0.7)
-    %lcc=cc';
-    %line(lcc(:,1), lcc(:,2),topsurface(lcc), 'LineWidth',3, 'Color','r')
-    %contour(X,Y,reshape(states{end}.s(:,2),Gt.cartDims(1),Gt.cartDims(2)),20)
+    line_coord=plumes{ny}.outline;
     %%
-    lcc=cc';
-    figure(4),clf
-    plot(lcc(:,2),topsurface(lcc))
+    for i=1:numel(plumes)
+        % hack
+        tstep = plumes{i}.year-1998;     
+        if(tstep<=numel(states))
+        figure(i),clf
+        subplot(1,3,1)           
+        plotCellData(Gt,plumes{i}.h),colorbar;axis tight
+        line(plumes{i}.outline(:,1), plumes{i}.outline(:,2),topsurface(plumes{i}.outline)-1, 'LineWidth',3, 'Color','r')
+        subplot(1,3,2)
+        plotCellData(Gt,states{tstep}.h),colorbar,axis tight
+        subplot(1,3,3)
+        plotCellData(Gt,states{tstep}.h-plumes{i}.h),colorbar,axis tight
+        end
+    end
+    %%
+    newplumes=cell(numel(states),1);
+    for i=1:numel(plumes)
+        tstep = plumes{i}.year-1998;
+        if(tstep<=numel(states))
+        %newplumes{tstep}=struct('h',states{tstep}.s(:,2).*Gt.cells.H./(1-fluid.res_water));
+        %newplumes{tstep}.h=newplumes{tstep}.h+rand(G.cells.num,1).*(newplumes{tstep}.h>0.5)
+        %newplumes{tstep}.h=newplumes{tstep}.h+10*(newplumes{tstep}.h>0.5)
+        newplumes{tstep}=plumes{i}
+        end
+        %newplumes{tstep}=plumes{i};      
+    end
+    a=matchToData(model, wellSols, states, schedule, newplumes)
+    %%
+    %cc=insidePolygon(line_coord,Gt.cells.centroids);
+    %plotCellData(Gt,double(cc))
+    %%
+    obj_fun = @(wellSols,states,schedule,varargin) matchToData(model, wellSols, states, schedule, newplumes, varargin{:});
+    objh = @(tstep) obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
+    obj_fun2 = @(wellSols,states) matchToData(model, wellSols, states, schedule, newplumes);
+    g    = computeGradientAdjointAD(initState, states, model, schedule, objh);
+    %gn    = computeGradientPerturbationAD(initState, model, schedule, obj_fun2);
+    %%
+    obj_funs = @(wellSols,states,schedule,varargin) matchToDataSens(smodel, wellSols, states, schedule, newplumes, varargin{:});
+    objhs = @(tstep) obj_funs(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
+    %obj_fun2 = @(wellSols,states) matchToDatas(smodel, wellSols, states, schedule, newplumes);
+    gs   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', 'well');
+    gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', 'scell');
+    %%
+    dobj_dz=ones(Gt.cells.num,1);
+    for i=1:numel(gsc)
+       dobj_dz=dobj_dz+gsc{i}; 
+    end
+    figure(33),plotCellData(Gt,dobj_dz),colorbar
+    
