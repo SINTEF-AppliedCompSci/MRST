@@ -1,4 +1,4 @@
-classdef WellModel
+classdef WellModel < handle
 %Well model for three phase flow with black oil-style fluids
 %
 % SYNOPSIS:
