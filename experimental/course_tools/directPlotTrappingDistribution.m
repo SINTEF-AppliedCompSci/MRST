@@ -45,7 +45,9 @@ function directPlotTrappingDistribution(ax, report, varargin)
     cur_col = 1;
     for i = 1:numel(chld)
         obj = get(chld(i));
-        if strcmpi(obj.Type, 'hggroup')
+        % R2014 and later releases use Type=area, whereas earlier releases
+        % use Type=hggroup.
+        if strcmpi(obj.Type, 'hggroup') || strcmpi(obj.Type, 'area')
             set(chld(i), 'FaceColor', col(cur_col, :));
             
             if (cur_col == 4) && skip_subscale

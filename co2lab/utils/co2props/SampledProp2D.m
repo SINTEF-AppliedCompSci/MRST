@@ -437,7 +437,12 @@ function tables = deriv_tables(base, delta_v1, delta_v2, const_derivatives)
     tables.d1 = diff(base, 1, 1) / delta_v1;
     tables.d2 = diff(base, 1, 2) / delta_v2;
 
-    if ~const_derivatives
+    if const_derivatives
+       % insert dummy row/col to keep derivative tables at same size as
+       % original (the values in these rows will never be used)
+       tables.d1 = [tables.d1; zeros(1, size(tables.d1, 2))];
+       tables.d2 = [tables.d2, zeros(size(tables.d2, 1), 1)];
+    else
        % derivatives not considered constant between each data point.
        % In this case, we also admit functions for higher derivatives.
 

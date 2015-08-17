@@ -138,9 +138,9 @@ for i = 1:2
       jthick = findname(jur{j});
       dispif(opt.Verbose, ['Processing ' jur{j} ' ...\n']);
       if(opt.make_deck)
-         deck =  convertAtlasTo3D(jthick.meta, jtop.meta, jthick.data, jtop.data, opt.nz);
+         deck = convertAtlasTo3D(jthick.meta, jtop.meta, jthick.data, jtop.data, opt.nz);
       else
-         deck= convertAtlasToStruct(jthick.meta, jtop.meta, jthick.data, jtop.data);
+         deck = convertAtlasToStruct(jthick.meta, jtop.meta, jthick.data, jtop.data);
       end
       deck.name = jthick.name;
       
@@ -194,12 +194,18 @@ for i = 1:numel(grids)
     nstr = regexp(g, '_', 'split');
 
     % Designate the type based on the file names
-    ind = strcmpi(nstr, 'thickness') | strcmpi(nstr, 'top');
+    ind = strcmpi(nstr, 'thickness') | strcmpi(nstr, 'top') | strcmpi(nstr, 'aq') | strcmpi(nstr, 'fm');
     tmp.name = [nstr{~ind}];
     
     if any(strcmpi(nstr, 'thickness'))
         tmp.variant = 'thickness';
         isTop = false;
+    elseif any(strcmpi(nstr, 'aq'))
+        tmp.variant = 'top';
+        isTop = true;
+    elseif any(strcmpi(nstr, 'fm'))
+        tmp.variant = 'top';
+        isTop = true;
     else
         tmp.variant = 'top';
         isTop = true;

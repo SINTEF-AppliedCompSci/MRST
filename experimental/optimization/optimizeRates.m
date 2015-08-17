@@ -17,6 +17,7 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
 
    moduleCheck('ad-core', 'ad-props', 'optimization');
 
+   opt.dryrun = false;    % if 'true', no optimization will take place
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    opt.last_control_is_migration = false; % if true, constrain last control to zero rate
@@ -46,6 +47,14 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
       % Use value of objective function before optimization as scaling.
       opt.obj_scaling = abs(init.obj_val_total);
    end
+   
+   %% Return if optimization should be skipped
+   if opt.dryrun
+      optim = init;
+      history = [];
+      return;
+   end
+   
    
    %% Define limits, scaling and objective function
    
