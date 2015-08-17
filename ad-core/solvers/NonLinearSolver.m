@@ -160,6 +160,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             %         actually implemented for that specific step function.
             %         Not all combinations are meaningful for all models.
             %
+            %         Some models may implement other types of external
+            %         forces that have other names, specified in the
+            %         model's "getValidDrivingForces" method.
+            %
             % RETURNS:
             %  state      - Problem state after timestep, i.e. if state0
             %               held pressure, saturations, ... at T_0, state
