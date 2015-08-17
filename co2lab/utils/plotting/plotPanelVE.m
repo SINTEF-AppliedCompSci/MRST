@@ -154,7 +154,7 @@ if t==0
 else
    if ishandle(h1), delete(h1); end
    if prm.wireS
-      h1 = plotCellData(G, sol.s, sol.s>prm.ptol, 'EdgeAlpha', 0.1); 
+      h1 = plotCellData(G, sol.s, find(sol.s>prm.ptol), 'EdgeAlpha', 0.1); 
    else
       h1 = plotCellData(G, sol.s, 'EdgeColor','w','EdgeAlpha', .15); 
    end
