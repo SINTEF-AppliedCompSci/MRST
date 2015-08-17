@@ -148,7 +148,7 @@ methods
 
         % Handle the directly assigned values (i.e. can be deduced directly from
         % the well controls. This is black oil specific.
-        W = drivingForces.Wells;
+        W = drivingForces.W;
         state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
     end
     

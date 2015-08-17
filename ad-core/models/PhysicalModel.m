@@ -209,16 +209,6 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function [vararg, driving] = getDrivingForces(model, control) %#ok
-        % Setup and pass on driving forces. Dummy version for base
-        % class. Vararg should be suitable for passing as 
-        % someFunction(a, b, vararg{:}) while driving should be a
-        % struct containing the same information.
-        vararg = {};
-        driving = struct();
-    end
-
-    % --------------------------------------------------------------------%
     function [fn, index] = getVariableField(model, name)
         % Get the index/name mapping for the model (such as where
         % pressure or water saturation is located in state). This
@@ -361,6 +351,21 @@ methods
             v = min(v, maxvalue);
         end
         state = model.setProp(state, name, v);
+    end
+    
+    % --------------------------------------------------------------------%
+    function [vararg, control] = getDrivingForces(model, control) %#ok
+        % Setup and pass on driving forces. Outputs both a cell array
+        % suitable for parsing by merge_options and the control struct.
+        vrg = [fieldnames(control), struct2cell(control)];
+        vararg = reshape(vrg', 1, []);
+    end
+    
+    % --------------------------------------------------------------------%
+    function forces = getValidDrivingForces(model) %#ok
+        % Get struct with valid forces for model, with reasonable default
+        % values.
+        forces = struct();
     end
 end
 

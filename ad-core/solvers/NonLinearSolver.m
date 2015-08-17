@@ -177,12 +177,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             opt = struct('initialGuess', state0);
 
-            drivingForces = struct('Wells',         [],...
-                                   'bc',            [],...
-                                   'src',           [],...
-                                   'controlId',     nan);
-
+            % Get default driving forces for model
+            drivingForces = model.getValidDrivingForces();
+            % Add optional control ID for checking when forces are changing
+            drivingForces.controlId = nan;
+            
             [opt, forcesArg] = merge_options(opt, varargin{:});
+            % Merge in forces as varargin
             drivingForces = merge_options(drivingForces, forcesArg{:});
 
             assert(dT > 0, [solver.getId(), 'Negative timestep detected.']);
