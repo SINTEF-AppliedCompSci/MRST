@@ -201,6 +201,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ellipSolve = @(b) solver.ellipticSolver.solveLinearSystem(Ap, b);
 
             prec = @(r) applyTwoStagePreconditioner(r, A, L, U, pInx, ellipSolve);
+            assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
             try
                 [cprSol, fl, relres, its, resvec] = gmres(A, b, [], solver.relativeTolerance,...
                                                     min(solver.maxIterations, size(A, 1)), prec);
