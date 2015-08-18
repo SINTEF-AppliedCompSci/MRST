@@ -223,9 +223,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             dxCell = solver.storeIncrements(problem, cprSol);
             dx = problem.recoverFromSingleVariableType(problem0, dxCell, eliminated);
             
-            %dispif(solver.verbose, 'GMRES converged in %d iterations\n', its(2));
             % Recover stuff
             solvetime = toc(timer);
+            
+            if solver.verbose
+                switch fl
+                    case 0
+                        fprintf('GMRES converged:');
+                    case 1
+                        fprintf('GMRES did not converge. Reached maximum iterations');
+                    case 2
+                        fprintf('GMRES did not converge. Preconditioner was ill-conditioned.');
+                    case 3
+                        fprintf('GMRES stagnated. Unable to reduce residual.');
+                end
+                fprintf(' Final residual: %1.2e after %d iterations (tol: %1.2e) \n', relres, its(2), solver.relativeTolerance);
+            end
             
             if nargout > 1
                 result = vertcat(dx{:});
