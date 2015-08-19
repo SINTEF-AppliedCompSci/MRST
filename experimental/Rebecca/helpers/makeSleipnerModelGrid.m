@@ -4,8 +4,8 @@ function [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid( varargin )
 
 % SYNOPSIS:
 %  [G, Gt, rock, rock2D] = makeSleipnerModelGrid()
-%  [G, Gt, rock, rock2D] = makeSleipnerModelGrid('useIEAGHGmodel', true)
-%  [G, Gt, rock, rock2D] = makeSleipnerModelGrid('useIEAGHGmodel',true, 'refineLevel',2)
+%  [G, Gt, rock, rock2D] = makeSleipnerModelGrid('modelName','IEAGHGmodel' )
+%  [G, Gt, rock, rock2D] = makeSleipnerModelGrid('modelName','IEAGHGmodel', 'refineLevel',2)
 %
 % Default varargin:
 %  modelName    = 'IEAGHGmodel' (other options: 'ORIGINALmodel')
@@ -84,11 +84,13 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         clear gr sl_file
         
         
-        %%%%%% First assess grids
+        %%%%%% First assess grids and model properties
+        % TODO: hide this step unless wanting to see initial grid
         [G, Gt, rock, rock2D] = getGrids( grdecl, true, false );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
-        
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
         
         % required?
         % Then, we de-activate cells (i.e., remove) that correspond to the
@@ -105,7 +107,8 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         [G, Gt, rock, rock2D] = getGrids( grdecl_refined, true, false );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
-        
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
 
        
 
@@ -169,9 +172,12 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         
         
         %%%%%% First assess grids
+        % TODO: hide this step unless wanting to see initial grid
         [G, Gt, rock, rock2D] = getGrids( grdecl, true, false );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
         
         % Then, we de-activate cells (i.e., remove) that correspond to the
         % bottom and top layers that contain shale
@@ -188,7 +194,8 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         [G, Gt, rock, rock2D] = getGrids( grdecl_refined, true, false );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
-        
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
 
         
 
@@ -252,9 +259,12 @@ elseif strcmpi(opt.modelName,'INHOUSEmodel')
         
         
         %%%%%% First assess grids
+        % TODO: hide this step unless wanting to see initial grid
         [G, Gt, rock, rock2D] = getGrids( grdecl, false, true );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
         
         % Then, we de-activate cells (i.e., remove) that correspond to the
         % bottom and top layers that contain shale
@@ -270,6 +280,8 @@ elseif strcmpi(opt.modelName,'INHOUSEmodel')
         [G, Gt, rock, rock2D] = getGrids( grdecl_refined, false, true );
         % Then visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
+        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
         
         
         
