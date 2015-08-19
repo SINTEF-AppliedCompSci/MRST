@@ -72,21 +72,24 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     
     % Specify and compute time step size for injection period.
     % ***Note: inj_time and inj_steps are applied to each inj_rate given***
-    num_years   = 10;
+    num_years   = 2;
     inj_time    = 1 * year; % DEFAULT. CAN ONLY ADJUST NUMBER OF STEPS.
     inj_steps   = 1;
     dTi         = inj_time / inj_steps; % timestep size in seconds
     
     % Specify fluid properties:
     [rho, mu, sr, sw]   = getValuesSPE134891();
+    sr=0;sw=0;%NB
     water_density       = rho(1) * kilogram / meter ^3;
     rhoCref             = rho(2) * kilogram / meter ^3;
     
     seafloor_temp       = 7; % Celsius
     seafloor_depth      = 100; % meters
     temp_gradient       = 35.6; % Celsius / km
-    water_compr_val     = 0; %4.3e-5/barsa; % will convert to compr/Pa
-    pvMult              = 0; %1e-5/barsa;
+    %water_compr_val     = 0; %4.3e-5/barsa; % will convert to compr/Pa
+    water_compr_val     = 4.3e-5/barsa; %NB will convert to compr/Pa
+    %pvMult              = 0; %1e-5/barsa;
+    pvMult              = 1e-5/barsa;%NB
     isDissOn            = false;
     dis_max             = (53 * kilogram / meter^3) / rhoCref; % from CO2store
     
@@ -105,7 +108,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     
     
     % ************************ END OF USER OPTIONS ****************************
-    refineLevel = 1;
+    refineLevel = -4;
     [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel, 'plotsOn',false);
     %% Modify original parameters (optional) and visualize model grids
     if mod_rock
@@ -187,13 +190,23 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
         'wat_rho_ref' , water_density, ...
         'co2_rho_ref' , rhoCref, ...
         'wat_rho_pvt' , [water_compr_val, ref_p], ...
+        'co2_rho_pvt' , [water_compr_val, ref_p], ...%NB
         'pvMult_p_ref', ref_p, ...
         'pvMult_fac'  , pvMult, ...
         'residual'    , [sw, sr] , ...
         'dissolution' , isDissOn, 'dis_max', dis_max);
-    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);  
-    [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
     
+    %%
+    elipticsolver = BackslashSolverAD();
+    %elipticsolver = AGMGSolverAD();
+    linearsolver = CPRSolverAD('tolerance',1e-5,'ellipticSolver',elipticsolver);
+    
+    linearsolver = BackslashSolverAD();
+    nonlinearsolver = NonLinearSolver('LinearSolver',linearsolver);
+    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);  
+    [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule,'NonLinearSolver',nonlinearsolver);
+    %%
+%return   
     %%
     clear CO2VEBlackOilTypeModelSens
     smodel = CO2VEBlackOilTypeModelSens(Gt, rock2D, fluid);
@@ -209,7 +222,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     figure(1),clf,plotCellData(Gt,states{end}.s(:,1)),colorbar
     plumes = getLayer9CO2plumeOutlines();
     plumes = makeSurfaceData(plumes,Gt);
-    states = addHightData(states,Gt,fluid)
+    states = addHightData(states,Gt,fluid);
     ny=1;
     X=reshape(Gt.cells.centroids(:,1),G.cartDims(1),G.cartDims(2));
     Y=reshape(Gt.cells.centroids(:,2),G.cartDims(1),G.cartDims(2));
@@ -217,9 +230,11 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     topsurface=@(coord) interp2(X',Y',Z',coord(:,1),coord(:,2));
     line_coord=plumes{ny}.outline;
     %%
+    sim_year=cumsum(schedule.step.val)/year;
     for i=1:numel(plumes)
         % hack
-        tstep = plumes{i}.year-1998;     
+        plume_year = plumes{i}.year-1998;
+        tstep=find(sim_year==plume_year);
         if(tstep<=numel(states))
         figure(i),clf
         subplot(1,3,1)           
@@ -234,12 +249,14 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     %%
     newplumes=cell(numel(states),1);
     for i=1:numel(plumes)
-        tstep = plumes{i}.year-1998;
+        %tstep = plumes{i}.year-1998;
+        plume_year = plumes{i}.year-1998;
+        tstep=find(sim_year==plume_year);
         if(tstep<=numel(states))
-        %newplumes{tstep}=struct('h',states{tstep}.s(:,2).*Gt.cells.H./(1-fluid.res_water));
-        %newplumes{tstep}.h=newplumes{tstep}.h+rand(G.cells.num,1).*(newplumes{tstep}.h>0.5)
-        %newplumes{tstep}.h=newplumes{tstep}.h+10*(newplumes{tstep}.h>0.5)
-        newplumes{tstep}=plumes{i}
+            %newplumes{tstep}=struct('h',states{tstep}.s(:,2).*Gt.cells.H./(1-fluid.res_water));
+            %newplumes{tstep}.h=newplumes{tstep}.h+rand(G.cells.num,1).*(newplumes{tstep}.h>0.5)
+            %newplumes{tstep}.h=newplumes{tstep}.h+10*(newplumes{tstep}.h>0.5)
+            newplumes{tstep}=plumes{i};
         end
         %newplumes{tstep}=plumes{i};      
     end
@@ -257,12 +274,14 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     obj_funs = @(wellSols,states,schedule,varargin) matchToDataSens(smodel, wellSols, states, schedule, newplumes, varargin{:});
     objhs = @(tstep) obj_funs(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
     %obj_fun2 = @(wellSols,states) matchToDatas(smodel, wellSols, states, schedule, newplumes);
-    gs   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', 'well');
-    gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', 'scell');
+    gs   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well'});
+    %gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'scell'});
     %%
-    dobj_dz=ones(Gt.cells.num,1);
-    for i=1:numel(gsc)
-       dobj_dz=dobj_dz+gsc{i}; 
+     gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well','scell'});
+    %%
+    dobj_dz=zeros(Gt.cells.num,1);
+    for i=1:size(gsc,2)
+       dobj_dz=dobj_dz+gsc{2,i}; 
     end
-    figure(33),plotCellData(Gt,dobj_dz),colorbar
+    figure(33),clf,plotCellData(Gt,dobj_dz),colorbar
     
