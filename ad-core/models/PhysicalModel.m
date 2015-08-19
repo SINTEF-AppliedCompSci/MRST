@@ -181,6 +181,7 @@ methods
     function [gradient, result, report] = solveAdjoint(model, solver, getState,...
                                 getObjective, schedule, gradient, itNo)
         % Solve the adjoint equations for a given step.
+        validforces = model.getValidDrivingForces();
         dt_steps = schedule.step.val;
 
         current = getState(itNo);
@@ -188,14 +189,18 @@ methods
         dt = dt_steps(itNo);
 
         lookupCtrl = @(step) schedule.control(schedule.step.control(step));
-        [~, forces] = model.getDrivingForces(lookupCtrl(itNo));
+        % get forces and merge with valid forces
+        forces = model.getDrivingForces(lookupCtrl(itNo));
+        forces = merge_options(validforces, forces{:});
+        
         problem = model.getEquations(before, current, dt, forces, 'iteration', inf);
 
         if itNo < numel(dt_steps)
             after    = getState(itNo + 1);
             dt_next = dt_steps(itNo + 1);
-
-            [~, forces_p] = model.getDrivingForces(lookupCtrl(itNo + 1));
+            % get forces and merge with valid forces
+            forces_p = model.getDrivingForces(lookupCtrl(itNo + 1));
+            forces_p = merge_options(validforces, forces_p{:});
             problem_p = model.getEquations(current, after, dt_next, forces_p,...
                                 'iteration', inf, 'reverseMode', true);
         else
