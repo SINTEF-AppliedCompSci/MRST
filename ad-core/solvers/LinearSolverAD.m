@@ -94,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
            % Solve a linearized problem
            problem = problem.assembleSystem();
-           assert(all(isfinite(b)), 'Linear system rhs must have finite entries.');
+           assert(all(isfinite(problem.b)), 'Linear system rhs must have finite entries.');
            
            timer = tic();
            [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
