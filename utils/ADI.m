@@ -284,7 +284,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   error('Operation not supported');
           end
       end
+      
+      %--------------------------------------------------------------------
 
+      function ix = end(u, k, n) %#ok
+          assert(k == 1, 'ADI objects only support vector indexing.');
+          ix = numel(u.val);
+      end
+      
       %--------------------------------------------------------------------
 
       function h = exp(u)
