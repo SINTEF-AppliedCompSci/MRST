@@ -1,10 +1,10 @@
-function plumes = makeSurfaceData(plumes,Gt)
-    X=reshape(Gt.cells.centroids(:,1),Gt.cartDims(1),Gt.cartDims(2));
-    Y=reshape(Gt.cells.centroids(:,2),Gt.cartDims(1),Gt.cartDims(2));
-    Z=reshape(Gt.cells.z,Gt.cartDims(1),Gt.cartDims(2));
-    topsurface=@(coord) interp2(X',Y',Z',coord(:,1),coord(:,2));
-    for i=1:numel(plumes)
-        line_coord=plumes{i}.outline;
+function [plumes,co2_int] = makeSurfaceData(plumes,Gt)
+X=reshape(Gt.cells.centroids(:,1),Gt.cartDims(1),Gt.cartDims(2));
+Y=reshape(Gt.cells.centroids(:,2),Gt.cartDims(1),Gt.cartDims(2));
+Z=reshape(Gt.cells.z,Gt.cartDims(1),Gt.cartDims(2));
+topsurface=@(coord) interp2(X',Y',Z',coord(:,1),coord(:,2));
+for i=1:numel(plumes)
+    line_coord=plumes{i}.outline;
     nd=size(line_coord,1);
     A=[ones(nd,1),line_coord];
     rhs=topsurface(line_coord);
@@ -18,6 +18,6 @@ function plumes = makeSurfaceData(plumes,Gt)
     figure(44),clf
     plotCellData(Gt,hCO2(Gt.cells.centroids));colorbar
     line(line_coord(:,1), line_coord(:,2),topsurface(line_coord), 'LineWidth',3, 'Color','r')
-    %}    
-    end   
+    %}
+end
 end
