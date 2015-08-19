@@ -116,30 +116,8 @@ methods
    end
    
 % ------------------------------------------------------------------------
-function [vararg, driving] = getDrivingForces(model, control) %#ok
-        % Setup and pass on driving forces
-        vararg = {};
-        driving = struct('Wells', [], 'bc', [], 'src', [],'dz',[]);
-
-        if isfield(control, 'W') && ~isempty(control.W)
-            vararg = [vararg, 'Wells', control.W];
-            driving.Wells = control.W;
-        end
-
-        if isfield(control, 'bc') && ~isempty(control.bc)
-            vararg = [vararg, 'bc', control.bc];
-            driving.bc = control.bc;
-        end
-
-        if isfield(control, 'src') && ~isempty(control.src)
-            vararg = [vararg, 'src', control.src];
-            driving.src = control.src;
-        end
-        
-        if isfield(control, 'dz') && ~isempty(control.dz)
-            vararg = [vararg, 'dz', control.dz];
-            driving.dz = control.dz;
-        end
+function forces = getValidDrivingForces(model) 
+        forces = struct('W', [], 'bc', [], 'src', [],'dz',[]);
 end
 
 % ------------------------------------------------------------------------
