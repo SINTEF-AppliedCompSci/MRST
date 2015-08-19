@@ -7,7 +7,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    opt = merge_options(opt, varargin{:});
 
    assert(isempty(drivingForces.src)); % unsupported
-   W  = drivingForces.Wells;
+   W  = drivingForces.W;
    s  = model.operators;
    f  = model.fluid;
 
@@ -25,7 +25,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    if ~opt.resOnly
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
-         [p, sG, bhp, qWs, qGs] = initVariablesADI(p, sG, bhp, qWs, qGs);
+         [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
       else
          zw = zeros(size(bhp)); % dummy
          [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
@@ -124,7 +124,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
 
 
    %% Setting up problem
-   primaryVars = {'pressure' , 'sG'   , 'bhp'        , 'qWs'      , 'qGs'};
+   primaryVars = {'pressure' , 'sG'   , 'qWs'      , 'qGs', 'bhp'};
    types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well'};
    names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells'};
    if isempty(W)
