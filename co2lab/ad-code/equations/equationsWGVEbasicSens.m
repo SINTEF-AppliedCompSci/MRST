@@ -7,7 +7,7 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    opt = merge_options(opt, varargin{:});
 
    assert(isempty(drivingForces.src)); % unsupported
-   W  = drivingForces.Wells;
+   W  = drivingForces.W;
    s  = model.operators;
    f  = model.fluid;
 
