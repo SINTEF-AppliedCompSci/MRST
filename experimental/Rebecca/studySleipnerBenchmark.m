@@ -6,11 +6,10 @@
 % explained below:
 
     % The first option is related to which Sleipner grid is loaded.
-    % Currently, this script can handle the IEAGHG model or the ORIGINAL
-    % model. Both grids are capable of refinement.
-    % TODO: implement loading/generation of INHOUSE grid (from Statoil).
-    % TODO: keep names consistent; IEAGHG, ORIGINAL = GHGT (in-house),
-    % INHOUSE (Statoil).
+    % Currently, this script can handle the IEAGHG model, the ORIGINAL
+    % (GHGT) model, and the INHOUSE (Statoil) model. All grids are capable
+    % of refinement. TODO: keep names consistent; IEAGHG, ORIGINAL = GHGT
+    % (in-house), INHOUSE (Statoil).
 
     % The second option is which annual injection rates to use. The
     % available rates are either those which come from Singh et al 2010
@@ -42,6 +41,12 @@
         % sleipner_prep.data
     % The above file(s) should be placed in:
         % co2lab/data/sleipner/original/
+        
+    
+    % To use the INHOUSE model, the necessary grdecl file is:
+        % M920X1_40DZ.grdecl
+    % The above file should be placed in:
+        % co2lab/data/sleipner/
     
 
 % Notes about other files needed for this script to run:
@@ -49,9 +54,6 @@
     % CO2 plume outlines - "layer9_polygons_XXXX.mat" (where XXXX is the
     % year, such as 1999) files should be created and placed in current
     % working directory.
-    
-    % Injection rates - "SleipnerOriginalInjectionRates.mat" should be
-    % created and placed in current working directory.
 
 
 % Note that the following script will read the appropriate grdecl files and
@@ -88,10 +90,10 @@ if ~performPostProcessing
     disp('Starting new injection scenario.')
 
 % selection of what will be plotted before simulation starts:
-plotModelGrid                   = true;
-plotInitialPressure             = true;
-plotActualVsSimInjectLocation   = true;
-plotInjectRateOverTime          = true;
+plotModelGrid                   = false;
+plotInitialPressure             = false;
+plotActualVsSimInjectLocation   = false;
+plotInjectRateOverTime          = false;
 
 
 % Trapping analysis method (used for Post-processing, not simulation).
@@ -113,9 +115,9 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-mycase          = 'useInhouse_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
+mycase          = 'useIEAGHG_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
 myresolution    = 'none';               % 'useRefinedGrid', 'none'
-refineLevel     = -6;                    % only used when "myresolution = useRefinedGrid"
+refineLevel     = -4;                    % only used when "myresolution = useRefinedGrid"
 
 
 % Physical coordinate of injection well (Singh et al. 2010)
@@ -171,8 +173,8 @@ inj_steps   = 5;
 dTi         = inj_time / inj_steps; % timestep size in seconds
 
 % Specify and compute time step size for migration period. 
-mig_time    = 1 * year; % CAN ADJUST.
-mig_steps   = 1;        % CAN ADJUST.
+mig_time    = 100 * year; % CAN ADJUST.
+mig_steps   = 100;        % CAN ADJUST.
 dTm         = mig_time / mig_steps; % timestep size in seconds
 
 
@@ -380,7 +382,7 @@ end
 
 % confirm inj_rate, inj_year, and time steps
 if plotInjectRateOverTime
-    [ hfig, hax ] = plotInjectRateVsTime(schedule,inj_year,rhoCref);
+    [ hfig, hax, timeSinceInj, massNow ] = plotInjectRateVsTime(schedule,inj_year,rhoCref);
 end
 
 
@@ -412,10 +414,10 @@ model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 % of the plume, a pie chart of trapped versus free volume, a plane view of
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
-%wellIn = % in 3D
-%opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], ...
-%   'maxH', 5, 'Wadd', 10, 'view', [130 50]};
-%plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,6), opts{:});
+% opts = {'slice', wellCellIndex, 'Saxis', [0 1-fluid.res_water], ...
+%    'maxH', 5, 'Wadd', 10, 'view', [130 50]};
+% plotPanelVE(G, Gt, W, sol, 0.0, ones(1,6), opts{:}); % or zeros(1,6);
+
 
 
 % _________________________________________________________________________
@@ -430,8 +432,15 @@ pause
 % Save variables in workspace:
 % first, close all figures
 close all
-save(datestr(clock,30));
-% (TODO: used data as fileName rather than clock time)
+if strcmpi(mycase(1:3), 'use') && strcmpi(mycase(end-5:end), '_model')
+    name = mycase(4:end-6);
+end
+if strcmpi(myInjRates(1:3), 'use')
+    rateName = myInjRates(4:end);
+end
+fileName = [name 'refNum' num2str(refnum) '_' rateName '_' datestr(clock,30)];
+save(fileName);
+
 
 end
 % end of new injection scenario.
@@ -446,20 +455,84 @@ end
 % saving) only parts needed
 
 if performPostProcessing
-    plotModelGrid                   = true;
-    plotInitialPressure             = true;
-    plotActualVsSimInjectLocation   = true;
-    plotInjectRateOverTime          = true;
-    plotBHPvsTime                   = true;
-    plotAccumCO2vsTime              = true;
-    plotEndOfSimResults             = true;
+    plotPanelVE                     = true;
+    plotModelGrid                   = false;
+    plotInitialPressure             = false;
+    plotActualVsSimInjectLocation   = false;
+    plotInjectRateOverTime          = false;
+    plotBHPvsTime                   = false;
+    plotAccumCO2vsTime              = false;
+    plotEndOfSimResults             = false;
     plotCO2simVsCO2obsData          = true; ZoomIntoPlume = true; % if false, entire grid is plotted
     plotTrappingInventory           = true;
-    plotTrapProfiles                = true;
-    plotTrapAndPlumeCompare         = true;
+    plotTrapProfiles                = false;
+    plotTrapAndPlumeCompare         = false;
     
     
+% Call to trap analysis, used for a few plotting functions
+if ~exist('isCellBasedMethod','var')
+    isCellBasedMethod = false;
+end
+ta = trapAnalysis(Gt, isCellBasedMethod); % true for cell-based method
+
+
+% ------------------   plotPanelVE (start) ---------------------- %
+% See also: migrateInjection, plotPanelVE
+if plotPanelVE
+
+Years2plot = [1999; 2001; 2002; 2004; 2006; 2008];
+
+[ hfig, hax ] = makeSideProfilePlots( Years2plot, inj_year, schedule, ...
+    G, Gt, sim_report, states, rock2D, fluid, rhoCref, wellCellIndex, ta );
+
+end
+
+% if plotPanelVE
+%     % Prepare for Panel Plots:
+%     sol.h = zeros(Gt.cells.num, 1);
+%     [ii, jj] = ind2sub(G.cartDims, G.cells.indexMap);
+%     opts = {'slice',     double([ii(wellCellIndex), jj(wellCellIndex)]),...
+%             'Saxis',     [0 1-fluid.res_water], ...
+%             'view',      [-85 70],...
+%             'plotPlume', true, ...
+%             'wireH',     true,...
+%             'wireS',     true,...
+%             'maxH',      (max(Gt.cells.z) - min(Gt.cells.z))/3, ...
+%             'plotHist',  true};
+%     t = 0;
+%     W = schedule.control(1).W;
+%     fh = plotPanelVE(G, Gt, W, sol, t, [0,0,0,0,0,0], opts{:});
+% 
+% 
+%     % Then make Panel Plot for a given time:
+%     W = schedule.control(end).W;
+%     sol = states{end};
+%     t = sum(schedule.step.val(1:end)); % time now in seconds? (or 1:end-1 ?)
+%     
+%     % Get volumes of co2 found in different trapping categories, using
+%     % heights, topology, trapping structure (ta), etc
+%     sol.s = sol.s(:,2); % sat of CO2
+%         sol.h       = sol.s;                                % sat = height?
+%         sol.h_max   = max(sol.h) * ones(Gt.cells.num,1);    % max sat of CO2
+%         fluid.sw = fluid.res_water;
+%         fluid.sr = fluid.res_gas;
+%         [s, H, hm]  = normalizeValuesVE(Gt, sol, fluid);
+%         sol.h       = H;
+%         sol.h_max   = hm;
+%     ta  = trapAnalysis(Gt, isCellBasedMethod);
+%     vol = volumesVE(Gt, sol, rock2D, fluid, ta);
+%     
+%     % mass injected at this given time
+%     [ ~, ~, timeSinceInj, massNow ] = plotInjectRateVsTime(schedule, inj_year, rhoCref); % massNow is in Mt
+%     totVolInj_m3 = massNow(end) * 1e9 / rhoCref;
+% 
+%     % since figure is already made, call plotPanelVE() without a varargout
+%     plotPanelVE(G, Gt, W, sol, t, [vol totVolInj_m3], opts{:});
+% end
+% ------------------   plotPanelVE (end)  ---------------------- %
+
     
+
 % -------------------------------------------------------------------------
 % Plots cooresponding to grid and inital set-up:
 
@@ -518,13 +591,11 @@ end
 
 
 % END of SIMULATION PROFILES
+% use 'final' or the year
 if plotEndOfSimResults
-    [ hfig, hax ] = plotProfilesAtGivenTime('final', Gt, states, initState, fluid, model, caprock_temperature);
+    [ hfig, hax ] = plotProfilesAtGivenTime('final', inj_year, Gt, states, initState, fluid, model, sim_report, caprock_temperature);
 end
 
-
-% Call to trap analysis:
-ta = trapAnalysis(Gt, isCellBasedMethod); % true for cell-based method
 
 
 % INVENTORY (from exploreSimulation.m)
@@ -906,6 +977,24 @@ end
   fprintf('------------------------------------------------\n');
 
 
+  
+% Cross-sectional slices through injection point:
+% first get index of injection well:
+[ii,jj] = ind2sub(Gt.cartDims, wellCellIndex);
+disp(['Well cell index is I=',num2str(ii),', J=',num2str(jj)])
+
+plotToolbar(G, states{end});
+% then click IJK, and apply to all I,K, but only J=jj
+view([0 0])
+% save figure, then close
+
+plotToolbar(G, states{end});
+% then click IJK, and apply to all J,K, but only I=ii
+view([90 0])
+
+% try other slice locations
+  
+  
 
 end
 % end of post-processing
