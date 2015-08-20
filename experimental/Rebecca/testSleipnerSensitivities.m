@@ -72,9 +72,9 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     
     % Specify and compute time step size for injection period.
     % ***Note: inj_time and inj_steps are applied to each inj_rate given***
-    num_years   = 2;
+    num_years   = 10;
     inj_time    = 1 * year; % DEFAULT. CAN ONLY ADJUST NUMBER OF STEPS.
-    inj_steps   = 1;
+    inj_steps   = 2;
     dTi         = inj_time / inj_steps; % timestep size in seconds
     
     % Specify fluid properties:
@@ -108,15 +108,28 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     
     
     % ************************ END OF USER OPTIONS ****************************
-    refineLevel = -4;
+    refineLevel = 1;
     [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel, 'plotsOn',false);
+    %clear G,rock,
+    %%{
+    dx= (wellXcoord-Gt.cells.centroids(:,1));
+    dy= (wellYcoord-Gt.cells.centroids(:,2));
+    ind = dx<1e3 & dx>-1.5e3 & dy<1.3e3 & dy >-4e3;
+    clf,plotCellData(G,double(ind))
+    G=removeCells(G,find(~ind));
+    Gt =topSurfaceGrid(G);
+    clear G;
+    rock2D.perm=rock2D.perm(ind,:);
+    rock2D.poro=rock2D.poro(ind);
+    %}
+    %return
     %% Modify original parameters (optional) and visualize model grids
     if mod_rock
         disp('Original rock parameters are being modified ...')       
         % modify parameters
-        rock.poro   = rock.poro .* por_mod;
+        %rock.poro   = rock.poro .* por_mod;
         rock2D.poro = rock2D.poro .* por_mod;
-        rock.perm   = rock.perm .* perm_mod;
+        %rock.perm   = rock.perm .* perm_mod;
         rock2D.perm = rock2D.perm .* perm_mod;
     end
 
@@ -130,6 +143,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     if mod_rhoCO2
         disp('Original CO2 density value is being modified ...')
         rhoCref = rhoCref * rhoCO2_mod;
+        %rhoCref = 350;
     end  
     initState.pressure  = Gt.cells.z * norm(gravity) * water_density;   % hydrostatic pressure, in Pa=N/m^2
     initState.s         = repmat([1 0], Gt.cells.num, 1);               % sat of water is 1, sat of CO2 is 0
@@ -190,47 +204,56 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
         'wat_rho_ref' , water_density, ...
         'co2_rho_ref' , rhoCref, ...
         'wat_rho_pvt' , [water_compr_val, ref_p], ...
-        'co2_rho_pvt' , [water_compr_val, ref_p], ...%NB
+        'co2_rho_pvt' , [water_compr_val*10, ref_p], ...%NB
         'pvMult_p_ref', ref_p, ...
         'pvMult_fac'  , pvMult, ...
         'residual'    , [sw, sr] , ...
         'dissolution' , isDissOn, 'dis_max', dis_max);
     
     %%
+   
+   
     elipticsolver = BackslashSolverAD();
-    %elipticsolver = AGMGSolverAD();
+    elipticsolver = AGMGSolverAD('tolerance',1e-3,'reuseSetup',false);
     linearsolver = CPRSolverAD('tolerance',1e-5,'ellipticSolver',elipticsolver);
     
     linearsolver = BackslashSolverAD();
     nonlinearsolver = NonLinearSolver('LinearSolver',linearsolver);
-    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);  
-    [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule,'NonLinearSolver',nonlinearsolver);
+    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
+    tmpschedule=schedule;
+    tmpschedule.step.control=tmpschedule.step.control(1);
+    tmpschedule.step.val=tmpschedule.step.val(1);
+    %    
+    %{
+    profile off
+    profile on
+    [wellSols, states, sim_report] = simulateScheduleAD(initState, model, tmpschedule,'NonLinearSolver',nonlinearsolver);
+    profile off;
+    profile viewer
+    figure(),myplotCellData(Gt,states{end}.s(:,1))
+    %}
     %%
-%return   
+  %%return
     %%
     clear CO2VEBlackOilTypeModelSens
     smodel = CO2VEBlackOilTypeModelSens(Gt, rock2D, fluid);
-    initState.dz=zeros(G.cells.num,1);
+    initState.dz=zeros(Gt.cells.num,1);
     for i=1:numel(schedule.control)
-        schedule.control(i).dz=zeros(G.cells.num,1);
+        schedule.control(i).dz=zeros(Gt.cells.num,1);
     end
     %
     [wellSols, states, sim_report] = simulateScheduleAD(initState, smodel, schedule);
-    
+     %figure(),myplotCellData(Gt,states{end}.s(:,1))
+    %return
     %% Save variables in workspace:
     %save(datestr(clock,30));
     figure(1),clf,plotCellData(Gt,states{end}.s(:,1)),colorbar
     plumes = getLayer9CO2plumeOutlines();
-    plumes = makeSurfaceData(plumes,Gt);
+    [plumes,topsurface, topfit, hCO2] = makeSurfaceData(plumes,Gt)
     states = addHightData(states,Gt,fluid);
-    ny=1;
-    X=reshape(Gt.cells.centroids(:,1),G.cartDims(1),G.cartDims(2));
-    Y=reshape(Gt.cells.centroids(:,2),G.cartDims(1),G.cartDims(2));
-    Z=reshape(Gt.cells.z,G.cartDims(1),G.cartDims(2));
-    topsurface=@(coord) interp2(X',Y',Z',coord(:,1),coord(:,2));
-    line_coord=plumes{ny}.outline;
     %%
     sim_year=cumsum(schedule.step.val)/year;
+    myplotCellData =@(G,data) plotCellData(G,data,'EdgeColor','none');
     for i=1:numel(plumes)
         % hack
         plume_year = plumes{i}.year-1998;
@@ -238,14 +261,20 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
         if(tstep<=numel(states))
         figure(i),clf
         subplot(1,3,1)           
-        plotCellData(Gt,plumes{i}.h),colorbar;axis tight
+        myplotCellData(Gt,plumes{i}.h),colorbar;axis tight
         line(plumes{i}.outline(:,1), plumes{i}.outline(:,2),topsurface(plumes{i}.outline)-1, 'LineWidth',3, 'Color','r')
         subplot(1,3,2)
-        plotCellData(Gt,states{tstep}.h),colorbar,axis tight
+        myplotCellData(Gt,states{tstep}.h),colorbar,axis tight
         subplot(1,3,3)
-        plotCellData(Gt,states{tstep}.h-plumes{i}.h),colorbar,axis tight
+        myplotCellData(Gt,states{tstep}.h-plumes{i}.h),colorbar,axis tight
         end
     end
+    %%
+    ny=1;%numel(plumes)
+    figure(91),clf,myplotCellData(Gt,double((topfit(Gt.cells.centroids)-topsurface(Gt.cells.centroids))>0))
+    [isin,sang]=insidePolygon(plumes{ny}.outline,Gt.cells.centroids);
+    figure(92),clf,myplotCellData(Gt,sang),hold on
+    plot3(plumes{ny}.outline(:,1), plumes{ny}.outline(:,2),topsurface(plumes{ny}.outline)-100,'*-','LineWidth',3, 'Color','g')
     %%
     newplumes=cell(numel(states),1);
     for i=1:numel(plumes)
@@ -264,17 +293,18 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     %%
     %cc=insidePolygon(line_coord,Gt.cells.centroids);
     %plotCellData(Gt,double(cc))
-    %%
+    %{
     obj_fun = @(wellSols,states,schedule,varargin) matchToData(model, wellSols, states, schedule, newplumes, varargin{:});
     objh = @(tstep) obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
     obj_fun2 = @(wellSols,states) matchToData(model, wellSols, states, schedule, newplumes);
     g    = computeGradientAdjointAD(initState, states, model, schedule, objh);
+%}
     %gn    = computeGradientPerturbationAD(initState, model, schedule, obj_fun2);
     %%
     obj_funs = @(wellSols,states,schedule,varargin) matchToDataSens(smodel, wellSols, states, schedule, newplumes, varargin{:});
     objhs = @(tstep) obj_funs(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
     %obj_fun2 = @(wellSols,states) matchToDatas(smodel, wellSols, states, schedule, newplumes);
-    gs   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well'});
+    %gs   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well'});
     %gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'scell'});
     %%
      gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well','scell'});
@@ -283,5 +313,6 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     for i=1:size(gsc,2)
        dobj_dz=dobj_dz+gsc{2,i}; 
     end
-    figure(33),clf,plotCellData(Gt,dobj_dz),colorbar
-    
+    figure(33),clf,myplotCellData(Gt,dobj_dz),colorbar
+     ny=numel(plumes);
+     line(plumes{ny}.outline(:,1), plumes{ny}.outline(:,2),topsurface(plumes{ny}.outline)-3,'LineWidth',3, 'Color','r')
