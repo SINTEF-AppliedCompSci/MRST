@@ -1,6 +1,6 @@
-function [ hfig, hax ] = plotInjectRateVsTime(schedule,inj_year,rhoCref)
+function [ hfig, hax, timeSinceInj, massNow ] = plotInjectRateVsTime(schedule,inj_year,rhoCref)
 
-    figure; set(gcf,'Position',[1000 1000 1500 400])
+    figure; set(gcf,'Position',[1 1 1500 400])
     
     subplot(1,4,1)
     timeSinceInjLast        = 0;
