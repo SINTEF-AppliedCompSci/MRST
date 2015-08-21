@@ -369,8 +369,8 @@ function fluid = make_s_table_fluid(fluid, Gt, residual, C, alpha, beta)
 
    % Local constants used
    drho    = fluid.rhoWS - fluid.rhoGS;
-   samples = 100;
-   tabSw   = linspace(0, 1, 10)';
+   samples = 1000;
+   tabSw   = linspace(0, 1, 100)';
    tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
 
    table_co2_1d = makeVEtables(...
@@ -397,8 +397,8 @@ function fluid = make_p_scaled_fluid(fluid, Gt, residual, C, alpha, beta)
 
    % Local constants used
    drho    = fluid.rhoWS - fluid.rhoGS;
-   samples = 100;
-   tabSw   = linspace(0, 1, 10)';
+   samples = 1000;
+   tabSw   = linspace(0, 1, 100)';
    tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
 
    table_co2_1d = makeVEtables(...
@@ -427,8 +427,8 @@ function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, alpha, beta)
    % Local constants used
    kscale = sqrt(rock.poro ./ (rock.perm)) * fluid.surface_tension;
    drho    = fluid.rhoWS - fluid.rhoGS;
-   samples = 100;
-   tabSw   = linspace(0, 1, 10)';
+   samples = 1000;
+   tabSw   = linspace(0, 1, 100)';
    tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
 
    table_co2_1d = makeVEtables(...

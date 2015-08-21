@@ -20,7 +20,7 @@ function visualSimulation(initState, model, schedule, varargin)
    set_size(iface.h, opt.window_size(1), opt.window_size(2));
 
    % Graphical window
-   iface.ax = axes('parent', iface.h, 'position', [.05 .2 .90 .78]);
+   iface.ax = axes('parent', iface.h, 'position', [.05 .15 .90 .78]);
    
    % Slider
    step = 1/(numel(schedule.step.val)-1);
