@@ -978,23 +978,8 @@ end
 
 
   
-% Cross-sectional slices through injection point:
-% first get index of injection well:
-[ii,jj] = ind2sub(Gt.cartDims, wellCellIndex);
-disp(['Well cell index is I=',num2str(ii),', J=',num2str(jj)])
+[ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, states, fluid);
 
-plotToolbar(G, states{end});
-% then click IJK, and apply to all I,K, but only J=jj
-view([0 0])
-% save figure, then close
-
-plotToolbar(G, states{end});
-% then click IJK, and apply to all J,K, but only I=ii
-view([90 0])
-
-% try other slice locations
-  
-  
 
 end
 % end of post-processing
