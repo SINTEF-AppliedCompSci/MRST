@@ -117,7 +117,7 @@ methods
    
 % ------------------------------------------------------------------------
 function forces = getValidDrivingForces(model) 
-        forces = struct('W', [], 'bc', [], 'src', [],'dz',[]);
+        forces = struct('W', [], 'bc', [], 'src', [],'dz',[],'rhofac',1,'permfac',1,'porofac',1);
 end
 
 % ------------------------------------------------------------------------
@@ -133,6 +133,15 @@ end
         case {'dz'}
             index = 1;
             fn = 'dz';
+        case {'rhofac'}
+            index = 1;
+            fn = 'rhofac';
+        case {'permfac'}
+            index = 1;
+            fn = 'porofac';
+        case {'porofac'}
+            index = 1;
+            fn = 'porofac';
         otherwise
           [fn, index] = getVariableField@ReservoirModel(model, name);
       end

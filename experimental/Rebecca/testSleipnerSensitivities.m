@@ -1,4 +1,5 @@
-% small program to test out calculation of sensitivties and optimization 8
+% small program to test out calculation of sensitivties and optimization
+% 
 % years of injection
 disp('Starting new injection scenario.')
 moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
@@ -74,7 +75,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     % ***Note: inj_time and inj_steps are applied to each inj_rate given***
     num_years   = 10;
     inj_time    = 1 * year; % DEFAULT. CAN ONLY ADJUST NUMBER OF STEPS.
-    inj_steps   = 2;
+    inj_steps   = 1;
     dTi         = inj_time / inj_steps; % timestep size in seconds
     
     % Specify fluid properties:
@@ -213,11 +214,23 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     %%
    
    
-    elipticsolver = BackslashSolverAD();
-    elipticsolver = AGMGSolverAD('tolerance',1e-3,'reuseSetup',false);
-    linearsolver = CPRSolverAD('tolerance',1e-5,'ellipticSolver',elipticsolver);
+    %elipticsolver = BackslashSolverAD();
+    %elipticsolver = AGMGSolverAD('tolerance',1e-3,'reuseSetup',false);
+    %linearsolver = CPRSolverAD('tolerance',1e-5,'ellipticSolver',elipticsolver);
     
     linearsolver = BackslashSolverAD();
+    it_target=5;
+    rampup_dt = 20*day;
+    dtmax=1*year;
+    timestepper = ...
+       IterationCountTimeStepSelector('targetIterationCount', it_target,...
+                                      'minRelativeAdjustment', sqrt(eps),...
+                                      'maxRelativeAdjustment', 4, ...
+                                      'firstRampupStep',       rampup_dt, ...
+                                      'verbose', true,'maxTimestep',dtmax);
+    nonlinearsolver = NonLinearSolver('timeStepSelector', timestepper, ...
+                                'maxiterations', 2*it_target,'LinearSolver',linearsolver);
+    
     nonlinearsolver = NonLinearSolver('LinearSolver',linearsolver);
     model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
     tmpschedule=schedule;
@@ -230,16 +243,22 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     [wellSols, states, sim_report] = simulateScheduleAD(initState, model, tmpschedule,'NonLinearSolver',nonlinearsolver);
     profile off;
     profile viewer
-    figure(),myplotCellData(Gt,states{end}.s(:,1))
+    figure(),plotCellData(Gt,states{end}.s(:,1))
     %}
     %%
-  %%return
+    %return
     %%
     clear CO2VEBlackOilTypeModelSens
     smodel = CO2VEBlackOilTypeModelSens(Gt, rock2D, fluid);
     initState.dz=zeros(Gt.cells.num,1);
+    initState.rhofac=1;
+    initState.permfac=1;
+    initState.porofac=1;
     for i=1:numel(schedule.control)
         schedule.control(i).dz=zeros(Gt.cells.num,1);
+        schedule.control(i).rhofac=1;
+        schedule.control(i).permfac=1;
+        schedule.control(i).porofac=1;
     end
     %
     [wellSols, states, sim_report] = simulateScheduleAD(initState, smodel, schedule);
@@ -307,12 +326,18 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     %gs   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well'});
     %gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'scell'});
     %%
-     gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well','scell'});
+     gsc   = computeGradientAdjointAD(initState, states, smodel, schedule, objhs,'ControlVariables', {'well','scell','mult'});
     %%
-    dobj_dz=zeros(Gt.cells.num,1);
+    dobj=cell(size(gsc,1),1);
+    dobj{1}=zeros(1,1);
+    dobj{2}=zeros(Gt.cells.num,1);
+    dobj{3}=zeros(3,1);
     for i=1:size(gsc,2)
-       dobj_dz=dobj_dz+gsc{2,i}; 
+       for j=1:size(gsc,1);
+        dobj{j}=dobj{j}+gsc{j,i};
+       end
     end
+    dobj_dz=dobj{2};
     figure(33),clf,myplotCellData(Gt,dobj_dz),colorbar
      ny=numel(plumes);
      line(plumes{ny}.outline(:,1), plumes{ny}.outline(:,2),topsurface(plumes{ny}.outline)-3,'LineWidth',3, 'Color','r')
