@@ -1,5 +1,5 @@
-%% Outline of Formations in the CO2 Storage Atlas
-% In this example, show the outline of all formations that can be
+%% Outline of Formations in the CO2 Storage Atlas: North Sea
+% In this example, show the outline of all North Sea formations that can be
 % constructed along with a map of Norway and point plots of all production
 % wells in the Norwegian continental shelf.
 %
@@ -10,7 +10,7 @@
 % and can be found at http://www.kartverket.no/. Note that the map is only
 % provided for scale and rough positioning - no claims are made regarding
 % the accuracy in relation the subsea reservoirs.
-grdecls = getAtlasGrid('coarsening', 3);
+grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening', 3);
 ng = numel(grdecls);
 
 grids = cell(ng,1);

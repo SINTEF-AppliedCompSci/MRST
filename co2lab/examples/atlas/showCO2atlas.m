@@ -19,9 +19,9 @@
 % and compute the capacity for structural trapping in each formation.
 
 %% Read data
-% This example assumes that you have already downloaded the datasets from
-% the NPD webpages. If you have not done so, you can use the following
-% command: downloadDataSets('atlas')
+% This example assumes that you have already downloaded the North Sea
+% datasets from the NPD webpages. If you have not done so, you can use the
+% following command: downloadDataSets('atlas')
 
 try
    require co2lab
@@ -32,7 +32,7 @@ end
 moduleCheck deckformat
 
 fprintf('Loading atlas data (this may take a few minutes)..');
-[grdecls, rawdata] = getAtlasGrid(); %#ok
+[grdecls, rawdata] = getAtlasGrid(getNorthSeaNames()); %#ok
 fprintf('done\n');
 
 %% Description of raw data
@@ -86,8 +86,9 @@ end
 
 
 %% Visualize all the formations
-% We then visualize the formations along with a map of Norway and point
-% plots of all production wells in the Norwegian Continental Shelf.
+% We then visualize the formations present in the North Sea along with a
+% map of Norway and point plots of all production wells in the Norwegian
+% Continental Shelf.
 %
 % The well data comes from the Norwegian Petroleum Directorate and can be
 % found in more detail at http://factpages.npd.no/factpages/.
@@ -102,7 +103,7 @@ end
 % approximately the outline of each formation. More details about how to
 % create 3D grid models are given in the script 'modelsFromAtlas.m'
 
-grdecls = getAtlasGrid('coarsening', 5);
+grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening', 5);
 ng = numel(grdecls);
 
 grids = cell(ng,1);
@@ -169,10 +170,11 @@ plot(welldata(:,2), welldata(:,1), '.k', 'MarkerSize', 5)
 
 
 %% Redo the visualization in 3D with higher resolution
-% To show the depth of the various formations, we redo the plot in 3D.
+% To show the depth of the various North Sea formations, we redo the plot
+% in 3D.
 figure;
 p = get(gcf,'Position'); set(gcf,'Position', p + [-300 0 300 0]);
-grdecls = getAtlasGrid('coarsening', 3);
+grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening', 3);
 ng = numel(grdecls);
 
 grids = cell(ng,1);

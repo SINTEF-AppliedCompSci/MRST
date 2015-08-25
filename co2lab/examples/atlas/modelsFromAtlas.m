@@ -47,7 +47,7 @@ light('Position',[-1 -1 -1],'Style','infinite');
 lighting phong
 view(90,45)
 
-%% Full 3D visualization of all grids
+%% Full 3D visualization of all grids in North Sea
 % Not all formations in the data set supply both a height map of the top
 % surface and a map of the formation thickness, which are both needed to
 % construct a volumetric sandbody. Next, we visualize the different
@@ -60,7 +60,7 @@ view(90,45)
 moduleCheck('libgeometry','opm_gridprocessing'); 
 
 % Count number of sand bodies
-grdecls = getAtlasGrid('coarsening',10);
+grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening',10);
 ng = numel(grdecls);
 
 % Set view angles
@@ -81,7 +81,7 @@ for i=1:ng;
    drawnow
 end
 
-%% Basic capacity estimates for the CO2 atlas data
+%% Basic capacity estimates for the CO2 atlas data (North Sea)
 % Finally, we compute the potential volumes available for structural
 % trapping. To better report progress, we first load a low resolution
 % version to get names of all aquifers. Then, we load and process the
