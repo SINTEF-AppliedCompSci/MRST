@@ -23,12 +23,13 @@ function CG = addCoarseCenterPoints(CG, varargin)
             c = sum(CG.faces.neighbors(f, :), 2);
             
             dims = opt.adjustDims;
-            cc = blockPts(c, dims);
-            fc = CG.faces.centroids(f, dims);
-            N = CG.faces.normals(f, dims);
+            cc = blockPts(c, :);
+            fc = CG.faces.centroids(f, :);
+            N = CG.faces.normals(f, :);
             d = norm(cc - fc, 2);
             N = N./norm(N, 2);
-            blockPts(c, dims) = cc - N*d;
+            new = cc - N*d;
+            blockPts(c, dims) = new(1, dims);
         end
     end
     
