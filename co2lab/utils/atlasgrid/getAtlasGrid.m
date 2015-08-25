@@ -292,7 +292,14 @@ function avgrock = getAvgRock(name)
         case 'bjarmeland'
             % p. 130: average permeability in range of 5-1000mD
             tmp = [NaN 0.23]; % TODO: confirm perm value
-        
+        case 'sto'
+            tmp = [500 0.15]; % pg 128 in chp 6 of Atlas
+        case 'nordmela'
+            tmp = [1 0.15];   % pg 128 in chp 6 of Atlas
+        case 'tubaen'
+            tmp = [500 0.15]; % pg 128 in chp 6 of Atlas
+            
+            
         % Norwegian Sea
         
         otherwise
