@@ -15,7 +15,7 @@ opt = merge_options(opt, varargin{:});
 
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
-W = drivingForces.Wells;
+W = drivingForces.W;
 s = model.operators;
 f = model.fluid;
 
