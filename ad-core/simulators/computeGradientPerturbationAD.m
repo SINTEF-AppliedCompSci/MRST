@@ -81,12 +81,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     schedule0 = schedule;
 
     % Solve entire schedule to get baseline of the objective function
-    wellSols = solve(schedule0);
+    [wellSols,states] = solve(schedule0);
 
     % Set up objective function storage
-    computeObj = @(ws) sum(cell2mat(getObjective(ws)));
-    val0 = computeObj(wellSols);
-
+    computeObj = @(ws,ss) sum(cell2mat(getObjective(ws,ss)));
+    val0 = computeObj(wellSols,states);
+    %val0 = computeObj([]);
 
     grad = cell(1, numel(schedule0.control));
     % Run a schedule per well, for each control step, perturbing the
@@ -114,8 +114,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             w.val = w.val + e;
             schedule.control(cn).W(k) = w;
             
-            wellSols = solve(schedule);
-            valk = sum( cell2mat(getObjective(wellSols)));
+            [wellSols,states] = solve(schedule);
+            valk = sum( cell2mat(getObjective(wellSols,states)));
             grad{cn}(k) = (valk-val0)/e;
         end
     end

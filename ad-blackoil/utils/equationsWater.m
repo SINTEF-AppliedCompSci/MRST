@@ -43,8 +43,8 @@ end
 primaryVars = {'pressure','qWs', 'bhp'};
 
 clear tmp
-grav  = gravity;
-gdz   = s.Grad(G.cells.centroids) * grav';
+%grav  = gravity;
+gdz   = s.Grad(G.cells.centroids) * model.gravity';
 %--------------------
 %check for p-dependent tran mult:
 trMult = 1;
@@ -87,7 +87,15 @@ end
 % EQUATIONS ---------------------------------------------------------------
 % water:
 eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*f.bW(p0) ) + s.Div(bWvW);
+eqs = addFluxesFromSourcesAndBC(model, eqs, ...
+                                       {p},...
+                                       {rhoW},...
+                                       {mobW}, ...
+                                       {bW},  ...
+                                       {1}, ...
+                                       drivingForces);
 
+%{
 if(~isempty(bc))
     if(isfield(bc,'cell2bcface'))
         % uses mrst-autodiff/ad-fi/experimental/bc2ADbc.m
@@ -104,7 +112,7 @@ if(~isempty(bc))
         end
     end
 end
-
+%}
 
 
 

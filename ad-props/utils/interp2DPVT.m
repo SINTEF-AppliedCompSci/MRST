@@ -23,12 +23,16 @@ for k = 1:nreg
     for tn = 1:numel(v)
         lns = pos(tn):(pos(tn+1)-1);
         tab = T{k}.data(lns,:);
+        
+        if size(tab, 1) > 1 && tab(1, 1) > tab(2, 1)
+            % If the data is decreasing rather than increasing, we reverse
+            % the table.
+            tab = tab(end:-1:1, :);
+        end
 
         ixl = (bin==(tn-1));
         ixr = (bin==tn);
         if ~(ischar(reginx{k}) && reginx{k} == ':')
-%             ixl = ixl.*reginx{k};
-%             ixr = ixr.*reginx{k};
             ixl = reginx{k}(ixl);
             ixr = reginx{k}(ixr);        
         end

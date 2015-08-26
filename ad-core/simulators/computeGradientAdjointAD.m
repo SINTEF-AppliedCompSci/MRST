@@ -73,7 +73,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('ControlVariables', 'well', ...
+    opt = struct('ControlVariables', {{'well'}}, ...
                  'LinearSolver',     []);
     opt = merge_options(opt, varargin{:});
     

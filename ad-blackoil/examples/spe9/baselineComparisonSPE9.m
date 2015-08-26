@@ -16,7 +16,7 @@
 %
 % We have put most of the boilerplate setup into the setupSPE9 function.
 
-mrstModule add ad-blackoil ad-core mrst-gui ad-props
+mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat
 [G, rock, fluid, deck, state0] = setupSPE9();
 
 
@@ -218,7 +218,13 @@ ylabel('k_r')
 close all
 
 [x, y] = meshgrid(s);
-[krW, krO, krG] = model.relPermWOG(x, 1-x-y, y, f);
+krO = zeros(size(x));
+
+for i = 1:size(x, 1)
+    xi = x(i, :);
+    yi = y(i, :);
+    [~, krO(i, :), ~] = model.relPermWOG(xi, 1 - xi - yi, yi, f);
+end
 figure;
 surf(x, y, krO)
 xlabel('sW')
@@ -304,7 +310,10 @@ xlabel('Pressure');
 % the oil.
 rs = 0:25:320;
 [p_g, rs_g] = meshgrid(pressure, rs);
-rssat = f.rsSat(p_g);
+rssat = zeros(size(p_g));
+for i = 1:size(p_g, 1)
+    rssat(i, :) = f.rsSat(p_g(i, :));
+end
 
 saturated = rs_g >= rssat;
 rs_g0 = rs_g;

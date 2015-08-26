@@ -10,7 +10,7 @@ opt = merge_options(opt, varargin{:});
 % Shorter names for some commonly used parts of the model and forces.
 s = model.operators;
 f = model.fluid;
-W = drivingForces.Wells;
+W = drivingForces.W;
 
 % Properties at current timestep
 [p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...

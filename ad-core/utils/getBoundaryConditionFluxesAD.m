@@ -83,9 +83,13 @@ cellToBCMap = sparse((1:nbc)', BCcells, 1, nbc, G.cells.num);
 BCTocellMap = cellToBCMap';
 
 % Gravity gradient per bc face 
-g = model.getGravityVector();
-dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
-dzbc = dz*g';
+if any(strcmpi(G.type, 'topSurfaceGrid'))
+   dzbc = model.gravity(3) * (G.cells.z(BCcells) - G.faces.z(bc.face));
+else
+   g = model.getGravityVector();
+   dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
+   dzbc = dz*g';
+end
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 

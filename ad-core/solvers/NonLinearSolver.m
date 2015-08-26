@@ -160,6 +160,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             %         actually implemented for that specific step function.
             %         Not all combinations are meaningful for all models.
             %
+            %         Some models may implement other types of external
+            %         forces that have other names, specified in the
+            %         model's "getValidDrivingForces" method.
+            %
             % RETURNS:
             %  state      - Problem state after timestep, i.e. if state0
             %               held pressure, saturations, ... at T_0, state
@@ -177,12 +181,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             opt = struct('initialGuess', state0);
 
-            drivingForces = struct('Wells',         [],...
-                                   'bc',            [],...
-                                   'src',           [],...
-                                   'controlId',     nan);
-
+            % Get default driving forces for model
+            drivingForces = model.getValidDrivingForces();
+            % Add optional control ID for checking when forces are changing
+            drivingForces.controlId = nan;
+            
             [opt, forcesArg] = merge_options(opt, varargin{:});
+            % Merge in forces as varargin
             drivingForces = merge_options(drivingForces, forcesArg{:});
 
             assert(dT > 0, [solver.getId(), 'Negative timestep detected.']);

@@ -1,5 +1,5 @@
 function [state0, schedule, model] = setupSimpleOW()
-    mrstModule add deckformat ad-fi ad-refactor
+    mrstModule add deckformat ad-fi ad-refactor ad-props
 
     fn = fullfile('SINTEF', 'simpleOW', 'simple10x1x10.data');
 

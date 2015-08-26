@@ -58,6 +58,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            solver.extraReport   = false;
            solver.verbose       = mrstVerbose();
            solver = merge_options(solver, varargin{:});
+           
+           assert(solver.maxIterations >= 0);
+           assert(solver.tolerance >= 0);
        end
        
        function [result, report] = solveLinearSystem(solver, A, b) %#ok
@@ -91,6 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        function [dx, result, report] = solveLinearProblem(solver, problem, model)
            % Solve a linearized problem
            problem = problem.assembleSystem();
+           assert(all(isfinite(problem.b)), 'Linear system rhs must have finite entries.');
            
            timer = tic();
            [result, report] = solver.solveLinearSystem(problem.A, problem.b); 

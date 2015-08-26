@@ -244,28 +244,6 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function [vararg, driving] = getDrivingForces(model, control) %#ok
-        % Setup and pass on driving forces
-        vararg = {};
-        driving = struct('Wells', [], 'bc', [], 'src', []);
-
-        if isfield(control, 'W') && ~isempty(control.W)
-            vararg = [vararg, 'Wells', control.W];
-            driving.Wells = control.W;
-        end
-
-        if isfield(control, 'bc') && ~isempty(control.bc)
-            vararg = [vararg, 'bc', control.bc];
-            driving.bc = control.bc;
-        end
-
-        if isfield(control, 'src') && ~isempty(control.src)
-            vararg = [vararg, 'src', control.src];
-            driving.src = control.src;
-        end
-    end
-
-    % --------------------------------------------------------------------%
     function [fn, index] = getVariableField(model, name)
         % Get the index/name mapping for the model (such as where
         % pressure or water saturation is located in state)
@@ -297,6 +275,17 @@ methods
                 % This will throw an error for us
                 [fn, index] = getVariableField@PhysicalModel(model, name);
         end
+    end
+    
+    % --------------------------------------------------------------------%
+    function forces = getValidDrivingForces(model)
+        forces = getValidDrivingForces@PhysicalModel(model);
+        % Support for wells
+        forces.W   = [];
+        % Support for boundary conditions
+        forces.bc  = [];
+        % Support for direct source terms
+        forces.src = [];
     end
 
     % --------------------------------------------------------------------%
