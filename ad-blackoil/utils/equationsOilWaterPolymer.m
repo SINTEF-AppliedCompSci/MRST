@@ -70,11 +70,11 @@ gdz = model.getGravityGradient();
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
 [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, gdz);
+    getFluxAndPropsWaterPolymer_BO(model, p, p, sW, c, ads, krW, T, gdz);
 bW0 = model.fluid.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, ...
+[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, p, sO, ...
     krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
@@ -193,6 +193,11 @@ if ~isempty(W)
             % in the z direction 
             % IMPROVED HERE LATER
             [~, ~, dz] = cellDims(model.G, wc);
+            
+            % HACK FOR 2D MODELS
+            if all(dz==0)
+                dz(:) = 1;
+            end
             
             if model.extraPolymerOutput
                 cqsW0 = double(cqs{1});
