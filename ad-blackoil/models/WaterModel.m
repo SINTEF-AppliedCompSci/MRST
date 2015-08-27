@@ -45,7 +45,7 @@ classdef WaterModel < ReservoirModel
             oi = strcmpi(saturations, 'so');
             gi = strcmpi(saturations, 'sg');
 
-            W = drivingForces.Wells;
+            W = drivingForces.W;
             state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
 
         end
