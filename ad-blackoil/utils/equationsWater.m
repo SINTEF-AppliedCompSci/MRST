@@ -44,7 +44,8 @@ primaryVars = {'pressure','qWs', 'bhp'};
 
 clear tmp
 %grav  = gravity;
-gdz   = s.Grad(G.cells.centroids) * model.gravity';
+%gdz   = s.Grad(G.cells.centroids) * model.gravity';
+gdz   = s.Grad(G.cells.centroids) * model.getGravityVector()';
 %--------------------
 %check for p-dependent tran mult:
 trMult = 1;
