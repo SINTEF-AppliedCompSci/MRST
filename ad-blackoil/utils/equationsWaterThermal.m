@@ -9,7 +9,7 @@ opt = struct('Verbose', mrstVerbose, ...
 
 opt = merge_options(opt, varargin{:});
 
-W = drivingForces.Wells;
+W = drivingForces.W;
 %assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 assert(isempty(drivingForces.src))
 
@@ -152,7 +152,7 @@ if ~isempty(W)
         s = {1};
 
         wm = WellModel();
-        [cqs, weqs, ctrleqs, wc, state.wellSol, ~, wm]  = wm.computeWellFlux(model, W, wellSol, ...
+        [cqs, weqs, ctrleqs, wc, state.wellSol, ~]  = wm.computeWellFlux(model, W, wellSol, ...
                                              pBH, {qWs}, pw, rhos, bw, mw, s, {},...
                                              'nonlinearIteration', opt.iteration,'referencePressureIndex', 1);
         

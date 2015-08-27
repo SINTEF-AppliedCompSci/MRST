@@ -35,31 +35,11 @@ classdef WaterThermalModel < ReservoirModel
             %model = model.setupOperators(G, rock, 'deck', model.inputdata);
         end
         
-        function [vararg, driving] = getDrivingForces(model, control) %#ok
-            % Setup and pass on driving forces
-            vararg = {};
-            driving = struct('Wells', [], 'bc', [], 'src', []);
-            
-            if isfield(control, 'W') && ~isempty(control.W)
-                vararg = [vararg, 'Wells', control.W];
-                driving.Wells = control.W;
-            end
-            
-            if isfield(control, 'bc') && ~isempty(control.bc)
-                vararg = [vararg, 'bc', control.bc];
-                driving.bc = control.bc;
-            end
-            
-            if isfield(control, 'src') && ~isempty(control.src)
-                vararg = [vararg, 'src', control.src];
-                driving.src = control.src;
-            end
-            
-            if isfield(control, 'bcT') && ~isempty(control.bcT)
-                vararg = [vararg, 'bcT', control.bcT];
-                driving.bcT = control.bcT;
-            end
-        end
+        function forces = getValidDrivingForces(model)
+        forces = getValidDrivingForces@ReservoirModel(model);
+        %
+        forces.bcT = [];
+    end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = equationsWaterThermal(state0, state, model,...
@@ -81,7 +61,7 @@ classdef WaterThermalModel < ReservoirModel
             oi = strcmpi(saturations, 'so');
             gi = strcmpi(saturations, 'sg');
 
-            W = drivingForces.Wells;
+            W = drivingForces.W;
             state.wellSol = assignWellValuesFromControl(model, state.wellSol, W, wi, oi, gi);
 
         end
