@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [wellSols,states] = solve(schedule0);
 
     % Set up objective function storage
-    computeObj = @(ws,ss) sum(cell2mat(getObjective(ws,ss)));
+    computeObj = @(ws,states) sum(cell2mat(getObjective(ws,states)));
     val0 = computeObj(wellSols,states);
     %val0 = computeObj([]);
 
