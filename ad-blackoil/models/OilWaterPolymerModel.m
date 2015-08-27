@@ -9,8 +9,9 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         % Polymer present
         polymer
         
-        % Polymer differene tolerence
-        tolerancePolymer
+        % Polymer differene tolerance
+        useIncPolymerConvergence
+        toleranceIncPolymer
         
         % Add extra output to wellsol/states for polymer quantities
         extraPolymerOutput
@@ -26,7 +27,8 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             model.polymer = true;
             
             % Tolerance for the change in polymer concentration
-            model.tolerancePolymer = 1e-3;
+            model.useIncPolymerConvergence = true;
+            model.toleranceIncPolymer = 1e-3;
             
             model.extraPolymerOutput = false;
             
@@ -76,16 +78,18 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         function [convergence, values, names] = checkConvergence(model, ...
                 problem, varargin)
             
-            polyEqnInx = find(problem.indexOfEquationName('polymer'));
-            if polyEqnInx
-                % The convergence of polymer equation is checked below. In
-                % order to check the remaining equations, the polymer is
-                % removed from the problem before the parent is called.
-                problem_org = problem;
-                problem.equations(polyEqnInx) = [];
-                problem.types(polyEqnInx) = [];
-                problem.equationNames(polyEqnInx) = [];
-                problem.primaryVariables(polyEqnInx) = [];
+            if model.useIncPolymerConvergence
+                polyEqnInx = find(problem.indexOfEquationName('polymer'));
+                if polyEqnInx
+                    % The convergence of polymer equation is checked below. In
+                    % order to check the remaining equations, the polymer is
+                    % removed from the problem before the parent is called.
+                    problem_org = problem;
+                    problem.equations(polyEqnInx) = [];
+                    problem.types(polyEqnInx) = [];
+                    problem.equationNames(polyEqnInx) = [];
+                    problem.primaryVariables(polyEqnInx) = [];
+                end
             end
             
             % Check convergence of all equations except the polymer eqn
@@ -93,31 +97,33 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 checkConvergence@TwoPhaseOilWaterModel(model, ...
                 problem, varargin{:});
             
-            if polyEqnInx
-                problem = problem_org;
-                
-                % Compute the convergence norm for polymer
-                polyNorm = Inf;
-                if problem.iterationNo > 1
-                    % Check polymer change from previous iteration
-                    polyNorm = norm(problem.state.c - ...
-                        problem.state.c_prev, Inf) / model.fluid.cmax;
-                    convergence = convergence && ...
-                        polyNorm < model.tolerancePolymer;
+            if model.useIncPolymerConvergence
+                if polyEqnInx
+                    problem = problem_org;
+
+                    % Compute the convergence norm for polymer
+                    polyNorm = Inf;
+                    if problem.iterationNo > 1
+                        % Check polymer change from previous iteration
+                        polyNorm = norm(problem.state.c - ...
+                            problem.state.c_prev, Inf) / model.fluid.cmax;
+                        convergence = convergence && ...
+                            polyNorm < model.toleranceIncPolymer;
+                    end
+
+                    % In the printed convergence information (in verbose mode),
+                    % we insert the polymer residual after oil and water.
+                    nwo = sum([model.water model.oil]);
+                    if model.useCNVConvergence
+                        inx = 2*nwo + 1; % after water and oil, both CNV and MB
+                    else
+                        inx = nwo + 1; % after water and oil
+                    end
+
+                    % Insert polymer data into values
+                    values = [values(1:inx-1)  polyNorm   values(inx:end)];
+                    names  = [ names(1:inx-1) {'poly (cell)'}  names(inx:end)];
                 end
-                
-                % In the printed convergence information (in verbose mode),
-                % we insert the polymer residual after oil and water.
-                nwo = sum([model.water model.oil]);
-                if model.useCNVConvergence
-                    inx = 2*nwo + 1; % after water and oil, both CNV and MB
-                else
-                    inx = nwo + 1; % after water and oil
-                end
-                
-                % Insert polymer data into values
-                values = [values(1:inx-1)  polyNorm   values(inx:end)];
-                names  = [ names(1:inx-1) {'poly (cell)'}  names(inx:end)];
             end
             
         end
