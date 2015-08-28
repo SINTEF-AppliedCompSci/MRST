@@ -1,4 +1,4 @@
-function [G, order] = glue2DGrid(G1, G2)
+function [G, order, f] = glue2DGrid(G1, G2)
 %Connect two 2D grids along common edge
 %
 % SYNOPSIS:
@@ -87,7 +87,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       t     = { G1 , G2 };
       order = [ ord, 3 - ord ];  % 3 - ord == (2 - ord) + 1
-      G     = connect(t{order});
+      [G,f]     = connect(t{order});
 
       G.type = { mfilename };
       G_old=G;
@@ -187,28 +187,28 @@ end
 
 %--------------------------------------------------------------------------
 
-function G = glue_left(G1, G2)
+function [G,f] = glue_left(G1, G2)
 % G1 left of G2.  Glue along common vertical edge.
    tag = [ 2, 1 ]; % Type 2 on left, 1 on right
    col = 2;        % Vertical edge => column 2
 
-   G = glue_impl(G1, G2, tag, col);
+   [G,f] = glue_impl(G1, G2, tag, col);
 end
 
 %--------------------------------------------------------------------------
 
-function G = glue_above(G1, G2)
+function [G,f] = glue_above(G1, G2)
 % G1 above G2.  Glue along common horizontal edge
    tag = [ 4, 3 ]; % Type 4 on upper, 3 on lower
    col = 1;        % Horizontal edge => column 1
 
-   G = glue_impl(G1, G2, tag, col);
+   [G,f] = glue_impl(G1, G2, tag, col);
 end
 
 %--------------------------------------------------------------------------
 
 
-function G = glue_impl(G1, G2, tag, col)
+function [G,f] = glue_impl(G1, G2, tag, col)
    [f1, n1, i1, x1] = select_bfaces(G1, tag(1));
    [f2, n2, i2, x2] = select_bfaces(G2, tag(2));
    %if(col==2)
@@ -250,7 +250,7 @@ function G = glue_impl(G1, G2, tag, col)
    H2 = removeFaces(G2, fe2);
 
    G = concat_grids(H1, H2);
-   G = addFaces(G, inodes, repmat(2, [size(N, 1), 1]), N);
+   [G,f] = addFaces(G, inodes, repmat(2, [size(N, 1), 1]), N);
 end
 
 %--------------------------------------------------------------------------
