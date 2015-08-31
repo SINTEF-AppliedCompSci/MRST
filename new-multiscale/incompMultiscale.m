@@ -143,11 +143,19 @@ function state = setFluxes(state, CG, T, fluid, A, rhs, pressure, recover, opt, 
         state.flux = flux;
         state.reconstructedPressure = sp(1:G.cells.num);
         
-        tmp = struct('Wells', []);
+        tmp = struct('Wells', [], 'bc', []);
         [tmp, ~] = merge_options(tmp, incompOpt{:});
         if ~isempty(tmp.Wells)
             isBHP = arrayfun(@(x) strcmpi(x.type, 'bhp'), tmp.Wells);
             state.wellSol(isBHP) = state_o.wellSol(isBHP);
+        end
+        
+        if ~isempty(tmp.bc)
+            isP = strcmpi(tmp.bc.type, 'pressure');
+            if any(isP)
+                f = tmp.bc.face(isP);
+                state.flux(f) = state_o.flux(f);
+            end
         end
     end
 end
