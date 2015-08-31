@@ -123,9 +123,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tri = delaunayTriangulation(points);
             if opt.useFaces
                 % Use convex hull
-                hull = tri.convexHull();
-                hull = unique(hull(:));
-                tri = delaunayTriangulation(tri.Points(hull, :));
+                if ~isempty(tri.ConnectivityList)
+                    hull = tri.convexHull();
+                    hull = unique(hull(:));
+                    tri = delaunayTriangulation(tri.Points(hull, :));
+                end
             end
             
             if nargout > 2
@@ -147,6 +149,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         isCoarseNeigh(coarseCells) = true;
 
         localCells = find(isCoarseNeigh(CG.partition));
+        inside = false(G.cells.num, 1);
         if opt.simpleCellGrouping
             % Simpler definition that is sometimes faster
             % inside = ~isnan(tri.pointLocation(G.cells.centroids));
@@ -155,8 +158,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % problems for square grids
             pts = bsxfun(@plus, pts, sqrt(eps));
             int = ~isnan(evaluateInternal(pts));
-            
-            inside = false(G.cells.num, 1);
             inside(localCells(int)) = true;
         else
             [localFaces, fmap] = gridCellFaces(G, localCells);
@@ -167,8 +168,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % ok (i) = true indicates that localCells(i) has all faces
             % on the inside of triangulation
             ok = ~isnan(accumarray(localCellNo, faceIsInside));
-
-            inside = false(G.cells.num, 1);
             inside(localCells(ok)) = true;
         end
         
@@ -179,10 +178,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.ensureConnected
             p = processPartition(G, double(inside) + 1);
             inside = p == p(centers(i));
-            cells = find(inside);
-        else
-            cells = find(inside);
         end
+        inside(CG.cells.centers) = false;
+        inside(CG.cells.centers(i)) = true;
+        cells = find(inside);
         % Ensure that any cells that belong to coarse blocks further away
         % than our neighborship definition are not included.
         ok = false(CG.cells.num, 1);
