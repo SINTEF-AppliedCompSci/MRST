@@ -60,9 +60,9 @@ state = initResSol(G, p0, [.2, .8]);
 
 state.wellSol = initWellSolAD(W, modelfi, state);
 
-lim = 2;
-schedule.step.val     = schedule.step.val(1:lim);
-schedule.step.control = schedule.step.control(1:lim);
+% lim = 2;
+% schedule.step.val     = schedule.step.val(1:lim);
+% schedule.step.control = schedule.step.control(1:lim);
 %%
 % split, baseline
 timer = tic();
