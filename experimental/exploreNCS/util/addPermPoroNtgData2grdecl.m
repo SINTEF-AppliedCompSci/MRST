@@ -1,13 +1,27 @@
-function grdecl = addPermPoroNtgData2grdecl( frm_name, N )
+function grdecl = addPermPoroNtgData2grdecl( frm_name, varargin )
 
 % frm_name      formation name
-% N             coarsening level
+% N             coarsening level (pos for coarsening, neg for refining)
+
+opt = struct('nz',1, 'coarsening', 1, 'refining', 1, 'Verbose', mrstVerbose);
+opt = merge_options(opt, varargin{:});
+
+N = opt.coarsening;
+R = opt.refining;
 
     % First get grdecl and rawdata. The grdecl returned by getAtlasGrid
     % contains COORD, cartDims, etc., but not PORO, PERMX, or NTG. Rawdata
     % returned here contains thickness and top data variants for formation.
-    [grdecl, rawdata, ~] = getAtlasGrid(frm_name, 'coarsening',N);
-
+    if N > 1
+        fprintf('\n Dataset will be coarsened. \n')
+        [grdecl, rawdata, ~] = getAtlasGrid(frm_name, 'coarsening',N);
+    elseif R > 1
+        fprintf('\n Dataset will be refined. \n')
+        [grdecl, rawdata, ~] = getAtlasGrid(frm_name, 'refining',R);
+    else
+        fprintf('\n Dataset will not be coarsened nor refined. \n')
+        [grdecl, rawdata, ~] = getAtlasGrid(frm_name, 'coarsening',N);
+    end
 
     % Next look in co2atlas directory and load any perm, poro, or ntg data
     % that belong to frm_name
@@ -43,21 +57,26 @@ function grdecl = addPermPoroNtgData2grdecl( frm_name, N )
         % reading of dataset
         [meta, data] = readAAIGrid(fullfile(atlas_dir, dataset));
 
+        
         % perform coarsening if required
         meta.cellsize = meta.cellsize*coarsening;
-
         tmp.meta = meta;
         tmp.data = data(1:coarsening:end, 1:coarsening:end);
-
         tmp.meta.ncols = size(tmp.data, 2);
         tmp.meta.nrows = size(tmp.data, 1);
-
         tmp.meta.dims = [tmp.meta.nrows, tmp.meta.ncols];
 
+        
+        % perform refinement if called for
+        if R > 1
+            tmp = refineInfo(tmp, R);
+        end
+        
         % Add poro, perm, or ntg to rawdata cell structure
         rawdata{end+1} = tmp; %#ok
 
     end
+    
 
     
     % Assess the variants of the data in rawdata cell structure
