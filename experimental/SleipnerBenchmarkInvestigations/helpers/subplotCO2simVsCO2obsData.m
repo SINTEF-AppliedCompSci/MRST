@@ -26,19 +26,32 @@ for i = 1:numel(ReservoirTime2plot)
     
     maxMassCO2(i)= max(massCO2);
     
-    subplot(2,numel(ReservoirTime2plot)/2,i)
+    if numel(ReservoirTime2plot)==6
+        subplot(2,6,i)
+    elseif numel(ReservoirTime2plot)==3
+        subplot(1,3,i)
+    end
+    %subplot(2, numel(ReservoirTime2plot)/2, i)
     hold on
 
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, massCO2/1e9, satCO2>CO2plumeOutline_SatTol, 'EdgeColor','none') % only plot plume that has sat > tolerance specified 
-    title({'Mass of CO2 at';['year ', num2str(Years2plot(i))]}, 'fontSize', 18); axis equal
-    %hcb = colorbar; hcb.Label.String = 'Mt'; set(hcb, 'fontSize', 18)
-    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Mt', 'fontSize', 18 );
+    %title({'Mass of CO2 at';['year ', num2str(Years2plot(i))]}, 'fontSize', 18); axis equal
+    title(['year ', num2str(Years2plot(i))], 'fontSize', 18); axis equal
     
-    % add CO2 plume outline (check matching year):
-    if plume{i}.year == Years2plot(i)
-        disp('Plotting Observed CO2 plume outline...')
-        line(plume{i}.outline(:,1), plume{i}.outline(:,2), 'LineWidth',3, 'Color','r')
+    % add colorbar if last subplot is being plotted: TODO --- make it look
+    % better
+    %if i == numel(ReservoirTime2plot)
+        %%hcb = colorbar; hcb.Label.String = 'Mt'; set(hcb, 'fontSize', 18)
+        [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Mt', 'fontSize', 18 );
+    %end
+    
+    % add all CO2 plume outlines that have a matching year to Years2plot(i):
+    for j = 1:numel(plume)
+        if plume{j}.year == Years2plot(i)
+            disp('Plotting Observed CO2 plume outline...')
+            line(plume{j}.outline(:,1), plume{j}.outline(:,2), 'LineWidth',3, 'Color','r')
+        end
     end
     
     % (The following could be placed outside the subplot loop)
@@ -56,6 +69,7 @@ for i = 1:numel(ReservoirTime2plot)
         'MarkerSize',10)
     
     axis tight
+    box
     
     % We visualize the spill paths between structural traps
     mapPlot(gcf, Gt, 'traps', trapstruct.traps, 'rivers', trapstruct.cell_lines, ...
