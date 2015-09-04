@@ -18,6 +18,7 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
     opt.seafloor_depth    = 330 * meter;     % NPD
     opt.seafloor_temp     =  4;              % in Celsius
     opt.temp_gradient     = 40;              % degrees per kilometer
+    % NOTE: see fig 6 in Halland and Riis 2014 for temp gradient data!
 
     
     % TO CONFIRM for Snohvit
@@ -35,7 +36,7 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
 
     
     % Snohvit injection scenario details
-    opt.wellXcoord        = 9.202e5;  % need to verify
+    opt.wellXcoord        = 9.225e5;  % need to verify
     opt.wellYcoord        = 7.988e6;
     opt.well_radius       = 0.3;
     % 
