@@ -637,11 +637,12 @@ if plotCO2simVsCO2obsData
     Years2plot = [1999; 2001; 2002; 2004; 2006; 2008];
     %Years2plot = [2002; 2006; 2008];
     
-    [ hfig, hax ] = subplotCO2simVsCO2obsData(Years2plot, inj_year, plume, sim_report, ...
+    [ hfig, hax ] = subplotCO2simVsCO2obsData_basic(Years2plot, inj_year, plume, sim_report, ...
             Gt, states, fluid, model, ...
             wellXcoord, wellYcoord, wellCoord_x, wellCoord_y, ta, ...
             ZoomIntoPlume, ZoomX1, ZoomX2, ZoomY1, ZoomY2, ...
             CO2plumeOutline_SatTol);
+        % note the basic function plots in kg, not Mt
 
 end
 
@@ -985,6 +986,8 @@ end
 
 
 %% Side Vertical Profiles through specified cell, i.e., well cell index
+% If all states of simulation are passed in, only last state is plotted. If
+% the state of a particular year is to be plotted, pass in that state only.
 
 [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, states, fluid);
 
