@@ -8,10 +8,14 @@ function [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, state
 % Cross-sectional slices through injection point:
 % first get index of injection well:
 [ii,jj] = ind2sub(Gt.cartDims, wellCellIndex);
-disp(['Well cell index is I=',num2str(ii),', J=',num2str(jj)])
+disp(['Well cell index of ',num2str(wellCellIndex),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
 
 ijk = gridLogicalIndices(G);
 
+ii = ijk{1}(wellCellIndex);
+jj = ijk{2}(wellCellIndex);
+kk = ijk{3}(wellCellIndex);
+disp(['Well cell index of ',num2str(wellCellIndex),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
 
 % % plot of Saturations (total CO2 --- included both free and residual):
 % figure; set(gcf,'Position',[1 1 2200 500])
@@ -95,7 +99,7 @@ states = addCO2HeightData(states, Gt, fluid);
 % plot of both max plume and free plume height:
 figure; set(gcf,'Position',[1 1 2200 350]) % make position more generic for other formations, to view two slices such that they are roughly scaled
 
-subplot(2,1,1)
+%subplot(2,1,1)
 plotGrid(G, ijk{1} == ii, 'FaceColor', 'none'); view([90 0])
 % max depth first...
 plotPlume(G, Gt, states{end}.h_max,  ijk{1} == ii, 'FaceColor',getInventoryColors(3),'EdgeColor','w','EdgeAlpha',.1)
@@ -103,13 +107,16 @@ plotPlume(G, Gt, states{end}.h_max,  ijk{1} == ii, 'FaceColor',getInventoryColor
 plotPlume(G, Gt, states{end}.h_free,  ijk{1} == ii, 'FaceColor',getInventoryColors(6),'EdgeColor','w','EdgeAlpha',.1)
 
 title('South <--> North')
-legend(['Grid slice through i=',num2str(ii)],'Residual CO2','Free plume CO2')
-ylabel('y-axis, meters'); zlabel('depth, meters')
-zlim([800, 850]); % max/min depths for Sleipner. Make more generic for other formation cases.
-set(gca,'DataAspect',[1 1 1/10])
+%legend(['Grid slice through i=',num2str(ii)],'Residual CO2','Free plume CO2')
+hl = legend(['Grid slice through ',num2str( Gt.cells.centroids(wellCellIndex,1) ),' m'],'Residual CO2','Free plume CO2', 'Location','SouthEast');
+set(hl,'FontSize',14)
+ylabel('y-axis, meters','FontSize',14); zlabel('depth, meters','FontSize',14)
+%zlim([800, 850]); % max/min depths for Sleipner. Make more generic for other formation cases.
+%set(gca,'DataAspect',[1 1 1/10])
 
 
-subplot(2,1,2)
+figure; set(gcf,'Position',[1 1 2200 350])
+%subplot(2,1,2)
 plotGrid(G, ijk{2} == jj, 'FaceColor', 'none'); view([0 0])
 % max depth first...
 plotPlume(G, Gt, states{end}.h_max,  ijk{2} == jj, 'FaceColor',getInventoryColors(3),'EdgeColor','w','EdgeAlpha',.1)
@@ -117,10 +124,12 @@ plotPlume(G, Gt, states{end}.h_max,  ijk{2} == jj, 'FaceColor',getInventoryColor
 plotPlume(G, Gt, states{end}.h_free,  ijk{2} == jj, 'FaceColor',getInventoryColors(6),'EdgeColor','w','EdgeAlpha',.1)
 
 title('West <--> East')
-legend(['Grid slice through j=',num2str(jj)],'Residual CO2','Free plume CO2')
-xlabel('x-axis, meters'); zlabel('depth, meters')
-zlim([800, 850]); % max/min depths for Sleipner. Make more generic for other formation cases.
-set(gca,'DataAspect',[1 1 1/10])
+%legend(['Grid slice through j=',num2str(jj)],'Residual CO2','Free plume CO2')
+hl = legend(['Grid slice through ',num2str( Gt.cells.centroids(wellCellIndex,2) ),' m'],'Residual CO2','Free plume CO2', 'Location','NorthEast');
+set(hl,'FontSize',14)
+xlabel('x-axis, meters','FontSize',14); zlabel('depth, meters','FontSize',14)
+%zlim([800, 850]); % max/min depths for Sleipner. Make more generic for other formation cases.
+%set(gca,'DataAspect',[1 1 1/10])
 
 
 hfig = gcf;
