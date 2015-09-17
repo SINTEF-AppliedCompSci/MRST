@@ -1,17 +1,17 @@
-function [ Grids ] = getProspectTrapIDsAndGrids( G_st, Gt_st, ta_st )
+function [ Grids, pts ] = getProspectTrapIDsAndGrids( G_st, Gt_st, ta_st )
 % location of point corresponding to "prospects" or "structural closures":
 
     % Snohvit
-    snohvit_x      = 9.202e5;
-    snohvit_y      = 7.988e6;
+    snohvit_x      = 9.202e5;   pts.Xpt_gsf = snohvit_x;
+    snohvit_y      = 7.988e6;   pts.Ypt_gsf = snohvit_y;
     dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [snohvit_x, snohvit_y]);
     [~,i] = min(sum(dv.^2, 2));
     snohvit_cellIndex = i; % or Gt.cells.indexMap(i);
 
 
     % Albatross includes prospects E and F
-    albatross_x = 9.402e5;
-    albatross_y = 7.974e6;
+    albatross_x = 9.402e5;  pts.Xpt_alba = albatross_x;
+    albatross_y = 7.974e6;  pts.Ypt_alba = albatross_y;
     dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [albatross_x, albatross_y]);
     [~,i] = min(sum(dv.^2, 2));
     albatross_cellIndex = i; % or Gt.cells.indexMap(i);
@@ -19,34 +19,34 @@ function [ Grids ] = getProspectTrapIDsAndGrids( G_st, Gt_st, ta_st )
 
 
     % Askeladd
-    askeladd_x = 9.077e5;
-    askeladd_y = 7.957e6;
+    askeladd_x = 9.077e5;   pts.Xpt_aske = askeladd_x;
+    askeladd_y = 7.957e6;   pts.Ypt_aske = askeladd_y;
     dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [askeladd_x, askeladd_y]);
     [~,i] = min(sum(dv.^2, 2));
     askeladd_cellIndex = i; % or Gt.cells.indexMap(i);
 
 
     % Other prospects
-    prospectC_x = 9.577e5;
-    prospectC_y = 8.012e6;
+    prospectC_x = 9.577e5;  pts.Xpt_prosC = prospectC_x;
+    prospectC_y = 8.012e6;  pts.Ypt_prosC = prospectC_y;
     dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [prospectC_x, prospectC_y]);
     [~,i] = min(sum(dv.^2, 2));
     prospectC_cellIndex = i; % or Gt.cells.indexMap(i);
 
-    prospectD_x = 9.502e5;
-    prospectD_y = 8.007e6;
+    prospectD_x = 9.502e5;  pts.Xpt_prosD = prospectD_x;
+    prospectD_y = 8.007e6;  pts.Ypt_prosD = prospectD_y;
     dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [prospectD_x, prospectD_y]);
     [~,i] = min(sum(dv.^2, 2));
     prospectD_cellIndex = i; % or Gt.cells.indexMap(i);
 
-    prospectG_x = 9.217e5;
-    prospectG_y = 7.942e6;
+    prospectG_x = 9.217e5;  pts.Xpt_prosG = prospectG_x;
+    prospectG_y = 7.942e6;  pts.Ypt_prosG = prospectG_y;
     dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [prospectG_x, prospectG_y]);
     [~,i] = min(sum(dv.^2, 2));
     prospectG_cellIndex = i; % or Gt.cells.indexMap(i);
 
-    prospectH_x = 8.992e5;
-    prospectH_y = 7.916e6;
+    prospectH_x = 8.992e5;  pts.Xpt_prosH = prospectH_x;
+    prospectH_y = 7.916e6;  pts.Ypt_prosH = prospectH_y;
     dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [prospectH_x, prospectH_y]);
     [~,i] = min(sum(dv.^2, 2));
     prospectH_cellIndex = i; % or Gt.cells.indexMap(i);
@@ -82,14 +82,14 @@ function [ Grids ] = getProspectTrapIDsAndGrids( G_st, Gt_st, ta_st )
     Gt_albatross = topSurfaceGrid(G_albatross);
     ta_albatross = trapAnalysis(Gt_albatross, false);
 
-    prospectE_x = 9.492e5;
-    prospectE_y = 7.983e6;
+    prospectE_x = 9.492e5;  pts.Xpt_prosE = prospectE_x;
+    prospectE_y = 7.983e6;  pts.Ypt_prosE = prospectE_y;
     dv = bsxfun(@minus, Gt_albatross.cells.centroids(:,1:2), [prospectE_x, prospectE_y]);
     [~,i] = min(sum(dv.^2, 2));
     prospectE_cellIndex = i; % or Gt.cells.indexMap(i);
 
-    prospectF_x = 9.527e5;
-    prospectF_y = 7.974e6;
+    prospectF_x = 9.527e5;  pts.Xpt_prosF = prospectF_x;
+    prospectF_y = 7.974e6;  pts.Ypt_prosF = prospectF_y; 
     dv = bsxfun(@minus, Gt_albatross.cells.centroids(:,1:2), [prospectF_x, prospectF_y]);
     [~,i] = min(sum(dv.^2, 2));
     prospectF_cellIndex = i; % or Gt.cells.indexMap(i);
@@ -128,6 +128,8 @@ function [ Grids ] = getProspectTrapIDsAndGrids( G_st, Gt_st, ta_st )
     
     Grids.G_prospectH           = G_prospectH;
     Grids.G_prospectH.trapID    = prospectHTrapID;
+    
+    
 
 
 end

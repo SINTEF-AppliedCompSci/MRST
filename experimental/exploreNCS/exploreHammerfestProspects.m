@@ -45,23 +45,24 @@ mapPlot(gcf,Gt_st,'traps',ta_st.traps)
 
 %% Cut out the structural closures and prospects
 
-[ Grids ] = getProspectTrapIDsAndGrids( G_st, Gt_st, ta_st );
+[ Grids, pts ] = getProspectTrapIDsAndGrids( G_st, Gt_st, ta_st );
+
 
 
 % visualization of Sto with Prospects and Greater structural closures.
 figure;
 plotGrid(G_st,'FaceColor', [1 .9 .9], 'EdgeAlpha', .05);
 %plotFaces(Gt_st, bf, 'EdgeColor','k', 'FaceColor','none',  'LineWidth',3);
-plotGrid(G_gsf, 'FaceColor',[1 0 0], 'EdgeAlpha', .05)
-plotGrid(G_albatross, 'FaceColor',[1 0.4 0], 'EdgeAlpha', .05)
-plotGrid(G_askeladd, 'FaceColor',[1 0.4 0.4], 'EdgeAlpha', .05)
+plotGrid(Grids.G_gsf, 'FaceColor',[1 0 0], 'EdgeAlpha', .05)
+plotGrid(Grids.G_albatross, 'FaceColor',[1 0.4 0], 'EdgeAlpha', .05)
+plotGrid(Grids.G_askeladd, 'FaceColor',[1 0.4 0.4], 'EdgeAlpha', .05)
 
-plotGrid(G_prospectC, 'FaceColor','b', 'EdgeAlpha', .05)
-plotGrid(G_prospectD, 'FaceColor','g', 'EdgeAlpha', .05)
-plotGrid(G_prospectE, 'FaceColor','y', 'EdgeAlpha', .05)
-plotGrid(G_prospectF, 'FaceColor',[0.5 0.7 0.2], 'EdgeAlpha', .05)
-plotGrid(G_prospectG, 'FaceColor','m', 'EdgeAlpha', .05)
-plotGrid(G_prospectH, 'FaceColor','c', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectC, 'FaceColor','b', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectD, 'FaceColor','g', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectE, 'FaceColor','y', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectF, 'FaceColor',[0.5 0.7 0.2], 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectG, 'FaceColor','m', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectH, 'FaceColor','c', 'EdgeAlpha', .05)
 
 light('Position',[-1 -1 1],'Style','infinite');lighting phong
 
@@ -71,7 +72,8 @@ set(gca,'DataAspect',[1 1 0.02]);
 view([-100 55]);
 legend('Sto formation','Greater Snohvit','Greater Albatross','Greater Askeladd','Prospect C','Prospect D','Prospect E','Prospect F','Prospect G','Prospect H', 'Location','NorthEast')
 
-% another visualization (base to make prospect comparisons)
+% another visualization (base to make prospect comparisons),
+% adds boundary faces around grids
 figure;
 plotCellData(Gt_st, ta_st.traps, 'EdgeColor','none','FaceColor',[1 0.9 0.9])
 names = fieldnames(Grids);
@@ -86,6 +88,44 @@ end
 light('Position',[-1 -1 1],'Style','infinite');lighting phong
 
 
+% -------
+% visualization of Sto with Prospects and Greater structural closures.
+figure;
+plotGrid(G_st,'FaceColor', [1 .9 .9], 'EdgeAlpha', .05);
+%plotFaces(Gt_st, bf, 'EdgeColor','k', 'FaceColor','none',  'LineWidth',3);
+plotGrid(Grids.G_gsf, 'FaceColor',[1 0 0], 'EdgeAlpha', .05)
+plotGrid(Grids.G_albatross, 'FaceColor',[1 0.4 0], 'EdgeAlpha', .05)
+plotGrid(Grids.G_askeladd, 'FaceColor',[1 0.4 0.4], 'EdgeAlpha', .05)
+
+plotGrid(Grids.G_prospectC, 'FaceColor','b', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectD, 'FaceColor','g', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectE, 'FaceColor','y', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectF, 'FaceColor',[0.5 0.7 0.2], 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectG, 'FaceColor','m', 'EdgeAlpha', .05)
+plotGrid(Grids.G_prospectH, 'FaceColor','c', 'EdgeAlpha', .05)
+
+light('Position',[-1 -1 1],'Style','infinite');lighting phong
+axis equal tight off
+set(gca,'DataAspect',[1 1 0.02]);
+
+% evaluate this to add prospect labels on top of plot
+text(pts.Xpt_gsf,  pts.Ypt_gsf,  'G. Sn\ohvit',   'HorizontalAlignment','center');
+text(pts.Xpt_alba, pts.Ypt_alba, 'G. Albatross', 'HorizontalAlignment','right');
+text(pts.Xpt_aske, pts.Ypt_aske, 'G. Askeladd',  'HorizontalAlignment','center');
+text(pts.Xpt_prosC, pts.Ypt_prosC,   'C', 'HorizontalAlignment','center');
+text(pts.Xpt_prosD, pts.Ypt_prosD,   'D', 'HorizontalAlignment','right');
+text(pts.Xpt_prosE, pts.Ypt_prosE,   'E', 'HorizontalAlignment','center');
+text(pts.Xpt_prosF, pts.Ypt_prosF,   'F', 'HorizontalAlignment','center');
+text(pts.Xpt_prosG, pts.Ypt_prosG,   'G', 'HorizontalAlignment','center');
+text(pts.Xpt_prosH, pts.Ypt_prosH,   'H', 'HorizontalAlignment','right');
+hax = gca;
+for i=1:numel(hax.Children)
+    if strcmpi(class(hax.Children(i)),'matlab.graphics.primitive.Text')
+        set(hax.Children(i), 'FontSize',18, 'FontWeight','bold', ...
+            'Color','blue', 'FontAngle','italic');
+    end
+end
+% ----------
 
 %% Get volume and capacity of prospects, for comparison to NPD (Atlas chp 6)
 
