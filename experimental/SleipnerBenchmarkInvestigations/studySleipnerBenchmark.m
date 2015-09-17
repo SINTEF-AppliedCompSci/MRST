@@ -115,9 +115,9 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-mycase          = 'useIEAGHG_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
+mycase          = 'useOriginal_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
 myresolution    = 'none';               % 'useRefinedGrid', 'none'
-refineLevel     = -4;                    % only used when "myresolution = useRefinedGrid"
+refineLevel     = 2;                    % only used when "myresolution = useRefinedGrid"
 
 
 % Physical coordinate of injection well (Singh et al. 2010)
@@ -130,40 +130,46 @@ myInjRates = 'useRatesFromSPE134891';   % 'useRatesFromSPE134891', 'useSleipnerO
 
 switch myInjRates
     
+    % Note, inj_rates are in terms of reservoir rates (i.e., the volumetric
+    % rate of CO2 entering layer 9, not the volumetric surface rate).
+    % Seismic imaging provided estimates of how much CO2 accumlated in the
+    % pore space of layer 9. These volumes were likely converted into a
+    % mass using an infered CO2 density, and then into a surface rate using
+    % the CO2 density at the surface. Specifying the inj_rates in terms of
+    % reservoir volume instead of surface volume allows one to test other
+    % CO2 densities without the need to modify a surface volume injection
+    % rate.
+    
     case 'useRatesFromSPE134891'
-        % Note: variable annual injection rates are given in Singh et al 2010,
-        % however it is likely their paper contains a typo. The injection rates
-        % were reported as in units of meter^3/day, however a more realistic value
-        % implies the units are meter^3/year.
+        % See Singh et al 2010 for more info about how they determined
+        % these rates. Note: the injection rates were reported as surface
+        % rates. Both volume and mass were given, thus surface density can
+        % be calculated (=1.87 kg/m3). The CO2 density at reservoir
+        % conditions was reported as 760 kg/m3.
         inj_year   = [1999; 2000; 2001; 2002; 2003; 2004; 2005; 2006; 2007; 2008; 2009];
-        inj_rates  = [2.91e4; 5.92e4; 6.35e4; 8.0e4; 1.09e5; 1.5e5; 2.03e5; 2.69e5; 3.47e5; 4.37e5; 5.4e5] .* meter^3/year;
+        inj_rates  = [2.91e4; 5.92e4; 6.35e4; 8.0e4; 1.09e5; 1.5e5; 2.03e5; 2.69e5; 3.47e5; 4.37e5; 5.4e5] .* meter^3/day;
         % inj_rates is in meter^3/s
+        % Convert to rate at reservoir conditions
+        inj_rates  = inj_rates.*(1.87/760);
         
     case 'useSleipnerOriginalInjectionRates'
-        [ CumSurfVol_m3, Mass_kg, ReservoirVol_m3, year ] = getSleipnerOriginalInjectionRates();
-        % OLD: load SleipnerOriginalInjectionRates.mat
-
-        % We only take the years between 1999 and 2030 as injection years since
-        % ReservoirVol_m3 is the cumulative value as of Jan 1st of each year
-        % 1999 is taken as first injection year since ReservoirVol_m3 is
-        % non-zero starting in 2000 (Jan 1st) which implies there was an
-        % injection rate for 1999. The ReservoirVol_m3 amount corresponding to
-        % 2031 is used to determine the injection rate in the previous year
-        % (2030), thus we assume no injection occurs in 2031 (or a value could
-        % be extrapolated).
-        inj_year    = year(2:end-1);              clear year
-        inj_rates   = zeros(1,numel(inj_year));
-
-        ReservoirVol_m3 = ReservoirVol_m3(2:end);
-        for i = 1:numel(ReservoirVol_m3)-1
-            inj_rates(i) = ( ReservoirVol_m3(i+1) - ReservoirVol_m3(i) ); % annual rate
-        end
-        inj_rates = inj_rates * meter^3/year; % in meter^3/second
+        % See "Injection rates Layer 9.xls" under
+        % co2lab/data/sleipner/original for more info about these rates.
+        % Note: the CO2 density at reservoir conditions was reported as
+        % 695.89 kg/m3, and the surface density was 1.87 kg/m3.
+        [ inj_year, inj_rates ] = getSleipnerOriginalInjectionRates();
+        % inj_rates is in meter^3/s
         
     otherwise
-        error('The injection rate option was either unvalid or not selected.')
+        error('The injection rate option was either invalid or not selected.')
         
 end
+
+% Plot inj_rates over inj_year. Plotting later occurs using schedule fields
+figure
+plot(inj_year, inj_rates, 'o')
+ylabel('Reservoir rates, m^3/year')
+xlabel('Year')
 
 
 % Specify and compute time step size for injection period.
@@ -321,7 +327,7 @@ inj_rates_MtPerYr = inj_rates.*(rhoCref/1e9*365*24*60*60); % Mt/year
 % Put into schedule fields --> [inj period 1; inj period 2; etc...; migration period]
 for i = 1:numel(inj_rates)
     schedule.control(i).W = addWell([], Gt.parent, rock2D, wellCellIndex, ...
-        'name', sprintf('W%i', i), 'Type', 'rate', 'Val', inj_rates(i), 'comp_i', [0 1]);
+        'name', sprintf('W%i', i), 'Type', 'rate', 'Val', inj_rates(i), 'comp_i', [0 1]); % inj_rate should be mass rate / fluid.rhoGS 
 end
 schedule.control(end+1).W       = schedule.control(1).W;
 schedule.control(end).W.name    = 'W_off';
@@ -438,7 +444,7 @@ end
 if strcmpi(myInjRates(1:3), 'use')
     rateName = myInjRates(4:end);
 end
-fileName = [name 'refNum' num2str(refnum) '_' rateName '_' datestr(clock,30)];
+fileName = [name 'refNum' num2str(refnum) '_' rateName '_' 'ModRockRho' num2str(mod_rock) num2str(mod_rhoCO2) '_' datestr(clock,30)];
 save(fileName);
 
 
@@ -455,14 +461,14 @@ end
 % saving) only parts needed
 
 if performPostProcessing
-    plotPanelVE                     = true;
+    plotPanelVE                     = false;
     plotModelGrid                   = true;
-    plotInitialPressure             = true;
-    plotActualVsSimInjectLocation   = true;
-    plotInjectRateOverTime          = true;
-    plotBHPvsTime                   = true;
-    plotAccumCO2vsTime              = true;
-    plotEndOfSimResults             = true;
+    plotInitialPressure             = false;
+    plotActualVsSimInjectLocation   = false;
+    plotInjectRateOverTime          = false;
+    plotBHPvsTime                   = false;
+    plotAccumCO2vsTime              = false;
+    plotEndOfSimResults             = false;
     plotCO2simVsCO2obsData          = true; ZoomIntoPlume = true; % if false, entire grid is plotted
     plotTrappingInventory           = true;
     plotTrapProfiles                = true;
@@ -629,6 +635,7 @@ plume = getLayer9CO2plumeOutlines();
 if plotCO2simVsCO2obsData
     
     Years2plot = [1999; 2001; 2002; 2004; 2006; 2008];
+    %Years2plot = [2002; 2006; 2008];
     
     [ hfig, hax ] = subplotCO2simVsCO2obsData(Years2plot, inj_year, plume, sim_report, ...
             Gt, states, fluid, model, ...
@@ -977,7 +984,8 @@ end
   fprintf('------------------------------------------------\n');
 
 
-  
+%% Side Vertical Profiles through specified cell, i.e., well cell index
+
 [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, states, fluid);
 
 
