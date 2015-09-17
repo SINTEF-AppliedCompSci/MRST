@@ -24,16 +24,15 @@ moduleCheck('co2lab', 'opm_gridprocessing');
 % 'Norwegian', or 'NorwegianNorth'.
 
 studySea = 'Norwegian';
-makeFigures = false;
-saveFigures = true;
+makeFigures = true;
+saveFigures = false;
 
 if strcmpi(studySea,'Barents')
-    names = {'tubЖen', 'stЫ', 'nordmela', 'knurr', 'fruholmen', ...
-    'bjarmeland', 'bcuBarentsSea'};
+    names = {'Tubaenfm', 'Stofm', 'Nordmelafm', 'Knurrfm', 'Fruholmenfm', ...
+    'Bjarmelandfm'}; %, 'bcuBarentsSea'};
 
 elseif strcmpi(studySea,'Norwegian')
-    names = {'Пre', 'ror', 'not', 'ile', 'Garnfm', 'bcuNorwegianSea', ...
-    'baseПre', 'tilje'};
+    names = {'Arefm', 'Rorfm', 'Notfm', 'Ilefm', 'Garnfm', 'Tiljefm'}; % 'bcuNorwegianSea', 'baseПre',
 
 elseif strcmpi(studySea,'NorwegianNorth')
     %TODO: or simply run showCO2atlas.m
@@ -53,7 +52,7 @@ fprintf('done\n');
 %% Description of raw data
 % Show the raw data. Each dataset contains four fields:
 % - Name, which is the name of the formation
-% - Variant: Either thickness or height, indicating wether the dataset
+% - Variant: Either thickness or height, indicating whether the dataset
 % represents height data or thickness data.
 % - Data: The actual datasets as a matrix.
 % - Meta: Metadata. The most interesting field here is the
@@ -121,7 +120,7 @@ end
 % (see NPD's CO2 Storage Atlas report, chp 6, found at 
 % <http://www.npd.no/en/Publications/Reports/Compiled-CO2-atlas/>).
 
-names_Ham = {'tubЖen', 'stЫ', 'nordmela'};
+names_Ham = {'Tubaenfm', 'Stofm', 'Nordmelafm'};
 
 if ~strcmpi(studySea,'Barents')
     fprintf('Loading formations of Hammerfest Basin Aquifer ...');
@@ -145,7 +144,7 @@ if makeFigures
     
     %mymap = [0 0 0; 0.9 0.9 0.9; 0.5 0.5 0.5];
     mymap = ['k'; 'r'; 'b'];
-    clf; set(gcf,'Position', [100 100 2000 1000]); hold on
+    figure; set(gcf,'Position', [100 100 2000 1000]); hold on
 
     [cellsize, xllcorner, yllcorner] = deal( zeros(1,numel(names_Ham)) );
     nstr = cell(1,numel(names_Ham));
@@ -153,22 +152,27 @@ if makeFigures
     for i = 1:numel(names_Ham)
 
         formation_rd = rawdata(strcmpi(names, names_Ham{i}));
-        frd = formation_rd{1,1};
-        if ~strcmpi(frd.variant, 'top')
-            continue
+        
+        for j = 1:numel(formation_rd)
+            
+            frd = formation_rd{1,j};
+            if ~strcmpi(frd.variant, 'top')
+                continue
+            end
+
+            % store important info
+            cellsize(i)  = frd.meta.cellsize;
+            xllcorner(i) = frd.meta.xllcorner; % TODO: check corner alignment
+            yllcorner(i) = frd.meta.yllcorner;
+            nstr{i}      = frd.name;
+
+            % make surface plot
+            surf(frd.data', 'FaceColor', 'none', 'EdgeColor', mymap(i,:)); %shading interp
+
+            clear frd
         end
-
-        % store important info
-        cellsize(i)  = frd.meta.cellsize;
-        xllcorner(i) = frd.meta.xllcorner; % TODO: check corner alignment
-        yllcorner(i) = frd.meta.yllcorner;
-        nstr{i}      = frd.name;
-
-        % make surface plot
-        surf(frd.data', 'FaceColor', 'none', 'EdgeColor', mymap(i,:)); %shading interp
-
-        clear frd formation_rd
-
+        
+        clear formation_rd
     end
 
     % make adjustments to figure, such as axes labels
