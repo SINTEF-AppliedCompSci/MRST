@@ -430,7 +430,7 @@ end
         
         % 2- second coarsen the grdecl in the z direction since we don't
         % need to keep the resolution of the SAND layers (i.e., we treat
-        % the SANE layers as 1 homogeneous layer for VE). In order to
+        % the SAND layers as 1 homogeneous layer for VE). In order to
         % ensure PERMX, PERMY, PERMZ, and PORO are coarsened, 'only_grid'
         % must be set to false. Note that coarseGrdecl() assumes grdecl_cut
         % contains PERM in all 3 directions. In the case that PERMY does
