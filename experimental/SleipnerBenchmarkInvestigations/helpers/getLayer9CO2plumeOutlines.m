@@ -5,41 +5,63 @@ function [ plume ] = getLayer9CO2plumeOutlines( )
 % https://bitbucket.org/mrst/mrst-co2lab/downloads
 
 % note that the years 2006a and 2006b correspond to the same plume data for
-% the given year, however any connecting lines between separate plume
-% regions have been removed. TODO: use these better polygon files instead
-% of the 2006 polygon file.
+% the given year, however are separated into two different arrays in order
+% to avoid the plotting of a connected line between separate polygons.
 
-load layer9_polygons_1999.mat;
+% years 1999, 2004, and 2008 also have more than one polygon to represent
+% plume, thus two separate .mat files were created and are loaded here.
+
+
+% 1999
+load layer9_polygons_1999a.mat;
 plume{1}.outline = CO2plumeOutline; clear CO2plumeOutline
 plume{1}.year    = 1999;
 
-load layer9_polygons_2001.mat;
+load layer9_polygons_1999b.mat;
 plume{2}.outline = CO2plumeOutline; clear CO2plumeOutline
-plume{2}.year    = 2001;
+plume{2}.year    = 1999;
 
-load layer9_polygons_2002.mat;
+
+% 2001
+load layer9_polygons_2001.mat;
 plume{3}.outline = CO2plumeOutline; clear CO2plumeOutline
-plume{3}.year    = 2002;
+plume{3}.year    = 2001;
 
-load layer9_polygons_2004.mat;
+
+% 2002
+load layer9_polygons_2002.mat;
 plume{4}.outline = CO2plumeOutline; clear CO2plumeOutline
-plume{4}.year    = 2004;
+plume{4}.year    = 2002;
 
-% load layer9_polygons_2006.mat;
-% plume{5}.outline = CO2plumeOutline; clear CO2plumeOutline
-% plume{5}.year    = 2006;
 
-load layer9_polygons_2006a.mat;
+% 2004
+load layer9_polygons_2004a.mat;
 plume{5}.outline = CO2plumeOutline; clear CO2plumeOutline
-plume{5}.year    = 2006;
+plume{5}.year    = 2004;
+
+load layer9_polygons_2004b.mat;
+plume{6}.outline = CO2plumeOutline; clear CO2plumeOutline
+plume{6}.year    = 2004;
+
+
+% 2006
+load layer9_polygons_2006a.mat;
+plume{7}.outline = CO2plumeOutline; clear CO2plumeOutline
+plume{7}.year    = 2006;
 
 load layer9_polygons_2006b.mat;
-plume{6}.outline = CO2plumeOutline; clear CO2plumeOutline
-plume{6}.year    = 2006;
+plume{8}.outline = CO2plumeOutline; clear CO2plumeOutline
+plume{8}.year    = 2006;
 
-load layer9_polygons_2008.mat;
-plume{7}.outline = CO2plumeOutline; clear CO2plumeOutline
-plume{7}.year    = 2008;
+
+% 2008
+load layer9_polygons_2008a.mat;
+plume{9}.outline = CO2plumeOutline; clear CO2plumeOutline
+plume{9}.year    = 2008;
+
+load layer9_polygons_2008b.mat;
+plume{10}.outline = CO2plumeOutline; clear CO2plumeOutline
+plume{10}.year    = 2008;
 
 
 end

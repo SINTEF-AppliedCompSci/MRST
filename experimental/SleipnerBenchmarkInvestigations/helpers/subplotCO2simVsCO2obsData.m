@@ -27,7 +27,7 @@ for i = 1:numel(ReservoirTime2plot)
     maxMassCO2(i)= max(massCO2);
     
     if numel(ReservoirTime2plot)==6
-        subplot(2,6,i)
+        subplot(2,3,i)
     elseif numel(ReservoirTime2plot)==3
         subplot(1,3,i)
     end
