@@ -453,6 +453,25 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 % _________________________________________________________________________
 %% Post-Processing:
 % note: some variables or functions might have to be loaded
@@ -462,7 +481,7 @@ end
 
 if performPostProcessing
     plotPanelVE                     = false;
-    plotModelGrid                   = true;
+    plotModelGrid                   = false;
     plotInitialPressure             = false;
     plotActualVsSimInjectLocation   = false;
     plotInjectRateOverTime          = false;
@@ -471,8 +490,11 @@ if performPostProcessing
     plotEndOfSimResults             = false;
     plotCO2simVsCO2obsData          = true; ZoomIntoPlume = true; % if false, entire grid is plotted
     plotTrappingInventory           = true;
-    plotTrapProfiles                = true;
-    plotTrapAndPlumeCompare         = true;
+    plotTrapProfiles                = false;
+    plotTrapAndPlumeCompare         = false;
+    showTableOfTrapDetails          = false;
+    plotSideProfileCO2heights       = true;
+    
     
     
 % Call to trap analysis, used for a few plotting functions
@@ -486,55 +508,12 @@ ta = trapAnalysis(Gt, isCellBasedMethod); % true for cell-based method
 % See also: migrateInjection, plotPanelVE
 if plotPanelVE
 
-Years2plot = [1999; 2001; 2002; 2004; 2006; 2008];
+    Years2plot = [1999; 2001; 2002; 2004; 2006; 2008];
 
-[ hfig, hax ] = makeSideProfilePlots( Years2plot, inj_year, schedule, ...
-    G, Gt, sim_report, states, rock2D, fluid, rhoCref, wellCellIndex, ta );
+    [ hfig, hax ] = makeSideProfilePlots( Years2plot, inj_year, schedule, ...
+        G, Gt, sim_report, states, rock2D, fluid, rhoCref, wellCellIndex, ta );
 
 end
-
-% if plotPanelVE
-%     % Prepare for Panel Plots:
-%     sol.h = zeros(Gt.cells.num, 1);
-%     [ii, jj] = ind2sub(G.cartDims, G.cells.indexMap);
-%     opts = {'slice',     double([ii(wellCellIndex), jj(wellCellIndex)]),...
-%             'Saxis',     [0 1-fluid.res_water], ...
-%             'view',      [-85 70],...
-%             'plotPlume', true, ...
-%             'wireH',     true,...
-%             'wireS',     true,...
-%             'maxH',      (max(Gt.cells.z) - min(Gt.cells.z))/3, ...
-%             'plotHist',  true};
-%     t = 0;
-%     W = schedule.control(1).W;
-%     fh = plotPanelVE(G, Gt, W, sol, t, [0,0,0,0,0,0], opts{:});
-% 
-% 
-%     % Then make Panel Plot for a given time:
-%     W = schedule.control(end).W;
-%     sol = states{end};
-%     t = sum(schedule.step.val(1:end)); % time now in seconds? (or 1:end-1 ?)
-%     
-%     % Get volumes of co2 found in different trapping categories, using
-%     % heights, topology, trapping structure (ta), etc
-%     sol.s = sol.s(:,2); % sat of CO2
-%         sol.h       = sol.s;                                % sat = height?
-%         sol.h_max   = max(sol.h) * ones(Gt.cells.num,1);    % max sat of CO2
-%         fluid.sw = fluid.res_water;
-%         fluid.sr = fluid.res_gas;
-%         [s, H, hm]  = normalizeValuesVE(Gt, sol, fluid);
-%         sol.h       = H;
-%         sol.h_max   = hm;
-%     ta  = trapAnalysis(Gt, isCellBasedMethod);
-%     vol = volumesVE(Gt, sol, rock2D, fluid, ta);
-%     
-%     % mass injected at this given time
-%     [ ~, ~, timeSinceInj, massNow ] = plotInjectRateVsTime(schedule, inj_year, rhoCref); % massNow is in Mt
-%     totVolInj_m3 = massNow(end) * 1e9 / rhoCref;
-% 
-%     % since figure is already made, call plotPanelVE() without a varargout
-%     plotPanelVE(G, Gt, W, sol, t, [vol totVolInj_m3], opts{:});
-% end
 % ------------------   plotPanelVE (end)  ---------------------- %
 
     
@@ -582,6 +561,7 @@ end
 
 % ACCUM CO2 VS TIME (compare this plot against Cavanagh 2013, fig 3)
 if plotAccumCO2vsTime
+    time = sim_report.ReservoirTime;
     accumCO2sat = zeros(numel(states),1);
     accumCO2mass = zeros(numel(states),1);
     for i = 1:numel(states)
@@ -618,9 +598,11 @@ if plotTrappingInventory
     %ax.XTickLabel = ax.XTick + inj_year(1)-1;
     % use R2014a and earlier releases syntax to ensure backwards compatibility 
     ax  = get(gca, 'XTick');
-    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)-1), ax, 'UniformOutput', false);
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)), ax, 'UniformOutput', false);
     set(gca, 'XTickLabel', axl)
-    xlabel('time, years')
+    xlabel('Year')
+    ylabel('Mass (Mt)')
+    set(gca,'FontSize',14)
 end
 
 
@@ -675,18 +657,6 @@ if plotTrapProfiles
     fprintf('  Num. global traps: %d\n', numel(ta_volumes));
     fprintf('  Total trap volume: %e m3\n', sum(ta_volumes));
     fprintf('  Avg. global trap size: %e m3\n', mean(ta_volumes));
-    
-    
-%     % PLOT FACES OF STRUCTURAL TRAPS (redundant with following plots)
-%     figure;
-%     
-%     plotCellData(Gt, ta.traps, ta.traps~=0, 'FaceColor', 'r', 'EdgeColor','none')
-%     bf = boundaryFaces(Gt, ta.traps~=0);
-%     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
-% 
-%     title({['Sleipner, coarsening level=' num2str(N)]; ...
-%         [num2str(numel(ta_volumes)) ' structural traps shown in red']}, 'FontSize', 14)
-%     axis equal tight
 
  
     % PLOT TRAPS COLORED BY CO2 MASS STORAGE CAPACITY
@@ -787,67 +757,7 @@ if plotTrapProfiles
     mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
 
     grid; axis equal tight;
-    
-    
-%     hsubs = [hsub1 hsub2 hsub3 hsub4 hsub5]; % handles of subplot axes only (not colorbars)
-%     hfsubs = [hfsub1 hfsub2 hfsub3 hfsub4 hfsub5]; % handles of subplot figures only (not colorbars)
-%     
-%     % For making plotting adjustments to subplots
-%     hax = get(gcf,'children');
-%     hsubs = findobj(hax,'type','axes','Tag','');
-%     
-%     for i = 1:numel(hsubs)
-%        set(0,'currentaxes',hsubs(i))
-%        
-%     end
-%     
-%     % Add Injection Location In Each Subplot:
-%     for i=1:numel(hax)
-%         if strcmpi(hax(i).Type,'axes')
-%             
-%             subplot(hax(i))
-%             % actual location
-%             plot(wellXcoord,wellYcoord,'o', ...
-%                 'MarkerEdgeColor','k',...
-%                 'MarkerFaceColor','r',...
-%                 'MarkerSize',10)
-%             % simulated location
-%             plot(wellCoord_x,wellCoord_y,'x', ...
-%                 'LineWidth',3,  ...
-%                 'MarkerEdgeColor','k',...
-%                 'MarkerFaceColor','k',...
-%                 'MarkerSize',10)
-%         end
-%     end
-%     
-%     
-%     
-%     
-%     % % only works for R2014a/earlier
-%     %hfig = gcf;
-%     %hsubplots = get(hfig,'Children');
-%     
-%     for i=1:length(hsubs)
-% 
-%         %subplot(hsubs(i))
-%         axes(hsubs(i))
-%         %set(0, 'currentfigure', hfig);
-%         %set(hfig, 'currentaxes', hsubs(i))
-%         hold on
-%         plot(wellXcoord,wellYcoord,'o', ...
-%                 'MarkerEdgeColor','k',...
-%                 'MarkerFaceColor','r',...
-%                 'MarkerSize',10)
-%             % simulated location
-%         plot(wellCoord_x,wellCoord_y,'x', ...
-%                 'LineWidth',3,  ...
-%                 'MarkerEdgeColor','k',...
-%                 'MarkerFaceColor','k',...
-%                 'MarkerSize',10)
-%     end
-    
-    
-    
+
 % does not work for R2014a/earlier!
 %     % For making plotting adjustments to subplots
 %     axesHandles = get(gcf,'children');
@@ -911,86 +821,120 @@ if plotTrapAndPlumeCompare
 end
 
 %% Basic capacity estimates and Show table of Structural trapping details
-if ~exist('mycase','var')
-    if useIEAGHG_model
-        mycase = 'IEAGHG';
-    elseif useOriginal_model
-        mycase = 'GHGT';
+if showTableOfTrapDetails
+
+    if ~exist('mycase','var')
+        if useIEAGHG_model
+            mycase = 'IEAGHG';
+        elseif useOriginal_model
+            mycase = 'GHGT';
+        end
     end
-end
-if ~exist('myresolution','var')
-    if useRefinedGrid
-        myresolution = 'useRefinedGrid';
-    else
-        myresolution = 'none';
+    if ~exist('myresolution','var')
+        if useRefinedGrid
+            myresolution = 'useRefinedGrid';
+        else
+            myresolution = 'none';
+        end
     end
+
+       fprintf('------------------------------------------------\n');
+       fprintf('Processing case: %s , %s (numRef=%d) ....\n', mycase, myresolution, refineLevel);
+
+       tan     = trapAnalysis(Gt, false);
+       tac     = trapAnalysis(Gt, true);
+
+       %tan_volumes = volumesOfTraps(Gt, tan);
+       %tac_volumes = volumesOfTraps(Gt, tac);
+
+       i = 1;
+       res{i}.name      = mycase;
+       if strcmpi(myresolution,'useRefinedGrid')
+           res{i}.refLevel  = refineLevel;
+       else
+           res{i}.refLevel  = 0;
+       end
+       res{i}.cells     = Gt.cells.num;
+       res{i}.zmin      = min(Gt.cells.z);
+       res{i}.zmax      = max(Gt.cells.z);
+       res{i}.volume    = sum(G.cells.volumes);
+       res{i}.surfarea  = sum(Gt.cells.volumes);
+       res{i}.ctrapvols = volumesOfTraps(Gt,tac);
+       res{i}.ccapacity = sum(res{i}.ctrapvols);
+       res{i}.ntrapvols = volumesOfTraps(Gt,tan);
+       res{i}.ncapacity = sum(res{i}.ntrapvols);
+       fprintf('done\n');
+
+    % create table:
+       fprintf('\n\n------------------------------------------------\n');
+       fprintf('%-20s& Refined & Cells  & Min  & Max  & Volume   & Capacity  & Percent &  Capacity & Percent\\\\\n', 'Name');
+
+       fprintf('%-20s&   %2d    & %6d & %4.0f & %4.0f & %4.2e & %4.2e  & %5.2f   & %4.2e  & %5.2f \\\\\n',...
+          res{i}.name, res{i}.refLevel, res{i}.cells, res{i}.zmin, res{i}.zmax, res{i}.volume, ...
+          res{i}.ncapacity, res{i}.ncapacity/res{i}.volume*100, ...
+          res{i}.ccapacity, res{i}.ccapacity/res{i}.volume*100);
+       fprintf('------------------------------------------------\n');
+
+
+      fprintf('\n\n---------------Node-based------------------------\n');
+      fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
+
+      fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
+          res{i}.name, res{i}.refLevel, ...
+          numel(res{i}.ntrapvols), ...
+          sum(res{i}.ntrapvols), ...
+          mean(res{i}.ntrapvols) );
+      fprintf('------------------------------------------------\n');
+
+        fprintf('\n\n---------------Cell-based------------------------\n');
+      fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
+
+      fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
+          res{i}.name, res{i}.refLevel, ...
+          numel(res{i}.ctrapvols), ...
+          sum(res{i}.ctrapvols), ...
+          mean(res{i}.ctrapvols) );
+      fprintf('------------------------------------------------\n');
+
 end
-
-   fprintf('------------------------------------------------\n');
-   fprintf('Processing case: %s , %s (numRef=%d) ....\n', mycase, myresolution, refineLevel);
-   
-   tan     = trapAnalysis(Gt, false);
-   tac     = trapAnalysis(Gt, true);
-   
-   %tan_volumes = volumesOfTraps(Gt, tan);
-   %tac_volumes = volumesOfTraps(Gt, tac);
-   
-   i = 1;
-   res{i}.name      = mycase;
-   if strcmpi(myresolution,'useRefinedGrid')
-       res{i}.refLevel  = refineLevel;
-   else
-       res{i}.refLevel  = 0;
-   end
-   res{i}.cells     = Gt.cells.num;
-   res{i}.zmin      = min(Gt.cells.z);
-   res{i}.zmax      = max(Gt.cells.z);
-   res{i}.volume    = sum(G.cells.volumes);
-   res{i}.surfarea  = sum(Gt.cells.volumes);
-   res{i}.ctrapvols = volumesOfTraps(Gt,tac);
-   res{i}.ccapacity = sum(res{i}.ctrapvols);
-   res{i}.ntrapvols = volumesOfTraps(Gt,tan);
-   res{i}.ncapacity = sum(res{i}.ntrapvols);
-   fprintf('done\n');
-
-% create table:
-   fprintf('\n\n------------------------------------------------\n');
-   fprintf('%-20s& Refined & Cells  & Min  & Max  & Volume   & Capacity  & Percent &  Capacity & Percent\\\\\n', 'Name');
-
-   fprintf('%-20s&   %2d    & %6d & %4.0f & %4.0f & %4.2e & %4.2e  & %5.2f   & %4.2e  & %5.2f \\\\\n',...
-      res{i}.name, res{i}.refLevel, res{i}.cells, res{i}.zmin, res{i}.zmax, res{i}.volume, ...
-      res{i}.ncapacity, res{i}.ncapacity/res{i}.volume*100, ...
-      res{i}.ccapacity, res{i}.ccapacity/res{i}.volume*100);
-   fprintf('------------------------------------------------\n');
-  
-  
-  fprintf('\n\n---------------Node-based------------------------\n');
-  fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
-   
-  fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
-      res{i}.name, res{i}.refLevel, ...
-      numel(res{i}.ntrapvols), ...
-      sum(res{i}.ntrapvols), ...
-      mean(res{i}.ntrapvols) );
-  fprintf('------------------------------------------------\n');
-  
-    fprintf('\n\n---------------Cell-based------------------------\n');
-  fprintf('%-20s& Refined & Num. global traps & Tot. trap vol. (m3) & Avg. global trap vol. (m3)\\\\\n', 'Name');
-   
-  fprintf('%-20s&   %2d    &     %6d        &     %d    &    %d           \\\\\n',...
-      res{i}.name, res{i}.refLevel, ...
-      numel(res{i}.ctrapvols), ...
-      sum(res{i}.ctrapvols), ...
-      mean(res{i}.ctrapvols) );
-  fprintf('------------------------------------------------\n');
-
 
 %% Side Vertical Profiles through specified cell, i.e., well cell index
 % If all states of simulation are passed in, only last state is plotted. If
 % the state of a particular year is to be plotted, pass in that state only.
 
-[ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, states, fluid);
+% sim_report.ReservoirTime contains time (in seconds since start of
+% simulation) corresponding to the states{}. To find Year (i.e., 2004)
+% corresponding to a state:
+%I = 5;
+%YearOfStateI = inj_year(1) + sim_report.ReservoirTime(I)/(60*60*24*365) - 1;
+%state2plot = { states{I} };
 
+% inj_year (the year) correspondes to states
+if plotSideProfileCO2heights
+
+    % To plot a specific injection year:
+    YearOfStateToPlot = 2008;
+    fprintf('\n Plotting year %d \n', YearOfStateToPlot);
+    state2plot = { states{ logical(inj_year==YearOfStateToPlot) } };
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, state2plot, fluid, 'SleipnerBounded',true);
+    
+    % To plot a specific state (could be a migration year):
+    %I = 5;
+    %YearOfStateI = inj_year(1) + sim_report.ReservoirTime(I)/(60*60*24*365) - 1;
+    %state2plot = { states{I} };
+    %fprintf('\n Plotting year %d \n', YearOfStateI);
+    %[ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, { states{end} }, fluid, 'SleipnerBounded',true);
+    
+    % To plot the final state:
+    YearOfFinalState = inj_year(1) + sim_report.ReservoirTime(end)/(60*60*24*365) - 1;
+    fprintf('\n Plotting final state, year %d \n', YearOfFinalState);
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, { states{end} }, fluid, 'SleipnerBounded',true);
+    
+    % To see all years profiles:
+%     for i = 1:numel(states)
+%         [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, { states{i} }, fluid, 'SleipnerBounded',true);
+%     end
+end
 
 end
 % end of post-processing
