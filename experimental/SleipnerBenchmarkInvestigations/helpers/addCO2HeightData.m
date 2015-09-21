@@ -11,7 +11,7 @@ function states = addCO2HeightData(states, Gt, fluid)
 % away, leaving behind residual CO2.
 
 % See also:
-%   addHightData
+%   addHeightData
 
 
 
