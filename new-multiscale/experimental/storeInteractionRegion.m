@@ -71,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Extend face points outside of domain so that we have edge that reach
     % outside the domain
     facePts = G.faces.centroids(CG.faces.centers, :);
-    facePts = extrudeFaceCentroids(CG, facePts, G.cells.centroids(CG.cells.centers, :));
+    facePts = extrudeFaceCentroids(CG, facePts);
     
     centers = CG.cells.centers;
 
@@ -197,30 +197,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         assigned(interaction{i}) = true;
     end
     
-    % Corner case: If a coarse block interaction covers all cells of
-    % another coarse block, remove all this support immediately.
-    if ~opt.largeBasis && 0
-        disp('Glorb!')
-        for i = 1:CG.cells.num
-            c = interaction{i};
-            pc = CG.partition(c);
-            p = unique(pc);
-
-            keep = true(numel(c), 1);
-            for j = 1:numel(p)
-                if p(j) == i
-                    continue;
-                end
-                current = pc == p(j);
-                if sum(current) == sum(CG.partition == p(j))
-                    keep(current) = false;
-                end
-            end
-            interaction{i} = c(keep);
-        end
-    end
-    
-    
     % If cells are not member of any triangulation (somewhere on the
     % boundary, typically) these are assigned to the interaction region of
     % the coarse block they belong to.
@@ -234,32 +210,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     CG.cells.interaction = interaction;
 end
 
-function faceCentroids = extrudeFaceCentroids(CG, faceCentroids, cellCentroids)
+function faceCentroids = extrudeFaceCentroids(CG, faceCentroids)
     if nargin == 1
         faceCentroids = CG.faces.centroids;
     end
-    
-    if nargin < 3
-        cellCentroids = CG.cells.centroids;
-    end
+
     bf = any(CG.faces.neighbors == 0, 2);
 
     faceNo = sum(CG.faces.neighbors(bf, :), 2);
 
     fc = faceCentroids(bf, :);
-    cc = cellCentroids(faceNo, :);
-    faceCentroids(bf, :) = fc + 2*(fc - cc);
+    dist = CG.faces.centroids(bf, :) - CG.cells.centroids(faceNo, :);
+    faceCentroids(bf, :) = fc + 2*dist;
 
-end
-
-
-function pt = geometricMedian(pts)
-    pt = mean(pts);
-    len = @(v) sqrt(sum(v.^2, 2));
-    for i = 1:10
-        d = len(bsxfun(@minus, pts, pt));
-        pt = sum(bsxfun(@rdivide, pts, d), 1)./sum(1./d, 1);
-    end
 end
 
 function ok = globalEvaluateTriInside(pts, tri, indexInTriArray)
