@@ -67,28 +67,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     % kwm? 0.75, 0.54 in Appendix of Singh et al 2010.
     
     
-    % OPTION - Select which parameters to modify from original data:
-    modifyParametersCase = 'modify';
-    switch modifyParametersCase
-        case 'modify'
-            % Set parameter modifier factors:
-            por_mod     = 0.6;
-            perm_mod    = 3;
-            rhoCO2_mod  = 2/3;
-            
-            disp('Original rock parameters are being modified ...')       
-            %rock.poro   = rock.poro .* por_mod;
-            rock2D.poro = rock2D.poro .* por_mod;
-            %rock.perm   = rock.perm .* perm_mod;
-            rock2D.perm = rock2D.perm .* perm_mod;
-            
-            disp('Original CO2 density value is being modified ...')
-            rhoCref = rhoCref * rhoCO2_mod;
-            %rhoCref = 350;
-            
-        case 'none'
-            fprintf('\nRock and density parameters are not modified.\n')    
-    end
+
 
     
     
@@ -113,6 +92,32 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
 
     % Get boundary faces of formation (or grid region)
     bf = boundaryFaces(Gt);   
+    
+    
+    % OPTION - Select which parameters to modify from original data:
+    modifyParametersCase = 'modify';
+    switch modifyParametersCase
+        case 'modify'
+            % Set parameter modifier factors:
+            por_mod     = 0.6;
+            perm_mod    = 3;
+            rhoCO2_mod  = 2/3;
+            
+            disp('Original rock parameters are being modified ...')       
+            %rock.poro   = rock.poro .* por_mod;
+            rock2D.poro = rock2D.poro .* por_mod;
+            %rock.perm   = rock.perm .* perm_mod;
+            rock2D.perm = rock2D.perm .* perm_mod;
+            
+            disp('Original CO2 density value is being modified ...')
+            rhoCref = rhoCref * rhoCO2_mod;
+            %rhoCref = 350;
+            
+        case 'none'
+            fprintf('\nRock and density parameters are not modified.\n')    
+    end
+    
+    
     %% 2. Basic routine to perform VE simulation, using simulateScheduleAD().
     % _________________________________________________________________________
     % a) set up initial state, OR get literature data:
