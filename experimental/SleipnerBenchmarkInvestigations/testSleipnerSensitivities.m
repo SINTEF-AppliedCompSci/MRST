@@ -17,9 +17,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     
     % OPTION - Well injection rate:
     ratecase = 'original'
-    
-    switch ratecase
-        
+    switch ratecase   
         case 'SPE'
             % See Singh et al 2010 for more info about how they determined
             % these rates. Note: the injection rates were reported as
@@ -30,20 +28,16 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
             inj_rates  = [2.91e4; 5.92e4; 6.35e4; 8.0e4; 1.09e5; 1.5e5; 2.03e5; 2.69e5; 3.47e5; 4.37e5; 5.4e5] .* meter^3/day;
             % inj_rates is in meter^3/s
             % Convert to rate at reservoir conditions
-            inj_rates  = inj_rates.*(1.87/760);
-            
-        case 'original'
-        
+            inj_rates  = inj_rates.*(1.87/760);       
+        case 'original' 
             % See "Injection rates Layer 9.xls" under
             % co2lab/data/sleipner/original for more info about these
             % rates. Note: the CO2 density at reservoir conditions was
             % reported as 695.89 kg/m3, and the surface density 1.87 kg/m3.
             [ inj_year, inj_rates ] = getSleipnerOriginalInjectionRates();
-            % inj_rates is in meter^3/s
-        
+            % inj_rates is in meter^3/s   
         otherwise
-            error('The injection rate option was either invalid or not selected.')
-        
+            error('The injection rate option was either invalid or not selected.')     
     end
     
     
@@ -74,13 +68,28 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     
     
     % OPTION - Select which parameters to modify from original data:
-    mod_rock        = true;
-    mod_rhoCO2      = true;
-    
-    % Then, set parameter modifier factors:
-    por_mod     = 0.6;
-    perm_mod    = 3;
-    rhoCO2_mod  = 2/3;
+    modifyParametersCase = 'modify';
+    switch modifyParametersCase
+        case 'modify'
+            % Set parameter modifier factors:
+            por_mod     = 0.6;
+            perm_mod    = 3;
+            rhoCO2_mod  = 2/3;
+            
+            disp('Original rock parameters are being modified ...')       
+            %rock.poro   = rock.poro .* por_mod;
+            rock2D.poro = rock2D.poro .* por_mod;
+            %rock.perm   = rock.perm .* perm_mod;
+            rock2D.perm = rock2D.perm .* perm_mod;
+            
+            disp('Original CO2 density value is being modified ...')
+            rhoCref = rhoCref * rhoCO2_mod;
+            %rhoCref = 350;
+            
+        case 'none'
+            fprintf('\nRock and density parameters are not modified.\n')    
+    end
+
     
     
     
@@ -100,15 +109,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     rock2D.poro=rock2D.poro(ind);
     %}
     %return
-    %% Modify original parameters (optional) and visualize model grids
-    if mod_rock
-        disp('Original rock parameters are being modified ...')       
-        % modify parameters
-        %rock.poro   = rock.poro .* por_mod;
-        rock2D.poro = rock2D.poro .* por_mod;
-        %rock.perm   = rock.perm .* perm_mod;
-        rock2D.perm = rock2D.perm .* perm_mod;
-    end
+
 
     % Get boundary faces of formation (or grid region)
     bf = boundaryFaces(Gt);   
@@ -116,12 +117,6 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     % _________________________________________________________________________
     % a) set up initial state, OR get literature data:
     
-    
-    if mod_rhoCO2
-        disp('Original CO2 density value is being modified ...')
-        rhoCref = rhoCref * rhoCO2_mod;
-        %rhoCref = 350;
-    end  
     initState.pressure  = Gt.cells.z * norm(gravity) * water_density;   % hydrostatic pressure, in Pa=N/m^2
     initState.s         = repmat([1 0], Gt.cells.num, 1);               % sat of water is 1, sat of CO2 is 0
     initState.sGmax     = initState.s(:,2);                             % max sat of CO2 is initially 0
