@@ -6,16 +6,19 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     'coarsegrid','upscaling','incomp','mrst-experimental','optimization');
     clear schedule 
     gravity on
-    % Trapping analysis method
-    isCellBasedMethod = false; % true to use cell-based method, false to use node-based method
+    
+    %% Select trapping analysis method:
+    % true to use cell-based
+    isCellBasedMethod = false;
     
     
+    %% Well info:
     % Physical coordinate of injection well (Singh et al. 2010)
     wellXcoord      = 4.38516e5;
     wellYcoord      = 6.47121e6;
     
     
-    % OPTION - Well injection rate:
+    %% Select well injection rate data:
     ratecase = 'original'
     switch ratecase   
         case 'SPE'
@@ -41,14 +44,15 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     end
     
     
-    % Specify and compute time step size for injection period.
+    %% Specify and compute time step size for injection period.
     % ***Note: inj_time and inj_steps are applied to each inj_rate given***
     num_years   = 10;
     inj_time    = 1 * year; % DEFAULT. CAN ONLY ADJUST NUMBER OF STEPS.
     inj_steps   = 1;
     dTi         = inj_time / inj_steps; % timestep size in seconds
     
-    % Specify fluid properties:
+    
+    %% Specify fluid properties:
     [rho, mu, sr, sw]   = getValuesSPE134891();
     sr=0;sw=0;%NB
     water_density       = rho(1) * kilogram / meter ^3;
@@ -66,15 +70,13 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     
     % kwm? 0.75, 0.54 in Appendix of Singh et al 2010.
     
-    
 
-
-    
-    
-    
-    % ************************ END OF USER OPTIONS ****************************
+    %% Select grid and refinement/coarsening level (if any):
+    % Grid options: 'ORIGINAL', 'IEAGHGmodel', 'INHOUSEmodel'
+    % Coarsening level specified using -2, -3, etc.
+    modelname = 'ORIGINALmodel';
     refineLevel = 1;
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',refineLevel, 'plotsOn',false);
+    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',refineLevel, 'plotsOn',false);
     %clear G,rock,
     %%{
     dx= (wellXcoord-Gt.cells.centroids(:,1));
@@ -89,12 +91,12 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     %}
     %return
 
-
     % Get boundary faces of formation (or grid region)
     bf = boundaryFaces(Gt);   
     
     
-    % OPTION - Select which parameters to modify from original data:
+    %% Select whether to modify parameters from original data, ...
+    % and set their modification factors.
     modifyParametersCase = 'modify';
     switch modifyParametersCase
         case 'modify'
@@ -118,62 +120,58 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     end
     
     
-    %% 2. Basic routine to perform VE simulation, using simulateScheduleAD().
-    % _________________________________________________________________________
-    % a) set up initial state, OR get literature data:
-    
+    %% Set up initial state:
     initState.pressure  = Gt.cells.z * norm(gravity) * water_density;   % hydrostatic pressure, in Pa=N/m^2
     initState.s         = repmat([1 0], Gt.cells.num, 1);               % sat of water is 1, sat of CO2 is 0
     initState.sGmax     = initState.s(:,2);                             % max sat of CO2 is initially 0
     initState.rs        = 0 * initState.sGmax;                          % initially 0   
-    dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [wellXcoord, wellYcoord]);
-    [v,i] = min(sum(dv.^2, 2));   
-    wellCellIndex = i; % or Gt.cells.indexMap(i);
-    [i, j] = ind2sub(Gt.cartDims, wellCellIndex);
-    % Check coordinate that wellCellIndex corresponds to:
+    
+    
+    %% Index of the closest cell to the physical well location: 
+    dv              = bsxfun(@minus, Gt.cells.centroids(:,1:2), [wellXcoord, wellYcoord]);
+    [v,i]           = min(sum(dv.^2, 2));   
+    wellCellIndex   = i; % or Gt.cells.indexMap(i);
+    [i, j]          = ind2sub(Gt.cartDims, wellCellIndex);
+    % Cartesian coordinate that wellCellIndex corresponds to:
     wellCoord_x = Gt.cells.centroids(wellCellIndex,1);
     wellCoord_y = Gt.cells.centroids(wellCellIndex,2);
     wellCoord_z = 0;
+
     
-    
+    %% Create schedule:
     clear schedule;
-    inj_rates_MtPerYr = inj_rates.*(rhoCref/1e9*365*24*60*60); % Mt/year
-    % Put into schedule fields --> [inj period 1; inj period 2; etc...; migration period]
+   
+    % Well rates:
+    % i.e., [inj period 1; inj period 2; etc...; migration period]
     for i = 1:num_years;%numel(inj_rates) %only use 9 years
         schedule.control(i).W = addWell([], Gt.parent, rock2D, wellCellIndex, ...
             'name', sprintf('W%i', i), 'Type', 'rate', 'Val', inj_rates(i), 'comp_i', [0 1]);
     end
-    bdryFaces = find( Gt.faces.neighbors(:,1).*Gt.faces.neighbors(:,2) == 0 );
     
-    bdryType = 'pressure';
-    bdryVal  = Gt.faces.z(bdryFaces) * water_density * norm(gravity);
-    % Then use function bc = addBC(bc, faces, type, value, varargin)
-    bc = addBC( [], bdryFaces, bdryType, bdryVal, 'sat', [1 0] );   
-    % Put into schedule fields --> [injection period; migration period]
+    % Boundaries:
+    bdryFaces   = find( Gt.faces.neighbors(:,1).*Gt.faces.neighbors(:,2) == 0 );
+    bdryType    = 'pressure';
+    bdryVal     = Gt.faces.z(bdryFaces) * water_density * norm(gravity);
+    bc          = addBC( [], bdryFaces, bdryType, bdryVal, 'sat', [1 0] );   
     for i = 1:numel(schedule.control)
         schedule.control(i).bc = bc;
     end
-    
-    
-    % TIME STEP:
-    
-    % For simulation schedule
-    istepvec = repmat( ones(inj_steps, 1) * dTi , [num_years 1] );
-    %mstepvec = ones(mig_steps, 1) * dTm;    
-    % schedule.step.val and schedule.step.control are same size arrays:
-    % schedule.step.val is the timestep (size) used for that control step.
+
+    % Time step:
+    istepvec                = repmat( ones(inj_steps, 1) * dTi , [num_years 1] );
+    %mstepvec                = ones(mig_steps, 1) * dTm;    
     schedule.step.val       = [istepvec];
-    % schedule.step.control is a index (1,2,...) indicating which control
-    % (i.e., schedule.control) is to be used for the timestep.
-    schedule.step.control = [];
+    schedule.step.control   = [];
     for i = 1:numel(schedule.control)
-            schedule.step.control = [schedule.step.control; ones(inj_steps, 1) * i];        
+        schedule.step.control = [schedule.step.control; ones(inj_steps, 1) * i];        
     end   
-    % _________________________________________________________________________
-    % c) set up model (grid, rock and fluid properties).
     
-    caprock_temperature = 273.15 + seafloor_temp + (Gt.cells.z - seafloor_depth) / 1e3 * temp_gradient; % Kelvin
-    ref_p           = mean(initState.pressure); % use mean pressure as ref for linear compressibilities   
+    
+    %% Create fluid:
+    caprock_temperature = 273.15 + seafloor_temp + ...
+        (Gt.cells.z - seafloor_depth) / 1e3 * temp_gradient;    % Kelvin
+    ref_p               = mean(initState.pressure);             % ref. for linear compressibilities   
+    
     fluid = makeVEFluid(Gt, rock2D, 'sharp interface', ...
         'fixedT'      , caprock_temperature, ...
         'wat_mu_ref'  , mu(1), ...
