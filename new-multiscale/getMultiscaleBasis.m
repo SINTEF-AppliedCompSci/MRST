@@ -91,12 +91,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 CG = storeInteractionRegion(CG);
             end
             if opt.useMex || strcmpi(opt.type, 'jacobi-mex')
-                assert(exist('mbasisSmoothed', 'file') > 0, 'MsRSB-Mex basis functions not available');
-                if isempty(opt.mexGrid)
-                    opt.mexGrid = setupGridsForMex(A, CG);
-                end
-                B = mbasisSmoothed(opt.mexGrid, 'maxiter', opt.iterations, ...
-                    'tolerance', opt.tolerance, 'omega', .66);
+                assert(exist('cppMultiscaleBasis', 'file') > 0, 'MsRSB-Mex basis functions not available');
+                CG = setupMexInteractionMapping(CG);
+                B = cppMultiscaleBasis(CG, A, 'verbose', true, 'omega', 2/3, 'maxiter', opt.iterations, 'tolerance', opt.tolerance);
             else
                 assert(exist('iteratedJacobiBasis', 'file') > 0, 'MsRSB basis functions not available');
                 B = iteratedJacobiBasis(A, CG, 'iterations', opt.iterations,...
