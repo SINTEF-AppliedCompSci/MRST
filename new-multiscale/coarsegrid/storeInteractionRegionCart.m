@@ -1,4 +1,4 @@
-function CG = storeInteractionRegionCart(CG)
+function CG = storeInteractionRegionCart(CG, varargin)
 % Store MPFA-like interaction region for coarse grid made from logical partitioning.
 %
 % SYNOPSIS:
@@ -42,24 +42,28 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    opt = struct('adjustCenters', true, ...
+                 'centerOverride',    [], ...
+                 'edgeBoundaryCenters', true);
+    opt = merge_options(opt, varargin{:});
 
     % For when grid was created by partitionUI
     G = CG.parent;
     
-    [cc, fc] = mapCenters(CG);
-    if ~isfield(CG.cells, 'centers')
-        CG.cells.centers = cc;
+    if ~isfield(CG.faces, 'centers') || ~isfield(CG.cells, 'centers')
+        CG = addCoarseCenterPoints(CG, ...
+                                   'adjustCenters', opt.adjustCenters, ...
+                                   'centerOverride', opt.centerOverride, ...
+                                   'edgeBoundaryCenters', opt.edgeBoundaryCenters);
     end
-    
-    if ~isfield(CG.faces, 'centers')
-        CG.faces.centers = fc;
-    end
+
     
     ijk = gridLogicalIndices(G);
     ijk = [ijk{:}];
     
     interaction = cell(CG.cells.num, 1);
     for i = 1:CG.cells.num
+        dispif(mrstVerbose, 'Interaction stored for block %d of %d\n', i, CG.cells.num);
         n = coarseNeighbors(CG, i, false);
         ijk_near = ijk(CG.cells.centers(n), :);
         
