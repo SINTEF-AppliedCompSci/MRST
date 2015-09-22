@@ -23,6 +23,9 @@ function src = addSource(src, c, r, varargin)
 %            in order to obtain flux rates).  Specifically, the mimetic
 %            pressure solvers do not integrate these values.
 %
+%            In the special case that a single value is provided, it will
+%            be assumed valid for all cells in the input.
+%
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   sat    - Fluid composition of injected fluid in injection cells.
 %            An n-by-m array of fluid compositions with 'n' being the
@@ -86,7 +89,12 @@ if isempty(src),
    src = struct('cell', [], 'rate', [], 'sat', []);
 end
 
-assert (numel(c) == numel(r), 'The number of rates should equal the number of cells on input.');
+if numel(r) == 1
+    r = repmat(r, numel(c), 1);
+end
+
+assert (numel(c) == numel(r), ['The number of rates should equal the number', ...
+                    ' of cells on input, or be a single value for all cells.']);
 assert ((size(s,2) == size(src.sat,2)) || (size(src.sat,2) == 0));
 
 % Verify that cell source term is not already set
