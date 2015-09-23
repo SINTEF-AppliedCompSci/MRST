@@ -6,6 +6,7 @@ properties
     nrelperm
     pcow
     npcow
+    pcowgrav     % Whether to include gravity in pcOW upscaling
     
     relpermdims  % Dimensions to upscale relperm in
     savesat      % Save saturation distributions
@@ -22,6 +23,7 @@ methods
         upscaler.nrelperm = 20;
         upscaler.pcow     = true; % Upscale pcow or not
         upscaler.npcow    = 100;
+        upscaler.pcowgrav = true;
         upscaler.relpermdims = upscaler.dims;
         upscaler.savesat  = false; % Save saturation distributions
         
@@ -47,9 +49,18 @@ methods
         if upscaler.pcow && ~strcmpi(upscaler.method, 'porevolume')
             
             if ~isempty(regexpi(upscaler.method, '_grav$'));
-                % We upscale with gravity
-                [data, rep] = upPcOW(block, data, ...
-                    'npointsmax', upscaler.npcow, 'gravity', 'centroid');
+                
+                if upscaler.pcowgrav
+                    % We upscale with gravity
+                    [data, rep] = upPcOW(block, data, ...
+                        'npointsmax', upscaler.npcow, ...
+                        'gravity', 'centroid');
+                else
+                    % We upscale without gravity
+                    [data, rep] = upPcOW(block, data, ...
+                        'npointsmax', upscaler.npcow);
+                end
+                
                 % We also need the bottom pcow curve for relperm upscaling
                 [d, r] = upPcOW(block, [], ...
                     'npointsmax', upscaler.npcow, 'gravity', 'bottom');
