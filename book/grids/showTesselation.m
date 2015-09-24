@@ -15,6 +15,7 @@ G = tesselationGrid(p, T);
 clf, plotGrid(G);
 
 %%
+cla
 [dx, dy, dPhi] = deal(cos(pi/3),sin(pi/3), pi*40/180);
 v = pi/180*[0 180 120 -60 240 60]';
 dv = [cos(v-dPhi) sin(v-dPhi) cos(v+dPhi) sin(v+dPhi)]/3.5;
@@ -53,6 +54,7 @@ plotFaces(G,find(any(G.faces.neighbors==0,2)),'EdgeColor','r','LineWidth',2);
 axis tight off;
 
 %%
+cla
 [dx, dy] = deal(cos(pi/3),sin(pi/3));
 P1 = [0 0; 1 0; dx dy];
 P2 = [P1([1 3 2],1) -P1([1 3 2],2)];
