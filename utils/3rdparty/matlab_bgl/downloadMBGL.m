@@ -41,7 +41,7 @@ function downloadMBGL
    if fid < 0,
       warning('Open:Fail', 'Failed to open ''startup_user.m'': %s', msg);
    end
-   fprintf(fid, 'mrstPath reregister matlab_bgl ...\n    %s\n', ...
+   fprintf(fid, 'mrstPath reregister matlab_bgl ...\n    ''%s''\n', ...
            fullfile(dest, 'matlab_bgl'));
    fclose(fid);
    fprintf('done\n');
