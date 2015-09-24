@@ -16,6 +16,53 @@ function G = tesselationGrid(p, t)
 %
 % EXAMPLE:
 %
+%   % Construct a standard Cartesian grid
+%   [nx,ny] = deal(15,10);
+%   [x,y] = meshgrid(linspace(0,1,nx+1),linspace(0,1,ny+1));
+%   p = [x(:) y(:)];
+%   n = (nx+1)*(ny+1);
+%   I = reshape(1:n,ny+1,nx+1);
+%   T = [
+%       reshape(I(1:end-1,1:end-1),[],1)';
+%       reshape(I(1:end-1,2:end  ),[],1)';
+%       reshape(I(2:end,  2:end  ),[],1)';
+%       reshape(I(2:end,  1:end-1),[],1)'
+%       ]';
+%   G = tesselationGrid(p, T);
+%   clf, plotGrid(G);
+%
+%   % Construct a symmetric pattern of 6-point polygons
+%   [dx, dy, dPhi] = deal(cos(pi/3),sin(pi/3), pi*15/180);
+%   v = pi/180*[0 120 240]';
+%   dv = [cos(v-dPhi) sin(v-dPhi) cos(v+dPhi) sin(v+dPhi)]/2;
+%   P = [ 0           0           0           0;
+%         0+dv(1,1)   0+dv(1,2)   0+dv(1,3)   0+dv(1,4);
+%         1           0           1           0;
+%         1+dv(2,1)   0+dv(2,2)   1+dv(2,3)   0+dv(2,4);
+%         dx          dy          dx          dy;
+%         dx+dv(3,1)  dy+dv(3,2)  dx+dv(3,3)  dy+dv(3,4)];
+%   P1 = P(:,1:2);
+%   P2 = [P([1 6:-1:2],3) -P([1 6:-1:2],4)];
+%   T  = reshape(1:24,6,4)';
+%
+%   [p,t,n] = deal([],[],0);
+%   for j=0:2
+%       for i=0:4
+%           p = [p; bsxfun(@plus,P1,[i 2*j*dy])];
+%           p = [p; bsxfun(@plus,P2,[i-dx (2*j+1)*dy])];
+%           p = [p; bsxfun(@plus,P1,[i-dx (2*j+1)*dy])];
+%           p = [p; bsxfun(@plus,P2,[i 2*(j+1)*dy])];
+%           t = [t; T+n]; n=n+24;
+%      end
+%   end
+%
+%   [p,ia,ic] = unique(round(p*1e5)/1e5,'rows');
+%   G = tesselationGrid(p, ic(t));
+%   i=repmat((1:2)',G.cells.num/2,1);
+%   plotCellData(G,i(:));
+%   plotFaces(G,find(any(G.faces.neighbors==0,2)),'EdgeColor','r','LineWidth',2);
+%   axis tight off;
+%
 % SEE ALSO:
 %   triangleGrid, tetrahedralGrid, grid_structure.
 
