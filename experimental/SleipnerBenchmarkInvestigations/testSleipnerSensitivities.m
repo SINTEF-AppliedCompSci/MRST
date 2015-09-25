@@ -185,22 +185,19 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
         'residual'    , [sw, sr] , ...
         'dissolution' , isDissOn, 'dis_max', dis_max);
     
-    %%
-   
-   
+    %% Solver:
     %elipticsolver = BackslashSolverAD();
     %elipticsolver = AGMGSolverAD('tolerance',1e-3,'reuseSetup',false);
     %linearsolver = CPRSolverAD('tolerance',1e-5,'ellipticSolver',elipticsolver);
-    
     linearsolver = BackslashSolverAD();
     it_target=5;
     rampup_dt = 20*day;
     dtmax=1*year;
     timestepper = ...
-       IterationCountTimeStepSelector('targetIterationCount', it_target,...
+       IterationCountTimeStepSelector('targetIterationCount',  it_target,...
                                       'minRelativeAdjustment', sqrt(eps),...
-                                      'maxRelativeAdjustment', 4, ...
-                                      'firstRampupStep',       rampup_dt, ...
+                                      'maxRelativeAdjustment', 4,...
+                                      'firstRampupStep',       rampup_dt,...
                                       'verbose', true,'maxTimestep',dtmax);
     nonlinearsolver = NonLinearSolver('timeStepSelector', timestepper, ...
                                 'maxiterations', 2*it_target,'LinearSolver',linearsolver);
@@ -238,13 +235,20 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     [wellSols, states, sim_report] = simulateScheduleAD(initState, smodel, schedule);
      %figure(),myplotCellData(Gt,states{end}.s(:,1))
     %return
-    %% Save variables in workspace:
-    %save(datestr(clock,30));
+    %% Post-processing:
+    
+    %% Assess Grid Sensitivity to simulated CO2 heights.
+    % Using functions topsurface and topfit, get elevations of top
+    % corresponding to model grid and a planar surface (which is fitted to
+    % plume outline). Get difference between these two 'tops' = hCO2. Get
+    % difference between hCO2 and simulated CO2 height.
     figure(1),clf,plotCellData(Gt,states{end}.s(:,1)),colorbar
     plumes = getLayer9CO2plumeOutlines();
     [plumes,topsurface, topfit, hCO2] = makeSurfaceData(plumes,Gt)
+    %[plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt);
     states = addHeightData(states,Gt,fluid);
-    %%
+    %% Make plots.
+    % Does not plot multiple polygons of a given year in same plot
     sim_year=cumsum(schedule.step.val)/year;
     myplotCellData =@(G,data) plotCellData(G,data,'EdgeColor','none');
     for i=1:numel(plumes)
@@ -262,8 +266,13 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
         myplotCellData(Gt,states{tstep}.h-plumes{i}.h),colorbar,axis tight
         end
     end
-    %%
-    ny=1;%numel(plumes)
+    
+    % An alternative to the code above: deals with multiple polygons in the
+    % same given year
+    [ plumes_comb ] = plotDiff( Gt, plumes, sim_report, states, topsurface );
+    %% 
+    % NB: topfit is function handle for last polygon fit with planar surface
+    ny=numel(plumes); %1;%numel(plumes)
     figure(91),clf,myplotCellData(Gt,double((topfit(Gt.cells.centroids)-topsurface(Gt.cells.centroids))>0))
     [isin,sang]=insidePolygon(plumes{ny}.outline,Gt.cells.centroids);
     figure(92),clf,myplotCellData(Gt,sang),hold on
