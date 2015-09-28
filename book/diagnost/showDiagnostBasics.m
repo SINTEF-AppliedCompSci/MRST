@@ -79,7 +79,26 @@ delete(hd);
 hd = plotCellData(G,D.ppart,'EdgeColor','none','FaceAlpha',.6);
 print -dpng diagnost-ppart.png;
 
-%%
+%% Well regions: I1<->P1, I2<->P3
 delete(hd);
 hd = plotCellData(G,D.ipart, D.ppart~=2, 'EdgeColor','none','FaceAlpha',.6);
 print -dpng diagnost-wreg.png;
+
+%% Compute time-of-flights inside each well region
+T = computeTimeOfFlight(state, G, rock, 'wells', W, ...
+    'tracer',{W(D.inj).cells},'computeWellTOFs', true);
+
+%% F-Phi diagram
+[F,Phi] = computeFandPhi(poreVolume(G,rock), D.tof);
+clf,
+plot(Phi,F,'.',[0 1],[0 1],'--'); set(gca,'FontSize',20);
+print -depsc2 diagnost-FPhi.eps;
+
+%% Lorenz coefficient
+computeLorenz(F,Phi)
+
+%% Sweep effciency diagram
+[Ev,tD] = computeSweep(F,Phi);
+clf
+plot(tD,Ev,'.'); set(gca,'FontSize',20);
+print -depsc2 diagnost-sweep.eps;
