@@ -4,10 +4,12 @@ function visualSimulation(initState, model, schedule, varargin)
    moduleCheck('ad-core', 'ad-props');
 
    opt.h_min_threshold = 1e-2; % 1 cm
+   opt.s_min_threshold = 1e-4;
    opt.rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
    opt.window_size = [700 900];
    opt.trapstruct = []; % trapping structure as computed by trapAnalysis
    opt.dh = []; % subscale trapping structure, if available
+   opt.savefile = []; % if nonempty string, save result to the specified filename
    
    opt = merge_options(opt, varargin{:});
    
@@ -67,6 +69,11 @@ function visualSimulation(initState, model, schedule, varargin)
       return;
    end
 
+   % save outcome if requested
+   if ~isempty(opt.savefile)
+      save(opt.savefile, 'model', 'schedule', 'wellSols', 'states', 'sim_report');
+   end
+   
    % Plot the inventory in separate window
    h2 = figure; plot(1); ax = get(h2, 'currentaxes');
 
@@ -100,16 +107,37 @@ function visualSimulation(initState, model, schedule, varargin)
          
          % Determine what to display
          field = fieldnames(initState);
+         field{end+1} = 'h'; % adding height
+         field{end+1} = 'plume_s_avg';
          field = field(get(iface.picker, 'value'));
-         data = states{state_ix}.(field{:});
+         %data = states{state_ix}.(field{:});
          switch lower(field{:})
            case 's'
-             % keep only co2 saturation, and convert to height
-             data = data(:,2); 
-             data = data .* model.G.cells.H;
-             data(data < opt.h_min_threshold) = NaN;
+             % keep only co2 saturation
+             data = states{state_ix}.s(:,2);
+             data(data < opt.s_min_threshold) = NaN;
+             % data = data(:,2); 
+             % data = data .* model.G.cells.H;
+             % data(data < opt.h_min_threshold) = NaN;
            case 'pressure'
-             data = data - initState.pressure; % visualize overpressure
+             data = states{state_ix}.pressure - initState.pressure; % visualize overpressure
+           case {'h', 'plume_s_avg'}
+             p = states{state_ix}.pressure;
+             sG = states{state_ix}.s(:,2);
+             sG_max = states{state_ix}.sGmax;
+             drho = (model.fluid.rhoWS .* model.fluid.bW(p) - model.fluid.rhoGS * model.fluid.bG(p));
+             pc = model.fluid.pcWG(sG, p, 'sGmax', sG_max);
+             h = pc ./ (drho*norm(gravity));
+             h(h<opt.h_min_threshold) = NaN;
+             if strcmpi(field{:}, 'h')
+                data = h;
+             else % free plume s-average
+                sfree = free_sg(sG, sG_max, struct('res_water', model.fluid.res_water, ...
+                                                   'res_gas', model.fluid.res_gas));
+                data = sfree.*model.G.cells.H./h./(1-model.fluid.res_water);
+             end
+           otherwise
+             data = states{state_ix}.(field{:});
          end
          
          axes(iface.ax); axis auto; cla;
@@ -170,9 +198,14 @@ end
 
 function str = variable_string(state)
 
+   % Basic state fields
    str = cellfun(@(x) [x,'|'], fieldnames(state),'uniformoutput', false);
    str = [str{:}];
    str = str(1:end-1);
+   
+   % Additional fields
+   str = [str, '|h'];
+   str = [str, '|plume_s_avg'];
    
 end
 
