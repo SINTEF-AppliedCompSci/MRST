@@ -1,27 +1,21 @@
-%% CO2 Storage Atlas: the Norwegian North Sea
+%% CO2 Storage Atlas: the Barents Sea
 % The Norwegian Petroleum Directorate (NPD) has developed an atlas that
-% gives an overview over areas in the Norwegian part of the North Sea where
-% CO2 can be stored safely in the subsurface for a long time, see
-% http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/. As part of
-% the atlas, NPD has released geographical data for many of the formations
-% that are described in the atlas. The data are given in a GIS formate
-% (shape- and rasterfiles) and can be downloaded from their webpage.
+% gives an overview over areas in the Norwegian Contential Shelf (NCS)
+% where CO2 can be stored safely in the subsurface for a long time, see
+% http://www.npd.no/en/Publications/Reports/CO2-Storage-Atlas-/.
 %
-% One of the purposes of the 'co2lab' in MRST is to provide simple access
-% to public datasets. In this example, we describe how you can
-% use the functionality in 'co2lab' to download and display the
-% data sets that accompany the atlas. For the sake of convenience, we have
-% converted the files to an ASCII format more suitable for our
-% applications. These files can be inspected using any text editor. We also
-% process the files and get both the raw datasets and data structures
-% suitable for constructing volumetric corner-point grids of several sand
-% bodies. At the end of the example, we analyse the different formations
-% and compute the capacity for structural trapping in each formation.
+% While the NPD has released geographical data for the formations in the
+% North Sea, the Barents Sea formation datasets were obtained via email,
+% and are not currently downloaded on their website.
+%
+% The following analyzes the Barents Sea datasets, in particular the
+% Hammerfest Aquifer, which is made up of three stacked formations, and
+% where the Snohvit injection site is located.
 
 %% Read data
-% This example assumes that you have already downloaded the North Sea
-% datasets from the NPD webpages. If you have not done so, you can use the
-% following command: downloadDataSets('atlas')
+% This example assumes that you have already obtained the Barents Sea
+% datasets, and have been placed in the same directory as the North Sea
+% datasets (which can be downloaded using downloadDataSets('atlas')).
 
 try
    require co2lab
@@ -31,8 +25,8 @@ end
 
 moduleCheck deckformat
 
-fprintf('Loading atlas data (this may take a few minutes)..');
-[grdecls, rawdata] = getAtlasGrid(getNorthSeaNames()); %#ok
+fprintf('Loading atlas data (this may take a few minutes)..\n');
+[grdecls, rawdata] = getAtlasGrid( [getBarentsSeaNames() getNorwegianSeaNames()] ); %#ok
 fprintf('done\n');
 
 %% Description of raw data
@@ -57,28 +51,33 @@ fprintf('----------------------------------------------------------------\n');
 % Store names for convenience
 names = cellfun(@(x) x.name, rawdata, 'UniformOutput', false)';
 
-%% Show the data directly: Utsira formation
+%% Show the data directly: Bjarmeland formation
 % The datasets are perfectly usable for visualization on their own. To see
-% this, we find the datasets corresponding to the Utsira formation and plot
-% both the thickness and the heightmap.
+% this, we find the datasets corresponding to the Bjarmeland formation and
+% plot both the thickness and the heightmap.
 %
-% Note that the datasets are not entirely equal: Some sections are not
-% included in the thickness map and vice versa. In addition to this, the
-% coordinates are not always overlapping, making interpolation neccessary.
+% Note that the resolution of the thickness map is different from the
+% resolution of the height map, in the case of Bjarmeland. These maps are
+% processed using interpolation in order to create the appropriate model
+% grids.
 %
-% Some formations are only provided as thickness maps; These are processed
-% by sampling the relevant part of the Jurassic formation for top surface
-% structure.
+% % Note that the datasets are not entirely equal: Some sections are not
+% % included in the thickness map and vice versa. In addition to this, the
+% % coordinates are not always overlapping, making interpolation neccessary.
+% %
+% % Some formations are only provided as thickness maps; These are processed
+% % by sampling the relevant part of the Jurassic formation for top surface
+% % structure.
 
-utsira_rd = rawdata(strcmpi(names, 'Utsirafm'));
+bjarmeland_rd = rawdata(strcmpi(names, 'Bjarmelandfm'));
 clf;
-for i = 1:numel(utsira_rd)
-    urd = utsira_rd{i};
+for i = 1:numel(bjarmeland_rd)
+    rd = bjarmeland_rd{i};
     
     subplot(2,1,i)
-    surf(urd.data)
+    surf(rd.data)
     
-    title([urd.name ' ' urd.variant])
+    title([rd.name ' ' rd.variant])
     shading interp
     view(0,90)
     axis tight off
@@ -86,7 +85,7 @@ end
 
 
 %% Visualize all the formations
-% We then visualize the formations present in the North Sea along with a
+% We then visualize the formations present in the Barnets Sea along with a
 % map of Norway and point plots of all production wells in the Norwegian
 % Continental Shelf.
 %
@@ -103,7 +102,7 @@ end
 % approximately the outline of each formation. More details about how to
 % create 3D grid models are given in the script 'modelsFromAtlas.m'
 
-grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening', 5);
+grdecls = getAtlasGrid( [getBarentsSeaNames() getNorwegianSeaNames()] ,'coarsening', 5);
 ng = numel(grdecls);
 
 grids = cell(ng,1);
@@ -152,29 +151,33 @@ set(gcf,'Color',[0.8 0.8 0.8]);set(gca,'Color',[0.8 0.8 0.8]);
 set(gca,'XColor',[0,0,0])
 set(gca,'YColor',[0,0,0]);set(gca,'LineWidth',1)
 
-ax = axis();
+%ax = axis();
 colormap hsv
 
 % Load and plot a map 
 %load(fullfile(mrstPath('co2lab'), 'data', 'atlas', 'norway.mat'));
 load(fullfile(getDatasetPath('co2atlas'), 'norway.mat'));
 for k=1:length(norway), 
-    line(norway{k}(:,1) + 6.8e5, norway{k}(:,2)); 
+    line(0.85*(norway{k}(:,1)) + 0.37e6, norway{k}(:,2)); 
 end;
-axis(ax)
+%axis(ax)
+axis equal
+axis tight
 
-hold on
-%load(fullfile(mrstPath('co2lab'), 'data', 'atlas', 'welldata.mat'));
-load(fullfile(getDatasetPath('co2atlas'), 'welldata.mat'));
-plot(welldata(:,2), welldata(:,1), '.k', 'MarkerSize', 5)
+% Note: well data coordinates do not line up with map of Norway.
+% hold on
+% %load(fullfile(mrstPath('co2lab'), 'data', 'atlas', 'welldata.mat'));
+% load(fullfile(getDatasetPath('co2atlas'), 'welldata.mat'));
+% plot(welldata(:,2), welldata(:,1), '.k', 'MarkerSize', 5)
 
 
 %% Redo the visualization in 3D with higher resolution
-% To show the depth of the various North Sea formations, we redo the plot
+% To show the depth of the various Barents Sea formations, we redo the plot
 % in 3D.
 figure;
 p = get(gcf,'Position'); set(gcf,'Position', p + [-300 0 300 0]);
-grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening', 3);
+grdecls = getAtlasGrid( [getBarentsSeaNames()] ,'coarsening', 3);
+%grdecls = getAtlasGrid( {'Stofm','Nordmelafm','Tubaenfm'} ,'coarsening', 3);
 ng = numel(grdecls);
 
 grids = cell(ng,1);

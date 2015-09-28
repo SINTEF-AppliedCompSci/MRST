@@ -222,7 +222,11 @@ for i = 1:numel(grids)
     end
     [meta, data] = readAAIGrid(fullfile(gdir, g));
     
-    if isTop
+    % The rawdata files of North Sea formations have neg depth values for
+    % top surface, while the rawdata files of Barents Sea formations have
+    % pos depth values for top surface. We want data to contain pos depth
+    % values. Here, sign of data is checked and is switched if neg:
+    if isTop && any(find(data<0))
         data = -data;
     end
     
@@ -254,6 +258,8 @@ function avgrock = getAvgRock(name)
         name = name(1:end-2);
     end
     switch lower(name)
+        
+        % North Sea
         case 'utsira'
             tmp = [1000, 0.2112];
         case 'skade'
@@ -280,6 +286,22 @@ function avgrock = getAvgRock(name)
             tmp = [500 0.1254];
         case 'bryne'
             tmp = [150	0.1280];
+            
+        % Barents Sea (chp 6 of "CO2 Storage Atlas: Norwegian
+        % Contential Shelf" from NPD)
+        case 'bjarmeland'
+            % p. 130: average permeability in range of 5-1000mD
+            tmp = [NaN 0.23]; % TODO: confirm perm value
+        case 'sto'
+            tmp = [500 0.15]; % pg 128 in chp 6 of Atlas
+        case 'nordmela'
+            tmp = [1 0.15];   % pg 128 in chp 6 of Atlas
+        case 'tubaen'
+            tmp = [500 0.15]; % pg 128 in chp 6 of Atlas
+            
+            
+        % Norwegian Sea
+        
         otherwise
             tmp = [NaN NaN];
     end

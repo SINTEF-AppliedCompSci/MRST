@@ -1,4 +1,4 @@
-function [problem, state] = equationsWGVEbasic(model, state0, state, dt, drivingForces, varargin)
+function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, drivingForces, varargin)
 
    opt = struct('reverseMode', false, ...
                 'resOnly', false, ...
@@ -12,7 +12,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    f  = model.fluid;
 
    % Extract the current and previous values of all variables to solve for
-   [p, sG, sGmax, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol');
+   [p, sG, sGmax, wellSol,dz,rhofac,permfac,porofac] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol', 'dz','rhofac','permfac','porofac');
    [p0, sG0]               = model.getProps(state0, 'pressure', 'sg');
 
    % Stack well-related variables of the same type together
@@ -25,10 +25,12 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    if ~opt.resOnly
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
-         [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
+         [p, sG, bhp, qWs, qGs, dz, rhofac, permfac, porofac] = initVariablesADI(p, sG, bhp, qWs, qGs, dz,rhofac,permfac,porofac);
       else
          zw = zeros(size(bhp)); % dummy
-         [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
+         dzw = zeros(size(dz));
+         dew = zeros(size(rhofac));
+         [p0, sG0, ~, ~, ~, ~,~,~,~] = initVariablesADI(p0, sG0, zw, zw, zw, dzw,dew,dew,dew);
       end
    end
 
@@ -39,7 +41,14 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
 
    % multiplier for mobilities
    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(f, p, p0);
-
+   
+   %
+   pvMult = porofac*pvMult;
+   pvMult0 = state0.porofac*pvMult0;
+   %transMult = permfac*transMult;
+   %transMult0 = state0.permfac*transMult0;
+   %
+   
    % relative permeability
    [krW, krG] = model.evaluteRelPerm({sW, sG}, p, 'sGmax', sGmax);
    krW = krW * mobMult;
@@ -50,8 +59,12 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
 
    % Gravity gradient per face, including the gravity component resulting
    % from caprock geometry
-   gdz = model.getGravityGradient();
-
+   %gdz = model.getGravityGradient();
+   s  = model.operators;
+   Gt = model.G;
+   g  = model.gravity(3); % @@ requires theta=0
+   gdz = g * s.Grad(Gt.cells.z +dz);
+   
    % CO2 phase pressure
    pW  = p;
    pW0 = p0;
@@ -59,9 +72,11 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
 
    % Evaluate water and CO2 properties
    [vW, bW, mobW, rhoW, upcw] = ...
-       getPhaseFluxAndProps_WGVE(model, pW, pG, krW, trans, gdz, 'W', 0, 0);
+       getPhaseFluxAndProps_WGVEsens(model, pW, pG, krW, trans, gdz, 'W', 0, 0,rhofac,permfac,porofac);
    [vG, bG, mobG, rhoG, upcg] = ...
-       getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G', 0, 0);
+       getPhaseFluxAndProps_WGVEsens(model, pW, pG, krG, trans, gdz, 'G', 0, 0,rhofac,permfac,porofac);
+  
+   
    bW0 = f.bW(pW0);
    bG0 = f.bG(pW0); % Yes, using water pressure also for gas here
 
@@ -74,10 +89,10 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    %% Setting up brine and CO2 equations
 
    % Water (Brine)
-   eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + s.Div(bWvW);
+   eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + permfac*s.Div(bWvW);
 
    % Gas (CO2)
-   eqs{2} = (s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0) + s.Div(bGvG);
+   eqs{2} = (s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0) + permfac*s.Div(bGvG);
 
    % Include influence of boundary conditions
    eqs = addFluxesFromSourcesAndBC(model, ...
@@ -121,12 +136,21 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    else
       eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
    end
-
-
+   if(~opt.reverseMode)
+    eqs{6}=dz-drivingForces.dz;
+    eqs{7}=rhofac-drivingForces.rhofac;
+    eqs{8}=permfac-drivingForces.permfac;
+    eqs{9}=porofac-drivingForces.porofac;
+   else
+     eqs{6} = double2ADI(zeros(numel(dz),1), p0);
+     eqs{7} = double2ADI(zeros(numel(rhofac),1), p0);
+     eqs{8} = double2ADI(zeros(numel(rhofac),1), p0);
+     eqs{9} = double2ADI(zeros(numel(rhofac),1), p0);     
+   end
    %% Setting up problem
-   primaryVars = {'pressure' , 'sG'   , 'qWs'      , 'qGs', 'bhp'};
-   types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well'};
-   names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells'};
+   primaryVars = {'pressure' , 'sG'   , 'bhp'        , 'qWs'      , 'qGs', 'dz', 'rhofac','permfac','porofac'};
+   types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well', 'scell','mult','mult','mult'};
+   names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells', 'geometry','mrho','mperm','mporo'};
    if isempty(W)
       % Remove names/types associated with wells, as no well exist
       types = types(1:2);

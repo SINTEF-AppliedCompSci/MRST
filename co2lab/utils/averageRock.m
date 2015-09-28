@@ -11,7 +11,9 @@ function rock2D = averageRock(rock, g_top)
 %
 % RETURNS:
 %   rock2D  - rock structure with porosities and (lateral) permeability
-%             averaged for each column
+%             averaged for each column, as well as net-to-gross (ntg)
+%             values averaged for each column if ntg is a field of rock
+%             structure.
 
 %{
 #COPYRIGHT#
@@ -23,7 +25,7 @@ cP = g_top.cells.columnPos;
 colNo = rldecode(1:g_top.cells.num, cP(2:end)- cP(1:(end-1)),2).';
 pNo = size(rock.perm,2);
 if pNo ~= 1
-    dispif(mrstVerbose, 'Anisotropic permeability not implemented for VE models, using x-direction.')
+    dispif(mrstVerbose, 'Anisotropic permeability not implemented for VE models, using x-direction.\n')
     rock.perm = rock.perm(:,1);
     pNo = 1;
 end
@@ -42,4 +44,12 @@ X = bsxfun(@rdivide, X(:,1:end-1), X(:,end));
 rock2D.poro = X(:,1);
 rock2D.perm = X(:,2:end);
 %}
+
+
+% if net-to-gross is present in rock structure, perform vertical averaging:
+if isfield(rock,'ntg')
+    rock2D.ntg = accumarray(colNo, rock.ntg(c.cells).*c.dz)./accumarray(colNo,c.dz);
+end
+
+
 end

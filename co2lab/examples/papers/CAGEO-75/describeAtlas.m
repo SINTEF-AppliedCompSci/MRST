@@ -24,7 +24,7 @@ mrstModule add co2lab;
 % Again we read all the fine grids and process them to get proper grids
 % with coordinates. The coarsening is useful here as we will only need the
 % basic outline for the upcoming figure.
-grdecls = getAtlasGrid('coarsening', 5);
+grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening', 5);
 ng = numel(grdecls);
 
 grids = cell(ng,1);
@@ -70,7 +70,7 @@ hold off
 
 %% Redo the visualization in 3D with higher resolution
 % To show the depth of the various formations, we redo the plot in 3D.
-grdecls = getAtlasGrid('coarsening', 3);
+grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening', 3);
 ng = numel(grdecls);
 
 grids = cell(ng,1);
@@ -123,7 +123,7 @@ end
 % full-resolution versions using both the cell-based and node-based
 % methods.
 moduleCheck('coarsegrid','matlab_bgl');
-grdecls = getAtlasGrid('coarsening',10);
+grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening',10);
 ng = numel(grdecls);
 res = cell(ng,1);
 for i=1:ng

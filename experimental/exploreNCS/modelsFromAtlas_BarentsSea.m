@@ -15,7 +15,7 @@ catch %#ok<CTCH>
    mrstModule add co2lab
 end
 
-%% Example: Utsira formation
+%% Example: Bjarmeland formation
 % The formations discussed in the atlas cover large areas, and even though
 % the spatial resolution in the geographical data is low compared with
 % simulation models used, e.g., to simulate petroleum reservoirs, the
@@ -26,7 +26,7 @@ end
 % determines the number of fine cells in the logical k-direction and can be
 % used to produce layered models for full simulations.
 
-gr = getAtlasGrid('Utsirafm', 'coarsening', 2, 'nz', 1);
+gr = getAtlasGrid('Bjarmelandfm', 'coarsening', 2, 'nz', 1);
 
 % Process the grid
 G = processGRDECL(gr{1});
@@ -41,7 +41,7 @@ G = computeGeometry(G(1));
 % These folds can be a target for structural trapping of migrating CO2.
 clf;
 plotCellData(G, G.cells.volumes, 'EdgeColor','none')
-title('Utsira formation - full grid with thickness and heightmap')
+title('Bjarmeland formation - full grid with thickness and heightmap')
 axis tight off
 light('Position',[-1 -1 -1],'Style','infinite');
 lighting phong
@@ -60,20 +60,19 @@ view(90,45)
 moduleCheck('libgeometry','opm_gridprocessing'); 
 
 % Count number of sand bodies
-grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening',10);
+grdecls = getAtlasGrid(getNorwegianSeaNames(),'coarsening',10);
 ng = numel(grdecls);
 
 % Set view angles
-viewMat = [-58 50; -90 65; -120 30; -120 30; -110 60; -110 60; ...
-   -105 55; -105 -10; -95 40; -40 15; -90 80; -55 80; ...
-   105 55; 60 20; -100 55; 90 45];
+viewMat = [-110 55; -110 55; -110 55; -110 55; -110 55; -110 55];
 
 % Loop through and visualize all the 3D models at full resolution
 for i=1:ng;
    grdecl = getAtlasGrid(grdecls{i}.name, 'coarsening', 1);
    G = processgrid(grdecl{1});   % G = processGRDECL(grdecl{1});
    G = mcomputeGeometry(G(1));   % G = computeGeometry(G(1));
-   clf;
+   %clf;
+   figure;
    plotGrid(G,'FaceColor', [1 .9 .9], 'EdgeAlpha', .05);
    view(viewMat(i,:)); axis tight off
    light('Position',[-1 -1 1],'Style','infinite');lighting phong
@@ -81,7 +80,7 @@ for i=1:ng;
    drawnow
 end
 
-%% Basic capacity estimates for the CO2 atlas data (North Sea)
+%% Basic capacity estimates for the CO2 atlas data (Barents Sea)
 % Finally, we compute the potential volumes available for structural
 % trapping. To better report progress, we first load a low resolution
 % version to get names of all aquifers. Then, we load and process the

@@ -1,1 +1,0 @@
-This directory contains tests and scripts that are work-in-progress.
