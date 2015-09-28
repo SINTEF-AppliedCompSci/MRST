@@ -34,12 +34,7 @@ model = OilWaterPolymerModel(G, rock, fluid);
 dt = 25*day;
 nt = 10;
 clear schedule
-schedule.step.val       = dt.*ones(nt,1);
-schedule.step.control   = ones(nt,1);
-schedule.control(1).W   = [];
-schedule.control(1).bc  = [];
-schedule.control(1).src = [];
-
+timesteps = repmat(dt, nt, 1);
 
 %% Pressure (Dirichlet) Boundary Condition
 
@@ -47,8 +42,8 @@ schedule.control(1).src = [];
 bc = pside([], G, 'xmin', 300*barsa, 'sat', [1 0]);
 bc = pside(bc, G, 'xmax', 100*barsa, 'sat', [0 0]);
 bc.poly = 4.*ones(size(bc.sat,1), 1);
-schedule.control(1).bc  = bc;
-schedule.control(1).src = [];
+
+schedule = simpleSchedule(timesteps, 'bc', bc);
 
 % Simulate
 [~, states] = simulateScheduleAD(state0, model, schedule);
@@ -66,8 +61,7 @@ colorbar;
 bc = fluxside([], G, 'xmin',  0.004, 'sat', [1 0]);
 bc = fluxside(bc, G, 'xmax', -0.004, 'sat', [0 0]);
 bc.poly = 4.*ones(size(bc.sat,1), 1);
-schedule.control(1).bc  = bc;
-schedule.control(1).src = [];
+schedule = simpleSchedule(timesteps, 'bc', bc);
 
 % Simulate
 [~, states] = simulateScheduleAD(state0, model, schedule);
@@ -90,8 +84,7 @@ srcVals  = 0.001.*ones(numel(srcCells),1);
 src = addSource( [], srcCells,  srcVals, 'sat', [1 0]);
 src = addSource(src, snkCells, -srcVals, 'sat', [0 0]);
 src.poly = 4.*ones(size(src.sat,1), 1);
-schedule.control(1).bc  = [];
-schedule.control(1).src = src;
+schedule = simpleSchedule(timesteps, 'bc', bc);
 
 % Simulate
 [~, states] = simulateScheduleAD(state0, model, schedule);
