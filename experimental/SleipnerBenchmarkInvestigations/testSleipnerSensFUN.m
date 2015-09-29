@@ -81,7 +81,7 @@ function [ res ] = testSleipnerSensFUN( varargin )
     % Grid options: 'ORIGINAL', 'IEAGHGmodel', 'INHOUSEmodel'
     % Coarsening level specified using -2, -3, etc.
     modelname = 'ORIGINALmodel';
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',opt.refineLevel, 'plotsOn',false);
+    [ G, Gt, rock, rock2D, ~ ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',opt.refineLevel, 'plotsOn',false);
     %clear G,rock,
     %%{
     dx= (wellXcoord-Gt.cells.centroids(:,1));
@@ -105,12 +105,14 @@ function [ res ] = testSleipnerSensFUN( varargin )
             
             % Adjust z values (comes from resUtsira.m)
             Gt_adjusted = Gt;
-            adjust = @(z, amp) z + amp*(rand(size(z)) - 0.5);
-
-            Gt_adjusted.cells.z = adjust(Gt_adjusted.cells.z, opt.pertAmp);
-            Gt_adjusted.faces.z = adjust(Gt_adjusted.faces.z, opt.pertAmp);
-            Gt_adjusted.nodes.z = adjust(Gt_adjusted.nodes.z, opt.pertAmp);
-
+            %adjust = @(z, amp) z + amp*(2*(rand(size(z)) - 0.5));
+            %adjust = @(z, amp) z + ( -amp + (amp-(-amp)).*rand(size(z)) ); % rand number between -amp and +amp
+            %adjust = @(z, amp1) z + G
+            %Gt_adjusted.cells.z = adjust(Gt_adjusted.cells.z, opt.pertAmp);
+            %Gt_adjusted.faces.z = adjust(Gt_adjusted.faces.z, opt.pertAmp);
+            %Gt_adjusted.nodes.z = adjust(Gt_adjusted.nodes.z, opt.pertAmp);
+            midd=mean(Gt.nodes.coords,2);
+            Gt_adjusted.nodes.z=Gt_adjusted.nodes.z+opt.pertAmp*exp(-sum(bsxfun(@minus,Gt_adjusted.nodes.coords,midd).^2/4e3.^2,2));
             % Recompute geometry to get correct centroids
             Gt_adjusted = computeGeometryVE(Gt_adjusted);
             
@@ -360,6 +362,13 @@ function [ res ] = testSleipnerSensFUN( varargin )
      res.plumes     = plumes;
      res.gsc        = gsc;
      res.dobj_dz    = dobj_dz;
+     
+     res.schedule   = schedule;
+     res.states     = states;
+     res.wellSols   = wellSols;
+     res.smodel     = smodel;
+     res.model      = model;
+     res.initState  = initState;
      
      
 end

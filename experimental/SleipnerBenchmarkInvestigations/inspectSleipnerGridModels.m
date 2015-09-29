@@ -5,7 +5,7 @@
 % with plots.
 
 % Refinement cases:
-numRefCases = [-6 ]; %-4 -2 1 2 4];
+numRefCases = [1]; %-4 -2 1 2 4];
 
 % Do you want top surface grids to be re-centered when making surface
 % comparisons? (true for recentering, false for no recentering)
@@ -19,9 +19,9 @@ for k = 1:numel(numRefCases)
     numRef = numRefCases(k);
     
     %% Create Sleipner model grids for each of the three types
-    [ G_ieaghg, Gt_ieaghg, rock_ieaghg, rock2D_ieaghg ]         = makeSleipnerModelGrid( 'modelName','IEAGHGmodel','refineLevel', numRef);
-    [ G_original, Gt_original, rock_original, rock2D_original ] = makeSleipnerModelGrid( 'modelName','ORIGINALmodel','refineLevel', numRef );
-    [ G_inhouse, Gt_inhouse, rock_inhouse, rock2D_inhouse ]     = makeSleipnerModelGrid( 'modelName','INHOUSEmodel','refineLevel', numRef );
+    [ G_ieaghg, Gt_ieaghg, rock_ieaghg, rock2D_ieaghg, grid3ls_ieaghg ]           = makeSleipnerModelGrid( 'modelName','IEAGHGmodel','refineLevel', numRef);
+    [ G_original, Gt_original, rock_original, rock2D_original, grid3ls_original ] = makeSleipnerModelGrid( 'modelName','ORIGINALmodel','refineLevel', numRef );
+    [ G_inhouse, Gt_inhouse, rock_inhouse, rock2D_inhouse, grid3l_inhouse ]       = makeSleipnerModelGrid( 'modelName','INHOUSEmodel','refineLevel', numRef );
 
     gts = [Gt_ieaghg; Gt_original; Gt_inhouse];
     gs  = [G_ieaghg; G_original; G_inhouse];

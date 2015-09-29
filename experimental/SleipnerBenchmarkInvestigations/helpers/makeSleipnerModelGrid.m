@@ -1,4 +1,4 @@
-function [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid( varargin )
+function [ G, Gt, rock, rock2D, threeLayerGrid ] = makeSleipnerModelGrid( varargin )
 % gets appropriate grdecl data files and makes MRST-type grid (G, Gt, etc)
 % as per user-defined resolution
 
@@ -17,6 +17,8 @@ function [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid( varargin )
 %   Gt     - Data structure for topsurface grid
 %   rock   - Data structure for 3D rock parameters
 %   rock2D - Data structure for rock parameters for topsurface grid
+%   threeLayerGrid - contains G, Gt, rock, rock2D for all 3 layers of
+%                    geological model (caprock, sand, and shale layers)
 
 
 % SEE ALSO:
@@ -91,6 +93,10 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
+        threeLayerGrid.G        = G;
+        threeLayerGrid.Gt       = Gt;
+        threeLayerGrid.rock     = rock;
+        threeLayerGrid.rock2D   = rock2D;
         
         % required?
         % Then, we de-activate cells (i.e., remove) that correspond to the
@@ -119,7 +125,9 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         if ~isdir(datadir)
            mkdir(datadir);
         end
-        save(fullfile(datadir,['SleipnerGlobalCoords_numRef', num2str(opt.refineLevel)]), 'G', 'Gt', 'rock', 'rock2D');
+        save(fullfile(datadir,['SleipnerGlobalCoords_numRef', num2str(opt.refineLevel)]), ...
+            'G', 'Gt', 'rock', 'rock2D', 'threeLayerGrid' );
+
         clear datadir
 
     end
@@ -178,6 +186,10 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
+        threeLayerGrid.G        = G;
+        threeLayerGrid.Gt       = Gt;
+        threeLayerGrid.rock     = rock;
+        threeLayerGrid.rock2D   = rock2D;
         
         % Then, we de-activate cells (i.e., remove) that correspond to the
         % bottom and top layers that contain shale
@@ -206,7 +218,7 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
            mkdir(datadir);
         end
         save( fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat']), ...
-            'G', 'Gt', 'rock', 'rock2D', ...
+            'G', 'Gt', 'rock', 'rock2D', 'threeLayerGrid', ...
             '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
         clear datadir
         
@@ -265,6 +277,10 @@ elseif strcmpi(opt.modelName,'INHOUSEmodel')
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
+        threeLayerGrid.G        = G;
+        threeLayerGrid.Gt       = Gt;
+        threeLayerGrid.rock     = rock;
+        threeLayerGrid.rock2D   = rock2D;
         
         % Then, we de-activate cells (i.e., remove) that correspond to the
         % bottom and top layers that contain shale
@@ -292,7 +308,7 @@ elseif strcmpi(opt.modelName,'INHOUSEmodel')
            mkdir(datadir);
         end
         save( fullfile(datadir,['InhouseSleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat']), ...
-            'G', 'Gt', 'rock', 'rock2D', ...
+            'G', 'Gt', 'rock', 'rock2D', 'threeLayerGrid', ...
             '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
         clear datadir
         

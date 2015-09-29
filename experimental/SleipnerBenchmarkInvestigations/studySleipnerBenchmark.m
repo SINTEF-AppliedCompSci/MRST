@@ -247,7 +247,7 @@ end
 fprintf(['\nYour case is set to ' mycase '.\n'])
 fprintf(['You have chosen to refine the model grid ',num2str(refnum),' times.\n'])
 fprintf('\nGetting grid...\n\n')
-[ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName', modelname, 'refineLevel',refnum);
+[ G, Gt, rock, rock2D, ~ ] = makeSleipnerModelGrid('modelName', modelname, 'refineLevel',refnum);
 fprintf('\n\nGrid obtained.\n')
 
     

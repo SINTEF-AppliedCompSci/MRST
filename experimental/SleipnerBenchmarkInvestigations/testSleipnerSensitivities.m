@@ -76,7 +76,7 @@ moduleCheck('co2lab','ad-core','opm_gridprocessing','mex','deckformat', ...
     % Coarsening level specified using -2, -3, etc.
     modelname = 'ORIGINALmodel';
     refineLevel = 1;
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',refineLevel, 'plotsOn',false);
+    [ G, Gt, rock, rock2D, ~ ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',refineLevel, 'plotsOn',false);
     %clear G,rock,
     %%{
     dx= (wellXcoord-Gt.cells.centroids(:,1));
