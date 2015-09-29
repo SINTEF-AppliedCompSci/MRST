@@ -1,4 +1,4 @@
-function [ hfig_new ] = setColorbarHandle( hfig, varargin )
+function [ hcb ] = setColorbarHandle( hfig, varargin )
 % Function to ensure pre-R2014 and post-R2014 compatibility of handles to
 % figures, colorbars, and axes
 
@@ -35,7 +35,7 @@ hcb_curr = colorbar;
     set(hcb_curr, 'fontSize', opt.fontSize);
     
 
-hfig_new = gcf;
+hcb = hcb_curr;
 
 
 
