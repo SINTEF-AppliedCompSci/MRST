@@ -113,7 +113,7 @@ if getIGEMS || (ask && userConsent('Download IGEMS data set (~1.1 GB)'))
    % Download and check surfaces
    fprintf(1,'  Downloading IGEMS surfaces (this may take several minutes) ..');
    datadir = fullfile(mrstPath('co2lab'), 'data', 'igems');
-   unzip('http://www.nr.no/files/sand/Igems/surfaces.zip', datadir);
+   unzip('http://files.nr.no/igems/surfaces.zip', datadir);
    dirs = dir(fullfile(datadir,'surfaces'));
    for i=1:numel(dirs)
       if sum(isletter(dirs(i).name))==0, continue, end
@@ -125,7 +125,7 @@ if getIGEMS || (ask && userConsent('Download IGEMS data set (~1.1 GB)'))
    
    % Download and check eclipse data sets
    fprintf(1, '  Downloading IGEMS grids (this may take several minutes) ..');
-   unzip('http://www.nr.no/files/sand/Igems/eclipsegrids.zip', datadir);
+   unzip('http://files.nr.no/igems/eclipsegrids.zip', datadir);
    if numel(dir(fullfile(datadir,'eclipsegrids','*.GRDECL')))~=15
       disp('Installation of eclipsegrids/ seems wrong');
    end
