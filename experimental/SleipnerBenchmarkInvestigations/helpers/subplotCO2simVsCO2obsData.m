@@ -34,35 +34,49 @@ for i = 1:numel(ReservoirTime2plot)
     %subplot(2, numel(ReservoirTime2plot)/2, i)
     hold on
 
-    plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
-    plotCellData(Gt, massCO2/1e9, satCO2>CO2plumeOutline_SatTol, 'EdgeColor','none') % only plot plume that has sat > tolerance specified 
+    % Add CO2 mass data: Note: To ensure cell data is plotted vertically
+    % above the traps plotted by mapPlot, we modify the z-coordinate of the
+    % faces to be z = -100
+    Gt_tmp = Gt;
+    Gt_tmp.nodes.z = -100*ones(Gt_tmp.nodes.num,1);
+    plotFaces(Gt_tmp, boundaryFaces(Gt_tmp), 'EdgeColor','k', 'LineWidth',3);
+    plotCellData(Gt_tmp, massCO2/1e9, satCO2>CO2plumeOutline_SatTol, 'EdgeColor','none') % only plot plume that has sat > tolerance specified 
     %title({'Mass of CO2 at';['year ', num2str(Years2plot(i))]}, 'fontSize', 18); axis equal
     title(['year ', num2str(Years2plot(i))], 'fontSize', 18); axis equal
     
-    % add colorbar if last subplot is being plotted: TODO --- make it look
-    % better
+    
+    % Add colorbar (TODO: if last subplot is being plotted)
     %if i == numel(ReservoirTime2plot)
         %%hcb = colorbar; hcb.Label.String = 'Mt'; set(hcb, 'fontSize', 18)
         [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Mt', 'fontSize', 18 );
     %end
     
-    % add all CO2 plume outlines that have a matching year to Years2plot(i):
+    
+    % Add all CO2 plume outlines that have a matching year to
+    % Years2plot(i): Note: the plume outlines are plotted at with a
+    % z-coordinate of -150 to ensure the outlines are on top of the plots
+    % (for coloring purposes).
     for j = 1:numel(plume)
         if plume{j}.year == Years2plot(i)
             disp('Plotting Observed CO2 plume outline...')
-            line(plume{j}.outline(:,1), plume{j}.outline(:,2), 'LineWidth',3, 'Color','r')
+            line(plume{j}.outline(:,1), plume{j}.outline(:,2), -150*ones(numel(plume{j}.outline(:,2)),1), 'LineWidth',3, 'Color','r')
         end
     end
     
-    % (The following could be placed outside the subplot loop)
+    
     % Add injection point:
+    % The following could be placed outside the subplot loop, or could be
+    % plotted using mapPlot. Note: plot3() is used to ensure point is
+    % plotted above other plots, with a z-coordinate of -200, so it remains
+    % visible.
+    
     % actual location
-    plot(wellXcoord,wellYcoord,'o', ...
+    plot3(wellXcoord, wellYcoord, -200, 'o', ...
         'MarkerEdgeColor','k',...
         'MarkerFaceColor','r',...
         'MarkerSize',10)
     % simulated location
-    plot(wellCoord_x,wellCoord_y,'x', ...
+    plot3(wellCoord_x, wellCoord_y, -200, 'x', ...
         'LineWidth',3,  ...
         'MarkerEdgeColor','k',...
         'MarkerFaceColor','k',...
@@ -71,11 +85,20 @@ for i = 1:numel(ReservoirTime2plot)
     axis tight
     box
     
-    % We visualize the spill paths between structural traps
+    % We visualize the spill paths between structural traps.
+    % Note: the plot is produced at z = 0.
     mapPlot(gcf, Gt, 'traps', trapstruct.traps, 'rivers', trapstruct.cell_lines, ...
-        'maplines',20); % default maplines is 40
-    % caution: adding this map changes values of colorbar (possibly to
-    % elevation?). Thus, it is important to adjust the colorbar afterwards.
+        'maplines',20, 'trapalpha',0.2); % 'plumes',massCO2/1e9);
+    
+    % caution: adding this map changes values of colorbar, thus, it is
+    % important to adjust the colorbar afterwards.
+    
+    % We then re-plot the contours of the grid topology, using contour3()
+    % to plot the contours at the elevation determined by function inside
+    % drawContours3(). To ensure these final contours are on top of all
+    % other plots, we set cells.z to be negative values.
+    ax = get(gcf, 'currentaxes');
+    drawContours3(ax, Gt_tmp, -Gt_tmp.cells.z, 20, 'color', 'k');
 
 end
 
@@ -85,7 +108,9 @@ if ZoomIntoPlume
     set(findobj(gcf,'type','axes'),'ylim',[ZoomY1 ZoomY2]);
 end
 
-% Then adjust colorbar map. Works for both R2014a/earlier and later releases.
+% Then adjust colorbar map. Works for both R2014a/earlier and later
+% releases. The color bar is set between 0 and the maximum CO2 saturation
+% (or mass) value that has occurred over all the years plotted.
 cmax = max(maxMassCO2./1e9);
 set(findobj(gcf,'type','axes'),'clim',[0, cmax]);
 
