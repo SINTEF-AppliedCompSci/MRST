@@ -1,4 +1,4 @@
-function [ G, Gt, rock, rock2D, threeLayerGrid ] = makeSleipnerModelGrid( varargin )
+function [ G, Gt, rock, rock2D, baseGrids ] = makeSleipnerModelGrid( varargin )
 % gets appropriate grdecl data files and makes MRST-type grid (G, Gt, etc)
 % as per user-defined resolution
 
@@ -17,8 +17,10 @@ function [ G, Gt, rock, rock2D, threeLayerGrid ] = makeSleipnerModelGrid( vararg
 %   Gt     - Data structure for topsurface grid
 %   rock   - Data structure for 3D rock parameters
 %   rock2D - Data structure for rock parameters for topsurface grid
-%   threeLayerGrid - contains G, Gt, rock, rock2D for all 3 layers of
-%                    geological model (caprock, sand, and shale layers)
+%   baseGrids - contains G, Gt, rock, rock2D of: 1) grid made up of all 3
+%               layers (caprock, sand, and shale layers), and 2) grid of
+%               sand layer only (caprock and bottom shale layers removed)
+%               without any vertical-averaging of G.
 
 
 % SEE ALSO:
@@ -106,8 +108,19 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         %%%%%% Then perform refinement of grdecl data, which includes a
         %%%%%% step to remove the cell layers corresponding to the caprock
         %%%%%% and bottom shale
-        grdecl_refined = getRefinedGrdecl( grdecl );
+        [grdecl_refined, grdecl_cut] = getRefinedGrdecl( grdecl );
         
+        
+        %%%%%% Optional: assess grids that have been cut but not yet
+        %%%%%% vertically-averaged or refined
+        [G, Gt, rock, rock2D] = getGrids( grdecl_cut, true, false );
+        cutGrid.G       = G;
+        cutGrid.Gt      = Gt;
+        cutGrid.rock    = rock;
+        cutGrid.rock2D  = rock2D;
+        
+        baseGrids.threeLayerGrid = threeLayerGrid;
+        baseGrids.cutGrid        = cutGrid;
         
         %%%%%% And assess new grids
         [G, Gt, rock, rock2D] = getGrids( grdecl_refined, true, false );
@@ -115,10 +128,8 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
-
-       
-
-
+        
+        
         % Store data
         disp(' ')
         disp([' -> Writing SleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat'])
@@ -126,7 +137,8 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
            mkdir(datadir);
         end
         save(fullfile(datadir,['SleipnerGlobalCoords_numRef', num2str(opt.refineLevel)]), ...
-            'G', 'Gt', 'rock', 'rock2D', 'threeLayerGrid' );
+            'G', 'Gt', 'rock', 'rock2D', 'baseGrids', ...
+            '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
 
         clear datadir
 
@@ -199,7 +211,19 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         %%%%%% Then perform refinement of grdecl data, which includes a
         %%%%%% step to remove the cell layers corresponding to the caprock
         %%%%%% and bottom shale
-        grdecl_refined = getRefinedGrdecl( grdecl );
+        [grdecl_refined, grdecl_cut] = getRefinedGrdecl( grdecl );
+        
+        
+        %%%%%% Optional: assess grids that have been cut but not yet
+        %%%%%% vertically-averaged or refined
+        [G, Gt, rock, rock2D] = getGrids( grdecl_cut, true, false );
+        cutGrid.G       = G;
+        cutGrid.Gt      = Gt;
+        cutGrid.rock    = rock;
+        cutGrid.rock2D  = rock2D;
+        
+        baseGrids.threeLayerGrid = threeLayerGrid;
+        baseGrids.cutGrid        = cutGrid;
         
         
         %%%%%% And assess new grids
@@ -218,7 +242,7 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
            mkdir(datadir);
         end
         save( fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat']), ...
-            'G', 'Gt', 'rock', 'rock2D', 'threeLayerGrid', ...
+            'G', 'Gt', 'rock', 'rock2D', 'baseGrids', ...
             '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
         clear datadir
         
@@ -290,7 +314,20 @@ elseif strcmpi(opt.modelName,'INHOUSEmodel')
         %%%%%% Then perform refinement of grdecl data, which includes a
         %%%%%% step to remove the cell layers corresponding to the caprock
         %%%%%% and bottom shale
-        grdecl_refined = getRefinedGrdecl( grdecl );
+        [grdecl_refined, grdecl_cut] = getRefinedGrdecl( grdecl );
+        
+        
+        %%%%%% Optional: assess grids that have been cut but not yet
+        %%%%%% vertically-averaged or refined
+        [G, Gt, rock, rock2D] = getGrids( grdecl_cut, true, false );
+        cutGrid.G       = G;
+        cutGrid.Gt      = Gt;
+        cutGrid.rock    = rock;
+        cutGrid.rock2D  = rock2D;
+        
+        baseGrids.threeLayerGrid = threeLayerGrid;
+        baseGrids.cutGrid        = cutGrid;
+        
         
         %%%%%% And assess new grids
         [G, Gt, rock, rock2D] = getGrids( grdecl_refined, false, true );
@@ -308,7 +345,7 @@ elseif strcmpi(opt.modelName,'INHOUSEmodel')
            mkdir(datadir);
         end
         save( fullfile(datadir,['InhouseSleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat']), ...
-            'G', 'Gt', 'rock', 'rock2D', 'threeLayerGrid', ...
+            'G', 'Gt', 'rock', 'rock2D', 'baseGrids', ...
             '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
         clear datadir
         
@@ -399,7 +436,7 @@ end
     
 % -------------------------------------------------------------------------
 
-    function grdecl_refined = getRefinedGrdecl( grdecl )
+    function [grdecl_refined, grdecl_cut] = getRefinedGrdecl( grdecl )
         
         % We perform a few steps for GRID REFINEMENT:
 
@@ -420,11 +457,17 @@ end
         
         elseif strcmpi(opt.modelName,'ORIGINALmodel')
             % The ORIGINALmodel is comprised of 7 cells in the vertical
-            % direction: the caprock and bottom shale are each 1 cell layer
-            % thick. Thus, keep layers 2 to 6, and remove layers 1 and 7.
-            % There will be 5 layers remaining.
-            lowerBound = [1 1 2];
-            upperBound = [grdecl.cartDims(1) grdecl.cartDims(2) 6];
+            % direction, however when grdecl is read from
+            % 'sleipner_prep.data', it appears that caprock layer has
+            % already been removed. The resulting grid created from the
+            % this grdecl contains only 5 cell layers. Thus, nothing is
+            % required to be removed.
+            % Note: if complete 7 layers have been read, then assess which
+            % layers to remove based on permeability. Likely the top and
+            % bottom layers should be removed, or perhaps the 2 uppermost
+            % cell layers.
+            lowerBound = [1 1 3];
+            upperBound = [grdecl.cartDims(1) grdecl.cartDims(2) 7];
             ind = [lowerBound; upperBound]';
             numSandLayers = 5;
         
@@ -440,9 +483,8 @@ end
         end
         
         grdecl_cut = cutGrdecl(grdecl, ind);
-        % grdecl_new contains fields that correspond to the remaining SAND
+        % grdecl_cut contains fields that correspond to the remaining SAND
         % layers.
-
         
         % 2- second coarsen the grdecl in the z direction since we don't
         % need to keep the resolution of the SAND layers (i.e., we treat
@@ -482,12 +524,15 @@ end
             end
         end
         
-        % Add some original fields to the refined grdecl structure:
+        % Add some original fields to the refined (and cut) grdecl structure:
         if isfield(grdecl,{'MAPAXES','MAPUNITS'})
             grdecl_refined.MAPAXES = grdecl.MAPAXES;
             grdecl_refined.MAPUNITS = grdecl.MAPUNITS;
+            grdecl_cut.MAPAXES = grdecl.MAPAXES;
+            grdecl_cut.MAPUNITS = grdecl.MAPUNITS;
         end
         grdecl_refined.name = grdecl.name;
+        grdecl_cut.name = grdecl.name;
             
     end
 
