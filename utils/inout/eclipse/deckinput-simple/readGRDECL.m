@@ -200,7 +200,8 @@ while ~feof(fid),
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},
-            grdecl = applyOperator(grdecl, fid, cartDims, cartDims, kw);
+            grdecl = ...
+                applyOperatorSimple(grdecl, fid, cartDims, cartDims, kw);
 
          case 'FAULTS',
             tmpl(1:8) = { 'Default' };
