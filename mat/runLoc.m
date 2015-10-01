@@ -1,8 +1,8 @@
 clc; clear all; close all;
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-                            %   Build cartesian grid and compute geometry.
-nx = 3; ny = 3  ;             %   Grid dimensions.
+                             %   Build cartesian grid and compute geometry.
+nx = 3; ny = 3  ;            %   Grid dimensions.
 G = cartGrid([nx, ny]);
 G = mrstGridWithFullMappings(G);
 G = computeGeometry(G);
@@ -27,14 +27,16 @@ f = 1;
     normals = G.faces.normals(faces,:);
     m = (-ones(length(normals),1)).^(neighbors(:,1) ~= c);
     normals = [m,m].*normals;
+    edgeLengths = G.faces.areas;
                             %   Find volume.
     vol = G.cells.volumes(c);
                             %   Calculate local stiffness matrix.
     X = X([2:end,1],:);
     Xmid = Xmid([2:end,1],:);
     normals = normals([2:end,1],:);
+    edgeLengths = edgeLengths([2:end,1]);
     
-    [Sl, bl] = locS(X, Xmid, normals, boundaryEdges, vol, f,sqrt(2));
+    [Sl, bl] = locS(X, Xmid, edgeLengths, normals, boundaryEdges, vol, f,sqrt(2));
     
     hK = 5;
     X = [0,0;3,0;3,2;3/2,4;0,4]
@@ -45,13 +47,16 @@ f = 1;
     boundaryEdges = zeros(1,n);
     normals = zeros(n,2);
     for i = 1:n
-         nVec = [ X(mod(i,n)+1,2) - X(i,2) ; - X(mod(i,n)+1,1) + X(i,1) ];
+         nVec = [ X(mod(i,n)+1,2) - X(i,2) , - X(mod(i,n)+1,1) + X(i,1) ];
          nVec = nVec./norm(nVec);
          normals(i,:) = nVec;
     end
+    edgeLengths = zeros(n,1);
+    for i = 1:n
+        edgeLengths(i) = sqrt((-X(mod(i,n)+1,1) + X(i,1))^2 + (X(mod(i,n)+1,2) - X(i,2))^2);
+    end
     
-    [Sl, bl] = locS(X, Xmid, normals, boundaryEdges, vol, f, 5);
-    
+    [Sl, bl] = locS(X, Xmid, edgeLengths, normals, boundaryEdges, vol, f, 5);
     
 
 % Ndof = Nc + Nn + Ne;

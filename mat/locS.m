@@ -1,4 +1,4 @@
-function [Sl, bl] = locS(X, Xmid, normals, onBoundary, vol, f,hK)
+function [Sl, bl] = locS(X, Xmid, edgeLengths, edgeNormals, onBoundary, vol, f,hK)
 %--------------------------------------------------------------------------
 %   Generates local matrix for diffusion problem
 %
@@ -53,33 +53,32 @@ B=zeros(nk,NK);
                             %   Basisfunctions with non-zero degrees of
                             %   freedom on edge j are \phi_j,
                             %   \phi_{mod(j,n)+1} (endpoints) and
-                            %   \phi_{j+4} (midpoint). For each edge, 
+                            %   \phi_{j+n} (midpoint). For each edge, 
                             %   \int_\patrial K \nabla m_\alpha \cdot nVec
-                            %   is evaluated by Gauss-Lobatto.
+                            %   is evaluated by Gauss-Lobatto quadrature.
 for j=1:n
-                            %   FIXME: Adjust for edge length!
 
         %if ~onBoundary(j)
                             %   Outward normal of edge j, nVec
-        nVec = normals(j,:)';
+        nVec = edgeNormals(j,:)';
                             %   First point of edge j.
         grad_mDOTnVec = grad_m(X(j,:))*nVec;
-        B(2:nk,j) = B(2:nk,j) + 1/6.*grad_mDOTnVec;
+        B(2:nk,j) = B(2:nk,j) + edgeLengths(j)*1/6.*grad_mDOTnVec;
                             %   Last point of edge j.
         grad_mDOTnVec = grad_m(X(mod(j,n)+1,:))*nVec;
-        B(2:nk,mod(j,n)+1) = B(2:nk,mod(j,n)+1) + 1/6.*grad_mDOTnVec;
+        B(2:nk,mod(j,n)+1) = B(2:nk,mod(j,n)+1) + edgeLengths(j)*1/6.*grad_mDOTnVec;
                             %   Midpoint of edge j.
         grad_mDOTnVec = grad_m(Xmid(j,:))*nVec;
-        B(2:nk,j+4) = B(2:nk,j+4) + 2/3.*grad_mDOTnVec;
+        B(2:nk,j+n) = B(2:nk,j+n) + edgeLengths(j)*2/3.*grad_mDOTnVec;
         
         %end
 end
                             %   Contribution from surface integrals.
-                            %   \Dela m_\alpha = 2/hK^2 for \alpha = (2,0)
-                            %   and (0,2), 0 otherwise. (NG)
+                            %   \Delta m_\alpha = 2/hK^2 for \alpha = (2,0)
+                            %   and (0,2), 0 otherwise.
 B(4,NK) = B(4,NK) - vol*2/hK^2;
 B(6,NK) = B(6,NK) - vol*2/hK^2;
-B(1,NK) = 1;                %   First row (!?). (NG)
+B(1,NK) = 1;                %   First row (!?).
 
 %%  CONSTRUCTION OF LOCAL STIFFNESS MATRIX.                              %% 
 
