@@ -1,4 +1,4 @@
-function [ G, Gt, rock, rock2D, baseGrids ] = makeSleipnerModelGrid( varargin )
+function [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid( varargin )
 % gets appropriate grdecl data files and makes MRST-type grid (G, Gt, etc)
 % as per user-defined resolution
 
@@ -10,24 +10,28 @@ function [ G, Gt, rock, rock2D, baseGrids ] = makeSleipnerModelGrid( varargin )
 % Default varargin:
 %  modelName    = 'IEAGHGmodel' (other options: 'ORIGINALmodel')
 %  refineLevel  = 1             (other options: ...-4,-3,-2, 2, 3, 4,...) 
-%  plotsOn      = false         (other options: true)
+%  plotsOn      = false         (otherwise true to make grids plots)
+%  saveBaseGrids = false        (otherwise true to save base grids to file)
 %
 % PARAMETERS:
 %   G      - Data structure for 3D grid
 %   Gt     - Data structure for topsurface grid
 %   rock   - Data structure for 3D rock parameters
 %   rock2D - Data structure for rock parameters for topsurface grid
+%
+% OTHER:
 %   baseGrids - contains G, Gt, rock, rock2D of: 1) grid made up of all 3
 %               layers (caprock, sand, and shale layers), and 2) grid of
 %               sand layer only (caprock and bottom shale layers removed)
 %               without any vertical-averaging of G.
+%             - not passed out of function, only saved to .mat file
 
 
 % SEE ALSO:
 %   makeSleipnerVEmodel 
 
 
-opt = struct('modelName','IEAGHGmodel', 'refineLevel',1, 'plotsOn',false);
+opt = struct('modelName','IEAGHGmodel', 'refineLevel',1, 'plotsOn',false, 'saveBaseGrids',false);
 opt = merge_options(opt, varargin{:});
 
 
@@ -88,48 +92,26 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
         clear gr sl_file
         
         
-        %%%%%% First assess grids and model properties
-        % TODO: hide this step unless wanting to see initial grid
-        [G, Gt, rock, rock2D] = getGrids( grdecl, true, false );
-        % Then visualize grids.
-        if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
-        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
-        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
-        threeLayerGrid.G        = G;
-        threeLayerGrid.Gt       = Gt;
-        threeLayerGrid.rock     = rock;
-        threeLayerGrid.rock2D   = rock2D;
-        
         % required?
         % Then, we de-activate cells (i.e., remove) that correspond to the
         % bottom and top layers that contain shale
         %grdecl.ACTNUM(grdecl.PERMX<200) = 0;
         
-        %%%%%% Then perform refinement of grdecl data, which includes a
-        %%%%%% step to remove the cell layers corresponding to the caprock
-        %%%%%% and bottom shale
+        
+        % Perform refinement of grdecl data, which includes a step to
+        % remove the cell layers corresponding to the caprock and bottom
+        % shale
         [grdecl_refined, grdecl_cut] = getRefinedGrdecl( grdecl );
         
-        
-        %%%%%% Optional: assess grids that have been cut but not yet
-        %%%%%% vertically-averaged or refined
-        [G, Gt, rock, rock2D] = getGrids( grdecl_cut, true, false );
-        cutGrid.G       = G;
-        cutGrid.Gt      = Gt;
-        cutGrid.rock    = rock;
-        cutGrid.rock2D  = rock2D;
-        
-        baseGrids.threeLayerGrid = threeLayerGrid;
-        baseGrids.cutGrid        = cutGrid;
-        
-        %%%%%% And assess new grids
+        % Get refined and vertically-averged grids
         [G, Gt, rock, rock2D] = getGrids( grdecl_refined, true, false );
-        % Then visualize grids.
+        
+        % Optional: visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
         
-        
+
         % Store data
         disp(' ')
         disp([' -> Writing SleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat'])
@@ -137,8 +119,36 @@ if strcmpi(opt.modelName,'IEAGHGmodel')
            mkdir(datadir);
         end
         save(fullfile(datadir,['SleipnerGlobalCoords_numRef', num2str(opt.refineLevel)]), ...
-            'G', 'Gt', 'rock', 'rock2D', 'baseGrids', ...
+            'G', 'Gt', 'rock', 'rock2D', ...
             '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
+        
+        
+        % Store baseGrids data
+        % Note: constucting and saving the base grids is meant for
+        % visualization purposes of permeability and depth plots, when
+        % caprock and shale layers are required, or when the full vertical
+        % discretization is required. Since the base grids are not refined
+        % or coarsened from their original resolution, saving base grids
+        % needs to be done only once and not for mulitple numRef cases,
+        % since the resulting base grids will be the same each time.
+        if opt.saveBaseGrids
+            
+            % Construct layered, fully discrete grids and model properties
+            [layers.G, layers.Gt, layers.rock, layers.rock2D] = getGrids( grdecl, true, false );
+            
+            % Construct cut grids (that have not yet been
+            % vertically-averaged or refined)
+            [cut.G, cut.Gt, cut.rock, cut.rock2D] = getGrids( grdecl_cut, true, false );
+            
+            if ~isdir(datadir)
+                mkdir(datadir);
+            end
+            
+            fprintf('\n Writing base grids to SleipnerGlobalCoords_baseGrids.mat file. \n')
+            save(fullfile(datadir, 'SleipnerGlobalCoords_baseGrids'), ...
+                'layers','cut', '-v7.3');
+        end
+        
 
         clear datadir
 
@@ -169,18 +179,41 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         end
         
 
-        % Open and read original/sleipner_prep.data
-        moduleCheck('deckformat', 'mex');
-        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_prep.data'); % IEAGHG original
+%         % Open and read original/sleipner_prep.data (but already contains
+%         % deactivated cells so will not create grid that includes caprock)
+%         moduleCheck('deckformat', 'mex');
+%         sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'sleipner_data.data'); % preliminary to IEAGHG
+%         fn      = fopen(sl_file);
+%         grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
+%         % this grdecl contains: GRID, and others. grdecl.GRID contains
+%         % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
+%         % PERMX, PERMY, PERMZ, and PORO
+%         fclose(fn);
+%
+%         % Rename
+%         grdecl = grdecl.GRID;
+        
+       
+    
+        % to get grid and properties
+        sdir    = fullfile('data', 'sleipner', 'original');
+        fprintf(['\n -> Reading data from: ' sdir '\n']);
+        grdecl  = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'sleipner.data'));
+        % grdecl contains:  cartDims, COORD, ZCORN, ACTNUM (all 1's),
+        % PERMX, PERMY, PERMZ, PORO
+        
+       
+        % to get MAP details
+        sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'original', 'low_bc.grdecl'); 
         fn      = fopen(sl_file);
-        grdecl  = readGRID(fn, fileparts(sl_file), initializeDeck());
-        % this grdecl contains: GRID, and others. grdecl.GRID contains
-        % cartDims, MAPUNITS, MAPAXES, COORD, ZCORN, ACTNUM as well as
-        % PERMX, PERMY, PERMZ, and PORO
+        gr      = readGRID(fn, fileparts(sl_file), initializeDeck());
+        grdecl.MAPAXES = gr.GRID.MAPAXES;
+        grdecl.MAPUNITS = gr.GRID.MAPUNITS;
+        clear gr
         fclose(fn);
         
-        % Rename
-        grdecl = grdecl.GRID;
+        
+        
         
         % Add name of grid
         grdecl.name = ['Sleipner_' opt.modelName];
@@ -190,49 +223,24 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         grdecl.COORD = lines(:); clear lines
         
         
-        
-        %%%%%% First assess grids
-        % TODO: hide this step unless wanting to see initial grid
-        [G, Gt, rock, rock2D] = getGrids( grdecl, true, false );
-        % Then visualize grids.
-        if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
-        if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
-        if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
-        threeLayerGrid.G        = G;
-        threeLayerGrid.Gt       = Gt;
-        threeLayerGrid.rock     = rock;
-        threeLayerGrid.rock2D   = rock2D;
-        
+        % required?
         % Then, we de-activate cells (i.e., remove) that correspond to the
         % bottom and top layers that contain shale
         %grdecl.ACTNUM(grdecl.PERMX<200) = 0;
-
         
-        %%%%%% Then perform refinement of grdecl data, which includes a
-        %%%%%% step to remove the cell layers corresponding to the caprock
-        %%%%%% and bottom shale
+        
+        % Perform refinement of grdecl data, which includes a step to
+        % remove the cell layers corresponding to the caprock and bottom
+        % shale
         [grdecl_refined, grdecl_cut] = getRefinedGrdecl( grdecl );
         
-        
-        %%%%%% Optional: assess grids that have been cut but not yet
-        %%%%%% vertically-averaged or refined
-        [G, Gt, rock, rock2D] = getGrids( grdecl_cut, true, false );
-        cutGrid.G       = G;
-        cutGrid.Gt      = Gt;
-        cutGrid.rock    = rock;
-        cutGrid.rock2D  = rock2D;
-        
-        baseGrids.threeLayerGrid = threeLayerGrid;
-        baseGrids.cutGrid        = cutGrid;
-        
-        
-        %%%%%% And assess new grids
+        % Get refined and vertically-averged grids
         [G, Gt, rock, rock2D] = getGrids( grdecl_refined, true, false );
-        % Then visualize grids.
+        
+        % Optional: visualize grids.
         if opt.plotsOn; [ hfig, hax ] = plot3DandTopGrids( G, Gt ); end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( G, rock );   end
         if opt.plotsOn; [ hfig ]      = plotGridPerms( Gt, rock2D );end
-
         
 
         % Store data
@@ -241,9 +249,37 @@ elseif strcmpi(opt.modelName,'ORIGINALmodel')
         if ~isdir(datadir)
            mkdir(datadir);
         end
-        save( fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(opt.refineLevel), '.mat']), ...
-            'G', 'Gt', 'rock', 'rock2D', 'baseGrids', ...
+        save(fullfile(datadir,['OriginalSleipnerGlobalCoords_numRef', num2str(opt.refineLevel)]), ...
+            'G', 'Gt', 'rock', 'rock2D', ...
             '-v7.3'); % use flag to save as v7.3 to avoid issues with compression of a lot of data
+        
+        
+        % Store baseGrids data
+        % Note: constucting and saving the base grids is meant for
+        % visualization purposes of permeability and depth plots, when
+        % caprock and shale layers are required, or when the full vertical
+        % discretization is required. Since the base grids are not refined
+        % or coarsened from their original resolution, saving base grids
+        % needs to be done only once and not for mulitple numRef cases,
+        % since the resulting base grids will be the same each time.
+        if opt.saveBaseGrids
+            
+            % Construct layered, fully discrete grids and model properties
+            [layers.G, layers.Gt, layers.rock, layers.rock2D] = getGrids( grdecl, true, false );
+            
+            % Construct cut grids (that have not yet been
+            % vertically-averaged or refined)
+            [cut.G, cut.Gt, cut.rock, cut.rock2D] = getGrids( grdecl_cut, true, false );
+            
+            if ~isdir(datadir)
+                mkdir(datadir);
+            end
+            
+            fprintf('\n Writing base grids to OriginalSleipnerGlobalCoords_baseGrids.mat file. \n')
+            save(fullfile(datadir, 'OriginalSleipnerGlobalCoords_baseGrids'), ...
+                'layers','cut', '-v7.3');
+        end
+        
         clear datadir
         
     end
@@ -457,15 +493,14 @@ end
         
         elseif strcmpi(opt.modelName,'ORIGINALmodel')
             % The ORIGINALmodel is comprised of 7 cells in the vertical
-            % direction, however when grdecl is read from
-            % 'sleipner_prep.data', it appears that caprock layer has
-            % already been removed. The resulting grid created from the
-            % this grdecl contains only 5 cell layers. Thus, nothing is
-            % required to be removed.
-            % Note: if complete 7 layers have been read, then assess which
-            % layers to remove based on permeability. Likely the top and
-            % bottom layers should be removed, or perhaps the 2 uppermost
-            % cell layers.
+            % direction, so long as grdecl was created by reading
+            % 'sleipner.data' (otherwise if grdecl was created by reading
+            % 'sleipner_prep.data', entries of ACTNUM=0 caused caprock to
+            % be removed from grdecl already). The top 2 cell layers
+            % comprise the caprock, and by studing the permeability maps, there appears to be no bottom shale
+            % layer included in this grdecl. Thus, we only need to cut cell
+            % layers 1-2, and keep layers 3-7. There will be 5 layers
+            % remaining.
             lowerBound = [1 1 3];
             upperBound = [grdecl.cartDims(1) grdecl.cartDims(2) 7];
             ind = [lowerBound; upperBound]';

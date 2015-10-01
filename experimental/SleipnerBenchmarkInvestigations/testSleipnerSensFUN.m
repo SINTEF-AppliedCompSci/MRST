@@ -81,7 +81,7 @@ function [ res ] = testSleipnerSensFUN( varargin )
     % Grid options: 'ORIGINAL', 'IEAGHGmodel', 'INHOUSEmodel'
     % Coarsening level specified using -2, -3, etc.
     modelname = 'ORIGINALmodel';
-    [ G, Gt, rock, rock2D, ~ ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',opt.refineLevel, 'plotsOn',false);
+    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',opt.refineLevel, 'plotsOn',false);
     %clear G,rock,
     %%{
     dx= (wellXcoord-Gt.cells.centroids(:,1));

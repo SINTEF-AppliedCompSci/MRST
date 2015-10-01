@@ -83,7 +83,7 @@ gravity on;
 
 % ******************** START OF USER OPTIONS ******************************
 % Is this post-processing or a new injection scenario?
-performPostProcessing = true;
+performPostProcessing = false;
 
 
 if ~performPostProcessing
@@ -115,7 +115,7 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-mycase          = 'useOriginal_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
+mycase          = 'useIEAGHG_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
 myresolution    = 'none';               % 'useRefinedGrid', 'none'
 refineLevel     = 2;                    % only used when "myresolution = useRefinedGrid"
 
@@ -247,7 +247,7 @@ end
 fprintf(['\nYour case is set to ' mycase '.\n'])
 fprintf(['You have chosen to refine the model grid ',num2str(refnum),' times.\n'])
 fprintf('\nGetting grid...\n\n')
-[ G, Gt, rock, rock2D, ~ ] = makeSleipnerModelGrid('modelName', modelname, 'refineLevel',refnum);
+[ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName', modelname, 'refineLevel',refnum);
 fprintf('\n\nGrid obtained.\n')
 
     
@@ -343,13 +343,12 @@ schedule.control(end).W.val     = 0;
 % with index 100. Any 0 cell index means there is no cell, i.e., the face
 % is along an external boundary of the domain. Thus bdryFaces may be
 % obtained by finding all the face indices that contain a 0 cell index on
-% either side.
+% either side. (But will this include 'top' and 'bottom' faces?)
 bdryFaces = find( Gt.faces.neighbors(:,1).*Gt.faces.neighbors(:,2) == 0 );
 
-bdryType = 'pressure';
 bdryVal  = Gt.faces.z(bdryFaces) * water_density * norm(gravity);
 % Then use function bc = addBC(bc, faces, type, value, varargin)
-bc = addBC( [], bdryFaces, bdryType, bdryVal, 'sat', [1 0] );
+bc = addBC( [], bdryFaces, 'pressure', bdryVal, 'sat', [1 0] );
 
 
 % Put into schedule fields --> [injection period; migration period]
