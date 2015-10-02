@@ -4,7 +4,12 @@ function [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, state
 % passed in which the user wants to make two slices through (in the
 % direction parallel to the x and y axis).
 
-opt.SleipnerBounded = false; % if true, subplots will be bounded to set region.
+opt.SleipnerBounded = false;
+% if true, subplots will be bounded to set region.
+
+opt.legendWithFreeCO2Only = false;
+% if true, what to include in legend will be determined by comparing free
+% to residual heights.
 
 opt = merge_options(opt, varargin{:});
 
@@ -117,10 +122,15 @@ zlim([zmin zmax]);
 box
 set(gca,'FontSize',14)
 
-if states{end}.h_max == states{end}.h_free
+
+if opt.legendWithFreeCO2Only
     hl = legend([hp2],{'Free/Structural plume CO2'}, 'Location','SouthEast');
 else
-    hl = legend([hp1 hp2],{'Residual CO2','Free/Structural plume CO2'}, 'Location','SouthEast');
+    if states{end}.h_max == states{end}.h_free
+        hl = legend([hp2],{'Free/Structural plume CO2'}, 'Location','SouthEast');
+    else
+        hl = legend([hp1 hp2],{'Residual CO2','Free/Structural plume CO2'}, 'Location','SouthEast');
+    end
 end
 set(hl,'FontSize',16)
 

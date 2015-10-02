@@ -21,8 +21,31 @@ plotTrapAndPlumeCompare         = false;
 showTableOfTrapDetails          = false;
 plotSideProfileCO2heights       = true;
     
-    
-    
+
+% Trapping analysis method:
+% true to use cell-based method, false for node
+isCellBasedMethod = false;
+
+
+% FOR PLOTS:
+CO2plumeOutline_SatTol  = (0.01/100); % adjust this value if patch error occurs (which happens when no massCO2 present at specified sat tol)
+press_deviation = 0;  % from hydrostatic (percent) --> used for trapping capacity calculation, not simulation
+
+
+% For plotting of CO2 plumes
+% bounds of 2008 plume:
+ZoomX1 = 0.4375e6;
+ZoomY1 = 6.47e6;
+ZoomX2 = 0.4395e6;
+ZoomY2 = 6.474e6;
+
+
+% Coordinate that wellCellIndex corresponds to:
+wellCoord_x = Gt.cells.centroids(wellCellIndex,1);
+wellCoord_y = Gt.cells.centroids(wellCellIndex,2);
+wellCoord_z = 0;
+
+
 % Call to trap analysis, used for a few plotting functions
 if ~exist('isCellBasedMethod','var')
     isCellBasedMethod = false;
@@ -440,7 +463,7 @@ if plotSideProfileCO2heights
     YearOfStateToPlot = 2008;
     fprintf('\n Plotting year %d \n', YearOfStateToPlot);
     state2plot = { states{ logical(inj_year==YearOfStateToPlot) } };
-    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, state2plot, fluid, 'SleipnerBounded',true);
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, state2plot, fluid, 'SleipnerBounded',true,'legendWithFreeCO2Only',true);
     
     % To plot a specific state (could be a migration year):
     %I = 5;
