@@ -18,74 +18,7 @@ for k = 1:numel(numRefCases)
     % get current refinement case
     numRef = numRefCases(k);
     
-    %% Construct base grids (or load if already written to .mat file)
-    
-    % IEAGHG grid
-    try
-        load SleipnerGlobalCoords_baseGrids.mat
-        bg_ieaghg.layers = layers; bg_ieaghg.cut = cut;
-        return;
-    catch
-        [ ~, ~, ~, ~ ] = makeSleipnerModelGrid( 'modelName','IEAGHGmodel', 'saveBaseGrids',true);
-        load SleipnerGlobalCoords_baseGrids.mat
-        bg_ieaghg.layers = layers; bg_ieaghg.cut = cut;
-    end
-    
-    layers  = bg_ieaghg.layers;
-    cut     = bg_ieaghg.cut;
-    clear bg_ieaghg
-    
-    % visualize base grids and permeabilities
-    [ hfig, hax ] = plot3DandTopGrids( layers.G, layers.Gt );
-    [ hfig ]      = plotGridPerms( layers.G, layers.rock ); 
-    [ hfig ]      = plotGridPerms( layers.Gt, layers.rock2D );
-    [ hfig, hax ] = plot3DandTopGrids( cut.G, cut.Gt );
-    [ hfig ]      = plotGridPerms( cut.G, cut.rock ); 
-    [ hfig ]      = plotGridPerms( cut.Gt, cut.rock2D );
-    
-    % some analysis
-    zmax_3ls = max(layers.G.nodes.coords(:,3)); %
-    zmax_cut = max(cut.G.nodes.coords(:,3));
-    zmin_3ls = min(layers.G.nodes.coords(:,3));
-    zmin_cut = min(cut.G.nodes.coords(:,3));
-    fprintf('\n Removed a %d meter thickness from top of grid. \n', abs(zmin_3ls-zmin_cut) )
-    fprintf('\n Removed a %d meter thickness from bottom of grid. \n', abs(zmax_3ls-zmax_cut) )
-    % above message assumes uniform cell size in vertical direction
-    
-    
-    % ORIGINAL grid
-    try
-        load OriginalSleipnerGlobalCoords_baseGrids.mat
-        bg_original.layers = layers; bg_original.cut = cut;
-        return;
-    catch
-        [ ~, ~, ~, ~ ] = makeSleipnerModelGrid( 'modelName','ORIGINALmodel', 'saveBaseGrids',true);
-        load OriginalSleipnerGlobalCoords_baseGrids.mat
-        bg_original.layers = layers; bg_original.cut = cut;
-    end
-    
-    layers  = bg_original.layers;
-    cut     = bg_original.cut;
-    clear bg_original
-    
-    % visualize base grids and permeabilities
-    [ hfig, hax ] = plot3DandTopGrids( layers.G, layers.Gt );
-    [ hfig ]      = plotGridPerms( layers.G, layers.rock ); 
-    [ hfig ]      = plotGridPerms( layers.Gt, layers.rock2D );
-    [ hfig, hax ] = plot3DandTopGrids( cut.G, cut.Gt );
-    [ hfig ]      = plotGridPerms( cut.G, cut.rock ); 
-    [ hfig ]      = plotGridPerms( cut.Gt, cut.rock2D );
-    
-    % some analysis
-    zmax_3ls = max(layers.G.nodes.coords(:,3)); %
-    zmax_cut = max(cut.G.nodes.coords(:,3));
-    zmin_3ls = min(layers.G.nodes.coords(:,3));
-    zmin_cut = min(cut.G.nodes.coords(:,3));
-    fprintf('\n Removed a %d meter thickness from top of grid. \n', abs(zmin_3ls-zmin_cut) )
-    fprintf('\n Removed a %d meter thickness from bottom of grid. \n', abs(zmax_3ls-zmax_cut) )
-    % above message assumes uniform cell size in vertical direction
-    
-    
+
     %% Create Sleipner model grids for each of the three types
     [ G_ieaghg, Gt_ieaghg, rock_ieaghg, rock2D_ieaghg ]          = makeSleipnerModelGrid( 'modelName','IEAGHGmodel','refineLevel', numRef);
     [ G_original, Gt_original, rock_original, rock2D_original ]  = makeSleipnerModelGrid( 'modelName','ORIGINALmodel','refineLevel', numRef );
@@ -278,18 +211,90 @@ end
 fprintf('------------------------------------------------\n');
 
 
-%% Create table to study grid specs:
+
+
+%% Construct base grids (or load if already written to .mat file)
+
+% IEAGHG grid
+try
+    load SleipnerGlobalCoords_baseGrids.mat
+    bg_ieaghg.layers = layers; bg_ieaghg.cut = cut;
+    return;
+catch
+    [ ~, ~, ~, ~ ] = makeSleipnerModelGrid( 'modelName','IEAGHGmodel', 'saveBaseGrids',true);
+    load SleipnerGlobalCoords_baseGrids.mat
+    bg_ieaghg.layers = layers; bg_ieaghg.cut = cut;
+end
+
+layers  = bg_ieaghg.layers;
+cut     = bg_ieaghg.cut;
+clear bg_ieaghg
+
+% visualize base grids and permeabilities
+[ hfig, hax ] = plot3DandTopGrids( layers.G, layers.Gt );
+[ hfig ]      = plotGridPerms( layers.G, layers.rock ); 
+[ hfig ]      = plotGridPerms( layers.Gt, layers.rock2D );
+[ hfig, hax ] = plot3DandTopGrids( cut.G, cut.Gt );
+[ hfig ]      = plotGridPerms( cut.G, cut.rock ); 
+[ hfig ]      = plotGridPerms( cut.Gt, cut.rock2D );
+
+% some analysis
+zmax_3ls = max(layers.G.nodes.coords(:,3)); %
+zmax_cut = max(cut.G.nodes.coords(:,3));
+zmin_3ls = min(layers.G.nodes.coords(:,3));
+zmin_cut = min(cut.G.nodes.coords(:,3));
+fprintf('\n Removed a %d meter thickness from top of grid. \n', abs(zmin_3ls-zmin_cut) )
+fprintf('\n Removed a %d meter thickness from bottom of grid. \n', abs(zmax_3ls-zmax_cut) )
+% above message assumes uniform cell size in vertical direction
+
+
+% ORIGINAL grid
+try
+    load OriginalSleipnerGlobalCoords_baseGrids.mat
+    bg_original.layers = layers; bg_original.cut = cut;
+    return;
+catch
+    [ ~, ~, ~, ~ ] = makeSleipnerModelGrid( 'modelName','ORIGINALmodel', 'saveBaseGrids',true);
+    load OriginalSleipnerGlobalCoords_baseGrids.mat
+    bg_original.layers = layers; bg_original.cut = cut;
+end
+
+layers  = bg_original.layers;
+cut     = bg_original.cut;
+clear bg_original
+
+% visualize base grids and permeabilities
+[ hfig, hax ] = plot3DandTopGrids( layers.G, layers.Gt );
+[ hfig ]      = plotGridPerms( layers.G, layers.rock ); 
+[ hfig ]      = plotGridPerms( layers.Gt, layers.rock2D );
+[ hfig, hax ] = plot3DandTopGrids( cut.G, cut.Gt );
+[ hfig ]      = plotGridPerms( cut.G, cut.rock ); 
+[ hfig ]      = plotGridPerms( cut.Gt, cut.rock2D );
+
+% some analysis
+zmax_3ls = max(layers.G.nodes.coords(:,3)); %
+zmax_cut = max(cut.G.nodes.coords(:,3));
+zmin_3ls = min(layers.G.nodes.coords(:,3));
+zmin_cut = min(cut.G.nodes.coords(:,3));
+fprintf('\n Removed a %d meter thickness from top of grid. \n', abs(zmin_3ls-zmin_cut) )
+fprintf('\n Removed a %d meter thickness from bottom of grid. \n', abs(zmax_3ls-zmax_cut) )
+% above message assumes uniform cell size in vertical direction
+
+
+%% Some more analysis on base grids.
 % TODO: put this into a table...
+clear layers cut
 
 % bounds of IEAGHG geological model:
+load SleipnerGlobalCoords_baseGrids.mat
 fprintf('\n IEAGHG geological model ... \n')
-xmin3ls = min(grid3ls_ieaghg.G.nodes.coords(:,1));
-xmax3ls = max(grid3ls_ieaghg.G.nodes.coords(:,1));
-ymin3ls = min(grid3ls_ieaghg.G.nodes.coords(:,2));
-ymax3ls = max(grid3ls_ieaghg.G.nodes.coords(:,2));
-zmin3ls = min(grid3ls_ieaghg.G.nodes.coords(:,3));
-zmax3ls = max(grid3ls_ieaghg.G.nodes.coords(:,3));
-avthk3ls = mean(grid3ls_ieaghg.Gt.cells.H);
+xmin3ls = min(layers.G.nodes.coords(:,1));
+xmax3ls = max(layers.G.nodes.coords(:,1));
+ymin3ls = min(layers.G.nodes.coords(:,2));
+ymax3ls = max(layers.G.nodes.coords(:,2));
+zmin3ls = min(layers.G.nodes.coords(:,3));
+zmax3ls = max(layers.G.nodes.coords(:,3));
+avthk3ls = mean(layers.Gt.cells.H);
 fprintf('\n The bounds of the grid are (x1,y1)=( %d , %d ) to (x2,y2)=( %d, %d ). \n', ...
     xmin3ls, ymin3ls, xmax3ls, ymax3ls);
 fprintf('\n The average thickness is %d, ranging from %d to %d meters. \n', ...
@@ -297,23 +302,23 @@ fprintf('\n The average thickness is %d, ranging from %d to %d meters. \n', ...
 fprintf('\n The areal coverage is %d by %d = %d km^2. \n', ...
     (xmax3ls-xmin3ls)/1000, (ymax3ls-ymin3ls)/1000, ((xmax3ls-xmin3ls)*(ymax3ls-ymin3ls))/(1000*1000));
 
-zmin = min(G_ieaghg.nodes.coords(:,3));
-zmax = max(G_ieaghg.nodes.coords(:,3));
-avthk = mean(Gt_ieaghg.cells.H);
+zmin = min(cut.G.nodes.coords(:,3));
+zmax = max(cut.G.nodes.coords(:,3));
+avthk = mean(cut.Gt.cells.H);
 fprintf('\n After removing caprock and bottom shale:\n')
 fprintf('\n The average thickness is %d, ranging from %d to %d meters. \n', ...
     avthk, zmin, zmax);
 
-avpermx = mean(rock_ieaghg.perm(:,1));
-avpermy = mean(rock_ieaghg.perm(:,2));
-avpermz = mean(rock_ieaghg.perm(:,3));
+avpermx = mean(cut.rock.perm(:,1));
+avpermy = mean(cut.rock.perm(:,2));
+avpermz = mean(cut.rock.perm(:,3));
 
-permxmin = min(rock_ieaghg.perm(:,1));
-permxmax = max(rock_ieaghg.perm(:,1));
-permymin = min(rock_ieaghg.perm(:,2));
-permymax = max(rock_ieaghg.perm(:,2));
-permzmin = min(rock_ieaghg.perm(:,3));
-permzmax = max(rock_ieaghg.perm(:,3));
+permxmin = min(cut.rock.perm(:,1));
+permxmax = max(cut.rock.perm(:,1));
+permymin = min(cut.rock.perm(:,2));
+permymax = max(cut.rock.perm(:,2));
+permzmin = min(cut.rock.perm(:,3));
+permzmax = max(cut.rock.perm(:,3));
 fprintf('\n The average horizontal perm is %d meters^2 (%d Darcy), \n ranging from %d (%d) to %d (%d). \n', ...
     avpermx, avpermx/convertFrom(1, darcy()), ...
     permxmin, permxmin/convertFrom(1, darcy()), ...
@@ -325,14 +330,15 @@ fprintf('\n The average vertical perm is %d meters^2 (%d Darcy), \n ranging from
 
 
 % bounds of ORIGINAL geological model:
+load OriginalSleipnerGlobalCoords_baseGrids.mat
 fprintf('\n ORIGINAL geological model ... \n')
-xmin3ls = min(grid3ls_original.G.nodes.coords(:,1));
-xmax3ls = max(grid3ls_original.G.nodes.coords(:,1));
-ymin3ls = min(grid3ls_original.G.nodes.coords(:,2));
-ymax3ls = max(grid3ls_original.G.nodes.coords(:,2));
-zmin3ls = min(grid3ls_original.G.nodes.coords(:,3));
-zmax3ls = max(grid3ls_original.G.nodes.coords(:,3));
-avthk3ls = mean(grid3ls_original.Gt.cells.H);
+xmin3ls = min(layers.G.nodes.coords(:,1));
+xmax3ls = max(layers.G.nodes.coords(:,1));
+ymin3ls = min(layers.G.nodes.coords(:,2));
+ymax3ls = max(layers.G.nodes.coords(:,2));
+zmin3ls = min(layers.G.nodes.coords(:,3));
+zmax3ls = max(layers.G.nodes.coords(:,3));
+avthk3ls = mean(layers.Gt.cells.H);
 fprintf('\n The bounds of the grid are (x1,y1)=( %d , %d ) to (x2,y2)=( %d, %d ). \n', ...
     xmin3ls, ymin3ls, xmax3ls, ymax3ls);
 fprintf('\n The average thickness is %d, ranging from %d to %d meters. \n', ...
@@ -340,23 +346,23 @@ fprintf('\n The average thickness is %d, ranging from %d to %d meters. \n', ...
 fprintf('\n The areal coverage is %d by %d = %d km^2. \n', ...
     (xmax3ls-xmin3ls)/1000, (ymax3ls-ymin3ls)/1000, ((xmax3ls-xmin3ls)*(ymax3ls-ymin3ls))/(1000*1000));
 
-zmin = min(G_original.nodes.coords(:,3));
-zmax = max(G_original.nodes.coords(:,3));
-avthk = mean(Gt_original.cells.H);
+zmin = min(cut.G.nodes.coords(:,3));
+zmax = max(cut.G.nodes.coords(:,3));
+avthk = mean(cut.Gt.cells.H);
 fprintf('\n After removing caprock and bottom shale:\n')
 fprintf('\n The average thickness is %d, ranging from %d to %d meters. \n', ...
     avthk, zmin, zmax);
 
-avpermx = mean(rock_original.perm(:,1));
-avpermy = mean(rock_original.perm(:,2));
-avpermz = mean(rock_original.perm(:,3));
+avpermx = mean(cut.rock.perm(:,1));
+avpermy = mean(cut.rock.perm(:,2));
+avpermz = mean(cut.rock.perm(:,3));
 
-permxmin = min(rock_original.perm(:,1));
-permxmax = max(rock_original.perm(:,1));
-permymin = min(rock_original.perm(:,2));
-permymax = max(rock_original.perm(:,2));
-permzmin = min(rock_original.perm(:,3));
-permzmax = max(rock_original.perm(:,3));
+permxmin = min(cut.rock.perm(:,1));
+permxmax = max(cut.rock.perm(:,1));
+permymin = min(cut.rock.perm(:,2));
+permymax = max(cut.rock.perm(:,2));
+permzmin = min(cut.rock.perm(:,3));
+permzmax = max(cut.rock.perm(:,3));
 fprintf('\n The average horizontal perm is %d meters^2 (%d Darcy), \n ranging from %d (%d) to %d (%d). \n', ...
     avpermx, avpermx/convertFrom(1, darcy()), ...
     permxmin, permxmin/convertFrom(1, darcy()), ...
