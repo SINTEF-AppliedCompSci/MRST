@@ -66,23 +66,6 @@ plotActualVsSimInjectLocation   = false;
 plotInjectRateOverTime          = false;
 
 
-% Trapping analysis method (used for Post-processing, not simulation).
-isCellBasedMethod = false; % true to use cell-based method, false to use node-based method
-
-
-% FOR PLOTS:
-CO2plumeOutline_SatTol  = (0.01/100); % adjust this value if patch error occurs (which happens when no massCO2 present at specified sat tol)
-press_deviation = 0;  % from hydrostatic (percent) --> used for trapping capacity calculation, not simulation
-
-
-% For plotting of CO2 plumes
-% bounds of 2008 plume:
-ZoomX1 = 0.4375e6;
-ZoomY1 = 6.47e6;
-ZoomX2 = 0.4395e6;
-ZoomY2 = 6.474e6;
-
-
 % Physical coordinate of injection well (Singh et al. 2010)
 wellXcoord      = 4.38516e5;
 wellYcoord      = 6.47121e6;
@@ -242,6 +225,10 @@ dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [wellXcoord, wellYcoord]);
 [v,i] = min(sum(dv.^2, 2));
 wellCellIndex = i; % or Gt.cells.indexMap(i);
 [i, j] = ind2sub(Gt.cartDims, wellCellIndex);
+% Coordinate that wellCellIndex corresponds to:
+wellCoord_x = Gt.cells.centroids(wellCellIndex,1);
+wellCoord_y = Gt.cells.centroids(wellCellIndex,2);
+wellCoord_z = 0;
 
 
 % Compare actual against simulated injection location
