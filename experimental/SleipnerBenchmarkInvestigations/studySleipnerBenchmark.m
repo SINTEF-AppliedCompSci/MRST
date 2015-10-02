@@ -103,7 +103,6 @@ isCellBasedMethod = false; % true to use cell-based method, false to use node-ba
 % FOR PLOTS:
 CO2plumeOutline_SatTol  = (0.01/100); % adjust this value if patch error occurs (which happens when no massCO2 present at specified sat tol)
 press_deviation = 0;  % from hydrostatic (percent) --> used for trapping capacity calculation, not simulation
-N = 1; % coarsening level of grid. (no option yet to re-fine or coarsen Sleipner grid). ==> in progress
 
 
 % For plotting of CO2 plumes
@@ -115,7 +114,7 @@ ZoomY2 = 6.474e6;
 
 
 % OPTION - Select the grid model to load/use:
-mycase          = 'useIEAGHG_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
+mycase          = 'useOriginal_model';    % 'useIEAGHG_model', 'useOriginal_model', 'useInhouse_model'
 myresolution    = 'none';               % 'useRefinedGrid', 'none'
 refineLevel     = 2;                    % only used when "myresolution = useRefinedGrid"
 
@@ -201,12 +200,13 @@ dis_max             = (53 * kilogram / meter^3) / rhoCref; % from CO2store
 
 
 % OPTION - Select which parameters to modify from original data:
-mod_rock        = true;    
-mod_rhoCO2      = true;
+mod_rock_perm   = false;   
+mod_rock_poro   = false;
+mod_rhoCO2      = false;
 
 % Then, set parameter modifier factors:
-por_mod     = 0.6;
 perm_mod    = 3;
+por_mod     = 0.6;
 rhoCO2_mod  = 2/3;
 
 
@@ -252,14 +252,16 @@ fprintf('\n\nGrid obtained.\n')
 
     
 %% Modify original parameters (optional) and visualize model grids
-if mod_rock
-    disp('Original rock parameters are being modified ...')
-    
-    % modify parameters
-    rock.poro   = rock.poro .* por_mod;
-    rock2D.poro = rock2D.poro .* por_mod;
+if mod_rock_perm
+    disp('Original rock permeabilities are being modified ...')
     rock.perm   = rock.perm .* perm_mod;
     rock2D.perm = rock2D.perm .* perm_mod;
+end
+
+if mod_rock_poro
+    disp('Original rock porosities are being modified ...')
+    rock.poro   = rock.poro .* por_mod;
+    rock2D.poro = rock2D.poro .* por_mod;
 end
     
 if plotModelGrid
@@ -443,7 +445,7 @@ end
 if strcmpi(myInjRates(1:3), 'use')
     rateName = myInjRates(4:end);
 end
-fileName = [name 'refNum' num2str(refnum) '_' rateName '_' 'ModRockRho' num2str(mod_rock) num2str(mod_rhoCO2) '_' datestr(clock,30)];
+fileName = [name 'refNum' num2str(refnum) '_' rateName '_' 'ModPermPoroRho' num2str(mod_rock_perm) num2str(mod_rock_poro) num2str(mod_rhoCO2) '_' datestr(clock,30)];
 save(fileName);
 
 
