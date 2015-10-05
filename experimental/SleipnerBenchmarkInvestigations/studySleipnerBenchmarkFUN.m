@@ -354,8 +354,17 @@ if opt.mod_rhoCO2
 end
 modstrs = [modstr1 modstr2 modstr3];
 fileName = [name 'refNum' num2str(opt.refineLevel) '_' rateName modstrs datestr(clock,30) '.mat'];
-save(fileName);
-% TODO: only save certain variables to .mat file
+
+% clear some unneeded variables before saving
+clearvars modstrs modstr1 modstr2 modstr3
+clearvars G Gt rock rock2D % can be loaded from separate .mat file
+
+save(fileName,'-v7.3');
+% TODO:
+% -only save certain variables to .mat file
+% -implement all possible parameter options as 'opt'
+% -try to save only model and results, not grid G, Gt, etc, to reduce file
+% size. The grid can be loaded separately from the grid file.
 
 
 

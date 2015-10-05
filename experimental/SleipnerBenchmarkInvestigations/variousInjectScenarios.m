@@ -2,17 +2,39 @@
 % file
 
 
+ref = [2, 3, 4, 6];
 
-studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',-6);
+for i=1:numel(ref)
 
-studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',-6, ...
-    'mod_rock_perm', true);
+% IEAGHG model grid
+studySleipnerBenchmarkFUN('mycase','useIEAGHG_model', 'refineLevel',ref(i));
 
-studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',-6, ...
-    'mod_rock_poro', true);
+% studySleipnerBenchmarkFUN('mycase','useIEAGHG_model', 'refineLevel',ref(i), ...
+%     'mod_rock_perm', true);
+% 
+% studySleipnerBenchmarkFUN('mycase','useIEAGHG_model', 'refineLevel',ref(i), ...
+%     'mod_rock_poro', true);
+% 
+% studySleipnerBenchmarkFUN('mycase','useIEAGHG_model', 'refineLevel',ref(i), ...
+%     'mod_rhoCO2', true);
 
-studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',-6, ...
-    'mod_rhoCO2', true);
-
-studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',-6, ...
+studySleipnerBenchmarkFUN('mycase','useIEAGHG_model', 'refineLevel',ref(i), ...
     'mod_rock_perm', true, 'mod_rock_poro', true, 'mod_rhoCO2', true);
+
+
+% Original model grid
+studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',ref(i));
+
+% studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',ref(i), ...
+%     'mod_rock_perm', true);
+% 
+% studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',ref(i), ...
+%     'mod_rock_poro', true);
+% 
+% studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',ref(i), ...
+%     'mod_rhoCO2', true);
+
+studySleipnerBenchmarkFUN('mycase','useOriginal_model', 'refineLevel',ref(i), ...
+    'mod_rock_perm', true, 'mod_rock_poro', true, 'mod_rhoCO2', true);
+
+end

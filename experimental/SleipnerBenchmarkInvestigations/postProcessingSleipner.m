@@ -4,6 +4,13 @@
 % TODO: check size of function handle model, and consider loading (or
 % saving) only parts needed
 
+% manually --> load .mat file containing simulation results
+
+
+% .mat file containing G, Gt, rock, rock2D is loaded
+gridfile2load = [name 'SleipnerGlobalCoords_numRef' num2str(opt.refineLevel) '.mat'];
+load(gridfile2load)
+
 
 % Specify which plots to generate:
 plotPanelVE                     = false;
@@ -14,12 +21,12 @@ plotInjectRateOverTime          = false;
 plotBHPvsTime                   = false;
 plotAccumCO2vsTime              = false;
 plotEndOfSimResults             = false;
-plotCO2simVsCO2obsData          = true; ZoomIntoPlume = true; % if false, entire grid is plotted
-plotTrappingInventory           = true;
+plotCO2simVsCO2obsData          = true; ZoomIntoPlume = false;%true; % if false, entire grid is plotted
+plotTrappingInventory           = false;
 plotTrapProfiles                = false;
 plotTrapAndPlumeCompare         = false;
 showTableOfTrapDetails          = false;
-plotSideProfileCO2heights       = true;
+plotSideProfileCO2heights       = false;
     
 
 % Trapping analysis method:
