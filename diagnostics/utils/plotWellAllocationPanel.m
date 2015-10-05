@@ -147,8 +147,9 @@ for n=1:numel(opt.plotOnly)
    if nseg == 1  % Need to trick Matlab
       z = [wp(k).z; wp(k).z+1];
       a = [cumsum(wp(k).alloc,1); zeros(1,numel(wp(k).alloc))];
-      bwidth = 2*numel(wp2(k).z)+3;
+      bwidth = 2*numel(wp(k).z)+3;
       h = barh(z, a,'stacked','BarWidth',bwidth, 'EdgeColor','none');
+      args = {'YDir', 'YLim'};
    else
       z = flipud(wp(k).z);
       a = cumsum(flipud(wp(k).alloc),1);
