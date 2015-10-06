@@ -75,8 +75,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-%% Setup
+% Setup
 assert(size(G.faces.nodes, 2)==1);
 opt     = struct('verbose',              mrstVerbose, ...
                  'findNeighbors',        false,       ...
@@ -89,7 +88,7 @@ assert(isempty(opt.hingenodes) || G.griddim == 3, ...
 numC    = G.cells.num;
 numF    = G.faces.num;
 
-%% Possibly find neighbors
+% Possibly find neighbors
 if opt.findNeighbors,
    G.faces.neighbors = findNeighbors(G);
    G = findNormalDirections(G);
@@ -103,7 +102,7 @@ else
    end
 end
 
-%% Main part
+% Main part
 if G.griddim == 3,
    assert(size(G.nodes.coords,2) == 3);
    faceNo  = rldecode(1:G.faces.num, diff(G.faces.nodePos), 2) .';
@@ -111,7 +110,6 @@ if G.griddim == 3,
    next    = (2:size(G.faces.nodes, 1)+1) .';
    next(p(2 : end) - 1) = p(1 : end-1);
 
-   %%
    % Divide each face into sub-triangles all having one node as
    % pCenter = sum(nodes) /#nodes. Compute area-weighted normals,
    % and add to obtain approx face-normals. Compute resulting areas
@@ -165,7 +163,6 @@ if G.griddim == 3,
 
    tocif(opt.verbose, t0)
 
-   %%
    % Divide each cell into sub-tetrahedra according to sub-triangles above,
    % all having one node as cCenter = sum(faceCentroids) / #faceCentroids.
 
@@ -305,7 +302,7 @@ else
   assert(false);
 end
 
-%% Update grid
+% Update grid
 G.faces.areas     = faceAreas;
 G.faces.normals   = faceNormals;
 G.faces.centroids = faceCentroids;
