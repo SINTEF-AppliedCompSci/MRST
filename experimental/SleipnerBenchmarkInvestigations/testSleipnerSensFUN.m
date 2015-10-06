@@ -6,6 +6,8 @@ function [ res ] = testSleipnerSensFUN( varargin )
     opt.refineLevel     = 1;
     opt.addPerturbation = 'false';
     opt.pertAmp         = [];
+    opt.plumes_base = [];
+    
     opt = merge_options(opt, varargin{:});
 
 
@@ -88,7 +90,7 @@ function [ res ] = testSleipnerSensFUN( varargin )
     dy= (wellYcoord-Gt.cells.centroids(:,2));
     ind = dx<1e3 & dx>-1.5e3 & dy<1.3e3 & dy >-4e3;
     clf,plotCellData(G,double(ind))
-    G=removeCells(G,find(~ind));
+    G=removeCells(G,find(~ind)); % use extractSubgrid?
     Gt =topSurfaceGrid(G);
     %clear G;
     rock2D.perm=rock2D.perm(ind,:);
@@ -111,8 +113,11 @@ function [ res ] = testSleipnerSensFUN( varargin )
             %Gt_adjusted.cells.z = adjust(Gt_adjusted.cells.z, opt.pertAmp);
             %Gt_adjusted.faces.z = adjust(Gt_adjusted.faces.z, opt.pertAmp);
             %Gt_adjusted.nodes.z = adjust(Gt_adjusted.nodes.z, opt.pertAmp);
-            midd=mean(Gt.nodes.coords,2);
-            Gt_adjusted.nodes.z=Gt_adjusted.nodes.z+opt.pertAmp*exp(-sum(bsxfun(@minus,Gt_adjusted.nodes.coords,midd).^2/4e3.^2,2));
+            midd=mean(Gt.nodes.coords,1);
+            dd=bsxfun(@minus,Gt_adjusted.nodes.coords,midd);
+            dd2=sum(dd.^2,2);
+            dd2max=max(dd2);
+            Gt_adjusted.nodes.z=Gt_adjusted.nodes.z+opt.pertAmp*exp(-40*dd2/dd2max);
             % Recompute geometry to get correct centroids
             Gt_adjusted = computeGeometryVE(Gt_adjusted);
             
@@ -274,15 +279,21 @@ function [ res ] = testSleipnerSensFUN( varargin )
     % plume outline). Get difference between these two 'tops' = hCO2. Get
     % difference between hCO2 and simulated CO2 height.
     figure(1),clf,plotCellData(Gt,states{end}.s(:,1)),colorbar
-    plumes = getLayer9CO2plumeOutlines();
-    [plumes,topsurface, topfit, hCO2] = makeSurfaceData(plumes,Gt)
+    %plumes = getLayer9CO2plumeOutlines();
+    %[plumes,topsurface, topfit, hCO2] = makeSurfaceData(plumes,Gt)
     %[plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt);
-    states = addHeightData(states,Gt,fluid);
+    
+    
+     states = addHeightData(states,Gt,fluid);
+    if ~isempty(opt.plumes_base)
+        newplumes=opt.plumes_base;
+    
+    
     %% Make plots.
     % Does not plot multiple polygons of a given year in same plot
-     sim_year=cumsum(schedule.step.val)/year;
-     myplotCellData =@(G,data) plotCellData(G,data,'EdgeColor','none');
-%     for i=1:numel(plumes)
+%      sim_year=cumsum(schedule.step.val)/year;
+      myplotCellData =@(G,data) plotCellData(G,data,'EdgeColor','none');
+%    for i=1:numel(plumes)
 %         % hack
 %         plume_year = plumes{i}.year-1998;
 %         tstep=find(sim_year==plume_year);
@@ -300,29 +311,29 @@ function [ res ] = testSleipnerSensFUN( varargin )
     
     % An alternative to the code above: deals with multiple polygons in the
     % same given year
-    [ plumes_comb ] = plotDiff( Gt, plumes, sim_report, states, topsurface );
-    %% 
-    % NB: topfit is function handle for last polygon fit with planar surface
-    ny=numel(plumes); %1;%numel(plumes)
-    figure(91),clf,myplotCellData(Gt,double((topfit(Gt.cells.centroids)-topsurface(Gt.cells.centroids))>0))
-    [isin,sang]=insidePolygon(plumes{ny}.outline,Gt.cells.centroids);
-    figure(92),clf,myplotCellData(Gt,sang),hold on
-    plot3(plumes{ny}.outline(:,1), plumes{ny}.outline(:,2),topsurface(plumes{ny}.outline)-100,'*-','LineWidth',3, 'Color','g')
-    %%
-    newplumes=cell(numel(states),1);
-    for i=1:numel(plumes)
-        %tstep = plumes{i}.year-1998;
-        plume_year = plumes{i}.year-1998;
-        tstep=find(sim_year==plume_year);
-        if(tstep<=numel(states))
-            %newplumes{tstep}=struct('h',states{tstep}.s(:,2).*Gt.cells.H./(1-fluid.res_water));
-            %newplumes{tstep}.h=newplumes{tstep}.h+rand(G.cells.num,1).*(newplumes{tstep}.h>0.5)
-            %newplumes{tstep}.h=newplumes{tstep}.h+10*(newplumes{tstep}.h>0.5)
-            newplumes{tstep}=plumes{i};
-        end
-        %newplumes{tstep}=plumes{i};      
-    end
-    a=matchToData(model, wellSols, states, schedule, newplumes)
+%     [ plumes_comb ] = plotDiff( Gt, plumes, sim_report, states, topsurface );
+%     %% 
+%     % NB: topfit is function handle for last polygon fit with planar surface
+%     ny=numel(plumes); %1;%numel(plumes)
+%     figure(91),clf,myplotCellData(Gt,double((topfit(Gt.cells.centroids)-topsurface(Gt.cells.centroids))>0))
+%     [isin,sang]=insidePolygon(plumes{ny}.outline,Gt.cells.centroids);
+%     figure(92),clf,myplotCellData(Gt,sang),hold on
+%     plot3(plumes{ny}.outline(:,1), plumes{ny}.outline(:,2),topsurface(plumes{ny}.outline)-100,'*-','LineWidth',3, 'Color','g')
+%     %%
+%     newplumes=cell(numel(states),1);
+%     for i=1:numel(plumes)
+%         %tstep = plumes{i}.year-1998;
+%         plume_year = plumes{i}.year-1998;
+%         tstep=find(sim_year==plume_year);
+%         if(tstep<=numel(states))
+%             %newplumes{tstep}=struct('h',states{tstep}.s(:,2).*Gt.cells.H./(1-fluid.res_water));
+%             %newplumes{tstep}.h=newplumes{tstep}.h+rand(G.cells.num,1).*(newplumes{tstep}.h>0.5)
+%             %newplumes{tstep}.h=newplumes{tstep}.h+10*(newplumes{tstep}.h>0.5)
+%             newplumes{tstep}=plumes{i};
+%         end
+%         %newplumes{tstep}=plumes{i};      
+%     end
+     a=matchToData(model, wellSols, states, schedule, newplumes)
     %%
     %cc=insidePolygon(line_coord,Gt.cells.centroids);
     %plotCellData(Gt,double(cc))
@@ -352,21 +363,25 @@ function [ res ] = testSleipnerSensFUN( varargin )
        end
     end
     dobj_dz=dobj{2};
-    figure(33),clf,myplotCellData(Gt,dobj_dz),colorbar
-     ny=numel(plumes);
-     line(plumes{ny}.outline(:,1), plumes{ny}.outline(:,2),topsurface(plumes{ny}.outline)-3,'LineWidth',3, 'Color','r')
-
+    %figure(33),clf,myplotCellData(Gt,dobj_dz),colorbar
+    % ny=numel(plumes);
+    % line(plumes{ny}.outline(:,1), plumes{ny}.outline(:,2),topsurface(plumes{ny}.outline)-3,'LineWidth',3, 'Color','r')
+   %error('exiting')
+    res.gsc        = gsc;
+     res.dobj_dz    = dobj_dz;
+     res.smodel     = smodel;
+    end
      
      %% Output of function:
      res.Gt         = Gt;
-     res.plumes     = plumes;
-     res.gsc        = gsc;
-     res.dobj_dz    = dobj_dz;
+     %res.plumes     = plumes;
+     %res.gsc        = gsc;
+     %res.dobj_dz    = dobj_dz;
      
      res.schedule   = schedule;
      res.states     = states;
      res.wellSols   = wellSols;
-     res.smodel     = smodel;
+     %res.smodel     = smodel;
      res.model      = model;
      res.initState  = initState;
      

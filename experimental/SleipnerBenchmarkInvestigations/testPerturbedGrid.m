@@ -2,7 +2,7 @@
 
 
 res1 = testSleipnerSensFUN('refineLevel',-4);
-res2 = testSleipnerSensFUN('refineLevel',-4,'addPerturbation','true','pertAmp',2);
+res2 = testSleipnerSensFUN('refineLevel',-4,'addPerturbation','true','pertAmp',2, 'plumes_base',res1.states);
 
 
 figure

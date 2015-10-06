@@ -1,4 +1,9 @@
 function obj = matchToDataSens(model, wellSols, states, schedule,plumes, varargin)
+% compute match between simulated CO2 heights to observed CO2 heights
+
+% obj is the L2-norm of the difference between observed CO2 heights
+% (plumes.h) and simulated CO2 heights
+
    
    opt.ComputePartials = false;
    opt.tStep = [];
@@ -39,6 +44,7 @@ function obj = matchToDataSens(model, wellSols, states, schedule,plumes, varargi
       
       if(~isempty(plumes{tSteps(step)}))
           obj{step} = matchToCo2Surface(sG,plumes{tSteps(step)},model.G,model.fluid);
+          obj{step} = obj{step} + sum(dz.^2.*model.G.cells.volumes); 
       else
          obj{step} = 0*qGs;
       end      
