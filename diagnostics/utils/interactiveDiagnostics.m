@@ -20,7 +20,7 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %
 %   Once the initialization is complete, two windows will be produced:
 %     - A plotting window, showing the reservoir along with the wells and
-%       visualized quantitites. In the plotting window, it is possible to
+%       visualized quantities. In the plotting window, it is possible to
 %       click wells to get additional information, such as the allocation
 %       factors per perforation in the well, the phase distribution grouped
 %       by time of flight and the corresponding pore volumes swept/drained.
