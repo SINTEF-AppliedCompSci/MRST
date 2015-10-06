@@ -11,35 +11,35 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %   diagnostics. The functionality differs slightly based on the input
 %   arguments given:
 %     - If a dataset is given, this set of cellwise data will be available
-%     for visualization.
+%       for visualization.
 %     - If a state is given, this state will allow for visualization of
-%     the component ratios inside a drainage volume. The flux from this
-%     state can also be used to calculate time of flight if "computeFlux"
-%     is disabled, for instance if the user has some external means of
-%     computing fluxes.
+%       the component ratios inside a drainage volume. The flux from this
+%       state can also be used to calculate time of flight if "computeFlux"
+%       is disabled, for instance if the user has some external means of
+%       computing fluxes.
 %
 %   Once the initialization is complete, two windows will be produced:
 %     - A plotting window, showing the reservoir along with the wells and
-%     visualized quantitites.
-%         In the plotting window, it is possible to click wells to get
-%         additional information, such as the allocation factors per
-%         perforation in the well, the phase distribution grouped by time
-%         of flight and the corresonding pore volumes swept/drained.
+%       visualized quantitites. In the plotting window, it is possible to
+%       click wells to get additional information, such as the allocation
+%       factors per perforation in the well, the phase distribution grouped
+%       by time of flight and the corresponding pore volumes swept/drained.
 %
 %     - A controller window which is used to alter the state of the
-%     plotting window:
-%     Wells can be selected for display (if a well is selected, the
-%     corresponding drainage (producer) or flooding (injector) volumes will
-%     be visualized. A simple playback function can be used to show
-%     propagation of time of flight. Different quantitites can be
-%     visualized to get a better understanding of the system.
+%       plotting window:
 %
-%     A set of buttons provide (experimental) well editing, access to
-%     visualization of the well pair connections, Phi/F diagram with
-%     Lorenz' coefficient etc.
+%       1) Wells can be selected for display (if a well is selected, the
+%       corresponding drainage (producer) or flooding (injector) volumes
+%       will be visualized. A simple playback function can be used to show
+%       propagation of time of flight. Different quantitites can be
+%       visualized to get a better understanding of the system.
 %
-%     A player controller (experimental), if a time-series of wells (and
-%     states) are supplied.
+%       2) A set of buttons provide (experimental) well editing, access to
+%       visualization of the well pair connections, Phi/F diagram with
+%       Lorenz' coefficient etc.
+%
+%       3) A player controller (experimental), if a time-series of wells
+%       (and states) are supplied.
 %
 %
 % REQUIRED PARAMETERS:
@@ -54,43 +54,39 @@ function interactiveDiagnostics(G, rock, W, varargin)
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
 %  'state' - Reservoir state containing fluid saturations and optionally
-%            flux and pressure (if 'computeFlux' is false)
+%       flux and pressure (if 'computeFlux' is false)
 %
-%  'computeGrid' - Use G for plotting, but computeGrid for computing time
-%                  of flight etc.
+%  'computeGrid' - Use G for plotting, but computeGrid for computing
+%       time-of-flight, tracer partitions, etc. 
 %
 %  'tracerfluid' - Fluid used for tracer computation. This defaults to a
-%            trivial fluid.
+%       trivial single-phase fluid.
 %
-%  'fluid'  - Fluid used for mobility calculations if 'useMobilityArrival'
-%             is enabled.
+%  'fluid' - Fluid used for mobility calculations if 'useMobilityArrival'
+%       is enabled.
 %
-%  'LinSolve' - Linear solver for pressure systems. Defaults to mldivide
-%  (backslash)
+%  'LinSolve' - Linear solver for pressure systems. Defaults: mldivide
 %
 %  'computeFlux' - If set to false, fluxes are extracted from the provided
-%                  state keyword argument. This requires a state to be
-%                  provided and can be used if the fluxes are computed
-%                  externally (for instance from a expensive full-physics
-%                  simulation)
+%       state keyword argument. This requires a state to be provided and
+%       can be used if the fluxes are computed externally (for instance
+%       from a expensive full-physics simulation)
 %
 %  'useMobilityArrival' - If the well plot showing nearby saturations
-%                         should plot mobility instead of saturations. This
-%                         may be interesting in some cases because the
-%                         mobile fluids are more likely to be extracted.
-%                         However, this plot is often dominated by very
-%                         mobile gas regions.
+%       should plot mobility instead of saturations. This may be
+%       interesting in some cases because the mobile fluids are more likely
+%       to be extracted. However, this plot is often dominated by very
+%       mobile gas regions.
 %
 %  'daspect' - Data aspect ratio, in a format understood by daspect()
 %
 %  'name' - Name to use for windows
 %
 %  'leaveOpenOnClose' - Default false. Leaves all figures open when closing
-%                       the controller.
+%       the controller.
 %
 %  'fastRotate' - Enables fast rotate if true, disables if false. Default
-%                 is enabled for models with > 50000 cells, disabled
-%                 otherwise.
+%       is enabled for models with > 50000 cells, disabled otherwise.
 %
 % RETURNS:
 %
