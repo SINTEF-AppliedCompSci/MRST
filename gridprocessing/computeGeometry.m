@@ -111,93 +111,14 @@ if G.griddim == 3,
 
 elseif (G.griddim ==2) && (size(G.nodes.coords,2)==2)
 
-  dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
-  t0 = ticif (opt.verbose);
-
-  edges     = reshape(G.faces.nodes,2,[])';
-  edgeLength    = G.nodes.coords(edges(:,2),:)-G.nodes.coords(edges(:,1),:);
-  faceAreas     = sqrt(sum(edgeLength.*edgeLength,2));
-  faceCentroids = (G.nodes.coords(edges(:,2),:)+ ...
-                   G.nodes.coords(edges(:,1),:))/2;
-  faceNormals   = [edgeLength(:,2),-edgeLength(:,1)];
-
-  tocif(opt.verbose, t0)
-  dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
-  t0 = ticif (opt.verbose);
-
-
-  numfaces=diff(G.cells.facePos);
-
-  cellno        = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
-  cellEdges     = edges(G.cells.faces(:,1),:);
-  r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
-  cellEdges(r,:)= cellEdges(r, [2,1]);
-
-  cCenter       = zeros(G.cells.num, 2);
-  cCenter(:,1)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 1));
-  cCenter(:,2)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 2));
-  cCenter       = bsxfun(@rdivide, cCenter, double(numfaces));
-
-  a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
-  b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
-  subArea       = 0.5*(a(:,1).*b(:,2)-a(:,2).*b(:,1));
-
-  subCentroid   = bsxfun(@plus, cCenter(cellno,:),  2*faceCentroids(G.cells.faces(:,1),:))/3;
-  cellVolumes   = accumarray(cellno, subArea);
-
-  cellCentroids = zeros(G.cells.num, 2);
-  cellCentroids(:,1) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,1)));
-  cellCentroids(:,2) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,2)));
-  cellCentroids = bsxfun(@rdivide, cellCentroids, cellVolumes);
-
-  tocif(opt.verbose, t0)
+   [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d2(G, opt);
 
 elseif (G.griddim ==2) && (size(G.nodes.coords,2)==3)
-  dispif(opt.verbose, ...
-     'Experimental implementation only available for surface grids\n');
 
-  dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
-  t0 = ticif (opt.verbose);
+   [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d3(G, opt);
 
-  edges     = reshape(G.faces.nodes,2,[])';
-  edgeLength    = G.nodes.coords(edges(:,2),:)-G.nodes.coords(edges(:,1),:);
-  faceAreas     = sqrt(sum(edgeLength.*edgeLength,2));
-  faceCentroids = (G.nodes.coords(edges(:,2),:)+ ...
-                   G.nodes.coords(edges(:,1),:))/2;
-  faceNormals   = [edgeLength(:,2),-edgeLength(:,1)];
-
-  tocif(opt.verbose, t0)
-  dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
-  t0 = ticif (opt.verbose);
-
-  numfaces=diff(G.cells.facePos);
-
-  cellno        = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
-  cellEdges     = edges(G.cells.faces(:,1),:);
-  r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
-  cellEdges(r,:)= cellEdges(r, [2,1]);
-
-  cCenter       = zeros(G.cells.num, 3);
-  cCenter(:,1)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 1));
-  cCenter(:,2)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 2));
-  cCenter(:,3)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 3));
-  cCenter       = bsxfun(@rdivide, cCenter, double(numfaces));
-
-  a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
-  b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
-  subArea       = sqrt(sum(cross(a,b,2).^2,2))*0.5;
-
-  subCentroid   = bsxfun(@plus, cCenter(cellno,:), ...
-                         2*faceCentroids(G.cells.faces(:,1),:))/3;
-  cellVolumes   = accumarray(cellno, subArea);
-
-  cellCentroids = zeros(G.cells.num, 3);
-  cellCentroids(:,1) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,1)));
-  cellCentroids(:,2) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,2)));
-  cellCentroids(:,3) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,3)));
-  cellCentroids = bsxfun(@rdivide, cellCentroids, cellVolumes);
-
-  tocif(opt.verbose, t0)
 else
   assert(false);
 end
@@ -337,6 +258,106 @@ function [faceAreas, faceNormals, faceCentroids, ...
    end
 
    tocif(opt.verbose, t0)
+end
+
+%--------------------------------------------------------------------------
+
+function [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d2(G, opt)
+
+  dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
+  t0 = ticif (opt.verbose);
+
+  edges     = reshape(G.faces.nodes,2,[])';
+  edgeLength    = G.nodes.coords(edges(:,2),:)-G.nodes.coords(edges(:,1),:);
+  faceAreas     = sqrt(sum(edgeLength.*edgeLength,2));
+  faceCentroids = (G.nodes.coords(edges(:,2),:)+ ...
+                   G.nodes.coords(edges(:,1),:))/2;
+  faceNormals   = [edgeLength(:,2),-edgeLength(:,1)];
+
+  tocif(opt.verbose, t0)
+  dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
+  t0 = ticif (opt.verbose);
+
+
+  numfaces=diff(G.cells.facePos);
+
+  cellno        = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
+  cellEdges     = edges(G.cells.faces(:,1),:);
+  r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
+  cellEdges(r,:)= cellEdges(r, [2,1]);
+
+  cCenter       = zeros(G.cells.num, 2);
+  cCenter(:,1)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 1));
+  cCenter(:,2)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 2));
+  cCenter       = bsxfun(@rdivide, cCenter, double(numfaces));
+
+  a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
+  b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
+  subArea       = 0.5*(a(:,1).*b(:,2)-a(:,2).*b(:,1));
+
+  subCentroid   = bsxfun(@plus, cCenter(cellno,:),  2*faceCentroids(G.cells.faces(:,1),:))/3;
+  cellVolumes   = accumarray(cellno, subArea);
+
+  cellCentroids = zeros(G.cells.num, 2);
+  cellCentroids(:,1) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,1)));
+  cellCentroids(:,2) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,2)));
+  cellCentroids = bsxfun(@rdivide, cellCentroids, cellVolumes);
+
+  tocif(opt.verbose, t0)
+
+end
+
+%--------------------------------------------------------------------------
+
+function [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d3(G, opt)
+
+  dispif(opt.verbose, ...
+     'Experimental implementation only available for surface grids\n');
+
+  dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
+  t0 = ticif (opt.verbose);
+
+  edges     = reshape(G.faces.nodes,2,[])';
+  edgeLength    = G.nodes.coords(edges(:,2),:)-G.nodes.coords(edges(:,1),:);
+  faceAreas     = sqrt(sum(edgeLength.*edgeLength,2));
+  faceCentroids = (G.nodes.coords(edges(:,2),:)+ ...
+                   G.nodes.coords(edges(:,1),:))/2;
+  faceNormals   = [edgeLength(:,2),-edgeLength(:,1)];
+
+  tocif(opt.verbose, t0)
+  dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
+  t0 = ticif (opt.verbose);
+
+  numfaces=diff(G.cells.facePos);
+
+  cellno        = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
+  cellEdges     = edges(G.cells.faces(:,1),:);
+  r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
+  cellEdges(r,:)= cellEdges(r, [2,1]);
+
+  cCenter       = zeros(G.cells.num, 3);
+  cCenter(:,1)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 1));
+  cCenter(:,2)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 2));
+  cCenter(:,3)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 3));
+  cCenter       = bsxfun(@rdivide, cCenter, double(numfaces));
+
+  a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
+  b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
+  subArea       = sqrt(sum(cross(a,b,2).^2,2))*0.5;
+
+  subCentroid   = bsxfun(@plus, cCenter(cellno,:), ...
+                         2*faceCentroids(G.cells.faces(:,1),:))/3;
+  cellVolumes   = accumarray(cellno, subArea);
+
+  cellCentroids = zeros(G.cells.num, 3);
+  cellCentroids(:,1) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,1)));
+  cellCentroids(:,2) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,2)));
+  cellCentroids(:,3) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,3)));
+  cellCentroids = bsxfun(@rdivide, cellCentroids, cellVolumes);
+
+  tocif(opt.verbose, t0)
 end
 
 %--------------------------------------------------------------------------
