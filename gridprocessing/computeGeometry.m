@@ -89,9 +89,6 @@ opt     = merge_options(opt, varargin{:});
 assert(isempty(opt.hingenodes) || G.griddim == 3, ...
    'Hinge nodes are only supported for 3D grids.');
 
-numC    = G.cells.num;
-numF    = G.faces.num;
-
 % Possibly find neighbors
 if opt.findNeighbors,
    G.faces.neighbors = findNeighbors(G);
@@ -108,110 +105,9 @@ end
 
 % Main part
 if G.griddim == 3,
-   assert(size(G.nodes.coords,2) == 3);
-   faceNo  = rldecode(1:G.faces.num, diff(G.faces.nodePos), 2) .';
-   p       = G.faces.nodePos;
-   next    = (2:size(G.faces.nodes, 1)+1) .';
-   next(p(2 : end) - 1) = p(1 : end-1);
 
-   % Divide each face into sub-triangles all having one node as
-   % pCenter = sum(nodes) /#nodes. Compute area-weighted normals,
-   % and add to obtain approx face-normals. Compute resulting areas
-   % and centroids.
-   dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
-   t0 = ticif (opt.verbose);
-
-   llE = length(G.faces.nodes);
-   localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
-
-   pCenters     = bsxfun(@rdivide, ...
-                         localEdge2Face.' * G.nodes.coords(G.faces.nodes,:), ...
-                         diff(double(G.faces.nodePos)));
-   pCenters     = localEdge2Face * pCenters;
-
-   % Use hinge nodes for selected faces if present.
-   if ~isempty(opt.hingenodes),
-      ix = mcolon(G.faces.nodePos(opt.hingenodes.faces), ...
-                  G.faces.nodePos(opt.hingenodes.faces+1)-1);
-      pCenters(ix, :) = rldecode(opt.hingenodes.nodes, ...
-                        G.faces.nodePos(opt.hingenodes.faces+1) - ...
-                        G.faces.nodePos(opt.hingenodes.faces));
-   end
-
-   subNormals   = cross(G.nodes.coords(G.faces.nodes(next),:) - ...
-                        G.nodes.coords(G.faces.nodes,:), ...
-                        pCenters - G.nodes.coords(G.faces.nodes,:)) ./ 2;
-   subAreas     = sqrt(sum(subNormals .^ 2, 2));
-   subCentroids = (G.nodes.coords(G.faces.nodes,:) + ...
-                   G.nodes.coords(G.faces.nodes(next),:) + pCenters) ./ 3;
-   clear llE faceNo
-
-   faceNormals    = localEdge2Face.' * subNormals;
-   faceAreas      = localEdge2Face.' * subAreas;
-   subNormalSigns = sign(sum(subNormals .* (localEdge2Face * faceNormals), 2));
-   faceCentroids  = bsxfun(@rdivide,                                 ...
-                           localEdge2Face.' * ...
-                           bsxfun(@times, subAreas, subCentroids), ...
-                           faceAreas);
-
-   % Computation above does not make sense for faces with zero area
-   i=find(faceAreas==0);
-   if numel(i)>0,
-      warning(msgid('computeGeometry:faceAreas'), ...
-         [' Faces with zero area detected. Such faces should be ', ...
-          'removed before calling ', mfilename]);
-       faceCentroids(i,:) = pCenters(i,:);
-   end
-
-   clear subAreas pCenters
-
-   tocif(opt.verbose, t0)
-
-   % Divide each cell into sub-tetrahedra according to sub-triangles above,
-   % all having one node as cCenter = sum(faceCentroids) / #faceCentroids.
-
-   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
-   t0 = ticif (opt.verbose);
-
-   cellVolumes   = zeros([numC, 1]);
-   cellCentroids = zeros([numC, 3]);
-
-   lastInx = 0;
-   for c = 1 : numC,
-      nF  = double(G.cells.facePos(c+1)- G.cells.facePos(c));
-      inx = (1 : nF) + lastInx;
-
-      faces        = G.cells.faces(inx,1);
-      [triE, triF] = find(localEdge2Face(:,faces));
-
-      fCentroids = faceCentroids(faces,:);
-      cCenter    = sum(fCentroids) ./ double(nF);
-
-      relSubC    = bsxfun(@minus, subCentroids(triE,:), cCenter);
-
-      % The normal of a face f is directed from cell G.faces.neighbors(f,1)
-      % to cell G.faces.neighbors(f,2).   If cell c is in the second column
-      % for face f, then the nomal must be multiplied by -1 to be an outer
-      % normal.
-      orientation = 2*double(G.faces.neighbors(G.cells.faces(inx,1), 1) == c)-1;
-
-      outNormals = bsxfun(@times,             ...
-                          subNormals(triE,:), ...
-                          subNormalSigns(triE) .* orientation(triF));
-
-      tVolumes   = (1/3) * sum(relSubC .* outNormals, 2);
-      tCentroids = (3/4) * relSubC;
-
-      volume      = sum(tVolumes);
-      relCentroid = (tVolumes' * tCentroids) ./ volume;
-      centroid    = relCentroid + cCenter;
-
-      cellVolumes(c)     = volume;
-      cellCentroids(c,:) = centroid;
-
-      lastInx = lastInx + nF;
-   end
-   tocif(opt.verbose, t0)
+   [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_3d(G, opt);
 
 elseif (G.griddim ==2) && (size(G.nodes.coords,2)==2)
 
@@ -322,6 +218,125 @@ if ~isfield(G, 'type'),
 end
 
 G.type = [G.type, { mfilename }];
+end
+
+%--------------------------------------------------------------------------
+
+function [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_3d(G, opt)
+
+   assert (size(G.nodes.coords, 2) == 3, ...
+           'Internal error: 3D geometry on non-3D coordinates');
+
+   numC    = G.cells.num;
+   numF    = G.faces.num;
+
+   faceNo  = rldecode(1:G.faces.num, diff(G.faces.nodePos), 2) .';
+   p       = G.faces.nodePos;
+   next    = (2 : size(G.faces.nodes, 1) + 1) .';
+   next(p(2 : end) - 1) = p(1 : end-1);
+
+   % Divide each face into sub-triangles all having one node as
+   % pCenter = sum(nodes) /#nodes. Compute area-weighted normals,
+   % and add to obtain approx face-normals. Compute resulting areas
+   % and centroids.
+   dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
+   t0 = ticif (opt.verbose);
+
+   llE = length(G.faces.nodes);
+   localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
+
+   pCenters     = bsxfun(@rdivide, ...
+                         localEdge2Face.' * G.nodes.coords(G.faces.nodes,:), ...
+                         diff(double(G.faces.nodePos)));
+   pCenters     = localEdge2Face * pCenters;
+
+   % Use hinge nodes for selected faces if present.
+   if ~isempty(opt.hingenodes),
+      ix = mcolon(G.faces.nodePos(opt.hingenodes.faces), ...
+                  G.faces.nodePos(opt.hingenodes.faces + 1) - 1);
+      pCenters(ix, :) = rldecode(opt.hingenodes.nodes, ...
+                        G.faces.nodePos(opt.hingenodes.faces + 1) - ...
+                        G.faces.nodePos(opt.hingenodes.faces));
+   end
+
+   subNormals   = cross(G.nodes.coords(G.faces.nodes(next),:) - ...
+                        G.nodes.coords(G.faces.nodes,:), ...
+                        pCenters - G.nodes.coords(G.faces.nodes,:)) ./ 2;
+   subAreas     = sqrt(sum(subNormals .^ 2, 2));
+   subCentroids = (G.nodes.coords(G.faces.nodes,:) + ...
+                   G.nodes.coords(G.faces.nodes(next),:) + pCenters) ./ 3;
+   clear llE faceNo
+
+   faceNormals    = localEdge2Face.' * subNormals;
+   faceAreas      = localEdge2Face.' * subAreas;
+   subNormalSigns = sign(sum(subNormals .* (localEdge2Face * faceNormals), 2));
+   faceCentroids  = bsxfun(@rdivide,                                 ...
+                           localEdge2Face.' * ...
+                           bsxfun(@times, subAreas, subCentroids), ...
+                           faceAreas);
+
+   % Computation above does not make sense for faces with zero area
+   i = find(~ (faceAreas > 0));
+   if ~ isempty(i),
+      warning(msgid('computeGeometry:faceAreas'), ...
+             ['%d faces with non-positive area detected.\n', ...
+              'Such faces should be removed before calling %s'], ...
+              numel(i), mfilename);
+
+      faceCentroids(i,:) = pCenters(i,:);
+   end
+
+   clear subAreas pCenters
+
+   tocif(opt.verbose, t0)
+
+   % Divide each cell into sub-tetrahedra according to sub-triangles above,
+   % all having one node as cCenter = sum(faceCentroids) / #faceCentroids.
+
+   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
+   t0 = ticif (opt.verbose);
+
+   cellVolumes   = zeros([numC, 1]);
+   cellCentroids = zeros([numC, 3]);
+
+   lastInx = 0;
+   for c = 1 : numC,
+      nF  = double(G.cells.facePos(c+1)- G.cells.facePos(c));
+      inx = (1 : nF) + lastInx;
+
+      faces        = G.cells.faces(inx,1);
+      [triE, triF] = find(localEdge2Face(:,faces));
+
+      fCentroids = faceCentroids(faces,:);
+      cCenter    = sum(fCentroids) ./ double(nF);
+
+      relSubC    = bsxfun(@minus, subCentroids(triE,:), cCenter);
+
+      % The normal of a face f is directed from cell G.faces.neighbors(f,1)
+      % to cell G.faces.neighbors(f,2).   If cell c is in the second column
+      % for face f, then the nomal must be multiplied by -1 to be an outer
+      % normal.
+      orientation = 2*double(G.faces.neighbors(G.cells.faces(inx,1), 1) == c)-1;
+
+      outNormals = bsxfun(@times,             ...
+                          subNormals(triE,:), ...
+                          subNormalSigns(triE) .* orientation(triF));
+
+      tVolumes   = (1/3) * sum(relSubC .* outNormals, 2);
+      tCentroids = (3/4) * relSubC;
+
+      volume      = sum(tVolumes);
+      relCentroid = (tVolumes' * tCentroids) ./ volume;
+      centroid    = relCentroid + cCenter;
+
+      cellVolumes(c)     = volume;
+      cellCentroids(c,:) = centroid;
+
+      lastInx = lastInx + nF;
+   end
+
+   tocif(opt.verbose, t0)
 end
 
 %--------------------------------------------------------------------------
