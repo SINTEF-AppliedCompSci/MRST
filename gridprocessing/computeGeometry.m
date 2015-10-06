@@ -265,28 +265,10 @@ end
 function [faceAreas, faceNormals, faceCentroids, ...
       cellVolumes, cellCentroids] = geom_2d2(G, opt)
 
-  dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
+   quadArea = @(a, b) abs(a(:,1).*b(:,2) - a(:,2).*b(:,1));
 
-  [edges, faceAreas, faceNormals, faceCentroids] = face_geom2d(G, opt);
-
-  dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
-  t0 = ticif (opt.verbose);
-
-  numfaces = diff(G.cells.facePos);
-
-  [cCenter, cellno] = ...
-     averageCoordinates(numfaces, faceCentroids(G.cells.faces(:,1), :));
-
-
-  cross = @(a, b) a(:,1).*b(:,2) - a(:,2).*b(:,1);
-  subArea     = face_geom2d_subarea(G, edges, cCenter, cellno, cross);
-
-  subCentroid = bsxfun(@plus, cCenter(cellno,:),  2*faceCentroids(G.cells.faces(:,1),:))/3;
-
-  [cellCentroids, cellVolumes, cellVolumes] = ...
-     averageCoordinates(numfaces, subCentroid, subArea);        %#ok<ASGLU>
-
-  tocif(opt.verbose, t0)
+   [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d_impl(G, opt, quadArea);
 end
 
 %--------------------------------------------------------------------------
@@ -294,29 +276,39 @@ end
 function [faceAreas, faceNormals, faceCentroids, ...
       cellVolumes, cellCentroids] = geom_2d3(G, opt)
 
-  dispif(opt.verbose, ...
-     'Experimental implementation only available for surface grids\n');
+   dispif(opt.verbose, ...
+      'Experimental implementation only available for surface grids\n');
 
-  [edges, faceAreas, faceNormals, faceCentroids] = face_geom2d(G, opt);
+   quadArea = @(a, b) sqrt(sum(cross(a, b) .^ 2, 2));
 
-  dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
-  t0 = ticif (opt.verbose);
+   [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d_impl(G, opt, quadArea);
+end
 
-  numfaces = diff(G.cells.facePos);
+%--------------------------------------------------------------------------
 
-  [cCenter, cellno] = ...
-     averageCoordinates(numfaces, faceCentroids(G.cells.faces(:,1), :));
+function [faceAreas, faceNormals, faceCentroids, ...
+      cellVolumes, cellCentroids] = geom_2d_impl(G, opt, quadArea)
 
-  subArea     = face_geom2d_subarea(G, edges, cCenter, cellno, ...
-                                    @(a, b) cross(a, b, 2));
+   [edges, faceAreas, faceNormals, faceCentroids] = face_geom2d(G, opt);
 
-  subCentroid = bsxfun(@plus, cCenter(cellno, :), ...
-                       2 * faceCentroids(G.cells.faces(:,1), :)) / 3;
+   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
+   t0 = ticif (opt.verbose);
 
-  [cellCentroids, cellVolumes, cellVolumes] = ...
-     averageCoordinates(numfaces, subCentroid, subArea);        %#ok<ASGLU>
+   numfaces = diff(G.cells.facePos);
 
-  tocif(opt.verbose, t0)
+   [cCenter, cellno] = ...
+      averageCoordinates(numfaces, faceCentroids(G.cells.faces(:,1), :));
+
+   subArea     = face_geom2d_subarea(G, edges, cCenter, cellno, quadArea);
+
+   subCentroid = bsxfun(@plus, cCenter(cellno, :), ...
+                        2 * faceCentroids(G.cells.faces(:,1), :)) / 3;
+
+   [cellCentroids, cellVolumes, cellVolumes] = ...
+      averageCoordinates(numfaces, subCentroid, subArea);       %#ok<ASGLU>
+
+   tocif(opt.verbose, t0)
 end
 
 %--------------------------------------------------------------------------
@@ -344,7 +336,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function subArea = face_geom2d_subarea(G, edges, cCenter, cellno, cross)
+function subArea = ...
+      face_geom2d_subarea(G, edges, cCenter, cellno, quadArea)
    cellEdges      = edges(G.cells.faces(:,1), :);
    r              = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
    cellEdges(r,:) = cellEdges(r, [2, 1]);
@@ -353,7 +346,7 @@ function subArea = face_geom2d_subarea(G, edges, cCenter, cellno, cross)
    a  = G.nodes.coords(cellEdges(:,1), :) - cc;
    b  = G.nodes.coords(cellEdges(:,2), :) - cc;
 
-   subArea = sqrt(sum(cross(a, b) .^ 2, 2)) / 2;
+   subArea = quadArea(a, b) ./ 2;
 end
 
 %--------------------------------------------------------------------------
