@@ -279,18 +279,14 @@ function [faceAreas, faceNormals, faceCentroids, ...
   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
   t0 = ticif (opt.verbose);
 
+  numfaces = diff(G.cells.facePos);
 
-  numfaces=diff(G.cells.facePos);
+  [cCenter, cellno] = ...
+     averageCoordinates(numfaces, faceCentroids(G.cells.faces(:,1), :));
 
-  cellno        = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
   cellEdges     = edges(G.cells.faces(:,1),:);
   r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
   cellEdges(r,:)= cellEdges(r, [2,1]);
-
-  cCenter       = zeros(G.cells.num, 2);
-  cCenter(:,1)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 1));
-  cCenter(:,2)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 2));
-  cCenter       = bsxfun(@rdivide, cCenter, double(numfaces));
 
   a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
   b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
@@ -305,7 +301,6 @@ function [faceAreas, faceNormals, faceCentroids, ...
   cellCentroids = bsxfun(@rdivide, cellCentroids, cellVolumes);
 
   tocif(opt.verbose, t0)
-
 end
 
 %--------------------------------------------------------------------------
@@ -327,21 +322,18 @@ function [faceAreas, faceNormals, faceCentroids, ...
   faceNormals   = [edgeLength(:,2),-edgeLength(:,1)];
 
   tocif(opt.verbose, t0)
+
   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
   t0 = ticif (opt.verbose);
 
-  numfaces=diff(G.cells.facePos);
+  numfaces = diff(G.cells.facePos);
 
-  cellno        = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
+  [cCenter, cellno] = ...
+     averageCoordinates(numfaces, faceCentroids(G.cells.faces(:,1), :));
+
   cellEdges     = edges(G.cells.faces(:,1),:);
   r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
   cellEdges(r,:)= cellEdges(r, [2,1]);
-
-  cCenter       = zeros(G.cells.num, 3);
-  cCenter(:,1)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 1));
-  cCenter(:,2)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 2));
-  cCenter(:,3)  = accumarray(cellno, faceCentroids(G.cells.faces(:,1), 3));
-  cCenter       = bsxfun(@rdivide, cCenter, double(numfaces));
 
   a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
   b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
