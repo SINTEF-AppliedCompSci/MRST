@@ -293,12 +293,9 @@ function [faceAreas, faceNormals, faceCentroids, ...
   subArea       = 0.5*(a(:,1).*b(:,2)-a(:,2).*b(:,1));
 
   subCentroid   = bsxfun(@plus, cCenter(cellno,:),  2*faceCentroids(G.cells.faces(:,1),:))/3;
-  cellVolumes   = accumarray(cellno, subArea);
 
-  cellCentroids = zeros(G.cells.num, 2);
-  cellCentroids(:,1) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,1)));
-  cellCentroids(:,2) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,2)));
-  cellCentroids = bsxfun(@rdivide, cellCentroids, cellVolumes);
+  [cellCentroids, cellVolumes, cellVolumes] = ...
+     averageCoordinates(numfaces, subCentroid, subArea);        %#ok<ASGLU>
 
   tocif(opt.verbose, t0)
 end
@@ -341,13 +338,9 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
   subCentroid   = bsxfun(@plus, cCenter(cellno,:), ...
                          2*faceCentroids(G.cells.faces(:,1),:))/3;
-  cellVolumes   = accumarray(cellno, subArea);
 
-  cellCentroids = zeros(G.cells.num, 3);
-  cellCentroids(:,1) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,1)));
-  cellCentroids(:,2) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,2)));
-  cellCentroids(:,3) = accumarray(cellno, bsxfun(@times, subArea, subCentroid(:,3)));
-  cellCentroids = bsxfun(@rdivide, cellCentroids, cellVolumes);
+  [cellCentroids, cellVolumes, cellVolumes] = ...
+     averageCoordinates(numfaces, subCentroid, subArea);        %#ok<ASGLU>
 
   tocif(opt.verbose, t0)
 end
