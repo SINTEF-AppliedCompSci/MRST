@@ -277,15 +277,11 @@ function [faceAreas, faceNormals, faceCentroids, ...
   [cCenter, cellno] = ...
      averageCoordinates(numfaces, faceCentroids(G.cells.faces(:,1), :));
 
-  cellEdges     = edges(G.cells.faces(:,1),:);
-  r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
-  cellEdges(r,:)= cellEdges(r, [2,1]);
 
-  a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
-  b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
-  subArea       = 0.5*(a(:,1).*b(:,2)-a(:,2).*b(:,1));
+  cross = @(a, b) a(:,1).*b(:,2) - a(:,2).*b(:,1);
+  subArea     = face_geom2d_subarea(G, edges, cCenter, cellno, cross);
 
-  subCentroid   = bsxfun(@plus, cCenter(cellno,:),  2*faceCentroids(G.cells.faces(:,1),:))/3;
+  subCentroid = bsxfun(@plus, cCenter(cellno,:),  2*faceCentroids(G.cells.faces(:,1),:))/3;
 
   [cellCentroids, cellVolumes, cellVolumes] = ...
      averageCoordinates(numfaces, subCentroid, subArea);        %#ok<ASGLU>
@@ -311,16 +307,11 @@ function [faceAreas, faceNormals, faceCentroids, ...
   [cCenter, cellno] = ...
      averageCoordinates(numfaces, faceCentroids(G.cells.faces(:,1), :));
 
-  cellEdges     = edges(G.cells.faces(:,1),:);
-  r             = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
-  cellEdges(r,:)= cellEdges(r, [2,1]);
+  subArea     = face_geom2d_subarea(G, edges, cCenter, cellno, ...
+                                    @(a, b) cross(a, b, 2));
 
-  a             = G.nodes.coords(cellEdges(:,1),:) - cCenter(cellno,:);
-  b             = G.nodes.coords(cellEdges(:,2),:) - cCenter(cellno,:);
-  subArea       = sqrt(sum(cross(a,b,2).^2,2))*0.5;
-
-  subCentroid   = bsxfun(@plus, cCenter(cellno,:), ...
-                         2*faceCentroids(G.cells.faces(:,1),:))/3;
+  subCentroid = bsxfun(@plus, cCenter(cellno, :), ...
+                       2 * faceCentroids(G.cells.faces(:,1), :)) / 3;
 
   [cellCentroids, cellVolumes, cellVolumes] = ...
      averageCoordinates(numfaces, subCentroid, subArea);        %#ok<ASGLU>
@@ -349,6 +340,20 @@ function [edges, faceAreas, faceNormals, faceCentroids] = ...
    faceNormals   = [edgeLength(:,2), -edgeLength(:,1)];
 
    tocif(opt.verbose, t0)
+end
+
+%--------------------------------------------------------------------------
+
+function subArea = face_geom2d_subarea(G, edges, cCenter, cellno, cross)
+   cellEdges      = edges(G.cells.faces(:,1), :);
+   r              = G.faces.neighbors(G.cells.faces(:,1), 2) == cellno;
+   cellEdges(r,:) = cellEdges(r, [2, 1]);
+
+   cc = cCenter(cellno, :);
+   a  = G.nodes.coords(cellEdges(:,1), :) - cc;
+   b  = G.nodes.coords(cellEdges(:,2), :) - cc;
+
+   subArea = sqrt(sum(cross(a, b) .^ 2, 2)) / 2;
 end
 
 %--------------------------------------------------------------------------
