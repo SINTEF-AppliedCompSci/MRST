@@ -420,8 +420,13 @@ end
 
 %--------------------------------------------------------------------------
 
-function [c, no] = averageCoordinates(n, c)
+function [c, no, w] = averageCoordinates(n, c, w)
+   if nargin < 3,
+      w = 1;
+   end
+
    no = rldecode(1 : numel(n), n, 2) .';
-   c  = sparse(no, 1 : numel(no), 1) * [ c, ones([size(c, 1), 1]) ];
-   c  = bsxfun(@rdivide, c(:, 1 : end - 1), c(:, end));
+   c  = sparse(no, 1 : numel(no), w) * [ c, ones([size(c, 1), 1]) ];
+   w  = c(:, end);
+   c  = bsxfun(@rdivide, c(:, 1 : end - 1), w);
 end
