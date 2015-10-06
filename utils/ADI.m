@@ -535,12 +535,12 @@ end
 
 %--------------------------------------------------------------------------
 function J = sumJac(J1)
-J = cellfun(@sum, J1, 'UniformOutput', false);
+J = cellfun(@(j1) sum(j1, 1), J1, 'UniformOutput', false);
 end
 
 %--------------------------------------------------------------------------
 function J = cumsumJac(J1)
-J = cellfun(@cumsum, J1, 'UniformOutput', false);
+J = cellfun(@(j1) cumsum(j1, 1), J1, 'UniformOutput', false);
 end
 
 %--------------------------------------------------------------------------
