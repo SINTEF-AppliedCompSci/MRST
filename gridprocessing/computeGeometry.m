@@ -266,16 +266,9 @@ function [faceAreas, faceNormals, faceCentroids, ...
       cellVolumes, cellCentroids] = geom_2d2(G, opt)
 
   dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
-  t0 = ticif (opt.verbose);
 
-  edges     = reshape(G.faces.nodes,2,[])';
-  edgeLength    = G.nodes.coords(edges(:,2),:)-G.nodes.coords(edges(:,1),:);
-  faceAreas     = sqrt(sum(edgeLength.*edgeLength,2));
-  faceCentroids = (G.nodes.coords(edges(:,2),:)+ ...
-                   G.nodes.coords(edges(:,1),:))/2;
-  faceNormals   = [edgeLength(:,2),-edgeLength(:,1)];
+  [edges, faceAreas, faceNormals, faceCentroids] = face_geom2d(G, opt);
 
-  tocif(opt.verbose, t0)
   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
   t0 = ticif (opt.verbose);
 
@@ -308,17 +301,7 @@ function [faceAreas, faceNormals, faceCentroids, ...
   dispif(opt.verbose, ...
      'Experimental implementation only available for surface grids\n');
 
-  dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
-  t0 = ticif (opt.verbose);
-
-  edges     = reshape(G.faces.nodes,2,[])';
-  edgeLength    = G.nodes.coords(edges(:,2),:)-G.nodes.coords(edges(:,1),:);
-  faceAreas     = sqrt(sum(edgeLength.*edgeLength,2));
-  faceCentroids = (G.nodes.coords(edges(:,2),:)+ ...
-                   G.nodes.coords(edges(:,1),:))/2;
-  faceNormals   = [edgeLength(:,2),-edgeLength(:,1)];
-
-  tocif(opt.verbose, t0)
+  [edges, faceAreas, faceNormals, faceCentroids] = face_geom2d(G, opt);
 
   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
   t0 = ticif (opt.verbose);
@@ -343,6 +326,29 @@ function [faceAreas, faceNormals, faceCentroids, ...
      averageCoordinates(numfaces, subCentroid, subArea);        %#ok<ASGLU>
 
   tocif(opt.verbose, t0)
+end
+
+%--------------------------------------------------------------------------
+
+function [edges, faceAreas, faceNormals, faceCentroids] = ...
+      face_geom2d(G, opt)
+
+   dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
+   t0 = ticif(opt.verbose);
+
+   edges = reshape(G.faces.nodes, 2, []) .';
+
+   [n1, n2] = deal(G.nodes.coords(edges(:,1), :), ...
+                   G.nodes.coords(edges(:,2), :));
+
+   edgeLength    = n2 - n1;
+   faceAreas     = sqrt(sum(edgeLength .^ 2, 2));
+
+   faceCentroids = (n1 + n2) ./ 2;
+
+   faceNormals   = [edgeLength(:,2), -edgeLength(:,1)];
+
+   tocif(opt.verbose, t0)
 end
 
 %--------------------------------------------------------------------------
