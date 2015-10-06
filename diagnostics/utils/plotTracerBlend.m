@@ -1,5 +1,5 @@
 function varargout = plotTracerBlend(G, partition, maxconc, varargin)
-%Visualise tracer partition, with gray areas to represent smearing
+%Visualise tracer partitions: gray regions are affected by multiple tracers
 %
 % SYNOPSIS:
 %       plotTracerBlend(G, partition, maxconc)
@@ -88,6 +88,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('p', 1, 'alpha', 1, 'cells', []);
     [opt, unrecognized] = merge_options(opt, varargin{:});
 
+    % Safeguard against partition containing zero values (which correspond
+    % to regions that are not attached to any well)
+    if min(partition)==0
+        partition = partition + 1;
+    end
     nreg = max(partition);
     cmap = colorcube(max(nreg, 8));
     
