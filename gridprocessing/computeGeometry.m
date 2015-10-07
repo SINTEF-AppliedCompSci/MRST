@@ -262,7 +262,6 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    numF    = G.faces.num;
 
-   faceNo  = rldecode(1:G.faces.num, diff(G.faces.nodePos), 2) .';
    p       = G.faces.nodePos;
    next    = (2 : size(G.faces.nodes, 1) + 1) .';
    next(p(2 : end) - 1) = p(1 : end-1);
@@ -277,12 +276,9 @@ function [faceAreas, faceNormals, faceCentroids, ...
    dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
    t0 = ticif (opt.verbose);
 
-   llE = length(G.faces.nodes);
-   localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
-
-   pCenters     = bsxfun(@rdivide, ...
-                         localEdge2Face.' * G.nodes.coords(G.faces.nodes,:), ...
-                         diff(double(G.faces.nodePos)));
+   [pCenters, faceNo] = ...
+      averageCoordinates(diff(G.faces.nodePos), ...
+                         G.nodes.coords(G.faces.nodes, :));
 
    % Use hinge nodes for selected faces if present.
    if ~isempty(opt.hingenodes),
@@ -290,7 +286,10 @@ function [faceAreas, faceNormals, faceCentroids, ...
       pCenters(ix, :) = opt.hingenodes.nodes;  clear ix
    end
 
-   pCenters     = pCenters(faceNo, :);
+   pCenters = pCenters(faceNo, :);
+
+   llE = length(G.faces.nodes);
+   localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
 
    clear llE faceNo
 
