@@ -260,10 +260,6 @@ function [faceAreas, faceNormals, faceCentroids, ...
       subCentroids, subNormals, subNormalSigns, ...
       localEdge2Face] = face_geom3d(G, opt)
 
-   p       = G.faces.nodePos;
-   next    = (2 : size(G.faces.nodes, 1) + 1) .';
-   next(p(2 : end) - 1) = p(1 : end-1);
-
    % Divide each face into sub-triangles all having one node as
    %
    %   pCenter = sum(node coordinates, 1) / #nodes
@@ -285,14 +281,8 @@ function [faceAreas, faceNormals, faceCentroids, ...
       pCenters(ix, :) = opt.hingenodes.nodes;  clear ix
    end
 
-   pCenters = pCenters(faceNo, :);
-
-   subNormals   = cross(G.nodes.coords(G.faces.nodes(next),:) - ...
-                        G.nodes.coords(G.faces.nodes,:), ...
-                        pCenters - G.nodes.coords(G.faces.nodes,:)) ./ 2;
-   subAreas     = sqrt(sum(subNormals .^ 2, 2));
-   subCentroids = (G.nodes.coords(G.faces.nodes,:) + ...
-                   G.nodes.coords(G.faces.nodes(next),:) + pCenters) ./ 3;
+   [subNormals, subAreas, subCentroids] = ...
+      face_geom3d_subface(G, pCenters(faceNo, :));
 
    faceNormals    = Accum * subNormals;
    subNormalSigns = sign(sum(subNormals .* faceNormals(faceNo, :), 2));
@@ -337,6 +327,24 @@ function [edges, faceAreas, faceNormals, faceCentroids] = ...
    faceNormals   = [edgeLength(:,2), -edgeLength(:,1)];
 
    tocif(opt.verbose, t0)
+end
+
+%--------------------------------------------------------------------------
+
+function [subNormals, subAreas, subCentroids] = ...
+      face_geom3d_subface(G, pCenters)
+
+   p = G.faces.nodePos;
+
+   next                 = (2 : size(G.faces.nodes, 1) + 1) .';
+   next(p(2 : end) - 1) = p(1 : end-1);
+
+   a = G.nodes.coords(G.faces.nodes      , :);
+   b = G.nodes.coords(G.faces.nodes(next), :);
+
+   subNormals   = cross(b - a, pCenters - a) ./ 2;
+   subAreas     = sqrt(sum(subNormals .^ 2, 2));
+   subCentroids = (a + b + pCenters) ./ 3;
 end
 
 %--------------------------------------------------------------------------
