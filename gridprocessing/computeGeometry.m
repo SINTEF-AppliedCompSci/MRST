@@ -150,67 +150,10 @@ function [faceAreas, faceNormals, faceCentroids, ...
            'Internal error: 3D geometry on non-3D coordinates');
 
    numC    = G.cells.num;
-   numF    = G.faces.num;
 
-   faceNo  = rldecode(1:G.faces.num, diff(G.faces.nodePos), 2) .';
-   p       = G.faces.nodePos;
-   next    = (2 : size(G.faces.nodes, 1) + 1) .';
-   next(p(2 : end) - 1) = p(1 : end-1);
-
-   % Divide each face into sub-triangles all having one node as
-   % pCenter = sum(nodes) /#nodes. Compute area-weighted normals,
-   % and add to obtain approx face-normals. Compute resulting areas
-   % and centroids.
-   dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
-   t0 = ticif (opt.verbose);
-
-   llE = length(G.faces.nodes);
-   localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
-
-   pCenters     = bsxfun(@rdivide, ...
-                         localEdge2Face.' * G.nodes.coords(G.faces.nodes,:), ...
-                         diff(double(G.faces.nodePos)));
-   pCenters     = localEdge2Face * pCenters;
-
-   % Use hinge nodes for selected faces if present.
-   if ~isempty(opt.hingenodes),
-      ix = mcolon(G.faces.nodePos(opt.hingenodes.faces), ...
-                  G.faces.nodePos(opt.hingenodes.faces + 1) - 1);
-      pCenters(ix, :) = rldecode(opt.hingenodes.nodes, ...
-                        G.faces.nodePos(opt.hingenodes.faces + 1) - ...
-                        G.faces.nodePos(opt.hingenodes.faces));
-   end
-
-   subNormals   = cross(G.nodes.coords(G.faces.nodes(next),:) - ...
-                        G.nodes.coords(G.faces.nodes,:), ...
-                        pCenters - G.nodes.coords(G.faces.nodes,:)) ./ 2;
-   subAreas     = sqrt(sum(subNormals .^ 2, 2));
-   subCentroids = (G.nodes.coords(G.faces.nodes,:) + ...
-                   G.nodes.coords(G.faces.nodes(next),:) + pCenters) ./ 3;
-   clear llE faceNo
-
-   faceNormals    = localEdge2Face.' * subNormals;
-   faceAreas      = localEdge2Face.' * subAreas;
-   subNormalSigns = sign(sum(subNormals .* (localEdge2Face * faceNormals), 2));
-   faceCentroids  = bsxfun(@rdivide,                                 ...
-                           localEdge2Face.' * ...
-                           bsxfun(@times, subAreas, subCentroids), ...
-                           faceAreas);
-
-   % Computation above does not make sense for faces with zero area
-   i = find(~ (faceAreas > 0));
-   if ~ isempty(i),
-      warning(msgid('computeGeometry:faceAreas'), ...
-             ['%d faces with non-positive area detected.\n', ...
-              'Such faces should be removed before calling %s'], ...
-              numel(i), mfilename);
-
-      faceCentroids(i,:) = pCenters(i,:);
-   end
-
-   clear subAreas pCenters
-
-   tocif(opt.verbose, t0)
+   [faceAreas, faceNormals, faceCentroids, ...
+      subCentroids, subNormals, subNormalSigns, ...
+      localEdge2Face] = face_geom3d(G, opt);
 
    % Divide each cell into sub-tetrahedra according to sub-triangles above,
    % all having one node as cCenter = sum(faceCentroids) / #faceCentroids.
@@ -307,6 +250,77 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    [cellCentroids, cellVolumes, cellVolumes] = ...
       averageCoordinates(numfaces, subCentroid, subArea);       %#ok<ASGLU>
+
+   tocif(opt.verbose, t0)
+end
+
+%--------------------------------------------------------------------------
+
+function [faceAreas, faceNormals, faceCentroids, ...
+      subCentroids, subNormals, subNormalSigns, ...
+      localEdge2Face] = face_geom3d(G, opt)
+
+   numF    = G.faces.num;
+
+   faceNo  = rldecode(1:G.faces.num, diff(G.faces.nodePos), 2) .';
+   p       = G.faces.nodePos;
+   next    = (2 : size(G.faces.nodes, 1) + 1) .';
+   next(p(2 : end) - 1) = p(1 : end-1);
+
+   % Divide each face into sub-triangles all having one node as
+   %
+   %   pCenter = sum(node coordinates, 1) / #nodes
+   %
+   % Compute area-weighted normals, and add to obtain approximate
+   % face-normals.  Compute resulting areas and centroids.
+
+   dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
+   t0 = ticif (opt.verbose);
+
+   llE = length(G.faces.nodes);
+   localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
+
+   clear llE faceNo
+
+   pCenters     = bsxfun(@rdivide, ...
+                         localEdge2Face.' * G.nodes.coords(G.faces.nodes,:), ...
+                         diff(double(G.faces.nodePos)));
+   pCenters     = localEdge2Face * pCenters;
+
+   % Use hinge nodes for selected faces if present.
+   if ~isempty(opt.hingenodes),
+      ix = mcolon(G.faces.nodePos(opt.hingenodes.faces), ...
+                  G.faces.nodePos(opt.hingenodes.faces + 1) - 1);
+      pCenters(ix, :) = rldecode(opt.hingenodes.nodes, ...
+                        G.faces.nodePos(opt.hingenodes.faces + 1) - ...
+                        G.faces.nodePos(opt.hingenodes.faces));
+   end
+
+   subNormals   = cross(G.nodes.coords(G.faces.nodes(next),:) - ...
+                        G.nodes.coords(G.faces.nodes,:), ...
+                        pCenters - G.nodes.coords(G.faces.nodes,:)) ./ 2;
+   subAreas     = sqrt(sum(subNormals .^ 2, 2));
+   subCentroids = (G.nodes.coords(G.faces.nodes,:) + ...
+                   G.nodes.coords(G.faces.nodes(next),:) + pCenters) ./ 3;
+
+   faceNormals    = localEdge2Face.' * subNormals;
+   faceAreas      = localEdge2Face.' * subAreas;
+   subNormalSigns = sign(sum(subNormals .* (localEdge2Face * faceNormals), 2));
+   faceCentroids  = bsxfun(@rdivide,                                 ...
+                           localEdge2Face.' * ...
+                           bsxfun(@times, subAreas, subCentroids), ...
+                           faceAreas);
+
+   % Computation above does not make sense for faces with zero area
+   i = find(~ (faceAreas > 0));
+   if ~ isempty(i),
+      warning(msgid('computeGeometry:faceAreas'), ...
+             ['%d faces with non-positive area detected.\n', ...
+              'Such faces should be removed before calling %s'], ...
+              numel(i), mfilename);
+
+      faceCentroids(i,:) = pCenters(i,:);
+   end
 
    tocif(opt.verbose, t0)
 end
