@@ -260,8 +260,6 @@ function [faceAreas, faceNormals, faceCentroids, ...
       subCentroids, subNormals, subNormalSigns, ...
       localEdge2Face] = face_geom3d(G, opt)
 
-   numF    = G.faces.num;
-
    p       = G.faces.nodePos;
    next    = (2 : size(G.faces.nodes, 1) + 1) .';
    next(p(2 : end) - 1) = p(1 : end-1);
@@ -276,9 +274,10 @@ function [faceAreas, faceNormals, faceCentroids, ...
    dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
    t0 = ticif (opt.verbose);
 
-   [pCenters, faceNo] = ...
-      averageCoordinates(diff(G.faces.nodePos), ...
-                         G.nodes.coords(G.faces.nodes, :));
+   numNodes = diff(G.faces.nodePos);
+
+   [pCenters, faceNo, Accum, Accum] = ...
+      averageCoordinates(numNodes, G.nodes.coords(G.faces.nodes, :));  %#ok
 
    % Use hinge nodes for selected faces if present.
    if ~isempty(opt.hingenodes),
@@ -288,11 +287,6 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    pCenters = pCenters(faceNo, :);
 
-   llE = length(G.faces.nodes);
-   localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
-
-   clear llE faceNo
-
    subNormals   = cross(G.nodes.coords(G.faces.nodes(next),:) - ...
                         G.nodes.coords(G.faces.nodes,:), ...
                         pCenters - G.nodes.coords(G.faces.nodes,:)) ./ 2;
@@ -300,13 +294,11 @@ function [faceAreas, faceNormals, faceCentroids, ...
    subCentroids = (G.nodes.coords(G.faces.nodes,:) + ...
                    G.nodes.coords(G.faces.nodes(next),:) + pCenters) ./ 3;
 
-   faceNormals    = localEdge2Face.' * subNormals;
-   faceAreas      = localEdge2Face.' * subAreas;
-   subNormalSigns = sign(sum(subNormals .* (localEdge2Face * faceNormals), 2));
-   faceCentroids  = bsxfun(@rdivide,                                 ...
-                           localEdge2Face.' * ...
-                           bsxfun(@times, subAreas, subCentroids), ...
-                           faceAreas);
+   faceNormals    = Accum * subNormals;
+   subNormalSigns = sign(sum(subNormals .* faceNormals(faceNo, :), 2));
+
+   [faceCentroids, faceAreas, faceAreas] = ...
+      averageCoordinates(numNodes, subCentroids, subAreas);     %#ok<ASGLU>
 
    % Computation above does not make sense for faces with zero area
    i = find(~ (faceAreas > 0));
@@ -318,6 +310,8 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
       faceCentroids(i,:) = pCenters(i,:);
    end
+
+   localEdge2Face = Accum .';
 
    tocif(opt.verbose, t0)
 end
