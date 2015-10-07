@@ -280,21 +280,19 @@ function [faceAreas, faceNormals, faceCentroids, ...
    llE = length(G.faces.nodes);
    localEdge2Face = sparse(1 : llE, faceNo, 1, llE, numF);
 
-   clear llE faceNo
-
    pCenters     = bsxfun(@rdivide, ...
                          localEdge2Face.' * G.nodes.coords(G.faces.nodes,:), ...
                          diff(double(G.faces.nodePos)));
-   pCenters     = localEdge2Face * pCenters;
 
    % Use hinge nodes for selected faces if present.
    if ~isempty(opt.hingenodes),
-      ix = mcolon(G.faces.nodePos(opt.hingenodes.faces), ...
-                  G.faces.nodePos(opt.hingenodes.faces + 1) - 1);
-      pCenters(ix, :) = rldecode(opt.hingenodes.nodes, ...
-                        G.faces.nodePos(opt.hingenodes.faces + 1) - ...
-                        G.faces.nodePos(opt.hingenodes.faces));
+      ix              = opt.hingenodes.faces;
+      pCenters(ix, :) = opt.hingenodes.nodes;  clear ix
    end
+
+   pCenters     = pCenters(faceNo, :);
+
+   clear llE faceNo
 
    subNormals   = cross(G.nodes.coords(G.faces.nodes(next),:) - ...
                         G.nodes.coords(G.faces.nodes,:), ...
