@@ -104,11 +104,11 @@ set(gca,'dataaspect',[1 1 0.06]), view(-60,15); axis off
 % two injectors
 figure(fig1); clf
 for i=1:numel(D.inj)
-   subplot(1,numel(D.inj),i)
-   alloc = cumsum(WP.inj(i).alloc,1);
-   barh(WP.inj(i).z, alloc,'stacked'); axis tight
+   subplot(1,numel(D.inj),i);
+   alloc = cumsum(flipud(WP.inj(i).alloc),1);
+   barh(flipud(WP.inj(i).z), alloc,'stacked'); axis tight
    lh=legend(W(D.prod).name,4);
-   title(W(D.inj(i)).name);
+   set(gca,'YDir','reverse');   title(W(D.inj(i)).name);
 end
 %%
 % Then we use a library function to compute and visualize the
