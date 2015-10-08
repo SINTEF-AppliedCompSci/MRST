@@ -150,10 +150,17 @@ function [faceAreas, faceNormals, faceCentroids, ...
            'Internal error: 3D geometry on non-3D coordinates');
 
    numC    = G.cells.num;
+   dim  = 3;
 
-   [faceAreas, faceNormals, faceCentroids, ...
-      subCentroids, subNormals, subNormalSigns, ...
-      localEdge2Face] = face_geom3d(G, (1 : G.faces.num) .', opt);
+   [cellVolumes, cellCentroids] = preallocate(G.cells.num, [1, dim]);
+
+   [face.Areas, face.Normals, face.Centroids] = ...
+      preallocate(G.faces.num, [1, dim, dim]);
+
+   [sub.Centroids, sub.Normals, sub.NormalSigns] = ...
+      preallocate(size(G.faces.nodes, 1), [dim, dim, 1]);
+
+   valid = false(size(face.Areas));
 
    % Divide each cell into sub-tetrahedra according to sub-triangles above,
    % all having one node as cCenter = sum(faceCentroids) / #faceCentroids.
@@ -161,31 +168,33 @@ function [faceAreas, faceNormals, faceCentroids, ...
    dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
    t0 = ticif (opt.verbose);
 
-   cellVolumes   = zeros([numC, 1]);
-   cellCentroids = zeros([numC, 3]);
-
-   lastInx = 0;
    for c = 1 : numC,
-      nF  = double(G.cells.facePos(c+1)- G.cells.facePos(c));
-      inx = (1 : nF) + lastInx;
+      cfinx  = mcolon(G.cells.facePos(  c  ), ...
+                      G.cells.facePos(c + 1) - 1);
+      cfaces = G.cells.faces(cfinx, 1);
 
-      faces        = G.cells.faces(inx,1);
-      [triE, triF] = find(localEdge2Face(:,faces));
+      [np1, np2] = deal(G.faces.nodePos(cfaces + 0), ...
+                        G.faces.nodePos(cfaces + 1));
 
-      fCentroids = faceCentroids(faces,:);
-      cCenter    = sum(fCentroids) ./ double(nF);
+      % One triangle associated with each node of each cell-face.
+      triangles = mcolon(np1, np2 - 1);
 
-      relSubC    = bsxfun(@minus, subCentroids(triE,:), cCenter);
+      % Geometric primitives for those faces that aren't already valid.
+      [face, sub, valid] = ...
+         ensureValidFaceGeometry(face, sub, valid, G, cfaces, opt);
 
-      % The normal of a face f is directed from cell G.faces.neighbors(f,1)
-      % to cell G.faces.neighbors(f,2).   If cell c is in the second column
-      % for face f, then the nomal must be multiplied by -1 to be an outer
-      % normal.
-      orientation = 2*double(G.faces.neighbors(G.cells.faces(inx,1), 1) == c)-1;
+      fCentroids = face.Centroids(cfaces, :);
+      cCenter    = sum(fCentroids) ./ numel(cfaces);
 
-      outNormals = bsxfun(@times,             ...
-                          subNormals(triE,:), ...
-                          subNormalSigns(triE) .* orientation(triF));
+      relSubC    = bsxfun(@minus, sub.Centroids(triangles, :), cCenter);
+
+      % Outward normal on 'cfaces' with respect to 'c'.
+      cfsign = 2*double(G.faces.neighbors(cfaces, 1) == c) - 1;
+      cfsign = rldecode(cfsign, np2 - np1);
+
+      outNormals = bsxfun(@times,               ...
+                          sub.Normals(triangles, :), ...
+                          sub.NormalSigns(triangles) .* cfsign);
 
       tVolumes   = (1/3) * sum(relSubC .* outNormals, 2);
       tCentroids = (3/4) * relSubC;
@@ -196,9 +205,11 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
       cellVolumes(c)     = volume;
       cellCentroids(c,:) = centroid;
-
-      lastInx = lastInx + nF;
    end
+
+   faceAreas     = face.Areas;
+   faceCentroids = face.Centroids;
+   faceNormals   = face.Normals;
 
    tocif(opt.verbose, t0)
 end
@@ -256,9 +267,44 @@ end
 
 %--------------------------------------------------------------------------
 
-function [faceAreas, faceNormals, faceCentroids, ...
-      subCentroids, subNormals, subNormalSigns, ...
-      localEdge2Face] = face_geom3d(G, faces, opt)
+function [face, sub, valid] = ...
+      ensureValidFaceGeometry(face, sub, valid, G, cfaces, opt)
+
+   ufaces = unique_faces(G.faces.num, cfaces);
+   inval  = ~ valid(ufaces);
+
+   if any(inval),
+      ifaces = ufaces(inval);
+
+      [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, ifaces, opt);
+
+      face.Areas    (ifaces)    = fA;
+      face.Centroids(ifaces, :) = fC;
+      face.Normals  (ifaces, :) = fN;
+
+      six = mcolon(G.faces.nodePos(ifaces + 0), ...
+                   G.faces.nodePos(ifaces + 1) - 1);
+
+      sub.Centroids  (six, :) = sC;
+      sub.Normals    (six, :) = sN;
+      sub.NormalSigns(six)    = sNSigns;
+
+      valid(ifaces) = true;
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function ufaces = unique_faces(numfaces, cfaces)
+   present         = false([numfaces, 1]);
+   present(cfaces) = true;
+
+   ufaces = find(present);
+end
+
+%--------------------------------------------------------------------------
+
+function [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, faces, opt)
 
    % Divide each face into sub-triangles all having one node as
    %
@@ -285,27 +331,24 @@ function [faceAreas, faceNormals, faceCentroids, ...
       pCenters = insertHingeNodes(pCenters, G, faces, opt.hingenodes);
    end
 
-   [subNormals, subAreas, subCentroids] = ...
+   [sN, sA, sC] = ...
       face_geom3d_subface(G, nodePos, faceNodes, pCenters(faceNo, :));
 
-   faceNormals    = Accum * subNormals;
-   subNormalSigns = sign(sum(subNormals .* faceNormals(faceNo, :), 2));
+   fN      = Accum * sN;
+   sNSigns = sign(sum(sN .* fN(faceNo, :), 2));
 
-   [faceCentroids, faceAreas, faceAreas] = ...
-      averageCoordinates(numNodes, subCentroids, subAreas);     %#ok<ASGLU>
+   [fC, fA, fA] = averageCoordinates(numNodes, sC, sA);         %#ok<ASGLU>
 
    % Computation above does not make sense for faces with zero area
-   i = find(~ (faceAreas > 0));
+   i = find(~ (fA > 0));
    if ~ isempty(i),
       warning(msgid('computeGeometry:faceAreas'), ...
              ['%d faces with non-positive area detected.\n', ...
               'Such faces should be removed before calling %s'], ...
               numel(i), mfilename);
 
-      faceCentroids(i,:) = pCenters(i,:);
+      fC(i,:) = pCenters(i,:);
    end
-
-   localEdge2Face = Accum .';
 
    tocif(opt.verbose, t0)
 end
@@ -364,6 +407,23 @@ function subArea = ...
    b  = G.nodes.coords(cellEdges(:,2), :) - cc;
 
    subArea = quadArea(a, b) ./ 2;
+end
+
+%--------------------------------------------------------------------------'
+
+function varargout = preallocate(m, n)
+   nout = nargout;
+
+   assert (any(numel(m) == [1, nout]), ...
+           'Row size array must be scalar or match number of items');
+
+   assert (any(numel(n) == [1, nout]), ...
+           'Column size array must be scalar or match number of items');
+
+   if numel(m) ~= nout, m = repmat(m, [1, nout]); end
+   if numel(n) ~= nout, n = repmat(n, [1, nout]); end
+
+   varargout = arrayfun(@NaN, m, n, 'UniformOutput', false);
 end
 
 %--------------------------------------------------------------------------
