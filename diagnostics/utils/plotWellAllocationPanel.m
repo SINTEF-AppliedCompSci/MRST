@@ -22,7 +22,7 @@ function plotWellAllocationPanel(D, WP, varargin)
 %   attributed to different injector segments.
 %
 % SEE ALSO:
-%   computeTOFandTracer, computeWellParis, expandWellCompletions
+%   computeTOFandTracer, computeWellPairs, expandWellCompletions
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.

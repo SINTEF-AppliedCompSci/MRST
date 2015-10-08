@@ -31,7 +31,7 @@ function interactiveDiagnostics(G, rock, W, varargin)
 %       1) Wells can be selected for display (if a well is selected, the
 %       corresponding drainage (producer) or flooding (injector) volumes
 %       will be visualized. A simple playback function can be used to show
-%       propagation of time of flight. Different quantitites can be
+%       propagation of time of flight. Different quantities can be
 %       visualized to get a better understanding of the system.
 %
 %       2) A set of buttons provide (experimental) well editing, access to
