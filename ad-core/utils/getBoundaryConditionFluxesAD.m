@@ -1,4 +1,4 @@
-function [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
@@ -93,7 +93,7 @@ end
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 
-qSurf = cell(nPh,1);
+[qSurf, qRes] = deal(cell(nPh,1));
 
 % Use sat field to determine what any inflow cells produce.
 sat = bc.sat;
@@ -108,7 +108,7 @@ end
 
 for i = 1:nPh
     
-    q = double2ADI(zeros(nbc, 1), mob{i});
+    [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), mob{i}));
     
     pBC   = cellToBCMap*pressure{i};
     rhoBC = cellToBCMap*rho{i};
@@ -135,7 +135,9 @@ for i = 1:nPh
     if any(~injDir)
         % Write out the flux equation over the interface
         subs = isP & ~injP;
-        q(subs) = bBC(subs).*mobBC(subs).*T(subs).*dP(~injDir);
+        q_res = mobBC(subs).*T(subs).*dP(~injDir);
+        q_s(subs) = bBC(subs).*q_res;
+        q_r(subs) = q_res;
         clear subs
     end
     
@@ -143,7 +145,9 @@ for i = 1:nPh
         % In this case, pressure drives flow inwards, we get the injection rate
         % determined by the sat field
         subs = isP & injP;
-        q(subs)  = bBC(subs).*totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
+        q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
+        q_s(subs)  = bBC(subs).*q_res;
+        q_r(subs) = q_res;
         clear subs
     end
     % Treat flux / Neumann BC
@@ -152,16 +156,20 @@ for i = 1:nPh
     subs = ~isP &  injNeu;
     if any(subs)
         % Injection
-        q(subs) = bc.value(subs).*sat(subs, i);
+        q_s(subs) = bc.value(subs).*sat(subs, i);
+        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
     end
     subs = ~isP & ~injNeu;
     if any(subs)
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
         f = mobBC(subs)./totMob(subs);
-        q(subs) = f.*bc.value(subs);
+        tmp = f.*bc.value(subs);
+        q_s(subs) = tmp;
+        q_r(subs) = tmp./bBC(subs);
     end
-    qSurf{i} = q;
+    qSurf{i} = q_s;
+    qRes{i} = q_r;
 end
 end
 
