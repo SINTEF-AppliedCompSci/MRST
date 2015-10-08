@@ -1,8 +1,9 @@
-function [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, states, fluid, varargin)
+function [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, sliceCellIndex, states, fluid, varargin)
 
-% TODO: make this plotting function more generic, so any cell index can be
-% passed in which the user wants to make two slices through (in the
-% direction parallel to the x and y axis).
+% sliceCellIndex is the cell index for which a east-west slice and a
+% south-north slice will intersect.
+
+% if states and fluid are empty, they are not plotted.
 
 opt.SleipnerBounded = false;
 % if true, subplots will be bounded to set region.
@@ -14,24 +15,25 @@ opt.legendWithFreeCO2Only = false;
 opt = merge_options(opt, varargin{:});
 
 
-% Cross-sectional slices through injection point:
-% first get index of injection well:
-[ii,jj] = ind2sub(Gt.cartDims, wellCellIndex);
-disp(['Well cell index of ',num2str(wellCellIndex),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
+% Cross-sectional slices through a point:
+% first get index of point:
+[ii,jj] = ind2sub(Gt.cartDims, sliceCellIndex);
+disp(['Well cell index of ',num2str(sliceCellIndex),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
 
 ijk = gridLogicalIndices(G);
 
-ii = ijk{1}(wellCellIndex);
-jj = ijk{2}(wellCellIndex);
-kk = ijk{3}(wellCellIndex);
-disp(['Well cell index of ',num2str(wellCellIndex),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
+ii = ijk{1}(sliceCellIndex);
+jj = ijk{2}(sliceCellIndex);
+kk = ijk{3}(sliceCellIndex);
+disp(['Cell index of ',num2str(sliceCellIndex),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
 
 
 
 
 % get the free plume height, and the max plume height reached in past
-states = addCO2HeightData(states, Gt, fluid);
-
+if ~isempty(states)
+    states = addCO2HeightData(states, Gt, fluid);
+end
 
 
 
@@ -85,10 +87,13 @@ hsp2 = subplot('Position', [left1+normWidth1+gap bottom normWidth2 normHeight]);
 %figure; set(gcf,'Position',[1 1 2200 350])
 subplot(hsp1)
 plotGrid(G, ijk{2} == jj, 'FaceColor', 'none'); view([0 0])
+
+if ~isempty(states)
 % max depth first...
 plotPlume(G, Gt, states{end}.h_max,  ijk{2} == jj, 'FaceColor',getInventoryColors(3),'EdgeColor','w','EdgeAlpha',.1)
 % then free plume depth...
 plotPlume(G, Gt, states{end}.h_free,  ijk{2} == jj, 'FaceColor',getInventoryColors(6),'EdgeColor','w','EdgeAlpha',.1)
+end
 
 %title('West <--> East')
 %legend(['Grid slice through j=',num2str(jj)],'Residual CO2','Free plume CO2')
@@ -105,10 +110,13 @@ set(gca,'FontSize',14)
 
 subplot(hsp2)
 plotGrid(G, ijk{1} == ii, 'FaceColor', 'none'); view([90 0])
+
+if ~isempty(states)
 % max depth first...
 hp1 = plotPlume(G, Gt, states{end}.h_max,  ijk{1} == ii, 'FaceColor',getInventoryColors(3),'EdgeColor','w','EdgeAlpha',.1);
 % then free plume depth...
 hp2 = plotPlume(G, Gt, states{end}.h_free,  ijk{1} == ii, 'FaceColor',getInventoryColors(6),'EdgeColor','w','EdgeAlpha',.1);
+end
 
 %title('South <--> North')
 %legend(['Grid slice through i=',num2str(ii)],'Residual CO2','Free plume CO2')
@@ -122,7 +130,7 @@ zlim([zmin zmax]);
 box
 set(gca,'FontSize',14)
 
-
+if ~isempty(states)
 if opt.legendWithFreeCO2Only
     hl = legend([hp2],{'Free/Structural plume CO2'}, 'Location','SouthEast');
 else
@@ -133,6 +141,7 @@ else
     end
 end
 set(hl,'FontSize',16)
+end
 
 
 
