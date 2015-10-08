@@ -153,7 +153,7 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    [faceAreas, faceNormals, faceCentroids, ...
       subCentroids, subNormals, subNormalSigns, ...
-      localEdge2Face] = face_geom3d(G, opt);
+      localEdge2Face] = face_geom3d(G, (1 : G.faces.num) .', opt);
 
    % Divide each cell into sub-tetrahedra according to sub-triangles above,
    % all having one node as cCenter = sum(faceCentroids) / #faceCentroids.
@@ -258,7 +258,7 @@ end
 
 function [faceAreas, faceNormals, faceCentroids, ...
       subCentroids, subNormals, subNormalSigns, ...
-      localEdge2Face] = face_geom3d(G, opt)
+      localEdge2Face] = face_geom3d(G, faces, opt)
 
    % Divide each face into sub-triangles all having one node as
    %
@@ -270,19 +270,23 @@ function [faceAreas, faceNormals, faceCentroids, ...
    dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
    t0 = ticif (opt.verbose);
 
-   numNodes = diff(G.faces.nodePos);
+   [nodePos, faceNodes] = ...
+      indexSubSet(G.faces.nodePos, G.faces.nodes, faces);
+
+   numNodes = diff(nodePos);
 
    [pCenters, faceNo, Accum, Accum] = ...
-      averageCoordinates(numNodes, G.nodes.coords(G.faces.nodes, :));  %#ok
+      averageCoordinates(numNodes, G.nodes.coords(faceNodes, :));      %#ok
 
    % Use hinge nodes for selected faces if present.
-   if ~isempty(opt.hingenodes),
-      ix              = opt.hingenodes.faces;
-      pCenters(ix, :) = opt.hingenodes.nodes;  clear ix
+   if ~isempty(opt.hingenodes) && isstruct(opt.hingenodes) && ...
+         all(isfield(opt.hingenodes, { 'faces', 'nodes' })),
+
+      pCenters = insertHingeNodes(pCenters, G, faces, opt.hingenodes);
    end
 
    [subNormals, subAreas, subCentroids] = ...
-      face_geom3d_subface(G, pCenters(faceNo, :));
+      face_geom3d_subface(G, nodePos, faceNodes, pCenters(faceNo, :));
 
    faceNormals    = Accum * subNormals;
    subNormalSigns = sign(sum(subNormals .* faceNormals(faceNo, :), 2));
@@ -332,15 +336,15 @@ end
 %--------------------------------------------------------------------------
 
 function [subNormals, subAreas, subCentroids] = ...
-      face_geom3d_subface(G, pCenters)
+      face_geom3d_subface(G, nodePos, faceNodes, pCenters)
 
-   p = G.faces.nodePos;
+   p = nodePos;
 
-   next                 = (2 : size(G.faces.nodes, 1) + 1) .';
+   next                 = (2 : size(faceNodes, 1) + 1) .';
    next(p(2 : end) - 1) = p(1 : end-1);
 
-   a = G.nodes.coords(G.faces.nodes      , :);
-   b = G.nodes.coords(G.faces.nodes(next), :);
+   a = G.nodes.coords(faceNodes      , :);
+   b = G.nodes.coords(faceNodes(next), :);
 
    subNormals   = cross(b - a, pCenters - a) ./ 2;
    subAreas     = sqrt(sum(subNormals .^ 2, 2));
@@ -418,6 +422,25 @@ function G = findNormalDirections(G)
 
    i   = accumarray(G.cells.faces(:,1), a .* sgn) < 0;
    G.faces.neighbors(i, :) = G.faces.neighbors(i, [2, 1]);
+end
+
+%--------------------------------------------------------------------------
+
+function [p, i] = indexSubSet(p, i, s)
+   [p1, p2] = deal(p(s), p(s + 1));
+
+   p = cumsum([1 ; p2 - p1]);
+   i = i(mcolon(p1, p2 - 1));
+end
+
+%--------------------------------------------------------------------------
+
+function pCenters = insertHingeNodes(pCenters, G, faces, hingenodes)
+   i  = zeros([G.faces.num, 1]);  i(faces) = 1 : numel(faces);
+   ix = i(hingenodes.faces);
+   p  = ix > 0;
+
+   pCenters(ix(p), :) = hingenodes.nodes(p, :);
 end
 
 %--------------------------------------------------------------------------
