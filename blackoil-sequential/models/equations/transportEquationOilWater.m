@@ -13,7 +13,7 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
@@ -25,7 +25,6 @@ assert(~(opt.solveForWater && opt.solveForOil));
 
 [p0, sW0] = model.getProps(state0, 'pressure', 'water');
 
-wflux = sum(vertcat(wellSol.flux), 2);
 
 %Initialization of independent variables ----------------------------------
 
@@ -73,6 +72,7 @@ if model.extraStateOutput
 end
 
 if ~isempty(W)
+    wflux = sum(vertcat(wellSol.flux), 2);
     perf2well = getPerforationToWellMapping(W);
     wc = vertcat(W.cells);
     
@@ -130,9 +130,12 @@ if opt.solveForWater
     bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + s.T.*mobOf.*(Gw - Go));
 
     wat = (s.pv/dt).*(pvMult.*bW.*sW       - pvMult0.*f.bW(p0).*sW0    ) + s.Div(bWvW);
-    wat(wc) = wat(wc) - bWqW;
-    
+    if ~isempty(W)
+        wat(wc) = wat(wc) - bWqW;
+    end
+
     eqs{1} = wat;
+    oil = zeros(G.cells.num, 1);
     names = {'water'};
     types = {'cell'};
 else
@@ -140,11 +143,28 @@ else
     bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + s.T.*mobWf.*(Go - Gw));
 
     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
-    oil(wc) = oil(wc) - bOqO;
-    
+    if ~isempty(W)
+        oil(wc) = oil(wc) - bOqO;
+    end
+    wat = zeros(G.cells.num, 1);
     eqs{1} = oil;
     names = {'oil'};
     types = {'cell'};
 end
+
+tmpEqs = {wat, oil};
+tmpEqs = addFluxesFromSourcesAndBC(model, tmpEqs, ...
+                                   {pW, p},...
+                                   {rhoW, rhoO},...
+                                   {mobW, mobO}, ...
+                                   {bW, bO},  ...
+                                   {sW, sO}, ...
+                                   drivingForces);
+if opt.solveForWater
+    eqs{1} = tmpEqs{1};
+else
+    eqs{1} = tmpEqs{2};
+end
+                                   
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end

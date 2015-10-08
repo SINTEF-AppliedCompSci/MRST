@@ -73,10 +73,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             if pressure_ok
                 % Solve transport
+                transForces = convertForcesForTransport(state, drivingForces);
+                transForceArg = getDrivingForces(model.pressureModel, transForces);
                 [state, transportReport] = ...
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
                                 'initialGuess', state, ...
-                                forceArg{:});
+                                transForceArg{:});
                 transport_ok = transportReport.Converged;
             else
                 transport_ok = false;
