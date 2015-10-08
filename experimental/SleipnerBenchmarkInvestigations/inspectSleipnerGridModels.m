@@ -5,11 +5,11 @@
 % with plots.
 
 % Refinement cases:
-numRefCases = [-4]; %-4 -2 1 2 4];
+numRefCases = [1]; %-4 -2 1 2 4];
 
 % Do you want top surface grids to be re-centered when making surface
 % comparisons? (true for recentering, false for no recentering)
-recenterGrids = false;
+recenterGrids = true;
 
 % pre-allocate report cell
 report = cell( numel(numRefCases), 3);
@@ -22,14 +22,99 @@ for k = 1:numel(numRefCases)
     %% Create Sleipner model grids for each of the three types
     [ G_ieaghg, Gt_ieaghg, rock_ieaghg, rock2D_ieaghg ]          = makeSleipnerModelGrid( 'modelName','IEAGHGmodel','refineLevel', numRef);
     [ G_original, Gt_original, rock_original, rock2D_original ]  = makeSleipnerModelGrid( 'modelName','ORIGINALmodel','refineLevel', numRef );
-    [ G_inhouse, Gt_inhouse, rock_inhouse, rock2D_inhouse ]      = makeSleipnerModelGrid( 'modelName','INHOUSEmodel','refineLevel', numRef );
+    %[ G_inhouse, Gt_inhouse, rock_inhouse, rock2D_inhouse ]      = makeSleipnerModelGrid( 'modelName','INHOUSEmodel','refineLevel', numRef );
+    G_inhouse = [];
+    Gt_inhouse = [];
+    
+    % Compare vertically-averaged grids
+    G = G_original;
+    Gt = Gt_original;
+    xmin = min(G.nodes.coords(:,1)); xmax = max(G.nodes.coords(:,1));
+    ymin = min(G.nodes.coords(:,2)); ymax = max(G.nodes.coords(:,2));
+    zmin = min(G.nodes.coords(:,3)); zmax = max(G.nodes.coords(:,3));
+    
+    figure; set(gcf,'Position',[1 1 1000 800])
+    %plotGrid(G, 'FaceColor', 'y', 'EdgeColor', [.8 .8 .8]);
+    plotGrid(G, 'FaceColor', [1 .9 .9], 'EdgeColor', 'none');% 'EdgeAlpha', .05);
+    %plotCellData(G, G.cells.centroids(:,3))
+    %plotGrid(Gt, 'FaceColor', 'y', 'EdgeColor', 'k');
+    %plotCellData(Gt, Gt.cells.z, 'EdgeColor', [.8 .8 .8]);
+    light('Position',[-1 -1 1],'Style','infinite');lighting phong
 
+    set(gca,'DataAspect',[1 1 0.02]); grid
+    xlabel('x','Fontweight','bold'); ylabel('y','Fontweight','bold'); zlabel('depth (meters)','Fontweight','bold');
+    % Create textarrow
+    view(44,22)
+    %annotation(gcf,'textarrow',[0.4734 0.5391],[0.7825 0.81],'String',{'North'});
+    set(gca,'FontSize',22); box
+    xlim([xmin xmax]);
+    ylim([ymin ymax]);
+    zlim([zmin zmax]);
+    
+    % get lateral boundary faces:
+    % see gridFactoryExamples.m for grid details.
+    % see also boundaryFaceIndices.m
+    boundary        = any(G.faces.neighbors==0,2);
+    facelist        = 1:G.faces.num;
+    bdryfaces       = facelist( boundary);
+    %internalfaces   = facelist(~boundary);
+    ef = G.cells.faces(:,2)==1;
+    wf = G.cells.faces(:,2)==2;
+    sf = G.cells.faces(:,2)==3;
+    nf = G.cells.faces(:,2)==4;
+    keepfaces = ef + wf + sf + nf;
+    tmp = G.cells.faces(:,1);
+    keepfaces = unique( tmp(logical(keepfaces)) );
+    
+    latbdryfaces = intersect(bdryfaces,keepfaces); % excludes top and bottom bdry faces
+    plotFaces(G, latbdryfaces, 'FaceColor',[.8 .8 .8], 'EdgeColor',[.8 .5 0], 'EdgeAlpha', .05)
+
+    
+    G = G_ieaghg;
+    Gt = Gt_ieaghg;
+    figure; set(gcf,'Position',[1 1 1000 800])
+    %plotGrid(G, 'FaceColor', 'y', 'EdgeColor', [.8 .8 .8]);
+    plotGrid(G, 'FaceColor', [1 .9 .9], 'EdgeColor', 'none');% 'EdgeAlpha', .05);
+    %plotCellData(G, G.cells.centroids(:,3))
+    %plotGrid(Gt, 'FaceColor', 'y', 'EdgeColor', 'k');
+    %plotCellData(Gt, Gt.cells.z, 'EdgeColor', [.8 .8 .8]);
+    light('Position',[-1 -1 1],'Style','infinite');lighting phong
+    
+    set(gca,'DataAspect',[1 1 0.02]); grid
+    xlabel('x','Fontweight','bold'); ylabel('y','Fontweight','bold'); zlabel('depth (meters)','Fontweight','bold');
+    % Create textarrow
+    view(44,22)
+    %annotation(gcf,'textarrow',[0.4734 0.5391],[0.7825 0.81],'String',{'North'});
+    set(gca,'FontSize',22); box
+    xlim([xmin xmax]);
+    ylim([ymin ymax]);
+    zlim([zmin zmax]);
+    
+    % get lateral boundary faces:
+    % see gridFactoryExamples.m for grid details.
+    % see also boundaryFaceIndices.m
+    boundary        = any(G.faces.neighbors==0,2);
+    facelist        = 1:G.faces.num;
+    bdryfaces       = facelist( boundary);
+    %internalfaces   = facelist(~boundary);
+    ef = G.cells.faces(:,2)==1;
+    wf = G.cells.faces(:,2)==2;
+    sf = G.cells.faces(:,2)==3;
+    nf = G.cells.faces(:,2)==4;
+    keepfaces = ef + wf + sf + nf;
+    tmp = G.cells.faces(:,1);
+    keepfaces = unique( tmp(logical(keepfaces)) );
+    
+    latbdryfaces = intersect(bdryfaces,keepfaces); % excludes top and bottom bdry faces
+    plotFaces(G, latbdryfaces, 'FaceColor',[.8 .8 .8], 'EdgeColor',[.8 .5 0], 'EdgeAlpha', .05)
+    
     
     gts = [Gt_ieaghg; Gt_original; Gt_inhouse];
     gs  = [G_ieaghg; G_original; G_inhouse];
 
-    names = {'IEAGHG'; 'ORIGINAL'; 'INHOUSE'};
+    names = {'IEAGHG'; 'GHGT'; 'INHOUSE'};
     mymap = [ 0 0 1; 0 1 0; 1 0 0 ]; % for coloring grids
+    %mymap = [ 0.5 0 0.9; 0 0.8 0.8; 0 0 1; ];
 
     %% Inspect Top Surface Grid and H
     figure; set(gcf,'Position',[1 1 1200 800])
@@ -77,23 +162,26 @@ for k = 1:numel(numRefCases)
     title('Top Surfaces elevation')
 
     %% Create table to compare grids:
-   
-   fprintf('\n\n--------------Num Ref. =  %-2d-----------------------\n', numRef);
-   fprintf('%-20s&   Cells  & Min Surf Ele. & Max Surf Ele. &  Volume  &  Surf. Area  & Avg. Thk. \\\\\n', 'Name');
-
-   for i = 1:3
-   fprintf('%-20s&  %6d  &     %4.0f      &     %4.0f      & %4.2e &   %4.2e   & %5.2f     \\\\\n',...
-      res{i}.name, res{i}.cells, res{i}.zmin, res{i}.zmax, res{i}.volume, res{i}.surfarea, ...
-      res{i}.avgthk );
-   end
-   fprintf('------------------------------------------------\n');
+    
+   % TODO: fix error when a particular grid's results are empty.
+%    fprintf('\n\n--------------Num Ref. =  %-2d-----------------------\n', numRef);
+%    fprintf('%-20s&   Cells  & Min Surf Ele. & Max Surf Ele. &  Volume  &  Surf. Area  & Avg. Thk. \\\\\n', 'Name');
+% 
+%    for i = 1:3
+%    fprintf('%-20s&  %6d  &     %4.0f      &     %4.0f      & %4.2e &   %4.2e   & %5.2f     \\\\\n',...
+%       res{i}.name, res{i}.cells, res{i}.zmin, res{i}.zmax, res{i}.volume, res{i}.surfarea, ...
+%       res{i}.avgthk );
+%    end
+%    fprintf('------------------------------------------------\n');
 
     %% Compare three top surface elevation grids (taken from resTiltUtsira.m):
     %% Establishing grid interpolants
-    [FS_ieaghg, FS_original, FS_inhouse] = createGridInterpolants(Gt_ieaghg, Gt_original, Gt_inhouse);
+    %[FS_ieaghg, FS_original, FS_inhouse] = createGridInterpolants(Gt_ieaghg, Gt_original, Gt_inhouse);
+    [FS_ieaghg, FS_original] = createGridInterpolants(Gt_ieaghg, Gt_original);
     
-    %% Determining the sample points, based on the domain of INHOUSE grid
-    GtS = Gt_inhouse;
+    %% Determining the sample points, based on the domain of i) INHOUSE grid or ii) IEAGHG grid
+    %GtS = Gt_inhouse;
+    GtS = Gt_ieaghg;
     
     sizeS     = GtS.cartDims;
     get_range = @(d, pts, n) linspace(min(pts(:, d)), max(pts(:, d)), n);
@@ -103,62 +191,148 @@ for k = 1:numel(numRefCases)
     ydom      = yrange(floor(sizeS(2)*0.1):floor(sizeS(2)*0.9)); % slightly
     [x, y]    = meshgrid(xdom, ydom); % This will be the sampling grid
     
-    %% Sampling the grids, and recentering them vertically at zero depth (optional)
+    
+    %% Compute and Display sampled grids, and difference surface
+    % using difference surface interpolant FD
+    figure; set(gcf,'Position',[1 1 2000 500]);
+    
+    % Sampling the grids:
     smpl_S_ieaghg      = FS_ieaghg(x, y); 
     smpl_S_original    = FS_original(x,y);
-    smpl_S_inhouse     = FS_inhouse(x, y);
-    
-    smpl_S_ieaghg_mean   = mean(smpl_S_ieaghg(isfinite(smpl_S_ieaghg(:))));
-    smpl_S_original_mean = mean(smpl_S_original(isfinite(smpl_S_original(:)))); 
-    smpl_S_inhouse_mean  = mean(smpl_S_inhouse(isfinite(smpl_S_inhouse(:)))); 
+    %smpl_S_inhouse     = FS_inhouse(x, y);
 
-    if recenterGrids
-        smpl_S_ieaghg      = smpl_S_ieaghg - smpl_S_ieaghg_mean;
-        smpl_S_original    = smpl_S_original - smpl_S_original_mean;
-        smpl_S_inhouse     = smpl_S_inhouse - smpl_S_inhouse_mean;
-        title_str = 'Recentered Surfaces';
-    else
-        smpl_S_ieaghg_mean   = 0;
-        smpl_S_original_mean = 0; 
-        smpl_S_inhouse_mean  = 0; 
-        title_str = 'Surfaces';
-    end
+    % First, plot original surface elevations:
+    smpl_S_ieaghg_mean   = 0;
+    smpl_S_original_mean = 0; 
+    %smpl_S_inhouse_mean  = 0; 
+    title_str = 'Surfaces';
+    FD_original_ieaghg = @(x, y) FS_original(x,y) - FS_ieaghg(x,y) - (smpl_S_original_mean - smpl_S_ieaghg_mean);
     
-    %% Define difference surface interpolant (wrt INHOUSE grid)
-    FD_ieaghg_inhouse = @(x, y) FS_ieaghg(x,y) - FS_inhouse(x,y) - (smpl_S_ieaghg_mean - smpl_S_inhouse_mean);
-    FD_original_inhouse = @(x, y) FS_original(x,y) - FS_inhouse(x,y) - (smpl_S_original_mean - smpl_S_inhouse_mean);
-    
-    %% Display sampled grids, and difference surface
-    figure; set(gcf,'Position',[1 1 2000 1000]);
-    
-    % IEAGHG wrt INHOUSE:
-    subplot(2,2,1); 
-    hold on;
-    mesh(x, y, smpl_S_ieaghg, 'EdgeColor', mymap(:,1));
-    mesh(x, y, smpl_S_inhouse, 'EdgeColor', mymap(:,3));
-    title([title_str ': IEAGHG/INHOUSE']);
-    legend('IEAGHG','INHOUSE')
-    set(gca,'zdir', 'reverse'); view(-62,22);
-    
-    subplot(2,2,2); 
-    mesh(x,y, FD_ieaghg_inhouse(x,y));
-    title('Difference surface, IEAGHG/INHOUSE');
-    set(gca, 'zdir', 'reverse'); view(-64,60);
-
-    
-    % ORIGINAL wrt INHOUSE:
-    subplot(2,2,3); 
+    subplot(1,3,1);
     hold on;
     mesh(x, y, smpl_S_original, 'EdgeColor', mymap(:,2));
-    mesh(x, y, smpl_S_inhouse, 'EdgeColor', mymap(:,3));
-    title([title_str ': ORIGINAL/INHOUSE']);
-    legend('ORIGINAL','INHOUSE')
-    set(gca,'zdir', 'reverse'); view(-62,22);
+    mesh(x, y, smpl_S_ieaghg, 'EdgeColor', mymap(:,3));
     
-    subplot(2,2,4); 
-    mesh(x,y, FD_original_inhouse(x,y));
-    title('Difference surface, ORIGINAL/INHOUSE');
-    set(gca, 'zdir', 'reverse'); view(-64,60);
+    % adjust plot
+    set(gca,'zdir', 'reverse'); view(24, 34); %view(-40,40);
+    axis equal tight; set(gca,'DataAspect',[1 1 0.02]);
+    grid; box
+    
+    % add title
+    title(title_str, 'FontSize',22);
+    
+    % add legend
+    hl = legend('GHGT','IEAGHG','Location','nw'); set(hl,'FontSize',22);
+
+    % adjust axis fontsize
+    set(gca,'FontSize',14);
+    
+%     % (optional) plot non-recentered grids elevations difference:
+%     subplot(1,3,3); 
+%     mesh(x,y, FD_original_ieaghg(x,y));
+%     title('Difference surface, GHGT/IEAGHG');
+%     set(gca, 'zdir', 'reverse'); view(-64,60);
+    
+    % Second, get recenterGrids:
+    smpl_S_ieaghg_mean   = mean(smpl_S_ieaghg(isfinite(smpl_S_ieaghg(:))));
+    smpl_S_original_mean = mean(smpl_S_original(isfinite(smpl_S_original(:)))); 
+    %smpl_S_inhouse_mean  = mean(smpl_S_inhouse(isfinite(smpl_S_inhouse(:)))); 
+    
+    smpl_S_ieaghg      = smpl_S_ieaghg - smpl_S_ieaghg_mean;
+    smpl_S_original    = smpl_S_original - smpl_S_original_mean;
+    %smpl_S_inhouse     = smpl_S_inhouse - smpl_S_inhouse_mean;
+    title_str = 'Recentered Surfaces';
+    FD_original_ieaghg = @(x, y) FS_original(x,y) - FS_ieaghg(x,y) - (smpl_S_original_mean - smpl_S_ieaghg_mean);
+    
+    subplot(1,3,2);
+    hold on;
+    mesh(x, y, smpl_S_original, 'EdgeColor', mymap(:,2));
+    mesh(x, y, smpl_S_ieaghg, 'EdgeColor', mymap(:,3));
+    
+    % adjust plot
+    set(gca,'zdir', 'reverse'); view(24, 34); %view(-40,40);
+    axis equal tight; set(gca,'DataAspect',[1 1 0.02]);
+    grid; box
+    
+    % add title
+    title(title_str, 'FontSize',22);
+    
+    % add legend
+    hl = legend('GHGT','IEAGHG','Location','nw'); set(hl,'FontSize',22);
+    
+    % adjust axis fontsize
+    set(gca,'FontSize',14);
+    
+    % Lastly, plot recentered grids elevation difference:
+    subplot(1,3,3);
+    surf(x,y, FD_original_ieaghg(x,y), 'Edgecolor','none');
+    
+    % adjust plot
+    set(gca, 'zdir', 'reverse'); %view(-64,60);
+    view(2); axis equal tight;
+    
+    % add title
+    title('Difference','FontSize',22);
+    
+    % adjust axis fontsize
+    set(gca,'FontSize',14);
+    
+    % add colorbar. adjust label and fontsize
+    hcb = setColorbarHandle(gcf, 'fontSize',22, 'LabelName','meters');
+    
+    % (optional): superimposed 2008 plume outline onto last subplot
+    plumes = getLayer9CO2plumeOutlines();
+    Year2plot = 2008;
+    for j = 1:numel(plumes)
+        if plumes{j}.year == Year2plot
+            disp('Plotting Observed CO2 plume outline...')
+            hp = line(plumes{j}.outline(:,1), plumes{j}.outline(:,2), -150*ones(numel(plumes{j}.outline(:,2)),1), 'LineWidth',1, 'Color','r');
+        end
+    end
+    % add legend (optional)
+    hl = legend([hp],{'2008 plume'}, 'Location','nw');
+    set(hl,'FontSize',22)
+    
+    
+    %% Define difference surface interpolant, wrt i) INHOUSE grid or ii) IEAGHG grid
+    %FD_ieaghg_inhouse = @(x, y) FS_ieaghg(x,y) - FS_inhouse(x,y) - (smpl_S_ieaghg_mean - smpl_S_inhouse_mean);
+    %FD_original_inhouse = @(x, y) FS_original(x,y) - FS_inhouse(x,y) - (smpl_S_original_mean - smpl_S_inhouse_mean);
+    
+%    FD_original_ieaghg = @(x, y) FS_original(x,y) - FS_ieaghg(x,y) - (smpl_S_original_mean - smpl_S_ieaghg_mean);
+    
+    
+    
+%     % IEAGHG wrt INHOUSE:
+%     subplot(2,2,1); 
+%     hold on;
+%     mesh(x, y, smpl_S_ieaghg, 'EdgeColor', mymap(:,1));
+%     mesh(x, y, smpl_S_inhouse, 'EdgeColor', mymap(:,3));
+%     title([title_str ': IEAGHG/INHOUSE']);
+%     legend('IEAGHG','INHOUSE')
+%     set(gca,'zdir', 'reverse'); view(-62,22);
+%     
+%     subplot(2,2,2); 
+%     mesh(x,y, FD_ieaghg_inhouse(x,y));
+%     title('Difference surface, IEAGHG/INHOUSE');
+%     set(gca, 'zdir', 'reverse'); view(-64,60);
+% 
+%     
+%     % ORIGINAL wrt INHOUSE:
+%     subplot(2,2,3); 
+%     hold on;
+%     mesh(x, y, smpl_S_original, 'EdgeColor', mymap(:,2));
+%     mesh(x, y, smpl_S_inhouse, 'EdgeColor', mymap(:,3));
+%     title([title_str ': ORIGINAL/INHOUSE']);
+%     legend('ORIGINAL','INHOUSE')
+%     set(gca,'zdir', 'reverse'); view(-62,22);
+%     
+%     subplot(2,2,4); 
+%     mesh(x,y, FD_original_inhouse(x,y));
+%     title('Difference surface, ORIGINAL/INHOUSE');
+%     set(gca, 'zdir', 'reverse'); view(-64,60);
+
+    % ORIGINAL wrt IEAGHG:
+
 
     %% Get ready for next refinement case 
     clearvars -except numRefCases k recenterGrids report
