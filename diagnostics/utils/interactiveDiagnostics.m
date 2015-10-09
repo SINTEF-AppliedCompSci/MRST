@@ -1465,8 +1465,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function computeValues(stepNo)
-        if isempty(Diagnostics{stepNo})
+    function computeValues(stepNo, recompute)
+        if isempty(Diagnostics{stepNo}) || recompute
             disp('New state encountered, computing diagnostics...');
             [d, wp] = ...
                 computeTOFAndTracerAndWellPairs(W{stepNo}, state{stepNo});
@@ -1484,22 +1484,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if isempty(Diagnostics{ix})
                 waitbar(ix/numel(state), h, 'Computing diagnostics...');
             end
-            computeValues(ix);
+            computeValues(ix, false);
         end
         if ishandle(h)
             close(h);
         end
     end
 
-    function [D, WP] = getDiagnostics(stepNo)
-        computeValues(stepNo);
+    function [D, WP] = getDiagnostics(stepNo, recompute)
+        if nargin == 1
+            recompute = false;
+        end
+        computeValues(stepNo, recompute);
         D = Diagnostics{stepNo};
         WP = WellPairs{stepNo};
     end
 
     function changeWells()
         W{state_idx} = editWells(G, W{state_idx}, rock);
-        [D, WP] = getDiagnostics(state_idx);
+        [D, WP] = getDiagnostics(state_idx, true);
         createMainControl();
         
         fig_main_wells.dirty = true;
