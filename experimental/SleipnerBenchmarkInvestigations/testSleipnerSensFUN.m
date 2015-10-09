@@ -2,10 +2,12 @@ function [ res ] = testSleipnerSensFUN( varargin )
 % small program to test out calculation of sensitivties and optimization
 
 
-
+    opt.modelname       = 'IEAGHGmodel';
     opt.refineLevel     = 1;
     opt.addPerturbation = 'false';
     opt.pertAmp         = [];
+    opt.ratecase        = 'SPE';
+    opt.parameterMod    = 'none';
     opt.plumes_base = [];
     
     opt = merge_options(opt, varargin{:});
@@ -27,8 +29,7 @@ function [ res ] = testSleipnerSensFUN( varargin )
     
     
     %% Select well injection rate data:
-    ratecase = 'original'
-    switch ratecase   
+    switch opt.ratecase   
         case 'SPE'
             % See Singh et al 2010 for more info about how they determined
             % these rates. Note: the injection rates were reported as
@@ -80,23 +81,21 @@ function [ res ] = testSleipnerSensFUN( varargin )
     
 
     %% Select grid and refinement/coarsening level (if any):
-    % Grid options: 'ORIGINAL', 'IEAGHGmodel', 'INHOUSEmodel'
+    % Grid options: 'ORIGINALmodel', 'IEAGHGmodel', 'INHOUSEmodel'
     % Coarsening level specified using -2, -3, etc.
-    modelname = 'ORIGINALmodel';
-    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',opt.refineLevel, 'plotsOn',false);
-    %clear G,rock,
-    %%{
+    [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName',opt.modelname, 'refineLevel',opt.refineLevel, 'plotsOn',false);
+
+    % Extract subgrid from grid:
     dx= (wellXcoord-Gt.cells.centroids(:,1));
     dy= (wellYcoord-Gt.cells.centroids(:,2));
     ind = dx<1e3 & dx>-1.5e3 & dy<1.3e3 & dy >-4e3;
     clf,plotCellData(G,double(ind))
-    G=removeCells(G,find(~ind)); % use extractSubgrid?
+    G=removeCells(G,find(~ind));
     Gt =topSurfaceGrid(G);
-    %clear G;
+    % Get perm and poro of subgrid:
     rock2D.perm=rock2D.perm(ind,:);
     rock2D.poro=rock2D.poro(ind);
-    %}
-    %return
+
 
     % Get boundary faces of formation (or grid region)
     bf = boundaryFaces(Gt);   
@@ -130,8 +129,7 @@ function [ res ] = testSleipnerSensFUN( varargin )
     end
     %% Select whether to modify parameters from original data, ...
     % and set their modification factors.
-    modifyParametersCase = 'modify';
-    switch modifyParametersCase
+    switch opt.parameterMod
         case 'modify'
             % Set parameter modifier factors:
             por_mod     = 0.6;
@@ -266,8 +264,15 @@ function [ res ] = testSleipnerSensFUN( varargin )
     end
     %
     [wellSols, states, sim_report] = simulateScheduleAD(initState, smodel, schedule);
-     %figure(),myplotCellData(Gt,states{end}.s(:,1))
-    %return
+    
+    states = addHeightData(states,Gt,fluid);
+    
+    % plot final year's CO2 saturation and height
+    figure()
+    subplot(1,2,1),plotCellData(Gt,states{end}.s(:,1)),colorbar,title('CO2 sat'),axis equal tight;
+    subplot(1,2,2),plotCellData(Gt,states{end}.h),colorbar,title('CO2 height'),axis equal tight;
+    
+
     %% Post-processing:
     
     %% Assess sensitivity of Inputs to the match between simulated and observed CO2 heights.
@@ -278,13 +283,12 @@ function [ res ] = testSleipnerSensFUN( varargin )
     % corresponding to model grid and a planar surface (which is fitted to
     % plume outline). Get difference between these two 'tops' = hCO2. Get
     % difference between hCO2 and simulated CO2 height.
+    
     figure(1),clf,plotCellData(Gt,states{end}.s(:,1)),colorbar
-    %plumes = getLayer9CO2plumeOutlines();
-    %[plumes,topsurface, topfit, hCO2] = makeSurfaceData(plumes,Gt)
-    %[plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt);
+    axis equal tight;
     
     
-     states = addHeightData(states,Gt,fluid);
+    
     if ~isempty(opt.plumes_base)
         newplumes=opt.plumes_base;
     
@@ -311,7 +315,11 @@ function [ res ] = testSleipnerSensFUN( varargin )
     
     % An alternative to the code above: deals with multiple polygons in the
     % same given year
-%     [ plumes_comb ] = plotDiff( Gt, plumes, sim_report, states, topsurface );
+     plumes = getLayer9CO2plumeOutlines();
+     %[plumes, topsurface, topfit, hCO2] = makeSurfaceData(plumes,Gt);
+     [plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt);
+     [ plumes_comb ] = plotDiff( Gt, plumes, sim_report, states, topsurface );
+     
 %     %% 
 %     % NB: topfit is function handle for last polygon fit with planar surface
 %     ny=numel(plumes); %1;%numel(plumes)
