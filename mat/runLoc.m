@@ -1,8 +1,13 @@
 clc; clear all; close all;
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
+%%  Verification examples from Hitchhiker paper.
+%   Make sure 'if ~onBoundary' is commented out in locS.m
+
+
+%   UNIT SQUARE
                              %   Build cartesian grid and compute geometry.
-nx = 3; ny = 3  ;            %   Grid dimensions.
+nx = 1; ny = 1;              %   Grid dimensions.
 G = cartGrid([nx, ny]);
 G = mrstGridWithFullMappings(G);
 G = computeGeometry(G);
@@ -10,7 +15,7 @@ Nc = G.cells.num;            %   Number of cells in G
 Ne = G.faces.num;
 Nn = G.nodes.num;
 
-c = 5;
+c = 1;
 f = 1;
                             %   Get coordinates of vertices of cell c.
     nodeNum = G.cells.nodePos(c):G.cells.nodePos(c+1)-1;
@@ -30,18 +35,17 @@ f = 1;
     edgeLengths = G.faces.areas;
                             %   Find volume.
     vol = G.cells.volumes(c);
-                            %   Calculate local stiffness matrix.
-    X = X([2:end,1],:);
-    Xmid = Xmid([2:end,1],:);
-    normals = normals([2:end,1],:);
-    edgeLengths = edgeLengths([2:end,1]);
     
+                            %   Calculate local stiffness matrix.
     [Sl, bl] = locS(X, Xmid, edgeLengths, normals, boundaryEdges, vol, f,sqrt(2));
     
+
+%   PENTAGON
+
     hK = 5;
-    X = [0,0;3,0;3,2;3/2,4;0,4]
+    X = [0,0;3,0;3,2;3/2,4;0,4];
     n = size(X,1);
-    Xmid = (X(1:n, :) + X([2:end, 1], :))/2
+    Xmid = (X(1:n, :) + X([2:end, 1], :))/2;
     [~, XB] = baric(X);
     vol = 21/2;
     boundaryEdges = zeros(1,n);
@@ -57,7 +61,14 @@ f = 1;
     end
     
     [Sl, bl] = locS(X, Xmid, edgeLengths, normals, boundaryEdges, vol, f, 5);
-    
+% 
+% nx = 2; ny = 2;              %   Grid dimensions.
+% G = cartGrid([nx, ny]);
+% G = mrstGridWithFullMappings(G);
+% G = computeGeometry(G);
+% 
+% S = globS(G);
+
 
 % Ndof = Nc + Nn + Ne;
 % S = sparse(Ndof,Ndof);

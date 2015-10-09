@@ -22,7 +22,7 @@ xK = BB(1); yK = BB(2);
 m =      @(X) 1/hK.*[X(:,1)-xK, ...                             %   (1,0)
                      X(:,2)-yK, ...                             %   (0,1)
                      (X(:,1)-xK).^2./hK, ....                   %   (2,0)
-                     (X(:,1)-xK).*(X(:,2)-yK)./hK, ....         %   (1,1)
+                     (X(:,1)-xK).*(X(:,2)-yK)./hK, ...          %   (1,1)
                      (X(:,2)-yK).^2./hK];                       %   (0,2)
                  
                             %   Gradients of monomials.
@@ -72,6 +72,7 @@ for j=1:n
         B(2:nk,j+n) = B(2:nk,j+n) + edgeLengths(j)*2/3.*grad_mDOTnVec;
         
         %end
+
 end
                             %   Contribution from surface integrals.
                             %   \Delta m_\alpha = 2/hK^2 for \alpha = (2,0)
@@ -89,10 +90,6 @@ Gtilde = [zeros(1,nk) ; G(2:nk,:)];
 
                             %   Local stiffness matrix.
 Sl = PNstar'*Gtilde*PNstar + (eye(NK)-PN)'*(eye(NK)-PN);
-
-D
-G
-B
 
 bl = zeros(NK,1);
 % for j = 1:n
