@@ -5,7 +5,7 @@
 % Observed CO2 outlines (plumes) superimposed onto a grid (Gt) to show mis-match
 plumes = getLayer9CO2plumeOutlines();
 [ ~, Gt, ~, ~ ] = makeSleipnerModelGrid('modelName','IEAGHGmodel', 'refineLevel',-4, 'plotsOn',false);
-[plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt);
+[plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt, 'plotsOn',true);
 
 
 %% Figure 2
