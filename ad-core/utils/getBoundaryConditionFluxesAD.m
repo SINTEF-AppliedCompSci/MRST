@@ -70,7 +70,8 @@ assert(size(bc.sat, 2) == nPh, ...
     num2str(nPh), ', but input had ', num2str(size(bc.sat, 2)), ' columns.']);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
 ss = sum(bc.sat, 2);
-assert(all(ss == 1 | ss == 0));
+% Values should either sum to zero or one
+assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)));
 
 % Mapping
 BCcells = sum(N, 2);
