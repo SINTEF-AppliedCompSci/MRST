@@ -9,6 +9,9 @@
 
 % .mat file containing G, Gt, rock, rock2D is loaded
 gridfile2load = [name 'SleipnerGlobalCoords_numRef' num2str(opt.refineLevel) '.mat'];
+if strcmpi(name,'IEAGHG')
+    gridfile2load = ['SleipnerGlobalCoords_numRef' num2str(opt.refineLevel) '.mat'];
+end
 load(gridfile2load)
 
 
@@ -21,9 +24,10 @@ plotInjectRateOverTime          = false;
 plotBHPvsTime                   = false;
 plotAccumCO2vsTime              = false;
 plotEndOfSimResults             = false;
-plotCO2simVsCO2obsData          = true; ZoomIntoPlume = false;%true; % if false, entire grid is plotted
+plotCO2simVsCO2obsData          = false; ZoomIntoPlume = false;%true; % if false, entire grid is plotted
 plotTrappingInventory           = false;
 plotTrapProfiles                = false;
+plotTrapProfiles_basic          = true; ZoomIntoIEAGHGregion = true; plotAxis = false;
 plotTrapAndPlumeCompare         = false;
 showTableOfTrapDetails          = false;
 plotSideProfileCO2heights       = false;
@@ -78,6 +82,8 @@ end
 
 if plotModelGrid
     [ hfig, hax ] = plot3DandTopGrids( G, Gt );
+    [ hfig ]      = plotGridPerms( G, rock );
+    [ hfig ]      = plotGridPerms( Gt, rock2D );
 end
 
 if plotInitialPressure
@@ -337,7 +343,219 @@ if plotTrapProfiles
     
     hfig = gcf;
     hax  = gca;
+    
+end
 
+if plotTrapProfiles_basic
+    
+    
+    % FIGURES OF SIDE PROFILES:
+    % Specify the sliceCellIndex:
+    
+    % Slice through: wellCellIndex
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, [], [], 'SleipnerBounded',true);
+    
+    % Slice through: wellCellIndex + north
+    Xcoord = wellXcoord;
+    Ycoord = wellYcoord + 1000;
+    dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [Xcoord, Ycoord]);
+    [v,i1] = min(sum(dv.^2, 2)); clear dv v
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, i1, [], [], 'SleipnerBounded',true);
+    
+    % Slice through: wellCellIndex + more north
+    Xcoord = wellXcoord;
+    Ycoord = wellYcoord + 2000;
+    dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [Xcoord, Ycoord]);
+    [v,i2] = min(sum(dv.^2, 2)); clear dv v
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, i2, [], [], 'SleipnerBounded',true);
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % THEN TRAPPING PLOTS:
+    ta_volumes = volumesOfTraps(Gt, ta);
+    
+    
+    % To display analysis method used.
+    if isCellBasedMethod
+        disp('Trap analysis done using cell-based method.')
+    elseif ~isCellBasedMethod
+        disp('Trap analysis done using node-based method.')
+    end
+    
+    
+    % To display refinement level used, if any.
+    if ( exist('myresolution','var') && strcmpi(myresolution,'useRefinedGrid') ) || ( exist('useRefinedGrid','var') && useRefinedGrid )
+        fprintf('Refinement level %d:\n', refineLevel);
+    elseif ( exist('myresolution','var') && strcmpi(myresolution,'none') ) || ( exist('useRefinedGrid','var') && ~useRefinedGrid )
+        disp('No refinement of grid performed.')
+    end
+    
+    
+    % Other output.
+    fprintf('  Num. global traps: %d\n', numel(ta_volumes));
+    fprintf('  Total trap volume: %e m3\n', sum(ta_volumes));
+    fprintf('  Avg. global trap size: %e m3\n', mean(ta_volumes));
+
+
+    % Condensed plot:
+    figure; set(gcf,'Position',[1 1 1100 700])
+    hfig = gcf;
+    
+    %
+    %subplot(1,5,1); hsub1 = gca; hfsub1 = gcf;
+    %hold on
+    %plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+
+    trapcells = ta.traps~=0;
+    cellsTrapVol = zeros(Gt.cells.num,1);
+    cellsTrapVol(trapcells) = ta_volumes(ta.traps(trapcells));
+    %plotCellData(Gt, cellsTrapVol/1e3/1e3/1e3, cellsTrapVol~=0, 'EdgeColor','none')
+
+    %set(gca,'DataAspect',[1 1 1/100])
+    %[ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Trap Volume, km^3', 'fontSize', 18 );
+    %grid; axis tight; set(gca, 'fontSize', 10);
+
+
+    % GET TRAPPING BREAKDOWN: structural, residual, dissoluion
+    % first, compute theoretical capacity (upper bound):
+    [ capacityOutput ] = getTrappingCapacities(Gt, rock2D, ta, ...
+        rhoCref, water_density, seafloor_temp, seafloor_depth, ...
+        temp_gradient, press_deviation, sr, sw, dis_max);
+
+    % Distributed CO2 mass under structural traps: 
+    cellsTrapCO2Mass = zeros(Gt.cells.num,1);
+    cellsTrapCO2Mass(trapcells) = capacityOutput.strap_mass_co2(trapcells);
+
+    % Cumulative CO2 mass under structural traps:
+    trapcaps = accumarray(ta.traps(trapcells), capacityOutput.strap_mass_co2(trapcells));
+    trapcap_tot = zeros(Gt.cells.num,1); %ones(size(ta.traps)) * NaN;
+    trapcap_tot(trapcells) = trapcaps(ta.traps(trapcells));
+
+
+    %
+    %subplot(1,5,2); hsub2 = gca; hfsub2 = gcf;
+    %hold on
+    %plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+    %plotCellData(Gt, cellsTrapCO2Mass/1e9, cellsTrapCO2Mass~=0, 'EdgeColor','none')
+
+    %set(gca,'DataAspect',[1 1 1/100])
+    %[ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Distributed CO2 Mass under Trap, Mt', 'fontSize', 18 );
+    %grid; axis tight;
+    %set(gca, 'fontSize', 10); % check for R2014a
+
+    
+    %
+    subplot(1,2,2); hsub3 = gca; hfsub3 = gcf;
+    hold on
+    %plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
+    %plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+    plotCellData(Gt, trapcap_tot/1e9, trapcap_tot~=0, 'EdgeColor','none')
+
+    % adjust plot
+    set(gca,'DataAspect',[1 1 1/100])
+    grid; axis tight;
+    if ZoomIntoIEAGHGregion
+       xlim([436914 440114]); % previously determined
+       ylim([6469150 6475050]);
+    end
+    box
+    
+    
+    % add title
+    title('Capacity', 'FontSize',20)
+    
+    % add colorbar
+    [ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Mt CO_2', 'fontSize', 22 );
+    
+    % adjust axis fontsize
+    if plotAxis
+       set(gca,'FontSize',15)
+    else
+       set(gca,'XTickLabel','','YTickLabel','');
+    end
+
+
+
+    % PLOT REACHABLE CAPACITY
+    trees = maximizeTrapping(Gt, 'res', ta, 'calculateAll', true, 'removeOverlap', false);
+    tvols = [trees.value]; %#ok
+    int_tr = find(ta.trap_regions); %#ok ixs of cells spilling into interior trap
+    [dummy, reindex] = sort([trees.root], 'ascend'); %#ok
+
+    structural_mass_reached = zeros(Gt.cells.num, 1);
+    for i = 1:numel(ta.trap_z) % loop over each trap
+
+        % ix of cells spilling directly into this trap
+        cix = find(ta.trap_regions == i);
+
+        % cell indices of all cells of this trap, and its upstream traps
+        aix = find(ismember(ta.traps, [trees(reindex(i)).traps]));
+
+        % compute total structural trap capacity (in mass terms) of these
+        % cells, and store result
+        structural_mass_reached(cix) = sum(capacityOutput.strap_mass_co2(aix)); %#ok
+
+    end
+
+    %
+    %subplot(1,5,4); hsub4 = gca; hfsub4 = gcf;
+    %hold on
+    %plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+    %plotCellData(Gt, structural_mass_reached/1e3/1e6, 'EdgeColor','none');
+    
+    %set(gca,'DataAspect',[1 1 1/100])
+    %[ ~ ] = setColorbarHandle( gcf, 'LabelName', 'Reachable structural capacity, Mt', 'fontSize', 18 );
+    %grid; axis tight; set(gca, 'fontSize', 10);
+
+
+    % PLOT SPILL PATHS AND TOPOLOGY
+    subplot(1,2,1); hsub5 = gca; hfsub5 = gcf;
+    hold on
+    if ZoomIntoIEAGHGregion && strcmpi(name,'Original')
+        % number of contours to draw for GHGT grid
+        % (IEAGHG grid is drawn with 30 contours, however if we are zooming
+        % into IEAGHG region, we first draw mapPlot with more contours,
+        % since once zoomed in, we will see less contours.)
+        numContours = 50;
+    else
+        % number of contours to draw for IEAGHG grid
+        numContours = 30;
+    end
+    mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines, ...
+        'maplines',numContours);
+    %plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+    
+    % adjust plot
+    grid; axis equal tight;
+    if ZoomIntoIEAGHGregion
+       xlim([436914 440114]); % previously determined
+       ylim([6469150 6475050]);
+    end
+    box
+
+    
+    % add title
+    title({'Topography';'and Traps'}, 'FontSize',20)
+    
+    % adjust axis fontsize
+    if plotAxis
+       set(gca,'FontSize',15)
+    else
+       set(gca,'XTickLabel','','YTickLabel','');
+    end
+    
+    % add slice lines
+    [ii,jj] = ind2sub(Gt.cartDims, wellCellIndex);
+    line()
+    
+    [ii,jj] = ind2sub(Gt.cartDims, i1);
+    
+    [ii,jj] = ind2sub(Gt.cartDims, i2);
+    
+    
+    
+
+    
 end
 
 
@@ -488,6 +706,28 @@ if plotSideProfileCO2heights
 %     for i = 1:numel(states)
 %         [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, { states{i} }, fluid, 'SleipnerBounded',true);
 %     end
+end
+
+if plotSideProfile_noCO2heights
+    % Specify the sliceCellIndex:
+    
+    % Slice through: wellCellIndex
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, wellCellIndex, [], [], 'SleipnerBounded',true);
+    
+    % Slice through: wellCellIndex + north
+    Xcoord = wellXcoord;
+    Ycoord = wellYcoord + 1000;
+    dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [Xcoord, Ycoord]);
+    [v,i] = min(sum(dv.^2, 2)); clear dv v
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, i, [], [], 'SleipnerBounded',true);
+    
+    % Slice through: wellCellIndex + more north
+    Xcoord = wellXcoord;
+    Ycoord = wellYcoord + 2000;
+    dv = bsxfun(@minus, Gt.cells.centroids(:,1:2), [Xcoord, Ycoord]);
+    [v,i] = min(sum(dv.^2, 2)); clear dv v
+    [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, i, [], [], 'SleipnerBounded',true);
+
 end
 
 
