@@ -211,7 +211,7 @@ function  data = getData(W)
         w = W(i);
         for j = 1:nf
             d = w.(wf{j});
-            if isnumeric(d)
+            if isnumeric(d) || islogical(d)
                 data{i, j} = strjoin(d);
             else
                 data{i, j} = d;
