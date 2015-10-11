@@ -1,8 +1,8 @@
-function sect = applyOperator(sect, fid, cartDims, box, kw)
+function sect = applyOperatorSimple(sect, fid, cartDims, box, kw)
 %Apply ECLIPSE/FrontSim operator to input array.
 %
 % SYNOPSIS:
-%   sect = applyOperator(sect, fid, cartDims, box, kw)
+%   sect = applyOperatorSimple(sect, fid, cartDims, box, kw)
 %
 % PARAMETERS:
 %   sect - Structure array representing the current deck section.
