@@ -1,4 +1,4 @@
-%%
+%% Example 1: Cartesian grid
 [nx,ny] = deal(15,10);
 [x,y] = meshgrid(linspace(0,1,nx+1),linspace(0,1,ny+1));
 p = [x(:) y(:)];
@@ -11,7 +11,7 @@ T = [
     reshape(I(2:end,  1:end-1),[],1)'
     ]';
 
-G = tesselationGrid(p, T);
+G = tessellationGrid(p, T);
 clf, plotGrid(G);
 
 %%
@@ -46,8 +46,9 @@ for j=0:2
 end
 
 [p,ia,ic] = unique(round(p*1e5)/1e5,'rows');
-G = tesselationGrid(p, ic(t));
+G = tessellationGrid(p, ic(t));
 i=repmat((1:2)',G.cells.num/2,1);
+clf
 plotCellData(G,i(:));
 plotFaces(G,find(any(G.faces.neighbors==0,2)),'EdgeColor','r','LineWidth',2);
 axis tight off;
@@ -97,9 +98,10 @@ P      = [P; pn];
 T         = reshape(e',18,[])';
 T         = T(:,[1:5 7:11 13:17]);
 [P,~,ic] = unique(round(P*1e5)/1e5, 'rows','stable');
-G         = tesselationGrid(P,ic(T)); 
+G         = tessellationGrid(P,ic(T)); 
 
 i=repmat((1:2)',G.cells.num/2,1);
+clf
 plotCellData(G,i(:));
 plotFaces(G,find(any(G.faces.neighbors==0,2)),'EdgeColor','r','LineWidth',2);
 axis tight off;
