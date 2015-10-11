@@ -1,14 +1,14 @@
-function G = tesselationGrid(p, t)
-%Construct valid grid definition from points and triangle list
+function G = tessellationGrid(p, t)
+%Construct valid grid definition from points and tessellation list
 %
 % SYNOPSIS:
-%   G = tesselationGrid(P, T)
+%   G = tessellationGrid(P, T)
 %
 % PARAMETERS:
 %   P     - Node coordinates.  Must be an m-by-2 matrix, one row for each
 %           node/point.
 %
-%   T     - Tesselation list: an n-by-k matrix where each row holds node
+%   T     - Tesseløation list: an n-by-k matrix where each row holds node
 %           numbers for a k-polygon.
 %
 % RETURNS:
@@ -28,7 +28,7 @@ function G = tesselationGrid(p, t)
 %       reshape(I(2:end,  2:end  ),[],1)';
 %       reshape(I(2:end,  1:end-1),[],1)'
 %       ]';
-%   G = tesselationGrid(p, T);
+%   G = tessellationGrid(p, T);
 %   clf, plotGrid(G);
 %
 %   % Construct a symmetric pattern of 6-point polygons
@@ -57,7 +57,7 @@ function G = tesselationGrid(p, t)
 %   end
 %
 %   [p,ia,ic] = unique(round(p*1e5)/1e5,'rows');
-%   G = tesselationGrid(p, ic(t));
+%   G = tessellationGrid(p, ic(t));
 %   i=repmat((1:2)',G.cells.num/2,1);
 %   plotCellData(G,i(:));
 %   plotFaces(G,find(any(G.faces.neighbors==0,2)),'EdgeColor','r','LineWidth',2);
@@ -91,13 +91,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            'space dimensions.'], mfilename);
 
    assert (nargin == 2,...
-       'Must supply both a point set and a tesselation');
+       'Must supply both a point set and a tessellation');
 
    assert (all(max(t) <= size(p, 1)), ...
-       'Tesselation list ''T'' references invalid points.');
+       'Tessellation list ''T'' references invalid points.');
 
    assert (all(min(t) > 0), ...
-       'Tesselation list ''T'' references invalid points.');
+       'Tessellation list ''T'' references invalid points.');
 
    n = size(t,2);
    idx               = rldecode([1:n 1]',[1 2*ones(1,n-1) 1]');
