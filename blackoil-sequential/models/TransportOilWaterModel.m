@@ -14,7 +14,7 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
             model.conserveWater = false;
             model.conserveOil   = true;
             
-            model.staticUpwind  = true;
+            model.staticUpwind  = false;
 
             model = merge_options(model, varargin{:});
             
