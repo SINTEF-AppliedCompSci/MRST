@@ -9,6 +9,6 @@ function forces = convertForcesForTransport(state, forces)
     qT = sum(qBC, 2);
 
     forces.bc.value(isDir) = qT;
-    forces.bc.sat(isDir, :) = qBC./qT;
+    forces.bc.sat(isDir, :) = abs(qBC)./sum(abs(qBC), 2);
     forces.bc.sat(isnan(forces.bc.sat)) = 0;
 end
