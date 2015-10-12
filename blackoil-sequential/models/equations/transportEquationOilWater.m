@@ -129,6 +129,10 @@ mobWf = s.faceUpstr(upcw, mobW);
 
 totMob = (mobOf + mobWf);
 totMob = max(totMob, sqrt(eps));
+    
+mobWf_G = s.faceUpstr(upcw_g, mobW);
+mobOf_G = s.faceUpstr(upco_g, mobO);
+mobTf_G = mobWf_G + mobOf_G;
 
 if opt.solveForWater
     f_w = mobWf./totMob;
@@ -146,13 +150,8 @@ if opt.solveForWater
 else
     f_o = mobOf./totMob;
     
-    % note: intentionally using water g index for both
-    mobWf_G = s.faceUpstr(upcw_g, mobW);
-    mobOf_G = s.faceUpstr(upcw_g, mobO);
-    mobTf_G = mobWf_G + mobOf_G;
-    
     f_o_g = mobWf_G.*mobOf_G./mobTf_G;
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upcw_g, bO).*f_o_g.*s.T.*(Go - Gw);
+    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_o_g.*s.T.*(Go - Gw);
 
     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
     if ~isempty(W)
