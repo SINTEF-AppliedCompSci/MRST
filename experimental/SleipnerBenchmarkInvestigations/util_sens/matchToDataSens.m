@@ -1,8 +1,8 @@
-function obj = matchToDataSens(model, wellSols, states, schedule,plumes, varargin)
-% compute match between simulated CO2 heights to observed CO2 heights
+function obj = matchToDataSens(model, wellSols, states, schedule, plumes, varargin)
+% compute match between 'simulated' and 'observed' CO2 heights
 
-% obj is the L2-norm of the difference between observed CO2 heights
-% (plumes.h) and simulated CO2 heights
+% obj is the L2-norm of the difference between 'observed' CO2 heights
+% (plumes.h) and 'simulated' CO2 heights
 
    
    opt.ComputePartials = false;
