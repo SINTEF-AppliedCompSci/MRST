@@ -10,7 +10,8 @@ plumes = getLayer9CO2plumeOutlines();
 
 %% Figure 2
 % CO2 entry rates into layer 9
-
+[opt, var, model, schedule, initState] = studySleipnerBenchmarkFUN('ratecase','SPE', 'runSimulation',false);
+[opt, var, model, schedule, initState] = studySleipnerBenchmarkFUN('ratecase','original', 'runSimulation',false);
 
 
 %% Figure 3 - 4
@@ -39,7 +40,19 @@ inspectSleipnerGridModels
 
 
 
-%% Figure 10
+%% Figure X
+% Sensitivities:
+
+% first run a simulation using smodel, and get the CO2 height data
+[opt, var, smodel, schedule, initState, wellSols, states, sim_report] = studySleipnerBenchmarkFUN('refineLevel',-6, 'num_years',10, 'useSensModel',true);
+states = addHeightData(states, smodel.G, smodel.fluid);
+
+% then assess match between the 'simulated' states.h just obtained and the
+% 'observed' states.h (i.e., from another simulation or using observed
+% plume height data wrt a given grid)
+plumes_base = getLayer9CO2plumeOutlines();
+[plumes_base, ~, ~, ~] = makeSurfaceDataAndPlots(plumes_base, smodel.G);
+dobj_dz = studySleipnerSensitivitiesFUN( initState, smodel, schedule, wellSols, states, 'plumes_base',plumes_base );
 
 
 
