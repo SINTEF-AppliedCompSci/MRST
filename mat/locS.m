@@ -58,7 +58,6 @@ B=zeros(nk,NK);
                             %   is evaluated by Gauss-Lobatto quadrature.
 for j=1:n
 
-        %if ~onBoundary(j)
                             %   Outward normal of edge j, nVec
         nVec = edgeNormals(j,:)';
                             %   First point of edge j.
@@ -70,8 +69,6 @@ for j=1:n
                             %   Midpoint of edge j.
         grad_mDOTnVec = grad_m(Xmid(j,:))*nVec;
         B(2:nk,j+n) = B(2:nk,j+n) + edgeLengths(j)*2/3.*grad_mDOTnVec;
-        
-        %end
 
 end
                             %   Contribution from surface integrals.

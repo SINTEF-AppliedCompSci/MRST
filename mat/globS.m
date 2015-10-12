@@ -22,13 +22,21 @@ function S = globS(G, nx, ny)
         boundaryEdges = sum(neighbors == 0, 2);
         %be = boundaryEdges(faces)
                                 %   Find edge normals, fix orientation.
+                                %   FIX: NORMALS ARE AREA WHEIGHETD
         normals = G.faces.normals(faces,:);
         m = (-ones(length(normals),1)).^(neighbors(:,1) ~= c);
         normals = [m,m].*normals;
+        for i = 1:size(normals,1)
+            normals(i,:) = normals(i,:)./norm(normals(i,:));
+        end
         edgeLengths = G.faces.areas;
                                 %   Find volume.
         vol = G.cells.volumes(c);
-        hK = sqrt(2);           %   FIX
+        hK = 0;
+        n = size(X,1);
+        for i = 1:n
+            hK = max(norm(repmat(X(i,:),n,1)-X),hK);
+        end
         
         [Sl, bl] = locS(X, Xmid, edgeLengths, normals, boundaryEdges, vol, f, hK);
 
@@ -39,3 +47,5 @@ function S = globS(G, nx, ny)
         S(dofVec, dofVec) = S(dofVec, dofVec) + Sl;
 
     end
+
+end
