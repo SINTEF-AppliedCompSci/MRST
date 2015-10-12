@@ -113,11 +113,16 @@ vT = flux(model.operators.internalConn);
 if model.staticUpwind
     flag = state.upstreamFlag;
 else
-    flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+    flag = flag_v;
 end
 
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
+
+upcw_g = flag_g(:, 1);
+upco_g = flag_g(:, 2);
+
 
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
@@ -140,7 +145,14 @@ if opt.solveForWater
     types = {'cell'};
 else
     f_o = mobOf./totMob;
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + s.T.*mobWf.*(Go - Gw));
+    
+    % note: intentionally using water g index for both
+    mobWf_G = s.faceUpstr(upcw_g, mobW);
+    mobOf_G = s.faceUpstr(upcw_g, mobO);
+    mobTf_G = mobWf_G + mobOf_G;
+    
+    f_o_g = mobWf_G.*mobOf_G./mobTf_G;
+    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upcw_g, bO).*f_o_g.*s.T.*(Go - Gw);
 
     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
     if ~isempty(W)
