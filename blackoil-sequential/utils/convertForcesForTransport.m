@@ -7,8 +7,12 @@ function forces = convertForcesForTransport(state, forces)
     
     qBC = state.flux(forces.bc.face(isDir), :);
     qT = sum(qBC, 2);
-
+    netq = sum(abs(qBC), 2);
+    
+    sat0 = forces.bc.sat;
     forces.bc.value(isDir) = qT;
-    forces.bc.sat(isDir, :) = abs(qBC)./sum(abs(qBC), 2);
-    forces.bc.sat(isnan(forces.bc.sat)) = 0;
+    forces.bc.sat(isDir, :) = bsxfun(@rdivide, abs(qBC), netq);
+
+    bad = any(isnan(forces.bc.sat), 2);
+    forces.bc.sat(bad, :) = sat0(bad, :);
 end
