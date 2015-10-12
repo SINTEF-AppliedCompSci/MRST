@@ -14,7 +14,6 @@ opt.plotsOn = false;
 
 opt = merge_options(opt, varargin{:});
 
-global var
 
 %% Function handle of top-surface
 if(isfield(Gt,'cartDims') && Gt.cells.num==prod(Gt.cartDims))
@@ -58,15 +57,14 @@ end
 topsurface = var.topsurface;
 topfit = var.topfit;
     
-end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%      Local functions - for plotting    %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%     Helpers functions - for plotting   %%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [insidePlumeXY_tmp, insidePlumeXY, insidePlumeXYZ] = getInsidePlumeCoords(Gt, line_coord)
 
-global var
     % then get XY coordinates of plume inside
     insidePlumeXY_tmp = [Gt.cells.centroids(:,1).*insidePolygon(line_coord, Gt.cells.centroids), ...
                          Gt.cells.centroids(:,2).*insidePolygon(line_coord, Gt.cells.centroids)];
@@ -82,7 +80,6 @@ end
 
 function [ hfig ] = makePlot1(Gt, line_coord)
 
-global var
     figure; set(gcf,'Position',[1 1 1000 800])
 
     % first plot top surface of grid
@@ -123,7 +120,6 @@ end
 
 function [ hfig ] = makePlot2(Gt, line_coord)
 
-    global var
     % simple side view (facing west) without grid
     
     figure; set(gcf,'Position',[1 1 650 450])
@@ -165,7 +161,6 @@ end
 
 function [ hfig ] = makePlot3(Gt, line_coord)
 
-    global var
     % simple side view (facing west)
     figure; set(gcf,'Position',[1 1 1200 400])
 
@@ -214,7 +209,6 @@ end
 
 function [ hfig ] = makePlot4(Gt, line_coord, varargin)
 
-global var
 
     opt.SleipnerBounded = true;
     opt.plume2008Bounded = false;
@@ -306,7 +300,6 @@ end
 
 function [ hfig ] = makePlot5(Gt, hCO2, line_coord, insidePlumeXY)
 
-global var
 
     figure; set(gcf,'Position',[1 1 1300 500])
     subplot(1,2,1)
@@ -341,6 +334,14 @@ global var
 
 end
 
+
+%%%%%%%%%%%%%%%%%%         End of Helper Functions        %%%%%%%%%%%%%%%%%
+
+
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%          End of Local Functions        %%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%         Other Helper Functions         %%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
