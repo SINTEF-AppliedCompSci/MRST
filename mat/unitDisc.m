@@ -10,7 +10,7 @@ m = numel(r);
 theta = randperm(m).*2.*pi./m;
 
 
-P = [r.*cos(theta', r.*sin(theta')
+P = [r.*cos(theta'), r.*sin(theta')];
 t = delaunayn(P);
 
 theta = 0:0.01:2*pi;

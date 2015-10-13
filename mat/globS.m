@@ -10,8 +10,18 @@ function S = globS(G, nx, ny)
     
     for c = 1:Nc;
         
+        %faces = G.cells.faces(G.cells.facePos(c):G.cells.facePos(c+1)-1, 1)
+      
         nodeNum = G.cells.nodePos(c):G.cells.nodePos(c+1)-1;
+        
+%         nodes = zeros(2*numel(faces),1);
+%         for i = 1:numel(faces)
+%             nodes(2*i-1:2*i) = G.faces.nodes(G.faces.nodePos(faces(i)):G.faces.nodePos(faces(i)+1)-1);
+%         end
+%         nodes = unique(nodes);
+        
         nodes = G.cells.nodes(nodeNum);
+
         X = G.nodes.coords(nodes,:);
                                 %   Find edge midpoints.
         faceNum = G.cells.facePos(c) : G.cells.facePos(c+1)-1;
@@ -29,7 +39,7 @@ function S = globS(G, nx, ny)
         for i = 1:size(normals,1)
             normals(i,:) = normals(i,:)./norm(normals(i,:));
         end
-        edgeLengths = G.faces.areas;
+        edgeLengths = G.faces.areas(faces);
                                 %   Find volume.
         vol = G.cells.volumes(c);
         hK = 0;
@@ -43,7 +53,13 @@ function S = globS(G, nx, ny)
     
         %  MAP LOCAL STIFFNESS MATRIX TO GLOBAL STIFFNESS MATRIX            %%
         
-        dofVec = [nodes', faces + Nn, Nn + Ne + c];
+        if size(nodes, 2) == 1
+            nodes = nodes';
+        end
+        if size(faces, 2) == 1
+            faces = faces';
+        end
+        dofVec = [nodes, faces + Nn, Nn + Ne + c];
         S(dofVec, dofVec) = S(dofVec, dofVec) + Sl;
 
     end

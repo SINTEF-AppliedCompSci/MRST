@@ -42,7 +42,7 @@ D(1:n,:) = [ones(n,1), m(X)];
 D(n+1:2*n,:) = [ones(n,1), m(Xmid)];
                             %   Integral of monomials over K using
                             %   Gauss-Lobatto quadrature.
-D(NK,:) = [1, polygonInt(X,m)/vol];
+D(NK,:) = [1, polygonInt(X,m)./vol];
 %D(NK,:) = [1/36*sum(D(1:n,:)) + 1/9*sum(D(n+1:2*n,:))];
 %D(NK,1) = D(NK,1) + 4/9;
 
