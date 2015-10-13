@@ -41,11 +41,23 @@ function [ varargout ] = studySleipnerSensitivitiesFUN( initState, smodel, sched
     opt = merge_options(opt, varargin{:});
     
     if isempty(opt.plumes_base)
+        % default is to use the observed CO2 plume outlines. The outlines
+        % are loaded, and then the CO2 heights inside the plume outlines
+        % are computed, wrt a top-surface grid. Top-surface grid is taken
+        % to be the same as the one passed in that corresponds to states.
         fprintf('\n Using observed CO2 plume outlines as plumes_base. \n')
         opt.plumes_base = getLayer9CO2plumeOutlines();
+        
+        fprintf('\n Computing observed CO2 heights wrt top surface of smodel.G. \n')
         [opt.plumes_base, ~, ~, ~] = makeSurfaceDataAndPlots(opt.plumes_base, smodel.G);
     else
+        % ensure plumes_base.h exists
         fprintf('\n Using your input argument as plumes_base. \n')
+        for i = 1:numel(opt.plumes_base)
+            assert(isfield(opt.plumes_base{i},'h'), ...
+            'CO2 heights inside plume outline have not been computed yet.')
+        end
+        
     end
 
 
@@ -108,23 +120,6 @@ function [ varargout ] = studySleipnerSensitivitiesFUN( initState, smodel, sched
         varargout{1} = dobj_dz;
     end
     
-%     res.gsc        = gsc;
-%     res.dobj_dz    = dobj_dz;
-%     res.smodel     = smodel;
-% 
-%      
-%     %% Output of function:
-%     res.Gt         = Gt;
-%     %res.plumes     = plumes;
-%     %res.gsc        = gsc;
-%     %res.dobj_dz    = dobj_dz;
-%      
-%     res.schedule   = schedule;
-%     res.states     = states;
-%     res.wellSols   = wellSols;
-%     %res.smodel     = smodel;
-%     res.model      = model;
-%     res.initState  = initState;
      
      
 end
