@@ -138,7 +138,7 @@ end
             fn = 'rhofac';
         case {'permfac'}
             index = 1;
-            fn = 'porofac';
+            fn = 'permfac';
         case {'porofac'}
             index = 1;
             fn = 'porofac';
