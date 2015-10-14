@@ -31,3 +31,8 @@ hold on
     plot(X(boundaryNodes,1), X(boundaryNodes,2),'or');
     plot(X(:,1),X(:,2),'.k');
 hold off
+axis([0 1 0 1]);
+xlabel('x'); ylabel('y');
+legend('Cells', 'Boundary dofs', 'Internal dofs');
+
+end

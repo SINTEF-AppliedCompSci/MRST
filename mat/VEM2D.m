@@ -1,6 +1,7 @@
 function U = VEM2D(G, f, g)
 %--------------------------------------------------------------------------
 %   -\Delta u = f, x \in \Omega
+%           u = g, x \in \partial \Omega
 %
 %   G:  Grid
 %   f:  Force term
@@ -12,7 +13,7 @@ Ne = G.faces.num;
 Nn = G.nodes.num;
 Ndof = Nn + Ne + Nc;
 
-S = globS(G);
+[S, b] = VEM2D_glob(G, f);
 
 boundaryNodes = zeros(Ndof,1);
 neighbors = G.faces.neighbors;
@@ -38,7 +39,6 @@ for c = 1:Nc
 end
 
 X = [G.nodes.coords ; G.faces.centroids ; baricenters];
-b = zeros(Ndof, 1);
 b(boundaryNodes) = g(X(boundaryNodes,:));
 
 U = S\b;

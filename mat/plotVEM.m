@@ -11,7 +11,7 @@ if strcmp(type, 'dof')
         [~, baricenters(c,:)] = baric(X);
     end
     X = [G.nodes.coords ; G.faces.centroids ; baricenters];
-    plot3(X(:,1), X(:,2), u, 'ob')
+    plot3(X(:,1), X(:,2), u, '.b')
 end
 
 hold on
@@ -27,4 +27,6 @@ for c = 1:Nc
 end
 hold off
 view(3)
+axis([0 1 0 1 min(u), max(u)]);
+xlabel('x'); ylabel('y'); zlabel('u(x,y)');
 end
