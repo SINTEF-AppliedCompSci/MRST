@@ -1,4 +1,4 @@
-function [ hfig, hax ] = subplotCO2simVsCO2obsData_basic(Years2plot, inj_year, plume, sim_report, Gt, states, fluid, model, wellXcoord, wellYcoord, wellCoord_x, wellCoord_y, trapstruct, ZoomIntoPlume, ZoomX1, ZoomX2, ZoomY1, ZoomY2, CO2plumeOutline_SatTol)
+function [ hfig, hax ] = subplotCO2simVsCO2obsData_basic(Years2plot, inj_year, plume, sim_report, Gt, states, fluid, model, wellXcoord, wellYcoord, wellCoord_x, wellCoord_y, trapstruct, ZoomIntoPlume, CO2plumeOutline_SatTol)
 
 % Reservoir Time2plot is an array of all times in seconds you wish to
 % visualize the CO2 plume (saturation). If any times coorespond to the
@@ -7,6 +7,14 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_basic(Years2plot, inj_year, p
 ReservoirTime2plot  = (Years2plot - inj_year(1)+1 ).*(365*24*60*60); % seconds
 
 maxMassCO2 = zeros(1,numel(ReservoirTime2plot));
+
+
+% For plotting of CO2 plumes
+% bounds of 2008 plume:
+ZoomX1 = 0.4375e6;
+ZoomY1 = 6.47e6;
+ZoomX2 = 0.4395e6;
+ZoomY2 = 6.474e6;
 
 figure; set(gcf, 'Position', [1 1 2000 600])
 hold on

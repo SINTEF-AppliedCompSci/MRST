@@ -20,17 +20,18 @@ plotPanelVE                     = false;
 plotModelGrid                   = false;
 plotInitialPressure             = false;
 plotActualVsSimInjectLocation   = false;
-plotInjectRateOverTime          = false;
+plotInjectRateOverTime          = true;
 plotBHPvsTime                   = false;
 plotAccumCO2vsTime              = false;
 plotEndOfSimResults             = false;
 plotCO2simVsCO2obsData          = false; ZoomIntoPlume = false;%true; % if false, entire grid is plotted
 plotTrappingInventory           = false;
 plotTrapProfiles                = false;
-plotTrapProfiles_basic          = true; ZoomIntoIEAGHGregion = true; plotAxis = false;
+plotTrapProfiles_basic          = false; ZoomIntoIEAGHGregion = true; plotAxis = false;
 plotTrapAndPlumeCompare         = false;
 showTableOfTrapDetails          = false;
 plotSideProfileCO2heights       = false;
+plotSideProfile_noCO2heights    = false; % to plot side profiles of grids, without CO2 heights
     
 
 % Trapping analysis method:
@@ -100,6 +101,9 @@ end
 
 if plotInjectRateOverTime
     [ hfig, hax ] = plotInjectRateVsTime(schedule,inj_year,rhoCref);
+    
+    % assess other CO2 densities:
+    [ hfig, hax, timeSinceInj, massNow ] = plotInjectRateVsTime(schedule,inj_year,rhoCref);
 end
     
 
@@ -182,7 +186,7 @@ if plotCO2simVsCO2obsData
     [ hfig, hax ] = subplotCO2simVsCO2obsData_basic(Years2plot, inj_year, plume, sim_report, ...
             Gt, states, fluid, model, ...
             wellXcoord, wellYcoord, wellCoord_x, wellCoord_y, ta, ...
-            ZoomIntoPlume, ZoomX1, ZoomX2, ZoomY1, ZoomY2, ...
+            ZoomIntoPlume, ...
             CO2plumeOutline_SatTol);
         % note the basic function plots in kg, not Mt
 
