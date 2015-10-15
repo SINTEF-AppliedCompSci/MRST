@@ -5,6 +5,8 @@ function [ hfig ] = makeSideProfilePlots_CO2heights( G, Gt, sliceCellIndex, stat
 
 % if states and fluid are empty, they are not plotted.
 
+opt.figname = '';
+
 opt.SleipnerBounded = false;
 % if true, subplots will be bounded to set region.
 
@@ -49,7 +51,7 @@ end
 
 
 % plot of both max plume and free plume height:
-figure; set(gcf,'Position',[1 1 1500 350]);
+figure('name',opt.figname); set(gcf,'Position',[1 1 1500 350]);
 
 % Set up subplot sizes:
 

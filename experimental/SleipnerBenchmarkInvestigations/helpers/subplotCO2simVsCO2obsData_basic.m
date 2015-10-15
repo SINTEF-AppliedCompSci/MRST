@@ -1,10 +1,15 @@
-function [ hfig, hax ] = subplotCO2simVsCO2obsData_basic(Years2plot, inj_year, plume, sim_report, Gt, states, fluid, model, wellXcoord, wellYcoord, wellCoord_x, wellCoord_y, trapstruct, ZoomIntoPlume, CO2plumeOutline_SatTol)
+function [ hfig, hax ] = subplotCO2simVsCO2obsData_basic(Years2plot, SimStartYear, plume, sim_report, Gt, states, fluid, model, wellXcoord, wellYcoord, wellCoord_x, wellCoord_y, trapstruct, ZoomIntoPlume, CO2plumeOutline_SatTol, varargin)
 
 % Reservoir Time2plot is an array of all times in seconds you wish to
 % visualize the CO2 plume (saturation). If any times coorespond to the
 % observation plume data, that plume outline is plotted as well.
 
-ReservoirTime2plot  = (Years2plot - inj_year(1)+1 ).*(365*24*60*60); % seconds
+    opt.figname = '';
+    
+    opt = merge_options(opt, varargin{:});
+    
+
+ReservoirTime2plot  = convertFrom( Years2plot - SimStartYear , year); % seconds
 
 maxMassCO2 = zeros(1,numel(ReservoirTime2plot));
 
@@ -16,7 +21,7 @@ ZoomY1 = 6.47e6;
 ZoomX2 = 0.4395e6;
 ZoomY2 = 6.474e6;
 
-figure; set(gcf, 'Position', [1 1 2000 600])
+figure('name',opt.figname); set(gcf, 'Position', [1 1 2000 600])
 hold on
 
 for i = 1:numel(ReservoirTime2plot)
@@ -42,7 +47,8 @@ for i = 1:numel(ReservoirTime2plot)
     Gt_tmp.nodes.z = -100*ones(Gt_tmp.nodes.num,1);
     plotFaces(Gt_tmp, boundaryFaces(Gt_tmp), 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt_tmp, massCO2, satCO2>CO2plumeOutline_SatTol, 'EdgeColor','none') % only plot plume that has sat > tolerance specified 
-    title(num2str(Years2plot(i)), 'fontSize', 18); axis equal
+    title(num2str(Years2plot(i)), 'fontSize', 18);
+    axis equal
     
     
     % Add all CO2 plume outlines that have a matching year to
@@ -50,11 +56,17 @@ for i = 1:numel(ReservoirTime2plot)
     % z-coordinate of -150 to ensure the outlines are on top of the plots
     % (for coloring purposes).
     for j = 1:numel(plume)
-        if plume{j}.year == Years2plot(i)
+        if plume{j}.year + 0.5 == Years2plot(i)
             disp('Plotting Observed CO2 plume outline...')
             line(plume{j}.outline(:,1), plume{j}.outline(:,2), -150*ones(numel(plume{j}.outline(:,2)),1), 'LineWidth',3, 'Color','r')
+            % adjust title: we assume plume data taken mid-year (i.e.,
+            % July) thus we plot states results at 1999.5 and plume outline
+            % at 199.5, however title is left as 1999
+            title(num2str(plume{j}.year), 'fontSize', 18);
         end
     end
+    
+   
     
     
     % Add injection point:

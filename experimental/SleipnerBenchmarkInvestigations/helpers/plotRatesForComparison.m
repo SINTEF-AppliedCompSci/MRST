@@ -18,29 +18,45 @@ function plotRatesForComparison()
         inj_rates_ieaghg  = [2.91e4; 5.92e4; 6.35e4; 8.0e4; 1.09e5; 1.5e5; 2.03e5; 2.69e5; 3.47e5; 4.37e5; 5.4e5] .* meter^3/day;
         % inj_rates is in meter^3/s
         
-        % convert to rate at reservoir conditions
-        inj_rates_ieaghg  = inj_rates_ieaghg.*rhoCO2_surf/rhoCO2_reservoir;
+        % convert surface volume rate to reservoir volume rate
+        inj_rates_ieaghg  = inj_rates_ieaghg.*rhoCO2_surf/rhoCO2_reservoir; 
         
         
 
         % See "Injection rates Layer 9.xls" under
         % co2lab/data/sleipner/original for more info about these rates
         [ inj_year_prelim, inj_rates_prelim ] = getSleipnerOriginalInjectionRates();
-        % rates are at reservoir conditions, in meter^3/s
+        % these are the reservoir volume rates, in meter^3/s
                  
         
         
-        % rates in m3/year, at reservoir conditions
-        figure
+        % plot reservoir volume rates (in m3/year)
+        figure; set(gcf,'Position',[1 1 660 350])
         plot(   inj_year_prelim, inj_rates_prelim, 'o', ...
                 inj_year_ieaghg, inj_rates_ieaghg, 'x')
-        ylabel('Reservoir rate, m^3/year')
+        axis tight;
+        ylabel('Reservoir rate (m^3/year)')
         xlabel('Year')
-        legend('Preliminary rates','IEAGHG rates')
+        
+        % add legend
+        hl = legend('GHGT rates','IEAGHG rates');
+        set(hl,'Location','northwest')
+        
+        % adjust axis ticks
+        hax = gca;
+        set(hax, 'Fontsize',14);
+        set(hax.Children(:), 'MarkerSize', 8, 'LineWidth', 2)
+        set(hax, 'XLim', [1999 2030])
+        set(hax, 'XTick',[1999 hax.XTick(2:end)])
+        set(hax, 'YLim', [0 max(inj_rates_prelim)])
+        numYticks = 6;
+        set(hax, 'YTick',[0 hax.YTick(end)/numYticks:hax.YTick(end)/numYticks:hax.YTick(end)])
+        grid;
         
         
-        % rates converted into mass/year, depending on rhoCO2 given
-        figure
+        % plot mass rates (converted depending on reservior rhoCO2 given)
+        % note: mass rate is same at surface and at reservoir.
+        figure; set(gcf,'Position',[1 1 660 350])
         rhoCO2a = 760;      % from SPE paper (Singh et al 2010)
         rhoCO2b = 695.89;   % from prelim benchmark rates (.xls)
         rhoCO2c = 355;      % from Cavanagh et al 2014, table 2
@@ -48,17 +64,29 @@ function plotRatesForComparison()
                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2a, 'x', ...
                 inj_year_prelim, inj_rates_prelim.*rhoCO2c, 'o-.', ...
                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2c, 'x-.' )
-        ylabel('Reservoir rate, kg/year')
+        %ylabel({'Reservoir and Surface';'rate (kg/year)'})
+        ylabel({'Mass rate (kg/year) determined from';'CO_2 density at reservoir conditions'})
         xlabel('Year')
-        legend( ['Preliminary rates, CO2 density=',num2str(rhoCO2b)],['IEAGHG rates, CO2 density=',num2str(rhoCO2a)], ...
-                ['Preliminary rates, CO2 density=',num2str(rhoCO2c)],['IEAGHG rates, CO2 density=',num2str(rhoCO2c)]  )
-    
-        hfig = gcf;
+        
+        % add legend
+        hl = legend( ['GHGT rates, CO_2 density=',num2str(rhoCO2b)],['IEAGHG rates, CO_2 density=',num2str(rhoCO2a)], ...
+                     ['GHGT rates, CO_2 density=',num2str(rhoCO2c)],['IEAGHG rates, CO_2 density=',num2str(rhoCO2c)]  );
+        set(hl,'Location','northwest');
+
+        % adjust axis ticks
         hax = gca;
         set(hax, 'Fontsize',14);
         set(hax.Children(:), 'MarkerSize', 8, 'LineWidth', 2)
         set(hax, 'XLim', [1999 2030])
+        set(hax, 'Fontsize',14);
+        set(hax.Children(:), 'MarkerSize', 8, 'LineWidth', 2)
+        set(hax, 'XLim', [1999 2030])
+        set(hax, 'XTick',[1999 hax.XTick(2:end)])
+        grid;
         
+        
+        
+        % optional:
         % rates converted into mass/year, depending on rhoCO2 given
         figure
         rhoCO2a = 760;      % from SPE paper (Singh et al 2010)
@@ -72,9 +100,9 @@ function plotRatesForComparison()
                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2c, 'x-.' )
         ylabel('Reservoir rate, kg/year')
         xlabel('Year')
-        legend( ['Preliminary rates, CO2 density=',num2str(rhoCO2a)],['IEAGHG rates, CO2 density=',num2str(rhoCO2a)], ...
-                ['Preliminary rates, CO2 density=',num2str(rhoCO2b)],['IEAGHG rates, CO2 density=',num2str(rhoCO2b)], ...
-                ['Preliminary rates, CO2 density=',num2str(rhoCO2c)],['IEAGHG rates, CO2 density=',num2str(rhoCO2c)]  )
+        legend( ['GHGT rates, CO2 density=',num2str(rhoCO2a)],['IEAGHG rates, CO2 density=',num2str(rhoCO2a)], ...
+                ['GHGT rates, CO2 density=',num2str(rhoCO2b)],['IEAGHG rates, CO2 density=',num2str(rhoCO2b)], ...
+                ['GHGT rates, CO2 density=',num2str(rhoCO2c)],['IEAGHG rates, CO2 density=',num2str(rhoCO2c)]  )
     
     
     
