@@ -65,6 +65,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     for i = 1:CG.cells.num
         dispif(mrstVerbose, 'Interaction stored for block %d of %d\n', i, CG.cells.num);
         n = coarseNeighbors(CG, i, false);
+        if isempty(n)
+            n = i;
+        end
         ijk_near = ijk(CG.cells.centers(n), :);
         
         ijkloc = ijk(CG.partition == i, :);
