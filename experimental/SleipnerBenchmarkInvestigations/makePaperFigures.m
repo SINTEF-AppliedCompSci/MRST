@@ -37,7 +37,7 @@ clear
 
 % run all simulation cases (unless they have already been run and results
 % saved)
-variousInjectScenarios
+%variousInjectScenarios
 
 % load results of simulation cases
 % first get all mat file names in current directory (where results should
@@ -111,24 +111,55 @@ for j=1:numel(files2load)
                 var.wellXcoord, var.wellYcoord, var.wellCoord_x, var.wellCoord_y, ta, ...
                 ZoomIntoPlume, plumeOutline_SatTol, ...
                 'figname',files2load{j}); % note the basic function plots in kg, not Mt
-
-    % for side profile
-    stateYears = sim_report.ReservoirTime/convertFrom(1,year)+SimStartYear;
-    %state2plot = { states{ logical(var.inj_year == Year2plot_sideView) } };
-    state2plot = { states{ logical(stateYears == Year2plot_sideView) } };
-    [ ~ ] = makeSideProfilePlots_CO2heights( model.G.parent, model.G, model.wellmodel.W.cells, ...
-        state2plot, model.fluid, 'SleipnerBounded',true,'legendWithFreeCO2Only',true, ...
-        'figname',files2load{j});
+    % remove the part of fileName which contains clock info and file
+    % extension, and add plot title and extension
+    plotname = [fileName(1:end-19) '_CO2vsObsPlume.png']; 
+    set(gcf,'PaperPositionMode','auto'); print(plotname,'-dpng','-r0');
+    
+%     % for side profile
+%     stateYears = sim_report.ReservoirTime/convertFrom(1,year)+SimStartYear;
+%     %state2plot = { states{ logical(var.inj_year == Year2plot_sideView) } };
+%     state2plot = { states{ logical(stateYears == Year2plot_sideView) } };
+%     [ ~ ] = makeSideProfilePlots_CO2heights( model.G.parent, model.G, model.wellmodel.W.cells, ...
+%         state2plot, model.fluid, 'SleipnerBounded',true,'legendWithFreeCO2Only',true, ...
+%         'figname',files2load{j});
     
     
     % for combined top view and side profiles, in one figure:
-    [ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles(Years2plot, SimStartYear, plumeOutlines, sim_report, ...
+    % specify XY coordinate(s) you want to draw EW-slice(s) through:
+    XYcoord1 = [var.wellXcoord, var.wellYcoord + 500];
+    %XYcoord2 = [var.wellXcoord, var.wellYcoord + 900];
+    %XYcoord3 = [var.wellXcoord, var.wellYcoord + 1200];
+    XYcoords = [XYcoord1];%; XYcoord2];% XYcoord3];
+    cellIndex = zeros(numel(XYcoords(:,1)),1);
+    % get index of closest cell to your specified XY coordinate(s):
+    for p = 1:numel(XYcoords(:,1))
+        dv              = bsxfun(@minus, model.G.cells.centroids(:,1:2), XYcoords(p,:));
+        [v, cinx]       = min(sum(dv.^2, 2));   
+        cellIndex(p,:)    = cinx;
+    end
+    
+    inxPts = [model.wellmodel.W.cells; cellIndex];
+%     
+%     [ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles(2008.5, SimStartYear, plumeOutlines, sim_report, ...
+%                 model.G, states, model.fluid, model, ...
+%                 var.wellXcoord, var.wellYcoord, var.wellCoord_x, var.wellCoord_y, ta, ...
+%                 plumeOutline_SatTol, ...
+%                 'sliceCellIndex',inxPts, ...
+%                 'SleipnerBounded',true, ...
+%                 'figname',files2load{j});
+            
+    [ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles_basic(2008.5, SimStartYear, plumeOutlines, sim_report, ...
                 model.G, states, model.fluid, model, ...
                 var.wellXcoord, var.wellYcoord, var.wellCoord_x, var.wellCoord_y, ta, ...
                 plumeOutline_SatTol, ...
-                'sliceCellIndex',[model.wellmodel.W.cells; model.wellmodel.W.cells-1000], ...
+                'sliceCellIndex',inxPts, ...
                 'SleipnerBounded',true, ...
-                'figname','test');%files2load{j});
+                'figname',files2load{j});
+    % remove the part of fileName which contains clock info and file
+    % extension, and add plot title and extension
+    plotname = [fileName(1:end-19) '_CO2vsObsPlume_2008.png']; 
+    set(gcf,'PaperPositionMode','auto'); print(plotname,'-dpng','-r0');
 end
 
 
