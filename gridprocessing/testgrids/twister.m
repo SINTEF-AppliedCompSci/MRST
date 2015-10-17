@@ -3,9 +3,11 @@ function pt = twister(pt, varargin)
 %
 % SYNOPSIS:
 %   pt = twister(pt)
+%   G  = twister(G)
 %
 % PARAMETERS:
 %   pt - Coordinates to permute
+%   G  - Grid structure
 %
 % RETURNS:
 %   pt - Modified coordinates.
