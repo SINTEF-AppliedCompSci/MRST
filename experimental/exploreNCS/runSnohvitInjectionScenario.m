@@ -1,5 +1,27 @@
 function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenario( Gt, rock2D, varargin )
-
+% Run the Snohvit injection scenario.
+%
+%   Overview (Hansen et al 2013):
+%       - gas production started in August 2007
+%       - co2 injection began in April 2008
+%       - injected volume in 2008 was lower than expected. Pressure
+%       increased quickly during fall 2008
+%       - precipitation of salt near wellbore formation is blamed as cause
+%       for reduced injectivity and increased pressure
+%       - after 3 attempted perforations (to reduce injection pressure)
+%       around April 2011, Tubaen storage site was sealed off, and well
+%       perforated at a shallower level (i.e., in the Sto formation)
+%
+%       - between April 2008 and Aug 2012, 1.6 Mt CO2 was injected (not
+%       continuously due to interruptions, plant maintence, etc.)
+%
+%   Estimated injection (Hansen et al 2013):
+%       - 30 year lifetime of Snohvit LNG project
+%       - ~ 23 Mt CO2 captured for storage (12 e9 m3 at surface conditions)
+%       - inj. rate: 2 kt/day
+%       - inj. reservoir rate: 2100 to 2750 m3/day
+%       - design capacity: 0.7 Mt/yr
+%
     gravity on;
     moduleCheck('ad-core');
 
