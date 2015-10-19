@@ -150,7 +150,7 @@ methods
                 failureMsg = 'Linear solver produced non-finite values.';
             end
         end
-        isConverged = convergence || (model.stepFunctionIsLinear && doneMinIts);
+        isConverged = (convergence  && doneMinIts) || model.stepFunctionIsLinear;
         
         if model.verbose
             printConvergenceReport(resnames, values, isConverged, iteration);
