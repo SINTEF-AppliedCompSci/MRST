@@ -140,7 +140,7 @@ methods
 
             % Let the non-linear solver decide what to do with the
             % increments to get the best convergence
-            dx = nonlinsolve.stabilizeNewtonIncrements(problem, dx);
+            dx = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
 
             % Finally update the state. The physical model knows which
             % properties are actually physically reasonable.

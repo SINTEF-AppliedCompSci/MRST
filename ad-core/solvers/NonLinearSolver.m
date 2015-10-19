@@ -339,7 +339,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        function dx = stabilizeNewtonIncrements(solver, problem, dx)
+        function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
             % Attempt to stabilize newton increment by changing the values
             % of the increments.
             
