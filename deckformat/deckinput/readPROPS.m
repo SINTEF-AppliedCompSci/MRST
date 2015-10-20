@@ -71,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              clear data;
 
          case 'SHRATE',
-             tmpl(1:1) = {'4.8'};
+             tmpl = { '4.8' };
              data = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
              prp.(kw) = to_double(data); clear tmpl
 
