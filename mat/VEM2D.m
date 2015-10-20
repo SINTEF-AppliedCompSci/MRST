@@ -1,4 +1,4 @@
-function U = VEM2D(G, f, g)
+function [U, hG] = VEM2D(G, f, bc)
 %--------------------------------------------------------------------------
 %   -\Delta u = f, x \in \Omega
 %           u = g, x \in \partial \Omega
@@ -13,33 +13,13 @@ Ne = G.faces.num;
 Nn = G.nodes.num;
 Ndof = Nn + Ne + Nc;
 
-[S, b] = VEM2D_glob(G, f);
+[S, b, hG] = VEM2D_glob(G, f);
 
-boundaryNodes = zeros(Ndof,1);
-neighbors = G.faces.neighbors;
-for e = 1:Ne
-    if neighbors(e,1) == 0 || neighbors(e,2) == 0
-        nodeNum = G.faces.nodePos(e):G.faces.nodePos(e+1)-1;
-        boundaryNodes([G.faces.nodes(nodeNum)', Nn + e]) = 1;
-    end
-end
-
-boundaryNodes = find(boundaryNodes);
-
-SBC = eye(Ndof);
-
-S(boundaryNodes,:) = SBC(boundaryNodes,:);
-
-baricenters = zeros(Nc,2);
-for c = 1:Nc
-    nodeNum = G.cells.nodePos(c):G.cells.nodePos(c+1)-1;        
-    nodes = G.cells.nodes(nodeNum);
-    X = G.nodes.coords(nodes,:);
-    [~, baricenters(c,:)] = baric(X);
-end
-
-X = [G.nodes.coords ; G.faces.centroids ; baricenters];
-b(boundaryNodes) = g(X(boundaryNodes,:));
+[bcDof, bBC] = VEM2D_bc(G, bc);
+b(bcDof == 1) = bBC(bcDof == 1);
+SBC = spdiags(ones(Ndof,1),0,Ndof,Ndof);
+S(bcDof == 1,:) = SBC(bcDof == 1,:);
+b(bcDof == 2) = b(bcDof == 2) + bBC(bcDof == 2);
 
 U = S\b;
 

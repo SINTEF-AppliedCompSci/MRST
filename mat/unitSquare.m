@@ -17,6 +17,8 @@ tmp = (neighbors(:,1) == 0) + (neighbors(:,2) == 0);
 remCells = unique(sum(neighbors(find(tmp),:),2 ));
 G = removeCells(G,remCells);
 
+%   distmesh
+
 % X = G.nodes.coords;
 % G.nodes.coords(find(X(:,1) < 0),1) = 0;
 % G.nodes.coords(find(X(:,1) > 1),1) = 1;
