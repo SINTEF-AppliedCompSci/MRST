@@ -29,11 +29,14 @@ n = model.G.cells.num;
 % multipliers
 [umin, umax] = deal(scaling.boxLims(:,1), scaling.boxLims(:,2));
 us = u.*(umax-umin)+umin;
+q_prev = arrayfun(@(x)x.W.val, schedule.control);
+
 for i=1:numel(schedule.control)
     schedule.control(i).dz       = us(1:n);
-    schedule.control(i).rhofac   = us(n+1);
-    schedule.control(i).permfac  = us(n+2);
-    schedule.control(i).porofac  = us(n+3);
+    schedule.control(i).W.val    = us(n+1)*schedule.control(i).W.val/mean(q_prev);
+    schedule.control(i).rhofac   = us(n+2);
+    schedule.control(i).permfac  = us(n+3);
+    schedule.control(i).porofac  = us(n+4);
 end
 
 % run simulation:
@@ -47,7 +50,7 @@ val  = - sum(cell2mat(vals))/objScaling;
 % run adjoint:
 if nargout > 1
     objh = @(tstep)obj(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
-    g    = computeGradientAdjointAD(state0, states, model, schedule, objh, 'ControlVariables', {'scell','mult'});
+    g    = computeGradientAdjointAD(state0, states, model, schedule, objh, 'ControlVariables', {'scell','well','mult'});
     g    = cell2mat(g);
     g    = sum(g,2);
     % scale gradient:
