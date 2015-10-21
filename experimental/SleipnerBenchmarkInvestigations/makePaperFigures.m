@@ -1,9 +1,23 @@
 %% Figure generation for Sleipner Draft Paper.
+% Notes:
+%   - export_fig is the routine used to save all figures. This routine
+%   can be downloaded from MATLAB's file exchange:
+%   <http://www.mathworks.com/matlabcentral/fileexchange/23629-export-fig>
+%   - use png for mesh (smaller file sizes)
+%   - use png or pdf for grids
+%   - eps figures are better than png using export_fig. pdf is also okay.
+%   - use '-transparent' to ensure figure background is white (some figure
+%   viewers will show transparent area as checkboard).
+%   - need to fix text that contains super- or sub- scripts.
+
+% directory for all saved figures
+dirname = 'SleipnerFigs';
+mkdir(dirname)
 
 
 %% Figure 1
 % Observed CO2 outlines (plumes) superimposed onto a grid (Gt) to show mis-match
-clear
+clearvars -except dirname
 plumes = getLayer9CO2plumeOutlines();
 [ ~, Gt, ~, ~ ] = makeSleipnerModelGrid('modelName','IEAGHGmodel', 'refineLevel',1, 'plotsOn',false);
 [plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt, 'plotsOn',true);
@@ -12,41 +26,61 @@ plumes = getLayer9CO2plumeOutlines();
 
 %% Figure 2
 % CO2 entry rates into layer 9
-%clear
+clearvars -except dirname
 %[opt, varSPE, model, schedule, initState] = studySleipnerBenchmarkFUN('ratecase','SPE', 'runSimulation',false);
 %[opt, varOrig, model, schedule, initState] = studySleipnerBenchmarkFUN('ratecase','original', 'runSimulation',false);
-plotRatesForComparison()
-[ schedule, var ] = getInjRatesAndTimeSteps()
+[ hfig1, hfig2 ] = plotRatesForComparison;
+%set(hfig1,'Color','white');
+export_fig(hfig1, [dirname '/' 'Rate_volumetric'],'-eps','-transparent')
+export_fig(hfig2, [dirname '/' 'Rate_mass'],'-eps','-transparent')
+
+% OR:
+%[ schedule, var ] = getInjRatesAndTimeSteps()
 
 
 %% Figure 3 - 4
 % Fig3: GHGT model and IEAGHG model grids
 % Fig4: Top surface comparison and re-centered difference
-clear
-inspectSleipnerGridModels
+clearvars -except dirname
+[ hfig1, hfig2, hfigA, hfigB, hfigC ] = inspectSleipnerGridModels('refineLevels',1,'add2008Plume',true,'addlegend',false);
+export_fig(hfig1, [dirname '/' 'GHGTgrid'],'-png','-transparent')           % save as png to avoid a large eps file size
+export_fig(hfig2, [dirname '/' 'IEAGHGgrid'],'-png','-transparent')         % save as png to avoid a large eps file size
+export_fig(hfigA, [dirname '/' 'CompareGridsA'],'-eps','-transparent')
+export_fig(hfigB, [dirname '/' 'CompareGridsB'],'-eps','-transparent')
+export_fig(hfigC, [dirname '/' 'CompareGridsC'],'-png','-transparent')      % save this fig as png to avoid strange coloring behavior that occurs when saving as pdf (and when eps gets converted to pdf in latex document)
 
 
 %% Figure 5
-
+% Structural traps and their capacity in the GHGT and IEAGHG grids
+clearvars -except dirname
 
 
 
 
 %% Figure 6 - 12: Simulation results (CO2 mass)
-clear
+clearvars -except dirname
 
-% run all simulation cases (unless they have already been run and results
-% saved)
-%variousInjectScenarios
+% check to see if results directory exists. If it doesn't exist, create it
+% and run all simulation cases. Otherwise, load the simulation results.
+if ~exist('SleipnerSims','dir')
+    fprintf('\n Directory of simulations does not exist. \n')
+    fprintf('\n Will make directory and run all simulation cases. \n')
+    mkdir('SleipnerSims')
+    variousInjectScenarios
+    
+else disp('Directory exists')
+    % load results of simulation cases
+    % first get all mat file names in current directory (where results
+    % should have been saved)
+    s = what;
+    matFileNames = s.mat;
 
-% load results of simulation cases
-% first get all mat file names in current directory (where results should
-% have been saved)
-s = what;
-matFileNames = s.mat;
+    files2load = matFileNames;
+end
 
-files2load = matFileNames;
 
+
+% Some specifics required for plot generation:
 SimStartYear        = 1999;
 Years2plot          = [1999.5; 2001.5; 2002.5; 2004.5; 2006.5; 2008.5];
 Year2plot_sideView  = 2008.5;
@@ -56,7 +90,6 @@ plumeOutline_SatTol = (0.01/100); % adjust this value if patch error occurs
                                   % (which can happen when plotting a year
                                   % with minimal massCO2)
                                   
-  
 
 for j=1:numel(files2load)
 
@@ -169,7 +202,7 @@ end
 
 %% Figure X-X
 % Sensitivities:
-clear
+clearvars -except dirname
 
 % 1. run a simulation using smodel, and get the CO2 height data.
 % (Alternatively, you could load any previously run simulation results,

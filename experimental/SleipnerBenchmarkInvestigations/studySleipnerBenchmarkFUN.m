@@ -61,7 +61,8 @@ opt = struct(   'gridname',             'IEAGHGmodel', ...
                 'useSensModel',         false, ...
                 'runSimulation',        true, ...
                 'askBeforeSolver',      true, ...
-                'askBeforeSaving',      true            );
+                'askBeforeSaving',      true, ...
+                'dirName',              'SleipnerSims'       );
             
 opt = merge_options(opt, varargin{:});
 
@@ -489,10 +490,10 @@ function saveResults( opt, var, model, schedule, wellSols, states, sim_report )
     % .mat files, user consent is required if ask=true. Otherwise, if
     % ask=false, saving occurs automatically.
     if (opt.askBeforeSaving && userConsent('Do you want to save simulation results?'))
-        save(fileName,'-v7.3');
+        save([opt.dirName '/' fileName],'-v7.3');
 
     elseif ~opt.askBeforeSaving
-        save(fileName,'-v7.3');
+        save([opt.dirName '/' fileName],'-v7.3');
     end
 end
 
