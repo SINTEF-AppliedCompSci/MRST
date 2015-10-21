@@ -10,14 +10,18 @@
 %   viewers will show transparent area as checkboard).
 %   - need to fix text that contains super- or sub- scripts.
 
+%%
+moduleCheck('co2lab');
+mrstVerbose on
+
 % directory for all saved figures
-dirname = 'SleipnerFigs';
-mkdir(dirname)
+figDirName = 'SleipnerFigs';
+mkdir(figDirName)
 
 
 %% Figure 1
 % Observed CO2 outlines (plumes) superimposed onto a grid (Gt) to show mis-match
-clearvars -except dirname
+clearvars -except figDirName
 plumes = getLayer9CO2plumeOutlines();
 [ ~, Gt, ~, ~ ] = makeSleipnerModelGrid('modelName','IEAGHGmodel', 'refineLevel',1, 'plotsOn',false);
 [plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt, 'plotsOn',true);
@@ -26,13 +30,13 @@ plumes = getLayer9CO2plumeOutlines();
 
 %% Figure 2
 % CO2 entry rates into layer 9
-clearvars -except dirname
+clearvars -except figDirName
 %[opt, varSPE, model, schedule, initState] = studySleipnerBenchmarkFUN('ratecase','SPE', 'runSimulation',false);
 %[opt, varOrig, model, schedule, initState] = studySleipnerBenchmarkFUN('ratecase','original', 'runSimulation',false);
 [ hfig1, hfig2 ] = plotRatesForComparison;
 %set(hfig1,'Color','white');
-export_fig(hfig1, [dirname '/' 'Rate_volumetric'],'-eps','-transparent')
-export_fig(hfig2, [dirname '/' 'Rate_mass'],'-eps','-transparent')
+export_fig(hfig1, [figDirName '/' 'Rate_volumetric'],'-eps','-transparent')
+export_fig(hfig2, [figDirName '/' 'Rate_mass'],'-eps','-transparent')
 
 % OR:
 %[ schedule, var ] = getInjRatesAndTimeSteps()
@@ -41,41 +45,41 @@ export_fig(hfig2, [dirname '/' 'Rate_mass'],'-eps','-transparent')
 %% Figure 3 - 4
 % Fig3: GHGT model and IEAGHG model grids
 % Fig4: Top surface comparison and re-centered difference
-clearvars -except dirname
+clearvars -except figDirName
 [ hfig1, hfig2, hfigA, hfigB, hfigC ] = inspectSleipnerGridModels('refineLevels',1,'add2008Plume',true,'addlegend',false);
-export_fig(hfig1, [dirname '/' 'GHGTgrid'],'-png','-transparent')           % save as png to avoid a large eps file size
-export_fig(hfig2, [dirname '/' 'IEAGHGgrid'],'-png','-transparent')         % save as png to avoid a large eps file size
-export_fig(hfigA, [dirname '/' 'CompareGridsA'],'-eps','-transparent')
-export_fig(hfigB, [dirname '/' 'CompareGridsB'],'-eps','-transparent')
-export_fig(hfigC, [dirname '/' 'CompareGridsC'],'-png','-transparent')      % save this fig as png to avoid strange coloring behavior that occurs when saving as pdf (and when eps gets converted to pdf in latex document)
+export_fig(hfig1, [figDirName '/' 'GHGTgrid'],'-png','-transparent')           % save as png to avoid a large eps file size
+export_fig(hfig2, [figDirName '/' 'IEAGHGgrid'],'-png','-transparent')         % save as png to avoid a large eps file size
+export_fig(hfigA, [figDirName '/' 'CompareGridsA'],'-eps','-transparent')
+export_fig(hfigB, [figDirName '/' 'CompareGridsB'],'-eps','-transparent')
+export_fig(hfigC, [figDirName '/' 'CompareGridsC'],'-png','-transparent')      % save this fig as png to avoid strange coloring behavior that occurs when saving as pdf (and when eps gets converted to pdf in latex document)
 
 
 %% Figure 5
 % Structural traps and their capacity in the GHGT and IEAGHG grids
-clearvars -except dirname
+clearvars -except figDirName
 
 
 
 
 %% Figure 6 - 12: Simulation results (CO2 mass)
-clearvars -except dirname
+clearvars -except figDirName
+simsDirName = 'SleipnerSims';
 
 % check to see if results directory exists. If it doesn't exist, create it
 % and run all simulation cases. Otherwise, load the simulation results.
-if ~exist('SleipnerSims','dir')
+if ~exist(simsDirName,'dir')
     fprintf('\n Directory of simulations does not exist. \n')
     fprintf('\n Will make directory and run all simulation cases. \n')
-    mkdir('SleipnerSims')
+    mkdir(simsDirName)
     variousInjectScenarios
     
 else disp('Directory exists')
     % load results of simulation cases
     % first get all mat file names in current directory (where results
     % should have been saved)
-    s = what;
-    matFileNames = s.mat;
-
-    files2load = matFileNames;
+    s = what(simsDirName);
+    files2load = s.mat;
+    
 end
 
 
@@ -94,7 +98,7 @@ plumeOutline_SatTol = (0.01/100); % adjust this value if patch error occurs
 for j=1:numel(files2load)
 
     % load .mat results file
-    load(files2load{j})
+    load([simsDirName '/' files2load{j}])
     
 %     % check rates and time steps
 %     % note: when plotting rates using states.wellSol.val, the rates correspond
@@ -139,15 +143,29 @@ for j=1:numel(files2load)
     ta = trapAnalysis(model.G, false);
     
 
-    [ ~, ~ ] = subplotCO2simVsCO2obsData_basic(Years2plot, SimStartYear, plumeOutlines, sim_report, ...
-                model.G, states, model.fluid, model, ...
-                var.wellXcoord, var.wellYcoord, var.wellCoord_x, var.wellCoord_y, ta, ...
-                ZoomIntoPlume, plumeOutline_SatTol, ...
-                'figname',files2load{j}); % note the basic function plots in kg, not Mt
+    % --------------- Plot of CO2 mass versus plume outlines --------------
+    [ ~, ~ ] = subplotCO2simVsCO2obsData_basic(Years2plot, SimStartYear, ...
+                plumeOutlines, sim_report, model.G, states, model.fluid, ...
+                model, var.wellXcoord, var.wellYcoord, var.wellCoord_x, ...
+                var.wellCoord_y, ta, ZoomIntoPlume, plumeOutline_SatTol, ...
+                'figname',files2load{j});
+    
+    % Prepare the plot name for saving:
+    % (first remove any '.' from fileName to make it latex-friendly, then
     % remove the part of fileName which contains clock info and file
-    % extension, and add plot title and extension
-    plotname = [fileName(1:end-19) '_CO2vsObsPlume.png']; 
-    set(gcf,'PaperPositionMode','auto'); print(plotname,'-dpng','-r0');
+    % extension, and add a specific plot title)
+    plotname = fileName;
+    plotname(plotname=='.') = [];
+    plotname = [plotname(1:end-18) '_CO2vsObsPlume'];
+    
+    % Save figure
+    %set(gcf,'PaperPositionMode','auto'); %print(plotname,'-dpng','-r0');
+    set(gcf,'Color','white');
+    export_fig(gcf, [figDirName '/' plotname],'-png')
+    % there was an issue exporting this fig using '-transparent', so
+    % background color set to white manually
+    % ---------------------------------------------------------------------
+    
     
 %     % for side profile
 %     stateYears = sim_report.ReservoirTime/convertFrom(1,year)+SimStartYear;
@@ -157,7 +175,8 @@ for j=1:numel(files2load)
 %         state2plot, model.fluid, 'SleipnerBounded',true,'legendWithFreeCO2Only',true, ...
 %         'figname',files2load{j});
     
-    
+
+    % ------------ Plot of CO2 mass in 2008 with side profiles ------------
     % for combined top view and side profiles, in one figure:
     % specify XY coordinate(s) you want to draw EW-slice(s) through:
     XYcoord1 = [var.wellXcoord, var.wellYcoord + 500];
@@ -169,7 +188,7 @@ for j=1:numel(files2load)
     for p = 1:numel(XYcoords(:,1))
         dv              = bsxfun(@minus, model.G.cells.centroids(:,1:2), XYcoords(p,:));
         [v, cinx]       = min(sum(dv.^2, 2));   
-        cellIndex(p,:)    = cinx;
+        cellIndex(p,:)  = cinx;
     end
     
     inxPts = [model.wellmodel.W.cells; cellIndex];
@@ -182,17 +201,29 @@ for j=1:numel(files2load)
 %                 'SleipnerBounded',true, ...
 %                 'figname',files2load{j});
             
-    [ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles_basic(2008.5, SimStartYear, plumeOutlines, sim_report, ...
-                model.G, states, model.fluid, model, ...
-                var.wellXcoord, var.wellYcoord, var.wellCoord_x, var.wellCoord_y, ta, ...
-                plumeOutline_SatTol, ...
-                'sliceCellIndex',inxPts, ...
-                'SleipnerBounded',true, ...
+    [ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles_basic(2008.5, ...
+                SimStartYear, plumeOutlines, sim_report, model.G, states, ...
+                model.fluid, model, var.wellXcoord, var.wellYcoord, ...
+                var.wellCoord_x, var.wellCoord_y, ta, plumeOutline_SatTol, ...
+                'sliceCellIndex',inxPts, 'SleipnerBounded',true, ...
                 'figname',files2load{j});
+            
+    % Prepare the plot name for saving:
+    % (first remove any '.' from fileName to make it latex-friendly, then
     % remove the part of fileName which contains clock info and file
-    % extension, and add plot title and extension
-    plotname = [fileName(1:end-19) '_CO2vsObsPlume_2008.png']; 
-    set(gcf,'PaperPositionMode','auto'); print(plotname,'-dpng','-r0');
+    % extension, and add a specific plot title)
+    plotname = fileName;
+    plotname(plotname=='.') = [];
+    plotname = [plotname(1:end-18) '_CO2vsObsPlume_2008_withSideProfiles'];
+    
+    % Save figure
+    %set(gcf,'PaperPositionMode','auto'); %print(plotname,'-dpng','-r0');
+    set(gcf,'Color','white');
+    export_fig(gcf, [figDirName '/' plotname],'-png')
+    % there was an issue exporting this fig using '-transparent', so
+    % background color set to white manually
+    % ---------------------------------------------------------------------
+    
 end
 
 
@@ -202,7 +233,7 @@ end
 
 %% Figure X-X
 % Sensitivities:
-clearvars -except dirname
+clearvars -except figDirName
 
 % 1. run a simulation using smodel, and get the CO2 height data.
 % (Alternatively, you could load any previously run simulation results,
