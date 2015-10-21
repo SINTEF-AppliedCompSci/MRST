@@ -1,12 +1,17 @@
-function inspectSleipnerGridModels
+function [ hfig1, hfig2, hfigA, hfigB, hfigC  ] = inspectSleipnerGridModels( varargin )
 % Comparison of all three Sleipner grid models, given specified refinement
 % levels. The refinement level(s) (i.e., -2, -3, etc for coarsening; 2, 3,
 % etc for refinement) are defined, and each refinement case is analyzed
 % separately. Results are reported in table displayed in command window and
 % with plots.
 
+opt.refineLevels    = -6;
+opt.add2008Plume    = true;
+opt.addlegend       = true;
+opt = merge_options(opt, varargin{:});
+
 % Refinement cases:
-numRefCases = [-3]; %-4 -2 1 2 4];
+numRefCases = opt.refineLevels; %[-4, -3, -2, 1, 2, 3, 4];
 
 % Do you want to do a lot of analysis of the top-surfaces comparison?
 moreAnalysis = false;
@@ -22,8 +27,11 @@ for k = 1:numel(numRefCases)
     [ G_ieaghg, Gt_ieaghg, rock_ieaghg, rock2D_ieaghg ]          = makeSleipnerModelGrid( 'modelName','IEAGHGmodel','refineLevel', numRef);
     [ G_original, Gt_original, rock_original, rock2D_original ]  = makeSleipnerModelGrid( 'modelName','ORIGINALmodel','refineLevel', numRef );
     %[ G_inhouse, Gt_inhouse, rock_inhouse, rock2D_inhouse ]      = makeSleipnerModelGrid( 'modelName','INHOUSEmodel','refineLevel', numRef );
-    %G_inhouse = [];
-    %Gt_inhouse = [];
+    
+    % add grid names
+    Gt_ieaghg.name = 'IEAGHG';
+    Gt_original.name = 'GHGT';
+    
     
     %% Visualize Grids
     % use bounds of GHGT grid for consistency of plotting limits
@@ -32,11 +40,11 @@ for k = 1:numel(numRefCases)
     bounds.ymin = min(G.nodes.coords(:,2)); bounds.ymax = max(G.nodes.coords(:,2));
     bounds.zmin = min(G.nodes.coords(:,3)); bounds.zmax = max(G.nodes.coords(:,3));
     
-    [ ~ ] = makeGridPlot(G_original, bounds);
-    [ ~ ] = makeGridPlot(G_ieaghg,   bounds);
+    [ hfig1 ] = makeGridPlot(G_original, bounds);
+    [ hfig2 ] = makeGridPlot(G_ieaghg,   bounds);
     
     %% Compare top surfaces of grids
-    compareSurfaces(Gt_ieaghg, Gt_original);
+    [ hfigA, hfigB, hfigC ] = compareSurfaces(Gt_ieaghg, Gt_original, opt.add2008Plume, opt.addlegend);
     
     
     %% Other (todo)
@@ -106,7 +114,7 @@ for k = 1:numel(numRefCases)
 
 
     %% Get ready for next refinement case 
-    clearvars -except numRefCases k recenterGrids report moreAnalysis
+    clearvars -except numRefCases k recenterGrids report moreAnalysis hfig1 hfig2 hfigA hfigB hfigC
 
 end
 
@@ -368,18 +376,18 @@ function [ hfig ] = makeGridPlot(G, bounds)
 end
 
 
-function compareSurfaces(Gt1, Gt2)
+function [ hfigA, hfigB, hfigC ] = compareSurfaces(Gt1, Gt2, add2008Plume, addlegend)
     % Compare top surface elevation grids (taken from resTiltUtsira.m):
     % Gt1 is the grid used for sampling points
-    mymap = [ 0 0 1; 0 1 0; 1 0 0 ]; % for coloring grids
-    %mymap = [ 0.5 0 0.9; 0 0.8 0.8; 0 0 1; ];
+    mymap = [ 1 0 0; 0 1 0 ]; % for coloring grids
+    %mymap = [ 0.5 0 0.9; 0 0.8 0.8; 0 0 1 ];
 
     
     %% Establishing grid interpolants
     [FS1, FS2] = createGridInterpolants(Gt1, Gt2);
     
-    %% Determining the sample points
-    GtS = Gt1;
+    %% Determining the sample points (using smaller grid)
+    GtS = Gt1; % todo: ensure this is the smaller grid.
     
     sizeS     = GtS.cartDims;
     get_range = @(d, pts, n) linspace(min(pts(:, d)), max(pts(:, d)), n);
@@ -392,7 +400,7 @@ function compareSurfaces(Gt1, Gt2)
     
     %% Compute and Display sampled grids, and difference surface
     % using difference surface interpolant FD
-    figure; set(gcf,'Position',[1 1 2000 500]);
+    hfigA = figure; %set(gcf,'Position',[1 1 2000 500]);
     
     % Sampling the grids:
     smpl_S1   = FS1(x,y); 
@@ -401,13 +409,13 @@ function compareSurfaces(Gt1, Gt2)
     % First, plot original surface elevations:
     smpl_S1_mean = 0;
     smpl_S2_mean = 0; 
-    title_str = 'Surfaces';
+    title_str = {'Surfaces';' '};
     FD = @(x, y) FS1(x,y) - FS2(x,y) - (smpl_S1_mean - smpl_S2_mean);
     
-    subplot(1,3,1);
+    %subplot(1,3,1);
     hold on;
-    mesh(x, y, smpl_S1, 'EdgeColor', mymap(:,2));
-    mesh(x, y, smpl_S2, 'EdgeColor', mymap(:,3));
+    mesh(x, y, smpl_S1, 'EdgeColor', mymap(1,:)); strname1 = Gt1.name;
+    mesh(x, y, smpl_S2, 'EdgeColor', mymap(2,:)); strname2 = Gt2.name;
     
     % adjust plot
     set(gca,'zdir', 'reverse'); view(24, 34); %view(-40,40);
@@ -415,13 +423,17 @@ function compareSurfaces(Gt1, Gt2)
     grid; box
     
     % add title
-    title(title_str, 'FontSize',22);
+    %title(title_str, 'FontSize',22);
     
     % add legend
-    hl = legend('GHGT','IEAGHG','Location','nw'); set(hl,'FontSize',22);
+    hl = legend(strname1,strname2,'Location','nw'); set(hl,'FontSize',22);
 
-    % adjust axis fontsize
-    set(gca,'FontSize',14);
+    % adjust axis ticks and fontsize
+    hax = gca;
+    set(hax,'YTick',[6470000 6472000 6474000])
+    set(hax,'XTick',[437000 438000 439000])
+    set(hax,'ZTick',[800 815 830])
+    set(hax,'FontSize',16);
     
     
     % Second, get recenterGrids:
@@ -431,13 +443,14 @@ function compareSurfaces(Gt1, Gt2)
     smpl_S1    = smpl_S1 - smpl_S1_mean;
     smpl_S2    = smpl_S2 - smpl_S2_mean;
 
-    title_str = 'Recentered Surfaces';
+    title_str = {'Recentered Surfaces';' '};
     FD = @(x, y) FS2(x,y) - FS1(x,y) - (smpl_S2_mean - smpl_S1_mean);
     
-    subplot(1,3,2);
+    hfigB = figure;
+    %subplot(1,3,2);
     hold on;
-    mesh(x, y, smpl_S1, 'EdgeColor', mymap(:,2));
-    mesh(x, y, smpl_S2, 'EdgeColor', mymap(:,3));
+    mesh(x, y, smpl_S1, 'EdgeColor', mymap(1,:)); strname1 = Gt1.name;
+    mesh(x, y, smpl_S2, 'EdgeColor', mymap(2,:)); strname2 = Gt2.name;
     
     % adjust plot
     set(gca,'zdir', 'reverse'); view(24, 34); %view(-40,40);
@@ -445,17 +458,22 @@ function compareSurfaces(Gt1, Gt2)
     grid; box
     
     % add title
-    title(title_str, 'FontSize',22);
+    %title(title_str, 'FontSize',22);
     
     % add legend
-    hl = legend('GHGT','IEAGHG','Location','nw'); set(hl,'FontSize',22);
+    hl = legend(strname1,strname2,'Location','nw'); set(hl,'FontSize',22);
     
-    % adjust axis fontsize
-    set(gca,'FontSize',14);
+    % adjust axis ticks and fontsize
+    hax = gca;
+    set(hax,'YTick',[6470000 6472000 6474000])
+    set(hax,'XTick',[437000 438000 439000])
+    set(hax,'ZTick',[-10 0 10 20])
+    set(hax,'FontSize',16);
     
     
     % Lastly, plot recentered grids elevation difference:
-    subplot(1,3,3);
+    hfigC = figure;
+    %subplot(1,3,3);
     surf(x,y, FD(x,y), 'Edgecolor','none');
     
     % adjust plot
@@ -463,26 +481,35 @@ function compareSurfaces(Gt1, Gt2)
     view(2); axis equal tight;
     
     % add title
-    title('Difference','FontSize',22);
+    %title({'Difference';' '},'FontSize',22);
     
-    % adjust axis fontsize
-    set(gca,'FontSize',14);
+    % adjust axis ticks and fontsize
+    hax = gca;
+    ymin = min(min(y)); ymax = max(max(y));
+    xmin = min(min(x)); xmax = max(max(x));
+    set(hax,'YTick',[ymin (ymax-ymin)/2+ymin ymax])
+    set(hax,'XTick',[xmin xmax])
+    set(hax,'FontSize',16);
     
     % add colorbar. adjust label and fontsize
     hcb = setColorbarHandle(gcf, 'fontSize',22, 'LabelName','meters');
     
-    % (optional): superimposed 2008 plume outline onto last subplot
-    plumes = getLayer9CO2plumeOutlines();
-    Year2plot = 2008;
-    for j = 1:numel(plumes)
-        if plumes{j}.year == Year2plot
-            disp('Plotting Observed CO2 plume outline...')
-            hp = line(plumes{j}.outline(:,1), plumes{j}.outline(:,2), -150*ones(numel(plumes{j}.outline(:,2)),1), 'LineWidth',1, 'Color','r');
+    if add2008Plume
+        % (optional): superimposed 2008 plume outline onto last subplot
+        plumes = getLayer9CO2plumeOutlines();
+        Year2plot = 2008;
+        for j = 1:numel(plumes)
+            if plumes{j}.year == Year2plot
+                disp('Plotting Observed CO2 plume outline...')
+                hp = line(plumes{j}.outline(:,1), plumes{j}.outline(:,2), -150*ones(numel(plumes{j}.outline(:,2)),1), 'LineWidth',2, 'Color','r');
+            end
+        end
+        % add legend (optional)
+        if addlegend
+            hl = legend([hp],{'2008 plume'}, 'Location','nw');
+            set(hl,'FontSize',22)
         end
     end
-    % add legend (optional)
-    hl = legend([hp],{'2008 plume'}, 'Location','nw');
-    set(hl,'FontSize',22)
     
 end
 

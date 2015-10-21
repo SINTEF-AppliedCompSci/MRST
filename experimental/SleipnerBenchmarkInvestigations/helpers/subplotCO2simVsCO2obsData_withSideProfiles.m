@@ -21,9 +21,18 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
     if isempty(opt.sliceCellIndex)
         opt.sliceCellIndex = model.wellmodel.W.cells;
     end
-    numSlices   = numel(opt.sliceCellIndex);
-    numPlotRows = numSlices + 1;
-    numPlotCols = numel(Years2plot);
+    numSlices       = numel(opt.sliceCellIndex);
+    % to ensure a top view subplot gets plotted in at least twice as many subplots as a slice
+    if numSlices == 1
+        numRows4TopView = 2;
+    elseif numSlices == 2
+        numRows4TopView = 2;
+    else
+        numRows4TopView = ceil(numSlices/2);
+    end
+    numPlotRows     = numSlices + numRows4TopView;
+    numPlotCols     = numel(Years2plot);
+    addRow = 1; % number of rows to place inbetween top view and side profile rows
 
     ReservoirTime2plot  = convertFrom( Years2plot - SimStartYear , year); % seconds
 
@@ -38,7 +47,14 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
     ZoomY2 = 6.474e6;
 
     
-    figure('name',opt.figname); set(gcf, 'Position', [1 1 2000 900])
+    figure('name',opt.figname);
+    if numPlotCols == 6
+        set(gcf, 'Position', [1 1 2000 900])
+    elseif numPlotCols == 1
+        set(gcf, 'Position', [1 1 500 1000])
+    else
+        disp('You will need to adjust the figure window size.')
+    end
     hold on
 
     %% First plot all subplots of CO2 mass with plume outlines from top view:
@@ -55,9 +71,12 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
         maxMassCO2(i)= max(massCO2);
 
 
-        % NOTE: Top view plots of CO2 mass with plume outlines will be
-        % plotted in second row of subplots:
-        subplot(numPlotRows, numPlotCols, i + (numPlotRows-1)*numPlotCols)
+        % To plot Top Views in bottom 'N=numRows4TopViewrow' rows subplots:
+        %subplot( numPlotRows, numPlotCols, [i+(numPlotRows-1)*numPlotCols i+numRows4TopView*numPlotCols] )
+        
+        % To plot Top Views in first 'N=numRows4TopViewrow' rows subplots:
+        subplot( numPlotRows+addRow, numPlotCols, [i i+numRows4TopView*numPlotCols] )
+
         hold on
 
         % Add CO2 mass data: Note: To ensure cell data is plotted
@@ -141,7 +160,14 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
 
     % 3. Add a colorbar beside last subplot, and adjust it's position
     [ hcb ] = setColorbarHandle( gcf, 'LabelName', 'kg', 'fontSize', 18 );
-    set(hcb,'Position',[0.915 0.185 0.01 0.662])
+    if numPlotCols == 6
+        set(hcb,'Position',[0.915 0.185 0.01 0.662])
+    elseif numPlotCols == 1
+        set(hcb,'Position',[0.78 0.535 0.028 0.392])
+    else
+        disp('You will need to adjust the color bar position.')
+    end
+    
 
 
 
@@ -183,7 +209,7 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
         states = addCO2HeightData(states, Gt, fluid);
     end
     
-    sliceLabels = ['A'; 'B'; 'C']; % ensure sliceLabels is as long as numSlices
+    sliceLabels = ['A'; 'B'; 'C'; 'D'; 'E']; % ensure sliceLabels is as long as numSlices
     for sln = 1:numSlices
         
         sliceCellIndex_curr = opt.sliceCellIndex(sln);
@@ -211,9 +237,13 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
             % get reservoir time index
             [rti,~] = find(sim_report.ReservoirTime==ReservoirTime2plot(i));
 
-            % NOTE: Side view plots will be plotted in first row of subplots:
-            subplot(numPlotRows, numel(ReservoirTime2plot), i)
-            subplot(numPlotRows, numPlotCols, i + (sln-1)*numPlotCols)
+            
+            % If side views are in first rows of subplots:
+            %subplot(numPlotRows, numPlotCols, i + (sln-1)*numPlotCols)
+            
+            % If side views come after rows used for Top Views:
+            subplot( numPlotRows+addRow, numPlotCols, (i + numRows4TopView*numPlotCols + (sln-1)*numPlotCols) + addRow*numPlotCols)
+            
             hold on
 
             % plot grid
@@ -224,21 +254,26 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
             plotPlume(Gt.parent, Gt, states{rti}.h_free, ijk{2} == jj, 'FaceColor',getInventoryColors(6),'EdgeColor','w','EdgeAlpha',.1)
 
             %xlabel('West to East','FontSize',16);
-            xlabel(['Slice ' sliceLabels(sln) ':' sliceLabels(sln)],'FontSize',16);
+            %xlabel(['Slice ' sliceLabels(sln) ':' sliceLabels(sln)],'FontSize',16);
             %zlabel('depth (meters)','FontSize',16)
-            set(gca,'DataAspect',[1 1 1/50])
+            %set(gca,'DataAspect',[1 1 1/50])
             xlim([xmin xmax]);
             zlim([zmin zmax]);
-            box;
-            axis off; title(['Slice ' sliceLabels(sln) ':' sliceLabels(sln)]);
-            set(gca,'FontSize',14)
+            axis off;
+            title(['slice ' sliceLabels(sln) ':' sliceLabels(sln)]);
+
 
 
             % Add slice line and label to TOPVIEW subplot
             % Note: the slice line is plotted using a z-coordinate of -250 such
             % that the line is visible ontop of the other previously plotted
             % items.
-            subplot(numPlotRows, numPlotCols, i + (numPlotRows-1)*numPlotCols)
+            % If Top Views are in bottom 'N=numRows4TopViewrow' rows subplots:
+            %subplot( numPlotRows, numPlotCols, [i+(numPlotRows-1)*numPlotCols i+numRows4TopView*numPlotCols] )
+        
+            % If Top Views are in first 'N=numRows4TopViewrow' rows subplots:
+            subplot( numPlotRows+addRow, numPlotCols, [i i+numRows4TopView*numPlotCols] )
+            
             hold on
             %plotCellData(Gt, -250*ones(Gt.cells.num,1), horiinx2color, 'FaceColor','red', 'EdgeColor','none')
             %plotGrid(Gt, 'FaceColor','none');
@@ -247,12 +282,18 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles( Years2plot,
             % Add label at each end of line
             %text(horiLineCoords(1,1), horiLineCoords(1,2),   sliceLabels(sln), 'HorizontalAlignment','right');
             %text(horiLineCoords(2,1), horiLineCoords(2,2),   sliceLabels(sln), 'HorizontalAlignment','left');
-            text(xmin, horiLineCoords(1,2),   sliceLabels(sln), 'HorizontalAlignment','left', 'FontSize',14);
-            text(xmax, horiLineCoords(2,2),   sliceLabels(sln), 'HorizontalAlignment','right','FontSize',14);
+            text(xmin-200, horiLineCoords(1,2),   sliceLabels(sln), 'HorizontalAlignment','left', 'FontSize',14);
+            text(xmax+200, horiLineCoords(2,2),   sliceLabels(sln), 'HorizontalAlignment','right','FontSize',14);
         
         end
     
     end
+    
+    % Adjust fontsize of A---A, B---B, etc. font
+    set(findobj(gcf,'type','Text'),'FontSize',18);
+    
+    % Adjust fontsize of slice titles
+    set(findobj(gcf,'type','Axes'),'FontSize',14);
 
 
 

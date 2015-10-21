@@ -1,4 +1,4 @@
-function plotRatesForComparison()
+function [ hfig1, hfig2 ] = plotRatesForComparison()
 
 
     % For plotting injection rates into figures
@@ -31,19 +31,21 @@ function plotRatesForComparison()
         
         
         % plot reservoir volume rates (in m3/year)
-        figure; set(gcf,'Position',[1 1 660 350])
+        hfig1 = figure; set(gcf,'Position',[1 1 660 350])
         plot(   inj_year_prelim, inj_rates_prelim, 'o', ...
                 inj_year_ieaghg, inj_rates_ieaghg, 'x')
         axis tight;
-        ylabel('Reservoir rate (m^3/year)')
-        xlabel('Year')
+        ylabel({'Volumetric rate (m$$^3$$/year)';'at reservoir conditions'},'interpreter','latex')
+        %ylabel({'Volumetric rate (m^{3}/year)';'at reservoir conditions'})
+        xlabel('Year','interpreter','latex')
         
         % add legend
         hl = legend('GHGT rates','IEAGHG rates');
-        set(hl,'Location','northwest')
+        set(hl,'Location','northwest','interpreter','latex')
         
         % adjust axis ticks
         hax = gca;
+        %set(hax, 'FontName', 'Helvetica'); % to ensure the font of latex interpreted text is same as default matlab font
         set(hax, 'Fontsize',14);
         set(hax.Children(:), 'MarkerSize', 8, 'LineWidth', 2)
         set(hax, 'XLim', [1999 2030])
@@ -56,7 +58,7 @@ function plotRatesForComparison()
         
         % plot mass rates (converted depending on reservior rhoCO2 given)
         % note: mass rate is same at surface and at reservoir.
-        figure; set(gcf,'Position',[1 1 660 350])
+        hfig2 = figure; set(gcf,'Position',[1 1 660 350])
         rhoCO2a = 760;      % from SPE paper (Singh et al 2010)
         rhoCO2b = 695.89;   % from prelim benchmark rates (.xls)
         rhoCO2c = 355;      % from Cavanagh et al 2014, table 2
@@ -64,17 +66,18 @@ function plotRatesForComparison()
                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2a, 'x', ...
                 inj_year_prelim, inj_rates_prelim.*rhoCO2c, 'o-.', ...
                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2c, 'x-.' )
-        %ylabel({'Reservoir and Surface';'rate (kg/year)'})
-        ylabel({'Mass rate (kg/year) determined from';'CO_2 density at reservoir conditions'})
-        xlabel('Year')
+        ylabel({'Mass rate (kg/year)'},'interpreter','latex')
+        %ylabel({'Mass rate (kg/year) determined from';'CO_2 density at reservoir conditions'})
+        xlabel('Year','interpreter','latex')
         
         % add legend
-        hl = legend( ['GHGT rates, CO_2 density=',num2str(rhoCO2b)],['IEAGHG rates, CO_2 density=',num2str(rhoCO2a)], ...
-                     ['GHGT rates, CO_2 density=',num2str(rhoCO2c)],['IEAGHG rates, CO_2 density=',num2str(rhoCO2c)]  );
-        set(hl,'Location','northwest');
+        hl = legend( ['GHGT rates, CO$$_2$$ density=',num2str(rhoCO2b)],['IEAGHG rates, CO$$_2$$ density=',num2str(rhoCO2a)], ...
+                     ['GHGT rates, CO$$_2$$ density=',num2str(rhoCO2c)],['IEAGHG rates, CO$$_2$$ density=',num2str(rhoCO2c)]  );
+        set(hl,'Location','northwest','interpreter','latex');
 
         % adjust axis ticks
         hax = gca;
+        %set(hax, 'FontName', 'Helvetica'); % to ensure the font of latex interpreted text is same as default matlab font
         set(hax, 'Fontsize',14);
         set(hax.Children(:), 'MarkerSize', 8, 'LineWidth', 2)
         set(hax, 'XLim', [1999 2030])
@@ -86,25 +89,24 @@ function plotRatesForComparison()
         
         
         
-        % optional:
-        % rates converted into mass/year, depending on rhoCO2 given
-        figure
-        rhoCO2a = 760;      % from SPE paper (Singh et al 2010)
-        rhoCO2b = 695.89;   % from prelim benchmark rates (.xls)
-        rhoCO2c = 355;      % from Cavanagh et al 2014, table 2
-        plot(   inj_year_prelim, inj_rates_prelim.*rhoCO2a, 'o', ...
-                inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2a, 'x', ...
-                inj_year_prelim, inj_rates_prelim.*rhoCO2b, 'o--', ...
-                inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2b, 'x--', ...
-                inj_year_prelim, inj_rates_prelim.*rhoCO2c, 'o-.', ...
-                inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2c, 'x-.' )
-        ylabel('Reservoir rate, kg/year')
-        xlabel('Year')
-        legend( ['GHGT rates, CO2 density=',num2str(rhoCO2a)],['IEAGHG rates, CO2 density=',num2str(rhoCO2a)], ...
-                ['GHGT rates, CO2 density=',num2str(rhoCO2b)],['IEAGHG rates, CO2 density=',num2str(rhoCO2b)], ...
-                ['GHGT rates, CO2 density=',num2str(rhoCO2c)],['IEAGHG rates, CO2 density=',num2str(rhoCO2c)]  )
-    
-    
+%         % optional:
+%         % rates converted into mass/year, depending on rhoCO2 given
+%         figure
+%         rhoCO2a = 760;      % from SPE paper (Singh et al 2010)
+%         rhoCO2b = 695.89;   % from prelim benchmark rates (.xls)
+%         rhoCO2c = 355;      % from Cavanagh et al 2014, table 2
+%         plot(   inj_year_prelim, inj_rates_prelim.*rhoCO2a, 'o', ...
+%                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2a, 'x', ...
+%                 inj_year_prelim, inj_rates_prelim.*rhoCO2b, 'o--', ...
+%                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2b, 'x--', ...
+%                 inj_year_prelim, inj_rates_prelim.*rhoCO2c, 'o-.', ...
+%                 inj_year_ieaghg, inj_rates_ieaghg.*rhoCO2c, 'x-.' )
+%         ylabel('Reservoir rate, kg/year')
+%         xlabel('Year')
+%         legend( ['GHGT rates, CO2 density=',num2str(rhoCO2a)],['IEAGHG rates, CO2 density=',num2str(rhoCO2a)], ...
+%                 ['GHGT rates, CO2 density=',num2str(rhoCO2b)],['IEAGHG rates, CO2 density=',num2str(rhoCO2b)], ...
+%                 ['GHGT rates, CO2 density=',num2str(rhoCO2c)],['IEAGHG rates, CO2 density=',num2str(rhoCO2c)]  )
+  
     
 
 

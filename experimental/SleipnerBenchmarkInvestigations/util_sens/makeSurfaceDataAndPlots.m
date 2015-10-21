@@ -51,6 +51,7 @@ if opt.plotsOn
     [ ~ ] = makePlot3(Gt, line_coord); 
     [ ~ ] = makePlot4(Gt, line_coord, 'SleipnerBounded',true, 'plume2008Bounded',false);
     [ ~ ] = makePlot5(Gt, hCO2, line_coord, insidePlumeXY);
+    [ ~ ] = makePlot6(Gt, hCO2, line_coord);
 end
 
 %% Return variables
@@ -80,7 +81,7 @@ end
 
 function [ hfig ] = makePlot1(Gt, line_coord)
 
-    figure; set(gcf,'Position',[1 1 1000 800])
+    figure; set(gcf,'Position',[1 1 800 700])
 
     % first plot top surface of grid
     plotGrid(Gt, 'FaceColor', 'none', 'EdgeColor', 'k', 'EdgeAlpha', .1);
@@ -110,7 +111,7 @@ function [ hfig ] = makePlot1(Gt, line_coord)
 
     % add legend
     hl = legend([hp1, hp2],{'plume outline following grid topography','plume outline with planar shoreline'},'Location','ne');
-    set(hl,'FontSize',14)
+    set(hl,'FontSize',14, 'Location','northwest')
 
     hfig = gcf;
 
@@ -325,6 +326,30 @@ function [ hfig ] = makePlot5(Gt, hCO2, line_coord, insidePlumeXY)
 
     title('hCO2: (topfit - topsurface) > 0, inside plume')
     legend('hCO2(x,y)','topsurface(x_p,y_p)', 'Location','NorthEast')
+    axis equal tight;
+    set(gca,'DataAspect',[1 1 1/50])
+    grid
+    zlabel('depth (meters)')
+    
+    hfig = gcf;
+
+end
+
+% -------------------------------------------------------------------------
+
+function [ hfig ] = makePlot6(Gt, hCO2, line_coord)
+
+    % show observed CO2 heights (that were computed using a grid and a
+    % plume outline)
+    figure; %set(gcf,'Position',[1 1 500 500])
+
+    plotCellData(Gt, hCO2(Gt.cells.centroids), 'EdgeColor','none'); colorbar
+    %line(line_coord(:,1), line_coord(:,2), var.topsurface(line_coord)-3, 'LineWidth',2, 'Color','r'); % -1 to ensure visibility of plume outline against other plots
+    view(2)
+
+    %title('hCO2: (topfit - topsurface) > 0, inside plume')
+    title('CO_2 heights (between caprock and planar shoreline)')
+    %legend('hCO2(x,y)','topsurface(x_p,y_p)', 'Location','NorthEast')
     axis equal tight;
     set(gca,'DataAspect',[1 1 1/50])
     grid
