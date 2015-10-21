@@ -14,13 +14,17 @@
 % a model could be constructed which is made up of all three layers, and
 % the injection occurs in the Tubaen (bottom).
 
+% Injection originally was into the Tubaen formation, but in 2011, the well
+% was perforated at a shallower level, such that CO2 was injected into the
+% Sto formation (Hansen et al 2013, pg 3566).
+
 % Approximate locations of wells:
 % well 7121/4-1: (9.254e5, 7.988e6)
 % well 7120/6-1: (9.182e5, 7.989e6)
 % well 7121/4-2: (9.210e5, 7.990e6)
 % inj well 7121/4F-2H: (9.225e5, 7.988e6)
-%   ED 50, UTM sone 34 (5.01998e5, 7.945754e6) ---> obtained from http://factpages.npd.no/factpages/Default.aspx?culture=nb-no&nav1=field&nav2=PageView%7cProducing&nav3=2053062
-
+%   - ED 50, UTM sone 34 (5.01998e5, 7.945754e6)
+%   - obtained from http://factpages.npd.no/factpages/Default.aspx?culture=nb-no&nav1=field&nav2=PageView%7cProducing&nav3=2053062
 mrstModule add libgeometry opm_gridprocessing
 
 
@@ -78,7 +82,6 @@ rock_tu.perm = convertFrom(rock_tu.perm, milli*darcy);
 rock2D_st  = averageRock(rock_st, Gt_st);
 rock2D_nd  = averageRock(rock_nd, Gt_nd);
 rock2D_tu  = averageRock(rock_tu, Gt_tu);
-
 
 
 %% Visualization to assess grids and rock properties.
@@ -170,6 +173,26 @@ plotCellData(Gt_tu, rock2D_tu.poro, 'EdgeColor','none'); view(2); axis equal tig
 subplot(3,4,12)
 plotCellData(Gt_tu, rock2D_tu.perm./(milli*darcy), 'EdgeColor','none'); view(2); axis equal tight; colorbar; caxis([perm_min perm_max]./(milli*darcy))
 
+% Note: some spots in formations contain which may have Inf or NaN values.
+
+
+%% Here, we replace any inf values with the field's mean value.
+% however, a better approach is to use the surrounding values to ensure no
+% spikes in data
+rocks = [rock2D_st; rock2D_nd; rock2D_tu];
+for i = 1:numel(rocks)
+    rock2D = rocks(i);
+    
+    rock2D.poro(isinf(rock2D.poro)) = mean( rock2D.poro(~isinf(rock2D.poro)) );
+    rock2D.perm(isinf(rock2D.perm)) = mean( rock2D.perm(~isinf(rock2D.perm)) );
+    rock2D.ntg(isinf(rock2D.ntg))   = mean( rock2D.ntg(~isinf(rock2D.ntg)) );
+    
+    rocks(i) = rock2D;
+end
+rock2D_st = rocks(1);
+rock2D_nd = rocks(2);
+rock2D_tu = rocks(3);
+
 
 %% Set up injection location
 
@@ -183,6 +206,18 @@ wellCellIndex = i; % or Gt.cells.indexMap(i);
 %[wellInd_i, wellInd_j] = ind2sub(Gt_st.cartDims, wellCellIndex);
 wellCoord_x = Gt_st.cells.centroids(wellCellIndex,1);
 wellCoord_y = Gt_st.cells.centroids(wellCellIndex,2);
+
+% Note: well cell index cooresponds to Sto formation, but should be the
+% same for the other formations
+
+
+%% Visualize side profile slices of grid to detect obvious faulted areas
+sliceIndex = [wellCellIndex; wellCellIndex + 500; wellCellIndex + 1000];
+ta_st       = trapAnalysis(Gt_st, false);
+[ ~, ~ ]    = Grid_withSideProfiles( Gt_st, wellXcoord, wellYcoord, ...
+    wellCoord_x, wellCoord_y, ta_st, 'sliceCellIndex', sliceIndex, ...
+    'plotNorthwardSlices', true);
+
 
 %% Do some trapping analysis
 % We will consider the top layer of the Hammerfest Basin aquifer first,
@@ -223,18 +258,23 @@ exploreSimulation(  'default_formation',  'Stofm',     ...
 % properties. 
 
 
-%% Focus on Greater Snohvit Field for injection scenario
-% then cut out region belonging to Greater Snohvit Field (where coordinates
-% are taken from NDP figures in Chapter 6 of Compiled Atlas).
-[wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenario( Gt_st, rock2D_st );
+%% Run injection scenario using entire Sto formation
+[wellSols_st, states_st, sim_report_st, opt_st, var_st ] = runSnohvitInjectionScenario( Gt_st, rock2D_st );
+
+
+%% Run injection scenario using entire Tubaen formation
+% then assess the pressure build-up which has been previously studied
+[wellSols_tu, states_tu, sim_report_tu, opt_tu, var_tu ] = runSnohvitInjectionScenario( Gt_tu, rock2D_tu );
+
 
 %% Do some analysis
 bf = boundaryFaces(Gt_st);
-plotRealVsDiscreteInjLoc(Gt_st, bf, opt.wellXcoord, opt.wellYcoord, var.wellCoord_x, var.wellCoord_y);
-makeSideProfilePlots_CO2heights(G_st, Gt_st, var.wellCellIndex, states, var.fluid );
+plotRealVsDiscreteInjLoc(Gt_st, bf, opt_st.wellXcoord, opt_st.wellYcoord, var_st.wellCoord_x, var_st.wellCoord_y);
+makeSideProfilePlots_CO2heights(G_st, Gt_st, var_st.wellCellIndex, states_st, var_st.fluid );
 
 % can do other analysis of results. i.e.,
-plotToolbar(G_st,states)
+figure;
+plotToolbar(G_st,states_st)
 
 
 % preliminary trapping anaylsis on G. Snohvit
@@ -245,13 +285,13 @@ plotToolbar(G_st,states)
 % reach the caprock from the injection depth. (CONFIRM).
 % A conservative estimate involves calculating the smaller (slowest)
 % segregation speed.
-drho    = opt.water_density - opt.co2_density;
+drho    = opt_st.water_density - opt_st.co2_density;
 permv   = mean(rock2D_st.perm);
 phi     = mean(rock2D_st.poro);
-seg_spd = drho * permv * norm(gravity) / ( opt.co2_mu * phi ); % m/s
+seg_spd = drho * permv * norm(gravity) / ( opt_st.co2_mu * phi ); % m/s
 fprintf('\n\n The segregation speed is %d meters/second. \n\n', seg_spd)
-r4validVE = opt.inj_rate / ( 2 * pi() * seg_spd * Gt_st.cells.H(var.wellCellIndex) ); % m
-fprintf('\n\n Given the injection rate of %d m3/s, gravity segregation is a valid assumption in the region beyond a radius of %d meters from the injection point. \n\n', opt.inj_rate, r4validVE)
+r4validVE = opt_st.inj_rate / ( 2 * pi() * seg_spd * Gt_st.cells.H(var_st.wellCellIndex) ); % m
+fprintf('\n\n Given the injection rate of %d m3/s, gravity segregation is a valid assumption in the region beyond a radius of %d meters from the injection point. \n\n', opt_st.inj_rate, r4validVE)
 fprintf('\n\n Note that the grid resolution is %d meters. \n\n', (Gt_st.cells.centroids(1,1) - Gt_st.cells.centroids(2,1)) )
 
 % % eqn 10 in Ghanbarnezhad et al, 2015 (but for pore space velocity, not
@@ -262,7 +302,7 @@ fprintf('\n\n Note that the grid resolution is %d meters. \n\n', (Gt_st.cells.ce
 
 
 
-%% Cut out the Greater Snohvit field
+%% Cut out the Greater Snohvit field (GSF) from Sto
 
 % Trapping analysis, to get structures in Sto formation (one of which we
 % will assume to be the Greater Snohvit field)
@@ -285,7 +325,7 @@ G_gsf.name  = 'Greater Snohvit';
 % Get top surface and use it to extract rock2D for GSF
 [Gt_gsf, G_gsf] = topSurfaceGrid(G_gsf);
 
-% TODO: extract rock2D for Greater Snohvit field
+% Extract rock2D for GSF
 %rock2D_gsf  = removeCells(rock2D_st, ta_st.traps ~= SnohvitTrapID);
 for i = 1:Gt_gsf.cells.num
     rock2D_gsf.perm(i,1) = rock2D_st.perm( find( Gt_st.cells.indexMap == Gt_gsf.cells.indexMap(i) ) );
@@ -333,8 +373,43 @@ plot(wellCoord_x,wellCoord_y,'xk', ...
             'MarkerEdgeColor','k',...
             'MarkerFaceColor','g',...
             'MarkerSize',10)
+       
         
+%% Visualize side profile slices of grid to detect obvious faulted areas
+% first need to get the well cell index in the Gt_gsf grid:
+dv = bsxfun(@minus, Gt_gsf.cells.centroids(:,1:2), [wellXcoord, wellYcoord]);
+[v,i] = min(sum(dv.^2, 2));
+wellCellIndex = i;
+wellCoord_x = Gt_gsf.cells.centroids(wellCellIndex,1);
+wellCoord_y = Gt_gsf.cells.centroids(wellCellIndex,2);
+
+% then call to plotting routine
+sliceIndex = [wellCellIndex; wellCellIndex + 100; wellCellIndex + 200];
+[ ~, ~ ]    = Grid_withSideProfiles( Gt_gsf, wellXcoord, wellYcoord, ...
+    wellCoord_x, wellCoord_y, ta_gsf, 'sliceCellIndex', sliceIndex, ...
+    'plotNorthwardSlices', true);
+
         
+%% Perform injection scenario in Greater Snohvit field
+% region belonging to Greater Snohvit Field: see NDP figures in Chapter 6
+% of Compiled Atlas
+[wellSols_gsf, states_gsf, sim_report_gsf, opt_gsf, var_gsf ] = runSnohvitInjectionScenario( Gt_gsf, rock2D_gsf );
+       
+
+%% Do some analysis
+bf = boundaryFaces(Gt_gsf);
+plotRealVsDiscreteInjLoc(Gt_gsf, bf, opt_gsf.wellXcoord, opt_gsf.wellYcoord, var_gsf.wellCoord_x, var_gsf.wellCoord_y);
+makeSideProfilePlots_CO2heights(G_gsf, Gt_gsf, var_gsf.wellCellIndex, states_gsf, var_gsf.fluid );
+
+% can do other analysis of results. i.e.,
+figure;
+plotToolbar(G_gsf,states_gsf)
+% Note: it might be better to cut out a region larger than the GSF
+% structural trap, since boundary conditions along the sub-domain may be
+% impacting CO2's containment inside the trap. Allowing it to spill out of
+% domain may be more realistic.
+
+
 %% Do some storage capacity estimation, to compare with NPD (pg 136)
 % Here, we tabulate the data from NPD and compare MRST-estimates for the
 % Greater Snohvit field to it. "Snohvit2800m" is the pore volume in Sto,
@@ -420,14 +495,5 @@ fprintf('Note: Capacity may or maynot refer to structural trap.\n')
    fprintf('Storage capacity (kg) | %4.2e              | %4.2e             | %4.2e          |\n',   res{1}.storage_capacity_kg,   res{2}.storage_capacity_kg, res{3}.storage_capacity_kg );
    fprintf('----------------------|-----------------------|----------------------|----------------------\n');
 
-%% Perform injection scenario in Greater Snohvit field
-[wellSols_gsf, states_gsf, sim_report_gsf, opt_gsf, var_gsf ] = runSnohvitInjectionScenario( Gt_gsf, rock2D_gsf );
 
-%% Do some analysis
-bf = boundaryFaces(Gt_gsf);
-plotRealVsDiscreteInjLoc(Gt_gsf, bf, opt_gsf.wellXcoord, opt_gsf.wellYcoord, var_gsf.wellCoord_x, var_gsf.wellCoord_y);
-makeSideProfilePlots_CO2heights(G_gsf, Gt_gsf, var_gsf.wellCellIndex, states_gsf, var_gsf.fluid );
-
-% can do other analysis of results. i.e.,
-plotToolbar(G_gsf,states_gsf)
 

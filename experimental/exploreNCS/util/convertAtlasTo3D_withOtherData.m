@@ -51,7 +51,7 @@ function grdecl = convertAtlasTo3D_withOtherData(meta_thick, meta_top, data_thic
 %   ntg data to the grdecl structure
 %
 % SEE ALSO:
-%   getAlasGrid, convertAtlasTo3D_withOtherData
+%   getAlasGrid, convertAtlasTo3D
 
 %{
 #COPYRIGHT#

@@ -131,8 +131,9 @@ end
 
 % A -- using extracted Grids
 rhoCO2 = 700; % kg/m3
-Gs = [G_gsf, G_albatross, G_askeladd, G_prospectC, G_prospectD, ...
-             G_prospectE, G_prospectF, G_prospectG, G_prospectH];
+Gs = [Grids.G_gsf, Grids.G_albatross, Grids.G_askeladd, Grids.G_prospectC, ...
+    Grids.G_prospectD, Grids.G_prospectE, Grids.G_prospectF, ...
+    Grids.G_prospectG, Grids.G_prospectH];
 res = cell(numel(Gs),1);
 fprintf('------------------------------------------------\n');
 for i=1:numel(Gs)
@@ -209,7 +210,7 @@ for i = 1:numel(names)
     
 end
     
-
+% table of data:
 Tcurrent        = capacities{1}.T;
 ColOfAmpSym     = table( repmat('&',numel(Tcurrent.Properties.RowNames),1), 'RowNames',Tcurrent.Properties.RowNames, 'VariableNames',{'AmpSym'}); % to insert between each column for latex table format
 ColOfSlashSym   = table( repmat('\\',numel(Tcurrent.Properties.RowNames),1), 'RowNames',Tcurrent.Properties.RowNames, 'VariableNames',{'SlashSym'}); % to insert in last column for latex table format
