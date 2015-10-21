@@ -259,6 +259,26 @@ function props = convertPROPS(props, u)                                %#ok
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
+         case 'PLYSHEAR',
+            unt = [u.length/u.time, 1];
+            for t = 1 : numel(props.(key)),
+               props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
+         case 'PLYSHLOG'
+             unt = [u.concentr, u.concentr, 1];
+             % the last one should be TEMPERATURE, while we DONOT support
+             % unit conversion for temperature at the moment.
+             props.(key).refcondition = convertFrom(props.(key).refcondition, unt);
+             if isfield(props, 'SHRATE')
+                 unt = [1/u.time, 1];
+             else
+                 unt = [u.length/u.time, 1];
+             end
+             for t = 1 : numel(props.(key).data),
+                props.(key).data{t} = convertFrom(props.(key).data{t}, unt);
+             end
+
          case 'PVCDO',
             unt         = [u.press, 1, u.compr, u.viscosity, u.compr];
             props.(key) = convertFrom(props.(key), unt);
@@ -324,7 +344,7 @@ function props = convertPROPS(props, u)                                %#ok
             end
 
          case {'SOF2', 'SOF3', 'STONE', 'STONE1', 'STONE2', ...
-               'SIMPLE', 'TLMIXPAR', 'PLMIXPAR', ...
+               'SIMPLE', 'TLMIXPAR', 'PLMIXPAR', 'SHRATE', ...
                ...
                'SWL'   ,            'ISWL' ,           ...
                'SWLX'  , 'SWLX-'  , 'ISWLX', 'ISWLX-', ...

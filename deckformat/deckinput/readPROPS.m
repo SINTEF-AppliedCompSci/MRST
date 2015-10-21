@@ -58,6 +58,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'PLYVISC',
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
 
+         case 'PLYSHEAR',
+            prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
+
+         case 'PLYSHLOG',
+             tmpl(1:3) = { 'NaN' };
+             refcondition = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
+             prp.(kw).refcondition = to_double(refcondition);
+             clear tmpl refcondition;
+             data = readImmisciblePVTTable(fid, ntpvt, 2);
+             prp.(kw).data = data;
+             clear data;
+
+         case 'SHRATE',
+             tmpl = { '4.8' };
+             data = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
+             prp.(kw) = to_double(data); clear tmpl
+
          case 'PVCDO',
             tmpl(1:5) = { '0.0' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
@@ -162,7 +179,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl(1:2) = { 'NaN' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntmisc);
             prp.(kw)  = to_double(data);  clear tmpl
-            
+
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},
             prp = applyOperator(prp, fid, kw);
