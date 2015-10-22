@@ -272,21 +272,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 else
                     % Model did not converge, we are in some kind of
                     % trouble.
-
-                    if acceptCount == 0
-                        % We are still at the beginning, and we must honor
-                        % the initial guess for current state
-                        state = opt.initialGuess;
-                    else
-                        % Otherwise we reset the initial guess to the
-                        % previous step, as we are between ministeps.
-                        state = state0_inner;
+                    stopNow = dt <= dtMin || failure;
+                    
+                    if ~(stopNow && solver.continueOnFailure)
+                        if acceptCount == 0
+                            % We are still at the beginning, and we must honor
+                            % the initial guess for current state
+                            state = opt.initialGuess;
+                        else
+                            % Otherwise we reset the initial guess to the
+                            % previous step, as we are between ministeps.
+                            state = state0_inner;
+                        end
                     end
                     % Beat timestep with a hammer
                     warning([solver.getId(), 'Solver did not converge, cutting timestep'])
                     cuttingCount = cuttingCount + 1;
                     dt = dt/2;
-                    if dt < dtMin || failure
+                    if stopNow
                         msg = [solver.getId(), 'Did not find a solution: '];
                         if failure
                             % Failure means something is seriously wrong,
