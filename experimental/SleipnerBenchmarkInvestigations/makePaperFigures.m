@@ -25,7 +25,8 @@ clearvars -except figDirName
 plumes = getLayer9CO2plumeOutlines();
 [ ~, Gt, ~, ~ ] = makeSleipnerModelGrid('modelName','IEAGHGmodel', 'refineLevel',1, 'plotsOn',false);
 [plumes, topsurface, topfit, hCO2] = makeSurfaceDataAndPlots(plumes, Gt, 'plotsOn',true);
-
+export_fig(figure(1), [figDirName '/' 'plume2008outline_3Dcomparison_IEAGHGgrid'], '-png','-transparent')
+export_fig(figure(2), [figDirName '/' 'plume2008outline_SideViewComparison_IEAGHGgrid'], '-png','-transparent')
 
 
 %% Figure 2
