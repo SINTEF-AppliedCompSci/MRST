@@ -1,17 +1,19 @@
-classdef twoPhaseGasWaterModel < physicalModel
+classdef twoPhaseGasWaterModel < ReservoirModel
 
     properties
         % (constant) temperature field
         t
-        
+        name
     end
     
     % ============================================================================
     methods
         % ------------------------------------------------------------------------
         function model = twoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
-            
-            model.G     = G;
+           
+            model = model@ReservoirModel(G); 
+           
+            %model.G     = G;
             model.fluid = fluid;
             model.oil   = false;
             model.gas   = true;
@@ -23,7 +25,7 @@ classdef twoPhaseGasWaterModel < physicalModel
 
     end
     
-    methods (Access = protected)
+    methods %(Access = protected)
 
         % ------------------------------------------------------------------------
         
