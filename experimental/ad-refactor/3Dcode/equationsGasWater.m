@@ -9,7 +9,7 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     opt = merge_options(opt, varargin{:});
     
     
-    W = drivingForces.Wells;
+    W = drivingForces.W;
     assert(isempty(drivingForces.src)); 
 
     if isempty(W) && isfield(state, 'wellSol') && ~isempty(state.wellSol) 
@@ -187,9 +187,9 @@ function [b, mob, flux] = compMFlux(p, t, bfun, mufun, rhoS, trMult, kr, s, G, t
 
     rhoFace = s.faceAvg(b*rhoS);
     
-    dp   = s.grad(p) - g * rhoFace .* s.grad(G.cells.centroids(:,3));
+    dp   = s.Grad(p) - g * rhoFace .* s.Grad(G.cells.centroids(:,3));
     upc  = (double(dp)>=0);
-    flux = s.faceUpstr(upc, b .* mob) .* trans .* dp;
+    flux = -s.faceUpstr(upc, b .* mob) .* trans .* dp;
 
 end
 
