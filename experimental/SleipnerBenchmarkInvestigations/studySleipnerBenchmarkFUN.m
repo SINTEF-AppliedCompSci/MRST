@@ -65,33 +65,7 @@ opt = struct(   'gridname',             'IEAGHGmodel', ...
                 'dirName',              'SleipnerSims'       );
             
 opt = merge_options(opt, varargin{:});
-
-
-    %% Physical coordinate of injection well (Singh et al. 2010)
-    var.wellXcoord      = 4.38516e5;
-    var.wellYcoord      = 6.47121e6;
-
-
-    %% Specify fluid properties:
-    % TODO: implement as opt
-    [rho, mu, sr, sw]   = getValuesSPE134891();
-    sr=0;sw=0;%NB
-    water_density       = rho(1) * kilogram / meter ^3;
-    rhoCref             = rho(2) * kilogram / meter ^3;
-
-    seafloor_temp       = 7; % Celsius
-    seafloor_depth      = 100; % meters
-    temp_gradient       = 35.6; % Celsius / km
-    %water_compr_val     = 0; %4.3e-5/barsa; % will convert to compr/Pa
-    water_compr_val     = 4.3e-5/barsa; %NB
-    %pvMult              = 0; %1e-5/barsa;
-    pvMult              = 1e-5/barsa; %NB
-    isDissOn            = false;
-    dis_max             = (53 * kilogram / meter^3) / rhoCref; % from CO2store
-
-    % kwm? 0.75, 0.54 in Appendix of Singh et al 2010.
-
-
+    
 
     %% Load grid with given refinement/coarsening specified (if any):
     % makeSleipnerModelGrid() looks for file or generates it from grdecl files
@@ -145,6 +119,63 @@ opt = merge_options(opt, varargin{:});
         Gt = Gt_adjusted;
     end
     
+    
+    %% CO2 entry into layer 9
+    % Physical coordinate of injection well (Singh et al. 2010)
+    var.wellXcoord      = 4.38516e5;
+    var.wellYcoord      = 6.47121e6;
+    
+    % Index of the closest cell to the physical well location
+    dv              = bsxfun(@minus, Gt.cells.centroids(:,1:2), [var.wellXcoord, var.wellYcoord]);
+    [v,i]           = min(sum(dv.^2, 2));   
+    wellCellIndex   = i; % or Gt.cells.indexMap(i);
+    [i, j]          = ind2sub(Gt.cartDims, wellCellIndex);
+    % Cartesian coordinate that wellCellIndex corresponds to:
+    var.wellCoord_x = Gt.cells.centroids(wellCellIndex,1);
+    var.wellCoord_y = Gt.cells.centroids(wellCellIndex,2);
+    var.wellCoord_z = 0;
+    
+    
+
+    
+    
+    %% Specify fluid properties:
+    [rho, mu, sr, sw]   = getValuesSPE134891();
+    water_density       = rho(1) * kilogram / meter ^3;
+    rhoCref             = rho(2) * kilogram / meter ^3;
+    
+    seafloor_temp       = 7; % Celsius
+    seafloor_depth      = 100; % meters
+    temp_gradient       = 35.6; % Celsius / km
+    
+    caprock_temperature = 273.15 + seafloor_temp + ...
+        (Gt.cells.z - seafloor_depth) / 1e3 * temp_gradient;    % Kelvin
+    
+    
+    % initial state
+    initState.pressure  = Gt.cells.z * norm(gravity) * water_density;   % hydrostatic pressure, in Pa=N/m^2
+    initState.s         = repmat([1 0], Gt.cells.num, 1);               % sat of water is 1, sat of CO2 is 0
+    initState.sGmax     = initState.s(:,2);                             % max sat of CO2 is initially 0
+    initState.rs        = 0 * initState.sGmax;                          % initially 0
+    
+    
+    % reference reservoir conditions:
+    % i.e., pressure at which water density equals the reference density (a
+    % reference for linear compressibilities)
+    ref_p               = mean(initState.pressure); 
+    ref_t               = mean(caprock_temperature); % Kelvin
+    
+    %[ water_compr_val, co2_compr_val, pvMult ] = getCompressValues();
+    water_compr_val     = 4.3656e-10/barsa;
+    co2_compr_val       = 1.2388e-8/barsa;
+    pvMult              = 1e-5/barsa; % Odd will check on this value
+    
+    isDissOn            = false;
+    dis_max             = (53 * kilogram / meter^3) / rhoCref; % from CO2store
+
+    % kwm? 0.75, 0.54 in Appendix of Singh et al 2010.
+
+    
     %% Parameter modification (optional)
     % Use default parameter modifier factors if they are unspecified:
     if (opt.modifyPerm && isempty(opt.perm_fac))
@@ -172,25 +203,22 @@ opt = merge_options(opt, varargin{:});
         rhoCref = rhoCref * opt.rhoCO2_fac; 
     end
 
-
-    %% Set up initial state
-    initState.pressure  = Gt.cells.z * norm(gravity) * water_density;   % hydrostatic pressure, in Pa=N/m^2
-    initState.s         = repmat([1 0], Gt.cells.num, 1);               % sat of water is 1, sat of CO2 is 0
-    initState.sGmax     = initState.s(:,2);                             % max sat of CO2 is initially 0
-    initState.rs        = 0 * initState.sGmax;                          % initially 0
-
-
-    %% Index of the closest cell to the physical well location
-    dv              = bsxfun(@minus, Gt.cells.centroids(:,1:2), [var.wellXcoord, var.wellYcoord]);
-    [v,i]           = min(sum(dv.^2, 2));   
-    wellCellIndex   = i; % or Gt.cells.indexMap(i);
-    [i, j]          = ind2sub(Gt.cartDims, wellCellIndex);
-    % Cartesian coordinate that wellCellIndex corresponds to:
-    var.wellCoord_x = Gt.cells.centroids(wellCellIndex,1);
-    var.wellCoord_y = Gt.cells.centroids(wellCellIndex,2);
-    var.wellCoord_z = 0;
     
+    %% Create fluid:
+    fluid = makeVEFluid(Gt, rock2D, 'sharp interface', ...
+        'fixedT'      , caprock_temperature, ...
+        'wat_mu_ref'  , mu(1), ...
+        'co2_mu_ref'  , mu(2), ...
+        'wat_rho_ref' , water_density, ...
+        'co2_rho_ref' , rhoCref, ...
+        'wat_rho_pvt' , [water_compr_val, ref_p], ...
+        'co2_rho_pvt' , [co2_compr_val, ref_p], ...
+        'pvMult_p_ref', ref_p, ...
+        'pvMult_fac'  , pvMult, ...
+        'residual'    , [sw, sr] , ...
+        'dissolution' , isDissOn, 'dis_max', dis_max);
     
+
     %% Schedule: set up time steps, well controls, and get discrete rates
    
     % First get time step sizes and associated control well numbers:
@@ -230,27 +258,6 @@ opt = merge_options(opt, varargin{:});
         schedule.control(i).bc = bc;
     end
 
-
-    %% Create fluid:
-    caprock_temperature = 273.15 + seafloor_temp + ...
-        (Gt.cells.z - seafloor_depth) / 1e3 * temp_gradient;    % Kelvin
-    % pressure at which water density equals the reference density (a
-    % reference for linear compressibilities)
-    ref_p               = mean(initState.pressure); 
-    
-    fluid = makeVEFluid(Gt, rock2D, 'sharp interface', ...
-        'fixedT'      , caprock_temperature, ...
-        'wat_mu_ref'  , mu(1), ...
-        'co2_mu_ref'  , mu(2), ...
-        'wat_rho_ref' , water_density, ...
-        'co2_rho_ref' , rhoCref, ...
-        'wat_rho_pvt' , [water_compr_val, ref_p], ...
-        'co2_rho_pvt' , [water_compr_val*10, ref_p], ...%NB!!
-        'pvMult_p_ref', ref_p, ...
-        'pvMult_fac'  , pvMult, ...
-        'residual'    , [sw, sr] , ...
-        'dissolution' , isDissOn, 'dis_max', dis_max);
-    
 
     %% Solver testing:
     if opt.testSolverOptions
@@ -368,7 +375,22 @@ opt = merge_options(opt, varargin{:});
     %%%%%%%%%%%%%%%%%%%%       HELPER FUNCTIONS      %%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+    function [ cw, cg, cr ] = getCompressValues()
+        
+        % If .mat files are not available, the values which are computed
+        % are as follows:
+        % water_compr_val     = 4.3656e-10/barsa;
+        % co2_compr_val       = 1.2388e-8/barsa;
+        % pvMult              = 1e-5/barsa; % Odd will check on this value
+        
+        a_w = SampledProp2D('rho','Water_100000_400000000_278_524_800_800_D.mat');
+        a_g = SampledProp2D('rho','CarbonDioxide_100000_400000000_278_524_800_800_D.mat');
+        
+        cw = a_w.rhoDP(ref_p,ref_t) / a_w.rho(ref_p,ref_t);
+        cg = a_g.rhoDP(ref_p,ref_t) / a_g.rho(ref_p,ref_t);
+        cr = [];
+        
+    end
 
     % ---------------------------------------------------------------------
 
