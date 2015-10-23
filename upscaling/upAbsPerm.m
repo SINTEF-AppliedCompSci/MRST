@@ -1,118 +1,24 @@
 function [Kup, report] = upAbsPerm(block, varargin)
 opt = struct(...
-    'dp',         1*barsa, ...
+    'method',     'pressure', ...
     'dims',       1:3, ...
-    'psolver',    'tpfa' ...
+    'psolver',    'tpfa', ...
+    'dp',         1*barsa ...
     );
 opt = merge_options(opt, varargin{:});
 
-wantReport = nargout > 1;
-timeStart = tic;
-
-% Handle input
-dims  = opt.dims; % Dimensions to upscale
-ndims = length(dims);
-dp    = opt.dp .* ones(ndims,1);
-G     = block.G;
-rock  = block.rock;
-isPeriodic = block.periodic;
-
-% Initial state
-state0 = initResSol(G, 100*barsa, 1);
-
-% Allocate space for fluxes
-if isPeriodic
-    V = nan(ndims, ndims); % matrix
+if strcmpi(opt.method, 'pressure')
+    f = @() upAbsPermPres(block, 'dims', opt.dims, ...
+        'psolver', opt.psolver, 'dp', opt.dp);
 else
-    V = nan(ndims,1); % vector
+    f = @() upAbsPermAvg(block, 'dims', opt.dims, 'method', opt.method);
 end
 
-% Setup solver
-fluidPure  = initSingleFluid('mu' ,1, 'rho', 1);
-
-switch opt.psolver
-    % Mimetic is always consistent, but TPFA seems to be faster.
-	case 'mimetic'
-        if isPeriodic
-            bcp = block.bcp;
-            S = computeMimeticIP(G, rock);
-            psolver = @(state0, bcp) incompMimetic(state0, G, S, fluidPure, ...
-                'bcp', bcp);
-        else
-            S = computeMimeticIP(G, rock);
-            psolver = @(state0, bc) incompMimetic(state0, G, S, fluidPure, ...
-                'bc', bc);
-        end
-    case 'tpfa'
-        if isPeriodic
-            bcp = block.bcp;
-            T = computeTransGp(G.parent, G, rock);
-            psolver = @(state0, bcp) incompTPFA(state0, G, ....
-                T, fluidPure, 'bcp', bcp);
-        else
-            T = computeTrans(G, rock);
-            psolver = @(state0, bc) incompTPFA(state0, block.G, ...
-                T, fluidPure, 'bc', bc);
-        end
-    otherwise
-        error('Pressure solver type ''%s'' unknown.', opt.psolver);
-end
-
-% Loop over dimensions, apply pressure drop and compute fluxes
-for i = 1:ndims
-    
-    % Set boundary conditions
-    if isPeriodic
-        bcp.value(:) = 0;
-        bcp.value(bcp.tags == dims(i)) = dp(i);
-        bc = opt.bcp;
-    else
-        bc = addBC([], block.faces{dims(i)}{1}, 'pressure', dp(i) );
-        bc = addBC(bc, block.faces{dims(i)}{2}, 'pressure', 0 );
-    end
-    
-    % Solve pressure equation
-    warning('off','mrst:periodic_bc');
-    warning('off','all');
-    state1 = psolver(state0, bc);
-    warning('on','all');
-    warning('on','mrst:periodic_bc');
-    
-    if isPeriodic
-        % Store flux in j-direction caused by pressure drop in d-direction
-        for j = 1:ndims
-            faces = bcp.face(bcp.tags==dims(j));
-            sign  = bcp.sign(bcp.tags==dims(j));
-            V(j,i) = sum(state1.flux(faces, 1).*sign) / ...
-                block.areas(dims(j),2);
-        end
-    else
-        faces = block.faces{dims(i)}{2};
-        sign  = ones(numel(faces), 1);
-        sign(G.faces.neighbors(faces,1)==0) = -1;
-        V(i) = sum(state1.flux(faces, 1).*sign) / block.areas(dims(i),2);
-    end
-    
-end
-
-% Compute upscaled permeability
-L = block.lengths(dims);
-if isPeriodic
-    Pinv = diag(L(:)./dp(:)); % matrix
-    Kup   = - V*Pinv;
+if nargout > 1
+    [Kup, report] = f();
 else
-    Kup   = V.*(L(:)./dp(:)); % vector
-end
-Kup = Kup';
-
-totalTime = toc(timeStart);
-if wantReport
-    report.periodic = isPeriodic;
-    report.dims     = dims;
-    report.dp       = dp;
-    report.time     = totalTime;
+    Kup = f();
+    report = [];
 end
 
 end
-
-

@@ -127,6 +127,8 @@ methods
             
             % Store report
             if wantReport
+                blockReport.block.celldim = block.G.cartDims;
+                blockReport.block.physdim = block.lengths(:)';
                 report.blocks{i} = blockReport;
             end
             
@@ -229,7 +231,7 @@ methods
         
     end
     
-    function data = upscaleBlock(upscaler, block)
+    function [data, report] = upscaleBlock(upscaler, block)
         error('Method needs to be overridden');
     end
     

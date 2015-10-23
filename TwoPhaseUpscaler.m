@@ -2,7 +2,8 @@ classdef TwoPhaseUpscaler < OnePhaseUpscaler
 %Two phase upscaling
 
 properties
-    method
+    RelpermMethod     % Relperm upscaling method
+    RelpermAbsMethod  % Abs-perm upscaling used in relperm upscaling
     nrelperm
     pcow
     npcow
@@ -19,7 +20,8 @@ methods
         upscaler = upscaler@OnePhaseUpscaler(G, rock, 'fluid', fluid, ...
             varargin{:});
         
-        upscaler.method   = [];
+        upscaler.RelpermMethod = [];
+        upscaler.RelpermAbsMethod = 'pressure';
         upscaler.nrelperm = 20;
         upscaler.pcow     = true; % Upscale pcow or not
         upscaler.npcow    = 100;
@@ -46,9 +48,9 @@ methods
         % Capillary pressure upscaling
         % If using pore volume relperm upscaling, we also upscale the pcOW
         % in the relperm function, so don't do it here.
-        if upscaler.pcow && ~strcmpi(upscaler.method, 'porevolume')
+        if upscaler.pcow && ~strcmpi(upscaler.RelpermMethod, 'porevolume')
             
-            if ~isempty(regexpi(upscaler.method, '_grav$'));
+            if ~isempty(regexpi(upscaler.RelpermMethod, '_grav$'));
                 
                 if upscaler.pcowgrav
                     % We upscale with gravity
@@ -82,12 +84,13 @@ methods
         end
         
         % Relative permeability upscaling
-        if strcmpi(upscaler.method, 'porevolume')
-            up = @() upRelPermPV(block, data, upscaler.method, ...
+        if strcmpi(upscaler.RelpermMethod, 'porevolume')
+            up = @() upRelPermPV(block, data, upscaler.RelpermMethod, ...
                 'nvalues', upscaler.nrelperm);
         else
-            up = @() upRelPerm(block, data, upscaler.method, ...
+            up = @() upRelPerm(block, data, upscaler.RelpermMethod, ...
                 'nvalues', upscaler.nrelperm, 'dp', upscaler.dp, ...
+                'absmethod', upscaler.RelpermAbsMethod, ...
                 'dims', upscaler.relpermdims, 'savesat', upscaler.savesat);
         end
         if wantReport

@@ -1,12 +1,13 @@
 function [updata, report] = upRelPerm(block, updata, ...
     method, varargin)
-
+% 
 opt = struct(...
     'nvalues',     20, ...
     'viscousmob',  false, ... % viscous upscaling: use total mob method
     'dims',        1:3, ...  % Dimensions to upscale
     'dp',          1*barsa, ...  % Pressure drop
-    'savesat',     false ... % save saturation distributions
+    'savesat',     false, ... % save saturation distributions
+    'absmethod',   'pressure' ... % one-phase upscaling method
     );
 opt = merge_options(opt, varargin{:});
 
@@ -41,6 +42,9 @@ krW = cell(1, ndims);
 krO = cell(1, ndims);
 if wantSatDist
 	satdist = cell(nvals,1);
+    if strcmpi(method, 'capviscdist')
+        satdistff = cell(nvals,1);
+    end
 end
 
 % Get input values depending on the method
@@ -52,11 +56,14 @@ for iv = 1:nvals
     val = values(iv);
     
     % Get saturation distribution for this input value
-    sW0 = valueDistribution(block, method, val);
+    [sW0, sWff] = valueDistribution(block, method, val, opt.savesat);
     
     % Save if requested
     if wantSatDist
         satdist{iv} = sW0;
+        if strcmpi(method, 'capviscdist')
+            satdistff{iv} = sWff;
+        end
     end
     
     % Loop over the dimension
@@ -133,7 +140,8 @@ for iv = 1:nvals
                 % Perform one phase upscaling with the altered
                 % permeability field
                 block.rock = rock_KmobT;
-                KMobTU = upAbsPerm(block, 'dims', d, 'dp', opt.dp);
+                KMobTU = upAbsPerm(block, 'dims', d, 'dp', opt.dp, ...
+                    'method', opt.absmethod);
             end
             
             % For viscous limit, the value is fractional flow
@@ -171,7 +179,8 @@ for iv = 1:nvals
                     % Perform one phase upscaling with the altered
                     % permeability field
                     block.rock = rock_Kkr;
-                    krKU = upAbsPerm(block, 'dims', d, 'dp', opt.dp);
+                    krKU = upAbsPerm(block, 'dims', d, 'dp', opt.dp, ...
+                        'method', opt.absmethod);
                 end
 
                 % Compute upscaled relperm value
@@ -214,6 +223,9 @@ if wantReport
     report.valsOutsideRange = outside;
     if wantSatDist
         report.satdist = satdist;
+        if strcmpi(method, 'capviscdist')
+            report.satdistff = satdistff;
+        end
     end
 end
 
@@ -232,7 +244,7 @@ switch method
         error('TODO: Need to determine swU min and max here')
         sW = linspace(swUMin, swUMax, nvals)';
         
-    case 'capillary'
+    case {'capillary', 'capillary-viscous-dist'}
         assert(isfield(updata, 'pcOW'), ...
             'Run capillary curve upscaling first');
         swUMin = updata.pcOW(1,1);
@@ -247,7 +259,7 @@ switch method
         sW     = linspace(swUMin, swUMax, nvals)';
         values = interp1(ffdata.ffW(:,1), ffdata.ffW(:,2), sW);
         
-    case 'capillary_grav'
+    case {'capillary_grav', 'capillary-viscous-dist_grav'}
         assert(isfield(updata, 'pcOW_bot'), ...
             'Run gravity capillary curve upscaling first');
         swUMin = updata.pcOW_bot(1,1);
@@ -262,11 +274,12 @@ end
 end
 
 
-function sW = valueDistribution(block, method, val)
+function [sW, sWff] = valueDistribution(block, method, val, savesat)
 % Get the saturation distribution for the current value, depending on the
 % method chosen. The returned saturation may be updatad depending on the
 % direction later.
 
+sWff  = [];
 G     = block.G;
 fluid = block.fluid;
 
@@ -325,6 +338,24 @@ switch method
         
         sW   = fluid.pcOWInv(pcOW - grav);
         
+    case 'capillary-viscous-dist' % Experimental
+        
+        pcOW = val;
+        if savesat
+            [sW, sWff] = getCapVisDist(block, pcOW);
+        else
+            sW = getCapVisDist(block, pcOW);
+        end
+        
+    case 'capillary-viscous-dist_grav' % Experimental
+        
+        pcOW = val;
+        if savesat
+            [sW, sWff] = getCapVisDist(block, pcOW, 'gravity', true);
+        else
+            sW = getCapVisDist(block, pcOW, 'gravity', true);
+        end
+        
     otherwise
         error(['Method ''' method ''' not recognized.']);
 end
@@ -375,9 +406,13 @@ switch method
         
     case 'capillary' % Capillary limit
         % Do nothing.
-    case 'viscous' % Vuscous limit
+    case 'viscous' % Viscous limit
         % Do nothing.
     case 'capillary_grav' % Capillary limit with gravity
+        % Do nothing.
+    case 'capillary-viscous-dist' % Experimental
+        % Do nothing.
+    case 'capillary-viscous-dist_grav' % Experimental
         % Do nothing.
     otherwise
         error(['Method ''' method ''' not recognized.']);

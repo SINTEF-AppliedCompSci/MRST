@@ -2,8 +2,10 @@ classdef TwoPhaseTwoStepUpscaler < OnePhaseUpscaler
 %Two phase upscaling
 
 properties
-    method1
-    method2
+    RelpermMethod1
+    RelpermMethod2
+    RelpermAbsMethod1
+    RelpermAbsMethod2
     dim1
     dim2
     nrelperm
@@ -20,8 +22,10 @@ methods
     function upscaler = TwoPhaseTwoStepUpscaler(G, rock, fluid, varargin)
         upscaler = upscaler@OnePhaseUpscaler(G, rock, 'fluid', fluid);
         
-        upscaler.method1   = [];
-        upscaler.method2   = [];
+        upscaler.RelpermMethod1   = [];
+        upscaler.RelpermMethod2   = [];
+        upscaler.RelpermAbsMethod1 = 'pressure';
+        upscaler.RelpermAbsMethod2 = 'pressure';
         upscaler.dim1      = [];
         upscaler.dim2      = [];
         upscaler.nrelperm  = 20;
@@ -48,8 +52,8 @@ methods
         % Separate special upscaling in the z-direction is implemented.
         upscalez = upscaler.twostepz;
         
-        assert(~isempty(upscaler.method1) && ...
-            ~isempty(upscaler.method2), 'Methods must be given.');
+        assert(~isempty(upscaler.RelpermMethod1) && ...
+            ~isempty(upscaler.RelpermMethod2), 'Methods must be given.');
         assert(~isempty(upscaler.dim1) && ...
             ~isempty(upscaler.dim2), 'Dimensions must be given.');
         
@@ -78,7 +82,8 @@ methods
         end
         
         upscaler1 = TwoPhaseUpscaler(block.G, block.rock, block.fluid, ...
-            'partition', p1, 'method', upscaler.method1, ...
+            'partition', p1, 'RelpermMethod', upscaler.RelpermMethod1, ...
+            'RelpermAbsMethod', upscaler.RelpermAbsMethod1, ...
             'dims', dims1, 'nrelperm', upscaler.nrelperm, ...
             'pcow', true, 'verbose', false, 'deck', block.deck);
         if wantReport
@@ -124,7 +129,8 @@ methods
         % Upscale in second direction
         p2 = ones(CG.cells.num,1);
         upscaler2 = TwoPhaseUpscaler(CG, CRock, CFluid, ...
-            'partition', p2, 'method', upscaler.method2, ...
+            'partition', p2, 'RelpermMethod', upscaler.RelpermMethod2, ...
+            'RelpermAbsMethod', upscaler.RelpermAbsMethod2, ...
             'dims', upscaler.dim2, 'nrelperm', upscaler.nrelperm, ...
             'pcow', false, 'verbose', false);
         if upscalez
@@ -191,7 +197,7 @@ methods
         if upscaler.saveStep1
             % Save data from the first upscaling step, if requested
             data.krStep1 = updata1;
-            data.krStep1.method    = upscaler.method1;
+            data.krStep1.method    = upscaler.RelpermMethod1;
             data.krStep1.dim       = upscaler.dim1;
             data.krStep1.partition = p1;
         end

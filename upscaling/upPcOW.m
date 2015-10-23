@@ -14,7 +14,8 @@ opt = struct(...
     'nPointsMax',  50, ...   % Maximum number of points
     'relTolSw',    0.01, ... % Relative to saturation scale
     'relTolPc',    0.01, ...  % Relative to pc scale
-    'gravity',     'none' ...
+    'gravity',     'none', ...
+    'fixjumps',    true ...
     );
 opt = merge_options(opt, varargin{:});
 
@@ -146,6 +147,16 @@ if pcOWup(1,1) > pcOWup(2,1)
     pcOWup = flipud(pcOWup);
 end
 
+if opt.fixjumps
+    % Remove consequitive points with same upscaled saturation
+    jumpinx  = [true; diff(pcOWup(:,1))~=0];
+    pcOWup   = pcOWup(jumpinx, :);
+    njumpfix = sum(~jumpinx);
+    if njumpfix>0
+        %warning('Removed %d points in pcOW due to jumps.', njumpfix);
+    end
+end
+
 % Check that upscaled values are valid
 assert( (all(diff(pcOWup(:,2)) > 0) || all(diff(pcOWup(:,2)) < 0) ), ...
         'Upscaled capillary pressure curve is not strictly monotonic');
@@ -161,6 +172,9 @@ if wantReport
     report.pcreldiff = maxDiffPc;
     report.gravity   = useGravity;
     report.time      = totalTime;
+    if opt.fixjumps
+        report.numjumpfix = njumpfix;
+    end
 end
 
 end
