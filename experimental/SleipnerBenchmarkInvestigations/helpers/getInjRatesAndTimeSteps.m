@@ -1,7 +1,7 @@
 function [ schedule, var ] = getInjRatesAndTimeSteps( varargin )
 
 
-    % Default rates is IEAGHG
+    % Default rate is IEAGHG
     opt.ratecase = 'SPE';
     
     % for limiting the number of injection years
@@ -92,50 +92,6 @@ function [ schedule, var ] = getInjRatesAndTimeSteps( varargin )
         schedule.step.control = [schedule.step.control; ...
             ones(var.inj_steps(i), 1) * i ];
     end
-    
-
-    
-    
-%     % TODO: implement for greater flexibility
-%     timeStepIntervals = [1999:0.25:2000, 2000.5:0.5:2002.5, 2003.5:1:2009.5]'; %, 2010]';
-%     for i = 1:numel(timeStepIntervals)-1
-%         dTi(i,1) = timeStepIntervals(i+1) - timeStepIntervals(i);
-%     end
-%     dTi = dTi * year; % timestep size in seconds
-%     
-%     % Inj rates corresponding to dTi
-%     inj_rates_per_dTi       = zeros(numel(var.inj_rates),1);
-%     inj_rates_per_dTi(1)    = var.inj_rates(1);
-%     for i = 2:numel(dTi)
-%         inj_rates_per_dTi(i,1) = (var.inj_rates(i-1) + var.inj_rates(i))/2;
-%     end
-%     %inj_rates_per_dTi(end+1,1) = var.inj_rates(end);
-%     
-%     plot(timeStepIntervals(1:end-1), inj_rates_per_dTi, 'x')
-%     hold on;
-%     plot(var.inj_year, var.inj_rates, 'o')
-%     grid; legend('inj rate interpolated','inj rate data', 'Location','northwest')
-    
-    
-%     %% Add well rates to Schedule
-%     % injection period only
-%     for i = 1:numel(var.inj_rates)
-%         schedule.control(i).W = addWell([], Gt.parent, rock2D, ...
-%             wellCellIndex, 'name', sprintf('W%i', i), 'Type', 'rate', ...
-%             'Val', var.inj_rates(i), 'comp_i', [0 1]);
-%             % inj_rate should be mass rate / fluid.rhoGS
-%     end
-% 
-% 
-%     %% Add time steps to Schedule
-%     % TODO: implement dynamic time-stepping
-%     %istepvec                = repmat( ones(inj_steps, 1) * dTi , [numel(var.inj_rates) 1] );   
-%     schedule.step.val       = dTi; %istepvec;
-%     schedule.step.control   = [];
-%     for i = 1:numel(schedule.control)
-%         % injection period only
-%         schedule.step.control = [schedule.step.control; ones(inj_steps, 1) * i];
-%     end
 
 
 end
