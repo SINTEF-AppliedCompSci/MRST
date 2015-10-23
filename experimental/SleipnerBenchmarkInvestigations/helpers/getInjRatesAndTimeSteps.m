@@ -59,6 +59,9 @@ function [ schedule, var ] = getInjRatesAndTimeSteps( varargin )
     
     
     %% Compute time step size for injection period
+    % Note: time step size has been tested such that hardly any change in
+    % the migrating plume is noticed upon further time step refinement.
+    % More testing could be performed.
     
     % each inj time is 1 year (converted into seconds), since yearly rates
     % have been given
@@ -68,7 +71,8 @@ function [ schedule, var ] = getInjRatesAndTimeSteps( varargin )
     var.inj_steps   = ones( numel(var.inj_year), 1 );
     
     % however, specify more steps to use during the first several years:
-    var.inj_steps(1:10,1)   = [ 8; 4; 4; 2; 2; 2; 2; 2; 2; 2 ];
+    var.inj_steps(1:10,1)   = [ 10; 10; 10; 8; 8; 8; 8; 8; 8; 8 ];
+    var.inj_steps           = var.inj_steps.*12; % make time step size even finer
     if ~isempty(opt.num_years)
         var.inj_steps  = var.inj_steps(1:opt.num_years);
     end
