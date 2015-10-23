@@ -416,9 +416,11 @@ function saveResults( opt, var, model, schedule, wellSols, states, sim_report )
     % .mat files, user consent is required if ask=true. Otherwise, if
     % ask=false, saving occurs automatically.
     if (opt.askBeforeSaving && userConsent('Do you want to save simulation results?'))
+        mkdir(opt.dirName)
         save([opt.dirName '/' fileName],'-v7.3');
 
     elseif ~opt.askBeforeSaving
+        mkdir(opt.dirName)
         save([opt.dirName '/' fileName],'-v7.3');
     end
 end
