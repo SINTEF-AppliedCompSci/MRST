@@ -44,7 +44,7 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %
 %   InnerProduct --
 %             The inner product with which to define the mass matrix.
-%             String.  Default value = 'ip_simple'.
+%             String.  Default value = 'ip_tpf'.
 %             Supported values are 'ip_simple', 'ip_tpf', 'ip_quasitpf',
 %             and 'ip_rt'.
 %
