@@ -27,3 +27,17 @@ f = G.faces.centroids;
 plot3(f(:,1),f(:,2),f(:,3),'.b');
 hold off
 view(0,0); axis([0 100 0 1 0 100]);
+
+%% Purge invalid nodes
+% Create grid with invalid nodes
+G = cartGrid([10 10]);
+G.nodes.coords([10 15 20],1)=NaN;
+G.nodes.coords(30+[10 15 20],2)=NaN;
+plotGrid(G);
+
+% Purge invalid grid cells
+cn = cellNodes(G);
+nflag = ~any(isnan(G.nodes.coords),2);
+cflag = accumarray(cn(:,1), nflag(cn(:,3))) < accumarray(cn(:,1),1);
+H = removeCells(G,cflag);
+plotGrid(H,'FaceColor','none','EdgeColor','r');

@@ -152,6 +152,7 @@ for nstep=1:2
         nwloc     = [  1,   60,     7,   60,  30;
                        6,   11,   220,  219, 111];
     end
+    vertcat(rS.wellSol.flux)
 end
 figure(fig1);
 subplot(1,2,1); hold on; plot([0 1],[0 1],'k'); hold off; title('Lorenz');
