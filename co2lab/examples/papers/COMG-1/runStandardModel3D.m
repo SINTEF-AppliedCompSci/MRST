@@ -14,7 +14,7 @@ function runStandardModel3D(save_filename, plot_routine, varargin)
 %                   pairs.  See documentation of options (fields of the 'opt'
 %                   structure) in the function 'run_standard_simulation' below.
 
-   moduleCheck('co2lab', 'ad-fi', 'ad-core');
+   moduleCheck('co2lab', 'ad-fi', 'ad-core', 'ad-props');
    gravity reset on;
 
    %% Check for presence of already-computed result; compute or re-use
@@ -40,7 +40,7 @@ end
 function outcomes = run_standard_simulation(varargin)
 
    % Loop parameters
-   opt.zres           = 10;                  % vertical resolution
+   opt.zres           = 20;                  % vertical resolution
    opt.A              = 0;                   % magnitudes of subscale undulations
    opt.depth          = 2300;                % depth of aquifer
    opt.residual       = false;               % whether to enable residual saturation
@@ -76,7 +76,7 @@ function outcomes = run_standard_simulation(varargin)
          for dis_type = opt.dis_types
 
             aquifer = makeAquiferModel('A', A, 'D', opt.depth, 'nz', opt.zres);
-            
+
             % Make fluid model
             [fluid, fluid_params] = ...
                 setup_fluid_model(opt, aquifer, residual, ...
@@ -94,13 +94,13 @@ function outcomes = run_standard_simulation(varargin)
             model = twoPhaseGasWaterModel(aquifer.G, aquifer.rock, fluid, ...
                                           opt.surf_temp + 274, ...
                                           opt.temp_grad * 1000);
-            %model = CO2VEBlackOilTypeModel(aquifer.Gt, aquifer.rock2D, fluid);
+            
             [wellSols, states] = simulateScheduleAD(initState, model, schedule);
             
             % Storing outcome
             outcomes{simulation_count} = struct('states', {states}, ...
                                                 'wellSols', {wellSols}, ...
-                                                'Gt', {aquifer.Gt}, ...
+                                                'G', {aquifer.G}, ...
                                                 'fluid_params', {fluid_params});
             simulation_count = simulation_count + 1;
          end
@@ -160,7 +160,7 @@ end
 function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type, top_trap, ...
                                         subscale_type, dis_type)
 
-   T = aquifer.Gt.cells.z * opt.temp_grad + (274 + opt.surf_temp); % add 274 to get Kelvin
+   T = aquifer.G.cells.centroids(:,3) * opt.temp_grad + (274 + opt.surf_temp); % add 274 to get Kelvin
    res_vals = opt.res_vals * residual; % becomes zero if 'residual' is false
 
    params.args = {aquifer.Gt, aquifer.rock2D, fluid_type, ...
@@ -182,13 +182,12 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    fluid = rmfield(fluid, 'pcWG');
    
    fluid.pcGW = @(sg, p, varagin) 0;
-   fluid.relPerm = @(sg) deal(krX(1-sg, res_vals(2)), krX(sg, res_vals(1)));
+   n = 1; % corey exponent
    
-   function kr = krX(s, resval, varargin)  
-      kr = (s - resval) ./ (1 - resval);
-      zero_kr_ixs = (double(kr) <= 0);
-      kr(zero_kr_ixs) = 0;
-   end      
+   krW = coreyPhaseRelpermAD(n, res_vals(2));
+   krG = coreyPhaseRelpermAD(n, res_vals(1));
+   
+   fluid.relPerm = @(sg) deal(krW(1-sg), krG(sg));
    
    if params.is_instant;
       fluid.dis_rate = 0; % value of zero indicates instant dissolution

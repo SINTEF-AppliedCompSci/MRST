@@ -1,44 +1,36 @@
-function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForces, s, f, t, varargin)
-
+function [problem, state] = equationsGasWater(model, state0, state, dt, drivingForces, varargin)
+   
+   
     opt = struct('Verbose'     , mrstVerbose , ...
                  'reverseMode' , false       , ...
                  'resOnly'     , false       , ...
-                 'minerals'    , false       , ...
                  'iteration'   , -1          , ...
                  'stepOptions' , []); % compatibility only
     opt = merge_options(opt, varargin{:});
     
-    
+    assert(isempty(drivingForces.src));  % unsupported
     W = drivingForces.W;
-    assert(isempty(drivingForces.src)); 
-
-    if isempty(W) && isfield(state, 'wellSol') && ~isempty(state.wellSol) 
-        % no wells present - empty content of wellSol structure
-        state.wellSol.qGs = [];
-        state.wellSol.qWs = [];
-        state.wellSol.bhp = [];
-    end
-
-    % ----------------------------- Current variables -----------------------------
-    p   = state.pressure;
-    sG  = state.s(:,2); % water is first column, gas second
-    pBH = vertcat(state.wellSol.bhp);
+    s = model.operators;
+    f = model.fluid;
+    G = model.G;
+    t = model.t;
+    
+    % Extract current and previous values of all variables to solve for
+    [p, sG, wellSol] = model.getProps(state, 'pressure', 'sg', 'wellsol');
+    [p0, sG0]        = model.getProps(state0, 'pressure', 'sg');
+    
+    bhp = vertcat(state.wellSol.bhp);
     qWs = vertcat(state.wellSol.qWs);
     qGs = vertcat(state.wellSol.qGs);
-    
-    % ---------------------------- Previous variables ----------------------------
-    p0  = state0.pressure;
-    sG0 = state0.s(:,2);
-        
+
     % ------------------ Initialization of independent variables ------------------
     
     if ~opt.resOnly
         if ~opt.reverseMode
-            [p, sG, qWs, qGs, pBH] = initVariablesADI(p, sG, qWs, qGs, pBH);
+            [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
         else
-            [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sw0, 0*qWs, 0*qGs, 0*pBH);
+            [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sw0, 0*qWs, 0*qGs, 0*bhp);
         end
-        primaryVars = {'pressure', 'sG', 'qWs', 'qGs', 'bhp'};
     end
         
     % ----------------------------------------------------------------------------
@@ -70,18 +62,16 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     [krW, krG] = f.relPerm(sG);
     
     % computing densities, mobilities and upstream indices
-    [bW, mobW, fluxW] = compMFlux(p - pcGW, t, f.bW, f.muW, f.rhoWS, trMult, krW, s, G, trans);
-    [bG, mobG, fluxG] = compMFlux(p,        t, f.bG, f.muG, f.rhoGS, trMult, krG, s, G, trans);
+    [bW, mobW, fluxW] = compMFlux(p - pcGW, f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
+    [bG, mobG, fluxG] = compMFlux(p,        f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
 
     bW0 = f.bW(p0 - pcGW, t);
     bG0 = f.bG(p0, t);
     
     % --------------------------- Continuity equations ---------------------------
     
-    eqs{1} = (s.pv/dt) .* (pvMult .* bW .* (1-sG) - pvMult0 .* bW0 .* (1-sG0)) + s.div(fluxW);
-    eqs{2} = (s.pv/dt) .* (pvMult .* bG .* sG     - pvMult0 .* bG0 .* sG0    ) + s.div(fluxG);
-    names  = {'water', 'gas'};
-    types  = {'cell' , 'cell'};
+    eqs{1} = (s.pv/dt) .* (pvMult .* bW .* (1-sG) - pvMult0 .* bW0 .* (1-sG0)) + s.Div(fluxW);
+    eqs{2} = (s.pv/dt) .* (pvMult .* bG .* sG     - pvMult0 .* bG0 .* sG0    ) + s.Div(fluxG);
     
     % ---------------------------- Boundary conditions ----------------------------
 
@@ -94,32 +84,82 @@ function [problem, state] = equationsGasWater(state0, state, dt, G, drivingForce
     eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
     
     % ------------------------------ Well equations ------------------------------
-    if ~isempty(W) && ~opt.reverseMode
-    
-        wc = vertcat(W.cells);
-        rhos = [f.rhoWS, f.rhoGS];
-        bw = {bW(wc), bG(wc)};
-        pw = p(wc);
-        mw = {mobW(wc), mobG(wc)};
-        
-        [eqs(3:5), cqs, state.wellSol] = ...
-            getWellContributions(W, state.wellSol, pBH, {qWs, qGs}, pw, rhos, ...
-                                 bw, {}, {}, mw, 'iteration', opt.iteration, 'model', 'WG'); 
-        [wc, cqs] = checkForRepetitions(wc, cqs);
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
 
-        names(3:5) = {'waterWells' , 'gasWells' , 'closureWells'};
-        types(3:5) = {'perf'       , 'perf'     , 'well'};
-    
-    else % no wells, or in reverse mode
-        eqs(3:5)   = {0*pBH   , 0*pBH   , 0*pBH}; % empty ADIs
-        names(3:5) = {'empty' , 'empty' , 'empty'};
-        types(3:5) = {'none'  , 'none'  , 'none'};
+    primaryVars = {'pressure' , 'sG'   , 'qWs'      , 'qGs', 'bhp'};
+    types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well'};
+    names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells'};
+
+    sW = 1-sG;
+    if ~isempty(W)
+       wm = model.wellmodel;
+       if ~opt.reverseMode
+          wc = vertcat(W.cells);
+          [cqs, weqs, ctrleqs, wc, state.wellSol] =                       ...
+              wm.computeWellFlux(model, W, wellSol, bhp                 , ...
+                                 {qWs, qGs}                             , ...
+                                 p(wc)                                  , ...
+                                 [model.fluid.rhoWS, model.fluid.rhoGS] , ...
+                                 {bW(wc), bG(wc)}                       , ...
+                                 {mobW(wc), mobG(wc)}                   , ...
+                                 {sW(wc), sG(wc)}                       , ...
+                                 {}                                     , ...
+                                 'allowControlSwitching', false         , ...
+                                 'nonlinearIteration', opt.iteration);
+          % Store the separate well equations (relate well bottom hole
+          % pressures to influx)
+          eqs(3:4) = weqs;
+          
+          % Store the control equations (ensuring that each well has values
+          % corresponding to the prescribed value)
+          eqs{5} = ctrleqs;
+          
+          % Add source term to equations.  Negative sign may be surprising if
+          % one is used to source terms on the right hand side, but this is
+          % the equations on residual form
+          eqs{1}(wc) = eqs{1}(wc) - cqs{1};
+          eqs{2}(wc) = eqs{2}(wc) - cqs{2};
+          
+       else
+          [eqs(3:5), names(3:5), types(3:5)] = ...
+              wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
+       end
+    else
+       eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
     end
-    % ----------------------------------------------------------------------------
+
+    % if ~isempty(W) && ~opt.reverseMode
     
-    problem = linearProblem(eqs, types, names, primaryVars, state);
+    %     wc = vertcat(W.cells);
+    %     rhos = [f.rhoWS, f.rhoGS];
+    %     bw = {bW(wc), bG(wc)};
+    %     pw = p(wc);
+    %     mw = {mobW(wc), mobG(wc)};
+        
+    %     [eqs(3:5), cqs, state.wellSol] = ...
+    %         getWellContributions(W, state.wellSol, bhp, {qWs, qGs}, pw, rhos, ...
+    %                              bw, {}, {}, mw, 'iteration', opt.iteration, 'model', 'WG'); 
+    %     [wc, cqs] = checkForRepetitions(wc, cqs);
+    %     eqs{1}(wc) = eqs{1}(wc) - cqs{1};
+    %     eqs{2}(wc) = eqs{2}(wc) - cqs{2};
+
+    %     names(3:5) = {'waterWells' , 'gasWells' , 'closureWells'};
+    %     types(3:5) = {'perf'       , 'perf'     , 'well'};
+    
+    % else % no wells, or in reverse mode
+    %     eqs(3:5)   = {0*bhp   , 0*bhp   , 0*bhp}; % empty ADIs
+    %     names(3:5) = {'empty' , 'empty' , 'empty'};
+    %     types(3:5) = {'none'  , 'none'  , 'none'};
+    % end
+    % ----------------------------------------------------------------------------
+
+    if isempty(W)
+       % Remove names/types associated with wells, as no well exist
+       types = types(1:2);
+      names = names(1:2);
+    end
+    
+    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+    %problem = linearProblem(eqs, types, names, primaryVars, state);
     
 end
 
@@ -179,16 +219,16 @@ function [bb, brho, bmob] = computeRhoMobBFace(bp, bt, bfun, rhoS, krf, mufun)
 end
 
 % ----------------------------------------------------------------------------
-function [b, mob, flux] = compMFlux(p, t, bfun, mufun, rhoS, trMult, kr, s, G, trans)
+function [b, mob, flux] = compMFlux(p, bfun, mufun, rhoS, trMult, kr, s, trans, model)
     
     g   = norm(gravity);
-    b   = bfun(p, t);
-    mob = trMult .* kr ./ mufun(p, t);
+    b   = bfun(p, model.t);
+    mob = trMult .* kr ./ mufun(p, model.t);
 
     rhoFace = s.faceAvg(b*rhoS);
     
-    dp   = s.Grad(p) - g * rhoFace .* s.Grad(G.cells.centroids(:,3));
-    upc  = (double(dp)>=0);
+    dp   = s.Grad(p) - rhoFace .* model.getGravityGradient();
+    upc  = (double(dp)<=0);
     flux = -s.faceUpstr(upc, b .* mob) .* trans .* dp;
 
 end
