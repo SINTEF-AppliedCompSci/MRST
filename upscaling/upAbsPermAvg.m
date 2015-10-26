@@ -68,6 +68,7 @@ function K = harmonicArithmetic(pv, perm, cartDims, d)
     K  = reshape(perm,  cartDims);
     pv = sum(PV,d);
     K  = 1./(sum(PV./K,d)./pv); % harmonic average in dimension d
+    PV = pv;
     
     % If the sum of the pore-volume is zero for a column in direction d,
     % then the harmonic average of the permeability will be NAN. But as the
@@ -75,12 +76,14 @@ function K = harmonicArithmetic(pv, perm, cartDims, d)
     % set the permeability to zero.
     K(isnan(K)) = 0; 
     
-    PV = pv;
     dims = 1:numel(cartDims);
     for j = [dims(1:d-1) dims(d+1:end)]; % other dimensions
         pv = sum(PV,j);
         K = sum(PV.*K,j)./pv;  % arithmetic average
         PV = pv;
+        
+        % Same reason as above
+        K(isnan(K)) = 0; 
     end
 end
 
