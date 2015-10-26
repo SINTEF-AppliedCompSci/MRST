@@ -93,25 +93,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       G_old=G;
       % get read of extra nodes HACK???
       [coords,ii,jj]=unique(G_old.nodes.coords,'rows');
-       G=G_old;
-       G.nodes.coords=coords;
-       G.nodes.num=numel(ii);
-       G.faces.nodes=jj(G.faces.nodes);
-       %G=sortEdges(G);
-
-%{
-      % Last step: Guarantee counter-clockwise cycle ordering of faces.
-      imap = [];
-      if isfield(G.cells, 'indexMap'),
-         imap    = G.cells.indexMap;
-         G.cells = rmfield(G.cells, 'indexMap');
-      end
-
-      G = sortGrid(G);
-      if ~ isempty(imap),
-         G.cells.indexMap = imap;
-      end
-%}
+      G=G_old;
+      G.nodes.coords=coords;
+      G.nodes.num=numel(ii);
+      G.faces.nodes=jj(G.faces.nodes);
    else
       % G1 is neither left/right nor above/below G2 or BOTH of those
       % conditions simultaneously satisfied (single common point?).
@@ -211,18 +196,6 @@ end
 function [G,f] = glue_impl(G1, G2, tag, col)
    [f1, n1, i1, x1] = select_bfaces(G1, tag(1));
    [f2, n2, i2, x2] = select_bfaces(G2, tag(2));
-   %if(col==2)
-       
-       
-   %end
-   if(sum(n1)>sum(n2))% || col==2)
-       [ftmp,ntmp,itemp,xtmp]=deal(f1, n1, i1, x1);
-       Gtmp=G1;
-       [f1, n1, i1, x1]=deal(f2, n2, i2, x2);
-       G1=G2;
-       [f2, n2, i2, x2]=deal(ftmp,ntmp,itemp,xtmp);
-       G2=Gtmp;
-   end
 
    common   = intersection(x1, x2, col);
    affected = @(x) between(common(1), common(2), x(:, col));
@@ -238,11 +211,7 @@ function [G,f] = glue_impl(G1, G2, tag, col)
    fe2 = elim(G2, f2, i2, affected(x2));
    ir  = i2(fnod(G2, fe2));  xr = x2(ir, col);
 
-   %if(col==2)
-   %[N, ii] = intersection_topology(G1, G2, fe1, fe2, xl(end:-1:1), xr(end:-1:1));
-   %else
-   [N, ii] = intersection_topology(G1, G2, fe1, fe2, xl, xr,col);
-   %end
+   [N, ii] = intersection_topology(G1, G2, fe1, fe2, xl, xr);
    inodes  = intersection_geometry(G1.nodes.num, ii, n1, n2, il, ir);
 
    % Remove existing grid faces affected by common intersection.
@@ -250,12 +219,17 @@ function [G,f] = glue_impl(G1, G2, tag, col)
    H2 = removeFaces(G2, fe2);
 
    G = concat_grids(H1, H2);
+
+   if col==1
+      in = flipud(reshape(inodes,2,[])); inodes = in(:);
+   end
+
    [G,f] = addFaces(G, inodes, repmat(2, [size(N, 1), 1]), N);
 end
 
 %--------------------------------------------------------------------------
 
-function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr,col)
+function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr)
    mby2 = @(a) reshape(a, 2, []) .';
 
    [u, ii, iu] = unique([xl ; xr], 'first');
@@ -270,57 +244,11 @@ function [N, ii] = intersection_topology(G1, G2, f1, f2, xl, xr,col)
 
    merge = NaN([numel(u) - 1, 2]);
    pl    = 1;
-   pr    = 1;   
-   if(col==1)
-      left=left(:,end:-1:1)
-      right=right(:,end:-1:1)     
-   end
-%%{
-   % possible correct method???
-   %if(numel(xr)>numel(xl))
-   sgn2=G2.faces.neighbors(f2,1)~=0;
-   sgn1=G1.faces.neighbors(f1,1)==0;
-   if(~(all([sgn1;sgn2]) || all(not([sgn1;sgn2]))))
-    if(~all(sgn1) & all(sgn2))   
-        %sgn2=G2.faces.neighbors(f2,1)~=0;
-        right(~sgn2,:)=right(~sgn2,end:-1:1);
-        %sgn1=G1.faces.neighbors(f1,1)~=0;
-        left(~sgn1,:)=left(~sgn1,end:-1:1);
-    elseif (~all(sgn1) & all(not(sgn2)))
-        right(sgn2,:)=right(sgn2,end:-1:1);
-        %sgn1=G1.faces.neighbors(f1,1)~=0;
-        left(sgn1,:)=left(sgn1,end:-1:1);
-    elseif(all(sgn1) & ~all(sgn2))
-        %right(sgn2,:)=right(sgn2,end:-1:1);
-        right(~sgn2,:)=right(~sgn2,end:-1:1);
-        %sgn1=G1.faces.neighbors(f1,1)~=0;
-        %left(~sgn1,:)=left(~sgn1,end:-1:1);
-    elseif(all(not(sgn1)) & ~all(sgn2))
-        right(sgn2,:)=right(sgn2,end:-1:1);
-        %right(~sgn2,:)=right(~sgn2,end:-1:1);
-        %sgn1=G1.faces.neighbors(f1,1)~=0;
-        %left(sgn1,:)=left(sgn1,end:-1:1);
-    else
-      %sgn2=G2.faces.neighbors(f2,1)~=0;
-      right(~sgn2,:)=right(~sgn2,end:-1:1);
-      %sgn1=G1.faces.neighbors(f1,1)~=0;
-      left(~sgn1,:)=left(~sgn1,end:-1:1);  
-    end
-   else
-      assert(all([sgn1;sgn2]) || all(not([sgn1;sgn2]))) 
-   end
-   %else
-     %sgn2=G2.faces.neighbors(f2,1)==0;
-     %right(sgn2,:)=right(sgn2,end:-1:1);
-      %sgn1=G1.faces.neighbors(f1,1)~=0;
-      %left(sgn1,:)=left(sgn1,end:-1:1);  
-       
-   %end
-%} 
-   
-   %assert(all(sgn2))
-   %assert(all(sgn1))
-   %assert(all([sgn1;sgn2]) || all(not([sgn1;sgn2])))
+   pr    = 1;
+
+   ix = diff(right,1,2)<0; right(ix,:) = right(ix,[2 1]);
+   ix = diff(left, 1,2)<0; left (ix,:) = left (ix,[2 1]);
+
    for ival = 1 : (numel(u) - 1),
       % Left pointer
       [merge, pl] = record_interval(merge, pl, ival, 1, ol, left(pl,:));
