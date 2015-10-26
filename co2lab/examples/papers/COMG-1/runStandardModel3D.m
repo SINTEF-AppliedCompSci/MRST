@@ -181,7 +181,9 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    fluid = rmfield(fluid, 'krW');
    fluid = rmfield(fluid, 'pcWG');
    
-   fluid.pcGW = @(sg, p, varagin) 0;
+   %fluid.pcGW = @(sg, p, varagin) 0;
+   %fluid.pcGW = @(sg, p, varagin) 10 * kilo * Pascal * sg;
+   fluid.pcGW = @(sg, p, varagin) 5 * kilo * Pascal * sg;
    n = 1; % corey exponent
    
    krW = coreyPhaseRelpermAD(n, res_vals(2));
