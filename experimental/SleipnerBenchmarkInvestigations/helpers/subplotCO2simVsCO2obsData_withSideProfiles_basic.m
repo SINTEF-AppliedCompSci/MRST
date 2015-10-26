@@ -6,7 +6,8 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
     
     opt.ZoomIntoPlume = true;
     
-    opt.sliceCellIndex = [];
+    opt.sliceCellIndex_ew = []; % east-west slices
+    opt.sliceCellIndex_sn = []; % south-north slices
     opt.SleipnerBounded = false; % if true, subplots will be bounded to set region.
     opt.legendWithFreeCO2Only = false;  % if true, what to include in legend
                                         % will be determined by comparing
@@ -47,16 +48,16 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
     end
 
 
-    figure('name',opt.figname); set(gcf,'Position',[1 1 1060 582]);
-    numSlices = numel(opt.sliceCellIndex);
-    if numSlices == 2
+    hfigEW = figure('name',opt.figname); set(gcf,'Position',[1 1 1060 582]);
+    numSlices_ew = numel(opt.sliceCellIndex_ew);
+    if numSlices_ew == 2
         % for 2 slices
         sp1 = subplot(2,2,[1 3]);
         sp2 = subplot(2,2,2);
         sp3 = subplot(2,2,4);
         splabel = {'sp2', 'sp3'};
 
-    elseif numSlices == 3
+    elseif numSlices_ew == 3
         % for 3 slices
         sp1 = subplot(3,2,[1 3 5]);
         sp2 = subplot(3,2,2);
@@ -65,7 +66,22 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         splabel = {'sp2', 'sp3', 'sp4'};
 
     else
-        error('Only implemented for 2 or 3 slices')
+        error('Only implemented for 2 or 3 east-west slices')
+    end
+    
+    hfigSN = figure('name',[opt.figname 'SN']); set(gcf,'Position',[1 1 1060 582]);
+    numSlices_sn = numel(opt.sliceCellIndex_sn);
+    if numSlices_sn == 1
+        % for 1 slice
+        sp1_sn = subplot(1,2,[1 2]);
+
+    elseif numSlices_sn == 2
+        % for 2 slices
+        sp1_sn = subplot(2,2,[1 2]);
+        sp2_sn = subplot(2,2,[3 4]);
+
+    else
+        error('Only implemented for 1 or 2 south-north slices')
     end
     
     
@@ -85,6 +101,7 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
 
 
     %% Plot top view:
+    figure(hfigEW)
     subplot(sp1)
     hold on
     % Add CO2 mass data: Note: To ensure cell data is plotted vertically
@@ -171,12 +188,12 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
 %         disp('You will need to adjust the color bar position.')
 %     end
 
-    %% Plot slices:
+    %% Plot East-West slices:
 
     sliceLabels = ['A'; 'B'; 'C']; % ensure sliceLabels is as long as numSlices
-    for sln = 1:numSlices
+    for sln = 1:numSlices_ew
         
-        sliceCellIndex_curr = opt.sliceCellIndex(sln);
+        sliceCellIndex_curr = opt.sliceCellIndex_ew(sln);
         
         % Cross-sectional slices through a point:
         % first get index of point:
@@ -195,13 +212,13 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         kk = ijk{3}(sliceCellIndex_curr);
         disp(['Slice cell index of ',num2str(sliceCellIndex_curr),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
 
-        if numSlices == 2
+        if numSlices_ew == 2
             if sln == 1
                 sp2 = subplot(2,2,2);
             elseif sln == 2
                 sp3 = subplot(2,2,4);
             end
-        elseif numSlices == 3
+        elseif numSlices_ew == 3
             if sln == 1
                 sp2 = subplot(3,2,2);
             elseif sln == 2
@@ -242,10 +259,87 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         % Add label at each end of line
         %text(horiLineCoords(1,1), horiLineCoords(1,2),   sliceLabels(sln), 'HorizontalAlignment','right');
         %text(horiLineCoords(2,1), horiLineCoords(2,2),   sliceLabels(sln), 'HorizontalAlignment','left');
-        text(xmin-200, horiLineCoords(1,2),   sliceLabels(sln), 'HorizontalAlignment','left', 'FontSize',14);
-        text(xmax+200, horiLineCoords(2,2),   sliceLabels(sln), 'HorizontalAlignment','right','FontSize',14);
+        text(xmin-200, horiLineCoords(1,2),   sliceLabels(sln,:), 'HorizontalAlignment','left', 'FontSize',14);
+        text(xmax+200, horiLineCoords(2,2),   sliceLabels(sln,:), 'HorizontalAlignment','right','FontSize',14);
     
     end
+    
+    
+    %% Plot south-north slices:
+    
+    sliceLabels = ['AA'; 'BB'; 'CC']; % ensure sliceLabels is as long as numSlices
+    for sln = 1:numSlices_sn
+        
+        sliceCellIndex_curr = opt.sliceCellIndex_sn(sln);
+        
+        % Cross-sectional slices through a point:
+        % first get index of point:
+        [ii,jj] = ind2sub(Gt.cartDims, sliceCellIndex_curr);
+        disp(['Slice cell index of ',num2str(sliceCellIndex_curr),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
+        %horiinx2color = find(Gt.cells.ij(:,2) == jj); % to color a horizontal line thru point
+        vertinx2color = find(Gt.cells.ij(:,1) == ii); % to color a vertical line thru point
+        %horiLineCoords = [Gt.cells.centroids(horiinx2color,1), Gt.cells.centroids(horiinx2color,2)];
+        vertLineCoords = [Gt.cells.centroids(vertinx2color,1), Gt.cells.centroids(vertinx2color,2)];
+        %horiLineCoords = [min(horiLineCoords); max(horiLineCoords)];
+        vertLineCoords = [min(vertLineCoords); max(vertLineCoords)];
+
+        ijk = gridLogicalIndices(Gt.parent);
+
+        ii = ijk{1}(sliceCellIndex_curr);
+        jj = ijk{2}(sliceCellIndex_curr);
+        kk = ijk{3}(sliceCellIndex_curr);
+        disp(['Slice cell index of ',num2str(sliceCellIndex_curr),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
+
+        figure(hfigSN);
+        if numSlices_sn == 1
+            if sln == 1
+                subplot(sp1_sn);
+            end
+        elseif numSlices_ew == 2
+            if sln == 1
+                subplot(sp1_sn);
+            elseif sln == 2
+                subplot(sp2_sn);
+            end
+        end
+        
+        % plot grid
+        plotGrid(Gt.parent, ijk{1} == ii, 'FaceColor', 'none'); view([90 0])
+        
+        % plot heights (max, free)
+        plotPlume(Gt.parent, Gt, states{rti}.h_max,  ijk{1} == ii, 'FaceColor',getInventoryColors(3),'EdgeColor','w','EdgeAlpha',.1)
+        plotPlume(Gt.parent, Gt, states{rti}.h_free, ijk{1} == ii, 'FaceColor',getInventoryColors(6),'EdgeColor','w','EdgeAlpha',.1)
+
+        %xlabel('West to East','FontSize',16);
+        %xlabel(['Slice ' sliceLabels(sln) ':' sliceLabels(sln)],'FontSize',16);
+        %zlabel('depth (meters)','FontSize',16)
+        %set(gca,'DataAspect',[1 1 1/50])
+        ylim([ymin ymax]);
+        zlim([zmin zmax]);
+        %axis off;
+        box;
+        title(['slice ' sliceLabels(sln) ':' sliceLabels(sln)]);
+
+
+
+        % Add slice line and label to TOPVIEW subplot Note: the slice line
+        % is plotted using a z-coordinate of -250 such that the line is
+        % visible ontop of the other previously plotted items.
+        figure(hfigEW);
+        subplot( sp1 )
+        hold on
+        
+        line(vertLineCoords(:,1), vertLineCoords(:,2), -250*ones(numel(vertLineCoords(:,2)),1), 'LineWidth',2, 'Color',[0.5 0.5 0.5], 'LineStyle','-.');
+
+        % Add label at each end of line
+        %text(horiLineCoords(1,1), horiLineCoords(1,2),   sliceLabels(sln), 'HorizontalAlignment','right');
+        %text(horiLineCoords(2,1), horiLineCoords(2,2),   sliceLabels(sln), 'HorizontalAlignment','left');
+        text(vertLineCoords(1,1), ymin-200,  sliceLabels(sln,:), 'HorizontalAlignment','center', 'VerticalAlignment','bottom', 'FontSize',14);
+        text(vertLineCoords(2,1), ymax+200,  sliceLabels(sln,:), 'HorizontalAlignment','center', 'VerticalAlignment','top',    'FontSize',14);
+    
+    end
+    
+    figure(hfigSN)
     
     % Adjust fontsize of A---A, B---B, etc. font
     set(findobj(gcf,'type','Text'),'FontSize',18);
@@ -253,6 +347,15 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
     % Adjust fontsize of slice titles
     set(findobj(gcf,'type','Axes'),'FontSize',14);
     
+    
+    figure(hfigEW)
+    
+    % Adjust fontsize of A---A, B---B, etc. font
+    set(findobj(gcf,'type','Text'),'FontSize',18);
+    
+    % Adjust fontsize of slice titles
+    set(findobj(gcf,'type','Axes'),'FontSize',14);
+
     
     %% Return variables:
     hfig = gcf;
