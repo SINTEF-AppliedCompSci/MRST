@@ -290,18 +290,30 @@ function avgrock = getAvgRock(name)
         % Barents Sea (chp 6 of "CO2 Storage Atlas: Norwegian
         % Contential Shelf" from NPD)
         case 'bjarmeland'
-            % p. 130: average permeability in range of 5-1000mD
-            tmp = [NaN 0.23]; % TODO: confirm perm value
+            tmp = [300 0.23];   % p. 130: permeabilities in the order of
+                                % 5-1000 mD have been recorded
         case 'sto'
-            tmp = [500 0.15]; % pg 128 in chp 6 of Atlas
+            tmp = [500 0.15];   % pg 128
         case 'nordmela'
-            tmp = [1 0.15];   % pg 128 in chp 6 of Atlas
+            tmp = [1 0.15];     % pg 128
         case 'tubaen'
-            tmp = [500 0.15]; % pg 128 in chp 6 of Atlas
+            tmp = [500 0.15];   % pg 128
             
-            
-        % Norwegian Sea
-        
+        % Norwegian Sea (chp 5 of "CO2 Storage Atlas: Norwegian
+        % Contential Shelf" from NPD)
+        case 'tiljefm'
+            tmp = [140 0.21]; % pg. 102
+        case 'arefm'
+            tmp = [140 0.21]; % pg. 102
+        case 'garnfm'
+            tmp = [580 0.27]; % pg. 103
+        case 'ilefm'
+            tmp = [580 0.27]; % pg. 103
+        case 'notfm'
+            tmp = [NaN NaN]; % pg. 87, 96: Not is a sealing formation
+        case 'rorfm'
+            tmp = [NaN NaN]; % pg. 84, 96: Ror is a sealing formation
+
         otherwise
             tmp = [NaN NaN];
     end
