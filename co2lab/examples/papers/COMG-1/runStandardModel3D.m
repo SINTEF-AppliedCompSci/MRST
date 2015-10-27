@@ -44,8 +44,9 @@ function outcomes = run_standard_simulation(varargin)
    opt.A              = 0;                   % magnitudes of subscale undulations
    opt.depth          = 2300;                % depth of aquifer
    opt.residual       = false;               % whether to enable residual saturation
-   opt.dis_types      = {'none'};            % dissol. types ('none'/'rate'/'instant')
-
+   opt.dis_types      = {'none'};            % dissol. types
+                                             % ('none'/'rate'/'instant')
+   
    % Timestepping parameters
    opt.Ti   = 50   * year; % duration of injection phase
    opt.dTi  = 2    * year; % timestep size during injection
@@ -59,7 +60,7 @@ function outcomes = run_standard_simulation(varargin)
    opt.t_range   = [  4, 250] + 274;           % CO2 default temperature range
    opt.res_vals  = [.11, .21];                % residual saturation values (if enabled)
    opt.cw        = 4.3e-5 / barsa;            % linear water compressibility
-
+   opt.cap_press = 5 * kilo * Pascal;         % linear capillary pressure
    opt = merge_options(opt, varargin{:});
 
    simulation_count = 1; % global count of simulation runs
@@ -183,8 +184,9 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    
    %fluid.pcGW = @(sg, p, varagin) 0;
    %fluid.pcGW = @(sg, p, varagin) 10 * kilo * Pascal * sg;
-   fluid.pcGW = @(sg, p, varagin) 5 * kilo * Pascal * sg;
-   n = 1; % corey exponent
+   fluid.pcGW = @(sg, p, varagin) opt.cap_press * sg;
+   
+   n = 1.5; % corey exponent
    
    krW = coreyPhaseRelpermAD(n, res_vals(2));
    krG = coreyPhaseRelpermAD(n, res_vals(1));
