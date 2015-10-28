@@ -167,7 +167,15 @@ for i = 1:numel(datasets)
          end
          deck.name = thick.name;
          
+         % first get average rock properties as reported in NPD's Atlas
          petroinfo{end+1} = getAvgRock(deck.name); %#ok
+         
+         % then get heterogeneous rock properties if they exist, and update
+         % average rock properties
+         [deck, petroinfo{end}] = updateWithHeterogenVals(deck, ...
+                                  petroinfo{end}, top.meta, opt);
+         
+         
          decks{end+1} = deck; %#ok
          break;
       end
