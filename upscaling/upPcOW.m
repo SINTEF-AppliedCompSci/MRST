@@ -86,7 +86,7 @@ pcMax = max(max(pc0), max(pc1));
 pcOWup = nan(nPointsMax, 2); % Each row is a pair of [sWup, pcOWup]
 
 % Compute the initial set of equally spaces pc points
-pcOWup(1:nPointsInit, 2) = linspace(pcMin, pcMax, nPointsInit)';
+pcOWup(1:nPointsInit, 2) = linspace(pcMax, pcMin, nPointsInit)';
 for i = 1:nPointsInit
    pc = pcOWup(i,2)*ones(G.cells.num, 1); % Set same pc in all cells
    sw = fluid.pcOWInv(pc - grav); % Invert capillary pressure curves
@@ -143,7 +143,10 @@ for i = 1:nPointsExtra+1 % Note: last iteration is just a check
 end
 
 % Flip if saturations decrease
-if pcOWup(1,1) > pcOWup(2,1)
+% We use a bit silly method to determine if it is deacreasing or not. We
+% used to check only the first two values, but they can in some cases be
+% zero, and so it is not enough to check.
+if sum(diff(pcOWup(:,1))<0) > size(pcOWup,1)/2
     pcOWup = flipud(pcOWup);
 end
 
