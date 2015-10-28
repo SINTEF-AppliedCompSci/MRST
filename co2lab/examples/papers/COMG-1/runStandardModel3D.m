@@ -61,6 +61,7 @@ function outcomes = run_standard_simulation(varargin)
    opt.res_vals  = [.11, .21];                % residual saturation values (if enabled)
    opt.cw        = 4.3e-5 / barsa;            % linear water compressibility
    opt.cap_press = 5 * kilo * Pascal;         % linear capillary pressure
+   opt.n         = 1.5;                       % Corey exponent for rel. perms
    opt = merge_options(opt, varargin{:});
 
    simulation_count = 1; % global count of simulation runs
@@ -172,6 +173,8 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
                   'wat_rho_pvt' , [opt.cw, 100 * barsa]      , ...
                   'dissolution' , ~strcmpi(dis_type, 'none') , ...
                   'residual'    , res_vals};
+                  % 'co2_mu_ref'  , 1e-5 * Pascal * second, ...%6e-5 * Pascal * second, ...
+                  % 'wat_mu_ref'  , 1e-5 * Pascal * second, ... %8e-4 * Pascal * second, ...
    params.is_instant = strcmpi(dis_type, 'instant');
    
    fluid = makeVEFluid(params.args{:});
@@ -186,10 +189,8 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    %fluid.pcGW = @(sg, p, varagin) 10 * kilo * Pascal * sg;
    fluid.pcGW = @(sg, p, varagin) opt.cap_press * sg;
    
-   n = 1.5; % corey exponent
-   
-   krW = coreyPhaseRelpermAD(n, res_vals(2));
-   krG = coreyPhaseRelpermAD(n, res_vals(1));
+   krW = coreyPhaseRelpermAD(opt.n, res_vals(2));
+   krG = coreyPhaseRelpermAD(opt.n, res_vals(1));
    
    fluid.relPerm = @(sg) deal(krW(1-sg), krG(sg));
    

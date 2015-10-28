@@ -42,7 +42,9 @@ function aquifer = makeAquiferModel(varargin)
    opt = merge_options(opt, varargin{:});
 
    % Create the grid
-   G = cartGrid([opt.nx, 1, opt.nz], [opt.Lx, opt.Ly, opt.H]);
+   %G = cartGrid([opt.nx, 1, opt.nz], [opt.Lx, opt.Ly, opt.H]);
+   G = cartGridZShifted([opt.nx, 1, opt.nz], [opt.Lx, opt.Ly, opt.H], 2);
+   
    x = G.nodes.coords(:, 1);
    G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + opt.D ...
        - opt.L1 * sin(x / opt.L1) * tan(opt.phi) ...

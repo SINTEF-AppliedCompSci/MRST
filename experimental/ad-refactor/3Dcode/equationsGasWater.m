@@ -124,7 +124,7 @@ function [problem, state] = equationsGasWater(model, state0, state, dt, drivingF
               wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
        end
     else
-       eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
+       %eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
     end
 
     % if ~isempty(W) && ~opt.reverseMode
