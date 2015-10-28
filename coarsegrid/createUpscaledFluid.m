@@ -48,6 +48,9 @@ T = cell(size(TW));
 for i=1:numel(TW)
     ff   = (TW{i}(:,2)/muW) ./ (TW{i}(:,2)/muW + TO{i}(:,2)/muO);
     T{i} = [ff, TW{i}(:,1)];
+    % In case the fractional flow is not monotone, we skip the points which
+    % do not increase in value.
+    T{i} = T{i}([true; diff(T{i}(:,1))>0], :);
 end
 fluid.fracFlowInv = @(ff, varargin) prop(T, ff, reg, varargin{:});
 
