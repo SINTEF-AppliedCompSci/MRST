@@ -145,6 +145,9 @@ for i = 1:2
       deck.name = jthick.name;
       
       petroinfo{end+1} = getAvgRock(deck.name); %#ok
+      % NB: if heterogeneous rock property data becomes available for any
+      % formation belonging to jurassic, call to updateWithHeterogenVals()
+      % should be inserted here.
       decks{end+1} = deck;%#ok
    end
 end
@@ -170,11 +173,11 @@ for i = 1:numel(datasets)
          % first get average rock properties as reported in NPD's Atlas
          petroinfo{end+1} = getAvgRock(deck.name); %#ok
          
-         % then get heterogeneous rock properties if they exist, and update
-         % average rock properties
-         [deck, petroinfo{end}] = updateWithHeterogenVals(deck, ...
+         % then get heterogeneous rock properties (if they exist).
+         % They are added to deck structure, and average rock properties in
+         % petroinfo structure are updated.
+         [deck, petroinfo{end}] = updateWithHeterogeneity(deck, ...
                                   petroinfo{end}, top.meta, opt);
-         
          
          decks{end+1} = deck; %#ok
          break;
@@ -208,12 +211,6 @@ for i = 1:numel(grids)
     if any(strcmpi(nstr, 'thickness'))
         tmp.variant = 'thickness';
         isTop = false;
-    elseif any(strcmpi(nstr, 'aq'))
-        tmp.variant = 'top';
-        isTop = true;
-    elseif any(strcmpi(nstr, 'fm'))
-        tmp.variant = 'top';
-        isTop = true;
     else
         tmp.variant = 'top';
         isTop = true;

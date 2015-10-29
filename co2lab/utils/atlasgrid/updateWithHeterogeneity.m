@@ -1,8 +1,8 @@
-function [ deck, petroinfo ] = updateWithHeterogenVals( deck, petroinfo, meta_top, opt )
+function [ deck, petroinfo ] = updateWithHeterogeneity( deck, petroinfo, meta_top, opt )
 % Update deck and petroinfo to include heterogeneous rock properties
 %
 % SYNOPSIS:
-%   [deck, petroinfo] = updateWithHeterogenVals( deck, petroinfo, meta_top, opt);
+%   [deck, petroinfo] = updateWithHeterogeneity( deck, petroinfo, meta_top, opt);
 %
 %
 % PARAMETERS:
@@ -28,8 +28,7 @@ function [ deck, petroinfo ] = updateWithHeterogenVals( deck, petroinfo, meta_to
 
 
     %% Look in co2atlas directory and load any perm, poro, or ntg data
-    % that belong to frm_name. These are added to rawdata, and then
-    % converted into deck (grdecl) format.
+    % that belong to frm_name.
     atlas_dir     = getDatasetPath('co2atlas');
     dataset_info  = dir(atlas_dir);
     dataset_names = {dataset_info(~[dataset_info.isdir]).name};
@@ -94,8 +93,9 @@ function [ deck, petroinfo ] = updateWithHeterogenVals( deck, petroinfo, meta_to
             deck.NTG = convertAtlasHeterogenValsTo3D(meta_top, opt.nz, meta_ntg, data_ntg);
             
         elseif strcmpi(rd_variant,'permeability')
+            % NB: data_perm is in units of m2, while rawdata is in mD.
             meta_perm   = rawdata{i}.meta;
-            data_perm   = rawdata{i}.data;
+            data_perm   = convertFrom(rawdata{i}.data, milli*darcy);
             deck.PERMX  = convertAtlasHeterogenValsTo3D(meta_top, opt.nz, meta_perm, data_perm);
             [deck.PERMY, deck.PERMZ] = deal(deck.PERMX);
             
@@ -108,26 +108,20 @@ function [ deck, petroinfo ] = updateWithHeterogenVals( deck, petroinfo, meta_to
         
     end
     
-    % deck can now be returned
-    
     %% Update petroinfo (if required)
     
     if isfield(deck,'PERMX')
-        petroinfo.perm    = deck.PERMX;
-        petroinfo.avgperm = mean(deck.PERMX(~isinf(deck.PERMX)));
+        petroinfo.avgperm = mean(deck.PERMX(~isnan(deck.PERMX)));
     end
     
     if isfield(deck,'PORO')
-        petroinfo.poro    = deck.PORO;
-        petroinfo.avgporo = mean(deck.PORO(~isinf(deck.PORO)));
+        petroinfo.avgporo = mean(deck.PORO(~isnan(deck.PORO)));
     end
     
     if isfield(deck,'NTG')
-        petroinfo.ntg     = deck.NTG;
-        petroinfo.avgntg  = mean(deck.NTG(~isinf(deck.NTG)));
+        petroinfo.avgntg  = mean(deck.NTG(~isnan(deck.NTG)));
     end
     
-    % petroinfo can now be returned
 
 end
 
@@ -163,7 +157,7 @@ function PROP = convertAtlasHeterogenValsTo3D(meta_top, nz, meta_prop, data_prop
  
     % Assign
     PROP = reshape(prop, [dims(1)*dims(2), 1]);
-    PROP(isnan(PROP)) = inf;
+    % NB: any NaN values are left as is (rather than converting to Inf)
 
 end
 
