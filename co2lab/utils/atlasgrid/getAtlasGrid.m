@@ -202,7 +202,7 @@ for i = 1:numel(grids)
     nstr = regexp(g, '_', 'split');
 
     % Designate the type based on the file names
-    ind = strcmpi(nstr, 'thickness') | strcmpi(nstr, 'top') | strcmpi(nstr, 'aq') | strcmpi(nstr, 'fm');
+    ind = strcmpi(nstr, 'thickness') | strcmpi(nstr, 'top');
     tmp.name = [nstr{~ind}];
     
     if any(strcmpi(nstr, 'thickness'))
