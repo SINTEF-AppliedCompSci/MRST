@@ -17,7 +17,7 @@ function runStandardModel(save_filename, plot_routine, varargin)
    moduleCheck('co2lab', 'ad-fi', 'ad-core');
    gravity reset on;
 
-   %% Check for presence of already-computed result; compute or re-use
+   % Check for presence of already-computed result; compute or re-use
    if (exist([save_filename, '.mat'], 'file') && ...
        ask_user('Saved result found.  Re-use? [y/n] '))
       fprintf('Re-using old result.\n');
@@ -30,7 +30,7 @@ function runStandardModel(save_filename, plot_routine, varargin)
       save(save_filename, 'sim_outcome');
    end
 
-   %% Plot result to produce the figures
+   % Plot result to produce the figures
    plot_routine(sim_outcome);
 
 end
@@ -68,19 +68,19 @@ function outcomes = run_standard_simulation(varargin)
        * numel(opt.dis_types) * numel(opt.fluid_types);
    outcomes = cell(total_count, 1);
 
-   %% Loop over grid types
+   % Loop over grid types
    for A = opt.A
 
-      %% Loop over whether or not to use residual saturation
+      % Loop over whether or not to use residual saturation
       for residual = opt.residual
 
-         %% Loop over fluid type
+         % Loop over fluid type
          for fluid_type = opt.fluid_types
 
-            %% Loop over topsurface type
+            % Loop over topsurface type
             for subscale_type = opt.subscale_types
 
-               %% Loop over dissolution types
+               % Loop over dissolution types
                for dis_type = opt.dis_types
 
                   % Constructing aquifer
