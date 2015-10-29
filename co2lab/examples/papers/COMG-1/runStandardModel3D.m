@@ -31,8 +31,8 @@ function runStandardModel3D(save_filename, plot_routine, varargin)
    end
 
    %% Plot result to produce the figures
+   keyboard;
    plot_routine(sim_outcome);
-
 end
 
 % ----------------------------------------------------------------------------
@@ -60,8 +60,7 @@ function outcomes = run_standard_simulation(varargin)
    opt.t_range   = [  4, 250] + 274;           % CO2 default temperature range
    opt.res_vals  = [.11, .21];                % residual saturation values (if enabled)
    opt.cw        = 4.3e-5 / barsa;            % linear water compressibility
-   opt.cap_press = 5 * kilo * Pascal;         % linear capillary pressure
-   opt.n         = 1.5;                       % Corey exponent for rel. perms
+   opt.cap_press = 0 * kilo * Pascal;         % linear capillary pressure
    opt = merge_options(opt, varargin{:});
 
    simulation_count = 1; % global count of simulation runs
@@ -189,8 +188,11 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    %fluid.pcGW = @(sg, p, varagin) 10 * kilo * Pascal * sg;
    fluid.pcGW = @(sg, p, varagin) opt.cap_press * sg;
    
-   krW = coreyPhaseRelpermAD(opt.n, res_vals(2));
-   krG = coreyPhaseRelpermAD(opt.n, res_vals(1));
+   % krW = coreyPhaseRelpermAD(opt.n, res_vals(2));
+   % krG = coreyPhaseRelpermAD(opt.n, res_vals(1));
+
+   krW = roundedLinRelperm(res_vals(2), res_vals(2)/10);
+   krG = roundedLinRelperm(res_vals(1), res_vals(1)/10);
    
    fluid.relPerm = @(sg) deal(krW(1-sg), krG(sg));
    

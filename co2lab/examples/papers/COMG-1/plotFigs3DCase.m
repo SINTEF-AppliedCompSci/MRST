@@ -6,7 +6,7 @@ function plotFigs3DCase(simres)
    
    % Curve without residual trapping
    %state = simres{1}.states{end-70};
-   state = simres{1}.states{end-100};
+   state = simres{1}.states{end-70};
    sG = state.s(:,2);
    h = sum(reshape(sG .* col(sortrows([Gt.columns.cells, Gt.columns.dz], 1), 2), ...
                numel(xc), ...
