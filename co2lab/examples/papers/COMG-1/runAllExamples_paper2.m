@@ -12,10 +12,7 @@ showDensityVariation;
 
 %% Figure 5 and 6
 
-runStandardModel('data/residualExample1Data', @plotResidualFigs , ...
-                 'A'             , [0 2]                        , ...
-                 'residual'      , [false true]                 , ...
-                 'dis_types'     , {'none'});
+first1dExample;
 
 %% Figure 7 and 8
 
