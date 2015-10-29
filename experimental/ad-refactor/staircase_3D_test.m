@@ -7,13 +7,15 @@ function staircase_3D_test()
    p_ref = 1 * mega * Pascal;
    rhoWS = 1000;
    rhoGS = 500;
+   cap_press = 0; %9.8 * 500 * 1;%0;
+   duration = 1000 * year; % 100 * year
    
    %% Setting up structures
    [G, rock] = setup_grid();
-   fluid = setup_fluid(p_ref, rhoWS, rhoGS);
+   fluid = setup_fluid(p_ref, rhoWS, rhoGS, cap_press);
    initState = setupInitState(G, p_ref, rhoWS);
    model = twoPhaseGasWaterModel(G, rock, fluid, T, 0);
-   schedule = initSchedule();
+   schedule = initSchedule(duration);
    
    %% Running simulation
    [~, states] = simulateScheduleAD(initState, model, schedule);
@@ -32,7 +34,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = setup_fluid(p_ref, rhoWS, rhoGS)
+function fluid = setup_fluid(p_ref, rhoWS, rhoGS, cap_press)
 
    cg = 4.6e-10;
    cw = 4.6e-10;
@@ -40,8 +42,6 @@ function fluid = setup_fluid(p_ref, rhoWS, rhoGS)
    mug = 6e-5 * Pascal * second;
    muw = 8e-4 * Pascal * second;
    mug = muw;
-   
-   cap_press = 0;
    
    fluid.rhoGS = rhoGS;
    fluid.rhoWS = rhoWS;
@@ -80,11 +80,9 @@ end
 
 % ----------------------------------------------------------------------------
 
-function schedule = initSchedule()
+function schedule = initSchedule(duration)
 
    stepnum = 10;
-   duration = 100 * year;
-   
    schedule = struct('control', struct('W', []) , ...
                      'step'   , struct('control', ones(stepnum, 1), ...
                                        'val', duration/stepnum * ones(stepnum, 1)));
