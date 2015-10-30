@@ -26,62 +26,52 @@
 %   - ED 50, UTM sone 34 (5.01998e5, 7.945754e6)
 %   - obtained from http://factpages.npd.no/factpages/Default.aspx?culture=nb-no&nav1=field&nav2=PageView%7cProducing&nav3=2053062
 mrstModule add libgeometry opm_gridprocessing
+mrstModule add mrst-gui
+mrstVerbose on
+gravity on
+
+% directory for saving figures
+figDirName = 'HammerfestFigs_test';
+mkdir(figDirName)
 
 
+%% Set coarsening (N) or refining (R) value
 %N = 1;
 R = 1;
 
+
 %% Get datasets and construct Grids (G, Gt), rock properties
-% First, get grdecl with PORO, PERMX, PERMY, PERMZ and NTG data
-grdecl_st = addPermPoroNtgData2grdecl( 'Stofm', 'refining',R );
-grdecl_nd = addPermPoroNtgData2grdecl( 'Nordmelafm' );
-grdecl_tu = addPermPoroNtgData2grdecl( 'Tubaenfm' );
-% note: perm is in mD
 
-% perform any refinement of grdecl
-%dim         = [refineLevel; refineLevel; 1];
-%grdecl_st_ref   = refineGrdecl(grdecl_st, dim);
+[grdecls, rd, petroinfo] = getAtlasGrid({'Stofm','Nordmelafm','Tubaenfm'},'coarsening',3);
 
+% Each grid is processed and the 2D (VE) rock properties are obtained.
+for i = 1:numel(grdecls)
 
-% Next, we process the grids (see also: processgrid()) and compute geometry
-G_st = processGRDECL(grdecl_st);
-G_st = mcomputeGeometry(G_st);
+    grd = grdecls{i};
 
-G_nd = processGRDECL(grdecl_nd);
-G_nd = mcomputeGeometry(G_nd);
+    G         = processGRDECL(grd);
+    G         = mcomputeGeometry(G);
+    rock      = grdecl2Rock(grd, G.cells.indexMap);
+    rock.perm = convertFrom(rock.perm, milli*darcy);
+    [Gt, G]   = topSurfaceGrid(G);
 
-G_tu = processGRDECL(grdecl_tu);
-G_tu = mcomputeGeometry(G_tu);
+    % Even though the rock properties for Sto, Nordmela, and Tubaen are
+    % already 2D (no discretization in vertical direction), we still use
+    % averageRock to get rock2D which contains one column array of perm,
+    % (i.e., the perm in the x-direction), as VE models do not handle
+    % anisotropy.
+    rock2D    = averageRock(rock, Gt);
+    
+    % Renaming of grids and rock
+    if strcmpi(grd.name,'Stofm')
+        [Gt_st, G_st, rock_st, rock2D_st] = deal(Gt, G, rock, rock2D);
+    elseif strcmpi(grd.name,'Nordmelafm')
+        [Gt_nd, G_nd, rock_nd, rock2D_nd] = deal(Gt, G, rock, rock2D);
+    elseif strcmpi(grd.name,'Tubaenfm')
+        [Gt_tu, G_tu, rock_tu, rock2D_tu] = deal(Gt, G, rock, rock2D);
+    end
+end
 
-
-% We convert PORO, PERMX, etc., and NTG into a column array, and perform
-% unit conversion such that perm is in m2
-rock_st = grdecl2Rock(grdecl_st, G_st.cells.indexMap);
-rock_st.perm = convertFrom(rock_st.perm, milli*darcy);
-
-rock_nd = grdecl2Rock(grdecl_nd, G_nd.cells.indexMap);
-rock_nd.perm = convertFrom(rock_nd.perm, milli*darcy);
-
-rock_tu = grdecl2Rock(grdecl_tu, G_tu.cells.indexMap);
-rock_tu.perm = convertFrom(rock_tu.perm, milli*darcy);
-% caution: some Inf values might be present
-
-
-% Finally, we construct top-surface grids (check: do tag need to be added,
-% which are needed by topSurfaceGrid? -->
-% G.cells.faces = [G.cells.faces, repmat((1:6).', [G.cells.num, 1])];  ???)
-[Gt_st, G_st] = topSurfaceGrid(G_st);
-[Gt_nd, G_nd] = topSurfaceGrid(G_nd);
-[Gt_tu, G_tu] = topSurfaceGrid(G_tu);
-
-
-% Even though the rock properties for Sto, Nordmela, and Tubaen are already
-% 2D (no discretization in vertical direction), we still use averageRock to
-% get rock2D which contains one column array of perm, (i.e., the perm in
-% the x-direction), as VE models do not handle anisotropy.
-rock2D_st  = averageRock(rock_st, Gt_st);
-rock2D_nd  = averageRock(rock_nd, Gt_nd);
-rock2D_tu  = averageRock(rock_tu, Gt_tu);
 
 
 %% Visualization to assess grids and rock properties.
@@ -93,15 +83,19 @@ figure; set(gcf,'Position',[1 1 1000 800])
 %plotGrid(Gt_st,'FaceColor','none','EdgeColor','y')
 % three formation grids, colored differently
 %plotGrid(G_st,'FaceColor',[1 .9 .9],'EdgeColor','none')
-plotGrid(G_tu,'FaceColor','c','EdgeColor','none')
-plotGrid(G_nd,'FaceColor','m','EdgeColor','none')
-plotGrid(G_st,'FaceColor',[1 .9 .9],'EdgeColor','none')
+hp1 = plotGrid(G_tu,'FaceColor','c','EdgeColor','none');
+hp2 = plotGrid(G_nd,'FaceColor','m','EdgeColor','none');
+hp3 = plotGrid(G_st,'FaceColor',[1 .9 .9],'EdgeColor','none');
 %plotCellData(Gt_st, Gt_st.cells.z,'EdgeColor','none')
 light('Position',[-1 -1 1],'Style','infinite');lighting phong
-view([-100 30]); grid; legend('Tubaen','Nordmela','Sto','Location','NorthEast')
-axis equal tight off
+view([-100 30]); grid; axis equal tight off
+hl = legend([hp3,hp2,hp1],{'St\o','Nordmela',['Tub',char(229),'en']},'Location','West');
+set(hl,'Fontsize',20)
 set(gca,'DataAspect',[1 1 0.05]);
 title('Hammerfest Basin Aquifer')
+set(gca,'Fontsize',20)
+
+export_fig(gcf,[figDirName '/' 'HammerfestBasin3D'], '-png','-transparent')
 % -----------------------------------------------
 
 % Get color bar limits of the data, for consistency in plotting of three
@@ -135,46 +129,74 @@ depth_min = min([ min(Gt_st.cells.z), min(Gt_nd.cells.z), min(Gt_tu.cells.z) ]);
 
 % The following figure can be compared with the plots shown in Compiled CO2
 % Atlas, chp 6, pg 129.
-figure;
+figure; set(gcf,'Position',[1 1 1480 1011])
+
+mySubPlot = @(myGt, myData) plotCellData(myGt, myData, 'EdgeColor','none');
 
 % Sto formation
 subplot(3,4,1)
-plotCellData(Gt_st, Gt_st.cells.z, 'EdgeColor','none');  view(2); axis equal tight; colorbar; caxis([depth_min depth_max])
-title('Top surface depth, meter'); ylabel('Sto formation')
+mySubPlot(Gt_st, Gt_st.cells.z); colorbar; caxis([depth_min depth_max])
+ylabel('St\o','Fontweight','bold')
+title({'Top surface depth (meter)';' '})
 subplot(3,4,2)
-plotCellData(Gt_st, rock2D_st.ntg, 'EdgeColor','none');  view(2); axis equal tight; colorbar; caxis([ntg_min ntg_max])
-title('net-to-gross')
+mySubPlot(Gt_st, rock2D_st.ntg); colorbar; caxis([ntg_min ntg_max]); axis off;
+title({'net-to-gross';' '})
 subplot(3,4,3)
-plotCellData(Gt_st, rock2D_st.poro, 'EdgeColor','none'); view(2); axis equal tight; colorbar; caxis([poro_min poro_max])
-title('porosity')
+mySubPlot(Gt_st, rock2D_st.poro); hcbp = colorbar; hcbp.Tag = 'por'; caxis([poro_min poro_max]); axis off;
+title({'porosity';' '})
 subplot(3,4,4)
-plotCellData(Gt_st, rock2D_st.perm./(milli*darcy), 'EdgeColor','none'); view(2); axis equal tight; colorbar; caxis([perm_min perm_max]./(milli*darcy))
-title('permeability, mD')
+mySubPlot(Gt_st, rock2D_st.perm./(milli*darcy)); colorbar; caxis([perm_min perm_max]./(milli*darcy)); axis off;
+title({'permeability (mD)';' '})
 
 % Nordmela
 subplot(3,4,5)
-plotCellData(Gt_nd, Gt_nd.cells.z, 'EdgeColor','none');  view(2); axis equal tight; colorbar; caxis([depth_min depth_max])
-ylabel('Nordmela formation')
+mySubPlot(Gt_nd, Gt_nd.cells.z); colorbar; caxis([depth_min depth_max])
+ylabel('Nordmela','Fontweight','bold')
 subplot(3,4,6)
-plotCellData(Gt_nd, rock2D_nd.ntg, 'EdgeColor','none');  view(2); axis equal tight; colorbar; caxis([ntg_min ntg_max])
+mySubPlot(Gt_nd, rock2D_nd.ntg); colorbar; caxis([ntg_min ntg_max]); axis off;
 subplot(3,4,7)
-plotCellData(Gt_nd, rock2D_nd.poro, 'EdgeColor','none'); view(2); axis equal tight; colorbar; caxis([poro_min poro_max])
+plotCellData(Gt_nd, rock2D_nd.poro); hcbp = colorbar; hcbp.Tag = 'por'; caxis([poro_min poro_max]); axis off;
 subplot(3,4,8)
-plotCellData(Gt_nd, rock2D_nd.perm./(milli*darcy), 'EdgeColor','none'); view(2); axis equal tight; colorbar; caxis([perm_min perm_max]./(milli*darcy))
+plotCellData(Gt_nd, rock2D_nd.perm./(milli*darcy)); colorbar; caxis([perm_min perm_max]./(milli*darcy)); axis off;
 
 % Tubaen
 subplot(3,4,9)
-plotCellData(Gt_tu, Gt_tu.cells.z, 'EdgeColor','none');  view(2); axis equal tight; colorbar; caxis([depth_min depth_max])
-ylabel('Tubaen formation')
+plotCellData(Gt_tu, Gt_tu.cells.z); colorbar; caxis([depth_min depth_max])
+ylabel(['Tub',char(229),'en'],'Fontweight','bold')
 subplot(3,4,10)
-plotCellData(Gt_tu, rock2D_tu.ntg, 'EdgeColor','none');  view(2); axis equal tight; colorbar; caxis([ntg_min ntg_max])
+plotCellData(Gt_tu, rock2D_tu.ntg); colorbar; caxis([ntg_min ntg_max]); axis off;
 subplot(3,4,11)
-plotCellData(Gt_tu, rock2D_tu.poro, 'EdgeColor','none'); view(2); axis equal tight; colorbar; caxis([poro_min poro_max])
+mySubPlot(Gt_tu, rock2D_tu.poro); hcbp = colorbar; hcbp.Tag = 'por'; caxis([poro_min poro_max]); axis off;
 subplot(3,4,12)
-plotCellData(Gt_tu, rock2D_tu.perm./(milli*darcy), 'EdgeColor','none'); view(2); axis equal tight; colorbar; caxis([perm_min perm_max]./(milli*darcy))
+mySubPlot(Gt_tu, rock2D_tu.perm./(milli*darcy)); colorbar; caxis([perm_min perm_max]./(milli*darcy)); axis off;
 
 % Note: some spots in formations contain which may have Inf or NaN values.
 
+% Adjust axis, fonts
+hfig = gcf;
+set(findobj(hfig.Children,'Type','axes'),'Fontsize',16,'box','on')
+axis(findobj(hfig.Children,'Type','axes'),'equal','tight')
+set(findobj(hfig.Children,'Type','axes'),'XTick',[900000 940000 980000],'YTick',[7920000 7960000 8000000 8040000])
+
+% adjust ticks in colorbars
+hcbs = findobj(hfig.Children,'Type','colorbar');
+for i = 1:numel(hcbs)
+    currTicks = hcbs(i).Ticks;
+    set(hcbs(i),'Ticks',[hcbs(i).Limits(1) currTicks hcbs(i).Limits(2)])
+    
+    %set(hcbs(i),'XTickLabel',num2str(get(hcbs(i),'XTick'),'%.1f'))
+    
+    cbt = get(hcbs(i), 'Ticks');
+    if strcmpi(hcbs(i).Tag, 'por')
+        cbtl = arrayfun(@(t) sprintf('%.2f', t), cbt, 'UniformOutput', false);
+    else
+        cbtl = arrayfun(@(t) sprintf('%.1f', t), cbt, 'UniformOutput', false);
+    end
+    set(hcbs(i), 'TickLabels', cbtl)
+
+end
+% save figure
+export_fig(gcf, [figDirName '/' 'FmRockProperties'], '-png','-transparent')
 
 %% Here, we replace any inf values with the field's mean value.
 % however, a better approach is to use the surrounding values to ensure no
@@ -198,24 +220,24 @@ rock2D_tu = rocks(3);
 
 % Determine cell index of Snohvit injection location
 % Physical coordinate (approx, see chp 6 pg 135 in Atlas):
-wellXcoord      = 9.225e5;
-wellYcoord      = 7.988e6;
-dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [wellXcoord, wellYcoord]);
+var.wellXcoord      = 9.225e5;
+var.wellYcoord      = 7.988e6;
+dv = bsxfun(@minus, Gt_st.cells.centroids(:,1:2), [var.wellXcoord, var.wellYcoord]);
 [v,i] = min(sum(dv.^2, 2));
 wellCellIndex = i; % or Gt.cells.indexMap(i);
 %[wellInd_i, wellInd_j] = ind2sub(Gt_st.cartDims, wellCellIndex);
-wellCoord_x = Gt_st.cells.centroids(wellCellIndex,1);
-wellCoord_y = Gt_st.cells.centroids(wellCellIndex,2);
+var.wellCoord_x = Gt_st.cells.centroids(wellCellIndex,1);
+var.wellCoord_y = Gt_st.cells.centroids(wellCellIndex,2);
 
-% Note: well cell index cooresponds to Sto formation, but should be the
+% Note: well cell index corresponds to Sto formation, but should be the
 % same for the other formations
 
 
 %% Visualize side profile slices of grid to detect obvious faulted areas
 sliceIndex = [wellCellIndex; wellCellIndex + 500; wellCellIndex + 1000];
 ta_st       = trapAnalysis(Gt_st, false);
-[ ~, ~ ]    = Grid_withSideProfiles( Gt_st, wellXcoord, wellYcoord, ...
-    wellCoord_x, wellCoord_y, ta_st, 'sliceCellIndex', sliceIndex, ...
+[ ~, ~ ]    = Grid_withSideProfiles( Gt_st, var.wellXcoord, var.wellYcoord, ...
+    var.wellCoord_x, var.wellCoord_y, ta_st, 'sliceCellIndex', sliceIndex, ...
     'plotNorthwardSlices', true);
 
 
@@ -226,8 +248,47 @@ ta_st       = trapAnalysis(Gt_st, false);
 % been used in estimates? Now that porosity and permeability maps are
 % available, how will they impact trapping estimations?
 
-interactiveTrapping(Gt_st, 'injpt', wellCellIndex)
-view([-100 55]);
+%interactiveTrapping(Gt_st, 'injpt', wellCellIndex)
+interactiveTrapping('Stofm', 'injpt', wellCellIndex) % use formation name in order to load averaged perm and poro data using getAtlasGrid
+view([-85 45]);
+% then use icons in figure to toggle various plotting options.
+% Note: interactiveTrapping sets the poro and perm to default values of 0.3
+% and 300 if Gt is passed in. If the formation name is passed in, it will
+% get poro and perm values (non-nan) from getAtlasGrid.
+
+% re-size figure for clarity
+set(gcf,'Position',[1 1 822 839])
+view(2)
+hfig = gcf;
+set(findobj(hfig.Children,'Type','axes'),'FontSize',14)
+set(findobj(hfig.Children,'Type','Legend'),'FontSize',14,'Orientation','vertical')
+haxs = hfig.Children; % pie axes should be haxs(5)?
+set(findobj(haxs(4).Children,'Type','Text'),'FontSize',14) % pie chart might be haxes(4)
+
+% save figure
+export_fig(gcf, [figDirName '/' 'interactiveTrapping2'], '-png','-transparent')
+
+
+% run a VE simulation (do manually)
+
+% adjust views/position of some subplots
+hfig = gcf;
+haxs = findobj(hfig.Children,'Type','axes');
+haxs(3).View = [0  90]; % (height of co2-column)
+haxs(1).View = [-92 8]; % (co2-sat, y-slice)
+haxs(2).View = [-1  8]; % (co2-sat, x-slice)
+haxs(5).Position = [0.05 0.5838 0.4942 0.3412];
+haxs(4).Position = [0.5 0.5838 0.4 0.3412];
+
+% adjust font size
+set(findobj(hfig.Children,'Type','axes'),'FontSize',14)
+set(findobj(hfig.Children,'Type','Legend'),'FontSize',14,'Position',[0.7606 0.7151 0.2029 0.2000])
+set(findobj(haxs(4).Children,'Type','Text'),'FontSize',14)
+
+% save figure
+export_fig(gcf, [figDirName '/' 'interactiveTrapping_VEsim'], '-png','-transparent')
+
+
 
 % Note that injection wells could be placed in other locations of the Sto
 % formation, to exploit the full capacity of the structural traps. Also, it
@@ -238,20 +299,21 @@ view([-100 55]);
 
 % could also use:
 exploreCapacity( 'default_formation',  'Stofm',     ...
-                 'grid_coarsening',     N,          ...
+                 'grid_coarsening',     1,          ...
                  'seafloor_depth',      330*meter,  ...
                  'seafloor_temp',       4,          ...
                  'temp_gradient',       40           );
              
-exploreSimulation(  'default_formation',  'Stofm',     ...
-                    'grid_coarsening',     N,          ...
+exploreSimulation(  'default_formation',  'Nordmelafm',     ...
+                    'grid_coarsening',     3,          ...
                     'seafloor_depth',      330*meter,  ...
                     'seafloor_temp',       4,          ...
                     'temp_gradient',       40,         ...
                     'inj_time',            30 * year,  ...
-                    'inj_steps',           10,         ...
+                    'inj_steps',           30,         ...
                     'mig_time',            0 * year,   ...
-                    'mig_steps',           0           );
+                    'mig_steps',           0,          ...
+                    'savefile',            'testsave'   );
                 
 % note: averaged perm and poro is used in exploreSimulation() since
 % getFormationTopGrid() is called which returns rock2D data with averaged
@@ -260,6 +322,43 @@ exploreSimulation(  'default_formation',  'Stofm',     ...
 
 %% Run injection scenario using entire Sto formation
 [wellSols_st, states_st, sim_report_st, opt_st, var_st ] = runSnohvitInjectionScenario( Gt_st, rock2D_st );
+
+
+%% Run LARGE-SCALE injection scenario (for Sto formation)
+[wellSols_st_ls, states_st_ls, sim_report_st_ls, opt_st_ls, var_st_ls ] = ...
+    runSnohvitInjectionScenario( Gt_st, rock2D_st, ...
+    'inj_rate_MtperYr', 10, 'inj_time', 50*year, 'inj_steps', 50, ...
+    'mig_time', 3000*year, 'mig_steps', 30);
+
+% Analyze simulated injection/migration:
+figure;
+plotToolbar(G_st,states_st_ls)
+
+% Top View plot of final year CO2-sat 
+Years2plot          = convertTo(sim_report_st.ReservoirTime(end), year);
+SimStartYear        = 0;
+plume               = [];
+plumeOutline_SatTol = (0.01/100); % adjust this value if patch error occurs
+                                  % (which can happen when plotting a year
+                                  % with minimal massCO2)
+    
+[ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years2plot, ...
+    SimStartYear, plume, sim_report_st_ls, Gt_st, states_st_ls, var_st_ls.fluid, var_st_ls.model, ...
+    [], [], var_st_ls.wellCoord_x, var_st_ls.wellCoord_y, ...
+    ta_st, plumeOutline_SatTol);
+title([num2str(Year2plot),' years after sim. start'])
+
+%% Alternatively, run LARGE-SCALE injection scenario using exploreSimulation
+% compare 1 vs 3 injection wells located in the main structural traps
+exploreSimulation(  'default_formation',  'Stofm',     ...
+                    'grid_coarsening',     1,          ...
+                    'seafloor_depth',      330*meter,  ...
+                    'seafloor_temp',       4,          ...
+                    'temp_gradient',       40,         ...
+                    'inj_time',            50 * year,  ...
+                    'inj_steps',           10,         ...
+                    'mig_time',            3000 * year,   ...
+                    'mig_steps',           30           );
 
 
 %% Run injection scenario using entire Tubaen formation
@@ -275,6 +374,56 @@ makeSideProfilePlots_CO2heights(G_st, Gt_st, var_st.wellCellIndex, states_st, va
 % can do other analysis of results. i.e.,
 figure;
 plotToolbar(G_st,states_st)
+
+%% Plot CO2-sat for a specific year (and plot side profiles)
+% If a long-time injection/migration was simulated, plot CO2-sat/profiles
+Years2plot          = convertTo(sim_report_st.ReservoirTime(end), year);
+SimStartYear        = 0;
+plume               = [];
+plumeOutline_SatTol = (0.01/100); % adjust this value if patch error occurs
+                                  % (which can happen when plotting a year
+                                  % with minimal massCO2)
+    
+[ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years2plot, ...
+    SimStartYear, plume, sim_report_st, Gt_st, states_st, var_st.fluid, var_st.model, ...
+    [], [], var_st.wellCoord_x, var_st.wellCoord_y, ...
+    ta_st, plumeOutline_SatTol);
+
+% save figure
+export_fig(gcf, [figDirName '/' 'VEsim_Stofm'], '-png','-transparent')
+
+
+% Add side profiles:
+% specify XY coordinate(s) you want to draw EW-slice(s) through:
+XYcoord1_ew = [var.wellXcoord, var.wellYcoord + 600];
+XYcoords_ew = [XYcoord1_ew];
+% get index of closest cell to your specified XY coordinate(s):
+cellIndex = zeros(numel(XYcoords_ew(:,1)),1);
+for p = 1:numel(XYcoords_ew(:,1))
+    dv              = bsxfun(@minus, var_st.model.G.cells.centroids(:,1:2), XYcoords_ew(p,:));
+    [v, cinx]       = min(sum(dv.^2, 2));   
+    cellIndex(p,:)  = cinx;
+end
+inxPts_ew = [cellIndex];
+% specify XY coordinate(s) you want to draw SN-slice(s) through:
+XYcoord1_sn = [var.wellXcoord + 400, var.wellYcoord];
+XYcoords_sn = [XYcoord1_sn];
+% get index of closest cell to your specified XY coordinate(s):
+cellIndex = zeros(numel(XYcoords_sn(:,1)),1);
+for p = 1:numel(XYcoords_sn(:,1))
+    dv              = bsxfun(@minus, var_st.model.G.cells.centroids(:,1:2), XYcoords_sn(p,:));
+    [v, cinx]       = min(sum(dv.^2, 2));   
+    cellIndex(p,:)  = cinx;
+end
+inxPts_sn = [cellIndex];
+[ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years2plot, ...
+    SimStartYear, plume, sim_report_st, Gt_st, states_st, var_st.fluid, var_st.model, ...
+    [], [], var_st.wellCoord_x, var_st.wellCoord_y, ...
+    ta_st, plumeOutline_SatTol, ...
+    'sliceCellIndex_ew',inxPts_ew, 'sliceCellIndex_sn',inxPts_sn );
+
+% save figure
+export_fig(gcf, [figDirName '/' 'VEsim_Stofm_withSideProfiles'], '-png','-transparent')
 
 
 % preliminary trapping anaylsis on G. Snohvit
@@ -373,7 +522,16 @@ plot(wellCoord_x,wellCoord_y,'xk', ...
             'MarkerEdgeColor','k',...
             'MarkerFaceColor','g',...
             'MarkerSize',10)
-       
+
+figure;
+subplot(1,4,1)
+plotGrid(G_gsf, 'FaceColor','none'); view(3);
+subplot(1,4,2)
+plotCellData(G_gsf, rock2D_gsf.ntg); colorbar; title('ntg'); axis equal tight
+subplot(1,4,3)
+plotCellData(G_gsf, rock2D_gsf.poro); colorbar; title('poro'); axis equal tight
+subplot(1,4,4)
+plotCellData(G_gsf, rock2D_gsf.perm./(milli*darcy)); colorbar; title('perm'); axis equal tight
         
 %% Visualize side profile slices of grid to detect obvious faulted areas
 % first need to get the well cell index in the Gt_gsf grid:
@@ -405,7 +563,7 @@ makeSideProfilePlots_CO2heights(G_gsf, Gt_gsf, var_gsf.wellCellIndex, states_gsf
 figure;
 plotToolbar(G_gsf,states_gsf)
 % Note: it might be better to cut out a region larger than the GSF
-% structural trap, since boundary conditions along the sub-domain may be
+% structural trap, since boundary conditions along the sub-domaexin may be
 % impacting CO2's containment inside the trap. Allowing it to spill out of
 % domain may be more realistic.
 

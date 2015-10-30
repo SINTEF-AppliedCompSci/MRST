@@ -21,6 +21,8 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
 %       - inj. rate: 2 kt/day
 %       - inj. reservoir rate: 2100 to 2750 m3/day
 %       - design capacity: 0.7 Mt/yr
+%       - inj rates from 2008-2009 are provided in graph in Hansen et al
+%       2011
 %
     gravity on;
     moduleCheck('ad-core');
@@ -45,7 +47,8 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
     
     % TO CONFIRM for Snohvit
     [rho, mu, sr, sw]   = getValuesSPE134891(); % from Sleipner benchmark
-    opt.water_density   = rho(1);
+    opt.water_density   = rho(1); % note: chp 6, pg 128 in Atlas says 1.1 g/cm3
+    % and formation water is strongly saline.
     opt.co2_density     = rho(2);
     opt.water_mu        = mu(1);
     opt.co2_mu          = mu(2);
@@ -57,12 +60,13 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
     opt.dis_max         = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
 
     
-    % Snohvit injection scenario details
-    opt.wellXcoord        = 9.225e5;  % need to verify
-    opt.wellYcoord        = 7.988e6;
+    % Snohvit injection scenario details:
+    
+    % Physical coordinate of Snohvit injection (approx, see chp 6 pg 135 in Atlas):
+    opt.wellCoords        = [9.225e5, 7.988e6];
     opt.well_radius       = 0.3;
     % 
-    opt.inj_rate          = (0.767 * mega * kilo / rhoCref) / year; % m3/s
+    opt.inj_rate_MtperYr  = 0.767; % Mt/yr
     opt.inj_time          = 30 * year;
     opt.inj_steps         = 10;
     opt.mig_time          = 1 * year;
@@ -72,6 +76,9 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
     opt.bdryType    = 'pressure';
 
     opt = merge_options(opt, varargin{:});
+    
+    % inj rate in m3/s
+    opt.inj_rate          = (opt.inj_rate_MtperYr * mega * kilo / rhoCref) / year; % m3/s
     
 
     %% Set-up (initial state, well location, schedule)
@@ -86,28 +93,40 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
         (Gt.cells.z - opt.seafloor_depth) / 1e3 * opt.temp_gradient; % Kelvin
 
     
-    % set up well location, and put well details into schedule. Note, the
-    % coordinate that var.wellCellIndex corresponds to is computed and can
-    % be used for post-processing plots.
-    dv                  = bsxfun(@minus, Gt.cells.centroids(:,1:2), [opt.wellXcoord, opt.wellYcoord]);
-    [~,i]               = min(sum(dv.^2, 2));
-    var.wellCellIndex   = i;
-    var.wellCoord_x     = Gt.cells.centroids(var.wellCellIndex,1);
-    var.wellCoord_y     = Gt.cells.centroids(var.wellCellIndex,2);
-    
-    schedule.control(1).W = addWell([], Gt.parent, rock2D, var.wellCellIndex, ...
-                                        'name', sprintf('W%i', var.wellCellIndex),  ...
-                                        'Type', 'rate',             ...
-                                        'Val',  opt.inj_rate,       ...
-                                        'comp_i', [0 1]             );
-    schedule.control(end+1).W       = schedule.control(1).W;
-    schedule.control(end).W.name    = 'W_off';
-    schedule.control(end).W.val     = 0;
     
     
+    % Set up injection:
+    numWells = size(opt.wellCoords,1);
+    injWells = [];
+    offWells = [];
+    for i = 1:numWells
+        
+        % Cell index(es) of injection point(s) in top grid formation
+        var.wellCellIndex(i)  = getCellIndex(Gt, opt.wellCoords(i,1), opt.wellCoords(i,2));
+        var.wellCoordSim(i,1) = Gt.cells.centroids(var.wellCellIndex(i),1);
+        var.wellCoordSim(i,2) = Gt.cells.centroids(var.wellCellIndex(i),2);
 
-    
-    % set up boundary conditions, and put into schedule
+        % Put injection controls into schedule
+        schedule.control(1).W = addWell(injWells, Gt.parent, rock2D, var.wellCellIndex(i), ...
+            'name',     sprintf('W%i', var.wellCellIndex(i)),  ...
+            'Type',     'rate', ...
+            'Val',      opt.inj_rate, ...
+            'comp_i',   [0 1] );
+        
+        injWells = schedule.control(1).W;
+        
+        % Put turned-off well controls into schedule
+        schedule.control(2).W  = addWell(offWells, Gt.parent, rock2D, var.wellCellIndex(i), ...
+            'name',     'W_off',  ...
+            'Type',     'rate', ...
+            'Val',      0, ...
+            'comp_i',   [0 1] );
+        
+        offWells = schedule.control(2).W;
+        
+    end
+
+    % Set up boundary conditions, and put into schedule:
     bdryFaces   = find( Gt.faces.neighbors(:,1).*Gt.faces.neighbors(:,2) == 0 );
     bdryVal     = Gt.faces.z(bdryFaces) * opt.water_density * norm(gravity);
     bc          = addBC( [], bdryFaces, opt.bdryType, bdryVal, 'sat', [1 0] );
@@ -115,7 +134,7 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
         schedule.control(i).bc = bc;
     end
     
-    % set up time step, and put into schedule
+    % Set up time step, and put into schedule:
     dTi         = opt.inj_time / opt.inj_steps;
     dTm         = opt.mig_time / opt.mig_steps;
     istepvec    = ones(opt.inj_steps, 1) * dTi;
@@ -144,5 +163,16 @@ function [ wellSols, states, sim_report, opt, var ] = runSnohvitInjectionScenari
     [wellSols, states, sim_report] = simulateScheduleAD(initState, var.model, schedule);
 
 
+end
+
+
+function cellIndex = getCellIndex(Gt, Xcoord, Ycoord)
+% Closest cell index of grid Gt corresponding to physical coordinate (X,Y)
+
+    dv        = bsxfun(@minus, Gt.cells.centroids(:,1:2), [Xcoord, Ycoord]);
+    [v, ind]  = min(sum(dv.^2, 2));
+    cellIndex = ind; 
+    % or Gt.cells.indexMap(i);
+    
 end
 
