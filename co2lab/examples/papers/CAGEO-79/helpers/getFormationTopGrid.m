@@ -2,17 +2,22 @@ function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level
 % Load the formation grid at a given coarsening level
 %
 % SYNOPSIS:
-%   function [Gt rock2D] = getUtsiraTopGrid(coarsening_level)
+%   function [Gt rock2D] = getFormationTopGrid('Utsirafm',N)
 %
 % DESCRIPTION:
 %
 % PARAMETERS:
+%   formation        - Name of formation in CO2Atlas directory
 %   coarsening_level - Coarsening factor.  If set to 1, a grid with
 %                      approximately one cell per datapoint is produced.
 %
 % RETURNS:
-%   Gt     - top surface grid
-%   rock2D - rock structure
+%   Gt      - top surface grid
+%   rock2D  - rock structure. Formed using averages contained in petrodata,
+%             unless heterogeneous properties were available.
+%   petrodata (optional) - contains avg rock properties as reported by
+%                          NDP's Atlas, or computed from any available
+%                          heterogeneous properties.
 %
     moduleCheck('libgeometry');
     [grdecl dataset petroinfo] = ...
@@ -79,15 +84,18 @@ function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level
     % Replace any nan values with the property's average value. Since ntg
     % may not exist, an additional conditional statement is required.
     if any(isnan(rock2D.perm))
-        dispif(mrstVerbose, 'Nan permeability values are being replaced with the average value.\n')
+        warning(['Nan permeability values are being replaced with the '...
+            'average value.']);
         rock2D.perm(isnan(rock2D.perm)) = petrodata.avgperm; 
     end
     if any(isnan(rock2D.poro))
-        dispif(mrstVerbose, 'Nan porosity values are being replaced with the average value.\n')
+        warning(['Nan porosity values are being replaced with the '...
+            'average value.']);
         rock2D.poro(isnan(rock2D.poro)) = petrodata.avgporo;
     end
     if isfield(rock2D,'ntg') && any(isnan(rock2D.ntg))
-        dispif(mrstVerbose, 'Nan net-to-gross values are being replaced with the average value.\n')
+        warning(['Nan net-to-gross values are being replaced with the '...
+            'average value.']);
         rock2D.ntg(isnan(rock2D.ntg))   = petrodata.avgntg;
     end
     

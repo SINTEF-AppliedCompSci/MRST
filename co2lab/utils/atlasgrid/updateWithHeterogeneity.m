@@ -4,16 +4,25 @@ function [ deck, petroinfo ] = updateWithHeterogeneity( deck, petroinfo, meta_to
 % SYNOPSIS:
 %   [deck, petroinfo] = updateWithHeterogeneity( deck, petroinfo, meta_top, opt);
 %
+% DESCRIPTION:
+%   The CO2Atlas directory is searched and any heterogeneous rock data that
+%   exists for a formation matching deck.name is loaded and added to the
+%   deck structure. If no rock data files for a formation matching
+%   deck.name exist, deck and petroinfo are returned from function
+%   unchanged.
 %
 % PARAMETERS:
 %   deck       - cell arrays of data members in ECLIPSE grid structures.
 %
 %   petroinfo  - average perm / porosity as given in the atlas.
-%               Will contain NaN where values are not provided or possible
-%               to calculate.
+%                Will contain NaN where values are not provided or possible
+%                to calculate.
+%
+%   meta_top   - Metainformation for top data, as returned by
+%                readAtlasGrids(), a local function in getAtlasGrid()
 %
 % RETURNS:
-%   deck       - updated cell arrays of data members in ECLIPSE grid
+%   deck      - updated cell arrays of data members in ECLIPSE grid
 %               structures. If heterogeneous rock properties are available
 %               for a formation, these are added to deck structure. If not,
 %               deck is returned unmodified.
@@ -24,7 +33,7 @@ function [ deck, petroinfo ] = updateWithHeterogeneity( deck, petroinfo, meta_to
 %               petroinfo is returned unmodified.
 %
 % SEE ALSO:
-%   getAtlasGrid
+%   getAtlasGrid, convertAtlasTo3D
 
 
     %% Look in co2atlas directory and load any perm, poro, or ntg data
@@ -128,7 +137,6 @@ end
 function PROP = convertAtlasHeterogenValsTo3D(meta_top, nz, meta_prop, data_prop)
 % PROP is interpolated property data aligned to a cell-centered grid set-up
 % using corner node and cellsize info found in meta_top.
-% See also convertAltasTo3D
 
     ndims   = [meta_top.dims, nz + 1];
     dims    = ndims - 1;
