@@ -3,8 +3,8 @@ function fn = roundedLinRelperm(resSat, epsilon)
    epsilon = min(epsilon, resSat/5);
    
    if epsilon == 0 
-      % degenerate case
-      fn = @(s) relperm(s, @(x) 0, 0, 0);
+      % degenerate case (no residual saturation)
+      fn = @(s) s;
    else 
       splinefn = compute_spline_function(resSat, epsilon);
       fn = @(s) relperm(s, splinefn, resSat, epsilon);

@@ -1,4 +1,4 @@
-function runStandardModel(save_filename, plot_routine, varargin)
+function sim_outcome = runStandardModel(save_filename, plot_routine, varargin)
 % Script used to generate several of the published examples where different
 % models are compared againt each other.  Arguments are:
 %

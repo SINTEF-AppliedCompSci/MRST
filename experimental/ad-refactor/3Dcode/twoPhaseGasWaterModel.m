@@ -47,6 +47,15 @@ classdef twoPhaseGasWaterModel < ReservoirModel
 
         % ------------------------------------------------------------------------
         
+        function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
+            
+           [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
+                                                        drivingForces);
+           state.sGmax = max(state.sGmax,state.s(:,2));
+           state.sGmax = min(1,state.sGmax);
+           state.sGmax = max(0,state.sGmax);
+        end
+        
         % function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
             
         %    [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...

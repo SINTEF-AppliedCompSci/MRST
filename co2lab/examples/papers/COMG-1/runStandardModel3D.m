@@ -44,8 +44,6 @@ function outcomes = run_standard_simulation(varargin)
    opt.A              = 0;                   % magnitudes of subscale undulations
    opt.depth          = 2300;                % depth of aquifer
    opt.residual       = false;               % whether to enable residual saturation
-   opt.dis_types      = {'none'};            % dissol. types
-                                             % ('none'/'rate'/'instant')
    
    % Timestepping parameters
    opt.Ti   = 50   * year; % duration of injection phase
@@ -64,48 +62,40 @@ function outcomes = run_standard_simulation(varargin)
    opt = merge_options(opt, varargin{:});
 
    simulation_count = 1; % global count of simulation runs
-   total_count = numel(opt.A) * numel(opt.residual) * numel(opt.dis_types);
+   total_count = numel(opt.residual);
    outcomes = cell(total_count, 1);
 
-   %% Loop over grid types
-   for A = opt.A
-
-      %% Loop over whether or not to use residual saturation
-      for residual = opt.residual
-   
-         %% Loop over dissolution types
-         for dis_type = opt.dis_types
-
-            aquifer = makeAquiferModel('A', A, 'D', opt.depth, 'nz', opt.zres);
-
-            % Make fluid model
-            [fluid, fluid_params] = ...
-                setup_fluid_model(opt, aquifer, residual, ...
-                                       'sharp interface', ...
-                                       [], ...
-                                       'smooth', dis_type{:});
-            
-            % Defining injection schedule
-            [schedule, Winj] = setup_schedule(opt, fluid, aquifer.W3D, aquifer.G);
-            
-            % Defining initial state
-            initState = setup_init_state(fluid, aquifer.G, Winj, dis_type);
-            
-            % Set up and run complete model
-            model = twoPhaseGasWaterModel(aquifer.G, aquifer.rock, fluid, ...
-                                          opt.surf_temp + 274, ...
-                                          opt.temp_grad * 1000);
-            
-            [wellSols, states] = simulateScheduleAD(initState, model, schedule);
-            
-            % Storing outcome
-            outcomes{simulation_count} = struct('states', {states}, ...
-                                                'wellSols', {wellSols}, ...
-                                                'G', {aquifer.G}, ...
-                                                'fluid_params', {fluid_params});
-            simulation_count = simulation_count + 1;
-         end
-      end
+   %% Loop over whether or not to use residual saturation
+   for residual = opt.residual
+      
+      aquifer = makeAquiferModel('A', 0, 'D', opt.depth, 'nz', opt.zres);
+      
+      % Make fluid model
+      [fluid, fluid_params] = ...
+          setup_fluid_model(opt, aquifer, residual, ...
+                                 'sharp interface', ...
+                                 [], ...
+                                 'smooth');
+      
+      % Defining injection schedule
+      [schedule, Winj] = setup_schedule(opt, fluid, aquifer.W3D, aquifer.G);
+      
+      % Defining initial state
+      initState = setup_init_state(fluid, aquifer.G, Winj);
+      
+      % Set up and run complete model
+      model = twoPhaseGasWaterModel(aquifer.G, aquifer.rock, fluid, ...
+                                    opt.surf_temp + 274, ...
+                                    opt.temp_grad * 1000);
+      
+      [wellSols, states] = simulateScheduleAD(initState, model, schedule);
+      
+      % Storing outcome
+      outcomes{simulation_count} = struct('states', {states}, ...
+                                          'wellSols', {wellSols}, ...
+                                          'G', {aquifer.G}, ...
+                                          'fluid_params', {fluid_params});
+      simulation_count = simulation_count + 1;
    end
 end
    
@@ -138,7 +128,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function initState = setup_init_state(fluid, G, Winj, dis_type)
+function initState = setup_init_state(fluid, G, Winj)
 
    W_val   = Winj(2).val;
    W_depth = max(G.cells.centroids(Winj(2).cells, 3));
@@ -149,17 +139,12 @@ function initState = setup_init_state(fluid, G, Winj, dis_type)
    initState = struct('pressure', pfun(G.cells.centroids(:, 3)), ...
                       's'       , [ones(nc, 1), zeros(nc, 1)], ...
                       'sGmax'   , zeros(nc, 1));
-
-   if ~strcmpi(dis_type, 'none')
-      % We will model dissolution too
-      initState.rs = zeros(nc, 1);
-   end
 end
 
 % ----------------------------------------------------------------------------
 
 function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type, top_trap, ...
-                                        subscale_type, dis_type)
+                                        subscale_type)
 
    T = aquifer.G.cells.centroids(:,3) * opt.temp_grad + (274 + opt.surf_temp); % add 274 to get Kelvin
    res_vals = opt.res_vals * residual; % becomes zero if 'residual' is false
@@ -170,11 +155,9 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
                   'fixedT'      , T                          , ...
                   'co2_rho_pvt' , [opt.p_range, opt.t_range] , ...
                   'wat_rho_pvt' , [opt.cw, 100 * barsa]      , ...
-                  'dissolution' , ~strcmpi(dis_type, 'none') , ...
+                  'dissolution' , false                      , ...
                   'residual'    , res_vals};
-                  % 'co2_mu_ref'  , 1e-5 * Pascal * second, ...%6e-5 * Pascal * second, ...
-                  % 'wat_mu_ref'  , 1e-5 * Pascal * second, ... %8e-4 * Pascal * second, ...
-   params.is_instant = strcmpi(dis_type, 'instant');
+   params.is_instant = false;
    
    fluid = makeVEFluid(params.args{:});
    
@@ -184,8 +167,6 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    fluid = rmfield(fluid, 'krW');
    fluid = rmfield(fluid, 'pcWG');
    
-   %fluid.pcGW = @(sg, p, varagin) 0;
-   %fluid.pcGW = @(sg, p, varagin) 10 * kilo * Pascal * sg;
    fluid.pcGW = @(sg, p, varagin) opt.cap_press * sg;
    
    % krW = coreyPhaseRelpermAD(opt.n, res_vals(2));
