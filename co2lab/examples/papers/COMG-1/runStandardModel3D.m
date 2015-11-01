@@ -1,4 +1,4 @@
-function runStandardModel3D(save_filename, plot_routine, varargin)
+function sim_outcome =  runStandardModel3D(save_filename, plot_routine, varargin)
 % Script used to generate several of the published examples where different
 % models are compared againt each other.  Arguments are:
 %
@@ -31,7 +31,7 @@ function runStandardModel3D(save_filename, plot_routine, varargin)
    end
 
    %% Plot result to produce the figures
-   keyboard;
+   %keyboard;
    plot_routine(sim_outcome);
 end
 
@@ -40,7 +40,6 @@ end
 function outcomes = run_standard_simulation(varargin)
 
    % Loop parameters
-   opt.zres           = 20;                  % vertical resolution
    opt.A              = 0;                   % magnitudes of subscale undulations
    opt.depth          = 2300;                % depth of aquifer
    opt.residual       = false;               % whether to enable residual saturation
@@ -59,8 +58,13 @@ function outcomes = run_standard_simulation(varargin)
    opt.res_vals  = [.11, .21];                % residual saturation values (if enabled)
    opt.cw        = 4.3e-5 / barsa;            % linear water compressibility
    opt.cap_press = 0 * kilo * Pascal;         % linear capillary pressure
-   opt = merge_options(opt, varargin{:});
 
+   % grid parameters
+   opt.zres = 20;   % vertical resolution
+   opt.xres = 1000; % horizontal resolution
+
+   opt = merge_options(opt, varargin{:});
+   
    simulation_count = 1; % global count of simulation runs
    total_count = numel(opt.residual);
    outcomes = cell(total_count, 1);
@@ -68,7 +72,8 @@ function outcomes = run_standard_simulation(varargin)
    %% Loop over whether or not to use residual saturation
    for residual = opt.residual
       
-      aquifer = makeAquiferModel('A', 0, 'D', opt.depth, 'nz', opt.zres);
+      aquifer = makeAquiferModel('A', 0, 'D', opt.depth, 'nz', opt.zres, 'nx', ...
+                                 opt.xres);
       
       % Make fluid model
       [fluid, fluid_params] = ...
@@ -112,12 +117,18 @@ function [schedule, Winj, Wmig] = setup_schedule(opt, fluid, W, G)
    % Specify duration of individual injection timesteps
    istep = linspace(0.1 * year, opt.dTi, 10)';
    istep = [istep; ones(floor((opt.Ti - sum(istep)) / opt.dTi), 1) * opt.dTi];
-   istep = [istep; opt.Ti - sum(istep)];
+   last_dt = opt.Ti - sum(istep);
+   if last_dt > 0
+      istep = [istep; last_dt];
+   end
 
    % Specify duration of individual migration timesteps
    mstep = linspace(0.5 * year, opt.dTm, 5)';
    mstep = [mstep; ones(floor((opt.Tm - sum(mstep)) / opt.dTm), 1) * opt.dTm];
-   mstep = [mstep; opt.Tm - sum(mstep)];
+   last_dt = opt.Tm - sum(mstep);
+   if last_dt > 0
+      mstep = [mstep; last_dt];
+   end
 
    % Put everything together in a schedule structure
    schedule = struct('control', [struct('W', Winj), struct('W', Wmig)]    , ...
@@ -172,8 +183,8 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    % krW = coreyPhaseRelpermAD(opt.n, res_vals(2));
    % krG = coreyPhaseRelpermAD(opt.n, res_vals(1));
 
-   krW = roundedLinRelperm(res_vals(2), res_vals(2)/10);
-   krG = roundedLinRelperm(res_vals(1), res_vals(1)/10);
+   krW = roundedLinRelperm(res_vals(1), 1 - res_vals(2), res_vals(1)/20);
+   krG = roundedLinRelperm(res_vals(2), 1 - res_vals(1), res_vals(2)/20);
    
    fluid.relPerm = @(sg) deal(krW(1-sg), krG(sg));
    

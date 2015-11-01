@@ -61,6 +61,8 @@ function outcomes = run_standard_simulation(varargin)
    opt.res_vals  = [.11, .21];                % residual saturation values (if enabled)
    opt.cw        = 4.3e-5 / barsa;            % linear water compressibility
 
+   opt.xres      = 1000;
+   
    opt = merge_options(opt, varargin{:});
 
    simulation_count = 1; % global count of simulation runs
@@ -87,9 +89,11 @@ function outcomes = run_standard_simulation(varargin)
                   if ~strcmpi(subscale_type{:}, 'smooth')
                      % We model upscaled caprock undulations implicitly, so the
                      % geometrical caprock model itself will be smooth
-                     aquifer = makeAquiferModel('A', 0, 'D', opt.depth);
+                     aquifer = makeAquiferModel('A', 0, 'D', opt.depth, ...
+                                                'nx', opt.xres);
                   else
-                     aquifer = makeAquiferModel('A', A, 'D', opt.depth);
+                     aquifer = makeAquiferModel('A', A, 'D', opt.depth, ...
+                                                'nx', opt.xres);
                   end
 
                   % Make fluid model
@@ -157,12 +161,18 @@ function [schedule, Winj, Wmig] = setup_schedule(opt, fluid, W, Gt)
    % Specify duration of individual injection timesteps
    istep = linspace(0.1 * year, opt.dTi, 10)';
    istep = [istep; ones(floor((opt.Ti - sum(istep)) / opt.dTi), 1) * opt.dTi];
-   istep = [istep; opt.Ti - sum(istep)];
+   last_dt = opt.Ti - sum(istep);
+   if last_dt > 0
+      istep = [istep; last_dt];
+   end
 
    % Specify duration of individual migration timesteps
    mstep = linspace(0.5 * year, opt.dTm, 5)';
    mstep = [mstep; ones(floor((opt.Tm - sum(mstep)) / opt.dTm), 1) * opt.dTm];
-   mstep = [mstep; opt.Tm - sum(mstep)];
+   last_dt = opt.Tm - sum(mstep);
+   if last_dt > 0
+      mstep = [mstep; last_dt];
+   end
 
    % Put everything together in a schedule structure
    schedule = struct('control', [struct('W', Winj), struct('W', Wmig)]    , ...

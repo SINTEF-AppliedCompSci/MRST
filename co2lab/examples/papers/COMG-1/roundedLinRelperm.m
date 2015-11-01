@@ -1,4 +1,4 @@
-function fn = roundedLinRelperm(resSat, epsilon)
+function fn = roundedLinRelperm(resSat, maxSat, epsilon)
 
    epsilon = min(epsilon, resSat/5);
    
@@ -6,21 +6,21 @@ function fn = roundedLinRelperm(resSat, epsilon)
       % degenerate case (no residual saturation)
       fn = @(s) s;
    else 
-      splinefn = compute_spline_function(resSat, epsilon);
-      fn = @(s) relperm(s, splinefn, resSat, epsilon);
+      splinefn = compute_spline_function(resSat, maxSat, epsilon);
+      fn = @(s) relperm(s, splinefn, resSat, maxSat, epsilon);
    end
 end
 
 % ----------------------------------------------------------------------------
 
-function res = relperm(s, splinefn, resSat, epsilon)
+function res = relperm(s, splinefn, resSat, maxSat, epsilon)
 
    curve_ix = (s >= (resSat - epsilon) & s <= (resSat + epsilon));
    lin_ix = (s > resSat + epsilon);
    
    res = 0*s;
    if sum(lin_ix) > 0
-      res(lin_ix) = (s(lin_ix) - resSat) ./ (1 - resSat);
+      res(lin_ix) = min((s(lin_ix) - resSat) .* maxSat ./ (maxSat - resSat), 1);
    end
    if sum(curve_ix) > 0
       res(curve_ix) = splinefn(s(curve_ix));
@@ -31,12 +31,12 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fun = compute_spline_function(resSat, epsilon)
+function fun = compute_spline_function(resSat, maxSat, epsilon)
    
    p0 = 0;  % value of function at first point (resSat - epsilon)
    d0 = 0;  % derivative of function at first point (resSat - epsilon)
-   p1 = epsilon / (1-resSat); % value of function at second point (resSat + epsilon)
-   d1 = 1 / (1-resSat);
+   p1 = epsilon * maxSat / (maxSat - resSat); % value of function at second point 
+   d1 = maxSat / (1 - resSat);
    
    rhs = [p0; p1; d0; d1];
    
