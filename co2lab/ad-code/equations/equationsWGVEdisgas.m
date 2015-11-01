@@ -4,7 +4,7 @@ function [problem, state] = equationsWGVEdisgas(model, state0, state, dt, drivin
    opt = merge_options(opt, varargin{:});
 
    assert(isempty(drivingForces.src)); % unsupported
-   W  = drivingForces.Wells;
+   W  = drivingForces.W;
    s  = model.operators;
    Gt = model.G;
    f  = model.fluid;
