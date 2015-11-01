@@ -148,7 +148,9 @@ function opt = default_options()
    % 'opt.co2_rho_ref'). If it contains 2 values, [cw, p_ref], density will
    % be taken as a linear function of pressure, with cw being the
    % compressibility constant and 'p_ref' the pressure at which density
-   % equals reference density.  The same explanation goes for water density,
+   % equals reference density.  If it contains four values, these will
+   % represent the lower/upper bounds of pressure and temperature in the
+   % sampled table to use.  The same explanation goes for water density,
    % as specified by 'opt.wat_rho_pvt'.
    opt.co2_rho_pvt = [opt.p_range, opt.t_range]; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
    opt.wat_rho_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
