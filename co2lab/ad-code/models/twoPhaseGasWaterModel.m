@@ -55,40 +55,6 @@ classdef twoPhaseGasWaterModel < ReservoirModel
            state.sGmax = min(1,state.sGmax);
            state.sGmax = max(0,state.sGmax);
         end
-        
-        % function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
-            
-        %    [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
-        %                                                 drivingForces);
-
-           
-        %     dp      = dx{problem.indexOfPrimaryVariable('pressure')};
-        %     ds      = dx{problem.indexOfPrimaryVariable('sG')};
-        %     dqWs    = dx{problem.indexOfPrimaryVariable('qWs')};
-        %     dqGs    = dx{problem.indexOfPrimaryVariable('qGs')};
-        %     dpBHP   = dx{problem.indexOfPrimaryVariable('bhp')};
-            
-        %     dsMax   = model.dsMax; 
-        %     dpMax   = model.dpMax .* state.pressure;
-        %     dMaxBHP = model.dpMax .* vertcat(state.wellSol.bhp);
-
-        %     ds      = truncate(-dsMax   , ds                , dsMax   );
-        %     dp      = truncate(-dpMax   , dp                , dpMax   );
-        %     dpBHP   = truncate(-dMaxBHP , dpBHP             , dMaxBHP );
-        %     sG      = truncate(0        , state.s(:,2) + ds , 1       );
-            
-        %     state.pressure = state.pressure + dp;
-        %     state.s = [1-sG, sG];
-
-        %     for w = 1:numel(state.wellSol)
-        %         if isempty(state.wellSol(w).bhp) 
-        %             break; % no well present
-        %         end
-        %         state.wellSol(w).bhp = state.wellSol(w).bhp + dpBHP(w);
-        %         state.wellSol(w).qWs = state.wellSol(w).qWs + dqWs(w);
-        %         state.wellSol(w).wGs = state.wellSol(w).qGs + dqGs(w);
-        %     end
-        % end
     end
     
 end

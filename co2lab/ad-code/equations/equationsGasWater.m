@@ -79,7 +79,7 @@ function [problem, state] = equationsGasWater(model, state0, state, dt, drivingF
         BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
 
     % @@ If a cell has more than one pressure boundary condition, only one
-    % will be taken into account.  This should be fixed later.
+    % will be taken into account.
     eqs{1}(bc_cells) = eqs{1}(bc_cells) + b_fW;
     eqs{2}(bc_cells) = eqs{2}(bc_cells) + b_fG;
     
@@ -127,29 +127,6 @@ function [problem, state] = equationsGasWater(model, state0, state, dt, drivingF
        %eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
     end
 
-    % if ~isempty(W) && ~opt.reverseMode
-    
-    %     wc = vertcat(W.cells);
-    %     rhos = [f.rhoWS, f.rhoGS];
-    %     bw = {bW(wc), bG(wc)};
-    %     pw = p(wc);
-    %     mw = {mobW(wc), mobG(wc)};
-        
-    %     [eqs(3:5), cqs, state.wellSol] = ...
-    %         getWellContributions(W, state.wellSol, bhp, {qWs, qGs}, pw, rhos, ...
-    %                              bw, {}, {}, mw, 'iteration', opt.iteration, 'model', 'WG'); 
-    %     [wc, cqs] = checkForRepetitions(wc, cqs);
-    %     eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-    %     eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-
-    %     names(3:5) = {'waterWells' , 'gasWells' , 'closureWells'};
-    %     types(3:5) = {'perf'       , 'perf'     , 'well'};
-    
-    % else % no wells, or in reverse mode
-    %     eqs(3:5)   = {0*bhp   , 0*bhp   , 0*bhp}; % empty ADIs
-    %     names(3:5) = {'empty' , 'empty' , 'empty'};
-    %     types(3:5) = {'none'  , 'none'  , 'none'};
-    % end
     % ----------------------------------------------------------------------------
 
     if isempty(W)
@@ -159,7 +136,6 @@ function [problem, state] = equationsGasWater(model, state0, state, dt, drivingF
     end
     
     problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-    %problem = linearProblem(eqs, types, names, primaryVars, state);
     
 end
 
