@@ -1,6 +1,4 @@
-function [updata, report] = upRelPermPV(block, updata, ...
-    method, varargin)
-
+function [updata, report] = upRelPermPV(block, updata, method, varargin)
 opt = struct(...
     'nvalues',     20 ...
     );
@@ -11,11 +9,9 @@ timeStart   = tic;
 
 ndims = 1; % all directions are equal, so we only use one dimension
 nvals = opt.nvalues;
-G     = block.G;
 fluid = block.fluid;
 
 assert(isa(block, 'GridBlock'));
-assert(isfield(updata, 'perm'), 'One phase upscaling must be run first.');
 assert(~isempty(method), 'Method must be set');
 
 % Pore volume
@@ -28,8 +24,10 @@ pcOW = nan(nvals, 2);
 
 % Saturation values
 satnum = block.deck.REGIONS.SATNUM;
-sWmin  = arrayfun(@(x) block.deck.PROPS.SWOF{x}(1,1), satnum);
-sWmax  = arrayfun(@(x) block.deck.PROPS.SWOF{x}(end,1), satnum);
+sWmin  = cellfun(@(x) x(1,1), block.deck.PROPS.SWOF);
+sWmax  = cellfun(@(x) x(end,1), block.deck.PROPS.SWOF);
+sWmin  = sWmin(satnum);
+sWmax  = sWmax(satnum);
 
 values = linspace(0, 1, nvals)'; % sat.values unscaled
 

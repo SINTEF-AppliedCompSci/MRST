@@ -31,7 +31,27 @@ methods
         
         upscaler = merge_options(upscaler, varargin{:});
     end
-       
+    
+    function [blockdata, globdata, report] = upscale(upscaler)
+        
+        [blockdata, globdata, report] = upscale@OnePhaseUpscaler(upscaler);
+        
+        % Special treatment of the endpoint scaling of two-phase
+        if strcmpi(upscaler.RelpermMethod, 'endpoint')
+            % Once we are done with the upscaling of each block, we perform
+            % an average of the relperm and pcow
+            fprintf(['Computing global average of two-phase '...
+                'properties...\n']);
+            b = GridBlock(upscaler.G, upscaler.rock, ...
+                'deck', upscaler.deck, 'fluid', upscaler.fluid);
+            [d, r] = upRelPermPV(b, [], 'porevolume', ...
+                'nvalues', upscaler.nrelperm);
+            globdata.relperm      = d;
+            report.global.relperm = r;
+        end
+        
+    end
+    
     function [data, report] = upscaleBlock(upscaler, block)
         
         wantReport  = nargout > 1;
@@ -48,7 +68,8 @@ methods
         % Capillary pressure upscaling
         % If using pore volume relperm upscaling, we also upscale the pcOW
         % in the relperm function, so don't do it here.
-        if upscaler.pcow && ~strcmpi(upscaler.RelpermMethod, 'porevolume')
+        if upscaler.pcow && ~any(strcmpi(upscaler.RelpermMethod, ...
+                {'porevolume', 'endpoint'}))
             
             if ~isempty(regexpi(upscaler.RelpermMethod, '_grav$'));
                 
@@ -87,18 +108,25 @@ methods
         if strcmpi(upscaler.RelpermMethod, 'porevolume')
             up = @() upRelPermPV(block, data, upscaler.RelpermMethod, ...
                 'nvalues', upscaler.nrelperm);
+        elseif strcmpi(upscaler.RelpermMethod, 'endpoint')
+            up = @() upRelPermEPS(block, data, upscaler.RelpermMethod, ...
+                'absmethod', upscaler.RelpermAbsMethod, ...
+                'dp', upscaler.dp, 'dims', upscaler.relpermdims);
         else
             up = @() upRelPerm(block, data, upscaler.RelpermMethod, ...
                 'nvalues', upscaler.nrelperm, 'dp', upscaler.dp, ...
                 'absmethod', upscaler.RelpermAbsMethod, ...
                 'dims', upscaler.relpermdims, 'savesat', upscaler.savesat);
         end
+        
+        % Upscale
         if wantReport
             [data, rep] = up();
             report.relperm = rep;
         else
             data = up();
         end
+        
         if upscaler.verbose
             fprintf('  Rel.perm:     %6.3fs\n', rep.time);
         end

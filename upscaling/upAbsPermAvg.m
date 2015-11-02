@@ -30,7 +30,9 @@ switch opt.method
         % the latter variant is preferred numerically.
         upf = @(K,d) exp( sum(pv.*log(K))/pvsum );
     case 'harmonic-arithmetic'
-        upf = @(K,d) harmonicArithmetic(pv, K, G.cartDims, d);
+        upf = @(K,d) harmonicArithmetic(pv, K, G.cartDims, d, false);
+    case 'arithmetic-harmonic'
+        upf = @(K,d) harmonicArithmetic(pv, K, G.cartDims, d, true);
     otherwise
         error('Absolute permeability method unknown.');
 end
@@ -39,7 +41,8 @@ end
 Kup   = nan(1,ndims);
 if size(rock.perm, 2)==1
     % Isotropic permeability
-    if strcmpi(opt.method, 'harmonic-arithmetic')
+    if any(strcmpi(opt.method, {'harmonic-arithmetic', ...
+            'arithmetic-harmonic'}))
         for i = 1:ndims % Loop over dimensions
             Kup(i) = upf( rock.perm, dims(i) );
         end
@@ -63,11 +66,23 @@ end
 end
 
 
-function K = harmonicArithmetic(pv, perm, cartDims, d)
+function K = harmonicArithmetic(pv, perm, cartDims, d, reversed)
+    % reversed=false: harmonic-arithmetic
+    %         =true:  arithmetic-harmonic
+    
+    % We do have an issue if some pore-volumes are zero. We set them to a
+    % tiny value instead.
+    pv(pv==0) = 10*eps;
+    
     PV = reshape(pv, cartDims);
     K  = reshape(perm,  cartDims);
     pv = sum(PV,d);
-    K  = 1./(sum(PV./K,d)./pv); % harmonic average in dimension d
+    
+    if ~reversed
+        K  = 1./(sum(PV./K,d)./pv); % harmonic average in dimension d
+    else
+        K = sum(PV.*K,d)./pv;  % arithmetic average  in dimension d
+    end
     PV = pv;
     
     % If the sum of the pore-volume is zero for a column in direction d,
@@ -79,13 +94,26 @@ function K = harmonicArithmetic(pv, perm, cartDims, d)
     dims = 1:numel(cartDims);
     for j = [dims(1:d-1) dims(d+1:end)]; % other dimensions
         pv = sum(PV,j);
-        K = sum(PV.*K,j)./pv;  % arithmetic average
+        if ~reversed
+            K = sum(PV.*K,j)./pv;  % arithmetic average
+        else
+            K  = 1./(sum(PV./K,j)./pv); % harmonic average
+        end
         PV = pv;
         
         % Same reason as above
         K(isnan(K)) = 0; 
     end
 end
+
+% function K = harm(K, PV, pv)
+% haszero = any(any(pv==0));
+% if ~haszero
+%     K  = 1./(sum(PV./K,d)./pv); % harmonic average in dimension d
+% else
+%     
+% end
+% end
 
 
 

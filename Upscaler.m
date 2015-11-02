@@ -33,10 +33,11 @@ methods
         upscaler.rock  = rock;
     end
     
-    function [data, report] = upscale(upscaler)
+    function [blockdata, globdata, report] = upscale(upscaler)
         % Given some partition, we loop over the coarse blocks in the grid
         % and upscale each of them in turn.
         
+        globdata = [];
         startTime = tic;
         wantReport = nargout > 1;
         
@@ -122,7 +123,7 @@ methods
             end
             
             % Perform upscaling
-            [data(i), blockReport] = upscaler.upscaleBlock(block); %#ok<AGROW>
+            [blockdata(i), blockReport] = upscaler.upscaleBlock(block); %#ok<AGROW>
             blockTime = toc(t);
             
             % Store report

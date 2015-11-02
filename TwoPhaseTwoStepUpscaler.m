@@ -87,7 +87,7 @@ methods
             'dims', dims1, 'nrelperm', upscaler.nrelperm, ...
             'pcow', true, 'verbose', false, 'deck', block.deck);
         if wantReport
-            [updata1, rep] = upscaler1.upscale();
+            [updata1, ~, rep] = upscaler1.upscale();
             report.relperm.method = 'twostep';
             report.relperm.step1  = rep;
         else
@@ -135,12 +135,12 @@ methods
             'pcow', false, 'verbose', false);
         if upscalez
             upscaler2.savesat = true; % save sat. distributions
-            [updata2, rep] = upscaler2.upscale();
+            [updata2, ~, rep] = upscaler2.upscale();
             satdist = rep.blocks{1}.relperm.satdist;
             rep.blocks{1}.relperm = rmfield(rep.blocks{1}.relperm, ...
                 'satdist');
         elseif wantReport
-            [updata2, rep] = upscaler2.upscale();
+            [updata2, ~, rep] = upscaler2.upscale();
         else
             updata2 = upscaler2.upscale();
         end

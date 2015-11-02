@@ -21,20 +21,12 @@ methods
     function [data, report] = upscaleBlock(upscaler, block)
         
         data.dims = upscaler.dims;
-        
+
         % Absolute permeability
-        switch upscaler.OnePhaseMethod
-            case 'pressure'
-                [data.perm, report] = upAbsPerm(block, ...
-                    'dims', upscaler.dims, 'dp', upscaler.dp);
-            case {'arithmetic', 'harmonic', 'geometric', ...
-                    'harmonic-arithmetic'}
-                [data.perm, report] = upAbsPermAvg(block, ...
-                    'dims', upscaler.dims, ...
-                    'method', upscaler.OnePhaseMethod);
-            otherwise
-                error('Unknown one-phase upscaling method.');
-        end
+        [data.perm, report] = upAbsPerm(block, ...
+            'method', upscaler.OnePhaseMethod, ...
+            'dims', upscaler.dims, ...
+            'dp', upscaler.dp);
         
         if upscaler.verbose
             fprintf('  Abs.perm:     % 2.3fs\n', report.time);
