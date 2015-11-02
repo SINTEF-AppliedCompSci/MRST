@@ -139,7 +139,9 @@ for dis_model = {'none', 'instant', 'rate'};
    % Setup model and run simulation
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
    t2 = tic;
-   [wellSols, states] = simulateScheduleAD(initState, model, schedule);
+   [wellSols, states] = ...
+       simulateScheduleAD(initState, model, schedule, ...
+                          'NonLinearSolver', NonLinearSolver('useRelaxation', true));
    t2 = toc(t2);
 
    states = {initState, states{:}}';%#ok  % Include initial state
