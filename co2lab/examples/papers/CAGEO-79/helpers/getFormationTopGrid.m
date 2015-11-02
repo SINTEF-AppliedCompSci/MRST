@@ -67,12 +67,12 @@ function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level
 
         rockprop = {'PORO', 'NTG'};
         for i = 1 : numel(rockprop),
-          prop = regexprep(rockprop{i}, '\W', '_');
+          prop = rockprop{i};
           if isfield(g, prop),
              rock.(lower(prop)) = reshape(g.(prop)(G.cells.indexMap), [], 1);
           end
         end
-        rock.perm   = [rock2D.perm, rock2D.perm, rock2D.perm];
+        rock.perm   = rock2D.perm;
         if ~isfield(rock,'poro')
             rock.poro = rock2D.poro;
         end
