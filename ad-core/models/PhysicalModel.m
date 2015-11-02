@@ -123,7 +123,8 @@ methods
                                    'iteration', iteration, ...
                                    varargin{:});
         problem.iterationNo = iteration;
-
+        problem.drivingForces = drivingForces;
+        
         [convergence, values, resnames] = model.checkConvergence(problem);
         % Minimum number of iterations can be prescribed, i.e. we
         % always want at least one set of updates regardless of
