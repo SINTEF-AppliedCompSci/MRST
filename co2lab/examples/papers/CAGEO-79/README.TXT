@@ -1,12 +1,14 @@
 
-|-------------+---------------------------------------+------------------|
-| Figure      | Description                           | Script           |
-|-------------+---------------------------------------+------------------|
-| Figure 1    | Johansen at different resolutions     | resJohansen.m    |
-| Figure 2    | Sub-resolution trapping, Utsira       | resUtsira.m      |
-| Figure 3    | Geometric trapping as fct. of tilt    | resTiltUtsira.m  |
-| Figure 4    | Map of structural traps at Utsira     | figure4and5.m    |
-| Figure 5    | Trapping capacity at Utsira formation | figure4and5.m    |
-| Figure 6-13 | Simulation results                    | (future release) |
-|-------------+---------------------------------------+------------------|
+|--------------+-------------------------------------------------------+--------------------|
+| Figure       | Description                                           | Script             |
+|--------------+-------------------------------------------------------+--------------------|
+| Figure 1-2   | Johansen at different resolutions                     | resJohansen.m      |
+| Figure 3     | Sub-resolution trapping, Utsira                       | resUtsira.m        |
+| Figure 4     | Geometric trapping as fct. of tilt                    | resTiltUtsira.m    |
+| Figure 5     | Map of structural traps at Utsira                     | figure5and6.m      |
+| Figure 6     | Trapping capacity at Utsira formation                 | figure5and6.m      |
+| Figure 7-9   | Simulation results Utsira, single point injection     | example4.m (*)     |
+| Figure 10    | Conceptual illustration                               | (no code)          |
+| Figure 11-15 | Figures related to optimization of injection scenario | optimization.m (*) |
+|--------------+-------------------------------------------------------+--------------------|
 
