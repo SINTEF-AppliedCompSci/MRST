@@ -62,6 +62,7 @@ function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level
         end
         
         rock2D  = averageRock(rock, Gt);
+        updateNaNs();
         
     elseif isfield(g,'PORO') || isfield(g,'NTG')
 
@@ -76,27 +77,35 @@ function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level
         if ~isfield(rock,'poro')
             rock.poro = rock2D.poro;
         end
-        rock2D      = averageRock(rock, Gt);
+        rock2D  = averageRock(rock, Gt);
+        updateNaNs();
         
     end
     
     
-    % Replace any nan values with the property's average value. Since ntg
-    % may not exist, an additional conditional statement is required.
-    if any(isnan(rock2D.perm))
-        warning(['Nan permeability values are being replaced with the '...
-            'average value.']);
-        rock2D.perm(isnan(rock2D.perm)) = petrodata.avgperm; 
-    end
-    if any(isnan(rock2D.poro))
-        warning(['Nan porosity values are being replaced with the '...
-            'average value.']);
-        rock2D.poro(isnan(rock2D.poro)) = petrodata.avgporo;
-    end
-    if isfield(rock2D,'ntg') && any(isnan(rock2D.ntg))
-        warning(['Nan net-to-gross values are being replaced with the '...
-            'average value.']);
-        rock2D.ntg(isnan(rock2D.ntg))   = petrodata.avgntg;
-    end
+    % ---------------------------------------------------------------------
     
+    function updateNaNs()
+    % Replace any nan values with the property's average value. Since perm,
+    % poro, or ntg may not exist, an additional conditional statement is
+    % required.
+
+        if isfield(rock2D,'perm') && any(isnan(rock2D.perm))
+            warning(['Nan permeability values are being replaced with the '...
+                'average value.']);
+            rock2D.perm(isnan(rock2D.perm)) = petrodata.avgperm; 
+        end
+        if isfield(rock2D,'poro') && any(isnan(rock2D.poro))
+            warning(['Nan porosity values are being replaced with the '...
+                'average value.']);
+            rock2D.poro(isnan(rock2D.poro)) = petrodata.avgporo;
+        end
+        if isfield(rock2D,'ntg') && any(isnan(rock2D.ntg))
+            warning(['Nan net-to-gross values are being replaced with the '...
+                'average value.']);
+            rock2D.ntg(isnan(rock2D.ntg))   = petrodata.avgntg;
+        end
+
+    end
+
 end
