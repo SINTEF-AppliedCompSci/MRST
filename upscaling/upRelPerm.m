@@ -42,7 +42,7 @@ krW = cell(1, ndims);
 krO = cell(1, ndims);
 if wantSatDist
 	satdist = cell(nvals,1);
-    if strcmpi(method, 'capviscdist')
+    if strcmpi(method, 'capillary-viscous-dist')
         satdistff = cell(nvals,1);
     end
 end
@@ -61,7 +61,7 @@ for iv = 1:nvals
     % Save if requested
     if wantSatDist
         satdist{iv} = sW0;
-        if strcmpi(method, 'capviscdist')
+        if strcmpi(method, 'capillary-viscous-dist')
             satdistff{iv} = sWff;
         end
     end
@@ -223,7 +223,7 @@ if wantReport
     report.valsOutsideRange = outside;
     if wantSatDist
         report.satdist = satdist;
-        if strcmpi(method, 'capviscdist')
+        if strcmpi(method, 'capillary-viscous-dist')
             report.satdistff = satdistff;
         end
     end
