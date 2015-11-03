@@ -277,11 +277,12 @@ function exploreCapacity(varargin)
       if ~isfield(var.Gt_cached, var.current_formation)
          [Gt, rock] = getFormationTopGrid(var.current_formation, opt.grid_coarsening);
          var.Gt_cached.(var.current_formation).Gt = Gt;
-         var.Gt_cached.(var.current_formation).poro = unique(rock.poro);  % should be a single value
+         var.Gt_cached.(var.current_formation).poro = rock.poro;
          var.Gt_cached.(var.current_formation).ta = trapAnalysis(Gt, false);
       end
       
-      if isnan(var.Gt_cached.(var.current_formation).poro)
+      if any(isnan(var.Gt_cached.(var.current_formation).poro))
+         assert(all(isnan(var.Gt_cached.(var.current_formation).poro)));
          warning(['NaN porosity value encountered.  Replacing with default ' ...
                   'value']);
          var.Gt_cached.(var.current_formation).poro = default_poro;
