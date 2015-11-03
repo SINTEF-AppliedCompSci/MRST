@@ -2,9 +2,10 @@ clc; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-n = 40;
+n = 10;
 nx = n; ny = n;
 G = unitSquare(nx, ny);
+% G = cartGrid([nx,ny],[1,1]);
 G = sortEdges(G);
 G = mrstGridWithFullMappings(G);
 G = computeGeometry(G);
@@ -43,6 +44,7 @@ bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryEdges}}, 'bcType', {{'dir'}})
 
 U = VEM2D(G,f,bc);
 
+h = 0;
 Nc = G.cells.num;
 baricenters = zeros(Nc,2);
 for c = 1:Nc
@@ -50,21 +52,25 @@ for c = 1:Nc
     nodes = G.cells.nodes(nodeNum);
     X = G.nodes.coords(nodes,:);
     [~, baricenters(c,:)] = baric(X);
+    h = max(h,cellDiameter(X));
 end
 
 X = [G.nodes.coords ; G.faces.centroids ; baricenters];
 Uexact = gD(X);
 
 errVec = U - Uexact;
-err = norm(U - Uexact, Inf);
+err = sqrt(h)*norm(errVec, 2);
 fprintf('Error: %e', err);
 
 fig1 = figure;
-plotGridWithDofs(G);
+plotGridWithDofs(G,bc);
 fig2 = figure;
 plotVEM(G, U, '');
 fig3 = figure;
 plotVEM(G, U, 'dof');
+
+fig4 = figure;
+plot(errVec);
 
 %   Make function for computing baricenters of all cells
 %   Make function for detecting boundary dofs

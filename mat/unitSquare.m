@@ -3,8 +3,8 @@ function G = unitSquare(nx, ny)
 dx = 1/(nx-1); dy = 1/(ny-1);
 [x, y] = meshgrid(-dx/2:dx:1+dx/2, -dy/2:dy:1+dy/2);
 
-x(3:ny-1,3:nx-1) = x(3:ny-1,3:nx-1) + random('Normal', 0, dx/7, ny-3, nx-3);
-y(3:ny-1,3:nx-1) = y(3:ny-1,3:nx-1) + random('Normal', 0, dy/7, ny-3, nx-3);
+x(3:ny-1,3:nx-1) = x(3:ny-1,3:nx-1) + random('Normal', 0, dx/4, ny-3, nx-3);
+y(3:ny-1,3:nx-1) = y(3:ny-1,3:nx-1) + random('Normal', 0, dy/4, ny-3, nx-3);
 
 P = [x(:), y(:)];
 t = delaunayn(P);

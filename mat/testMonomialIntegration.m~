@@ -1,32 +1,12 @@
-clc; close all;
+    dx = 1/(nx-1); dy = 1/(ny-1);
+    [x, y] = meshgrid(0:dx:1, 0:dy:1);
 
-nx = 3; ny = 3;
+    P = [x(:), y(:)];
+    t = delaunayn(P);
 
-dx = 1/(nx-1); dy = 1/(ny-1);
-[x, y] = meshgrid(0:dx:1, 0:dy:1);
+    G = triangleGrid(P,t);
+    
 
-P = [x(:), y(:)];
-t = delaunayn(P);
-
-G = triangleGrid(P,t);
-G = computeGeometry(G);
-G = mrstGridWithFullMappings(G);
-
-plotGrid(G);
-K = 2;
-[~, X] = nodeData(G,K);
-[~, Xmid, normals] = faceData(G,K);
-
-[~, Xb] = baric(X);
-xK = Xb(1); yK = Xb(2); hK = cellDiameter(X);
-
-m_int = @(X)  [(X(:,1)-xK).^2./(2*hK) , ...
-               (X(:,1)-xK).*(X(:,2)-yK)./hK , ...
-               (X(:,1)-xK).^3./(3*hK^2) , ...
-               (X(:,1)-xK).^2.*(X(:,2)-yK)./(2*hK^2) , ...
-               (X(:,1)-xK).*(X(:,2)-yK).^2./(hK^2)];
-
-I = evaluateMonomialIntegralV2(normals, X, Xmid, m_int);
 
 
 % hK = sqrt(2);

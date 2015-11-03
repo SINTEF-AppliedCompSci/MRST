@@ -30,9 +30,9 @@ function [Sl, bl, dofVec, hK] = VEM2D_loc(G, K, f)
 %%  CELL DATA                                                            %%
 
                             %   Cell nodes and node coordinates.
-[Knodes, X] = nodeData(G,K);
+[nodes, X] = nodeData(G,K);
                             %   Cell edges and edge midpoint coordinates.
-[Kedges, Xmid, edgeNormals] = faceData(G,K);
+[edges, Xmid, edgeNormals] = faceData(G,K);
                             %   Baricenter of K.
 [~, Xb]=baric(X); xK = Xb(1); yK = Xb(2);
 hK = cellDiameter(X);       %   Element diameter.
@@ -56,13 +56,15 @@ grad_m = @(X) [1/hK                , 0                  ;    %   (1,0)
                (X(:,1)-xK).*2/hK^2 , 0                  ;    %   (2,0)
                (X(:,2)-yK)./hK^2   , (X(:,1)-xK)./hK^2  ;    %   (1,1)
                0                   , (X(:,2)-yK).*2/hK^2 ];  %   (0,2)
+           
+m_int = @(X)  [(X(:,1)-xK)^2
 
 %%  BUILD MATRIX D                                                       %%
 
                             %   Integral of monomials over K using
                             %   Gauss-Lobatto quadrature.
 I = [vol, polygonInt(X,m)];
-                            %   D(
+                            %   D(i,j) = \chi^i(m_j(X_i))
 D = [ones(NK-1,1), m([X;Xmid]); I./vol];
 
 %%  BUILD MATRIX B.
@@ -78,7 +80,7 @@ B(1,NK) = 1;                %   First row.
                             %   \int_\patrial K \nabla m_\alpha \cdot nVec
                             %   is evaluated by Gauss-Lobatto quadrature.
 for j=1:n
-                            %   Outward normal of edge j, nVec
+                            %   Area wheighted outward normal of edge j.
     nVec = edgeNormals(j,:)';
     B(2:nk,[j, mod(j,n)+1, j + n]) = B(2:nk,[j, mod(j,n)+1, j + n]) + ...
            [1/6.*grad_m(X(j,:))*nVec          , ...    %   First point.
@@ -103,9 +105,12 @@ Sl = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*(eye(NK)-PN);
 
                             %   Matrix of integrals over K of all
                             %   combinations of linear monomials.
-H = diag(I(1:3),0) + diag(I(4:5),1) + diag(I(6),2);
-H = H + tril(H',-1);
-                            %   \Pi^\Nabla in the linear monomial basis.
+H = [I(1:3)       ;
+     I(2)   I(4:5);
+     I(3)   I(5:6)];
+% H = H + tril(H',-1);s
+                            %   \Pi^\Nabla in the monomial basis
+                            %   \mathcal{M}_1.
 PNstar = M(1:3,1:3)\B(1:3,:);
                             %   Local load term.
 bl = PNstar'*H*PNstar*f([X; Xmid; Xb]);
@@ -119,10 +124,10 @@ bl = PNstar'*H*PNstar*f([X; Xmid; Xb]);
 Nn = G.nodes.num;           %   Total number of nodes.
 Ne = G.faces.num;           %   Total number of edges.
 
-Knodes = fixDim(Knodes);    %   Fix dimensions.
-Kedges = fixDim(Kedges);
+nodes = fixDim(nodes);      %   Fix dimensions.
+edges = fixDim(edges);
                             %   Local to global map,
                             %   S(dofVec, dofVec) = Sl.
-dofVec = [Knodes, Nn + Kedges, Nn + Ne + K];
+dofVec = [nodes, Nn + edges, Nn + Ne + K];
 
 end

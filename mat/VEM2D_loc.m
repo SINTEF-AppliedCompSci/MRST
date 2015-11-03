@@ -56,12 +56,19 @@ grad_m = @(X) [1/hK                , 0                  ;    %   (1,0)
                (X(:,1)-xK).*2/hK^2 , 0                  ;    %   (2,0)
                (X(:,2)-yK)./hK^2   , (X(:,1)-xK)./hK^2  ;    %   (1,1)
                0                   , (X(:,2)-yK).*2/hK^2 ];  %   (0,2)
-
+           
+m_int = @(X)  [(X(:,1)-xK).^2./(2*hK) , ...
+               (X(:,1)-xK).*(X(:,2)-yK)./hK , ...
+               (X(:,1)-xK).^3./(3*hK^2) , ...
+               (X(:,1)-xK).^2.*(X(:,2)-yK)./(2*hK^2) , ...
+               (X(:,1)-xK).*(X(:,2)-yK).^2./(hK^2)];
+                
 %%  BUILD MATRIX D                                                       %%
 
                             %   Integral of monomials over K using
                             %   Gauss-Lobatto quadrature.
-I = [vol, polygonInt(X,m)];
+% I = [vol, polygonInt(X,m)];
+I = [vol, evaluateMonomialIntegralV2(edgeNormals, X, Xmid, m_int)];
                             %   D(i,j) = \chi^i(m_j(X_i))
 D = [ones(NK-1,1), m([X;Xmid]); I./vol];
 
@@ -103,8 +110,10 @@ Sl = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*(eye(NK)-PN);
 
                             %   Matrix of integrals over K of all
                             %   combinations of linear monomials.
-H = diag(I(1:3),0) + diag(I(4:5),1) + diag(I(6),2);
-H = H + tril(H',-1);
+H = [I(1:3)        ;
+     I(2)   I(4:5) ;
+     I(3)   I(5:6)];
+% H = H + tril(H',-1);s
                             %   \Pi^\Nabla in the monomial basis
                             %   \mathcal{M}_1.
 PNstar = M(1:3,1:3)\B(1:3,:);

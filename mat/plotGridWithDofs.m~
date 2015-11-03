@@ -30,20 +30,11 @@ X = [G.nodes.coords ; G.faces.centroids ; baricenters];
 plotGrid(G)
 
 hold on
-bcFaces = bc.bcFaces;
+bcFaces = bc.boundaryEdges;
 Nbc = numel(bcFaces);
 for b = 1:Nbc
-    bcEdges = bcFaces{b};
-    Ne = numel(bcEdges);
-    bcNodes = zeros(1,2*Ne);
-    for e = 1:Ne
-        nodeNum = G.faces.nodePos(bcEdges(e)):G.faces.nodePos(bcEdges(e)+1)-1;
-        nodes = G.faces.nodes(nodeNum);
-        nodes = fixDim(nodes);
-        bcNodes(3*e-2:3*e) = [nodes, Nn + bcEdges(e)];
-    end
-    plot(X(bcNodes,1),X(bcNodes,2),'o');
-end  
+    faces = 
+    
 plot(X(:,1),X(:,2),'.k');
 hold off
 axis([0 1 0 1]);
