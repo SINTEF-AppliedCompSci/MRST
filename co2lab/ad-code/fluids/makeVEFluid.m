@@ -128,7 +128,7 @@ end
 function opt = default_options()
 
    % Whether to include temperature as an argument in property functions
-   opt.fixedT = []; % value of constant temperature, or empty (if
+   opt.fixedT = []; % value of constant temperature field, or empty (if
                     % temperature should be an argument to the property
                     % functions.
 
