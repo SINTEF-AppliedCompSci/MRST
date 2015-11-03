@@ -27,8 +27,6 @@ vapoil = model.vapoil;
 [p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
                                 'pressure', 'water', 'gas', 'rs', 'rv');
 
-wflux = vertcat(wellSol.flux);
-cqs = vertcat(wellSol.cqs);
 %Initialization of primary variables ----------------------------------
 st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
 st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
@@ -104,8 +102,7 @@ Gg = gp - dpG;
 if model.staticUpwind
     flag = state.upstreamFlag;
 else
-    flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, s.T, ...
-            {mobW, mobO, mobG}, s.faceUpstr);
+    flag = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
 end
 
 upcw  = flag(:, 1);
@@ -146,6 +143,8 @@ if model.extraStateOutput
 end
 % well equations
 if ~isempty(W)
+    wflux = vertcat(wellSol.flux);
+    cqs = vertcat(wellSol.cqs);
 
     perf2well = getPerforationToWellMapping(W);
     wc    = vertcat(W.cells);
@@ -205,7 +204,9 @@ eqInd = 1;
 if opt.solveForWater
     % water eq:
     wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
-    wat(wc) = wat(wc) - wflux_W;
+    if ~isempty(W)
+        wat(wc) = wat(wc) - wflux_W;
+    end
     eqs{eqInd}   = wat;
 
     names{eqInd} = 'water';
@@ -222,9 +223,9 @@ if opt.solveForGas
     else
         gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
     end
-
-    gas(wc) = gas(wc) - wflux_G;
-
+    if ~isempty(W)
+        gas(wc) = gas(wc) - wflux_G;
+    end
     eqs{eqInd}   = gas;
     names{eqInd} = 'gas';
     types{eqInd} = 'cell';
@@ -240,7 +241,9 @@ if opt.solveForOil
     else
         oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
     end
-    oil(wc) = oil(wc) - wflux_O;
+    if ~isempty(W)
+        oil(wc) = oil(wc) - wflux_O;
+    end
 
     eqs{eqInd}   = oil;
     names{eqInd} = 'oil';
