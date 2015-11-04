@@ -306,17 +306,17 @@ function avgrock = getAvgRock(name)
             
         % Norwegian Sea (chp 5 of "CO2 Storage Atlas: Norwegian
         % Contential Shelf" from NPD)
-        case 'tiljefm'
+        case 'tilje'
             tmp = [140 0.21]; % pg. 102
-        case 'arefm'
+        case 'are'
             tmp = [140 0.21]; % pg. 102
-        case 'garnfm'
+        case 'garn'
             tmp = [580 0.27]; % pg. 103
-        case 'ilefm'
+        case 'ile'
             tmp = [580 0.27]; % pg. 103
-        case 'notfm'
+        case 'not'
             tmp = [NaN NaN]; % pg. 87, 96: Not is a sealing formation
-        case 'rorfm'
+        case 'ror'
             tmp = [NaN NaN]; % pg. 84, 96: Ror is a sealing formation
 
         otherwise
