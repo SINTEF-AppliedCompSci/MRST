@@ -3,7 +3,7 @@
 % techniques, we consider a single layer of the SPE10 model and compare
 % the effective permeabilities obtained by arithmetic, harmonic, and
 % harmonic-arithmetic averaging.
-mrstModule add spe10;
+mrstModule add spe10 coarsegrid;
 fine = [40 60];
 G    = cartGrid(fine, fine);
 G    = computeGeometry(G);
@@ -57,7 +57,7 @@ title('Harmonic');
 subplot(1,4,4);
 plotCellData(cG,log10(crock3.perm(:,2)),'EdgeColor','k');
 caxis(px); axis tight off
-title('Arithmetic-harmonic');
+title('Harmonic-arithmetic');
 
 perm{1} = log10(rock.perm(:,2));
 perm{2} = log10(crock1.perm(:,2));
