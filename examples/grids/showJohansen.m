@@ -57,8 +57,8 @@ colorbar, view(3), axis tight off, view(-20,40), zoom(1.2)
 % cells in the model.
 clf
 p = reshape(load([sector, '_Porosity.txt'])', prod(G.cartDims), []);
-rock.poro = p(G.cells.indexMap); clear p
-hp = plotCellData(G,rock.poro,'EdgeColor','k','EdgeAlpha',0.1);
+poro = p(G.cells.indexMap); clear p
+hp = plotCellData(G, poro,'EdgeColor','k','EdgeAlpha',0.1);
 colorbar; caxis([0.1 0.3]), view(-45,15), axis tight off, zoom(1.2)
 
 %%
@@ -68,7 +68,7 @@ colorbar; caxis([0.1 0.3]), view(-45,15), axis tight off, zoom(1.2)
 % equal 0.1 have been taken out.
 delete(hp), view(-15,40)
 plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
-plotCellData(G,rock.poro, find(rock.poro>0.1), ...
+plotCellData(G, poro, find(poro>0.1), ...
              'EdgeColor','k','EdgeAlpha',0.1);
 
 %% Permeability
@@ -77,7 +77,8 @@ plotCellData(G,rock.poro, find(rock.poro>0.1), ...
 % only plot the x-component, Kx, using a logarithmic color scale.
 clf
 K = reshape(load([sector, '_Permeability.txt']')', prod(G.cartDims), []);
-rock.perm = bsxfun(@times, [1 1 0.1], K(G.cells.indexMap)).*milli*darcy; clear K;
+perm = bsxfun(@times, [1 1 0.1], K(G.cells.indexMap)).*milli*darcy; clear K;
+rock = makeRock(G, perm, poro);
 hp = plotCellData(G,log10(rock.perm(:,1)),'EdgeColor','k','EdgeAlpha',0.1);
 view(-45,15), axis tight off, zoom(1.2)
 

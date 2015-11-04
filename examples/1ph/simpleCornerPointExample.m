@@ -56,7 +56,8 @@ G = computeGeometry(G, 'Verbose', true);
 % for a general incompressible flow and thus requires the evaluation of a
 % total mobility function, which in our case equals one in the whole
 % domain.
-rock.perm = convertFrom(logNormLayers(nc, [100, 400, 50]), milli*darcy());
+perm = convertFrom(logNormLayers(nc, [100, 400, 50]), milli*darcy());
+rock = makeRock(G, perm, 1);
 fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
                             'rho', 1014*kilogram/meter^3);
 

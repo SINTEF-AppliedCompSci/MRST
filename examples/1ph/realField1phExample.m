@@ -53,7 +53,8 @@ G = computeGeometry(G(1));
 gravity off
 K          = logNormLayers(G.cartDims, rand(9,1), 'sigma', 1.5);
 K          = 200 + (K-min(K))/(max(K)-min(K))*1800;
-rock.perm  = convertFrom(K(G.cells.indexMap), milli*darcy); clear K;
+perm       = convertFrom(K(G.cells.indexMap), milli*darcy); clear K;
+rock       = makeRock(G, perm, 1);
 fluid      = initSingleFluid('mu' ,    1*centi*poise     , ...
                              'rho', 1000*kilogram/meter^3);
 

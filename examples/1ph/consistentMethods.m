@@ -68,7 +68,7 @@ theta=30*pi/180;
 U=[cos(theta),sin(theta);-sin(theta),cos(theta)];
 rocktensor = U'*diag([0.1,100])*U;
 rocktensor =[rocktensor(1,1),rocktensor(1,2),rocktensor(2,2)];
-rock.perm = repmat(rocktensor, [G.cells.num, 1]) .* 1e-3*darcy();
+rock = makeRock(G, rocktensor .* 1e-3*darcy, 1);
 fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
                             'rho', 1014*kilogram/meter^3);
 

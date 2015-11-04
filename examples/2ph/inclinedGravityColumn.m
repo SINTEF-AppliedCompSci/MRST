@@ -13,9 +13,8 @@ G = cartGrid(n, box_sz);
 G = computeGeometry(G);
 
 %% Set rock and fluid parameters
-rock  = struct('perm', repmat(0.1*darcy, [G.cells.num, 1]), ...
-               'poro', repmat(0.3      , [G.cells.num, 1]));
-
+rock = makeRock(G, 0.1*darcy, 0.3);
+           
 fluid = initSimpleFluid('mu' , [  0.307,   0.049] .* centi*poise     , ...
                         'rho', [973    , 617    ] .* kilogram/meter^3, ...
                         'n'  , [  2    ,   2    ]);

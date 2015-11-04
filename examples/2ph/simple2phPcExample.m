@@ -25,8 +25,7 @@ end
 nx = 40; ny = 40; nz = 1;
 G         = cartGrid([nx ny nz]);
 G         = computeGeometry(G);
-rock.perm = repmat(100*milli*darcy, [G.cells.num, 1]);
-rock.poro = repmat(0.3            , [G.cells.num, 1]);
+rock      = makeRock(G, 100*milli*darcy, 0.3);
 
 x = linspace(0, 1, 11) .';
 y = linspace(1, 0, 11) .';

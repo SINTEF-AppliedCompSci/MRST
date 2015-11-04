@@ -59,7 +59,7 @@ G = computeGeometry(G);
 % incompressible flow and requires the evaluation of a total mobility,
 % which is provided by the <matlab:help('fluid') fluid object>.
 gravity off
-rock.perm = repmat([1000, 100, 10].* milli*darcy(), [G.cells.num, 1]);
+rock = makeRock(G, [1000, 100, 10].* milli*darcy(), 1);
 fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
                             'rho', 1014*kilogram/meter^3);
 

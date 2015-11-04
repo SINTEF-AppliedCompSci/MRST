@@ -24,8 +24,7 @@ end
 G = cartGrid([50,50]);
 G = twister(G);
 G = computeGeometry(G);
-rock.perm = ones(G.cells.num, 1);
-rock.poro = ones(G.cells.num, 1);
+rock = makeRock(G, 1, 1);
 fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
                         'rho', [1014, 859]*kilogram/meter^3, ...
                         'n'  , [   2,   2]);

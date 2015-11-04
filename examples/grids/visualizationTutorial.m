@@ -18,8 +18,7 @@ G = computeGeometry(G);
 % Disable gravity
 gravity off
 % Set up uniform permeability and constant porosity
-rock.perm = repmat(100*milli*darcy, [G.cells.num, 1]);
-rock.poro = repmat(0.5            , [G.cells.num, 1]);
+rock = makeRock(G, 100*milli*darcy, 0.5);
 % A simple two phase system.
 fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
                             'rho', [1014, 859]*kilogram/meter^3, ...

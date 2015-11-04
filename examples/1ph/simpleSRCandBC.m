@@ -17,7 +17,7 @@ end
 nx = 20; ny = 20; nz = 10;
 G = cartGrid([nx, ny, nz]);
 G = computeGeometry(G);
-rock.perm = repmat(100 * milli*darcy, [G.cells.num, 1]);
+rock = makeRock(G, 100*milli*darcy, 1);
 fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
                             'rho', 1014*kilogram/meter^3);
 gravity reset on

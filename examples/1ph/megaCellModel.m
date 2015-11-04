@@ -35,7 +35,7 @@ G = mcomputeGeometry(G);
 %% Set rock and fluid data
 % The only parameters in the single-phase pressure equation are the
 % permeability $K$ and the fluid viscosity $\mu$.
-rock.perm = repmat([1000, 100, 10].* milli*darcy(), [G.cells.num, 1]);
+rock = makeRock(G, [1000, 100, 10].* milli*darcy(), 1);
 T         = computeTrans(G, rock);
 
 gravity off;
