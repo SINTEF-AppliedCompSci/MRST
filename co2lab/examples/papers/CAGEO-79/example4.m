@@ -12,9 +12,10 @@ function example4(varargin)
     opt.dis_max       = 0.02;
     
     opt = merge_options(opt, varargin{:});
+    moduleCheck('ad-core');
     
     %% Loading grid and subscale trapping function
-    [Gt, rock2D] = getUtsiraTopGrid(1, true); 
+    [Gt, rock2D] = getUtsiraTopGrid(2, true);%1, true); 
     dh = [];
     if ~isempty(opt.subtrap_file)
         recenter = true;
@@ -28,8 +29,9 @@ function example4(varargin)
     wcell           = closest_gridcell(Gt, sleipner_coords);
     Winj            = addWell([], Gt, rock2D, wcell , ...
                               'type'   , 'rate'     , ...
+                              'val'    , 1          , ... % correct value set later
                               'radius' , 0.3        , ...
-                              'compi'  , [0 0 1]);
+                              'comp_i'  , [0 1]);
     Wmig            = Winj; Wmig.val = 0;
     istep           = ones(opt.inj_steps, 1) * ...
                           (opt.inj_years * year / opt.inj_steps);
@@ -60,10 +62,11 @@ function example4(varargin)
     %% Computing the different cases, if not already done,
     %  or if recompute is requested
     
-    for dis = {'nodiss', 'instdiss', 'ratediss'}
-        for i = 1:2
+    for dis = {'nodiss', 'instdiss', 'ratediss'} 
+        for i = 1:2 %2:2  %@@
             result_dir = fullfile(opt.savedir, dis{1}, injcase{i}, 'report'); 
             if ~computed(result_dir) || opt.recompute
+               
                 % Compute case here (setting 'muCO2' to zero below activates
                 % variable CO2 viscosity computation).
                 runSimulation(Gt, rock2D, schedules(i)      ,                 ...
@@ -83,7 +86,7 @@ function example4(varargin)
     %% Plot result, if requested
     if opt.produce_plots
         for dis = {'nodiss', 'instdiss', 'ratediss'}
-            for i = 1:2
+            for i = 1:2 %2:2 %@@
                 close all; % prevent too many windows accumulating
                 
                 fprintf('Current case: %s - %s\n', dis{1}, injcase{i});

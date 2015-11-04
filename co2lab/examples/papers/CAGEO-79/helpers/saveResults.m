@@ -21,10 +21,10 @@ function saveResults(dir, Gt, states, start_at, schedule, traps, rock, fluid, ..
 
     % assert(numel(schedule.W) == 1); % @@ Currently only supports a single
     %                                 % nontrivial well configuration  
-    W = [schedule.W{:}]; %% @@ Must be changed when multiple wells are in play
+    W = [schedule.control(:).W]; %% @@ Must be changed when multiple wells are in play
     
     times   = cumsum(schedule.step.val);
-    tnum    = numel(states) - 1;
+    tnum    = numel(states);
     
     tot_inj = 0;
     for t = 1:(start_at - 1)
@@ -38,7 +38,7 @@ function saveResults(dir, Gt, states, start_at, schedule, traps, rock, fluid, ..
     for t = 1:tnum
         t_global = t + (start_at - 1);
         cnum = schedule.step.control(t_global);
-        cur_sol = states{t+1};
+        cur_sol = states{t};
         
         if no_dissol
             cur_smax = cur_sol.smax(:,2);
