@@ -12,7 +12,7 @@ showDensityVariation;
 
 %% Figure 5 and 6
 
-first1dExample;
+residualExample;
 
 %% Figure 7 and 8
 
@@ -28,22 +28,15 @@ clear all; showUpscaledRelPerms;
 %% Figure 11
 
 % Left figure
-runStandardModel('data/upscalingExample1Data', @plotUpscalingFigs             , ...
-                 'A', [2]                                                     , ...
-                 'subscale_types', {'smooth', 'inf_rough', 'square', 'sinus'} , ...
-                 'residual', true                                             , ...
-                 'dis_types', {'none'});
+clear all; close all;
+upscalingExample;
 
 % Right figure
 showUpscaledRelPerms;
 
 %% Figure 12, 13 and 14
-
-runStandardModel('data/dissolutionExample1Data', @plotDissolutionFigs , ...
-                 'depth', 1300                                        , ...
-                 'residual', [false true]                             , ...
-                 'A', [0 2]                                           , ...
-                 'dis_types', {'none', 'rate'});
+clear all; close all;
+dissolutionExample;
 
 %% Figure 15
 
