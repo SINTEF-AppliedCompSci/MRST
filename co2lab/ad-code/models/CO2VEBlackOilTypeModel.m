@@ -135,19 +135,19 @@ function [state, report] = updateState(model, state, problem, dx, drivingForces)
 
    [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
                                                 drivingForces);
+
+   sg          = state.s(:,2);
+   sg          = min(1, max(0,sg));
+   state.s     = [1-sg, sg];    
+   state.sGmax = min(1,state.sGmax);
+   state.sGmax = max(0,state.sGmax);
+   state.sGmax = max(state.sGmax,sg);
    
    if isfield(model.fluid, 'dis_rate')
       % The model includes dissolution
       if model.fluid.dis_rate > 0
          % rate-driven dissolution
-         
          f           = model.fluid;
-         sg          = state.s(:,2);
-         sg          = min(1, max(0,sg));
-         state.s     = [1-sg, sg];    
-         state.sGmax = min(1,state.sGmax);
-         state.sGmax = max(0,state.sGmax);
-         state.sGmax = max(state.sGmax,sg);
          min_rs      = minRs(state.pressure,state.s(:,2),state.sGmax,f,model.G);
          min_rs      = min_rs./state.s(:,1);
          state.rs    = max(min_rs,state.rs);

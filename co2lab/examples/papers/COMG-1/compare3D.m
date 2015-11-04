@@ -83,7 +83,7 @@ function compare3D()
    field = simres_3D{1}.states{tstep}.s(:,2);
    
    subG.nodes.coords(:,1) = subG.nodes.coords(:,1)/1000; % in km
-   plotCellData(subG, field(gc), 'edgealpha', 0.5); view(0,0); 
+   plotCellData(subG, field(gc), 'edgecolor', 'none'); view(0,0); 
    colormap winter;
    set(gca, 'fontsize', 16);
    axis tight;
