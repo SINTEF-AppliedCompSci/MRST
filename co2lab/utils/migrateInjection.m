@@ -1,4 +1,4 @@
-function sol = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
+function [sol, report] = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
 % Run a simple injection scenario and visualize each time step
 %
 % SYNOPSIS:
@@ -34,6 +34,7 @@ function sol = migrateInjection(Gt, traps, petrodata, wellCell, varargin)
 %
 % RETURNS:
 %   sol - simulation solution for the last timestep 
+%   report - struct reporting the CPU time for the splitting steps
 %
 % SEE ALSO:
 %
@@ -168,6 +169,7 @@ hwbar = waitbar(0, 'Initializing...');
 wbar = @(i, t, status) waitbar(t/T_tot, hwbar, ...
    sprintf('Timestep %d of %d, T=%s%s', i, tstep_tot, ...
    formatTimeRange(floor(t/year)*year), status));
+[ctime, cputimeT,cputimeP] = deal(0);
 while t < T_tot;
     if ishandle(hwbar)
         wbar(i, t, tt);
@@ -183,10 +185,16 @@ while t < T_tot;
         dT = min(dT, opt.T_injection - t);
         W2D(1).cells = double(wellCell);
     end
+    
+    tStartP = tic;
     sol = incompTPFA(sol, Gt, T, fluid, 'wells', W2D, 'bc', bc);
+    cputimeP(i) = toc(tStartP);
+    tStartT = tic;
     sol = implicitTransport(sol, Gt, dT, rock2D, fluid, ...
                             'wells', W2D, 'bc', bc, 'Verbose', false, 'Trans', T);
+    cputimeT(i) = toc(tStartT);
     t = t + dT;
+    ctime(i)=t;
 
     % Plotting
     [s, h, hm] = normalizeValuesVE(Gt, sol, fluid);
@@ -219,5 +227,9 @@ while t < T_tot;
     end
     i = i + 1;
 end
+fprintf('Total CPU time: %f %f (%d steps)\n',sum(cputimeP),sum(cputimeT), i-1);
+report.transport = cputimeT;
+report.pressure = cputimeP;
+report.time = ctime;
 if ishandle(hwbar), close(hwbar); end
 end
