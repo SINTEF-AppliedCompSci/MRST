@@ -186,16 +186,19 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                              % by CO2/brine interface area
                                              % in cell
 
-      meps= eps * 1000;
-      rate = rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
+      % meps= eps * 1000; @@
+      % rate = rate.*double((double(rs)<=(double(rsSat)-meps)) & (double(sG)>meps));
 
       % Add a tad of smoothing around the state where dissolution ceases
 
-      a = 200;
-      tanhyp = @(x) ((exp(a * x) - exp( - a * x)) ./ (exp(a * x) + exp( - a * x)));
+      % a = 200; @@ 
+      % tanhyp = @(x) ((exp(a * x) - exp( - a * x)) ./ (exp(a * x) + exp( - a * x)));
 
       % small = 1e-2;
       % tanhyp = @(x) double(x<small) .* (x/small) .* (-(x/small) + 2) + double(x>=small) * 1;
+
+      small = 1e-2;
+      tanhyp = @(x) double(x<small) .* ((x/small).^2 .* (- 2 * x / small + 3)) + double(x>=small) * 1;
       
       s_fac = tanhyp(sG); % approximately one, but goes to 0 for very small values of sG
       rs_eps = (rsSat - rs) ./ rsSat;
