@@ -15,7 +15,7 @@ function example4(varargin)
     moduleCheck('ad-core');
     
     %% Loading grid and subscale trapping function
-    [Gt, rock2D] = getUtsiraTopGrid(2, true);%1, true); 
+    [Gt, rock2D] = getUtsiraTopGrid(1, true);
     dh = [];
     if ~isempty(opt.subtrap_file)
         recenter = true;
@@ -63,7 +63,7 @@ function example4(varargin)
     %  or if recompute is requested
     
     for dis = {'nodiss', 'instdiss', 'ratediss'} 
-        for i = 1:2 %2:2  %@@
+        for i = 1:2 
             result_dir = fullfile(opt.savedir, dis{1}, injcase{i}, 'report'); 
             if ~computed(result_dir) || opt.recompute
                
@@ -86,7 +86,7 @@ function example4(varargin)
     %% Plot result, if requested
     if opt.produce_plots
         for dis = {'nodiss', 'instdiss', 'ratediss'}
-            for i = 1:2 %2:2 %@@
+            for i = 1:2
                 close all; % prevent too many windows accumulating
                 
                 fprintf('Current case: %s - %s\n', dis{1}, injcase{i});

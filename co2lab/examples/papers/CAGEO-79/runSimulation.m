@@ -6,9 +6,6 @@ function  [initState, Gt, schedule, fluid] = runSimulation(Gt, rock, schedule, v
 %                 capacity for that cell
 % 'report_dir'  - where to write the simulation results (in the format
 %                 expected by the 'analyseSimulationResult' routine).
-% 'cache_dir'   - where to write timestep files (will allow to start at a
-%                 timestep other than 1 for a later run).  If not specified,
-%                 timestep files will not be written.
 % 'do_plot'     - Whether the function should plot key visuals of the
 %                 simulation after each timestep (default: true)
 % 'dissolution' - dissolution model and parameter to use.
@@ -25,7 +22,6 @@ function  [initState, Gt, schedule, fluid] = runSimulation(Gt, rock, schedule, v
     
    opt = struct('dh'          , []                           , ...
                 'report_dir'  , '.'                          , ...
-                'cache_dir'   , ''                           , ...
                 'do_plot'     , true                         , ...
                 'extra_hook'  , []                           , ...
                 'dissolution' , 0                            , ...
@@ -102,18 +98,10 @@ function  [initState, Gt, schedule, fluid] = runSimulation(Gt, rock, schedule, v
                                        opt.dh));
    end
    
-   % krull = load('/home/oddan/sim/mrst/mrst-autodiff/ad-fi/cache/state35.mat'); %@@
-   % initState = krull.data;
-   % schedule.step.control = schedule.step.control(36:end);
-   % schedule.step.val = schedule.step.val(36:end);
-               
-
-   
    [wellSols, states] = simulateScheduleAD(initState, ...
                                            CO2VEBlackOilTypeModel(Gt, rock, fluid), schedule, ...
                                            'afterStepFn', plot_fn, ...
-                                           'NonLinearSolver', NonLinearSolver('useRelaxation', true),...
-                                           'OutputHandler', ResultHandler('writeToDisk', true, 'storeinmemory', false)); %@@
+                                           'NonLinearSolver', NonLinearSolver('useRelaxation', true));
 
    %% storing outcome if requested
    if opt.save_result
