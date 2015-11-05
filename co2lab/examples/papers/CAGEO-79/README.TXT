@@ -9,6 +9,6 @@
 | Figure 6     | Trapping capacity at Utsira formation                 | figure5and6.m         |
 | Figure 7-9   | Simulation results Utsira, single point injection     | example4.m            |
 | Figure 10    | Conceptual illustration                               | (no code)             |
-| Figure 11-15 | Figures related to optimization of injection scenario | optimization_utsira.m |
+| Figure 11-15 | Figures related to optimization of injection scenario | optimizeRatesUtsira.m |
 |--------------+-------------------------------------------------------+-----------------------|
 
