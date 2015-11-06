@@ -2,8 +2,10 @@ function exploreHammerfest( varargin )
 % Explore CO2 storage capacity in Hammerfest Basin Aquifer.
 %
 % SYNOPSIS:
-%   exploreHammerfest();
-%   exploreHammerfest('coarsening',N);
+%   exploreHammerfest()
+%   exploreHammerfest('coarsening',N)
+%   exploreHammerfest('mycase','inject')   % to run injection scenario only
+%   exploreHammerfest('mycase','storeCap') % to study storage capacity only
 %
 %
 % DESCRIPTION:
@@ -27,10 +29,14 @@ function exploreHammerfest( varargin )
 % PARAMETERS:
 %   'pn'/pv - List of optional property names/property values:
 %                   
-%    - coarsening: Coarsening factor. If set to one, a grid with
+%   - coarsening: Coarsening factor. If set to one, a grid with
 %             approximately one cell per datapoint is produced. If set to
 %             two, every second datapoint in x and y direction is used,
 %             giving a reduction to 1/4th size. Default: 1
+%
+%   - mycase: 'inject' or 'storeCap', to run an injection scenario only or
+%           to compute the storage capacity (with trapping breakdown) only.
+%           Default: 'inject'.
 %
 % RETURNS:
 %
@@ -40,6 +46,8 @@ function exploreHammerfest( varargin )
 
 
 opt.coarsening = 4;
+opt.mycase     = 'inject';
+
 opt = merge_options(opt, varargin{:});
 
 
@@ -58,44 +66,62 @@ plotHammerfestRockProps(Gt_st, rock2D_st, Gt_nd, rock2D_nd, Gt_tu, rock2D_tu);
 %export_fig(gcf, [figDirName '/' 'FmRockProperties'], '-png','-transparent')
 
 
-%% Perform trapping analysis
-% NB: interactiveTrapping() can be called apart from exploreHammerfest(),
-% however interactiveTrapping() does not access any heterogeneous rock
-% properties
-ta_st = trapAnalysis(Gt_st, false);
-ta_tu = trapAnalysis(Gt_tu, false);
+
+%% Compute Storage Capacity:
+if strcmpi(opt.mycase,'storeCap')
+    
+    % could also use:
+    exploreCapacity( 'default_formation',  'Stofm',     ...
+                 'grid_coarsening',     1,          ...
+                 'seafloor_depth',      330*meter,  ...
+                 'seafloor_temp',       4,          ...
+                 'temp_gradient',       40           );
+             
+    % 1) Perform trapping analysis
+    % NB: interactiveTrapping() can be called apart from exploreHammerfest(),
+    % however interactiveTrapping() does not access any heterogeneous rock
+    % properties
+    ta_st = trapAnalysis(Gt_st, false);
+    ta_tu = trapAnalysis(Gt_tu, false);
+    
+end
+
+%% Run Injection Scenario:
+if strcmpi(opt.mycase,'inject')
+    
+    % Run injection scenario using entire Sto formation
+    [wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
+        runSnohvitInjectionScenario( Gt_st, rock2D_st );
+
+
+    % Alternatively, various injection locations can be specified here and
+    % passed into runSnohvitInjectionScenario()
+
+    % Physical coordinate(s):
+    wellCoords = [9.225e5, 7.988e6; 9.225e5 + 300, 7.988e6 + 300; ...
+        9.225e5 + 400, 7.988e6 + 400; 9.225e5 + 500, 7.988e6 + 500];
+    % Alternatively, pass in the well cell index of Gt for each of these
+    % physical coodinates...
 
 
 
-
-%% Injection Set-up and Simulation:
-
-% Run injection scenario using entire Sto formation
-[wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
-    runSnohvitInjectionScenario( Gt_st, rock2D_st );
+    % Run injection scenario using entire Sto formation
+    [wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
+        runSnohvitInjectionScenario( Gt_st, rock2D_st, 'wellCoords',wellCoords);
 
 
-% Alternatively, various injection locations can be specified here and
-% passed into runSnohvitInjectionScenario()
-
-% Physical coordinate(s):
-wellCoords = [9.225e5, 7.988e6; 9.225e5 + 300, 7.988e6 + 300; ...
-    9.225e5 + 400, 7.988e6 + 400; 9.225e5 + 500, 7.988e6 + 500];
-
+    % Plot
+    if ~exist('ta_st','var')
+        ta_st = trapAnalysis(Gt_st, false);
+    end
+    plotCO2footprint(Gt_st, ta_st, states_st, opt_st, var_st);
 
 
-% Run injection scenario using entire Sto formation
-[wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
-    runSnohvitInjectionScenario( Gt_st, rock2D_st, 'wellCoords',wellCoords);
-
-
-% Plot
-plotCO2footprint(Gt_st, ta_st, states_st, opt_st, var_st);
-
-
-% Analyze simulated injection/migration:
-figure;
-plotToolbar(Gt_st, states)
+    % Analyze simulated injection/migration:
+    figure;
+    plotToolbar(Gt_st, states)
+    
+end
 
 %%  
 % Note that injection wells could be placed in other locations of the Sto

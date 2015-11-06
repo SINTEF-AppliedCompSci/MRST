@@ -16,6 +16,8 @@ function [output] = getTrappingCapacities_specificTraps(varargin)
 % see also:
 %   exploreParameterRanges, exploreCapacity, getTrappingCapacities
 
+% NB: should look at computeTrapVolume() function
+
 
 Gt              = varargin{1};
 rock            = varargin{2};
