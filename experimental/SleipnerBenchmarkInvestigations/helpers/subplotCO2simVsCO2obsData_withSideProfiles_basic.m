@@ -4,7 +4,7 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
 
     opt.figname = '';
     
-    opt.ZoomIntoPlume = true;
+    opt.ZoomIntoPlume = false;
     
     opt.sliceCellIndex_ew = []; % east-west slices
     opt.sliceCellIndex_sn = []; % south-north slices
@@ -51,7 +51,12 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
     % E-W slices will appear on same figure as Top View
     hfigEW = figure('name',opt.figname); set(gcf,'Position',[1 1 1060 582]);
     numSlices_ew = numel(opt.sliceCellIndex_ew);
-    if numSlices_ew == 2
+    if numSlices_ew == 1
+        % for 1 slice
+        sp1 = subplot(2,2,[1 3]);
+        sp2 = subplot(2,2, 2);
+        
+    elseif numSlices_ew == 2
         % for 2 slices
         sp1 = subplot(2,2,[1 3]);
         sp2 = subplot(2,2,2);
@@ -64,24 +69,29 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         sp3 = subplot(3,2,4);
         sp4 = subplot(3,2,6);
 
+    elseif numSlices_ew == 0
+        sp1 = subplot(2,2,[1 3]);
+        
     else
-        error('Only implemented for 2 or 3 east-west slices')
+        error('Only implemented for 1, 2 or 3 east-west slices')
     end
     
-    % S-N slices will appear on separate figure
-    hfigSN = figure('name',[opt.figname 'SN']); set(gcf,'Position',[1 1 1060 582]);
-    numSlices_sn = numel(opt.sliceCellIndex_sn);
-    if numSlices_sn == 1
-        % for 1 slice
-        sp1_sn = subplot(2,2,[1 2]);
+    if ~isempty(opt.sliceCellIndex_sn)
+        % S-N slices will appear on separate figure
+        hfigSN = figure('name',[opt.figname 'SN']); set(gcf,'Position',[1 1 1060 582]);
+        numSlices_sn = numel(opt.sliceCellIndex_sn);
+        if numSlices_sn == 1
+            % for 1 slice
+            sp1_sn = subplot(2,2,[1 2]);
 
-    elseif numSlices_sn == 2
-        % for 2 slices
-        sp1_sn = subplot(2,2,[1 2]);
-        sp2_sn = subplot(2,2,[3 4]);
+        elseif numSlices_sn == 2
+            % for 2 slices
+            sp1_sn = subplot(2,2,[1 2]);
+            sp2_sn = subplot(2,2,[3 4]);
 
-    else
-        error('Only implemented for 1 or 2 south-north slices')
+        else
+            error('Only implemented for 1 or 2 south-north slices')
+        end
     end
     
     
@@ -133,10 +143,12 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
     % used to ensure point is plotted above other plots, with a
     % z-coordinate of -200, so it remains visible.
     % actual location:
-    plot3(wellXcoord, wellYcoord, -200, 'o', ...
-        'MarkerEdgeColor','k',...
-        'MarkerFaceColor','r',...
-        'MarkerSize',10)
+    if ~isempty(wellXcoord) && ~isempty(wellXcoord)
+        plot3(wellXcoord, wellYcoord, -200, 'o', ...
+            'MarkerEdgeColor','k',...
+            'MarkerFaceColor','r',...
+            'MarkerSize',10)
+    end
     % simulated location:
     plot3(wellCoord_x, wellCoord_y, -200, 'x', ...
         'LineWidth',3,  ...
@@ -183,22 +195,13 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
 
 
     %% Plot East-West slices:
-
+    if ~isempty(opt.sliceCellIndex_ew)
     sliceLabels = ['A'; 'B'; 'C']; % ensure sliceLabels is as long as numSlices
     for sln = 1:numSlices_ew
         
         sliceCellIndex_curr = opt.sliceCellIndex_ew(sln);
         
         % Cross-sectional slices through a point:
-        % first get index of point:
-        [ii,jj] = ind2sub(Gt.cartDims, sliceCellIndex_curr);
-        disp(['Slice cell index of ',num2str(sliceCellIndex_curr),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
-        
-        % to color a horizontal line thru point
-        horiinx2color = find(Gt.cells.ij(:,2) == jj); 
-        horiLineCoords = [Gt.cells.centroids(horiinx2color,1), Gt.cells.centroids(horiinx2color,2)];
-        horiLineCoords = [min(horiLineCoords); max(horiLineCoords)];
-
         ijk = gridLogicalIndices(Gt.parent);
 
         ii = ijk{1}(sliceCellIndex_curr);
@@ -206,7 +209,15 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         kk = ijk{3}(sliceCellIndex_curr);
         disp(['Slice cell index of ',num2str(sliceCellIndex_curr),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
 
-        if numSlices_ew == 2
+        % to color a horizontal line thru point
+        horiinx2color = find(Gt.cells.ij(:,2) == jj);
+        horiLineCoords = [Gt.cells.centroids(horiinx2color,1), Gt.cells.centroids(horiinx2color,2)];
+        horiLineCoords = [min(horiLineCoords); max(horiLineCoords)];
+        
+        
+        if numSlices_ew == 1
+            subplot( sp2 );
+        elseif numSlices_ew == 2
             if sln == 1
                 subplot( sp2 );
             elseif sln == 2
@@ -247,10 +258,10 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         text(xmax+200, horiLineCoords(2,2),   sliceLabels(sln,:), 'HorizontalAlignment','right','FontSize',14);
     
     end
-    
+    end
     
     %% Plot south-north slices:
-    
+    if ~isempty(opt.sliceCellIndex_sn)
     %sliceLabels = ['AA'; 'BB'; 'CC']; % ensure sliceLabels is as long as numSlices
     sliceLabels = ['C'; 'D'];
     for sln = 1:numSlices_sn
@@ -258,15 +269,6 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         sliceCellIndex_curr = opt.sliceCellIndex_sn(sln);
         
         % Cross-sectional slices through a point:
-        % first get index of point:
-        [ii,jj] = ind2sub(Gt.cartDims, sliceCellIndex_curr);
-        disp(['Slice cell index of ',num2str(sliceCellIndex_curr),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
-        
-        % to color a vertical line thru point
-        vertinx2color = find(Gt.cells.ij(:,1) == ii);
-        vertLineCoords = [Gt.cells.centroids(vertinx2color,1), Gt.cells.centroids(vertinx2color,2)];
-        vertLineCoords = [min(vertLineCoords); max(vertLineCoords)];
-
         ijk = gridLogicalIndices(Gt.parent);
 
         ii = ijk{1}(sliceCellIndex_curr);
@@ -274,6 +276,12 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         kk = ijk{3}(sliceCellIndex_curr);
         disp(['Slice cell index of ',num2str(sliceCellIndex_curr),' corresponds to I=',num2str(ii),', J=',num2str(jj)])
 
+        % to color a vertical line thru point
+        vertinx2color = find(Gt.cells.ij(:,1) == ii);
+        vertLineCoords = [Gt.cells.centroids(vertinx2color,1), Gt.cells.centroids(vertinx2color,2)];
+        vertLineCoords = [min(vertLineCoords); max(vertLineCoords)];
+
+        
         figure( hfigSN );
         if numSlices_sn == 1
             if sln == 1
@@ -313,17 +321,9 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
         text(vertLineCoords(2,1), ymax+250,  sliceLabels(sln,:), 'HorizontalAlignment','center', 'VerticalAlignment','top',    'FontSize',14);
     
     end
+    end
     
     %% Final adjustments to plots
-    
-    figure( hfigSN )
-    
-    % Adjust fontsize of A---A, B---B, etc. font
-    set(findobj(gcf,'type','Text'),'FontSize',18);
-    
-    % Adjust fontsize of slice titles
-    set(findobj(gcf,'type','Axes'),'FontSize',14);
-    
     
     figure( hfigEW )
     
@@ -332,7 +332,16 @@ function [ hfig, hax ] = subplotCO2simVsCO2obsData_withSideProfiles_basic( Years
     
     % Adjust fontsize of slice titles
     set(findobj(gcf,'type','Axes'),'FontSize',14);
+    
+    if ~isempty(opt.sliceCellIndex_sn)
+        figure( hfigSN )
 
+        % Adjust fontsize of A---A, B---B, etc. font
+        set(findobj(gcf,'type','Text'),'FontSize',18);
+
+        % Adjust fontsize of slice titles
+        set(findobj(gcf,'type','Axes'),'FontSize',14);
+    end
     
     %% Return variables:
     hfig = gcf;
