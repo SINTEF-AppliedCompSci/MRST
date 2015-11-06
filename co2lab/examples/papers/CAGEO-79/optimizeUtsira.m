@@ -2,8 +2,19 @@
 %% Optimize well placement and rates at Utsira
 [Gt, optim, init, history, other] = ...
     optimizeFormation('modelname', 'utsirafm', ...
-                      'trapfile_name', 'utsira_subtrap_function_3.mat');
+                      'trapfile_name', 'utsira_subtrap_function_3.mat', ...
+                      'num_wells', 1, 
+                      'leak);
 
+%% Saving optimized results
+savedir = 'results/utsira_optimization/';
+if ~isdir(savedir)
+   mkdir(schedule_savedir);
+end
+save([savedir 'init'] , 'init');
+save([savedir 'optim'], 'optim');
+save([savedir 'Gt'], Gt);
+save([savedir, 'history'], 'history');
 
 %% Figure 11: Plot map with the numbered wells
 
