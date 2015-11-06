@@ -186,7 +186,7 @@ function eqs = compute_dissolution_equations(model, Gt, f, sG, sG0, sGmax, ...
                                              % by CO2/brine interface area
                                              % in cell
 
-      small = 2.5e-3;
+      small = 3e-3;
       smooth_to_zero = @(x) double(x<small) .* ((x/small).^2 .* (- 2 * x / small + 3)) + double(x>=small) * 1;
       
       s_fac = smooth_to_zero(sG); % approximately one, but goes to 0 for very small values of sG
