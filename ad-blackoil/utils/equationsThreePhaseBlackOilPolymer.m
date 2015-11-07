@@ -33,7 +33,7 @@ opt = merge_options(opt, varargin{:});
 s = model.operators;
 f = model.fluid;
 G = model.G;
-W = drivingForces.Wells;
+W = drivingForces.W;
 % Currently we do not support senario without wells.
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src));
 
