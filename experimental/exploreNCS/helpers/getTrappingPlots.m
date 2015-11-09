@@ -112,7 +112,7 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     subplot(1,6,5); hsub5 = gca; hfsub5 = gcf;
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
-    plotCellData(Gt, structural_mass_reached/1e3/1e6, 'EdgeColor','none');
+    plotCellData(Gt, structural_mass_reached/1e3/1e6, structural_mass_reached~=0, 'EdgeColor','none');
     title({'Reachable structural';'capacity (Mt)'}); axis off; colorbar;
 
 
@@ -142,6 +142,11 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     
     hfig = gcf;
     hax  = gca;
+    
+    % ---------------------------------------------------------------------
+    % ---------------------------------------------------------------------
+    % Capacity Output
+    capacityOutput.structural_mass_reached = structural_mass_reached/1e3/1e6; % Mt
 
 
 end

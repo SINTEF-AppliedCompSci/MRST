@@ -77,15 +77,15 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     opt.inj_time          = 50*year; %wellinfo.inj_time;
     opt.inj_steps         = 10; %wellinfo.inj_steps;
     
-    opt.prod_rate_MtperYr = 1; %wellinfo.prod_rate_MtperYr;
+    opt.prod_rate_MtperYr = 2; %wellinfo.prod_rate_MtperYr;
     opt.prod_time         = opt.inj_time; %wellinfo.prod_time;
     opt.prod_steps        = opt.inj_steps; %wellinfo.prod_steps;
     
-    opt.mig_time          = 0; %wellinfo.mig_time;
-    opt.mig_steps         = 0; %wellinfo.mig_steps;
+    opt.mig_time          = 3000*year; %wellinfo.mig_time;
+    opt.mig_steps         = 30; %wellinfo.mig_steps;
     
 
-    opt.bdryType          = 'pressure';
+    opt.bdryType          = 'pressure'; % tried closed, semi-closed
 
     opt = merge_options(opt, varargin{:});
     
@@ -108,8 +108,8 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     
     % Set up wells:
     allWells = [opt.wellCoords_inj; opt.wellCoords_prod];
-    allRates = [repmat( opt.inj_rate,  size(opt.wellCoords_inj), 1 ); ...
-                repmat( -opt.prod_rate, size(opt.wellCoords_prod),1 ) ];
+    allRates = [repmat( opt.inj_rate,  [size(opt.wellCoords_inj), 1] ); ...
+                repmat( -opt.prod_rate, [size(opt.wellCoords_prod), 1] ) ];
     numWells = size(allWells,1);
     for i = 1:numWells
         
@@ -118,22 +118,32 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
         var.wellCoordSim(i,1) = Gt.cells.centroids(var.wellCellIndex(i),1);
         var.wellCoordSim(i,2) = Gt.cells.centroids(var.wellCellIndex(i),2);
 
-        % Put injection/producer wells into schedule.control(1)
+        % Assign well name (to distinguish inj vs. prod)
+        if allRates(i) > 0
+            % inj
+            wellname = sprintf('Winj%i', var.wellCellIndex(i));
+            composition = [0 1];
+        else
+            % prod
+            wellname = sprintf('Wprd%i', var.wellCellIndex(i));
+            composition = [1 1];
+        end
         
+        % Put injection/producer wells into schedule.control(1)
         schedule.control(1).W(i) = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
-            'name',     sprintf('W%i', var.wellCellIndex(i)),  ...
+            'name',     wellname,  ...
             'Type',     'rate', ...
             'Val',      allRates(i), ...
-            'comp_i',   [0 1] );
+            'comp_i',   composition );
         
         
         % Put turned-off wells into schedule.control(2)
         % or, use 'status',0 to implement turned-off wells?
         schedule.control(2).W(i)  = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
-            'name',     [sprintf('W%i', var.wellCellIndex(i)) '_off'],  ...
+            'name',     [wellname '_off'],  ...
             'Type',     'rate', ...
             'Val',      0, ...
-            'comp_i',   [0 1] );
+            'comp_i',   composition );
         
     end
 
@@ -173,7 +183,8 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
 
     fprintf('\n\n Proceeding to solver... \n\n')
     [wellSols, states, sim_report] = simulateScheduleAD(initState, var.model, schedule);
-
+    var.initState = initState;
+    var.schedule  = schedule;
 
 end
 

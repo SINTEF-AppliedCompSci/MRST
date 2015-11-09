@@ -187,12 +187,34 @@ rock2D_gn = rock2Ds{ logical(strcmpi(fmNames,'Garnfm')) };
 
 Gt      = Gt_gn;
 rock2D  = rock2D_gn;
+ta      = trapAnalysis(Gt,'false');
+
+[ capOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, 'NorwegianSea');
 
 seainfo = getSeaInfo('NorwegianSea');
-wellinfo = getWellInfo(Gt);
+wellinfo = getWellInfo(Gt, capOutput);
+export_fig(gcf,[figDirName '/' 'WellsGarn_ref' num2str(coarsening)], '-png','-transparent')
+
+% assess impact of presence of producer wells:
+% - first, run case with producer wells
 [ wellSols, states, sim_report, opt, var ] = ...
     runGenericInjectionScenario( Gt, rock2D, seainfo, wellinfo );
 
+% - second, run another case where producer wells are turned off
+wellinfo_off                 = wellinfo;
+wellinfo_off.wellCoords_prod = [];
+[ wellSols_off, states_off, sim_report_off, opt_off, var_off ] = ...
+    runGenericInjectionScenario( Gt, rock2D, seainfo, wellinfo_off );
+
+% options to inspect results:
+figure;
+plotToolbar(Gt, states_off)
+clf
+plotToolbar(Gt, states{end}, states{end}.s(:,2)>0.01)
+plotGrid(Gt, 'FaceColor','none')
+
+figure;
+plotWellSols(wellSols_off)
 
 % a) using 4 wells in Ile/Not/Garn to match NPD's estimated 400 million
 % tonne (0.4 Gt) capacity (Riis and Halland, 2014, pg 5262). This capacity
@@ -205,7 +227,28 @@ wellinfo = getWellInfo(Gt);
 % Garn.
 
 
+%% Post-processing
+% initState, schedule added to var structure
 
+    dh = []; % for subscale trapping?
+    figure; plot(1); ax = get(gcf, 'currentaxes');
+    % NB: {var.initState, states{:}}
+    reports = makeReports(var.model.G, {var.initState, states{:}}, ...
+                             var.model.rock, var.model.fluid, var.schedule, ...
+                             [var.model.fluid.res_water, var.model.fluid.res_gas], ...
+                             ta, dh);
+    % reports contains soln states; could be used for plotting results.
+    directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
+    
+    %ax = gca;
+    %ax.XTickLabel = ax.XTick + inj_year(1)-1;
+    % use R2014a and earlier releases syntax to ensure backwards compatibility 
+    ax  = get(gca, 'XTick');
+    axl = arrayfun(@(a) sprintf('%d', a + inj_year(1)), ax, 'UniformOutput', false);
+    set(gca, 'XTickLabel', axl)
+    xlabel('Year')
+    ylabel('Mass (Mt)')
+    set(gca,'FontSize',14)
 
 
 
