@@ -11,7 +11,7 @@
 %   - need to fix text that contains super- or sub- scripts.
 
 %%
-moduleCheck('co2lab');
+moduleCheck('co2lab','ad-core');
 mrstVerbose on
 
 % directory for all saved figures
@@ -64,7 +64,7 @@ clearvars -except figDirName
 
 %% Figure 6 - 12: Simulation results (CO2 mass)
 clearvars -except figDirName
-simsDirName = 'SleipnerSims';
+simsDirName = 'SleipnerSims'; %'testSim';%'SleipnerSims';
 
 % check to see if results directory exists. If it doesn't exist, create it
 % and run all simulation cases. Otherwise, load the simulation results.
@@ -148,7 +148,7 @@ for j=1:numel(files2load)
     [ ~, ~ ] = subplotCO2simVsCO2obsData_basic(Years2plot, SimStartYear, ...
                 plumeOutlines, sim_report, model.G, states, model.fluid, ...
                 model, var.wellXcoord, var.wellYcoord, var.wellCoord_x, ...
-                var.wellCoord_y, ta, ZoomIntoPlume, plumeOutline_SatTol, ...
+                var.wellCoord_y, ta, ZoomIntoPlume, plumeOutline_SatTol, ... %); %, ...
                 'figname',files2load{j});
     
     % Prepare the plot name for saving:
@@ -179,35 +179,45 @@ for j=1:numel(files2load)
 
     % ------------ Plot of CO2 mass in 2008 with side profiles ------------
     % for combined top view and side profiles, in one figure:
+    
     % specify XY coordinate(s) you want to draw EW-slice(s) through:
-    XYcoord1 = [var.wellXcoord, var.wellYcoord + 500];
-    %XYcoord2 = [var.wellXcoord, var.wellYcoord + 900];
-    %XYcoord3 = [var.wellXcoord, var.wellYcoord + 1200];
-    XYcoords = [XYcoord1];%; XYcoord2];% XYcoord3];
-    cellIndex = zeros(numel(XYcoords(:,1)),1);
+    XYcoord1_ew = [var.wellXcoord, var.wellYcoord + 600];
+    %XYcoord2_ew = [var.wellXcoord, var.wellYcoord + 900];
+    %XYcoord3_ew = [var.wellXcoord, var.wellYcoord + 1200];
+    XYcoords_ew = [XYcoord1_ew];%; XYcoord2_ew];% XYcoord3_ew];
+    
     % get index of closest cell to your specified XY coordinate(s):
-    for p = 1:numel(XYcoords(:,1))
-        dv              = bsxfun(@minus, model.G.cells.centroids(:,1:2), XYcoords(p,:));
+    cellIndex = zeros(numel(XYcoords_ew(:,1)),1);
+    for p = 1:numel(XYcoords_ew(:,1))
+        dv              = bsxfun(@minus, model.G.cells.centroids(:,1:2), XYcoords_ew(p,:));
         [v, cinx]       = min(sum(dv.^2, 2));   
         cellIndex(p,:)  = cinx;
     end
+    inxPts_ew = [model.wellmodel.W.cells; cellIndex];
     
-    inxPts = [model.wellmodel.W.cells; cellIndex];
-%     
-%     [ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles(2008.5, SimStartYear, plumeOutlines, sim_report, ...
-%                 model.G, states, model.fluid, model, ...
-%                 var.wellXcoord, var.wellYcoord, var.wellCoord_x, var.wellCoord_y, ta, ...
-%                 plumeOutline_SatTol, ...
-%                 'sliceCellIndex',inxPts, ...
-%                 'SleipnerBounded',true, ...
-%                 'figname',files2load{j});
+    
+    % specify XY coordinate(s) you want to draw SN-slice(s) through:
+    XYcoord1_sn = [var.wellXcoord + 400, var.wellYcoord];
+    XYcoord2_sn = [var.wellXcoord + 550, var.wellYcoord];
+    XYcoords_sn = [XYcoord1_sn; XYcoord2_sn];
+    
+    % get index of closest cell to your specified XY coordinate(s):
+    cellIndex = zeros(numel(XYcoords_sn(:,1)),1);
+    for p = 1:numel(XYcoords_sn(:,1))
+        dv              = bsxfun(@minus, model.G.cells.centroids(:,1:2), XYcoords_sn(p,:));
+        [v, cinx]       = min(sum(dv.^2, 2));   
+        cellIndex(p,:)  = cinx;
+    end
+    %inxPts_sn = [model.wellmodel.W.cells; cellIndex];
+    inxPts_sn = [cellIndex];
             
     [ ~, ~ ] = subplotCO2simVsCO2obsData_withSideProfiles_basic(2008.5, ...
                 SimStartYear, plumeOutlines, sim_report, model.G, states, ...
                 model.fluid, model, var.wellXcoord, var.wellYcoord, ...
                 var.wellCoord_x, var.wellCoord_y, ta, plumeOutline_SatTol, ...
-                'sliceCellIndex',inxPts, 'SleipnerBounded',true, ...
-                'figname',files2load{j});
+                'sliceCellIndex_ew',inxPts_ew, 'sliceCellIndex_sn',inxPts_sn, ...
+                'SleipnerBounded',true); %, ...
+                %'figname',files2load{j});
             
     % Prepare the plot name for saving:
     % (first remove any '.' from fileName to make it latex-friendly, then
