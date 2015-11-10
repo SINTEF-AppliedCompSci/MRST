@@ -150,66 +150,22 @@ function [faceAreas, faceNormals, faceCentroids, ...
            'Internal error: 3D geometry on non-3D coordinates');
 
    numC    = G.cells.num;
-   dim  = 3;
 
-   [cellVolumes, cellCentroids] = preallocate(G.cells.num, [1, dim]);
-
-   [face.Areas, face.Normals, face.Centroids] = ...
-      preallocate(G.faces.num, [1, dim, dim]);
-
-   [sub.Centroids, sub.Normals, sub.NormalSigns] = ...
-      preallocate(size(G.faces.nodes, 1), [dim, dim, 1]);
-
-   valid = false(size(face.Areas));
-
-   % Divide each cell into sub-tetrahedra according to sub-triangles above,
-   % all having one node as cCenter = sum(faceCentroids) / #faceCentroids.
+   geom = allocate_geometry_3d(G);
 
    dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
    t0 = ticif (opt.verbose);
 
    for c = 1 : numC,
-      cfinx  = mcolon(G.cells.facePos(  c  ), ...
-                      G.cells.facePos(c + 1) - 1);
-      cfaces = G.cells.faces(cfinx, 1);
-
-      [np1, np2] = deal(G.faces.nodePos(cfaces + 0), ...
-                        G.faces.nodePos(cfaces + 1));
-
-      % One triangle associated with each node of each cell-face.
-      triangles = mcolon(np1, np2 - 1);
-
-      % Geometric primitives for those faces that aren't already valid.
-      [face, sub, valid] = ...
-         ensureValidFaceGeometry(face, sub, valid, G, cfaces, opt);
-
-      fCentroids = face.Centroids(cfaces, :);
-      cCenter    = sum(fCentroids) ./ numel(cfaces);
-
-      relSubC    = bsxfun(@minus, sub.Centroids(triangles, :), cCenter);
-
-      % Outward normal on 'cfaces' with respect to 'c'.
-      cfsign = 2*double(G.faces.neighbors(cfaces, 1) == c) - 1;
-      cfsign = rldecode(cfsign, np2 - np1);
-
-      outNormals = bsxfun(@times,               ...
-                          sub.Normals(triangles, :), ...
-                          sub.NormalSigns(triangles) .* cfsign);
-
-      tVolumes   = (1/3) * sum(relSubC .* outNormals, 2);
-      tCentroids = (3/4) * relSubC;
-
-      volume      = sum(tVolumes);
-      relCentroid = (tVolumes' * tCentroids) ./ volume;
-      centroid    = relCentroid + cCenter;
-
-      cellVolumes(c)     = volume;
-      cellCentroids(c,:) = centroid;
+      geom = geom_3d_cell_block(geom, G, c, opt);
    end
 
-   faceAreas     = face.Areas;
-   faceCentroids = face.Centroids;
-   faceNormals   = face.Normals;
+   faceAreas     = geom.face.Areas;
+   faceCentroids = geom.face.Centroids;
+   faceNormals   = geom.face.Normals;
+
+   cellVolumes   = geom.cell.Volumes;
+   cellCentroids = geom.cell.Centroids;
 
    tocif(opt.verbose, t0)
 end
@@ -241,6 +197,82 @@ end
 
 %--------------------------------------------------------------------------
 
+function geom = geom_3d_cell_block(geom, G, cells, opt)
+   [cf, cft] = cell_face_triangle_connectivity(G, cells);
+
+   % Geometric primitives for those faces that aren't already valid.
+   geom = ensureValidFaceGeometry(geom, G, cf(:,2), opt);
+
+   % Divide each cell into sub-tetrahedra according to sub-triangles
+   % geom.sub, all having one node as
+   %
+   %     cCenter = sum(faceCentroids) / #faceCentroids
+
+   cCenter = sparse(cf(:,1), 1 : size(cf, 1), 1) ...
+      * [ geom.face.Centroids(cf(:,2), :), ones([size(cf, 1), 1]) ];
+
+   cCenter = bsxfun(@rdivide, cCenter(:, 1 : end - 1), cCenter(:, end));
+
+   relSubC = geom.sub.Centroids(cft(:,3), :) - cCenter(cft(:,1), :);
+
+   % Outward normal on cell-face triangles with respect to cell.
+   cfsign = 2*double(G.faces.neighbors(cft(:,2), 1) == ...
+                     reshape(cells(cft(:,1)), [], 1)) - 1;
+
+   outNormals = bsxfun(@times, geom.sub.Normals(cft(:,3), :), ...
+                       geom.sub.NormalSigns(cft(:,3)) .* cfsign);
+
+   tVolumes   = (1/3) * sum(relSubC .* outNormals, 2);
+   tCentroids = (3/4) * relSubC;
+
+   relCentroid = sparse(cft(:,1), 1 : size(cft, 1), tVolumes) ...
+      * [ tCentroids, ones([size(cft, 1), 1]) ];
+
+   volume      = relCentroid(:, end);
+   relCentroid = bsxfun(@rdivide, relCentroid(:, 1 : end - 1), volume);
+   centroid    = relCentroid + cCenter;
+
+   geom.cell.Volumes(cells)     = volume;
+   geom.cell.Centroids(cells,:) = centroid;
+end
+
+%--------------------------------------------------------------------------
+
+function geom = allocate_geometry_3d(G)
+   dim = 3;
+
+   [cell.Volumes, cell.Centroids] = ...
+      preallocate(G.cells.num, [1, dim]);
+
+   [face.Areas, face.Normals, face.Centroids] = ...
+      preallocate(G.faces.num, [1, dim, dim]);
+
+   face.valid = false(size(face.Areas));
+
+   [sub.Centroids, sub.Normals, sub.NormalSigns] = ...
+      preallocate(size(G.faces.nodes, 1), [dim, dim, 1]);
+
+   geom = struct('cell', cell, 'face', face, 'sub', sub);
+end
+
+%--------------------------------------------------------------------------
+
+function [cf, cft] = cell_face_triangle_connectivity(G, cells)
+   [fp1, fp2] = deal(G.cells.facePos(cells + 0), ...
+                     G.cells.facePos(cells + 1));
+
+   cf = [rldecode(1 : numel(fp1), fp2 - fp1, 2) .', ...
+         G.cells.faces(mcolon(fp1, fp2 - 1), 1)];
+
+   [np1, np2] = deal(G.faces.nodePos(cf(:,2) + 0), ...
+                     G.faces.nodePos(cf(:,2) + 1));
+
+   % One triangle associated with each node of each cell-face.
+   cft = [ rldecode(cf, np2 - np1), mcolon(np1, np2 - 1).' ];
+end
+
+%--------------------------------------------------------------------------
+
 function [faceAreas, faceNormals, faceCentroids, ...
       cellVolumes, cellCentroids] = geom_2d_impl(G, opt, quadArea)
 
@@ -267,29 +299,28 @@ end
 
 %--------------------------------------------------------------------------
 
-function [face, sub, valid] = ...
-      ensureValidFaceGeometry(face, sub, valid, G, cfaces, opt)
+function geom = ensureValidFaceGeometry(geom, G, cfaces, opt)
 
    ufaces = unique_faces(G.faces.num, cfaces);
-   inval  = ~ valid(ufaces);
+   inval  = ~ geom.face.valid(ufaces);
 
    if any(inval),
       ifaces = ufaces(inval);
 
       [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, ifaces, opt);
 
-      face.Areas    (ifaces)    = fA;
-      face.Centroids(ifaces, :) = fC;
-      face.Normals  (ifaces, :) = fN;
+      geom.face.Areas    (ifaces)    = fA;
+      geom.face.Centroids(ifaces, :) = fC;
+      geom.face.Normals  (ifaces, :) = fN;
 
       six = mcolon(G.faces.nodePos(ifaces + 0), ...
                    G.faces.nodePos(ifaces + 1) - 1);
 
-      sub.Centroids  (six, :) = sC;
-      sub.Normals    (six, :) = sN;
-      sub.NormalSigns(six)    = sNSigns;
+      geom.sub.Centroids  (six, :) = sC;
+      geom.sub.Normals    (six, :) = sN;
+      geom.sub.NormalSigns(six)    = sNSigns;
 
-      valid(ifaces) = true;
+      geom.face.valid(ifaces) = true;
    end
 end
 
