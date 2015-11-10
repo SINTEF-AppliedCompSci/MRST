@@ -15,30 +15,28 @@ ndims = length(dims);
 G     = block.G;
 rock  = block.rock;
 
-% Pore-volume
-pv    = rock.poro.*G.cells.volumes;
-pvsum = sum(pv);
+% Volume
+vol  = G.cells.volumes;
+vsum = sum(vol);
 
 switch opt.method
     case 'arithmetic'
-        upf = @(K,d) sum(K.*pv)/pvsum;
+        upf = @(K,d) sum(K.*vol)/vsum;
     case 'harmonic'
-        upf = @(K,d) 1/( sum(pv./K)/pvsum );
+        upf = @(K,d) 1/( sum(vol./K)/vsum );
     case 'geometric'
         % The geometric mean is defined as prod(x)^(1/numel(x)). However,
         % this is mathematically eqivalent to the expression below, and
         % the latter variant is preferred numerically.
-        upf = @(K,d) exp( sum(pv.*log(K))/pvsum );
+        upf = @(K,d) exp( sum(vol.*log(K))/vsum );
     case {'harmonic-arithmetic', 'arithmetic-harmonic'}
-        upf = @(K,d) combinedAverage(pv, K, G.cartDims, d, opt.method);
+        upf = @(K,d) combinedAverage(vol, K, G.cartDims, d, opt.method);
     otherwise
         error('Absolute permeability method unknown.');
 end
 
 % Compute average(s)
 Kup   = nan(1,ndims);
-
-KupTMP = nan(1,ndims);
 
 if size(rock.perm, 2)==1
     % Isotropic permeability
@@ -71,44 +69,44 @@ end
 % HELPER FUNCTIONS
 %--------------------------------------------------------------------------
 
-function K = combinedAverage(pv, perm, cartDims, d, method)
+function K = combinedAverage(vol, perm, cartDims, d, method)
 % Combined average of harmonic and arithmetic averages
 
-% We do have an issue if some pore-volumes are zero. We set them to a
-% tiny value instead.
-pv(pv==0) = 10*eps;
+% We do have an issue if some volumes are zero. We set them to a tiny value
+% instead.
+vol(vol==0) = 10*eps;
 
-PV = reshape(pv, cartDims);
-K  = reshape(perm,  cartDims);
+V = reshape(vol, cartDims);
+K = reshape(perm,  cartDims);
 
 % The two other dimensions (not d)
 dims    = 1:numel(cartDims);
 odims   = [dims(1:d-1) dims(d+1:end)];
 
 if strcmpi(method, 'harmonic-arithmetic')
-    [K, PV] = harm(K, PV, d);
-    [K, PV] = arit(K, PV, odims(1));
-    [K, ~]  = arit(K, PV, odims(2));
+    [K, V] = harm(K, V, d);
+    [K, V] = arit(K, V, odims(1));
+    [K, ~] = arit(K, V, odims(2));
 elseif strcmpi(method, 'arithmetic-harmonic')
-    [K, PV] = arit(K, PV, odims(1));
-    [K, PV] = arit(K, PV, odims(2));
-    [K, ~]  = harm(K, PV, d);
+    [K, V] = arit(K, V, odims(1));
+    [K, V] = arit(K, V, odims(2));
+    [K, ~] = harm(K, V, d);
 end
  
 end
 
-function [K, PV] = arit(K, PV, d)
-% K and PV given as multidim matrix
-pv = sum(PV, d);
-K  = sum(PV.*K,d)./pv;  % arithmetic average
-PV = pv;
+function [K, V] = arit(K, V, d)
+% K and V given as multidim matrix
+v = sum(V, d);
+K = sum(V.*K,d)./v;  % arithmetic average
+V = v;
 end
 
-function [K, PV] = harm(K, PV, d)
+function [K, V] = harm(K, V, d)
 % K and PV given as multidim matrix
-pv = sum(PV, d);
-K  = 1./(sum(PV./K, d)./pv); % harmonic average
-PV = pv;
+v = sum(V, d);
+K = 1./(sum(V./K, d)./v); % harmonic average
+V = v;
 
 % If the sum of the pore-volume is zero for a column in direction d,
 % then the harmonic average of the permeability will be NAN. But as the
