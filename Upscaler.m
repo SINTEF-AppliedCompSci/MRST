@@ -202,7 +202,8 @@ methods
             end
             
             % Create block object
-            block = GridBlock(b, r, 'fluid', f, 'deck', blockDeck);
+            block = GridBlock(b, r, 'fluid', f, 'deck', blockDeck, ...
+                'periodic', upscaler.periodic);
             
         else
             
@@ -226,7 +227,8 @@ methods
             end
             
             % Create block object
-            block = GridBlock(b, r, 'fluid', f);
+            block = GridBlock(b, r, 'fluid', f, ...
+                'periodic', upscaler.periodic);
             
         end
         

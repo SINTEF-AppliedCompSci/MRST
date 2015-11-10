@@ -63,29 +63,31 @@ methods
         
         if block.periodic
             % If periodic option is true, then a periodic grid is created
-            [block.G, block.bcp] = makePeriodicBlock();
+            block = block.makePeriodicBlock();
         end
         
     end
     
     
-    function [Gp, bcp] = makePeriodicBlock(upscaler)
-        % Pressure drop in each direction is set to zero
-        ndims = numel(upscaler.periodicDims);
+    function block = makePeriodicBlock(block)
+        bf    = getBoundaryFaces(block.G);
+        ndims = size(bf,1);
         bcl   = cell(1, ndims); % "left" faces
         bcr   = cell(1, ndims); % "right" faces
-        
-        for id = 1:ndims
-            d = upscaler.periodicDims(id);
-            bcl{id}.face = upscaler.faces{d}{1};
-            bcr{id}.face = upscaler.faces{d}{2};
+        for d = 1:ndims
+            bcl{d}.face = bf{d,1};
+            bcr{d}.face = bf{d,2};
         end
         
-        % Set pressure drop to zero
-        dp = cell(1, ndims); dp(:) = {0};
+        % Set pressure drop to zero for all directions as default
+        dp = cell(1, ndims);
+        dp(:) = {0};
         
         % Create periodic grid
-        [Gp, bcp] = makePeriodicGridMulti3d(upscaler.G, bcl, bcr, dp);
+        Gorg = block.G;
+        [block.G, block.bcp] = makePeriodicGridMulti3d(block.G, ...
+            bcl, bcr, dp);
+        block.G.parent = Gorg;
     end
     
     

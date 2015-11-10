@@ -65,7 +65,7 @@ for i = 1:ndims
     if isPeriodic
         bcp.value(:) = 0;
         bcp.value(bcp.tags == dims(i)) = dp(i);
-        bc = opt.bcp;
+        bc = bcp;
     else
         bc = addBC([], block.faces{dims(i)}{1}, 'pressure', dp(i) );
         bc = addBC(bc, block.faces{dims(i)}{2}, 'pressure', 0 );
@@ -99,7 +99,8 @@ end
 L = block.lengths(dims);
 if isPeriodic
     Pinv = diag(L(:)./dp(:)); % matrix
-    Kup   = - V*Pinv;
+    Kup  = - V*Pinv;
+    Kup  = diag(Kup); % We use ONLY THE DIAGONAL
 else
     Kup   = V.*(L(:)./dp(:)); % vector
 end

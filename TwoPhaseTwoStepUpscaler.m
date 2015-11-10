@@ -46,6 +46,12 @@ methods
        
     function [data, report] = upscaleBlock(upscaler, block)
         
+        % Because the slizes will contain only a single cell in a
+        % direction, periodic boundaries cannot be applied without using
+        % some tricks
+        assert(~block.periodic, ['The two-stage upscaling does not '...
+            'support periodic boundary']);
+        
         wantReport = nargout > 1;
         startTime  = tic;
         

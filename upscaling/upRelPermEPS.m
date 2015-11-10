@@ -4,7 +4,9 @@ function [updata, report] = upRelPermEPS(block, updata, ...
 opt = struct(...
     'dims',        1:3, ...  % Dimensions to upscale
     'dp',          1*barsa, ...  % Pressure drop
-    'absmethod',   'pressure' ... % one-phase upscaling method
+    'absmethod',   'pressure', ... % one-phase upscaling method
+    'fullswof',    false, ...
+    'nvalues',     [] ... % passed on to pv if fullswof=true
     );
 opt = merge_options(opt, varargin{:});
 
@@ -23,6 +25,24 @@ assert(isprop(block, 'deck'), 'Need deck to do endpoint scaling.');
 
 deck  = block.deck;
 fluid = block.fluid;
+
+
+%% Full SWOF upscaling if requested
+
+% If requested, the SWOF tables are upscaled for every single block.
+% Otherwise, there is only a single average SWOF table.
+if opt.fullswof
+    swopt  = {};
+    if ~isempty(opt.nvalues)
+        swopt = {'nvalues', opt.nvalues};
+    end
+    upswof = @(x) upRelPermPV(block, updata, 'porevolume', swopt{:});
+    if wantReport
+        [fullswofup, fullswofrep] = upswof();
+    else
+        fullswofup = upswof();
+    end
+end
 
 
 %% SWIR and SOR upscaling
@@ -72,6 +92,12 @@ pcOWmU = pvf(pcOW);
 
 %% Wrap up
 
+if opt.fullswof
+    updata.pcOW = fullswofup.pcOW;
+    updata.krO  = fullswofup.krO;
+    updata.krW  = fullswofup.krW;
+end
+
 % Store upscaled data to structure
 updata.swir    = swirU;
 updata.sor     = sorU;
@@ -83,6 +109,9 @@ if wantReport
     totalTime = toc(timeStart);
     report.method  = method;
     report.time    = totalTime;
+    if opt.fullswof
+        report.fullswof = fullswofrep;
+    end
 end
 
 

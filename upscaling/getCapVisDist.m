@@ -5,7 +5,6 @@ opt = struct(...
 	);
 opt = merge_options(opt, varargin{:});
 
-
 G  = block.G;
 f  = block.fluid;
 pv = block.pv;
@@ -51,6 +50,7 @@ for subInx = 1:numSubBlocks
     
     % Create grid, rock and fluid for sub block
     subCells = find(part==subInx);
+        
     subBlock = upscaler.createBlock(subCells);
     subPv    = pv(subCells);
     subPvTot = sum(subPv);
@@ -66,9 +66,9 @@ for subInx = 1:numSubBlocks
         
         % Upscaled saturation for current sub block
         subSwU   = sum(sWcap(subCells).*subPv) / subPvTot;
-
-        % Compute the saturation distribution using viscous limit upscaling,
-        % given the upscaled satuartion
+        
+        % Compute the saturation distribution using viscous limit 
+        % upscaling, given the upscaled satuartion
         subSw    = getFracFlowDist(subBlock, subSwU);
         
     end
@@ -77,8 +77,6 @@ for subInx = 1:numSubBlocks
     sW(subCells) = subSw;
     
 end
-
-
 
 % TODO: TEMP Plotting for debugging purposes
 if false
