@@ -11,6 +11,7 @@ properties
     rock
     fluid
     periodic
+    periodicDims
     partition
     blocks
     blockMap % Index map for the blocks. Equal index means equal block.
@@ -22,6 +23,7 @@ methods
     function upscaler = Upscaler(G, rock, varargin)
         upscaler.verbose   = mrstVerbose();
         upscaler.periodic  = false;
+        upscaler.periodicDims = [];
         upscaler.deck      = [];
         upscaler.fluid     = [];
         upscaler.partition = [];
@@ -203,7 +205,8 @@ methods
             
             % Create block object
             block = GridBlock(b, r, 'fluid', f, 'deck', blockDeck, ...
-                'periodic', upscaler.periodic);
+                'periodic', upscaler.periodic, ...
+                'periodicDims', upscaler.periodicDims);
             
         else
             
@@ -228,7 +231,8 @@ methods
             
             % Create block object
             block = GridBlock(b, r, 'fluid', f, ...
-                'periodic', upscaler.periodic);
+                'periodic', upscaler.periodic, ...
+                'periodicDims', upscaler.periodicDims);
             
         end
         

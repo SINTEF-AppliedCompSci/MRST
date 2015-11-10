@@ -26,7 +26,7 @@ methods
         block.faces    = [];
         block.lengths  = [];
         block.areas    = [];
-        block.periodicDims = 1:3;
+        block.periodicDims = [];
         block = merge_options(block, varargin{:});
         
         block.G       = G; % May be periodic grid
@@ -70,13 +70,28 @@ methods
     
     
     function block = makePeriodicBlock(block)
+        
+        % We only make the dimensions with cartDims>1 periodic
+        dims  = find(block.G.cartDims>1);
+        
         bf    = getBoundaryFaces(block.G);
-        ndims = size(bf,1);
+%         if isempty(block.periodicDims)
+%             ndims = size(bf,1);
+%         else
+%             ndims = numel(block.periodicDims);
+%         end
+        ndims = numel(dims);
         bcl   = cell(1, ndims); % "left" faces
         bcr   = cell(1, ndims); % "right" faces
-        for d = 1:ndims
-            bcl{d}.face = bf{d,1};
-            bcr{d}.face = bf{d,2};
+        for i = 1:ndims
+%             if isempty(block.periodicDims)
+%                 d = i;
+%             else
+%                 d = block.periodicDims(i);
+%             end
+            d = dims(i);
+            bcl{i}.face = bf{d,1};
+            bcr{i}.face = bf{d,2};
         end
         
         % Set pressure drop to zero for all directions as default
@@ -86,7 +101,7 @@ methods
         % Create periodic grid
         Gorg = block.G;
         [block.G, block.bcp] = makePeriodicGridMulti3d(block.G, ...
-            bcl, bcr, dp);
+            bcl, bcr, dp, 'dims', dims);
         block.G.parent = Gorg;
     end
     
