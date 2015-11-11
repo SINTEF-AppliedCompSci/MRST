@@ -26,6 +26,15 @@ function G = computeGeometry(G, varargin)
 %                   Default vaulue: hingenodes = [] (no additional center
 %                   nodes).
 %
+%               - MaxBlockSize --
+%                   Maximum number of grid cells to process in a single
+%                   pass.  Increasing this number may reduce overall
+%                   computational time, but will increase total memory use.
+%                   If empty (i.e., if ISEMPTY(MaxBlockSize) is TRUE) or
+%                   negative, process all grid cells in a single pass.
+%
+%                   Numeric scalar.  Default value: MaxBlockSize = 20e3.
+%
 % RETURNS:
 %   G - Grid structure with added fields:
 %         - cells
@@ -83,7 +92,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 assert(size(G.faces.nodes, 2)==1);
 opt     = struct('verbose',              mrstVerbose, ...
                  'findNeighbors',        false,       ...
-                 'hingenodes',           []);
+                 'hingenodes',           [],          ...
+                 'MaxBlockSize',         20e3);
 opt     = merge_options(opt, varargin{:});
 
 assert(isempty(opt.hingenodes) || G.griddim == 3, ...
@@ -149,15 +159,13 @@ function [faceAreas, faceNormals, faceCentroids, ...
    assert (size(G.nodes.coords, 2) == 3, ...
            'Internal error: 3D geometry on non-3D coordinates');
 
-   numC    = G.cells.num;
-
    geom = allocate_geometry_3d(G);
 
    dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
    t0 = ticif (opt.verbose);
 
-   for c = 1 : numC,
-      geom = geom_3d_cell_block(geom, G, c, opt);
+   for block = partition_cells(G, opt),
+      geom = geom_3d_cell_block(geom, G, block, opt);
    end
 
    faceAreas     = geom.face.Areas;
@@ -197,7 +205,9 @@ end
 
 %--------------------------------------------------------------------------
 
-function geom = geom_3d_cell_block(geom, G, cells, opt)
+function geom = geom_3d_cell_block(geom, G, block, opt)
+   cells = block(1) : block(2);
+
    [cf, cft] = cell_face_triangle_connectivity(G, cells);
 
    % Geometric primitives for those faces that aren't already valid.
@@ -253,6 +263,26 @@ function geom = allocate_geometry_3d(G)
       preallocate(size(G.faces.nodes, 1), [dim, dim, 1]);
 
    geom = struct('cell', cell, 'face', face, 'sub', sub);
+end
+
+%--------------------------------------------------------------------------
+
+function id_blocks = partition_cells(G, opt)
+   B = opt.MaxBlockSize;
+   M = G.cells.num;
+
+   if isempty(B) || (B < 0),
+      B = M;
+   end
+
+   B = min(B, floor(M / ceil(M / B)));
+   L = floor(M / B);
+   R = mod(M, B);
+
+   p = cumsum([ 1, repmat(B, [1, L]) + ...
+                   [ones([1, R]), zeros([1, L - R])] ]);
+
+   id_blocks = [ p(1 : (end - 1)) ; p(2 : end) - 1 ];
 end
 
 %--------------------------------------------------------------------------
