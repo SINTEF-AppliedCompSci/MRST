@@ -161,11 +161,34 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    geom = allocate_geometry_3d(G);
 
-   dispif(opt.verbose, 'Computing cell volumes and centroids...\t\t');
-   t0 = ticif (opt.verbose);
+   if opt.verbose,
+      nDigits = 1 + floor(log10(G.cells.num));
+
+      t0 = tic;
+   end
 
    for block = partition_cells(G, opt),
+      if opt.verbose,
+         fprintf('Processing Cells %*d : %*d of %*d ... ', ...
+                 nDigits, block(1), ...
+                 nDigits, block(2), ...
+                 nDigits, G.cells.num);
+
+         t1 = tic;
+      end
+
       geom = geom_3d_cell_block(geom, G, block, opt);
+
+      if opt.verbose,
+         t1   = toc(t1);
+         rate = (1 + diff(block)) / t1;
+
+         fprintf('done (%.2f [s], %.2e cells/second)\n', t1, rate);
+      end
+   end
+
+   if opt.verbose,
+      fprintf('Total 3D Geometry Processing Time = %.3f [s]\n', toc(t0));
    end
 
    faceAreas     = geom.face.Areas;
@@ -174,8 +197,6 @@ function [faceAreas, faceNormals, faceCentroids, ...
 
    cellVolumes   = geom.cell.Volumes;
    cellCentroids = geom.cell.Centroids;
-
-   tocif(opt.verbose, t0)
 end
 
 %--------------------------------------------------------------------------
@@ -374,9 +395,6 @@ function [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, faces, opt)
    % Compute area-weighted normals, and add to obtain approximate
    % face-normals.  Compute resulting areas and centroids.
 
-   dispif(opt.verbose, 'Computing normals, areas, and centroids...\t');
-   t0 = ticif (opt.verbose);
-
    [nodePos, faceNodes] = ...
       indexSubSet(G.faces.nodePos, G.faces.nodes, faces);
 
@@ -410,8 +428,6 @@ function [fA, fN, fC, sC, sN, sNSigns] = face_geom3d(G, faces, opt)
 
       fC(i,:) = pCenters(i,:);
    end
-
-   tocif(opt.verbose, t0)
 end
 
 %--------------------------------------------------------------------------
