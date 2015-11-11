@@ -3,24 +3,28 @@ function G = computeGeometry(G, varargin)
 %
 % SYNOPSIS:
 %   G = computeGeometry(G)
-%   G = computeGeometry(G, 'pn', pv, ...)
+%   G = computeGeometry(G, 'pn1', pv1, ...)
 %
 % PARAMETERS:
 %   G       - Grid structure as described by grid_structure.
 %
 %   'pn'/pv - List of 'key'/value pairs for supplying optional parameters.
 %             The supported options are
-%               - Verbose -- Whether or not to display informational
-%                            messages throughout the computational process.
-%                            Logical.  Default value: Verbose = false
-%                            (don't display any informational messages).
-% OPTIONAL PARAMETERS:
+%               - verbose --
+%                   Whether or not to display informational messages during
+%                   the computational process.
+%                   Logical.  Default value: Verbose = false (don't display
+%                   any informational messages).
 %
-%   'hingenodes'  - A struct with fields 'faces' and 'nodes'.  A hinge node
-%                   is an extra center node for a face, that is used to
-%                   triangulate the face geometry.  For each face number F
-%                   in 'faces' there is a row in 'nodes' which holds the
+%               - hingenodes --
+%                   Structure with fields 'faces' and 'nodes'.  A hinge
+%                   node is an extra center node for a face, that is used
+%                   to triangulate the face geometry.  For each face number
+%                   F in 'faces' there is a row in 'nodes' which holds the
 %                   node coordinate for the hinge node belonging to face F.
+%
+%                   Default vaulue: hingenodes = [] (no additional center
+%                   nodes).
 %
 % RETURNS:
 %   G - Grid structure with added fields:
