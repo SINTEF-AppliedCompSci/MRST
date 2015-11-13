@@ -207,12 +207,26 @@ wellinfo_off.wellCoords_prod = [];
     runGenericInjectionScenario( Gt, rock2D, seainfo, wellinfo_off );
 
 % options to inspect results:
+sts = states;
 figure;
-plotToolbar(Gt, states_off)
-clf
-plotToolbar(Gt, states{end}, states{end}.s(:,2)>0.01)
-plotGrid(Gt, 'FaceColor','none')
+% fields in states are modified such that values not to be plotted are
+% assigned as nans, such as saturation below a tolerance, pressure=initial
+% pressure, etc.
+for i=1:numel(sts)
+    
+   sts{i}.s( sts{i}.s(:,2) < 0.01, 2 ) =  nan;
+   
+   sts{i}.pressDev = sts{i}.pressure - var.initState.pressure;
+   
+   % convert pressure deviation to bars
+   sts{i}.pressDev = convertTo(sts{i}.pressDev, barsa);
+   sts{i}.pressDev( sts{i}.pressDev < 0.9  ) = nan;
+   
+end
+plotToolbar(Gt, sts)
+plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
 
+% then inspect other results:
 figure;
 plotWellSols(wellSols_off)
 
@@ -249,6 +263,26 @@ plotWellSols(wellSols_off)
     xlabel('Year')
     ylabel('Mass (Mt)')
     set(gca,'FontSize',14)
+
+    
+% Pressure deviation from initial state (hydrostatic)
+% Take max or average pressure deviation at each time step, and plot
+% It appears that pressure field quickly goes back to initial state
+% (hydrostatic) once injection/production ends. Tested using pressure
+% boundaries. What does pressure field look like with closed boundaries?
+% Pressure will likely remain above initial conditions, even after
+% injection/production has ended.
+
+
+% how to best plot pressure of formation over time? Avg deviation, max
+% deviation, ... ? Average formation pressure, pressure at injection wells,
+% ...
+
+% Plot average reservoir pressure as well as max pressure over time (in
+% same graph). Plot pressure deviation from initial in a separate plot
+% (average and max). Max is a bit ambiguous as the location of the max
+% pressure may change over time? Important to produce some pressure field
+% plots after visualizing with plotToolbar() or plotWellSols()
 
 
 
