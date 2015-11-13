@@ -48,6 +48,10 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %             Supported values are 'ip_simple', 'ip_tpf', 'ip_quasitpf',
 %             and 'ip_rt'.
 %
+%   rR     -- The representative radius for the wells, which is used in the
+%             shear thinning calculation when polymer is involved in the
+%             simulation.
+%
 %   WI     -- Well productivity index.  Vector of length nc=NUMEL(cellInx).
 %             Default value: WI = REPMAT(-1, [nc, 1]), whence the
 %             productivity index will be computed from available grid block
@@ -480,11 +484,17 @@ function s = id(s)
 s = ['addWell:', s];
 
 %--------------------------------------------------------------------------
-% A funciton to compute the representative radius of the grid block in 
+% A funciton to compute the representative radius of the grid block in
 % which the well is completed.
 % rR = sqrt(re * rw).
-% The current formulation only works for Cartisian grid.
-% TODO: REMAIN TO BE VERIFIED.
+% Here, rw is the wellbore radius, re is the area equivalent radius of the
+% grid block where the well is completed, which means the circle with radius
+% re has the same area as the cross section of the grid block in the
+% completion's orthogonal direction.
+% The current formulation theoretically only works for Cartisian grids,
+% while it has been working well for the cases we have,
+% including some corner-point grids.
+% TODO: REMAIN TO BE VERIFIED for really twisted grids.
 function rr = radiusRep(G, radius, welldir, cells)
 
 if(isfield(G,'nodes'))
@@ -495,7 +505,7 @@ end
 
 welldir = lower(welldir);
 
-re = zeros( size(welldir, 1), 1);
+re = zeros(size(welldir, 1), 1);
 
 % The following formualtion only works for Cartisian mesh
 ci = welldir == 'x';
