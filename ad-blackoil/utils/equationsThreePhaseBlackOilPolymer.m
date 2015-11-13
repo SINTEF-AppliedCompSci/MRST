@@ -174,11 +174,7 @@ muWMultW((iInxW(wciPoly==0))) = 1;
 
 
 % The water flux for the wells.
-if ~opt.resOnly
-  fluxWaterWell = cqs{1}.val;
-else
-  fluxWaterWell = cqs{1};
-end
+fluxWaterWell = double(cqs{1});
 
 bwW = bW(wc);
 poroW = poro(wc);
