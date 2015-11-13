@@ -26,6 +26,7 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
 
     opt.inj             = true;
     opt.inj_layout      = 'array_of_wells';
+    opt.setInjRates     = false;
     
     opt.prod            = true;
     opt.prod_layout     = 'steal_some_inj_wells';
@@ -60,6 +61,11 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
     
     opt = merge_options(opt, varargin{:});
     
+    if ~opt.prod
+       opt.prod_layout = 'none';
+       [opt.DXp, opt.DYp, opt.steal] = deal(0);
+       opt.steal_layout = 'none';
+    end
     
     %% Initialize all output as empty;
     wellCoords_inj  = []; cinx_inj  = [];
@@ -98,15 +104,18 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
                 
                 % cell index pertaining to top N trap_regions of highest
                 % structural reachable capacity.
-                topReachCap  = unique(capOutput.structural_mass_reached);
+                topReachCap  = unique(capOutput.structural_mass_reached_Mt);
                 topReachCap  = sort(topReachCap,'descend');
                 topReachCap  = topReachCap(1:opt.numTopReachTrap);
                 cinx2keep = [];
                 for i = 1:numel(topReachCap)
-                    [ind]     = find(capOutput.structural_mass_reached == topReachCap(i));
+                    [ind]     = find(capOutput.structural_mass_reached_Mt == topReachCap(i));
                     cinx2keep = [cinx2keep; ind];
                 end
-                
+                % NB: it's possible no inj wells were originally placed in
+                % a trap_region, so even though N top reachable traps were
+                % specified to be filled with an array of wells, less than
+                % N top reachable traps will contain wells. @@
 
                 % any wells located in a cell inx that does not match
                 % inx2keep is discarded, as it's outside the specified area
@@ -211,16 +220,63 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
     
     % final check is to visualize injector/producer well locations
     plotWells(Gt, ta, cinx_inj, cinx_prod);
-
     
+    
+    %% Set well rates
+    if opt.setInjRates
+        
+        % Compute total injected volume (m3), qtot, which will be passed into
+        % setSchedule() where fixed rates will be found by rate = qtot / itime,
+        % where itime is time step (seconds).
+
+        vols_inj = zeros(numel(cinx_inj),1);
+
+        % if there are N wells in a trap region which has a struct capacity of
+        % QTOT (m3) co2, then assign a qtot per well of QTOT/N.
+
+        % info about wells (which trap region they were placed in, etc.)
+        regions         = ta.trap_regions(cinx_inj);
+        uniqueRegions   = unique(regions);
+        reachCap_kg     = capOutput.structural_mass_reached_Mt(cinx_inj).*1e9; % kg       @@ implement better unit conversion
+        reachCap_m3     = capOutput.structural_vol_reached_m3(cinx_inj);
+        
+        % look through each unique region 
+        for i = 1:numel(uniqueRegions)
+
+            % find the wells in same region
+            regions_same = find(regions == uniqueRegions(i));
+            numWells_sameRegion = numel(regions_same);
+
+            % compute qtot for each well in same region
+            reachCap_same   = reachCap_m3(regions_same);
+            QTOT            = mean(reachCap_same);          % m3
+            N               = numel(reachCap_same);
+            assert(N == numWells_sameRegion);
+            qtot            = QTOT / N;                     % m3 / well
+
+            vols_inj(regions_same) = qtot;
+
+        end
+    
+    end
+        
     
     %% Return well info:
     % re-structure so it's wellinfo.prod... and wellinfo.inj... fields
 
     wellinfo.wellCoords_inj     = wellCoords_inj;   % physical coords (X,Y)
     wellinfo.cinx_inj           = cinx_inj;         % cell index of inject.
-    wellinfo.wellCoords_prod    = wellCoords_prod;
-    wellinfo.cinx_prod          = cinx_prod;
+    
+    if opt.setInjRates
+        wellinfo.vols_inj       = vols_inj;        % m3 (totals)
+    end
+    
+    if ~isempty(wellCoords_prod)
+        wellinfo.wellCoords_prod    = wellCoords_prod;
+    end
+    if ~isempty(cinx_prod)
+        wellinfo.cinx_prod          = cinx_prod;
+    end
 % 
 %     wellinfo.inj_rate_MtperYr;      % Mt/yr
 %     wellinfo.inj_time;
