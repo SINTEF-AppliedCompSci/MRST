@@ -151,7 +151,6 @@ if ~isempty(W)
     end
 else
     error('The polymer mdoel does not support senarios without wells now!');
-
 end
 
 % s = model.operators;  % The previous s was overitten with saturations.
@@ -162,8 +161,7 @@ faceA = G.faces.areas(s.internalConn);
 % Bw * Fw should be flux
 Vw = vW./(poroFace .* faceA);
 
-% using the upstreamed viscosity multiplier due to PLYVISC
-% muWMultf = s.faceAvg(muWMult);
+% Using the upstreamed viscosity multiplier due to PLYVISC
 muWMultf = s.faceUpstr(upcw, muWMult);
 
 wc = vertcat(W.cells);
@@ -176,11 +174,6 @@ muWMultW((iInxW(wciPoly==0))) = 1;
 
 % For the wells
 % The water velocity is computed at the reprensentative radius rR.
-% rR = sqrt(rW * rA)
-% rW is the well bore radius.
-% rA is the equivalent raidus of the grid block in which the well is
-% completed.
-
 if ~isfield(W, 'rR')
     error('The representative radius of the well is not initialized');
 end
@@ -195,14 +188,25 @@ end
 bwW = bW(wc);
 poroW = poro(wc);
 
-% The following formulations assume that the wells are always in the z
-% direction
-% TODO: IMPROVE HERE LATER
-[~, ~, dz] = cellDims(G, wc);
+% the thickness of the well perforations in the cell
+thicknessWell = [];
+for i = 1:numel(W)
+    [dx, dy, dz] = cellDims(G, W(i).cells);
+    if (W(i).dir == 'Z')
+        thicknessWell = [thicknessWell(:); dz];
+    elseif (W(i).dir == 'Y')
+        thicknessWell = [thicknessWell(:); dy];
+    elseif (W(i).dir == 'X')
+        thicknessWell = [thicknessWell(:); dx];
+    else
+        error('unknown well direction');
+    end
+end
+
 rR = vertcat(W.rR);
 
-VwW = bwW.*fluxWaterWell./(poroW.*rR.*dz*2*pi);
-%     VwW = fluxWaterWell./(poroW.*rR.*dz*2*pi);
+VwW = bwW.*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
+
 if ~opt.resOnly
     muWMultW = muWMultW.val;
     VwW = VwW.val;
@@ -283,8 +287,6 @@ if ~opt.resOnly
     % bad marks the cells prolematic in evaluating Jacobian
     bad = abs(diag(polymer.jac{4})) < eps;
     % the other way is to choose based on the water saturation
-    % eps = sqrt(epsilon);
-    % bad = sW < eps;
     polymer(bad) = c(bad);
 end
 eqs = {water, oil, gas, polymer};
@@ -458,13 +460,10 @@ end
 % Computer the Shear Mutliplier by solving EQ 52.12 in TD
 % Vw should be the absolute value?
 function v = computeShearMult(fluid, Vw, muWMultf)
-%     s = model.operators;
     f = fluid;
     % The solution of the shear multipler will be performed through an
     % iterative non-linear solution of the EQ. 52.12 in TD.
-
     % V ( 1+(P-1)M(V) ) / P = Vw;
-
     % P is the muWmultf, which is from PLYVISC
 
     % give the initial guess of the Vsh
@@ -474,7 +473,6 @@ function v = computeShearMult(fluid, Vw, muWMultf)
 
     plyshearMult = f.plyshearMult;
 
-    % eqs = Vsh.*(1+(muWMultf-1.).*plyshearMult(Vsh))-muWMultf.*Vw;
     shFunc = @(x) x.*(1+(muWMultf-1.).*plyshearMult(x))-muWMultf.*Vw;
     eqs = shFunc(Vsh);
 
@@ -482,7 +480,6 @@ function v = computeShearMult(fluid, Vw, muWMultf)
     iter = 0;
     maxit = 30;
     abstol = 1.e-15;
-%     fprintf(' Iteration %d , Residual = %.8e \n', iter, resnorm);
 
     while (resnorm > abstol) && (iter <= maxit)
 
@@ -490,12 +487,10 @@ function v = computeShearMult(fluid, Vw, muWMultf)
       dVsh = -(J \ eqs.val);
       Vsh.val = Vsh.val + dVsh;
 
-%       eqs = Vsh.*(1+(muWMultf-1.).*plyshearMult(Vsh))-muWMultf.*Vw;
       eqs = shFunc(Vsh);
       resnorm = norm(double(eqs), 'inf');
 
       iter = iter + 1;
-%       fprintf(' Iteration %d , Residual = %.8e \n', iter, resnorm);
 
     end
 
@@ -504,10 +499,8 @@ function v = computeShearMult(fluid, Vw, muWMultf)
     end
 
     if(resnorm <= abstol)
-        fprintf('The iteration for shear multiplier solution get converaged at %d iteration with final residual %e \n', iter, resnorm);
         M = plyshearMult(Vsh.val);
         v = (1 + (muWMultf - 1.).* M) ./ muWMultf;
-
     end
 
 end

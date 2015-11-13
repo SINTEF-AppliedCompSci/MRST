@@ -8,11 +8,6 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
         polymer
         % Using PLYSHEAR shear model
         usingShear
-        % TODO: not sure if the model is a good place for the following two values
-        % shear factors for wells
-        shearMultW
-        % shear factors for faces
-        shearMultf
     end
 
     methods
