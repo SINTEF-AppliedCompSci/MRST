@@ -180,8 +180,12 @@ bwW = bW(wc);
 poroW = poro(wc);
 
 % the thickness of the well perforations in the cell
+welldir = { W.dir };
+i = cellfun('prodofsize', welldir) == 1;
+welldir(i) = arrayfun(@(w) repmat(w.dir, [ numel(w.cells), 1 ]), ...
+                      W(i), 'UniformOutput', false);
+welldir = vertcat(welldir{:});
 [dx, dy, dz] = cellDims(G, wc);
-welldir = vertcat(W.dir);
 thicknessWell = dz;
 thicknessWell(welldir == 'Y') = dy(welldir == 'Y');
 thicknessWell(welldir == 'X') = dx(welldir == 'X');
