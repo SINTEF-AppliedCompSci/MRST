@@ -172,11 +172,6 @@ muWMultW = muWMult(wc);
 % Maybe should also apply this for PRODUCTION wells.
 muWMultW((iInxW(wciPoly==0))) = 1;
 
-% For the wells
-% The water velocity is computed at the reprensentative radius rR.
-if ~isfield(W, 'rR')
-    error('The representative radius of the well is not initialized');
-end
 
 % The water flux for the wells.
 if ~opt.resOnly
@@ -189,20 +184,17 @@ bwW = bW(wc);
 poroW = poro(wc);
 
 % the thickness of the well perforations in the cell
-thicknessWell = [];
-for i = 1:numel(W)
-    [dx, dy, dz] = cellDims(G, W(i).cells);
-    if (W(i).dir == 'Z')
-        thicknessWell = [thicknessWell(:); dz];
-    elseif (W(i).dir == 'Y')
-        thicknessWell = [thicknessWell(:); dy];
-    elseif (W(i).dir == 'X')
-        thicknessWell = [thicknessWell(:); dx];
-    else
-        error('unknown well direction');
-    end
-end
+[dx, dy, dz] = cellDims(G, wc);
+welldir = vertcat(W.dir);
+thicknessWell = dz;
+thicknessWell(welldir == 'Y') = dy(welldir == 'Y');
+thicknessWell(welldir == 'X') = dx(welldir == 'X');
 
+% For the wells
+% The water velocity is computed at the reprensentative radius rR.
+if ~isfield(W, 'rR')
+    error('The representative radius of the well is not initialized');
+end
 rR = vertcat(W.rR);
 
 VwW = bwW.*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
