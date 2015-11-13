@@ -48,6 +48,10 @@ function W = addWell(W, G, rock, cellInx, varargin)
 %             Supported values are 'ip_simple', 'ip_tpf', 'ip_quasitpf',
 %             and 'ip_rt'.
 %
+%   rR     -- The representative radius for the wells, which is used in the
+%             shear thinning calculation when polymer is involved in the
+%             simulation.
+%
 %   WI     -- Well productivity index.  Vector of length nc=NUMEL(cellInx).
 %             Default value: WI = REPMAT(-1, [nc, 1]), whence the
 %             productivity index will be computed from available grid block
@@ -172,6 +176,10 @@ if isempty(opt.refDepth),
 end
 ip = opt.InnerProduct;
 
+% Compute the representative radius for the grid block in which the well is
+% completed. It is needed for computing the shear rate of the wells.
+rR = radiusRep(G, opt.Radius, opt.Dir, reshape(cellInx, [], 1));
+
 % Initialize Well index - WI. ---------------------------------------------
 % Check if we need to calculate WI or if it is supplied.
 
@@ -212,6 +220,7 @@ W  = [W; struct('cells'   , cellInx(:),           ...
                 'val'     , opt.Val,              ...
                 'r'       , opt.Radius,           ...
                 'dir'     , opt.Dir,              ...
+                'rR'      , rR,                   ...
                 'WI'      , WI,                   ...
                 'dZ'      , getDepth(G, cellInx(:))-opt.refDepth, ...
                 'name'    , opt.Name,             ...
@@ -473,3 +482,41 @@ end
 
 function s = id(s)
 s = ['addWell:', s];
+
+%--------------------------------------------------------------------------
+% A funciton to compute the representative radius of the grid block in
+% which the well is completed.
+% rR = sqrt(re * rw).
+% Here, rw is the wellbore radius, re is the area equivalent radius of the
+% grid block where the well is completed, which means the circle with radius
+% re has the same area as the cross section of the grid block in the
+% completion's orthogonal direction.
+% The current formulation theoretically only works for Cartisian grids,
+% while it has been working well for the cases we have,
+% including some corner-point grids.
+% TODO: REMAIN TO BE VERIFIED for really twisted grids.
+function rr = radiusRep(G, radius, welldir, cells)
+
+if(isfield(G,'nodes'))
+   [dx, dy, dz] = cellDims(G, cells);
+else
+   [dx, dy, dz] = cellDimsCG(G, cells);
+end
+
+welldir = lower(welldir);
+
+re = zeros(size(welldir, 1), 1);
+
+% The following formualtion only works for Cartisian mesh
+ci = welldir == 'x';
+re(ci) = sqrt(dy(ci) .* dz(ci) / pi);
+
+ci = welldir == 'y';
+re(ci) = sqrt(dx(ci) .* dz(ci) / pi);
+
+ci = welldir == 'z';
+re(ci) = sqrt(dy(ci) .* dx(ci) / pi);
+
+rr = sqrt( re .* radius);
+
+
