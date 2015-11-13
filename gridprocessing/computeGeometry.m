@@ -23,7 +23,7 @@ function G = computeGeometry(G, varargin)
 %                   F in 'faces' there is a row in 'nodes' which holds the
 %                   node coordinate for the hinge node belonging to face F.
 %
-%                   Default vaulue: hingenodes = [] (no additional center
+%                   Default value: hingenodes = [] (no additional center
 %                   nodes).
 %
 %               - MaxBlockSize --
