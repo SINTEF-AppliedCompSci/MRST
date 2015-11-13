@@ -7,7 +7,7 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     
     % Initialize figure:
     figure; set(gcf,'Position',[1 1 3000 500])
-    hfig = gcf;
+    numSubPlots = 7;
     
     
     % ---------------------------------------------------------------------
@@ -33,7 +33,7 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     
     
     % TRAP VOLUME
-    subplot(1,6,1); hsub1 = gca; hfsub1 = gcf;
+    subplot(1,numSubPlots,1);
     hold on
     bf = boundaryFaces(Gt);
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
@@ -45,7 +45,7 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     
    
     % TRAP PORE VOLUME
-    subplot(1,6,2); hsub2 = gca; hfsub2 = gcf;
+    subplot(1,numSubPlots,2);
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     cellsTrapPoreVol = zeros(Gt.cells.num,1);
@@ -75,7 +75,7 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     
     
     % DISTRIBUTED CO2 MASS
-    subplot(1,6,3); hsub3 = gca; hfsub3 = gcf;
+    subplot(1,numSubPlots,3);
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, cellsTrapCO2Mass/1e9, cellsTrapCO2Mass~=0, 'EdgeColor','none')
@@ -83,7 +83,7 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
 
     
     % ACCUMULATED CO2 MASS
-    subplot(1,6,4); hsub4 = gca; hfsub4 = gcf;
+    subplot(1,numSubPlots,4);
     hold on
     %plotGrid(G, 'EdgeAlpha', 0.1, 'FaceColor', 'none')
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
@@ -98,6 +98,7 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     int_tr = find(ta.trap_regions); %#ok ixs of cells spilling into interior trap
     [dummy, reindex] = sort([trees.root], 'ascend'); %#ok
     structural_mass_reached = zeros(Gt.cells.num, 1);
+    structural_vol_reached  = zeros(Gt.cells.num, 1);
     for i = 1:numel(ta.trap_z) % loop over each trap
         % ix of cells spilling directly into this trap
         cix = find(ta.trap_regions == i);
@@ -106,19 +107,27 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
         % compute total structural trap capacity (in mass terms) of these
         % cells, and store result
         structural_mass_reached(cix) = sum(capacityOutput.strap_mass_co2(aix)); %#ok
+        structural_vol_reached(cix)  = sum(cellsTrapPoreVol(aix));
     end
 
     %
-    subplot(1,6,5); hsub5 = gca; hfsub5 = gcf;
+    subplot(1,numSubPlots,5);
     hold on
     plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
     plotCellData(Gt, structural_mass_reached/1e3/1e6, structural_mass_reached~=0, 'EdgeColor','none');
     title({'Reachable structural';'capacity (Mt)'}); axis off; colorbar;
+    
+    % OR REACHABLE CAPACITY IN VOLUME (m3 or km3), NOT MASS (Mt or kg)
+    subplot(1,numSubPlots,6); 
+    hold on
+    plotFaces(Gt, bf, 'EdgeColor','k', 'LineWidth',3);
+    plotCellData(Gt, structural_vol_reached/1e3/1e3/1e3, structural_vol_reached~=0, 'EdgeColor','none');
+    title({'Reachable structural';'capacity (km^3)'}); axis off; colorbar;
 
 
     % ---------------------------------------------------------------------
     % PLOT SPILL PATHS AND TOPOLOGY
-    subplot(1,6,6); hsub6 = gca; hfsub6 = gcf;
+    subplot(1,numSubPlots,7);
     hold on
     mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
     title({'Topology, traps';'and spill-paths'}); axis off
@@ -146,7 +155,8 @@ function [ capacityOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, seaNam
     % ---------------------------------------------------------------------
     % ---------------------------------------------------------------------
     % Capacity Output
-    capacityOutput.structural_mass_reached = structural_mass_reached/1e3/1e6; % Mt
+    capacityOutput.structural_mass_reached_Mt = structural_mass_reached/1e3/1e6; % Mt
+    capacityOutput.structural_vol_reached_m3 = structural_vol_reached;
 
 
 end
