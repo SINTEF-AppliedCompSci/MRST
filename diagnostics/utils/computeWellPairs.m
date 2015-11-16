@@ -34,15 +34,16 @@ function WP = computeWellPairs(state, G, rock, W, D )
 %
 %   The structs that contains flux allocation information consists of the
 %   following data objects:
-%        'alloc'  - nxm array, where n is the number of perforations in
+%       'alloc'   - nxm array, where n is the number of perforations in
 %                   this well and m is the number of wells or segments from
 %                   the flow diagnostics computation that may potentially
 %                   contribute to the flux allocation
-%        'ralloc' - nx1 array containing the well flux that cannot be
+%       'ralloc'  - nx1 array containing the well flux that cannot be
 %                   attributed to one of the wells/segments accounted for
 %                   in the flow diagnostics computatation
-%        'z'      - nx1 array giving the depth of the completions
-%        'name'   - string with the name of the well or segment
+%       'z'       - nx1 array giving the depth of the completions
+%       'name'    - string with the name of the well or segment
+
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
