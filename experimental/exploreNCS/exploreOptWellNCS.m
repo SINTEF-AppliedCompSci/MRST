@@ -1,8 +1,9 @@
 %% Get optimized well rates in NCS formations
 
-fmNames = {'Arefm';'Tiljefm';'Ilefm';'Garnfm';...
-           'Bjarmelandfm';...
-           'Stofm';'Tubaenfm'};
+% fmNames = {'Arefm';'Tiljefm';'Ilefm';'Garnfm';...
+%            'Bjarmelandfm';...
+%            'Stofm';'Tubaenfm'};
+fmNames = {'Stofm'};
        
 useWellArrays = true;
 coarsening = 5;
@@ -13,26 +14,30 @@ for i = 1:numel(fmNames);
     fn = fn{:};     % to make fn a string
     
     if useWellArrays
+        % Using trap structure of formation, an array of wells are placed
+        % according to varargin passed in (i.e., to cover entire formation,
+        % set 'limits' = 'none', or to cover only best N catchment area,
+        % set 'limits' = 'bestReachCap' and 'numTopReachTrap' = N).
+        
         
         % 1. Load formation grids and rock properties
         % NB: implement st checks if Gt.mat, rock2D.mat exists for fn
         [Gt, rock2D] = getFormationTopGrid(fn, coarsening);
         
-        
         % 2. Set-up well injection sites:
         ta                  = trapAnalysis(Gt,'false');
         [ capOutput, ~, ~ ] = getTrappingPlots(Gt, ta, rock2D, 'NorwegianSea');
         seainfo             = getSeaInfo('NorwegianSea');
-        wellinfo            = getWellInfo(Gt, capOutput, 'prod',false, 'setInjRates',true);
+        wellinfo            = getWellInfo(Gt, capOutput, 'prod',false, 'setInjRates',true, 'limits','none');
         wcells  = wellinfo.cinx_inj;
-        qtot    = wellinfo.vols_inj / 10000;  %@@
+        qtot    = wellinfo.vols_inj / 100;  %@@
         isteps = 10;
         msteps = 31;
         itime  = 50   * year;
         mtime  = 3000 * year;
 
         % put wells, rates, time steps into schedule
-        schedule = setSchedule(Gt, rock2D, wcells, qtot, ...
+        schedule = setSchedule(Gt, rock2D, wcells, qtot/seainfo.co2_density, ...
                                         isteps, itime, msteps, mtime, true, ...
                                         'minval', sqrt(eps));
 
@@ -44,23 +49,24 @@ for i = 1:numel(fmNames);
               optimizeFormation2('modelname',       fn, ...
                                 'coarse_level',     coarsening, ...
                                 'num_wells',        4, ...
-                                'trapfile_name',    'utsira_subtrap_function_3.mat', ... %); %, ...
-                                'schedule',         schedule);
+                                'schedule',         schedule, ...
+                                'leakPenalty',      10, ...
+                                'dryrun',           false );
 
         % 4. Dir for saving results
-        savedir = fullfile('opt_results/', fn, '/Arrays/NTrapRegions/');
+        savedir = fullfile('opt_results/', fn, '/Arrays/NTrapRegions/leakPen10/');
         
         
     else
-    
+        % Use default options that are specified inside optimizeFormation()
+        % i.e., a catchment area contains at most 1 well, and num_wells may
+        % be specified.
+        
         % 1. Call to optimize
         [Gt, optim, init, history, other] = ...
-        optimizeFormation(  'modelname',        fn, ...
+        optimizeFormation2(  'modelname',        fn, ...
                             'coarse_level',     coarsening, ...
-                            'num_wells',        4, ...
-                            'trapfile_name',    'utsira_subtrap_function_3.mat' );
-
-
+                            'num_wells',        4 );
 
         % 2. Dir for saving results
         savedir = fullfile('opt_results/', fn,'/');
