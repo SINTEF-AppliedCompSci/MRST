@@ -1,12 +1,12 @@
 %% Post-processing to compare OPTIMIZED rates VS. UN-OPTIMIZED rates
 
 % NB: there appears to be a unit-conversion mis-match between init and
-% optim
+% optim?? Or init inject rates are just so low compared to optimized?
 
 %% Specify formation name
 fmName = 'Stofm';
 
-pathName = ['opt_results/' fmName '/'];
+pathName = ['opt_results/' fmName '/' 'Arrays/NTrapRegions/leakPen10/'];
 load([pathName,'Gt.mat']);
 load([pathName,'init.mat']);
 load([pathName,'optim.mat']);
@@ -24,8 +24,11 @@ initPress = Gt.cells.z * norm(gravity) * rhoW;
 
 
 %% initial (un-optimized) well locations/rates
-sts = init.states;
-wcinx = [init.schedule.control(1).W.cells];
+sts          = init.states;
+wcinx       = [init.schedule.control(1).W.cells];
+maxPressDev = 0;
+maxCO2sat   = 0;
+timeYr      = convertTo( cumsum(init.schedule.step.val), year);
 
 for i=1:numel(sts)
     
@@ -37,10 +40,25 @@ for i=1:numel(sts)
    sts{i}.pressDev = convertTo(sts{i}.pressDev, barsa);
    sts{i}.pressDev( sts{i}.pressDev < 0.5  ) = nan;
    
+   % find max pressure dev and when it occurred
+   maxPressDev_curr = max(sts{i}.pressDev);
+   if maxPressDev_curr > maxPressDev
+       maxPressDev          = maxPressDev_curr;
+       maxPressDev_timeYr   = timeYr(i);
+       maxPressDev_stepNum  = i;
+   end
+   
+   % max co2 saturation and when it occurred
+   maxCO2sat_curr = max(sts{i}.s(:,2));
+   if maxCO2sat_curr > maxCO2sat
+       maxCO2sat            = maxCO2sat_curr;
+       maxCO2sat_timeYr     = timeYr(i);
+       maxCO2sat_stepNum    = i;
+   end
 end
 
 % call to plotting tool
-figure; set(gcf,'name',[fmName ' un-optimized'])
+figure; set(gcf,'name',[fmName ' un-optimized'],'Position',[3275 421 651 907])
 plotToolbar(Gt, sts)
 plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
 mapPlot(gcf, Gt, 'traps', other.traps.traps, 'trapalpha', 0.2, ...
@@ -50,12 +68,19 @@ mapPlot(gcf, Gt, 'traps', other.traps.traps, 'trapalpha', 0.2, ...
 
 % no figure needs to be opened first
 plotWellSols(init.wellSols)
-set(gcf,'name',[fmName ' un-optimized'])
+set(gcf,'name',[fmName ' un-optimized'],'Position',[2571 936 698 420])
+
+
+fprintf('\n Max press deviation of %d occurred at %d years (step %d) since sim start.\n', maxPressDev, maxPressDev_timeYr, maxPressDev_stepNum )
+fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d) since sim start.\n', maxCO2sat, maxCO2sat_timeYr, maxCO2sat_stepNum )
 
 
 %% optimized well locations/rates
-sts = optim.states;
-wcinx = [optim.schedule.control(1).W.cells];
+sts         = optim.states;
+wcinx       = [optim.schedule.control(1).W.cells];
+maxPressDev = 0;
+maxCO2sat   = 0;
+timeYr      = convertTo( cumsum(optim.schedule.step.val), year);
 
 for i=1:numel(sts)
     
@@ -67,10 +92,25 @@ for i=1:numel(sts)
    sts{i}.pressDev = convertTo(sts{i}.pressDev, barsa);
    %sts{i}.pressDev( sts{i}.pressDev < 0.5  ) = nan;
    
+   % find max pressure dev and when it occurred
+   maxPressDev_curr = max(sts{i}.pressDev);
+   if maxPressDev_curr > maxPressDev
+       maxPressDev          = maxPressDev_curr;
+       maxPressDev_timeYr   = timeYr(i);
+       maxPressDev_stepNum  = i;
+   end
+   
+   % max co2 saturation and when it occurred
+   maxCO2sat_curr = max(sts{i}.s(:,2));
+   if maxCO2sat_curr > maxCO2sat
+       maxCO2sat            = maxCO2sat_curr;
+       maxCO2sat_timeYr     = timeYr(i);
+       maxCO2sat_stepNum    = i;
+   end
 end
 
 % call to plotting tool
-figure; set(gcf,'name',[fmName ' optimized'])
+figure; set(gcf,'name',[fmName ' optimized'],'Position',[4473 422 647 907])
 plotToolbar(Gt, sts)
 plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
 mapPlot(gcf, Gt, 'traps', other.traps.traps, 'trapalpha', 0.2, ...
@@ -80,14 +120,18 @@ mapPlot(gcf, Gt, 'traps', other.traps.traps, 'trapalpha', 0.2, ...
 
 % no figure needs to be opened first
 plotWellSols(optim.wellSols)
-set(gcf,'name',[fmName ' optimized'])
+set(gcf,'name',[fmName ' optimized'],'Position',[3776 933 695 419])
+
+
+fprintf('\n Max press deviation of %d occurred at %d years (step %d) since sim start.\n', maxPressDev, maxPressDev_timeYr, maxPressDev_stepNum )
+fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d) since sim start.\n', maxCO2sat, maxCO2sat_timeYr, maxCO2sat_stepNum )
 
 
 %% determine how much leaked out of formation
 
 % Init case:
 dh = []; % for subscale trapping?
-figure; set(gcf,'name',[fmName ' un-optimized'])
+figure; set(gcf,'name',[fmName ' un-optimized'],'Position',[2571 422 695 420])
 plot(1); ax = get(gcf, 'currentaxes');
 % NB: {var.initState, states{:}}
 reports = makeReports(Gt, {other.initState, init.states{:}}, ...
@@ -103,7 +147,7 @@ set(gca,'FontSize',14)
 
 % Optimized case:
 dh = []; % for subscale trapping?
-figure; set(gcf,'name',[fmName ' optimized'])
+figure; set(gcf,'name',[fmName ' optimized'],'Position',[3902 421 560 420])
 plot(1); ax = get(gcf, 'currentaxes');
 % NB: {var.initState, states{:}}
 reports = makeReports(Gt, {other.initState, optim.states{:}}, ...
