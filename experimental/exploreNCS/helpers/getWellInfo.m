@@ -12,9 +12,10 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
 %   Several options are available for injector and producer well placement.
 %   
 %   Firstly, an array of injectors can be placed such that they cover the
-%   entire top-surface, or only in a limited area. Or, the array of
-%   injectors can be placed in a trap region, ideally the trap region with
-%   the highest structural trap capacity. Info on structural trap capacity
+%   entire top-surface ('limited' = 'none'), or only in a limited area
+%   ('limited' = 'portion'). Or, the array of injectors can be placed in a
+%   trap region, ideally the trap region with the highest structural trap
+%   capacity ('limited' = 'bestReachCap'). Info on structural trap capacity
 %   is passed in by the capOutput argument.
 %
 %   Producers are placed by specifying a percentage of injector wells to
@@ -57,7 +58,7 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
     opt.steal_layout = 'deepest'; % 'centralgroup', 'northgroup', 'nearbdry', 'deepest', 'shallowest', 'line', 'random', ...
     
     % distance from bdry where no well will be placed
-    opt.buffer  = 1500; % meters
+    opt.buffer  = 5000; % meters
     
     opt = merge_options(opt, varargin{:});
     
@@ -257,6 +258,10 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
             vols_inj(regions_same) = qtot;
 
         end
+        
+        % check for any well rates that are zero, and replace with an
+        % average value or the minimum non-zero inj vol value
+        vols_inj( logical(vols_inj==0) ) = mean( vols_inj( logical(vols_inj>0) ) );
     
     end
         
@@ -312,7 +317,7 @@ function cinx = removeAnyBdryCellIndex(Gt, cinx, buffer)
     [ Xcoord_bdry, Ycoord_bdry ] = getXYcoords(Gt, bdrycinx);
     for i = 1:numel(Xcoord)
         dv        = bsxfun(@minus, [Xcoord_bdry, Ycoord_bdry], [Xcoord(i), Ycoord(i)]);
-        [v, ind]  = min(sum(dv.^2, 2));
+        [v, ind]  = min(sqrt(sum(dv.^2, 2))); %dist = sqrt(sum(dvec.^2, 2));
         if v <= buffer
             cinx2remove = [cinx2remove; cinx(i)];
         end
