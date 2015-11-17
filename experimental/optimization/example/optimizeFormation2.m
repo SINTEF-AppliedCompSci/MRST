@@ -66,6 +66,9 @@ function [Gt, optim, init, history, other] = optimizeFormation2(varargin)
         opt.num_wells   = numel(opt.schedule.control(1).W);
    end
    
+   % Ensure no repeated well cells
+   assert( ~any(diff([opt.schedule.control(1).W.cells])==0) , 'Repeated well cells found.')
+   
    % Add constant pressure boundary conditions
    % @@ add option to set no-flow boundaries
    bfaces = identifyBoundaryFaces(Gt);
@@ -94,11 +97,19 @@ function [Gt, optim, init, history, other] = optimizeFormation2(varargin)
    max_rates       = ...
     opt.lim_fac * sum([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
 
-   % ensure inj well rates are >= min_rates
+   % Ensure inj well rates are within min and max rates
    vals = [opt.schedule.control(1).W.val]';
-   vals(vals <= min_rates) = 1e4 * sqrt(eps);
-
-   assert( sum(vals >= min_rates) == numel(vals) )
+   if any(vals<=min_rates)
+        warning('An initial well rate is below the minimum rate. Updating initial well rates...')
+        vals(vals <= min_rates) = min_rates(1);
+   elseif any(vals>=max_rates)
+        warning('An initial well rate is above the maximum rate. Updating initial well rates...')
+        vals(vals >= max_rates) = max_rates(1);
+   end
+   
+   % Use assert to double-check initial rates within min/max
+   assert( all(vals >= min_rates), 'An initial well rate(s) is less than the minimum set rate.')
+   assert( all(vals <= max_rates), 'An initial well rate(s) is more than the maximum set rate.')
    vals = num2cell(vals);
    [opt.schedule.control(1).W.val] = vals{:};
    
@@ -112,6 +123,7 @@ function [Gt, optim, init, history, other] = optimizeFormation2(varargin)
    other.initState = initState;
    other.min_rates = min_rates;
    other.max_rates = max_rates;
+   other.leakPenalty = opt.leakPenalty;
 end
 
 % ----------------------------------------------------------------------------
@@ -248,7 +260,7 @@ function opt = opt_defaults()
     opt.schedule = [];
     opt.coarse_level = 3;
     opt.num_wells = 10;
-    opt.subtrap_file = 'utsira_subtrap_function_3.mat';
+    %opt.subtrap_file = 'utsira_subtrap_function_3.mat';
 
     opt.surface_pressure = 1 * atm;
     
