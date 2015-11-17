@@ -119,7 +119,7 @@ function writeReport()
     if isnan(currentCell) || hasOutput
         return
     end
-    if isnan(reportFig) || ~ishandle(reportFig)
+    if ~ishandle(reportFig)
         reportFig = figure;
     end
     clf(reportFig);
@@ -144,7 +144,7 @@ function onClickPlot(src, event)
     pts = get(mainAx, 'CurrentPoint');
     [currentCell f] = nearestCellLine(G, bf, pts);
 
-    if isnan(selectionFig) || ~ishandle(selectionFig)
+    if ~ishandle(selectionFig)
         selectionFig = figure;
     else
         figure(selectionFig); clf;

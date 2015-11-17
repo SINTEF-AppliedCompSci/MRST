@@ -1505,6 +1505,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [D, WP] = getDiagnostics(state_idx, true);
         createMainControl();
         
+        %If we changed the number of wells, reset the figure handles
+        if (numel(fig_main_wells.hwells) ~= numel(W{state_idx}))
+            fig_main_wells = {};
+            fig_main_wells.hwells = [];
+        end
         fig_main_wells.dirty = true;
         
         plotMain();
