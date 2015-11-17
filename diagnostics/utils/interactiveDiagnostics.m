@@ -1011,6 +1011,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
+        if (~D.isvalid)
+            warning('Time of flight is invalid.');
+            clf();
+            return;
+        end
+        
         tofext = getTOFRange(D, opt);
         setTOFSliderExtents();
         selection = getTOFSelection();
@@ -1456,6 +1462,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Cap tof to maximum tof for unreachable areas for the time being
         tf = D.tof(:);
         if (all(isinf(tf)))
+            warndlg('TOF invalid: all values are inf.');
+            D.isvalid = false;
+            WP = [];
+        elseif (numel(D.inj) * numel(D.prod) == 0)
+            warndlg('Missing at least one injecting or producing well.');
             D.isvalid = false;
             WP = [];
         else
@@ -1507,6 +1518,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         %If we changed the number of wells, reset the figure handles
         if (numel(fig_main_wells.hwells) ~= numel(W{state_idx}))
+            for i=1:numel(fig_main_wells.hwells)
+                delete(fig_main_wells.hwells(i).body);
+                delete(fig_main_wells.hwells(i).connector);
+                delete(fig_main_wells.hwells(i).label);
+            end
             fig_main_wells = {};
             fig_main_wells.hwells = [];
         end

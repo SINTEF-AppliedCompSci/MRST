@@ -147,6 +147,12 @@ function buttonCallback(src, event)
             data = get(wellTable, 'Data');
             tmp = true(size(data, 1), 1);
             tmp(selectedWells, :) = false;
+    
+            %If all wells deleted, ignore, and warn user...
+            if (sum(tmp) <= 1)
+                warndlg('Please add at least two wells (one production, one injection)');
+                return;
+            end
 
             data = data(tmp, :);
             set(wellTable, 'Data', data);
@@ -222,6 +228,12 @@ end
 
 function updateWells()
     data = get(wellTable, 'Data');
+    
+    %If deleting well, clear the superfluous wells structures
+    if (size(data, 1) < numel(W))
+        indices = size(data, 1)+1:numel(W);
+        W(indices) = [];
+    end
 
     isval = strcmpi(wf, 'val');
     for i = 1:size(data, 1)
