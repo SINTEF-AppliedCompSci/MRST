@@ -3,10 +3,12 @@
 % NB: there appears to be a unit-conversion mis-match between init and
 % optim?? Or init inject rates are just so low compared to optimized?
 
+moduleCheck('mrst-gui')
+
 %% Specify formation name
 fmName = 'Stofm';
 
-pathName = ['opt_results/' fmName '/' 'Arrays/NTrapRegions/leakPen10/'];
+pathName = ['opt_results/' fmName '/' 'ref5/OneWellPerCatch/leakPenalty0.1/'];
 load([pathName,'Gt.mat']);
 load([pathName,'init.mat']);
 load([pathName,'optim.mat']);
