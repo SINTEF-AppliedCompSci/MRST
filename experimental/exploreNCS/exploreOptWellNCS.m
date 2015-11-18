@@ -5,7 +5,7 @@
 %            'Stofm';'Tubaenfm'};
 fmNames = {'Stofm'};
        
-useWellArrays = true;
+useWellArrays = false; %true; %true;
 coarsening = 5;
        
 for i = 1:numel(fmNames);
@@ -26,9 +26,10 @@ for i = 1:numel(fmNames);
         
         % 2. Set-up well injection sites:
         ta                  = trapAnalysis(Gt,'false');
-        [ capOutput, ~, ~ ] = getTrappingPlots(Gt, ta, rock2D, 'NorwegianSea');
+        [ capOutput, ~, ~ ] = getTrappingInfo(Gt, ta, rock2D, 'NorwegianSea','plotsOn',false);
         seainfo             = getSeaInfo('NorwegianSea');
-        wellinfo            = getWellInfo(Gt, capOutput, 'prod',false, 'setInjRates',true, 'limits','none');
+        wellinfo            = getWellInfo(Gt, capOutput, 'prod',false, ...
+            'setInjRates',true, 'limits','none', 'plotsOn',false);
         wcells  = wellinfo.cinx_inj;
         qtot    = wellinfo.vols_inj / 100;  %@@
         isteps = 10;
@@ -40,6 +41,7 @@ for i = 1:numel(fmNames);
         schedule = setSchedule(Gt, rock2D, wcells, qtot/seainfo.co2_density, ...
                                         isteps, itime, msteps, mtime, true, ...
                                         'minval', sqrt(eps));
+        
 
         % 3. Call to optimize
         % pass schedule into optimizeFormation(), instead of using the default
@@ -48,13 +50,12 @@ for i = 1:numel(fmNames);
         [Gt, optim, init, history, other] = ...
               optimizeFormation2('modelname',       fn, ...
                                 'coarse_level',     coarsening, ...
-                                'num_wells',        4, ...
                                 'schedule',         schedule, ...
-                                'leakPenalty',      10, ...
+                                'leakPenalty',      1, ...
                                 'dryrun',           false );
 
         % 4. Dir for saving results
-        savedir = fullfile('opt_results/', fn, '/Arrays/NTrapRegions/leakPen10/');
+        savedir = fullfile('opt_results/', fn, ['/ref' num2str(coarsening)], '/Arrays/', ['leakPenalty' num2str(other.leakPenalty) '/']);
         
         
     else
@@ -66,10 +67,12 @@ for i = 1:numel(fmNames);
         [Gt, optim, init, history, other] = ...
         optimizeFormation2(  'modelname',        fn, ...
                             'coarse_level',     coarsening, ...
-                            'num_wells',        4 );
+                            'num_wells',        1, ...
+                            'leakPenalty',      0.5, ...
+                            'dryrun',           false );
 
         % 2. Dir for saving results
-        savedir = fullfile('opt_results/', fn,'/');
+        savedir = fullfile('opt_results/',fn,['/ref' num2str(coarsening)],'/OneWellPerCatch/',['leakPenalty' num2str(other.leakPenalty) '/']);
 
     end
     

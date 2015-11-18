@@ -8,11 +8,14 @@ moduleCheck('mrst-gui')
 %% Specify formation name
 fmName = 'Stofm';
 
-pathName = ['opt_results/' fmName '/' 'ref5/OneWellPerCatch/leakPenalty0.1/'];
+pathName = ['opt_results/' fmName '/' 'ref5/OneWellPerCatch/leakPenalty0.5/'];
 load([pathName,'Gt.mat']);
 load([pathName,'init.mat']);
 load([pathName,'optim.mat']);
 load([pathName,'other.mat']); % largest file
+
+%% Specs for placing figure window on screen
+defaultFigPlacement = false;
 
 
 %% Prepare data before passing into plotToolbar()
@@ -60,7 +63,8 @@ for i=1:numel(sts)
 end
 
 % call to plotting tool
-figure; set(gcf,'name',[fmName ' un-optimized'],'Position',[3275 421 651 907])
+figure; set(gcf,'name',[fmName ' un-optimized']);
+if ~defaultFigPlacement; set(gcf,'Position',[3275 421 651 907]); end
 plotToolbar(Gt, sts)
 plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
 mapPlot(gcf, Gt, 'traps', other.traps.traps, 'trapalpha', 0.2, ...
@@ -70,7 +74,8 @@ mapPlot(gcf, Gt, 'traps', other.traps.traps, 'trapalpha', 0.2, ...
 
 % no figure needs to be opened first
 plotWellSols(init.wellSols)
-set(gcf,'name',[fmName ' un-optimized'],'Position',[2571 936 698 420])
+set(gcf,'name',[fmName ' un-optimized'])
+if ~defaultFigPlacement; set(gcf,'Position',[2571 936 698 420]); end
 
 
 fprintf('\n Max press deviation of %d occurred at %d years (step %d) since sim start.\n', maxPressDev, maxPressDev_timeYr, maxPressDev_stepNum )
@@ -112,7 +117,8 @@ for i=1:numel(sts)
 end
 
 % call to plotting tool
-figure; set(gcf,'name',[fmName ' optimized'],'Position',[4473 422 647 907])
+figure; set(gcf,'name',[fmName ' optimized'])
+if ~defaultFigPlacement; set(gcf,'Position',[4473 422 647 907]); end
 plotToolbar(Gt, sts)
 plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
 mapPlot(gcf, Gt, 'traps', other.traps.traps, 'trapalpha', 0.2, ...
@@ -133,7 +139,8 @@ fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d) since sim st
 
 % Init case:
 dh = []; % for subscale trapping?
-figure; set(gcf,'name',[fmName ' un-optimized'],'Position',[2571 422 695 420])
+figure; set(gcf,'name',[fmName ' un-optimized'])
+if ~defaultFigPlacement; set(gcf,'Position',[2571 422 695 420]); end
 plot(1); ax = get(gcf, 'currentaxes');
 % NB: {var.initState, states{:}}
 reports = makeReports(Gt, {other.initState, init.states{:}}, ...
@@ -149,7 +156,8 @@ set(gca,'FontSize',14)
 
 % Optimized case:
 dh = []; % for subscale trapping?
-figure; set(gcf,'name',[fmName ' optimized'],'Position',[3902 421 560 420])
+figure; set(gcf,'name',[fmName ' optimized'])
+if ~defaultFigPlacement; set(gcf,'Position',[3902 421 560 420]); end
 plot(1); ax = get(gcf, 'currentaxes');
 % NB: {var.initState, states{:}}
 reports = makeReports(Gt, {other.initState, optim.states{:}}, ...
@@ -161,3 +169,6 @@ directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
 xlabel('Year')
 ylabel('Mass (Mt)')
 set(gca,'FontSize',14)
+
+%% bar plot of init and optim well rates
+plotOptWellRates( Gt, other.traps, init, optim, other.fluid.rhoGS)

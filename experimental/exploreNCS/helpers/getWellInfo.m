@@ -60,6 +60,9 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
     % distance from bdry where no well will be placed
     opt.buffer  = 5000; % meters
     
+    % control for plotting
+    opt.plotsOn = true;
+    
     opt = merge_options(opt, varargin{:});
     
     if ~opt.prod
@@ -220,7 +223,9 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
     wellCoords_inj = [ Xcoord, Ycoord ];
     
     % final check is to visualize injector/producer well locations
-    plotWells(Gt, ta, cinx_inj, cinx_prod);
+    if opt.plotsOn
+        plotWells(Gt, ta, cinx_inj, cinx_prod);
+    end
     
     
     %% Set well rates

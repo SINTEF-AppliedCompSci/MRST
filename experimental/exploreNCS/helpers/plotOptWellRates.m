@@ -1,4 +1,4 @@
-function [ hfig ] = plotOptWellRates( Gt, ta, init, optim )
+function [ hfig ] = plotOptWellRates( Gt, ta, init, optim, rhoG )
 
 
 
@@ -10,7 +10,7 @@ function [ hfig ] = plotOptWellRates( Gt, ta, init, optim )
     plotWells(Gt, ta, wcinx)
 
     % compare init and optim well rates
-    compareInitOptimRates( inrates , oprates )
+    compareInitOptimRates( inrates , oprates, rhoG )
     
 
 
@@ -35,19 +35,40 @@ function plotWells(Gt, ta, wcinx)
 end
 
 
-function compareInitOptimRates( inrates, oprates )
+function compareInitOptimRates( inrates, oprates, rhoG )
 
     figure;
     
     title('Initial and Optimized Rates')
     
-    bar([inrates; oprates]')
-    
-    legend('unoptimized','optimized')
-    
-    ylabel('Rates (m^3/s)') % or convert to Mt/year !!!
-    xlabel('Well Number')
+    if numel(inrates)==1
+        % hack for bar plotting
+        inrates = [inrates, 0];
+        oprates = [oprates, 0];
+        bar([inrates; oprates]')
+        legend('unoptimized','optimized')
+        ylabel('Rates (m^3/s)')
+        xlabel('Well Number')
+        % adjust XLim to focus on one bin
+        hfig = gcf;
+        set(findobj(hfig.Children,'Type','axes'), 'XLim',[0.5 1.5])
+    else
+        %bar([inrates; oprates]')
+        [AX,H1,H2] = plotyy(1:numel(inrates), [inrates; oprates]', ...
+                            1:numel(inrates), [inrates; oprates]'.*rhoG.*(1/1e9).*convertFrom(1,year), ...
+                            'bar','bar');
 
+        % ensure yy-axis limits are at same scale
+        ax1 = AX(1);
+        ax2 = AX(2);
+        set(ax2,'YLim',[ax1.YLim(1) ax1.YLim(2)*rhoG*(1/1e9)*convertFrom(1,year)])
+
+        legend('unoptimized','optimized')
+        ax1.YLabel.String = 'Rates (m^3/s)';
+        ax2.YLabel.String = 'Rates (Mt/yr)';
+        xlabel('Well Number')
+    end
+    
     % adjust plots
     hfig = gcf;
     set(findobj(hfig.Children,'Type','axes'),'Fontsize',16,'box','on')

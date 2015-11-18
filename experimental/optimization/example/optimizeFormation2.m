@@ -67,7 +67,8 @@ function [Gt, optim, init, history, other] = optimizeFormation2(varargin)
    end
    
    % Ensure no repeated well cells
-   assert( ~any(diff([opt.schedule.control(1).W.cells])==0) , 'Repeated well cells found.')
+   assert( ~any(diff([opt.schedule.control(1).W.cells])==0) , ...
+       'Repeated well cells found, likely due to opt.num_wells > number of catchment areas.')
    
    % Add constant pressure boundary conditions
    % @@ add option to set no-flow boundaries
