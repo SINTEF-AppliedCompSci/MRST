@@ -134,6 +134,7 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 
         strap = strap_pvol_co2_plume .* var.co2.rho(p,t) + ...
               strap_pvol_co2_diss  .* rhoCref;
+        %fprintf('\nAverage strap is %d kg.\n', mean(strap))
 
         % Computing total trapping volume below structural traps (dissolved
         % and residually trapped
