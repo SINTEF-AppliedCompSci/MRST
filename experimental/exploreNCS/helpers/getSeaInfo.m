@@ -1,13 +1,16 @@
-function [ info ] = getSeaInfo( seaName )
-% Returns relevant info for a specified sea in Norwegian Contential Shelf.
+function [ info ] = getSeaInfo( name, rhoCref )
+% Returns relevant info for a specified sea or formation in the Norwegian
+% Contential Shelf.
 %
 % SYNOPSIS:
 %   info = getSeaInfo('NorthSea');
+%   info = getSeaInfo('Utsirafm');
 %
 % DESCRIPTION:
 %   Information collected from NPD's Compiled CO2 Storage Atlas (2014), as
 %   well as other sources such as the Sleipner benchmark, is returned for
-%   one of the three Seas in the Norwegian Continental Shelf.
+%   one of the three Seas in the Norwegian Continental Shelf, or for a
+%   particular formation name.
 %
 %   Density and viscosity does not refer to sea water properties, but
 %   rather refers to the water located under the sea bottom in the
@@ -26,7 +29,13 @@ function [ info ] = getSeaInfo( seaName )
 %       dis_max         unitless
 %       press_deviation (percent)
 
-    if strcmpi(seaName,'NorthSea')
+
+    northSeaNames       = getNorthSeaNames();
+    norwegianSeaNames   = getNorwegianSeaNames();
+    barentsSeaNames     = getBarentsSeaNames();
+    
+
+    if strcmpi(name,'NorthSea') || any(strcmpi(northSeaNames,name))
         
         % Atlas, chp 4.
 
@@ -42,17 +51,15 @@ function [ info ] = getSeaInfo( seaName )
         info.res_sat_co2     = sr; 
         info.res_sat_wat     = sw;
         
-        rhoCref              = info.co2_density;
+        %rhoCref              = info.co2_density;
         info.co2_solubility  = 53 * kilogram / meter^3;       % in brine
         info.dis_max         = info.co2_solubility / rhoCref; % from CO2store
         
         info.press_deviation = 0; % pressure devation from hydrostatic (%)
 
-        % Optional:
-        info.fmNames = getNorthSeaNames();
         
         
-    elseif strcmpi(seaName,'NorwegianSea')
+    elseif strcmpi(name,'NorwegianSea') || any(strcmpi(norwegianSeaNames,name))
         
         % Atlas, chp 5.
         warning('Some sea values need to be confirmed.')
@@ -69,17 +76,15 @@ function [ info ] = getSeaInfo( seaName )
         info.res_sat_co2     = sr;          % NB: confirm @@
         info.res_sat_wat     = sw;          % NB: confirm @@
         
-        rhoCref              = info.co2_density;
+        %rhoCref              = info.co2_density;
         info.co2_solubility  = 53 * kilogram / meter^3;       % in brine
         info.dis_max         = info.co2_solubility / rhoCref; % from CO2store
         
         info.press_deviation = 0;
 
-        % Optional:
-        info.fmNames         = getNorwegianSeaNames();
         
         
-    elseif strcmpi(seaName,'BarentsSea')
+    elseif strcmpi(name,'BarentsSea') || any(strcmpi(barentsSeaNames,name))
         
         % Atlas, chp 6.
         warning('Some sea values need to be confirmed.')
@@ -109,19 +114,18 @@ function [ info ] = getSeaInfo( seaName )
         info.res_sat_co2     = sr; 
         info.res_sat_wat     = sw;
         
-        rhoCref              = info.co2_density;
+        %rhoCref              = info.co2_density;
         info.co2_solubility  = 53 * kilogram / meter^3;       % in brine
         info.dis_max         = info.co2_solubility / rhoCref; % from CO2store
         
         info.press_deviation = 0;
         
-        % Optional:
-        info.fmNames         = getBarentsSeaNames();
         
         
     else
-        error(['Unknown sea name. Options are: NorthSea, NorwegianSea,', ...
-               ' BarentsSea.'])
+        error(['Unknown sea or formation name.', ...
+            'Sea name options are: NorthSea, NorwegianSea, BarentsSea.', ...
+            'Formation name options are: '])
     end
     
 end
