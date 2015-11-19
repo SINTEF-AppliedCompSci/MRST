@@ -11,6 +11,14 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 %   formation. Then upper bound (theoretical) trapping capacities are
 %   computed and returned. Plotting is optional.
 %
+%   Formations may contain net-to-gross rock property. If so, the pore
+%   volume of the formation is updated using:
+%       poro = poro.*ntg,
+%   in order to reflect any potentially reduced pore volumes. NB:
+%       Bulk rock volume = (Gt.cells.volume.*Gt.cells.H)
+%       Bulk rock volume * NTG = Net rock volume
+%       Net rock volume * poro = volume which fluid can occupy
+%
 % See also
 %   exploreCapacity.m
     
@@ -100,6 +108,13 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
         Gt   = var.Gt;
         ta   = var.ta;
         poro = var.rock2D.poro;
+        if isfield(var.rock2D,'ntg')
+            ntg = var.rock2D.ntg;
+            fprintf(['\n Note: net-to-gross rock property exists.',...
+               ' Net rock volume is (on avg) %d percent of bulk rock volume. \n'], mean(ntg)*100);
+        else
+            ntg = ones(numel(poro),1);
+        end
 
         % computing structural trap heights (H1) for each cell
         trapcells     = find(ta.traps);
@@ -113,7 +128,7 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 
         % Computing total trapping volume in structural traps (dissolved
         % and structurally trapped
-        strap_pvol_tot       = Gt.cells.volumes .* H1 .* poro;
+        strap_pvol_tot       = Gt.cells.volumes .* H1 .* poro .* ntg;
         strap_pvol_co2_plume = strap_pvol_tot .* (1 - info.res_sat_wat);
         strap_pvol_co2_diss  = strap_pvol_tot .* info.res_sat_wat .* info.dis_max;
 
@@ -122,7 +137,7 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 
         % Computing total trapping volume below structural traps (dissolved
         % and residually trapped
-        btrap_pvol_tot          = Gt.cells.volumes .* H2 .* poro;
+        btrap_pvol_tot          = Gt.cells.volumes .* H2 .* poro .* ntg;
         btrap_pvol_co2_residual = btrap_pvol_tot .* info.res_sat_co2;
         btrap_pvol_co2_dissol   = btrap_pvol_tot .* (1-info.res_sat_co2) .* info.dis_max;
 
@@ -198,6 +213,7 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 
         % Report total trapping values
         str = capacity_report();
+        fprintf('\n\n -------- %s ------- \n\n', name)
         disp(str)
 
 
