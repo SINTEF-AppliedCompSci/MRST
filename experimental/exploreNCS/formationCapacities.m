@@ -7,11 +7,19 @@
 %names = [getNorwegianSeaNames() getBarentsSeaNames()];
 names = {'Garnfm';'Ilefm';'Tiljefm';'Arefm';'Bjarmelandfm';'Stofm';'Tubaenfm'};
 fmCapacities = cell(numel(names),1);
+plotsOn = true;
+figDirName = 'NorwegianSeaFigs';
+mkdir(figDirName);
+N = 1;
 
 for i = 1:numel(names)
    
-    fmCapacities{i} = getTrappingInfo(names{i}, 1, 'plotsOn',false);
+    fmCapacities{i} = getTrappingInfo(names{i}, N, 'plotsOn',plotsOn);
     
+    if plotsOn
+        export_fig(gcf,[figDirName '/' 'TrappingFigs' names{i} '_ref',num2str(N)], '-png','-transparent')
+        close
+    end
 end
 
 
@@ -61,3 +69,22 @@ fprintf('Rock porosity              & %d        &       & \\\\ \n', [])
 fprintf('Rock net-to-gross          & %d        &       & \\\\ \n', [])
 fprintf('Water density              & %d        & kg/m^3 & \\\\ \n', getfield(info,'water_density')*kilogram/meter^3)
 fprintf('{\\co} solubility in brine  & %d        & kg/m^3 & \\\\ \n', getfield(info,'co2_solubility')*kilogram/meter^3)
+
+%% Average rock properties of formations
+fprintf('Name & Avg Poro (max,min) & Avg Perm (max,min) [mD] & Avg NTG (max,min) \n')
+for i = 1:numel(names)
+   
+    r       = fmCapacities{i}.rock2D;
+    r.perm  = convertTo(r.perm, milli*darcy);
+    if ~isfield(r,'ntg')
+        r.ntg = [];
+    end
+    fprintf('%16s  & %4.2f (%4.2f, %4.2f)  & %3.0f (%3.0f, %3.0f)  & %4.2f (%4.2f, %4.2f) \\\\ \n', names{i}, ...
+        mean(r.poro), max(r.poro), min(r.poro), ...
+        mean(r.perm), max(r.perm), min(r.perm), ...
+        mean(r.ntg),  max(r.ntg),  min(r.ntg) );
+    
+end
+
+
+

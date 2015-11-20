@@ -47,7 +47,9 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
     res.ta      = var.ta;
 
     res.info    = info;
-    res.co2     = var.co2; % NB: co2.rho(p,t + 273.15) where t is Celsius
+    res.co2     = var.co2; % NB: co2.rho(p,t) where t is in Kelvin
+    res.caprock_pressure    = compute_pressure();               % Pascals
+    res.caprock_temperature = compute_temperature() + 273.15;   % Kelvin
     
 
 
@@ -103,7 +105,7 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 
     function [H1, strap, btrap_res, btrap_dis] = recompute_trapcap()
         p = compute_pressure();
-        t = compute_temperature() + 273.15;
+        t = compute_temperature() + 273.15; % Kelvin
 
         Gt   = var.Gt;
         ta   = var.ta;
@@ -170,7 +172,7 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 
     function draw(varargin) 
         if opt.plotsOn
-          figure; set(gcf,'Position',[1 1 1402 1144])
+          figure; set(gcf,'Position',[1 1 1102 1261])
           [nr,nc] = deal(3);
         end
         Gt = var.Gt;
@@ -180,8 +182,8 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
         % Calculations:
 
         % reservoir conditions
-        t = compute_temperature();% Celsius
-        p = compute_pressure();   % Pascals
+        t = compute_temperature() + 273.15; % Kelvin
+        p = compute_pressure();             % Pascals
 
         % total capacity (kg/m2): (volume is top-surface cell area)
         [~, strap, btrap_res, btrap_dis] = recompute_trapcap();
@@ -220,52 +222,58 @@ function [ res ] = getTrappingInfo(name, coarsening, varargin)
 
         % Plots (Optional)
         if opt.plotsOn
-
+            
+            myplotCellData = @(g,d) plotCellData(g,d,'EdgeColor','none'); % 'EdgeAlpha',0.2
+            
             subplot(nr,nc,1)
-            title('caprock depth (m)')
-            plotCellData(Gt.parent, Gt.cells.z, 'edgealpha', 0.2);
+            title({'caprock';'depth (m)'})
+            plotCellData(Gt.parent, Gt.cells.z, 'EdgeColor','none');
             colorbar; rotate3d on;
 
             subplot(nr,nc,2)
-            title('formation thickness (m)')
-            plotCellData(Gt.parent, Gt.cells.H, 'edgealpha', 0.2);
+            title({'formation';'thickness (m)'})
+            plotCellData(Gt.parent, Gt.cells.H, 'EdgeColor','none');
             colorbar; rotate3d on;            
 
             subplot(nr,nc,3)
-            title('caprock temperature (C)')
-            plotCellData(Gt.parent, compute_temperature(), 'edgealpha', 0.2);
+            title({'caprock';'temperature (C)'})
+            plotCellData(Gt.parent, compute_temperature(), 'EdgeColor','none');
             colorbar; rotate3d on;  
 
             subplot(nr,nc,4)
-            title('caprock pressure (MPa)')
-            plotCellData(Gt.parent, compute_pressure() / 1e6, 'edgealpha', 0.2);
+            title({'caprock';'pressure (MPa)'})
+            plotCellData(Gt.parent, compute_pressure() / 1e6, 'EdgeColor','none');
             colorbar; rotate3d on;          
 
             subplot(nr,nc,5)
-            title('caprock topography')
+            title({'caprock';'topography'})
             colorbar('off'); rotate3d off; view(0, 90);
             mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
 
             subplot(nr,nc,6)
-            title('caprock co2 density (kg/m3)')
-            plotCellData(Gt.parent, var.co2.rho(p, t + 273.15), 'edgealpha', 0.2);
+            title({'caprock';'CO_2 density (kg/m^3)'})
+            plotCellData(Gt.parent, var.co2.rho(p, t), 'EdgeColor','none');
             colorbar; rotate3d on;
 
             subplot(nr,nc,7)
-            title('total capacity (tonnes/m2)')
-            plotCellData(Gt.parent, tot_cap./1e3, 'edgealpha', 0.2);
+            title({'total capacity';'(tonnes/m^2)'})
+            plotCellData(Gt.parent, tot_cap./1e3, 'EdgeColor','none');
             colorbar; rotate3d on;
 
             subplot(nr,nc,8)
-            title('structural trap capacity (Mt)')
+            title({'structural trap';'capacity (Mt)'})
             plotGrid(Gt.parent, 'facecolor','none', 'edgealpha', 0.1);
-            plotCellData(Gt.parent, trapcap_tot/1e3/1e6, 'edgecolor','none'); 
+            plotCellData(Gt.parent, trapcap_tot/1e3/1e6, 'EdgeColor','none'); 
             colorbar; rotate3d on;
 
             subplot(nr,nc,9)
-            title('reachable structural capacity (Mt)')
-            plotCellData(Gt.parent, cumul_trap./1e3./1e6, 'edgealpha', 0.2);
+            title({'reachable structural';'capacity (Mt)'})
+            plotCellData(Gt.parent, cumul_trap./1e3./1e6, 'EdgeColor','none');
             colorbar; rotate3d on;
+            
+            hfig = gcf;
+            set(findobj(hfig.Children,'Type','axes'),'Fontsize',16,'box','on')
+            axis(findobj(hfig.Children,'Type','axes'),'equal','tight','off')
 
         end
 

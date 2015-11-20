@@ -26,6 +26,10 @@ function [ info ] = getSeaInfo( name, rhoCref )
 %       rho             (kg/m3)
 %       mu              (Pa*s)
 %       res_sat         unitless
+%       co2_solubility  (kg/m3)
+%           NB: co2_solubility is a function of pressure and temperature,
+%           thus could be computed specifically for each formation's
+%           conditions.
 %       dis_max         unitless
 %       press_deviation (percent)
 
@@ -51,9 +55,8 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.res_sat_co2     = sr; 
         info.res_sat_wat     = sw;
         
-        %rhoCref              = info.co2_density;
-        info.co2_solubility  = 53 * kilogram / meter^3;       % in brine
-        info.dis_max         = info.co2_solubility / rhoCref; % from CO2store
+        info.co2_solubility  = 53 * kilogram / meter^3;       % Chadwick et al 2008 (for Utsira, in brine?)
+        info.dis_max         = info.co2_solubility / rhoCref;
         
         info.press_deviation = 0; % pressure devation from hydrostatic (%)
 
@@ -67,6 +70,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.seafloor_depth  = 350 * meter;  % NB: confirm @@
         info.seafloor_temp   =  5;           % Lundin et al 2005 report
         info.temp_gradient   = 41.3;         % Lundin et al 2005 report
+        % NB: Lothe et al 2014 used 40 C/km in their simulations
         
         [rho, mu, sr, sw]    = getValuesSPE134891();
         info.water_density   = rho(1);      % NB: confirm @@
@@ -76,9 +80,8 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.res_sat_co2     = sr;          % NB: confirm @@
         info.res_sat_wat     = sw;          % NB: confirm @@
         
-        %rhoCref              = info.co2_density;
-        info.co2_solubility  = 53 * kilogram / meter^3;       % in brine
-        info.dis_max         = info.co2_solubility / rhoCref; % from CO2store
+        info.co2_solubility  = 53 * kilogram / meter^3;       % Chadwick et al 2008 (for Utsira, in brine?)
+        info.dis_max         = info.co2_solubility / rhoCref;
         
         info.press_deviation = 0;
 
@@ -97,26 +100,36 @@ function [ info ] = getSeaInfo( name, rhoCref )
         % and 700 kg/m3 in other formations.
         warning('CO2 density in Bjarmeland Platform is reportedly 650 kg/m3.')
         
-        % Pham et al 2011 states Tubaen formation has an average temp of 98
-        % C, at a depth of 2600 meters. A temp gradient of 40 C/km was
-        % calculated to meet this constraint. See also: temp gradient data
-        % in fig 6, Halland and Riis 2014
+        % Info on seafloor_depth and seafloor_temp:
+        %   Atlas, chp 2 states Barents sea is up to 500 meter deep, with
+        %   sea floor temperatures of 0 degrees Celsius or lower. However,
+        %   the Atlas, chp 6, pg 134 reports that the sea depth at the
+        %   Snohvit field is 330 meters.
+        %
+        %   See map and reference in Atlas, chp 6, pg 112. Sea bathymetry
+        %   appears to be around 400-600 meters in area of Hammerfest.
+        %
+        %   Using a temperature gradient of 40 C/km (from temp gradient map
+        %   in Atlas, chp 3, pg 27), a seafloor temp of 4 C was calculated
+        %   to meet a constraint of temp=98 C at a depth of 2.6km (which
+        %   was given in Pham et al 2011 for the Tubaen formation).
+        %
+        %   See also: temp gradient data in fig 6, Halland and Riis 2014.
         
-        info.seafloor_depth  = 330 * meter;  % Atlas reference? @@
-        info.seafloor_temp   =  4;           % Atlas reference? @@
-        info.temp_gradient   = 40;
+        info.seafloor_depth  = 330 * meter;  % reported for Snohvit, Atlas, chp 6, pg 134
+        info.seafloor_temp   =  4;           % computed to meet conditions reported in Pham et al 2011 for Tubaen
+        info.temp_gradient   = 40;           % Atlas, chp 3, pg 27
         
         [~, mu, sr, sw]      = getValuesSPE134891();
         info.water_density   = 1100;        % Atlas, chp 6, pg 128
         info.co2_density     = 700;         % Atlas, chp 6, pg 144
-        info.water_mu        = mu(1);
-        info.co2_mu          = mu(2);
-        info.res_sat_co2     = sr; 
+        info.water_mu        = mu(1);       % confirm @@
+        info.co2_mu          = mu(2);       % confirm @@
+        info.res_sat_co2     = sr;
         info.res_sat_wat     = sw;
         
-        %rhoCref              = info.co2_density;
-        info.co2_solubility  = 53 * kilogram / meter^3;       % in brine
-        info.dis_max         = info.co2_solubility / rhoCref; % from CO2store
+        info.co2_solubility  = 53 * kilogram / meter^3;       % Chadwick et al 2008 (for Utsira, in brine?)
+        info.dis_max         = info.co2_solubility / rhoCref;
         
         info.press_deviation = 0;
         
