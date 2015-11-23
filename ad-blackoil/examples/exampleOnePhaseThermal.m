@@ -9,7 +9,7 @@ G=cartGrid([100 100],[4000 300]);
 % Set up the rock structure
 rock.perm  = 1000*milli*ones(G.cells.num,1)*darcy;
 rock.poro  = ones(G.cells.num,1)*0.1;
-
+rock.lambdaR=ones(G.cells.num,1)*4;
 % Create fluid
 fluid = initSimpleADIFluid('mu', [1 0.1 1], 'rho', [1 1 1], 'n', [2 2 2]);
 fluid.relPerm =@(sW) deal(fluid.krW(sW),fluid.krO(1-sW));
@@ -63,31 +63,30 @@ schedule=struct('control',struct('W',W_c),'step',step);
 % We turn on gravity and set up reservoir and scaling factors.
 gravity on
 
-clear state;
-state.pressure = ones(G.cells.num,1)*p_res;
-state.s = repmat([1 0],G.cells.num,1);
-state.wellSols= initWellSolLocal(W, state);
-
 clear wModel
 clear nonlinear
 
 clear state;
 Cv=4.2e3;
-rock.cr=830*ones;
+rock.cR=ones;
+rock.rhoR=1000;
 fluid.bW=@(p,T) 1+(p-p_res)*1e-4/barsa;
 fluid.hW=@(p,T) Cv*T;
+fluid.uW=@(p,T) Cv*T;
 state.pressure = ones(G.cells.num,1)*p_res;
 state.s = repmat([1 0],G.cells.num,1);
-state.wellSols= initWellSolLocal(W, state);
-state=rmfield(state,'s');
-grav=zeros(G.griddim,1);grav(G.griddim)=10;
+state.T = ones(G.cells.num,1)*T_res;
+%state.wellSols= initWellSolLocal(W, state);
+grav=zeros(1,G.griddim);grav(G.griddim)=10;
 wModel = WaterThermalModel(G, rock, fluid,'gravity',grav);%, 'deck', deck);
-% [state, status] = nonlinear.solveTimestep(state, 1*day, owModel)
+state.wellSols= initWellSolAD(W, wModel, state);
+state=rmfield(state,'s');
+
 
 bc=pside([],G,'Right',p_res,'sat',1);
 bc=pside(bc,G,'Left',p_res,'sat',1);
 bc.hW=ones(size(bc.face)).*fluid.hW(p_res,T_res);
-bcT=addBCT(vertcat(bc.face),'temperature',T_res);
+bcT=addBCT([],vertcat(bc.face),'temperature',T_res);
 %bc=pside(bc,G,'Back',p_res);
 for i=1:numel(schedule.control)
     schedule.control(i).bc = bc;
@@ -95,7 +94,7 @@ for i=1:numel(schedule.control)
     for j=1:numel(schedule.control.W)       
         bhp=schedule.control(i).W(j).val;
         schedule.control(i).W(j).compi=[1];
-        scheduke.control(i).W(j).hW=fluid.hW(bhp,T_bhp);
+        schedule.control(i).W(j).hW=fluid.hW(bhp,T_bhp);
     end
 end
 
@@ -110,35 +109,3 @@ for i=1:numel(states)
     
 end
 %%
-
-%{
-% Run the whole schedule
-% This is done to get values for the wells for all timesteps. Since the
-% case is fairly small,
-timer = tic;
-system = initADISystem({'Oil', 'Water'}, G, rock, fluid, 'cpr', true);
-system.nonlinear.cprBlockInvert = false;
-system.nonlinear.cpr=false;
-system.nonlinear.use_ecltol=false;
-system.nonlinear.tol=1e-8
-
-[wellSols, states] = runScheduleADI(state, G, rock, system, schedule);
-%{ 
-% other time steping algorithm
-schedule.W=W_c;
-[wellSols, states] = runMrstADI(state, G, system, schedule,'dt_min', 1e-3*day,'force_step',false,'targetIts',6);
-%}
-t_forward = toc(timer);
-%
-
-figure(1),clf
-xc=G.cells.centroids(:,1);
-for i=1:numel(states)
-    subplot(2,1,1)
-    plot(xc,states{i}.pressure/barsa);
-    subplot(2,1,2)
-    plot(xc,1-states{i}.s(:,1));    
-    pause(0.1)
-end
-E
-%}

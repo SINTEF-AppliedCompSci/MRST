@@ -71,7 +71,7 @@ startSteps = repmat((simTime/(nstep + 1))/refine, refine, 1);
 restSteps =  repmat(simTime/(nstep + 1), nstep, 1);
 timesteps = [startSteps; restSteps];
 % Set up the schedule containing both the wells and the timesteps
-schedule = simpleSchedule(timesteps, 'Wells', W);
+schedule = simpleSchedule(timesteps, 'W', W);
 
 % Plot horizontal permeability and wells
 clf;

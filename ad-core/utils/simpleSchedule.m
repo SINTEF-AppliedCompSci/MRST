@@ -46,7 +46,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('Wells', [], ...
+    opt = struct('W', [], ...
                  'src',   [], ...
                  'bc',    []);
     opt = merge_options(opt, varargin{:});
@@ -63,7 +63,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     schedule.step.control = ones(nstep, 1);
     
     % Make a single control out of the input driving forces
-    schedule.control.W   = opt.Wells;
-    schedule.control.bc  = opt.bc;
-    schedule.control.src = opt.src;
+    schedule.control = opt;
 end

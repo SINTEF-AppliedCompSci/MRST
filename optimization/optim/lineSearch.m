@@ -111,8 +111,9 @@ function alphaMax = getAlphaMax(u, d, c)
 % Find maximal a s.t. Ai*(u+a*d) <= bi
 [A, b] = deal(c.i.A, c.i.b);
 
-ignore_ix = (abs(d)<sqrt(eps));
-ignore_ix = [ignore_ix; ignore_ix];
+ignore_ix = false(numel(b),1);
+isSmall = (abs(d)<sqrt(eps));
+ignore_ix(1:2*numel(u)) = [isSmall; isSmall];
 
 s = (b-A*u)./(A*d);
 s = s(~ignore_ix);
