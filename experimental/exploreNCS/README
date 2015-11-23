@@ -12,6 +12,14 @@ formationCapacities.m
     - output is given in a table, suitable for a latex document
 
 
+exploreHammerfestProspects.m (okay)
+    - running this script will compute storage capacity of specific traps
+    in Sto formation, which correspond to those identified in NPD's
+    CO2-Atlas
+    - data displayed as table suitable for latex document
+    - main helper: getProspectTrapIDAndGrids()
+
+
 ----------------------- Injection / Optimization --------------------------
 exploreOptWellNCS.m
     - optimization of well placement and injection rates
@@ -36,13 +44,6 @@ exploreNorwegianSea.m
 exploreHammerfest.m (unfinished)
     - explortation of storage capacity in Hammerfest Basin aquifer, located
     in the Barents Sea
-
-
-exploreHammerfestProspects.m (unfinished)
-    - prospects and greater closures are identified using spill-point
-    analysis, and then are cut out of main Hammerfest grid for further
-    analysis.
-    - could be merged into exploreHammerfest.m ?
 
 
 exploreGreaterSnohvitField.m (unfinished)
