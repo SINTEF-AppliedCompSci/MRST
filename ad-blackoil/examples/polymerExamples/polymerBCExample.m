@@ -5,7 +5,7 @@
 % 
 
 % Required modules
-mrstModule add deckformat ad-core ad-blackoil ad-fi mrst-gui
+mrstModule add deckformat ad-core ad-blackoil ad-fi ad-props mrst-gui
 
 
 %% Setup case
