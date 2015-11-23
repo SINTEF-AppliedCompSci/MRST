@@ -256,21 +256,6 @@ if ~isempty(W)
                 state.wellSol(wnr).cqsPoly = cqsPoly(wnr);
                 if usingShear
                     state.wellSol(wnr).shearMult = shearMultW(ix);
-
-                    % We save many fields for debugging. Some of these may
-                    % be removed later.
-                    state.wellSol(wnr).VW0 = VW0W(ix);
-                    state.wellSol(wnr).VW1 = VW1W(ix);
-                    tmp_bW = double(bW(wc));
-                    state.wellSol(wnr).bW = tmp_bW(ix);
-                    cqsW1 = double(cqs{1});
-                    state.wellSol(wnr).cqsW0 = cqsW0(ix);
-                    state.wellSol(wnr).cqsW1 = cqsW1(ix);
-                    state.wellSol(wnr).mobW0 = mobW0(ix);
-                    mobW1 = double(mw{1});
-                    state.wellSol(wnr).mobW1 = mobW1(ix);
-                    muWMultW = double(muWMultW);
-                    state.wellSol(wnr).muWMult = muWMultW(ix);
                 end
             end
         end
