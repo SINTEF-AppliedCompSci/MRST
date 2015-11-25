@@ -5,15 +5,6 @@ Ne = G.faces.num;
 Nn = G.nodes.num;
 Ndof = Nn + Ne + Nc;
 
-baricenters = zeros(Nc,2);
-for c = 1:Nc
-    nodeNum = G.cells.nodePos(c):G.cells.nodePos(c+1)-1;        
-    nodes = G.cells.nodes(nodeNum);
-    X = G.nodes.coords(nodes,:);
-    [~, baricenters(c,:)] = baric(X);
-end
-
-    
 % boundaryNodes = zeros(Ndof,1);
 % neighbors = G.faces.neighbors;
 % for e = 1:Ne
@@ -25,7 +16,7 @@ end
 % 
 % boundaryNodes = find(boundaryNodes);
 
-X = [G.nodes.coords ; G.faces.centroids ; baricenters];
+X = [G.nodes.coords ; G.faces.centroids ; G.cells.centroids];
 
 plotGrid(G)
 

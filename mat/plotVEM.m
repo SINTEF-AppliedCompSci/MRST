@@ -31,7 +31,7 @@ for c = 1:Nc
         end
         dofs(1:2:end) = nodes([1:end, 1]);
         dofs(2:2:end-1,:) = faces + Nn;
-        fill3(XdofC(:, 1), XdofC(:,2), u(dofs), u(dofs));
+        plot3(XdofC(:, 1), XdofC(:,2), u(dofs), 'k', 'LineWidth', 0.01);
     end
 end
 
@@ -45,5 +45,6 @@ end
 hold off
 view(3)
 axis([0 1 0 1 min(u), max(u)]);
-xlabel('x'); ylabel('y'); zlabel('u(x,y)');
+fontSize = 18;
+xlabel('x', 'FontSize', fontSize); ylabel('y', 'FontSize', fontSize); zlabel('u_h(x,y)', 'FontSize', fontSize);
 end

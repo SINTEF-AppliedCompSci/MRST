@@ -34,7 +34,7 @@ function [Sl, bl, dofVec, hK] = VEM2D_loc(G, K, f)
                             %   Cell edges and edge midpoint coordinates.
 [edges, Xmid, edgeNormals] = faceData(G,K);
                             %   Baricenter of K.
-[~, Xb]=baric(X); xK = Xb(1); yK = Xb(2);
+Xc = G.cells.centroids(K,:); xK = Xc(1); yK = Xc(2);
 hK = cellDiameter(X);       %   Element diameter.
 vol = G.cells.volumes(K);   %   Cell volume.
 n = size(X,1);              %   Number of vertices.
@@ -118,7 +118,7 @@ H = [I(1:3)        ;
                             %   \mathcal{M}_1.
 PNstar = M(1:3,1:3)\B(1:3,:);
                             %   Local load term.
-bl = PNstar'*H*PNstar*f([X; Xmid; Xb]);
+bl = PNstar'*H*PNstar*f([X; Xmid; Xc]);
 
 %%  CONSTRUCT LOCAL TO GLOBAL MAP. S(dofVec,dofVec) = Sl.                %%
 

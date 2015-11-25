@@ -38,9 +38,6 @@ for b = 1:Nbc
                             %   Contribution from each edge to
                             %   \int_\partial \Omega g_N \phi_i ds
         for e = 1:n
-            n0 = X(2*e-1,:)
-            n1 = X(2*e,:)
-            ne = X(n+e,:)
             bBC([nodes(2*e-1), nodes(2*e), Nn + edges(e)]) = ...
                 bBC([nodes(2*e-1), nodes(2*e), Nn + edges(e)]) + ...
                 edgeLengths(e).*[1/6*g(X(2*e-1,:)); 1/6*g(X(2*e,:)); 2/3*g(X(2*n + e,:))];
