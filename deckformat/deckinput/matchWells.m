@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    for i = 1 : numel(lookup),
       if is_well_list(lookup{i}),
          dispif(mrstVerbose, ...
-                'Well List (''%s'') unsupported. Ignored', lookup{i});
+                'Well List (''%s'') unsupported. Ignored.\n', lookup{i});
          continue
       end
 
