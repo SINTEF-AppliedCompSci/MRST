@@ -50,7 +50,7 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
    if use_default_schedule
       [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, opt.num_wells, opt.rhoW, ...
                                 opt.sw, opt.ref_temp, opt.ref_depth, opt.temp_grad, ...
-                                opt.well_buffer_dist); 
+                                opt.well_buffer_dist, opt.maximise_boundary_distance); 
       opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
                                      opt.itime, opt.msteps , opt.mtime, true, ...
                                      'minval', sqrt(eps));
@@ -70,7 +70,7 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
    end
    
    %% Defining initial state
-   initState.pressure = computeHydrostaticPressure(Gt, fluid.rhoWS, opt.surface_pressure);
+   initState.pressure = compute_hydrostatic_pressure(Gt, fluid.rhoWS, opt.surface_pressure);
    initState.s = repmat([1 0], Gt.cells.num, 1);
    initState.sGmax = initState.s(:,2);
    
@@ -79,6 +79,8 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
    other.rock = rock2D;
    other.residual = [opt.sw, opt.sr];
    other.traps = ta;
+   other.dh = dh;
+   other.initState = initState;
 
    %% Set up model and run optimization
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
@@ -138,7 +140,7 @@ end
 % ----------------------------------------------------------------------------
 function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
                                    rhoW, sw, seafloor_temp, seafloor_depth, ...
-                                   tgrad, buf_dist)
+                                   tgrad, buf_dist, maximize_boundary_distance)
 
     % Computing local pressure and temperature conditions (in order to
     % compute CO2 densities) 
@@ -162,8 +164,8 @@ function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
     
     % Suggest wellsites based on maximum cumulative trap capacity reached
 
-    % bdist = sqrDistanceFromBoundary(Gt); % used below to discourage placement
-    % bdist = bdist/max(bdist(:));         % of wells close to boundary
+    bdist = sqr_distance_from_boundary(Gt); % used below to discourage placement
+    bdist = bdist/max(bdist(:));            % of wells close to boundary
 
     wc = zeros(num_wells, 1); 
     qt = wc;
@@ -172,17 +174,22 @@ function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
         cumcap = [0; cumulative_capacity(trapcap, ta.trap_adj)];
         field  = cumcap(ta.trap_regions + 1);
 
-        % @@ experiment
-        qt(i) = max(field); 
-        candidate_cells = find(field == qt(i));
-        wc(i) = select_wellcell(Gt, candidate_cells, buf_dist);
+        if maximize_boundary_distance
+           % Pick well site as far as possible away from boundary.
         
-        % % Adding an insignificant quantity so that if everything else is
-        % % equal, the cell farthest from the boundary is chosen
-        % grid_eps = 10 * eps(max(cumcap(:)));
-        % field    = field + grid_eps * bdist;
-    
-        % [qt(i), wc(i)] = max(field);
+           % Adding an insignificant quantity so that if everything else is
+           % equal, the cell farthest from the boundary is chosen
+           grid_eps = 10 * eps(max(cumcap(:)));
+           field    = field + grid_eps * bdist;
+           [qt(i), wc(i)] = max(field);
+        else
+           % Pick well site as far downslope as possible (while keeping a
+           % buffer distance from boundary
+           
+           qt(i) = max(field); 
+           candidate_cells = find(field == qt(i));
+           wc(i) = select_wellcell(Gt, candidate_cells, buf_dist);
+        end
         
         % Setting available capacity of used traps to zero
         trapcap = set_used_to_zero(trapcap, ta.trap_adj, ta.trap_regions(wc(i)));
@@ -263,9 +270,46 @@ function opt = opt_defaults()
     % factor for setting upper limit of injection rates
     opt.lim_fac = 10;
 
-    opt.well_buffer_dist = 5 * kilo * meter; % wells should if possible be within
-                                             % this distance of spill region boundary
+    
+    % Well selection strategy
+    opt.maximise_boundary_distance = false; % If true, wells will be placed
+                                            % as far as possible from
+                                            % boundary within the chosen
+                                            % catchment region
+    opt.well_buffer_dist = 5 * kilo * meter; % If 'maximise_boundary_distance' is
+                                             % false, wells should if possible
+                                             % be within this distance of spill
+                                             % region boundary
+
     % directory for saving reslts
     opt.report_basedir = './simulateUtsira_results/';
     opt.trapfile_name = ''; % 'utsira_subtrap_function_3'
+end
+
+% ----------------------------------------------------------------------------
+
+function p = compute_hydrostatic_pressure(Gt, rho_water, surface_pressure)
+    
+    p = rho_water * norm(gravity()) * Gt.cells.z + surface_pressure;
+end
+
+% ----------------------------------------------------------------------------
+
+function [field, closest_bnd_edge] = sqr_distance_from_boundary(Gt)
+
+    field = inf * ones(Gt.cells.num, 1);
+    closest_bnd_edge = zeros(Gt.cells.num, 1);
+    
+    % Looping over boundary edges
+    bnd_edges = find(prod(Gt.faces.neighbors, 2) == 0);
+    for b = bnd_edges'
+        dx = Gt.cells.centroids(:,1) - Gt.faces.centroids(b,1);
+        dy = Gt.cells.centroids(:,2) - Gt.faces.centroids(b,2);
+        
+        d2 = dx.*dx + dy.*dy;
+        replace = (d2 < field);
+        field(replace) = d2(replace);
+        closest_bnd_edge(replace) = b;
+    end
+    
 end
