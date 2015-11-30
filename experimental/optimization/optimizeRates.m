@@ -25,11 +25,16 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    opt.obj_fun = @(dummy) 0;
    opt = merge_options(opt, varargin{:});
 
+   opt.obj_fun = @(dummy) dummy; % will be replaced in any case
+
+   opt = merge_options(opt, varargin{:});
+   
    opt.obj_fun = @(wellSols, states, schedule, varargin) ...
                   leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty, ...
                                  varargin{:});
    
-   opt = merge_options(opt, varargin{:});
+   opt = merge_options(opt, varargin{:}); % merging options again, in case
+                                          % user has requested a different obj_fun
    
    num_wells = numel(schedule.control(1).W);
    assert(numel(max_rates) == num_wells);
@@ -85,7 +90,9 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    %% Call optimization routine
    
    u = schedule2control(schedule, scaling);
-   [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, 'lineSearchMaxIt', 20);
+   [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, ...
+                                     'linEq', linEqS, ...
+                                     'lineSearchMaxIt', 20);
    
    %% Preparing solution structures
    

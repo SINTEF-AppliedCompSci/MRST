@@ -1,4 +1,4 @@
-function [ wellinfo ] = getWellInfo( Gt, varargin )
+function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
 % Set-up wells for a generic injection scenario.
 
 % Wells: injectors and/or producers
@@ -8,30 +8,68 @@ function [ wellinfo ] = getWellInfo( Gt, varargin )
 %   - a well based on spill-paths, structural traps, reachable capacity,
 %   - ...
 
+% DESCRIPTION:
+%   Several options are available for injector and producer well placement.
+%   
+%   Firstly, an array of injectors can be placed such that they cover the
+%   entire top-surface ('limited' = 'none'), or only in a limited area
+%   ('limited' = 'portion'). Or, the array of injectors can be placed in a
+%   trap region, ideally the trap region with the highest structural trap
+%   capacity ('limited' = 'bestReachCap'). Info on structural trap capacity
+%   is passed in by the capOutput argument.
+%
+%   Producers are placed by specifying a percentage of injector wells to
+%   steal (i.e., an injector becomes a producer). The deepest elevation of
+%   the top-surface will contain the producers.
+%
+%   A buffer along the formation boundary can be set such that no wells
+%   exist within this area.
+
     opt.inj             = true;
     opt.inj_layout      = 'array_of_wells';
+    opt.setInjRates     = false;
     
     opt.prod            = true;
     opt.prod_layout     = 'steal_some_inj_wells';
     
     
     % spacing for array of inj wells
-    opt.DX      = 5*5000; % meters
-    opt.DY      = 5*5000; % meters
+    opt.DX      = 3*5000; % meters
+    opt.DY      = 3*5000; % meters
     
     % spacing for array of prod wells
     opt.DXp     = 17500; % meters
     opt.DYp     = 17500; % meters
     
+    % coverage of wells
+    %opt.limits = 'portion';
+    opt.minX = 4.6e5;
+    opt.minY = 7.25e6;
+    opt.maxX = 5.4e5;
+    opt.maxY = 7.31e6;
+    
+    opt.limits          = 'bestReachCap'; % wells are placed in first N reachable traps of highest capacity.
+    opt.numTopReachTrap = 3;
+    
+    
+    
     % amount of inj wells to steal
-    opt.steal        = 5; % percent
+    opt.steal        = 30; % percent
     opt.steal_layout = 'deepest'; % 'centralgroup', 'northgroup', 'nearbdry', 'deepest', 'shallowest', 'line', 'random', ...
     
     % distance from bdry where no well will be placed
-    opt.buffer  = 500; % meters
+    opt.buffer  = 5000; % meters
+    
+    % control for plotting
+    opt.plotsOn = true;
     
     opt = merge_options(opt, varargin{:});
     
+    if ~opt.prod
+       opt.prod_layout = 'none';
+       [opt.DXp, opt.DYp, opt.steal] = deal(0);
+       opt.steal_layout = 'none';
+    end
     
     %% Initialize all output as empty;
     wellCoords_inj  = []; cinx_inj  = [];
@@ -44,17 +82,65 @@ function [ wellinfo ] = getWellInfo( Gt, varargin )
         fprintf('Setting up injector well(s).\n')
         
         if strcmpi(opt.inj_layout,'array_of_wells')
+            
+            % default: place array of wells covering entire top-surface
+            [l.minX, l.minY, l.maxX, l.maxY] = getLimitsOfGrid(Gt);
+            
+            if strcmpi(opt.limits,'portion')
+                [l.minX, l.minY, l.maxX, l.maxY] = deal(opt.minX, opt.minY, opt.maxX, opt.maxY);
+            end
+            [ Xcoord, Ycoord, cinx ] = getArrayCoords(Gt, opt.DX, opt.DY, l);
+            
+            % keep wells inside specified area
+            if strcmpi(opt.limits,'bestReachCap')
+                
+%                 % trap_region with highest structural reachable capacity
+%                 [val,ind] = max(capOutput.structural_mass_reached);
+%                 bestTrapRegion = ta.trap_regions(ind);
+%                 
+%                 cells = 1:Gt.cells.num;
+%                 cinx2keep = cells( logical(ta.trap_regions==bestTrapRegion) ); 
+                
+                % OR:
+                %cellsOfMaxReachCap = find(capOutput.structural_mass_reached == max(capOutput.structural_mass_reached));
+                %cinx2keep = cellsOfMaxReachCap;
+                
+                
+                % cell index pertaining to top N trap_regions of highest
+                % structural reachable capacity.
+                topReachCap  = unique(capOutput.structural_mass_reached_Mt);
+                topReachCap  = sort(topReachCap,'descend');
+                topReachCap  = topReachCap(1:opt.numTopReachTrap);
+                cinx2keep = [];
+                for i = 1:numel(topReachCap)
+                    [ind]     = find(capOutput.structural_mass_reached_Mt == topReachCap(i));
+                    cinx2keep = [cinx2keep; ind];
+                end
+                % NB: it's possible no inj wells were originally placed in
+                % a trap_region, so even though N top reachable traps were
+                % specified to be filled with an array of wells, less than
+                % N top reachable traps will contain wells. @@
 
-            [ Xcoord, Ycoord, cinx ] = getArrayCoords(Gt, opt.DX, opt.DY);
+                % any wells located in a cell inx that does not match
+                % inx2keep is discarded, as it's outside the specified area
+                [~,inx2keep,~] = intersect(cinx,cinx2keep);
+                if isempty(inx2keep)
+                   error(['No injectors have been placed inside '...
+                       'specified region. Try reducing array spacing.']) 
+                end
+                cinx = cinx(inx2keep);
+                
+            end
 
         else
             error('Unknown type of injector well set-up.')
 
         end
         
-        wellCoords_inj = [ Xcoord, Ycoord ];
-        cinx_inj       = cinx;
-        %plotWells(Gt, ta, cinx_inj, []);
+        cinx_inj            = cinx;
+        [ Xcoord, Ycoord ]  = getXYcoords(Gt, cinx_inj);
+        wellCoords_inj      = [ Xcoord, Ycoord ];
+        
     end
     
     
@@ -73,6 +159,9 @@ function [ wellinfo ] = getWellInfo( Gt, varargin )
             
             % number of inj wells to steal
             N = round(size(wellCoords_inj,1) * opt.steal/100);
+            assert(N~=0, ['%d percent of injectors equates to ' ...
+                '< 1 well, thus no producers will be placed. Try '...
+                'increasing percentage to steal.'], opt.steal)
             
             % location of inj wells to steal
             if strcmpi(opt.steal_layout,'deepest')
@@ -118,7 +207,7 @@ function [ wellinfo ] = getWellInfo( Gt, varargin )
         tmp_prod = zeros(Gt.cells.num,1);
         tmp_prod(cinx_prod) = 1;
         conflicts = tmp_inj.*tmp_prod; % 1 means conflict at inx
-        fprintf('There are %d injector and producer wells located in the same cell.\n', sum(conflicts) );
+        fprintf('%d injector(s) is/are being assigned as producer(s).\n', sum(conflicts)')
         
         % squeeze out conflicting inx from cinx_inj
         tmp_inj( logical(conflicts) ) = 0;
@@ -134,17 +223,70 @@ function [ wellinfo ] = getWellInfo( Gt, varargin )
     wellCoords_inj = [ Xcoord, Ycoord ];
     
     % final check is to visualize injector/producer well locations
-    plotWells(Gt, ta, cinx_inj, cinx_prod);
-
+    if opt.plotsOn
+        plotWells(Gt, ta, cinx_inj, cinx_prod);
+    end
     
+    
+    %% Set well rates
+    if opt.setInjRates
+        
+        % Compute total injected volume (m3), qtot, which will be passed into
+        % setSchedule() where fixed rates will be found by rate = qtot / itime,
+        % where itime is time step (seconds).
+
+        vols_inj = zeros(numel(cinx_inj),1);
+
+        % if there are N wells in a trap region which has a struct capacity of
+        % QTOT (m3) co2, then assign a qtot per well of QTOT/N.
+
+        % info about wells (which trap region they were placed in, etc.)
+        regions         = ta.trap_regions(cinx_inj);
+        uniqueRegions   = unique(regions);
+        reachCap_kg     = capOutput.structural_mass_reached_Mt(cinx_inj).*1e9; % kg       @@ implement better unit conversion
+        reachCap_m3     = capOutput.structural_vol_reached_m3(cinx_inj);
+        
+        % look through each unique region 
+        for i = 1:numel(uniqueRegions)
+
+            % find the wells in same region
+            regions_same = find(regions == uniqueRegions(i));
+            numWells_sameRegion = numel(regions_same);
+
+            % compute qtot for each well in same region
+            reachCap_same   = reachCap_m3(regions_same);
+            QTOT            = mean(reachCap_same);          % m3
+            N               = numel(reachCap_same);
+            assert(N == numWells_sameRegion);
+            qtot            = QTOT / N;                     % m3 / well
+
+            vols_inj(regions_same) = qtot;
+
+        end
+        
+        % check for any well rates that are zero, and replace with an
+        % average value or the minimum non-zero inj vol value
+        vols_inj( logical(vols_inj==0) ) = mean( vols_inj( logical(vols_inj>0) ) );
+    
+    end
+        
     
     %% Return well info:
     % re-structure so it's wellinfo.prod... and wellinfo.inj... fields
 
     wellinfo.wellCoords_inj     = wellCoords_inj;   % physical coords (X,Y)
     wellinfo.cinx_inj           = cinx_inj;         % cell index of inject.
-    wellinfo.wellCoords_prod    = wellCoords_prod;
-    wellinfo.cinx_prod          = cinx_prod;
+    
+    if opt.setInjRates
+        wellinfo.vols_inj       = vols_inj;        % m3 (totals)
+    end
+    
+    if ~isempty(wellCoords_prod)
+        wellinfo.wellCoords_prod    = wellCoords_prod;
+    end
+    if ~isempty(cinx_prod)
+        wellinfo.cinx_prod          = cinx_prod;
+    end
 % 
 %     wellinfo.inj_rate_MtperYr;      % Mt/yr
 %     wellinfo.inj_time;
@@ -180,7 +322,7 @@ function cinx = removeAnyBdryCellIndex(Gt, cinx, buffer)
     [ Xcoord_bdry, Ycoord_bdry ] = getXYcoords(Gt, bdrycinx);
     for i = 1:numel(Xcoord)
         dv        = bsxfun(@minus, [Xcoord_bdry, Ycoord_bdry], [Xcoord(i), Ycoord(i)]);
-        [v, ind]  = min(sum(dv.^2, 2));
+        [v, ind]  = min(sqrt(sum(dv.^2, 2))); %dist = sqrt(sum(dvec.^2, 2));
         if v <= buffer
             cinx2remove = [cinx2remove; cinx(i)];
         end
@@ -196,7 +338,7 @@ end
 
 function plotWells(Gt, ta, cinx_inj, cinx_prod)
 
-    figure;
+    figure; set(gcf,'Position',[1 1 1242 825]);
 
     subplot(1,2,1)
     title('Injectors')
@@ -209,17 +351,22 @@ function plotWells(Gt, ta, cinx_inj, cinx_prod)
     mapPlot(gcf, Gt, 'traps', ta.traps, 'trapalpha', 0.2, ...
         'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
         'maplines', 20, 'wellcells', cinx_prod, 'well_numbering', true);
+    
+    % adjust plots
+    hfig = gcf;
+    set(findobj(hfig.Children,'Type','axes'),'Fontsize',16,'box','on')
+    axis(findobj(hfig.Children,'Type','axes'),'equal','tight')
 
 end
 
 % -------------------------------------------------------------------------
 
-function [ Xcoord, Ycoord, cinx ] = getArrayCoords(Gt, DX, DY)
+function [ Xcoord, Ycoord, cinx ] = getArrayCoords(Gt, DX, DY, limits)
 % Array of wells covering top surface
 % first well can be offset from cinx=1 by a specified distance @@
 
         % first get (x,y) coords of wells which span the grid limits
-        [minX, minY, maxX, maxY] = getLimitsOfGrid(Gt);
+        [minX, minY, maxX, maxY] = deal(limits.minX, limits.minY, limits.maxX, limits.maxY);
         wX = [minX:DX:maxX]';
         wY = [minY:DY:maxY]';
         
@@ -292,6 +439,8 @@ function [minX, minY, maxX, maxY] = getLimitsOfGrid(Gt)
     maxY = max(Gt.cells.centroids(:,2));
     
 end
+
+% -------------------------------------------------------------------------
 
 function [ deepCellInx ] = getDeepestCellIndex(Gt, cinx, N)
 % z is array of all possible depths (i.e., top surface elevation where a

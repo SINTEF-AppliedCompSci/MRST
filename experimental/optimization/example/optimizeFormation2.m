@@ -1,4 +1,6 @@
-function [Gt, optim, init, history, other] = optimizeFormation(varargin)
+function [Gt, optim, init, history, other] = optimizeFormation2(varargin)
+
+% Extra capabilities added to place wells as an array within trap region(s)
 
    moduleCheck('ad-core');
    
@@ -42,7 +44,7 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
                        'pvMult_fac'   , opt.pvMult                     , ...
                        'dissolution'  , false                          , ...
                        'pvMult_p_ref' , opt.refPress                   , ...
-                       'surf_topo'    , 'inf_rough'                    , ...
+                       'surf_topo'    , 'smooth'                    , ...
                        'top_trap'     , dh);
    
    %% Construct schedule
@@ -55,13 +57,21 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
       opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
                                      opt.itime, opt.msteps , opt.mtime, true, ...
                                      'minval', sqrt(eps));
+    
    else
-      tmp = load(opt.schedule);
-      name = fields(tmp);
-      opt.schedule = tmp.(name{1});
+%       tmp = load(opt.schedule);
+%       name = fields(tmp);
+%       opt.schedule = tmp.(name{1});
+        fprintf('\n Using schedule varargin. \n')
+        opt.num_wells   = numel(opt.schedule.control(1).W);
    end
    
+   % Ensure no repeated well cells
+   assert( ~any(diff([opt.schedule.control(1).W.cells])==0) , ...
+       'Repeated well cells found, likely due to opt.num_wells > number of catchment areas.')
+   
    % Add constant pressure boundary conditions
+   % @@ add option to set no-flow boundaries
    bfaces = identifyBoundaryFaces(Gt);
    for i = 1:numel(opt.schedule.control)
       opt.schedule.control(i).bc = addBC([], bfaces, 'pressure', ...
@@ -83,13 +93,38 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
 
    %% Set up model and run optimization
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
-   min_rates = sqrt(eps) * ones(opt.num_wells, 1);
-   max_rates = ...
-       opt.lim_fac * sum([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
+   
+   min_rates       = sqrt(eps) * ones(opt.num_wells, 1);
+   max_rates       = ...
+    opt.lim_fac * sum([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
+
+   % Ensure inj well rates are within min and max rates
+   vals = [opt.schedule.control(1).W.val]';
+   if any(vals<=min_rates)
+        warning('An initial well rate is below the minimum rate. Updating initial well rates...')
+        vals(vals <= min_rates) = min_rates(1);
+   elseif any(vals>=max_rates)
+        warning('An initial well rate is above the maximum rate. Updating initial well rates...')
+        vals(vals >= max_rates) = max_rates(1);
+   end
+   
+   % Use assert to double-check initial rates within min/max
+   assert( all(vals >= min_rates), 'An initial well rate(s) is less than the minimum set rate.')
+   assert( all(vals <= max_rates), 'An initial well rate(s) is more than the maximum set rate.')
+   vals = num2cell(vals);
+   [opt.schedule.control(1).W.val] = vals{:};
+   
    [optim, init, history] = ...
        optimizeRates(initState, model, opt.schedule, min_rates, max_rates, ...
                      'last_control_is_migration', true, ...
-                     'leak_penalty', 1);   %@@
+                     'leak_penalty', opt.leakPenalty, ...
+                     'dryrun', opt.dryrun);   %@@
+                 
+   % pass out initState for later reference.
+   other.initState = initState;
+   other.min_rates = min_rates;
+   other.max_rates = max_rates;
+   other.leakPenalty = opt.leakPenalty;
 end
 
 % ----------------------------------------------------------------------------
@@ -226,7 +261,7 @@ function opt = opt_defaults()
     opt.schedule = [];
     opt.coarse_level = 3;
     opt.num_wells = 10;
-    opt.subtrap_file = 'utsira_subtrap_function_3.mat';
+    %opt.subtrap_file = 'utsira_subtrap_function_3.mat';
 
     opt.surface_pressure = 1 * atm;
     
@@ -272,4 +307,8 @@ function opt = opt_defaults()
     % directory for saving reslts
     opt.report_basedir = './simulateUtsira_results/';
     opt.trapfile_name = ''; % 'utsira_subtrap_function_3'
+    
+    % extra
+    opt.dryrun = false;
+    opt.leakPenalty = 1;
 end
