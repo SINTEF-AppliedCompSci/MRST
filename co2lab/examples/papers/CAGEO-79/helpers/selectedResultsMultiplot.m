@@ -1,4 +1,4 @@
-function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
+function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
 
     % background variables can be: h|h_max|pressure|rs|sGmax|s|smax|totalCO2
     
@@ -18,15 +18,14 @@ function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
     opt.temp_grad = 35.6;      % used for 'totalCO2' (value from SPE paper)
     opt.poro = 0.36;           % used for 'totalCO2' (value from SPE paper)
     opt.ymax = inf;
-
+    opt.maplines = 40;
+    opt.init_state = [];
+    
     rho = getValuesSPE134891();
     opt.rhoRef = rho(2);
     
     opt = merge_options(opt, varargin{:});
 
-    % Loading data
-    [Gt, stepdata] = load_data(fullfile(basedir, casename, 'report'), tsteps);
-    
     % cut away irrelevant part of grid
     kept_cells = Gt.cells.centroids(:,2) < opt.ymax;
     [GtSub, ~, ~, nix] = extractSubgrid(Gt, kept_cells);
@@ -35,43 +34,49 @@ function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
     
     % plotting
     h = figure;
-    num_tsteps = numel(tsteps);
+    num_tsteps = numel(plot_steps);
+
+    % mymap = colormap;
+    % mymap(1,:) = [1 1 1];
     
-    for i = 1:num_tsteps
+    for i = 1:numel(plot_steps);
+       ix = plot_steps(i);
         subplot(1, num_tsteps, i);
         
         plume = []; 
-        if opt.plot_plume && isfield(stepdata(i).report.sol, 'h')
-            plume = stepdata(i).report.sol.h(kept_cells);
+        if opt.plot_plume % && isfield(states{i}, 'h')
+           plume = reports(ix).sol.h(kept_cells);
+           %plume = stepdata(i).report.sol.h(kept_cells);
         end
         field = [];
         if ~isempty(opt.background)
             if ischar(opt.background)
                 % 'background' gives us a variable name, or 'totalCO2'
                 if strcmpi(opt.background, 'totalCO2')
-                    field = compute_total_co2(Gt, stepdata(i).report, ...
-                                              opt.ref_temp,           ...
-                                              opt.ref_depth,          ...
-                                              opt.temp_grad,          ...
-                                              opt.poro,               ...
+                    field = compute_total_co2(Gt, reports(ix).sol , ...
+                                              opt.ref_temp,         ...
+                                              opt.ref_depth,        ...
+                                              opt.temp_grad,        ...
+                                              opt.poro,             ...
                                               opt.rhoRef);
                 elseif strcmpi(opt.background, 'overpressure')
-                    [~, initstate] = load_data(fullfile(basedir, casename, 'report'), 0);
-                    field = (stepdata(i).report.sol.pressure - ...
-                            initstate.report.sol.pressure) / 1e5;
-                    fprintf('Max overpressure at step %i: %f bar\n', i, max(field(:)));
+                   if isempty(opt.init_state)
+                      error(['Plotting of overpressure requires that init_state ' ...
+                             'is provided.']);
+                   end
+                   field = (reports(ix).sol.pressure - opt.init_state.pressure) / 1e5;
+                    fprintf('Max overpressure at step %i: %f bar\n', ix, max(field(:)));
                 else
-                    field = stepdata(i).report.sol.(opt.background);
+                    field = reports(ix).sol.(opt.background);
                 end
                 if size(field, 2) > 1
                     % this happens for saturations, in which case we only want to
                     % keep the second column (CO2 saturation)
                     field = field(:,2);
-                    %field(field <0.0005) = NaN;
                 end
             elseif iscell(opt.background)
                 % 'background' provides us directly with data, one cell per timestep
-                field = opt.background{i};
+                field = opt.background{ix};
             else
                 % 'background' provides us directly with data, same for all timesteps
                 field = opt.background;
@@ -85,15 +90,14 @@ function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
                 
         wellcells = [];
         if opt.plot_wells
-            wellcells = [stepdata(i).report.W.cells];
+            wellcells = [reports(ix).W.cells];
             % keeping only wells within area that is not cut away
             tmp = zeros(Gt.cells.num,1);
             tmp(wellcells) = 1;
             tmp = find(tmp(kept_cells)); % indices of kept well cells
             order = arrayfun(@(x) find(wellcells == x, 1, 'first'), tmp);
-            [a, b] = sort(order);
+            [~, b] = sort(order);
             wellcells = tmp(b);
-            %wellcells = find(tmp);
         end
     
         traps = [];
@@ -104,7 +108,7 @@ function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
         
         mapPlot(h, GtSub, ...
                 'traps', traps, ...
-                'title', sprintf('Year: %i', ceil(stepdata(i).report.t/year)), ...
+                'title', sprintf('Year: %i', ceil(reports(ix).t/year)), ...
                 'plumes', plume, ...
                 'wellcells', wellcells, ...
                 'well_numbering', opt.plot_well_numbering, ...
@@ -112,14 +116,18 @@ function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
                 'background', field, ...
                 'backgroundalpha', opt.backgroundalpha,...
                 'quickclip', opt.quickclip,...
+                'maplines', opt.maplines, ...
                 'colorbarposition', 'southoutside');
         
         % Tweaking result
         axis off;
         set(gcf, 'color', [1 1 1]);
+        %colormap(h, mymap);
         %set(gcf, 'position', [1, 1, 1920, 850]);
-        set(gcf, 'position', [1, 1, 1600, 960]);
+        %set(gcf, 'position', [1, 1, 1600, 960]);
         set(get(gca, 'title'), 'fontsize', 30);
+        set(gcf, 'position', [30 30 660 930]);
+        %colorbar off;
     end
     % adjusting height of map plots to be the same (not necessarily the case
     % initially, due to a bug(??) in Matlab)
@@ -143,8 +151,7 @@ function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
         ax = get(h, 'currentaxes');
         
         % load all timesteps up to last plotted one (a bit of a hack)
-        [~, allsteps] = load_data(fullfile(basedir, casename, 'report'), 1:tsteps(end));
-        plotTrappingDistribution(ax, allsteps, 'legend_location', 'northwest');
+        directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
         fsize = 24;
         set(get(gca, 'xlabel'), 'fontsize', fsize)
         set(get(gca, 'ylabel'), 'fontsize', fsize)
@@ -154,31 +161,18 @@ function selectedResultsMultiplot(basedir, casename, tsteps, varargin)
 end
 % ----------------------------------------------------------------------------
 
-function [Gt, stepdata] = load_data(dir, tsteps)
-    
-    % loading grid
-    tmp = load(fullfile(dir, 'simulation_grid'), 'Gt');
-    Gt = tmp.Gt;
-    
-    % loading timesteps
-    for i = 1:numel(tsteps)
-        stepdata(i) = load(fullfile(dir, sprintf('report_%i', tsteps(i))));
-    end
-end
-% ----------------------------------------------------------------------------
-
-function field = compute_total_co2(Gt, data, reftemp, refdepth, temp_grad, ...
+function field = compute_total_co2(Gt, state, reftemp, refdepth, temp_grad, ...
                                    poro, rhoRef)
     
     co2 = CO2props;
-    P   = data.sol.pressure;
+    P   = state.pressure;
     T   = reftemp + (Gt.cells.z - refdepth) * temp_grad / 1000;
     % 'field' represents tons of mass of CO2 per lateral square meter
-    field = data.sol.s(:,2) .* co2.rho(P, T) .* poro .* Gt.cells.H / 1e3; 
+    field = state.s(:,2) .* co2.rho(P, T) .* poro .* Gt.cells.H / 1e3; 
                                                
     % Adding contribution from dissolution
-    if isfield(data.sol, 'rs')
-        diss = data.sol.s(:,1) .* rhoRef .* data.sol.rs .* poro .* Gt.cells.H / 1e3;
+    if isfield(state, 'rs')
+        diss = state.s(:,1) .* rhoRef .* state.rs .* poro .* Gt.cells.H / 1e3;
         field = field + diss;
     end
 end
