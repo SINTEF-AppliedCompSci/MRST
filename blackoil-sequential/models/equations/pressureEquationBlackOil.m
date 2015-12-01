@@ -234,6 +234,12 @@ if ~isempty(W)
         types(2:5) = {'perf', 'perf', 'perf', 'well'};
     end
     
+    % Store fluxes for the transport solver
+    fluxt = qW + qO + qG;
+    for i = 1:numel(W)
+        wp = perf2well == i;
+        state.wellSol(i).flux = fluxt(wp);
+    end
     wat(wc) = wat(wc) - cqs{1}; % Add src to water eq
     oil(wc) = oil(wc) - cqs{2}; % Add src to oil eq
     gas(wc) = gas(wc) - cqs{3}; % Add src to gas eq
@@ -243,22 +249,15 @@ end
 cfac = 1./(1 - disgas*vapoil*rs.*rv);
 
 a_w = 1./bW;
-a_o = cfac.*(1./bO - rs./bG);
-a_g = cfac.*(1./bG - rv./bO);
+a_o = cfac.*(1./bO - disgas*rs./bG);
+a_g = cfac.*(1./bG - vapoil*rv./bO);
 
 eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
 
 names{1} = 'pressure';
 types{1} = 'cell';
 
-% Store fluxes for the transport solver
-fluxt = qW + qO + qG;
-for i = 1:numel(W)
-    wp = perf2well == i;
-    state.wellSol(i).flux = fluxt(wp);
-end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
 end
 
 
