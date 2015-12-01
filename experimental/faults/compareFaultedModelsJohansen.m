@@ -1,6 +1,9 @@
 function compareFaultedModelsJohansen( varargin )
 % Compare un-faulted to faulted model of Johansen
 
+% SEE ALSO:
+%   showJohansen.m --> sector model is loaded with different faces.tag
+
 
 moduleCheck('ad-core','mrst-gui')
 
@@ -41,48 +44,86 @@ faultFaces2D = diag( facesMat(cells2D_1+1, cells2D_2+1) );
 Gt_sect.cells.z([cells2D_1; cells2D_2]) = ...
    G_sect.faces.centroids(Gt_sect.cells.map3DFace([cells2D_1; cells2D_2]), 3);
 
+% Alternative is to get the indices of all face boundaries in 3D grid,
+% ignore the external boundaries, and then keep the rest of the indices as
+% faultFaces2D. This will capture some smaller faults in the grid.
+% ix = boundaryFaceIndices(G_sect, 'West', 1:G_sect.faces.num, 1:G_sect.faces.num, 1:G_sect.faces.num);
+% ix2 = boundaryFaceIndices(G_sect, 'East', 1:G_sect.faces.num, 1:G_sect.faces.num, 1:G_sect.faces.num);
+% iy = boundaryFaceIndices(G_sect, 'North', 1:G_sect.faces.num, 1:G_sect.faces.num, 1:G_sect.faces.num);
+% iy2 = boundaryFaceIndices(G_sect, 'South', 1:G_sect.faces.num, 1:G_sect.faces.num, 1:G_sect.faces.num);
+% figure;
+% plotGrid(G_sect, 'FaceColor','none','EdgeAlpha',0.1)
+% plotFaces(G_sect, ix, 'FaceColor','r')
+% plotFaces(G_sect, ix2, 'FaceColor','y')
+% plotFaces(G_sect, iy, 'FaceColor','b')
+% plotFaces(G_sect, iy2, 'FaceColor','g')
+% legend('3D grid','west faces','east faces','north faces','south faces')
+% view(3)
+% not sure how to ignore the faces that are along outside of formation grid
+
+% Other alternative is to detect faults by extreme elevation drops/rises
+clearvars faultFaces2D
+[~, faultFaces2D, faultCells] = detectFaults(Gt_sect, rock2D_sect,'gradTol',70);
+
 
 %% Adjust fault-face transmissibilities
 
 T_all       = getVerticallyAveragedTrans(Gt_sect, rock2D_sect);
 T_all_orig  = T_all;
-% 
-%     Gt = Gt_sect;
-%     rock          = rock2D_sect; 
-%     rock_tmp.perm = rock.perm .* Gt.cells.H; 
-%     T             = computeTrans(Gt, rock_tmp); 
-%     cf            = Gt.cells.faces(:, 1); 
-%     nf            = Gt.faces.num; 
-%     T             = 1 ./ accumarray(cf, 1 ./ T, [nf, 1]);
-%     T_all = T;
 
 T_all( faultFaces2D )   = T_all( faultFaces2D ).*opt.transMult;
 
-figure
-plotGrid(G_sect, 'EdgeAlpha',0.1,'FaceColor','none')
-plotGrid(Gt_sect, 'EdgeAlpha',0.1,'FaceColor','none','EdgeColor','b')
-
-transData1 = zeros(Gt_sect.cells.num,1);
-assert(numel(cells2D_1) == numel(faultFaces2D));
-
-transData1( cells2D_1 ) = T_all_orig( faultFaces2D );
-avgtransData1 = mean(transData1( cells2D_1 ));
-plotCellData(Gt_sect, transData1, cells2D_1, 'EdgeAlpha',0.1)
-
-transData2 = zeros(Gt_sect.cells.num,1);
-assert(numel(cells2D_2) == numel(faultFaces2D));
-
-transData2( cells2D_2 ) = T_all( faultFaces2D );
-avgtransData2 = mean(transData2( cells2D_2 ));
-plotCellData(Gt_sect, transData2, cells2D_2, 'EdgeAlpha',0.1)
-colorbar
-
-plotFaces(Gt_sect, faultFaces2D, 'EdgeColor','r','LineWidth',3,'FaceColor','none')
-legend('3D grid','2D grid',...
-    ['original trans along fault, avg=',num2str(avgtransData1)],...
-    ['modified trans along fault, avg=',num2str(avgtransData2)],...
-    'fault')
-view(3)
+% figure
+% subplot(1,2,1)
+% plotGrid(G_sect, 'EdgeAlpha',0.1,'FaceColor','none')
+% plotGrid(Gt_sect, 'EdgeAlpha',0.1,'FaceColor','none','EdgeColor','b')
+% 
+% transData1 = zeros(Gt_sect.cells.num,1);
+% transData1( faultCells ) = T_all_orig( faultFaces2D );
+% avgtransData1 = mean(transData1( faultCells ));
+% plotCellData(Gt_sect, avgtransData1, faultCells, 'EdgeAlpha',0.1)
+% plotFaces(Gt_sect, faultFaces2D, 'EdgeColor','r','LineWidth',3,'FaceColor','none')
+% colorbar
+% 
+% legend('3D grid','2D grid',...
+%     ['original trans along fault, avg=',num2str(avgtransData1)],...
+%     'fault')
+% 
+% subplot(1,2,2)
+% plotGrid(G_sect, 'EdgeAlpha',0.1,'FaceColor','none')
+% plotGrid(Gt_sect, 'EdgeAlpha',0.1,'FaceColor','none','EdgeColor','b')
+% 
+% transData2 = zeros(Gt_sect.cells.num,1);
+% transData2( faultCells ) = T_all( faultFaces2D );
+% avgtransData2 = mean(transData2( faultCells ));
+% plotCellData(Gt_sect, avgtransData2, faultCells, 'EdgeAlpha',0.1)
+% plotFaces(Gt_sect, faultFaces2D, 'EdgeColor','r','LineWidth',3,'FaceColor','none')
+% colorbar
+% 
+% legend('3D grid','2D grid',...
+%     ['modified trans along fault, avg=',num2str(avgtransData2)],...
+%     'fault')
+% % 
+% % transData1 = zeros(Gt_sect.cells.num,1);
+% % assert(numel(cells2D_1) == numel(faultFaces2D));
+% % 
+% % transData1( cells2D_1 ) = T_all_orig( faultFaces2D );
+% % avgtransData1 = mean(transData1( cells2D_1 ));
+% % plotCellData(Gt_sect, transData1, cells2D_1, 'EdgeAlpha',0.1)
+% % 
+% % transData2 = zeros(Gt_sect.cells.num,1);
+% % assert(numel(cells2D_2) == numel(faultFaces2D));
+% % 
+% % transData2( cells2D_2 ) = T_all( faultFaces2D );
+% % avgtransData2 = mean(transData2( cells2D_2 ));
+% % plotCellData(Gt_sect, transData2, cells2D_2, 'EdgeAlpha',0.1)
+% % colorbar
+% 
+% % legend('3D grid','2D grid',...
+% %     ['original trans along fault, avg=',num2str(avgtransData1)],...
+% %     ['modified trans along fault, avg=',num2str(avgtransData2)],...
+% %     'fault')
+% view(3)
 
 
 %% Simulate

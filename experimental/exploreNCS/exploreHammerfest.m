@@ -46,6 +46,9 @@ function exploreHammerfest( varargin )
 
 
 opt.coarsening = 4;
+opt.transMult  = [];
+opt.gradTol    = 100;
+opt.wellCoords = [9.225e5, 7.988e6];
 opt.mycase     = 'inject';
 
 opt = merge_options(opt, varargin{:});
@@ -55,12 +58,12 @@ opt = merge_options(opt, varargin{:});
 
 N = opt.coarsening;
 [Gt_st, rock2D_st, petrodata_st] = getFormationTopGrid('Stofm',N);
-[Gt_nd, rock2D_nd, petrodata_nd] = getFormationTopGrid('Nordmelafm',N);
-[Gt_tu, rock2D_tu, petrodata_tu] = getFormationTopGrid('Tubaenfm',N);
+%[Gt_nd, rock2D_nd, petrodata_nd] = getFormationTopGrid('Nordmelafm',N);
+%[Gt_tu, rock2D_tu, petrodata_tu] = getFormationTopGrid('Tubaenfm',N);
 
 % Plots
-plotHammerfestLayers3D(Gt_st, Gt_nd, Gt_tu);
-plotHammerfestRockProps(Gt_st, rock2D_st, Gt_nd, rock2D_nd, Gt_tu, rock2D_tu);
+%plotHammerfestLayers3D(Gt_st, Gt_nd, Gt_tu);
+%plotHammerfestRockProps(Gt_st, rock2D_st, Gt_nd, rock2D_nd, Gt_tu, rock2D_tu);
 
 % save figure (optional)
 %export_fig(gcf, [figDirName '/' 'FmRockProperties'], '-png','-transparent')
@@ -89,37 +92,86 @@ end
 %% Run Injection Scenario:
 if strcmpi(opt.mycase,'inject')
     
-    % Run injection scenario using entire Sto formation
-    [wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
-        runSnohvitInjectionScenario( Gt_st, rock2D_st );
+    if ~isempty(opt.transMult)
+        % NB: grid, rock, and faultFace inx may change during call to
+        % detectFaults()
+        %[ ~, faultFaces2D ] = detectFaults(Gt_st, rock2D_st, 'gradTol',opt.gradTol);
+        [ Gt_st, faultFaces2D, ~, ~, rock2D_st ] = detectFaults(Gt_st, rock2D_st, 'gradTol',opt.gradTol);
+        T_all               = getVerticallyAveragedTrans(Gt_st, rock2D_st);
+        T_all_orig          = T_all;
+        T_all( faultFaces2D ) = T_all( faultFaces2D ).*opt.transMult;
+
+        
+        [ initState, fluid, rhow, rhoc ] = simpleSetUp( Gt_st, rock2D_st );
+
+        % passing in keyword 'trans' will prevent computation of
+        % transmissibilities based on rock2D, but rather assigns s.T_all =
+        % T_all
+        model = CO2VEBlackOilTypeModel_trans(Gt_st, rock2D_st, ...
+            fluid, 'trans', T_all); 
 
 
-    % Alternatively, various injection locations can be specified here and
-    % passed into runSnohvitInjectionScenario()
+        % Scheduling: (total injected volume, inj/mig time, bdrys, ...)
+        itime   = 50*year;
+        istep   = 25;
+        qtot    = 10*1*1e9*kilogram*convertTo(itime,year)/(rhoc*kilogram/meter^3); % total m3 over entire injection time
+        mtime   = 1000*year;
+        mstep   = 10;
+        
+        wcinx  = getCellIndex(Gt_st, opt.wellCoords(1), opt.wellCoords(2));
 
-    % Physical coordinate(s):
-    wellCoords = [9.225e5, 7.988e6; 9.225e5 + 300, 7.988e6 + 300; ...
-        9.225e5 + 400, 7.988e6 + 400; 9.225e5 + 500, 7.988e6 + 500];
-    % Alternatively, pass in the well cell index of Gt for each of these
-    % physical coodinates...
+        schedule = setSchedule(Gt_st, rock2D_st, wcinx, ...
+            qtot, istep, itime, mstep, mtime, true);    % @@ bug if mtime = 1 but mstep = 2;
+
+        bdryFaces   = find( Gt_st.faces.neighbors(:,1).*Gt_st.faces.neighbors(:,2) == 0 );
+        bdryVal     = Gt_st.faces.z(bdryFaces) * rhow*kilogram/meter^3 * norm(gravity);
+        bc          = addBC( [], bdryFaces, 'pressure', bdryVal, 'sat', [1 0] );
+        for i = 1:numel(schedule.control)
+            schedule.control(i).bc = bc;
+        end
 
 
+        % Call to solver
+        [wellSols_st, states_st, sim_report_st] = simulateScheduleAD(initState, model, schedule);
+        
 
-    % Run injection scenario using entire Sto formation
-    [wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
-        runSnohvitInjectionScenario( Gt_st, rock2D_st, 'wellCoords',wellCoords);
+    end
+    
+%     % Run injection scenario using entire Sto formation
+%     [wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
+%         runSnohvitInjectionScenario( Gt_st, rock2D_st );
+% 
+% 
+%     % Alternatively, various injection locations can be specified here and
+%     % passed into runSnohvitInjectionScenario()
+% 
+%     % Physical coordinate(s):
+%     wellCoords = [9.225e5, 7.988e6; 9.225e5 + 300, 7.988e6 + 300; ...
+%         9.225e5 + 400, 7.988e6 + 400; 9.225e5 + 500, 7.988e6 + 500];
+%     % Alternatively, pass in the well cell index of Gt for each of these
+%     % physical coodinates...
+% 
+% 
+% 
+%     % Run injection scenario using entire Sto formation
+%     [wellSols_st, states_st, sim_report_st, opt_st, var_st ] = ...
+%         runSnohvitInjectionScenario( Gt_st, rock2D_st, 'wellCoords',wellCoords);
 
 
     % Plot
     if ~exist('ta_st','var')
         ta_st = trapAnalysis(Gt_st, false);
     end
-    plotCO2footprint(Gt_st, ta_st, states_st, opt_st, var_st);
+    %plotCO2footprint(Gt_st, ta_st, states_st, opt_st, var_st);
 
 
     % Analyze simulated injection/migration:
     figure;
-    plotToolbar(Gt_st, states)
+    plotToolbar(Gt_st, states_st)
+    if ~isempty(opt.transMult)
+        set(gcf,'name',['trans multiplier = ',num2str(opt.transMult)])
+        plotFaces(Gt_st, faultFaces2D, 'EdgeColor','r', 'LineWidth',3)
+    end
     
 end
 
@@ -131,23 +183,23 @@ end
 % prospect areas and display detail such as rock volume, pore volume,
 % storage capacity, etc.
 
-% could also use:
-exploreCapacity( 'default_formation',  'Stofm',     ...
-                 'grid_coarsening',     1,          ...
-                 'seafloor_depth',      330*meter,  ...
-                 'seafloor_temp',       4,          ...
-                 'temp_gradient',       40           );
-             
-exploreSimulation(  'default_formation',  'Tubaenfm',     ...
-                    'grid_coarsening',     3,          ...
-                    'seafloor_depth',      330*meter,  ...
-                    'seafloor_temp',       4,          ...
-                    'temp_gradient',       40,         ...
-                    'inj_time',            30 * year,  ...
-                    'inj_steps',           30,         ...
-                    'mig_time',            0 * year,   ...
-                    'mig_steps',           0,          ...
-                    'savefile',            'testsave'   );
+% % could also use:
+% exploreCapacity( 'default_formation',  'Stofm',     ...
+%                  'grid_coarsening',     1,          ...
+%                  'seafloor_depth',      330*meter,  ...
+%                  'seafloor_temp',       4,          ...
+%                  'temp_gradient',       40           );
+%              
+% exploreSimulation(  'default_formation',  'Tubaenfm',     ...
+%                     'grid_coarsening',     3,          ...
+%                     'seafloor_depth',      330*meter,  ...
+%                     'seafloor_temp',       4,          ...
+%                     'temp_gradient',       40,         ...
+%                     'inj_time',            30 * year,  ...
+%                     'inj_steps',           30,         ...
+%                     'mig_time',            0 * year,   ...
+%                     'mig_steps',           0,          ...
+%                     'savefile',            'testsave'   );
 
 
 % -------------------------------------------------------------------------

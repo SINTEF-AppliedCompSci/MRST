@@ -1,4 +1,4 @@
-function [ initState, fluid ] = simpleSetUp( Gt, rock2D )
+function [ initState, fluid, rhow, rhoc ] = simpleSetUp( Gt, rock2D )
 % Set up initial conditions and model for CO2 injection/migration scenario
 
     % Fluid data at p = 300 bar

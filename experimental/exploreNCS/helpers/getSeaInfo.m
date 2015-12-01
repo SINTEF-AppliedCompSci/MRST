@@ -67,7 +67,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
         % Atlas, chp 5.
         warning('Some sea values need to be confirmed.')
 
-        info.seafloor_depth  = 350 * meter;  % NB: confirm @@
+        info.seafloor_depth  = 225 * meter;  % varies between 100-500 m in depth, but generally 200-250 m (personal communication with Ane Lothe)
         info.seafloor_temp   =  5;           % Lundin et al 2005 report
         info.temp_gradient   = 41.3;         % Lundin et al 2005 report
         % NB: Lothe et al 2014 used 40 C/km in their simulations
@@ -132,6 +132,8 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.dis_max         = info.co2_solubility / rhoCref;
         
         info.press_deviation = 0;
+        
+        info.rhoCref = rhoCref;
         
         
         

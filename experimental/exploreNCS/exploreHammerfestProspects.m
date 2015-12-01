@@ -16,6 +16,9 @@
 mrstModule add libgeometry opm_gridprocessing
 
 N = 1;
+plotsOn = true;
+figDirName = 'HammerfestProspectFigs';
+mkdir(figDirName)
 
 %% Get Sto dataset
 Sto_trapInfo = getTrappingInfo('Stofm', N, 'plotsOn',false);
@@ -72,7 +75,7 @@ Tcurrent %#ok
 
 % plot to show all structrual traps identified by trapAnalysis, and then
 % the boundaries of the prospect regions ontop to show comparison
-figure
+figure; set(gcf,'Position',[653 453 820 819])
 mapPlot(gcf, Gt_st, 'traps',ta_st.traps)
 names = fieldnames(Grids);
 for i = 1:numel(names)
@@ -83,26 +86,61 @@ for i = 1:numel(names)
 end
 axis equal tight off
 % add prospect labels on top of plot
-text(pts.Xpt_gsf,  pts.Ypt_gsf,  'G. Sn\ohvit',   'HorizontalAlignment','center');
-text(pts.Xpt_alba, pts.Ypt_alba, 'G. Albatross', 'HorizontalAlignment','right');
-text(pts.Xpt_aske, pts.Ypt_aske, 'G. Askeladd',  'HorizontalAlignment','center');
-text(pts.Xpt_prosC, pts.Ypt_prosC,   'C', 'HorizontalAlignment','center');
-text(pts.Xpt_prosD, pts.Ypt_prosD,   'D', 'HorizontalAlignment','right');
-text(pts.Xpt_prosE, pts.Ypt_prosE,   'E', 'HorizontalAlignment','center');
-text(pts.Xpt_prosF, pts.Ypt_prosF,   'F', 'HorizontalAlignment','center');
-text(pts.Xpt_prosG, pts.Ypt_prosG,   'G', 'HorizontalAlignment','center');
-text(pts.Xpt_prosH, pts.Ypt_prosH,   'H', 'HorizontalAlignment','right');
-hax = gca;
-for i=1:numel(hax.Children)
-    if strcmpi(class(hax.Children(i)),'matlab.graphics.primitive.Text')
-        set(hax.Children(i), 'FontSize',18, 'FontWeight','bold', ...
-            'Color','blue', 'FontAngle','italic');
-    end
+% NB: annotation location is in normalized units for figure, while text is
+% in the coordinate data units
+annotation('textarrow',[0.509756097560976 0.569512195121951],...
+    [0.743589743589744 0.663003663003663],'String','D','FontSize',16);
+annotation('textarrow',[0.567073170731707 0.619512195121951],...
+    [0.774114774114774 0.697191697191697],'String','C','FontSize',16);
+annotation('textarrow',[0.707317073170732 0.601219512195122],...
+    [0.477411477411477 0.527472527472527],'String','E','FontSize',16);
+annotation('textarrow',[0.692682926829268 0.615853658536585],...
+    [0.413919413919414 0.454212454212454],'String','F','FontSize',16);
+annotation('textarrow',[0.48780487804878 0.44129737776251],...
+    [0.258852258852259 0.285288270377731],'String','G','FontSize',16);
+annotation('textarrow',[0.360975609756098 0.313832589030116],...
+    [0.129426129426129 0.153167684976829],'String','H','FontSize',16);
+annotation('textarrow',[0.318292682926829 0.41090976754838],...
+    [0.63003663003663 0.552910862055991],...
+    'String',['Greater',sprintf('\n'),'Sn\ohvit'],...
+    'FontSize',16);
+annotation('textarrow',[0.230487804878049 0.36570755102052],...
+    [0.401709401709402 0.398561897567862],...
+    'String',['Greater',sprintf('\n'),'Askeladd'],...
+    'FontSize',16);
+annotation('textarrow',[0.254878048780488 0.447365613136554],...
+    [0.532356532356532 0.461960973640893],...
+    'String',['Greater',sprintf('\n'),'Albatross'],...
+    'FontSize',16);
+hfig = gcf;
+set(findall(hfig,'Type','TextArrow'), 'FontSize',18, 'LineWidth',1, ...
+    'TextColor',[0 0 1], 'Color',[0 0 1])
+
+if plotsOn
+    export_fig(gcf,[figDirName '/' 'ProspectsInHammerfest_ref',num2str(N)], '-png','-transparent')
+    %close
 end
+
+% text(pts.Xpt_gsf,  pts.Ypt_gsf,  'G. Sn\ohvit',   'HorizontalAlignment','center');
+% text(pts.Xpt_alba, pts.Ypt_alba, 'G. Albatross', 'HorizontalAlignment','right');
+% text(pts.Xpt_aske, pts.Ypt_aske, 'G. Askeladd',  'HorizontalAlignment','center');
+% text(pts.Xpt_prosC, pts.Ypt_prosC,   'C', 'HorizontalAlignment','center');
+% text(pts.Xpt_prosD, pts.Ypt_prosD,   'D', 'HorizontalAlignment','right');
+% text(pts.Xpt_prosE, pts.Ypt_prosE,   'E', 'HorizontalAlignment','center');
+% text(pts.Xpt_prosF, pts.Ypt_prosF,   'F', 'HorizontalAlignment','center');
+% text(pts.Xpt_prosG, pts.Ypt_prosG,   'G', 'HorizontalAlignment','center');
+% text(pts.Xpt_prosH, pts.Ypt_prosH,   'H', 'HorizontalAlignment','right');
+% hax = gca;
+% for i=1:numel(hax.Children)
+%     if strcmpi(class(hax.Children(i)),'matlab.graphics.primitive.Text')
+%         set(hax.Children(i), 'FontSize',18, 'FontWeight','bold', ...
+%             'Color','blue', 'FontAngle','italic');
+%     end
+% end
 
 
 % plot to show trapping capacity (Mt) of each prospect/closure
-figure;
+figure; set(gcf,'Position',[653 453 820 819])
 plotCellData(Gt_st, ta_st.traps, 'EdgeColor','none','FaceColor',[1 0.9 0.9])
 names = fieldnames(Grids);
 for i = 1:numel(names)
@@ -124,6 +162,10 @@ set(hcb.Label, 'String','Mt', 'FontSize',16, 'Rotation',0);
 set(gca,'DataAspect',[1 1 0.02]);
 %view([-100 55]);
 view(2)
+if plotsOn
+    export_fig(gcf,[figDirName '/' 'ProspectCapacity_ref',num2str(N)], '-png','-transparent')
+    %close
+end
 
 
 % % using mapPlot to show contours --> TODO: prevent colors from being
@@ -151,13 +193,17 @@ view(2)
 
 
 %% Use NPD's storage efficiency values to get reduced storage capacity estimates
+for i = 1:numel(capacities)
+    Seff = getStorageEfficiency(names{i}); % percent
+    adjustedCap_Mt(i) = capacities{1,i}.storageCap_Mt * Seff/100;
+end
 
 
 
-% other things to try:
-% - increase resolution of initial grid, to get traps again
-% - compare between cell-based and node-based method of trapAnalysis
-% - use lower CO2 density (700 kg/m3) as used by NPD calculations
-% - use formula with constant CO2 density to compute storage capacity
+% TODO:
+% - convert this script into a function to include all helper functions
+% within?
+% - get trapping capacities in formation that contains faults
+
 
 

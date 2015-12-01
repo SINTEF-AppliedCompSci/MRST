@@ -216,13 +216,41 @@ plotGrid(Gtf, 'FaceColor','none','EdgeAlpha',0.1)
 
 %%
 [Gt, rock2D] = getFormationTopGrid('Garnfm',5);
-[~, faultFaces, faultCells, s ] = implementFaults(Gt, rock2D);
+[~, faultFaces, faultCells, s ] = implementFaults(Gt, rock2D); % @@ updated
 
 % pass in s to create model (not rock2D).
 
 
 
+%% testing out faults in Hammerfest
+
+% 1. first test detectFaults() in Johansen formation:
+[ grdecl_sect, G_sect, Gt_sect, rock2D_sect ] = makeJohansenSector();
+[~, faultFaces2D, faultCells] = detectFaults(Gt_sect, rock2D_sect,'gradTol',70);
+
+% work-in-progress:
+    % Identify faces you need to get node info for:
+    faceInx = faultFaces2D;
+
+    % Get node info for each face identified
+    for i=1:numel(faceInx)
+        nodeInfo{i} = G.faces.nodes(G.faces.nodePos(faceInx(i)):G.faces.nodePos(faceInx(i)+1)-1, :);
+    end
+
+    % try to get algorithm that returns face indices of faces between node A
+    % and B, such that the path contains the most number of faces meeting a
+    % constraint (i.e., an elevation gradient above a set tolerance).
+
+    % To connect two detached fault faces, faces should be picked such that the
+    % added faces are the most direct connect (i.e., added path length is
+    % shortest).
 
 
+% 2. Then run cases in Sto formation
+exploreHammerfest('transMult',0,'coarsening',1,'gradTol',75)
+exploreHammerfest('transMult',0.01,'coarsening',1,'gradTol',75)
+exploreHammerfest('transMult',0.1,'coarsening',1,'gradTol',75)
+exploreHammerfest('transMult',1,'coarsening',1,'gradTol',75)
+exploreHammerfest('transMult',1000,'coarsening',1,'gradTol',75)
 
 

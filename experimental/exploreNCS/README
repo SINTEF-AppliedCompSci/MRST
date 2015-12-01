@@ -12,7 +12,7 @@ formationCapacities.m
     - output is given in a table, suitable for a latex document
 
 
-exploreHammerfestProspects.m (okay)
+exploreHammerfestProspects.m
     - running this script will compute storage capacity of specific traps
     in Sto formation, which correspond to those identified in NPD's
     CO2-Atlas

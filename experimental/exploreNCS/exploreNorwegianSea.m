@@ -115,7 +115,7 @@ for i = 1:numel(fmind)
     % - structural trap capacity (Mt)
     % - caprock CO2 density (gas vs liquid)
     fprintf('  Formation name: %s\n', fmNames{fmind(i)});
-    [ capOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock, 'NorwegianSea');
+    [ capOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock, 'NorwegianSea'); % updated @@
     set(hfig,'name', fmNames{fmind(i)});
     
     % save fig
@@ -163,7 +163,8 @@ export_fig(gcf,[figDirName '/' 'TiljeAre3D_ref' num2str(coarsening)], '-png','-t
 %% ------------------------------------------------------------------------
 % 4. Tabulate results using capOutput
 % Use sub-functions to retrieve NPD data for comparison (TODO)
-
+%
+% see script formationCapacities.m for this
 
 
 %% Set up injection scenario(s):
@@ -189,10 +190,10 @@ Gt      = Gt_gn;
 rock2D  = rock2D_gn;
 ta      = trapAnalysis(Gt,'false');
 
-[ capOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, 'NorwegianSea');
+[ capOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, 'NorwegianSea'); % updated @@
 
 seainfo = getSeaInfo('NorwegianSea');
-wellinfo = getWellInfo(Gt, capOutput);
+wellinfo = getWellInfo(Gt, capOutput); % updated @@
 export_fig(gcf,[figDirName '/' 'WellsGarn_ref' num2str(coarsening)], '-png','-transparent')
 
 % assess impact of presence of producer wells:

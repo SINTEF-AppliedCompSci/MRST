@@ -16,7 +16,6 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
 %               - seafloor_depth
 %               - seafloor_temp
 %               - temp_gradient
-%   fminfo  - all available information about the formation fluids:
 %               - water_density
 %               - co2_density
 %               - water_mu
@@ -49,7 +48,8 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     gravity on;
     moduleCheck('ad-core');
 
-    rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
+    %rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
+    rhoCref = seainfo.rhoCref;
 
     opt.seafloor_depth    = seainfo.seafloor_depth; % kilometer
     opt.seafloor_temp     = seainfo.seafloor_temp;  % in Celsius
@@ -66,7 +66,7 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     opt.pvMult          = 1e-5/barsa;
     
     opt.isDissOn        = false;
-    opt.dis_max         = (53 * kilogram / meter^3) / rhoCref;
+    opt.dis_max         = seainfo.dis_max;
 
     
     opt.wellCoords_inj    = wellinfo.wellCoords_inj; % physical coords (X,Y)
@@ -85,11 +85,11 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     opt.mig_steps         = 30; %wellinfo.mig_steps;
     
 
-    opt.bdryType          = 'pressure'; % tried closed, semi-closed
+    opt.bdryType          = 'pressure'; % try closed ('flux'), semi-closed
 
     opt = merge_options(opt, varargin{:});
     
-    % rates in m3/s
+    % reservoir volumetic rates in m3/s
     opt.inj_rate          = (opt.inj_rate_MtperYr * mega * kilo / rhoCref) / year; % m3/s
     opt.prod_rate         = (opt.prod_rate_MtperYr * mega * kilo / opt.water_density) / year; % m3/s
     
@@ -107,6 +107,10 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
 
     
     % Set up wells:
+    % NB: supply reference depth when adding well. If Gt.parent is used to
+    % set up well, supply reference depth of
+    % Gt.parents.cells.centroid(wellCellIndex,3). If Gt is used, ref depth
+    % is Gt.cells.z(wellCellIndex),
     allWells = [opt.wellCoords_inj; opt.wellCoords_prod];
     allRates = [repmat( opt.inj_rate,  [size(opt.wellCoords_inj), 1] ); ...
                 repmat( -opt.prod_rate, [size(opt.wellCoords_prod), 1] ) ];
@@ -134,7 +138,8 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
             'name',     wellname,  ...
             'Type',     'rate', ...
             'Val',      allRates(i), ...
-            'comp_i',   composition );
+            'comp_i',   composition, ...
+            'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3));
         
         
         % Put turned-off wells into schedule.control(2)
@@ -143,13 +148,19 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
             'name',     [wellname '_off'],  ...
             'Type',     'rate', ...
             'Val',      0, ...
-            'comp_i',   composition );
+            'comp_i',   composition, ...
+            'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3));
         
     end
 
     % Set up boundary conditions, and put into schedule.control(1) and schedule.control(2):
     bdryFaces   = find( Gt.faces.neighbors(:,1).*Gt.faces.neighbors(:,2) == 0 );
-    bdryVal     = Gt.faces.z(bdryFaces) * opt.water_density * norm(gravity);
+    if strcmpi(opt.bdryType,'pressure')
+        bdryVal     = Gt.faces.z(bdryFaces) * opt.water_density * norm(gravity);
+    elseif strcmpi(opt.bdryType,'flux')
+        bdryVal     = zeros(numel(bdryFaces),1);
+        % does saturation bdry change?
+    end
     bc          = addBC( [], bdryFaces, opt.bdryType, bdryVal, 'sat', [1 0] );
     for i = 1:numel(schedule.control)
         schedule.control(i).bc = bc;
@@ -179,7 +190,10 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
                                   'pvMult_fac'  , opt.pvMult, ...
                                   'residual'    , [opt.res_sat_wat, opt.res_sat_co2] , ...
                                   'dissolution' , opt.isDissOn, 'dis_max', opt.dis_max);
+    
     var.model = CO2VEBlackOilTypeModel(Gt, rock2D, var.fluid);
+    
+    % use CO2VEBlackOilTypeModel_trans() if trans is to be supplied:
 
     fprintf('\n\n Proceeding to solver... \n\n')
     [wellSols, states, sim_report] = simulateScheduleAD(initState, var.model, schedule);

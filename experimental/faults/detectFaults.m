@@ -1,18 +1,26 @@
-function [ Gt_faults, faultFaces, faultCells, s ] = implementFaults(Gt, rock2D, varargin)
+function [ Gt_faults, faultFaces, faultCells, s, rock2D_faults ] = detectFaults(Gt, rock2D, varargin)
 % Detects potential fault lines based on: a) elevation gradients above a
-% tolerance value, or b) specified coordinates
+% tolerance value, or b) specified coordinates.
 %
 % SYNOPSIS
 %   implementFaults(Gt, rock2D)
 %   implementFaults(Gt, rock2D, 'gradTol',100)
-%   implementFaults(Gt, [], 'faultCoords',[Xcoords(:), Ycoords(:)])
+%   implementFaults(Gt, [], 'faultCoords',[Xcoords(:), Ycoords(:)]) -> TODO
 %
 % DESCRIPTION
 %   The face index belonging to fault line are returned in faultFaces.
+%
 %   Cells along fault lines can be removed from grid.
+%
 %   Also, faces belonging to fault lines can be assigned a new
 %   transmissibility (either lower or higher than original, depending on
 %   whether fault is sealing or conducting).
+%
+%   Any isolated fault cells are removed from grid (i.e., a group of cells
+%   that is surrounded by 0 transmissibility faces). 
+%
+%   NB: how should boundary condition on fault face be handled? Are
+%   pressure bdrys being applied at some fault faces?
 
 % SEE ALSO:
 %    makeInternalBoundary.m
@@ -60,7 +68,7 @@ if isempty(opt.faultCoords)
     title('Detected fault faces')
     plotFaces(Gt, faultFaces,'r', 'EdgeColor','r','LineWidth',3)
     plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1)
-    view(3)
+    view(2)
     
 
     % All cells that are neighbors to the faultFaces are assigned as
@@ -75,7 +83,65 @@ if isempty(opt.faultCoords)
     title('Cells on either side of fault faces')
     plotCellData(Gt, Gt.cells.z, faultCells, 'EdgeAlpha',0.1)
     plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1)
-    view(3)
+    view(2)
+    
+    
+    % Attempt to remove any isolated cells that are surrounded by fault
+    % faces
+    N = Gt.faces.neighbors(all(Gt.faces.neighbors > 0, 2) & s.T_all > 0, :);
+    A = sparse([N(:); (1 : Gt.cells.num).'], [reshape(fliplr(N), [], 1); (1 : Gt.cells.num) .'], 1);
+    [p, ~, r] = dmperm(A);
+    ncomp = numel(r) - 1;
+    ncells = diff(r);
+    [~, i] = max(ncells);
+    cells = p(r(i) : r(i + 1) - 1);
+    
+    % only need to run follow lines if any isolated cells were detected
+    if numel(cells) ~= Gt.cells.num
+        
+        [Gtnew, remainingGlobalCells, remainingGlobalFaces, gn] = extractSubgrid(Gt, cells);
+        % the following info is not returned with Gtnew:
+        
+        % Gt.cells.columnPos
+        % Gt.cells.ij
+        % Gt.cells.z ***
+        % Gt.cells.H ***
+        % Gt.cells.normals
+        % Gt.cells.map3DFace
+        % Gt.cells.sortedCellNodes
+        % Gt.cells.sortedNodes
+        
+        % Gt.faces.z ***
+        % Gt.faces.cartFaceMap
+        
+        % Gt.nodes.z ***
+        Gtnew.cells.z = Gt.cells.z( remainingGlobalCells );
+        Gtnew.cells.H = Gt.cells.H( remainingGlobalCells );
+        Gtnew.faces.z = Gt.faces.z( remainingGlobalFaces );
+        Gtnew.nodes.z = Gt.nodes.z( gn );
+        
+        % update rock2D structure
+        cellinx = 1:Gt.cells.num;
+        rock2D_faults.perm = rock2D.perm(cellinx(remainingGlobalCells));
+        rock2D_faults.poro = rock2D.poro(cellinx(remainingGlobalCells));
+
+        % use gf to remove any inx from faultFaces which were removed, and use
+        % gf to get reordered faultFaces
+        GlobalFaultFaces = faultFaces;
+        [remainingGlobalFaultFaces, inx] = intersect(remainingGlobalFaces, GlobalFaultFaces);
+        localFaultFaces = inx;
+
+        faultFaces = localFaultFaces;
+        Gt_faults = Gtnew;
+
+        figure;
+        title('Updated fault faces, after removing isolated fault cells')
+        plotFaces(Gt_faults, faultFaces,'b', 'EdgeColor','b','LineWidth',3)
+        plotGrid(Gt_faults, 'FaceColor','none', 'EdgeAlpha',0.1)
+        view(2)
+    
+    else
+        
     
     % attempt to remove cells from 2D grid - didn't work properly @@
     %Gt_faults       = removeCells(Gt, faultCells);
@@ -85,7 +151,11 @@ if isempty(opt.faultCoords)
     % cut 3D grid 
     %G_faults              = removeCells(Gt.parent, faultCells);
     %[Gt_faults, G_faults] = topSurfaceGrid(mcomputeGeometry(G_faults)); % @@ time-consuming
-    Gt_faults = Gt; % @@
+    
+        Gt_faults       = Gt; % @@
+        rock2D_faults   = rock2D;
+    
+    end
     
     % Visualization
     %figure;

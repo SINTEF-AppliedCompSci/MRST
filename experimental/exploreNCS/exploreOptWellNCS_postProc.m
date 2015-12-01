@@ -6,9 +6,9 @@
 moduleCheck('mrst-gui')
 
 %% Specify formation name
-fmName = 'Stofm';
+fmName = 'Utsirafm';
 
-pathName = ['opt_results/' fmName '/' 'ref5/OneWellPerCatch/leakPenalty0.5/'];
+pathName = ['opt_results/' fmName '/' 'ref5/OneWellPerCatch/leakPenalty1.1/'];
 load([pathName,'Gt.mat']);
 load([pathName,'init.mat']);
 load([pathName,'optim.mat']);
