@@ -45,6 +45,10 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
         pvMult =  fluidADI.pvMultR(p);
     end
     pv       = rock.poro .* Gt.cells.volumes .* pvMult;%effective area
+    if isfield(rock,'ntg')
+       pv = rock.poro .* Gt.cells.volumes .* rock.ntg .* pvMult;
+       %effective area accounting for possible net-to-gross data
+    end
     rhoCO2   = fluidADI.rhoGS .* fluidADI.bG(p);
     gasPhase = sum(pv .* (rhoCO2 .* SG));
     
