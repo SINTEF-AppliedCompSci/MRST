@@ -1,4 +1,5 @@
-function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenario( Gt, rock2D, seainfo, wellinfo, varargin )
+function [ wellSols, states, sim_report, opt, var ] = ...
+    runGenericInjectionScenario( Gt, rock2D, seainfo, wellinfo, varargin )
 % Run a generic CO2 injection scenario for an Atlas formation.
 %
 % SYNOPSIS:
@@ -36,6 +37,7 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
 %
 % PARAMETERS:
 %   'pn'/pv - List of optional property names/property values:
+%       'bdryType' - could be 'pressure' or 'flux'
 %
 %
 % RETURNS:
@@ -68,31 +70,64 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     opt.isDissOn        = false;
     opt.dis_max         = seainfo.dis_max;
 
-    
-    opt.wellCoords_inj    = wellinfo.wellCoords_inj; % physical coords (X,Y)
-    opt.wellCoords_prod   = wellinfo.wellCoords_prod;
+   
     opt.well_radius       = 0.3;
     
-    opt.inj_rate_MtperYr  = 5; %wellinfo.inj_rate_MtperYr;     % Mt/yr
-    opt.inj_time          = 50*year; %wellinfo.inj_time;
-    opt.inj_steps         = 10; %wellinfo.inj_steps;
+    %%% Injection info:
+    opt.wellCoords_inj    = wellinfo.wellCoords_inj; % physical coords (X,Y)
+    opt.inj_time          = 50*year;
+    opt.inj_steps         = 10;
+    if isfield(wellinfo,'inj_rate_MtperYr')
+        assert(numel(opt.wellCoords_inj,2) == numel(wellinfo.inj_rate_MtperYr))
+        opt.inj_rate_MtperYr  = wellinfo.inj_rate_MtperYr;     % Mt/yr
+    elseif isfield(wellinfo,'vols_inj')
+        opt.inj_rate_MtperYr  = wellinfo.vols_inj ./ convertTo(opt.inj_time,year) .* opt.co2_density ./ 1e9; % Mt/yr
+    end
+
+    %%% Production info:
+    opt.wellCoords_prod   = [];
+    opt.prod_time         = [];
+    opt.prod_steps        = [];
+    opt.prod_rate_MtperYr = [];
+    if isfield(wellinfo,'wellCoords_prod')
+        opt.wellCoords_prod   = wellinfo.wellCoords_prod;
+        opt.prod_time         = opt.inj_time;
+        opt.prod_steps        = opt.inj_steps;
+        if isfield(wellinfo,'prod_rate_MtperYr')
+            assert(numel(opt.wellCoords_prod,2) == numel(wellinfo.prod_rate_MtperYr))
+            opt.prod_rate_MtperYr = wellinfo.prod_rate_MtperYr;
+        elseif isfield(wellinfo,'vols_prod')
+            opt.prod_rate_MtperYr = wellinfo.vols_prod ./ convertTo(opt.prod_time,year) .* opt.water_density;
+        else
+            opt.prod_rate_MtperYr = repmat( mean(opt.inj_rate_MtperYr)/10, [1, numel(opt.wellCoords_prod,2)]);
+        end
+    end
     
-    opt.prod_rate_MtperYr = 2; %wellinfo.prod_rate_MtperYr;
-    opt.prod_time         = opt.inj_time; %wellinfo.prod_time;
-    opt.prod_steps        = opt.inj_steps; %wellinfo.prod_steps;
-    
-    opt.mig_time          = 3000*year; %wellinfo.mig_time;
-    opt.mig_steps         = 30; %wellinfo.mig_steps;
+    opt.mig_time          = 3000*year;
+    opt.mig_steps         = 30;
     
 
-    opt.bdryType          = 'pressure'; % try closed ('flux'), semi-closed
+    opt.bdryType          = 'pressure'; % initialization only
+    opt.transMult         = [];         % transmissibilities of faultFaces will be modified if transMult is specified.
+    opt.faultFaces        = [];
 
     opt = merge_options(opt, varargin{:});
     
     % reservoir volumetic rates in m3/s
-    opt.inj_rate          = (opt.inj_rate_MtperYr * mega * kilo / rhoCref) / year; % m3/s
-    opt.prod_rate         = (opt.prod_rate_MtperYr * mega * kilo / opt.water_density) / year; % m3/s
+    % use rhoCref or co2.rho(p,t) or co2_density?
+    opt.inj_rate          = (opt.inj_rate_MtperYr .* mega .* kilo ./ opt.co2_density) ./ year; % m3/s
+    opt.prod_rate         = (opt.prod_rate_MtperYr .* mega .* kilo ./ opt.water_density) ./ year; % m3/s
     
+    figure
+    bar(opt.inj_rate)
+    ylabel('Injection rates (m^3/s)')
+    
+    if ~isempty(opt.transMult)
+        update_transmissibilities = true;
+        assert( ~isempty(opt.faultFaces), 'When you specify a transmissibility multiplier, you must also specify the fault face indices.')
+    else
+        update_transmissibilities = false;
+    end
 
     %% Set-up (initial state, well location, schedule)
     
@@ -107,13 +142,15 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
 
     
     % Set up wells:
-    % NB: supply reference depth when adding well. If Gt.parent is used to
-    % set up well, supply reference depth of
+    % NB: reference depth is supplied here when adding well. If Gt.parent
+    % is used to set up well, supply reference depth of
     % Gt.parents.cells.centroid(wellCellIndex,3). If Gt is used, ref depth
-    % is Gt.cells.z(wellCellIndex),
+    % is Gt.cells.z(wellCellIndex), but it might not be necessary to supply
+    % it explicitly.
     allWells = [opt.wellCoords_inj; opt.wellCoords_prod];
-    allRates = [repmat( opt.inj_rate,  [size(opt.wellCoords_inj), 1] ); ...
-                repmat( -opt.prod_rate, [size(opt.wellCoords_prod), 1] ) ];
+    %allRates = [repmat( opt.inj_rate,  [size(opt.wellCoords_inj), 1] ); ...
+    %            repmat( -opt.prod_rate, [size(opt.wellCoords_prod), 1] ) ];
+    allRates = [ opt.inj_rate; -opt.prod_rate ];
     numWells = size(allWells,1);
     for i = 1:numWells
         
@@ -134,22 +171,45 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
         end
         
         % Put injection/producer wells into schedule.control(1)
-        schedule.control(1).W(i) = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
-            'name',     wellname,  ...
-            'Type',     'rate', ...
-            'Val',      allRates(i), ...
-            'comp_i',   composition, ...
-            'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3));
-        
+        % addWell was set up for a 3D grid. However, the 2D grid can be
+        % passed in but a large dZ may be computed. A hack is to manually
+        % set dZ=0.
+        if isfield(Gt,'parent')
+            schedule.control(1).W(i) = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
+                'name',     wellname,  ...
+                'Type',     'rate', ...
+                'Val',      allRates(i), ...
+                'comp_i',   composition, ...
+                'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3) );
+        else
+            schedule.control(1).W(i) = addWell([], Gt, rock2D, var.wellCellIndex(i), ...
+                'name',     wellname,  ...
+                'Type',     'rate', ...
+                'Val',      allRates(i), ...
+                'comp_i',   composition, ...
+                'refDepth', Gt.cells.z(var.wellCellIndex(i)) + Gt.cells.H(var.wellCellIndex(i))./2 );
+            schedule.control(1).W(i).dZ = 0; %@@ hack
+        end
+         
         
         % Put turned-off wells into schedule.control(2)
         % or, use 'status',0 to implement turned-off wells?
-        schedule.control(2).W(i)  = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
-            'name',     [wellname '_off'],  ...
-            'Type',     'rate', ...
-            'Val',      0, ...
-            'comp_i',   composition, ...
-            'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3));
+        if isfield(Gt,'parent')
+            schedule.control(2).W(i)  = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
+                'name',     [wellname '_off'],  ...
+                'Type',     'rate', ...
+                'Val',      0, ...
+                'comp_i',   composition, ...
+                'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3) );
+        else
+            schedule.control(2).W(i)  = addWell([], Gt, rock2D, var.wellCellIndex(i), ...
+                'name',     [wellname '_off'],  ...
+                'Type',     'rate', ...
+                'Val',      0, ...
+                'comp_i',   composition, ...
+                'refDepth', Gt.cells.z(var.wellCellIndex(i)) + Gt.cells.H(var.wellCellIndex(i))./2 );
+            schedule.control(2).W(i).dZ = 0; %@@ hack;
+        end
         
     end
 
@@ -178,6 +238,8 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     
 
     %% Main parts of model and solver
+    % @@ what parts of makeVEFluid, Model, simulateScheduleAD, will use
+    % rock2D.ntg if field exists?
     
     var.fluid = makeVEFluid(Gt, rock2D, 'sharp interface', ...
                                   'fixedT'      , var.caprock_temperature, ...
@@ -193,7 +255,14 @@ function [ wellSols, states, sim_report, opt, var ] = runGenericInjectionScenari
     
     var.model = CO2VEBlackOilTypeModel(Gt, rock2D, var.fluid);
     
-    % use CO2VEBlackOilTypeModel_trans() if trans is to be supplied:
+    if update_transmissibilities
+        T_all                   = getVerticallyAveragedTrans(Gt, rock2D);
+        T_all_orig              = T_all;
+        T_all( opt.faultFaces ) = T_all( opt.faultFaces ).*opt.transMult;
+        var.model.operators.T_all  = T_all;
+        var.model.operators.T      = T_all( var.model.operators.internalConn );
+    end
+    
 
     fprintf('\n\n Proceeding to solver... \n\n')
     [wellSols, states, sim_report] = simulateScheduleAD(initState, var.model, schedule);

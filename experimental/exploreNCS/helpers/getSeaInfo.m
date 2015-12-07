@@ -59,6 +59,8 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.dis_max         = info.co2_solubility / rhoCref;
         
         info.press_deviation = 0; % pressure devation from hydrostatic (%)
+        
+        info.rhoCref = rhoCref;
 
         
         
@@ -84,6 +86,8 @@ function [ info ] = getSeaInfo( name, rhoCref )
         info.dis_max         = info.co2_solubility / rhoCref;
         
         info.press_deviation = 0;
+        
+        info.rhoCref = rhoCref;
 
         
         

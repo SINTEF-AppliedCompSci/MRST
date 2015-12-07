@@ -8,6 +8,8 @@ function compareTwoSims( sim1str, Gt1, rock2D1, wellSols1, states1, sim_report1,
 % Implementation could be extended to handle more than two simulation
 % results for comparison.
 
+moduleCheck('mrst-gui')
+
 defaultFigPlacement = false;
 
 %% Prepare data before passing into plotToolbar()
@@ -20,7 +22,7 @@ defaultFigPlacement = false;
 Gt          = Gt1;
 initState   = var1.initState;
 schedule    = var1.schedule;
-sts         = states1;
+sts         = {initState, states1{:}};
 ta          = trapAnalysis(Gt,false);
 wellSols    = wellSols1;
 rock2D      = rock2D1;
@@ -30,11 +32,11 @@ residual    = [var1.fluid.res_water, var1.fluid.res_gas]; % or [opt1.sw, opt1.sr
 wcinx       = [schedule.control(1).W.cells];
 maxPressDev = 0;
 maxCO2sat   = 0;
-timeYr      = convertTo( cumsum(schedule.step.val), year);
+timeYr      = [0; convertTo( cumsum(schedule.step.val), year)];
 
 for i=1:numel(sts)
     
-   sts{i}.s( sts{i}.s(:,2) < 0.00001, 2 ) =  nan;
+   sts{i}.s( sts{i}.s(:,2) < 0.01, 2 ) =  nan;
    
    sts{i}.pressDev = sts{i}.pressure - initState.pressure;
    
@@ -75,8 +77,8 @@ set(gcf,'name',sim1str)
 if ~defaultFigPlacement; set(gcf,'Position',[2571 936 698 420]); end
 
 
-fprintf('\n Max press deviation of %d MPa occurred at %d years (step %d) since sim start.\n', maxPressDev, maxPressDev_timeYr, maxPressDev_stepNum )
-fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d) since sim start.\n', maxCO2sat, maxCO2sat_timeYr, maxCO2sat_stepNum )
+fprintf('\n Max press deviation of %d MPa occurred at %d years (step %d).\n', maxPressDev, maxPressDev_timeYr, maxPressDev_stepNum )
+fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d).\n', maxCO2sat, maxCO2sat_timeYr, maxCO2sat_stepNum )
 
 
 % leakage report
@@ -97,14 +99,17 @@ set(gca,'FontSize',14)
 
 plotFormationPressureChanges( states1, var1, opt1, 'figname', sim1str )
 
-compareBHPandWellCellPressure( states1, wellSols1, var1.wellCellIndex )
+%compareBHPandWellCellPressure( states1, wellSols1, var1.wellCellIndex )
 
 
 %% sim 2 -
+% execute if second sim results were passed in
+if exist('Gt2','var')
+    
 Gt          = Gt2;
 initState   = var2.initState;
 schedule    = var2.schedule;
-sts         = states2;
+sts         = {initState, states2{:}};
 ta          = trapAnalysis(Gt,false);
 wellSols    = wellSols2;
 rock2D      = rock2D2;
@@ -114,7 +119,7 @@ residual    = [var2.fluid.res_water, var2.fluid.res_gas];
 wcinx       = [schedule.control(1).W.cells];
 maxPressDev = 0;
 maxCO2sat   = 0;
-timeYr      = convertTo( cumsum(schedule.step.val), year);
+timeYr      = [0; convertTo( cumsum(schedule.step.val), year)];
 
 for i=1:numel(sts)
     
@@ -158,8 +163,8 @@ plotWellSols(wellSols)
 set(gcf,'name',sim2str,'Position',[3776 933 695 419])
 
 
-fprintf('\n Max press deviation of %d MPa occurred at %d years (step %d) since sim start.\n', maxPressDev, maxPressDev_timeYr, maxPressDev_stepNum )
-fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d) since sim start.\n', maxCO2sat, maxCO2sat_timeYr, maxCO2sat_stepNum )
+fprintf('\n Max press deviation of %d MPa occurred at %d years (step %d).\n', maxPressDev, maxPressDev_timeYr, maxPressDev_stepNum )
+fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d).\n', maxCO2sat, maxCO2sat_timeYr, maxCO2sat_stepNum )
 
 
 % leakage report
@@ -180,24 +185,26 @@ set(gca,'FontSize',14)
 
 plotFormationPressureChanges( states2, var2, opt2, 'figname', sim2str )
 
-compareBHPandWellCellPressure( states2, wellSols2, var2.wellCellIndex )
+%compareBHPandWellCellPressure( states2, wellSols2, var2.wellCellIndex )
 
+end
 
 
 end
 
 function compareBHPandWellCellPressure(states, wellSols, wellCellIndex)
+% debug to handle array of wellCellIndex for multiple wells.
 
     for i=1:numel(states)
-       p_bhp(i) = wellSols{i}.bhp;
-       p_wcl(i) = states{i}.pressure(wellCellIndex);
+       p_bhp(i) = wellSols{1,i}.bhp; % @@ takes well 1
+       p_wcl(i) = states{i}.pressure(wellCellIndex(1));
     end
     
     figure
     hold on
     plot(p_bhp,'xr')
     plot(p_wcl,'xb')
-    legend('bottom hole pressure','well cell pressure')
+    legend(['bottom hole pressure of well cell index ',num2str(wellCellIndex(1))'],'cell pressure') % @@
     ylabel('pressure (Pascals)')
 
 end

@@ -3,8 +3,9 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
 %
 % SYNOPSIS
 %   res = getTrappingInfo('Stofm',3)
+%   res = getTrappingInfo('Stofm',3, 'rhoCref',675)
 %   res = getTrappingInfo('Stofm',3, 'plotsOn',false)
-%   res = getTrappingInfo('Stofm',3, 'cells',trapcells)
+%   [res, output] = getTrappingInfo('Stofm',3, 'cells',trapcells)
 %
 % DESCRIPTION
 %   Parameter values (seafloor_depth, etc.) are obtained using
@@ -13,9 +14,9 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
 %   computed and returned. Plotting is optional.
 %
 %   Formations may contain net-to-gross rock property. If so, the pore
-%   volume of the formation is updated using:
-%       poro = poro.*ntg,
-%   in order to reflect any potentially reduced pore volumes. NB:
+%   volume of the formation is computed by:
+%       pv = Gt.cells.volumes .* Gt.cells.H .* poro .* ntg,
+%   in order to reflect any potentially reduced bulk rock volumes. NB:
 %       Bulk rock volume = (Gt.cells.volume.*Gt.cells.H)
 %       Bulk rock volume * NTG = Net rock volume
 %       Net rock volume * poro = volume which fluid can occupy
@@ -30,11 +31,8 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
     opt.plotsOn     = true;
     opt.cells       = [];
     opt.trapName    = {'default'};
+    opt.rhoCref     = 760 * kilogram / meter ^3; % arbitrary ref co2 density
     opt = merge_options(opt, varargin{:});
-    
-    
-    %% Arbitrary reference co2 density
-    rhoCref = 760 * kilogram / meter ^3;
     
     
     %% Get formation grid and info
@@ -43,6 +41,7 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
     var.ta               = trapAnalysis(var.Gt,'false');
     var.co2              = CO2props('sharp_phase_boundary', true, ...
                                     'rhofile', 'rho_demo');
+    rhoCref              = opt.rhoCref;
     info                 = getSeaInfo(name, rhoCref);
     
     
@@ -74,6 +73,7 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
     end
 
     %% function returns:
+    % NB: consider passing Gt, rock2D, ta, and output as separate varargout
     varargout{1} = res;
     if exist('output','var')
        varargout{2} = output;
@@ -84,6 +84,8 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
     % ---------------------------------------------------------------------
 
     function p = compute_pressure()
+        gravity on;
+        
         Gt = var.Gt;
         p = (Gt.cells.z * info.water_density * norm(gravity)) ...
             .* (1+info.press_deviation/100);

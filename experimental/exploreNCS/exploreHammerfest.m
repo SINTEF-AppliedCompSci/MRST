@@ -97,20 +97,26 @@ if strcmpi(opt.mycase,'inject')
         % detectFaults()
         %[ ~, faultFaces2D ] = detectFaults(Gt_st, rock2D_st, 'gradTol',opt.gradTol);
         [ Gt_st, faultFaces2D, ~, ~, rock2D_st ] = detectFaults(Gt_st, rock2D_st, 'gradTol',opt.gradTol);
+
+        % Construct fluid
+        [ initState, fluid, rhow, rhoc ] = simpleSetUp( Gt_st, rock2D_st );
+
+        % Construct model and then modify its transmissibilities 
+        model = CO2VEBlackOilTypeModel(Gt_st, rock2D_st, fluid);
+        
         T_all               = getVerticallyAveragedTrans(Gt_st, rock2D_st);
         T_all_orig          = T_all;
         T_all( faultFaces2D ) = T_all( faultFaces2D ).*opt.transMult;
-
+        model.operators.T_all   = T_all;
+        model.operators.T       = T_all( model.operators.internalConn );
         
-        [ initState, fluid, rhow, rhoc ] = simpleSetUp( Gt_st, rock2D_st );
-
-        % passing in keyword 'trans' will prevent computation of
+        
+        % Or: pass in keyword 'trans' to prevent computation of
         % transmissibilities based on rock2D, but rather assigns s.T_all =
         % T_all
-        model = CO2VEBlackOilTypeModel_trans(Gt_st, rock2D_st, ...
-            fluid, 'trans', T_all); 
-
-
+        %model = CO2VEBlackOilTypeModel_trans(Gt_st, rock2D_st, fluid, 'trans', T_all); 
+        
+        
         % Scheduling: (total injected volume, inj/mig time, bdrys, ...)
         itime   = 50*year;
         istep   = 25;

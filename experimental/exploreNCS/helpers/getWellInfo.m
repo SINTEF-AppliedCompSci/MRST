@@ -1,4 +1,4 @@
-function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
+function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
 % Set-up wells for a generic injection scenario.
 
 % Wells: injectors and/or producers
@@ -16,7 +16,7 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
 %   ('limited' = 'portion'). Or, the array of injectors can be placed in a
 %   trap region, ideally the trap region with the highest structural trap
 %   capacity ('limited' = 'bestReachCap'). Info on structural trap capacity
-%   is passed in by the capOutput argument.
+%   is passed in by the trapCapacities argument.
 %
 %   Producers are placed by specifying a percentage of injector wells to
 %   steal (i.e., an injector becomes a producer). The deepest elevation of
@@ -24,6 +24,11 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
 %
 %   A buffer along the formation boundary can be set such that no wells
 %   exist within this area.
+%
+% INPUTS:
+%   Gt              - as obtained using getFormationTopGrid(name, coarsening)
+%   trapCapacities  - as obtained using getTrappingInfo(name, coarsening, ...)
+
 
     opt.inj             = true;
     opt.inj_layout      = 'array_of_wells';
@@ -58,7 +63,7 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
     opt.steal_layout = 'deepest'; % 'centralgroup', 'northgroup', 'nearbdry', 'deepest', 'shallowest', 'line', 'random', ...
     
     % distance from bdry where no well will be placed
-    opt.buffer  = 5000; % meters
+    opt.buffer  = 1000; % meters
     
     % control for plotting
     opt.plotsOn = true;
@@ -95,25 +100,25 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
             if strcmpi(opt.limits,'bestReachCap')
                 
 %                 % trap_region with highest structural reachable capacity
-%                 [val,ind] = max(capOutput.structural_mass_reached);
+%                 [val,ind] = max(trapCapacities.cumul_trap);
 %                 bestTrapRegion = ta.trap_regions(ind);
 %                 
 %                 cells = 1:Gt.cells.num;
 %                 cinx2keep = cells( logical(ta.trap_regions==bestTrapRegion) ); 
                 
                 % OR:
-                %cellsOfMaxReachCap = find(capOutput.structural_mass_reached == max(capOutput.structural_mass_reached));
+                %cellsOfMaxReachCap = find(trapCapacities.cumul_trap == max(trapCapacities.cumul_trap));
                 %cinx2keep = cellsOfMaxReachCap;
                 
                 
                 % cell index pertaining to top N trap_regions of highest
                 % structural reachable capacity.
-                topReachCap  = unique(capOutput.structural_mass_reached_Mt);
+                topReachCap  = unique(trapCapacities.cumul_trap); % kg
                 topReachCap  = sort(topReachCap,'descend');
                 topReachCap  = topReachCap(1:opt.numTopReachTrap);
                 cinx2keep = [];
                 for i = 1:numel(topReachCap)
-                    [ind]     = find(capOutput.structural_mass_reached_Mt == topReachCap(i));
+                    [ind]     = find(trapCapacities.cumul_trap == topReachCap(i));
                     cinx2keep = [cinx2keep; ind];
                 end
                 % NB: it's possible no inj wells were originally placed in
@@ -231,6 +236,8 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
     %% Set well rates
     if opt.setInjRates
         
+        assert(~isempty(trapCapacities), 'must supply a non-empty trapCapacities')
+        
         % Compute total injected volume (m3), qtot, which will be passed into
         % setSchedule() where fixed rates will be found by rate = qtot / itime,
         % where itime is time step (seconds).
@@ -243,8 +250,11 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
         % info about wells (which trap region they were placed in, etc.)
         regions         = ta.trap_regions(cinx_inj);
         uniqueRegions   = unique(regions);
-        reachCap_kg     = capOutput.structural_mass_reached_Mt(cinx_inj).*1e9; % kg       @@ implement better unit conversion
-        reachCap_m3     = capOutput.structural_vol_reached_m3(cinx_inj);
+        %reachCap_kg     = trapCapacities.structural_mass_reached_Mt(cinx_inj).*1e9; % kg       @@ implement better unit conversion
+        reachCap_kg     = trapCapacities.cumul_trap(cinx_inj); % kg
+        co2_rho         = trapCapacities.co2.rho( ...
+            trapCapacities.caprock_pressure, trapCapacities.caprock_temperature );
+        reachCap_m3     = reachCap_kg ./ co2_rho(cinx_inj); % m^3
         
         % look through each unique region 
         for i = 1:numel(uniqueRegions)
@@ -267,6 +277,10 @@ function [ wellinfo ] = getWellInfo( Gt, capOutput, varargin )
         % check for any well rates that are zero, and replace with an
         % average value or the minimum non-zero inj vol value
         vols_inj( logical(vols_inj==0) ) = mean( vols_inj( logical(vols_inj>0) ) );
+        
+        if opt.plotsOn
+            plotRates(cinx_inj, vols_inj);
+        end
     
     end
         
@@ -335,6 +349,20 @@ function cinx = removeAnyBdryCellIndex(Gt, cinx, buffer)
 
     
 end
+
+% -------------------------------------------------------------------------
+
+function plotRates(cinx, vols)
+
+    assert(numel(cinx) == numel(vols))
+    figure;
+    bar(cinx, vols)
+    xlabel('well cell index')
+    ylabel('total vols (m^3)')
+
+end
+
+% -------------------------------------------------------------------------
 
 function plotWells(Gt, ta, cinx_inj, cinx_prod)
 

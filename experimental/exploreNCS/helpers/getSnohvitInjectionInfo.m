@@ -9,6 +9,8 @@ function wellinfo = getSnohvitInjectionInfo()
     % Atlas):
     wellinfo.wellCoords_inj       = [9.225e5, 7.988e6];
     wellinfo.wellCoords_prod      = [];
+    
+    wellinfo.inj_rate_MtperYr     =  0.767; % Mt/yr; (for 30 years)
 
 
 end
