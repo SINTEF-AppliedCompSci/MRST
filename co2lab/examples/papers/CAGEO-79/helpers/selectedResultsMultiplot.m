@@ -151,7 +151,7 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
         ax = get(h, 'currentaxes');
         
         % load all timesteps up to last plotted one (a bit of a hack)
-        directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
+        plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
         fsize = 24;
         set(get(gca, 'xlabel'), 'fontsize', fsize)
         set(get(gca, 'ylabel'), 'fontsize', fsize)
