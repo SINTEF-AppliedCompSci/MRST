@@ -1,16 +1,15 @@
-function plotTrappingDistribution(ax, data, varargin)
+function plotTrappingDistribution(ax, report, varargin)
 
     opt.legend_location = 'eastoutside';
     opt.legend_orientation = 'vertical';
     opt = merge_options(opt, varargin{:});
     
     % legend names
-    names = {'Dissolved'           , 'Structual residual' , ...
+    names = {'Dissolved'           , 'Structural residual' , ...
              'Residual'            , 'Residual in plume'  , ...
              'Structural subscale' , 'Structural plume'   , ...
              'Free plume'          , 'Exited'};
     
-    report = [data.report];
         
     % Loading and extracting trapping history
     t_hist = [report.t]';
@@ -35,8 +34,9 @@ function plotTrappingDistribution(ax, data, varargin)
     % Plotting trapping history
     area(ax, ...
          convertTo(t_hist, year), ...
-         convertTo([mass_hist(:, 1:7), mass_hist(:,8)-sum(mass_hist(:,1:7),2)], ...
-                   mega*kilo));
+         convertTo([mass_hist(:, 1:7), mass_hist(:,8)], mega*kilo));
+         % convertTo([mass_hist(:, 1:7), mass_hist(:,8)-sum(mass_hist(:,1:7),2)], ...
+         %           mega*kilo));
     
     % Setting colors consistent with rest of the paper
     col = getInventoryColors([7 6 5 5 4 3 2 1]);
@@ -45,7 +45,9 @@ function plotTrappingDistribution(ax, data, varargin)
     cur_col = 1;
     for i = 1:numel(chld)
         obj = get(chld(i));
-        if strcmpi(obj.Type, 'hggroup')
+        % R2014 and later releases use Type=area, whereas earlier releases
+        % use Type=hggroup.
+        if strcmpi(obj.Type, 'hggroup') || strcmpi(obj.Type, 'area')
             set(chld(i), 'FaceColor', col(cur_col, :));
             
             if (cur_col == 4) && skip_subscale
