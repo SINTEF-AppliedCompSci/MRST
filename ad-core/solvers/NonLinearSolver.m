@@ -150,7 +150,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             %               member function.
             %
             % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-            %   'Wells'   - Wells for the timestep. (struct)
+            %   'W'       - Wells for the timestep. (struct)
             %   'bc'      - Boundary conditions for the problem (struct).
             %   'src'     - Source terms for the timestep (struct).
             %   
