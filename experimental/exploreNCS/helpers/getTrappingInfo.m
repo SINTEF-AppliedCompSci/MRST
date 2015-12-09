@@ -1,4 +1,5 @@
-function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
+function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
+        % name, coarsening, varargin)
 % Computes structural trapping info and makes plots (optional).
 %
 % SYNOPSIS
@@ -32,17 +33,21 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
     opt.cells       = [];
     opt.trapName    = {'default'};
     opt.rhoCref     = 760 * kilogram / meter ^3; % arbitrary ref co2 density
+    opt.fmName      = 'fmName';
     opt = merge_options(opt, varargin{:});
     
     
     %% Get formation grid and info
     % entire formation grid
-    [var.Gt, var.rock2D] = getFormationTopGrid(name, coarsening);
+    %[var.Gt, var.rock2D] = getFormationTopGrid(name, coarsening);
+    var.Gt      = gt;
+    var.rock2D  = rock2d;
     var.ta               = trapAnalysis(var.Gt,'false');
     var.co2              = CO2props('sharp_phase_boundary', true, ...
                                     'rhofile', 'rho_demo');
-    rhoCref              = opt.rhoCref;
-    info                 = getSeaInfo(name, rhoCref);
+    %rhoCref              = opt.rhoCref;
+    %info                 = getSeaInfo(name, rhoCref);
+    rhoCref = info.rhoCref;
     
     
     
@@ -244,7 +249,7 @@ function [ varargout ] = getTrappingInfo(name, coarsening, varargin)
 
         % Report total trapping values
         str = capacity_report();
-        fprintf('\n\n -------- %s ------- \n\n', name)
+        fprintf('\n\n -------- %s ------- \n\n', opt.fmName)
         disp(str)
 
 
