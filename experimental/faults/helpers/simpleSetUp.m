@@ -10,8 +10,9 @@ function [ initState, fluid, rhow, rhoc ] = simpleSetUp( Gt, rock2D )
     initState.pressure  = Gt.cells.z * norm(gravity) * rhow*kilogram/meter^3;  % hydrostatic pressure, in Pa=N/m^2
     initState.s         = repmat([1 0], Gt.cells.num, 1);                      % sat of water is 1, sat of CO2 is 0
     initState.sGmax     = initState.s(:,2);                                         % max sat of CO2 is initially 0
-    initState.rs        = 0 * initState.sGmax;                                      % initially 0 
+    initState.rs        = 0 * initState.sGmax;     % initially 0 
 
+    
     ref_p               = mean(initState.pressure);
     info                = getSeaInfo('NorthSea',760);
     caprock_temperature = 273.15 + info.seafloor_temp + ...
@@ -28,6 +29,9 @@ function [ initState, fluid, rhow, rhoc ] = simpleSetUp( Gt, rock2D )
               'pvMult_fac'  , 0, ...
               'residual'    , [sw, srco2] , ...
               'dissolution' , false, 'dis_max', []);
+          
+    % alternative ?
+    %initstate = initState(Gt, W, p0, s0);
 
 end
 
