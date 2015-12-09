@@ -45,10 +45,14 @@ axis normal tight; view(0,90);
 % call:
 %  [hc,hh]=colorbarHist(rock.poro,[min(rock.poro) max(rock.poro)],'South');
 % and then manipulate the 'position' property of each handle to improve the
-% placement of the colorbar
-%
-% To confirm the flux allocation for each of the wells, you simply click on
-% the text that signifies each of the wells.
+% placement of the colorbar. To confirm the flux allocation for each of the
+% wells, you simply click on the text that signifies each of the wells.
+
+%% Plot of time evolution
+% - Set display to be 'forward TOF', and selection to be 'Flood volumes'
+% - set 'Max TOF' to be 25, 75, 125, and 175
+% - or use the 'Play TOF' button to play the evolution of neutral
+%   displacement fronts
 
 %% Manual optimization of flow pattern
 % First, change the colormap to
@@ -91,5 +95,11 @@ figure(3); hold on
 % similarly increase the pressure of I2 to 220 bar. Then you push 'apply',
 % go back to view the 'sum of TOFs' and produce a new F-Phi diagram
 
-% Case ?:
+%% Plot of time evolution
+% - Set display to be 'forward TOF', and selection to be 'Flood volumes'
+% - set 'Max TOF' to be 25, 75, 125, and 175
+% - or use the 'Play TOF' button to play the evolution of neutral
+%   displacement fronts
+
+%% Exercise:
 % Can you make any suggestions for further improvements?
