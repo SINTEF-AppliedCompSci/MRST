@@ -549,7 +549,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'String', 'Stop TOF',...
                    'Callback', @stopPlayBackTof...
                    );
-        [speedsh, ~, ~] = linkedSlider(tof_panel, [.45 tof_N*tof_H .55 tof_h], .15, [1 1000], 50, 'Steps', []);  
+        [speedsh, ~, ~] = linkedSlider(tof_panel, [.45 tof_N*tof_H .55 tof_h], .15, [1 1000], 50, 'Steps', []);
     end
 
         
@@ -705,7 +705,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             error('Programmer error');
         end
         
-        function selectTimeStep(datas, index, fullname)
+        function selectTimeStep(datas, index, fullname)                    %#ok<INUSL>
             %Get ID of currently selected wells
             drain_wells = get(ctrl_drain_vols, 'Value');
             flood_wells = get(ctrl_flood_vols, 'Value');
@@ -1117,7 +1117,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         playback = false;
     end
 
-    function onClickWell(src, event, wk) %#ok<INUSL>
+    function onClickWell(src, event, wk)
         clickType = get(gcf, 'SelectionType');
         if ~isempty(opt.wellPlotFn) && strcmpi(clickType, 'alt')
             t = state_idx;
@@ -1128,18 +1128,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             return
         end
         
-        np = numel(D.prod);
-        ni = numel(D.inj);
+        %np = numel(D.prod);
+        %ni = numel(D.inj);
             
-        winj = repmat(D.inj,[1,np]);
-        wpro = rldecode(D.prod,ni,2);
+        %winj = repmat(D.inj,[1,np]);
+        %wpro = rldecode(D.prod,ni,2);
         
         wp = [];
 
         isInj = ismember(wk, D.inj);
         if isInj
             ik = find(D.inj == wk);
-            sub = winj == wk;
+            %sub = winj == wk;
 
             % well pair stuff
             if (numel(WP) > 0)
@@ -1154,7 +1154,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             set(ctrl_drain_vols, 'Value', []);
         else
             ik = find(D.prod == wk);
-            sub = wpro == wk;
+            %sub = wpro == wk;
 
             % well pair stuff
             if (numel(WP) > 0)
@@ -1187,7 +1187,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmp = wp(ik);
             %salloc = abs(sum(tmp.alloc,1));
             alloc = [tmp.alloc, tmp.ralloc];
-            salloc = abs(sum(alloc));
+            salloc = abs(sum(alloc,1));
             [sa, tmp_ix] = sort(salloc, 'descend');
             ssa = sum(sa);
             ix = find(cumsum(sa) > .99*ssa, 1, 'first');
