@@ -550,6 +550,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'Callback', @stopPlayBackTof...
                    );
         [speedsh, ~, ~] = linkedSlider(tof_panel, [.45 tof_N*tof_H .55 tof_h], .15, [1 1000], 50, 'Steps', []);
+        uicontrol(tof_panel,'Style', 'pushbutton', ...
+                   'Units', 'normalized', ...
+                   'Position', [.8 0 .2 tof_h], ...
+                   'String', 'Exit', ...
+                   'Callback', @stopApplication);
     end
 
         
@@ -1065,6 +1070,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %Try forcing manual axis when plotting to avoid rescaling
         axis(extents);
         view(az,el);
+    end
+
+    function stopApplication(src, event)
+     figs=[fig_main,fig_ctrl,fig_well,fig_phi,fig_well_alloc];
+     close(figs(~isnan(figs)));
+     return
     end
 
     function playBackTof(src, event)
