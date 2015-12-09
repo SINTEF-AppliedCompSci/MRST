@@ -152,6 +152,7 @@ function [ wellSols, states, sim_report, opt, var ] = ...
     %            repmat( -opt.prod_rate, [size(opt.wellCoords_prod), 1] ) ];
     allRates = [ opt.inj_rate; -opt.prod_rate ];
     numWells = size(allWells,1);
+    W = [];
     for i = 1:numWells
         
         % Cell index(es) of well point(s) in top grid formation
@@ -170,48 +171,59 @@ function [ wellSols, states, sim_report, opt, var ] = ...
             composition = [1 1];
         end
         
-        % Put injection/producer wells into schedule.control(1)
-        % addWell was set up for a 3D grid. However, the 2D grid can be
-        % passed in but a large dZ may be computed. A hack is to manually
-        % set dZ=0.
+        
+        % Put injection/producer wells into schedule.control(1):
+        % if 3D exists, addWell + convertwellsVE() is used, otherwise
+        % 2D is used to create W, and then W.dZ is manually set to 0 and
+        % W.WI is corrected (st it corresponds to well cell column area,
+        % not area of top grid well cell)
+        % NB: whether 'refDepth' is zero or otherwise, results appear to be
+        % the same.
         if isfield(Gt,'parent')
-            schedule.control(1).W(i) = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
+            W = addWell(W, Gt.parent, rock2D, var.wellCellIndex(i), ...
                 'name',     wellname,  ...
                 'Type',     'rate', ...
                 'Val',      allRates(i), ...
                 'comp_i',   composition, ...
-                'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3) );
+                'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i),3) );
+            %W = convertwellsVE(W, Gt.parent, Gt, rock2D, 'ip_tpf'); % do
+            %outside for loop since additional field is added to W, which
+            %causes number of fields in structure W not to match.
+            
+            %alternative: convertwellsVE_s()
+            %  (however, may compute WI differently, won't contain h, and
+            %  won't use the user specified 'refDepth')
+            %W = convertwellsVE_s(W, Gt.parent, Gt, rock2D, 'ip_tpf');
+            
         else
-            schedule.control(1).W(i) = addWell([], Gt, rock2D, var.wellCellIndex(i), ...
+            W = addWell(W, Gt, rock2D, var.wellCellIndex(i), ...
                 'name',     wellname,  ...
                 'Type',     'rate', ...
                 'Val',      allRates(i), ...
                 'comp_i',   composition, ...
                 'refDepth', Gt.cells.z(var.wellCellIndex(i)) + Gt.cells.H(var.wellCellIndex(i))./2 );
-            schedule.control(1).W(i).dZ = 0; %@@ hack
+            W(i).dZ = 0;
+            W(i).WI = W(i).WI .* Gt.cells.H(var.wellCellIndex(i));
+
         end
          
-        
-        % Put turned-off wells into schedule.control(2)
-        % or, use 'status',0 to implement turned-off wells?
-        if isfield(Gt,'parent')
-            schedule.control(2).W(i)  = addWell([], Gt.parent, rock2D, var.wellCellIndex(i), ...
-                'name',     [wellname '_off'],  ...
-                'Type',     'rate', ...
-                'Val',      0, ...
-                'comp_i',   composition, ...
-                'refDepth', Gt.parent.cells.centroids(var.wellCellIndex(i), 3) );
-        else
-            schedule.control(2).W(i)  = addWell([], Gt, rock2D, var.wellCellIndex(i), ...
-                'name',     [wellname '_off'],  ...
-                'Type',     'rate', ...
-                'Val',      0, ...
-                'comp_i',   composition, ...
-                'refDepth', Gt.cells.z(var.wellCellIndex(i)) + Gt.cells.H(var.wellCellIndex(i))./2 );
-            schedule.control(2).W(i).dZ = 0; %@@ hack;
-        end
-        
+
     end
+    
+    if isfield(Gt,'parent')
+        W = convertwellsVE(W, Gt.parent, Gt, rock2D, 'ip_tpf');
+    end
+    
+      % Turn-off well rates for control(2)
+      W_shut = W;
+      for i = 1:numel(W_shut)
+         W_shut(i).val = 0;
+      end
+      
+      schedule.control(1).W = W;
+      schedule.control(2).W = W_shut;
+      
+      
 
     % Set up boundary conditions, and put into schedule.control(1) and schedule.control(2):
     bdryFaces   = find( Gt.faces.neighbors(:,1).*Gt.faces.neighbors(:,2) == 0 );
