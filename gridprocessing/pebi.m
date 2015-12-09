@@ -19,7 +19,7 @@ function H = pebi(G, varargin)
 %   do not preserve the original outer boundary of the triangulation.
 %
 % SEE ALSO:
-%   triangleGrid.
+%   triangleGrid
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
@@ -41,13 +41,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   opt = struct('pebi', true);
-   opt = merge_options(opt, varargin{:});
+   %opt = struct('pebi', true);
+   %opt = merge_options(opt, varargin{:});
 
    p         = circumcenter(G);
    [G, p, a] = addAuxillaryTriangles(G, p);
-   %a = false(G.nodes.num,1);
-   %% Add midpoints of boundary edges in G
+   
+   %%% Add midpoints of boundary edges in G
    b         = any(G.faces.neighbors==0, 2);
    fe        = reshape(G.faces.nodes, 2, []) .';
 
@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    map       = cumsum(accumarray(reshape(fe(b,:),[], 1), 1)>0);
    num       = size(p,1)+size(newcoords, 1);
 
-   %% edges in H:
+   %%% Edges in H:
    % internal edges
    faceNodes = G.faces.neighbors;
 
@@ -79,30 +79,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 num+map(fe(b,2)), newnodes];
    faceNodes = reshape(faceNodes', [], 1);
 
-   %% Wrap up
+   %%% Wrap up
    numFaces  = size(neighbors, 1);
    numCells  = max(neighbors(:));
-   numNodes  = repmat(2, [numFaces, 1]);%(1:2:2*numFaces)';
-   %tags      = zeros(numFaces, 2);
+   numNodes  = repmat(2, [numFaces, 1]);
    H         = emptyGrid(numCells, [p; newcoords;gcoords]);
    H         = addFaces(H,faceNodes, numNodes, neighbors);
 
    H = sortCellFaces(H);
 
-   %% Fix boundary
+   %%% Fix boundary
    a = [false(size(p, 1), 1);newnodes_art; gcoords_a];
    % Remove nodes 'a' in H
    H = removeNodes(H, find(a));
 
 
-   %% Make cells oriented
-assert(H.nodes.num==numel(unique(H.faces.nodes)));
+   %%% Make cells oriented
+   assert(H.nodes.num==numel(unique(H.faces.nodes)));
    assert(H.nodes.num==max(H.faces.nodes));
    H = sortCellFaces(H);
    H = mergeBoundaryFaces(H);
-assert(H.nodes.num==numel(unique(H.faces.nodes)));
+   assert(H.nodes.num==numel(unique(H.faces.nodes)));
    assert(H.nodes.num==max(H.faces.nodes));
-   %H = sortCellFaces(H);
+   % H = sortCellFaces(H);
    H.type    = { mfilename };
    H.griddim = 2;
 
@@ -118,7 +117,7 @@ function H = removeDuplicateNodes(H)
 % determine connectivity of faces.
 
    assert(H.nodes.num == size(H.nodes.coords, 1));
-   [nodes, map, map] = unique(H.nodes.coords, 'rows');
+   [nodes, map, map] = unique(H.nodes.coords, 'rows');                     %#ok<ASGLU>
 
    if size(nodes, 1) < H.nodes.num,
        % map facenodes to new node numbers
@@ -236,7 +235,7 @@ function H = removeNodes(G, nodes)
    edges = double(reshape(G.faces.nodes,2,[])');
    hf    = faces(G.cells.faces(:,1));
 
-   [cellno(hf), map(edges(G.cells.faces(hf,1),:)), edges(G.cells.faces(hf,1),:)];
+   %[cellno(hf), map(edges(G.cells.faces(hf,1),:)), edges(G.cells.faces(hf,1),:)];
    c        = repmat(cellno(hf), [1,2])';
    e        = edges(G.cells.faces(hf,1),:)';
    nodemask = map(e);
@@ -259,12 +258,12 @@ function H = removeNodes(G, nodes)
     G.node.num=numel(newnodes);
    end
    %}
-   H=remapNodes(H);
-   
-   
+   H=remapNodes(H);   
 end
+
 function G=remapNodes(G)
-[newnodes,ia,ic]=unique(G.faces.nodes);
+
+   [newnodes,ia,ic]=unique(G.faces.nodes);                                 %#ok<ASGLU>
    %
    if(numel(newnodes)< G.nodes.num)
     G.faces.nodes=ic;
@@ -274,6 +273,7 @@ function G=remapNodes(G)
    assert(G.nodes.num==numel(unique(G.faces.nodes)));
    assert(G.nodes.num==max(G.faces.nodes));
 end
+
 function t = grid2tri(G)
 % Extract (n x 3) array of triangle node numbers from grid
    assert(all(diff(G.faces.nodePos) == 2)); % 2D-grid
@@ -344,6 +344,7 @@ function [t, n] = pointInside(t, p, points)
 end
 
 
+%{
 function p = findCellPoints(G)
 % Find average point in cell.
    d = size(G.nodes.coords, 2);
@@ -361,17 +362,15 @@ function p = findCellPoints(G)
    denominator = accumarray(cellNo, 1);
    p           = bsxfun(@rdivide, nodes, 2*denominator);
 end
-
+%}
 
 
 %% Helper function to sortCellFaces
 function [edges, m, s] = swap(k, edges, m, s)
 % Do one edge swap.  With N=size(edges,1), N-1 edge swaps will sort edges.
 
-
    % Find next edge
    i = k+find(any(edges(k+1:end,:)==k, 2));
-
 
    if any(i),
       i = i(1);
