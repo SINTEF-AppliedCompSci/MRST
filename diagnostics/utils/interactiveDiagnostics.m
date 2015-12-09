@@ -312,7 +312,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     plotMain();
     axis off vis3d;
     axis(extents);
-    view(3);
+    %view(3);
     
 
     
@@ -1030,6 +1030,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if any(ishandle(fig_main_cell_data))
             delete(fig_main_cell_data);
         end
+        [az,el] = view;
         if any(selection)
             if (dataind == 6 || dataind == 7)
                 fig_main_cell_data = plotTracerBlend(G, ...
@@ -1063,6 +1064,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         %Try forcing manual axis when plotting to avoid rescaling
         axis(extents);
+        view(az,el);
     end
 
     function playBackTof(src, event)
