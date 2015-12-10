@@ -23,14 +23,24 @@ for i=1:numel(W)
 end
 
 %% Launch flow diagnostics
-interactiveDiagnostics(G, rock, W, 'state', state);
+interactiveDiagnostics(G, rock, W, 'state', state, 'computeFlux', false);
 set(gcf,'position',[440 317 866 480]); axis normal
 view(-85,73)
 
-% To produce the figures in the book:
-% - in the 'region selection tab': set maxTOF to zero to remove plotting of
+%% Flux allocation plots
+% To produce the flux and well allocation figure in the book:
+% - in the 'region selection' tab: set maxTOF to zero to remove plotting of
 %   volumetric quantities 
 % - in the 'advanced' tab: select 'show grid', 'well pairs', and 'plot all
 %   wells'. This will produce the overview of the reservoir
 % - use your pointer (mouse) to click on any of the wells to bring up the
 %   allocation plots
+
+%% Snapshots of swept regions
+% In the 'advanced' tab, deselect 'show grid', 'well pairs', and 'plot all
+% wells'. Then, in the 'region selection' tab: 
+% - set 'selection' to 'intersection'
+% - set 'display' to 'tracer selected injector'
+% - select wells (mark I6 and P2 to P6, or I4 and P1 to P4)
+% - type 'shading faceted' on the command line
+% - rotation, zoom, and translate the plot to get an acceptable view
