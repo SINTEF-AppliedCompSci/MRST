@@ -51,8 +51,6 @@ qOs    = vertcat(wellSol.qOs);
 qGs    = vertcat(wellSol.qGs);
 qWPoly = vertcat(wellSol.qWPoly);
 
-model.usingShear = true;
-
 %Initialization of primary variables ----------------------------------
 st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
 st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);

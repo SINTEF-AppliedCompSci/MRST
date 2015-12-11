@@ -16,6 +16,7 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
 
             % This is the model parameters for oil/water/gas/polymer system
             model.polymer = true;
+            model.usingShear = isfield(fluid, 'plyshearMult');
             model.wellVarNames = {'qWs', 'qOs', 'qGs', 'qWPoly', 'bhp'};
             model = merge_options(model, varargin{:});
         end
