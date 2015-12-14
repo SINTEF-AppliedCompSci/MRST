@@ -153,7 +153,7 @@ function opt = default_options()
    % represent the lower/upper bounds of pressure and temperature in the
    % sampled table to use.  The same explanation goes for water density,
    % as specified by 'opt.wat_rho_pvt'.
-   opt.co2_rho_pvt = [opt.p_range, opt.t_range]; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
+   opt.co2_rho_pvt = [p_range, t_range]; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
    opt.wat_rho_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
 
    % Viscosity of CO2 and brine
