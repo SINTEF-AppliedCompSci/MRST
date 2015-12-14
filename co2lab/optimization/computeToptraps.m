@@ -1,4 +1,26 @@
 function dh = computeToptraps(trapfun, Gt, recenter)
+%
+% Compute subscale trapping potential for all cells in a top surface grid,
+% based on a precomputed trap function.
+%
+% SYNOPSIS:
+%   function dh = computeToptraps(trapfun, Gt, recenter)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   trapfun  - precomputed trap function (As computed by e.g. 'resTiltUtsira.m')
+%   Gt       - top surface grid
+%   recenter - whether or not to 'recenter', i.e. adjust angle so that maximum
+%              subscale trapping is obtained when surface is horizontal
+%
+% RETURNS:
+%   dh - vector with one entry per cell of 'Gt', giving the subscale trapping
+%        potential for each cell.
+%
+% SEE ALSO:
+%   resTiltUtsira
+
    
     TVol = @(theta_x, theta_y) interp2(trapfun.theta_x_vec, ...
                                        trapfun.theta_y_vec, ...
