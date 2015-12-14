@@ -42,7 +42,6 @@ function aquifer = makeAquiferModel(varargin)
    opt = merge_options(opt, varargin{:});
 
    % Create the grid
-   %G = cartGrid([opt.nx, 1, opt.nz], [opt.Lx, opt.Ly, opt.H]);
    G = cartGridZShifted([opt.nx, 1, opt.nz], [opt.Lx, opt.Ly, opt.H], 2);
    
    x = G.nodes.coords(:, 1);
@@ -74,14 +73,6 @@ function aquifer = makeAquiferModel(varargin)
                         'Type', 'bhp', 'Val', 300 * barsa,...
                         'Radius', 0.125, 'Name', 'P', 'Sign', -1, 'Comp_i', [1 0]);
 
-   % W = createSampleWell([], G, rock, wc(1, 1), ...
-   %                      'refDepth', G.cells.centroids(wc(end, 1), 3), ...
-   %                      'Type', 'rate', 'Val', 1e6 / year,...
-   %                      'Radius', 0.125, 'Name', 'I', 'Comp_i', [0 1]);
-   % W = createSampleWell(W, G, rock, wc(:, 2), ...
-   %                      'refDepth', G.cells.centroids(wc(end, 2), 3), ...
-   %                      'Type', 'bhp', 'Val', 300 * barsa,...
-   %                      'Radius', 0.125, 'Name', 'P', 'Sign', -1, 'Comp_i', [1 0]);
 
    aquifer.G = G;
    aquifer.Gt = Gt;
@@ -91,7 +82,4 @@ function aquifer = makeAquiferModel(varargin)
    aquifer.W = convertwellsVE(W, G, Gt, rock2D, 'ip_tpf'); 
    % 2D wells only referred to as 'W' for historial reasons here
    
-   %aquifer.W(1).WI = aquifer.W3D(1).WI;
-   %aquifer.W(2).WI = aquifer.W3D(2).WI;
-   %aquifer.W = aquifer.W3D;
 end

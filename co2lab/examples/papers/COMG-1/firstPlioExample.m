@@ -32,6 +32,9 @@ view(100,50);
 % Next, we will perform a VE simulation. This could, of course, have been
 % launched from inside the interactive viewer, but to make the example as
 % reproducible as possible, we launch it manually from the outside.
+%
+% Remark: change 'T_migration' to 50 years and 'Nm'to 10 to reproduce middle
+% part of figure 8.
 petrodata.avgperm = 1.2*darcy;
 petrodata.avgporo = 0.25;
 close all

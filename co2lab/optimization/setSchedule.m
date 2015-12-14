@@ -1,6 +1,36 @@
-function schedule = setSchedule(Gt, rock, wcells, qtot, ...
-                                isteps, itime, msteps, mtime, single_control, ...
-                                varargin)
+function schedule = setSchedule(Gt, rock, wcells, qtot, isteps, itime, ...
+                                    msteps,mtime, single_control, varargin) 
+% Construct a schedule object that is convenient for use with
+% 'optimizeFormation'.  Wells are rate-controlled.
+%
+% SYNOPSIS: 
+% function schedule = setSchedule(Gt, rock, wcells, qtot, isteps, itime, ...
+%                                 msteps,mtime, single_control, varargin)
+%
+% PARAMETERS:
+%   Gt             - the simulation grid (top surface grid)
+%   rock           - associated rock structure
+%   wcells         - well cells (vector containing the indices of the well
+%                    cells, one entry per welll)
+%   qtot           - total amount to inject into each well (vector with one
+%                    entry per well).  Rates will be obtained by dividing
+%                    entries of this vector by total injection time.
+%   isteps         - number of injection time steps 
+%   itime          - duration of injection phase
+%   msteps         - number of migration time steps
+%   mtime          - duration of migration phase
+%   single_control - whether the injection phase should be governed by one
+%                    single control, or a new control for each timestep
+%                    (allowing for dynamic adjustment of rates)
+%   varargin       - The only optional argument is 'minval', which specifies
+%                    the minimum possible rate for a well.
+%
+% RETURNS:
+%   schedule - the constructed schedule
+%
+% SEE ALSO:
+%  optimizeFormation
+
                                     
    opt.minval = 0;
    opt = merge_options(opt, varargin{:});

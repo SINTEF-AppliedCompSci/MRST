@@ -1,5 +1,63 @@
 function [optim, init, history] = optimizeRates(initState, model, schedule, ...
                                                 min_rates, max_rates, varargin)
+%
+% Compute an optimal set of injection rates for a proposed
+% injection/migration scenario.
+% 
+% SYNOPSIS:
+%   function [optim, init, history] = ...
+%      optimizeRates(initState, model, schedule, min_rates, max_rates, varargin)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   initState - initial state
+%   model     - simulation model (instance of CO2VEBlackOilTypeModel)
+%   schedule  - initial proposed injection schedule (which also includes
+%               information on the placement of wells)
+%   min_rates - minimum allowed rates 
+%   max_rates - maximum allowed rates
+%   varargin  - An optional number of paired arguments on the form: 
+%               'option', value.   Possible options are:
+%               - dryrun:       if 'true', no optimization will take place (only
+%                               the associated data structures will be set up)
+%               - obj_scaling:  scaling factor of the objective function (if
+%                               left empty, will be computed internally)
+%               - leak_penalty: penalty leak factor (default: 10)
+%               - last_control_is_migration: (true or false)
+%                               if 'true', the last control will be
+%                               constrained to zero rate (assumed to
+%                               represent the migration phase)
+%               - obj_fun:      specify the objective function to maximise.  If
+%                               left empty, a default objective function will
+%                               be used that aims to maximise injected CO2
+%                               while minimizing leakage.  The objective
+%                               function, if specified, should take the
+%                               following arguments: 
+%                               - wellSols: vector of well solutions for all
+%                                           simulation timesteps
+%                               - states:   vector of simulation states for
+%                                           all timesteps
+%                               - schedule: the injection schedule
+%                               - varargin: optional arguments should support
+%                                           'ComputePartials', and 'tStep'.
+%                                           If 'ComputePartials' is true,
+%                                           computed values will be ADI
+%                                           (automatic differentiation
+%                                           objects). 
+%                               The function shall return a cell array
+%                               containing the objective value for each timestep.
+%
+% RETURNS:
+%   optim   - Data structure containing all information about the final,
+%             optimized scenario (including wells and the optimized schedule).
+%   init    - Data structure containing all information about the starting
+%             point scenario (before optimization of rates).
+%   history - Information about the rate optimization process
+% 
+% EXAMPLE:
+%   For an example, refer to the sample script 'optimizeUtsira'.
+
    
 % optim.obj_val_steps
 % optim.obj_val_total
@@ -57,7 +115,6 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
       history = [];
       return;
    end
-   
    
    %% Define limits, scaling and objective function
    
@@ -131,7 +188,6 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       p = state.pressure;
       sG = state.s(:,2);
       if opt.ComputePartials
-         %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
          [p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
       end
       dt = dts(step);
@@ -190,21 +246,6 @@ function [val, der, wellSols, states] = ...
       % scale gradient:
       der = scaleGradient(g, schedule, boxLims, objScaling);
       der = vertcat(der{:});
-      
-      % %% @@ 
-      % % Compute numeric derivative, to verify gradient
-      % vd = u*0;
-      % du = 1e-7;
-      % for i = 1:numel(u)
-      %    u_tmp = u;
-      %    u_tmp(i) = u_tmp(i) + du; % to compute partial derivative along i
-      %    tmp_schedule = control2schedule(u_tmp, schedule, scaling);
-      %    [ws, st] = simulateScheduleAD(initState, model, tmp_schedule);
-      %    tmp_val = obj_fun(ws, st, tmp_schedule);
-      %    tmp_val = sum(cell2mat(tmp_val))/abs(objScaling);
-      %    vd(i) = (tmp_val - val) / du;
-      % end
-      % vd;
    end
 end
 

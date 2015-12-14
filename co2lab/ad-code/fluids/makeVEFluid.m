@@ -136,8 +136,9 @@ function opt = default_options()
    opt.co2_rho_ref   =  760 * kilogram / meter^3; % Reference rho for CO2
    opt.wat_rho_ref   = 1100 * kilogram / meter^3; % Reference rho for brine
 
-   opt.p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range
-   opt.t_range = [  4, 250] + 274;           % CO2 default temperature range
+   p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range
+   t_range = [  4, 250] + 274;           % CO2 default temperature range
+   
    opt.pnum    = 800; % number of samples (if using EOS)
    opt.tnum    = 800; % number of samples (if using EOS)
 
@@ -152,7 +153,7 @@ function opt = default_options()
    % represent the lower/upper bounds of pressure and temperature in the
    % sampled table to use.  The same explanation goes for water density,
    % as specified by 'opt.wat_rho_pvt'.
-   opt.co2_rho_pvt = [opt.p_range, opt.t_range]; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
+   opt.co2_rho_pvt = [p_range, t_range]; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
    opt.wat_rho_pvt = []; % empty, [cw, p_ref], or [pmin, pmax, tmin, tmax]
 
    % Viscosity of CO2 and brine

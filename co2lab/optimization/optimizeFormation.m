@@ -1,4 +1,58 @@
 function [Gt, optim, init, history, other] = optimizeFormation(varargin)
+%
+% Optimize a injection scenario for a formation from the CO2-atlas.  Well
+% positions are selected based on structural trapping potential, and rates
+% are chosen to maximise storage while minimizing leakage.
+% 
+% SYNOPSIS:
+%   function [Gt, optim, init, history, other] = optimizeFormation(varargin)
+%
+% PARAMETERS:
+%   varargin - a number of paired arguments on the form: 'option', value.
+%              Options include:
+%              - modelname: name of the formation (default: 'utsirafm')
+%              - schedule:     proposed initial schedule (leave empty for
+%                              automatic specification of schedule with well
+%                              placement and initial rates based on top
+%                              surface geometry).
+%              - coarse_level: downsampling level of formation grid (to
+%                              lower computational cost)
+%              - num_wells:    desired number of wells (default 10)
+%              - subtrap_file: file containing information on estimated
+%                              subscale trapping for the given formation
+%                              (empty for no subscale trapping).
+%              - sr:           residual CO2 saturation
+%              - sw:           residual brine saturation
+%              - isteps:       number of injection timesteps
+%              - msteps:       number of migration timesteps
+%              - itime:        total duration of injection phase
+%              - mtime:        total duration of migration phase
+%              - maxmise_boundary_distance (true/false): 
+%                              if true, wells will be placed as far as
+%                              possible from boundary within the chosen
+%                              catchment region
+%              - well_buffer_dist: 
+%                              if 'maximize_boundary_distance' is fasle,
+%                              wells should (if possible) be within this
+%                              distnace of the relevant spill region's
+%                              boundary. 
+%              - report_basedir: directory for saving results
+% RETURNS:
+%   Gt      - Top surface grid of the chosen formation
+%   optim   - Data structure containing all information about the final,
+%             optimized scenario (including wells and the optimized schedule).
+%   init    - Data structure containing all information about the starting
+%             point scenario (before optimization of rates).
+%   history - Information about the rate optimization process
+%   other   - Data structure containing additional information needed to
+%             rerun the optimized scenario (fluid and rock objects, residual
+%             saturation, trapping structure, subscale trapping, and initial
+%             state) 
+% EXAMPLE:
+%
+%   For an example, refer to the sample script 'optimizeUtsira'.
+%
+
 
    moduleCheck('ad-core');
    

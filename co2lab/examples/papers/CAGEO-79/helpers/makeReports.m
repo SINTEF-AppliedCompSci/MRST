@@ -1,7 +1,10 @@
 function reports = makeReports(Gt, states, rock, fluid, schedule, ...
                                residual, traps, dh)
-% residual on form: [sw, sr]
-% states on form:   {initState, states{:}} to include initial state
+   % This function does intermediate processing of simulation data for
+   % further visualization by 'selectedResultsMultiplot'.
+
+   % residual on form: [s_water, s_co2]
+   % states on form:   {initState, states{:}} to include initial state
 
    assert( numel(states) == numel(schedule.step.val)+1 , ...
        'Ensure the initial state has been included in the varargin ''states''.')
