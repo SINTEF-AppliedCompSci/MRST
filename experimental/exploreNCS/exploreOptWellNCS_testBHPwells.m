@@ -1,8 +1,8 @@
 %% explicitly define all input for running optimizeFormation.m
 
-% NB: opt.lim_rate is used to compute the max rates. Ensure max rates are
-% values which won't lead to negative water compressibility (i.e.,
-% reasonable injection rates that are not too high).
+% set-up wells using BHP.
+% Modify obj_fun to include penalty against high overpressures.
+% Set max/min BHPs instead of rates as optimization limits.
 
 fmName      = 'Stofm'; %Utsirafm';
 coarsening  = 4;
@@ -12,31 +12,47 @@ rhoCref     = 760 * kilogram / meter ^3;
 [Gt, rock2D]    = getFormationTopGrid(fmName, coarsening);
 seainfo         = getSeaInfo(fmName, rhoCref);
 
+%%% get overburden pressure, and a pressure limit
+% [P_over, P_limit] = computeOverburdenPressure(Gt, rock2D, seainfo.seafloor_depth, ...
+%     seainfo.water_density);
+
 %%% get well sites and inj vols
 trapCapacities  = getTrappingInfo(Gt, rock2D, seainfo, 'plotsOn',false);
 wellinfo        = getWellInfo(Gt, trapCapacities, ...
                         'limits','none', ...
                         'prod',false, ...
-                        'setInjRates',true, ...
-                        'buffer', 1000, ...
-                        'DX', 3*5000, ...
-                        'DY', 3*5000 );
+                        'setInjRates',true);
                     
-% reduce injected vols (otherwise neg compressibility value may be
-% computed).
-%wellinfo.vols_inj = wellinfo.vols_inj .* 0.2; % 0.1 worked, not 0.2 or higher
+% pass in wellinfo.initOverP and BHP is computed internally
+%wellinfo.initOverP = 1 * mega * Pascal;
 
 
-itime           = 50 * year;
+
+itime           = 5 * year;
 %injRates        = wellinfo.vols_inj./itime; % m3/s
-isteps          = 50;
-mtime           = 3000 * year;
-msteps          = 100;
-single_control  = true; % ?
+isteps          = 20;
+mtime           = 2 * year;
+msteps          = 2;
+single_control  = true; % not used in setSchedule_extras() yet.
 
 
 % put well details into schedule (to be passed in)
-% NB: vols_inj is already in m3, thus no need to divide by co2 density
+surface_pressure    = 1 * atm;
+initState.pressure  = seainfo.water_density * norm(gravity()) ...
+    * Gt.cells.z + surface_pressure; %@@ contribution from surf_press is small
+schedule = setSchedule_extras( Gt, rock2D, wellinfo.cinx_inj, 'bhp', ...
+                                isteps, itime, msteps, mtime, ...
+                                'initState', initState, ...
+                                'initOverP', 10 * mega * Pascal, ...
+                                'minval',    sqrt(eps));
+                            
+% ensure W.sign is set correctly, as it is left as sign=0 when well is
+% bhp-controlled (confirm this).
+for i=1:numel(schedule.control(1).W)
+    schedule.control(1).W(i).sign = 1;
+end
+
+                            
 % schedule = setSchedule(Gt, rock2D, wellinfo.cinx_inj, wellinfo.vols_inj, ...
 %                                 isteps, itime, msteps, mtime, single_control, ...
 %                                 'minval', sqrt(eps));
@@ -65,7 +81,7 @@ caprock_pressure = trapCapacities.caprock_pressure;
 %%% Pass everything in explicitly.
 [Gt, optim, init, history, other] = optimizeFormation_extras(...
     'modelname'                  , fmName                       , ...
-    'schedule'                   , []                     , ...
+    'schedule'                   , schedule                     , ...
     'coarse_level'               , coarsening                   , ...
     'num_wells'                  , 10 , ... %numel(schedule.control(1).W) , ...% used if wells are picked inside
     'trapfile_name'              , 'utsira_subtrap_function_3.mat', ... %'subtrap_file'               , 'utsira_subtrap_function_3.mat', ...
@@ -102,11 +118,13 @@ caprock_pressure = trapCapacities.caprock_pressure;
  
 %%% Post-processing
 
-reports_init  = makeReports(Gt, {other.initState, init.states{:}}, other.rock, other.fluid, init.schedule, ...
-                            other.residual, other.traps, other.dh);
+reports_init  = makeReports_extras(Gt, {other.initState, init.states{:}}, other.rock, other.fluid, init.schedule, ...
+                            other.residual, other.traps, other.dh, ...
+                            init.wellSols);
 
-reports_optim = makeReports(Gt, {other.initState, optim.states{:}}, other.rock, other.fluid, optim.schedule, ...
-                      other.residual, other.traps, other.dh);
+reports_optim = makeReports_extras(Gt, {other.initState, optim.states{:}}, other.rock, other.fluid, optim.schedule, ...
+                      other.residual, other.traps, other.dh, ...
+                      optim.wellSols);
                   
 
 selectedResultsMultiplot(Gt, reports_optim, [2], ...
@@ -114,7 +132,8 @@ selectedResultsMultiplot(Gt, reports_optim, [2], ...
                          'plot_well_numbering', true, ...
                          'plot_distrib', false);
                      
-compareWellrates(init.schedule, optim.schedule, other.fluid.rhoGS);
+%compareWellrates(init.schedule, optim.schedule, other.fluid.rhoGS);
+compareWellrates_viaWellSols(init.wellSols, optim.wellSols, init.schedule, other.fluid.rhoGS);
                   
 % initial rates
 selectedResultsMultiplot(Gt, reports_init, [2 4 6], ...

@@ -70,11 +70,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
 %       name = fields(tmp);
 %       opt.schedule = tmp.(name{1});
       fprintf('\n Using schedule passed in as varargin. \n')
-      min_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
-      %max_rates = opt.lim_fac * ...
-      % sum([opt.schedule.control(1).W.val])./numel(opt.schedule.control(1).W) * ones(numel(opt.schedule.control(1).W), 1);
-      max_rates = opt.lim_fac * ...
-          max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
+      
    end
    
    % Add constant pressure boundary conditions
@@ -106,8 +102,35 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    %min_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
    %max_rates = opt.lim_fac * ...
    %    sum([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
-   [optim, init, history] = ...
-       optimizeRates(initState, model, opt.schedule, min_rates, max_rates, ...
+   
+   
+   % Check the well type of the first well to get well control limits:
+   wtype = opt.schedule.control(1).W(1).type;
+      
+   if strcmpi(wtype,'rate')
+     min_wvals = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
+     %max_rates = opt.lim_fac * ...
+     %  sum([opt.schedule.control(1).W.val])./numel(opt.schedule.control(1).W) * ones(numel(opt.schedule.control(1).W), 1);
+     max_wvals = opt.lim_fac * ...
+       max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
+     
+     min_mig_rates = min_wvals;
+   
+   elseif strcmpi(wtype,'bhp')
+     min_wvals = initState.pressure( [opt.schedule.control(1).W.cells] );
+     
+     [P_over, P_limit] = computeOverburdenPressure(Gt, rock2D, ...
+         opt.ref_depth, fluid.rhoWS);
+     max_wvals = P_limit * ones(numel(opt.schedule.control(1).W), 1);
+     
+     min_mig_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
+
+     
+   
+   end
+   
+  [optim, init, history] = ...
+       optimizeRates_extra(initState, model, opt.schedule, min_wvals, max_wvals, min_mig_rates, ...
                      'last_control_is_migration', true, ...
                      'leak_penalty', opt.leak_penalty, ...  % @@ added ability to pass in leak_penalty
                      'dryrun', opt.dryrun); % @@ added ability to pass in dryrun
