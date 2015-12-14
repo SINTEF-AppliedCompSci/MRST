@@ -136,8 +136,9 @@ function opt = default_options()
    opt.co2_rho_ref   =  760 * kilogram / meter^3; % Reference rho for CO2
    opt.wat_rho_ref   = 1100 * kilogram / meter^3; % Reference rho for brine
 
-   opt.p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range
-   opt.t_range = [  4, 250] + 274;           % CO2 default temperature range
+   p_range = [0.1, 400] * mega * Pascal; % CO2 default pressure range
+   t_range = [  4, 250] + 274;           % CO2 default temperature range
+   
    opt.pnum    = 800; % number of samples (if using EOS)
    opt.tnum    = 800; % number of samples (if using EOS)
 

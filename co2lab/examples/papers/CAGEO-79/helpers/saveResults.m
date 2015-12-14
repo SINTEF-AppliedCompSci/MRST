@@ -19,9 +19,7 @@ function saveResults(dir, Gt, states, start_at, schedule, traps, rock, fluid, ..
     
     %% saving states
 
-    % assert(numel(schedule.W) == 1); % @@ Currently only supports a single
-    %                                 % nontrivial well configuration  
-    W = [schedule.control(:).W]; %% @@ Must be changed when multiple wells are in play
+    W = [schedule.control(:).W]; 
     
     times   = cumsum(schedule.step.val);
     tnum    = numel(states);
@@ -33,7 +31,7 @@ function saveResults(dir, Gt, states, start_at, schedule, traps, rock, fluid, ..
         tot_inj = tot_inj + (sum([W(:,cnum).val]) * fluid.rhoGS * dt);
     end
 
-    no_dissol = ~isfield(states{1}, 'sGmax'); % @@ better way to test for no dissolution?
+    no_dissol = ~isfield(states{1}, 'sGmax'); 
     
     for t = 1:tnum
         t_global = t + (start_at - 1);
