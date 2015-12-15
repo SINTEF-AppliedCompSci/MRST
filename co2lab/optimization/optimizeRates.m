@@ -142,7 +142,8 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    %% Call optimization routine
    
    u = schedule2control(schedule, scaling);
-   [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, 'lineSearchMaxIt', 20);
+   [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
+                                     'lineSearchMaxIt', 20, 'gradTol', 5e-3);
    
    %% Preparing solution structures
    

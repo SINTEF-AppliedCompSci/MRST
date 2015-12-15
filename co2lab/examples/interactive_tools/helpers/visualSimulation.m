@@ -6,7 +6,7 @@ function visualSimulation(initState, model, schedule, varargin)
    opt.h_min_threshold = 1e-2; % 1 cm
    opt.s_min_threshold = 1e-4;
    opt.rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
-   opt.window_size = [700 900];
+   opt.window_size = [800 768];
    opt.trapstruct = []; % trapping structure as computed by trapAnalysis
    opt.dh = []; % subscale trapping structure, if available
    opt.savefile = []; % if nonempty string, save result to the specified filename
@@ -22,7 +22,7 @@ function visualSimulation(initState, model, schedule, varargin)
    set_size(iface.h, opt.window_size(1), opt.window_size(2));
 
    % Graphical window
-   iface.ax = axes('parent', iface.h, 'position', [.05 .15 .90 .78]);
+   iface.ax = axes('parent', iface.h, 'position', [.05 .20 .90 .78]);
    
    % Slider
    step = 1/(numel(schedule.step.val)-1);
@@ -44,7 +44,7 @@ function visualSimulation(initState, model, schedule, varargin)
                                     'units', 'normalized', ...
                                     'fontsize', 8, ...
                                     'handlevisibility', 'off', ...
-                                    'position', [.86 .1 .1 .03]);
+                                    'position', [.88 .1 .1 .03]);
    update_slider_display(); % call directly here to set display value
    
    % Variable picker
@@ -80,12 +80,12 @@ function visualSimulation(initState, model, schedule, varargin)
    reports = makeReports(model.G, {initState, states{:}}, model.rock, model.fluid, schedule, ...
                          [model.fluid.res_water, model.fluid.res_gas], ...
                          opt.trapstruct, opt.dh);
-   directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
-   fsize = 24;
+   plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
+   fsize = 16;
    set(get(gca, 'xlabel'), 'fontsize', fsize)
    set(get(gca, 'ylabel'), 'fontsize', fsize)
    set(gca,'fontsize', fsize);
-   set(gcf, 'position', [1, 1, 850, 850]);
+   set(gcf, 'position', [1, 1, 600, 600]);
    
    %% Post-simulation viewing opportunity
    rotate3d on;
@@ -97,9 +97,10 @@ function visualSimulation(initState, model, schedule, varargin)
    
    %% ================================= Callbacks =================================
    
-   function [model, states, reports, solver, ok] = after_step_callback(model, states, reports, solver, schedule, simtime)
+   function [model, states, reports, solver, ok] = ...
+          after_step_callback(model, states, reports, solver, schedule, simtime)
       
-      % If htis fails, the window was likely closed and we should abort the simulation
+      % If this fails, the window was likely closed and we should abort the simulation
       try 
          
          % Identify last computed state
