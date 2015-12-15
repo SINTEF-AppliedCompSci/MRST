@@ -133,7 +133,9 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
        optimizeRates_extra(initState, model, opt.schedule, min_wvals, max_wvals, min_mig_rates, ...
                      'last_control_is_migration', true, ...
                      'leak_penalty', opt.leak_penalty, ...  % @@ added ability to pass in leak_penalty
-                     'dryrun', opt.dryrun); % @@ added ability to pass in dryrun
+                     'dryrun', opt.dryrun); %, ... % @@ added ability to pass in dryrun
+                     %'pressure_penalty', 10, ... % passing in pressure penalty means pressure will be penalized
+                     %'pressure_limit', P_limit);
 end
 
 % ----------------------------------------------------------------------------

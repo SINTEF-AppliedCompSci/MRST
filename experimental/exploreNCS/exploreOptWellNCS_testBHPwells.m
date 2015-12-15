@@ -28,11 +28,11 @@ wellinfo        = getWellInfo(Gt, trapCapacities, ...
 
 
 
-itime           = 5 * year;
+itime           = 20 * year;
 %injRates        = wellinfo.vols_inj./itime; % m3/s
-isteps          = 20;
-mtime           = 2 * year;
-msteps          = 2;
+isteps          = 60;
+mtime           = 100 * year;
+msteps          = 10;
 single_control  = true; % not used in setSchedule_extras() yet.
 
 

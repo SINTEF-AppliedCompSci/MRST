@@ -31,10 +31,10 @@ function [ schedule ] = setSchedule_extras( Gt, rock2D, wcells, wtype, ...
     
     if strcmpi(wtype,'rate')
         
-        assert(~isempty(wqtots));
-        assert(numel(wqtots) == numWells);
+        assert(~isempty(opt.wqtots));
+        assert(numel(opt.wqtots) == numWells);
         % computing fixed rates
-        wrates = wqtots / itime;
+        wrates = opt.wqtots / itime;
         wvals = wrates; % %[ opt.inj_rate; -opt.prod_rate ];
         
         

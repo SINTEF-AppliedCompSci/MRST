@@ -21,15 +21,30 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    opt.dryrun = false;    % if 'true', no optimization will take place
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
+   opt.pressure_penalty = []; % if empty, pressure_penalizer is not used
+   opt.pressure_limit   = []; % only used if 'pressure_penality' non-empty
    opt.last_control_is_migration = false; % if true, constrain last control
                                           % to zero rate
    opt.obj_fun = @(dummy) 0;
    opt = merge_options(opt, varargin{:});
 
+   % default objective function
    opt.obj_fun = @(wellSols, states, schedule, varargin) ...
                   leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty, ...
                                  varargin{:});
    
+   % additional part of objective function (if opt.pressure_penalty
+   % provided, obj fun will also penalize pressure close to pressure limit)
+   if ~isempty(opt.pressure_penalty)
+       obj_funA = opt.obj_fun; clear opt.obj_fun; opt.obj_fun = @(dummy) 0;
+       
+       obj_funB = @(states) ...
+          pressure_penalizer(states, schedule, opt.pressure_penalty, opt.pressure_limit);
+               
+       opt.obj_fun = @(wellSols, states, schedule, varargin) ...
+          num2cell(  cell2mat( obj_funA(wellSols, states, schedule, varargin{:}) ) ...
+                   - cell2mat( obj_funB(states)                                ) );
+   end
    opt = merge_options(opt, varargin{:});
    
    num_wells = numel(schedule.control(1).W);
@@ -62,14 +77,17 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    
    
    %% Define limits, scaling and objective function
-   
-   scaling.boxLims = [  min_wvals(:)    , max_wvals(:)    ; ...
-                        min_mig_rates(:), min_mig_rates(:) + sqrt(eps)];
-%    scaling1.boxLims = [min_wvals(:), max_wvals(:)];
-%    scaling2.boxLims = [min_mig_rates(:), min_mig_rates(:) + sqrt(eps)];
-%    scaling1.obj = opt.obj_scaling;
-%    scaling2.obj = opt.obj_scaling;
-   scaling.obj     = opt.obj_scaling;
+   if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+       % injection well-type is the same as migration well-type
+       % thus same scalings apply to both control periods
+       scaling.boxLims = [  min_wvals(:),     max_wvals(:)  ];
+   else
+       % injection well-type is different from migration well-type
+       % thus use 2 separate scalings for control periods
+       scaling.boxLims = [  min_wvals(:)    , max_wvals(:)    ; ...
+                            min_mig_rates(:), min_mig_rates(:) + sqrt(eps)];
+   end
+   scaling.obj = opt.obj_scaling;
    
    obj_evaluator = @(u) evaluate_objective(u, opt.obj_fun, model, initState, ...
                                            schedule, scaling); 
@@ -80,59 +98,55 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    if opt.last_control_is_migration
       % Constrain rates of last step to zero
       linEq = struct('A', eye(num_wells), 'b', min_mig_rates(:));
-      %linEqS = setupConstraints(linEq, schedule, scaling);
       
-      % keep only the relations pertaining to the last control step
-%       last_step_ix = num_wells * (numel(schedule.control) - 1) + 1;
-%       linEqS.A = linEqS.A(last_step_ix:end, :);
-%       linEqS.b = linEqS.b(last_step_ix:end);
-      
-      % relations pertaining to last control step
-      s2.control = schedule.control(2);
-      scaling2.boxLims = scaling.boxLims(end/2+1:end,:);
-      linEqS = setupConstraints(linEq, s2, scaling2);
-      linEqS.A = [zeros(size(linEqS.A)), linEqS.A];
+      if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+        linEqS = setupConstraints(linEq, schedule, scaling);
+        % keep only the relations pertaining to the last control step
+        last_step_ix = num_wells * (numel(schedule.control) - 1) + 1;
+        linEqS.A = linEqS.A(last_step_ix:end, :);
+        linEqS.b = linEqS.b(last_step_ix:end);
+      else
+        % relations pertaining to last control step
+        s2.control = schedule.control(2);
+        scaling2.boxLims = scaling.boxLims(end/2+1:end,:);
+        linEqS = setupConstraints(linEq, s2, scaling2);
+        linEqS.A = [zeros(size(linEqS.A)), linEqS.A];
+      end
    end
    
    
    %% Call optimization routine
-   
-   %u = schedule2control(schedule, scaling);
-   
-   % Convert schedule-params (i.e., inj 'bhp', mig 'rate') to control
-   % vector: 
-   % - control(1) is bounded by bhp, control(2) is bounded by rates
-   s1.control = schedule.control(1);
-   s2.control = schedule.control(2);
-   scaling1.boxLims = scaling.boxLims(1:end/2,:);
-   scaling2.boxLims = scaling.boxLims(end/2+1:end,:);
-   u1 = schedule2control(s1, scaling1);
-   u2 = schedule2control(s2, scaling2);
-   u = [u1; u2];
-   
-   % Convert schedule-params (i.e., inj 'bhp', mig 'rate') to control vector % @@
-%    ui = [schedule.control(1).W.val]';
-%    um = [schedule.control(2).W.val]';
-%    u = [ui; um];
-%    [umin, umax] = deal(scaling.boxLims(:,1), scaling.boxLims(:,2));
-%    u  = (u-umin)./(umax-umin); 
+   if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+        u = schedule2control(schedule, scaling);
+   else
+       % Convert schedule-params (i.e., inj 'bhp', mig 'rate') to control
+       % vector: 
+       % - control(1) is bounded by bhp, control(2) is bounded by rates
+       s1.control = schedule.control(1);
+       s2.control = schedule.control(2);
+       scaling1.boxLims = scaling.boxLims(1:end/2,:);
+       scaling2.boxLims = scaling.boxLims(end/2+1:end,:);
+       u1 = schedule2control(s1, scaling1);
+       u2 = schedule2control(s2, scaling2);
+       u = [u1; u2];
+   end
    
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
        'lineSearchMaxIt', 20, 'gradTol',5e-3);
    
    %% Preparing solution structures
+   if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+       optim.schedule = control2schedule(u_opt, schedule, scaling);
+   else
+       % copy schedule of control.BC and step
+       optim.schedule = schedule;
+       % get optimized schedule (of Wells) from optimized control vector
+       s1 = control2schedule(u_opt(1:end/2), s1, scaling1);
+       s2 = control2schedule(u_opt(end/2+1:end), s2, scaling2);
+       optim.schedule.control(1) = s1.control;
+       optim.schedule.control(2) = s2.control;
+   end
    
-   %optim.schedule = control2schedule(u_opt, schedule, scaling);
-   % copy schedule of control.BC and step
-   optim.schedule = schedule;
-   % get optimized schedule (of Wells) from optimized control vector
-   s1 = control2schedule(u_opt(1:end/2), s1, scaling1);
-   s2 = control2schedule(u_opt(end/2+1:end), s2, scaling2);
-   optim.schedule.control(1) = s1.control;
-   optim.schedule.control(2) = s2.control;
-   
-   
-
    [optim.wellSols, optim.states] = simulateScheduleAD(initState, ...
                                                        model, ...
                                                        optim.schedule);
@@ -199,28 +213,74 @@ end
 
 % ----------------------------------------------------------------------------
 
+function obj = pressure_penalizer(states, schedule, penalty, plim)
+% states.pressure is a scalar field (size of domain).
+% schedule is only used for time steps.
+% penalty is a scalar.
+% plim is a scalar.
+
+
+% format of objective function:
+%   obj = max(0, sign(p - plim)) * penalty * (p - plim)^2
+% obj is computed for each time step (for both inj and mig periods).
+
+    num_timesteps   = numel(schedule.step.val);
+    numSteps        = numel(states);
+    tSteps          = (1:numSteps)';
+    dts             = schedule.step.val;
+    
+    obj     = repmat({[]}, numSteps, 1);
+    maxp    = zeros(numSteps, 1);
+    k       = 2;
+    for step = 1:numSteps
+
+      state         = states{tSteps(step)}; %@@ +1?
+      maxp(step)    = max(state.pressure);
+      dt            = dts(step);
+      
+      obj{step} = max(0, sign(maxp(step) - 0.75*plim)) * penalty * (maxp(step) - 0.75*plim)^k;
+      
+      if (tSteps(step) == num_timesteps)
+         %if ~opt.ComputePartials
+            fprintf('Max pressure reached: %f\n', maxp(:) );
+            fprintf('Proximity to PLimit: %f\n', max(0, sign(maxp(step) - 0.75*plim)) );
+            fprintf('Score: %f\n\n', max(0, sign(maxp(step) - 0.75*plim)) * penalty * (maxp(:) - 0.75*plim).^k );
+         %end
+      end
+      obj{step} = obj{step} / 1e12; %@@ how to scale this value to match with other obj value?
+    end
+
+
+end
+
+% ----------------------------------------------------------------------------
+
 function [val, der, wellSols, states] = ...
        evaluate_objective(u, obj_fun, model, initState, schedule, scaling) 
    
-   % assume:
-   % first half of controls are for injection period (could be bhp or rate)
-   % second half of controls are for migration period (should be rate)
-    s1.control = schedule.control(1);
-    s2.control = schedule.control(2);
-    scaling1.boxLims = scaling.boxLims(1:end/2,:);
-    scaling2.boxLims = scaling.boxLims(end/2+1:end,:);
-    
-    % where u = [u1; u2]
-    
+   if ~strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+       % assume:
+       % first half of controls are for injection period (could be bhp or rate)
+       % second half of controls are for migration period (should be rate)
+       s1.control = schedule.control(1);
+       s2.control = schedule.control(2);
+       scaling1.boxLims = scaling.boxLims(1:end/2,:);
+       scaling2.boxLims = scaling.boxLims(end/2+1:end,:);
+       % where u = [u1; u2]
+   end
+
    minu = min(u);
    maxu = max(u);
    if or(minu < -eps , maxu > 1+eps)
       warning('Controls are expected to lie in [0 1]\n')
    end
-
-%    boxLims = scaling.boxLims;
-   boxLims1 = scaling1.boxLims;
-   boxLims2 = scaling2.boxLims;
+   
+   if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+       boxLims = scaling.boxLims;
+   else
+       boxLims1 = scaling1.boxLims;
+       boxLims2 = scaling2.boxLims;
+   end
    if isfield(scaling, 'obj')
       objScaling = abs(scaling.obj);
    else
@@ -228,12 +288,14 @@ function [val, der, wellSols, states] = ...
    end
    
    % update schedule:
-   %schedule = control2schedule(u, schedule, scaling); %@@ use different scaling for bhp and rate controls
-   
-   s1 = control2schedule(u(1:end/2), s1, scaling1);
-   s2 = control2schedule(u(end/2+1:end), s2, scaling2);
-   schedule.control(1) = s1.control;
-   schedule.control(2) = s2.control;
+   if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+       schedule = control2schedule(u, schedule, scaling);
+   else
+       s1 = control2schedule(u(1:end/2), s1, scaling1);
+       s2 = control2schedule(u(end/2+1:end), s2, scaling2);
+       schedule.control(1) = s1.control;
+       schedule.control(2) = s2.control;
+   end
    
    % run simulation:
    [wellSols, states] = simulateScheduleAD(initState, model, schedule);
@@ -247,12 +309,14 @@ function [val, der, wellSols, states] = ...
       objh = @(tstep)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
       g    = computeGradientAdjointAD(initState, states, model, schedule, objh);
       % scale gradient:
-      %der = scaleGradient(g, schedule, boxLims, objScaling);
-      der1 = scaleGradient({g{1}}, s1, boxLims1, objScaling);
-      der2 = scaleGradient({g{2}}, s2, boxLims2, objScaling);
-      %der = vertcat(der{:});
-      der = vertcat(der1{:}, der2{:});
-      
+      if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
+          der = scaleGradient(g, schedule, boxLims, objScaling);
+          der = vertcat(der{:});
+      else
+          der1 = scaleGradient({g{1}}, s1, boxLims1, objScaling);
+          der2 = scaleGradient({g{2}}, s2, boxLims2, objScaling);
+          der = vertcat(der1{:}, der2{:});
+      end
       % %% @@ 
       % % Compute numeric derivative, to verify gradient
       % vd = u*0;
