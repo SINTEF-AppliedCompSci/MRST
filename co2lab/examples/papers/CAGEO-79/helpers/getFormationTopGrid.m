@@ -1,4 +1,4 @@
-function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level)
+function [Gt, rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level)
 % Load the formation grid at a given coarsening level
 %
 % SYNOPSIS:
@@ -21,7 +21,7 @@ function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level
 %
     moduleCheck('libgeometry');
     [grdecl dataset petroinfo] = ...
-        getAtlasGrid(formation, 'coarsening', coarsening_level);
+        getAtlasGrid(formation, 'coarsening', coarsening_level);%#ok
 
     % Computing the Utsira top-surface grid
     G = processGRDECL(grdecl{1});
@@ -29,7 +29,7 @@ function [Gt rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level
     for i=1:numel(ncvec)
        ncvec(i)=G(i).cells.num; 
     end
-    [nc,j]=max(ncvec);
+    [nc,j]=max(ncvec); %#ok
     G=G(j);
     G = mcomputeGeometry(G);
     Gt = topSurfaceGrid(G);

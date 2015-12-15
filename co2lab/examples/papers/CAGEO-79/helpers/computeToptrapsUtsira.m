@@ -26,7 +26,7 @@ function dh = computeToptrapsUtsira(filename, Gt, recenter)
         ysamples = linspace(trapfun.theta_y_vec(1), trapfun.theta_y_vec(end), samples);
         fsampled = computeSamples(TVol, xsamples, ysamples);
 
-        [max_vol, max_ix] = max(fsampled(:));
+        [max_vol, max_ix] = max(fsampled(:));%#ok
         [max_x, max_y] = ind2sub(size(fsampled), max_ix);
         [adj_x, adj_y] = deal(xsamples(max_x), ysamples(max_y));
     else

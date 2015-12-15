@@ -78,7 +78,7 @@ function  [initState, Gt, schedule, fluid] = runSimulation(Gt, rock, schedule, v
                       'rs'      , zeros(Gt.cells.num, 1));
    
    %% check if we are done
-   if opt.dryrun return; end; 
+   if opt.dryrun return; end; %#ok
    
    %% setup and run complete model
 
@@ -101,7 +101,7 @@ function  [initState, Gt, schedule, fluid] = runSimulation(Gt, rock, schedule, v
    [wellSols, states] = simulateScheduleAD(initState, ...
                                            CO2VEBlackOilTypeModel(Gt, rock, fluid), schedule, ...
                                            'afterStepFn', plot_fn, ...
-                                           'NonLinearSolver', NonLinearSolver('useRelaxation', true));
+                                           'NonLinearSolver', NonLinearSolver('useRelaxation', true));%#ok
 
    %% storing outcome if requested
    if opt.save_result

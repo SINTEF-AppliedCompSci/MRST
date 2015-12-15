@@ -54,7 +54,7 @@ function example4(varargin)
                               struct('W', Wmig, 'bc', bcond)], ...
                   'step'   , struct('control', [1 * ones(size(istep)); ...
                                                 2 * ones(size(mstep))], ...
-                                    'val', [istep; mstep]));
+                                    'val', [istep; mstep]));%#ok
     end
     
     injcase = {'TwoMT', 'TenMT'};
@@ -92,7 +92,7 @@ function example4(varargin)
                 fprintf('Current case: %s - %s\n', dis{1}, injcase{i});
                 
                 basedir = fullfile(opt.savedir, dis{1});
-                casedir = fullfile(basedir, injcase{i}, 'report');
+                %casedir = fullfile(basedir, injcase{i}, 'report');
                 %tsteps = [opt.inj_steps, last_step(casedir)];
                 tsteps = [opt.inj_steps, 21, 40];
                 
@@ -111,7 +111,7 @@ end
 % ----------------------------------------------------------------------------
 function res = computed(dirname)
     
-    if exist(dirname) ~= 7
+    if exist(dirname) ~= 7%#ok
         res = false; return;
     end
     
@@ -121,11 +121,11 @@ function res = computed(dirname)
     res = (filenum > 0);
 end
 % ----------------------------------------------------------------------------
-function res = last_step(dirname)
-    % Return the number of the last saved step encountered
-    d   = dir(fullfile(dirname, 'report_*.mat'));
-    res = max(cellfun(@(x) str2num(x(8:end-4)), {d.name}));
-end
+% function res = last_step(dirname)
+%     % Return the number of the last saved step encountered
+%     d   = dir(fullfile(dirname, 'report_*.mat'));
+%     res = max(cellfun(@(x) str2num(x(8:end-4)), {d.name}));
+% end
 
 % ----------------------------------------------------------------------------
 function val = disval(dis, rate)

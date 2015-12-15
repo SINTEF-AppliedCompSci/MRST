@@ -72,7 +72,7 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
    dh = [];
    if ~isempty(opt.trapfile_name)
       if ~exist(opt.trapfile_name, 'file')
-         warning(['Subtrap datafile not found.  Proceeding without subtraps.']);
+         warning('Subtrap datafile not found.  Proceeding without subtraps.');
       else
          dh = computeToptraps(load(opt.trapfile_name), Gt, true);
       end

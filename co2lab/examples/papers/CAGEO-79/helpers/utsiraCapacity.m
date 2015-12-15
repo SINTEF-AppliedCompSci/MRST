@@ -1,4 +1,4 @@
-function [wposition, cap] = utsiraCapacity(varargin)
+function utsiraCapacity(varargin)
 % Compute total theoretical trapping capacity of the formation, taking structural,
 % residual and dissolution trapping into account.
 

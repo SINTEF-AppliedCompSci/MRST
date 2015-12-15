@@ -28,7 +28,7 @@ moduleCheck('coarsegrid', 'deckformat', 'mex', 'matlab_bgl', 'opm_gridprocessing
 % coarsest grid is several orders of magnitude larger than in the finest.
 
 N = 6;
-[Grids res] = deal(cell(numel(N),1));
+[Grids, res] = deal(cell(numel(N),1));
 
 tic;
 for i = 1:N
@@ -169,7 +169,7 @@ for i = 1:N
          
     h = plotGrid(G, subset, 'facec', colorize(i), 'facea', .2, ...
                  'edgec', colorize(i), 'edgea', .9);
-    hl = [hl; h];
+    hl = [hl; h];%#ok
     tr = res{i};
     G_flat = flattenTraps(G, tr);
     G_flat.nodes.z = G_flat.nodes.z + 1000*i;
