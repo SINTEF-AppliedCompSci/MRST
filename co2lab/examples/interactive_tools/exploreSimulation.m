@@ -80,13 +80,13 @@ function exploreSimulation(varargin)
    imode_group = setup_imode_group([.77 .84 .19 .15]);
    
    % Group for setting timesteps and durations
-   [time_group, time_entries] = setup_time_group([.56, .72, .4, .1]);
+   time_entries = setup_time_group([.56, .72, .4, .1]);
    
    % Group for displaying and modifying wells
    [well_group, well_entries] = setup_well_group([.56 .20, .4, .50]);%#ok
 
    % group for toggling highlighting of traps
-   [trap_group, trap_choice] = setup_trap_group([.76, .01, .20, .05]);
+   trap_choice = setup_trap_group([.76, .01, .20, .05]);
    
    % launch button
    launch_button = uicontrol('parent', var.h, ...
@@ -167,9 +167,10 @@ function exploreSimulation(varargin)
       end
       
       % spawn simulation window 
+      
       visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, ...
-                       'trapstruct', var.ta, 'dh', dh, 'savefile', opt.savefile);
-
+                       'trapstruct', var.ta, 'dh', dh, 'savefile', opt.savefile, ...
+                       'trap_outlines', if_else(do_outline_traps(), trapfaces(), []));
    end
 
    % ----------------------------------------------------------------------------
@@ -257,7 +258,7 @@ function exploreSimulation(varargin)
    % ----------------------------------------------------------------------------
    
    function num = read_number_from_edit(edit, name)
-      num = str2num(get(edit, 'string'));
+      num = str2num(get(edit, 'string'));%#ok
       if isempty(num) || ~isreal(num)
          msgbox(['Non-numeric value entered for ' name '. Please fix and try again'], ...
                 'Could not parse value', 'error', 'modal');
@@ -358,7 +359,7 @@ function exploreSimulation(varargin)
                         'units', 'normalized', ...
                         'horizontalalignment', 'left', ...
                         'position', [.2, .08, .55, .2], ...
-                        'string', 'Include dissolution');%#ok
+                        'string', 'Use dissolution');%#ok
 
       % create widgets (subscale trapping)      
       choices.subscale = uicontrol('parent', group, ...
@@ -371,7 +372,7 @@ function exploreSimulation(varargin)
                          'units', 'normalized', ...
                          'horizontalalignment', 'left', ...
                          'position', [.2, .38, .80, .2], ...
-                         'string', 'Include subscale trapping');%#ok
+                         'string', 'Use subscale trapping');%#ok
 
       % create widgets (capillary fringe)      
       choices.cap_fringe = uicontrol('parent', group, ...
@@ -384,7 +385,7 @@ function exploreSimulation(varargin)
                          'units', 'normalized', ...
                          'horizontalalignment', 'left', ...
                          'position', [.2, .68, .80, .2], ...
-                         'string', 'Include capillary fringe');%#ok
+                         'string', 'Use capillary fringe');%#ok
       
       
       set(group, 'visible', 'on');      
@@ -392,7 +393,7 @@ function exploreSimulation(varargin)
    
    % ----------------------------------------------------------------------------
    
-   function [group, choice] = setup_trap_group(pos)
+   function choice = setup_trap_group(pos)
       group = uipanel('visible', 'off', 'units', 'normalized', 'position', pos);
       
 
@@ -407,14 +408,14 @@ function exploreSimulation(varargin)
                         'units', 'normalized', ...
                         'horizontalalignment', 'left', ...
                         'position', [.2, .00, .55, .7], ...
-                        'string', 'Display traps');%#ok
+                        'string', 'Outline traps');%#ok
 
       set(group, 'visible', 'on');
    end
    
    % ----------------------------------------------------------------------------
    
-   function [group, entries] = setup_time_group(pos)
+   function entries = setup_time_group(pos)
       group = uipanel('visible', 'off', 'units', 'normalized', 'position', pos);
       set(group, 'visible', 'on');
       
@@ -423,25 +424,25 @@ function exploreSimulation(varargin)
                                  'units', 'normalized', ...
                                  'horizontalalignment', 'left', ...
                                  'position', [.02 .4, .37, .4], ...
-                                 'string', 'Injection time (years):');
+                                 'string', 'Injection time (years):');%#ok
       inj_step_label = uicontrol('parent', group, ...                
                                  'style', 'text', ...                
                                  'units', 'normalized', ...          
                                  'horizontalalignment', 'left', ...  
                                  'position', [.52 .4, .37, .4], ...  
-                                 'string', 'Injection timesteps:');
+                                 'string', 'Injection timesteps:');%#ok
       mig_time_label = uicontrol('parent', group, ...
                                  'style', 'text', ...
                                  'units', 'normalized', ...
                                  'horizontalalignment', 'left', ...
                                  'position', [.02 .0, .37, .4], ...
-                                 'string', 'Migration time (years):');
+                                 'string', 'Migration time (years):');%#ok
       mig_step_label = uicontrol('parent', group, ...                
                                  'style', 'text', ...                
                                  'units', 'normalized', ...          
                                  'horizontalalignment', 'left', ...  
                                  'position', [.52 .0, .37, .4], ...  
-                                 'string', 'Migration timesteps:');
+                                 'string', 'Migration timesteps:');%#ok
       
       entries.inj_time_edit = uicontrol('parent', group, ...
                                 'style', 'edit', ...
@@ -703,8 +704,15 @@ function exploreSimulation(varargin)
 
    function res = trapfaces()
       trapcells = find(var.ta.traps);
-      res = unique(var.Gt.cells.faces(mcolon(var.Gt.cells.facePos(trapcells), ...
-                                             var.Gt.cells.facePos(trapcells+1)-1)));
+      half_faces = var.Gt.cells.faces(mcolon(var.Gt.cells.facePos(trapcells), ...
+                                             var.Gt.cells.facePos(trapcells+1)-1))';
+      sorted_half_faces = sort(half_faces);
+      repeats = diff(sorted_half_faces)==0;
+      interior_faces = sorted_half_faces([repeats;false]);
+      unique_faces = unique(half_faces);
+      exterior_faces = setdiff(unique_faces, interior_faces);
+      
+      res = exterior_faces;
    end
    
    % ----------------------------------------------------------------------------
@@ -718,9 +726,8 @@ function exploreSimulation(varargin)
       plotCellData(var.Gt, var.data, 'buttondownfcn', @click_handler);
       
       if do_outline_traps()
-         plotFaces(var.Gt, trapfaces(), 'edgecolor', 'y', 'linewidth', 1, 'edgealpha', 1);
+         plotFaces(var.Gt, trapfaces(), 'edgecolor', 'y', 'linewidth', 2, 'edgealpha', 1);
       end
-      
          
       % Draw boundary conditions
       for i = 1:numel(var.loops)
