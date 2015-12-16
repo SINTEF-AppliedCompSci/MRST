@@ -2,18 +2,37 @@ function varargout = matrixBlocksFromSparse(varargin)
 %Extract block-diagonal matrix elements from sparse matrix
 %
 % SYNOPSIS:
-%   Sbd = matrixBlocksFromSparse(S, sz)
+%    Sbd       = matrixBlocksFromSparse(S, rsz)
+%    Sbd       = matrixBlocksFromSparse(S, rsz, csz)
+%   [Sbd, pos] = matrixBlocksFromSparse(...)
 %
 % PARAMETERS
-%   S  - Sparse matrix.  Assumed to be square and block-diagonal with
-%        square blocks.  The diagonal blocks may contain zero elements.
+%   S   - Sparse matrix.  Assumed to be block-diagonal.  The diagonal blocks
+%         may contain zero elements.
 %
-%   sz - Block sizes.  An n-by-1 INT32 vector of positive numbers such that
-%        the i'th diagonal block of 'S' is sz(i)-by-sz(i).
+%   rsz - Row sizes.  An n-by-1 vector of positive integers such that the
+%         number of rows of block 'i' is 'rsz(i)'.
+%
+%   csz - Column sizes.  An n-by-1 vector of positive integers such that the
+%         number of columns of block 'i' is 'csz(i)'.
+%
+%         Optional.  If unspecified, copied from 'rsz'--in other words, if
+%         'csz' is not specified, the return value will be constructed from
+%         square blocks.
 %
 % RETURNS:
-%   Sbd - Block-diagonal matrix elements.  A SUM(sz.^2)-by-1 array of real
-%         numbers.  May contain zeros.
+%   Sbd - Block-diagonal matrix elements.  A SUM(rsz .* csz)-by-1 array of
+%         real numbers.  May contain zeros.
+%
+%   pos - Start pointers for individual blocks.  In particular, the 'i'-th
+%         block of 'S' is contained in entries
+%
+%            pos(i) : pos(i + 1) - 1
+%
+%         of 'Sbd'.  This is a convenience value only as the same pointer
+%         structure can be computed using the statement
+%
+%            pos = cumsum([1 ; rsz .* csz])
 %
 % NOTE:
 %   If each individual block along the diagonal is full, then the output is
@@ -44,7 +63,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % If we end up here, matrixBlocksFromSparse needs to be built.
    % Next time, this will not happen.
-   buildmex -largeArrayDims matrixBlocksFromSparse.c
+   buildmex -O -largeArrayDims matrixBlocksFromSparse.c
 
    % Now, run it.
    [varargout{1:nargout}] = matrixBlocksFromSparse(varargin{:});
