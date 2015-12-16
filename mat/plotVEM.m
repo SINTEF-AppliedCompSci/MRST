@@ -31,7 +31,8 @@ for c = 1:Nc
         end
         dofs(1:2:end) = nodes([1:end, 1]);
         dofs(2:2:end-1,:) = faces + Nn;
-        plot3(XdofC(:, 1), XdofC(:,2), u(dofs), 'k', 'LineWidth', 0.01);
+        fill3(XdofC(:, 1), XdofC(:,2), u(dofs), 'w');        
+        %plot3(XdofC(:, 1), XdofC(:,2), u(dofs), 'k', 'LineWidth', 0.01);
     end
 end
 
