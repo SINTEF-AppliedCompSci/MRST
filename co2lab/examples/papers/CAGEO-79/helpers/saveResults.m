@@ -57,7 +57,7 @@ function saveResults(dir, Gt, states, start_at, schedule, traps, rock, fluid, ..
         report.t      = times(t_global);
         report.sol    = cur_sol;
         report.W      = W(:,cnum);
-        report.masses = [mass_dist, tot_inj];
+        report.masses = [mass_dist, tot_inj - sum(mass_dist)];
         
         save(sprintf('%s/report_%i', dir, t_global), 'report');
     end

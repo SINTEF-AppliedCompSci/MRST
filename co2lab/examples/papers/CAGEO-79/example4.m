@@ -6,7 +6,7 @@ function example4(varargin)
     opt.subtrap_file  = 'utsira_subtrap_function.mat';
     opt.inj_steps     = 10;
     opt.inj_years     = 50;
-    opt.migr_steps    = 30;
+    opt.migr_steps    = 60;
     opt.migr_years    = 3000;
     opt.dis_rate      = 8.6924e-11;
     opt.dis_max       = 0.02;
@@ -92,13 +92,21 @@ function example4(varargin)
                 fprintf('Current case: %s - %s\n', dis{1}, injcase{i});
                 
                 basedir = fullfile(opt.savedir, dis{1});
+                
+                [Gt, reports] = load_data(fullfile(basedir, injcase{i}, ...
+                                                   'report'), 1:(opt.inj_steps ...
+                                                                 + opt.migr_steps));
+
                 %casedir = fullfile(basedir, injcase{i}, 'report');
                 %tsteps = [opt.inj_steps, last_step(casedir)];
-                tsteps = [opt.inj_steps, 21, 40];
+                tsteps = [opt.inj_steps, 31, 70];
                 
-                selectedResultsMultiplot(basedir, injcase{i}, tsteps, ...
+                selectedResultsMultiplot(Gt, reports, tsteps, ...
                                          'background' , 'totalCO2' ,  ...
                                          'plot_traps' , true);
+                % selectedResultsMultiplot(basedir, injcase{i}, tsteps, ...
+                %                          'background' , 'totalCO2' ,  ...
+                %                          'plot_traps' , true);
     
                 fprintf('Press ''enter'' to advance to the next simulation case.\n\n');
                 pause; 
@@ -106,6 +114,22 @@ function example4(varargin)
         end
     end
 end
+
+% ----------------------------------------------------------------------------
+
+function [Gt, stepdata] = load_data(dir, tsteps)
+    
+    % loading grid
+    tmp = load(fullfile(dir, 'simulation_grid'), 'Gt');
+    Gt = tmp.Gt;
+    
+    % loading timesteps
+    for i = 1:numel(tsteps)
+       tmp = load(fullfile(dir, sprintf('report_%i', tsteps(i))), 'report');
+       stepdata(i) = tmp.report;%#ok
+    end
+end
+
 
 
 % ----------------------------------------------------------------------------

@@ -98,7 +98,8 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    %% Compute initial objective value (if required for scaling)
    if isempty(opt.obj_scaling)
       [init.wellSols, init.states] = ...
-          simulateScheduleAD(initState, model, schedule); 
+          simulateScheduleAD(initState, model, schedule, ...
+                             'NonLinearSolver', NonLinearSolver('useRelaxation', true));
       
       init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
                                                 init.states, ...
@@ -143,15 +144,18 @@ function [optim, init, history] = optimizeRates(initState, model, schedule, ...
    
    u = schedule2control(schedule, scaling);
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
-                                     'lineSearchMaxIt', 20, 'gradTol', 5e-3);
+                                     'lineSearchMaxIt', 10, 'gradTol', 2e-3);
+                                     %'lineSearchMaxIt', 20, 'gradTol', 1e-3);
    
    %% Preparing solution structures
    
    optim.schedule = control2schedule(u_opt, schedule, scaling);
 
-   [optim.wellSols, optim.states] = simulateScheduleAD(initState, ...
-                                                       model, ...
-                                                       optim.schedule);
+   [optim.wellSols, optim.states] = ...
+       simulateScheduleAD(initState, ...
+                          model, ...
+                          optim.schedule, ...
+                          'NonLinearSolver', NonLinearSolver('useRelaxation', true));
    
    optim.obj_val_steps = opt.obj_fun(optim.wellSols, optim.states, optim.schedule);
    optim.obj_val_total = sum(cell2mat(optim.obj_val_steps));
@@ -178,7 +182,7 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
    end
    
    obj = repmat({[]}, numSteps, 1);
-   krull = 0; % @@
+   tot_inj = 0; % @@
    for step = 1:numSteps
       sol = wellSols{tSteps(step)};
       state = states{tSteps(step)}; %@@ +1?
@@ -195,7 +199,7 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       injInx = (vertcat(sol.sign) > 0);
       obj{step} = dt * spones(ones(1, nW)) * ((1-penalty) * injInx .* qGs);
 
-      krull = krull +  dt * spones(ones(1, nW)) * ( injInx .* qGs);
+      tot_inj = tot_inj +  dt * spones(ones(1, nW)) * ( injInx .* qGs);
       
       if (tSteps(step) == num_timesteps)
          bG = model.fluid.bG(p);
@@ -203,9 +207,9 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
          vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
          obj{step} = obj{step} + penalty * vol;
          if ~opt.ComputePartials
-            fprintf('Total injected: %f\n', double(krull));
-            fprintf('Total leaked: %f\n', double(krull - vol));
-            fprintf('Score: %f\n\n', double(krull) - penalty * double(krull-vol));
+            fprintf('Total injected: %f\n', double(tot_inj));
+            fprintf('Total leaked: %f\n', double(tot_inj - vol));
+            fprintf('Score: %f\n\n', double(tot_inj) - penalty * double(tot_inj-vol));
          end
       end
       obj{step} = obj{step} * model.fluid.rhoGS/1e12; %@@
@@ -234,7 +238,9 @@ function [val, der, wellSols, states] = ...
    schedule = control2schedule(u, schedule, scaling);
    
    % run simulation:
-   [wellSols, states] = simulateScheduleAD(initState, model, schedule);
+   [wellSols, states] = ...
+       simulateScheduleAD(initState, model, schedule, ...
+                          'NonLinearSolver', NonLinearSolver('useRelaxation', true));
    
    % compute objective:
    vals = obj_fun(wellSols, states, schedule);

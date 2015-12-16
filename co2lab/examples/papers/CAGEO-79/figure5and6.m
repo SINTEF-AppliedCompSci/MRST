@@ -4,5 +4,3 @@ function figure5and6()
     utsiraCapacity('rhoCfun', @co2.rho);
     
 end
-
-    
