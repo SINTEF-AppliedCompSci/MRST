@@ -122,8 +122,6 @@ args_ok(int nlhs, int nrhs, const mxArray *prhs[])
                 && !mxIsComplex(prhs[2]);
     }
 
-    ok = ok && (mxGetM(prhs[0]) == mxGetN(prhs[0]));
-
     return ok;
 }
 
