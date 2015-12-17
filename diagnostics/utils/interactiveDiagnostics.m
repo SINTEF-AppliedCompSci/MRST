@@ -1075,8 +1075,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function stopApplication(src, event)
-     figs=[fig_main,fig_ctrl,fig_well,fig_phi,fig_well_alloc];
-     close(figs(ishghandle(figs)));
+     if ishghandle(fig_well_alloc), close(fig_well_alloc); end
+     if ishghandle(fig_phi),  close(fig_phi);  end
+     if ishghandle(fig_well), close(fig_well); end
+     if ishghandle(fig_main), close(fig_main); end
+     if ishghandle(fig_ctrl), close(fig_ctrl); end
      return
     end
 
