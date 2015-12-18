@@ -331,7 +331,7 @@ opt = merge_options(opt, varargin{:});
         % automatically.
         if (opt.askBeforeSolver && userConsent('Do you want to proceed to solver?'))
             [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
-            saveResults( opt, var, model, schedule, wellSols, states, sim_report)
+            saveResults( opt, var, model, schedule, wellSols, states, sim_report) %@@ saveResults has been updated to handle correct masses(1:8)
 
         elseif ~opt.askBeforeSolver
             [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule);
