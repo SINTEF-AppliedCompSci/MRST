@@ -46,7 +46,6 @@ function schedule = setSchedule(Gt, rock, wcells, qtot, isteps, itime, ...
     % constructing wells
     W = [];
     wellradius = 0.3;
-    dummy = 0;
     
     % computing fixed rates
     rate = qtot / itime;  
@@ -62,7 +61,7 @@ function schedule = setSchedule(Gt, rock, wcells, qtot, isteps, itime, ...
 
     % constructing schedule
     cpos = 1;
-    ctrls = [];
+    ctrls = [];%#ok
     if single_control && isteps > 0 
         schedule.control(cpos).W = W;
         cpos = cpos+1;
@@ -72,7 +71,7 @@ function schedule = setSchedule(Gt, rock, wcells, qtot, isteps, itime, ...
             schedule.control(cpos).W = W;
             cpos = cpos+1;
         end
-        ctrls = [1:isteps]';
+        ctrls = [1:isteps]';%#ok
     end    
     
     if msteps > 0
@@ -80,7 +79,7 @@ function schedule = setSchedule(Gt, rock, wcells, qtot, isteps, itime, ...
         for i = 1:numel(schedule.control(cpos).W)
             schedule.control(cpos).W(i).val = opt.minval;
         end
-        cpos = cpos+1;
+        cpos = cpos+1;%#ok
     end
 
     mig_ctrl = numel(schedule.control); % control step for migration, only

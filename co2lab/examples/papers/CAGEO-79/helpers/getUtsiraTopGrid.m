@@ -1,4 +1,4 @@
-function [Gt rock2D] = getUtsiraTopGrid(coarsening_level, do_cut)
+function [Gt, rock2D] = getUtsiraTopGrid(coarsening_level, do_cut)
 % Load the Utsira grid at a given coarsening level, and optional cutting-away
 % of Eastern part. 
 %
@@ -18,8 +18,8 @@ function [Gt rock2D] = getUtsiraTopGrid(coarsening_level, do_cut)
 %   rock2D - rock structure
 %
     moduleCheck('libgeometry');
-    [grdecl dataset petroinfo] = ...
-        getAtlasGrid('Utsirafm', 'coarsening', coarsening_level);
+    [grdecl, dataset, petroinfo] = ...
+        getAtlasGrid('Utsirafm', 'coarsening', coarsening_level);%#ok
 
     % Computing the Utsira top-surface grid
     G = processGRDECL(grdecl{1});  G = G(1);

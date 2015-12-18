@@ -6,7 +6,7 @@ function example4(varargin)
     opt.subtrap_file  = 'utsira_subtrap_function.mat';
     opt.inj_steps     = 10;
     opt.inj_years     = 50;
-    opt.migr_steps    = 30;
+    opt.migr_steps    = 60;
     opt.migr_years    = 3000;
     opt.dis_rate      = 8.6924e-11;
     opt.dis_max       = 0.02;
@@ -54,7 +54,7 @@ function example4(varargin)
                               struct('W', Wmig, 'bc', bcond)], ...
                   'step'   , struct('control', [1 * ones(size(istep)); ...
                                                 2 * ones(size(mstep))], ...
-                                    'val', [istep; mstep]));
+                                    'val', [istep; mstep]));%#ok
     end
     
     injcase = {'TwoMT', 'TenMT'};
@@ -92,13 +92,21 @@ function example4(varargin)
                 fprintf('Current case: %s - %s\n', dis{1}, injcase{i});
                 
                 basedir = fullfile(opt.savedir, dis{1});
-                casedir = fullfile(basedir, injcase{i}, 'report');
-                %tsteps = [opt.inj_steps, last_step(casedir)];
-                tsteps = [opt.inj_steps, 21, 40];
                 
-                selectedResultsMultiplot(basedir, injcase{i}, tsteps, ...
+                [Gt, reports] = load_data(fullfile(basedir, injcase{i}, ...
+                                                   'report'), 1:(opt.inj_steps ...
+                                                                 + opt.migr_steps));
+
+                %casedir = fullfile(basedir, injcase{i}, 'report');
+                %tsteps = [opt.inj_steps, last_step(casedir)];
+                tsteps = [opt.inj_steps, 31, 70];
+                
+                selectedResultsMultiplot(Gt, reports, tsteps, ...
                                          'background' , 'totalCO2' ,  ...
                                          'plot_traps' , true);
+                % selectedResultsMultiplot(basedir, injcase{i}, tsteps, ...
+                %                          'background' , 'totalCO2' ,  ...
+                %                          'plot_traps' , true);
     
                 fprintf('Press ''enter'' to advance to the next simulation case.\n\n');
                 pause; 
@@ -107,11 +115,27 @@ function example4(varargin)
     end
 end
 
+% ----------------------------------------------------------------------------
+
+function [Gt, stepdata] = load_data(dir, tsteps)
+    
+    % loading grid
+    tmp = load(fullfile(dir, 'simulation_grid'), 'Gt');
+    Gt = tmp.Gt;
+    
+    % loading timesteps
+    for i = 1:numel(tsteps)
+       tmp = load(fullfile(dir, sprintf('report_%i', tsteps(i))), 'report');
+       stepdata(i) = tmp.report;%#ok
+    end
+end
+
+
 
 % ----------------------------------------------------------------------------
 function res = computed(dirname)
     
-    if exist(dirname) ~= 7
+    if exist(dirname) ~= 7%#ok
         res = false; return;
     end
     
@@ -121,11 +145,11 @@ function res = computed(dirname)
     res = (filenum > 0);
 end
 % ----------------------------------------------------------------------------
-function res = last_step(dirname)
-    % Return the number of the last saved step encountered
-    d   = dir(fullfile(dirname, 'report_*.mat'));
-    res = max(cellfun(@(x) str2num(x(8:end-4)), {d.name}));
-end
+% function res = last_step(dirname)
+%     % Return the number of the last saved step encountered
+%     d   = dir(fullfile(dirname, 'report_*.mat'));
+%     res = max(cellfun(@(x) str2num(x(8:end-4)), {d.name}));
+% end
 
 % ----------------------------------------------------------------------------
 function val = disval(dis, rate)

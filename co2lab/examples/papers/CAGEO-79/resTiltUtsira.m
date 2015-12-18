@@ -49,7 +49,7 @@ function resTiltUtsira(varargin)
     
     %% Compute trapping volume and area of complete Utsira and Sleipner grids
     %  (Used for reference later)
-    [trapvolU, areaU, resU] = computeTrapVolAndArea(GtU);
+    [trapvolU, areaU, resU] = computeTrapVolAndArea(GtU);%#ok
    
     %% Measuring trap volumes for difference surface, for different tilts
     min_tilt_x  = -0.04;    min_tilt_y = -0.03; % in radians
@@ -68,7 +68,7 @@ function resTiltUtsira(varargin)
            computeTrapsAllTilts(theta_x_vec, theta_y_vec, xdom, ydom, FD, iplot);
     
        % Saving result (the output is used e.g. by the UtsiraLongTerm script)
-       tv_per_area = fine_scale_trap_vols/areaS;
+       tv_per_area = fine_scale_trap_vols/areaS;%#ok
        save(opt.save_tilt_filename, 'theta_x_vec', 'theta_y_vec', 'tv_per_area', ...
             'fine_scale_trap_vols', 'areaS');
     end

@@ -72,7 +72,7 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
    dh = [];
    if ~isempty(opt.trapfile_name)
       if ~exist(opt.trapfile_name, 'file')
-         warning(['Subtrap datafile not found.  Proceeding without subtraps.']);
+         warning('Subtrap datafile not found.  Proceeding without subtraps.');
       else
          dh = computeToptraps(load(opt.trapfile_name), Gt, true);
       end
@@ -139,7 +139,7 @@ function [Gt, optim, init, history, other] = optimizeFormation(varargin)
    %% Set up model and run optimization
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
    min_rates = sqrt(eps) * ones(opt.num_wells, 1);
-   max_rates = 10 * sum([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
+   max_rates = 3 * max([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
    [optim, init, history] = ...
        optimizeRates(initState, model, opt.schedule, min_rates, max_rates, ...
                      'last_control_is_migration', true);  

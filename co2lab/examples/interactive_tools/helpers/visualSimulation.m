@@ -5,8 +5,9 @@ function visualSimulation(initState, model, schedule, varargin)
 
    opt.h_min_threshold = 1e-2; % 1 cm
    opt.s_min_threshold = 1e-4;
+   opt.trap_outlines = [];
    opt.rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
-   opt.window_size = [700 900];
+   opt.window_size = [800 768];
    opt.trapstruct = []; % trapping structure as computed by trapAnalysis
    opt.dh = []; % subscale trapping structure, if available
    opt.savefile = []; % if nonempty string, save result to the specified filename
@@ -22,7 +23,7 @@ function visualSimulation(initState, model, schedule, varargin)
    set_size(iface.h, opt.window_size(1), opt.window_size(2));
 
    % Graphical window
-   iface.ax = axes('parent', iface.h, 'position', [.05 .15 .90 .78]);
+   iface.ax = axes('parent', iface.h, 'position', [.05 .20 .90 .76]);
    
    % Slider
    step = 1/(numel(schedule.step.val)-1);
@@ -44,7 +45,7 @@ function visualSimulation(initState, model, schedule, varargin)
                                     'units', 'normalized', ...
                                     'fontsize', 8, ...
                                     'handlevisibility', 'off', ...
-                                    'position', [.86 .1 .1 .03]);
+                                    'position', [.88 .1 .1 .03]);
    update_slider_display(); % call directly here to set display value
    
    % Variable picker
@@ -61,7 +62,7 @@ function visualSimulation(initState, model, schedule, varargin)
    %% Run simulation
 
    [wellSols, states, sim_report] = simulateScheduleAD(initState, model, schedule, ...
-                                                     'afterStepFn', @after_step_callback);
+                                                     'afterStepFn', @after_step_callback);%#ok
    
    % check that context still exists
    if ~ishandle(iface.h)
@@ -77,15 +78,15 @@ function visualSimulation(initState, model, schedule, varargin)
    % Plot the inventory in separate window
    h2 = figure; plot(1); ax = get(h2, 'currentaxes');
 
-   reports = makeReports(model.G, {initState, states{:}}, model.rock, model.fluid, schedule, ...
+   reports = makeReports(model.G, [{initState}; states], model.rock, model.fluid, schedule, ...
                          [model.fluid.res_water, model.fluid.res_gas], ...
                          opt.trapstruct, opt.dh);
-   directPlotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
-   fsize = 24;
+   plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
+   fsize = 16;
    set(get(gca, 'xlabel'), 'fontsize', fsize)
    set(get(gca, 'ylabel'), 'fontsize', fsize)
    set(gca,'fontsize', fsize);
-   set(gcf, 'position', [1, 1, 850, 850]);
+   set(gcf, 'position', [1, 1, 600, 600]);
    
    %% Post-simulation viewing opportunity
    rotate3d on;
@@ -97,9 +98,10 @@ function visualSimulation(initState, model, schedule, varargin)
    
    %% ================================= Callbacks =================================
    
-   function [model, states, reports, solver, ok] = after_step_callback(model, states, reports, solver, schedule, simtime)
+   function [model, states, reports, solver, ok] = ...
+          after_step_callback(model, states, reports, solver, schedule, simtime)%#ok
       
-      % If htis fails, the window was likely closed and we should abort the simulation
+      % If this fails, the window was likely closed and we should abort the simulation
       try 
          
          % Identify last computed state
@@ -109,6 +111,7 @@ function visualSimulation(initState, model, schedule, varargin)
          field = fieldnames(initState);
          field{end+1} = 'h'; % adding height
          field{end+1} = 'plume_s_avg';
+         field{end+1} = 'overpressure';
          field = field(get(iface.picker, 'value'));
          %data = states{state_ix}.(field{:});
          switch lower(field{:})
@@ -120,6 +123,8 @@ function visualSimulation(initState, model, schedule, varargin)
              % data = data .* model.G.cells.H;
              % data(data < opt.h_min_threshold) = NaN;
            case 'pressure'
+             data = states{state_ix}.pressure;
+           case 'overpressure', %'pressure'
              data = states{state_ix}.pressure - initState.pressure; % visualize overpressure
            case {'h', 'plume_s_avg'}
              p = states{state_ix}.pressure;
@@ -153,6 +158,11 @@ function visualSimulation(initState, model, schedule, varargin)
          end
          
          plotCellData(model.G, data); colorbar;
+         
+         if ~isempty(opt.trap_outlines)
+            plotFaces(model.G, opt.trap_outlines, 'edgecolor', 'r', ...
+                      'linewidth', 2, 'edgealpha', 1);
+         end
          %rotate3d on;
             
          % Update slider
@@ -206,6 +216,7 @@ function str = variable_string(state)
    % Additional fields
    str = [str, '|h'];
    str = [str, '|plume_s_avg'];
+   str = [str, '|overpressure'];
    
 end
 
@@ -218,3 +229,5 @@ function h = set_size(h, res_x, res_y)
    set(h, 'position', [pos(1:2), res_x, res_y]);
    
 end
+% ----------------------------------------------------------------------------
+

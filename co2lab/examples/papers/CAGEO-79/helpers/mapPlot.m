@@ -90,7 +90,7 @@ function h = mapPlot(h, Gt, varargin)
     if opt.well_numbering
         xpos = Gt.cells.centroids(opt.wellcells,1);
         ypos = Gt.cells.centroids(opt.wellcells,2);
-        labels = [repmat(' ', numel(xpos), 1), num2str([1:numel(xpos)]')];
+        labels = [repmat(' ', numel(xpos), 1), num2str([1:numel(xpos)]')]; %#ok
         text(xpos, ypos, labels, 'fontsize', 24);
     end
     

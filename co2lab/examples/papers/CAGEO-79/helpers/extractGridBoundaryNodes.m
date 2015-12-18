@@ -12,7 +12,7 @@ function cont = extractGridBoundaryNodes(Gt)
     bnd_edges = find(prod(Gt.faces.neighbors,2)==0);
     
     % Identify endnodes of boundary edges, and sort for each edge
-    bnd_nodes = sort(edgenodes(bnd_edges,:), 2, 'ascend');
+    bnd_nodes = sort(edgenodes(bnd_edges,:), 2, 'ascend');%#ok
     
     max_node_ix = max(bnd_nodes(:));
     
@@ -27,10 +27,10 @@ function cont = extractGridBoundaryNodes(Gt)
         next = find(A(:,cont(end)), 1); 
         if isempty(next)
             next = find(A(cont(end), :), 1);
-            A(cont(end), next) = 0;
+            A(cont(end), next) = 0; %#ok
         else
-            A(next, cont(end)) = 0;
+            A(next, cont(end)) = 0; %#ok
         end
-        cont = [cont; next];
+        cont = [cont; next]; %#ok
     end
 end

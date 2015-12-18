@@ -7,7 +7,7 @@ function exploreSimulation(varargin)
    
    opt.grid_coarsening   = 4;
    opt.default_formation = 'Utsirafm';
-   opt.window_size       = [1200 900];
+   opt.window_size       = [1024 768];
    opt.seafloor_depth    = 100 * meter;
    opt.seafloor_temp     =  7; % in Celsius
    opt.temp_gradient     = 35.6; % degrees per kilometer
@@ -46,7 +46,7 @@ function exploreSimulation(varargin)
    var.data              = []; % current face data to plot
    var.loops             = []; % one or more loops of boundary faces
    var.loops_bc          = []; % bc for all faces (0: closed, 1: semi-open, 2: open)
-   var.co2               = CO2props('sharp_phase_boundary', false, 'rhofile', 'rho_demo');
+   var.co2               = CO2props('sharp_phase_boundary', false);%, 'rhofile', 'rho_demo');
    var.wells             = reset_wells(opt.max_num_wells);
    % Temporary variables used by different functions
    temps = [];
@@ -58,7 +58,6 @@ function exploreSimulation(varargin)
    %% Setting up interactive interface
    
    var.h = figure();%'KeyPressFcn', @(obj, e) parse_keypress(e.Key));
-   set_size(var.h, opt.window_size(1), opt.window_size(2));
    
    % Graphical window
    var.ax = axes('parent', var.h, 'position', [0.05, 0.12, 0.5, 0.87]);
@@ -75,29 +74,38 @@ function exploreSimulation(varargin)
                                                   true));
    
    % Group for setting boundaries
-   bc_group = setup_bc_group([.56 .8 .16 .15]);
+   bc_group = setup_bc_group([.56 .84 .19 .15]);
 
    % Group for setting interaction mode
-   imode_group = setup_imode_group([.8 .8 .16 .15]);
+   imode_group = setup_imode_group([.77 .84 .19 .15]);
+   
+   % Group for setting timesteps and durations
+   time_entries = setup_time_group([.56, .72, .4, .1]);
    
    % Group for displaying and modifying wells
-   [well_group, well_entries] = setup_well_group([.56 .25, .4, .50]);%#ok
+   [well_group, well_entries] = setup_well_group([.56 .20, .4, .50]);%#ok
 
+   % group for toggling highlighting of traps
+   trap_choice = setup_trap_group([.76, .01, .20, .05]);
+   
    % launch button
    launch_button = uicontrol('parent', var.h, ...
                              'style', 'pushbutton', ...
                              'units', 'normalized', ...
-                             'position', [.56 .12 .18 .11], ...
+                             'position', [.56 .07 .18 .11], ...
                              'string', 'Launch new simulation!', ...
+                             'backgroundcolor', [0.3 1.0 0.3], ...
                              'callback', @(varargin) launch_simulation()); %#ok
                        
    
    % Other options
-   [opt_group, opt_choices] = setup_opt_group([.76, .12, .20, .11]);%#ok
+   [opt_group, opt_choices] = setup_opt_group([.76, .07, .20, .11]);%#ok
    
    %% Launching by calling redraw function
    redraw();
-   
+   set_size(var.h, opt.window_size(1), opt.window_size(2)); % doing this twice       
+   set_size(var.h, opt.window_size(1), opt.window_size(2)); % occasionally prevents  
+                                                            % some strange placements
    
    % ============================= LOCAL HELPER FUNCTIONS =============================
 
@@ -142,6 +150,9 @@ function exploreSimulation(varargin)
                               
       model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
       schedule  = setup_schedule();
+      if isempty(schedule)
+         return; % something went wrong
+      end
 
       semiopen_faces = get_bfaces_of_type(1);
       if ~isempty(semiopen_faces)
@@ -156,9 +167,10 @@ function exploreSimulation(varargin)
       end
       
       % spawn simulation window 
+      
       visualSimulation(initState, model, schedule, 'rhoCref', rhoCref, ...
-                       'trapstruct', var.ta, 'dh', dh, 'savefile', opt.savefile);
-
+                       'trapstruct', var.ta, 'dh', dh, 'savefile', opt.savefile, ...
+                       'trap_outlines', if_else(do_outline_traps(), trapfaces(), []));
    end
 
    % ----------------------------------------------------------------------------
@@ -176,6 +188,31 @@ function exploreSimulation(varargin)
    
    function schedule = setup_schedule()
 
+      schedule = [];
+      % Read specified time information
+      inj_time = read_number_from_edit(time_entries.inj_time_edit, 'injection time');
+      if isempty(inj_time) 
+         return
+      end;
+      mig_time = read_number_from_edit(time_entries.mig_time_edit, 'migration time');
+      if isempty(mig_time) 
+         return
+      end;
+      inj_steps = read_number_from_edit(time_entries.inj_steps_edit, 'injection steps'); 
+      if isempty(inj_steps)
+         return
+      else
+         inj_steps = floor(inj_steps);
+      end
+      mig_steps = read_number_from_edit(time_entries.mig_steps_edit, 'migration steps'); 
+      if isempty(mig_steps)
+         return
+      elseif mig_time == 0
+         mig_steps = 0;
+      else
+         mig_steps = floor(mig_steps);
+      end
+   
       % Create wells 
       W = [];
       for i = 1:opt.max_num_wells
@@ -195,7 +232,6 @@ function exploreSimulation(varargin)
          W_shut(i).val = 0;
       end
       
-      
       schedule.control(1).W = W;
       schedule.control(2).W = W_shut;
       
@@ -208,16 +244,29 @@ function exploreSimulation(varargin)
                                      'sat', [1 0]);
       schedule.control(2).bc = schedule.control(1).bc;
       
-      dTi = opt.inj_time / opt.inj_steps;
-      dTm = opt.mig_time / opt.mig_steps;
-      istepvec = ones(opt.inj_steps, 1) * dTi;
-      mstepvec = ones(opt.mig_steps, 1) * dTm;
+      
+      dTi = (inj_time * year) / inj_steps; %opt.inj_time / opt.inj_steps;
+      dTm = (mig_time * year) / mig_steps; %opt.mig_time / opt.mig_steps;
+      istepvec = ones(inj_steps, 1) * dTi;
+      mstepvec = ones(mig_steps, 1) * dTm;
       
       schedule.step.val = [istepvec; mstepvec];
-      schedule.step.control = [ones(opt.inj_steps, 1); ones(opt.mig_steps, 1) * 2];
+      schedule.step.control = [ones(inj_steps, 1); ones(mig_steps, 1) * 2];
       
    end
 
+   % ----------------------------------------------------------------------------
+   
+   function num = read_number_from_edit(edit, name)
+      num = str2num(get(edit, 'string'));%#ok
+      if isempty(num) || ~isreal(num)
+         msgbox(['Non-numeric value entered for ' name '. Please fix and try again'], ...
+                'Could not parse value', 'error', 'modal');
+         num = [];
+      end
+   end
+   
+   
    % ----------------------------------------------------------------------------
    
    function T = caprock_temperature()
@@ -310,7 +359,7 @@ function exploreSimulation(varargin)
                         'units', 'normalized', ...
                         'horizontalalignment', 'left', ...
                         'position', [.2, .08, .55, .2], ...
-                        'string', 'Include dissolution');%#ok
+                        'string', 'Use dissolution');%#ok
 
       % create widgets (subscale trapping)      
       choices.subscale = uicontrol('parent', group, ...
@@ -323,7 +372,7 @@ function exploreSimulation(varargin)
                          'units', 'normalized', ...
                          'horizontalalignment', 'left', ...
                          'position', [.2, .38, .80, .2], ...
-                         'string', 'Include subscale trapping');%#ok
+                         'string', 'Use subscale trapping');%#ok
 
       % create widgets (capillary fringe)      
       choices.cap_fringe = uicontrol('parent', group, ...
@@ -336,12 +385,95 @@ function exploreSimulation(varargin)
                          'units', 'normalized', ...
                          'horizontalalignment', 'left', ...
                          'position', [.2, .68, .80, .2], ...
-                         'string', 'Include capillary fringe');%#ok
+                         'string', 'Use capillary fringe');%#ok
       
       
       set(group, 'visible', 'on');      
    end
    
+   % ----------------------------------------------------------------------------
+   
+   function choice = setup_trap_group(pos)
+      group = uipanel('visible', 'off', 'units', 'normalized', 'position', pos);
+      
+
+      choice.display_traps = uicontrol('parent', group, ...
+                                       'style', 'checkbox', ...
+                                       'units', 'normalized', ...
+                                       'callback', @(varargin) redraw(), ...
+                                       'position' , [.1, .05, .2, .9]);
+
+      label = uicontrol('parent', group, ...
+                        'style', 'text', ...
+                        'units', 'normalized', ...
+                        'horizontalalignment', 'left', ...
+                        'position', [.2, .00, .55, .7], ...
+                        'string', 'Outline traps');%#ok
+
+      set(group, 'visible', 'on');
+   end
+   
+   % ----------------------------------------------------------------------------
+   
+   function entries = setup_time_group(pos)
+      group = uipanel('visible', 'off', 'units', 'normalized', 'position', pos);
+      set(group, 'visible', 'on');
+      
+      inj_time_label = uicontrol('parent', group, ...
+                                 'style', 'text', ...
+                                 'units', 'normalized', ...
+                                 'horizontalalignment', 'left', ...
+                                 'position', [.02 .4, .37, .4], ...
+                                 'string', 'Injection time (years):');%#ok
+      inj_step_label = uicontrol('parent', group, ...                
+                                 'style', 'text', ...                
+                                 'units', 'normalized', ...          
+                                 'horizontalalignment', 'left', ...  
+                                 'position', [.52 .4, .37, .4], ...  
+                                 'string', 'Injection timesteps:');%#ok
+      mig_time_label = uicontrol('parent', group, ...
+                                 'style', 'text', ...
+                                 'units', 'normalized', ...
+                                 'horizontalalignment', 'left', ...
+                                 'position', [.02 .0, .37, .4], ...
+                                 'string', 'Migration time (years):');%#ok
+      mig_step_label = uicontrol('parent', group, ...                
+                                 'style', 'text', ...                
+                                 'units', 'normalized', ...          
+                                 'horizontalalignment', 'left', ...  
+                                 'position', [.52 .0, .37, .4], ...  
+                                 'string', 'Migration timesteps:');%#ok
+      
+      entries.inj_time_edit = uicontrol('parent', group, ...
+                                'style', 'edit', ...
+                                'units', 'normalized', ...
+                                'horizontalalignment', 'left', ...
+                                'position', [.4, .5, .09, .35], ...
+                                'fontsize', 8, ...
+                                'string', num2str(opt.inj_time/year));
+      entries.inj_steps_edit = uicontrol('parent', group, ...
+                                 'style', 'edit', ...
+                                 'units', 'normalized', ...
+                                 'horizontalalignment', 'left', ...
+                                 'position', [.85, .5, .11, .35], ...
+                                 'fontsize', 8, ...
+                                 'string', num2str(opt.inj_steps));
+      entries.mig_time_edit = uicontrol('parent', group, ...
+                                'style', 'edit', ...
+                                'units', 'normalized', ...
+                                'horizontalalignment', 'left', ...
+                                'position', [.4, .0, .09, .35], ...
+                                'fontsize', 8, ...
+                                'string', num2str(opt.mig_time/year));
+      entries.mig_steps_edit = uicontrol('parent', group, ...
+                                 'style', 'edit', ...
+                                 'units', 'normalized', ...
+                                 'horizontalalignment', 'left', ...
+                                 'position', [.85, .0, .11, .35], ...
+                                 'fontsize', 8, ...
+                                 'string', num2str(opt.mig_steps));
+      
+   end
    % ----------------------------------------------------------------------------
    
    function group = setup_imode_group(pos)
@@ -350,7 +482,7 @@ function exploreSimulation(varargin)
       group = uibuttongroup('Visible', 'off',...
                              'units', 'normalized', ...
                              'position', pos, ...
-                             'selectionchangefcn', @(varargin) set_rotate_state_callback());
+                            'selectionchangefcn', @(varargin) set_rotate_state_callback());
       % Create radiobuttons
       b1 = uicontrol(group, 'style', 'radiobutton', ...
                             'string', 'Edit boundaries', ...
@@ -562,15 +694,41 @@ function exploreSimulation(varargin)
    end
 
    % ----------------------------------------------------------------------------
+   function res = do_outline_traps()
+
+     res = logical(get(trap_choice.display_traps, 'value'));
+      
+   end
+   
+   % ----------------------------------------------------------------------------
+
+   function res = trapfaces()
+      trapcells = find(var.ta.traps);
+      half_faces = var.Gt.cells.faces(mcolon(var.Gt.cells.facePos(trapcells), ...
+                                             var.Gt.cells.facePos(trapcells+1)-1))';
+      sorted_half_faces = sort(half_faces);
+      repeats = diff(sorted_half_faces)==0;
+      interior_faces = sorted_half_faces([repeats;false]);
+      unique_faces = unique(half_faces);
+      exterior_faces = setdiff(unique_faces, interior_faces);
+      
+      res = exterior_faces;
+   end
+   
+   % ----------------------------------------------------------------------------
    
    function redraw(post_fnx)
       axes(var.ax); cla;
       axis auto;
       cla;
       
-      % Draw current field
+      % Draw current field (depth)
       plotCellData(var.Gt, var.data, 'buttondownfcn', @click_handler);
       
+      if do_outline_traps()
+         plotFaces(var.Gt, trapfaces(), 'edgecolor', 'y', 'linewidth', 2, 'edgealpha', 1);
+      end
+         
       % Draw boundary conditions
       for i = 1:numel(var.loops)
          loop = var.loops{i};
@@ -676,10 +834,10 @@ function names = formation_names()
    names = {'Brentgrp', 'Brynefm', 'Fensfjordfm', 'Gassumfm', 'Huginfmeast', ...
             'Huginfmwest', 'Johansenfm', 'Krossfjordfm', 'Pliocenesand', ...
             'Sandnesfm', 'Skadefm', 'Sleipnerfm', 'Sognefjordfm', 'Statfjordfm', ...
-            'Ulafm', 'Utsirafm', ...
-            'Stofm', 'Nordmelafm', 'Tubaenfm', ...
-            'Bjarmelandfm', ...
-            'Arefm', 'Garnfm', 'Ilefm', 'Notfm', 'Rorfm', 'Tiljefm'};
+            'Ulafm', 'Utsirafm'};
+            % 'Stofm', 'Nordmelafm', 'Tubaenfm', ...
+            % 'Bjarmelandfm', ...
+            % 'Arefm', 'Garnfm', 'Ilefm', 'Notfm', 'Rorfm', 'Tiljefm'};
 end
 
 % ----------------------------------------------------------------------------

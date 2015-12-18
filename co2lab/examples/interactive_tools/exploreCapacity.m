@@ -11,7 +11,7 @@ function exploreCapacity(varargin)
    
    opt.grid_coarsening = 2;
    opt.default_formation = 'Utsirafm';
-   opt.window_size = [1200 900];
+   opt.window_size = [1024 768];
    opt.seafloor_depth = 100 * meter;
    opt.seafloor_temp  =  7; % in Celsius
    opt.temp_gradient  = 35.6; % degrees per kilometer
@@ -49,7 +49,7 @@ function exploreCapacity(varargin)
    set (fsel, 'Callback', @(es, ed) set_formation(names{get(es, 'Value')}, true));
           
    % Radiobuttons for selection of data to map
-   buttons = setup_button_group([.65, .60, .25, .38]);
+   buttons = setup_button_group([.625, .60, .3, .38]);
    
    % Set sliders
    [s1, l1, v1] = add_slider('Temperature gradient (deg. C per km)', 'temp_gradient', 10, 50, [.59, .5, .35, .03]);%#ok
@@ -64,7 +64,7 @@ function exploreCapacity(varargin)
                         'units', 'normalized', ...
                         'position', [0.59, 0.02, 0.35, 0.16], ...
                         'horizontalalignment', 'left', ...
-                        'fontsize', 14, ...
+                        'fontsize', 12, ...
                         'string', 'uninitialized');
    
    
@@ -366,7 +366,7 @@ function exploreCapacity(varargin)
 
         case 'reachable structural capacity (Mt)'
           cumul_trap = compute_cumul_trapcap();
-          plotCellData(Gt.parent, cumul_trap, 'edgealpha', 0.2);
+          plotCellData(Gt.parent, cumul_trap/1e9, 'edgealpha', 0.2);
           colorbar; rotate3d on;
       end
       %      plotGrid(var.Gt_cached.(var.current_formation).Gt);
@@ -396,11 +396,10 @@ function names = formation_names()
    names = {'Brentgrp', 'Brynefm', 'Fensfjordfm', 'Gassumfm', 'Huginfmeast', ...
             'Huginfmwest', 'Johansenfm', 'Krossfjordfm', 'Pliocenesand', ...
             'Sandnesfm', 'Skadefm', 'Sleipnerfm', 'Sognefjordfm', 'Statfjordfm', ...
-            'Ulafm', 'Utsirafm', ...
-            'Stofm', 'Nordmelafm', 'Tubaenfm', ...
-            'Bjarmelandfm', ...
-            'Arefm', 'Garnfm', 'Ilefm', 'Notfm', 'Rorfm', 'Tiljefm'};
-
+            'Ulafm', 'Utsirafm'};
+            % 'Stofm', 'Nordmelafm', 'Tubaenfm', ...
+            % 'Bjarmelandfm', ...
+            % 'Arefm', 'Garnfm', 'Ilefm', 'Notfm', 'Rorfm', 'Tiljefm'};
 end
 
 % ----------------------------------------------------------------------------
