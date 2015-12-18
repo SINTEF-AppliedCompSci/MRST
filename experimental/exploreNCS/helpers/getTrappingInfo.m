@@ -1,18 +1,15 @@
 function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
-        % name, coarsening, varargin)
 % Computes structural trapping info and makes plots (optional).
 %
 % SYNOPSIS
-%   res = getTrappingInfo('Stofm',3)
-%   res = getTrappingInfo('Stofm',3, 'rhoCref',675)
-%   res = getTrappingInfo('Stofm',3, 'plotsOn',false)
-%   [res, output] = getTrappingInfo('Stofm',3, 'cells',trapcells)
+%   res = getTrappingInfo(Gt, rock2D, info)
+%   res = getTrappingInfo(Gt, rock2D, info, 'plotsOn',false)
+%   [res, output] = getTrappingInfo(Gt, rock2D, info, 'cells',trapcells)
 %
 % DESCRIPTION
-%   Parameter values (seafloor_depth, etc.) are obtained using
-%   getSeaInfo(), which returns values that correspond to the specified
-%   formation. Then upper bound (theoretical) trapping capacities are
-%   computed and returned. Plotting is optional.
+%   Parameter values (seafloor_depth, etc.) are passed in by 'info'. Then,
+%   upper bound (theoretical) trapping capacities are computed. Plotting is
+%   optional.
 %
 %   Formations may contain net-to-gross rock property. If so, the pore
 %   volume of the formation is computed by:
@@ -29,10 +26,11 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
 %   exploreCapacity.m
     
 
-    opt.plotsOn     = true;
+    opt.plotsOn     = false;
+    opt.mapPlotOn   = false;
     opt.cells       = [];
     opt.trapName    = {'default'};
-    opt.rhoCref     = 760 * kilogram / meter ^3; % arbitrary ref co2 density
+    %opt.rhoCref     = 760 * kilogram / meter ^3; % arbitrary ref co2 density
     opt.fmName      = 'fmName';
     opt = merge_options(opt, varargin{:});
     
@@ -308,6 +306,13 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
             set(findobj(hfig.Children,'Type','axes'),'Fontsize',16,'box','on')
             axis(findobj(hfig.Children,'Type','axes'),'equal','tight','off')
 
+        end
+        
+        if opt.mapPlotOn
+            figure;
+            title('caprock topography')
+            mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
+            axis equal tight off
         end
 
         %plotGrid(Gt);

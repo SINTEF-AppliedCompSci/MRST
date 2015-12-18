@@ -13,6 +13,7 @@ function compareWellrates_viaWellSols(wellSols1, wellSols2, schedule, co2RefRho)
     for i=1:nw
         qGr1(i) = mean([test1(:,i).qGr]); % m3/s
         qGr2(i) = mean([test2(:,i).qGr]);
+        % or keep track of max and min, and include as spread in bar-plot
     end
 
     %

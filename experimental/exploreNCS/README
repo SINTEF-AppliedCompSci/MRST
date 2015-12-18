@@ -21,11 +21,16 @@ exploreHammerfestProspects.m
 
 
 ----------------------- Injection / Optimization --------------------------
+    (Now in a separate folder: /co2lab/experimental/optimization_part2)
+
 exploreOptWellNCS.m
     - optimization of well placement and injection rates
-    - in-progress
     - getWellInfo() is used to place wells using various options (more
     options can be implemented)
+    - can use either rate-controlled or bhp-controlled wells
+    - contains some post-processing at end of script
+    (should put into the separate _postProc.m file)
+    
 
 exploreOptWellNCS_postProc.m
     - post-processing of results obtained using exploreOptWellNCS.m

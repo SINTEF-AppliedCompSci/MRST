@@ -1,7 +1,9 @@
 function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
 % Set-up wells for a generic injection scenario.
 
-% Wells: injectors and/or producers
+% Wells: injectors and/or producers %@@ well rates can distinguish inj vs
+% prod by sign (+/-). How will inj and prod be distinguished if well is
+% pressure-controlled?  still +/- ?
 %
 % Layout of wells could be:
 %   - array of wells
