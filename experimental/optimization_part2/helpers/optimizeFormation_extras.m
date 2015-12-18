@@ -114,16 +114,24 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
      max_wvals = opt.lim_fac * ...
        max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
      
-     min_mig_rates = min_wvals;
+     min_mig_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
+     
+     assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
+         'Your initial rates exceed the maximum rate constraint.')
+
    
    elseif strcmpi(wtype,'bhp')
      min_wvals = initState.pressure( [opt.schedule.control(1).W.cells] );
      
      [P_over, P_limit] = computeOverburdenPressure(Gt, rock2D, ...
          opt.ref_depth, fluid.rhoWS);
-     max_wvals = P_limit * ones(numel(opt.schedule.control(1).W), 1);
+     %max_wvals = P_limit * ones(numel(opt.schedule.control(1).W), 1);
+     max_wvals = P_over([opt.schedule.control(1).W.cells]) .* 0.9;
      
      min_mig_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
+     
+     assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
+         'Your initial bhps exceed the maximum bhp constraint.')
 
      
    

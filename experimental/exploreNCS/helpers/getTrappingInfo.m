@@ -41,8 +41,7 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
     var.Gt      = gt;
     var.rock2D  = rock2d;
     var.ta               = trapAnalysis(var.Gt,'false');
-    var.co2              = CO2props('sharp_phase_boundary', true, ...
-                                    'rhofile', 'rho_demo');
+    var.co2              = CO2props('sharp_phase_boundary', false);%, 'rhofile', 'rho_demo');
     %rhoCref              = opt.rhoCref;
     %info                 = getSeaInfo(name, rhoCref);
     rhoCref = info.rhoCref;
