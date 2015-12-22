@@ -42,6 +42,19 @@ struct LLSProblem {
 
 
 /* ---------------------------------------------------------------------- */
+static void
+destroy_lls_structure(struct LLSProblem *lls)
+/* ---------------------------------------------------------------------- */
+{
+    if (lls != NULL) {
+        if (lls->A != NULL) { mxFree(lls->A); }
+
+        mxFree(lls);
+    }
+}
+
+
+/* ---------------------------------------------------------------------- */
 static struct LLSProblem *
 create_lls_structure(void)
 /* ---------------------------------------------------------------------- */
@@ -52,10 +65,12 @@ create_lls_structure(void)
     if (lls != NULL) {
         *lls = lls0;
 
+        /* Note: At least one WORK element needed to query DGELLS() for its
+         * optimal LWORK value. */
         lls->A = mxMalloc(1 * sizeof *lls->A);
 
         if (lls->A == NULL) {
-            mxFree(lls);
+            destroy_lls_structure(lls);
 
             lls = NULL;
         }
@@ -69,19 +84,6 @@ create_lls_structure(void)
     }
 
     return lls;
-}
-
-
-/* ---------------------------------------------------------------------- */
-static void
-destroy_lls_structure(struct LLSProblem *lls)
-/* ---------------------------------------------------------------------- */
-{
-    if (lls != NULL) {
-        if (lls->A != NULL) { mxFree(lls->A); }
-
-        mxFree(lls);
-    }
 }
 
 
