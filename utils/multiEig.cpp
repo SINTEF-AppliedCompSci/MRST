@@ -2,6 +2,7 @@
 #include <lapack.h>
 
 #include <algorithm>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
