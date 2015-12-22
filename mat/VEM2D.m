@@ -1,11 +1,15 @@
 function [U, hG] = VEM2D(G, f, bc)
 %--------------------------------------------------------------------------
+%   Solves the 2D Poisson equation
+%
 %   -\Delta u = f, x \in \Omega
 %           u = g, x \in \partial \Omega
 %
-%   G:  Grid
-%   f:  Force term
-%   g:  Struct of boundary conditions ...
+%   using VEM.
+%
+%   G:  MRST Grid
+%   f:  Source term
+%   bc:  Struct of boundary conditions. See VEM2D_bc for usage.
 %--------------------------------------------------------------------------
 
 Nc = G.cells.num;

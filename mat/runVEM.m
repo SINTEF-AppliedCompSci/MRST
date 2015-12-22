@@ -1,13 +1,6 @@
 clc; clear all; close all;
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-% nx =20; ny = 20;              %   Grid dimensions.
-% G = cartGrid([nx, ny],[1,1]);
-
-% n = 3;
-% G = unitSquare(n);
-% nx = n; ny = n;
-
 nx = 30; ny = 30;
 G = unitSquareV2(nx, ny);
 

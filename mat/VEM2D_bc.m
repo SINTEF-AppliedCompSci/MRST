@@ -1,4 +1,18 @@
 function [bcDof, bBC] = VEM2D_bc(G, bc)
+%--------------------------------------------------------------------------
+%   Sets boundary conditions for the Poisson problem.
+%
+%   G:  MRST grid.
+%   bc: Struct of boundary conditions.
+%       filed1: 'bcFunc', boundary condition function handles.
+%       filed2: 'bcFaces', vectors of boundary faces.
+%       fild3:  'bcType', 'neu' for Neumann, 'dir' for Dirichlet.
+%       Example:
+%
+%       bc = struct('bcFunc', {{gN, gD}},'bcFaces', ...
+%           {{boundaryEdges(bNeu), boundaryEdges(~bNeu)}}, ...
+%           'bcType', {{'neu', 'dir'}});
+%--------------------------------------------------------------------------
 
 Nn = G.nodes.num;           %   Number of nodes.
 Ne = G.faces.num;           %   Number of edges.

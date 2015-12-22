@@ -16,15 +16,19 @@ function [Sl, bl, dofVec, hK] = VEM2D_loc(G, K, f)
 %
 %   K:      Cell number in grid G, i.e. G.cells(K).
 %
+%   f:      Source term.
+%
 %   Output:
 %
 %   Sl:     Local stiffness matrix for cell K. dim(Sl) = NK x NK, where
 %           NK = n*k + 0.5*k*(k-1), n is the number of vertices of K,
 %           and k = 2 is the order of the method.
+%
+%   bl:     Local load vector for cell K. dim(bl) = 1 x NK.
 %   
 %   dofVec: Map from local to global dofs. S(dofVec, dofVec) = Sl, where
 %           S is the global stiffness matrix.
-%   
+% 
 %--------------------------------------------------------------------------
 
 %%  CELL DATA                                                            %%
