@@ -75,7 +75,9 @@ elseif isunix,
 
 end
 
-buildmex('-O', 'multiEig.cpp', mwlib('lapack'), mwlib('blas'));
+buildmex('-O', '-largeArrayDims', ...
+         'multiEig.cpp',          ...
+         mwlib('lapack'), mwlib('blas'));
 
 % Now, run it.
 [varargout{1:nargout}] = multiEig(varargin{:});
