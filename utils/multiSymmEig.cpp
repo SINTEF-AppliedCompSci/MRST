@@ -252,9 +252,8 @@ public:
 
 
 namespace {
-    //  d        = multiSymmEig(A, sz)
-    // [d, v]    = multiSymmEig(A, sz)
-    // [d, v, w] = multiSymmEig(A, sz)
+    //  d     = multiSymmEig(A, sz)
+    // [d, v] = multiSymmEig(A, sz)
     bool args_ok(const int nlhs, const int nrhs, const mxArray* prhs[])
     {
         auto ok = nrhs == 2;
