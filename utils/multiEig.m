@@ -1,5 +1,5 @@
 function varargout = multiEig(varargin)
-%Solve sequence of linear least squares problems using SVD method
+%Solve sequence of general (unsymmetric) eigenvalue problems using LAPACK
 %
 % SYNOPSIS:
 %    d        = multiEig(A, sz)
