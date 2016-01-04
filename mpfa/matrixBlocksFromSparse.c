@@ -71,6 +71,9 @@ mexFunction(int nlhs,       mxArray *plhs[],
             mxFree(rsz);
         }
         else {
+            if ((nrhs == 3) && (csz != NULL)) { mxFree(csz); }
+            if (rsz != NULL)                  { mxFree(rsz); }
+
             sprintf(errmsg,
                     "%s(): Failed to allocate sufficient memory "
                     "to hold copy of block size vector.",
