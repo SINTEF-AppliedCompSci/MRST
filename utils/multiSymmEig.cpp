@@ -3,21 +3,26 @@
 
 #include <algorithm>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#ifdef _OPENMP
+
+#include <omp.h>
+
+#else  // ! defined(_OPENMP)
+
+#define omp_get_thread_num()  0
+#define omp_get_num_threads() 1
+
+#endif  // _OPENMP
+
 class EVProblem
 {
 public:
-    EVProblem() {}
-
-    explicit EVProblem(const mwSignedIndex n)
-    {
-        resize(n);
-    }
-
     bool solve(const mwSignedIndex n, const double* A)
     {
         resize(n);
@@ -228,26 +233,187 @@ private:
 };
 
 
-struct TotalEntries {
+class BlockBoundaries
+{
 public:
-    template <class BlockSizes>
-    explicit TotalEntries(const BlockSizes& bsz)
-        : max_(0)
-        , n_  (0)
-        , n2_ (0)
+    explicit BlockBoundaries(const mxArray* BSZ)
     {
-        for (const auto& sz : bsz) {
-            const auto n = static_cast<mwSignedIndex>(sz);
+        const auto nblk = mxGetNumberOfElements(BSZ);
 
-            max_  = std::max(max_, n);
-            n_   += n;
-            n2_  += n * n;
+        if (mxIsInt32(BSZ))       { construct<int>   (BSZ, nblk); }
+        else if (mxIsDouble(BSZ)) { construct<double>(BSZ, nblk); }
+        else {
+            mexErrMsgTxt("SZ must be DOUBLE or INT32");
         }
     }
 
-    mwSignedIndex max_;
-    mwSignedIndex n_;
-    mwSignedIndex n2_;
+    using BlockID  = std::size_t;
+    using SizeType = std::size_t;
+
+    struct Block
+    {
+        Block(const SizeType size_,
+              const SizeType p1_,
+              const SizeType p2_)
+            : size(size_)
+            , p1  (p1_)
+            , p2  (p2_)
+        {}
+
+        SizeType size;
+        SizeType p1;
+        SizeType p2;
+    };
+
+    BlockID numBlocks() const { return p1_.size() - 1; }
+
+    SizeType n1() const { return p1_.back(); }
+    SizeType n2() const { return p2_.back(); }
+
+    SizeType p1(const BlockID blk) const
+    {
+        mxAssert (blk < numBlocks(), "Internal Error");
+
+        return p1_[blk];
+    }
+
+    SizeType p2(const BlockID blk) const
+    {
+        mxAssert (blk < numBlocks(), "Internal Error");
+
+        return p2_[blk];
+    }
+
+    SizeType size(const BlockID blk) const
+    {
+        mxAssert (blk < numBlocks(), "Internal Error");
+
+        return p1_[blk + 1] - p1_[blk + 0];
+    }
+
+    Block block(const BlockID blk) const
+    {
+        return Block(size(blk), p1(blk), p2(blk));
+    }
+
+private:
+    using SizeVector = std::vector<SizeType>;
+
+    SizeVector p1_;
+    SizeVector p2_;
+
+    template <typename BlockSizeType>
+    void construct(const mxArray*    BSZ,
+                   const std::size_t nblk)
+    {
+        p1_.reserve(nblk + 1);  p1_.push_back(0);
+        p2_.reserve(nblk + 1);  p2_.push_back(0);
+
+        auto bsz = static_cast<const BlockSizeType*>(mxGetData(BSZ));
+
+        for (auto end = bsz + nblk; bsz != end; ++bsz) {
+            const auto n = static_cast<SizeType>(*bsz);
+
+            p1_.push_back(p1_.back() + n);
+            p2_.push_back(p2_.back() + (n * n));
+        }
+    }
+};
+
+
+class MXDoubleVector
+{
+public:
+    explicit MXDoubleVector(const mwSize n)
+        : x_(mxCreateDoubleMatrix(n, 1, mxREAL))
+    {}
+
+    double* Data(const mwSize i = 0)
+    {
+        mxAssert (i < Size(), "Internal Error");
+
+        return mxGetPr(Array()) + i;
+    }
+
+    mxArray* ReleaseMXArray()
+    {
+        return x_.release();
+    }
+
+    std::size_t Size() const
+    {
+        return mxGetNumberOfElements(Array());
+    }
+
+private:
+    struct Delete {
+        void operator()(mxArray* x)
+        {
+            if (x != nullptr) {
+                mxDestroyArray(x);
+            }
+        }
+    };
+
+    using MXArray = std::unique_ptr<mxArray, Delete>;
+
+    MXArray x_;
+
+    mxArray* Array() const
+    {
+        return x_.get();
+    }
+};
+
+
+class MEXResult
+{
+public:
+    MEXResult(const int              nlhs,
+              const BlockBoundaries& blocks)
+        : blocks_(blocks)
+    {
+        mxAssert ((nlhs == 1) || (nlhs == 2),
+                  "Must be one or two return values.");
+
+        result_.emplace_back(blocks_.n1());
+
+        if (nlhs > 1) {
+            result_.emplace_back(blocks_.n2());
+        }
+    }
+
+    double* EigenValues(const BlockBoundaries::BlockID blockID)
+    {
+        mxAssert (blockID < blocks_.numBlocks(), "Internal Error");
+
+        return result_[Lambda].Data(blocks_.p1(blockID));
+    }
+
+    double* EigenVectors(const BlockBoundaries::BlockID blockID)
+    {
+        mxAssert (blockID < blocks_.numBlocks(), "Internal Error");
+
+        if (result_.size() < (InvSubspace + 1)) {
+            return nullptr;
+        }
+
+        return result_[InvSubspace].Data(blocks_.p2(blockID));
+    }
+
+    void ExtractResultArrays(mxArray* plhs[])
+    {
+        for (auto& x : result_) {
+            *plhs++ = x.ReleaseMXArray();
+        }
+    }
+
+private:
+    enum { Lambda      = 0 ,
+           InvSubspace = 1 };
+
+    const BlockBoundaries&      blocks_;
+    std::vector<MXDoubleVector> result_;
 };
 
 
@@ -266,48 +432,29 @@ namespace {
         return ok;
     }
 
-    std::vector<mwSignedIndex> blockSizes(const mxArray* SZ)
+    void solveEigenProblem(const BlockBoundaries::BlockID blockID,
+                           const double* const            Ai,
+                           const mwSignedIndex            n,
+                           MEXResult&                     result)
     {
-        const auto n = mxGetNumberOfElements(SZ);
+#define VERBOSE_PRINT 0
 
-        std::vector<mwSignedIndex> sz;
-        sz.reserve(n);
+#if VERBOSE_PRINT
+        mexPrintf("Subproblem %llu, Size %lld, Thread %d/%d\n",
+                  static_cast<unsigned long long>(blockID),
+                  static_cast<long long>(n),
+                  omp_get_thread_num() + 1, omp_get_num_threads());
+#endif  // VERBOSE_PRINT
 
-        if (mxIsInt32(SZ)) {
-            const auto* bsz = static_cast<const int*>(mxGetData(SZ));
+        auto p = EVProblem();
 
-            std::transform(bsz, bsz + n, std::back_inserter(sz),
-                           [](const int m)
-                           {
-                               return static_cast<mwSignedIndex>(m);
-                           });
+        if (p.solve(n, Ai)) {
+            p.eigenValues(result.EigenValues(blockID));
+
+            if (auto v = result.EigenVectors(blockID)) {
+                p.eigenVectors(v);
+            }
         }
-        else {
-            mxAssert (mxIsDouble(SZ), "Internal Error.");
-
-            const auto* bsz = mxGetPr(SZ);
-
-            std::transform(bsz, bsz + n, std::back_inserter(sz),
-                           [](const double m)
-                           {
-                               return static_cast<mwSignedIndex>(m);
-                           });
-        }
-
-        return sz;
-    }
-
-    template <class BlockSizes>
-    bool sizesValid(const BlockSizes& bsz)
-    {
-        using BlockSize = typename BlockSizes::value_type;
-
-        // All block sizes must be strictly positive.
-        return std::accumulate(bsz.begin(), bsz.end(), true,
-                               [](const bool b, const BlockSize& sz)
-                               {
-                                   return b && (sz > 0);
-                               });
     }
 } // Anonymous
 
@@ -318,42 +465,29 @@ void mexFunction(int nlhs, mxArray*       plhs[],
                  int nrhs, const mxArray* prhs[])
 {
     if (args_ok(nlhs, nrhs, prhs)) {
-        const auto bsz = blockSizes(prhs[1]);
+        const auto blocks = BlockBoundaries(prhs[1]);
+        auto       result = MEXResult(nlhs, blocks);
 
-        if (! sizesValid(bsz)) {
-            mexErrMsgTxt("All block sizes must be strictly positive");
-        }
+        const double* const A = mxGetPr(prhs[0]);
 
-        const auto calcEVect = nlhs > 1;
-        const auto N         = TotalEntries(bsz);
+#pragma omp parallel                                            \
+    if ((blocks.numBlocks() > (50 * omp_get_num_threads())))
 
-        // Note: mxREAL because we assume symmetric matrices
-        plhs[0] = mxCreateDoubleMatrix(N.n_, 1, mxREAL);
-        auto* pr = mxGetPr(plhs[0]);
+#pragma omp single
+        {
+            for (decltype(blocks.numBlocks())
+                     b = 0, nb = blocks.numBlocks();
+                 b < nb; ++b)
+            {
+                const double* const Ai = A + blocks.p2(b);
+                const auto          n  = blocks.size(b);
 
-        double* v = nullptr;
-        if (calcEVect) {
-            plhs[1] = mxCreateDoubleMatrix(N.n2_, 1, mxREAL);
-            v       = mxGetPr(plhs[1]);
-        }
-
-        auto        ev = EVProblem(N.max_);
-        const auto* A  = mxGetPr(prhs[0]);
-
-        for (const auto& sz : bsz) {
-            if (ev.solve(sz, A)) {
-                ev.eigenValues(pr);
-
-                if (calcEVect) { ev.eigenVectors(v); }
+#pragma omp task
+                solveEigenProblem(b, Ai, n, result);
             }
-
-            const auto sz2 = sz * sz;
-
-            A  += sz2;
-            pr += sz;
-
-            if (calcEVect) { v += sz2; }
         }
+
+        result.ExtractResultArrays(plhs);
     }
     else {
         const std::string fn = mexFunctionName();
