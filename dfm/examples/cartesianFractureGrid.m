@@ -20,11 +20,11 @@ Nx = [10 10];
 G = cartGrid(Nx,[10 10]);
 G = computeGeometry(G);
 
-%   Create a fracture at y = 5, and between x = 2 and x = 8
+%   Create a fracture at y = 1, and between x = 1 and x = 8
 fracFaces = find(all([G.faces.centroids(:,2) == 1 , G.faces.centroids(:,1) >= 1 , ...
     G.faces.centroids(:,1) < 8],2));
 
-%   Create a fracture at y = 5, and between x = 2 and x = 8
+%   Create a fracture at x = 8, and between y = 1 and y = 10
 fracFaces = [ fracFaces ; find(all([G.faces.centroids(:,1) == 8 , ...
     G.faces.centroids(:,2) >= 1 , G.faces.centroids(:,2) < 10],2))];
 
