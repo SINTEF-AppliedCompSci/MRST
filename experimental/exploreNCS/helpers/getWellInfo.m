@@ -81,7 +81,7 @@ function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
     %% Initialize all output as empty;
     wellCoords_inj  = []; cinx_inj  = [];
     wellCoords_prod = []; cinx_prod = [];
-    ta = trapAnalysis(Gt,'false'); % for plotting
+    ta = trapAnalysis(Gt,false); % @@ bugfix: previous syntax was 'false', rather than false   
     
     
     %% Get injection well coords according to specified layout:
