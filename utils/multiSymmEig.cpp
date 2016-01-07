@@ -250,21 +250,6 @@ public:
     using BlockID  = std::size_t;
     using SizeType = std::size_t;
 
-    struct Block
-    {
-        Block(const SizeType size_,
-              const SizeType p1_,
-              const SizeType p2_)
-            : size(size_)
-            , p1  (p1_)
-            , p2  (p2_)
-        {}
-
-        SizeType size;
-        SizeType p1;
-        SizeType p2;
-    };
-
     BlockID numBlocks() const { return p1_.size() - 1; }
 
     SizeType n1() const { return p1_.back(); }
@@ -289,11 +274,6 @@ public:
         mxAssert (blk < numBlocks(), "Internal Error");
 
         return p1_[blk + 1] - p1_[blk + 0];
-    }
-
-    Block block(const BlockID blk) const
-    {
-        return Block(size(blk), p1(blk), p2(blk));
     }
 
 private:
