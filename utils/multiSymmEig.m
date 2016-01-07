@@ -56,24 +56,49 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-if ispc,
-
    e = mexext('all');
    a = e(strcmp({ e.ext }, mexext)).arch;
 
-   mwlib = @(lib) ...
+   if ispc,
+
+      mwlib = @(lib) ...
       fullfile(matlabroot, 'extern', 'lib', a, 'microsoft', ...
                ['libmw', lib, '.lib']);
 
-elseif isunix,
+      CXXFLAGS  = { '/MD', '/openmp' };
+      LINK      = { };
+      iomp5     = { '/link', '/nodefaultlib:vcomp', 'libiomp5md' };
+      libstdcpp = { };
 
-   mwlib = @(lib) ['-lmw', lib];
+   elseif isunix,
 
+       mwlib = @(lib) ['-lmw', lib];
+
+       CXXFLAGS = ...
+          {'CXXFLAGS="-D_GNU_SOURCE', '-fPIC', '-O3', '-std=c++0x',  ...
+           '-fopenmp', '-Wall', '-Wextra', '-pedantic',              ...
+           '-Wformat-nonliteral', '-Wcast-align', '-Wpointer-arith', ...
+           '-Wmissing-declarations', '-Wundef', '-Wcast-qual',       ...
+           '-Wshadow', '-Wwrite-strings', '-Wchar-subscripts',       ...
+           '-Wredundant-decls"'};
+
+       LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
+
+       iomp5     = { '-liomp5' };
+       libstdcpp = { '-lstdc++' };
+   end
+
+   INCLUDE = { };
+
+   OPTS = { '-O', '-largeArrayDims' };
+
+   SRC = { 'multiSymmEig.cpp' };
+
+   LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
+
+   % Build MEX file
+   buildmex(CXXFLAGS{:}, INCLUDE{:}, LINK{:}, OPTS{:}, SRC{:}, LIBS{:});
+
+   % Now, run it.
+   [varargout{1:nargout}] = multiSymmEig(varargin{:});
 end
-
-buildmex('-O', '-largeArrayDims', ...
-         'multiSymmEig.cpp',      ...
-         mwlib('lapack'), mwlib('blas'));
-
-% Now, run it.
-[varargout{1:nargout}] = multiSymmEig(varargin{:});
