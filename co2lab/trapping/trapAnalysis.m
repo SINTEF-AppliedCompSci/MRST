@@ -5,8 +5,8 @@ function res = trapAnalysis(Gt, method)
 %
 % PARAMETERS:
 %   Gt     - top surface grid to analyze
-%   method - 'true' : use cell-centroid-based implementation
-%            'false': use edge-based implementation
+%   method - true : use cell-centroid-based implementation
+%            false: use edge-based implementation
 % DESCRIPTION:
 %   The function computes and summarizes information that describes the
 %   trapping structure using either a cell-centroid-based implementation
@@ -46,6 +46,9 @@ function res = trapAnalysis(Gt, method)
 %
 % EXAMPLE:
 %
+  assert(isscalar(method),...
+      ['Input parameter <method> must be a logical. '...
+      'Use true/false (or 1/0), not ''true''/''false''.'])
   if method
       % we will use the cell-based method
       mlist = mrstModule();
