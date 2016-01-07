@@ -54,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if isnumeric(weighting) && numel(weighting) == G.cells.num,
       src = weighting;
    elseif ischar(weighting),
-      ix = strmatch(weighting, {'perm', 'poro', 'poros', 'unit'}, 'exact');
+      ix = find(strcmp(weighting, {'perm', 'poro', 'poros', 'unit'}));
 
       if isempty(ix),
          error(msgid('BasisWeighting:Unknown'), ...
