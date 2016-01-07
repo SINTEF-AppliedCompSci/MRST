@@ -9,15 +9,37 @@
 % formation, or placed in best leaf nodes using internal function in
 % optimizeFormations_extras.m
 
-t1 = tic;
+%figDirName = 'WellPlacementFigs';
+figDirName = 'OptResultsFigs';
 
-fmName      = 'Bjarmelandfm'; %'Stofm'; %Utsirafm';
+names = [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()];
+
+% Remove certain formation names:
+names = names(~strcmpi(names,'Nordmelafm'));
+names = names(~strcmpi(names,'Rorfm'));
+names = names(~strcmpi(names,'Notfm'));
+names = names(~strcmpi(names,'Knurrfm'));       % @@ can be constructed??
+names = names(~strcmpi(names,'Fruholmenfm'));   % @@
+names = names(~strcmpi(names,'Cookfm'));
+names = names(~strcmpi(names,'Dunlingp'));
+names = names(~strcmpi(names,'Paleocene'));
+
+for i=1:numel(names)
+    
+fmName      = names{i};
 coarsening  = 5;
 rhoCref     = 760 * kilogram / meter ^3;
-use_bhp_wells = true;
+use_bhp_wells = false;
+use_default_schedule = true;
 
 %%% Get formation
 [Gt, rock2D]    = getFormationTopGrid(fmName, coarsening);
+if any(isnan(rock2D.perm))
+    rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
+end
+if any(isnan(rock2D.poro))
+    rock2D.poro = 0.25 * ones(Gt.cells.num,1); 
+end
 seainfo         = getSeaInfo(fmName, rhoCref);
 
 %%% get overburden pressure, and a pressure limit
@@ -25,7 +47,7 @@ seainfo         = getSeaInfo(fmName, rhoCref);
 %     seainfo.water_density);
 
 %%% Get well sites and inj vols
-trapCapacities  = getTrappingInfo(Gt, rock2D, seainfo, 'plotsOn',false);
+trapCapacities  = getTrappingInfo(Gt, rock2D, seainfo, 'plotsOn',false, 'fmName',fmName);
 wellinfo        = getWellInfo(Gt, trapCapacities, ...
                         'limits','none', ...
                         'prod',false, ...
@@ -55,13 +77,14 @@ caprock_temperature = trapCapacities.caprock_temperature;
 
 
 %%% Set-up schedule (controls, steps, wells)
-itime           = 20 * year;
+itime           = 50 * year;
 %injRates        = wellinfo.vols_inj./itime; % m3/s
-isteps          = 60;
+isteps          = 50;
 mtime           = 100 * year;
 msteps          = 10;
 single_control  = true; % not used in setSchedule_extras() yet.
 
+if ~use_default_schedule
 if use_bhp_wells
     
     %%% Pressure-controlled wells:
@@ -147,20 +170,22 @@ else
                                     'wqtots', vols_inj, ...
                                     'minval', sqrt(eps));
 end
+end
 
 
 
-
+try
 
 %%% Pass everything in explicitly.
-[Gt, optim, init, history, other] = optimizeFormation_extras(...
+[Gt, optim, init, history, other] = ...
+optimizeFormation_extras(...
     'modelname'                  , fmName                       , ...
-    'schedule'                   , schedule                     , ...
+    'schedule'                   , [], ... %schedule                     , ...
     'coarse_level'               , coarsening                   , ...
-    'num_wells'                  , 10 , ... %numel(schedule.control(1).W) , ...% used if wells are picked inside
-    'trapfile_name'              , 'utsira_subtrap_function_3.mat', ... %'subtrap_file'               , 'utsira_subtrap_function_3.mat', ...
+    'num_wells'                  , 50 , ... %numel(schedule.control(1).W) , ...% used if wells are picked inside
+    'trapfile_name'              , [], ... %'utsira_subtrap_function_3.mat', ... %'subtrap_file'               , 'utsira_subtrap_function_3.mat', ...
     'surf_topo'                  , 'inf_rough'                  , ...
-    'maximise_boundary_distance' , false                         , ... % used in pick_wellsites()
+    'maximise_boundary_distance' , true                         , ... % used in pick_wellsites()
     'well_buffer_dist'           , 5 * kilo * meter             , ... % used in pick_wellsites()
     'surface_pressure'           , 1 * atm                      , ...   
     'refRhoCO2'                  , rhoCref                      , ...
@@ -187,8 +212,26 @@ end
     'report_basedir'             , './simulateUtsira_results/'  , ... % directory for saving reslts
     'leak_penalty'               , 10                           , ...
     'dryrun'                     , false ); 
+    
+%     % save fig
+%     %pause
+%     drawnow % @@
+%     %export_fig(gcf,[figDirName '/' fmName], '-png','-transparent')
+%     saveas(gcf, [figDirName '/' fmName], 'fig')
+    compareWellrates_viaWellSols(init.wellSols, optim.wellSols, init.schedule, other.fluid.rhoGS);
+    drawnow
+    saveas(gcf, [figDirName '/' fmName '_InitVsOptimRates'], 'fig')
+    
+catch
+    % should continue the for loop if code executed under try finished or
+    % failed
+    
+    
+end
 
-time2complete = toc(t1);                  
+
+
+end
 % 
 % 
 % %%% Post-processing

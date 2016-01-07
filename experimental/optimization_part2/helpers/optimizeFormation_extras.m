@@ -10,6 +10,12 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    
    %% Physical grid and rock
    [Gt, rock2D, ~] = getFormationTopGrid(opt.modelname, opt.coarse_level);
+   if any(isnan(rock2D.perm))
+        rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
+   end
+   if any(isnan(rock2D.poro))
+        rock2D.poro = 0.25 * ones(Gt.cells.num,1); 
+   end
    
    %% Spill-point analysis objec
    ta = trapAnalysis(Gt, false);
@@ -29,6 +35,9 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
       else
          dh = computeToptraps(load(opt.trapfile_name), Gt, true);
       end
+   elseif ~strcmpi(opt.surf_topo,'smooth')
+         warning('surf_topo option is being changed to ''smooth''.')
+         opt.surf_topo = 'smooth';
    end
 
    %% Defining fluid
@@ -55,16 +64,51 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    %% Construct schedule
    use_default_schedule = isempty(opt.schedule);
    if use_default_schedule
+      % rate-controlled wells
       [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, opt.num_wells, opt.rhoW, ...
                                 opt.sw, opt.ref_temp, opt.ref_depth, opt.temp_grad, ...
                                 opt.well_buffer_dist, opt.maximise_boundary_distance); 
       opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
                                      opt.itime, opt.msteps , opt.mtime, true, ...
                                      'minval', sqrt(eps));
+      % optional well placement inspection:
+      if opt.dryrun
+          cinx_inj = [opt.schedule.control(1).W.cells];
+          close all
+          figure; set(gcf,'Position',[2929 666 953 615])
+          subplot(2,2,[1 3])
+          mapPlot(gcf, Gt, 'traps', ta.traps, ...
+            'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+            'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
+            'maplines', 20, 'wellcells', cinx_inj, 'well_numbering', true);
+          colorizeCatchmentRegions(Gt, ta);
+          axis equal tight off
+          
+          subplot(2,2,2); bar(qt);
+          xlabel('well number', 'FontSize',16);
+          ylabel('mass to inject [kg]', 'FontSize',16); % i.e., mass capacity of empty traps along spill path
+          
+          rates = [opt.schedule.control(1).W.val]; % m3/s
+          subplot(2,2,4); bar(rates);
+          xlabel('well number', 'FontSize',16);
+          ylabel({'initial rate [m^3/s]';['for ',num2str(convertTo(opt.itime,year)),' yrs inj.']}, 'FontSize',16);
+          
+          rates = [opt.schedule.control(1).W.val].*opt.refRhoCO2.*(1*year)./10^9; % Mt/yr
+          subplot(2,2,4); bar(rates);
+          xlabel('well number', 'FontSize',16);
+          ylabel({'initial rate [Mt/yr]';['for ',num2str(convertTo(opt.itime,year)),' yrs inj.']}, 'FontSize',16);
+          
+
+          %sum(qt)/1e9/1e3
+          clear cinx_inj rates
+          % exit from optimization routine
+          return
+      end
                                  
       min_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
       max_rates = opt.lim_fac * ...
        sum([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
+      % extend for bhp-controlled-wells @@
    else
 %       tmp = load(opt.schedule);
 %       name = fields(tmp);
@@ -250,10 +294,16 @@ function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
         trapcap = set_used_to_zero(trapcap, ta.trap_adj, ta.trap_regions(wc(i)));
         
         % check if there is no more avaible capacity for the wells (which
-        % can occury if all traps have been used)
-        if all(trapcap == 0)
-            warning(['You wanted to place %d wells, '...
+        % can occure if all traps have been used)
+        if all(trapcap == 0) || qt(i)/qt(1) < 0.01
+            if all(trapcap == 0)
+                warning(['You wanted to place %d wells, '...
                 'but all traps were used after placing %d wells.'], num_wells, i)
+            elseif qt(i)/qt(1) < 0.01
+                warning(['You wanted to place %d wells, '...
+                'but the injected volume of well number %d was '...
+                'less than 1 percent of well number 1''s volume'], num_wells, i)
+            end
             % keep values computed so far
             wc = wc(1:i); qt = qt(1:i);
             % ensure only unique well cell indexes
@@ -264,7 +314,7 @@ function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
         end
     end
     
-    % take only unique the well cell indexes
+    % take only the unique well cell indexes
     [wc, inx] = unique(wc,'stable');
     qt = qt(inx);
     num_wells = numel(wc); % updated number of wells
