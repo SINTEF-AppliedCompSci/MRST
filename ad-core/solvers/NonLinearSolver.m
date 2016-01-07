@@ -285,10 +285,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             state = state0_inner;
                         end
                     end
-                    % Beat timestep with a hammer
-                    warning([solver.getId(), 'Solver did not converge, cutting timestep'])
-                    cuttingCount = cuttingCount + 1;
-                    dt = dt/2;
                     if stopNow
                         msg = [solver.getId(), 'Did not find a solution: '];
                         if failure
@@ -313,6 +309,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                 break;
                             end
                         end
+                    else
+                        % Beat timestep with a hammer
+                        warning([solver.getId(), 'Solver did not converge, cutting timestep'])
+                        cuttingCount = cuttingCount + 1;
+                        dt = dt/2;
                     end
                     isFinalMinistep = false;
                 end
