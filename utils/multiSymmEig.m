@@ -56,6 +56,24 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params;
+
+   INCLUDE = { };
+
+   OPTS = { '-O', '-largeArrayDims' };
+
+   SRC = { 'multiSymmEig.cpp' };
+
+   % Build MEX file
+   buildmex(CXXFLAGS{:}, INCLUDE{:}, LINK{:}, OPTS{:}, SRC{:}, LIBS{:});
+
+   % Now, run it.
+   [varargout{1:nargout}] = multiSymmEig(varargin{:});
+end
+
+%--------------------------------------------------------------------------
+
+function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
    e = mexext('all');
    a = e(strcmp({ e.ext }, mexext)).arch;
 
@@ -88,17 +106,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        libstdcpp = { '-lstdc++' };
    end
 
-   INCLUDE = { };
-
-   OPTS = { '-O', '-largeArrayDims' };
-
-   SRC = { 'multiSymmEig.cpp' };
-
    LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
-
-   % Build MEX file
-   buildmex(CXXFLAGS{:}, INCLUDE{:}, LINK{:}, OPTS{:}, SRC{:}, LIBS{:});
-
-   % Now, run it.
-   [varargout{1:nargout}] = multiSymmEig(varargin{:});
 end
