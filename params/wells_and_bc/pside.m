@@ -61,7 +61,7 @@ function bc = pside(bc, G, side, pressure, varargin)
 %   See simpleBC, simpleSRCandBC.
 %
 % SEE ALSO:
-%   fluxside, addBC, solveIncompFlow, grid_structure.
+%   fluxside, addBC, grid_structure.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
