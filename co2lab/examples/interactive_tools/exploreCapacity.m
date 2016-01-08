@@ -26,7 +26,7 @@ function exploreCapacity(varargin)
    % Initializing 'var'
    var.Gt_cached = struct();
    var.current_formation = '';
-   var.co2 = CO2props('sharp_phase_boundary', true, 'rhofile', 'rho_demo');
+   var.co2 = CO2props('sharp_phase_boundary', true);
    set_formation(opt.default_formation, false);
    
    
