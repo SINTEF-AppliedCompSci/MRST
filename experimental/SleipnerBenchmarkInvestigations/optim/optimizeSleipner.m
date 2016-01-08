@@ -66,7 +66,7 @@ fprintf('rho mutiplier: %4.2f, perm mutiplier: %4.2f, poro mutiplier: %4.2f\n', 
 figure
 subplot(1,3,1)
 title('Optimal dz')
-plotCellData(smodel.G, u_opt(1:end-3), 'EdgeColor', 'none')
+plotCellData(smodel.G, u_opt(1:end-4), 'EdgeColor', 'none')
 axis tight, colorbar
 subplot(1,3,2)
 title('Mismatch base')
