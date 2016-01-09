@@ -188,7 +188,7 @@ rock2D_gn = rock2Ds{ logical(strcmpi(fmNames,'Garnfm')) };
 
 Gt      = Gt_gn;
 rock2D  = rock2D_gn;
-ta      = trapAnalysis(Gt,'false');
+ta      = trapAnalysis(Gt,false); % @@ syntax must be false, not 'false'
 
 [ capOutput, hfig, hax ] = getTrappingPlots(Gt, ta, rock2D, 'NorwegianSea'); % updated @@
 

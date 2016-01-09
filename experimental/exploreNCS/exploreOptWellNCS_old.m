@@ -26,7 +26,7 @@ for i = 1:numel(fmNames);
         [Gt, rock2D] = getFormationTopGrid(fn, coarsening);
         
         % 2. Set-up well injection sites:
-        ta                  = trapAnalysis(Gt,'false');
+        ta                  = trapAnalysis(Gt,false); % @@ syntax must be false, not 'false'
         trapCapacities      = getTrappingInfo(fn, coarsening, 'plotsOn',false);
         seainfo             = getSeaInfo(fn, 760);
         wellinfo            = getWellInfo(Gt, trapCapacities, 'prod',false, ...

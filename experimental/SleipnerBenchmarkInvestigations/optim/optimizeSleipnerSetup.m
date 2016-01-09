@@ -24,9 +24,10 @@ moduleCheck('co2lab','ad-core', 'deckformat', ...
     
     
     %% Select well injection rate data:
-    ratecase = 'original'
+    % options: 'IEAGHGmodel' or 'ORIGINALmodel'
+    ratecase = 'ORIGINALmodel'
     switch ratecase   
-        case 'SPE'
+        case 'IEAGHGmodel'
             % See Singh et al 2010 for more info about how they determined
             % these rates. Note: the injection rates were reported as
             % surface rates. Both volume and mass were given, thus surface
@@ -37,7 +38,7 @@ moduleCheck('co2lab','ad-core', 'deckformat', ...
             % inj_rates is in meter^3/s
             % Convert to rate at reservoir conditions
             inj_rates  = inj_rates.*(1.87/760);       
-        case 'original' 
+        case 'ORIGINALmodel' 
             % See "Injection rates Layer 9.xls" under
             % co2lab/data/sleipner/original for more info about these
             % rates. Note: the CO2 density at reservoir conditions was
@@ -77,9 +78,9 @@ moduleCheck('co2lab','ad-core', 'deckformat', ...
     
 
     %% Select grid and refinement/coarsening level (if any):
-    % Grid options: 'ORIGINAL', 'IEAGHGmodel', 'INHOUSEmodel'
+    % Grid options: 'ORIGINALmodel', 'IEAGHGmodel'
     % Coarsening level specified using -2, -3, etc.
-    modelname = 'ORIGINALmodel';
+    modelname = 'ORIGINALmodel'
     refineLevel = 1;
     [ G, Gt, rock, rock2D ] = makeSleipnerModelGrid('modelName',modelname, 'refineLevel',refineLevel, 'plotsOn',false);
     %clear G,rock,
@@ -102,7 +103,7 @@ moduleCheck('co2lab','ad-core', 'deckformat', ...
     
     %% Select whether to modify parameters from original data, ...
     % and set their modification factors.
-    modifyParametersCase = 'modify';
+    modifyParametersCase = 'none' %'modify';
     switch modifyParametersCase
         case 'modify'
             % Set parameter modifier factors:
