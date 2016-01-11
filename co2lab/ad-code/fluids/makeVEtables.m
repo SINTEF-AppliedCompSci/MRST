@@ -9,7 +9,8 @@ function tables = makeVEtables(varargin)
    opt = merge_options(opt, varargin{:});
 
    % make tables using h
-   H_max = 10 * max(opt.Gt.cells.H);
+   %H_max = 10 * max(opt.Gt.cells.H);
+   H_max = 20 * max(opt.Gt.cells.H);
    
    h = linspace(0, H_max, opt.samples)';
    dh = h(2) - h(1);
