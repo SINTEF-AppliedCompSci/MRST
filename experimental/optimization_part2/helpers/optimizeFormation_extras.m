@@ -72,10 +72,10 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                                      opt.itime, opt.msteps , opt.mtime, true, ...
                                      'minval', sqrt(eps));
       % optional well placement inspection:
-      if opt.dryrun
+      if opt.inspectWellPlacement
           cinx_inj = [opt.schedule.control(1).W.cells];
           close all
-          figure; set(gcf,'Position',[2929 666 953 615])
+          figure(100); set(gcf,'Position',[2929 666 953 615])
           subplot(2,2,[1 3])
           mapPlot(gcf, Gt, 'traps', ta.traps, ...
             'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
@@ -102,7 +102,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
           %sum(qt)/1e9/1e3
           clear cinx_inj rates
           % exit from optimization routine
-          return
+          %return
       end
                                  
       min_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
@@ -132,7 +132,8 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    initState.sGmax = initState.s(:,2);
    
    
-   other.fluid = fluid;
+   %other.fluid = fluid; % @@ fluid structure is ~400MB when saved
+   other.fluid.rhoGS = fluid.rhoGS;
    other.rock = rock2D;
    other.residual = [opt.sw, opt.sr];
    other.traps = ta;
@@ -415,6 +416,7 @@ function opt = opt_defaults()
     
     opt.leak_penalty = 10;
     opt.dryrun = false;
+    opt.inspectWellPlacement = false;
 end
 
 % ----------------------------------------------------------------------------
