@@ -62,12 +62,13 @@ dist2 = bsxfun(@minus, Gt.cells.centroids, opt.wellpos);
 dist2 = sum(dist2.^2,2); % squared distance cell centre to inj. point
 [~, wcell_ix] = min(dist2); % index of cell closest to inj. point
 
-% Here we set up the well.  The injection rate should be volumetric, so we
-% divide the desired mass by the reference CO₂ density.
-injection_rate = opt.annual_injection / year / fluid_si.rhoGS; % volumetric
+% Here we set up the well.  We need the fluid object to compute the exact
+% volumetric rate, so we use a dummy rate for the time being, and will set it
+% correctly once the fluid has been specified further down.
+
 W = addWell([], Gt, rock2D, wcell_ix , ...
             'type'   , 'rate'        , ...
-            'val'    , injection_rate, ...
+            'val'    , 0             , ...
             'comp_i' , [0 1]);
 
 % Let us plot the well on the grid to check that we got the position right.
@@ -106,6 +107,11 @@ fluid_si = makeVEFluid(Gt, rock2D, 'sharp interface' , ...
 fluid_cf = makeVEFluid(Gt, rock2D, 'P-scaled table'  , ...
                        'fixedT'   , T                , ...
                        'residual' , opt.res_sat);
+
+% We can now set the correct injection rate for the well.  The injection rate
+% should be volumetric, so we divide the desired mass by the by the reference
+% CO₂ density, as provided by the fluid object.
+W.val = opt.annual_injection / year / fluid_si.rhoGS;
 
 %% Setup initial state in the aquifer
 % We now specify the initial conditions in the aquifer prior to injection.
