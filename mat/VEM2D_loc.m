@@ -71,8 +71,7 @@ m_int = @(X)  [(X(:,1)-xK).^2./(2*hK) , ...
 
                             %   Integral of monomials over K using
                             %   Gauss-Lobatto quadrature.
-% I = [vol, polygonInt(X,m)];
-I = [vol, evaluateMonomialIntegralV2(edgeNormals, X, Xmid, m_int)];
+I = [vol, polygonInt2(edgeNormals, X, Xmid, m_int)];
                             %   D(i,j) = \chi^i(m_j(X_i))
 D = [ones(NK-1,1), m([X;Xmid]); I./vol];
 

@@ -1,4 +1,4 @@
-function I = evaluateMonomialIntegralV2(normals, X, Xmid, m)
+function I = polygonInt2(normals, X, Xmid, m)
 
     I = zeros(1,5);
     Ne = size(normals,1);
