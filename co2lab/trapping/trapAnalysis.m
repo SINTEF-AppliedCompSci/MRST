@@ -1,4 +1,4 @@
-function res = trapAnalysis(Gt, method)
+function res = trapAnalysis(Gt, method, varargin)
 % Compute and summarize the relevant trap analysis information
 % SYNOPSIS:
 %   function res = trapAnalysis(Gt, method)
@@ -7,6 +7,14 @@ function res = trapAnalysis(Gt, method)
 %   Gt     - top surface grid to analyze
 %   method - true : use cell-centroid-based implementation
 %            false: use edge-based implementation
+% OPTIONAL PARAMETERS:
+%   varargin - pair of 'key'/'value', where currently supported key is:
+%              * closed_boundary_edges - by default, boundary edges are
+%                                       considered open, but the boundary
+%                                       edges whose indices are found in the
+%                                       vector 'closed_boundary_edges' will
+%                                       be considered closed (no flow across)xs
+%     
 % DESCRIPTION:
 %   The function computes and summarizes information that describes the
 %   trapping structure using either a cell-centroid-based implementation
@@ -49,22 +57,36 @@ function res = trapAnalysis(Gt, method)
   assert(isscalar(method),...
       ['Input parameter <method> must be a logical. '...
       'Use true/false (or 1/0), not ''true''/''false''.'])
+  
+  opt.closed_boundary_edges = [];
+  opt = merge_options(opt, varargin{:});
+  
   if method
       % we will use the cell-based method
+      if ~isempty(opt.closed_boundary_edges)
+         warning(['Cell-based algorithm does not currently support closed ' ...
+                  'boundary edges.  Use edge-based algorithm instead if needed. ' ...
+                  ' Currently proceeding without closed boundaries.']);
+      end
       mlist = mrstModule();
       moduleCheck('matlab_bgl','coarsegrid');
       res = cell_based_trap_analysis(Gt);
       mrstModule('reset', mlist{:})
   else
       % we will use the edge-based method
-      res = edge_based_trap_analysis(Gt);
+      res = edge_based_trap_analysis(Gt, opt.closed_boundary_edges);
   end
 end
 
 %===============================================================================
-function res = edge_based_trap_analysis(Gt)
+function res = edge_based_trap_analysis(Gt, closed_bedges)
+   
+    % Identifying closed boundary nodes, if any
+    closed_bnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_bedges), ...
+                                          Gt.faces.nodePos(closed_bedges+1)-1));
+
     % Computing essential trap information, based on geometry of edges
-    ntraps = computeNodeTraps(Gt);
+    ntraps = computeNodeTraps(Gt, closed_bnodes);
 
     % Projecting trap information onto cells (from edges)
     [ctraps, ctrap_zvals, ctrap_regions, csommets, cadj, crivers] = ...

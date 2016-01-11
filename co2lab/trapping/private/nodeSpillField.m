@@ -1,4 +1,4 @@
-function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
+function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt, closed_bnodes)
 % Compute the spill field for the 2D grid 'Gt'.
 % The spill field consists of a classification of each of the nodes
 % in the grid as belonging to a specific spill region.  A spill region is defined by 
@@ -9,7 +9,9 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
 %   [upslope_neigh, region, spill_edges] = spill_field(Gt);
 %
 % PARAMETERS:
-%      Gt - a 2D grid with an associated z-field
+%    Gt            - a 2D grid with an associated z-field
+%    closed_bnodes - vector with indices of nodes on the closed part of the
+%                    boundary 
 %
 % RETURNS:    
 %   uslp_neigh  - One element per node in Gt, containing the index of the
@@ -46,12 +48,21 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
     % Flag boundary nodes as those having less than nine members of
     % their neighborhood, causing (at least) the last index of 'nhood' to be
     % zero. 
-    boundary_nodes         = (nhood(:,end) == 0);
-    int_sommets            = (uslp_neigh == (1:Gt.nodes.num)') & ~boundary_nodes;
+    boundary_nodes = (nhood(:,end) == 0);
+    open_boundary_nodes = boundary_nodes;
+    open_boundary_nodes(closed_bnodes) = false;
+
+    int_sommets            = (uslp_neigh == (1:Gt.nodes.num)') & ~open_boundary_nodes;
     region                 = NaN * ones(Gt.nodes.num,1);
-    region(boundary_nodes) = 0;
+    region(open_boundary_nodes) = 0;
     region(int_sommets)    = 1:sum(int_sommets); % assigning region identifiers
-    unfinished = find(isnan(region));
+    unfinished             = find(isnan(region));
+
+    if ~all(boundary_nodes(closed_bnodes))
+       warning(['Ignoring some nodes specified as closed boundary nodes, as ' ...
+                'they were not found on the boundary.']);
+    end
+
     while ~isempty(unfinished)
         cur_sneigh_ix = uslp_neigh(unfinished);
         defineds = find(~isnan(region(cur_sneigh_ix)));
@@ -64,7 +75,7 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt)
     %%% Final adjustments of uslp_neigh, to fulfill contract
     % Ascribe boundary nodes and interior sommet nodes an upslope neighbor
     % index of 0
-    uslp_neigh(boundary_nodes) = 0;
+    uslp_neigh(open_boundary_nodes) = 0;
     uslp_neigh(int_sommets) = 0;
 
     % Computing spill edges
