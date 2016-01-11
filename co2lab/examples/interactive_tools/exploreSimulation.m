@@ -12,8 +12,6 @@ function exploreSimulation(varargin)
    opt.seafloor_temp     =  7; % in Celsius
    opt.temp_gradient     = 35.6; % degrees per kilometer
    opt.water_density     = 1000; % kg per m3
-   opt.res_sat_co2       = 0.21; 
-   opt.res_sat_wat       = 0.11;
    opt.dis_max           = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
    opt.max_num_wells     = 10;
    opt.default_rate      = 1 * mega * 1e3 / year / rhoCref; % default injection rate

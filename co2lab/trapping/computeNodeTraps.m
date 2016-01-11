@@ -1,4 +1,4 @@
-function res = computeNodeTraps(Gt)
+function res = computeNodeTraps(Gt, closed_bnodes)
 %
 % Compute tracks and spill regions for the 2D surface grid 'Gt'.  The
 % computation is node-based, not cell based.  Cell-based results can be
@@ -9,8 +9,10 @@ function res = computeNodeTraps(Gt)
 %    res = computeNodeTraps(Gt);
 % 
 % PARAMETERS:
-%    Gt - 2D-grid with z-values assigned to the nodes (Gt.nodes.z should
-%         exist). 
+%    Gt            - 2D-grid with z-values assigned to the nodes (Gt.nodes.z
+%                    should exist). 
+%    closed_bnodes - vector with indices of nodes on the closed part of the
+%                    boundary 
 % 
 % RETURNS: 
 %    res - structure with the following fields:
@@ -49,7 +51,7 @@ function res = computeNodeTraps(Gt)
 % n2cTraps
 
     % Computing spill field
-    [res.dstr_neigh, regions, spill_edges] = nodeSpillField(Gt);
+    [res.dstr_neigh, regions, spill_edges] = nodeSpillField(Gt, closed_bnodes);
     num_regions = max(regions); % There is one region per local minimum.  
                                 % Will be properly aggregated into traps
                                 % below. 
