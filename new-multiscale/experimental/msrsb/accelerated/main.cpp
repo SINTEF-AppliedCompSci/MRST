@@ -156,7 +156,6 @@ void mexFunction(
 	delete[] mat.loc_index;
 	delete[] mat.loc_conn;
 }
-#endif
 
 void buildMatrixFromMxSparse(ConnMatrix * mat, const mxArray * A) {
 	//int n_el = mxGetNzmax(A);
@@ -211,7 +210,7 @@ void buildMatrixFromMxSparse(ConnMatrix * mat, const mxArray * A) {
 	delete[] diag;
 	return;
 }
-
+#endif
 void printMatrix(ConnMatrix * mat){
 	printf("J_indices:\n");
 	for (int i = 0; i < mat->n_i; i++) {
