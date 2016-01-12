@@ -1,5 +1,5 @@
 %% Using the trapping analysis tool to est
-% In this example, we will demonstrate how to use the trapping analysis tool,
+% In this example, we will demonstrate the use of the trapping analysis tool,
 % and some ways to visualize and use its results.  We will use the caprock of
 % the Statfjord formation as input.
 
@@ -8,9 +8,8 @@ moduleCheck co2lab
 
 %% Load Statfjord grid and perform spill point analysis
 % We first load the formation and generate the associated top surface grid
-% using the |getFormationTopGrid| function.  Since spill-point analysis has
-% low computational requirements, we choose not to downsample the grid, and
-% therefore use a coarsening level of 1.
+% using the 'getFormationTopGrid' function.  Since our analysis does not have
+% particularly high computational requirements, we do not downsample the grid.
 
 % Loading the grid from disk
 coarsening_level = 1; % grid downsampling factor (1 = no downsampling)
@@ -24,10 +23,10 @@ ta = trapAnalysis(Gt, false);
 
 
 %% Show traps
-% Before doing anything else, we want to plot the graphs on the grid so that
-% we can see their size and location.  Since each trap is a discrete entity,
-% we do not use a gradient-based colormap, but rather the Matlab 'lines'
-% colormap, where adjacent colors are not similar.
+% Before doing anything else, we plot the traps on the grid in order to  see
+% their size and location.  Since each trap is a discrete entity, we do not use
+% a gradient-based colormap, but rather the Matlab 'lines' colormap, where
+% adjacent colors are not similar.
 
 % Top view
 figure
@@ -44,13 +43,13 @@ set(gcf, 'position', [520 10 1200 800]);
 
 %% Show spill regions
 % We now proceed to visualize the spill regions associated with each trap.  The
-% spill region of a trap consists of all points in the aquifer from where CO₂
-% will migrate into the trap by gravity-driven migration.  (By an analogy
+% spill region of a trap consists of all positions in the aquifer from which CO₂
+% will migrate into the trap by gravity-driven migration.  (By analogy
 % with hydrology, a spill region is to a trap what a catchment area is to a
 % lake). 
 %
-% Below, we plot spill regions as semi-transparent, and in the same color as
-% their associated trap.
+% Below, we plot spill regions as semi-transparent, with colors matching their
+% associated traps.
 
 trapfield = ta.traps;
 trapfield(trapfield==0) = NaN;
@@ -73,8 +72,8 @@ set(gcf, 'position', [520 10 1200 800]);
 %% Show size distributions in terms of area
 % Measured by area, there is a large spread in sizes between spill regions.  The
 % same is also the case for traps.  To illustrate this point, we count the
-% number of cells in each trap(region), sort them according to this size, and
-% produce corresponding bar plots.  
+% number of cells in each trap and spill region, sort them according to this
+% size, and produce corresponding bar plots.
 %
 
 % We compute the number of cells in each trap region, and store the number in
@@ -97,10 +96,9 @@ bar(sort(trap_cellcount, 'descend'), 'r');
 % a long tail of very small ones.
 
 %% Show the largest spill region with associated trap
-% We now have a closer look at the largest spill region, and the associated
-% trap.  To find the index of the largest spill region, we identify index of
-% the largest entry in the vector we just constructed above,
-% 'region_spillcount'.  Once identified, we produce a plot where we plot the
+% We now have a closer look at the largest spill region and associated trap.  To
+% find the index of the largest spill region, we identify index of the largest
+% entry in the vector we just constructed above.  Once identified, we plot the
 % trap and spill region in isolation.
 
 % Find index of trap with the largest spill region
@@ -119,21 +117,20 @@ view(-64, 36);
 set(gcf, 'position', [10 10 1000 700]);
 
 %%
-% A word of explanation to the plotting code above:  The 'extractSubgrid'
+% The plotting code above merits a word of explanation:  The 'extractSubgrid'
 % function returns a grid consisting of specified cells of the input grid.
 % However, it does not currently work with top surface grids, so we have to
-% run it on the original 3D grid.  Fortunately, the original grid is
+% provide it with  the original 3D grid.  Fortunately, the original grid is
 % accessible from the top surface grid as 'Gt.parent'.  Once the subgrid is
 % produced, we generate a top surface grid from it, since that is what we
 % wish to plot.
 
 %% Show rivers
-% The traps are connected, in the sense that when CO₂ starts to spill out
-% from one trap, it will migrate upwards until it hits the next.  We refer to
-% the path it follows as a 'river', and traps are thus connected by
-% rivers. The cells through which these rivers run are stored in the
-% trappping stucture, and we here use this information to produce where both
-% traps and rivers are visible.
+% When CO₂ starts to spill out from one trap, it will migrate upwards until it
+% hits the next.  In this sense, the traps are connected in a hierarchy.  We
+% refer to the path CO₂ follows between traps as a 'river'. The cells through
+% which these rivers run are stored in the trappping stucture, and we here use
+% this information to produce a plot where both traps and rivers are visible.
 
 % Identifying "river" cells
 river_field = NaN(size(ta.traps));
@@ -161,9 +158,9 @@ set(gcf, 'position', [520 10 1200 800]);
 
 %% Topograpical map of caprock
 % CO2lab also contains functionality for plotting topographical maps
-% ('mapPlot').  This functionality is currently found as parts of the provided
-% examples, but can still be called from anywhere as long as the co2lab module
-% has been loaded.
+% ('mapPlot').  At present, this functionality is only available as a part of
+% the provided examples, but it can still be called from anywhere as long as the
+% co2lab module has been loaded.
 
 % Producing a topographical map of caprock surface, traps and rivers
 h = figure;
@@ -171,26 +168,26 @@ mapPlot(h, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
 set(gcf, 'position', [10 10 500 800]);
 
 %% Compute trap volumes
-% Above we have measured and sorted traps according to areal extent
-% (i.e. number of cells).  Here, we do the same thing for trap _volumes_.
-% The volume of a trap can be found by adding up the part of the volume of
-% each trap cell that is located above its _spill point_.  (The part of the
-% cell below the spill point is not part of the trap.  
+% Above we have measured and sorted traps according to areal extent (i.e. number
+% of cells).  Here, we do the same thing for trap _volumes_.  The volume of a
+% trap can be found by adding up the volumes of its constituent cells, but only
+% the part of that volume that is located above the trap's _spill point_.  (The
+% part of the cell below the spill point is not part of the trap).
 % 
-% In order to do the computation, we start by defining how much structural
-% trapping volume each cell in the grid has.  For non-trap cells, this is
-% obviously zero, for other cells it is equal to the cell's area multiplied
+% In order to do this computation, we start by defining how much structural
+% trapping volume each cell in the grid contains.  For non-trap cells, this is
+% obviously zero; for other cells it is equal to the cell's area multiplied
 % by the vertical distance from the spill point of the trap to the top of the
-% cell (or by the total height of the cell, whatever is smallest).
+% cell (or by the total height of the cell, whichever is smallest).
 
-% We add a zero to the vector of spill point depths, because of the indexing
-% issue explained in the comment to the following line.
+% We add a zero to the vector of spill point depths.  This is necessary for
+% indexing purposes, as explained in the next comment.
 depths = [0; ta.trap_z];
 
-% The following line gives the correct "trap height" value for cells within
+% The line below gives the correct "trap height" value for cells within
 % traps.  For the other cells, the value is incorrect, but will be fixed by
-% the following line.  Note that since we have added an entry to the front
-% of the 'depths' vector, we increase the indexing by 1.  (Otherwise, the
+% the succeeding line.  Note that since we have added an entry to the front
+% of the 'depths' vector, we increase indices by 1.  (Otherwise, the
 % presence of zeros in 'ta.traps' would cause an indexing error, since Matlab
 % arrays are indexed from 1, not 0).  
 h = min((depths(ta.traps+1) - Gt.cells.z), Gt.cells.H);
@@ -220,12 +217,12 @@ tvols = tvols(2:end);
 bar(sort(tvols, 'descend'))
 
 %% Compute and plot trap capacity in mass terms
-% From the purpose of CO₂ storage, an important question is how much CO₂ (in
-% terms of mass) a given trap can store.  This depends on its bulk volume, but
-% also on rock porosity and local CO₂ density.  (Other factors, such as residual
-% brine saturation, also play a role, but we ignore that for now).  Local
-% CO₂ density again depends on local temperature and pressure.  In order to
-% compute CO₂ density, we therefore assume the following values:
+% From the purpose of CO₂ storage, it is important to be able to estimate how
+% much CO₂ (in terms of mass) a given trap can store.  This depends on its bulk
+% volume, but also on rock porosity and local CO₂ density.  (Other factors, such
+% as residual brine saturation, also play a role, but we ignore that for now).
+% Local CO₂ density again depends on local temperature and pressure.  In order
+% to compute CO₂ density, we therefore assume the following values:
 
 porosity = 0.1071; % (This porosity value for Statfjord is from the Norwegian
                    % Petroleum Directorate)
@@ -304,7 +301,7 @@ for trap_ix = 1:max(ta.traps)
    
    visited_regions = trap_ix;
    
-   % Computing contribution to cells associated with downstream trapss
+   % Computing contribution to cells associated with downstream traps
    downstream = find(ta.trap_adj(:,trap_ix));
    while ~isempty(downstream)
       
