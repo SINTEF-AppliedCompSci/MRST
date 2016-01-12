@@ -32,6 +32,7 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
     opt.trapName    = {'default'};
     %opt.rhoCref     = 760 * kilogram / meter ^3; % arbitrary ref co2 density
     opt.fmName      = 'fmName';
+    opt.closed_boundary_edges = [];
     opt = merge_options(opt, varargin{:});
     
     
@@ -40,11 +41,16 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
     %[var.Gt, var.rock2D] = getFormationTopGrid(name, coarsening);
     var.Gt      = gt;
     var.rock2D  = rock2d;
-    var.ta               = trapAnalysis(var.Gt, false); % @@ original code was 'false', likely resulting in cell-based
-    var.co2              = CO2props('sharp_phase_boundary', false);%, 'rhofile', 'rho_demo');
-    %rhoCref              = opt.rhoCref;
-    %info                 = getSeaInfo(name, rhoCref);
-    rhoCref = info.rhoCref;
+    if ~isempty(opt.closed_boundary_edges)
+        var.ta  = trapAnalysis(var.Gt, false, ...
+            'closed_boundary_edges', opt.closed_boundary_edges); 
+    else
+        var.ta  = trapAnalysis(var.Gt, false); % @@ original code was 'false', likely resulting in cell-based
+    end
+    var.co2     = CO2props('sharp_phase_boundary', false);%, 'rhofile', 'rho_demo');
+    %rhoCref    = opt.rhoCref;
+    %info       = getSeaInfo(name, rhoCref);
+    rhoCref     = info.rhoCref;
     
     
     

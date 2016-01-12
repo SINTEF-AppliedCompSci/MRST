@@ -21,13 +21,19 @@ figDirName = 'HammerfestProspectFigs';
 mkdir(figDirName)
 
 %% Get Sto dataset
-Sto_trapInfo = getTrappingInfo('Stofm', N, 'plotsOn',false);
+fmName = 'Stofm';
+[Gt, rock2D] = getFormationTopGrid(fmName, N);
+bfinx        = getFormationsClosedBdryFaces(fmName, Gt);
+rhoCref      = 760 * kilogram/meter^3;
+seainfo      = getSeaInfo('BarentsSea', rhoCref);
+trapInfo     = getTrappingInfo(Gt, rock2D, seainfo, 'plotsOn',false, ...
+                        'fmName',fmName, 'closed_boundary_edges',bfinx);
 
 % re-name variables
-Gt_st       = Sto_trapInfo.Gt;
+Gt_st       = Gt;
 G_st        = Gt_st.parent;
-ta_st       = Sto_trapInfo.ta;
-rock2D_st   = Sto_trapInfo.rock2D;
+ta_st       = trapInfo.ta;
+rock2D_st   = rock2D;
 
 
 %% Get cell index of Sto grid corresponding to NPD's prospects/closures
@@ -36,8 +42,7 @@ rock2D_st   = Sto_trapInfo.rock2D;
 
 
 %% Get volume and capacity of prospects, for comparison to NPD (Atlas chp 6)
-rhoCref = 760 * kilogram/meter^3;
-info    = getSeaInfo('BarentsSea', rhoCref);
+
 
 names       = fieldnames(Grids);
 capacities  = cell(1,numel(names));
@@ -47,8 +52,9 @@ for i = 1:numel(names)
     trapcells   = G.trapcells;
     trapName    = { regexprep(G.name,'[^\w'']','') };  % cell for table
     
-    [~, capacities{i}] = getTrappingInfo('Stofm',1, 'plotsOn',false, ...
-                                   'cells',trapcells, 'trapName',trapName);
+    [~, capacities{i}] = getTrappingInfo(Gt, rock2D, seainfo, 'plotsOn',false, ...
+                                   'cells',trapcells, 'trapName',trapName, ...
+                                   'closed_boundary_edges',bfinx);
                                
 end
     
@@ -117,6 +123,7 @@ set(findall(hfig,'Type','TextArrow'), 'FontSize',18, 'LineWidth',1, ...
     'TextColor',[0 0 1], 'Color',[0 0 1])
 
 if plotsOn
+    pause
     export_fig(gcf,[figDirName '/' 'ProspectsInHammerfest_ref',num2str(N)], '-png','-transparent')
     %close
 end
