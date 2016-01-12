@@ -104,7 +104,7 @@ function varargout = krG(sg, p, fluid, opt, varargin)
 
    if(any(h_ind))
       dpH = opt.height(h_ind) .* drho(h_ind); % * (1 - opt.res_water);
-      disp(['Capillary is larger than H for ', num2str(sum(h_ind)), ' values'])
+      % disp(['Capillary is larger than H for ', num2str(sum(h_ind)), ' values'])
       if(opt.table_co2.is_kscaled)
          dpH = dpH ./ kscale(h_ind);
       end
