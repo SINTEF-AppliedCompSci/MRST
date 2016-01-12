@@ -4,11 +4,11 @@
 %% VE simulation with capillary fringe using black-oil solver
 % In this example, we will run three separate simulations of injection and
 % migration of CO₂ into the Gassum formation.  We will look at the impact of
-% boundary conditions on pressure buildup, as well as the effect of including a
-% capillary fringe.  The present demonstration employs the new, class-based
-% framework for setting up simulations.  This framework was introduced into
-% MRST-co2lab in the 2015a release.  Previous to that release, fully-implicit
-% simulations were carried out using the approach demonstrated in
+% boundary conditions on pressure buildup, as well as the effect on the plume
+% shape of including a capillary fringe.  The present demonstration employs the
+% new, class-based framework for setting up simulations.  This framework was
+% introduced into MRST-co2lab in the 2015a release.  Previous to that release,
+% fully-implicit simulations were carried out using the approach demonstrated in
 % <http://www.sintef.no/projectweb/mrst/modules/co2lab/tutorials/ve-simulation-in-a-standard-black-oil-solver/
 % this tutorial>.
 
@@ -44,8 +44,8 @@ coarsening_level = 3; % grid downsampling factor (1 = no downsampling)
 
 %% Show simulation grid
 % We plot the simulation grid for inspection.
-plotCellData(Gt, Gt.cells.z); view(56, 76); 
-set(gcf, 'position', [10 10 700 500]);
+plotCellData(Gt, Gt.cells.z,'edgealpha', 0.4); view(56, 76); 
+set(gcf, 'position', [10 10 800 600]);
 axis tight; colorbar;
 
 %% Plotting injection well on formation grid
@@ -72,9 +72,9 @@ W = addWell([], Gt, rock2D, wcell_ix , ...
             'comp_i' , [0 1]);
 
 % Let us plot the well on the grid to check that we got the position right.
-plotCellData(Gt, Gt.cells.z); 
+clf; plotCellData(Gt, Gt.cells.z,'edgealpha', 0.4); colorbar
 plotWell(Gt.parent, W, 'color', 'k'); 
-set(gcf, 'position', [10, 10, 700, 500]); view(76, 66);
+set(gcf, 'position', [10, 10, 800, 600]); view(76, 66);
 
 %%
 % We see on the figure that the well has been placed towards the bottom, and
@@ -202,29 +202,35 @@ model_cf = CO2VEBlackOilTypeModel(Gt, rock2D, fluid_cf);
 % periods.  We start out comparing saturations.  A naive plot gives us the
 % following diagrams:
 figure;
-subplot(2, 3, 1) ; plotCellData(Gt, states_si{10}.s(:,2), 'edgecolor', 'none');
-axis tight; set(gca, 'fontsize', 14);
-title('Sharp interface, end of injection', 'fontsize', 16); 
-subplot(2, 3, 2) ; plotCellData(Gt, states_cf{10}.s(:,2), 'edgecolor', 'none');
-title('Cap. fringe, end of injection', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 3) ; plotCellData(Gt, states_cb{10}.s(:,2), 'edgecolor', 'none');
-title('Closed boundaries, end of injection', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 4) ; plotCellData(Gt, states_si{end}.s(:,2), 'edgecolor', 'none');
-title('Sharp interface, end of migration', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 5) ; plotCellData(Gt, states_cf{end}.s(:,2), 'edgecolor', 'none');
-title('Cap. fringe, end of migration', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 6) ; plotCellData(Gt, states_cb{end}.s(:,2), 'edgecolor', 'none');
-title('Closed boundaries, end of migration', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
+subplot(3, 2, 1) ; plotCellData(Gt, states_si{10}.s(:,2), 'edgecolor', 'none');
+title('Sharp interface, injection end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 2) ; plotCellData(Gt, states_si{end}.s(:,2), 'edgecolor', 'none');
+title('Sharp interface, simulation end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 3) ; plotCellData(Gt, states_cf{10}.s(:,2), 'edgecolor', 'none');
+title('Cap. fringe, injection end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 4) ; plotCellData(Gt, states_cf{end}.s(:,2), 'edgecolor', 'none');
+title('Cap. fringe, simulation end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 5) ; plotCellData(Gt, states_cb{10}.s(:,2), 'edgecolor', 'none');
+title('Closed boundaries, injection end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 6) ; plotCellData(Gt, states_cb{end}.s(:,2), 'edgecolor', 'none');
+title('Closed boundaries, simulation end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
 set(gcf, 'position', [10 10 1000 800]);
 
 %%
-% On these plots, we can notice some differences, but it is not easy to compare,
-% as regions with low nonzero CO₂ saturations are hard to distinguish from
+% On these plots, we can notice some differences, but it is not easy to compare
+% since regions with low nonzero CO₂ saturations are hard to distinguish from
 % regions with no CO₂ at all.  One way of emphasizing regions with low
 % saturations is to visualize the saturation raised to a fractional power
 % (square root, etc.)  We here produce the same plot as above, but raise all
@@ -233,24 +239,30 @@ set(gcf, 'position', [10 10 1000 800]);
 % Comparing saturation at end of injection and end of migration
 clf;
 pow = 1/4;
-subplot(2, 3, 1) ; plotCellData(Gt, states_si{10}.s(:,2).^pow, 'edgecolor', 'none');
-axis tight; set(gca, 'fontsize', 14);
-title('Sharp interface, end of injection', 'fontsize', 16); 
-subplot(2, 3, 2) ; plotCellData(Gt, states_cf{10}.s(:,2).^pow, 'edgecolor', 'none');
-title('Cap. fringe, end of injection', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 3) ; plotCellData(Gt, states_cb{10}.s(:,2).^pow, 'edgecolor', 'none');
-title('Closed boundaries, end of injection', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 4) ; plotCellData(Gt, states_si{end}.s(:,2).^pow, 'edgecolor', 'none');
-title('Sharp interface, end of migration', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 5) ; plotCellData(Gt, states_cf{end}.s(:,2).^pow, 'edgecolor', 'none');
-title('Cap. fringe, end of migration', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
-subplot(2, 3, 6) ; plotCellData(Gt, states_cb{end}.s(:,2).^pow, 'edgecolor', 'none');
-title('Closed boundaries, end of migration', 'fontsize', 16); 
-axis tight; set(gca, 'fontsize', 14);
+subplot(3, 2, 1) ; plotCellData(Gt, states_si{10}.s(:,2).^pow, 'edgecolor', 'none');
+title('Sharp interface, injection end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 2) ; plotCellData(Gt, states_si{end}.s(:,2).^pow, 'edgecolor', 'none');
+title('Sharp interface, simulation end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 3) ; plotCellData(Gt, states_cf{10}.s(:,2).^pow, 'edgecolor', 'none');
+title('Cap. fringe, injection end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 4) ; plotCellData(Gt, states_cf{end}.s(:,2).^pow, 'edgecolor', 'none');
+title('Cap. fringe, simulation end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 5) ; plotCellData(Gt, states_cb{10}.s(:,2).^pow, 'edgecolor', 'none');
+title('Closed boundaries, injection end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
+subplot(3, 2, 6) ; plotCellData(Gt, states_cb{end}.s(:,2).^pow, 'edgecolor', 'none');
+title('Closed boundaries, simulation end', 'fontsize', 16); 
+axis tight; axis off; set(gca, 'fontsize', 10); 
+set(gca, 'xlim', [705588 791993]); set(gca, 'ylim', [6.33468e+06 6.43038e+06]);
 set(gcf, 'position', [10 10 1000 800]);
 
 %%
@@ -267,24 +279,24 @@ set(gcf, 'position', [10 10 1000 800]);
 figure;
 p_init = initState.pressure;
 
-subplot(2, 2, 1); plotCellData(Gt, (states_si{10}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
-axis tight; colorbar;
+subplot(2, 2, 1, 'align'); plotCellData(Gt, (states_si{10}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
+axis tight; axis off; colorbar;
 title('Open, end of injection (MPa)', 'fontsize', 16); set(gca, 'fontsize', 14);
-subplot(2, 2, 2); plotCellData(Gt, (states_cb{10}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
-axis tight; colorbar;
-title('Closed, end of injection (MPa)', 'fontsize', 16); set(gca, 'fontsize', 14);
-subplot(2, 2, 3); plotCellData(Gt, (states_si{end}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
-axis tight; colorbar;
+subplot(2, 2, 2, 'align'); plotCellData(Gt, (states_si{end}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
+axis tight; axis off; colorbar;
 title('Open, end of migration (MPa)', 'fontsize', 16); set(gca, 'fontsize', 14);
-subplot(2, 2, 4); plotCellData(Gt, (states_cb{end}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
-axis tight; colorbar;
+subplot(2, 2, 3, 'align'); plotCellData(Gt, (states_cb{10}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
+axis tight; axis off; colorbar;
+title('Closed, end of injection (MPa)', 'fontsize', 16); set(gca, 'fontsize', 14);
+subplot(2, 2, 4, 'align'); plotCellData(Gt, (states_cb{end}.pressure - p_init)/1e6, 'edgecolor', 'none'); 
+axis tight; axis off; colorbar;
 title('Closed, end of migration (MPa)', 'fontsize', 16); set(gca, 'fontsize', 14);
 set(gcf, 'position', [10 10 1000 800]);
 
 %%
-% As can be seen from the plot, there are huge quantitive and qualitative
+% As can be seen from the plot, there are significant quantitive and qualitative
 % differences between the result using different boundary conditions.  The
-% overpressure never reachse more than 2.5 MPa in the open boundary cases,
+% overpressure never reaches more than 2.5 MPa in the open boundary cases,
 % whereas it rises to more than 64 MPa for closed boundaries.  Moreover,
 % whereas overpressure basically drops to zero during the migration period in
 % the open boundary case, it stabilizes at about 61 MPa everywhere in the
