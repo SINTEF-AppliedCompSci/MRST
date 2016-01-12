@@ -400,7 +400,7 @@ function fluid = make_p_scaled_fluid(fluid, Gt, residual, C, alpha, beta)
 
    % Local constants used
    drho    = fluid.rhoWS - fluid.rhoGS;
-   samples = 1000;
+   samples = 2000;
    tabSw   = linspace(0, 1, 100)';
    tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
 

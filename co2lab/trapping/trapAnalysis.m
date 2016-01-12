@@ -13,7 +13,7 @@ function res = trapAnalysis(Gt, method, varargin)
 %                                       considered open, but the boundary
 %                                       edges whose indices are found in the
 %                                       vector 'closed_boundary_edges' will
-%                                       be considered closed (no flow across)xs
+%                                       be considered closed (no flow across)
 %     
 % DESCRIPTION:
 %   The function computes and summarizes information that describes the

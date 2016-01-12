@@ -139,10 +139,12 @@ function visualSimulation(initState, model, schedule, varargin)
              else % free plume s-average
                 sfree = free_sg(sG, sG_max, struct('res_water', model.fluid.res_water, ...
                                                    'res_gas', model.fluid.res_gas));
-                data = sfree.*model.G.cells.H./h./(1-model.fluid.res_water);
+                %data = sfree.*model.G.cells.H./h./(1-model.fluid.res_water);
                 %@@ Should we skip the division by (1-res_water) in the line
                 % above?  In the current form, the saturation in the plume
-                % will be 1 rather than 1-res-water for a sharp-interface model.
+                % will be 1 rather than 1-res-water for a sharp-interface
+                % model.
+                data = sfree.*model.G.cells.H./h;
              end
            otherwise
              data = states{state_ix}.(field{:});
