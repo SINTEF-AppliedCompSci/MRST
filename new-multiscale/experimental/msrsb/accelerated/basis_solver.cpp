@@ -8,9 +8,14 @@
 #include <algorithm>
 
 #include <vector>
+// Chunk size for paralleization
 #define LOOPCHUNK 100
+// How often we check convergence
 #define CHECKITS 25
+// Renormalize globally every now and then due to rounding errors (only 
+// applicable for large number of iterations)
 #define NORM_ITER 100
+// Macro for time taking
 #define TIME_NOW std::chrono::high_resolution_clock::now();
 #define _OPENMP_NOFORCE_MANIFEST 
 #define INTERACTION_SORTED 1
@@ -40,14 +45,20 @@ void getBasis(Grid * grid, ConnMatrix * mat, double * basis, double tol, int N, 
 }
 
 int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, double tol, int maxiter, double omega) {
-	int n_el = (*grid).n_basis;
+	// Number of non-zero elements in the basis (the values explicitly assigned in sparse matrix
+    int n_el = (*grid).n_basis;
+    // Number of coarse blocks
 	int n_c = (*grid).n_coarse;
+    // Number of fine cells in total
 	int n_f = (*grid).n_fine;
+    // Upper bound on the number of off diagonal entries in a matrix row
 	int n_conn = (*mat).n_conn;
 
-	// initialize local mapping
+	// Cache is used for intermediate storage of basis
 	double * cache = new double[n_el]();
+    // Used for sum of updates for renormalization
 	double * update_sum = new double[n_f]();
+    // Storage for the update values
 	double * basis_update = new double[n_el]();
 
 	std::cout << "Starting smoothing iterations..." << std::endl;;
@@ -55,12 +66,14 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 	int iter = 0;
 	
 	while(iter < maxiter){
+        // We check convergence every CHECKITS and as long as we have not converged.
 		bool check_convergence = (iter % CHECKITS) == 0 && iter > 0 && tol > 0;
 		bool done = check_convergence;
-		// Iterate over each block
+		// Iterate over each coarse block in parallel
 		#pragma omp barrier
 		#pragma omp parallel for
 		for (int coarseIx = 0; coarseIx < n_c; coarseIx++) {
+            // Compute the position in the sparse matrix where we have cells
 			int start = (*grid).offsets[coarseIx];
 			int stop  = (*grid).offsets[coarseIx+1];
 			// Iterate over local support
@@ -70,6 +83,7 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 				for (int k = 0; k < n_conn; k++) {
 					int jx = mat->loc_index[j*n_conn + k];
 					if (jx == -1) {
+                        // We have reached the end of the active connections
 						break;
 					}
                     // This is the tentative update for each basis element
@@ -77,6 +91,7 @@ int computeBasis(Grid * grid, ConnMatrix * mat, double * __restrict__ basis, dou
 				}
 			}
 		}
+        // Modify the update based on type of cell (inner, boundary or global boundary)
 		#pragma omp barrier
 		#pragma omp parallel for
 		for (int i = 0; i < n_el; i++) {

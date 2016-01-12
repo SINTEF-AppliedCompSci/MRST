@@ -1,4 +1,4 @@
-function I = cppMultiscaleBasis(CG, A, varargin)
+function [I, report] = cppMultiscaleBasis(CG, A, varargin)
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
@@ -23,16 +23,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'omega',     2/3, ...
                  'verbose', mrstVerbose,...
                  'writePath', '', ...
+                 'maxThreads', inf, ...
                  'doSolve',   true);
     opt = merge_options(opt, varargin{:});
     
+    report = struct('t_setup', nan, 't_basis', nan);
     assert(CG.parent.cells.num == size(A, 1));
     if ~isfield(CG.cells, 'support_mex')
         error('Missing support_mex field in CG.cells. Did you call setupMexInteractionMapping?');
     end
-    tic()
+    timer = tic();
     [offsets, support, types, I_com, fine, coarse] = getGridData(CG);
-    toc();
+    report.t_setup = toc(timer);
     
     if ~isempty(opt.writePath)
         % Error checking
@@ -52,8 +54,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     if opt.doSolve
+        timer = tic();
         I_com = mex_cppMultiscaleBasis(offsets, support, types, A', I_com,...
-                                   opt.tolerance/opt.omega, toIntegerValue(opt.maxiter), opt.omega);
+                                   opt.tolerance/opt.omega, toIntegerValue(opt.maxiter), ...
+                                   opt.omega, toIntegerValue(opt.maxThreads));
+        report.t_basis = toc(timer);
     end
     I = sparse(fine, coarse, I_com, CG.parent.cells.num, CG.cells.num);
 end

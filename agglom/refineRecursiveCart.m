@@ -44,7 +44,7 @@ function p = refineRecursiveCart(p, G, indicator, NU, cartDims)
 %       module.
 %
 % SEE ALSO:
-%   refineSuccessivePart, sampleFromBox, compressPartition, processPartition.
+%   applySuccessivePart, sampleFromBox, compressPartition, processPartition.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.

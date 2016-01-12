@@ -5,7 +5,7 @@
 #include <math.h>
 #include <algorithm>
 
-// #include <omp.h>
+#include <omp.h>
 #include "main.h"
 
 // #define USEMEX
@@ -80,7 +80,7 @@ void mexFunction(
 	)
 {
 	/* If we have recieved an empty array, fall back to flatfiles */
-	printf("Recieved %d input arguments\n", nrhs);
+	printf("Recieved %d input arguments and requested %d outputs\n", nrhs, nlhs);
 
 	if (nrhs == 1) {
 		int retval = flatFileBasis(mxArrayToString(prhs[0]));
@@ -91,7 +91,7 @@ void mexFunction(
 		printf("Flatfile processing complete. Basis written to file...\n");
 		return;
 	}
-	if(nrhs != 8){
+	if(nrhs != 9){
 		return;
 	}
 	Grid grid;
@@ -135,7 +135,10 @@ void mexFunction(
 	double tol = mxGetScalar(prhs[5]);
 	int maxiter = mxGetScalar(prhs[6]);
 	double omega = mxGetScalar(prhs[7]);
+    int given_threads = mxGetScalar(prhs[8]);
+    int max_threads = std::min(given_threads, omp_get_num_procs());
 
+    
 	plhs[0] = mxCreateDoubleMatrix((mwSize)grid.n_basis, (mwSize)1, mxREAL);
 	basis = (double *)mxGetData(plhs[0]);
 
@@ -144,7 +147,8 @@ void mexFunction(
 	}
 	printf("Discovered problem with %d cells and %d blocks\n", grid.n_fine, grid.n_coarse);
 	printf("Problem has %d equations with up to %d connections and support in %d cells total.\n", mat.n_i, mat.n_conn, grid.n_basis);
-
+    printf("Max number of threads: %d\n", max_threads);
+    omp_set_num_threads(max_threads);
 	
 	mat.loc_index = new int[grid.n_basis*mat.n_conn];
 	mat.loc_conn = new double[grid.n_basis*mat.n_conn];
