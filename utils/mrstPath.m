@@ -267,7 +267,16 @@ end
 %--------------------------------------------------------------------------
 
 function cache = register_root(cache, mods)
-   mods = mods(cellfun(@isdir, mods));
+   i = cellfun(@isdir, mods);
+   if ~ all(i),
+      suffix = 'y';  if sum(~i) ~= 1, suffix = 'ies'; end
+
+      fprintf(['mrstPath: Director%s Not Found during ', ...
+               '''ADDROOT''.  Omitted.\n'], suffix);
+      fprintf('  * %s\n', mods{~i});
+   end
+
+   mods = mods(i);  clear i
    m2d  = @(r, m) cellfun(@(x) fullfile(r, x), m, 'UniformOutput', false);
 
    exclude = { 'data', 'deprecated', 'experimental' };
@@ -330,20 +339,20 @@ function cache = register_modules(cache, mods)
    e = any(i, 2);
 
    if ~ all(e),
-      if mrstVerbose,
-         nonext = mods(~ e, :);
+      nonext = mods(~ e, :);
 
-         if size(nonext, 1) > 1,
-            [pl1, pl2, pl3] = deal('s', 'ies', ''  );
-         else
-            [pl1, pl2, pl3] = deal('' , 'y'  , 'es');
-         end
-
-         fprintf('The following module%s could not be registered.\n', pl1);
-         fprintf('Reason: The director%s do%s not exist.\n', pl2, pl3);
-
-         print_list(nonext);
+      if size(nonext, 1) > 1,
+         [pl{1:3}] = deal('s', 'ies', ''  );
+      else
+         [pl{1:3}] = deal('' , 'y'  , 'es');
       end
+
+      fprintf(['The following module%s could not be registered.\n', ...
+               'Reason: The director%s do%s not exist.\n'], pl{:});
+
+      clear pl
+
+      print_list(nonext);
 
       mods = mods(e, :);
       t    = t(e, :);
