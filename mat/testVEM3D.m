@@ -27,7 +27,7 @@ run('../../matlab/project-mechanics-fractures/mystartup.m')
 %             
 %                             %   Antiderivative of the monomoials wrt x.
 % m_int = @(X)  [(X(:,1)-xK).^2/(2*hK)                    , ...
-%                (X(:,1)-xK)*(X(:,2)-yK)/hK               , ...
+%   tt             (X(:,1)-xK)*(X(:,2)-yK)/hK               , ...
 %                (X(:,1)-xK)*(X(:,3)-zK)/hK               , ...
 %                (X(:,1)-xK).^3/(3*hK^2)                  , ...
 %                (X(:,1)-xK).^2*(X(:,2)-yK)/(2*hK^2)      , ...
@@ -35,7 +35,6 @@ run('../../matlab/project-mechanics-fractures/mystartup.m')
 %                (X(:,1)-xK)*(X(:,2)-yK).^2/(hK^2)        , ...
 %                (X(:,1)-xK)*(X(:,2)-yK)*(X(:,3)-zK)/hK^2 , ...
 %                (X(:,1)-xK)*(X(:,3)-zK).^2/(2*hK^2)      ];
-
 
                             %   Monomials. m(i) = m_{i+1}.
 m =      @(X) [X(:,1)               , ...   %   (1,0,0)
@@ -46,7 +45,7 @@ m =      @(X) [X(:,1)               , ...   %   (1,0,0)
                X(:,1).*X(:,3) , ...   %   (1,0,1)
                X(:,2).^2          , ...   %   (0,2,0) 
                X(:,2).*X(:,3) , ...   %   (0,1,1)
-               X(:,3).^2          ];      %   (0,0,2)
+               X(:,3).^2          ];      %   (0,0,2)...
                  
                             %   Gradients of monomials.
                             %   grad_m(i,:) = \nabla m_{i+1}.
@@ -76,6 +75,10 @@ m_int = @(X)  hK.*[X(:,1).^2/2                    , ...
 G = cartGrid([3,3,3], [1,1,1]);
 G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);
-G = globalEdgeData(G)
 
-VEM3D_loc(G,1)
+
+G = globalEdgeData(G);
+
+
+
+VEM3D_loc(G, 1, 1, m, grad_m, m_int)

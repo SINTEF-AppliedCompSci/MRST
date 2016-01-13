@@ -1,4 +1,4 @@
-function [Sl, bl, dofVec, hK] = VEM3D_loc(G, K, f)
+function [Sl, bl, dofVec, hK] = VEM3D_loc(G, K, f, m, gard_m, m_int)
 %--------------------------------------------------------------------------
 %   Generates local stffness matrix for the virtual element method  for
 %   cell K of grid G for diffusion problem:
@@ -52,26 +52,33 @@ vol = G.cells.volumes(K);   %   Element volume.
 
 nV = size(X,1);             %   Number of vertices.
 nE = size(edges,1);         %   Number of edges.
-nF = size(faces,1);         %   Number of faces.
+nF = size(faces,1);         %   Nu
+% nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-ones(size(edges,1),1))
+% nodes = G.edges.nodes(nodeNum)
+% plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes,2), G.nodes.coords(nodes,3), '*')mber of faces.
 
 k = 2;                      %   Method order.
 nk = (k+1)*(k+2)*(k+3)/6;   %   Dimension of polynomial space.
                             %   Local nomber of dofs.
 NK = nV + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1);
 
+Xs = [X;]
+
 %%  BUILD MATRIX Df
-    
-           
+
+for i = 1:nF                                                                                                                                                                                                                        
+                            %   Integral of monomials over K using
+                            %   Gauss-Lobatto quadrature.
+    I = faceInt(G,K,faces(i),m_int);
+I = [vol, polygonInt2(edgeNormals, X, Xmid, m_int)];
+                            %   D(i,j) = \chi^i(m_j(X_i))
+D = [ones(NK-1,1), m([X;Xmid]); I./vol];    
+end
            
 %%  BUILD MATRIX D                                                       %%
 
 
 
-                            %   Integral of monomials over K using
-                            %   Gauss-Lobatto quadrature.
-I = [vol, polygonInt2(edgeNormals, X, Xmid, m_int)];
-                            %   D(i,j) = \chi^i(m_j(X_i))
-D = [ones(NK-1,1), m([X;Xmid]); I./vol];
 %%  BUILD MATRIX B.
 
 B=zeros(nk,NK);
