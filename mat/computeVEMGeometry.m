@@ -32,12 +32,14 @@ function G = computeVEMGeometry(G)
         faceDiameters(i) = cellDiameter(X);
     end
     
-             
     G.edges.('lengths')     = lengths;
     G.edges.('centroids')   = centroids;
     G.faces.('edgeNormals') = normals;
     G.cells.('diameters')   = cellDiameters;
     G.faces.('diameters')   = faceDiameters;
     
+    I = faceInt(G);
+    
+    G.faces.('faceInt') = I;
 end
 

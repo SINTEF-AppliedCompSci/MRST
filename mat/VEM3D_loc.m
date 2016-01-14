@@ -1,4 +1,4 @@
-function [Sl, bl, dofVec, hK] = VEM3D_loc(G, K, f, m, gard_m, m_int)
+function [Sl, bl, dofVec, hK] = VEM3D_loc(G, K)
 %--------------------------------------------------------------------------
 %   Generates local stffness matrix for the virtual element method  for
 %   cell K of grid G for diffusion problem:
@@ -34,110 +34,55 @@ function [Sl, bl, dofVec, hK] = VEM3D_loc(G, K, f, m, gard_m, m_int)
 
 %%  CELL DATA                                                            %%
 
+
                             %   Cell nodes and node coordinates.
-[vertices, X] = nodeData(G,K);
+[nodes, X] = nodeData(G,K);
                             %   Cell faces, face midpoints and normals.
 [faces, Fc, faceNormals] = faceData(G,K);
                             %   Cell edges, edge midpoints and normals.
-[edges, Ec, edgeNormals] = edgeData(G,faces);
-
+                            %   Baricenter of K.
 % nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-ones(size(edges,1),1))
 % nodes = G.edges.nodes(nodeNum)
 % plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes,2), G.nodes.coords(nodes,3), '*')
 
-                            %   Baricenter of K.
-Kc = G.cells.centroids(K,:); xK = Kc(1); yK = Kc(2); zK = Kc(3);
-hK = cellDiameter(X);       %   Element diameter.
+                            %   Barm =      @(X) [(X(:,1)-xK)/hK               , ...   %   (1,0,0)
+%                (X(:,2)-yK)/hK               , ...   %   (0,1,0)
+%                (X(:,3)-zK)/hK               , ...   %   (0,0,1)
+%                (X(:,1)-xK).^2/hK^2          , ...   %   (2,0,0)
+%                (X(:,1)-xK)*(X(:,2)-yK)/hK^2 , ...   %   (1,1,0)
+%                (X(:,1)-xK)*(X(:,3)-zK)/hK^2 , ...   %   (1,0,1)
+%                (X(:,2)-xK).^2/hK^2          , ...   %   (0,2,0) 
+%                (X(:,2)-yK)*(X(:,3)-zK)/hK^2 , ...   %   (0,1,1)
+%                (X(:,3)-zK).^2/hK^2          ];      %   (0,0,2)icenter of K.
+Kc = G.cells.centroids(K,:);
+
+hK = G.cells.diameters(K);     %   Element diameter.
 vol = G.cells.volumes(K);   %   Element volume.
 
-nV = size(X,1);             %   Number of vertices.
-nE = size(edges,1);         %   Number of edges.
-nF = size(faces,1);         %   Nu
-% nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-ones(size(edges,1),1))
-% nodes = G.edges.nodes(nodeNum)
-% plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes,2), G.nodes.coords(nodes,3), '*')mber of faces.
+nV = size(X,1);             %   Number of nodes.
+nF = size(faces,1);         %   Number of faces.
 
 k = 2;                      %   Method order.
 nk = (k+1)*(k+2)*(k+3)/6;   %   Dimension of polynomial space.
                             %   Local nomber of dofs.
-NK = nV + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1);
+%NK = nV + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1);
 
-Xs = [X;]
+%%  BUILD MATRICES Df                                                     %%
 
-%%  BUILD MATRIX Df
+ii = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
+faceEdges = G.faces.edges(ii);
+XfC = G.edges.centroids(faceEdges,:);
+ii    = mcolon(G.faces.nodePos(faces),G.faces.nodePos(faces + 1)-1);
+faceNodes  = G.faces.nodes(ii);
+XfN     = G.nodes.coords(faceNodes,:);
 
-for i = 1:nF                                                                                                                                                                                                                        
-                            %   Integral of monomials over K using
-                            %   Gauss-Lobatto quadrature.
-    I = faceInt(G,K,faces(i),m_int);
-I = [vol, polygonInt2(edgeNormals, X, Xmid, m_int)];
-                            %   D(i,j) = \chi^i(m_j(X_i))
-D = [ones(NK-1,1), m([X;Xmid]); I./vol];    
-end
-           
-%%  BUILD MATRIX D                                                       %%
+Xf = [G.nodes.coords(faceNodes,:);G.faces.centroids(faceEdges,:)];
+                            %   NB: Sorted as m(Xnodes), m(XedgeMids),
+                            %   int_f m
+Df = [ones(size(Xf,1),1), m(Xf); [ones(size(faces,1),1),G.faces.faceInt(faces,:)]];
+
+%% BUILD MATRICES Bf
 
 
-
-%%  BUILD MATRIX B.
-
-B=zeros(nk,NK);
-B(1,NK) = 1;                %   First row.
-
-                            %   Contribution from boundary integrals.
-                            %   Basisfunctions with non-zero degrees of
-                            %   freedom on edge j are \phi_j,
-                            %   \phi_{mod(j,n)+1} (endpoints) and (nodes);
-                            %   \phi_{j+n} (midpoint). For each edge, 
-                            %   \int_\patrial K \nabla m_\alpha \cdot nVec
-                            %   is evaluated by Gauss-Lobatto quadrature.
-for j=1:n
-                            %   Area wheighted outward normal of edge j.
-    nVec = edgeNormals(j,:)';
-    B(2:nk,[j, mod(j,n)+1, j + n]) = B(2:nk,[j, mod(j,n)+1, j + n]) + ...
-           [1/6.*grad_m(X(j,:))*nVec          , ...    %   First point.
-            1/6.*grad_m(X(mod(j,n)+1,:))*nVec , ...    %   Last point.
-            2/3*grad_m(Xmid(j,:))*nVec             ];  %   Midpoint.
-end
-                            %   Contribution from surface integrals.
-                            %   \Delta m_\alpha = 2/hK^2 for \alpha = (2,0)
-                            %   and (0,2), 0 otherwise.
-B([4, 6], NK) = B([4, 6], NK) - vol*2/hK^2;
-
-%%  CONSTRUCTION OF LOCAL STIFFNESS MATRIX.                              %% 
-
-M = B*D;
-PNstar = M\B;               %   \Pi^\Nabla in the monomial basis.
-PN = D*PNstar;              %   \Pi^\Nabla in the V^K basis.
-Mtilde = [zeros(1,nk) ; M(2:nk,:)];
-                            %   Local stiffness matrix.
-Sl = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*(eye(NK)-PN);
-
-%%  LOCAL LOAD TERM.                                                     %%
-
-                            %   Matrix of integrals over K of all
-                            %   combinations of linear monomials.
-H = [I(1:3)        ;
-     I(2)   I(4:5) ;
-     I(3)   I(5:6)];
-% H = H + tril(H',-1);s
-                            %   \Pi^\Nabla in the monomial basis
-                            %   \mathcal{M}_1.
-PNstar = M(1:3,1:3)\B(1:3,:);
-                            %   Local load term.
-bl = PNstar'*H*PNstar*f([X; Xmid; Xc]);
-
-%%  CONSTRUCT LOCAL TO GLOBAL MAP. S(dofVec,dofVec) = Sl.                %%
-
-                            %   Dofs are ordered in the following way:
-                            %   values at nodes, values at edge midpoints,
-                            %   values of moments on faces.
-
-Nn = G.nodes.num;           %   Total number of nodes.
-Ne = G.faces.num;           %   Total number of edges.
-
-                            %   Local to global map,
-                            %   S(dofVec, dofVec) = Sl.
-dofVec = [nodes, Nn + edges, Nn + Ne + K];
 
 end
