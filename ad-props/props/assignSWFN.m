@@ -8,6 +8,12 @@ if ntsat == 1
 else
     f.sWcon = swcon(reg.SATNUM);
 end
+
+if isfield(reg, 'SURFNUM')
+   % Assign miscible relperm for surfactant
+   f.krWSurf  = @(sw, varargin)krWSurf(sw, swfn, reg, varargin{:});
+end
+
 end
 
 function v = krW(sw, swfn, reg, varargin)
@@ -22,5 +28,12 @@ satinx = getRegMap(sw, reg.SATNUM, reg.SATINX, varargin{:});
 T = cellfun(@(x)x(:,[1,3]), swfn, 'UniformOutput', false);
 T = extendTab(T);
 v = interpReg(T, sw, satinx);
+end
+
+function v = krWSurf(sw, swfn, reg, varargin)
+surfinx = getRegMap(sw, reg.SURFNUM, reg.SURFINX, varargin{:});
+T = cellfun(@(x)x(:,[1,2]), swfn, 'UniformOutput', false);
+T = extendTab(T);
+v = interpReg(T, sw, surfinx);
 end
 
