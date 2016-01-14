@@ -155,7 +155,7 @@ n = G.faces.nodes(rldecode(hybrids,offset)>0);
 
 G.faces.nodes = [G.faces.nodes ; n];
 G.faces.nodePos = [G.faces.nodePos ; G.faces.nodePos(end) + ...
-    int32(cumsum(double(offset(hybrids))))];
+    cumsum(double(offset(hybrids)))];
 G.faces.areas = [G.faces.areas ; G.faces.areas(hybrids)];
 G.faces.normals = [G.faces.normals ; G.faces.normals(hybrids,:)];
 G.faces.centroids = [G.faces.centroids ; G.faces.centroids(hybrids,:)];
@@ -276,7 +276,7 @@ hybridFaces = G.faces.num+i(eta(j)>1)-cs(i(eta(j)>1));
 
 % Make hybrid faces
 G.faces.nodes = [G.faces.nodes;reshape(nodes',[],1)];
-G.faces.nodePos = [G.faces.nodePos;G.faces.nodePos(end)+int32(cumsum(ones(nhybridfaces,1)*(dim-1)))];
+G.faces.nodePos = [G.faces.nodePos;G.faces.nodePos(end)+cumsum(ones(nhybridfaces,1)*(dim-1))];
 G.faces.hybrid = [G.faces.hybrid;ones(nhybridfaces,1)];
 hybfaces = (G.faces.num + 1:G.faces.num+nhybridfaces)';
 G.faces.neighbors = [G.faces.neighbors;[hybridFace2cell(isHybridface),zeros(nhybridfaces,1)]];
@@ -307,7 +307,7 @@ faces = faces(map);
 
 % Update the grid structure
 G.cells.faces = [G.cells.faces(:,1) ; faces]; % we dont know about the order of the faces maybe we should?
-G.cells.facePos = [G.cells.facePos ; G.cells.facePos(end) + int32(find(diff(cells)));...
+G.cells.facePos = [G.cells.facePos ; G.cells.facePos(end) + find(diff(cells));...
     G.cells.facePos(end) + length(cells)];
 G.cells.centroids = [G.cells.centroids;G.faces.centroids(hybrids,:)];
 G.cells.volumes = [G.cells.volumes;G.faces.areas(hybrids).*apertures(hybrids)];
@@ -410,7 +410,7 @@ hyb_nodes = nodes(is_hybfaces);
 G.faces.neighbors(hyb_faces,2) = j+G.cells.num;
 
 % create the hybrid cells.
-G.cells.facePos = [G.cells.facePos; int32(cumsum(hyb_eta))+G.cells.facePos(end)];
+G.cells.facePos = [G.cells.facePos; cumsum(hyb_eta)+G.cells.facePos(end)];
 G.cells.faces = [G.cells.faces; hyb_faces];
 G.cells.num = G.cells.num + num_hc;
 G.cells.centroids = [G.cells.centroids; G.nodes.coords(hyb_nodes(map),:)];
