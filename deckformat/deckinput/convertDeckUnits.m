@@ -518,6 +518,11 @@ function ctrl = convertControl(ctrl, u)
                ctrl.(key) = convertWPolymer(ctrl.(key), u);
             end
 
+         case 'WSURFACT',
+            if ~isempty(ctrl.(key)),
+               ctrl.(key) = convertWSurfact(ctrl.(key), u);
+            end
+
          case 'GCONINJE',
             if ~isempty(ctrl.(key)),
                ctrl.(key) = convertGconInje(ctrl.(key), u);
@@ -730,6 +735,19 @@ function wcp = convertWPolymer(wcp, u)
 
    c = [2        , 3        ];
    u = [u.density, u.density];
+
+   for n = 1 : numel(c),
+      wcp(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
+                             wcp(:, c(n)), 'UniformOutput', false);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function wcp = convertWSurfact(wcp, u)
+
+   c = [2        ];
+   u = [u.density];
 
    for n = 1 : numel(c),
       wcp(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...

@@ -20,7 +20,7 @@ function w  = readWellKW(fid, w, kw)
 %
 %      'WELSPECS', 'COMPDAT', 'WCONHIST', 'WCONINJ', 'WCONINJE',
 %      'WCONINJH', 'WCONPROD', 'GRUPTREE', 'WGRUPCON', 'GCONPROD',
-%      'WPOLYMER', 'WELOPEN' and 'WELTARG'
+%      'WPOLYMER', 'WSURFACT', 'WELOPEN' and 'WELTARG'
 %
 %   Be advised that we do not support the complete feature set of these
 %   keywords.
@@ -67,6 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WELOPEN' , w = readWelOpen (fid, w);
       case 'WELSPECS', w = readWellSpec(fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
+      case 'WSURFACT', w = readWSurfact(fid, w);
       case {'WELTARG', 'WELLTARG'},
          w = readWelTarg(fid, w);
 
@@ -459,6 +460,19 @@ function w = readWPolymer(fid, w)
    data = toDouble(data, numeric);
 
    w.WPOLYMER = appendSpec(w.WPOLYMER, data, w.WELSPECS(:,1));
+end
+
+%--------------------------------------------------------------------------
+
+function w = readWSurfact(fid, w)
+   %            1          2
+   template = {'Default', '0.0'};
+   numeric  = [2];
+
+   data = readDefaultedKW(fid, template);
+   data = toDouble(data, numeric);
+
+   w.WSURFACT = appendSpec(w.WSURFACT, data, w.WELSPECS(:,1));
 end
 
 %--------------------------------------------------------------------------

@@ -107,7 +107,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    prod = struct('WCONHIST', @process_wconhist, ...
                  'WCONPROD', @process_wconprod);
 
-   post = struct('WPOLYMER', @process_wpolymer);
+   post = struct('WPOLYMER', @process_wpolymer, ...
+                 'WSURFACT', @process_wsurfact);
 
    % ----------------------------------------------------------------------
    % Well processing stages
@@ -274,6 +275,22 @@ function W = process_wpolymer(W, control, G, rock, well_id, p, opt)
       for j = 1:size(W,1)
          if strcmp(W(j).name, control.WPOLYMER{i,1})
             W(j).poly = control.WPOLYMER{i,2};
+         end
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function W = process_wsurfact(W, control, varargin)
+   if ~isempty(W),
+      Wn = { W.name };
+
+      for i = 1 : size(control.WSURFACT, 1),
+         j = find(strcmp(Wn, control.WSURFACT{i,1}));
+
+         if ~isempty(j),
+            [ W(j).surfact ] = deal(control.WSURFACT{i,2});
          end
       end
    end
