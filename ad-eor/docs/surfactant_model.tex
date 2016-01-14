@@ -65,6 +65,8 @@
 
 \newcommand{\Sdpv}{\ensuremath{S_\text{dpv}} }
 \newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pref}{p_\text{ref}}
+
 
 \setlength{\parindent}{0cm}
 \setlength{\parskip}{5mm}
@@ -104,7 +106,7 @@ manner equivalent to boundary conditions, and are left out of the above equation
 
 Let us describe how these quantities are determined. The fluxes $\vec{v}_\alpha$ are given by
 \begin{equation*}
-  \vec{v}_\alpha = \frac{k_{\alpha}(s_\alpha, c)}{\mu_{\alpha}(c)}\grad p_\alpha,
+  \vec{v}_\alpha = \frac{k_{\alpha}(s_\alpha, c)}{\mu_{\alpha}(p, c)}\grad p_\alpha,
 \end{equation*}
 where the relative permeabilities $k_{\alpha}$ depends on the saturations and the surfactant
 concentrations and the viscosities depend on the surfactant concentration. The phase pressures are
@@ -125,8 +127,9 @@ forces and is defined as
 \end{equation}
 Thus, the relative permeability is given as $k_{r\alpha}(s_\alpha, N_c)$. The values of
 $k_{r\alpha}(s_\alpha, N_c)$ are computed by interpolating the relative permeability curves for
-minimal and maximal $N_c$ in the following way. Let $N_c^{\min}$ and $N_c^{\max}$ denote the minimal
-and maximal values of the capillary numbers for which the relative permeability curves are given as
+minimal and maximal $N_c$, in the following way. Let $N_c^{\min}$ and $N_c^{\max}$ denote the
+minimal and maximal values of the capillary numbers for which the relative permeability curves are
+given as
 \begin{equation*}
   k_{\alpha}^{\min}(s_\alpha)\quad\text{and}\quad k_{\alpha}^{\max}(s_\alpha).
 \end{equation*}
@@ -135,13 +138,13 @@ $s_{\alpha.r}^{\min}$. The interpolation is logarithmic so that we define the in
 $m$ as
 \begin{equation} 
   \label{eq:defm}
-  m = \frac{\log_{10}(N_c) - \log_{10}(N_c^{\min})}{\log_{10}(N_c^{\max}) - \log_{10}(N_c^{\min})},
+  m(N_c) = \frac{\log_{10}(N_c) - \log_{10}(N_c^{\min})}{\log_{10}(N_c^{\max}) - \log_{10}(N_c^{\min})},
 \end{equation}
-which belongs to $[0,1]$. The residual saturation values for the relative permeability
+which belongs to $[0,1]$. The residual saturation values for the relative permeabilities
 $k_{\alpha}(s_\alpha, N_c)$ is obtained by interpolation
 \begin{equation}
   \label{eq:srhat}
-  s_{\alpha,res}^{N_c} = m\,s_{\alpha,res}^{\min} + (1 - m)\,s_{\alpha,res}^{\max}.
+  s_{\alpha,res}^{N_c} = m(N_c)\,s_{\alpha,res}^{\min} + (1 - m(N_c))\,s_{\alpha,res}^{\max}.
 \end{equation}
 The relative permeabilities $k_r^{\min}$ and $k_r^{\max}$ are rescaled to match these
 endpoints. Hence, we define the function $k_{r.\alpha}^{\min}$ as
@@ -159,124 +162,31 @@ define $k_{\alpha}^{\max}$. Finally, we define the relative permeability $k_{\al
 interpolation, that is,
 \begin{equation}
   \label{eq:defkralpha}
-  k_{\alpha}(s, N_c) = m\,k_{\alpha}^{\min}(s_\alpha, N_c) + (1 - m)\,k_{\alpha}^{\max}(s_\alpha, N_c).
+  k_{\alpha}(s, N_c) = m(N_c)\,k_{\alpha}^{\min}(s_\alpha, N_c) + (1 - m(N_c))\,k_{\alpha}^{\max}(s_\alpha, N_c).
 \end{equation}
 
-To model the viscosity change of the mixture, we use the Todd--Longstaff model \cite{TL72:jpt}.
-This model introduces a mixing parameter $\omega\in[0, 1]$ that takes into account the degree of
-mixing of polymer into water. Assuming that the viscosity $\mu_m$ of a fully mixed polymer solution
-is a function of the concentration, the effective polymer viscosity is defined as
+The change in viscosity is only modeled for the water phase with multiplier functions. We have
 \begin{equation}
-  \label{eq:defmupeff}
-  \mu_{p,\eff}=\mu_m(c)^\omega\mu_p^{1-\omega}\quad\text{ with }\quad  \mu_p=\mu_m(c_{\max}).
+  \label{eq:defmuw}
+  \mu_w(p, c) = \frac{\mu_w^0(p)}{\mu_w^0(\pref)}\mu_{s}(c),
 \end{equation}
-The viscosity of the partially mixed water is given in a similar way by
+where $\mu_w^0$ denotes the viscosity without surfactant and $\mu_s(c)$ denotes the viscosity as a
+function of surfactant concentration at pressure $\pref$. For the adsorption term, we use an
+approach based on Langmuir isotherm so that the adsorbed concentration is a function of the
+surfactant concentration, that is of the from $\cads(s)$. We consider the reversible case and the
+case without desorption where the term $\cads$ is replaced by $\hat\cads$ which denotes the
+maximum value that the adsorption concentration has reached. More precisely, if we define
 \begin{equation}
-  \label{eq:defmuwe}
-  \mu_{w,e}=\mu_m(c)^\omega\mu_w^{1-\omega}.
+  \label{eq:chatadsmax}
+  \chatads_{\max}(t,x) = \max_{t'<t}(\chatads(t',x)),
 \end{equation}
-The effective water viscosity $\mu_{w,\eff}$ is defined by interpolating linearly between
-the inverse of the effective polymer viscosity and the partially mixed water viscosity
+then we have
+defined as
 \begin{equation}
-  \label{eq:defmuweff}
-  \frac{1}{\mu_{w,\eff}}=\frac{1-c/\cmax}{\mu_{w,e}}+\frac{c/\cmax}{\mu_{p,\eff}}.
+  \label{eq:defchatads}
+  \chatads(t, x) = \max(\cads(c(t,x)), \chatads_{\max}(t,x)).
 \end{equation}
-To take the incomplete mixing into account, we introduce the velocity of water that contains
-polymer, which we denote $\vec{v}_{wp}$. For this part of the water phase, the relative permeability
-is assumed to be equal to $k_{rw}$ and the viscosity is equal to $\mu_{p,\eff}$.  We also consider
-the total water velocity, which we still denote $\vec{v}_{w}$ and for which the viscosity is given
-by $\mu_{w,\eff}$. Darcy's law then gives us
-\begin{align}
-  \label{eq:uwdarc}
-  \vec{v}_{w} &=-\frac{k_{rw}}{\mu_{w,\eff}R_k(\cads)}\Kb(\nabla p-\rho_w g\nabla z),\\
-  \label{eq:uwpdarc}
-  \vec{v}_{wp} &=-\frac{k_{rw}}{\mu_{p,\eff}R_k(\cads)}\Kb(\nabla p-\rho_w g\nabla z) =
-  m(c)\vec{v}_w,
-\end{align}
-as we assume that the presence of polymer does not affect the pressure and the density. The polymer
-mobility factor $m(c)$ is defined as
-\begin{equation*}
-  m(c) = \frac{\mu_{w,\eff}}{\mu_{p,\eff}} 
-\end{equation*}
-and, after some simplifications, we get
-\begin{equation}
-  \label{eq:def_m}
-  m(c) = \Bigl[\Bigl(1 -\frac{c}{\cmax}\Bigr)
-  \Bigl(\frac{\mu_p}{\mu_w}\Bigr)^{1-\omega} + \frac{c}{\cmax}\Bigr]^{-1}.  
-\end{equation}
-The function $R_k(\cads)$ denotes the actual resistance factor and is a non-decreasing function
-which models the reduction of the permeability of the rock to the water phase due to the presence of
-absorbed polymer. The concentration of absorbed polymer is denoted by $\cads$. We introduce the
-total flux as $\vec{v} = \vec{v}_w + \vec{v}_o$. We have
-\begin{equation*}
-  \vec{v} = -(\lambda_w + \lambda_o)\Kb\nabla p + g(\lambda_w\rho_w + \lambda_o\rho_o)\Kb\nabla z 
-\end{equation*}
-and, after some computation, we obtain the following expression of $\vec{v}_\alpha$ as a function of
-$\vec{v}$
-\begin{equation}
-  \label{eq:valphav}
-  \vec{v}_w = f_w \vec{v} + \vec{v_g}\quad\text{ and }\quad  \vec{v}_o = f_o \vec{v} - \vec{v_g}
-\end{equation}
-with
-\begin{equation}
-  \label{eq:gravterm}
-  \vec{v_g} = \frac{\lambda_w\lambda_{o}}{\lambda_w+\lambda_{o}}(\rho_w-\rho_{o})g\Kb\nabla z.
-\end{equation}
-Here, $\lambda_\alpha$ denotes the mobility of phase $\alpha$, i.e.,
-\begin{equation*}
-  \lambda_w = \frac{k_{rw}}{\mu_{w,\eff}R_k(\cads)}\quad\text{ and }\quad  \lambda_w = \frac{k_{ro}}{\mu_{o}},
-\end{equation*}
-and $f_\alpha$ corresponds to the fractional flow, $f_\alpha =\lambda_{\alpha}/(\lambda_{w} +
-\lambda_{o})$. The time scale of adsorption is much larger than that of mass transport and we will
-assume that adsorption takes place instantaneously so that $\cads$ is a function of $c$ only.  The
-reference rock density is $\rho_{r, \text{ref}}$ and the reference porosity $\phi_\text{ref}$.  The
-adsorption of polymer is then taken into account by replacing \eqref{eq:conservation_laws2} by
 
-It is natural to assume that $\cads$ is an increasing function of $c$. Polymer cannot reach the
-smallest pores and, as a result, the effective pore volume for the polymer solution is smaller than
-the pore volume of the rock. This effect can be modeled by replacing
-\eqref{eq:conservation_laws2_withads} with
-\begin{equation}
-  \label{eq:sdpv1}
-  \frac{\partial}{\partial t} (\rho_{w}\phi (1-\Sdpv)S_w c)+
-  \fracpar{}{t}\left(\rho_{r, \text{ref}}(1-\phi_\text{ref})\cads\right)+\nabla\cdot(c
-  \rho_{w} \vec{v}_{wp})  = 0.
-\end{equation}
-where \Sdpv denotes the fraction of the pore volume which is not accessible to polymer. The
-introduction of dead pore volume has the effect to increase the mobility of the polymer
-solution. However, the model equation \eqref{eq:sdpv1} yields to instabilities because it allows
-polymer to go faster than its solvent (water). Actually a consistent way to introduce dead pore
-volume may be given by replacing the definition of the effective water viscosity given by
-\eqref{eq:defmuweff} by
-\begin{equation}
-  \label{eq:newdefmuweff}
-  \frac{1}{\mu_{w,\eff}}=\frac{1-c/\cmax}{\mu_{w,e}}+\frac{c/\cmax}{(1 - \Sdpv)\mu_{p,\eff}}.
-\end{equation}
-In this case, the polymer mobility factor becomes
-\begin{equation}
-  \label{eq:defmdps}
-  m(c) = \frac{\mu_{w,\eff}}{\mu_{p,\eff}} = \Bigl[\Bigl(1 -\frac{c}{\cmax}\Bigr)
-  \Bigl(\frac{\mu_p}{\mu_w}\Bigr)^{1-\omega}(1-\Sdpv) + \frac{c}{\cmax}\Bigr]^{-1}.
-\end{equation}
-Finally the modeling equations are
-\begin{subequations}
-  \label{eq:goveq}
-  \begin{equation}
-    \label{eq:goveq1}
-    \frac{\partial}{\partial t} (\rho_{\alpha}\phi S_\alpha) +
-    \nabla\cdot(\rho_{\alpha}\vec{v}_\alpha)
-    = 0,
-  \end{equation}
-  for $\alpha\in\{w,o\}$,
-  \begin{equation}
-    \label{eq:goveq2}
-    \frac{\partial}{\partial t} (\rho_{w}\phi S_w c)+
-    \fracpar{}{t}\left(\rho_{r, \text{ref}}(1-\phi_\text{ref})\cads\right)+\nabla\cdot(c
-    \rho_{w} \vec{v}_{wp}) = 0.
-  \end{equation}
-\end{subequations}
-where $\vec{v}_\alpha$ and $\vec{v}_{wp}$ are defined in \eqref{eq:uwdarc} and \eqref{eq:uwpdarc}
-using \eqref{eq:defmupeff}, \eqref{eq:defmuwe} and \eqref{eq:newdefmuweff}.
 
 \printbibliography
 
