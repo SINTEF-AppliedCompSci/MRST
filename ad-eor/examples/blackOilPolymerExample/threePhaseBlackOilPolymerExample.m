@@ -8,7 +8,12 @@
 
 clear;
 
-mrstModule add ad-core ad-props ad-blackoil ad-fi deckformat
+try
+   require add ad-core ad-blackoil ad-eor ad-props deckformat
+catch
+   mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
+end
+
 
 % the data required for the example
 % if the data does not exist locally, download it automatically
