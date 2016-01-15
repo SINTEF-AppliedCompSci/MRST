@@ -151,7 +151,7 @@ else
     error('The polymer mdoel does not support senarios without wells now!');
 end
 
-% s = model.operators;  % The previous s was overitten with saturations.
+% s = model.operators;  % The previous s was overwritten with saturations.
 poro =  s.pv./G.cells.volumes;
 poroFace = s.faceAvg(poro);
 faceA = G.faces.areas(s.internalConn);
