@@ -64,7 +64,7 @@ primaryVars = {'sW', gvar};
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
 sO0 = 1 - sW0 - sG0;
-[krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
+[krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);

@@ -48,7 +48,7 @@ primaryVars = {'pressure', 'sW', 'polymer', 'qWs', 'qOs', 'qWPoly', 'bhp'};
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
-[krW, krO] = model.evaluteRelPerm({sW, sO});
+[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);

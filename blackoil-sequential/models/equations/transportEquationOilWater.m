@@ -43,7 +43,7 @@ clear tmp
 
 % -------------------------------------------------------------------------
 sO = 1 - sW;
-[krW, krO] = model.evaluteRelPerm({sW, sO});
+[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);

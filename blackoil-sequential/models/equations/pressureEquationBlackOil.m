@@ -83,7 +83,7 @@ end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
 
 % FLIUD PROPERTIES ---------------------------------------------------
-[krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
+[krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p_prop, p0);

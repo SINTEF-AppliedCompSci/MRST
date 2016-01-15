@@ -357,7 +357,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             for i = 1:nph
                 sat{i} = perfcompi(:, i);
             end
-            [kr{:}] = model.evaluteRelPerm(sat);
+            [kr{:}] = model.evaluateRelPerm(sat);
             
             
             f = model.fluid;
