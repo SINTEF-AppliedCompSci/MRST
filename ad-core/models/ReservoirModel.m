@@ -488,7 +488,7 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function varargout = evaluteRelPerm(model, sat, varargin)
+    function varargout = evaluateRelPerm(model, sat, varargin)
         % Evaluate the fluid relperm. Depending on the active phases,
         % we must evaluate the right fluid relperm functions and
         % combine the results. This function calls the appropriate

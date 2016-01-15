@@ -1,6 +1,6 @@
-function [problem, state] = equationsOilWaterPolymer(state0, state, ...
+function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    model, dt, drivingForces, varargin)
-% Get linearized problem for oil/water/polymer system with black oil-style
+% Get linearized problem for oil/water/surfactant system with black oil-style
 % properties
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
@@ -13,24 +13,22 @@ W = drivingForces.W;
 s = model.operators;
 
 % Properties at current timestep
-[p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
-    'polymer', 'polymermax', 'wellsol');
+[p, sW, c, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', 'wellsol');
 
 % Properties at previous timestep
-[p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', ...
-   'polymer', 'polymermax');
+[p0, sW0, cmax0] = model.getProps(state0, 'pressure', 'water', 'surfactant');
 
 pBH    = vertcat(wellSol.bhp);
 qWs    = vertcat(wellSol.qWs);
 qOs    = vertcat(wellSol.qOs);
-qWPoly = vertcat(wellSol.qWPoly);
+qWSurf = vertcat(wellSol.qWSurf);
 
 % Initialize independent variables.
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, c, qWs, qOs, qWPoly, pBH] = ...
-            initVariablesADI(p, sW, c, qWs, qOs, qWPoly, pBH);
+        [p, sW, c, qWs, qOs, qWsurf, pBH] = ...
+            initVariablesADI(p, sW, c, qWs, qOs, qWsurf, pBH);
     else
         zw = zeros(size(pBH));
         [p0, sW0, c0, zw, zw, zw, zw] = ...
@@ -42,13 +40,14 @@ end
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations), polymer concentration and well rates +
 % bhp.
-primaryVars = {'pressure', 'sW', 'polymer', 'qWs', 'qOs', 'qWPoly', 'bhp'};
+primaryVars = {'pressure', 'sW', 'surfactant', 'qWs', 'qOs', 'qWSurfact', 'bhp'};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
-[krW, krO] = model.evaluateRelPerm({sW, sO});
+Nc = computeCapillaryNumber(model.fluid, p, c);
+[krW, krO] = computeRelPermSurf(model.fluid, sW, c);
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -74,7 +73,7 @@ bW0 = model.fluid.bW(p0);
 [vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
-if model.outputFluxes
+if model.outputFluxes 
     state = model.storeFluxes(state, vW, vO, vP);
 end
 if model.extraStateOutput

@@ -93,7 +93,7 @@ primaryVars = {'pressure', 'sW', gvar, 'polymer', 'qWs', 'qOs', 'qGs', 'qWPoly',
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
 sO0 = 1 - sW0 - sG0;
-[krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
+[krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -151,7 +151,7 @@ else
     error('The polymer mdoel does not support senarios without wells now!');
 end
 
-% s = model.operators;  % The previous s was overitten with saturations.
+% s = model.operators;  % The previous s was overwritten with saturations.
 poro =  s.pv./G.cells.volumes;
 poroFace = s.faceAvg(poro);
 faceA = G.faces.areas(s.internalConn);
