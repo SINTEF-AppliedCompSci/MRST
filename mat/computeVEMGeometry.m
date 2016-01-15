@@ -10,7 +10,7 @@ function G = computeVEMGeometry(G)
     edgeNum = mcolon(G.faces.edgePos(1:end-1),G.faces.edgePos(2:end)-1);
     edges = G.faces.edges(edgeNum);
     signs = G.faces.edgeSign(edgeNum);
-    nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-ones(size(edges,1),1));
+    nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-1);
     nodes = G.edges.nodes(nodeNum);
     edgeVec = G.nodes.coords(nodes(2:2:end),:)-G.nodes.coords(nodes(1:2:end-1),:);
     edgeVec = edgeVec.*repmat(signs,1,3);
@@ -38,8 +38,7 @@ function G = computeVEMGeometry(G)
     G.cells.('diameters')   = cellDiameters;
     G.faces.('diameters')   = faceDiameters;
     
-    I = faceInt(G);
-    
-    G.faces.('faceInt') = I;
+    [intD, intB] = faceInt(G);
+    G.faces.('faceInt') = {intD, intB};
 end
 
