@@ -1,7 +1,7 @@
 classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
     % Oil/water/polymer system
     % This model is a two phase oil/water model, extended with the polymer
-    % phase in addition.
+    % component in addition.
     
     properties
         % Polymer present
