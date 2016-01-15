@@ -21,9 +21,11 @@ function vol = computeTrapVolume(Gt, tstruct, poro, trap_ixs)
   for i = 1:numel(trap_ixs)
       % find index of all trap cells in this trap
       cix = find(tstruct.traps == trap_ixs(i));
-      cell_vols = (tstruct.trap_z(trap_ixs(i)) - Gt.cells.z(cix)) ...
-          .* Gt.cells.volumes(cix) ...
-          .* poro(cix);
+      
+      trap_heights = tstruct.trap_z(trap_ixs(i)) - Gt.cells.z(cix);
+      trap_heights = min(trap_heights, Gt.cells.H(cix));
+      
+      cell_vols = trap_heights .* Gt.cells.volumes(cix) .* poro(cix);
       vol(i) = sum(cell_vols);
   end
 end
