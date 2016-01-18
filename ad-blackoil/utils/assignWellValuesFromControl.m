@@ -22,7 +22,7 @@ function wellSol = assignWellValuesFromControl(model, wellSol, W, wi, oi, gi)
                     ws.qWPoly = ws.qWs*W(w).poly;
                 end
                 if isprop(model, 'surfactant') && model.surfactant
-                    ws.qWSurfact = ws.qWs*W(w).surfact;
+                    ws.qWSft = ws.qWs*W(w).surfact;
                 end
             case 'orat'
                 ws.qOs = v;

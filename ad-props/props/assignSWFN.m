@@ -11,7 +11,7 @@ end
 
 if isfield(reg, 'SURFNUM')
    % Assign miscible relperm for surfactant
-   f.krWSurf  = @(sw, varargin)krWSurf(sw, swfn, reg, varargin{:});
+   f.krWSft  = @(sw, varargin)krWSft(sw, swfn, reg, varargin{:});
 end
 
 end
@@ -30,7 +30,7 @@ T = extendTab(T);
 v = interpReg(T, sw, satinx);
 end
 
-function v = krWSurf(sw, swfn, reg, varargin)
+function v = krWSft(sw, swfn, reg, varargin)
 surfinx = getRegMap(sw, reg.SURFNUM, reg.SURFINX, varargin{:});
 T = cellfun(@(x)x(:,[1,2]), swfn, 'UniformOutput', false);
 T = extendTab(T);

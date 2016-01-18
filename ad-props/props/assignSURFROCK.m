@@ -5,6 +5,6 @@ if ntsfun == 1
 else
     satnum = reg.SATNUM;
 end
-f.adsSurfInx = surfrock(satnum, 1);
-f.rhoSurfR   = surfrock(satnum, 2);
+f.adsSftInx = surfrock(satnum, 1);
+f.rhoSftR   = surfrock(satnum, 2);
 end

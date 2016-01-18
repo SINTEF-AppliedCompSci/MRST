@@ -21,7 +21,7 @@ s = model.operators;
 pBH    = vertcat(wellSol.bhp);
 qWs    = vertcat(wellSol.qWs);
 qOs    = vertcat(wellSol.qOs);
-qWSurf = vertcat(wellSol.qWSurf);
+qWSft = vertcat(wellSol.qWSft);
 
 % Initialize independent variables.
 if ~opt.resOnly,
@@ -40,14 +40,14 @@ end
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations), polymer concentration and well rates +
 % bhp.
-primaryVars = {'pressure', 'sW', 'surfactant', 'qWs', 'qOs', 'qWSurfact', 'bhp'};
+primaryVars = {'pressure', 'sW', 'surfactant', 'qWs', 'qOs', 'qWSft', 'bhp'};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
 Nc = computeCapillaryNumber(model.fluid, p, c);
-[krW, krO] = computeRelPermSurf(model.fluid, sW, c);
+[krW, krO] = computeRelPermSft(model.fluid, sW, c);
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);

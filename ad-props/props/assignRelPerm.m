@@ -1,9 +1,9 @@
 function f = assignRelPerm(f)
 
 if ~isfield(f, 'krOG')      % two-phase water/oil
-   if isfield(f, 'krWSurf')
+   if isfield(f, 'krWSft')
       % Surfactant is used
-      f.relPerm = @(sw, varargin)relPermWOSurf(sw, f, varargin{:});
+      f.relPerm = @(sw, varargin)relPermWOSft(sw, f, varargin{:});
    else
       f.relPerm = @(sw, varargin)relPermWO(sw, f, varargin{:});
    end
@@ -25,15 +25,15 @@ end
 end
 
 
-function [krW, krO, krWSurf, krOSurf] = relPermWOSurf(sw, f, varargin)
+function [krW, krO, krWSft, krOSft] = relPermWOSft(sw, f, varargin)
 krW = f.krW(sw, varargin{:});
-krWSurf = f.krWSurf(sw, varargin{:});
+krWSft = f.krWSft(sw, varargin{:});
 if isfield(f, 'krO')
     krO = f.krO(1-sw, varargin{:});
-    krOSurf = f.krOSurf(1-sw, varargin{:});
+    krOSft = f.krOSft(1-sw, varargin{:});
 else
     krO = f.krOW(1-sw, varargin{:});
-    krOSurf = f.krOWSurf(1-sw, varargin{:});
+    krOSft = f.krOWSft(1-sw, varargin{:});
 end
 end
 

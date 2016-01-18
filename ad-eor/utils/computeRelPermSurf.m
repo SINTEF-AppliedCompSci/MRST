@@ -1,3 +1,3 @@
-function [krW, krO] = computeRelPermSurf(fluid, sW, Nc)
+function [krW, krO] = computeRelPermSft(fluid, sW, Nc)
    
 end

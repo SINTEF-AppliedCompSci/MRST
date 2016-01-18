@@ -17,7 +17,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
          % This is the model parameters for oil/water/surfactant
          model.surfactant = true;
          
-         model.wellVarNames = {'qWs', 'qOs', 'qWSurf', 'bhp'};
+         model.wellVarNames = {'qWs', 'qOs', 'qWSft', 'bhp'};
          
          model = merge_options(model, varargin{:});
          

@@ -87,7 +87,7 @@ if isprop(model, 'polymer') && model.polymer % polymer model
 end
 
 if isprop(model, 'surfactant') && model.surfactant % surfactant model
-	 [ws(:).qWSurfact] = deal(0);
+	 [ws(:).qWSft] = deal(0);
 end
 
 % just initialize fields that are not assigned in assignFromSchedule
@@ -118,7 +118,7 @@ for k = 1:nw
        ws(k).qWPoly = W(k).poly*ws(k).qWs;
     end
     if isprop(model, 'surfactant') && model.surfactant
-       ws(k).qWSurfact = W(k).surfact*ws(k).qWs;
+       ws(k).qWSft = W(k).surfact*ws(k).qWs;
     end
     
     ws(k).mixs = W(k).compi;
@@ -159,7 +159,7 @@ for k = 1:numel(W)
                 ws(k).qWPoly = W(k).poly*ws(k).qWs;
             end
             if isprop(model, 'surfactant') && model.surfactant
-               ws(k).qWSurfact = W(k).surfact*ws(k).qWs;
+               ws(k).qWSft = W(k).surfact*ws(k).qWs;
             end
         case 'orat'
             ws(k).qOs = v;
