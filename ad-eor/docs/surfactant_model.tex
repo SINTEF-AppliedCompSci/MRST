@@ -66,7 +66,8 @@
 \newcommand{\Sdpv}{\ensuremath{S_\text{dpv}} }
 \newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
 \newcommand{\pref}{p_\text{ref}}
-
+\newcommand{\surf}{\text{surf}}
+\newcommand{\nosurf}{\text{nosurf}}
 
 \setlength{\parindent}{0cm}
 \setlength{\parskip}{5mm}
@@ -125,44 +126,44 @@ forces and is defined as
   \label{eq:defNc}
   N_c = \frac{\abs{K\grad p}}{\sigma}.
 \end{equation}
-Thus, the relative permeability is given as $k_{r\alpha}(s_\alpha, N_c)$. The values of
-$k_{r\alpha}(s_\alpha, N_c)$ are computed by interpolating the relative permeability curves for
-minimal and maximal $N_c$, in the following way. Let $N_c^{\min}$ and $N_c^{\max}$ denote the
+Thus, the relative permeability is given as $k_{\alpha}(s_\alpha, N_c)$. The values of
+$k_{\alpha}(s_\alpha, N_c)$ are computed by interpolating the relative permeability curves for
+minimal and maximal $N_c$, in the following way. Let $N_c^{\surf}$ and $N_c^{\nosurf}$ denote the
 minimal and maximal values of the capillary numbers for which the relative permeability curves are
 given as
 \begin{equation*}
-  k_{\alpha}^{\min}(s_\alpha)\quad\text{and}\quad k_{\alpha}^{\max}(s_\alpha).
+  k_{\alpha}^{\surf}(s_\alpha)\quad\text{and}\quad k_{\alpha}^{\nosurf}(s_\alpha).
 \end{equation*}
-We denote the residual saturation values for each phase as $s_{\alpha.r}^{\min}$ and
-$s_{\alpha.r}^{\min}$. The interpolation is logarithmic so that we define the interpolation factor
+We denote the residual saturation values for each phase as $s_{\alpha. res}^{\surf}$ and
+$s_{\alpha. res}^{\surf}$. The interpolation is logarithmic so that we define the interpolation factor
 $m$ as
 \begin{equation} 
   \label{eq:defm}
-  m(N_c) = \frac{\log_{10}(N_c) - \log_{10}(N_c^{\min})}{\log_{10}(N_c^{\max}) - \log_{10}(N_c^{\min})},
+  m(N_c) = \frac{\log_{10}(N_c) - \log_{10}(N_c^{\surf})}{\log_{10}(N_c^{\nosurf}) - \log_{10}(N_c^{\surf})},
 \end{equation}
 which belongs to $[0,1]$. The residual saturation values for the relative permeabilities
 $k_{\alpha}(s_\alpha, N_c)$ is obtained by interpolation
 \begin{equation}
   \label{eq:srhat}
-  s_{\alpha,res}^{N_c} = m(N_c)\,s_{\alpha,res}^{\min} + (1 - m(N_c))\,s_{\alpha,res}^{\max}.
+  s_{\alpha,res}^{N_c} = m(N_c)\,s_{\alpha,res}^{\surf} + (1 - m(N_c))\,s_{\alpha,res}^{\nosurf}.
 \end{equation}
-The relative permeabilities $k_r^{\min}$ and $k_r^{\max}$ are rescaled to match these
-endpoints. Hence, we define the function $k_{r.\alpha}^{\min}$ as
+The relative permeabilities $k_r^{\surf}$ and $k_r^{\nosurf}$ are rescaled to match these
+endpoints. Hence, we define the function $k_{r.\alpha}^{\surf}$ as
 \begin{equation}
 \label{eq:rescaledkr}
-k_{\alpha}^{\min}(s_\alpha, N_c) = k_r^{\min}(s_\alpha^{\min}(N_c))
+k_{\alpha}^{\surf}(s_\alpha, N_c) = k_\alpha^{\surf}(s_\alpha^{\surf}(N_c))
 \end{equation}
-where $s_\alpha^{\min}(N_c)$ is defined through the relation
+where $s_\alpha^{\surf}(N_c)$ is defined through the relation
 \begin{equation}
   \label{eq:defsnc}
-  \frac{s_\alpha^{\min}(N_c) - s_{\alpha,res}^{N_c}}{1 - s_{\alpha,res}^{N_c} - s_{\alpha',res}^{N_c}} =   \frac{s_\alpha - s_{\alpha,res}^{\min}}{1 - s_{\alpha,res}^{\min} - s_{\alpha',res}^{\min}}.
+  \frac{s_\alpha^{\surf}(N_c) - s_{\alpha,res}^{N_c}}{1 - s_{\alpha,res}^{N_c} - s_{\alpha',res}^{N_c}} =   \frac{s_\alpha - s_{\alpha,res}^{\surf}}{1 - s_{\alpha,res}^{\surf} - s_{\alpha',res}^{\surf}}.
 \end{equation}
 In \eqref{eq:defsnc}, $\alpha'$ denotes the phase which is not the phase $\alpha$. Similarly we
-define $k_{\alpha}^{\max}$. Finally, we define the relative permeability $k_{\alpha}$ by
+define $k_{\alpha}^{\nosurf}$. Finally, we define the relative permeability $k_{\alpha}$ by
 interpolation, that is,
 \begin{equation}
   \label{eq:defkralpha}
-  k_{\alpha}(s, N_c) = m(N_c)\,k_{\alpha}^{\min}(s_\alpha, N_c) + (1 - m(N_c))\,k_{\alpha}^{\max}(s_\alpha, N_c).
+  k_{\alpha}(s, N_c) = m(N_c)\,k_{\alpha}^{\surf}(s_\alpha, N_c) + (1 - m(N_c))\,k_{\alpha}^{\nosurf}(s_\alpha, N_c).
 \end{equation}
 
 The change in viscosity is only modeled for the water phase with multiplier functions. We have
@@ -187,6 +188,32 @@ defined as
   \chatads(t, x) = \max(\cads(c(t,x)), \chatads_{\max}(t,x)).
 \end{equation}
 
+\begin{table}[h]
+  \centering
+  \begin{tabular}[t]{|l|l|}
+    \hline
+    Keyword&Description\\
+    \hline
+    SURFACT& Model initialization\\
+    \hline
+    SURFST& IFT data\\
+    \hline
+    SURFVISC& Viscosity modifier\\
+    \hline
+    SURFCAPD& Capillary de-saturation\\
+    \hline
+    SURFADS& Surfactant adsorption\\
+    \hline
+    SURFROCK& Rock properties\\
+    \hline
+    SURFNUM& Grid region specification\\
+    \hline
+    WSURFACT& Injected concentration\\
+    \hline
+  \end{tabular}
+  \caption{List of Eclipse keyword that have been implemented.}
+  \label{tab:eclipsekeyword}
+\end{table}
 
 \printbibliography
 
