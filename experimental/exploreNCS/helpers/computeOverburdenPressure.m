@@ -16,7 +16,7 @@ function [ P_over, P_limit ] = computeOverburdenPressure( Gt, rock2D, ...
     % Physical Properties of Rocks (1984).
     rhoR_sandstone = (2 * gram)/(centi * meter)^3; 
 
-    P_surf = 1 * atm;
+    P_surf = 1 * atm; % in units of Pascals
     g      = norm(gravity());
 
     % sea property:
@@ -39,10 +39,17 @@ function [ P_over, P_limit ] = computeOverburdenPressure( Gt, rock2D, ...
 
 
     %% Compute over pressure: forces exerted by overlying rock and water:
+    % units of Pascals
     P_over = P_surf + ...
                 rhoW*g*H1 + ...
                 (poro2 .* rhoW2 + (1 - poro2) .* rhoR2) .* g .* H2 + ...
                 (poro3 .* rhoW3 + (1 - poro3) .* rhoR3) .* g .* H3;
+            
+%     figure
+%     plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
+%     plotCellData(Gt, convertTo(P_over, mega * Pascal), 'EdgeAlpha',0.1)
+%     axis equal tight off; colorbar;
+%     title('Overburden pressure [MPa]')
 
     %% Compute a limit that the formation pressure should not exceed:
 
