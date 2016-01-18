@@ -40,31 +40,15 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
          end
       end
       
-    function model = setupOperators(model, G, rock, varargin)
-        % Set up divergence/gradient/transmissibility operators
-        operators = model.setupOperators(G, rock, varargin{:});
-        T = operators.T;
-        N = operators.N;
-        intInx = operators.internalConn;
-        K = rock.perm;
+      function model = setupOperators(model, G, rock, varargin)
+      % Set up divergence/gradient/transmissibility operators
+         operators = model.setupOperators(G, rock, varargin{:});
+         operators.veloc = computeVelocTPFA(G, rock, 'operators', operators);
+      end
 
-        % We compute value of product K by outer normal n on each half-faces. Obtain array of
-        % dimension intInx-by-dim
-        cellNo = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2).';
-        sgn    = 2*double(G.faces.neighbors(G.cells.faces(:,1), 1) == cellNo) - 1;
-        % cfn  = cell-face normal = *outward* face normals on each cell.
-        cfn    = bsxfun(@times, G.faces.normals(G.cells.faces(:,1), :), sgn);
-        dim    = size(G.nodes.coords, 2);
-        [K, r, c] = permTensor(rock, dim);
-        Kn = zeros(size(cellNo, 1), dim);
-        for i = 1 : dim
-           w = zeros(1, dim);
-           w(i) = 1;
-           Kn(:, i) = sum(cfn(:,r) .* bsxfun(@times, K(cellNo,:), w(c)), 2);
-        end
-        Kn = Kn(intInx, :);
-        
-    end
+      function varargout = evaluateRelPerm(model, sat, varargin)
+         error('function evaluateRelPerm is not implemented for surfactant model')
+      end
       
       
       function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)

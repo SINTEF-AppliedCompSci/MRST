@@ -12,6 +12,10 @@ end
 if isfield(reg, 'SURFNUM')
    % Assign miscible relperm for surfactant
    f.krWSft  = @(sw, varargin)krWSft(sw, swfn, reg, varargin{:});
+   % Assign residual oil saturation
+   sOres  = cellfun(@(x)x(end, 1), swfn);
+   f.sOres = 1 - sOres(reg.SATNUM);
+   f.sOresSft = 1 - sOres(reg.SURFNUM);
 end
 
 end
@@ -36,4 +40,3 @@ T = cellfun(@(x)x(:,[1,2]), swfn, 'UniformOutput', false);
 T = extendTab(T);
 v = interpReg(T, sw, surfinx);
 end
-

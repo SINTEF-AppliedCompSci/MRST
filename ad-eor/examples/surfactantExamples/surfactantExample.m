@@ -59,7 +59,7 @@ colorbar;
 
 %% Set up systems.
 
-modelSurfactant = OilWaterSurfactamtModel(G, rock, fluid, 'inputdata', deck);
+modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
 
 % Convert the deck schedule into a MRST schedule by parsing the wells
 schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);

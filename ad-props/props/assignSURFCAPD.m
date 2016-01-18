@@ -1,9 +1,9 @@
 function f = assignSURFCAPD(f, surfcapd, reg)
-f.surfads = @(c, varargin) surfads(c, surfcapd, reg, varargin{:});
+   f.surfcapd = @(Nc, varargin) surfcapd(Nc, surfcapd, reg, varargin{:});
 end
 
-function v = surfads(c, surfcapd, reg, varargin)
-satinx = getRegMap(c, reg.SATNUM, reg.SATINX, varargin{:});
-surfcapd = extendTab(surfcapd);
-v = interpReg(surfcapd, c, satinx);
+function m = surfcapd(Nc, surfcapd, reg, varargin)
+   satinx = getRegMap(Nc, reg.SATNUM, reg.SATINX, varargin{:});
+   surfcapd = extendTab(surfcapd);
+   m = interpReg(surfcapd, Nc, satinx);
 end

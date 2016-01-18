@@ -1,16 +1,10 @@
-function [Nc, NcW] = computeCapillaryNumber(model, p, c)
+function Nc = computeCapillaryNumber(p, c, fluid, operators)
 
-   fluid = model.fluid;
-   s = model.operators;
+   s = operators;
    v = -s.T.*s.Grad(p);
-   poro =  s.pv./G.cells.volumes;
-   poroFace = s.faceAvg(poro);
-   faceA = G.faces.areas(s.internalConn);
-   Kdp = v./(poroFace .* faceA);
-   Kdp = abs(Kdp); % absolute value.
-   
+   veloc = s.veloc(v);
+   abs_veloc = (sum(veloc.^2, 2)).^(1/2);
    sigma = fluid.ift(c);
-
-   Nc = Kdp./sigma;
+   Nc = abs_veloc./sigma;
 
 end

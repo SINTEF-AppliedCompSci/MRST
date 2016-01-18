@@ -11,6 +11,7 @@ opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
 s = model.operators;
+fluid = model.fluid;
 
 % Properties at current timestep
 [p, sW, c, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', 'wellsol');
@@ -38,7 +39,7 @@ if ~opt.resOnly,
 end
 
 % We will solve for pressure, water saturation (oil saturation follows via
-% the definition of saturations), polymer concentration and well rates +
+% the definition of saturations), surfactant concentration and well rates +
 % bhp.
 primaryVars = {'pressure', 'sW', 'surfactant', 'qWs', 'qOs', 'qWSft', 'bhp'};
 
@@ -46,14 +47,15 @@ primaryVars = {'pressure', 'sW', 'surfactant', 'qWs', 'qOs', 'qWSft', 'bhp'};
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
-Nc = computeCapillaryNumber(model.fluid, p, c);
-[krW, krO] = computeRelPermSft(model.fluid, sW, c);
+Nc = computeCapillaryNumber(p, c, fluid, s);
+[krW, krO] = computeRelPermSft(sW, Nc, fluid);
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
 % Modifiy relperm by mobility multiplier (if any)
-krW = mobMult.*krW; krO = mobMult.*krO;
+krW = mobMult.*krW; 
+krO = mobMult.*krO;
 
 % Compute transmissibility
 T = s.T.*transMult;
@@ -61,17 +63,33 @@ T = s.T.*transMult;
 % Gravity contribution
 gdz = model.getGravityGradient();
 
-% Evaluate water and polymer properties
-ads  = effads(c, cmax, model);
-ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, ~, mobW, mobP, rhoW, pW, upcw, a] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
-    krW, T, gdz);
-bW0 = model.fluid.bW(p0);
+% NOT IMPLEMENTED YET: 
+% Adsortion.
+% Viscosity change.
+% Capillary pressue
 
-% Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
-bO0 = getbO_BO(model, p0);
+fluid = model.fluid;
+
+% Water and Surfactant flux
+bW   = fluid.bW(p);
+rhoW = bW.*fluid.rhoWS;
+muW  = fluid.muW(p);
+mobW = krW./muW;
+dpW  = s.Grad(p) - rhoWf.*gdz;
+upcw = (double(dpW)<=0);
+vW   = -s.faceUpstr(upcw, mobW).*s.T.*dpW;
+mobSurf = mobW.*c;
+vS   = - s.faceUpstr(upcw, mobS).*s.T.*dpW;
+
+% Oil flux
+bO   = fluid.bO(p);
+rhoO = bO.*fluid.rhoOS;
+muO  = fluid.muO(p);
+mobO = krO./muO;
+dpO  = s.Grad(p) - rhoOf.*gdz;
+upcw = (double(dpO)<=0);
+vO   = -s.faceUpstr(upcw, mobO).*s.T.*dpO;
+
 
 if model.outputFluxes 
     state = model.storeFluxes(state, vW, vO, vP);
@@ -87,7 +105,7 @@ end
 % fluxes at standard conditions.
 bOvO = s.faceUpstr(upco, bO).*vO;
 bWvW = s.faceUpstr(upcw, bW).*vW;
-bWvP = s.faceUpstr(upcw, bW).*vP;
+bWvSurf = s.faceUpstr(upcw, bW).*vSurf;
 
 % Conservation of mass for water
 water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
@@ -95,15 +113,12 @@ water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 % Conservation of mass for oil
 oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
 
-% Conservation of polymer in water:
+% Conservation of surfactant in water:
 poro = model.rock.poro;
-f    = model.fluid;
-polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
-   pvMult0.*bW0.*sW0.*c0) + (s.pv/dt).* ...
-   ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
+surfactant = (s.pv/dt).*(pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) + s.Div(bWvSurf);
 
-eqs   = {water, oil, polymer};
-names = {'water', 'oil', 'polymer'};
+eqs   = {water, oil, surfactant};
+names = {'water', 'oil', 'surfactant'};
 types = {'cell', 'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
@@ -111,19 +126,21 @@ types = {'cell', 'cell', 'cell'};
    model, eqs, {pW, p}, {rhoW, rhoO}, {mobW, mobO}, {bW, bO},  ...
    {sW, sO}, drivingForces);
 
-% Add polymer boundary conditions
-if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
+% Add surfactant boundary conditions
+% setup functions not implemented
+if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'surfact')
    injInx  = qBC{1} > 0; % water inflow indecies
    cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
-   cbc(injInx) = drivingForces.bc.poly(injInx);
+   cbc(injInx) = drivingForces.bc.surfact(injInx); 
    eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
 end
 
-% Add polymer source
-if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
+% Add surfactant source
+% setup functions not implemented 
+if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'surfact')
    injInx  = qSRC{1} > 0; % water inflow indecies
    csrc    = c(srcCells);
-   csrc(injInx) = drivingForces.src.poly(injInx);
+   csrc(injInx) = drivingForces.src.surfact(injInx);
    eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
 end
 
@@ -155,30 +172,29 @@ if ~isempty(W)
         eqs{1}(wc) = eqs{1}(wc) - cqs{1};
         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
 
-        % Polymer well equations
-        [~, wciPoly, iInxW] = getWellPolymer(W);
+        % surfactant well equations
+        [~, wciSurf, iInxW] = getWellSurfactant(W);
         cw        = c(wc);
-        cw(iInxW) = wciPoly;
+        cw(iInxW) = wciSurf;
         cbarw     = cw/f.cmax;
 
-        % Divide away water mobility and add in polymer
-        bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
+        % Add surfactant
+        bWqP = cw.*cqs{1};
         eqs{3}(wc) = eqs{3}(wc) - bWqP;
 
-        % Well polymer rate for each well is water rate in each perforation
-        % multiplied with polymer concentration in that perforated cell.
+        % Well surfactant rate for each well is water rate in each perforation
+        % multiplied with surfactant concentration in that perforated cell.
         perf2well = getPerforationToWellMapping(W);
         Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
            numel(W), numel(perf2well));
-        eqs{6} = qWPoly - Rw*(cqs{1}.*cw);
+        eqs{6} = qWSurf - Rw*(cqs{1}.*cw);
 
-        names(4:7) = {'waterWells', 'oilWells', 'polymerWells', ...
-            'closureWells'};
+        names(4:7) = {'waterWells', 'oilWells', 'surfactantWells', 'closureWells'};
         types(4:7) = {'perf', 'perf', 'perf', 'well'};
     else
         [eq, n, typ] = ...
             wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-        % Add another equation for polymer well rates
+        % Add another equation for surfactant well rates
         [eqs{4:7}] = deal(eq{1});
         [names{4:7}] = deal(n{1});
         [types{4:7}] = deal(typ{1});
@@ -191,18 +207,18 @@ end
 %--------------------------------------------------------------------------
 
 
-function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
+function [wSurf, wciSurf, iInxW] = getWellSurfactant(W)
     if isempty(W)
-        wPoly = [];
-        wciPoly = [];
+        wSurf = [];
+        wciSurf = [];
         iInxW = [];
         return
     end
     inj   = vertcat(W.sign)==1;
-    polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
-    wPoly = zeros(nnz(inj), 1);
-    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
+    surfactInj = cellfun(@(x)~isempty(x), {W(inj).surfact});
+    wSurf = zeros(nnz(inj), 1);
+    wSurf(surfactInj) = vertcat(W(inj(surfactInj)).surfact);
+    wciSurf = rldecode(wSurf, cellfun(@numel, {W(inj).cells}));
 
     % Injection cells
     nPerf = cellfun(@numel, {W.cells})';
@@ -214,14 +230,6 @@ function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
     iInxW = iInx(compi(perf2well(iInx),1)==1);
 end
 
-% Effective adsorption, depending of desorption or not
-function y = effads(c, cmax, model)
-   if model.fluid.adsInx == 2
-      y = model.fluid.ads(max(c, cmax));
-   else
-      y = model.fluid.ads(c);
-   end
-end
 
 
 
