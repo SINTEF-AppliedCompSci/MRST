@@ -1,144 +1,244 @@
-function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, state, ta, sw )
+function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, poro, sG, sw, varargin )
 % Determine co2 vol that will ultimately remain in formation at time infinity.
+%
+% SYNOPSIS:
+%   future_vol = vol_at_infinity(Gt, poro, states{end}.s(:,2), 0.11)
+%   future_vol = vol_at_infinity(Gt, poro, states{end}.s(:,2), 0.11, 'plotsOn', true)
+%
+% DESCRIPTION:
+%   This calculation of co2 vol at time infinity is based on the
+%   formations' co2 vol at a point in time in which it is safe to assume
+%   the flow dynamics are gravity-dominated. Thus, the co2 vol in a
+%   particular spill tree at time infinity is based on that spill tree's
+%   capacity, and any extra co2 vol is assumed to have been leaked by time
+%   infinity.
+%
+%   NB: this routine was developed to handle ADI variables, thus the syntax
+%   used here respects ADI variables, and in some instances a cell array of
+%   ADI variables.
 
-% This calculation of co2 vol at time infinity is based on the formations'
-% co2 vol at a point in time in which it is safe to assume the flow
-% dynamics are gravity-dominated. Thus, the co2 vol in a particular spill
-% tree at time infinity is based on that spill tree's capacity, and any
-% extra co2 vol is assumed to have been leaked by time infinity.
+% INPUTS    - Gt, top surface grid
+%           - poro, porosity of grid
+%           - sG, current saturation of gas (co2), i.e., states{end}.s(:,2)
+%           - sw, residual saturation of water, i.e., 0.11
+%           - 'plotsOn', true or false for optional plotting
 
-% % state - a structure of states, including co2 saturation (i.e., states.s(:,2))
-% % sw - 
-% sw = 0.11; % @@ pass in as input variable
-% 
-% % Gt
-% % rock2D
-% % state
-% % ta
-% % sw
-% state = states{end};
-% rock2D = other.rock;
-% sw = other.residual(1);
+% RETURNS   - ult_vol_remaining, a total volume in units of m3 co2. This is
+%           the amount of co2 remaining in the formation at time finity
+%           - ult_vol_leaked, a total volume in units of m3 co2, of the
+%           amount leaked from the current state (i.e., sG)
 
-    figure;
-    plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
+
+    opt.plotsOn = false;
+    opt = merge_options(opt, varargin{:});
+
+    ta = trapAnalysis(Gt, false); % @@ implement option to pass in closed boundary faces.
  
-    % 1) get and show current co2 vol: 
-    curr_vol = (state.s(:,2) .* Gt.cells.volumes .* Gt.cells.H .* rock2D.poro); % m3 pore vol
+    
+    % 1) Get current co2 vol: 
+    curr_vol = ( sG .* Gt.cells.volumes .* Gt.cells.H .* poro); % m3 pore vol
+    tot_vol = sum(curr_vol);
     cells = 1:Gt.cells.num;
-    plotCellData(Gt, curr_vol, cells(curr_vol>0.1), 'EdgeAlpha',0.1);
-    title('current co2 vol [m3]')
-    colorbar; axis equal tight off
     
-    % show trap regions:
-    figure;
-    mapPlot(gcf, Gt, 'traps', ta.traps, ...
-            'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
-            'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
-            'maplines', 20);
-    colorizeCatchmentRegions(Gt, ta); % this actually colorizes regions around each trap
-    axis equal tight off
-    title('trap regions')
-    
-    % get and show structural trap vol:
-    % Computing trap volumes
+    % get structural trap co2 vol:
+    % Computing trap co2 volume capacities
     tcells               = find(ta.traps);
     trap_heights         = zeros(Gt.cells.num, 1);
     trap_heights(tcells) = ta.trap_z(ta.traps(tcells)) - Gt.cells.z(tcells);
     trap_heights         = min(trap_heights, Gt.cells.H);
-    strap_vol            = Gt.cells.volumes .* trap_heights .* rock2D.poro .* (1-sw);
-    
-    figure; plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
-    plotCellData(Gt, strap_vol, 'EdgeAlpha',0.1)
-    colorbar; axis equal tight off
-    title('structural trap pore vol [m3]')
+    strap_vol            = Gt.cells.volumes .* trap_heights .* poro .* (1-sw); % without the (1-sw), strap_vol is the structural trap pore volume
     
     assert(all(trap_heights <= Gt.cells.H));
     % Computing trap capacities in vol terms
-    trapcap = accumarray(ta.traps(tcells), strap_vol(tcells)); % m3 %@@ result is different from vol returned using downstreamTraps()... look at computeTrapVolume()
-    % show:
-    figure; plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
+    %trapcap = accumarray(ta.traps(tcells), strap_vol(tcells)); % m3 %@@ result is different from vol returned using downstreamTraps()... look at computeTrapVolume()
+    %@@ accumarray isn't defined for an ADI variable
     num_traps = max(unique(ta.traps));
+    %trapcap = zeros(num_traps,1);
+    %trapcap = 0*tot_vol;
+    trapcap = cell(num_traps,1); % use cell array since trapcap is an ADI var when strap_vol is an ADI
     for i=1:num_traps
-        % trap vol (of a single trap)
-        tc = sum(strap_vol(ta.traps == i)); % m3
-        plotCellData(Gt, tc*ones(Gt.cells.num,1), ta.traps == i, 'EdgeAlpha',0.1)
-        %pause(1)
+        trapcap{i} = sum(strap_vol(ta.traps == i)); % m3
     end
-    title('trap capacities [m3]'); colorbar; axis equal tight off
+    
 
-    
-    % 2) current co2 vol in each trap region
+    % 2) Current co2 vol in each trap region
+    assert( max(unique(ta.traps)) == max(unique(ta.trap_regions)) )
     trcells = find(ta.trap_regions);
-    curr_vol_per_trap_region = accumarray(ta.trap_regions(trcells), curr_vol(trcells));
-    
-    figure; plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
+    %curr_vol_per_trap_region = accumarray(ta.trap_regions(trcells), curr_vol(trcells));
+    %@@ accumarray isn't defined for an ADI variable
     num_traps = max(unique(ta.traps));
+    %curr_vol_per_trap_region = zeros(num_traps,1);
+    curr_vol_per_trap_region = cell(num_traps,1); % use cell array since trapcap is an ADI var when strap_vol is an ADI
     for i=1:num_traps
-        % curr vol per trap region
-        plotCellData(Gt, curr_vol_per_trap_region(i)*ones(Gt.cells.num,1), ...
-            ta.traps == i, 'EdgeAlpha',0.1)
-        %pause(1)
+        curr_vol_per_trap_region{i} = sum(curr_vol(ta.trap_regions == i)); % m3
     end
-    title('curr vol per trap region [m3]'); colorbar; axis equal tight off
     
     
-    % 3) get the trap index of the root trap of each tree
+    % 3) Get the trap index of the root trap of each tree
     trees = maximizeTrapping(Gt, 'res', ta); % 'calculateAll', 'removeOverlap' ?
     % NB: sth buggy in the order of traps for Sto's first spill-pathway, so
     % the trap indexes of traps along a spill-path (i.e., what trees.traps
     % should have contained) are obtained using another function:
     treeRoots = [trees.root];
     
-    % 4) here we determine the vol leaked per tree by spilling any vols a
+    
+    % 4) Here we determine the vol leaked per tree by spilling any vols a
     % trap cannot retain down the tree, until the vol is ultimately spilled
     % out of the domain. During this calculation, we also determine the
     % co2 vol ultimately remaining in the domain
-    vol_leaked_per_tree = zeros(numel(treeRoots),1);
+    %vol_leaked_per_tree = zeros(numel(treeRoots),1);
+    vol_leaked_per_tree = cell(numel(treeRoots),1);
     ult_vol_per_trap_region = curr_vol_per_trap_region;
+    clear i
+    %fprintf('There are %d trees. \n\n', numel(treeRoots))
+    dispif(mrstVerbose, 'There are %d trees. \n\n', numel(treeRoots));
     for i = 1:numel(treeRoots)
+        dispif(mrstVerbose, '\nLooking at tree %d... \n', i);
+
         % get the trap indexes of all traps downstream from a tree root
         % (including the trap index of the root itself)
-        [trap_ixs, trap_vols] = downstreamTraps(Gt, rock2D.poro, ta, treeRoots(i));
-        % NB: trap_vols do not match with trapcap (m3) since trapcap
-        % accounted for residual water (sw)! @@ but still there is a
-        % discrepancy
+        [trap_ixs, trap_vols] = downstreamTraps(Gt, poro, ta, treeRoots(i));
+        % NB: trap_vols (m3 pore space) do not match with trapcap (m3 co2)
+        % since trapcap is vol of co2; to get the same vaule, we must
+        % account for residual water (sw)
+        trap_co2_vols = trap_vols' .* (1-sw);
+        trapcap_tmp = cellfun( @(x) double(x), {trapcap{trap_ixs}})';
+        assert( all( abs( trap_co2_vols - trapcap_tmp )./abs(trap_co2_vols) < 1e-8 ) ) % syntax handles cell array trapcap
         
+        dispif(mrstVerbose, 'The trap indexes in this tree are: %s \n\n', ...
+            num2str(trap_ixs));
         for j = 1:numel(trap_ixs)
-            % calculate the vol that will spill out of trap_ixs(j)
-            spill_vol = max(0, - trapcap(trap_ixs(j)) + ult_vol_per_trap_region(trap_ixs(j)));
+            dispif(mrstVerbose, 'Looking at trap %d... \n', trap_ixs(j));
             
-            if j < numel(trap_ixs) % haven't reach end of spill-tree yet
-                % add this spill volume to the next trap down the
-                % spill-tree (i.e., trap_ixs(j+1))
-                ult_vol_per_trap_region(trap_ixs(j+1)) = ult_vol_per_trap_region(trap_ixs(j+1)) + spill_vol;
+            dispif(mrstVerbose, 'Trap %d has a capacity of %d (m3 co2). \n', ...
+                trap_ixs(j), double(trapcap{trap_ixs(j)}) );
+            %fprintf('Trap %d initially had %d (m3 co2). \n', trap_ixs(j), trap_co2_vols(j) )
+            dispif(mrstVerbose,'Trap %d currently has %d (m3 co2). \n', ...
+                trap_ixs(j), double(ult_vol_per_trap_region{trap_ixs(j)}) );
+            
+            
+            % calculate the vol that will spill out of trap_ixs(j)
+            spill_vol = max(0, - trapcap{trap_ixs(j)} + ult_vol_per_trap_region{trap_ixs(j)}); % may be an ADI var
+            assert( spill_vol >= 0 )
+            
+            % and remove this vol from trap_ixs(j)
+            ult_vol_per_trap_region{trap_ixs(j)} = ult_vol_per_trap_region{trap_ixs(j)} - spill_vol; % may be an ADI var
+            
+            % spill this spill vol into the next trap downstream or out of
+            % the tree
+            if j < numel(trap_ixs)
+                % haven't reach end of spill-tree yet, so add this spill
+                % volume to the next trap down the spill-tree (i.e.,
+                % trap_ixs(j+1))
+                dispif(mrstVerbose, '%d (m3 co2) has spilled out of trap %d, and into trap %d.\n', ...
+                    double(spill_vol), trap_ixs(j), trap_ixs(j+1));
+                ult_vol_per_trap_region{trap_ixs(j+1)} = ult_vol_per_trap_region{trap_ixs(j+1)} + spill_vol; % may be an ADI var
+                dispif(mrstVerbose, 'Trap %d now has %d (m3 co2). \n', ...
+                    trap_ixs(j+1), double(ult_vol_per_trap_region{trap_ixs(j+1)}) );
             else
                 % we've reached the end of the spill-tree, thus the
                 % spill_vol goes out of the spill-tree (i.e., out of the
                 % domain)
-                vol_leaked_per_tree(i) = spill_vol;
+                dispif(mrstVerbose, '%d (m3 co2) has spilled out of trap %d, and out of tree %d.\n', ...
+                    double(spill_vol), trap_ixs(j), i);
+                vol_leaked_per_tree{i} = spill_vol; % may be an ADI var
+                
             end
             % NB: ult_vol_per_trap_region gets updated each time a
-            % spill_vol is added to the next (downsteam) trap. After
-            % looping through all tree roots, the final array should
-            % represent the amount of co2 per trap region at stable
-            % conditions. No more migration should occur under
-            % gravity-dominated dynamics.
+            % spill_vol is removed from a trap and added to the next
+            % (downsteam) trap. After looping through all tree roots, the
+            % final array should represent the amount of co2 per trap
+            % region at stable conditions. No more migration should occur
+            % under gravity-dominated dynamics.
         end
     end
-    ult_vol_remaining = sum(ult_vol_per_trap_region);
+    
+    % a for loop is used to take the sum of a cell array of ADI variables:
+    % @@ is there a better way to do this?
+    ult_vol_remaining = ult_vol_per_trap_region{1};
+    for i=2:numel(ult_vol_per_trap_region)
+        ult_vol_remaining = ult_vol_remaining + ult_vol_per_trap_region{i};
+    end
+    %ult_vol_remaining = sum( cellfun( @(x) (x), ult_vol_per_trap_region ) ); % syntax handles a cell array, but loses ADI jacobians
+    %ult_vol_remaining = ones(1, Gt.cells.num) * ult_vol_per_trap_region;
+    
     
     % 5) In addition to the vols that will spill-out of each tree, any co2
     % vol that existed outside of the trap regions making up the spill
-    % trees is bound to leak from the domain.
-    curr_vol_outside_trap_regions = sum(curr_vol) - sum(curr_vol_per_trap_region);
+    % trees is bound to leak from the domain. (@@ we could however account
+    % for the residual co2 that is trapped as plume migrates upwards and
+    % out of domain.)
+    curr_vol_total = curr_vol_per_trap_region{1};
+    for i=2:numel(curr_vol_per_trap_region)
+        curr_vol_total = curr_vol_total + curr_vol_per_trap_region{i};
+    end
+    curr_vol_outside_trap_regions = sum(curr_vol) - curr_vol_total;
+    %curr_vol_outside_trap_regions = sum(curr_vol) - sum(curr_vol_per_trap_region); % @@ for ADI?
+    
     
     % 6) The final total amount of co2 that will ultimately leak from the
     % domain as stable conditions are reached, or at time infinity:
-    ult_vol_leaked = sum(vol_leaked_per_tree) + curr_vol_outside_trap_regions; % m3
+    vol_leaked_total_trees = vol_leaked_per_tree{1};
+    for i=2:numel(vol_leaked_per_tree)
+        vol_leaked_total_trees = vol_leaked_total_trees + vol_leaked_per_tree{i};
+    end
+    ult_vol_leaked = vol_leaked_total_trees - curr_vol_outside_trap_regions; % m3, may be an ADI var
+    %ult_vol_leaked = sum(vol_leaked_per_tree) + curr_vol_outside_trap_regions; % m3
+    ult_vol_remaining = sum(curr_vol) - ult_vol_leaked; % @@  ADI?
     
-    % 7) 
-    assert( sum(curr_vol) == (ult_vol_remaining + ult_vol_leaked) ) % @@ mis-match in vols!
+    % 7) Check that vols balance out, within some tolerance
+    assert( abs( sum(curr_vol)-(ult_vol_remaining + ult_vol_leaked) ) ./ abs(sum(curr_vol)) < 1e-8 )
     
+    
+    % 8) Plotting (optional)
+    if opt.plotsOn
+        
+        figure;
+        plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
+        plotCellData(Gt, curr_vol, cells(curr_vol>0.1), 'EdgeAlpha',0.1);
+        title('current co2 vol [m3]')
+        colorbar; axis equal tight off
+
+        figure;
+        mapPlot(gcf, Gt, 'traps', ta.traps, ...
+                'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+                'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
+                'maplines', 20);
+        colorizeCatchmentRegions(Gt, ta); % this actually colorizes regions around each trap
+        axis equal tight off
+        title('trap regions')
+        
+        figure; set(gcf,'Position',[1 1 1647 526])
+        subplot(1,3,1); plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
+        num_traps = max(unique(ta.traps));
+        for i=1:num_traps
+            % trap vol (of a single trap)
+            tc = sum(strap_vol(ta.traps == i)); % m3
+            plotCellData(Gt, tc*ones(Gt.cells.num,1), ta.trap_regions == i, 'EdgeAlpha',0.1)
+            %pause(1)
+        end
+        title('capacity per trap region [m3 co2]'); colorbar; axis equal tight off
+
+        subplot(1,3,2); plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
+        num_traps = max(unique(ta.traps));
+        for i=1:num_traps
+            % curr vol per trap region
+            plotCellData(Gt, curr_vol_per_trap_region{i}*ones(Gt.cells.num,1), ...
+                ta.trap_regions == i, 'EdgeAlpha',0.1)
+            %pause(1)
+        end
+        title('curr vol per trap region [m3 co2]'); colorbar; axis equal tight off
+        
+        subplot(1,3,3); plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
+        num_traps = max(unique(ta.traps));
+        for i=1:num_traps
+            % curr vol per trap region
+            plotCellData(Gt, ult_vol_per_trap_region{i}*ones(Gt.cells.num,1), ...
+                ta.trap_regions == i, 'EdgeAlpha',0.1)
+            %pause(1)
+        end
+        title('final vol per trap region [m3 co2]'); colorbar; axis equal tight off
+    
+    end
 end
 
