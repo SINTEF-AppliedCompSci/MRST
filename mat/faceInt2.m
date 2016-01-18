@@ -1,33 +1,21 @@
-function [intD, intB] = faceInt(G)
+function [intD, intB] = faceInt2(G)
 
 %   {x, y, z, x^2, xy, xz, y^2, yz, z^}
            
 grad_m = @(X) ...
-[ones(size(X,1),1)   , zeros(size(X,1),1), zeros(size(X,1),1) ,...    %   (1,0,0)
-zeros(size(X,1),1)   , ones(size(X,1),1) , zeros(size(X,1),1) ,...    %   (0,1,0)
-zeros(size(X,1),1)   , zeros(size(X,1),1), ones(size(X,1),1)  ,...    %   (0,0,1)
-X(:,1)*2             , zeros(size(X,1),1), zeros(size(X,1),1) ,...    %   (2,0,0)
-X(:,2)               , X(:,1)            , zeros(size(X,1),1) ,...    %   (1,1,0)
-X(:,3)               , zeros(size(X,1),1), X(:,1)             ,...    %   (1,0,1)
-zeros(size(X,1),1)   , X(:,2)*2          , zeros(size(X,1),1) ,...    %   (0,2,0)
-zeros(size(X,1),1)   , X(:,3)            , X(:,2)             ,...    %  (0,1,1)
-zeros(size(X,1),1)   , zeros(size(X,1),1), X(:,3)*2];    %   (0,0,2)
+[ones(size(X,1),1)   , zeros(size(X,1),1), ...
+zeros(size(X,1),1)   , ones(size(X,1),1) , ...
+X(:,1)*2             , zeros(size(X,1),1), ...
+X(:,2)               , X(:,1)            , ...
+zeros(size(X,1),1)   , X(:,2)*2          ];
 
-mx = @(X)        [X(:,1).^2/2  , ...
+int_m = @(X)        [X(:,1).^2/2  , ...
                      X(:,1).*X(:,2)   , ...
-                     X(:,1).*X(:,3)   , ...
                      X(:,1).^3/3         , ...
                      X(:,1).^2.*X(:,2)/2 , ...
-                     X(:,1).^2.*X(:,3)/2  , ...
                      X(:,1).*X(:,2).^2      , ...
-                     X(:,1).*X(:,2).*X(:,3) , ...
-                     X(:,1).*X(:,3).^2      ];
+                     ];
     
-mz = @(X) ...
-       [X(:,1).*X(:,3), X(:,2).*X(:,3), X(:,3).^2/2, ...
-        X(:,1).^2.*X(:,3), X(:,1).*X(:,2).*X(:,3), X(:,1).*X(:,3).^2/2, ...
-        X(:,2).^2.*X(:,3), X(:,2).*X(:,3).^2/2, X(:,3).^3/3];
-                 
                             %   Faces and face normals.
 hF = G.faces.diameters;
 nF = G.faces.num;
@@ -51,11 +39,19 @@ nodes = reshape(nodes,2,[])';
 nN = size(nodes,1);
 nodes(edgeSign == -1,:) = nodes(edgeSign == -1,2:-1:1);
 nodes = reshape(nodes,[],1);
-
+                            % 
+nn = [1;cumsum(diff(G.faces.nodePos))+1];
+vec1 = G.nodes.coords(nodes(nn(1:end-1)+nN),:)-G.nodes.coords(nodes(nn(1:end-1)),:);
+vec2 = cross(faceNormals,vec1);
+vec1 = reshape(vec1',1,[]);
+vec2 = reshape(vec2',1,[]);
+coordSys = [vec1;vec2];
                             %   Node coordinates and edge centroids.
                             %   Scaled for use in monomial functions.
 X = G.nodes.coords(nodes,:);
 Xc = G.edges.centroids(edges,:);
+
+
 
 Xu = X;
 Xcu = Xc;
@@ -65,6 +61,8 @@ X = bsxfun(@rdivide,X-repmat(rldecode(Fc, diff(G.faces.nodePos),1),2,1), ...
 Xc = bsxfun(@rdivide,Xc-rldecode(Fc, diff(G.faces.nodePos),1), ...
                         rldecode(hF, diff(G.faces.nodePos)));
 
+X = coordSys*X'
+                    
 %%  CALCULATE intD                                                       %%                    
                             %   Identify faces in the yz-plane, and
                             %   find corresponding edge normals, nodes

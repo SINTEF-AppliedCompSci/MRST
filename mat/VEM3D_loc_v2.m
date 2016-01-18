@@ -60,13 +60,10 @@ edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
 
 m =      @(X) [X(:,1)               , ...   %   (1,0,0)
                X(:,2)               , ...   %   (0,1,0)
-               X(:,3)               , ...   %   (0,0,1)
                X(:,1).^2          , ...   %   (2,0,0)
                X(:,1).*X(:,2) , ...   %   (1,1,0)
-               X(:,1).*X(:,3) , ...   %   (1,0,1)
                X(:,2).^2 , ...   %   (0,2,0) 
-               X(:,2).*X(:,3) , ...   %   (0,1,1)
-               X(:,3).^2          ];      %   (0,0,2)
+               ];
 
 Kc = G.cells.centroids(K,:);
 
@@ -83,47 +80,73 @@ nk = (k+1)*(k+2)*(k+3)/6;   %   Dimension of polynom[1,G.faces.faceInt{1}(faces(
 
 %%  BUILD FACE MATRICES
 
-nNF = diff(G.faces.nodePos([faces;faces(end)+1]));
-                            %   Dofs of each face
-NF = nNF + nNF.*(k-1) + k(k-1)/2;
-dofPos = [1,cumsum(NF)'+1];
-                            %   Built as transpose, since number of dofs
-                            %   may vary between faces.
-PNF = zeros(sum(NF),9);
-
 Fc = G.faces.centroids(faces,:);
 hF = G.faces.diameters(faces,:);
 
+grad_m = @(X) [...
+    ones(size(X,1),1)    , zeros(size(X,1),1), ...
+    zeros(size(X,1),1)   , ones(size(X,1),1) , ...
+    X(:,1)*2             , zeros(size(X,1),1), ...
+    X(:,2)               , X(:,1)            , ...
+    zeros(size(X,1),1)   , X(:,2)*2          ];
+
+int_m = @(X)        [X(:,1).^2/2  , ...
+                     X(:,1).*X(:,2)   , ...
+                     X(:,1).^3/3         , ...
+                     X(:,1).^2.*X(:,2)/2 , ...
+                     X(:,1).*X(:,2).^2      , ...
+                     ];
+
 for i = 1:nF
+    
     edgeNum = G.faces.edgePos(faces(i)):G.faces.edgePos(faces(i)+1)-1;
-    faceEdges = G.faces.edges(edgeNum);
-    nodeNum = G.faces.nodePos(faces(i)):G.faces.nodePos(faces(i) + 1)-1;
-    faceNodes  = G.faces.nodes(nodeNum);
-    Xf = [G.nodes.coords(faceNodes,:);G.edges.centroids(faceEdges,:)];
+    edges = G.faces.edges(edgeNum);
+    edgeNormals = G.faces.edgeNormals(edgeNum,:);
+    
+    nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+ 1)-1);
+    nodes = G.edges.nodes(nodeNum);
+    nodes = reshape(nodes,2,[])';
+    nN = size(nodes,1);
+    
+    
+    NF = 2*nN+1;
+    nodes(G.faces.edgeSign(edgeNum) == -1,:) = ...
+                             nodes(G.faces.edgeSign(edgeNum) == -1,2:-1:1);
+    nodes = reshape(nodes,[],1);
+    vec1 = (G.nodes.coords(nodes(nN+1),:) - G.nodes.coords(nodes(1),:))';
+                            %   NB: faceNormal must be in correct
+                            %   direction, as done by faceData.
+    vec2 = cross(G.faces.normals(i,:)',vec1);
+    T = [vec1,vec2];
+    Xf = [G.nodes.coords(nodes,:);G.edges.centroids(edges,:)];
+    X = Xf; 
     Xf = bsxfun(@rdivide,Xf-repmat(Fc(i,:),size(Xf,1),1), ...
                                  hF(i).*ones(size(Xf,1),1));
-                            %   Build matrix Df^T
-    Df = [[ones(1,size(Xf,1)); m(Xf)'], ...
-         [1,G.faces.faceInt{1}(faces(i),:)]'] 
-                            %   Build matrix Bf^T
-                            % NB: Might add roundoff error to coordplane
-                            % check.
-    vec = zeros(1,10);
-    vec(1) = 1;
-    vec([5,8,10]) = -2*G.faces.areas(faces(i))/G.faces.diameters(faces(i)).^2;
-    normal = G.faces.normals(faces(i),:);
-    if normal(2) == 0 && normal(3) == 0
-        vec(5) = 0;
-    elseif normal(1) == 0 && normal(2) == 0
-        vec(10) = 0;
-    elseif normal(1) == 0 && normal(3) == 0
-        vec(8) = 0;
-    end
-    Bf = [zeros(2*nNF(i),1), ...
-         G.faces.faceInt{2}([edgeNum, edgeNum + sum(nNF)],:); vec]
-%     Mf = Bf*Df
-%     inv(Mf)
-    Mf = Df*Bf
-    PNF(dofPos(i):dofPos(i+1)-1,:) = Bf*(Mf\Df);
+    Xf = Xf*T;
+    edgeNormals = edgeNormals*T;
+    edgeNormals = bsxfun(@times, edgeNormals,G.edges.lengths(edges));
+    I = bsxfun(@times,[(int_m(Xf(1:nN,:)) + int_m(Xf(nN+1:2*nN,:)))/6 ... 
+           + int_m(Xf(2*nN+1:end,:))*2/3], edgeNormals(:,1));
+    I = sum(I, 1).*hF(i);
+                           %   Build matrix Df
+    DF = [ones(2*nN,1), m(Xf([1:nN, 2*nN+1:3*nN],:)); [1,I]];
+    
+                            %   Build matrix Bf
+    BF = zeros(6, 2*nN+1);
+    BF(1,NF) = 1;
+    vals = grad_m(Xf).*repmat(edgeNormals,3,5);
+                                %   Fix this...
+    vals = [sum(vals(:,1:2),2), sum(vals(:,3:4),2),sum(vals(:,5:6),2), ...
+            sum(vals(:,7:8),2), sum(vals(:,9:10),2)];
+
+    I = [(vals(1:nN,:) + vals([2*nN,nN+1:2*nN-1],:))/6; ...
+                         vals(2*nN+1:end,:)*2/3]./hF(i);
+        
+    BF(2:6,1:NF-1) = I';
+    BF([4,6],NF) = -2*G.faces.areas(faces(i))/G.faces.diameters(faces(i)).^2;
+    MF = BF*DF;
+    PNF = DF*(MF\BF);
+    
+    
 end
 end

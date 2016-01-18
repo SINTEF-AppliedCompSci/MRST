@@ -7,7 +7,11 @@ G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);
 G = computeVEMGeometry(G);
 
-VEM3D_loc(G,1)
+VEM3D_loc_v2(G,1)
+
+% I = faceInt2(G) 
+
+%VEM3D_loc(G,1)
 % 
 % nF = G.faces.num;
 % 
