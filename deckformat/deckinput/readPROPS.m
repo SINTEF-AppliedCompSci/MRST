@@ -42,6 +42,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
             prp.(kw)  = to_double(data);  clear tmpl
 
+         case 'SURFST',
+            prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
+
          case 'PLYADS',
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
