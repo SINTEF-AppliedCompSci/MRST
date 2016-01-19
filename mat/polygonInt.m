@@ -19,7 +19,7 @@ nTri = size(tri,1);
 Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
 w = [1/36, 1/36, 1/18, 1/18, 1/9, 2/9];
                             %   For each triangle t, evaluate integral.
-I = zeros(1,5);
+I = 0;
 for t = 1:nTri
                             %   Triangle points
     x1 = X(tri(t,1),:); x2 = X(tri(t,2),:); x3 = X(tri(t,3),:);

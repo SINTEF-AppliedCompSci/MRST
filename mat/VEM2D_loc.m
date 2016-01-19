@@ -36,7 +36,7 @@ function [Sl, bl, dofVec, hK] = VEM2D_loc(G, K, f)
                             %   Cell nodes and node coordinates.
 [nodes, X] = nodeData(G,K);
                             %   Cell edges and edge midpoint coordinates.
-[edges, Xmid, edgeNormals] = faceData(G,K);
+[edges, Xmid, edgeNormals] = faceData2D(G,K);
                             %   Baricenter of K.
 Xc = G.cells.centroids(K,:); xK = Xc(1); yK = Xc(2);
 hK = cellDiameter(X);       %   Element diameter.
@@ -105,6 +105,16 @@ B([4, 6], NK) = B([4, 6], NK) - vol*2/hK^2;
 M = B*D;
 PNstar = M\B;               %   \Pi^\Nabla in the monomial basis.
 PN = D*PNstar;              %   \Pi^\Nabla in the V^K basis.
+
+% fl = polygonInt(X,f);
+% 
+% fchi = [f([X;Xmid]);fl(1)/vol];
+% fv = f([X;Xmid;Xc]);
+% PN*fchi - fchi
+% fchi - [ones(2*size(X,1)+1,1), [m([X;Xmid]);I(2:end)./vol]]*PNstar*fchi
+
+
+
 Mtilde = [zeros(1,nk) ; M(2:nk,:)];
                             %   Local stiffness matrix.
 Sl = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*(eye(NK)-PN);
@@ -121,7 +131,7 @@ H = [I(1:3)        ;
                             %   \mathcal{M}_1.
 PNstar = M(1:3,1:3)\B(1:3,:);
                             %   Local load term.
-bl = PNstar'*H*PNstar*f([X; Xmid; Xc]);
+bl = PNstar'*H*PNstar*[f([X;Xmid]);polygonInt(X,f)/vol];
 
 %%  CONSTRUCT LOCAL TO GLOBAL MAP. S(dofVec,dofVec) = Sl.                %%
 
