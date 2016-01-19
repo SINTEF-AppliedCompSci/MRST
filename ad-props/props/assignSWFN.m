@@ -12,6 +12,8 @@ end
 if isfield(reg, 'SURFNUM')
    % Assign miscible relperm for surfactant
    f.krWSft  = @(sw, varargin)krWSft(sw, swfn, reg, varargin{:});
+   % Assign residual water saturation for surfactant
+   f.sWconSft = swcon(reg.SURFNUM);
    % Assign residual oil saturation
    sOres  = cellfun(@(x)x(end, 1), swfn);
    f.sOres = 1 - sOres(reg.SATNUM);
