@@ -60,6 +60,8 @@ function W = processWells(G, rock, control, varargin)
 %                   have lower limits.
 %       poly     -- Polymer concentration in well. Only applicable for
 %                   polymer models.
+%       surfact  -- Surfactant concentration in well. Only applicable for
+%                   surfactant models.
 %
 % SEE ALSO:
 %   readSCHEDULE, readWellKW, addWell.
@@ -283,6 +285,7 @@ end
 %--------------------------------------------------------------------------
 
 function W = process_wsurfact(W, control, varargin)
+   [W.surfact] = deal(0); % set all wells to zero
    if ~isempty(W),
       Wn = { W.name };
 
@@ -608,6 +611,7 @@ function W = createDefaultWell(G, rock)
    rock.perm = ones(G.cells.num,1);
    W = addWell([], G, rock, 1, 'Val', 0, 'Type', 'rate', 'sign', 1, 'Comp_i', 1/3*[1, 1, 1], 'refDepth', G.cells.centroids(1,3));
    W.poly = 0;
+   W.surfact = 0;
    W.lims.rate = -inf;
    W.lims.bhp  = inf;
 
