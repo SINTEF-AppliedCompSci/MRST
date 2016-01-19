@@ -28,8 +28,8 @@ qWSft = vertcat(wellSol.qWSft);
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, c, qWs, qOs, qWsurf, pBH] = ...
-            initVariablesADI(p, sW, c, qWs, qOs, qWsurf, pBH);
+        [p, sW, c, qWs, qOs, qWSft, pBH] = ...
+            initVariablesADI(p, sW, c, qWs, qOs, qWSft, pBH);
     else
         zw = zeros(size(pBH));
         [p0, sW0, c0, zw, zw, zw, zw] = ...
@@ -73,17 +73,19 @@ fluid = model.fluid;
 % Water and Surfactant flux
 bW   = fluid.bW(p);
 rhoW = bW.*fluid.rhoWS;
+rhoWf  = s.faceAvg(rhoW);
 muW  = fluid.muW(p);
 mobW = krW./muW;
 dpW  = s.Grad(p) - rhoWf.*gdz;
 upcw = (double(dpW)<=0);
 vW   = -s.faceUpstr(upcw, mobW).*s.T.*dpW;
-mobSurf = mobW.*c;
-vS   = - s.faceUpstr(upcw, mobS).*s.T.*dpW;
+mobSft = mobW.*c;
+vS   = - s.faceUpstr(upcw, mobSft).*s.T.*dpW;
 
 % Oil flux
 bO   = fluid.bO(p);
 rhoO = bO.*fluid.rhoOS;
+rhoOf  = s.faceAvg(rhoO);
 muO  = fluid.muO(p);
 mobO = krO./muO;
 dpO  = s.Grad(p) - rhoOf.*gdz;
@@ -187,7 +189,7 @@ if ~isempty(W)
         perf2well = getPerforationToWellMapping(W);
         Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
            numel(W), numel(perf2well));
-        eqs{6} = qWSurf - Rw*(cqs{1}.*cw);
+        eqs{6} = qWSft - Rw*(cqs{1}.*cw);
 
         names(4:7) = {'waterWells', 'oilWells', 'surfactantWells', 'closureWells'};
         types(4:7) = {'perf', 'perf', 'perf', 'well'};
