@@ -20,27 +20,33 @@ else
     reg.PVTINX = cellfun(@(x)find(x==reg.PVTNUM), num2cell(1:ntpvt), 'UniformOutput', false);
 end
 
-% SAT-REGIONS
-ntsat = 1;
+% SAT-REGIONS AND POSSIBLY SURF-REGIONS
+one_region = true;;
 if isfield(deck.REGIONS, 'SATNUM')
     reg.SATNUM = deck.REGIONS.SATNUM(an);
-    ntsat = max(reg.SATNUM);
+    if isfield(deck.REGIONS, 'SURFNUM')
+       reg.SURFNUM = deck.REGIONS.SURFNUM(an);
+       ntsatsurfact = max(max(reg.SATNUM), max(reg.SURFNUM));
+       reg.SATINX = cellfun(@(x)find(x==reg.SATNUM), num2cell(1:ntsatsurfact), 'UniformOutput', ...
+                            false);
+       reg.SURFINX = cellfun(@(x)find(x==reg.SURFNUM), num2cell(1:ntsatsurfact), 'UniformOutput', ...
+                             false);
+       one_region = false;
+    else
+       ntsat = max(reg.SATNUM);
+       if ntsat > 1
+          reg.SATINX = cellfun(@(x)find(x==reg.SATNUM), num2cell(1:ntsat), 'UniformOutput', ...
+                               false);
+          one_region = false;
+       end
+    end
 elseif isfield(deck.REGIONS, 'SURFNUM')
-   error('SATNUM keyword required when surfactant is used.');
-end
-   
-if ntsat == 1 && ~isfield(deck.REGIONS, 'SURFNUM')
-    reg.SATNUM = [];
-    reg.SATINX = ':';
-else
-    reg.SATINX = cellfun(@(x)find(x==reg.SATNUM), num2cell(1:ntsat), 'UniformOutput', false);
+      error('SATNUM keyword required when surfactant is used.');
 end
 
-% SURF-REGIONS
-if isfield(deck.REGIONS, 'SURFNUM')
-   reg.SURFNUM = deck.REGIONS.SURFNUM(an);
-   ntsat = max(reg.SURFNUM);
-   reg.SURFINX = cellfun(@(x)find(x==reg.SURFNUM), num2cell(1:ntsat), 'UniformOutput', false);
+if one_region
+      reg.SATNUM = [];
+      reg.SATINX = ':';
 end
 
 % IMB-REGIONS
@@ -68,6 +74,3 @@ if ntrocc == 1
 else
     reg.ROCKINX = cellfun(@(x)find(x==reg.ROCKNUM), num2cell(1:ntrocc), 'UniformOutput', false);
 end
-
-
-
