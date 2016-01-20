@@ -17,7 +17,7 @@ fluid = model.fluid;
 [p, sW, c, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', 'wellsol');
 
 % Properties at previous timestep
-[p0, sW0, cmax0] = model.getProps(state0, 'pressure', 'water', 'surfactant');
+[p0, sW0, c0] = model.getProps(state0, 'pressure', 'water', 'surfactant');
 
 pBH    = vertcat(wellSol.bhp);
 qWs    = vertcat(wellSol.qWs);
@@ -67,8 +67,14 @@ gdz = model.getGravityGradient();
 % Adsortion.
 % Viscosity change.
 % Capillary pressue
+pW = p;
+pO = p;
 
 fluid = model.fluid;
+
+bW0 = fluid.bW(p0);
+bO0 = fluid.bO(p0);
+
 
 % Water and Surfactant flux
 bW   = fluid.bW(p);
@@ -76,29 +82,33 @@ rhoW = bW.*fluid.rhoWS;
 rhoWf  = s.faceAvg(rhoW);
 muW  = fluid.muW(p);
 mobW = krW./muW;
-dpW  = s.Grad(p) - rhoWf.*gdz;
+dpW  = s.Grad(pW) - rhoWf.*gdz;
 upcw = (double(dpW)<=0);
 vW   = -s.faceUpstr(upcw, mobW).*s.T.*dpW;
 mobSft = mobW.*c;
-vS   = - s.faceUpstr(upcw, mobSft).*s.T.*dpW;
+vSft   = - s.faceUpstr(upcw, mobSft).*s.T.*dpW;
 
 % Oil flux
-bO   = fluid.bO(p);
+bO   = fluid.bO(pO);
 rhoO = bO.*fluid.rhoOS;
 rhoOf  = s.faceAvg(rhoO);
-muO  = fluid.muO(p);
+if isfield(fluid, 'BOxmuO')
+   muO = fluid.BOxmuO(pO).*bO;
+else
+   muO = fluid.muO(pO);
+end
 mobO = krO./muO;
-dpO  = s.Grad(p) - rhoOf.*gdz;
-upcw = (double(dpO)<=0);
-vO   = -s.faceUpstr(upcw, mobO).*s.T.*dpO;
+dpO  = s.Grad(pO) - rhoOf.*gdz;
+upco = (double(dpO)<=0);
+vO   = -s.faceUpstr(upco, mobO).*s.T.*dpO;
 
 
 if model.outputFluxes 
-    state = model.storeFluxes(state, vW, vO, vP);
+    state = model.storeFluxes(state, vW, vO, vSft);
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, []);
-    state = model.storeMobilities(state, mobW, mobO, mobP);
+    state = model.storeMobilities(state, mobW, mobO, mobSft);
     state = model.storeUpstreamIndices(state, upcw, upco, []);
 end
 
@@ -107,7 +117,7 @@ end
 % fluxes at standard conditions.
 bOvO = s.faceUpstr(upco, bO).*vO;
 bWvW = s.faceUpstr(upcw, bW).*vW;
-bWvSurf = s.faceUpstr(upcw, bW).*vSurf;
+bWvSft = s.faceUpstr(upcw, bW).*vSft;
 
 % Conservation of mass for water
 water = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
@@ -117,7 +127,7 @@ oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
 
 % Conservation of surfactant in water:
 poro = model.rock.poro;
-surfactant = (s.pv/dt).*(pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) + s.Div(bWvSurf);
+surfactant = (s.pv/dt).*(pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) + s.Div(bWvSft);
 
 eqs   = {water, oil, surfactant};
 names = {'water', 'oil', 'surfactant'};
@@ -152,7 +162,7 @@ if ~isempty(W)
     if ~opt.reverseMode
         wc   = vertcat(W.cells);
         pw   = p(wc);
-        rhos = [f.rhoWS, f.rhoOS];
+        rhos = [fluid.rhoWS, fluid.rhoOS];
         bw   = {bW(wc), bO(wc)};
         mw   = {mobW(wc), mobO(wc)};
         s    = {sW(wc), sO(wc)};
@@ -175,10 +185,9 @@ if ~isempty(W)
         eqs{2}(wc) = eqs{2}(wc) - cqs{2};
 
         % surfactant well equations
-        [~, wciSurf, iInxW] = getWellSurfactant(W);
+        [~, wciSft, iInxW] = getWellSurfactant(W);
         cw        = c(wc);
-        cw(iInxW) = wciSurf;
-        cbarw     = cw/f.cmax;
+        cw(iInxW) = wciSft;
 
         % Add surfactant
         bWqP = cw.*cqs{1};
@@ -209,18 +218,18 @@ end
 %--------------------------------------------------------------------------
 
 
-function [wSurf, wciSurf, iInxW] = getWellSurfactant(W)
+function [wSft, wciSft, iInxW] = getWellSurfactant(W)
     if isempty(W)
-        wSurf = [];
-        wciSurf = [];
+        wSft = [];
+        wciSft = [];
         iInxW = [];
         return
     end
     inj   = vertcat(W.sign)==1;
     surfactInj = cellfun(@(x)~isempty(x), {W(inj).surfact});
-    wSurf = zeros(nnz(inj), 1);
-    wSurf(surfactInj) = vertcat(W(inj(surfactInj)).surfact);
-    wciSurf = rldecode(wSurf, cellfun(@numel, {W(inj).cells}));
+    wSft = zeros(nnz(inj), 1);
+    wSft(surfactInj) = vertcat(W(inj(surfactInj)).surfact);
+    wciSft = rldecode(wSft, cellfun(@numel, {W(inj).cells}));
 
     % Injection cells
     nPerf = cellfun(@numel, {W.cells})';
