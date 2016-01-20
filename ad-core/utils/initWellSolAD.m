@@ -86,6 +86,11 @@ if isprop(model, 'polymer') && model.polymer % polymer model
 	 [ws(:).qWPoly] = deal(0);
 end
 
+if isprop(model, 'compositionalFluid') % Compositional model
+     ncomp = model.compositionalFluid.getNumberOfComponents();
+	 [ws(:).components] = deal(zeros(1, ncomp));
+end
+
 % just initialize fields that are not assigned in assignFromSchedule
 for k = 1:nw
     nConn = numel(W(k).cells);
