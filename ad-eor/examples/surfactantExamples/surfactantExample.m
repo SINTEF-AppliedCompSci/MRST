@@ -8,9 +8,9 @@
 %
 
 try
-   require add ad-core ad-blackoil ad-eor ad-props deckformat optimization
+   require add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 catch
-   mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
+   mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 end
 
 current_dir = fileparts(mfilename('fullpath'));
@@ -19,8 +19,10 @@ simul_case = '1D';
 switch simul_case
   case '1D'
     fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
+    gravity off
   case 'simple'
     fn = fullfile(current_dir, 'SURFACTANT.DATA');
+    gravity on
   otherwise
     error('simul_case not recognized.');
 end
@@ -38,7 +40,6 @@ rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
 
-gravity on
 
 %% Set up simulation parameters
 % We want a layer of oil on top of the reservoir and water on the bottom.
@@ -49,7 +50,7 @@ switch simul_case
   case '1D'
 
     nc = G.cells.num;
-    state0 = initResSol(G, 300*barsa, [ .9, .1]);
+    state0 = initResSol(G, 300*barsa, [ .5, .5]);
 
     % Add zero surfactant concentration to the state.
     state0.c    = zeros(G.cells.num, 1);
@@ -81,8 +82,6 @@ switch simul_case
 end
 
 
-
-
 %% Set up systems.
 
 modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
@@ -96,5 +95,4 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-[wellSolsSurfactant, statesSurfactant] = ...
-   simulateScheduleAD(state0, modelSurfactant, schedule);
+[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule);
