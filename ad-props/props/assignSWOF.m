@@ -35,7 +35,7 @@ function v = krOW(so, swof, reg, varargin)
 satinx = getRegMap(so, reg.SATNUM, reg.SATINX, varargin{:});
 T = cellfun(@(x)x(:,[1,3]), swof, 'UniformOutput', false);
 T = extendTab(T);
-v = interpReg(T, 1-so, satinx);
+v = interpReg(T, 1 - so, satinx);
 end
 
 function v = pcOW(sw, swof, reg, varargin)
@@ -56,6 +56,6 @@ function v = krOWSft(so, swof, reg, varargin)
 surfinx = getRegMap(so, reg.SURFNUM, reg.SURFINX, varargin{:});
 T = cellfun(@(x)x(:,[1,3]), swof, 'UniformOutput', false);
 T = extendTab(T);
-v = interpReg(T, so, surfinx);
+v = interpReg(T, 1 - so, surfinx);
 end
 
