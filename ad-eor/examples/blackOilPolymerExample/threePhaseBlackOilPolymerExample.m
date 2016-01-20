@@ -7,11 +7,12 @@
 % water flooding phase without polymer.
 
 clear;
+close all;
 
 try
-   require add ad-core ad-blackoil ad-eor ad-props deckformat
+   require add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
 catch
-   mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
+   mrstModule add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
 end
 
 
