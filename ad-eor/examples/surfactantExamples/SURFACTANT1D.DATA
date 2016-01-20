@@ -146,7 +146,6 @@ SUMMARY  ===============================================================
 
 
 
-
 SCHEDULE ===============================================================
 
 -- The schedule section defines the operations to be simulated
@@ -163,15 +162,17 @@ RPTRST
 WELSPECS
 --     WELL   GROUP LOCATION  BHP   PI
 --     NAME   NAME    I  J   DEPTH DEFN
-    'PROD'    'G'     50  1   1000 'OIL'  /
-    'INJE'    'G'     1  1    1000 'WAT'  /
+    'PROD1'    'G'     1  1   1000 'OIL'  /
+    'PROD2'    'G'     50  1   1000 'OIL'  /
+    'INJE'    'G'     25  1    1000 'WAT'  /
 /
 
 COMPDAT
 --     WELL     -LOCATION- OPEN/ SAT CONN  WELL
 --     NAME     I   J  K1 K2  SHUT   TAB FACT  DIAM
-    'PROD'      50  1  1  1   'OPEN' 2*        0.3/
-    'INJE'      1   1  1  1   'OPEN' 2*        0.3/
+    'PROD1'      1  1  1  1   'OPEN' 2*        0.3/
+    'PROD2'      50  1  1  1   'OPEN' 2*        0.3/
+    'INJE'      25   1  1  1   'OPEN' 2*        0.3/
 /
 
 
@@ -181,7 +182,8 @@ COMPDAT
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            150/
+       'PROD1'   'OPEN'  'BHP'   5*                            150/
+       'PROD2'   'OPEN'  'BHP'   5*                            150/
 /
 
 WCONINJE
