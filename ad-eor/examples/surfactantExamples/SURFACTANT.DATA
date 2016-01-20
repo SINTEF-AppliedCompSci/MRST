@@ -228,9 +228,9 @@ WCONINJE
        'INJE2' 'WATER' 'OPEN' 'RATE'   100     1*     2000 /
 /
 
-W
-  'INJE1'  4.0  /
-  'INJE2'  1.0  /
+
+WSURFACT
+  'INJE'  0.0  /
 /
 
 TSTEP
