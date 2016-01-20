@@ -29,7 +29,7 @@ function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = ...
     muW    = fluid.muW(pO);
     muWeff = muWMult.*muW;
     mobW   = krW./muWeff;
-    dpW    = s.Grad(pO-pcOW) - rhoWf.*gdz;
+    dpW    = s.Grad(pW) - rhoWf.*gdz;
     % water upstream-index
     upcw = (double(dpW)<=0);
     vW   = -s.faceUpstr(upcw, mobW).*T.*dpW;
