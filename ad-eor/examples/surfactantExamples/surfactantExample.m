@@ -14,10 +14,22 @@ catch
 end
 
 current_dir = fileparts(mfilename('fullpath'));
-fn    = fullfile(current_dir, 'SURFACTANT.DATA');
+simul_case = '1D';
+
+switch simul_case
+  case '1D'
+    fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
+  case 'simple'
+    fn = fullfile(current_dir, 'SURFACTANT.DATA');
+  otherwise
+    error('simul_case not recognized.');
+end
 
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
+
+fluid = initDeckADIFluid(deck);
+
 
 G = initEclipseGrid(deck);
 G = computeGeometry(G);
@@ -25,7 +37,6 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
-fluid = initDeckADIFluid(deck);
 
 gravity on
 
@@ -34,26 +45,41 @@ gravity on
 % To do this, we alter the initial state based on the logical height of
 % each cell. The resulting oil concentration is then plotted.
 
-ijk = gridLogicalIndices(G);
+switch simul_case
+  case '1D'
 
-state0 = initResSol(G, 300*barsa, [ .9, .1]);
-state0.s(ijk{3} == 1, 2) = .9;
-state0.s(ijk{3} == 2, 2) = .8;
+    nc = G.cells.num;
+    state0 = initResSol(G, 300*barsa, [ .9, .1]);
 
-% Enforce s_w + s_o = 1;
-state0.s(:,1) = 1 - state0.s(:,2);
+    % Add zero surfactant concentration to the state.
+    state0.c    = zeros(G.cells.num, 1);
 
-% Add zero surfactant concentration to the state.
-state0.c    = zeros(G.cells.num, 1);
-state0.cmax = zeros(G.cells.num, 1);
+  case 'simple'
 
-clf
-plotCellData(G, state0.s(:,2));
-plotGrid(G, 'facec', 'none')
-title('Oil concentration')
-axis tight off
-view(70, 30);
-colorbar;
+    ijk = gridLogicalIndices(G);
+
+    state0 = initResSol(G, 300*barsa, [ .9, .1]);
+    state0.s(ijk{3} == 1, 2) = .9;
+    state0.s(ijk{3} == 2, 2) = .8;
+
+    % Enforce s_w + s_o = 1;
+    state0.s(:,1) = 1 - state0.s(:,2);
+
+    % Add zero surfactant concentration to the state.
+    state0.c    = zeros(G.cells.num, 1);
+
+    clf
+    plotCellData(G, state0.s(:,2));
+    plotGrid(G, 'facec', 'none')
+    title('Oil concentration')
+    axis tight off
+    view(70, 30);
+    colorbar;
+
+  otherwise
+    error('simul_case not recognized.')
+end
+
 
 
 
@@ -72,5 +98,3 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 
 [wellSolsSurfactant, statesSurfactant] = ...
    simulateScheduleAD(state0, modelSurfactant, schedule);
-
-
