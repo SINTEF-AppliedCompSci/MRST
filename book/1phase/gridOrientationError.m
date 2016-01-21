@@ -54,6 +54,7 @@ hf = streamline(pollock(G, s_tp, seed, 'substeps', 1) );
 hb = streamline(pollock(G, s_tp, seed, 'substeps', 1, 'reverse' , true));
 set ([ hf ; hb ], 'Color' , 'k' );
 
+mrstModule add diagnostics
 subplot(2,2,4);
 tof_mi = computeTimeOfFlight(s_mi, G, rock, 'src', src);
 plotCellData(G, tof_mi, tof_mi<.2,'EdgeColor','none'); caxis([0 .2]); box on
