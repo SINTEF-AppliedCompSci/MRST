@@ -77,6 +77,10 @@ Xcx = Xc(~eYZ,:);
 Xz = X(nYZ,:);  nNz = size(Xz,1);
 Xcz = Xc(eYZ,:);
 
+
+
+
+
                             %   Scale normals by edge lengths.
 normals = bsxfun(@times,normals,lengths);
 xNorm = normals(~eYZ,1);

@@ -1,4 +1,4 @@
-function I = polygonFaceInt(X,T,faceNormal,grad_m3D,m2D,PNstar)
+function [IB, ID] = polygonFaceInt(X,hK, Kc, hF, Fc, T,faceNormal,grad_m3D,m2D, int_m3D, PNstar)
 %--------------------------------------------------------------------------
 %   Evaluates integral of function m : R^2 -> R over a general polygon
 %   with vertices X by mapping to reference triangle tRef with vertices
@@ -14,12 +14,14 @@ function I = polygonFaceInt(X,T,faceNormal,grad_m3D,m2D,PNstar)
                             %   Triangulate polygon.
 tri = delaunay(X);
 nTri = size(tri,1);
+
                             %   Gauss-Lobatto quadrature point and
                             %   wheights for refenrence triangle.
 Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
 w = [1/36; 1/36; 1/18; 1/18; 1/9; 2/9];
 
-I = zeros(9,size(X,1)*2+1);
+IB = zeros(9,size(PNstar,2));
+ID = zeros(1,10);
 for t = 1:nTri
                             %   Triangle points
     x1 = X(tri(t,1),:); x2 = X(tri(t,2),:); x3 = X(tri(t,3),:);
@@ -30,11 +32,15 @@ for t = 1:nTri
     detDphi = (x1(1)-x3(1))*(x2(2)-x3(2)) - (x1(2)-x3(2))*(x2(1)-x3(1));
                             %   Map quadrature points to t
     XIq = phi(Xq);
+    XK = (XIq*T'+repmat(Fc,6,1)-repmat(Kc,6,1))/hK;
+    XF = XIq/hF;
+    GRAD_M3D = sum(grad_m3D(XK).*repmat(faceNormal,54,1),2);
     
-    GRAD_M3D = sum(grad_m3D(XIq*T').*repmat(faceNormal,54,1),2);
+                            %   Wheights must be scaled by edge lengths.
     GRAD_M3D = bsxfun(@times, reshape(GRAD_M3D,6,9), w);
+    GRAD_M3D = GRAD_M3D./hK;
     
-    I = I + abs(detDphi).*GRAD_M3D'*m2D(XIq)*PNstar;  
+    IB = IB + abs(detDphi).*GRAD_M3D'*m2D(XF)*PNstar;  
 end
 
 end

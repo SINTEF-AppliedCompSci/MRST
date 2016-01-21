@@ -59,8 +59,6 @@ function G = computeVEMGeometry(G)
     G.faces.('diameters')   = faceDiameters;
     G.cells.('edges')       = cellEdges;
     G.cells.('edgePos')     = edgePos;
-    
-    [intD, intB] = faceInt(G);
-    G.faces.('faceInt') = {intD, intB};
+    G.cells.('monomialIntegrals') = monomialCellInt(G);
 end
 

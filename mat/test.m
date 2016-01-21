@@ -2,7 +2,8 @@ clc; clear all; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-G = cartGrid([2,2,2],[1,1,1]);
+G = cartGrid([3,3,3],[1,1,1]);
+% G = cartGrid([1,1,1],[1,1,1]);
 % G.nodes.coords(1:2,:) = G.nodes.coords(1:2,:) -0.5;
 G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);

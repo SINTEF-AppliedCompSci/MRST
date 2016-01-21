@@ -4,14 +4,15 @@ run('../../matlab/project-mechanics-fractures/mystartup.m')
 
 n = 15;
 nx = n; ny = n;
-G = unitSquare(nx, ny);
+% G = unitSquare(nx, ny);
 % G = cartGrid([nx,ny],[1,1]);
+G = cartGrid([nx,ny]);
 G = sortEdges(G);
 G = mrstGridWithFullMappings(G);
 G = computeGeometry(G);
 
 f = @(X) 4*pi^2*sin(X(:,1)*pi).*cos(X(:,2)*pi);
-f = @(X) X(:,1).^2 + 100*X(:,2).^2 + 39/7*X(:,1) + X(:,1).*X(:,2);
+f = @(X) X(:,1).^2 + 100*X(:,2).^2 + 39/7*X(:,1) + X(:,1).*X(:,2) + X(:,2);
 gD = @(X) 2*sin(X(:,1)*pi).*cos(X(:,2)*pi) - log(1./((X(:,1)+0.1).^2 + (X(:,2)+0.1).^2));
 gN = @(X) -2*pi*cos(X(:,1)*pi).*cos(X(:,2)*pi) - 2*(X(:,1)+0.1)./((X(:,1)+0.1).^2 + (X(:,2)+0.1).^2);
 
