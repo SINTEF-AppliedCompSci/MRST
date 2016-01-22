@@ -210,7 +210,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             isFinalMinistep = false;
             state0_inner = state0;
-
+            % Previous state for a given timestep
+            state_prev = [];
+            % Timestep that led from state_prev to current state0_inner
+            dt_prev = nan;
 
             wantMinistates = nargout > 2;
             [reports, ministates] = deal(cell(min(2^solver.maxTimestepCuts, 128), 1));
@@ -224,7 +227,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
-                dt = stepsel.pickTimestep(dt, model, solver);
+                dt = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
 
                 if t_local + dt >= dT
                     % Ensure that we hit report time
@@ -255,6 +258,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 stepCount = stepCount + 1;
                 if converged
                     t_local = t_local + dt;
+                    dt_prev = dt;
+                    state_prev = state0_inner;
                     state0_inner = state;
                     acceptCount = acceptCount + 1;
 
