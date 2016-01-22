@@ -40,7 +40,7 @@ for t = 1:nTri
     GRAD_M3D = bsxfun(@times, reshape(GRAD_M3D,6,9), w);
     GRAD_M3D = GRAD_M3D./hK;
     
-    IB = IB + abs(detDphi).*GRAD_M3D'*m2D(XF)*PNstar;  
+    IB = IB + abs(detDphi).*GRAD_M3D'*m2D(XF)*PNstar;
 end
 
 end

@@ -16,15 +16,7 @@ function G = computeVEMGeometry(G)
     edgeVec = edgeVec.*repmat(signs,1,3);
     normals = cross(edgeVec, rldecode(faceNormals, diff(G.faces.edgePos), 1));
     normals = normals./repmat(sqrt(sum(normals.^2,2)),1,3);
-    
-%     faceNum = mcolon(G.cells.facePos(1:end-1),G.cells.facePos(2:end));
-%     faces = G.cells.faces(faceNum);
-%     edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
-%     edges = G.faces.edges(edgeNum);
-%     
-%     diffVec = diff(G.cells.facePos);
-%     edges = mat2cell(edges, diffVec(faces)
-%     
+       
     
     nodes = G.cells.nodes;
     edgeNodes = repmat(reshape(G.edges.nodes,2,[])',G.cells.num,1);
@@ -59,6 +51,11 @@ function G = computeVEMGeometry(G)
     G.faces.('diameters')   = faceDiameters;
     G.cells.('edges')       = cellEdges;
     G.cells.('edgePos')     = edgePos;
-    G.cells.('monomialIntegrals') = monomialCellInt(G);
+    [IC, IF] = monomialCellInt(G);
+    faceIntPos = [1,cumsum(diff(G.cells.facePos))+1];
+    G.cells.('monomialCellIntegrals') = IC;
+    G.cells.('monomialFaceIntegrals') = IF;
+    G.cells.('faceIntPos') = faceIntPos;
+     
 end
 

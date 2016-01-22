@@ -103,14 +103,13 @@ edges = G.cells.edges(edgeNum);
 nE = size(edges,1);
 
 X = [G.nodes.coords(nodes,:);
-     G.edges.centroids(edges,:);
-     G.faces.centroids(faces,:)];
+     G.edges.centroids(edges,:)];
 
 Kc = G.cells.centroids(K,:);
 
 hK = G.cells.diameters(K);     %   Element diameter.
 
-X = (X-repmat(Kc,size(X,1),1))./hK;
+X = (X-repmat(Kc,size(X,1),1))/hK;
 
 vol = G.cells.volumes(K);   %   Element volume
 
@@ -145,8 +144,6 @@ int_m = @(X)        [X(:,1).^2/2  , ...
                      ];
 
 B = zeros(nk, NK);
-D = zeros(NK,nk);
-D(1:NK-1,:) = m3D(X(1:NK-1,:));
                  
 for i = 1:nF
     
@@ -219,7 +216,8 @@ for i = 1:nF
     XKF = bsxfun(@rdivide,XKF - repmat(Kc,size(XKF,1),1), ...
                                  hK.*ones(size(XFmon,1),1))*T;
     
-    I = polygonFaceInt(XF(1:nNF,:),hK, Kc, hF(i), Fc(i,:), T, faceNormals(i,:)./faceAreas(i), ...
+    I = polygonFaceInt(XF(1:nNF,:),hK, Kc, hF(i), Fc(i,:), T, ...
+        faceNormals(i,:)./faceAreas(i), ...
                               grad_m3D, m2D, int_m3D, PNFstar);
     
     [~, iiN] =  ismember(faceNodes(1:nNF), nodes);
@@ -234,9 +232,17 @@ for i = 1:nF
     end
 
 B(1,NK) = 1;
-B([5,8,10],NK) = -2*G.faces.areas(faces(i))/G.faces.diameters(faces(i)).^2;
+B([5,8,10],NK) = -2*vol/hK.^2;
+faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
+D = [m3D(X); G.cells.monomialFaceIntegrals(faceIntNum,:); ...
+             G.cells.monomialCellIntegrals(K,:)./vol];
+M = B*D;
 
+PNstar = M\B;
+PN = D*PNstar;
 
-D = [m3D(X); G.cells.monomialIntegrals(K,:)./vol];
-M = B*D
+f = @(X) X(:,1).^2 + X(:,2).^2/4 + X(:,3)*8/9 + X(:,1).*X(:,3);
+f = @(X) X(:,1) + X(:,2)/4 + X(:,3)*8/9 + X(:,1);
+
+X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
 end
