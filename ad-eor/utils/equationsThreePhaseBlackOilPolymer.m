@@ -148,7 +148,7 @@ if ~isempty(W)
         error('not supported yet!');
     end
 else
-    error('The polymer mdoel does not support senarios without wells now!');
+    error('The polymer model does not support senarios without wells now!');
 end
 
 % s = model.operators;  % The previous s was overwritten with saturations.
