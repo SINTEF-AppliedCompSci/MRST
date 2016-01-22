@@ -285,19 +285,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             state = state0_inner;
                         end
                     end
+                    msg = [solver.getId(), 'Did not find a solution: '];
+                    if failure
+                        % Failure means something is seriously wrong,
+                        % and we should abort the entire control step
+                        % immediately. The last report should include a
+                        % FailureMsg field that tells the user what
+                        % went wrong.
+                        msg = [msg, 'Model step resulted in failure state. Reason: ', ...
+                               nonlinearReports{end}.FailureMsg];
+                    else
+                        msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
+                    end
+
                     if stopNow
-                        msg = [solver.getId(), 'Did not find a solution: '];
-                        if failure
-                            % Failure means something is seriously wrong,
-                            % and we should abort the entire control step
-                            % immediately. The last report should include a
-                            % FailureMsg field that tells the user what
-                            % went wrong.
-                            msg = [msg, 'Model step resulted in failure state. Reason: ', ...
-                                   nonlinearReports{end}.FailureMsg];
-                        else
-                            msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
-                        end
                         if solver.errorOnFailure
                             error(msg);
                         else
@@ -310,6 +311,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             end
                         end
                     else
+                        warning(msg);
                         % Beat timestep with a hammer
                         warning([solver.getId(), 'Solver did not converge, cutting timestep'])
                         cuttingCount = cuttingCount + 1;
