@@ -10,8 +10,10 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    opt = merge_options(opt, varargin{:});
 
    W = drivingForces.W;
-   s = model.operators;
    fluid = model.fluid;
+   operators = model.operators;
+   G = model.G;
+   s = operators; % shortcut
 
    % Properties at current timestep
    [p, sW, c, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', 'wellsol');
@@ -47,7 +49,9 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    sO  = 1 - sW;
    sO0 = 1 - sW0;
 
-   Nc = computeCapillaryNumber(p, c, fluid, s);
+   % The water flux for the wells.
+
+   Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators);
    [krW, krO] = computeRelPermSft(sW, Nc, fluid);
    
    % Multipliers for properties
@@ -74,7 +78,6 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    bW0 = fluid.bW(p0);
    bO0 = fluid.bO(p0);
-
 
    % Water and Surfactant flux
    bW   = fluid.bW(p);
@@ -133,30 +136,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    names = {'water', 'oil', 'surfactant'};
    types = {'cell', 'cell', 'cell'};
 
-   % Add in any fluxes / source terms prescribed as boundary conditions.
-   [eqs, qBC, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
-      model, eqs, {pW, p}, {rhoW, rhoO}, {mobW, mobO}, {bW, bO},  ...
-      {sW, sO}, drivingForces);
-
-   % Add surfactant boundary conditions
-   % setup functions not implemented
-   if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'surfact')
-      injInx  = qBC{1} > 0; % water inflow indecies
-      cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
-      cbc(injInx) = drivingForces.bc.surfact(injInx); 
-      eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
-   end
-
-   % Add surfactant source
-   % setup functions not implemented 
-   if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'surfact')
-      injInx  = qSRC{1} > 0; % water inflow indecies
-      csrc    = c(srcCells);
-      csrc(injInx) = drivingForces.src.surfact(injInx);
-      eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
-   end
-
-   % Finally, add in and setup well equations
+   % Well conditions
    if ~isempty(W)
       wm = model.wellmodel;
       if ~opt.reverseMode
@@ -210,6 +190,8 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
          [names{4:7}] = deal(n{1});
          [types{4:7}] = deal(typ{1});
       end
+   else
+      error('The surfactant model does not support senarios without wells now!');
    end
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
