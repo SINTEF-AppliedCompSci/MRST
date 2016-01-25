@@ -144,6 +144,7 @@ int_m = @(X)        [X(:,1).^2/2  , ...
                      ];
 
 B = zeros(nk, NK);
+
                  
 for i = 1:nF
     
@@ -225,24 +226,31 @@ for i = 1:nF
    
     dofVec = [iiN', iiE' + nN, i + nN + nE];
     
-     B(2:10,dofVec) = B(2:10,dofVec) + I;
-       
-                            %   NB: Divergence rule might improve speed.
+    B(2:10,dofVec) = B(2:10,dofVec) + I;
     
-    end
+end
 
 B(1,NK) = 1;
 B([5,8,10],NK) = -2*vol/hK.^2;
 faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
-D = [m3D(X); G.cells.monomialFaceIntegrals(faceIntNum,:); ...
-             G.cells.monomialCellIntegrals(K,:)./vol];
+D = [m3D(X); ...
+     bsxfun(@rdivide, G.cells.monomialFaceIntegrals(faceIntNum,:),G.faces.areas(faces)); ...
+     G.cells.monomialCellIntegrals(K,:)./vol];
 M = B*D;
 
 PNstar = M\B;
 PN = D*PNstar;
 
-f = @(X) X(:,1).^2 + X(:,2).^2/4 + X(:,3)*8/9 + X(:,1).*X(:,3);
-f = @(X) X(:,1) + X(:,2)/4 + X(:,3)*8/9 + X(:,1);
+f = @(X) X(:,1).^2;
+% f = @(X) X(:,1).^2 + X(:,2).^2/4 + X(:,3)*8/9 + X(:,1).*X(:,3);
+%  f = @(X) X(:,1) + X(:,2)/4 + X(:,3)*8/9 + X(:,1);
+
+fF = polygonInt3D(G,f);
+fK = polyhedronInt(G,f);
 
 X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
+
+fv = [f(X); fF(faces)./G.faces.areas(faces); fK(K)/vol];
+
+fv - PN*fv
 end
