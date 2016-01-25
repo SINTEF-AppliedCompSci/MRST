@@ -336,17 +336,15 @@ RPTRST
 WELSPECS
 --     WELL   GROUP LOCATION  BHP   PI
 --     NAME   NAME    I  J   DEPTH DEFN
-    'PROD1'    'G'     1  1   1000 'OIL'  /
-    'PROD2'    'G'     50  1   1000 'OIL'  /
-    'INJE'    'G'     25  1    1000 'WAT'  /
+    'INJE'    'G'     1  1    1000 'WAT'  /
+    'PROD'    'G'     50  1   1000 'OIL'  /
 /
 
 COMPDAT
 --     WELL     -LOCATION- OPEN/ SAT CONN  WELL
 --     NAME     I   J  K1 K2  SHUT   TAB FACT  DIAM
-    'PROD1'      1  1  1  1   'OPEN' 2*        0.3/
-    'PROD2'      50  1  1  1   'OPEN' 2*        0.3/
-    'INJE'      25   1  1  1   'OPEN' 2*        0.3/
+    'INJE'      1   1  1  1   'OPEN' 2*        0.3/
+    'PROD'      50  1  1  1   'OPEN' 2*        0.3/
 /
 
 
@@ -356,18 +354,17 @@ COMPDAT
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD1'   'OPEN'  'BHP'   5*                            150/
-       'PROD2'   'OPEN'  'BHP'   5*                            150/
+       'PROD'   'OPEN'  'BHP'   5*                            150/
 /
 
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV    BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJE' 'WATER' 'OPEN' 'RATE'   100     1*     2000 /
+       'INJE' 'WATER' 'OPEN' 'RATE'   200     1*     2000 /
 /
 
 WSURFACT
-  'INJE'  1.0  /
+  'INJE'  0.0  /
 /
 
 TSTEP
