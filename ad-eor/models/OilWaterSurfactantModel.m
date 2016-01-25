@@ -43,7 +43,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
       end
 
       function model = setupOperators(model, G, rock, varargin)
-         model.operators.veloc = computeVelocTPFA(G, rock, 'operators', model.operators);
+         model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
       end
 
       function varargout = evaluateRelPerm(model, sat, varargin)
