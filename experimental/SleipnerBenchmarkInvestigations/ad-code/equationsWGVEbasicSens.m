@@ -50,7 +50,7 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    %
    
    % relative permeability
-   [krW, krG] = model.evaluteRelPerm({sW, sG}, p, 'sGmax', sGmax);
+   [krW, krG] = model.evaluateRelPerm({sW, sG}, p, 'sGmax', sGmax);
    krW = krW * mobMult;
    krG = krG * mobMult;
 
