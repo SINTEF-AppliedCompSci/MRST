@@ -11,8 +11,8 @@ function [krW, krO] = computeRelPermSft(sW, Nc, fluid)
    sOresSft = fluid.sOresSft; % Residual oil saturation     with    surfactant
 
    % Interpolated water/oil residual saturations
-   sNcWcon = m.*sWcon + (1 - m).*sWconSft;
-   sNcOres = m.*sOres + (1 - m).*sOresSft;
+   sNcWcon = m.*sWconSft + (1 - m).*sWcon;
+   sNcOres = m.*sOresSft + (1 - m).*sOres;
 
    sNcEff = (sW - sNcWcon)./(1 - sNcWcon - sNcOres);
 
@@ -26,7 +26,7 @@ function [krW, krO] = computeRelPermSft(sW, Nc, fluid)
 
    [krW, krO] = fluid.relPerm(sW);
 
-   krW = m.*krNcWnoSft + (1 - m).*krNcWSft;
-   krO = m.*krNcOnoSft + (1 - m).*krNcOSft;
+   krW = m.*krNcWSft + (1 - m).*krNcWnoSft;
+   krO = m.*krNcOSft + (1 - m).*krNcOnoSft;
 
 end
