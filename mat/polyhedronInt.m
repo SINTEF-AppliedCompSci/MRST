@@ -1,88 +1,51 @@
-function I = polyhedronInt(G, f)
+function I = polyhedronInt(G,f)
+
+%   http://people.sc.fsu.edu/~jburkardt/m_src/tetrahedron_arbq_rule/tetrahedron_arbq_rule.html
+
+Xq = [-.2677028585910073,  .5939017006199488E-01, -.3969426941142150; ...
+       .1510931841533142,  .4354087732476309,      .2151719254306919; ...
+      -.1367699195237390, -.3280341115590410,      .2950846519937133; ...
+       .8067449309051964, -.3400977314285288,     -.3430378951002550];
+
+w  = [ 0.2918008865477151, 0.2706884392356724, ...
+      0.3098349601753470, 0.9865925745591227E-01 ];
+  
+V  = [-1.0, -1.0/sqrt(3.0), -1.0/sqrt(6.0); ...
+       0.0,  2.0/sqrt(3.0), -1.0/sqrt(6.0); ...
+       1.0, -1.0/sqrt(3.0), -1.0/sqrt(6.0); ...
+       0.0,  0.0          ,  3.0/sqrt(6.0)];
+   
+vol = sqrt(sqrt(8.0)/3.0);
 
 nK = G.cells.num;
-% w        = [1/216, 1/216, ...
-%             1/54, 1/54, 1/54, 1/54, 1/54, ...
-%             1/36, ...
-%             2/27, 2/27, 2/27, 2/27, ...
-%             1/6, ...
-%             1/9, ...
-%             8/27]/6;
-% Xq       = [0,0,0;   0,0,1; ...
-%             0,0,0.5; 0,0.5,0; 0,0.5,0.5; 0.5,0,0; 0.5,0,0.5; ...
-%             0,1,0;
-%             0,0.5,0.25; 0.5,0,0.25; 0.5,0.25,0; 0.5,0.25,0.25; ...
-%             1,0,0;
-%             0.5,0.5,0;
-%             0.5,0.25,0.125];
-
-w = [1/216, 1/216, 1/216, 1/216, ...
-     1/108, 1/108, 1/108, 1/108, ...
-     1/54, 1/54, ...
-     1/27, 1/27];
-Xq = [0.0,0.0,0.0; 0.0,0.0,1.0; 0.5,0.0,0.0; 0.5,0.0,0.5; ...
-      0.0,0.5,0.0; 0.0,0.5,0.5; 0.5,0.25,0.0; 0.5,0.25,0.25; ...
-      0.0,0.0,0.5; 0.5,0.0,0.25; ...
-      0.0,0.5,0.25; 0.5,0.25,0.125];
-
 nq = size(Xq,1);
       
 I = zeros(nK,size(f([0,0,0]),2));
-
-nK = 1;
-
-X = [0,0,0; 1,0,0; 0,1,0; 0,0,1];
-% 1,0,0; 0,1,0; 0,0,1];
-% X = [0,0,1; 0,0,0; 0,1,0; 1,0,0];
 
 for i = 1:nK
     
     nodeNum = G.cells.nodePos(i):G.cells.nodePos(i+1)-1;
     nodes = G.cells.nodes(nodeNum);
-%     X = G.nodes.coords(nodes,:);
+    X = G.nodes.coords(nodes,:);
     tri = delaunay(X);
     nTri = size(tri,1);
-    tri = [1,2,3,4];
-%     IT = 0;
-%     for k= 1:nTri
-%     
-%         b = X(tri(k,1),:)
-%         A = X(tri(k,2:end),:)-repmat(b,3,1)
-%         D = abs(det(A));
-%         XhatT = Xq*A + repmat(b,nq,1);
-%         IT = IT + D*w*f(XhatT);
-%     end
     
-    b = X(tri(:,1),:);
+    X = X(reshape(tri',[],1),:);
+    ii = mcolon(1:4:4*nTri, 3:4:4*nTri);
+    Xdiff = mat2cell(X(ii,:) - X(ii+1,:), 3*ones(nTri,1), 3);
+    Xb = mat2cell(X(1:4:end,:),ones(nTri,1), 3);
+    Vdiff = V(1:end-1,:) - V(2:end,:);
     
-    A = X(tri(:,2:end),:) - repmat(b,3,1);
-    A = A(mcolon(1:nTri,3*nTri,nTri),:);
-    A = mat2cell(A,3*ones(nTri,1),3);
+    A = cellfun(@(X) Vdiff\X, Xdiff, 'UniformOutput', false);
+    b = cellfun(@(X,Y) X - V(1,:)*Y, Xb, A, 'UniformOutput', false);
     
     D = cellfun(@(X) abs(det(X)), A);
     
+    Xhat = cell2mat(cellfun(@(X,y) bsxfun(@plus, Xq*X,y), A, b, ...
+                                   'UniformOutput', false));
     
-    
-    Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
-    Xhat = Xhat + rldecode(b,nq*ones(nTri,1),1);
+    I(i,:) = vol*repmat(w,1,nTri).*rldecode(D,4*ones(nTri,1),1)'*f(Xhat);
 
-    D*w*f(Xhat)
-%     I(i,:) = repmat(w,1,nTri)*(bsxfun(@times, rldecode(D,nq*ones(nTri,1),1),f(Xhat)));
-    I(i,:) = repmat(w,1,nTri).*rldecode(D,nq*ones(nTri,1),1)'*f(Xhat);
-    
-    figure();
-    view(3);
-    tetramesh(tri,X)
-    for j = 1:nTri
-        hold on;
-
-        Xh = Xhat((j-1)*12+1:j*12,:);
-        Xh = Xhat;
-        plot3(Xh(:,1), Xh(:,2), Xh(:,3),'or')
-        pause;
-        
-        
-    end
 end
 
 end

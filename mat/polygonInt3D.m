@@ -1,4 +1,4 @@
-function  I = polygonInt3D(G, f)
+function  I = polygonInt3D(G, faces, f)
 
                             %   Gauss-Lobatto quadrature point and
                             %   wheights for refenrence triangle.
@@ -8,20 +8,20 @@ w = [1/36, 1/36, 1/18, 1/18, 1/9, 2/9];
 
 nq = size(Xq,1);
 
-nF = G.faces.num;
+nF = numel(faces);
 
 I = zeros(nF,size(f([0,0,0]),2));
 
 for i = 1:nF
     
-    nodeNum = G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
+    nodeNum = G.faces.nodePos(faces(i)):G.faces.nodePos(faces(i)+1)-1;
     nodes = G.faces.nodes(nodeNum);
     nNF = size(nodes,1);
     X = G.nodes.coords(nodes,:);
     
     vec1 = X(2,:) - X(1,:);
     vec1 = vec1/norm(vec1,2);
-    vec2 = cross(G.faces.normals(i,:),vec1);
+    vec2 = cross(G.faces.normals(faces(i),:),vec1);
     vec2 = vec2/norm(vec2,2);
     bT = X(1,:);
     T = [vec1;vec2];

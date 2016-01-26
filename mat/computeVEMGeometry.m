@@ -1,4 +1,4 @@
-function G = computeVEMGeometry(G)
+function G = computeVEMGeometry(G,f)
 
     edgeVec   = G.nodes.coords(G.edges.nodes(2:2:end),:) -  ...
                  G.nodes.coords(G.edges.nodes(1:2:end-1),:);
@@ -51,11 +51,18 @@ function G = computeVEMGeometry(G)
     G.faces.('diameters')   = faceDiameters;
     G.cells.('edges')       = cellEdges;
     G.cells.('edgePos')     = edgePos;
+    
     [IC, IF] = monomialCellInt(G);
-    faceIntPos = [1,cumsum(diff(G.cells.facePos))+1];
+    faceIntPos = [1,cumsum(diff(G.cells.facePos)')+1];
+    
+    IFf = polygonInt3D(G,1:G.faces.num,f);
+    ICf = polyhedronInt(G,f);
+    
     G.cells.('monomialCellIntegrals') = IC;
     G.cells.('monomialFaceIntegrals') = IF;
     G.cells.('faceIntPos') = faceIntPos;
+    G.cells.('fCellIntegrals') = ICf;
+    G.faces.('fFaceIntegrals') = IFf;
      
 end
 

@@ -164,7 +164,7 @@ IF = zeros(nE,10); IF(~eYZ,:) = intX; IF(eYZ,:) = intY;
                  
 IF = mat2cell(IF, faceNodes(faces), 10);
 IF = cellfun(@(X) sum(X,1), IF, 'UniformOutput', false);
-IF = bsxfun(@times, cell2mat(IF), hK);
+IF = bsxfun(@times, cell2mat(IF), rldecode(hK,diff(G.cells.facePos),1));
 
 %   Speed improvements: First columns of IC and IF are just volume and
 %   area.

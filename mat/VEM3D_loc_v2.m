@@ -1,4 +1,4 @@
-function [Sl, bl, dofVec, hK] = VEM3D_loc_v2(G, K)
+function [Sl, bl, dofVec] = VEM3D_loc_v2(G, f, K)
 %--------------------------------------------------------------------------
 %   Generates local stffness matrix for the virtual element method  for
 %   cell K of grid G for diffusion problem:
@@ -234,23 +234,55 @@ B(1,NK) = 1;
 B([5,8,10],NK) = -2*vol/hK.^2;
 faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
 D = [m3D(X); ...
-     bsxfun(@rdivide, G.cells.monomialFaceIntegrals(faceIntNum,:),G.faces.areas(faces)); ...
+     bsxfun(@rdivide, G.cells.monomialFaceIntegrals(faceIntNum,:), ...
+                      G.faces.areas(faces)); ...
      G.cells.monomialCellIntegrals(K,:)./vol];
 M = B*D;
 
 PNstar = M\B;
 PN = D*PNstar;
+% 
+% f = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60;
+% 
+% fF = polygonInt3D(G,f);
+% fK = polyhedronInt2(G,f);
+% 
+% X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
+% 
+% fv = [f(X); fF(faces)./G.faces.areas(faces); fK(K)/vol];
+% 
+% fv - PN*fv
 
-f = @(X) X(:,1).^2;
-% f = @(X) X(:,1).^2 + X(:,2).^2/4 + X(:,3)*8/9 + X(:,1).*X(:,3);
-%  f = @(X) X(:,1) + X(:,2)/4 + X(:,3)*8/9 + X(:,1);
+Mtilde = [zeros(1,nk); M(2:nk,:)];
 
-fF = polygonInt3D(G,f);
-fK = polyhedronInt(G,f);
+Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
 
-X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
+%%  LOCAL LOAD TERM.                                                     %%
 
-fv = [f(X); fF(faces)./G.faces.areas(faces); fK(K)/vol];
+                            %   Matrix of integrals over K of all
+                            %   combinations of linear monomials.
+I = G.cells.monomialCellIntegrals(K,:); 
 
-fv - PN*fv
+H = [I(1:4)        ; ...
+     I([2,5,6,7])  ; ...
+     I([3,6,8,9])  ; ...
+     I([4,7,9,10])];             
+                            %   \Pi^\Nabla in the monomial basis
+                            %   \mathcal{M}_1.
+PNstar = M(1:4,1:4)\B(1:4,:);
+                            %   Local load term.
+                            
+fChi = [f([G.nodes.coords(nodes,:); G.edges.centroids(edges,:)]); ...
+        G.faces.fFaceIntegrals(faces)./G.faces.areas(faces)                 ; ...
+        G.cells.fCellIntegrals(K)/vol];
+
+% fChi - PN*fChi
+
+bl = PNstar'*H*PNstar*fChi;
+
+
+dofVec = [nodes', edges' + G.nodes.num, ...
+          faces' + G.nodes.num + G.edges.num, ...
+          K + G.nodes.num + G.edges.num + G.faces.num];
+      
 end
