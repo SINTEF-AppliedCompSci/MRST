@@ -1,129 +1,140 @@
-function [Sl, bl, dofVec, hK] = VEM3D_loc(G, K)
+function [Sl, bl, dofVec] = VEM3D_loc_v2(G, f, K)
 %--------------------------------------------------------------------------
-%   Generates local stffness matrix for the virtual element method  for
-%   cell K of grid G for diffusion problem:
 %
-%           -\delta u = f, x \in \Omega
-%                   u = g, x \in \partial \Omega
+%   Awesome function.
 %
-%   Input:
-%
-%   G:      2D MRST grid. Cells can be any kind of polygn. the function
-%           assumes the following functions has been called for the grid:
-%
-%           G = mrstGridWithFullMappings(G);
-%           G = computeGeometry(G);
-%           G = globalEdgeData(G);
-%
-%   K:      Cell number in grid G, i.e. G.cells(K).
-%
-%   f:      Source term.
-%
-%   Output:
-%
-%   Sl:     Local stiffness matrix for cell K. dim(Sl) = NK x NK, where
-%           NK = n*k + 0.5*k*(k-1), n is the number of vertices of K,
-%           and k = 2 is the order of the method.
-%
-%   bl:     Local load vector for cell K. dim(bl) = 1 x NK.
-%   
-%   dofVec: Map from local to global dofs. S(dofVec, dofVec) = Sl, where
-%           S is the global stiffness matrix.
-% 
 %--------------------------------------------------------------------------
 
 %%  CELL DATA                                                            %%
 
+                            %   Node data for cell K.
+nodeNum = G.cells.nodePos(K):G.cells.nodePos(K+1)-1;
+nodes   = G.cells.nodes(nodeNum);
+X       = G.nodes.coords(nodes,:);
+nN      = size(nodes,1);
 
-                            %   Cell nodes and node coordinates.
-[nodes, X] = nodeData(G,K);
-                            %   Cell faces, face midpoints and normals.
-[faces, Fc, faceNormals] = faceData(G,K);
-                            %   Cell edges, edge midpoints and normals.
-                            %   Baricenter of K.
+                            %   Edge data for cell K.
+edgeNum = G.cells.edgePos(K):G.cells.edgePos(K+1)-1;
+edges   = G.cells.edges(edgeNum);
+Ec      = G.edges.centroids(edges,:);
+nE      = size(edges,1);
 
-edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
-                            
-                            % nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-ones(size(edges,1),1))
-% nodes = G.edges.nodes(nodeNum)
-% plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes,2), G.nodes.coords(nodes,3), '*')
+                            %   Face data for cell K.
+faceNum     = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+faces       = G.cells.faces(faceNum);
+Fc          = G.faces.centroids(faces,:);
+faceNormals = G.faces.normals(faces,:);
+nF          = size(faces,1);
 
-                            %   m =      @(X) [(X(:,1)-xK)/hK               , ...   %   (1,0,0)
-%                (X(:,2)-yK)/hK               , ...   %   (0,1,0)
-%                (X(:,3)-zK)/hK               , ...   %   (0,0,1)
-%                (X(:,1)-xK).^2/hK^2          , ...   %   (2,0,0)
-%                (X(:,1)-xK)*(X(:,2)-yK)/hK^2 , ...   %   (1,1,0)
-%                (X(:,1)-xK)*(X(:,3)-zK)/hK^2 , ...   %   (1,0,1)
-%                (X(:,2)-xK).^2/hK^2          , ...   %   (0,2,0) 
-%                (X(:,2)-yK)*(X(:,3)-zK)/hK^2 , ...   %   (0,1,1)
-%                (X(:,3)-zK).^2/hK^2          ];      %   (0,0,2)icenter of K.
+                            %   Cell data for cell K.
+Kc  = G.cells.centroids(K,:);
+hK  = G.cells.diameters(K);
+vol = G.cells.volumes(K);
 
-m =      @(X) [X(:,1)               , ...   %   (1,0,0)
-               X(:,2)               , ...   %   (0,1,0)
-               X(:,3)               , ...   %   (0,0,1)
-               X(:,1).^2          , ...   %   (2,0,0)
-               X(:,1).*X(:,2) , ...   %   (1,1,0)
-               X(:,1).*X(:,3) , ...   %   (1,0,1)
-               X(:,2).^2 , ...   %   (0,2,0) 
-               X(:,2).*X(:,3) , ...   %   (0,1,1)
-               X(:,3).^2          ];      %   (0,0,2)
-
-Kc = G.cells.centroids(K,:);
-
-hK = G.cells.diameters(K);     %   Element diameter.
-vol = G.cells.volumes(K);   %   Element volume
-
-nV = size(X,1);             %   Number of nodes.
-nF = size(faces,1);         %   Number of faces.
-
-k = 2;                      %   Method order.
-nk = (k+1)*(k+2)*(k+3)/6;   %   Dimension of polynom[1,G.faces.faceInt{1}(faces(i),:)]'ial space.
+k  = 2;                     %   Method order.
+nk = (k+1)*(k+2)*(k+3)/6;   %   Dimension of polynomial space.
                             %   Local nomber of dofs.
-% NK = nV + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
+NK = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
+
+X = (X-repmat(Kc,size(X,1),1))/hK;
 
 %%  BUILD FACE MATRICES
 
-nNF = diff(G.faces.nodePos([faces;faces(end)+1]));
-                            %   Dofs of each face
-NF = nNF + nNF.*(k-1) + k(k-1)/2;
-dofPos = [1,cumsum(NF)'+1];
-                            %   Built as transpose, since number of dofs
-                            %   may vary between faces.
-PNF = zeros(sum(NF),9);
-
 Fc = G.faces.centroids(faces,:);
 hF = G.faces.diameters(faces,:);
+faceAreas = G.faces.areas(faces);
+
+grad_m = @(X) [...
+    ones(size(X,1),1)    , zeros(size(X,1),1), ...
+    zeros(size(X,1),1)   , ones(size(X,1),1) , ...
+    X(:,1)*2             , zeros(size(X,1),1), ...
+    X(:,2)               , X(:,1)            , ...
+    zeros(size(X,1),1)   , X(:,2)*2          ];
+
+int_m = @(X)        [X(:,1).^2/2  , ...
+                     X(:,1).*X(:,2)   , ...
+                     X(:,1).^3/3         , ...
+                     X(:,1).^2.*X(:,2)/2 , ...
+                     X(:,1).*X(:,2).^2      , ...
+                     ];
+
+B = zeros(nk, NK);
 
 for i = 1:nF
-    edgeNum = G.faces.edgePos(faces(i)):G.faces.edgePos(faces(i)+1)-1;
-    faceEdges = G.faces.edges(edgeNum);
-    nodeNum = G.faces.nodePos(faces(i)):G.faces.nodePos(faces(i) + 1)-1;
-    faceNodes  = G.faces.nodes(nodeNum);
-    Xf = [G.nodes.coords(faceNodes,:);G.edges.centroids(faceEdges,:)];
-    Xf = bsxfun(@rdivide,Xf-repmat(Fc(i,:),size(Xf,1),1), ...
-                                 hF(i).*ones(size(Xf,1),1));
-                            %   Build matrix Df^T
-    Df = [[ones(1,size(Xf,1)); m(Xf)'], ...
-         [1,G.faces.faceInt{1}(faces(i),:)]'] 
-                            %   Build matrix Bf^T
-                            % NB: Might add roundoff error to coordplane
-                            % check.
-    vec = zeros(1,10);
-    vec(1) = 1;
-    vec([5,8,10]) = -2*G.faces.areas(faces(i))/G.faces.diameters(faces(i)).^2;
-    normal = G.faces.normals(faces(i),:);
-    if normal(2) == 0 && normal(3) == 0
-        vec(5) = 0;
-    elseif normal(1) == 0 && normal(2) == 0
-        vec(10) = 0;
-    elseif normal(1) == 0 && normal(3) == 0
-        vec(8) = 0;
-    end
-    Bf = [zeros(2*nNF(i),1), ...
-         G.faces.faceInt{2}([edgeNum, edgeNum + sum(nNF)],:); vec]
-%     Mf = Bf*Df
-%     inv(Mf)
-    Mf = Df*Bf
-    PNF(dofPos(i):dofPos(i+1)-1,:) = Bf*(Mf\Df);
+    
+    PNFstarNum = G.faces.PNFstarPos(i):G.faces.PNFstar(i+1)-1;
+    PNFstar = G.faces.PNFstar(PNFstarNum,:);
+    
+    XKF = [G.nodes.coords(faceNodes,:);G.edges.centroids(faceEdges,:)];
+    XKF = bsxfun(@rdivide,XKF - repmat(Kc,size(XKF,1),1), ...
+                                 hK.*ones(size(XFmon,1),1))*T;
+    
+    I = polygonFaceInt(XF(1:nNF,:),hK, Kc, hF(i), Fc(i,:), T, ...
+        faceNormals(i,:)./faceAreas(i), ...
+                              grad_m3D, m2D, int_m3D, PNFstar);
+    
+    [~, iiN] =  ismember(faceNodes(1:nNF), nodes);
+    [~, iiE] = ismember(faceEdges,edges);
+   
+    dofVec = [iiN', iiE' + nN, i + nN + nE];
+    
+    B(2:10,dofVec) = B(2:10,dofVec) + I;
+    
 end
+
+B(1,NK) = 1;
+B([5,8,10],NK) = -2*vol/hK.^2;
+faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
+D = [m3D(X); ...
+     bsxfun(@rdivide, G.cells.monomialFaceIntegrals(faceIntNum,:), ...
+                      G.faces.areas(faces)); ...
+     G.cells.monomialCellIntegrals(K,:)./vol];
+M = B*D;
+
+PNstar = M\B;
+PN = D*PNstar;
+% 
+% f = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60;
+% 
+% fF = polygonInt3D(G,f);
+% fK = polyhedronInt2(G,f);
+% 
+% X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
+% 
+% fv = [f(X); fF(faces)./G.faces.areas(faces); fK(K)/vol];
+% 
+% fv - PN*fv
+
+Mtilde = [zeros(1,nk); M(2:nk,:)];
+
+Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
+
+%%  LOCAL LOAD TERM.                                                     %%
+
+                            %   Matrix of integrals over K of all
+                            %   combinations of linear monomials.
+I = G.cells.monomialCellIntegrals(K,:); 
+
+H = [I(1:4)        ; ...
+     I([2,5,6,7])  ; ...
+     I([3,6,8,9])  ; ...
+     I([4,7,9,10])];             
+                            %   \Pi^\Nabla in the monomial basis
+                            %   \mathcal{M}_1.
+PNstar = M(1:4,1:4)\B(1:4,:);
+                            %   Local load term.
+                            
+fChi = [f([G.nodes.coords(nodes,:); G.edges.centroids(edges,:)]); ...
+        G.faces.fFaceIntegrals(faces)./G.faces.areas(faces)                 ; ...
+        G.cells.fCellIntegrals(K)/vol];
+
+% fChi - PN*fChi
+
+bl = PNstar'*H*PNstar*fChi;
+
+
+dofVec = [nodes', edges' + G.nodes.num, ...
+          faces' + G.nodes.num + G.edges.num, ...
+          K + G.nodes.num + G.edges.num + G.faces.num];
+      
 end

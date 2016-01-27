@@ -1,4 +1,4 @@
-function  I = polygonInt3D(G, faces, f)
+    function  I = polygonInt3D(G, faces, f)
 
                             %   Gauss-Lobatto quadrature point and
                             %   wheights for refenrence triangle.

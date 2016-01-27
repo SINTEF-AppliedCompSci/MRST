@@ -1,53 +1,32 @@
 function [Sl, bl, dofVec] = VEM3D_loc_v2(G, f, K)
 %--------------------------------------------------------------------------
-%   Generates local stffness matrix for the virtual element method  for
-%   cell K of grid G for diffusion problem:
 %
-%           -\delta u = f, x \in \Omega
-%                   u = g, x \in \partial \Omega
+%   Awesome function.
 %
-%   Input:
-%
-%   G:      2D MRST grid. Cells can be any kind of polygn. the function
-%           assumes the following functions has been called for the grid:
-%
-%           G = mrstGridWithFullMappings(G);
-%           G = computeGeometry(G);
-%           G = globalEdgeData(G);
-%
-%   K:      Cell number in grid G, i.e. G.cells(K).
-%
-%   f:      Source term.
-%
-%   Output:
-%
-%   Sl:     Local stiffness matrix for cell K. dim(Sl) = NK x NK, where
-%           NK = n*k + 0.5*k*(k-1), n is the number of vertices of K,
-%           and k = 2 is the order of the method.
-%
-%   bl:     Local load vector for cell K. dim(bl) = 1 x NK.
-%   
-%   dofVec: Map from local to global dofs. S(dofVec, dofVec) = Sl, where
-%           S is the global stiffness matrix.
-% 
 %--------------------------------------------------------------------------
 
 %%  CELL DATA                                                            %%
 
+                            %   Node data for cell K.
+nodeNum = G.cells.nodePos(K):G.cells.nodePos(K+1)-1;
+nodes   = G.cells.nodes(nodeNum);
+X       = G.nodes.coords(nodes,:);
+nN      = size(nodes,1);
 
-                            %   Cell nodes and node coordinates.
-[nodes, X] = nodeData(G,K);
-nN = size(nodes,1);
+                            %   Edge data for cell K.
+edgeNum = G.cells.edgePos(K):G.cells.edgePos(K+1)-1;
+edges   = G.cells.edges(edgeNum);
+Ec      = G.edges.centroids(edges,:);
+nE      = size(edges,1);
 
+                            %   Face data for cell K.
+faceNum     = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+faces       = G.cells.faces(faceNum);
+Fc          = G.faces.centroids(faces,:);
+faceNormals = G.faces.normals(faces,:);
+nF          = size(faces,1);
 
-                            %   Cell faces, face midpoints and normals.
-[faces, Fc, faceNormals] = faceData3D(G,K);
-                            %   Cell edges, edge midpoints and normals.
-                            %   Baricenter of K.
-
-                            % nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-ones(size(edges,1),1))
-% nodes = G.edges.nodes(nodeNum)
-% plot3(G.nodes.coords(nodes,1), G.nodes.coords(nodes,2), G.nodes.coords(nodes,3), '*')
+% [faces, Fc, faceNormals] = faceData3D(G,K);
 
 m3D =      @(X) [ones(size(X,1),1) , ...
                 X(:,1)              , ...   %   (1,0,0)
@@ -96,11 +75,6 @@ zeros(size(X,1),1)   , zeros(size(X,1),1), X(:,3)*2];    %   (0,0,2)
 % zeros(size(X,1),1)   , X(:,2)*2          , zeros(size(X,1),1) ;...    %   (0,2,0)
 % zeros(size(X,1),1)   , X(:,3)            , X(:,2)             ;...    %  (0,1,1)
 % zeros(size(X,1),1)   , zeros(size(X,1),1), X(:,3)*2];    %   (0,0,2)
-
-
-edgeNum = G.cells.edgePos(K):G.cells.edgePos(K+1)-1;
-edges = G.cells.edges(edgeNum);
-nE = size(edges,1);
 
 X = [G.nodes.coords(nodes,:);
      G.edges.centroids(edges,:)];

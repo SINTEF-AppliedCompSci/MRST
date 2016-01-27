@@ -63,6 +63,15 @@ function G = computeVEMGeometry(G,f)
     G.cells.('faceIntPos') = faceIntPos;
     G.cells.('fCellIntegrals') = ICf;
     G.faces.('fFaceIntegrals') = IFf;
-     
+    
+    [PNF, PNFstar] = faceProjectors(G);
+    PNFstarPos = (0:6:6*G.faces.num)+1;
+    PNFPos     = [1,cumsum(2*diff(G.faces.nodePos')+1)+1];
+    
+    G.faces.('PNF') = PNF;
+    G.faces.('PNFPos') = PNFPos;
+    G.faces.('PNFstar') = PNFstar;
+    G.faces.('PNFstarPos') = PNFstarPos;
+    
 end
 
