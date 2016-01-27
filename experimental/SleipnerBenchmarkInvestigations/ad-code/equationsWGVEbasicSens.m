@@ -43,8 +43,9 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(f, p, p0);
    
    %
-   pvMult = porofac*pvMult;
-   pvMult0 = state0.porofac*pvMult0;
+   %pvMult = porofac*pvMult;
+   %pvMult0 = state0.porofac*pvMult0;
+   %pvMult0 = porofac*pvMult0;
    %transMult = permfac*transMult;
    %transMult0 = state0.permfac*transMult0;
    %
@@ -89,10 +90,10 @@ function [problem, state] = equationsWGVEbasicSens(model, state0, state, dt, dri
    %% Setting up brine and CO2 equations
 
    % Water (Brine)
-   eqs{1} = (s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0) + permfac*s.Div(bWvW);
+   eqs{1} = porofac*((s.pv / dt) .* (pvMult .* bW .* sW - pvMult0 .* bW0 .* sW0)) + permfac*s.Div(bWvW);
 
    % Gas (CO2)
-   eqs{2} = (s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0) + permfac*s.Div(bGvG);
+   eqs{2} = porofac*((s.pv / dt) .* (pvMult .* bG .* sG - pvMult0 .* bG0 .* sG0)) + permfac*s.Div(bGvG);
 
    % Include influence of boundary conditions
    eqs = addFluxesFromSourcesAndBC(model, ...
