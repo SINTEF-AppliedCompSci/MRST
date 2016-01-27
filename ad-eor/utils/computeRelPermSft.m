@@ -4,6 +4,17 @@ function [krW, krO] = computeRelPermSft(sW, Nc, fluid)
    % We cap logNc (as done in Eclipse)
    logNc = min(max(-20, logNc), 20);
    m = fluid.miscfact(logNc);
+   
+   try
+      set(0, 'currentFigure', 3);
+   catch
+      figure(3)
+   end
+   plot(m.val);
+   title('m');
+   axis([0, 100, 0, 1]);
+   drawnow
+   
 
    sWcon    = fluid.sWcon;    % Residual water saturation   without surfactant
    sOres    = fluid.sOres;    % Residual oil saturation     without surfactant
@@ -24,9 +35,8 @@ function [krW, krO] = computeRelPermSft(sW, Nc, fluid)
    sNcWSft =  (1 - sWconSft - sOresSft).*sNcEff + sWconSft;
    [krNcWSft, krNcOSft] = fluid.relPermSft(sNcWSft);
 
-   [krW, krO] = fluid.relPerm(sW);
-
    krW = m.*krNcWSft + (1 - m).*krNcWnoSft;
    krO = m.*krNcOSft + (1 - m).*krNcOnoSft;
+
 
 end

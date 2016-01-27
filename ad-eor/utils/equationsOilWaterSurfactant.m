@@ -53,12 +53,12 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators);
    [krW, krO] = computeRelPermSft(sW, Nc, fluid);
-   
+
    % Multipliers for properties
    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
 
    % Modifiy relperm by mobility multiplier (if any)
-   krW = mobMult.*krW; 
+   krW = mobMult.*krW;
    krO = mobMult.*krO;
 
    % Compute transmissibility
@@ -67,7 +67,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    % Gravity contribution
    gdz = model.getGravityGradient();
 
-   % NOT IMPLEMENTED YET: 
+   % NOT IMPLEMENTED YET:
    % Adsortion.
    % Viscosity change.
    % Capillary pressue
@@ -105,8 +105,18 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    upco = (double(dpO)<=0);
    vO   = -s.faceUpstr(upco, mobO).*s.T.*dpO;
 
+   % try
+   %    set(0, 'currentFigure', 3);
+   % catch
+   %    figure(3)
+   % end
+   % ff = mobW.val./(mobW.val + mobO.val);
+   % plot(ff);
+   % axis([0, 100, 0, 1]);
+   % drawnow
 
-   if model.outputFluxes 
+
+   if model.outputFluxes
       state = model.storeFluxes(state, vW, vO, vSft);
    end
    if model.extraStateOutput
@@ -222,7 +232,3 @@ function [wSft, wciSft, iInxW] = getWellSurfactant(W)
    iInx  = find(iInx);
    iInxW = iInx(compi(perf2well(iInx),1)==1);
 end
-
-
-
-

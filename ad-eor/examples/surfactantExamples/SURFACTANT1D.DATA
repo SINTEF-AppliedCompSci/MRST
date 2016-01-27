@@ -360,15 +360,15 @@ WCONPROD
 WCONINJE
 --      WELL     INJ   OPEN/   CNTL    FLOW   RESV    BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJE' 'WATER' 'OPEN' 'RATE'   200     1*     2000 /
+       'INJE' 'WATER' 'OPEN' 'RATE'   200     1*     4000 /
 /
 
 WSURFACT
-  'INJE'  0.0  /
+  'INJE'  1.0  /
 /
 
 TSTEP
-  100*2.0 330*5.0
+  10*1 200*5.0
 /
 
 

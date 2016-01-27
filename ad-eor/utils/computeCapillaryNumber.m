@@ -8,7 +8,12 @@ function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators)
       veloc_sq = veloc_sq + veloc{i}(v).^2;
    end
 
-   figure(3)
+   try
+      set(0, 'currentFigure', 2)
+   catch
+      figure(2);
+   end
+   subplot(2, 1, 1)
    plot(sqrt(veloc_sq.val));
    title('Linear velocity')
 
@@ -42,7 +47,7 @@ function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators)
 
    abs_veloc = (veloc_sq).^(1/2);
 
-   figure(4)
+   subplot(2, 1, 2)
    plot(abs_veloc.val);
    title('velocity')
    drawnow;

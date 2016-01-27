@@ -55,6 +55,20 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
          [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, ...
                                                            dt, drivingForces);
          % Nothing extra to be done here for the surfactant case.
+         try
+            set(0, 'CurrentFigure', 1);
+         catch
+            figure(1);
+         end
+         subplot(2, 1, 1)
+         plot(state.s(:, 1));
+         axis([0, 100, 0, 1]);
+         title('Saturation');
+         subplot(2, 1, 2)
+         plot(state.c);
+         axis([0, 100, 0, 1]);
+         title('Concentration');
+
       end
 
 
