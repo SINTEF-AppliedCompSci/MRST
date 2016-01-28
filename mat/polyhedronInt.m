@@ -1,4 +1,4 @@
-function I = polyhedronInt(G,f)
+function I = polyhedronInt(G,cells,f)
 
 %   http://people.sc.fsu.edu/~jburkardt/m_src/tetrahedron_arbq_rule/tetrahedron_arbq_rule.html
 
@@ -17,14 +17,14 @@ V  = [-1.0, -1.0/sqrt(3.0), -1.0/sqrt(6.0); ...
    
 vol = sqrt(sqrt(8.0)/3.0);
 
-nK = G.cells.num;
+nK = numel(cells);
 nq = size(Xq,1);
       
 I = zeros(nK,size(f([0,0,0]),2));
 
 for i = 1:nK
     
-    nodeNum = G.cells.nodePos(i):G.cells.nodePos(i+1)-1;
+    nodeNum = G.cells.nodePos(cells(i)):G.cells.nodePos(cells(i)+1)-1;
     nodes = G.cells.nodes(nodeNum);
     X = G.nodes.coords(nodes,:);
     tri = delaunay(X);

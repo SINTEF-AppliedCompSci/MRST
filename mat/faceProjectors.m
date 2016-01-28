@@ -1,4 +1,4 @@
-function [PN, PNstar] = faceProjectors(G)
+function I = faceProjectors(G)
 
 m =      @(X) [ones(size(X,1),1), ...
                X(:,1)               , ...   %   (1,0,0)
@@ -63,10 +63,11 @@ nodes = reshape(nodes,[],1);
 X = [G.nodes.coords(nodes,:); Ec];
 
                             %   Build local coordinate systems.
-vec1 = (X(G.faces.nodePos(1:end-1)+1,:) - X(G.faces.nodePos(1:end-1),:))';
-vec1 = bsxfun(@rdivide, vec1,sum(vec1.^2,1));
-vec2 = cross(faceNormals',vec1,1);
-vec2 = bsxfun(@rdivide, vec2, sum(vec2.^2,1));
+vec1 = (X(G.faces.nodePos(1:end-1)+1,:) - X(G.faces.nodePos(1:end-1),:));
+vec1 = bsxfun(@rdivide, vec1, sqrt(sum(vec1.^2,2)));
+vec2 = cross(faceNormals,vec1,2);
+vec2 = bsxfun(@rdivide, vec2, sqrt(sum(vec2.^2,2)));
+vec1= vec1'; vec2 = vec2';
 
 % ii = repmat([1,2,3,1,2,3],1,nF) + rldecode(0:3:3*nF-1,6,2);
 % jj = rldecode(1:2*nF,3,2);
@@ -101,7 +102,7 @@ intD = bsxfun(@times,(int_m(X(1:nN,:)) + int_m(X(nN+1:2*nN,:)))/6 ...
                  + int_m(X(2*nN+1:end,:))*2/3, edgeNormals(:,1));
 intD = cell2mat(cellfun(@(X) sum(X,1), ...
      mat2cell(intD,diff(G.faces.edgePos),6), 'UniformOutput', false));
-intD = bsxfun(@times, intD, hF);
+intD = bsxfun(@times, intD, hF./aF);
 
 intB = sum(grad_m(X).*repmat(edgeNormals,5*3 ,1),2);
 intB = reshape(intB,3*nN,5);
@@ -135,6 +136,8 @@ D(2*diffVec' + (1:nF),:) = intD;
 BT = mat2cell(BT,NF, 6);
 D = mat2cell(D,NF,6);
 
+                                %   Speed: Do sparse block..
+
 PNstar = cellfun(@(BT,D) (BT'*D)\BT', BT, D, 'UniformOutput', false);   
 PN     = cellfun(@(D, PNstar) D*PNstar, D, PNstar, 'UniformOutput', false); 
 
@@ -146,19 +149,23 @@ PN = cell2mat(PN);
                             %   Gauss-Lobatto quadrature point and
                             %   wheights for refenrence triangle.
 Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
-w = [1/36, 1/36, 1/18, 1/18, 1/9, 2/9];
+w = [1/36; 1/36; 1/18; 1/18; 1/9; 2/9];
                             %   For each triangle t, evaluate integral.
 
 nq = size(Xq,1);
 
-I = 0;
+k = 2;
+N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2;
+
+I = sparse(G.cells.num*9,N);
 
 Kc = G.cells.centroids;
 hK = G.cells.diameters;
 TPos = (0:3:3*nF)+1;
 PNFstarPos = (0:6:6*G.faces.num)+1;
+intPos = (0:9:9*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
-             rldecode(1:G.cells.num,diff(G.cells.facePos),1)];
+             rldecode((1:G.cells.num)',diff(G.cells.facePos),1)];
 
 
 for i = 1:nF
@@ -171,14 +178,29 @@ for i = 1:nF
     nN = size(nodes,1);
     X = G.nodes.coords(nodes,:);
     
+    edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
+    edges = G.faces.edges(edgeNum);
+    
     TF = T(TPos(i):TPos(i+1)-1,:);
     bT = X(1,:);
     
-    PNFstar = PN(PNFstarPos(i):PNFstarPos(i+1)-1,:);
-    
-    
+    PNFstar = PNstar(PNFstarPos(i):PNFstarPos(i+1)-1,:);
+
                             %   Map from Polygon to face
+%     Xmon = (X-repmat(Fc(i,:),size(X,1),1))/hF(i);
+    
     X = (X - repmat(bT,size(X,1),1))*TF;
+    
+%     Xmon = (Xmon - repmat(bT,size(Xmon,1),1))*TF;
+% 
+%     Ec = G.edges.centroids(edges,:);
+%     Ec = (Ec-repmat(bT,size(Ec,1),1))*TF;
+%     
+%     g = @(X) X(:,1);
+%     gI = polygonInt3D(G,i,g)./aF(i);
+% 
+%     gv = [g([X;Ec]); gI];
+%     g(X) - m(Xmon)*PNFstar*gv
     
                             %   Triangulate face
     tri = delaunay(X);
@@ -207,17 +229,19 @@ for i = 1:nF
     grad_mVals = sum(bsxfun(@times,grad_m3D(XK),faceNormal),2)./ ...
                      rldecode(hK(cells),9*nq*nTri*ones(nK,1),1);
     
-                 
-    grad_mVals = bsxfun(@times, reshape(grad_mVals, nK*nq*nTri,9), repmat(w',nK*nTri,1));
+    Dw = repmat(rldecode(D,nq*ones(nTri,1),1).*repmat(w,nTri,1),nK,1);
+    grad_mVals = reshape(grad_mVals, nK*nq*nTri,9);
+    grad_mVals = bsxfun(@times,grad_mVals,Dw);
+
+    grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),9);
+    int = cell2mat(cellfun(@(X) X'*mVals, grad_mVals, 'UniformOutput', false));
+        
+    dofVec = [nodes', edges' + G.nodes.num, i + G.nodes.num + G.edges.num];
     
-    D = repmat(rldecode(D',nq*ones(1,nTri),1),1,nK);
+    intNum = mcolon(intPos(cells),intPos(cells+1)-1);
     
-    %   Make sure cells faces are summed in the right way.
-    
-    I = D*(grad_mVals'*repmat(mVals,nK,1));
-    
-    I = repmat(w,1,nTri*nK).*(rldecode(D,nq*ones(nTri,1),1))'*f(XqF)
-    
-    I(i,:) = repmat(w,1,nTri).*(rldecode(D,nq*ones(nTri,1),1))'*f(XqF);
-    
+    I(intNum, dofVec) = I(intNum, dofVec) + int;
+   
+end
+
 end

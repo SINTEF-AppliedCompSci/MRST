@@ -38,16 +38,17 @@ for b = 1:nBC
     edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
     edges = G.faces.edges(edgeNum);
     
+    I = polygonInt3D(G, faces, g)./G.faces.areas(faces);
+    
     X = [G.nodes.coords(nodes,:)    ; ...
-         G.edges.centroids(edges,:) ; ...
-         G.faces.centroids(faces,:)];
+         G.edges.centroids(edges,:)];
      
     switch type
         
         case 'dir'
             dofVec = [nodes', edges' + nN, faces' + nN + nE*(k-1)];
             bcDof(dofVec) = 1;
-            bBC(dofVec) = g(X);
+            bBC(dofVec) = [g(X); I];
         case 'neu'
 %             bcDof([nodes, Nn + edges]) = 2;
 %             edgeLengths = G.faces.areas(edges);

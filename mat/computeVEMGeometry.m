@@ -1,5 +1,9 @@
 function G = computeVEMGeometry(G,f)
 
+    fprintf('Computing VEM geometry ...');
+
+    tic;
+
     edgeVec   = G.nodes.coords(G.edges.nodes(2:2:end),:) -  ...
                  G.nodes.coords(G.edges.nodes(1:2:end-1),:);
     lengths   = sqrt(sum(edgeVec.^2,2));
@@ -56,7 +60,7 @@ function G = computeVEMGeometry(G,f)
     faceIntPos = [1,cumsum(diff(G.cells.facePos)')+1];
     
     IFf = polygonInt3D(G,1:G.faces.num,f);
-    ICf = polyhedronInt(G,f);
+    ICf = polyhedronInt(G,1:G.cells.num,f);
     
     G.cells.('monomialCellIntegrals') = IC;
     G.cells.('monomialFaceIntegrals') = IF;
@@ -64,14 +68,25 @@ function G = computeVEMGeometry(G,f)
     G.cells.('fCellIntegrals') = ICf;
     G.faces.('fFaceIntegrals') = IFf;
     
-    [PNF, PNFstar] = faceProjectors(G);
-    PNFstarPos = (0:6:6*G.faces.num)+1;
-    PNFPos     = [1,cumsum(2*diff(G.faces.nodePos')+1)+1];
+    I = faceProjectors(G);
+    BintPos = (0:9:9*G.cells.num) + 1;
     
-    G.faces.('PNF') = PNF;
-    G.faces.('PNFPos') = PNFPos;
-    G.faces.('PNFstar') = PNFstar;
-    G.faces.('PNFstarPos') = PNFstarPos;
+    G.cells.('Bint') = I;
+    G.cells.('BintPos') = BintPos;
+    
+    [monomialNodeVals, monomialEdgeVals] = monomialValues(G);
+    monomialNodeValsPos = [1, cumsum(diff(G.cells.nodePos)') + 1];
+    monomialEdgeValsPos = [1, cumsum(diff(G.cells.edgePos)') + 1];
+    
+    G.cells.('monomialNodeVals') = monomialNodeVals;
+    G.cells.('monomialNodeValsPos') = monomialNodeValsPos;
+    G.cells.('monomialEdgeVals') = monomialEdgeVals;
+    G.cells.('monomialEdgeValsPos') = monomialEdgeValsPos;
+    
+    
+    stop = toc;
+    
+    fprintf('Preprocessing done in %f seconds.', stop);
     
 end
 

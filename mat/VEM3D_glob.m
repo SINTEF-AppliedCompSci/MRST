@@ -13,7 +13,7 @@ b = sparse(N,1);
 
 for i = 1:nK
 
-    [Sl, bl, dofVec] = VEM3D_loc_v2(G,f,i);
+    [Sl, bl, dofVec] = VEM3D_loc(G,f,i);
 
     S(dofVec,dofVec) = S(dofVec,dofVec) + Sl;
     b(dofVec) = b(dofVec) + bl;
