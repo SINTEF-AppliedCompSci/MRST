@@ -52,6 +52,8 @@ if nargout > 1
     objh = @(tstep)obj(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
     g    = computeGradientAdjointAD(state0, states, model, schedule, objh, 'ControlVariables', {'scell','well','mult'});
     g    = cell2mat(g);
+    % need to take special care of rate-multiplier
+    g(n+1,:) = g(n+1,:).*q_prev/mean(q_prev);
     g    = sum(g,2);
     % scale gradient:
     dBox   = boxLims(:,2) - boxLims(:,1);
