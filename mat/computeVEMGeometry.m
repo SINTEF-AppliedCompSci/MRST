@@ -4,11 +4,13 @@ function G = computeVEMGeometry(G,f)
 
     tic;
 
-    edgeVec   = G.nodes.coords(G.edges.nodes(2:2:end),:) -  ...
-                 G.nodes.coords(G.edges.nodes(1:2:end-1),:);
+    nodeNum = mcolon(G.edges.nodePos(1:end-1),G.edges.nodePos(2:end)-1);
+    nodes = G.edges.nodes(nodeNum);
+    edgeVec   = G.nodes.coords(nodes(2:2:end),:) -  ...
+                 G.nodes.coords(nodes(1:2:end-1),:);
     lengths   = sqrt(sum(edgeVec.^2,2));
-    centroids = (G.nodes.coords(G.edges.nodes(2:2:end),:) +  ...
-                 G.nodes.coords(G.edges.nodes(1:2:end-1),:))./2;
+    centroids = (G.nodes.coords(nodes(2:2:end),:) +  ...
+                 G.nodes.coords(nodes(1:2:end-1),:))./2;
     
     faceNormals = G.faces.normals;
     edgeNum = mcolon(G.faces.edgePos(1:end-1),G.faces.edgePos(2:end)-1);
@@ -86,7 +88,7 @@ function G = computeVEMGeometry(G,f)
     
     stop = toc;
     
-    fprintf('Preprocessing done in %f seconds.', stop);
+    fprintf('Done in %f seconds.\n', stop);
     
 end
 

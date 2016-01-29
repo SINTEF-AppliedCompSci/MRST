@@ -166,7 +166,7 @@ PNFstarPos = (0:6:6*G.faces.num)+1;
 intPos = (0:9:9*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
              rldecode((1:G.cells.num)',diff(G.cells.facePos),1)];
-
+neighbors = G.faces.neighbors;
 
 for i = 1:nF
     
@@ -201,13 +201,11 @@ for i = 1:nF
 % 
 %     gv = [g([X;Ec]); gI];
 %     g(X) - m(Xmon)*PNFstar*gv
-    
+
                             %   Triangulate face
     tri = delaunay(X);
     nTri = size(tri,1);
     
-                            %   Construct map from polygon to local face
-                            %   coordinates.
     bA = X(tri(:,1),:);
     A = X(tri(:,2:end),:) - repmat(bA,2,1);
     A = A(mcolon(1:nTri,2*nTri,nTri),:);
@@ -216,21 +214,28 @@ for i = 1:nF
     
     Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
     Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
+
     XK = Xhat*TF' + repmat(bT,nTri*nq,1);
     
     XK = bsxfun(@rdivide, ...
                 repmat(XK,nK,1) - rldecode(Kc(cells,:),nq*nTri*ones(nK,1),1), ...
                 rldecode(hK(cells),nq*nTri*ones(nK,1),1));
-
-    XF = (Xhat - repmat(Fc(i,:)*TF,nq*nTri,1))./hF(i);
+    FcT = (Fc(i,:)-bT)*TF;
+            
+    XF = (Xhat - repmat(FcT,nq*nTri,1))./hF(i);
+    
+    
     
     mVals = m(XF)*PNFstar;
     faceNormal = faceNormals(i,:)/aF(i);
-    grad_mVals = sum(bsxfun(@times,grad_m3D(XK),faceNormal),2)./ ...
-                     rldecode(hK(cells),9*nq*nTri*ones(nK,1),1);
-    
+    faceSign = (-ones(nK,1)).^(repmat(neighbors(i,1),nK,1) ~= cells);
+    faceNormal = bsxfun(@times, repmat(faceNormal,nq*nTri*nK*9,1),...
+                 repmat(rldecode(faceSign,nq*nTri*ones(nK,1),1),9,1));
+    grad_mVals = sum(grad_m3D(XK).*faceNormal,2)./...
+                 repmat(rldecode(hK(cells),nq*nTri*ones(nK,1),1),9,1);
+                        
     Dw = repmat(rldecode(D,nq*ones(nTri,1),1).*repmat(w,nTri,1),nK,1);
-    grad_mVals = reshape(grad_mVals, nK*nq*nTri,9);
+    grad_mVals = reshape(grad_mVals, nq*nTri*nK,9);
     grad_mVals = bsxfun(@times,grad_mVals,Dw);
 
     grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),9);
@@ -241,7 +246,9 @@ for i = 1:nF
     intNum = mcolon(intPos(cells),intPos(cells+1)-1);
     
     I(intNum, dofVec) = I(intNum, dofVec) + int;
-   
+    
+    %   Speed: first rows of B can be obatined from F.
+    
 end
 
 end

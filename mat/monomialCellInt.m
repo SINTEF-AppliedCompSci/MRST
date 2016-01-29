@@ -121,7 +121,6 @@ edgeNormals = bsxfun(@times,edgeNormals,lengths);
                             %   Product of first component of face normal
                             %   and edge normal.
 
-diffVec = diff(G.faces.edgePos);
 normProdx = edgeNormals(~eYZ,1).*rldecode(faceNormals(~fYZ,1), diffVec(faces(~fYZ)),1);
 normPrody = edgeNormals(eYZ,2).*rldecode(faceNormals(fYZ,1), diffVec(faces(fYZ)),1);
 
@@ -141,7 +140,7 @@ IC = mat2cell(IC, cellFaceNodes, 10);
 IC = cellfun(@(X) sum(X,1), IC, 'UniformOutput', false);
 IC = bsxfun(@times, cell2mat(IC), hK.^2);
 
-faceNodes = diff(G.faces.nodePos);
+faceEdges = diff(G.faces.edgePos);
 
 Xq = G.edges.centroids(edges,:);
 Xq = bsxfun(@rdivide,Xq-rldecode(Kc,cellFaceNodes,1), ...
@@ -152,19 +151,22 @@ Xqy = Xq(eYZ,:);
 
                             %   Evaluate integrals over each edge.
 intX = bsxfun(@times, ...
-              (int_mx(Xx(1:nNx/2,:))  + int_mx(Xx(nNx/2+1:nNx,:)))/6 + ...
+              (int_mx(Xx(1:nNx/2,:)) + int_mx(Xx(nNx/2+1:nNx,:)))/6 + ...
                int_mx(Xqx)*2/3, ...
                edgeNormals(~eYZ,1));
-intY = bsxfun(@times,(int_my(Xy(1:nNy/2,:))  + int_my(Xy(nNy/2+1:nNy,:)))/6 + ...
-                      int_my(Xqy(1:nNy/2,:))*2/3, ...
-                     edgeNormals(eYZ,2));
+intY = bsxfun(@times, ...
+              (int_my(Xy(1:nNy/2,:)) + int_my(Xy(nNy/2+1:nNy,:)))/6 + ...
+               int_my(Xqy)*2/3, ...
+               edgeNormals(eYZ,2));
 
                             %   Assemble all integrals
 IF = zeros(nE,10); IF(~eYZ,:) = intX; IF(eYZ,:) = intY;
                  
-IF = mat2cell(IF, faceNodes(faces), 10);
+IF = mat2cell(IF, faceEdges(faces), 10);
 IF = cellfun(@(X) sum(X,1), IF, 'UniformOutput', false);
 IF = bsxfun(@times, cell2mat(IF), rldecode(hK,diff(G.cells.facePos),1));
+
+IF(:,1)./G.faces.areas(faces)
 
 %   Speed improvements: First columns of IC and IF are just volume and
 %   area.

@@ -41,6 +41,7 @@ faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
 monomialFaceInt     = bsxfun(@rdivide, ...
                      G.cells.monomialFaceIntegrals(faceIntNum,:), ...
                      faceAreas);
+mIint = G.cells.monomialFaceIntegrals(faceIntNum,:)
 fFaceIntegrals = G.faces.fFaceIntegrals(faces);
 
                  
@@ -68,7 +69,7 @@ B([5,8,10],NK) = -2*vol/hK.^2;
 
 D = [monomialNodeVals; monomialEdgeVals;  ...
      monomialFaceInt ; monomialCellInt/vol]; 
-%  
+ 
 %             m3D =      @(X) [ones(size(X,1),1) , ...
 %                 (X(:,1)-Kc(1))/hK              , ...   %   (1,0,0)
 %                (X(:,2)-Kc(2))/hK               , ...   %   (0,1,0)
@@ -86,13 +87,24 @@ D = [monomialNodeVals; monomialEdgeVals;  ...
 % mCI = polyhedronInt(G,K,m3D)/vol;
 % D-[m3D([X;Ec]);mFI;mCI]
 
-%   D seems ok.
+
  
  
 M = B*D;
 
 PNstar = M\B;
 PN = D*PNstar;
+
+m3D =      @(X) [ones(size(X,1),1) , ...
+                X(:,1)              , ...   %   (1,0,0)
+               X(:,2)               , ...   %   (0,1,0)
+               X(:,3)               , ...   %   (0,0,1)
+               X(:,1).^2          , ...   %   (2,0,0)
+               X(:,1).*X(:,2) , ...   %   (1,1,0)
+               X(:,1).*X(:,3), ...   %   (1,0,1)
+               X(:,2).^2, ...   %   (0,2,0) 
+               X(:,2).*X(:,3), ...   %   (0,1,1)
+               X(:,3).^2];      %   (0,0,2)icenter of K.
 
 g = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60 + 10;
 g = @(X) ones(size(X,1),1);
@@ -101,8 +113,8 @@ gF = polygonInt3D(G,faces,g);
 gK = polyhedronInt(G,K,g);
 gv = [g([X;Ec]); gF./faceAreas; gK/vol];
 
-er1 = max(abs((gv - PN*gv)./gv))
-%er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X))
+er1 = max(abs((gv - PN*gv)./gv));
+er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X));
 
 Mtilde = [zeros(1,nk); M(2:nk,:)];
 

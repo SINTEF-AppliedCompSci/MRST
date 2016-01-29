@@ -11,8 +11,14 @@ N = nN + nE*(k-1) + nF*k*(k-1)/2 + nK*k*(k^2-1)/6;
 S = sparse(N,N);
 b = sparse(N,1);
 
-for i = 1:nK
+step = floor(nK/10);
 
+for i = 1:nK
+    
+    if rem(i,step) == 0
+        fprintf('Calculating local block matrix for cell %d ...\n', i);
+    end
+    
     [Sl, bl, dofVec] = VEM3D_loc(G,f,i);
 
     S(dofVec,dofVec) = S(dofVec,dofVec) + Sl;

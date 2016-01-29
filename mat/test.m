@@ -2,11 +2,13 @@ clc; clear all; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-n = 5;
+n = 1;
 
-% G = cartGrid([2,2,30],[1,1,30]);
-G = cartGrid([n,n,n],[1,1,1]);
-% G.nodes.coords(1:2,:) = G.nodes.coords(1:2,:) -0.5;
+
+% G = cartGrid([n,n,n],[1,1,1]);
+    G = unitCubeTetrahedrons(n);
+
+
 G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);
 
