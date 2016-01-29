@@ -54,7 +54,11 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
       function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
          [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, ...
                                                            dt, drivingForces);
-         % Nothing extra to be done here for the surfactant case.
+         if model.surfactant
+            c     = model.getProp(state, 'surfactant');
+            cmax  = model.getProp(state, 'surfactantmax');
+            state = model.setProp(state, 'surfactantmax', max(cmax, c));
+         end
          try
             set(0, 'CurrentFigure', 1);
          catch
@@ -68,6 +72,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
          plot(state.c);
          axis([0, 100, 0, 1]);
          title('Concentration');
+         drawnow
 
       end
 
@@ -79,6 +84,9 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
            case {'surfactant'}
              index = 1;
              fn = 'c';
+           case {'surfactantmax'}
+             index = 1;
+             fn = 'cmax';
            otherwise
              [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                 model, name);

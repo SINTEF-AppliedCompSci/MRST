@@ -54,6 +54,7 @@ switch simul_case
 
     % Add zero surfactant concentration to the state.
     state0.c    = zeros(G.cells.num, 1);
+    state0.cmax = state0.c;
 
   case 'simple'
 

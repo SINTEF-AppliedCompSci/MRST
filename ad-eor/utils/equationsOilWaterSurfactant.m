@@ -16,10 +16,11 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    s = operators; % shortcut
 
    % Properties at current timestep
-   [p, sW, c, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', 'wellsol');
+   [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
+                                                     'surfactantmax', 'wellsol');
 
    % Properties at previous timestep
-   [p0, sW0, c0] = model.getProps(state0, 'pressure', 'water', 'surfactant');
+   [p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', 'surfactant', 'surfactantmax');
 
    pBH    = vertcat(wellSol.bhp);
    qWs    = vertcat(wellSol.qWs);
@@ -83,8 +84,9 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    bW   = fluid.bW(p);
    rhoW = bW.*fluid.rhoWS;
    rhoWf  = s.faceAvg(rhoW);
-   muW  = fluid.muW(p);
-   mobW = krW./muW;
+   muW = fluid.muWSft(c);
+   multmuW = fluid.muW(p)/fluid.muWr;
+   mobW = krW./(muW.*multmuW);
    dpW  = s.Grad(pW) - rhoWf.*gdz;
    upcw = (double(dpW)<=0);
    vW   = -s.faceUpstr(upcw, mobW).*s.T.*dpW;
@@ -140,7 +142,11 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    % Conservation of surfactant in water:
    poro = model.rock.poro;
-   surfactant = (s.pv/dt).*(pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) + s.Div(bWvSft);
+   ads  = effads(c, cmax, fluid);
+   ads0 = effads(c0, cmax0, fluid);
+   ads_term = (s.pv/dt).*(fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0));
+   surfactant = (s.pv/dt).*(pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term + ...
+       s.Div(bWvSft);
 
    eqs   = {water, oil, surfactant};
    names = {'water', 'oil', 'surfactant'};
@@ -231,4 +237,13 @@ function [wSft, wciSft, iInxW] = getWellSurfactant(W)
    iInx  = rldecode(inj, nPerf);
    iInx  = find(iInx);
    iInxW = iInx(compi(perf2well(iInx),1)==1);
+end
+
+% Effective adsorption, depending of desorption or not
+function y = effads(c, cmax, fluid)
+   if fluid.adsInxSft == 2
+      y = fluid.surfads(max(c, cmax));
+   else
+      y = fluid.surfads(c);
+   end
 end
