@@ -106,7 +106,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            % Update query edges
            q = min(pos(1:end-1) + j, pos(2:end)-1);
 
-           %% Does edge q have any node equal to 'next'?
+           % Does edge q have any node equal to 'next'?
            ix = any(next(:, [1,1]) == edges(q,:), 2) & act;
            if any(ix),
               % Write
@@ -124,7 +124,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            edges(q(ix),:)=nan;
 
 
-           %% Does edge q have any node equal to 'prev'?
+           % Does edge q have any node equal to 'prev'?
            ix = any(prev(:, [1,1]) == edges(q,:), 2) & act;
            if any(ix),
               % Write
