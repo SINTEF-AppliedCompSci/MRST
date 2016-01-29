@@ -1,10 +1,10 @@
 function f = assignSURFROCK(f, surfrock, reg)
-ntsfun = numel(reg.SATINX);
+ntsfun = numel(reg.SURFINX);
 if ntsfun == 1
-    satnum = 1;
+    surfnum = 1;
 else
-    satnum = reg.SATNUM;
+    surfnum = reg.SURFNUM;
 end
-f.adsSftInx = surfrock(satnum, 1);
-f.rhoSftR   = surfrock(satnum, 2);
+f.adsInxSft= surfrock(surfnum, 1);
+f.rhoRSft   = surfrock(surfnum, 2);
 end
