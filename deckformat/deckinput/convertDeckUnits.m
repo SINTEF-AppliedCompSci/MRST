@@ -755,13 +755,8 @@ end
 
 function wcp = convertWSurfact(wcp, u)
 
-   c = [2        ];
-   u = [u.density];
-
-   for n = 1 : numel(c),
-      wcp(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
-                             wcp(:, c(n)), 'UniformOutput', false);
-   end
+   wcp(:, 2) = cellfun(@(c) convertFrom(c, u.concentr), ...
+                       wcp(:, 2), 'UniformOutput', false);
 end
 
 %--------------------------------------------------------------------------
