@@ -10,8 +10,6 @@ SURFST
 30   1e-6
 100  1e-6 /
 
-
-
 SURFCAPD
 -- capillary number interpolant
 -10  0
@@ -24,5 +22,28 @@ SURFCAPD
 -4   0.5
 -3   1
 2    1   /
+
+SURFVISC
+-- Concentration   Viscosity mutliplier
+0    0.68
+30   0.8
+100  1 /
+
+SURFADS
+-- Concentration Adsorption coefficient
+0   0.005
+1   0.005
+30  0.005
+100 0.005 /
+0   0.005
+1   0.005
+30  0.005
+100 0.005 /
+
+SURFROCK
+--AI Density
+  1    2000 /
+  1    2000 /
+
 
 ECHO

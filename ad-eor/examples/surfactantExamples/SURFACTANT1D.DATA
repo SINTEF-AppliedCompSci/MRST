@@ -44,12 +44,9 @@ EQUALS
       'DZ'     100      /
       'PORO'     0.3    /
       'PERMX'  100      /
+      'PERMY'  100      /
+      'PERMZ'   20      /
       'TOPS'  1000      1  100   1  1   1   1  /
-/
-
-COPY
-      'PERMX'    'PERMY'   /
-      'PERMX'    'PERMZ'   /
 /
 
 
@@ -269,11 +266,11 @@ DENSITY
 
 PVTW
 -- REF.PRES.  REF. FVF  COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
-     234        1.012       4.28e-5        0.48       0.00E+00 /
+     234        1.012       4.28e-5        0.61       0. /
 
 PVCDO
 -- REF.PRES.   FVF      COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
-     234        1.065       6.65e-5         5.0        1.9e-3   /
+     234        1.065       6.65e-5         5.0        0. /
 
 ROCK
 -- REF.PRES   COMPRESSIBILITY
