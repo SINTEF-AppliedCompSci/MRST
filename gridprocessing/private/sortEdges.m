@@ -1,7 +1,11 @@
 function G = sortEdges(G)
-G=sortCellFaces(G);
+   G = sortCellFaces(G);
 end
-%% Helper function to sortCellFaces
+
+%--------------------------------------------------------------------------
+% Helper function to sortCellFaces
+%--------------------------------------------------------------------------
+
 function [edges, m, s] = swap(k, edges, m, s)
 % Do one edge swap.  With N=size(edges,1), N-1 edge swaps will sort edges.
 
@@ -35,7 +39,9 @@ function [edges, m, s] = swap(k, edges, m, s)
    end
 end
 
-%% For each (2D) cell, sort edges counter-clockwise to ensure that the cell
+%--------------------------------------------------------------------------
+
+% For each (2D) cell, sort edges counter-clockwise to ensure that the cell
 %  volumes are positive and that the edge normals and edge signs are
 %  consistent with the cell-face neightbor list.
 function G = sortCellFaces(G)
@@ -108,4 +114,3 @@ function G = sortCellFaces(G)
    G.cells.faces = cellFaces;
    G.faces.nodes = reshape(Edges', [], 1);
 end
-

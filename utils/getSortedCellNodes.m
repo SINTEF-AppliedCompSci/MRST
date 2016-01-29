@@ -43,6 +43,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
    cn = reshape(cellEdges(:,1), 1, [])';
 end
+
+%--------------------------------------------------------------------------
+
 function edges = sortEdges(edges)
    % Assume edges vectors are oriented in the same direction around cell.
    % Sort edges such that they are back-to-back.
