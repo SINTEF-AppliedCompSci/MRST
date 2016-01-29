@@ -31,11 +31,11 @@ SURFVISC
 
 SURFADS
 -- Concentration Adsorption coefficient
-0   0.005
+0   0.
 1   0.005
 30  0.005
 100 0.005 /
-0   0.005
+0   0.
 1   0.005
 30  0.005
 100 0.005 /
