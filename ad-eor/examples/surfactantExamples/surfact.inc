@@ -25,9 +25,9 @@ SURFCAPD
 
 SURFVISC
 -- Concentration   Viscosity mutliplier
-0    0.68
-30   0.8
-100  1 /
+0    0.48
+0.5  1.44
+1    2.4 /
 
 SURFADS
 -- Concentration Adsorption coefficient
