@@ -50,7 +50,7 @@ function T = computeTrans(G, rock, varargin)
 %   'computeGeometry'.
 %
 % SEE ALSO:
-%   computeGeometry, computeMimeticIP, darcy, permTensor, makeRock.
+%   computeGeometry, permTensor, makeRock.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
@@ -71,90 +71,27 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   opt = struct('verbose', false, 'grdecl', [], 'K_system', 'xyz', ...
-                'cellCenters', [], 'cellFaceCenters', []);
+   opt = struct('verbose'        , false, ...
+                'grdecl'         , []   , ...
+                'K_system'       , 'xyz', ...
+                'cellCenters'    , []   , ...
+                'cellFaceCenters', []   );
    opt = merge_options(opt, varargin{:});
-
-   if ~ischar(opt.K_system),
-      error(msgid('PermSys:UnsupportedType'), ...
-           ['Specified permeability coordinate system must be a ', ...
-            'string value.']);
-   end
 
    dispif(opt.verbose, 'Computing one-sided transmissibilities...\t');
    t0 = ticif(opt.verbose);
 
-   % Vectors from cell centroids to face centroids
-   cellNo = rldecode(1:G.cells.num, diff(G.cells.facePos), 2)';
-   if ~isempty(opt.cellCenters)
-      C = opt.cellCenters;
-   else
-      C = G.cells.centroids;
-   end
-   if ~isempty(opt.cellFaceCenters)
-      C = opt.cellFaceCenters - C(cellNo,:);
-   else
-      C = G.faces.centroids(G.cells.faces(:,1), :) - C(cellNo,:);
+   switch lower(opt.K_system),
+      case 'xyz',     T = htrans_xyz  (G, rock, opt);
+      case 'loc_xyz', T = htrans_local(G, rock, opt);
+
+      otherwise
+         error(msgid('PermSys:Unknown'), ...
+               'Unknown permeability coordinate system ''%s''.', ...
+               opt.K_system);
    end
 
-   % Normal vectors
-   sgn = 2*(cellNo == G.faces.neighbors(G.cells.faces(:,1), 1)) - 1;
-   N   = bsxfun(@times, sgn, G.faces.normals(G.cells.faces(:,1),:));
-   clear sgn;
-
-   if strcmpi(opt.K_system, 'xyz'),
-      [K, i, j] = permTensor(rock, G.griddim);
-
-      assert (size(K,1) == G.cells.num, ...
-             ['Permeability must be defined in active cells only.\n', ...
-              'Got %d tensors, expected %d (== number of cells).'],   ...
-              size(K,1), G.cells.num);
-
-      % Compute T = C'*K*N / C'*C. Loop-based to limit memory use.
-      T = zeros(size(cellNo));
-      for k=1:size(i,2),
-          T = T + sum(C(:,i(k)) .* K(cellNo,k) .* N(:,j(k)), 2);
-      end
-      clear K i j cellNo N;
-      T = T./ sum(C.*C,2);
-      clear C;
-
-   elseif strcmpi(opt.K_system, 'loc_xyz'),
-      if(size(rock.perm,2)==1)
-         rock.perm=repmat(rock.perm,[1,G.griddim]);
-      end
-      if size(rock.perm,2) ~= size(G.cartDims,2),
-         error(msgid('PermSys:Inconsistent'),                 ...
-              ['Permeability coordinate system ''loc_xyz'' ', ...
-               'is only valid for diagonal tensor']);
-      end
-
-      assert (size(rock.perm,1) == G.cells.num, ...
-             ['Permeability must be defined in active cells only.\n', ...
-              'Got %d tensors, expected %d (== number of cells).'],   ...
-              size(rock.perm,1), G.cells.num);
-
-      dim = ceil(G.cells.faces(:,2) / 2);
-      ind = sub2ind(size(rock.perm), cellNo, double(dim));
-      T   = reshape(rock.perm(ind), [], 1) .* sum(C .* N, 2) ./ sum(C.*C,2);
-      clear C cellNo N;
-
-   else
-      error(msgid('PermSys:Unknown'), ...
-            'Unknown permeability coordinate system ''%s''.', ...
-            opt.K_system);
-   end
-
-   is_neg = T < 0;
-   if any(is_neg),
-      dispif(opt.verbose, ...
-            ['\nWarning:\n\t%d negative transmissibilities.\n\t', ...
-             'Replaced by absolute values...\n'], sum(is_neg));
-
-      T(is_neg) = -T(is_neg);
-   end
-   clear is_neg
+   T = handle_negative_trans(T);
 
    if isstruct(opt.grdecl) && numel(opt.grdecl) == 1,
       m = getMultipliers(G, opt.grdecl);
@@ -162,6 +99,90 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    tocif(opt.verbose, t0);
+end
+
+%--------------------------------------------------------------------------
+
+function T = htrans_xyz(G, rock, opt)
+   [C, N, cellNo] = cell_geometry(G, opt);
+   [K, i, j] = permTensor(rock, G.griddim);
+
+   assert (size(K,1) == G.cells.num, ...
+          ['Permeability must be defined in active cells only.\n', ...
+           'Got %d tensors, expected %d (== number of cells).'],   ...
+           size(K,1), G.cells.num);
+
+   % Compute T = C'*K*N / C'*C. Loop-based to limit memory use.
+   T = zeros(size(cellNo));
+   for k = 1 : size(i, 2),
+      T = T + (C(:, i(k)) .* K(cellNo, k) .* N(:, j(k)));
+   end
+
+   T = T ./ sum(C .* C, 2);
+end
+
+%--------------------------------------------------------------------------
+
+function T = htrans_local(G, rock, opt)
+   if size(rock.perm, 2) == 1,
+      rock.perm = repmat(rock.perm, [1, G.griddim]);
+   end
+
+   if size(rock.perm, 2) ~= size(G.cartDims, 2),
+      error(msgid('PermSys:Inconsistent'),                 ...
+           ['Permeability coordinate system ''loc_xyz'' ', ...
+            'is only valid for diagonal tensors.']);
+   end
+
+   assert (size(rock.perm, 1) == G.cells.num, ...
+          ['Permeability must be defined in active cells only.\n', ...
+           'Got %d tensors, expected %d (== number of cells).'],   ...
+           size(rock.perm,1), G.cells.num);
+
+   [C, N, cellNo] = cell_geometry(G, opt);
+
+   dim = ceil(G.cells.faces(:,2) / 2);
+   ind = sub2ind(size(rock.perm), cellNo, double(dim));
+   T   = reshape(rock.perm(ind), [], 1) .* ...
+         sum(C .* N, 2) ./ sum(C .* C, 2);
+end
+
+%--------------------------------------------------------------------------
+
+function [C, N, cellNo] = cell_geometry(G, opt)
+   % Vectors from cell centroids to face centroids
+   cellNo = gridCellNo(G);
+
+   if ~isempty(opt.cellCenters)
+      C = opt.cellCenters;
+   else
+      C = G.cells.centroids;
+   end
+
+   if ~isempty(opt.cellFaceCenters)
+      C = opt.cellFaceCenters - C(cellNo,:);
+   else
+      C = G.faces.centroids(G.cells.faces(:,1), :) - C(cellNo,:);
+   end
+
+   % Outward-pointing normal vectors
+   cf  = G.cells.faces(:,1);
+   sgn = 2*(cellNo == G.faces.neighbors(cf, 1)) - 1;
+   N   = bsxfun(@times, sgn, G.faces.normals(cf, :));
+end
+
+%--------------------------------------------------------------------------
+
+function T = handle_negative_trans(T)
+   is_neg = T < 0;
+
+   if any(is_neg),
+      dispif(opt.verbose, ...
+            ['\nWarning:\n\t%d negative transmissibilities.\n\t', ...
+             'Replaced by absolute values...\n'], sum(is_neg));
+
+      T(is_neg) = -T(is_neg);
+   end
 end
 
 %--------------------------------------------------------------------------
