@@ -200,7 +200,7 @@ if ~isempty(W)
         
         qW = q(:, 1);
         qO = q(:, 2);
-        qG = q(:, 2);
+        qG = q(:, 3);
         
         cqs = {...
                bW(wc).*qW, ...
