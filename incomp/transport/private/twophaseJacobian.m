@@ -90,7 +90,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % NOTE we solve
 %              __
-%        s_t + \/· [D·f(s) + D·f(s)·mo(s)] = f(s) Q
+%        s_t + \/· [D·f(s) + G·f(s)·mo(s)] = f(s) Q
 %
 % for constant vector and scalar fields fields D, G and Q.
 
