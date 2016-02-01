@@ -85,7 +85,14 @@ end
 
 %% Set up systems.
 
-modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
+switch simul_case
+  case '1D'
+    modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
+  case 'simple'
+    modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
+  otherwise
+    error('simul_case not recognized.');
+end
 
 % Convert the deck schedule into a MRST schedule by parsing the wells
 schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
