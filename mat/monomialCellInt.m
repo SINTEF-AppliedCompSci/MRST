@@ -108,7 +108,8 @@ Xq = bsxfun(@rdivide,Xq-repmat(rldecode(Kc,cellFaceNodes,1),2,1), ...
                             %   find corresponding edge normals, nodes
                             %   and edges centroids.
 diffVec = diff(G.faces.edgePos);
-fYZ = faceNormals(:,2) == 0 & faceNormals(:,3) == 0;
+tol = 1e-3;
+fYZ = abs(faceNormals(:,2)) < tol & abs(faceNormals(:,3)) < tol;
 eYZ = rldecode(fYZ, diffVec(faces),1);
 diffVec = diff(G.faces.nodePos);
 nYZ = repmat(rldecode(fYZ, diffVec(faces),1),2,1);
@@ -166,9 +167,67 @@ IF = mat2cell(IF, faceEdges(faces), 10);
 IF = cellfun(@(X) sum(X,1), IF, 'UniformOutput', false);
 IF = bsxfun(@times, cell2mat(IF), rldecode(hK,diff(G.cells.facePos),1));
 
-IF(:,1)./G.faces.areas(faces)
+[IF(:,1)./G.faces.areas(faces), G.faces.areas(faces)];
+Ec = G.edges.centroids(edges,:);
+sum(rldecode(faceNormals,faceEdges(faces)).*edgeNormals,2);
+
+faceIntPos = [1,cumsum(diff(G.cells.facePos'))+1];
+IFT = zeros(nF, 10); 
+ICT = zeros(G.cells.num, 10);
+for i = 1:G.cells.num
+    Kc = G.cells.centroids(i,:);
+    hK = G.cells.diameters(i,:);
+    m3D = @(X) [ones(size(X,1),1), ...
+                (X(:,1)-Kc(1))./hK, ...
+                (X(:,2)-Kc(2))./hK, ...
+                (X(:,3)-Kc(3))./hK, ...
+                (X(:,1)-Kc(1)).^2/hK, ...
+                (X(:,1)-Kc(1)).*(X(:,2)-Kc(2))/hK, ...
+                (X(:,1)-Kc(1)).*(X(:,3)-Kc(3))/hK, ...
+                (X(:,2)-Kc(2)).^2/hK, ...
+                (X(:,2)-Kc(2)).*(X(:,3)-Kc(3))/hK, ...
+                (X(:,3)-Kc(3)).^2/hK];
+                                
+    faceNum = G.cells.facePos(i):G.cells.facePos(i+1)-1;
+    cellFaces = G.cells.faces(faceNum);
+    faceIntNum = faceIntPos(i):faceIntPos(i+1)-1;
+    IFT(faceIntNum,:) = polygonInt3D(G,cellFaces,m3D);
+    ICT(i,:) = polyhedronInt(G,i,m3D);
+end
+
+IF = IFT;
+IC = ICT;
+
+% for i = 1:nN
+    
+    
+% vec = sum([X(1:nN,:) - X(nN+1:2*nN,:)].*edgeNormals,2)
+% 
+% for i = 1:nF
+%     x = [X((i-1)*3+1:i*3,:);Xq((i-1)*3+1:i*3,:);X(nN+(i-1)*3+1:i*3,:)]
+%     xq = Xq((i-1)*3+1:i*3,:);
+% 
+%     plot3(x(:,1), x(:,2), x(:,3), '*')
+%     hold on
+%     view(3);
+% %     axis([-1 1 -1 1 -1 1])
+%     n = edgeNormals((i-1)*3+1:i*3,:)
+%     plot3([xq(:,1); xq(:,1) + n(:,1)], [xq(:,2); xq(:,2) + n(:,2)], ...
+%           [xq(:,3); xq(:,3) + n(:,3)], 'o'  )
+%     pause;
+%     hold off;
+% end
 
 %   Speed improvements: First columns of IC and IF are just volume and
 %   area.
+
+
+
+
+
+
+
+
+
 
 end

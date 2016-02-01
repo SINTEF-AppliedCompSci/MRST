@@ -37,11 +37,11 @@ if size(faces,1) == 1;
 end
 faceAreas   = G.faces.areas(faces);
 nF          = size(faces,1);
-faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
-monomialFaceInt     = bsxfun(@rdivide, ...
-                     G.cells.monomialFaceIntegrals(faceIntNum,:), ...
-                     faceAreas);
-mIint = G.cells.monomialFaceIntegrals(faceIntNum,:)
+% faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
+% monomialFaceInt     = bsxfun(@rdivide, ...
+%                      G.cells.monomialFaceIntegrals(faceIntNum,:), ...
+%                      faceAreas);
+% mIint = G.cells.monomialFaceIntegrals(faceIntNum,:)
 fFaceIntegrals = G.faces.fFaceIntegrals(faces);
 
                  
@@ -49,15 +49,13 @@ fFaceIntegrals = G.faces.fFaceIntegrals(faces);
 Kc  = G.cells.centroids(K,:);
 hK  = G.cells.diameters(K);
 vol = G.cells.volumes(K);
-monomialCellInt = G.cells.monomialCellIntegrals(K,:);
+% monomialCellInt = G.cells.monomialCellIntegrals(K,:);
 fCellIntegral = G.cells.fCellIntegrals(K);
 
 k  = 2;                     %   Method order.
 nk = (k+1)*(k+2)*(k+3)/6;   %   Dimension of polynomial space.
                             %   Local nomber of dofs.
 NK = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
-% 
-% X = (X-repmat(Kc,size(X,1),1))/hK;
 
 B = zeros(nk, NK);
 intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
@@ -67,8 +65,65 @@ B(2:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
 B(1,NK) = 1;
 B([5,8,10],NK) = -2*vol/hK.^2;
 
-D = [monomialNodeVals; monomialEdgeVals;  ...
-     monomialFaceInt ; monomialCellInt/vol]; 
+m3D = @(X) [ones(size(X,1),1), ...
+                (X(:,1)-Kc(1))/hK, ...
+                (X(:,2)-Kc(2))/hK, ...
+                (X(:,3)-Kc(3))/hK, ...
+                (X(:,1)-Kc(1)).^2/hK^2, ...
+                (X(:,1)-Kc(1)).*(X(:,2)-Kc(2))/hK^2, ...
+                (X(:,1)-Kc(1)).*(X(:,3)-Kc(3))/hK^2, ...
+                (X(:,2)-Kc(2)).^2/hK^2, ...
+                (X(:,2)-Kc(2)).*(X(:,3)-Kc(3))/hK^2, ...
+                (X(:,3)-Kc(3)).^2/hK^2];
+
+faceIntegrals = polygonInt3D(G, faces, m3D);
+cellIntegrals = polyhedronInt(G, K, m3D);
+            
+D = [monomialNodeVals                           ; ...
+     monomialEdgeVals                           ; ...
+     bsxfun(@rdivide, faceIntegrals, faceAreas) ; ...
+     cellIntegrals/vol                          ];
+
+M = B*D;
+
+
+PNstar = M\B;
+PN = D*PNstar;
+
+Mtilde = [zeros(1,nk); M(2:nk,:)];
+
+Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
+
+%%  LOCAL LOAD TERM.                                                     %%
+
+                            %   Matrix of integrals over K of all
+                            %   combinations of linear monomials. 
+
+H = [cellIntegrals([1,2,3,4])  ; ...
+     cellIntegrals([2,5,6,7])  ; ...
+     cellIntegrals([3,6,8,9])  ; ...
+     cellIntegrals([4,7,9,10])];             
+                            %   \Pi^\Nabla in the monomial basis
+                            %   \mathcal{M}_1.
+PNstar = M(1:4,1:4)\B(1:4,:);
+                            %   Dofs \chi^i(f).
+fChi = [f([X; Ec]); ...
+        fFaceIntegrals./faceAreas   ; ...
+        fCellIntegral/vol];
+
+bl = PNstar'*H*PNstar*fChi;
+
+dofVec = [nodes', edges' + G.nodes.num, ...
+          faces' + G.nodes.num + G.edges.num, ...
+          K + G.nodes.num + G.edges.num + G.faces.num];
+
+
+      
+      
+%%  DEBUG
+      
+% D = [monomialNodeVals; monomialEdgeVals;  ...
+%      monomialFaceInt ; monomialCellInt/vol]; 
  
 %             m3D =      @(X) [ones(size(X,1),1) , ...
 %                 (X(:,1)-Kc(1))/hK              , ...   %   (1,0,0)
@@ -88,60 +143,50 @@ D = [monomialNodeVals; monomialEdgeVals;  ...
 % D-[m3D([X;Ec]);mFI;mCI]
 
 
- 
- 
-M = B*D;
+% m3D =      @(X) [ones(size(X,1),1) , ...
+%                 X(:,1)              , ...   %   (1,0,0)
+%                X(:,2)               , ...   %   (0,1,0)
+%                X(:,3)               , ...   %   (0,0,1)
+%                X(:,1).^2          , ...   %   (2,0,0)
+%                X(:,1).*X(:,2) , ...   %   (1,1,0)
+%                X(:,1).*X(:,3), ...   %   (1,0,1)
+%                X(:,2).^2, ...   %   (0,2,0) 
+%                X(:,2).*X(:,3), ...   %   (0,1,1)
+%                X(:,3).^2];      %   (0,0,2)icenter of K.
+% 
+% g = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60 + 10;
+% g = @(X) ones(size(X,1),1);
+% 
+% gF = polygonInt3D(G,faces,g);
+% gK = polyhedronInt(G,K,g);
+% gv = [g([X;Ec]); gF./faceAreas; gK/vol];
+% 
+% er1 = max(abs((gv - PN*gv)./gv));
+% er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X));
+% 
+Mdb = zeros(nk,nk);
+Mdb(1,:) = cellIntegrals/vol;
+%    1 2 3 4 5   6  7  8   9  10
+%   {1,x,y,z,x^2,xy,xz,y^2,yz,z^2}
+mm = zeros(nk,nk);
+mm(2,2) = vol/(hK^2); mm(3,3) = vol/(hK^2); mm(4,4) = vol/(hK^2);
+mm(2,5) = cellIntegrals(2)*2/(hK);
+mm(2,[6,7]) = cellIntegrals([3,4])/hK;
+mm(3,[6,8,9]) = cellIntegrals([2,3,4]).*[1/hK,2/hK^2, 1/hK];
+mm(4,[7,9,10]) = cellIntegrals([2,3,4]).*[1/hK,2/hK^2, 1/hK];
+mm(5,[5,6,7]) = cellIntegrals([5,6,7]).*[4/hK^2,2/hK, 2/hK]; 
+mm(6,6) = (cellIntegrals(5) + cellIntegrals(8))/hK^2;
+mm(6,[7,8,9]) = cellIntegrals([9,6,7]);
+mm(7,7) = (cellIntegrals(5) + cellIntegrals(10))/hK^2;
+mm(7,[9,10]) = cellIntegrals([6,7]).*[1,2/hK];
+mm(8,[8,9]) = cellIntegrals([8,9]).*[4/hK^2,2/hK];
+mm(9,9) = (cellIntegrals(8) + cellIntegrals(10))/hK^2;
+mm(9,10) = cellIntegrals(9)*2/hK^2;
+mm(10,10) = cellIntegrals(10)*4/hK^2;
 
-PNstar = M\B;
-PN = D*PNstar;
+Mdb(2:nk,2:nk) = triu(mm(2:nk,2:nk)) + tril(mm(2:nk,2:nk)',-1);
 
-m3D =      @(X) [ones(size(X,1),1) , ...
-                X(:,1)              , ...   %   (1,0,0)
-               X(:,2)               , ...   %   (0,1,0)
-               X(:,3)               , ...   %   (0,0,1)
-               X(:,1).^2          , ...   %   (2,0,0)
-               X(:,1).*X(:,2) , ...   %   (1,1,0)
-               X(:,1).*X(:,3), ...   %   (1,0,1)
-               X(:,2).^2, ...   %   (0,2,0) 
-               X(:,2).*X(:,3), ...   %   (0,1,1)
-               X(:,3).^2];      %   (0,0,2)icenter of K.
+max(abs(Mdb-M))
 
-g = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60 + 10;
-g = @(X) ones(size(X,1),1);
 
-gF = polygonInt3D(G,faces,g);
-gK = polyhedronInt(G,K,g);
-gv = [g([X;Ec]); gF./faceAreas; gK/vol];
-
-er1 = max(abs((gv - PN*gv)./gv));
-er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X));
-
-Mtilde = [zeros(1,nk); M(2:nk,:)];
-
-Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
-
-%%  LOCAL LOAD TERM.                                                     %%
-
-                            %   Matrix of integrals over K of all
-                            %   combinations of linear monomials. 
-
-H = [monomialCellInt([1,2,3,4])  ; ...
-     monomialCellInt([2,5,6,7])  ; ...
-     monomialCellInt([3,6,8,9])  ; ...
-     monomialCellInt([4,7,9,10])];             
-                            %   \Pi^\Nabla in the monomial basis
-                            %   \mathcal{M}_1.
-PNstar = M(1:4,1:4)\B(1:4,:);
-                            %   Local load term.
-                            
-fChi = [f([X; Ec]); ...
-        fFaceIntegrals./faceAreas   ; ...
-        fCellIntegral/vol];
-
-bl = PNstar'*H*PNstar*fChi;
-
-dofVec = [nodes', edges' + G.nodes.num, ...
-          faces' + G.nodes.num + G.edges.num, ...
-          K + G.nodes.num + G.edges.num + G.faces.num];
-      
 end

@@ -1,9 +1,11 @@
 function G = computeVEMGeometry(G,f)
 
-    fprintf('Computing VEM geometry ...');
+    fprintf('Computing VEM geometry ...\n');
 
     tic;
 
+    fprintf('... computing edge data\n');
+    
     nodeNum = mcolon(G.edges.nodePos(1:end-1),G.edges.nodePos(2:end)-1);
     nodes = G.edges.nodes(nodeNum);
     edgeVec   = G.nodes.coords(nodes(2:2:end),:) -  ...
@@ -11,7 +13,9 @@ function G = computeVEMGeometry(G,f)
     lengths   = sqrt(sum(edgeVec.^2,2));
     centroids = (G.nodes.coords(nodes(2:2:end),:) +  ...
                  G.nodes.coords(nodes(1:2:end-1),:))./2;
-    
+    clear nodeNum nodes edgeVec
+             
+             
     faceNormals = G.faces.normals;
     edgeNum = mcolon(G.faces.edgePos(1:end-1),G.faces.edgePos(2:end)-1);
     edges = G.faces.edges(edgeNum);
@@ -22,7 +26,8 @@ function G = computeVEMGeometry(G,f)
     edgeVec = edgeVec.*repmat(signs,1,3);
     normals = cross(edgeVec, rldecode(faceNormals, diff(G.faces.edgePos), 1));
     normals = normals./repmat(sqrt(sum(normals.^2,2)),1,3);
-       
+    
+    clear faceNormals edgeNum edges signs nodeNum nodes edgeVec
     
     nodes = G.cells.nodes;
     edgeNodes = repmat(reshape(G.edges.nodes,2,[])',G.cells.num,1);
@@ -34,6 +39,10 @@ function G = computeVEMGeometry(G,f)
            edgeNodes, nodes, edges,  'UniformOutput', false);
     edgePos = [1;cumsum(cellfun(@(X) size(X,1), cellEdges))+1];
     cellEdges = cell2mat(cellEdges);
+    
+    clear nodes edgeNodes edges
+    
+    fprintf('... computing cell and face diameters\n');
     
     cellDiameters = zeros(G.cells.num,1);
     for i = 1:G.cells.num
@@ -58,18 +67,19 @@ function G = computeVEMGeometry(G,f)
     G.cells.('edges')       = cellEdges;
     G.cells.('edgePos')     = edgePos;
     
-    [IC, IF] = monomialCellInt(G);
-    faceIntPos = [1,cumsum(diff(G.cells.facePos)')+1];
-    
+%     [IC, IF] = monomialCellInt(G);
+%     faceIntPos = [1,cumsum(diff(G.cells.facePos)')+1];
+    fprintf('... computing source term integrals\n');
     IFf = polygonInt3D(G,1:G.faces.num,f);
     ICf = polyhedronInt(G,1:G.cells.num,f);
     
-    G.cells.('monomialCellIntegrals') = IC;
-    G.cells.('monomialFaceIntegrals') = IF;
-    G.cells.('faceIntPos') = faceIntPos;
+%     G.cells.('monomialCellIntegrals') = IC;
+%     G.cells.('monomialFaceIntegrals') = IF;
+%     G.cells.('faceIntPos') = faceIntPos;
     G.cells.('fCellIntegrals') = ICf;
     G.faces.('fFaceIntegrals') = IFf;
     
+    fprintf('... computing monomial values\n');
     I = faceProjectors(G);
     BintPos = (0:9:9*G.cells.num) + 1;
     

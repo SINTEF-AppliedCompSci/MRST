@@ -16,21 +16,21 @@ T = DelaunayTri(P);
 
 G = tetrahedralGrid(P, T.Triangulation);
 
-f = @(X) X(:,1);
-
-G = computeGeometry(G);
-G = mrstGridWithFullMappings(G);
-G = computeVEMGeometry(G,f);
-
-for i = 1:G.faces.num
-    nodeNum = G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
-    nodes = G.faces.nodes(nodeNum);
-    X = G.nodes.coords(nodes,:)
-    plot3([X(:,1); X(1,1)], [X(:,2); X(1,2)],[X(:,3); X(1,3)], '-')
-    edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
-    edges = G.faces.edges(edgeNum);
-    G.edges.lengths(edges)
-end
+% f = @(X) X(:,1);
+% 
+% G = computeGeometry(G);
+% G = mrstGridWithFullMappings(G);
+% G = computeVEMGeometry(G,f);
+% 
+% for i = 1:G.faces.num
+%     nodeNum = G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
+%     nodes = G.faces.nodes(nodeNum);
+%     X = G.nodes.coords(nodes,:)
+%     plot3([X(:,1); X(1,1)], [X(:,2); X(1,2)],[X(:,3); X(1,3)], '-')
+%     edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
+%     edges = G.faces.edges(edgeNum);
+%     G.edges.lengths(edges)
+% end
 
 % plotGrid(G);
 % hold on;
