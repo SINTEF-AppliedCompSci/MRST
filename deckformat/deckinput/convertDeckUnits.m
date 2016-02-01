@@ -254,10 +254,26 @@ function props = convertPROPS(props, u)                                %#ok
                 props.(key){t} = convertFrom(props.(key){t}, unt);
             end
 
-         case 'PLYMAX',
+         case 'SURFADS',
+            unt         = [u.concentr, 1];
+            for t = 1 : numel(props.(key)),
+                props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
+         case 'SURFROCK',
+            unt         = [1, u.concentr];
+            props.(key) = convertFrom(props.(key), unt);
+
+         case 'SURFVISC',
+            unt         = [u.concentr, u.viscosity];
+            for t = 1 : numel(props.(key)),
+                props.(key){t} = convertFrom(props.(key){t}, unt);
+            end
+
+        case 'PLYMAX',
             unt         = [u.concentr, u.concentr];
             props.(key) = convertFrom(props.(key), unt);
-        
+
          case 'PLYROCK',
             unt         = [1, 1, u.concentr, 1, 1];
             props.(key) = convertFrom(props.(key), unt);
@@ -396,6 +412,8 @@ function props = convertPROPS(props, u)                                %#ok
                ...
                'SOWCR' , 'SOGCR'  , ...
                'ISOWCR', 'ISOGCR' , ...
+               ...
+               'SURFCAPD'
                },
             continue;  % Dimensionless
 

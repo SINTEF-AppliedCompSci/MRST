@@ -45,6 +45,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case 'SURFST',
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
 
+         case 'SURFCAPD',
+            prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
+
+         case 'SURFVISC',
+            prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 2);
+
+         case 'SURFADS',
+           prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
+
+         case 'SURFROCK',
+            tmpl(1:2) = { 'NaN' };
+            data      = readDefaultedKW(fid, tmpl, 'NRec', ntsfun);
+            prp.(kw)  = to_double(data);  clear tmpl
+
          case 'PLYADS',
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
 
@@ -85,7 +99,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case {'PVDG', 'PVDO'},
             prp.(kw) = readImmisciblePVTTable(fid, ntpvt, 3);
-        
+
          case 'PVCO'
             tbl = readImmisciblePVTTable(fid, ntpvt, 6);
             assert(~isfield(prp, 'PVTO'));
