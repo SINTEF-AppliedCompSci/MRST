@@ -467,7 +467,7 @@ end
 function w = readWSurfact(fid, w)
    %            1          2
    template = {'Default', '0.0'};
-   numeric  = [2];
+   numeric  = 2;
 
    data = readDefaultedKW(fid, template);
    data = toDouble(data, numeric);

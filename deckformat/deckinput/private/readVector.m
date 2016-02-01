@@ -134,7 +134,8 @@ end
 iseof           = feof(fid);
 [errmsg, errno] = ferror(fid);
 readAll = (~isinf(nel) && (numel(C{1}) == nel)) | isinf(nel);
-if ischar(lin) && matches(lin, '^\s*/') && readAll,
+
+if (iseof || (ischar(lin) && matches(lin, '^\s*/'))) && readAll,
    v = C{1};
 elseif ischar(lin) && matches(lin, '^\s*/'),
    fclose(fid);
