@@ -52,7 +52,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    % The water flux for the wells.
 
-   Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators);
+   Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, 'velocCompMethod', 'square');
    [krW, krO] = computeRelPermSft(sW, Nc, fluid);
 
    % Multipliers for properties
