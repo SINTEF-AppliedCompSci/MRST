@@ -1,7 +1,7 @@
 RUNSPEC
 
 TITLE
-   SIMPLE 2D OWS PROBLEM 
+   SIMPLE 2D OIL-WATER-SURFACTANT PROBLEM
 
 METRIC
 
@@ -10,7 +10,7 @@ DIMENS
 
 OIL
 WATER
-SURFACTANT 
+SURFACTANT
 
 EQLDIMS
     1  100   10    1    1 /
@@ -70,7 +70,7 @@ SWOF
     0.7000    0.7160    0.0237         0.0
     0.7500    0.8521    0.0059         0.0
     0.8000    1.0000       0.0         0.0
-/ 
+/
     0.1500       0.0    1.0000         0.0
     0.2000    0.0059    0.8521         0.0
     0.2500    0.0237    0.7160         0.0
@@ -85,8 +85,8 @@ SWOF
     0.7000    0.7160    0.0237         0.0
     0.7500    0.8521    0.0059         0.0
     0.8000    1.0000       0.0         0.0
-/ 
- 
+/
+
 
 DENSITY
 --   O       W     G
@@ -96,7 +96,7 @@ DENSITY
 PVTW
 -- REF.PRES.  REF. FVF  COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
      234        1.012       4.28e-5        0.48       0.00E+00 /
- 
+
 PVCDO
 -- REF.PRES.   FVF      COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
      234        1.065       6.65e-5         5.0        1.9e-3   /
@@ -234,7 +234,7 @@ WSURFACT
 /
 
 TSTEP
-  1*3.0 2*5.0 4*10.0 20*10.0 
+  1*3.0 2*5.0 4*10.0 20*10.0
 /
 
 ---------------------------------------------------------------------------
@@ -287,4 +287,3 @@ TSTEP
 /
 
 END     ================================================================
-
