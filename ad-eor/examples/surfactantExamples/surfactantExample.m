@@ -50,7 +50,7 @@ switch simul_case
   case '1D'
 
     nc = G.cells.num;
-    state0 = initResSol(G, 300*barsa, [ .1, .9]);
+    state0 = initResSol(G, 300*barsa, [ .2, .8]);
 
     % Add zero surfactant concentration to the state.
     state0.c    = zeros(G.cells.num, 1);

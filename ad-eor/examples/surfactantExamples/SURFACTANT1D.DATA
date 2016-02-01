@@ -1,7 +1,7 @@
 RUNSPEC
 
 TITLE
-   SIMPLE 2D OWS PROBLEM
+   SIMPLE 1D OIL-WATER-SURFACTANT PROBLEM
 
 METRIC
 
@@ -39,9 +39,9 @@ GRID    ================================================================
 INIT
 --     ARRAY  VALUE     ------- BOX ------
 EQUALS
-      'DX'      20      /
-      'DY'      20      /
-      'DZ'     100      /
+      'DX'       1      /
+      'DY'       5      /
+      'DZ'       5      /
       'PORO'     0.3    /
       'PERMX'  100      /
       'PERMY'  100      /
@@ -297,7 +297,7 @@ SOLUTION ===============================================================
 
 -- Initial water saturation for each grid cell
 SWAT
- 100*0.9
+ 100*0.2
 /
 
 -- Initial pressure for each cell
@@ -331,17 +331,17 @@ RPTRST
 
 
 WELSPECS
---     WELL   GROUP LOCATION  BHP   PI
---     NAME   NAME    I  J   DEPTH DEFN
-    'INJE'    'G'     1  1    1000 'WAT'  /
-    'PROD'    'G'     100  1   1000 'OIL'  /
+--     WELL   GROUP   LOCATION   BHP    PI
+--     NAME   NAME    I    J     DEPTH  DEFN
+    'INJE'    'G'     1    1     1000   'WAT'  /
+    'PROD'    'G'     100  1     1000   'OIL'  /
 /
 
 COMPDAT
---     WELL     -LOCATION- OPEN/ SAT CONN  WELL
---     NAME     I   J  K1 K2  SHUT   TAB FACT  DIAM
-    'INJE'      1   1  1  1   'OPEN' 2*        0.3/
-    'PROD'      100  1  1  1   'OPEN' 2*        0.3/
+-- WELL  -LOCATION-      OPEN/   SAT  CONN  WELL
+-- NAME  I    J  K1  K2  SHUT    TAB  FACT  DIAM
+'INJE'   1    1  1   1   'OPEN'  2*         0.3/
+'PROD'   100  1  1   1   'OPEN'  2*         0.3/
 /
 
 
@@ -351,21 +351,48 @@ COMPDAT
 WCONPROD
 --      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
 --      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
-       'PROD'   'OPEN'  'BHP'   5*                            150/
+       'PROD'   'OPEN'  'BHP'   5*                            280/
 /
 
 WCONINJE
---      WELL     INJ   OPEN/   CNTL    FLOW   RESV    BHP
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
 --      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
-       'INJE' 'WATER' 'OPEN' 'RATE'   200     1*     4000 /
+       'INJE' 'WATER' 'OPEN' 'BHP'     2*            320 /
 /
 
 WSURFACT
-  'INJE'  1.0  /
+  'INJE'  0.0  /
 /
 
 TSTEP
-  10*1 200*5.0
+-- 2 years
+--  10*1.0 144*5.0
+730*1.0
+/
+
+---------------------------------------------------------------------------
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+       'PROD'   'OPEN'  'BHP'   5*                            280/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJE' 'WATER' 'OPEN' 'BHP'     2*            320 /
+/
+
+WSURFACT
+  'INJE'  50.0  /
+/
+
+TSTEP
+-- 2 years
+--   146*5.0
+730*1.0
 /
 
 
