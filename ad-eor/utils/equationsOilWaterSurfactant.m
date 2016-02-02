@@ -68,14 +68,16 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    % Gravity contribution
    gdz = model.getGravityGradient();
 
-   % NOT IMPLEMENTED YET:
-   % Adsortion.
-   % Viscosity change.
-   % Capillary pressue
-   pW = p;
-   pO = p;
-
    fluid = model.fluid;
+
+   % Capillary pressure
+   pcOW = 0;
+   if isfield(fluid, 'pcOW')
+      pcOW  = fluid.pcOW(sW);
+   end
+   pcOW = pcOW.*fluid.ift(c)/fluid.ift(0);
+   pO = p;
+   pW = pO - pcOW;
 
    bW0 = fluid.bW(p0);
    bO0 = fluid.bO(p0);
@@ -106,17 +108,6 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    dpO  = s.Grad(pO) - rhoOf.*gdz;
    upco = (double(dpO)<=0);
    vO   = -s.faceUpstr(upco, mobO).*s.T.*dpO;
-
-   % try
-   %    set(0, 'currentFigure', 3);
-   % catch
-   %    figure(3)
-   % end
-   % ff = mobW.val./(mobW.val + mobO.val);
-   % plot(ff);
-   % axis([0, 100, 0, 1]);
-   % drawnow
-
 
    if model.outputFluxes
       state = model.storeFluxes(state, vW, vO, vSft);
