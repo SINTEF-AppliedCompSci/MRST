@@ -91,7 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                opt.K_system);
    end
 
-   T = handle_negative_trans(T);
+   T = handle_negative_trans(T, opt);
 
    if isstruct(opt.grdecl) && numel(opt.grdecl) == 1,
       m = getMultipliers(G, opt.grdecl);
@@ -173,7 +173,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function T = handle_negative_trans(T)
+function T = handle_negative_trans(T, opt)
    is_neg = T < 0;
 
    if any(is_neg),
