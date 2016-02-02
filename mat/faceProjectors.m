@@ -62,7 +62,8 @@ nodes = reshape(nodes,[],1);
 
 X = [G.nodes.coords(nodes,:); Ec];
 
-                            %   Build local coordinate systems.
+Xu = X;
+%   Build local coordinate systems.
 vec1 = (X(G.faces.nodePos(1:end-1)+1,:) - X(G.faces.nodePos(1:end-1),:));
 vec1 = bsxfun(@rdivide, vec1, sqrt(sum(vec1.^2,2)));
 vec2 = cross(faceNormals,vec1,2);
@@ -80,23 +81,50 @@ numFaceNodes = diff(G.faces.nodePos);
 
                             %   Scale coordinates for use in the monomial
                             %   basis.
+b = X(G.faces.nodePos(1:end-1),:);
+Xplot = cell2mat(cellfun(@(X,Y,b) (X-repmat(b,size(X,1),1))*Y, ...
+             mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
+             mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
+             mat2cell(repmat(b,3,1),ones(3*nF,1),3), ...
+                         'UniformOutput', false));
+                     
 X = bsxfun(@rdivide, X - repmat(rldecode(Fc,numFaceNodes,1),3,1), ...
                          repmat(rldecode(hF,numFaceNodes,1),3,1));
 
                             %   Apply coordinate transform to coordinates
                             %   and edgeNormals.
-X = cell2mat(cellfun(@(X,Y) X*Y, mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
-                        mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
+X = cell2mat(cellfun(@(X,Y,b) (X-repmat(b,size(X,1),1))*Y, ...
+             mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
+             mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
+             mat2cell(repmat(b,3,1),ones(3*nF,1),3), ...
                          'UniformOutput', false));
-                     
+
 edgeNormals = ...
     cell2mat(cellfun(@(X,Y) X*Y, ...
     mat2cell(edgeNormals,diff(G.faces.edgePos),3), ...
     mat2cell(T,3*ones(nF,1),2), ...
     'UniformOutput', false));
-    
+
+% sqrt(sum((Xplot(1:nN,:) - Xplot(nN+1:2*nN,:)).^2,2)) - hE
+% 
+% for i = 1:nF
+%     figure();
+%     plot(Xplot(3*(i-1)+1:3*i,1), Xplot(3*(i-1)+1:3*i,2),'*')
+%     figure();
+%     plot3(Xu(3*(i-1)+1:3*i,1),Xu(3*(i-1)+1:3*i,2), Xu(3*(i-1)+1:3*i,3),'o')
+%     pause
+%     close all;
+% end
                             %   Scale edgeNormals by length.
 edgeNormals = bsxfun(@times, edgeNormals, hE);
+
+% for i = 1:nF
+%     xx = Xplot(3*(i-1)+1:3*i,:);
+%     plot(xx(:,1), xx(:,2), '*');
+%     hold on
+%     plot(xx(:,1) + edgeNormals(3*(i-1)+1:3*i,1), xx(:,2) + edgeNormals(3*(i-1)+1:3*i,2), 'o')
+%     hold off
+% end
 
 intD = bsxfun(@times,(int_m(X(1:nN,:)) + int_m(X(nN+1:2*nN,:)))/6 ... 
                  + int_m(X(2*nN+1:end,:))*2/3, edgeNormals(:,1));
@@ -145,12 +173,26 @@ PNstar = cell2mat(PNstar);
 PN = cell2mat(PN);
 
 %%  Cell face int
-
                             %   Gauss-Lobatto quadrature point and
                             %   wheights for refenrence triangle.
 Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
 w = [1/36; 1/36; 1/18; 1/18; 1/9; 2/9];
                             %   For each triangle t, evaluate integral.
+%   w = [ ...
+%     0.22338158967801146570; ...
+%     0.22338158967801146570; ...
+%     0.22338158967801146570; ...
+%     0.10995174365532186764; ...
+%     0.10995174365532186764; ...
+%     0.10995174365532186764 ];
+% 
+%   Xq = [ ...
+%     0.10810301816807022736,  0.44594849091596488632; ...
+%     0.44594849091596488632,  0.10810301816807022736; ...
+%     0.44594849091596488632,  0.44594849091596488632; ...
+%     0.81684757298045851308,  0.091576213509770743460; ...
+%     0.091576213509770743460,  0.81684757298045851308; ...
+%     0.091576213509770743460,  0.091576213509770743460 ];
 
 nq = size(Xq,1);
 
@@ -158,15 +200,20 @@ k = 2;
 N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2;
 
 I = sparse(G.cells.num*9,N);
+I = sparse(G.cells.num*6,N);
+
 
 Kc = G.cells.centroids;
 hK = G.cells.diameters;
 TPos = (0:3:3*nF)+1;
 PNFstarPos = (0:6:6*G.faces.num)+1;
 intPos = (0:9:9*G.cells.num)+1;
+intPos = (0:6:6*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
              rldecode((1:G.cells.num)',diff(G.cells.facePos),1)];
 neighbors = G.faces.neighbors;
+
+m3D = @(X) [X(:,1), X(:,2), X(:,3)];
 
 for i = 1:nF
     
@@ -189,18 +236,21 @@ for i = 1:nF
                             %   Map from Polygon to face
 %     Xmon = (X-repmat(Fc(i,:),size(X,1),1))/hF(i);
     
+    Xu = X;
     X = (X - repmat(bT,size(X,1),1))*TF;
-    
+%     
 %     Xmon = (Xmon - repmat(bT,size(Xmon,1),1))*TF;
 % 
 %     Ec = G.edges.centroids(edges,:);
 %     Ec = (Ec-repmat(bT,size(Ec,1),1))*TF;
 %     
-%     g = @(X) X(:,1);
-%     gI = polygonInt3D(G,i,g)./aF(i);
+%     g = @(X) X(:,1).^2 + X(:,2).^2/8;
+%     gI = polygonInt(X,g)./aF(i);
 % 
 %     gv = [g([X;Ec]); gI];
 %     g(X) - m(Xmon)*PNFstar*gv
+%     
+%     TF
 
                             %   Triangulate face
     tri = delaunay(X);
@@ -217,6 +267,8 @@ for i = 1:nF
 
     XK = Xhat*TF' + repmat(bT,nTri*nq,1);
     
+    XKu = XK;
+    
     XK = bsxfun(@rdivide, ...
                 repmat(XK,nK,1) - rldecode(Kc(cells,:),nq*nTri*ones(nK,1),1), ...
                 rldecode(hK(cells),nq*nTri*ones(nK,1),1));
@@ -224,23 +276,52 @@ for i = 1:nF
             
     XF = (Xhat - repmat(FcT,nq*nTri,1))./hF(i);
     
-    
-    
-    mVals = m(XF)*PNFstar;
+% %     xp = (X*TF' + repmat(bT,size(X,1),1)-repmat(Kc(cells,:),size(X,1),1))./hK(i);
+%     xp = (Xu-repmat(Kc(cells,:),size(X,1),1))/hK(cells);
+%     for j = 1:nTri
+% %         xf = XF(nq*(i-1)+1:nq*i,:);
+%         xk = XK(nq*(j-1)+1:nq*j,:);
+%         plot3(xk(:,1), xk(:,2),xk(:,3),'*')
+%         hold on
+%         plot3(xp(3*(j-1)+1:3*j,1),xp(3*(j-1)+1:3*j,2),xp(3*(j-1)+1:3*j,3),'o')
+%         hold off
+%     end
+% %     
+%     mVals = m(XF)*PNFstar;
+%     
     faceNormal = faceNormals(i,:)/aF(i);
     faceSign = (-ones(nK,1)).^(repmat(neighbors(i,1),nK,1) ~= cells);
-    faceNormal = bsxfun(@times, repmat(faceNormal,nq*nTri*nK*9,1),...
-                 repmat(rldecode(faceSign,nq*nTri*ones(nK,1),1),9,1));
-    grad_mVals = sum(grad_m3D(XK).*faceNormal,2)./...
-                 repmat(rldecode(hK(cells),nq*nTri*ones(nK,1),1),9,1);
-                        
-    Dw = repmat(rldecode(D,nq*ones(nTri,1),1).*repmat(w,nTri,1),nK,1);
-    grad_mVals = reshape(grad_mVals, nq*nTri*nK,9);
+%     faceNormal = bsxfun(@times, repmat(faceNormal,nq*nTri*nK*9,1),...
+%                  repmat(rldecode(faceSign,nq*nTri*ones(nK,1),1),9,1));
+%     grad_mVals = sum(grad_m3D(XK).*faceNormal,2)./...
+%                  repmat(rldecode(hK(cells),nq*nTri*ones(nK,1),1),9,1);
+%                         
+%     Dw = repmat(rldecode(D,nq*ones(nTri,1),1).*repmat(w,nTri,1),nK,1);
+%     grad_mVals = reshape(grad_mVals, nq*nTri*nK,9);
+%     grad_mVals = bsxfun(@times,grad_mVals,Dw);
+% 
+%     grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),9);
+%     int = cell2mat(cellfun(@(X) X'*mVals, grad_mVals, 'UniformOutput', false));
+%         
+    faceNormal =  bsxfun(@times, repmat(faceNormal,nq*nTri*nK,1),...
+                      rldecode(faceSign,nq*nTri*ones(nK,1),1));
+    mVals = m(XF)*PNFstar;
+    m3Dvals = m3D(XK);
+    grad_mVals = ...
+        [2*m3Dvals(:,1).*faceNormal(:,1), ...
+           m3Dvals(:,2).*faceNormal(:,1) + m3Dvals(:,1).*faceNormal(:,2), ...
+           m3Dvals(:,3).*faceNormal(:,1) + m3Dvals(:,1).*faceNormal(:,3), ...
+         2*m3Dvals(:,2).*faceNormal(:,2), ...
+           m3Dvals(:,3).*faceNormal(:,2) + m3Dvals(:,2).*faceNormal(:,3), ...
+         2*m3Dvals(:,3).*faceNormal(:,3)];
+    grad_mVals = bsxfun(@rdivide, grad_mVals,...
+                        rldecode(hK(cells),nq*nTri*ones(nK,1),1));
+    Dw = repmat(rldecode(D,nq*ones(nTri,1),1).*repmat(w,nTri,1),nK,1);   
     grad_mVals = bsxfun(@times,grad_mVals,Dw);
-
-    grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),9);
+    
+    grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),6);
     int = cell2mat(cellfun(@(X) X'*mVals, grad_mVals, 'UniformOutput', false));
-        
+    
     dofVec = [nodes', edges' + G.nodes.num, i + G.nodes.num + G.edges.num];
     
     intNum = mcolon(intPos(cells),intPos(cells+1)-1);
@@ -249,6 +330,6 @@ for i = 1:nF
     
     %   Speed: first rows of B can be obatined from F.
     
-end
+    end
 
 end

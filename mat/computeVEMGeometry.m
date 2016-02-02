@@ -82,6 +82,7 @@ function G = computeVEMGeometry(G,f)
     fprintf('... computing monomial values\n');
     I = faceProjectors(G);
     BintPos = (0:9:9*G.cells.num) + 1;
+    BintPos = (0:6:6*G.cells.num) + 1;
     
     G.cells.('Bint') = I;
     G.cells.('BintPos') = BintPos;

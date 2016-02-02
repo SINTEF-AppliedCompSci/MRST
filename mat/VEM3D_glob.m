@@ -21,7 +21,7 @@ iiS = []; jjS = [];
 iib = [];
 sVec = [];
 bVec = [];
-parfor i = 1:nK
+for i = 1:nK
     
     [Sl, bl, dofVec] = VEM3D_loc(G,f,i);
 

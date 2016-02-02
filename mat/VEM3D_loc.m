@@ -35,8 +35,12 @@ faces       = G.cells.faces(faceNum);
 if size(faces,1) == 1;
     faces = faces';
 end
-faceAreas   = G.faces.areas(faces);
 nF          = size(faces,1);
+faceAreas   = G.faces.areas(faces);
+faceNormals = G.faces.normals(faces,:);
+faceSigns    = (-ones(nF,1)).^(G.faces.neighbors(faces,1) ~= K);
+faceNormals = bsxfun(@times, faceNormals,faceSigns);
+
 % faceIntNum = G.cells.faceIntPos(K):G.cells.faceIntPos(K+1)-1;
 % monomialFaceInt     = bsxfun(@rdivide, ...
 %                      G.cells.monomialFaceIntegrals(faceIntNum,:), ...
@@ -61,8 +65,11 @@ B = zeros(nk, NK);
 intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
 dofVec = [nodes', edges' + G.nodes.num, ...
           faces' + G.nodes.num + G.edges.num];
-B(2:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
+% B(2:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
+B(5:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
 B(1,NK) = 1;
+B(2:4, nN + nE*(k-1) + 1: nN + nE*(k-1) + nF*k*(k-1)/2) = ...
+    faceNormals'/hK;
 B([5,8,10],NK) = -2*vol/hK.^2;
 
 m3D = @(X) [ones(size(X,1),1), ...
@@ -85,14 +92,22 @@ D = [monomialNodeVals                           ; ...
      cellIntegrals/vol                          ];
 
 M = B*D;
-
-
 PNstar = M\B;
 PN = D*PNstar;
 
 Mtilde = [zeros(1,nk); M(2:nk,:)];
 
 Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
+
+g = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60 + 10;
+g = @(X) ones(size(X,1),1);
+
+gF = polygonInt3D(G,faces,g);
+gK = polyhedronInt(G,K,g);
+gv = [g([X;Ec]); gF./faceAreas; gK/vol];
+
+er1 = max(abs((gv - PN*gv)./gv))
+er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X))
 
 %%  LOCAL LOAD TERM.                                                     %%
 
@@ -161,9 +176,9 @@ dofVec = [nodes', edges' + G.nodes.num, ...
 % gK = polyhedronInt(G,K,g);
 % gv = [g([X;Ec]); gF./faceAreas; gK/vol];
 % 
-% er1 = max(abs((gv - PN*gv)./gv));
-% er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X));
-% 
+% er1 = max(abs((gv - PN*gv)./gv))
+% er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X))
+
 Mdb = zeros(nk,nk);
 Mdb(1,:) = cellIntegrals/vol;
 %    1 2 3 4 5   6  7  8   9  10
@@ -186,7 +201,10 @@ mm(10,10) = cellIntegrals(10)*4/hK^2;
 
 Mdb(2:nk,2:nk) = triu(mm(2:nk,2:nk)) + tril(mm(2:nk,2:nk)',-1);
 
-max(abs(Mdb-M))
+norm(Mdb-M,'fro')
+Mdb-M
+
+% norm(Mdb-M,'fro')
 
 
 end

@@ -2,13 +2,11 @@ clc; clear; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-n = 1;
+n = 2;
 
 
-% G = cartGrid([n,n,n],[1,1,1]);
-G = unitCubeTetrahedrons(n);
-
-
+G = cartGrid([n,n,n],[2,2,2]);
+% G = unitCubeTetrahedrons(n);
 
 % %--------------------------------------------------------------------------
 % %   -\delta u = 0,
