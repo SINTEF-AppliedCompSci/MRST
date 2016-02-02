@@ -45,8 +45,8 @@ SURFADS
 
 SURFROCK
 -- AI   Density
- 1      2000 /
- 1      2000 /
+ 1      2600 /
+ 1      2600 /
 
 
 ECHO
