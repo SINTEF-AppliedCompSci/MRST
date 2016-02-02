@@ -103,4 +103,9 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
+if isprop(modelSurfactant, 'explicitAdsComputation')
+   state0.ads = modelSurfactant.fluid.surfads(state0.c);
+   state0.adsmax = state0.ads;
+end
+
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule);

@@ -3,9 +3,11 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    % Get linearized problem for oil/water/surfactant system with black oil-style
    % properties
    opt = struct('Verbose', mrstVerbose, ...
-                'reverseMode', false,...
-                'resOnly', false,...
-                'iteration', -1);
+                'reverseMode', false, ...
+                'resOnly', false, ...
+                'iteration', -1, ...
+                'explicitAdsorption', false ...
+                );
 
    opt = merge_options(opt, varargin{:});
 
@@ -133,10 +135,14 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    % Conservation of surfactant in water:
    poro = model.rock.poro;
-   ads  = effads(c, cmax, fluid);
-   ads0 = effads(c0, cmax0, fluid);
-   ads_term = (s.pv/dt).*(fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0));
-   surfactant = (s.pv/dt).*(pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term + ...
+   if opt.explicitAdsorption
+      ads_term = 0;
+   else
+      ads  = computeEffAds(c, cmax, fluid);
+      ads0 = computeEffAds(c0, cmax0, fluid);
+      ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
+   end
+   surfactant = (s.pv/dt).*((pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
        s.Div(bWvSft);
 
    eqs   = {water, oil, surfactant};
@@ -230,8 +236,8 @@ function [wSft, wciSft, iInxW] = getWellSurfactant(W)
    iInxW = iInx(compi(perf2well(iInx),1)==1);
 end
 
-% Effective adsorption, depending of desorption or not
-function y = effads(c, cmax, fluid)
+function y = computeEffAds(c, cmax, fluid)
+   % Compute effective adsorption, depending of desorption is present or not
    if fluid.adsInxSft == 2
       y = fluid.surfads(max(c, cmax));
    else
