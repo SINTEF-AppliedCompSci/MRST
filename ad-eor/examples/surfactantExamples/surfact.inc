@@ -14,23 +14,23 @@ SURFST
 100                1e-6 /
 
 SURFCAPD
--- capillary number   Capillary number interpolant
--10                   0
--5.5                  0
--4                    0.5
--3                    1
-2                     1   /
--10                   0
--5.5                  0
--4                    0.5
--3                    1
-2                     1   /
+-- Log10(capillary number)   Capillary number interpolant
+-10                          0
+-5.5                         0
+-4                           0.5
+-3                           1
+2                            1   /
+-10                          0
+-5.5                         0
+-4                           0.5
+-3                           1
+2                            1   /
 
 SURFVISC
 -- Concentration   Water viscisity
 0                  0.61
 30                 0.8
-1000               1 /
+100                1 /
 
 SURFADS
 -- Concentration   Adsorption coefficient
@@ -45,8 +45,8 @@ SURFADS
 
 SURFROCK
 -- AI   Density
- 1      2600 /
- 1      2600 /
+ 1      2650 /
+ 1      2650 /
 
 
 ECHO
