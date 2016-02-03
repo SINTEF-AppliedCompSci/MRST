@@ -14,14 +14,14 @@ function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, varargin
           veloc_sq = veloc_sq + veloc{i}(v).^2;
        end
 
-       try
-          set(0, 'currentFigure', 2)
-       catch
-          figure(2);
-       end
-       subplot(2, 1, 1)
-       plot(sqrt(veloc_sq.val));
-       title('velocity (linear method)')
+       % try
+       %    set(0, 'currentFigure', 2)
+       % catch
+       %    figure(2);
+       % end
+       % subplot(2, 1, 1)
+       % plot(sqrt(veloc_sq.val));
+       % title('velocity (linear method)')
 
        % We use the bottom hole pressure to compute well velocity
        perf2well = getPerforationToWellMapping(W);
@@ -53,14 +53,14 @@ function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, varargin
 
      case 'square'
        veloc_sq = s.sqVeloc(v);
-       try
-          set(0, 'currentFigure', 4)
-       catch
-          figure(4);
-       end
-       subplot(2, 1, 1)
-       plot(sqrt(veloc_sq.val));
-       title('velocity (square method)')
+       % try
+       %    set(0, 'currentFigure', 4)
+       % catch
+       %    figure(4);
+       % end
+       % subplot(2, 1, 1)
+       % plot(sqrt(veloc_sq.val));
+       % title('velocity (square method)')
 
      otherwise
        error('option for velocCompMethod not recognized');
@@ -69,10 +69,10 @@ function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, varargin
 
    abs_veloc = (veloc_sq).^(1/2);
 
-   subplot(2, 1, 2)
-   plot(abs_veloc.val);
-   title('velocity')
-   drawnow;
+   % subplot(2, 1, 2)
+   % plot(abs_veloc.val);
+   % title('velocity')
+   % drawnow;
 
    sigma = fluid.ift(c);
    Nc = abs_veloc./sigma;

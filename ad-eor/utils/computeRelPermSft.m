@@ -5,15 +5,15 @@ function [krW, krO] = computeRelPermSft(sW, Nc, fluid)
    logNc = min(max(-20, logNc), 20);
    m = fluid.miscfact(logNc);
    
-   try
-      set(0, 'currentFigure', 3);
-   catch
-      figure(3)
-   end
-   plot(m.val);
-   title('m');
-   axis([0, 100, 0, 1]);
-   drawnow
+   % try
+   %    set(0, 'currentFigure', 3);
+   % catch
+   %    figure(3)
+   % end
+   % plot(m.val);
+   % title('m');
+   % axis([0, 100, 0, 1]);
+   % drawnow
    
 
    sWcon    = fluid.sWcon;    % Residual water saturation   without surfactant

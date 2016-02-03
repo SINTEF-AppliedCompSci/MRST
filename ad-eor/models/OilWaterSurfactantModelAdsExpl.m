@@ -25,6 +25,24 @@ classdef OilWaterSurfactantModelAdsExpl < OilWaterSurfactantModel
          [state, report] = updateAfterConvergence@OilWaterSurfactantModel(model, state0, state, ...
                                                            dt, drivingForces);
 
+         % try
+         %    set(0, 'CurrentFigure', 1);
+         % catch
+         %    figure(1);
+         % end
+         % clf
+         % subplot(2, 1, 1)
+         % plot(state.s(:, 1), '--');
+         % axis([0, 100, 0, 1]);
+         % title('Saturation');
+         % hold on
+         % subplot(2, 1, 2)
+         % plot(state.c, '--');
+         % axis([0, 100, 0, 50]);
+         % title('Concentration');
+         % drawnow
+         % hold on
+
          state = updateExplicitAds(state0, state, model, dt);
 
       end
