@@ -111,14 +111,6 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    upco = (double(dpO)<=0);
    vO   = -s.faceUpstr(upco, mobO).*s.T.*dpO;
 
-   if model.outputFluxes
-      state = model.storeFluxes(state, vW, vO, vSft);
-   end
-   if model.extraStateOutput
-      state = model.storebfactors(state, bW, bO, []);
-      state = model.storeMobilities(state, mobW, mobO, mobSft);
-      state = model.storeUpstreamIndices(state, upcw, upco, []);
-   end
 
    % EQUATIONS ---------------------------------------------------------------
    % Upstream weight b factors and multiply by interface fluxes to obtain the
@@ -144,6 +136,11 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    end
    surfactant = (s.pv/dt).*((pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
        s.Div(bWvSft);
+
+   if model.extraStateOutput
+      sigma = fluid.ift(c);
+      state = model.storeSurfData(state, sW, c, Nc, sigma, ads);
+   end
 
    eqs   = {water, oil, surfactant};
    names = {'water', 'oil', 'surfactant'};

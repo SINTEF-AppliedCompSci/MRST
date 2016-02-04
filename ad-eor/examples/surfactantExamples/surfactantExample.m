@@ -87,13 +87,14 @@ end
 
 switch simul_case
   case '1D'
-    modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
+    % modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
+    modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck, 'extraStateOutput', ...
+                                              true);
   case 'simple'
     modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
   otherwise
     error('simul_case not recognized.');
 end
-
 % Convert the deck schedule into a MRST schedule by parsing the wells
 schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 
@@ -108,4 +109,7 @@ if isprop(modelSurfactant, 'explicitAdsComputation')
    state0.adsmax = state0.ads;
 end
 
-[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule);
+solver = NonLinearSolver('errorOnFailure', true, 'continueOnFailure', true);
+resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
+[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule, ...
+                                                  'NonLinearSolver', solver, 'OutputHandler', resulthandler);

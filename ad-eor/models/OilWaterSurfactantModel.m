@@ -106,5 +106,13 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
          end
       end
 
+      function state = storeSurfData(model, state, s, c, Nc, sigma, ads)
+         state.SWAT    = double(s);
+         state.SURFACT = double(c);
+         state.SURFCNM = log(double(Nc))/log(10);
+         state.SURFST  = double(sigma);
+         state.SURFADS = double(ads);
+      end
+
    end
 end
