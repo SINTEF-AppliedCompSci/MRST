@@ -3,6 +3,8 @@
 % NB: export_fig used below. Ensure you have downloaded it from
 % <http://www.mathworks.com/matlabcentral/fileexchange/23629-export-fig>
 assert(exist('export_fig')~=0, 'Ensure export_fig exists and is on path.')
+moduleCheck('mrst-gui')
+moduleCheck('ad-core')
 
 % -All inputs are explicitly defined here and passed into
 % optimizeFormation_extras.m (i.e., probably no default values are used
@@ -13,26 +15,16 @@ assert(exist('export_fig')~=0, 'Ensure export_fig exists and is on path.')
 % formation, or placed in best leaf nodes using internal function in
 % optimizeFormations_extras.m
 
-%figDirName = 'WellPlacementFigs';
-%figDirName = 'OptimizedRates_results_100yrsMigration';
-%figDirName = 'OptimizedRates_results_1000yrsMigration';
-%figDirName = 'OptimizedRates_results_2000yrsMigration';
-figDirName = 'OptimizedRates_results_3000yrsMigration';
-varDirNames = 'opt_results';
+
+% Main Directory name for saving results (each cases results will be put
+% into a subdirectory named according to InjYrs and MigYrs)
+varDirName = 'opt_results_array_in_trap_regions';
+
+% Figure Directory name
+figDirName = [varDirName '/' 'WellPlacementFigs_array_in_trap_regions'];
 mkdir(figDirName)
 
 names = [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()];
-%names = {'Arefm'; 'Bjarmelandfm'; 'Brentgrp'; 'Brynefm'; 'Garnfm'; 'Ilefm'; 'Stofm'; 'Tiljefm'; 'Tubaenfm'};
-% % Remove ones already run:
-% names = names(~strcmpi(names,'Arefm'));
-% names = names(~strcmpi(names,'Bjarmelandfm'));
-% names = names(~strcmpi(names,'Brentgrp'));
-% names = names(~strcmpi(names,'Brynefm'));
-% names = names(~strcmpi(names,'Garnfm'));
-% names = names(~strcmpi(names,'Ilefm'));
-% names = names(~strcmpi(names,'Stofm'));
-% names = names(~strcmpi(names,'Tiljefm'));
-% names = names(~strcmpi(names,'Tubaenfm'));
 
 % Remove certain formation names:
 names = names(~strcmpi(names,'Nordmelafm'));
@@ -44,105 +36,141 @@ names = names(~strcmpi(names,'Cookfm'));
 names = names(~strcmpi(names,'Dunlingp'));
 names = names(~strcmpi(names,'Paleocene'));
 
+% Remove ones already run:
+% names = names(~strcmpi(names,'Arefm'));
+%names = names(~strcmpi(names,'Bjarmelandfm'));
+% names = names(~strcmpi(names,'Brentgrp'));
+% names = names(~strcmpi(names,'Brynefm'));
+% names = names(~strcmpi(names,'Garnfm'));
+% names = names(~strcmpi(names,'Ilefm'));
+%names = names(~strcmpi(names,'Stofm'));
+% names = names(~strcmpi(names,'Tiljefm'));
+%names = names(~strcmpi(names,'Tubaenfm'));
+% names = names(~strcmpi(names,'Fensfjordfm'));
+% names = names(~strcmpi(names,'Krossfjordfm'));
+% names = names(~strcmpi(names,'Sognefjordfm'));
+
+% Ensure no repeting names
+names = unique(names,'stable');
+
+% Load res containing formation names and their coarsening levels.
+% Or get res from testing_coarsening_levels()
+load coarsening_levels_dx3000meter.mat
+shared_names = intersect(names, {res{:,1}});
+assert( numel(shared_names) >= numel(names) )
+assert( all(strcmpi(sort(shared_names),sort(names)))==1 )
+
 for i=1:numel(names)
     
-fmName      = names{i};
-coarsening  = 5; % @@ prevent break that occurs when resolution too low.
-rhoCref     = 760 * kilogram / meter ^3;
-use_bhp_wells = false;
-use_default_schedule = true;
+    fprintf('-------------- FORMATION: %s -----------------\n', names{i})
+    fmName      = names{i};
+    rhoCref     = 760 * kilogram / meter ^3;
 
-%%% Get formation
-clear Gt rock2D
-[Gt, rock2D]    = getFormationTopGrid(fmName, coarsening);
-if any(isnan(rock2D.perm))
-    rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
-end
-if any(isnan(rock2D.poro))
-    rock2D.poro = 0.25 * ones(Gt.cells.num,1); 
-end
-clear seainfo
-seainfo         = getSeaInfo(fmName, rhoCref);
-
-%%% get overburden pressure, and a pressure limit
-% [P_over, P_limit] = computeOverburdenPressure(Gt, rock2D, seainfo.seafloor_depth, ...
-%     seainfo.water_density);
-
-%%% Get well sites and inj vols
-clear trapCapacities
-trapCapacities  = getTrappingInfo(Gt, rock2D, seainfo, 'plotsOn',false, 'fmName',fmName);
-
-                    
-% pass in wellinfo.initOverP and BHP is computed internally
-%wellinfo.initOverP = 1 * mega * Pascal;
-
-
-%%% Get fluid/formation properties
-% (take the ones used to obtain trapCapacities, ...
-% which were also used to compute well rates)
-clear seafloor_depth seafloor_temp temp_gradient_water_density co2_density water_mu
-clear res_sat_co2 res_sat_wat caprock_pressure caprock_temperature
-seafloor_depth  = trapCapacities.info.seafloor_depth;
-seafloor_temp   = trapCapacities.info.seafloor_temp;
-temp_gradient   = trapCapacities.info.temp_gradient;
-water_density   = trapCapacities.info.water_density;
-co2_density     = []; % @@ not used as input?
-water_mu        = trapCapacities.info.water_mu;
-res_sat_co2     = trapCapacities.info.res_sat_co2;
-res_sat_wat     = trapCapacities.info.res_sat_wat;
-caprock_pressure = trapCapacities.caprock_pressure;
-caprock_temperature = trapCapacities.caprock_temperature;
-
-
-%%% Set-up schedule (controls, steps, wells)
-clear itime isteps mtime msteps
-itime           = 50 * year;
-%injRates        = wellinfo.vols_inj./itime; % m3/s
-isteps          = 50;
-mtime           = 3000 * year;
-msteps          = 300;
-single_control  = true; % not used in setSchedule_extras() yet.
-
-
-if ~use_default_schedule
-    % schedule is constructed here:
+    inx             = find(strcmp(fmName,{res{:,1}}));
+    coarsening      = res{inx,2};
+    [Gt, rock2D]    = getFormationTopGrid( fmName, coarsening );
+    if any(isnan(rock2D.perm))
+        rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
+    end
+    if any(isnan(rock2D.poro))
+        rock2D.poro = 0.25 * ones(Gt.cells.num,1); 
+    end
     
-    % first get well info (can be an array, etc...)
-    clear wellinfo
-    wellinfo        = getWellInfo(Gt, trapCapacities, ...
-                        'limits','none', ...
-                        'prod',false, ...
-                        'setInjRates',true, ...
-                        'buffer', 5000, ...
-                        'DX', 5*5000, ...
-                        'DY', 5*5000 );
-                    
-    % then assign well values
-    if use_bhp_wells
+    seainfo = getSeaInfo(fmName, rhoCref);
+    gravity on;
+    caprock_pressure = (Gt.cells.z * seainfo.water_density * norm(gravity)) ...
+                .* (1 + seainfo.press_deviation/100);
 
-        %%% Pressure-controlled wells:
-        % bhp of wells are set to be the initial pressure plus an additional
-        % 'initOverP'. This equates to an initial rate that can be calculated
-        % by convertBHPtoRate().
-        clear schedule
-        surface_pressure    = 1 * atm;
-        initState.pressure  = seainfo.water_density * norm(gravity()) ...
-            * Gt.cells.z + surface_pressure; %@@ contribution from surf_press is small
-        schedule = setSchedule_extras( Gt, rock2D, wellinfo.cinx_inj, 'bhp', ...
-                                        isteps, itime, msteps, mtime, ...
-                                        'initState', initState, ...
-                                        'initOverP', 10 * mega * Pascal, ...
-                                        'minval',    sqrt(eps));
 
-        % ensure W.sign is set correctly, as it is left as sign=0 when well is
-        % bhp-controlled (confirm this).
-        for i=1:numel(schedule.control(1).W)
-            schedule.control(1).W(i).sign = 1;
+    try
+
+        %%% Pass everything in explicitly.
+        clear Gt optim init history other
+       [Gt, optim, init, history, other] = optimizeFormation_extras(...
+            'dryrun'                         , false                        , ...
+            'inspectWellPlacement'           , false                         , ... % if true, will not continue to simulation
+            'modelname'                      , fmName                       , ...
+                'coarse_level'               , coarsening                   , ...
+            'schedule'                       , []                           , ...
+                'itime'                      , 50 * year                    , ...
+                'isteps'                     , 50                           , ...
+                'mtime'                      , 1000 * year                   , ...
+                'msteps'                     , 100                           , ... 
+            'well_placement_type'            , 'use_array'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
+                'max_num_wells'              , 40                           , ... % used in use_array, one_per_trap
+                'maximise_boundary_distance' , false                        , ... % used in one_per_path
+                'well_buffer_dist'           , 1 * kilo * meter             , ... % dist from edge of internal catchment
+                'well_buffer_dist_domain'    , 5 * kilo * meter             , ... % dist from edge of domain    
+                'well_buffer_dist_catchment' , 3 * kilo * meter             , ... % dist from edge of external catchment
+                'pick_highest_pt'            , false                        , ... % otherwise farthest downslope, used in one_per_trap and one_per_path
+                'DX'                         , 1 * kilo*meter               , ... % used in use_array
+                'DY'                         , 1 * kilo*meter               , ... % used in use_array
+            'well_control_type'              , 'rate'                       , ...
+                'rate_lim_fac'               , 2                            , ...
+            'btype'                          , 'pressure'                   , ...
+            'penalize_type'                  , 'leakage'                    , ... % 'leakage', 'leakage_at_infinity', 'pressure'
+                'leak_penalty'               , 10                           , ...
+                'pressure_penalty'           , 10000                        , ... % @@ get appropriate penalty with trial-and-error
+            'surface_pressure'              , 1 * atm                       , ...   
+            'refRhoCO2'                     , seainfo.rhoCref               , ...
+            'rhoW'                          , seainfo.water_density         , ...
+            'muBrine'                       , seainfo.water_mu              , ...
+            'muCO2'                         , 0                             , ... % zero value will trigger use of variable viscosity 
+            'pvMult'                        , 1e-5/barsa                    , ...
+            'refPress'                      , mean(caprock_pressure)        , ... % @@ ? 
+            'c_water'                       , 4.3e-5/barsa                  , ... % water compressibility
+            'p_range'                       , [0.1, 400] * mega * Pascal    , ... % pressure span of sampled property table
+            't_range'                       , [4 250] + 274                 , ...
+            'sr'                            , seainfo.res_sat_co2                   , ... % gas
+            'sw'                            , seainfo.res_sat_wat                   , ... % brine
+            'ref_temp'                      , seainfo.seafloor_temp + 273.15        , ...
+            'ref_depth'                     , seainfo.seafloor_depth                , ... 
+            'temp_grad'                     , seainfo.temp_gradient                 , ...
+            'dis_rate'                      , 0                             , ... % 0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
+            'dis_max'                       , 0                             , ... % 53/760 = 0.07;
+            'report_basedir'                , './simulateUtsira_results/'   , ... % directory for saving reslts    
+            'trapfile_name'                 , []                            , ... % 'utsira_subtrap_function_3.mat'
+            'surf_topo'                     , 'smooth' );
+
+    
+        % Save well inspection figure if it was generated
+        if isfield(other,'inspectWellPlacement')
+            % Save figure:
+            pause(1)
+            %saveas(figure(100), [figDirName '/' fmName '_wellPlacement'], 'fig')
+            export_fig(figure(100),[figDirName '/' fmName '_wellPlacement'], '-png','-transparent')
+            continue
         end
+        %
+        % Save variables
+        subVarDirName = [varDirName '/' fmName '/' ...
+            'InjYrs',num2str(convertTo(other.opt.itime,year)), ...
+            '_MigYrs',num2str(convertTo(other.opt.mtime,year))];
+        mkdir(subVarDirName);
+        save([subVarDirName '/' 'Gt'], 'Gt'); % '-v7.3'); using v7.3 makes size larger!
+        save([subVarDirName '/' 'optim'], 'optim');
+        save([subVarDirName '/' 'init'], 'init');
+        save([subVarDirName '/' 'history'], 'history');
+        save([subVarDirName '/' 'other'], 'other'); % does not contain other.fluid
+        %
+        % Save optimization iterations/details:
+        saveas(figure(10),[subVarDirName '/' fmName '_optDetails'], 'fig')
+        close(figure(10))
+        %
+        close all
+        
+    catch
+        % continue the 'for loop' if code under 'try' either finished or
+        % failed
+    end
 
-    else       
 
-        %%% Rate-controlled wells:
+
+end
+
+
+
+            %%% Rate-controlled wells:
         % injected vols could be reduced to avoid neg compressibility values
         % that result from very high injection rates.
         %wellinfo.vols_inj = wellinfo.vols_inj .* 0.2; % 0.1 worked, not 0.2 or higher
@@ -186,227 +214,20 @@ if ~use_default_schedule
     %     wellfluxes  = wellfluxes ./ Gt.cells.H(wellinfo.cinx_inj) ./ rock2D.poro(wellinfo.cinx_inj); % @@??
     %     vols_inj    = wellfluxes .* itime;
 
-
-        %%% fluxes (qGr) obtained at first time step in initial solution using
-        %%% BHP wells:
-        rates= [2.7264;    3.6041;    2.1753;    3.3926;    2.1596;    2.5669; ...
-                1.0710;    3.1972;    1.2037;    1.4002;    0.8188;    1.1484; ...
-                1.4871;    2.0375;    2.3875;    2.3250;    1.5426;    1.7688; ...
-                2.4895;    0.6788;    1.0161]; % m3/2
-        vols_inj = rates .* itime; % m3
-        clear rates
-
-
-
-        % NB: vols_inj is already in m3, thus no need to divide by co2 density
-        clear schedule
-        schedule = setSchedule_extras(Gt, rock2D, wellinfo.cinx_inj, 'rate', ...
-                                        isteps, itime, msteps, mtime, ...
-                                        'wqtots', vols_inj, ...
-                                        'minval', sqrt(eps));
-    end
-    
-else
-    schedule = [];  % will trigger the construction of schedule within 
-                    % optimizeFormation_extras routine
-end
-
-
-
-try
-
-%%% Pass everything in explicitly.
-clear Gt optim init history other
-[Gt, optim, init, history, other] = ...
-optimizeFormation_extras(...
-    'modelname'                  , fmName                       , ...
-    'schedule'                   , schedule                     , ...
-    'coarse_level'               , coarsening                   , ...
-    'num_wells'                  , 50 , ... %numel(schedule.control(1).W) , ...% used if wells are picked inside
-    'trapfile_name'              , [], ... %'utsira_subtrap_function_3.mat', ... %'subtrap_file'               , 'utsira_subtrap_function_3.mat', ...
-    'surf_topo'                  , 'inf_rough'                  , ...
-    'maximise_boundary_distance' , true                         , ... % used in pick_wellsites()
-    'well_buffer_dist'           , 5 * kilo * meter             , ... % used in pick_wellsites()
-    'surface_pressure'           , 1 * atm                      , ...   
-    'refRhoCO2'                  , rhoCref                      , ...
-    'rhoW'                       , water_density                , ...
-    'muBrine'                    , water_mu                     , ...
-    'muCO2'                      , 0                            , ... % zero value will trigger use of variable viscosity 
-    'pvMult'                     , 1e-5/barsa                   , ...
-    'refPress'                   , mean(caprock_pressure)       , ... % @@ ? 
-    'c_water'                    , 4.3e-5/barsa                 , ... % water compressibility
-    'p_range'                    , [0.1, 400] * mega * Pascal   , ... % pressure span of sampled property table
-    't_range'                    , [4 250] + 274                , ...
-    'sr'                         , res_sat_co2                  , ... % gas
-    'sw'                         , res_sat_wat                  , ... % brine
-    'ref_temp'                   , seafloor_temp + 273.15       , ...
-    'ref_depth'                  , seafloor_depth               , ... 
-    'temp_grad'                  , temp_gradient                , ...
-    'dis_rate'                   , 0                            , ...   % %0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
-    'dis_max'                    , 0                            , ...   % 53/760 = 0.07
-    'itime'                      , itime                        , ...
-    'mtime'                      , mtime                        , ...
-    'isteps'                     , isteps                       , ...
-    'msteps'                     , msteps                       , ...
-    'lim_fac'                    , 2                            , ... % factor for setting upper limit of injection rates
-    'report_basedir'             , './simulateUtsira_results/'  , ... % directory for saving reslts
-    'leak_penalty'               , 10                           , ...
-    'dryrun'                     , false                        , ...
-    'inspectWellPlacement'       , true ); 
-    
-     %%% save figures:
-     
-     % make bar plot of initial and optimized rates
-     compareWellrates_viaWellSols(init.wellSols, optim.wellSols, init.schedule, other.fluid.rhoGS);
-     drawnow
-     %saveas(gcf, [figDirName '/' fmName], 'fig')
-     export_fig(gcf, [figDirName '/' fmName], '-png','-transparent')
-     close(gcf)
-     
-     % figure 10 should contain optimization iterations/details
-     saveas(figure(10),[figDirName '/' fmName '_optDetails'], 'fig')
-     close(figure(10))
-     
-     % figure 100 should be plot of grid with wells, and initial
-     % volumes to inject
-     drawnow
-     %saveas(figure(100), [figDirName '/' fmName '_wellPlacement'], 'fig')
-     export_fig(gcf,[figDirName '/' fmName '_wellPlacement'], '-png','-transparent')
-     close(figure(100))
-     
-%      % make inventory plot
-%      reports_optim = makeReports_extras(Gt, {other.initState, optim.states{:}}, other.rock, other.fluid, optim.schedule, ...
-%                       other.residual, other.traps, other.dh, ...
-%                       optim.wellSols);
-%      h = figure; plot(1);
-%      ax = get(h, 'currentaxes');  
-%      % load all timesteps up to last plotted one (a bit of a hack)
-%      plotTrappingDistribution(ax, reports_optim, 'legend_location', 'northwest');
-%      fsize = 24;
-%      set(get(gca, 'xlabel'), 'fontsize', fsize)
-%      set(get(gca, 'ylabel'), 'fontsize', fsize)
-%      set(gca,'fontsize', fsize);
-%      set(gcf, 'position', [1, 1, 850, 850]);
-%      export_fig(gcf,[figDirName '/' fmName '_inventory'], '-png','-transparent')
-
-    
-    close all
-    
-    % save variables
-    subVarDirName = [varDirName '/' fmName '/' 'MigYrs',num2str(mtime)];
-    mkdir(subVarDirName);
-    save([subVarDirName '/' 'Gt'], 'init'); % '-v7.3'); using v7.3 makes size larger!
-    save([subVarDirName '/' 'optim'], 'optim');
-    save([subVarDirName '/' 'init'], 'init');
-    save([subVarDirName '/' 'history'], 'history');
-    save([subVarDirName '/' 'other'], 'other'); % may only contain fluid.rhoGS
-    
-catch
-    % should continue the for loop if code executed under try finished or
-    % failed
-    
-    
-end
-
-
-
-end
 % 
-% 
-% %%% Post-processing
-% 
-% reports_init  = makeReports_extras(Gt, {other.initState, init.states{:}}, other.rock, other.fluid, init.schedule, ...
-%                             other.residual, other.traps, other.dh, ...
-%                             init.wellSols);
-% 
-reports_optim = makeReports_extras(Gt, {other.initState, optim.states{:}}, other.rock, other.fluid, optim.schedule, ...
-                      other.residual, other.traps, other.dh, ...
-                      optim.wellSols);
-%                   
-% 
-selectedResultsMultiplot(Gt, reports_optim, [2], ...
-                         'plot_plume', false, ...
-                         'plot_well_numbering', true, ...
-                         'plot_distrib', false);
-                     
-% %compareWellrates(init.schedule, optim.schedule, other.fluid.rhoGS);
-compareWellrates_viaWellSols(init.wellSols, optim.wellSols, init.schedule, other.fluid.rhoGS);
-%                   
-% % initial rates
-% selectedResultsMultiplot(Gt, reports_init, [2 4 6], ...
-%                          'background', 'totalCO2', ...
-%                          'plot_traps', true);
-%                      
-% % optimized rates
-selectedResultsMultiplot(Gt, reports_optim, [1], ...
-                         'background', 'totalCO2', ...
-                         'plot_traps', true);
-%   
-% % overpressure
-selectedResultsMultiplot(Gt, reports_optim, [61], ...
-                         'background', 'overpressure', ...
-                         'init_state', other.initState, ...
-                         'plot_traps', true, 'plot_distrib', false, ...
-                         'plot_well_numbering', true);
-% 
-%                      
-% % Also:
-optim.states = computeOverpressure(other.initState, optim.states, optim.schedule);
-% figure; plotToolbar(Gt, {other.initState, optim.states{:}})
-% plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-% plotWellSols(optim.wellSols); set(gcf,'name','optim: bhp-wells')
-% 
-% 
-init.states = computeOverpressure(other.initState, init.states, init.schedule);
-% figure; plotToolbar(Gt, {other.initState, init.states{:}})
-% plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-% plotWellSols(init.wellSols); set(gcf,'name','init: bhp-wells')
-%     
+%         %%% fluxes (qGr) obtained at first time step in initial solution using
+%         %%% BHP wells:
+%         rates= [2.7264;    3.6041;    2.1753;    3.3926;    2.1596;    2.5669; ...
+%                 1.0710;    3.1972;    1.2037;    1.4002;    0.8188;    1.1484; ...
+%                 1.4871;    2.0375;    2.3875;    2.3250;    1.5426;    1.7688; ...
+%                 2.4895;    0.6788;    1.0161]; % m3/2
+%         vols_inj = rates .* itime; % m3
+%         clear rates
 
-% sat plots just before migration period
-figure
-subplot(1,2,1)
-plotCellData(Gt, init.states{60}.s(:,2), 'EdgeAlpha',0.1)
-plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-colorbar
-axis equal tight
-title('Initial')
-
-subplot(1,2,2)
-plotCellData(Gt, optim.states{60}.s(:,2), 'EdgeAlpha',0.1)
-plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-colorbar
-axis equal tight
-title('Optimized')
-
-% press plots just before migration period (likely when the highest
-% overpressure occurred)
-figure
-subplot(1,2,1)
-plotCellData(Gt, init.states{60}.pressDev, 'EdgeAlpha',0.1)
-plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-colorbar
-axis equal tight
-title('Initial')
-
-subplot(1,2,2)
-plotCellData(Gt, optim.states{60}.pressDev, 'EdgeAlpha',0.1)
-plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-colorbar
-axis equal tight
-title('Optimized')
-
-
-[~, P_limit] = computeOverburdenPressure(Gt, rock2D, seainfo.seafloor_depth, ...
-    seainfo.water_density);
-plotFormationPressureChanges(optim.states, other.initState.pressure, ...
-    'P_lim', P_limit)
-
-
-    
 
     
 
     
 
    
+c

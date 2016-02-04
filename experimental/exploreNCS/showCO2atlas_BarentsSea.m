@@ -26,7 +26,7 @@ end
 moduleCheck deckformat
 
 fprintf('Loading atlas data (this may take a few minutes)..\n');
-[grdecls, rawdata] = getAtlasGrid( [getBarentsSeaNames() getNorwegianSeaNames()] ); %#ok
+[grdecls, rawdata] = getAtlasGrid( [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()] ); %#ok
 fprintf('done\n');
 
 %% Description of raw data
@@ -102,7 +102,19 @@ end
 % approximately the outline of each formation. More details about how to
 % create 3D grid models are given in the script 'modelsFromAtlas.m'
 
-grdecls = getAtlasGrid( [getBarentsSeaNames() getNorwegianSeaNames()] ,'coarsening', 5);
+names = [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()];
+
+% Remove certain formation names:
+names = names(~strcmpi(names,'Nordmelafm'));
+names = names(~strcmpi(names,'Rorfm'));
+names = names(~strcmpi(names,'Notfm'));
+names = names(~strcmpi(names,'Knurrfm'));       % @@ can be constructed??
+names = names(~strcmpi(names,'Fruholmenfm'));   % @@
+names = names(~strcmpi(names,'Cookfm'));
+names = names(~strcmpi(names,'Dunlingp'));
+names = names(~strcmpi(names,'Paleocene'));
+
+grdecls = getAtlasGrid( names ,'coarsening', 5);
 ng = numel(grdecls);
 
 grids = cell(ng,1);
@@ -111,33 +123,38 @@ for i = 1:ng
     grids{i} = computeGeometry(gd(1));
 end
 clf;
-mymap = [
-         0         0    1.0000
-         0    1.0000         0
-    1.0000         0         0
-         0         0    0.5000
-         0    0.5000         0
-    0.7500         0         0         
-         0    1.0000    1.0000
-    1.0000         0    1.0000
-    1.0000    1.0000         0
-    0.8500    0.8500    0.8500
-    0.4000    0.4000    0.4000    
-         0         0         0
-    0.2500    0.5000    1.0000
-    0.5000    0.2500    0.7500
-    0.7500    0.2500    0.5000
-    0.7500    0.5000    0.2500
-    0.2500    1.0000    0.5000
-    0.5000    1.0000    0.2500
-         ];
+
+% Create color map with distinguishable colors for each grid
+assert(exist('colorspace')~=0, 'Ensure colorspace exists and is on path.')
+func = @(x) colorspace('RGB->Lab',x);
+mymap = distinguishable_colors(ng,'w',func);
+% mymap = [
+%          0         0    1.0000
+%          0    1.0000         0
+%     1.0000         0         0
+%          0         0    0.5000
+%          0    0.5000         0
+%     0.7500         0         0         
+%          0    1.0000    1.0000
+%     1.0000         0    1.0000
+%     1.0000    1.0000         0
+%     0.8500    0.8500    0.8500
+%     0.4000    0.4000    0.4000    
+%          0         0         0
+%     0.2500    0.5000    1.0000
+%     0.5000    0.2500    0.7500
+%     0.7500    0.2500    0.5000
+%     0.7500    0.5000    0.2500
+%     0.2500    1.0000    0.5000
+%     0.5000    1.0000    0.2500
+%          ];
 hold on
 
 for i=1:ng;
     G = grids{i};
     bf = boundaryFaces(G);
     ind = G.faces.normals(bf,3)==0;
-    plotFaces(G,bf(ind), 'FaceColor', 'none', 'EdgeColor', mymap(i,:), 'LineWidth',2);
+    plotFaces(G, bf(ind), 'FaceColor', 'none', 'EdgeColor', mymap(i,:), 'LineWidth',2);
 %    % We want to colorize each grid differently
 %    data = repmat(i, G.cells.num, 1);
 %    plotCellData(grids{i}, data, 'facea', .3, 'edgea', .05, 'edgec', 'k');

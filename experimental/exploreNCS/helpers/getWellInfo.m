@@ -34,7 +34,8 @@ function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
 
     opt.inj             = true;
     opt.inj_layout      = 'array_of_wells';
-    opt.setInjRates     = false;
+    opt.setInjRates     = false; % @@ ensure vols account for ntg data
+    opt.default_rate    = [];
     
     opt.prod            = true;
     opt.prod_layout     = 'steal_some_inj_wells';
@@ -43,6 +44,9 @@ function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
     % spacing for array of inj wells
     opt.DX      = 3*5000; % meters
     opt.DY      = 3*5000; % meters
+    
+    % or compute spacing based on #wells/frmArea density
+    opt.num_wells_per_frm_dim = [];
     
     % spacing for array of prod wells
     opt.DXp     = 17500; % meters
@@ -76,6 +80,19 @@ function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
        opt.prod_layout = 'none';
        [opt.DXp, opt.DYp, opt.steal] = deal(0);
        opt.steal_layout = 'none';
+    end
+    
+    if ~isempty(opt.num_wells_per_frm_dim)
+        % spacing for array of inj wells
+        xmin = min(Gt.cells.centroids(:,1));
+        xmax = max(Gt.cells.centroids(:,1));
+        ymin = min(Gt.cells.centroids(:,2));
+        ymax = max(Gt.cells.centroids(:,2));
+        dx     = (xmax - xmin)/opt.num_wells_per_frm_dim; % meters
+        dy     = (ymax - ymin)/opt.num_wells_per_frm_dim; % meters
+        opt.DX = min(dx, dy);
+        opt.DY = opt.DX;
+        clear xmin xmax ymin ymax
     end
     
     %% Initialize all output as empty;
@@ -237,8 +254,13 @@ function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
     
     %% Set well rates
     if opt.setInjRates
+        % @@ test this for accounting for ntg data, and proper use of
+        % cumul_trap
+        
+        warning('setInjRates requires more testing... ')
         
         assert(~isempty(trapCapacities), 'must supply a non-empty trapCapacities')
+        %assert(~isempty(find(trapCapacities.ta.traps>0,1)), 'No structural traps found. Consider refining top surface.')
         
         % Compute total injected volume (m3), qtot, which will be passed into
         % setSchedule() where fixed rates will be found by rate = qtot / itime,
@@ -276,9 +298,25 @@ function [ wellinfo ] = getWellInfo( Gt, trapCapacities, varargin )
 
         end
         
-        % check for any well rates that are zero, and replace with an
-        % average value or the minimum non-zero inj vol value
-        vols_inj( logical(vols_inj==0) ) = mean( vols_inj( logical(vols_inj>0) ) );
+        
+%         % check for any well rates that are zero, and replace with an
+%         % average value or the minimum non-zero inj vol value
+%         vols_inj( logical(vols_inj==0) ) = mean( vols_inj( logical(vols_inj>0) ) );
+%         
+%         % however, if all well rates were zero, the above line of code sets
+%         % these rates to NaN. Thus replace any well rates that are NaN with
+%         % a default injection rate
+%         if any(isnan(vols_inj))
+%             warning('Formations well rate being set to default value.')
+%             assert(~isempty(opt.default_rate))
+%             vols_inj( isnan(vols_inj) ) = opt.default_rate;
+%         end
+        
+        % OR: to avoid taking an average of an empty array, first add a
+        % small amount to each inj vol so no wells have a zero rate. @@
+        vols_inj = vols_inj + sqrt(eps);
+        assert(~any(isnan(vols_inj)));
+        
         
         if opt.plotsOn
             plotRates(cinx_inj, vols_inj);

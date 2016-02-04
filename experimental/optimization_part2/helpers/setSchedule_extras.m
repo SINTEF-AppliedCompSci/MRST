@@ -182,6 +182,20 @@ function [ schedule ] = setSchedule_extras( Gt, rock2D, wcells, wtype, ...
 %     schedule.step.control = [ctrls; mig_ctrl * ones(msteps,1)];
     
     
-
+    validateSchedule(schedule)
 end
 
+function validateSchedule(schedule)
+% copied from simulateScheduleAD()
+
+    assert (all(isfield(schedule, {'control', 'step'})));
+
+    steps = schedule.step;
+
+    assert (all(isfield(steps, {'val', 'control'})));
+
+    assert(numel(steps.val) == numel(steps.control));
+    assert(numel(schedule.control) >= max(schedule.step.control))
+    assert(min(schedule.step.control) > 0);
+    assert(all(schedule.step.val > 0));
+end

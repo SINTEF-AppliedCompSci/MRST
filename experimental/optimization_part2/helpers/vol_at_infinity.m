@@ -1,9 +1,9 @@
-function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, poro, sG, sw, varargin )
+function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG, sw, sr, varargin )
 % Determine co2 vol that will ultimately remain in formation at time infinity.
 %
 % SYNOPSIS:
-%   future_vol = vol_at_infinity(Gt, poro, states{end}.s(:,2), 0.11)
-%   future_vol = vol_at_infinity(Gt, poro, states{end}.s(:,2), 0.11, 'plotsOn', true)
+%   future_vol = vol_at_infinity(Gt, rock2D, states{i}.s(:,2), 0.11)
+%   future_vol = vol_at_infinity(Gt, rock2D, states{i}.s(:,2), 0.11, 'plotsOn', true)
 %
 % DESCRIPTION:
 %   This calculation of co2 vol at time infinity is based on the
@@ -18,25 +18,44 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, poro, sG, 
 %   ADI variables.
 
 % INPUTS    - Gt, top surface grid
-%           - poro, porosity of grid
-%           - sG, current saturation of gas (co2), i.e., states{end}.s(:,2)
+%           - rock2D, includes porosity (and possibly ntg) data
+%           - sG, current (or i-th) saturation of co2, i.e., states{i}.s(:,2)
 %           - sw, residual saturation of water, i.e., 0.11
+%           - sr, residual saturation of co2, i.e., 0.21
 %           - 'plotsOn', true or false for optional plotting
+%           - (optionally) ta, as given by trapAnalysis. If not passed in,
+%           will be computed inside this routine.
 
 % RETURNS   - ult_vol_remaining, a total volume in units of m3 co2. This is
 %           the amount of co2 remaining in the formation at time finity
 %           - ult_vol_leaked, a total volume in units of m3 co2, of the
 %           amount leaked from the current state (i.e., sG)
 
+% Needs more testing with different formations!
+% Need to account for possible NTG data!
 
     opt.plotsOn = false;
+    opt.ta = [];
     opt = merge_options(opt, varargin{:});
 
-    ta = trapAnalysis(Gt, false); % @@ implement option to pass in closed boundary faces.
- 
+    if isempty(opt.ta)
+        fprintf('Obtaining trap structure using trapAnalysis...\n')
+        ta = trapAnalysis(Gt, false); % @@ implement option to pass in closed boundary faces.
+        fprintf('trapAnalysis done.\n')
+    else
+        ta = opt.ta;
+    end
+    
+    % To account for possible NTG data:
+    poro = rock2D.poro;
+    ntg  = ones(Gt.cells.num,1);
+    if isfield(rock2D,'ntg')
+        ntg = rock2D.ntg;
+    end
+    
     
     % 1) Get current co2 vol: 
-    curr_vol = ( sG .* Gt.cells.volumes .* Gt.cells.H .* poro); % m3 pore vol
+    curr_vol = ( sG .* Gt.cells.volumes .* Gt.cells.H .* poro .* ntg); % m3 pore vol @@ account for possible NTG data!!!
     tot_vol = sum(curr_vol);
     cells = 1:Gt.cells.num;
     
@@ -46,7 +65,7 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, poro, sG, 
     trap_heights         = zeros(Gt.cells.num, 1);
     trap_heights(tcells) = ta.trap_z(ta.traps(tcells)) - Gt.cells.z(tcells);
     trap_heights         = min(trap_heights, Gt.cells.H);
-    strap_vol            = Gt.cells.volumes .* trap_heights .* poro .* (1-sw); % without the (1-sw), strap_vol is the structural trap pore volume
+    strap_vol            = Gt.cells.volumes .* trap_heights .* poro .* (1-sw) .* ntg; % without the (1-sw), strap_vol is the structural trap pore volume
     
     assert(all(trap_heights <= Gt.cells.H));
     % Computing trap capacities in vol terms
@@ -96,11 +115,12 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, poro, sG, 
         dispif(mrstVerbose, '\nLooking at tree %d... \n', i);
 
         % get the trap indexes of all traps downstream from a tree root
-        % (including the trap index of the root itself)
-        [trap_ixs, trap_vols] = downstreamTraps(Gt, poro, ta, treeRoots(i));
-        % NB: trap_vols (m3 pore space) do not match with trapcap (m3 co2)
-        % since trapcap is vol of co2; to get the same vaule, we must
-        % account for residual water (sw)
+        % (including the trap index of the root itself). Here, we pass in
+        % poro * ntg as the porosity, to account for possible ntg.
+        [trap_ixs, trap_vols] = downstreamTraps(Gt, poro.*ntg, ta, treeRoots(i));
+        % NB: trap_vols (m3 'reservoir' pore space) do not match with
+        % trapcap (m3 co2) since trapcap is vol of co2; to get the same
+        % vaule, we must account for residual water (sw).
         trap_co2_vols = trap_vols' .* (1-sw);
         trapcap_tmp = cellfun( @(x) double(x), {trapcap{trap_ixs}})';
         assert( all( abs( trap_co2_vols - trapcap_tmp )./abs(trap_co2_vols) < 1e-8 ) ) % syntax handles cell array trapcap
@@ -165,16 +185,15 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, poro, sG, 
     
     % 5) In addition to the vols that will spill-out of each tree, any co2
     % vol that existed outside of the trap regions making up the spill
-    % trees is bound to leak from the domain. (@@ we could however account
-    % for the residual co2 that is trapped as plume migrates upwards and
-    % out of domain.)
+    % trees is bound to leak from the domain. However, we account for an
+    % amount of residually trapped co2 that will remain and is therefore
+    % not bound to leak.
     curr_vol_total = curr_vol_per_trap_region{1};
     for i=2:numel(curr_vol_per_trap_region)
         curr_vol_total = curr_vol_total + curr_vol_per_trap_region{i};
     end
     curr_vol_outside_trap_regions = sum(curr_vol) - curr_vol_total;
-    %curr_vol_outside_trap_regions = sum(curr_vol) - sum(curr_vol_per_trap_region); % @@ for ADI?
-    
+    resid_trap_vol_outside_trap_regions = curr_vol_outside_trap_regions * sr;
     
     % 6) The final total amount of co2 that will ultimately leak from the
     % domain as stable conditions are reached, or at time infinity:
@@ -182,9 +201,9 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, poro, sG, 
     for i=2:numel(vol_leaked_per_tree)
         vol_leaked_total_trees = vol_leaked_total_trees + vol_leaked_per_tree{i};
     end
-    ult_vol_leaked = vol_leaked_total_trees - curr_vol_outside_trap_regions; % m3, may be an ADI var
-    %ult_vol_leaked = sum(vol_leaked_per_tree) + curr_vol_outside_trap_regions; % m3
-    ult_vol_remaining = sum(curr_vol) - ult_vol_leaked; % @@  ADI?
+    ult_vol_leaked = vol_leaked_total_trees - ...
+        curr_vol_outside_trap_regions - resid_trap_vol_outside_trap_regions; % m3, may be an ADI var
+    ult_vol_remaining = sum(curr_vol) - ult_vol_leaked;
     
     % 7) Check that vols balance out, within some tolerance
     assert( abs( sum(curr_vol)-(ult_vol_remaining + ult_vol_leaked) ) ./ abs(sum(curr_vol)) < 1e-8 )

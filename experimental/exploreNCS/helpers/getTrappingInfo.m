@@ -201,6 +201,12 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
             sum(btrap_res)  / giga / 1e3, sum(btrap_res / sum_tot) * 100)];
         str = [str, sprintf('Dissolved: %.2f Gtons (%5.2f%%)\n', ...
             sum(btrap_dis) / giga / 1e3, sum(btrap_dis / sum_tot) * 100)];
+        
+        if isfield(var.rock2D,'ntg')
+        str = [str, sprintf('Note: NTG data has reduced the structural capacity by %5.2f%% (%.2f Gtons of struct. cap.)\n', ...
+            sum(strap) / sum(strap ./ var.rock2D.ntg) * 100, ...
+            sum(strap ./ var.rock2D.ntg)/1e12 - sum(strap)/1e12 ) ];
+        end
 
     end
 
@@ -317,6 +323,8 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
             figure;
             title('caprock topography')
             mapPlot(gcf, Gt, 'traps', ta.traps, 'rivers', ta.cell_lines);
+            % add boundary of domain
+            plotFaces(Gt, boundaryFaces(Gt), 'EdgeColor','k')
             axis equal tight off
         end
 

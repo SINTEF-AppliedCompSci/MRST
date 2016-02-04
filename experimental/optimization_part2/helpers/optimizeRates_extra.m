@@ -20,9 +20,23 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
 
    opt.dryrun = false;    % if 'true', no optimization will take place
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
+   
+   % Penalization type:
+   opt.penalize_type = 'leakage'; % 'leakage','leakage_at_infinity','pressure'
+   
+   % for default obj fun (leak_penalizer):
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
-   opt.pressure_penalty = []; % if empty, pressure_penalizer is not used
-   opt.pressure_limit   = []; % only used if 'pressure_penality' non-empty
+   
+   % for pressure_penalizer:
+   %opt.penalize_pressure = false;
+   opt.pressure_penalty = [];
+   opt.pressure_limit   = [];
+   
+   % for using leak_penalizer_at_infinity:
+   opt.penalize_leakage_at_infinity = false; % if true, uses alternative obj_fun to the default one
+   opt.surface_pressure = [];
+   opt.rho_water = [];
+   
    opt.last_control_is_migration = false; % if true, constrain last control
                                           % to zero rate
    opt.obj_fun = @(dummy) 0;
@@ -35,16 +49,36 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    
    % additional part of objective function (if opt.pressure_penalty
    % provided, obj fun will also penalize pressure close to pressure limit)
-   if ~isempty(opt.pressure_penalty)
+   % @@ requires testing...
+   if strcmpi(opt.penalize_type,'pressure')
        obj_funA = opt.obj_fun; clear opt.obj_fun; opt.obj_fun = @(dummy) 0;
        
-       obj_funB = @(states) ...
-          pressure_penalizer(states, schedule, opt.pressure_penalty, opt.pressure_limit);
-               
+       obj_funB = @(states, varargin) ...
+          pressure_penalizer(model, states, schedule, opt.pressure_penalty, ...
+                                    opt.pressure_limit, varargin{:});
+       
        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
-          num2cell(  cell2mat( obj_funA(wellSols, states, schedule, varargin{:}) ) ...
-                   - cell2mat( obj_funB(states)                                ) );
+           cell_subtract(obj_funA(wellSols, states, schedule, varargin{:}), ...
+                         obj_funB(states, varargin{:}));
+                                
+%        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
+%           num2cell(  cell2mat( obj_funA(wellSols, states, schedule, varargin{:}) ) ...
+%                    - cell2mat( obj_funB(states, varargin{:}) ) ); % @@ okay for ADI var?
    end
+   
+   % another possible objection function to use:
+   % penalizes leakage which is determined at infinity, by compute the
+   % volume of co2 accumulated (i.e., remaining) in formation at time
+   % infinity using spill-point dynamics.
+   if opt.penalize_leakage_at_infinity
+       assert(~isempty(opt.surface_pressure))
+       assert(~isempty(opt.rho_water))
+       opt.obj_fun = @(wellSols, states, schedule, varargin) ...
+                  leak_penalizer_at_infinity(model, wellSols, states, ...
+                  schedule, opt.leak_penalty, opt.surface_pressure, ...
+                  opt.rho_water, varargin{:});
+   end
+   
    opt = merge_options(opt, varargin{:});
    
    num_wells = numel(schedule.control(1).W);
@@ -59,13 +93,30 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
       [init.wellSols, init.states] = ...
           simulateScheduleAD(initState, model, schedule); 
       
-      init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
+      if strcmpi(opt.penalize_type,'pressure')
+          init.obj_val_steps_A = cell2mat( obj_funA(init.wellSols, ...
+                                        init.states, init.schedule) );
+          init.obj_val_steps_B = cell2mat( obj_funB(init.states) );
+          
+          init.obj_val_steps = init.obj_val_steps_A - init.obj_val_steps_B;
+          
+          figure; hold on
+          plot(1:numel(init.obj_val_steps), init.obj_val_steps_A, 'x')
+          plot(1:numel(init.obj_val_steps), init.obj_val_steps_B, 'o')
+          
+      else
+      
+          init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
                                                 init.states, ...
                                                 init.schedule));
+      end
       init.obj_val_total = sum(init.obj_val_steps);
       
       % Use value of objective function before optimization as scaling.
       opt.obj_scaling = abs(init.obj_val_total);
+      if strcmpi(opt.penalize_type,'pressure')
+        opt.obj_scaling = abs( sum(init.obj_val_steps_A) ); % @@ ok for when using closed bdrys?
+      end
    end
    
    %% Return if optimization should be skipped
@@ -157,6 +208,16 @@ end
 
 % ----------------------------------------------------------------------------
 
+function c = cell_subtract(a, b)
+    % we assume that a and b should be single-indexed
+    c = a;
+    for i = 1:numel(c)
+        c{i} = c{i} - b{i};
+    end
+ end
+
+% ----------------------------------------------------------------------------
+
 function obj = leak_penalizer(model, wellSols, states, schedule, penalty, varargin)
    
    opt.ComputePartials = false;
@@ -198,22 +259,113 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       
       if (tSteps(step) == num_timesteps)
          bG = model.fluid.bG(p);
-         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro;      
+         if ~isfield(model.rock,'ntg')
+             model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
+         end 
+         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
          vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
          obj{step} = obj{step} + penalty * vol;
          if ~opt.ComputePartials
-            fprintf('Total injected: %f\n', double(krull));
-            fprintf('Total leaked: %f\n', double(krull - vol));
-            fprintf('Score: %f\n\n', double(krull) - penalty * double(krull-vol));
+            fprintf('Total injected: %f (m3)\n', double(krull));
+            fprintf('Total leaked: %f (m3)\n', double(krull - vol));
+            fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol));
          end
       end
-      obj{step} = obj{step} * model.fluid.rhoGS/1e12; %@@
+      obj{step} = obj{step} * model.fluid.rhoGS/1e12; %@@ converted to Gt
    end
 end
 
 % ----------------------------------------------------------------------------
 
-function obj = pressure_penalizer(states, schedule, penalty, plim)
+function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
+    penalty, surf_press, rho_water, varargin)
+% new objection function to penalize leakage 'felt' at infinity, using
+% spill-point dynamics.
+
+% pressure is assumed to be hydrostatic at time infinity.
+
+   opt.ComputePartials = false;
+   opt.tStep = [];
+   opt = merge_options(opt, varargin{:});
+   
+   num_timesteps = numel(schedule.step.val);
+   tSteps = opt.tStep;
+   if isempty(tSteps)
+      numSteps = numel(states);
+      tSteps = (1:numSteps)';
+      dts = schedule.step.val;
+   else
+      assert(numel(tSteps) == 1);
+      numSteps = 1;
+      dts = schedule.step.val(opt.tStep);
+   end
+   
+   obj = repmat({[]}, numSteps, 1);
+   krull = 0; % @@
+   for step = 1:numSteps
+      sol = wellSols{tSteps(step)};
+      state = states{tSteps(step)}; %@@ +1?
+      nW = numel(sol);
+      pBHP = zeros(nW, 1); % place holder
+      qGs = vertcat(sol.qGs);
+      qWs = vertcat(sol.qWs);
+      %p = state.pressure;
+      p = compute_hydrostatic_pressure(model.G, rho_water, surf_press);
+      sG = state.s(:,2);
+      if opt.ComputePartials
+         %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
+         [p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
+      end
+      dt = dts(step);
+      injInx = (vertcat(sol.sign) > 0);
+      % calculate the "(1 - C) M^inj" part of obj fun J
+      obj{step} = dt * spones(ones(1, nW)) * ((1-penalty) * injInx .* qGs);
+
+      krull = krull +  dt * spones(ones(1, nW)) * ( injInx .* qGs);
+      
+      if (tSteps(step) == num_timesteps)
+         bG = model.fluid.bG(p);
+         if ~isfield(model.rock,'ntg')
+             model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
+         end 
+         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
+         vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
+         
+         % calculate the "C M^a" part of obj fun J, where M^a is the mass
+         % accumulated (or remaining) at t = infinity. To determine this
+         % mass, we calculate the vol expected to be retained using
+         % spill-pt dynamics.
+%          vol_inf = vol_at_infinity( model.G, ...
+%              model.rock.poro .* model.fluid.pvMultR(state.pressure), ...
+%              state.s(:,2) .* model.fluid.bG(state.pressure), ...
+%              model.fluid.res_water );
+         rock2D.poro = model.rock.poro .* model.fluid.pvMultR(p);
+         rock2D.ntg  = ones(model.G.cells.num,1);
+         if isfield(model.rock,'ntg')
+             rock2D.ntg = model.rock.ntg; % in case ntg doesn't exist
+         end 
+         vol_inf = vol_at_infinity( model.G, ...
+             rock2D, ...
+             sG .* model.fluid.bG(p), ...
+             model.fluid.res_water); % using possible ADI variables
+         
+         % J = (1-C) M^i + C M^a
+         obj{step} = obj{step} + penalty * vol_inf;
+         if ~opt.ComputePartials
+            fprintf('Total injected: %f (m3)\n', double(krull));
+            fprintf('Total leaked: %f (m3)\n', double(krull - vol_inf));
+            fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol_inf));
+         end
+      end
+      obj{step} = obj{step} * model.fluid.rhoGS/1e12; % vol * rho, in Gt.
+   end
+
+
+end
+
+% ----------------------------------------------------------------------------
+
+function obj = pressure_penalizer(model, states, schedule, penalty, plim, varargin)
 % states.pressure is a scalar field (size of domain).
 % schedule is only used for time steps.
 % penalty is a scalar.
@@ -224,33 +376,53 @@ function obj = pressure_penalizer(states, schedule, penalty, plim)
 %   obj = max(0, sign(p - plim)) * penalty * (p - plim)^2
 % obj is computed for each time step (for both inj and mig periods).
 
-    num_timesteps   = numel(schedule.step.val);
-    numSteps        = numel(states);
-    tSteps          = (1:numSteps)';
-    dts             = schedule.step.val;
-    
-    obj     = repmat({[]}, numSteps, 1);
-    maxp    = zeros(numSteps, 1);
-    k       = 2;
-    for step = 1:numSteps
 
-      state         = states{tSteps(step)}; %@@ +1?
-      maxp(step)    = max(state.pressure);
-      dt            = dts(step);
-      
-      obj{step} = max(0, sign(maxp(step) - 0.75*plim)) * penalty * (maxp(step) - 0.75*plim)^k;
-      
-      if (tSteps(step) == num_timesteps)
-         %if ~opt.ComputePartials
-            fprintf('Max pressure reached: %f\n', maxp(:) );
-            fprintf('Proximity to PLimit: %f\n', max(0, sign(maxp(step) - 0.75*plim)) );
-            fprintf('Score: %f\n\n', max(0, sign(maxp(step) - 0.75*plim)) * penalty * (maxp(:) - 0.75*plim).^k );
-         %end
+   opt.ComputePartials = false;
+   opt.tStep = [];
+   opt = merge_options(opt, varargin{:});
+   
+   num_timesteps = numel(schedule.step.val);
+   tSteps = opt.tStep;
+   if isempty(tSteps)
+      numSteps = numel(states);
+      tSteps = (1:numSteps)';
+      dts = schedule.step.val;
+   else
+      assert(numel(tSteps) == 1);
+      numSteps = 1;
+      dts = schedule.step.val(opt.tStep);
+   end
+   
+   obj = repmat({[]}, numSteps, 1);
+   maxp    = zeros(numSteps, 1);
+   k       = 2;
+   for step = 1:numSteps     
+      state = states{tSteps(step)}; %@@ +1?      
+      p = state.pressure;
+      if opt.ComputePartials
+        sG = state.s(:,2);   % place holders
+        nW = numel(schedule.control(1).W);
+        pBHP = zeros(nW, 1); % place holders
+        qGs = pBHP;          % place holders
+        qWs = pBHP;          % place holders
+        [p, ~, ~, ~, ~] = initVariablesADI(p, sG, qWs, qGs, pBHP);
       end
-      obj{step} = obj{step} / 1e12; %@@ how to scale this value to match with other obj value?
-    end
-
-
+      dt = dts(step); % how to scale obj value with dt?
+      %maxp      = max(p); % a scalar for now
+      tmp = max(0, sign(p - 0.60*plim)) .* penalty .* (p - 0.60*plim).^k;
+      tmp = tmp .* model.G.cells.volumes;
+      obj{step} = sum( tmp )./sum(model.G.cells.volumes);
+      %obj{step} = obj{step} * dt; % @@
+      if (tSteps(step) == num_timesteps)
+      % no need to compute another portion of the obj fun here
+         if ~opt.ComputePartials
+            %fprintf('Max pressure reached: %f (Pascals)\n', max(p) ); % @@ this is only the max pressure reached at last time step!
+            %fprintf('Proximity to PLimit: %f (percent)\n', maxp/(0.75*plim) * 100 );
+            %fprintf('Score: %f ([Cp*Pascals])\n\n', max(0, sign(maxp - 0.75*plim)) * penalty * (maxp - 0.75*plim).^k );
+          end
+      end
+      %obj{step} = obj{step};  %@@ how to scale this value to match with other obj value?
+   end
 end
 
 % ----------------------------------------------------------------------------
@@ -341,6 +513,13 @@ function grd = scaleGradient(grd, schedule, boxLims, objScaling)
    for k = 1:numel(schedule.control)
       grd{k} = (dBox / objScaling) .* grd{k}; 
    end
+end
+
+% ----------------------------------------------------------------------------
+
+function p = compute_hydrostatic_pressure(Gt, rho_water, surface_pressure)
+
+    p = rho_water * norm(gravity()) * Gt.cells.z + surface_pressure;
 end
     
 

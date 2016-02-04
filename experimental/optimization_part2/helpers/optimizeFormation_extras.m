@@ -41,7 +41,6 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    end
 
    %% Defining fluid
-   
    % computing fixed temperature field
    T_ref = opt.ref_temp + opt.temp_grad * (Gt.cells.z - opt.ref_depth) / 1000;   
    
@@ -60,135 +59,164 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                        'pvMult_p_ref' , opt.refPress                   , ...
                        'surf_topo'    , opt.surf_topo                  , ...
                        'top_trap'     , dh);
-   
-   %% Construct schedule
-   use_default_schedule = isempty(opt.schedule);
-   if use_default_schedule
-      % rate-controlled wells
-      [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, opt.num_wells, opt.rhoW, ...
-                                opt.sw, opt.ref_temp, opt.ref_depth, opt.temp_grad, ...
-                                opt.well_buffer_dist, opt.maximise_boundary_distance); 
-      opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
-                                     opt.itime, opt.msteps , opt.mtime, true, ...
-                                     'minval', sqrt(eps));
-      % optional well placement inspection:
-      if opt.inspectWellPlacement
-          cinx_inj = [opt.schedule.control(1).W.cells];
-          close all
-          figure(100); set(gcf,'Position',[2929 666 953 615])
-          subplot(2,2,[1 3])
-          mapPlot(gcf, Gt, 'traps', ta.traps, ...
-            'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
-            'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
-            'maplines', 20, 'wellcells', cinx_inj, 'well_numbering', true);
-          colorizeCatchmentRegions(Gt, ta);
-          axis equal tight off
-          
-          subplot(2,2,2); bar(qt);
-          xlabel('well number', 'FontSize',16);
-          ylabel('mass to inject [kg]', 'FontSize',16); % i.e., mass capacity of empty traps along spill path
-          
-          rates = [opt.schedule.control(1).W.val]; % m3/s
-          subplot(2,2,4); bar(rates);
-          xlabel('well number', 'FontSize',16);
-          ylabel({'initial rate [m^3/s]';['for ',num2str(convertTo(opt.itime,year)),' yrs inj.']}, 'FontSize',16);
-          
-          rates = [opt.schedule.control(1).W.val].*opt.refRhoCO2.*(1*year)./10^9; % Mt/yr
-          subplot(2,2,4); bar(rates);
-          xlabel('well number', 'FontSize',16);
-          ylabel({'initial rate [Mt/yr]';['for ',num2str(convertTo(opt.itime,year)),' yrs inj.']}, 'FontSize',16);
-          
-
-          %sum(qt)/1e9/1e3
-          clear cinx_inj rates
-          % exit from optimization routine
-          %return
-      end
-                                 
-      min_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
-      max_rates = opt.lim_fac * ...
-       sum([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
-      % extend for bhp-controlled-wells @@
-   else
-%       tmp = load(opt.schedule);
-%       name = fields(tmp);
-%       opt.schedule = tmp.(name{1});
-      fprintf('\n Using schedule passed in as varargin. \n')
-      
-   end
-   
-   % Add constant pressure boundary conditions
-   bfaces = identifyBoundaryFaces(Gt);
-   for i = 1:numel(opt.schedule.control)
-      opt.schedule.control(i).bc = addBC([], bfaces, 'pressure', ...
-                                         Gt.faces.z(bfaces) * fluid.rhoWS * ...
-                                         norm(gravity) + opt.surface_pressure, ...
-                                         'sat', [1 0]);
-   end
-   
+                   
    %% Defining initial state
    initState.pressure = compute_hydrostatic_pressure(Gt, fluid.rhoWS, opt.surface_pressure);
    initState.s = repmat([1 0], Gt.cells.num, 1);
    initState.sGmax = initState.s(:,2);
    
+    %% Construct schedule
+    use_default_schedule = isempty(opt.schedule);
+    if use_default_schedule
+       
+        %%% 1) Place Wells: -----------------------------------------------
+        if strcmpi(opt.well_placement_type,'use_array')
+
+            [wc, qt] = pick_wellsites_array(Gt, rock2D, co2, ta, opt.rhoW, ...
+                        opt.sw, opt.ref_temp, opt.ref_depth, opt.temp_grad, ...
+                        opt.well_buffer_dist_domain, opt.well_buffer_dist_catchment, ...
+                        opt.DX, opt.DY, opt.max_num_wells, 'inspectWellPlacement',false);
+
+        elseif strcmpi(opt.well_placement_type,'one_per_trap')
+
+            [wc, qt] = pick_wellsites_onePerTrapRegion(Gt, rock2D, co2, ta, ...
+                        opt.rhoW, opt.sw, opt.ref_temp, opt.ref_depth, ...
+                        opt.temp_grad, opt.max_num_wells, opt.pick_highest_pt, ...
+                        opt.well_buffer_dist, opt.well_buffer_dist_domain, ...
+                        opt.well_buffer_dist_catchment, 'inspectWellPlacement',false);
+
+
+        elseif strcmpi(opt.well_placement_type,'one_per_path')
+
+            [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, opt.max_num_wells, opt.rhoW, ...
+                        opt.sw, opt.ref_temp, opt.ref_depth, opt.temp_grad, ...
+                        opt.well_buffer_dist, opt.maximise_boundary_distance, ...
+                        opt.well_buffer_dist_domain, opt.pick_highest_pt, ...
+                        opt.well_buffer_dist_catchment, ...
+                        'inspectWellPlacement',false);
+        end
+        
+        %qt = qt*5; % @@
+      
+        %%% 2) Create schedule based on control type: -----------------------
+        if strcmpi(opt.well_control_type,'rate')
+            opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
+                                     opt.itime, opt.msteps , opt.mtime, true, ...
+                                     'minval', sqrt(eps)); % @@ or use _extras()
+
+        elseif strcmpi(opt.well_control_type,'bhp')
+            opt.schedule = setSchedule_extras( Gt, rock2D, wc, 'bhp', ...
+                                opt.isteps, opt.itime, opt.msteps, opt.mtime, ...
+                                'initState', initState); % @@ test out this call
+
+        end
+      
+        %%% 3) Inspect well placement and schedule (optional): --------------
+        if opt.inspectWellPlacement
+            cinx_inj = [opt.schedule.control(1).W.cells];
+
+            close all
+            figure(100); set(gcf,'Position',[2929 666 953 615])
+            subplot(2,2,[1 3])
+            mapPlot(gcf, Gt, 'traps', ta.traps, ...
+                'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+                'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
+                'maplines', 20, 'wellcells', cinx_inj, 'well_numbering', true);
+            colorizeCatchmentRegions(Gt, ta);
+            plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
+            axis equal tight off
+
+            subplot(2,2,2); bar(qt);
+            xlabel('well number', 'FontSize',16);
+            ylabel('mass to inject [kg]', 'FontSize',16); % i.e., mass capacity of empty traps along spill path
+
+            rates = [opt.schedule.control(1).W.val].*opt.refRhoCO2.*(1*year)./10^9; % Mt/yr
+            subplot(2,2,4); bar(rates);
+            xlabel('well number', 'FontSize',16);
+            ylabel({'initial rate [Mt/yr]';['for ',num2str(convertTo(opt.itime,year)),' yrs inj.']}, 'FontSize',16);
+
+            % Exit before entering optimization routine
+            init = []; optim = []; history = [];
+            other.inspectWellPlacement = opt.inspectWellPlacement;
+            return
+        end
+
+    else
+        fprintf('\n Using schedule passed in as varargin. \n')
+        %tmp = load(opt.schedule);
+        %name = fields(tmp);
+        %opt.schedule = tmp.(name{1});
+    end
+    
+    %% Add boundary conditions (either constant pressure, or no-flow)
+    bfaces = identifyBoundaryFaces(Gt);
+    if strcmpi(opt.btype,'pressure')
+        bdryVal     = Gt.faces.z(bfaces) * fluid.rhoWS * norm(gravity) + opt.surface_pressure;
+    elseif strcmpi(opt.btype,'flux')
+        bdryVal     = zeros(numel(bfaces),1);
+    end
+    bc = addBC( [], bfaces, opt.btype, bdryVal, 'sat', [1 0] );
+    for i = 1:numel(opt.schedule.control)
+        opt.schedule.control(i).bc = bc;
+    end
    
-   %other.fluid = fluid; % @@ fluid structure is ~400MB when saved
-   other.fluid.rhoGS = fluid.rhoGS;
+    %% Assign well control limits:
+    P_limit = [];
+
+    if strcmpi(opt.well_control_type,'rate')
+        min_wvals = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
+        max_wvals = opt.rate_lim_fac * ...
+            max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
+        assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
+            'Your initial rates exceed the maximum rate constraint.')
+
+    elseif strcmpi(opt.well_control_type,'bhp')
+        min_wvals = initState.pressure( [opt.schedule.control(1).W.cells] );
+
+        [P_over, p_limit] = computeOverburdenPressure(Gt, rock2D, ...
+                                              opt.ref_depth, fluid.rhoWS);
+        %max_wvals = P_limit * ones(numel(opt.schedule.control(1).W), 1);
+        max_wvals = P_over([opt.schedule.control(1).W.cells]) .* 0.9;
+
+        assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
+            'Your initial bhps exceed the maximum bhp constraint.')
+
+    end
+    min_mig_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
+    
+    % if penalizing for pressure:
+    if strcmpi(opt.penalize_type,'pressure')
+        [P_over, p_limit] = computeOverburdenPressure(Gt, rock2D, ...
+                                            opt.ref_depth, fluid.rhoWS);
+        %P_limit = mean(P_over); % @@ try using an array for P_limit
+        P_limit = P_over; % an array
+    end
+   
+   %% Set up model and run optimization
+   model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
+
+   [optim, init, history] = ...
+       optimizeRates_extra(initState, model, opt.schedule, ...
+                     min_wvals, max_wvals, min_mig_rates, ...
+                     'dryrun',              opt.dryrun, ...
+                     'last_control_is_migration', true, ...
+                     'penalize_type',       opt.penalize_type, ...
+                     'leak_penalty',        opt.leak_penalty, ...
+                     'pressure_penalty',    opt.pressure_penalty, ...
+                     'pressure_limit',      P_limit, ...
+                     'rho_water',           fluid.rhoWS, ...
+                     'surface_pressure',    opt.surface_pressure);
+                 
+   %% Store data
+   %other.fluid = fluid; % @@ fluid structure is ~400MB when saved, but required for results
+   %other.fluid.rhoGS = fluid.rhoGS;
    other.rock = rock2D;
    other.residual = [opt.sw, opt.sr];
    other.traps = ta;
    other.dh = dh;
    other.initState = initState;
-
-   %% Set up model and run optimization
-   model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
-   %min_rates = sqrt(eps) * ones(opt.num_wells, 1); % @@ number placed wells might not equal num_wells
-   %max_rates = 10 * sum([opt.schedule.control(1).W.val]) * ones(opt.num_wells, 1);
-   %min_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
-   %max_rates = opt.lim_fac * ...
-   %    sum([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
+   other.opt = opt;
    
-   
-   % Check the well type of the first well to get well control limits:
-   wtype = opt.schedule.control(1).W(1).type;
-      
-   if strcmpi(wtype,'rate')
-     min_wvals = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
-     %max_rates = opt.lim_fac * ...
-     %  sum([opt.schedule.control(1).W.val])./numel(opt.schedule.control(1).W) * ones(numel(opt.schedule.control(1).W), 1);
-     max_wvals = opt.lim_fac * ...
-       max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
-     
-     min_mig_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
-     
-     assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
-         'Your initial rates exceed the maximum rate constraint.')
-
-   
-   elseif strcmpi(wtype,'bhp')
-     min_wvals = initState.pressure( [opt.schedule.control(1).W.cells] );
-     
-     [P_over, P_limit] = computeOverburdenPressure(Gt, rock2D, ...
-         opt.ref_depth, fluid.rhoWS);
-     %max_wvals = P_limit * ones(numel(opt.schedule.control(1).W), 1);
-     max_wvals = P_over([opt.schedule.control(1).W.cells]) .* 0.9;
-     
-     min_mig_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
-     
-     assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
-         'Your initial bhps exceed the maximum bhp constraint.')
-
-     
-   
-   end
-   
-  [optim, init, history] = ...
-       optimizeRates_extra(initState, model, opt.schedule, min_wvals, max_wvals, min_mig_rates, ...
-                     'last_control_is_migration', true, ...
-                     'leak_penalty', opt.leak_penalty, ...  % @@ added ability to pass in leak_penalty
-                     'dryrun', opt.dryrun); %, ... % @@ added ability to pass in dryrun
-                     %'pressure_penalty', 10, ... % passing in pressure penalty means pressure will be penalized
-                     %'pressure_limit', P_limit);
 end
 
 % ----------------------------------------------------------------------------
@@ -199,7 +227,7 @@ function bfaces = identifyBoundaryFaces(Gt)
 end
 
 % ----------------------------------------------------------------------------
-function wc = select_wellcell(Gt, candidates, buffer)
+function wc = select_wellcell(Gt, candidates, buffer, domain_buffer)
 
    % Identify cells at the boundary of the selected region
    num    = Gt.cells.num;
@@ -221,6 +249,16 @@ function wc = select_wellcell(Gt, candidates, buffer)
    end
    
    inside_buffer_candidates = interior_candidates(distances > buffer);
+   
+   % Additional check to ensure inside_buffer_candidates are within a
+   % buffer distance to formation boundary.
+   bdist = sqr_distance_from_boundary(Gt);
+   bdist = sqrt(bdist(inside_buffer_candidates));
+   inside_buffer_candidates = inside_buffer_candidates(bdist > domain_buffer);
+   % However, if inside_buffer_candidates are empty, the highest point in
+   % the spill region is selected. This point may not satisfy this domain
+   % buffer constaint. Instead, an empty wc should be passed out, and the
+   % next best leaf-node is assessed.
 
    if isempty(inside_buffer_candidates)
       % none of the candidates were far enough from boundary.  We will just
@@ -240,7 +278,10 @@ end
 % ----------------------------------------------------------------------------
 function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
                                    rhoW, sw, seafloor_temp, seafloor_depth, ...
-                                   tgrad, buf_dist, maximize_boundary_distance)
+                                   tgrad, buf_dist, maximize_boundary_distance, ...
+                                   domain_buf_dist)
+    % TEST calculation of 'qt' for formations that contain NTG data
+    % TEST well buffer dist, maximize bdry dist
 
     % Computing local pressure and temperature conditions (in order to
     % compute CO2 densities) 
@@ -255,7 +296,10 @@ function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
     trap_heights         = zeros(Gt.cells.num, 1);
     trap_heights(tcells) = ta.trap_z(ta.traps(tcells)) - Gt.cells.z(tcells);
     trap_heights         = min(trap_heights,Gt.cells.H);
-    strap_vol            = Gt.cells.volumes .* trap_heights .* rock2D.poro .* (1-sw);
+    if ~isfield(rock2D,'ntg')
+        rock2D.ntg = ones(Gt.cells.num,1); % account for possible NTG
+    end 
+    strap_vol = Gt.cells.volumes .* trap_heights .* rock2D.poro .* (1-sw) .* rock2D.ntg;
 
     assert(all(trap_heights <= Gt.cells.H));
     
@@ -279,23 +323,31 @@ function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
         
            % Adding an insignificant quantity so that if everything else is
            % equal, the cell farthest from the boundary is chosen
-           grid_eps = 10 * eps(max(cumcap(:)));
-           field    = field + grid_eps * bdist;
-           [qt(i), wc(i)] = max(field);
+%            grid_eps = 10 * eps(max(cumcap(:)));
+%            field    = field + grid_eps * bdist;
+%            [qt(i), wc(i)] = max(field);
+           
+           % The above approach may fail to capture the farthest cell due
+           % to round-off (i.e., when values are the same within machine
+           % precision, max() returns the first cell index of the max
+           % values). Thus another approach is:
+           [~, wc(i)] = max( field + bdist );
+           qt(i) = field(wc(i));
+           
         else
            % Pick well site as far downslope as possible (while keeping a
            % buffer distance from boundary
            
            qt(i) = max(field); 
            candidate_cells = find(field == qt(i));
-           wc(i) = select_wellcell(Gt, candidate_cells, buf_dist);
+           wc(i) = select_wellcell(Gt, candidate_cells, buf_dist, domain_buf_dist);
         end
         
         % Setting available capacity of used traps to zero
         trapcap = set_used_to_zero(trapcap, ta.trap_adj, ta.trap_regions(wc(i)));
         
         % check if there is no more avaible capacity for the wells (which
-        % can occure if all traps have been used)
+        % can occur if all traps have been used)
         if all(trapcap == 0) || qt(i)/qt(1) < 0.01
             if all(trapcap == 0)
                 warning(['You wanted to place %d wells, '...
@@ -355,9 +407,15 @@ function opt = opt_defaults()
     opt.modelname = 'utsirafm';
     opt.schedule = [];
     opt.coarse_level = 3;
-    opt.num_wells = 10;
-    %opt.subtrap_file = 'utsira_subtrap_function_3.mat'; % @@ appears that only trapfile_name is used 
+    
+    % Number of timesteps (injection and migration)
+    opt.isteps = 10;
+    opt.msteps = 31;
 
+    % Durations of injection an migration phases
+    opt.itime  = 50   * year;
+    opt.mtime  = 3000 * year;
+    
     opt.surface_pressure = 1 * atm;
     
     % Default fluid properties
@@ -372,51 +430,54 @@ function opt = opt_defaults()
     opt.p_range   = [0.1, 400] * mega * Pascal; % pressure span of sampled property table
     opt.t_range   = [4 250] + 274; % temperature span of sampled property table 
 
-    % residual saturations
+    % Residual saturations
     opt.sr = sr; % gas
     opt.sw = sw; % brine
-    
-    % number of timesteps (injection and migration)
-    opt.isteps = 10;
-    opt.msteps = 31;
 
-    % durations of injection an migration phases
-    opt.itime  = 50   * year;
-    opt.mtime  = 3000 * year;
-    
     % Temperature regime control parameters
     opt.ref_temp = 7 + 273.15;
     opt.ref_depth = 80; 
     opt.temp_grad = 35.6;
 
-    % dissolution parameters (default zero - suggested nonzero values in comments)
+    % Dissolution parameters (default zero - suggested nonzero values in comments)
     opt.dis_rate = 0;  % %0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
     opt.dis_max = 0;   % 53/760 = 0.07
 
-    % factor for setting upper limit of injection rates
-    opt.lim_fac = 10;
-
-    
-    % Well selection strategy
-    opt.maximise_boundary_distance = false; % If true, wells will be placed
-                                            % as far as possible from
-                                            % boundary within the chosen
-                                            % catchment region
-    opt.well_buffer_dist = 5 * kilo * meter; % If 'maximise_boundary_distance' is
-                                             % false, wells should if possible
-                                             % be within this distance of spill
-                                             % region boundary
-
-    % directory for saving reslts
-    opt.report_basedir = './simulateUtsira_results/';
-    
-    % subtrap file
-    opt.trapfile_name = ''; % 'utsira_subtrap_function_3'
+    % Subtrap file
+    opt.trapfile_name = '';      % 'utsira_subtrap_function_3'
     opt.surf_topo = 'inf_rough'; % will be set to 'smooth' if trapfile_name is empty
     
-    opt.leak_penalty = 10;
+    % Directory for saving reslts
+    opt.report_basedir = './simulateUtsira_results/';
+    
+    % Control whether to enter optimization
     opt.dryrun = false;
+
+    % Penalization details:
+    opt.penalize_type = 'leakage'; % 'leakage','leakage_at_infinity','pressure'
+    opt.leak_penalty  = 10;
+    opt.pressure_penalty = [];
+    
+    % Boundary type:
+    opt.btype = 'pressure'; % 'pressure' or 'flux'
+   
+    % Well control details:
+    opt.well_control_type = 'rate'; % 'rate','bhp'
+    opt.rate_lim_fac = 10; % factor for setting upper limit of injection rates
+    
+    % Well placement details:
+    opt.well_placement_type = 'use_array'; % 'use_array', 'one_per_trap', 'one_per_path'
+    opt.max_num_wells = 40;
+    opt.maximise_boundary_distance = false;
+    opt.well_buffer_dist = 1 * kilo*meter; % dist from edge of internal catchment
+    opt.well_buffer_dist_domain = 5 * kilo*meter;    % dist from edge of domain 
+    opt.well_buffer_dist_catchment = 2 * kilo*meter; % dist from edge of external catchment
+    opt.pick_highest_pt = false; % otherwise farthest downslope
+    opt.DX = 1 * kilo*meter;
+    opt.DY = 1 * kilo*meter;
     opt.inspectWellPlacement = false;
+
+
 end
 
 % ----------------------------------------------------------------------------

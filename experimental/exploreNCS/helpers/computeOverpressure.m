@@ -1,4 +1,4 @@
-function sts = computeOverpressure(initState, sts, schedule)
+function [sts, maxPressDev_stepNum] = computeOverpressure(initState, sts, schedule)
 
     initPress   = initState.pressure;
     maxPressDev = 0;
@@ -36,4 +36,13 @@ function sts = computeOverpressure(initState, sts, schedule)
     fprintf('\n Max CO2 saturation of %d occurred at %d years (step %d) since sim start.\n', maxCO2sat, maxCO2sat_timeYr, maxCO2sat_stepNum )
 
 
+%     for i = 1:numel(sts)
+%        [m, l] =  max(sts{i}.pressDev);
+%        maxOverpressure(i) = m;
+%        locationOfMaxOP(i) = l;
+%     end
+%     [maxOP, locOfMaxOP] = max(maxOverpressure);
+    
+    
 end
+
