@@ -180,37 +180,12 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function [state, report] = updateState(model, state, problem, dx, drivingForces)
-        % Generic update function for reservoir models containing wells
+     function [state, report] = updateState(model, state, problem, dx, drivingForces)
+        [state, report] = ReservoirModel.updateStateWithWells(model, state, problem, dx, ...
+                                                          drivingForces);
+     end
 
-        % Split variables into three categories: Regular/rest variables, saturation
-        % variables (which sum to 1 after updates) and well variables (which live
-        % in wellSol and are in general more messy to work with).
-        [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
-
-        % Update saturations in one go
-        state  = model.updateSaturations(state, dx, problem, satVars);
-
-        if ~isempty(restVars)
-            % Handle pressure seperately
-            state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
-            state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
-            restVars = model.stripVars(restVars, 'pressure');
-
-            % Update remaining variables (tracers, temperature etc)
-            for i = 1:numel(restVars);
-                 state = model.updateStateFromIncrement(state, dx, problem, restVars{i});
-            end
-        end
-
-        % Update the wells
-        if isfield(state, 'wellSol')
-            state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
-        end
-        report = [];
-    end
-
-    % --------------------------------------------------------------------%
+     % --------------------------------------------------------------------%
     function model = setupOperators(model, G, rock, varargin)
         % Set up divergence/gradient/transmissibility operators
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
@@ -622,7 +597,37 @@ methods (Static)
             end
             ds(bad, :) = bsxfun(@times, ds(bad, :), w(bad, :));
         end
+     end
+     function [state, report] = updateStateWithWells(model, state, problem, dx, drivingForces)
+        % Generic update function for reservoir models containing wells
+
+        % Split variables into three categories: Regular/rest variables, saturation
+        % variables (which sum to 1 after updates) and well variables (which live
+        % in wellSol and are in general more messy to work with).
+        [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
+
+        % Update saturations in one go
+        state  = model.updateSaturations(state, dx, problem, satVars);
+
+        if ~isempty(restVars)
+            % Handle pressure seperately
+            state = model.updateStateFromIncrement(state, dx, problem, 'pressure', model.dpMaxRel, model.dpMaxAbs);
+            state = model.capProperty(state, 'pressure', model.minimumPressure, model.maximumPressure);
+            restVars = model.stripVars(restVars, 'pressure');
+
+            % Update remaining variables (tracers, temperature etc)
+            for i = 1:numel(restVars);
+                 state = model.updateStateFromIncrement(state, dx, problem, restVars{i});
+            end
+        end
+
+        % Update the wells
+        if isfield(state, 'wellSol')
+            state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
+        end
+        report = [];
     end
+
 end
 end
 
