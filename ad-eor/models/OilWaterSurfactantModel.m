@@ -78,25 +78,49 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
                                                            drivingForces);
 
          if model.explicitConcentration
+            nIter = 1;
+            ddt = dt/nIter;
 
-            [problem, state] = getEquations(model, state0, state, dt, drivingForces, ...
-                                                   'assembleConcentrationEquation', true, ...
+
+            % First get mass conservation
+            c = model.getProp(state, 'surfactant');
+            sW0 = model.getProp(state0, 'water');
+            sW = model.getProp(state, 'water');
+            c = c.*sW0./sW;
+            state = model.setProp(state, 'surfactant', c);
+
+            stateM = state;
+            for i = 1 : nIter
+               [problem, state] = getEquations(model, stateM, state, ddt, drivingForces, ...
+                                                      'assembleConcentrationEquation', true, ...
                                                    'iteration', inf);
-            linsolve = BackslashSolverAD();
-            [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
+               linsolve = BackslashSolverAD();
+               [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
 
-            state = ReservoirModel.updateStateWithWells(model, state, problem, dx, ...
+               state = ReservoirModel.updateStateWithWells(model, state, problem, dx, ...
                                                            drivingForces);
+               c     = model.getProp(state, 'surfactant');
+               cmax  = model.getProp(state, 'surfactantmax');
+               state = model.setProp(state, 'surfactantmax', max(cmax, c));
+
+               stateM = state;
+            end
+
+            state = updateExplicitAds(state0, state, model, ddt);
+
+         else
+
+            c     = model.getProp(state, 'surfactant');
+            cmax  = model.getProp(state, 'surfactantmax');
+            state = model.setProp(state, 'surfactantmax', max(cmax, c));
+
+            if model.explicitAdsorption
+               state = updateExplicitAds(state0, state, model, dt);
+            end
 
          end
 
-         c     = model.getProp(state, 'surfactant');
-         cmax  = model.getProp(state, 'surfactantmax');
-         state = model.setProp(state, 'surfactantmax', max(cmax, c));
 
-         if model.explicitAdsorption | model.explicitConcentration
-            state = updateExplicitAds(state0, state, model, dt);
-         end
       end
 
 
