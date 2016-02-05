@@ -18,7 +18,7 @@ for i = 1:numel(names)
     
     try  
     fprintf('-----------------FORMATION: %s -----------------\n', names{i})
-    pathname = ['opt_results/' names{i} '/MigYrs2000'];
+    pathname = ['opt_results_array_in_trap_regions/' names{i} '/InjYrs50_MigYrs1000'];
     load([pathname '/' 'Gt.mat'])
     load([pathname '/' 'init.mat'])
     load([pathname '/' 'optim.mat'])
@@ -72,14 +72,15 @@ for i = 1:numel(names)
         fprintf('       Incomplete results.\n')
     end
     fprintf('--------------------------------------------------------\n\n')
-    close all; clearvars -except i names strapCap area num_sptr tot_sptr_area num_wells N_per_cap N_per_SA
+    close all;
+    clearvars -except i names strapCap* area num_sptr tot_sptr_area* num_wells N_per_cap N_per_SA
     
 end
 
 fprintf('\n Name | Strap Cap (Gt) | Number Spill-trees | Tot spill-tree area (km2) | Number of wells placed (N) | Spill-tree area utilized (km2) | Strap Cap used (Gt) | N/Gt | N/km2 \n');
 for i = 1:numel(names)
     
-    fprintf(' %16s  &   %6.2f    &   %4.0f   &    %6.2f    &     %4.0f   &    %6.2f    &    %6.4f   \\\\ \n', ...
+    fprintf(' %16s  &   %6.2f    &   %4.0f   &    %6.2f    &     %4.0f   &    %6.2f    &    %6.4f  &    %6.2f    &    %6.4f   \\\\ \n', ...
         names{i}, ...
         strapCap(i), ... %area(i), ...
         num_sptr(i), ...

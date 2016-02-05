@@ -18,10 +18,10 @@ moduleCheck('ad-core')
 
 % Main Directory name for saving results (each cases results will be put
 % into a subdirectory named according to InjYrs and MigYrs)
-varDirName = 'opt_results_array_in_trap_regions';
+varDirName = 'opt_results_one_per_trap_highest_pt_setClevels';
 
 % Figure Directory name
-figDirName = [varDirName '/' 'WellPlacementFigs_array_in_trap_regions'];
+figDirName = [varDirName '/' 'WellPlacementFigs_one_per_trap_highest_pt'];
 mkdir(figDirName)
 
 names = [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()];
@@ -55,8 +55,12 @@ names = unique(names,'stable');
 
 % Load res containing formation names and their coarsening levels.
 % Or get res from testing_coarsening_levels()
-load coarsening_levels_dx3000meter.mat
-shared_names = intersect(names, {res{:,1}});
+%load coarsening_levels_dx3000meter.mat;  n = {res{:,1}}; c_level = {res{:,2}};
+load coarsening_levels_70percent_of_full_StrapCap.mat;
+n       = {names_and_cellsizes{:,1}};
+c_level = {names_and_cellsizes{:,3}};
+
+shared_names = intersect(names, n, 'stable');
 assert( numel(shared_names) >= numel(names) )
 assert( all(strcmpi(sort(shared_names),sort(names)))==1 )
 
@@ -66,8 +70,8 @@ for i=1:numel(names)
     fmName      = names{i};
     rhoCref     = 760 * kilogram / meter ^3;
 
-    inx             = find(strcmp(fmName,{res{:,1}}));
-    coarsening      = res{inx,2};
+    inx             = find(strcmp(fmName,n));
+    coarsening      = c_level{inx};
     [Gt, rock2D]    = getFormationTopGrid( fmName, coarsening );
     if any(isnan(rock2D.perm))
         rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
@@ -94,15 +98,15 @@ for i=1:numel(names)
             'schedule'                       , []                           , ...
                 'itime'                      , 50 * year                    , ...
                 'isteps'                     , 50                           , ...
-                'mtime'                      , 1000 * year                   , ...
-                'msteps'                     , 100                           , ... 
-            'well_placement_type'            , 'use_array'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
+                'mtime'                      , 2000 * year                   , ...
+                'msteps'                     , 200                           , ... 
+            'well_placement_type'            , 'one_per_trap'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
                 'max_num_wells'              , 40                           , ... % used in use_array, one_per_trap
                 'maximise_boundary_distance' , false                        , ... % used in one_per_path
                 'well_buffer_dist'           , 1 * kilo * meter             , ... % dist from edge of internal catchment
                 'well_buffer_dist_domain'    , 5 * kilo * meter             , ... % dist from edge of domain    
                 'well_buffer_dist_catchment' , 3 * kilo * meter             , ... % dist from edge of external catchment
-                'pick_highest_pt'            , false                        , ... % otherwise farthest downslope, used in one_per_trap and one_per_path
+                'pick_highest_pt'            , true                        , ... % otherwise farthest downslope, used in one_per_trap and one_per_path
                 'DX'                         , 1 * kilo*meter               , ... % used in use_array
                 'DY'                         , 1 * kilo*meter               , ... % used in use_array
             'well_control_type'              , 'rate'                       , ...
@@ -223,11 +227,3 @@ end
 %                 2.4895;    0.6788;    1.0161]; % m3/2
 %         vols_inj = rates .* itime; % m3
 %         clear rates
-
-
-    
-
-    
-
-   
-c
