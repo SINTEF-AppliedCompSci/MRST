@@ -6,7 +6,9 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
                 'reverseMode', false, ...
                 'resOnly', false, ...
                 'iteration', -1, ...
-                'explicitAdsorption', false ...
+                'explicitAdsorption', false, ...
+                'explicitConcentration', false, ...
+                'assembleConcentrationEquation', false ...
                 );
 
    opt = merge_options(opt, varargin{:});
@@ -36,6 +38,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
          [p, sW, c, qWs, qOs, qWSft, pBH] = ...
              initVariablesADI(p, sW, c, qWs, qOs, qWSft, pBH);
       else
+         % Not really implemented yet
          zw = zeros(size(pBH));
          [p0, sW0, c0, zw, zw, zw, zw] = ...
              initVariablesADI(p0, sW0, c0, zw, zw, zw, zw); %#ok
@@ -127,8 +130,9 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    % Conservation of surfactant in water:
    poro = model.rock.poro;
-   if opt.explicitAdsorption
+   if opt.explicitAdsorption | opt.explicitConcentration
       ads_term = 0;
+      ads = 0;
    else
       ads  = computeEffAds(c, cmax, fluid);
       ads0 = computeEffAds(c0, cmax0, fluid);
@@ -157,10 +161,8 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
          mw   = {mobW(wc), mobO(wc)};
          s    = {sW(wc), sO(wc)};
 
-         [cqs, weqs, ctrleqs, wc, state.wellSol] = ...
-             wm.computeWellFlux(model, W, wellSol, ...
-                                pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-                                'nonlinearIteration', opt.iteration);
+         [cqs, weqs, ctrleqs, wc, state.wellSol] = wm.computeWellFlux(model, W, wellSol, pBH, {qWs, ...
+                             qOs}, pw, rhos, bw, mw, s, {}, 'nonlinearIteration', opt.iteration);
 
          % Store the well equations (relate well bottom hole pressures to
          % influx).
@@ -203,7 +205,36 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    else
       error('The surfactant model does not support senarios without wells now!');
    end
+
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
+   if opt.explicitConcentration
+      if ~opt.assembleConcentrationEquation
+         problem = reduceProblem(problem, {'surfactant', 'surfactantWells'});
+      else
+         problem = reduceProblem(problem, {'water', 'oil', 'waterWells', 'oilWells'});
+      end
+   end
+end
+
+
+function problem = reduceProblem(problem, variables)
+   
+   n = find(sum(problem.indexOfEquationName(variables), 2));
+   eqs = problem.equations;
+
+   solveInx = setdiff(1:numel(eqs), n);
+
+   eqs  = eqs(solveInx);
+   for eqNum = 1:numel(eqs)
+      eqs{eqNum}.jac = eqs{eqNum}.jac(solveInx);
+   end
+   problem.equations = eqs;
+   problem.equationNames  = problem.equationNames(solveInx);
+   problem.types          = problem.types(solveInx);
+
+   % We are implicitly eliminating the variable of the same type
+   problem.primaryVariables = problem.primaryVariables(solveInx);
 end
 
 

@@ -6,11 +6,10 @@ function state = updateExplicitAds(state0, state, model, dt)
    fluid = model.fluid; % shortcut
 
 
-   [p, sW, c, ads, adsmax] = model.getProps(state, 'pressure', 'water', 'surfactant', 'surfactantmax', ...
-                                                   'ads', 'adsmax');
+   [p, sW, c ] = model.getProps(state, 'pressure', 'water', 'surfactant', 'surfactantmax');
+
    [p0, cmax0, ads0, adsmax0] = model.getProps(state0, 'pressure', 'surfactantmax', 'ads', ...
                                                        'adsmax');
-
 
    ads = fluid.surfads(c);
    if fluid.adsInxSft == 2
@@ -54,7 +53,6 @@ function state = updateExplicitAds(state0, state, model, dt)
    adsmax = max(ads, adsmax0);
    state = model.setProp(state, 'adsmax', adsmax);
    state = model.setProp(state, 'surfactant', max(c, 0));
-   % the value of cmax is in fact not used but we keep it updated.
    state = model.setProp(state, 'surfactantmax', max(c, cmax0));
 
 

@@ -88,8 +88,8 @@ end
 switch simul_case
   case '1D'
     % modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
-    modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck, 'extraStateOutput', ...
-                                              true);
+    modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck, 'extraStateOutput', ...
+                                                true, 'explicitConcentration', true);
   case 'simple'
     modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
   otherwise
@@ -104,7 +104,7 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-if isprop(modelSurfactant, 'explicitAdsComputation')
+if modelSurfactant.explicitConcentration || modelSurfactant.explicitConcentration
    state0.ads = modelSurfactant.fluid.surfads(state0.c);
    state0.adsmax = state0.ads;
 end
@@ -112,4 +112,5 @@ end
 solver = NonLinearSolver('errorOnFailure', true, 'continueOnFailure', true);
 resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule, ...
-                                                  'NonLinearSolver', solver, 'OutputHandler', resulthandler);
+                                                  'NonLinearSolver', solver, 'OutputHandler', ...
+                                                  resulthandler);
