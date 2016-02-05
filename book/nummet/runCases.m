@@ -12,8 +12,8 @@ u0((x<.9) & (x>.6)) = 1;
 f = @(u) u;
 
 % Run simulation
-dt = 0.995*dx/1.0;
-uu = upwind(u0, dt, dx, 20, f, @periodic);
+dt = 0.5*dx/1.0;
+uu = upw(u0, dt, dx, 20, f, @periodic);
 uf = lxf(u0, dt, dx, 20, f, @periodic);
 uw = lxw(u0, dt, dx, 20, f, @periodic);
 
@@ -68,7 +68,7 @@ N  = 1000;
 dx = 1/N;
 xr = -.5*dx:dx:1+.5*dx;
 u0 = 0*xr; u0(1)=1.0;
-ur = upwind(u0, .995*dx/df, dx, .65, f, @outflow);
+ur = upw(u0, .995*dx/df, dx, .65, f, @inflow);
 
 % Solutions on coarser grids
 N  = 100;
@@ -77,9 +77,9 @@ x  = -.5*dx:dx:1+.5*dx;
 u0 = 0*x; u0(1)=1.0;
 dt = .995*dx/df;
 
-uu = upwind(u0, dt, dx, .65, f, @outflow);
-uf = lxf(u0, dt, dx, .65, f, @outflow);
-uw = lxw(u0, dt, dx, .65, f, @outflow);
+uu = upw(u0, dt, dx, .65, f, @inflow);
+uf = lxf(u0, dt, dx, .65, f, @inflow);
+uw = lxw(u0, dt, dx, .65, f, @inflow);
 
 % Plot results
 figure('Position',[293 539 1000 300]);
