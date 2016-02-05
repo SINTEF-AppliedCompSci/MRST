@@ -33,7 +33,7 @@ methods
         end
         
         % Porosity
-        data.poro = sum(block.pv) / sum(block.G.cells.volumes);
+        data.poro = upPoro(block);
         
     end
     

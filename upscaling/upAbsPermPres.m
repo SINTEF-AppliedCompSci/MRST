@@ -2,7 +2,8 @@ function [Kup, report] = upAbsPermPres(block, varargin)
 opt = struct(...
     'dp',         1*barsa, ...
     'dims',       1:3, ...
-    'psolver',    'tpfa' ...
+    'psolver',    'tpfa', ...
+    'fulltensor', false ... % Return full tensor or just the diagonal
     );
 opt = merge_options(opt, varargin{:});
 
@@ -100,11 +101,19 @@ L = block.lengths(dims);
 if isPeriodic
     Pinv = diag(L(:)./dp(:)); % matrix
     Kup  = - V*Pinv;
-    Kup  = diag(Kup); % We use ONLY THE DIAGONAL
+    if ~opt.fulltensor
+        Kup  = diag(Kup); % The diagonal is extracted
+    end
 else
     Kup   = V.*(L(:)./dp(:)); % vector
+    if opt.fulltensor
+        Kup = diag(Kup); % Create a tensor matrix
+    end
 end
-Kup = Kup';
+if ~opt.fulltensor
+    % If only a vector is returned, it is returned as a row-vector
+    Kup = Kup(:)';
+end
 
 totalTime = toc(timeStart);
 if wantReport

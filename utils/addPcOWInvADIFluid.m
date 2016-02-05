@@ -3,6 +3,10 @@ function fluid = addPcOWInvADIFluid(fluid, deck, varargin)
 % This may be called later by using
 %   sW = fluid.pcOWinv(pc)
 % The input deck must have the property SWOF.
+opt = struct(...
+    'swir',  false  ... % include cravity in capillary part
+	);
+opt = merge_options(opt, varargin{:});
 
 assert(isfield(deck, 'PROPS'), 'Invalid deck. Missing ''PROPS'' field.');
 assert(isfield(deck.PROPS, 'SWOF'), 'Only property ''SWOF'' supported.');
@@ -42,4 +46,6 @@ function v = pcOWInv(pc, T, reg, varargin)
     satinx = getRegMap(pc, reg.SATNUM, reg.SATINX, varargin{:});
     v = interpReg(T, pc, satinx);
 end
+
+
 
