@@ -23,6 +23,7 @@ mrstModule add spe10
 % Rock
 I = 1:5; J = 30:35; K = 1:5; % Make some selection
 rock = SPE10_rock(I, J, K); % Get SPE10 rock
+rock.perm = convertFrom(rock.perm, milli*darcy); % Convert units
 
 % Grid
 cellsize = [20, 10, 2].*ft; % Cell size (ft -> m)
@@ -61,11 +62,15 @@ title('Porosity'); colorbar;
 block = GridBlock(G, rock);
 
 % Upscale permeability: upscaled using Dirichlet boundary conditions, and
-% no-flow on the normal boundaries
-KUd = upAbsPermPres(block) %#ok<NOPTS>
+% no-flow on the normal boundaries. The upscaled data is returned in a
+% structure. This structre can grow as more properties are upscaled.
+updata = upAbsPermPres(block);
 
 % Upscale porosity of the block by pore volume averaging
-poroU = upPoro(block) %#ok<NOPTS>
+updata = upPoro(block, updata);
+
+% Display the upscaled data
+updata %#ok<NOPTS>
 
 
 %% Upscale block using periodic BC
@@ -75,11 +80,13 @@ poroU = upPoro(block) %#ok<NOPTS>
 block = GridBlock(G, rock, 'periodic', true);
 
 % Upscale permeability. The function is set up to only return the diagonal
-% of the upscaled tensor by default.
-KUp = upAbsPermPres(block) %#ok<NOPTS>
+% of the upscaled tensor by default. The previous permeability upscaling is
+% replaced.
+updata = upAbsPermPres(block, updata) %#ok<NOPTS>
 
 % We can get the full tensor by asking for it.
-upAbsPermPres(block, 'fulltensor', true)
+updata = upAbsPermPres(block, updata, 'fulltensor', true);
+updata.perm
 
 % Note that the porosity will not change becuase the grid is periodic.
 
@@ -95,7 +102,7 @@ upscaler = OnePhaseUpscaler(G, rock);
 
 % Perform the upscaling. The data structure returned contains both the
 % permeability and the porosity.
-data = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
+updata = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
 
 
 %% Permeability averaging
@@ -104,13 +111,13 @@ data = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
 % the permeability instead of the pressure solver. Let us for example
 % compute the arithmetic average:
 upscaler.OnePhaseMethod = 'arithmetic';
-data = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
+updata = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
 
 % Another alternative is the combination of harmonic and arithmetic. For
 % each different method, observe how the values of the upscaled
 % permeability changes.
 upscaler.OnePhaseMethod = 'harmonic-arithmetic';
-data = upscaler.upscaleBlock(block) %#ok<NOPTS>
+updata = upscaler.upscaleBlock(block) %#ok<NOPTS>
 
 
 

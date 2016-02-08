@@ -1,4 +1,4 @@
-%% Block One-Phase Example
+%% Block Two-Phase Example
 % 
 % Example showing permeability two-phase upscaling of a single grid block,
 % i.e., the entire grid G is upscaled to a single coarse cell.
@@ -15,12 +15,22 @@ mrstModule add incomp upscaling ad-props ad-core
 mrstModule add spe10
 
 
+%% Open a wide figure
+
+fn = 44; % Just some arbitrary number
+close(figure(fn)); fh = figure(fn);
+set(fh, 'Name', 'Block Two-Phase Example', 'NumberTitle', 'off');
+op = get(fh, 'OuterPosition');
+set(fh, 'OuterPosition', op.*[1 1 2.4 1]);
+
+
 %% Construct a model
 % We extract a small block from the SPE10 model 1.
 
 % Rock
 I = 1:5; J = 30:35; K = 1:5; % Make some selection
 rock = SPE10_rock(I, J, K); % Get SPE10 rock
+rock.perm = convertFrom(rock.perm, milli*darcy); % Convert units
 
 % Grid
 cellsize = [20, 10, 2].*ft; % Cell size (ft -> m)
@@ -29,107 +39,214 @@ physdim  = celldim.*cellsize;
 G = cartGrid(celldim, physdim); % Create grid structre
 G = computeGeometry(G); % Compute volumes, centroids, etc.
 
-% Fluid
-fprop = getExampleFluidProps();
-fluid = initADIFluidOW(fprop);
-
-% Close figure if open
-close(figure(1)); 
-
-%% Plot fluid properties
-
-figure(1); clf; hold on;
-sW = linspace(0.1,0.9,100)';
-plot(sW, fluid.krW(sW), 'b');
-plot(sW, fluid.krO(1-sW), 'r');
-
-%%
-
-figure(1); clf; hold on;
-sW = linspace(0.1,0.9,100)';
-plot(sW, fluid.pcOW(sW)./barsa, 'b');
-
 
 %% Plot the grid
 
-% Create a new figure and set it wide
-close(figure(1)); fh = figure(1);
-op = get(fh, 'OuterPosition');
-set(fh, 'OuterPosition', op.*[1 1 2.4 1]);
+% Plot the permeability
+figure(fn); clf; subplot(1,2,1);
+plotCellData(G, log10(convertTo(rock.perm(:,1), milli*darcy)));
+view(3); axis tight; colorbar; title('Permeability');
 
-% Permeability on a log-scale
-subplot(1,2,1);
-plotCellData(G, log10(convertTo(rock.perm(:,1), milli*darcy)) );
-view(3); axis tight;
-xlabel('x-axis'); ylabel('y-axis'); zlabel('z-axis');
-title('Permeability'); colorbar;
-
-% Porosity
+% Plot the regions
 subplot(1,2,2);
 plotCellData(G, rock.poro); view(3); axis tight;
-xlabel('x-axis'); ylabel('y-axis'); zlabel('z-axis');
-title('Porosity'); colorbar;
+colorbar; title('Porosity');
 
 
-%% Upscale block using steady-state capillary limit
+%% Create two regions
+
+% Create two regions which will have different relative permeability data.
+% This will make the relative permeability upscaling more interesting. We
+% divide the cells in two equal sizes, based on the value of the
+% permeability.
+kl = log10(rock.perm(:,1));
+regnum = ones(G.cells.num, 1);
+regnum(kl<median(kl)) = 2;
+
+
+
+%% Plot the permeability and regions
+
+% Plot the permeability
+figure(fn); clf; subplot(1,2,1);
+plotCellData(G, log10(convertTo(rock.perm(:,1), milli*darcy)));
+view(3); axis tight; colorbar; title('Permeability');
+
+% Plot the regions
+subplot(1,2,2);
+plotCellData(G, regnum); view(3); axis tight;
+colorbar; title('Rock regions');
+
+
+%% Create a fluid
+% We apply some helper functions to help us create an example fluid
+
+% Get a property structure
+fprop = getExampleFluidProps(rock,'satnum',regnum,'swir',[0.1 0.25], ...
+    'sor',[0.14 0.18],'krWmax',[0.8 0.6],'nsat',30);
+
+% Create an MRST fluid from the property structure
+fluid = initADIFluidOW(fprop);
+
+
+%% Plot fluid properties
+
+figure(fn); clf;
+
+% Relative permeability
+subplot(1,2,1); hold on;
+colors = lines(2); lh = nan(2,1);
+for r=1:2
+    lh(r) = plot(fprop.krW{r}(:,1), fprop.krW{r}(:,2), ...
+                'Color', colors(r,:) );
+            plot(1-fprop.krO{r}(:,1), fprop.krO{r}(:,2), ...
+                'Color', colors(r,:) );
+end
+box on; axis([0 1 0 1]); title('Relative Permeability');
+legend(lh,{'Region 1','Region 2'},'Location','North');
+xlabel('Water Saturation'); ylabel('Relative Permeability');
+
+% Capillary pressure
+subplot(1,2,2); hold on;
+lh = nan(2,1);
+for r=1:2
+    lh(r) = plot(fprop.pcOW{r}(:,1), fprop.pcOW{r}(:,2)./barsa, ...
+                'Color', colors(r,:) );
+end
+box on; axis([0 1 -1 1]); title('Capillary Pressure');
+legend(lh,{'Region 1','Region 2'},'Location','North');
+xlabel('Water Saturation'); ylabel('Capillary Pressure (bar)');
+
+
+
+%% Create Block and Upscaled Absolute Permeability
 
 % Create GridBlock: to simplify the passing of arguments in different
 % upscaling methods, we create a GridBlock instance which holds the grid,
 % the rock, and other properties of the grid block that is to be upscaled.
-block = GridBlock(G, rock);
+% For two-phase flow, the block also need to access the fluid structure.
+block = GridBlock(G, rock, 'fluid', fluid);
 
-% Upscale permeability: we first need to upscale the permeability. We here
-% use Dirichlet boundary conditions with no-flow on the normal boundaries
-KU = upAbsPermPres(block) %#ok<NOPTS>
+% Upscale porosity
+updata = upPoro(block);
 
-
-
-
-
-
-%% Upscale block using periodic BC
-
-% Create GridBlock with the parameter 'periodic' set to 'true'. The
-% GridBlock will then make the grid periodic.
-block = GridBlock(G, rock, 'periodic', true);
-
-% Upscale permeability. The function is set up to only return the diagonal
-% of the upscaled tensor by default.
-KUp = upAbsPermPres(block) %#ok<NOPTS>
-
-% We can get the full tensor by asking for it.
-upAbsPermPres(block, 'fulltensor', true)
-
-% Note that the porosity will not change becuase the grid is periodic.
+% Upscale permeability: we need to upscale the (absolute) permeability
+% before upscaling relative permeability. Here, we use Dirichlet boundary
+% conditions with no-flow on the normal boundaries.
+updata = upAbsPermPres(block, updata) %#ok<NOPTS>
 
 
-%% Using the Upscaler class
+%% Relative Permeability upscaling - Viscous-Limit method
 
-% Instead of calling the upscaling functions directly, we may use the
-% subclasses of the Upscaling class. For one phase upscaling, we call the
-% class OnePhaseUpscaler.
-
-% Create an instance of the upscaler 
-upscaler = OnePhaseUpscaler(G, rock);
-
-% Perform the upscaling. The data structure returned contains both the
-% permeability and the porosity.
-data = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
+% Viscous-limit upscaling
+% Let's start by upscaling relperm using viscous-limit steady-state
+% upscaling. This method assumes the capillary forces are negligable and
+% that the fractional flow is constant in the grid block.
+% If nothing is specified, then the relative permeability is upscaled in
+% each of the three dimensions.
+updataVL = upRelPerm(block, updata, 'viscous') %#ok<NOPTS>
 
 
-%% Permeability averaging
+%% Plot the upscaled relative permeability
 
-% We may also choose to use an averaging method to find uspcaled values of
-% the permeability instead of the pressure solver. Let us for example
-% compute the arithmetic average:
-upscaler.OnePhaseMethod = 'arithmetic';
-data = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
+figure(fn); subplot(1,2,2); cla; hold on;
+lh = nan(numel(updataVL.krW)+1,1);
+for r=1:2 % Plot original curves in the backgroudn
+    lh(1) = plot(fprop.krW{r}(:,1), fprop.krW{r}(:,2), ...
+                'Color', [1 1 1].*0.8 );
+            plot(1-fprop.krO{r}(:,1), fprop.krO{r}(:,2), ...
+                'Color', [1 1 1].*0.8 );
+end
+colors = lines(numel(updataVL.krW));
+for d=1:numel(updataVL.krW) % Plot the upscaled curves on top
+    lh(d+1) = plot(updataVL.krW{d}(:,1), updataVL.krW{d}(:,2), ...
+                'Color', colors(d,:) );
+            plot(updataVL.krO{d}(:,1), updataVL.krO{d}(:,2), ...
+                'Color', colors(d,:) );
+end
+box on; axis([0 1 0 1]); title('Upscaled Relative Permeability');
+legend(lh,{'Original','x-dir','y-dir','z-dir'},'Location','North');
+xlabel('Water Saturation'); ylabel('Relative Permeability');
 
-% Another alternative is the combination of harmonic and arithmetic. For
-% each different method, observe how the values of the upscaled
-% permeability changes.
-upscaler.OnePhaseMethod = 'harmonic-arithmetic';
-data = upscaler.upscaleBlock(block) %#ok<NOPTS>
+% We observe that the upscaling in x- and y-direction are almost identical,
+% while the z-direction upscaling is clearly different. This is not
+% unusual, as reservoirs often can have some form of horizontal layering.
+
+% Another point to note, is that for the x- and y-direction, the upscaled
+% curves are closer to the original curves of region 1 than region 2. This
+% can be explained by region 1 having higher absolute permeability, and
+% thus more flow goes through region 1, making this the 'domonant' region.
+
+% Of cource, the above observations will not be valid if the original
+% domain is changed.
+
+
+%% Relative Permeability upscaling - Capillary-Limit method
+
+% Capillary-limit upscaling
+% In the other steady-state limit, it is assumed that the velocity is small
+% enough, such that the capillary forces dominate.
+
+% To run the capillary-limit upscaling, we must first upscale the capillary
+% pressure curves.
+updata = upPcOW(block, updata);
+
+% Then we can upscale the relative permeability
+updataCL = upRelPerm(block, updata, 'capillary');
+
+
+%% Plot the upscaled relative permeabilitis
+
+figure(fn); clf;
+
+for i = 1:2
+    subplot(1,2,i); hold on;
+    if i==1
+        ud = updataVL; % Left: Viscous-limit upscaled curves
+        title('Viscous-Limit Upscaling');
+    else
+        ud = updataCL; % Right: Capillary-limit upscaled curves
+        title('Capillary-Limit Upscaling');
+    end
+    lh = nan(numel(ud.krW)+1,1);
+    for r=1:2 % Plot original curves in the backgroudn
+        lh(1) = plot(fprop.krW{r}(:,1), fprop.krW{r}(:,2), ...
+                    'Color', [1 1 1].*0.8 );
+                plot(1-fprop.krO{r}(:,1), fprop.krO{r}(:,2), ...
+                    'Color', [1 1 1].*0.8 );
+    end
+    colors = lines(numel(ud.krW));
+    for d=1:numel(ud.krW) % Plot the upscaled curves on top
+        lh(d+1) = plot(ud.krW{d}(:,1), ud.krW{d}(:,2), ...
+                    'Color', colors(d,:) );
+                plot(ud.krO{d}(:,1), ud.krO{d}(:,2), ...
+                    'Color', colors(d,:) );
+    end
+    box on; axis([0 1 0 1]);
+    legend(lh,{'Original','x-dir','y-dir','z-dir'},'Location','North');
+    xlabel('Water Saturation'); ylabel('Relative Permeability');
+end
+
+% Observe how the two different methods produce different upscaled relative
+% permeability curves. Especially in the z-direction, the two methods
+% differ significantly in this case.
+
+
+
+%% Rate-Dependent Steady-State Upscaling
+
+% The viscous- and capillary-limit methods make simplifications which makes
+% it faster to find the satuartion distribution at steady state. However,
+% in general for intermediate flow-rates, the saturation distribution at
+% steady-state must be computed for each value of the average saturation.
+% This flow-based steady-state upscaling is more time-consuming, but may be
+% more accurate if none of the limits can be assumed.
+
+updataRD = upRelPerm(block, updata, 'flow');
+
+
+
+
 
 
 

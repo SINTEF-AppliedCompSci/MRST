@@ -140,8 +140,9 @@ for iv = 1:nvals
                 % Perform one phase upscaling with the altered
                 % permeability field
                 block.rock = rock_KmobT;
-                KMobTU = upAbsPerm(block, 'dims', d, 'dp', opt.dp, ...
+                data = upAbsPerm(block, [], 'dims', d, 'dp', opt.dp, ...
                     'method', opt.absmethod);
+                KMobTU = data.perm;
             end
             
             % For viscous limit, the value is fractional flow
@@ -179,8 +180,9 @@ for iv = 1:nvals
                     % Perform one phase upscaling with the altered
                     % permeability field
                     block.rock = rock_Kkr;
-                    krKU = upAbsPerm(block, 'dims', d, 'dp', opt.dp, ...
-                        'method', opt.absmethod);
+                    data = upAbsPerm(block, [], 'dims', d, ...
+                        'dp', opt.dp, 'method', opt.absmethod);
+                    krKU = data.perm;
                 end
 
                 % Compute upscaled relperm value

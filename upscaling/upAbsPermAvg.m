@@ -1,10 +1,14 @@
-function [Kup, report] = upAbsPermAvg(block, varargin)
+function [updata, report] = upAbsPermAvg(block, updata, varargin)
 % Power averaging of of the absolute permeability
 opt = struct(...
     'dims',       1:3, ...
     'method',     'arithmetic' ...
     );
 opt = merge_options(opt, varargin{:});
+
+if nargin==1
+    updata = [];
+end
 
 wantReport = nargout > 1;
 timeStart = tic;
@@ -54,6 +58,8 @@ else
         Kup(i) = upf( rock.perm(:,dims(i)), dims(i) );
     end
 end
+
+updata.perm = Kup;
 
 totalTime = toc(timeStart);
 if wantReport

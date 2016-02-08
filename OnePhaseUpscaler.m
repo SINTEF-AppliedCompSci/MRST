@@ -23,7 +23,7 @@ methods
         data.dims = upscaler.dims;
 
         % Absolute permeability
-        [data.perm, report] = upAbsPerm(block, ...
+        [data, report] = upAbsPerm(block, data, ...
             'method', upscaler.OnePhaseMethod, ...
             'dims', upscaler.dims, ...
             'dp', upscaler.dp);
@@ -33,7 +33,7 @@ methods
         end
         
         % Porosity
-        data.poro = upPoro(block);
+        data = upPoro(block, data);
         
     end
     

@@ -1,4 +1,4 @@
-function [Kup, report] = upAbsPermPres(block, varargin)
+function [updata, report] = upAbsPermPres(block, updata, varargin)
 opt = struct(...
     'dp',         1*barsa, ...
     'dims',       1:3, ...
@@ -6,6 +6,10 @@ opt = struct(...
     'fulltensor', false ... % Return full tensor or just the diagonal
     );
 opt = merge_options(opt, varargin{:});
+
+if nargin==1
+    updata = [];
+end
 
 wantReport = nargout > 1;
 timeStart = tic;
@@ -96,6 +100,8 @@ for i = 1:ndims
     
 end
 
+Kup = [];
+
 % Compute upscaled permeability
 L = block.lengths(dims);
 if isPeriodic
@@ -114,6 +120,8 @@ if ~opt.fulltensor
     % If only a vector is returned, it is returned as a row-vector
     Kup = Kup(:)';
 end
+
+updata.perm = Kup;
 
 totalTime = toc(timeStart);
 if wantReport
