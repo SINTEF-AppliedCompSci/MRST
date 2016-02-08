@@ -76,28 +76,65 @@ vec1= vec1'; vec2 = vec2';
 
 T = [vec1(:), vec2(:)];
 
+
+
                             %   Number of nodes per face.
 numFaceNodes = diff(G.faces.nodePos);
 
                             %   Scale coordinates for use in the monomial
                             %   basis.
 b = X(G.faces.nodePos(1:end-1),:);
-Xplot = cell2mat(cellfun(@(X,Y,b) (X-repmat(b,size(X,1),1))*Y, ...
-             mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
-             mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
-             mat2cell(repmat(b,3,1),ones(3*nF,1),3), ...
-                         'UniformOutput', false));
+
+% for i = 1:nF
+%     tt = T(3*(i-1)+1:3*i,:)'
+%     xx = X(4*(i-1)+1:4*i,:);
+%     plot3(xx(:,1), xx(:,2), xx(:,3), '*')
+%     hold on
+%     plot3(xx(1,1) + tt(1,1), ...
+%           xx(1,2) + tt(1,2), ...
+%           xx(1,3) + tt(1,3), 'o')
+%     pause;
+%     plot3(xx(1,1) + tt(2,1), ...
+%           xx(1,2) + tt(2,2), ...
+%           xx(1,3) + tt(2,3), 'o')
+%     plot3(b(i,1), b(i,2), b(i,3), 'sq');
+%     pause;
+%     hold off
+% end
+
+% Xplot = cell2mat(cellfun(@(X,Y,b) (X-repmat(b,size(X,1),1))*Y, ...
+%              mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
+%              mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
+%              mat2cell(repmat(b,3,1),ones(3*nF,1),3), ...
+%                          'UniformOutput', false));
+% 
+%                      
+% X = cell2mat(cellfun(@(X,Y,b) (X-repmat(b,size(X,1),1))*Y, ...
+%              mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
+%              mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
+%              mat2cell(repmat(b,3,1),ones(3*nF,1),3), ...
+%                          'UniformOutput', false));
+% ff = cell2mat(cellfun(@(X,Y,b) (X-b)*Y, ...
+%              mat2cell(Fc,ones(nF,1),3), ...
+%              mat2cell(T,3*ones(nF,1),2), ...
+%              mat2cell(b,ones(nF,1),3), ...
+%                          'UniformOutput', false));
+% 
+% X = bsxfun(@rdivide, X - repmat(rldecode(ff,numFaceNodes,1),3,1), ...
+%                          repmat(rldecode(hF,numFaceNodes,1),3,1));                     
+                     
                      
 X = bsxfun(@rdivide, X - repmat(rldecode(Fc,numFaceNodes,1),3,1), ...
                          repmat(rldecode(hF,numFaceNodes,1),3,1));
 
                             %   Apply coordinate transform to coordinates
                             %   and edgeNormals.
-X = cell2mat(cellfun(@(X,Y,b) (X-repmat(b,size(X,1),1))*Y, ...
+X = cell2mat(cellfun(@(X,Y,b) (X)*Y, ...
              mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
              mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
              mat2cell(repmat(b,3,1),ones(3*nF,1),3), ...
                          'UniformOutput', false));
+
 
 edgeNormals = ...
     cell2mat(cellfun(@(X,Y) X*Y, ...
@@ -167,10 +204,10 @@ D = mat2cell(D,NF,6);
                                 %   Speed: Do sparse block..
 
 PNstar = cellfun(@(BT,D) (BT'*D)\BT', BT, D, 'UniformOutput', false);   
-PN     = cellfun(@(D, PNstar) D*PNstar, D, PNstar, 'UniformOutput', false); 
+%PN     = cellfun(@(D, PNstar) D*PNstar, D, PNstar, 'UniformOutput', false); 
 
 PNstar = cell2mat(PNstar);
-PN = cell2mat(PN);
+%PN = cell2mat(PN);
 
 %%  Cell face int
                             %   Gauss-Lobatto quadrature point and
@@ -199,7 +236,7 @@ nq = size(Xq,1);
 k = 2;
 N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2;
 
-I = sparse(G.cells.num*9,N);
+% I = sparse(G.cells.num*9,N);
 I = sparse(G.cells.num*6,N);
 
 
@@ -207,13 +244,54 @@ Kc = G.cells.centroids;
 hK = G.cells.diameters;
 TPos = (0:3:3*nF)+1;
 PNFstarPos = (0:6:6*G.faces.num)+1;
-intPos = (0:9:9*G.cells.num)+1;
+% intPos = (0:9:9*G.cells.num)+1;
 intPos = (0:6:6*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
              rldecode((1:G.cells.num)',diff(G.cells.facePos),1)];
 neighbors = G.faces.neighbors;
 
 m3D = @(X) [X(:,1), X(:,2), X(:,3)];
+
+
+for i = 1:nF
+
+    tt = T(3*(i-1)+1:3*i,:);
+    
+    nodeNum  =G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
+    nodes = G.faces.nodes(nodeNum);
+    xx = G.nodes.coords(nodes,:);
+    b = xx(1,:);
+    xxu = xx;
+    xxI = (xx-repmat(b,size(xx,1),1))*tt;
+    xx = (xx - repmat(Fc(i,:),size(xx,1),1))/hF(i);
+    xx = xx*tt;
+    
+    edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
+    edges  = G.faces.edges(edgeNum);
+    ee = G.edges.centroids(edges,:);
+    ee = (ee - repmat(Fc(i,:),size(xx,1),1))/hF(i);
+    ee = ee*T(3*(i-1)+1:3*i,:);
+
+    en = G.faces.edgeNormals(edgeNum,:);
+    en = en*tt;
+    
+    ff = (Fc(i,:) - b)*tt;
+    
+    mm = @(X) [ ones(size(X,1),1), (X(:,1)-ff(1))/hF(i), ...
+                                    (X(:,2)-ff(2))/hF(i), ...
+                                    ((X(:,1)-ff(1))/hF(i)).^2, ...
+                                    (X(:,1)-ff(1))/hF(i).*(X(:,2)-ff(2))/hF(i), ...
+                                    ((X(:,2)-ff(2))/hF(i)).^2]; 
+    %%  Check for D. OK
+    dd = D{i};
+    dd-[m([xx;ee]); polygonInt(xxI, mm)/aF(i)];
+    
+    %%  Check for B.
+    
+    bb = BT{i}';
+    bb;
+    
+end
 
 for i = 1:nF
     
@@ -238,18 +316,18 @@ for i = 1:nF
     
     Xu = X;
     X = (X - repmat(bT,size(X,1),1))*TF;
-%     
-%     Xmon = (Xmon - repmat(bT,size(Xmon,1),1))*TF;
+% 
+%     Xmon = (Xmon)*TF;
 % 
 %     Ec = G.edges.centroids(edges,:);
 %     Ec = (Ec-repmat(bT,size(Ec,1),1))*TF;
-%     
-%     g = @(X) X(:,1).^2 + X(:,2).^2/8;
+% 
+%     g = @(X) X(:,1).^2 + X(:,2) + X(:,2).^2*10000;
 %     gI = polygonInt(X,g)./aF(i);
 % 
 %     gv = [g([X;Ec]); gI];
 %     g(X) - m(Xmon)*PNFstar*gv
-%     
+% 
 %     TF
 
                             %   Triangulate face
@@ -272,9 +350,10 @@ for i = 1:nF
     XK = bsxfun(@rdivide, ...
                 repmat(XK,nK,1) - rldecode(Kc(cells,:),nq*nTri*ones(nK,1),1), ...
                 rldecode(hK(cells),nq*nTri*ones(nK,1),1));
+    
     FcT = (Fc(i,:)-bT)*TF;
             
-    XF = (Xhat - repmat(FcT,nq*nTri,1))./hF(i);
+    XF = (Xhat - repmat(FcT,nq*nTri,1))/hF(i);
     
 % %     xp = (X*TF' + repmat(bT,size(X,1),1)-repmat(Kc(cells,:),size(X,1),1))./hK(i);
 %     xp = (Xu-repmat(Kc(cells,:),size(X,1),1))/hK(cells);

@@ -1,14 +1,21 @@
-function G = unitCubeTetrahedrons(n)
+function G = unitCubeTetrahedrons(dims)
 
-nP = n+1;
+nPx = dims(1)+1;
+nPy = dims(2)+1;
+nPz = dims(3)+1;
 
-d = 1/(nP-1);
-coords = 0:1/(nP-1):1;
-[x, y, z] = meshgrid(coords, coords, coords);
+dx = 1/(nPx-1);
+xx = 0:dx:1;
+dy = 1/(nPy-1);
+yy = 0:dy:1;
+dz = 1/(nPz-1);
+zz = 0:dz:1;
 
-% x(:,2:nP-1,:) = x(:,2:nP-1,:) + random('Normal', 0, d/4, nP, nP-2, nP);
-% y(2:nP-1,:,:) = y(2:nP-1,:,:) + random('Normal', 0, d/4, nP-2, nP, nP);
-% z(:,:,2:nP-1) = z(:,:,2:nP-1) + random('Normal', 0, d/4, nP, nP, nP-2);
+[x, y, z] = meshgrid(xx, yy, zz);   
+
+x(:,2:nPx-1,:) = x(:,2:nPx-1,:) + random('Normal', 0, dx/4, nPy, nPx-2, nPz);
+y(2:nPy-1,:,:) = y(2:nPy-1,:,:) + random('Normal', 0, dy/4, nPy-2, nPx, nPz);
+z(:,:,2:nPz-1) = z(:,:,2:nPz-1) + random('Normal', 0, dz/4, nPy, nPx, nPz-2);
 
 
 P = [x(:), y(:), z(:)];

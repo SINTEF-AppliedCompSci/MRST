@@ -1,4 +1,4 @@
-clc; close all;
+clc; clear all; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 

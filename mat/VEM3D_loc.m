@@ -98,16 +98,16 @@ PN = D*PNstar;
 Mtilde = [zeros(1,nk); M(2:nk,:)];
 
 Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
-
-g = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60 + 10;
-g = @(X) ones(size(X,1),1);
-
-gF = polygonInt3D(G,faces,g);
-gK = polyhedronInt(G,K,g);
-gv = [g([X;Ec]); gF./faceAreas; gK/vol];
-
-er1 = max(abs((gv - PN*gv)./gv))
-er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X))
+% 
+% g = @(X) X(:,1).^2 + X(:,3).*X(:,2)*1000/3 + 10;
+% g = @(X) ones(size(X,1),1);
+% 
+% gF = polygonInt3D(G,faces,g);
+% gK = polyhedronInt(G,K,g);
+% gv = [g([X;Ec]); gF./faceAreas; gK/vol];
+% 
+% er1 = max(abs((gv - PN*gv)./gv))
+% er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X))
 
 %%  LOCAL LOAD TERM.                                                     %%
 
@@ -136,10 +136,10 @@ dofVec = [nodes', edges' + G.nodes.num, ...
       
       
 %%  DEBUG
-      
+%       
 % D = [monomialNodeVals; monomialEdgeVals;  ...
 %      monomialFaceInt ; monomialCellInt/vol]; 
- 
+%  
 %             m3D =      @(X) [ones(size(X,1),1) , ...
 %                 (X(:,1)-Kc(1))/hK              , ...   %   (1,0,0)
 %                (X(:,2)-Kc(2))/hK               , ...   %   (0,1,0)
@@ -169,16 +169,7 @@ dofVec = [nodes', edges' + G.nodes.num, ...
 %                X(:,2).*X(:,3), ...   %   (0,1,1)
 %                X(:,3).^2];      %   (0,0,2)icenter of K.
 % 
-% g = @(X) X(:,1).^2 + X(:,3).*X(:,2)/27*60 + 10;
-% g = @(X) ones(size(X,1),1);
 % 
-% gF = polygonInt3D(G,faces,g);
-% gK = polyhedronInt(G,K,g);
-% gv = [g([X;Ec]); gF./faceAreas; gK/vol];
-% 
-% er1 = max(abs((gv - PN*gv)./gv))
-% er2 = max(abs(g(X) - m3D(X)*PNstar*gv)./g(X))
-
 Mdb = zeros(nk,nk);
 Mdb(1,:) = cellIntegrals/vol;
 %    1 2 3 4 5   6  7  8   9  10
@@ -203,8 +194,6 @@ Mdb(2:nk,2:nk) = triu(mm(2:nk,2:nk)) + tril(mm(2:nk,2:nk)',-1);
 
 norm(Mdb-M,'fro')
 Mdb-M
-
-% norm(Mdb-M,'fro')
 
 
 end

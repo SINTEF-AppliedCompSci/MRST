@@ -1,12 +1,12 @@
-clc; clear; close all;
+clc; clear all; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-n = 2;
+n = 8;
+gridLim = [1,1,1];
 
-
-G = cartGrid([n,n,n],[2,2,2]);
-% G = unitCubeTetrahedrons(n);
+% G = cartGrid([3*n,n,n],gridLim);
+G = unitCubeTetrahedrons([n,n,n]);
 
 % %--------------------------------------------------------------------------
 % %   -\delta u = 0,
@@ -37,12 +37,12 @@ G = mrstGridWithFullMappings(G);
 G = computeVEMGeometry(G,f);
 
 boundaryFaces = (1:G.faces.num)';
-boundaryFaces = boundaryFaces( G.faces.centroids(:,1) == 0 | ...
-                               G.faces.centroids(:,1) == 1 | ...
-                               G.faces.centroids(:,2) == 0 | ...
-                               G.faces.centroids(:,2) == 1 | ...
-                               G.faces.centroids(:,3) == 0 | ...
-                               G.faces.centroids(:,3) == 1 );                          
+boundaryFaces = boundaryFaces( G.faces.centroids(:,1) == 0          | ...
+                               G.faces.centroids(:,1) == gridLim(1) | ...
+                               G.faces.centroids(:,2) == 0          | ...
+                               G.faces.centroids(:,2) == gridLim(2) | ...
+                               G.faces.centroids(:,3) == 0          | ...
+                               G.faces.centroids(:,3) == gridLim(3) );                          
 
 bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryFaces}}, 'bcType', {{'dir'}});
 
