@@ -7,8 +7,8 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
                 'resOnly', false, ...
                 'iteration', -1, ...
                 'explicitAdsorption', false, ...
-                'explicitConcentration', false, ...
-                'assembleConcentrationEquation', false ...
+                'assembleOnlyExplicitConcentrationEquation', false, ...
+                'assembleOnlyOWEquation', false ...
                 );
 
    opt = merge_options(opt, varargin{:});
@@ -35,7 +35,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    if ~opt.resOnly,
       % ADI variables needed since we are not only computing residuals.
       if ~opt.reverseMode,
-         [p, sW, c, qWs, qOs, qWSft, pBH] = ...
+         [p, sW, c_adi, qWs, qOs, qWSft, pBH] = ...
              initVariablesADI(p, sW, c, qWs, qOs, qWSft, pBH);
       else
          % Not really implemented yet
@@ -44,6 +44,8 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
              initVariablesADI(p0, sW0, c0, zw, zw, zw, zw); %#ok
          clear zw
       end
+   else
+      c_adi = c;
    end
 
    % We will solve for pressure, water saturation (oil saturation follows via
@@ -55,9 +57,18 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    sO  = 1 - sW;
    sO0 = 1 - sW0;
 
+   if opt.assembleOnlyExplicitConcentrationEquation
+      c_impl = c_adi;
+      c_expl = c;
+   else
+      c_impl = c_adi;
+      c_expl = c_adi;
+   end
+
+
    % The water flux for the wells.
 
-   Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, 'velocCompMethod', 'square');
+   Nc = computeCapillaryNumber(p, c_expl, pBH, W, fluid, G, operators, 'velocCompMethod', 'square');
    [krW, krO] = computeRelPermSft(sW, Nc, fluid);
 
    % Multipliers for properties
@@ -80,7 +91,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    if isfield(fluid, 'pcOW')
       pcOW  = fluid.pcOW(sW);
    end
-   pcOW = pcOW.*fluid.ift(c)/fluid.ift(0);
+   pcOW = pcOW.*fluid.ift(c_expl)/fluid.ift(0);
    pO = p;
    pW = pO - pcOW;
 
@@ -91,7 +102,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    bW   = fluid.bW(p);
    rhoW = bW.*fluid.rhoWS;
    rhoWf  = s.faceAvg(rhoW);
-   muW = fluid.muWSft(c);
+   muW = fluid.muWSft(c_expl);
    multmuW = fluid.muW(p)/fluid.muWr;
    mobW = krW./(muW.*multmuW);
    dpW  = s.Grad(pW) - rhoWf.*gdz;
@@ -130,20 +141,21 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    % Conservation of surfactant in water:
    poro = model.rock.poro;
-   if opt.explicitAdsorption | opt.explicitConcentration
+   if opt.explicitAdsorption
       ads_term = 0;
       ads = 0;
    else
-      ads  = computeEffAds(c, cmax, fluid);
+      ads  = computeEffAds(c_impl, cmax, fluid);
+      state.ads = ads;
       ads0 = computeEffAds(c0, cmax0, fluid);
       ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
    end
-   surfactant = (s.pv/dt).*((pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
+   surfactant = (s.pv/dt).*((pvMult.*bW.*sW.*c_impl - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
        s.Div(bWvSft);
 
    if model.extraStateOutput
-      sigma = fluid.ift(c);
-      state = model.storeSurfData(state, sW, c, Nc, sigma, ads);
+      sigma = fluid.ift(c_impl);
+      state = model.storeSurfData(state, sW, c_impl, Nc, sigma);
    end
 
    eqs   = {water, oil, surfactant};
@@ -178,7 +190,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
          % surfactant well equations
          [~, wciSft, iInxW] = getWellSurfactant(W);
-         cw        = c(wc);
+         cw        = c_impl(wc);
          cw(iInxW) = wciSft;
 
          % Add surfactant
@@ -208,26 +220,26 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
-   if opt.explicitConcentration
-      if ~opt.assembleConcentrationEquation
-         problem = reduceProblem(problem, {'surfactant', 'surfactantWells'});
-      else
-         problem = reduceProblem(problem, {'water', 'oil', 'waterWells', 'oilWells'});
-      end
+   if opt.assembleOnlyOWEquation
+      problem = reduceProblem(problem, {'surfactant', 'surfactantWells'});
+   elseif opt.assembleOnlyExplicitConcentrationEquation
+      problem = reduceProblem(problem, {'water', 'oil', 'waterWells', 'oilWells'});
    end
 end
 
 
 function problem = reduceProblem(problem, variables)
-   
+
    n = find(sum(problem.indexOfEquationName(variables), 2));
    eqs = problem.equations;
 
    solveInx = setdiff(1:numel(eqs), n);
 
    eqs  = eqs(solveInx);
-   for eqNum = 1:numel(eqs)
-      eqs{eqNum}.jac = eqs{eqNum}.jac(solveInx);
+   if isa(eqs{1}, 'ADI')
+      for eqNum = 1:numel(eqs)
+         eqs{eqNum}.jac = eqs{eqNum}.jac(solveInx);
+      end
    end
    problem.equations = eqs;
    problem.equationNames  = problem.equationNames(solveInx);

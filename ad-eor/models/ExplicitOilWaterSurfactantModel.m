@@ -1,15 +1,18 @@
-classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
+classdef ExplicitOilWaterSurfactantModel < TwoPhaseOilWaterModel
 % Oil/water/Surfactant system
 % This model is a two phase oil/water model, extended with the surfactant
 % component in addition.
 
    properties
       % Surfactant present
-      surfactant
+      surfactant;
+      explicitConcentration
+      % explConcModel
+      explConcModel;
    end
 
    methods
-      function model = OilWaterSurfactantModel(G, rock, fluid, varargin)
+      function model = ExplicitOilWaterSurfactantModel(G, rock, fluid, varargin)
 
          model = model@TwoPhaseOilWaterModel(G, rock, fluid);
 
@@ -20,22 +23,25 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
 
          model = merge_options(model, varargin{:});
 
-
          model = model.setupOperators(G, rock, varargin{:});
+         
+         explicitConcentration = true;
+         model.explConcModel = ExplicitSurfactantModel(G, rock, fluid, varargin{:});
 
       end
 
       function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = equationsOilWaterSurfactant(state0, state, model, dt, drivingForces, ...
-                                                           varargin{:});
+            [problem, state] = equationsOilWaterSurfactant(state0, state, model, dt, drivingForces, 'assembleOnlyOWEquation', true, varargin{:});
       end
 
       function [state, report] = updateState(model, state, problem, dx, drivingForces)
          [state, report] = updateState@TwoPhaseOilWaterModel(model, state, problem,  dx, ...
                                                            drivingForces);
-         % cap the concentration (only if implicit solver for concentration)
-         c = model.getProp(state, 'surfactant');
-         state = model.setProp(state, 'surfactant', max(c, 0) );
+         if ~model.explicitConcentration
+            % cap the concentration (only if implicit solver for concentration)
+            c = model.getProp(state, 'surfactant');
+            state = model.setProp(state, 'surfactant', max(c, 0) );
+         end
 
       end
 
@@ -53,7 +59,14 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
          [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
                                                            drivingForces);
 
+         % Solve the explicit concentration equation.
+         solver = NonLinearSolver;
+         [state, converged, failure, its, reports] = solver.solveMinistep(solver, model.explConcModel, ...
+                                                           state, state0, dt, drivingForces);
+         state.SURFADS = double(state.ads);
+      
       end
+
 
       function [fn, index] = getVariableField(model, name)
       % Get the index/name mapping for the model (such as where
