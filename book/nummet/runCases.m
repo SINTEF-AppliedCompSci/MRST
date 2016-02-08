@@ -92,3 +92,37 @@ axis([0 1 -.1 1.1]); title('Lax-Friedrichs');
 subplot(1,3,3)
 plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uw(2:end-1), '*');
 axis([0 1 -.1 1.1]); title('Lax-Wendroff');
+
+
+%% Buckley--Leverett problem using 'incomp' module
+mrstModule add incomp
+G = computeGeometry(cartGrid([100,1],[1 1]));
+rock = makeRock(G, ones(G.cells.num,1), ones(G.cells.num,1));
+
+fluid = initSimpleFluid('mu' , [   1,    1] .* centi*poise     , ...
+                        'rho', [1000, 1000] .* kilogram/meter^3, ...
+                        'n'  , [   2,    2]);
+bc = fluxside([], G, 'Left',   1, 'sat', [1 0]);
+bc = fluxside(bc, G, 'Right', -1, 'sat', [0 1]);
+
+hT = computeTrans(G, rock);
+rSol = initState(G, [], 0, [0 1]);
+
+rSol = incompTPFA(rSol, G, hT, fluid, 'bc', bc);
+rSole = explicitTransport(rSol, G, .65, rock, fluid, 'bc', bc);
+rSoli = rSol; n = 13;
+for i=1:n
+    rSoli = implicitTransport(rSoli, G, .65/n, rock, fluid, 'bc', bc);
+end
+rSolt = rSol; n = 130;
+for i=1:n
+    rSolt = implicitTransport(rSolt, G, .65/n, rock, fluid, 'bc', bc);
+end
+figure;
+plot(G.cells.centroids(:,1), rSole.s(:,1),'bo', ...
+    G.cells.centroids(:,1), rSoli.s(:,1), 'ks', ...
+    G.cells.centroids(:,1), rSolt.s(:,1), 'r*', ...
+    xr(2:end-1),ur(2:end-1),'-');
+legend('Explicit','Implicit, CFL=1','Implicit, CFL=10',3);
+axis([0 1 -.1 1.1]);
+    
