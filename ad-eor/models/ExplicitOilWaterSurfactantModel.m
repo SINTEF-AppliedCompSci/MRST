@@ -61,8 +61,14 @@ classdef ExplicitOilWaterSurfactantModel < TwoPhaseOilWaterModel
 
          % Solve the explicit concentration equation.
          solver = NonLinearSolver;
-         [state, converged, failure, its, reports] = solver.solveMinistep(solver, model.explConcModel, ...
-                                                           state, state0, dt, drivingForces);
+         nIter = 10;
+         ddt = dt/nIter;
+         stateM = state0;
+         for i = 1 : nIter
+            [state, converged, failure, its, reports] = solver.solveMinistep(solver, model.explConcModel, ...
+                                                              state, stateM, ddt, drivingForces);
+            stateM = state;
+         end
          state.SURFADS = double(state.ads);
       
       end

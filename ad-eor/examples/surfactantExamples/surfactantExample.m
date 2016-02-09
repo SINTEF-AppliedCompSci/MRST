@@ -56,6 +56,13 @@ switch simul_case
     state0.c    = zeros(G.cells.num, 1);
     state0.cmax = state0.c;
 
+    load('state197')
+    clear state0;
+    state0.pressure = data.pressure;
+    state0.s = data.s;
+    state0.c = data.c;
+    state0.cmax = data.cmax;
+
   case 'simple'
 
     ijk = gridLogicalIndices(G);
@@ -89,7 +96,7 @@ switch simul_case
   case '1D'
     % modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
     modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck, 'extraStateOutput', ...
-                                                true, 'explicitConcentration', true);
+                                                true);
   case 'simple'
     modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
   otherwise
@@ -104,7 +111,7 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-if modelSurfactant.explicitConcentration || modelSurfactant.explicitConcentration
+if isprop(modelSurfactant, 'explicitConcentration') || modelSurfactant.explicitConcentration
    state0.ads = modelSurfactant.fluid.surfads(state0.c);
    state0.adsmax = state0.ads;
 end
