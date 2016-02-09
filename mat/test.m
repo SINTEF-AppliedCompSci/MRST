@@ -2,11 +2,11 @@ clc; clear all; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 
-n = 8;
+n = 1;
 gridLim = [1,1,1];
 
-% G = cartGrid([3*n,n,n],gridLim);
-G = unitCubeTetrahedrons([n,n,n]);
+% G = cartGrid([n,n,n],gridLim);
+G = unitCubeTetrahedrons([n,n,n], gridLim, 0);
 
 % %--------------------------------------------------------------------------
 % %   -\delta u = 0,
@@ -66,7 +66,10 @@ IC = polyhedronInt(G,1:G.cells.num,gD);
 u = [gD([G.nodes.coords; G.edges.centroids]); IF./G.faces.areas; IC./G.cells.volumes];
 
 err = abs((U - u));
-fprintf('Error: %d\n', norm(err, inf));
+
+h = sum(G.cells.diameters)/G.cells.num;
+
+fprintf('Error: %d\n', h^(3/2)*norm(err, 2));
 figure()
 plot(err);  
 % % plot(nodeValues)

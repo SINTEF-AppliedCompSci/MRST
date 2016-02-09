@@ -1,5 +1,6 @@
 function G = computeVEMGeometry(G,f)
-
+    
+    fprintf('Solving Poisson equation on grid with %d cells \n\n', G.cells.num);
     fprintf('Computing VEM geometry ...\n');
 
     tic;
