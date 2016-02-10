@@ -55,7 +55,9 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                        'co2_mu_pvt'   , [opt.p_range   , opt.t_range]  , ...
                        'wat_mu_ref'   , opt.muBrine                    , ...
                        'pvMult_fac'   , opt.pvMult                     , ...
-                       'dissolution'  , false                          , ...
+                       'dissolution'  , opt.dissolution                , ...
+                       'dis_rate'     , opt.dis_rate                   , ...
+                       'dis_max'      , opt.dis_max                    , ...
                        'pvMult_p_ref' , opt.refPress                   , ...
                        'surf_topo'    , opt.surf_topo                  , ...
                        'top_trap'     , dh);
@@ -64,6 +66,10 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    initState.pressure = compute_hydrostatic_pressure(Gt, fluid.rhoWS, opt.surface_pressure);
    initState.s = repmat([1 0], Gt.cells.num, 1);
    initState.sGmax = initState.s(:,2);
+   
+   if opt.dissolution
+        initState.rs = zeros(Gt.cells.num, 1);
+   end
    
     %% Construct schedule
     use_default_schedule = isempty(opt.schedule);
@@ -96,13 +102,16 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                         'inspectWellPlacement',false);
         end
         
-        %qt = qt*5; % @@
+        %qt = qt/100; % @@
       
         %%% 2) Create schedule based on control type: -----------------------
         if strcmpi(opt.well_control_type,'rate')
-            opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
-                                     opt.itime, opt.msteps , opt.mtime, true, ...
-                                     'minval', sqrt(eps)); % @@ or use _extras()
+            %opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
+            %                         opt.itime, opt.msteps , opt.mtime, true, ...
+            %                         'minval', sqrt(eps)); % @@ or use _extras()
+            opt.schedule = setSchedule_extras( Gt, rock2D, wc, 'rate', ...
+                                opt.isteps, opt.itime, opt.msteps, opt.mtime, ...
+                                'wqtots', qt/opt.refRhoCO2, 'minval',sqrt(eps));
 
         elseif strcmpi(opt.well_control_type,'bhp')
             opt.schedule = setSchedule_extras( Gt, rock2D, wc, 'bhp', ...
@@ -162,36 +171,34 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    
     %% Assign well control limits:
     P_limit = [];
-
+    
+    % for injection period
     if strcmpi(opt.well_control_type,'rate')
         min_wvals = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
         max_wvals = opt.rate_lim_fac * ...
             max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
-        assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
-            'Your initial rates exceed the maximum rate constraint.')
 
     elseif strcmpi(opt.well_control_type,'bhp')
-        min_wvals = initState.pressure( [opt.schedule.control(1).W.cells] );
+        min_wvals = initState.pressure( [opt.schedule.control(1).W.cells] ); % @@ but will this cause small injection to occur as global formation pressure rises?
 
-        [P_over, p_limit] = computeOverburdenPressure(Gt, rock2D, ...
-                                              opt.ref_depth, fluid.rhoWS);
-        %max_wvals = P_limit * ones(numel(opt.schedule.control(1).W), 1);
-        max_wvals = P_over([opt.schedule.control(1).W.cells]) .* 0.9;
-
-        assert( all(max_wvals > [opt.schedule.control(1).W.val]') , ...
-            'Your initial bhps exceed the maximum bhp constraint.')
-
+        % the max well values are set to be 90% of the overburden pressure
+        % at the well cell location
+        [P_over, ~] = computeOverburdenPressure(Gt, rock2D, opt.ref_depth, fluid.rhoWS);
+        P_limit     = P_over * 0.9;
+        max_wvals   = P_limit([opt.schedule.control(1).W.cells]); 
     end
+    
+    % for migration period
     min_mig_rates = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
     
-    % if penalizing for pressure:
-    if strcmpi(opt.penalize_type,'pressure')
-        [P_over, p_limit] = computeOverburdenPressure(Gt, rock2D, ...
-                                            opt.ref_depth, fluid.rhoWS);
-        %P_limit = mean(P_over); % @@ try using an array for P_limit
-        P_limit = P_over; % an array
-    end
-   
+    % checks:
+    assert( all(max_wvals >= [opt.schedule.control(1).W.val]') , ...
+            'An initial well value exceeds the maximum constraint.')
+    assert( all(min_wvals <= [opt.schedule.control(1).W.val]') , ...
+            'An initial well value is less than the minimum constraint.') 
+    assert( all(min_mig_rates <= [opt.schedule.control(2).W.val]') , ...
+            'An initial migration rate is less than the minimum rate constraint.')
+
    %% Set up model and run optimization
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 
@@ -203,7 +210,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                      'penalize_type',       opt.penalize_type, ...
                      'leak_penalty',        opt.leak_penalty, ...
                      'pressure_penalty',    opt.pressure_penalty, ...
-                     'pressure_limit',      P_limit, ...
+                     'pressure_limit',      P_limit, ... % empty if using rate-controls
                      'rho_water',           fluid.rhoWS, ...
                      'surface_pressure',    opt.surface_pressure);
                  
@@ -216,6 +223,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    other.dh = dh;
    other.initState = initState;
    other.opt = opt;
+   other.dissolution = opt.dissolution;
    
 end
 
@@ -439,9 +447,11 @@ function opt = opt_defaults()
     opt.ref_depth = 80; 
     opt.temp_grad = 35.6;
 
-    % Dissolution parameters (default zero - suggested nonzero values in comments)
-    opt.dis_rate = 0;  % %0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
-    opt.dis_max = 0;   % 53/760 = 0.07
+    % Dissolution parameters (default zero to trigger instantaneous
+    % dissolution, and suggested nonzero values in comments)
+    opt.dissolution = false;
+    opt.dis_rate    = 0;    % 0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
+    opt.dis_max     = 0;    % 53/760 = 0.07
 
     % Subtrap file
     opt.trapfile_name = '';      % 'utsira_subtrap_function_3'

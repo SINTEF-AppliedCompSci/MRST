@@ -247,9 +247,16 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       qWs = vertcat(sol.qWs);
       p = state.pressure;
       sG = state.s(:,2);
+      sF = state.s(:,1);   % for dissolution
+      sGmax = state.sGmax; % for dissolution
+      rs = state.rs;       % for dissolution
       if opt.ComputePartials
-         %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
-         [p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
+         if isfield(model.fluid,'rsSat') % dissolution is true
+            [p, sG, sGmax, rs, qWs, qGs, pBHP] = initVariablesADI(p, sG, sGmax, rs, qWs, qGs, pBHP); 
+         else
+            %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
+            [p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
+         end
       end
       dt = dts(step);
       injInx = (vertcat(sol.sign) > 0);
@@ -259,12 +266,18 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       
       if (tSteps(step) == num_timesteps)
          bG = model.fluid.bG(p);
+         bW = model.fluid.bW(p);
          if ~isfield(model.rock,'ntg')
              model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
          end 
          pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
          vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
+         if isfield(model.fluid,'rsSat') % dissolution is true
+             vol_diss = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* rs .* bW .* sF);
+             vol = vol + vol_diss;
+         end
          obj{step} = obj{step} + penalty * vol;
+         
          if ~opt.ComputePartials
             fprintf('Total injected: %f (m3)\n', double(krull));
             fprintf('Total leaked: %f (m3)\n', double(krull - vol));

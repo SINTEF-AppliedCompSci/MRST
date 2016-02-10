@@ -86,7 +86,7 @@ for i=1:numel(names)
                 .* (1 + seainfo.press_deviation/100);
 
 
-    try
+    %try
 
         %%% Pass everything in explicitly.
         clear Gt optim init history other
@@ -98,15 +98,15 @@ for i=1:numel(names)
             'schedule'                       , []                           , ...
                 'itime'                      , 50 * year                    , ...
                 'isteps'                     , 50                           , ...
-                'mtime'                      , 2000 * year                   , ...
-                'msteps'                     , 200                           , ... 
+                'mtime'                      , 1000 * year                   , ...
+                'msteps'                     , 100                           , ... 
             'well_placement_type'            , 'one_per_trap'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
                 'max_num_wells'              , 40                           , ... % used in use_array, one_per_trap
                 'maximise_boundary_distance' , false                        , ... % used in one_per_path
                 'well_buffer_dist'           , 1 * kilo * meter             , ... % dist from edge of internal catchment
                 'well_buffer_dist_domain'    , 5 * kilo * meter             , ... % dist from edge of domain    
                 'well_buffer_dist_catchment' , 3 * kilo * meter             , ... % dist from edge of external catchment
-                'pick_highest_pt'            , true                        , ... % otherwise farthest downslope, used in one_per_trap and one_per_path
+                'pick_highest_pt'            , true                       , ... % otherwise farthest downslope, used in one_per_trap and one_per_path
                 'DX'                         , 1 * kilo*meter               , ... % used in use_array
                 'DY'                         , 1 * kilo*meter               , ... % used in use_array
             'well_control_type'              , 'rate'                       , ...
@@ -130,8 +130,9 @@ for i=1:numel(names)
             'ref_temp'                      , seainfo.seafloor_temp + 273.15        , ...
             'ref_depth'                     , seainfo.seafloor_depth                , ... 
             'temp_grad'                     , seainfo.temp_gradient                 , ...
-            'dis_rate'                      , 0                             , ... % 0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
-            'dis_max'                       , 0                             , ... % 53/760 = 0.07;
+            'dissolution'                   , true                                  , ...
+                'dis_rate'                  , 0                             , ... % 0 means instantaneous, 0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
+                'dis_max'                   , 53/seainfo.rhoCref            , ... % 53/760 = 0.07; % 1 kg water holds 0.07 kg of CO2
             'report_basedir'                , './simulateUtsira_results/'   , ... % directory for saving reslts    
             'trapfile_name'                 , []                            , ... % 'utsira_subtrap_function_3.mat'
             'surf_topo'                     , 'smooth' );
@@ -149,7 +150,8 @@ for i=1:numel(names)
         % Save variables
         subVarDirName = [varDirName '/' fmName '/' ...
             'InjYrs',num2str(convertTo(other.opt.itime,year)), ...
-            '_MigYrs',num2str(convertTo(other.opt.mtime,year))];
+            '_MigYrs',num2str(convertTo(other.opt.mtime,year)), ...
+            '_DissOn_',num2str(other.dissolution)];
         mkdir(subVarDirName);
         save([subVarDirName '/' 'Gt'], 'Gt'); % '-v7.3'); using v7.3 makes size larger!
         save([subVarDirName '/' 'optim'], 'optim');
@@ -163,10 +165,10 @@ for i=1:numel(names)
         %
         close all
         
-    catch
+    %catch
         % continue the 'for loop' if code under 'try' either finished or
         % failed
-    end
+    %end
 
 
 
