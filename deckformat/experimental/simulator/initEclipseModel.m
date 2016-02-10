@@ -1,10 +1,10 @@
 function [G, rock, fluid, state, wells, ...
-      htrans, trans, dt, deck] = initEclipseModel(inputfile)
+      htrans, trans, dt, deck] = initEclipseModel(inputfile,varargin)
 %Initialise basic MRST objects from ECLIPSE input file (*.DATA)
 %
 % SYNOPSIS:
 %   [G, rock, fluid, state, wells, ...
-%    htrans, trans, dt, deck] = initEclipseModel(inputfile)
+%    htrans, trans, dt, deck] = initEclipseModel(inputfile,'pn1','pv1',..)
 %
 % DESCRIPTION:
 %   Function 'initEclipseModel' constructs the fundamental MRST simulation
@@ -14,6 +14,14 @@ function [G, rock, fluid, state, wells, ...
 % PARAMS:
 %   inputfile - Name (string) of input file.  The input is assumed to be a
 %               regular file on disk and not, say, a POSIX pipe.
+%
+% OPTIONAL PARAMETERS:
+%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  These
+%            are passed on to the function 'processGRDECL', which is used
+%            to construct corner-point grids. Of particular interest is
+%            the parameter 'SplitDisconnected' which tells whether or not
+%            to split disconnected grid components into separate
+%            grids/reservoirs.
 %
 % RETURNS:
 %   G     - Grid structure as defined by function 'initEclipseGrid'.
@@ -59,7 +67,7 @@ function [G, rock, fluid, state, wells, ...
 
    fprintf('----------------------------------------------------------\n');
 
-   G = computeGeometry(initEclipseGrid(deck));
+   G = computeGeometry(initEclipseGrid(deck,varargin{:}));
    if ~ all(G.cells.volumes > 0),
       nc0 = G.cells.num;
 
