@@ -6,9 +6,9 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
                 'reverseMode', false, ...
                 'resOnly', false, ...
                 'iteration', -1, ...
-                'explicitAdsorption', false, ...
                 'assembleOnlyExplicitConcentrationEquation', false, ...
-                'assembleOnlyOWEquation', false ...
+                'assembleOnlyOWEquation', false, ...
+                'includeAdsorption', true ...
                 );
 
    opt = merge_options(opt, varargin{:});
@@ -59,7 +59,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    if opt.assembleOnlyExplicitConcentrationEquation
       c_impl = c_adi;
-      c_expl = c;
+      c_expl = c0;
    else
       c_impl = c_adi;
       c_expl = c_adi;
@@ -108,7 +108,7 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
    dpW  = s.Grad(pW) - rhoWf.*gdz;
    upcw = (double(dpW)<=0);
    vW   = -s.faceUpstr(upcw, mobW).*s.T.*dpW;
-   mobSft = mobW.*c;
+   mobSft = mobW.*c_expl;
    vSft   = - s.faceUpstr(upcw, mobSft).*s.T.*dpW;
 
    % Oil flux
@@ -141,12 +141,10 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
    % Conservation of surfactant in water:
    poro = model.rock.poro;
-   if opt.explicitAdsorption
+   if ~opt.includeAdsorption
       ads_term = 0;
-      ads = 0;
    else
       ads  = computeEffAds(c_impl, cmax, fluid);
-      state.ads = ads;
       ads0 = computeEffAds(c0, cmax0, fluid);
       ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
    end
