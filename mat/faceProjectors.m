@@ -150,7 +150,7 @@ D  = mat2cell(D,NF,6);
 
                                 %   Speed: Do sparse block..
 PNstar = cellfun(@(BT,D) (BT'*D)\BT', BT, D, 'UniformOutput', false);   
-PNstar = cell2mat(PNstar);
+% PNstar = cell2mat(PNstar);
 
 
 % for i = 1:nF
@@ -158,19 +158,19 @@ PNstar = cell2mat(PNstar);
 %     tt = T(3*(i-1)+1:3*i,:);
 %     
 %     nodeNum  =G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
-%     nodes = G.faces.nodes(nodeNum);
-%     xx = G.nodes.coords(nodes,:);
-%     b = xx(1,:);
+%     nn= G.faces.nodes(nodeNum);
+%     xx = G.nodes.coords(nn,:);
+%     bb = xx(1,:);
 %     xxu = xx;
-%     xx = (xx-repmat(b,size(xx,1),1))*tt;
+%     xx = (xx-repmat(bb,size(xx,1),1))*tt;
 % %     xx = (xx - repmat(Fc(i,:),size(xx,1),1))/hF(i);
 % %     xx = xx*tt;
 %     
 %     edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
-%     edges  = G.faces.edges(edgeNum);
-%     ee = G.edges.centroids(edges,:);
+%     ee  = G.faces.edges(edgeNum);
+%     ec = G.edges.centroids(ee,:);
 % %     ee = (ee - repmat(Fc(i,:),size(xx,1),1))/hF(i);
-%     ee = (ee-repmat(b,size(ee,1),1))*tt;
+%     ec = (ec-repmat(bb,size(ec,1),1))*tt;
 % 
 % %     en = G.faces.edgeNormals(edgeNum,:);
 % %     en = en*tt;
@@ -184,13 +184,13 @@ PNstar = cell2mat(PNstar);
 %                                     ((X(:,2)-ff(2))/hF(i)).^2]; 
 %     %%  Check for D. OK
 %     dd = D{i};
-%     dd-[mm([xx;ee]); polygonInt(xx, mm)/aF(i)]
+%     dd-[mm([xx;ec]); polygonInt(xx, mm)/aF(i)]
 %     
 %     %%  Check for B.
 %     
-%     bb = BT{i}';
-%     xx
-%     bb
+% %     bb = BT{i}';
+% %     xx
+% %     bb
 %     
 % end
 
@@ -198,8 +198,17 @@ PNstar = cell2mat(PNstar);
 
                             %   Gauss-Lobatto quadrature point and
                             %   wheights for refenrence triangle.
-Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
-w  = [1/36    ; 1/36    ; 1/18    ; 1/18    ; 1/9     ; 2/9      ];
+
+% http://people.sc.fsu.edu/~jburkardt/datasets/quadrature_rules_tri/quadrature_rules_tri.html
+
+Xq =   [ 1/3, 1/3; ...
+         3/5, 1/5; ...
+         1/5, 3/5; ...
+         1/5, 1/5];
+w = .5*[-0.56250000000000000000; ...
+         0.52083333333333333333; ...
+         0.52083333333333333333; ...
+         0.52083333333333333333];
 
 nq = size(Xq,1);
 
@@ -236,8 +245,8 @@ for i = 1:nF
     bT = b(i,:);
 
                             %   Projection matrix for face i.
-    PNFstar = PNstar(PNFstarPos(i):PNFstarPos(i+1)-1,:);
-
+%     PNFstar = PNstar(PNFstarPos(i):PNFstarPos(i+1)-1,:);
+    PNFstar = PNstar{i};
                             %   Triangulate face
     tri = delaunay(XF);
     nTri = size(tri,1);
@@ -301,6 +310,9 @@ for i = 1:nF
     
     %   Speed: first rows of B can be obatined from F.
     
+
+
+        
 end
 
 end
@@ -367,6 +379,10 @@ end
 %     grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),9);
 %     int = cell2mat(cellfun(@(X) X'*mVals, grad_mVals, 'UniformOutput', false));
 %  
+
+% Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
+% w  = [1/36    ; 1/36    ; 1/18    ; 1/18    ; 1/9     ; 2/9      ];
+
 
 %%  DEBUG
 
@@ -500,3 +516,25 @@ end
 %         hold off
 %         pause
 %     end
+
+%     for j = 1:nK
+%         c = cells(j);
+%         nodeNum = G.cells.nodePos(c):G.cells.nodePos(c+1)-1;
+%         nn = G.cells.nodes(nodeNum);
+%         xx = G.nodes.coords(nn,:);
+%         xx = (xx-repmat(Kc(c,:), size(xx,1),1))/hK(c);
+%         plot3(xx(:,1), xx(:,2), xx(:,3), 'o')
+%         hold on;
+%         ii = nq*(j-1)+1:nq*j;
+%         plot3(XKmon(ii,1), XKmon(ii,2), XKmon(ii,3), '*')
+%         hold off
+%         pause
+%     end
+
+        
+%         xx = (XF - repmat(Fc(i,:),size(XF,1),1))/hF(i);
+%         plot(xx(:,1), xx(:,2), '*')
+%         hold on
+%         plot(XFmon(:,1), XFmon(:,2), 'o');
+%         hold off
+%         pause
