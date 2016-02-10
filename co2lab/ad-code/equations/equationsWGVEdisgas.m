@@ -132,7 +132,7 @@ function [problem, state] = equationsWGVEdisgas(model, state0, state, dt, drivin
          cqs = {0, 0}; % no in/outflow from any well
          wc  = [];     % no wellcells
          [eqs(5:7), names(5:7), types(5:7)] = ...
-             wm.createReverseModeWellEquations(model, state0, wellSol, p0);%#ok
+             wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
       end
    else
       eqs(5:7) = {bhp, bhp, bhp}; % empty ADIs
