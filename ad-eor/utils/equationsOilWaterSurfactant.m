@@ -275,12 +275,3 @@ function [wSft, wciSft, iInxW] = getWellSurfactant(W)
    iInx  = find(iInx);
    iInxW = iInx(compi(perf2well(iInx),1)==1);
 end
-
-function y = computeEffAds(c, cmax, fluid)
-   % Compute effective adsorption, depending of desorption is present or not
-   if fluid.adsInxSft == 2
-      y = fluid.surfads(max(c, cmax));
-   else
-      y = fluid.surfads(c);
-   end
-end
