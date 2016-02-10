@@ -52,6 +52,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
       function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
          [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
                                                            drivingForces);
+         state = updateAdsorption(state0, state, model);
 
       end
 
@@ -59,10 +60,10 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
       % Get the index/name mapping for the model (such as where
       % pressure or water saturation is located in state)
          switch(lower(name))
-           case {'ads'} % needed when model.explicitAdsorption
+           case {'ads'} 
              index = 1;
              fn = 'ads';
-           case {'adsmax'} % needed when model.explicitAdsorption
+           case {'adsmax'} 
              index = 1;
              fn = 'adsmax';
            case {'surfactant'}

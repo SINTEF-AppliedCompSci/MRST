@@ -111,10 +111,8 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-if isprop(modelSurfactant, 'explicitConcentration') || modelSurfactant.explicitConcentration
-   state0.ads = modelSurfactant.fluid.surfads(state0.c);
-   state0.adsmax = state0.ads;
-end
+state0.ads = computeEffAds(state0.c, 0, modelSurfactant.fluid);
+state0.adsmax = state0.ads;
 
 solver = NonLinearSolver('errorOnFailure', true, 'continueOnFailure', true);
 resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
