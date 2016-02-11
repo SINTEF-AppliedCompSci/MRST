@@ -42,7 +42,9 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
         val = [val; 0 0];
     end
     
-    figure; bar(val);
+    figure(2);
+    clf
+    bar(val);
     set(gca, 'xlim', [0 nw+1])
     if nw == 1
         set(gca, 'xlim', [0 nw+1], 'XTick', [1:nw []]);
@@ -51,16 +53,22 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
     ylabel('Rate (Mt/year)', 'fontsize', 16);
     set(gca, 'fontsize', 16); % increase fontsize on axes.
     box off;
+    legend(['Initial (total injected: ',num2str(sum(avg_init_masses)/1e9), ' Mt)'],...
+           ['Optimal (total injected: ',num2str(sum(avg_optim_masses)/1e9),' Mt)'])
     
     % an optimal well is considered as one which has a rate > 0.01 Mt/yr
     %num_optim_wells = numel(find(qGs2 > 0.01));
-    num_optim_wells = numel(avg_optim_masses(avg_optim_masses > 2*min(avg_optim_masses)));
+    % an optimal well is considered as one which has rate above the minimum
+    % rate constraint. @@ what to do for bhp-controls?
+    min_rate = sqrt(eps);
+    num_optim_wells = numel(avg_opt_rates(avg_opt_rates > 2*min_rate));
     
     %% Plot relative contributions: use this to describe the relative
     % importance of the wells.
     relative_contribution_init = avg_init_masses./sum(avg_init_masses);
     relative_contribution_optim = avg_optim_masses./sum(avg_optim_masses);
-    figure;
+    figure(3);
+    clf
     bar([relative_contribution_init; relative_contribution_optim]'.*100)
     set(gca, 'xlim', [0 nw+1])
     if nw == 1
@@ -72,6 +80,7 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
     box off;
     legend(['Total injected mass: ',num2str(sum(avg_init_masses)/1e9), ' Mt'],...
            ['Total injected mass: ',num2str(sum(avg_optim_masses)/1e9),' Mt'])
+    close
     
 %     % Relative importance of wells
 %     num_init_wells = nw;
@@ -83,9 +92,22 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
 %     set(gca, 'fontsize', 16); % increase fontsize on axes.
 %     box off;
 
-    %% Plot mapPlot of wells:
+    %% Plot mapPlot of wells and wells remaining:
     cinx_inj = [schedule.control(1).W.cells];
-    figure;
+    figure(4);
+    clf
+    mapPlot(gcf, Gt, 'traps', ta.traps, ...
+        'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+        'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
+        'maplines', 20, 'wellcells', cinx_inj, 'well_numbering', true);
+    colorizeCatchmentRegions(Gt, ta);
+    plotGrid(Gt, 'FaceColor','none','EdgeAlpha',0.1)
+    axis equal tight off
+    title('Wells placed')
+    
+    
+    figure(5);
+    clf
     mapPlot(gcf, Gt, 'traps', ta.traps, ...
         'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
         'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
@@ -96,29 +118,31 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
     
     % remove well number and dot of those wells deemed to have close to
     % zero-rate
-    masses_tmp = avg_optim_masses;
-    masses_tmp(avg_optim_masses < 2*min(avg_optim_masses)) = 0;
+    %masses_tmp = avg_optim_masses;
+    %masses_tmp(avg_optim_masses < 2*min(avg_optim_masses)) = 0;
+    rates_tmp = avg_opt_rates;
+    rates_tmp(avg_opt_rates < 2*min_rate) = 0;
     hfig = gcf;
     wellLabels = findobj(hfig.Children.Children,'Type','Text');
     lines = findobj(hfig.Children.Children,'Type','Line');
     assert(numel(lines(end).XData) == nw);
     Xdots_updated = lines(end).XData;
     Ydots_updated = lines(end).YData;
-    masses_tmp_flipped = fliplr(masses_tmp); % ordering of wellLabels is backwards
-    for i = 1:numel(masses_tmp) 
-        if masses_tmp_flipped(i) == 0
+    rates_tmp_flipped = fliplr(rates_tmp); % ordering of wellLabels is backwards
+    for i = 1:numel(rates_tmp) 
+        if rates_tmp_flipped(i) == 0
             wellLabels(i).String='  '; 
         end
     end
-    for i = 1:numel(masses_tmp) % ordering of well dots is forwards
-        if masses_tmp(i) == 0
+    for i = 1:numel(rates_tmp) % ordering of well dots is forwards
+        if rates_tmp(i) == 0
             Xdots_updated(i) = 0;
             Ydots_updated(i) = 0;
         end
     end
     lines(end).XData = Xdots_updated(Xdots_updated > 0);
     lines(end).YData = Ydots_updated(Ydots_updated > 0);
-    title('Remaining wells')
+    title('Wells remaining')
     
     
 

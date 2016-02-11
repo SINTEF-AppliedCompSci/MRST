@@ -17,6 +17,14 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
     opt.plotPressureChanges = false;
     opt.plotOther           = false;
     
+    opt.plotSatFields       = false;
+    opt.SatFieldStates      = []; % can be an array
+    
+    opt.plotPressFields     = false;
+    opt.PressFieldStates    = []; % can be an array
+    
+    opt.warningOn = true;
+    
     opt = merge_options(opt, varargin{:});
 
     
@@ -30,13 +38,13 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
     reports_init  = makeReports_extras(Gt, {other.initState, init.states{:}}, ...
                                 other.rock, other.fluid, init.schedule, ...
                                 other.residual, other.traps, other.dh, ...
-                                init.wellSols);
+                                init.wellSols, 'warningOn',opt.warningOn);
 
 
     reports_optim = makeReports_extras(Gt, {other.initState, optim.states{:}}, ...
                             other.rock, other.fluid, optim.schedule, ...
                             other.residual, other.traps, other.dh, ...
-                            optim.wellSols);
+                            optim.wellSols, 'warningOn',opt.warningOn);
 
     %% Plot wells in formation
     if opt.plotWells
@@ -52,19 +60,46 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
                                      init.schedule, other.fluid.rhoGS, Gt, other.traps);
 
         [total_inj, total_leaked] = totals_Injected_and_Leaked(Gt, other.rock, ...
-                       other.fluid, optim.states, optim.schedule, optim.wellSols); 
+                       other.fluid, optim.states, optim.schedule, optim.wellSols, ...
+                       false);
+                   
+        seainfo = getSeaInfo(other.opt.modelname, other.opt.refRhoCO2); % contains seainfo.dis_max
+        fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false);
+        
+        % full storage potentials:
+        strapCap = fmCap.breakdown.structural_trapping_capacity; % Gt
+        rtrapCap = fmCap.breakdown.residual_trapping_capacity;   % Gt
+        dtrapCap = fmCap.breakdown.dissolved_trapping_capacity;  % Gt
+        
+        % achieved (simulated) storage (in kg):
+        strap_achieved = reports_optim(end).masses(2) + reports_optim(end).masses(5) + reports_optim(end).masses(6); % resStruct + freeStruct + subTrap, kg
+        rtrap_achieved = reports_optim(end).masses(3) + reports_optim(end).masses(4); % resTrap + freeRes, kg
+        dtrap_achieved = reports_optim(end).masses(1); % resDis
+        other_achieved = reports_optim(end).masses(7); % freeMov
+        
 
-        fprintf('Formation       | Num Wells Placed | Num Optimal Wells |  Total injected (Mt)   |   Total leaked (Mt)  | Percent leaked |\n');
-        fprintf('%16s|       %4.0f       &       %4.0f        &     %6.2f       &     %6.2f     &  %2.1f      & \n', ...
+%         fprintf('Formation       | StrapCap(Gt) | RtrapCap(Gt)| NumWellsPlaced | NumOptimalWells | Total inj. (Gt) | Percent leaked | Percent StrapAchieved | Percent RtrapAchieved | MovePlume(Gt) \n');
+        fprintf('%16s&    %8.2f  &    %8.2f  &     %8.0f  &       %8.0f  &       %8.2f  &        %8.1f  &          %8.1f  &        %8.1f  &      %8.3f    \\\\ \n', ...
             other.opt.modelname, ...
+            strapCap, ...
+            rtrapCap, ...
             numel([init.schedule.control(1).W.cells]), ...
-            num_optim_wells, total_inj, total_leaked, (total_leaked/total_inj)*100 );
+            num_optim_wells, ...
+            convertTo(convertFrom(total_inj, mega), giga), ...
+            (total_leaked/total_inj)*100, ...
+            (convertTo(strap_achieved, giga*kilo)/strapCap)*100, ...
+            (convertTo(rtrap_achieved, giga*kilo)/rtrapCap)*100, ...
+            convertTo(other_achieved, giga*kilo) );
+        
+%         plotStorageBreakdownsPie( strapCap, rtrapCap, dtrapCap, ...
+%             convertTo(strap_achieved,giga*kilo), convertTo(rtrap_achieved,giga*kilo), convertTo(dtrap_achieved,giga*kilo) )
 
         if opt.savePlots
+           % 2, 3, 4, 5 figures generated. Saving only well rates.
            %saveas(gcf, [opt.figDirName '/' opt.fmName '_initVsOptimRates'], 'fig')
            drawnow
            pause(1)
-           export_fig(gcf, [opt.figDirName '/' opt.fmName '_initVsOptimRates'], '-png','-transparent')
+           export_fig(figure(2), [opt.figDirName '/' opt.fmName '_initVsOptimRates'], '-png','-transparent')
         end
     end
     
@@ -104,56 +139,57 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
         end
     end    
     
-    %% Plot ?...
-    if opt.plotOther
+    %% Plot Saturation Fields and/or Pressure Fields
+    if opt.plotSatFields
         
         % initial rates
-        selectedResultsMultiplot(Gt, reports_init, [2 4 6], ...
+        selectedResultsMultiplot(Gt, reports_init, opt.SatFieldStates, ...
                                  'background', 'totalCO2', ...
                                  'plot_traps', true);
 
         % optimized rates
-        selectedResultsMultiplot(Gt, reports_optim, [1], ...
+        selectedResultsMultiplot(Gt, reports_optim, opt.SatFieldStates, ...
                                  'background', 'totalCO2', ...
                                  'plot_traps', true);
-
+    end
+    
+    if opt.plotPressFields
         % overpressure
-        selectedResultsMultiplot(Gt, reports_optim, [61], ...
+        selectedResultsMultiplot(Gt, reports_optim, opt.PressFieldStates, ...
                                  'background', 'overpressure', ...
                                  'init_state', other.initState, ...
                                  'plot_traps', true, 'plot_distrib', false, ...
                                  'plot_well_numbering', true);
     end
-                     
-    % Also:
-    fprintf('Optimized Rates:\n')
-    [optim.states, maxPressDev_stepNum] = computeOverpressure(other.initState, optim.states, optim.schedule);
-    % figure; plotToolbar(Gt, {other.initState, optim.states{:}})
-    % plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-    % plotWellSols(optim.wellSols); set(gcf,'name','optim: bhp-wells')
-    % 
-    % 
-    fprintf('Initial Rates:\n')
-    [init.states, ~] = computeOverpressure(other.initState, init.states, init.schedule);
-    % figure; plotToolbar(Gt, {other.initState, init.states{:}})
-    % plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
-    % plotWellSols(init.wellSols); set(gcf,'name','init: bhp-wells')
-    %     
-
-    %% Plot ... ?
+    
+    %% Compute pressure field when highest overpressure occurred
     if opt.plotOther
         
-        % sat plots just before migration period
+        fprintf('Optimized Rates:\n')
+        [optim.states, maxPressDev_stepNum] = computeOverpressure(other.initState, optim.states, optim.schedule);
+        % figure; plotToolbar(Gt, {other.initState, optim.states{:}})
+        % plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
+        % plotWellSols(optim.wellSols); set(gcf,'name','optim: bhp-wells')
+        % 
+        % 
+        fprintf('Initial Rates:\n')
+        [init.states, ~] = computeOverpressure(other.initState, init.states, init.schedule);
+        % figure; plotToolbar(Gt, {other.initState, init.states{:}})
+        % plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
+        % plotWellSols(init.wellSols); set(gcf,'name','init: bhp-wells')
+        %     
+
+        % sat plots at end of migration
         figure
         subplot(1,2,1)
-        plotCellData(Gt, init.states{60}.s(:,2), 'EdgeAlpha',0.1)
+        plotCellData(Gt, init.states{end}.s(:,2), 'EdgeAlpha',0.1)
         plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
         colorbar
         axis equal tight
         title('Initial')
 
         subplot(1,2,2)
-        plotCellData(Gt, optim.states{60}.s(:,2), 'EdgeAlpha',0.1)
+        plotCellData(Gt, optim.states{end}.s(:,2), 'EdgeAlpha',0.1)
         plotGrid(Gt, 'EdgeAlpha',0.1, 'FaceColor','none')
         colorbar
         axis equal tight
@@ -182,14 +218,15 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
         
         seafloor_depth = other.opt.ref_depth; % based on naming convention in optimizeFormation
         water_density = other.opt.rhoW; % based on naming convention in optimizeFormation
-        [P_over, P_limit] = computeOverburdenPressure(Gt, other.rock, ...
+        [P_over, ~] = computeOverburdenPressure(Gt, other.rock, ...
             seafloor_depth, ...
             water_density);
-        res = plotFormationPressureChanges(optim.states, other.initState.pressure, ...
-            P_over, Gt, optim.schedule, 'P_lim', P_limit);
+        plotFormationPressureChanges(optim.states, other.initState.pressure, ...
+            P_over, Gt, optim.schedule);
         % use res for a summary display
         
         if opt.savePlots
+            % several plots generated. Saving last one.
             %saveas(gcf, [opt.figDirName '/' opt.fmName _inventory'], 'fig')
             drawnow
             pause(1)
@@ -200,7 +237,7 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
 end
 
 function [total_inj, total_leaked] = totals_Injected_and_Leaked(Gt, rock2D, ...
-    fluid, states, schedule, wellSols)
+    fluid, states, schedule, wellSols, printOutput)
 % Calculations are based on leak_penalizer function written in
 % optimizeRates.m
 
@@ -255,8 +292,10 @@ function [total_inj, total_leaked] = totals_Injected_and_Leaked(Gt, rock2D, ...
             vol_accum  = ones(1, Gt.cells.num) * (pvol .* fluid.pvMultR(p) .* bG .* sG); % m3
             mass_accum = vol_accum * fluid.rhoGS / 1e9; % Mt
             
-            fprintf('Total injected: %f (m3) or %f (Mt)\n', vol_inj, mass_inj);
-            fprintf('Total leaked: %f (m3) or %f (Mt)\n', (vol_inj - vol_accum), (mass_inj - mass_accum)); 
+            if printOutput
+                fprintf('Total injected: %f (m3) or %f (Mt)\n', vol_inj, mass_inj);
+                fprintf('Total leaked: %f (m3) or %f (Mt)\n', (vol_inj - vol_accum), (mass_inj - mass_accum)); 
+            end
         end
     end
     

@@ -60,23 +60,8 @@ localopt = merge_options( localopt, varargin{:} );
     maxP_encountered = max(tmp')';
     
     
-    %% Details of when and where max pressure occurred
-    
-    % time step of when max pressure occurred
-    [maxPvalue, timeStep_of_maxP] = max( maxp );
-    
-    % cell index where max pressure occurred
-    [~, cellIndex_of_maxP] = max( states{timeStep_of_maxP}.pressure );
-    
-
-    
-    % NEW: plot of grid with areas in red that surpass overburden pressure
+    %% Plot of grid with areas in red that surpass overburden pressure
     figure; set(gcf, 'Position', [1 1 2439 547])
-    
-%     %plot the fracture pressure of the formation's caprock
-%     [ P_over, ~] = computeOverburdenPressure( Gt, rock2D, ...
-%                                         seafloor_depth, water_density);
-    % passed in as variable
     
     subplot(1,4,1)
     plotCellData(Gt, convertTo(P_over, mega*Pascal), 'EdgeColor','none')
@@ -86,12 +71,11 @@ localopt = merge_options( localopt, varargin{:} );
     ylabel(hcb, 'MPa', 'fontsize',16, 'rotation',0)
     
     % and then compare the max pressure reached to the fracture pressure
-    %amount_surpassed = states{timeStep_of_maxP}.pressure - P_over;
     amount_surpassed = maxP_encountered - P_over;
     amount_surpassed( amount_surpassed < 0 ) = NaN;
 
     
-    subplot(1,4,2)
+    subplot(1,4,2);
     plotCellData(Gt, convertTo(maxP_encountered, mega*Pascal), 'EdgeColor','none')
     plotFaces(Gt, boundaryFaces(Gt), 'EdgeColor','k')
     hold on
@@ -109,11 +93,19 @@ localopt = merge_options( localopt, varargin{:} );
         isFracPressSurpassed = false;
     else
         isFracPressSurpassed = true;
-        plotCellData(Gt, convertTo(amount_surpassed, mega*Pascal), find(amount_surpassed>0), ...
+        % when plotting cell data, patch error occurs if only one cell data
+        % point is to be plotted, thus we pass in the cell data as doubled.
+        inx2plot = find(amount_surpassed>0);
+        if numel(inx2plot) == 1
+            plotCellData(Gt, convertTo(amount_surpassed, mega*Pascal), [inx2plot, inx2plot], ...
             'FaceColor','r', 'FaceAlpha', 0.3, 'EdgeColor','none')
+        else
+            plotCellData(Gt, convertTo(amount_surpassed, mega*Pascal), inx2plot, ...
+            'FaceColor','r', 'FaceAlpha', 0.3, 'EdgeColor','none') 
+        end
         plotFaces(Gt, boundaryFaces(Gt), 'EdgeColor','k')
         title({'Max pressure encountered';'(red areas surpassed fracture pressure)'})
-            
+  
         subplot(1,4,4)
         plotCellData(Gt, convertTo(amount_surpassed, mega*Pascal), 'EdgeColor','none')
         plotFaces(Gt, boundaryFaces(Gt), 'EdgeColor','k')
@@ -122,18 +114,7 @@ localopt = merge_options( localopt, varargin{:} );
         ylabel(hcb, 'MPa', 'fontsize',16, 'rotation',0)
     end
     
-    % output:
-    %res.maxPressure          = max( states{timeStep_of_maxP}.pressure );
-    res.maxP_encountered     = maxP_encountered;
-    res.maxAmountSurpassed   = max( amount_surpassed );
-    res.isFracPressSurpassed = isFracPressSurpassed;
     
-    fprintf('The max pressure reached was %d MPa.\n', convertTo(max(maxP_encountered), mega*Pascal))
-    if res.isFracPressSurpassed
-        fprintf('The fracture pressure was surpassed by %d MPa.\n', convertTo(res.maxAmountSurpassed, mega*Pascal))
-    else
-        fprintf('The fracture pressure was not surpassed.\n')
-    end
     
     subplot(1,4,3)
     hbar = bar(tmpPlot);
@@ -156,71 +137,58 @@ localopt = merge_options( localopt, varargin{:} );
     set(findall(hfig,'Type','Text'), 'FontSize',16)
     set(findobj(hfig.Children,'Type','Legend'),'FontSize',14)
     set(findobj(hfig.Children,'Type','axes'), 'FontSize',14) %'Ylim',[0 max(maxp/1e6)])
+
+    %% Plot pressure changes over time
+    % for cell where fracture pressure was maximally surpassed, or for cell
+    % where pressure was closest to its fracture pressure.
     
-    
-    %% Plot pressure changes over time for cell where max pressure occurred
-    for i = 1:numel(states)
-        dp_of_cell_of_maxP(i) = states{i}.pressure(cellIndex_of_maxP);
+    % Determine the cell where ...
+    if isFracPressSurpassed
+        % pressure surpassed P_over the most.
+        [val, inx] = max(maxP_encountered - P_over); 
+        
+        fprintf('The fracture pressure was surpassed by %d MPa (%d bars), in cell %d.\n', ...
+            convertTo(val, mega*Pascal), convertTo(val, barsa), inx)
+    else
+        % pressure was closest to or was equal to its fracture pressure.
+        assert( all(P_over - maxP_encountered) >= 0 )
+        [val, inx] = min(P_over - maxP_encountered);
+        
+        if ~isempty(find(wcinx == inx))
+           str = ['well ',num2str(find(wcinx == inx))];
+        else
+           str = ['not a well']; 
+        end
+        fprintf(['The fracture pressure was not surpassed, but ...\n', ...
+            'the pressure of cell %d (%s) was %4.2f percent of its fracture pressure.\n'], ...
+            inx, str, (maxP_encountered(inx)/P_over(inx))*100 )
     end
-    initp                   = initPressure(cellIndex_of_maxP);
-    p_over_of_cell_of_maxP  = P_over(cellIndex_of_maxP);
+    
+    % Plot pressure change over time for that cell:
+    for i = 1:numel(states)
+        dp_of_cell(i) = states{i}.pressure(inx);
+    end
+    initp           = initPressure(inx);
+    p_over_of_cell  = P_over(inx);
+    
+    time_yr = convertTo(cumsum(schedule.step.val), year)';
     
     figure;
     hold on
-    plot([0 1:1:numel(states)], [initp dp_of_cell_of_maxP]/1e6, 'LineWidth',3)
-    plot([0 1:1:numel(states)], repmat(p_over_of_cell_of_maxP/1e6,[1 numel(states)+1]), '--', 'LineWidth',3)
-    xlabel('state number (0 is initState)')
-    ylabel('pressure (MPa)')
-    legend('cell pressure','cell fracture pressure')
+    plot([0 time_yr], [initp dp_of_cell]/1e6, 'LineWidth',3)
+    plot([0 time_yr], repmat(p_over_of_cell/1e6,[1 numel(states)+1]), '--', 'LineWidth',3)
+    xlim([0 time_yr(end)])
+    xlabel('Time (years since start of injection)')
+    ylabel('Pressure (MPa)')
+    legend(['cell ',num2str(inx),' pressure'],['cell ',num2str(inx),' fracture pressure'])
     hfig = gcf;
     set(findall(hfig,'Type','Text'), 'FontSize',16)
     set(findobj(hfig.Children,'Type','Legend'),'FontSize',14)
     set(findobj(hfig.Children,'Type','axes'), 'FontSize',14) %'Ylim',[0 max(maxp/1e6)])
-    
     box
     grid
-    close
+    %close
 
 
-    
-end
-
-
-function plotPressChanges(maxinitp, mininitp, avginitp, maxp, minp, avgp, localopt)
-% varargins are arrays of size 1 x numel(states)
-
-    nsts = numel(maxp);
-    
-    figure
-    if ~isempty(localopt.figname)
-        set(gcf,'name',localopt.figname);
-    end
-    hold on
-    plot([0 1:1:nsts], [maxinitp maxp]/1e6, 'LineWidth',3)
-    plot([0 1:1:nsts], [mininitp minp]/1e6, 'LineWidth',3)
-    plot([0 1:1:nsts], [avginitp avgp]/1e6, 'LineWidth',3)
-    plot([0 1:1:nsts], repmat(avginitp/1e6,[1 nsts+1]), '--', 'LineWidth',3)
-    if ~isempty(localopt.P_lim)
-        plot([0 1:1:nsts], repmat((localopt.P_lim+avginitp)/1e6,[1 nsts+1]), '--', 'LineWidth',3)
-    end
-    xlabel('state number (0 is initState)')
-    ylabel('pressure (MPa)')
-    if ~isempty(localopt.P_lim)
-        legend('max fm press.','min fm press.','mean fm press.', ...
-        'reference press. (mean)','fm press. limit')
-    else
-        legend('max fm press.','min fm press.','mean fm press.', ...
-        'reference press. (mean)')
-    end
-    %title({ ['Formation pressure changes using ']; ...
-    %        [ opt.bdryType ' boundary condition']})
-        
-    hfig = gcf;
-    set(findall(hfig,'Type','Text'), 'FontSize',16)
-    set(findobj(hfig.Children,'Type','Legend'),'FontSize',14, 'Location','SouthEast')
-    set(findobj(hfig.Children,'Type','axes'), 'FontSize',14) %'Ylim',[0 max(maxp/1e6)])
-    
-    box
-    grid
     
 end
