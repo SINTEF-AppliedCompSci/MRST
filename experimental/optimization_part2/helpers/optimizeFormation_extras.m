@@ -152,9 +152,18 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
 
     else
         fprintf('\n Using schedule passed in as varargin. \n')
-        %tmp = load(opt.schedule);
-        %name = fields(tmp);
-        %opt.schedule = tmp.(name{1});
+        tmp = load(opt.schedule);
+        if isfield(tmp,'optim')
+            tmp = tmp.optim;
+        end
+        name = fields(tmp);
+        opt.schedule = tmp.(name{1}); % add check to ensure wells are located in grid
+        clear tmp
+        % ensure migration rates are the minimum (as they may have changed
+        % slightly when optimal rates were obtained previously).
+        for i=1:numel([opt.schedule.control(2).W.val])
+           opt.schedule.control(2).W(i).val = sqrt(eps); 
+        end
     end
     
     %% Add boundary conditions (either constant pressure, or no-flow)
@@ -186,6 +195,11 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         [P_over, ~] = computeOverburdenPressure(Gt, rock2D, opt.ref_depth, fluid.rhoWS);
         P_limit     = P_over * 0.9;
         max_wvals   = P_limit([opt.schedule.control(1).W.cells]); 
+    end
+    
+    if strcmpi(opt.penalize_type,'pressure')
+        [P_over, ~] = computeOverburdenPressure(Gt, rock2D, opt.ref_depth, fluid.rhoWS);
+        P_limit     = P_over * opt.p_lim_factor;
     end
     
     % for migration period
@@ -467,6 +481,7 @@ function opt = opt_defaults()
     opt.penalize_type = 'leakage'; % 'leakage','leakage_at_infinity','pressure'
     opt.leak_penalty  = 10;
     opt.pressure_penalty = [];
+    opt.p_lim_factor = 0.9; % factor to apply to P_overburden
     
     % Boundary type:
     opt.btype = 'pressure'; % 'pressure' or 'flux'

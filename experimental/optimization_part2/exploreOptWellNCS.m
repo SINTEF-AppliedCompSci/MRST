@@ -18,10 +18,10 @@ moduleCheck('ad-core')
 
 % Main Directory name for saving results (each cases results will be put
 % into a subdirectory named according to InjYrs and MigYrs)
-varDirName = 'opt_results_one_per_trap_highest_pt_setClevels';
+varDirName = 'opt_results_Array_in_trap_regions_Pressure_plim90_OpenBdrys';
 
 % Figure Directory name
-figDirName = [varDirName '/' 'WellPlacementFigs_one_per_trap_highest_pt'];
+figDirName = [varDirName '/' 'WellPlacementFigs_Array_in_trap_regions'];
 mkdir(figDirName)
 
 names = [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()];
@@ -64,6 +64,10 @@ shared_names = intersect(names, n, 'stable');
 assert( numel(shared_names) >= numel(names) )
 assert( all(strcmpi(sort(shared_names),sort(names)))==1 )
 
+% clear names
+% names = {'Tubaenfm'};
+% coarsening = 5;
+
 for i=1:numel(names)
     
     fprintf('-------------- FORMATION: %s -----------------\n', names{i})
@@ -86,7 +90,8 @@ for i=1:numel(names)
                 .* (1 + seainfo.press_deviation/100);
 
 
-    %try
+    try
+    
 
         %%% Pass everything in explicitly.
         clear Gt optim init history other
@@ -95,12 +100,12 @@ for i=1:numel(names)
             'inspectWellPlacement'           , false                         , ... % if true, will not continue to simulation
             'modelname'                      , fmName                       , ...
                 'coarse_level'               , coarsening                   , ...
-            'schedule'                       , []                           , ...
+            'schedule'                       , [], ...%'opt_results_one_per_trap_highest_pt_setClevels_pressure/Tubaenfm/InjYrs20_MigYrs2_DissOn_0_plimFact90/optim'                           , ...
                 'itime'                      , 50 * year                    , ...
                 'isteps'                     , 50                           , ...
-                'mtime'                      , 1000 * year                   , ...
-                'msteps'                     , 100                           , ... 
-            'well_placement_type'            , 'one_per_trap'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
+                'mtime'                      , 100 * year                   , ...
+                'msteps'                     , 10                           , ... 
+            'well_placement_type'            , 'use_array'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
                 'max_num_wells'              , 40                           , ... % used in use_array, one_per_trap
                 'maximise_boundary_distance' , false                        , ... % used in one_per_path
                 'well_buffer_dist'           , 1 * kilo * meter             , ... % dist from edge of internal catchment
@@ -112,9 +117,10 @@ for i=1:numel(names)
             'well_control_type'              , 'rate'                       , ...
                 'rate_lim_fac'               , 2                            , ...
             'btype'                          , 'pressure'                   , ...
-            'penalize_type'                  , 'leakage'                    , ... % 'leakage', 'leakage_at_infinity', 'pressure'
+            'penalize_type'                  , 'pressure'                    , ... % 'leakage', 'leakage_at_infinity', 'pressure'
                 'leak_penalty'               , 10                           , ...
-                'pressure_penalty'           , 10000                        , ... % @@ get appropriate penalty with trial-and-error
+                'pressure_penalty'           , 10                        , ... % @@ get appropriate penalty with trial-and-error
+                'p_lim_factor'               , 0.9                       , ...
             'surface_pressure'              , 1 * atm                       , ...   
             'refRhoCO2'                     , seainfo.rhoCref               , ...
             'rhoW'                          , seainfo.water_density         , ...
@@ -130,7 +136,7 @@ for i=1:numel(names)
             'ref_temp'                      , seainfo.seafloor_temp + 273.15        , ...
             'ref_depth'                     , seainfo.seafloor_depth                , ... 
             'temp_grad'                     , seainfo.temp_gradient                 , ...
-            'dissolution'                   , true                                  , ...
+            'dissolution'                   , false                                  , ...
                 'dis_rate'                  , 0                             , ... % 0 means instantaneous, 0.44 * kilogram / rho / poro / (meter^2) / year = 8.6924e-11;
                 'dis_max'                   , 53/seainfo.rhoCref            , ... % 53/760 = 0.07; % 1 kg water holds 0.07 kg of CO2
             'report_basedir'                , './simulateUtsira_results/'   , ... % directory for saving reslts    
@@ -163,12 +169,16 @@ for i=1:numel(names)
         saveas(figure(10),[subVarDirName '/' fmName '_optDetails'], 'fig')
         close(figure(10))
         %
+        % Save other figure
+        saveas(figure(11),[subVarDirName '/' fmName '_optDetails_2'], 'fig')
+        close(figure(11))
+        %
         close all
         
-    %catch
+    catch
         % continue the 'for loop' if code under 'try' either finished or
         % failed
-    %end
+    end
 
 
 

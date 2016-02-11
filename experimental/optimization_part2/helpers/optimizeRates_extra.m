@@ -67,7 +67,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    end
    
    % another possible objection function to use:
-   % penalizes leakage which is determined at infinity, by compute the
+   % penalizes leakage which is determined at infinity, by computing the
    % volume of co2 accumulated (i.e., remaining) in formation at time
    % infinity using spill-point dynamics.
    if opt.penalize_leakage_at_infinity
@@ -103,6 +103,8 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
           figure; hold on
           plot(1:numel(init.obj_val_steps), init.obj_val_steps_A, 'x')
           plot(1:numel(init.obj_val_steps), init.obj_val_steps_B, 'o')
+          plot(1:numel(init.obj_val_steps), init.obj_val_steps, '+')
+          legend('objA','objB','objA - objB')
           
       else
       
@@ -113,6 +115,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
       init.obj_val_total = sum(init.obj_val_steps);
       
       % Use value of objective function before optimization as scaling.
+      % Otherwise, the scale of obj_val_steps_B can be much greater than _A
       opt.obj_scaling = abs(init.obj_val_total);
       if strcmpi(opt.penalize_type,'pressure')
         opt.obj_scaling = abs( sum(init.obj_val_steps_A) ); % @@ ok for when using closed bdrys?
@@ -248,8 +251,10 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       p = state.pressure;
       sG = state.s(:,2);
       sF = state.s(:,1);   % for dissolution
-      sGmax = state.sGmax; % for dissolution
-      rs = state.rs;       % for dissolution
+      if isfield(model.fluid,'rsSat') % dissolution is true
+        sGmax = state.sGmax; % for dissolution
+        rs = state.rs;       % for dissolution
+      end
       if opt.ComputePartials
          if isfield(model.fluid,'rsSat') % dissolution is true
             [p, sG, sGmax, rs, qWs, qGs, pBHP] = initVariablesADI(p, sG, sGmax, rs, qWs, qGs, pBHP); 
@@ -418,11 +423,11 @@ function obj = pressure_penalizer(model, states, schedule, penalty, plim, vararg
         pBHP = zeros(nW, 1); % place holders
         qGs = pBHP;          % place holders
         qWs = pBHP;          % place holders
-        [p, ~, ~, ~, ~] = initVariablesADI(p, sG, qWs, qGs, pBHP);
+        [p, ~, ~, ~, ~] = initVariablesADI(p, sG, qWs, qGs, pBHP); 
       end
       dt = dts(step); % how to scale obj value with dt?
       %maxp      = max(p); % a scalar for now
-      tmp = max(0, sign(p - 0.60*plim)) .* penalty .* (p - 0.60*plim).^k;
+      tmp = max(0, sign(p - plim)) .* penalty .* (p - plim).^k/1e12; % @@ scaling to MPa
       tmp = tmp .* model.G.cells.volumes;
       obj{step} = sum( tmp )./sum(model.G.cells.volumes);
       %obj{step} = obj{step} * dt; % @@
@@ -430,7 +435,8 @@ function obj = pressure_penalizer(model, states, schedule, penalty, plim, vararg
       % no need to compute another portion of the obj fun here
          if ~opt.ComputePartials
             %fprintf('Max pressure reached: %f (Pascals)\n', max(p) ); % @@ this is only the max pressure reached at last time step!
-            %fprintf('Proximity to PLimit: %f (percent)\n', maxp/(0.75*plim) * 100 );
+            fprintf('Largest surpassing Plimit pressure is: %f (percent) of PLimit \n',  max( max(0,sign(p-plim)) .* (p - plim)./plim * 100 ) );
+            fprintf('Smallest proximity under PLimit is: %f (percent) of Plimit \n', min( max(0,sign(plim-p)) .* (plim - p)./plim * 100 ) );
             %fprintf('Score: %f ([Cp*Pascals])\n\n', max(0, sign(maxp - 0.75*plim)) * penalty * (maxp - 0.75*plim).^k );
           end
       end
@@ -487,6 +493,7 @@ function [val, der, wellSols, states] = ...
    
    % compute objective:
    vals = obj_fun(wellSols, states, schedule); % @@ ensure wellSols{}.sign is correct
+   figure(11); hold on; plot(1:numel(vals), [vals{:}], '+')
    val  = sum(cell2mat(vals))/abs(objScaling);
 
    % run adjoint:
