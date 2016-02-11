@@ -1,26 +1,13 @@
-clc; clear all; close all;
+clc; clear; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 addpath('/home/strene/Documents/utdanning/NTNU/5/master/coop/pebiGridding/voronoi3D')
-n = 4;
-gridLim = [1,1,4];
+n = 10;
+gridLim = [1,1,1];
 
-% G = cartGrid([n,n,4*n],gridLim);
-% G = unitCubeTetrahedrons([n,n,4*n], gridLim, 1);
-
-% Sett the convex boundary
-boundary = [-1,-1,-1;  ...
-             1,-1,-1;  ...
-             1, 1,-1;  ...
-            -1, 1,-1;  ...
-            -1,-1, 1;  ...
-             1,-1, 1;  ...
-             1, 1, 1;  ...
-            -1, 1, 1];
-% Generate random seed points
-pts = -1+2*rand(4,3);
-% Generate voronoi grid
-G = voronoi3D(pts, boundary);
+% G = cartGrid([n,n,n],gridLim);
+% G = tetrahedronCube([n,n,n], gridLim, 1);
+G = voroniCube(n^3,gridLim);
 
 
 % G = computeGeometry(G);
@@ -36,7 +23,7 @@ G = voronoi3D(pts, boundary);
 % 
 % X = G.nodes.coords;
 % 
-% X(:,2) = X(:,2) + 1/10*X(:,3).^2;
+% % X(:,2) = X(:,2) + 1/10*X(:,3).^2;
 % 
 % theta = pi/6; phi = pi/3; psi = pi/18;
 % X = X*R1(theta)*R2(phi)*R3(psi);
@@ -73,42 +60,26 @@ G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);
 G = computeVEMGeometry(G,f);
 
-vols1 = zeros(G.cells.num,1);
-vols2 = zeros(G.cells.num,1);
-
-
-V  = [-1.0, -1.0/sqrt(3.0), -1.0/sqrt(6.0); ...
-       0.0,  2.0/sqrt(3.0), -1.0/sqrt(6.0); ...
-       1.0, -1.0/sqrt(3.0), -1.0/sqrt(6.0); ...
-       0.0,  0.0          ,  3.0/sqrt(6.0)];   
-Vdiff = V(1:end-1,:) - V(2:end,:);
-   
-vol = sqrt(sqrt(8.0)/3.0);
-
-for i = 1:G.cells.num
-    nodeNum = G.cells.nodePos(i):G.cells.nodePos(i+1)-1;
-    nodes = G.cells.nodes(nodeNum);
-    X = G.nodes.coords(nodes,:);
-    tri = delaunay(X);
-    nTri = size(tri,1);
-    for j = 1:nTri
-        Xdiff = X(tri(j,1:3),:) - X(tri(j,2:4),:);
-        A1 = Vdiff\Xdiff;
-        b = X(tri(j,1),:) - V(1,:)*A1; 
-        Xhat = V*A1 + repmat(b,size(V,1),1);
-        X(tri(j,:),:) - Xhat;
-        
-        A2 = X(tri(j,2:4),:) - repmat(X(tri(j,1),:),3,1);
-        
-        vols1(i) = vols1(i) + abs(det(A1))*vol;
-        vols2(i) = vols2(i) + abs(det(A2))/6;
-        
-    end
-end
-G.cells.volumes - vols1;
-G.cells.volumes - vols2;
-
-% G.cells.volumes = vols2;
+% for i = 1:G.faces.num
+%     edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
+%     edges = G.faces.edges(edgeNum);
+%     nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-1);
+%     nodes = G.edges.nodes(nodeNum);
+%     X = G.nodes.coords(nodes,:);
+%     nX = size(X,1);
+%     for j = 1:nX/2
+%         plot3([X(j,1); X(j+1,1)], ...
+%               [X(j,2); X(j+1,2)], ...
+%               [X(j,3); X(j+1,3)])
+% %         plot3([X(j,1); X(mod(j,nX) + 1, 1)], ...
+% %               [X(j,2); X(mod(j,nX) + 1, 2)], ...
+% %               [X(j,3); X(mod(j,nX) + 1, 3)]);
+%         hold on
+%         pause
+%     end
+%     hold off
+% end
+    
 
 boundaryFaces = (1:G.faces.num)';
 % boundaryFaces = boundaryFaces( G.faces.centroids(:,1) == 0          | ...
@@ -127,13 +98,25 @@ bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryFaces}}, 'bcType', {{'dir'}})
 
 U = A\b;
 
+clear A b
+
 nodeValues = full(U(1:G.nodes.num));
 edgeMidValues = full(U(G.nodes.num + 1:G.nodes.num + G.edges.num));
 faceAvg = full(U((G.nodes.num + G.edges.num + 1):(G.nodes.num + G.edges.num + G.faces.num)));
 cellAvg = full(U(G.nodes.num + G.edges.num + G.faces.num + 1:end));
 
+
+Kc = G.cells.centroids;
+cells = 1:G.cells.num;
+r = .7;
+cells = cells(Kc(:,1).^2 + Kc(:,2).^2 > r^2);
+faceNum = mcolon(G.cells.facePos(cells),G.cells.facePos(cells+1)-1);
+faces = G.cells.faces(faceNum);
+% faces = 1:G.faces.num;
+
 figure();
-plotFaces(G, 1:G.faces.num, faceAvg);
+plotFaces(G,faces,faceAvg(faces));
+
 colorbar;
 view(3);
 axis equal;
@@ -154,3 +137,43 @@ plot(err);
 % 
 % %   Implement: efficient rule for faceIntegrals.
 % %              change bc to give avg values.
+
+
+
+
+% vols1 = zeros(G.cells.num,1);
+% vols2 = zeros(G.cells.num,1);
+% 
+% 
+% V  = [-1.0, -1.0/sqrt(3.0), -1.0/sqrt(6.0); ...
+%        0.0,  2.0/sqrt(3.0), -1.0/sqrt(6.0); ...
+%        1.0, -1.0/sqrt(3.0), -1.0/sqrt(6.0); ...
+%        0.0,  0.0          ,  3.0/sqrt(6.0)];   
+% Vdiff = V(1:end-1,:) - V(2:end,:);
+%    
+% vol = sqrt(sqrt(8.0)/3.0);
+% 
+% for i = 1:G.cells.num
+%     nodeNum = G.cells.nodePos(i):G.cells.nodePos(i+1)-1;
+%     nodes = G.cells.nodes(nodeNum);
+%     X = G.nodes.coords(nodes,:);
+%     tri = delaunay(X);
+%     nTri = size(tri,1);
+%     for j = 1:nTri
+%         Xdiff = X(tri(j,1:3),:) - X(tri(j,2:4),:);
+%         A1 = Vdiff\Xdiff;
+%         b = X(tri(j,1),:) - V(1,:)*A1; 
+%         Xhat = V*A1 + repmat(b,size(V,1),1);
+%         X(tri(j,:),:) - Xhat;
+%         
+%         A2 = X(tri(j,2:4),:) - repmat(X(tri(j,1),:),3,1);
+%         
+%         vols1(i) = vols1(i) + abs(det(A1))*vol;
+%         vols2(i) = vols2(i) + abs(det(A2))/6;
+%         
+%     end
+% end
+% G.cells.volumes - vols1;
+% G.cells.volumes - vols2;
+% 
+% % G.cells.volumes = vols2;

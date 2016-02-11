@@ -99,6 +99,10 @@ Mtilde = [zeros(1,nk); M(2:nk,:)];
 
 Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
 
+% SK = hK*(eye(NK)-PN)'*(eye(NK)-PN);
+% 
+% norm(SK,'fro')
+
 %%  LOCAL LOAD TERM.                                                     %%
 
                             %   Matrix of integrals over K of all
@@ -117,61 +121,62 @@ fChi = [f([X; Ec]); ...
 
 bl = PNstar'*H*PNstar*fChi;
 
+
 %%  LOCAL TO GLOBAL MAP                                                  %%
 
 dofVec = [nodes', edges' + G.nodes.num, ...
           faces' + G.nodes.num + G.edges.num, ...
           K + G.nodes.num + G.edges.num + G.faces.num]; 
-      
-      
-Mdb = zeros(nk,nk);
-Mdb(1,:) = cellIntegrals/vol;
-%    1 2 3 4 5   6  7  8   9  10
-%   {1,x,y,z,x^2,xy,xz,y^2,yz,z^2}
-mm = zeros(nk,nk);
-mm(2,2) = vol; mm(3,3) = vol; mm(4,4) = vol;
-mm(2,[5,6,7])  = cellIntegrals([2,3,4]).*[2,1,1];
-mm(3,[6,8,9])  = cellIntegrals([2,3,4]).*[1,2,1];
-mm(4,[7,9,10]) = cellIntegrals([2,3,4]).*[1,1,2];
-mm(5,[5,6,7])  = cellIntegrals([5,6,7]).*[4,2,2]; 
-mm(6,6)        = cellIntegrals(5) + cellIntegrals(8);
-mm(6,[7,8,9])  = cellIntegrals([9,6,7]).*[1,2,1];
-mm(7,7)        = cellIntegrals(5) + cellIntegrals(10);
-mm(7,[9,10])   = cellIntegrals([6,7]).*[1,2];
-mm(8,[8,9])    = cellIntegrals([8,9]).*[4,2];
-mm(9,9)        = cellIntegrals(8) + cellIntegrals(10);
-mm(9,10)       = cellIntegrals(9)*2;
-mm(10,10)      = cellIntegrals(10)*4;
 
-mm = mm/hK^2;
+% Mdb = zeros(nk,nk);
+% Mdb(1,:) = cellIntegrals/vol;
+% %    1 2 3 4 5   6  7  8   9  10
+% %   {1,x,y,z,x^2,xy,xz,y^2,yz,z^2}
+% mm = zeros(nk,nk);
+% mm(2,2) = vol; mm(3,3) = vol; mm(4,4) = vol;
+% mm(2,[5,6,7])  = cellIntegrals([2,3,4]).*[2,1,1];
+% mm(3,[6,8,9])  = cellIntegrals([2,3,4]).*[1,2,1];
+% mm(4,[7,9,10]) = cellIntegrals([2,3,4]).*[1,1,2];
+% mm(5,[5,6,7])  = cellIntegrals([5,6,7]).*[4,2,2]; 
+% mm(6,6)        = cellIntegrals(5) + cellIntegrals(8);
+% mm(6,[7,8,9])  = cellIntegrals([9,6,7]).*[1,2,1];
+% mm(7,7)        = cellIntegrals(5) + cellIntegrals(10);
+% mm(7,[9,10])   = cellIntegrals([6,7]).*[1,2];
+% mm(8,[8,9])    = cellIntegrals([8,9]).*[4,2];
+% mm(9,9)        = cellIntegrals(8) + cellIntegrals(10);
+% mm(9,10)       = cellIntegrals(9)*2;
+% mm(10,10)      = cellIntegrals(10)*4;
 
-Mdb(2:nk,2:nk) = triu(mm(2:nk,2:nk)) + tril(mm(2:nk,2:nk)',-1);
-
-norm(Mdb-M,'fro')
-(abs(Mdb-M)>10e-6)
-
-
-Fc = G.faces.centroids(faces,:);
-edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
-edges = G.faces.edges(edgeNum);
-edgeNormals = G.faces.edgeNormals(edgeNum,:);
-clf;
-plotGrid(G,K)
-hold on
-plot3(X(:,1), X(:,2), X(:,3),'*')
-plot3(Ec(:,1), Ec(:,2), Ec(:,3), 'o')
-Ec = G.edges.centroids(edges,:);
-% plot3(Ec(:,1) + edgeNormals(:,1), ...
-%       Ec(:,2) + edgeNormals(:,2), ...
-%       Ec(:,3) + edgeNormals(:,3), '+')
-
-plot3(Fc(:,1),Fc(:,2), Fc(:,3), 'o')
-plot3(Fc(:,1) + faceNormals(:,1), Fc(:,2) ...
-              + faceNormals(:,2), Fc(:,3) ...
-              + faceNormals(:,3), '+')
-
-hold off
-axis equal
+% 
+% mm = mm/hK^2;
+% 
+% Mdb(2:nk,2:nk) = triu(mm(2:nk,2:nk)) + tril(mm(2:nk,2:nk)',-1);
+% 
+% norm(Mdb-M,'fro')
+% (abs(Mdb-M)>10e-6)
+% 
+% 
+% Fc = G.faces.centroids(faces,:);
+% edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
+% edges = G.faces.edges(edgeNum);
+% edgeNormals = G.faces.edgeNormals(edgeNum,:);
+% clf;
+% plotGrid(G,K)
+% hold on
+% plot3(X(:,1), X(:,2), X(:,3),'*')
+% plot3(Ec(:,1), Ec(:,2), Ec(:,3), 'o')
+% Ec = G.edges.centroids(edges,:);
+% % plot3(Ec(:,1) + edgeNormals(:,1), ...
+% %       Ec(:,2) + edgeNormals(:,2), ...
+% %       Ec(:,3) + edgeNormals(:,3), '+')
+% 
+% plot3(Fc(:,1),Fc(:,2), Fc(:,3), 'o')
+% plot3(Fc(:,1) + faceNormals(:,1), Fc(:,2) ...
+%               + faceNormals(:,2), Fc(:,3) ...
+%               + faceNormals(:,3), '+')
+% 
+% hold off
+% axis equal
       
 end
      
