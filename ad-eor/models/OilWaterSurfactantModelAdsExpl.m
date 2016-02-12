@@ -17,7 +17,7 @@ classdef OilWaterSurfactantModelAdsExpl < OilWaterSurfactantModel
 
       function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
          [problem, state] = equationsOilWaterSurfactant(state0, state, model, dt, drivingForces, ...
-                                                        'explicitAdsorption', true, varargin{:});
+                                                        'includeAdsorption', true, varargin{:});
       end
 
       function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
