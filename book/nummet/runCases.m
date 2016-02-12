@@ -1,21 +1,20 @@
-%% Advection 
+%% Advection: classic schemes 
 % Initial data: set up the initial data and remember to add one ghost cell
 % at each end of the interval. These cells will be used to impose boundary
 % conditions
-N  = 100;
-dx = 1/N;
+dx = 1/100;
 x  = -.5*dx:dx:1+.5*dx;
 u0 = sin((x-.1)*pi/.3).^2.*double(x>=.1 & x<=.4);
 u0((x<.9) & (x>.6)) = 1;
 
 % Flux function
-f = @(u) u;
+f  = @(u) u;
+df = @(u) 0*u + 1;
 
 % Run simulation
-dt = 0.995*dx/1.0;
-uu = upw(u0, dt, dx, 20, f, @periodic);
-uf = lxf(u0, dt, dx, 20, f, @periodic);
-uw = lxw(u0, dt, dx, 20, f, @periodic);
+uu = upw(u0, .995, dx, 20, f, df, @periodic);
+uf = lxf(u0, .995, dx, 20, f, df, @periodic);
+uw = lxw(u0, .995, dx, 20, f, df, @periodic);
 
 % Plot results
 figure('Position',[293 539 1000 300]);
@@ -27,59 +26,85 @@ axis([0 1 -.2 1.2]); title('Upwind');
 
 subplot(1,3,2)
 plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-',...
-    x(2:end-1), uf(2:end-1), 's');
+    x(2:end-1), uf(2:end-1), 'o');
 axis([0 1 -.2 1.2]); title('Lax-Friedrichs');
 
 subplot(1,3,3)
 plot([0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-',...
-    x(2:end-1), uw(2:end-1), '*');
+    x(2:end-1), uw(2:end-1), 'o');
 axis([0 1 -.2 1.2]); title('Lax-Wendroff');
 
+
+%% Advection: high-resolution schemes
+lim = @(r) max(0,min(2*r,min(.5+.5*r,2)));
+xh  = -1.5*dx:dx:1+1.5*dx;
+u0 = sin((xh-.1)*pi/.3).^2.*double(xh>=.1 & xh<=.4);
+u0((xh<.9) & (xh>.6)) = 1;
+
+un = nt (u0, .495, dx, 50, f, df, @periodic, lim);
+uc = cuw(u0, .495, dx, 20, f, df, @periodic);
+figure
+i = (xh>=.1 & xh<=.4);
+plot(xh(3:end-2), un(3:end-2), 'o', xh(3:end-2), uc(3:end-2), 's', ...
+    [0 x(i) .6 .6 .9 .9 1], [0 u0(i) 0 1 1 0 0], '-k');
+legend('Nessyahu-Tadmor','Central-upwind','Location','best');
+axis([0 1 -.2 1.2]);
+
 %% Burgers' equation
-N  = 50;
-dx = 1/N;
-x  = -1-.5*dx:dx:1+.5*dx;
-u0 = sin(2*pi*x).*double(x>=-.5 & x<=.5);
-
-% Flux function
 f = @(u) .5*u.^2;
+df = @(u) u;
 
-% Run simulation
-dt = 0.995*dx/1.0;
-[uf,uw] = deal(u0);
-figure;
-for i=1:12
-    uf = lxf(uf, dt, dx, .05, f, @outflow);
-    uw = lxw(uw, dt, dx, .05, f, @outflow);
-    plot(x(2:end-1), uf(2:end-1), 's', ...
-        x(2:end-1), uw(2:end-1), '*');
-    axis([-1 1 -1.1 1.1]);
-    drawnow; pause(.1);
-end
+% Run simulations
+dx = 1/20;
+x  = -1-0.5*dx:dx:1+0.5*dx;
+uf = sin(2*pi*x).*double(x>=-.5 & x<=.5);
+uw = lxw (uf, .995, dx, .6, f, df, @outflow);
+uf = lxf (uf, .995, dx, .6, f, df, @outflow);
 
-%% Buckley--Leverett problem
+xh = -1-1.5*dx:dx:1+1.5*dx;
+uh = sin(2*pi*xh).*double(xh>=-.5 & xh<=.5);
+uh = nt(uh, .495, dx, .6, f, df, @outflow, lim);
+
+dx = 1/1000;
+xr = -1-1.5*dx:dx:1+1.5*dx;
+ur = sin(2*pi*xr).*double(xr>=-.5 & xr<=.5);
+ur = cuw(ur, .495, dx, .6, f, df, @outflow);
+
+% Plot results
+figure('Position',[293 539 1000 300]);
+subplot(1,3,1)
+plot(xr(3:end-2),ur(3:end-2), '-', x(2:end-1), uf(2:end-1), 'o'); 
+axis([-1 1 -1.1 1.1]); title('Lax--Friedrichs');
+subplot(1,3,2)
+plot(xr(3:end-2),ur(3:end-2), '-', x(2:end-1), uw(2:end-1), 'o');
+axis([-1 1 -1.1 1.1]); title('Lax-Wendroff');
+subplot(1,3,3)
+plot(xr(3:end-2),ur(3:end-2), '-', xh(3:end-2), uh(3:end-2), 'o');
+axis([-1 1 -1.1 1.1]); title('Nessyahu-Tadmor');
+
+
+%% Buckley-Leverett problem: classical schemes
 % Flux function
 f = @(u) u.^2./(u.^2 + (1-u).^2);
 s = linspace(0,1,501);
-df = max(diff(f(s))./diff(s));
+dfv = max(diff(f(s))./diff(s));
+df = @(u) 0*u + dfv;
 
 % reference solution
-N  = 1000;
-dx = 1/N;
+dx = 1/1000;
 xr = -.5*dx:dx:1+.5*dx;
-u0 = 0*xr; u0(1)=1.0;
-ur = upw(u0, .995*dx/df, dx, .65, f, @inflow);
+u0 = 0*xr; u0(xr<.1)=1.0;
+ur = upw(u0, .995, dx, .65, f, df, @outflow);
 
 % Solutions on coarser grids
-N  = 100;
+N  = 50;
 dx = 1/N;
 x  = -.5*dx:dx:1+.5*dx;
-u0 = 0*x; u0(1)=1.0;
-dt = .995*dx/df;
+u0 = 0*x; u0(x<.1)=1.0;
 
-uu = upw(u0, dt, dx, .65, f, @inflow);
-uf = lxf(u0, dt, dx, .65, f, @inflow);
-uw = lxw(u0, dt, dx, .65, f, @inflow);
+uu = upw(u0, .995, dx, .65, f, df, @outflow);
+uf = lxf(u0, .995, dx, .65, f, df, @outflow);
+uw = lxw(u0, .995, dx, .65, f, df, @outflow);
 
 % Plot results
 figure('Position',[293 539 1000 300]);
@@ -87,14 +112,29 @@ subplot(1,3,1)
 plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uu(2:end-1), 'o'); 
 axis([0 1 -.1 1.1]); title('Upwind');
 subplot(1,3,2)
-plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uf(2:end-1), 's');
+plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uf(2:end-1), 'o');
 axis([0 1 -.1 1.1]); title('Lax-Friedrichs');
 subplot(1,3,3)
-plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uw(2:end-1), '*');
+plot(xr(2:end-1),ur(2:end-1), '-', x(2:end-1), uw(2:end-1), 'o');
 axis([0 1 -.1 1.1]); title('Lax-Wendroff');
 
+%% Buckley-Leverett problem: high-resolution schemes
+xh  = -1.5*dx:dx:1+1.5*dx;
+u0 = 0*xh; u0(xh<.1)=1.0;
 
-%% Buckley--Leverett problem using 'incomp' module
+un = nt(u0, .495, dx, .65, f, df, @inflow);
+uc = cuw(u0, .495, dx, .65, f, df, @inflow);
+figure;
+plot(x(2:end-1), uu(2:end-1), '*', xh(3:end-2), un(3:end-2), 'o', ...
+    xh(3:end-2), uc(3:end-2), 's', xr(2:end-1),ur(2:end-1), 'k-');
+axis([0 1 -.1 1.1]);
+legend('Upwind','Nessyahu-Tadmor','Central-upwind',1);
+axes('position',[.2 .2 .4 .4]); box on
+plot(x(2:end-1), uu(2:end-1), '*', xh(3:end-1), un(3:end-1), 'o', ...
+    xh(3:end-2), uc(3:end-2), 'o', xr(2:end-1),ur(2:end-1), 'k-');
+axis([0 0.35 0.85 1.05]); set(gca,'XTick',[],'YTick',[]);
+
+%% Buckley-Leverett problem: using 'incomp' module
 mrstModule add incomp
 G = computeGeometry(cartGrid([100,1],[1 1]));
 rock = makeRock(G, ones(G.cells.num,1), ones(G.cells.num,1));
@@ -118,11 +158,15 @@ rSolt = rSol; n = 130;
 for i=1:n
     rSolt = implicitTransport(rSolt, G, .65/n, rock, fluid, 'bc', bc);
 end
+
+dx = 1/1000;
+xr = -.5*dx:dx:1+.5*dx;
+u0 = 0*xr; u0(1)=1.0;
+ur = upw(u0, .995, dx, .65, f, df, @outflow);
+
 figure;
-plot(G.cells.centroids(:,1), rSole.s(:,1),'bo', ...
-    G.cells.centroids(:,1), rSoli.s(:,1), 'ks', ...
-    G.cells.centroids(:,1), rSolt.s(:,1), 'r*', ...
-    xr(2:end-1),ur(2:end-1),'-');
+plot(G.cells.centroids(:,1), rSole.s(:,1),'o', ...
+    G.cells.centroids(:,1), rSoli.s(:,1), 's', ...
+    G.cells.centroids(:,1), rSolt.s(:,1), '*', ...
+    xr(2:end-1),ur(2:end-1),'-k');
 legend('Explicit','Implicit, CFL=1','Implicit, CFL=10',3);
-axis([0 1 -.1 1.1]);
-    

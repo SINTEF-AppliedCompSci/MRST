@@ -1,2 +1,2 @@
-function u = boundary(u)
+function u = outflow(u,~)
 end
