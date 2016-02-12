@@ -2,12 +2,12 @@ clc; clear; close all;
 
 run('../../matlab/project-mechanics-fractures/mystartup.m')
 addpath('/home/strene/Documents/utdanning/NTNU/5/master/coop/pebiGridding/voronoi3D')
-n = 10;
+n = 2;
 gridLim = [1,1,1];
 
-% G = cartGrid([n,n,n],gridLim);
+G = cartGrid([n,n,n],gridLim);
 % G = tetrahedronCube([n,n,n], gridLim, 1);
-G = voroniCube(n^3,gridLim);
+% G = voroniCube(n^3,gridLim);
 
 
 % G = computeGeometry(G);
@@ -44,16 +44,16 @@ G = voroniCube(n^3,gridLim);
 %   -\delta u = 1,
 %           u = -(x^2 + y^2 + z^2)/6
 %--------------------------------------------------------------------------
-f = @(X) ones(size(X,1),1);
-gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
+% f = @(X) ones(size(X,1),1);
+% gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
 
 % %--------------------------------------------------------------------------
 % %   -\delta u = \sin(x)\cos(y)z(1+alpha^2\pi)(1+\alpha^2\pi^2)  ,
 % %           u = \sin(x)\cos(y)z(1+alpha^2\pi)
 % %--------------------------------------------------------------------------
-% alpha = 2;
-% f = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3)*(1+alpha^2*pi^2);
-% gD = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3);
+alpha = 2;
+f = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3)*(1+alpha^2*pi^2);
+gD = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3);
 
 
 G = computeGeometry(G);
@@ -109,7 +109,7 @@ cellAvg = full(U(G.nodes.num + G.edges.num + G.faces.num + 1:end));
 Kc = G.cells.centroids;
 cells = 1:G.cells.num;
 r = .7;
-cells = cells(Kc(:,1).^2 + Kc(:,2).^2 > r^2);
+cells = cells(Kc(:,1).^2 + Kc(:,2).^2 + Kc(:,3).^2 > r^2);
 faceNum = mcolon(G.cells.facePos(cells),G.cells.facePos(cells+1)-1);
 faces = G.cells.faces(faceNum);
 % faces = 1:G.faces.num;
