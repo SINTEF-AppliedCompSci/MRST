@@ -12,37 +12,35 @@ classdef OilWaterSurfactantModel1D < OilWaterSurfactantModel
          setFigure(1)
          clf
          subplot(2, 1, 1)
-         plot(state.s(:, 1), '*-');
-         axis([0, 100, 0, 1]);
+         plot(state.s(:, 1), '-');
          title('Saturation');
          subplot(2, 1, 2)
-         plot(state.c, '*-');
+         plot(state.c, '-');
          % axis([0, 100, 0, 50]);
          title('Concentration');
          drawnow
 
          setFigure(2)
          clf
-         plot(state.c, '*-');
-         axis([0, 100, 0, 51]);
+         plot(state.c, '-');
          title('Concentration');
          drawnow
 
          setFigure(3)
          clf
-         plot(state.ads, '*-');
+         plot(state.ads, '-');
          title('SURFADS');
          drawnow
 
-         % setFigure(4)
-         % clf
-         % plot(state.SURFCNM, '*-');
-         % title('SURFCNM');
-         % drawnow
+         setFigure(4)
+         clf
+         plot(state.SURFCNM, '-');
+         title('SURFCNM');
+         drawnow
 
          % setFigure(5)
          % clf
-         % plot(state.SURFST, '*-');
+         % plot(state.SURFST, '-');
          % title('SURFST');
          % drawnow
 
