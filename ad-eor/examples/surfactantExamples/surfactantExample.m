@@ -114,8 +114,6 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 state0.ads = computeEffAds(state0.c, 0, modelSurfactant.fluid);
 state0.adsmax = state0.ads;
 
-solver = NonLinearSolver('errorOnFailure', true, 'continueOnFailure', true);
 resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule, ...
-                                                  'NonLinearSolver', solver, 'OutputHandler', ...
-                                                  resulthandler);
+                                                  'OutputHandler', resulthandler);

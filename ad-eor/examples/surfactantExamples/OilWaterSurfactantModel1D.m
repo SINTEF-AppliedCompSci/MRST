@@ -1,12 +1,12 @@
-classdef OilWaterSurfactantModel1D < OilWaterSurfactantModel
+classdef OilWaterSurfactantModel1D < ImplicitExplicitOilWaterSurfactantModel
    methods
 
       function model = OilWaterSurfactantModel1D(G, rock, fluid, varargin)
-         model = model@OilWaterSurfactantModel(G, rock, fluid, varargin{:});
+         model = model@ImplicitExplicitOilWaterSurfactantModel(G, rock, fluid, varargin{:});
       end
 
       function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-         [state, report] = updateAfterConvergence@OilWaterSurfactantModel(model, state0, ...
+         [state, report] = updateAfterConvergence@ImplicitExplicitOilWaterSurfactantModel(model, state0, ...
                                                            state, dt, drivingForces);
 
          setFigure(1)
