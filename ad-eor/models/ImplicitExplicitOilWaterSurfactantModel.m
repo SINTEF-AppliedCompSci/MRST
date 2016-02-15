@@ -17,7 +17,6 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
       function model = ImplicitExplicitOilWaterSurfactantModel(G, rock, fluid, varargin)
 
          model = model@OilWaterSurfactantBaseModel(G, rock, fluid, varargin{:});
-         model.wellVarNames = {'qWs', 'qOs', 'qWSft', 'bhp'};
          model = merge_options(model, varargin{:});
 
          model.pressureSaturationSurfactantModel = PressureSaturationSurfactantModel(G, rock, fluid, varargin{:});
