@@ -47,9 +47,20 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
          
          if press_sat_ok
             % Solve for concentration
-            [state, conc_report] = conc_solver.solveTimestep(state0, dt, conc_model, 'initialGuess', ...
-                                                             state, forceArg{:});
-            conc_ok = conc_report.Converged;
+            dts = splitTime(dt, 0.1*day);
+            % dts = dt;
+            stateM = state0;
+            conc_ok = true;
+            subiter = 1;
+            while conc_ok & (subiter <= numel(dts))
+               [state, conc_report] = conc_solver.solveTimestep(stateM, dts(subiter), conc_model, ...
+                                                                'initialGuess', state, forceArg{:});
+               state = updateAdsorption(stateM, state, model);
+               stateM = state;
+               conc_ok = conc_report.Converged;
+               subiter = subiter + 1;
+            end
+            state.SURFADS = double(state.ads);
          else
             conc_ok = false;
             conc_report = [];
