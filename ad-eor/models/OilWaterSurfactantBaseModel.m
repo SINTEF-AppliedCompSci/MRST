@@ -1,11 +1,16 @@
-classdef OilWaterSurfactantBaseModel < ReservoirModel 
+classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
+
+   properties
+      surfactant
+   end
 
    methods
-      
+
       function model = OilWaterSurfactantBaseModel(G, rock, fluid, varargin)
 
-         model = model@ReservoirModel(G, rock, fluid, varargin{:});
+         model = model@TwoPhaseOilWaterModel(G, rock, fluid, varargin{:});
          model = model.setupOperators(G, rock, varargin{:});
+         model.surfactant = true;
          model = merge_options(model, varargin{:});
 
       end
@@ -40,6 +45,14 @@ classdef OilWaterSurfactantBaseModel < ReservoirModel
              [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
                 model, name);
          end
+      end
+
+      function state = storeSurfData(model, state, s, c, Nc, sigma)
+         state.SWAT    = double(s);
+         state.SURFACT = double(c);
+         state.SURFCNM = log(double(Nc))/log(10);
+         state.SURFST  = double(sigma);
+         % state.SURFADS = double(ads);
       end
 
    end
