@@ -46,7 +46,7 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
          press_sat_ok = press_sat_report.Converged;
          
          if press_sat_ok
-            % Solve concentration
+            % Solve for concentration
             [state, conc_report] = conc_solver.solveTimestep(state0, dt, conc_model, 'initialGuess', ...
                                                              state, forceArg{:});
             conc_ok = conc_report.Converged;
@@ -54,46 +54,24 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
             conc_ok = false;
             conc_report = [];
          end
-         values = press_sat_report.StepReports{end}.NonlinearReport{end}.Residuals;
+
          
-         converged = press_sat_ok && con_ok;
-         if converged && ~model.stepFunctionIsLinear
-            problem = press_sat_model.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
-            % Is the pressure still converged when accounting for the
-            % mobilities?
-            [~, values] = press_sat_model.checkConvergence(problem);
-            if model.outerCheckWellConvergence
-               converged = all(values < model.outerTolerance);
-            else
-               converged = values(1) < model.outerTolerance;
-            end
-            converged = converged || iteration > model.maxOuterIterations;
-         end
+         converged = press_sat_ok && conc_ok;
+
          if ~press_sat_ok
             FailureMsg = 'Pressure failed to converge!';
          else
             FailureMsg = '';
          end
 
-         
          report = model.makeStepReport(...
-            'Failure',        ~pressure_ok, ...
+            'Failure',        ~press_sat_ok, ...
             'Converged',       converged, ...
-            'FailureMsg',      FailureMsg, ...
-            'Residuals',       values ...
+            'FailureMsg',      FailureMsg ...
             );
          
-         report.press_sat_solver =  press_sat_report;
-         report.conc_solver= conc_solver;
-      end
-
-
-      function state = storeSurfData(model, state, s, c, Nc, sigma)
-         state.SWAT    = double(s);
-         state.SURFACT = double(c);
-         state.SURFCNM = log(double(Nc))/log(10);
-         state.SURFST  = double(sigma);
-         % state.SURFADS = double(ads);
+         report.PressureSaturationSolver =  press_sat_report;
+         report.ConcentrationSolver= conc_report;
       end
 
    end
