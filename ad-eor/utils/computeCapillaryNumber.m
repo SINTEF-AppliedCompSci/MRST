@@ -25,7 +25,7 @@ function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, varargin
        if add_well_contrib
           [velocW, wc] = computeWellContrib(G, W, p, pBH);
           veloc_sq(wc) = veloc_sq(wc) + velocW.^2;
-       else
+       end
 
      otherwise
        error('option for velocCompMethod not recognized');
