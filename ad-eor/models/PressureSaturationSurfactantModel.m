@@ -3,7 +3,6 @@ classdef PressureSaturationSurfactantModel < OilWaterSurfactantBaseModel
    methods
       function model = PressureSaturationSurfactantModel(G, rock, fluid, varargin)
          model = model@OilWaterSurfactantBaseModel(G, rock, fluid, varargin{:});
-         model.wellVarNames = {'qWs', 'qOs', 'bhp'};
       end
 
       function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)

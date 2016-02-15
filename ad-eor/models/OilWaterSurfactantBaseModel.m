@@ -11,6 +11,7 @@ classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
          model = model@TwoPhaseOilWaterModel(G, rock, fluid, varargin{:});
          model = model.setupOperators(G, rock, varargin{:});
          model.surfactant = true;
+         model.wellVarNames = {'qWs', 'qOs', 'qWSft', 'bhp'};
          model = merge_options(model, varargin{:});
 
       end
