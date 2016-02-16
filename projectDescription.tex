@@ -1,0 +1,60 @@
+\documentclass[a4paper,english, final, 11pt]{article}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\renewcommand*\familydefault{\sfdefault}
+\usepackage[T1]{fontenc} % Vise norske tegn
+\usepackage[utf8]{inputenc} % For å kunne skrive norske tegn
+\usepackage{babel} % Tilpasning til norsk
+\usepackage{amsmath,amssymb,mathtools} % Ekstra matematikkfunksjoner
+\usepackage{hyperref}
+
+%----------------------------------------------------------------------------------------
+%	TITLE & AUTHOR
+%----------------------------------------------------------------------------------------
+
+\title{TMA4500 Specialization Project Description \\
+\textbf{Higher-order Virtual Element Methods for Irregular Grids, with Application to Reservoir Simulation.}}
+\author{Øystein Strengehagen Klemetsdal\thanks{%
+NTNU, Industrial Mathematics, %
+\href{mailto:oysteskl@stud.ntnu.no}{oysteskl@stud.ntnu.no}} \\
+Supervisor: Xavier Raynaud\thanks{%
+NTNU, Department of Mathematics, and SINTEF ICT %
+\href{mailto:xavier.raynaud@sintef.no}{xavier.raynaud@sintef.no}}}
+
+\begin{document}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    INTRODUCTION    INTRODUCTION    INTRODUCTION    INTRODUCTION    INTRODUCTION    INTRODUCTION           %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+%
+Today, the industry standard for petroleum reservoir simulations is the finite volume method
+(REF). Recently, however, the virtual element method (VEM) (REF) has gained popularity. The method is
+particularly interesting because it facilitates computation on very general meshes, which often is the case
+with real-life reservoir simulations.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM    VEM  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Virtual Element Method}
+%
+On each element, the trial and test functions contain all polynomials
+of degree less than or equal to $k$, along with functions that are, in general, non-polynomial. Typically,
+in finite volume and finite element methods, the local stiffness bilinear form is approximated.
+VEM handles the stiffness bilinear form differently: When one of the two entries is a polynomial, the exact
+value is calculated. In all other cases, only the right order of magnitude and stability properties are
+calculated.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL    GOAL   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Goal of the Project}
+%
+The the open-source MATLAB toolbox Matlab Reservoir Simulation Toolbox (MRST) (REF), developed at SINTEF ICT,
+already includes an implementation of a first-order (?) mimetic finite difference discretization (REF),
+which is a method closely related to VEM (REF). The goal of this project is then to implement a higher-order
+VEM for reservoir simulations, in the perspective of laboratory simulations, rock mechanics, and fracture
+rock modelling. In addition, the project will serve as a preliminary for a master thesis on the subject. 
+
+\end{document}
