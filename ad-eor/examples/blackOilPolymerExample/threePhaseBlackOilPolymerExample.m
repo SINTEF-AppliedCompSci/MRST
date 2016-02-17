@@ -10,7 +10,7 @@ clear;
 close all;
 
 try
-   require add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
+   require ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
 catch
    mrstModule add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
 end
