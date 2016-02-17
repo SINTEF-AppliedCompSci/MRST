@@ -2,9 +2,12 @@ function G = computeVEMGeometry(G,f)
     
     fprintf('Solving Poisson equation on grid with %d cells \n\n', G.cells.num);
     fprintf('Computing VEM geometry ...\n');
-
+    
     tic;
 
+    G = computeGeometry(G);
+    G = mrstGridWithFullMappings(G);
+    
     fprintf('... computing edge data\n');
     
     nodeNum = mcolon(G.edges.nodePos(1:end-1),G.edges.nodePos(2:end)-1);
@@ -72,7 +75,7 @@ function G = computeVEMGeometry(G,f)
 %     faceIntPos = [1,cumsum(diff(G.cells.facePos)')+1];
     fprintf('... computing source term integrals\n');
     IFf = polygonInt3D(G,1:G.faces.num,f);
-    ICf = polyhedronInt(G,1:G.cells.num,f);
+    ICf = polyhedronInt(G,1:G.cells.num,f,3);
     
 %     G.cells.('monomialCellIntegrals') = IC;
 %     G.cells.('monomialFaceIntegrals') = IF;
@@ -100,7 +103,7 @@ function G = computeVEMGeometry(G,f)
     
     stop = toc;
     
-    fprintf('Done in %f seconds.\n', stop);
+    fprintf('Done in %f seconds.\n\n', stop);
     
 end
 

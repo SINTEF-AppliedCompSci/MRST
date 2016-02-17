@@ -25,10 +25,13 @@ jjS = zeros(1,dofPosS(end)-1);
 sVec = zeros(1,dofPosS(end)-1);
 bVec = zeros(1,dofPosb(end)-1);
 
+fprintf('Computing local block matrices ...\n')
+tic;
+
 for i = 1:nK
 
     if rem(i,step) == 0
-        fprintf('Calculating local block matrix for cell %d ...\n', i);
+        fprintf('... Calculating local block matrix for cell %d\n', i);
     end
     
     [Sl, bl, dofVec] = VEM3D_loc(G,f,i);
@@ -47,6 +50,9 @@ for i = 1:nK
     bVec(dofPosb(i):dofPosb(i+1)-1) = bl(:);
     
 end
+
+stop = toc;
+fprintf('Done in %f seconds.\n\n', stop);
 
 S = sparse(iiS, jjS, sVec, N, N);
 b = sparse(iib, ones(1, numel(iib)), bVec);

@@ -1,4 +1,4 @@
-function G = voroniCube(n,gridLim)
+function G = voronoiCube(n,gridLim)
 
 % Sett the convex boundary
 boundary = [0,          0         , 0         ; ...

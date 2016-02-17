@@ -1,5 +1,6 @@
 clc; clear; close all;
 
+addpath('../')
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
 
 n = 10;
@@ -7,7 +8,7 @@ gridLim = [1,1,1];
 
 % G = cartGrid([n,n,n],gridLim);
 % G = tetrahedronCube([n,n,n], gridLim, 1);
-G = voroniCube(n^3,gridLim);
+G = voronoiCube(300,gridLim);
 
 
 % G = computeGeometry(G);
@@ -122,7 +123,7 @@ view(3);
 axis equal;
 
 IF = polygonInt3D(G,1:G.faces.num,gD);
-IC = polyhedronInt(G,1:G.cells.num,gD);
+IC = polyhedronInt(G,1:G.cells.num,gD,3);
 
 u = [gD([G.nodes.coords; G.edges.centroids]); IF./G.faces.areas; IC./G.cells.volumes];
 
