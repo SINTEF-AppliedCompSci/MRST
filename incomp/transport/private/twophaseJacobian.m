@@ -13,7 +13,7 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %        s_t + \/· [f(s)(v·n + mo(rho_w - rho_o)n·Kg)] = f(s)q
 %
 %
-%   where v·n is the sum of the phase Dary fluxes, f is the fractional
+%   where v·n is the sum of the phase Darcy fluxes, f is the fractional
 %   flow function,
 %
 %                  mw(s)
@@ -21,8 +21,8 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %               mw(s) + mo(s)
 %
 %   mi = kr_i/mu_i is the phase mobiliy of phase i, mu_i and rho_i are the
-%   phase viscosity and density, respectivelym, g the (vector) acceleration
-%   of gravity and K the permeability.  The source term f(s)q is a
+%   phase viscosity and density, respectively, g the (vector) acceleration
+%   of gravity, and K the permeability.  The source term f(s)q is a
 %   volumetric rate of water.
 %
 %   Using a first-order upwind discretisation in space and a backward Euler
@@ -277,12 +277,13 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
 %
 %   Fk(s, s0, dt) = s - s0 + dt/pv·[H(s) - max(q,0) - min(q,0)·f],
 %
-%   H(s) = sum_i [f_i(dflux_i + mo_i*gflux_i)]  (faces i of cell)
+%   H(s) = sum_i [f_i(dflux_i + mo_i*(gflux_i)+pcflux)]  (faces i of cell)
 %
 %  where f_i = mw_i/(mw_i+mo_i), mo_i and mw_i are phase upwind
-%  mobilities at face i and dflux and gflux are Darcy flux and gravity flux
-%  g(rho1-rho2)*face_normal, respectively. The other flux function f is
-%  the fractional flow function evaluated with cell mobilities.
+%  mobilities at face i and dflux, gflux, and pcflux are Darcy flux,
+%  gravity flux (=face_normal*Kg(rho1-rho2)), and capillary flux,
+%  respectively. The other flux function f is the fractional flow function
+%  evaluated with cell mobilities. 
 %
 %  Advancing an implicit upwind mobility weighted scheme one time step
 %  amounts to solving F(s, s0, dt) = 0, given s0 and dt.
@@ -296,9 +297,9 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
 %
 %    oflux = fo(dflux - mw*gflux).
 %
-%  The upwind cell for each phase at each internal grid face are found
-%  using findPhaseUpwindCells, and computeConstData.  The gravity flux is
-%  computed in getFlux.
+%  The upwind cell for each phase at each internal grid face is found
+%  using findPhaseUpwindCells, and computeConstData.  The gravity flux and
+%  capillary flux are computed in getFlux.
 
    % Compute cell mobilities
    s0 = resSol_0.s;
@@ -471,7 +472,7 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
    io     = nan(sum(intern), 1);
 
 
-   %% Upwind direction for 'water': When v and g have the same sign, the
+   % Upwind direction for 'water': When v and g have the same sign, the
    %  sign of water phase flux is independent of mobilities.
    a = ~(dflux < 0) & ~(gflux < 0);
    b = ~(dflux > 0) & ~(gflux > 0);
@@ -482,7 +483,7 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
    iw(c)   = N(c, 1);
    clear a b c N
 
-   %% Upwind direction for 'oil': When v and g have the opposite sign, the
+   % Upwind direction for 'oil': When v and g have the opposite sign, the
    %  sign of water phase flux is independent of mobilities.
    a = ~(dflux < 0) & ~(gflux > 0);
    b = ~(dflux > 0) & ~(gflux < 0);
