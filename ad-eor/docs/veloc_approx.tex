@@ -1,0 +1,197 @@
+\documentclass[11pt]{amsart}
+\usepackage[abbreviate=false,sorting=none,doi=false]{biblatex}
+\addbibresource{refs.bib}
+
+\usepackage{xspace}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{bm}
+\usepackage{siunitx}
+
+%
+% =======================================================================
+% Formatting tools
+% =======================================================================
+% Gentle spacing after macros
+% Reference: The LaTeX Companion, p.50
+\newcommand{\Real}{\mathbb R}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\etc}{etc.\@\xspace}
+\newcommand{\etal}{et~al.\@\xspace}
+%
+%
+% =======================================================================
+% Common Mathematics
+% =======================================================================
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\boldsymbol{#1}}
+\newcommand{\transp}[1]{{#1}^{\ensuremath{\mathsf{T}}}}
+%
+% =======================================================================
+% Math Operators
+% =======================================================================
+\DeclareMathOperator{\erfc}{erfc}
+\DeclareMathOperator{\spanop}{span}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+%
+\newcommand{\grad}{\nabla}
+\newcommand{\dive}{\nabla\cdot}
+\newcommand{\curl}{\nabla\times}
+\newcommand{\abs}[1]{\left| #1\right|}
+\newcommand{\norm}[1]{\left\| #1\right\|}
+\newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\Fcal}{\mathcal{F}}
+\newcommand{\Ccal}{\mathcal{C}}
+\let\code\texttt
+\newcommand{\ddiv}{\code{div}\xspace}%
+\newcommand{\dgrad}{\code{grad}\xspace}%
+
+\newcommand{\nC}{{n_{\Ccal}}}%
+\newcommand{\nF}{{n_{\Fcal}}}%
+
+
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{5mm}
+
+\begin{document}
+
+\title[velocity approximation]{Cell approximation of the velocity}
+
+\maketitle
+
+\begin{abstract}
+  In this document, we describe how the velocity is approximated on cells.
+\end{abstract}
+
+
+Our starting point is a mixed finite volume method to solve
+\begin{subequations}
+  \label{eq:contgov}
+  \begin{align}
+    \label{eq:contgov1}
+    \vect{u} &= - \mat{K}\grad p,\\
+    \dive \vect{u} &= q
+  \end{align}
+\end{subequations}
+We denote by $\Ccal=\{1,\ldots,\nC\}$ the set of cells and $\Fcal=\{1,\ldots,\nF\}$ the set of
+faces. The numbers $\nC$ and $nF$ denote the number of cells and faces, respectively. For a given
+cell $c$, we denote $\Fcal_c$ the set of the faces of $c$. Since we have a mixed method, the
+integrated fluxes are given as our numerical unknowns,
+\begin{equation}
+  \label{eq:defuf}
+  u_f = \int_{f}\vect{u}\cdot\vect{n}_f\,dx
+\end{equation}
+Since we have a finite volume method, the discrete divergence operator is the mapping from
+$\Real^\nF$ to $\Real^\nC$ given by
+\begin{equation}
+  \label{eq:defdiv}
+  \ddiv(u)(c) = \sum_{f\in\Fcal_c}u_f
+\end{equation}
+for any $c\in\Ccal$ and $u\in\Real^{\nF}$. The governing equations, either they are discrete or
+continuous as in \eqref{eq:contgov}, can be obtained using a variational principle. Indeed
+\eqref{eq:contgov} are equivalent to minimize the dissipated energy
+\begin{equation}
+  \label{eq:totenergy}
+  \int_{\Omega} \vect{u}\cdot\mat{K}^{-1}\vect{u}
+\end{equation}
+given the volume preservation constraint $\dive\vect{u} = q $. The pressure $p$ which appears in
+\eqref{eq:contgov1} is then a Lagrange multiplier. At the discrete level, the volume preservation
+constraint is already defined through the definition of the discrete divergence operator. It remains
+to approximate the energy. This approximation is done cell-wise, by using the faces degrees of
+freedom given by the fluxes $u_f$, and by introducing a matrix $M$ for each cell $c\in\Ccal$ such
+that
+\begin{equation}
+  \label{eq:defM}
+  \sum_{f\in \Fcal_c} u_f M_{f,f'} v_{f'} \approx \int_{c} \vect{u}\cdot\mat{K}^{-1}\vect{v}\,dx
+\end{equation}
+In the remaining, we will only consider a given cell $c$ so that we will sometimes drop the
+sub-indices and denote
+\begin{equation*}
+  \sum_{f\in \Fcal_c} u_f M_{f,f'} v_{f'} = u^t\vect{M}v
+\end{equation*}
+
+A necessary condition for the method to be convergent is that the approximation is
+\emph{consistent}. To define this concept, we remark first that, if $\vect{u}$ is a constant vector,
+then we can always find $a$ such that
+\begin{equation}
+  \label{eq:formu}
+  \vect{u} = \mat{K}\grad(\vect{a}\cdot(\vect{x} - \vect{x}_c)),
+\end{equation}
+for $a=K^{-1}\vect{u}$ and where $\vect{x}_c$ denotes the centroid,
+\begin{equation}
+  \label{eq:defcentroid}
+  \vect{x}_c = \frac{1}{\text{vol}(c)}\int_c \vect{x}\,dx.
+\end{equation}
+Then, using integration by part, we have
+\begin{align}
+  \label{eq:intbpart}
+  \int_c\vect{u}^t\mat{K}^{-1}\vect{v}\,dx &=  \int_c\grad(\vect{a}\cdot(\vect{x} - \vect{x}_c))\cdot\vect{v}\,dx\\
+  \notag                                           &= \int_c\dive((\vect{a}\cdot(\vect{x} - \vect{x}_c))\vect{v})\,dx - \int_c(\vect{a}\cdot(\vect{x} - \vect{x}_c))\dive\vect{v}\,dx\\
+  \notag                                           &= \int_{\partial c}(\vect{a}\cdot(\vect{x} - \vect{x}_c))(\vect{n}\cdot\vect{v})\,dx - \int_c(\vect{a}\cdot(\vect{x} - \vect{x}_c))\dive\vect{v}\,dx,
+\end{align}
+for any vector field $\vect{v}$. By definition, we say that the matrix $M$ gives a consistent
+approximation if for any constant vector field $\vect{u}$ and any $\vect{v}$ such that
+\begin{subequations}
+  \label{eq:condv}
+  \begin{align}
+&\vect{v} \text{ is constant on each face } f,  \\
+&\dive{\vect{v}} \text{ is constant in the cell } c,
+  \end{align}
+\end{subequations}
+we have
+\begin{equation}
+  \label{eq:consrel}
+  \int_c\vect{u}\cdot\mat{K}^{-1}\vect{v}\,dx = u^t\mat{M}v,
+\end{equation}
+where $u$ and $v$ are the vectors of face-values defined from $\vect{u}$ and $\vect{v}$ as in
+\eqref{eq:defuf}. When $v$ satisfy the conditions \eqref{eq:condv}, the expression
+\eqref{eq:intbpart} can be simplified as the divergence term cancels and we get
+\begin{equation}
+ \label{eq:intbpart2}
+ \int_c\vect{u}\cdot\mat{K}^{-1}\vect{v}\,dx  = \sum_{f\in\Fcal_c}(\vect{a}\cdot \vect{c}_f)v_f
+\end{equation}
+where
+\begin{equation}
+  \label{eq:defcf}
+  \vect{c_f} = \int_{f}(\vect{x} - \vect{x}_c)\,dx.
+\end{equation}
+We introduce the matrix $\mat{C}$ where the column are given by the $\vect{c}_f$. Then, the identity
+\eqref{eq:intbpart2} can be rewritten as
+\begin{equation}
+  \label{eq:intbpart3}
+ \int_c\vect{u}\cdot\mat{K}^{-1}\vect{v}\,dx  = \vect{a}^t\mat{C}v
+\end{equation}
+and the consistency relation \eqref{eq:consrel} is
+\begin{equation}
+  \label{eq:consrelsimp}
+  u^t\mat{M}v = \vect{a}^t\mat{C}v.
+\end{equation}
+Let us now express $u$ in function of $\vect{a}$. We have, by definition,
+\begin{equation*}
+  u_f = \int_f (\vect{K}\vect{a})\cdot \vect{n}_f\,dx.
+\end{equation*}
+After introducing the matrix $N$ whose column is made of the $\int_{f} \vect{n}_f\,dx$, we can
+rewrite the identity above in the compact form
+\begin{equation}
+  \label{eq:relau}
+  u = \mat{N}^t\mat{K}^{t}\vect{a}.
+\end{equation}
+Then, the simplified consistency relation \eqref{eq:consrelsimp} yields
+\begin{equation*}
+  \vect{a}^t\mat{K}\mat{N}\mat{M}v = \vect{a}^t\mat{C}v,
+\end{equation*}
+which must hold for all $\vect{a}$ and $v$ so that, finally, we have
+\begin{equation}
+  \label{eq:consrelfin}
+  \mat{K}\mat{N}\mat{M} = \mat{C}.
+\end{equation}
+\printbibliography
+
+\end{document}
+
+%  LocalWords:  variational
