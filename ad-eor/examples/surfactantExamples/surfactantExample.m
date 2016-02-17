@@ -8,7 +8,7 @@
 %
 
 try
-   require add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
+   require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 catch
    mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 end
