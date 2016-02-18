@@ -8,7 +8,7 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
 %
 % PARAMETERS:
 %   Gt         - Top surface grid
-%   state      - Falid 'state' object, with the additional fields 'h' and 'h_max'.
+%   state      - Valid 'state' object, with the additional fields 'h' and 'h_max'.
 %   rock       - rock parameters corresponding to 'Gt'
 %   fluidADI   - ADI fluid object (used to get densities and compressibilities)
 %   sr         - gas residual saturation (scalar)
@@ -44,7 +44,10 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
     if isfield(fluidADI, 'pvMultR')
         pvMult =  fluidADI.pvMultR(p);
     end
-    pv       = rock.poro .* Gt.cells.volumes .* pvMult;%effective area
+    pv = rock.poro .* Gt.cells.volumes .* pvMult; %effective area
+    if isfield(rock,'ntg')
+       pv = pv .* rock.ntg; 
+    end
     rhoCO2   = fluidADI.rhoGS .* fluidADI.bG(p);
     gasPhase = sum(pv .* (rhoCO2 .* SG));
     
