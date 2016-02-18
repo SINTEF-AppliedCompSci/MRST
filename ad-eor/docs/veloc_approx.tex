@@ -256,13 +256,16 @@ taking the scalar product with $\vect{c}_f$ on both sides, we get
 \textbf{Approximation of cell-valued velocities}
 
 The problem is the following: Given face-valued fluxes $\hat{u}$, obtain a consistent approximation
-of the velocity $\vect{u}$. We start from the consistency condition as stated in
-\eqref{eq:consrel}. The condition must hold for constant vectors, that is,
+of the velocity $\vect{u}$. We start from the consistency condition as stated in \eqref{eq:consrel}
+which expresses the fact that our discrete approximation of the energy, by using face-valued fluxes
+and the matrix $M$, is exact for a certain class of arguments. The condition must hold for constant
+vectors, that is,
 \begin{equation}
   \label{eq:constve}
   \hat{u}^t\mat{M}\hat{v} = \text{vol}(c)\vect{u}^t\mat{K}^{-1}\vect{v}.
 \end{equation}
-Let us consider $\vect{v} = \mat{K}\vect{w}$. We have for each face $f$,
+We want to find a velocity $\vect{u}$ which satisfies \eqref{eq:constve} for at least all constant
+vector $\vect{v}$. Let us consider $\vect{v} = \mat{K}\vect{w}$. We have for each face $f$,
 \begin{equation*}
   \hat{v}_f = \int_f\mat{K}\vect{w}\cdot\vect{n}_f\,dx,
 \end{equation*}
@@ -291,6 +294,13 @@ centroid vectors $\vect{c}_f$ weighted by the flux $\hat{u}_f$,
   \label{eq:simpleinterpvelapp}
   \vect{u} = \frac{1}{\text{vol}(c)} \sum_{f\in\Fcal_c}\hat{u}_f\vect{c}_f.
 \end{equation}
+Note that, through \eqref{eq:pseudoinv}, we can check that the vector $\vect{u}$ satisfies the
+identity
+\begin{equation*}
+  \mat{N}\vect{u} = \hat{u},
+\end{equation*}
+which corresponds to \eqref{eq:defuf} in the case of a constant vector $\hat{u}$.
+
 
 \printbibliography
 
