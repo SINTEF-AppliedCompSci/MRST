@@ -18,7 +18,7 @@ for i = 1:numel(names)
     
     try  
     fprintf('-----------------FORMATION: %s -----------------\n', names{i})
-    pathname = ['opt_results_array_in_trap_regions/' names{i} '/InjYrs50_MigYrs1000'];
+    pathname = ['opt_results_array_in_trap_regions_setClevels/' names{i} '/InjYrs50_MigYrs2000'];
     load([pathname '/' 'Gt.mat'])
     load([pathname '/' 'init.mat'])
     load([pathname '/' 'optim.mat'])
@@ -52,7 +52,6 @@ for i = 1:numel(names)
     end
     tot_sptr_area_used(i) = convertTo(used_trap_regions_area,(kilo*meter)^2);
     strapCap_used(i) = used_trap_regions_strapCap/1e12; % Gt 
-    
     % try to compute the used reachable structural capacity of the wells,
     % but don't count trap capacities more than once.
     
@@ -61,6 +60,9 @@ for i = 1:numel(names)
     inj_rates = [init.schedule.control(1).W.val].*other.opt.refRhoCO2.*(1*year); % kg/yr
     inj_masses = inj_rates .* inj_time_yr; % kg
     tot_inj_mass = sum(inj_masses)/1e12; % Gt
+    
+    
+    % Structural Potential vs Simulated Structural Capacity
     
 %     exploreOptWellNCS_postProcess( Gt, init, optim, other, ...
 %         'plotWellRates', true, ...

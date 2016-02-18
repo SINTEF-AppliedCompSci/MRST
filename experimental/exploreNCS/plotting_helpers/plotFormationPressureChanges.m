@@ -1,9 +1,8 @@
 function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, schedule, varargin )
 
-localopt.figname = [];
-localopt.P_lim   = []; % A set/computed overpressure limit (in Pascals), 
-                       % to avoid approaching overburden (fracture) pressure
-localopt = merge_options( localopt, varargin{:} );
+    opt.figname = [];
+    opt.outputOn = true;
+    opt = merge_options( opt, varargin{:} );
 
     %% Pressure changes using max, min, avg over entire formation grid
     
@@ -61,7 +60,7 @@ localopt = merge_options( localopt, varargin{:} );
     
     
     %% Plot of grid with areas in red that surpass overburden pressure
-    figure; set(gcf, 'Position', [1 1 2439 547])
+    figure; set(gcf, 'Position', [2562 2 2439 547])
     
     subplot(1,4,1)
     plotCellData(Gt, convertTo(P_over, mega*Pascal), 'EdgeColor','none')
@@ -145,10 +144,14 @@ localopt = merge_options( localopt, varargin{:} );
     % Determine the cell where ...
     if isFracPressSurpassed
         % pressure surpassed P_over the most.
-        [val, inx] = max(maxP_encountered - P_over); 
+        [val, inx] = max(maxP_encountered - P_over);
         
-        fprintf('The fracture pressure was surpassed by %d MPa (%d bars), in cell %d.\n', ...
-            convertTo(val, mega*Pascal), convertTo(val, barsa), inx)
+        if opt.outputOn
+            fprintf('The fracture pressure was surpassed by %d MPa (%d bars), in cell %d.\n', ...
+                convertTo(val, mega*Pascal), convertTo(val, barsa), inx)
+            fprintf('... which was %4.2f percent of its fracture pressure.\n', ...
+                (maxP_encountered(inx)/P_over(inx))*100 )
+        end
     else
         % pressure was closest to or was equal to its fracture pressure.
         assert( all(P_over - maxP_encountered) >= 0 )
@@ -159,10 +162,13 @@ localopt = merge_options( localopt, varargin{:} );
         else
            str = ['not a well']; 
         end
-        fprintf(['The fracture pressure was not surpassed, but ...\n', ...
-            'the pressure of cell %d (%s) was %4.2f percent of its fracture pressure.\n'], ...
-            inx, str, (maxP_encountered(inx)/P_over(inx))*100 )
+        if opt.outputOn
+            fprintf(['The fracture pressure was not surpassed, but ...\n', ...
+                'the pressure of cell %d (%s) was %4.2f percent of its fracture pressure.\n'], ...
+                inx, str, (maxP_encountered(inx)/P_over(inx))*100 )
+        end
     end
+    res.worst_percent_of_fracPress_reached = (maxP_encountered(inx)/P_over(inx))*100;
     
     % Plot pressure change over time for that cell:
     for i = 1:numel(states)
@@ -173,7 +179,7 @@ localopt = merge_options( localopt, varargin{:} );
     
     time_yr = convertTo(cumsum(schedule.step.val), year)';
     
-    figure;
+    figure; set(gcf,'Position',[3126 940 560 420])
     hold on
     plot([0 time_yr], [initp dp_of_cell]/1e6, 'LineWidth',3)
     plot([0 time_yr], repmat(p_over_of_cell/1e6,[1 numel(states)+1]), '--', 'LineWidth',3)
@@ -188,6 +194,30 @@ localopt = merge_options( localopt, varargin{:} );
     box
     grid
     %close
+
+    
+    %% Max pressure encountered per cell compared to Overburden Pressure:
+%     % contour plot
+%     figure;
+%     
+%     
+%     F = scatteredInterpolant(Gt.cells.centroids(:,1), Gt.cells.centroids(:,2), P_over);
+%     p_over = @(coord) F(coord(:,1), coord(:,2));
+%     
+%     F2 = scatteredInterpolant(Gt.cells.centroids(:,1), Gt.cells.centroids(:,2), maxP_encountered);
+%     maxP_encount = @(coord) F2(coord(:,1), coord(:,2));
+%     
+%     coord = [Gt.cells.centroids(:,1), Gt.cells.centroids(:,2)];
+%     
+%     gt = Gt;
+%     gt.nodes.z = p_over(coord);
+%     gt.cells.z = p_over(coord);
+%     plotCellData(gt, gt.cells.z, 'EdgeAlpha',0.1);
+%     
+%     
+%     
+%     %plotContours(Gt.parent, states{5}.pressure, 100);
+%     view(3); set(gca,'DataAspect',[1 1 1/100])
 
 
     

@@ -31,7 +31,7 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
     opt.cells       = [];
     opt.trapName    = {'default'};
     %opt.rhoCref     = 760 * kilogram / meter ^3; % arbitrary ref co2 density
-    opt.fmName      = 'fmName';
+    opt.fmName      = 'fmName'; % if fmName is not set, capacities are not printed out
     opt.closed_boundary_edges = [];
     opt = merge_options(opt, varargin{:});
     
@@ -148,8 +148,8 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
         poro = var.rock2D.poro;
         if isfield(var.rock2D,'ntg')
             ntg = var.rock2D.ntg;
-            fprintf(['\n Note: net-to-gross rock property exists.',...
-               ' Net rock volume is (on avg) %d percent of bulk rock volume. \n'], mean(ntg)*100);
+%             fprintf(['\n Note: net-to-gross rock property exists.',...
+%                ' Net rock volume is (on avg) %d percent of bulk rock volume. \n'], mean(ntg)*100);
         else
             ntg = ones(numel(poro),1);
         end
@@ -256,10 +256,14 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
         res.breakdown.dissolved_trapping_capacity  = sum(btrap_dis) / giga / 1e3; % Gt
 
 
-        % Report total trapping values
+        % Report total trapping values are printed to display window only
+        % if fmName is passed in. This gives the option of not printing to
+        % window if undesirable.
         str = capacity_report();
-        fprintf('\n\n -------- %s ------- \n\n', opt.fmName)
-        disp(str)
+        if ~strcmpi(opt.fmName,'fmName')
+            fprintf('\n\n -------- %s ------- \n\n', opt.fmName)
+            disp(str)
+        end
 
 
         % Plots (Optional)

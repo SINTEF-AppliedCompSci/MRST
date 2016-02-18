@@ -67,7 +67,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
     elseif strcmpi(name,'NorwegianSea') || any(strcmpi(norwegianSeaNames,name))
         
         % Atlas, chp 5.
-        warning('Some sea values need to be confirmed.')
+        %warning('Some sea values need to be confirmed.')
 
         info.seafloor_depth  = 225 * meter;  % varies between 100-500 m in depth, but generally 200-250 m (personal communication with Ane Lothe)
         info.seafloor_temp   =  5;           % Lundin et al 2005 report
@@ -94,7 +94,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
     elseif strcmpi(name,'BarentsSea') || any(strcmpi(barentsSeaNames,name))
         
         % Atlas, chp 6.
-        warning('Some sea values need to be confirmed.')
+        %warning('Some sea values need to be confirmed.')
         
         % NB: chp 6, pg 128 in Atlas says water density is 1.1 g/cm3
         % and described it as strongly saline (> 100 000 ppm) in the
@@ -102,7 +102,7 @@ function [ info ] = getSeaInfo( name, rhoCref )
         
         % NB: CO2 density in Bjarmeland Platform is reportedly 650 kg/m3,
         % and 700 kg/m3 in other formations.
-        warning('CO2 density in Bjarmeland Platform is reportedly 650 kg/m3.')
+        %warning('CO2 density in Bjarmeland Platform is reportedly 650 kg/m3.')
         
         % Info on seafloor_depth and seafloor_temp:
         %   Atlas, chp 2 states Barents sea is up to 500 meter deep, with

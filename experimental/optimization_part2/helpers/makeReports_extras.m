@@ -1,7 +1,10 @@
 function reports = makeReports_extras(Gt, states, rock, fluid, schedule, ...
-                               residual, traps, dh, wellSols)
+                               residual, traps, dh, wellSols, varargin)
 % residual on form: [sw, sr]
 % states on form:   {initState, states{:}} to include initial state
+
+   opt.warningOn = true;
+   opt = merge_options(opt, varargin{:});
 
    assert( numel(states) == numel(schedule.step.val)+1 , ...
        'Ensure the initial state has been included in the varargin ''states''.')
@@ -43,8 +46,10 @@ function reports = makeReports_extras(Gt, states, rock, fluid, schedule, ...
       % @@ assert that leaked is >= 0
       %assert( leaked >= 0, 'A negative leakage mass was computed.')
       if leaked < 0
-        %warning('A negative leakage mass was computed.')
-        warning('Masses are greater than injected amount by %5.2f% kg', abs(leaked/tot_inj))
+        if opt.warningOn
+            %warning('A negative leakage mass was computed.')
+            warning('Masses differ from injected amount by %5.2f percent', abs(leaked/tot_inj)*100)
+        end
       end
       reports(i).masses = [reports(i).masses, leaked];
 

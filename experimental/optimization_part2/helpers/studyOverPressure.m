@@ -25,13 +25,19 @@ names = names(~strcmpi(names,'Cookfm'));
 names = names(~strcmpi(names,'Dunlingp'));
 names = names(~strcmpi(names,'Paleocene'));
 
+load coarsening_levels_70percent_of_full_StrapCap.mat;
+n       = {names_and_cellsizes{:,1}};
+c_level = {names_and_cellsizes{:,3}};
+
 
 for i=1:numel(names)
     
     fmName      = names{i};
     fprintf('Processing %s ... \n', fmName);
-    coarsening  = 5; % @@ prevent break that occurs when resolution too low.
-    rhoCref     = 760 * kilogram / meter ^3;
+    
+    inx             = find(strcmp(fmName,n));
+    coarsening      = c_level{inx};
+    rhoCref         = 760 * kilogram / meter ^3;
 
     
     %%% Get formation
