@@ -1,19 +1,7 @@
-    function  I = polygonInt3D(G, faces, f)
+    function  I = polygonInt3D(G, faces, f, k)
 
-                            %   Gauss-Lobatto quadrature point and
-                            %   wheights for refenrence triangle.
-% Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
-% w = [1/36, 1/36, 1/18, 1/18, 1/9, 2/9];
-%                             %   For each triangle t, evaluate integral.
-                            
-Xq =   [ 1/3, 1/3; ...
-         3/5, 1/5; ...
-         1/5, 3/5; ...
-         1/5, 1/5];
-w = .5*[-0.56250000000000000000, ...
-         0.52083333333333333333, ...
-         0.52083333333333333333, ...
-         0.52083333333333333333];
+
+[Xq, w, V, vol] = triangleQuadRule(k);
 
 nq = size(Xq,1);
 
@@ -53,7 +41,7 @@ for i = 1:nF
     Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
     Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
     XqF = Xhat*T + repmat(bT,nTri*nq,1);
-    I(i,:) = repmat(w,1,nTri).*(rldecode(D,nq*ones(nTri,1),1))'*f(XqF);
+    I(i,:) = vol*repmat(w,1,nTri).*(rldecode(D,nq*ones(nTri,1),1))'*f(XqF);
     
 end
 

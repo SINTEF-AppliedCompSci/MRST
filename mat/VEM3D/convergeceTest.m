@@ -11,16 +11,26 @@ addpath('../')              %  Extra grid mappings.
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
 
 
-f = @(X) 100*X(:,1).*pi^2.*cos(pi*X(:,2)) - exp(X(:,3));
+% f = @(X) 100*X(:,1).*pi^2.*cos(pi*X(:,2)) - exp(X(:,3));
+% 
+%                             %   Dirichlet boundary condition.
+%                             %   This is also the exact solution of this
+%                             %   example.
+% gD = @(X) 100*X(:,1).*cos(pi*X(:,2)) + exp(X(:,3));
 
-                            %   Dirichlet boundary condition.
-                            %   This is also the exact solution of this
-                            %   example.
-gD = @(X) 100*X(:,1).*cos(pi*X(:,2)) + exp(X(:,3));
+% %--------------------------------------------------------------------------
+% %   -\delta u = 0,
+% %           u = 1/(2\pi||x-C||)
+% %--------------------------------------------------------------------------
+% f = @(X) zeros(size(X,1),1);
+% C = -[.2,.2,.2];
+% gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
 
-% nVec = [50, 200, 800, 3200];
-nVec = [400, 800, 1600];
-% nVec = [10, 40, 160, 640];  
+f = @(X) -exp(X(:,1));
+gD = @(X) exp(X(:,1));
+
+nVec = [200 400 800 1600];
+% nVec = [40, 160, 640];
 % nVec = [10, 20, 30, 40];
 nn = numel(nVec);
 hVec = zeros(nn, 1);
@@ -31,6 +41,8 @@ for i = 1:nn
 n = nVec(i);
                             %   Generate grid.
 G = voronoiCube(n,[1,1,1]);
+n = ceil(n^(1/3));
+% G = cartGrid([n,n,n], [1,1,1]);
 
                             %   Compute VEM geometry.
 G = computeVEMGeometry(G,f);
@@ -49,24 +61,20 @@ bc = struct('bcFunc' , {{gD}}           , ...
 sol = VEM3D(G,f,bc,2);
 U = [sol.nodeValues; sol.edgeValues; sol.faceMoments; sol.cellMoments];
 
-IF = polygonInt3D(G,1:G.faces.num,gD);
-IC = polyhedronInt(G,1:G.cells.num,gD, 3);
-u = [gD([G.nodes.coords; G.edges.centroids]); ...
-     IF./G.faces.areas ; IC./G.cells.volumes];
-% errVec(i) = l2Norm(G,abs(u-U));
+IF = polygonInt3D(G,1:G.faces.num,gD, 7);
+IC = polyhedronInt(G,1:G.cells.num,gD, 7);
+u = [gD([G.nodes.coords; G.edges.centroids]);
+     IF./G.faces.areas ; IC./G.cells.volumes ];
 
-h = sum(G.cells.diameters)/G.cells.num;
+nK = G.cells.num;
+h = sum(G.cells.diameters)/nK;
 hVec(i) = h;
 
-vol = sum(G.cells.volumes)/G.cells.num;
-
-hVec2(i) = vol;
-
-errVec(i) = sqrt(vol)*norm(U-u, inf);
+errVec(i) = sqrt(h^3)*norm(U-u, 2);
 
 end
 
-loglog(hVec2, errVec, '-sq');
-slope = polyfit(log(hVec), log(errVec), 1);
+loglog(hVec, errVec, '-sq', hVec, .8*errVec(nn)*(hVec/hVec(nn)).^3, '-.r', 'LineWidth', 1.5);
 
+slope = polyfit(log(hVec), log(errVec), 1);    
 fprintf('Slope: %f', slope(1));

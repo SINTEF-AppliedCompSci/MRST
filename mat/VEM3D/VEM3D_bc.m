@@ -38,7 +38,7 @@ for b = 1:nBC
     edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
     edges = G.faces.edges(edgeNum);
     
-    I = polygonInt3D(G, faces, g)./G.faces.areas(faces);
+    I = polygonInt3D(G, faces, g, 3)./G.faces.areas(faces);
     
     X = [G.nodes.coords(nodes,:)    ; ...
          G.edges.centroids(edges,:)];

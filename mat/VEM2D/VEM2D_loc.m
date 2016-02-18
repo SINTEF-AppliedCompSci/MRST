@@ -105,13 +105,13 @@ B([4, 6], NK) = B([4, 6], NK) - vol*2/hK^2;
 M = B*D;
 PNstar = M\B;               %   \Pi^\Nabla in the monomial basis.
 PN = D*PNstar;              %   \Pi^\Nabla in the V^K basis.
-
-fl = polygonInt(X,f);
-
-fchi = [f([X;Xmid]);fl(1)/vol];
-fv = f([X;Xmid;Xc]);
-PN*fchi - fchi
-fchi - [ones(2*size(X,1)+1,1), [m([X;Xmid]);I(2:end)./vol]]*PNstar*fchi
+% 
+% fl = polygonInt(X,f);
+% 
+% fchi = [f([X;Xmid]);fl(1)/vol];
+% fv = f([X;Xmid;Xc]);
+% PN*fchi - fchi
+% fchi - [ones(2*size(X,1)+1,1), [m([X;Xmid]);I(2:end)./vol]]*PNstar*fchi
 
 
 

@@ -81,7 +81,7 @@ m3D = @(X) [ones(size(X,1),1), ...
                 (X(:,2)-Kc(2)).*(X(:,3)-Kc(3))/hK^2, ...
                 (X(:,3)-Kc(3)).^2/hK^2];
 
-faceIntegrals = polygonInt3D(G, faces, m3D);
+faceIntegrals = polygonInt3D(G, faces, m3D, 2);
 cellIntegrals = polyhedronInt(G, K, m3D, 2);
             
 D = [monomialNodeVals                           ; ...
@@ -146,7 +146,7 @@ dofVec = [nodes', edges' + G.nodes.num, ...
 % mm(9,9)        = cellIntegrals(8) + cellIntegrals(10);
 % mm(9,10)       = cellIntegrals(9)*2;
 % mm(10,10)      = cellIntegrals(10)*4;
-
+% 
 % 
 % mm = mm/hK^2;
 % 

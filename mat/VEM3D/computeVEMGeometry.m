@@ -74,7 +74,7 @@ function G = computeVEMGeometry(G,f)
 %     [IC, IF] = monomialCellInt(G);
 %     faceIntPos = [1,cumsum(diff(G.cells.facePos)')+1];
     fprintf('... computing source term integrals\n');
-    IFf = polygonInt3D(G,1:G.faces.num,f);
+    IFf = polygonInt3D(G,1:G.faces.num,f,3);
     ICf = polyhedronInt(G,1:G.cells.num,f,3);
     
 %     G.cells.('monomialCellIntegrals') = IC;
@@ -85,7 +85,6 @@ function G = computeVEMGeometry(G,f)
     
     fprintf('... computing monomial values\n');
     I = faceProjectors(G);
-    BintPos = (0:9:9*G.cells.num) + 1;
     BintPos = (0:6:6*G.cells.num) + 1;
     
     G.cells.('Bint') = I;

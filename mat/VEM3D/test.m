@@ -8,7 +8,7 @@ gridLim = [1,1,1];
 
 % G = cartGrid([n,n,n],gridLim);
 % G = tetrahedronCube([n,n,n], gridLim, 1);
-G = voronoiCube(300,gridLim);
+G = voronoiCube(250  ,gridLim);
 
 
 % G = computeGeometry(G);
@@ -56,74 +56,37 @@ gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
 % f = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3)*(1+alpha^2*pi^2);
 % gD = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3);
 
-
-G = computeGeometry(G);
-G = mrstGridWithFullMappings(G);
 G = computeVEMGeometry(G,f);
 
-% for i = 1:G.faces.num
-%     edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
-%     edges = G.faces.edges(edgeNum);
-%     nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-1);
-%     nodes = G.edges.nodes(nodeNum);
-%     X = G.nodes.coords(nodes,:);
-%     nX = size(X,1);
-%     for j = 1:nX/2
-%         plot3([X(j,1); X(j+1,1)], ...
-%               [X(j,2); X(j+1,2)], ...
-%               [X(j,3); X(j+1,3)])
-% %         plot3([X(j,1); X(mod(j,nX) + 1, 1)], ...
-% %               [X(j,2); X(mod(j,nX) + 1, 2)], ...
-% %               [X(j,3); X(mod(j,nX) + 1, 3)]);
-%         hold on
-%         pause
-%     end
-%     hold off
-% end
-    
 
 boundaryFaces = (1:G.faces.num)';
-% boundaryFaces = boundaryFaces( G.faces.centroids(:,1) == 0          | ...
-%                                G.faces.centroids(:,1) == gridLim(1) | ...
-%                                G.faces.centroids(:,2) == 0          | ...
-%                                G.faces.centroids(:,2) == gridLim(2) | ...
-%                                G.faces.centroids(:,3) == 0          | ...
-%                                G.faces.centroids(:,3) == gridLim(3) );
                            
 boundaryFaces = boundaryFaces( G.faces.neighbors(:,1) == 0 | ...
                                G.faces.neighbors(:,2) == 0 );
 
 bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryFaces}}, 'bcType', {{'dir'}});
 
-[A,b] = VEM3D_glob(G,f,bc);
-
-U = A\b;
-
-clear A b
-
-nodeValues = full(U(1:G.nodes.num));
-edgeMidValues = full(U(G.nodes.num + 1:G.nodes.num + G.edges.num));
-faceAvg = full(U((G.nodes.num + G.edges.num + 1):(G.nodes.num + G.edges.num + G.faces.num)));
-cellAvg = full(U(G.nodes.num + G.edges.num + G.faces.num + 1:end));
+sol = VEM3D(G,f,bc,2);
+U = [sol.nodeValues; sol.edgeValues; sol.faceMoments; sol.cellMoments];
 
 
 Kc = G.cells.centroids;
 cells = 1:G.cells.num;
-r = .7;
-cells = cells(Kc(:,1).^2 + Kc(:,2).^2 + Kc(:,3).^2 > r^2);
+r = .7; c = [1,0,0];
+cells = cells(sum(bsxfun(@minus, Kc, c).^2,2) > r^2);
 faceNum = mcolon(G.cells.facePos(cells),G.cells.facePos(cells+1)-1);
 faces = G.cells.faces(faceNum);
 % faces = 1:G.faces.num;
 
 figure();
-plotFaces(G,faces,faceAvg(faces));
+plotFaces(G,faces,sol.faceMoments(faces));
 
 colorbar;
 view(3);
 axis equal;
 
-IF = polygonInt3D(G,1:G.faces.num,gD);
-IC = polyhedronInt(G,1:G.cells.num,gD,3);
+IF = polygonInt3D(G,1:G.faces.num,gD, 7);
+IC = polyhedronInt(G,1:G.cells.num,gD, 7);
 
 u = [gD([G.nodes.coords; G.edges.centroids]); IF./G.faces.areas; IC./G.cells.volumes];
 
@@ -131,7 +94,7 @@ err = abs((U - u));
 
 h = sum(G.cells.diameters)/G.cells.num;
 
-fprintf('Error: %d\n', h^(3/2)*norm(err, 2));
+fprintf('Error: %d\n', norm(err, 2));
 figure()
 plot(err);  
 % % plot(nodeValues)
