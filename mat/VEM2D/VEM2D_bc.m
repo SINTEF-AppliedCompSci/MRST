@@ -1,4 +1,4 @@
-function [bcDof, bBC] = VEM2D_bc(G, bc)
+function [bcDof, bBC] = VEM2D_bc(G, bc, k)
 %--------------------------------------------------------------------------
 %   Sets boundary conditions for the Poisson problem.
 %
@@ -14,46 +14,59 @@ function [bcDof, bBC] = VEM2D_bc(G, bc)
 %           'bcType', {{'neu', 'dir'}});
 %--------------------------------------------------------------------------
 
-Nn = G.nodes.num;           %   Number of nodes.
-Ne = G.faces.num;           %   Number of edges.
-Nc = G.cells.num;           %   Number of cells.
+nN = G.nodes.num;           %   Number of nodes.
+nE = G.faces.num;           %   Number of edges.
+nK = G.cells.num;           %   Number of cells.
 
-Ndof = Nn + Ne + Nc;        %   Number of dofs.
+if k == 1
+    NK = nN;
+elseif k == 2
+    NK = nN + nE + nK;
+end
 
 bcFunc = bc.bcFunc;         %   Boundary condition functions.
 bcFaces = bc.bcFaces;       %   Vectors of boundary edges.
 bcType = bc.bcType;         %   Boundary condition types
 Nbc = numel(bcFunc);        %   Number of boundary conditions.
-bcDof = zeros(Ndof, 1);     %   Dof map for boundary conditions.
-bBC = zeros(Ndof, 1);       %   b vector for boundary conditions.
+bcDof = zeros(NK, 1);     %   Dof map for boundary conditions.
+bBC = zeros(NK, 1);       %   b vector for boundary conditions.
 for b = 1:Nbc
     g = bcFunc{b};          %   BC funciton.
     edges = bcFaces{b};     %   BC edges.
+    if size(edges,1) == 1
+        edges = edges';
+    end
     type = bcType{b};       %   BC type.
     n = numel(edges);       %   Number of edges where BC applies.
-    nodes = zeros(2*n,1);   %   Nodes where BC applies.
-    for e = 1:n
-        nodeNum = G.faces.nodePos(edges(e)):G.faces.nodePos(edges(e) + 1)-1;
-        nodes(2*e-1:2*e) = G.faces.nodes(nodeNum);
+        
+    nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges+1)-1);
+    nodes = G.faces.nodes(nodeNum);
+    if size(nodes,1) == 1
+        nodes = nodes';
     end
-                            %   Dof coordinates
-    X = [G.nodes.coords(nodes,:); G.faces.centroids(edges,:)];
+    if k == 1
+        X = G.nodes.coords(nodes,:);
+        dofVec = nodes;
+    elseif k == 2                     %   Dof coordinates
+        X = [G.nodes.coords(nodes,:); G.faces.centroids(edges,:)];
+        dofVec = [nodes', edges + nN];
+    end
                             %   Fix dimensions.
     edges = fixDim(edges);
     nodes = fixDim(nodes);
     if strcmp(type, 'dir')
                             %   Apply Dirichelt BC's.
-        bcDof([nodes, Nn + edges]) = 1;
-        bBC([nodes, Nn + edges]) = g(X);
+        bcDof(dofVec) = 1;
+        bBC(dofVec) = g(X);
     elseif strcmp(type, 'neu')
                             %   Apply Neuman BC's.
-        bcDof([nodes, Nn + edges]) = 2;
+        bcDof(dofVec) = 2;
         edgeLengths = G.faces.areas(edges);
                             %   Contribution from each edge to
                             %   \int_\partial \Omega g_N \phi_i ds
         for e = 1:n
-            bBC([nodes(2*e-1), nodes(2*e), Nn + edges(e)]) = ...
-                bBC([nodes(2*e-1), nodes(2*e), Nn + edges(e)]) + ...
+            bBC([nodes(2*e-1), nodes(2*e), nN + edges(e)]) = ...
+                bBC([nodes(2*e-1), nodes(2*e), nN + edges(e)]) + ...
                 edgeLengths(e).*[1/6*g(X(2*e-1,:)); 1/6*g(X(2*e,:)); 2/3*g(X(2*n + e,:))];
         end
     end

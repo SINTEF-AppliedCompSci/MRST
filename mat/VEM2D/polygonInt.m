@@ -1,4 +1,4 @@
-function I = polygonInt(X,m)
+function I = polygonInt(G,K,f,k)
 %--------------------------------------------------------------------------
 %   Evaluates integral of function m : R^2 -> R over a general polygon
 %   with vertices X by mapping to reference triangle tRef with vertices

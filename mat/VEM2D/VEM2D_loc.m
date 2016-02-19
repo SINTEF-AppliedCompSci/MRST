@@ -1,4 +1,4 @@
-function [Sl, bl, dofVec, hK] = VEM2D_loc(G, K, f)
+function [Sl, bl, dofVec] = VEM2D_loc(G, K, f, k)
 %--------------------------------------------------------------------------
 %   Generates local stffness matrix for the virtual element method  for
 %   cell K of grid G for diffusion problem:
@@ -34,17 +34,36 @@ function [Sl, bl, dofVec, hK] = VEM2D_loc(G, K, f)
 %%  CELL DATA                                                            %%
 
                             %   Cell nodes and node coordinates.
-[nodes, X] = nodeData(G,K);
+nodeNum = G.cells.nodePos(K):G.cells.nodePos(K+1)-1;
+nodes = G.cells.nodes(nodeNum);
+if size(nodes,1) == 1
+    nodes = nodes';
+end
+nN = size(nodes,1);
+
+if k > 1
                             %   Cell edges and edge midpoint coordinates.
-[edges, Xmid, edgeNormals] = faceData2D(G,K);
+     edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+     edges = G.cells.edges(edgeNum);
+     edgeNormals = G.faces.normals(edges,:);
+     edgeSign = G.faces.neighbors(egdes,1) ~= K;
+     edgeNormals = bsxfun(@times, ...
+                          edgeNormals, ...
+                          (-ones(size(edges,1),1)).^edgeSign);
+     nE = size(edges,1);
+     if k == 2
+        X = [G.nodes.coords(nodes,:);G.faces.centroids(edges,:)] ;
+     end
+else
+    X = G.nodes.coords(nodes,:);
+end
+     
                             %   Baricenter of K.
 Xc = G.cells.centroids(K,:); xK = Xc(1); yK = Xc(2);
 hK = cellDiameter(X);       %   Element diameter.
 vol = G.cells.volumes(K);   %   Cell volume.
-n = size(X,1);              %   Number of vertices.
-k = 2;                      %   Method order.
-nk = 0.5*(k+1)*(k+2);       %   Dimension of polynomial space.
-NK = n*k + 0.5*k*(k-1);     %   Local nomber of dofs.
+nk = (k+1)*(k+2)/2;         %   Dimension of polynomial space.
+NK = nN*k + 0.5*k*(k-1);    %   Local nomber of dofs.
 
                             %   Monomials. m(i) = m_{i+1}.
 m =      @(X) [(X(:,1)-xK)./hK                , ...          %   (1,0)

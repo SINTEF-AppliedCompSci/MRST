@@ -1,4 +1,4 @@
-function AK = FEM2D_loc(G,K)
+function AK = FEM2D_loc_sq(G,K, k)
 
 addpath('../VEM2D/');
 
@@ -13,13 +13,13 @@ l1l1_y = @(X) ((1+X(:,2))/2).^2;
 
 
 
-k = 2;
-l0l0_x_int = polygonInt_v2(G, 1, l0l0_x, k);
-l1l0_x_int = polygonInt_v2(G, 1, l1l0_x, k);
-l1l1_x_int = polygonInt_v2(G, 1, l1l1_x, k);
-l0l0_y_int = polygonInt_v2(G, 1, l0l0_y, k);
-l1l0_y_int = polygonInt_v2(G, 1, l1l0_y, k);
-l1l1_y_int = polygonInt_v2(G, 1, l1l1_y, k);
+
+l0l0_x_int = polygonInt_v2(G, K, l0l0_x, k+1);
+l1l0_x_int = polygonInt_v2(G, K, l1l0_x, k+1);
+l1l1_x_int = polygonInt_v2(G, K, l1l1_x, k+1);
+l0l0_y_int = polygonInt_v2(G, K, l0l0_y, k+1);
+l1l0_y_int = polygonInt_v2(G, K, l1l0_y, k+1);
+l1l1_y_int = polygonInt_v2(G, K, l1l1_y, k+1);
 
 AK = zeros(4,4);
 AK(1,1:4) = 1/4*[ l0l0_y_int + l0l0_x_int, ...

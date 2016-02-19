@@ -1,6 +1,6 @@
 clc; clear all; close all;
 
-run('../../matlab/project-mechanics-fractures/mystartup.m')
+addpath('../')
 
 f =  @(X)  4*pi^2*sin(X(:,1)*pi).*cos(X(:,2)*pi);
 gD = @(X)  2*sin(X(:,1)*pi).*cos(X(:,2)*pi) - log(1./((X(:,1)+0.1).^2 + (X(:,2)+0.1).^2));
