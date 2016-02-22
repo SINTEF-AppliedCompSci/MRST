@@ -1,3 +1,6 @@
+clc; clear all; close all;
+
+addpath('../');
 
 
 % G = cartGrid([5,5], [1,1]);
@@ -20,6 +23,8 @@ G = computeVEM2DGeometry(G,f,k, alpha);
 U = A\b;
 
 u = gD(G.nodes.coords);
+
+plotVEM_v2(G, U,k)
 
 err = U-u;
 max(abs(err))

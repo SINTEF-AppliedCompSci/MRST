@@ -1,23 +1,29 @@
 function dofVec = VEM2D_loc_v2(G, K, k)
 
-nodeNum = G.cells.nodePos(K):G.cells.nodePos(K+1)-1;
-nodes = G.cells.nodes(nodeNum);
+edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+edges = G.cells.faces(edgeNum);
+if size(edges,1) == 1
+    edges = edges';
+end
+nE = size(edges,1);
+edgeSign = (-ones(nE,1)).^(G.faces.neighbors(edges,1) ~= K); 
+
+nodeNum = mcolon(G.faces.nodePos(edges),G.faces.nodePos(edges+1)-1);
+nodes = G.faces.nodes(nodeNum);
 if size(nodes,1) == 1
     nodes = nodes';
 end
+nodes = reshape(nodes,2,[])';
 nN = size(nodes,1);
+nodes(edgeSign == -1,:) ...
+        = nodes(edgeSign == -1,2:-1:1);
+nodes = nodes(:,1);
 
 if k ==1
     dofVec = nodes';
 
 elseif k == 2
-                            %   Cell edges and edge midpoint coordinates.
-    edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
-    edges = G.cells.edges(edgeNum);
-    if size(egdes,1) == 1
-        edges = edges';
-    end
-    nE = size(edges,1);
+                            %   Cell edges and edge midpoint coordinates.   
     dofVec = [nodes', edges' + nN, K + nN + nE];
 end
 

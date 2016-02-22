@@ -33,7 +33,7 @@ nodes = reshape(nodes,2,[])';
 nN = size(nodes,1);
 nodes(edgeSign == -1,:) ...
         = nodes(edgeSign == -1,2:-1:1);
-nodes   = reshape(nodes,[],1);
+% nodes   = reshape(nodes,[],1);
 nodes   = nodes(:);
 X = [G.nodes.coords(nodes,:); Ec];
 

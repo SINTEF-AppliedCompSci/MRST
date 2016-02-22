@@ -46,14 +46,12 @@ for b = 1:Nbc
     end
     if k == 1
         X = G.nodes.coords(nodes,:);
-        dofVec = nodes;
+        dofVec = nodes';
     elseif k == 2                     %   Dof coordinates
         X = [G.nodes.coords(nodes,:); G.faces.centroids(edges,:)];
-        dofVec = [nodes', edges + nN];
+        dofVec = [nodes', edges' + nN];
     end
                             %   Fix dimensions.
-    edges = fixDim(edges);
-    nodes = fixDim(nodes);
     if strcmp(type, 'dir')
                             %   Apply Dirichelt BC's.
         bcDof(dofVec) = 1;
