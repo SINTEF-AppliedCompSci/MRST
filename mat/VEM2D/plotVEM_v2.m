@@ -1,7 +1,5 @@
-function plotVEM_v2(G,U,k)
+function plotVEM_v2(G,U)
 
-
-if k == 1
     nodeNum = mcolon(G.faces.nodePos(1:end-1),G.faces.nodePos(2:end)-1);
     nodes = G.faces.nodes(nodeNum);
     X = G.nodes.coords(nodes,:);
@@ -10,3 +8,4 @@ if k == 1
     
     plot3(X(:,1),X(:,2),U);
 end
+    

@@ -1,25 +1,30 @@
 clc; clear all; close all;
 
-run('../../matlab/project-mechanics-fractures/mystartup.m')
+addpath('../');
 
 n = 15;
 nx = n; ny = n;
 % G = unitSquare(nx, ny);
 % G = cartGrid([nx,ny],[1,1]);
-G = cartGrid([nx,ny]);
+G = cartGrid([nx,ny],[1,1]);
 G = sortEdges(G);
 G = mrstGridWithFullMappings(G);
 G = computeGeometry(G);
 
-f = @(X) 4*pi^2*sin(X(:,1)*pi).*cos(X(:,2)*pi);
-f = @(X) X(:,1).^2 + 100*X(:,2).^2 + 39/7*X(:,1) + X(:,1).*X(:,2) + X(:,2);
-gD = @(X) 2*sin(X(:,1)*pi).*cos(X(:,2)*pi) - log(1./((X(:,1)+0.1).^2 + (X(:,2)+0.1).^2));
-gN = @(X) -2*pi*cos(X(:,1)*pi).*cos(X(:,2)*pi) - 2*(X(:,1)+0.1)./((X(:,1)+0.1).^2 + (X(:,2)+0.1).^2);
+% f = @(X) 4*pi^2*sin(X(:,1)*pi).*cos(X(:,2)*pi);
+% f = @(X) X(:,1).^2 + 100*X(:,2).^2 + 39/7*X(:,1) + X(:,1).*X(:,2) + X(:,2);
+% gD = @(X) 2*sin(X(:,1)*pi).*cos(X(:,2)*pi) - log(1./((X(:,1)+0.1).^2 + (X(:,2)+0.1).^2));
+% gN = @(X) -2*pi*cos(X(:,1)*pi).*cos(X(:,2)*pi) - 2*(X(:,1)+0.1)./((X(:,1)+0.1).^2 + (X(:,2)+0.1).^2);
+f = @(X) zeros(size(X,1),1);
+gD = @(X) X(:,1).*X(:,2);
 
 tol = 1e-6;
 boundaryEdges = find((G.faces.neighbors(:,1) == 0) + (G.faces.neighbors(:,2) == 0));
 bNeu = abs(G.faces.centroids(boundaryEdges,1)) < tol;
-bc = struct('bcFunc', {{gN, gD}}, 'bcFaces', {{boundaryEdges(bNeu), boundaryEdges(~bNeu)}}, 'bcType', {{'neu', 'dir'}});
+% bc = struct('bcFunc', {{gN, gD}}, 'bcFaces', {{boundaryEdges(bNeu), boundaryEdges(~bNeu)}}, 'bcType', {{'neu', 'dir'}});
+bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryEdges}}, 'bcType', {{'dir'}});
+
+
 
 % gD = @(X) 1/2.*(X(:,2).^2 - X(:,1).^2);
 % gN = @(X) X(:,2);
@@ -61,9 +66,7 @@ fprintf('Error: %e', err);
 % plotGridWithDofs(G,bc);
 
 fig2 = figure;
-plotVEM(G, U, '');
-
-fig5 = figure;
+plotVEM(G, U, 'dof');
 
 % fig3 = figure;
 % plotVEM(G, U, 'dof');

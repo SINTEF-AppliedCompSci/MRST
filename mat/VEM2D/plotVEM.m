@@ -32,7 +32,7 @@ for c = 1:Nc
         dofs(1:2:end) = nodes([1:end, 1]);
         dofs(2:2:end-1,:) = faces + Nn;
         fill3(XdofC(:, 1), XdofC(:,2), u(dofs), 'w');        
-        %plot3(XdofC(:, 1), XdofC(:,2), u(dofs), 'k', 'LineWidth', 0.01);
+        plot3(XdofC(:, 1), XdofC(:,2), u(dofs), 'k', 'LineWidth', 0.01);
     end
 end
 

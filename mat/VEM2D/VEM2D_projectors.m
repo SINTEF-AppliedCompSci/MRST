@@ -1,4 +1,4 @@
-function [AK, bK] = VEM2D_projectors(G,f, k, alpha)
+function [AK, bK, SK] = VEM2D_projectors(G,f, k, alpha)
 
 
 [m, grad_m, int_m] = retrieveMonomials(k);
@@ -78,7 +78,7 @@ elseif k == 2
                    edgeNormals(:,1));
 
     intD = cell2mat(cellfun(@(X) sum(X,1)                   , ...
-                    mat2cell(intD,diff(G.faces.edgePos),6)  , ....
+                    mat2cell(intD,diff(G.cells.facePos),6)  , ....
                     'UniformOutput', false));
 
     intD = bsxfun(@times, intD, hK./aK);
@@ -113,16 +113,16 @@ elseif k == 2
     BT         = zeros(N,6);
     BT(ii,2:6) = intB;
     vec        = zeros(nK,6);
-    vec(:,1)   = 1; vec(:, [4,6]) = [-2*aF./hK.^2, -2*aF./hK.^2];
+    vec(:,1)   = 1; vec(:, [4,6]) = [-2*aK./hK.^2, -2*aK./hK.^2];
     BT(2*diffVec' + (1:nK),:) = vec;
     
     H = zeros(3*nK, 3);
     
     intD = bsxfun(@times, intD, aK);
     
-    H(1:4:end,:) = intD(:, [1,2,3]);
-    H(2:4:end,:) = intD(:, [2,4,5]);
-    H(3:4:end,:) = intD(:, [3,5,6]);
+    H(1:3:end,:) = intD(:, [1,2,3]);
+    H(2:3:end,:) = intD(:, [2,4,5]);
+    H(3:3:end,:) = intD(:, [3,5,6]);
     
     fInt = polygonInt_v2(G, 1:nK, f, k+1);
     fVal = zeros(N,1);
@@ -144,6 +144,10 @@ fVal = mat2cell(fVal, NK, 1);
 M  = cellfun(@(BT,D) BT'*D, BT, D, 'UniformOutput', false);
 PNstar = cellfun(@(M, BT) M\BT', M, BT, 'UniformOutput', false);   
 PN     = cellfun(@(D, PNstar) D*PNstar, D, PNstar, 'UniformOutput', false);
+
+SK = cellfun(@(PN) ...
+             (eye(size(PN))-PN)'*(eye(size(PN))-PN), ...
+             PN, 'UniformOutput', false);
 
 AK = cellfun(@(PNstar, M, PN) ...
              PNstar'*[zeros(1,size(M, 2)); M(2:end,:)]*PNstar + ...

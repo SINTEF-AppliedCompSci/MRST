@@ -9,9 +9,9 @@ function [S, b, hG] = VEM2D_glob(G, f)
     b = zeros(Ndof, 1);
     
     hG = 0;
-    
+    hK = 0;
     for K = 1:Nc; 
-        [Sl, bl, dofVec, hK] = VEM2D_loc(G, K, f);
+        [Sl, bl, dofVec] = VEM2D_loc(G, K, f);
         S(dofVec, dofVec) = S(dofVec, dofVec) + Sl;
         b(dofVec) = b(dofVec) + bl;
         hG = max(hG,hK);

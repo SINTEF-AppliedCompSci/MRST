@@ -14,9 +14,11 @@ end
 
 G.cells.('diameters') = cellDiameters;
 
-[AK, bK] = VEM2D_projectors(G, f, k, alpha);
+[AK, bK, SK] = VEM2D_projectors(G, f, k, alpha);
 
 G.cells.('AK') = AK;
 G.cells.('bK') = bK;
+G.cells.('SK') = SK;
+
 
 end

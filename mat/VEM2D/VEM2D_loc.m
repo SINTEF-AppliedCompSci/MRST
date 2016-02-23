@@ -1,4 +1,4 @@
-function [Sl, bl, dofVec] = VEM2D_loc(G, K, f, k)
+function [Sl, bl, dofVec] = VEM2D_loc(G, K, f)
 %--------------------------------------------------------------------------
 %   Generates local stffness matrix for the virtual element method  for
 %   cell K of grid G for diffusion problem:
@@ -32,7 +32,6 @@ function [Sl, bl, dofVec] = VEM2D_loc(G, K, f, k)
 %--------------------------------------------------------------------------
 
 %%  CELL DATA                                                            %%
-
                             %   Cell nodes and node coordinates.
 nodeNum = G.cells.nodePos(K):G.cells.nodePos(K+1)-1;
 nodes = G.cells.nodes(nodeNum);
@@ -40,24 +39,19 @@ if size(nodes,1) == 1
     nodes = nodes';
 end
 nN = size(nodes,1);
+X = G.nodes.coords(nodes,:);
+                    %   Cell edges and edge midpoint coordinates.
+edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+edges = G.cells.faces(edgeNum);
+edgeNormals = G.faces.normals(edges,:);
+edgeSign = G.faces.neighbors(edges,1) ~= K;
+edgeNormals = bsxfun(@times, ...
+                  edgeNormals, ...
+                  (-ones(size(edges,1),1)).^edgeSign);
+nE = size(edges,1);
+Xmid = G.faces.centroids(edges,:);
 
-if k > 1
-                            %   Cell edges and edge midpoint coordinates.
-     edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
-     edges = G.cells.edges(edgeNum);
-     edgeNormals = G.faces.normals(edges,:);
-     edgeSign = G.faces.neighbors(egdes,1) ~= K;
-     edgeNormals = bsxfun(@times, ...
-                          edgeNormals, ...
-                          (-ones(size(edges,1),1)).^edgeSign);
-     nE = size(edges,1);
-     if k == 2
-        X = [G.nodes.coords(nodes,:);G.faces.centroids(edges,:)] ;
-     end
-else
-    X = G.nodes.coords(nodes,:);
-end
-     
+k = 2;
                             %   Baricenter of K.
 Xc = G.cells.centroids(K,:); xK = Xc(1); yK = Xc(2);
 hK = cellDiameter(X);       %   Element diameter.
@@ -106,12 +100,12 @@ B(1,NK) = 1;                %   First row.
                             %   \phi_{j+n} (midpoint). For each edge, 
                             %   \int_\patrial K \nabla m_\alpha \cdot nVec
                             %   is evaluated by Gauss-Lobatto quadrature.
-for j=1:n
+for j=1:nN
                             %   Area wheighted outward normal of edge j.
     nVec = edgeNormals(j,:)';
-    B(2:nk,[j, mod(j,n)+1, j + n]) = B(2:nk,[j, mod(j,n)+1, j + n]) + ...
+    B(2:nk,[j, mod(j,nN)+1, j + nN]) = B(2:nk,[j, mod(j,nN)+1, j + nN]) + ...
            [1/6.*grad_m(X(j,:))*nVec          , ...    %   First point.
-            1/6.*grad_m(X(mod(j,n)+1,:))*nVec , ...    %   Last point.
+            1/6.*grad_m(X(mod(j,nN)+1,:))*nVec , ...    %   Last point.
             2/3*grad_m(Xmid(j,:))*nVec             ];  %   Midpoint.
 end
                             %   Contribution from surface integrals.
@@ -150,7 +144,7 @@ H = [I(1:3)        ;
                             %   \mathcal{M}_1.
 PNstar = M(1:3,1:3)\B(1:3,:);
                             %   Local load term.
-bl = PNstar'*H*PNstar*[f([X;Xmid]);polygonInt(X,f)/vol];
+bl = PNstar'*H*PNstar*[f([X;Xmid]);polygonInt_v2(G,K,f,3)/vol];
 
 %%  CONSTRUCT LOCAL TO GLOBAL MAP. S(dofVec,dofVec) = Sl.                %%
 
