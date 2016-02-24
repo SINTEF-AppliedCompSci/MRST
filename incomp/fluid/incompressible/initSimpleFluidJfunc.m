@@ -1,16 +1,21 @@
 function fluid = initSimpleFluidJfunc(varargin)
-%Initialize incompressible two-phase fluid model (analytic rel-perm).
+%Two-phase fluid model with Leverett J-function capillary pressure
 %
 % SYNOPSIS:
-%   fluid = initSimpleFluid('pn1', pv1, ...)
+%   fluid = initSimpleFluidJfunc('pn1', pv1, ...)
 %
 % PARAMETERS:
 %   'pn'/pv - List of 'key'/value pairs defining specific fluid
 %             characteristics.  The following parameters must be defined
 %             with one value for each of the two fluid phases:
-%               - mu  -- Phase viscosities in units of Pa*s.
-%               - rho -- Phase densities in units of kilogram/meter^3.
-%               - n   -- Phase relative permeability exponents.
+%               - mu    -- Phase viscosities in units of Pa*s.
+%               - rho   -- Phase densities in units of kilogram/meter^3.
+%               - n     -- Phase relative permeability exponents.
+%               - rock  -- Rock object containing fields 'poro' and 'perm',
+%                          which will be used to evaluate the Leverett
+%                          J-function for capillary pressure
+%               - surf_tension -- Surface tension used in the Leverett
+%                          J-function for capillary pressure
 %
 % RETURNS:
 %   fluid - Fluid data structure as described in 'fluid_structure'
@@ -18,15 +23,19 @@ function fluid = initSimpleFluidJfunc(varargin)
 %           reservoir model.
 %
 % EXAMPLE:
-%   fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
-%                           'rho', [1014, 859]*kilogram/meter^3, ...
-%                           'n'  , [   2,   2]);
-%
-%   s = linspace(0, 1, 1001).'; kr = fluid.relperm(s);
-%   plot(s, kr), legend('kr_1', 'kr_2')
+%     G = computeGeometry(cartGrid([40,5,1],[1000 500 1]));
+%     state.s = G.cells.centroids(:,1)/1000;
+%     p = G.cells.centroids(:,2)*.001;
+%     rock = makeRock(G, p.^3.*(1e-5)^2./(0.81*72*(1-p).^2), p);
+%     fluid = initSimpleFluidJfunc('mu' , [   1,  10]*centi*poise     , ...
+%            'rho', [1014, 859]*kilogram/meter^3, ...
+%            'n'  , [   2,   2], ...
+%            'surf_tension',10*barsa/sqrt(0.1/(100*milli*darcy)),...
+%            'rock',rock);
+%     plot(state.s, fluid.pc(state)/barsa,'o');
 %
 % SEE ALSO:
-%   fluid_structure, solveIncompFlow.
+%   fluid_structure, initSimpleFluid, initSimpleFluidPc, solveIncompFlow.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
