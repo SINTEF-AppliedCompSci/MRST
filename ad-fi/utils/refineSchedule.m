@@ -1,15 +1,12 @@
 function new_schedule = refineSchedule(init_time_for_new_time_steps, ...
                                    new_time_steps, ...
-                                   schedule, ...
-                                   varargin)
+                                   schedule)
 
    % Compute a finer schedule, including new time steps but preserving the time steps of the original
    % schedule
    %
    % SYNOPSIS: 
-   %  new_schedule = refineSchedule(init_time_for_new_time_steps, new_time_steps, ref_init_time, schedule)
-   %  new_schedule = refineSchedule(init_time_for_new_time_steps, new_time_steps, ref_init_time,
-   %  schedule, 'pn', pv)
+   %  new_schedule = refineSchedule(init_time_for_new_time_steps, new_time_steps, schedule)
    %
    %
    % PARAMETERS:
@@ -20,23 +17,14 @@ function new_schedule = refineSchedule(init_time_for_new_time_steps, ...
    %
    %   schedule                      - Input schedule which will be refined
    %
-   %   'pn'/pv                       - List of 'key'/value pairs defining optional parameters.  The
-   %                                   supported options are:
-   %           
-   %   ref_init_time                 - Starting time for the schedule to de modified (if
-   %                                   different than zero. Useful when dealing with 
-   %                                   restarted schedules.)
    
-   opt = struct('ref_init_time', 0);
-   opt = merge_options(opt, varargin{:});
-   ref_init_time = opt.ref_init_time;
    
    ref_steps = schedule.step.val;
    ref_control = schedule.step.control;
 
    n1 = numel(new_time_steps) + 1;
    n2 = numel(ref_steps) + 1;
-   cum_time = [[init_time_for_new_time_steps + [0; cumsum(new_time_steps)], ones(n1, 1)]; [ref_init_time + [0; ...
+   cum_time = [[init_time_for_new_time_steps + [0; cumsum(new_time_steps)], ones(n1, 1)]; [init_time_for_new_time_steps + [0; ...
                        cumsum(ref_steps)], 2*ones(n2, 1)]];
    cum_time  = sortrows(cum_time, 1);
    n = size(cum_time, 1);
@@ -68,8 +56,8 @@ function new_schedule = refineSchedule(init_time_for_new_time_steps, ...
             
    steps = diff(cum_time);
    
-   t        = ref_init_time;
-   ref_time = ref_init_time + ref_steps(1);
+   t        = init_time_for_new_time_steps;
+   ref_time = init_time_for_new_time_steps + ref_steps(1);
    ref_ind  = 1;
    N        = numel(steps);
    control  = zeros(N, 1);
