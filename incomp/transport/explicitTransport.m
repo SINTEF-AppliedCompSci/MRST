@@ -1,40 +1,50 @@
 function state = explicitTransport(state, G, tf, rock, fluid, varargin)
-%Explicit single point upwind transport solver for two-phase flow.
+%Explicit single-point upstream mobility-weighted transport solver for two-phase flow.
 %
 % SYNOPSIS:
 %   state = explicitTransport(state, G, tf, rock, fluid)
 %   state = explicitTransport(state, G, tf, rock, fluid, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
-%   Function explicitTransport solves the Buckley-Leverett transport
-%   equation
+%   Implicit discretization of the transport equation
+%                                            
+%      s_t + div[f(s)(v + mo K((rho_w-rho_o)g + grad(P_c)))] = f(s)q
 %
-%              __
-%        s_t + \/ \cdot [f(s)(v \cdot n + mo(rho_w - rho_o)n \cdot Kg)] = f(s)q
+%   where v is the sum of the phase Darcy fluxes, f is the fractional
+%   flow function,
 %
-%   using a first-order mobility-weighted upwind discretisation in space
-%   and a forward Euler discretisation in time.  The transport equation is
+%                  mw(s)
+%        f(s) = -------------
+%               mw(s) + mo(s)
+%
+%   mi = kr_i/mu_i is the phase mobiliy of phase i, mu_i and rho_i are the
+%   phase viscosity and density, respectively, g the (vector) acceleration
+%   of gravity, K the permeability, and P_c(s) the capillary pressure.  The
+%   source term f(s)q is a volumetric rate of water.
+%
+%   We use a first-order upstream mobility-weighted discretisation in space
+%   and a backward Euler discretisation in time. The transport equation is
 %   solved on the time interval [0,tf] by calling twophaseJacobian to build
 %   a function computing the residual of the discrete system in addition to
 %   a function taking care of the update of the solution during the
 %   time loop.
 %
 % REQUIRED PARAMETERS:
-%   state  - Reservoir and well solution structure either properly
+%   state - Reservoir and well solution structure either properly
 %           initialized from function 'initState', or the results from a
 %           previous call to function 'solveIncompFlow' and, possibly, a
 %           transport solver such as function 'explicitTransport'.
 %
 %   G     - Grid data structure discretising the reservoir model.
 %
-%   tf     - End point of time integration interval (i.e., final time).
+%   tf    - End point of time integration interval (i.e., final time).
 %           Measured in units of seconds.
 %
-%   rock   - Rock data structure.  Must contain the field 'rock.poro' and,
+%   rock  - Rock data structure.  Must contain the field 'rock.poro' and,
 %           in the presence of gravity or capillary forces, valid
 %           permeabilities measured in units of m^2 in field 'rock.perm'.
 %
-%   fluid  - Fluid data structure as defined in 'fluid_structure'.
+%   fluid - Fluid data structure as defined in 'fluid_structure'.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   wells     - Well structure as defined by function 'addWell'.  This
@@ -65,7 +75,8 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %
 %   gravity   - The current gravity in vector form. Defaults to gravity().
 %
-%   satwarn   - Currently unused.
+%   satwarn   - Issue a warning if saturation is more than 'satwarn'
+%               outside the default interval of [0,1].
 %
 % RETURNS:
 %   state     - Reservoir solution with updated saturation, state.s.
@@ -218,32 +229,29 @@ end
 function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
    [mu, rho] = fluid.properties();
 
-   %% Compute cell mobility and its derivative
-   sat       = state.s;%bsxfun(@rdivide, u, sum(u, 2));
+   % Compute cell mobility and its derivative
+   sat       = state.s;
    [kr, dkr] = fluid.relperm(sat,state);
    mob       = bsxfun(@rdivide, kr, mu);
 
    % dkr is Jacobian of kr.  We need derivatives with respect to s(:,1),
    % hence sign of 'dkr(:,end)'.
-   dmob      = bsxfun(@rdivide, [dkr(:,1), -dkr(:,end)], mu);
+   dmob = bsxfun(@rdivide, [dkr(:,1), -dkr(:,end)], mu);
 
-   %% Compute face density as average of cell densities.
-   i      = all(G.faces.neighbors > 0, 2);
-   N      = G.faces.neighbors(i, :);
+   % Compute face density as average of cell densities.
+   i = all(G.faces.neighbors > 0, 2);
+   N = G.faces.neighbors(i, :);
 
-
-
-   %% Find simple approximation to the maximal wave speed from advective
+   % Find simple approximation to the maximal wave speed from advective
    % term in reservoir based on derivative of flux on face.
-   df = @(mob, dmob) (mob(:,2).*dmob(:,1) - mob(:,1).*dmob(:,2))./(sum(mob, 2).^2);
+   df = @(mob, dmob) ...
+       (mob(:,2).*dmob(:,1) - mob(:,1).*dmob(:,2))./(sum(mob, 2).^2);
    d  = df(mob, dmob);
    m  = max(abs(d(N)), [], 2);
 
-
    wavespeed  = max(abs(m.*flux(i)));
 
-
-   %% Find max wave speed from segregation term
+   % Find max wave speed from segregation term
    g      = @(mob) mob(:,1).*mob(:,2)./sum(mob, 2);
    s      = linspace(0,1, 101)';
    ss=struct('s',[s,1-s]);
@@ -252,7 +260,7 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
 
    wavespeed  = max([wavespeed; abs(dg.*gflux(i).*diff(rho, 1, 2))]  );
 
-   %% Find max wave speed from advective term for positive sources in
+   % Find max wave speed from advective term for positive sources in
    % interval [s, 1],
    i      = sources > 0;
    if any(i),
@@ -267,7 +275,7 @@ function dt = estimate_dt(G, state, rock, fluid, flux, gflux, sources)
       end
    end
 
-   %% Find max wave speed from advective term for negative sources in
+   % Find max wave speed from advective term for negative sources in
    % interval [0, s],
    i      = sources < 0;
    if any(i),
@@ -305,4 +313,3 @@ function s = correct_saturations(s, satwarn)
    s(s(:,1) > 1, 1) = 1 - eps;
    s(s(:,1) < 0, 1) = 0;
 end
-
