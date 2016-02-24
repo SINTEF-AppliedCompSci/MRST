@@ -1,8 +1,8 @@
 function fluid = initSimpleFluidPc(varargin)
-%Initialize incompressible two-phase fluid model (analytic rel-perm).
+%Initialize incompressible two-phase fluid model with capillary forces
 %
 % SYNOPSIS:
-%   fluid = initSimpleFluid('pn1', pv1, ...)
+%   fluid = initSimpleFluidPc('pn1', pv1, ...)
 %
 % PARAMETERS:
 %   'pn'/pv - List of 'key'/value pairs defining specific fluid
@@ -11,6 +11,8 @@ function fluid = initSimpleFluidPc(varargin)
 %               - mu  -- Phase viscosities in units of Pa*s.
 %               - rho -- Phase densities in units of kilogram/meter^3.
 %               - n   -- Phase relative permeability exponents.
+%               - pc_scale -- Constant multiplying the linear capillary
+%                        term, i.e., pc(S) = pc_scale*(1-S)
 %
 % RETURNS:
 %   fluid - Fluid data structure as described in 'fluid_structure'
@@ -18,15 +20,18 @@ function fluid = initSimpleFluidPc(varargin)
 %           reservoir model.
 %
 % EXAMPLE:
-%   fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
-%                           'rho', [1014, 859]*kilogram/meter^3, ...
-%                           'n'  , [   2,   2]);
+%   fluid = initSimpleFluidPc('mu' , [   1,  10]*centi*poise     , ...
+%                             'rho', [1014, 859]*kilogram/meter^3, ...
+%                             'n'  , [   2,   2], ...
+%                             'pc_scale', 2*barsa);
 %
-%   s = linspace(0, 1, 1001).'; kr = fluid.relperm(s);
-%   plot(s, kr), legend('kr_1', 'kr_2')
+%   s = linspace(0, 1, 101).'; kr = fluid.relperm(s);
+%   subplot(1,2,1), plot(s, kr), legend('kr_1(S)', 'kr_2(S)')
+%   x.s = [s 1-s]; pc = fluid.pc(x);
+%   subplot(1,2,2), plot(s, pc); legend('P_c(S)');
 %
 % SEE ALSO:
-%   fluid_structure, solveIncompFlow.
+%   fluid_structure, initSimpleFluid, solveIncompFlow.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
