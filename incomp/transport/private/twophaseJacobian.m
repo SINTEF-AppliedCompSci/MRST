@@ -2,8 +2,8 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %Residual and Jacobian of single point upwind solver for two-phase flow.
 %
 % SYNOPSIS:
-%   resSol = twophaseJacobian(G, state, rock, fluid)
-%   resSol = twophaseJacobian(G, state, rock, fluid, 'pn1', pv1, ...)
+%   F       = twophaseJacobian(G, state, rock, fluid)
+%   [F,Jac] = twophaseJacobian(G, state, rock, fluid, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   Function twophaseJacobian returns function handles for the residual
