@@ -1,18 +1,29 @@
 function [state, report] = implicitTransport(state, G, tf, ...
                                              rock, fluid, varargin)
-%Implicit single point upwind transport solver for two-phase flow.
+%Implicit single-point upstream mobility-weighted transport solver for two-phase flow.
 %
 % SYNOPSIS:
 %   state = implicitTransport(state, G, tf, rock, fluid)
 %   state = implicitTransport(state, G, tf, rock, fluid, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
-%   Function implicitTransport solves the Buckley-Leverett transport
-%   equation
+%   Implicit discretization of the transport equation
+%                                            
+%      s_t + div[f(s)(v + mo K((rho_w-rho_o)g + grad(P_c)))] = f(s)q
 %
-%        s_t + f(s)_x = q
+%   where v is the sum of the phase Darcy fluxes, f is the fractional
+%   flow function,
 %
-%   using a first-order mobility-weighted upwind discretisation in space
+%                  mw(s)
+%        f(s) = -------------
+%               mw(s) + mo(s)
+%
+%   mi = kr_i/mu_i is the phase mobiliy of phase i, mu_i and rho_i are the
+%   phase viscosity and density, respectively, g the (vector) acceleration
+%   of gravity, K the permeability, and P_c(s) the capillary pressure.  The
+%   source term f(s)q is a volumetric rate of water.
+%
+%   We use a first-order upstream mobility-weighted discretisation in space
 %   and a backward Euler discretisation in time.  The transport equation is
 %   solved on the time interval [0,tf] by calling the private function
 %   'twophaseJacobian' to build functions computing the residual and the
@@ -42,7 +53,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
 %   verbose  - Whether or not time integration progress should be
-%              reported to the screen. Default value: verbose = false.
+%              reported to the screen. Default value: verbose = mrstVerbose.
 %
 %   wells    - Well structure as defined by function 'addWell'.  May be
 %              empty (i.e., W = []) which is interpreted as a model without
@@ -58,13 +69,9 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %              'addSource'. Default value: src = [] meaning no explicit
 %              sources exist in the model.
 %
-%   OnlyGrav - Only consider transport caused by gravity, (ignore Darcy
-%              flux from pressure solution).  Used for gravity splitting.
-%              Default value: OnlyGrav = false.
-%
-%   Trans     - two point flux transmissibilities. This will be used in
-%               stead of rock. Usefull for grids with out proper geometry and
-%               or for getting consistency with pressure solver.
+%   Trans    - two point flux transmissibilities. This will be used in
+%              stead of rock. Usefull for grids with out proper geometry and
+%              or for getting consistency with pressure solver.
 %
 %   nltol    - Absolute tolerance of iteration.  The numerical solution
 %              must satisfy the condition
@@ -134,14 +141,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       'maxnewt' ,         25    , ...  % Max no. of NR iterations
       'tsref'   ,         12    , ...  % Time step refinement
       'resred'  ,         0.99  , ...  % Residual reduction factor
-      'wells'   ,        []    ,  ...
-      'src'     ,        []    ,  ...
-      'bc'      ,        []    ,  ...
-      'Trans'   ,        []    ,  ...
-      'dhfz'    ,        []    ,  ...
-      'LinSolve',        @mldivide,...
-      'gravity',         gravity(),... 
-      'init_state',      []       ...
+      'wells'   ,         []    ,  ...
+      'src'     ,         []    ,  ...
+      'bc'      ,         []    ,  ...
+      'Trans'   ,         []    ,  ...
+      'dhfz'    ,         []    ,  ...
+      'LinSolve',         @mldivide,...
+      'gravity',          gravity(),... 
+      'init_state',       []       ...
        );
 
    opt = merge_options(opt, varargin{:});
