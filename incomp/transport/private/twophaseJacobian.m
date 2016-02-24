@@ -484,7 +484,7 @@ function [iw, io] = upwindIndices(G, dflux, gflux, pcflux, mob)
    clear a b c N
 
    % Upwind direction for 'oil': When v and g have the opposite sign, the
-   %  sign of water phase flux is independent of mobilities.
+   %  sign of the oil phase flux is independent of mobilities.
    a = ~(dflux < 0) & ~(gflux > 0);
    b = ~(dflux > 0) & ~(gflux < 0);
    c =  a | b;
