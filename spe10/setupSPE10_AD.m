@@ -80,5 +80,5 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
         dt = [dt; opt.dt*frac];
     end
     
-    schedule = simpleSchedule(dt, 'Wells', W);
+    schedule = simpleSchedule(dt, 'W', W);
 end
