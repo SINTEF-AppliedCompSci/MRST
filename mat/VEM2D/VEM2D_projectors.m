@@ -1,4 +1,4 @@
-function [AK, bK, SK] = VEM2D_projectors(G,f, k, alpha)
+function [AK, bK, SK, PN] = VEM2D_projectors(G,f, k, alpha)
 
 
 [m, grad_m, int_m] = retrieveMonomials(k);
@@ -96,12 +96,13 @@ elseif k == 2
        
     
     diffVec = cumsum(diff(G.cells.nodePos));
+    diffVec2 = (0:nK-1)';
     ii = [mcolon(G.cells.nodePos(1:end-1)                        ...
-                 + [0;diffVec(1:end-1) + (1:nK-1)']            , ...
+                 + [0;diffVec(1:end-1) + diffVec2(2:end)]            , ...
                  G.cells.nodePos(2:end)                          ...
-                 + [0;diffVec(1:end-1) + (1:nK-1)'] -1)        , ...
-          mcolon(G.cells.nodePos(1:end-1) + diffVec + (0:nK-1)', ...
-                 G.cells.nodePos(2:end)   + diffVec + (0:nK-1)' - 1)];
+                 + [0;diffVec(1:end-1) + diffVec2(2:end)] -1)        , ...
+          mcolon(G.cells.nodePos(1:end-1) + diffVec + diffVec2, ...
+                 G.cells.nodePos(2:end)   + diffVec + diffVec2 - 1)];
     NK = 2*diff(G.cells.nodePos) + 1;
     N = sum(2*diff(G.cells.nodePos) + 1);
     
@@ -130,7 +131,9 @@ elseif k == 2
     fVal(2*diffVec' + (1:nK)) = fInt;
 
 end
-       
+
+X
+
 %%  BUILD PROJECTION OPERATORS \Pi^\Nabla_{F,*}                     %%
 
 nk = (k+1)*(k+2)/2;
@@ -145,10 +148,28 @@ M  = cellfun(@(BT,D) BT'*D, BT, D, 'UniformOutput', false);
 PNstar = cellfun(@(M, BT) M\BT', M, BT, 'UniformOutput', false);   
 PN     = cellfun(@(D, PNstar) D*PNstar, D, PNstar, 'UniformOutput', false);
 
+load('FEM2VEM.mat');
+
+Fi = inv(F);
+ 
+ 
+% SK = cellfun(@(PN) ...
+%              (eye(size(PN))-PN)'*(eye(size(PN))-PN), ...
+%              PN, 'UniformOutput', false);
+
 SK = cellfun(@(PN) ...
-             (eye(size(PN))-PN)'*(eye(size(PN))-PN), ...
+             (Fi-PN)'*(Fi-PN), ...
              PN, 'UniformOutput', false);
 
+
+% SK = cellfun(@(PN) ...
+%              (eye(size(PN))-F*PN)'*(eye(size(PN))-F*PN), ...
+%              PN, 'UniformOutput', false);
+
+% load('FEM2D_2nd_sq');
+% 
+% SK = cellfun(@(PN) eye(size(PN)
+         
 AK = cellfun(@(PNstar, M, PN) ...
              PNstar'*[zeros(1,size(M, 2)); M(2:end,:)]*PNstar + ...
              alpha*(eye(size(PN))-PN)'*(eye(size(PN))-PN), ...
