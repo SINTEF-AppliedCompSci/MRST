@@ -9,11 +9,10 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %   Function twophaseJacobian returns function handles for the residual
 %   and its Jacobian matrix for the implicit upwind-mobility weighted
 %   dicretization of
-%              __
-%        s_t + \/· [f(s)(v·n + mo(rho_w - rho_o)n·Kg)] = f(s)q
+%                                             
+%      s_t + div[f(s)(v + mo K((rho_w-rho_o)g + grad(P_c)))] = f(s)q
 %
-%
-%   where v·n is the sum of the phase Darcy fluxes, f is the fractional
+%   where v is the sum of the phase Darcy fluxes, f is the fractional
 %   flow function,
 %
 %                  mw(s)
@@ -22,14 +21,24 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %
 %   mi = kr_i/mu_i is the phase mobiliy of phase i, mu_i and rho_i are the
 %   phase viscosity and density, respectively, g the (vector) acceleration
-%   of gravity, and K the permeability.  The source term f(s)q is a
-%   volumetric rate of water.
+%   of gravity, K the permeability, and P_c(s) the capillary pressure.  The
+%   source term f(s)q is a volumetric rate of water.
 %
-%   Using a first-order upwind discretisation in space and a backward Euler
-%   discretisation in time,  the residual of the nonlinear system of
-%   equations that must be solved to move the solution state.s from time=0
-%   to time=tf, are obtained by calling F(state, s0, dt) which yields
-%   Likewise, the Jacobian matrix is obtained using the function Jac.
+%   Using a first-order upstream mobility-weighted discretisation in space
+%   and a backward Euler discretisation in time, the residual of the
+%   nonlinear system of equations that must be solved to move the solution
+%   state.s from time=0 to time=tf, is obtained by calling F(s,s0,dt),
+%   defined as
+%      F(s, s0, dt) = s - s0 + dt/pv·[H(s) - max(q,0) - min(q,0)·f],
+%
+%      H(s) = sum_i [f_i(dflux_i + mo_i*(gflux_i)+pcflux)]  (faces i of cell)
+%
+%   where f_i = mw_i/(mw_i+mo_i), mo_i and mw_i are phase upwind
+%   mobilities at face i and dflux, gflux, and pcflux are Darcy flux,
+%   gravity flux equal face_normal*Kg(rho1-rho2), and capillary flux,
+%   respectively. The other flux function f is the fractional flow function
+%   evaluated with cell mobilities. Likewise, the Jacobian matrix is
+%   obtained using the function Jac.
 %
 % REQUIRED PARAMETERS:
 %   resSol  - Reservoir solution structure containing valid
@@ -90,9 +99,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % NOTE we solve
 %              __
-%        s_t + \/· [D·f(s) + G·f(s)·mo(s)] = f(s) Q
+%        s_t + \/· [D·f(s) + (G + P)·f(s)·mo(s)] = f(s) Q
 %
-% for constant vector and scalar fields fields D, G and Q.
+% for constant vector and scalar fields D (Darcy flux), G (gravity flux),
+% P (capillary flux), and Q (source term). 
 
    opt = struct('verbose', mrstVerbose, 'gravity', gravity(), ...
                 'wells', [], 'src', [], 'bc', [], 'Trans', [],'dhfz',[]);
@@ -109,7 +119,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    q = assembleTransportSource(q, G.cells.num, compi{:});
    assert(all(isfinite(q)))
    % Extract (constant) fluid densities.
-   [rho, rho] = fluid.properties(state);
+   [rho, rho] = fluid.properties(state); %#ok<ASGLU>
 
    % Compute the gravitational potential (rho_w - rho_o)n·Kg across each
    % face in the grid.
@@ -241,7 +251,7 @@ function J = Jacobian (resSol, resSol_0, dt, fluid, ...
 
   if isfield(fluid, 'pc')
       % added:
-      [dpc, dpc]       = fluid.pc(resSol);
+      [dpc, dpc]       = fluid.pc(resSol); %#ok<ASGLU>
 
       d_p  =      dt.* f_face(:,1).*m_face(:,2).*pcJac(internal);
 
@@ -374,7 +384,6 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
               'Got %d tensors, expected %d (== number of cells).'],   ...
               size(K,1), G.cells.num);
       end
-      nc        = G.cells.num;
    end
 
    if norm(g) > 0,
@@ -396,12 +405,12 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
             C       = G.cells.centroids(N(:,2),:) - G.cells.centroids(N(:,1),:);
             gflux   = harm_c.*(C*g');
         else
-            if(false)% work for normal and proper periodic grids
-                dzf=G.cells.z(N(:,2)) - G.cells.z(N(:,1));
-            else % work for general case
+            %if(false)% work for normal and proper periodic grids
+            %    dzf=G.cells.z(N(:,2)) - G.cells.z(N(:,1));
+            %else % work for general case
                sgn=2*(G.faces.neighbors(G.cells.faces(:,1),1)==cellNo)-1;
                dzf=accumarray(G.cells.faces(:,1),opt.dhfz.*sgn);
-            end
+            %end
             gflux=harm_c.*dzf;
             gflux=norm(g)*gflux;
             gflux(i)=0;
