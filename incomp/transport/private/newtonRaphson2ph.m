@@ -2,7 +2,8 @@ function [resSol, report] = newtonRaphson2ph(resSol, tf, F, Jac, update, opt)
 %Solve non-linear equation F(s)=0 using Newton-Raphson method.
 %
 % SYNOPSIS:
-%   s = newtonRaphson2ph(resSol, tf, F, Jac, update, opt)
+%   resSol          = newtonRaphson2ph(resSol, tf, F, Jac, update, opt)
+%   [resSol,report] = newtonRaphson2ph(resSol, tf, F, Jac, update, opt)
 %
 % DESCRIPTION:
 %   Solve general nonlinear equation F(s)=0 using a Newton-Raphson
@@ -13,15 +14,19 @@ function [resSol, report] = newtonRaphson2ph(resSol, tf, F, Jac, update, opt)
 %      s^k  = update(s^k-1, ds^k, ...)
 %
 % PARAMETERS:
-%   resSol      -
-%   tf     -
-%   F      -
-%   Jac    -
-%   update -
-%   opt    -
+%   resSol - the reservoir state
+%   tf     - final solution time
+%   F      - discretization on residual form
+%   Jac    - Jacobian of F
+%   update - user-specified scheme to adjust iterate
+%   opt    - structure with optional parameters, see function
+%            'implicitTransport' for documentation
 %
 % RETURNS:
-%   resSol -
+%   resSol - updated solution
+%   report - structure reporting success (true/false), number of
+%       iterations, vasted iterations, substeps, failed steps, residual and
+%       convergence rate
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
