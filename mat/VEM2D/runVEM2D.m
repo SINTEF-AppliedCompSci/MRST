@@ -6,7 +6,7 @@ n = 15;
 nx = n; ny = n;
 % G = unitSquare(nx, ny);
 % G = cartGrid([nx,ny],[1,1]);
-G = cartGrid([nx,ny],[1,1]);
+G = cartGrid([3,3],[2,2]);
 G = sortEdges(G);
 G = mrstGridWithFullMappings(G);
 G = computeGeometry(G);

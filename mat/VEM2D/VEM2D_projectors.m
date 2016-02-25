@@ -132,8 +132,6 @@ elseif k == 2
 
 end
 
-X
-
 %%  BUILD PROJECTION OPERATORS \Pi^\Nabla_{F,*}                     %%
 
 nk = (k+1)*(k+2)/2;
@@ -151,15 +149,17 @@ PN     = cellfun(@(D, PNstar) D*PNstar, D, PNstar, 'UniformOutput', false);
 load('FEM2VEM.mat');
 
 Fi = inv(F);
- 
- 
-% SK = cellfun(@(PN) ...
-%              (eye(size(PN))-PN)'*(eye(size(PN))-PN), ...
-%              PN, 'UniformOutput', false);
 
+W = 1/9*[1 1 1 1 4 4 4 4 16];
+W = repmat(W,9,1);
+ 
 SK = cellfun(@(PN) ...
-             (Fi-PN)'*(Fi-PN), ...
+             ((eye(size(PN))-PN))'*(eye(size(PN))-PN), ...
              PN, 'UniformOutput', false);
+
+% SK = cellfun(@(PN) ...
+%              (Fi'-PN)'*(Fi'-PN), ...
+%              PN, 'UniformOutput', false);
 
 
 % SK = cellfun(@(PN) ...

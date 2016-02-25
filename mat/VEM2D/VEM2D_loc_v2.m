@@ -14,7 +14,6 @@ if size(nodes,1) == 1
     nodes = nodes';
 end
 nodes = reshape(nodes,2,[])';
-nN = size(nodes,1);
 nodes(edgeSign == -1,:) ...
         = nodes(edgeSign == -1,2:-1:1);
 nodes = nodes(:,1);
@@ -24,7 +23,7 @@ if k ==1
 
 elseif k == 2
                             %   Cell edges and edge midpoint coordinates.   
-    dofVec = [nodes', edges' + nN, K + nN + nE];
+    dofVec = [nodes', edges' + G.nodes.num, K + G.nodes.num + G.faces.num];
 end
 
 end

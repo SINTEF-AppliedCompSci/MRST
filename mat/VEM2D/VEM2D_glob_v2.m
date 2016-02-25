@@ -53,8 +53,3 @@ fprintf('Done in %f seconds.\n\n', stop);
 A = sparse(iiS, jjS, sVec, N, N);
 b = sparse(iib, ones(1, numel(iib)), bVec, N, 1);
 
-[bcDof, bBC] = VEM2D_bc(G,bc,k);
-b(bcDof == 1) = bBC(bcDof == 1);
-SBC = spdiags(ones(N,1),0,N,N);
-A(bcDof == 1,:) = SBC(bcDof == 1,:);
-b(bcDof == 2) = b(bcDof == 2) + bBC(bcDof == 2);
