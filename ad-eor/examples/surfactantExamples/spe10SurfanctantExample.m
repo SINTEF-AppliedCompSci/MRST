@@ -76,6 +76,7 @@ function spe10SurfanctantExample()
    ift = [[   0;    0.1;  0.5;    1;   30;  100],...
           [0.05; 0.0005; 1e-5; 1e-6; 1e-6; 1e-6] ...
           ];
+   ift(:, 2) = ift(:, 2)*Newton/meter;
    ift = extendTab(ift); % extend to constant values.
    fluid.ift = @(c) interpReg({ift}, c, {':'});
 
@@ -90,6 +91,7 @@ function spe10SurfanctantExample()
    muWSft = [[   0;  30; 100], ...
              [0.61; 0.8;   1] ...
             ];
+   muWSft(:, 2) = muWSft(:, 2)*centi*poise;
    muWSft = extendTab(muWSft); % extend to constant values.
    fluid.muWSft = @(c) interpReg({muWSft}, c, {':'});
 
@@ -104,7 +106,7 @@ function spe10SurfanctantExample()
    fluid.adsInxSft = 1;
 
    % rock density (used to compute adsoprtion)
-   fluid.rhoRSft = 2650;
+   fluid.rhoRSft = 2650*kilo*gram/meter^3;
 
    modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid);
 
@@ -143,8 +145,8 @@ function spe10SurfanctantExample()
    [W([W.sign] > 0).surfact] = 50*kilogram/meter^3;
    control(2).W = W;
 
-   surfinj_start_time = 100*day; 
-   surfinj_stop_time  = 150*day; 
+   surfinj_start_time = 100*day;
+   surfinj_stop_time  = 150*day;
    end_time           = 300*day;
 
    dt = 1*day;
@@ -154,7 +156,7 @@ function spe10SurfanctantExample()
    val3 = linspace(surfinj_stop_time, end_time, round( ...
       (end_time - surfinj_stop_time)/dt));
 
-   step.val     = [diff(val1'); ... 
+   step.val     = [diff(val1'); ...
                    diff(val2'); ...
                    diff(val3')];
    step.control = [repmat(1, [numel(val1) - 1, 1]); ... 
@@ -164,7 +166,7 @@ function spe10SurfanctantExample()
    schedule.control = control;
 
    schedule = refineSchedule(0, 0.1*day*ones(10, 1), schedule);
-   
+
    % Setup initial state
    state0 = initResSol(G, bhp, [sWcon, 1 - sWcon]);
    state0.c      = zeros(G.cells.num, 1);
