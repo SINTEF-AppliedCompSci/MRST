@@ -47,7 +47,7 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
          if press_sat_ok
             % Solve for concentration
             dts = splitTime(dt, 0.1*day);
-            % dts = dt;
+            dts = dt;
             stateM = state0;
             conc_ok = true;
             subiter = 1;
