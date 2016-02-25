@@ -8,7 +8,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %
 % DESCRIPTION:
 %   Implicit discretization of the transport equation
-%                                            
+%
 %      s_t + div[f(s)(v + mo K((rho_w-rho_o)g + grad(P_c)))] = f(s)q
 %
 %   where v is the sum of the phase Darcy fluxes, f is the fractional
@@ -18,20 +18,20 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %        f(s) = -------------
 %               mw(s) + mo(s)
 %
-%   mi = kr_i/mu_i is the phase mobiliy of phase i, mu_i and rho_i are the
+%   mi = kr_i/mu_i is the phase mobility of phase i, mu_i and rho_i are the
 %   phase viscosity and density, respectively, g the (vector) acceleration
 %   of gravity, K the permeability, and P_c(s) the capillary pressure.  The
 %   source term f(s)q is a volumetric rate of water.
 %
-%   We use a first-order upstream mobility-weighted discretisation in space
-%   and a backward Euler discretisation in time.  The transport equation is
+%   We use a first-order upstream mobility-weighted discretization in space
+%   and a backward Euler discretization in time.  The transport equation is
 %   solved on the time interval [0,tf] by calling the private function
 %   'twophaseJacobian' to build functions computing the residual and the
 %   Jacobian matrix of the discrete system in addition to a function taking
-%   care of the update of the soultion solution during a Newton-Raphson
-%   iteration.  These functions are passed to the private function
-%   'newtonRaphson2ph' that implements a Newton-Raphson iteration with some
-%   logic to modify time step size in case of non-convergence.
+%   care of the update of the solution during a Newton-Raphson iteration.
+%   These functions are passed to the private function 'newtonRaphson2ph'
+%   that implements a Newton-Raphson iteration with some logic to modify
+%   time step size in case of non-convergence.
 %
 % REQUIRED PARAMETERS:
 %   state - Reservoir and well solution structure either properly
@@ -39,7 +39,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %           previous call to function 'solveIncompFlow' and, possibly, a
 %           transport solver such as function 'implicitTransport'.
 %
-%   G     - Grid data structure discretising the reservoir model.
+%   G     - Grid data structure discretizing the reservoir model.
 %
 %   tf    - End point of time integration interval (i.e., final time).
 %           Measured in units of seconds.
@@ -59,7 +59,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %              empty (i.e., W = []) which is interpreted as a model without
 %              any wells.
 %
-%   bc       - Boundary condtion structure as defined by function
+%   bc       - Boundary condition structure as defined by function
 %              'addBC'. This structure accounts for all external boundary
 %              contributions to the reservoir flow.
 %              Default value: bc = [] meaning all external no-flow
@@ -69,8 +69,8 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %              'addSource'. Default value: src = [] meaning no explicit
 %              sources exist in the model.
 %
-%   Trans    - two point flux transmissibilities. This will be used in
-%              stead of rock. Usefull for grids with out proper geometry and
+%   Trans    - two point flux transmissibilities. This will be used instead
+%              of rock. Useful for grids without proper geometry and
 %              or for getting consistency with pressure solver.
 %
 %   nltol    - Absolute tolerance of iteration.  The numerical solution
@@ -81,7 +81,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %              at all times in the interval [0,tf].
 %              Default value: nltol = 1.0e-6.
 %
-%   lstrials - Maximum number of trials in linesearch method.  Each new
+%   lstrials - Maximum number of trials in line search method.  Each new
 %              trial corresponds to halving the step size along the
 %              search direction. Default value: lstrials = 20.
 %
@@ -147,7 +147,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       'Trans'   ,         []    ,  ...
       'dhfz'    ,         []    ,  ...
       'LinSolve',         @mldivide,...
-      'gravity',          gravity(),... 
+      'gravity',          gravity(),...
       'init_state',       []       ...
        );
 

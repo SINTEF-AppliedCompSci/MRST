@@ -1,4 +1,4 @@
-function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
+function [Res, Jac, gflux, q] = twophaseJacobian(G, state, rock, fluid, varargin)
 %Residual and Jacobian of single point upwind solver for two-phase flow.
 %
 % SYNOPSIS:
@@ -8,8 +8,8 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 % DESCRIPTION:
 %   Function twophaseJacobian returns function handles for the residual
 %   and its Jacobian matrix for the implicit upwind-mobility weighted
-%   dicretization of
-%                                             
+%   discretization of
+%
 %      s_t + div[f(s)(v + mo K((rho_w-rho_o)g + grad(P_c)))] = f(s)q
 %
 %   where v is the sum of the phase Darcy fluxes, f is the fractional
@@ -19,13 +19,13 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %        f(s) = -------------
 %               mw(s) + mo(s)
 %
-%   mi = kr_i/mu_i is the phase mobiliy of phase i, mu_i and rho_i are the
+%   mi = kr_i/mu_i is the phase mobility of phase i, mu_i and rho_i are the
 %   phase viscosity and density, respectively, g the (vector) acceleration
 %   of gravity, K the permeability, and P_c(s) the capillary pressure.  The
 %   source term f(s)q is a volumetric rate of water.
 %
-%   Using a first-order upstream mobility-weighted discretisation in space
-%   and a backward Euler discretisation in time, the residual of the
+%   Using a first-order upstream mobility-weighted discretization in space
+%   and a backward Euler discretization in time, the residual of the
 %   nonlinear system of equations that must be solved to move the solution
 %   state.s from time=0 to time=tf, is obtained by calling F(s,s0,dt),
 %   defined as
@@ -45,7 +45,7 @@ function [Res, Jac] = twophaseJacobian(G, state, rock, fluid, varargin)
 %             saturation resSol.s with one value for each cell in
 %             the grid.
 %
-%   G       - Grid data structure discretising the reservoir model.
+%   G       - Grid data structure discretizing the reservoir model.
 %
 %   rock    - Struct with fields perm and poro.  The permeability field
 %             ('perm') is only referenced when solving problems involving
@@ -102,7 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %        s_t + \/· [D·f(s) + (G + P)·f(s)·mo(s)] = f(s) Q
 %
 % for constant vector and scalar fields D (Darcy flux), G (gravity flux),
-% P (capillary flux), and Q (source term). 
+% P (capillary flux), and Q (source term).
 
    opt = struct('verbose', mrstVerbose, 'gravity', gravity(), ...
                 'wells', [], 'src', [], 'bc', [], 'Trans', [],'dhfz',[]);
@@ -293,7 +293,7 @@ function F = Residual (resSol, resSol_0, dt, fluid, ...
 %  mobilities at face i and dflux, gflux, and pcflux are Darcy flux,
 %  gravity flux (=face_normal*Kg(rho1-rho2)), and capillary flux,
 %  respectively. The other flux function f is the fractional flow function
-%  evaluated with cell mobilities. 
+%  evaluated with cell mobilities.
 %
 %  Advancing an implicit upwind mobility weighted scheme one time step
 %  amounts to solving F(s, s0, dt) = 0, given s0 and dt.
@@ -371,7 +371,7 @@ function [gflux, pc_flux, pcJac]  = getFlux(G, cellNo, cellFace, rock, rho, flui
    [N, neighborship] = deal(getNeighbourship(G, 'Topological', true));
    % Number of interfaces (faces + NNC)
    nif = size(N, 1);
-   
+
    gflux = zeros([size(N, 1), 1]);
    dim   = G.griddim;
 

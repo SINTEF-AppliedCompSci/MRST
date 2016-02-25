@@ -7,7 +7,7 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %
 % DESCRIPTION:
 %   Implicit discretization of the transport equation
-%                                            
+%
 %      s_t + div[f(s)(v + mo K((rho_w-rho_o)g + grad(P_c)))] = f(s)q
 %
 %   where v is the sum of the phase Darcy fluxes, f is the fractional
@@ -17,13 +17,13 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %        f(s) = -------------
 %               mw(s) + mo(s)
 %
-%   mi = kr_i/mu_i is the phase mobiliy of phase i, mu_i and rho_i are the
+%   mi = kr_i/mu_i is the phase mobility of phase i, mu_i and rho_i are the
 %   phase viscosity and density, respectively, g the (vector) acceleration
 %   of gravity, K the permeability, and P_c(s) the capillary pressure.  The
 %   source term f(s)q is a volumetric rate of water.
 %
-%   We use a first-order upstream mobility-weighted discretisation in space
-%   and a backward Euler discretisation in time. The transport equation is
+%   We use a first-order upstream mobility-weighted discretization in space
+%   and a backward Euler discretization in time. The transport equation is
 %   solved on the time interval [0,tf] by calling twophaseJacobian to build
 %   a function computing the residual of the discrete system in addition to
 %   a function taking care of the update of the solution during the
@@ -35,7 +35,7 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %           previous call to function 'solveIncompFlow' and, possibly, a
 %           transport solver such as function 'explicitTransport'.
 %
-%   G     - Grid data structure discretising the reservoir model.
+%   G     - Grid data structure discretizing the reservoir model.
 %
 %   tf    - End point of time integration interval (i.e., final time).
 %           Measured in units of seconds.
@@ -53,7 +53,7 @@ function state = explicitTransport(state, G, tf, rock, fluid, varargin)
 %               Default value: wells = [], meaning a model without any
 %               wells.
 %
-%   bc        - Boundary condtion structure as defined by function
+%   bc        - Boundary condition structure as defined by function
 %               'addBC'.  This structure accounts for all external boundary
 %               contributions to the reservoir flow.
 %               Default value: bc = [] meaning all external no-flow
@@ -129,7 +129,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       state.flux = zeros(G.faces.num, 1);
    end
 
-   F = twophaseJacobian(G, state, rock, fluid, ...
+   [F,~,gf,q] = twophaseJacobian(G, state, rock, fluid, ...
                         'wells', opt.wells,    ...
                         'src'  , opt.src  ,    ...
                         'bc'   , opt.bc,       ...
