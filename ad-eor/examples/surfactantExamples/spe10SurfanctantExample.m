@@ -44,7 +44,7 @@ function spe10SurfanctantExample()
    krWSft = coreyPhaseRelpermAD(n, sWconSft, krWresSft, sWconSft + sOresSft);
    krOSft = coreyPhaseRelpermAD(n, sOresSft, krOresSft, sWconSft + sOresSft);
 
-   fluid.relPermSft = @(sW) (relPerm(sW, krW, krO));
+   fluid.relPermSft = @(sW) (relPerm(sW, krWSft, krOSft));
    fluid.sWconSft   = sWconSft;
    fluid.sOresSft   = sOresSft;
 
