@@ -185,13 +185,13 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
          eqs{2}(wc) = eqs{2}(wc) - cqs{2};
 
          % surfactant well equations
-         [~, wciSft, iInxW] = getWellSurfactant(W);
+         [wSft, wciSft, iInxW] = getWellSurfactant(W);
          cw        = c_impl(wc);
          cw(iInxW) = wciSft;
 
          % Add surfactant
-         bWqP = cw.*cqs{1};
-         eqs{3}(wc) = eqs{3}(wc) - bWqP;
+         bWqSft = cw.*cqs{1};
+         eqs{3}(wc) = eqs{3}(wc) - bWqSft;
 
          % Well surfactant rate for each well is water rate in each perforation
          % multiplied with surfactant concentration in that perforated cell.
@@ -199,6 +199,13 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
          Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
                      numel(W), numel(perf2well));
          eqs{6} = qWSft - Rw*(cqs{1}.*cw);
+
+         if opt.assembleOnlyExplicitConcentrationEquation
+            % special treatment when no surfactant is injected, as the system becomes ill-posed.
+            iszeroSftW = (vertcat(W.sign) == 1) & (wSft == 0);
+            eqs{6}(iszeroSftW) = pBH(iszeroSftW) - pBH.val(iszeroSftW);
+            eqs{7}(iszeroSftW) = qWSft(iszeroSftW) - qWSft.val(iszeroSftW);
+         end
 
          names(4:7) = {'waterWells', 'oilWells', 'surfactantWells', 'closureWells'};
          types(4:7) = {'perf', 'perf', 'perf', 'well'};
