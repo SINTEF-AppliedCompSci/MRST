@@ -153,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       %   'Wells'   - Wells for the timestep. (struct)
       %   'bc'      - Boundary conditions for the problem (struct).
       %   'src'     - Source terms for the timestep (struct).
-      %   
+      %
       %   NOTE: Wells, boundary conditions and source terms are the
       %         standard types of external forces in MRST. However,
       %         the model input determines which of these are
@@ -185,7 +185,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          drivingForces = model.getValidDrivingForces();
          % Add optional control ID for checking when forces are changing
          drivingForces.controlId = nan;
-         
+
          [opt, forcesArg] = merge_options(opt, varargin{:});
          % Merge in forces as varargin
          drivingForces = merge_options(drivingForces, forcesArg{:});
@@ -286,6 +286,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                warning([solver.getId(), 'Solver did not converge, cutting timestep'])
                cuttingCount = cuttingCount + 1;
                dt = dt/2;
+               linearSolverReport = reports{end}.NonlinearReport{end}.LinearSolver;
+               singularMatrix = isfield(linearSolverReport, 'singularMatrix') && ...
+                   linearSolverReport.singularMatrix;
+               failure = failure & ~singularMatrix;
                if dt < dtMin || failure
                   msg = [solver.getId(), 'Did not find a solution: '];
                   if failure
@@ -342,7 +346,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       function dx = stabilizeNewtonIncrements(solver, problem, dx)
       % Attempt to stabilize newton increment by changing the values
       % of the increments.
-         
+
          dx_prev = solver.previousIncrement;
 
          w = solver.relaxationParameter;
@@ -399,7 +403,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          isStagnated = abs(next - prev)./prev < solver.stagnateTol;
       end
-      
+
       function str = getId(solver)
          if isempty(solver.identifier)
             str = '';
@@ -476,4 +480,4 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
       [state, r] = model.updateAfterConvergence(state0, state, dt, drivingForces);
       reports{end}.FinalUpdate = r;
    end
-end       
+end
