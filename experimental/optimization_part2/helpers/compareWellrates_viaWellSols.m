@@ -59,7 +59,7 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
     bar(val);
     set(gca, 'xlim', [0 numel(init_rates)+1])
     if numel(init_rates) == 1
-        set(gca, 'xlim', [0 nw+1], 'XTick', [1:nw []]);
+        set(gca, 'xlim', [0 numel(init_rates)+1], 'XTick', [1:numel(init_rates) []]);
     end
     xlabel('Well', 'fontsize', 16);
     ylabel('Rate (Mt/year)', 'fontsize', 16);

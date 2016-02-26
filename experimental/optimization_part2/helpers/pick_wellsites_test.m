@@ -42,6 +42,7 @@ function [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, num_wells, ...
 
 
     opt.inspectWellPlacement = false;
+    opt.E_closed = [];
     opt = merge_options(opt, varargin{:});
 
     gravity on;
@@ -146,6 +147,8 @@ function [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, num_wells, ...
                 % ensure only unique well cell indexes
                 [wc, inx] = unique(wc,'stable'); % unsorted
                 qt        = qt(inx);
+                % a check for closed-system
+                qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
                 % return from this function
                 return;
            end
@@ -171,6 +174,8 @@ function [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, num_wells, ...
             % ensure only unique well cell indexes
             [wc, inx] = unique(wc,'stable'); % unsorted
             qt        = qt(inx);
+            % a check for closed-system
+            qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
             % return from this function
             return;
         end
@@ -193,6 +198,35 @@ function [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, num_wells, ...
 end
 
 % HELPER FUNCTIONS:
+
+function qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt)
+
+% Adjust initial volume to inject if system is closed
+% Here, we lower the injection volumes such that the total volume is
+% within the closed-system's capacity, computed using E_closed:
+% --------------- V_co2 = E_closed * pore_volume -----------------
+    gravity on;
+    if ~isempty(opt.E_closed)
+        pv = Gt.cells.volumes .* Gt.cells.H .* rock2D.poro; % pore volume (m3)
+        if isfield(rock2D,'ntg')
+            pv = pv .* rock2D.ntg;
+        end
+        %V_co2 = opt.E_closed * sum(pv); % m3
+
+        % Computing local CO2 densities
+        P = rhoW .* norm(gravity) .* Gt.cells.z; % hydrostatic pressure
+        T = seafloor_temp + (Gt.cells.z - seafloor_depth) .* tgrad ./ 1000;
+        rhoCO2 = co2.rho(P, T);
+
+        M_co2 = sum(opt.E_closed .* rhoCO2 .* pv); % kg
+
+        % if M_co2 < sum(qt), then qt is reduced by a factor of M_co2/sum(qt):
+        if min(M_co2/sum(qt),1) < 1
+            fprintf('Initial rates are lowered.\n')
+        end
+        qt = qt .* min(M_co2/sum(qt),1);
+    end
+end
 
 % ----------------------------------------------------------------------------
 function wc = select_wellcell(Gt, candidates, buffer, domain_buffer, pick_highest_pt, ...

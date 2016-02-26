@@ -55,7 +55,10 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
       % J = J + C * Ma_inf:
       % where M^a_inf is the mass accumulated (or remaining) at t = infinity.
       bG = model.fluid.bG(p);
-      pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro; 
+      if ~isfield(model.rock,'ntg')
+             model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
+         end 
+      pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
       vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
       vol_inf = vol_at_infinity( model.G, ...
              model.rock.poro .* model.fluid.pvMultR(p), ...

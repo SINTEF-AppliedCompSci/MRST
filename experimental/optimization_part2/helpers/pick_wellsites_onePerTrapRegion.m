@@ -22,6 +22,7 @@ function [wc, qt] = pick_wellsites_onePerTrapRegion(Gt, rock2D, co2, ta, rhoW, .
 % could be increased!
 
     opt.inspectWellPlacement = false;
+    opt.E_closed = [];
     opt = merge_options(opt, varargin{:});
     
     
@@ -84,6 +85,8 @@ function [wc, qt] = pick_wellsites_onePerTrapRegion(Gt, rock2D, co2, ta, rhoW, .
             % Determine whether to continue iteration loop
             if numel(wc) > max_num_wells
                 fprintf('No more wells placed: max number of wells have been placed.\n')
+                % a check for closed-system
+                qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
                 % return from this function
                 return;
             elseif qt_tmp/qt(1) < 0.01
@@ -91,12 +94,16 @@ function [wc, qt] = pick_wellsites_onePerTrapRegion(Gt, rock2D, co2, ta, rhoW, .
                     'less than 1 percent of the first well.\n'])
                 % remove the last wc and its injection mass
                 wc = wc(1:end-1); qt = qt(1:end-1);
+                % a check for closed-system
+                qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
                 % return from this function
                 return;
             elseif i == numel(trapcap)
                 fprintf(['All trap regions were assessed. ',...
                     'A well was placed in %d out of %d trap regions.\n'], ...
                     numel(wc), numel(trapcap))
+                % a check for closed-system
+                qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
             end
             
         else
@@ -113,6 +120,34 @@ end
 
 % HELPER FUNCTIONS:
 % -------------------------------------------------------------------------
+function qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt)
+
+% Adjust initial volume to inject if system is closed
+% Here, we lower the injection volumes such that the total volume is
+% within the closed-system's capacity, computed using E_closed:
+% --------------- V_co2 = E_closed * pore_volume -----------------
+    gravity on;
+    if ~isempty(opt.E_closed)
+        pv = Gt.cells.volumes .* Gt.cells.H .* rock2D.poro; % pore volume (m3)
+        if isfield(rock2D,'ntg')
+            pv = pv .* rock2D.ntg;
+        end
+        %V_co2 = opt.E_closed * sum(pv); % m3
+
+        % Computing local CO2 densities
+        P = rhoW .* norm(gravity) .* Gt.cells.z; % hydrostatic pressure
+        T = seafloor_temp + (Gt.cells.z - seafloor_depth) .* tgrad ./ 1000;
+        rhoCO2 = co2.rho(P, T);
+
+        M_co2 = sum(opt.E_closed .* rhoCO2 .* pv); % kg
+
+        % if M_co2 < sum(qt), then qt is reduced by a factor of M_co2/sum(qt):
+        if min(M_co2/sum(qt),1) < 1
+            fprintf('Initial rates are lowered.\n')
+        end
+        qt = qt .* min(M_co2/sum(qt),1);
+    end
+end
 
 function cap = struct_trap_cap(Gt, rock2D, ta, rhoW, sw, seafloor_temp, seafloor_depth, tgrad, co2)
 

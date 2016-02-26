@@ -11,6 +11,7 @@ function [wc, qt] = pick_wellsites_array(Gt, rock2D, co2, ta, ...
     % DX and DY is spacing for array of inj wells
 
     opt.inspectWellPlacement = false;
+    opt.E_closed = [];
     opt = merge_options(opt, varargin{:});
     
     %% Determine candidates
@@ -91,6 +92,30 @@ function [wc, qt] = pick_wellsites_array(Gt, rock2D, co2, ta, ...
     end
     assert( numel(qt) == numel(wc) )
     
+    %% Adjust initial volume to inject if system is closed
+    % Here, we lower the injection volumes such that the total volume is
+    % within the closed-system's capacity, computed using E_closed:
+    % --------------- V_co2 = E_closed * pore_volume -----------------
+    if ~isempty(opt.E_closed)
+        pv = Gt.cells.volumes .* Gt.cells.H .* rock2D.poro; % pore volume (m3)
+        if isfield(rock2D,'ntg')
+            pv = pv .* rock2D.ntg;
+        end
+        %V_co2 = opt.E_closed * sum(pv); % m3
+
+        % Computing local CO2 densities
+        P = rhoW .* norm(gravity) .* Gt.cells.z; % hydrostatic pressure
+        T = seafloor_temp + (Gt.cells.z - seafloor_depth) .* tgrad ./ 1000;
+        rhoCO2 = co2.rho(P, T);
+
+        M_co2 = sum(opt.E_closed .* rhoCO2 .* pv); % kg
+
+        % if M_co2 < sum(qt), then qt is reduced by a factor of M_co2/sum(qt):
+        if min(M_co2/sum(qt),1) < 1
+            fprintf('Initial rates are lowered.\n')
+        end
+        qt = qt .* min(M_co2/sum(qt),1); % @@ or increase rates if there is capacity to do so
+    end
     
 end
 

@@ -46,19 +46,18 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    
    fluid = makeVEFluid(Gt, rock2D, 'sharp interface'                   , ...
                        'fixedT'       , T_ref                          , ...
-                       'wat_rho_pvt'  , [4.3e-5/barsa  , opt.refPress] , ...
                        'residual'     , [opt.sw        , opt.sr]       , ...
                        'wat_rho_ref'  , opt.rhoW                       , ...
                        'co2_rho_ref'  , opt.refRhoCO2                  , ... 
                        'wat_rho_pvt'  , [opt.c_water   , opt.refPress] , ...
                        'co2_rho_pvt'  , [opt.p_range   , opt.t_range]  , ...
-                       'co2_mu_pvt'   , [opt.p_range   , opt.t_range]  , ...
                        'wat_mu_ref'   , opt.muBrine                    , ...
+                       'co2_mu_pvt'   , [opt.p_range   , opt.t_range]  , ...
                        'pvMult_fac'   , opt.pvMult                     , ...
+                       'pvMult_p_ref' , opt.refPress                   , ...
                        'dissolution'  , opt.dissolution                , ...
                        'dis_rate'     , opt.dis_rate                   , ...
                        'dis_max'      , opt.dis_max                    , ...
-                       'pvMult_p_ref' , opt.refPress                   , ...
                        'surf_topo'    , opt.surf_topo                  , ...
                        'top_trap'     , dh);
                    
@@ -71,6 +70,18 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         initState.rs = zeros(Gt.cells.num, 1);
    end
    
+   %% Compute overburden pressure
+   [P_over, ~] = computeOverburdenPressure(Gt, rock2D, opt.ref_depth, fluid.rhoWS);
+   
+   %% Compute storage efficiency for closed system (optional)
+   % E is computed if system is closed, and is used to ensure the injection
+   % masses are not larger than the formation's closed-system capacity,
+   % given by:    M_co2 = E_closed * rhoCO2(P,T) * pore_volume
+   E = [];
+   if strcmpi(opt.btype,'flux') && opt.adjustClosedSystemRates
+        E  = closed_system_storage_efficiency( opt.c_water, opt.pvMult, P_over, initState.pressure );
+   end
+   
     %% Construct schedule
     use_default_schedule = isempty(opt.schedule);
     if use_default_schedule
@@ -81,7 +92,8 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
             [wc, qt] = pick_wellsites_array(Gt, rock2D, co2, ta, opt.rhoW, ...
                         opt.sw, opt.ref_temp, opt.ref_depth, opt.temp_grad, ...
                         opt.well_buffer_dist_domain, opt.well_buffer_dist_catchment, ...
-                        opt.DX, opt.DY, opt.max_num_wells, 'inspectWellPlacement',false);
+                        opt.DX, opt.DY, opt.max_num_wells, 'inspectWellPlacement',false, ...
+                        'E_closed', E);
 
         elseif strcmpi(opt.well_placement_type,'one_per_trap')
 
@@ -89,8 +101,8 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                         opt.rhoW, opt.sw, opt.ref_temp, opt.ref_depth, ...
                         opt.temp_grad, opt.max_num_wells, opt.pick_highest_pt, ...
                         opt.well_buffer_dist, opt.well_buffer_dist_domain, ...
-                        opt.well_buffer_dist_catchment, 'inspectWellPlacement',false);
-
+                        opt.well_buffer_dist_catchment, 'inspectWellPlacement',false, ...
+                        'E_closed', E);
 
         elseif strcmpi(opt.well_placement_type,'one_per_path')
 
@@ -99,16 +111,12 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                         opt.well_buffer_dist, opt.maximise_boundary_distance, ...
                         opt.well_buffer_dist_domain, opt.pick_highest_pt, ...
                         opt.well_buffer_dist_catchment, ...
-                        'inspectWellPlacement',false);
+                        'inspectWellPlacement',false, 'E_closed', E);
         end
         
-        %qt = qt/100; % @@
       
         %%% 2) Create schedule based on control type: -----------------------
         if strcmpi(opt.well_control_type,'rate')
-            %opt.schedule = setSchedule(Gt, rock2D, wc, qt/opt.refRhoCO2, opt.isteps, ...
-            %                         opt.itime, opt.msteps , opt.mtime, true, ...
-            %                         'minval', sqrt(eps)); % @@ or use _extras()
             opt.schedule = setSchedule_extras( Gt, rock2D, wc, 'rate', ...
                                 opt.isteps, opt.itime, opt.msteps, opt.mtime, ...
                                 'wqtots', qt/opt.refRhoCO2, 'minval',sqrt(eps));
@@ -152,13 +160,17 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
 
     else
         fprintf('\n Using schedule passed in as varargin. \n')
-        tmp = load(opt.schedule);
-        if isfield(tmp,'optim')
-            tmp = tmp.optim;
+        if isa(opt.schedule,'char')
+            tmp = load(opt.schedule);
+            if isfield(tmp,'optim')
+                tmp = tmp.optim;
+            end
+            name = fields(tmp);
+            opt.schedule = tmp.(name{1}); % add check to ensure wells are located in grid
+            clear tmp
+        elseif isa(opt.schedule,'struct')
+            % nothing required
         end
-        name = fields(tmp);
-        opt.schedule = tmp.(name{1}); % add check to ensure wells are located in grid
-        clear tmp
         % ensure migration rates are the minimum (as they may have changed
         % slightly when optimal rates were obtained previously).
         for i=1:numel([opt.schedule.control(2).W.val])
@@ -238,6 +250,9 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    other.initState = initState;
    other.opt = opt;
    other.dissolution = opt.dissolution;
+   other.P_over = P_over;
+   other.E_closed = E;
+   other.adjustClosedSystemRates = opt.adjustClosedSystemRates;
    
 end
 
@@ -446,7 +461,7 @@ function opt = opt_defaults()
     opt.rhoW      = rho_default(1);
     opt.muBrine   = mu_default(1);
     opt.muCO2     = 0; % zero value will trigger use of variable viscosity 
-    opt.pvMult    = 1e-5/barsa;
+    opt.pvMult    = 1e-5/barsa; % pore volume (rock) compressibility
     opt.refPress  = 100 * barsa;
     opt.c_water   = 4.3e-5/barsa; % water compressibility
     opt.p_range   = [0.1, 400] * mega * Pascal; % pressure span of sampled property table
@@ -501,6 +516,7 @@ function opt = opt_defaults()
     opt.DX = 1 * kilo*meter;
     opt.DY = 1 * kilo*meter;
     opt.inspectWellPlacement = false;
+    opt.adjustClosedSystemRates = false;
 
 
 end

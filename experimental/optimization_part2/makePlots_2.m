@@ -1,6 +1,7 @@
 %% to generate results figs for optimized formation rates.
 
-clear; close all; clc;
+clear;
+close all; clc;
 
 names = [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()];
 % Remove certain formation names:
@@ -14,25 +15,26 @@ names = names(~strcmpi(names,'Dunlingp'));
 names = names(~strcmpi(names,'Paleocene'));
 
 
+
 %%% for closed bdrys:
-%fprintf('Formation       | Total inj. (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) \n');
+fprintf('Formation       | Total inj. (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) | cp \n');
 %%% for open bdrys:
-fprintf('Formation       | Total inj. (Gt) | Leaked (Gt,Perc.) | Cap (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) \n');
+%fprintf('Formation       | Total inj. (Gt) | Leaked (Gt,Perc.) | Cap (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) \n');
 
 %fprintf('Formation       | StrapCap(Gt) | RtrapCap(Gt) | DtrapCap(Gt) | Total inj. (Gt) | Leaked (Gt,Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | DtrapAch (Gt,Perc.) | MovePlume(Gt) \n');
 %fprintf('Formation       | Vp (km3) | StrapCap(Gt) (Perc) | RtrapCap(Gt) (Perc) | DtrapCap(Gt) (Perc) | Total (Gt) \n');
 for i = 1:numel(names)
     
     
-    pathname = ['opt_results_Array_in_trap_regions_Pressure_plim90_OpenBdrys/' names{i} '/InjYrs50_MigYrs2000_DissOn_0'];
+    pathname = ['testing/opt_results_one_per_trap_highest_pt_Pressure_plim90_ClosedBdrys/' names{i} '/InjYrs20_MigYrs10_DissOn_0_lowerInitRates1'];
     
-  try
-    load([pathname '/' 'Gt.mat'])
-    load([pathname '/' 'init.mat'])
-    load([pathname '/' 'optim.mat'])
-    load([pathname '/' 'other.mat'])
+    try
+      load([pathname '/' 'Gt.mat'])
+      load([pathname '/' 'init.mat'])
+      load([pathname '/' 'optim.mat'])
+      load([pathname '/' 'other.mat'])
     
-    exploreOptWellNCS_postProcess( Gt, init, optim, other, ...
+      exploreOptWellNCS_postProcess( Gt, init, optim, other, ...
         'plotWellRates', true, ...
         'plotInventory', true, ...
         'plotPressureChanges', true, ...
@@ -41,9 +43,12 @@ for i = 1:numel(names)
         'figDirName', pathname, ...
         'warningOn', false, ...
         'outputOn', false)
-  catch
-  end
-    close all;
+    
+      close all;
+      openfig([pathname '/' names{i} '_optDetails.fig']);
+      close;
+    catch
+    end
     clearvars -except i names
     
 end

@@ -32,6 +32,7 @@ function [ P_over, P_limit ] = computeOverburdenPressure( Gt, rock2D, ...
 
 
     % rock between top of formation to center of cell (depth of injection):
+    % @@ confirm this is indeed the depth of injection.
     poro3 = rock2D.poro;
     rhoW3 = water_density;
     rhoR3 = rhoR_sandstone;

@@ -90,37 +90,62 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
 
    %% Compute initial objective value (if required for scaling)
    if isempty(opt.obj_scaling)
-      [init.wellSols, init.states] = ...
-          simulateScheduleAD(initState, model, schedule); 
-      
-      if strcmpi(opt.penalize_type,'pressure')
-          init.obj_val_steps_A = cell2mat( obj_funA(init.wellSols, ...
-                                        init.states, init.schedule) );
-          init.obj_val_steps_B = cell2mat( obj_funB(init.states) );
+       
+      % adjust initial rates in while loop until rates did not lead to
+      % surpassing the pressure limit (i.e., a negative init.obj_val_total)
+      %init.obj_val_total = -1;
+      %tmp_schedule = schedule;
+      %tmp_rates = [schedule.control(1).W.val];
+      %it = 0;
+      %while init.obj_val_total < 0
+%           for i=1:num_wells
+%             tmp_schedule.control(1).W(i).val = tmp_rates(i) * (1 - 0.1*it);
+%             % must assess min rates.
+%             if tmp_rates(i) * (1 - 0.1*it) < min_wvals(i)
+%                 tmp_schedule.control(1).W(i).val = min_wvals(i);
+%             end
+%           end
           
-          init.obj_val_steps = init.obj_val_steps_A - init.obj_val_steps_B;
-          
-          figure; hold on
-          plot(1:numel(init.obj_val_steps), init.obj_val_steps_A, 'x')
-          plot(1:numel(init.obj_val_steps), init.obj_val_steps_B, 'o')
-          plot(1:numel(init.obj_val_steps), init.obj_val_steps, '+')
-          legend('objA','objB','objA - objB')
-          
-      else
-      
-          init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
-                                                init.states, ...
-                                                init.schedule));
-      end
-      init.obj_val_total = sum(init.obj_val_steps);
+          [init.wellSols, init.states] = ...
+              simulateScheduleAD(initState, model, schedule); 
+
+          if strcmpi(opt.penalize_type,'pressure')
+              init.obj_val_steps_A = cell2mat( obj_funA(init.wellSols, ...
+                                            init.states, init.schedule) );
+              init.obj_val_steps_B = cell2mat( obj_funB(init.states) );
+
+              init.obj_val_steps = init.obj_val_steps_A - init.obj_val_steps_B;
+
+              figure(50); clf; hold on
+              plot(1:numel(init.obj_val_steps), init.obj_val_steps_A, 'x')
+              plot(1:numel(init.obj_val_steps), -init.obj_val_steps_B, 'o')
+              plot(1:numel(init.obj_val_steps), init.obj_val_steps, '+')
+              legend('objA','-objB','objA - objB', 'Location','SouthWest')
+              pause(1)
+
+          else
+
+              init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
+                                                    init.states, ...
+                                                    init.schedule));
+          end
+          init.obj_val_total = sum(init.obj_val_steps); % @@ originally, this represented
+          % the total amount retained in domain by end of migration period
+          %it = it + 1; assert(0.1*it < 1)
+      %end
       
       % Use value of objective function before optimization as scaling.
       % Otherwise, the scale of obj_val_steps_B can be much greater than _A
       opt.obj_scaling = abs(init.obj_val_total);
       if strcmpi(opt.penalize_type,'pressure')
-        opt.obj_scaling = abs( sum(init.obj_val_steps_A) ); % @@ ok for when using closed bdrys?
+        opt.obj_scaling = abs( sum(init.obj_val_steps_A) ); % the total amount retained by end
       end
    end
+   
+%     init.obj_val_steps_A_full = cell2mat(leak_penalizer_Rerun(model, init.wellSols, ...
+%         init.states, schedule, opt.leak_penalty));
+%     opt.obj_scaling = init.obj_val_steps_A_full(end);
+   
    
    %% Return if optimization should be skipped
    if opt.dryrun
@@ -128,6 +153,12 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
       history = [];
       return;
    end
+   
+%    %% Lower initial rates if pressure limit surpassed
+%    if init.obj_val_total < 0
+%        
+%    end
+       
    
    
    %% Define limits, scaling and objective function
@@ -186,7 +217,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    end
    
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
-       'lineSearchMaxIt', 20, 'gradTol',5e-3);
+       'lineSearchMaxIt', 10, 'gradTol',5e-3,'objChangeTol',5e-3);
    
    %% Preparing solution structures
    if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
@@ -412,11 +443,25 @@ function obj = pressure_penalizer(model, states, schedule, penalty, plim, vararg
    end
    
    obj = repmat({[]}, numSteps, 1);
-   maxp    = zeros(numSteps, 1);
-   k       = 2;
+   k   = 2;
+   max_amount_surp      = zeros(numSteps, 1);
+   max_amount_surp_cinx = zeros(numSteps, 1);
+   min_amount_under     = zeros(numSteps, 1);
+   min_amount_under_cinx= zeros(numSteps, 1);
    for step = 1:numSteps     
       state = states{tSteps(step)}; %@@ +1?      
       p = state.pressure;
+      % keep track of amount over or amount under plim at each time step
+      max_amount_surp(step) = max(0,max(p-plim));
+      if max_amount_surp(step) > 0
+          [~,cinx] = max(p-plim);
+          max_amount_surp_cinx(step) = cinx;
+      end
+      min_amount_under(step) = max(0,min(plim-p));
+      if min_amount_under(step) > 0
+         [~,cinx] = min(max(0,(plim-p)));
+         min_amount_under_cinx(step) = cinx;
+      end
       if opt.ComputePartials
         sG = state.s(:,2);   % place holders
         nW = numel(schedule.control(1).W);
@@ -425,22 +470,30 @@ function obj = pressure_penalizer(model, states, schedule, penalty, plim, vararg
         qWs = pBHP;          % place holders
         [p, ~, ~, ~, ~] = initVariablesADI(p, sG, qWs, qGs, pBHP); 
       end
-      dt = dts(step); % how to scale obj value with dt?
-      %maxp      = max(p); % a scalar for now
+      dt = dts(step);
       tmp = max(0, sign(p - plim)) .* penalty .* (p - plim).^k/1e12; % @@ scaling to MPa
       tmp = tmp .* model.G.cells.volumes;
       obj{step} = sum( tmp )./sum(model.G.cells.volumes);
-      %obj{step} = obj{step} * dt; % @@
+      obj{step} = obj{step} * dt; % @@ if uncommented, cp values should be very small
       if (tSteps(step) == num_timesteps)
       % no need to compute another portion of the obj fun here
          if ~opt.ComputePartials
-            %fprintf('Max pressure reached: %f (Pascals)\n', max(p) ); % @@ this is only the max pressure reached at last time step!
-            fprintf('Largest surpassing Plimit pressure is: %f (percent) of PLimit \n',  max( max(0,sign(p-plim)) .* (p - plim)./plim * 100 ) );
-            fprintf('Smallest proximity under PLimit is: %f (percent) of Plimit \n', min( max(0,sign(plim-p)) .* (plim - p)./plim * 100 ) );
-            %fprintf('Score: %f ([Cp*Pascals])\n\n', max(0, sign(maxp - 0.75*plim)) * penalty * (maxp - 0.75*plim).^k );
-          end
+             msg1 = 0;
+             msg2 = 0;
+             if any(max_amount_surp > 0)
+                 [val,tinx] = max(max_amount_surp);
+                 cinx = max_amount_surp_cinx(tinx);
+                 msg1 = 100*val/plim(cinx); % @@ include cinx and tinx
+             else
+                 [val,tinx] = min(min_amount_under);
+                 cinx = min_amount_under_cinx(tinx);
+                 msg2 = 100*val/plim(cinx);
+             end
+             fprintf('Surpassed Plimit by %f (percent) of Plimit.\n', msg1)
+             fprintf('Approached Plimit by %f (percent) of Plimit.\n', msg2)
+         end
       end
-      %obj{step} = obj{step};  %@@ how to scale this value to match with other obj value?
+
    end
 end
 
@@ -493,8 +546,10 @@ function [val, der, wellSols, states] = ...
    
    % compute objective:
    vals = obj_fun(wellSols, states, schedule); % @@ ensure wellSols{}.sign is correct
-   figure(11); hold on; plot(1:numel(vals), [vals{:}], '+')
+   figure(11); clf; set(gcf,'Visible','off')
+   h1 = plot(1:numel(vals), [vals{:}], '+');
    val  = sum(cell2mat(vals))/abs(objScaling);
+   legend([h1],{['scaled obj val: ',num2str(val)]},'Location','SouthWest')
 
    % run adjoint:
    if nargout > 1

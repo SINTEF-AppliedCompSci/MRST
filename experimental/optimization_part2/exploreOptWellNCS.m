@@ -18,10 +18,10 @@ moduleCheck('ad-core')
 
 % Main Directory name for saving results (each cases results will be put
 % into a subdirectory named according to InjYrs and MigYrs)
-varDirName = 'opt_results_Array_in_trap_regions_Pressure_plim90_ClosedBdrys';
+varDirName = 'testing2/opt_results_one_per_trap_highest_pt_Pressure_plim90_ClosedBdrys';
 
 % Figure Directory name
-figDirName = [varDirName '/' 'WellPlacementFigs_Array_in_trap_regions'];
+figDirName = [varDirName '/' 'WellPlacementFigs_one_per_trap_highest_pt'];
 mkdir(figDirName)
 
 names = [getBarentsSeaNames() getNorwegianSeaNames() getNorthSeaNames()];
@@ -64,8 +64,6 @@ shared_names = intersect(names, n, 'stable');
 assert( numel(shared_names) >= numel(names) )
 assert( all(strcmpi(sort(shared_names),sort(names)))==1 )
 
-clear names
-names = {'Brynefm'};
 
 for i=1:numel(names)
     
@@ -88,23 +86,34 @@ for i=1:numel(names)
     caprock_pressure = (Gt.cells.z * seainfo.water_density * norm(gravity)) ...
                 .* (1 + seainfo.press_deviation/100);
 
+    max_rate_fac = 2;
+    if any(strcmpi(fmName,{'Sleipnerfm','Huginfmeast','Huginfmwest','Ulafm','Pliocenesand'}))
+        max_rate_fac = 4;
+    end
 
     try
     
 
         %%% Pass everything in explicitly.
         clear Gt optim init history other
-       [Gt, optim, init, history, other] = optimizeFormation_extras(...
+        %cp = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1];
+        cp = [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1];
+        %cp = [1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1];
+        sch = [];
+        for r = 1:numel(cp)
+            % assuming penalize pressure is on, get optimized rates for a given cp
+            [Gt, optim, init, history, other] = optimizeFormation_extras(...
             'dryrun'                         , false                        , ...
             'inspectWellPlacement'           , false                         , ... % if true, will not continue to simulation
+            'adjustClosedSystemRates'        , true                         , ... % applied to internally computed rates only, not passed in schedule
             'modelname'                      , fmName                       , ...
                 'coarse_level'               , coarsening                   , ...
-            'schedule'                       , [], ... %'opt_results_Array_in_trap_regions_Pressure_plim90/Sleipnerfm/InjYrs50_MigYrs2_DissOn_0_rateLim10_pre/new_schedule'                           , ...
-                'itime'                      , 50 * year                    , ...
-                'isteps'                     , 50                           , ...
-                'mtime'                      , 1000 * year                   , ...
-                'msteps'                     , 100                           , ... 
-            'well_placement_type'            , 'use_array'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
+            'schedule'                       , sch, ... %'opt_results_Array_in_trap_regions_Pressure_plim90/Sleipnerfm/InjYrs50_MigYrs2_DissOn_0_rateLim10_pre/new_schedule'                           , ...
+                'itime'                      , 20 * year                    , ...
+                'isteps'                     , 20                           , ...
+                'mtime'                      , 10 * year                   , ...
+                'msteps'                     , 2                           , ... 
+            'well_placement_type'            , 'one_per_trap'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
                 'max_num_wells'              , 40                           , ... % used in use_array, one_per_trap
                 'maximise_boundary_distance' , false                        , ... % used in one_per_path
                 'well_buffer_dist'           , 1 * kilo * meter             , ... % dist from edge of internal catchment
@@ -114,11 +123,11 @@ for i=1:numel(names)
                 'DX'                         , 1 * kilo*meter               , ... % used in use_array
                 'DY'                         , 1 * kilo*meter               , ... % used in use_array
             'well_control_type'              , 'rate'                       , ...
-                'rate_lim_fac'               , 4                            , ...
+                'rate_lim_fac'               , max_rate_fac                 , ...
             'btype'                          , 'flux'                   , ...
             'penalize_type'                  , 'pressure'                    , ... % 'leakage', 'leakage_at_infinity', 'pressure'
                 'leak_penalty'               , 10                           , ...
-                'pressure_penalty'           , 100                        , ... % @@ get appropriate penalty with trial-and-error
+                'pressure_penalty'           , cp(r) , ... %3.0963e-12                        , ... % @@ get appropriate penalty with trial-and-error
                 'p_lim_factor'               , 0.9                       , ...
             'surface_pressure'              , 1 * atm                       , ...   
             'refRhoCO2'                     , seainfo.rhoCref               , ...
@@ -142,7 +151,42 @@ for i=1:numel(names)
             'trapfile_name'                 , []                            , ... % 'utsira_subtrap_function_3.mat'
             'surf_topo'                     , 'smooth' );
 
-    
+            % Was pressure limit surpassed? If yes, use next higher cp
+            % value. If no, results obtained with cp value were acceptable.
+            % max P encountered per cell:
+%             tmp = []; for j=1:numel(optim.states), tmp = [tmp, optim.states{j}.pressure]; end
+%             maxP_encountered = max(tmp')';
+%             % pressure limit:
+             plim = other.opt.p_lim_factor * other.P_over;
+%             % amount surpassed (if any):
+%             amount_surp = max(0,max(maxP_encountered - plim)); % Pascals
+%             amount_under = plim - maxP_encountered;
+%             amount_under(amount_under < 0) = NaN;
+%             [~, inx_min_under] = min(amount_under);
+%             [~, inx_max_surp] = max(maxP_encountered - plim);
+%             if amount_surp == 0 % @@ or use a tolerance
+%                 fprintf('Under plim by %4.9f percent of plim, in cell %d, using cp=%d.\n', ...
+%                     amount_under(inx_min_under)/plim(inx_min_under)*100, inx_min_under, cp(r));
+%                 break % exits cp (r) loop
+%             else
+%                 fprintf('Surpassed plim by %4.9f percent of plim, in cell %d, using cp=%d.\n', ...
+%                 amount_surp/plim(inx_max_surp)*100, inx_max_surp, cp(r));
+%                 % use optimized rates as next iteration's initial rates
+%                 sch = optim.schedule;
+%             end
+            
+            [perc_of_plim_reach, perc_of_Pover_reach] = ...
+                report_maxPercentage_plim_reached( optim.states, plim, other.P_over );
+            if perc_of_Pover_reach/100 - other.opt.p_lim_factor > 0.02
+                % use optimized rates as next iteration's initial rates
+                sch = optim.schedule;
+            else
+                break % exits cp (r) loop
+            end
+
+            
+        
+        end
         % Save well inspection figure if it was generated
         if isfield(other,'inspectWellPlacement')
             % Save figure:
@@ -156,7 +200,8 @@ for i=1:numel(names)
         subVarDirName = [varDirName '/' fmName '/' ...
             'InjYrs',num2str(convertTo(other.opt.itime,year)), ...
             '_MigYrs',num2str(convertTo(other.opt.mtime,year)), ...
-            '_DissOn_',num2str(other.dissolution)];
+            '_DissOn_',num2str(other.dissolution), ...
+            '_lowerInitRates',num2str(other.adjustClosedSystemRates)];
         mkdir(subVarDirName);
         save([subVarDirName '/' 'Gt'], 'Gt'); % '-v7.3'); using v7.3 makes size larger!
         save([subVarDirName '/' 'optim'], 'optim');
@@ -172,6 +217,8 @@ for i=1:numel(names)
         saveas(figure(11),[subVarDirName '/' fmName '_optDetails_2'], 'fig')
         close(figure(11))
         %
+        saveas(figure(50),[subVarDirName '/' fmName '_optDetails_3'], 'fig')
+        close(figure(50))
         close all
         
     catch

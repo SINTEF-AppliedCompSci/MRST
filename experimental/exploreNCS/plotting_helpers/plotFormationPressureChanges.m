@@ -1,4 +1,4 @@
-function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, schedule, varargin )
+function res = plotFormationPressureChanges( states, initPressure, P_over, plim, Gt, schedule, varargin )
 
     opt.figname = [];
     opt.outputOn = true;
@@ -69,7 +69,7 @@ function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, s
     hcb = colorbar; axis equal tight off
     ylabel(hcb, 'MPa', 'fontsize',16, 'rotation',0)
     
-    % and then compare the max pressure reached to the fracture pressure
+    % and then compare the max pressure reached to the overburden pressure
     amount_surpassed = maxP_encountered - P_over;
     amount_surpassed( amount_surpassed < 0 ) = NaN;
 
@@ -88,10 +88,10 @@ function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, s
     ylabel(hcb, 'MPa', 'fontsize',16, 'rotation',0)
 
     if isempty( find(amount_surpassed>0) )
-        title({'Max pressure encountered';'(fracture pressure not surpassed)'})
-        isFracPressSurpassed = false;
+        title({'Max pressure encountered';'(overburden pressure not surpassed)'})
+        isOverBurdenPressSurpassed = false;
     else
-        isFracPressSurpassed = true;
+        isOverBurdenPressSurpassed = true;
         % when plotting cell data, patch error occurs if only one cell data
         % point is to be plotted, thus we pass in the cell data as doubled.
         inx2plot = find(amount_surpassed>0);
@@ -103,12 +103,12 @@ function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, s
             'FaceColor','r', 'FaceAlpha', 0.3, 'EdgeColor','none') 
         end
         plotFaces(Gt, boundaryFaces(Gt), 'EdgeColor','k')
-        title({'Max pressure encountered';'(red areas surpassed fracture pressure)'})
+        title({'Max pressure encountered';'(red areas surpassed overburden pressure)'})
   
         subplot(1,4,4)
         plotCellData(Gt, convertTo(amount_surpassed, mega*Pascal), 'EdgeColor','none')
         plotFaces(Gt, boundaryFaces(Gt), 'EdgeColor','k')
-        title('Amount surpassed fracture pressure')
+        title('Amount surpassed overburden pressure')
         hcb = colorbar; axis equal tight off
         ylabel(hcb, 'MPa', 'fontsize',16, 'rotation',0)
     end
@@ -120,7 +120,7 @@ function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, s
     set(hbar(1),'FaceColor','r', 'EdgeColor','r');
     set(hbar(2),'FaceColor','y', 'EdgeColor','y');
     set(hbar(3),'FaceColor','b', 'EdgeColor','b');
-    hl = legend('Fracture Pressure','Max Pressure Encountered','Initial Pressure');
+    hl = legend('Overburden Pressure','Max Pressure Encountered','Initial Pressure');
     set(hl, 'Location','NorthOutside')
     xlabel('Well Number')
     ylabel('Pressure (MPa)')
@@ -138,37 +138,44 @@ function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, s
     set(findobj(hfig.Children,'Type','axes'), 'FontSize',14) %'Ylim',[0 max(maxp/1e6)])
 
     %% Plot pressure changes over time
-    % for cell where fracture pressure was maximally surpassed, or for cell
-    % where pressure was closest to its fracture pressure.
+    % for cell where the maximum percentage of plim was reached
+    [perc_of_plim_reach, perc_of_Pover_reach, inx] = ...
+                report_maxPercentage_plim_reached( states, plim, P_over, ...
+                'outputOn', opt.outputOn);
+    res.worst_percent_of_OBpress_reached = perc_of_Pover_reach;
     
-    % Determine the cell where ...
-    if isFracPressSurpassed
-        % pressure surpassed P_over the most.
-        [val, inx] = max(maxP_encountered - P_over);
-        
-        if opt.outputOn
-            fprintf('The fracture pressure was surpassed by %d MPa (%d bars), in cell %d.\n', ...
-                convertTo(val, mega*Pascal), convertTo(val, barsa), inx)
-            fprintf('... which was %4.2f percent of its fracture pressure.\n', ...
-                (maxP_encountered(inx)/P_over(inx))*100 )
-        end
-    else
-        % pressure was closest to or was equal to its fracture pressure.
-        assert( all(P_over - maxP_encountered) >= 0 )
-        [val, inx] = min(P_over - maxP_encountered);
-        
-        if ~isempty(find(wcinx == inx))
-           str = ['well ',num2str(find(wcinx == inx))];
-        else
-           str = ['not a well']; 
-        end
-        if opt.outputOn
-            fprintf(['The fracture pressure was not surpassed, but ...\n', ...
-                'the pressure of cell %d (%s) was %4.2f percent of its fracture pressure.\n'], ...
-                inx, str, (maxP_encountered(inx)/P_over(inx))*100 )
-        end
-    end
-    res.worst_percent_of_fracPress_reached = (maxP_encountered(inx)/P_over(inx))*100;
+    
+%     % for cell where overburden pressure was maximally surpassed, or for cell
+%     % where pressure was closest to its overburden pressure.
+%     
+%     % Determine the cell where ...
+%     if isOverBurdenPressSurpassed
+%         % pressure surpassed P_over the most.
+%         [val, inx] = max(maxP_encountered - P_over);
+%         
+%         if opt.outputOn
+%             fprintf('The overburden pressure was surpassed by %d MPa (%d bars), in cell %d.\n', ...
+%                 convertTo(val, mega*Pascal), convertTo(val, barsa), inx)
+%             fprintf('... which was %4.2f percent of its overburden pressure.\n', ...
+%                 (maxP_encountered(inx)/P_over(inx))*100 )
+%         end
+%     else
+%         % pressure was closest to or was equal to its overburden pressure.
+%         assert( all(P_over - maxP_encountered) >= 0 )
+%         [val, inx] = min(P_over - maxP_encountered);
+%         
+%         if ~isempty(find(wcinx == inx))
+%            str = ['well ',num2str(find(wcinx == inx))];
+%         else
+%            str = ['not a well']; 
+%         end
+%         if opt.outputOn
+%             fprintf(['The overburden pressure was not surpassed, but ...\n', ...
+%                 'the pressure of cell %d (%s) was %4.2f percent of its overburden pressure.\n'], ...
+%                 inx, str, (maxP_encountered(inx)/P_over(inx))*100 )
+%         end
+%     end
+%     res.worst_percent_of_OBpress_reached = (maxP_encountered(inx)/P_over(inx))*100;
     
     % Plot pressure change over time for that cell:
     for i = 1:numel(states)
@@ -176,6 +183,7 @@ function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, s
     end
     initp           = initPressure(inx);
     p_over_of_cell  = P_over(inx);
+    p_lim_of_cell   = plim(inx);
     
     time_yr = convertTo(cumsum(schedule.step.val), year)';
     
@@ -183,10 +191,12 @@ function res = plotFormationPressureChanges( states, initPressure, P_over, Gt, s
     hold on
     plot([0 time_yr], [initp dp_of_cell]/1e6, 'LineWidth',3)
     plot([0 time_yr], repmat(p_over_of_cell/1e6,[1 numel(states)+1]), '--', 'LineWidth',3)
+    plot([0 time_yr], repmat(p_lim_of_cell/1e6,[1 numel(states)+1]), '--', 'LineWidth',2)
     xlim([0 time_yr(end)])
     xlabel('Time (years since start of injection)')
     ylabel('Pressure (MPa)')
-    legend(['cell ',num2str(inx),' pressure'],['cell ',num2str(inx),' fracture pressure'])
+    legend(['cell ',num2str(inx),' pressure'],['cell ',num2str(inx),' overburden pressure'], ...
+        ['cell ',num2str(inx),' pressure limit'])
     hfig = gcf;
     set(findall(hfig,'Type','Text'), 'FontSize',16)
     set(findobj(hfig.Children,'Type','Legend'),'FontSize',14)

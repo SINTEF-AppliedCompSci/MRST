@@ -29,6 +29,10 @@ load coarsening_levels_70percent_of_full_StrapCap.mat;
 n       = {names_and_cellsizes{:,1}};
 c_level = {names_and_cellsizes{:,3}};
 
+surface_pressure = 1 * atm;
+c_water          = 4.3e-5/barsa;  % Pa^-1
+pvMult           = 1e-5/barsa;    % Pa^-1
+gravity on
 
 for i=1:numel(names)
     
@@ -60,13 +64,24 @@ for i=1:numel(names)
     % Get max and min over-burden pressure:
     P_over_max(i) = convertTo(max(P_over), mega * Pascal);
     P_over_min(i) = convertTo(min(P_over), mega * Pascal);
+    P_over_mean(i) = convertTo(mean(P_over), mega * Pascal);
 
 
     % Compute pressure-limit:
     P_limit_max = P_over_max * 0.9;
     P_limit_min = P_over_min * 0.9;
 
+    
+    % Get storage efficiency factor for a closed system:
+    init_p  = seainfo.water_density * norm(gravity()) * Gt.cells.z + surface_pressure;
+    E(i)    = closed_system_storage_efficiency( c_water, pvMult, 0.9*P_over, init_p );
 
+    pv = Gt.cells.volumes .* Gt.cells.H .* other.rock.poro; % pore volume (m3)
+    if isfield(other.rock,'ntg')
+        pv = pv .* other.rock.ntg;
+    end
+    rho_co2  = other.fluid.rhoG(other.initState.pressure); % kg/m3
+    M_co2(i) = E(i) * sum( rho_co2 .* pv )/1e12; % Gt
 
     % Show in figures:
 
@@ -85,10 +100,21 @@ end
 fprintf('-------------|----------------|----------------\n\n');
 
 % Show in a bar plot:
-figure; set(gcf,'Position',[1 1 1245 400])
-bar(1:numel(names), [P_over_min; P_over_max]'); legend('min', 'max')
-ylabel('Over-pressure [MPa]', 'FontSize',16)
+figure; set(gcf,'Position',[1 1 1262 444])
+errorbar(1:numel(names), P_over_mean, P_over_min, P_over_max, ...
+    'rx', 'MarkerSize',10, 'LineWidth',2)
+%bar(1:numel(names), [P_over_min; P_over_max]'); legend('min', 'max')
+ylabel('Overburden pressure (MPa)', 'FontSize',16)
 set(gca,'xtick',1:numel(names),'xticklabel',names,'xticklabelrotation',45, 'fontsize',16)
+
+% Show E in a plot:
+figure; set(gcf,'Position',[1 1 1262 444])
+hold on
+plot(1:numel(names), E * 100, 'x', 'MarkerSize',10, 'LineWidth',2)
+plot(1:numel(names), repmat(mean(E*100), numel(names), 1), '--', 'MarkerSize',10, 'LineWidth',2)
+ylabel('Storage efficiency ({%})', 'FontSize',16)
+set(gca,'xtick',1:numel(names),'xticklabel',names,'xticklabelrotation',45, 'fontsize',16)
+box
 
 
 
