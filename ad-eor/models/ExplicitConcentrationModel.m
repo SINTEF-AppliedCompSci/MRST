@@ -8,9 +8,7 @@ classdef ExplicitConcentrationModel < OilWaterSurfactantBaseModel
 
 
       function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-            [problem, state] = equationsOilWaterSurfactant(state0, state, model, dt, drivingForces, ...
-                                                           'assembleOnlyExplicitConcentrationEquation', ...
-                                                           true, varargin{:});
+            [problem, state] = equationsSurfactantTransport(state0, state, model, dt, drivingForces, varargin{:});
       end
 
       function [state, report] = updateState(model, state, problem, dx, drivingForces)

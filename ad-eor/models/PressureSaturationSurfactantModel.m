@@ -6,9 +6,8 @@ classdef PressureSaturationSurfactantModel < OilWaterSurfactantBaseModel
       end
 
       function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-         [problem, state] = equationsOilWaterSurfactant(state0, state, model, dt, drivingForces, ...
-                                                        'assembleOnlyOWEquation', true, ...
-                                                        varargin{:});
+         [problem, state] = equationsPressureSaturationForOilWaterSurfactant(state0, state, model, ...
+                                                           dt, drivingForces, varargin{:});
       end
 
 
