@@ -22,12 +22,11 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
          model.pressureSaturationSurfactantModel = PressureSaturationSurfactantModel(G, rock, fluid, varargin{:});
          model.explicitConcentrationModel = ExplicitConcentrationModel(G, rock, fluid, varargin{:});
 
-         model.pressureSaturationSurfactantSolver = NonLinearSolver;
-         model.explicitConcentrationSolver = NonLinearSolver;
+         model.pressureSaturationSurfactantSolver = NonLinearSolver('disableTimeCut', true);
+         model.explicitConcentrationSolver = NonLinearSolver('disableTimeCut', true);
 
       end
 
-      
       function [state, report] = stepFunction(model, state, state0, dt, ...
                                              drivingForces, linsolve, nonlinsolve,...
                                               iteration, varargin)
@@ -45,7 +44,7 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
 
          if press_sat_report.Converged
             % Solve for concentration
-            [new_state, conc_report] = conc_solver.solveTimestep(state, dts(subiter), conc_model, ...
+            [new_state, conc_report] = conc_solver.solveTimestep(state, dt, conc_model, ...
                                                               forceArg{:});
             new_state = updateAdsorption(state, new_state, model);
             state = new_state;
@@ -54,12 +53,7 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
          end
          
          converged = press_sat_report.Converged && conc_report.Converged;
-         failure = press_sat_report.failure && conc_report.failure;
-
-         report = model.makeStepReport(...
-            'Converged',       converged, ...
-            'failure', failure ...
-            );
+         report = model.makeStepReport('Converged', converged);
          
          report.PressureSaturationSolver =  press_sat_report;
          report.ConcentrationSolver= conc_report;
