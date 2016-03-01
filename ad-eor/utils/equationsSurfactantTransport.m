@@ -60,7 +60,7 @@ function [problem, state] = equationsSurfactantTransport(state0, state, ...
   [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, T]  = ...
       computeFluxAndPropsOilWaterSurfactant(model, p0, p, sW, c_flux, pBH, W);
 
-   mobSft = mobW.*c_flux;
+   mobSft = c_flux.*mobW;
    vSft   = -op.faceUpstr(upcw, mobSft).*T.*dpW;
    bWvSft = op.faceUpstr(upcw, bW).*vSft;
 
@@ -75,7 +75,6 @@ function [problem, state] = equationsSurfactantTransport(state0, state, ...
 
    if model.extraStateOutput
       sigma = fluid.ift(c_impl);
-      state = model.storeSurfData(state, sW, c_impl, Nc, sigma);
    end
 
    eqs   = {surfactant};
