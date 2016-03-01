@@ -176,9 +176,14 @@ function spe10SurfanctantExample()
 
    % Run schedule
    resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
+   solver = NonLinearSolver('Verbose', true);
+   if isa(modelSurfactant, 'ImplicitExplicitOilWaterSurfactantModel')
+      solver.maxIterations = 1;
+      solver.minIterations = 0;
+   end
    [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule, ...
-                                                     'OutputHandler', resulthandler);
-
+                                                     'OutputHandler', resulthandler, ...
+                                                     'NonLinearSolver', solver);
 
 end
 
