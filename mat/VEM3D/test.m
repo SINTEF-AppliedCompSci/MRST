@@ -40,6 +40,7 @@ G = voronoiCube(250  ,gridLim);
 % f = @(X) zeros(size(X,1),1);
 % C = -[.2,.2,.2];
 % gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
+% k = 1;
 
 %--------------------------------------------------------------------------
 %   -\delta u = 1,
@@ -47,6 +48,8 @@ G = voronoiCube(250  ,gridLim);
 %--------------------------------------------------------------------------
 f = @(X) ones(size(X,1),1);
 gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
+k = 1;
+
 
 % %--------------------------------------------------------------------------
 % %   -\delta u = \sin(x)\cos(y)z(1+alpha^2\pi)(1+\alpha^2\pi^2)  ,
@@ -56,7 +59,7 @@ gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
 % f = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3)*(1+alpha^2*pi^2);
 % gD = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3);
 
-G = computeVEMGeometry(G,f);
+G = computeVEMGeometry(G,f,k);
 
 
 boundaryFaces = (1:G.faces.num)';
@@ -66,7 +69,7 @@ boundaryFaces = boundaryFaces( G.faces.neighbors(:,1) == 0 | ...
 
 bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryFaces}}, 'bcType', {{'dir'}});
 
-sol = VEM3D(G,f,bc,2);
+sol = VEM3D(G,f,bc,k);
 U = [sol.nodeValues; sol.edgeValues; sol.faceMoments; sol.cellMoments];
 
 
@@ -78,6 +81,7 @@ faceNum = mcolon(G.cells.facePos(cells),G.cells.facePos(cells+1)-1);
 faces = G.cells.faces(faceNum);
 % faces = 1:G.faces.num;
 
+if k == 2
 figure();
 plotFaces(G,faces,sol.faceMoments(faces));
 
@@ -91,6 +95,11 @@ IC = polyhedronInt(G,1:G.cells.num,gD, 7);
 u = [gD([G.nodes.coords; G.edges.centroids]); IF./G.faces.areas; IC./G.cells.volumes];
 
 err = abs((U - u));
+
+elseif k == 1
+    u = gD(G.nodes.coords);
+    err = abs(U-u);
+end
 
 h = sum(G.cells.diameters)/G.cells.num;
 

@@ -1,4 +1,4 @@
-function [bcDof, bBC] = VEM3D_bc(G, BC)
+function [bcDof, bBC] = VEM3D_bc(G, BC, k)
 %--------------------------------------------------------------------------
 %   Sets boundary conditions for the Poisson problem.
 %
@@ -18,7 +18,6 @@ nN = G.nodes.num;           %   Number of nodes.
 nE = G.edges.num;           %   Number of edges.
 nF = G.faces.num;
 nK = G.cells.num;           %   Number of cells.
-k = 2;
 
 N = nN + nE*(k-1) + nF*k*(k-1)/2 + nK*k*(k^2-1)/6;        %   Number of dofs.
 
@@ -35,20 +34,34 @@ for b = 1:nBC
     
     nodeNum = mcolon(G.faces.nodePos(faces),G.faces.nodePos(faces+1)-1);
     nodes = G.faces.nodes(nodeNum);
-    edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
-    edges = G.faces.edges(edgeNum);
     
-    I = polygonInt3D(G, faces, g, 3)./G.faces.areas(faces);
+    if k == 1
+        
+        X = G.nodes.coords(nodes,:);
+        gChi = g(X);
+        dofVec = nodes';
+        
     
-    X = [G.nodes.coords(nodes,:)    ; ...
-         G.edges.centroids(edges,:)];
+    elseif k == 2
+    
+        edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
+        edges = G.faces.edges(edgeNum);
+    
+        I = polygonInt3D(G, faces, g, 3)./G.faces.areas(faces);
+    
+        X = [G.nodes.coords(nodes,:)    ; ...
+             G.edges.centroids(edges,:)];
+         
+        gChi = [g(X); I];
+         
+        dofVec = [nodes', edges' + nN, faces' + nN + nE*(k-1)];
+    end
      
     switch type
         
         case 'dir'
-            dofVec = [nodes', edges' + nN, faces' + nN + nE*(k-1)];
             bcDof(dofVec) = 1;
-            bBC(dofVec) = [g(X); I];
+            bBC(dofVec) = gChi;
         case 'neu'
 %             bcDof([nodes, Nn + edges]) = 2;
 %             edgeLengths = G.faces.areas(edges);

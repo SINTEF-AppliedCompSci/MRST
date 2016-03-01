@@ -1,9 +1,7 @@
 function [sol, G] = VEM3D(G, f, bc, k)
 
-                            %   Current implementation only supports k = 2
-k = 2;
 
-[A,b] = VEM3D_glob(G,f,bc);
+[A,b] = VEM3D_glob(G,f,bc,k);
 
 fprintf('Solving linear system ...\n')
 tic;
@@ -20,7 +18,7 @@ nK = G.cells.num;
 
 nodeValues  = full( U( 1:nN)                                             );
 edgeValues  = full( U((1:nE*(k-1))       + nN)                           );
-faceMoments = full( U((1:nF*k(k-1)/2)    + nN + nE*(k-1))                );
+faceMoments = full( U((1:nF*k*(k-1)/2)   + nN + nE*(k-1))                );
 cellMoments = full( U((1:nK*k*(k^2-1)/6) + nN + nE*(k-1) + nF*k*(k-1)/2) );
 
 sol = struct(...

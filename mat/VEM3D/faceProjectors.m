@@ -1,35 +1,38 @@
-function I = faceProjectors(G)
+function I = faceProjectors(G, k)
 
-m      = @(X) ...
-         [ones(size(X,1),1) , ...   %   (0,0)
-          X(:,1)            , ...   %   (1,0)
-          X(:,2)            , ...   %   (0,1)
-          X(:,1).^2         , ...   %   (2,0)
-          X(:,1).*X(:,2)    , ...   %   (1,1)
-          X(:,2).^2         , ...   %   (0,2) 
-                            ];
+% m      = @(X) ...
+%          [ones(size(X,1),1) , ...   %   (0,0)
+%           X(:,1)            , ...   %   (1,0)
+%           X(:,2)            , ...   %   (0,1)
+%           X(:,1).^2         , ...   %   (2,0)
+%           X(:,1).*X(:,2)    , ...   %   (1,1)
+%           X(:,2).^2         , ...   %   (0,2) 
+%                             ];
+% 
+% grad_m = @(X) ...
+%          [ones(size(X,1),1)    , zeros(size(X,1),1); ...
+%           zeros(size(X,1),1)   , ones(size(X,1),1) ; ...
+%           X(:,1)*2             , zeros(size(X,1),1); ...
+%           X(:,2)               , X(:,1)            ; ...
+%           zeros(size(X,1),1)   , X(:,2)*2          ];
+% 
+% int_m  = @(X) ...
+%          [X(:,1)                , ...
+%           X(:,1).^2/2           , ...
+%           X(:,1).*X(:,2)        , ...
+%           X(:,1).^3/3           , ...
+%           X(:,1).^2.*X(:,2)/2   , ...
+%           X(:,1).*X(:,2).^2     ];
 
-grad_m = @(X) ...
-         [ones(size(X,1),1)    , zeros(size(X,1),1); ...
-          zeros(size(X,1),1)   , ones(size(X,1),1) ; ...
-          X(:,1)*2             , zeros(size(X,1),1); ...
-          X(:,2)               , X(:,1)            ; ...
-          zeros(size(X,1),1)   , X(:,2)*2          ];
-
-int_m  = @(X) ...
-         [X(:,1)                , ...
-          X(:,1).^2/2           , ...
-          X(:,1).*X(:,2)        , ...
-          X(:,1).^3/3           , ...
-          X(:,1).^2.*X(:,2)/2   , ...
-          X(:,1).*X(:,2).^2     ];
+[m ,grad_m, int_m] = retrieve2DMonomials(k);
       
 m3D    = @(X) ...
          [X(:,1)    , ...
           X(:,2)    , ...
           X(:,3)    ];
 
-
+nk = (k+1)*(k+2)/2;
+      
                             %   Face data.
 nF          = G.faces.num;
 Fc          = G.faces.centroids;
@@ -56,7 +59,9 @@ nN      = size(nodes,1);
 nodes(G.faces.edgeSign(edgeNum) == -1,:) ...
         = nodes(G.faces.edgeSign(edgeNum) == -1,2:-1:1);
 nodes   = reshape(nodes,[],1);
+
 X = [G.nodes.coords(nodes,:); Ec];
+
 
                             %   Build local coordinate systems.
                             %   x -> Tx + b
@@ -80,7 +85,7 @@ Fc = cell2mat(cellfun(@(X,Y,b) (X-b)*Y, ...
              mat2cell(T,3*ones(nF,1),2), ...
              mat2cell(b,ones(nF,1),3), ...
                          'UniformOutput', false));
-
+                     
 edgeNormals = ...
     cell2mat(cellfun(@(X,Y) X*Y, ...
     mat2cell(edgeNormals,diff(G.faces.edgePos),3), ...
@@ -91,22 +96,46 @@ edgeNormals = ...
 numFaceNodes = diff(G.faces.nodePos);
 Xmon = bsxfun(@rdivide, X - repmat(rldecode(Fc,numFaceNodes,1),3,1), ...
                             repmat(rldecode(hF,numFaceNodes,1),3,1));                     
-                     
+
                             %   Scale edgeNormals by length.
 edgeNormals = bsxfun(@times, edgeNormals, hE);
 
 %%  CALCULATE INTEGRALS FOR D MATRICES                                   %%
 
-intD = bsxfun(@times, ...
-              (int_m(Xmon(1:nN,:)) + int_m(Xmon(nN+1:2*nN,:)))/6    ... 
-                                   + int_m(Xmon(2*nN+1:end,:))*2/3, ...
-               edgeNormals(:,1));
-           
-intD = cell2mat(cellfun(@(X) sum(X,1)                   , ...
-                mat2cell(intD,diff(G.faces.edgePos),6)  , ....
-                'UniformOutput', false));
-            
-intD = bsxfun(@times, intD, hF./aF);
+if k == 1
+    
+    D = m(Xmon(1:nN,:));
+    
+    intB = .5*sum(grad_m(Xmon(2*nN+1:end,:)).*repmat(edgeNormals,2,1),2);
+    intB = reshape(intB, nN, 2);
+
+              
+    tmp  = intB(G.faces.edgePos(2:end) - 1,:);
+    intB2 = zeros(size(intB));
+    intB2(2:nN,:) = intB(1:nN-1,:);
+    intB2(G.faces.edgePos(1:end-1),:) = tmp;
+
+    intB = bsxfun( ...
+                  @rdivide   , ...
+                  intB + intB2       , ...
+                  rldecode(hF,diff(G.faces.edgePos),1) );    
+       
+    NF = diff(G.faces.edgePos);
+              
+    BT = [ones(sum(NF), 1)./rldecode(NF,NF,1), intB];
+    
+
+if k == 2
+    intD = bsxfun(@times, ...
+                  (int_m(Xmon(1:nN,:)) + int_m(Xmon(nN+1:2*nN,:)))/6    ... 
+                                       + int_m(Xmon(2*nN+1:end,:))*2/3, ...
+                   edgeNormals(:,1));
+
+    intD = cell2mat(cellfun(@(X) sum(X,1)                   , ...
+                    mat2cell(intD,diff(G.faces.edgePos),6)  , ....
+                    'UniformOutput', false));
+
+    intD = bsxfun(@times, intD, hF./aF);
 
 %%  CALCULATE INTEGRALS FOR B MARTICES                                   %%
 
@@ -145,54 +174,13 @@ D = zeros(N,6);
 D(ii,:) = m(Xmon([1:nN, 2*nN+1:3*nN],:));
 D(2*diffVec' + (1:nF),:) = intD;
 
-BT = mat2cell(BT,NF, 6);
-D  = mat2cell(D,NF,6);
+end
+
+BT = mat2cell(BT,NF, nk);
+D  = mat2cell(D,NF,nk);
 
                                 %   Speed: Do sparse block..
 PNstar = cellfun(@(BT,D) (BT'*D)\BT', BT, D, 'UniformOutput', false);   
-% PNstar = cell2mat(PNstar);
-
-
-% for i = 1:nF
-% 
-%     tt = T(3*(i-1)+1:3*i,:);
-%     
-%     nodeNum  =G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
-%     nn= G.faces.nodes(nodeNum);
-%     xx = G.nodes.coords(nn,:);
-%     bb = xx(1,:);
-%     xxu = xx;
-%     xx = (xx-repmat(bb,size(xx,1),1))*tt;
-% %     xx = (xx - repmat(Fc(i,:),size(xx,1),1))/hF(i);
-% %     xx = xx*tt;
-%     
-%     edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
-%     ee  = G.faces.edges(edgeNum);
-%     ec = G.edges.centroids(ee,:);
-% %     ee = (ee - repmat(Fc(i,:),size(xx,1),1))/hF(i);
-%     ec = (ec-repmat(bb,size(ec,1),1))*tt;
-% 
-% %     en = G.faces.edgeNormals(edgeNum,:);
-% %     en = en*tt;
-%     
-%     ff = Fc(i,:);
-%     
-%     mm = @(X) [ ones(size(X,1),1), (X(:,1)-ff(1))/hF(i), ...
-%                                     (X(:,2)-ff(2))/hF(i), ...
-%                                     ((X(:,1)-ff(1))/hF(i)).^2, ...
-%                                     (X(:,1)-ff(1))/hF(i).*(X(:,2)-ff(2))/hF(i), ...
-%                                     ((X(:,2)-ff(2))/hF(i)).^2]; 
-%     %%  Check for D. OK
-%     dd = D{i};
-%     dd-[mm([xx;ec]); polygonInt(xx, mm)/aF(i)]
-%     
-%     %%  Check for B.
-%     
-% %     bb = BT{i}';
-% %     xx
-% %     bb
-%     
-% end
 
 %%  FACE INTEGRALS                                                       %%
 
@@ -201,26 +189,19 @@ PNstar = cellfun(@(BT,D) (BT'*D)\BT', BT, D, 'UniformOutput', false);
 
 % http://people.sc.fsu.edu/~jburkardt/datasets/quadrature_rules_tri/quadrature_rules_tri.html
 
-Xq =   [ 1/3, 1/3; ...
-         3/5, 1/5; ...
-         1/5, 3/5; ...
-         1/5, 1/5];
-w = .5*[-0.56250000000000000000; ...
-         0.52083333333333333333; ...
-         0.52083333333333333333; ...
-         0.52083333333333333333];
 
+[Xq, w, ~, vol] = triangleQuadRule(k+1);
+     
 nq = size(Xq,1);
 
-k = 2;
 N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2;
 I = sparse(G.cells.num*6,N);
 
 Kc = G.cells.centroids;
 hK = G.cells.diameters;
 TPos = (0:3:3*nF)+1;
-PNFstarPos = (0:6:6*G.faces.num)+1;
-intPos = (0:6:6*G.cells.num)+1;
+PNFstarPos = (0:nk:nk*G.faces.num)+1;
+intPos = (0:nk:nk*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
              rldecode((1:G.cells.num)',diff(G.cells.facePos),1)];
 neighbors = G.faces.neighbors;
@@ -263,13 +244,15 @@ for i = 1:nF
     Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
     Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
 
+    if k == 2
                             %   Map form local to global coordinates and 
                             %   scale for use in 3D monomials.
     XKmon = Xhat*TF' + repmat(bT,nTri*nq,1);
     XKmon = bsxfun(@rdivide, ...
                 repmat(XKmon,nK,1) - rldecode(Kc(cells,:),nq*nTri*ones(nK,1),1), ...
                 rldecode(hK(cells),nq*nTri*ones(nK,1),1));
-            
+    
+    end
                             %   Scale coordinates for use in 2D monomials.
     XFmon = (Xhat - repmat(Fc(i,:),nq*nTri,1))/hF(i);
 
@@ -282,6 +265,12 @@ for i = 1:nF
                   
                             %   Evaluate monomials at quadrature points.
     mVals = m(XFmon)*PNFstar;
+    
+    if k == 1
+        grad_mVals = faceNormal;
+        grad_mVals = bsxfun(@rdivide, grad_mVals,...
+                        rldecode(hK(cells),nq*nTri*ones(nK,1),1));
+    elseif k == 2
     m3Dvals = m3D(XKmon);
     grad_mVals = ...
       [2*m3Dvals(:,1).*faceNormal(:,1)                                , ...
@@ -292,17 +281,21 @@ for i = 1:nF
        2*m3Dvals(:,3).*faceNormal(:,3)];
     grad_mVals = bsxfun(@rdivide, grad_mVals,...
                         rldecode(hK(cells),nq*nTri*ones(nK,1),1));
-                    
+    end       
                             %   Multilply by wheights and determinants.
-    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(w,nTri,1),nK,1); 
+    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
     grad_mVals = bsxfun(@times,grad_mVals,detAw);
-    grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),6);
+    grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),nk);
         
                             %   Evaluate integrals.
     int = cell2mat(cellfun(@(X) X'*mVals, grad_mVals, 'UniformOutput', false));
     
                             %   Construct local to global map.
-    dofVec = [faceNodes', faceEdges' + G.nodes.num, i + G.nodes.num + G.edges.num];
+    if k == 1
+        dofVec = faceNodes';
+    elseif k == 2
+        dofVec = [faceNodes', faceEdges' + G.nodes.num, i + G.nodes.num + G.edges.num];
+    end
     
     intNum = mcolon(intPos(cells),intPos(cells+1)-1);
     

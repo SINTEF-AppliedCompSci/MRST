@@ -1,6 +1,7 @@
 clc; clear all; close all;
 addpath('../');
 addpath('../VEM2D/');
+addpath('../VEM3D/');
 
 G = cartGrid([1,1], [2,2]);
 
@@ -61,8 +62,8 @@ f = @(X) X(:,1);
 % fprintf('Result from unit square comparison: \t  %d \n\n', err);
 
 %   TEST 3: Finite difference
-nx = 2; ny = 10;
-xMax = 2; yMax = 3;
+nx = 4; ny = 4;
+xMax = 1; yMax = 1;
 G = cartGrid([nx,ny],[xMax, yMax]);
 f = @(X) zeros(size(X,1),1);
 gD = @(X) X(:,1);
@@ -104,3 +105,27 @@ A_FD(bcDof == 1,:) = SBC(bcDof == 1,:);
 diff = norm(A-A_FD,'fro')
 % full(A)
 % full(A_FD)
+
+
+% %   TEST 4: Finite difference 3D
+% 
+% G = cartGrid([2,2,2], [1,1,1]);
+% G = computeVEMGeometry(G,f,1);
+% h = mean(G.cells.diameters);
+% 
+% boundaryEdges = find((G.faces.neighbors(:,1) == 0) + (G.faces.neighbors(:,2) == 0));
+% gD = @(X) X(:,1);
+% bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryEdges}}, 'bcType', {{'dir'}});
+% nN = G.nodes.num;
+% [bcDof, bBC] = VEM3D_bc(G,bc,1);
+% SBC = spdiags(ones(nN,1),0,nN,nN);
+% 
+% [A_FD, epsx, epsy, epsz] = stencils3D(G,1,0,0);
+% alpha = 3/8;%(epsx+epsy+epsz)/(2*sqrt(3));
+% [A_VEM,b] = VEM3D_glob(G,f,bc, alpha, 1);
+% 
+% A_FD(bcDof == 1,:) = SBC(bcDof == 1,:);
+% 
+% A_VEM(14,1)
+% 
+% diff = norm(A_VEM-A_FD,'fro')

@@ -1,4 +1,4 @@
-function [Sl, bl, dofVec] = VEM3D_loc(G, f, K)
+function [AK, bK, dofVec] = VEM3D_loc(G, f, K, alpha, k)
 %--------------------------------------------------------------------------
 %
 %   Awesome function.
@@ -17,60 +17,78 @@ X       = G.nodes.coords(nodes,:);
 monNodeNum = G.cells.monomialNodeValsPos(K):G.cells.monomialNodeValsPos(K+1)-1;
 monomialNodeVals = G.cells.monomialNodeVals(monNodeNum,:);
 nN      = size(nodes,1);
-
-                            %   Edge data for cell K.
-edgeNum = G.cells.edgePos(K):G.cells.edgePos(K+1)-1;
-edges   = G.cells.edges(edgeNum);
-if size(edges,1) == 1;
-    edges = edges';
-end
-Ec      = G.edges.centroids(edges,:);
-monEdgeNum = G.cells.monomialEdgeValsPos(K):G.cells.monomialEdgeValsPos(K+1)-1;
-monomialEdgeVals = G.cells.monomialEdgeVals(monEdgeNum,:);
-nE      = size(edges,1);
-
-                            %   Face data for cell K.
-faceNum     = G.cells.facePos(K):G.cells.facePos(K+1)-1;
-faces       = G.cells.faces(faceNum);
-if size(faces,1) == 1;
-    faces = faces';
-end
-nF          = size(faces,1);
-faceAreas   = G.faces.areas(faces);
-faceNormals = G.faces.normals(faces,:);
-faceSigns    = (-ones(nF,1)).^(G.faces.neighbors(faces,1) ~= K);
-faceNormals = bsxfun(@times, faceNormals,faceSigns);
-fFaceIntegrals = G.faces.fFaceIntegrals(faces);
-
-                            %   Cell data for cell K.
-Kc  = G.cells.centroids(K,:);
 hK  = G.cells.diameters(K);
 vol = G.cells.volumes(K);
-fCellIntegral = G.cells.fCellIntegrals(K);
 
+if k == 2
+                                %   Edge data for cell K.
+    edgeNum = G.cells.edgePos(K):G.cells.edgePos(K+1)-1;
+    edges   = G.cells.edges(edgeNum);
+    if size(edges,1) == 1;
+        edges = edges';
+    end
+    Ec      = G.edges.centroids(edges,:);
+    monEdgeNum = G.cells.monomialEdgeValsPos(K):G.cells.monomialEdgeValsPos(K+1)-1;
+    monomialEdgeVals = G.cells.monomialEdgeVals(monEdgeNum,:);
+    nE      = size(edges,1);
 
-k  = 2;                     %   Method order.
+                                %   Face data for cell K.
+    faceNum     = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+    faces       = G.cells.faces(faceNum);
+    if size(faces,1) == 1;
+        faces = faces';
+    end
+    nF          = size(faces,1);
+    faceAreas   = G.faces.areas(faces);
+    faceNormals = G.faces.normals(faces,:);
+    faceSigns    = (-ones(nF,1)).^(G.faces.neighbors(faces,1) ~= K);
+    faceNormals = bsxfun(@times, faceNormals,faceSigns);
+    fFaceIntegrals = G.faces.fFaceIntegrals(faces);
+
+                                %   Cell data for cell K.
+    Kc  = G.cells.centroids(K,:);
+    fCellIntegral = G.cells.fCellIntegrals(K);
+    
+end
+
 nk = (k+1)*(k+2)*(k+3)/6;   %   Dimension of polynomial space.
                             %   Local nomber of dofs.
-NK = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
+if k == 1
+    NK = nN;
+elseif k == 2
+    NK = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
+end
 
 
 %%  BUILD MATRIX B                                                       %%
 
 B = zeros(nk, NK);
-intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
-dofVec = [nodes', edges' + G.nodes.num, ...
-          faces' + G.nodes.num + G.edges.num];
-% full(G.cells.Bint(intPos, :));
-B(5:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
-B(1,NK) = 1;
-B(2:4, nN + nE*(k-1) + 1: nN + nE*(k-1) + nF*k*(k-1)/2) = ...
-    faceNormals'/hK;
-B([5,8,10],NK) = -2*vol/hK.^2;
 
+intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
+
+if k == 1
+    B(1,:) = 1/NK;      % CHECK!
+    dofVec = nodes';
+    B(2:nk,:) = G.cells.Bint(intPos, dofVec);
+elseif k == 2
+    B(1,NK) = 1;
+    B(2:4, nN + nE*(k-1) + 1: nN + nE*(k-1) + nF*k*(k-1)/2) = ...
+    faceNormals'/hK;
+    dofVec = [nodes', edges' + G.nodes.num, ...
+              faces' + G.nodes.num + G.edges.num];
+    B(5:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
+    B([5,8,10],NK) = -2*vol/hK.^2;
+end
+    
 %%  BUILD MATRIX D                                                       %%
 
-m3D = @(X) [ones(size(X,1),1), ...
+if k == 1
+    
+    D = monomialNodeVals;
+    
+elseif k == 2
+
+    m3D = @(X) [ones(size(X,1),1), ...
                 (X(:,1)-Kc(1))/hK, ...
                 (X(:,2)-Kc(2))/hK, ...
                 (X(:,3)-Kc(3))/hK, ...
@@ -80,15 +98,16 @@ m3D = @(X) [ones(size(X,1),1), ...
                 (X(:,2)-Kc(2)).^2/hK^2, ...
                 (X(:,2)-Kc(2)).*(X(:,3)-Kc(3))/hK^2, ...
                 (X(:,3)-Kc(3)).^2/hK^2];
+    
+    faceIntegrals = polygonInt3D(G, faces, m3D, 2);
+    cellIntegrals = polyhedronInt(G, K, m3D, 2);
 
-faceIntegrals = polygonInt3D(G, faces, m3D, 2);
-cellIntegrals = polyhedronInt(G, K, m3D, 2);
-            
-D = [monomialNodeVals                           ; ...
-     monomialEdgeVals                           ; ...
-     bsxfun(@rdivide, faceIntegrals, faceAreas) ; ...
-     cellIntegrals/vol                          ];
-
+    D = [monomialNodeVals                           ; ...
+         monomialEdgeVals                           ; ...
+         bsxfun(@rdivide, faceIntegrals, faceAreas) ; ...
+         cellIntegrals/vol                          ];
+end
+     
 %%  LOCAL STIFFNESS MATRIX                                               %%
  
 M = B*D;
@@ -97,7 +116,7 @@ PN = D*PNstar;
 
 Mtilde = [zeros(1,nk); M(2:nk,:)];
 
-Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
+AK = PNstar'*Mtilde*PNstar + alpha*(eye(NK)-PN)'*(eye(NK)-PN);
 
 % SK = hK*(eye(NK)-PN)'*(eye(NK)-PN);
 % 
@@ -105,28 +124,36 @@ Sl = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
 
 %%  LOCAL LOAD TERM.                                                     %%
 
-                            %   Matrix of integrals over K of all
-                            %   combinations of linear monomials. 
-H = [cellIntegrals([1,2,3,4])  ; ...
-     cellIntegrals([2,5,6,7])  ; ...
-     cellIntegrals([3,6,8,9])  ; ...
-     cellIntegrals([4,7,9,10])];             
-                            %   \Pi^\Nabla in the monomial basis
-                            %   \mathcal{M}_1.
-PNstar = M(1:4,1:4)\B(1:4,:);
-                            %   Dofs \chi^i(f).
-fChi = [f([X; Ec]); ...
-        fFaceIntegrals./faceAreas   ; ...
-        fCellIntegral/vol];
+if k == 1
+    
+    H = vol;
+    PNstar = M(1,1)\B(1,:);
+    fChi = f(X(1:nN,:));
 
-bl = PNstar'*H*PNstar*fChi;
+elseif k == 2
+                                %   Matrix of integrals over K of all
+                                %   combinations of linear monomials. 
+    H = [cellIntegrals([1,2,3,4])  ; ...
+         cellIntegrals([2,5,6,7])  ; ...
+         cellIntegrals([3,6,8,9])  ; ...
+         cellIntegrals([4,7,9,10])];             
+                                %   \Pi^\Nabla in the monomial basis
+                                %   \mathcal{M}_1.
+    PNstar = M(1:4,1:4)\B(1:4,:);
+                                %   Dofs \chi^i(f).
+    fChi = [f([X; Ec]); ...
+            fFaceIntegrals./faceAreas   ; ...
+            fCellIntegral/vol];
+end
 
+bK = PNstar'*H*PNstar*fChi;
 
-%%  LOCAL TO GLOBAL MAP                                                  %%
-
-dofVec = [nodes', edges' + G.nodes.num, ...
-          faces' + G.nodes.num + G.edges.num, ...
-          K + G.nodes.num + G.edges.num + G.faces.num]; 
+% 
+% %%  LOCAL TO GLOBAL MAP                                                  %%
+% 
+% dofVec = [nodes', edges' + G.nodes.num, ...
+%           faces' + G.nodes.num + G.edges.num, ...
+%           K + G.nodes.num + G.edges.num + G.faces.num]; 
 
 % Mdb = zeros(nk,nk);
 % Mdb(1,:) = cellIntegrals/vol;

@@ -1,4 +1,4 @@
-function G = computeVEMGeometry(G,f)
+function G = computeVEMGeometry(G,f,k)
     
     fprintf('Solving Poisson equation on grid with %d cells \n\n', G.cells.num);
     fprintf('Computing VEM geometry ...\n');
@@ -9,7 +9,7 @@ function G = computeVEMGeometry(G,f)
     G = mrstGridWithFullMappings(G);
     
     fprintf('... computing edge data\n');
-    
+
     nodeNum = mcolon(G.edges.nodePos(1:end-1),G.edges.nodePos(2:end)-1);
     nodes = G.edges.nodes(nodeNum);
     edgeVec   = G.nodes.coords(nodes(2:2:end),:) -  ...
@@ -18,8 +18,8 @@ function G = computeVEMGeometry(G,f)
     centroids = (G.nodes.coords(nodes(2:2:end),:) +  ...
                  G.nodes.coords(nodes(1:2:end-1),:))./2;
     clear nodeNum nodes edgeVec
-             
-             
+
+
     faceNormals = G.faces.normals;
     edgeNum = mcolon(G.faces.edgePos(1:end-1),G.faces.edgePos(2:end)-1);
     edges = G.faces.edges(edgeNum);
@@ -30,9 +30,9 @@ function G = computeVEMGeometry(G,f)
     edgeVec = edgeVec.*repmat(signs,1,3);
     normals = cross(edgeVec, rldecode(faceNormals, diff(G.faces.edgePos), 1));
     normals = normals./repmat(sqrt(sum(normals.^2,2)),1,3);
-    
+
     clear faceNormals edgeNum edges signs nodeNum nodes edgeVec
-    
+
     nodes = G.cells.nodes;
     edgeNodes = repmat(reshape(G.edges.nodes,2,[])',G.cells.num,1);
     edgeNodes = mat2cell(edgeNodes, G.edges.num*ones(1,G.cells.num),2);
@@ -43,10 +43,16 @@ function G = computeVEMGeometry(G,f)
            edgeNodes, nodes, edges,  'UniformOutput', false);
     edgePos = [1;cumsum(cellfun(@(X) size(X,1), cellEdges))+1];
     cellEdges = cell2mat(cellEdges);
-    
+
     clear nodes edgeNodes edges
-    
-    fprintf('... computing cell and face diameters\n');
+
+    G.edges.('lengths')     = lengths;
+    G.edges.('centroids')   = centroids;
+    G.faces.('edgeNormals') = normals;
+    G.cells.('edges')       = cellEdges;
+    G.cells.('edgePos')     = edgePos;
+
+    fprintf('... computing diameters\n');
     
     cellDiameters = zeros(G.cells.num,1);
     for i = 1:G.cells.num
@@ -55,6 +61,9 @@ function G = computeVEMGeometry(G,f)
         X = G.nodes.coords(nodes,:);
         cellDiameters(i) = cellDiameter(X);
     end
+    
+    G.cells.('diameters')   = cellDiameters;
+    
     faceDiameters = zeros(G.faces.num,1);
     for i = 1:G.faces.num
         nodeNum = G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
@@ -62,43 +71,38 @@ function G = computeVEMGeometry(G,f)
         X = G.nodes.coords(nodes,:);
         faceDiameters(i) = cellDiameter(X);
     end
-    
-    G.edges.('lengths')     = lengths;
-    G.edges.('centroids')   = centroids;
-    G.faces.('edgeNormals') = normals;
-    G.cells.('diameters')   = cellDiameters;
+
     G.faces.('diameters')   = faceDiameters;
-    G.cells.('edges')       = cellEdges;
-    G.cells.('edgePos')     = edgePos;
     
-%     [IC, IF] = monomialCellInt(G);
-%     faceIntPos = [1,cumsum(diff(G.cells.facePos)')+1];
     fprintf('... computing source term integrals\n');
-    IFf = polygonInt3D(G,1:G.faces.num,f,3);
-    ICf = polyhedronInt(G,1:G.cells.num,f,3);
     
-%     G.cells.('monomialCellIntegrals') = IC;
-%     G.cells.('monomialFaceIntegrals') = IF;
-%     G.cells.('faceIntPos') = faceIntPos;
+    ICf = polyhedronInt(G,1:G.cells.num,f,k+1);
     G.cells.('fCellIntegrals') = ICf;
-    G.faces.('fFaceIntegrals') = IFf;
+    
+    if k == 2
+        IFf = polygonInt3D(G,1:G.faces.num,f,k+1);
+        G.faces.('fFaceIntegrals') = IFf;
+    end
     
     fprintf('... computing monomial values\n');
-    I = faceProjectors(G);
-    BintPos = (0:6:6*G.cells.num) + 1;
     
+    fprintf('... computing monomial values\n');
+    I = faceProjectors(G,k);
+    nk = (k+1)*(k+2)/2;
+    BintPos = (0:nk:nk*G.cells.num) + 1;
     G.cells.('Bint') = I;
     G.cells.('BintPos') = BintPos;
     
-    [monomialNodeVals, monomialEdgeVals] = monomialValues(G);
+    monomialVals = monomialValues(G,k);
     monomialNodeValsPos = [1, cumsum(diff(G.cells.nodePos)') + 1];
-    monomialEdgeValsPos = [1, cumsum(diff(G.cells.edgePos)') + 1];
-    
-    G.cells.('monomialNodeVals') = monomialNodeVals;
+    G.cells.('monomialNodeVals') = monomialVals(1:monomialNodeValsPos(end)-1,:);
     G.cells.('monomialNodeValsPos') = monomialNodeValsPos;
-    G.cells.('monomialEdgeVals') = monomialEdgeVals;
-    G.cells.('monomialEdgeValsPos') = monomialEdgeValsPos;
     
+    if k == 2
+        monomialEdgeValsPos = [1, cumsum(diff(G.cells.edgePos)') + 1];
+        G.cells.('monomialEdgeVals') = monomialVals(monomialNodeValsPos(end):end,:);
+        G.cells.('monomialEdgeValsPos') = monomialEdgeValsPos;
+    end
     
     stop = toc;
     
