@@ -42,42 +42,23 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
          
          [state, press_sat_report] = press_sat_solver.solveTimestep(state0, dt, press_sat_model, ...
                                                            'initialGuess', state, forceArg{:});
-         press_sat_ok = press_sat_report.Converged;
-         
-         if press_sat_ok
+
+         if press_sat_report.Converged
             % Solve for concentration
-            dts = splitTime(dt, 0.1*day);
-            dts = dt;
-            stateM = state0;
-            conc_ok = true;
-            subiter = 1;
-            while conc_ok & (subiter <= numel(dts))
-               [state, conc_report] = conc_solver.solveTimestep(stateM, dts(subiter), conc_model, ...
-                                                                'initialGuess', state, forceArg{:});
-               state = updateAdsorption(stateM, state, model);
-               stateM = state;
-               conc_ok = conc_report.Converged;
-               subiter = subiter + 1;
-            end
-            state.SURFADS = double(state.ads);
+            [new_state, conc_report] = conc_solver.solveTimestep(state, dts(subiter), conc_model, ...
+                                                              forceArg{:});
+            new_state = updateAdsorption(state, new_state, model);
+            state = new_state;
          else
-            conc_ok = false;
-            conc_report = [];
+            conc_report.Converged = false;
          end
-
          
-         converged = press_sat_ok && conc_ok;
-
-         if ~press_sat_ok
-            FailureMsg = 'Pressure failed to converge!';
-         else
-            FailureMsg = '';
-         end
+         converged = press_sat_report.Converged && conc_report.Converged;
+         failure = press_sat_report.failure && conc_report.failure;
 
          report = model.makeStepReport(...
-            'Failure',        ~press_sat_ok, ...
             'Converged',       converged, ...
-            'FailureMsg',      FailureMsg ...
+            'failure', failure ...
             );
          
          report.PressureSaturationSolver =  press_sat_report;
