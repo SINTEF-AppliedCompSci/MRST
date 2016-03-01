@@ -7,7 +7,7 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
 
       pressureSaturationSurfactantModel;
       explicitConcentrationModel;
-   
+
       pressureSaturationSurfactantSolver;
       explicitConcentrationSolver;
 
@@ -22,8 +22,8 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
          model.pressureSaturationSurfactantModel = PressureSaturationSurfactantModel(G, rock, fluid, varargin{:});
          model.explicitConcentrationModel = ExplicitConcentrationModel(G, rock, fluid, varargin{:});
 
-         model.pressureSaturationSurfactantSolver = NonLinearSolver('disableTimeCut', true);
-         model.explicitConcentrationSolver = NonLinearSolver('disableTimeCut', true);
+         model.pressureSaturationSurfactantSolver = NonLinearSolver();
+         model.explicitConcentrationSolver = NonLinearSolver();
 
       end
 
@@ -36,27 +36,21 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
 
          press_sat_solver = model.pressureSaturationSurfactantSolver;
          conc_solver = model.explicitConcentrationSolver;
-         
-         forceArg = getDrivingForces(press_sat_model, drivingForces);
-         
-         [state, press_sat_report] = press_sat_solver.solveTimestep(state0, dt, press_sat_model, ...
-                                                           'initialGuess', state, forceArg{:});
 
-         if press_sat_report.Converged
+         [state, press_sat_converged] = solveMinistep(press_sat_solver, press_sat_model, state, state0, dt, drivingForces);
+
+         if press_sat_converged
             % Solve for concentration
-            [new_state, conc_report] = conc_solver.solveTimestep(state, dt, conc_model, ...
-                                                              forceArg{:});
-            new_state = updateAdsorption(state, new_state, model);
-            state = new_state;
-         else
-            conc_report.Converged = false;
+            [new_state, conc_converged] = solveMinistep(conc_solver, conc_model, state, state0, ...
+                                                        dt, drivingForces);
+            if conc_converged
+               new_state = updateAdsorption(state, new_state, model);
+               state = new_state;
+            end
          end
-         
-         converged = press_sat_report.Converged && conc_report.Converged;
+         converged = press_sat_converged && conc_converged;
          report = model.makeStepReport('Converged', converged);
-         
-         report.PressureSaturationSolver =  press_sat_report;
-         report.ConcentrationSolver= conc_report;
+
       end
 
    end
