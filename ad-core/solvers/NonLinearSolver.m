@@ -102,8 +102,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % failed timestep, treating it as a simply non-converged result
       % with the maximum number of iterations
       continueOnFailure
-      % Disable time cutting. Can be useful when solver is used as an inner-solver
-      disableTimeCut
    end
 
    methods
@@ -127,7 +125,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          solver.errorOnFailure = true;
          solver.continueOnFailure = false;
-         solver.disableTimeCut = false;
 
          solver = merge_options(solver, varargin{:});
 
@@ -285,17 +282,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   % previous step, as we are between ministeps.
                   state = state0_inner;
                end
-               if ~disableTimeCut
-                  % Beat timestep with a hammer
-                  warning([solver.getId(), 'Solver did not converge, cutting timestep'])
-                  cuttingCount = cuttingCount + 1;
-                  dt = dt/2;
-               end
+               % Beat timestep with a hammer
+               warning([solver.getId(), 'Solver did not converge, cutting timestep'])
+               cuttingCount = cuttingCount + 1;
+               dt = dt/2;
                linearSolverReport = reports{end}.NonlinearReport{end}.LinearSolver;
                singularMatrix = isfield(linearSolverReport, 'singularMatrix') && ...
                    linearSolverReport.singularMatrix;
                failure = failure & ~singularMatrix;
-               if dt < dtMin || failure || disableTimeCut
+               if dt < dtMin || failure
                   msg = [solver.getId(), 'Did not find a solution: '];
                   if failure
                      % Failure means something is seriously wrong,
@@ -305,11 +300,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      % went wrong.
                      msg = [msg, 'Model step resulted in failure state. Reason: ', ...
                             nonlinearReports{end}.FailureMsg];
-                  elseif (dt < dtMin)
+                  else
                      msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
-                  elseif disableTimeCut
-                     msg = [msg, ['Option disableTimeCut is set to true. You may want to enable ' ...
-                                  'time splitting']];
                   end
                   if solver.errorOnFailure
                      error(msg);
