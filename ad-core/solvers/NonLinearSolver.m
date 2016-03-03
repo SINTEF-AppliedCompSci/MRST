@@ -285,7 +285,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   % previous step, as we are between ministeps.
                   state = state0_inner;
                end
-               if ~solver.disableTimeCut
+               if ~disableTimeCut
                   % Beat timestep with a hammer
                   warning([solver.getId(), 'Solver did not converge, cutting timestep'])
                   cuttingCount = cuttingCount + 1;
@@ -295,7 +295,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                singularMatrix = isfield(linearSolverReport, 'singularMatrix') && ...
                    linearSolverReport.singularMatrix;
                failure = failure & ~singularMatrix;
-               if dt < dtMin || failure || solver.disableTimeCut
+               if dt < dtMin || failure || disableTimeCut
                   msg = [solver.getId(), 'Did not find a solution: '];
                   if failure
                      % Failure means something is seriously wrong,
@@ -307,7 +307,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             nonlinearReports{end}.FailureMsg];
                   elseif (dt < dtMin)
                      msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
-                  elseif solver.disableTimeCut
+                  elseif disableTimeCut
                      msg = [msg, ['Option disableTimeCut is set to true. You may want to enable ' ...
                                   'time splitting']];
                   end
