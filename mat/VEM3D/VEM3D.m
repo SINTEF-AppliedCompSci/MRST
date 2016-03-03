@@ -1,7 +1,20 @@
-function [sol, G] = VEM3D(G, f, bc, k)
+function [sol, A, b] = VEM3D(G, f, bc, k, varargin)
 
+nN = G.nodes.num;
+nE = G.edges.num;
+nF = G.faces.num;
+nK = G.cells.num;
 
-[A,b] = VEM3D_glob(G,f,bc,k);
+if nargin < 5
+    G.cells.('alpha') = G.cells.diameters;
+else
+    alpha = varargin{1};
+    assert(size(alpha,1) == nK, ...
+           'One parameter alpha for each cell is required')
+    G.cells.('alpha') = varargin{1};
+end
+
+[A,b] = VEM3D_glob(G, f, bc, k);
 
 fprintf('Solving linear system ...\n')
 tic;
@@ -10,11 +23,6 @@ U = A\b;
 
 stop = toc;
 fprintf('Done in %f seconds.\n\n', stop);
-
-nN = G.nodes.num;
-nE = G.edges.num;
-nF = G.faces.num;
-nK = G.cells.num;
 
 nodeValues  = full( U( 1:nN)                                             );
 edgeValues  = full( U((1:nE*(k-1))       + nN)                           );

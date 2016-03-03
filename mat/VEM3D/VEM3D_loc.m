@@ -1,4 +1,4 @@
-function [AK, bK, dofVec] = VEM3D_loc(G, f, K, alpha, k)
+function [AK, bK, dofVec] = VEM3D_loc(G, f, K, k)
 %--------------------------------------------------------------------------
 %
 %   Awesome function.
@@ -19,6 +19,7 @@ monomialNodeVals = G.cells.monomialNodeVals(monNodeNum,:);
 nN      = size(nodes,1);
 hK  = G.cells.diameters(K);
 vol = G.cells.volumes(K);
+alpha = G.cells.alpha(K);
 
 if k == 2
                                 %   Edge data for cell K.
@@ -148,12 +149,16 @@ end
 
 bK = PNstar'*H*PNstar*fChi;
 
-% 
-% %%  LOCAL TO GLOBAL MAP                                                  %%
-% 
-% dofVec = [nodes', edges' + G.nodes.num, ...
-%           faces' + G.nodes.num + G.edges.num, ...
-%           K + G.nodes.num + G.edges.num + G.faces.num]; 
+
+%%  LOCAL TO GLOBAL MAP                                                  %%
+
+if k == 1
+    dofVec = nodes';
+elseif k == 2
+    dofVec = [nodes', edges' + G.nodes.num, ...
+              faces' + G.nodes.num + G.edges.num, ...
+              K + G.nodes.num + G.edges.num + G.faces.num];
+end
 
 % Mdb = zeros(nk,nk);
 % Mdb(1,:) = cellIntegrals/vol;

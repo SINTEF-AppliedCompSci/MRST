@@ -107,9 +107,9 @@ G.nodes.coords = X;
 
 %   TEST 4: Finite difference 3D
 
-G = cartGrid([4,6,2]);
+G = cartGrid([2,2,2]);
 f = @(X) zeros(size(X,1),1);
-f = @(X) 100*sin(X(:,1));
+% f = @(X) 100*sin(X(:,1));
 G = computeVEMGeometry(G,f,1);
 h = mean(G.cells.diameters);
 
@@ -126,11 +126,10 @@ SBC = spdiags(ones(nN,1),0,nN,nN);
 %   w2 = 9/10; w3 = 1/10;
 %   w1 = 1/8; w2 = 1/2*(9/10 + 3/4);
 
-beta = 91;
-% w1 = beta*1/4; w2 = (1-beta)*9/10+beta*3/4; w3 = 1-w1-w2;
-w1 = beta; w2 = 9/10-beta*3/5; w3 = 1-w1-w2;
-
-    
+beta =1.8395265*10e-5;
+beta = -97.2;
+w1 = beta*1/4; w2 = (1-beta)*9/10+beta*3/4; w3 = 1-w1-w2;
+% w1 = beta; w2 = 9/10-beta*3/5; w3 = 1-w1-w2;
 
 % w1 = 1.8395265*10e-5; w2 = 0.890077; w3 = 1-w1-w2;
 
@@ -140,8 +139,9 @@ fChi = f(G.nodes.coords);
 b_FEM = epsx*epsy*epsz*fChi;
 b_FEM(bcDof == 1) = gD(G.nodes.coords(bcDof == 1, :));
 
-alpha = (6*w1 + 4*w2 + 3*w3 -3/2)*epsx/4;
-[A_VEM,b_VEM] = VEM3D_glob(G,f,bc, alpha, 1);
+% alpha = (6*w1 + 4*w2 + 3*w3 -3/2)*epsx/4;
+alpha = (1/20*beta +1/5)*3*epsx
+[A_VEM,b_VEM] = VEM3D_glob(G,f,bc, 1);
 
 A_FD(bcDof == 1,:) = SBC(bcDof == 1,:);
 

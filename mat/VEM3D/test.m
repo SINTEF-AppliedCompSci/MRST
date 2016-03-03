@@ -3,12 +3,12 @@ clc; clear; close all;
 addpath('../')
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
 
-n = 10;
+n = 4;
 gridLim = [1,1,1];
 
-% G = cartGrid([n,n,n],gridLim);
+G = cartGrid([n,n,n],gridLim);
 % G = tetrahedronCube([n,n,n], gridLim, 1);
-G = voronoiCube(250  ,gridLim);
+% G = voronoiCube(250  ,gridLim);
 
 
 % G = computeGeometry(G);
@@ -33,22 +33,22 @@ G = voronoiCube(250  ,gridLim);
 
 
 
-% %--------------------------------------------------------------------------
-% %   -\delta u = 0,
-% %           u = 1/(2\pi||x-C||)
-% %--------------------------------------------------------------------------
-% f = @(X) zeros(size(X,1),1);
-% C = -[.2,.2,.2];
-% gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
-% k = 1;
-
 %--------------------------------------------------------------------------
-%   -\delta u = 1,
-%           u = -(x^2 + y^2 + z^2)/6
+%   -\delta u = 0,
+%           u = 1/(2\pi||x-C||)
 %--------------------------------------------------------------------------
-f = @(X) ones(size(X,1),1);
-gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
+f = @(X) zeros(size(X,1),1);
+C = -[.2,.2,.2];
+gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
 k = 1;
+
+% %--------------------------------------------------------------------------
+% %   -\delta u = 1,
+% %           u = -(x^2 + y^2 + z^2)/6
+% %--------------------------------------------------------------------------
+% f = @(X) ones(size(X,1),1);
+% gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
+% k = 1;
 
 
 % %--------------------------------------------------------------------------
@@ -59,7 +59,14 @@ k = 1;
 % f = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3)*(1+alpha^2*pi^2);
 % gD = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3);
 
+% beta = 4*1.8395265*10e-5;
+% 
+% alpha = gridLim(1)/n*(1/20*beta +1/5)*3*ones(G.cells.num,1);
+
 G = computeVEMGeometry(G,f,k);
+
+
+alpha = G.cells.diameters*sqrt(3)*(1/20*0.4+1/5);
 
 
 boundaryFaces = (1:G.faces.num)';

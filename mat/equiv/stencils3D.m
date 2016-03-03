@@ -6,7 +6,8 @@ hx = (max(G.nodes.coords(:,1))-min(G.nodes.coords(:,1)))/G.cartDims(1);
 hy = (max(G.nodes.coords(:,2))-min(G.nodes.coords(:,2)))/G.cartDims(2);
 hz = (max(G.nodes.coords(:,3))-min(G.nodes.coords(:,3)))/G.cartDims(3);
 
-assert((w2 ~= 0 & hx == hy & hx == hz) | w2 == 0, ...
+tol = 10e-10;
+assert((w2 ~= 0 & abs(hx - hy)/hx < tol & abs(hx - hz)/hx < tol) | w2 == 0, ...
   'Distances betwwen nodes must be the same in all coordinate directions.')
 
 epsx = (hy*hz)/hx;

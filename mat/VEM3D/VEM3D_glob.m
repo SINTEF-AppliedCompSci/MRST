@@ -1,4 +1,4 @@
-function [S,b] = VEM3D_glob(G, f, bc, alpha, k)
+function [S,b] = VEM3D_glob(G, f, bc, k)
 
 nN = G.nodes.num;
 nE = G.edges.num;
@@ -9,12 +9,12 @@ N = nN + nE*(k-1) + nF*k*(k-1)/2 + nK*k*(k^2-1)/6;
 
 if k == 1
     
-    dofPosS = [1, cumsum((diff(G.cells.nodePos')).^2) + 1];
+    dofPosA = [1, cumsum((diff(G.cells.nodePos')).^2) + 1];
     dofPosb = [1, cumsum(diff(G.cells.nodePos')) + 1];
         
 elseif k == 2
 
-    dofPosS = [1, cumsum((diff(G.cells.nodePos') + ...
+    dofPosA = [1, cumsum((diff(G.cells.nodePos') + ...
                           diff(G.cells.edgePos') + ...
                           diff(G.cells.facePos') + 1).^2) + 1];
     dofPosb = [1, cumsum(diff(G.cells.nodePos') + ...
@@ -27,10 +27,10 @@ step = floor(nK/10);
 
 % itS = 1; itb = 1;
 
-iiA = zeros(1,dofPosS(end)-1);
-jjA = zeros(1,dofPosS(end)-1);
+iiA = zeros(1,dofPosA(end)-1);
+jjA = zeros(1,dofPosA(end)-1);
 
-AVec = zeros(1,dofPosS(end)-1);
+AVec = zeros(1,dofPosA(end)-1);
 bVec = zeros(1,dofPosb(end)-1);
 
 fprintf('Computing local block matrices ...\n')
@@ -42,17 +42,17 @@ for K = 1:nK
         fprintf('... Calculating local block matrix for cell %d\n', K);
     end
     
-    [AK, bK, dofVec] = VEM3D_loc(G, f, K, alpha, k);
+    [AK, bK, dofVec] = VEM3D_loc(G, f, K, k);
 
     NK = numel(dofVec);
     
-    iil = repmat(dofVec', NK, 1);
-    jjl = repmat(dofVec , NK, 1);
-    jjl = jjl(:);
+    iiK = repmat(dofVec', NK, 1);
+    jjK = repmat(dofVec , NK, 1);
+    jjK = jjK(:);
     
-    iiA(dofPosS(K):dofPosS(K+1)-1) = iil;
-    jjA(dofPosS(K):dofPosS(K+1)-1) = jjl;
-    AVec(dofPosS(K):dofPosS(K+1)-1)= AK(:);
+    iiA(dofPosA(K):dofPosA(K+1)-1) = iiK;
+    jjA(dofPosA(K):dofPosA(K+1)-1) = jjK;
+    AVec(dofPosA(K):dofPosA(K+1)-1)= AK(:);
 
     iib(dofPosb(K):dofPosb(K+1)-1) = dofVec;
     bVec(dofPosb(K):dofPosb(K+1)-1) = bK(:);
