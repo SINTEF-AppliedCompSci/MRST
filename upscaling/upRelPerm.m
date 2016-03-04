@@ -71,7 +71,7 @@ for iv = 1:nvals
         d = dims(id); % Current dimension
         
         % Update the state for this dimension
-        sW = directionDistribution(block, method, sW0, opt.dp);
+        sW = directionDistribution(block, method, sW0, d, opt.dp);
         
         % Upscaled saturation
         sWup = sum(sW.*block.pv)./pvTot;
@@ -243,8 +243,19 @@ function values = getValues(block, updata, method, nvals)
 
 switch method
     case 'flow'
-        error('TODO: Need to determine swU min and max here')
-        sW = linspace(swUMin, swUMax, nvals)';
+        assert(all(isfield(block.fluid, {'swir','sor'})), ...
+            ['Fluid structure needs fields ''swir'', ''sor'' and ' ...
+            '''satnum''.']);
+        
+        swir   = block.fluid.swir;
+        sor    = block.fluid.sor;
+        satnum = block.fluid.satnum;
+        pvTot  = sum(block.pv);
+        sWUmin = sum(swir(satnum).*block.pv)/pvTot;
+        sWUmax = sum((1-sor(satnum)).*block.pv)/pvTot;
+        
+        % Equal spacing of the upscaled saturations
+        values = linspace(sWUmin, sWUmax, nvals)';
         
     case {'capillary', 'capillary-viscous-dist'}
         assert(isfield(updata, 'pcOW'), ...
@@ -302,8 +313,7 @@ switch method
         sW = swir + sW*( (1-sor) - swir );
         
         % Map sW values to each cell
-        satnum = fluid.satnum;
-        sW = sW(satnum);
+        sW = sW(fluid.satnum);
         
     case 'capillary' % Capillary limit
         assert(isfield(fluid, 'pcOWInv'), ['To use capillary limit '...
@@ -365,14 +375,14 @@ end
 end
 
 
-function sW = directionDistribution(block, method, sW, dp)
+function sW = directionDistribution(block, method, sW, d, dp)
 % Update saturation for the current direction
 
 % Get saturation values
 switch method
     case 'flow' % Flow based simulation
         
-        error('Need update') % TODO: We need to get d here.
+        %error('Need update') % TODO: We need to get d here.
         % TODO: Also, should we update the saturation in each direction?
         
         G = block.G;
@@ -387,10 +397,17 @@ switch method
             Gp  = G;
             G   = G.parent;
         else
-            bc = addBC([], block.faces{d,1}, ...
-                'pressure', dp, 'sat', [sW 1-sW]);
-            bc = addBC(bc, block.faces{d,2}, ...
-                'pressure',  0, 'sat', [sW 1-sW]);
+            % Cells neighbouring the outer faces
+            nc = @(i) sum(block.G.faces.neighbors(block.faces{d}{i},:),2);
+            
+            sWf = sW(nc(1));
+            bc = addBC([], block.faces{d}{1}, ...
+                'pressure', dp, 'sat', [sWf 1-sWf]);
+            
+            sWf = sW(nc(2));
+            bc = addBC(bc, block.faces{d}{2}, ...
+                'pressure',  0, 'sat', [sWf 1-sWf]);
+            
             Gp  = [];
             bcp = [];
         end
@@ -400,11 +417,11 @@ switch method
         state0.flux = zeros(G.faces.num, 2);
         
         % Solve steady state flow
-        state1 = simulateToSteadyStateADI(state0, G, block.rock, ...
-            block.fluid, 'bc', bc, 'Gp', Gp, 'bcp', bcp);
+        state1 = simulateToSteadyStateADI_new(G, block.rock, ...
+            block.fluid, sW, 'bc', bc, 'Gp', Gp, 'bcp', bcp);
         
         % Extract saturation
-        sW = state1.s(:,1);
+        sW1 = state1.s(:,1);
         
     case 'capillary' % Capillary limit
         % Do nothing.

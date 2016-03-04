@@ -126,7 +126,7 @@ methods (Static)
         [~, ninx] = max(abs(G.faces.normals), [], 2);
         
         
-        faces = cell(3,2);
+        faces = cell(3,1);
         ndims = 3;
         for d = 1:3
             odims = [1:d-1 d+1:3]; % other dimensions
@@ -148,6 +148,7 @@ methods (Static)
                 end
             end
             
+            faces{d}    = cell(1,2);
             faces{d}{1} = f{1};
             faces{d}{2} = f{2};
         end

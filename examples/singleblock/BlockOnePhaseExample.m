@@ -1,4 +1,4 @@
-%% Block One-Phase Example
+%% One-Phase Block Upscaling Example
 % 
 % Example showing permeability upscaling of a single grid block, i.e., the
 % entire grid G is upscaled to a single coarse cell. The upscaling can be
@@ -92,7 +92,7 @@ updata.perm
 
 
 %% Using the Upscaler class
-
+% 
 % Instead of calling the upscaling functions directly, we may use the
 % subclasses of the Upscaling class. For one phase upscaling, we call the
 % class OnePhaseUpscaler.
@@ -106,10 +106,11 @@ updata = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
 
 
 %% Permeability averaging
-
+% 
 % We may also choose to use an averaging method to find uspcaled values of
-% the permeability instead of the pressure solver. Let us for example
-% compute the arithmetic average:
+% the permeability instead of the pressure solver.
+
+% Let us for example compute the arithmetic average.
 upscaler.OnePhaseMethod = 'arithmetic';
 updata = upscaler.upscaleBlock(block) %#ok<NASGU,NOPTS>
 

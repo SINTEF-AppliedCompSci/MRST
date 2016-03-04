@@ -9,7 +9,7 @@ opt = struct(...
     'nsat',    20,   ... % Number of saturaton points
     'swir',    0.1,  ... % Irreducible water saturation
     'sor',     0.1,  ... % Residual oil saturation
-    'krn',     2,    ... % Relperm exponent
+    'krn',     2,    ... % Relperm exponent    
     'krWmax',  0.5,  ... % Maximum value of water relperm
     'polymer', false ...
     );
