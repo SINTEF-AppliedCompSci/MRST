@@ -3,10 +3,15 @@ clc; clear; close all;
 addpath('../')
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
 
-n = 4;
-gridLim = [1,1,1];
+n = 8;
+gridLim = [2,2,2];
 
 G = cartGrid([n,n,n],gridLim);
+
+X = G.nodes.coords;
+X = bsxfun(@minus, X, [1,1,1]);
+
+G.nodes.coords = X;
 % G = tetrahedronCube([n,n,n], gridLim, 1);
 % G = voronoiCube(250  ,gridLim);
 
@@ -33,13 +38,22 @@ G = cartGrid([n,n,n],gridLim);
 
 
 
+% %--------------------------------------------------------------------------
+% %   -\delta u = 0,
+% %           u = 1/(2\pi||x-C||)
+% %--------------------------------------------------------------------------
+% f = @(X) zeros(size(X,1),1);
+% C = -[.2,.2,.2];
+% gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
+% k = 1;
+
 %--------------------------------------------------------------------------
 %   -\delta u = 0,
 %           u = 1/(2\pi||x-C||)
 %--------------------------------------------------------------------------
 f = @(X) zeros(size(X,1),1);
 C = -[.2,.2,.2];
-gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
+gD = @(X) X(:,1).*X(:,2).*X(:,3);
 k = 1;
 
 % %--------------------------------------------------------------------------

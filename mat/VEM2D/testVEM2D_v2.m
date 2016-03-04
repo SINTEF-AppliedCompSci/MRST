@@ -13,7 +13,7 @@ gD = @(X) 100*X(:,1).^2 - 100*X(:,2).^2;
 boundaryEdges = find((G.faces.neighbors(:,1) == 0) + (G.faces.neighbors(:,2) == 0));
 bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryEdges}}, 'bcType', {{'dir'}});
 
-k = 2;
+k = 1;
 alpha = 1;
 
 G = computeVEM2DGeometry(G,f,k, alpha);
@@ -37,7 +37,7 @@ elseif k == 2
     u = [gD([G.nodes.coords; G.faces.centroids]); gDint./G.cells.volumes];
 end
 
-plotVEM(G,U,'dof')    
+% plotVEM(G,U,'dof')    
 
 err = U-u;
 

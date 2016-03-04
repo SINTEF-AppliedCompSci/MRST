@@ -1,5 +1,7 @@
 clc; clear; close all;
 
+addpath('../'); addpath('../VEM3D');
+
 %   TEST 4: Finite difference 3D
 
 nx = 3; ny = 3; nz = 3;
