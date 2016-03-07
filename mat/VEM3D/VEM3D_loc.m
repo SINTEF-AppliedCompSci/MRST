@@ -19,7 +19,7 @@ monomialNodeVals = G.cells.monomialNodeVals(monNodeNum,:);
 nN      = size(nodes,1);
 hK  = G.cells.diameters(K);
 vol = G.cells.volumes(K);
-alpha = G.cells.alpha(K);
+alpha = G.cells.alpha(K,:);
 
 if k == 2
                                 %   Edge data for cell K.
@@ -117,7 +117,10 @@ PN = D*PNstar;
 
 Mtilde = [zeros(1,nk); M(2:nk,:)];
 
-AK = PNstar'*Mtilde*PNstar + alpha*(eye(NK)-PN)'*(eye(NK)-PN);
+Q = orth(eye(NK)-PN);
+S = diag(alpha, 0);
+
+AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*S*Q'*(eye(NK)-PN);
 
 % SK = hK*(eye(NK)-PN)'*(eye(NK)-PN);
 % 

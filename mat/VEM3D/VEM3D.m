@@ -5,12 +5,15 @@ nE = G.edges.num;
 nF = G.faces.num;
 nK = G.cells.num;
 
+nAlpha = (k+1)*(k+2)*(k+3)/6;
+
 if nargin < 5
-    G.cells.('alpha') = G.cells.diameters;
+    G.cells.('alpha') = repmat(G.cells.diameters, 1, nAlpha);
 else
     alpha = varargin{1};
-    assert(size(alpha,1) == nK, ...
-           'One parameter alpha for each cell is required')
+    assert(size(alpha,1) == nK & size(alpha,2) == nAlpha, ...
+           ['Diemnsions of paramter matrix alpha must be ' ...
+           'G.cells.num x k*(k+1)*(k+2)/6'])
     G.cells.('alpha') = varargin{1};
 end
 

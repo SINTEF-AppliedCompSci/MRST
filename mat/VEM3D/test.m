@@ -80,7 +80,7 @@ k = 1;
 G = computeVEMGeometry(G,f,k);
 
 
-alpha = G.cells.diameters*sqrt(3)*(1/20*0.4+1/5);
+alpha = G.cells.diameters;
 
 
 boundaryFaces = (1:G.faces.num)';
