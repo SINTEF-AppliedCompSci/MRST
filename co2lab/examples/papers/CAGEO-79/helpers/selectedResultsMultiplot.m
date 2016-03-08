@@ -17,6 +17,7 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
     opt.ref_depth = 80;        % used for 'totalCO2' (value from SPE paper)
     opt.temp_grad = 35.6;      % used for 'totalCO2' (value from SPE paper)
     opt.poro = 0.36;           % used for 'totalCO2' (value from SPE paper)
+    opt.ntg = 1;
     opt.ymax = inf;
     opt.maplines = 40;
     opt.init_state = [];
@@ -58,6 +59,7 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
                                               opt.ref_depth,        ...
                                               opt.temp_grad,        ...
                                               opt.poro,             ...
+                                              opt.ntg,              ...
                                               opt.rhoRef);
                 elseif strcmpi(opt.background, 'overpressure')
                    if isempty(opt.init_state)
@@ -162,17 +164,17 @@ end
 % ----------------------------------------------------------------------------
 
 function field = compute_total_co2(Gt, state, reftemp, refdepth, temp_grad, ...
-                                   poro, rhoRef)
+                                   poro, ntg, rhoRef)
     
     co2 = CO2props;
     P   = state.pressure;
     T   = reftemp + (Gt.cells.z - refdepth) * temp_grad / 1000;
     % 'field' represents tons of mass of CO2 per lateral square meter
-    field = state.s(:,2) .* co2.rho(P, T) .* poro .* Gt.cells.H / 1e3; 
+    field = state.s(:,2) .* co2.rho(P, T) .* poro .* ntg .* Gt.cells.H / 1e3; 
                                                
     % Adding contribution from dissolution
     if isfield(state, 'rs')
-        diss = state.s(:,1) .* rhoRef .* state.rs .* poro .* Gt.cells.H / 1e3;
+        diss = state.s(:,1) .* rhoRef .* state.rs .* poro .* ntg .* Gt.cells.H / 1e3;
         field = field + diss;
     end
 end
