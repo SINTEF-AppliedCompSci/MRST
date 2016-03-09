@@ -21,7 +21,7 @@ Ndof = Nn + Ne + Nc;
 
 k = 2;
 
-[bcDof, bBC] = VEM2D_bc(G, bc,k);
+[bcDof, bBC] = VEM2D_bc(G, bc, k);
 b(bcDof == 1) = bBC(bcDof == 1);
 SBC = spdiags(ones(Ndof,1),0,Ndof,Ndof);
 S(bcDof == 1,:) = SBC(bcDof == 1,:);

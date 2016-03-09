@@ -57,7 +57,7 @@ for b = 1:Nbc
         bcDof(dofVec) = 1;
         bBC(dofVec) = g(X);
     elseif strcmp(type, 'neu')
-                            %   Apply Neuman BC's.
+                                    %   Apply Neuman BC's.
         bcDof(dofVec) = 2;
         edgeLengths = G.faces.areas(edges);
                             %   Contribution from each edge to
