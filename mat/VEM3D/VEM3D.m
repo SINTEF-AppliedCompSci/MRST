@@ -5,7 +5,9 @@ nE = G.edges.num;
 nF = G.faces.num;
 nK = G.cells.num;
 
-nAlpha = (k+1)*(k+2)*(k+3)/6;
+nk = (k+1)*(k+2)*(k+3)/6;
+
+nAlpha = nk*(nk+1)/2;
 
 if nargin < 5
     G.cells.('alpha') = repmat(G.cells.diameters, 1, nAlpha);
@@ -19,13 +21,13 @@ end
 
 [A,b] = VEM3D_glob(G, f, bc, k);
 
-fprintf('Solving linear system ...\n')
-tic;
+% fprintf('Solving linear system ...\n')
+% tic;
 
 U = A\b;
 
-stop = toc;
-fprintf('Done in %f seconds.\n\n', stop);
+% stop = toc;
+% fprintf('Done in %f seconds.\n\n', stop);
 
 nodeValues  = full( U( 1:nN)                                             );
 edgeValues  = full( U((1:nE*(k-1))       + nN)                           );

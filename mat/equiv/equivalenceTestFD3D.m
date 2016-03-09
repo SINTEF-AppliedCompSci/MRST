@@ -5,7 +5,7 @@ addpath('../'); addpath('../VEM3D/');
 %   TEST 4: Finite difference 3D
 
 nx = 2; ny = 2; nz = 2;
-G = cartGrid([nx,ny,nz],[1,ny/nx,nz/nx]);
+G = cartGrid([nx,ny,nz]);
 h = sqrt(3)/nx;
 
 % % beta =1.8395265*10e-5;
@@ -14,7 +14,7 @@ h = sqrt(3)/nx;
 % 
 
 
-w1 = 1; w2 = 0; w3 = 0;
+w1 = 1/4; w2 = 3/4; w3 = 0;
 [A_FD, epsx, epsy, epsz] = stencils3D(G,w1,w2,w3);
 
 f = @(X) zeros(size(X,1),1);
@@ -30,40 +30,53 @@ h = G.cells.diameters(1);
 
 A_FD(bcDof == 1,:) = SBC(bcDof == 1,:);
 
-v = .62:.005:.78;
-nv = size(v,2);
-alphaMat = [rldecode(v,nv^3*ones(1,nv),2); ...
-	 repmat(rldecode(v,nv^2*ones(1,nv),2),1,nv); ...
-	 repmat(rldecode(v,nv*ones(1,nv),2),1,nv^2); ...
-	 repmat(v,1,nv^3)];
-nAlpha = size(alphaMat,2);
+ai = 0:.25:1; ni = numel(ai);
+aj = 0:.25:1; nj = numel(aj);
+ak = 0:.25:1; nk = numel(ak);
+al = 0:.25:1; nl = numel(al);
+am = 0:.25:1; nm = numel(am);
+an = 0:.25:1; nn = numel(an);
+ao = 0:.25:1; no = numel(ao);
 
-for i = 1:nAlpha
-	  alpha = h*repmat(alphaMat(:,i)',G.cells.num,1);
-            [sol, A_VEM,b_VEM] = VEM3D(G,f,bc, 1, alpha);
-            diff(i) = norm(A_VEM-A_FD,'fro');
+out = [];
+
+for i = 1:ni
+    for j = 1:nj
+        for k = 1:nk
+            for l = 1:nl
+                for m = 1:nm
+                    for n = 1:nn
+                        for o = 1:no
+                            alpha = [ai(i), ai(i), ai(i), ai(i), aj(j), ak(k), al(l), am(m), an(n), ao(o)];
+                            alphaMat = repmat(alpha,G.cells.num,1);
+                            [~, A_VEM,~] = VEM3D(G,f,bc, 1, alphaMat);
+                            out = [out ; alpha, norm(A_VEM-A_FD,'fro')];
+                        end
+                    end
+                end
+            end
+        end
+    end
+    alpha
 end
-    
+%     
 
-alpha = alphaMat(:,find(min(diff) == diff));
-diffMin = min(diff);
+% for i = 1:ni
+%     alpha = [ai(i), ai(i), ai(i), ai(i), 1,1,1,0,0,0];
+%     alphaMat = h*repmat(alpha,G.cells.num,1);
+%     [sol, A_VEM,b_VEM] = VEM3D(G,f,bc, 1, alphaMat);
+%     out = [out ; alpha, norm(A_VEM-A_FD,'fro')];
+%     alpha
+% end
 
-fprintf('Minimal difference %f obtained with alpha = (%f, %f, %f, %f)', diffMin, alpha(1), alpha(2), alpha(3), alpha(4))
+%     alpha = 1/8*[24, 24, 24, 24, 1,1,1,0,0,0];
+%     alphaMat = h*repmat(alpha,G.cells.num,1);
+%     [sol, A_VEM,b_VEM] = VEM3D(G,f,bc, 1, alphaMat);
+%     out = [out ; alpha, norm(A_VEM-A_FD,'fro')];
 
 
-% subplot(1,2,1);
-% spy(A_FD);
-% subplot(1,2,2);
-% spy(abs(A_VEM)>10e-10);
+minimum = out((min(out(:,end)) == out(:,end)),:);
 
+plot(out(:,end))
 
-
-% fChi = f(G.nodes.coords);
-% b_FEM = epsx*epsy*epsz*fChi;
-% b_FEM(bcDof == 1) = gD(G.nodes.coords(bcDof == 1, :));
-% U_FD = A_FD\b_FEM;
-% u = gD(G.nodes.coords);
-% norm(u - U_FD,2);
-% 
-% U_VEM = A_VEM\b_VEM;
-
+fprintf('Minimal difference %f obtained with alpha = (%f, %f, %f, %f)', minimum(5), minimum(1), minimum(2), minimum(3), minimum(4))

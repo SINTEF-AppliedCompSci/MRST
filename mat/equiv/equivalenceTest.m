@@ -127,7 +127,7 @@ SBC = spdiags(ones(nN,1),0,nN,nN);
 %   w1 = 1/8; w2 = 1/2*(9/10 + 3/4);
 
 beta =1.8395265*10e-5;
-beta = -97.2;
+beta = 1;
 w1 = beta*1/4; w2 = (1-beta)*9/10+beta*3/4; w3 = 1-w1-w2;
 % w1 = beta; w2 = 9/10-beta*3/5; w3 = 1-w1-w2;
 

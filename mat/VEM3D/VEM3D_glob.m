@@ -33,8 +33,8 @@ jjA = zeros(1,dofPosA(end)-1);
 AVec = zeros(1,dofPosA(end)-1);
 bVec = zeros(1,dofPosb(end)-1);
 
-fprintf('Computing local block matrices ...\n')
-tic;
+% fprintf('Computing local block matrices ...\n')
+% tic;
 
 for K = 1:nK
 
@@ -59,8 +59,8 @@ for K = 1:nK
     
 end
 
-stop = toc;
-fprintf('Done in %f seconds.\n\n', stop);
+% stop = toc;
+% fprintf('Done in %f seconds.\n\n', stop);
 
 S = sparse(iiA, jjA, AVec, N, N);
 b = sparse(iib, ones(1, numel(iib)), bVec);
