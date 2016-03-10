@@ -118,16 +118,18 @@ PN = D*PNstar;
 Mtilde = [zeros(1,nk); M(2:nk,:)];
 
 % Q = orth(eye(NK)-PN);
-q1 = [ 1 -1  1 -1  1 -1  1 -1];
-q2 = [ 1 -1 -1  1 -1  1  1 -1];
+q1 = [ 1 -1 -1  1  1 -1 -1  1];
+q2 = [ 1 -1  1 -1 -1  1 -1  1];
 q3 = [ 1  1 -1 -1 -1 -1  1  1];
-q4 = [-1  1 -1  1  1 -1  1 -1];
+q4 = [-1  1  1 -1  1 -1 -1  1];
 
-Q = 1/(2*sqrt(2))*[q1', q2', q3', q4'];
+delta1 = sqrt(9/8);
+delta2 = sqrt(27/8);
+Q = [delta1*q1', delta1*q2', delta1*q3', delta2*q4'];
+D = Q'*Q
+S = diag(alpha, 0);
 
-S = diag(alpha(1:4), 0) + diag(alpha(5:7),1) + diag(alpha(8:9),2) + diag(10,3);
-
-AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*S*Q'*(eye(NK)-PN);
+AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*(D\S)/D*Q'*(eye(NK)-PN);
 
 % SK = hK*(eye(NK)-PN)'*(eye(NK)-PN);
 % 

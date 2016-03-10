@@ -1,4 +1,4 @@
-function [S,b] = VEM3D_glob(G, f, bc, k)
+function [S,b,G] = VEM3D_glob(G, f, bc, k)
 
 nN = G.nodes.num;
 nE = G.edges.num;
@@ -43,6 +43,10 @@ for K = 1:nK
     end
     
     [AK, bK, dofVec] = VEM3D_loc(G, f, K, k);
+    
+    if K == 1
+        G.cells.('AK') = AK;
+    end
 
     NK = numel(dofVec);
     
