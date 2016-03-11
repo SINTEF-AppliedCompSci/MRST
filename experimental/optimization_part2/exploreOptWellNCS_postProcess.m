@@ -1,4 +1,4 @@
-function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
+function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
 % Post-processing for optimizeFormations run using exploreOptWellNCS
 
 % NB: ensure experimental/project/.../SampleProps2D and /CO2props is not on
@@ -14,20 +14,24 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
     
     opt.plotWells           = false;
     opt.plotWellRates       = true;
-    opt.plotInventory       = false;
-    opt.plotPressureChanges = false;
+    opt.plotWellsPlaced     = true;
+    opt.plotWellsRemaining  = true;
+    opt.plotInventory       = true;
+    opt.plotPressureChanges = true;
     opt.plotOther           = false;
-    
-    opt.plotSatFields       = false;
-    opt.SatFieldStates      = []; % can be an array
-    
-    opt.plotPressFields     = false;
-    opt.PressFieldStates    = []; % can be an array
+    opt.plot_co2_height     = true;
+    opt.plot_fraction_overburden = true;
     
     opt.warningOn = true;
     opt.outputOn = true;
     
     opt = merge_options(opt, varargin{:});
+    
+    % check that p_lim_factor is a variable, otherwise it was likely not
+    % used during simulation. In that case, set it here to avoid break
+    if ~isfield(other.opt,'p_lim_factor')
+       other.opt.p_lim_factor = 0.9; 
+    end
 
     
     %% Reconstruct the fluid structure which wasn't saved to avoid large
@@ -47,6 +51,71 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
                             other.rock, other.fluid, optim.schedule, ...
                             other.residual, other.traps, other.dh, ...
                             optim.wellSols, 'warningOn',opt.warningOn);
+                        
+    %% Plot saturation (or co2 height) field
+    if opt.plot_co2_height
+        last_inj_step = numel(optim.schedule.step.val(optim.schedule.step.control == 1)) + 1;
+        last_mig_step = numel(reports_init);
+        if ~isfield(other.rock,'ntg')
+           other.rock.ntg = 1; 
+        end
+        selectedResultsMultiplot(Gt, reports_init, [last_inj_step last_mig_step], ...
+                             'background', 'totalCO2', ...
+                             'background_threshold', 0.01, ...
+                             'ref_temp', other.opt.ref_temp, ...
+                             'ref_depth', other.opt.ref_depth, ...
+                             'temp_grad', other.opt.temp_grad, ...
+                             'poro', other.rock.poro, ...
+                             'ntg', other.rock.ntg, ...
+                             'plot_traps', true, ...
+                             'plot_well_numbering', true, ...
+                             'plume_threshold', 0.3, ...
+                             'plot_distrib', false);
+        % adjust axis of each subfigure in current figure
+        hfig = gcf; set(hfig,'Position',[3765 178 655 547]);
+        axs = findobj(hfig.Children,'type','axes');
+        for i=1:numel(axs)
+           set(hfig,'CurrentAxes',axs(i)); axis equal tight
+        end
+
+        selectedResultsMultiplot(Gt, reports_optim, [last_inj_step last_mig_step], ...
+                             'background', 'totalCO2', ...
+                             'background_threshold', 0.01, ...
+                             'ref_temp', other.opt.ref_temp, ...
+                             'ref_depth', other.opt.ref_depth, ...
+                             'temp_grad', other.opt.temp_grad, ...
+                             'poro', other.rock.poro, ... 
+                             'ntg', other.rock.ntg, ...
+                             'plot_traps', true, ...
+                             'plot_well_numbering', true, ...
+                             'plume_threshold', 0.3, ...
+                             'plot_distrib', false);
+        % adjust axis of each subfigure in current figure
+        hfig = gcf; set(hfig,'Position',[4432 179 655 547]);
+        axs = findobj(hfig.Children,'type','axes');
+        for i=1:numel(axs)
+           set(hfig,'CurrentAxes',axs(i)); axis equal tight
+        end
+    end
+                     
+    %% Plot Pmax/Pover at a given time step
+    if opt.plot_fraction_overburden
+        [P_over, ~] = computeOverburdenPressure(Gt, other.rock, other.opt.ref_depth, other.opt.rhoW);
+        selectedResultsMultiplot(Gt, reports_optim, [last_inj_step last_mig_step], ...
+                             'background', 'fraction_overburden_reached', ...
+                             'overburden', P_over, ...
+                             'plot_plume', false, ...
+                             'background_threshold', [], ...
+                             'plot_traps', true, ...
+                             'plot_well_numbering', true, ...
+                             'plot_distrib', false);
+        % adjust axis of each subfigure in current figure
+        hfig = gcf; set(hfig,'Position',[4432 2 655 546]);
+        axs = findobj(hfig.Children,'type','axes');
+        for i=1:numel(axs)
+           set(hfig,'CurrentAxes',axs(i)); axis equal tight
+        end
+    end
 
     %% Plot wells in formation
     if opt.plotWells
@@ -56,60 +125,74 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
     end
     
     %% Plot Pressure Changes
-    if opt.plotPressureChanges
+    [P_over, ~] = computeOverburdenPressure(Gt, other.rock, other.opt.ref_depth, other.opt.rhoW);
+    res = plotFormationPressureChanges(optim.states, other.initState.pressure, ...
+        P_over, P_over*other.opt.p_lim_factor, ...
+        Gt, optim.schedule, 'outputOn', opt.outputOn, ...
+        'makePlot', opt.plotPressureChanges);
+    % use res for a summary display
         
-        seafloor_depth = other.opt.ref_depth; % based on naming convention in optimizeFormation
-        water_density = other.opt.rhoW; % based on naming convention in optimizeFormation
-        [P_over, ~] = computeOverburdenPressure(Gt, other.rock, ...
-            seafloor_depth, ...
-            water_density);
-        res = plotFormationPressureChanges(optim.states, other.initState.pressure, ...
-            P_over, P_over*other.opt.p_lim_factor, ...
-            Gt, optim.schedule, 'outputOn', opt.outputOn);
-        % use res for a summary display
-        
-        if opt.savePlots
-            % several plots generated. Saving last one.
-            %saveas(gcf, [opt.figDirName '/' opt.fmName _inventory'], 'fig')
-            drawnow
-            pause(1)
-            export_fig(gcf, [opt.figDirName '/' opt.fmName '_pressureChanges'], '-png','-transparent')
-        end
+    if opt.plotPressureChanges && opt.savePlots
+        % several plots generated. Saving last one.
+        %saveas(gcf, [opt.figDirName '/' opt.fmName _inventory'], 'fig')
+        drawnow
+        pause(1)
+        export_fig(gcf, [opt.figDirName '/' opt.fmName '_pressureChanges'], '-png','-transparent')
     end
+        
 
     %% Plot well rates, compute total injected/leaked, print to table  
+    % extend for when optimal rates obtained by iteratively increasing cp
     if opt.plotWellRates 
         %compareWellrates(init.schedule, optim.schedule, other.fluid.rhoGS);
         num_optim_wells = compareWellrates_viaWellSols(init.wellSols, optim.wellSols, ...
                                      init.schedule, other.fluid.rhoGS, Gt, other.traps, ...
-                                     init, optim);
-
-        [total_inj, total_leaked] = totals_Injected_and_Leaked(Gt, other.rock, ...
-                       other.fluid, optim.states, optim.schedule, optim.wellSols, ...
-                       false);
-                   
-        seainfo = getSeaInfo(other.opt.modelname, other.opt.refRhoCO2); % contains seainfo.dis_max
-        fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false);
-        
-        % full storage potentials:
-        strapCap = fmCap.breakdown.structural_trapping_capacity; % Gt
-        rtrapCap = fmCap.breakdown.residual_trapping_capacity;   % Gt
-        dtrapCap = fmCap.breakdown.dissolved_trapping_capacity;  % Gt
-        totCap   = fmCap.breakdown.total_trapping_capacity;      % Gt
-        
-        pv = Gt.cells.volumes .* Gt.cells.H .* other.rock.poro; % pore volume (m3)
-        if isfield(other.rock,'ntg')
-            pv = pv .* other.rock.ntg;
+                                     init, optim, 'plotWellsPlaced', opt.plotWellsPlaced, ...
+                                     'plotWellsRemaining', opt.plotWellsRemaining);
+        if opt.savePlots
+           % 2, 3, 4, 5 figures generated. Saving only well rates.
+           %saveas(gcf, [opt.figDirName '/' opt.fmName '_initVsOptimRates'], 'fig')
+           drawnow
+           pause(1)
+           export_fig(figure(3), [opt.figDirName '/' opt.fmName '_initVsOptimRates'], '-png','-transparent')
         end
-        
-        % achieved (simulated) storage (in kg):
-        strap_achieved = reports_optim(end).masses(2) + reports_optim(end).masses(5) + reports_optim(end).masses(6); % resStruct + freeStruct + subTrap, kg
-        rtrap_achieved = reports_optim(end).masses(3) + reports_optim(end).masses(4); % resTrap + freeRes, kg
-        dtrap_achieved = reports_optim(end).masses(1); % resDis
-        other_achieved = reports_optim(end).masses(7); % freeMov
-        
-        balance_error = (convertTo((strap_achieved + rtrap_achieved + dtrap_achieved + other_achieved),giga*kilo) - (total_inj - total_leaked));
-        assert( abs(balance_error) < 1e-12 )
+    end
+
+    [total_inj, total_leaked] = totals_Injected_and_Leaked(Gt, other.rock, ...
+                   other.fluid, optim.states, optim.schedule, optim.wellSols, ...
+                   false);
+
+    % Get maximal retaining capacity (trapping breakdown). Then,
+    % determine how much of each trapping has been achieved. (Use final
+    % pressure state to determine maximal retaining capacity, or at the
+    % very least, surface pressure should be included in calculation of
+    % hydrostatic pressure).
+    seainfo = getSeaInfo(other.opt.modelname, other.opt.refRhoCO2); % contains seainfo.dis_max
+    %fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false, ...
+    %                           'surf_press', other.opt.surface_pressure);
+    fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false, ...
+                                'press_field', optim.states{end}.pressure); % @@ compare impact on open bdrys
+
+    % full storage potentials:
+    strapCap = fmCap.breakdown.structural_trapping_capacity; % Gt
+    rtrapCap = fmCap.breakdown.residual_trapping_capacity;   % Gt
+    dtrapCap = fmCap.breakdown.dissolved_trapping_capacity;  % Gt
+    totCap   = fmCap.breakdown.total_trapping_capacity;      % Gt
+
+    pv = Gt.cells.volumes .* Gt.cells.H .* other.rock.poro; % pore volume (m3)
+    if isfield(other.rock,'ntg')
+        pv = pv .* other.rock.ntg;
+    end
+
+    % achieved (simulated) storage (in kg):
+    %masses = max([resDis, resStruc, resTrap, freeRes, freeStruc, subtrap, freeMov], 0);
+    strap_achieved = reports_optim(end).masses(2) + reports_optim(end).masses(5) + reports_optim(end).masses(6); % resStruct + freeStruct + subTrap, kg
+    rtrap_achieved = reports_optim(end).masses(3) + reports_optim(end).masses(4); % resTrap + freeRes, kg
+    dtrap_achieved = reports_optim(end).masses(1); % resDis
+    other_achieved = reports_optim(end).masses(7); % freeMov
+
+    balance_error = (convertTo((strap_achieved + rtrap_achieved + dtrap_achieved + other_achieved),giga*kilo) - (total_inj - total_leaked));
+    assert( abs(balance_error) < 1e-12 )
 
 % %         fprintf('Formation       | StrapCap(Gt) | RtrapCap(Gt) | DtrapCap(Gt) | Total inj. (Gt) | Leaked (Gt,Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | DtrapAch (Gt,Perc.) | MovePlume(Gt) \n');
 %         %fprintf('%16s&   %8.2f  &   %8.2f  &   %8.2f  &    %8.2f   & %8.2f (%3.1f) &    %3.1f    &  %8.2f (%3.1f)  &   %8.2f (%3.1f)   &  %8.2f (%3.1f)  &  %8.2f    \\\\ \n', ...
@@ -125,42 +208,43 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
 %             convertTo(rtrap_achieved, giga*kilo), (convertTo(rtrap_achieved, giga*kilo)/rtrapCap)*100, ...
 %             convertTo(dtrap_achieved, giga*kilo), (convertTo(dtrap_achieved, giga*kilo)/dtrapCap)*100, ...    
 %             convertTo(other_achieved, giga*kilo) );
-        
-        % compute (simulated) storage efficiency:
-        rhoG_init   = other.fluid.rhoG(other.initState.pressure); % kg/m3
-        full_fm_cap = sum(rhoG_init .* pv)/1e12; % Gt
-        Seff        = (total_inj - total_leaked) / full_fm_cap;
-        
-        % simplier table output:
-        if strcmpi(other.opt.btype,'pressure')
-        %fprintf('Formation       | Total inj. (Gt) | Leaked (Gt,Perc.) | Cap (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) \n');
-        fprintf('%16s&      %8.3f   &   %8.3f (%3.2f) & %8.3f &        %3.2f  &       %3.2f &     %8.3f (%3.2f)  &        %8.3f (%3.2f)   &  %8.3f    \\\\ \n', ...
-            other.opt.modelname, ...
-            total_inj, ...
-            total_leaked, (total_leaked/total_inj)*100, ...
-            total_inj - total_leaked, ...
-            Seff * 100, ...
-            res.worst_percent_of_OBpress_reached, ...
-            convertTo(strap_achieved, giga*kilo), (convertTo(strap_achieved, giga*kilo)/strapCap)*100, ...
-            convertTo(rtrap_achieved, giga*kilo), (convertTo(rtrap_achieved, giga*kilo)/rtrapCap)*100, ...  
-            convertTo(other_achieved, giga*kilo));
-        
-        elseif strcmpi(other.opt.btype,'flux')
-        %fprintf('Formation       | Total inj. (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) | cp \n');
-        fprintf('%16s&      %8.3f   &         %3.2f  &       %3.2f &     %8.3f (%3.2f)  &        %8.3f (%3.2f)   &  %8.3f    &  %1.0e \\\\ \n', ...
-            other.opt.modelname, ...
-            total_inj, ...
-            Seff * 100, ...
-            res.worst_percent_of_OBpress_reached, ...
-            convertTo(strap_achieved, giga*kilo), (convertTo(strap_achieved, giga*kilo)/strapCap)*100, ...
-            convertTo(rtrap_achieved, giga*kilo), (convertTo(rtrap_achieved, giga*kilo)/rtrapCap)*100, ...  
-            convertTo(other_achieved, giga*kilo), ...
-            other.opt.pressure_penalty );
-            
-        end
-        
-        
-        % only trapping capacity output:
+
+    % compute (simulated) storage efficiency:
+    rhoG_init   = other.fluid.rhoG(other.initState.pressure); % kg/m3
+    full_fm_cap = sum(rhoG_init .* pv)/1e12; % Gt
+    Seff        = (total_inj - total_leaked) / full_fm_cap;
+
+    % simplier table output:
+    if strcmpi(other.opt.btype,'pressure')
+    %fprintf('Formation       | Total inj. (Gt) | Leaked (Gt,Perc.) | Cap (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) | cp \n');
+    fprintf('%16s&      %8.3f   &   %8.3f (%3.2f) & %8.3f &        %3.2f  &       %3.2f &     %8.3f (%3.2f)  &        %8.3f (%3.2f)   &  %8.3f  &  %1.0e   \\\\ \n', ...
+        other.opt.modelname, ...
+        total_inj, ...
+        total_leaked, (total_leaked/total_inj)*100, ...
+        total_inj - total_leaked, ...
+        Seff * 100, ...
+        res.worst_percent_of_OBpress_reached, ...
+        convertTo(strap_achieved, giga*kilo), (convertTo(strap_achieved, giga*kilo)/strapCap)*100, ...
+        convertTo(rtrap_achieved, giga*kilo), (convertTo(rtrap_achieved, giga*kilo)/rtrapCap)*100, ...  
+        convertTo(other_achieved, giga*kilo), ...
+        other.opt.pressure_penalty );
+
+    elseif strcmpi(other.opt.btype,'flux')
+    %fprintf('Formation       | Total inj. (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) | cp \n');
+    fprintf('%16s&      %8.3f   &         %3.2f  &       %3.2f &     %8.3f (%3.2f)  &        %8.3f (%3.2f)   &  %8.3f    &  %1.0e \\\\ \n', ...
+        other.opt.modelname, ...
+        total_inj, ...
+        Seff * 100, ...
+        res.worst_percent_of_OBpress_reached, ...
+        convertTo(strap_achieved, giga*kilo), (convertTo(strap_achieved, giga*kilo)/strapCap)*100, ...
+        convertTo(rtrap_achieved, giga*kilo), (convertTo(rtrap_achieved, giga*kilo)/rtrapCap)*100, ...  
+        convertTo(other_achieved, giga*kilo), ...
+        other.opt.pressure_penalty );
+
+    end
+
+
+    % only trapping capacity output:
 %         fprintf('Formation       | Vp (km3) | StrapCap(Gt) (Perc) | RtrapCap(Gt) (Perc) | DtrapCap(Gt) (Perc) | Total (Gt) \n');
 %         fprintf('%16s&   %8.2f  & %8.3f  (%3.2f) &   %8.3f (%3.2f) &   %8.3f (%3.2f) &    %8.3f  \\\\ \n', ...
 %             other.opt.modelname, ...
@@ -173,14 +257,6 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
 %         plotStorageBreakdownsPie( strapCap, rtrapCap, dtrapCap, ...
 %             convertTo(strap_achieved,giga*kilo), convertTo(rtrap_achieved,giga*kilo), convertTo(dtrap_achieved,giga*kilo) )
 
-        if opt.savePlots
-           % 2, 3, 4, 5 figures generated. Saving only well rates.
-           %saveas(gcf, [opt.figDirName '/' opt.fmName '_initVsOptimRates'], 'fig')
-           drawnow
-           pause(1)
-           export_fig(figure(3), [opt.figDirName '/' opt.fmName '_initVsOptimRates'], '-png','-transparent')
-        end
-    end
     
     %% Plot trapping mechanisms inventory over time
     if opt.plotInventory
@@ -218,28 +294,6 @@ function exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin )
         end
     end    
     
-    %% Plot Saturation Fields and/or Pressure Fields
-    if opt.plotSatFields
-        
-        % initial rates
-        selectedResultsMultiplot(Gt, reports_init, opt.SatFieldStates, ...
-                                 'background', 'totalCO2', ...
-                                 'plot_traps', true);
-
-        % optimized rates
-        selectedResultsMultiplot(Gt, reports_optim, opt.SatFieldStates, ...
-                                 'background', 'totalCO2', ...
-                                 'plot_traps', true);
-    end
-    
-    if opt.plotPressFields
-        % overpressure
-        selectedResultsMultiplot(Gt, reports_optim, opt.PressFieldStates, ...
-                                 'background', 'overpressure', ...
-                                 'init_state', other.initState, ...
-                                 'plot_traps', true, 'plot_distrib', false, ...
-                                 'plot_well_numbering', true);
-    end
     
     %% Compute pressure field when highest overpressure occurred
     if opt.plotOther

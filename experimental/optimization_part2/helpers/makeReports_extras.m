@@ -45,10 +45,10 @@ function reports = makeReports_extras(Gt, states, rock, fluid, schedule, ...
       leaked = tot_inj - sum(reports(i).masses);
       % @@ assert that leaked is >= 0
       %assert( leaked >= 0, 'A negative leakage mass was computed.')
-      if leaked < 0
+      if leaked < 0 && abs(leaked/tot_inj)*100 > 1e-3 % 0.001
         if opt.warningOn
-            %warning('A negative leakage mass was computed.')
-            warning('Masses differ from injected amount by %5.2f percent', abs(leaked/tot_inj)*100)
+            warning('A negative leakage mass was computed.')
+            %warning('Masses differ from injected amount by %5.2f percent', abs(leaked/tot_inj)*100)
         end
       end
       reports(i).masses = [reports(i).masses, leaked];

@@ -22,6 +22,13 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
 %   If varargin cells is specified, trapping info is returned for those
 %   specific cells. If not specified, default is cells = 1:Gt.cells.num
 %
+%   CO2 density is a function of pressure and temperature. A pressure field
+%   can be passed in which will be used to compute density, otherwise the
+%   hydrostatic pressure is computed and used. This ability to use a
+%   pressure field other than the hydrostatic is useful when a
+%   closed-system has experienced a significant pressure rise from its
+%   initial state due to gas injection.
+%
 % See also
 %   exploreCapacity.m
     
@@ -33,6 +40,13 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
     %opt.rhoCref     = 760 * kilogram / meter ^3; % arbitrary ref co2 density
     opt.fmName      = 'fmName'; % if fmName is not set, capacities are not printed out
     opt.closed_boundary_edges = [];
+    
+    % can specify a pressure field, instead of using hydrostatic
+    opt.press_field = [];
+    
+    % surface pressure is used in hydrostatic pressure calculation
+    opt.surf_press = [];
+    
     opt = merge_options(opt, varargin{:});
     
     
@@ -64,7 +78,11 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
 
     res.info    = info;
     res.co2     = var.co2; % NB: co2.rho(p,t) where t is in Kelvin
-    res.caprock_pressure    = compute_pressure();               % Pascals
+    if isempty(opt.press_field)
+        res.caprock_pressure = compute_pressure(); % Pascals
+    else
+        res.caprock_pressure = opt.press_field;
+    end
     res.caprock_temperature = compute_temperature() + 273.15;   % Kelvin
     
     
@@ -95,8 +113,10 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
         gravity on;
         
         Gt = var.Gt;
-        p = (Gt.cells.z * info.water_density * norm(gravity)) ...
+        p = (Gt.cells.z * info.water_density * norm(gravity) + opt.surf_press) ... % @@ surf press gives slight impact
             .* (1+info.press_deviation/100);
+        % what is used in simulation:
+        % p = rho_water * norm(gravity()) * Gt.cells.z + surface_pressure;
     end
     % ---------------------------------------------------------------------
 
@@ -140,7 +160,11 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
     % ---------------------------------------------------------------------
 
     function [H1, strap, btrap_res, btrap_dis] = recompute_trapcap()
-        p = compute_pressure();
+        if isempty(opt.press_field)
+            p = compute_pressure();
+        else
+            p = opt.press_field;
+        end
         t = compute_temperature() + 273.15; % Kelvin
 
         Gt   = var.Gt;
@@ -225,7 +249,12 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
 
         % reservoir conditions
         t = compute_temperature() + 273.15; % Kelvin
-        p = compute_pressure();             % Pascals
+        if isempty(opt.press_field)
+            p = compute_pressure(); % Pascals
+        else
+            p = opt.press_field;
+        end
+
 
         % total capacity (kg/m2): (volume is top-surface cell area)
         [~, strap, btrap_res, btrap_dis] = recompute_trapcap();
@@ -283,12 +312,12 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
 
             subplot(nr,nc,3)
             title({'caprock';'temperature (C)'})
-            plotCellData(Gt.parent, compute_temperature(), 'EdgeColor','none');
+            plotCellData(Gt.parent, t, 'EdgeColor','none');
             colorbar; rotate3d on;  
 
             subplot(nr,nc,4)
             title({'caprock';'pressure (MPa)'})
-            plotCellData(Gt.parent, compute_pressure() / 1e6, 'EdgeColor','none');
+            plotCellData(Gt.parent, p / 1e6, 'EdgeColor','none');
             colorbar; rotate3d on;          
 
             subplot(nr,nc,5)
@@ -344,7 +373,11 @@ function [ varargout ] = getTrappingInfo(gt, rock2d, info, varargin)
 
         %assert()
 
-        p = compute_pressure();
+        if isempty(opt.press_field)
+            p = compute_pressure();
+        else
+            p = opt.press_field;
+        end
         t = compute_temperature() + 273.15; % Kelvin
 
         Gt   = var.Gt;

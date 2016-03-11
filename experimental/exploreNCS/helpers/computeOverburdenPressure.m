@@ -3,6 +3,8 @@ function [ P_over, P_limit ] = computeOverburdenPressure( Gt, rock2D, ...
 % Compute overburden or fracture pressure at a particular depth in the
 % Norwegian Continental Shelf.
 
+    gravity on;
+
     % Rock types of some formations:
     %   Garn      - sandstone, medium to coarse grain, interlayered by
     %               mica-rich zones.

@@ -18,7 +18,7 @@ moduleCheck('ad-core')
 
 % Main Directory name for saving results (each cases results will be put
 % into a subdirectory named according to InjYrs and MigYrs)
-varDirName = 'testing2/opt_results_one_per_trap_highest_pt_Pressure_plim90_ClosedBdrys';
+varDirName = 'testing2/opt_results_one_per_trap_highest_pt_OpenBdrys_stricterTol';
 
 % Figure Directory name
 figDirName = [varDirName '/' 'WellPlacementFigs_one_per_trap_highest_pt'];
@@ -65,6 +65,12 @@ assert( numel(shared_names) >= numel(names) )
 assert( all(strcmpi(sort(shared_names),sort(names)))==1 )
 
 
+% if running multiple runs, adjust figure visibility
+% unless each figure generated in a way to avoid stealing focus
+set(0, 'DefaultFigureVisible', 'off');
+
+names = {'Sandnesfm'}
+
 for i=1:numel(names)
     
     fprintf('-------------- FORMATION: %s -----------------\n', names{i})
@@ -87,32 +93,36 @@ for i=1:numel(names)
                 .* (1 + seainfo.press_deviation/100);
 
     max_rate_fac = 2;
-    if any(strcmpi(fmName,{'Sleipnerfm','Huginfmeast','Huginfmwest','Ulafm','Pliocenesand'}))
-        max_rate_fac = 4;
+    if any(strcmpi(fmName,{'Sleipnerfm','Huginfmwest','Ulafm','Huginfmeast','Pliocenesand'}))
+        max_rate_fac = 4;  % @@ max rates will depend on the starting rates
+    %elseif any(strcmpi(fmName,{''}))
+    %    max_rate_fac = 4;
     end
 
-    try
+    %try
     
 
         %%% Pass everything in explicitly.
         clear Gt optim init history other
-        %cp = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1];
         cp = [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1];
-        %cp = [1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1];
         sch = [];
+        max_wvals = []; % will be computed internally using rate_lim_fac
         for r = 1:numel(cp)
             % assuming penalize pressure is on, get optimized rates for a given cp
             [Gt, optim, init, history, other] = optimizeFormation_extras(...
             'dryrun'                         , false                        , ...
             'inspectWellPlacement'           , false                         , ... % if true, will not continue to simulation
-            'adjustClosedSystemRates'        , true                         , ... % applied to internally computed rates only, not passed in schedule
+            'adjustClosedSystemRates'        , true                         , ... % applied to internally computed rates only, not passed in schedule. Only applied if system closed
+            'lineSearchMaxIt'                , 10                           , ...
+            'gradTol'                        , 1e-4                         , ...
+            'objChangeTol'                   , 1e-4                         , ...
             'modelname'                      , fmName                       , ...
                 'coarse_level'               , coarsening                   , ...
             'schedule'                       , sch, ... %'opt_results_Array_in_trap_regions_Pressure_plim90/Sleipnerfm/InjYrs50_MigYrs2_DissOn_0_rateLim10_pre/new_schedule'                           , ...
-                'itime'                      , 20 * year                    , ...
-                'isteps'                     , 20                           , ...
-                'mtime'                      , 10 * year                   , ...
-                'msteps'                     , 2                           , ... 
+                'itime'                      , 50 * year                    , ...
+                'isteps'                     , 50                           , ...
+                'mtime'                      , 2000 * year                   , ...
+                'msteps'                     , 200                          , ... 
             'well_placement_type'            , 'one_per_trap'                  , ... % 'use_array', 'one_per_trap', 'one_per_path'
                 'max_num_wells'              , 40                           , ... % used in use_array, one_per_trap
                 'maximise_boundary_distance' , false                        , ... % used in one_per_path
@@ -124,8 +134,9 @@ for i=1:numel(names)
                 'DY'                         , 1 * kilo*meter               , ... % used in use_array
             'well_control_type'              , 'rate'                       , ...
                 'rate_lim_fac'               , max_rate_fac                 , ...
-            'btype'                          , 'flux'                   , ...
-            'penalize_type'                  , 'pressure'                    , ... % 'leakage', 'leakage_at_infinity', 'pressure'
+                'max_wvals'                  , max_wvals                    , ...
+            'btype'                          , 'pressure'                   , ...
+            'penalize_type'                  , 'leakage'                    , ... % 'leakage', 'leakage_at_infinity', 'pressure'
                 'leak_penalty'               , 10                           , ...
                 'pressure_penalty'           , cp(r) , ... %3.0963e-12                        , ... % @@ get appropriate penalty with trial-and-error
                 'p_lim_factor'               , 0.9                       , ...
@@ -151,80 +162,98 @@ for i=1:numel(names)
             'trapfile_name'                 , []                            , ... % 'utsira_subtrap_function_3.mat'
             'surf_topo'                     , 'smooth' );
 
-            % Was pressure limit surpassed? If yes, use next higher cp
-            % value. If no, results obtained with cp value were acceptable.
-            % max P encountered per cell:
-%             tmp = []; for j=1:numel(optim.states), tmp = [tmp, optim.states{j}.pressure]; end
-%             maxP_encountered = max(tmp')';
-%             % pressure limit:
-             plim = other.opt.p_lim_factor * other.P_over;
-%             % amount surpassed (if any):
-%             amount_surp = max(0,max(maxP_encountered - plim)); % Pascals
-%             amount_under = plim - maxP_encountered;
-%             amount_under(amount_under < 0) = NaN;
-%             [~, inx_min_under] = min(amount_under);
-%             [~, inx_max_surp] = max(maxP_encountered - plim);
-%             if amount_surp == 0 % @@ or use a tolerance
-%                 fprintf('Under plim by %4.9f percent of plim, in cell %d, using cp=%d.\n', ...
-%                     amount_under(inx_min_under)/plim(inx_min_under)*100, inx_min_under, cp(r));
-%                 break % exits cp (r) loop
-%             else
-%                 fprintf('Surpassed plim by %4.9f percent of plim, in cell %d, using cp=%d.\n', ...
-%                 amount_surp/plim(inx_max_surp)*100, inx_max_surp, cp(r));
-%                 % use optimized rates as next iteration's initial rates
-%                 sch = optim.schedule;
-%             end
+            % Save well inspection figure if it was generated,
+            % then go to next formation
+            if isfield(other,'inspectWellPlacement')
+                % Save figure:
+                pause(1)
+                %saveas(figure(100), [figDirName '/' fmName '_wellPlacement'], 'fig')
+                export_fig(figure(100),[figDirName '/' fmName '_wellPlacement'], '-png','-transparent')
+                break % exit cp (r) loop, try to save variables, then go to next formation
+            end
             
-            [perc_of_plim_reach, perc_of_Pover_reach] = ...
-                report_maxPercentage_plim_reached( optim.states, plim, other.P_over );
-            if perc_of_Pover_reach/100 - other.opt.p_lim_factor > 0.02
-                % use optimized rates as next iteration's initial rates
-                sch = optim.schedule;
+            % keep the 'first' initial schedule for post-processing, and
+            % keep the 'first' max well values for further cp iterations
+            if r == 1
+               init0 = init;
+               max_wvals = other.opt.rate_lim_fac * ...
+                    max([init0.schedule.control(1).W.val]) * ones(numel(init0.schedule.control(1).W), 1);
+            end
+            if strcmpi(other.opt.penalize_type,'pressure')
+                % Was pressure limit plus a tolerance surpassed? If yes, use
+                % next higher cp value. If within plim + tolerance, results
+                % obtained with cp value were acceptable. If system is closed
+                % and pressure is under plim, rates could be higher, thus
+                % increase initial rates slightly and go to next cp. If system
+                % is closed and pressure is under plim, okay.
+                plim = other.opt.p_lim_factor * other.P_over;
+                [perc_of_plim_reach, perc_of_Pover_reach] = ...
+                    report_maxPercentage_plim_reached( optim.states, plim, other.P_over );
+                if perc_of_Pover_reach/100 - other.opt.p_lim_factor > 0.02
+                    % use optimized rates as next iteration's initial rates
+                    sch = optim.schedule;
+                elseif strcmpi(other.opt.btype,'flux') && perc_of_Pover_reach/100 < other.opt.p_lim_factor
+                    % plim was not reached in closed system, thus rates could
+                    % be higher. Increase next iteration's initial rates by
+                    % some percentage, while within the max rate limit
+                    sch = optim.schedule;
+                    for wi=1:numel([sch.control(1).W.val])
+                        if (sch.control(1).W(wi).val * 1.25) <= max_wvals(wi)
+                            sch.control(1).W(wi).val = sch.control(1).W(wi).val * 1.25; % 25 percent increase
+                        else
+                            sch.control(1).W(wi).val = max_wvals(wi);
+                        end
+                    end
+                else
+                    % closed system: if plim < p < (plim + tolerance), thus optimal rates found
+                    % open system: if p < (plim + tolerance), optimal rates found
+                    break % exit cp (r) loop, try to save variables, then go to next formation
+                end
             else
-                break % exits cp (r) loop
+                % penalize leakage or leakage at infinity (without
+                % pressure) doesn't require iteratively increasing cp.
+                break
             end
 
             
         
         end
-        % Save well inspection figure if it was generated
-        if isfield(other,'inspectWellPlacement')
-            % Save figure:
-            pause(1)
-            %saveas(figure(100), [figDirName '/' fmName '_wellPlacement'], 'fig')
-            export_fig(figure(100),[figDirName '/' fmName '_wellPlacement'], '-png','-transparent')
-            continue
-        end
+        
         %
         % Save variables
         subVarDirName = [varDirName '/' fmName '/' ...
             'InjYrs',num2str(convertTo(other.opt.itime,year)), ...
             '_MigYrs',num2str(convertTo(other.opt.mtime,year)), ...
             '_DissOn_',num2str(other.dissolution), ...
-            '_lowerInitRates',num2str(other.adjustClosedSystemRates)];
+            '_adjustInitRates',num2str(other.adjustClosedSystemRates)];
         mkdir(subVarDirName);
         save([subVarDirName '/' 'Gt'], 'Gt'); % '-v7.3'); using v7.3 makes size larger!
         save([subVarDirName '/' 'optim'], 'optim');
+        save([subVarDirName '/' 'init0'], 'init0');
         save([subVarDirName '/' 'init'], 'init');
         save([subVarDirName '/' 'history'], 'history');
         save([subVarDirName '/' 'other'], 'other'); % does not contain other.fluid
         %
         % Save optimization iterations/details:
-        saveas(figure(10),[subVarDirName '/' fmName '_optDetails'], 'fig')
-        close(figure(10))
+        % (Avoid stealing focus if figures already exists)
+        set(0, 'CurrentFigure', 10);
+        saveas(10,[subVarDirName '/' fmName '_optDetails'], 'fig')
+        close(10)
         %
-        % Save other figure
-        saveas(figure(11),[subVarDirName '/' fmName '_optDetails_2'], 'fig')
-        close(figure(11))
+        set(0, 'CurrentFigure', 11);
+        saveas(11,[subVarDirName '/' fmName '_optDetails_2'], 'fig')
+        close(11)
         %
-        saveas(figure(50),[subVarDirName '/' fmName '_optDetails_3'], 'fig')
-        close(figure(50))
+        set(0, 'CurrentFigure', 50); % only exists if penalizing pressure
+        saveas(50,[subVarDirName '/' fmName '_optDetails_3'], 'fig')
+        close(50)
+        %
         close all
         
-    catch
+    %catch
         % continue the 'for loop' if code under 'try' either finished or
         % failed
-    end
+    %end
 
 
 

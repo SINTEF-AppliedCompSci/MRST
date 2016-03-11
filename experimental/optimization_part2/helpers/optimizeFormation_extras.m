@@ -70,7 +70,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         initState.rs = zeros(Gt.cells.num, 1);
    end
    
-   %% Compute overburden pressure
+   %% Compute overburden pressure (used when pressure is penalized)
    [P_over, ~] = computeOverburdenPressure(Gt, rock2D, opt.ref_depth, fluid.rhoWS);
    
    %% Compute storage efficiency for closed system (optional)
@@ -176,6 +176,11 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         for i=1:numel([opt.schedule.control(2).W.val])
            opt.schedule.control(2).W(i).val = sqrt(eps); 
         end
+        % ensure injection rates are equal or greater than the minimum (as
+        % they may have changed slightly as above)
+        for i=1:numel([opt.schedule.control(1).W.val])
+           opt.schedule.control(1).W(i).val = max(sqrt(eps),opt.schedule.control(1).W(i).val); 
+        end
     end
     
     %% Add boundary conditions (either constant pressure, or no-flow)
@@ -191,14 +196,19 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
     end
    
     %% Assign well control limits:
+    % either set here internally, or use a pre-defined rate limit
     P_limit = [];
     
     % for injection period
     if strcmpi(opt.well_control_type,'rate')
         min_wvals = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
-        max_wvals = opt.rate_lim_fac * ...
-            max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
-
+        if isempty(opt.max_wvals)
+            max_wvals = opt.rate_lim_fac * ...
+                max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
+        else
+            assert( numel(opt.max_wvals) == numel(opt.schedule.control(1).W) )
+            max_wvals = opt.max_wvals;
+        end
     elseif strcmpi(opt.well_control_type,'bhp')
         min_wvals = initState.pressure( [opt.schedule.control(1).W.cells] ); % @@ but will this cause small injection to occur as global formation pressure rises?
 
@@ -238,7 +248,10 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                      'pressure_penalty',    opt.pressure_penalty, ...
                      'pressure_limit',      P_limit, ... % empty if using rate-controls
                      'rho_water',           fluid.rhoWS, ...
-                     'surface_pressure',    opt.surface_pressure);
+                     'surface_pressure',    opt.surface_pressure, ...
+                     'lineSearchMaxIt',     opt.lineSearchMaxIt, ...
+                     'gradTol',             opt.gradTol, ...
+                     'objChangeTol',        opt.objChangeTol);
                  
    %% Store data
    %other.fluid = fluid; % @@ fluid structure is ~400MB when saved, but required for results
@@ -317,8 +330,6 @@ function [wc, qt] = pick_wellsites(Gt, rock2D, co2, ta, num_wells, ...
                                    rhoW, sw, seafloor_temp, seafloor_depth, ...
                                    tgrad, buf_dist, maximize_boundary_distance, ...
                                    domain_buf_dist)
-    % TEST calculation of 'qt' for formations that contain NTG data
-    % TEST well buffer dist, maximize bdry dist
 
     % Computing local pressure and temperature conditions (in order to
     % compute CO2 densities) 
@@ -504,6 +515,7 @@ function opt = opt_defaults()
     % Well control details:
     opt.well_control_type = 'rate'; % 'rate','bhp'
     opt.rate_lim_fac = 10; % factor for setting upper limit of injection rates
+    opt.max_wvals = [];    % or max well vals can be passed in explicitly
     
     % Well placement details:
     opt.well_placement_type = 'use_array'; % 'use_array', 'one_per_trap', 'one_per_path'
@@ -517,6 +529,11 @@ function opt = opt_defaults()
     opt.DY = 1 * kilo*meter;
     opt.inspectWellPlacement = false;
     opt.adjustClosedSystemRates = false;
+    
+    % Convergence details:
+    opt.lineSearchMaxIt = 10;
+    opt.gradTol         = 1e-4;
+    opt.objChangeTol    = 1e-4;
 
 
 end

@@ -21,6 +21,11 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    opt.dryrun = false;    % if 'true', no optimization will take place
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
    
+   % Convergence details:
+   opt.lineSearchMaxIt = 10;
+   opt.gradTol         = 1e-4;
+   opt.objChangeTol    = 1e-4;  
+   
    % Penalization type:
    opt.penalize_type = 'leakage'; % 'leakage','leakage_at_infinity','pressure'
    
@@ -28,7 +33,6 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    
    % for pressure_penalizer:
-   %opt.penalize_pressure = false;
    opt.pressure_penalty = [];
    opt.pressure_limit   = [];
    
@@ -49,7 +53,6 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    
    % additional part of objective function (if opt.pressure_penalty
    % provided, obj fun will also penalize pressure close to pressure limit)
-   % @@ requires testing...
    if strcmpi(opt.penalize_type,'pressure')
        obj_funA = opt.obj_fun; clear opt.obj_fun; opt.obj_fun = @(dummy) 0;
        
@@ -59,17 +62,14 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
        
        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
            cell_subtract(obj_funA(wellSols, states, schedule, varargin{:}), ...
-                         obj_funB(states, varargin{:}));
-                                
-%        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
-%           num2cell(  cell2mat( obj_funA(wellSols, states, schedule, varargin{:}) ) ...
-%                    - cell2mat( obj_funB(states, varargin{:}) ) ); % @@ okay for ADI var?
+                         obj_funB(states, varargin{:}));                    
    end
    
    % another possible objection function to use:
    % penalizes leakage which is determined at infinity, by computing the
    % volume of co2 accumulated (i.e., remaining) in formation at time
    % infinity using spill-point dynamics.
+   % @@ requires testing...
    if opt.penalize_leakage_at_infinity
        assert(~isempty(opt.surface_pressure))
        assert(~isempty(opt.rho_water))
@@ -91,60 +91,45 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    %% Compute initial objective value (if required for scaling)
    if isempty(opt.obj_scaling)
        
-      % adjust initial rates in while loop until rates did not lead to
-      % surpassing the pressure limit (i.e., a negative init.obj_val_total)
-      %init.obj_val_total = -1;
-      %tmp_schedule = schedule;
-      %tmp_rates = [schedule.control(1).W.val];
-      %it = 0;
-      %while init.obj_val_total < 0
-%           for i=1:num_wells
-%             tmp_schedule.control(1).W(i).val = tmp_rates(i) * (1 - 0.1*it);
-%             % must assess min rates.
-%             if tmp_rates(i) * (1 - 0.1*it) < min_wvals(i)
-%                 tmp_schedule.control(1).W(i).val = min_wvals(i);
-%             end
-%           end
-          
-          [init.wellSols, init.states] = ...
-              simulateScheduleAD(initState, model, schedule); 
+      [init.wellSols, init.states] = ...
+          simulateScheduleAD(initState, model, schedule); 
 
-          if strcmpi(opt.penalize_type,'pressure')
-              init.obj_val_steps_A = cell2mat( obj_funA(init.wellSols, ...
-                                            init.states, init.schedule) );
-              init.obj_val_steps_B = cell2mat( obj_funB(init.states) );
+      if strcmpi(opt.penalize_type,'pressure')
+          init.obj_val_steps_A = cell2mat( obj_funA(init.wellSols, init.states, init.schedule) );
+          init.obj_val_steps_B = cell2mat( obj_funB(init.states) );
+          init.obj_val_steps = init.obj_val_steps_A - init.obj_val_steps_B;
 
-              init.obj_val_steps = init.obj_val_steps_A - init.obj_val_steps_B;
-
-              figure(50); clf; hold on
-              plot(1:numel(init.obj_val_steps), init.obj_val_steps_A, 'x')
-              plot(1:numel(init.obj_val_steps), -init.obj_val_steps_B, 'o')
-              plot(1:numel(init.obj_val_steps), init.obj_val_steps, '+')
-              legend('objA','-objB','objA - objB', 'Location','SouthWest')
-              pause(1)
-
+          if ~ishandle(50)
+            figure(50)
           else
-
-              init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
-                                                    init.states, ...
-                                                    init.schedule));
+            % Avoid stealing focus if figure already exists
+            set(0, 'CurrentFigure', 50); clf(50)
           end
-          init.obj_val_total = sum(init.obj_val_steps); % @@ originally, this represented
-          % the total amount retained in domain by end of migration period
-          %it = it + 1; assert(0.1*it < 1)
-      %end
+          hold on;
+          plot(1:numel(init.obj_val_steps), init.obj_val_steps_A, 'x')
+          plot(1:numel(init.obj_val_steps), -init.obj_val_steps_B, 'o')
+          plot(1:numel(init.obj_val_steps), init.obj_val_steps, '+')
+          legend('objA','-objB','objA - objB', 'Location','SouthWest')
+          drawnow
+
+      else
+          init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
+                                                init.states, ...
+                                                init.schedule));
+      end
+      init.obj_val_total = sum(init.obj_val_steps);
+
       
       % Use value of objective function before optimization as scaling.
       % Otherwise, the scale of obj_val_steps_B can be much greater than _A
       opt.obj_scaling = abs(init.obj_val_total);
       if strcmpi(opt.penalize_type,'pressure')
-        opt.obj_scaling = abs( sum(init.obj_val_steps_A) ); % the total amount retained by end
+        opt.obj_scaling = abs( sum(init.obj_val_steps_A) );
       end
    end
    
 %     init.obj_val_steps_A_full = cell2mat(leak_penalizer_Rerun(model, init.wellSols, ...
 %         init.states, schedule, opt.leak_penalty));
-%     opt.obj_scaling = init.obj_val_steps_A_full(end);
    
    
    %% Return if optimization should be skipped
@@ -153,12 +138,6 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
       history = [];
       return;
    end
-   
-%    %% Lower initial rates if pressure limit surpassed
-%    if init.obj_val_total < 0
-%        
-%    end
-       
    
    
    %% Define limits, scaling and objective function
@@ -217,7 +196,9 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    end
    
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
-       'lineSearchMaxIt', 10, 'gradTol',5e-3,'objChangeTol',5e-3);
+       'lineSearchMaxIt', opt.lineSearchMaxIt, ...
+       'gradTol'        , opt.gradTol, ...
+       'objChangeTol'   , opt.objChangeTol);
    
    %% Preparing solution structures
    if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
@@ -320,7 +301,7 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
             fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol));
          end
       end
-      obj{step} = obj{step} * model.fluid.rhoGS/1e12; %@@ converted to Gt
+      obj{step} = obj{step} * model.fluid.rhoGS/1e12; % converted to Gt
    end
 end
 
@@ -415,10 +396,10 @@ end
 % ----------------------------------------------------------------------------
 
 function obj = pressure_penalizer(model, states, schedule, penalty, plim, varargin)
-% states.pressure is a scalar field (size of domain).
+% states.pressure is a cell array.
 % schedule is only used for time steps.
 % penalty is a scalar.
-% plim is a scalar.
+% plim is a cell array.
 
 
 % format of objective function:
@@ -483,7 +464,7 @@ function obj = pressure_penalizer(model, states, schedule, penalty, plim, vararg
              if any(max_amount_surp > 0)
                  [val,tinx] = max(max_amount_surp);
                  cinx = max_amount_surp_cinx(tinx);
-                 msg1 = 100*val/plim(cinx); % @@ include cinx and tinx
+                 msg1 = 100*val/plim(cinx);
              else
                  [val,tinx] = min(min_amount_under);
                  cinx = min_amount_under_cinx(tinx);
@@ -546,10 +527,16 @@ function [val, der, wellSols, states] = ...
    
    % compute objective:
    vals = obj_fun(wellSols, states, schedule); % @@ ensure wellSols{}.sign is correct
-   figure(11); clf; set(gcf,'Visible','off')
+   if ~ishandle(11)
+     figure(11)
+   else
+     % Avoid stealing focus if figure already exists
+     set(0, 'CurrentFigure', 11); clf(11);
+   end
    h1 = plot(1:numel(vals), [vals{:}], '+');
    val  = sum(cell2mat(vals))/abs(objScaling);
    legend([h1],{['scaled obj val: ',num2str(val)]},'Location','SouthWest')
+   drawnow
 
    % run adjoint:
    if nargout > 1

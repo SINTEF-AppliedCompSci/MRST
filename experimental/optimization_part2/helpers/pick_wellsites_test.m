@@ -148,7 +148,7 @@ function [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, num_wells, ...
                 [wc, inx] = unique(wc,'stable'); % unsorted
                 qt        = qt(inx);
                 % a check for closed-system
-                qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
+                qt = adjust_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
                 % return from this function
                 return;
            end
@@ -175,7 +175,7 @@ function [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, num_wells, ...
             [wc, inx] = unique(wc,'stable'); % unsorted
             qt        = qt(inx);
             % a check for closed-system
-            qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
+            qt = adjust_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);
             % return from this function
             return;
         end
@@ -193,17 +193,19 @@ function [wc, qt] = pick_wellsites_test(Gt, rock2D, co2, ta, num_wells, ...
 %         plotFaces(Gt, boundaryFaces(Gt, ta.trap_regions == i), 'EdgeColor','r')
 %     end
 %     end
+
+    % Need to add closed system check for when num_wells was reached.
     
 
 end
 
 % HELPER FUNCTIONS:
 
-function qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt)
+function qt = adjust_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt)
 
 % Adjust initial volume to inject if system is closed
-% Here, we lower the injection volumes such that the total volume is
-% within the closed-system's capacity, computed using E_closed:
+% Here, we increase or decrease the injection volumes such that the total
+% volume is within the closed-system's capacity, computed using E_closed:
 % --------------- V_co2 = E_closed * pore_volume -----------------
     gravity on;
     if ~isempty(opt.E_closed)
@@ -220,11 +222,14 @@ function qt = lower_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_
 
         M_co2 = sum(opt.E_closed .* rhoCO2 .* pv); % kg
 
-        % if M_co2 < sum(qt), then qt is reduced by a factor of M_co2/sum(qt):
-        if min(M_co2/sum(qt),1) < 1
+        % qt is adjusted by a factor of M_co2/sum(qt):
+        if M_co2/sum(qt) < 1
             fprintf('Initial rates are lowered.\n')
+            %qt = qt .* min(M_co2/sum(qt),1);
+        elseif M_co2/sum(qt) > 1
+            fprintf('Initial rates are increased.\n')
         end
-        qt = qt .* min(M_co2/sum(qt),1);
+        qt = qt .* M_co2/sum(qt);
     end
 end
 

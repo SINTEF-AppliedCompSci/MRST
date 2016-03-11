@@ -37,7 +37,8 @@ function [ fluid ] = reconstructFluidStructure( Gt, rock2D, opt, dh )
                        'dis_max'      , opt.dis_max                    , ...
                        'surf_topo'    , opt.surf_topo                  , ...
                        'top_trap'     , dh);
+                   
+                   
 
 
 end
-
