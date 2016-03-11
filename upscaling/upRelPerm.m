@@ -390,12 +390,11 @@ switch method
         
         % Set pressure drop
         if isPeriodic
+            assert( isprop(block, 'bcp') );
             bcp = block.bcp;
             bcp.value(:) = 0;
             bcp.value(bcp.tags == d) = dp;
             bc  = [];
-            Gp  = G;
-            G   = G.parent;
         else
             % Cells neighbouring the outer faces
             nc = @(i) sum(block.G.faces.neighbors(block.faces{d}{i},:),2);
@@ -408,7 +407,6 @@ switch method
             bc = addBC(bc, block.faces{d}{2}, ...
                 'pressure',  0, 'sat', [sWf 1-sWf]);
             
-            Gp  = [];
             bcp = [];
         end
         
@@ -418,7 +416,7 @@ switch method
         
         % Solve steady state flow
         state1 = simulateToSteadyStateADI_new(G, block.rock, ...
-            block.fluid, sW, 'bc', bc, 'Gp', Gp, 'bcp', bcp);
+            block.fluid, sW, 'bc', bc, 'bcp', bcp);
         
         % Extract saturation
         sW1 = state1.s(:,1);

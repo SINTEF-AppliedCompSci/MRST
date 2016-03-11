@@ -38,7 +38,6 @@ function [state, varargout] = simulateToSteadyStateADI_new(G, ...
 
 opt = struct( ...
     'bc',           [],       ... % fixed boundary conditions TODO not tried
-    'Gp',           [],       ... % periodic grid
     'bcp',          [],       ... % periodic boundary conditions
     'dtInit',       10*day,   ... % initial dt
     'dtIncFac',     2.5,      ... % dt increasing factor
@@ -72,15 +71,11 @@ if polymer
     error('')
     model  = TwoPhaseOilWaterModel(G, rock, fluid);
 else
-    model  = TwoPhaseOilWaterModel(G, rock, fluid);
+    model  = TwoPhaseOilWaterModel_BCP(G, rock, fluid);
 end
 state0 = initResSol(G, 50*barsa, [sW0 1-sW0]);
 state0.wellSol = initWellSolAD([], model, state0);
 
-%bc = pside(bc, G, 'xmin', 1*barsa, 'sat', [.25, .75]);
-%bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [.25, .75]);
-
-bc = opt.bcp; % TODO TEMP BC / BCP ??
 
 %% Simulate some timesteps
 
@@ -112,7 +107,7 @@ while ~steadyState && nIter < nIterMax
     
     % Solve
     [curState, report] = solver.solveTimestep(prevState, dt, model, ...
-        'bc', bc);
+        'bc', opt.bc, 'bcp', opt.bcp);
     
     % Check if Newton iterations failed
     if ~report.Converged
