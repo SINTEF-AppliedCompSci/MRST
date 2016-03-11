@@ -63,48 +63,10 @@ methods
         
         if block.periodic
             % If periodic option is true, then a periodic grid is created
-            block = block.makePeriodicBlock();
+            [block.G, block.bcp] = makePeriodicCartesianGrid(block.G);
         end
         
     end
-    
-    
-    function block = makePeriodicBlock(block)
-        
-        % We only make the dimensions with cartDims>1 periodic
-        dims  = find(block.G.cartDims>1);
-        
-        bf    = getBoundaryFaces(block.G);
-%         if isempty(block.periodicDims)
-%             ndims = size(bf,1);
-%         else
-%             ndims = numel(block.periodicDims);
-%         end
-        ndims = numel(dims);
-        bcl   = cell(1, ndims); % "left" faces
-        bcr   = cell(1, ndims); % "right" faces
-        for i = 1:ndims
-%             if isempty(block.periodicDims)
-%                 d = i;
-%             else
-%                 d = block.periodicDims(i);
-%             end
-            d = dims(i);
-            bcl{i}.face = bf{d,1};
-            bcr{i}.face = bf{d,2};
-        end
-        
-        % Set pressure drop to zero for all directions as default
-        dp = cell(1, ndims);
-        dp(:) = {0};
-        
-        % Create periodic grid
-        Gorg = block.G;
-        [block.G, block.bcp] = makePeriodicGridMulti3d(block.G, ...
-            bcl, bcr, dp, 'dims', dims);
-        block.G.parent = Gorg;
-    end
-    
     
     
     
