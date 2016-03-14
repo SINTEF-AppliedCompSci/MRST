@@ -1,13 +1,20 @@
 %% Periodic Boundary Conditions for AD code
 %
-% We set up a very simple incompressible model with periodic boundary
-% conditions.
+% We demonstrate the use of periodic boundary conditions. This is
+% implemented as part of this module only using 'hacked' versions of the
+% ad-blackoil models.
+% 
+% Note that there is a limitation in the implementation of the periodic
+% boundary conditions, such each dimension must have at least two cells.
 % 
 
 mrstModule add ad-blackoil ad-core ad-props
 
 
 %% Setup example
+% 
+% We set up a very simple incompressible model with periodic boundary
+% conditions.
 
 % Create grid
 G = cartGrid([50, 2, 2], [100, 10, 10]*meter);

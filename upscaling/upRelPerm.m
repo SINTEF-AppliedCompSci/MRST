@@ -2,12 +2,13 @@ function [updata, report] = upRelPerm(block, updata, ...
     method, varargin)
 % 
 opt = struct(...
-    'nvalues',     20, ...
-    'viscousmob',  false, ... % viscous upscaling: use total mob method
+    'nvalues',     20, ... % Number of upscaled saturation values
+    'viscousmob',  false, ... % Viscous upscaling: use total mob method
     'dims',        1:3, ...  % Dimensions to upscale
     'dp',          1*barsa, ...  % Pressure drop
-    'savesat',     false, ... % save saturation distributions
-    'absmethod',   'pressure' ... % one-phase upscaling method
+    'savesat',     false, ... % Save saturation distributions
+    'absmethod',   'pressure', ... % one-phase upscaling method
+    'verbose',     false ... % Print progress to console
     );
 opt = merge_options(opt, varargin{:});
 
@@ -53,6 +54,8 @@ values = getValues(block, updata, method, nvals);
 % Loop over the input values
 for iv = 1:nvals
     
+    dispif(opt.verbose, 'Rel.perm. upscaling %d of %d.\n', iv, nvals);
+    
     val = values(iv);
     
     % Get saturation distribution for this input value
@@ -71,7 +74,14 @@ for iv = 1:nvals
         d = dims(id); % Current dimension
         
         % Update the state for this dimension
-        sW = directionDistribution(block, method, sW0, d, opt.dp);
+        if iv==1 || iv==nvals
+            % At the end points, nothing changes, and we do not need to run
+            % the simulation to steady state.
+            sW = sW0;
+        else
+            sW = directionDistribution(block, method, sW0, d, opt.dp, ...
+                                       opt.verbose);
+        end
         
         % Upscaled saturation
         sWup = sum(sW.*block.pv)./pvTot;
@@ -243,19 +253,20 @@ function values = getValues(block, updata, method, nvals)
 
 switch method
     case 'flow'
-        assert(all(isfield(block.fluid, {'swir','sor'})), ...
-            ['Fluid structure needs fields ''swir'', ''sor'' and ' ...
-            '''satnum''.']);
-        
-        swir   = block.fluid.swir;
-        sor    = block.fluid.sor;
-        satnum = block.fluid.satnum;
-        pvTot  = sum(block.pv);
-        sWUmin = sum(swir(satnum).*block.pv)/pvTot;
-        sWUmax = sum((1-sor(satnum)).*block.pv)/pvTot;
-        
-        % Equal spacing of the upscaled saturations
-        values = linspace(sWUmin, sWUmax, nvals)';
+%         assert(all(isfield(block.fluid, {'swir','sor'})), ...
+%             ['Fluid structure needs fields ''swir'', ''sor'' and ' ...
+%             '''satnum''.']);
+%         
+%         swir   = block.fluid.swir;
+%         sor    = block.fluid.sor;
+%         satnum = block.fluid.satnum;
+%         pvTot  = sum(block.pv);
+%         sWUmin = sum(swir(satnum).*block.pv)/pvTot;
+%         sWUmax = sum((1-sor(satnum)).*block.pv)/pvTot;
+%         
+%         % Equal spacing of the upscaled saturations
+%         values = linspace(sWUmin, sWUmax, nvals)';
+        values = linspace(0, 1, nvals)';
         
     case {'capillary', 'capillary-viscous-dist'}
         assert(isfield(updata, 'pcOW'), ...
@@ -375,7 +386,7 @@ end
 end
 
 
-function sW = directionDistribution(block, method, sW, d, dp)
+function sW = directionDistribution(block, method, sW, d, dp, verbose)
 % Update saturation for the current direction
 
 % Get saturation values
@@ -411,15 +422,15 @@ switch method
         end
         
         % Initialize solution
-        state0      = initResSol(G, 100*barsa, [sW, 1-sW]);
-        state0.flux = zeros(G.faces.num, 2);
+%         state0      = initResSol(G, 100*barsa, [sW, 1-sW]);
+%         state0.flux = zeros(G.faces.num, 2);
         
         % Solve steady state flow
         state1 = simulateToSteadyStateADI_new(G, block.rock, ...
-            block.fluid, sW, 'bc', bc, 'bcp', bcp);
+            block.fluid, sW, 'bc', bc, 'bcp', bcp, 'verbose', verbose);
         
         % Extract saturation
-        sW1 = state1.s(:,1);
+        sW = state1.s(:,1);
         
     case 'capillary' % Capillary limit
         % Do nothing.

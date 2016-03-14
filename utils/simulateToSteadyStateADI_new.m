@@ -37,20 +37,22 @@ function [state, varargout] = simulateToSteadyStateADI_new(G, ...
 %
 
 opt = struct( ...
-    'bc',           [],       ... % fixed boundary conditions TODO not tried
-    'bcp',          [],       ... % periodic boundary conditions
-    'dtInit',       10*day,   ... % initial dt
-    'dtIncFac',     2.5,      ... % dt increasing factor
-    'dtRedFac',     0.5,      ... % dt reduction factor
-    'dtMax',        300*year, ... % maximum dt allowed
-    'dtIncTolSat',  300,      ... % tol for absDiffSat to reduce dt
-    'absTolPres',   10,       ... % absolute pressure tolerence
-    'absTolSat',    1e-4,     ... % absolute saturation tolerence, 1e-4
-    'absTolFlux',   1e-8,     ... % absolute flux tolerence, 1e-8
-    'absTolPoly',   1e-5,     ... % absolute polymer tolerence, 1e-5
-    'nIterMax',     20,       ... % max number of time iterations
-    'adiOpt',       [],       ... % passed on to initADISystemBC
-    'plotCallback', [] ...
+    'bc',             [],       ... % fixed boundary conditions TODO not tried
+    'bcp',            [],       ... % periodic boundary conditions
+    'dtInit',         10*day,   ... % initial dt
+    'dtIncFac',       2.5,      ... % dt increasing factor
+    'dtRedFac',       0.5,      ... % dt reduction factor
+    'dtMax',          300*year, ... % maximum dt allowed
+    'dtIncTolSat',    300,      ... % tol for absDiffSat to reduce dt
+    'absTolPres',     10,       ... % absolute pressure tolerence
+    'absTolSat',      1e-4,     ... % absolute saturation tolerence, 1e-4
+    'absTolFlux',     1e-8,     ... % absolute flux tolerence, 1e-8
+    'absTolPoly',     1e-5,     ... % absolute polymer tolerence, 1e-5
+    'nIterMax',       20,       ... % max number of time iterations
+    'adiOpt',         [],       ... % passed on to initADISystemBC
+    'plotCallback',   [],       ...
+    'verbose',        false,    ...
+    'detailedOutput', false     ...
     );
 
 opt = merge_options(opt, varargin{:});
@@ -59,12 +61,16 @@ opt = merge_options(opt, varargin{:});
 require ad-blackoil
 
 % Verbose option
-%vb = mrstVerbose;
-vb = true;
+vb = opt.verbose;
+do = opt.verbose && opt.detailedOutput;
 
 returnReport = nargout > 1;
 
 polymer = isfield(fluid, 'ads'); % TEMP SOLUTION
+
+% In the steady-state upscaling, we assume the fluid is incompressible.
+% This needs to be specified to the equations.
+fluid.isIncomp = true;
 
 % Set up model and initial state.
 if polymer
@@ -124,7 +130,7 @@ while ~steadyState && nIter < nIterMax
 	absDiffSat  = diffnorm(curState.s, prevState.s);
     
     
-    if vb && nIter==1 % Print heading in verbose mode
+    if do && nIter==1 % Print heading in verbose mode
         fprintf('  Saturation  Pressure     Flux');
         if polymer, fprintf('      Polymer'), end
         fprintf('\n');
@@ -149,7 +155,7 @@ while ~steadyState && nIter < nIterMax
         end
         
         % Display status if in verbose mode
-        if vb
+        if do
             fprintf('   %1.2e   %1.2e   %1.2e', diffVec(nIter,1:3));
             if polymer
                 fprintf('   %1.2e', diffVec(nIter,4));
@@ -173,7 +179,8 @@ while ~steadyState && nIter < nIterMax
     if foundSteadyState
         
         steadyState = true;
-        dispif(vb, '\nSteady state found after %d iterations.\n', nIter);
+        dispif(do, '\n');
+        dispif(vb, '   Steady state found after %d iterations.\n', nIter);
         
     else
         
@@ -185,11 +192,11 @@ while ~steadyState && nIter < nIterMax
             % checkes for change in flux.
             if dt < opt.dtMax
                 dt = min(opt.dtMax, opt.dtIncFac*dt);
-                dispif(vb, '  -> Timestep: %0.3e days', dt/day);
+                dispif(do, '  -> Timestep: %0.3e days', dt/day);
             end
         end
         
-        fprintf('\n');
+        dispif(do,'\n');
         
         % Initialize next iteration
         prevState = curState;
@@ -235,77 +242,6 @@ if returnReport
     varargout{1}      = report;
 end
 
-
-end
-
-
-% function c = getDummyWellSchedule()
-% % Creates and returns a dummy well schedule. The schedule contains a water
-% % injection well with zero injection rate.
-%
-% f = {'WELSPECS', 'COMPDAT', 'WCONHIST', 'WCONINJ', 'WCONINJE', ...
-%     'WCONINJH', 'WCONPROD', 'GCONPROD', 'GCONINJE', 'GRUPTREE', ...
-%     'WGRUPCON', 'WPOLYMER', 'DRSDT'};
-% c = cell2struct(cell(1,length(f)), f, 2);
-%
-% c.WELSPECS = ...
-%    {'DUMMY' 'G' 1 1 0 'WATER' 0 'STD' 'SHUT' 'NO' 0 'SEG' 0};
-% c.COMPDAT  = ...
-%    {'DUMMY' 1 1 1 1 'OPEN' -1 0 1e-10 0 0 'Default' 'Z' -1};
-% c.WCONINJE = ...
-%    {'DUMMY' 'WATER' 'OPEN' 'RATE' 0 Inf NaN Inf 0 0};
-% c.WPOLYMER = ...
-%    {'DUMMY' 0 0 'Default' 'Default'};
-% c.DRSDT    = {Inf  'ALL'};
-%
-% end
-
-
-
-
-
-
-function state0 = initPressure(state0, G, fluid, rock, bc)
-% Get initial pressure guess from incompTPFA
-
-% Fix fluid
-fluid.properties = @(state) fluidPropertiesField(fluid, state);
-fluid.saturation = @(state) state.s;
-
-if ~isfield(fluid, 'krO')
-    fluid.krO = fluid.krOW;
-end
-fluid.relperm = @(s,state) [fluid.krW(state.s(:,1)) ...
-    fluid.krO(state.s(:,2)) ];
-
-T  = computeTrans(G, rock, 'Verbose', true);
-
-% Compute pressures
-resSol = initResSol(G, state0.pressure, state0.s);
-resSol = incompTPFA(resSol, G, T, fluid, 'bc', bc);
-
-% Create initial state
-state0.pressure = resSol.pressure;
-
-
-end
-
-
-
-
-function [mu, rho] = fluidPropertiesField(fluid, state)
-
-pW = state.pressure - fluid.pcOW(state.s(:,1));
-bO = fluid.bO(state.pressure);
-bWmean = mean(fluid.bW(pW));
-bOmean = mean(bO);
-
-if isfield(fluid, 'BOxmuO')
-    mu  = [fluid.muW(pW), fluid.BOxmuO(state.pressure).*bO];
-else
-    mu  = [fluid.muW(pW), fluid.muO(state.pressure)];
-end
-rho = [fluid.rhoWS*bWmean,  fluid.rhoOS*bOmean];
 
 end
 

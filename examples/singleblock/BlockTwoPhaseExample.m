@@ -73,7 +73,7 @@ regnum(kl<median(kl)) = 2;
 %% Plot the permeability and regions
 
 % Plot the permeability
-figure(fn); clf; subplot(1,2,1);
+clf; subplot(1,2,1);
 plotCellData(G, log10(convertTo(rock.perm(:,1), milli*darcy)));
 view(3); axis tight; colorbar; title('Permeability');
 
@@ -97,7 +97,7 @@ fluid = initADIFluidOW(fprop);
 
 %% Plot fluid properties
 
-figure(fn); clf;
+clf;
 
 % Relative permeability
 subplot(1,2,1); hold on;
@@ -168,7 +168,7 @@ updataVL = upRelPerm(block, updata, 'viscous') %#ok<NOPTS>
 % Of cource, the above observations will not be valid if the original
 % domain is changed.
 
-figure(fn); subplot(1,2,2); cla; hold on;
+subplot(1,2,2); cla; hold on;
 lh = nan(numel(updataVL.krW)+1,1);
 for r=1:2 % Plot original curves in the backgroudn
     lh(1) = plot(fprop.krW{r}(:,1), fprop.krW{r}(:,2), ...
@@ -204,7 +204,7 @@ updataCL = upRelPerm(block, updata, 'capillary');
 
 %% Plot the upscaled relative permeabilitis
 
-figure(fn); clf;
+clf;
 
 for i = 1:2
     subplot(1,2,i); hold on;
@@ -249,13 +249,43 @@ end
 % This flow-based steady-state upscaling is more time-consuming, but may be
 % more accurate if none of the limits can be assumed.
 
-%blockP = GridBlock(G, rock, 'fluid', fluid, 'periodic', true);
+blockP = GridBlock(G, rock, 'fluid', fluid, 'periodic', true);
 
-updataRD = upRelPerm(blockP, updata, 'flow');
+% The steady-state simulations are time-comsuming. We supply the verbose
+% option to get updates printed to the console during the upscaling.
+updataRD = upRelPerm(blockP, updata, 'flow', 'verbose', true);
 
 
 
+%% Plot the upscaled relative permeabilitis
 
-
+clf;
+for i = 1:2
+    subplot(1,2,i); hold on;
+    if i==1
+        ud = updataVL; % Left: Viscous-limit upscaled curves
+        title('Viscous-Limit Upscaling');
+    else
+        ud = updataRD; % Right: Flow-based upscaling curves
+        title('Flow-Based Upscaling');
+    end
+    lh = nan(numel(ud.krW)+1,1);
+    for r=1:2 % Plot original curves in the backgroudn
+        lh(1) = plot(fprop.krW{r}(:,1), fprop.krW{r}(:,2), ...
+                    'Color', [1 1 1].*0.8 );
+                plot(1-fprop.krO{r}(:,1), fprop.krO{r}(:,2), ...
+                    'Color', [1 1 1].*0.8 );
+    end
+    colors = lines(numel(ud.krW));
+    for d=1:numel(ud.krW) % Plot the upscaled curves on top
+        lh(d+1) = plot(ud.krW{d}(:,1), ud.krW{d}(:,2), ...
+                    'Color', colors(d,:) );
+                plot(ud.krO{d}(:,1), ud.krO{d}(:,2), ...
+                    'Color', colors(d,:) );
+    end
+    box on; axis([0 1 0 1]);
+    legend(lh,{'Original','x-dir','y-dir','z-dir'},'Location','North');
+    xlabel('Water Saturation'); ylabel('Relative Permeability');
+end
 
 
