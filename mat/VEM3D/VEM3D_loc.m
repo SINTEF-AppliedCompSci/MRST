@@ -126,10 +126,9 @@ q4 = [-1  1  1 -1  1 -1 -1  1];
 delta1 = sqrt(9/8);
 delta2 = sqrt(27/8);
 Q = [delta1*q1', delta1*q2', delta1*q3', delta2*q4'];
-D = Q'*Q
+P = Q'*Q;
 S = diag(alpha, 0);
-
-AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*(D\S)/D*Q'*(eye(NK)-PN);
+AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*(P\S)/P*Q'*(eye(NK)-PN);
 
 % SK = hK*(eye(NK)-PN)'*(eye(NK)-PN);
 % 

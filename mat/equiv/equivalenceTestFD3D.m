@@ -14,7 +14,7 @@ h = sqrt(3)/nx;
 % 
 
 
-w1 = 1/4; w2 = 3/4; w3 = 0;
+w1 = 1/99; w2 = 90/8; w3 = 1-w1-w2;
 [A_FD, epsx, epsy, epsz] = stencils3D(G,w1,w2,w3);
 
 f = @(X) zeros(size(X,1),1);
@@ -30,35 +30,27 @@ h = G.cells.diameters(1);
 
 A_FD(bcDof == 1,:) = SBC(bcDof == 1,:);
 
-ai = 0:.25:1; ni = numel(ai);
-aj = 0:.25:1; nj = numel(aj);
-ak = 0:.25:1; nk = numel(ak);
-al = 0:.25:1; nl = numel(al);
-am = 0:.25:1; nm = numel(am);
-an = 0:.25:1; nn = numel(an);
-ao = 0:.25:1; no = numel(ao);
+% ai = 0:.1:2; ni = numel(ai);
+% aj = 0:.1:6; nj = numel(aj);
+% ak = 0:.25:1; nk = numel(ak);
+% al = 0:.25:1; nl = numel(al);
+% out = [];
+% for i = 1:ni
+%     for j = 1:nj
+%         alpha = [6*ai(i), 6*ai(i), 6*ai(i), 9*aj(j)];
+%         alphaMat = repmat(alpha, G.cells.num, 1);
+%         [~,A_VEM,b_VEM, ~] = VEM3D(G,f,bc,1,alphaMat);
+%         out = [out ; ai(i), ai(i), ai(i) aj(j), norm(A_VEM-A_FD,'fro')];
+%         alpha
+%     end
+% end
 
-out = [];
+alpha = [6*(3/2*w1 + w2), 6*(3/2*w1 + w2), 6*(3/2*w1 + w2), 9*(9/2*w1 + 3/2*w2 + 9/2*w3)];
+alpha = repmat(alpha,G.cells.num, 1);
+[~,A_VEM,b_VEM, ~] = VEM3D(G,f,bc,1,alpha);
+norm(A_VEM-A_FD, 'fro')
 
-for i = 1:ni
-    for j = 1:nj
-        for k = 1:nk
-            for l = 1:nl
-                for m = 1:nm
-                    for n = 1:nn
-                        for o = 1:no
-                            alpha = [ai(i), ai(i), ai(i), ai(i), aj(j), ak(k), al(l), am(m), an(n), ao(o)];
-                            alphaMat = repmat(alpha,G.cells.num,1);
-                            [~, A_VEM,~] = VEM3D(G,f,bc, 1, alphaMat);
-                            out = [out ; alpha, norm(A_VEM-A_FD,'fro')];
-                        end
-                    end
-                end
-            end
-        end
-    end
-    alpha
-end
+
 %     
 
 % for i = 1:ni
@@ -75,8 +67,8 @@ end
 %     out = [out ; alpha, norm(A_VEM-A_FD,'fro')];
 
 
-minimum = out((min(out(:,end)) == out(:,end)),:);
-
-plot(out(:,end))
-
-fprintf('Minimal difference %f obtained with alpha = (%f, %f, %f, %f)', minimum(5), minimum(1), minimum(2), minimum(3), minimum(4))
+% minimum = out((min(out(:,end)) == out(:,end)),:);
+% 
+% plot(out(:,end))
+% 
+% fprintf('Minimal difference %f obtained with alpha = (%f, %f, %f, %f)', minimum(5), minimum(1), minimum(2), minimum(3), minimum(4))
