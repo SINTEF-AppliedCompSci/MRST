@@ -20,8 +20,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   flags = splitString(readRecordString(fid));
+   flags = splitString(removeQuotes(readRecordString(fid)));
    flags = flags(cellfun(@isvarname, flags));
 
    for f = reshape(flags, 1, []),

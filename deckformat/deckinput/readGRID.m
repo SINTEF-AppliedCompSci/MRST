@@ -34,20 +34,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             endboxKeyword;
 
          case 'SPECGRID',
-            s = readRecordString(fid);
+            s = removeQuotes(readRecordString(fid));
             cartDims = reshape(sscanf(s, '%f', 3), 1, []);
-           % if ~all(cartDims == dims),
-           %    error(msgid('GridDim:Inconsistent'), ...
-           %          '''SPECGRID'' dimensions differ from ''DIMENS''.');
-           % end
+
             defaultBox(cartDims);
             gridBox(defaultBox);
-            %
+
             dims = reshape(cartDims, 1, []);
             nc   = prod(dims);                 % Number of cells
             np   = prod(dims(1 : end-1) + 1);  % Number of pillars
             nv   = prod(dims + 1);             % Number of vertices
             grd.cartDims = cartDims;
+
          case {'DXV', 'DYV', 'DZV'},
             ix       = strcmp(kw, {'DXV', 'DYV', 'DZV'});
             grd.(kw) = readVector(fid, kw, dims(ix));
@@ -76,7 +74,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             grd.(kw) = [grd.(kw); data];
 
          case 'MAPAXES',
-            s    = readRecordString(fid);
+            s    = removeQuotes(readRecordString(fid));
             data = reshape(sscanf(s, '%f', 6), 1, []);
 
             assert (numel(data) == 6, ...

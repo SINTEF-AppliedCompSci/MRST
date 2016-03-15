@@ -40,7 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rspec.(kw) = to_double(data);  clear tmpl
 
          case 'DIMENS',
-            s = readRecordString(fid);
+            s = removeQuotes(readRecordString(fid));
             rspec.cartDims = reshape(sscanf(s, '%f', 3), 1, []);
             rspec.DIMENS   = rspec.cartDims;
 
@@ -89,7 +89,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'START',
             s = readRecordString(fid);
-            s = strrep(s, 'JLY', 'JUL');
+            s = strrep(removeQuotes(s), 'JLY', 'JUL');
             rspec.START = datenum(s, 'dd mmm yyyy');
 
          case 'SMRYDIMS',

@@ -97,7 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'DRSDT',
             data    = readDefaultedRecord(fid, {'NaN', 'ALL'});
-            data{1} = sscanf(data{1}, '%f');
+            data{1} = sscanf(regexprep(data{1}, '[Dd]', 'e'), '%f');
 
             if ~def_ctrl,
                def_ctrl = true;
@@ -238,11 +238,13 @@ end
 function data = readDATES(fid, start, timespec) %#ok
    empty_record = @(rec) isempty(rec) || all(isspace(rec));
 
+   getDate = @() strtrim(removeQuotes(readRecordString(fid)));
+
    dates = {};
-   date  = readRecordString(fid);
+   date  = getDate();
    while ~empty_record(date),
-      dates = [dates; date];         %#ok  % Willfully ignore MLINT advice.
-      date  = readRecordString(fid);
+      dates = [dates; { date }];     %#ok  % Willfully ignore MLINT advice.
+      date  = getDate();
    end
 
    % Months 'JLY' and 'JUL' are interchangeable in ECLIPSE.
