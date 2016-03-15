@@ -60,6 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    switch kw,
       % Keywords related to individual wells
       case 'COMPDAT' , w = readCompDat (fid, w);
+      case 'COMPSEGS', w = readCompSegs(fid, w);
       case 'WCONHIST', w = readWConHist(fid, w);
       case 'WCONINJ' , w = readWConInj (fid, w);
       case 'WCONINJE', w = readWConInje(fid, w);
@@ -186,6 +187,36 @@ function w = readCompDat(fid, w)
          % helper.
 
          w = handleOverlapCompdat(w, compdat, memb, loc, ext, new);
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function w = readCompSegs(fid, w)
+   well = strtrim(removeQuotes(readRecordString(fid)));
+
+   %             1     2     3     4    5      6      7
+   template = { '-1', '-1', '-1', '0', '0.0', 'NaN', 'Default', ...
+      ...
+      ...     %  8     9      10     11
+                'NaN', 'NaN', 'NaN', '0' };
+
+   numeric  = [1:6, 8:numel(template)];
+   compsegs = toDouble(readDefaultedKW(fid, template), numeric);
+
+   if isempty(w.COMPSEGS),
+      w.COMPSEGS = { well, compsegs };
+   else
+      i = strcmp(w.COMPSEGS(:,1), well);
+
+      if any(i),
+         assert (sum(i) == 1, ...
+                 'Well ''%s'' Specified More Than Once in COMPSEGS', well);
+
+         w.COMPSEGS(i, 2) = compsegs;
+      else
+         w.COMPSEGS = [ w.COMPSEGS ; { well, compsegs } ];
       end
    end
 end

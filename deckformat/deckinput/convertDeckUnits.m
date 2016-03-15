@@ -549,6 +549,11 @@ function ctrl = convertControl(ctrl, u)
                ctrl.(key) = convertCompDat(ctrl.(key), u);
             end
 
+         case 'COMPSEGS',
+            if ~isempty(ctrl.(key)),
+               ctrl.(key) = convertCompSegs(ctrl.(key), u);
+            end
+
          case 'WCONHIST',
             if ~isempty(ctrl.(key)),
                ctrl.(key) = convertWconHist(ctrl.(key), u);
@@ -635,6 +640,23 @@ function compdat = convertCompDat(compdat, u)
    for n = 1 : numel(c),
       compdat(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                  compdat(:, c(n)), 'UniformOutput', false);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function compsegs = convertCompSegs(compsegs, u)
+   %     Start     End       Depth     Thermal Length
+   c = [ 5       , 6       , 9       , 10       ];
+   u = [ u.length, u.length, u.length, u.length ];
+
+   for w = 1 : size(compsegs, 1),
+      for n = 1 : numel(c),
+         compsegs{w, 2}(:, c(n)) = ...
+            cellfun(@(x) convertFrom(x, u(n)), ...
+                    compsegs{w, 2}(:, c(n)), ...
+                    'UniformOutput', false);
+      end
    end
 end
 
