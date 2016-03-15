@@ -86,6 +86,7 @@ function u = unit_system(rspec)
 
    if metric,
       u = struct('length'      , meter               , ...
+                 'area'        , meter^2             , ...
                  'time'        , day                 , ...
                  'density'     , kilogram / meter^3  , ...
                  'press'       , barsa               , ...
@@ -101,9 +102,12 @@ function u = unit_system(rspec)
                  'liqvol_r'    , meter^3             , ... % Liquid vol , res
                  'gasvol_s'    , meter^3             , ... % Gas vol    , surf
                  'gasvol_r'    , meter^3             , ... % Gas vol    , res
+                 'volume'      , meter^3             , ... % Geometric vol
                  'trans'       , centi*poise * meter^3 / (day * barsa));
+
    elseif field
       u = struct('length'      , ft          , ...
+                 'area'        , ft^2        , ...
                  'time'        , day         , ...
                  'density'     , pound / ft^3, ...
                  'press'       , psia        , ...
@@ -119,9 +123,12 @@ function u = unit_system(rspec)
                  'liqvol_r'    , stb         , ...
                  'gasvol_s'    , 1000 * ft^3 , ... % Mscf
                  'gasvol_r'    , stb         , ...
+                 'volume'      , ft^3        , ... % Geometric vol
                  'trans'       , centi*poise * stb / (day * psia));
+
    elseif lab,
       u = struct('length'      , centi*meter           , ...
+                 'area'        , (centi*meter)^2       , ...
                  'time'        , hour                  , ...
                  'density'     , gram / (centi*meter)^3, ...
                  'press'       , atm                   , ...
@@ -137,7 +144,9 @@ function u = unit_system(rspec)
                  'liqvol_r'    , (centi*meter)^3       , ...
                  'gasvol_s'    , (centi*meter)^3       , ...
                  'gasvol_r'    , (centi*meter)^3       , ...
+                 'volume'      , (centi*meter)^3       , ... % Geometric vol
                  'trans'       , centi*poise * (centi*meter)^3 / (hour * atm));
+
    else
       % SI units.  MRST extension.  Idempotency.
       u = struct('length'      , 1, ...
@@ -609,7 +618,12 @@ function ctrl = convertControl(ctrl, u)
                ctrl.(key) = convertWellSpecs(ctrl.(key), u);
             end
 
-         case {'GRUPTREE', 'WGRUPCON'},
+         case 'WELSEGS',
+            if ~isempty(ctrl.(key)),
+               ctrl.(key) = convertWellSegs(ctrl.(key), u);
+            end
+
+         case {'GRUPTREE', 'WGRUPCON', 'RPTSCHED'},
             continue; % No conversion necessary
 
          case 'GRUPNET',
@@ -907,6 +921,48 @@ function wspecs = convertWellSpecs(wspecs, u)
    for n = 1 : numel(c),
       wspecs(:, c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
                                 wspecs(:, c(n)), 'UniformOutput', false);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function wsegs = convertWellSegs(wsegs, u)
+   for w = 1 : size(wsegs, 1),
+      wsegs{w,2}.header   = convertWellSegsHeader (wsegs{w,2}.header, u);
+      wsegs{w,2}.segments = convertWellSegsRecords(wsegs{w,2}.segments, u);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function header = convertWellSegsHeader(header, u)
+   % Note: Subtract 1 from columns for well name stored outside of header
+
+   %     Depth     Length    Eff. Vol  X coord   Y coord
+   c = [ 2       , 3       , 4       , 8       , 9        ] - 1;
+   u = [ u.length, u.length, u.volume, u.length, u.length ];
+
+   for n = 1 : numel(c),
+      header(c(n)) = cellfun(@(x) convertFrom(x, u(n)), ...
+                             header(c(n)), 'UniformOutput', false);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function segments = convertWellSegsRecords(segments, u)
+   %     Length    Depth     Int. Diam Roughness
+   c  = [ 5       , 6       , 7       , 8       ];
+   uu = [ u.length, u.length, u.length, u.length];
+
+   %         Cross   Volume    X coord   Y coord   Wall Area
+   c  = [c , 9     , 10      , 11      , 12      , 13    ];
+   uu = [uu, u.area, u.volume, u.length, u.length, u.area];
+
+   for n = 1 : numel(c),
+      segments(:, c(n)) = ...
+         cellfun(@(x) convertFrom(x, uu(n)), ...
+                 segments(:, c(n)), 'UniformOutput', false);
    end
 end
 

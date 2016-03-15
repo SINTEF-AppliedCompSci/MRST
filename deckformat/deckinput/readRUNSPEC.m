@@ -140,6 +140,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                rspec.(kw)(2) = rspec.cartDims(3);
             end
 
+         case 'WSEGDIMS',
+            tmpl = { '0', '1', '1', '0' };
+            data = readDefaultedRecord(fid, tmpl);
+
+            rspec.(kw) = to_double(data);  clear data tmpl
+
          case {'NOGRAV', 'IMPES',        ...
                'METRIC', 'FIELD', 'LAB', ...
                'WATER' , 'OIL'  , 'GAS', ...
