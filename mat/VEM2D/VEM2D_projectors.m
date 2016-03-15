@@ -150,11 +150,12 @@ PN     = cellfun(@(D, PNstar) D*PNstar, D, PNstar, 'UniformOutput', false);
 % 
 % Fi = inv(F);
 
-W = 1/9*[1 1 1 1 4 4 4 4 16];
-W = repmat(W,9,1);
+hx = abs(max(X(:,1)) - min(X(:,1)))/(2*G.cartDims(1));
+hy = abs(max(X(:,2)) - min(X(:,2)))/(2*G.cartDims(2));
 
-q = 3/2*[1;-1;1;-1];
-d = q'*q
+
+q = sqrt(3/(2*hx*hy))*[1;-1;1;-1];
+d = q'*q;
 
 SK = cellfun(@(PN) ...
              (eye(size(PN))-PN)'*q*1/d*alpha*1/d*q'*(eye(size(PN))-PN), ...
