@@ -1,12 +1,13 @@
 function [updata, report] = upPolyRk(block, updata, method, varargin)
 opt = struct(...
     'nsat',        20, ... % Number of upscaled sat. values
-    'npoly',       10  ... % Number of upscaled poly. values
+    'npoly',       10, ... % Number of upscaled poly. values
+    'verbose',  false  ...
     );
 [opt, relpermOpt] = merge_options(opt, varargin{:});
 
 % Also pass on nsat to relperm upscaling
-relpermOpt = [relpermOpt {'nsat', opt.nsat}];
+relpermOpt = [relpermOpt {'nsat', opt.nsat, 'verbose', opt.verbose}];
 
 G = block.G;
 fluid = block.fluid;
@@ -29,8 +30,13 @@ krWU = cell(1,ndims);
 up1.poro = updata.poro;
 up1.perm = updata.perm;
 
+dispif(opt.verbose, '\n\nStarting polymer Rk upscaling\n');
+start = tic;
+
 % Loop over polymer concentration values
 for ic = 1:nc
+    
+    dispif(opt.verbose, '\nPolymer value %d of %d...\n', ic, nc);
     
     % Alter the fine-scale water relative permeability
     c  = cvals(ic).*ones(G.cells.num,1);
@@ -57,6 +63,15 @@ for ic = 1:nc
         
     end
     
+end
+
+if opt.verbose
+    sec = toc(start);
+    min = floor(sec/60);
+    sec = floor(mod(sec,60));
+    timeStr = sprintf('%1.1f sec', sec);
+    if min > 0, timeStr = [sprintf('%d min ', min) timeStr]; end
+    dispif(opt.verbose, '\nCompleted upscaling of Rk in %s\n', timeStr);
 end
 
 sU = cell(1,ndims);

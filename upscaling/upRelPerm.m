@@ -1,18 +1,14 @@
 function [updata, report] = upRelPerm(block, updata, method, varargin)
 % Upscaling of relative permeability
-% 
+%
 opt = struct(...
     'nsat',        20,         ... % Number of upscaled sat. values
     'values',      [],         ... % Specify the values
-    'viscousmob',  false,      ... % Viscous upsc: use total mob method
     'dims',        1:3,        ... % What dimensions to upscale
     'dp',          1*barsa,    ... % Pressure drop
     'savesat',     false,      ... % Save saturation distributions
     'absmethod',   'pressure', ... % One-phase upscaling method
-    'verbose',     false,      ... % Print progress to console
-    'fun_setup',   [],         ... % Optional callback function
-    'fun_upscale', [],         ... % Optional callback function
-    'fun_final',   []          ... % Optional callback function
+    'verbose',     false       ... % Print progress to console
     );
 opt = merge_options(opt, varargin{:});
 
@@ -47,17 +43,10 @@ pvTot = sum(block.pv);
 krW = cell(1, ndims);
 krO = cell(1, ndims);
 if wantSatDist
-	satdist = cell(nvals,1);
+    satdist = cell(nvals,1);
     if strcmpi(method, 'capillary-viscous-dist')
         satdistff = cell(nvals,1);
     end
-end
-
-% Call setup
-if ~isempty(opt.fun_setup)
-    % Call given upscaling setup function. This call is used by the polymer
-    % Rk upscaling.
-    opt.fun_setup(opt);
 end
 
 if ~isempty(opt.values)
@@ -68,10 +57,16 @@ else
     values = getValues(block, updata, method, nvals);
 end
 
+dispif(opt.verbose, '\nStarting relperm upscaling\n');
+dispif(opt.verbose, '   #      sW   Time(s)\n');
+start = tic;
+
 % Loop over the input values
 for iv = 1:nvals
     
-    dispif(opt.verbose, 'Rel.perm. upscaling %d of %d.\n', iv, nvals);
+    startSatValue = tic;
+    
+    %dispif(opt.verbose, 'Saturation value %d of %d.\n', iv, nvals);
     
     val = values(iv);
     
@@ -98,7 +93,7 @@ for iv = 1:nvals
             sW = sW0;
         else
             sW = directionDistribution(block, method, sW0, d, opt.dp, ...
-                                       opt.verbose);
+                opt.verbose);
         end
         
         % Upscaled saturation
@@ -115,130 +110,60 @@ for iv = 1:nvals
         % Set permeability as K*kr
         rock_Kkr = rock;
         
-        if strcmpi(method, 'viscous') && opt.viscousmob
-            % For the viscous limit upscaling, we may use the total
-            % mobility and only call the one phase upscaling once.
-            
-            % NOTE: We have experienced some issues with this method that
-            % we have not solved. Upscaling of the SPE10 case got some
-            % wrong results with this method.
-            
-            if wantReport
-                report.viscousmob = true;
-            end
-            
-            % TODO how to chose pressure?
-            pref = 200*barsa; % viscosity reference pressure
-            muW = fluid.muW(pref, 'cellInx', 1);
-            if isfield(fluid,'muO')
-                muO = fluid.muO(pref, 'cellInx', 1);
-            else
-                try
-                    muO = fluid.BOxmuO(pref, 'cellInx', 1) / ...
-                        fluid.BO(pref, 'cellInx', 1);
-                catch
-                    % Fallback to support old syntax
-                    muO = fluid.BOxmuO(pref) / fluid.BO(pref);
-                end
-            end
-            
-            mobTot = kr{1}./muO + kr{2}./muW;
-            rock_KmobT = rock;
+        
+        % Loop over phases
+        for p = 1:2
             
             % If the permeability is anisotropic, we multiply each
-            % direction with the total mobility
-            rock_KmobT.perm = bsxfun(@times, rock.perm, mobTot);
+            % direction with the relperm kr
+            rock_Kkr.perm = bsxfun(@times, rock.perm, kr{p});
             
-            if all(rock_KmobT.perm == 0)
+            if all(all(rock_Kkr.perm == 0))
                 % We will get no fluid motion
-                KMobTU = 0;
+                krKU = 0;
             else
-                if any(rock_KmobT.perm < 0)
+                if any(any(rock_Kkr.perm < 0))
                     error('Some pseudo perm values are negative!');
                 end
-                if any(any(rock_KmobT.perm == 0))
+                if any(any(rock_Kkr.perm == 0))
                     % To avoid a singular matrix when performing one
                     % phase upscaling, the zero permeabilities are set
                     % to something larger than zero.
                     ep = eps(mean(mean(...
-                        rock_KmobT.perm(rock_KmobT.perm>0)) ));
-                    rock_KmobT.perm(rock_KmobT.perm == 0) = ep*1e1;
+                        rock_Kkr.perm(rock_Kkr.perm>0)) ));
+                    rock_Kkr.perm(rock_Kkr.perm == 0) = ep*1e1;
                 end
                 
                 % Perform one phase upscaling with the altered
                 % permeability field
-                block.rock = rock_KmobT;
-                data = upAbsPerm(block, [], 'dims', d, 'dp', opt.dp, ...
-                    'method', opt.absmethod);
-                KMobTU = data.perm;
+                block.rock = rock_Kkr;
+                data = upAbsPerm(block, [], 'dims', d, ...
+                    'dp', opt.dp, 'method', opt.absmethod);
+                krKU = data.perm;
             end
             
-            % For viscous limit, the value is fractional flow
-            ffW = val;
-            krwat = muW * ffW * KMobTU / Kup(id); % water
-            kroil = muO * (1 - ffW) * KMobTU / Kup(id); % oil
-            krO{id}(iv,:) = [sWup, kroil];
-            krW{id}(iv,:) = [sWup, krwat];
+            % Compute upscaled relperm value
+            krup = krKU / Kup(id);
             
-        else
-            
-            % Loop over phases
-            for p = 1:2
-                
-                % If the permeability is anisotropic, we multiply each
-                % direction with the relperm kr
-                rock_Kkr.perm = bsxfun(@times, rock.perm, kr{p});
-                
-                if all(all(rock_Kkr.perm == 0))
-                    % We will get no fluid motion
-                    krKU = 0;
-                else
-                    if any(any(rock_Kkr.perm < 0))
-                        error('Some pseudo perm values are negative!');
-                    end
-                    if any(any(rock_Kkr.perm == 0))
-                        % To avoid a singular matrix when performing one
-                        % phase upscaling, the zero permeabilities are set
-                        % to something larger than zero.
-                        ep = eps(mean(mean(...
-                            rock_Kkr.perm(rock_Kkr.perm>0)) ));
-                        rock_Kkr.perm(rock_Kkr.perm == 0) = ep*1e1;
-                    end
-                    
-                    % Perform one phase upscaling with the altered
-                    % permeability field
-                    block.rock = rock_Kkr;
-                    data = upAbsPerm(block, [], 'dims', d, ...
-                        'dp', opt.dp, 'method', opt.absmethod);
-                    krKU = data.perm;
-                end
-
-                % Compute upscaled relperm value
-                krup = krKU / Kup(id);
-                
-                if p==1
-                    krO{id}(iv,:) = [sWup, krup];
-                else
-                    krW{id}(iv,:) = [sWup, krup];
-                end
-                
-                
-                if p==2 % water
-                    if ~isempty(opt.fun_upscale)
-                        % Call given upscaling function. This call is used
-                        % by the polymer Rk upscaling.
-                        opt.fun_upscale(block, rock_Kkr, krKU, ...
-                            iv, id, opt);
-                    end
-                end
-                
+            if p==1
+                krO{id}(iv,:) = [sWup, krup];
+            else
+                krW{id}(iv,:) = [sWup, krup];
             end
-        
+            
         end
+        
         
     end % End of dimension loop
     
+    secs = toc(startSatValue);
+    dispif(opt.verbose, ' %2d/%d   %1.2f   %1.2f\n', ...
+        iv, nvals, sWup, secs);
+    
 end % End of input value loop
+
+secs = toc(start);
+dispif(opt.verbose, ' Total time:   %4.2f s\n', secs);
 
 % Check for upscaled values outside range. We simply force the values
 % inside valid range.
@@ -253,12 +178,6 @@ end
 % Store upscaled data to structure
 updata.krO = krO;
 updata.krW = krW;
-
-if ~isempty(opt.fun_final)
-    % Call given final upscaling function. This call is used by the polymer
-    % Rk upscaling.
-    updata = opt.fun_final(updata);
-end
 
 totalTime = toc(timeStart);
 if wantReport
@@ -415,9 +334,6 @@ function sW = directionDistribution(block, method, sW, d, dp, verbose)
 switch method
     case 'flow' % Flow based simulation
         
-        %error('Need update') % TODO: We need to get d here.
-        % TODO: Also, should we update the saturation in each direction?
-        
         G = block.G;
         isPeriodic = block.periodic;
         
@@ -443,13 +359,9 @@ switch method
             bcp = [];
         end
         
-        % Initialize solution
-%         state0      = initResSol(G, 100*barsa, [sW, 1-sW]);
-%         state0.flux = zeros(G.faces.num, 2);
-        
         % Solve steady state flow
-        state1 = simulateToSteadyStateADI_new(G, block.rock, ...
-            block.fluid, sW, 'bc', bc, 'bcp', bcp, 'verbose', verbose);
+        state1 = simulateToSteadyStateADI(G, block.rock, ...
+            block.fluid, sW, 'bc', bc, 'bcp', bcp);
         
         % Extract saturation
         sW = state1.s(:,1);

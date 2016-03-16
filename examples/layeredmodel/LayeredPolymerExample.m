@@ -155,7 +155,7 @@ updata = upAbsPerm(block, updata);
 % analytical solution as a verification.
 % 
 
-updataA = LayeredModelExactUpscaling(K, fprop.krW, fprop.krO, Rkorg);
+updataA = LayeredExactUpscaling(K, fprop.krW, fprop.krO, Rkorg);
 
 
 %% Compare absolute permeability upscaling
@@ -253,7 +253,7 @@ end
 updata = upPolyAds(block, updata);
 
 % Upscale polymer reduction factor Rk
-updata = upRk(block, updata, 'flow', 'nsat', 5, 'npoly', 5, ...
+updata = upPolyRk(block, updata, 'flow', 'nsat', 5, 'npoly', 5, ...
     'dims', [1 3], 'verbose', true);
 
 
@@ -292,7 +292,7 @@ for i=1:2
         for ic=1:numel(c)
             Rk(ic) = interp1(updataA.Rk.s{d}, updataA.Rk.val{d}(:,ic), s);
         end
-        lh(3) = plot(ads.*(10^6), Rk, 'k');
+        lh(3) = plot(ads.*(10^6), Rk, 'k', 'LineWidth', lw );
     end
     
     % Plot numerical upscaling. Note that the second dimension is z, so we
@@ -301,7 +301,8 @@ for i=1:2
     ads = interp1(updata.ads(:,1), updata.ads(:,2), c);
     sW  = updata.Rk.s{i};
     for is=1:numel(sW)
-        lh(4) = plot(ads.*(10^6), updata.Rk.val{i}(is,:), 'ko' );
+        lh(4) = plot(ads.*(10^6), updata.Rk.val{i}(is,:), 'ko', ...
+            'LineWidth', 1.5 );
     end
     
     if (i==1),title('x/y-direction');else title('z-direction');end
