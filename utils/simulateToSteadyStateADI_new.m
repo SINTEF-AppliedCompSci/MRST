@@ -66,7 +66,8 @@ do = opt.verbose && opt.detailedOutput;
 
 returnReport = nargout > 1;
 
-polymer = isfield(fluid, 'ads'); % TEMP SOLUTION
+%polymer = isfield(fluid, 'ads'); % TEMP SOLUTION
+polymer = false; % TEMP SOLUTION
 
 % In the steady-state upscaling, we assume the fluid is incompressible.
 % This needs to be specified to the equations.
@@ -74,7 +75,7 @@ fluid.isIncomp = true;
 
 % Set up model and initial state.
 if polymer
-    error('')
+    error('Steady-state polymer model not implemented!')
     model  = TwoPhaseOilWaterModel(G, rock, fluid);
 else
     model  = TwoPhaseOilWaterModel_BCP(G, rock, fluid);

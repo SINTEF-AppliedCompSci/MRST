@@ -2,13 +2,16 @@ function [updata, report] = upRelPerm(block, updata, ...
     method, varargin)
 % 
 opt = struct(...
-    'nvalues',     20, ... % Number of upscaled saturation values
-    'viscousmob',  false, ... % Viscous upscaling: use total mob method
-    'dims',        1:3, ...  % Dimensions to upscale
-    'dp',          1*barsa, ...  % Pressure drop
-    'savesat',     false, ... % Save saturation distributions
-    'absmethod',   'pressure', ... % one-phase upscaling method
-    'verbose',     false ... % Print progress to console
+    'nsat',        20,         ... % Number of upscaled sat. values
+    'viscousmob',  false,      ... % Viscous upsc: use total mob method
+    'dims',        1:3,        ... % What dimensions to upscale
+    'dp',          1*barsa,    ... % Pressure drop
+    'savesat',     false,      ... % Save saturation distributions
+    'absmethod',   'pressure', ... % One-phase upscaling method
+    'verbose',     false,      ... % Print progress to console
+    'fun_setup',   [],         ... % Optional callback function
+    'fun_upscale', [],         ... % Optional callback function
+    'fun_final',   []          ... % Optional callback function
     );
 opt = merge_options(opt, varargin{:});
 
@@ -18,7 +21,7 @@ timeStart   = tic;
 
 dims  = opt.dims;
 ndims = length(dims);
-nvals = opt.nvalues;
+nvals = opt.nsat;
 rock  = block.rock;
 fluid = block.fluid;
 
@@ -46,6 +49,13 @@ if wantSatDist
     if strcmpi(method, 'capillary-viscous-dist')
         satdistff = cell(nvals,1);
     end
+end
+
+% Call setup
+if ~isempty(opt.fun_setup)
+    % Call given upscaling setup function. This call is used by the polymer
+    % Rk upscaling.
+    opt.fun_setup(opt);
 end
 
 % Get input values depending on the method
@@ -197,12 +207,23 @@ for iv = 1:nvals
 
                 % Compute upscaled relperm value
                 krup = krKU / Kup(id);
-
+                
                 if p==1
                     krO{id}(iv,:) = [sWup, krup];
                 else
                     krW{id}(iv,:) = [sWup, krup];
                 end
+                
+                
+                if p==2 % water
+                    if ~isempty(opt.fun_upscale)
+                        % Call given upscaling function. This call is used
+                        % by the polymer Rk upscaling.
+                        opt.fun_upscale(block, rock_Kkr, krKU, ...
+                            iv, id, opt);
+                    end
+                end
+                
             end
         
         end
@@ -225,11 +246,17 @@ end
 updata.krO = krO;
 updata.krW = krW;
 
+if ~isempty(opt.fun_final)
+    % Call given final upscaling function. This call is used by the polymer
+    % Rk upscaling.
+    updata = opt.fun_final(updata);
+end
+
 totalTime = toc(timeStart);
 if wantReport
     report.method  = method;
     report.dims    = dims;
-    report.nvalues = nvals;
+    report.nsat    = nvals;
     report.dp      = opt.dp;
     report.time    = totalTime;
     report.valsOutsideRange = outside;
@@ -332,7 +359,7 @@ switch method
         pcOW = val;
         sW   = fluid.pcOWInv(pcOW.*ones(G.cells.num,1));
         
-    case 'viscous' % Vuscous limit
+    case 'viscous' % Viscous limit
         assert(isfield(fluid, 'fracFlowInv'), ['To use viscous limit '...
             'upscaling, the fluid must have field ''fracFlowInv''.']);
         ff   = val;

@@ -7,7 +7,7 @@
 % BlockOnePhaseExample>). Subsequently, the relative permeability curves
 % are upscaled.
 % 
-% Step through the blocks of the script.
+% Step through the code blocks of the script.
 % 
 
 %% Add MRST modules
@@ -245,19 +245,27 @@ end
 % The viscous- and capillary-limit methods make simplifications which makes
 % it faster to find the satuartion distribution at steady state. However,
 % in general for intermediate flow-rates, the saturation distribution at
-% steady-state must be computed for each value of the average saturation.
-% This flow-based steady-state upscaling is more time-consuming, but may be
-% more accurate if none of the limits can be assumed.
+% steady-state must be computed for each value of the average saturation
+% and for each flow direction. This flow-based steady-state upscaling is
+% *much* more time-consuming, but may be more accurate if none of the
+% limits can be assumed.
 
+% Create a block with periodic grid.
 blockP = GridBlock(G, rock, 'fluid', fluid, 'periodic', true);
 
-% The steady-state simulations are time-comsuming. We supply the verbose
-% option to get updates printed to the console during the upscaling.
-updataRD = upRelPerm(blockP, updata, 'flow', 'verbose', true);
+% Run the upscaling. As the steady-state simulations are time-comsuming, we
+% supply the verbose option to get updates printed to the console during
+% the upscaling.
+updataRD = upRelPerm(blockP, updata, 'flow', 'dp', 1*barsa, ...
+    'verbose', true);
 
 
 
 %% Plot the upscaled relative permeabilitis
+% 
+% We compare the uscaled curves from the periodic flow-based steady-state
+% upscaling with the viscous-limit upscaling.
+% 
 
 clf;
 for i = 1:2

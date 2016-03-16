@@ -85,17 +85,22 @@ p.pvMultR = [];
 
 
 % Polymer Properties ------------------------------------------------------
+%
+% There are polymer properties for one or two regions.
+% 
 
 if opt.polymer
 
     % Adsorption (kg/kg)
     % Function of polymer concentration (kg/m^3)
-    p.ads = [ [ 0; 2.3;  3;  4].*kilogram/meter^3, ...
-              [ 0;  20; 20; 20].*(milli*gram)/(kilo*gram) ];
-
+    p.ads = {[ [ 0; 2.3;  3;  4].*kilogram/meter^3, ...
+               [ 0;  20; 20; 20].*(milli*gram)/(kilo*gram) ], ...
+             [ [ 0;   2;  3;  4].*kilogram/meter^3, ...
+               [ 0;  70; 70; 70].*(milli*gram)/(kilo*gram) ] };
+    
     % Maximum Adsorption (kg/kg)
-    p.adsMax = 20.*(milli*gram)/(kilo*gram);
-
+    p.adsMax = [40; 140].*(milli*gram)/(kilo*gram);
+    
     % Set Desorption
     % adsInx=1: desorption
     % adsInx=2: no desorption
@@ -103,14 +108,16 @@ if opt.polymer
 
     % Viscosity Multiplier (unitless)
     % Function of polymer concentration (kg/m^3)
-    p.muWMult = [ [ 0;  3;  4].*kilogram/meter^3, ...
-                  [ 1; 40; 40] ];
+    p.muWMult = {[ [ 0;   3;  4].*kilogram/meter^3, ...
+                   [ 1;  40; 40] ], ...
+                 [ [ 0;   3;  4].*kilogram/meter^3, ...
+                   [ 1;  30; 30] ] };
 
     % Dead Pore Space / Inaccesible Pore Volume (unitless)
     p.dps = 0.0;
 
     % Residual Resistance Factor, RRF (unitless)
-    p.rrf = 1.3;
+    p.rrf = [1.1; 1.3];
 
     % Rock Density (kg/m^3)
     p.rhoR = 2000.*kilogram/meter^3;
@@ -120,7 +127,15 @@ if opt.polymer
 
     % Maximum Polymer Consentration (kg/m^3)
     p.cmax = 4;
-
+    
+    % If there is only a single region, we remove the properties of the
+    % second region
+    if (nreg==1)
+        p.ads     = p.ads{1};
+        p.adsMax  = p.adsMax(1);
+        p.muWMult = p.muWMult{1};
+    end
+    
 end
 
 end
