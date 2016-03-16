@@ -1,7 +1,7 @@
-function [updata, report] = upRk2(block, updata, method, varargin)
+function [updata, report] = upPolyRk(block, updata, method, varargin)
 opt = struct(...
-    'nsat',        20,        ... % Number of upscaled sat. values
-    'npoly',       10         ... % Number of upscaled poly. values
+    'nsat',        20, ... % Number of upscaled sat. values
+    'npoly',       10  ... % Number of upscaled poly. values
     );
 [opt, relpermOpt] = merge_options(opt, varargin{:});
 
@@ -11,23 +11,21 @@ relpermOpt = [relpermOpt {'nsat', opt.nsat}];
 G = block.G;
 fluid = block.fluid;
 
+% Values
 ns = opt.nsat;
 nc = opt.npoly;
-
-svals = linspace(0, 1, ns)'; % Unscaled values
+svals = linspace(0.1, 1, ns)'; % unscaled values
 cvals = linspace(0, fluid.cmax, nc)';
 
-swir = fluid.swir(fluid.satnum);
-sor  = fluid.sor(fluid.satnum);
-
+% Allocate
 ndims = numel(updata.krW);
 RkU = cell(1, ndims);
 for d=1:3
     RkU{d}  = nan(ns, nc);
 end
-
 krWU = cell(1,ndims);
 
+% One-phase upscaling data
 up1.poro = updata.poro;
 up1.perm = updata.perm;
 
@@ -40,24 +38,24 @@ for ic = 1:nc
     block.fluid.krW = @(sW,varargin) fluid.krW(sW,varargin{:})./Rk;
     
     % Call the two-phase relative permeability upscaling
-    [upd, report] = upRelPerm(block, up1, method, relpermOpt{:});
+    [upd, report] = upRelPerm(block, up1, method, 'values', svals, ...
+                              relpermOpt{:});
     
     % Loop over dimensions
     for d=1:ndims
         
         if ic == 1
+            % c==0 is trivial to upscale, but we use the pure water krW
+            % solution in the next iterations. This is to ensure that krW
+            % and krW/Rk are upscaled for the same saturation values.
             krWU{d} = upd.krW{d};
             RkU{d}(:,ic) = 1;
         else
             % Compute upscaled Rk values
             RkU{d}(:,ic) = krWU{d}(:,2) ./ upd.krW{d}(:,2);
-            %RkU{d}(:,ic)
         end
         
     end
-    
-    
-    disp('done');
     
 end
 
@@ -66,9 +64,9 @@ for i=1:ndims
     sU{i} = krWU{d}(:,1);
 end
 
-updata.Rk2.val = RkU;
-updata.Rk2.s   = sU;
-updata.Rk2.c   = cvals;
+updata.Rk.val = RkU;
+updata.Rk.s   = sU;
+updata.Rk.c   = cvals;
 
 end
 

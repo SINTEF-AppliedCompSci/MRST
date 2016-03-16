@@ -1,8 +1,9 @@
-function [updata, report] = upRelPerm(block, updata, ...
-    method, varargin)
+function [updata, report] = upRelPerm(block, updata, method, varargin)
+% Upscaling of relative permeability
 % 
 opt = struct(...
     'nsat',        20,         ... % Number of upscaled sat. values
+    'values',      [],         ... % Specify the values
     'viscousmob',  false,      ... % Viscous upsc: use total mob method
     'dims',        1:3,        ... % What dimensions to upscale
     'dp',          1*barsa,    ... % Pressure drop
@@ -21,6 +22,7 @@ timeStart   = tic;
 
 dims  = opt.dims;
 ndims = length(dims);
+if ~isempty(opt.values), opt.nsat = numel(opt.values); end
 nvals = opt.nsat;
 rock  = block.rock;
 fluid = block.fluid;
@@ -58,8 +60,13 @@ if ~isempty(opt.fun_setup)
     opt.fun_setup(opt);
 end
 
-% Get input values depending on the method
-values = getValues(block, updata, method, nvals);
+if ~isempty(opt.values)
+    % The values are explicity specified
+    values = opt.values;
+else
+    % Get input values depending on the method
+    values = getValues(block, updata, method, nvals);
+end
 
 % Loop over the input values
 for iv = 1:nvals
@@ -84,8 +91,9 @@ for iv = 1:nvals
         d = dims(id); % Current dimension
         
         % Update the state for this dimension
-        if iv==1 || iv==nvals
-            % At the end points, nothing changes, and we do not need to run
+        if isempty(opt.values) && ( iv==1 || iv==nvals )
+            % If the values are not specified from outside, we know that at
+            % the end points, nothing changes, and we do not need to runa
             % the simulation to steady state.
             sW = sW0;
         else
@@ -280,19 +288,6 @@ function values = getValues(block, updata, method, nvals)
 
 switch method
     case 'flow'
-%         assert(all(isfield(block.fluid, {'swir','sor'})), ...
-%             ['Fluid structure needs fields ''swir'', ''sor'' and ' ...
-%             '''satnum''.']);
-%         
-%         swir   = block.fluid.swir;
-%         sor    = block.fluid.sor;
-%         satnum = block.fluid.satnum;
-%         pvTot  = sum(block.pv);
-%         sWUmin = sum(swir(satnum).*block.pv)/pvTot;
-%         sWUmax = sum((1-sor(satnum)).*block.pv)/pvTot;
-%         
-%         % Equal spacing of the upscaled saturations
-%         values = linspace(sWUmin, sWUmax, nvals)';
         values = linspace(0, 1, nvals)';
         
     case {'capillary', 'capillary-viscous-dist'}

@@ -1,9 +1,9 @@
-function updata = LayeredModelExactUpscaling(K, krW, krO, Rk, varargin)
+function updata = LayeredExactUpscaling(K, krW, krO, Rk, varargin)
 %% Description
 %
 % The model consists of three stacked horizontal layers. Bottom and top
 % layers are of rock type 1, while the middle layer is of rock type 2.
-% 
+%
 opt = struct(...
     'Lz',  3, ... % Physical grid dimension in z-direction
     'dz1', 1 ... % Thickness of each of top and bottom layers (are equal)
@@ -15,8 +15,8 @@ require ad-fi
 
 %% Properties
 
-Lz      = opt.Lz; 
-dz1     = opt.dz1; 
+Lz      = opt.Lz;
+dz1     = opt.dz1;
 perm    = K; % abs perm of rocks, given as [K1, K2]
 
 % Extract properties
@@ -92,7 +92,7 @@ end
 
 function KU = A(Lz, dz, K1, K2)
 % Arithmetic average
-KU = ( 2*dz(1)*K1 + dz(2)*K2 ) ./ Lz; 
+KU = ( 2*dz(1)*K1 + dz(2)*K2 ) ./ Lz;
 end
 
 
@@ -135,9 +135,9 @@ krU.krO(:,2) = krU.krO(:,1);
 % z-direction (need to find sw1 and sw2 first)
 sw  = findSaturations(dz, relperm, krsw);
 krU.krW(:,3) = H(Lz, dz, interp1(krsw, krw1, sw(:,1))*K1, ...
-                         interp1(krsw, krw2, sw(:,2))*K2) / KU(3);
+    interp1(krsw, krw2, sw(:,2))*K2) / KU(3);
 krU.krO(:,3) = H(Lz, dz, interp1(krsw, kro1, sw(:,1))*K1, ...
-                         interp1(krsw, kro2, sw(:,2))*K2) / KU(3);
+    interp1(krsw, kro2, sw(:,2))*K2) / KU(3);
 
 end
 
@@ -152,11 +152,11 @@ rkU.c  = rk(:,1);
 rkU.rk = nan(size(relperm,1)-1, size(rk,1), 3); % nsw x ncp
 
 for i = 1:size(rk,1)
-   relperm(:,2) = krw1 ./ rk(i,2);
-   relperm(:,3) = krw2 ./ rk(i,3);
-   krRkU = upscaleRelperm(Lz, dz, perm, KU, relperm);
-   rkUi  = krU.krW ./ krRkU.krW;
-   rkU.rk(:, i, :) = rkUi(2:end, :);
+    relperm(:,2) = krw1 ./ rk(i,2);
+    relperm(:,3) = krw2 ./ rk(i,3);
+    krRkU = upscaleRelperm(Lz, dz, perm, KU, relperm);
+    rkUi  = krU.krW ./ krRkU.krW;
+    rkU.rk(:, i, :) = rkUi(2:end, :);
 end
 
 end
@@ -167,7 +167,7 @@ function sw = findSaturations(dz, relperm, swu)
 %
 %   krw1(sw1)*kro2(sw2) = krw2(sw2)*kro1(sw1)
 %   2*sw1*dz1 + sw2*dz2 = swu(i)*(2*dz1 + dz2)
-% 
+%
 % to find sw1 and sw2.
 
 krsw = relperm(:,1);
@@ -178,15 +178,15 @@ kro2 = relperm(:,5);
 
 sw = nan(numel(swu), 2); % vectors [sw1, sw2]
 for i = 1:numel(swu)
-   f1 = @(sw1,sw2) interpTable(krsw,krw1,sw1).*...
-                   interpTable(krsw,kro2,sw2) - ...
-                   interpTable(krsw,krw2,sw2).*...
-                   interpTable(krsw,kro1,sw1);
-   f2 = @(sw1,sw2) (2*sw1*dz(1) + sw2*dz(2)) - swu(i)*(2*dz(1) + dz(2));
-   F  = @(x) [f1(x(1),x(2)); f2(x(1),x(2))];
-   x0 = [1;1].*swu(i);
-   x  = fsolveadi(F, x0);
-   sw(i, :) = x(:)';
+    f1 = @(sw1,sw2) interpTable(krsw,krw1,sw1).*...
+        interpTable(krsw,kro2,sw2) - ...
+        interpTable(krsw,krw2,sw2).*...
+        interpTable(krsw,kro1,sw1);
+    f2 = @(sw1,sw2) (2*sw1*dz(1) + sw2*dz(2)) - swu(i)*(2*dz(1) + dz(2));
+    F  = @(x) [f1(x(1),x(2)); f2(x(1),x(2))];
+    x0 = [1;1].*swu(i);
+    x  = fsolveadi(F, x0);
+    sw(i, :) = x(:)';
 end
 
 end
@@ -201,18 +201,19 @@ converged = false;
 
 iter = 0;
 while ~converged
-   iter = iter + 1;
-   x  = initVariablesADI(x0);
-   eqs{1} = f(x);
-   dx = SolveEqsADI(eqs, []);
-   x0 = x0 + dx{1};
-   
-   if norm(eqs{1}.val, Inf) < 1e-12
-      converged = true;
-   end
-   if iter >= iterMax
-      break
-   end
+    iter = iter + 1;
+    x  = initVariablesADI(x0);
+    eqs{1} = f(x);
+    dx = SolveEqsADI(eqs, []);
+    x0 = x0 + dx{1};
+    
+    if norm(eqs{1}.val, Inf) < 1e-12
+        converged = true;
+    end
+    if iter >= iterMax
+        disp('**************** MAXIMUM ITERATIONS');
+        break
+    end
 end
 
 end

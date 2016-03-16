@@ -1,9 +1,9 @@
 %% Layered Model Polymer Upscaling Example
 % 
 % This example demonstrates polymer upscaling of a simple layered model.
-% The upscaling of polymer is described in [1], and this example is similar
-% to an example in that paper. There exists an analytical solution to the
-% upscaling, and so this example serves as a verification.
+% The upscaling of polymer is described in [1], and this example is
+% identical the first example in therein. There exists an analytical
+% solution to the upscaling, and so this example serves as a verification.
 % 
 % Step through the code blocks of the script.
 % 
@@ -107,7 +107,7 @@ for r=1:2
                 'Color', colors(r,:) );
 end
 box on; axis([0 1 0 1]); title('Relative Permeability');
-legend(lh,{'Region 1','Region 2'},'Location','North');
+legend(lh,{'Rock 1','Rock 2'},'Location','North');
 xlabel('Water Saturation'); ylabel('Relative Permeability');
 
 
@@ -130,7 +130,7 @@ lh = nan(2,1);
 for r=1:2
     lh(r) = plot(fprop.ads{r}(:,2).*(10^6), Rkorg{r}(:,2));
 end
-legend(lh,{'Region 1','Region 2'},'Location','NorthWest');
+legend(lh,{'Rock 1','Rock 2'},'Location','NorthWest');
 box on; title('Reduction Factor, Rk'); axis([0 30 1 3.5]);
 xlabel('Adsorption (mg/kg)'); ylabel('Reduction Factor, Rk');
 
@@ -146,11 +146,19 @@ updata = upPoro(block);
 % Upscale absolute permeability
 updata = upAbsPerm(block, updata);
 
-% Get analytical solution
+
+%% Compute analytical solution
+% 
+% This example has an analytical solution for the absolute permeability,
+% relative permeability and the reduction factor, as described in [1]. This
+% allows us to compare the numerical flow-based solution with the
+% analytical solution as a verification.
+% 
+
 updataA = LayeredModelExactUpscaling(K, fprop.krW, fprop.krO, Rkorg);
 
 
-%% Absolute permeability
+%% Compare absolute permeability upscaling
 % 
 % To verify that the absolute permeability is correctly upscaled, we
 % compare the numerically computed values with the analytical solution.
@@ -164,7 +172,7 @@ fprintf('Numerical:  [%1.2f, %1.2f, %1.2f]\n', KN(1), KN(2), KN(3));
 fprintf('Rel.diff.:  %1.2e\n\n', norm( (KA-KN)./KA ) );
 
 
-%% Upscale relative permeability and polymer reduction factor Rk
+%% Upscale relative permeability
 % 
 % We upscale the relative permeability using flow-based steady-state
 % upscaling with periodic boundary conditions (periodicity is determined by
@@ -172,27 +180,17 @@ fprintf('Rel.diff.:  %1.2e\n\n', norm( (KA-KN)./KA ) );
 % 
 % The flow-based upscaling is rather time-consuming, as a two-phase flow
 % simulation is run for each upscaled saturation value and each dimension.
-% Requesting 15 upscaled values, this amounts to 13*3=39 flow simulations.
-% We do not need to run the endpoints, as one of the phases is then
-% immobile and the solution is known a priori.
-% 
-% The polymer reduction factor is upscaled simultaneously as the relative
-% permeability. At steady state, the polymer concentration is constant in
-% the domain (see [1]). Therefore, the saturation distribution do not need
-% to be recomputed for the polymer upscaling, but we reuse the distribution
-% from the relative permeability upscaling.
+% As the model is symmetric in x-y, we only upscale in the x- and
+% z-direction to save computation. But still, e.g. requesting 15 upscaled
+% values, the number of flow simulations amounts to 13*2=26 . We do not
+% need to run the endpoints, as one of the phases is then immobile and the
+% solution is known a priori.
 % 
 
-% Upscale relative permeability AND reduction factor Rk
-updata = upRk(block, updata, 'flow', 'nsat', 15, 'npoly', 10, ...
-                'verbose', true);
+% Upscale relative permeability
+updata = upRelPerm(block, updata, 'flow', 'nsat', 15, 'dims', [1 3], ...
+    'verbose', true);
 
-% Upscale polymer adsorption isoterm
-updata = upPolyAds(block, updata);
-
-% Note: If we only wanted to upscale the relative permeability, we wound
-% instead make the call
-%    updata = upRelPerm(block, updata, ...);
 
 
 %% Plot upscaled relative permeability
@@ -221,14 +219,17 @@ for i=1:2
                     'Color', colors(r,:), 'LineWidth', lw );
     end
     
-    % Plot analytical upscaling and numerical upscaling
+    % Plot analytical upscaling
     lh(3) = plot(updataA.krW{d}(:,1), updataA.krW{d}(:,2), 'k--', ...
         'LineWidth', lw );
     plot(updataA.krO{d}(:,1), updataA.krO{d}(:,2), 'k--', ...
         'LineWidth', lw );
-    lh(4) = plot(updata.krW{d}(:,1), updata.krW{d}(:,2), 'ko', ...
+    
+    % Plot numerical upscaling. Note that the second dimension is z, so we
+    % use index i instead of d.
+    lh(4) = plot(updata.krW{i}(:,1), updata.krW{i}(:,2), 'ko', ...
         'LineWidth', lw );
-    plot(updata.krO{d}(:,1), updata.krO{d}(:,2), 'ko', ...
+    plot(updata.krO{i}(:,1), updata.krO{i}(:,2), 'ko', ...
         'LineWidth', lw );
     
     box on; axis([0 1 0 1]);
@@ -239,18 +240,29 @@ for i=1:2
 end
 
 
-%%
+%% Polymer upscaling
+% 
+% The polymer upscaling is performed as described in [1]. The adsorption
+% isoterm is obtained by a simple average, while the reduction factor Rk is
+% upscaled in a similar fashion as the relative permeability. However, this
+% upscaling may depend on both water saturation and polymer concentration,
+% and the upscaling cost becomes even larger.
+% 
 
+% Upscale polymer adsorption isoterm
+updata = upPolyAds(block, updata);
 
-updata = upRk2(block, updata, 'flow', 'nsat', 5, 'npoly', 5, ...
-    'verbose', true);
-
+% Upscale polymer reduction factor Rk
+updata = upRk(block, updata, 'flow', 'nsat', 5, 'npoly', 5, ...
+    'dims', [1 3], 'verbose', true);
 
 
 
 %% Plot upscaled reduction factor Rk
 % 
-% 
+% Finally, we compare the upscaled values of Rk. The plot generated below
+% is equivalent to Figure 3 in [1]. Notice the saturation dependency of the
+% upscaled Rk in the z-direction.
 % 
 
 clf;
@@ -273,33 +285,29 @@ for i=1:2
     % Plot analytical upscaling
     c   = updataA.Rk.c;
     ads = interp1(updata.ads(:,1), updata.ads(:,2), c);
-    sW  = updataA.Rk.s{d};
+    sW  = updata.Rk.s{i}; % Numerical
     for is=1:numel(sW)
-        plot(ads.*(10^6), updataA.Rk.val{d}(is,:), 'g' );
+        s  = sW(is);
+        Rk = nan(1,numel(c));
+        for ic=1:numel(c)
+            Rk(ic) = interp1(updataA.Rk.s{d}, updataA.Rk.val{d}(:,ic), s);
+        end
+        lh(3) = plot(ads.*(10^6), Rk, 'k');
     end
     
-    % Plot numerical upscaling
-    c   = updata.Rk2.c;
+    % Plot numerical upscaling. Note that the second dimension is z, so we
+    % use index i instead of d.
+    c   = updata.Rk.c;
     ads = interp1(updata.ads(:,1), updata.ads(:,2), c);
-    sW  = updata.Rk2.s{d};
+    sW  = updata.Rk.s{i};
     for is=1:numel(sW)
-        %fprintf('sW=%1.2f\n', sW(is));
-        plot(ads.*(10^6), updata.Rk2.val{d}(is,:), 'k-o' );
+        lh(4) = plot(ads.*(10^6), updata.Rk.val{i}(is,:), 'ko' );
     end
-    
-%     lh(3) = plot(updataA.krW{d}(:,1), updataA.krW{d}(:,2), 'k--', ...
-%         'LineWidth', lw );
-%     plot(updataA.krO{d}(:,1), updataA.krO{d}(:,2), 'k--', ...
-%         'LineWidth', lw );
-%     lh(4) = plot(updata.krW{d}(:,1), updata.krW{d}(:,2), 'ko', ...
-%         'LineWidth', lw );
-%     plot(updata.krO{d}(:,1), updata.krO{d}(:,2), 'ko', ...
-%         'LineWidth', lw );
     
     if (i==1),title('x/y-direction');else title('z-direction');end
-%     legend(lh,{'Rock 1','Rock 2','Analytical','Numerical'}, ...
-%         'Location','North');
-    box on; title('Reduction Factor, Rk'); axis([0 30 1 3.5]);
+    legend(lh, {'Rock 1','Rock 2','Analytical','Numerical'}, ...
+        'Location','NorthWest');
+    box on; axis([0 30 1 3.5]);
     xlabel('Adsorption (mg/kg)'); ylabel('Reduction Factor, Rk');
 end
 
