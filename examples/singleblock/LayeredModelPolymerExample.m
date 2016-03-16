@@ -238,6 +238,16 @@ for i=1:2
     xlabel('Water Saturation'); ylabel('Relative Permeability');
 end
 
+
+%%
+
+
+updata = upRk2(block, updata, 'flow', 'nsat', 5, 'npoly', 5, ...
+    'verbose', true);
+
+
+
+
 %% Plot upscaled reduction factor Rk
 % 
 % 
@@ -260,13 +270,21 @@ for i=1:2
                     'Color', colors(r,:), 'LineWidth', lw );
     end
     
-    % Plot numerical upscaling
-    c   = updata.Rk.c;
+    % Plot analytical upscaling
+    c   = updataA.Rk.c;
     ads = interp1(updata.ads(:,1), updata.ads(:,2), c);
-    sW  = updata.Rk.s{d};
+    sW  = updataA.Rk.s{d};
     for is=1:numel(sW)
-        fprintf('sW=%1.2f\n', sW(is));
-        plot(ads.*(10^6), updata.Rk.val{d}(is,:), 'k' );
+        plot(ads.*(10^6), updataA.Rk.val{d}(is,:), 'g' );
+    end
+    
+    % Plot numerical upscaling
+    c   = updata.Rk2.c;
+    ads = interp1(updata.ads(:,1), updata.ads(:,2), c);
+    sW  = updata.Rk2.s{d};
+    for is=1:numel(sW)
+        %fprintf('sW=%1.2f\n', sW(is));
+        plot(ads.*(10^6), updata.Rk2.val{d}(is,:), 'k-o' );
     end
     
 %     lh(3) = plot(updataA.krW{d}(:,1), updataA.krW{d}(:,2), 'k--', ...

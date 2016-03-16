@@ -57,21 +57,29 @@ krU = upscaleRelperm(Lz, dz, perm, KU, relperm);
 
 %% Upscaling of Rk
 
-%rkU = upscaleRk(Lz, dz, perm, KU, relperm, krU, rk);
-
+rkU = upscaleRk(Lz, dz, perm, KU, relperm, krU, rk);
 
 
 %% Set solution structure
 
+% Absperm data
 updata.perm = KU;
 
+% Relperm data
 updata.krW = cell(1,3);
 for d=1:3
     updata.krW{d} = [sW krU.krW(:,d)];
     updata.krO{d} = [sW krU.krO(:,d)]; % TODO: Flip?
 end
 
-%updata.Rk = rkU;
+% Rk data
+RkU.val = cell(1,3);
+for d=1:3
+    RkU.val{d} = rkU.rk(:,:,d);
+    RkU.s{d} = rkU.sW;
+end
+RkU.c = rkU.c;
+updata.Rk = RkU;
 
 
 end
