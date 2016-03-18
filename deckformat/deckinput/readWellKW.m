@@ -20,7 +20,7 @@ function w  = readWellKW(fid, w, kw)
 %
 %      'WELSPECS', 'COMPDAT', 'WCONHIST', 'WCONINJ', 'WCONINJE',
 %      'WCONINJH', 'WCONPROD', 'GRUPTREE', 'WGRUPCON', 'GCONPROD',
-%      'WPOLYMER', 'WELOPEN' and 'WELTARG'
+%      'WPOLYMER', 'WSURFACT', 'WELOPEN' and 'WELTARG'
 %
 %   Be advised that we do not support the complete feature set of these
 %   keywords.
@@ -47,12 +47,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    % Unless we're defining a new set of wells (or a well group hierarchy),
    % there had better be some previously defined wells.
    %
-   assert (any(strcmp(kw, { 'GRUPTREE', 'WELSPECS' })) || ...
-           ~isempty(w.WELSPECS), ...
+   no_well_ok = { 'GRUPTREE', 'WELSPECS', 'RPTSCHED' };
+
+   assert (any(strcmp(kw, no_well_ok)) || ~isempty(w.WELSPECS), ...
           ['Well keyword ''%s'' encountered before any wells have ', ...
            'been declared using ''WELSPECS''.'], kw);
 
@@ -67,6 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WELOPEN' , w = readWelOpen (fid, w);
       case 'WELSPECS', w = readWellSpec(fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
+      case 'WSURFACT', w = readWSurfact(fid, w);
       case {'WELTARG', 'WELLTARG'},
          w = readWelTarg(fid, w);
 
@@ -79,6 +80,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'GRUPNET' , w = readGrupNet (fid, w);
       case 'GRUPTREE', w = readGrupTree(fid, w);
       case 'WGRUPCON', w = readWGrupCon(fid, w);
+
+      % -------------------------------------------------------------------
+
+      % Miscellaneous keywords (reporting &c)
+      case 'RPTSCHED', w = readRptSched(fid, w);
 
       otherwise
          fclose(fid);
@@ -467,6 +473,19 @@ end
 
 %--------------------------------------------------------------------------
 
+function w = readWSurfact(fid, w)
+   %            1          2
+   template = {'Default', '0.0'};
+   numeric  = 2;
+
+   data = readDefaultedKW(fid, template);
+   data = toDouble(data, numeric);
+
+   w.WSURFACT = appendSpec(w.WSURFACT, data, w.WELSPECS(:,1));
+end
+
+%--------------------------------------------------------------------------
+
 function w = readWelTarg(fid, w)
    template = { 'Default', 'Default', 'NaN' };
    numeric  = numel(template);
@@ -541,6 +560,12 @@ function w = readWelTarg(fid, w)
    end
 
    assert (isempty(data), 'Internal error processing ''WELTARG''.');
+end
+
+%--------------------------------------------------------------------------
+
+function w = readRptSched(fid, w)
+   w.RPTSCHED = removeQuotes(tokenizeRecord(readRecordString(fid)));
 end
 
 %--------------------------------------------------------------------------

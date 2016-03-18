@@ -131,7 +131,7 @@ model.extraWellSolOutput = true;
 n = 50;
 dt = time/n;
 timesteps = repmat(dt, n, 1);
-schedule = simpleSchedule(timesteps, 'wells', W);
+schedule = simpleSchedule(timesteps, 'W', W);
 
 [ws, states] = simulateScheduleAD(state, model, schedule);
 %% Plot well curves + reservoir properties

@@ -3,13 +3,22 @@ function G = initEclipseGrid(deck, varargin)
 %
 % SYNOPSIS:
 %   G = initEclipseGrid(deck)
+%   G = initEclipseGrid(deck, 'pn1', pv1, ...)
 %
 % PARAMETERS:
 %   deck - Raw input data in Deck form as defined by function
 %          'readEclipseDeck'.
 %
 % OPTIONAL PARAMETERS:
-%   mapAxes - Apply the mapAxes transformation if present. DEFAULT: false.
+%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
+%            supported options are:
+%
+%            mapAxes - Apply the mapAxes transformation if present. 
+%                      DEFAULT: false.
+% 
+%            In addition, the routine can pass on a number of paramters
+%            to the function processGRDECL, which is used to construct
+%            corner-point grids
 %
 % RETURNS:
 %   G - Valid 'grid_structure'
@@ -38,7 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    opt = struct('mapAxes', false);
-   opt = merge_options(opt, varargin{:});
+   [opt,extra] = merge_options(opt, varargin{:});
 
    % -- Corner point grid -------------------------------------------------
    if all(isfield(deck.GRID, {'COORD', 'ZCORN'})) && ...
@@ -52,7 +61,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
 
       %G = processgrid(deck.GRID);
-      G = processGRDECL(deck.GRID, 'RepairZCORN', true);
+      G = processGRDECL(deck.GRID, 'RepairZCORN', true, extra{:});
 
    % -- Tensor product grid -----------------------------------------------
    elseif all(isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}))
