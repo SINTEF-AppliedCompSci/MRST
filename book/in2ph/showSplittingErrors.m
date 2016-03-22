@@ -6,7 +6,7 @@
 
 %% Set up model
 T = 5*year;
-cartDim = [64 64 1];
+cartDim = [128 128 1];
 gravity reset off
 fluid = initSimpleFluid('mu' , [   1,    1] .* centi*poise     , ...
                         'rho', [1000,  850] .* kilogram/meter^3, ...
@@ -26,9 +26,10 @@ cval = linspace(0,1,11); cval=.5*cval(1:end-1)+.5*cval(2:end);
 figure('Position',[300 550 1100 300]);
 
 %% Plot of evolving displacement front
-% Use contour lines to show four snapshots of the evolving displacement
-% front. To get the front as accurately as possible, we use an explicit
-% scheme and update the pressure for every step of the transport solver.
+% First, we use contour lines to show four snapshots of the evolving
+% displacement front. To get the front as accurately as possible, we use an
+% explicit scheme and update the pressure for (almost) every step of the
+% transport solver.
 x  = initState(G,W,100*barsa, [0 1]);
 for n=1:4
     for i=1:8
@@ -59,13 +60,20 @@ for i=1:4
     hold on;
     contour(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(tau/T,G.cartDims), sqrt(2)*i/3, '-k','LineWidth',1);
+        reshape(tau/T,G.cartDims), sqrt(2)*i/3, '--r','LineWidth',1);
     hold off
 end
 
 %% Run simulation with different time steps
+% Finally, we consider the solution at time 0.6 PVI and compute splitting
+% solutions with a sequence of increasing splitting time steps. As the
+% number of splitting steps increases, the approximate solution gradually
+% approxes the correct solution.
 nstep = [1 4 16 64];
 figure('Position',[300 550 1100 300]);
+C= contour(reshape(G.cells.centroids(:,1), G.cartDims),...
+        reshape(G.cells.centroids(:,2), G.cartDims), ...
+        reshape(tau/T,G.cartDims), sqrt(2), '-k','LineWidth',1);
 for n=1:numel(nstep)
     x  = initState(G,W,100*barsa, [0 1]);
     for i=1:nstep(n)
@@ -75,7 +83,8 @@ for n=1:numel(nstep)
     subplot(1,4,n);
     contour(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(x.s(:,1),G.cartDims), cval, '--');
+        reshape(x.s(:,1),G.cartDims), cval, '-','Color',[.6 .6 .6]);
+    hold on, plot(C(1,2:end),C(2,2:end),'k--'); hold off
     axis equal; axis([0 domain(1) 0 domain(2)]);
     title([num2str(nstep(n)) ' steps'])
     set(gca,'XTick',[],'YTick',[]);
