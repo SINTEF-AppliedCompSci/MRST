@@ -41,7 +41,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    [pvMult, transMult, mobMult, pvMult0] = getMultipliers(f, p, p0);
 
    % relative permeability
-   [krW, krG] = model.evaluteRelPerm({sW, sG}, p, 'sGmax', sGmax);
+   [krW, krG] = model.evaluateRelPerm({sW, sG}, p, 'sGmax', sGmax);
    krW = krW * mobMult;
    krG = krG * mobMult;
 
