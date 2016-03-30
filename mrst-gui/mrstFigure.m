@@ -59,7 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     % Check if first input argument is a handle to a valid figure,
-    if numel(varargin) && validateFunctionHandle(varargin{1})
+    if numel(varargin)
         h = varargin{1};
         varargin = varargin(2:end);
     else
@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     % Silently set figure
-    if any(strcmpi(varargin, 'background'))
+    if any(strcmpi(varargin, 'background')) && validateFunctionHandle(h)
         set(0, 'CurrentFigure', h);
     else
         figure(h);
