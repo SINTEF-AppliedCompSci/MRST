@@ -83,8 +83,6 @@ X1 = [X((X(:,1)).^2 + (X(:,2)).^2 == 2,:); [0,0]];
 plot(X1(:,1), X1(:,2), 'ok', 'MarkerFaceColor', 'r')
 text(1+.3, 1+.2,'d_1')
 text(1+.3, -1-.2, 'd_2')
-text(-.5,-1.2,'h_x')
-text(-1.3,-.5,'h_y')
 
 axis([-1.5, 1.5, -1.5 1.5])
 set(gca,'XTick',[-1 0 1] ); %This are going to be the only values affected.
