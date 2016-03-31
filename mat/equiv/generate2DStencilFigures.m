@@ -14,6 +14,7 @@ faceAlpha = .2;
 mrkSzBig = 20;
 mrkSzSml = 10;
 cut = 4;
+addTxt = .25;
 
 X = G.nodes.coords;
 X = bsxfun(@minus, X,[1,1]);
@@ -38,7 +39,11 @@ line([0,0], [-(1+add) 1+add], 'LineWidth', lineWidth);
 X1 = X((X(:,1)).^2 + (X(:,2)).^2 <= 1,:);
 % plot(X(:,1), X(:,2), '.k', 'MarkerSize', mrkSzSml);
 plot(X1(:,1), X1(:,2), 'ok', 'MarkerFaceColor', 'r')
-% text(addTxt,addTxt,'(i,j)')
+text(1+.3, .1,'x')
+text(.1, 1+.3, 'y')
+text(-.5,-1.2,'h_x')
+text(-1.3,-.5,'h_y')
+
 % text(1 + addTxt, addTxt,'(i+1,j)')
 % text(-1 + addTxt, addTxt,'(i-1,j)')
 % text(addTxt, 1 + addTxt,'(i,j+1)')
@@ -76,6 +81,11 @@ line([1+add,-(1+add)], [-(1+add) 1+add], 'LineWidth', lineWidth);
 X1 = [X((X(:,1)).^2 + (X(:,2)).^2 == 2,:); [0,0]];
 % plot(X(:,1), X(:,2), '.k', 'MarkerSize', mrkSzSml);
 plot(X1(:,1), X1(:,2), 'ok', 'MarkerFaceColor', 'r')
+text(1+.3, 1+.2,'d_1')
+text(1+.3, -1-.2, 'd_2')
+text(-.5,-1.2,'h_x')
+text(-1.3,-.5,'h_y')
+
 axis([-1.5, 1.5, -1.5 1.5])
 set(gca,'XTick',[-1 0 1] ); %This are going to be the only values affected.
 set(gca,'XTickLabel',{'i-1', 'i', 'i+1'} )

@@ -4,7 +4,7 @@ addpath('../'); addpath('../VEM3D/');
 
 %   TEST 4: Finite difference 3D
 
-nx = 6; ny = 6; nz = 6;
+nx = 2; ny = 2; nz = 2;
 gridLim = [4,4,4];
 G = cartGrid([nx,ny,nz],gridLim);
 h = sqrt(3)/nx;
@@ -15,7 +15,7 @@ h = sqrt(3)/nx;
 % 
 
 
-w1 = 7/99; w2 = 1/8; w3 = 1-w1-w2;
+w1 = 0; w2 = 0; w3 = 1-w1-w2;
 [A_FD, epsx, epsy, epsz] = stencils3D(G,w1,w2,w3);
 
 f = @(X) zeros(size(X,1),1);
@@ -34,8 +34,8 @@ xx = G.nodes.coords(A_FD(14,:) ~= 0 ,:);
 
 A_FD(bcDof == 1,:) = SBC(bcDof == 1,:);
 
-% ai = 0:.1:3; ni = numel(ai);
-% aj = 3:.1:10; nj = numel(aj);
+% ai = 0:.1:1; ni = numel(ai);
+% aj = 0:.05:6; nj = numel(aj);
 % ak = 0:.25:1; nk = numel(ak);
 % al = 0:.25:1; nl = numel(al);
 % hx = gridLim(1)/(2*nx); hy = gridLim(2)/(2*ny); hz = gridLim(3)/(2*nz);
@@ -47,7 +47,7 @@ A_FD(bcDof == 1,:) = SBC(bcDof == 1,:);
 %         alphaMat = repmat(alpha, G.cells.num, 1);
 %         [~,A_VEM,b_VEM, ~] = VEM3D(G,f,bc,1,alphaMat);
 %         out = [out ; ai(i), ai(i), ai(i) aj(j), norm(A_VEM-A_FD,'fro')];
-% %         alpha
+%         alpha
 %     end
 % end
 

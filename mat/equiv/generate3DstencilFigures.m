@@ -47,6 +47,11 @@ set(gca,'YTickLabel',{'j-1', 'j', 'j+1'} )
 set(gca,'ZTick',[-1 0 1] ); %This are going to be the only values affected.
 set(gca,'ZTickLabel',{'k-1', 'k', 'k+1'} )
 
+text(1+.4,0,.2,'x')
+text(0,1+.4,.2,'y')
+text(.2,0,1+.4,'z')
+text(-.5,1.2,1,'h_x')
+
 axis equal
 axis([-1.5 1.5 -1.5 1.5 -1.5 1.5])
 view(azel)
@@ -87,6 +92,11 @@ set(gca,'ZTick',[-1 0 1] ); %This are going to be the only values affected.
 set(gca,'ZTickLabel',{'k-1', 'k', 'k+1'} )
 axis equal
 
+text(1+.4,0,.2,'x')
+text(0,1+.2,1+.3,'\eta_x')
+text(0,-(1+.4),1+.3,'\zeta_x')
+% text(
+
 axis equal
 axis([-1.5 1.5 -1.5 1.5 -1.5 1.5])
 view(azel)
@@ -124,6 +134,11 @@ set(gca,'YTickLabel',{'j-1', 'j', 'j+1'} )
 set(gca,'ZTick',[-1 0 1] ); %This are going to be the only values affected.
 set(gca,'ZTickLabel',{'k-1', 'k', 'k+1'} )
 axis equal
+
+text(1+.4,1+.2,1+.2,'d_1')
+text(1+.4,-(1-.4),1+.2,'d_2')
+text((1+.4),(1+.4),-(1+.2),'d_3')
+text((1+.4),-(1-.4),-(1+.2),'d_4')
 
 axis([-1.5 1.5 -1.5 1.5 -1.5 1.5])
 view(azel)

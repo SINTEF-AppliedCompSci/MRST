@@ -4,7 +4,7 @@ addpath('../'); addpath('../VEM2D/');
 
 %   TEST 3: Finite difference
 nx = 5; ny = 5;
-xMax = 5; yMax = 5;
+xMax = 10; yMax = 10;
 G = cartGrid([nx,ny],[xMax, yMax]);
 f = @(X) zeros(size(X,1),1);
 gD = @(X) X(:,1);
@@ -12,10 +12,10 @@ gD = @(X) X(:,1);
 boundaryEdges = find((G.faces.neighbors(:,1) == 0) + (G.faces.neighbors(:,2) == 0));
 bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryEdges}}, 'bcType', {{'dir'}});
 
-w = 99;
+w = 101   ;
 hx = xMax/(2*nx); hy = yMax/(2*ny);
 epsilon = hy/hx;
-alpha = 3*(1/hx^2 + 1/hy^2)*w*2;
+alpha = 3*(1/hx^2 + 1/hy^2)*w*3;
 k = 1;
 G = computeVEM2DGeometry(G,f,k,alpha);
 

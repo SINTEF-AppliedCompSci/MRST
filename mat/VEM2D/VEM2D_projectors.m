@@ -154,7 +154,7 @@ hx = abs(max(X(:,1)) - min(X(:,1)))/(2*G.cartDims(1));
 hy = abs(max(X(:,2)) - min(X(:,2)))/(2*G.cartDims(2));
 
 
-q = sqrt(3/(2*hx*hy))*[1;-1;1;-1];
+q = sqrt(9/(4*hx*hy))*[1;-1;1;-1];
 d = q'*q;
 
 SK = cellfun(@(PN) ...
