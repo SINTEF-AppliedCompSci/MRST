@@ -9,15 +9,24 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    opt = merge_options(opt_defaults(), varargin{:});
    
    %% Physical grid and rock
-   [Gt, rock2D, ~] = getFormationTopGrid(opt.modelname, opt.coarse_level);
+   if ~strcmpi(opt.modelname, 'Synthetic')
+        [Gt, rock2D, ~] = getFormationTopGrid(opt.modelname, opt.coarse_level);
+   else
+        Gt          = dipped_perturbed_grid('Lx', 10000, 'Ly', 5000, 'H', 50);
+        rock2D.poro = NaN * ones(Gt.cells.num,1);
+        rock2D.perm = NaN * ones(Gt.cells.num,1);
+   end
+
    if any(isnan(rock2D.perm))
         rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
    end
    if any(isnan(rock2D.poro))
         rock2D.poro = 0.25 * ones(Gt.cells.num,1); 
    end
+   % @@ however, we do not want to overwrite all perm, poro, only the NaN
+   % entries...
    
-   %% Spill-point analysis objec
+   %% Spill-point analysis object
    ta = trapAnalysis(Gt, false);
    
    %% CO2 property object
@@ -113,6 +122,9 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                         opt.well_buffer_dist_catchment, ...
                         'inspectWellPlacement',false, 'E_closed', E);
         end
+        assert(~isempty(wc), 'No well was placed.')
+        
+        qt = qt*1.2;% @@
         
       
         %%% 2) Create schedule based on control type: -----------------------
@@ -162,7 +174,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         fprintf('\n Using schedule passed in as varargin. \n')
         if isa(opt.schedule,'char')
             tmp = load(opt.schedule);
-            if isfield(tmp,'optim')
+            if isfield(tmp,'optim') % extend to handle init.schedule, etc.
                 tmp = tmp.optim;
             end
             name = fields(tmp);
@@ -180,6 +192,11 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         % they may have changed slightly as above)
         for i=1:numel([opt.schedule.control(1).W.val])
            opt.schedule.control(1).W(i).val = max(sqrt(eps),opt.schedule.control(1).W(i).val); 
+        end
+        %
+        % Extend migration period (optional)
+        if ~isempty(opt.extended_mig_time)
+           opt.schedule = extend_migration_sch( opt.schedule, opt.extended_mig_time ); 
         end
     end
     
@@ -246,12 +263,13 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                      'penalize_type',       opt.penalize_type, ...
                      'leak_penalty',        opt.leak_penalty, ...
                      'pressure_penalty',    opt.pressure_penalty, ...
-                     'pressure_limit',      P_limit, ... % empty if using rate-controls
+                     'pressure_limit',      P_limit, ...
                      'rho_water',           fluid.rhoWS, ...
                      'surface_pressure',    opt.surface_pressure, ...
                      'lineSearchMaxIt',     opt.lineSearchMaxIt, ...
                      'gradTol',             opt.gradTol, ...
-                     'objChangeTol',        opt.objChangeTol);
+                     'objChangeTol',        opt.objChangeTol, ...
+                     'obj_scaling',         []);
                  
    %% Store data
    %other.fluid = fluid; % @@ fluid structure is ~400MB when saved, but required for results
@@ -454,6 +472,7 @@ function opt = opt_defaults()
 
     opt.modelname = 'utsirafm';
     opt.schedule = [];
+    opt.extended_mig_time = [];
     opt.coarse_level = 3;
     
     % Number of timesteps (injection and migration)

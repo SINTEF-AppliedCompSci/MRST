@@ -33,7 +33,8 @@
 % An open-system is specified by 'btype'='pressure', and a closed-system is
 % 'btype'='flux'.
 
-names = {'Stofm'}
+%names = {'Stofm'}
+names = {'Synthetic'}
 
 for i=1:numel(names)
     
@@ -41,21 +42,20 @@ for i=1:numel(names)
     fmName      = names{i};
     rhoCref     = 760 * kilogram / meter ^3;
 
-    coarsening      = 6;
-    [Gt, rock2D]    = getFormationTopGrid( fmName, coarsening );
-    if any(isnan(rock2D.perm))
-        rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
+    if ~strcmpi(names{1},'Synthetic')
+        coarsening = 6; % @@
+        [Gt, ~]    = getFormationTopGrid( fmName, coarsening );
+        seainfo    = getSeaInfo(fmName, rhoCref);
+    else
+        coarsening = [];
+        Gt      = dipped_perturbed_grid('Lx', 10000, 'Ly', 5000, 'H', 50);
+        seainfo = getSeaInfo('NorthSea', rhoCref); 
     end
-    if any(isnan(rock2D.poro))
-        rock2D.poro = 0.25 * ones(Gt.cells.num,1); 
-    end
-    
-    seainfo = getSeaInfo(fmName, rhoCref);
     gravity on;
     caprock_pressure = (Gt.cells.z * seainfo.water_density * norm(gravity)) ...
                 .* (1 + seainfo.press_deviation/100);
 
-    max_rate_fac = 1;
+    max_rate_fac = 4;
     if any(strcmpi(fmName,{'Sleipnerfm','Huginfmwest','Ulafm','Huginfmeast','Pliocenesand'}))
         max_rate_fac = 4;  % @@ max rates will depend on the starting rates
     %elseif any(strcmpi(fmName,{''}))
@@ -74,25 +74,26 @@ for i=1:numel(names)
         % given cp. If penalize_type is 'leakage', cp is not required and
         % only one iteration of this r-loop will be executed.
         [Gt, optim, init, history, other] = optimizeFormation_extras(...
-        'dryrun'                         , false                        , ... % if true, will not proceed to optimization
+        'dryrun'                         , true                       , ... % if true, will not proceed to optimization
         'inspectWellPlacement'           , false                        , ... % if true, will not proceed to any simulation
         'adjustClosedSystemRates'        , true                         , ... % if true, initial schedule rates are adjusted for closed-systems, based on analytical closed-system storage efficiency
-        'lineSearchMaxIt'                , 10                           , ...
+        'lineSearchMaxIt'                , 5                           , ...
         'gradTol'                        , 1e-4                         , ...
-        'objChangeTol'                   , 1e-4                         , ...
+        'objChangeTol'                   , 1e-5, ...%1e-4                         , ...
         'modelname'                      , fmName                       , ...
             'coarse_level'               , coarsening                   , ...
-        'schedule'                       , sch                          , ... % can also pass in path of a previously saved schedule
+        'schedule'                       , sch, ...%'/home/rebeccaa/Documents/MATLAB/mrst-bitbucket/Synthetic/InjYrs30_MigYrs500_noResTrap_cp2_futLeak_IR0pt5/optim', ...%sch                          , ... % can also pass in path of a previously saved schedule
             'itime'                      , 30 * year                    , ...
             'isteps'                     , 30                           , ...
-            'mtime'                      , 100 * year                  , ...
-            'msteps'                     , 10                          , ... 
-        'well_placement_type'            , 'one_per_trap'               , ... % options: 'use_array', 'one_per_trap', 'one_per_path'
-            'max_num_wells'              , 40                           , ... % used in use_array, one_per_trap
+            'mtime'                      , 3000 * year                  , ...
+            'msteps'                     , 300                          , ... 
+            'extended_mig_time'          , 3000 * year                  , ... % if sch is passed in, mig period can be extended
+        'well_placement_type'            , 'one_per_path'               , ... % options: 'use_array', 'one_per_trap', 'one_per_path'
+            'max_num_wells'              , 2                           , ... % used in use_array, one_per_trap
             'maximise_boundary_distance' , false                        , ... % used in one_per_path
-            'well_buffer_dist'           , 1 * kilo * meter             , ... % dist from edge of internal catchment
-            'well_buffer_dist_domain'    , 5 * kilo * meter             , ... % dist from edge of domain    
-            'well_buffer_dist_catchment' , 3 * kilo * meter             , ... % dist from edge of external catchment
+            'well_buffer_dist'           , 0 * kilo * meter, ...%1 * kilo * meter             , ... % dist from edge of internal catchment
+            'well_buffer_dist_domain'    , 2 * kilo * meter, ...%5 * kilo * meter             , ... % dist from edge of domain    
+            'well_buffer_dist_catchment' , 0 * kilo * meter, ...%3 * kilo * meter             , ... % dist from edge of external catchment
             'pick_highest_pt'            , true                         , ... % otherwise farthest downslope, used in one_per_trap and one_per_path
             'DX'                         , 1 * kilo*meter               , ... % used in use_array
             'DY'                         , 1 * kilo*meter               , ... % used in use_array
@@ -100,8 +101,8 @@ for i=1:numel(names)
             'rate_lim_fac'               , max_rate_fac                 , ...
             'max_wvals'                  , max_wvals                    , ...
         'btype'                          , 'pressure'                   , ... % options: 'pressure', 'flux'
-        'penalize_type'                  , 'pressure'                   , ... % options: 'pressure', 'leakage', 'leakage_at_infinity'
-            'leak_penalty'               , 10                           , ...
+        'penalize_type'                  , 'leakage'                   , ... % options: 'pressure', 'leakage', 'leakage_at_infinity'
+            'leak_penalty'               , 2                           , ...
             'pressure_penalty'           , cp(r)                        , ... % appropriate penalty is iteratively determined for closed-systems
             'p_lim_factor'               , 0.9                          , ...
         'surface_pressure'              , 1 * atm                       , ...   
@@ -114,8 +115,8 @@ for i=1:numel(names)
         'c_water'                       , 4.3e-5/barsa                  , ... % water compressibility
         'p_range'                       , [0.1, 400] * mega * Pascal    , ... % pressure span of sampled property table
         't_range'                       , [4 250] + 274                 , ...
-        'sr'                            , seainfo.res_sat_co2                   , ... % gas
-        'sw'                            , seainfo.res_sat_wat                   , ... % brine
+        'sr'                            , 0, ...%seainfo.res_sat_co2                   , ... % gas
+        'sw'                            , 0, ...%seainfo.res_sat_wat                   , ... % brine
         'ref_temp'                      , seainfo.seafloor_temp + 273.15        , ...
         'ref_depth'                     , seainfo.seafloor_depth                , ... 
         'temp_grad'                     , seainfo.temp_gradient                 , ...
@@ -183,7 +184,7 @@ for i=1:numel(names)
     if exist('other','var')
         subVarDirName = [fmName '/' ...
             'InjYrs',num2str(convertTo(other.opt.itime,year)), ...
-            '_MigYrs',num2str(convertTo(other.opt.mtime,year))];
+            '_MigYrs',num2str(convertTo(other.opt.mtime,year)) '_noResTrap_cp2_futLeak_IR0pt5_longSim'];
         mkdir(subVarDirName);
         save([subVarDirName '/' 'Gt'], 'Gt');
         save([subVarDirName '/' 'optim'], 'optim');

@@ -37,7 +37,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    opt.pressure_limit   = [];
    
    % for using leak_penalizer_at_infinity:
-   opt.penalize_leakage_at_infinity = false; % if true, uses alternative obj_fun to the default one
+   %opt.penalize_leakage_at_infinity = false; % if true, uses alternative obj_fun to the default one
    opt.surface_pressure = [];
    opt.rho_water = [];
    
@@ -70,7 +70,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    % volume of co2 accumulated (i.e., remaining) in formation at time
    % infinity using spill-point dynamics.
    % @@ requires testing...
-   if opt.penalize_leakage_at_infinity
+   if strcmpi(opt.penalize_type,'leakage_at_infinity')
        assert(~isempty(opt.surface_pressure))
        assert(~isempty(opt.rho_water))
        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
@@ -154,7 +154,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    scaling.obj = opt.obj_scaling;
    
    obj_evaluator = @(u) evaluate_objective(u, opt.obj_fun, model, initState, ...
-                                           schedule, scaling); 
+                                           schedule, scaling, opt.leak_penalty); 
 
    %% Define constraints
    
@@ -309,7 +309,7 @@ end
 
 function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
     penalty, surf_press, rho_water, varargin)
-% new objection function to penalize leakage 'felt' at infinity, using
+% new objective function to penalize leakage 'felt' at infinity, using
 % spill-point dynamics.
 
 % pressure is assumed to be hydrostatic at time infinity.
@@ -375,9 +375,9 @@ function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
              rock2D.ntg = model.rock.ntg; % in case ntg doesn't exist
          end 
          vol_inf = vol_at_infinity( model.G, ...
-             rock2D, ...
+             rock2D, ... % or rock2D.poro .* model.fluid.pvMultR(p) ? @@
              sG .* model.fluid.bG(p), ...
-             model.fluid.res_water); % using possible ADI variables
+             model.fluid.res_water, model.fluid.res_gas); % using possible ADI variables
          
          % J = (1-C) M^i + C M^a
          obj{step} = obj{step} + penalty * vol_inf;
@@ -481,7 +481,8 @@ end
 % ----------------------------------------------------------------------------
 
 function [val, der, wellSols, states] = ...
-       evaluate_objective(u, obj_fun, model, initState, schedule, scaling) 
+       evaluate_objective(u, obj_fun, model, initState, schedule, scaling, cp) 
+% cp passed in for plotting purposes
    
    if ~strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
        % assume:
@@ -534,10 +535,15 @@ function [val, der, wellSols, states] = ...
      set(0, 'CurrentFigure', 11); clf(11);
    end
    h1 = plot(1:numel(vals), [vals{:}], '+');
-   val  = sum(cell2mat(vals))/abs(objScaling);
-   legend([h1],{['scaled obj val: ',num2str(val)]},'Location','SouthWest')
+   val  = sum(cell2mat(vals)); %/abs(objScaling);
+   %legend([h1],{['scaled obj val: ',num2str(val)]},'Location','SouthWest')
+   title(['obj val: ',num2str(val),', scaled obj val: ',num2str(val/objScaling)])
    drawnow
 
+   % visualize:
+   % assuming surface pressure = 1 * atm
+   plotObjValues(model, wellSols, states, schedule, cp, 1 * atm)
+   
    % run adjoint:
    if nargout > 1
       objh = @(tstep)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
@@ -582,6 +588,66 @@ end
 function p = compute_hydrostatic_pressure(Gt, rho_water, surface_pressure)
 
     p = rho_water * norm(gravity()) * Gt.cells.z + surface_pressure;
+end
+
+function plotObjValues(model, wellSols, states, schedule, cp, surf_press)
+
+    % Obtain the obj values: (Xyrs is the number of migration years)
+    % Also, mass or volume inventories can be shown
+    [obj_val_steps_Xyrs, ~, Mi_tot, Ma] = leak_penalizer_Rerun(model, wellSols, ...
+                        states, schedule, cp); 
+    [obj_val_steps_Xyrs_noPenalty] = leak_penalizer_Rerun(model, wellSols, ...
+                        states, schedule, 1);
+
+    [obj_val_steps_Xyrs_future, Mi_tot_inf, Ma_inf] = leak_penalizer_at_infinity_Rerun(model, ...
+                        wellSols, states, schedule, cp, surf_press, model.fluid.rhoWS);
+    [obj_val_steps_Xyrs_future_noPenalty, ~, ~] = leak_penalizer_at_infinity_Rerun(model, ...
+                        wellSols, states, schedule, 1, surf_press, model.fluid.rhoWS);
+    % NB: Mi_tot and Mi_tot_inf should be the same given the same injection schedule 
+    assert(all(Mi_tot == Mi_tot_inf))
+    
+    % Compare obj values:
+    if ~ishandle(24)
+     figure(24)
+    else
+     % Avoid stealing focus if figure already exists
+     set(0, 'CurrentFigure', 24); clf(24);
+    end
+    hold on; set(gcf,'Position',[2749 166 1120 411])
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs{:}], 'o') % Gt
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_future{:}], 'o')
+    hl = legend('leakage penalized','future leakage penalized');
+    set(hl,'Location','best')
+    ylabel('J(t), (Gt CO2)'); xlabel('time (years)')
+    title(['C=',num2str(cp)])
+    box; grid;
+    set(gca,'FontSize',16)
+    
+    % Compare obj values with c=1 (which corresponds to mass inventory):
+    if ~ishandle(25)
+     figure(25)
+    else
+     % Avoid stealing focus if figure already exists
+     set(0, 'CurrentFigure', 25); clf(25);
+    end
+    hold on; set(gcf,'Position',[3873 165 1119 412])
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_noPenalty{:}], 'o') % Gt
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_future_noPenalty{:}], 'o')
+    plot(convertTo(cumsum(schedule.step.val), year), Mi_tot , 'x')
+    plot(convertTo(cumsum(schedule.step.val), year), Ma , '+')
+    plot(convertTo(cumsum(schedule.step.val), year), Ma_inf , '+')
+    hl = legend('leakage penalized','future leakage penalized', ...
+        'tot Mi(t) (mass injected)', 'Ma(t) (mass remaining)', 'future Ma(t) (future mass remaining)');
+    set(hl,'Location','best')
+    ylabel('J(t), (Gt CO2)'); xlabel('time (years)')
+    title('C=1')
+    box; grid;
+    set(gca,'FontSize',16)
+
 end
     
 
