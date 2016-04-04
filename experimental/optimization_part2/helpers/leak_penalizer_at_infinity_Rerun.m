@@ -1,4 +1,4 @@
-function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(model, wellSols, states, schedule, ...
+function [obj, Mi_tot, Ma] = leak_penalizer_at_infinity_Rerun(model, wellSols, states, schedule, ...
     penalty, surf_press, rho_water, varargin)
 % copy of local helper function from optimizeFormation:
 
@@ -24,6 +24,7 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
    end
    
    obj = repmat({[]}, numSteps, 1);
+   [Mi_tot, Ma] = deal(zeros(numSteps,1));
    krull = 0; % @@
    
    % compute ta here, then use to pass into vol_at_infinity so it is not
@@ -49,6 +50,12 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
       dt = dts(step);
       injInx = (vertcat(sol.sign) > 0);
       obj{step} = dt * spones(ones(1, nW)) * ((1-penalty) * injInx .* qGs);
+      
+      % Mass injected so far:
+      Mi_tot(step) = dt * spones(ones(1, nW)) * (injInx .* qGs) * model.fluid.rhoGS/1e12; % Gt
+      if step>1
+        Mi_tot(step) = Mi_tot(step - 1) + Mi_tot(step); % total injected, Gt
+      end
 
       krull = krull +  dt * spones(ones(1, nW)) * ( injInx .* qGs);
       
@@ -58,13 +65,14 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
       if ~isfield(model.rock,'ntg')
              model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
          end 
-      pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
-      vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
+      %pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
+      %vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG); % @@ what pressure?
       vol_inf = vol_at_infinity( model.G, ...
-             model.rock.poro .* model.fluid.pvMultR(p), ...
-             sG .* model.fluid.bG(p), ...
+             model.rock, ... % or model.rock.poro .* model.fluid.pvMultR(p), ...
+             sG .* bG, ...
              model.fluid.res_water, model.fluid.res_gas, 'ta',ta); % using possible ADI variables
       obj{step} = obj{step} + penalty * vol_inf;
+      Ma(step) = vol_inf * model.fluid.rhoGS/1e12; % Gt
       
       if (tSteps(step) == num_timesteps)
          if ~opt.ComputePartials
@@ -74,8 +82,8 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
          end
       end
       obj{step} = obj{step} * model.fluid.rhoGS/1e12; % vol * rho, in Gt.
-      vol_steps(step) = vol;
-      vol_inf_steps(step) = vol_inf;
+      %vol_steps(step) = vol;
+      %vol_inf_steps(step) = vol_inf;
    end
 
 end

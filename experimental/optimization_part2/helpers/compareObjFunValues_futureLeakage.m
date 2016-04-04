@@ -8,6 +8,8 @@ plotPenalizePressureObj = false;
 % First load a simulation result (Gt, init, optim, other), 
 % then run the following:
 
+plotOptim = true; % otherwise plots Init
+
 % Reconstruct the fluid structure which wasn't saved to avoid large
 % .mat files (~400 MB)
 if ~isfield(other,'fluid') %isempty(other.fluid)
@@ -18,27 +20,71 @@ model.fluid = other.fluid;
 model.G = Gt;
 model.rock = other.rock;
 
+if plotOptim
+    wellSols = optim.wellSols;
+    states = optim.states;
+    schedule = optim.schedule;
+else
+    wellSols = init.wellSols;
+    states = init.states;
+    schedule = init.schedule;  
+end
+
 if plotPenalizeFutureLeakageObj
     
     % Obtain the obj values: (Xyrs is the number of migration years)
-    obj_val_steps_Xyrs = leak_penalizer_Rerun(model, optim.wellSols, ...
-                        optim.states, optim.schedule, other.opt.leak_penalty); 
+    % Also, mass or volume inventories can be shown
+    [obj_val_steps_Xyrs, Mi, Mi_tot, Ma] = leak_penalizer_Rerun(model, wellSols, ...
+                        states, schedule, other.opt.leak_penalty); 
+    [obj_val_steps_Xyrs_noPenalty] = leak_penalizer_Rerun(model, wellSols, ...
+                        states, schedule, 1);
 
-    [obj_val_steps_Xyrs_future, vol, vol_inf] = leak_penalizer_at_infinity_Rerun(model, ...
-                        optim.wellSols, optim.states, optim.schedule, ...
-                        other.opt.leak_penalty, other.opt.surface_pressure, ...
+    [obj_val_steps_Xyrs_future, Mi_tot_inf, Ma_inf] = leak_penalizer_at_infinity_Rerun(model, ...
+                        wellSols, states, schedule, ...
+                        other.opt.leak_penalty, ...
+                        other.opt.surface_pressure, ...
                         other.opt.rhoW);
-
-    % Plot:
-    figure; hold on
+    [obj_val_steps_Xyrs_future_noPenalty, ~, ~] = leak_penalizer_at_infinity_Rerun(model, ...
+                        wellSols, states, schedule, ...
+                        1, ...
+                        other.opt.surface_pressure, ...
+                        other.opt.rhoW);
+    % NB: Mi_tot and Mi_tot_inf should be the same given the same injection schedule 
+    assert(all(Mi_tot == Mi_tot_inf))
+    
+    % Compare obj values:
+    figure; hold on; set(gcf,'Position',[2749 166 1120 411])
     plot(convertTo(cumsum(init.schedule.step.val), year), ...
-        [obj_val_steps_Xyrs{:}], '+')
+        [obj_val_steps_Xyrs{:}], 'o') % Gt
     plot(convertTo(cumsum(init.schedule.step.val), year), ...
         [obj_val_steps_Xyrs_future{:}], 'o')
-    hl = legend('X yrs migration, with leakage penalized',...
-        'X yrs migration, with future leakage penalized');
+    hl = legend(['leakage penalized (c_p=',num2str(other.opt.leak_penalty),')'], ...
+        ['future leakage penalized (c_p=',num2str(other.opt.leak_penalty),')']);
     set(hl,'Location','best')
-    ylabel('J(t), optimal, (Gt CO2)'); xlabel('time (years)')
+    ylabel('J(t), (Gt CO2)'); xlabel('time (years)')
+    %title([other.opt.modelname ', C=',num2str(other.opt.leak_penalty)])
+    title(other.opt.modelname)
+    box; grid;
+    set(gca,'FontSize',16)
+    
+    % Compare obj values with c=1 (which corresponds to mass inventory):
+    figure; hold on; set(gcf,'Position',[3873 165 1119 412])
+    plot(convertTo(cumsum(init.schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_noPenalty{:}], 'o') % Gt
+    plot(convertTo(cumsum(init.schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_future_noPenalty{:}], 'o')
+    plot(convertTo(cumsum(init.schedule.step.val), year), Mi_tot , 'x')
+    %plot(convertTo(cumsum(init.schedule.step.val), year), Ma , '+')
+    %plot(convertTo(cumsum(init.schedule.step.val), year), Ma_inf , '+')
+    assert(all([obj_val_steps_Xyrs_noPenalty{:}]' == Ma), 'obj fun values should match with mass remaining')
+    assert(all([obj_val_steps_Xyrs_future_noPenalty{:}]' == Ma_inf), 'obj fun values for future leakage should match with future mass remaining')
+    hl = legend('leakage penalized (c_p=1), mass remaining', ...
+        'future leakage penalized (c_p=1), future mass remaining', ...
+        'tot Mi(t), mass injected');
+        %'Ma(t) (mass remaining)', ...
+        %'future Ma(t) (future mass remaining)');
+    set(hl,'Location','best')
+    ylabel('J(t), (Gt CO2)'); xlabel('time (years)')
     title(other.opt.modelname)
     box; grid;
     set(gca,'FontSize',16)

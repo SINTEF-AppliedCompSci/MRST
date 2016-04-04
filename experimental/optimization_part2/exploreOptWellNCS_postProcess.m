@@ -167,7 +167,11 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
     % pressure state to determine maximal retaining capacity, or at the
     % very least, surface pressure should be included in calculation of
     % hydrostatic pressure).
-    seainfo = getSeaInfo(other.opt.modelname, other.opt.refRhoCO2); % contains seainfo.dis_max
+    if ~strcmpi(other.opt.modelname,'Synthetic')
+        seainfo = getSeaInfo(other.opt.modelname, other.opt.refRhoCO2); % contains seainfo.dis_max
+    else
+        seainfo = getSeaInfo('NorthSea', other.opt.refRhoCO2);
+    end
     %fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false, ...
     %                           'surf_press', other.opt.surface_pressure);
     fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false, ...
