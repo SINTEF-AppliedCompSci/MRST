@@ -27,12 +27,13 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
 %           will be computed inside this routine.
 
 % RETURNS   - ult_vol_remaining, a total volume in units of m3 co2. This is
-%           the amount of co2 remaining in the formation at time finity
+%           the amount of co2 remaining in the formation at time infinity
 %           - ult_vol_leaked, a total volume in units of m3 co2, of the
 %           amount leaked from the current state (i.e., sG)
 
 % Needs more testing with different formations!
-% Need to account for possible NTG data!
+% Assess sG versus sG .* model.fluid.bG(p)
+% Assess rock2D.poro versus rock2D.poro .* model.fluid.pvMultR(p)
 
     opt.plotsOn = false;
     opt.ta = [];
@@ -55,7 +56,7 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
     
     
     % 1) Get current co2 vol: 
-    curr_vol = ( sG .* Gt.cells.volumes .* Gt.cells.H .* poro .* ntg); % m3 pore vol @@ account for possible NTG data!!!
+    curr_vol = ( sG .* Gt.cells.volumes .* Gt.cells.H .* poro .* ntg ); % m3 pore vol
     tot_vol = sum(curr_vol);
     cells = 1:Gt.cells.num;
     
@@ -101,10 +102,10 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
     treeRoots = [trees.root];
     
     
-    % 4) Here we determine the vol leaked per tree by spilling any vols a
-    % trap cannot retain down the tree, until the vol is ultimately spilled
-    % out of the domain. During this calculation, we also determine the
-    % co2 vol ultimately remaining in the domain
+    % 4) Here we determine the vol that is ultimately leaked per tree by
+    % spilling any vols a trap cannot retain down the tree, and out of the
+    % domain. During this calculation, we also determine the co2 vol
+    % ultimately remaining in the domain
     %vol_leaked_per_tree = zeros(numel(treeRoots),1);
     vol_leaked_per_tree = cell(numel(treeRoots),1);
     ult_vol_per_trap_region = curr_vol_per_trap_region;
@@ -144,13 +145,13 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
             % and remove this vol from trap_ixs(j)
             ult_vol_per_trap_region{trap_ixs(j)} = ult_vol_per_trap_region{trap_ixs(j)} - spill_vol; % may be an ADI var
             
-            % spill this spill vol into the next trap downstream or out of
+            % spill this "spill vol" into the next trap downstream or out of
             % the tree
             if j < numel(trap_ixs)
                 % haven't reach end of spill-tree yet, so add this spill
                 % volume to the next trap down the spill-tree (i.e.,
                 % trap_ixs(j+1))
-                dispif(mrstVerbose, '%d (m3 co2) has spilled out of trap %d, and into trap %d.\n', ...
+                dispif(mrstVerbose, 'Thus %d (m3 co2) spills out of trap %d, and into trap %d.\n', ...
                     double(spill_vol), trap_ixs(j), trap_ixs(j+1));
                 ult_vol_per_trap_region{trap_ixs(j+1)} = ult_vol_per_trap_region{trap_ixs(j+1)} + spill_vol; % may be an ADI var
                 dispif(mrstVerbose, 'Trap %d now has %d (m3 co2). \n', ...
@@ -159,7 +160,7 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
                 % we've reached the end of the spill-tree, thus the
                 % spill_vol goes out of the spill-tree (i.e., out of the
                 % domain)
-                dispif(mrstVerbose, '%d (m3 co2) has spilled out of trap %d, and out of tree %d.\n', ...
+                dispif(mrstVerbose, 'Thus %d (m3 co2) spills out of trap %d, and out of tree %d.\n', ...
                     double(spill_vol), trap_ixs(j), i);
                 vol_leaked_per_tree{i} = spill_vol; % may be an ADI var
                 
@@ -188,11 +189,11 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
     % trees is bound to leak from the domain. However, we account for an
     % amount of residually trapped co2 that will remain and is therefore
     % not bound to leak.
-    curr_vol_total = curr_vol_per_trap_region{1};
+    total_trap_region_vol = curr_vol_per_trap_region{1};
     for i=2:numel(curr_vol_per_trap_region)
-        curr_vol_total = curr_vol_total + curr_vol_per_trap_region{i};
+        total_trap_region_vol = total_trap_region_vol + curr_vol_per_trap_region{i};
     end
-    curr_vol_outside_trap_regions = sum(curr_vol) - curr_vol_total;
+    curr_vol_outside_trap_regions = sum(curr_vol) - total_trap_region_vol;
     resid_trap_vol_outside_trap_regions = curr_vol_outside_trap_regions * sr;
     
     % 6) The final total amount of co2 that will ultimately leak from the
@@ -201,11 +202,14 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
     for i=2:numel(vol_leaked_per_tree)
         vol_leaked_total_trees = vol_leaked_total_trees + vol_leaked_per_tree{i};
     end
-    ult_vol_leaked = vol_leaked_total_trees - ...
+    ult_vol_leaked = vol_leaked_total_trees + ...
         curr_vol_outside_trap_regions - resid_trap_vol_outside_trap_regions; % m3, may be an ADI var
+    %assert( ult_vol_leaked >= 0 )
+    assert( ult_vol_leaked > -1e-5 ) % to account for possible numerical round-off error due to spilling of vols
     ult_vol_remaining = sum(curr_vol) - ult_vol_leaked;
     
     % 7) Check that vols balance out, within some tolerance
+    % @@ or they should balance out exactly?
     assert( abs( sum(curr_vol)-(ult_vol_remaining + ult_vol_leaked) ) ./ abs(sum(curr_vol)) < 1e-8 )
     
     
