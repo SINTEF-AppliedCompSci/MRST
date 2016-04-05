@@ -535,9 +535,9 @@ function [val, der, wellSols, states] = ...
      set(0, 'CurrentFigure', 11); clf(11);
    end
    h1 = plot(1:numel(vals), [vals{:}], '+');
-   val  = sum(cell2mat(vals)); %/abs(objScaling);
+   val = sum(cell2mat(vals))/abs(objScaling);
    %legend([h1],{['scaled obj val: ',num2str(val)]},'Location','SouthWest')
-   title(['obj val: ',num2str(val),', scaled obj val: ',num2str(val/objScaling)])
+   title(['scaled obj val: ',num2str(val)])
    drawnow
 
    % visualize:
