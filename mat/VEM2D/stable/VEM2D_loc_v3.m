@@ -1,4 +1,4 @@
-function [AK, bK, dofVec] = VEM2D_loc_v3(G, f, K, k, alpha)
+function [AK, bK, dofVec] = VEM2D_loc_v3(G, f, K, k, alpha, rate)
 %--------------------------------------------------------------------------
 %   Generates local stffness matrix for the virtual element method  for
 %   cell K of grid G for diffusion problem:
@@ -35,13 +35,12 @@ function [AK, bK, dofVec] = VEM2D_loc_v3(G, f, K, k, alpha)
 
 [m, grad_m, int_m] = retrieveMonomials(k);
 
-nK = G.cells.num;
 Kc = G.cells.centroids(K,:);
 hK = G.cells.diameters(K);
 aK = G.cells.volumes(K);
 
 edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
-edges = G.cells.faces(edgeNum);
+edges   = G.cells.faces(edgeNum);
 if size(edges,1) == 1;
     edges = edges';
 end
@@ -52,23 +51,14 @@ edgeNormals = G.faces.normals(edges,:);
 edgeSign    = (-ones(nE,1)).^(G.faces.neighbors(edges,1) ~= K); 
 edgeNormals = bsxfun(@times, edgeNormals, edgeSign);
 
-nodeNum = mcolon(G.faces.nodePos(edges),G.faces.nodePos(edges +1)-1);
-nodes = G.faces.nodes(nodeNum);
-if size(nodes,1) == 1
-    nodes = nodes';
-end
-nN = size(nodes,1);
-
-
 nodeNum = mcolon(G.faces.nodePos(edges),G.faces.nodePos(edges+1)-1);
-nodes = G.faces.nodes(nodeNum);
+nodes   = G.faces.nodes(nodeNum);
 if size(nodes,1) == 1
     nodes = nodes';
 end
-nodes = reshape(nodes,2,[])';
-nN = size(nodes,1);
-nodes(edgeSign == -1,:) ...
-        = nodes(edgeSign == -1,2:-1:1);
+nodes   = reshape(nodes,2,[])';
+nN      = size(nodes,1);
+nodes(edgeSign == -1,:) = nodes(edgeSign == -1,2:-1:1);
 nodes   = nodes(:,1);
 
 nk = (k+1)*(k+2)/2;
@@ -77,13 +67,12 @@ NK = nN + nE*(k-1) + k*(k-1)/2;
 
 X = [G.nodes.coords(nodes,:); Ec];
 
-                            %   Scale monomial coordinates.
 Xmon = bsxfun(@minus,X,Kc)/hK;                     
 
 %%  CALCULATE B AND D MATRICES                                           %%
 
 if k == 1
-
+    
     D = m(Xmon(1:nN,:));
     
     intB = .5*sum(grad_m(Xmon(nN+1:end,:)).*repmat(edgeNormals,2,1),2);
@@ -92,7 +81,12 @@ if k == 1
     B = [ones(1,NK)/(.5*sum(hE)); intB'];
     
     H = aK;
-    fhat = f(X(1:nN,:));
+    
+    if isa(f,'function_handle')
+        fHat = f(X(1:nN,:)) + rate/aK;
+    else
+        fHat = f*ones(size(nN,1)) + rate/aK;
+    end
     
     dofVec = nodes;
     
@@ -126,22 +120,28 @@ elseif k == 2
     H(2,:) = intD(:, [2,4,5])*aK;
     H(3,:) = intD(:, [3,5,6])*aK;
     
-    fInt = polygonInt_v2(G, K, f, k+1);
-    fhat = [f(X); fInt];
-
-    dofVec = [nodes', edges' + nN, K + nN + nE];
+    if isa(f,'function_handle')
+        fInt = polygonInt_v2(G, K, f, k+1)/aK;
+        fHat = [f(X); fInt] + rate/aK;
+    else
+        fHat = f*ones(2*nN+1,1) + rate/aK;
+    end
+    
+    dofVec = [nodes', edges' + G.nodes.num, K + G.nodes.num + G.faces.num];
     
 end
 
 M = B*D;
 PNstar = M\B;
 PN = D*PNstar;
-Q = sqrt(9/(4*.5*hK^2))*orth(eye(NK) - PN);
-P = Q'*Q;
+% Q = sqrt(9/(4*.5*hK^2))*orth(eye(NK) - PN);
+% P = Q'*Q;
 Mtilde = [zeros(1,nk) ; M(2:nk,:)];
+% AK = PNstar'*Mtilde*PNstar ...
+%            + alpha(K)*(eye(NK)-PN)'*(Q/P)*(P\Q')*(eye(NK)-PN);
 AK = PNstar'*Mtilde*PNstar ...
-           + alpha(K)*(eye(NK)-PN)'*(Q/P)*(P\Q')*(eye(NK)-PN);
+           + alpha(K)*(eye(NK)-PN)'*(eye(NK)-PN);
 PNstar = M(1:nkk,1:nkk)\B(1:nkk,:);
-bK = PNstar'*H*PNstar*fhat;
+bK = PNstar'*H*PNstar*fHat;
        
 end
