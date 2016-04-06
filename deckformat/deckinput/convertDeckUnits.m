@@ -570,7 +570,7 @@ function ctrl = convertControl(ctrl, u)
                ctrl.(key) = convertWellSpecs(ctrl.(key), u);
             end
 
-         case {'GRUPTREE', 'WGRUPCON', 'RPTSCHED'},
+         case {'GRUPTREE', 'WGRUPCON'},
             continue; % No conversion necessary
 
          case 'GRUPNET',
