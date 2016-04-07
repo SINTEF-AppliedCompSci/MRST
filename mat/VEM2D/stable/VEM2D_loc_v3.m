@@ -75,10 +75,15 @@ if k == 1
     
     D = m(Xmon(1:nN,:));
     
-    intB = .5*sum(grad_m(Xmon(nN+1:end,:)).*repmat(edgeNormals,2,1),2);
-    intB = reshape(intB,nE,2);
-    intB = (intB(1:end,:) + [intB(2:end,:);intB(1,:)])/hK;
-    B = [ones(1,NK)/(.5*sum(hE)); intB'];
+    XintB = repmat(Xmon(nN+1:end,:),2,1);
+    edgeNormals = [edgeNormals;...
+                   [edgeNormals(nE,:);edgeNormals(1:nE-1,:)]];
+    
+    
+    intB = .5*sum(grad_m(XintB).*repmat(edgeNormals,2,1),2);
+    intB = reshape(intB,2*nE,2);
+    intB = (intB(1:nE,:) + intB(nE+1:2*nE,:))/hK;
+    B = [ones(1,NK)/NK; intB'];
     
     H = aK;
     
@@ -88,7 +93,7 @@ if k == 1
         fHat = f*ones(size(nN,1)) + rate/aK;
     end
     
-    dofVec = nodes;
+    dofVec = nodes
     
 elseif k == 2
     
@@ -143,5 +148,5 @@ AK = PNstar'*Mtilde*PNstar ...
            + alpha(K)*(eye(NK)-PN)'*(eye(NK)-PN);
 PNstar = M(1:nkk,1:nkk)\B(1:nkk,:);
 bK = PNstar'*H*PNstar*fHat;
-       
+
 end

@@ -1,8 +1,9 @@
 function G = computeVEM2DGeometry(G,f,k, alpha)
 
+% G = sortEdges(G);
 G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);
-G = sortEdges(G);
+
 
 cellDiameters = zeros(G.cells.num,1);
 for i = 1:G.cells.num
