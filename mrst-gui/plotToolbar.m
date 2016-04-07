@@ -161,6 +161,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Plotting parameters
     [...
      vecToggle, ...
+     linePlotToggle, ...
+     markerToggle, ...
      logDisplay, ...
      absDisplay, ...
      tenDisplay, ...
@@ -271,6 +273,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'cdata', geticon('lockcaxis'), ...
                    'Separator', 'off');
 
+    if ~isfield(G, 'cartDims') || nnz(G.cartDims > 1) < 2;
+        linePlotToggle = uitoggletool(ht, 'TooltipString', 'View as line plot',...
+                       'ClickedCallback', @(src, event) replotPatch(),...
+                       'cdata', geticon('1d'), ...
+                       'Separator', 'off');
+        markerToggle = uitoggletool(ht, 'TooltipString', 'Show markers in 1D plot',...
+                       'ClickedCallback', @(src, event) replotPatch(),...
+                       'cdata', geticon('marker'), ...
+                       'Separator', 'off');
+    end
     addSelector();
 
     % Initial plot comes here
@@ -638,7 +650,7 @@ function replotPatch(varargin)
     set(0, 'CurrentFigure', mainFig)
 
     plotAsVector = any(ishandle(vecToggle)) && strcmpi(get(vecToggle, 'State'), 'on');
-
+    plotAsLine = any(ishandle(linePlotToggle)) && strcmpi(get(linePlotToggle, 'State'), 'on');
     if sum(subset) == 0
         disp 'Selection returned no values, will not change plot...'
         return
@@ -646,6 +658,7 @@ function replotPatch(varargin)
 
     if strcmpi(get(caxisToggle, 'State'), 'on')
         cx = caxis();
+        yscale = ylim();
     end
 
 
@@ -663,13 +676,36 @@ function replotPatch(varargin)
     if any(ishandle(vh));
         delete(vh);
     end
-    if plotAsVector
+    if plotAsLine
+        deleteHandle(gridOutline);
+        
+        if numel(ph) == 1 && strcmpi(get(ph, 'type'), 'line')
+            color = get(ph, 'color');
+            linewidth = get(ph, 'linewidth');
+            style = get(ph, 'linestyle');
+        else
+            color = [0, 0, 0];
+            linewidth = 2;
+            style = '-';
+        end
+        deleteHandle(ph);
+        useMarker = strcmpi(get(markerToggle, 'State'), 'on');
+        if useMarker
+            style = [style, 'o'];
+        end
+        if size(d, 2) > 1
+            ph = plot(d, style, 'linewidth', linewidth);
+        else
+            ph = plot(d, style, 'linewidth', linewidth, 'color', color);
+        end
+        
+    elseif plotAsVector
         if ishandle(ph);
             set(ph, 'Visible', 'off');
         end
         vh = plotCellVectorData(G, d, subset);
     else
-        if ishandle(ph)
+        if ~isempty(ph) && ishandle(ph) && all(strcmpi(get(ph, 'Type'), 'Patch'))
             ph2 = plotCellData(G, d, subset, ...
                                                'EdgeAlpha', get(ph, 'EdgeAlpha'),...
                                                'EdgeColor', get(ph, 'EdgeColor'),...
@@ -677,9 +713,10 @@ function replotPatch(varargin)
                                                'FaceColor', get(ph, 'FaceColor'),...
                                                'LineStyle', get(ph, 'LineStyle'),...
                                                'LineWidth', get(ph, 'LineWidth'));
-            delete(ph);
+            deleteHandle(ph);
             ph = ph2;
         else
+            deleteHandle(ph);
             ph = plotCellData(G, d, subset, 'EdgeColor', 'none', varargin{:});
         end
     end
@@ -700,6 +737,10 @@ function replotPatch(varargin)
 
     if strcmpi(get(caxisToggle, 'State'), 'on')
         caxis(cx);
+        if plotAsLine
+            % Interpret frozen colorbar as frozen yaxis
+            ylim(yscale);
+        end
     elseif min(size(d)) == 1
         dsel = d(initialSelection);
         dsel = double(dsel(isfinite(dsel)));
