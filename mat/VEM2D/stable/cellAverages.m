@@ -39,25 +39,22 @@ for K = 1:nK
                             %   Scale coordinates for use in 2D monomials.
     Xmon = (Xhat - repmat(Kc(K,:),nq*nTri,1))/hK(K);
 
-    PNstar = PNstar(PNstarPos(K):PNst
-    
-    mVals = m(Xmon)*PNstar;
-    
+    PNstar = PNstarT(PNstar(PNstarPos(K):PNstarPos(K+1)-1),:)';
+    uChi = sol.nodeValues(nodes);
+    tri = tri';
+    mVals = m(Xmon)'*PNstar; 
                             %   Multilply by wheights and determinants.
     detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
     mVals = bsxfun(@times,mVals,detAw);
-    mVals = mat2cell(mVals,nq*nTri*ones(nK,1),nk);
+    
+    
+    mVals = reshape(mVals,nq*nTri,nk);
         
-    uChi = sol.nodeValues(nodes);
                             %   Evaluate integrals.
     int = cell2mat(cellfun(@(X) X'*mVals, uChi, 'UniformOutput', false));
     
                             %   Construct local to global map.
-    if k == 1
-        dofVec = faceNodes';
-    elseif k == 2
-        dofVec = [faceNodes', faceEdges' + G.nodes.num, i + G.nodes.num + G.edges.num];
-    end
+ 
     
     intNum = mcolon(intPos(cells),intPos(cells+1)-1);
     
