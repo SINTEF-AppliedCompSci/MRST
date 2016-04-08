@@ -1,11 +1,11 @@
-function sol = VEM2D_v3(G, f, k, bc, varargin)
+function [sol, varargout] = VEM2D_v3(G, f, k, bc, varargin)
 
 nN = G.nodes.num;
 nE = G.faces.num;
 nK = G.cells.num;
 
 opt = struct('alpha',  ones(nK,1), ...
-             'src', []             );         
+             'src', []            );         
 opt = merge_options(opt, varargin{:});
 alpha = opt.alpha;
 src = opt.src;
@@ -13,7 +13,12 @@ src = opt.src;
 assert(size(alpha,1) == nK & size(alpha,2) == 1, ...
        'Dimensions of paramter matrix alpha must be G.cells.num x 1')
 
-[A,b] = VEM2D_glob_v3(G, f, k, bc, alpha, src);
+projectors = false;
+if nargout == 2
+    projectors = true;
+end
+
+[A,b,PNstarT] = VEM2D_glob_v3(G, f, k, bc, alpha, src, projectors);
 
 fprintf('Solving linear system ...\n')
 tic;
@@ -31,5 +36,9 @@ sol = struct(...
              'nodeValues' , {nodeValues} , ...
              'edgeValues' , {edgeValues} , ...
              'cellMoments', {cellMoments}     );
+         
+if nargout == 2
+    varargout(1) = {PNstarT};
+end
          
 end

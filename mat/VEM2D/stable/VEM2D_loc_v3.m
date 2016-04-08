@@ -1,4 +1,4 @@
-function [AK, bK, dofVec] = VEM2D_loc_v3(G, f, K, k, alpha, rate)
+function [AK, bK, dofVec, PNstar] = VEM2D_loc_v3(G, f, K, k, alpha, rate)
 %--------------------------------------------------------------------------
 %   Generates local stffness matrix for the virtual element method  for
 %   cell K of grid G for diffusion problem:
@@ -56,6 +56,9 @@ nodes   = G.faces.nodes(nodeNum);
 if size(nodes,1) == 1
     nodes = nodes';
 end
+if (any(nodes == G.nodes.num))
+    a = 1;
+end
 nodes   = reshape(nodes,2,[])';
 nN      = size(nodes,1);
 nodes(edgeSign == -1,:) = nodes(edgeSign == -1,2:-1:1);
@@ -90,10 +93,10 @@ if k == 1
     if isa(f,'function_handle')
         fHat = f(X(1:nN,:)) + rate/aK;
     else
-        fHat = f*ones(size(nN,1)) + rate/aK;
+        fHat = f*ones(nN,1) + rate/aK;
     end
     
-    dofVec = nodes
+    dofVec = nodes;
     
 elseif k == 2
     
@@ -146,7 +149,7 @@ Mtilde = [zeros(1,nk) ; M(2:nk,:)];
 %            + alpha(K)*(eye(NK)-PN)'*(Q/P)*(P\Q')*(eye(NK)-PN);
 AK = PNstar'*Mtilde*PNstar ...
            + alpha(K)*(eye(NK)-PN)'*(eye(NK)-PN);
-PNstar = M(1:nkk,1:nkk)\B(1:nkk,:);
-bK = PNstar'*H*PNstar*fHat;
+PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
+bK = PNstar0'*H*PNstar0*fHat;
 
 end

@@ -1,4 +1,4 @@
-function [A, b] = VEM2D_glob_v3(G, f, k, bc, alpha, src)
+function [A, b, PNstarT] = VEM2D_glob_v3(G, f, k, bc, alpha, src, projectors)
 
 nN = G.nodes.num;
 nE = G.faces.num;
@@ -25,6 +25,13 @@ AVec = zeros(1,dofPosA(end)-1);
 iib = zeros(1,dofPosb(end)-1);
 bVec = zeros(1,dofPosb(end)-1);
 
+if projectors
+    nk = (k+1)*(k+2)/2;
+    PNstarT = zeros(dofPosb(end)-1,nk);
+else
+    PNstarT = 0;
+end
+
 fprintf('Computing local block matrices ...\n')
 tic;
 
@@ -39,7 +46,7 @@ for K = 1:nK
         fprintf('... Calculating local block matrix for cell %d\n', K);
     end 
         
-    [AK, bK, dofVec] = VEM2D_loc_v3(G, f, K, k, alpha, rate(K));
+    [AK, bK, dofVec, PNstar] = VEM2D_loc_v3(G, f, K, k, alpha, rate(K));
 
     NK = numel(dofVec);
     
@@ -54,6 +61,10 @@ for K = 1:nK
     iib(dofPosb(K):dofPosb(K+1)-1) = dofVec;
     bVec(dofPosb(K):dofPosb(K+1)-1) = bK;
     
+    if projectors
+        PNstarT(dofPosb(K):dofPosb(K+1)-1,:) = PNstar';
+    end
+    
 end
 
 stop = toc;
@@ -61,7 +72,6 @@ fprintf('Done in %f seconds.\n\n', stop);
 
 A = sparse(iiA, jjA, AVec, N, N);
 b = sparse(iib, ones(1, numel(iib)), bVec, N, 1);
-
 
 [A,b] = VEM2D_bc_v3(G,A,b,bc,k);
 

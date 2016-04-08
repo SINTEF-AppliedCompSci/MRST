@@ -1,9 +1,13 @@
 clc; clear all; close all;
 
-addpath('../');
-addpath('../../');
-addpath('~/Documents/master/pebiGridding/voronoi2D/')
-run('../../startup.m');
+% addpath('../');
+% addpath('../../');
+% addpath('~/Documents/master/pebiGridding/voronoi2D/')
+% run('../../startup.m');
+
+
+run('~/NTNU/5/master/project-mechanics-fractures/mystartup.m')
+addpath('~/NTNU/5/master/flowSimulationUsingMRST/pebi/')
 
 n = 5;
 
@@ -13,26 +17,27 @@ n = 5;
 % G = compositePebiGrid(1/20, [1, 1], ...
 %                        'faultLines', fault, 'faultGridFactor', 1/sqrt(2));
 
-x = linspace(0,1,10);
+x = linspace(.1,.8,10);
 y = 1-x;
 fault = {[x' , y']};
-G = compositePebiGrid(1/50, [1, 1], ...
+G = pebiGrid(1/10, [1, 1], ...
                        'faultLines', fault);
                    
                    
 faultFaces = 1:G.faces.num;
-faultFaces = faultFaces(G.faces.tag>0);
+faultFaces = faultFaces(G.faces.tag);
 G = mrstGridWithFullMappings(G);
+G = sortEdges(G);
 G = VEM2D_makeInternalBoundary(G, faultFaces);
 f = zeros(G.cells.num,1);
 G = computeVEM2DGeometry(G,f,1,1);
 find(min(abs(bsxfun(@minus,G.cells.centroids,[.2,.2]))));
 
-sourceCoords = [.4,.4];
+sourceCoords = [.2,.2];
 source = sum(bsxfun(@minus, G.cells.centroids, sourceCoords).^2,2);
 source = find(source == min(source));
 
-sinkCoords = [.6,.6];
+sinkCoords = [.8,.8];
 sink = sum(bsxfun(@minus, G.cells.centroids, sinkCoords).^2,2);
 sink = find(sink == min(sink));
 
@@ -40,7 +45,7 @@ f = @(X) zeros(size(X,1),1);
 
 Q = 10;
 src = addSource([], source, Q);
-% src = addSource(src, sink, -Q);
+src = addSource(src, sink, -Q);
 
 boundaryEdges = find(G.faces.neighbors(:,1) == 0 | G.faces.neighbors(:,2) == 0);
 isExternal = G.faces.centroids(boundaryEdges,1) == 0 | ...

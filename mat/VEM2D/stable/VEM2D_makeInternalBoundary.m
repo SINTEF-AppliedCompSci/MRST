@@ -10,10 +10,12 @@ G.faces.neighbors(faces,1) = 0;
 
 nodeNum = mcolon(G.faces.nodePos(faces),G.faces.nodePos(faces+1)-1);
 nodes = G.faces.nodes(nodeNum);
+
 nN = numel(nodes);
 [uNodes, IU, ID] = unique(nodes);
 newCoords = G.nodes.coords(nodes(IU),:);
 nUN = numel(uNodes);
+%ii = mcolon(2:2:nUN,1:2:nUN,-1);
 G.nodes.coords = [G.nodes.coords; newCoords];
 newNodes = ((1:nUN) + G.nodes.num)';
 G.nodes.num = G.nodes.num + nUN;
@@ -24,31 +26,45 @@ G.faces.neighbors = [G.faces.neighbors; neighbors];
 G.faces.nodes = [G.faces.nodes; newNodes(ID)];
 newNodePos = (G.faces.nodePos(end)+2:2:G.faces.nodePos(end)+nN)';
 G.faces.nodePos = [G.faces.nodePos; newNodePos];
-G.faces.tag = [G.faces.tag; zeros(nUN,1)];
+% G.faces.tag = [G.faces.tag; zeros(nUN,1)];
 newFaces = ((1:nE) + G.faces.num)';
 G.faces.num = G.faces.num + nE;
+
 
 faceNum = mcolon(G.cells.facePos(cells),G.cells.facePos(cells+1)-1);
 cellFaces = G.cells.faces(faceNum);
 cellFaces(ismember(cellFaces, faces)) = newFaces';
 G.cells.faces(faceNum) = cellFaces;
+
+nodeNum = mcolon(G.faces.nodePos(cellFaces),G.faces.nodePos(cellFaces+1)-1);
+cellFaceNodes = G.faces.nodes(nodeNum);
+[cNodes,loc] = ismember(cellFaceNodes,uNodes);
+
+cellFaceNodes(cNodes) = newNodes(loc(cNodes))';
+G.faces.nodes(nodeNum) = cellFaceNodes;
+
+for i = 1:numel(cellFaceNodes)
+    plot(G.nodes.coords(nodes,1),G.nodes.coords(nodes,2),'.','markersize',20)
+end
+
 nodeNum = mcolon(G.cells.nodePos(cells),G.cells.nodePos(cells+1)-1);
 cellNodes = G.cells.nodes(nodeNum);
 cellNodes(ismember(cellNodes, uNodes)) = newNodes(ID)';
 G.cells.nodes(nodeNum) = cellNodes;
 
-G = computeGeometry(G);
 
+
+% G = computeGeometry(G);
+% 
 % for i = 1:numel(cells)
 %     edgeNum = G.cells.facePos(cells(i)):G.cells.facePos(cells(i)+1)-1;
 %     edges = G.cells.faces(edgeNum);
 %     for j = 1:numel(edges)
 %         nodeNum = G.faces.nodePos(edges(j)):G.faces.nodePos(edges(j)+1)-1;
-%         nodes = G.faces.nodes(nodeNum);
+%         nodes = G.faces.nodes(nodeNum)
 %         X = G.nodes.coords(nodes,:);
 %         plot(X(:,1), X(:,2))
 %         hold on
-%         pause
 %     end
 %     hold off
 % end
