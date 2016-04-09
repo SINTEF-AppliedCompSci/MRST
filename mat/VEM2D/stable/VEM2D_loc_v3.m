@@ -93,7 +93,7 @@ if k == 1
         fHat = f*ones(nN,1);
     end
     
-    fHat = fHat + rate/aK;
+    fHat = fHat + rate/(2*aK);
     rateVec = 0;
     
     dofVec = nodes;
@@ -135,7 +135,7 @@ elseif k == 2
         fHat = f*ones(2*nN+1,1);
     end
     rateVec = zeros(NK,1);
-    rateVec(NK) = rate;
+    rateVec(NK) = rate/2;
     
     dofVec = [nodes', edges' + G.nodes.num, K + G.nodes.num + G.faces.num];
     
