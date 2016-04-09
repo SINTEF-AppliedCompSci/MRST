@@ -1,21 +1,18 @@
-function sol = cellAverages(G, sol, PNstarT)
+function cellAverages = calculateCellAverages(G, nodeValues, PNstarT)
 
 nK = G.cells.num;
-nk = (k+1)*(k+2)/2;
+[m, ~, ~] = retrieveMonomials(1);
 
-nNK = diff(G.cells.nodePos);
-cellAverages = zeros(nK, 1);
-
-[Xq, w, ~, vol] = triangleQuadRule(1);
-     
+[Xq, w, ~, vol] = triangleQuadRule(2);
 nq = size(Xq,1);
 
 Kc = G.cells.centroids;
 hK = G.cells.diameters;
+aK = G.cells.volumes;
 
 PNstarPos = [1, cumsum( diff(G.cells.nodePos')) + 1];
 
-[m, ~, ~] = retrieveMonomials(1);
+cellAverages = zeros(nK, 1);
 
 for K = 1:nK
                             %   Node data for cell K.
@@ -23,7 +20,7 @@ for K = 1:nK
     nodes   = G.cells.nodes(nodeNum);
     X = G.nodes.coords(nodes,:);
 
-    tri = delaunay(XF);
+    tri = delaunay(X);
     nTri = size(tri,1);
                             %   Construct map from refrence triangle to
                             %   triangles in triangulation.
@@ -39,31 +36,14 @@ for K = 1:nK
                             %   Scale coordinates for use in 2D monomials.
     Xmon = (Xhat - repmat(Kc(K,:),nq*nTri,1))/hK(K);
 
-    PNstar = PNstarT(PNstar(PNstarPos(K):PNstarPos(K+1)-1),:)';
-    uChi = sol.nodeValues(nodes);
-    tri = tri';
-    mVals = m(Xmon)'*PNstar; 
+    PNstar = PNstarT(PNstarPos(K):PNstarPos(K+1)-1,:)';
+    uChi = nodeValues(nodes);
+    mVals = m(Xmon)*PNstar*uChi; 
                             %   Multilply by wheights and determinants.
-    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
+    detAw = rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1); 
     mVals = bsxfun(@times,mVals,detAw);
     
-    
-    mVals = reshape(mVals,nq*nTri,nk);
-        
-                            %   Evaluate integrals.
-    int = cell2mat(cellfun(@(X) X'*mVals, uChi, 'UniformOutput', false));
-    
-                            %   Construct local to global map.
- 
-    
-    intNum = mcolon(intPos(cells),intPos(cells+1)-1);
-    
-    I(intNum, dofVec) = I(intNum, dofVec) + int;
-    
-    %   Speed: first rows of B can be obatined from F.
-    
-
-
+    cellAverages(K) = sum(mVals,1)/aK(K);
         
 end
     

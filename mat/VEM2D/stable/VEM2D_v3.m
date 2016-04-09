@@ -1,20 +1,22 @@
-function [sol, varargout] = VEM2D_v3(G, f, k, bc, varargin)
+function sol = VEM2D_v3(G, f, k, bc, varargin)
 
 nN = G.nodes.num;
 nE = G.faces.num;
 nK = G.cells.num;
 
 opt = struct('alpha',  ones(nK,1), ...
-             'src', []            );         
+             'src', []           , ...
+             'findCellAverages', false);
 opt = merge_options(opt, varargin{:});
 alpha = opt.alpha;
 src = opt.src;
+findCellAverages = opt.findCellAverages;
 
 assert(size(alpha,1) == nK & size(alpha,2) == 1, ...
        'Dimensions of paramter matrix alpha must be G.cells.num x 1')
 
 projectors = false;
-if nargout == 2
+if findCellAverages
     projectors = true;
 end
 
@@ -37,8 +39,9 @@ sol = struct(...
              'edgeValues' , {edgeValues} , ...
              'cellMoments', {cellMoments}     );
          
-if nargout == 2
-    varargout(1) = {PNstarT};
+if findCellAverages
+    cellAverages = calculateCellAverages(G, nodeValues, PNstarT);
+    sol.cellMoments = cellAverages;
 end
          
 end

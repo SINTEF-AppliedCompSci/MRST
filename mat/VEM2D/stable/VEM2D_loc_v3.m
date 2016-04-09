@@ -56,9 +56,6 @@ nodes   = G.faces.nodes(nodeNum);
 if size(nodes,1) == 1
     nodes = nodes';
 end
-if (any(nodes == G.nodes.num))
-    a = 1;
-end
 nodes   = reshape(nodes,2,[])';
 nN      = size(nodes,1);
 nodes(edgeSign == -1,:) = nodes(edgeSign == -1,2:-1:1);
@@ -91,10 +88,13 @@ if k == 1
     H = aK;
     
     if isa(f,'function_handle')
-        fHat = f(X(1:nN,:)) + rate/aK;
+        fHat = f(X(1:nN,:));
     else
-        fHat = f*ones(nN,1) + rate/aK;
+        fHat = f*ones(nN,1);
     end
+    
+    fHat = fHat + rate/aK;
+    rateVec = 0;
     
     dofVec = nodes;
     
@@ -130,10 +130,12 @@ elseif k == 2
     
     if isa(f,'function_handle')
         fInt = polygonInt_v2(G, K, f, k+1)/aK;
-        fHat = [f(X); fInt] + rate/aK;
+        fHat = [f(X); fInt];
     else
-        fHat = f*ones(2*nN+1,1) + rate/aK;
+        fHat = f*ones(2*nN+1,1);
     end
+    rateVec = zeros(NK,1);
+    rateVec(NK) = rate;
     
     dofVec = [nodes', edges' + G.nodes.num, K + G.nodes.num + G.faces.num];
     
@@ -149,7 +151,8 @@ Mtilde = [zeros(1,nk) ; M(2:nk,:)];
 %            + alpha(K)*(eye(NK)-PN)'*(Q/P)*(P\Q')*(eye(NK)-PN);
 AK = PNstar'*Mtilde*PNstar ...
            + alpha(K)*(eye(NK)-PN)'*(eye(NK)-PN);
+
 PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
-bK = PNstar0'*H*PNstar0*fHat;
+bK = PNstar0'*H*PNstar0*fHat + rateVec;
 
 end

@@ -12,7 +12,7 @@ n = 3;
 
 
 gridLim = [1,1];
-G = cartGrid([n,1000*n],gridLim);
+G = cartGrid([n,n],gridLim);
 % G = unitSquare(n,n);
 
 G = computeGeometry(G);
