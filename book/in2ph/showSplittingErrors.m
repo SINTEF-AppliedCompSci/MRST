@@ -49,9 +49,11 @@ end
 
 %% Contrast multiphase displacement with single-phase time lines
 % For Corey exponent 2 and equal viscosities, the displacement front will
-% propagate at a speed of sqrt(2) relative to the total velocity. To
-% demonstrate the difference between single-phase and multiphase, we
-% therefore add time lines at time-of-flight equal sqrt(2)*t.
+% propagate at a speed of a=1/(2(sqrt(2)-1)) relative to the total
+% velocity. To demonstrate the difference between single-phase and
+% multiphase, we therefore add time lines at time-of-flight equal
+% a*t. 
+a  = 1/(2*(sqrt(2)-1));
 x  = initState(G,W,100*barsa, [0 1]);
 x  = incompTPFA(x, G, hT, fluid, 'wells', W);
 mrstModule add diagnostics
@@ -61,7 +63,7 @@ for i=1:4
     hold on;
     contour(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(tau/T,G.cartDims), sqrt(2)*i/3, '-k','LineWidth',1);
+        reshape(tau/T,G.cartDims), a*i/3, '-k','LineWidth',1);
     caxis([0 1]);
     hold off
 end
@@ -75,7 +77,7 @@ nstep = [1 4 16 64];
 figure('Position',[300 550 1100 300]);
 C= contour(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(tau/T,G.cartDims), sqrt(2), '-k','LineWidth',1);
+        reshape(tau/T,G.cartDims), a, '-k','LineWidth',1);
 colormap(flipud(.5*jet(10)+.5*ones(10,3)));
 for n=1:numel(nstep)
     x  = initState(G,W,100*barsa, [0 1]);
