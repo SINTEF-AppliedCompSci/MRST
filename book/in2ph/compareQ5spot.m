@@ -38,15 +38,19 @@ for i=1:nstep
     x  = incompTPFA(x, G, hT, fluid, 'wells', W);
     x  = explicitTransport(x, G, T/nstep, rock, fluid, 'wells', W);
 end
-% clf
-% plotCellData(G,x.s(:,1));
-% plotWell(G, W);
+%{
+clf
+plotCellData(G,x.s(:,1));
+plotWell(G, W);
+%}
 
 % Set plotting function for later
-cval = linspace(0,1,11); cval=.5*cval(1:end-1)+.5*cval(2:end);
+N = 10;
+cval = linspace(0,1,N+1); cval=.5*cval(1:end-1)+.5*cval(2:end);
 plotData = @(G,x) contour(reshape(G.cells.centroids(:,1),G.cartDims), ...
                           reshape(G.cells.centroids(:,2),G.cartDims), ...
-                          reshape(x,G.cartDims), cval, '-r', 'LineWidth',1.5);
+                          reshape(x,G.cartDims), cval, '-k', 'LineWidth',1.5);
+colormap(flipud(.5*jet(N)+.5*ones(N,3)));
 
 %% Rotated quater-five spot
 % This is a grid that is rotated 45 degrees so that we simulate a case with
@@ -75,14 +79,16 @@ for i=1:nstep
     xr  = incompTPFA(xr, Gr, hTr, fluid, 'wells', Wr);
     xr  = explicitTransport(xr, Gr, T/nstep, rockr, fluid, 'wells', Wr);
 end
-% clf
-% plotCellData(Gr,xr.s(:,1),'EdgeColor',[.6 .6 .6]);
-% plotWell(Gr,Wr);
-% i = G.cells.centroids(:,1)>=G.cells.centroids(:,2);
-% plotCellData(G,x.s(:,1),i,'EdgeColor','k');
-% plotWell(G, W);
-% axis tight equal;
-% c = jet; colormap([1 1 1; c(2:end,:)]);
+%{
+clf
+plotCellData(Gr,xr.s(:,1),'EdgeColor',[.6 .6 .6]);
+plotWell(Gr,Wr);
+i = G.cells.centroids(:,1)>=G.cells.centroids(:,2);
+plotCellData(G,x.s(:,1),i,'EdgeColor','k');
+plotWell(G, W);
+axis tight equal;
+c = jet; colormap([1 1 1; c(2:end,:)]);
+%}
 
 %% Compare the two solutions
 remapAndPlot(Gr,xr.s(:,1),domain([1 2]),cval);

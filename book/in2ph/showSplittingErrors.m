@@ -24,6 +24,7 @@ hT = computeTrans(G, rock);
 cval = linspace(0,1,11); cval=.5*cval(1:end-1)+.5*cval(2:end);
 
 figure('Position',[300 550 1100 300]);
+colormap(flipud(.5*jet(10)+.5*ones(10,3)));
 
 %% Plot of evolving displacement front
 % First, we use contour lines to show four snapshots of the evolving
@@ -37,9 +38,9 @@ for n=1:4
        x  = explicitTransport(x, G, T/24, rock, fluid, 'wells', W);
     end
     subplot(1,4,n);
-    contour(reshape(G.cells.centroids(:,1), G.cartDims),...
+    contourf(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(x.s(:,1),G.cartDims), cval,'k-','Color',[.6 .6 .6]);
+        reshape(x.s(:,1),G.cartDims), [0 cval 1], 'EdgeColor','none');
     axis equal; axis([0 domain(1) 0 domain(2)]);
     title(sprintf('t=%.2f PVI',n*.2));
     set(gca,'XTick',[],'YTick',[]);
@@ -60,7 +61,8 @@ for i=1:4
     hold on;
     contour(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(tau/T,G.cartDims), sqrt(2)*i/3, '--r','LineWidth',1);
+        reshape(tau/T,G.cartDims), sqrt(2)*i/3, '-k','LineWidth',1);
+    caxis([0 1]);
     hold off
 end
 
@@ -74,6 +76,7 @@ figure('Position',[300 550 1100 300]);
 C= contour(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
         reshape(tau/T,G.cartDims), sqrt(2), '-k','LineWidth',1);
+colormap(flipud(.5*jet(10)+.5*ones(10,3)));
 for n=1:numel(nstep)
     x  = initState(G,W,100*barsa, [0 1]);
     for i=1:nstep(n)
@@ -81,11 +84,11 @@ for n=1:numel(nstep)
         x  = explicitTransport(x, G, T/nstep(n), rock, fluid, 'wells', W);
     end
     subplot(1,4,n);
-    contour(reshape(G.cells.centroids(:,1), G.cartDims),...
+    contourf(reshape(G.cells.centroids(:,1), G.cartDims),...
         reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(x.s(:,1),G.cartDims), cval, '-','Color',[.6 .6 .6]);
-    hold on, plot(C(1,2:end),C(2,2:end),'k--'); hold off
-    axis equal; axis([0 domain(1) 0 domain(2)]);
+        reshape(x.s(:,1),G.cartDims), [0 cval 1], 'EdgeColor','none');
+    hold on, plot(C(1,2:end),C(2,2:end),'k-','LineWidth',1); hold off
+    axis equal; axis([0 domain(1) 0 domain(2)]); caxis([0 1]);
     title([num2str(nstep(n)) ' steps'])
     set(gca,'XTick',[],'YTick',[]);
     drawnow;
