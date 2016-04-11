@@ -32,19 +32,6 @@ classdef OilWaterSurfactantModel1D < ImplicitExplicitOilWaterSurfactantModel
             title('SURFADS');
             drawnow
 
-            setFigure(4)
-            clf
-            plot(state.SURFCNM, '-');
-            title('SURFCNM');
-            drawnow
-
-            % setFigure(5)
-            % clf
-            % plot(state.SURFST, '-');
-            % title('SURFST');
-            % drawnow
-
-            % waitforbuttonpress;
         end
     end
 end
