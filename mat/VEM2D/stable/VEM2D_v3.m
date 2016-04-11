@@ -1,22 +1,23 @@
-function sol = VEM2D_v3(G, f, k, bc, varargin)
+function [sol, varargout] = VEM2D_v3(G, f, k, bc, varargin)
 
 nN = G.nodes.num;
 nE = G.faces.num;
 nK = G.cells.num;
 
-opt = struct('alpha',  ones(nK,1), ...
-             'src', []           , ...
-             'findCellAverages', false);
+opt = struct('alpha'       , ones(nK,1), ...
+             'src'         , []        , ...
+             'projectors'  , false     , ...
+             'cellAverages', false     );
 opt = merge_options(opt, varargin{:});
 alpha = opt.alpha;
 src = opt.src;
-findCellAverages = opt.findCellAverages;
+projectors = opt.projectors;
+cellAverages = opt.cellAverages;
 
 assert(size(alpha,1) == nK & size(alpha,2) == 1, ...
        'Dimensions of paramter matrix alpha must be G.cells.num x 1')
 
-projectors = false;
-if findCellAverages
+if cellAverages
     projectors = true;
 end
 
@@ -38,10 +39,21 @@ sol = struct(...
              'nodeValues' , {nodeValues} , ...
              'edgeValues' , {edgeValues} , ...
              'cellMoments', {cellMoments}     );
-         
-if findCellAverages
-    cellAverages = calculateCellAverages(G, nodeValues, PNstarT);
-    sol.cellMoments = cellAverages;
+if projectors
+    G.('PNstarT') = PNstarT;
+    if k == 1
+        PNstarPos = [1, cumsum( diff(G.cells.nodePos')) + 1];
+    elseif k == 2
+        PNstarPos = [1, cumsum( diff(G.cells.nodePos') + ...
+                                diff(G.cells.facePos') + 1) + 1];
+    end
+    G.PNstarPos = PNstarPos;
+    varargout(1) = {G};
+end
+
+if cellAverages && k == 1
+    cellMoments = calculateCellAverages(G, nodeValues);
+    sol.cellMoments = cellMoments;
 end
          
 end

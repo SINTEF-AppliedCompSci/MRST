@@ -1,4 +1,4 @@
-function bc = VEM_addBC(G, bc, f, t, v, varargin)
+function bc = VEM_addBC(bc, G, f, t, v, varargin)
 
 if isempty(f),
    warning('MRST:addBC', 'Empty list of boundary faces.');

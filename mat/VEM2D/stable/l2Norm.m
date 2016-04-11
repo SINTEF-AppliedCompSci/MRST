@@ -14,8 +14,8 @@ for K = 1:nK
         if size(faces,1) == 1, faces = faces'; end
         dofVec = [nodes; faces + G.nodes.num];
     end
+    
     fK = max(abs(f(dofVec)));
     n = n + fK^2*G.cells.volumes(K);
 end
 n = sqrt(n);
-    

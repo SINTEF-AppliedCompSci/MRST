@@ -3,23 +3,27 @@ function [A, b] = VEM2D_bc_v3(G, A, b, bc, k)
 NK = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
 
 edges   = bc.face(strcmp(bc.type,'flux'));
+edgeLengths = G.faces.areas(edges);
+
 nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges +1)-1);
 nodes   = G.faces.nodes(nodeNum);
-nN = size(nodes,1);
-edgeLengths = G.faces.areas(edges);
+nN = numel(nodes);
+uNodes = unique(nodes);
+nUN = numel(uNodes);
+S = (repmat(nodes,1,nUN) == repmat(uNodes',nN,1))';
+
 vals = bc.value(strcmp(bc.type,'flux'),:);
-nodes = reshape(nodes,2,[])';
-[~,I1] = sort(nodes(:,1));
-[nodes,I2] = sort(nodes(:,2));
+
 if k == 1
-vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths/3];
+    vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths/3];
     vals = bsxfun(@plus, vals(:,1:2), vals(:,3));
-    vals = vals(I1,1) + vals(I2,2);
-    dofVec = nodes';
+    vals = reshape(vals',[],1);
+    vals = S*vals;
+    dofVec = uNodes';
 elseif k == 2
     vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths*2/3];
-    vals = [vals(I1,1) + vals(I2,2); vals(:,3)];
-    dofVec = [nodes', edges' + G.nodes.num];
+    vals = [S*reshape(vals(:,1:2)',[],1); vals(:,3)];
+    dofVec = [uNodes', edges' + G.nodes.num];
 end
 b(dofVec) = b(dofVec) + vals;
 
