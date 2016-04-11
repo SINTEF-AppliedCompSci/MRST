@@ -9,7 +9,7 @@
 %
 
 try
-    require add ad-core ad-blackoil ad-eor ad-props deckformat optimization
+   require ad-core ad-blackoil ad-eor ad-props deckformat optimization
 catch
     mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
 end
