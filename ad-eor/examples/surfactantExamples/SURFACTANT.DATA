@@ -143,44 +143,6 @@ RPTSOL
 
 SUMMARY  ===============================================================
 
--- This section specifies data to be written to the summary files and which
--- may later be used with the Eclipse graphics package
-
-
--- Field Production Rates
-FOPR
-FWPR
-
--- Well Bottom Hole Pressure
-WBHP
-/
-
--- Well Water Injection Rate
-WWIR
-'INJE1'
-'INJE2'
-/
-
--- Well Water Production Rate
-WWPR
-'PROD'
-/
-
--- Well Oil Production Rate
-WOPR
-'PROD'
-/
-
--- Well Water Cut
-WWCT
-'PROD'
-/
-
--- Well Polymer Production Rate
-WCPR
-'PROD'
-/
-
 
 SCHEDULE ===============================================================
 
@@ -197,10 +159,10 @@ RPTRST
 
 WELSPECS
 --     WELL   GROUP LOCATION  BHP   PI
---     NAME   NAME    I  J   DEPTH DEFN
-    'PROD'     'G'     16  16    1000 'OIL'  /
+--     NAME   NAME    I  J    DEPTH DEFN
+    'PROD'     'G'    16 16   1000 'OIL'  /
     'INJE1'    'G'    1  1    1000 'WAT'  /
-    'INJE2'    'G'    31 31    1000 'WAT'  /
+    'INJE2'    'G'    31 31   1000 'WAT'  /
 /
 
 COMPDAT
@@ -235,7 +197,7 @@ WSURFACT
 /
 
 TSTEP
-  1*3.0 2*5.0 4*10.0 20*10.0
+  20*1.0 30*5
 /
 
 ---------------------------------------------------------------------------
@@ -255,12 +217,12 @@ WCONINJE
 /
 
 WSURFACT
-  'INJE1'  0.0  /
-  'INJE2'  0.0  /
+  'INJE1'  4.0  /
+  'INJE2'  1.0  /
 /
 
 TSTEP
-  10*3.0 30*5.0
+  20*1.0 30*5.0
 /
 
 ---------------------------------------------------------------------------
@@ -284,7 +246,7 @@ WSURFACT
 /
 
 TSTEP
-  1*1.0 1*10.0 2*25.0 80*25.0
+  20*1.0 30*5.0
 /
 
 END     ================================================================

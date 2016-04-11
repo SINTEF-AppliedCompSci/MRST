@@ -82,7 +82,6 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
 
     if model.extraStateOutput
         sigma = fluid.ift(c);
-        state = model.storeSurfData(state, sW, c, Nc, sigma);
     end
 
     eqs   = {water, oil, surfactant};

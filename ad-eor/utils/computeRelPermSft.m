@@ -1,12 +1,13 @@
 function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
 
     isSft = (double(c) > 0);
-
-    logNc = log(Nc(isSft))/log(10);
-    % We cap logNc (as done in Eclipse)
-    logNc = min(max(-20, logNc), 20);
     m = 0*c;
-    m(isSft) = fluid.miscfact(logNc);
+    if nnz(isSft) > 0
+       logNc = log(Nc(isSft))/log(10);
+       % We cap logNc (as done in Eclipse)
+       logNc = min(max(-20, logNc), 20);
+       m(isSft) = fluid.miscfact(logNc, 'cellInx', find(isSft));
+    end
 
     sWcon    = fluid.sWcon;    % Residual water saturation   without surfactant
     sOres    = fluid.sOres;    % Residual oil saturation     without surfactant

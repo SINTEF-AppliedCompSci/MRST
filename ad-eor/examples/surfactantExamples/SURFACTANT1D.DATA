@@ -129,12 +129,12 @@ PRESSURE
 100*300 /
 -- Initial water saturation for each grid cell
 SWAT
- 100*0.2
+100*0.2
 /
 
 -- Initial pressure for each cell
 PRESSURE
-  100*280
+100*280
 /
 
 -- Create initial restart file
@@ -197,11 +197,7 @@ WSURFACT
 /
 
 TSTEP
--- 2 years
---  10*1.0 144*5.0
---- 730*1.0
--- 10*1 10*3 175*4
-1 2*0.5 8*1 2*1.5 9*3 175*4
+40*0.5
 /
 
 ---------------------------------------------------------------------------
@@ -224,10 +220,7 @@ WSURFACT
 /
 
 TSTEP
--- 2 years
---   146*5.0
--- 730*1.0
-10*1 10*3 175*4
+40*0.5
 /
 
 

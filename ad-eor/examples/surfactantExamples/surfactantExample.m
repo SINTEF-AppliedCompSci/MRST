@@ -14,13 +14,13 @@ catch
 end
 
 current_dir = fileparts(mfilename('fullpath'));
-simul_case = 'simple';
+simul_case = '1D'; % '1D' or '2D'
 
 switch simul_case
   case '1D'
     fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
     gravity off
-  case 'simple'
+  case '2D'
     fn = fullfile(current_dir, 'SURFACTANT.DATA');
     gravity on
   otherwise
@@ -56,7 +56,7 @@ switch simul_case
     state0.c    = zeros(G.cells.num, 1);
     state0.cmax = state0.c;
 
-  case 'simple'
+  case '2D'
 
     ijk = gridLogicalIndices(G);
 
@@ -69,6 +69,7 @@ switch simul_case
 
     % Add zero surfactant concentration to the state.
     state0.c    = zeros(G.cells.num, 1);
+    state0.cmax = state0.c;
 
     clf
     plotCellData(G, state0.s(:,2));
@@ -90,8 +91,8 @@ switch simul_case
     % modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
     modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck, 'extraStateOutput', ...
                                                 true);
-  case 'simple'
-    modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
+  case '2D'
+    modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
   otherwise
     error('simul_case not recognized.');
 end
