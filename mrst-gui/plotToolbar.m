@@ -182,7 +182,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      vh, ...
      G_logi...
      ] = deal([]);
-
+    
+    opt = struct('log10',         false, ...
+                 'exp',           false, ...
+                 'abs',           false, ...
+                 'filterzero',    false, ...
+                 'logical',       false, ...
+                 'outline',       false, ...
+                 'lockCaxis',     false, ...
+                 'plot1d',        false, ...
+                 'plotmarkers',   false, ...
+                 'startplayback', false ...
+                 );
+             
+    [opt, varargin] = merge_options(opt, varargin{:});
     %%
 
     fig = gcf;
@@ -194,31 +207,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Log10 button
     log10toggleh = uitoggletool(ht, 'TooltipString', 'Logarithmic plot (log10)',...
                      'ClickedCallback', @toggleTransform, ...
-                     'cdata', geticon('log10'));
+                     'cdata', geticon('log10'), 'State', boolToOnOff(opt.log10));
     % 10^x button
     tentoggleh = uitoggletool(ht, 'TooltipString', '10^x plot',...
                      'ClickedCallback', @toggleTransform, ...
-                     'cdata', geticon('10'));
+                     'cdata', geticon('10'), 'State', boolToOnOff(opt.exp));
 
     % Abs button
     abstoggleh = uitoggletool(ht, 'TooltipString', 'Absolute value',...
                      'ClickedCallback', @toggleTransform, ...
-                     'cdata', geticon('abs'));
+                     'cdata', geticon('abs'), 'State', boolToOnOff(opt.abs));
 
     % Abs button
     nonzerotoggleh = uitoggletool(ht, 'TooltipString', 'Filter zero values',...
                      'ClickedCallback', @toggleTransform, ...
-                     'cdata', geticon('nonzero'));
+                     'cdata', geticon('nonzero'), 'State', boolToOnOff(opt.filterzero));
 
     % Logical grid button
     uitoggletool(ht, 'TooltipString', 'Logical grid',...
                      'ClickedCallback', @toggleLogicalGrid, ...
-                     'cdata', geticon('ijkgrid'));
+                     'cdata', geticon('ijkgrid'), 'State', boolToOnOff(opt.logical));
 
     % Grid outline button
     gridToggle = uitoggletool(ht, 'TooltipString', 'Show grid boundary outline',...
                    'ClickedCallback', @replotPatch,...
-                   'cdata', geticon('outline'));
+                   'cdata', geticon('outline'), 'State', boolToOnOff(opt.outline));
 
     % Histogram button
     uipushtool(ht, 'TooltipString', 'Dynamic histogram of currently displayed data',...
@@ -271,17 +284,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Freeze caxis
     caxisToggle = uitoggletool(ht, 'TooltipString', 'Freeze caxis',...
                    'cdata', geticon('lockcaxis'), ...
-                   'Separator', 'off');
+                   'Separator', 'off', 'State', boolToOnOff(opt.lockCaxis));
 
-    if ~isfield(G, 'cartDims') || nnz(G.cartDims > 1) < 2;
+    if ~isfield(G, 'cartDims') || nnz(G.cartDims > 1) < 2 || boolToOnOff(opt.plot1d);
         linePlotToggle = uitoggletool(ht, 'TooltipString', 'View as line plot',...
                        'ClickedCallback', @(src, event) replotPatch(),...
                        'cdata', geticon('1d'), ...
-                       'Separator', 'off');
+                       'Separator', 'off', 'State', boolToOnOff(opt.plot1d));
         markerToggle = uitoggletool(ht, 'TooltipString', 'Show markers in 1D plot',...
                        'ClickedCallback', @(src, event) replotPatch(),...
                        'cdata', geticon('marker'), ...
-                       'Separator', 'off');
+                       'Separator', 'off', 'State', boolToOnOff(opt.plotmarkers));
     end
     addSelector();
 
@@ -307,7 +320,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     set(fig, 'CloseRequestFcn', @closeFcn);
-
+    
+    if opt.startplayback
+        playbutton = findobj(fig, 'Tag', 'mrst-datasetselector-play');
+        if ~isempty(playbutton)
+            clickh = get(playbutton, 'Callback');
+            clickh([], []);
+        end
+    end
  function injectDataset(newGrid, newDataset, varargin)
      G = newGrid;
      if numel(varargin)
@@ -411,13 +431,10 @@ function G2 = reorderLogical(G)
 end
 
 function resetSelection(varargin)
-    set(log10toggleh, 'State', 'off')
-    set(abstoggleh, 'State', 'off')
-    set(tentoggleh, 'State', 'off')
-    logDisplay = false;
-    absDisplay = false;
-    tenDisplay = false;
-    nonzeroDisplay = false;
+    logDisplay = strcmpi(get(log10toggleh, 'State'), 'on');
+    absDisplay = strcmpi(get(abstoggleh, 'State'), 'on');
+    tenDisplay = strcmpi(get(tentoggleh, 'State'), 'on');
+    nonzeroDisplay = strcmpi(get(nonzerotoggleh, 'State'), 'on');
 
     slices = NaN;
     logicalsubset.i = NaN;
@@ -855,4 +872,9 @@ function [s, e] = linkedSlider(fi, pos, md, Md, val, title)
     s = uicontrol(fi, 'Style', 'slider', 'Position', size1, 'Min', md, 'Max', Md, 'Value', val, 'Callback', fun);
     fun2 = @(src, event) set(s, 'Value', cap(sscanf(get(src, 'String'), '%f')));
     set(e, 'Callback', fun2);
+end
+
+function f = boolToOnOff(status)
+    v = {'off', 'on'};
+    f = v{status + 1};
 end
