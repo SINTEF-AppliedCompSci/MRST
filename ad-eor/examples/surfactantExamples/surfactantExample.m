@@ -14,7 +14,7 @@ catch
 end
 
 current_dir = fileparts(mfilename('fullpath'));
-simul_case = '1D';
+simul_case = 'simple';
 
 switch simul_case
   case '1D'
@@ -55,13 +55,6 @@ switch simul_case
     % Add zero surfactant concentration to the state.
     state0.c    = zeros(G.cells.num, 1);
     state0.cmax = state0.c;
-
-    load('state197')
-    clear state0;
-    state0.pressure = data.pressure;
-    state0.s = data.s;
-    state0.c = data.c;
-    state0.cmax = data.cmax;
 
   case 'simple'
 

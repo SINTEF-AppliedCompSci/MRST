@@ -230,7 +230,8 @@ WCONINJE
 
 
 WSURFACT
-  'INJE'  0.0  /
+  'INJE1'  0.0  /
+  'INJE2'  0.0  /
 /
 
 TSTEP
