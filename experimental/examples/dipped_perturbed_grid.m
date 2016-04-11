@@ -1,5 +1,5 @@
 function Gt = dipped_perturbed_grid(varargin)
-% Construct grid used in /co2lab/examples/papers/CAGEO-79/trappingExample1.m
+% Construct grid used in /co2lab/examples/papers/CAGEO-75/trappingExample1.m
 %
 % nx, ny - grid discretization (100x100 or 50x25 etc)
 % Lx, Ly, H - dimensions of grid (in meters)
@@ -8,6 +8,7 @@ function Gt = dipped_perturbed_grid(varargin)
 
     [opt.Lx, opt.Ly, opt.H] = deal(10000, 5000, 50);
     [opt.nx, opt.ny] = deal(50, 25);
+    
     opt = merge_options(opt, varargin{:});
     
     G  = cartGrid([opt.nx opt.ny 1],[opt.Lx opt.Ly opt.H]);
@@ -15,6 +16,15 @@ function Gt = dipped_perturbed_grid(varargin)
     y  = G.nodes.coords(1:G.nodes.num/2,2)/opt.Ly;
     z  = G.nodes.coords(1:G.nodes.num/2,3)/opt.H;
     zt = z + x - 0.2*sin(5*pi*x).*sin(5*pi*y.^1.5) - 0.075*sin(1.25*pi*y) + 0.15*sin(x+y);
+    % ALPHA impacts amplitude of perturbed waves on top surface
+    % WEDGE impacts aspect ratio of domain as a wedge (from north to south)
+    % BEND impacts curve of top surface (from east to west)
+    % SLOPE impacts top surface's dipping angle
+    ALPHA = 0.3;
+    WEDGE = 0.5; 
+    BEND = 0.1;
+    SLOPE = 1.2;
+    %zt = z + SLOPE*x - ALPHA*sin(5*pi*x).*sin(5*pi*y.^1.5) - BEND*sin(1.25*pi*y) + WEDGE*sin(x+y);
     zb = 1 + x;
     G.nodes.coords(:,3) = [zt; zb]*opt.H+1000;
     G = computeGeometry(G);
