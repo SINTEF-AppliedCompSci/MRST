@@ -355,7 +355,7 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
             plotCellData(Gt, curr_vol, cells(curr_vol>0.1), 'EdgeAlpha',0.1);
             title(['current (t=',num2str(opt.time),') co2 vol [m3]'])
             colorbar; axis equal tight off
-            drawnow;
+            %drawnow;
             
             if ~ishandle(46)
                 figure(46); set(gcf,'Position',[4163 917 560 420])
@@ -370,7 +370,7 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
             colorizeCatchmentRegions(Gt, ta); % this actually colorizes regions around each trap
             axis equal tight off
             title('trap regions')
-            drawnow;
+            %drawnow;
             
             % pie to show breakdown of leaked and remaining:
             if ~ishandle(48)
@@ -389,7 +389,7 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
             lh = legend('leaked','remaining (in straps)','remaining (residually)');
             set(lh,'Location','SouthEastOutside')
             title(['Future of ',num2str(sum(curr_vol)*fluid.rhoGS/1e9),' Mt co2'])
-            drawnow;
+            %drawnow;
             
             
             if ~ishandle(47)
@@ -404,10 +404,9 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
                 % trap vol (of a single trap)
                 tc = sum(strap_co2_vol(ta.traps == i)); % m3
                 plotCellData(Gt, tc*ones(Gt.cells.num,1), ta.trap_regions == i, 'EdgeAlpha',0.1)
-                %pause(1)
             end
             title('capacity per trap region [m3 co2]'); colorbar; axis equal tight off
-            %drawnow;
+
             
             subplot(1,3,2); plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
             num_traps = max(unique(ta.traps));
@@ -415,10 +414,9 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
                 % curr vol per trap region
                 plotCellData(Gt, curr_vol_per_trap_region{i}*ones(Gt.cells.num,1), ...
                     ta.trap_regions == i, 'EdgeAlpha',0.1)
-                %pause(1)
             end
             title(['curr (t=',num2str(opt.time),') vol per trap region [m3 co2]']); colorbar; axis equal tight off
-            %drawnow;
+
             
             subplot(1,3,3); plotGrid(Gt, 'FaceColor','none', 'EdgeAlpha',0.1);
             num_traps = max(unique(ta.traps));
@@ -426,10 +424,9 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
                 % curr vol per trap region
                 plotCellData(Gt, ult_vol_per_trap_region{i}*ones(Gt.cells.num,1), ...
                     ta.trap_regions == i, 'EdgeAlpha',0.1)
-                %pause(1)
             end
             title('final vol per trap region [m3 co2]'); colorbar; axis equal tight off
-            drawnow;
+            %drawnow;
 
         end
 end
