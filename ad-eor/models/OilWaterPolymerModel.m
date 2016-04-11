@@ -1,7 +1,7 @@
 classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
-    % Oil/water/polymer system
-    % This model is a two phase oil/water model, extended with the polymer
-    % component in addition.
+% Oil/water/polymer system
+% This model is a two phase oil/water model, extended with the polymer
+% component in addition.
     
     properties
         % Polymer present
@@ -24,15 +24,15 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         end
         
         function [problem, state] = getEquations(model, state0, state, ...
-                dt, drivingForces, varargin)
+                                                        dt, drivingForces, varargin)
             [problem, state] = equationsOilWaterPolymer(state0, state, ...
-                model, dt, drivingForces, varargin{:});
+                                                        model, dt, drivingForces, varargin{:});
         end
         
         function [state, report] = updateState(model, state, problem, ...
-                dx, drivingForces)
+                                               dx, drivingForces)
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...
-               state, problem,  dx, drivingForces);
+                                                              state, problem,  dx, drivingForces);
             
             if model.polymer
                 c = model.getProp(state, 'polymer');
@@ -52,18 +52,18 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
 
         
         function [fn, index] = getVariableField(model, name)
-            % Get the index/name mapping for the model (such as where
-            % pressure or water saturation is located in state)
+        % Get the index/name mapping for the model (such as where
+        % pressure or water saturation is located in state)
             switch(lower(name))
-                case {'polymer'}
-                    index = 1;
-                    fn = 'c';
-                case {'polymermax'}
-                    index = 1;
-                    fn = 'cmax';
-                otherwise
-                    [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
-                                    model, name);
+              case {'polymer'}
+                index = 1;
+                fn = 'c';
+              case {'polymermax'}
+                index = 1;
+                fn = 'cmax';
+              otherwise
+                [fn, index] = getVariableField@TwoPhaseOilWaterModel(...
+                    model, name);
             end
         end
         
@@ -76,10 +76,10 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
             for iter = 1:nNames
                 name = lower(names{iter});
                 switch name
-                    case 'polymer'
-                        s = 0;
-                    otherwise
-                        continue
+                  case 'polymer'
+                    s = 0;
+                  otherwise
+                    continue
                 end
                 sub = strcmpi(problem.equationNames, name);
 

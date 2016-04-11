@@ -8,9 +8,9 @@
 %
 
 try
-   require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
+    require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 catch
-   mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
+    mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 end
 
 current_dir = fileparts(mfilename('fullpath'));

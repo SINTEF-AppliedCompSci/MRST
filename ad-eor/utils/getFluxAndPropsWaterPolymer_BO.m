@@ -1,6 +1,6 @@
 function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = ...
         getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, ...
-        krW, T, gdz)
+                                              krW, T, gdz)
     fluid = model.fluid;
     s = model.operators;
 

@@ -30,14 +30,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
    methods
        function [result, report] = solveLinearSystem(solver, A, b) %#ok
-          lastwarn('Warning message reset', 'MRST:reset');
           result = A\b;
-          [~, msgId] = lastwarn;
-          if strcmp(msgId, 'MATLAB:singularMatrix')
-             report = struct('singularMatrix', true);
-          else
-             report = struct('singularMatrix', false);
-          end
+           % Nothing to report
+           report = struct();
        end
    end
 end

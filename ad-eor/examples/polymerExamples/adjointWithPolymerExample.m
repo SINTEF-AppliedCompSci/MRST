@@ -9,9 +9,9 @@
 %
 
 try
-   require add ad-core ad-blackoil ad-eor ad-props deckformat optimization
+    require add ad-core ad-blackoil ad-eor ad-props deckformat optimization
 catch
-   mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
+    mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
 end
 
 current_dir = fileparts(mfilename('fullpath'));
@@ -94,7 +94,7 @@ schedule = convertDeckScheduleToMRST(G, modelPolymer, rock, deck);
 % the system struct.
 
 [wellSolsPolymer, statesPolymer] = ...
-   simulateScheduleAD(state0, modelPolymer, schedule);
+    simulateScheduleAD(state0, modelPolymer, schedule);
 
 [wellSolsOW, statesOW] = simulateScheduleAD(state0, modelOW, schedule);
 
@@ -109,17 +109,17 @@ prices = {'OilPrice',            100  , ...
           'DiscountFactor',        0.1 };
 
 objectivePolymerAdjoint = ...
-   @(tstep) NPVOWPolymer(G, wellSolsPolymer, schedule, ...
-                         'ComputePartials', true, 'tStep', tstep, ...
-                         prices{:});
+    @(tstep) NPVOWPolymer(G, wellSolsPolymer, schedule, ...
+                          'ComputePartials', true, 'tStep', tstep, ...
+                          prices{:});
 
 % We first calculate the NPV of the pure oil/water solution.
 objectiveOW = NPVOW(G, wellSolsOW, schedule, prices{:});
 
 % Calculate the objective function for three different polymer prices
 objectivePolymer = ...
-   @(polyprice) NPVOWPolymer(G, wellSolsPolymer, schedule, prices{:}, ...
-                             'PolymerInjectionCost', polyprice);
+    @(polyprice) NPVOWPolymer(G, wellSolsPolymer, schedule, prices{:}, ...
+                              'PolymerInjectionCost', polyprice);
 
 objectiveCheapPolymer     = objectivePolymer( 1.0);
 objectiveRegularPolymer   = objectivePolymer( 5.0);
@@ -167,8 +167,8 @@ xlabel('Years')
 % polymer injection rate.
 
 adjointGradient = ...
-   computeGradientAdjointAD(state0, statesPolymer, modelPolymer, ...
-   schedule, objectivePolymerAdjoint);
+    computeGradientAdjointAD(state0, statesPolymer, modelPolymer, ...
+                             schedule, objectivePolymerAdjoint);
 
 
 %% Plot the gradients
@@ -255,7 +255,7 @@ data = bsxfun(@times, data, schedule.step.val);
 
 plot(convertTo(cumt, year), convertTo(data, stb));
 legend({'Water without polymer', 'Water with polymer', ...
-       'Oil without polymer', 'Oil with polymer'}, 'Location', 'NorthEast');
+        'Oil without polymer', 'Oil with polymer'}, 'Location', 'NorthEast');
 ylabel('stb');
 xlabel('Years');
 

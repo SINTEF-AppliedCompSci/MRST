@@ -10,9 +10,9 @@ clear;
 close all;
 
 try
-   require add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
+    require ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
 catch
-   mrstModule add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
+    mrstModule add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
 end
 
 
@@ -25,10 +25,10 @@ files = fullfile(getDatasetPath('BlackoilPolymer2D', 'download', true), fname);
 e = cellfun(@(pth) exist(pth, 'file') == 2, files);
 
 if ~all(e),
-   pl = ''; if sum(e) ~= 1, pl = 's'; end
-   msg = sprintf('Missing data file%s\n', pl);
-   msg = [msg, sprintf('  * %s\n', fname{~e})];
-   error('Dataset:Incomplete', msg);
+    pl = ''; if sum(e) ~= 1, pl = 's'; end
+    msg = sprintf('Missing data file%s\n', pl);
+    msg = [msg, sprintf('  * %s\n', fname{~e})];
+    error('Dataset:Incomplete', msg);
 end
 
 % parsing the data file
@@ -119,7 +119,7 @@ pause(0.5);
 
 
 [wellSolsPolymer, statesPolymer] = ...
-   simulateScheduleAD(state0, modelBOPolymer, schedule, 'NonLinearSolver', nonlinearsolver);
+    simulateScheduleAD(state0, modelBOPolymer, schedule, 'NonLinearSolver', nonlinearsolver);
 
 
 %% plotting the well data

@@ -1,50 +1,50 @@
 classdef OilWaterSurfactantModel1D < ImplicitExplicitOilWaterSurfactantModel
-   methods
+    methods
 
-      function model = OilWaterSurfactantModel1D(G, rock, fluid, varargin)
-         model = model@ImplicitExplicitOilWaterSurfactantModel(G, rock, fluid, varargin{:});
-      end
+        function model = OilWaterSurfactantModel1D(G, rock, fluid, varargin)
+            model = model@ImplicitExplicitOilWaterSurfactantModel(G, rock, fluid, varargin{:});
+        end
 
-      function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-         [state, report] = updateAfterConvergence@ImplicitExplicitOilWaterSurfactantModel(model, state0, ...
-                                                           state, dt, drivingForces);
+        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+            [state, report] = updateAfterConvergence@ImplicitExplicitOilWaterSurfactantModel(model, state0, ...
+                                                              state, dt, drivingForces);
 
-         setFigure(1)
-         clf
-         subplot(2, 1, 1)
-         plot(state.s(:, 1), '-');
-         title('Saturation');
-         subplot(2, 1, 2)
-         plot(state.c, '-');
-         % axis([0, 100, 0, 50]);
-         title('Concentration');
-         drawnow
+            setFigure(1)
+            clf
+            subplot(2, 1, 1)
+            plot(state.s(:, 1), '-');
+            title('Saturation');
+            subplot(2, 1, 2)
+            plot(state.c, '-');
+            % axis([0, 100, 0, 50]);
+            title('Concentration');
+            drawnow
 
-         setFigure(2)
-         clf
-         plot(state.c, '-');
-         title('Concentration');
-         drawnow
+            setFigure(2)
+            clf
+            plot(state.c, '-');
+            title('Concentration');
+            drawnow
 
-         setFigure(3)
-         clf
-         plot(state.ads, '-');
-         title('SURFADS');
-         drawnow
+            setFigure(3)
+            clf
+            plot(state.ads, '-');
+            title('SURFADS');
+            drawnow
 
-         setFigure(4)
-         clf
-         plot(state.SURFCNM, '-');
-         title('SURFCNM');
-         drawnow
+            setFigure(4)
+            clf
+            plot(state.SURFCNM, '-');
+            title('SURFCNM');
+            drawnow
 
-         % setFigure(5)
-         % clf
-         % plot(state.SURFST, '-');
-         % title('SURFST');
-         % drawnow
+            % setFigure(5)
+            % clf
+            % plot(state.SURFST, '-');
+            % title('SURFST');
+            % drawnow
 
-         % waitforbuttonpress;
-      end
-   end
+            % waitforbuttonpress;
+        end
+    end
 end
