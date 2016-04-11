@@ -78,7 +78,7 @@ methods
 
         problem.state = modelState;
     end
-
+    
     % --------------------------------------------------------------------%
     function problem = prependEquations(problem, equations, types, names)
         % Add one or more equations to the end of the current list of
@@ -93,7 +93,7 @@ methods
         problem.A = [];
         problem.b = [];
     end
-
+    
     % --------------------------------------------------------------------%
     function problem = appendEquations(problem, equations, types, names)
         % Add one or more equations to the beginning of the current
@@ -106,7 +106,7 @@ methods
         problem.A = [];
         problem.b = [];
     end
-
+    
     % --------------------------------------------------------------------%
     function [equations, types, names] = checkInputs(problem, equations, types, names)
         if iscell(equations)
@@ -120,7 +120,7 @@ methods
             names = {names};
         end
     end
-
+    
     % --------------------------------------------------------------------%
     function problem = assembleSystem(problem)
        % Assemble the Jacobian and right hand side and store them if
@@ -133,14 +133,14 @@ methods
            problem.b = eqs.val;
        end
     end
-
+    
     % --------------------------------------------------------------------%
     function problem = clearSystem(problem)
         % Reset A/b
         problem.A = [];
         problem.b = [];
     end
-
+    
     % --------------------------------------------------------------------%
     function [A, b] = getLinearSystem(problem)
         % Get problem suitable for standard linear solvers
@@ -148,24 +148,24 @@ methods
         A = problem.A;
         b = problem.b;
     end
-
+    
     % --------------------------------------------------------------------%
     function values = norm(problem, varargin)
         % Overload norm for convergence testing
         values = cellfun(@(x) norm(double(x), varargin{:}), problem.equations);
     end
-
+    
     % --------------------------------------------------------------------%
     function n = numel(problem)
         % Numel gives us the number of equations
         n = numel(problem.equations);
     end
-
+    
     % --------------------------------------------------------------------%
     function problem = reorderEquations(problem, newIndices)
         % Reorder equations to new ordering
         assert(numel(problem) == numel(newIndices));
-
+        
         problem.equations = problem.equations(newIndices);
         if ~isempty(problem.types)
             problem.types = problem.types(newIndices);
@@ -174,7 +174,7 @@ methods
             problem.equationNames = problem.equationNames(newIndices);
         end
     end
-
+    
     % --------------------------------------------------------------------%
     function varnum = getEquationVarNum(problem, n)
         % Get number of variables for one or more equations. Single
@@ -184,45 +184,31 @@ methods
         end
         varnum = cellfun(@(x) numel(x.val), problem.equations(n));
     end
-
+    
     % --------------------------------------------------------------------%
     function index = indexOfType(problem, name)
         % Get the index(es) of a type of variable by name.
         index = cellfun(@(x) strcmpi(x, name), problem.types);
     end
-
+    
     % --------------------------------------------------------------------%
     function no = countOfType(problem, name)
         % Count the number of equations that are of a specific type.
         no = sum(cellfun(@(x) strcmpi(x, name), problem.types));
     end
-
+    
     % --------------------------------------------------------------------%
     function index = indexOfPrimaryVariable(problem, name)
         % Get the index of a primary variable by name.
         index = cellfun(@(x) strcmpi(x, name), problem.primaryVariables);
     end
-
+    
     % --------------------------------------------------------------------%
-    function index = indexOfEquationName(problem, names)
-        % Get the index into the list of equations for a specific list of names
-           if ~iscell(names)
-              % short implementation if names only consists of a single string.
-              index = cellfun(@(x) strcmpi(x, names), problem.equationNames);
-           else
-              % returns array index
-              % index(i,j)=true only if names{j} corresponds to equations{i}.
-              eqnames = problem.equationNames;
-              nneq = numel(eqnames);
-              nn = numel(names);
-              eqnames = reshape(eqnames, [], 1);
-              eqnames = repmat(eqnames, 1, nn);
-              names = reshape(names, 1, []);
-              names = repmat(names, nneq, 1);
-              index = strcmpi(names, eqnames);
-           end
+    function index = indexOfEquationName(problem, name)
+        % Get the index into the list of equations for a specific name
+        index = cellfun(@(x) strcmpi(x, name), problem.equationNames);
     end
-
+    
     % --------------------------------------------------------------------%
     function [problem, eliminatedEquation] = eliminateVariable(problem, variable)
         % Eliminate a variable from the problem using the equation with
@@ -248,7 +234,7 @@ methods
                     eqs{eqNum}.jac{jacNum} = eqs{eqNum}.jac{jacNum} - eqs{eqNum}.jac{n}*(eliminatedEquation.jac{n}\eliminatedEquation.jac{jacNum});
                 end
             end
-            if ~isempty(eqs{eqNum}.val) && ~isempty(eliminatedEquation.val)
+            if ~isempty(eqs{eqNum}.val) && ~isempty(eliminatedEquation.val) 
                 eqs{eqNum}.val = eqs{eqNum}.val - eqs{eqNum}.jac{n}*(eliminatedEquation.jac{n}\eliminatedEquation.val);
             end
         end
@@ -264,7 +250,7 @@ methods
         % We are implicitly eliminating the variable of the same type
         problem.primaryVariables = problem.primaryVariables(solveInx);
     end
-
+    
     % --------------------------------------------------------------------%
     function [problem, eliminated] = reduceToSingleVariableType(problem, type)
         % Eliminate the non-cell variables first
@@ -283,7 +269,7 @@ methods
         end
 
     end
-
+    
     % --------------------------------------------------------------------%
     function dx = recoverFromSingleVariableType(reducedProblem, originalProblem, incrementsReduced, eliminated)
         % Reduced problem (problem resulting from a call to
