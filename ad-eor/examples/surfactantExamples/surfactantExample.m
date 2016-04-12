@@ -111,3 +111,12 @@ state0.adsmax = state0.ads;
 resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule, ...
                                                   'OutputHandler', resulthandler);
+
+switch simul_case
+  case '1D'
+    plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true)
+  case '2D'
+    plotToolbar(G, statesSurfactant, 'startplayback', true)
+  otherwise
+    error('simul_case not recognized.');
+end
