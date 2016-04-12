@@ -1,28 +1,22 @@
-function G = unitSquare(nx, ny)
+function G = unitSquare(gridDim, gridLim)
 
-dx = 1/(nx-1); dy = 1/(ny-1);
-[x, y] = meshgrid(-dx/2:dx:1+dx/2, -dy/2:dy:1+dy/2);
+nx = gridDim(1); ny = gridDim(2);
+xMax = gridLim(1); yMax = gridLim(2);
+dx = xMax/nx; dy = yMax/ny;
 
-x(3:ny-1,3:nx-1) = x(3:ny-1,3:nx-1) + random('Normal', 0, dx/4, ny-3, nx-3);
-y(3:ny-1,3:nx-1) = y(3:ny-1,3:nx-1) + random('Normal', 0, dy/4, ny-3, nx-3);
+yEdge = (dy/2:dy:(yMax-dy/2))';
+xEdge = (dx/2:dx:(xMax-dx/2))';
+yEdge = [repmat(yEdge,2,1); dy/2*ones(nx,1); (yMax-dy/2)*ones(nx,1)];
+xEdge = [dx/2*ones(ny,1); (xMax-dx/2)*ones(ny,1); repmat(xEdge,2,1)];
 
-P = [x(:), y(:)];
-t = delaunayn(P);
+x = [xEdge;rand(nx*ny-2*(nx+ny-2),1)*(xMax-2*dx) + dx];
+y = [yEdge;rand(nx*ny-2*(nx+ny-2),1)*(yMax-2*dy) + dy];
 
-G = triangleGrid(P,t);
+X = [x,y];
+X = unique(X,'rows');
+
+t = delaunayn(X);
+G = triangleGrid(X,t);
 G = pebi(G);
-
-neighbors = G.faces.neighbors;
-tmp = (neighbors(:,1) == 0) + (neighbors(:,2) == 0);
-remCells = unique(sum(neighbors(find(tmp),:),2 ));
-G = removeCells(G,remCells);
-
-%   distmesh
-
-% X = G.nodes.coords;
-% G.nodes.coords(find(X(:,1) < 0),1) = 0;
-% G.nodes.coords(find(X(:,1) > 1),1) = 1;
-% G.nodes.coords(find(X(:,2) < 0),2) = 0;
-% G.nodes.coords(find(X(:,2) > 1),2) = 1;
 
 end

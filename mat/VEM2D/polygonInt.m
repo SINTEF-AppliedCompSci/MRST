@@ -1,47 +1,64 @@
-function I = polygonInt(G,K,f,k)
+function I = polygonInt(G, cells, f, k)
 %--------------------------------------------------------------------------
-%   Evaluates integral of function m : R^2 -> R over a general polygon
-%   with vertices X by mapping to reference triangle tRef with vertices
-%   {(0,0), (1,0), (0,1)} and using Gauss-Lobatto quadrature. Exact for
-%   polynomials of degree <= 2.
+%   Integrates the function f over each cell cells of grid G, using a
+%   quadrature rule of precission 7.
 %
-%   X:  Matrix of vertex coordinates, in counter-clockwise order. Vertex i
-%       has coordinates (X(i,1), X(i,2)).
-%   m:  Function whose surface integral over the polygn is to evaluated.
+%   SYNOPSIS:
+%       I = polygonInt(G, cells, f, k)
 %
-%--------------------------------------------------------------------------
+%   DESCRIPTION:
+%       Approximates the integrals
+%           \int_K f \dx
+%       over specified cells K of G of using a quadrature rule of
+%       precission k. Each cell is trangulated, and a map F from reference
+%       triangle with vertices (0,0), (1,0) and (0,1) is constructed. Using
+%       that
+%
+%           \int_K f \dx = |\det(F)|\int_T f(F(y)) \dy,
+%
+%       the integral can be approximated by the quadrature rule.
+%
+%   REQUIRED PARAMETERS:
+%       G       - MRST grid.
+%       cells   - Cells over which to integrate f.
+%       k       - Precission of quadrature rule.
+%
+%   RETURNS:
+%       I       - Approximated solution to the integral.
+%-----------------------------------------------------------------ØSK-2016-
 
-                            %   Triangulate polygon.
-tri = delaunay(X);
-nTri = size(tri,1);
-                            %   Gauss-Lobatto quadrature point and
-                            %   wheights for refenrence triangle.
-% Xq = [0.0, 0.0; 0.0, 1.0; 0.5, 0.0; 0.5, 0.5; 0.0, 0.5; 0.5, 0.25];
-% w = [1/36, 1/36, 1/18, 1/18, 1/9, 2/9];
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   for details.
+%}
 
-Xq =   [ 1/3, 1/3; ...
-         3/5, 1/5; ...
-         1/5, 3/5; ...
-         1/5, 1/5];
-w = .5*[-0.56250000000000000000, ...
-         0.52083333333333333333, ...
-         0.52083333333333333333, ...
-         0.52083333333333333333];
+[Xq, w, ~, vol] = triangleQuadRule(k);
 
-                            %   For each triangle t, evaluate integral.
-I = 0;
-for t = 1:nTri
-                            %   Triangle points
-    x1 = X(tri(t,1),:); x2 = X(tri(t,2),:); x3 = X(tri(t,3),:);
-                            %   map phi : tRef -> t
-    phi = @(x) x*[x1(1)-x3(1)   x1(2)-x3(2);
-                  x2(1)-x3(1)   x2(2)-x3(2)] + repmat(x3,size(x,1),1);
-                            %   determinant of Dphi, Jacobian of phi.
-    detDphi = (x1(1)-x3(1))*(x2(2)-x3(2)) - (x1(2)-x3(2))*(x2(1)-x3(1));
-                            %   Map quadrature points to t
-    XIq = phi(Xq);
-                            %   Evaluate integral
-    I = I + abs(detDphi)*w*m(XIq);
+nq = size(Xq,1);
+
+nK = numel(cells);
+
+I = zeros(nK,size(f([0,0]),2));
+
+for i = 1:nK
+    
+    nodeNum = G.cells.nodePos(cells(i)):G.cells.nodePos(cells(i)+1)-1;
+    nodes = G.cells.nodes(nodeNum);
+    
+    X = G.nodes.coords(nodes,:);
+    tri = delaunay(X);
+    nTri = size(tri,1);
+
+    bA = X(tri(:,1),:);
+    A = X(tri(:,2:end),:) - repmat(bA,2,1);
+    A = A(mcolon(1:nTri,2*nTri,nTri),:);
+    A = mat2cell(A,2*ones(nTri,1),2);
+    D = cellfun(@(X) abs(det(X)), A);
+    
+    Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
+    Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
+    I(i,:) = vol*repmat(w,1,nTri).*(rldecode(D,nq*ones(nTri,1),1))'*f(Xhat);
+    
 end
 
 end

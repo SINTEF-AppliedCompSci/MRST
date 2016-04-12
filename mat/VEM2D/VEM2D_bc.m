@@ -1,73 +1,84 @@
-function [bcDof, bBC] = VEM2D_bc(G, bc, k)
+function [A, b] = VEM2D_bc(G, A, b, bc, k)
 %--------------------------------------------------------------------------
-%   Sets boundary conditions for the Poisson problem.
+%   Incorporates boundary conditions in stiffness matrix A and load term b,
+%   obtained using a kth order VEM.
 %
-%   G:  MRST grid.
-%   bc: Struct of boundary conditions.
-%       filed1: 'bcFunc', boundary condition function handles.
-%       filed2: 'bcFaces', vectors of boundary faces.
-%       fild3:  'bcType', 'neu' for Neumann, 'dir' for Dirichlet.
-%       Example:
+%   SYNOPSIS:
+%       [A, b] = VEM2D_bc(G, A, b, bc, k)
 %
-%       bc = struct('bcFunc', {{gN, gD}},'bcFaces', ...
-%           {{boundaryEdges(bNeu), boundaryEdges(~bNeu)}}, ...
-%           'bcType', {{'neu', 'dir'}});
-%--------------------------------------------------------------------------
+%   DESCRIPTION:
+%       Incorporates boundary conditions in stiffness matrix A and load
+%       term b, obtained using a kth order VEM. Dirichlet conditions are
+%       set directly in the load term, and the corresponding row of A is
+%       changed to the corresponding row of the identity matrix. Neumann
+%       conditions adds a boundary integral to the load term, which is
+%       evaluated using a k+1 accurate quadrature rule. See [1] for
+%       details.
+%
+%   REQUIRED PARAMETERS:
+%       G   - MRST grid.
+%       A   - Global VEM stiffness matrix.
+%       b   - Global VEM load term.
+%       bc  - Boundary condition struct constructed using VEM2D_addBC.
+%       k   - Method order.
+%
+%   RETURNS:
+%       A   - Global stiffness matrix with boundary condition
+%             modifications.
+%       b   - Global load term, with boundary condition modifications.    
+%
+%   REFERENCES:
+%       [1]     - Thesis title.
+%-----------------------------------------------------------------ØSK-2016-
 
-nN = G.nodes.num;           %   Number of nodes.
-nE = G.faces.num;           %   Number of edges.
-nK = G.cells.num;           %   Number of cells.
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   for details.
+%}
+
+assert(k == 1 | k == 2); 
+
+NK = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
+
+edges   = bc.face(strcmp(bc.type,'flux'));
+edgeLengths = G.faces.areas(edges);
+
+nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges +1)-1);
+nodes   = G.faces.nodes(nodeNum);
+nN = numel(nodes);
+uNodes = unique(nodes);
+nUN = numel(uNodes);
+S = (repmat(nodes,1,nUN) == repmat(uNodes',nN,1))';
+
+vals = bc.value(strcmp(bc.type,'flux'),:);
 
 if k == 1
-    NK = nN;
+    vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths/3];
+    vals = bsxfun(@plus, vals(:,1:2), vals(:,3));
+    vals = reshape(vals',[],1);
+    vals = S*vals;
+    dofVec = uNodes';
 elseif k == 2
-    NK = nN + nE + nK;
+    vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths*2/3];
+    vals = [S*reshape(vals(:,1:2)',[],1); vals(:,3)];
+    dofVec = [uNodes', edges' + G.nodes.num];
 end
+b(dofVec) = b(dofVec) + vals;
 
-bcFunc = bc.bcFunc;         %   Boundary condition functions.
-bcFaces = bc.bcFaces;       %   Vectors of boundary edges.
-bcType = bc.bcType;         %   Boundary condition types
-Nbc = numel(bcFunc);        %   Number of boundary conditions.
-bcDof = zeros(NK, 1);     %   Dof map for boundary conditions.
-bBC = zeros(NK, 1);       %   b vector for boundary conditions.
-for b = 1:Nbc
-    g = bcFunc{b};          %   BC funciton.
-    edges = bcFaces{b};     %   BC edges.
-    if size(edges,1) == 1
-        edges = edges';
-    end
-    type = bcType{b};       %   BC type.
-    n = numel(edges);       %   Number of edges where BC applies.
-        
-    nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges+1)-1);
-    nodes = G.faces.nodes(nodeNum);
-    if size(nodes,1) == 1
-        nodes = nodes';
-    end
-    if k == 1
-        X = G.nodes.coords(nodes,:);
-        dofVec = nodes';
-    elseif k == 2                     %   Dof coordinates
-        X = [G.nodes.coords(nodes,:); G.faces.centroids(edges,:)];
-        dofVec = [nodes', edges' + nN];
-    end
-                            %   Fix dimensions.
-    if strcmp(type, 'dir')
-                            %   Apply Dirichelt BC's.
-        bcDof(dofVec) = 1;
-        bBC(dofVec) = g(X);
-    elseif strcmp(type, 'neu')
-                                    %   Apply Neuman BC's.
-        bcDof(dofVec) = 2;
-        edgeLengths = G.faces.areas(edges);
-                            %   Contribution from each edge to
-                            %   \int_\partial \Omega g_N \phi_i ds
-        for e = 1:n
-            bBC([nodes(2*e-1), nodes(2*e), nN + edges(e)]) = ...
-                bBC([nodes(2*e-1), nodes(2*e), nN + edges(e)]) + ...
-                edgeLengths(e).*[1/6*g(X(2*e-1,:)); 1/6*g(X(2*e,:)); 2/3*g(X(2*n + e,:))];
-        end
-    end
-end
+edges   = bc.face(strcmp(bc.type,'pressure'));
+nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges +1)-1);
+nodes   = G.faces.nodes(nodeNum);
+vals = bc.value(strcmp(bc.type,'pressure'),:);
 
+if k == 1
+    vals = reshape(vals(:,1:2)',[],1);
+    dofVec = nodes';
+elseif k == 2
+    dofVec = [nodes', edges' + G.nodes.num];
+    vals = [reshape(vals(:,1:2)',[],1); vals(:,3)];
 end
+b(dofVec) = vals;
+I = spdiags(ones(NK,1),0,NK,NK);
+A(dofVec,:) = I(dofVec,:);
+
+end 

@@ -1,7 +1,32 @@
 function G = VEM2D_makeInternalBoundary(G, faces)
+%--------------------------------------------------------------------------
+%   Makes internal boundary in gird G, compatible with VEM2D solver.
+%
+%   SYNOPSIS:
+%       G = VEM2D_makeInternalBoundary(G, faces)
+%
+%   DESCRIPTION:
+%       Makes internal boundary in gird G, compatible with VEM2D solver, by
+%       duplicating faces and nodes on specified internal boundary faces,
+%       and updating maps from faces to nodes, cells to faces and cells to
+%       nodes. Function only supports one boundary at a time.
+%
+%   REQUIRED PARAMETERS:
+%       G       - MRST grid with sorted edges, G = sortEdges(G), and VEM2D
+%                 geometry, G = computeVEM2DGEometry(G).
+%       faces   - faces making up internal boundary.
 
+%   RETURNS:
+%       G       - Grid updated with internal boundary.
+%-----------------------------------------------------------------ØSK-2016-
 
-faces = faces(G.faces.neighbors(faces,1) ~= 0 & G.faces.neighbors(faces,2) ~=0);
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   for details.
+%}
+
+faces = faces(G.faces.neighbors(faces,1) ~= 0 & ...
+              G.faces.neighbors(faces,2) ~=0);
 faces = unique(faces);
 nE = numel(faces);
 
@@ -51,22 +76,5 @@ nodeNum = mcolon(G.cells.nodePos(cells),G.cells.nodePos(cells+1)-1);
 cellNodes = G.cells.nodes(nodeNum);
 cellNodes(ismember(cellNodes, uNodes)) = newNodes(ID)';
 G.cells.nodes(nodeNum) = cellNodes;
-
-
-
-% G = computeGeometry(G);
-% 
-% for i = 1:numel(cells)
-%     edgeNum = G.cells.facePos(cells(i)):G.cells.facePos(cells(i)+1)-1;
-%     edges = G.cells.faces(edgeNum);
-%     for j = 1:numel(edges)
-%         nodeNum = G.faces.nodePos(edges(j)):G.faces.nodePos(edges(j)+1)-1;
-%         nodes = G.faces.nodes(nodeNum)
-%         X = G.nodes.coords(nodes,:);
-%         plot(X(:,1), X(:,2))
-%         hold on
-%     end
-%     hold off
-% end
 
 end

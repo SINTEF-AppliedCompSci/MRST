@@ -4,19 +4,25 @@
 
 clc; clear; close all;
 
-ex = 4;
-gridType = 'cart';
-n = 20;
-k = 1;
+ex = 3;
+gridType = 'pebi';
+n = 40;
+nx = n; ny = n;
+xMax = 1; yMax = 1;
+k = 2;
 
 neuEx = false;
 knownSol = true;
+edgeclr = 'k';
 switch ex
     case 1
-        f = @(X) zeros(size(X,1),1);
-        C = -[.5,.5];
+        edgeclr = 'none';
+        f = 0;
+        C = -[.2,.2];
         gD = @(X) -log(1./(sqrt(sum(bsxfun(@minus, X, C).^2,2))));
     case 2
+        xMax = 1; yMax = 1;
+        ny = 5*ny;
         f = @(X) sin(X(:,1));
         gD = @(X) sin(X(:,1));
     case 3
@@ -29,12 +35,19 @@ switch ex
         f = @(X) pi^2*X(:,1).*sin(pi*X(:,2));
         gD = @(X) X(:,1).*sin(pi*X(:,2));
         gN = @(X) -sin(pi*X(:,2));
+    case 5
+        gridType = 'cart';
+        nx = 10; ny = 40;
+        knownSol = false;
+        epsilon = .5*1e-4;
+        f = @(X) 1/(2*pi*epsilon)*exp(-((X(:,1)-xMax/2).^2 + (X(:,2)-yMax/2).^2)/(2*epsilon));
+        gD = 0;
 end
 
 if strcmp(gridType,'cart')
-    G = cartGrid([n,n],[1,1]);
+    G = cartGrid([nx,ny],[xMax, yMax]);
 else
-    G = unitSquare([n,n]);
+    G = unitSquare([nx,ny], [xMax, yMax]);
 end
 G = sortEdges(G);
 G = computeVEM2DGeometry(G);
@@ -47,13 +60,15 @@ else
     isNeu = false(numel(boundaryEdges),1);
     gN = 0;
 end
-bc = VEM_addBC([], G, boundaryEdges(~isNeu), 'pressure', gD);
-bc = VEM_addBC(bc, G, boundaryEdges(isNeu), 'flux', gN);
+bc = VEM2D_addBC([], G, boundaryEdges(~isNeu), 'pressure', gD);
+bc = VEM2D_addBC(bc, G, boundaryEdges(isNeu), 'flux', gN);
 
-[sol, G] = VEM2D_v3(G,f,k,bc, 'cellAverages', true);
+[sol, G] = VEM2D(G,f,k,bc, 'cellAverages', true);
 
-plotCellData(G, sol.cellMoments)
-colorbar;
+figure;
+plotVEM2D(G,sol,k)
+
+
 
 if knownSol
     l2Err = l2Error(G,sol,gD,k);
@@ -61,7 +76,7 @@ if knownSol
         u = gD(G.nodes.coords);
         err = u - sol.nodeValues;
     elseif k == 2
-        u = [gD(G.nodes.coords); gD(G.faces.centroids); polygonInt_v2(G, gD, 7)./G.cells.volumes];
+        u = [gD(G.nodes.coords); gD(G.faces.centroids); polygonInt(G, 1:G.cells.num, gD, 7)./G.cells.volumes];
         err = [sol.nodeValues; sol.edgeValues; sol.cellMoments] - u;
     end
     fprintf('l2 error: %d \n\n', sqrt(sum(l2Err)));
