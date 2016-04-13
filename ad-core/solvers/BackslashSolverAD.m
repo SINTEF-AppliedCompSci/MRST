@@ -30,7 +30,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
    methods
        function [result, report] = solveLinearSystem(solver, A, b) %#ok
-           result = A\b;
+          result = A\b;
            % Nothing to report
            report = struct();
        end

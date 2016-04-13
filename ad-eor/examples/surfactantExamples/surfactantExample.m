@@ -8,19 +8,19 @@
 %
 
 try
-   require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
+    require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 catch
-   mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
+    mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 end
 
 current_dir = fileparts(mfilename('fullpath'));
-simul_case = '1D';
+simul_case = '1D'; % '1D' or '2D'
 
 switch simul_case
   case '1D'
     fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
     gravity off
-  case 'simple'
+  case '2D'
     fn = fullfile(current_dir, 'SURFACTANT.DATA');
     gravity on
   otherwise
@@ -50,12 +50,13 @@ switch simul_case
   case '1D'
 
     nc = G.cells.num;
-    state0 = initResSol(G, 300*barsa, [ .5, .5]);
+    state0 = initResSol(G, 300*barsa, [ .2, .8]);
 
     % Add zero surfactant concentration to the state.
     state0.c    = zeros(G.cells.num, 1);
+    state0.cmax = state0.c;
 
-  case 'simple'
+  case '2D'
 
     ijk = gridLogicalIndices(G);
 
@@ -68,6 +69,7 @@ switch simul_case
 
     % Add zero surfactant concentration to the state.
     state0.c    = zeros(G.cells.num, 1);
+    state0.cmax = state0.c;
 
     clf
     plotCellData(G, state0.s(:,2));
@@ -84,8 +86,16 @@ end
 
 %% Set up systems.
 
-modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
-
+switch simul_case
+  case '1D'
+    % modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
+    modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck, 'extraStateOutput', ...
+                                                true);
+  case '2D'
+    modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
+  otherwise
+    error('simul_case not recognized.');
+end
 % Convert the deck schedule into a MRST schedule by parsing the wells
 schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 
@@ -95,4 +105,18 @@ schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule);
+state0.ads = computeEffAds(state0.c, 0, modelSurfactant.fluid);
+state0.adsmax = state0.ads;
+
+resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
+[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule, ...
+                                                  'OutputHandler', resulthandler);
+
+switch simul_case
+  case '1D'
+    plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true)
+  case '2D'
+    plotToolbar(G, statesSurfactant, 'startplayback', true)
+  otherwise
+    error('simul_case not recognized.');
+end

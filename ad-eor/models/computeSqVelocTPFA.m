@@ -1,4 +1,4 @@
-function veloc = computeVelocTPFA(G, intInx)
+function sqVeloc = computeSqVelocTPFA(G, intInx)
 
 % Compute approximation of velocity for TPFA
 %
@@ -24,14 +24,32 @@ function veloc = computeVelocTPFA(G, intInx)
     fromFacesToHalffaces = sparse(1 : nhf, G.cells.faces(:, 1), sgn, nhf, nf);
     fromIntfacesToHalffaces =  fromFacesToHalffaces*fromIntfacesToFaces;
 
-    vol = G.cells.volumes;
+    sumHalffaces = sparse(cellNo, 1 : nhf, 1, nc, nhf);
+    wSumHalffaces = sumHalffaces*sparse(1 : nhf, 1 : nhf, 1./(G.faces.areas(G.cells.faces(:, 1)).^2), ...
+                                        nhf, nhf);
 
     C = G.faces.centroids(G.cells.faces(:, 1), :) - G.cells.centroids(cellNo, :);
+    C = abs(C);
+    Csum = sumHalffaces*C;
+    C = C./Csum(cellNo, :);
 
-    sumHalffaces = sparse(cellNo, 1 : nhf, 1, nc, nhf);
-    veloc = cell(dim, 1);
+    for i = 1: dim
+        D{i} = wSumHalffaces*sparse(1 : nhf, 1 : nhf, C(:, i), nhf, nhf);
+    end
+
+    sqVeloc = @(v) computeSqVeloc(v, D, fromIntfacesToHalffaces);
+
+end
+
+function sqVeloc = computeSqVeloc(v, D, fromIntfacesToHalffaces)
+
+    hf_v = fromIntfacesToHalffaces*v;
+    hf_sq_v = hf_v.^2;
+
+    dim = size(D, 2);
+    sqVeloc = 0;
     for i = 1 : dim
-        veloc{i} = @(v) 1./vol.*(sumHalffaces*(C(:, i).*(fromIntfacesToHalffaces*v)));
+        sqVeloc = sqVeloc + D{i}*hf_sq_v;
     end
 
 end

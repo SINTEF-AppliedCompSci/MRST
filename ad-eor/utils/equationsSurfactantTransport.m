@@ -1,17 +1,18 @@
-function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
+function [problem, state] = equationsSurfactantTransport(state0, state, ...
                                                       model, dt, drivingForces, varargin)
     % Get linearized problem for oil/water/surfactant system with black oil-style
     % properties
     opt = struct('Verbose', mrstVerbose, ...
                  'reverseMode', false, ...
                  'resOnly', false, ...
-                 'iteration', -1 );
+                 'iteration', -1, ...
+                 'solveExplicitly', true );
     opt = merge_options(opt, varargin{:});
-
-    W     = drivingForces.W;
+    
+    W = drivingForces.W;
     fluid = model.fluid;
     op    = model.operators;
-    G     = model.G;
+    G = model.G;
 
     % Properties at current timestep
     [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', 'surfactant', ...
@@ -29,64 +30,56 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
     if ~opt.resOnly,
         % ADI variables needed since we are not only computing residuals.
         if ~opt.reverseMode,
-            [p, sW, c, qWs, qOs, qWSft, pBH] = initVariablesADI(p, sW, c, qWs, qOs, qWSft, pBH);
+            [c_adi, qWSft] = initVariablesADI(c, qWSft);
         else
-            % Not implemented yet
+            % Not implemented
             % zw = zeros(size(pBH));
             % [p0, sW0, c0, zw, zw, zw, zw] = ...
             %     initVariablesADI(p0, sW0, c0, zw, zw, zw, zw); %#ok
             % clear zw
         end
+    else
+        c_adi = c;
     end
 
     % We will solve for pressure, water saturation (oil saturation follows via
     % the definition of saturations), surfactant concentration and well rates +
     % bhp.
-    primaryVars = {'pressure', 'sW', 'surfactant', 'qWs', 'qOs', 'qWSft', 'bhp'};
+    primaryVars = {'surfactant', 'qWSft'};
 
-
-
+    c_impl = c_adi;
+    if opt.solveExplicitly
+        c_flux = c0;
+    else
+        c_flux = c_adi;
+    end
+    
     % EQUATIONS ---------------------------------------------------------------
 
     % Compute fluxes and other properties for oil and water.
-    [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, T] = ...
-        computeFluxAndPropsOilWaterSurfactant(model, p0, p, sW, c, pBH, W);
+    [dpO, dpW, mobO, mobW, upco, upcw, bO, bW, pvMult, bO0, bW0, pvMult0, T]  = ...
+        computeFluxAndPropsOilWaterSurfactant(model, p0, p, sW, c_flux, pBH, W);
 
-    % Upstream weight b factors and multiply by interface fluxes to obtain the
-    % fluxes at standard conditions.
-    vO     = -op.faceUpstr(upco, mobO).*T.*dpO;
-    vW     = -op.faceUpstr(upcw, mobW).*T.*dpW;
-    bOvO   = op.faceUpstr(upco, bO).*vO;
-    bWvW   = op.faceUpstr(upcw, bW).*vW;
+    mobSft = c_flux.*mobW;
+    vSft   = -op.faceUpstr(upcw, mobSft).*T.*dpW;
+    bWvSft = op.faceUpstr(upcw, bW).*vSft;
 
-    % Conservation of mass for water
-    water = (op.pv/dt).*(pvMult.*bW.*sW - pvMult0.*bW0.*sW0) + op.Div(bWvW);
-
-    % Conservation of mass for oil
-    sO  = 1 - sW;
-    sO0 = 1 - sW0;
-    oil = (op.pv/dt).*(pvMult.*bO.*sO - pvMult0.*bO0.*sO0) + op.Div(bOvO);
-
-    % Computation of adsoprtion term
     poro = model.rock.poro;
-    ads  = computeEffAds(c, cmax, fluid);
+    ads  = computeEffAds(c_impl, cmax, fluid);
     ads0 = computeEffAds(c0, cmax0, fluid);
     ads_term = fluid.rhoRSft.*((1-poro)./poro).*(ads - ads0);
 
     % Conservation of surfactant in water:
-    mobSft = mobW.*c;
-    vSft   = -op.faceUpstr(upcw, mobSft).*T.*dpW;
-    bWvSft = op.faceUpstr(upcw, bW).*vSft;
-    surfactant = (op.pv/dt).*((pvMult.*bW.*sW.*c - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
+    surfactant = (op.pv/dt).*((pvMult.*bW.*sW.*c_impl - pvMult0.*bW0.*sW0.*c0) +  ads_term) + ...
         op.Div(bWvSft);
 
     if model.extraStateOutput
-        sigma = fluid.ift(c);
+        sigma = fluid.ift(c_impl);
     end
 
-    eqs   = {water, oil, surfactant};
-    names = {'water', 'oil', 'surfactant'};
-    types = {'cell', 'cell', 'cell'};
+    eqs   = {surfactant};
+    names = {'surfactant'};
+    types = {'cell'};
 
     % Well conditions
     if ~isempty(W)
@@ -97,41 +90,30 @@ function [problem, state] = equationsOilWaterSurfactant(state0, state, ...
             rhos = [fluid.rhoWS, fluid.rhoOS];
             bw   = {bW(wc), bO(wc)};
             mw   = {mobW(wc), mobO(wc)};
-            s    = {sW(wc), sO(wc)};
+            s    = {sW(wc), 1 - sW(wc)};
 
             [cqs, weqs, ctrleqs, wc, state.wellSol] = wm.computeWellFlux(model, W, wellSol, pBH, {qWs, ...
                                 qOs}, pw, rhos, bw, mw, s, {}, 'nonlinearIteration', opt.iteration);
 
-            % Store the well equations (relate well bottom hole pressures to
-            % influx).
-            eqs(4:5) = weqs;
-            % Store the control equations (trivial equations ensuring that each
-            % well will have values corresponding to the prescribed value)
-            eqs{7} = ctrleqs;
-            % Add source terms to the equations. Negative sign may be
-            % surprising if one is used to source terms on the right hand side,
-            % but this is the equations on residual form.
-            eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-            eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-
             % surfactant well equations
             [wSft, wciSft, iInxW] = getWellSurfactant(W);
-            cw        = c(wc);
+            cw        = c_impl(wc);
             cw(iInxW) = wciSft;
 
             % Add surfactant
             bWqSft = cw.*cqs{1};
-            eqs{3}(wc) = eqs{3}(wc) - bWqSft;
+            eqs{1}(wc) = eqs{1}(wc) - bWqSft;
 
             % Well surfactant rate for each well is water rate in each perforation
             % multiplied with surfactant concentration in that perforated cell.
             perf2well = getPerforationToWellMapping(W);
             Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
                         numel(W), numel(perf2well));
-            eqs{6} = qWSft - Rw*(cqs{1}.*cw);
+            eqs{2} = qWSft - Rw*(cqs{1}.*cw);
 
-            names(4:7) = {'waterWells', 'oilWells', 'surfactantWells', 'closureWells'};
-            types(4:7) = {'perf', 'perf', 'perf', 'well'};
+            names(2) = {'surfactantWells'};
+            types(2) = {'perf'};
+            
         else
             % not implemented yet
             % [eq, n, typ] = ...
