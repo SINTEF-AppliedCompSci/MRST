@@ -1,4 +1,4 @@
-function G = computeVEMGeometry(G,f,k)
+function G = computeVEM3DGeometry(G)
 
     fprintf('Solving Poisson equation on grid with %d cells \n\n', G.cells.num);
     fprintf('Computing VEM geometry ...\n');
@@ -74,35 +74,18 @@ function G = computeVEMGeometry(G,f,k)
 
     G.faces.('diameters')   = faceDiameters;
     
-    fprintf('... computing source term integrals\n');
-    
-    ICf = polyhedronInt(G,1:G.cells.num,f,k+1);
-    G.cells.('fCellIntegrals') = ICf;
-    
-    if k == 2
-        IFf = polygonInt3D(G,1:G.faces.num,f,k+1);
-        G.faces.('fFaceIntegrals') = IFf;
-    end
-    
-    fprintf('... computing monomial values\n');
-    
-    fprintf('... computing monomial values\n');
-    I = faceProjectors(G,k);
-    nk = (k+1)*(k+2)/2;
-    BintPos = (0:nk:nk*G.cells.num) + 1;
-    G.cells.('Bint') = I;
-    G.cells.('BintPos') = BintPos;
-    
-    monomialVals = monomialValues(G,k);
-    monomialNodeValsPos = [1, cumsum(diff(G.cells.nodePos)') + 1];
-    G.cells.('monomialNodeVals') = monomialVals(1:monomialNodeValsPos(end)-1,:);
-    G.cells.('monomialNodeValsPos') = monomialNodeValsPos;
-    
-    if k == 2
-        monomialEdgeValsPos = [1, cumsum(diff(G.cells.edgePos)') + 1];
-        G.cells.('monomialEdgeVals') = monomialVals(monomialNodeValsPos(end):end,:);
-        G.cells.('monomialEdgeValsPos') = monomialEdgeValsPos;
-    end
+%     fprintf('... computing monomial values\n');
+%     
+%     monomialVals = monomialValues(G,k);
+%     monomialNodeValsPos = [1, cumsum(diff(G.cells.nodePos)') + 1];
+%     G.cells.('monomialNodeVals') = monomialVals(1:monomialNodeValsPos(end)-1,:);
+%     G.cells.('monomialNodeValsPos') = monomialNodeValsPos;
+%     
+%     if k == 2
+%         monomialEdgeValsPos = [1, cumsum(diff(G.cells.edgePos)') + 1];
+%         G.cells.('monomialEdgeVals') = monomialVals(monomialNodeValsPos(end):end,:);
+%         G.cells.('monomialEdgeValsPos') = monomialEdgeValsPos;
+%     end
     
     stop = toc;
     

@@ -180,8 +180,8 @@ BT = mat2cell(BT,NF, nk);
 D  = mat2cell(D,NF,nk);
 
                                 %   Speed: Do sparse block..
-PNstar = cellfun(@(BT,D) (BT'*D)\BT', BT, D, 'UniformOutput', false);   
-
+% PNstar = cellfun(@(BT,D) (BT'*D)\BT', BT, D, 'UniformOutput', false);   
+PNFstarT = cell2mat(cellfun(@(BT,D) BT/(BT'*D)', BT, D, 'UniformOutput', false));
 %%  FACE INTEGRALS                                                       %%
 
                             %   Gauss-Lobatto quadrature point and
@@ -200,7 +200,7 @@ I = sparse(G.cells.num*6,N);
 Kc = G.cells.centroids;
 hK = G.cells.diameters;
 TPos = (0:3:3*nF)+1;
-PNFstarPos = (0:nk:nk*G.faces.num)+1;
+PNFstarPos = [1, cumsum(diff(G.faces.nodePos') + diff(G.faces.edgePos') + 1) + 1];
 intPos = (0:nk:nk*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
              rldecode((1:G.cells.num)',diff(G.cells.facePos),1)];
@@ -226,8 +226,8 @@ for i = 1:nF
     bT = b(i,:);
 
                             %   Projection matrix for face i.
-%     PNFstar = PNstar(PNFstarPos(i):PNFstarPos(i+1)-1,:);
-    PNFstar = PNstar{i};
+    PNFstar = PNFstarT(PNFstarPos(i):PNFstarPos(i+1)-1,:)';
+%     PNFstar = PNstar{i};
                             %   Triangulate face
     tri = delaunay(XF);
     nTri = size(tri,1);

@@ -9,15 +9,15 @@ addpath('../')              %  Extra grid mappings.
                             %   Voronoi grid generation. Replace path with
                             %   your own local version.
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
-
+k = 2;
                             %   Generate grid.
-G = voronoiCube(1000,[1,1,1]);
+G = voronoiCube(50,[1,1,1]);
 
                             %   Set source term
 f = @(X) ones(size(X,1),1);
 
                             %   Compute VEM geometry.
-G = computeVEMGeometry(G,f);
+G = computeVEM3DGeometry(G);
 
                             %   Dirichlet boundary condition.
                             %   This is also the exact solution of this

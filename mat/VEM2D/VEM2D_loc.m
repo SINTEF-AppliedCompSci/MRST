@@ -1,12 +1,12 @@
 function [AK, bK, dofVec, PNstar] ...
-                              = VEM2D_loc(G, K, f, k, alpha, rate, mu, rho)
+            = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigma, rate, mu, rho)
 %--------------------------------------------------------------------------
 %   Calculates local stiffness matrix and load term for the virtual element
-%   method for the Poisson equation.
+%   method for the 2D Poisson equation.
 %
 %   SYNOPSIS:
 %       [AK, bK, dofVec, PNstar] ...
-%                          = VEM2D_loc_v3(G, f, K, k, alpha, rate, mu, rho)
+%                             = VEM2D_loc(G, f, K, k, alpha, rate, mu, rho)
 %
 %   DESCRIPTION:
 %       Calculates local stiffness matrix and load term for cell K of grid
@@ -24,8 +24,12 @@ function [AK, bK, dofVec, PNstar] ...
 %       K       - Cell to build local stiffness matrix for.
 %       f       - Source term. Either a function handle, or a scalar. In
 %                 the latter case it is interpreted as a constant function.
+%       m       - Monomials, see funtion retrieveMonomials.
+%       grad_m  - Monomial gradients, see funtion retrieveMonomials.
+%       int_m   - Monomial anti-derivatives, see funtion retrieveMonomials.
 %       k       - Method order. Supported orders are k = 1 and k = 2.
-%       alpha   - Constant for scaling of the local load term.
+%       sigma   - Vector of nker constant for scaling of the local load
+%                 term. See [1] for detials.
 %       rate    - Production rate in K. Set to 0 if K is not a source cell.
 %       mu      - Dynamic viscosity of fluid. Set to 1 if N/A
 %       rho     - Fluid density. Set to 1 if N/A.
@@ -47,8 +51,6 @@ function [AK, bK, dofVec, PNstar] ...
 %}
 
 %%  CELL DATA                                                            %%
-
-[m, grad_m, int_m] = retrieveMonomials(k);
 
 Kc = G.cells.centroids(K,:);
 hK = G.cells.diameters(K);
@@ -106,7 +108,7 @@ if k == 1
     else
         fHat = mu/rho*f*ones(nN,1);
     end
-    fHat = fHat + mu/rho*rate/(2*aK);
+    fHat = fHat + mu/rho*rate/aK;
     rateVec = 0;
     
     dofVec = nodes;
@@ -148,27 +150,23 @@ elseif k == 2
         fHat = mu/rho*f*ones(2*nN+1,1);
     end
     rateVec = zeros(NK,1);
-    rateVec(NK) = mu/rho*rate/2;
+    rateVec(NK) = mu/rho*rate;
     
     dofVec = [nodes', edges' + G.nodes.num, K + G.nodes.num + G.faces.num];
     
 end
 
-%%  CALCULATE LOCAL STIFFNESS MATRIX
+%%  CALCULATE LOCAL STIFFNESS MATRIX AND LOAD TERM                       %%
 
 M = B*D;
 PNstar = M\B;
 PN = D*PNstar;
-
 Mtilde = [zeros(1,nk) ; M(2:nk,:)];
-AK = PNstar'*Mtilde*PNstar + alpha(K)*(eye(NK)-PN)'*(eye(NK)-PN);
+Q = orth(eye(NK) - PN);
+sigma = diag(sigma,0);
+AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
 
 PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
 bK = PNstar0'*H*PNstar0*fHat + rateVec;
-
-% Q = sqrt(9/(4*.5*hK^2))*orth(eye(NK) - PN);
-% P = Q'*Q;
-% AK = PNstar'*Mtilde*PNstar ...
-%            + alpha(K)*(eye(NK)-PN)'*(Q/P)*(P\Q')*(eye(NK)-PN);
 
 end

@@ -40,7 +40,7 @@ function l2Err = l2Error(G, sol, u, k)
 %}
 
 nK = G.cells.num;
-[m, ~, ~] = retrieveMonomials(k);
+[m, ~, ~] = retrieveMonomials(2,k);
 
 if k == 2;
     uCellMoments = polygonInt(G,1:nK, u, 7)./G.cells.volumes;

@@ -4,9 +4,9 @@
 
 clc; clear; close all;
 
-ex = 3;
+ex = 6;
 gridType = 'pebi';
-n = 40;
+n = 10;
 nx = n; ny = n;
 xMax = 1; yMax = 1;
 k = 2;
@@ -14,6 +14,7 @@ k = 2;
 neuEx = false;
 knownSol = true;
 edgeclr = 'k';
+simga = 1;
 switch ex
     case 1
         edgeclr = 'none';
@@ -22,7 +23,7 @@ switch ex
         gD = @(X) -log(1./(sqrt(sum(bsxfun(@minus, X, C).^2,2))));
     case 2
         xMax = 1; yMax = 1;
-        ny = 5*ny;
+%         ny = 5*ny;
         f = @(X) sin(X(:,1));
         gD = @(X) sin(X(:,1));
     case 3
@@ -42,6 +43,19 @@ switch ex
         epsilon = .5*1e-4;
         f = @(X) 1/(2*pi*epsilon)*exp(-((X(:,1)-xMax/2).^2 + (X(:,2)-yMax/2).^2)/(2*epsilon));
         gD = 0;
+    case 6
+        gridType = 'cart';
+        nx = 10; ny = 50;
+        k = 1;
+        f = @(X) pi^2*X(:,1).*sin(pi*X(:,2));
+        gD = @(X) X(:,1).*sin(pi*X(:,2));
+        nk   = (k+1)*(k+2)/2;
+        NK   = (4 + 4*(k-1) + k*(k-1)/2)*ones(nx*ny,1);
+        nker = NK - nk;
+        hx = xMax/nx; hy = yMax/ny;
+        sigma = (hy/hx + hx/hy)*ones(nx*ny,1);
+        sigma = rldecode(sigma, nker,1);
+        sigma = 1;
 end
 
 if strcmp(gridType,'cart')
@@ -63,7 +77,7 @@ end
 bc = VEM2D_addBC([], G, boundaryEdges(~isNeu), 'pressure', gD);
 bc = VEM2D_addBC(bc, G, boundaryEdges(isNeu), 'flux', gN);
 
-[sol, G] = VEM2D(G,f,k,bc, 'cellAverages', true);
+[sol, G] = VEM2D(G,f,k,bc, 'cellAverages', true, 'sigma', sigma);
 
 figure;
 plotVEM2D(G,sol,k)

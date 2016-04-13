@@ -1,6 +1,7 @@
 function [sol, varargout] = VEM2D(G, f, k, bc, varargin)
 %--------------------------------------------------------------------------
-%   Solves the Poisson equation using a kth order virtual element method.
+%   Solves the 2D Poisson equation using a kth order virtual element
+%   method.
 %
 %   SYNOPSIS:
 %       [sol, varargout] = VEM2D(G, f, k, bc, varargin)
@@ -27,8 +28,9 @@ function [sol, varargout] = VEM2D(G, f, k, bc, varargin)
 %                    VEM2D_addBC.
 %
 %   OPTIONAL PARAMETERS:
-%       alpha        - G.cells.num x 1 matrix of constants for scaling of
-%                      the local load terms.
+%       sigma        - G.cells.num x nker matrix of constants for scaling
+%                      of the local load terms.
+%                      nker = \dim \ker \Pi^\nabla. See [1] for detail.
 %       src          - Source term struct constructed using addSource.
 %       fluid        - Single phase fluid struct constructed using
 %                      initSingleFluid.
@@ -72,20 +74,26 @@ function [sol, varargout] = VEM2D(G, f, k, bc, varargin)
    for details.
 %}
 
+addpath('./');
+
 %%  MERGE INPUT PARAMETRES                                               %%
 
 nN = G.nodes.num;
 nE = G.faces.num;
 nK = G.cells.num;
 
-opt = struct('alpha'       , ones(nK,1), ...
+nk   = (k+1)*(k+2)/2;
+NK   = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
+nker = sum(NK - nk);
+
+opt = struct('sigma'       , 1         , ...
              'src'         , []        , ...
              'fluid'       , []        , ...
              'projectors'  , false     , ...
              'cellAverages', false     );
 opt = merge_options(opt, varargin{:});
 
-alpha        = opt.alpha;
+sigma        = opt.sigma;
 src          = opt.src;
 fluid        = opt.fluid;
 projectors   = opt.projectors;
@@ -108,8 +116,8 @@ end
 
 assert(k == 1 | k == 2, 'VEM only implemented for 1st and second order');
 
-assert(size(alpha,1) == nK & size(alpha,2) == 1, ...
-            'Dimensions of paramter matrix alpha must be G.cells.num x 1');
+assert(any(numel(sigma) == [sum(nker),1]), ...
+     'Number of elements in paramter matrix sigma must be 1 or sum(nker)');
 
 assert(islogical(projectors), ' ''projectors'' must be boolean')
 
@@ -121,7 +129,7 @@ end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, alpha, projectors, src, mu, rho);
+[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, projectors, src, mu, rho);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
@@ -145,12 +153,8 @@ sol = struct(...
              'cellMoments', {cellMoments}     );
 if projectors
     G.('PNstarT') = PNstarT;
-    if k == 1
-        PNstarPos = [1, cumsum( diff(G.cells.nodePos')) + 1];
-    elseif k == 2
-        PNstarPos = [1, cumsum( diff(G.cells.nodePos') + ...
-                                diff(G.cells.facePos') + 1) + 1];
-    end
+    PNstarPos = [1, cumsum(diff(G.cells.nodePos') + ...
+                           diff(G.cells.facePos')*(k-1) + k*(k-1)/2) + 1];
     G.PNstarPos = PNstarPos;
     varargout(1) = {G};
 end

@@ -38,7 +38,7 @@ function sol = calculateCellAverages(G, sol)
 if isempty(sol.cellMoments)
 
     nK = G.cells.num;
-    [m, ~, ~] = retrieveMonomials(1);
+    [m, ~, ~] = retrieveMonomials(2,1);
 
     [Xq, w, ~, vol] = triangleQuadRule(1);
     nq = size(Xq,1);

@@ -1,9 +1,27 @@
-function G = computeVEM2DGeometry(G,f,k, alpha)
+function G = computeVEM2DGeometry(G)
+%--------------------------------------------------------------------------
+%   Computes VEM geometry ofr MRST grid G.
+%
+%   SYNOPSIS:
+%       G = computeVEM2DGeometry(G)
+%
+%   DESCRIPTION:
+%       Computes geometry using MRST functions G = computeGeometry(G) and
+%       G = mrstGridWithFullMappings(G), and computes cell diameters.
+%       See MRTS functions computeGeomerty and mrstGridWithFullMappings for
+%       details and copyright info.
+%
+%   REQUIRED PARAMETERS:
+%       G   - 2D MRST grid.
+%
+%   RETURNS:
+%       G   - Grid with computed VEM geometry.  
+%-----------------------------------------------------------------ØSK-2016-
 
-% G = sortEdges(G);
+assert(G.griddim == 2, 'Function only supprots 2D grids');
+
 G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);
-
 
 cellDiameters = zeros(G.cells.num,1);
 for i = 1:G.cells.num
@@ -14,13 +32,5 @@ for i = 1:G.cells.num
 end
 
 G.cells.('diameters') = cellDiameters;
-
-% [AK, bK, SK, PN] = VEM2D_projectors(G, f, k, alpha);
-% 
-% G.cells.('AK') = AK;
-% G.cells.('bK') = bK;
-% G.cells.('SK') = SK;
-% G.cells.('PN') = PN;
-
 
 end
