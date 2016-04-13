@@ -51,7 +51,7 @@ colormap(flipud(.5*jet(10)+.5*ones(10,3)));
 mu      = [1 N; 1 1 ; N 1];
 [dt,dT] = deal(zeros(M,1), T/M);
 is      = 1;
-wellSol = cell(M,3,numel(W));
+wellSol = cell(M,3);
 mb      = zeros(M,3);
 for n=1:3
     fluid = initSimpleFluid('mu', mu(n,:).* centi*poise, ...
@@ -62,8 +62,9 @@ for n=1:3
         x  = implicitTransport(x, G, dT, rock, fluid, 'wells', W);
         mb(i,n) = sum(x.s(:,2).*poreVolume(G,rock));
         dt(i) = dT;
-        ws = getWellSol(W,x, fluid);
-        for m=1:numel(ws), wellSol{i,n,m}=ws(m); end
+        wellSol{i,n} = getWellSol(W,x, fluid);
+        % ws = getWellSol(W,x, fluid);
+        % for m=1:numel(ws), wellSol{i,n,m}=ws(m); end
         if ~mod(i,M/10) && ip<=5
             subplot(3,5,is); ip=ip+1; is=is+1;
             plotData(x); axis equal; axis([0 domain(1) 0 domain(2)]);
@@ -79,14 +80,14 @@ for n=1:3
 end
 
 %% Plot well responses
-ws = cellfun(@(x) x, wellSol);
+ws = cellfun(@(x) x, wellSol, 'UniformOutput', false);
 t  = cumsum(dt);
 figure;
-plot(t,reshape(vertcat(ws(:,:,2).Sw),M,3));   set(gca,'XLim',[0 1.5]);
+plot(t,cellfun(@(x) x(2).Sw, wellSol));   set(gca,'XLim',[0 1.5]);
 figure;
-plot(t,reshape(vertcat(ws(:,:,2).wcut),M,3)); set(gca,'XLim',[0 1.5]);
+plot(t,cellfun(@(x) x(2).wcut, wellSol)); set(gca,'XLim',[0 1.5]);
 figure;
-plot(t,cumsum(bsxfun(@times,abs(reshape(vertcat(ws(:,:,2).qOs),M,3)),dt)));
+plot(t,cumsum(bsxfun(@times, abs(cellfun(@(x) x(2).qOs, wellSol)), dt)));
 hold on;
 plot(t,spv-mb,'-.','LineWidth',2);
 plot([0 T],[spv spv],'--k');
