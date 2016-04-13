@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             selector = merge_options(selector, varargin{:});
         end
         
-        function dt = computeTimestep(selector, dt, model, solver)
+        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr)
             % Dynamically compute timestep
             hist = selector.history;
             nHist = numel(hist);

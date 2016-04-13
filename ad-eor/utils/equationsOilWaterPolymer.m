@@ -108,10 +108,13 @@ names = {'water', 'oil', 'polymer'};
 types = {'cell', 'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
-[eqs, qBC, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
+[eqs, qBC, qRes, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
    model, eqs, {pW, p}, {rhoW, rhoO}, {mobW, mobO}, {bW, bO},  ...
    {sW, sO}, drivingForces);
 
+if model.outputFluxes
+    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
+end
 % Add polymer boundary conditions
 if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
    injInx  = qBC{1} > 0; % water inflow indecies

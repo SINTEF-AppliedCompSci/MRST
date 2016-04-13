@@ -138,46 +138,46 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function [state, report, ministates] = solveTimestep(solver, state0, dT, model, varargin)
-        % Solve a timestep for a non-linear system using one or more substeps
-        % REQUIRED PARAMETERS:
-        %   state0    - State at the beginning of the timestep
-        %   dT        - Timestep size. The solver will move forwards
-        %               either as a single step or multiple substeps
-        %               depending on convergence rates and sub timestep
-        %               selection.
-        %   model     - Model inheriting from PhysicalModel with a
-        %               valid implementation of the "stepFunction"
-        %               member function.
-        %
-        % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-        %   'Wells'   - Wells for the timestep. (struct)
-        %   'bc'      - Boundary conditions for the problem (struct).
-        %   'src'     - Source terms for the timestep (struct).
-        %
-        %   NOTE: Wells, boundary conditions and source terms are the
-        %         standard types of external forces in MRST. However,
-        %         the model input determines which of these are
-        %         actually implemented for that specific step function.
-        %         Not all combinations are meaningful for all models.
-        %
-        %         Some models may implement other types of external
-        %         forces that have other names, specified in the
-        %         model's "getValidDrivingForces" method.
-        %
-        % RETURNS:
-        %  state      - Problem state after timestep, i.e. if state0
-        %               held pressure, saturations, ... at T_0, state
-        %               now holds the same values at T_0 + dT.
-        %  report     - Report struct, containing some standard
-        %               information (iteration count, convergence
-        %               status etc) in addition to any reports the
-        %               stepFunction contains.
-        %  ministates - Cell array containing all ministeps used to get
-        %               to T = T_0 + dt. If the solver decided to take
-        %               a single step and was successful, this will
-        %               just be {state}.
-        % SEE ALSO:
-        %   PhysicalModel
+            % Solve a timestep for a non-linear system using one or more substeps
+            % REQUIRED PARAMETERS:
+            %   state0    - State at the beginning of the timestep
+            %   dT        - Timestep size. The solver will move forwards
+            %               either as a single step or multiple substeps
+            %               depending on convergence rates and sub timestep
+            %               selection.
+            %   model     - Model inheriting from PhysicalModel with a
+            %               valid implementation of the "stepFunction"
+            %               member function.
+            %
+            % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+            %   'W'       - Wells for the timestep. (struct)
+            %   'bc'      - Boundary conditions for the problem (struct).
+            %   'src'     - Source terms for the timestep (struct).
+            %   
+            %   NOTE: Wells, boundary conditions and source terms are the
+            %         standard types of external forces in MRST. However,
+            %         the model input determines which of these are
+            %         actually implemented for that specific step function.
+            %         Not all combinations are meaningful for all models.
+            %
+            %         Some models may implement other types of external
+            %         forces that have other names, specified in the
+            %         model's "getValidDrivingForces" method.
+            %
+            % RETURNS:
+            %  state      - Problem state after timestep, i.e. if state0
+            %               held pressure, saturations, ... at T_0, state
+            %               now holds the same values at T_0 + dT.
+            %  report     - Report struct, containing some standard
+            %               information (iteration count, convergence
+            %               status etc) in addition to any reports the
+            %               stepFunction contains.
+            %  ministates - Cell array containing all ministeps used to get
+            %               to T = T_0 + dt. If the solver decided to take
+            %               a single step and was successful, this will
+            %               just be {state}.
+            % SEE ALSO:
+            %   PhysicalModel
 
             opt = struct('initialGuess', state0);
 
@@ -210,7 +210,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             isFinalMinistep = false;
             state0_inner = state0;
-
+            % Previous state for a given timestep
+            state_prev = [];
+            % Timestep that led from state_prev to current state0_inner
+            dt_prev = nan;
 
             wantMinistates = nargout > 2;
             [reports, ministates] = deal(cell(min(2^solver.maxTimestepCuts, 128), 1));
@@ -224,7 +227,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             dtMin = dT/(2^solver.maxTimestepCuts);
             while ~done
-                dt = stepsel.pickTimestep(dt, model, solver);
+                dt = stepsel.pickTimestep(dt_prev, dt, model, solver, state_prev, state0_inner);
 
                 if t_local + dt >= dT
                     % Ensure that we hit report time
@@ -255,6 +258,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 stepCount = stepCount + 1;
                 if converged
                     t_local = t_local + dt;
+                    dt_prev = dt;
+                    state_prev = state0_inner;
                     state0_inner = state;
                     acceptCount = acceptCount + 1;
 
@@ -272,33 +277,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 else
                     % Model did not converge, we are in some kind of
                     % trouble.
-
-                    if acceptCount == 0
-                        % We are still at the beginning, and we must honor
-                        % the initial guess for current state
-                        state = opt.initialGuess;
-                    else
-                        % Otherwise we reset the initial guess to the
-                        % previous step, as we are between ministeps.
-                        state = state0_inner;
-                    end
-                    % Beat timestep with a hammer
-                    warning([solver.getId(), 'Solver did not converge, cutting timestep'])
-                    cuttingCount = cuttingCount + 1;
-                    dt = dt/2;
-                    if dt < dtMin || failure
-                        msg = [solver.getId(), 'Did not find a solution: '];
-                        if failure
-                            % Failure means something is seriously wrong,
-                            % and we should abort the entire control step
-                            % immediately. The last report should include a
-                            % FailureMsg field that tells the user what
-                            % went wrong.
-                            msg = [msg, 'Model step resulted in failure state. Reason: ', ...
-                                   nonlinearReports{end}.FailureMsg];
+                    stopNow = dt <= dtMin || failure;
+                    
+                    if ~(stopNow && solver.continueOnFailure)
+                        if acceptCount == 0
+                            % We are still at the beginning, and we must honor
+                            % the initial guess for current state
+                            state = opt.initialGuess;
                         else
-                            msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
+                            % Otherwise we reset the initial guess to the
+                            % previous step, as we are between ministeps.
+                            state = state0_inner;
                         end
+                    end
+                    msg = [solver.getId(), 'Did not find a solution: '];
+                    if failure
+                        % Failure means something is seriously wrong,
+                        % and we should abort the entire control step
+                        % immediately. The last report should include a
+                        % FailureMsg field that tells the user what
+                        % went wrong.
+                        msg = [msg, 'Model step resulted in failure state. Reason: ', ...
+                               nonlinearReports{end}.FailureMsg];
+                    else
+                        msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
+                    end
+
+                    if stopNow
                         if solver.errorOnFailure
                             error(msg);
                         else
@@ -310,6 +315,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                 break;
                             end
                         end
+                    else
+                        warning(msg);
+                        % Beat timestep with a hammer
+                        warning([solver.getId(), 'Solver did not converge, cutting timestep'])
+                        cuttingCount = cuttingCount + 1;
+                        dt = dt/2;
                     end
                     isFinalMinistep = false;
                 end
@@ -339,10 +350,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        function dx = stabilizeNewtonIncrements(solver, problem, dx)
-        % Attempt to stabilize newton increment by changing the values
-        % of the increments.
-
+        function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
+            % Attempt to stabilize newton increment by changing the values
+            % of the increments.
             dx_prev = solver.previousIncrement;
 
             w = solver.relaxationParameter;

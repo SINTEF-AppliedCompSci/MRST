@@ -86,16 +86,33 @@ classdef SequentialPressureTransportModel < ReservoirModel
             
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
+                % Alternate mode: If outer loop is enabled, we will revisit
+                % the pressue equation to verify that the equation remains
+                % converged after the transport step. This check ensures
+                % that the assumption of fixed total velocity is reasonable
+                % up to some tolerance.
                 problem = model.pressureModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
                 % Is the pressure still converged when accounting for the
-                % mobilities?
+                % updated quantities after transport (mobility, density
+                % and so on?)
                 [~, values] = model.pressureModel.checkConvergence(problem);
                 if model.outerCheckWellConvergence
                     converged = all(values < model.outerTolerance);
+                    lv = max(values);
                 else
                     converged = values(1) < model.outerTolerance;
+                    lv = values(1);
                 end
                 converged = converged || iteration > model.maxOuterIterations;
+                if model.verbose
+                    if converged
+                        s = 'Converged.';
+                    else
+                        s = 'Not converged.';
+                    end
+                    fprintf('OUTER LOOP step #%d with tolerance %1.4e: Largest value %1.4e -> %s \n', ...
+                                                            iteration, model.outerTolerance, lv, s);
+                end
             end
             if ~pressure_ok
                 FailureMsg = 'Pressure failed to converge!';

@@ -108,7 +108,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     assert (isa(model, 'PhysicalModel'), ...
-            'The model must be derived from PhyiscalModel');
+            'The model must be derived from PhysicalModel');
 
     validateSchedule(schedule);
 

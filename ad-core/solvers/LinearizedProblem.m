@@ -24,6 +24,7 @@ properties
     % Optionally, the nonlinear iteration number corresponding to this
     % problem.
     iterationNo
+    drivingForces
 end
 
 methods

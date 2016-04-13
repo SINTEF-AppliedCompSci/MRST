@@ -33,6 +33,16 @@ function model = getSequentialModelFromFI(fimodel, varargin)
                                                     'disgas', fimodel.disgas, ...
                                                     'vapoil', fimodel.vapoil ...
                                                     );
+        case 'threephasecompositionalmodel'
+            eos = fimodel.EOSModel;
+            pressureModel = PressureCompositionalModel(G, rock, fimodel.fluid, eos.fluid, ...
+                'water', fimodel.water);
+            transportModel = TransportCompositionalModel(G, rock, fimodel.fluid, eos.fluid, ...
+                'water', fimodel.water);
+
+            pressureModel.EOSModel = eos;
+            transportModel.EOSModel = eos;
+            
         otherwise
             error('mrst:getSequentialModelFromFI', ...
             ['Sequential model not implemented for ''' class(fimodel), '''']);

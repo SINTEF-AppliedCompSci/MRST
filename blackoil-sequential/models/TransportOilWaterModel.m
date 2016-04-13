@@ -4,6 +4,7 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
         conserveWater
         conserveOil
         staticUpwind
+        upwindType
     end
     
     methods
@@ -14,7 +15,8 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
             model.conserveWater = false;
             model.conserveOil   = true;
             
-            model.staticUpwind  = true;
+            model.staticUpwind  = false;
+            model.upwindType = 'potential';
 
             model = merge_options(model, varargin{:});
             

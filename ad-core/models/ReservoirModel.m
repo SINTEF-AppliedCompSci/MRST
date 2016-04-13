@@ -442,6 +442,14 @@ methods
         state = model.setPhaseData(state, phasefluxes, 'flux', internal);
     end
     
+    function state = storeBoundaryFluxes(model, state, qW, qO, qG, forces)
+        if isempty(forces.bc) || ~isfield(forces, 'bc')
+            return
+        end
+        phasefluxes = {double(qW), double(qO), double(qG)};
+        state = model.setPhaseData(state, phasefluxes, 'flux', forces.bc.face);
+    end
+    
     % --------------------------------------------------------------------%
     function state = storeMobilities(model, state, mobW, mobO, mobG)
         % Utility function for storing the mobilities in the state

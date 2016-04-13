@@ -11,7 +11,7 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
@@ -170,16 +170,21 @@ else
     gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
 end
 
-% phaseEqs = {wat, oil, gas};
-% % Add in any fluxes / source terms prescribed as boundary conditions.
-% phaseEqs = addFluxesFromSourcesAndBC(model, phaseEqs, ...
-%                                        {pW, p, pG},...
-%                                        {rhoW,     rhoO, rhoG},...
-%                                        {mobW,     mobO, mobG}, ...
-%                                        {bW, bO, bG},  ...
-%                                        {sW, sO, sG}, ...
-%                                        drivingForces);
-% [wat, oil, gas] = phaseEqs{:};
+eqTmp = {wat, oil, gas};
+[eqTmp, ~, qRes] = addFluxesFromSourcesAndBC(model, eqTmp, ...
+                                       {pW, p, pG},...
+                                       {rhoW,     rhoO, rhoG},...
+                                       {mobW,     mobO, mobG}, ...
+                                       {bW, bO, bG},  ...
+                                       {sW, sO, sG}, ...
+                                       drivingForces);
+wat = eqTmp{1};
+oil = eqTmp{2};
+gas = eqTmp{3};
+
+if model.outputFluxes
+    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, qRes{3}, drivingForces);
+end
 
 [eqs, names, types] = deal(cell(1, 5));
 % well equations
@@ -195,7 +200,7 @@ if ~isempty(W)
         
         qW = q(:, 1);
         qO = q(:, 2);
-        qG = q(:, 2);
+        qG = q(:, 3);
         
         cqs = {...
                bW(wc).*qW, ...
@@ -229,6 +234,12 @@ if ~isempty(W)
         types(2:5) = {'perf', 'perf', 'perf', 'well'};
     end
     
+    % Store fluxes for the transport solver
+    fluxt = qW + qO + qG;
+    for i = 1:numel(W)
+        wp = perf2well == i;
+        state.wellSol(i).flux = fluxt(wp);
+    end
     wat(wc) = wat(wc) - cqs{1}; % Add src to water eq
     oil(wc) = oil(wc) - cqs{2}; % Add src to oil eq
     gas(wc) = gas(wc) - cqs{3}; % Add src to gas eq
@@ -238,22 +249,15 @@ end
 cfac = 1./(1 - disgas*vapoil*rs.*rv);
 
 a_w = 1./bW;
-a_o = cfac.*(1./bO - rs./bG);
-a_g = cfac.*(1./bG - rv./bO);
+a_o = cfac.*(1./bO - disgas*rs./bG);
+a_g = cfac.*(1./bG - vapoil*rv./bO);
 
 eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
 
 names{1} = 'pressure';
 types{1} = 'cell';
 
-% Store fluxes for the transport solver
-fluxt = qW + qO + qG;
-for i = 1:numel(W)
-    wp = perf2well == i;
-    state.wellSol(i).flux = fluxt(wp);
-end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
 end
 
 

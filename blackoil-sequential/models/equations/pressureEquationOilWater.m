@@ -11,7 +11,7 @@ opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
 
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
@@ -99,6 +99,20 @@ oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0) + s.Div(bOvO);
 % water:
 wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
+eqTmp = {wat, oil};
+[eqTmp, ~, qRes] = addFluxesFromSourcesAndBC(model, eqTmp, ...
+                                       {pW, p},...
+                                       {rhoW,     rhoO},...
+                                       {mobW,     mobO}, ...
+                                       {bW, bO},  ...
+                                       {sW, sO}, ...
+                                       drivingForces);
+wat = eqTmp{1};
+oil = eqTmp{2};
+
+if model.outputFluxes
+    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
+end
 [eqs, names, types] = deal({});
 
 % well equations

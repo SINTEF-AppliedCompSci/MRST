@@ -123,7 +123,8 @@ methods
                                    'iteration', iteration, ...
                                    varargin{:});
         problem.iterationNo = iteration;
-
+        problem.drivingForces = drivingForces;
+        
         [convergence, values, resnames] = model.checkConvergence(problem);
         % Minimum number of iterations can be prescribed, i.e. we
         % always want at least one set of updates regardless of
@@ -140,7 +141,7 @@ methods
 
             % Let the non-linear solver decide what to do with the
             % increments to get the best convergence
-            dx = nonlinsolve.stabilizeNewtonIncrements(problem, dx);
+            dx = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
 
             % Finally update the state. The physical model knows which
             % properties are actually physically reasonable.
@@ -150,7 +151,7 @@ methods
                 failureMsg = 'Linear solver produced non-finite values.';
             end
         end
-        isConverged = convergence || (model.stepFunctionIsLinear && doneMinIts);
+        isConverged = (convergence  && doneMinIts) || model.stepFunctionIsLinear;
         
         if model.verbose
             printConvergenceReport(resnames, values, isConverged, iteration);

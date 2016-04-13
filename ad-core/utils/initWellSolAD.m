@@ -90,6 +90,11 @@ if isprop(model, 'surfactant') && model.surfactant % surfactant model
 	 [ws(:).qWSft] = deal(0);
 end
 
+if isprop(model, 'compositionalFluid') % Compositional model
+     ncomp = model.compositionalFluid.getNumberOfComponents();
+	 [ws(:).components] = deal(zeros(1, ncomp));
+end
+
 % just initialize fields that are not assigned in assignFromSchedule
 for k = 1:nw
     nConn = numel(W(k).cells);

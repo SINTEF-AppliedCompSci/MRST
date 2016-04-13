@@ -129,7 +129,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function dt = pickTimestep(selector, dt, model, solver)
+        function dt = pickTimestep(selector, dt_prev, dt, model, solver, state_prev, state_curr)
             if selector.controlsChanged && ...
               (selector.resetOnControlsChanged || selector.isFirstStep);
                 % First relative check
@@ -139,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 selector.stepLimitedByHardLimits = true;
             end
             dt0 = dt;
-            dt_new = selector.computeTimestep(dt, model, solver);
+            dt_new = selector.computeTimestep(dt, dt_prev, model, solver, state_prev, state_curr);
 
             % Ensure that step does not change too much
             change = dt_new/dt;
@@ -191,7 +191,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        function dt = computeTimestep(selector, dt, model, solver) %#ok
+        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr) %#ok
             % Compute timestep dynamically - does nothing for base class    
         end
     end
