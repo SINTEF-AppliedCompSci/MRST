@@ -187,10 +187,11 @@ intPos = (0:nk:nk*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
              rldecode((1:G.cells.num)',diff(G.cells.facePos),1)];
 neighbors = G.faces.neighbors;
+I = sparse(G.cells.num*6,N);
 
-ii = [];
-jj = [];
-I  = [];
+% ii = [];
+% jj = [];
+% I  = [];
 
 for F = 1:nF
                         
@@ -279,14 +280,16 @@ for F = 1:nF
     
     intNum = mcolon(intPos(cells),intPos(cells+1)-1);    
     
-    iiF = repmat(intNum', numel(dofVec), 1);
-    jjF = repmat(repmat(dofVec , numel(intNum(1:nk)), 1),1,nK);
-    jjF = jjF(:);
+%     iiF = repmat(intNum', numel(dofVec), 1);
+%     jjF = repmat(repmat(dofVec , numel(intNum(1:nk)), 1),1,nK);
+%     jjF = jjF(:);
+%     
+%     ii = [ii; iiF];
+%     jj = [jj; jjF];
+%     
+%     I = [I;int(:)];
     
-    ii = [ii; iiF];
-    jj = [jj; jjF];
-    
-    I = [I;int(:)];
+    I(intNum, dofVec) = I(intNum, dofVec) + int;
     
 %     I(intNum, dofVec) = I(intNum, dofVec) + int;
     
@@ -294,7 +297,7 @@ for F = 1:nF
     
 end
 
-I = sparse(ii, jj, I, intPos(end)-1, N); 
+% I = sparse(ii, jj, I, intPos(end)-1, N); 
 
 nk = (k+1)*(k+2)/2;
 BintPos = (0:nk:nk*G.cells.num) + 1;
