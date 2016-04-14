@@ -1,4 +1,4 @@
-function [m, grad_m, int_m] = retrieveMonomials(dim, k)
+function [m, grad_m, int_m] = retrieveMonomials(dim, k, varargin)
 %--------------------------------------------------------------------------
 %   Returns all 2D or 3D monomials of degree <= k, along with their
 %   gradients and their anti-derivatives with respect to baricentric
@@ -33,6 +33,11 @@ function [m, grad_m, int_m] = retrieveMonomials(dim, k)
 %       dim     - Dimension of space on which the monomials are defined,
 %                 i.e. R^dim.
 %       k       - Order of monomial space. Supported orders are 1 and 2.
+%      
+%   OPTIONAL PARAMETERS:
+%       face    - Boolena. If true, dim = 3 and k = 2, only the gradients
+%                 of th nonlinear monomials are returned. Implemented
+%                 specially for the function FUNCTIONNAME.
 %
 %   RETURNS:
 %       m       - Funciton handle of monomials.
@@ -48,6 +53,11 @@ function [m, grad_m, int_m] = retrieveMonomials(dim, k)
    Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
    for details.
 %}
+
+opt = struct('face'        , false);
+opt = merge_options(opt, varargin{:});
+
+face = opt.face;
 
 assert(dim == 2 | dim == 3);
 assert(k == 1 | k == 2);
@@ -128,17 +138,22 @@ elseif dim == 3
                   X(:,2).^2        , ...                          % (0,2,0)
                   X(:,2).*X(:,3)   , ...                          % (0,1,1)
                   X(:,3).^2        ];                             % (0,0,2)
-                      
-        grad_m = @(X) ...
- [ones(size(X,1),1) , zeros(size(X,1),1), zeros(size(X,1),1); ... % (1,0,0)
-  zeros(size(X,1),1), ones(size(X,1),1) , zeros(size(X,1),1); ... % (0,1,0)
-  zeros(size(X,1),1), zeros(size(X,1),1), ones(size(X,1),1) ; ... % (0,0,1)
-  2*X(:,1)          , zeros(size(X,1),1), zeros(size(X,1),1); ... % (2,0,0)
+     grad_m    = @(X) ...
+ [2*X(:,1)          , zeros(size(X,1),1), zeros(size(X,1),1); ... % (2,0,0)
   X(:,2)            , X(:,1)            , zeros(size(X,1),1); ... % (1,1,0)
   X(:,3)            , zeros(size(X,1),1), X(:,1)            ; ... % (1,0,1)
   zeros(size(X,1),1), 2*X(:,2)          , zeros(size(X,1),1); ... % (0,2,0)
   zeros(size(X,1),1), X(:,3)            , X(:,2)            ; ... % (0,1,1)
   zeros(size(X,1),1), zeros(size(X,1),1), 2*X(:,3)         ]; ... % (0,0,2)
+                      
+        if ~face
+        grad_m = @(X) ...
+ [ones(size(X,1),1) , zeros(size(X,1),1), zeros(size(X,1),1); ... % (1,0,0)
+  zeros(size(X,1),1), ones(size(X,1),1) , zeros(size(X,1),1); ... % (0,1,0)
+  zeros(size(X,1),1), zeros(size(X,1),1), ones(size(X,1),1) ; ... % (0,0,1)
+  grad_m(X)                                                ];
+        end
+
   
         int_m  = @(X)                     ...
                  [X(:,1)                , ...                     % (0,0,0)

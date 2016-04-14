@@ -34,7 +34,7 @@ function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
 %       src          - Source term struct constructed using addSource.
 %       fluid        - Single phase fluid struct constructed using
 %                      initSingleFluid.
-%       projectors   - Boolean. If true, matrix representations
+%       cellProjectors - Boolean. If true, matrix representations
 %                      of \Pi^\nabla in the monomial basis \mathcal_k(K)
 %                      will be added to grid structure G.
 %       faceAverages - Boolean. If true, exact face averages of
@@ -88,20 +88,20 @@ NK   = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) + ...
        diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
 nker = sum(NK - nk);
 
-opt = struct('sigma'       , 1         , ...
-             'src'         , []        , ...
-             'fluid'       , []        , ...
-             'projectors'  , false     , ...
-             'faceAverages', false     , ...
-             'cellAverages', false           );
+opt = struct('sigma'         , 1         , ...
+             'src'           , []        , ...
+             'fluid'         , []        , ...
+             'cellProjectors', false     , ...
+             'faceAverages'  , false     , ...
+             'cellAverages'  , false           );
 opt = merge_options(opt, varargin{:});
 
-sigma        = opt.sigma;
-src          = opt.src;
-fluid        = opt.fluid;
-projectors   = opt.projectors;
-faceAverages = opt.faceAverages;
-cellAverages = opt.cellAverages;
+sigma          = opt.sigma;
+src            = opt.src;
+fluid          = opt.fluid;
+cellProjectors = opt.cellProjectors;
+faceAverages   = opt.faceAverages;
+cellAverages   = opt.cellAverages;
 
 if isempty(fluid)
     mu = 1; rho = 1;
@@ -123,7 +123,7 @@ assert(k == 1 | k == 2, 'VEM only implemented for 1st and second order'  );
 assert(any(numel(sigma) == [sum(nker),1]), ...
      'Number of elements in paramter matrix sigma must be 1 or sum(nker)');
 
-assert(islogical(projectors)  , ' ''projectors'' must be boolean'        );
+assert(islogical(cellProjectors)  , ' ''projectors'' must be boolean'        );
 
 assert(islogical(cellAverages), ' ''cellAverages'' must be boolean'      );
         
@@ -133,7 +133,7 @@ end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,PNstarT] = VEM3D_glob(G, f, k, bc, sigma, projectors, src, mu, rho);
+[A,b,PNstarT] = VEM3D_glob(G, f, k, bc, sigma, cellProjectors, src, mu, rho);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
@@ -157,13 +157,14 @@ sol = struct(...
              'edgeValues' , {edgeValues} , ...
              'faceMoments', {faceMoments}, ...
              'cellMoments', {cellMoments}     );
-if projectors
-    G.('PNstarT') = PNstarT;
+         
+if cellProjectors
+    G.cells.('PNstarT') = PNstarT;
     PNstarPos = [1, cumsum( diff(G.cells.nodePos')           + ...
                             diff(G.cells.edgePos')*(k-1)     + ...
                             diff(G.cells.facePos')*k*(k-1)/2 + ...
                             k*(k^2-1)/6                             ) + 1];
-    G.PNstarPos = PNstarPos;
+    G.cells.('PNstarPos') = PNstarPos;
     varargout(1) = {G};
 end
 

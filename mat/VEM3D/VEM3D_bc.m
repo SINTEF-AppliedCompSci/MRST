@@ -38,49 +38,106 @@ function [A,b] = VEM3D_bc(G, A, b, bc, k)
 
 assert(k == 1 | k == 2); 
 
-faces = bc.face(strcmp(bc.type,'flux'));
-for i = 1:numel(faces)
-    b(
-
-
-edgeLengths = G.faces.areas(edges);
-
-nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges +1)-1);
-nodes   = G.faces.nodes(nodeNum);
-nN = numel(nodes);
-uNodes = unique(nodes);
-nUN = numel(uNodes);
-S = (repmat(nodes,1,nUN) == repmat(uNodes',nN,1))';
-
-vals = bc.value(strcmp(bc.type,'flux'),:);
-
-if k == 1
-    vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths/3];
-    vals = bsxfun(@plus, vals(:,1:2), vals(:,3));
-    vals = reshape(vals',[],1);
-    vals = S*vals;
-    dofVec = uNodes';
-elseif k == 2
-    vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths*2/3];
-    vals = [S*reshape(vals(:,1:2)',[],1); vals(:,3)];
-    dofVec = [uNodes', edges' + G.nodes.num];
+faces = bc.faces(strcmp(bc.type,'flux'));
+nF = numel(faces);
+if ~isempty(faces)
+    [m, ~, ~] = retrieveMonomials(2,k);
+    [Xq, w, ~, vol] = triangleQuadRule(1);
+    nq = size(Xq,1);
+    Fc = G.cells.centroids;
+    hF = G.cells.diameters;
 end
-b(dofVec) = b(dofVec) + vals;
+    
+for i = 1:nF
+    
+    F = faces(i);
+    g = bc.func(bc.face2Func(i));
 
-edges   = bc.face(strcmp(bc.type,'pressure'));
-nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges +1)-1);
-nodes   = G.faces.nodes(nodeNum);
-vals = bc.value(strcmp(bc.type,'pressure'),:);
+    %   Edge data for face F.
 
-if k == 1
-    vals = reshape(vals(:,1:2)',[],1);
-    dofVec = nodes';
-elseif k == 2
-    dofVec = [nodes', edges' + G.nodes.num];
-    vals = [reshape(vals(:,1:2)',[],1); vals(:,3)];
+    edgeNum     = G.faces.edgePos(F):G.faces.edgePos(F+1)-1;
+    edges       = G.faces.edges(edgeNum);
+    
+    %   Node data for each edge of each face.
+    
+    nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-1);
+    nodes   = G.edges.nodes(nodeNum);
+    nodes   = reshape(nodes,2,[])';
+    nN      = size(nodes,1);
+    nodes(G.faces.edgeSign(edgeNum) == -1,:) ...
+            = nodes(G.faces.edgeSign(edgeNum) == -1,2:-1:1);
+    nodes   = nodes(:,1);
+    
+    if k == 1
+        X = G.nodes.coords(nodes,:);
+        dofVec = nodes';
+    elseif k == 2
+        X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
+        dofVec = [nodes', edges' + G.nodes.num, ...
+                                            F + G.nodes.num + G.edges.num];
+    end
+
+    tri = delaunay(X(1:nN,:));
+    nTri = size(tri,1);
+    
+    %   Construct map from refrence triangle to triangles in triangulation.
+    
+    bA = X(tri(:,1),:);
+    A = X(tri(:,2:end),:) - repmat(bA,2,1);
+    A = A(mcolon(1:nTri,2*nTri,nTri),:);
+    A = mat2cell(A,2*ones(nTri,1),2);
+    detA = cellfun(@(X) abs(det(X)), A);
+
+    %   Map quadrature points from reference triangle to triangels.
+    
+    Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
+    Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
+                            
+    %   Evaluate functions at quadrature points.
+    
+    Xmon = (Xhat - repmat(Fc(K,:),nq*nTri,1))/hF(K);
+
+    PNFstar = G.faces.PNFstarT(G.faces.PNstarPos(F):...
+                               G.faces.PNstarPos(F+1)-1,:)';
+    vals = bsxfun(@times,m(Xmon)*PNFstar,g(Xhat));
+    
+    %   Multilply by wheights and determinants.
+    
+    detAw = rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1); 
+    vals = bsxfun(@times,vals,detAw);
+
+    b(dofVec) = b(dofVec) + sum(vals,1);
+    
 end
-b(dofVec) = vals;
-I = spdiags(ones(NK,1),0,NK,NK);
-A(dofVec,:) = I(dofVec,:);
 
-end 
+faces = bc.faces(strcmp(bc.type, 'pressure'));
+nF = numel(faces);
+
+N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2 ...
+                                                 + G.cells.num*k*(k^2-1)/6;
+I = spdiags(ones(N,1),0,N,N);
+
+for i = 1:nF
+    
+    F = faces(i);
+    g = bc.func{bc.face2Func(i)};
+    
+    nodeNum = G.faces.nodePos(F):G.faces.nodePos(F+1)-1;
+    nodes   = G.faces.nodes(nodeNum);
+
+    if k == 1
+        X = G.nodes.coords(nodes,:);
+        gChi = g(X);
+        dofVec = nodes';
+    elseif k == 2
+        edgeNum = G.faces.edgePos(F):G.faces.edgePos(F+1)-1;
+        edges   = G.faces.edges(edgeNum);
+        int = polygonInt3D(G, F, g, k+1)./G.faces.areas(F);
+        X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
+        gChi = [g(X); int];
+        dofVec = [nodes', edges' + G.nodes.num, ...
+                                            F + G.nodes.num + G.edges.num];
+    end
+    b(dofVec) = gChi;
+    A(dofVec,:) = I(dofVec,:);
+end

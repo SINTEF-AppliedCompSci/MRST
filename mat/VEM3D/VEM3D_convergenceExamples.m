@@ -16,7 +16,7 @@ switch ex
 end
 
 
-nVec = [5,10,20];
+nVec = [3,6,12];
 nIt = numel(nVec);
 errVec = zeros(nIt, 3);
 
@@ -29,11 +29,13 @@ for i = 1:nIt
         G = unitSquare([n,n,n], [xMax, yMax, zMax]);
     end
     G = computeVEM3DGeometry(G);
+    G1 = VEM3D_faceProjectors(G,1);
+    G2 = VEM3D_faceProjectors(G,2);
 
-    boundaryEdges = find(any(G.faces.neighbors == 0,2));
+    boundaryEdges = find(any(G1.faces.neighbors == 0,2));
     if neuEx
         tol = 1e-10;
-        isNeu = abs(G.faces.centroids(boundaryEdges,1)) < tol;
+        isNeu = abs(G1.faces.centroids(boundaryEdges,1)) < tol;
     else
         isNeu = false(numel(boundaryEdges),1);
         gN = gD;
@@ -41,32 +43,16 @@ for i = 1:nIt
     bc = VEM3D_addBC([], boundaryEdges(~isNeu), 'pressure', gD);
     bc = VEM3D_addBC(bc, boundaryEdges(isNeu), 'flux', gN);
     
-    [sVEM1, G1] = VEM3D(G,f,bc,1, 'projectors', true);
-    [sVEM2, G2] = VEM3D(G,f,bc,2,'projectors', true);
+    [sVEM1, G1] = VEM3D(G1,f,bc,1, 'cellProjectors', true);
+    [sVEM2, G2] = VEM3D(G2,f,bc,2, 'cellProjectors', true);
     
     h = mean(G.cells.diameters);
     area = sqrt(sum(G.cells.volumes.^2));
     nK = G.cells.num;
         
-    l2Err1 = l2Error(G1, sVEM1, gD, 1);
-    l2Err2 = l2Error(G2, sVEM2, gD, 2);
+    l2Err1 = l2Error3D(G1, sVEM1, gD, 1);
+    l2Err2 = l2Error3D(G2, sVEM2, gD, 2);
     errVec(i,:) = [h, sqrt(sum(l2Err1)), sqrt(sum(l2Err2))];
-    
-    if plotSol
-        subplot(1,2,1)
-        plotCellData(G, sVEM1.cellMoments);
-        axis equal;
-        subplot(1,2,2);
-        plotCellData(G, sVEM2.cellMoments);
-        axis equal;
-        pause;
-    end
+
 end
 
-loglog(errVec(:,1), errVec(:,2), errVec(:,1), errVec(:,3));
-legend('VEM 1st order', 'VEM 2nd order');
-p1 = polyfit(log(errVec(:,1)), log(errVec(:,2)),1);
-p2 = polyfit(log(errVec(:,1)), log(errVec(:,3)),1);
-
-p1(1)
-p2(1)

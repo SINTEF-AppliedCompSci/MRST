@@ -1,12 +1,12 @@
 function [A, b, PNstarT] ...
-                 = VEM3D_glob(G, f, k, bc, sigma, projectors, src, mu, rho)
+             = VEM3D_glob(G, f, k, bc, sigma, cellProjectors, src, mu, rho)
 %--------------------------------------------------------------------------
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 3D Poisson equation.
 %
 %   SYNOPSIS:
-%       [A, b, PNstarT] ...
-%                = VEM2D_glob(G, f, k, bc, alpha, projectors, src, mu, rho)
+%         = VEM3D_glob(G, f, k, bc, ...
+%                      sigma, faceProjectors, cellProjectors, src, mu, rho)
 %
 %   DESCRIPTION:
 %       Assmebles the global stiffness matrix and load term for the virtual
@@ -29,9 +29,10 @@ function [A, b, PNstarT] ...
 %       sigma      - G.cells.num x nker matrix of constants for scaling
 %                    of the local load terms.
 %                    nker = \dim \ker \Pi^\nabla. See [1] for detail.
-%       projectors - Boolean. If true, matrix representations
-%                    of \Pi^\nabla in the monomial basis \mathcal_k(K) will
-%                    be stored.
+%       faceprojectors - Boolean. If true, matrix representations
+%                    of \Pi^{\nabla,F} in the monomial basis \mathcal_k(K)
+%                    will be stored.
+%       
 %       src        - Source term struct constructed using addSource.
 %       mu         - Dynamic viscosity of fluid. Set to 1 if N/A
 %       rho        - Fluid density. Set to 1 if N/A.
@@ -66,12 +67,6 @@ if k == 2
     G.faces.('fFaceIntegrals') = IFf;
 end
 
-I = faceProjectors(G,k);
-nk = (k+1)*(k+2)/2;
-BintPos = (0:nk:nk*G.cells.num) + 1;
-G.cells.('Bint') = I;
-G.cells.('BintPos') = BintPos;
-
 %%  RETRIEVE MONOMIALS, SET FUNCTION SPACE DIMS, CONSTRUCT MAPPINGS      %%
 
 [m, ~, ~] = retrieveMonomials(3,k);
@@ -101,7 +96,7 @@ if ~isempty(src)
     rate(src.cell) = src.rate;
 end
 
-if projectors
+if cellProjectors
     nk = (k+1)*(k+2)*(k+3)/6;
     PNstarT = zeros(dofPosb(end)-1,nk);
 else
@@ -154,7 +149,7 @@ for K = 1:nK
     iib(dofPosb(K):dofPosb(K+1)-1) = dofVec;
     bVec(dofPosb(K):dofPosb(K+1)-1) = bK(:);
     
-    if projectors
+    if cellProjectors
         PNstarT(dofPosb(K):dofPosb(K+1)-1,:) = PNstar';
     end
     
@@ -167,11 +162,15 @@ A = sparse(iiA, jjA, AVec, N, N);
 b = sparse(iib, ones(1, numel(iib)), bVec);
 
 %%  APPLY BOUNDARY CONDITIONS                                            %%
+% 
+% [bcDof, bBC] = VEM3D_bc_old(G, bc, k);
+% b(bcDof == 1) = bBC(bcDof == 1);
+% SBC = spdiags(ones(N,1),0,N,N);
+% A(bcDof == 1,:) = SBC(bcDof == 1,:);
+% b(bcDof == 2) = b(bcDof == 2) + bBC(bcDof == 2);
 
-[bcDof, bBC] = VEM3D_bc_old(G, bc, k);
-b(bcDof == 1) = bBC(bcDof == 1);
-SBC = spdiags(ones(N,1),0,N,N);
-A(bcDof == 1,:) = SBC(bcDof == 1,:);
-b(bcDof == 2) = b(bcDof == 2) + bBC(bcDof == 2);
+%%  APPLY BOUNDARY CONDITIONS                                            %%
+
+[A,b] = VEM3D_bc(G,A,b,bc,k);
 
 end

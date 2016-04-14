@@ -110,12 +110,12 @@ nkk = k*(k+1)*(k+2)/6;
 
 B = zeros(nk, NK);
 
-intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
+intNum = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
 
 if k == 1
     B(1,:) = 1/NK;      % CHECK!
     dofVec = nodes';
-    B(2:nk,:) = G.cells.Bint(intPos, dofVec);  
+    B(2:nk,:) = G.cells.Bint(intNum, dofVec);  
     D = m(Xmon);
     
     H = aK;
@@ -134,7 +134,7 @@ elseif k == 2
     faceNormals'/hK;
     dofVec = [nodes', edges' + G.nodes.num, ...
               faces' + G.nodes.num + G.edges.num];
-    B(5:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
+    B(5:nk,1:NK-1) = G.cells.Bint(intNum, dofVec);
     B([5,8,10],NK) = -2*aK/hK.^2;
     
     faceIntegrals = polygonInt3D(G, faces, m, 2);

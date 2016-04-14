@@ -152,10 +152,10 @@ sol = struct(...
              'edgeValues' , {edgeValues} , ...
              'cellMoments', {cellMoments}     );
 if projectors
-    G.('PNstarT') = PNstarT;
+    G.cells.('PNstarT') = PNstarT;
     PNstarPos = [1, cumsum(diff(G.cells.nodePos') + ...
                            diff(G.cells.facePos')*(k-1) + k*(k-1)/2) + 1];
-    G.PNstarPos = PNstarPos;
+    G.cells.('PNstarPos') = PNstarPos;
     varargout(1) = {G};
 end
 
