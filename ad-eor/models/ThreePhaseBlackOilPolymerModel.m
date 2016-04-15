@@ -6,8 +6,12 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
     properties
         % Polymer present
         polymer
-        % Using PLYSHEAR shear model
+        % Using PLYSHEAR shear model based on water velocity
         usingShear
+	% Using PLYSHLOG shear model based on water velocity
+        usingShearLog
+	% Using PLYSHLOG shear model base on water shear rate
+        usingShearLogshrate
     end
 
     methods
@@ -16,7 +20,17 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
 
             % This is the model parameters for oil/water/gas/polymer system
             model.polymer = true;
+
+            if (isfield(fluid,'shrate') && ~isfield(fluid,'plyshlog'))
+                error('SHRATE is specified while PLYSHLOG is not specified')
+            end
+            if (isfield(fluid, 'plyshearMult') && isfield(fluid, 'plyshlog'))
+                error('PLYSHLOG and PLYSHEAR are existing together');
+            end
+
             model.usingShear = isfield(fluid, 'plyshearMult');
+            model.usingShearLog = (isfield(fluid, 'plyshlog') && ~isfield(fluid, 'shrate'));
+            model.usingShearLogshrate = (isfield(fluid, 'plyshlog') && isfield(fluid, 'shrate'));
             model.wellVarNames = {'qWs', 'qOs', 'qGs', 'qWPoly', 'bhp'};
             model = merge_options(model, varargin{:});
         end
