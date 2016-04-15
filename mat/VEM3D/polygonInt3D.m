@@ -1,7 +1,7 @@
     function  I = polygonInt3D(G, faces, f, k)
 
 
-[Xq, w, ~, vol] = triangleQuadRule(k);
+[Xq, w, V, vol] = triangleQuadRule(k);
 
 nq = size(Xq,1);
 

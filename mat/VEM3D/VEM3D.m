@@ -1,6 +1,6 @@
 function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
 %--------------------------------------------------------------------------
-%   Solves the 3D Poisson equation using a kth order virtual element
+%   Solves the 2D Poisson equation using a kth order virtual element
 %   method.
 %
 %   SYNOPSIS:
@@ -34,12 +34,9 @@ function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
 %       src          - Source term struct constructed using addSource.
 %       fluid        - Single phase fluid struct constructed using
 %                      initSingleFluid.
-%       cellProjectors - Boolean. If true, matrix representations
+%       projectors   - Boolean. If true, matrix representations
 %                      of \Pi^\nabla in the monomial basis \mathcal_k(K)
 %                      will be added to grid structure G.
-%       faceAverages - Boolean. If true, exact face averages of
-%                      approximated solution will be calculated
-%                      for 1st order VEM. Useful for countour plots.
 %       cellAverages - Boolean. If true, exact cell averages of
 %                      approximated solution will be calculated
 %                      for 1st order VEM. Useful for countour plots.
@@ -49,9 +46,6 @@ function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
 %                           * nodeValues, values at the nodes.
 %                           * edgeValues, values at the edge
 %                             midpoints. Empty for k = 1.
-%                           * faceMoments, the first moment (avearge) over
-%                             each face. Empty for k = 1 unless
-%                             faceAverages = true.
 %                           * cellMoments, the first moment (avearge) over
 %                             each cell. Empty for k = 1 unless
 %                             cellAverages = true.
@@ -63,7 +57,13 @@ function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
 %
 %   EXAMPLE:
 %   
-%       MAKE EXAMPLE
+%       G    = cartGrid([10,10]);
+%       G    = sortEdges(G)
+%       G    = computeVEMGeometry(G);
+%       bEdg = find(any(G.faces.neighbors == 0,2));
+%       f    = @(X) X(:,1).^2 - X(:,2).^2;
+%       bc   = VEM2D_addBC([], boundaryEdges, 'pressure', 0);
+%       sol  = VEM2D(G,f,2,bc);
 %
 %   REFERENCES:
 %       [1]     - Thesis title.
@@ -74,7 +74,7 @@ function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
    for details.
 %}
 
-addpath('./');
+addpath('../');
 
 %%  MERGE INPUT PARAMETRES                                               %%
 
@@ -83,24 +83,24 @@ nE = G.edges.num;
 nF = G.faces.num;
 nK = G.cells.num;
 
-nk   = (k+1)*(k+2)/2;
-NK   = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) + ...
-       diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
+nk   = (k+1)*(k+2)*(k+3)/6;
+NK   = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) ...
+       + diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
 nker = sum(NK - nk);
 
-opt = struct('sigma'         , 1         , ...
-             'src'           , []        , ...
-             'fluid'         , []        , ...
-             'cellProjectors', false     , ...
-             'faceAverages'  , false     , ...
-             'cellAverages'  , false           );
+opt = struct('sigma'          , 1     , ...
+             'src'            , []    , ...
+             'fluid'          , []    , ...
+             'cellProjectors' , false , ...
+             'faceAverages'   , false , ...
+             'cellAverages'   , false     );
 opt = merge_options(opt, varargin{:});
 
 sigma          = opt.sigma;
 src            = opt.src;
 fluid          = opt.fluid;
 cellProjectors = opt.cellProjectors;
-faceAverages   = opt.faceAverages;
+faceAverages   = opt.cellAverages;
 cellAverages   = opt.cellAverages;
 
 if isempty(fluid)
@@ -111,29 +111,32 @@ end
 
 %%  CHECK CORRECTNESS OF INPUT                                           %%
 
-assert(G.griddim == 3, 'VEM3D is only supproted for 3D grids'             );
+assert(G.griddim == 3, 'VEM3D is only supproted for 3D grids');
 
 if ~isa(f, 'function_handle')
     assert(numel(f) == 1, ...
              'Source function f must either be scalar or function handle');
 end
 
-assert(k == 1 | k == 2, 'VEM only implemented for 1st and second order'  );
+assert(k == 1 | k == 2, 'VEM only implemented for 1st and 2nd order');
 
 assert(any(numel(sigma) == [sum(nker),1]), ...
      'Number of elements in paramter matrix sigma must be 1 or sum(nker)');
 
-assert(islogical(cellProjectors)  , ' ''projectors'' must be boolean'        );
+assert(islogical(cellProjectors), ' ''cellProjectors'' must be boolean')
 
-assert(islogical(cellAverages), ' ''cellAverages'' must be boolean'      );
+assert(islogical(faceAverages), ' ''faceAverages'' must be boolean')
+
+assert(islogical(cellAverages), ' ''cellAverages'' must be boolean')
         
 if cellAverages
-    projectors = true;
+    cellProjectors = true;
 end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,PNstarT] = VEM3D_glob(G, f, k, bc, sigma, cellProjectors, src, mu, rho);
+[A,b,PNstarT] ...
+            = VEM3D_glob(G, f, bc, k, sigma, cellProjectors, src, mu, rho);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
@@ -157,25 +160,19 @@ sol = struct(...
              'edgeValues' , {edgeValues} , ...
              'faceMoments', {faceMoments}, ...
              'cellMoments', {cellMoments}     );
-         
+        
 if cellProjectors
     G.cells.('PNstarT') = PNstarT;
-    PNstarPos = [1, cumsum( diff(G.cells.nodePos')           + ...
-                            diff(G.cells.edgePos')*(k-1)     + ...
-                            diff(G.cells.facePos')*k*(k-1)/2 + ...
-                            k*(k^2-1)/6                             ) + 1];
+    PNstarPos = [1, cumsum(diff(G.cells.nodePos')            + ...
+                           diff(G.cells.edgePos')*(k-1)      + ...
+                           diff(G.cells.facePos')*k*(k-1)/2  + ...
+                           k*(k^2-1)/6) + 1                  ];
     G.cells.('PNstarPos') = PNstarPos;
     varargout(1) = {G};
 end
 
-
-
 if cellAverages && k == 1
     sol = calculateCellAverages(G, sol);
-end
-
-if faceAverages && k == 1
-    sol = calculateFaceAveraged(G,sol);
 end
          
 end

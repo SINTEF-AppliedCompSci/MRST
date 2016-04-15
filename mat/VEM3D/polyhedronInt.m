@@ -21,17 +21,49 @@ for i = 1:nK
     
     X = X(reshape(tri',[],1),:);
     ii = mcolon(1:4:4*nTri, 3:4:4*nTri);
-    Xdiff = mat2cell(X(ii,:) - X(ii+1,:), 3*ones(nTri,1), 3);
-    Xb = mat2cell(X(1:4:end,:),ones(nTri,1), 3);
+    Xdiff = X(ii,:) - X(ii+1,:);
 
-    A = cellfun(@(X) Vdiff\X, Xdiff, 'UniformOutput', false);
-    b = cellfun(@(X,Y) X - V(1,:)*Y, Xb, A, 'UniformOutput', false);
+    ii = repmat((1:3)',3*nTri,1);
+    add = repmat((0:1:nTri-1)*3,9,1);
+    ii = ii + add(:);
+    jj = repmat((1:3), 3, 1);
+    jj = repmat(jj(:), nTri,1);
+    jj = jj(:) + add(:);
+    Vd = sparse(ii,jj,repmat(Vdiff(:),nTri,1), 3*nTri, 3*nTri);
+    Xdiff = Xdiff';
+    Xd = sparse(jj,ii,Xdiff(:), 3*nTri, 3*nTri);
     
-    D = cellfun(@(X) abs(det(X)), A);
+    A = Vd\Xd;
+
+    Xb = reshape(X(1:4:end,:)',1,[]);
+
+    b = Xb - repmat(V(1,:),1,nTri)*A;
+
+    [n,~] = size(A);
     
-    Xhat = cell2mat(cellfun(@(X,y) bsxfun(@plus, Xq*X,y), A, b, ...
-                                   'UniformOutput', false));
+    main = ones(n,1);
+    sub1 = main;
+    sub1(3:3:end) = 0;
+    sub2 = zeros(n,1);
+    sub2(1:3:end) = 1;
+    Id = spdiags([sub2, sub1, main,sub1(end:-1:1),sub2(end:-1:1)], -2:1:2, n,n);
+
+    Ad = full(A(Id == 1));
+    Ad = reshape(Ad,3,3,[]);
+    D = squeeze(Ad(1,1,:).*Ad(2,2,:).*Ad(3,3,:) + ...
+                Ad(2,1,:).*Ad(3,2,:).*Ad(1,3,:) + ...
+                Ad(3,1,:).*Ad(1,2,:).*Ad(2,3,:) - ...
+                Ad(3,1,:).*Ad(2,2,:).*Ad(1,3,:) - ...
+                Ad(2,1,:).*Ad(1,2,:).*Ad(3,3,:) - ...
+                Ad(1,1,:).*Ad(3,2,:).*Ad(2,3,:));
+    D = abs(D);
     
+    XhatTmp = bsxfun(@plus, repmat(Xq, 1, nTri)*A, b);
+    Xhat = zeros(nq*nTri,3);
+    Xhat(:,1) = reshape(XhatTmp(:,1:3:3*nTri),[],1);
+    Xhat(:,2) = reshape(XhatTmp(:,2:3:3*nTri),[],1);
+    Xhat(:,3) = reshape(XhatTmp(:,3:3:3*nTri),[],1);
+
     I(i,:) = vol*repmat(w,1,nTri).*rldecode(D,nq*ones(nTri,1),1)'*f(Xhat);
 
 end

@@ -40,10 +40,11 @@ function l2Err = l2Error3D(G, sol, u, k)
 %}
 
 nK = G.cells.num;
+nF = G.faces.num;
 [m, ~, ~] = retrieveMonomials(3,k);
 
 if k == 2;
-    uFaceMoments = polygonInt3D(G,1:G.faces.num,u,7)./G.faces.areas;
+    uFaceMoments = polygonInt3D(G,1:nF,u,7)./G.faces.areas;
     uCellMoments = polyhedronInt(G,1:nK, u, 7)./G.cells.volumes;
 end
 

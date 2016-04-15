@@ -4,16 +4,16 @@ addpath('../')
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
 
 n = 8;
-gridLim = [2,2,2];
+gridLim = [1,1,1];
 
-G = cartGrid([n,n,n],gridLim);
+% G = cartGrid([n,n,n],gridLim);
+% 
+% X = G.nodes.coords;
+% X = bsxfun(@minus, X, [1,1,1]);
 
-X = G.nodes.coords;
-X = bsxfun(@minus, X, [1,1,1]);
-
-G.nodes.coords = X;
+% G.nodes.coords = X;
 % G = tetrahedronCube([n,n,n], gridLim, 1);
-% G = voronoiCube(250  ,gridLim);
+G = voronoiCube(100  ,gridLim);
 
 
 % G = computeGeometry(G);
@@ -36,63 +36,23 @@ G.nodes.coords = X;
 % 
 % G.nodes.coords = X;
 
-
-
-% %--------------------------------------------------------------------------
-% %   -\delta u = 0,
-% %           u = 1/(2\pi||x-C||)
-% %--------------------------------------------------------------------------
-% f = @(X) zeros(size(X,1),1);
-% C = -[.2,.2,.2];
-% gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
-% k = 1;
-
 %--------------------------------------------------------------------------
 %   -\delta u = 0,
 %           u = 1/(2\pi||x-C||)
 %--------------------------------------------------------------------------
-f = @(X) zeros(size(X,1),1);
-C = -[.2,.2,.2];
-gD = @(X) X(:,1).*X(:,2).*X(:,3);
-k = 1;
+f = @(X) -2*ones(size(X,1),1);
+gD = @(X) X(:,1).^2;
+k = 2;
 
-% %--------------------------------------------------------------------------
-% %   -\delta u = 1,
-% %           u = -(x^2 + y^2 + z^2)/6
-% %--------------------------------------------------------------------------
-% f = @(X) ones(size(X,1),1);
-% gD = @(X) -(X(:,1).^2 + X(:,2).^2 + X(:,3).^2)/6;
-% k = 1;
-
-
-% %--------------------------------------------------------------------------
-% %   -\delta u = \sin(x)\cos(y)z(1+alpha^2\pi)(1+\alpha^2\pi^2)  ,
-% %           u = \sin(x)\cos(y)z(1+alpha^2\pi)
-% %--------------------------------------------------------------------------
-% alpha = 2;
-% f = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3)*(1+alpha^2*pi^2);
-% gD = @(X) sin(X(:,1)).*cos(alpha*pi*X(:,2)).*X(:,3);
-
-% beta = 4*1.8395265*10e-5;
-% 
-% alpha = gridLim(1)/n*(1/20*beta +1/5)*3*ones(G.cells.num,1);
-
-G = computeVEMGeometry(G,f,k);
-
-
-alpha = G.cells.diameters;
-
-
-boundaryFaces = (1:G.faces.num)';
+G = computeVEM3DGeometry(G);
                            
-boundaryFaces = boundaryFaces( G.faces.neighbors(:,1) == 0 | ...
-                               G.faces.neighbors(:,2) == 0 );
+boundaryFaces = find( G.faces.neighbors(:,1) == 0 | ...
+                      G.faces.neighbors(:,2) == 0 );
 
-bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryFaces}}, 'bcType', {{'dir'}});
+bc = VEM3D_addBC([], boundaryFaces, 'pressure', gD);
 
-sol = VEM3D(G,f,bc,k);
+[sol, G] = VEM3D(G, f, k, bc, 'cellProjectors', true);
 U = [sol.nodeValues; sol.edgeValues; sol.faceMoments; sol.cellMoments];
-
 
 Kc = G.cells.centroids;
 cells = 1:G.cells.num;
@@ -100,12 +60,11 @@ r = .7; c = [1,0,0];
 cells = cells(sum(bsxfun(@minus, Kc, c).^2,2) > r^2);
 faceNum = mcolon(G.cells.facePos(cells),G.cells.facePos(cells+1)-1);
 faces = G.cells.faces(faceNum);
-% faces = 1:G.faces.num;
 
 if k == 2
+
 figure();
 plotFaces(G,faces,sol.faceMoments(faces));
-
 colorbar;
 view(3);
 axis equal;
@@ -114,17 +73,16 @@ IF = polygonInt3D(G,1:G.faces.num,gD, 7);
 IC = polyhedronInt(G,1:G.cells.num,gD, 7);
 
 u = [gD([G.nodes.coords; G.edges.centroids]); IF./G.faces.areas; IC./G.cells.volumes];
-
 err = abs((U - u));
-
 elseif k == 1
     u = gD(G.nodes.coords);
     err = abs(U-u);
 end
 
-h = sum(G.cells.diameters)/G.cells.num;
+l2Err = l2Error3D(G, sol, gD ,k);
 
-fprintf('Error: %d\n', norm(err, 2));
+fprintf('2-norm error: %d\n', norm(err, 2));
+fprintf('L^2-norm error: %d\n', sqrt(sum(l2Err.^2)));
 figure()
 plot(err);  
 % % plot(nodeValues)

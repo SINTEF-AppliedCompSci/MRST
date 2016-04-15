@@ -3,78 +3,73 @@
 %--------------------------------------------------------------ØSK-2016021-
 
 clc; clear; close all;
-
-addpath('../')              %  Extra grid mappings.
-            
-                            %   Voronoi grid generation. Replace path with
-                            %   your own local version.
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
 
+ex = 1;
+switch ex
+    case 1
+        f  = @(X) pi^2*X(:,1).*sin(pi*X(:,2).*X(:,3)).*(X(:,2).^2 + X(:,3).^2);
+        gD = @(X) X(:,1).*sin(pi*X(:,2).*X(:,3));
+        grid = 'pebi';
+        neu = false;
+    case 2
+        f  = @(X) pi^2*X(:,1).*sin(pi*X(:,2).*X(:,3)).*(X(:,2).^2 + X(:,3).^2);
+        gD = @(X) X(:,1).*sin(pi*X(:,2).*X(:,3));
+        grid = 'cart';
+        neu = false;
+end
 
-% f = @(X) 100*X(:,1).*pi^2.*cos(pi*X(:,2)) - exp(X(:,3));
-% 
-%                             %   Dirichlet boundary condition.
-%                             %   This is also the exact solution of this
-%                             %   example.
-% gD = @(X) 100*X(:,1).*cos(pi*X(:,2)) + exp(X(:,3));
-
-% %--------------------------------------------------------------------------
-% %   -\delta u = 0,
-% %           u = 1/(2\pi||x-C||)
-% %--------------------------------------------------------------------------
-% f = @(X) zeros(size(X,1),1);
-% C = -[.2,.2,.2];
-% gD = @(X) -1./(2*pi*sqrt(sum((X-repmat(C,size(X,1),1)).^2,2)));
-
-f = @(X) -exp(X(:,1));
-gD = @(X) exp(X(:,1));
-
-nVec = [200 400 800 1600];
-% nVec = [40, 160, 640];
-% nVec = [10, 20, 30, 40];
+nVec = [125, 250, 500, 1000];
 nn = numel(nVec);
-hVec = zeros(nn, 1);
-errVec = zeros(nn,1);
+errVec = zeros(nn, 3);
+err = zeros(nn,2);
 
 for i = 1:nn
     
 n = nVec(i);
-                            %   Generate grid.
-G = voronoiCube(n,[1,1,1]);
-n = ceil(n^(1/3));
-% G = cartGrid([n,n,n], [1,1,1]);
 
-                            %   Compute VEM geometry.
-G = computeVEMGeometry(G,f);
+if strcmp(grid, 'cart')
+    n = round(n^(1/3));
+    G = cartGrid([n,n,n], [1,1,1]);
+else
+    G = voronoiCube(n,[1,1,1]);
+end
 
-                            %   Define boundary faces.
-boundaryFaces = (1:G.faces.num)';                           
-boundaryFaces = boundaryFaces( G.faces.neighbors(:,1) == 0 | ...
-                               G.faces.neighbors(:,2) == 0       );
+%   Compute VEM geometry.
+G = computeVEM3DGeometry(G);
 
-                            %   Set boundary condition struct.
-bc = struct('bcFunc' , {{gD}}           , ...
-            'bcFaces', {{boundaryFaces}}, ...
-            'bcType' , {{'dir'}}              );
+%   Define boundary faces.                          
+boundaryFaces = find(any(G.faces.neighbors == 0,2));
+isNeu = false(numel(boundaryFaces),1);
+if neu
+    isNeu = boundaryFaces(G.faces.centroids(boundaryFaces,1) == 0);
+else
+    gN = 0;
+end
 
-                            %   Solve using second order VEM.
-sol = VEM3D(G,f,bc,2);
-U = [sol.nodeValues; sol.edgeValues; sol.faceMoments; sol.cellMoments];
+%   Set boundary conditions.
+bc = VEM3D_addBC([], boundaryFaces(~isNeu), 'pressure', gD);
+% bc = VEM3D_addBC(bc, boundaryFaces(isNeu), 'flux', gN);
 
-IF = polygonInt3D(G,1:G.faces.num,gD, 7);
-IC = polyhedronInt(G,1:G.cells.num,gD, 7);
-u = [gD([G.nodes.coords; G.edges.centroids]);
-     IF./G.faces.areas ; IC./G.cells.volumes ];
+%   Solve.
+[sol1, G1] = VEM3D(G, f, bc, 1, 'cellProjectors', true);
+[sol2, G2] = VEM3D(G, f, bc, 2, 'cellProjectors', true);
 
-nK = G.cells.num;
-h = sum(G.cells.diameters)/nK;
-hVec(i) = h;
-
-errVec(i) = sqrt(h^3)*norm(U-u, 2);
+%   L2 error estimate.
+l2Err1 = l2Error3D(G1, sol1, gD, 1);
+l2Err2 = l2Error3D(G2, sol2, gD, 2);
+h = mean(G.cells.diameters);
+errVec(i,:) = [h, sqrt(sum(l2Err1)), sqrt(sum(l2Err2))];
 
 end
 
-loglog(hVec, errVec, '-sq', hVec, .8*errVec(nn)*(hVec/hVec(nn)).^3, '-.r', 'LineWidth', 1.5);
+loglog(errVec(:,1), errVec(:,2), 'sq-', errVec(:,1), errVec(:,3), 'sq-');
+s1 = polyfit(log(errVec(:,1)), log(errVec(:,2)), 1);
+s2 = polyfit(log(errVec(:,1)), log(errVec(:,3)), 1);
+fprintf('Empiric Convergence rate %f for 1st order VEM\n', s1(1));
+fprintf('Empiric Convergence rate %f for 2nd order VEM\n\n', s2(1));
+% 
+% loglog(err(:,1), err(:,2));
+% 
+% s1 = polyfit(log(err(:,1)), log(err(:,2)), 1);
 
-slope = polyfit(log(hVec), log(errVec), 1);    
-fprintf('Slope: %f', slope(1));

@@ -113,10 +113,6 @@ end
 faces = bc.faces(strcmp(bc.type, 'pressure'));
 nF = numel(faces);
 
-N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2 ...
-                                                 + G.cells.num*k*(k^2-1)/6;
-I = spdiags(ones(N,1),0,N,N);
-
 for i = 1:nF
     
     F = faces(i);
@@ -139,5 +135,19 @@ for i = 1:nF
                                             F + G.nodes.num + G.edges.num];
     end
     b(dofVec) = gChi;
-    A(dofVec,:) = I(dofVec,:);
 end
+
+nodeNum = mcolon(G.faces.nodePos(faces),G.faces.nodePos(faces+1)-1);
+nodes   = G.faces.nodes(nodeNum);
+if k == 1
+    dofVec = nodes';
+elseif k == 2
+    edgeNum = mcolon(G.faces.edgePos(faces), G.faces.edgePos(faces+1)-1);
+    edges = G.faces.edges(edgeNum);
+    dofVec = [nodes', edges' + G.nodes.num, faces' + G.nodes.num + G.edges.num];
+end
+
+N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2 ...
+                                                 + G.cells.num*k*(k^2-1)/6;
+I = spdiags(ones(N,1),0,N,N);
+A(dofVec,:) = I(dofVec,:);
