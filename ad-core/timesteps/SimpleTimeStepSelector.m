@@ -143,8 +143,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             % Ensure that step does not change too much
             change = dt_new/dt;
-            change = min(change, selector.maxRelativeAdjustment);
-            change = max(change, selector.minRelativeAdjustment);
+            if ~selector.isStartOfCtrlStep
+                % Apply maximum relative adjustment only if we are not at
+                % start of control step
+                change = min(change, selector.maxRelativeAdjustment);
+                change = max(change, selector.minRelativeAdjustment);
+            end
 
             dt = dt*change;
             
