@@ -1,0 +1,107 @@
+function plotReportIterations(report, schedule)
+% Utility for showing convergence behavior of report from
+% simulateScheduleAD.
+    if nargin == 1
+        schedule = [];
+    end
+    nctrl = numel(report.ControlstepReports);
+    nsubstep = cellfun(@(x) numel(x.StepReports), report.ControlstepReports);
+    substepNo = rldecode((1:nctrl)', nsubstep);
+    
+    ministeps = cellfun(@(x) vertcat(x.StepReports{:}), ...
+                report.ControlstepReports, 'UniformOutput', false);
+    ministeps = vertcat(ministeps{:});
+    
+    ok = vertcat(ministeps.Converged);
+    its = vertcat(ministeps.Iterations);
+    
+    T_mini = vertcat(ministeps.LocalTime);
+    T_ctrl = [0; report.ReservoirTime(1:end-1)];
+    
+    tunit = day;
+    % Timesteps of all ministeps (including those who failed)
+    T_all = (T_mini + T_ctrl(substepNo))/tunit;
+    % The actual timesteps that converged
+    T = [0; T_mini(ok) + T_ctrl(substepNo(ok))]/tunit;
+    figure;
+    hold on
+    
+    nsub = numel(T_all);
+    steps = (1:nsub)';
+    
+    % Plot the ministeps
+    covered = false(nsub, 1);
+    stepSize = zeros(nsub, 1);
+    for i = 2:numel(T)
+        t0 = T(i-1);
+        t1 = T(i);
+
+        substeps = steps(T_all > t0 & T_all <= t1);
+        
+        notConverged = ~ok(substeps);
+        if any(notConverged)
+            good = substeps(~notConverged);
+            bad = substeps(notConverged);
+        else
+            assert(numel(substeps) <= 1);
+            good = substeps;
+            bad = [];
+        end
+        
+        offset = 0;
+        if any(good)
+            plotBar(t0, t1, 0, its(good), [0, 178, 60]/255);
+            offset = its(good);
+        end
+        
+        for j = 1:numel(bad)
+            ib = its(bad(j));
+            plotBar(t0, t1, offset, offset + ib, [178, 5, 0]/255);
+            offset = offset + ib;
+            
+        end
+
+        covered(substeps) = true;
+        stepSize(i) = offset;
+    end
+
+    T_sub = [0; report.ReservoirTime]/tunit;
+    
+    % Plot changes in controls
+    if ~isempty(schedule)
+        all_ctrl = schedule.step.control;
+        ctrl = unique(all_ctrl);
+        
+        if numel(ctrl) > 1
+            colors = jet(max(ctrl));
+            c = all_ctrl(1);
+            x = 0;
+            y = max(stepSize);
+            for i = 2:numel(all_ctrl)
+                if i == numel(all_ctrl) || all_ctrl(i+1) ~= c
+                    xn = T_sub(i+1);
+                    plotBar(x, xn, 0, y, [1, 1, 1], 'facecolor', 'none', 'edgecolor', colors(c, :), 'linewidth', 3);
+                    x = xn;
+                    if i < numel(all_ctrl)
+                        c = all_ctrl(i+1);
+                    end
+                end
+            end
+        end
+    end
+    
+    
+    % Plot control steps
+    for i = 1:nctrl
+        plotBar(T_sub(i), T_sub(i+1), 0, max(stepSize), [1, 1, 1], ...
+            'FaceColor', 'none', 'EdgeColor', [.65, .65, .65], 'LineWidth', 1, 'LineStyle', '-');
+    end
+    ylabel('Iterations used in ministep');
+    xlabel('Time [days]')
+end
+
+function h = plotBar(x1, x2, y0, y1, varargin)
+    X = [x1, x1, x2, x2];
+    Y = [y0, y1, y1, y0];
+    h = patch(X, Y, varargin{:});
+end
