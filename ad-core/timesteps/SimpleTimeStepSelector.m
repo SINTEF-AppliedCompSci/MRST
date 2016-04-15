@@ -161,8 +161,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 if ~isempty(selector.history)
                     fprintf('Prev # its: %d -> ', selector.history(end).Iterations)
                 end
-                fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
-                    dt/dt0, formatTimeRange(dt0), formatTimeRange(dt));
+                fprintf('Suggested timestep modification of a factor %1.2f. dT: %s -> %s\n',...
+                    dt/dt0, formatTimeRange(dt0, 2), formatTimeRange(dt, 2));
             end
 
             if dt ~= dt_new
