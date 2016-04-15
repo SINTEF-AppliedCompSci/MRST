@@ -22,6 +22,8 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
     opt.plot_co2_height     = true;
     opt.plot_fraction_overburden = true;
     
+    opt.arbitrary_well_cost = []; % USD/well
+    
     opt.warningOn = true;
     opt.outputOn = true;
     
@@ -167,7 +169,11 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
     % pressure state to determine maximal retaining capacity, or at the
     % very least, surface pressure should be included in calculation of
     % hydrostatic pressure).
-    seainfo = getSeaInfo(other.opt.modelname, other.opt.refRhoCO2); % contains seainfo.dis_max
+    if ~strcmpi(other.opt.modelname,'Synthetic')
+        seainfo = getSeaInfo(other.opt.modelname, other.opt.refRhoCO2); % contains seainfo.dis_max
+    else
+        seainfo = getSeaInfo('NorthSea', other.opt.refRhoCO2);
+    end
     %fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false, ...
     %                           'surf_press', other.opt.surface_pressure);
     fmCap   = getTrappingInfo(Gt, other.rock, seainfo, 'mapPlotOn',false, ...
@@ -228,6 +234,23 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
         convertTo(rtrap_achieved, giga*kilo), (convertTo(rtrap_achieved, giga*kilo)/rtrapCap)*100, ...  
         convertTo(other_achieved, giga*kilo), ...
         other.opt.pressure_penalty );
+    
+    % Accounting for well cost:
+    % NB: if qGs >= 2*sqrt(eps), well treated as active
+    % # wells placed | total_inj(Mt) | total_inj - total_leaked |
+    % total_leaked (total_leaked/total_inj)*100 | S(MillionUSD) | # active wells | 
+    % S - # active wells * well_initial_cost
+    if ~isempty(opt.arbitrary_well_cost)
+    num_active_wells = numel([optim.schedule.control(1).W.val] >= 2*sqrt(eps)); % @@ test threshold
+    fprintf('%2.0f & %5.3f & %5.3f & %5.3f (%3.2f) & %6.3f & %2.0f & %6.3f \\\\ \n', ...
+        numel([optim.schedule.control(1).W.val]), ...
+        total_inj*1e3, ...
+        (total_inj - total_leaked)*1e3, ...
+        total_leaked*1e3, (total_leaked/total_inj)*100, ...
+        optim.obj_val_total/1e6, ... % when obj val is in USD
+        num_active_wells, ...
+        (optim.obj_val_total - num_active_wells*opt.arbitrary_well_cost)/1e6);
+    end
 
     elseif strcmpi(other.opt.btype,'flux')
     %fprintf('Formation       | Total inj. (Gt) | Seff (Perc.) | Perc.FracPress | StrapAchieved (Gt,Perc.) | RtrapAchieved (Gt,Perc.) | MovePlume(Gt) | cp \n');

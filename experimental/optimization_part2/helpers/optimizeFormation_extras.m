@@ -9,15 +9,24 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    opt = merge_options(opt_defaults(), varargin{:});
    
    %% Physical grid and rock
-   [Gt, rock2D, ~] = getFormationTopGrid(opt.modelname, opt.coarse_level);
+   if ~strcmpi(opt.modelname, 'Synthetic')
+        [Gt, rock2D, ~] = getFormationTopGrid(opt.modelname, opt.coarse_level);
+   else
+        Gt          = dipped_perturbed_grid('Lx', 10000, 'Ly', 5000, 'H', 50);
+        rock2D.poro = NaN * ones(Gt.cells.num,1);
+        rock2D.perm = NaN * ones(Gt.cells.num,1);
+   end
+
    if any(isnan(rock2D.perm))
         rock2D.perm = 500*milli*darcy * ones(Gt.cells.num,1);
    end
    if any(isnan(rock2D.poro))
         rock2D.poro = 0.25 * ones(Gt.cells.num,1); 
    end
+   % @@ however, we do not want to overwrite all perm, poro, only the NaN
+   % entries...
    
-   %% Spill-point analysis objec
+   %% Spill-point analysis object
    ta = trapAnalysis(Gt, false);
    
    %% CO2 property object
@@ -42,19 +51,21 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
 
    %% Defining fluid
    % computing fixed temperature field
+   % (NB: when ref_temp and ref_depth are the quantities at the seafloor,
+   % T_ref is the caprock temperature.)
    T_ref = opt.ref_temp + opt.temp_grad * (Gt.cells.z - opt.ref_depth) / 1000;   
    
    fluid = makeVEFluid(Gt, rock2D, 'sharp interface'                   , ...
                        'fixedT'       , T_ref                          , ...
                        'residual'     , [opt.sw        , opt.sr]       , ...
                        'wat_rho_ref'  , opt.rhoW                       , ...
-                       'co2_rho_ref'  , opt.refRhoCO2                  , ... 
+                       'co2_rho_ref'  , opt.refRhoCO2                  , ... % does this have to relate to mean(caprock_pressure) and T_ref?
                        'wat_rho_pvt'  , [opt.c_water   , opt.refPress] , ...
                        'co2_rho_pvt'  , [opt.p_range   , opt.t_range]  , ...
                        'wat_mu_ref'   , opt.muBrine                    , ...
                        'co2_mu_pvt'   , [opt.p_range   , opt.t_range]  , ...
                        'pvMult_fac'   , opt.pvMult                     , ...
-                       'pvMult_p_ref' , opt.refPress                   , ...
+                       'pvMult_p_ref' , opt.refPress                   , ... % mean(caprock_pressure)
                        'dissolution'  , opt.dissolution                , ...
                        'dis_rate'     , opt.dis_rate                   , ...
                        'dis_max'      , opt.dis_max                    , ...
@@ -113,7 +124,10 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                         opt.well_buffer_dist_catchment, ...
                         'inspectWellPlacement',false, 'E_closed', E);
         end
+        assert(~isempty(wc), 'No well was placed.')
         
+        qt = qt * 2;% @@
+        qt(3:end) = 0;
       
         %%% 2) Create schedule based on control type: -----------------------
         if strcmpi(opt.well_control_type,'rate')
@@ -162,7 +176,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         fprintf('\n Using schedule passed in as varargin. \n')
         if isa(opt.schedule,'char')
             tmp = load(opt.schedule);
-            if isfield(tmp,'optim')
+            if isfield(tmp,'optim') % extend to handle init.schedule, etc.
                 tmp = tmp.optim;
             end
             name = fields(tmp);
@@ -180,6 +194,19 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         % they may have changed slightly as above)
         for i=1:numel([opt.schedule.control(1).W.val])
            opt.schedule.control(1).W(i).val = max(sqrt(eps),opt.schedule.control(1).W(i).val); 
+        end
+        %
+        % Extend migration period (optional)
+        if ~isempty(opt.extended_mig_time)
+           opt.schedule = extend_migration_sch( opt.schedule, opt.extended_mig_time ); 
+           opt.mtime = opt.extended_mig_time;
+        end
+        %
+        % Set rates during migration to be zero
+        if opt.set_mig_rates_to_0
+            for i=1:numel([opt.schedule.control(2).W.val])
+                opt.schedule.control(2).W(i).val = 0; 
+            end
         end
     end
     
@@ -231,9 +258,11 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
     assert( all(max_wvals >= [opt.schedule.control(1).W.val]') , ...
             'An initial well value exceeds the maximum constraint.')
     assert( all(min_wvals <= [opt.schedule.control(1).W.val]') , ...
-            'An initial well value is less than the minimum constraint.') 
-    assert( all(min_mig_rates <= [opt.schedule.control(2).W.val]') , ...
+            'An initial well value is less than the minimum constraint.')
+    if ~opt.set_mig_rates_to_0
+        assert( all(min_mig_rates <= [opt.schedule.control(2).W.val]') , ...
             'An initial migration rate is less than the minimum rate constraint.')
+    end
 
    %% Set up model and run optimization
    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
@@ -246,12 +275,17 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                      'penalize_type',       opt.penalize_type, ...
                      'leak_penalty',        opt.leak_penalty, ...
                      'pressure_penalty',    opt.pressure_penalty, ...
-                     'pressure_limit',      P_limit, ... % empty if using rate-controls
+                     'pressure_limit',      P_limit, ...
+                     'account_well_cost',   opt.account_well_cost, ...
+                     'well_initial_cost',   opt.well_initial_cost, ...
+                     'well_operation_cost', opt.well_operation_cost, ...
+                     'co2_tax_credit',      opt.co2_tax_credit, ...
                      'rho_water',           fluid.rhoWS, ...
                      'surface_pressure',    opt.surface_pressure, ...
                      'lineSearchMaxIt',     opt.lineSearchMaxIt, ...
                      'gradTol',             opt.gradTol, ...
-                     'objChangeTol',        opt.objChangeTol);
+                     'objChangeTol',        opt.objChangeTol, ...
+                     'obj_scaling',         []);
                  
    %% Store data
    %other.fluid = fluid; % @@ fluid structure is ~400MB when saved, but required for results
@@ -454,6 +488,8 @@ function opt = opt_defaults()
 
     opt.modelname = 'utsirafm';
     opt.schedule = [];
+    opt.extended_mig_time = [];
+    opt.set_mig_rates_to_0 = false;
     opt.coarse_level = 3;
     
     % Number of timesteps (injection and migration)
@@ -509,6 +545,13 @@ function opt = opt_defaults()
     opt.pressure_penalty = [];
     opt.p_lim_factor = 0.9; % factor to apply to P_overburden
     
+    % Accounting for well cost:
+    opt.account_well_cost = false;
+    opt.well_initial_cost = [];
+    opt.well_operation_cost = [];
+    opt.co2_tax_credit = [];
+   
+    
     % Boundary type:
     opt.btype = 'pressure'; % 'pressure' or 'flux'
    
@@ -541,7 +584,7 @@ end
 % ----------------------------------------------------------------------------
 
 function p = compute_hydrostatic_pressure(Gt, rho_water, surface_pressure)
-    
+    gravity on;
     p = rho_water * norm(gravity()) * Gt.cells.z + surface_pressure;
 end
 

@@ -83,7 +83,7 @@ function [wc, qt] = pick_wellsites_onePerTrapRegion(Gt, rock2D, co2, ta, rhoW, .
             trapcap(trapID) = 0;
             
             % Determine whether to continue iteration loop
-            if numel(wc) > max_num_wells % @@ change > to == ?
+            if numel(wc) == max_num_wells
                 fprintf('No more wells placed: max number of wells have been placed.\n')
                 % a check for closed-system
                 qt = adjust_inject_masses(qt, Gt, rock2D, rhoW, seafloor_temp, seafloor_depth, tgrad, co2, opt);

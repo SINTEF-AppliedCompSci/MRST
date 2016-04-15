@@ -37,9 +37,15 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    opt.pressure_limit   = [];
    
    % for using leak_penalizer_at_infinity:
-   opt.penalize_leakage_at_infinity = false; % if true, uses alternative obj_fun to the default one
+   %opt.penalize_leakage_at_infinity = false; % if true, uses alternative obj_fun to the default one
    opt.surface_pressure = [];
    opt.rho_water = [];
+   
+   % for accounting for well cost:
+   opt.account_well_cost = false;
+   opt.well_initial_cost = [];      % USD
+   opt.well_operation_cost = [];    % USD/tonne
+   opt.co2_tax_credit = [];         % USD/tonne
    
    opt.last_control_is_migration = false; % if true, constrain last control
                                           % to zero rate
@@ -65,19 +71,45 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
                          obj_funB(states, varargin{:}));                    
    end
    
+   ta = trapAnalysis(model.G,false); % potentially used in evaluate_obj for spill-point dynamics
+   
    % another possible objection function to use:
    % penalizes leakage which is determined at infinity, by computing the
    % volume of co2 accumulated (i.e., remaining) in formation at time
    % infinity using spill-point dynamics.
    % @@ requires testing...
-   if opt.penalize_leakage_at_infinity
+   if strcmpi(opt.penalize_type,'leakage_at_infinity')
        assert(~isempty(opt.surface_pressure))
        assert(~isempty(opt.rho_water))
        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
                   leak_penalizer_at_infinity(model, wellSols, states, ...
                   schedule, opt.leak_penalty, opt.surface_pressure, ...
-                  opt.rho_water, varargin{:});
+                  opt.rho_water, ta, varargin{:});
    end
+   
+   % another possible term to add to objective function:
+   % a term to account for well cost/operation
+   if opt.account_well_cost
+       assert(~isempty(opt.well_initial_cost));
+       assert(~isempty(opt.well_operation_cost));
+       assert(~isempty(opt.co2_tax_credit));
+       
+       obj_funC = opt.obj_fun; clear opt.obj_fun; opt.obj_fun = @(dummy) 0;
+       
+       obj_funD = @(wellSols, schedule, varargin) account_well_cost(model, wellSols, schedule, ...
+           opt.well_initial_cost, opt.well_operation_cost, varargin{:});
+       
+%        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
+%            cell_subtract( cell_scalar_multiply( obj_funC(wellSols, states, schedule, varargin{:}), opt.co2_tax_credit*1e9 ), ...
+%                          obj_funD(wellSols, schedule, varargin{:}) );
+                     
+       opt.obj_fun = @(wellSols, states, schedule, varargin) ...
+           report_savings(  obj_funC(wellSols, states, schedule, varargin{:}), ...
+                            opt.co2_tax_credit*1e9, ...
+                            obj_funD(wellSols, schedule, varargin{:}), ...
+                            varargin{:} );
+   end
+   
    
    opt = merge_options(opt, varargin{:});
    
@@ -111,7 +143,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
           plot(1:numel(init.obj_val_steps), init.obj_val_steps, '+')
           legend('objA','-objB','objA - objB', 'Location','SouthWest')
           drawnow
-
+          
       else
           init.obj_val_steps = cell2mat(opt.obj_fun(init.wellSols, ...
                                                 init.states, ...
@@ -125,6 +157,10 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
       opt.obj_scaling = abs(init.obj_val_total);
       if strcmpi(opt.penalize_type,'pressure')
         opt.obj_scaling = abs( sum(init.obj_val_steps_A) );
+        
+      %elseif opt.account_well_cost % @@ special scaling required ?
+      %  opt.obj_scaling = abs( sum( cell2mat( obj_funC(init.wellSols, init.states, init.schedule) ) ) );
+      
       end
    end
    
@@ -154,7 +190,7 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    scaling.obj = opt.obj_scaling;
    
    obj_evaluator = @(u) evaluate_objective(u, opt.obj_fun, model, initState, ...
-                                           schedule, scaling); 
+                                           schedule, scaling, opt.leak_penalty, ta); 
 
    %% Define constraints
    
@@ -229,7 +265,14 @@ function c = cell_subtract(a, b)
     for i = 1:numel(c)
         c{i} = c{i} - b{i};
     end
- end
+end
+ 
+function c = cell_scalar_multiply(a, scalar)
+    c = a;
+    for i = 1:numel(c)
+        c{i} = c{i}*scalar; 
+    end
+end
 
 % ----------------------------------------------------------------------------
 
@@ -298,6 +341,7 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
          if ~opt.ComputePartials
             fprintf('Total injected: %f (m3)\n', double(krull));
             fprintf('Total leaked: %f (m3)\n', double(krull - vol));
+            fprintf('Penalty: %f \n', penalty)
             fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol));
          end
       end
@@ -308,8 +352,8 @@ end
 % ----------------------------------------------------------------------------
 
 function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
-    penalty, surf_press, rho_water, varargin)
-% new objection function to penalize leakage 'felt' at infinity, using
+    penalty, surf_press, rho_water, ta, varargin)
+% new objective function to penalize leakage 'felt' at infinity, using
 % spill-point dynamics.
 
 % pressure is assumed to be hydrostatic at time infinity.
@@ -339,8 +383,8 @@ function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
       pBHP = zeros(nW, 1); % place holder
       qGs = vertcat(sol.qGs);
       qWs = vertcat(sol.qWs);
-      %p = state.pressure;
-      p = compute_hydrostatic_pressure(model.G, rho_water, surf_press);
+      p = state.pressure;
+      p_future = compute_hydrostatic_pressure(model.G, rho_water, surf_press);
       sG = state.s(:,2);
       if opt.ComputePartials
          %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
@@ -369,21 +413,26 @@ function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
 %              model.rock.poro .* model.fluid.pvMultR(state.pressure), ...
 %              state.s(:,2) .* model.fluid.bG(state.pressure), ...
 %              model.fluid.res_water );
-         rock2D.poro = model.rock.poro .* model.fluid.pvMultR(p);
-         rock2D.ntg  = ones(model.G.cells.num,1);
-         if isfield(model.rock,'ntg')
-             rock2D.ntg = model.rock.ntg; % in case ntg doesn't exist
-         end 
+%          rock2D.ntg  = ones(model.G.cells.num,1);
+%          if isfield(model.rock,'ntg')
+%              rock2D.ntg = model.rock.ntg; % in case ntg doesn't exist
+%          end 
+%          rock2D.poro = model.rock.poro .* model.fluid.pvMultR(p);
+%          vol_inf = vol_at_infinity( model.G, ...
+%              rock2D, ... % or rock2D.poro .* model.fluid.pvMultR(p) ? @@
+%              sG .* model.fluid.bG(p), ...
+%              model.fluid.res_water, model.fluid.res_gas); % using possible ADI variables
          vol_inf = vol_at_infinity( model.G, ...
-             rock2D, ...
-             sG .* model.fluid.bG(p), ...
-             model.fluid.res_water); % using possible ADI variables
+             model.rock, sG, model.fluid, p, p_future, 'ta', ta );
+         % NB: vol_inf is at ref. depth
+         % NB: sG, p may be ADI variables, thus vol_inf may also be ADI
          
          % J = (1-C) M^i + C M^a
          obj{step} = obj{step} + penalty * vol_inf;
          if ~opt.ComputePartials
             fprintf('Total injected: %f (m3)\n', double(krull));
-            fprintf('Total leaked: %f (m3)\n', double(krull - vol_inf));
+            fprintf('Total leaked (by infinity): %f (m3)\n', double(krull - vol_inf));
+            fprintf('Penalty: %f \n', penalty)
             fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol_inf));
          end
       end
@@ -392,6 +441,73 @@ function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
 
 
 end
+
+% ----------------------------------------------------------------------------
+
+function obj = account_well_cost(model, wellSols, schedule, initial_cost, operation_cost, varargin )
+% operation_cost is in units of USD per tonne CO2
+% initial_cost is in units of USD
+% obj{steps} returned is in units of USD
+
+   opt.ComputePartials = false;
+   opt.tStep = [];
+   opt = merge_options(opt, varargin{:});
+   
+   num_timesteps = numel(schedule.step.val);
+   num_inj_timesteps = numel(schedule.step.val(schedule.step.control==1));
+   tSteps = opt.tStep;
+   if isempty(tSteps)
+      numSteps = numel(wellSols); % @@ use wellSols or schedule?
+      tSteps = (1:numSteps)';
+      dts = schedule.step.val;
+   else
+      assert(numel(tSteps) == 1);
+      numSteps = 1;
+      dts = schedule.step.val(opt.tStep);
+   end
+   
+   obj = repmat({[]}, numSteps, 1);
+
+   for step = 1:numSteps
+      sol = wellSols{tSteps(step)};
+      nW = numel(sol);
+      pBHP = zeros(nW, 1); % place holder
+      qGs = vertcat(sol.qGs);
+      qWs = vertcat(sol.qWs);
+      p = zeros(model.G.cells.num,1); % place holder
+      sG = zeros(model.G.cells.num,1); % place holder
+      if opt.ComputePartials
+         %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
+         [p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
+      end
+      dt = dts(step);
+      injInx = (vertcat(sol.sign) > 0);
+      
+      % for each time step, compute a non-negative well cost
+      % NB: if qGs < 2*sqrt(eps), then well neglected (treated as 0 cost)
+      
+      cost_for_having = ones(nW, 1) * (initial_cost/num_inj_timesteps); % USD
+                    
+      % NB: operation_cost is [USD/tonne] (1 tonne = 1e3 kg)
+      % NB: dt*qGs is [m3] at ref depth
+      % NB: dt*qGs*rhoGS is [kg]
+      cost_for_operating = operation_cost * dt * injInx .* qGs .* model.fluid.rhoGS/1e3;     % USD
+                       
+      obj{step} = sum( (cost_for_having + cost_for_operating) .* max(0, sign(qGs - 2*sqrt(eps))) ); % USD
+
+      
+      if (tSteps(step) == num_timesteps)
+         if ~opt.ComputePartials
+%             fprintf('Total injected: %f (m3)\n', double(krull));
+%             fprintf('Total leaked: %f (m3)\n', double(krull - vol_inf));
+%             fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol_inf));
+            fprintf('Well cost is %f USD. \n\n', sum(cell2mat(obj)) );
+         end
+      end
+   end
+
+end
+
 
 % ----------------------------------------------------------------------------
 
@@ -481,7 +597,8 @@ end
 % ----------------------------------------------------------------------------
 
 function [val, der, wellSols, states] = ...
-       evaluate_objective(u, obj_fun, model, initState, schedule, scaling) 
+       evaluate_objective(u, obj_fun, model, initState, schedule, scaling, cp, ta) 
+% cp and ta passed in for plotting purposes
    
    if ~strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
        % assume:
@@ -534,10 +651,15 @@ function [val, der, wellSols, states] = ...
      set(0, 'CurrentFigure', 11); clf(11);
    end
    h1 = plot(1:numel(vals), [vals{:}], '+');
-   val  = sum(cell2mat(vals))/abs(objScaling);
-   legend([h1],{['scaled obj val: ',num2str(val)]},'Location','SouthWest')
+   val = sum(cell2mat(vals))/abs(objScaling);
+   %legend([h1],{['scaled obj val: ',num2str(val)]},'Location','SouthWest')
+   title(['scaled obj val: ',num2str(val)])
    drawnow
 
+   % visualize:
+   % assuming surface pressure = 1 * atm
+   %plotObjValues(model, wellSols, states, schedule, cp, 1 * atm, ta)
+   
    % run adjoint:
    if nargout > 1
       objh = @(tstep)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
@@ -551,22 +673,46 @@ function [val, der, wellSols, states] = ...
           der2 = scaleGradient({g{2}}, s2, boxLims2, objScaling);
           der = vertcat(der1{:}, der2{:});
       end
-      % %% @@ 
-      % % Compute numeric derivative, to verify gradient
-      % vd = u*0;
-      % du = 1e-7;
-      % for i = 1:numel(u)
-      %    u_tmp = u;
-      %    u_tmp(i) = u_tmp(i) + du; % to compute partial derivative along i
-      %    tmp_schedule = control2schedule(u_tmp, schedule, scaling);
-      %    [ws, st] = simulateScheduleAD(initState, model, tmp_schedule);
-      %    tmp_val = obj_fun(ws, st, tmp_schedule);
-      %    tmp_val = sum(cell2mat(tmp_val))/abs(objScaling);
-      %    vd(i) = (tmp_val - val) / du;
-      % end
-      % vd;
+%       %% @@ 
+%       % Compute numeric derivative, to verify gradient
+%       vd = u*0;
+%       du = 1e-7;
+%       for i = 1:numel(u)
+%          u_tmp = u;
+%          u_tmp(i) = u_tmp(i) + du; % to compute partial derivative along i
+%          tmp_schedule = control2schedule(u_tmp, schedule, scaling);
+%          [ws, st] = simulateScheduleAD(initState, model, tmp_schedule);
+%          tmp_val = obj_fun(ws, st, tmp_schedule);
+%          tmp_val = sum(cell2mat(tmp_val))/abs(objScaling);
+%          vd(i) = (tmp_val - val) / du;
+%       end
+%       vd;
    end
 end
+
+function obj = report_savings(  J1, co2_tax_credit, J2, varargin )
+% J1: obj values [Gt] for each time step, computed by an obj function
+% (either 'leak_penalizer', 'leak_penalizer_at_infinity', 'pressure_penalizer')
+% co2 tax credit [USD/Gt]
+% J2: obj values [USD] for each time step, computed by account_well_cost
+
+   opt.ComputePartials = false;
+   opt.tStep = [];
+   opt = merge_options(opt, varargin{:});
+
+    % simply compute amount USD saved (neg implies USD spent)
+    % obj = MassStored * tax_credit - sum_i ( InitialCost_i + OperationCost_i ); for i=1:num_wells
+    obj = cell_subtract( cell_scalar_multiply(J1,co2_tax_credit), J2 );
+    
+    if ~opt.ComputePartials
+        % reporting:
+        fprintf('\nMass stored (after penalization): %f Gt\n', sum(full(cell2mat(J1))) ) % @@ J1 may be sparse if cp=1
+        fprintf('Value of this mass stored: %f USD\n', sum( full(cell2mat(cell_scalar_multiply(J1,co2_tax_credit))) ) )
+        fprintf('Well costs: %f USD\n', sum(cell2mat(J2)) )  
+        fprintf('Savings: %f USD\n\n', sum(cell2mat(obj)) )
+    end
+end
+
 
 % ----------------------------------------------------------------------------
 
@@ -582,6 +728,66 @@ end
 function p = compute_hydrostatic_pressure(Gt, rho_water, surface_pressure)
 
     p = rho_water * norm(gravity()) * Gt.cells.z + surface_pressure;
+end
+
+function plotObjValues(model, wellSols, states, schedule, cp, surf_press, ta)
+
+    % Obtain the obj values: (Xyrs is the number of migration years)
+    % Also, mass or volume inventories can be shown
+    [obj_val_steps_Xyrs, ~, Mi_tot, Ma] = leak_penalizer_Rerun(model, wellSols, ...
+                        states, schedule, cp); 
+    [obj_val_steps_Xyrs_noPenalty] = leak_penalizer_Rerun(model, wellSols, ...
+                        states, schedule, 1);
+
+    [obj_val_steps_Xyrs_future, Mi_tot_inf, Ma_inf] = leak_penalizer_at_infinity_Rerun(model, ...
+                        wellSols, states, schedule, cp, surf_press, model.fluid.rhoWS, ta);
+    [obj_val_steps_Xyrs_future_noPenalty, ~, ~] = leak_penalizer_at_infinity_Rerun(model, ...
+                        wellSols, states, schedule, 1, surf_press, model.fluid.rhoWS, ta);
+    % NB: Mi_tot and Mi_tot_inf should be the same given the same injection schedule 
+    assert(all(Mi_tot == Mi_tot_inf))
+    
+    % Compare obj values:
+    if ~ishandle(24)
+     figure(24)
+    else
+     % Avoid stealing focus if figure already exists
+     set(0, 'CurrentFigure', 24); clf(24);
+    end
+    hold on; set(gcf,'Position',[2749 166 1120 411])
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs{:}], 'o') % Gt
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_future{:}], 'o')
+    hl = legend('leakage penalized','future leakage penalized');
+    set(hl,'Location','best')
+    ylabel('J(t), (Gt CO2)'); xlabel('time (years)')
+    title(['C=',num2str(cp)])
+    box; grid;
+    set(gca,'FontSize',16)
+    
+    % Compare obj values with c=1 (which corresponds to mass inventory):
+    if ~ishandle(25)
+     figure(25)
+    else
+     % Avoid stealing focus if figure already exists
+     set(0, 'CurrentFigure', 25); clf(25);
+    end
+    hold on; set(gcf,'Position',[3873 165 1119 412])
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_noPenalty{:}], 'o') % Gt
+    plot(convertTo(cumsum(schedule.step.val), year), ...
+        [obj_val_steps_Xyrs_future_noPenalty{:}], 'o')
+    plot(convertTo(cumsum(schedule.step.val), year), Mi_tot , 'x')
+    plot(convertTo(cumsum(schedule.step.val), year), Ma , '+')
+    plot(convertTo(cumsum(schedule.step.val), year), Ma_inf , '+')
+    hl = legend('leakage penalized','future leakage penalized', ...
+        'tot Mi(t) (mass injected)', 'Ma(t) (mass remaining)', 'future Ma(t) (future mass remaining)');
+    set(hl,'Location','best')
+    ylabel('J(t), (Gt CO2)'); xlabel('time (years)')
+    title('C=1')
+    box; grid;
+    set(gca,'FontSize',16)
+
 end
     
 

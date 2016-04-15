@@ -1,5 +1,5 @@
-function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(model, wellSols, states, schedule, ...
-    penalty, surf_press, rho_water, varargin)
+function [obj, Mi_tot, Ma] = leak_penalizer_at_infinity_Rerun(model, wellSols, states, schedule, ...
+    penalty, surf_press, rho_water, ta, varargin)
 % copy of local helper function from optimizeFormation:
 
 % Purpose: to compute the obj value at each time-step:
@@ -9,6 +9,7 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
 
    opt.ComputePartials = false;
    opt.tStep = [];
+   opt.plotsOn = false;
    opt = merge_options(opt, varargin{:});
    
    num_timesteps = numel(schedule.step.val);
@@ -24,11 +25,8 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
    end
    
    obj = repmat({[]}, numSteps, 1);
+   [Mi_tot, Ma] = deal(zeros(numSteps,1));
    krull = 0; % @@
-   
-   % compute ta here, then use to pass into vol_at_infinity so it is not
-   % re-computed each time vol_at_infinity is called.
-   ta = trapAnalysis(model.G, false);
    
    for step = 1:numSteps
       sol = wellSols{tSteps(step)};
@@ -37,8 +35,8 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
       pBHP = zeros(nW, 1); % place holder
       qGs = vertcat(sol.qGs);
       qWs = vertcat(sol.qWs);
-      %p = state.pressure;
-      p = compute_hydrostatic_pressure(model.G, rho_water, surf_press);
+      p = state.pressure;
+      p_future = compute_hydrostatic_pressure(model.G, rho_water, surf_press);
       sG = state.s(:,2);
       if opt.ComputePartials
          %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
@@ -49,6 +47,12 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
       dt = dts(step);
       injInx = (vertcat(sol.sign) > 0);
       obj{step} = dt * spones(ones(1, nW)) * ((1-penalty) * injInx .* qGs);
+      
+      % Mass injected so far:
+      Mi_tot(step) = dt * spones(ones(1, nW)) * (injInx .* qGs) * model.fluid.rhoGS/1e12; % Gt
+      if step>1
+        Mi_tot(step) = Mi_tot(step - 1) + Mi_tot(step); % total injected, Gt
+      end
 
       krull = krull +  dt * spones(ones(1, nW)) * ( injInx .* qGs);
       
@@ -58,13 +62,22 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
       if ~isfield(model.rock,'ntg')
              model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
          end 
-      pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
-      vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
+      %pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
+      %vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG); % @@ what pressure?
+%       vol_inf = vol_at_infinity_testing( model.G, ...
+%              model.rock, ... % or model.rock.poro .* model.fluid.pvMultR(p), ...
+%              sG .* bG, ...
+%              model.fluid.res_water, model.fluid.res_gas, ...
+%              step, ...
+%              'ta',ta, ...
+%              'plotsOn',opt.plotsOn); % using possible ADI variables
       vol_inf = vol_at_infinity( model.G, ...
-             model.rock.poro .* model.fluid.pvMultR(p), ...
-             sG .* model.fluid.bG(p), ...
-             model.fluid.res_water, model.fluid.res_gas, 'ta',ta); % using possible ADI variables
+             model.rock, sG, model.fluid, p, p_future, ...
+             'ta', ta, 'plotsOn',opt.plotsOn, 'time',step );
+      % NB: vol_inf is at ref. depth
+      
       obj{step} = obj{step} + penalty * vol_inf;
+      Ma(step) = vol_inf * model.fluid.rhoGS/1e12; % Gt
       
       if (tSteps(step) == num_timesteps)
          if ~opt.ComputePartials
@@ -72,10 +85,15 @@ function [obj, vol_steps, vol_inf_steps] = leak_penalizer_at_infinity_Rerun(mode
             fprintf('Total leaked: %f (m3)\n', double(krull - vol_inf));
             fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol_inf));
          end
+         % to make final plot
+         [~] = vol_at_infinity( model.G, ...
+             model.rock, sG, model.fluid, p, p_future, ...
+             'ta', ta, 'plotsOn',true, 'time',step );
       end
       obj{step} = obj{step} * model.fluid.rhoGS/1e12; % vol * rho, in Gt.
-      vol_steps(step) = vol;
-      vol_inf_steps(step) = vol_inf;
+      %vol_steps(step) = vol;
+      %vol_inf_steps(step) = vol_inf;
+      
    end
 
 end
