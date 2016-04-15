@@ -145,6 +145,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         solver.LinearSolver = opt.LinearSolver;
     end
+    % Reset timestep selector in case it was used previously.
+    solver.timeStepSelector.reset();
+
     nSteps = numel(dt);
 
     [wellSols, states, reports] = deal(cell(nSteps, 1));
