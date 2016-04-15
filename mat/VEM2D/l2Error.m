@@ -77,7 +77,7 @@ for K = 1:nK
     Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
     Xmon = (Xhat - repmat(Kc(K,:),nq*nTri,1))/hK(K);
 
-    PNstar = G.PNstarT(G.PNstarPos(K):G.PNstarPos(K+1)-1,:)';
+    PNstar = G.cells.PNstarT(G.cells.PNstarPos(K):G.cells.PNstarPos(K+1)-1,:)';
     
     if k == 1
         UChi = sol.nodeValues(nodes);

@@ -4,12 +4,12 @@
 
 clc; clear; close all;
 
-ex = 6;
+ex = 1;
 gridType = 'pebi';
 n = 10;
 nx = n; ny = n;
 xMax = 1; yMax = 1;
-k = 2;
+k = 1;
 
 neuEx = false;
 knownSol = true;
@@ -53,9 +53,6 @@ switch ex
         NK   = (4 + 4*(k-1) + k*(k-1)/2)*ones(nx*ny,1);
         nker = NK - nk;
         hx = xMax/nx; hy = yMax/ny;
-        sigma = (hy/hx + hx/hy)*ones(nx*ny,1);
-        sigma = rldecode(sigma, nker,1);
-        sigma = 1;
 end
 
 if strcmp(gridType,'cart')
@@ -77,7 +74,7 @@ end
 bc = VEM2D_addBC([], G, boundaryEdges(~isNeu), 'pressure', gD);
 bc = VEM2D_addBC(bc, G, boundaryEdges(isNeu), 'flux', gN);
 
-[sol, G] = VEM2D(G,f,k,bc, 'cellAverages', true, 'sigma', sigma);
+[sol, G] = VEM2D(G,f,k,bc, 'cellAverages', true);
 
 figure;
 plotVEM2D(G,sol,k)

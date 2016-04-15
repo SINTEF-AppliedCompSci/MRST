@@ -71,7 +71,7 @@ if isempty(sol.cellMoments)
                                 %   Scale coordinates for use in 2D monomials.
         Xmon = (Xhat - repmat(Kc(K,:),nq*nTri,1))/hK(K);
 
-        PNstar = G.PNstarT(G.PNstarPos(K):G.PNstarPos(K+1)-1,:)';
+        PNstar = G.cells.PNstarT(G.cells.PNstarPos(K):G.cells.PNstarPos(K+1)-1,:)';
         uChi = sol.nodeValues(nodes);
         mVals = m(Xmon)*PNstar*uChi; 
                                 %   Multilply by wheights and determinants.
