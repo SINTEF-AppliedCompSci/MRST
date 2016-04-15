@@ -13,7 +13,7 @@ gridLim = [1,1,1];
 
 % G.nodes.coords = X;
 % G = tetrahedronCube([n,n,n], gridLim, 1);
-G = voronoiCube(250  ,gridLim);
+G = voronoiCube(100  ,gridLim);
 
 
 % G = computeGeometry(G);
@@ -77,7 +77,7 @@ k = 2;
 % 
 % alpha = gridLim(1)/n*(1/20*beta +1/5)*3*ones(G.cells.num,1);
 
-G = computeVEMGeometry(G,f,k);
+G = computeVEM3DGeometry(G);
 
 
 alpha = G.cells.diameters;
@@ -88,9 +88,11 @@ boundaryFaces = (1:G.faces.num)';
 boundaryFaces = boundaryFaces( G.faces.neighbors(:,1) == 0 | ...
                                G.faces.neighbors(:,2) == 0 );
 
-bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryFaces}}, 'bcType', {{'dir'}});
+% bc = struct('bcFunc', {{gD}}, 'bcFaces', {{boundaryFaces}}, 'bcType', {{'dir'}});
 
-sol = VEM3D(G,f,bc,k);
+bc = VEM3D_addBC([], boundaryFaces, 'pressure', gD);
+
+sol = VEM3D(G, f, k, bc);
 U = [sol.nodeValues; sol.edgeValues; sol.faceMoments; sol.cellMoments];
 
 

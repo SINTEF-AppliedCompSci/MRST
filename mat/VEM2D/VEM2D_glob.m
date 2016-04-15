@@ -6,7 +6,7 @@ function [A, b, PNstarT] ...
 %
 %   SYNOPSIS:
 %       [A, b, PNstarT] ...
-%                = VEM2D_glob(G, f, k, bc, alpha, projectors, src, mu, rho)
+%                = VEM2D_glob(G, f, k, bc, sigma, projectors, src, mu, rho)
 %
 %   DESCRIPTION:
 %       Assmebles the global stiffness matrix and load term for the virtual
