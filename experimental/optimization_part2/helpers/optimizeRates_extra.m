@@ -493,8 +493,10 @@ function obj = account_well_cost(model, wellSols, schedule, initial_cost, operat
       % NB: dt*qGs*rhoGS is [kg]
       cost_for_operating = operation_cost * dt * injInx .* qGs .* model.fluid.rhoGS/1e3;     % USD
                        
-      obj{step} = sum( (cost_for_having + cost_for_operating) .* max(0, sign(qGs - 2*sqrt(eps))) ); % USD
-
+      %obj{step} = sum( (cost_for_having + cost_for_operating) .* max(0, sign(qGs - 2*sqrt(eps))) ); % USD
+      alpha = 1;
+      q_crit = (initial_cost/num_inj_timesteps)/(operation_cost) * 1e3 / model.fluid.rhoGS / dt; % m3/s, critical injection mass rate (for this time step) to make well's investment cost worthwhile
+      obj{step} = sum( cost_for_having .* tanh(double(qGs)./(alpha*q_crit)) + cost_for_operating ); % USD
       
       if (tSteps(step) == num_timesteps)
          if ~opt.ComputePartials
