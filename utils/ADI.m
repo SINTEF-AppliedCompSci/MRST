@@ -312,8 +312,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h  = ADI(value, lMultDiag(inx==2, v.jac));
           elseif ~isa(v,'ADI') %v is a vector
               h = max(v,u);
-          else
-              error('Not yet implemented ...');
+          else % both ADI, should have same number of values
+              value = max(u.val, v.val);
+              inx   = u.val > v.val;
+              h = ADI(value, plusJac(lMultDiag(inx, u.jac),lMultDiag(~inx, v.jac)));
           end
       end
 
