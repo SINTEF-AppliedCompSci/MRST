@@ -1,7 +1,7 @@
 clc; clear; close all;
 
 addpath('../')
-addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
+addpath('../../../pebiGridding/voronoi3D/')
 
 ex = 2;
 switch ex

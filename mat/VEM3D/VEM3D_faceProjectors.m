@@ -2,11 +2,13 @@ function G = VEM3D_faceProjectors(G, k)
 
 [m ,grad_m, int_m] = retrieveMonomials(2,k);
 
-    
-m3D    = @(X) ...
-         [X(:,1)    , ...
-          X(:,2)    , ...
-          X(:,3)    ];
+
+%%  CHANGE
+
+% m3D    = @(X) ...
+%          [X(:,1)    , ...
+%           X(:,2)    , ...
+%           X(:,3)    ];
 
 nk = (k+1)*(k+2)/2;
       
@@ -210,13 +212,40 @@ for i = 1:nF
     bA = XF(tri(:,1),:);
     A = XF(tri(:,2:end),:) - repmat(bA,2,1);
     A = A(mcolon(1:nTri,2*nTri,nTri),:);
-    A = mat2cell(A,2*ones(nTri,1),2);
-    detA = cellfun(@(X) abs(det(X)), A);
+    A2 = mat2cell(A,2*ones(nTri,1),2);
+    detA2 = cellfun(@(X) abs(det(X)), A2);
+    
+    Ad = reshape(A,2,2,[]);
+    D = squeeze(Ad(1,1,:).*Ad(2,2,:) - Ad(1,2,:).*Ad(2,1,:));
+    D = abs(D);
+    
+    ii = repmat((1:2*nTri)',2,1);
+%     add = repmat((0:1:nTri-1)*2,4,1);
+%     ii = ii + add(:);
+    jj = repmat(1:2,2,1); jj = repmat(jj(:),nTri,1);
+    add = repmat(0:2:2,4,1);
+    jj = jj + add(:);
+%     jj = jj(:) + add(:);
+
+    if nTri > 1
+        a = 0;
+    end
+
+    A = sparse(ii,jj,A(:), 2*nTri, 2*nTri);
     
                             %   Map from reference triangle to triangels.
-    Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
-    Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
-
+    Xhat2 = cell2mat(cellfun(@(X) Xq*X, A2, 'uniformOutput', false));
+    Xhat2 = Xhat2 + rldecode(bA,nq*ones(nTri,1),1);
+        
+    XhatTmp = repmat(Xq,1,nTri)*A + repmat(reshape(bA',1,[]),nq,1);
+    Xhat = zeros(nq*nTri,2);
+    Xhat(:,1) = reshape(XhatTmp(:,1:2:2*nTri),[],1);
+    Xhat(:,2) = reshape(XhatTmp(:,2:2:2*nTri),[],1);
+    
+    if nTri > 1
+        a = 0;
+    end
+        
     if k == 2
                             %   Map form local to global coordinates and 
                             %   scale for use in 3D monomials.
@@ -250,13 +279,30 @@ for i = 1:nF
                         rldecode(hK(cells),nq*nTri*ones(nK,1),1));
     end       
                             %   Multilply by wheights and determinants.
-    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
-    grad_mVals = bsxfun(@times,grad_mVals,detAw);
-    grad_mVals = mat2cell(grad_mVals,nq*nTri*ones(nK,1),nk);
-        
-                            %   Evaluate integrals.
-    int = cell2mat(cellfun(@(X) X'*mVals, grad_mVals, 'UniformOutput', false));
+    detAw = repmat(rldecode(detA2,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
     
+    Dw = repmat(rldecode(D,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
+    
+    grad_mVals2 = bsxfun(@times,grad_mVals,detAw);
+    grad_mVals = bsxfun(@times,grad_mVals,Dw);
+    
+    grad_mVals2 = mat2cell(grad_mVals,nq*nTri*ones(nK,1),nk);
+    
+    %% CHANGE
+                            %   Evaluate integrals.
+    int2 = cell2mat(cellfun(@(X) X'*mVals, grad_mVals2, 'UniformOutput', false));
+    
+    ii = repmat((1:nq*nTri*nK)',nk,1);
+%     add = rldecode((0:nq*nTri:nq*nTri*(nK-1))',nq*nTri*ones(nK,1),1);
+%     add = repmat((0:nq*nTri:nq*nTri*(nK-1)),nk*nq*nTri,1);
+%     ii = ii+add(:);
+    jj = repmat(1:nk,nq*nTri,1); jj = repmat(jj(:),nK,1);
+    add = repmat(0:nk:nk*(nK-1),nk*nq*nTri,1);
+    jj = jj + add(:);
+    
+    grad_mVals = sparse(ii,jj,grad_mVals(:),nq*nTri*nK,nk*nK);
+    
+    int = 2;
                             %   Construct local to global map.
     if k == 1
         dofVec = faceNodes';
