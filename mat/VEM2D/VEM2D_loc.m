@@ -158,7 +158,9 @@ end
 
 %%  CALCULATE LOCAL STIFFNESS MATRIX AND LOAD TERM                       %%
 
+
 M = B*D;
+
 PNstar = M\B;
 PN = D*PNstar;
 Mtilde = [zeros(1,nk) ; M(2:nk,:)];

@@ -1,4 +1,28 @@
 function G = computeVEM3DGeometry(G)
+%--------------------------------------------------------------------------
+%   Computes VEM geometry of MRST grid G.
+%
+%   SYNOPSIS:
+%       G = computeVEM3DGeometry(G)
+%
+%   DESCRIPTION:
+%       Computes geometry using MRST functions G = computeGeometry(G) and G
+%       = mrstGridWithFullMappings(G), and computes edge data and cell
+%       diameters. edge data is organized in the same way as face data in
+%       2D. See also MRTS functions computeGeomerty and
+%       mrstGridWithFullMappings for details and copyright info.
+%
+%   REQUIRED PARAMETERS:
+%       G   - 3D MRST grid.
+%
+%   RETURNS:
+%       G   - Grid with computed VEM geometry.  
+%-----------------------------------------------------------------ØSK-2016-
+
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   for details.
+%}
 
     fprintf('Computing VEM geometry ...\n');
     

@@ -111,7 +111,7 @@ if k == 1
     B(1,:) = 1/NK;      % CHECK!
     dofVec = nodes';
     B(2:nk,:) = G.cells.Bint(intPos, dofVec);
-%     D = monomialNodeVals;
+    
     D = m(Xmon);
 
     H = aK;
@@ -147,11 +147,7 @@ elseif k == 2
     
     faceIntegrals = polygonInt3D(G, faces, m3D, 2);
     cellIntegrals = polyhedronInt(G, K, m3D, 2);
-% 
-%     D = [monomialNodeVals                           ; ...
-%          monomialEdgeVals                           ; ...
-%          bsxfun(@rdivide, faceIntegrals, faceAreas) ; ...
-%          cellIntegrals/aK                          ];
+    
     D = [m(Xmon)                                    ; ...
          bsxfun(@rdivide, faceIntegrals, faceAreas) ; ...
          cellIntegrals/aK                          ];

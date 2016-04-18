@@ -1,4 +1,4 @@
-function plotVEM2D(G,sol,k)
+function plotVEM2D(G, sol, k, varargin)
 
 nK = G.cells.num;
 
@@ -8,7 +8,7 @@ for K = 1:nK
     if k == 1    
         X = G.nodes.coords(nodes,:);
         Z = sol.nodeValues(nodes);
-        fill3(X(:,1), X(:,2), Z, Z);
+        fill3(X(:,1), X(:,2), Z, Z, varargin{:});
     elseif k == 2
         edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
         edges = G.cells.faces(edgeNum);
@@ -19,7 +19,7 @@ for K = 1:nK
         Z = zeros(nN + nE,1);
         Z(1:2:end) = sol.nodeValues(nodes);
         Z(2:2:end) = sol.edgeValues(edges);
-        fill3(X(:,1), X(:,2), Z, Z);
+        fill3(X(:,1), X(:,2), Z, Z, varargin{:});
     end
     hold on;
 end

@@ -5,7 +5,7 @@ function l2Err = l2Error3D(G, sol, u, k)
 %   approximated solution using a kth order VEM.
 %
 %   SYNOPSIS:
-%       l2Err = l2Error(G, sol, u, k)
+%       l2Err = l2Error3D(G, sol, u, k)
 %
 %   DESCRIPTION:
 %       Evaluates the integrals
@@ -21,8 +21,9 @@ function l2Err = l2Error3D(G, sol, u, k)
 %       kth order VEM.
 %
 %   REQUIRED PARAMETERS:
-%       G       - 2D MRST grid, with sorted edges, G = sortEdges(G) and
-%                 computed VEM geometry, G = computeVEMGeometry(G).
+%       G       - 2D MRST grid, with sorted edges, G = sortEdges(G),
+%                 computed VEM geometry, G = computeVEMGeometry(G), and
+%                 cell projectors.
 %       sol     - Solution struct obtained from kth order VEM.
 %       u       - Analytical solution to (1).
 %       k       - Method order. Can be lower than order of VEM used to
@@ -48,7 +49,7 @@ if k == 2;
     uCellMoments = polyhedronInt(G,1:nK, u, 7)./G.cells.volumes;
 end
 
-[Xq, w, V, vol] = polyhedronQuadRule(7);
+[Xq, w, V, vol] = tetrahedronQuadRule(7);
 nq = size(Xq,1);
 Vdiff = V(1:end-1,:) - V(2:end,:);
 

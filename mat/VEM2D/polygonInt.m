@@ -1,7 +1,7 @@
 function I = polygonInt(G, cells, f, k)
 %--------------------------------------------------------------------------
 %   Integrates the function f over each cell cells of grid G, using a
-%   quadrature rule of precission 7.
+%   quadrature rule of precission k.
 %
 %   SYNOPSIS:
 %       I = polygonInt(G, cells, f, k)

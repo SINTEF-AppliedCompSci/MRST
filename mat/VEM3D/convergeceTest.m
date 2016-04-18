@@ -5,7 +5,7 @@
 clc; clear; close all;
 addpath('/home/strene/Documents/master/coop/pebiGridding/voronoi3D')
 
-ex = 1;
+ex = 3;
 switch ex
     case 1
         f  = @(X) pi^2*X(:,1).*sin(pi*X(:,2).*X(:,3)).*(X(:,2).^2 + X(:,3).^2);
@@ -17,9 +17,14 @@ switch ex
         gD = @(X) X(:,1).*sin(pi*X(:,2).*X(:,3));
         grid = 'cart';
         neu = false;
+    case 3
+        f = @(X) sin(X(:,1));
+        gD = @(X) f(X);
+        grid = 'pebi';
+        neu = false;
 end
 
-nVec = [125, 250, 500, 1000];
+nVec = [250, 500, 1000, 2000];
 nn = numel(nVec);
 errVec = zeros(nn, 3);
 err = zeros(nn,2);

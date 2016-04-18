@@ -1,8 +1,37 @@
 function I = polyhedronInt(G,cells,f, k)
+%--------------------------------------------------------------------------
+%   Integrates the function f over each cell cells of grid G, using a
+%   quadrature rule of precision k.
+%
+%   SYNOPSIS:
+%       I = polygonInt(G, cells, f, k)
+%
+%   DESCRIPTION:
+%       Approximates the integrals
+%           \int_K f \dx
+%       over specified cells K of G of using a quadrature rule of
+%       precission k. Each cell divided into terahedra, and a map F from
+%       reference tetrahedron Tr with vertices V constructed. Using that
+%
+%           \int_T f \dx = |\det(F)|\int_Tr f(F(y)) \dy,
+%
+%       the integral can be approximated by the quadrature rule.
+%
+%   REQUIRED PARAMETERS:
+%       G       - MRST grid.
+%       cells   - Cells over which to integrate f.
+%       k       - Precission of quadrature rule.
+%
+%   RETURNS:
+%       I       - Approximated solution to the integral.
+%-----------------------------------------------------------------ØSK-2016-
 
-%   http://people.sc.fsu.edu/~jburkardt/m_src/tetrahedron_arbq_rule/tetrahedron_arbq_rule.html
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   for details.
+%}
 
-[Xq, w, V, vol] = polyhedronQuadRule(k);
+[Xq, w, V, vol] = tetrahedronQuadRule(k);
     
 Vdiff = V(1:end-1,:) - V(2:end,:);
    

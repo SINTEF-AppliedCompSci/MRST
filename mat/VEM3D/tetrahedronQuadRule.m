@@ -1,4 +1,40 @@
-function [Xq, w, V, vol] = polyhedronQuadRule(k)
+function [Xq, w, V, vol] = tetrahedronQuadRule(k)
+%--------------------------------------------------------------------------
+%   Returns quadrature rule for the reference terahedron with vertices V.
+%
+%   SYNOPSIS:
+%       [Xq, w, V, vol] = polyhedronQuadRule(k)
+%
+%   DESCRIPTION:
+%       Returns quadrature rule of precission k, as described in [1]. Usage
+%       of the rule is as follows:
+%
+%           \int_T f \dx = vol\sum_{i = 1}^n w_i*f(Xq_i),
+%
+%       where T is the reference terahedron with vertices V, f is the
+%       funtion to be integrated, vol is the area of T, and w_i and Xq_i is
+%       the ith wheight and quadrature point, respectively.
+%
+%   REQUIRED PARAMETERS:
+%       k       - Quadrature rule precision. supported values precisions
+%                 are 2,3 and 7.
+%
+%   RETURNS:
+%       Xq      - nq x 3 matrix of quadrature points.
+%       w       - nq x 1 vector of quadrature wheights.
+%       V       -  4 x 3 matrix of reference tirangle vertices.
+%       vol     - Area of reference triangel.
+% 
+%   REFERENCES:
+%       [1]     - http://people.sc.fsu.edu/~jburkardt/m_src/...
+%                          tetrahedron_arbq_rule/tetrahedron_arbq_rule.html
+%-----------------------------------------------------------------ØSK-2016-
+
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   for details.
+%}
+
 
 assert( k == 2 | k == 3 | k == 7, ...
        'Only supported quadrature precissions are 2, 3 and 7');

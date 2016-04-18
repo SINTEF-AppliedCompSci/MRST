@@ -21,8 +21,9 @@ function l2Err = l2Error(G, sol, u, k)
 %       kth order VEM.
 %
 %   REQUIRED PARAMETERS:
-%       G       - 2D MRST grid, with sorted edges, G = sortEdges(G) and
-%                 computed VEM geometry, G = computeVEMGeometry(G).
+%       G       - 2D MRST grid, with sorted edges, G = sortEdges(G),
+%                 computed VEM geometry, G = computeVEMGeometry(G), and
+%                 cell projectors.
 %       sol     - Solution struct obtained from kth order VEM.
 %       u       - Analytical solution to (1).
 %       k       - Method order. Can be lower than order of VEM used to

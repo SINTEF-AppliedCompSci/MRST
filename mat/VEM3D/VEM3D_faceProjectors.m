@@ -1,36 +1,65 @@
 function G = VEM3D_faceProjectors(G, k)
+%--------------------------------------------------------------------------
+%   Calculates face projection opreators and face integrals for the kth
+%   order virtual element method.
+%
+%   SYNOPSIS:
+%      G = VEM3D_faceProjectors(G, k)
+%
+%   DESCRIPTION:
+%       Calculates matrix representations for the projection opreators
+%       \Pi^{\nabla, F}_k for each face of G, and evaluates the boundary
+%       integrals (\partial_n m, \phi)_{0,\partial K} for each cell K. See
+%       [1] for details.
+%
+%   REQUIRED PARAMETERS:
+%       G   - 2D MRST grid, with sorted edges and computed VEM geometry,
+%             G = computeVEMGeometry(G).
+%       k   - Order of the method. Supproted values are 1 and 2.
+%
+%   RETURNS:
+%       G   - Grid updated with fields G.cells.Bint, integral inveolved in
+%             B matrix calculations, and map G.cells.BintPos,
+%             G.faces.PNstarT, face projectors, saved as trasnspose, and
+%             map G.faces.PNstarPos.
+%
+%   REFERENCES:
+%       [1]     - Thesis title.
+%-----------------------------------------------------------------ØSK-2016-
+
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   for details.
+%}
+
+
+%%  RETRIEVE MONOMIALS, CALCULATE FUNCTION SPACE DIMENSION               %%
 
 [m ,grad_m, int_m] = retrieveMonomials(2,k);
-
-
-%%  CHANGE
-
-% m3D    = @(X) ...
-%          [X(:,1)    , ...
-%           X(:,2)    , ...
-%           X(:,3)    ];
-
 nk = (k+1)*(k+2)/2;
-      
-                            %   Face data.
+
+%%  FACE, NODE AND CELL DATA                                             %%
+
+%   Face data.
+
 nF          = G.faces.num;
 Fc          = G.faces.centroids;
 hF          = G.faces.diameters;
 aF          = G.faces.areas;
 faceNormals = G.faces.normals;
 
-                            %   Edge data for each face.
+%   Edge data for each face.
+
 edgeNum     = mcolon(G.faces.edgePos(1:end-1),G.faces.edgePos(2:end)-1);
 edges       = G.faces.edges(edgeNum);
 Ec          = G.edges.centroids(edges,:);
 hE          = G.edges.lengths(edges);
 edgeNormals = G.faces.edgeNormals(edgeNum,:);
 
-                            %   Node data for each edge of each face.
-                            %   Sort nodes to be in counter-clockwise
-                            %   order. nodes(1:nN) = all first nodes of
-                            %   each edge, nodes(nN+1:2*nN) = all last
-                            %   nodes of each edge.
+%   Node data for each edge of each face. Sort nodes to be in
+%   counter-clockwise order. nodes(1:nN) = all first nodes of each edge,
+%   nodes(nN+1:2*nN) = all last nodes of each edge.
+
 nodeNum = mcolon(G.edges.nodePos(edges),G.edges.nodePos(edges+1)-1);
 nodes   = G.edges.nodes(nodeNum);
 nodes   = reshape(nodes,2,[])';
@@ -41,9 +70,10 @@ nodes   = reshape(nodes,[],1);
 
 X = [G.nodes.coords(nodes,:); Ec];
 
+%%  MAP FROM GLOBAL TO LOCAL COORDINATES                                 %%
 
-                            %   Build local coordinate systems.
-                            %   x -> Tx + b
+%   Build local coordinate systems. x -> Tx + b.
+
 vec1 = (X(G.faces.nodePos(1:end-1)+1,:) - X(G.faces.nodePos(1:end-1),:));
 vec1 = bsxfun(@rdivide, vec1, sqrt(sum(vec1.^2,2)));
 vec2 = cross(faceNormals,vec1,2);
@@ -52,7 +82,8 @@ vec1 = vec1'; vec2 = vec2';
 T    = [vec1(:), vec2(:)];
 b    = X(G.faces.nodePos(1:end-1),:);
 
-                            %   Map from polygon to local face coords
+%   Map from polygon to local face coords
+
 X = cell2mat(cellfun(@(X,Y,b) (X-repmat(b,size(X,1),1))*Y, ...
              mat2cell(X,repmat(diff(G.faces.nodePos),3,1),3), ...
              mat2cell(repmat(T,3,1),3*ones(3*nF,1),2), ...
@@ -71,19 +102,21 @@ edgeNormals = ...
     mat2cell(T,3*ones(nF,1),2), ...
     'UniformOutput', false));
 
-                            %   Scale monomial coordinates.
+%   Scale monomial coordinates.
+
 numFaceNodes = diff(G.faces.nodePos);
 Xmon = bsxfun(@rdivide, X - repmat(rldecode(Fc,numFaceNodes,1),3,1), ...
                             repmat(rldecode(hF,numFaceNodes,1),3,1));                     
 
-                            %   Scale edgeNormals by length.
+%   Scale edgeNormals by length.
+
 edgeNormals = bsxfun(@times, edgeNormals, hE);
 
 %%  CALCULATE INTEGRALS FOR D AND B MATRICES                             %%
 
 if k == 1
     
-    D = m(Xmon(1:nN,:));
+    detA = m(Xmon(1:nN,:));
     
     intB = .5*sum(grad_m(Xmon(2*nN+1:end,:)).*repmat(edgeNormals,2,1),2);
     intB = reshape(intB, nN, 2);
@@ -136,31 +169,29 @@ elseif k == 2
     NF = 2*diff(G.faces.nodePos) + 1;
     N = sum(2*diff(G.faces.nodePos) + 1);
 
-                                    %   Matrices B built as transpose
+    %   Matrices B built as transpose
+    
     BT         = zeros(N,6);
     BT(ii,2:6) = intB;
     vec        = zeros(nF,6);
     vec(:,1)   = 1; vec(:, [4,6]) = [-2*aF./hF.^2, -2*aF./hF.^2];
     BT(2*diffVec' + (1:nF),:) = vec;
 
-    D = zeros(N,6);
+    detA = zeros(N,6);
 
-    D(ii,:) = m(Xmon([1:nN, 2*nN+1:3*nN],:));
-    D(2*diffVec' + (1:nF),:) = intD;
+    detA(ii,:) = m(Xmon([1:nN, 2*nN+1:3*nN],:));
+    detA(2*diffVec' + (1:nF),:) = intD;
 
 end
 
 BT = mat2cell(BT,NF, nk);
-D  = mat2cell(D,NF,nk);
+detA  = mat2cell(detA,NF,nk);
 
-PNstarT = cell2mat(cellfun(@(BT,D) BT/(BT'*D)', BT, D, 'UniformOutput', false));
+PNstarT = cell2mat(cellfun(@(BT,D) BT/(BT'*D)', BT, detA, 'UniformOutput', false));
 PNstarPos = [0, cumsum(diff(G.faces.nodePos') + diff(G.faces.edgePos')*(k-1) + k*(k-1)/2)] + 1;
 
 
 %%  FACE INTEGRALS                                                       %%
-
-                            %   Gauss-Lobatto quadrature point and
-                            %   wheights for refenrence triangle.
 
 % http://people.sc.fsu.edu/~jburkardt/datasets/quadrature_rules_tri/quadrature_rules_tri.html
 
@@ -183,89 +214,77 @@ if k == 2
     [~, grad_m3D, ~] = retrieveMonomials(3,k, 'face', true);
 end
 
-for i = 1:nF
+for F = 1:nF
                         
-                            %   Cells sharing face i.
-    cells = cellFaces(cellFaces(:,1) == i,2);
-    nK = size(cells,1);
+    %   Cell, edge and node data for face F
     
-                            %   Node data for face i.
-    nodeNum = G.faces.nodePos(i):G.faces.nodePos(i+1)-1;
+    cells = cellFaces(cellFaces(:,1) == F,2);
+    nK = size(cells,1);
+    nodeNum = G.faces.nodePos(F):G.faces.nodePos(F+1)-1;
     faceNodes = nodes(nodeNum,:);
-    XF = X(nodeNum,:);  
-
-                            %   Edge data for face i.
-    edgeNum = G.faces.edgePos(i):G.faces.edgePos(i+1)-1;
+    XF = X(nodeNum,:);
+    
+    edgeNum = G.faces.edgePos(F):G.faces.edgePos(F+1)-1;
     faceEdges = edges(edgeNum);
 
-                            %   Retrieve map from local to global coordinates.
-    TF = T(TPos(i):TPos(i+1)-1,:);
-    bT = b(i,:);
+    %   Retrieve map from local to global coordinates.
+    
+    TF = T(TPos(F):TPos(F+1)-1,:);
+    bT = b(F,:);
 
-    PNFstar = PNstarT(PNstarPos(i):PNstarPos(i+1)-1,:)';
-                            %   Triangulate face
+    PNFstar = PNstarT(PNstarPos(F):PNstarPos(F+1)-1,:)';
+
+    %   Triangulate face. Construct map from refrence triangle to triangles
+    %   in triangulation.
+    
     tri = delaunay(XF);
     nTri = size(tri,1);
 
-                            %   Construct map from refrence triangle to
-                            %   triangles in triangulation.
     bA = XF(tri(:,1),:);
     A = XF(tri(:,2:end),:) - repmat(bA,2,1);
     A = A(mcolon(1:nTri,2*nTri,nTri),:);
-    A2 = mat2cell(A,2*ones(nTri,1),2);
-    detA2 = cellfun(@(X) abs(det(X)), A2);
     
-    Ad = reshape(A,2,2,[]);
-    D = squeeze(Ad(1,1,:).*Ad(2,2,:) - Ad(1,2,:).*Ad(2,1,:));
-    D = abs(D);
-    
+    Ad = reshape(A',2,2,[]);
+    detA = abs(squeeze(Ad(1,1,:).*Ad(2,2,:) - Ad(1,2,:).*Ad(2,1,:)));
+       
     ii = repmat((1:2*nTri)',2,1);
-%     add = repmat((0:1:nTri-1)*2,4,1);
-%     ii = ii + add(:);
-    jj = repmat(1:2,2,1); jj = repmat(jj(:),nTri,1);
-    add = repmat(0:2:2,4,1);
-    jj = jj + add(:);
-%     jj = jj(:) + add(:);
-
-    if nTri > 1
-        a = 0;
-    end
-
-    A = sparse(ii,jj,A(:), 2*nTri, 2*nTri);
+    jj = 1:2*nTri;
+    jj = reshape(jj,2,[])';
+    jj = repmat(jj(:)',2,1);
+    jj = jj(:);
     
-                            %   Map from reference triangle to triangels.
-    Xhat2 = cell2mat(cellfun(@(X) Xq*X, A2, 'uniformOutput', false));
-    Xhat2 = Xhat2 + rldecode(bA,nq*ones(nTri,1),1);
-        
+    A = sparse(ii, jj, A(:), 2*nTri, 2*nTri);
+    
     XhatTmp = repmat(Xq,1,nTri)*A + repmat(reshape(bA',1,[]),nq,1);
     Xhat = zeros(nq*nTri,2);
-    Xhat(:,1) = reshape(XhatTmp(:,1:2:2*nTri),[],1);
-    Xhat(:,2) = reshape(XhatTmp(:,2:2:2*nTri),[],1);
-    
-    if nTri > 1
-        a = 0;
-    end
-        
-    if k == 2
-                            %   Map form local to global coordinates and 
-                            %   scale for use in 3D monomials.
-    XKmon = Xhat*TF' + repmat(bT,nTri*nq,1);
-    XKmon = bsxfun(@rdivide, ...
-                repmat(XKmon,nK,1) - rldecode(Kc(cells,:),nq*nTri*ones(nK,1),1), ...
-                rldecode(hK(cells),nq*nTri*ones(nK,1),1));
-    
-    end
-                            %   Scale coordinates for use in 2D monomials.
-    XFmon = (Xhat - repmat(Fc(i,:),nq*nTri,1))/hF(i);
+    Xhat(:,1) = reshape(XhatTmp(:,1:2:end),[],1);
+    Xhat(:,2) = reshape(XhatTmp(:,2:2:end),[],1);
 
-                            %   Scale and correct directions of face
-                            %   normals.
-    faceNormal = faceNormals(i,:)/aF(i);
-    faceSign = (-ones(nK,1)).^(repmat(neighbors(i,1),nK,1) ~= cells); 
+    if k == 2
+    
+    %   Map form local to global coordinates and scale for use in 3D
+    %   monomials.
+    
+        XKmon = Xhat*TF' + repmat(bT,nTri*nq,1);
+        XKmon = bsxfun(@rdivide, ...
+                    repmat(XKmon,nK,1) - rldecode(Kc(cells,:),nq*nTri*ones(nK,1),1), ...
+                    rldecode(hK(cells),nq*nTri*ones(nK,1),1));
+    
+    end
+    
+    %   Scale coordinates for use in 2D monomials.
+    
+    XFmon = (Xhat - repmat(Fc(F,:),nq*nTri,1))/hF(F);
+
+    %   Scale and correct directions of face normals.
+    
+    faceNormal = faceNormals(F,:)/aF(F);
+    faceSign = (-ones(nK,1)).^(repmat(neighbors(F,1),nK,1) ~= cells); 
     faceNormal =  bsxfun(@times, repmat(faceNormal,nq*nTri*nK,1),...
                       rldecode(faceSign,nq*nTri*ones(nK,1),1));
                   
-                            %   Evaluate monomials at quadrature points.
+    %   Evaluate monomials at quadrature points.
+    
     mVals = m(XFmon)*PNFstar;
     
     if k == 1
@@ -277,50 +296,41 @@ for i = 1:nF
     grad_mVals = reshape(grad_mVals, nq*nTri*nK, 6);
     grad_mVals = bsxfun(@rdivide, grad_mVals,...
                         rldecode(hK(cells),nq*nTri*ones(nK,1),1));
-    end       
-                            %   Multilply by wheights and determinants.
-    detAw = repmat(rldecode(detA2,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
+    end
     
-    Dw = repmat(rldecode(D,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
+    %   Evaluate integrals.
     
-    grad_mVals2 = bsxfun(@times,grad_mVals,detAw);
-    grad_mVals = bsxfun(@times,grad_mVals,Dw);
+    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
     
-    grad_mVals2 = mat2cell(grad_mVals,nq*nTri*ones(nK,1),nk);
-    
-    %% CHANGE
-                            %   Evaluate integrals.
-    int2 = cell2mat(cellfun(@(X) X'*mVals, grad_mVals2, 'UniformOutput', false));
+    grad_mVals = bsxfun(@times,grad_mVals,detAw);
     
     ii = repmat((1:nq*nTri*nK)',nk,1);
-%     add = rldecode((0:nq*nTri:nq*nTri*(nK-1))',nq*nTri*ones(nK,1),1);
-%     add = repmat((0:nq*nTri:nq*nTri*(nK-1)),nk*nq*nTri,1);
-%     ii = ii+add(:);
-    jj = repmat(1:nk,nq*nTri,1); jj = repmat(jj(:),nK,1);
-    add = repmat(0:nk:nk*(nK-1),nk*nq*nTri,1);
-    jj = jj + add(:);
+    jj = 1:nk*nK; jj = reshape(jj,nk,[])';
+    jj = repmat(jj(:)',nq*nTri,1);
+    jj = jj(:);
+    grad_mVals2 = sparse(ii, jj, grad_mVals(:), nq*nTri*nK, nk*nK);
     
-    grad_mVals = sparse(ii,jj,grad_mVals(:),nq*nTri*nK,nk*nK);
+    int = grad_mVals2'*repmat(mVals, nK,1);
     
-    int = 2;
-                            %   Construct local to global map.
+    %   Construct local to global map.
+    
     if k == 1
         dofVec = faceNodes';
     elseif k == 2
-        dofVec = [faceNodes', faceEdges' + G.nodes.num, i + G.nodes.num + G.edges.num];
+        dofVec = [faceNodes', faceEdges' + G.nodes.num, F + G.nodes.num + G.edges.num];
     end
     
     intNum = mcolon(intPos(cells),intPos(cells+1)-1);
     
     I(intNum, dofVec) = I(intNum, dofVec) + int;
-    
-    %   Speed: first rows of B can be obatined from F.
         
 end
 
 BintPos = (0:nk:nk*G.cells.num) + 1;
-G.cells.('Bint') = I;
-G.cells.('BintPos') = BintPos;
+G.cells.('Bint')      = I;
+G.cells.('BintPos')   = BintPos;
+G.faces.('PNstarT')   = PNstarT;
+G.faces.('PNstarPos') = PNstarPos;
 
 
 end
