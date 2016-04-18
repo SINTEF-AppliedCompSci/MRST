@@ -34,6 +34,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data = readDefaultedRecord(fid, tmpl);
             rspec.(kw) = to_double(data);  clear tmpl data
 
+         case 'COMPS',
+            tmpl = {'0'};
+            data = readDefaultedRecord(fid, tmpl);
+            rspec.(kw) = to_double(data);  clear tmpl
+
          case 'DIMENS',
             s = readRecordString(fid);
             rspec.cartDims = reshape(sscanf(s, '%f', 3), 1, []);
