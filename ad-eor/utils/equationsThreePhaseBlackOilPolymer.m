@@ -558,39 +558,33 @@ function zSh = computeShearMultLog(fluid, vW, muWMultf)
     % is big enough
     iShear = find((vW > minWaterVel) & (muWMultf > 1.));
 
-    % for each value, we need to generate a table to calculate the shear
-    % factors
-    % TODO: maybe for big model, it be a problem for memory here
-    Z = zeros(numel(iShear), numel(waterVel));
-
     P = muWMultf(iShear);
-
-    for i = 1 : numel(P)
-        Z(i,:) = (1 + (P(i) - 1) * refM)/ P(i);
-    end
 
     % convert the velocity/shear rate to their logarithms
     V = log(waterVel);
-    % covert the shear factors to their logarithms
-    Z = log(Z);
-
     vW0 = log(vW(iShear));
 
     % function to decide the relative location of a point to a line
     f = @(x,y, x0) x+y -x0;
 
-    sign = zeros(numel(iShear), numel(V));
-
-    for i = 1:numel(iShear)
-       sign(i,:) = f(V', Z(i,:), vW0(i));
-    end
-
     % the shear factors remain to be calculated
     z = ones(numel(iShear),1);
 
     for i = 1:numel(iShear)
+
+       % for each value from P, we need to generate a table to calculate
+       % the shear factor
+       Z = (1 + (P(i) - 1) * refM)/ P(i);
+       % covert the shear factors to their logarithms
+       Z = log(Z);
+
+       % to flag the relative location of the line and line segments
+       % to help to determine the intersection point faster
+       sign = f(V, Z, vW0(i));
+
        % to check if there is sign change
-       temp = sign(i,1:end-1).*sign(i,2:end);
+       temp = sign(1:end-1).*sign(2:end);
+
        % to find the index that sign changed
        j = find(temp <= 0);
 
@@ -598,15 +592,15 @@ function zSh = computeShearMultLog(fluid, vW, muWMultf)
        assert(numel(j) <= 1);
 
        if (numel(j) == 1)
-           [~,z(i)] = findIntersection([V(j), Z(i,j); V(j+1), Z(i,j+1)], [0, vW0(i); vW0(i), 0]);
+           [~,z(i)] = findIntersection([V(j), Z(j); V(j+1), Z(j+1)], [0, vW0(i); vW0(i), 0]);
        end
 
        if (numel(j) == 0)
            % out of the table range
            % since we handled the small value already, this must be a big
            % value.
-           assert(vW0(i) - Z(i, end) > V(end));
-           z(i) = Z(i, end);
+           assert(vW0(i) - Z(end) > V(end));
+           z(i) = Z(end);
        end
 
     end
@@ -616,8 +610,6 @@ function zSh = computeShearMultLog(fluid, vW, muWMultf)
     % the shear factors
     zSh = ones(numel(vW), 1);
     zSh(iShear) = z;
-
-    % fprintf('maxZsh is %f minZsh is %f avgerage Zsh is %f \n', max(zSh), min(zSh), mean(zSh));
 
 end
 
