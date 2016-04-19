@@ -126,8 +126,8 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         end
         assert(~isempty(wc), 'No well was placed.')
         
-        qt = qt * 2;% @@
-        qt(3:end) = 0;
+        %qt(1:2) = qt(1:2) * 2.5;% @@
+        %qt(3) = qt(3) * 0.5;
       
         %%% 2) Create schedule based on control type: -----------------------
         if strcmpi(opt.well_control_type,'rate')
@@ -280,6 +280,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                      'well_initial_cost',   opt.well_initial_cost, ...
                      'well_operation_cost', opt.well_operation_cost, ...
                      'co2_tax_credit',      opt.co2_tax_credit, ...
+                     'alpha',               opt.alpha, ...
                      'rho_water',           fluid.rhoWS, ...
                      'surface_pressure',    opt.surface_pressure, ...
                      'lineSearchMaxIt',     opt.lineSearchMaxIt, ...
@@ -550,6 +551,7 @@ function opt = opt_defaults()
     opt.well_initial_cost = [];
     opt.well_operation_cost = [];
     opt.co2_tax_credit = [];
+    opt.alpha = [];
    
     
     % Boundary type:
