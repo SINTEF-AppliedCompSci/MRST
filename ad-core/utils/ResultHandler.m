@@ -4,7 +4,7 @@ classdef ResultHandler < handle
 % SYNOPSIS:
 %   handler = ResultHandler()
 %
-%   handler = ResultHandler('dataprefix', 'mydata', 'writeToDisk', true);
+%   handler = ResultHandler('dataPrefix', 'mydata', 'writeToDisk', true);
 % 
 % DESCRIPTION:
 %   This class can be used to store and retrieve simulation results. It is
