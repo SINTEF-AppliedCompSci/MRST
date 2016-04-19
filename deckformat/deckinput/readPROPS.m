@@ -88,9 +88,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              clear data;
 
          case 'SHRATE',
-             tmpl = { '4.8' };
+             tmpl = { 'NaN' };
              data = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
-             prp.(kw) = to_double(data); clear tmpl
+             if ~isempty(data),
+                 data = to_double(data);
+             else
+                 data = repmat(4.8, [ ntpvt, 1 ]);
+             end
+             data(isnan(data)) = 4.8;
+             prp.(kw) = to_double(data); clear tmpl; clear data;
 
          case 'PVCDO',
             tmpl(1:5) = { '0.0' };
