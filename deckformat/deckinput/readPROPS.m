@@ -96,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  data = repmat(4.8, [ ntpvt, 1 ]);
              end
              data(isnan(data)) = 4.8;
-             prp.(kw) = to_double(data); clear tmpl; clear data;
+             prp.(kw) = data; clear tmpl; clear data;
 
          case 'PVCDO',
             tmpl(1:5) = { '0.0' };
