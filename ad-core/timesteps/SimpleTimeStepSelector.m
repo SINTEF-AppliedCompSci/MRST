@@ -109,15 +109,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             assert(selector.firstRampupStepRelative <= 1 && ...
                    selector.firstRampupStepRelative >  0);
             
-            selector.isStartOfCtrlStep = true;
-            selector.isFirstStep       = true;
-            selector.controlsChanged = true;
-            selector.stepLimitedByHardLimits = true;
+            selector.reset();
         end
         
         function reset(selector)
             selector.history = [];
             selector.previousControl = [];
+            selector.isStartOfCtrlStep = true;
+            selector.isFirstStep       = true;
+            selector.controlsChanged   = true;
+            selector.stepLimitedByHardLimits = true;
         end
         
         function storeTimestep(selector, report)
@@ -143,8 +144,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             % Ensure that step does not change too much
             change = dt_new/dt;
-            change = min(change, selector.maxRelativeAdjustment);
-            change = max(change, selector.minRelativeAdjustment);
+            if ~selector.isStartOfCtrlStep
+                % Apply maximum relative adjustment only if we are not at
+                % start of control step
+                change = min(change, selector.maxRelativeAdjustment);
+                change = max(change, selector.minRelativeAdjustment);
+            end
 
             dt = dt*change;
             
@@ -156,8 +161,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 if ~isempty(selector.history)
                     fprintf('Prev # its: %d -> ', selector.history(end).Iterations)
                 end
-                fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
-                    dt/dt0, formatTimeRange(dt0), formatTimeRange(dt));
+                fprintf('Suggested timestep modification of a factor %1.2f. dT: %s -> %s\n',...
+                    dt/dt0, formatTimeRange(dt0, 2), formatTimeRange(dt, 2));
             end
 
             if dt ~= dt_new

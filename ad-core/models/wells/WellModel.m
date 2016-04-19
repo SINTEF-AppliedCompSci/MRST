@@ -125,8 +125,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             wellmodel.W = W;
             [wellmodel.perf2well, wellmodel.Rw] = getPerfToWellMap(wellmodel);
             
-            clear opt
-
             if isempty(W)
                 sources = {};
                 controlEqs = {};

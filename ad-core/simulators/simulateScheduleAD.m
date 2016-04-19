@@ -145,6 +145,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         solver.LinearSolver = opt.LinearSolver;
     end
+    % Reset timestep selector in case it was used previously.
+    solver.timeStepSelector.reset();
+
     nSteps = numel(dt);
 
     [wellSols, states, reports] = deal(cell(nSteps, 1));
@@ -299,14 +302,14 @@ function header = create_step_header(verbose, tm)
       nChar = 0;
    else
       % Non-verbose mode.  Do align '->' token in report-step range
-      nChar = numel(formatTimeRange(tm(end)));
+      nChar = numel(formatTimeRange(tm(end), 2));
    end
 
    header = @(i) ...
       fprintf('Solving timestep %0*d/%0*d: %-*s -> %s\n', ...
               nDigits, i, nDigits, nSteps, nChar, ...
-              formatTimeRange(tm(i + 0)), ...
-              formatTimeRange(tm(i + 1)));
+              formatTimeRange(tm(i + 0), 2), ...
+              formatTimeRange(tm(i + 1), 2));
 end
 
 %--------------------------------------------------------------------------
