@@ -47,19 +47,45 @@ export_fig(hfig2, [figDirName '/' 'Rate_mass'],'-eps','-transparent')
 % Fig3: GHGT model and IEAGHG model grids
 % Fig4: Top surface comparison and re-centered difference
 clearvars -except figDirName
-[ hfig1, hfig2, hfigA, hfigB, hfigC ] = inspectSleipnerGridModels('refineLevels',1,'add2008Plume',true,'addlegend',false);
+[ hfig1, hfig2, hfig3, hfigA, hfigB, hfigC, hfigA2, hfigB2, hfigC2 ] = ...
+    inspectSleipnerGridModels('refineLevels',-2,'add2008Plume',true,'addlegend',false);
 export_fig(hfig1, [figDirName '/' 'GHGTgrid'],'-png','-transparent')           % save as png to avoid a large eps file size
 export_fig(hfig2, [figDirName '/' 'IEAGHGgrid'],'-png','-transparent')         % save as png to avoid a large eps file size
+export_fig(hfig3, [figDirName '/' 'SEISMICgrid'],'-png','-transparent')         % save as png to avoid a large eps file size
 export_fig(hfigA, [figDirName '/' 'CompareGridsA'],'-eps','-transparent')
 export_fig(hfigB, [figDirName '/' 'CompareGridsB'],'-eps','-transparent')
 export_fig(hfigC, [figDirName '/' 'CompareGridsC'],'-png','-transparent')      % save this fig as png to avoid strange coloring behavior that occurs when saving as pdf (and when eps gets converted to pdf in latex document)
+export_fig(hfigA2, [figDirName '/' 'CompareGridsA2'],'-eps','-transparent')
+export_fig(hfigB2, [figDirName '/' 'CompareGridsB2'],'-eps','-transparent')
+export_fig(hfigC2, [figDirName '/' 'CompareGridsC2'],'-png','-transparent')      % save this fig as png to avoid strange coloring behavior that occurs when saving as pdf (and when eps gets converted to pdf in latex document)
 
 
 %% Figure 5
 % Structural traps and their capacity in the GHGT and IEAGHG grids
 clearvars -except figDirName
+sea = getSeaInfo('NorthSea',760);
 
+[ ~, Gt, ~, rock2D ] = makeSleipnerModelGrid('modelName','IEAGHGmodel', 'refineLevel',1, 'plotsOn',false);
+[ hfig1 ]             = plotTrapProfiles_basic( Gt, rock2D, sea.rhoCref, ...
+    sea.water_density, sea.seafloor_temp, sea.seafloor_depth, sea.temp_gradient, ...
+    sea.press_deviation, sea.res_sat_co2, sea.res_sat_wat, sea.dis_max, ...
+    'ZoomIntoIEAGHGregion',true, 'numContours',30 );
 
+[ ~, Gt, ~, rock2D ] = makeSleipnerModelGrid('modelName','ORIGINALmodel', 'refineLevel',1, 'plotsOn',false);
+[ hfig2 ]            = plotTrapProfiles_basic( Gt, rock2D, sea.rhoCref, ...
+    sea.water_density, sea.seafloor_temp, sea.seafloor_depth, sea.temp_gradient, ...
+    sea.press_deviation, sea.res_sat_co2, sea.res_sat_wat, sea.dis_max, ...
+    'ZoomIntoIEAGHGregion',true, 'numContours',50 );
+
+[ ~, Gt, ~, rock2D ] = makeSeismicModelGrid( 1 );
+[ hfig3 ]            = plotTrapProfiles_basic( Gt, rock2D, sea.rhoCref, ...
+    sea.water_density, sea.seafloor_temp, sea.seafloor_depth, sea.temp_gradient, ...
+    sea.press_deviation, sea.res_sat_co2, sea.res_sat_wat, sea.dis_max, ...
+    'ZoomIntoIEAGHGregion',true, 'numContours',20 );
+
+export_fig(hfig1, [figDirName '/' 'IEAGHG_traps'],'-png','-transparent')
+export_fig(hfig2, [figDirName '/' 'GHGT_traps'],'-png','-transparent')
+export_fig(hfig3, [figDirName '/' 'SEISMIC_traps'],'-png','-transparent')
 
 
 %% Figure 6 - 12: Simulation results (CO2 mass)
@@ -87,7 +113,7 @@ end
 
 % Some specifics required for plot generation:
 SimStartYear        = 1999;
-Years2plot          = [1999.5; 2001.5; 2002.5; 2004.5; 2006.5; 2008.5];
+Years2plot          = [1999.5; 2001.5; 2002.5; 2004.5; 2006.5; 2008.5]; % requires simulation results exist at these plot times
 Year2plot_sideView  = 2008.5;
 plumeOutlines       = getLayer9CO2plumeOutlines();
 ZoomIntoPlume       = true;
@@ -216,7 +242,8 @@ for j=1:numel(files2load)
                 model.fluid, model, var.wellXcoord, var.wellYcoord, ...
                 var.wellCoord_x, var.wellCoord_y, ta, plumeOutline_SatTol, ...
                 'sliceCellIndex_ew',inxPts_ew, 'sliceCellIndex_sn',inxPts_sn, ...
-                'SleipnerBounded',true); %, ...
+                'SleipnerBounded',true, ...
+                'ZoomIntoPlume',true ); %, ...
                 %'figname',files2load{j});
             
     % Prepare the plot name for saving:

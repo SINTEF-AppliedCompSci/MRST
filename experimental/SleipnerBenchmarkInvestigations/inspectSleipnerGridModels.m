@@ -1,4 +1,4 @@
-function [ hfig1, hfig2, hfigA, hfigB, hfigC  ] = inspectSleipnerGridModels( varargin )
+function [ hfig1, hfig2, hfig3, hfigA, hfigB, hfigC, hfigA2, hfigB2, hfigC2  ] = inspectSleipnerGridModels( varargin )
 % Comparison of all three Sleipner grid models, given specified refinement
 % levels. The refinement level(s) (i.e., -2, -3, etc for coarsening; 2, 3,
 % etc for refinement) are defined, and each refinement case is analyzed
@@ -27,10 +27,12 @@ for k = 1:numel(numRefCases)
     [ G_ieaghg, Gt_ieaghg, rock_ieaghg, rock2D_ieaghg ]          = makeSleipnerModelGrid( 'modelName','IEAGHGmodel','refineLevel', numRef);
     [ G_original, Gt_original, rock_original, rock2D_original ]  = makeSleipnerModelGrid( 'modelName','ORIGINALmodel','refineLevel', numRef );
     %[ G_inhouse, Gt_inhouse, rock_inhouse, rock2D_inhouse ]      = makeSleipnerModelGrid( 'modelName','INHOUSEmodel','refineLevel', numRef );
+    [ G_seismic, Gt_seismic, rock_seismic, rock2D_seismic ]      = makeSeismicModelGrid( numRef );
     
     % add grid names
     Gt_ieaghg.name = 'IEAGHG';
     Gt_original.name = 'GHGT';
+    Gt_seismic.name = 'SEISMIC';
     
     
     %% Visualize Grids
@@ -42,10 +44,13 @@ for k = 1:numel(numRefCases)
     
     [ hfig1 ] = makeGridPlot(G_original, bounds);
     [ hfig2 ] = makeGridPlot(G_ieaghg,   bounds);
+    [ hfig3 ] = makeGridPlot(G_seismic,  bounds);
     
     %% Compare top surfaces of grids
     [ hfigA, hfigB, hfigC ] = compareSurfaces(Gt_ieaghg, Gt_original, opt.add2008Plume, opt.addlegend);
-    
+    [ hfigA2, hfigB2, hfigC2 ] = compareSurfaces(Gt_seismic, Gt_original, opt.add2008Plume, opt.addlegend);
+    %[ hfigA2, hfigB2, hfigC2 ] = compareSurfaces(Gt_ieaghg, Gt_seismic, opt.add2008Plume, opt.addlegend);
+
     
     %% Other (todo)
     %gts = [Gt_ieaghg; Gt_original; Gt_inhouse];
@@ -114,8 +119,7 @@ for k = 1:numel(numRefCases)
 
 
     %% Get ready for next refinement case 
-    clearvars -except numRefCases k recenterGrids report moreAnalysis hfig1 hfig2 hfigA hfigB hfigC
-
+    clearvars -except numRefCases k recenterGrids report moreAnalysis hfig1 hfig2 hfig3 hfigA hfigB hfigC hfigA2 hfigB2 hfigC2
 end
 
 
