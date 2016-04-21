@@ -5,10 +5,9 @@ function [ schedule, var ] = getInjRatesAndTimeSteps( varargin )
     opt.ratecase = 'SPE';
     
     % for limiting the number of injection years
-    opt.num_years   = [];
+    opt.num_years           = [];
+    opt.num_steps_per_year  = []; % if empty, default is 1 step per year
     
-    
-
     opt = merge_options(opt, varargin{:});
     
     
@@ -67,15 +66,19 @@ function [ schedule, var ] = getInjRatesAndTimeSteps( varargin )
     % have been given
     var.inj_time    = ( ones( numel(var.inj_year), 1 ) ) * year;
     
-    % default step size is 1 step per year
-    var.inj_steps   = ones( numel(var.inj_year), 1 );
-    
-    % however, specify more steps to use during the first several years:
-    var.inj_steps(1:10,1)   = [ 10; 10; 10; 8; 8; 8; 8; 8; 8; 8 ];
-    var.inj_steps           = var.inj_steps.*12; % make time step size even finer
-    if ~isempty(opt.num_years)
-        var.inj_steps  = var.inj_steps(1:opt.num_years);
+    if isempty(opt.num_steps_per_year)
+        % default step size is 1 step per year
+        var.inj_steps = ones( numel(var.inj_year), 1 );
+    else
+        var.inj_steps = repmat(opt.num_steps_per_year, numel(var.inj_year), 1);
     end
+    
+%     % however, specify more steps to use during the first several years:
+%     var.inj_steps(1:10,1)   = [ 10; 10; 10; 8; 8; 8; 8; 8; 8; 8 ];
+%     var.inj_steps           = var.inj_steps.*12; % make time step size even finer
+%     if ~isempty(opt.num_years)
+%         var.inj_steps  = var.inj_steps(1:opt.num_years);
+%     end
     
     % time step sizes to use in each year:
     var.dTi     = var.inj_time ./ var.inj_steps;
