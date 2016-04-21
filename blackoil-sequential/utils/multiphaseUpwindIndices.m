@@ -25,7 +25,7 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
             theta(:, l) = theta(:, l) + T.*(G(:, l) - G(:, j)).*kj;
         end
     end
-    [ix, r] = max(theta > 0, [], 2);
+    [ix, r] = max(theta >= 0, [], 2);
     r = r - 1;
     r(all(theta < 0, 2)) = nPh;
     
