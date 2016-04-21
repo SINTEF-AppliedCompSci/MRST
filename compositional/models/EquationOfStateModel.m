@@ -353,8 +353,9 @@ classdef EquationOfStateModel < PhysicalModel
             for i = 1:ncomp
                 B = B + x{i}.*Bi{i};
                 for j = 1:ncomp
-                    A = A + x{i}.*x{j}.*A_ij{i, j};
-                    Si{i} = Si{i} + A_ij{i, j}.*x{j};
+                    A_ijx_j = A_ij{i, j}.*x{j};
+                    A = A + x{i}.*A_ijx_j;
+                    Si{i} = Si{i} + A_ijx_j;
                 end
             end
         end
@@ -372,9 +373,12 @@ classdef EquationOfStateModel < PhysicalModel
             [m1, m2] = model.getEOSCoefficients();
             ncomp = model.fluid.getNumberOfComponents();
             f = cell(1, ncomp);
+            a1 = -log(max(Z - B, 0));
+            b1 = log((Z + m2.*B)./(Z + m1.*B)).*(A./((m1-m2).*B));
+            b2 = (Z-1)./B;
             for i = 1:ncomp
-                v = -log(max(Z - B, 0)) + (A./((m1-m2).*B)).*(2.*Si{i}./A - Bi{i}./B).*log((Z + m2.*B)./(Z + m1.*B)) + Bi{i}./B.*(Z-1);
-
+                v = a1 + b1.*(2.*Si{i}./A - Bi{i}./B) + Bi{i}.*b2;
+                % v = -log(max(Z - B, 0)) + (A./((m1-m2).*B)).*(2.*Si{i}./A - Bi{i}./B).*log((Z + m2.*B)./(Z + m1.*B)) + Bi{i}./B.*(Z-1);
                 f{i} = exp(v).*p.*x{i};
             end
         end
