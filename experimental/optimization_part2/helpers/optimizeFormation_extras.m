@@ -97,7 +97,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
     use_default_schedule = isempty(opt.schedule);
     if use_default_schedule
        
-        %%% 1) Place Wells: -----------------------------------------------
+        %%% 1) Place Wells: (qt is in kg)----------------------------------
         if strcmpi(opt.well_placement_type,'use_array')
 
             [wc, qt] = pick_wellsites_array(Gt, rock2D, co2, ta, opt.rhoW, ...
@@ -126,8 +126,37 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         end
         assert(~isempty(wc), 'No well was placed.')
         
+        % Discard wells (optional):
+        if ~isempty(opt.well_nums_to_keep)
+            wc = wc(opt.well_nums_to_keep);
+            qt = qt(opt.well_nums_to_keep);
+        end
+        
+        %qt = qt * 0.5;
         %qt(1:2) = qt(1:2) * 2.5;% @@
         %qt(3) = qt(3) * 0.5;
+        % make a call to a function that adjusts initial rates such that
+        % savings (assuming a certain amount of leakage) is positive
+        %perc_leakage = 0*ones(numel(wc),1);
+        %[M_crit, M_crit_l, M_crit_u] = critical_injection_masses( opt.well_initial_cost, ...
+        %    opt.well_operation_cost, opt.leak_penalty*1, ...
+        %    opt.co2_tax_credit, 'perc_leakage', perc_leakage );
+        %qt(1:2) = M_crit_l;
+        %qt(3) = M_crit_l;
+        %M_crit(M_crit < 0) = M_crit_u;
+        %qt(1:end) = M_crit;
+        
+        %qt(4) = M_crit_l;
+        %qt(1:2) = M_crit_l;
+        %qt(3) = 0;
+        
+        % Set qt to critical mass required for well to be worthwhile (optional):
+        if opt.useBreakEvenRate
+            clear qt
+            qt = ones(numel(wc),1) * opt.well_initial_cost / (opt.co2_tax_credit - opt.well_operation_cost); % tonnes per well
+            qt = qt * 1e3; % kg per well
+        end
+        
       
         %%% 2) Create schedule based on control type: -----------------------
         if strcmpi(opt.well_control_type,'rate')
@@ -209,6 +238,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
             end
         end
     end
+   
     
     %% Add boundary conditions (either constant pressure, or no-flow)
     bfaces = identifyBoundaryFaces(Gt);
@@ -280,6 +310,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
                      'well_initial_cost',   opt.well_initial_cost, ...
                      'well_operation_cost', opt.well_operation_cost, ...
                      'co2_tax_credit',      opt.co2_tax_credit, ...
+                     'nonlinear_well_cost', opt.nonlinear_well_cost, ...
                      'alpha',               opt.alpha, ...
                      'rho_water',           fluid.rhoWS, ...
                      'surface_pressure',    opt.surface_pressure, ...
@@ -551,6 +582,7 @@ function opt = opt_defaults()
     opt.well_initial_cost = [];
     opt.well_operation_cost = [];
     opt.co2_tax_credit = [];
+    opt.nonlinear_well_cost = true;    % if true, opt.alpha must not be empty
     opt.alpha = [];
    
     
@@ -565,6 +597,7 @@ function opt = opt_defaults()
     % Well placement details:
     opt.well_placement_type = 'use_array'; % 'use_array', 'one_per_trap', 'one_per_path'
     opt.max_num_wells = 40;
+    opt.well_nums_to_keep = []; % ignored if empty
     opt.maximise_boundary_distance = false;
     opt.well_buffer_dist = 1 * kilo*meter; % dist from edge of internal catchment
     opt.well_buffer_dist_domain = 5 * kilo*meter;    % dist from edge of domain 
@@ -574,6 +607,7 @@ function opt = opt_defaults()
     opt.DY = 1 * kilo*meter;
     opt.inspectWellPlacement = false;
     opt.adjustClosedSystemRates = false;
+    opt.useBreakEvenRate = false;
     
     % Convergence details:
     opt.lineSearchMaxIt = 10;

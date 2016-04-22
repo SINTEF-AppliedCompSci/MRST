@@ -46,11 +46,15 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    opt.well_initial_cost = [];      % USD
    opt.well_operation_cost = [];    % USD/tonne
    opt.co2_tax_credit = [];         % USD/tonne
+   opt.nonlinear_well_cost = true;    % if true, opt.alpha must not be empty
+   opt.alpha = [];
    
    opt.last_control_is_migration = false; % if true, constrain last control
                                           % to zero rate
    opt.obj_fun = @(dummy) 0;
    opt = merge_options(opt, varargin{:});
+   
+   if opt.nonlinear_well_cost, assert(~isempty(opt.alpha)), end
 
    % default objective function
    opt.obj_fun = @(wellSols, states, schedule, varargin) ...
@@ -98,7 +102,8 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
        obj_funC = opt.obj_fun; clear opt.obj_fun; opt.obj_fun = @(dummy) 0;
        
        obj_funD = @(wellSols, schedule, varargin) account_well_cost(model, wellSols, schedule, ...
-           opt.well_initial_cost, opt.well_operation_cost, opt.alpha, varargin{:});
+           opt.well_initial_cost, opt.well_operation_cost, opt.co2_tax_credit, opt.alpha, opt.nonlinear_well_cost, ...
+           varargin{:});
        
 %        opt.obj_fun = @(wellSols, states, schedule, varargin) ...
 %            cell_subtract( cell_scalar_multiply( obj_funC(wellSols, states, schedule, varargin{:}), opt.co2_tax_credit*1e9 ), ...
@@ -445,8 +450,9 @@ end
 
 % ----------------------------------------------------------------------------
 
-function obj = account_well_cost(model, wellSols, schedule, initial_cost, operation_cost, alpha, varargin )
-% operation_cost is in units of USD per tonne CO2
+function obj = account_well_cost(model, wellSols, schedule, initial_cost, operation_rate, tax_credit_rate, alpha, nonlinear_well_cost, varargin )
+% operation_rate is in units of USD per tonne CO2
+% tax_credit_rate is in units of USD per tonne CO2
 % initial_cost is in units of USD
 % obj{steps} returned is in units of USD
 
@@ -486,8 +492,7 @@ function obj = account_well_cost(model, wellSols, schedule, initial_cost, operat
       dt = dts(step);
       injInx = (vertcat(sol.sign) > 0);
       
-      % for each time step, compute a non-negative well cost
-      % NB: if qGs < 2*sqrt(eps), then well neglected (treated as 0 cost)
+      % For each time step, compute the well cost
       
       %cost_for_having = ones(nW, 1) * (initial_cost/num_inj_timesteps); % USD
       cost_for_having = ones(nW, 1) * (initial_cost/num_inj_timesteps) .* max(0, sign(qGs - sqrt(eps))); % @@ assuming sqrt(eps) is min val
@@ -495,32 +500,57 @@ function obj = account_well_cost(model, wellSols, schedule, initial_cost, operat
       % NB: operation_cost is [USD/tonne] (1 tonne = 1e3 kg)
       % NB: dt*qGs is [m3] at ref depth
       % NB: dt*qGs*rhoGS is [kg]
-      cost_for_operating = operation_cost * dt * injInx .* qGs .* model.fluid.rhoGS/1e3 .* max(0, sign(qGs - sqrt(eps)));     % USD
+      cost_for_operating = operation_rate * dt * injInx .* qGs .* model.fluid.rhoGS/1e3 .* max(0, sign(qGs - sqrt(eps)));     % USD
                        
-      %obj{step} = sum( (cost_for_having + cost_for_operating) .* max(0, sign(qGs - 2*sqrt(eps))) ); % USD
-      %alpha = 2;
-      q_crit = (initial_cost/num_inj_timesteps)/(operation_cost) * 1e3 / model.fluid.rhoGS / dt; % m3/s, critical injection mass rate (for this time step) to make well's investment cost worthwhile
-      obj{step} = sum( cost_for_having .* tanh(qGs./(alpha*q_crit)) + cost_for_operating ); % USD
+      
+      if ~nonlinear_well_cost
+          
+        % Linear total well cost:
+        obj{step} = sum( (cost_for_having + cost_for_operating) .* max(0, sign(qGs - 2*sqrt(eps))) ); % USD
+        % for plotting:
+        obj_per_well(step,1:nW) = cost_for_having + cost_for_operating; % USD
+      
+      else
+          
+        % Non-linear total well cost:
+        % Critical injection mass rate (for this time step) to make well's investment cost worthwhile:
+        %q_crit = (initial_cost/num_inj_timesteps)/(operation_rate) * 1e3 / model.fluid.rhoGS / dt; % m3/s
+        q_crit = (initial_cost/num_inj_timesteps)/(tax_credit_rate - operation_rate) * 1e3 / model.fluid.rhoGS / dt; % m3/s
+        obj{step} = sum( cost_for_having .* tanh(qGs./(alpha*q_crit)) + cost_for_operating ); % USD
+        % for plotting:
+        obj_per_well(step,1:nW) = cost_for_having .* tanh(qGs./(alpha*q_crit)) + cost_for_operating; % USD
+      
+      end
       
       % for plotting purposes
       total_inj(step,1:nW) = qGs .* dt .* model.fluid.rhoGS .* max(0, sign(qGs - sqrt(eps))); % kg
-      obj_per_well(step,1:nW) = cost_for_having .* tanh(qGs./(alpha*q_crit)) + cost_for_operating; % USD
+
       
       if (tSteps(step) == num_timesteps)
          if ~opt.ComputePartials
-%             fprintf('Total injected: %f (m3)\n', double(krull));
-%             fprintf('Total leaked: %f (m3)\n', double(krull - vol_inf));
-%             fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol_inf));
             fprintf('Well cost is %f USD. \n\n', sum(cell2mat(obj)) );
+            %
+            % Total well cost
             if ~ishandle(12)
                 figure(12)
             else
                 % Avoid stealing focus if figure already exists
                 set(0, 'CurrentFigure', 12); clf(12);
             end
-            plot_total_well_cost_function( 12, initial_cost, operation_cost, alpha ) % opens new figure
-            hold on; plot(sum(total_inj)/1e9, sum(obj_per_well)/1e6, 'x')
+            plot_total_well_cost_function( 12, initial_cost, operation_rate, tax_credit_rate, alpha ) % opens new figure
+            hold on; plot(sum(total_inj)/1e9, sum(obj_per_well)/1e6, 'xk')
             text(sum(total_inj)/1e9, sum(obj_per_well)/1e6, cellstr(num2str([1:nW]')))
+            %
+            % Max savings possible per well (assuming no leakage)
+            if ~ishandle(13)
+                figure(13)
+            else
+                % Avoid stealing focus if figure already exists
+                set(0, 'CurrentFigure', 13); clf(13);
+            end
+            plot_total_savings_function( 13, initial_cost, operation_rate, tax_credit_rate, alpha )
+            hold on; plot(sum(total_inj)/1e9, tax_credit_rate .* sum(total_inj)/1e9 - sum(obj_per_well)/1e6, 'xk')
+            text(sum(total_inj)/1e9, tax_credit_rate .* sum(total_inj)/1e9 - sum(obj_per_well)/1e6, cellstr(num2str([1:nW]')))
          end
       end
    end
