@@ -1,21 +1,30 @@
-function CGf = storeFractureInternalInteractionRegion(CGf,G,A,varargin)
-% addCoarseCenterPointsFrac(CG) adds coarse nodes to the fracture coarse
-% grid CG
+function CGf = storeFractureInternalInteractionRegion(CGf, G, A, varargin)
+% storeFractureInternalInteractionRegion can be used to compute the support
+% region that lies inside a fracture for every fracture coarse block.
 %
 % SYNOPSIS:
-%   CG = storeFractureInternalInteractionRegion(CGf, G, A)
-%   CG = storeFractureInternalInteractionRegion(CGf, G, A, 'pn1', 'pv1', ...)
+%   CGf = storeFractureInternalInteractionRegion(CGf, G, A)
+%   CGf = storeFractureInternalInteractionRegion(CGf, G, A, 'pn1', 'pv1', ...)
 %
 % REQUIRED PARAMETERS:
 %
-%   CG  - Fracture coarse grid (supplied by 'generateCoarseGrid') with
-%         geometry information (computed through 'coarsenGeometry').
+%   CGf  - Fracture coarse grid (supplied by 'generateCoarseGrid') with
+%          geometry information (computed through 'coarsenGeometry').
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/'value' pairs ('pn'/'pv' ...)):
-% TODO
+%    simpleInteractionRegion - connects neighboring coarse nodes, in a 2D
+%                              domain where fractures are represented as 1D
+%                              grids to compute the interaction region.
+%
+%
+%    callStoreInteractionRegion - calls the function storeInteractionRegion
+%                                 to compute fracture internal interaction
+%                                 regions. Applicable for 3D domains.
 %
 % RETURNS:
-%   CG - Fracture coarse grid with CG.cells.centers added as a new field.
+%   CGf - Fracture coarse grid containing internal support regions in the
+%         list CGf.cells.interaction.
+%
 %
 % SEE ALSO:
 %   storeInteractionRegionFrac
@@ -64,15 +73,24 @@ elseif opt.simpleInteractionRegion
         fcg_fcells = find(p==i);
         irf = fcg_fcells;
         start = irf;
+        count = 0;
         while ~isempty(start)
             start2 = [];
             for j = 1:numel(start)
                 add = find(Af(start(j),:));
-                add = add(~ismember(add,[irf;rmcenters]));
+                if isempty(rmcenters)
+                    add = setdiff(add,irf);
+                else
+                    add = setdiff(add,[irf;rmcenters]);
+                end
                 start2 = [start2;add']; %#ok
             end
             start = start2;
             irf = [irf;start]; %#ok
+            count = count + 1;
+            if count==20
+                break;
+            end
         end
         CGf.cells.interaction{i,1} = unique(irf);
     end

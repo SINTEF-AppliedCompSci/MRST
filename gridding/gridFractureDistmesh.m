@@ -50,7 +50,7 @@ while true
     end
 end
 %---------------------------------pebi------------------------------------%
-iter = 50;
+iter = 25;
 if flag == 2
     %     [Px, Py] = lloydsAlgorithm(p(:,1),p(:,2), xyp, 200, true);
     while true
@@ -60,7 +60,7 @@ if flag == 2
             computeGeometry(Gf);
             break;
         catch
-            if count>=4
+            if count>=3
                 flag = 1;
                 break;
             end
@@ -81,7 +81,7 @@ end
 %--------------------triangle if pebi fails repeatedly--------------------%
 if flag == 1
     fprintf('\nCould not successfully generate a PEBI Grid. Switching to triangle grid.\n');
-    iter = 50; h = h*2^(count); count = 0; 
+    iter = 50; h = h*2^(count-1); count = 0; 
     while true
         count = count + 1;
         assert(count<10,' ');

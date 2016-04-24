@@ -28,7 +28,7 @@ fracplanes = getPlaneNormals(fracplanes);
 Sign = establishSign(G, fracplanes);
 
 %
-[fraCells,remove] = markcells(G, fracplanes, 'Sign', Sign, 'GlobTri', GlobTri);
+[fraCells,remove] = markcells(G, fracplanes, 'Sign', Sign); %, 'GlobTri', GlobTri);
 if ~isempty(remove)
     fracplanes = fracplanes(setdiff(1:numel(fracplanes),remove));
     fracScaled = fracScaled(setdiff(1:numel(fracScaled),remove));
@@ -59,15 +59,17 @@ for i = 1:numel(fracplanes)
     fieldname = ['Frac',num2str(i)];
     isrectangular = ismember(i,rectangular);
     scale = max(dims(3)/dims(1),dims(1)/dims(3));
-    Gf.(fieldname) = gridFractureDistmesh(G, fracplanes(i), fracScaled(i), esize_scaled, ...
-                     'type', 'pebi','rectangular', isrectangular, 'scale', scale);
+%     Gf.(fieldname) = gridFractureDistmesh(G, fracplanes(i), fracScaled(i), esize_scaled, ...
+%                      'type', 'pebi','rectangular', isrectangular, 'scale', scale);
+    Gf.(fieldname) = gridPlanarFracture(G, fracplanes(i), fracScaled(i), esize_scaled*10, ...
+                     'type', 1,'rectangular', isrectangular, 'scale', scale);
     Gf.(fieldname).cells.start = cstart;
     Gf.(fieldname).faces.start = fstart;
     Gf.(fieldname).nodes.start = nstart;
     
     CI{i,1} = totalCI(tri,fracplanes(i));
     G = fracMatrixConnections(G, Gf.(fieldname), CI{i,1}, fraCells{i,1}, ...
-        polyArea3D(fracplanes(i).points), 'GlobTri', GlobTri);
+        polyArea3D(fracplanes(i).points));
     
     cstart = cstart + Gf.(fieldname).cells.num;
     fstart = fstart + Gf.(fieldname).faces.num;

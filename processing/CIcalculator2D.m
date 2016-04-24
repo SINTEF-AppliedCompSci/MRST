@@ -1,6 +1,6 @@
 function G = CIcalculator2D(G,fracture)
-% CIcalculator2D computes the conductivity index (CI) of each cell with
-% every fracture embedded in it.
+% CIcalculator2D computes the conductivity index (CI) of each 2D cell for
+% every fracture line embedded in it.
 %
 % SYNOPSIS:
 %   G = CIcalculator2D(G,fracture)
@@ -14,13 +14,11 @@ function G = CIcalculator2D(G,fracture)
 %
 % REQUIRED PARAMETERS:
 %
-%   G         - Matrix grid structure with the sub-structure
-%               G.cells.fracture (see markcells).
+%   G         - Matrix grid structure with added fields
+%               "G.cells.fracture.CI" (conductivity index) and
+%               "G.cells.fracture.fA" (fracture area).
 %
-%   fracture  - Structure containing information pertaining to independant
-%               fracture networks, individual fracture lines and matrix
-%               cells with embedded fractures. See processFracture,
-%               getIndepNetwork and markcells.
+%   fracture  - See processFracture2D.
 %
 % RETURNS:
 %   G  - Matrix grid structure with added cell lists 'G.cells.fracture.CI'
@@ -28,7 +26,7 @@ function G = CIcalculator2D(G,fracture)
 %        index and fracture length inside each matrix cell respectively
 %
 % SEE ALSO:
-%   processFracture, getIndepNetwork, markcells
+%   processFracture2D, getIndepNetwork, markcells2D
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
@@ -67,8 +65,6 @@ for i = 1:numel(frac_cells)
         end
         cnodes = unique(cnodes);
         out = lineSegmentIntersect(frac_endp,edges);
-%         xi = round(out.intMatrixX(out.intAdjacencyMatrix),3).';
-%         yi = round(out.intMatrixY(out.intAdjacencyMatrix),3).';
         xi = out.intMatrixX(out.intAdjacencyMatrix).';
         yi = out.intMatrixY(out.intAdjacencyMatrix).';
         nc = G.nodes.coords(cnodes,:);
@@ -148,10 +144,10 @@ for i = 1:numel(frac_cells)
             xi = unique(out.intMatrixX(out.intAdjacencyMatrix));
             yi = unique(out.intMatrixY(out.intAdjacencyMatrix));
             coinc_edge = edges(out.coincAdjacencyMatrix,:);
-            if isempty(coinc_edge) % temp fix
-                temp = find(abs(out.intNormalizedDistance2To1)<eps*100);
-                coinc_edge = edges(temp(1)+1,:);
-            end
+%             if isempty(coinc_edge) % temp fix - reduce significant digits
+%                 temp = find(abs(out.intNormalizedDistance2To1)<eps*100);
+%                 coinc_edge = edges(temp(1)+1,:);
+%             end
             dist = pdist_euclid([coinc_edge(1:2);coinc_edge(3:4)]);
             dist1 = pdist_euclid([frac_endp(1:2);xi,yi]);
             dist2 = pdist_euclid([frac_endp(3:4);xi,yi]);
@@ -165,10 +161,10 @@ for i = 1:numel(frac_cells)
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
         else
             coinc_edge = edges(out.coincAdjacencyMatrix,:);
-            if isempty(coinc_edge) % temp fix
-                temp = find(abs(out.intNormalizedDistance2To1)<eps*100);
-                coinc_edge = edges(temp(1)+1,:);
-            end
+%             if isempty(coinc_edge) % temp fix - reduce significant digits
+%                 temp = find(abs(out.intNormalizedDistance2To1)<eps*100);
+%                 coinc_edge = edges(temp(1)+1,:);
+%             end
             fracp = [coinc_edge(1:2);coinc_edge(3:4)];
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
             ratio = 1;

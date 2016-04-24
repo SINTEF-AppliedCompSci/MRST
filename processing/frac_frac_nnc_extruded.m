@@ -55,15 +55,15 @@ if isfield(fracture,'intersections')
     for i = 1:numel(F)
         findex2D = [findex2D,F(i).cells.start]; %#ok
         findex3D = [findex3D, ...
-            Gl.FracGrid.(['Line',num2str(i)]).cells.start]; %#ok
+            Gl.FracGrid.(['Frac',num2str(i)]).cells.start]; %#ok
     end
     findex2D(end+1) = findex2D(end) + F(i).cells.num;
-    findex3D(end+1) = findex3D(end) + Gl.FracGrid.(['Line',num2str(i)]).cells.num;
+    findex3D(end+1) = findex3D(end) + Gl.FracGrid.(['Frac',num2str(i)]).cells.num;
     for i = 1:size(fracture.intersections.lines,1) %% 2D for now
         lines = fracture.intersections.lines(i,:);
         coords = fracture.intersections.coords(i,:);
-        Gf1 = G.FracGrid.(['Line',num2str(lines(1))]);
-        Gf2 = G.FracGrid.(['Line',num2str(lines(2))]);
+        Gf1 = G.FracGrid.(['Frac',num2str(lines(1))]);
+        Gf2 = G.FracGrid.(['Frac',num2str(lines(2))]);
         %
         [~,Gface(1)] = ismember(round(coords,5),round(F(lines(1)).nodes.coords,5),'rows');
         [~,Gface(2)] = ismember(round(coords,5),round(F(lines(2)).nodes.coords,5),'rows');
@@ -92,11 +92,11 @@ if isfield(fracture,'intersections')
         cent1 = Gf1.faces.centroids(Gface(1),:);
         cent2 = Gf2.faces.centroids(Gface(2),:);
         %
-        Gf1 = Gl.FracGrid.(['Line',num2str(lines(1))]);
-        Gf2 = Gl.FracGrid.(['Line',num2str(lines(2))]);
+        Gf1 = Gl.FracGrid.(['Frac',num2str(lines(1))]);
+        Gf2 = Gl.FracGrid.(['Frac',num2str(lines(2))]);
         %
-        faces1 = find(ismembertol(Gf1.faces.centroids(:,1:2),cent1,eps*100,'ByRows',true));
-        faces2 = find(ismembertol(Gf2.faces.centroids(:,1:2),cent2,eps*100,'ByRows',true));
+        faces1 = find(ismembertol(Gf1.faces.centroids(:,1:2),cent1,eps*1e4,'ByRows',true));
+        faces2 = find(ismembertol(Gf2.faces.centroids(:,1:2),cent2,eps*1e4,'ByRows',true));
         
         %-----------Get half face transmissibilities----------------------%
         Trans1 = computeTrans(Gf1,Gf1.rock);

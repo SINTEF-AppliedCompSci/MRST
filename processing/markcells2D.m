@@ -1,9 +1,9 @@
-function [G, frac] = markcells(G,frac)
-% markcells assigns a fracture presence indicator to cells containing
-% embedded fractures or fractures at any of its faces. Indices of fracture
-% lines and networks are also stored for the corresponding cells. Each
-% fracture is assumed to be a line by this function. See processFracture
-% for details on input and output.
+function [G, frac] = markcells2D(G,frac)
+% markcells2D assigns a indicator to cells containing embedded fractures or
+% discrete fractures at any of its faces. Indices of fracture lines and
+% networks are also stored for the corresponding cells. Each fracture is
+% assumed to be a line by this function. See processFracture2D for details
+% on input and output.
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

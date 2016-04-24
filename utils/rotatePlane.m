@@ -21,8 +21,8 @@ if isequal(abs(normal),abs(normal2))
     return
 end
 
-rotAngle = +acos(dot(normal2,normal)); %rotation angle
-rotAxis = +cross(normal,normal2); %rotation axis
+rotAngle = -acos(dot(normal2,normal)); %rotation angle
+rotAxis = -cross(normal,normal2); %rotation axis
 
 M = makehgtform('axisrotate', rotAxis, rotAngle);
 p = points*M(1:3,1:3);

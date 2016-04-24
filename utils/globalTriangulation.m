@@ -39,21 +39,3 @@ Gtri = triangulation(T,P);
 GlobTri.Tri = Gtri;
 GlobTri.map = map;
 return
-
-% Gtri = delaunayTriangulation(G.nodes.coords);
-% 
-% t = struct;
-% for i = 1:G.cells.num
-%     t(i).triangulation = delaunayTriangulation(G.nodes.coords(gridCellNodes(G,i),:));
-% end
-% map = zeros(size(Gtri,1),1);
-% Ic = incenter(Gtri);
-% for i = 1:size(Gtri,1)
-% %     qc = mean(Gtri.Points(Gtri.ConnectivityList(i,:),:));
-%     for j = 1:G.cells.num
-%         if ~isnan(pointLocation(t(j).triangulation,Ic(i,:)))
-%            map(i) = j;
-%            break;
-%         end
-%     end
-% end

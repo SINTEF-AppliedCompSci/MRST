@@ -9,13 +9,14 @@ function G = FracTensorGrid2D(G,F,a,varargin)
 %
 % REQUIRED PARAMETERS:
 %
-%   G  - Matrix grid data structure
+%   G  - Matrix grid data structure.
 %
 %   F  - Structure containing information abo'Frac'ut partitioned fracture
 %        lines as returned by assembleFracNodes2D.
 %
 %   a  - Fracture aperture, Must either have a single value for all
-%        fracture lines or an individual value for each fracture line
+%        fracture lines or an individual value for each fracture line.
+%        Varying fracture apartures for one line are not supported.
 %
 % OPTIONAL PARAMETER:
 %
@@ -24,11 +25,11 @@ function G = FracTensorGrid2D(G,F,a,varargin)
 % RETURNS:
 %   G - Grid structure with sub-structure G.FracGrid. G.FracGrid in-turn
 %       contains a grid structure for each fracture line with nomenclature
-%       such as Line1, Line2, etc. G.FracGrid.Line1 will have the same
-%       basic grid structure as G.
+%       such as Frac1, Frac2, and so on. G.FracGrid.Frac1, for example,
+%       will have the same basic grid structure as G.
 %
 % SEE ALSO:
-%   assembleFracNodes2D, translateLine
+%   assembleFracNodes2D, tensorGrid
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

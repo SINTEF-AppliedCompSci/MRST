@@ -1,35 +1,42 @@
-function G = makeRockFrac(G, K_star, varargin)
-% Sets rock properties inside fracture grid stored in G.FracGrid given a
-% permeability ratio between matrix and fractures.
+function G = makeRockFrac(G, K_frac, varargin)
+% makeRockFrac can be used to set homogeneous rock properties to the
+% fracture grid stored in G.FracGrid given a scalar value for fracture
+% permeability and porosity.
 %
 % SYNOPSIS:
-%   G = setRockFrac(G, K_frac)
-%   G = setRockFrac(G, K_frac, 'pn1', 'pv1')
-%   G = setRockFrac(G, K_frac, 'pn1', 'pv1', 'pn2', pn2)
+%   G = makeRockFrac(G, K_frac)
+%   G = makeRockFrac(G, K_frac, 'pn1', 'pv1')
+%   G = makeRockFrac(G, K_frac, 'pn1', 'pv1', 'pn2', pn2)
 %
 % REQUIRED PARAMETERS:
 %
-%   G      - Grid data structure containi'Frac'ng fracture grids (for each
+%   G      - Grid data structure containing fracture grids (for each
 %            fracture line or plane) in G.FracGrid
 %
-%   K_star - Used to scale fracture permeability by K_star orders of
-%            magnitude higher than matrix permeability
+%   K_frac - Scalar Darcy permeability for homogeneous fractures.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
-%   permtype - 'homogeneous' or 'heterogeneous'
+%   permtype - 'homogeneous' or 'heterogeneous'. If 'heterogeneous' is
+%               passed as the permtype, this function assigns a random
+%               permeability distribution to each fracture grid cell. To
+%               manually assign a specific permeability distribution, the
+%               user must access G.FracGrid.Frac#.rock.perm as shown in the
+%               code written below. In that case, one does not need to call
+%               makeRockFrac.
 %
-%   rockporo - Single numeric value for rock porosity (0<rockporo<1)
+%   porosity - Scalar value for rock porosity (0<porosity<1)
 %   
 % RETURNS:
 %   G - Grid data structure with structure rock added to each fracture grid
-%       (Line#) in G.FracGrid.
+%       (Frac#) in G.FracGrid.
 %
 % NOTE:
-%   This function uses randi() to generate a random permeability field.
+%   This function uses randi() to generate a random permeability field when
+%   'heterogeneous' is specified as 'permtype'.
 %
 % SEE ALSO:
-%   FracTensorGrid2D, makeLayers
+%   FracTensorGrid2D
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
@@ -51,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-opt = struct('permtype', [], 'rockporo', []);
+opt = struct('permtype', 'homogeneous', 'porosity', []);
 opt = merge_options(opt, varargin{:});
 if ~isempty(varargin) && strcmp(opt.permtype,'homogeneous')==0 && strcmp(opt.permtype,'heterogeneous')==0
     fprintf(['Wrong argument string. Valid Arguments: ''Homogeneous'' or ''heterogeneous''.\n',...
@@ -60,17 +67,17 @@ end
 for i = 1:numel(fieldnames(G.FracGrid))
     Gf = G.FracGrid.(['Frac',num2str(i)]);
     if isempty(varargin) || strcmp(opt.permtype,'homogeneous')
-        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_star;
+        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_frac;
     elseif strcmp(opt.permtype,'heterogeneous')
         G.FracGrid.(['Frac',num2str(i)]).rock.perm = ...
-            (randi(100,Gf.cells.num,1)*darcy()./randi(100,Gf.cells.num,1))*K_star;
+            (randi(100,Gf.cells.num,1)*darcy()./randi(100,Gf.cells.num,1))*K_frac;
     else
-        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_star;
+        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_frac;
     end
-    if ~isempty(opt.rockporo)
-        assert(opt.rockporo<1 && opt.rockporo>0,...
+    if ~isempty(opt.porosity)
+        assert(opt.porosity<1 && opt.porosity>0,...
             'Rock porosity must be a single real number between 0 and 1');
         G.FracGrid.(['Frac',num2str(i)]).rock.poro = ...
-            opt.rockporo*ones(Gf.cells.num,1);
+            opt.porosity*ones(Gf.cells.num,1);
     end
 end

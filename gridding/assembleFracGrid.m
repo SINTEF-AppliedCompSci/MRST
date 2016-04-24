@@ -1,5 +1,5 @@
 function Gf = assembleFracGrid(G)
-% assembleFracGrid(G) assembles a grid (Gf) containing only fractures using
+% assembleFracGrid assembles a grid (Gf) containing only fractures using
 % the global grid (G) containing both fracture and matrix information.
 %
 % SYNOPSIS:
@@ -16,7 +16,7 @@ function Gf = assembleFracGrid(G)
 %   cartesian grid. Underlying matrix grid structure as in 'G' can be
 %   cartesian or unstructured. Fracture intersections exist as NNC's
 %   (Gf.nnc.cells) in the returned grid Gf. Transmissibility at these
-%   intersections can also be found in Gf.nnc. Fracture matrix connections
+%   intersections can also be found in Gf.nnc. Fracture-matrix connections
 %   do not exist in the output grid.
 %
 % SEE ALSO:

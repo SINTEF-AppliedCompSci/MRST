@@ -1,18 +1,18 @@
 function [G,fracture] = processFracture2D(G,fl,varargin)
-% processFracture extracts independant fracture networks and stores matrix
-% cells containing fractures given a matrix grid and a set of fracture
-% lines
+% processFracture2D extracts independant fracture networks and stores
+% matrix cells containing fractures given a matrix grid and a set of
+% fracture lines in two dimensions.
 %
 % % SYNOPSIS:
-%   [G,F,fracture] = gridFracture2D(G, fracture)
-%   [G,F,fracture] = gridFracture2D(G, fracture, 'pn1', pv1)
+%   [G,fracture] = processFracture2D(G, fl)
+%   [G,fracture] = processFracture2D(G, fl, 'pn1', pv1)
 %
 % REQUIRED PARAMETERS:
 %
 %   G  - Grid data structure.
 %
-%   fl - fracture lines represented by its end points as [x1 y1 x2 y2]. fl
-%        will have 1 row per fracture line.
+%   fl - fracture lines represented by it's end points as [x1 y1 x2 y2]. fl
+%        will have 1 row per fracture line. Size = nf-by-1.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   verbose - Enable output.  Default value dependent upon global verbose
@@ -21,18 +21,21 @@ function [G,fracture] = processFracture2D(G,fl,varargin)
 % RETURNS:
 %
 %   G        - Grid data structure with an added cell list G.cells.fracture
-%              containing indicator calues for cells containing fractures
-%              as well as the line and network indices of those fractures.
+%              containing indicator values for cells containing fractures
+%              as well as the indices of those fractures.
 %
-%   fracture - Structure with the following sub-structures:
-%             (a) lines - 1-by-rows(fl) structure with fields network
-%                         (network to which each line belongs) and endp
-%                         (endpoints of each line as supplied by 'fl')
+%   fracture - Structure containing information about individual fractures
+%              with the following sub-structures:
+%             (a) lines - Structure with the fields "network"
+%                         (network to each fracture belongs), "endp"
+%                         (endpoints of each fracture line as supplied by
+%                         'fl') and "cells" (matrix cells containing the
+%                         fracture) . Size = 1-by-rows(fl).
 %             (b) network - stores indices for fracture lines contained in
 %                           each network.
 %
 % NOTE: 
-%   This function calls getIndepNetwork and markcells internally.
+%   This function calls getIndepNetwork and markcells2D internally.
 %
 % SEE ALSO:
 %   getIndepNetwork, markcells2D
@@ -61,7 +64,7 @@ opt = struct('verbose', true);
 opt = merge_options(opt, varargin{:});
 
 % Get independant fracture lines
-dispif(opt.verbose, '\nExtracting independant fracture networks from fracture lines...\n\n');
+dispif(opt.verbose, 'Extracting independent fracture networks...\n\n');
 fracture = getIndepNetwork(fl);
 
 % Mark cells

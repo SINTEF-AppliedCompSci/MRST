@@ -33,12 +33,13 @@ if any(diff(nodesPerFace)) % Hybrid/Composite Grid
 else
     faceNodes = reshape(fnodes,nodesPerFace(1),[]).';
 end
-count = 0;
+count = 0; flag = 0;
 for i = 1:numel(fracplanes)
     count = count+1;
     %
     ratio = max(G.faces.areas)/(polyArea3D(fracplanes(i).points));
     [~,loc] = min(abs(possible_ratios-ratio));
+    if loc>=numel(possible_ratios)-2, loc = loc-4; end
     ratio = possible_ratios(loc+1);
     %
     bsum = Sign(i).NodeSign(:,2:end)>=0; % Points lying on boundary planes
@@ -54,22 +55,12 @@ for i = 1:numel(fracplanes)
     p = p(in~=on,:);
     if ~isempty(dfm_cells)
         unitNormal = fracplanes(i).normal/norm(fracplanes(i).normal);
-        tdist = fracplanes(i).aperture/2;
+        tdist = fracplanes(i).aperture;
         pminus = p - repmat(unitNormal,size(p,1),1)*tdist;
         pplus = p + repmat(unitNormal,size(p,1),1)*tdist;
         p = [pminus;pplus];
     end
-    if isempty(Gtri)
-        dd = zeros(G.cells.num,1);
-        for j = 1:G.cells.num
-            dd(j) = min(sqrt((p(:,3)-repmat(zc(j),size(p,1),1)).^2 + (p(:,2)-repmat(yc(j),size(p,1),1)).^2 + (p(:,1)-repmat(xc(j),size(p,1),1)).^2));
-        end
-        candidates = find(dd<maxd);
-        dd = dd(dd<maxd);
-        [~,sortInd] = sort(dd);
-        [cells, ~] = getEnclosingCellsByFace(G, p, 'candidates', candidates(sortInd));
-        allc = unique([cells;dfm_cells]);
-    else
+    if ~isempty(Gtri)
         ploc = pointLocation(Gtri,p);
         ploc = ploc(~isnan(ploc));
         allc = unique([map(ploc);dfm_cells]);
@@ -80,6 +71,19 @@ for i = 1:numel(fracplanes)
             dd(j) = min(sqrt((p(:,3)-repmat(zct(j),size(p,1),1)).^2 + (p(:,2)-repmat(yct(j),size(p,1),1)).^2 + (p(:,1)-repmat(xct(j),size(p,1),1)).^2));
         end
         allc = setdiff(allc,allc(dd>maxd));
+        if numel(allc)<=3, flag = 1; end
+    end
+    if isempty(Gtri) || flag == 1
+        flag = 0;
+        dd = zeros(G.cells.num,1);
+        for j = 1:G.cells.num
+            dd(j) = min(sqrt((p(:,3)-repmat(zc(j),size(p,1),1)).^2 + (p(:,2)-repmat(yc(j),size(p,1),1)).^2 + (p(:,1)-repmat(xc(j),size(p,1),1)).^2));
+        end
+        candidates = find(dd<maxd);
+        dd = dd(dd<maxd);
+        [~,sortInd] = sort(dd);
+        [cells, ~] = getEnclosingCellsByFace(G, p, 'candidates', candidates(sortInd));
+        allc = unique([cells;dfm_cells]);
     end
     if numel(allc)<=3
         warning(['Fracture ',num2str(i),' is not a long fracture and ',...

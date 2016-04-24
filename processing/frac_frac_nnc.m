@@ -8,27 +8,21 @@ function G = frac_frac_nnc(G,F,fracture)
 %
 % REQUIRED PARAMETERS:
 %
-%   G        - Grid data structure containing G.FracGrid (see
-%              FracTensorGrid2D)
+%   G           - Grid data structure containing G.FracGrid (see
+%                 FracTensorGrid2D) and corresponding rock properties for
+%                 the fracture.
 %
-%   F        - Structure containing information about partitioned fracture
-%              lines as returned by assembleFracNodes2D.
-%
-%   fracture - Fracture structure containing information pertaining to
-%              independant fracture networks, individual fracture lines and
-%              matrix cells with embedded fractures. See getIndepNetwork
-%              and markcells.
+%   F, fracture - Output from gridFracture2D.
 %
 % RETURNS:
 %   G - Grid structure with fracture-fracture intersections and their
 %       transmissibilities added in the cell lists 'G.nnc.cells' and
 %       'G.nnc.T' respectively. To aid in detecting specific NNC types,
-%       these intersections are added as 'star-delta' type in the list
+%       these connections are added as 'star-delta' type in the list
 %       'G.nnc.type'
 %
 % SEE ALSO:
-%   getIndepNetwork, markcells, assembleFracNodes2D, FracTensorGrid2D,
-%   frac_matrix_nnc
+%   assembleFracNodes2D, gridFracture2D, frac_matrix_nnc
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

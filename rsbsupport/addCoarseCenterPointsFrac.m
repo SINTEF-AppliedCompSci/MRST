@@ -1,21 +1,60 @@
 function CGf = addCoarseCenterPointsFrac(CGf,varargin)
-% addCoarseCenterPointsFrac(CG) adds coarse nodes to the fracture coarse
-% grid CG
+% addCoarseCenterPointsFrac adds coarse nodes to the fracture coarse
+% grid CGf.
+%
+% SYNOPSIS:
+%   CGf = addCoarseCenterPointsFrac(CGf)
+%   CGf = addCoarseCenterPointsFrac(CGf, 'pn1', 'pv1', ...)
+%
+% REQUIRED PARAMETERS:
+%
+%   CGf  - Fracture coarse grid (supplied by 'generateCoarseGrid') with
+%         geometry information (computed through 'coarsenGeometry').
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/'value' pairs ('pn'/'pv' ...)):
 %
 %   option - option specifies the type of coarse grid points to use for
-%            computing the coarse node location. Possible values are:
+%            computing the coarse node location. Possible self-explanatory
+%            values are: 
 %
 %            (a) 'useCoarseFaceCentroids'
 %            (b) 'useCoarseCellCentroids'
 %            (c) 'useFineCellCentroids'
+%            (d) 'useCoarseCellEndPoints'
 %               
 %            passed as character arrays.
 %
 %   meantype - type of mean, of the points specified by option, to use for
-%              computing the coarse node location. Valid values include
-%              'geometric' and 'arithmetic' passed as character arrays.
+%              computing the coarse node location. Valid input values
+%              include 'geometric' and 'arithmetic' passed as character
+%              arrays. This option is not useful if
+%              'useCoarseCellEndPoints' is passed as the option
+%
+% RETURNS:
+%   CGf - Fracture coarse grid with CGf.cells.centers added as a new field.
+%
+% SEE ALSO:
+%   storeFractureInteractionRegion
+
+%{
+Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 
 Gf = CGf.parent;
 opt = struct('option', 'useCoarseFaceCentroids','meantype','geometric'); 
@@ -43,6 +82,15 @@ for i = 1:CGf.cells.num
             gm = mean(pts);
         end
         C = gm;
+    elseif strcmp(opt.option, 'useCoarseCellEndPoints')
+        nbrnum = zeros(numel(search),1);
+        for j = 1:numel(search)
+            n = getCellNeighbors(Gf, search(j));
+            nbrnum(j) = numel(n);
+        end
+        [~,loc] = min(nbrnum);
+        centers(i) = search(loc);
+        continue;
     else
         error(['Wrong value for key ''option'' in argument list. Can be either one of ',...
             '''useCoarseFaceCentroids'', ''useCoarseCellCentroids'' or ''useFineCellCentroids''.']);

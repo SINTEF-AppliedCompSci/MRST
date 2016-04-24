@@ -1,12 +1,12 @@
 function G = assembleGlobalGrid(Gm)
-% assembleGlobalGrid combines matrix and fracture grids into 1 global grid
+% assembleGlobalGrid combines matrix and fracture grids into 1 global grid.
 %
 % SYNOPSIS:
 %   G = assembleFracGrid(Gm)
 %
 % REQUIRED PARAMETERS:
-%   G  - Matrix grid data structure (passed through computeGeometry) with
-%        FracGrid structure as returned by FracTensorGrid2D.
+%   G  - Matrix grid data structure (passed through computeGeometry)
+%        containing G.FracGrid as returned by FracTensorGrid2D.
 %
 % RETURNS:
 %   G - Grid structure containing both matrix and fracture cells and
@@ -50,7 +50,7 @@ name = 'Frac';
 for i = 1:numel(fieldnames(G.FracGrid))
     Gf = G.FracGrid.([name,num2str(i)]);
     cell_start = numel(G.cells.volumes); %max(G.cells.indexMap); %Gf.cells.start-1;
-    face_start = numel(G.faces.areas);% G.faces.tag %Gf.faces.start-1;
+    face_start = numel(G.faces.areas); %G.faces.tag %Gf.faces.start-1;
     node_start = size(G.nodes.coords,1); %Gf.nodes.start-1;
     if isfield(G.cells,'indexMap')
         G.cells.indexMap = [G.cells.indexMap;Gf.cells.indexMap+cell_start];

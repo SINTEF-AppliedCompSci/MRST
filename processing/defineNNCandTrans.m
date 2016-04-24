@@ -1,10 +1,32 @@
 function [G,T] = defineNNCandTrans(G,F,fracture)
-% defineNNC_computeTrans uses a global grid 'G' with fractures to define
-% fracture-matrix connections and fracture-fracture connections at
-% intersections as non-neighboring connections (NNC's). The script also
-% computes transmissibilities for these NNC's using rock properties defined
-% in G. This function calls frac_matrix_nnc, frac_frac_nnc, 
-% assembleGlobalGrid  and computeTrans internally.
+% defineNNCandTrans first assembles a global grid 'G' containing both
+% fracture and matrix grid cells. Then fracture-matrix connections and
+% fracture-fracture connections (at intersections) are defined as
+% non-neighboring connections (NNC's). The script also computes
+% transmissibilities for these NNC's using rock properties defined in G.
+% This function calls frac_matrix_nnc, frac_frac_nnc, assembleGlobalGrid
+% and computeTrans internally.
+%
+% SYNOPSIS:
+%   [G,T] = defineNNCandTrans(G,F,fracture)
+%
+% REQUIRED PARAMETERS:
+%
+%   G           - Grid data structure containing G.FracGrid (see
+%                 FracTensorGrid2D) with corresponding rock properties and
+%                 G.cells.fracture (see markcells2D and CIcalculator2D)
+%
+%   F, fracture - Output from gridFracture2D.
+%
+% RETURNS:
+%   G - Global grid structure (individual matrix and fracture grids
+%       assembled into 1 grid) with NNC's and relevant information defined
+%       in G.nnc
+%
+%   T - Face transmissibilities.
+%
+% SEE ALSO:
+%   gridFracture2D, assembleGlobalGrid, frac_matrix_nc, frac_frac_nnc 
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
@@ -28,11 +50,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 % frac-matrix connections
 G = frac_matrix_nnc(G,F,fracture);
-% Remove unnecessary connections
-if any(G.nnc.CI==0)
-    G.nnc.cells = G.nnc.cells(G.nnc.CI~=0,:);
-    G.nnc.type(G.nnc.CI==0,:) = [];
-    G.nnc.CI = G.nnc.CI(G.nnc.CI~=0);
+% Remove unnecessary connections i.e. those with very low CI
+if any(G.nnc.CI<=eps*100)
+    G.nnc.cells = G.nnc.cells(G.nnc.CI>eps*100,:);
+    G.nnc.type = G.nnc.type(G.nnc.CI>eps*100,:);
+    G.nnc.CI = G.nnc.CI(G.nnc.CI>eps*100);
 end
 
 % global grid
@@ -46,9 +68,9 @@ G = frac_frac_nnc(G,F,fracture);
 % compute transmissibilities
 T = computeTrans(G, G.rock);
 %-------------------------------------------------------------------------%
-% computeTrans returns 2 transmissibilities for each internal face and one
-% transmissibility fo each external face. Size of transmissibility array is
-% same as G.cells.faces if opt.usetrans = false 
+% computeTrans returns 2 half-transmissibilities for each internal face and
+% one transmissibility for each external face. Below we compute one
+% transmissibility per face.
 %-------------------------------------------------------------------------%
 cf = G.cells.faces(:,1);
 nf = G.faces.num;
@@ -57,8 +79,13 @@ T = [T;G.nnc.T];
 return
 
 function G = computeEffectiveTrans(G)
-w1 = G.cells.volumes(G.nnc.cells(:,1))./G.rock.perm(G.nnc.cells(:,1));
-w2 = G.cells.volumes(G.nnc.cells(:,2))./G.rock.perm(G.nnc.cells(:,2));
-wt = G.cells.volumes(G.nnc.cells(:,1))+G.cells.volumes(G.nnc.cells(:,2));
+if isfield(G.rock,'poro'), pv = poreVolume(G,G.rock);
+else pv = G.cells.volumes; end
+w1 = pv(G.nnc.cells(:,1))./G.rock.perm(G.nnc.cells(:,1));
+w2 = pv(G.nnc.cells(:,2))./G.rock.perm(G.nnc.cells(:,2));
+wt = pv(G.nnc.cells(:,1))+pv(G.nnc.cells(:,2));
+% w1 = 1./G.rock.perm(G.nnc.cells(:,1));
+% w2 = 1./G.rock.perm(G.nnc.cells(:,2));
+% wt = 1;
 G.nnc.T = G.nnc.CI.*(wt./(w1+w2)); clear wt w1 w2
 return

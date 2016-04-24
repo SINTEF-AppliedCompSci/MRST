@@ -9,24 +9,23 @@ function [F,fracture] = assembleFracNodes2D(G,fracture,varargin)
 % DESCRIPTION:
 %   This function supports 3 possible options to divide a fracture for
 %   gridding. The resulting output can be thought of as a 1D grid for each
-%   fracture line. From experimental results, option/type 1 has proved to
-%   be the cheapest and best way to ensure relatively uniform gridding with
+%   fracture line. From preliminary experiments, option/type 1 has proved
+%   to be the cheapest way to ensure relatively uniform gridding with
 %   similar resolution throughout all fractures. For each assemblyType
 %   fracture intersections will be a node on each of the intersecting line.
 %   This is because transmissibility at these intersections is determined
 %   using the star-delta transformation (see SPE-88812-PA, Karimi-Fard et
-%   al, 2004). Hence, the intersection must be a fine-scale face when
-%   the intersecting fractures are represented as narrow 2D cells in the
-%   global grid.
+%   al, 2004). Hence, the intersection must be a fine-scale face when the
+%   intersecting fractures are represented as narrow 2D cells in the global
+%   grid.
 %
 % REQUIRED PARAMETERS:
 %
 %   G        - Matrix grid structure.
 %
-%   fracture - Structure containing information pertaining to independant
-%              fracture networks, individual fracture lines and
-%              corresponding matrix cells with these embedded fractures.
-%              See processFracture, getIndepNetwork and markcells.
+%   fracture - Structure containing information about fracture networks,
+%              independent fractures and their conductivity towards the
+%              matrix cells they penetrate. See processFracture2D.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
@@ -37,32 +36,33 @@ function [F,fracture] = assembleFracNodes2D(G,fracture,varargin)
 %                      ratio (<=1) with respect to total length. ex: If
 %                      cell size ratio is 0.1, then each fracture will be
 %                      partitioned into ~1/0.1=10 parts. Not a good option
-%                      when fracture length varies by orders of magnitude.
+%                      when individual fracture length varies by orders of
+%                      magnitude.
 %                   3. 1 fracture cell for every matrix cell that fracture
 %                      penetrates. 
 %
-%   min_size      - Useful only if assemblyType = 1 or 2. For assemblyType
-%                   = 1, min_size specifies the minimum cell size the
-%                   fracture fine grid can have. The function will override
-%                   this option if there exist fractures which are smaller
-%                   than min_size. For assemblyType = 2, min_size is used
-%                   to determine maximum number of divisions (~1/min_size)
-%                   for a fracture line.
+%   min_size      - Scalar quantity, useful only if assemblyType = 1 or 2.
+%                   For assemblyType = 1, min_size specifies the minimum
+%                   cell size the fracture fine grid can have. The function
+%                   will override this option if there exist fractures
+%                   which are smaller than min_size. For assemblyType = 2,
+%                   min_size is used to determine maximum number of
+%                   divisions (~1/min_size) for a fracture line.
 %
-%   cell_size     - Useful only if assemblyType = 1 or 2. For assemblyType
-%                   = 1, cell_size specifies the average cell size in the
-%                   fracture fine grid. For assemblyType = 2, cell_size is
-%                   used to determine average number of divisions
-%                   (~1/cell_size) for a fracture line.
+%   cell_size     - Scalar quantity, useful only if assemblyType = 1 or 2.
+%                   For assemblyType = 1, cell_size specifies the average
+%                   cell size in the fracture fine grid. For assemblyType =
+%                   2, cell_size is used to determine average number of
+%                   divisions (~1/cell_size) for a fracture line.
 %
 % RETURNS:
 %   F - Structure with the following sub-structures per fracture line:
 %       (a) nodes - contains the following subfields
-%           -   start - start index wrt global node numbers for the
+%           -   start - start index w.r.t. global node numbers for the
 %               corresponding fracture line
 %           -   coords - node coordinates for the corresponding line
 %       (b) cells - contains the following subfields
-%           -   start - start index wrt global cell numbers for the
+%           -   start - start index w.r.t. global cell numbers for the
 %               corresponding fracture line
 %           -   num - Number of grid cells in the corresponding fracture
 %               line
@@ -80,7 +80,7 @@ function [F,fracture] = assembleFracNodes2D(G,fracture,varargin)
 %   cell, do not use assemblyType = 3.
 %
 % SEE ALSO:
-%   processFracture, getIndepNetwork, markcells
+%   processFracture2D, getIndepNetwork, markcells2D
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
@@ -412,7 +412,7 @@ else
     end
 end
 
-%% Rearrange frac nodes to pass monotonic coordinates into tensorGrid
+%% Rearrange frac nodes to pass monotonically varying coordinates into tensorGrid
 
 for i = 1:numel(F)
     coords = F(i).nodes.coords;

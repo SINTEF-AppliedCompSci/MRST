@@ -1,24 +1,28 @@
 function frac = getIndepNetwork(fl)
 % getIndepNetwork(fl) extracts independant fracture networks from a set of
 % 'n' fracture lines given by an n-by-4 matrix with each row containing the
-% end points of a fracture line
+% end points of a fracture line. This function is used when the matrix is
+% two-dimensional.
 %
 % SYNOPSIS:
 %   frac = getIndepNetwork(fl)
 %
 % REQUIRED PARAMETERS:
-%   fl - fracture lines represented by its end points as [x1 y1 x2 y2]. fl
+%   fl - fracture lines represented by it's end points as [x1 y1 x2 y2]. fl
 %        will have 1 row per fracture line.
 %
 % RETURNS:
-%   frac - Structure with the following sub-structures:
-%          (a) lines - 1-by-rows(fl) structure with fields network
-%                      (network to which each line belongs) and endp
-%                      (endpoints of each line as supplied by 'fl')
+%   frac - Structure containing information about individual fractures
+%          with the following sub-structures: (a) lines - Structure with
+%          the fields "network"
+%                      (network to each fracture belongs), "endp"
+%                      (endpoints of each fracture line as supplied by
+%                      'fl') and "cells" (matrix cells containing the
+%                      fracture) . Size = 1-by-rows(fl).
 %          (b) network - stores indices for fracture lines contained in
 %                        each network.
 % SEE ALSO:
-%   markcells
+%   markcells2D
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

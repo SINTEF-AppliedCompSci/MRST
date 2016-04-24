@@ -1,35 +1,30 @@
 function G = frac_matrix_nnc(G,F,fracture)
-% frac_matrix_nnc assigns NNC connections to fracture-matrix connections
-% and also assigns a transmissibility to each connection. See Lee et al,
-% Water Resources Research, 2001 or SPE-65095-PA, Lee et al, 2000.
+% frac_matrix_nnc assigns a "non-neighboring connection (NNC)" indicators
+% to each fracture-matrix connection and also assigns a transmissibility to
+% each NNC. See Lee et al, Water Resources Research, 2001 or SPE-65095-PA,
+% Lee et al, 2000.
 %
 % SYNOPSIS:
 %   G = frac_matrix_nnc(G,F,fracture)
 %
 % REQUIRED PARAMETERS:
 %
-%   G        - Grid data structure containing G.FracGrid (see
-%              FracTensorGrid2D) and G.cells.fracture (see markcells and
-%              CIcalculator)
+%   G           - Grid data structure containing G.FracGrid (see
+%                 FracTensorGrid2D) and G.cells.fracture (see markcells2D
+%                 and CIcalculator2D)
 %
-%   F        - Structure containing information about partitioned fracture
-%              lines as returned by assembleFracNodes2D.
-%
-%   fracture - Structure containing information pertaining to independant
-%              fracture networks, individual fracture lines and matrix
-%              cells with embedded fractures. See getIndepNetwork and
-%              markcells.
+%   F, fracture - Output from gridFracture2D.
 %
 % RETURNS:
 %   G - Grid structure with fracture-matrix connections  at fine scale and
-%       their corresponding CI added in G.nnc as lists 'G.nnc.cells' and
+%       their corresponding CI added in 'G.nnc' as lists 'G.nnc.cells' and
 %       'G.nnc.CI' respectively. To aid in detecting specific NNC types,
-%       these intersections are added as 'frac-matrix' type in the list
+%       these connections are added as 'frac-matrix' type in the list
 %       G.nnc.type
 %
 % SEE ALSO:
-%   getIndepNetwork, markcells, CIcalculator, assembleFracNodes2D,
-%   FracTensorGrid2D, frac_frac_nnc
+%   getIndepNetwork, markcells2D, CIcalculator2D, gridFracture2D,
+%   frac_frac_nnc 
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

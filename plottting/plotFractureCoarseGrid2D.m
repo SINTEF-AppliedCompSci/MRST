@@ -1,4 +1,4 @@
-function plotFractureCoarseGrid(G,p,F,varargin)
+function plotFractureCoarseGrid2D(G,p,F,varargin)
 % plotFractureCoarseGrid(G,p,F) is a utility function for plotting, only
 % designed to plot the fracture coarse grid with an underlying matrix
 % coarse grid. If nargin>3, the script will output global coarse cell
@@ -30,7 +30,7 @@ Gm = G.Matrix;
 frac_cells = transpose(Gm.cells.num+1:G.cells.num);
 pfracs = p(frac_cells); % partition number for fracture cells
 %
-colors = distinguishable_colors(numel(unique(pfracs)),{'k','w'});
+colors = rand(numel(unique(pfracs)),3);
 cmap = ones(G.cells.num,3);
 if max(p(1:Gm.cells.num))>=max(pfracs)
     for i = 1:numel(frac_cells)
@@ -39,16 +39,16 @@ if max(p(1:Gm.cells.num))>=max(pfracs)
 else
     cmap(frac_cells,:) = colors(p(frac_cells) - min(pfracs) + 1,:);
 end
-plotGrid(Gm,'EdgeAlpha',0.05,'FaceColor','none');
-outlineCoarseGrid(Gm,p(1:Gm.cells.num));
+plotGrid(Gm,'EdgeAlpha',0.04,'FaceColor','none');
+outlineCoarseGrid(Gm,p(1:Gm.cells.num),'k');
 hold on
 for i = 1:numel(F)
     xx = F(i).nodes.coords(:,1);
     yy = F(i).nodes.coords(:,2);
     for j = 1:numel(xx)-1
         clr = cmap(F(i).cells.start+j-1,:);
-        plot(xx(j:j+1).',yy(j:j+1).','o-','Color',clr,'LineWidth',2,...
-            'MarkerEdgeColor',clr,'MarkerFaceColor',clr,'MarkerSize',4);
+        plot(xx(j:j+1).',yy(j:j+1).','o-','Color',clr,'LineWidth',2.5,...
+            'MarkerEdgeColor',clr,'MarkerFaceColor',clr,'MarkerSize',3);
     end
     if nargin>3 % Plot frac_cell numbers alongside
         xc = 0.5*(xx(1:end-1)+xx(2:end));
@@ -62,6 +62,6 @@ dofm = max(p(1:G.Matrix.cells.num));
 title({['Fracture coarse grid with ',num2str(numel(unique(pfracs))),' DOF.'],...
     ['Matrix coarse grid with ',num2str(dofm),' DOF.']},...
     'FontSize',15,'FontWeight','bold');
-axis off tight
+axis equal off tight
 hold off
 return
