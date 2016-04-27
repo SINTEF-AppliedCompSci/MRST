@@ -124,8 +124,20 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    if isempty(opt.obj_scaling)
        
       [init.wellSols, init.states] = ...
-          simulateScheduleAD(initState, model, schedule); 
-
+          simulateScheduleAD(initState, model, schedule);
+      %%
+    figure(19),clf
+    %plotCellData(model.G,init.states{end}.s(:,2)),colorbar;%NBhmn
+    [h, h_max] = computePlumeHeight(model.G, init.states{end}, model.fluid.res_water,model.fluid.res_gas );
+    %{
+    G=model.G;
+    G=mrstGridWithFullMappings(G);
+    pcells=diff(G.n
+    hn=accumarray(nocells,G.nodes.cells);
+    nn=accumarray(nocells,G.nodes.cells
+    %}
+    plotCellData(model.G,h),colorbar;%NBhmn
+    %%
       if strcmpi(opt.penalize_type,'pressure')
           init.obj_val_steps_A = cell2mat( obj_funA(init.wellSols, init.states, init.schedule) );
           init.obj_val_steps_B = cell2mat( obj_funB(init.states) );
@@ -234,8 +246,9 @@ function [optim, init, history] = optimizeRates_extra(initState, model, schedule
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
        'lineSearchMaxIt', opt.lineSearchMaxIt, ...
        'gradTol'        , opt.gradTol, ...
-       'objChangeTol'   , opt.objChangeTol);
-   
+       'objChangeTol'   , opt.objChangeTol,...
+       'useBFGS',true);
+   history.linEqS=linEqS;
    %% Preparing solution structures
    if strcmpi(schedule.control(1).W(1).type, schedule.control(2).W(1).type)
        optim.schedule = control2schedule(u_opt, schedule, scaling);
@@ -641,7 +654,9 @@ function [val, der, wellSols, states] = ...
    
    % run simulation:
    [wellSols, states] = simulateScheduleAD(initState, model, schedule);
-   
+   %figure(20),clf
+   figure(),clf
+   plotCellData(model.G,states{end}.s(:,2)),colorbar;%NBhmn
    % compute objective:
    vals = obj_fun(wellSols, states, schedule); % @@ ensure wellSols{}.sign is correct
    if ~ishandle(11)
