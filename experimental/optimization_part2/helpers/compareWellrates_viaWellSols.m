@@ -1,8 +1,10 @@
 function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, schedule, co2RefRho, ...
-    Gt, ta, init, optim, varargin)
+    Gt, ta, init, optim, other, varargin)
 %
     opt.plotWellsPlaced = true;
     opt.plotWellsRemaining = true;
+    opt.plotCriticalRate = false;
+    opt.arbitrary_well_cost = [];
     opt = merge_options(opt, varargin{:});
     
     %% 
@@ -14,6 +16,14 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
     injSec = injSec(end);
     tot_inj_init = sum([init.schedule.control(1).W.val] .* co2RefRho .* injSec ./ 1e9); % Mt
     tot_inj_opt = sum([optim.schedule.control(1).W.val] .* co2RefRho .* injSec ./ 1e9); % Mt
+    
+    q_crit = other.opt.well_initial_cost/(other.opt.co2_tax_credit - other.opt.well_operation_cost)/injSec; % tonnes/s
+    q_crit = q_crit * year / 1e6; % Mt/year
+    
+    if ~isempty(opt.arbitrary_well_cost)
+        q_crit = opt.arbitrary_well_cost/(other.opt.co2_tax_credit - other.opt.well_operation_cost)/injSec; % tonnes/s
+        q_crit = q_crit * year / 1e6; % Mt/year
+    end
     
     %% Plot average rates
     val = [init_rates; opt_rates]';
@@ -45,6 +55,12 @@ function num_optim_wells = compareWellrates_viaWellSols(wellSols1, wellSols2, sc
     legend(['Initial     (total injected: ',num2str(tot_inj_init/1000,'%5.2f\n'), ' Gt)'],...
            ['Optimal (total injected: ',num2str(tot_inj_opt/1000,'%5.2f\n'),' Gt)'], ...
            'Location','NorthEast')
+    if opt.plotCriticalRate
+       % place a line to indicate critical well rate based on well costs
+       hold on;
+       xlim = get(gca,'xlim');
+       plot(xlim,[q_crit q_crit], '--r','LineWidth',3)
+    end
     
     % an optimal well is considered as one which has a rate > 0.01 Mt/yr
     %num_optim_wells = numel(find(qGs2 > 0.01));

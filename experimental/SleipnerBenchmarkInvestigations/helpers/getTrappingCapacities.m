@@ -40,7 +40,7 @@ dis_max         = varargin{12}; % from CO2store
     % (Get the co2 property function handles from CO2props function. Then
     % assign the density function handle to rho_co2_fun.)
     %co2 = CO2props();
-    co2 = CO2props('sharp_phase_boundary', true, 'rhofile', 'rho_demo');
+    co2 = CO2props('sharp_phase_boundary', true); % 'rhofile', 'rho_demo');
     rho_co2_fun = @co2.rho;
 
     

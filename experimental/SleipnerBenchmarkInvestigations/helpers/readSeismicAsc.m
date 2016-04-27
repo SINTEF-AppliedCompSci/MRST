@@ -1,6 +1,6 @@
 function data = readSeismicAsc(file)
-%function to read the asci files for seismics. Assums a lot but is probably
-%correct for this limited numer of files and give out put in resonable
+%function to read the asci files for seismics. Assumes a lot but is probably
+%correct for this limited numer of files and give output in resonable
 %format
 a = importdata(file,' ',20);
 % cartdim linje

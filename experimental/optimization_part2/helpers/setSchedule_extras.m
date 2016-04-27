@@ -36,6 +36,7 @@ function [ schedule ] = setSchedule_extras( Gt, rock2D, wcells, wtype, ...
         % computing fixed rates
         wrates = opt.wqtots / itime;
         wvals = wrates; % %[ opt.inj_rate; -opt.prod_rate ];
+        wvals(wvals==0) = opt.minval;
         
         
     elseif strcmpi(wtype,'bhp')

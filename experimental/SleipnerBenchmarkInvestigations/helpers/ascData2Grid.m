@@ -12,7 +12,7 @@ G.nodes.coords(:,1:2)=bsxfun(@plus,G.nodes.coords(:,1:2),origo);
 if(isempty(opt.FH))
     assert(~isempty(opt.Hdata))
     Hdata=opt.Hdata;
-    % Hdata can ave nan
+    % Hdata can have nan
     x=linspace(Hdata.grid_space(1),Hdata.grid_space(2),Hdata.grid_size(1));
     %xx=(x(1:end-1)+x(2:end))/2;
     y=linspace(Hdata.grid_space(3),Hdata.grid_space(4),Hdata.grid_size(2));
@@ -28,11 +28,11 @@ if(isempty(opt.FH))
     H(~ind)=max(fixed_value);
     FH=@(x,y) interp2(X,Y,H,x,y);
 else
-    fixed_value=100;
+    fixed_value=100; % or use 2008-StructuralThickness_SandLayer9.asc data?
     FH=opt.FH;
 end
 
-% define top and bottum inerpolant
+% define top and bottom interpolant
 Ft=@(x,y) interp2(tdata.val{1}',tdata.val{2}',tdata.val{3}',x,y);
 %FH=@(x,y) interp2(Hdata.val{1}',Hdata.val{2}',Hdata.val{3}',x,y);
 
