@@ -17,7 +17,7 @@ switch ex
         %   Method order
         k = 2;
     case 2
-        f = @(X) -2*ones(size(X,1),1);
+        f = @(X) -4*ones(size(X,1),1);
         gD = @(X) X(:,1).^2 + X(:,2).*X(:,3)*10 + X(:,3).^2;
         neu = false;
         grid = 'pebi';

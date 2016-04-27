@@ -72,7 +72,7 @@ X = [G.nodes.coords(nodes,:); Ec];
 
 %%  MAP FROM GLOBAL TO LOCAL COORDINATES                                 %%
 
-%   Build local coordinate systems. x -> Tx + b.
+%   Build local coordinate systems. x -> x*T' + b.
 
 vec1 = (X(G.faces.nodePos(1:end-1)+1,:) - X(G.faces.nodePos(1:end-1),:));
 vec1 = bsxfun(@rdivide, vec1, sqrt(sum(vec1.^2,2)));
@@ -80,7 +80,8 @@ vec2 = cross(faceNormals,vec1,2);
 vec2 = bsxfun(@rdivide, vec2, sqrt(sum(vec2.^2,2)));
 vec1 = vec1'; vec2 = vec2';
 T    = [vec1(:), vec2(:)];
-b    = X(G.faces.nodePos(1:end-1),:);
+% b    = X(G.faces.nodePos(1:end-1),:);
+b    = G.faces.centroids;
 
 %   Map from polygon to local face coords
 
@@ -327,10 +328,13 @@ for F = 1:nF
 end
 
 BintPos = (0:nk:nk*G.cells.num) + 1;
-G.cells.('Bint')      = I;
-G.cells.('BintPos')   = BintPos;
-G.faces.('PNstarT')   = PNstarT;
-G.faces.('PNstarPos') = PNstarPos;
+G.cells.('Bint')        = I;
+G.cells.('BintPos')     = BintPos;
+G.faces.('PNstarT')     = PNstarT;
+G.faces.('PNstarPos')   = PNstarPos;
+G.faces.('localCoords') = T;
+G.faces.('TPos')         = TPos;
+
 
 
 end
