@@ -30,7 +30,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    ta = trapAnalysis(Gt, false);
    
    %% CO2 property object
-   co2 = CO2props();
+   co2 = CO2props(); % used in pick well sites
    
    %% Load subscale trapping function, if present
    dh = [];
@@ -127,12 +127,13 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         assert(~isempty(wc), 'No well was placed.')
         
         % Discard wells (optional):
+        % @@ should injection masses, qt, be recalculated?
         if ~isempty(opt.well_nums_to_keep)
             wc = wc(opt.well_nums_to_keep);
             qt = qt(opt.well_nums_to_keep);
         end
         
-        %qt = qt * 0.5;
+        %qt = qt * 2;
         %qt(1:2) = qt(1:2) * 2.5;% @@
         %qt(3) = qt(3) * 0.5;
         % make a call to a function that adjusts initial rates such that

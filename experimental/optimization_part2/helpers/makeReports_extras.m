@@ -44,6 +44,8 @@ function reports = makeReports_extras(Gt, states, rock, fluid, schedule, ...
                                                         dh);
       leaked = tot_inj - sum(reports(i).masses);
       % @@ assert that leaked is >= 0
+      % leaked = max(leaked, 0); % @@ to ensure negative leakage is not
+      % plotted
       %assert( leaked >= 0, 'A negative leakage mass was computed.')
       if leaked < 0 && abs(leaked/tot_inj)*100 > 1e-3 % 0.001
         if opt.warningOn
@@ -56,6 +58,7 @@ function reports = makeReports_extras(Gt, states, rock, fluid, schedule, ...
    end
    
    % hack @@ put well cell indexes in reports(1) using reports(2)
+   % but keep W.val empty?
       reports(1).W = reports(2).W;
    
 end
