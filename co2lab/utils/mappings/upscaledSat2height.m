@@ -64,12 +64,12 @@ function [h, h_max] = upscaledSat2height(S, S_max, Gt, varargin)
     else
         % Capillary pressure function provided - we assume a general model
         assert(~isempty(opt.p));
-        assert(~isempty(p));
-        assert(~isempty(rhoW));
-        assert(~isempty(rhoG));
-        pc    = opt.pcWG(S, p, 'sGmax', S_max);
-        pcmax = opt.pcWG(S_max, p, 'sGmax', S_max);
-        drho  = norm(gravity) * (rhoW(p) - rhoG(p));
+        assert(~isempty(opt.pcWG));
+        assert(~isempty(opt.rhoW));
+        assert(~isempty(opt.rhoG));
+        pc    = opt.pcWG(S, opt.p, 'sGmax', S_max);
+        pcmax = opt.pcWG(S_max, opt.p, 'sGmax', S_max);
+        drho  = norm(gravity) * (opt.rhoW(opt.p) - opt.rhoG(opt.p));
         h     = pc ./ drho;
         h_max = pcmax ./ drho;
     end
