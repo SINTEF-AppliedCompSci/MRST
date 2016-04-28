@@ -427,7 +427,75 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
             end
             title('final vol per trap region [m3 co2]'); colorbar; axis equal tight off
             %drawnow;
-
+            
+            % plot amount of trapping capacity that is utilized by time infinity
+            if ~ishandle(49)
+                figure(49); set(gcf,'Position',[3005 712 926 590])
+            else
+                % Avoid stealing focus if figure already exists
+                set(0, 'CurrentFigure', 49); clf(49)
+            end
+            % first make mapPlot
+            mapPlot(gcf, Gt, 'traps', ta.traps, ...
+                    'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+                    'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
+                    'maplines', 20);
+            colorizeCatchmentRegions(Gt, ta); % this actually colorizes regions around each trap
+            hold on
+            % then add percentage of trap region utilized
+            for i=1:num_traps
+                % trap vol (of a single trap)
+                tc = sum(strap_co2_vol(ta.traps == i)); % m3
+                used_cap(i) = ult_vol_per_trap_region{i} / tc * 100; % percentage 
+            end
+            % top cell of each trap = ta.top
+            % @@ ta.top produced by node-based trap analysis is wrong, so
+            % use cell-based ta.top values (as these should be similar)
+            ta_cell = trapAnalysis(Gt, true);
+            text(Gt.cells.centroids(ta_cell.top,1), Gt.cells.centroids(ta_cell.top,2), cellstr([num2str(used_cap', '%.0f'), repmat(' ',num_traps,1), repmat(char(37),num_traps,1)]), ...
+                'HorizontalAlignment','center', 'FontSize',16, 'FontWeight', 'bold')
+            axis equal tight off
+            %title('Percentage of structural trapping capacity utilized')
+            
+            %hold on
+            %text(Gt.cells.centroids(ta_cell.top,1), Gt.cells.centroids(ta_cell.top,2), Gt.cells.z(ta_cell.top)-5, cellstr(num2str([1:num_traps]')), ...
+            %    'HorizontalAlignment','center', 'FontSize',16, 'FontWeight', 'bold')
+            %tc = sum(strap_co2_vol(ta.traps == 12)); % m3
+            
+            
+            if ~ishandle(50)
+                figure(50); set(gcf,'Position',[3005 712 926 590])
+            else
+                % Avoid stealing focus if figure already exists
+                set(0, 'CurrentFigure', 50); clf(50)
+            end
+            % Remaining capacity available (in Mt)
+            % vol (m3) is at ref depth
+            for i=1:num_traps
+                % trap vol (of a single trap)
+                tc = sum(strap_co2_vol(ta.traps == i)); % m3
+                avail_mass_cap(i) = (tc - ult_vol_per_trap_region{i}) * fluid.rhoGS/1e9; % Mt 
+            end
+            mapPlot(gcf, Gt, 'traps', ta.traps, ...
+                    'trapcolor', [0.5 0.5 0.5], 'trapalpha', 0.7, ...
+                    'rivers', ta.cell_lines, 'rivercolor', [1 0 0], ...
+                    'maplines', 20);
+            colorizeCatchmentRegions(Gt, ta); % this actually colorizes regions around each trap
+            hold on
+            
+            % plot text with 3 decimal places when number is non-zero
+            [x, y] = deal(Gt.cells.centroids(ta_cell.top(avail_mass_cap'>0),1), Gt.cells.centroids(ta_cell.top(avail_mass_cap'>0),2));
+            data = avail_mass_cap(avail_mass_cap>0)';
+            text(x, y, cellstr([num2str(data, '%.3f'), repmat(' Mt',numel(data),1)]), ...
+                'HorizontalAlignment','center', 'FontSize',16, 'FontWeight', 'bold')
+            
+            % plot text with 0 decimal places when number is zero
+            % (or simply do not plot these text values)
+            %[x, y] = deal(Gt.cells.centroids(ta_cell.top(avail_mass_cap'==0),1), Gt.cells.centroids(ta_cell.top(avail_mass_cap'==0),2));
+            %data = avail_mass_cap(avail_mass_cap==0)';
+            %text(x, y, cellstr([num2str(data, '%.0f'), repmat(' Mt',numel(data),1)]), ...
+            %    'HorizontalAlignment','center', 'FontSize',16, 'FontWeight', 'bold')
+            axis equal tight off
         end
 end
 
