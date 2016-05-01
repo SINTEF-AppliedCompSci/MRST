@@ -74,7 +74,7 @@ function [sol, varargout] = VEM2D(G, f, k, bc, varargin)
    for details.
 %}
 
-addpath('./');
+addpath('../');
 
 %%  MERGE INPUT PARAMETRES                                               %%
 
