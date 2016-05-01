@@ -92,8 +92,13 @@ classdef MultiscalePressureModel < ReservoirModel
             
             propPressure = stateConverged.pressure;
             
+            if isa(model.pressureModel, 'PressureCompositionalModel')
+                extra = {'computeFlash', false};
+            else
+                extra = {};
+            end
             problem = model.pressureModel.getEquations(state0, stateConverged, dt, forces,...
-                'iteration', inf, 'staticwells', true);
+                'iteration', inf, 'staticwells', true, extra{:});
             A = -problem.equations{1}.jac{1};
             b =  problem.equations{1}.val;
             
