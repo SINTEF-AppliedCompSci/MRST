@@ -22,7 +22,7 @@ G.nodes.coords = X;
 
 alpha = 1;
 
-G = computeVEM2DGeometry(G,f,k,alpha);
+G = computeVEM2DGeometry(G);
 
 edgeNodes = G.faces.nodes;
 nN = size(edgeNodes,1)/2;
@@ -32,31 +32,30 @@ Xe = reshape(Xe,2,[]);
 
 fig1 = figure();
 plotGrid(G, 'FaceAlpha', faceAlpha);
+set(fig1, 'defaultTextInterpreter', 'latex')
 hold on
 plot(Xe(:,1:nN), Xe(:,nN+1:2*nN),'k')
 line([-(1+add) 1+add], [0,0], 'LineWidth', lineWidth);
 line([0,0], [-(1+add) 1+add], 'LineWidth', lineWidth);
 X1 = X((X(:,1)).^2 + (X(:,2)).^2 <= 1,:);
-% plot(X(:,1), X(:,2), '.k', 'MarkerSize', mrkSzSml);
 plot(X1(:,1), X1(:,2), 'ok', 'MarkerFaceColor', 'r')
-text(1+.3, .1,'x')
-text(.1, 1+.3, 'y')
-text(-.5,-1.2,'h_x')
-text(-1.3,-.5,'h_y')
 
-% text(1 + addTxt, addTxt,'(i+1,j)')
-% text(-1 + addTxt, addTxt,'(i-1,j)')
-% text(addTxt, 1 + addTxt,'(i,j+1)')
-% text(addTxt, -1 + addTxt,'(i,j-1)')
+text(1+.3, .1,'$x$')
+text(.1, 1+.3, '$y$')
+text(-.5,-1.2,'$h_x$')
+text(-1.3,-.5,'$h_y$')
 
 axis([-1.5, 1.5, -1.5 1.5])
 
-set(gca,'XTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'XTickLabel',{'i-1', 'i', 'i+1'} )
-set(gca,'YTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'YTickLabel',{'j-1', 'j', 'j+1'} )
+set(gca,'XTick',[-1 0 1] );
+set(gca,'XTickLabel',{'', '', ''} )
+set(gca,'YTick',[-1 0 1] );
+set(gca,'YTickLabel',{'', '', ''} )
 axis equal
 axis([-1.5, 1.5, -1.5 1.5])
+
+h = my_xticklabels([-1,0,1], {'$i-1$', '$i$', '$i+1$'});
+h = my_yticklabels([-1,0,1], {'$j-1$', '$j$', '$j+1$'});
 
 ps = get(gcf, 'Position');
 ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
@@ -74,6 +73,7 @@ print(gcf, '-dpdf', '../../tex/thesis/fig/2Dstencil1.pdf');
 
 fig2 = figure();
 plotGrid(G, 'FaceAlpha', faceAlpha);
+set(fig2, 'defaultTextInterpreter', 'latex')
 hold on
 plot(Xe(:,1:nN), Xe(:,nN+1:2*nN),'k')
 line([-(1+add) 1+add], [-(1+add),1+add], 'LineWidth', lineWidth);
@@ -81,17 +81,20 @@ line([1+add,-(1+add)], [-(1+add) 1+add], 'LineWidth', lineWidth);
 X1 = [X((X(:,1)).^2 + (X(:,2)).^2 == 2,:); [0,0]];
 % plot(X(:,1), X(:,2), '.k', 'MarkerSize', mrkSzSml);
 plot(X(:,1), X(:,2), 'ok', 'MarkerFaceColor', 'r')
-text(1-.1, 1+.3,'d_1')
-text(-(1-.1), 1+.3, 'd_2')
+text(1-.1, 1+.3,'$d_1$')
+text(-(1-.1), 1+.3, '$d_2$')
 
 axis([-1.5, 1.5, -1.5 1.5])
-set(gca,'XTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'XTickLabel',{'i-1', 'i', 'i+1'} )
-set(gca,'YTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'YTickLabel',{'j-1', 'j', 'j+1'} )
+set(gca,'XTick',[-1 0 1] );
+set(gca,'XTickLabel',{'', '', ''} )
+set(gca,'YTick',[-1 0 1] );
+set(gca,'YTickLabel',{'', '', ''} )
 
 axis equal
 axis([-1.5, 1.5, -1.5 1.5])
+
+h = my_xticklabels([-1,0,1], {'$i-1$', '$i$', '$i+1$'});
+h = my_yticklabels([-1,0,1], {'$j-1$', '$j$', '$j+1$'});
 
 ps = get(gcf, 'Position');
 ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
