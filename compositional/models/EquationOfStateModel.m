@@ -331,12 +331,11 @@ classdef EquationOfStateModel < PhysicalModel
                 Ai{i} = oA.*Pr{i}./Tr{i}.^2;
                 Bi{i} = oB.*Pr{i}./Tr{i};
             end
-            oP = outerProduct(Ai, Ai);
             bic = model.fluid.getBinaryInteraction();
             A_ij = cell(ncomp, ncomp);
             for i = 1:ncomp
                 for j = 1:ncomp
-                    A_ij{i, j} = oP{i, j}.^(1/2).*(1 - bic(i, j));
+                    A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
                 end
             end
             % For both liquid and vapor phase, compute values required for
