@@ -413,13 +413,18 @@ classdef EquationOfStateModel < PhysicalModel
             Z_V = model.setZDerivatives(Z_V, A_V, B_V);
         end
         
-        function [eqs, f_L, f_V, Z_L, Z_V] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V)
+        function [eqs, f_L, f_V, Z_L, Z_V, rep] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V)
+            rep = struct('t_fugacity', nan, 't_mixture', nan, 't_compressibility', nan, 't_assembly', nan, 't_remainder', nan);
+            t1 = tic();
             % Set up all equilibrium equations
             [Pr, Tr] = model.getReducedPT(P, T);
             acf = toCell(model.fluid.acentricFactors);
             ncomp = numel(x);
+            timer = tic();
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(Pr, Tr, x, y, acf);
+            rep.t_mixture = toc(timer);
             
+            timer = tic();
             if isempty(Z_L)
                 Z_L = model.computeLiquidZ(double(A_L), double(B_L));
             end
@@ -434,15 +439,21 @@ classdef EquationOfStateModel < PhysicalModel
             else
                 s = P;
             end
-            assert(isa(s, 'ADI'));
-
-            Z_L = double2ADI(Z_L, s);
-            Z_V = double2ADI(Z_V, s);
-            Z_L = model.setZDerivatives(Z_L, A_L, B_L);
-            Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+            
+            if isa(s, 'ADI');
+                Z_L = double2ADI(Z_L, s);
+                Z_V = double2ADI(Z_V, s);
+                Z_L = model.setZDerivatives(Z_L, A_L, B_L);
+                Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+            end
+            rep.t_compressibility = toc(timer);
+            
+            timer = tic();
             f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
             f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
-
+            rep.t_fugacity = toc(timer);
+            
+            timer = tic();
             eqs = cell(1, 2*ncomp + 1);
             emptyJac = 0*P + 0*z{1};
             
@@ -467,6 +478,8 @@ classdef EquationOfStateModel < PhysicalModel
                     end
                 end
             end
+            rep.t_assembly = toc(timer);
+            rep.t_remainder = toc(t1) - (rep.t_fugacity + rep.t_mixture + rep.t_compressibility + rep.t_assembly + rep.t_remainder);
         end
 
         function [x, y, LL, dsdp] = getPhaseFractionAsADI(model, state, pP, TP, z0)
