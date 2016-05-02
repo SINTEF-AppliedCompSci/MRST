@@ -944,30 +944,45 @@ function [Si, A, B] = setMixDerivatives(p, x, Si, A, B, Si_dp, Si_dx, A_dp, A_dx
         if ~all(size(A.jac{ii}) == ncell)
             continue
         end
+        vA = 0;
+        vB = 0;
         if hasP
-            A.jac{ii} = A.jac{ii} + makeDiag(A_dp)*p.jac{ii};
-            B.jac{ii} = B.jac{ii} + makeDiag(B_dp)*p.jac{ii};
+            dp = diag(p.jac{ii});
+            vA = vA + A_dp.*dp;
+            vB = vB + B_dp.*dp;
+%             A.jac{ii} = A.jac{ii} + makeDiag(A_dp)*p.jac{ii};
+%             B.jac{ii} = B.jac{ii} + makeDiag(B_dp)*p.jac{ii};
         end
         if hasx
             for xNo = 1:ncomp
-                A.jac{ii} = A.jac{ii} + makeDiag(A_dx{xNo})*x{xNo}.jac{ii};
-                B.jac{ii} = B.jac{ii} + makeDiag(B_dx{xNo})*x{xNo}.jac{ii};
+                dx = diag(x{xNo}.jac{ii});
+                vA = vA + A_dx{xNo}.*dx;
+                vB = vB + B_dx{xNo}.*dx;
+                % A.jac{ii} = A.jac{ii} + makeDiag(A_dx{xNo})*x{xNo}.jac{ii};
+                % B.jac{ii} = B.jac{ii} + makeDiag(B_dx{xNo})*x{xNo}.jac{ii};
             end
         end
+        A.jac{ii} = makeDiag(vA);
+        B.jac{ii} = makeDiag(vB);
     end
    
     for sNo = 1:numel(Si)
         Si{sNo} = double2ADI(Si{sNo}, s);
+        if hasP
+            DSdp = makeDiag(Si_dp{sNo});
+        end
         for ii = 1:njac
             if hasP
-                Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + makeDiag(Si_dp{sNo})*p.jac{ii};
+                Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + DSdp*p.jac{ii};
             end
             if hasx
+                v = 0;
                 for xNo = 1:ncomp
-                    if any(Si_dx{sNo, ii}) || nnz(x{xNo}.jac{ii}) > 0
-                        Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + makeDiag(Si_dx{sNo, ii})*x{xNo}.jac{ii};
+                    if any(Si_dx{sNo, xNo}) || nnz(x{xNo}.jac{ii}) > 0
+                       v = v + Si_dx{sNo, xNo}.*diag(x{xNo}.jac{ii});
                     end
                 end
+                Si{sNo}.jac{ii} = makeDiag(v);
             end
         end
     end
