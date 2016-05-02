@@ -9,6 +9,7 @@ classdef EquationOfStateModel < PhysicalModel
         % Use Newton based solver for flash. If set to false, successive
         % substitution if used instead.
         useNewton
+        fastDerivatives
     end
     
     properties (Access = private)
@@ -28,6 +29,7 @@ classdef EquationOfStateModel < PhysicalModel
             model.fluid = fluid;
             model.nonlinearTolerance = 1e-4;
             model.useNewton = false;
+            model.fastDerivatives = true;
             
             model = model.setType(eosname);
         end
@@ -334,19 +336,49 @@ classdef EquationOfStateModel < PhysicalModel
             [oB{:}] = deal(model.omegaB);
             bic = model.fluid.getBinaryInteraction();
             A_ij = cell(ncomp, ncomp);
-            for i = 1:ncomp
-                Ai{i} = oA{i}.*Pr{i}./Tr{i}.^2;
-                Bi{i} = oB{i}.*Pr{i}./Tr{i};
-            end
-            for i = 1:ncomp
-                for j = 1:ncomp
-                    A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+            
+            AD_enabled = isa(Pr{1}, 'ADI') || isa(x{1}, 'ADI') || isa(y{1}, 'ADI');
+            if ~AD_enabled || ~model.fastDerivatives
+                for i = 1:ncomp
+                    Ai{i} = oA{i}.*Pr{i}./Tr{i}.^2;
+                    Bi{i} = oB{i}.*Pr{i}./Tr{i};
                 end
+                for i = 1:ncomp
+                    for j = 1:ncomp
+                        A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+                    end
+                end
+                % For both liquid and vapor phase, compute values required for
+                % fugacity.
+                [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
+                [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
+            else
+                Ai_dp = cell(1, ncomp);
+                Bi_dp = cell(1, ncomp);
+                
+                A_ij_dp = cell(ncomp, ncomp);
+                for i = 1:ncomp
+                    Ai{i} = oA{i}.*double(Pr{i})./Tr{i}.^2;
+                    Bi{i} = oB{i}.*double(Pr{i})./Tr{i};
+                    
+                    Ai_dp{i} = oA{i}./(model.fluid.Pcrit(i)*Tr{i}.^2);
+                    Bi_dp{i} = oB{i}./(model.fluid.Pcrit(i)*Tr{i}.^2);
+                end
+                
+                for i = 1:ncomp
+                    for j = 1:ncomp
+                        A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+                        A_ij_dp{i, j} = 0.5*(Ai_dp{i}.*Ai{j} + Ai_dp{j}.*Ai{i}).*(Ai{i}.*Ai{j}).^(-1/2).*(1 - bic(i, j));
+                    end
+                end
+                
+                [Si_L, A_L, B_L, Si_L_dp, Si_L_dx, A_L_dp, A_L_dx, B_L_dp, B_L_dx] = model.getPhaseMixCoefficientsFast(x, A_ij, Bi, A_ij_dp, Bi_dp);
+                [Si_V, A_V, B_V, Si_V_dp, Si_V_dx, A_V_dp, A_V_dx, B_V_dp, B_V_dx] = model.getPhaseMixCoefficientsFast(y, A_ij, Bi, A_ij_dp, Bi_dp);
+                
+                p = Pr{1}*model.fluid.Pcrit(1);
+                [Si_L, A_L, B_L] = setMixDerivatives(p, x, Si_L, A_L, B_L, Si_L_dp, Si_L_dx, A_L_dp, A_L_dx, B_L_dp, B_L_dx);
+                [Si_V, A_V, B_V] = setMixDerivatives(p, y, Si_V, A_V, B_V, Si_V_dp, Si_V_dx, A_V_dp, A_V_dx, B_V_dp, B_V_dx);
             end
-            % For both liquid and vapor phase, compute values required for
-            % fugacity.
-            [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
-            [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
         end
         
         function [Si, A, B] = getPhaseMixCoefficients(model, x, A_ij, Bi)
@@ -360,6 +392,47 @@ classdef EquationOfStateModel < PhysicalModel
                     A_ijx_j = A_ij{i, j}.*x{j};
                     A = A + x{i}.*A_ijx_j;
                     Si{i} = Si{i} + A_ijx_j;
+                end
+            end
+        end
+        
+        function [Si, A, B, Si_dp, Si_dx, A_dp, A_dx, B_dp, B_dx] = getPhaseMixCoefficientsFast(model, x, A_ij, Bi, A_ij_dp, Bi_dp)
+            ncomp = numel(x);
+            [A, B, A_dp, B_dp] = deal(0);
+            A_dx = cell(1, ncomp);
+            [A_dx{:}] = deal(0);
+            
+            
+            tmp = cell(1, ncomp);
+            [tmp{:}] = deal(0);
+            [Si, Si_dp] = deal(tmp);
+            Si_dx = cell(ncomp, ncomp);
+            [Si_dx{:}] = deal(0);
+            % Trivial derivatives
+            B_dx = Bi;
+            
+            for i = 1:ncomp
+                xi = double(x{i});
+                
+                B = B + xi.*Bi{i};
+                B_dp = B_dp + xi.*Bi_dp{i};
+
+                for j = 1:ncomp
+                    xj = double(x{j});
+                    
+                    % A
+                    xx = xi.*xj;
+                    A = A + A_ij{i, j}.*xx;
+                    % dA/dp
+                    A_dp = A_dp + A_ij_dp{i,j}.*xx;
+                    % dA/dx
+                    A_dx{i} = A_dx{i} + A_ij{i, j}.*xj;
+                    A_dx{j} = A_dx{j} + A_ij{i, j}.*xi;
+                    
+                    % S
+                    Si{i} = Si{i} + A_ij{i, j}.*xj;
+                    Si_dp{i} = Si_dp{i} + A_ij_dp{i, j}.*xj;
+                    Si_dx{i, j} = Si_dx{i, j} + A_ij{i, j};
                 end
             end
         end
@@ -842,4 +915,64 @@ function dx = getJac(x, ix)
     else
         dx = 0;
     end
+end
+
+function [Si, A, B] = setMixDerivatives(p, x, Si, A, B, Si_dp, Si_dx, A_dp, A_dx, B_dp, B_dx)
+% Set derivatives for EOS coefficients using the chain rule
+    hasP = isa(p, 'ADI');
+    hasx = isa(x{1}, 'ADI');
+    
+    if hasP
+        s = p;
+    elseif hasx
+        s = x{1};
+    else
+        % No ADI present
+        return
+    end
+    ncomp = numel(x);
+    ncell = numel(double(p));
+    
+    njac = numel(s.jac);
+    A = double2ADI(A, s);
+    B = double2ADI(B, s);
+    
+    vx = (1:ncell)';
+    makeDiag = @(x) makeDiagonal(x, vx, ncell);
+    
+    for ii = 1:njac
+        if ~all(size(A.jac{ii}) == ncell)
+            continue
+        end
+        if hasP
+            A.jac{ii} = A.jac{ii} + makeDiag(A_dp)*p.jac{ii};
+            B.jac{ii} = B.jac{ii} + makeDiag(B_dp)*p.jac{ii};
+        end
+        if hasx
+            for xNo = 1:ncomp
+                A.jac{ii} = A.jac{ii} + makeDiag(A_dx{xNo})*x{xNo}.jac{ii};
+                B.jac{ii} = B.jac{ii} + makeDiag(B_dx{xNo})*x{xNo}.jac{ii};
+            end
+        end
+    end
+   
+    for sNo = 1:numel(Si)
+        Si{sNo} = double2ADI(Si{sNo}, s);
+        for ii = 1:njac
+            if hasP
+                Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + makeDiag(Si_dp{sNo})*p.jac{ii};
+            end
+            if hasx
+                for xNo = 1:ncomp
+                    if any(Si_dx{sNo, ii}) || nnz(x{xNo}.jac{ii}) > 0
+                        Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + makeDiag(Si_dx{sNo, ii})*x{xNo}.jac{ii};
+                    end
+                end
+            end
+        end
+    end
+end
+
+function D = makeDiagonal(x, vx, ncell)
+    D = sparse(vx, vx, x, ncell, ncell);
 end
