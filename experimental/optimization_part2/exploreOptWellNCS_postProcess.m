@@ -109,7 +109,7 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
                              'plot_plume', false, ...
                              'background_threshold', [], ...
                              'plot_traps', true, ...
-                             'plot_well_numbering', true, ...
+                             'plot_well_numbering', true, ... % NB: can be modified
                              'plot_distrib', false);
         % adjust axis of each subfigure in current figure
         hfig = gcf; set(hfig,'Position',[4432 2 655 546]);
@@ -117,6 +117,10 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
         for i=1:numel(axs)
            set(hfig,'CurrentAxes',axs(i)); axis equal tight
         end
+        % NB: to modify well number, to the following:
+        % hax = gca;
+        % textstr = findobj(hax.Children,'type','text');
+        % textstr.String = ' 4';
     end
 
     %% Plot wells in formation
@@ -175,11 +179,12 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
                    false);
                
     % this is the total leaked by prediction
+    % @@ could plot Ma on top of trapping inventory.
     model.G = Gt;
     model.rock = other.rock;
     model.fluid = other.fluid;
     [~, Mi_tot, Ma] = leak_penalizer_at_infinity_Rerun(model, optim.wellSols, optim.states, optim.schedule, ...
-        other.opt.leak_penalty, other.opt.surface_pressure, other.opt.rhoW, other.traps, 'plotsOn',true);
+        other.opt.leak_penalty, other.opt.surface_pressure, other.opt.rhoW, other.traps, 'plotsOn',false);
     total_leaked_future = Mi_tot(end) - Ma(end); % Gt
     
     % to compare simulated leakage to predicted leakage
@@ -353,6 +358,20 @@ function Seff = exploreOptWellNCS_postProcess( Gt, init, optim, other, varargin 
             export_fig(gcf, [opt.figDirName '/' opt.fmName '_inventory'], '-png','-transparent')
         end
     end    
+    
+    % New inventory that includes future remaining amount
+    h=figure; set(h, 'Position',[3690 814 1428 545])
+    plot(1);
+    ax = get(h,'currentaxes');
+    plotTrappingDistribution(ax, reports_optim, 'legend_location', 'southeast');
+    fsize = 20;
+    set(get(gca, 'xlabel'), 'fontsize', fsize)
+    set(get(gca, 'ylabel'), 'fontsize', fsize)
+    set(gca,'fontsize', fsize);
+    
+    % add predicted mass remaining/leaked (Ma is in Gt)
+    hold on;
+    plot(cumsum(convertTo(optim.schedule.step.val,year)), Ma*1e3, '--r','LineWidth',5)
     
     
     %% Compute pressure field when highest overpressure occurred
