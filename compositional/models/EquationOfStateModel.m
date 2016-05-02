@@ -307,32 +307,37 @@ classdef EquationOfStateModel < PhysicalModel
             ncomp = model.fluid.getNumberOfComponents();
             
             [Ai, Bi] = deal(cell(1, ncomp));
-            for i = 1:ncomp
-                switch model.eosType
-                    case 1
-                        % PR
-                        oA = model.omegaA.*(1 + (0.37464 + 1.54226.*acf{i} - 0.26992.*acf{i}.^2).*(1-Tr{i}.^(1/2))).^2;
-                        oB = model.omegaB;
-                    case 2
-                        % SRK
-                        oA = model.omegaA.*(1 + (0.48 + 1.574.*acf{i} - 0.176.*acf{i}.^2).*(1-Tr{i}.^(1/2))).^2;
-                        oB = model.omegaB;
-                    case 3
-                        % ZJ
-                        error('Not implemented yet.')
-                    case 4
-                        % RK
-                        oA = model.omegaA.*Tr{i}.^(-1/2);
-                        oB = model.omegaB;
-                    otherwise
-                        error('Unknown eos type: %d', model.eosType);
-                end
-                
-                Ai{i} = oA.*Pr{i}./Tr{i}.^2;
-                Bi{i} = oB.*Pr{i}./Tr{i};
+            [oA, oB] = deal(cell(1, ncomp));
+            
+            switch model.eosType
+                case 1
+                    % PR
+                    for i = 1:ncomp
+                        oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*acf{i} - 0.26992.*acf{i}.^2).*(1-Tr{i}.^(1/2))).^2;
+                    end
+                case 2
+                    % SRK
+                    for i = 1:ncomp
+                        oA{i} = model.omegaA.*(1 + (0.48 + 1.574.*acf{i} - 0.176.*acf{i}.^2).*(1-Tr{i}.^(1/2))).^2;
+                    end
+                case 3
+                    % ZJ
+                    error('Not implemented yet.')
+                case 4
+                    % RK
+                    for i = 1:ncomp
+                        oA{i} = model.omegaA.*Tr{i}.^(-1/2);
+                    end
+                otherwise
+                    error('Unknown eos type: %d', model.eosType);
             end
+            [oB{:}] = deal(model.omegaB);
             bic = model.fluid.getBinaryInteraction();
             A_ij = cell(ncomp, ncomp);
+            for i = 1:ncomp
+                Ai{i} = oA{i}.*Pr{i}./Tr{i}.^2;
+                Bi{i} = oB{i}.*Pr{i}./Tr{i};
+            end
             for i = 1:ncomp
                 for j = 1:ncomp
                     A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
