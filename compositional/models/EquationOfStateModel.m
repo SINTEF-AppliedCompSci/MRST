@@ -339,6 +339,9 @@ classdef EquationOfStateModel < PhysicalModel
             
             AD_enabled = isa(Pr{1}, 'ADI') || isa(x{1}, 'ADI') || isa(y{1}, 'ADI');
             if ~AD_enabled || ~model.fastDerivatives
+                % We are either using doubles or we have explicitly
+                % disabled the fastDerivatives option. Compute mixing
+                % coefficients using the standard functions.
                 for i = 1:ncomp
                     Ai{i} = oA{i}.*Pr{i}./Tr{i}.^2;
                     Bi{i} = oB{i}.*Pr{i}./Tr{i};
@@ -353,6 +356,8 @@ classdef EquationOfStateModel < PhysicalModel
                 [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
                 [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
             else
+                % We want to get derivatives quicker. Use hand-coded
+                % version of the fugacity derivatives.
                 Ai_dp = cell(1, ncomp);
                 Bi_dp = cell(1, ncomp);
                 
@@ -367,7 +372,9 @@ classdef EquationOfStateModel < PhysicalModel
                 
                 for i = 1:ncomp
                     for j = 1:ncomp
+                        % A_ij
                         A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+                        % d(A_ij) / dp
                         A_ij_dp{i, j} = 0.5*(Ai_dp{i}.*Ai{j} + Ai_dp{j}.*Ai{i}).*(Ai{i}.*Ai{j}).^(-1/2).*(1 - bic(i, j));
                     end
                 end
@@ -397,6 +404,10 @@ classdef EquationOfStateModel < PhysicalModel
         end
         
         function [Si, A, B, Si_dp, Si_dx, A_dp, A_dx, B_dp, B_dx] = getPhaseMixCoefficientsFast(model, x, A_ij, Bi, A_ij_dp, Bi_dp)
+            % Faster version of getPhaseMixCoefficients that uses manually
+            % computed derivatives. Use with care - any change to the
+            % definition of the mixing coefficients must have their
+            % derivatives updated to be consistent.
             ncomp = numel(x);
             [A, B, A_dp, B_dp] = deal(0);
             A_dx = cell(1, ncomp);
@@ -972,6 +983,9 @@ function [Si, A, B] = setMixDerivatives(p, x, Si, A, B, Si_dp, Si_dx, A_dp, A_dx
             DSdp = makeDiag(Si_dp{sNo});
         end
         for ii = 1:njac
+            if ~all(size(A.jac{ii}) == ncell)
+                continue
+            end
             if hasP
                 Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + DSdp*p.jac{ii};
             end
