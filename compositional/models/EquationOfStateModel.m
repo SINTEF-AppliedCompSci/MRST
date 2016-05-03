@@ -307,6 +307,7 @@ classdef EquationOfStateModel < PhysicalModel
         function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, Pr, Tr, x, y, acf)
             % Calculate intermediate values for fugacity computation
             ncomp = model.fluid.getNumberOfComponents();
+            ncell = numel(double(Pr{1}));
             if ~iscell(acf)
                 acf = toCell(acf);
             end
@@ -339,7 +340,7 @@ classdef EquationOfStateModel < PhysicalModel
             bic = model.fluid.getBinaryInteraction();
             A_ij = cell(ncomp, ncomp);
             
-            AD_enabled = isa(Pr{1}, 'ADI') || isa(x{1}, 'ADI') || isa(y{1}, 'ADI');
+            [sAD, AD_enabled] = getAD(Pr, x, y);
             if ~AD_enabled || ~model.fastDerivatives
                 % We are either using doubles or we have explicitly
                 % disabled the fastDerivatives option. Compute mixing
@@ -387,6 +388,18 @@ classdef EquationOfStateModel < PhysicalModel
                 p = Pr{1}*model.fluid.Pcrit(1);
                 [Si_L, A_L, B_L] = setMixDerivatives(p, x, Si_L, A_L, B_L, Si_L_dp, Si_L_dx, A_L_dp, A_L_dx, B_L_dp, B_L_dx);
                 [Si_V, A_V, B_V] = setMixDerivatives(p, y, Si_V, A_V, B_V, Si_V_dp, Si_V_dx, A_V_dp, A_V_dx, B_V_dp, B_V_dx);
+                
+                % Add derivatives to B_i...
+                if isa(p, 'ADI')
+                    vx = (1:ncell)';
+                    makeD = @(x) makeDiagonal(x, vx, ncell);
+                    for i = 1:ncomp
+                        Bi{i} = double2ADI(Bi{i}, sAD);
+                        for j = 1:numel(Bi{i}.jac)
+                            Bi{i}.jac{j} = makeD(Bi_dp{i}).*p.jac{j};
+                        end
+                    end
+                end
             end
         end
         
@@ -1008,4 +1021,19 @@ end
 
 function D = makeDiagonal(x, vx, ncell)
     D = sparse(vx, vx, x, ncell, ncell);
+end
+
+function [s, isAD] = getAD(Pr, x, y)
+    isAD = true;
+    if isa(Pr{1}, 'ADI')
+        s = Pr{1};
+    elseif isa(x{1}, 'ADI')
+        s = x{1};
+    elseif isa(y{1}, 'ADI')
+        s = y{1};
+    else
+        s = [];
+        isAD = false;
+    end
+    
 end
