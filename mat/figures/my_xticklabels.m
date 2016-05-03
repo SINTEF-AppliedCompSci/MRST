@@ -21,8 +21,10 @@ else
     Hfig = get(Ha,'Parent');
     xtickpos = varargin{1};
     xtickstring = varargin{2};
-    if nargin > 2
-        textopts = varargin(3:end);
+    addx = varargin{3};
+    addy = varargin{4};
+    if nargin > 4
+        textopts = varargin(5:end);
     end
 end
 
@@ -34,8 +36,8 @@ end
 
 %% Make XTickLabels
 NTick = length(xtickpos);
-Ybot = min(get(gca,'YLim'))-.15;
-xtickpos = xtickpos + .01;
+Ybot = min(get(gca,'YLim'))+addy;
+xtickpos = xtickpos + addx;
 ht = zeros(NTick,1);
 for ii = 1:NTick
     ht(ii) = text('String',xtickstring{ii}, ...

@@ -39,7 +39,7 @@ plot(Xe(:,1:nN), Xe(:,nN+1:2*nN),'k')
 line([-(1+addy) 1+addy], [0,0], 'LineWidth', lineWidth);
 line([0,0], [-(1+addy) 1+addy], 'LineWidth', lineWidth);
 X1 = X((X(:,1)).^2 + (X(:,2)).^2 <= 1,:);
-<<<<<<< HEAD
+
 plot(X1(:,1), X1(:,2), 'ok', 'MarkerFaceColor', 'r')
 
 text(1+.3, .1,'$x$')
