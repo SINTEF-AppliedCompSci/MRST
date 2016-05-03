@@ -263,27 +263,39 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
         end
     
-        function [xM, yM, sL, sV, rhoL, rhoV, muL, muV] = computeTwoPhaseFlowProps(model, state, p, temp, z)
+        function [xM, yM, sL, sV, rhoL, rhoV, muL, muV, report] = computeTwoPhaseFlowProps(model, state, p, temp, z)
             isADI = isa(p, 'ADI') || isa(temp, 'ADI') || any(cellfun(@(x) isa(x, 'ADI'), z));
-            
+            report = struct();
             if isADI
+                t1 = tic();
                 [x, y, L] = model.EOSModel.getPhaseFractionAsADI(state, p, temp, z);
+                report.t_derivatives = toc(t1);
+                t2 = tic();
                 [Z_L, Z_V] = model.EOSModel.getCompressibility(state, p, temp, x, y);
+                report.t_compressibility = toc(t2);
             else
                 [x, y, L, Z_L, Z_V] = model.getProps(state, 'x', 'y', 'L', 'Z_L', 'Z_V');
+                [report.t_derivatives, report.t_compressibility] = deal(0);
             end
+            t1 = tic();
             xM = model.EOSModel.getMassFraction(x);
             yM = model.EOSModel.getMassFraction(y);
-
+            report.t_massfraction = toc(t1);
+            
+            t2 = tic();
             rhoL = model.EOSModel.computeDensity(p, x, Z_L, temp, true);
             rhoV = model.EOSModel.computeDensity(p, y, Z_V, temp, false);
-
+            report.t_density = toc(t2);
+            
             sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
             sV = 1 - sL;
+            
+            t3 = tic();
             if nargout > 6
                 muL = model.EOSModel.computeViscosity(p, rhoL, temp, x, true);
                 muV = model.EOSModel.computeViscosity(p, rhoV, temp, y, false);
             end
+            report.t_viscosity = toc(t3);
         end
 
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
