@@ -12,7 +12,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    if ~strcmpi(opt.modelname, 'Synthetic')
         [Gt, rock2D, ~] = getFormationTopGrid(opt.modelname, opt.coarse_level);
    else
-        Gt          = dipped_perturbed_grid('Lx', 10000, 'Ly', 5000, 'H', 50);
+        Gt          = dipped_perturbed_grid('originalGrid',false, 'dz_e',1.05);
         rock2D.poro = NaN * ones(Gt.cells.num,1);
         rock2D.perm = NaN * ones(Gt.cells.num,1);
    end
@@ -27,7 +27,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
    % entries...
    
    %% Spill-point analysis object
-   ta = trapAnalysis(Gt, false);
+   ta = trapAnalysis(Gt, opt.trap_method);
    
    %% CO2 property object
    co2 = CO2props(); % used in pick well sites
@@ -176,7 +176,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         if opt.inspectWellPlacement
             cinx_inj = [opt.schedule.control(1).W.cells];
 
-            close all
+            %close all
             figure(100); set(gcf,'Position',[2929 666 953 615])
             subplot(2,2,[1 3])
             mapPlot(gcf, Gt, 'traps', ta.traps, ...
@@ -196,6 +196,12 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
             xlabel('well number', 'FontSize',16);
             ylabel({'initial rate [Mt/yr]';['for ',num2str(convertTo(opt.itime,year)),' yrs inj.']}, 'FontSize',16);
 
+            % or in 3D view:
+            figure(101);
+            plotGrid(Gt.parent, 'facecolor','none', 'edgealpha',0.1); view(3); daspect([1,1,0.02])
+            plotCellData(Gt, Gt.cells.z, 'edgealpha',0.5);
+            plotWell(Gt.parent, opt.schedule.control(1).W)
+            
             % Exit before entering optimization routine
             init = []; optim = []; history = [];
             other.inspectWellPlacement = opt.inspectWellPlacement;
@@ -524,6 +530,9 @@ function opt = opt_defaults()
     opt.extended_mig_time = [];
     opt.set_mig_rates_to_0 = false;
     opt.coarse_level = 3;
+    
+    % Trapping Structure method:
+    opt.trap_method = false; % false for node-based, true for cell-based
     
     % Number of timesteps (injection and migration)
     opt.isteps = 10;
