@@ -307,7 +307,9 @@ classdef EquationOfStateModel < PhysicalModel
         function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, Pr, Tr, x, y, acf)
             % Calculate intermediate values for fugacity computation
             ncomp = model.fluid.getNumberOfComponents();
-            
+            if ~iscell(acf)
+                acf = toCell(acf);
+            end
             [Ai, Bi] = deal(cell(1, ncomp));
             [oA, oB] = deal(cell(1, ncomp));
             
@@ -366,8 +368,8 @@ classdef EquationOfStateModel < PhysicalModel
                     Ai{i} = oA{i}.*double(Pr{i})./Tr{i}.^2;
                     Bi{i} = oB{i}.*double(Pr{i})./Tr{i};
                     
-                    Ai_dp{i} = oA{i}./(model.fluid.Pcrit(i)*Tr{i}.^2);
-                    Bi_dp{i} = oB{i}./(model.fluid.Pcrit(i)*Tr{i}.^2);
+                    Ai_dp{i} = oA{i}./(model.fluid.Pcrit(i)*(Tr{i}.^2));
+                    Bi_dp{i} = oB{i}./(model.fluid.Pcrit(i)*Tr{i});
                 end
                 
                 for i = 1:ncomp
@@ -375,7 +377,7 @@ classdef EquationOfStateModel < PhysicalModel
                         % A_ij
                         A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
                         % d(A_ij) / dp
-                        A_ij_dp{i, j} = 0.5*(Ai_dp{i}.*Ai{j} + Ai_dp{j}.*Ai{i}).*(Ai{i}.*Ai{j}).^(-1/2).*(1 - bic(i, j));
+                        A_ij_dp{i, j} = (1/2)*(Ai_dp{i}.*Ai{j} + Ai_dp{j}.*Ai{i}).*(Ai{i}.*Ai{j}).^(-1/2).*(1 - bic(i, j));
                     end
                 end
                 
@@ -442,7 +444,9 @@ classdef EquationOfStateModel < PhysicalModel
                     
                     % S
                     Si{i} = Si{i} + A_ij{i, j}.*xj;
+                    % dS/dp
                     Si_dp{i} = Si_dp{i} + A_ij_dp{i, j}.*xj;
+                    % dS/dx
                     Si_dx{i, j} = Si_dx{i, j} + A_ij{i, j};
                 end
             end
@@ -996,7 +1000,7 @@ function [Si, A, B] = setMixDerivatives(p, x, Si, A, B, Si_dp, Si_dx, A_dp, A_dx
                        v = v + Si_dx{sNo, xNo}.*diag(x{xNo}.jac{ii});
                     end
                 end
-                Si{sNo}.jac{ii} = makeDiag(v);
+                Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + makeDiag(v);
             end
         end
     end
