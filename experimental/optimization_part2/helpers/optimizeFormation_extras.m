@@ -163,7 +163,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
         if strcmpi(opt.well_control_type,'rate')
             opt.schedule = setSchedule_extras( Gt, rock2D, wc, 'rate', ...
                                 opt.isteps, opt.itime, opt.msteps, opt.mtime, ...
-                                'wqtots', qt/opt.refRhoCO2, 'minval',sqrt(eps));
+                                'wqtots', opt.init_scale*qt/opt.refRhoCO2, 'minval',sqrt(eps));
 
         elseif strcmpi(opt.well_control_type,'bhp')
             opt.schedule = setSchedule_extras( Gt, rock2D, wc, 'bhp', ...
@@ -267,7 +267,7 @@ function [Gt, optim, init, history, other] = optimizeFormation_extras(varargin)
     if strcmpi(opt.well_control_type,'rate')
         min_wvals = sqrt(eps) * ones(numel(opt.schedule.control(1).W), 1);
         if isempty(opt.max_wvals)
-            max_wvals = opt.rate_lim_fac * ...
+            max_wvals = opt.rate_lim_fac/opt.init_scale * ...
                 max([opt.schedule.control(1).W.val]) * ones(numel(opt.schedule.control(1).W), 1);
         else
             assert( numel(opt.max_wvals) == numel(opt.schedule.control(1).W) )
@@ -537,6 +537,7 @@ function opt = opt_defaults()
     % Number of timesteps (injection and migration)
     opt.isteps = 10;
     opt.msteps = 31;
+   
 
     % Durations of injection an migration phases
     opt.itime  = 50   * year;
@@ -602,7 +603,8 @@ function opt = opt_defaults()
     % Well control details:
     opt.well_control_type = 'rate'; % 'rate','bhp'
     opt.rate_lim_fac = 10; % factor for setting upper limit of injection rates
-    opt.max_wvals = [];    % or max well vals can be passed in explicitly
+    opt.max_wvals = [];    % or max well vals can be passed in explicitly                           
+    opt.init_scale = 0.3;%scaling of rates to enure good inital guess
     
     % Well placement details:
     opt.well_placement_type = 'use_array'; % 'use_array', 'one_per_trap', 'one_per_path'
@@ -623,7 +625,8 @@ function opt = opt_defaults()
     opt.lineSearchMaxIt = 10;
     opt.gradTol         = 1e-4;
     opt.objChangeTol    = 1e-4;
-
+    
+    
 
 end
 
