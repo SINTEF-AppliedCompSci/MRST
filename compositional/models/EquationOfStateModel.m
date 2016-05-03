@@ -396,7 +396,9 @@ classdef EquationOfStateModel < PhysicalModel
                     for i = 1:ncomp
                         Bi{i} = double2ADI(Bi{i}, sAD);
                         for j = 1:numel(Bi{i}.jac)
-                            Bi{i}.jac{j} = makeD(Bi_dp{i}).*p.jac{j};
+                            if all(size(Bi{i}.jac{j}) == ncell)
+                                Bi{i}.jac{j} = makeD(Bi_dp{i}).*p.jac{j};
+                            end
                         end
                     end
                 end
