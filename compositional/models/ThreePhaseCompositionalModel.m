@@ -268,10 +268,10 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             report = struct();
             if isADI
                 t1 = tic();
-                [x, y, L] = model.EOSModel.getPhaseFractionAsADI(state, p, temp, z);
+                [x, y, L, packed] = model.EOSModel.getPhaseFractionAsADI(state, p, temp, z);
                 report.t_derivatives = toc(t1);
                 t2 = tic();
-                [Z_L, Z_V] = model.EOSModel.getCompressibility(state, p, temp, x, y);
+                [Z_L, Z_V] = model.EOSModel.getCompressibility(state, p, temp, x, y, packed);
                 report.t_compressibility = toc(t2);
             else
                 [x, y, L, Z_L, Z_V] = model.getProps(state, 'x', 'y', 'L', 'Z_L', 'Z_V');
