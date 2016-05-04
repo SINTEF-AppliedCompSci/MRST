@@ -443,6 +443,9 @@ classdef EquationOfStateModel < PhysicalModel
                 xoffset = 1;
                 yoffset = ncomp + 1;
                 for jacNo = 1:numel(s.jac)
+                    if ~all(size(s.jac{jacNo}) == ncell)
+                        continue
+                    end
                     % Diagonal derivatives we want
                     [dZ_L, dZ_V] = deal(0);
                     if hasP
