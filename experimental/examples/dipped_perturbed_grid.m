@@ -7,13 +7,13 @@ function Gt = dipped_perturbed_grid(varargin)
 %
 
     [opt.Lx, opt.Ly, opt.H] = deal(10000, 5000, 50);
-    [opt.nx, opt.ny] = deal(100, 50);
+    [opt.nx, opt.ny] = deal(200, 100);
     [opt.dz_s, opt.dz_n, opt.dz_e] = deal(0, 0, 0);
     opt.originalGrid = true;
     
     opt = merge_options(opt, varargin{:});
     
-    G  = cartGrid([opt.nx opt.ny 1],[opt.Lx opt.Ly opt.H]);
+    G = cartGrid([opt.nx opt.ny 1],[opt.Lx opt.Ly opt.H]);
     x  = G.nodes.coords(1:G.nodes.num/2,1)/opt.Lx; 
     y  = G.nodes.coords(1:G.nodes.num/2,2)/opt.Ly;
     z  = G.nodes.coords(1:G.nodes.num/2,3)/opt.H;
@@ -25,15 +25,15 @@ function Gt = dipped_perturbed_grid(varargin)
         % BEND impacts curve of top surface (from east to west)
         % SLOPE impacts top surface's dipping angle
         ALPHA = 0.2;
-        WEDGE = 0.15; %0.15; 
+        WEDGE = 0.15; %0.15; %0.15; 
         BEND = 0.075;
         SLOPE = 1;
-        gamma1 = 5;
-        gamma2 = 5;
-        beta = 1.5; %1.5; % impacts amount of squeeze/stretch in waves
+        gamma1 = 6;
+        gamma2 = 6;
+        beta = 1; %1.5; % impacts amount of squeeze/stretch in waves
         phi = 1.25; %1.25; % impacts curvature of top from north to south
 
-        fac = 2;
+        fac = 0;
         xx  = min(max(0,(x-fac/opt.nx)/(1-fac*2/opt.nx)),1);
         %xx = x;
         yy  = min(max(0,(y-fac/opt.ny)/(1-fac*2/opt.ny)),1);
@@ -48,6 +48,26 @@ function Gt = dipped_perturbed_grid(varargin)
     G = computeGeometry(G);
     
     
+    % Perform some removing of cells
+    % (or extract subgrid)
+    x = G.cells.centroids(:,1);
+    y = G.cells.centroids(:,2);
+    xcinxE = find(x >= 0.85*opt.Lx); xcinxW = find(x <= 0.14*opt.Lx);
+    ycinxN = find(y >= 0.9*opt.Ly); ycinxS = find(y <= 0.09*opt.Ly);
+    cells2cut = unique([xcinxE; xcinxW; ycinxN; ycinxS]);
+    %figure; plotGrid(G, 'facecolor','none'); plotCellData(G, ones(G.parent.cells.num,1), cells2cut);
+    %G = removeCells(G, cells2cut);
+    tmp = ones(G.cells.num,1);
+	tmp(cells2cut) = 0;
+	cells2keep = find(tmp == 1);
+    G = extractSubgrid(G, cells2keep);
+    
+    
+    % Shift G.nodes.coords(x,y) so that grid starts at (0,0)
+    G.nodes.coords(:,1) = G.nodes.coords(:,1) - min(G.nodes.coords(:,1));
+    G.nodes.coords(:,2) = G.nodes.coords(:,2) - min(G.nodes.coords(:,2));
+    
+    
     % Alter the external boundaries to ensure trap regions do not touch
     % edges (i.e., forces co2 to spill out along these sides)
     finx_sb = boundaryFaceIndices(G,'South');
@@ -59,18 +79,23 @@ function Gt = dipped_perturbed_grid(varargin)
     G.nodes.coords(n_sb,3) = G.nodes.coords(n_sb,3) - opt.dz_s; %0;
     G.nodes.coords(n_nb,3) = G.nodes.coords(n_nb,3) - opt.dz_n; %0;
     G.nodes.coords(n_eb,3) = G.nodes.coords(n_eb,3) - opt.dz_e; %1.05;
-    G = computeGeometry(G); % need to recompute geometry
+    
+    
+    % Recompute geometry, get top surface grid
+    G = computeGeometry(G);
     Gt = topSurfaceGrid(G);
+    %figure; plotGrid(Gt); view(3);
+
 
     
     % uncomment the following to plot the grid
-%     figure; set(gcf,'Position',[2817 911 560 420])
-%     Gt_zshifted = Gt; 
-%     Gt_zshifted.nodes.z = Gt_zshifted.nodes.z - 15;
-%     plot_opts = {'edgeColor', 'k', 'edgeAlpha', 0.1};
-%     plotGrid(G, plot_opts{:});
-%     plotCellData(Gt_zshifted, Gt_zshifted.cells.z, plot_opts{:});
-%     view(30,25); axis tight
+    figure; set(gcf,'Position',[2817 911 560 420])
+    Gt_zshifted = Gt; 
+    Gt_zshifted.nodes.z = Gt_zshifted.nodes.z - 15;
+    plot_opts = {'edgeColor', 'k', 'edgeAlpha', 0.1};
+    plotGrid(G, plot_opts{:});
+    plotCellData(Gt_zshifted, Gt_zshifted.cells.z, plot_opts{:});
+    view(30,25); axis tight
     
     
     % uncomment the following to inspect trapping structure
@@ -100,6 +125,10 @@ function Gt = dipped_perturbed_grid(varargin)
 %     subplot(1,2,2)
 %     plotCellData(Gt, ta_node.trap_regions); title('node-based')
 
+%%
+
 
 end
+
+
 
