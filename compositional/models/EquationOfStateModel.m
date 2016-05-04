@@ -423,8 +423,7 @@ classdef EquationOfStateModel < PhysicalModel
                 yoffset = ncomp + 1;
                 for jacNo = 1:numel(s.jac)
                     % Diagonal derivatives we want
-                    [df_L, df_V] = deal(cell(1, ncomp));
-                    [dZ_L, dZ_V, df_L{:}, df_V{:}] = deal(0);
+                    [dZ_L, dZ_V] = deal(0);
 
                     
                     
@@ -434,42 +433,40 @@ classdef EquationOfStateModel < PhysicalModel
                         dZ_V = Z_V.jac(:, 1).*dP;
                     end
                     
+                    extractDiag = @(v) cellfun(@(z) diag(z.jac{jacNo}), v, 'UniformOutput', false);
+                    
                     if hasx
-                        dx = cellfun(@(x) diag(x.jac{jacNo}), x0, 'UniformOutput', false);
+                        dx = extractDiag(x0);
+                        dX = [dx{:}];
+                        xIx = (xoffset+1):(xoffset+ncomp);
+                        dZ_L = dZ_L + sum(Z_L.jac(:, xIx).*dX, 2);
                     end
                     if hasy
-                        dy = cellfun(@(y) diag(y.jac{jacNo}), y0, 'UniformOutput', false);
+                        dy = extractDiag(y0);
+                        dY = [dy{:}];
+                        yIx = (yoffset+1):(yoffset+ncomp);
+                        dZ_V = dZ_V + sum(Z_V.jac(:, yIx).*dY, 2);
                     end
+                    
+                    
                     for i = 1:ncomp
-                        xi = xoffset + i;
-                        yi = yoffset + i;
                         pi = 1;
+                        df_L = 0;
+                        df_V = 0;
+                        if hasP
+                            df_L = df_L + f_L{i}.jac(:, pi).*dP;
+                            df_V = df_V + f_V{i}.jac(:, pi).*dP;
+                        end
                         
                         if hasx
-                            dZ_L = dZ_L + Z_L.jac(:, xi).*dx{i};
+                            df_L = df_L + sum(f_L{i}.jac(:, xIx).*dX, 2);
                         end
                         if hasy
-                            dZ_V = dZ_V + Z_V.jac(:, yi).*dy{i};
+                            df_V = df_V + sum(f_V{i}.jac(:, yIx).*dY, 2);
                         end
                         
-                        if hasP
-                            df_L{i} = df_L{i} + f_L{i}.jac(:, pi).*dP;
-                            df_V{i} = df_V{i} + f_V{i}.jac(:, pi).*dP;
-                        end
-                        for j = 1:ncomp
-                            xj = xoffset + j;
-                            yj = yoffset + j;
-
-                            if hasx
-                                df_L{i} = df_L{i} + f_L{i}.jac(:, xj).*dx{j};
-                            end
-                            if hasy
-                                df_V{i} = df_V{i} + f_V{i}.jac(:, yj).*dy{j};
-                            end
-                        end
-                        
-                        f_L0{i}.jac{jacNo} = DM(df_L{i});
-                        f_V0{i}.jac{jacNo} = DM(df_V{i});
+                        f_L0{i}.jac{jacNo} = DM(df_L);
+                        f_V0{i}.jac{jacNo} = DM(df_V);
                         % Finally make AD
                     end
                     Z_L0.jac{jacNo} = DM(dZ_L);
