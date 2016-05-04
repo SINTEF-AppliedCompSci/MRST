@@ -369,10 +369,11 @@ classdef EquationOfStateModel < PhysicalModel
                 ncell = numel(P);
                 x = cellfun(@double, x, 'UniformOutput', false);
                 y = cellfun(@double, y, 'UniformOutput', false);
-
-                [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
             end
             if ~(precomputed && useFast)
+                if useFast
+                    [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
+                end
                 timer = tic();
                 [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
                 rep.t_mixture = toc(timer);
