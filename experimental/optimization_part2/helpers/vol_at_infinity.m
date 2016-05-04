@@ -1,6 +1,9 @@
 function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG, fluid, p_curr, p_future, varargin )
 % Determine co2 vol (at ref. depth) that will ultimately remain in formation at time infinity.
 %
+% @@ test impact of using cell-based versus node-based trapAnalysis.
+%
+%
 % SYNOPSIS:
 %   future_vol = vol_at_infinity(Gt, rock2D, sG, fluid, p_curr, p_future)
 %   future_vol = vol_at_infinity(Gt, rock2D, sG, fluid, p_curr, p_future, ...
@@ -32,7 +35,7 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
 %
 % (optional) - plotsOn, true or false for plotting
 %            - ta, as given by trapAnalysis. If not passed in, will be
-%              computed
+%              computed. NB: used for traps, trap_regions, spill-depth @@
 
 % RETURNS   - co2 volumes in terms of m3 at ref. depth:
 %               1. ult_vol_remaining, amount remaining at time infinity
@@ -42,11 +45,13 @@ function [ ult_vol_remaining, ult_vol_leaked ] = vol_at_infinity( Gt, rock2D, sG
     opt.plotsOn = false;
     opt.ta = [];
     opt.time = [];
+    opt.trap_method = false;
     opt = merge_options(opt, varargin{:});
 
     if isempty(opt.ta)
         fprintf('Obtaining trap structure using trapAnalysis...\n')
-        ta = trapAnalysis(Gt, false); % @@ implement option to pass in closed boundary faces.
+        fprintf('Method is (1=cell-based, 0=node-based): %1.0f \n', opt.trap_method)
+        ta = trapAnalysis(Gt, opt.trap_method); % @@ implement option to pass in closed boundary faces.
         fprintf('trapAnalysis done.\n')
     else
         ta = opt.ta;
