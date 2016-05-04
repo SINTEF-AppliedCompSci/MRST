@@ -221,11 +221,11 @@ classdef EquationOfStateModel < PhysicalModel
             % Vapor component fraction
             y = model.computeVapor(L, K, z);
             % Reduced values for pressure etc (divided by critical values)
-            [Pr, Tr] = model.getReducedPT(P, T);
+            % [Pr, Tr] = model.getReducedPT(P, T);
             acf = (toCell(model.fluid.acentricFactors));
             ncomp = numel(x);
             
-            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(Pr, Tr, x, y, acf);
+            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, acf);
             % Solve EOS for each phase
             Z_L = model.computeLiquidZ(A_L, B_L);
             Z_V = model.computeVaporZ(A_V, B_V);
@@ -304,10 +304,10 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
         
-        function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, Pr, Tr, x, y, acf)
+        function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, P, T, x, y, acf)
             % Calculate intermediate values for fugacity computation
             ncomp = model.fluid.getNumberOfComponents();
-            ncell = numel(double(Pr{1}));
+            [Pr, Tr] = model.getReducedPT(P, T);
             if ~iscell(acf)
                 acf = toCell(acf);
             end
@@ -339,69 +339,147 @@ classdef EquationOfStateModel < PhysicalModel
             [oB{:}] = deal(model.omegaB);
             bic = model.fluid.getBinaryInteraction();
             A_ij = cell(ncomp, ncomp);
+
+            for i = 1:ncomp
+                Ai{i} = oA{i}.*Pr{i}./Tr{i}.^2;
+                Bi{i} = oB{i}.*Pr{i}./Tr{i};
+            end
+            for i = 1:ncomp
+                for j = 1:ncomp
+                    A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
+                end
+            end
+            [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
+            [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
+        end
+        
+        function [f_L, f_V, Z_L, Z_V, rep] = getEquilibriumProperties(model, P, T, x, y, Z_L, Z_V)
+            [s, isAD] = getAD(P, x, y);
             
-            [sAD, AD_enabled] = getAD(Pr, x, y);
-            if ~AD_enabled || ~model.fastDerivatives
-                % We are either using doubles or we have explicitly
-                % disabled the fastDerivatives option. Compute mixing
-                % coefficients using the standard functions.
-                for i = 1:ncomp
-                    Ai{i} = oA{i}.*Pr{i}./Tr{i}.^2;
-                    Bi{i} = oB{i}.*Pr{i}./Tr{i};
+            useFast = isAD && model.fastDerivatives
+            if useFast
+                x0 = x;
+                y0 = y;
+                P0 = P;
+                P = double(P);
+                ncell = numel(P);
+                x = cellfun(@double, x, 'UniformOutput', false);
+                y = cellfun(@double, y, 'UniformOutput', false);
+
+                [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
+            end
+            
+            [Pr, Tr] = model.getReducedPT(P, T);
+            acf = toCell(model.fluid.acentricFactors);
+            ncomp = numel(x);
+            timer = tic();
+            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, acf);
+            rep.t_mixture = toc(timer);
+            
+            timer = tic();
+            if isempty(Z_L)
+                Z_L = model.computeLiquidZ(double(A_L), double(B_L));
+            end
+            if isempty(Z_V)
+                Z_V = model.computeVaporZ(double(A_V), double(B_V));
+            end
+            
+            if isa(s, 'ADI');
+                if useFast
+                    Z_L = FastAD(Z_L, 0*P.jac);
+                    Z_V = FastAD(Z_V, 0*P.jac);
+                else
+                    Z_L = double2ADI(Z_L, s);
+                    Z_V = double2ADI(Z_V, s);
                 end
-                for i = 1:ncomp
-                    for j = 1:ncomp
-                        A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
-                    end
-                end
-                % For both liquid and vapor phase, compute values required for
-                % fugacity.
-                [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
-                [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
-            else
-                % We want to get derivatives quicker. Use hand-coded
-                % version of the fugacity derivatives.
-                Ai_dp = cell(1, ncomp);
-                Bi_dp = cell(1, ncomp);
+                Z_L = model.setZDerivatives(Z_L, A_L, B_L);
+                Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+            end
+            
+            rep.t_compressibility = toc(timer);
+            
+            timer = tic();
+            f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
+            f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
+            rep.t_fugacity = toc(timer);
+            
+            if useFast
+                Z_L0 = double2ADI(double(Z_L), s);
+                Z_V0 = double2ADI(double(Z_V), s);
                 
-                A_ij_dp = cell(ncomp, ncomp);
+                hasx = isa(x0{1}, 'ADI');
+                hasy = isa(y0{1}, 'ADI');
+                hasP = isa(P0, 'ADI');
+                
+                [f_L0, f_V0] = deal(cell(1, ncomp));
                 for i = 1:ncomp
-                    Ai{i} = oA{i}.*double(Pr{i})./Tr{i}.^2;
-                    Bi{i} = oB{i}.*double(Pr{i})./Tr{i};
+                    f_L0{i} = double2ADI(double(f_L{i}), s);
+                    f_V0{i} = double2ADI(double(f_V{i}), s);
+                end
+                vx = (1:ncell)';
+                DM = @(x) makeDiagonal(x, vx, ncell);
+                
+                xoffset = 1;
+                yoffset = ncomp + 1;
+                for jacNo = 1:numel(s.jac)
+                    % Diagonal derivatives we want
+                    [df_L, df_V] = deal(cell(1, ncomp));
+                    [dZ_L, dZ_V, df_L{:}, df_V{:}] = deal(0);
+
                     
-                    Ai_dp{i} = oA{i}./(model.fluid.Pcrit(i)*(Tr{i}.^2));
-                    Bi_dp{i} = oB{i}./(model.fluid.Pcrit(i)*Tr{i});
-                end
-                
-                for i = 1:ncomp
-                    for j = 1:ncomp
-                        % A_ij
-                        A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
-                        % d(A_ij) / dp
-                        A_ij_dp{i, j} = (1/2)*(Ai_dp{i}.*Ai{j} + Ai_dp{j}.*Ai{i}).*(Ai{i}.*Ai{j}).^(-1/2).*(1 - bic(i, j));
+                    
+                    if hasP
+                        dP = diag(P0.jac{jacNo});
+                        dZ_L = Z_L.jac(:, 1).*dP;
+                        dZ_V = Z_V.jac(:, 1).*dP;
                     end
-                end
-                
-                [Si_L, A_L, B_L, Si_L_dp, Si_L_dx, A_L_dp, A_L_dx, B_L_dp, B_L_dx] = model.getPhaseMixCoefficientsFast(x, A_ij, Bi, A_ij_dp, Bi_dp);
-                [Si_V, A_V, B_V, Si_V_dp, Si_V_dx, A_V_dp, A_V_dx, B_V_dp, B_V_dx] = model.getPhaseMixCoefficientsFast(y, A_ij, Bi, A_ij_dp, Bi_dp);
-                
-                p = Pr{1}*model.fluid.Pcrit(1);
-                [Si_L, A_L, B_L] = setMixDerivatives(p, x, Si_L, A_L, B_L, Si_L_dp, Si_L_dx, A_L_dp, A_L_dx, B_L_dp, B_L_dx);
-                [Si_V, A_V, B_V] = setMixDerivatives(p, y, Si_V, A_V, B_V, Si_V_dp, Si_V_dx, A_V_dp, A_V_dx, B_V_dp, B_V_dx);
-                
-                % Add derivatives to B_i...
-                if isa(p, 'ADI')
-                    vx = (1:ncell)';
-                    makeD = @(x) makeDiagonal(x, vx, ncell);
+                    
+                    if hasx
+                        dx = cellfun(@(x) diag(x.jac{jacNo}), x0, 'UniformOutput', false);
+                    end
+                    if hasy
+                        dy = cellfun(@(y) diag(y.jac{jacNo}), y0, 'UniformOutput', false);
+                    end
                     for i = 1:ncomp
-                        Bi{i} = double2ADI(Bi{i}, sAD);
-                        for j = 1:numel(Bi{i}.jac)
-                            if all(size(Bi{i}.jac{j}) == ncell)
-                                Bi{i}.jac{j} = makeD(Bi_dp{i}).*p.jac{j};
+                        xi = xoffset + i;
+                        yi = yoffset + i;
+                        pi = 1;
+                        
+                        if hasx
+                            dZ_L = dZ_L + Z_L.jac(:, xi).*dx{i};
+                        end
+                        if hasy
+                            dZ_V = dZ_V + Z_V.jac(:, yi).*dy{i};
+                        end
+                        
+                        if hasP
+                            df_L{i} = df_L{i} + f_L{i}.jac(:, pi).*dP;
+                            df_V{i} = df_V{i} + f_V{i}.jac(:, pi).*dP;
+                        end
+                        for j = 1:ncomp
+                            xj = xoffset + j;
+                            yj = yoffset + j;
+
+                            if hasx
+                                df_L{i} = df_L{i} + f_L{i}.jac(:, xj).*dx{j};
+                            end
+                            if hasy
+                                df_V{i} = df_V{i} + f_V{i}.jac(:, yj).*dy{j};
                             end
                         end
+                        
+                        f_L0{i}.jac{jacNo} = DM(df_L{i});
+                        f_V0{i}.jac{jacNo} = DM(df_V{i});
+                        % Finally make AD
                     end
+                    Z_L0.jac{jacNo} = DM(dZ_L);
+                    Z_V0.jac{jacNo} = DM(dZ_V);
                 end
+                
+                Z_L = Z_L0;
+                Z_V = Z_V0;
+                f_L = f_L0;
+                f_V = f_V0;
             end
         end
         
@@ -480,7 +558,7 @@ classdef EquationOfStateModel < PhysicalModel
             [m1, m2] = model.getEOSCoefficients();
             ncomp = model.fluid.getNumberOfComponents();
             f = cell(1, ncomp);
-            a1 = -log(max(Z - B, 0));
+            a1 = -log(Z - B);
             b1 = log((Z + m2.*B)./(Z + m1.*B)).*(A./((m1-m2).*B));
             b2 = (Z-1)./B;
             for i = 1:ncomp
@@ -496,7 +574,7 @@ classdef EquationOfStateModel < PhysicalModel
             acf = toCell(model.fluid.acentricFactors);
             ncomp = model.fluid.getNumberOfComponents();
 
-           [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(Pr, Tr, x, y, acf); %#ok
+           [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, acf); %#ok
            if isa(P, 'ADI')
                s = P;
            else
@@ -521,45 +599,10 @@ classdef EquationOfStateModel < PhysicalModel
         end
         
         function [eqs, f_L, f_V, Z_L, Z_V, rep] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V)
-            rep = struct('t_fugacity', nan, 't_mixture', nan, 't_compressibility', nan, 't_assembly', nan, 't_remainder', nan);
             t1 = tic();
-            % Set up all equilibrium equations
-            [Pr, Tr] = model.getReducedPT(P, T);
-            acf = toCell(model.fluid.acentricFactors);
+            [f_L, f_V, Z_L, Z_V, rep] = model.getEquilibriumProperties(P, T, x, y, Z_L, Z_V);
+            
             ncomp = numel(x);
-            timer = tic();
-            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(Pr, Tr, x, y, acf);
-            rep.t_mixture = toc(timer);
-            
-            timer = tic();
-            if isempty(Z_L)
-                Z_L = model.computeLiquidZ(double(A_L), double(B_L));
-            end
-            if isempty(Z_V)
-                Z_V = model.computeVaporZ(double(A_V), double(B_V));
-            end
-            
-            if isa(x{1}, 'ADI')
-                s = x{1};
-            elseif isa(z{1}, 'ADI')
-                s = z{1};
-            else
-                s = P;
-            end
-            
-            if isa(s, 'ADI');
-                Z_L = double2ADI(Z_L, s);
-                Z_V = double2ADI(Z_V, s);
-                Z_L = model.setZDerivatives(Z_L, A_L, B_L);
-                Z_V = model.setZDerivatives(Z_V, A_V, B_V);
-            end
-            rep.t_compressibility = toc(timer);
-            
-            timer = tic();
-            f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
-            f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
-            rep.t_fugacity = toc(timer);
-            
             timer = tic();
             eqs = cell(1, 2*ncomp + 1);
             emptyJac = 0*P + 0*z{1};
@@ -586,7 +629,7 @@ classdef EquationOfStateModel < PhysicalModel
                 end
             end
             rep.t_assembly = toc(timer);
-            rep.t_remainder = toc(t1) - (rep.t_fugacity + rep.t_mixture + rep.t_compressibility + rep.t_assembly + rep.t_remainder);
+            rep.t_remainder = toc(t1) - (rep.t_fugacity + rep.t_mixture + rep.t_compressibility + rep.t_assembly);
         end
 
         function [x, y, LL, dsdp] = getPhaseFractionAsADI(model, state, pP, TP, z0)
@@ -877,19 +920,28 @@ classdef EquationOfStateModel < PhysicalModel
             e2 = double(E2);
             e1 = double(E1);
             z = double(Z);
+            if isa(Z, 'ADI')
+                for i = 1:numel(Z.jac)
 
-            for i = 1:numel(Z.jac)
-                [n, m] = size(Z.jac{i});
-                if n ~= m
-                    continue
+                    [n, m] = size(Z.jac{i});
+                    if n ~= m
+                        continue
+                    end
+                    dE2 = getJac(E2, i);
+                    dE1 = getJac(E1, i);
+                    dE0 = getJac(E0, i);
+
+                    d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
+                    Z.jac{i} = sparse((1:n)', (1:m)', d, n, m);
                 end
-                dE2 = getJac(E2, i);
-                dE1 = getJac(E1, i);
-                dE0 = getJac(E0, i);
-                e = ones(size(z));
-                
-                d = -(dE2*z.^2 + dE1*z + dE0*e)./(3*z.^2 + 2*z.*e2 + e1);
-                Z.jac{i} = sparse((1:n)', (1:m)', d, n, m);
+            elseif isa(Z, 'FastAD')
+                for i = 1:size(Z.jac, 2)
+                    dE2 = getJac(E2, i);
+                    dE1 = getJac(E1, i);
+                    dE0 = getJac(E0, i);
+                    
+                    Z.jac(:, i) = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
+                end
             end
         end
 
@@ -941,7 +993,9 @@ end
 
 function dx = getJac(x, ix)
     if isa(x, 'ADI')
-        dx = x.jac{ix};
+        dx = diag(x.jac{ix});
+    elseif isa(x, 'FastAD')
+        dx = x.jac(:, ix);
     else
         dx = 0;
     end
@@ -1025,10 +1079,10 @@ function D = makeDiagonal(x, vx, ncell)
     D = sparse(vx, vx, x, ncell, ncell);
 end
 
-function [s, isAD] = getAD(Pr, x, y)
+function [s, isAD] = getAD(P, x, y)
     isAD = true;
-    if isa(Pr{1}, 'ADI')
-        s = Pr{1};
+    if isa(P, 'ADI')
+        s = P;
     elseif isa(x{1}, 'ADI')
         s = x{1};
     elseif isa(y{1}, 'ADI')
