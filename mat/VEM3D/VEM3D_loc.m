@@ -107,7 +107,7 @@ B = zeros(nk, NK);
 intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
 
 if k == 1
-    
+
     B(1,:) = 1/NK;      % CHECK!
     dofVec = nodes';
     B(2:nk,:) = G.cells.Bint(intPos, dofVec);

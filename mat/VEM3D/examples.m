@@ -3,7 +3,7 @@ clc; clear; close all;
 addpath('../')
 addpath('../../../pebiGridding/voronoi3D/')
 
-ex = 2;
+ex = 1;
 switch ex
     case 1
         %   Specify problem
@@ -15,7 +15,7 @@ switch ex
         xMax = 1; yMax = 1; zMax = 1;
         n = 200;
         %   Method order
-        k = 2;
+        k = 1;
     case 2
         f = @(X) -4*ones(size(X,1),1);
         gD = @(X) X(:,1).^2 + X(:,2).*X(:,3)*10 + X(:,3).^2;
@@ -58,13 +58,16 @@ cells = cells(sum(bsxfun(@minus, Kc, c).^2,2) > r^2);
 faceNum = mcolon(G.cells.facePos(cells),G.cells.facePos(cells+1)-1);
 faces = G.cells.faces(faceNum);
 
-if k == 2
+sol = calculateFaceAverages(G,sol);
+
 
 figure();
 plotFaces(G,faces,sol.faceMoments(faces));
 colorbar;
 view(3);
 axis equal;
+
+if k == 2
 
 IF = polygonInt3D(G,1:G.faces.num,gD, 7);
 IC = polyhedronInt(G,1:G.cells.num,gD, 7);
@@ -75,6 +78,8 @@ elseif k == 1
     u = gD(G.nodes.coords);
     err = abs(U-u);
 end
+
+
 
 l2Err = l2Error3D(G, sol, gD ,k);
 

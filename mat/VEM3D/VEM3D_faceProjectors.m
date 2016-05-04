@@ -44,7 +44,6 @@ nk = (k+1)*(k+2)/2;
 
 nF          = G.faces.num;
 Fc          = G.faces.centroids;
-hF          = G.faces.diameters;
 aF          = G.faces.areas;
 faceNormals = G.faces.normals;
 
@@ -52,8 +51,6 @@ faceNormals = G.faces.normals;
 
 edgeNum     = mcolon(G.faces.edgePos(1:end-1),G.faces.edgePos(2:end)-1);
 edges       = G.faces.edges(edgeNum);
-Ec          = G.edges.centroids(edges,:);
-hE          = G.edges.lengths(edges);
 edgeNormals = G.faces.edgeNormals(edgeNum,:);
 
 %   Node data for each edge of each face. Sort nodes to be in
@@ -68,7 +65,7 @@ nodes(G.faces.edgeSign(edgeNum) == -1,:) ...
         = nodes(G.faces.edgeSign(edgeNum) == -1,2:-1:1);
 nodes   = reshape(nodes,[],1);
 
-X = [G.nodes.coords(nodes,:); Ec];
+X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:);];
 
 %%  MAP FROM GLOBAL TO LOCAL COORDINATES                                 %%
 
@@ -107,11 +104,11 @@ edgeNormals = ...
 
 numFaceNodes = diff(G.faces.nodePos);
 Xmon = bsxfun(@rdivide, X - repmat(rldecode(Fc,numFaceNodes,1),3,1), ...
-                            repmat(rldecode(hF,numFaceNodes,1),3,1));                     
+                            repmat(rldecode(G.faces.diameters,numFaceNodes,1),3,1));                     
 
 %   Scale edgeNormals by length.
 
-edgeNormals = bsxfun(@times, edgeNormals, hE);
+edgeNormals = bsxfun(@times, edgeNormals, G.edges.lengths(edges));
 
 %%  CALCULATE INTEGRALS FOR D AND B MATRICES                             %%
 
@@ -131,7 +128,7 @@ if k == 1
     intB = bsxfun( ...
                   @rdivide   , ...
                   intB + intB2       , ...
-                  rldecode(hF,diff(G.faces.edgePos),1) );    
+                  rldecode(G.faces.diameters,diff(G.faces.edgePos),1) );    
        
     NF = diff(G.faces.edgePos);
               
@@ -147,7 +144,7 @@ elseif k == 2
                     mat2cell(intD,diff(G.faces.edgePos),6)  , ....
                     'UniformOutput', false));
 
-    intD = bsxfun(@times, intD, hF./aF);
+    intD = bsxfun(@times, intD, G.faces.diameters./aF);
 
     intB = sum(grad_m(Xmon).*repmat(edgeNormals,5*3 ,1),2);
     intB = reshape(intB,3*nN,5);
@@ -158,7 +155,7 @@ elseif k == 2
     intB = bsxfun( ...
            @rdivide                                                       , ...
            [(intB(1:nN,:) + intB(nN+1:2*nN,:))/6; intB(2*nN+1:end,:)*2/3] , ...
-           repmat(rldecode(hF,diff(G.faces.edgePos),1),2,1));
+           repmat(rldecode(G.faces.diameters,diff(G.faces.edgePos),1),2,1));
 
     diffVec = cumsum(diff(G.faces.nodePos));
     ii = [mcolon(G.faces.nodePos(1:end-1)                        ...
@@ -175,7 +172,7 @@ elseif k == 2
     BT         = zeros(N,6);
     BT(ii,2:6) = intB;
     vec        = zeros(nF,6);
-    vec(:,1)   = 1; vec(:, [4,6]) = [-2*aF./hF.^2, -2*aF./hF.^2];
+    vec(:,1)   = 1; vec(:, [4,6]) = [-2*aF./G.faces.diameters.^2, -2*aF./G.faces.diameters.^2];
     BT(2*diffVec' + (1:nF),:) = vec;
 
     detA = zeros(N,6);
@@ -275,7 +272,7 @@ for F = 1:nF
     
     %   Scale coordinates for use in 2D monomials.
     
-    XFmon = (Xhat - repmat(Fc(F,:),nq*nTri,1))/hF(F);
+    XFmon = (Xhat - repmat(Fc(F,:),nq*nTri,1))/G.faces.diameters(F);
 
     %   Scale and correct directions of face normals.
     
