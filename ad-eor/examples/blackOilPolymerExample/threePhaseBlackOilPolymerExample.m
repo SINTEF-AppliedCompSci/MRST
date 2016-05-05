@@ -53,9 +53,6 @@ state0.c       = zeros([G.cells.num, 1]);
 state0.cmax    = zeros([G.cells.num, 1]);
 modelBOPolymer = ThreePhaseBlackOilPolymerModel(G, rock, fluid, 'inputdata', deck);
 
-modelBOPolymer.disgas = 1;
-modelBOPolymer.vapoil = 1;
-
 % Convert the deck schedule into a MRST schedule by parsing the wells
 schedule = convertDeckScheduleToMRST(G, modelBOPolymer, rock, deck);
 

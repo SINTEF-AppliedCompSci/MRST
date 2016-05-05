@@ -12,7 +12,7 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
 
     methods
         function model = ThreePhaseBlackOilPolymerModel(G, rock, fluid, varargin)
-            model = model@ThreePhaseBlackOilModel(G, rock, fluid);
+            model = model@ThreePhaseBlackOilModel(G, rock, fluid, varargin{:});
 
             % This is the model parameters for oil/water/gas/polymer system
             model.polymer = true;
