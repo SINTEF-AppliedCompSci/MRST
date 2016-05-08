@@ -67,12 +67,12 @@ end
 for i = 1:numel(fieldnames(G.FracGrid))
     Gf = G.FracGrid.(['Frac',num2str(i)]);
     if isempty(varargin) || strcmp(opt.permtype,'homogeneous')
-        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_frac;
+        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy*K_frac;
     elseif strcmp(opt.permtype,'heterogeneous')
         G.FracGrid.(['Frac',num2str(i)]).rock.perm = ...
-            (randi(100,Gf.cells.num,1)*darcy()./randi(100,Gf.cells.num,1))*K_frac;
+            (randi(100,Gf.cells.num,1)*darcy./randi(100,Gf.cells.num,1))*K_frac;
     else
-        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy()*K_frac;
+        G.FracGrid.(['Frac',num2str(i)]).rock.perm = ones(Gf.cells.num, 1)*darcy*K_frac;
     end
     if ~isempty(opt.porosity)
         assert(opt.porosity<1 && opt.porosity>0,...

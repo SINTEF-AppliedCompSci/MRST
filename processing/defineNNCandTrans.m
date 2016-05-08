@@ -1,27 +1,32 @@
 function [G,T] = defineNNCandTrans(G,F,fracture)
-% defineNNCandTrans first assembles a global grid 'G' containing both
-% fracture and matrix grid cells. Then fracture-matrix connections and
-% fracture-fracture connections (at intersections) are defined as
-% non-neighboring connections (NNC's). The script also computes
-% transmissibilities for these NNC's using rock properties defined in G.
-% This function calls frac_matrix_nnc, frac_frac_nnc, assembleGlobalGrid
-% and computeTrans internally.
+% defineNNCandTrans identifies fracture-matrix and fracture-fracture
+% connections and computes once transmissibility for each connections.
 %
 % SYNOPSIS:
 %   [G,T] = defineNNCandTrans(G,F,fracture)
+%
+% DESCRIPTION:
+%     defineNNCandTrans first recognizes all fracture-matrix connections
+%     and stores them as non-neighboring connections (NNC's). Then, the
+%     global grid 'G' containing both fracture and matrix grid cells is
+%     assembled. Following that, fracture-fracture connections (at
+%     intersections) are defined as NNC's and added to the global grid. The
+%     script also computes transmissibilities for these NNC's using rock
+%     properties defined in G. This function calls frac_matrix_nnc,
+%     frac_frac_nnc, assembleGlobalGrid and computeTrans internally.
 %
 % REQUIRED PARAMETERS:
 %
 %   G           - Grid data structure containing G.FracGrid (see
 %                 FracTensorGrid2D) with corresponding rock properties and
-%                 G.cells.fracture (see markcells2D and CIcalculator2D)
+%                 G.cells.fracture (see markcells2D and CIcalculator2D).
 %
 %   F, fracture - Output from gridFracture2D.
 %
 % RETURNS:
 %   G - Global grid structure (individual matrix and fracture grids
 %       assembled into 1 grid) with NNC's and relevant information defined
-%       in G.nnc
+%       in G.nnc.
 %
 %   T - Face transmissibilities.
 %
@@ -84,8 +89,9 @@ else pv = G.cells.volumes; end
 w1 = pv(G.nnc.cells(:,1))./G.rock.perm(G.nnc.cells(:,1));
 w2 = pv(G.nnc.cells(:,2))./G.rock.perm(G.nnc.cells(:,2));
 wt = pv(G.nnc.cells(:,1))+pv(G.nnc.cells(:,2));
+% No weighting by PV:
 % w1 = 1./G.rock.perm(G.nnc.cells(:,1));
 % w2 = 1./G.rock.perm(G.nnc.cells(:,2));
 % wt = 1;
-G.nnc.T = G.nnc.CI.*(wt./(w1+w2)); clear wt w1 w2
+G.nnc.T = G.nnc.CI.*(wt./(w1+w2));
 return

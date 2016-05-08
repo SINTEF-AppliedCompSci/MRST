@@ -1,34 +1,9 @@
 function Gl = frac_frac_nnc_extruded(G, Gl, F, fracture, flayers)
-% frac_frac_nnc assigns NNC connections to fracture-fracture intersections
-% and also assigns a transmissibility to each connection using the
-% star-delta transformation. See see SPE-88812-PA, Karimi-Fard et al, 2004.
-%
-% SYNOPSIS:
-%   G = frac_frac_nnc(G,F,fracture)
-%
-% REQUIRED PARAMETERS:
-%
-%   G        - Grid data structure containing G.FracGrid (see
-%              FracTensorGrid2D)
-%
-%   F        - Structure containing information about partitioned fracture
-%              lines as returned by assembleFracNodes2D.
-%
-%   fracture - Fracture structure containing information pertaining to
-%              independant fracture networks, individual fracture lines and
-%              matrix cells with embedded fractures. See getIndepNetwork
-%              and markcells.
-%
-% RETURNS:
-%   G - Grid structure with fracture-fracture intersections and their
-%       transmissibilities added in the cell lists 'G.nnc.cells' and
-%       'G.nnc.T' respectively. To aid in detecting specific NNC types,
-%       these intersections are added as 'star-delta' type in the list
-%       'G.nnc.type'
-%
-% SEE ALSO:
-%   getIndepNetwork, markcells, assembleFracNodes2D, FracTensorGrid2D,
-%   frac_matrix_nnc
+% frac_frac_nnc_extruded assigns NNC connections to fracture-fracture
+% intersections (similar to its 2D counterpart frac_frac_nnc) and also
+% assigns a transmissibility to each connection using the star-delta
+% transformation. See see SPE-88812-PA, Karimi-Fard et al, 2004. The NNC's
+% are first identified in 2D and then extruded to 3D.
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

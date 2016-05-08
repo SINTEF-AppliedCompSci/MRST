@@ -22,8 +22,9 @@ function [CG,CGf] = storeFractureInteractionRegion(CG,CGf,CGm,varargin)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %
-%   levels    - levels of connectivity. In other words, the topological
-%               radius of the support region
+%   levels    - levels of connectivity used to define the support region
+%               for a fracture coarse block. In other words, the
+%               topological radius of the fracture support region.
 %
 %   fullyCoupled - Coupled fracture and matrix basis functions. Allows
 %                  matrix support to extend into fractures. Increases
@@ -41,6 +42,9 @@ function [CG,CGf] = storeFractureInteractionRegion(CG,CGf,CGm,varargin)
 %                      function value of 1 at each coarse node. May improve
 %                      convergence rate in an iterative multiscale
 %                      strategy.
+%
+%   coarseNodeOption - Possible methods for optimizing coarse node location
+%                      inside fractures.
 %
 % RETURNS:
 %   CG - Coarse grid for combined fracture and matrix grid 'G' with basis
@@ -74,10 +78,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opts = struct('levels'          , 8     , ... %max(ceil(0.25/CG.parent.fractureAperture),5)   , ...
+opts = struct('levels'          , 8      , ...
               'excludeBoundary' , true   , ...
               'fullyCoupled'    , true   , ...
-              'removeCenters'   , true   )  ;
+              'removeCenters'   , true   , ...
+              'coarseNodeOption'   , 'useFineCellCentroids')  ;
 
 opts = merge_options(opts, varargin{:});
 G = CG.parent; Gm = G.Matrix; p = CG.partition;
@@ -85,7 +90,7 @@ dof_matrix = CGm.cells.num;
 %
 A = getConnectivityMatrix(getNeighbourship(G, 'Topological'));
 %
-CGf = addCoarseCenterPointsFrac(CGf,'option','useFineCellCentroids','meantype','geometric');
+CGf = addCoarseCenterPointsFrac(CGf,'option',opts.coarseNodeOption);
 CG.cells.centers = [CGm.cells.centers; CGf.cells.centers+G.Matrix.cells.num];
 CG.cells.interaction = cell(CG.cells.num,1);
 CG.cells.interaction(1:dof_matrix,1) = CGm.cells.interaction;

@@ -1,6 +1,6 @@
 function CGm = getRsbGridsMatrix(G, pm, varargin)
-% Computes support regions for the matrix coarse blocks. See
-% storeInteractionRegion.
+% Generates the matrix coarse grid and computes support regions for the
+% matrix coarse blocks. See generateCoarseGrid and storeInteractionRegion.
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

@@ -1,6 +1,7 @@
 function CGf = addCoarseCenterPointsFrac(CGf,varargin)
 % addCoarseCenterPointsFrac adds coarse nodes to the fracture coarse
-% grid CGf.
+% grid CGf. This function can be modified to improve coarse node selection
+% inside fractures.
 %
 % SYNOPSIS:
 %   CGf = addCoarseCenterPointsFrac(CGf)

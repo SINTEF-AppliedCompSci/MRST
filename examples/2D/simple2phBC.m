@@ -1,3 +1,8 @@
+%{
+Simple 2D example modeling two-phase flow in fractured porous media using
+the HFM module.
+%}
+
 close all;
 
 %% Grid and fracture lines
@@ -9,7 +14,7 @@ G = computeGeometry(G);
 
 fl = [ 22    22    77    77; 22    77    77    22];
 
-%% Process fracture lines into grid
+%% Process fracture lines
 
 dispif(mrstVerbose, 'Processing user input...\n\n');
 [G,fracture] = processFracture2D(G,fl);
@@ -29,15 +34,18 @@ clf; plotFractureNodes2D(G,F,fracture); box on
 %% Set rock properties in fracture and matrix
 
 dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
-G.rock.perm = ones(G.cells.num,1)*darcy();
+G.rock.perm = ones(G.cells.num,1)*darcy;
 G.rock.poro = 0.2*ones(G.cells.num, 1);
 K_frac = 10000; % Darcy
 poro_frac = 0.5;
 G = makeRockFrac(G, K_frac, 'permtype','homogeneous','porosity',poro_frac);
 
+%% Define fluid properties
+
 fluid = initSimpleFluid('mu' , [   1,  2] .* centi*poise     , ...
     'rho', [1000, 700] .* kilogram/meter^3, ...
     'n'  , [   2,   2]);
+
 %% Define fracture connections as NNC and compute the transmissibilities
 
 [G,T] = defineNNCandTrans(G,F,fracture);
@@ -45,15 +53,12 @@ fluid = initSimpleFluid('mu' , [   1,  2] .* centi*poise     , ...
 %% Initialize state variables
 
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol (G, 5*barsa());
+state  = initResSol (G, 5*barsa);
 
 % Get A matrix without source
-A = incompTPFA(state, G, T, fluid, 'MatrixOutput', true, 'use_trans',true);
-rhs = A.rhs;
-A = A.A; A(1,1) = A(1,1)/2; % undo magic done in incompTPFA
+[A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true);
 
-
-%% Setup Multiscale Grids
+%% Setup multiscale grids
 
 dispif(mrstVerbose, 'Defining coarse grids and interaction regions...\n\n');
 
@@ -71,9 +76,10 @@ xf = G.faces.centroids(:, 1);
 left = find(abs(xf - min(xf)) < 1e-4);
 right = find(abs(xf - max(xf)) < 1e-4);
 
-bc = addBC(bc, left, 'pressure', 10*barsa(), 'sat', [1 0]);
-bc = addBC(bc, right, 'pressure', 1*barsa(), 'sat', [0 1]);
-%% Incompressible 1-phase FS
+bc = addBC(bc, left, 'pressure', 10*barsa, 'sat', [1 0]);
+bc = addBC(bc, right, 'pressure', 1*barsa, 'sat', [0 1]);
+
+%% Compute initial pressure
 
 W = []; %
 dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
@@ -89,7 +95,7 @@ axis tight; c = colormap(jet);
 c(1,:) = [1 1 1]; colormap(c); colorbar;
 title('Basis functions plotted in the matrix');
 
-%% Compute Multiscale solution
+%% Compute multiscale solution
 
 dispif(mrstVerbose, 'Computing multiscale solution...\n\n');
 [state_ms,~] = incompMultiscale(state, CG, T, fluid, basis_sb,...
@@ -102,34 +108,34 @@ plotToolbar(G, state_fs.pressure)
 colormap jet
 view(90, 90)
 axis tight off
-title('Fine scale')
+title('Initial Pressure: Fine scale')
 
 figure;
 plotToolbar(G, state_ms.pressure)
 colormap jet
 view(90, 90)
 axis tight off
-title('F-MsRSB')
+title('Initial Pressure: F-MsRSB')
 
-%% Incompressible 2ph flow
+%% Incompressible Two-Phase Flow
 
 pv     = poreVolume(G,G.rock);
 nt     = 30;
 t90    = 3*(sum(pv)/sum(state_fs.flux(left)));
 Time   = t90;
 dT     = Time/nt;
-dTplot = Time/3;  % plot only every 1500 days
+dTplot = Time/3;
 N      = fix(Time/dTplot);
 
-state_ms.rhs = rhs;
-t  = 0; plotNo = 1; hfs = 'Fine scale: '; hms = 'F-MsRSB: ';
+state_ms.rhs = q;
+t  = 0; plotNo = 1; hfs = 'Reference Saturation: '; hms = 'F-MsRSB Saturation: ';
 dispif(mrstVerbose, 'Solving Transport...\n\n');
 close all
 figure
 B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);
 while t < Time,
-    state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'bc', bc, 'Trans', T);
+    state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'bc', bc, 'Trans', T, 'verbose', true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'bc', bc, 'Trans', T);
     % Check for inconsistent saturations
     s = [state_fs.s(:,1); state_ms.s(:,1)];
@@ -145,6 +151,7 @@ while t < Time,
     basis_sb = struct('B', B, 'R', R);
     state_ms = incompMultiscale(state_ms, CG, T, fluid, basis_sb,...
         'bc', bc, 'use_trans', true, 'reconstruct', true);
+    %---------------------------------------------------------------------%
     
     % Increase time and continue if we do not want to plot saturations
     t = t + dT;
