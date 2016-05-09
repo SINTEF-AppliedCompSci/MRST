@@ -40,6 +40,9 @@ function l2Err = l2Error3D(G, sol, u, k)
    for details.
 %}
 
+fprintf('Computing L2-error...\n')
+tic;
+
 nK = G.cells.num;
 nF = G.faces.num;
 [m, ~, ~] = retrieveMonomials(3,k);
@@ -149,5 +152,6 @@ for K = 1:nK
     l2Err(K) = sum(vals,1);
         
 end
+fprintf('Done in %f seconds.\n\n', toc);
 
 end

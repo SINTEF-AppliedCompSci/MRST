@@ -67,6 +67,12 @@ hK  = G.cells.diameters(K);
 aK = G.cells.volumes(K);
 nE = 0; nF = 0;
 
+faceNum     = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+faces       = G.cells.faces(faceNum);
+if size(faces,1) == 1;
+    faces = faces';
+end
+
 if k == 2
                                 %   Edge data for cell K.
     edgeNum = G.cells.edgePos(K):G.cells.edgePos(K+1)-1;
@@ -108,8 +114,11 @@ intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
 
 if k == 1
 
-    B(1,:) = 1/NK;      % CHECK!
+%     B(1,:) = 1/nFF;      % CHECK!
+    
+    
     dofVec = nodes';
+    B(1,:) = sum(G.faces.B1int(faces,dofVec),1);
     B(2:nk,:) = G.cells.Bint(intPos, dofVec);
     
     D = m(Xmon);

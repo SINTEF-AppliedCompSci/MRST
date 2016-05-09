@@ -198,7 +198,7 @@ PNstarPos = [0, cumsum(diff(G.faces.nodePos') + diff(G.faces.edgePos')*(k-1) + k
 nq = size(Xq,1);
 
 N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2;
-I = zeros(G.cells.num*6,N);
+% I = zeros(G.cells.num*6,N);
 
 Kc = G.cells.centroids;
 hK = G.cells.diameters;
@@ -211,6 +211,9 @@ neighbors = G.faces.neighbors;
 if k == 2
     [~, grad_m3D, ~] = retrieveMonomials(3,k, 'face', true);
 end
+
+iiB = []; jjB = []; Bint = [];
+iiB1 = []; jjB1 = []; B1int = [];
 
 for F = 1:nF
                         
@@ -296,22 +299,8 @@ for F = 1:nF
                         rldecode(hK(cells),nq*nTri*ones(nK,1),1));
     end
     
-    %   Evaluate integrals.
-    
-    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1); 
-    
-    grad_mVals = bsxfun(@times,grad_mVals,detAw);
-    
-    ii = repmat((1:nq*nTri*nK)',nk,1);
-    jj = 1:nk*nK; jj = reshape(jj,nk,[])';
-    jj = repmat(jj(:)',nq*nTri,1);
-    jj = jj(:);
-    grad_mVals2 = sparse(ii, jj, grad_mVals(:), nq*nTri*nK, nk*nK);
-    
-    int = grad_mVals2'*repmat(mVals, nK,1);
-    
+        
     %   Construct local to global map.
-    
     if k == 1
         dofVec = faceNodes';
     elseif k == 2
@@ -320,17 +309,57 @@ for F = 1:nF
     
     intNum = mcolon(intPos(cells),intPos(cells+1)-1);
     
-    I(intNum, dofVec) = I(intNum, dofVec) + int;
+    %   Evaluate integrals.
+    
+    if k == 1
+        detAw = rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1);
+        int = sum(bsxfun(@times, mVals, detAw),1);
+
+        iiB1 = [iiB1; repmat(F,numel(dofVec),1)];
+        jjB1 = [jjB1; dofVec'];
+        B1int = [B1int; int(:)];
+    end
+        
+    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1);
+    
+    grad_mVals = bsxfun(@times,grad_mVals,detAw);
+    
+    ii = repmat((1:nq*nTri*nK)',nk,1);
+    jj = 1:nk*nK; jj = reshape(jj,nk,[])';
+    jj = repmat(jj(:)',nq*nTri,1);
+    jj = jj(:);
+    grad_mVals = sparse(ii, jj, grad_mVals(:), nq*nTri*nK, nk*nK);
+    
+    int = grad_mVals'*repmat(mVals, nK,1);
+
+    iiB = [iiB; repmat(intNum', numel(dofVec),1)];
+    jj  = repmat(dofVec, numel(intNum), 1);
+    jjB = [jjB; jj(:)];
+    Bint = [Bint; int(:)];
+   
+    
+%     I(intNum, dofVec) = I(intNum, dofVec) + int;
         
 end
 
+B1int = sparse(iiB1, jjB1, B1int, nF, N);
+
+if k == 1
+    nR = 3*G.cells.num;
+elseif k == 2
+    nR = 6*G.cells.num;
+end
+
+Bint = sparse(iiB, jjB, Bint, nR, N);
 BintPos = (0:nk:nk*G.cells.num) + 1;
-G.cells.('Bint')        = I;
+
+G.faces.('B1int')        = B1int;
+G.cells.('Bint')        = Bint;
 G.cells.('BintPos')     = BintPos;
 G.faces.('PNstarT')     = PNstarT;
 G.faces.('PNstarPos')   = PNstarPos;
 G.faces.('localCoords') = T;
-G.faces.('TPos')         = TPos;
+G.faces.('TPos')        = TPos;
 
 
 

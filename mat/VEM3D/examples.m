@@ -3,7 +3,7 @@ clc; clear; close all;
 addpath('../')
 addpath('../../../pebiGridding/voronoi3D/')
 
-ex = 1;
+ex = 4;
 switch ex
     case 1
         %   Specify problem
@@ -26,6 +26,27 @@ switch ex
         n = nx*ny*nz;
         %   Method order
         k = 2;
+    case 3
+        f = @(X) 0*ones(size(X,1),1);
+        gD = @(X) X(:,1) + 100*X(:,3) + X(:,2)/6;
+        neu = false;
+        grid = 'pebi';
+        xMax = 1; yMax = 1; zMax = 1;
+        nx = 5; ny = 5; nz = 5;
+        n = nx*ny*nz;
+        %   Method order
+        k = 1;
+    case 4
+        f = @(X) -4*ones(size(X,1),1);
+        gD = @(X) X(:,1).^2 + X(:,2).*X(:,3)*10 + X(:,3).^2;
+        gN = @(X) 10*X(:,2) + 2*X(:,3);
+        neu = true;
+        grid = 'pebi';
+        xMax = 1; yMax = 1; zMax = 1;
+        nx = 5; ny = 5; nz = 5;
+        n = nx*ny*nz;
+        %   Method order
+        k = 2;
 end
 
 if strcmp(grid, 'cart')
@@ -39,14 +60,14 @@ G = computeVEM3DGeometry(G);
 boundaryFaces = find(any(G.faces.neighbors == 0, 2));
 isNeu = false(numel(boundaryFaces),1);
 if neu
-    isNeu = boundaryFaces(G.faces.centroids(boundaryFaces,1) == 0);
+    isNeu = G.faces.centroids(boundaryFaces,3) == 1;
 else
     gN = 0;
 end
 
 %   Set boundary conditions.
 bc = VEM3D_addBC([], boundaryFaces(~isNeu), 'pressure', gD);
-% bc = VEM3D_addBC([], boundaryFaces(isNeu), 'flux', gN);
+bc = VEM3D_addBC(bc, boundaryFaces(isNeu), 'flux', gN);
 
 [sol, G] = VEM3D(G, f, bc, k, 'cellProjectors', true);
 U = [sol.nodeValues; sol.edgeValues; sol.faceMoments; sol.cellMoments];

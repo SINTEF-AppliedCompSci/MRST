@@ -39,19 +39,18 @@ function [A,b] = VEM3D_bc(G, A, b, bc, k)
 assert(k == 1 | k == 2); 
 
 faces = bc.faces(strcmp(bc.type,'flux'));
+func = bc.func(strcmp(bc.type,'flux'));
 nF = numel(faces);
 if ~isempty(faces)
     [m, ~, ~] = retrieveMonomials(2,k);
-    [Xq, w, ~, vol] = triangleQuadRule(1);
+    [Xq, w, ~, vol] = triangleQuadRule(k+1);
     nq = size(Xq,1);
-    Fc = G.cells.centroids;
-    hF = G.cells.diameters;
 end
     
 for i = 1:nF
     
     F = faces(i);
-    g = bc.func(bc.face2Func(i));
+    g = func{i};
 
     %   Edge data for face F.
 
@@ -76,6 +75,10 @@ for i = 1:nF
         dofVec = [nodes', edges' + G.nodes.num, ...
                                             F + G.nodes.num + G.edges.num];
     end
+    xx = X;
+    
+    T = G.faces.localCoords(G.faces.TPos(F):G.faces.TPos(F+1)-1,:);
+    X = (bsxfun(@minus, X, G.faces.centroids(F,:)))*T;
 
     tri = delaunay(X(1:nN,:));
     nTri = size(tri,1);
@@ -83,22 +86,28 @@ for i = 1:nF
     %   Construct map from refrence triangle to triangles in triangulation.
     
     bA = X(tri(:,1),:);
-    A = X(tri(:,2:end),:) - repmat(bA,2,1);
-    A = A(mcolon(1:nTri,2*nTri,nTri),:);
-    A = mat2cell(A,2*ones(nTri,1),2);
-    detA = cellfun(@(X) abs(det(X)), A);
+    M = X(tri(:,2:end),:) - repmat(bA,2,1);
+    M = M(mcolon(1:nTri,2*nTri,nTri),:);
+    M = mat2cell(M,2*ones(nTri,1),2);
+    detA = cellfun(@(X) abs(det(X)), M);
 
     %   Map quadrature points from reference triangle to triangels.
     
-    Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
+    Xhat = cell2mat(cellfun(@(X) Xq*X, M, 'uniformOutput', false));
     Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
                             
     %   Evaluate functions at quadrature points.
     
-    Xmon = (Xhat - repmat(Fc(K,:),nq*nTri,1))/hF(K);
+    Xmon = Xhat/G.faces.diameters(F);
 
-    PNFstar = G.faces.PNFstarT(G.faces.PNstarPos(F):...
+    PNFstar = G.faces.PNstarT(G.faces.PNstarPos(F):...
                                G.faces.PNstarPos(F+1)-1,:)';
+    Xhat = bsxfun(@plus, Xhat*T', G.faces.centroids(F,:));
+    
+%     plot3(xx(:,1), xx(:,2),xx(:,3), '.');
+%     hold on
+%     plot3(Xhat(:,1), Xhat(:,2), Xhat(:,3), 'o');
+%     
     vals = bsxfun(@times,m(Xmon)*PNFstar,g(Xhat));
     
     %   Multilply by wheights and determinants.
@@ -106,17 +115,18 @@ for i = 1:nF
     detAw = rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1); 
     vals = bsxfun(@times,vals,detAw);
 
-    b(dofVec) = b(dofVec) + sum(vals,1);
+    b(dofVec) = b(dofVec) + sum(vals,1)';
     
 end
 
 faces = bc.faces(strcmp(bc.type, 'pressure'));
+func = bc.func(strcmp(bc.type,'pressure'));
 nF = numel(faces);
 
 for i = 1:nF
     
     F = faces(i);
-    g = bc.func{bc.face2Func(i)};
+    g = func{i};
     
     nodeNum = G.faces.nodePos(F):G.faces.nodePos(F+1)-1;
     nodes   = G.faces.nodes(nodeNum);

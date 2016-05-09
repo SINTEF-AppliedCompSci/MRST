@@ -23,8 +23,7 @@ else
 end
 
 bc.faces     = [bc.faces    ; faces(:) ];
-bc.type      = [bc.type     ; type     ];
-bc.func      = [bc.func     ; g        ];
-bc.face2Func = [bc.face2Func; face2Func];
+bc.type      = [bc.type     , type     ];
+bc.func      = [bc.func     , g        ];
 
 end
