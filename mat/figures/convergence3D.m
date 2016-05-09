@@ -12,7 +12,7 @@ gN = @(X) 2*pi*X(:,1).*X(:,2).*cos(2*pi*X(:,2).*X(:,3));
 
 %%  GRID DIMENSIONS
 
-nVec = [500, 1000, 2000, 4000];
+nVec = [400, 800, 1600, 3200];
 nIt = numel(nVec);
 errVec = zeros(nIt, 3);
 
@@ -44,7 +44,7 @@ for i = 1:nIt
 
     %%  CALUCLATE ERROR
     
-    h = mean(G.cells.diameters);
+    h = max(G.cells.diameters);
     area = sqrt(sum(G.cells.volumes.^2));
     nK = G.cells.num;
 
