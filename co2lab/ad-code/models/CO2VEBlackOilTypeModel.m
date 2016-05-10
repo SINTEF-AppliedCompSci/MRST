@@ -139,9 +139,9 @@ function [state, report] = updateState(model, state, problem, dx, drivingForces)
    sg          = state.s(:,2);
    sg          = min(1, max(0, sg)); %(1-model.fluid.res_water, max(0,sg)); @@
    state.s     = [1-sg, sg];    
-   state.sGmax = min(1,state.sGmax);
-   state.sGmax = max(0,state.sGmax);
-   state.sGmax = max(state.sGmax,sg);
+   %state.sGmax = min(1,state.sGmax);
+   %state.sGmax = max(0,state.sGmax);
+   %state.sGmax = max(state.sGmax,sg);
    
    if isfield(model.fluid, 'dis_rate')
       % The model includes dissolution

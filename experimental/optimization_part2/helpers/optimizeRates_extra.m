@@ -407,7 +407,10 @@ function obj = leak_penalizer_at_infinity(model, wellSols, states, schedule, ...
       sG = state.s(:,2);
       if opt.ComputePartials
          %[p, sG, pBHP, qWs, qGs] = initVariablesADI(p, sG, pBHP, qWs, qGs);%#ok
-         [p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
+         [p, sG, sGmax, qWs, qGs, pBHP] = initVariablesADI(p, sG, sGmax, qWs, qGs, pBHP);%#ok
+         %state0 = states{tSteps(step-1)}
+         %sGmax0 = state0.sGmax;
+         %sGmax = max(sG,sGmax0);
       end
       dt = dts(step);
       injInx = (vertcat(sol.sign) > 0);

@@ -12,8 +12,10 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    f  = model.fluid;
 
    % Extract the current and previous values of all variables to solve for
-   [p, sG, sGmax, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol');
-   [p0, sG0]               = model.getProps(state0, 'pressure', 'sg');
+   %[p, sG, sGmax, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol');
+   %[p0, sG0]               = model.getProps(state0, 'pressure', 'sg');
+   [p, sG, wellSol] = model.getProps(state , 'pressure', 'sg', 'wellsol');
+   [p0, sG0, sGmax0]               = model.getProps(state0, 'pressure', 'sg','sGmax');
 
    % Stack well-related variables of the same type together
    bhp = vertcat(wellSol.bhp);
@@ -26,6 +28,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
          [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
+         sGmax=max(sG,sGmax0);
       else
          zw = zeros(size(bhp)); % dummy
          [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
