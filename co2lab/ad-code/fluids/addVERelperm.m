@@ -5,9 +5,8 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %   function fluid = addVERelperm(fluid, varargin)
 %
 % DESCRIPTION:
-% Add VE-upscaled rel.perm. (and related functions) for a two-phase fluid
-% object.  The two phases are described as oil and gas, but could also be
-% interpreted as water and gas for a CO2 system.
+% Add VE-upscaled relative permeability functions and capillary pressure
+% function for a two-phase fluid object (water and CO2).
 %
 % PARAMETERS:
 %   fluid    - Fluid object to modify
