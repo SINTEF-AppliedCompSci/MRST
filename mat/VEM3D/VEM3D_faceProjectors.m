@@ -114,7 +114,7 @@ edgeNormals = bsxfun(@times, edgeNormals, G.edges.lengths(edges));
 
 if k == 1
     
-    detA = m(Xmon(1:nN,:));
+    D = m(Xmon(1:nN,:));
     
     intB = .5*sum(grad_m(Xmon(2*nN+1:end,:)).*repmat(edgeNormals,2,1),2);
     intB = reshape(intB, nN, 2);
@@ -175,17 +175,17 @@ elseif k == 2
     vec(:,1)   = 1; vec(:, [4,6]) = [-2*aF./G.faces.diameters.^2, -2*aF./G.faces.diameters.^2];
     BT(2*diffVec' + (1:nF),:) = vec;
 
-    detA = zeros(N,6);
+    D = zeros(N,6);
 
-    detA(ii,:) = m(Xmon([1:nN, 2*nN+1:3*nN],:));
-    detA(2*diffVec' + (1:nF),:) = intD;
+    D(ii,:) = m(Xmon([1:nN, 2*nN+1:3*nN],:));
+    D(2*diffVec' + (1:nF),:) = intD;
 
 end
 
 BT = mat2cell(BT,NF, nk);
-detA  = mat2cell(detA,NF,nk);
+D  = mat2cell(D,NF,nk);
 
-PNstarT = cell2mat(cellfun(@(BT,D) BT/(BT'*D)', BT, detA, 'UniformOutput', false));
+PNstarT = cell2mat(cellfun(@(BT,D) BT/(BT'*D)', BT, D, 'UniformOutput', false));
 PNstarPos = [0, cumsum(diff(G.faces.nodePos') + diff(G.faces.edgePos')*(k-1) + k*(k-1)/2)] + 1;
 
 
@@ -194,7 +194,6 @@ PNstarPos = [0, cumsum(diff(G.faces.nodePos') + diff(G.faces.edgePos')*(k-1) + k
 % http://people.sc.fsu.edu/~jburkardt/datasets/quadrature_rules_tri/quadrature_rules_tri.html
 
 [Xq, w, ~, vol] = triangleQuadRule(2*k-1);
-     
 nq = size(Xq,1);
 
 N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2;
@@ -286,7 +285,7 @@ for F = 1:nF
                   
     %   Evaluate monomials at quadrature points.
     
-    mVals = m(XFmon)*PNFstar;
+    PNphi = m(XFmon)*PNFstar;
     
     if k == 1
         grad_mVals = faceNormal;
@@ -313,7 +312,7 @@ for F = 1:nF
     
     if k == 1
         detAw = rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1);
-        int = sum(bsxfun(@times, mVals, detAw),1);
+        int = sum(bsxfun(@times, PNphi, detAw),1);
 
         iiB1 = [iiB1; repmat(F,numel(dofVec),1)];
         jjB1 = [jjB1; dofVec'];
@@ -330,7 +329,7 @@ for F = 1:nF
     jj = jj(:);
     grad_mVals = sparse(ii, jj, grad_mVals(:), nq*nTri*nK, nk*nK);
     
-    int = grad_mVals'*repmat(mVals, nK,1);
+    int = grad_mVals'*repmat(PNphi, nK,1);
 
     iiB = [iiB; repmat(intNum', numel(dofVec),1)];
     jj  = repmat(dofVec, numel(intNum), 1);

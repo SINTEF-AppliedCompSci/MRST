@@ -47,11 +47,6 @@ nK = G.cells.num;
 nF = G.faces.num;
 [m, ~, ~] = retrieveMonomials(3,k);
 
-if k == 2;
-    uFaceMoments = polygonInt3D(G,1:nF,u,7)./G.faces.areas;
-    uCellMoments = polyhedronInt(G,1:nK, u, 7)./G.cells.volumes;
-end
-
 [Xq, w, V, vol] = tetrahedronQuadRule(7);
 nq = size(Xq,1);
 Vdiff = V(1:end-1,:) - V(2:end,:);

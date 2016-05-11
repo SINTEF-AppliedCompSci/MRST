@@ -112,13 +112,25 @@ NK  = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
 B = zeros(nk, NK);
 intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
 
+% m3D = @(X) [ones(size(X,1),1), ...
+%             (X(:,1)-Kc(1))/hK, ...
+%             (X(:,2)-Kc(2))/hK, ...
+%             (X(:,3)-Kc(3))/hK, ...
+%             (X(:,1)-Kc(1)).^2/hK^2, ...
+%             (X(:,1)-Kc(1)).*(X(:,2)-Kc(2))/hK^2, ...
+%             (X(:,1)-Kc(1)).*(X(:,3)-Kc(3))/hK^2, ...
+%             (X(:,2)-Kc(2)).^2/hK^2, ...
+%             (X(:,2)-Kc(2)).*(X(:,3)-Kc(3))/hK^2, ...
+%             (X(:,3)-Kc(3)).^2/hK^2];
+    
+% cellIntegrals = polyhedronInt(G, K, m3D, 2);
+
 if k == 1
 
 %     B(1,:) = 1/nFF;      % CHECK!
     
-    
     dofVec = nodes';
-    B(1,:) = sum(G.faces.B1int(faces,dofVec),1);
+    B(1,:) = sum(G.faces.B1int(faces,dofVec),1)/sum(G.faces.areas(faces));
     B(2:nk,:) = G.cells.Bint(intPos, dofVec);
     
     D = m(Xmon);
@@ -161,7 +173,6 @@ elseif k == 2
          bsxfun(@rdivide, faceIntegrals, faceAreas) ; ...
          cellIntegrals/aK                          ];
 
-
     H = [cellIntegrals([1,2,3,4])  ; ...
          cellIntegrals([2,5,6,7])  ; ...
          cellIntegrals([3,6,8,9])  ; ...
@@ -182,7 +193,7 @@ elseif k == 2
               K + G.nodes.num + G.edges.num + G.faces.num];
 
 end
-     
+
 %%  LOCAL STIFFNESS MATRIX                                               %%
  
 M = B*D;
@@ -190,12 +201,105 @@ PNstar = M\B;
 PN = D*PNstar;
 
 Mtilde = [zeros(1,nk); M(2:nk,:)];
-% Q = orth(eye(NK)-PN);
-% sigma = diag(sigma,0);
-% AK = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
-AK = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
+Q = orth(eye(NK)-PN);
+sigma = diag(sigma,0);
+AK = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
+% AK = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
+
+% if k == 2
+%     PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
+% elseif k == 1
+%     PNstar0 = PNstar;
+% end
+
+% PNstar0 = (B(1:nkk,:)*D(:,1:nkk))\B(1:nkk,:);
+
+% norm(PNstar0-PNstar01, 'fro')
+% H = [cellIntegrals([1,2,3,4])  ; ...
+%      cellIntegrals([2,5,6,7])  ; ...
+%      cellIntegrals([3,6,8,9])  ; ...
+%      cellIntegrals([4,7,9,10])];  
 
 PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
+
 bK = PNstar0'*H*PNstar0*fHat + rateVec;
+
+% PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
+% if k == 1
+%     Pf = polyhedronInt(G,K,f,7)/aK;
+%     bK = PNstar0'*H*Pf + rateVec;
+% elseif k == 2
+%     bK = PNstar0'*H*PNstar0*fHat + rateVec;
+% end
+% elseif k == 1
+%     
+%     [Xq, w, V, vol] = tetrahedronQuadRule(7);
+%     
+%     Vdiff = V(1:end-1,:) - V(2:end,:);
+%     nq = size(Xq,1);
+%     
+%     m = retrieveMonomials(3,k);
+%     tri = delaunay(X);
+%     nTri = size(tri,1);
+%     
+%     X = X(reshape(tri',[],1),:);
+%     ii = mcolon(1:4:4*nTri, 3:4:4*nTri);
+%     Xdiff = X(ii,:) - X(ii+1,:);
+% 
+%     ii = repmat((1:3)',3*nTri,1);
+%     add = repmat((0:1:nTri-1)*3,9,1);
+%     ii = ii + add(:);
+%     jj = repmat((1:3), 3, 1);
+%     jj = repmat(jj(:), nTri,1);
+%     jj = jj(:) + add(:);
+%     Vd = sparse(ii,jj,repmat(Vdiff(:),nTri,1), 3*nTri, 3*nTri);
+%     Xdiff = Xdiff';
+%     Xd = sparse(jj,ii,Xdiff(:), 3*nTri, 3*nTri);
+%     
+%     A = Vd\Xd;
+% 
+%     Xb = reshape(X(1:4:end,:)',1,[]);
+% 
+%     b = Xb - repmat(V(1,:),1,nTri)*A;
+% 
+%     [n,~] = size(A);
+%     
+%     main = ones(n,1);
+%     sub1 = main;
+%     sub1(3:3:end) = 0;
+%     sub2 = zeros(n,1);
+%     sub2(1:3:end) = 1;
+%     Id = spdiags([sub2, sub1, main,sub1(end:-1:1),sub2(end:-1:1)], -2:1:2, n,n);
+% 
+%     Ad = full(A(Id == 1));
+%     Ad = reshape(Ad,3,3,[]);
+%     D = squeeze(Ad(1,1,:).*Ad(2,2,:).*Ad(3,3,:) + ...
+%                 Ad(2,1,:).*Ad(3,2,:).*Ad(1,3,:) + ...
+%                 Ad(3,1,:).*Ad(1,2,:).*Ad(2,3,:) - ...
+%                 Ad(3,1,:).*Ad(2,2,:).*Ad(1,3,:) - ...
+%                 Ad(2,1,:).*Ad(1,2,:).*Ad(3,3,:) - ...
+%                 Ad(1,1,:).*Ad(3,2,:).*Ad(2,3,:));
+%     D = abs(D);
+%     
+%     XhatTmp = bsxfun(@plus, repmat(Xq, 1, nTri)*A, b);
+%     Xhat = zeros(nq*nTri,3);
+%     Xhat(:,1) = reshape(XhatTmp(:,1:3:3*nTri),[],1);
+%     Xhat(:,2) = reshape(XhatTmp(:,2:3:3*nTri),[],1);
+%     Xhat(:,3) = reshape(XhatTmp(:,3:3:3*nTri),[],1);
+%     
+%     Xmon = bsxfun(@minus, Xhat,Kc)/hK;
+%     PNphi = m(Xmon)*PNstar;
+%     
+%     bK = (vol*repmat(w,1,nTri).*rldecode(D,nq*ones(nTri,1),1)'*bsxfun(@times,PNphi,f(Xhat)))';
+% end
+        
+% % 
+% g = @(X) X(:,1).^5 + X(:,3).*X(:,2);
+% PNgInt = aK*PNstar0*g(X);
+% gInt = polyhedronInt(G,K,g,7);
+% if abs(PNgInt-gInt) > 10e-10
+%     a = abs(PNgInt-gInt)/gInt
+%     sum(PNstar0)
+% end
 
 end

@@ -6,7 +6,7 @@ function hK = cellDiameter(X)
 %       hK = cellDiameter(X)
 %
 %   REQUIRED PARAMETERS:
-%       X   - n x 2 matrix of points.
+%       X   - n x d matrix of points, where X are points in R^d.
 %
 %   RETURNS:
 %       hK  - Cell diameter

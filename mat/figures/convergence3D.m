@@ -6,17 +6,42 @@ addpath('../')
 
 %%  PROBELM
 
-f  = @(X) 4*pi^2*X(:,1).*sin(2*pi*X(:,2).*X(:,3)).*(X(:,2).^2 + X(:,3).^2);
-gD = @(X) X(:,1).*sin(2*pi*X(:,2).*X(:,3));
-gN = @(X) 2*pi*X(:,1).*X(:,2).*cos(2*pi*X(:,2).*X(:,3));
+% % not ok
+% f  = @(X) 4*pi^2*X(:,1).*sin(2*pi*X(:,3));
+% gD = @(X) X(:,1).*sin(2*pi*X(:,3));
+% gN = @(X) 2*pi*X(:,1).*cos(2*pi*X(:,3));
+
+% % ok
+% f  =      0;
+% gD = @(X) X(:,1).^2- X(:,3).^2;
+% gN = @(X) -2*X(:,3);
+
+% % ok
+% f  = @(X) -30*X(:,3).^4;
+% gD = @(X) X(:,3).^6;
+% gN = @(X) 6*X(:,3).^5;
+
+% % semi ok
+% f  = @(X) -X(:,1).*exp(X(:,2).*X(:,3)).*(X(:,2).^2+X(:,3).^2);
+% gD = @(X) X(:,1).*exp(X(:,2).*X(:,3));
+% gN = @(X) X(:,1).*X(:,2).*exp(X(:,2));
+
+% semi ok
+f  = @(X) -X(:,2).*exp( X(:,3) ).*( X(:,1).^2 + 2 );
+gD = @(X) X(:,1).^2.*X(:,2).*exp( X(:,3) );
+gN = @(X) X(:,1).^2.*X(:,2);
+
 
 %%  GRID DIMENSIONS
 
-nVec = [400, 800, 1600, 3200];
+% nVec = [400, 800, 1600, 3200].^(1/3);
+nVec = [5,6,8,10];
 nIt = numel(nVec);
 errVec = zeros(nIt, 3);
-
+err2 = zeros(nIt,1);
 azel = [150,30];
+
+dest = './conv3D/';
 
 for i = 1:nIt
 
@@ -25,7 +50,7 @@ for i = 1:nIt
     fprintf('Generating grid ...\n')
     tic;
     n = nVec(i);
-    G = voronoiCube(n,[1,1,1]);
+    G = voronoiCubeRegular([n,n,n],[1,1,1],.5);
     fprintf('Done in %f seconds.\n\n', toc);
     
     G = computeVEM3DGeometry(G);
@@ -38,19 +63,15 @@ for i = 1:nIt
     bc = VEM3D_addBC([], boundaryEdges(~isNeu), 'pressure', gD);
     bc = VEM3D_addBC(bc, boundaryEdges(isNeu) , 'flux'    , gN);
 
-    %%  SOLVE
-    
+%     bc = VEM3D_addBC([], boundaryEdges, 'pressure', gD);
 
-
-    %%  CALUCLATE ERROR
+    %%  GRID DATA
     
     h = max(G.cells.diameters);
     area = sqrt(sum(G.cells.volumes.^2));
     nK = G.cells.num;
 
-
-    
-    %%  PLOT GRID AND SOLUTIONS
+    %%  CALCULATE SOLUTIONS, PLOT GRID AND SOLUTIONS
 
     Kc = G.cells.centroids;
     cells = 1:G.cells.num;
@@ -80,22 +101,16 @@ for i = 1:nIt
     xlabel('$x$'); ylabel('$y$');
     view(azel)
     axis equal off;
-    
-    cut = 4;
-    ps = get(gridFig, 'Position');
-    ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
-    paperWidth = 10;
-    paperHeight = paperWidth*ratio - cut;
-    set(gridFig, 'paperunits', 'centimeters');
-    set(gridFig, 'papersize', [paperWidth paperHeight]);
-    set(gridFig, 'PaperPosition', [0    0   paperWidth paperHeight]);
+
     fileName = strcat('../../tex/thesis/fig/Grid3D_', num2str(i));
-    print(gridFig, '-dpdf', fileName);
+    savePdf(gridFig, fileName);
+    clear gridFig;
     
     %   1st order solution
     
     [sVEM1, G] = VEM3D(G,f,bc,1,'cellProjectors', true);
     l2Err1 = l2Error3D(G, sVEM1, gD, 1);
+    err2(i) = h^(3/2)*norm(sVEM1.nodeValues-gD(G.nodes.coords),2);
     
     
     if i == 1 || i == nIt
@@ -114,16 +129,9 @@ for i = 1:nIt
         xlabel('$x$'); ylabel('$y$'); zlabel('$z$');
         colorbar
 
-        cut = 4;
-        ps = get(sol1Fig, 'Position');
-        ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
-        paperWidth = 10;
-        paperHeight = paperWidth*ratio - cut;
-        set(sol1Fig, 'paperunits', 'centimeters');
-        set(sol1Fig, 'papersize', [paperWidth paperHeight]);
-        set(sol1Fig, 'PaperPosition', [0    0   paperWidth paperHeight]);
         fileName = strcat('../../tex/thesis/fig/Sol3D1_', num2str(i));
-        print(sol1Fig, '-dpdf', fileName);
+        savePdf(sol1Fig, fileName);
+        clear sol1Fig;
 
     end
     
@@ -149,24 +157,19 @@ for i = 1:nIt
         axis equal
         colorbar;
 
-        cut = 4;
-        ps = get(sol2Fig, 'Position');
-        ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
-        paperWidth = 10;
-        paperHeight = paperWidth*ratio - cut;
-        set(sol2Fig, 'paperunits', 'centimeters');
-        set(sol2Fig, 'papersize', [paperWidth paperHeight]);
-        set(sol2Fig, 'PaperPosition', [0    0   paperWidth paperHeight]);
         fileName = strcat('../../tex/thesis/fig/Sol3D2_', num2str(i));
-        print(sol2Fig, '-dpdf', fileName);
+        savePdf(sol2Fig, fileName);
+        clear sol2Fig;
 
     end
     
     clear sVEM2;
     
+
+    
     errVec(i,:) = [h, sqrt(sum(l2Err1)), sqrt(sum(l2Err2))];
 
-    clear gridFig sol1Fig sol2Fig G l2Err1 l2Err2 isNeu cells boundaryEdges faceNum faces outerFaces remCells;
+    clear G l2Err1 l2Err2 isNeu cells boundaryEdges faceNum faces outerFaces remCells;
     close all;
     
 end
@@ -189,16 +192,19 @@ axis equal;
 
 %%
 
+fileName = strcat('../../tex/thesis/fig/Conv3D1');
+% savePdf(conv1Fig, fileName);
 cut = 4;
-ps = get(conv1Fig, 'Position');
+h = conv1Fig;
+ps = get(h, 'Position');
 ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
 paperWidth = 10;
 paperHeight = paperWidth*ratio - cut;
-set(conv1Fig, 'paperunits', 'centimeters');
-set(conv1Fig, 'papersize', [paperWidth paperHeight]);
-set(conv1Fig, 'PaperPosition', [0    0   paperWidth paperHeight]);
-fileName = strcat('../../tex/thesis/fig/Conv3D1');
-print(conv1Fig, '-dpdf', fileName);
+set(h, 'paperunits', 'centimeters');
+set(h, 'papersize', [paperWidth paperHeight]);
+set(h, 'PaperPosition', [0    0   paperWidth paperHeight]);
+
+print(h, '-dpdf', fileName);
 
 %%
 
@@ -217,13 +223,17 @@ xlabel('$\log(h)$'); ylabel('$\log\left(\left\|u-\Pi^\nabla u_h\right\|_{0,\Omeg
 axis equal
 
 %%
+
+fileName = strcat('../../tex/thesis/fig/Conv3D2');
+% savePdf(conv2Fig, fileName, 'cut', 0);
+h = conv2Fig;
 cut = 4;
-ps = get(conv2Fig, 'Position');
+ps = get(h, 'Position');
 ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
 paperWidth = 10;
 paperHeight = paperWidth*ratio - cut;
-set(conv2Fig, 'paperunits', 'centimeters');
-set(conv2Fig, 'papersize', [paperWidth paperHeight]);
-set(conv2Fig, 'PaperPosition', [0    0   paperWidth paperHeight]);
-fileName = strcat('../../tex/thesis/fig/Conv3D2');
-print(conv2Fig, '-dpdf', fileName);
+set(h, 'paperunits', 'centimeters');
+set(h, 'papersize', [paperWidth paperHeight]);
+set(h, 'PaperPosition', [0    0   paperWidth paperHeight]);
+
+print(h, '-dpdf', fileName);

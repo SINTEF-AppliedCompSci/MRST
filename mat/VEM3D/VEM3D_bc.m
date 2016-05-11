@@ -66,21 +66,21 @@ for i = 1:nF
     nodes(G.faces.edgeSign(edgeNum) == -1,:) ...
             = nodes(G.faces.edgeSign(edgeNum) == -1,2:-1:1);
     nodes   = nodes(:,1);
-    
+    X = [G.nodes.coords(nodes,:); G.faces.centroids(F,:)];
+            
     if k == 1
-        X = G.nodes.coords(nodes,:);
         dofVec = nodes';
     elseif k == 2
-        X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
+%         X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
         dofVec = [nodes', edges' + G.nodes.num, ...
                                             F + G.nodes.num + G.edges.num];
     end
-    xx = X;
+%     xx = X;
     
     T = G.faces.localCoords(G.faces.TPos(F):G.faces.TPos(F+1)-1,:);
     X = (bsxfun(@minus, X, G.faces.centroids(F,:)))*T;
 
-    tri = delaunay(X(1:nN,:));
+    tri = delaunay(X);
     nTri = size(tri,1);
     
     %   Construct map from refrence triangle to triangles in triangulation.
@@ -109,7 +109,9 @@ for i = 1:nF
 %     plot3(Xhat(:,1), Xhat(:,2), Xhat(:,3), 'o');
 %     
     vals = bsxfun(@times,m(Xmon)*PNFstar,g(Xhat));
-    
+    %     bc = VEM3D_addBC([], boundaryEdges(~isNeu), 'pressure', gD);
+%     bc = VEM3D_addBC(bc, boundaryEdges(isNeu) , 'flux'    , gN);
+
     %   Multilply by wheights and determinants.
     
     detAw = rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1); 

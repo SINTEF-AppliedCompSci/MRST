@@ -3,7 +3,7 @@ clc; clear; close all;
 addpath('../')
 addpath('../../../pebiGridding/voronoi3D/')
 
-ex = 4;
+ex = 5;
 switch ex
     case 1
         %   Specify problem
@@ -46,7 +46,19 @@ switch ex
         nx = 5; ny = 5; nz = 5;
         n = nx*ny*nz;
         %   Method order
-        k = 2;
+        k = 1;
+    case 5
+        f = @(X) 0*ones(size(X,1),1);
+        gD = @(X) 10*X(:,1) + X(:,3)/8;
+        gN = @(X) ones(size(X,1),1)/8;
+        neu = true;
+        grid = 'pebi';
+        xMax = 1; yMax = 1; zMax = 1;
+        nx = 5; ny = 5; nz = 5;
+        n = nx*ny*nz;
+        %   Method order
+        k = 1;
+        
 end
 
 if strcmp(grid, 'cart')
@@ -106,5 +118,3 @@ l2Err = l2Error3D(G, sol, gD ,k);
 
 fprintf('2-norm error: %d\n', norm(err, 2));
 fprintf('L^2-norm error: %d\n\n', sqrt(sum(l2Err.^2)));
-figure()
-plot(err);
