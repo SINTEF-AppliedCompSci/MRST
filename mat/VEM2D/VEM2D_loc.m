@@ -1,5 +1,5 @@
 function [AK, bK, dofVec, PNstar] ...
-            = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigma, rate, mu, rho)
+ = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigma, cartGridQ, rate, mu, rho)
 %--------------------------------------------------------------------------
 %   Calculates local stiffness matrix and load term for the virtual element
 %   method for the 2D Poisson equation.
@@ -164,7 +164,15 @@ M = B*D;
 PNstar = M\B;
 PN = D*PNstar;
 Mtilde = [zeros(1,nk) ; M(2:nk,:)];
-Q = orth(eye(NK) - PN);
+
+if cartGridQ
+    hx = abs(max(X(:,1))-min(X(:,1)));
+    hy = abs(max(X(:,2))-min(X(:,2)));
+    Q = sqrt(9/(4*hx*hy))*[-1,1,-1,1]';
+else
+    Q = orth(eye(NK) - PN);
+end
+
 sigma = diag(sigma,0);
 AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
 

@@ -120,19 +120,21 @@ end
 
 %%  PLOT CONVERGENCE RATES
 
-%   1st order convergence
+%%   1st order convergence
 
 conv1Fig = figure;
 set(conv1Fig,'DefaultTextInterpreter', 'LaTex');
 loglog(errVec(:,1), errVec(:,2), '-s');
 hold on
-loglog(errVec(:,1),(errVec(:,1)./errVec(end,1)).^2*errVec(end,2)*.8)
+loglog(errVec(:,1),(errVec(:,1)./errVec(end,1)).^2*errVec(end,2)*.7)
 p1 = polyfit(log(errVec(:,1)), log(errVec(:,2)),1);
 lStr = strcat('Slope = ', num2str(p1(1), '%.3f'));
 h = legend(lStr, 'Slope =2.0');
 set(h,'Interpreter','latex');
-xlabel('$\log(h)$'); ylabel('$\log\left(\left\|u-\Pi^\nabla u_h\right\|_{0,\Omega}\right)$');
-axis equal;
+xlabel('$h$'); ylabel('$\left\|u-\Pi^\nabla u_h\right\|_{0,\Omega}$');
+axis([errVec(end,1)*.6, errVec(1,1)*1.4 errVec(end,2)*.2 errVec(1,2)*10])
+
+%%
 
 cut = 4;
 ps = get(conv1Fig, 'Position');
@@ -145,7 +147,7 @@ set(conv1Fig, 'PaperPosition', [0    0   paperWidth paperHeight]);
 fileName = strcat('../../tex/thesis/fig/Conv1');
 print(conv1Fig, '-dpdf', fileName);
 
-%   2nd order convergence
+%%   2nd order convergence
 
 conv2Fig = figure;
 set(conv2Fig,'DefaultTextInterpreter', 'LaTex');
@@ -156,9 +158,10 @@ p2 = polyfit(log(errVec(:,1)), log(errVec(:,3)),1);
 lStr = strcat('Slope =', num2str(p2(1), '%.3f'));
 h = legend(lStr, 'Slope =3.0');
 set(h,'Interpreter','latex');
-xlabel('$\log(h)$'); ylabel('$\log\left(\left\|u-\Pi^\nabla u_h\right\|_{0,\Omega}\right)$');
-axis equal
+xlabel('$h$'); ylabel('$\left\|u-\Pi^\nabla u_h\right\|_{0,\Omega}$');
+axis([errVec(end,1)*.6, errVec(1,1)*1.4 errVec(end,3)*.05 errVec(1,3)*50])
 
+%%
 cut = 4;
 ps = get(conv2Fig, 'Position');
 ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));

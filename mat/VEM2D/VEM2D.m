@@ -1,4 +1,4 @@
-function [sol, varargout] = VEM2D(G, f, k, bc, varargin)
+function [sol, varargout] = VEM2D(G, f, bc, k, varargin)
 %--------------------------------------------------------------------------
 %   Solves the 2D Poisson equation using a kth order virtual element
 %   method.
@@ -31,6 +31,9 @@ function [sol, varargout] = VEM2D(G, f, k, bc, varargin)
 %       sigma        - G.cells.num x nker matrix of constants for scaling
 %                      of the local load terms.
 %                      nker = \dim \ker \Pi^\nabla. See [1] for detail.
+%       cartGridQ    - If ture, and G is a cartesian grid, the matrices Q
+%                      in the stability term are set to the degrees of
+%                      freedom of \sqrt(9/(4 h_x h_y) xy. See [1].
 %       src          - Source term struct constructed using addSource.
 %       fluid        - Single phase fluid struct constructed using
 %                      initSingleFluid.
@@ -87,6 +90,7 @@ NK   = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
 nker = sum(NK - nk);
 
 opt = struct('sigma'       , 1         , ...
+             'cartGridQ'   , false     , ...
              'src'         , []        , ...
              'fluid'       , []        , ...
              'projectors'  , false     , ...
@@ -94,6 +98,7 @@ opt = struct('sigma'       , 1         , ...
 opt = merge_options(opt, varargin{:});
 
 sigma        = opt.sigma;
+cartGridQ    = opt.cartGridQ;
 src          = opt.src;
 fluid        = opt.fluid;
 projectors   = opt.projectors;
@@ -129,7 +134,8 @@ end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, projectors, src, mu, rho);
+[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, ...
+                                                             src, mu, rho);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 

@@ -1,5 +1,5 @@
 function [A, b, PNstarT] ...
-                 = VEM2D_glob(G, f, k, bc, sigma, projectors, src, mu, rho)
+       = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src, mu, rho)
 %--------------------------------------------------------------------------
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 2D Poisson equation.
@@ -115,7 +115,8 @@ for K = 1:nK
     end
     
     [AK, bK, dofVec, PNstar] ...
-       = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigmaK, rate(K), mu, rho);
+     = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigmaK, cartGridQ, ...
+                                                         rate(K), mu, rho);
 
     NK = numel(dofVec);
     

@@ -1,5 +1,5 @@
 function [AK, bK, dofVec, PNstar] ...
-        = VEM3D_loc(G, K, f, k, m, sigma, rate, mu, rho)
+                           = VEM3D_loc(G, K, f, k, m, sigma, rate, mu, rho)
 %--------------------------------------------------------------------------
 %   Calculates local stiffness matrix and load term for the virtual element
 %   method for the 2D Poisson equation.
@@ -201,24 +201,11 @@ PNstar = M\B;
 PN = D*PNstar;
 
 Mtilde = [zeros(1,nk); M(2:nk,:)];
+
 Q = orth(eye(NK)-PN);
+
 sigma = diag(sigma,0);
 AK = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
-% AK = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*(eye(NK)-PN);
-
-% if k == 2
-%     PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
-% elseif k == 1
-%     PNstar0 = PNstar;
-% end
-
-% PNstar0 = (B(1:nkk,:)*D(:,1:nkk))\B(1:nkk,:);
-
-% norm(PNstar0-PNstar01, 'fro')
-% H = [cellIntegrals([1,2,3,4])  ; ...
-%      cellIntegrals([2,5,6,7])  ; ...
-%      cellIntegrals([3,6,8,9])  ; ...
-%      cellIntegrals([4,7,9,10])];  
 
 PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
 
