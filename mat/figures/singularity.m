@@ -1,6 +1,7 @@
 clc; clear; close all;
 
 mrstModule add mimetic
+mrstModule add mpfa
 addpath('../VEM2D/')
 addpath('../../../pebiGridding/voronoi2D/')
 
@@ -16,7 +17,7 @@ C = [xMax/2, yMax/2];
 m = 5;
 wellLine = {C};                % Set source center
 
-gT = 6;
+gT = 4;
 
 switch gT
     case 1
@@ -47,7 +48,7 @@ switch gT
 
     case 3
         
-        gridSize = xMax/15;
+        gridSize = xMax/10;
         wellGridSize = 0.7/2^2;
         epsilon = gridSize*.7;
         G = pebiGrid(gridSize, [xMax, yMax], 'wellLines', wellLine,   ...
@@ -60,7 +61,7 @@ switch gT
 
     case 4
 
-        gridSize = xMax/15;
+        gridSize = xMax/10;
         wellGridSize = 0.7/2^2;
         epsilon = gridSize*.7;
         G = pebiGrid(gridSize, [xMax, yMax], 'wellLines', wellLine,   ...
@@ -153,24 +154,41 @@ TPFAVals = sTPFA.pressure(lineCells) -10;
 MPFAVals = sMPFA.pressure(lineCells) -10;
 MIMVals = sMIM.pressure(lineCells)   -10;
 
-xL = xMax/2:.001:xMax;
+xL = xMax/2:.001:2*xMax;
 yL = yMax/xMax*xL;
 XL = [xL', yL'];
 rL = sqrt(sum(bsxfun(@minus, XL, C).^2,2));
 
-figure;
+% figure;
+% plot(rL,gD(XL)-10)
+% set(gcf, 'DefaultTextInterpreter', 'Latex')
+% hold on
+% plot(rC, TPFAVals, '+', rC, MPFAVals, 'd', rC, MIMVals, 'o', rC, VEM1Vals, '.', rC, VEM2Vals, 'sq');
+% h = legend('Exact solution', 'TPFA', 'MPFA', 'MFD', '1st order VEM', '2nd order VEM');
+% set(h, 'interpreter', 'latex');
+% xlabel('$r$'); ylabel('$p$')
+% % set(gca, 'XTick', 0:.1:.7)
+% yValMin = min([TPFAVals; MPFAVals; MIMVals; VEM1Vals; VEM2Vals]);
+% yValMax = max([TPFAVals; MPFAVals; MIMVals; VEM1Vals; VEM2Vals]);
+% yLim = yValMax-yValMin;
+% axis([-.1, max(rL), yValMin-yLim*.1, yValMax+yLim*.1]);
+
+%%
+
+r = sqrt(sum(bsxfun(@minus,G.cells.centroids,C).^2,2));
 plot(rL,gD(XL)-10)
 set(gcf, 'DefaultTextInterpreter', 'Latex')
 hold on
-plot(rC, TPFAVals, '+', rC, MPFAVals, 'd', rC, MIMVals, 'o', rC, VEM1Vals, '.', rC, VEM2Vals, 'sq');
+plot(r, sTPFA.pressure-10,'.',r, sMPFA.pressure-10, '.',r, sMIM.pressure-10, '.',r, sVEM1.cellMoments-10, '.',r, sVEM2.cellMoments-10, '.')
+yValMin = min([sTPFA.pressure; sMPFA.pressure; sMIM.pressure; sVEM1.cellMoments; sVEM2.cellMoments]-10);
+yValMax = max([sTPFA.pressure; sMPFA.pressure; sMIM.pressure; sVEM1.cellMoments; sVEM2.cellMoments]-10);
+yLim = yValMax-yValMin;
+xLim = max(r)-min(r);
+axis([min(r)-xLim*.1, max(r)+xLim*.1, yValMin-yLim*.1, yValMax+yLim*.1]);
+
 h = legend('Exact solution', 'TPFA', 'MPFA', 'MFD', '1st order VEM', '2nd order VEM');
 set(h, 'interpreter', 'latex');
 xlabel('$r$'); ylabel('$p$')
-% set(gca, 'XTick', 0:.1:.7)
-yValMin = min([TPFAVals; MPFAVals; MIMVals; VEM1Vals; VEM2Vals]);
-yValMax = max([TPFAVals; MPFAVals; MIMVals; VEM1Vals; VEM2Vals]);
-yLim = yValMax-yValMin;
-axis([-.1, max(rL), yValMin-yLim*.1, yValMax+yLim*.1]);
 
 savePdf(gcf, strcat(dest, 'PointSourceComp', num2str(m), '.pdf'));
 
@@ -179,10 +197,10 @@ savePdf(gcf, strcat(dest, 'PointSourceComp', num2str(m), '.pdf'));
 figure;
 plotGrid(G, 'faceAlpha', .2);
 set(gcf, 'DefaultTextInterpreter', 'Latex')
-hold on
-% XL = repmat((xMax/2:.001:xMax)',1,2);
-plot(XL(:,1),XL(:,2),'linewidth', 1);
-h1 = plot(XC(:,1), XC(:,2), '.r');
+% hold on
+% % XL = repmat((xMax/2:.001:xMax)',1,2);
+% plot(XL(:,1),XL(:,2),'linewidth', 1);
+% h1 = plot(XC(:,1), XC(:,2), '.r');
 xlabel('$x$'); ylabel('$y$')
 set(gca, 'XTick', 0:xMax/2:xMax)
 set(gca, 'YTick', 0:yMax/2:yMax)
