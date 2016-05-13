@@ -2,7 +2,8 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
 
    opt = struct('reverseMode', false, ...
                 'resOnly', false, ...
-                'iteration', -1);
+                'iteration', -1,...
+                'adjointForm',false);
 
    opt = merge_options(opt, varargin{:});
 
@@ -12,9 +13,12 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    f  = model.fluid;
 
    % Extract the current and previous values of all variables to solve for
-   %[p, sG, sGmax, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol');
-   %[p0, sG0]               = model.getProps(state0, 'pressure', 'sg');
-   [p, sG, wellSol] = model.getProps(state , 'pressure', 'sg', 'wellsol');
+   if(opt.adjointForm)
+    % use sGmax as primary variable
+    [p, sG, sGmax, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol');
+   else
+    [p, sG, wellSol] = model.getProps(state , 'pressure', 'sg', 'wellsol');
+   end
    [p0, sG0, sGmax0]               = model.getProps(state0, 'pressure', 'sg','sGmax');
 
    % Stack well-related variables of the same type together
@@ -27,11 +31,20 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    if ~opt.resOnly
       % ADI variables needed since we are not only computing residuals
       if ~opt.reverseMode
-         [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
-         sGmax=max(sG,sGmax0);
+         if(opt.adjointForm)
+             [p, sG, sGmax, qWs, qGs, bhp] = initVariablesADI(p, sG, sGmax, qWs, qGs, bhp);
+         else
+            [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
+            sGmax=max(sG,sGmax0);
+         end
       else
-         zw = zeros(size(bhp)); % dummy
-         [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
+          zw = zeros(size(bhp));
+         if(opt.adjointForm)
+            [p0, sG0, sGmax0, ~, ~, ~] = initVariablesADI(p0, sG0, sGmax0, zw, zw, zw);
+         else
+             warning('using non adjoint form for backward simulation: Hysteresis may be not properly handled')
+            [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
+         end
       end
    end
 
@@ -86,6 +99,14 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
    eqs = addFluxesFromSourcesAndBC(model, ...
            eqs, {pW, pG}, {rhoW, rhoG}, {mobW, mobG}, {bW, bG}, {sW, sG}, drivingForces);
 
+   if(opt.adjointForm)
+       eqs{3}=sGmax-max(sG,sGmax0);
+       eqshift=1;
+   else
+       eqshift=0;
+   end
+       
+       
 
    %% Setting up well equations
    if ~isempty(W)
@@ -105,11 +126,11 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
                                 'nonlinearIteration', opt.iteration);
          % Store the separate well equations (relate well bottom hole
          % pressures to influx)
-         eqs(3:4) = weqs;
+         eqs([3:4]+eqshift) = weqs;%#ok
 
          % Store the control equations (ensuring that each well has values
          % corresponding to the prescribed value)
-         eqs{5} = ctrleqs;
+         eqs{5+eqshift} = ctrleqs;
 
          % Add source term to equations.  Negative sign may be surprising if
          % one is used to source terms on the right hand side, but this is
@@ -118,22 +139,38 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
          eqs{2}(wc) = eqs{2}(wc) - cqs{2};
 
       else
-         [eqs(3:5), names(3:5), types(3:5)] = ...
+         [eqs([3:5]+eqshift), names([3:5]+eqshift), types([3:5]+eqshift)] = ...
              wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
       end
    else
-      eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
+      eqs([3:5]+eqshift) = {bhp, bhp, bhp}; %#ok empty ADIs
    end
 
 
    %% Setting up problem
-   primaryVars = {'pressure' , 'sG'   , 'qWs'      , 'qGs', 'bhp'};
-   types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well'};
-   names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells'};
+   % original
+   %primaryVars = {'pressure' , 'sG'  , 'qWs'      , 'qGs', 'bhp'};
+   %types = {'cell'           , 'cell' , 'perf'       , 'perf'     , 'well'};
+   %names = {'water'          , 'gas'  , 'waterWells' , 'gasWells' , 'closureWells'};
+   %
+   primaryVars = {'pressure' , 'sG'}; 
+   types = {'cell'           , 'cell'};
+   names = {'water'          , 'gas'};  
+   %add hysteres variable,equation and name
+   if(opt.adjointForm)
+      primaryVars = {primaryVars{:}, 'sGmax'}; %#ok
+      types = {types{:} , 'cell' };  %#ok   
+      names = {names{:} , 'gasMax'}; %#ok
+   end
+   % add names of well equations
+   primaryVars = {primaryVars{:}  , 'qWs'      , 'qGs', 'bhp'}; %#ok
+   types = {types{:} , 'perf'       , 'perf'     , 'well'}; %#ok
+   names = {names{:} , 'waterWells' , 'gasWells' , 'closureWells'}; %#ok
+   
    if isempty(W)
       % Remove names/types associated with wells, as no well exist
-      types = types(1:2);
-      names = names(1:2);
+      types = types(1:(2+eqshift));
+      names = names(1:(2+eqshift));
    end
 
    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
