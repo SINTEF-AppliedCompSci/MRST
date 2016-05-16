@@ -1,5 +1,5 @@
 function p = translateLine(points,a)
-% translateLine(points,a) translates a line given by an n-by-2 vector of
+% translateLine(points,a) translates the line given by an n-by-2 vector of
 % coincident 'points' by a normal distance 'a' in 2D space to create a
 % rectangle given by the 2*n-by-2 vector 'p'.
 

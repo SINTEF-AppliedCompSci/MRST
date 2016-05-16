@@ -1,8 +1,9 @@
-function d_avg = getAvgFracDist(G, fracp, cell_num,cnodes)
+function d_avg = getAvgFracDist2D(G, fracp, cell_num,cnodes)
 % getAvgFracDist computes the average normal distance of each point inside
-% a matrix cell from each fracture line it is penetrated by. This is the
-% same as <d> used for computing conductivity index (CI, see CIcalculator)
-% as described in SPE-103901-PA, Lyong Li and Seong H. Lee, 2008.
+% a matrix cell from every fracture line that intersects with this cell.
+% This is the same as <d> used for computing conductivity index (CI, see
+% CIcalculator2D) as described in SPE-103901-PA, Lyong Li and Seong H. Lee,
+% 2008.
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

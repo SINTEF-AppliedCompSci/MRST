@@ -119,10 +119,10 @@ function pf = getPartitionVectorFracPlane(Gf,F,opts)
 dims = max(Gf.nodes.coords);
 if isempty(opts.sampleDimsF)
     if strcmp(Gf.type{1,1},'tensorGrid') || strcmp(Gf.type{1,1},'cartGrid')
-        if any(strcmp(Gf.type,'layered'))
-            Gf.cartDims = [F.layerSize F.numLayers];
-        elseif isfield(F,'cartDims')
+        if isfield(F,'cartDims')
             Gf.cartDims = F.cartDims;
+        elseif any(strcmp(Gf.type,'layered'))
+            Gf.cartDims = [F.layerSize F.numLayers];
         end
         if opts.paddedPartitionF
             pf = partitionUniformPadded(Gf, opts.coarseDimsF);

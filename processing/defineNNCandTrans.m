@@ -82,16 +82,3 @@ nf = G.faces.num;
 T  = 1 ./ accumarray(cf, 1./T, [nf, 1]);
 T = [T;G.nnc.T];
 return
-
-function G = computeEffectiveTrans(G)
-if isfield(G.rock,'poro'), pv = poreVolume(G,G.rock);
-else pv = G.cells.volumes; end
-w1 = pv(G.nnc.cells(:,1))./G.rock.perm(G.nnc.cells(:,1));
-w2 = pv(G.nnc.cells(:,2))./G.rock.perm(G.nnc.cells(:,2));
-wt = pv(G.nnc.cells(:,1))+pv(G.nnc.cells(:,2));
-% No weighting by PV:
-% w1 = 1./G.rock.perm(G.nnc.cells(:,1));
-% w2 = 1./G.rock.perm(G.nnc.cells(:,2));
-% wt = 1;
-G.nnc.T = G.nnc.CI.*(wt./(w1+w2));
-return

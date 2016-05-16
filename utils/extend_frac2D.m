@@ -1,4 +1,4 @@
-function [new_endp,ratio] = extend_frac(G, frac_endp,edges,out,cnum,cnodes,faces)
+function [new_endp,ratio] = extend_frac2D(G, frac_endp,edges,out,cnum,cnodes,faces)
 % extend_frac is used to extend a 2D fracture line when it only partially
 % penetrates matrix cells at its end points. Following this, the ratio of
 % true fracture length to its extended length inside the concerned matrix

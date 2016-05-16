@@ -1,4 +1,6 @@
 function A = polyArea3D(p)
+% Computes the surface area of a polygon defined by the set of points 'p'
+% in 3D
 
 assert(size(p,1)>=3,'3 or more points needed to define a plane!');
 assert(all(iscoplanar(p)),'All Points passed must be coplanar');

@@ -14,11 +14,9 @@ function G = CIcalculator2D(G,fracture)
 %
 % REQUIRED PARAMETERS:
 %
-%   G         - Matrix grid structure with added fields
-%               "G.cells.fracture.CI" (conductivity index) and
-%               "G.cells.fracture.fA" (fracture area).
+%   G         - Matrix grid structure as returned by processFracture2D.
 %
-%   fracture  - See processFracture2D.
+%   fracture  - Processed fracture structure. See processFracture2D.
 %
 % RETURNS:
 %   G  - Matrix grid structure with added cell lists 'G.cells.fracture.CI'

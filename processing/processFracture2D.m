@@ -3,7 +3,7 @@ function [G,fracture] = processFracture2D(G,fl,varargin)
 % matrix cells containing fractures given a matrix grid and a set of
 % fracture lines in two dimensions.
 %
-% % SYNOPSIS:
+% SYNOPSIS:
 %   [G,fracture] = processFracture2D(G, fl)
 %   [G,fracture] = processFracture2D(G, fl, 'pn1', pv1)
 %

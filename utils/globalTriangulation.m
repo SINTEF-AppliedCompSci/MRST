@@ -1,5 +1,28 @@
-function GlobTri = globalTriangulation(G, GlobTri)
-%
+function GlobTri = globalTriangulation(G)
+% This function creates a global triangulation such that each cell in a
+% grid is made up of one or more full tetrahedrons. The global
+% triangulation can then be used to locate the cells that enclose a given
+% set of points.
+
+%{
+Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 [cn,cnmap] = gridCellNodes(G,1:G.cells.num); i = 1;
 
 tx = delaunayTriangulation(G.nodes.coords(cn(cnmap(i):cnmap(i+1)-1),:));
@@ -35,7 +58,8 @@ for i = 2:G.cells.num
         T = [T;conn]; %#ok
     end
 end
-Gtri = triangulation(T,P);        
+Gtri = triangulation(T,P);
+GlobTri = struct;
 GlobTri.Tri = Gtri;
 GlobTri.map = map;
 return
