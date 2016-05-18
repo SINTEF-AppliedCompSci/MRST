@@ -157,6 +157,24 @@ if size(data, 1) < G.cells.num,
 
    assert (all(c > 0) && all(c <= numel(data)));
 end
+
+if (numel(c) == 1) && (size(data, 2) == 1),
+   % Special case.  Translate single, scalar data value to RGB triplet
+   % usable as a FaceColor value in PATCH.
+   cmap = colormap();
+   rng  = [min(data), max(data)];
+   nc   = size(cmap, 1);
+
+   if ~(rng(2) > rng(1)),
+      data = cmap(ceil(nc / 2), :);
+   else
+      ix   = ceil(nc * (data(c) - rng(1)) ./ diff(rng));
+      data = cmap(max(1, min(ix, nc)), :);
+   end
+
+   c = 1;
+end
+
 if isCoarseGrid(G), G = G.parent; end
 h = plotPatches(G, f, data(c, :), 'EdgeColor', [0.4, 0.4, 0.4], varargin{:});
 if G.griddim==3 || isfield(G.cells,'z'), 
