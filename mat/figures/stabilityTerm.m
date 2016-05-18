@@ -70,46 +70,46 @@ sigma = 1/(Q'*Q)^2*lambda*ones(G.cells.num,1);
 azel = [-19,14];
 uChi = gD(G.nodes.coords);
 dest = '../../tex/thesis/fig/';
-
-fig1 = figure;
-plotVEM2D(G, sol1, 1)
-set(gcf, 'defaultTextInterpreter', 'LaTex');
-set(gca,'XTick', [-1,0,1]);
-set(gca,'YTick', [-1,0,1]);
-xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
-view(azel);
-
-savePdf(gcf,strcat(dest,'stabilityBad.pdf'))
-
-fig2 = figure;
-plotVEM2D(G, sol2, 1)
-set(gcf, 'defaultTextInterpreter', 'LaTex');
-set(gca,'XTick', [-1,0,1]);
-set(gca,'YTick', [-1,0,1]);
-xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
-view(azel);
-
-savePdf(gcf,strcat(dest, 'stabilityL2Err.pdf'))
-
-fig3 = figure;
-plotVEM2D(G, sol3, 1)
-set(gcf, 'defaultTextInterpreter', 'LaTex');
-set(gca,'XTick', [-1,0,1]);
-set(gca,'YTick', [-1,0,1]);
-xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
-view(azel);
-
-savePdf(gcf,strcat(dest, 'stability2Err.pdf'))
-
-fig4 = figure;
-plotVEM2D(G, sol4, 1)
-set(gcf, 'defaultTextInterpreter', 'LaTex');
-set(gca,'XTick', [-1,0,1]);
-set(gca,'YTick', [-1,0,1]);
-xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
-view(azel);
-
-savePdf(gcf,strcat(dest, 'stabilityFEM.pdf'))
+% 
+% fig1 = figure;
+% plotVEM2D(G, sol1, 1)
+% set(gcf, 'defaultTextInterpreter', 'LaTex');
+% set(gca,'XTick', [-1,0,1]);
+% set(gca,'YTick', [-1,0,1]);
+% xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
+% view(azel);
+% 
+% savePdf(gcf,strcat(dest,'stabilityBad.pdf'))
+% 
+% fig2 = figure;
+% plotVEM2D(G, sol2, 1)
+% set(gcf, 'defaultTextInterpreter', 'LaTex');
+% set(gca,'XTick', [-1,0,1]);
+% set(gca,'YTick', [-1,0,1]);
+% xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
+% view(azel);
+% 
+% savePdf(gcf,strcat(dest, 'stabilityL2Err.pdf'))
+% 
+% fig3 = figure;
+% plotVEM2D(G, sol3, 1)
+% set(gcf, 'defaultTextInterpreter', 'LaTex');
+% set(gca,'XTick', [-1,0,1]);
+% set(gca,'YTick', [-1,0,1]);
+% xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
+% view(azel);
+% 
+% savePdf(gcf,strcat(dest, 'stability2Err.pdf'))
+% 
+% fig4 = figure;
+% plotVEM2D(G, sol4, 1)
+% set(gcf, 'defaultTextInterpreter', 'LaTex');
+% set(gca,'XTick', [-1,0,1]);
+% set(gca,'YTick', [-1,0,1]);
+% xlabel('$x$'); ylabel('$y$'); zlabel('$u_h$');
+% view(azel);
+% 
+% savePdf(gcf,strcat(dest, 'stabilityFEM.pdf'))
 
 %%
 
@@ -138,47 +138,47 @@ fprintf('Error with FEM stability term: %f, %f, %f \n', err4, l2err4, err4+l2err
 
 %%
 
-X = G.nodes.coords(G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1),:);
-hx = abs(max(X(:,1))-min(X(:,1)));
-hy = abs(max(X(:,2))-min(X(:,2)));
-Q = sqrt(9/(4*hx*hy))*[-1,1,-1,1]';
-
-uChi = gD(G.nodes.coords);
-
-wLower = -10; wUpper = -5;
-tol = 1e-6;
-while abs(wLower - wUpper) > tol;
-
-n = 10;
-w = linspace(wLower,wUpper,n);
-errVec = zeros(n,1);
-
-for i = 1:n
-    
-    lambda = 3*w(i)*(1/hx^2+1/hy^2);
-    sigma = 1/(Q'*Q)^2*lambda*ones(G.cells.num,1);
-
-    [sol,G] = VEM2D(G, 0, bc, 1, 'projectors', true, 'sigma', sigma, 'cartGridQ',  true, 'src', src);
-    
-%     errVec(i) = norm(sol.nodeValues-uChi,2);
-    errVec(i) = sqrt(sum(l2Error(G, sol2, gD, 1)));
-    
-end
-
-i = find(min(errVec) == errVec);
-i = i(1);
-wMin = w(i);
-iLower = max(1,i-1);
-wLower = w(iLower);
-iUpper = min(n, i+1);
-wUpper = w(iUpper);
-
-end
-
-lambda = 3*wMin*(1/hx^2+1/hy^2);
-sigma = 1/(Q'*Q)^2*lambda*ones(G.cells.num,1);
-fprintf('Minimum attained at w = %f', wMin);
-fprintf('Minimum attained at sigma = %f', sigma(1));
+% X = G.nodes.coords(G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1),:);
+% hx = abs(max(X(:,1))-min(X(:,1)));
+% hy = abs(max(X(:,2))-min(X(:,2)));
+% Q = sqrt(9/(4*hx*hy))*[-1,1,-1,1]';
+% 
+% uChi = gD(G.nodes.coords);
+% 
+% wLower = .06; wUpper = .07;
+% tol = 1e-4;
+% while abs(wLower - wUpper) > tol;
+% 
+% n = 10;
+% w = linspace(wLower,wUpper,n);
+% errVec = zeros(n,1);
+% 
+% for i = 1:n
+%     
+%     lambda = 3*w(i)*(1/hx^2+1/hy^2);
+%     sigma = 1/(Q'*Q)^2*lambda*ones(G.cells.num,1);
+% 
+%     [sol,G] = VEM2D(G, 0, bc, 1, 'projectors', true, 'sigma', sigma, 'cartGridQ',  true, 'src', src);
+%     
+% %     errVec(i) = norm(sol.nodeValues-uChi,2);
+%     errVec(i) = sqrt(sum(l2Error(G, sol, gD, 1)));
+%     
+% end
+% 
+% i = find(min(errVec) == errVec);
+% i = i(1);
+% wMin = w(i);
+% iLower = max(1,i-1);
+% wLower = w(iLower);
+% iUpper = min(n, i+1);
+% wUpper = w(iUpper);
+% 
+% end
+% 
+% lambda = 3*wMin*(1/hx^2+1/hy^2);
+% sigma = 1/(Q'*Q)^2*lambda*ones(G.cells.num,1);
+% fprintf('Minimum attained at w = %f', wMin);
+% fprintf('Minimum attained at sigma = %f', sigma(1));
 
 %%
 % 
@@ -214,6 +214,63 @@ fprintf('Minimum attained at sigma = %f', sigma(1));
 % % plot(errVec(:,1), errVec(:,2), errVec(:,1), errVec(:,3));
 % 
 % 
+
+%%
+
+X = G.nodes.coords(G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1),:);
+hx = abs(max(X(:,1))-min(X(:,1)));
+hy = abs(max(X(:,2))-min(X(:,2)));
+Q = sqrt(9/(4*hx*hy))*[-1,1,-1,1]';
+
+uChi = gD(G.nodes.coords);
+
+wLower = 0; wUpper = .12;
+n = 20;
+w = linspace(wLower,wUpper,n);
+errVec = zeros(n,1);
+
+for i = 1:n
+    
+    lambda = 3*w(i)*(1/hx^2+1/hy^2);
+    sigma = 1/(Q'*Q)^2*lambda*ones(G.cells.num,1);
+
+    [sol,G] = VEM2D(G, 0, bc, 1, 'projectors', true, 'sigma', sigma, 'cartGridQ',  true, 'src', src);
+    
+%     errVec(i) = norm(sol.nodeValues-uChi,2);
+    errVec(i) = sqrt(sum(l2Error(G, sol, gD, 1)));
+    
+end
+
+plot(w, errVec);
+
+%%
+
+X = G.nodes.coords(G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1),:);
+hx = abs(max(X(:,1))-min(X(:,1)));
+hy = abs(max(X(:,2))-min(X(:,2)));
+Q = sqrt(9/(4*hx*hy))*[-1,1,-1,1]';
+
+uChi = gD(G.nodes.coords);
+
+wLower = 0; wUpper = 5;
+n = 20;
+w = linspace(wLower,wUpper,n);
+errVec = zeros(n,2);
+
+for i = 1:n
+    
+    lambda = 3*w(i)*(1/hx^2+1/hy^2);
+    sigma = 1/(Q'*Q)^2*lambda*ones(G.cells.num,1);
+
+    [sol,G] = VEM2D(G, 0, bc, 1, 'projectors', true, 'sigma', sigma, 'cartGridQ',  true, 'src', src);
+    
+    errVec(i,1) = norm(sol.nodeValues-uChi,2);
+    errVec(i,2) = sqrt(sum(l2Error(G, sol, gD, 1)));
+    
+end
+
+plot(w, errVec);
+
 
 %%
 % r = .1;
