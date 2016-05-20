@@ -10,7 +10,7 @@ cut = 4;
 addTxt = .25;
 azel = [-30,-15];
 
-fN = 6;
+fN = 7;
 
 switch fN
     case 1
@@ -254,5 +254,63 @@ switch fN
         set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
 
         print(gcf, '-dpdf', '../../tex/thesis/fig/KC.pdf');
+        
+    case 7
+        
+        xMax = 2; yMax = 2; zMax = 2;
+        P = [-1,-1,-1;
+              1,-1,-1;
+             -1, 1,-1;
+             -1,-1, 1;
+              1,-1, 1;
+             -1, 1, 1];
+        
+         ii = {[1,2,5,4], ...
+               [2,3,6,5], ...
+               [1,3,6,4], ...
+               [1:3]    , ...
+               [4:6]   };
+         for i = 1:numel(ii)
+            patch(P(ii{i},1), P(ii{i},2), P(ii{i},3), 'y', 'facealpha', .2);
+         end
+
+        set(gcf, 'defaulttextinterpreter','latex');
+        
+        set(gca,'XTick',[-1 1] );
+        set(gca,'YTick',[-1 1] );
+        set(gca,'ZTick',[-1 1] );
+        axis equal
+        axis([-1.5, 1.5, -1.5, 1.5 -1.5 1.5]) 
+   
+        xlabel('$x$'); ylabel('$y$'); zlabel('$z$');
+        
+        hold on;
+        plot3(P(:,1), P(:,2), P(:,3), 'ok', 'MarkerFaceColor', 'r')
+        text(-1.2,-1.2,-1.2, '$V_1$')
+        text( 1.1,-1.2,-1.2, '$V_2$')
+        text(-1.3, 1.3,-1.2, '$V_3$')
+        text(-0.9,-0.9, 1.2, '$V_4$')
+        text( 1.1,-1.2, 1.2, '$V_5$')
+        text(-1.3, 1.3, 1.2, '$V_6$')
+        text( 0.0,-1.1,-1.2, '$E_1$')
+        text( 0.2, 0.0,-0.9, '$E_2$')
+        text(-1.2, 0.0,-1.2, '$E_3$')
+        text(-1.2,-0.7, 0.2, '$E_4$')
+        text( 1.0,-1.1, 0.0, '$E_5$')
+        text(-1.3, 1.3, 0.0, '$E_6$')
+        text(-0.1,-1.0, 0.8, '$E_7$')
+        text( 0.2, 0.0, 1.1, '$E_8$')
+        text(-1.1, 0.0, 0.7, '$E_9$')
+
+        ps = get(gcf, 'Position');
+        ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
+        paperWidth = 10;
+        paperHeight = paperWidth*ratio - cut;
+        set(gcf, 'paperunits', 'centimeters');
+        set(gcf, 'papersize', [paperWidth paperHeight]);
+        set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
+
+        print(gcf, '-dpdf', '../../tex/thesis/fig/KP.pdf');
+
         
 end
