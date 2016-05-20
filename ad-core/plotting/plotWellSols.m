@@ -541,7 +541,7 @@ function [tit, d, yl] = getWellUnit(d, fld, usys)
             end
             tit = [fld, ': ', t, ' fraction at reservoir conditions'];
         case 'sign'
-            tit = [fld, ': Well sign (+1 for producer, -1 for injector'];
+            tit = [fld, ': Well sign (+1 for injector, -1 for producer)'];
         case 'val'
             tit = [fld, ': Well control value'];
         case 'cdp'
