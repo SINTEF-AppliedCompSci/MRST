@@ -1,6 +1,6 @@
 %{
-Simple 2D example modeling two-phase flow in fractured porous media using
-the HFM module.
+Two-phase 2D example with water injection from the left boundary of a
+rectangular domain containing 2 intersecting fractures.
 %}
 
 close all;
@@ -81,7 +81,6 @@ bc = addBC(bc, right, 'pressure', 1*barsa, 'sat', [0 1]);
 
 %% Compute initial pressure
 
-W = []; %
 dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
 state_fs = incompTPFA(state, G, T, fluid,  ...
     'bc',bc, 'MatrixOutput', true, 'use_trans',true);
@@ -121,7 +120,7 @@ title('Initial Pressure: F-MsRSB')
 
 pv     = poreVolume(G,G.rock);
 nt     = 30;
-t90    = 3*(sum(pv)/sum(state_fs.flux(left)));
+t90    = 2*(sum(pv)/sum(state_fs.flux(left)));
 Time   = t90;
 dT     = Time/nt;
 dTplot = Time/3;
@@ -155,7 +154,7 @@ while t < Time,
     
     % Increase time and continue if we do not want to plot saturations
     t = t + dT;
-    if ( t < plotNo*dTplot & t <T), continue, end
+    if ( t < plotNo*dTplot && t < Time), continue, end
     
     % Plot saturation
     heading = [num2str(convertTo(t,day)),  ' days'];

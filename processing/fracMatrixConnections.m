@@ -35,7 +35,11 @@ vr = Gfrac.cells.volumes./sum(Gfrac.cells.volumes);
 if isempty(Gtri)
     cells = getEnclosingCellsByFace(G,Gfrac.nodes.coords);
 else
-    cells = map(pointLocation(Gtri,Gfrac.nodes.coords));
+    try
+        cells = map(pointLocation(Gtri,Gfrac.nodes.coords));
+    catch
+        cells = getEnclosingCellsByFace(G,Gfrac.nodes.coords);
+    end
 end
 for i = 1:Gfrac.cells.num
     nodes = cn(cpos(i):cpos(i+1)-1);

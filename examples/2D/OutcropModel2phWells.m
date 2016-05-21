@@ -1,6 +1,6 @@
 %{
-2ph heterogeneous matrix example with a fracture-network models from an
-outcrop.
+2ph example modeling water injection into a highly fractured oil-filled
+reservoir. The fracture-network has been extracted from an outcrop model.
 
 K. Bisdom, B. D. M. Gauthier, G. Bertotti, N. J. Hardebol. Calibrating
 discrete fracture-network models with a carbonate three-dimensional outcrop
@@ -18,20 +18,19 @@ physdim = [1000 1000];
 G = cartGrid(celldim, physdim);
 G = computeGeometry(G);
 
-load datasets/brazil_fractures
+load examples/data/brazil_fractures
 
 %% Process fracture lines
 
 % dispif(mrstVerbose, 'Processing user input...\n\n'); tic;
-% [G,fracture] = processFracture2D(G,fl); 
-toc
+% [G,fracture] = processFracture2D(G,fl); toc
 % fracture.aperture = 1/25; % Fracture aperture
 
 % The processing algorithm might take time. Comment the above 3 lines and
 % load the files brazil_fractures_processed and brazil_grid_processed
 
-load datasets/brazil_fractures_processed
-load datasets/brazil_grid_processed
+load examples/data/brazil_fractures_processed
+load examples/data/brazil_grid_processed
 
 figure;
 plotFractureLines(G,fracture,'lines');
@@ -48,7 +47,7 @@ clf; plotFractureNodes2D(G,F,fracture); box on
 %% Set rock properties in fracture and matrix
 
 dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
-load datasets/brazil_perm
+load examples/data/brazil_perm
 
 G.rock = makeRock(G,p(:),0.2);
 K_frac = 1000; % Darcy
@@ -57,6 +56,7 @@ for i = 1:numel(fieldnames(G.FracGrid))
     G.FracGrid.(['Frac',num2str(i)]).rock.perm = darcy*K_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
     G.FracGrid.(['Frac',num2str(i)]).rock.poro = poro_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
 end
+clf; plotToolbar(G,G.rock); colormap(jet); colorbar
 
 %% Define fluid properties
 
@@ -141,7 +141,7 @@ N      = fix(Time/dTplot);
 
 pvi = zeros(nt,1);
 sol_fs = cell(nt,1); sol_ms = cell(nt,1);
-e = zeros(nt,3); pms = zeros(nt,3); pfs = zeros(nt,3);
+e = zeros(nt,1); pms = zeros(nt,3); pfs = zeros(nt,3);
 
 t  = 0;
 B = basis_sb.B;
@@ -158,8 +158,8 @@ while t < Time,
     state_fs  = incompTPFA(state_fs , G, T, fluid, 'wells', W, 'use_trans',true);
 
     %-------------------------------Multiscale----------------------------%
-    A = incompTPFA(state_ms, G, T, fluid, 'MatrixOutput', true, ...
-        'use_trans',true); A = A.A;
+    
+    A = getSystemIncompTPFA(state_ms, G, T, fluid, 'use_trans', true);
     B = iteratedJacobiBasis(A, CG, 'interpolator', B); 
     basis_sb = struct('B', B, 'R', R);
     state_ms = incompMultiscale(state_ms, CG, T, fluid, basis_sb, 'Wells', W,'use_trans',true);
@@ -171,7 +171,7 @@ while t < Time,
     t = t + dT;
     pvi(count) = 100*(sum(state_fs.wellSol(1).flux)*t)/sum(pv);
     
-    e(count,1) = sum(abs(state_fs.s(:,1) - state_ms.s(:,1)).*pv)/sum(pv);
+    e(count,1) = sum(abs(state_fs.s(:,1) - state_ms.s(:,1)).*pv)/sum(pv.*state_fs.s(:,1));
     pfs(count,1) = state_fs.s(W(2).cells,1);
     pms(count,1) = state_ms.s(W(2).cells,1);
     
@@ -215,7 +215,7 @@ for i = nt/3:nt/3:nt
     
 end
 
-%% Plot saturation at producer 
+%% Plot water saturation at producer 
 
 figure;
 plot(pvi,pfs(:,1),'-o',pvi,pms(:,1),'--*');
@@ -224,3 +224,15 @@ ylabel('Saturation at producer');
 xlabel('PVI [%]'); 
 set(gca,'FontSize',18,'XGrid','on','YGrid','on');
 axis tight
+
+%% Plot error in saturation 
+
+figure;
+plot(pvi,e*100, '--+b');
+ylabel('e [%]')
+xlabel('PVI [%]'); 
+set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+axis tight
+
+e_eq = '$$ e = \frac{ \sum ( |S_w^{fs}-S_w^{f-msrsb}| \times pv) }{ \sum (S_w^{fs} \times pv) } $$';
+title(e_eq,'interpreter','latex');

@@ -1,11 +1,11 @@
 %{
-Two-phase example with a quarter 5-spot modeling water injection in
-fractured porous media using the HFM module.
+Two-phase example modeling water injection through a quarter 5-spot into a
+2-dimensional fractured porous media.
 %}
 
 close all;
 
-%% Grid and fracture lines
+%% Grid and fracture line(s)
 
 celldim = [100 100];
 physdim = [100 100];
@@ -14,7 +14,7 @@ G = computeGeometry(G);
 
 fl = [20 20 80 80];
 
-%% Process fracture lines
+%% Process fracture line(s)
 
 dispif(mrstVerbose, 'Processing user input...\n\n');
 [G,fracture] = processFracture2D(G,fl);
@@ -52,7 +52,7 @@ for i = 1:numel(fieldnames(G.FracGrid))
     G.FracGrid.(['Frac',num2str(i)]).rock.perm = darcy*K_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
     G.FracGrid.(['Frac',num2str(i)]).rock.poro = poro_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
 end
-clf; plotToolbar(G,G.rock); colormap(jet);
+clf; plotToolbar(G,G.rock); colormap(jet); colorbar
 
 %% Define fluid properties
 
@@ -124,6 +124,7 @@ N      = fix(Time/dTplot);
 
 pvi = zeros(nt,1);
 sol_fs = cell(nt,1); sol_ms = cell(nt,1);
+e = zeros(nt,1); pms = zeros(nt,3); pfs = zeros(nt,3);
 
 t  = 0;
 B = basis_sb.B;
@@ -140,8 +141,8 @@ while t < Time,
     state_fs  = incompTPFA(state_fs , G, T, fluid, 'wells', W, 'use_trans',true);
 
     %-------------------------------Multiscale----------------------------%
-    A = incompTPFA(state_ms, G, T, fluid, 'MatrixOutput', true, ...
-        'use_trans',true); A = A.A;
+    
+    A = getSystemIncompTPFA(state_ms, G, T, fluid, 'use_trans', true);
     B = iteratedJacobiBasis(A, CG, 'interpolator', B); 
     basis_sb = struct('B', B, 'R', R);
     state_ms = incompMultiscale(state_ms, CG, T, fluid, basis_sb, 'Wells', W,'use_trans',true);
@@ -152,6 +153,9 @@ while t < Time,
     % Increase time
     t = t + dT;
     pvi(count) = 100*(sum(state_fs.wellSol(1).flux)*t)/sum(pv);
+    e(count,1) = sum(abs(state_fs.s(:,1) - state_ms.s(:,1)).*pv)/sum(pv.*state_fs.s(:,1));
+    pfs(count,1) = state_fs.s(W(2).cells,1);
+    pms(count,1) = state_ms.s(W(2).cells,1);
     count = count + 1;
     
 end
@@ -191,14 +195,24 @@ for i = nt/3:nt/3:nt
     
 end
 
-%% Plot well solutions
+%% Plot water saturation at producer 
 
-wellSol_fs = convertIncompWellSols(W, sol_fs);
-wellSol_ms = convertIncompWellSols(W, sol_ms);
-names = {'Reference','F-MsRSB'};
-linestyles = {'-',':',':',':'};
-plotWellSols({wellSol_fs,wellSol_ms},'datasetnames',names);
-ax = gca; ax.FontSize = 24; 
-ax.XColor = 'k';
-ax.YColor = 'k';
-ax.XLabel.String = 'PVI [%]';
+figure;
+plot(pvi,pfs(:,1),'-o',pvi,pms(:,1),'--*');
+leg = legend('Fine-scale','Multiscale','Location','Best');
+ylabel('Saturation at producer');
+xlabel('PVI [%]'); 
+set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+axis tight
+
+%% Plot error in saturation 
+
+figure;
+plot(pvi,e*100, '--+b');
+ylabel('e [%]')
+xlabel('PVI [%]'); 
+set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+axis tight
+
+e_eq = '$$ e = \frac{ \sum ( |S_w^{fs}-S_w^{f-msrsb}| \times pv) }{ \sum (S_w^{fs} \times pv) } $$';
+title(e_eq,'interpreter','latex');

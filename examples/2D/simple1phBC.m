@@ -1,5 +1,6 @@
 %{
-Single phase 2D example demonstrating the use of the HFM module.
+Single phase 2D example with dirichlet boundary conditions demonstrating
+the use of the HFM module.
 %}
 
 close all; 
@@ -28,7 +29,7 @@ box on
 
 dispif(mrstVerbose, 'Computing CI and constructing fracture grid...\n\n');
 G = CIcalculator2D(G,fracture);
-min_size = 0.1; cell_size = 0.2; % minimum and average cell size.
+min_size = 0.05; cell_size = 0.05; % minimum and average cell size.
 [G,F,fracture] = gridFracture2D(G,fracture,'min_size',min_size,'cell_size',cell_size);
 clf; plotFractureNodes2D(G,F,fracture); box on
 
@@ -59,8 +60,8 @@ state  = initResSol (G, 5*barsa);
 
 dispif(mrstVerbose, 'Defining coarse grids and interaction regions...\n\n');
 
-coarseDims = [6 6]; 
-dof_frac = 3; % Number of coarse blocks in the fracture grid
+coarseDims = [9 9]; 
+dof_frac = 4; % Number of coarse blocks in the fracture grid
 [CG, CGf] = getRsbGridsHFM(G, fracture.network, 'coarseDims', coarseDims,...
             'dof_frac',dof_frac);
 
@@ -121,6 +122,15 @@ colormap jet
 view(90, 90); colorbar
 axis tight off
 title('F-MsRSB')
+
+L1 = abs(state_ms.pressure-state_fs.pressure)./state_fs.pressure;
+figure;
+plotToolbar(G, L1)
+colormap jet
+view(90, 90); colorbar
+axis tight off
+L1_eq = '$$ \frac{| P_i^{fs}-P_i^{f-msrsb} | }{ P_i^{fs}} $$';
+title(L1_eq,'interpreter','latex');
 
 %% Plot convergence
 

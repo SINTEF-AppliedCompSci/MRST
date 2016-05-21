@@ -171,6 +171,15 @@ view(-135,30)
 axis tight off
 title('F-MsRSB')
 
+L1 = abs(state_ms.pressure-state_fs.pressure)./state_fs.pressure;
+figure;
+plotToolbar(G, L1)
+colormap jet; colorbar
+view(-135,30)
+axis tight off
+L1_eq = '$$ \frac{| P_i^{fs}-P_i^{f-msrsb} | }{ P_i^{fs}} $$';
+title(L1_eq,'interpreter','latex');
+
 %% Plot convergence
 
 figure;

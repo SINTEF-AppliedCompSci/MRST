@@ -21,7 +21,7 @@ function CGf = addCoarseCenterPointsFrac(CGf,varargin)
 %            (a) 'useCoarseFaceCentroids'
 %            (b) 'useCoarseCellCentroids'
 %            (c) 'useFineCellCentroids'
-%            (d) 'useCoarseCellEndPoints'
+%            (d) 'useCoarseCellEndPoints' - 2D grids only
 %               
 %            passed as character arrays.
 %
@@ -59,8 +59,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 Gf = CGf.parent;
 opt = struct('option', 'useCoarseFaceCentroids','meantype','geometric'); 
-
 opt = merge_options(opt, varargin{:});
+
+if strcmp(opt.option,'useCoarseCellEndPoints') && CGf.griddim>2
+    opt.option = 'useCoarseFaceCentroids';
+end
+
 centers = zeros(CGf.cells.num,1);
 for i = 1:CGf.cells.num
     search = find(CGf.partition==i);
