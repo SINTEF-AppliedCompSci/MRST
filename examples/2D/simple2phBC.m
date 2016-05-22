@@ -4,6 +4,7 @@ rectangular domain containing 2 intersecting fractures.
 %}
 
 close all;
+checkLineSegmentIntersect; % Check if lineSegmentIntersect.m is in the path
 
 %% Grid and fracture lines
 

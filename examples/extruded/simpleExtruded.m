@@ -4,6 +4,7 @@ extruding their corresponding 2D grids.
 %}
 
 close all;
+checkLineSegmentIntersect; % Check if lineSegmentIntersect.m is in the path
 
 %% Grid and fracture lines
 

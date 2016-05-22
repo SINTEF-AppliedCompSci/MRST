@@ -4,6 +4,7 @@ Two-phase example modeling water injection through a quarter 5-spot into a
 %}
 
 close all;
+checkLineSegmentIntersect; % Check if lineSegmentIntersect.m is in the path
 
 %% Grid and fracture line(s)
 

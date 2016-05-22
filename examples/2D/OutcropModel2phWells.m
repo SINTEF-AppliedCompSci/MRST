@@ -10,6 +10,7 @@ AAPG Bulletin, 24 (2014) 1351-1376.
 %}
 
 close all;
+checkLineSegmentIntersect; % Check if lineSegmentIntersect.m is in the path
 
 %% Grid and fracture lines
 

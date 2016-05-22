@@ -4,6 +4,7 @@ the use of the HFM module.
 %}
 
 close all; 
+checkLineSegmentIntersect; % Check if lineSegmentIntersect.m is in the path
 
 %% Grid and fracture lines
 
