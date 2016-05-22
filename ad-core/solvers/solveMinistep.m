@@ -1,10 +1,14 @@
 function [state, converged, failure, its, reports] = solveMinistep(solver, model, state, state0, dt, drivingForces)
 % Attempt to solve a single mini timestep while trying to avoid
 % stagnation or oscillating residuals.
-   reports = cell(solver.maxIterations, 1);
    omega0 = solver.relaxationParameter;
-
-   for i = 1:(solver.maxIterations + 1)
+   if model.stepFunctionIsLinear
+       maxIts = 0;
+   else
+       maxIts = solver.maxIterations;
+   end
+   reports = cell(maxIts, 1);
+   for i = 1:(maxIts + 1)
       % If we are past maximum number of iterations, step function will
       % just check convergence and return
       [state, stepReport] = ...
@@ -35,7 +39,7 @@ function [state, converged, failure, its, reports] = solveMinistep(solver, model
          % Store residual history during nonlinear loop to detect
          % stagnation or oscillations in residuals.
          if i == 1
-            res = nan(solver.maxIterations + 1, numel(stepReport.Residuals));
+            res = nan(maxIts + 1, numel(stepReport.Residuals));
          end
          res(i, :) = stepReport.Residuals;
 
