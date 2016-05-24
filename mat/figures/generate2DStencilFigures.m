@@ -4,6 +4,7 @@ addpath('../')
 addpath('../VEM2D/')
 
 ntnuBlue = [0,61,242]/255;
+bl = [0 0.4470 0.7410];
 
 G = cartGrid([2,2]);
 k = 1;
@@ -36,14 +37,17 @@ plotGrid(G, 'FaceAlpha', faceAlpha);
 set(fig1, 'defaultTextInterpreter', 'latex')
 hold on
 plot(Xe(:,1:nN), Xe(:,nN+1:2*nN),'k')
-line([-(1+addy) 1+addy], [0,0], 'LineWidth', lineWidth);
-line([0,0], [-(1+addy) 1+addy], 'LineWidth', lineWidth);
+% line([-(1+addy) 1+addy], [0,0], 'LineWidth', lineWidth);
+% line([0,0], [-(1+addy) 1+addy], 'LineWidth', lineWidth);
+quiver(-(1+addy),0, 2*(1+addy)+.3, 0, 'LineWidth', lineWidth, 'color', bl);
+quiver(0,-(1+addy), 0,2*(1+addy)+.3, 'LineWidth', lineWidth, 'color', bl);
+
 X1 = X((X(:,1)).^2 + (X(:,2)).^2 <= 1,:);
 
 plot(X1(:,1), X1(:,2), 'ok', 'MarkerFaceColor', 'r')
 
-text(1+.3, .1,'$x$')
-text(.1, 1+.3, '$y$')
+text(1+.3, .2,'$x$')
+text(.15, 1+.3, '$y$')
 text(-.5,-1.2,'$h_x$')
 text(-1.3,-.5,'$h_y$')
 
@@ -56,8 +60,8 @@ set(gca,'YTickLabel',{'', '', ''} )
 axis equal
 axis([-1.5, 1.5, -1.5 1.5])
 
-h = my_xticklabels([-1,0,1], {'$i-1$', '$i$', '$i+1$'});
-h = my_yticklabels([-1,0,1], {'$j-1$', '$j$', '$j+1$'});
+h = my_xticklabels([-1,0,1], {'$i-1$', '$i$', '$i+1$'},0,-.1);
+h = my_yticklabels([-1,0,1], {'$j-1$', '$j$', '$j+1$'},.08,-.3);
 
 ps = get(gcf, 'Position');
 ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
@@ -79,14 +83,15 @@ set(fig2, 'defaultTextInterpreter', 'latex')
 hold on
 plot(Xe(:,1:nN), Xe(:,nN+1:2*nN),'k')
 addy = .5;
-line([-(1+addy) 1+addy], [-(1+addy),1+addy], 'LineWidth', lineWidth);
-line([1+addy,-(1+addy)], [-(1+addy) 1+addy], 'LineWidth', lineWidth);
+% line([-(1+addy) 1+addy], [-(1+addy),1+addy], 'LineWidth', lineWidth);
+% line([1+addy,-(1+addy)], [-(1+addy) 1+addy], 'LineWidth', lineWidth);
+quiver(-(1+addy),-(1+addy),2*(1+addy)+.3, 2*(1+addy)+.3, 'LineWidth', lineWidth, 'color', bl);
+quiver( (1+addy),-(1+addy),-2*(1+addy)-.3, 2*(1+addy)+.3, 'LineWidth', lineWidth, 'color', bl);
 X1 = [X((X(:,1)).^2 + (X(:,2)).^2 == 2,:); [0,0]];
 % plot(X(:,1), X(:,2), '.k', 'MarkerSize', mrkSzSml);
 plot(X(:,1), X(:,2), 'ok', 'MarkerFaceColor', 'r')
 text(1-.1, 1+.3,'$d_1$')
 text(-(1-.1), 1+.3, '$d_2$')
-<<<<<<< HEAD
 
 axis([-1.5, 1.5, -1.5 1.5])
 set(gca,'XTick',[-1 0 1] );
@@ -97,8 +102,8 @@ set(gca,'YTickLabel',{'', '', ''} )
 axis equal
 axis([-1.5, 1.5, -1.5 1.5])
 
-h = my_xticklabels([-1,0,1], {'$i-1$', '$i$', '$i+1$'});
-h = my_yticklabels([-1,0,1], {'$j-1$', '$j$', '$j+1$'});
+h = my_xticklabels([-1,0,1], {'$i-1$', '$i$', '$i+1$'},0,-.1);
+h = my_yticklabels([-1,0,1], {'$j-1$', '$j$', '$j+1$'},.08,-.3);
 
 ps = get(gcf, 'Position');
 ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));

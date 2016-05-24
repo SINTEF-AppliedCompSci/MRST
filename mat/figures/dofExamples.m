@@ -1,7 +1,7 @@
 clc; clear all; close all;
 
 
-fN = 2;
+fN = 1;
 
 switch fN
     case 1
@@ -42,10 +42,10 @@ switch fN
     plotGrid(G, K, 'facealpha', .2)
     hold on;
     for i = 1:nN
-        h1 = plot(X(:,1), X(:,2), 'ok', 'MarkerFaceColor', 'r', 'markersize', 6);
+        h1 = plot(X(:,1), X(:,2), 'ok', 'MarkerFaceColor', [0 0.4470 0.7410], 'markersize', 6);
     end
     for i = 1:nE
-        h2 = plot(Ec(:,1), Ec(:,2), 'sk', 'MarkerFaceColor', 'b', 'markersize', 6);
+        h2 = plot(Ec(:,1), Ec(:,2), 'sk', 'MarkerFaceColor', [0.8500 0.3250 0.0980], 'markersize', 6);
     end
     
     h3 = plot(Kc(:,1), Kc(:,2), 'dk', 'MarkerFaceColor', 'w', 'markersize', 6);
@@ -143,10 +143,10 @@ switch fN
     
     addFac = .1;
     for i = 1:nN
-        h1 = plot3(X(:,1), X(:,2), X(:,3), 'ok', 'MarkerFaceColor', 'r', 'markersize', 4);
+        h1 = plot3(X(:,1), X(:,2), X(:,3), 'ok', 'MarkerFaceColor', [0 0.4470 0.7410], 'markersize', 4);
     end
     for i = 1:nE
-        h2 = plot3(Ec(:,1), Ec(:,2), Ec(:,3), 'sk', 'MarkerFaceColor', 'b', 'markersize', 4);
+        h2 = plot3(Ec(:,1), Ec(:,2), Ec(:,3), 'sk', 'MarkerFaceColor', [0.8500 0.3250 0.0980], 'markersize', 4);
     end
     for i = 1:nF
         h3 = plot3(Fc(:,1), Fc(:,2), Fc(:,3), 'dk', 'MarkerFaceColor', 'w', 'markersize', 4);

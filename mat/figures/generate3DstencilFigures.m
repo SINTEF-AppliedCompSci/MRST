@@ -23,6 +23,7 @@ mrkSzSml = 10;
 cut = 4;
 azel = [-30,-15];
 
+bl = [0 0.4470 0.7410];
 
 edgeNodes = G.edges.nodes;
 nN = size(edgeNodes,1)/2;
@@ -40,9 +41,13 @@ nN = size(edgeNodes,1)/2;
 hold on
 plot3(Xe(:,1:nN), Xe(:,nN+1:2*nN), Xe(:,2*nN+1:3*nN),'k')
 X1 = X((X(:,1)).^2 + (X(:,2)).^2 + (X(:,3)).^2 <= 1,:);
-line([-(1+add) 1+add], [0,0], [0,0], 'LineWidth', lineWidth);
-line([0,0], [-(1+add) 1+add], [0,0], 'LineWidth', lineWidth);
-line([0,0], [0,0], [-(1+add) 1+add], 'LineWidth', lineWidth);
+% line([-(1+add) 1+add], [0,0], [0,0], 'LineWidth', lineWidth);
+% line([0,0], [-(1+add) 1+add], [0,0], 'LineWidth', lineWidth);
+% line([0,0], [0,0], [-(1+add) 1+add], 'LineWidth', lineWidth);
+d = -.1;
+quiver3(-(1+add),0,0, 2*(1+add)+d, 0,0, 'LineWidth', lineWidth, 'color', bl);
+quiver3(0,-(1+add), 0, 0, 2*(1+add)+d, 0, 'LineWidth', lineWidth, 'color', bl);
+quiver3(0,0,-(1+add), 0, 0, 2*(1+add)+d, 'LineWidth', lineWidth, 'color', bl);
 plot3(X1(:,1), X1(:,2), X1(:,3), 'ok', 'MarkerFaceColor', 'r')
 
 set(gca,'XTick',[-1 0 1] );
@@ -92,9 +97,15 @@ hold on
 plot3(Xe(:,1:nN), Xe(:,nN+1:2*nN), Xe(:,2*nN+1:3*nN),'k')
 X2 = [X( ((X(:,2).^2 + X(:,3).^2 <= 2) & (X(:,1) == 0)),:); [-1,0,0]; [1,0,0]];
 
-line([-(1+add) 1+add], [0,0], [0,0], 'LineWidth', lineWidth);
-line([0,0],[-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
-line([0,0],[-sqrt(1+add) sqrt(1+add)], [sqrt(1+add) -sqrt(1+add)], 'LineWidth', lineWidth);
+% line([-(1+add) 1+add], [0,0], [0,0], 'LineWidth', lineWidth);
+% line([0,0],[-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
+% line([0,0],[-sqrt(1+add) sqrt(1+add)], [sqrt(1+add) -sqrt(1+add)], 'LineWidth', lineWidth);
+d = -.1;
+quiver3(-(1+add),0,0, 2*(1+add)+d, 0,0, 'LineWidth', lineWidth, 'color', bl);
+quiver3(0,-(1+add), -(1+add), 0, 2*(1+add)+d, 2*(1+add)+d, 'LineWidth', lineWidth, 'color', bl);
+quiver3(0,(1+add), -(1+add),0, -2*(1+add)-d, 2*(1+add)+d, 'LineWidth', lineWidth, 'color', bl);
+plot3(X1(:,1), X1(:,2), X1(:,3), 'ok', 'MarkerFaceColor', 'r')
+
 plot3(X2(:,1), X2(:,2), X2(:,3), 'ok', 'MarkerFaceColor', 'r')
 
 set(gca,'XTick',[-1 0 1] ); %This are going to be the only values affected.
@@ -137,11 +148,19 @@ Xe = G.nodes.coords(edgeNodes,:);
 Xe = reshape(Xe,2,[]);
 hold on
 plot3(Xe(:,1:nN), Xe(:,nN+1:2*nN), Xe(:,2*nN+1:3*nN),'k')
+
+axis([-1.5 1.5 -1.5 1.5 -1.5 1.5])
+view(azel)
 % X3 = [X( X(:,1).^2 + X(:,2).^2 + X(:,3).^2 == 3, :); [0,0,0]];
-line([-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
-line([sqrt(1+add) -sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
-line([-sqrt(1+add) sqrt(1+add)], [sqrt(1+add) -sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
-line([-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], [sqrt(1+add) -sqrt(1+add)], 'LineWidth', lineWidth);
+% line([-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
+% line([sqrt(1+add) -sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
+% line([-sqrt(1+add) sqrt(1+add)], [sqrt(1+add) -sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], 'LineWidth', lineWidth);
+% line([-sqrt(1+add) sqrt(1+add)], [-sqrt(1+add) sqrt(1+add)], [sqrt(1+add) -sqrt(1+add)], 'LineWidth', lineWidth);
+d = -.1;
+quiver3(-(1+add),-(1+add),-(1+add), 2*(1+add)+d, 2*(1+add)+d,2*(1+add)+d, 'LineWidth', lineWidth, 'color', bl);
+quiver3(-(1+add), (1+add),-(1+add), 2*(1+add)+d,-2*(1+add)-d,2*(1+add)+d, 'LineWidth', lineWidth, 'color', bl);
+quiver3(-(1+add),-(1+add), (1+add), 2*(1+add)+d, 2*(1+add)+d,-2*(1+add)-d, 'LineWidth', lineWidth, 'color', bl);
+quiver3(-(1+add), (1+add), (1+add), 2*(1+add)+d,-2*(1+add)-d,-2*(1+add)-d, 'LineWidth', lineWidth, 'color', bl);
 plot3(X(:,1), X(:,2), X(:,3), 'ok', 'MarkerFaceColor', 'r')
 
 
