@@ -22,14 +22,14 @@ my_xticklabels([-1,1], {'-1','1'},0,-.1)
 my_yticklabels([-1,1,1+epsilon], {'-1','-1','1+$\varepsilon$'},.1,-.2)
 
 xlabel('$x$'); ylabel('$y$');
-
-cut = 0;
-ps = get(gcf, 'Position');
-ratio = 1;
-paperWidth = 10;
-paperHeight = paperWidth*ratio;
-set(gcf, 'paperunits', 'centimeters');
-set(gcf, 'papersize', [paperWidth-cut paperHeight-cut]);
-set(gcf, 'PaperPosition', [-cut    -cut   paperWidth+cut paperHeight+cut]);
-
-print(gcf, '-dpdf', '../../tex/thesis/fig/Keps.pdf');
+% 
+% cut = 0;
+% ps = get(gcf, 'Position');
+% ratio = 1;
+% paperWidth = 10;
+% paperHeight = paperWidth*ratio;
+% set(gcf, 'paperunits', 'centimeters');
+% set(gcf, 'papersize', [paperWidth-cut paperHeight-cut]);
+% set(gcf, 'PaperPosition', [-cut    -cut   paperWidth+cut paperHeight+cut]);
+% 
+% print(gcf, '-dpdf', '../../tex/thesis/fig/Keps.pdf');
