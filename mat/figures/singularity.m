@@ -136,7 +136,7 @@ rock.perm = ones([G.cells.num,1]);
 Q = 1;
 srcCells = find(G.cells.tag);
 src = addSource([],srcCells(1),Q);
-src2 = addSource([],srcCells(1),2*Q);
+src2 = addSource([],srcCells(1),Q);
 % W=addWell([],G,rock,srcCells(1),'Type','rate','Val',2*Q,'Radius',0.1/G.cartDims(1));
 
 %% Initialize state
