@@ -36,7 +36,7 @@ bc_VEM = VEM2D_addBC(bc_VEM, G, boundaryEdges(neuman), 'flux', 0);
 %% Set fluid and rock properties
 gravity reset off 
 
-fluid = initSingleFluid('mu' , 2    , ...
+fluid = initSingleFluid('mu' , 1    , ...
                         'rho', 1);
 
 rock.poro = ones(G.cells.num,1);
@@ -55,7 +55,7 @@ transMPFA = computeMultiPointTrans(G, rock);
 
 %% TPFA
 sTPFA = incompTPFA(sInit, G, transTPFA, fluid, 'bc',bc_MRST);
-err = sTPFA.pressure - p;
+% err = sTPFA.pressure - p;
 
 %% MIMETIC
 sMIM  = incompMimetic(sInit, G, S, fluid,'bc',bc_MRST);
@@ -79,13 +79,25 @@ plotCellData(G,sTPFA.pressure,'edgecolor','none');
 set(gcf, 'DefaultTextInterpreter', 'LaTex');
 colormap('jet')
 colorbar;
+axis equal
+axis([0,1,0,1])
 
 xlabel('$x$'); ylabel('$y$');
 set(gca, 'XTick', [0,1]);
 set(gca, 'YTick', [0,1]);
 fileName = strcat(dest, 'monotonicity_TPFA.pdf');
 
-savePdf(gcf, fileName);
+h = 0;
+w = 0;
+ps = get(gcf, 'Position');
+ratio = 1;
+paperWidth = 10;
+paperHeight = paperWidth*ratio;
+set(gcf, 'paperunits', 'centimeters');
+set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
+set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
+
+print(gcf, '-dpdf', fileName, '-r30');
 
 clf;
 
@@ -93,14 +105,27 @@ clf;
 
 plotCellData(G,sMIM.pressure,'edgecolor','none');
 set(gcf, 'DefaultTextInterpreter', 'LaTex');
+colormap('jet')
 colorbar;
+axis equal
+axis([0,1,0,1])
 
 xlabel('$x$'); ylabel('$y$');
 set(gca, 'XTick', [0,1]);
 set(gca, 'YTick', [0,1]);
 fileName = strcat(dest, 'monotonicity_MFD.pdf');
 
-savePdf(gcf, fileName);
+h = 0;
+w = 0;
+ps = get(gcf, 'Position');
+ratio = 1;
+paperWidth = 10;
+paperHeight = paperWidth*ratio;
+set(gcf, 'paperunits', 'centimeters');
+set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
+set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
+
+print(gcf, '-dpdf', fileName, '-r30');
 
 clf;
 
@@ -108,14 +133,28 @@ clf;
 
 plotCellData(G,sMPFA.pressure,'edgecolor','none');
 set(gcf, 'DefaultTextInterpreter', 'LaTex');
+colormap('jet')
 colorbar;
+
+axis equal
+axis([0,1,0,1])
 
 xlabel('$x$'); ylabel('$y$');
 set(gca, 'XTick', [0,1]);
 set(gca, 'YTick', [0,1]);
 fileName = strcat(dest, 'monotonicity_MPFA.pdf');
 
-savePdf(gcf, fileName);
+h = 0;
+w = 0;
+ps = get(gcf, 'Position');
+ratio = 1;
+paperWidth = 10;
+paperHeight = paperWidth*ratio;
+set(gcf, 'paperunits', 'centimeters');
+set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
+set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
+
+print(gcf, '-dpdf', fileName, '-r30');
 
 clf;
 
@@ -123,14 +162,27 @@ clf;
 
 plotCellData(G,sVEM1.cellMoments,'edgecolor','none');
 set(gcf, 'DefaultTextInterpreter', 'LaTex');
+colormap('jet')
 colorbar;
+axis equal
+axis([0,1,0,1])
 
 xlabel('$x$'); ylabel('$y$');
 set(gca, 'XTick', [0,1]);
 set(gca, 'YTick', [0,1]);
 fileName = strcat(dest, 'monotonicity_VEM1.pdf');
 
-savePdf(gcf, fileName);
+h = 0;
+w = 0;
+ps = get(gcf, 'Position');
+ratio = 1;
+paperWidth = 10;
+paperHeight = paperWidth*ratio;
+set(gcf, 'paperunits', 'centimeters');
+set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
+set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
+
+print(gcf, '-dpdf', fileName, '-r30');
 
 clf;
 
@@ -140,11 +192,23 @@ clf;
 plotCellData(G,sVEM2.cellMoments,'edgecolor','none');
 set(gcf, 'DefaultTextInterpreter', 'LaTex');
 colorbar;
+axis equal
 
 xlabel('$x$'); ylabel('$y$');
 set(gca, 'XTick', [0,1]);
 set(gca, 'YTick', [0,1]);
 fileName = strcat(dest, 'monotonicity_VEM2.pdf');
-savePdf(gcf, fileName);
+
+h = 0;
+w = 0;
+ps = get(gcf, 'Position');
+ratio = 1;
+paperWidth = 10;
+paperHeight = paperWidth*ratio;
+set(gcf, 'paperunits', 'centimeters');
+set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
+set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
+
+print(gcf, '-dpdf', fileName, '-r30');
 
 close all;

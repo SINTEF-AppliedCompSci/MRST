@@ -29,11 +29,15 @@ for i = 1:n
     bc = VEM2D_addBC(bc, G, bEdg(dofEdg2), 'pressure', gD);
     bc = VEM2D_addBC(bc, G, bEdg(~dofEdg2 & ~dofEdg1), 'pressure', 0);
 
-    sol = VEM2D(G, 0, 2, bc);
+    sol = VEM2D(G, 0, bc, 2);
 
     figure;
     
     plotVEM2D(G, sol, 1, 'edgecolor', 'none');
+    hold on
+    for j = 1:6
+        plot3(P(:,1), P(:,2), gD(P), 'k')
+    end
     view(-37.5, 40)
     xlabel('$x$', 'interpreter', 'latex')
     ylabel('$y$', 'interpreter', 'latex')
@@ -52,7 +56,7 @@ for i = 1:n
     set(gcf, 'paperunits', 'centimeters');
     set(gcf, 'papersize', [paperWidth paperHeight]);
     set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
-    dest = strcat('../../tex/thesis/fig/Phi', num2str(i), '.pdf');
+    dest = strcat('../../tex/thesis/fig/basis2D/Phi_', num2str(i), '.pdf');
     print(gcf, '-dpdf', dest);
     
 end
@@ -68,12 +72,12 @@ text(xK*.9, yK*.9,'$\textbf{x}_K$', 'interpreter', 'latex')
 plot([P(2,1),P(5,1)],[P(2,2),P(5,2)],'k--')
 text(.65, .25,'$h_K$', 'interpreter', 'latex')
 addFac = .1;
-for i = 1:n
-    cVec = P(i,:) - [xK, yK];
-    x = P(i,1) + cVec(1)*addFac;
-    y = P(i,2) + cVec(2)*addFac;
-    text(x,y,num2str(i),'interpreter', 'latex', 'fontsize', 8);
-end
+% for i = 1:n
+%     cVec = P(i,:) - [xK, yK];
+%     x = P(i,1) + cVec(1)*addFac;
+%     y = P(i,2) + cVec(2)*addFac;
+%     text(x,y,num2str(i),'interpreter', 'latex', 'fontsize', 8);
+% end
 axis equal off
 
 %%
@@ -85,4 +89,4 @@ paperHeight = paperWidth*ratio - cut;
 set(gcf, 'paperunits', 'centimeters');
 set(gcf, 'papersize', [paperWidth paperHeight]);
 set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
-print(gcf, '-dpdf', '../../tex/thesis/fig/BasisElement.pdf');
+print(gcf, '-dpdf', '../../tex/thesis/fig/basis2D/BasisElement.pdf');

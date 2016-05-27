@@ -2,6 +2,7 @@ clc; clear all; close all;
 
 addpath('../../../pebiGridding/voronoi3D/')
 addpath('../VEM3D')
+addpath('../VEM2D')
 addpath('../')
 
 % G = voronoiCube(50,[1,1,1]);
@@ -83,20 +84,20 @@ axis equal off
 hold off
 
 %%
-
-save('basisGrid3D.mat', 'G', 'K')
+% 
+% save('basisGrid3D.mat', 'G', 'K')
 
 %%
 
-cut = 4;
-ps = get(gcf, 'Position');
-ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
-paperWidth = 10;
-paperHeight = paperWidth*ratio - cut;
-set(gcf, 'paperunits', 'centimeters');
-set(gcf, 'papersize', [paperWidth paperHeight]);
-set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
-print(gcf, '-dpdf', '../../tex/thesis/fig/basis3D/BasisElement3D_new.pdf');
+% cut = 4;
+% ps = get(gcf, 'Position');
+% ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
+% paperWidth = 10;
+% paperHeight = paperWidth*ratio - cut;
+% set(gcf, 'paperunits', 'centimeters');
+% set(gcf, 'papersize', [paperWidth paperHeight]);
+% set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
+% print(gcf, '-dpdf', '../../tex/thesis/fig/basis3D/BasisElement3D_new.pdf');
 
 %%
 
@@ -125,7 +126,14 @@ m = retrieveMonomials(2,2);
 for k = 1:nN
     clf;
     n = nodes(k);
-    plotGrid(G,K, 'facecolor', 'none')
+%     plotGrid(G,K, 'facecolor', 'none')
+    for i = 1:nE
+        edgeNodes = G.edges.nodes(G.edges.nodePos(edges(i)):G.edges.nodePos(edges(i)+1)-1);
+        Xe = G.nodes.coords(edgeNodes,:);
+        plot3(Xe(:,1), Xe(:,2), Xe(:,3),'k');
+        hold on
+    end
+
     for i = 1:nF
         
         F = faces(i);
@@ -227,6 +235,7 @@ for k = 1:nN
 axis equal off;
 view([0,90])
 colorbar;
+
 h = 1;
 w = 0;
 ps = get(gcf, 'Position');

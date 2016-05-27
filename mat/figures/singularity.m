@@ -17,7 +17,7 @@ C = [xMax/2, yMax/2];
 m = 5;
 wellLine = {C};                % Set source center
 
-gT = 4;
+gT = 6;
 
 switch gT
     case 1
@@ -84,23 +84,48 @@ switch gT
         xMax = xMax*m;
         C = [xMax/2, yMax/2];
         load('singularityGrid2.mat');
+       
+    
+    case 7
+        xMax = xMax*1000;
+        yMax = xMax;
+        C = [xMax/2, yMax/2];
+        G = cartGrid([10,10]*4+1,[xMax,yMax]);
+        Gvem = computeVEM2DGeometry(G);
+        G = computeGeometry(G);
+        G.cells.tag(G.cells.centroids(:,1) == C(1) & G.cells.centroids(:,2) ==C(2)) = 1;
         
     otherwise
 
     error('unknown grid case')
 
-
 end                  
 
 
 %%  Set BC
+gD = @(X) -1/(2*pi)*log(sqrt(sum(bsxfun(@minus, X, C).^2,2)))+10;
+gN = @(X) -1/(2*pi)*(X(:,2)-C(2))./(sum(bsxfun(@minus, X, C).^2,2));
+% ggD = @(X) 1/(4*pi*sqrt(bsxfun(@minus,C
+% gNn = @(X) -1/(2*pi)*bsxfun(@rdivide,bsxfun(@minus,X,C),(sum(bsxfun(@minus, X, C).^2,2)));
 
-gD = @(X) 1/(2*pi)*log(1./sqrt(sum(bsxfun(@minus, X, C).^2,2))) + 10;
 tol = 1e-6;
-boundaryEdges = find(G.faces.neighbors(:,1) == 0 | G.faces.neighbors(:,2) == 0);
-bc_VEM = VEM2D_addBC([], G, boundaryEdges, 'pressure', gD);
-bc_MRST = addBC([], boundaryEdges, 'pressure', gD(G.faces.centroids(boundaryEdges,:)));
-            
+% % boundaryEdgesDir = find(G.faces.neighbors(:,1) == 0);
+% boundary= find(any(G.faces.neighbors == 0,2));
+% sign=2*(G.faces.neighbors(boundary,2)==0)-1;
+% 
+% flux= bsxfun(@times,gNn(G.faces.centroids(boundary,:)).*G.faces.normals(boundary,:),sign)
+% sum(sum(flux,2))
+%%
+boundaryEdgesDir = find(abs(G.faces.centroids(:,1))<tol  | abs(G.faces.centroids(:,1) -xMax)<tol);
+boundaryEdgesNeuN = find(abs(G.faces.centroids(:,2)- yMax)<tol);
+boundaryEdgesNeuS = find(abs(G.faces.centroids(:,2)) <tol);
+bc_VEM = VEM2D_addBC([], G, boundaryEdgesDir, 'pressure', gD);
+bc_VEM = VEM2D_addBC(bc_VEM,G,boundaryEdgesNeuN, 'flux', gN);
+bc_VEM = VEM2D_addBC(bc_VEM,G,boundaryEdgesNeuS, 'flux', @(X)-gN(X));
+bc_MRST = addBC([], boundaryEdgesDir, 'pressure', gD(G.faces.centroids(boundaryEdgesDir,:)));
+bc_MRST = addBC(bc_MRST, boundaryEdgesNeuN, 'flux', -2*abs(G.faces.areas(boundaryEdgesNeuN).*gN(G.faces.centroids(boundaryEdgesNeuN,:))));
+bc_MRST = addBC(bc_MRST, boundaryEdgesNeuS, 'flux', -2*abs(G.faces.areas(boundaryEdgesNeuS).*gN(G.faces.centroids(boundaryEdgesNeuS,:))));
+
 %% Set fluid and rock properties
 gravity reset off 
 fluid = initSingleFluid('mu' , 1, 'rho', 1);
@@ -111,6 +136,8 @@ rock.perm = ones([G.cells.num,1]);
 Q = 1;
 srcCells = find(G.cells.tag);
 src = addSource([],srcCells(1),Q);
+src2 = addSource([],srcCells(1),2*Q);
+% W=addWell([],G,rock,srcCells(1),'Type','rate','Val',2*Q,'Radius',0.1/G.cartDims(1));
 
 %% Initialize state
 sInit = initState(G, [], 0, [0.0,1]);
@@ -119,9 +146,10 @@ trans = computeTrans(G,rock);
 transMPFA = computeMultiPointTrans(G, rock);
 
 %% Solve Laplace
-sTPFA = incompTPFA(sInit, G, trans, fluid, 'src', src, 'bc', bc_MRST);
-sMIM  = solveIncompFlow(sInit, G, S, fluid,'src', src, 'bc', bc_MRST);
-sMPFA  = incompMPFA(sInit, G, transMPFA, fluid, 'src', src, 'bc',bc_MRST);
+sTPFA = incompTPFA(sInit, G, trans, fluid, 'src', src2, 'bc', bc_MRST);
+% sTPFA = incompTPFA(sInit, G, trans, fluid, 'wells', W, 'bc', bc_MRST);
+sMIM  = solveIncompFlow(sInit, G, S, fluid,'src', src2, 'bc', bc_MRST);
+sMPFA  = incompMPFA(sInit, G, transMPFA, fluid, 'src', src2, 'bc',bc_MRST);
 sVEM1 = VEM2D(G,0,bc_VEM, 1,'src', src, 'cellAverages', true);
 sVEM2 = VEM2D(G,0,bc_VEM, 2,'src', src);
 
