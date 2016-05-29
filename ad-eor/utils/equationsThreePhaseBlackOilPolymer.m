@@ -124,93 +124,89 @@ bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
 [vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
-
-% well equations :
-if ~isempty(W)
-    wm = WellModel();
-    if ~opt.reverseMode
-        % Store cell wise well variables in cell arrays and send to well
-        % model to get the fluxes and well control equations.
-        wc    = vertcat(W.cells);
-        pw    = p(wc);
-        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-        bw    = {bW(wc), bO(wc), bG(wc)};
-
-        [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-        mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        sat = {sW(wc), sO(wc), sG(wc)};
-
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
-            'maxComponents', rSatw, ...
-            'nonlinearIteration', opt.iteration);
-    else
-        error('not supported yet!');
-    end
-else
-    error('The polymer model does not support senarios without wells now!');
-end
-
-% s = model.operators;  % The previous s was overwritten with saturations.
-poro =  s.pv./G.cells.volumes;
-poroFace = s.faceAvg(poro);
-faceA = G.faces.areas(s.internalConn);
-
-% Bw * Fw should be flux
-Vw = vW./(poroFace .* faceA);
-
-% Using the upstreamed viscosity multiplier due to PLYVISC
-muWMultf = s.faceUpstr(upcw, muWMult);
-
-wc = vertcat(W.cells);
-muWMultW = muWMult(wc);
-
-[~, wciPoly, iInxW] = getWellPolymer(W);
-
-% Maybe should also apply this for PRODUCTION wells.
-muWMultW((iInxW(wciPoly==0))) = 1;
-
-
-% The water flux for the wells.
-fluxWaterWell = double(cqs{1});
-
-bwW = bW(wc);
-poroW = poro(wc);
-
-% the thickness of the well perforations in the cell
-welldir = { W.dir };
-i = cellfun('prodofsize', welldir) == 1;
-welldir(i) = arrayfun(@(w) repmat(w.dir, [ numel(w.cells), 1 ]), ...
-                      W(i), 'UniformOutput', false);
-welldir = vertcat(welldir{:});
-[dx, dy, dz] = cellDims(G, wc);
-thicknessWell = dz;
-thicknessWell(welldir == 'Y') = dy(welldir == 'Y');
-thicknessWell(welldir == 'X') = dx(welldir == 'X');
-
-% For the wells
-% The water velocity is computed at the reprensentative radius rR.
-if ~isfield(W, 'rR')
-    error('The representative radius of the well is not initialized');
-end
-rR = vertcat(W.rR);
-
-VwW = bwW.*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
-
-if ~opt.resOnly
-    muWMultW = muWMultW.val;
-    VwW = VwW.val;
-    muWMultf = muWMultf.val;
-    Vw = Vw.val;
-end
-
 if model.usingShear
+    % calculate well perforation rates :
+    if ~isempty(W)
+        wm = WellModel();
+        if ~opt.reverseMode
+            % Store cell wise well variables in cell arrays and send to well
+            % model to get the fluxes and well control equations.
+            wc    = vertcat(W.cells);
+            pw    = p(wc);
+            rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
+            bw    = {bW(wc), bO(wc), bG(wc)};
+
+            [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
+            mw    = {mobW(wc), mobO(wc), mobG(wc)};
+            sat = {sW(wc), sO(wc), sG(wc)};
+
+            [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
+                bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
+                'maxComponents', rSatw, ...
+                'nonlinearIteration', opt.iteration);
+        else
+            error('not supported yet!');
+        end
+    else
+        error('The polymer model does not support senarios without wells now!');
+    end
+
+    % s = model.operators;  % The previous s was overwritten with saturations.
+    poro =  s.pv./G.cells.volumes;
+    poroFace = s.faceAvg(poro);
+    faceA = G.faces.areas(s.internalConn);
+
+    % Bw * Fw should be flux
+    Vw = vW./(poroFace .* faceA);
+
+    % Using the upstreamed viscosity multiplier due to PLYVISC
+    muWMultf = s.faceUpstr(upcw, muWMult);
+
+    wc = vertcat(W.cells);
+    muWMultW = muWMult(wc);
+
+    [~, wciPoly, iInxW] = getWellPolymer(W);
+
+    % Maybe should also apply this for PRODUCTION wells.
+    muWMultW((iInxW(wciPoly==0))) = 1;
+
+
+    % The water flux for the wells.
+    fluxWaterWell = double(cqs{1});
+
+    bwW = bW(wc);
+    poroW = poro(wc);
+
+    % the thickness of the well perforations in the cell
+    welldir = { W.dir };
+    i = cellfun('prodofsize', welldir) == 1;
+    welldir(i) = arrayfun(@(w) repmat(w.dir, [ numel(w.cells), 1 ]), ...
+                          W(i), 'UniformOutput', false);
+    welldir = vertcat(welldir{:});
+    [dx, dy, dz] = cellDims(G, wc);
+    thicknessWell = dz;
+    thicknessWell(welldir == 'Y') = dy(welldir == 'Y');
+    thicknessWell(welldir == 'X') = dx(welldir == 'X');
+
+    % For the wells
+    % The water velocity is computed at the reprensentative radius rR.
+    if ~isfield(W, 'rR')
+        error('The representative radius of the well is not initialized');
+    end
+    rR = vertcat(W.rR);
+
+    VwW = bwW.*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
+
+    if ~opt.resOnly
+        muWMultW = muWMultW.val;
+        VwW = VwW.val;
+        muWMultf = muWMultf.val;
+        Vw = Vw.val;
+    end
+
     shearMultf = computeShearMult(model.fluid, abs(Vw), muWMultf);
     shearMultW = computeShearMult(model.fluid, abs(VwW), muWMultW);
-end
 
-
-if model.usingShear
     vW = vW ./ shearMultf;
     vP = vP ./ shearMultf;
 end
