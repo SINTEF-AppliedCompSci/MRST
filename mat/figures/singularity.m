@@ -14,10 +14,10 @@ addpath('../../../pebiGridding/voronoi2D/')
 xMax = 1; yMax = 1;
 
 C = [xMax/2, yMax/2];
-m = 5;
+m = 10;
 wellLine = {C};                % Set source center
 
-gT = 6;
+gT = 4;
 
 switch gT
     case 1
