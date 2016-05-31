@@ -231,6 +231,12 @@ for k = 1:nN
 %     set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
 %     dest = strcat('../../tex/thesis/fig/basis3D/Phi', num2str(k),'3D_new.pdf');
 %     print(gcf, '-dpdf', dest, '-r0');
+      for i = 1:nE
+        edgeNodes = G.edges.nodes(G.edges.nodePos(edges(i)):G.edges.nodePos(edges(i)+1)-1);
+        Xe = G.nodes.coords(edgeNodes,:);
+        plot3(Xe(:,1), Xe(:,2), Xe(:,3),'k');
+        hold on
+      end
 
 axis equal off;
 view([0,90])

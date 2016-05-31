@@ -9,6 +9,8 @@ G = sortEdges(G);
 G = computeVEM2DGeometry(G);
 cut = 3;
 
+%%
+
 bEdg = find(any(G.faces.neighbors == 0,2));
 
 n = size(P,1);
@@ -82,11 +84,13 @@ axis equal off
 
 %%
 
+w = 2;
+h = 2;
 ps = get(gcf, 'Position');
-ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
+ratio = 1;
 paperWidth = 10;
-paperHeight = paperWidth*ratio - cut;
+paperHeight = paperWidth*ratio;
 set(gcf, 'paperunits', 'centimeters');
-set(gcf, 'papersize', [paperWidth paperHeight]);
-set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
+set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
+set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
 print(gcf, '-dpdf', '../../tex/thesis/fig/basis2D/BasisElement.pdf');
