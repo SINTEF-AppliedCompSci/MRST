@@ -7,7 +7,7 @@ function G = CIcalculator2D(G,fracture)
 %
 % DESCRIPTION:
 %   CI or conductivity index is similar to the well productivity index as
-%   in the peaceman well model. In hierarchical/embedded fracture
+%   in the Peaceman well model. In hierarchical/embedded fracture
 %   modelling, the flux exchange between fracture and matrix is defined by
 %   a model similar to the peaceman well model. See Lee et al, Water
 %   Resources Research, 2001 or SPE-65095-PA, Lee et al, 2000.
