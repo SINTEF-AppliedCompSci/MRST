@@ -1,10 +1,4 @@
 clc; clear; close all;
-
-%% LOAD MODULES
-
-mrstModule add mimetic
-mrstModule add mpfa
-        
 %%  MAKE GRID
 
 G = cartGrid([51,51],[1,1]);
@@ -32,7 +26,7 @@ src = addSource([],srcCell,1);
 %% INITIALIZE STATE
 
 sInit1 = initState(G, [], 0);
-sInit2 = initState(G, [], 0, [0,1]);
+sInit2 = initState(G, [], 0, [1,0]);
 S      = computeMimeticIP(G, rock, 'Verbose', true);
 T      = computeTrans(G,rock);
 
