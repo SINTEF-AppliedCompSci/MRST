@@ -5,7 +5,10 @@ The 3D solvers do not have the capability of handling intersecting fracture
 planes.
 %}
 
-close all;
+mrstModule add hfm;             % hybrid fracture module
+mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add new-multiscale;  % MsRSB solvers
+mrstModule add mrst-gui;        % plotting routines
 
 %% Grid and fracture(s)
 

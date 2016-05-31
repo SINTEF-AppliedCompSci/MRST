@@ -1,10 +1,19 @@
 %{
 Two-phase 2D example with water injection from the left boundary of a
-rectangular domain containing 2 intersecting fractures.
+rectangular domain containing 2 intersecting fractures. The flow problem is
+solved both by a fine-scale and a multiscale solver.
+
+Notice that you need to have Metis installed to get this example to work.
+To get Metis working, you also need to set the global variable METISPATH.
+This can be done in your 'startup_user.m' file.
 %}
 
-close all;
-checkLineSegmentIntersect; % Check if lineSegmentIntersect.m is in the path
+% Load necessary modules, etc 
+mrstModule add hfm;             % hybrid fracture module
+mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add new-multiscale;  % MsRSB solvers
+mrstModule add mrst-gui;        % plotting routines
+checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 
 %% Grid and fracture lines
 

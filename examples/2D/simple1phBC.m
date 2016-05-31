@@ -1,10 +1,19 @@
 %{
-Single phase 2D example with dirichlet boundary conditions demonstrating
-the use of the HFM module.
+Single-phase 2D example with Dirichlet boundary conditions demonstrating
+the use of the HFM module. The flow problem is solved both by a fine-scale
+and a multiscale solver.
+
+Notice that you need to have Metis installed to get this example to work.
+To get Metis working, you also need to set the global variable METISPATH.
+This can be done in your 'startup_user.m' file.
 %}
 
-close all; 
-checkLineSegmentIntersect; % Check if lineSegmentIntersect.m is in the path
+% Load necessary modules, etc 
+mrstModule add hfm;             % hybrid fracture module
+mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add new-multiscale;  % MsRSB solvers
+mrstModule add mrst-gui;        % plotting routines
+checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 
 %% Grid and fracture lines
 
