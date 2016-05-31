@@ -69,6 +69,7 @@ end
 %--------------------------------------------------------------------------
 
 function varargout = relperm(s, varargin)
+   assert(size(s,2)==1);
    varargout{1} = ones(size(s));
    if nargout > 1, varargout{2} = zeros(size(s)); end
    if nargout > 2, varargout{3} = zeros(size(s)); end
