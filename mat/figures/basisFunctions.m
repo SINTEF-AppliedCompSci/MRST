@@ -58,8 +58,11 @@ for i = 1:n
     set(gcf, 'paperunits', 'centimeters');
     set(gcf, 'papersize', [paperWidth paperHeight]);
     set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
-    dest = strcat('../../tex/thesis/fig/basis2D/Phi_', num2str(i), '.pdf');
-    print(gcf, '-dpdf', dest);
+%     dest = strcat('../../tex/thesis/fig/basis2D/Phi_', num2str(i), '.pdf');
+%     print(gcf, '-dpdf', dest);
+%     
+    dest = strcat('../../tex/thesis/fig/basis2D/Phi_', num2str(i), '.png');
+    print(gcf, '-dpng', dest, '-r600');
     
 end
 
@@ -84,8 +87,8 @@ axis equal off
 
 %%
 
-w = 2;
-h = 2;
+w = 5;
+h = 5;
 ps = get(gcf, 'Position');
 ratio = 1;
 paperWidth = 10;
@@ -93,4 +96,5 @@ paperHeight = paperWidth*ratio;
 set(gcf, 'paperunits', 'centimeters');
 set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
 set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
-print(gcf, '-dpdf', '../../tex/thesis/fig/basis2D/BasisElement.pdf');
+% print(gcf, '-dpdf', '../../tex/thesis/fig/basis2D/BasisElement.pdf');
+print(gcf, '-dpng', '../../tex/thesis/fig/basis2D/BasisElement.png', '-r600');
