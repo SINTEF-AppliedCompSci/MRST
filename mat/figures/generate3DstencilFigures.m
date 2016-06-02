@@ -51,22 +51,22 @@ quiver3(0,0,-(1+add), 0, 0, 2*(1+add)+d, 'LineWidth', lineWidth, 'color', bl);
 plot3(X1(:,1), X1(:,2), X1(:,3), 'ok', 'MarkerFaceColor', 'r')
 
 set(gca,'XTick',[-1 0 1] );
-set(gca,'XTickLabel',{'i-1', 'i', 'i+1'} )
+set(gca,'XTickLabel',{'', '', ''} )
 set(gca,'YTick',[-1 0 1] );
-set(gca,'YTickLabel',{'j-1', 'j', 'j+1'} )
+set(gca,'YTickLabel',{'', '', ''} )
 set(gca,'ZTick',[-1 0 1] );
-set(gca,'ZTickLabel',{'k-1', 'k', 'k+1'} )
-set(gca, 'FontName', 'Times-Roman', 'FontAngle', 'Oblique')
+set(gca,'ZTickLabel',{'', '', ''} )
+% set(gca, 'FontName', 'Times-Roman', 'FontAngle', 'Oblique')
 
 % h = my_xticklabels([-1,0,1], {'$i-1$', '$i$', '$i+1$'});
 % h = my_yticklabels([-1,0,1], {'$j-1$', '$j$', '$j+1$'});
 
-text(1+.4,0,.2,'$x$')
-text(0,1+.4,.2,'$y$')
-text(.15,0,1+.5,'$z$')
-text(-.5,1.2,1.1,'$h_x$')
-text(-1.2,.4,.8,'$h_y$')
-text(-1.2,1.2,.5,'$h_z$')
+% text(1+.4,0,.2,'$x$')
+% text(0,1+.4,.2,'$y$')
+% text(.15,0,1+.5,'$z$')
+% text(-.5,1.2,1.1,'$h_x$')
+% text(-1.2,.4,.8,'$h_y$')
+% text(-1.2,1.2,.5,'$h_z$')
 
 axis equal
 axis([-1.5 1.5 -1.5 1.5 -1.5 1.5])
@@ -109,17 +109,16 @@ plot3(X1(:,1), X1(:,2), X1(:,3), 'ok', 'MarkerFaceColor', 'r')
 plot3(X2(:,1), X2(:,2), X2(:,3), 'ok', 'MarkerFaceColor', 'r')
 
 set(gca,'XTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'XTickLabel',{'i-1', 'i', 'i+1'} )
+set(gca,'XTickLabel',{'', '', ''} )
 set(gca,'YTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'YTickLabel',{'j-1', 'j', 'j+1'} )
+set(gca,'YTickLabel',{'', '', ''} )
 set(gca,'ZTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'ZTickLabel',{'k-1', 'k', 'k+1'} )
-set(gca, 'FontName', 'Times-Roman', 'FontAngle', 'Oblique')
+set(gca,'ZTickLabel',{'', '', ''} )
 axis equal
 
-text(1+.4,0,.2,'$x$')
-text(0,1+.2,1+.3,'$\eta_x$')
-text(-.05,-(1+.4),1+.25,'$\zeta_x$')
+% text(1+.4,0,.2,'$x$')
+% text(0,1+.2,1+.3,'$\eta_x$')
+% text(-.05,-(1+.4),1+.25,'$\zeta_x$')
 
 axis equal
 axis([-1.5 1.5 -1.5 1.5 -1.5 1.5])
@@ -165,18 +164,17 @@ plot3(X(:,1), X(:,2), X(:,3), 'ok', 'MarkerFaceColor', 'r')
 
 
 set(gca,'XTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'XTickLabel',{'i-1', 'i', 'i+1'} )
+set(gca,'XTickLabel',{'', '', ''} )
 set(gca,'YTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'YTickLabel',{'j-1', 'j', 'j+1'} )
+set(gca,'YTickLabel',{'', '', ''} )
 set(gca,'ZTick',[-1 0 1] ); %This are going to be the only values affected.
-set(gca,'ZTickLabel',{'k-1', 'k', 'k+1'} )
-set(gca, 'FontName', 'Times-Roman', 'FontAngle', 'Oblique')
+set(gca,'ZTickLabel',{'', '', ''} )
 axis equal
-
-text(1+.4,1+.2,1+.2,'$d_1$')
-text(1+.4,-(1-.5),1+.2,'$d_2$')
-text((.7),(.8),-(1+.1),'$d_3$')
-text((1+.5),-(1-.3),-(1+.2),'$d_4$')
+% 
+% text(1+.4,1+.2,1+.2,'$d_1$')
+% text(1+.4,-(1-.5),1+.2,'$d_2$')
+% text((.7),(.8),-(1+.1),'$d_3$')
+% text((1+.5),-(1-.3),-(1+.2),'$d_4$')
 
 axis([-1.5 1.5 -1.5 1.5 -1.5 1.5])
 view(azel)
