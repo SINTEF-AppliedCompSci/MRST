@@ -5,8 +5,10 @@ The 3D solvers do not have the capability of handling intersecting fracture
 planes.
 %}
 
+% Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 
@@ -234,7 +236,7 @@ figure;
 plot(pvi,e*100, '--+b');
 ylabel('e [%]')
 xlabel('PVI [%]'); 
-set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+set(gca,'XGrid','on','YGrid','on');
 axis tight
 
 e_eq = '$$ e = \frac{ \sum ( |S_w^{fs}-S_w^{f-msrsb}| \times pv) }{ \sum (S_w^{fs} \times pv) } $$';

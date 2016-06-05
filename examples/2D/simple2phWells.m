@@ -11,6 +11,7 @@ This can be done in your 'startup_user.m' file.
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
@@ -114,7 +115,7 @@ dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B);
 axis tight; c = colormap(jet);
-c(1,:) = [1 1 1]; colormap(c); colorbar;
+colormap(c); colorbar;
 title('Basis functions plotted in the matrix');
 
 %% Compute multiscale solution
@@ -212,7 +213,7 @@ plot(pvi,pfs(:,1),'-o',pvi,pms(:,1),'--*');
 leg = legend('Fine-scale','Multiscale','Location','Best');
 ylabel('Saturation at producer');
 xlabel('PVI [%]'); 
-set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+set(gca,'XGrid','on','YGrid','on');
 axis tight
 
 %% Plot error in saturation 
@@ -221,7 +222,7 @@ figure;
 plot(pvi,e*100, '--+b');
 ylabel('e [%]')
 xlabel('PVI [%]'); 
-set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+set(gca,'XGrid','on','YGrid','on');
 axis tight
 
 e_eq = '$$ e = \frac{ \sum ( |S_w^{fs}-S_w^{f-msrsb}| \times pv) }{ \sum (S_w^{fs} \times pv) } $$';

@@ -11,6 +11,7 @@ This can be done in your 'startup_user.m' file.
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
@@ -101,7 +102,7 @@ CGm = getRsbGridsMatrix(G, pm, 'fullyCoupled', false, 'Wells', W);
 % Partition fracture
 
 nw = fracture.network;
-coarseDimsF = [2 4];
+coarseDimsF = [3 3];
 p  = partitionFracture(G, pm, nw, 'partition_frac'   , true   , ...
     'use_metisF'       , false  , ...
     'coarseDimsF'      , coarseDimsF );
@@ -145,7 +146,7 @@ dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B); view(-135,30)
 axis tight; c = colormap(jet);
-c(1,:) = [1 1 1]; colormap(c); colorbar;
+colormap(c); colorbar;
 title('Basis Functions in the matrix');
 
 %% Compute multiscale solution
