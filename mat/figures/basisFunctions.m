@@ -72,10 +72,10 @@ fill(P(:,1), P(:,2), 'y', 'facealpha', .2)
 hold on
 xK = mean(polygonInt(G, 1:G.cells.num, @(X) X(:,1), 7)./G.cells.volumes);
 yK = mean(polygonInt(G, 1:G.cells.num, @(X) X(:,2), 7)./G.cells.volumes);
-plot(xK, yK, 'ok', 'MarkerFaceColor', 'r', 'markersize', 4);
-text(xK*.9, yK*.9,'$\textbf{x}_K$', 'interpreter', 'latex')
+plot(xK, yK, 'ok', 'MarkerFaceColor', 'r');
+%text(xK*.9, yK*.9,'$\textbf{x}_K$', 'interpreter', 'latex')
 plot([P(2,1),P(5,1)],[P(2,2),P(5,2)],'k--')
-text(.65, .25,'$h_K$', 'interpreter', 'latex')
+%text(.65, .25,'$h_K$', 'interpreter', 'latex')
 addFac = .1;
 % for i = 1:n
 %     cVec = P(i,:) - [xK, yK];
@@ -87,8 +87,8 @@ axis equal off
 
 %%
 
-w = 5;
-h = 5;
+w = 2;
+h = 2;
 ps = get(gcf, 'Position');
 ratio = 1;
 paperWidth = 10;
@@ -96,5 +96,5 @@ paperHeight = paperWidth*ratio;
 set(gcf, 'paperunits', 'centimeters');
 set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
 set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
-% print(gcf, '-dpdf', '../../tex/thesis/fig/basis2D/BasisElement.pdf');
-print(gcf, '-dpng', '../../tex/thesis/fig/basis2D/BasisElement.png', '-r600');
+print(gcf, '-dpdf', '../../tex/thesis/fig/basis2D/BasisElement.pdf');
+% print(gcf, '-dpng', '../../tex/thesis/fig/basis2D/BasisElement.png', '-r600');

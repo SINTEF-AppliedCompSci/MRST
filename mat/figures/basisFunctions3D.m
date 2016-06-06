@@ -78,8 +78,8 @@ for i = 1:nRE
 end
 
 xK = Kc(1); yK = Kc(2); zK = Kc(3);
-plot3(xK, yK, zK, 'ok', 'MarkerFaceColor', 'r', 'markersize', 4);
-text(xK*.98, yK*.95, zK*.98, '$\textbf{x}_K$', 'interpreter', 'latex')
+plot3(xK, yK, zK, 'ok', 'MarkerFaceColor', 'r');
+% text(xK*.98, yK*.95, zK*.98, '$\textbf{x}_K$', 'interpreter', 'latex')
 axis equal off
 hold off
 
@@ -89,15 +89,17 @@ hold off
 
 %%
 
-% cut = 4;
-% ps = get(gcf, 'Position');
-% ratio = (ps(4)-ps(2)) / (ps(3)-ps(1));
-% paperWidth = 10;
-% paperHeight = paperWidth*ratio - cut;
-% set(gcf, 'paperunits', 'centimeters');
-% set(gcf, 'papersize', [paperWidth paperHeight]);
-% set(gcf, 'PaperPosition', [0    0   paperWidth paperHeight]);
-% print(gcf, '-dpdf', '../../tex/thesis/fig/basis3D/BasisElement3D_new.pdf');
+w = 1;
+h = 1;
+ps = get(gcf, 'Position');
+
+ratio = 1;
+paperWidth = 10;
+paperHeight = paperWidth*ratio;
+set(gcf, 'paperunits', 'centimeters');
+set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
+set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
+print(gcf, '-dpdf', '../../tex/thesis/fig/basis3D/BasisElement3D_new.pdf');
 
 %%
 
