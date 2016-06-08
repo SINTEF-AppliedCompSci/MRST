@@ -31,7 +31,7 @@ function sol = calculateCellAverages(G, sol)
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 
