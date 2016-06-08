@@ -66,7 +66,7 @@ cut = 4;
 %%
 
 w = 0;
-h = 5;
+h = 9;
 ps = get(gcf, 'Position');
 ratio = 1;
 paperWidth = 10;
@@ -75,7 +75,6 @@ set(gcf, 'paperunits', 'centimeters');
 set(gcf, 'papersize', [paperWidth-w paperHeight-h]);
 set(gcf, 'PaperPosition', [-w    -h   paperWidth+w paperHeight+h]);
 print(gcf, '-dpdf', '../../tex/thesis/fig/Mapping_new.pdf');
-
 %%
 
 % save('basisElement.mat', 'G', 'K') 
