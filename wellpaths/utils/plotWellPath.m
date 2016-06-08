@@ -91,18 +91,23 @@ for wp = 1:numel(wellpaths)
         segInd = min(segInd, numel(act));
         isActive = act(segInd);
         vals(~isActive, :) = nan;
-
+        
+        if size(pts, 2) == 3
+            plotter = @(x, varargin) plot3(x(:, 1), x(:, 2), x(:, 3), varargin{:});
+        else
+            plotter = @(x, varargin) plot(x(:, 1), x(:, 2), varargin{:});
+        end
         % Make the curves for current segment
         if ~isempty(opt.Color)
-            h_loc(i, 1) = plot3(vals(:, 1), vals(:, 2), vals(:, 3),...
+            h_loc(i, 1) = plotter(vals,...
                 'LineWidth', opt.LineWidth, 'Color', opt.Color);
         else
-            h_loc(i, 1) = plot3(vals(:, 1), vals(:, 2), vals(:, 3),...
+            h_loc(i, 1) = plotter(vals,...
                 'LineWidth', opt.LineWidth);
         end
         % Plot control points (note that pts are the prescribed values, and
         % not interpolated).
-        h_loc(i, 2) = plot3(pts(:, 1), pts(:, 2), pts(:, 3), 'ro', 'MarkerFaceColor', opt.MarkerColor);
+        h_loc(i, 2) = plotter(pts, 'ro', 'MarkerFaceColor', opt.MarkerColor);
 
     end
     h = [h; h_loc];
