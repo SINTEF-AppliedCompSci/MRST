@@ -81,6 +81,21 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             end
         end
 
+        function state = validateState(model, state)
+            state = validateState@ReservoirModel(model, state);
+            ncell = model.G.cells.num;
+            ncomp = model.EOSModel.fluid.getNumberOfComponents();
+            model.checkProperty(state, 'Components', [1, ncomp], [1, 2]);
+            T = model.getProp(state, 'Temperature');
+            if numel(T) == 1
+                % Expand single temperature to all grid cells
+                fn = model.getVariableField('Temperature');
+                state = rmfield(state, fn);
+                state = model.setProp(state, 'Temperature', repmat(T, ncell, 1));
+            end
+            model.checkProperty(state, 'Temperature', [ncell, 1], [1, 2]);
+        end
+
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             state0 = state;
             

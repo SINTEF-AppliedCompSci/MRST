@@ -28,6 +28,13 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
         end
 
         % --------------------------------------------------------------------%
+        function state = validateState(model, state)
+            state = validateState@ThreePhaseBlackOilModel(model, state);
+            % Polymer must be present
+            model.checkProperty(state, 'Polymer', [model.G.cells.num, 1], [1, 2]);
+        end
+
+        % --------------------------------------------------------------------%
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             [state, report] = updateState@ThreePhaseBlackOilModel(model, ...
                state, problem,  dx, drivingForces);

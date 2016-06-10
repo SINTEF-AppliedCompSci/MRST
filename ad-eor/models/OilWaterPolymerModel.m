@@ -29,6 +29,12 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
                 model, dt, drivingForces, varargin{:});
         end
         
+        function state = validateState(model, state)
+            state = validateState@TwoPhaseOilWaterModel(model, state);
+            % Polymer must be present
+            model.checkProperty(state, 'Polymer', model.G.cells.num, 1);
+        end
+
         function [state, report] = updateState(model, state, problem, ...
                 dx, drivingForces)
             [state, report] = updateState@TwoPhaseOilWaterModel(model, ...

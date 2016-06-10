@@ -25,6 +25,13 @@ classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
         function varargout = evaluateRelPerm(model, sat, varargin)
             error('function evaluateRelPerm is not implemented for surfactant model')
         end
+        
+        function state = validateState(model, state)
+            state = validateState@TwoPhaseOilWaterModel(model, state);
+            nc = model.G.cells.num;
+            model.checkProperty(state, 'Surfactant', [nc, 1], [1, 2]);
+            model.checkProperty(state, 'SurfactantMax', [nc, 1], [1, 2]);
+        end
 
         function [fn, index] = getVariableField(model, name)
         % Get the index/name mapping for the model (such as where

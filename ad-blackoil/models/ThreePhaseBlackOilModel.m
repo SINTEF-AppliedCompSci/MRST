@@ -73,6 +73,39 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function state = validateState(model, state)
+        % Check parent class
+        state = validateState@ReservoirModel(model, state);
+        nc = model.G.cells.num;
+        if model.disgas
+            % RS must be supplied for all cells. This may cause an error.
+            model.checkProperty(state, 'rs', nc, 1);
+        else
+            % RS does not really matter. Assign single value.
+            fn = model.getVariableField('rs');
+            if ~isfield(state, fn)
+                dispif(model.verbose, ...
+                    ['Missing field "', fn, '" added since disgas is not enabled.\n']);
+                state.(fn) = 0;
+            end
+            clear fn
+        end
+        if model.vapoil
+            % RV must be supplied for all cells. This may cause an error.
+            model.checkProperty(state, 'rv', nc, 1);
+        else
+            % RS does not really matter. Assign single value.
+            fn = model.getVariableField('rv');
+            if ~isfield(state, fn)
+                dispif(model.verbose, ...
+                    ['Missing field "', fn, '" added since vapoil is not enabled.\n']);
+                state.(fn) = 0;
+            end
+            clear fn
+        end
+    end
+
+    % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
         saturations = lower(model.saturationVarNames);
         wi = strcmpi(saturations, 'sw');

@@ -164,6 +164,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        state.wellSol = initWellSolAD(getWell(1), model, state);
     end
 
+    dispif(opt.Verbose, 'Validating initial state...\n')
+    state = model.validateState(state);
+    dispif(opt.Verbose, 'Initial state ready for simulation.\n')
+
     failure = false;
     simtime = zeros(nSteps, 1);
     prevControl = nan;
