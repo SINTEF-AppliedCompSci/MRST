@@ -220,6 +220,15 @@ bWvW = s.faceUpstr(upcw, bW).*vW;
 bGvG = s.faceUpstr(upcg, bG).*vG;
 bWvP = s.faceUpstr(upcw, bW).*vP;
 
+% Store fluxes / properties for debugging / plotting, if requested.
+if model.outputFluxes
+    state = model.storeFluxes(state, vW, vO, vG);
+end
+if model.extraStateOutput
+    state = model.storebfactors(state, bW, bO, bG);
+    state = model.storeMobilities(state, mobW, mobO, mobG);
+    state = model.storeUpstreamIndices(state, upcw, upco, upcg);
+end
 % EQUATIONS ---------------------------------------------------------------
 
 % The first equation is the conservation of the water phase. This equation is
