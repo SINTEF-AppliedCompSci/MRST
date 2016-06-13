@@ -1,14 +1,16 @@
 function bc = VEM2D_addBC(bc, G, f, t, v, varargin)
-%--------------------------------------------------------------------------
 %   Adds boundary condition to (new or existing) BC object. Usage differs
 %   from that of the MRST function addBC in three ways:
 %
 %       - The grid, with computed geometry, G = computeGeometry(G), is a
 %         required input parameter.
-%       - Input values v can be a single function handle.
-%       - Output v is a nf x 3 matrix with the values of the endpoints of
-%         the edge in the firs two columns, and the value at the midpoint
-%         of the edge in the last column.
+%       - Input values v is a function handle, and understood to be the
+%         normal derivative of the unknown function. Can also be scalars as
+%         in addBC, and is the understood to be these function values at
+%         the faces.
+%       - Output field bc.value is an nf x 3 matrix with the values of the
+%         endpoints of the edge in the firs two columns, and the value at
+%         the midpoint of the edge in the last column.
 %
 %   See MRST function addBC for details and copyright info.
 %-----------------------------------------------------------------ØSK-2016-

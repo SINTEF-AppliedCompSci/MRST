@@ -1,4 +1,27 @@
-function plotVEM2D(G, sol, k, varargin)
+function h = plotVEM2D(G, sol, k, varargin)
+%   Plots the 2D solution obtained from VEM.
+%
+%   SYNOPSIS:
+%       h = plotVEM2D(G, sol, k, varargin)
+%
+%   REQUIRED PARAMETERS:
+%       G       - 2D MRST grid, with sorted edges, G = sortEdges(G),
+%                 computed VEM geometry, G = computeVEMGeometry(G).
+%       sol     - Solution struct obtained from kth order VEM.
+%       k       - Method order. Can be lower than order of VEM used to
+%                 obtain sol, but will then use only nodeValues.
+%
+%   OPTIONAL PARAMETERS:
+%       Supports the same optimal parameters as the MATLAB function fill3.
+%
+%   RETURNS:
+%       h       - Figure handle.
+%-----------------------------------------------------------------ØSK-2016-
+
+%{
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
+   for details.
+%}
 
 nK = G.cells.num;
 
@@ -22,6 +45,7 @@ for K = 1:nK
         fill3(X(:,1), X(:,2), Z, Z, varargin{:});
     end
     hold on;
+    h = gcf;
 end
     
         

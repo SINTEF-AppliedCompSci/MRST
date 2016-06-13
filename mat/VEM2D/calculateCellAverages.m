@@ -1,5 +1,4 @@
 function sol = calculateCellAverages(G, sol)
-%--------------------------------------------------------------------------
 %   Calculates cell averages of solution sol obtained from a 1st order VEM.
 %
 %   SYNOPSIS:
@@ -19,7 +18,8 @@ function sol = calculateCellAverages(G, sol)
 %   REQUIRED PARAMETERS:
 %       G       - 2D MRST grid, with sorted edges, G = sortEdges(G),
 %                 computed VEM geometry, G = computeVEMGeometry(G), and
-%                 projectors \Pi^\nabla.
+%                 projectors \Pi^\nabla. See VEM2D on how to calculte
+%                 projectors.
 %       sol     - Solution obtained from 1st order VEM.
 %
 %   RETURNS:
@@ -27,7 +27,9 @@ function sol = calculateCellAverages(G, sol)
 %                 (cellMoments).
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1]     - The virtual element method as a common framework for
+%                 finite element and finite difference methods - Numerical
+%                 and theoretical analysis.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{

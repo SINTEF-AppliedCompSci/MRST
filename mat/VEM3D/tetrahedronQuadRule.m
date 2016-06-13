@@ -1,5 +1,4 @@
 function [Xq, w, V, vol] = tetrahedronQuadRule(k)
-%--------------------------------------------------------------------------
 %   Returns quadrature rule for the reference terahedron with vertices V.
 %
 %   SYNOPSIS:
@@ -31,7 +30,7 @@ function [Xq, w, V, vol] = tetrahedronQuadRule(k)
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 

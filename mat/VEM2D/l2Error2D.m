@@ -1,18 +1,18 @@
-function l2Err = l2Error(G, sol, u, k)
-%--------------------------------------------------------------------------
+function l2Err = l2Error2D(G, sol, u, k)
 %   Calculates the square of the L^2-norms over each cell K of the
-%   difference between the solution to the Laplace equation and the
+%   difference between the solution to the Poisson equation and the
 %   approximated solution using a kth order VEM.
 %
 %   SYNOPSIS:
 %       l2Err = l2Error(G, sol, u, k)
 %
 %   DESCRIPTION:
-%       Evaluates the integrals
+%       Approximates the integrals
 %   
 %           \int_{K} |u-U|^2 \dx
+%           \approx \int_{K}|u-\Pi^\nabla U|^2_{0,K} \dx
 % 
-%       for each cell K, where u is the analytical solution to the Laplace
+%       for each cell K, where u is the analytical solution to the Poisson
 %       equation
 %
 %       -\Delta u = f,                                                (1)  
@@ -30,15 +30,17 @@ function l2Err = l2Error(G, sol, u, k)
 %                 obtain sol, but will then use only nodeValues.
 %
 %   RETURNS:
-%       l2Err   - Square of L^2(K)-norm of difference between analytical
+%       l2Err   - Square of L^2(K) norm of difference between analytical
 %                 solution and approximated solution for (1), for each cell
 %                 K.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
+
+assert(k == 1 || k == 2, 'Method order k must be 1 or 2.')
 
 nK = G.cells.num;
 [m, ~, ~] = retrieveMonomials(2,k);

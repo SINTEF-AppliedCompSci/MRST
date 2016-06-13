@@ -1,5 +1,4 @@
 function sol = calculateFaceAverages(G, sol)
-%--------------------------------------------------------------------------
 %   Calculates cell averages of solution sol obtained from a 1st order VEM.
 %
 %   SYNOPSIS:
@@ -11,10 +10,10 @@ function sol = calculateFaceAverages(G, sol)
 %           |K|^{-1}\int_{K} u \dx = |K|^{-1}\int_{K} \Pi^{\nabla} u \dx 
 % 
 %       for each cell K of the solution u. Each cell is trangulated, and a
-%       map from reference triangle with vertices (0,0), (1,0) and (0,1)
-%       is constructed. A first-order quadrature rule is used, and 
-%       \Pi^{\nabla} u is evaluated at each quadrature point through the
-%       monomial basis \mathcal{M}_1(K). See [1] for details.
+%       map from a reference tetrahedron is constructed, see
+%       tetrahedronQuadRule for details. A first-order quadrature rule is
+%       used, and \Pi^{\nabla} u is evaluated at each quadrature point
+%       through the monomial basis \mathcal{M}_1(K). See [1] for details.
 %
 %   REQUIRED PARAMETERS:
 %       G       - 2D MRST grid, with sorted edges, G = sortEdges(G),
@@ -27,12 +26,15 @@ function sol = calculateFaceAverages(G, sol)
 %                 (cellMoments).
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1]     - Ø. S. Klemetsdal: 'The virtual element method as a common
+%                 framework for finite element and finite difference
+%                 methods - Numerical and theoretical analysis'. MA thesis.
+%                 Norwegian University of Science and Technology.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
-   for details.
+    Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
+    for details.
 %}
 
 if isempty(sol.faceMoments)

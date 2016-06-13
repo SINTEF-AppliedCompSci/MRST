@@ -1,22 +1,16 @@
 function [A, b, PNstarT] ...
-       = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src, mu, rho)
-%--------------------------------------------------------------------------
+               = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src)
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 2D Poisson equation.
 %
 %   SYNOPSIS:
-%       [A, b, PNstarT] ...
-%                = VEM2D_glob(G, f, k, bc, sigma, projectors, src, mu, rho)
+%       [A, b, PNstarT] = VEM2D_glob(G, f, k, bc, sigma, projectors, src)
 %
 %   DESCRIPTION:
 %       Assmebles the global stiffness matrix and load term for the virtual
 %       element method of order k on grid G for the 2D Poisson equation 
 %
-%           -\Delta u = f,
-%
-%       or, if a fluid is specified,
-%
-%           -\Delta p = \frac{\mu}{\rho} f,
+%           -\Delta u = f.
 %
 %   REQUIRED PARAMETERS:
 %       G          - MRST grid.
@@ -33,8 +27,6 @@ function [A, b, PNstarT] ...
 %                    of \Pi^\nabla in the monomial basis \mathcal_k(K) will
 %                    be stored.
 %       src        - Source term struct constructed using addSource.
-%       mu         - Dynamic viscosity of fluid. Set to 1 if N/A
-%       rho        - Fluid density. Set to 1 if N/A.
 %
 %   RETURNS:
 %       A          - Global stiffness matrix.
@@ -44,7 +36,9 @@ function [A, b, PNstarT] ...
 %                    details.
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1]        - The virtual element method as a common framework for
+%                    finite element and finite difference methods -
+%                    Numerical and theoretical analysis.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
@@ -115,8 +109,7 @@ for K = 1:nK
     end
     
     [AK, bK, dofVec, PNstar] ...
-     = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigmaK, cartGridQ, ...
-                                                         rate(K), mu, rho);
+     = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigmaK, cartGridQ, rate(K));
 
     NK = numel(dofVec);
     

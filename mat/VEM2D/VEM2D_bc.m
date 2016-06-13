@@ -1,5 +1,4 @@
 function [A, b] = VEM2D_bc(G, A, b, bc, k)
-%--------------------------------------------------------------------------
 %   Incorporates boundary conditions in stiffness matrix A and load term b,
 %   obtained using a kth order VEM.
 %
@@ -25,10 +24,12 @@ function [A, b] = VEM2D_bc(G, A, b, bc, k)
 %   RETURNS:
 %       A   - Global stiffness matrix with boundary condition
 %             modifications.
-%       b   - Global load term, with boundary condition modifications.    
+%       b   - Global load term with boundary condition modifications.    
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1] - The virtual element method as a common framework for
+%             finite element and finite difference methods - Numerical
+%             and theoretical analysis.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{

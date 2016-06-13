@@ -1,5 +1,4 @@
 function l2Err = l2Error3D(G, sol, u, k)
-%--------------------------------------------------------------------------
 %   Calculates the square of the L^2-norms over each cell K of the
 %   difference between the solution to the Laplace equation and the
 %   approximated solution using a kth order VEM.
@@ -36,7 +35,7 @@ function l2Err = l2Error3D(G, sol, u, k)
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 

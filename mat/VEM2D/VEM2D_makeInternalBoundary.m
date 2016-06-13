@@ -1,5 +1,4 @@
 function G = VEM2D_makeInternalBoundary(G, faces)
-%--------------------------------------------------------------------------
 %   Makes internal boundary in gird G, compatible with VEM2D solver.
 %
 %   SYNOPSIS:

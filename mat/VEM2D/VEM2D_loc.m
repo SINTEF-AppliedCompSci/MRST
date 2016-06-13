@@ -1,23 +1,17 @@
 function [AK, bK, dofVec, PNstar] ...
- = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigma, cartGridQ, rate, mu, rho)
-%--------------------------------------------------------------------------
+          = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigma, cartGridQ, rate)
 %   Calculates local stiffness matrix and load term for the virtual element
 %   method for the 2D Poisson equation.
 %
 %   SYNOPSIS:
-%       [AK, bK, dofVec, PNstar] ...
-%                             = VEM2D_loc(G, f, K, k, alpha, rate, mu, rho)
+%       [AK, bK, dofVec, PNstar] = VEM2D_loc(G, f, K, k, alpha, rate)
 %
 %   DESCRIPTION:
 %       Calculates local stiffness matrix and load term for cell K of grid
 %       G for the virtual element method of order k for the Poisson
 %       equation
 %
-%           -\Delta u = f,
-%
-%       or, if a fluid is specified,
-%
-%           -\Delta p = \frac{\mu}{\rho} f,
+%           -\Delta u = f.
 %
 %   REQUIRED PARAMETERS:
 %       G       - MRST grid.
@@ -31,8 +25,6 @@ function [AK, bK, dofVec, PNstar] ...
 %       sigma   - Vector of nker constant for scaling of the local load
 %                 term. See [1] for detials.
 %       rate    - Production rate in K. Set to 0 if K is not a source cell.
-%       mu      - Dynamic viscosity of fluid. Set to 1 if N/A
-%       rho     - Fluid density. Set to 1 if N/A.
 %
 %   RETURNS:
 %       AK      - Local stiffness matrix.
@@ -42,7 +34,10 @@ function [AK, bK, dofVec, PNstar] ...
 %                 \mathcal{M]_k(K). See [1] for details.
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1]     - Ø. S. Klemetsdal: 'The virtual element method as a common
+%                 framework for finite element and finite difference
+%                 methods - Numerical and theoretical analysis'. MA thesis.
+%                 Norwegian University of Science and Technology.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
@@ -104,11 +99,11 @@ if k == 1
     
     H = aK;
     if isa(f,'function_handle')
-        fHat = mu/rho*f(X(1:nN,:));
+        fHat = f(X(1:nN,:));
     else
-        fHat = mu/rho*f*ones(nN,1);
+        fHat = f*ones(nN,1);
     end
-    fHat = fHat + mu/rho*rate/aK;
+    fHat = fHat + rate/aK;
     rateVec = 0;
     
     dofVec = nodes;
@@ -145,12 +140,12 @@ elseif k == 2
     
     if isa(f,'function_handle')
         fInt = polygonInt(G, K, f, k+1)/aK;
-        fHat = mu/rho*[f(X); fInt];
+        fHat = [f(X); fInt];
     else
-        fHat = mu/rho*f*ones(2*nN+1,1);
+        fHat = f*ones(2*nN+1,1);
     end
     rateVec = zeros(NK,1);
-    rateVec(NK) = mu/rho*rate;
+    rateVec(NK) = rate;
     
     dofVec = [nodes', edges' + G.nodes.num, K + G.nodes.num + G.faces.num];
     

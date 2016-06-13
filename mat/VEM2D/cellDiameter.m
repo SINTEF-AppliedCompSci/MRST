@@ -1,5 +1,4 @@
 function hK = cellDiameter(X)
-%--------------------------------------------------------------------------
 %   Calculates the longest distance between any two points in X.
 %
 %   SYNOPSIS:
@@ -13,7 +12,7 @@ function hK = cellDiameter(X)
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 

@@ -1,22 +1,15 @@
-function [A, b, G] ...
-              = VEM3D_glob(G, f, bc, k, sigma, cellProjectors, src, mu, rho)
-%--------------------------------------------------------------------------
+function [A, b, G] = VEM3D_glob(G, f, bc, k, sigma, cellProjectors, src)
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 2D Poisson equation.
 %
 %   SYNOPSIS:
-%       [A, b, PNstarT] ...
-%                = VEM2D_glob(G, f, k, bc, alpha, projectors, src, mu, rho)
+%       [A, b, PNstarT] = VEM2D_glob(G, f, k, bc, alpha, projectors, src)
 %
 %   DESCRIPTION:
 %       Assmebles the global stiffness matrix and load term for the virtual
 %       element method of order k on grid G for the 2D Poisson equation 
 %
-%           -\Delta u = f,
-%
-%       or, if a fluid is specified,
-%
-%           -\Delta p = \frac{\mu}{\rho} f,
+%           -\Delta u = f.
 %
 %   REQUIRED PARAMETERS:
 %       G          - MRST grid.
@@ -33,8 +26,6 @@ function [A, b, G] ...
 %                    of \Pi^\nabla in the monomial basis \mathcal_k(K) will
 %                    be stored.
 %       src        - Source term struct constructed using addSource.
-%       mu         - Dynamic viscosity of fluid. Set to 1 if N/A
-%       rho        - Fluid density. Set to 1 if N/A.
 %
 %   RETURNS:
 %       A          - Global stiffness matrix.
@@ -44,11 +35,14 @@ function [A, b, G] ...
 %                    details.
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1] - Ø. S. Klemetsdal: 'The virtual element method as a common
+%             framework for finite element and finite difference methods -
+%             Numerical and theoretical analysis'. MA thesis. Norwegian
+%             University of Science and Technology.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 
@@ -145,7 +139,7 @@ for K = 1:nK
     end
     
     [AK, bK, dofVec, PNstar] ...
-       = VEM3D_loc(G, K, f, k, m, sigmaK, rate(K), mu, rho);
+       = VEM3D_loc(G, K, f, k, m, sigmaK, rate(K));
 
     NK = numel(dofVec);
     

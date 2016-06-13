@@ -1,5 +1,4 @@
 function G = computeVEM2DGeometry(G)
-%--------------------------------------------------------------------------
 %   Computes VEM geometry of MRST grid G.
 %
 %   SYNOPSIS:

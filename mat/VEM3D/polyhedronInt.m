@@ -1,5 +1,4 @@
 function I = polyhedronInt(G,cells,f, k)
-%--------------------------------------------------------------------------
 %   Integrates the function f over each cell cells of grid G, using a
 %   quadrature rule of precision k.
 %
@@ -8,7 +7,9 @@ function I = polyhedronInt(G,cells,f, k)
 %
 %   DESCRIPTION:
 %       Approximates the integrals
+%
 %           \int_K f \dx
+%
 %       over specified cells K of G of using a quadrature rule of
 %       precission k. Each cell divided into terahedra, and a map F from
 %       reference tetrahedron Tr with vertices V constructed. Using that
@@ -27,7 +28,7 @@ function I = polyhedronInt(G,cells,f, k)
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 

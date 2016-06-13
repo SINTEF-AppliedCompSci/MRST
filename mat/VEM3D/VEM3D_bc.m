@@ -1,5 +1,4 @@
 function [A,b] = VEM3D_bc(G, A, b, bc, k)
-%--------------------------------------------------------------------------
 %   Incorporates boundary conditions in stiffness matrix A and load term b,
 %   obtained using a kth order VEM.
 %
@@ -28,11 +27,14 @@ function [A,b] = VEM3D_bc(G, A, b, bc, k)
 %       b   - Global load term, with boundary condition modifications.    
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1] - Ø. S. Klemetsdal: 'The virtual element method as a common
+%           framework for finite element and finite difference methods -
+%           Numerical and theoretical analysis'. MA thesis. Norwegian
+%           University of Science and Technology.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 
@@ -71,11 +73,9 @@ for i = 1:nF
     if k == 1
         dofVec = nodes';
     elseif k == 2
-%         X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
         dofVec = [nodes', edges' + G.nodes.num, ...
                                             F + G.nodes.num + G.edges.num];
     end
-%     xx = X;
     
     T = G.faces.localCoords(G.faces.TPos(F):G.faces.TPos(F+1)-1,:);
     X = (bsxfun(@minus, X, G.faces.centroids(F,:)))*T;
@@ -103,14 +103,8 @@ for i = 1:nF
     PNFstar = G.faces.PNstarT(G.faces.PNstarPos(F):...
                                G.faces.PNstarPos(F+1)-1,:)';
     Xhat = bsxfun(@plus, Xhat*T', G.faces.centroids(F,:));
-    
-%     plot3(xx(:,1), xx(:,2),xx(:,3), '.');
-%     hold on
-%     plot3(Xhat(:,1), Xhat(:,2), Xhat(:,3), 'o');
-%     
+     
     vals = bsxfun(@times,m(Xmon)*PNFstar,g(Xhat));
-    %     bc = VEM3D_addBC([], boundaryEdges(~isNeu), 'pressure', gD);
-%     bc = VEM3D_addBC(bc, boundaryEdges(isNeu) , 'flux'    , gN);
 
     %   Multilply by wheights and determinants.
     

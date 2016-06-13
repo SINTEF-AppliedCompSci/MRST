@@ -1,5 +1,4 @@
 function [m, grad_m, int_m] = retrieveMonomials(dim, k, varargin)
-%--------------------------------------------------------------------------
 %   Returns all 2D or 3D monomials of degree <= k, along with their
 %   gradients and their anti-derivatives with respect to baricentric
 %   coordinates.
@@ -46,7 +45,9 @@ function [m, grad_m, int_m] = retrieveMonomials(dim, k, varargin)
 %                 coordinate of monomials.
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1]     - The virtual element method as a common framework for
+%                 finite element and finite difference methods - Numerical
+%                 and theoretical analysis.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{

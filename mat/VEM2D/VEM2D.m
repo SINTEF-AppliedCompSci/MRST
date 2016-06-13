@@ -1,5 +1,4 @@
 function [sol, varargout] = VEM2D(G, f, bc, k, varargin)
-%--------------------------------------------------------------------------
 %   Solves the 2D Poisson equation using a kth order virtual element
 %   method.
 %
@@ -9,11 +8,7 @@ function [sol, varargout] = VEM2D(G, f, bc, k, varargin)
 %   DESCRIPTION:
 %       Solves the Poisson equation
 %
-%           -\Delta u = f,
-%
-%       or, if a fluid is specified,
-%
-%           -\Delta p = \frac{\mu}{\rho} f,
+%           -\Delta u = f
 %
 %       using the virtual element method of order k. See [1] for details.
 %
@@ -35,8 +30,6 @@ function [sol, varargout] = VEM2D(G, f, bc, k, varargin)
 %                      in the stability term are set to the degrees of
 %                      freedom of \sqrt(9/(4 h_x h_y) xy. See [1].
 %       src          - Source term struct constructed using addSource.
-%       fluid        - Single phase fluid struct constructed using
-%                      initSingleFluid.
 %       projectors   - Boolean. If true, matrix representations
 %                      of \Pi^\nabla in the monomial basis \mathcal_k(K)
 %                      will be added to grid structure G.
@@ -54,7 +47,7 @@ function [sol, varargout] = VEM2D(G, f, bc, k, varargin)
 %                             cellAverages = true.
 %
 %   OPTIONAL RETURN VALUE:
-%       G            - If projectors = true or cellAverages = true, qrid
+%       G            - If projectors = true or cellAverages = true, grid
 %                      structure with projectors \Pi^\nabla in the
 %                      monomial basis \mathcal_k(K).
 %
@@ -66,18 +59,18 @@ function [sol, varargout] = VEM2D(G, f, bc, k, varargin)
 %       bEdg = find(any(G.faces.neighbors == 0,2));
 %       f    = @(X) X(:,1).^2 - X(:,2).^2;
 %       bc   = VEM2D_addBC([], boundaryEdges, 'pressure', 0);
-%       sol  = VEM2D(G,f,2,bc);
+%       sol  = VEM2D(G,f,bc,2);
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1]     - The virtual element method as a common framework for
+%                 finite element and finite difference methods - Numerical
+%                 and theoretical analysis.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
    Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
    for details.
 %}
-
-addpath('../');
 
 %%  MERGE INPUT PARAMETRES                                               %%
 
@@ -92,7 +85,6 @@ nker = sum(NK - nk);
 opt = struct('sigma'       , 1         , ...
              'cartGridQ'   , false     , ...
              'src'         , []        , ...
-             'fluid'       , []        , ...
              'projectors'  , false     , ...
              'cellAverages', false     );
 opt = merge_options(opt, varargin{:});
@@ -100,15 +92,8 @@ opt = merge_options(opt, varargin{:});
 sigma        = opt.sigma;
 cartGridQ    = opt.cartGridQ;
 src          = opt.src;
-fluid        = opt.fluid;
 projectors   = opt.projectors;
 cellAverages = opt.cellAverages;
-
-if isempty(fluid)
-    mu = 1; rho = 1;
-else
-    [mu, rho] = fluid.properties();
-end
 
 %%  CHECK CORRECTNESS OF INPUT                                           %%
 
@@ -134,8 +119,7 @@ end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, ...
-                                                             src, mu, rho);
+[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 

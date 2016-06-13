@@ -1,5 +1,4 @@
 function G = computeVEM3DGeometry(G)
-%--------------------------------------------------------------------------
 %   Computes VEM geometry of MRST grid G.
 %
 %   SYNOPSIS:
@@ -20,7 +19,7 @@ function G = computeVEM3DGeometry(G)
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 

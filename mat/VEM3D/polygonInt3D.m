@@ -1,5 +1,4 @@
 function  I = polygonInt3D(G, faces, f, k)
-%--------------------------------------------------------------------------
 %   Integrates the function f over each face in faces of grid 3D G, using a
 %   quadrature rule of precision k.
 %
@@ -16,21 +15,21 @@ function  I = polygonInt3D(G, faces, f, k)
 %       a map F from reference tringle Tr with vertices (0,0), (1,0) and
 %       (0,1) is constructed. Using that
 %
-%           \int_T f \dx = |\det(F)|\int_Tr f(F(y)) \dy,
+%           \int_T f \dx = |\det(Fr)|\int_Tr f(Fr(y)) \dy,
 %
 %       the integral can be approximated by the quadrature rule.
 %
 %   REQUIRED PARAMETERS:
 %       G       - 3D MRST grid.
 %       faces   - faces over which to integrate f.
-%       k       - Precission of quadrature rule.
+%       k       - Precision of quadrature rule.
 %
 %   RETURNS:
 %       I       - Approximated solution to the integral.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 

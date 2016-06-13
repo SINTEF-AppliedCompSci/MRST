@@ -1,5 +1,4 @@
 function G = VEM3D_faceProjectors(G, k)
-%--------------------------------------------------------------------------
 %   Calculates face projection opreators and face integrals for the kth
 %   order virtual element method.
 %
@@ -24,11 +23,14 @@ function G = VEM3D_faceProjectors(G, k)
 %             map G.faces.PNstarPos.
 %
 %   REFERENCES:
-%       [1]     - Thesis title.
+%       [1] - Ø. S. Klemetsdal: 'The virtual element method as a common
+%             framework for finite element and finite difference methods -
+%             Numerical and theoretical analysis'. MA thesis. Norwegian
+%             University of Science and Technology.
 %-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See Copyright.txt
+   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
    for details.
 %}
 

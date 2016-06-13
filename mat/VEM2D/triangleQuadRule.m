@@ -1,5 +1,4 @@
 function [Xq, w, V, vol] = triangleQuadRule(k)
-%--------------------------------------------------------------------------
 %   Returns quadrature rule for the reference triangle with vertices (0,0),
 %   (1,0) and (0,1).
 %
@@ -7,9 +6,9 @@ function [Xq, w, V, vol] = triangleQuadRule(k)
 %       [Xq, w, V, vol] = triangleQuadRule(k)
 %
 %   DESCRIPTION:
-%       Returns quadrature rule of precission k. k = 1 returns the
-%       centroid rule, while k >= 2 returns rules named STRANG k, as
-%       defined in [1]. Usage of the rule is as follows:
+%       Returns quadrature rule of precission k. k = 1 returns the centroid
+%       rule, while k >= 2 returns rules named STRANG k, as described in
+%       [1]. Usage of the rule is as follows:
 %
 %           \int_T f \dx = vol\sum_{i = 1}^n w_i*f(Xq_i),
 %
@@ -18,7 +17,7 @@ function [Xq, w, V, vol] = triangleQuadRule(k)
 %       w_i and Xq_i is the ith wheight and quadrature point, respectively.
 %
 %   REQUIRED PARAMETERS:
-%       k       - Quadrature rule precision. supported values precisions
+%       k       - Quadrature rule precision. supported precisions
 %                 are 1,2,3 and 7.
 %
 %   RETURNS:
