@@ -239,7 +239,7 @@ function geom = geom_3d_cell_block(geom, G, block, opt)
    %
    %     cCenter = sum(faceCentroids) / #faceCentroids
 
-   cCenter = sparse(cf(:,1), 1 : size(cf, 1), 1) ...
+   cCenter = sparse(double(cf(:,1)), 1 : size(cf, 1), 1) ...
       * [ geom.face.Centroids(cf(:,2), :), ones([size(cf, 1), 1]) ];
 
    cCenter = bsxfun(@rdivide, cCenter(:, 1 : end - 1), cCenter(:, end));
@@ -256,7 +256,7 @@ function geom = geom_3d_cell_block(geom, G, block, opt)
    tVolumes   = (1/3) * sum(relSubC .* outNormals, 2);
    tCentroids = (3/4) * relSubC;
 
-   relCentroid = sparse(cft(:,1), 1 : size(cft, 1), tVolumes) ...
+   relCentroid = sparse(double(cft(:,1)), 1 : size(cft, 1), tVolumes) ...
       * [ tCentroids, ones([size(cft, 1), 1]) ];
 
    volume      = relCentroid(:, end);
