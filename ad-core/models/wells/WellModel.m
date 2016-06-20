@@ -85,9 +85,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         nonlinearIteration
         % The current well controls
         W
-        % 
-        Rw
+        % Mapping from perforation index to well index. perf2well(ic) returns the well index of the
+        % perforation ix
         perf2well
+        % Inverse mapping for perf2wll. Rw(:, iw) returns the perforations that belongs to the well iw, in
+        % form of a logical vector
+        Rw
     end
     
     methods
