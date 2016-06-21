@@ -20,7 +20,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   [nc, ntequil, naqcon] = get_dimensions(deck);
+   [ncell, ncomp, ntequil, naqcon] = get_dimensions(deck);
 
    [sln, miss_kw] = get_state(deck);
 
@@ -81,8 +81,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                sln.(kw){reg} = reshape(to_double(s), 2, []) .';
             end
 
-         case {'PRESSURE', 'RS', 'RV', 'SGAS', 'SOIL', 'SWAT'},
-            sln.(kw) = readVector(fid, kw, nc);
+         case {'PRESSURE', 'RS', 'RV', 'SGAS', 'SOIL', 'SWAT', 'TEMPI'},
+            sln.(kw) = readVector(fid, kw, ncell);
+
+         case {'ZMF', 'XMF', 'YMF'},
+            sln.(kw) = readVector(fid, kw, ncell*ncomp);
 
          case {'ADD', 'COPY', 'EQUALS', 'MAXVALUE', ...
                'MINVALUE', 'MULTIPLY'},
@@ -146,12 +149,12 @@ end
 
 %--------------------------------------------------------------------------
 
-function [nc, ntequil, naqcon] = get_dimensions(deck)
+function [ncell, ncomp, ntequil, naqcon] = get_dimensions(deck)
    assert (isstruct(deck) && isfield(deck, 'RUNSPEC') && ...
            isstruct(deck.RUNSPEC));
 
    dims = reshape(deck.RUNSPEC.cartDims, 1, []);
-   nc   = prod(dims);                 % Number of cells
+   ncell   = prod(dims);                 % Number of cells
 
    ntequil = 1;
    if isfield(deck.RUNSPEC, 'EQLDIMS'),
@@ -161,6 +164,11 @@ function [nc, ntequil, naqcon] = get_dimensions(deck)
    naqcon = 1;
    if isfield(deck.RUNSPEC, 'AQUDIMS'),
       naqcon = deck.RUNSPEC.AQUDIMS(5);
+   end
+
+   ncomp = 1;
+   if isfield(deck.RUNSPEC, 'COMPS')
+      ncomp = deck.RUNSPEC.COMPS;
    end
    assert (ntequil >= 1);
 end

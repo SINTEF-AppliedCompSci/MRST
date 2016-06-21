@@ -20,7 +20,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   [dims, ntsfun, ntpvt, ntmisc, ntrocc] = get_dimensions(deck);
+   [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck);
 
    [prp, miss_kw] = get_state(deck);
 
@@ -31,8 +31,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          error('Keyword ''%s'' is already defined.', kw);
       end
       switch kw,
+         case 'ACF',
+            prp.(kw) = readVector(fid, kw, ncomp);
+
          case 'BOX',
             boxKeyword(fid);
+
+         case 'BIC',
+            prp.(kw) = readVector(fid, kw, ncomp*(ncomp-1)/2);
+
+         case 'CNAMES',
+            tmpl = arrayfun(@(x) sprintf('COMP_%d', x), 1:ncomp, ...
+                                                'UniformOutput', false);
+            prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1); clear tmpl
 
          case 'ENDBOX',
             endboxKeyword;
@@ -58,6 +69,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             tmpl(1:2) = { 'NaN' };
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntsfun);
             prp.(kw)  = to_double(data);  clear tmpl
+
+         case {'MW', 'PCRIT', 'TCRIT', 'VCRIT'}
+            prp.(kw) = readVector(fid, kw, ncomp);
 
          case 'PLYADS',
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
@@ -271,13 +285,13 @@ end
 
 %--------------------------------------------------------------------------
 
-function [dims, ntsfun, ntpvt, ntmisc, ntrocc] = get_dimensions(deck)
+function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp] = get_dimensions(deck)
    assert (isstruct(deck) && isfield(deck, 'RUNSPEC') && ...
            isstruct(deck.RUNSPEC));
 
    dims = reshape(deck.RUNSPEC.cartDims, 1, []);
 
-   [ntsfun, ntpvt, ntmisc] = deal(1);
+   [ntsfun, ntpvt, ntmisc, ncomp] = deal(1);
    ntrocc = -1;
 
    if isfield(deck.RUNSPEC, 'TABDIMS'),
@@ -290,6 +304,9 @@ function [dims, ntsfun, ntpvt, ntmisc, ntrocc] = get_dimensions(deck)
    end
    if isfield(deck.RUNSPEC, 'MISCIBLE'),
       ntmisc = deck.RUNSPEC.MISCIBLE{1};  assert (ntmisc >= 1);
+   end
+   if isfield(deck.RUNSPEC, 'COMPS')
+      ncomp = deck.RUNSPEC.COMPS;
    end
 end
 
