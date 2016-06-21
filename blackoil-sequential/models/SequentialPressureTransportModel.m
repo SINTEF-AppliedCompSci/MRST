@@ -137,5 +137,9 @@ classdef SequentialPressureTransportModel < ReservoirModel
             [varargout{:}] = model.transportModel.getActivePhases();
         end
         
+        function state = validateState(model, state)
+            % Pressure comes first, so validate that.
+            state = model.pressureModel.validateState(state);
+        end
     end
 end
