@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             prp.(kw) = readVector(fid, kw, ncomp*(ncomp-1)/2);
 
          case 'CNAMES',
-            tmpl = arrayfun(@(x) ['COMP_', num2str(x)], 1:ncomp, ...
+            tmpl = arrayfun(@(x) sprintf('COMP_%d', x), 1:ncomp, ...
                                                 'UniformOutput', false);
             prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1); clear tmpl
 
