@@ -1,16 +1,17 @@
 function Gt = dipped_perturbed_grid(varargin)
-% Construct grid used in /co2lab/examples/papers/CAGEO-75/trappingExample1.m
+% Construct grid similar to one used in
+% /co2lab/examples/papers/CAGEO-75/trappingExample1.m, with optional
+% modifications such that trap edges to not coincide with boundary edges.
 %
-% nx, ny - grid discretization (100x100 or 50x25 etc)
+% nx, ny - grid discretization
 % Lx, Ly, H - dimensions of grid (in meters)
-% Grid is 10 km by 5 km by 50 meters deep. 
-%
+% dz_s, dz_n, dz_e - amount to chop from south, north, east, etc side
 
-    [opt.Lx, opt.Ly, opt.H] = deal(10000, 5000, 50);
-    [opt.nx, opt.ny] = deal(200, 100);
-    [opt.dz_s, opt.dz_n, opt.dz_e] = deal(0, 0, 0);
-    opt.originalGrid = true;
-    
+
+    [opt.Lx, opt.Ly, opt.H]         = deal(10000, 5000, 50);
+    [opt.nx, opt.ny]                = deal(200, 100);
+    [opt.dz_s, opt.dz_n, opt.dz_e]  = deal(0, 0, 0);
+    opt.originalGrid                = true; % use original grid
     opt = merge_options(opt, varargin{:});
     
     G = cartGrid([opt.nx opt.ny 1],[opt.Lx opt.Ly opt.H]);
@@ -24,14 +25,16 @@ function Gt = dipped_perturbed_grid(varargin)
         % WEDGE impacts aspect ratio of domain as a wedge (from north to south)
         % BEND impacts curve of top surface (from east to west)
         % SLOPE impacts top surface's dipping angle
+        % BETA impacts amount of squeeze/stretch in waves
+        % PHI impacts curvature of top from north to south
         ALPHA = 0.2;
-        WEDGE = 0.15; %0.15; %0.15; 
+        WEDGE = 0.15;
         BEND = 0.075;
         SLOPE = 1;
         gamma1 = 6;
         gamma2 = 6;
-        beta = 1; %1.5; % impacts amount of squeeze/stretch in waves
-        phi = 1.25; %1.25; % impacts curvature of top from north to south
+        beta = 1;
+        phi = 1.25;
 
         fac = 0;
         xx  = min(max(0,(x-fac/opt.nx)/(1-fac*2/opt.nx)),1);
@@ -124,8 +127,6 @@ function Gt = dipped_perturbed_grid(varargin)
 %     plotCellData(Gt, ta_cell.trap_regions); title('cell-based')
 %     subplot(1,2,2)
 %     plotCellData(Gt, ta_node.trap_regions); title('node-based')
-
-%%
 
 
 end
