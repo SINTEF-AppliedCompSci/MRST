@@ -7,7 +7,7 @@
 try
    require co2lab
 catch %#ok<CTCH>
-   mrstModule add co2lab
+   mrstModule add co2lab ad-props
 end
 
 moduleCheck deckformat ad-core ad-fi

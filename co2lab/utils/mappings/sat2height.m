@@ -13,7 +13,7 @@ function h = sat2height(s, g, rock)
 %   rock - 3D rock data containing valid filed 'poro'.
 %
 % RETURNS:
-%   h - Surface depth.  One scalar value for each column in the top-surface
+%   h - Plume thickness.  One scalar value for each column in the top-surface 
 %       grid.
 %
 % SEE ALSO:
