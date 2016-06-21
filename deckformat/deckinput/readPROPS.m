@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data      = readDefaultedKW(fid, tmpl, 'NRec', ntsfun);
             prp.(kw)  = to_double(data);  clear tmpl
 
-         case {'MW', 'PCRIT', 'TCRIT'}
+         case {'MW', 'PCRIT', 'TCRIT', 'VCRIT'}
             prp.(kw) = readVector(fid, kw, ncomp);
 
          case 'PLYADS',
@@ -157,9 +157,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case {'STONE' , 'STONE1', 'STONE2', 'SIMPLE'},
             prp.(kw) = true;
-
-         case 'VCRIT',
-            prp.(kw) = readVector(fid, kw, ncomp);
 
          case {'SWL'   ,            'ISWL' ,           ...
                'SWLX'  , 'SWLX-'  , 'ISWLX', 'ISWLX-', ...
