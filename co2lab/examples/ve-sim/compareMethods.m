@@ -340,7 +340,8 @@ while t < total_time
         if kk==2
            patch(xc([1 1:end end]), [min(zt)-1; zt; min(zt)-1], .85*[1 1 1]);
            patch(xc([1 1:end end]), [max(zb)+1; zb; max(zb)+1], .85*[1 1 1]);
-           legend('Free CO2, h', 'Max CO2, h', 'Free CO2, S', 'Max CO2, S', 4);
+           legend('Free CO2, h', 'Max CO2, h', 'Free CO2, S', 'Max CO2, S', ...
+                  'location', 'south');
            box on;axis tight; title('Surfaces'); xlabel('x'); ylabel('depth')
         end
 
