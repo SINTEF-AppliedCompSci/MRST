@@ -38,6 +38,7 @@ function [ will_stay, will_leak ] = massAtInfinity( Gt, rock, p, sG, sGmax, sF, 
 %               1. amount remaining at time infinity (will_stay)
 %               2. amount forecast to leak (will_leak)
 
+   moduleCheck('ad-core', 'ad-props', 'ad-blackoil')
 
    opt.plotsOn             = false;    % controls whether plots will be made
    opt.h                   = 48;       % figure handle for plotting
@@ -76,8 +77,9 @@ function [ will_stay, will_leak ] = massAtInfinity( Gt, rock, p, sG, sGmax, sF, 
    % original in order to pass out the masses per cell, and masses_0 may
    % contain cells of ADI variables, otherwise cells of doubles.
    [h, h_max]         = upscaledSat2height(sG, sGmax, Gt, 'resSat', [sw sr]);  % can be ADI
-   [masses, masses_0] = massTrappingDistributionVEADI_extras(Gt, ...
-                                                     p, sG, sF, rs, h, h_max, rock, fluid, ta, dh);
+   [masses, masses_0] = massTrappingDistributionVEADI(Gt, ...
+                                                     p, sG, sF, h, h_max, rock, ...
+                                                     fluid, ta, dh, 'rs', rs);
    % Renaming:
    resDis_0    = masses_0{1};
    resStruc_0  = masses_0{2};
