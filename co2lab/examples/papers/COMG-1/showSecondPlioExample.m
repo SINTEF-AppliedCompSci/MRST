@@ -1,6 +1,6 @@
 function showSecondPlioExample()
 
-   moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-fi', 'ad-props');
+   moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-props');
    gravity reset on;
 
    %% Ascertain presence of saved results, and load them
@@ -164,7 +164,11 @@ function showSecondPlioExample()
         state.h_max = h_max;
         % calculated distributions only valid for sharp interface.
         dh = Gt.cells.z * 0; % no subscale trapping
-        masses = massTrappingDistributionVEADI(Gt, state, rock2D, fluid, ta, dh);
+        
+        masses = massTrappingDistributionVEADI(Gt, state.pressure, state.s(:,2), ...
+                                               state.s(:,1), h, h_max, rock2D, ...
+                                               fluid, ta, dh);
+        
         % store all masses as a matrix with rows repersenting time
         outcomes{m}.masses(step, :) = [masses, totMass]; % #ok
       end

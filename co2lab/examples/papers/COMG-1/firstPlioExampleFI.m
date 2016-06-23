@@ -3,7 +3,7 @@
 % show the improved computational efficiency compared with the sequentially
 % implicit formulation
 
-moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-fi', 'ad-props');
+moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-props');
 
 grdecl = getAtlasGrid('Pliocenesand');
 G      = processGRDECL(grdecl{1});

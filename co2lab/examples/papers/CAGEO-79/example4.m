@@ -13,6 +13,7 @@ function example4(varargin)
     
     opt = merge_options(opt, varargin{:});
     moduleCheck('ad-core');
+    gravity on;
     
     %% Loading grid and subscale trapping function
     [Gt, rock2D] = getUtsiraTopGrid(1, true);

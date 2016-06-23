@@ -48,8 +48,9 @@ function saveResults(dir, Gt, states, start_at, schedule, traps, rock, fluid, ..
             upscaledSat2height(cur_sol.s(:,2), cur_smax, Gt, 'resSat', [sw, sr]);
         
         mass_dist = ...
-            massTrappingDistributionVEADI(Gt, cur_sol, rock, fluid, traps, dh);
-
+            massTrappingDistributionVEADI(Gt, cur_sol.pressure, cur_sol.s(:,2), ...
+                                          cur_sol.s(:,1), cur_sol.h, cur_sol.h_max, ...
+                                          rock, fluid, traps, dh); 
 
         dt      = schedule.step.val(t_global);
         tot_inj = tot_inj + (sum([W(:,cnum).val]) * fluid.rhoGS * dt);

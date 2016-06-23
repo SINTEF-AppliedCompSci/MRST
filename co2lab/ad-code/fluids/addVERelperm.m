@@ -1,5 +1,6 @@
 function fluid = addVERelperm(fluid, Gt, varargin)
-% Add VE-upscaled rel.perm. (and related functions) for a two-phase fluid object
+% Add VE-upscaled rel.perm. (and related functions) for a two-phase fluid
+% object and the sharp-interface assumption.
 %
 % SYNOPSIS:
 %   function fluid = addVERelperm(fluid, varargin)
@@ -57,8 +58,8 @@ end
 % ============================================================================
 
 function s = invPc3D(p, opt)
-% Fine-scale oil saturation, considered equal to residual saturation
-% ('res_water') in the gas zone and 1 in the oil zone.  @@ It doesn't take
+% Fine-scale water saturation, considered equal to residual saturation
+% ('res_water') in the gas zone and 1 in the water zone.  @@ It doesn't take
 % hysteresis into account).
    s = (sign(p + eps) + 1) / 2 * (1 - opt.res_water); 
    s = 1-s;
@@ -126,10 +127,10 @@ function kr= krW(sw,opt,varargin)
       sg = 1 - sw; 
 
       ineb = (sg) > loc_opt.sGmax; 
-      sg_res = (loc_opt.sGmax - sg); 
+      sg_res = (loc_opt.sGmax - sg) / (1 - opt.res_water - opt.res_gas);  
 
-      sg_free = 1 - (loc_opt.sGmax / (1 - opt.res_water)); 
-      kr = sg_free + (1 - opt.res_gas) * sg_res; 
+      sw_free = 1 - (loc_opt.sGmax / (1 - opt.res_water)); 
+      kr = sw_free + (1 - opt.res_gas) * sg_res; 
       % this to avoid errors in ADI derivative
 
       if any(ineb)% test necessary since otherwise we risk subtracting an

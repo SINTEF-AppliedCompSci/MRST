@@ -1,10 +1,10 @@
-function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sF, h, h_max, rock, fluidADI, trapstruct, dh, varargin)
+function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sW, h, h_max, rock, fluidADI, trapstruct, dh, varargin)
 % Compute the trapping status distribution of CO2 in each cell of a top-surface grid
 %
 % SYNOPSIS:
-%   masses = massTrappingDistributionVEADI(Gt, p, sF, sG, h, h_max, ...
+%   masses = massTrappingDistributionVEADI(Gt, p, sW, sG, h, h_max, ...
 %                              rock, fluidADI, sr, sw, trapstruct)
-%   masses = massTrappingDistributionVEADI(Gt, p, sF, sG, h, h_max, ...
+%   masses = massTrappingDistributionVEADI(Gt, p, sW, sG, h, h_max, ...
 %                              rock, fluidADI, sr, sw, trapstruct, 'rs',rs)
 %
 % DESCRIPTION:
@@ -12,7 +12,7 @@ function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sF, h, h_
 % PARAMETERS:
 %   Gt         - Top surface grid
 %   p          - pressure, one value per cell of grid
-%   sF         - water saturation, one value per cell of grid
+%   sW         - water saturation, one value per cell of grid
 %   sG         - gas saturation, one value per cell of grid
 %   h          - gas height below top surface, one value per cell of grid
 %   h_max      - maximum historical gas height, one value per cell of grid
@@ -43,7 +43,7 @@ function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sF, h, h_
     % Extracting relevant information from 'sol'
     sw=fluidADI.res_water;%liquid residual saturation (scalar)
     sr=fluidADI.res_gas;%gas residual saturation (scalar)
-    SF = sF .* Gt.cells.H;
+    SF = sW .* Gt.cells.H;
     SG = sG .* Gt.cells.H;
     rs = opt.rs;
     

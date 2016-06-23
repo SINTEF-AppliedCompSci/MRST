@@ -8,7 +8,7 @@
 % can therefore not rely on structural trapping and should instead consider
 % residual trapping.
 
-moduleCheck('co2lab', 'ad-fi', 'ad-core');
+moduleCheck('co2lab', 'ad-core');
 gravity reset on;
 
 grdecl = getAtlasGrid('Pliocenesand');

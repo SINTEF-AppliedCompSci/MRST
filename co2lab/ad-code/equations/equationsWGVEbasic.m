@@ -14,10 +14,10 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
 
    % Extract the current and previous values of all variables to solve for
    if(opt.adjointForm)
-    % use sGmax as primary variable
-    [p, sG, sGmax, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol');
+      % use sGmax as primary variable
+      [p, sG, sGmax, wellSol] = model.getProps(state , 'pressure', 'sg', 'sGmax', 'wellsol');
    else
-    [p, sG, wellSol] = model.getProps(state , 'pressure', 'sg', 'wellsol');
+      [p, sG, wellSol] = model.getProps(state , 'pressure', 'sg', 'wellsol');
    end
    [p0, sG0, sGmax0]               = model.getProps(state0, 'pressure', 'sg','sGmax');
 
@@ -35,7 +35,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
              [p, sG, sGmax, qWs, qGs, bhp] = initVariablesADI(p, sG, sGmax, qWs, qGs, bhp);
          else
             [p, sG, qWs, qGs, bhp] = initVariablesADI(p, sG, qWs, qGs, bhp);
-            sGmax=max(sG,sGmax0);
+            sGmax = max(sG, sGmax0);
          end
       else
           zw = zeros(size(bhp));
@@ -46,7 +46,13 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
             [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
          end
       end
+   elseif ~opt.adjointForm
+      % sGmax was not yet defined.  We are probably in the process of
+      % evaluating residuals after non-convergence.  Set it here to avoid
+      % problems further down
+      sGmax = max(sG, sGmax0);
    end
+   
 
    sW  = 1 - sG;  % for ease of reading, we define an explicit variable
    sW0 = 1 - sG0; % also for water saturation

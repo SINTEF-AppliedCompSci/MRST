@@ -69,7 +69,7 @@ function kr = krG(sg, opt, varargin)
    loc_opt = struct('sGmax', []); 
    loc_opt = merge_options(loc_opt, varargin{:}); 
    if opt.int_poro
-      error('Int_poro: not implemented jet!!')
+      error('Int_poro: not implemented yet!!')
       [h, h_max] = saturation2HeightIntporo(sg, opt, loc_opt); 
    else
       [h, h_max] = saturation2Height(sg, opt, loc_opt); 
@@ -92,7 +92,7 @@ function kr = krW(sg, opt, varargin)
    loc_opt = struct('sGmax', []); 
    loc_opt = merge_options(loc_opt, varargin{:}); 
    if opt.int_poro
-      error('Int_poro: not implemented jet!!')
+      error('Int_poro: not implemented yet!!')
       [h, h_max] = saturation2HeightIntporo(sg, opt, loc_opt); 
    else
       [h, h_max] = saturation2Height(sg, opt, loc_opt); 
