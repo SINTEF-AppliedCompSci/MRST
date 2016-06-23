@@ -128,7 +128,7 @@ bnd = boundaryFaces(Gt);
 bc = addBC([], bnd, 'pressure', pressure(Gt.faces.z(bnd)), 'sat', [0 1]);
 
 % Convert to 2D wells
-W2D = convertwellsVE_s(W, G, Gt, rock2D,'ip_tpf');
+W2D = convertwellsVE(W, G, Gt, rock2D,'ip_tpf');
 
 %%%  Set up initial reservoir conditions
 % The initial pressure is set to hydrostatic pressure. Setup and plot.

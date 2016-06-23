@@ -35,20 +35,18 @@ function W = convertwellsVE(W, G, Gt, rock2D, varargin)
                        'InnerProduct' , inner_product , ...
                        'name'         , w.name        , ...
                        'refDepth'     , w.refDepth    , ...
-                       'WI'           , sum(w.WI)     , ... 
                        'Sign'         , w.sign);           
+        %'WI'           , sum(w.WI)     , ... 
     end
-    % @@ 'WI' was added as a directly passed value in the call to addWell
-    % above, since 'addWell' does not work properly on topSurfaceGrids (no
-    % thickness info used).  However, if the 3D well is vertical, we should
-    % arrive at the correct value simply by summing up. 
-    % On the other hand, passing this value directly renders the
-    % specification of 'inner_product' meaningless.
     
     for nw = 1:numel(W)
        % Set VE specific parameters
-        W_2D(nw).h = Gt.cells.H(W_2D(nw).cells);                           %#ok
-        W_2D(nw).dZ = Gt.cells.H(W_2D(nw).cells)*0.0;                      %#ok
+       W_2D(nw).WI= W_2D(nw).WI.*Gt.cells.H(W_2D(nw).cells);              %#ok
+       W_2D(nw).h = Gt.cells.H(W_2D(nw).cells);                           %#ok
+       W_2D(nw).dZ = Gt.cells.H(W_2D(nw).cells)*0.0;                      %#ok
+       if( isfield(W(nw),'bhpLimit') )
+          W_2D(nw).bhpLimit = W(nw).bhpLimit; %#ok<AGROW>
+       end
     end
     W = W_2D;
 end

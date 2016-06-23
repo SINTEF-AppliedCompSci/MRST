@@ -73,6 +73,7 @@ assert(G.cartDims(3)==1)
 W = createSampleWell([],Gt.parent, rock, cellnum,     ...
                         'Type', 'rate', 'Val', rate, ...
                         'Radius', 0.125, 'Name', 'I','Comp_i',[0 1]);
+W = convertwellsVE(W, Gt.parent, Gt, rock2D, 'ip_tpf');
 W_shut = W;
 W_shut.val = 0;
 
