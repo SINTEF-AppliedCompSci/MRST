@@ -190,7 +190,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Merge in forces as varargin
             drivingForces = merge_options(drivingForces, forcesArg{:});
 
-            assert(dT > 0, [solver.getId(), 'Negative timestep detected.']);
+            assert(dT >= 0, [solver.getId(), 'Negative timestep detected.']);
 
             converged = false;
             done = false;
