@@ -123,14 +123,14 @@ fn = getSmootherFunction('type', 'ilu');
 figure;
 plotToolbar(G, state_fs.pressure)
 colormap jet
-view(90, 90); colorbar
+view(0, 90); colorbar
 axis tight off
 title('Fine scale')
 
 figure;
 plotToolbar(G, state_ms.pressure)
 colormap jet
-view(90, 90); colorbar
+view(0, 90); colorbar
 axis tight off
 title('F-MsRSB')
 

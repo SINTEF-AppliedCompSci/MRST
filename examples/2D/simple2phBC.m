@@ -140,7 +140,6 @@ N      = fix(Time/dTplot);
 state_ms.rhs = q;
 t  = 0; plotNo = 1; hfs = 'Reference Saturation: '; hms = 'F-MsRSB Saturation: ';
 dispif(mrstVerbose, 'Solving Transport...\n\n');
-close all
 figure
 B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);

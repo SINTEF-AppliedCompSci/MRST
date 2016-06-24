@@ -60,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-opt = struct('verbose', true);
+opt = struct('verbose', mrstVerbose);
 opt = merge_options(opt, varargin{:});
 
 % Get independant fracture lines

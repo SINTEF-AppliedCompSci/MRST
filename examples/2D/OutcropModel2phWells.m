@@ -190,7 +190,6 @@ end
 
 %% Plot saturations
 
-close all
 plotNo = 1;
 figure; hold on
 boundary = any(G.Matrix.faces.neighbors==0,2);

@@ -226,7 +226,6 @@ end
 
 %% Plot saturations
 
-close all;
 figure; plotToolbar(G,sol_fs); colormap(flipud(gray)); caxis([0 1]);view(15,20)
 figure; plotToolbar(G,sol_ms); colormap(flipud(gray)); caxis([0 1]);view(15,20)
 
