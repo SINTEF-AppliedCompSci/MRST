@@ -59,8 +59,8 @@ function obj = CO2props(varargin)
 
 %% 
    opt.rhofile              = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_D.mat';
-   opt.mufile               = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_H.mat';
-   opt.hfile                = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_V.mat';
+   opt.mufile               = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_V.mat';
+   opt.hfile                = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_H.mat';
    opt.const_derivatives    = false;
    opt.assert               = true;
    opt.nan_outside_range    = true;
