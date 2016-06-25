@@ -3,7 +3,7 @@
 % show the improved computational efficiency compared with the sequentially
 % implicit formulation
 
-moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-fi', 'ad-props');
+moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-props');
 
 grdecl = getAtlasGrid('Pliocenesand');
 G      = processGRDECL(grdecl{1});
@@ -73,6 +73,7 @@ assert(G.cartDims(3)==1)
 W = createSampleWell([],Gt.parent, rock, cellnum,     ...
                         'Type', 'rate', 'Val', rate, ...
                         'Radius', 0.125, 'Name', 'I','Comp_i',[0 1]);
+W = convertwellsVE(W, Gt.parent, Gt, rock2D, 'ip_tpf');
 W_shut = W;
 W_shut.val = 0;
 

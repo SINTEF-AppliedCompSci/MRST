@@ -15,10 +15,12 @@ function varargout = getAtlasGrid(varargin)
 % PARAMETERS:
 %   'pn'/pv - List of optional property names/property values:
 %                   
-%    - coarsening: Coarsening factor. If set to one, a grid with
-%             approximately one cell per datapoint is produced. If set to
-%             two, every second datapoint in x and y direction is used,
-%             giving a reduction to 1/4th size. Default: 1
+%    - coarsening: Coarsening factor. If set to one, a grid with approximately
+%                  one cell per datapoint is produced. If set to two, every second
+%                  datapoint in x and y direction is used, giving a reduction to
+%                  1/4th size. Default: 1
+%     - refining:  Refining factor. If set to an integer n > 1, each 
+%                  original cell is laterally split up into n x n cells. 
 %
 %    - nz: Vertical / k-direction number of layers. Default: 1
 %
@@ -60,11 +62,11 @@ if nargout == 0
    return
 end
 
-opt = struct('nz',              1, ...
-   'coarsening',      1, ...
-   'refining',        1, ...
-   'Verbose',         mrstVerbose,...
-   'make_deck',       true);
+opt = struct('nz',              1           , ...
+             'coarsening',      1           , ...
+             'refining',        1           , ...
+             'Verbose',         mrstVerbose , ...
+             'make_deck',       true);
 if mod(nargin, 2) == 1
    names = varargin{1};
    if nargin > 1
@@ -116,7 +118,6 @@ end
 
 datasets = readAtlasGrids(names, opt.coarsening);
 
-findname = @(name) datasets{cellfun(@(x) strcmpi(x.name, name), datasets)};
 jura_top = {jurassic_mid, jurassic_top};
 jurassic = {'Jurassicmid', 'Jurassic'};
 if(opt.refining>1)
@@ -124,7 +125,8 @@ if(opt.refining>1)
       datasets{i}=refineInfo(datasets{i},opt.refining);
    end
 end
-
+findname = @(name) datasets{cellfun(@(x) strcmpi(x.name, name), datasets)};
+   
 [decks, petroinfo] = deal({});
 
 for i = 1:2

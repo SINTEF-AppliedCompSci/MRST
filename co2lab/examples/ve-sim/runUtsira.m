@@ -111,7 +111,7 @@ light
 lighting phong
 view(v);
 legend({'Top surface', 'Original grid (downshifted)'}, 'Location', 'North')
-contourAtlas(info, 15, 1)
+contourAtlas(info, 15, 1, 'k')
 axis tight off
 
 %% Set up rock properties and compute transmissibilities
@@ -154,7 +154,7 @@ bnd = boundaryFaces(Gt);
 bc = addBC([], bnd, 'pressure', pressure(Gt.faces.z(bnd)), 'sat', [0 1]);
 
 % Convert to 2D wells
-W2D = convertwellsVE_s(W, G, Gt, rock2D,'ip_tpf');
+W2D = convertwellsVE(W, G, Gt, rock2D,'ip_tpf');
 
 %%  Set up initial reservoir conditions
 % The initial pressure is set to hydrostatic pressure. Setup and plot.
@@ -188,7 +188,7 @@ while t < T_tot;
     cla
     plotCellData(G, s, 'edgec', 'k', 'edgea', .1, 'edgec', [.6 .6 .6]);
     plotWell(G, W); caxis([0 .9]);
-    contourAtlas(info)
+    contourAtlas(info, 10, 1, 'k')
     title([formatTimeRange(t) tt])
     axis tight off
     view(v);
@@ -197,7 +197,7 @@ while t < T_tot;
     subplot(2,1,2)
     cla
     plotCellData(G, s, s > 1e-3);
-    contourAtlas(info,25)
+    contourAtlas(info,25, 1, 'k')
     plotGrid(G, 'facec', 'none', 'edgec', [.6 .6 .6], 'edgea', .1)
     axis([4.2e5 4.6e5 6.45e6 6.5e6]), caxis([0 .9]);
     view(v);

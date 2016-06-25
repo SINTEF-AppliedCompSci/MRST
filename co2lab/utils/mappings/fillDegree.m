@@ -1,13 +1,13 @@
-function [n, t] = fillDegree(h, g)
+function [n, t] = fillDegree(h, G)
 %Compute degree of fill (saturation).
 %
 % SYNOPSIS:
 %   [n, t] = fillDegree(h, G)
 %
 % PARAMETERS:
-%   h - Surface depth.  One scalar value for each column in the top-surface
-%       grid.  As a special case a single, scalar value is repeated for
-%       each column in the top-surface grid.
+%   h - CO2 plume thickness.  One scalar value for each column in the
+%       top-surface   grid.  As a special case a single, scalar value is
+%       repeated for each column in the top-surface grid.
 %
 %       Values less than zero are treated as zero while values below the
 %       bottom of a column are treated as the column depth.
@@ -43,7 +43,7 @@ function [n, t] = fillDegree(h, g)
 
    if numel(h) == 1,
       % Scalar h => *same* height in all columns.
-      h = h(ones([g.cells.num, 1]));
+      h = h(ones([G.cells.num, 1]));
    end
 
    % Exclude non-physical h<0 case (and guarantee col-vec shape).
@@ -57,9 +57,9 @@ function [n, t] = fillDegree(h, g)
    %
    %   - f(c,2): Column index of cell 'c'.
    %
-   nc     = reshape(diff(g.cells.columnPos), [], 1);  assert (all(nc > 0));
-   f      = rldecode([h, (1:g.cells.num)'], nc);
-   f(:,1) = g.columns.z - f(:,1);
+   nc     = reshape(diff(G.cells.columnPos), [], 1);  assert (all(nc > 0));
+   f      = rldecode([h, (1:G.cells.num)'], nc);
+   f(:,1) = G.columns.z - f(:,1);
 
    % Count completely filled cells in each column.
    % n==0 if first cell is partially filled.
@@ -69,13 +69,13 @@ function [n, t] = fillDegree(h, g)
 
    % Compute position/row index into look-up table (f) of each column's
    % partially filled cell (out of bounds if n==nc).
-   p = g.cells.columnPos(1 : end-1) + n;
+   p = G.cells.columnPos(1 : end-1) + n;
 
    % First cell partially filled is a special case.
    % Use the column's h-value directly to compute fill degree.
    %
    first    = n == 0;
-   t(first) = h(first) ./ g.columns.z(p(first));
+   t(first) = h(first) ./ G.columns.z(p(first));
 
    % General case (partially filled column).
    % Formula ii) defines fill degree.

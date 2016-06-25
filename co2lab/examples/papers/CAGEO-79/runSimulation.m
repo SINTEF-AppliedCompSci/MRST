@@ -43,7 +43,7 @@ function  [initState, Gt, schedule, fluid] = runSimulation(Gt, rock, schedule, v
    
    opt = merge_options(opt, varargin{:});
    
-   moduleCheck('ad-fi', 'ad-props', 'mex', 'co2lab');
+   moduleCheck('ad-props', 'mex', 'co2lab');
    gravity on;
    
    % specified range for sampled property tables
@@ -131,8 +131,10 @@ function res = simple_panel_plot(state, tstep, Gt, schedule, sr, sw, fluid, rock
     [state.h, state.h_max] = computePlumeHeight(Gt, state, sw, sr);
     
     % Compute mass distribution
-    %masses = massTrappingDistributionVEADI(Gt, state, rock, fluid, sr, sw, traps, dh);
-    masses = massTrappingDistributionVEADI(Gt, state, rock, fluid, traps, dh);
+    masses = massTrappingDistributionVEADI(Gt, state.pressure, state.s(:,2), ...
+                                           state.s(:,1), h, h_max, rock, ...
+                                           fluid, traps, dh);
+    
     %% plotting figure
     clf;
     

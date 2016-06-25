@@ -1,16 +1,15 @@
 %% VE simulation in a standard black-oil solver
-% In this example we show how to set up a standard format black-oil
-% model that can be used to simulate a VE model. For the actual
-% simulation,  we use the fully-implicit solver in MRST from the 'ad-fi'
-% module, which is based on automatic differentiation. 
+% In this example we show how to set up a standard format black-oil model that
+% can be used to simulate a VE model. For the actual simulation, we use the
+% fully-implicit solver in MRST, based on automatic differentiation.
 
 try
    require co2lab
 catch %#ok<CTCH>
-   mrstModule add co2lab
+   mrstModule add co2lab ad-props
 end
 
-moduleCheck deckformat ad-core ad-fi
+moduleCheck deckformat ad-core ad-props ad-blackoil
 
 %% Parameters for the simulation
 gravity on
@@ -25,9 +24,9 @@ depth      = 1000;               % Initial depth
 ipress     = 200;                % Initial pressure
 
 %% Create input deck and construct grid
-% Create an input deck that can be used together with the fully-implicit
-% solver from the 'ad-fi' module. Since the grid is constructed as part of
-% setting up the input deck, we obtain it directly. 
+% Create an input deck that can be used together with the fully-implicit black
+% oil solver. Since the grid is constructed as part of setting up the input
+% deck, we obtain it directly.
 [deck, G] = sinusDeckAdiVE([nx ny nz], [Lx Ly H], nsteps, dt, ...
                          -.1*pi/180, depth, phi, perm, ...
                          (H*phi*Lx*Ly)*0.2*day/year, ipress);
@@ -41,28 +40,37 @@ figure, plotGrid(G),view([0 -1 0]), box on
                       
                  
 %% Initialize data structures
-% First, we convert the input deck to SI units, which is the unit system
-% used by MRST. Second, we initialize the rock parameters from the deck;
-% the resulting data structure may have to be post-processed to remove
-% inactive cells. Then we set up the fluid object and tell the ad-fi solver
-% that that we are working with an oil-water system.
+% First, we convert the input deck to SI units, which is the unit system used by
+% MRST. Second, we initialize the rock parameters from the deck; the resulting
+% data structure may have to be post-processed to remove inactive cells. Then we
+% set up the fluid object.
 deck  = convertDeckUnits(deck);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 fluid = initDeckADIFluid(deck);
-systemOW  = initADISystem({'Oil', 'Water'}, G, rock, fluid);
 
+%systemOW  = initADISystem({'Oil', 'Water'}, G, rock, fluid);
+
+%% Prepare simulation model, schedule and initial state
+% Before we can run the simulation, we make sure that we have an initial
+% hydrostatic pressure distribution.  We proceed by creating a simulation model
+% object that the solver can work with, representing a two-phase oil/water
+% system, where we let 'oil' represent the CO2 phase.  Finally, we convert the
+% schedule from the input deck into MRST format.
+x0 = initEclipseState(G, deck, initEclipseFluid(deck));
+z  = G.cells.centroids(:,3);
+x0.pressure = ipress*barsa +(z(:)-z(end))*norm(gravity)*deck.PROPS.DENSITY(2);
+x0.sGmax = x0.s(:,2);
+
+model = TwoPhaseOilWaterModel(G, rock, fluid);
+schedule = convertDeckScheduleToMRST(G, model, rock, deck);
 
 %% Run the schedule setup in the file
 % Before we can run the schedule, we make sure that we have an initial
 % hydrostatic pressure distribution. Then we pick the schedule from the
 % input deck and start the simulator.
-x0 = initEclipseState(G, deck, initEclipseFluid(deck));
-z  = G.cells.centroids(:,3);
-x0.pressure = ipress*barsa +(z(:)-z(end))*norm(gravity)*deck.PROPS.DENSITY(2);
+[wellSols, states] = simulateScheduleAD(x0, model, schedule);
 
-[wellSols, states] = runScheduleADI(x0, G, rock, systemOW, deck.SCHEDULE, ...
-                                    'stop_if_not_converged', false);
 
 %% Plot results
 %figure

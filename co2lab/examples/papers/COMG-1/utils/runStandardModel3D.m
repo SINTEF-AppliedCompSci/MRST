@@ -14,7 +14,7 @@ function sim_outcome =  runStandardModel3D(save_filename, plot_routine, varargin
 %                   pairs.  See documentation of options (fields of the 'opt'
 %                   structure) in the function 'run_standard_simulation' below.
 
-   moduleCheck('co2lab', 'ad-fi', 'ad-core', 'ad-props');
+   moduleCheck('co2lab', 'ad-core', 'ad-props');
    gravity reset on;
 
    %% Check for presence of already-computed result; compute or re-use

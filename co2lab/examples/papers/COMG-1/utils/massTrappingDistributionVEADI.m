@@ -1,23 +1,32 @@
-function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, trapstruct, dh)
+function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sW, h, h_max, rock, fluidADI, trapstruct, dh, varargin)
 % Compute the trapping status distribution of CO2 in each cell of a top-surface grid
 %
 % SYNOPSIS:
-%   function masses = massTrappingDistributionVEADI(Gt, sol, rock, fluidADI, sr, sw, trapstruct)
+%   masses = massTrappingDistributionVEADI(Gt, p, sW, sG, h, h_max, ...
+%                              rock, fluidADI, sr, sw, trapstruct)
+%   masses = massTrappingDistributionVEADI(Gt, p, sW, sG, h, h_max, ...
+%                              rock, fluidADI, sr, sw, trapstruct, 'rs',rs)
 %
 % DESCRIPTION:
 %
 % PARAMETERS:
 %   Gt         - Top surface grid
-%   state      - Valid 'state' object, with the additional fields 'h' and 'h_max'.
+%   p          - pressure, one value per cell of grid
+%   sW         - water saturation, one value per cell of grid
+%   sG         - gas saturation, one value per cell of grid
+%   h          - gas height below top surface, one value per cell of grid
+%   h_max      - maximum historical gas height, one value per cell of grid
 %   rock       - rock parameters corresponding to 'Gt'
 %   fluidADI   - ADI fluid object (used to get densities and compressibilities)
 %   sr         - gas residual saturation (scalar)
 %   sw         - liquid residual saturation (scalar)
 %   trapstruct - trapping structure
-%   dh         - subtrapping capacity (empty, or one value per grid cell of Gt.
+%   dh         - subtrapping capacity (empty, or one value per grid cell of Gt)
+%   rs         - dissolved, one value per cell of grid
+
 %
 % RETURNS:
-%   masses - vector with 6 components, representing:
+%   masses - vector with 7 components, representing:
 %            masses[1] : mass of dissolved gas, per cell
 %            masses[2] : mass of gas that is both structurally and residually trapped
 %            masses[3] : mass of gas that is residually (but not structurally) trapped
@@ -26,19 +35,17 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
 %                        will eventually be residually trapped
 %            masses[6] : mass of subscale trapped gas (if 'dh' is nonempty)
 %            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
+%   masses_0 (optional) - masses in terms of one value per grid cell of Gt
 
+    opt.rs = 0;
+    opt    = merge_options(opt, varargin{:});
+    
     % Extracting relevant information from 'sol'
     sw=fluidADI.res_water;%liquid residual saturation (scalar)
     sr=fluidADI.res_gas;%gas residual saturation (scalar)
-    p = state.pressure;
-    sF = state.s(:,1);
-    sG = state.s(:,2);
-    SF = sF .* Gt.cells.H;
+    SF = sW .* Gt.cells.H;
     SG = sG .* Gt.cells.H;
-    rs = 0;
-    if isfield(state, 'rs')
-        rs = state.rs;
-    end
+    rs = opt.rs;
     
     pvMult = 1; 
     if isfield(fluidADI, 'pvMultR')
@@ -68,11 +75,11 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
     h_sub  = zeros(Gt.cells.num, 1); % subtrapped part of 'h'
     hm_sub = zeros(Gt.cells.num, 1); % subtrapped part of 'h_max'
     if ~isempty(dh)
-        h_sub  = min(dh, state.h);
-        hm_sub = min(dh, state.h_max);
+        h_sub  = min(dh, h);
+        hm_sub = min(dh, h_max);
     end
-    h_eff  = state.h - h_sub;
-    hm_eff = state.h_max - hm_sub;
+    h_eff  = h - h_sub;
+    hm_eff = h_max - hm_sub;
     
     % this requires that the fluid has a sharp interface relperm of normal type    
     hdift     = max(min(zt, hm_eff) - min(zt, h_eff),0);    % trapped part of h_max-h
@@ -87,10 +94,28 @@ function masses = massTrappingDistributionVEADI(Gt, state, rock, fluidADI, traps
     resDis    = fluidADI.rhoGS .* sum(pv.* (rs .* fluidADI.bW(p) .* SF)); % dissolved
     subtrap   = sum((hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2);
 
-    masses    = max([resDis, resStruc, resTrap, freeRes, freeStruc, subtrap, freeMov], 0);
-
+    masses    = max([double(resDis), double(resStruc), double(resTrap), ...
+                     double(freeRes), double(freeStruc), double(subtrap), ...
+                     double(freeMov)], 0); % may be ADI variables
+         
     if(abs(sum(masses(2:end))-gasPhase) > 1e-3 * gasPhase)
         disp('There is a mismatch between mass calculations');
+    end
+    
+    if nargout > 1
+        % values one per cell of grid Gt
+        strucVol_0  = min(zt, h_eff) .* pv .* rhoCO2;
+        plumeVol_0  = rhoCO2 .*h_eff .* pv - strucVol_0;
+        resStruc_0  = (strucVol_0 + hdift.*rhoCO2.*pv) .* sr;
+        freeStruc_0 = strucVol_0 .* (1-sr-sw);
+        freeRes_0   = plumeVol_0 .* sr;
+        freeMov_0   = plumeVol_0 .* (1-sr-sw);
+        resTrap_0   = max(hm_eff - max(zt, h_eff),0) .* rhoCO2 .* pv .* sr;
+        resDis_0    = fluidADI.rhoGS .* pv .* (rs .* fluidADI.bW(p) .* SF);
+        subtrap_0   = (hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2;
+
+        masses_0 = [{resDis_0}, {resStruc_0}, {resTrap_0}, {freeRes_0}, ...
+                    {freeStruc_0}, {subtrap_0}, {freeMov_0}]; % may be ADI vars
     end
 end
 

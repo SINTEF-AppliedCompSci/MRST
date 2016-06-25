@@ -35,7 +35,7 @@ properties
    % Equation is chosen based on whether fluid object includes dissolution
    % effects or not 
    equation
-   
+   adjointType
 end
       
 % ============================== Public methods ===========================
@@ -44,7 +44,7 @@ methods
    %% Constructor
    function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
    
-      opt = struct();
+      opt = struct('adjointType','hyst');%valid hyst/nohyst
       [opt, unparsed] = merge_options(opt, varargin{:});%#ok
    
       model@ReservoirModel(Gt, varargin{:});
@@ -66,9 +66,11 @@ methods
       if isfield(fluid, 'dis_rate')
          % use model equations with dissolution
          model.equation = @equationsWGVEdisgas;
+         model.adjointType='nohyst';
       else
          % use basic model equations (no dissolution)
          model.equation = @equationsWGVEbasic;
+         model.adjointType=opt.adjointType;
       end
       
       model = model.setupOperators(Gt, rock2D);
@@ -113,7 +115,26 @@ methods
                                         drivingForces , ...
                                         varargin{:});
    end
-   
+   %
+   function [problem, state] = ...
+          getEquationsAdjoint(model, state0, state, dt, drivingForces, varargin)
+      if(strcmp(model.adjointType,'nohyst'))
+          % do nothing
+         [problem, state] = model.equation(model         , ...
+                                        state0        , ...
+                                        state         , ...
+                                        dt            , ...
+                                        drivingForces , varargin{:}); 
+      else
+        %use extended type of equations to get hysteresis correct  
+        [problem, state] = model.equation(model         , ...
+                                        state0        , ...
+                                        state         , ...
+                                        dt            , ...
+                                        drivingForces , ...
+                                        'adjointForm',true,varargin{:});
+      end
+   end
 % ------------------------------------------------------------------------
 
    function [fn, index] = getVariableField(model, name)
@@ -139,6 +160,7 @@ function [state, report] = updateState(model, state, problem, dx, drivingForces)
    sg          = state.s(:,2);
    sg          = min(1, max(0, sg)); %(1-model.fluid.res_water, max(0,sg)); @@
    state.s     = [1-sg, sg];    
+   % this should not be used befor after convergense
    state.sGmax = min(1,state.sGmax);
    state.sGmax = max(0,state.sGmax);
    state.sGmax = max(state.sGmax,sg);

@@ -5,11 +5,14 @@ function fsg = free_sg(sg, sGmax, opt)
 %   function fsg = free_sg(sg, sGmax, opt)
 %
 % DESCRIPTION:
-% Determine the mobile part of present saturation, given the present saturation
-% and the historically maximum saturation, assuming a sharp interface.  (If the
-% present saturation is lower than the historical maximum, it suggest that some
-% of it is residually trapped, leading to a lower mobile saturation).  The
-% formula is based on the simple transformation: 
+% Assuming a sharp interface, this function determine the amount of present
+% saturation that is in the 'mobile plume' domain (as opposed to the region
+% below the mobile plume where CO2 has been residually trapped after
+% imbibition.  As such,  the "mobile part of present saturation" does include
+% the CO2 in the mobile plume that is destined to be left behind as residual
+% trapping, but not the CO2 that is already residually trapped.
+% 
+% The formula is based on the simple transformation: 
 %     s * H = h * (1 - sr(2)) + (h_max - h) * sr(1)
 % s_max * H = h_max * (1 - sr(2))
 % 
