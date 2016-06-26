@@ -1,6 +1,6 @@
 function varargout = plotFracData2D(G, data, varargin)
 % plotFracData plots data inside fracture cells only, given a grid with
-% matrix and fractures
+% matrix and fractures. The function is designed for 2D grids.
 %
 % SYNOPSIS:
 %       plotFracData(Gwf, data)
@@ -12,7 +12,8 @@ function varargout = plotFracData2D(G, data, varargin)
 %   G  - Grid data structure with fractures as defined by
 %        assembleGlobalGrid.
 %
-%   data - data to plot with values inside fracture cells only.
+%   data - data to plot with values inside fracture cells only. Matrix data
+%          is ignored.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %

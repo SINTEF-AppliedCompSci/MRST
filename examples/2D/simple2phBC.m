@@ -17,6 +17,9 @@ mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 
 %% Grid and fracture lines
+% Construct a Cartesian grid comprising 99-by-99 cells, where each cell has
+% dimension 1-by-1 m^2. Define 2 fracture lines in the form of a 'x'
+% through the centre of the domain.
 
 celldim = [99 99];
 physdim = [99 99];
@@ -26,6 +29,11 @@ G = computeGeometry(G);
 fl = [ 22    22    77    77; 22    77    77    22];
 
 %% Process fracture lines
+% Using the input fracture lines, we identify independent fracture networks
+% comprising of connected lines. In this example, there is only 1 fracture
+% network consisting of 2 fracture lines. We also identify the fine-cells
+% in the matrix containing these fractures. Fracture aperture is set to
+% 0.04 meters. The matrix grid and fracture lines are plotted.
 
 dispif(mrstVerbose, 'Processing user input...\n\n');
 [G,fracture] = processFracture2D(G,fl);
@@ -35,6 +43,11 @@ plotFractureLines(G,fracture,'lines');
 box on
 
 %% Compute CI and construct fracture grid
+% For each matrix block containing a fracture, we compute a fracture-matrix
+% conductivity index (CI) in accordance with the hierarchical fracture
+% model (a.k.a. embedded discrete fracture model). Following that, we
+% compute a fracture grid where the fracture cell size is defined to be
+% 0.5 m. Next, the fracture grid is plotted on top of the matrix grid.
 
 dispif(mrstVerbose, 'Computing CI and constructing fracture grid...\n\n');
 G = CIcalculator2D(G,fracture);
@@ -43,6 +56,9 @@ min_size = 0.1; cell_size = 0.5; % minimum and average cell size.
 clf; plotFractureNodes2D(G,F,fracture); box on
 
 %% Set rock properties in fracture and matrix
+% Set the permeability (K) as 1 Darcy in the matrix and 10000 Darcy in the
+% fractures. Additionally, set the porosity of the matrix and fractures to
+% 20% and 50%, respectively.
 
 dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
 G.rock.perm = ones(G.cells.num,1)*darcy;
@@ -52,16 +68,34 @@ poro_frac = 0.5;
 G = makeRockFrac(G, K_frac, 'permtype','homogeneous','porosity',poro_frac);
 
 %% Define fluid properties
+% Define a two-phase fluid model without capillarity. The fluid model has
+% the values:
+%
+% * densities: [rho_w, rho_o] = [1000 700] kg/m^3
+% * viscosities: [mu_w, mu_o] = [1 2] cP.
+% * corey-coefficient: [2, 2] = [2 2].
 
 fluid = initSimpleFluid('mu' , [   1,  2] .* centi*poise     , ...
     'rho', [1000, 700] .* kilogram/meter^3, ...
     'n'  , [   2,   2]);
 
 %% Define fracture connections as NNC and compute the transmissibilities
+% In this section, we use the function defineNNCandTrans to combine the
+% fracture and matrix grid structures into a single grid structure. In
+% addition to that, we assign a 'non-neighbouring connection (NNC)' status
+% to every fracture-matrix connection. For example, if fracture cell 'i' is
+% located in the matrix cell 'j', then the connection i-j is defined as an
+% NNC. To compute the flux between these elements, we compute a
+% transmissibility for each NNC using the CI's computed earlier. Vector T
+% contains the transmissibility for each face in the combined grid and each
+% NNC.
 
 [G,T] = defineNNCandTrans(G,F,fracture);
 
 %% Initialize state variables
+% Once the transmissibilities are computed, we can generate the
+% transmissiblity matrix 'A' using the 'two-point flux approximation'
+% scheme and initialize the solution structure.
 
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
 state  = initResSol (G, 5*barsa);
@@ -70,6 +104,10 @@ state  = initResSol (G, 5*barsa);
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true);
 
 %% Setup multiscale grids
+% Next, we define a 9-by-9 matrix coarse grid and 4 coarse blocks (or
+% coarse degrees of freedom) in the fracture. Additionally, we also define
+% the support regions for the fracture and matrix basis functions. The
+% matrix and fracture coarse grids are plotted.
 
 dispif(mrstVerbose, 'Defining coarse grids and interaction regions...\n\n');
 
@@ -81,6 +119,8 @@ dof_frac = 4; % Number of coarse blocks in the fracture grid
 clf; plotFractureCoarseGrid2D(G,CG.partition,F)
 
 %% Add BC
+% Set boundary condition P = 10 bars on the left face and P = 1 bar on the
+% right face of the domain.
 
 bc = [];
 xf = G.faces.centroids(:, 1);
@@ -97,6 +137,11 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
     'bc',bc, 'MatrixOutput', true, 'use_trans',true);
 
 %% Compute basis functions
+% Using the transmissibility matrix 'A' we compute the basis functions for
+% each fracture and matrix coarse block using the restriction smoothed
+% basis method. Note that the matrix 'A' does not contain any source terms
+% or boundary conditions. They are added to the coarse linear system when
+% computing the multiscale pressure in the next section.
 
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
@@ -128,6 +173,18 @@ axis tight off
 title('Initial Pressure: F-MsRSB')
 
 %% Incompressible Two-Phase Flow
+% We solve the two-phase system using a sequential splitting in which the
+% pressure and fluxes are computed by solving the flow equation and then
+% held fixed as the saturation is advanced according to the transport
+% equation. Note that the flow equations are solved in the fine scale as
+% well as on the coarse scale using an algebraic multiscale strategy. The
+% multiscale flux field obtained at fine scale resolution is reconstructed
+% to be conservative before solving the transport equation. This procedure
+% is repeated for a given number of time steps (here we use 15 equally
+% spaced time steps). The error introduced by this splitting of flow and
+% transport can be reduced by iterating each time step until e.g., the
+% residual is below a certain user-prescribed threshold (this is not done
+% herein).
 
 pv     = poreVolume(G,G.rock);
 nt     = 30;

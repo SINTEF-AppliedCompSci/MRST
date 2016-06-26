@@ -1,6 +1,6 @@
 function [Gl,T] = makeNNCextruded(G,Gl,F,fracture,flayers)
 % makeNNCextruded identifies fracture-matrix and fracture-fracture
-% connections and computes once transmissibility for each connections. 
+% connections and computes a single transmissibility for each connection. 
 %
 % SYNOPSIS:
 %   [Gl,T] = makeNNCextruded(G,Gl,F,fracture,flayers)

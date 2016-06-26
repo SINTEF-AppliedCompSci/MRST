@@ -1,9 +1,32 @@
-function plotFractureCoarseGrid2D(G,p,F,varargin)
-% plotFractureCoarseGrid(G,p,F) is a utility function for plotting, only
-% designed to plot the fracture coarse grid with an underlying matrix
-% coarse grid. If nargin>3, the script will output global coarse cell
-% numbers for the fracture coarse cells beside them. This function uses
-% rand() to generate colours for plotting fracture coarse cells.
+function varargout = plotFractureCoarseGrid2D(G, p, F, varargin)
+% plotFractureCoarseGrid(G, p, F) plots the fracture and matrix coarse
+% grids for a 2D domain. This function uses rand() to generate colours for
+% plotting fracture coarse cells.
+%
+% SYNOPSIS:
+%       plotFracData(G, p, F)
+%       plotFracData(G, p, F, 'pn1', pv1, ...)
+%   h = plotFracData(...)
+%
+% REQUIRED PARAMETERS:
+%
+%   G  - Grid data structure with fractures as assembled by
+%        assembleGlobalGrid.
+%
+%   p  - Partition vector for the coarse grid.
+%
+%   F  - see assembleFracNodes2D.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%
+%   showNumbering - If true, plots the fracture coarse block numbers.
+%
+% RETURNS:
+%   h - Handle to polygonal patch structure as defined by function
+%       plotFaces.  OPTIONAL.
+%
+% SEE ALSO:
+%   assembleFracNodes2D, outlineCoarseGrid
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.
@@ -24,6 +47,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+opt = struct('showNumbering', false);
 
 Gm = G.Matrix;
 %
@@ -39,7 +63,7 @@ if max(p(1:Gm.cells.num))>=max(pfracs)
 else
     cmap(frac_cells,:) = colors(p(frac_cells) - min(pfracs) + 1,:);
 end
-plotGrid(Gm,'EdgeAlpha',0.04,'FaceColor','none');
+h = plotGrid(Gm,'EdgeAlpha',0.04,'FaceColor','none');
 outlineCoarseGrid(Gm,p(1:Gm.cells.num),'k');
 hold on
 for i = 1:numel(F)
@@ -50,7 +74,7 @@ for i = 1:numel(F)
         plot(xx(j:j+1).',yy(j:j+1).','o-','Color',clr,'LineWidth',2.5,...
             'MarkerEdgeColor',clr,'MarkerFaceColor',clr,'MarkerSize',3);
     end
-    if nargin>3 % Plot frac_cell numbers alongside
+    if opt.showNumbering % Plot frac_cell numbers alongside
         xc = 0.5*(xx(1:end-1)+xx(2:end));
         yc = 0.5*(yy(1:end-1)+yy(2:end));
         for j = 1:numel(xc)
@@ -64,4 +88,7 @@ title({['Fracture coarse grid with ',num2str(numel(unique(pfracs))),' DOF.'],...
     'FontSize',15,'FontWeight','bold');
 axis equal off tight
 hold off
+
+if nargout > 0, varargout{1} = h; end
+
 return
