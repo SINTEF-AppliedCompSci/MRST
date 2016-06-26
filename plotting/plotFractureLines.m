@@ -86,14 +86,14 @@ if ~isempty(opt.lineNumbers)
         x = [fracture.lines(lines(i)).endp(1);fracture.lines(lines(i)).endp(3)];
         y = [fracture.lines(lines(i)).endp(2);fracture.lines(lines(i)).endp(4)];
         line(x,y,'Color',dc(i,:),'Parent',ax,'LineWidth',1.5);
-        %     text(mean(x),mean(y),num2str(i));
+        %     text(mean(x),mean(y),num2str(i)); % show line numbering
     end
 else
     for i = 1:numel(fracture.lines)
         x = [fracture.lines(i).endp(1);fracture.lines(i).endp(3)];
         y = [fracture.lines(i).endp(2);fracture.lines(i).endp(4)];
         line(x,y,'Color',dc(i,:),'Parent',ax,'LineWidth',1.5);
-        %     text(mean(x),mean(y),num2str(i));
+        %     text(mean(x),mean(y),num2str(i)); % show line numbering
     end
 end
 

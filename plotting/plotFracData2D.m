@@ -102,7 +102,7 @@ if opt.wide
         y = [y;Gfwide.faces.centroids(faces,2);Gfwide.nodes.coords(cnodes,2)]; %#ok
         K = convhull(x,y);
         plot(x(K),y(K),'m','LineWidth',2.5);
-%         text(x+0.1,y,num2str(i),'FontSize',16,'FontWeight','bold');
+%         text(x+0.1,y,num2str(i));
     end
     end
 else
@@ -112,5 +112,7 @@ else
     axis tight off; c = colormap(opt.cmap);
     caxis([0 1]); c(1,:) = [1 1 1]; colormap(c);
 end
-varargout{1} = gcf;
+
+if nargout > 0, varargout{1} = h; end
+
 return
