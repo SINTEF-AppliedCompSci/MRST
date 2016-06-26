@@ -42,7 +42,7 @@ load examples/data/brazil_fractures_processed
 load examples/data/brazil_grid_processed
 
 figure;
-plotFractureLines(G,fracture,'lines');
+plotFractureLines(G,fracture);
 box on
 
 %% Compute CI and construct fracture grid

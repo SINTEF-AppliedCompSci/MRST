@@ -39,7 +39,7 @@ dispif(mrstVerbose, 'Processing user input...\n\n');
 [G,fracture] = processFracture2D(G,fl);
 fracture.aperture = 1/25; % Fracture aperture
 figure;
-plotFractureLines(G,fracture,'lines');
+plotFractureLines(G,fracture);
 box on
 
 %% Compute CI and construct fracture grid
@@ -180,7 +180,7 @@ title('Initial Pressure: F-MsRSB')
 % well as on the coarse scale using an algebraic multiscale strategy. The
 % multiscale flux field obtained at fine scale resolution is reconstructed
 % to be conservative before solving the transport equation. This procedure
-% is repeated for a given number of time steps (here we use 15 equally
+% is repeated for a given number of time steps (here we use 30 equally
 % spaced time steps). The error introduced by this splitting of flow and
 % transport can be reduced by iterating each time step until e.g., the
 % residual is below a certain user-prescribed threshold (this is not done
@@ -188,8 +188,8 @@ title('Initial Pressure: F-MsRSB')
 
 pv     = poreVolume(G,G.rock);
 nt     = 30;
-t90    = 2*(sum(pv)/sum(state_fs.flux(left)));
-Time   = t90;
+t200    = 2*(sum(pv)/sum(state_fs.flux(left)));
+Time   = t200;
 dT     = Time/nt;
 dTplot = Time/3;
 N      = fix(Time/dTplot);

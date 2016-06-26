@@ -1,9 +1,8 @@
 function G = fracMatrixConnections(G,Gfrac,CItot,possible_cells,area,varargin)
-% fracMatrixConnections assigns a "non-neighboring connection (NNC)"
-% indicators to each fracture-matrix connection and also assigns a
-% transmissibility to each NNC given the total conductivity index of the
-% fracture. See Lee et al, Water Resources Research, 2001 or SPE-65095-PA,
-% Lee et al, 2000.
+% fracMatrixConnections assigns a "non-neighboring connection (NNC)" status
+% to each fracture-matrix connection and also assigns a transmissibility to
+% each NNC given the total conductivity index of the fracture. See Lee et
+% al, Water Resources Research, 2001 or SPE-65095-PA, Lee et al, 2000.
 
 %{
 Copyright 2009-2015: TU Delft and SINTEF ICT, Applied Mathematics.

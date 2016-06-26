@@ -21,7 +21,9 @@ checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 % where each cell has dimension 1-by-1 m^2. Next, define 2 fracture lines
 % in the form of a 'x' through the centre of the domain. We also define the
 % number of layers in the extruded 3D grid and the indices of layers
-% through which the fracture grid would extend.
+% through which the fracture grid would extend. In this example, we extrude
+% the matrix grid by 50 layers resulting in 50-by-50-by-50 fine cells. The
+% fracture grid is extruded from layer 11 through 40.
 
 celldim = [50 50];
 G = cartGrid(celldim);
@@ -59,8 +61,8 @@ clf; plotFractureNodes2D(G,F,fracture); box on
 
 %% Make layered grid
 % Using makeLayers, we extrude the matrix grid and each fracture grid along
-% the z-direction. The fracture grid is extruded and readjusted such that
-% it exists in the layers specified in variable 'flayers'.
+% the z-direction. The fracture grid is extruded and readjusted in
+% accordance with 'flayers'.
 
 Gl = makeLayers(G,layers,flayers);
 
@@ -139,10 +141,11 @@ state.wellSol = initWellSol(W, 0);
 % Next, we define a 10-by-10-by-10 matrix coarse grid such that each coarse
 % block contains 5-by-5-by-5 fine cells. Each of the two fracture planes is
 % partitioned into 3-by-3 coarse blocks. In total, the fracture grid has 18
-% degrees of freedom. Additionally, we also define the support regions for
-% the fracture and matrix basis functions. Fracture support region is
-% defined based on a topological distance based algorithm. The matrix and
-% fracture coarse grids are plotted in the next section.
+% degrees of freedom at coarse scale giving a coarsening ratio of ~333.
+% Additionally, we also define the support regions for the fracture and
+% matrix basis functions. Fracture support region is defined based on a
+% topological distance based algorithm. The matrix and fracture coarse
+% grids are plotted in the next section.
 
 G.type{1,1} = 'layered';
 

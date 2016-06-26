@@ -139,10 +139,10 @@ title('Initial pressure');
 % pressure and fluxes are computed by solving the flow equation and then
 % held fixed as the saturation is advanced according to the transport
 % equation. This procedure is repeated for a given number of time steps
-% (here we use 15 equally spaced time steps). The error introduced by this
-% splitting of flow and transport can be reduced by iterating each time
-% step until e.g., the residual is below a certain user-prescribed
-% threshold (this is not done herein).
+% (here we use 60 equally spaced time steps amounting to 50 % PV Injected).
+% The error introduced by this splitting of flow and transport can be
+% reduced by iterating each time step until e.g., the residual is below a
+% certain user-prescribed threshold (this is not done herein).
 
 pv     = poreVolume(G,G.rock);
 nt     = 60;

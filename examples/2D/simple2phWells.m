@@ -40,7 +40,7 @@ dispif(mrstVerbose, 'Processing user input...\n\n');
 fracture.aperture = 1/25; % Fracture aperture
 
 figure;
-plotFractureLines(G,fracture,'lines');
+plotFractureLines(G,fracture);
 box on
 
 %% Compute CI and construct fracture grid
@@ -183,7 +183,7 @@ dispif(mrstVerbose, 'Computing multiscale solution...\n\n');
 % well as on the coarse scale using an algebraic multiscale strategy. The
 % multiscale flux field obtained at fine scale resolution is reconstructed
 % to be conservative before solving the transport equation. This procedure
-% is repeated for a given number of time steps (here we use 15 equally
+% is repeated for a given number of time steps (here we use 30 equally
 % spaced time steps). The error introduced by this splitting of flow and
 % transport can be reduced by iterating each time step until e.g., the
 % residual is below a certain user-prescribed threshold (this is not done
