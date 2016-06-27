@@ -11,6 +11,7 @@ blocks are of the same size.
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
+checkMATLABversionHFM;
 
 %% Grid and fracture lines
 % Construct a Cartesian grid comprising 90-by-90 cells, where each cell has
@@ -129,11 +130,11 @@ state_r = incompTPFA(state_r, Gr, computeTrans(Gr,Gr.rock), fluid, 'bc', bcr);
 figure;
 plotToolbar(G, state.pressure)
 colormap jet
-view(0, 90); colorbar
-title('Embedded fracture model');
+view(0, 90); colorbar; axis equal tight
+title('Hierarchical or Embedded discrete fracture model');
 
 figure;
 plotToolbar(Gr, state_r.pressure)
 colormap jet
-view(0, 90); colorbar
+view(0, 90); colorbar; axis equal tight
 title('Fully resolved solution')

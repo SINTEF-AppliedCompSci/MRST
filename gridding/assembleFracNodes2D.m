@@ -416,7 +416,7 @@ end
 
 for i = 1:numel(F)
     coords = F(i).nodes.coords;
-    uniquetol(coords,eps,'ByRows',true);
+    % uniquetol(coords,eps,'ByRows',true);
     endp = [coords(1,:);coords(end,:)];
     diff1 = diff(endp,1);
     if abs(diff1(2)) < eps*100 % // to x-axis

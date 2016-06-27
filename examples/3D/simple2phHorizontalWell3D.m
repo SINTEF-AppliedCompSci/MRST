@@ -11,6 +11,7 @@ mrstModule add coarsegrid;      % functionality for coarse grids
 mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
+checkMATLABversionHFM;
 
 %% Grid and fracture(s)
 % Construct a Cartesian grid comprising 25-by-25-by-25 cells, where each
@@ -192,8 +193,7 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B); view(-135,30)
-axis tight; c = colormap(jet);
-c(1,:) = [1 1 1]; colormap(c); colorbar;
+axis tight; colormap(jet); colorbar;
 title('Basis Functions in the matrix');
 
 %% Compute multiscale solution

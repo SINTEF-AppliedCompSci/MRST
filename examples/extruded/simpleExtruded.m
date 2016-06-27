@@ -15,6 +15,7 @@ mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
+checkMATLABversionHFM;
 
 %% Grid and fracture lines
 % We start by constructing a 2D Cartesian grid comprising 50-by-50 cells,
@@ -208,8 +209,7 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B); view(-135,30)
-axis tight; c = colormap(jet);
-colormap(c); colorbar;
+axis tight; colormap(jet); colorbar;
 title('Basis Functions in the matrix');
 
 %% Compute multiscale solution

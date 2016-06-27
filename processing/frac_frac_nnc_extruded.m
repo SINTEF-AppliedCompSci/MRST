@@ -24,7 +24,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
+ver = version('-release');
 if isfield(fracture,'intersections')
     findex2D = []; findex3D = [];
     for i = 1:numel(F)
@@ -40,9 +40,14 @@ if isfield(fracture,'intersections')
         Gf1 = G.FracGrid.(['Frac',num2str(lines(1))]);
         Gf2 = G.FracGrid.(['Frac',num2str(lines(2))]);
         %
-        [~,Gface(1)] = ismember(round(coords,5),round(F(lines(1)).nodes.coords,5),'rows');
-        [~,Gface(2)] = ismember(round(coords,5),round(F(lines(2)).nodes.coords,5),'rows');
-        %
+        if str2double(ver(1:4))>2015
+            [~,Gface(1)] = ismember(round(coords,5),round(F(lines(1)).nodes.coords,5),'rows');
+            [~,Gface(2)] = ismember(round(coords,5),round(F(lines(2)).nodes.coords,5),'rows');
+        else
+            [~,Gface(1)] = ismember(coords,F(lines(1)).nodes.coords,'rows');
+            [~,Gface(2)] = ismember(coords,F(lines(2)).nodes.coords,'rows');
+        end
+        %  
         cells_l1 = cell(2,1);
         for j = 1:numel(Gface)
             if Gface(j) == 1
@@ -70,9 +75,13 @@ if isfield(fracture,'intersections')
         Gf1 = Gl.FracGrid.(['Frac',num2str(lines(1))]);
         Gf2 = Gl.FracGrid.(['Frac',num2str(lines(2))]);
         %
+        if str2double(ver(1:4))>2015
         faces1 = find(ismembertol(Gf1.faces.centroids(:,1:2),cent1,eps*1e4,'ByRows',true));
         faces2 = find(ismembertol(Gf2.faces.centroids(:,1:2),cent2,eps*1e4,'ByRows',true));
-        
+        else
+        faces1 = find(ismember(Gf1.faces.centroids(:,1:2),cent1,'rows'));
+        faces2 = find(ismember(Gf2.faces.centroids(:,1:2),cent2,'rows'));
+        end
         %-----------Get half face transmissibilities----------------------%
         Trans1 = computeTrans(Gf1,Gf1.rock);
         Trans2 = computeTrans(Gf2,Gf2.rock);

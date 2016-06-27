@@ -9,6 +9,7 @@ blocks are of the same size.
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
+checkMATLABversionHFM;
 
 %% Grid and fracture lines
 % Construct a Cartesian grid comprising 50-by-20 cells, where each cell has
@@ -51,7 +52,7 @@ G = CIcalculator2D(G,fracture);
 min_size = 5; cell_size = 10; % minimum and average cell size.
 [G,F,fracture] = gridFracture2D(G,fracture,'min_size',min_size,'cell_size',cell_size);
 clf; plotFractureNodes2D(G,F,fracture); 
-axis equal; box on
+axis equal tight; box on
 
 %% Set rock properties in fracture and matrix
 
@@ -69,7 +70,7 @@ G.rock.poro = p(:);
 G.rock.perm = K(:);
 K_frac = 10000; % Darcy
 G = makeRockFrac(G, K_frac, 'porosity', 0.8);
-clf; plotToolbar(G, G.rock);
+clf; plotToolbar(G, G.rock); axis equal tight;
 
 %% Define fluid properties
 % Define a two-phase fluid model without capillarity. The fluid model has
@@ -131,7 +132,7 @@ state = incompTPFA(state, G, T, fluid, 'Wells', W, 'MatrixOutput', true, 'use_tr
 figure;
 plotToolbar(G, state.pressure)
 colormap jet
-view(0, 90); colorbar
+view(0, 90); colorbar; axis equal tight;
 title('Initial pressure');
 
 %% Incompressible Two-Phase Flow
@@ -175,4 +176,4 @@ end
 %% Plot saturations
 
 figure; plotToolbar(G,sol); 
-colormap(flipud(gray)); caxis([0 1]); axis tight equal
+colormap(flipud(gray)); caxis([0 1]); axis equal tight;
