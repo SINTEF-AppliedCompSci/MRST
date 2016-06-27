@@ -528,8 +528,8 @@ function [F] = fixIntersections(F,fh, circFac, mergeTol)
   map            = [F.f.cPos(fId),F.f.cPos(fId)+1]';
   
   F.f.c(map(:))  = [c';neigh(:,1)';c';neigh(:,1)';c';neigh(:,2)';c';neigh(:,2)'];%reshape(repmat([c',c';neigh(:,1)',neigh(:,2)'],2,1),2,[]);
-
-  [~, IA, IC] = uniquetol(F.f.pts,'byRows',true);
+  p = round(F.f.pts*10^15)/10^15;
+  [~, IA, IC] = unique(p,'rows');
   F.f.pts = F.f.pts(IA,:);
   F.f.Gs = F.f.Gs(IA);
   [~,I] = sort(IC);
