@@ -139,7 +139,7 @@ dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B); 
 line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
-axis tight; c = colormap(jet);  
+axis tight; c = colormap([1 1 1; jet]);  
 colormap(c); colorbar; 
 title('Basis Functions in the matrix');
 
