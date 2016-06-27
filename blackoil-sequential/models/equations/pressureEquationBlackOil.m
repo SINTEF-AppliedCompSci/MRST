@@ -210,10 +210,10 @@ if ~isempty(W)
 
         
         mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        s = {sW(wc), sO(wc), sG(wc)};
+        sat = {sW(wc), sO(wc), sG(wc)};
 
         [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
+            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
             'maxComponents', rSatw, ...
             'nonlinearIteration', opt.iteration);
         eqs(2:4) = weqs;
@@ -245,7 +245,7 @@ a_w = 1./bW;
 a_o = cfac.*(1./bO - disgas*rs./bG);
 a_g = cfac.*(1./bG - vapoil*rv./bO);
 
-eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
+eqs{1} = (dt./s.pv).*(oil.*a_o + wat.*a_w + gas.*a_g);
 
 names{1} = 'pressure';
 types{1} = 'cell';
