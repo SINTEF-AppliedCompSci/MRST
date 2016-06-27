@@ -71,6 +71,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         for i = 1:numel(qBC)
             % Subtract fluxes
+            if isempty(eqs{i})
+                continue
+            end
             eqs{i}  = eqs{i} - BCTocellMap*qBC{i};
         end
     end
@@ -79,6 +82,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Fluxes from source terms
         [qSRC, srcCells] = getSourceFluxesAD(model, mob, b, s, forces.src);
         for i = 1:numel(qSRC)
+            if isempty(eqs{i})
+                continue
+            end
             % Subtract fluxes
             eqs{i}(srcCells)  = eqs{i}(srcCells) - qSRC{i};
         end
