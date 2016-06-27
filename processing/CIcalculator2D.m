@@ -48,16 +48,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-<<<<<<< HEAD
 if nargin>2
    showProgress=varargin{1};
    hwb=waitbar(0,'Computing conductivity index (embedded)');
 else
    showProgress=false;
 end
-=======
 ver = version('-release');
->>>>>>> 75db4d8d1ba495d0e51ffcb434fb6593b58c3293
 frac_cells = find(G.cells.fracture.indicator==1); % Matrix cells containing embedded fractures
 CI = cell(G.cells.num,1);
 fA = cell(G.cells.num,1);
