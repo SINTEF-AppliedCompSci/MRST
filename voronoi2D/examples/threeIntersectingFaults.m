@@ -22,14 +22,14 @@ G = compositePebiGrid(gS,[1,1.15],'faultLines',l);
 %% Plot grid
 figure(1); hold on
 plotGrid(G,'facecolor','none');
-plotLinePath(l,'-','color','k','linewidth',1)
+plotLinePath(l,'-','color','k','linewidth',1);
 axis equal
 
 %% Plot zoomed
 % We plot a zoomed view of the intersection
 figure(2); hold on
 plotGrid(G,'facecolor','none');
-plotLinePath(l,'-','color','k','linewidth',1.5)
+plotLinePath(l,'-','color','k','linewidth',1.5);
 axis equal off tight
 axis([0.4,0.7,0.4,0.7 + (0.7-0.4)*.15])
 

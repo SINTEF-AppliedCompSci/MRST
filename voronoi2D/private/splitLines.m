@@ -50,16 +50,6 @@ for i = 1:numel(L1)
   newLine = newLine(numPts>1);
   startInt = numPts(1)==1;
   endInt   = numPts(end)==1;
-  
-  % Pick lines
-  
- 
- % for l = 1:numel(newLine)
- %   ptsr    = round(newLine{l}*10^15)*10^15;
- %   [~,IA] = unique(ptsr,'rows','stable');
- %   newLine{l} = newLine{l}(IA,:);
- % end
-
 
   % Split line
   IC = [IC; i*ones(numel(newLine),1)];

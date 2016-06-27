@@ -51,8 +51,8 @@ load('datasets/reservoirWithComplexFaultNetwork.mat')
 
 %% Plot grid
 figure(); hold on
-plotGrid(G,'facecolor','none')
-plotLinePath(fault,'color','k','linewidth',1)
+plotGrid(G,'facecolor','none');
+plotLinePath(fault,'color','k','linewidth',1);
 axis equal off tight
 
 

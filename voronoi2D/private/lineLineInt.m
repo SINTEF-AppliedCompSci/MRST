@@ -1,4 +1,6 @@
 function [X,Y, segInt] = lineLineInt(L1, L2)
+% Calculates the intersections of line segments L1 with line segments L2
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
 TOL = 10*eps;
 numL2 = size(L2,1);
 numL1 = size(L1,1);

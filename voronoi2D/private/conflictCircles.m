@@ -1,4 +1,5 @@
-  function [I] = conflictCircles(Pts, CC, CR)
+function [I] = conflictCircles(Pts, CC, CR)
+    % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
     TOL = 1e-12;
 
     nc = size(CC,1);

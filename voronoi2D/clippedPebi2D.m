@@ -1,4 +1,34 @@
 function G = clippedPebi2D(p, bnd)
+% Construct a 2D clipped Pebi grid.
+%
+% SYNOPSIS:
+%   G = clippedPebi2D(p, bnd)
+%
+% PARAMETERS:
+%   p        A n X 2 array of coordinates. Each coordinate coresponds to 
+%            one Voronoi site.
+%   bnd      a k X 2 array of coordinates. Each coordinate coresponds to a
+%            vertex in the polygon boundary. The coordinates must be
+%            ordered clockwise or counter clockwise. 
+%
+% RETURNS:
+%   G                - Valid MRST grid definition.
+%
+% EXAMPLE:
+%   p = rand(30,2);
+%   bnd = [0,0;0,1;1,1;1,0];
+%   G = clippedPebi2D(p,bnd);
+%   plotGrid(G);
+%   axis equal tight
+%
+% SEE ALSO
+%   compositePebiGrid, pebi, pebiGrid
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 
 dt = delaunayTriangulation(p);
 E = dt.edges();

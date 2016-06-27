@@ -1,4 +1,4 @@
-function [newPoints, dt,n] = eqInterpret(path, dt,sePtn)
+function [newPoints, dt] = eqInterpret(path, dt,sePtn)
     % Interpolate a path with equiv distant points
     % Arguments:
     %   path       n*2 array of coordinates of points which are to be

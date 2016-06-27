@@ -20,7 +20,7 @@ function [splitL1, L1Cut, L1L2Cut, IC] = splitAtInt(L1, L2)
 %                      .----------.-------------.
 %                   (x1,y1)    (x2,y2)       (x3,y3)
 %
-%                   If an array has length 1 it is considered a point well.
+%                   If an array has length 1 it is considered a point.
 % RETURNS:
 %   splitL1         A cell of arrays. The arrays are the cut paths and 
 %                   does not contain any intersections with L1 or L2,
