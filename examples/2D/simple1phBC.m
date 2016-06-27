@@ -1,7 +1,9 @@
-%% Single-Phase Problem with two Intersecting Fractures
-% Single-phase 2D example with Dirichlet boundary conditions demonstrating
-% the use of the HFM module. The flow problem is solved both by a fine-scale
-% and a multiscale solver.
+%% Introduction to the F-MsRSB Solver
+% In this example, we will introduce you to the multiscale restriction
+% smoothed basis (MsRSB) method for computing flow in embedded fracture
+% models. To this end, we consider a 2D single-phase example with two
+% intersecting fractures and Dirichelet boundary conditions. The flow
+% problem is solved both by a fine-scale and a multiscale solver.
 %
 % Notice that you need to have Metis installed to get this example to work.
 % To get Metis working, you also need to set the global variable METISPATH.
@@ -118,7 +120,7 @@ bc = [];
 bc  = pside(bc, G, 'LEFT', 10*barsa);
 bc  = pside(bc, G, 'RIGHT', 1*barsa);
 
-%% Incompressible 1-phase FS
+%% Incompressible fine-scale solver
 % The fine scale pressure solution is computed using the boundary
 % conditions provided and the transmissiblity matrix computed earlier.
 
@@ -136,6 +138,7 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B); 
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
 axis tight; c = colormap(jet);  
 colormap(c); colorbar; 
 title('Basis Functions in the matrix');
@@ -163,20 +166,22 @@ fn = getSmootherFunction('type', 'ilu');
 %% Plot results and convergence
 figure; colormap jet
 plotCellData(G, state_fs.pressure,'EdgeColor','none')
+line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
 view(90, 90); colorbar
 axis tight off
 title('Fine scale')
 
 figure; colormap jet
 plotCellData(G, state_ms.pressure,'EdgeColor','none')
+line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
 view(90, 90); colorbar
-
 axis tight off
 title('F-MsRSB')
 
 figure; colormap jet
 L1 = abs(state_ms.pressure-state_fs.pressure)./state_fs.pressure;
 plotCellData(G, L1,'EdgeColor','none')
+line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
 view(90, 90); colorbar
 axis tight off
 L1_eq = '$$ \frac{| P_i^{fs}-P_i^{f-msrsb} | }{ P_i^{fs}} $$';
