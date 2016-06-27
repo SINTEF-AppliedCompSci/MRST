@@ -80,7 +80,7 @@ while count<maxIt
   % 3. Retriangulation by the Delaunay algorithm
   if max(sqrt(sum((p-pold).^2,2))/h0)>ttol           % Any large movement?
     pold=p;                                          % Save current positions
-    t=delaunayn(p);                                  % List of triangles
+    t=delaunay(p);                                  % List of triangles
     pmid=(p(t(:,1),:)+p(t(:,2),:)+p(t(:,3),:))/3;    % Compute centroids
     t=t(feval(fd,pmid,varargin{:})<-geps,:);         % Keep interior triangles
     % 4. Describe each bar by a unique pair of nodes
