@@ -57,5 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             '\tmrstModule(''add'', <path-to-lineSegmentIntersect.m>)' ...
             '\n\nto make it available for MRST.'])
     end
-    varargout{1} = foundLSI;
+    
+    if nargout > 0, varargout{1} = foundLSI; end
+    
 end

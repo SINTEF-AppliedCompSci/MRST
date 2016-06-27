@@ -11,11 +11,20 @@ This can be done in your 'startup_user.m' file.
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
+checkMATLABversionHFM;
 
 %% Grid and fracture lines
+% We start by constructing a 2D Cartesian grid comprising 50-by-50 cells,
+% where each cell has dimension 1-by-1 m^2. Next, define 2 fracture lines
+% in the form of a 'x' through the centre of the domain. We also define the
+% number of layers in the extruded 3D grid and the indices of layers
+% through which the fracture grid would extend. In this example, we extrude
+% the matrix grid by 50 layers resulting in 50-by-50-by-50 fine cells. The
+% fracture grid is extruded from layer 11 through 40.
 
 celldim = [50 50];
 G = cartGrid(celldim);
@@ -25,15 +34,25 @@ layers = 50;
 flayers = 11:40;
 
 %% Process fracture lines
+% Using the input fracture lines, we identify independent fracture networks
+% comprising of connected lines. In this example, there is only 1 fracture
+% network consisting of 2 fracture lines. We also identify the fine-cells
+% in the matrix containing these fractures. Fracture aperture is set to
+% 0.04 meters. The matrix grid and fracture lines are plotted.
 
 dispif(mrstVerbose, 'Processing user input...\n\n');
 a = 1/25;
 [G,fracture] = processFracture2D(G,fl); fracture.aperture = a;
 figure;
-plotFractureLines(G,fracture,'lines');
+plotFractureLines(G,fracture);
 axis tight; box on
 
 %% Compute CI and construct fracture grid
+% For each matrix block containing a fracture, we compute a fracture-matrix
+% conductivity index (CI) in accordance with the hierarchical fracture
+% model (a.k.a. embedded discrete fracture model). Following that, we
+% compute a fracture grid where the fracture cell size is defined to be
+% 0.5 m. Next, the fracture grid is plotted on top of the matrix grid.
 
 dispif(mrstVerbose, 'Computing CI and constructing fracture grid...\n\n');
 G = CIcalculator2D(G,fracture);
@@ -42,10 +61,22 @@ min_size = 0.5; cell_size = 0.5; % minimum and average cell size.
 clf; plotFractureNodes2D(G,F,fracture); box on
 
 %% Make layered grid
+% Using makeLayers, we extrude the matrix grid and each fracture grid along
+% the z-direction. The fracture grid is extruded and readjusted in
+% accordance with 'flayers'.
 
 Gl = makeLayers(G,layers,flayers);
 
 %% Set rock properties in fracture and matrix
+% For this example, we will generate the matrix porosity as a Gaussian
+% field. To get a crude approximation to the permeability-porosity
+% relationship, we assume that our medium is made up of uniform spherical
+% grains of diameter dp = 10 m, for which the specic surface area is Av =
+% 6 = dp. With these assumptions, using the Carman Kozeny relation, we can
+% then calculate the isotropic matrix permeability (K). The rock properties
+% are then plotted. Fracture permeability is set to 1000 Darcy with 50%
+% porosity in each fracture grid cell. The rock properties are then
+% plotted.
 
 p = gaussianField(Gl.cartDims, [0.2 0.4], [9 5 5], 3.5);
 K = p.^3.*(1e-5)^2./(0.81*72*(1-p).^2);
@@ -60,23 +91,32 @@ colormap(jet); view (-135,30);
 axis tight equal off
 
 %% Define fluid properties
+% Define a single fluid of viscosity 1 cP and density 1000 kg/m3.
 
 fluid = initSingleFluid('mu' , 1*centi*poise, ...
-    'rho', 1*kilogram/meter^3);
+    'rho', 1000*kilogram/meter^3);
 
 %% Global grid with NNC's and corresponding transmissibility
+% In this section, we use the function makeNNCextruded to combine the
+% layered fracture and matrix grid structures into a single grid structure.
+% Additionally, we assign a 'non-neighbouring connection (NNC)' status to
+% every fracture-matrix connection. For example, if fracture cell 'i' is
+% located in the matrix cell 'j', then the connection i-j is defined as an
+% NNC. To compute the flux between these elements, we compute a
+% transmissibility for each NNC using the CI's computed earlier. Vector T
+% contains the transmissibility for each face in the combined grid and each
+% NNC.
 
 [Gl,T] = makeNNCextruded(G,Gl,F,fracture,flayers);
 G = Gl; clear Gl
 
-%% Initialize state variables
-
-dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol (G, 0);
-state.wellSol = initWellSol(G, 0);
-[A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true);
-
 %% Add Wells
+% We will include two horizontal wells, a rate-controlled injector well
+% through the bottom left corner of the grid and a producer, controlled by
+% bottom-hole pressure, through the top right section of the grid. Wells
+% are described using a Peaceman model, giving an extra set of equations
+% that need to be assembled, see simpleWellExample.m for more details on
+% the Peaceman well model.
 
 [nx, ny, nz] = deal(G.cartDims(1), G.cartDims(2), G.cartDims(3));
 cellinj = nx*ny*(nz-1)+1:nx:nx*ny*nz;
@@ -88,7 +128,25 @@ W   = addWell(W, G.Matrix, G.Matrix.rock, cellinj, 'Type', 'rate',...
 W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod, ...
     'Type', 'bhp', 'Val', 50*barsa(), 'Sign', -1, 'Comp_i', [0, 1], 'Name', 'Producer');
 
+%% Initialize state variables
+% Once the transmissibilities are computed, we can generate the
+% transmissiblity matrix 'A' using the 'two-point flux approximation'
+% scheme and initialize the solution structure.
+
+dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
+state  = initResSol (G, 0);
+state.wellSol = initWellSol(W, 0);
+[A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true);
+
 %% Setup multiscale grids
+% Next, we define a 10-by-10-by-10 matrix coarse grid such that each coarse
+% block contains 5-by-5-by-5 fine cells. Each of the two fracture planes is
+% partitioned into 3-by-3 coarse blocks. In total, the fracture grid has 18
+% degrees of freedom at coarse scale giving a coarsening ratio of ~333.
+% Additionally, we also define the support regions for the fracture and
+% matrix basis functions. Fracture support region is defined based on a
+% topological distance based algorithm. The matrix and fracture coarse
+% grids are plotted in the next section.
 
 G.type{1,1} = 'layered';
 
@@ -101,7 +159,7 @@ CGm = getRsbGridsMatrix(G, pm, 'fullyCoupled', false, 'Wells', W);
 % Partition fracture
 
 nw = fracture.network;
-coarseDimsF = [2 4];
+coarseDimsF = [3 3];
 p  = partitionFracture(G, pm, nw, 'partition_frac'   , true   , ...
     'use_metisF'       , false  , ...
     'coarseDimsF'      , coarseDimsF );
@@ -134,18 +192,24 @@ plotGrid(CG, 'facealpha', 0, 'linewidth', 2);
 plotWell(G,W);
 
 %% Incompressible 1-phase FS
+% The fine scale pressure solution is computed using the boundary
+% conditions provided and the transmissiblity matrix computed earlier.
 
 dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
 state_fs = incompTPFA(state, G, T, fluid,  ...
     'Wells', W, 'MatrixOutput', true, 'use_trans',true);
 
 %% Compute basis functions
+% Using the transmissibility matrix 'A' we compute the basis functions for
+% each fracture and matrix coarse block using the restriction smoothed
+% basis method. Note that the matrix 'A' does not contain any source terms
+% or boundary conditions. They are added to the coarse linear system when
+% computing the multiscale pressure in the next section.
 
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B); view(-135,30)
-axis tight; c = colormap(jet);
-c(1,:) = [1 1 1]; colormap(c); colorbar;
+axis tight; colormap(jet); colorbar;
 title('Basis Functions in the matrix');
 
 %% Compute multiscale solution
@@ -154,6 +218,8 @@ state_ms = incompMultiscale(state, CG, T, fluid, basis_sb, 'Wells', W, ...
     'use_trans',true);
 
 %% Solve using MS-ILU and MS-GMRES
+% Compute an iterative multiscale solution using ILU and GMRES
+% preconditioners.
 
 fn = getSmootherFunction('type', 'ilu');
 

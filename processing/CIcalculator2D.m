@@ -48,12 +48,16 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+<<<<<<< HEAD
 if nargin>2
    showProgress=varargin{1};
    hwb=waitbar(0,'Computing conductivity index (embedded)');
 else
    showProgress=false;
 end
+=======
+ver = version('-release');
+>>>>>>> 75db4d8d1ba495d0e51ffcb434fb6593b58c3293
 frac_cells = find(G.cells.fracture.indicator==1); % Matrix cells containing embedded fractures
 CI = cell(G.cells.num,1);
 fA = cell(G.cells.num,1);
@@ -79,13 +83,19 @@ for i = 1:numel(frac_cells)
             d1 = pdist_euclid([frac_endp(1:2);nc(failcheck,:)]);
             d2 = pdist_euclid([frac_endp(3:4);nc(failcheck,:)]);
             if abs((d1+d2)-pdist_euclid([frac_endp(1:2);frac_endp(3:4)]))<eps
+                if str2double(ver(1:4))>2015
                 if ~ismembertol([nc(failcheck,1),nc(failcheck,2)],[xi,yi],eps*100,'ByRows',true)
                 xi = [xi;nc(failcheck,1)]; %#ok
                 yi = [yi;nc(failcheck,2)]; %#ok
                 end
+                end
             end
         end
-        points = uniquetol([xi,yi],eps*100,'ByRows',true);
+        if str2double(ver(1:4))>2015
+            points = uniquetol([xi,yi],eps*100,'ByRows',true);
+        else
+            points = [xi,yi];
+        end
         xi = points(:,1); yi = points(:,2);
         flag = 0;
         if size(points,1)==1
@@ -100,7 +110,11 @@ for i = 1:numel(frac_cells)
             fracp = [ [xi, yi]; new_endp];
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
         else
+            if str2double(ver(1:4))>2015
             fracp = uniquetol([xi,yi],eps*100,'ByRows',true);
+            else
+            fracp = unique([xi,yi],'rows');
+            end
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
             ratio = 1;
         end
@@ -138,13 +152,19 @@ for i = 1:numel(frac_cells)
             d1 = pdist_euclid([frac_endp(1:2);nc(failcheck,:)]);
             d2 = pdist_euclid([frac_endp(3:4);nc(failcheck,:)]);
             if abs((d1+d2)-pdist_euclid([frac_endp(1:2);frac_endp(3:4)]))<eps
+                if str2double(ver(1:4))>2015
                 if ~ismembertol([nc(failcheck,1),nc(failcheck,2)],[xi,yi],eps*100,'ByRows',true)
                 xi = [xi;nc(failcheck,1)]; %#ok
                 yi = [yi;nc(failcheck,2)]; %#ok
                 end
+                end
             end
         end
-        points = uniquetol([xi,yi],eps*100,'ByRows',true);
+        if str2double(ver(1:4))>2015
+            points = uniquetol([xi,yi],eps*100,'ByRows',true);
+        else
+            points = [xi yi];
+        end
         xi = points(:,1); yi = points(:,2);
         flag = 0;
         if size(points,1)==1

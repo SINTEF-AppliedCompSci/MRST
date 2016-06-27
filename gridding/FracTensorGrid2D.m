@@ -50,6 +50,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+ver = version('-release');
 if numel(a) == 1, a = repmat(a,numel(F),1); 
 else assert(numel(a) == numel(F),'Either specify 1 aperture per fracture line or 1 for all'); end
 
@@ -61,10 +62,18 @@ for i = 1:numel(F)
     endp = [coords(1,:);coords(end,:)];
     diff1 = diff(endp,1);
     if abs(diff1(2)) < eps*100 % // to x-axis
-        temp = tensorGrid(coords(:,1),uniquetol([coords(1,2);coords(1,2)+a(i)],eps*100,'ByRows',true));
+        if str2double(ver(1:4))>2015
+            temp = tensorGrid(coords(:,1),uniquetol([coords(1,2);coords(1,2)+a(i)],eps*100,'ByRows',true));
+        else
+            temp = tensorGrid(coords(:,1),unique([coords(1,2);coords(1,2)+a(i)],'rows'));
+        end
         Gf.(fieldname) = computeGeometry(temp);
     elseif abs(diff1(1)) < eps*100 % // to y-axis
-        temp = tensorGrid(uniquetol([coords(:,1); coords(:,1)+a(i)],eps*100,'ByRows',true),coords(:,2));
+        if str2double(ver(1:4))>2015
+            temp = tensorGrid(uniquetol([coords(:,1); coords(:,1)+a(i)],eps*100,'ByRows',true),coords(:,2));
+        else
+            temp = tensorGrid(unique([coords(:,1); coords(:,1)+a(i)],'rows'),coords(:,2));
+        end
         Gf.(fieldname) = computeGeometry(temp);
     else
         new_coords = translateLine(coords,a(i));

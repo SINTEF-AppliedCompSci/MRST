@@ -239,9 +239,9 @@ for i = 1:numel(F)
                 ratio(end) = 1-sum(ratio);
                 if any(ratio<0)
                     if abs(ratio(ratio<0)-0)>1e-6
-                        error('Check')
+                        error('Fracture nodes not recognized, negative NNC strength detected.');
                     else
-                        warning('Negative length ratio''s for a NNC set to 0')
+                        % Ignore very small fracture-matrix connections.
                         ratio(ratio<0) = 0;
                     end
                 end

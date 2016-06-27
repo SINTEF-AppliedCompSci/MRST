@@ -15,10 +15,12 @@
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
+mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 pth = mrstPath('hfm');          % path to the module
+checkMATLABversionHFM;          % do you have sufficiently new MATLAB?
 
 %% Grid and fracture lines
 celldim = [100 100];
@@ -41,7 +43,7 @@ load(fullfile(pth,'examples','data','brazil_fractures_processed'));
 load(fullfile(pth,'examples','data','brazil_grid_processed'));
 
 figure;
-plotFractureLines(G,fracture,'lines');
+plotFractureLines(G,fracture);
 box on
 
 %% Compute CI and construct fracture grid
@@ -130,7 +132,7 @@ dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B);
 axis tight; c = colormap(jet);
-c(1,:) = [1 1 1]; colormap(c); colorbar;
+colormap(c); colorbar;
 title('Basis functions plotted in the matrix');
 
 %% Compute multiscale solution
@@ -205,7 +207,6 @@ close(hwb);
 
 %% Plot saturations
 
-close all
 plotNo = 1;
 figure; hold on; colormap(flipud(gray))
 boundary = any(G.Matrix.faces.neighbors==0,2);

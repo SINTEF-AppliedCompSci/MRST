@@ -1,0 +1,179 @@
+%{
+Single-phase 2D example with Dirichlet boundary conditions and a horizontal
+central fracture in the centre comparing the embedded discrete fracture
+model to a fully resolved simulation where the fracture and matrix grid
+blocks are of the same size.
+%}
+
+% Load necessary modules, etc 
+mrstModule add hfm;             % hybrid fracture module
+mrstModule add mrst-gui;        % plotting routines
+checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
+checkMATLABversionHFM;
+
+%% Grid and fracture lines
+% Construct a Cartesian grid comprising 50-by-20 cells, where each cell has
+% dimension 10-by-10 m^2. Define 3 fracture lines by supplying their end
+% points in the form [x1 y1 x2 y2].
+
+celldim = [50 20];
+physdim = [500 200];
+G = cartGrid(celldim, physdim);
+G = computeGeometry(G);
+
+fl = [80,  100, 270, 180;...
+      130, 160, 340,  40;...
+      260,  40, 420, 150] ; % fractures lines in [x1 y1 x2 y2] format.
+
+%% Process fracture lines
+% Using the input fracture lines, we identify independent fracture networks
+% comprising of connected lines. In this example, there is only 1 fracture
+% network consisting of 3 fracture lines. We also identify the fine-cells
+% in the matrix containing these fractures. Fracture aperture is set to
+% 0.04 meters. The matrix grid and fracture lines are plotted.
+
+dispif(mrstVerbose, 'Processing user input...\n\n');
+[G,fracture] = processFracture2D(G, fl, 'verbose', mrstVerbose);
+fracture.aperture = 1/25; % Fracture aperture
+figure;
+plotFractureLines(G,fracture);
+axis equal tight; 
+box on
+
+%% Compute CI and construct fracture grid
+% For each matrix block containing a fracture, we compute a fracture-matrix
+% conductivity index (CI) in accordance with the hierarchical fracture
+% model (a.k.a. embedded discrete fracture model). Following that, we
+% compute a fracture grid where the fracture cell size is defined to be
+% 10 m. Next, the fracture grid is plotted on top of the matrix grid.
+
+dispif(mrstVerbose, 'Computing CI and constructing fracture grid...\n\n');
+G = CIcalculator2D(G,fracture);
+min_size = 5; cell_size = 10; % minimum and average cell size.
+[G,F,fracture] = gridFracture2D(G,fracture,'min_size',min_size,'cell_size',cell_size);
+clf; plotFractureNodes2D(G,F,fracture); 
+axis equal tight; box on
+
+%% Set rock properties in fracture and matrix
+
+% For this example, we will generate the porosity as a Gaussian field. To
+% get a crude approximation to the permeability-porosity relationship, we
+% assume that our medium is made up of uniform spherical grains of diameter
+% dp = 10 m, for which the specic surface area is Av = 6 = dp. With these
+% assumptions, using the Carman Kozeny relation, we can then calculate the
+% isotropic permeability (K). The rock properties are then plotted.
+
+dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
+p = gaussianField(celldim, [0.2 0.4], [11 3], 2.5);
+K = p.^3.*(1e-5)^2./(0.81*72*(1-p).^2);
+G.rock.poro = p(:);
+G.rock.perm = K(:);
+K_frac = 10000; % Darcy
+G = makeRockFrac(G, K_frac, 'porosity', 0.8);
+clf; plotToolbar(G, G.rock); axis equal tight;
+
+%% Define fluid properties
+% Define a two-phase fluid model without capillarity. The fluid model has
+% the values:
+%
+% * densities: [rho_w, rho_o] = [1000 700] kg/m^3
+% * viscosities: [mu_w, mu_o] = [1 1] cP.
+% * corey-coefficient: [2, 2] = [2 2].
+
+fluid = initSimpleFluid('mu' , [   1,  1] .* centi*poise     , ...
+    'rho', [1000, 700] .* kilogram/meter^3, ...
+    'n'  , [   2,   2]);
+
+%% Define fracture connections as NNC and compute the transmissibilities
+% In this section, we use the function defineNNCandTrans to combine the
+% fracture and matrix grid structures into a single grid structure. In
+% addition to that, we assign a 'non-neighbouring connection (NNC)' status
+% to every fracture-matrix connection. For example, if fracture cell 'i' is
+% located in the matrix cell 'j', then the connection i-j is defined as an
+% NNC. To compute the flux between these elements, we compute a
+% transmissibility for each NNC using the CI's computed earlier. Vector T
+% contains the transmissibility for each face in the combined grid and each
+% NNC.
+
+[G,T] = defineNNCandTrans(G,F,fracture);
+
+%% Add wells
+% We will include two wells, one rate-controlled injector well and the
+% producer controlled by bottom-hole pressure. The injector and producer
+% are located at the bottom left and top right corner of the grid,
+% respectively. Wells are described using a Peaceman model, giving an extra
+% set of equations that need to be assembled, see simpleWellExample.m for
+% more details on the Peaceman well model.
+
+inj = 1;
+prod = celldim(1)*celldim(2);
+wellRadius = 0.1;
+
+W = addWell([], G.Matrix, G.Matrix.rock, inj,'InnerProduct', 'ip_tpf','Type', ...
+    'rate', 'Val', 10, 'Radius', wellRadius, 'Comp_i', [1, 0]);
+W = addWell(W, G.Matrix, G.Matrix.rock, prod, 'InnerProduct', 'ip_tpf', 'Type', ...
+    'bhp' , 'Val', 50*barsa, 'Radius', wellRadius, 'Comp_i', [0, 1]);
+
+%% Initialize state variables
+% Here, we initialize the solution structure using the combined grid and
+% the wells defined above.
+
+dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
+state  = initResSol (G, 0);
+state.wellSol = initWellSol(W, 0);
+
+%% Compute initial pressure
+
+dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
+state = incompTPFA(state, G, T, fluid, 'Wells', W, 'MatrixOutput', true, 'use_trans',true);
+
+%% Plot initial pressure
+
+figure;
+plotToolbar(G, state.pressure)
+colormap jet
+view(0, 90); colorbar; axis equal tight;
+title('Initial pressure');
+
+%% Incompressible Two-Phase Flow
+% We solve the two-phase system using a sequential splitting in which the
+% pressure and fluxes are computed by solving the flow equation and then
+% held fixed as the saturation is advanced according to the transport
+% equation. This procedure is repeated for a given number of time steps
+% (here we use 60 equally spaced time steps amounting to 50 % PV Injected).
+% The error introduced by this splitting of flow and transport can be
+% reduced by iterating each time step until e.g., the residual is below a
+% certain user-prescribed threshold (this is not done herein).
+
+pv     = poreVolume(G,G.rock);
+nt     = 60;
+Time   = 0.5*(sum(pv)/state.wellSol(1).flux);
+dT     = Time/nt;
+dTplot = Time/3;
+N      = fix(Time/dTplot);
+
+pvi = zeros(nt,1);
+sol = cell(nt,1);
+
+t  = 0;
+count = 1;
+while t < Time,
+    state = implicitTransport(state, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
+    
+    % Check for inconsistent saturations
+    assert(max(state.s(:,1)) < 1+eps && min(state.s(:,1)) > -eps);
+
+    % Update solution of pressure equation.
+    state  = incompTPFA(state, G, T, fluid, 'wells', W, 'use_trans',true);
+    sol{count,1} = state;
+    
+    t = t + dT;
+    pvi(count) = 100*(sum(state.wellSol(1).flux)*t)/sum(pv);
+    count = count + 1;
+    
+end
+
+%% Plot saturations
+
+figure; plotToolbar(G,sol); 
+colormap(flipud(gray)); caxis([0 1]); axis equal tight;
