@@ -3,7 +3,6 @@ function [problem, state] = pressureEquationBlackOil(state0, state, model, dt, d
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
-             'redistributeRS', false, ...
              'staticWells',  false, ...
              'propsPressure', [], ...
              'iteration', -1);
@@ -11,7 +10,6 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
-% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
@@ -75,11 +73,6 @@ end
 sO  = 1- sW  - sG;
 sO0 = 1- sW0 - sG0;
 
-if disgas && opt.redistributeRS
-    [sG, rs] = redistributeRS(f, p_prop, rs, sG, sO, ~st{1});
-    sO  = 1 - sW  - sG;
-    st  = getCellStatusVO(model, state,  sO,   sW,  sG);
-end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
 
 % FLIUD PROPERTIES ---------------------------------------------------
@@ -258,32 +251,4 @@ names{1} = 'pressure';
 types{1} = 'cell';
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-end
-
-
-function [sG, rs] = redistributeRS(f, p, rs, sG, sO, isSat)
-    rsSat = f.rsSat(p);
-    % isSat = rs >= rsSat;
-
-    bG = f.bG(p);
-    bO = f.bO(p, rs, isSat);
-
-    assert(all(bO>0))
-
-    % Find total Rs if everything was dissolved, i.e. sort of the mass
-    % of gas for fixed compressibility
-    dRs = sG.*bG./(max(double(sO), 0.001).*bO);
-    rs = rs + dRs;
-    rs(~isfinite(double(rs))) = 0;
-    rs(double(rs)<0) = 0;
-
-    sG = 0*sG;
-
-    % Work out the overflow and put it into the gas phase
-    above = rs>rsSat;
-    overflow = rs(above) - rsSat(above);
-
-    rs(above) = rsSat(above);
-
-    sG(above) = overflow.*sO(above).*bO(above)./bG(above);
 end
