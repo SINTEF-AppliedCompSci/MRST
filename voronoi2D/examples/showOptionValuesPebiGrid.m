@@ -201,7 +201,6 @@ G = pebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/4,'faultRefinement',tr
 
 figure()
 plotGrid(G)
-plotGrid(G,G.cells.tag,'faceColor','b')
 title('Fault Refinement')
 axis equal
 
@@ -224,12 +223,10 @@ G2 = pebiGrid(gS, pdims,'faultLines',f,'faultGridFactor',1/4, ...
 
 figure()
 plotGrid(G1)
-plotGrid(G1,G1.cells.tag,'faceColor','b')
 title('faultEps = 1/5')
 axis equal
 
 figure()
 plotGrid(G2)
-plotGrid(G2,G2.cells.tag,'faceColor','b')
 title('faultEps = 1/2')
 axis equal
