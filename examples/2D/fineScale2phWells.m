@@ -1,9 +1,8 @@
-%{
-Single-phase 2D example with Dirichlet boundary conditions and a horizontal
-central fracture in the centre comparing the embedded discrete fracture
-model to a fully resolved simulation where the fracture and matrix grid
-blocks are of the same size.
-%}
+%% Introduction to HFM Simulation: Two-Phase Simulation with Wells
+% In this second introductory example to the HFM module, we consider a
+% two-phase example with three intersecting fractures in the center of the
+% model. Oil is recovered by a production well in the NE corner, which is
+% supported by a water-injector in the SW corner.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
@@ -55,7 +54,6 @@ clf; plotFractureNodes2D(G,F,fracture);
 axis equal tight; box on
 
 %% Set rock properties in fracture and matrix
-
 % For this example, we will generate the porosity as a Gaussian field. To
 % get a crude approximation to the permeability-porosity relationship, we
 % assume that our medium is made up of uniform spherical grains of diameter
@@ -71,6 +69,7 @@ G.rock.perm = K(:);
 K_frac = 10000; % Darcy
 G = makeRockFrac(G, K_frac, 'porosity', 0.8);
 clf; plotToolbar(G, G.rock); axis equal tight;
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
 
 %% Define fluid properties
 % Define a two-phase fluid model without capillarity. The fluid model has
@@ -128,9 +127,13 @@ dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
 state = incompTPFA(state, G, T, fluid, 'Wells', W, 'MatrixOutput', true, 'use_trans',true);
 
 %% Plot initial pressure
-
 figure;
-plotToolbar(G, state.pressure)
+hp = plotCellData(G, state.pressure,'EdgeColor','none');
+xw = G.cells.centroids(vertcat(W.cells),:);
+hold on
+plot3(xw(1,1),xw(1,2),1e-3,'xk','LineWidth',2,'MarkerSize',8);
+plot3(xw(2,1),xw(2,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+hold off
 colormap jet
 view(0, 90); colorbar; axis equal tight;
 title('Initial pressure');
@@ -156,13 +159,18 @@ pvi = zeros(nt,1);
 sol = cell(nt,1);
 
 t  = 0;
-count = 1;
+count = 1; title('Saturation');
+colorbar off; colormap(flipud(winter));
 while t < Time,
     state = implicitTransport(state, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
     
     % Check for inconsistent saturations
     assert(max(state.s(:,1)) < 1+eps && min(state.s(:,1)) > -eps);
 
+    % Plot saturation
+    delete(hp),
+    plotCellData(G,state.s,state.s>0); drawnow; pause(.1);
+    
     % Update solution of pressure equation.
     state  = incompTPFA(state, G, T, fluid, 'wells', W, 'use_trans',true);
     sol{count,1} = state;
@@ -174,6 +182,10 @@ while t < Time,
 end
 
 %% Plot saturations
-
-figure; plotToolbar(G,sol); 
-colormap(flipud(gray)); caxis([0 1]); axis equal tight;
+clf, plotToolbar(G,cellfun(@(x) struct('s', x.s(:,1)), sol,'UniformOutput', false));
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
+hold on
+plot3(xw(1,1),xw(1,2),1e-3,'xk','LineWidth',2,'MarkerSize',8);
+plot3(xw(2,1),xw(2,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+hold off
+colormap(flipud(winter)); caxis([0 1]); axis equal tight;
