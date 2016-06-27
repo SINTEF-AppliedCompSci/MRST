@@ -12,8 +12,9 @@
 % version of the software distmesh: Per-Olof Persson and Gilbert Strang, 
 % "A Simple Mesh Generator in MATLAB," SIAM Review Vol. 46 (2) 2004.
 %
+%
 % For a detailed review about UPR we have included the master thesis 
 % "Unstructured PEBI-grids Adapting to Geological Features in Subsurface
 % Reservoirs".
 %
-% Please see COPYRIGHT for the use of this software.
+% Please see COPYRIGHT for details about the use of this software.
