@@ -98,6 +98,7 @@ pfrac = unique(p(Gm.cells.num+1:G.cells.num));
 
 %-------------------------------------------------------------------------%        
 
+hwb = waitbar(0,'Define and store grid connectivity..');
 for i = 1:numel(pfrac)
     F = gridCellFaces(CG,pfrac(i));
     N = CG.faces.neighbors(F,:);
@@ -131,8 +132,10 @@ for i = 1:numel(pfrac)
     end
     if flag == 0, ir = find(dist>0); end
     CG.cells.interaction{pfrac(i),1} = ir;
+    waitbar(i/numel(pfrac),hwb);
 end
-        
+close(hwb);
+
 %-------------------------------------------------------------------------%        
 
 if opts.excludeBoundary
@@ -143,6 +146,7 @@ if opts.excludeBoundary
     rmcells = faces(ismember(faces(:,2),bfaces),1);
 end
 
+hwb = waitbar(0,'Define and store grid connectivity..');
 for i = 1:CG.cells.num
     if i>dof_matrix
         j = i-dof_matrix;
@@ -180,5 +184,7 @@ for i = 1:CG.cells.num
             CG.cells.interaction{i,1} = setdiff(temp,remove1);
         end
     end
+    waitbar(i/CG.cells.num,hwb);
 end
+close(hwb);
 return
