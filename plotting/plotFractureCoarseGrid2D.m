@@ -4,9 +4,9 @@ function varargout = plotFractureCoarseGrid2D(G, p, F, varargin)
 % plotting fracture coarse cells.
 %
 % SYNOPSIS:
-%       plotFracData(G, p, F)
-%       plotFracData(G, p, F, 'pn1', pv1, ...)
-%   h = plotFracData(...)
+%       plotFractureCoarseGrid2D(G, p, F)
+%       plotFractureCoarseGrid2D(G, p, F, 'pn1', pv1, ...)
+%   h = plotFractureCoarseGrid2D(...)
 %
 % REQUIRED PARAMETERS:
 %

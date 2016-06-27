@@ -32,7 +32,7 @@ load(fullfile(pth,'examples','data','brazil_fractures'));
 
 %% Process fracture lines
 % The processing algorithm might take time, and we have therefore chosen to
-% load processed data. Do do the actual processing, uncomment the following
+% load processed data. To do the actual processing, uncomment the following
 % three lines
 
 % dispif(mrstVerbose, 'Processing user input...\n\n'); tic;

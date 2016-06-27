@@ -3,14 +3,14 @@ function varargout = plotFracData2D(G, data, varargin)
 % matrix and fractures. The function is designed for 2D grids.
 %
 % SYNOPSIS:
-%       plotFracData(Gwf, data)
-%       plotFracData(Gwf, data, 'pn1', pv1, ...)
-%   h = plotFracData(...)
+%       plotFracData2D(G, data)
+%       plotFracData2D(G, data, 'pn1', pv1, ...)
+%   h = plotFracData2D(...)
 %
 % REQUIRED PARAMETERS:
 %
-%   G  - Grid data structure with fractures as defined by
-%        assembleGlobalGrid.
+%   G    - Grid data structure with fractures as defined by
+%          assembleGlobalGrid.
 %
 %   data - data to plot with values inside fracture cells only. Matrix data
 %          is ignored.
