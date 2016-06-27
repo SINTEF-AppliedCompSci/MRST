@@ -170,12 +170,12 @@ while t < Time,
     % Plot solutions
     subplot(1,2,1);
     plotCellData(G,state_fs.s(:,1),'EdgeColor','none');
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
     view(0,90); caxis([0 1]); title('Fine scale');
-    for j = 1:size(fl,1)
-        line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
-    end
+    
     subplot(1,2,2);
     plotCellData(G,state_ms.s(:,1),'EdgeColor','none');
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
     view(0,90); caxis([0 1]); title('F-MsRSB');
     drawnow
     
@@ -219,9 +219,7 @@ for i = nt/3:nt/3:nt
     r = 0.01;
     subplot('position',[(plotNo-1)/N+r, 0.50, 1/N-2*r, 0.48]), cla
     plotCellData(G,state_fs.s(:,1),'EdgeColor','none');
-    for j = 1:size(fl,1)
-        line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
-    end
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
     plotFaces(G,bfaces,'k','linewidth',1)
     axis square off, 
     title(['Reference: ', heading],'FontSize',8);
@@ -229,9 +227,7 @@ for i = nt/3:nt/3:nt
     
     subplot('position',[(plotNo-1)/N+r, 0.02, 1/N-2*r, 0.48]), cla
     plotCellData(G,state_ms.s(:,1),'EdgeColor','none');
-    for j = 1:size(fl,1)
-        line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
-    end
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
     plotFaces(G,bfaces,'k','linewidth',1)
     axis square off, 
     title(['F-MsRSB: ',  heading],'FontSize',8);
