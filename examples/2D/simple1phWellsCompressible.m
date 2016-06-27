@@ -1,7 +1,6 @@
-%{
-Threephase 2D example with gas injection in a model both with and without
-embedded fractures
-%}
+%% Gas injection problem
+% Three-phase 2D example with gas injection in a model both with and without
+% embedded fractures
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
@@ -55,7 +54,6 @@ clf; plotFractureNodes2D(G,F,fracture);
 axis equal; box on
 
 %% Set rock properties in fracture and matrix
-
 % For this example, we will generate the porosity as a Gaussian field. To
 % get a crude approximation to the permeability-porosity relationship, we
 % assume that our medium is made up of uniform spherical grains of diameter
@@ -85,6 +83,7 @@ clf; plotToolbar(G, G.rock); axis tight equal
 % * densities: [rho_w, rho_o] = [1000 700 250] kg/m^3
 % * viscosities: [mu_w, mu_o] = [1 5 0.2] cP.
 % * corey-coefficient: [2, 2] = [2 2 2].
+
 fluid = initSimpleADIFluid('mu' , [   1,  5, 0.2] .* centi*poise     , ...
                            'rho', [1000, 700, 250] .* kilogram/meter^3, ...
                            'n'  , [   2,   2, 2]);
@@ -99,22 +98,27 @@ fluid.bO = @(p) exp((p - pRef)*c_o);
 fluid.bG = @(p) exp((p - pRef)*c_g);
 
 %% Define three-phase compressible flow model
+
 [G,T] = defineNNCandTrans(G,F,fracture);
 
 % We define a three phase blackoil model without dissolved gas or vaporized
 % oil. This is done by first instansiating the blackoil model, and then
 % manually passing in the internal transmissibilities and the topological
 % neighborship from the embedded fracture grid.
+
 model = ThreePhaseBlackOilModel(G, [], fluid, 'disgas', false, 'vapoil', false);
 N = getNeighbourship(G, 'topological', true);
 intx = all(N ~= 0, 2);
+
 % Send in internal transmissibility and neighborship to the operator setp
+
 model.operators = setupOperatorsTPFA(G, G.rock, 'trans', T(intx), 'neighbors', N(intx, :));
 
 %% Add wells
 % We have a single gas injector that injects a total of one pore volume of
 % gas at surface conditions over a period of five years. Two producers are
 % added and set to bottom hole pressure controls of 50 bar.
+
 totTime = 5*year;
 tpv = sum(model.operators.pv);
 
@@ -137,11 +141,14 @@ W = addWell(W, G.Matrix, G.Matrix.rock, prod2, 'InnerProduct', 'ip_tpf', 'Type',
 % We set up a initial state with the reference pressure and a mixture of
 % water and oil initially. We also set up a simple-time step strategy that
 % ramps up gradually towards 30 day time-steps.
+
 s0 = [0.2, 0.8, 0];
 state  = initResSol(G, pRef, s0);
 dt = rampupTimesteps(totTime, 30*day, 8);
 schedule = simpleSchedule(dt, 'W', W);
+
 %% Simulate problem
+
 [ws, states, report] = simulateScheduleAD(state, model, schedule);
 
 %% Create and solve the same problem without any fractures present
@@ -149,6 +156,7 @@ schedule = simpleSchedule(dt, 'W', W);
 % associated with great uncertainty in terms of locations, orientation and
 % permeability. To demonstrate the effect of fractures on the transport, we
 % create another problem where the fractures themselves have been omitted.
+
 G0 = cartGrid(celldim, physdim);
 G0 = computeGeometry(G0);
 % Create rock without fractures
@@ -167,9 +175,11 @@ end
 % Set up and simulate the schedule
 schedule0 = simpleSchedule(dt, 'W', W0);
 [ws0, states0, report0] = simulateScheduleAD(state0, model0, schedule0);
+
 %% Plot the results
 % We plot the production curves for the two wells and compare between the
 % two cases, as well as the final gas saturation.
+
 tm = report.ReservoirTime/day;
 flds = {'qGs', 'qWs', 'qOs'};
 names = {'Gas production', 'Water Production', 'Oil production'};
@@ -193,7 +203,7 @@ for i = 1:numel(flds)
         ylabel('Production [m^3/day]');
         xlabel('Time [days]')
         n = W(prod(j)).name;
-        l = [l, {[n, ' with fracture'], [n, ' without fracture']}];
+        l = [l, {[n, ' with fracture'], [n, ' without fracture']}]; %#ok
     end
     legend(l)
 end
@@ -201,20 +211,26 @@ end
 figure;
 subplot(2, 1, 1)
 plotCellData(G0, states{end}.s(1:G0.cells.num, 3), 'EdgeColor', 'none')
+axis equal tight
 caxis([0, 1])
-title('With fractures')
+title('Gas saturation with fractures')
 subplot(2, 1, 2)
 plotCellData(G0, states0{end}.s(1:G0.cells.num, 3), 'EdgeColor', 'none')
-title('Without fractures')
+title('Gas saturation without fractures')
+axis equal tight
 caxis([0, 1])
+
 %% Interactive plotting
 % Compare the well cruves
+
 plotWellSols({ws, ws0}, report.ReservoirTime, 'datasetnames', {'With fractures', 'Without fractures'})
 
 figure;
 plotToolbar(G, states)
+axis equal tight
 title('With fractures')
 
 figure;
 plotToolbar(G0, states0)
+axis equal tight
 title('Without fractures')

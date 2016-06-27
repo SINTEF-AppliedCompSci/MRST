@@ -1,12 +1,11 @@
-%{
-Two-phase example modeling water injection through a quarter 5-spot into a
-2-dimensional fractured porous media. The flow problem is solved both by a
-fine-scale and a multiscale solver.
+%% F-MsRSB applied to a heterogeneous 2D domain
+% Two-phase example modeling water injection through a quarter 5-spot into a
+% 2-dimensional fractured porous media. The flow problem is solved both by a
+% fine-scale and a multiscale solver.
 
-Notice that you need to have Metis installed to get this example to work.
-To get Metis working, you also need to set the global variable METISPATH.
-This can be done in your 'startup_user.m' file.
-%}
+% Notice that you need to have Metis installed to get this example to work.
+% To get Metis working, you also need to set the global variable METISPATH.
+% This can be done in your 'startup_user.m' file.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
@@ -184,7 +183,7 @@ dispif(mrstVerbose, 'Computing multiscale solution...\n\n');
 % well as on the coarse scale using an algebraic multiscale strategy. The
 % multiscale flux field obtained at fine scale resolution is reconstructed
 % to be conservative before solving the transport equation. This procedure
-% is repeated for a given number of time steps (here we use 30 equally
+% is repeated for a given number of time steps (here we use 45 equally
 % spaced time steps). The error introduced by this splitting of flow and
 % transport can be reduced by iterating each time step until e.g., the
 % residual is below a certain user-prescribed threshold (this is not done

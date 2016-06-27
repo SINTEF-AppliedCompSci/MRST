@@ -1,9 +1,6 @@
-%{
-Single-phase 2D example with Dirichlet boundary conditions and a horizontal
-central fracture in the centre comparing the embedded discrete fracture
-model to a fully resolved simulation where the fracture and matrix grid
-blocks are of the same size.
-%}
+%% Two-phase problem with a quarter 5-spot well pattern
+% Two-phase example showing the impact of fractures on fluid migration
+% using the hierarchical or embedded discrete fracture model
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module

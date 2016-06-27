@@ -98,7 +98,7 @@ pfrac = unique(p(Gm.cells.num+1:G.cells.num));
 
 %-------------------------------------------------------------------------%        
 
-hwb = waitbar(0,'Define and store grid connectivity..');
+hwb = waitbar(0,'Define and store fracture connectivity..');
 for i = 1:numel(pfrac)
     F = gridCellFaces(CG,pfrac(i));
     N = CG.faces.neighbors(F,:);
@@ -146,7 +146,7 @@ if opts.excludeBoundary
     rmcells = faces(ismember(faces(:,2),bfaces),1);
 end
 
-hwb = waitbar(0,'Define and store grid connectivity..');
+hwb = waitbar(0,'Define and store fracture support..');
 for i = 1:CG.cells.num
     if i>dof_matrix
         j = i-dof_matrix;
