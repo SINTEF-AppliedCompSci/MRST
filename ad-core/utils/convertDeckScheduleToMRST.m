@@ -1,4 +1,4 @@
-function scheduleMRST = convertDeckScheduleToMRST(G, model, rock, scheduleDeck, varargin)
+function scheduleMRST = convertDeckScheduleToMRST(model, scheduleDeck, varargin)
 % Convert deck-type schedule to MRST style schedule
 %
 % SYNOPSIS:
@@ -82,7 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:nc
         % Parse well
-        W = processWells(G, rock, scheduleDeck.control(i));
+        W = processWells(model.G, model.rock, scheduleDeck.control(i));
         
         for j = 1:numel(W)
             c = [W(j).compi, 0];

@@ -32,7 +32,7 @@ model.dsMaxAbs  = .05;
 model %#ok, intentional display
 
 % Convert the deck schedule into a MRST schedule by parsing the wells
-schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+schedule = convertDeckScheduleToMRST(model, deck);
 
 %% Set up linear solver
 % We proceed to setup a CPR-type

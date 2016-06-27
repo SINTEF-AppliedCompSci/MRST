@@ -11,7 +11,7 @@ model = selectModelFromDeck(G, rock, fluid, deck);
 model %#ok, intentional display
 
 % Convert the deck schedule into a MRST schedule by parsing the wells
-schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+schedule = convertDeckScheduleToMRST(model, deck);
 
 %% Plot well and permeability
 % The permeability consists of three layers going from high to low

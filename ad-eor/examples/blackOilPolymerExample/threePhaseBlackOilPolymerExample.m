@@ -54,7 +54,7 @@ state0.cmax    = zeros([G.cells.num, 1]);
 modelBOPolymer = ThreePhaseBlackOilPolymerModel(G, rock, fluid, 'inputdata', deck);
 
 % Convert the deck schedule into a MRST schedule by parsing the wells
-schedule = convertDeckScheduleToMRST(G, modelBOPolymer, rock, deck);
+schedule = convertDeckScheduleToMRST(modelBOPolymer, deck);
 
 %% Set the non-linear solver
 modelBOPolymer.useCNVConvergence = true;
