@@ -1,16 +1,16 @@
-%{
-2ph example modeling water injection into a highly fractured oil-filled
-reservoir. The fracture-network has been extracted from an outcrop model.
-
-K. Bisdom, B. D. M. Gauthier, G. Bertotti, N. J. Hardebol. Calibrating
-discrete fracture-network models with a carbonate three-dimensional outcrop
-fracture network: Implications for naturally fractured reservoir modeling.
-AAPG Bulletin, 24 (2014) 1351-1376.
-
-Notice that you need to have Metis installed to get this example to work.
-To get Metis working, you also need to set the global variable METISPATH.
-This can be done in your 'startup_user.m' file.
-%}
+%% F-MsRSB Applied to an Outcrop Model
+% Two-phase example modeling water injection into a highly fractured
+% oil-filled reservoir. The fracture-network has been extracted from an
+% outcrop model.
+%
+% K. Bisdom, B. D. M. Gauthier, G. Bertotti, N. J. Hardebol. Calibrating
+% discrete fracture-network models with a carbonate three-dimensional outcrop
+% fracture network: Implications for naturally fractured reservoir modeling.
+% AAPG Bulletin, 24 (2014) 1351-1376.
+%
+% Notice that you need to have Metis installed to get this example to work.
+% To get Metis working, you also need to set the global variable METISPATH.
+% This can be done in your 'startup_user.m' file.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
@@ -18,36 +18,37 @@ mrstModule add coarsegrid;      % functionality for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
+pth = mrstPath('hfm');          % path to the module
 
 %% Grid and fracture lines
-
 celldim = [100 100];
 physdim = [1000 1000];
 G = cartGrid(celldim, physdim);
 G = computeGeometry(G);
 
-load examples/data/brazil_fractures
+load(fullfile(pth,'examples','data','brazil_fractures'));
 
 %% Process fracture lines
+% The processing algorithm might take time, and we have therefore chosen to
+% load processed data. Do do the actual processing, uncomment the following
+% three lines
 
 % dispif(mrstVerbose, 'Processing user input...\n\n'); tic;
 % [G,fracture] = processFracture2D(G,fl); toc
 % fracture.aperture = 1/25; % Fracture aperture
 
-% The processing algorithm might take time. Comment the above 3 lines and
-% load the files brazil_fractures_processed and brazil_grid_processed
-
-load examples/data/brazil_fractures_processed
-load examples/data/brazil_grid_processed
+load(fullfile(pth,'examples','data','brazil_fractures_processed'));
+load(fullfile(pth,'examples','data','brazil_grid_processed'));
 
 figure;
 plotFractureLines(G,fracture,'lines');
 box on
 
 %% Compute CI and construct fracture grid
-
+% Compute the conductivity index (CI) of each 2D cell for every fracture
+% line embedded in it
 dispif(mrstVerbose, 'Computing CI and constructing fracture grid...\n\n');
-G = CIcalculator2D(G,fracture);
+G = CIcalculator2D(G,fracture,true);
 min_size = 5; cell_size = 10; % minimum and average cell size.
 [G,F,fracture] = gridFracture2D(G,fracture,'min_size',min_size,'cell_size',cell_size);
 clf; plotFractureNodes2D(G,F,fracture); box on
@@ -55,13 +56,13 @@ clf; plotFractureNodes2D(G,F,fracture); box on
 %% Set rock properties in fracture and matrix
 
 dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
-load examples/data/brazil_perm
+load(fullfile(pth,'examples','data','brazil_perm'));
 
 G.rock = makeRock(G,p(:),0.2);
-K_frac = 1000; % Darcy
+K_frac = 1000*darcy;
 poro_frac = 0.5;
 for i = 1:numel(fieldnames(G.FracGrid))
-    G.FracGrid.(['Frac',num2str(i)]).rock.perm = darcy*K_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
+    G.FracGrid.(['Frac',num2str(i)]).rock.perm = K_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
     G.FracGrid.(['Frac',num2str(i)]).rock.poro = poro_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
 end
 clf; plotToolbar(G,G.rock); colormap(jet); colorbar
@@ -155,13 +156,27 @@ t  = 0;
 B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);
 count = 1;
+clf, set(gcf,'Position',[0 0 800 400]); colormap(flipud(winter));
+hwb = waitbar(0,'Time loop');
 while t < Time,
     state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'wells', W, 'Trans', T);
     % Check for inconsistent saturations
     s = [state_fs.s(:,1); state_ms.s(:,1)];
     assert(max(s) < 1+eps && min(s) > -eps);
-
+    
+    % Plot solutions
+    subplot(1,2,1);
+    plotCellData(G,state_fs.s(:,1),'EdgeColor','none');
+    view(0,90); caxis([0 1]); title('Fine scale');
+    for j = 1:size(fl,1)
+        line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
+    end
+    subplot(1,2,2);
+    plotCellData(G,state_ms.s(:,1),'EdgeColor','none');
+    view(0,90); caxis([0 1]); title('F-MsRSB');
+    drawnow
+    
     % Update solution of pressure equation.
     state_fs  = incompTPFA(state_fs , G, T, fluid, 'wells', W, 'use_trans',true);
 
@@ -184,14 +199,15 @@ while t < Time,
     pms(count,1) = state_ms.s(W(2).cells,1);
     
     count = count + 1;
-    
+    waitbar(t/Time,hwb);
 end
+close(hwb);
 
 %% Plot saturations
 
 close all
 plotNo = 1;
-figure; hold on
+figure; hold on; colormap(flipud(gray))
 boundary = any(G.Matrix.faces.neighbors==0,2);
 facelist = 1:G.Matrix.faces.num;
 bfaces = facelist(boundary);
@@ -201,24 +217,24 @@ for i = nt/3:nt/3:nt
     % Plot saturation
     r = 0.01;
     subplot('position',[(plotNo-1)/N+r, 0.50, 1/N-2*r, 0.48]), cla
-    plotToolbar(G,state_fs.s(:,1));
+    plotCellData(G,state_fs.s(:,1),'EdgeColor','none');
     for j = 1:size(fl,1)
         line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
     end
     plotFaces(G,bfaces,'k','linewidth',1)
     axis square off, 
-    title(['Reference Saturation: ', heading]);
-    colormap(flipud(gray)), view(0,90); caxis([0 1]);
+    title(['Reference: ', heading],'FontSize',8);
+    view(0,90); caxis([0 1]);
     
     subplot('position',[(plotNo-1)/N+r, 0.02, 1/N-2*r, 0.48]), cla
-    plotToolbar(G,state_ms.s(:,1));
+    plotCellData(G,state_ms.s(:,1),'EdgeColor','none');
     for j = 1:size(fl,1)
         line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
     end
     plotFaces(G,bfaces,'k','linewidth',1)
     axis square off, 
-    title(['F-MsRSB Saturation: ',  heading]);
-    colormap(flipud(gray)), view(0,90); caxis([0 1]);
+    title(['F-MsRSB: ',  heading],'FontSize',8);
+    view(0,90); caxis([0 1]);
     plotNo = plotNo+1;
     
 end
@@ -230,7 +246,7 @@ plot(pvi,pfs(:,1),'-o',pvi,pms(:,1),'--*');
 leg = legend('Fine-scale','Multiscale','Location','Best');
 ylabel('Saturation at producer');
 xlabel('PVI [%]'); 
-set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+set(gca,'XGrid','on','YGrid','on');
 axis tight
 
 %% Plot error in saturation 
@@ -239,7 +255,7 @@ figure;
 plot(pvi,e*100, '--+b');
 ylabel('e [%]')
 xlabel('PVI [%]'); 
-set(gca,'FontSize',18,'XGrid','on','YGrid','on');
+set(gca,'XGrid','on','YGrid','on');
 axis tight
 
 e_eq = '$$ e = \frac{ \sum ( |S_w^{fs}-S_w^{f-msrsb}| \times pv) }{ \sum (S_w^{fs} \times pv) } $$';
