@@ -9,6 +9,7 @@ mrstModule add mrst-gui;        % plotting routines
 mrstModule add ad-props ad-core % AD framework
 mrstModule add ad-blackoil      % Three phase simulator
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
+checkMATLABversionHFM;
 
 %% Grid and fracture lines
 % Construct a Cartesian grid comprising 50-by-20 cells, where each cell has
@@ -75,7 +76,7 @@ G.rock.poro = p(:);
 G.rock.perm = K(:);
 K_frac = 10000; % Darcy
 G = makeRockFrac(G, K_frac, 'porosity', 0.8);
-clf; plotToolbar(G, G.rock);
+clf; plotToolbar(G, G.rock); axis tight equal
 
 %% Define fluid properties
 % Define a two-phase fluid model without capillarity. The fluid model has
