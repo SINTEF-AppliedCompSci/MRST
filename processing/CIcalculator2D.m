@@ -1,9 +1,10 @@
-function G = CIcalculator2D(G,fracture)
+function G = CIcalculator2D(G,fracture,varargin)
 % CIcalculator2D computes the conductivity index (CI) of each 2D cell for
 % every fracture line embedded in it.
 %
 % SYNOPSIS:
 %   G = CIcalculator2D(G,fracture)
+%   G = CIcalculator2D(G,fracture, waitbar)
 %
 % DESCRIPTION:
 %   CI or conductivity index is similar to the well productivity index as
@@ -17,6 +18,8 @@ function G = CIcalculator2D(G,fracture)
 %   G         - Matrix grid structure as returned by processFracture2D.
 %
 %   fracture  - Processed fracture structure. See processFracture2D.
+%
+%   waitbar   - Display a waitbar if this boolean variable is true
 %
 % RETURNS:
 %   G  - Matrix grid structure with added cell lists 'G.cells.fracture.CI'
@@ -45,6 +48,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+if nargin>2
+   showProgress=varargin{1};
+   hwb=waitbar(0,'Computing conductivity index (embedded)');
+else
+   showProgress=false;
+end
 frac_cells = find(G.cells.fracture.indicator==1); % Matrix cells containing embedded fractures
 CI = cell(G.cells.num,1);
 fA = cell(G.cells.num,1);
@@ -98,6 +107,13 @@ for i = 1:numel(frac_cells)
         CI{frac_cells(i),1} = [CI{frac_cells(i),1}, (pdist_euclid(fracp)/d_avg)*ratio];
         fA{frac_cells(i),1} = [fA{frac_cells(i),1}, pdist_euclid(fracp)*ratio];
     end
+    if showProgress,
+       waitbar(i/numel(frac_cells),hwb);
+    end
+end
+if showProgress
+   close(hwb);
+   hwb=waitbar(0,'Computing conductivity index (discrete)');
 end
 frac_cells = find(G.cells.fracture.dfm_indicator==1);
 for i = 1:numel(frac_cells)
@@ -170,6 +186,12 @@ for i = 1:numel(frac_cells)
         CI{frac_cells(i),1} = [CI{frac_cells(i),1}, (pdist_euclid(fracp)/d_avg)*ratio];
         fA{frac_cells(i),1} = [fA{frac_cells(i),1}, pdist_euclid(fracp)*ratio];
     end
+    if showProgress,
+       waitbar(i/numel(frac_cells),hwb);
+    end
+end
+if showProgress,
+   close(hwb);
 end
 G.cells.fracture.CI = CI;
 G.cells.fracture.fA = fA;
