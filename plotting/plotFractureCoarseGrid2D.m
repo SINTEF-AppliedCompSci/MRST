@@ -59,9 +59,8 @@ for i = 1:numel(F)
     end
 end
 dofm = max(p(1:G.Matrix.cells.num));
-title({['Fracture coarse grid with ',num2str(numel(unique(pfracs))),' DOF.'],...
-    ['Matrix coarse grid with ',num2str(dofm),' DOF.']},...
-    'FontSize',15,'FontWeight','bold');
+title({['Coarse grid (fracture: ',num2str(numel(unique(pfracs))),' DOFs,'],...
+    ['matrix: ',num2str(dofm),' DOFs)']});
 axis equal off tight
 hold off
 return
