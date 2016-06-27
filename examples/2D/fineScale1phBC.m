@@ -1,15 +1,14 @@
-
-
-%{
-Single-phase 2D example with Dirichlet boundary conditions and a horizontal
-central fracture in the centre comparing the embedded discrete fracture
-model to a fully resolved simulation where the fracture and matrix grid
-blocks are of the same size.
-%}
+%% Introduction to HFM Simulation
+% In this first introductory example to the HFM module, we consider a
+% single-phase 2D example with Dirichlet boundary conditions and a
+% horizontal fracture in the centre. We compare the embedded discrete
+% fracture model to a fully resolved simulation in which the fracture and
+% matrix grid blocks are of the same size. Through this example, we will
+% introduce you to the basic steps necessary to set up and run a HFM
+% simulation.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
-mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 checkMATLABversionHFM;
 
@@ -126,15 +125,32 @@ state = incompTPFA(state, G, T, fluid, 'bc', bc, 'use_trans',true);
 state_r = incompTPFA(state_r, Gr, computeTrans(Gr,Gr.rock), fluid, 'bc', bcr);
 
 %% Plot results
+% Use a reduced number of color levels to better compare and contrast the
+% two solutions
+figure
+plotCellData(Gr, state_r.pressure,'EdgeColor','none')
+line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
+colormap jet(25)
+view(0, 90); colorbar; axis equal tight, cx = caxis();
+title('Fully resolved solution')
 
-figure;
-plotToolbar(G, state.pressure)
-colormap jet
-view(0, 90); colorbar; axis equal tight
+figure
+plotCellData(G, state.pressure,'EdgeColor','none')
+line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
+colormap jet(25)
+view(0, 90); colorbar; axis equal tight, caxis(cx);
 title('Hierarchical or Embedded discrete fracture model');
 
-figure;
-plotToolbar(Gr, state_r.pressure)
-colormap jet
-view(0, 90); colorbar; axis equal tight
-title('Fully resolved solution')
+%% Add a contour plot
+figure
+contour(reshape(Gr.cells.centroids(:,1),Gr.cartDims),...
+   reshape(Gr.cells.centroids(:,2),Gr.cartDims),...
+   reshape(state_r.pressure,Gr.cartDims),25);
+hold on
+nc = prod(G.cartDims);
+contour(reshape(G.cells.centroids(1:nc,1),G.cartDims),...
+   reshape(G.cells.centroids(1:nc,2),G.cartDims),...
+   reshape(state.pressure(1:nc),G.cartDims),25,'--','LineWidth',2);
+line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
+hold off
+legend('Fully resolved','Embedded fractures');
