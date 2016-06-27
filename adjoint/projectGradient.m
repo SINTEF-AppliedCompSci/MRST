@@ -84,8 +84,7 @@ itCounts = zeros(numSteps, 1);
 
 for step = 1 : numSteps
     uInitN = uInit(:, step);
-    gradN  = du(:, step);
-    pGradN = gradN;
+    pGradN = du(:, step);
     numIneq = numel(Aineq);
     boxOK = false;
     if isempty(Aineq)

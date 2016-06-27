@@ -2,7 +2,7 @@ function [controls] = initControls(schedule, varargin)
 % initControls -- Initialize control structure based on well schedule
 %
 % SYNOPSIS:
-%   controls = initControlls(schedule, 'pn', pv, ...)
+%   controls = initControls(schedule, 'pn', pv, ...)
 %
 % DESCRIPTION:
 %   Initialize controls
