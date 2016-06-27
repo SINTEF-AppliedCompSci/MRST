@@ -1,12 +1,11 @@
-%{
-Single-phase 2D example with Dirichlet boundary conditions demonstrating
-the use of the HFM module. The flow problem is solved both by a fine-scale
-and a multiscale solver.
-
-Notice that you need to have Metis installed to get this example to work.
-To get Metis working, you also need to set the global variable METISPATH.
-This can be done in your 'startup_user.m' file.
-%}
+%% Single-Phase Problem with two Intersecting Fractures
+% Single-phase 2D example with Dirichlet boundary conditions demonstrating
+% the use of the HFM module. The flow problem is solved both by a fine-scale
+% and a multiscale solver.
+%
+% Notice that you need to have Metis installed to get this example to work.
+% To get Metis working, you also need to set the global variable METISPATH.
+% This can be done in your 'startup_user.m' file.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
@@ -117,33 +116,29 @@ fn = getSmootherFunction('type', 'ilu');
     'bc', bc, 'use_trans',true, 'tolerance', 1e-8, 'iterations', 100,...
     'useGMRES', true, 'reconstruct', true, 'getSmoother', fn);
 
-%% Plot results
+%% Plot results and convergence
 
-figure;
-plotToolbar(G, state_fs.pressure)
-colormap jet
+figure; colormap jet
+plotCellData(G, state_fs.pressure,'EdgeColor','none')
 view(90, 90); colorbar
 axis tight off
 title('Fine scale')
 
-figure;
-plotToolbar(G, state_ms.pressure)
-colormap jet
+figure; colormap jet
+plotCellData(G, state_ms.pressure,'EdgeColor','none')
 view(90, 90); colorbar
 axis tight off
 title('F-MsRSB')
 
+figure; colormap jet
 L1 = abs(state_ms.pressure-state_fs.pressure)./state_fs.pressure;
-figure;
-plotToolbar(G, L1)
-colormap jet
+plotCellData(G, L1,'EdgeColor','none')
 view(90, 90); colorbar
 axis tight off
 L1_eq = '$$ \frac{| P_i^{fs}-P_i^{f-msrsb} | }{ P_i^{fs}} $$';
 title(L1_eq,'interpreter','latex');
 
 %% Plot convergence
-
 figure;
 semilogy(report.resvec, ':+'); hold on;
 semilogy(report2.resvec, 's-');
