@@ -33,9 +33,14 @@ N = 6;
 tic;
 for i = 1:N
     gr = getAtlasGrid('Johansenfm', 'coarsening', i);
-    G = processgrid(gr{1});
     % Create top surface grid
-    Gt = topSurfaceGrid(mcomputeGeometry(G(1)));
+    try
+       G = processgrid(gr{1});
+       Gt = topSurfaceGrid(mcomputeGeometry(G(1)));
+    catch
+       G = processGRDECL(gr{1});
+       Gt = topSurfaceGrid(computeGeometry(G(1)));
+    end
     Grids{i} = Gt;
     % Create trapping and store volumes of each trap
     res{i} = trapAnalysis(Gt, true);
@@ -83,7 +88,7 @@ for i = 1:N
 end
 axis([0 50 0 cum_max*1.05]);
 set(gca, 'Color', get(gcf,'Color'), 'FontSize', 14);
-h=legend(regexp(num2str((1:N)*500), '  ', 'split'), 4);
+h=legend(regexp(num2str((1:N)*500), '  ', 'split'), 'location', 'East');
 title('Cumulative trap volume [m^3]', 'FontSize', 14);
 xlabel('Number of traps counted', 'FontSize', 12);
 

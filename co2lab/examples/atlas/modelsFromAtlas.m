@@ -71,8 +71,13 @@ viewMat = [-58 50; -90 65; -120 30; -120 30; -110 60; -110 60; ...
 % Loop through and visualize all the 3D models at full resolution
 for i=1:ng;
    grdecl = getAtlasGrid(grdecls{i}.name, 'coarsening', 1);
-   G = processgrid(grdecl{1});   % G = processGRDECL(grdecl{1});
-   G = mcomputeGeometry(G(1));   % G = computeGeometry(G(1));
+   try
+      G = processgrid(grdecl{1});   
+      G = mcomputeGeometry(G(1));   
+   catch
+      G = processGRDECL(grdecl{1}); 
+      G = computeGeometry(G(1));    
+   end
    clf;
    plotGrid(G,'FaceColor', [1 .9 .9], 'EdgeAlpha', .05);
    view(viewMat(i,:)); axis tight off
@@ -92,10 +97,16 @@ fprintf('------------------------------------------------\n');
 for i=1:ng
    fprintf('Processing %s ... ', grdecls{i}.name);
    grdecl  = getAtlasGrid(grdecls{i}.name, 'coarsening', 1);
-   G       = mprocessGRDECL(grdecl{1});
-   G       = mcomputeGeometry(G(1));
-   Gt      = topSurfaceGrid(G);
-   ta      = trapAnalysis(Gt, false);
+   try 
+      G = mprocessGRDECL(grdecl{1});
+      G = mcomputeGeometry(G(1));
+   catch
+      G = processGRDECL(grdecl{1});
+      G = computeGeometry(G(1));
+   end
+
+   Gt = topSurfaceGrid(G);
+   ta = trapAnalysis(Gt, false);
    
    res{i}.name      = grdecls{i}.name;
    res{i}.cells     = Gt.cells.num;

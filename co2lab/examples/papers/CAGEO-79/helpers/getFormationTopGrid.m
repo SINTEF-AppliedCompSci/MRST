@@ -31,7 +31,12 @@ function [Gt, rock2D, petrodata] = getFormationTopGrid(formation,coarsening_leve
     end
     [nc,j]=max(ncvec); %#ok
     G=G(j);
-    G = mcomputeGeometry(G);
+    try
+       G = mcomputeGeometry(G);
+    catch
+       G = computeGeometry(G);
+    end
+    
     Gt = topSurfaceGrid(G);
     
     % Setting up the rock structure

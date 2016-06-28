@@ -16,7 +16,7 @@ function plotFigs3DCase(simres)
    
    axis tight;
    set(gca, 'YDir', 'reverse', 'FontSize', 16);
-   legend('3D, no residual', 4);
+   legend('3D, no residual', 'location', 'east');
 end
 
 function c = col(mat, colnum)

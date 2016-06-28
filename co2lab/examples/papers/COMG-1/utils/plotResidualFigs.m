@@ -50,7 +50,7 @@ function plotResidualFigs(simres)
    end
    axis tight
    set(gca, 'YDir', 'reverse', 'FontSize', 16);
-   legend(legendtext{:}, 4);
+   legend(legendtext{:}, 'location','east');
 
    %% Third figure (solution in physical space)
 

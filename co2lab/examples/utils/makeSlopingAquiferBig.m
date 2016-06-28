@@ -52,13 +52,21 @@ grdecl.COORD = lines(:); clear lines
 
 % Then, we process the grid and compute geometry, possibly using
 % C-accelerated routines
+G = []; 
 if usemex,
    mlist = mrstModule;
    mrstModule add libgeometry opm_gridprocessing;
-   G = processgrid(grdecl);
-   G = mcomputeGeometry(G);
+   try
+      G = processgrid(grdecl);
+      G = mcomputeGeometry(G);
+   catch
+      G = [];
+   end
    mrstModule('reset',mlist{:});
-else
+end
+
+if isempty(G)
+   % we either did not want to use mex, or mex failed
    G = processGRDECL(grdecl);
    G = computeGeometry(G);
 end

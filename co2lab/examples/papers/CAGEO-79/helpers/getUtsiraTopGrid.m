@@ -22,15 +22,24 @@ function [Gt, rock2D] = getUtsiraTopGrid(coarsening_level, do_cut)
         getAtlasGrid('Utsirafm', 'coarsening', coarsening_level);%#ok
 
     % Computing the Utsira top-surface grid
-    G = processGRDECL(grdecl{1});  G = G(1);
-    G = mcomputeGeometry(G);
+    try
+       G = mprocessGRDECL(grdecl{1});  G = G(1);
+       G = mcomputeGeometry(G);
+    catch
+       G = processGRDECL(grdecl{1});  G = G(1);
+       G = computeGeometry(G);
+    end
     if do_cut
         % cut away eastern part of the grid
         east_bound = 6575000;
         rm_cells = G.cells.centroids(:,2) > east_bound;
         G = removeCells(G, rm_cells);
     end    
-    Gt = topSurfaceGrid(mcomputeGeometry(G));
+    try
+       Gt = topSurfaceGrid(mcomputeGeometry(G));
+    catch
+       Gt = topSurfaceGrid(computeGeometry(G));
+    end
     
     % Setting up the rock structure
     petrodata   = petroinfo{1};   

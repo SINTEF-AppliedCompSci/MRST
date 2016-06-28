@@ -88,7 +88,7 @@ function showSecondPlioExample()
       plot(Gt.cells.centroids(W.cells, 1),...
            Gt.cells.centroids(W.cells, 2), 'ok',...
            'MarkerSize', 10, 'MarkerFaceColor', 'black')
-      [legh, objh, outh, outm] = legend(leg_methods, 4);%#ok
+      [legh, objh, outh, outm] = legend(leg_methods, 'location', 'east');%#ok
       set(legh, 'Fontsize', 12);
       for n = m + 1:2 * m
          set(get(get(objh(n), 'Children'), 'Children'), 'LineWidth', 4);
