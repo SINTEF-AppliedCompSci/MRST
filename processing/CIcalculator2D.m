@@ -54,7 +54,6 @@ if nargin>2
 else
    showProgress=false;
 end
-ver = version('-release');
 frac_cells = find(G.cells.fracture.indicator==1); % Matrix cells containing embedded fractures
 CI = cell(G.cells.num,1);
 fA = cell(G.cells.num,1);
@@ -63,6 +62,7 @@ for i = 1:numel(frac_cells)
     for j = 1:numel(flines)
         fli = flines(j);
         frac_endp = fracture.lines(fli).endp;
+        endp_dst = pdist_euclid([frac_endp(1:2);frac_endp(3:4)]);
         faces = G.cells.faces(G.cells.facePos(frac_cells(i)):G.cells.facePos(frac_cells(i)+1)-1,1);
         edges = zeros(numel(faces),4);
         cnodes = [];
@@ -79,20 +79,16 @@ for i = 1:numel(frac_cells)
         for failcheck = 1:numel(cnodes)
             d1 = pdist_euclid([frac_endp(1:2);nc(failcheck,:)]);
             d2 = pdist_euclid([frac_endp(3:4);nc(failcheck,:)]);
-            if abs((d1+d2)-pdist_euclid([frac_endp(1:2);frac_endp(3:4)]))<eps
-                if str2double(ver(1:4))>2015
-                if ~ismembertol([nc(failcheck,1),nc(failcheck,2)],[xi,yi],eps*100,'ByRows',true)
-                xi = [xi;nc(failcheck,1)]; %#ok
-                yi = [yi;nc(failcheck,2)]; %#ok
-                end
-                end
+            if abs((d1+d2)-endp_dst)<eps
+               if ~ismember(round(nc(failcheck,:),14),round([xi,yi],14),'rows')
+                  xi = [xi;nc(failcheck,1)]; %#ok
+                  yi = [yi;nc(failcheck,2)]; %#ok
+               end
             end
         end
-        if str2double(ver(1:4))>2015
-            points = uniquetol([xi,yi],eps*100,'ByRows',true);
-        else
-            points = [xi,yi];
-        end
+        points = [xi,yi];
+        [~,ia] = unique(round(points,14,'significant'),'rows');
+        points = points(ia,:);
         xi = points(:,1); yi = points(:,2);
         flag = 0;
         if size(points,1)==1
@@ -107,11 +103,9 @@ for i = 1:numel(frac_cells)
             fracp = [ [xi, yi]; new_endp];
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
         else
-            if str2double(ver(1:4))>2015
-            fracp = uniquetol([xi,yi],eps*100,'ByRows',true);
-            else
-            fracp = unique([xi,yi],'rows');
-            end
+            fracp = [xi,yi];
+            [~,ia] = unique(round(fracp,14,'significant'),'rows');
+            fracp = fracp(ia,:);
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
             ratio = 1;
         end
@@ -132,6 +126,7 @@ for i = 1:numel(frac_cells)
     for j = 1:numel(flines)
         fli = flines(j);
         frac_endp = fracture.lines(fli).endp;
+        endp_dst = pdist_euclid([frac_endp(1:2);frac_endp(3:4)]);
         faces = G.cells.faces(G.cells.facePos(frac_cells(i)):G.cells.facePos(frac_cells(i)+1)-1,1);
         edges = zeros(numel(faces),4);
         cnodes = [];
@@ -148,20 +143,16 @@ for i = 1:numel(frac_cells)
         for failcheck = 1:numel(cnodes)
             d1 = pdist_euclid([frac_endp(1:2);nc(failcheck,:)]);
             d2 = pdist_euclid([frac_endp(3:4);nc(failcheck,:)]);
-            if abs((d1+d2)-pdist_euclid([frac_endp(1:2);frac_endp(3:4)]))<eps
-                if str2double(ver(1:4))>2015
-                if ~ismembertol([nc(failcheck,1),nc(failcheck,2)],[xi,yi],eps*100,'ByRows',true)
-                xi = [xi;nc(failcheck,1)]; %#ok
-                yi = [yi;nc(failcheck,2)]; %#ok
-                end
-                end
+            if abs((d1+d2)-endp_dst)<eps
+               if ~ismember(round(nc(failcheck,:),14), round([xi,yi],14), 'rows')
+                  xi = [xi;nc(failcheck,1)]; %#ok
+                  yi = [yi;nc(failcheck,2)]; %#ok
+               end
             end
         end
-        if str2double(ver(1:4))>2015
-            points = uniquetol([xi,yi],eps*100,'ByRows',true);
-        else
-            points = [xi yi];
-        end
+        points = [xi,yi];
+        [~,ia] = unique(round(points,14,'significant'),'rows');
+        points = points(ia,:);
         xi = points(:,1); yi = points(:,2);
         flag = 0;
         if size(points,1)==1
