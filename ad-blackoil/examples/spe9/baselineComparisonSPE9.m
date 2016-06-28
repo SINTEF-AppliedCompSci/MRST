@@ -259,7 +259,7 @@ xlabel('Oil saturation (Two phase)')
 % The relation between B and b is simply the reciprocal $b = 1/B$ and will
 % be calculated when needed.
 %
-% We begin by plotting the b-factors/compressibility for the water and gas
+% We begin by plotting the B-factors/compressibility for the water and gas
 % phases. Note that the water compressibility is minimal, as water is close
 % to incompressible in most models. The gas compressibility varies several
 % orders of magnitude.
@@ -270,44 +270,44 @@ xlabel('Oil saturation (Two phase)')
 %
 % Note that while the curves shown are all approximately linear, there's no
 % such requirement on the fluid model.
-pressure = (50:10:350)'*barsa;
+pressure = (50:10:500)'*barsa;
 
 close all
 figure;
-plot(pressure, f.bW(pressure), 'LineWidth', 2);
+plot(pressure/barsa, 1./f.bW(pressure), 'LineWidth', 2);
 grid on
-title('Water compressibility')
-ylabel('b_w')
-xlabel('Pressure');
+title('Water formation volume factor')
+ylabel('B_w')
+xlabel('Pressure [bar]');
 
 figure; 
-plot(pressure, f.bG(pressure), 'LineWidth', 2);
+plot(pressure/barsa, 1./f.bG(pressure), 'LineWidth', 2);
 grid on
-title('Gas compressibility')
-ylabel('b_g')
-xlabel('Pressure');
+title('Gas formation volume factor')
+ylabel('B_g')
+xlabel('Pressure [bar]');
 
 figure; 
-plot(pressure, f.pvMultR(pressure), 'LineWidth', 2);
+plot(pressure/barsa, f.pvMultR(pressure), 'LineWidth', 2);
 grid on
 title('Rock compressibility')
 ylabel('1 + c_r (p - p_s)')
-xlabel('Pressure');
+xlabel('Pressure [bar]');
 %% Plot oil compressibility
 % Since we allow the gas phase to dissolve into the oil phase,
 % compressibility does not only depend on the pressure: The amount of
 % dissolved gas will also change how much the fluid can be compressed.
 %
 % We handle this by having saturated and undersatured tables for the
-% compressibility. This is reflected in the figure: Unsaturated
-% compressibility curves will diverge into from the main downwards sloping
+% formation volume factors (FVF). This is reflected in the figure:
+% Unsaturated FVF curves will diverge into from the main downwards sloping
 % trend into almost constant curves sloping upwards.
 %
 % Physically, the undersaturated oil will swell as more gas is being
 % introduced into the oil, increasing the volume more than the pressure
 % decreases the volume of the oil itself. When the oil is completely
-% saturated, the volume decrease is due to the gas taking up less space in
-% the oil.
+% saturated, the volume decrease is due to the gas-oil mixture itself being
+% compressed.
 rs = 0:25:320;
 [p_g, rs_g] = meshgrid(pressure, rs);
 rssat = zeros(size(p_g));
@@ -320,11 +320,11 @@ rs_g0 = rs_g;
 rs_g(saturated) = rssat(saturated);
 
 figure;
-plot(p_g'/barsa, f.bO(p_g, rs_g, saturated)', 'LineWidth', 2)
+plot(p_g'/barsa, 1./f.bO(p_g, rs_g, saturated)', 'LineWidth', 2)
 grid on
-title('Oil compressibility')
-ylabel('b_o')
-xlabel('Pressure')
+title('Oil formation volume factor')
+ylabel('B_o')
+xlabel('Pressure [bar]')
 
 %% Plot the viscosity
 % The viscosity can also depend on the pressure and dissolved components in
@@ -372,8 +372,7 @@ model.verbose = false;
 % The interactive viewer can be used to visualize the wells and is the best
 % choice for interactive viewing.
 
-T = convertTo(cumsum(schedule.step.val), year);
-plotWellSols(wellsols, T, 'field', 'qWs')
+plotWellSols(wellsols, cumsum(schedule.step.val), 'field', 'qWs')
 h = gcf;
 %% Load comparison data from commercial solver
 % To validate the simulator output, we load in a pre-run dataset from a
@@ -390,6 +389,8 @@ Tcomp =  smry.get(':+:+:+:+', 'YEARS', compd);
 if ishandle(h);
     close(h);
 end
+T = convertTo(cumsum(schedule.step.val), year);
+
 mrstplot = @(data) plot(T, data, '-b', 'linewidth', 2);
 compplot = @(data) plot(Tcomp, data, 'ro', 'linewidth', 2);
 %% Plot two different injectors 
@@ -475,7 +476,7 @@ axis tight
 % final state and the maximum of the first state, we can clearly see how
 % the pressure has dropped due to fluid extraction.
 
-h1 = gcf;
+h1 = figure;
 h2 = figure;
 
 p_start = states{1}.pressure;
