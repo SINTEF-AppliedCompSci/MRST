@@ -1,6 +1,10 @@
 %% Gas injection problem
-% Three-phase 2D example with gas injection in a model both with and without
-% embedded fractures
+% In this example, we consider the same setup as in the two-phase example
+% with wells, except that we now assume a three-phase, compressible model
+% with gas injection. For comparison, we also simulate injection in the
+% same reservoir geometry without (embedded) fractures. The purpose of the
+% example is to demonstrate how the methods from the HFM module easily can
+% be combined with solvers from the ad-blackoil module.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
@@ -58,8 +62,10 @@ axis equal; box on
 % get a crude approximation to the permeability-porosity relationship, we
 % assume that our medium is made up of uniform spherical grains of diameter
 % dp = 10 m, for which the specic surface area is Av = 6 = dp. With these
-% assumptions, using the Carman Kozeny relation, we can then calculate the
-% isotropic permeability (K). The rock properties are then plotted.
+% assumptions, we can then use the Carman Kozeny relation to calculate the
+% isotropic permeability (K). The rock properties are then plotted. We also
+% identify fracture-matrix and fracture-fracture connections and compute
+% transmissibility for each connection.
 
 dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
 p = gaussianField(celldim, [0.2 0.4], [11 3], 2.5);
@@ -74,7 +80,12 @@ G.rock.poro = p(:);
 G.rock.perm = K(:);
 K_frac = 10000; % Darcy
 G = makeRockFrac(G, K_frac, 'porosity', 0.8);
+
 clf; plotToolbar(G, G.rock); axis tight equal
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
+
+[G,T] = defineNNCandTrans(G,F,fracture);
+
 
 %% Define fluid properties
 % Define a two-phase fluid model without capillarity. The fluid model has
@@ -98,13 +109,11 @@ fluid.bO = @(p) exp((p - pRef)*c_o);
 fluid.bG = @(p) exp((p - pRef)*c_g);
 
 %% Define three-phase compressible flow model
-
-[G,T] = defineNNCandTrans(G,F,fracture);
-
-% We define a three phase blackoil model without dissolved gas or vaporized
-% oil. This is done by first instansiating the blackoil model, and then
+% We define a three-phase black-oil model without dissolved gas or vaporized
+% oil. This is done by first instantiating the blackoil model, and then
 % manually passing in the internal transmissibilities and the topological
-% neighborship from the embedded fracture grid.
+% neighborship from the embedded fracture grid. This will cause a warning
+% that can simply be ignored.
 
 model = ThreePhaseBlackOilModel(G, [], fluid, 'disgas', false, 'vapoil', false);
 N = getNeighbourship(G, 'topological', true);
@@ -148,8 +157,9 @@ dt = rampupTimesteps(totTime, 30*day, 8);
 schedule = simpleSchedule(dt, 'W', W);
 
 %% Simulate problem
-
-[ws, states, report] = simulateScheduleAD(state, model, schedule);
+%fn = getPlotAfterStep(state, model, schedule);
+[ws, states, report] = simulateScheduleAD(state, model, schedule, ...
+   'afterStepFn', getPlotAfterStep(state, model, schedule));
 
 %% Create and solve the same problem without any fractures present
 % Fractures can have a large impact on fluid displacement, but are often
@@ -174,7 +184,8 @@ for i = 1:numel(W)
 end
 % Set up and simulate the schedule
 schedule0 = simpleSchedule(dt, 'W', W0);
-[ws0, states0, report0] = simulateScheduleAD(state0, model0, schedule0);
+[ws0, states0, report0] = simulateScheduleAD(state0, model0, schedule0, ...
+   'afterStepFn', getPlotAfterStep(state0, model0, schedule0));
 
 %% Plot the results
 % We plot the production curves for the two wells and compare between the
@@ -211,6 +222,7 @@ end
 figure;
 subplot(2, 1, 1)
 plotCellData(G0, states{end}.s(1:G0.cells.num, 3), 'EdgeColor', 'none')
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
 axis equal tight
 caxis([0, 1])
 title('Gas saturation with fractures')
@@ -219,6 +231,15 @@ plotCellData(G0, states0{end}.s(1:G0.cells.num, 3), 'EdgeColor', 'none')
 title('Gas saturation without fractures')
 axis equal tight
 caxis([0, 1])
+xw = G.cells.centroids(vertcat(W.cells),:);
+for i=1:2,
+   subplot(2,1,i)
+   hold on
+   plot3(xw(1,1),xw(1,2),1e-3,'xk','LineWidth',2,'MarkerSize',8);
+   plot3(xw(2,1),xw(2,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+   plot3(xw(3,1),xw(3,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+   hold off
+end
 
 %% Interactive plotting
 % Compare the well cruves
@@ -227,10 +248,21 @@ plotWellSols({ws, ws0}, report.ReservoirTime, 'datasetnames', {'With fractures',
 
 figure;
 plotToolbar(G, states)
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
+hold on
+plot3(xw(1,1),xw(1,2),1e-3,'xk','LineWidth',2,'MarkerSize',8);
+plot3(xw(2,1),xw(2,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+plot3(xw(3,1),xw(3,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+hold off
 axis equal tight
 title('With fractures')
 
 figure;
 plotToolbar(G0, states0)
+hold on
+plot3(xw(1,1),xw(1,2),1e-3,'xk','LineWidth',2,'MarkerSize',8);
+plot3(xw(2,1),xw(2,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+plot3(xw(3,1),xw(3,2),1e-3,'ok','LineWidth',2,'MarkerSize',8);
+hold off
 axis equal tight
 title('Without fractures')
