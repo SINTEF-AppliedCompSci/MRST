@@ -51,13 +51,11 @@ for i = 1:G.cells.num
         fnodes = G.faces.nodes(G.faces.nodePos(faces(k)):G.faces.nodePos(faces(k)+1)-1); % 2 for 2D, 4 for 3D
         cnodes = [cnodes;fnodes]; %#ok
     end
-    cnodes = unique(cnodes);
-    points = [G.cells.centroids(i,:);G.nodes.coords(cnodes,:)];
-    tri = delaunayTriangulation(points(:,1),points(:,2));
-    K = convexHull(tri);
+    pts = G.nodes.coords(cnodes,:);
+    k = convhull(pts,'simplify',true);
     for j = 1:numel(frac.lines)
         xx = xy(j).xe; yy = xy(j).ye;
-        [in,on] = inpolygon(xx,yy,tri.Points(K,1),tri.Points(K,2));
+        [in,on] = inpolygon(xx,yy,pts(k,1),pts(k,2)); 
         if any(in-on)
             frac.lines(j).cells(end+1) = i;
             G.cells.fracture.indicator(i) = 1;
@@ -65,7 +63,7 @@ for i = 1:G.cells.num
                 [G.cells.fracture.line_num{i,1},j];
             G.cells.fracture.network{i,1} = ...
                 [G.cells.fracture.network{i,1},frac.lines(j).network];
-        elseif numel(find(on))>2 & in==on 
+        elseif numel(find(on))>2 && all(in==on) 
             frac.lines(j).cells(end+1) = i;
             G.cells.fracture.dfm_indicator(i) = 1; % dfm type fracture on edges
             G.cells.fracture.dfm_line_num{i,1} = ...
