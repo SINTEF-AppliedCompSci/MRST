@@ -71,7 +71,9 @@ end
 %% Assemble and solve the system
 
 bbsize = 30000-(G.griddim-2)*20000;
-uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, 'node_force', opt.nodeforce, 'pressure', pressure(G.cells.centroids));
+uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ...
+                  'node_force', opt.nodeforce, 'pressure', ...
+                  pressure(G.cells.centroids));
 
 %% Assemble divergence operator, see paper
 
