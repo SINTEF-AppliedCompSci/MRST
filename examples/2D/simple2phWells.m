@@ -75,10 +75,10 @@ poro = sampleFromBox(G,p');
 % with very low porosity.
 poro(poro<=0.1) = 0.1; 
 G.rock = makeRock(G,perm(:),poro(:));
-K_frac = 1000; % Darcy
+K_frac = 1000*darcy; % Darcy
 poro_frac = 0.5;
 for i = 1:numel(fieldnames(G.FracGrid))
-    G.FracGrid.(['Frac',num2str(i)]).rock.perm = darcy*K_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
+    G.FracGrid.(['Frac',num2str(i)]).rock.perm = K_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
     G.FracGrid.(['Frac',num2str(i)]).rock.poro = poro_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
 end
 clf; plotToolbar(G,G.rock); colormap(jet); colorbar
@@ -162,7 +162,9 @@ dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B,'filterzero',true);
 prm = log10(G.rock.perm); mx = max(prm); mn = min(prm);
-plotCellData(G,(prm-mn)./(mx-mn),'EdgeColor','none','FaceAlpha',.5);
+G.nodes.z = 1e-3*ones(G.nodes.num,1);
+plotCellData(Gp,(prm-mn)./(mx-mn),'EdgeColor','none','FaceAlpha',.4);
+G.nodes = rmfield(G.nodes,'z');
 plotGrid(CG,'FaceColor','none');
 axis tight; colorbar;
 title('Basis functions plotted in the matrix');
