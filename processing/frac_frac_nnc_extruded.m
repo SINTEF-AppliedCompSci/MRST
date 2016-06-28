@@ -39,8 +39,8 @@ if isfield(fracture,'intersections')
         Gf1 = G.FracGrid.(['Frac',num2str(lines(1))]);
         Gf2 = G.FracGrid.(['Frac',num2str(lines(2))]);
         %
-        [~,Gface(1)] = ismember(round(coords,5),round(F(lines(1)).nodes.coords,5),'rows');
-        [~,Gface(2)] = ismember(round(coords,5),round(F(lines(2)).nodes.coords,5),'rows');
+        [~,Gface(1)] = ismember(roundsd(coords,5),roundsd(F(lines(1)).nodes.coords,5),'rows');
+        [~,Gface(2)] = ismember(roundsd(coords,5),roundsd(F(lines(2)).nodes.coords,5),'rows');
         %  
         cells_l1 = cell(2,1);
         for j = 1:numel(Gface)
@@ -70,11 +70,11 @@ if isfield(fracture,'intersections')
         Gf2 = Gl.FracGrid.(['Frac',num2str(lines(2))]);
         %
         faces1 = find(ismember( ...
-           round(Gf1.faces.centroids(:,1:2),12,'significant'),...
-           round(cent1,12,'significant'),'rows'));
+           roundsd(Gf1.faces.centroids(:,1:2),12),...
+           roundsd(cent1,12,'significant'),'rows'));
         faces2 = find(ismember(...
-           round(Gf2.faces.centroids(:,1:2),12,'significant'),...
-           round(cent2,12,'significant'),'rows'));
+           roundsd(Gf2.faces.centroids(:,1:2),12),...
+           roundsd(cent2,12,'significant'),'rows'));
         %-----------Get half face transmissibilities----------------------%
         Trans1 = computeTrans(Gf1,Gf1.rock);
         Trans2 = computeTrans(Gf2,Gf2.rock);

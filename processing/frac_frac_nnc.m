@@ -47,8 +47,8 @@ if isfield(fracture,'intersections')
 for i = 1:size(fracture.intersections.lines,1) %% 2D for now
     lines = fracture.intersections.lines(i,:);
     coords = fracture.intersections.coords(i,:);
-    [~,Gface(1)] = ismember(round(coords,5),round(F(lines(1)).nodes.coords,5),'rows');
-    [~,Gface(2)] = ismember(round(coords,5),round(F(lines(2)).nodes.coords,5),'rows');
+    [~,Gface(1)] = ismember(roundsd(coords,5),roundsd(F(lines(1)).nodes.coords,5),'rows');
+    [~,Gface(2)] = ismember(roundsd(coords,5),roundsd(F(lines(2)).nodes.coords,5),'rows');
     diff1 = diff([F(lines(1)).nodes.coords(1,:);F(lines(1)).nodes.coords(end,:)]);
     diff2 = diff([F(lines(2)).nodes.coords(1,:);F(lines(2)).nodes.coords(end,:)]);
     cells_l = cell(2,1);

@@ -80,14 +80,14 @@ for i = 1:numel(frac_cells)
             d1 = pdist_euclid([frac_endp(1:2);nc(failcheck,:)]);
             d2 = pdist_euclid([frac_endp(3:4);nc(failcheck,:)]);
             if abs((d1+d2)-endp_dst)<eps
-               if ~ismember(round(nc(failcheck,:),14),round([xi,yi],14),'rows')
+               if ~ismember(roundsd(nc(failcheck,:),14),roundsd([xi,yi],14),'rows')
                   xi = [xi;nc(failcheck,1)]; %#ok
                   yi = [yi;nc(failcheck,2)]; %#ok
                end
             end
         end
         points = [xi,yi];
-        [~,ia] = unique(round(points,14,'significant'),'rows');
+        [~,ia] = unique(roundsd(points,14),'rows');
         points = points(ia,:);
         xi = points(:,1); yi = points(:,2);
         flag = 0;
@@ -104,7 +104,7 @@ for i = 1:numel(frac_cells)
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
         else
             fracp = [xi,yi];
-            [~,ia] = unique(round(fracp,14,'significant'),'rows');
+            [~,ia] = unique(roundsd(fracp,14),'rows');
             fracp = fracp(ia,:);
             d_avg = getAvgFracDist2D(G, fracp, frac_cells(i), cnodes);
             ratio = 1;
@@ -144,14 +144,14 @@ for i = 1:numel(frac_cells)
             d1 = pdist_euclid([frac_endp(1:2);nc(failcheck,:)]);
             d2 = pdist_euclid([frac_endp(3:4);nc(failcheck,:)]);
             if abs((d1+d2)-endp_dst)<eps
-               if ~ismember(round(nc(failcheck,:),14), round([xi,yi],14), 'rows')
+               if ~ismember(roundsd(nc(failcheck,:),14), roundsd([xi,yi],14), 'rows')
                   xi = [xi;nc(failcheck,1)]; %#ok
                   yi = [yi;nc(failcheck,2)]; %#ok
                end
             end
         end
         points = [xi,yi];
-        [~,ia] = unique(round(points,14,'significant'),'rows');
+        [~,ia] = unique(roundsd(points,14),'rows');
         points = points(ia,:);
         xi = points(:,1); yi = points(:,2);
         flag = 0;
