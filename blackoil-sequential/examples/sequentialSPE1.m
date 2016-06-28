@@ -13,6 +13,7 @@
 % parameters, which are then converted into a fully implicit model and a
 % schedule.
 [G, rock, fluid, deck, state] = setupSPE1();
+
 model = selectModelFromDeck(G, rock, fluid, deck);
 schedule = convertDeckScheduleToMRST(model, deck);
 %% Run the entire fully implicit schedule
@@ -121,23 +122,21 @@ for i = 1:numel(names)
     axis tight
     xlabel('Pressure')
 end
-%% Compute solution with refined time steps
-% We will now compute a solution with refined time steps. As the time-steps
-% become smaller, the solution becomes more accurate. In order to achieve
-% increased accuracy without manually changing the timesteps, we can use
-% a automatic timestep selector based on saturation change targets. We let
-% the solver aim for a maximum saturation change of 1% in each cell during
-% the timesteps to get very small steps.
-stepSel = StateChangeTimeStepSelector(...
-          'targetProps', 's',...            % Saturation as change target
-          'targetChangeAbs', 0.01,...       % Target change of 0.01
-          'firstRampupStepRelative', 0.01); % Initial rampup step is dt0/100
-solver = NonLinearSolver('timeStepSelector', stepSel);
-% Simulate with small timesteps. As the resulting timesteps will be very
-% small, it will take some time (about six minutes on the workstation where
-% the example was written).
-[wsFine, statesFine, repFine] = simulateScheduleAD(state, model, schedule, ...
-                        'nonlinearsolver', solver, 'outputMinisteps', true);
-%%
-T_fine = getReportMinisteps(repFine);
-plotWellSols({wsSeq, wsFIMP, wsOuter, wsFine}, {T, T, T, T_fine}, 'datasetnames', {'Sequential', 'FIMP', 'Outer loop', 'Refined schedule'})
+%% Set up interactive plotting
+% We finish the example by launching interactive viewers for the well
+% curves, as well as the different reservoir quantities.
+mrstModule add mrst-gui
+wsol = {wsSeq, wsFIMP, wsOuter};
+wnames = {'Sequential', 'FIMP', 'Outer loop'};
+states = {statesSeq, statesFIMP, statesOuter};
+
+for i = 1:numel(states)
+    figure(i), clf
+    plotToolbar(G, states{i});
+    title(wnames{i});
+    axis tight
+    view(20, 60);
+    plotWell(G, schedule.control(1).W)
+end
+
+plotWellSols(wsol, T, 'datasetnames', wnames)
