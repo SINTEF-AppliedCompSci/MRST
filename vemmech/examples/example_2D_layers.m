@@ -39,13 +39,4 @@ mdiv = vdiv*reshape(uVEM', [], 1)./G.cells.volumes;
 title('div')
 plotCellDataDeformed(G, mdiv, uVEM, plotopts1{:}); colorbar();
 
-[uCC, out] = CC_linElast(G, C, el_bc, load);
-
-% plot results
-figure(2)
-title('CC')
-subplot(3, 1, 1)
-plotCellData(G, uCC(:, 1)), colorbar(), 
-subplot(3, 1, 2)
-plotCellData(G, uCC(:, 2)), colorbar(), 
 
