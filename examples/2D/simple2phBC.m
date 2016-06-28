@@ -144,13 +144,11 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 % basis method. Note that the matrix 'A' does not contain any source terms
 % or boundary conditions. They are added to the coarse linear system when
 % computing the multiscale pressure in the next section.
-
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
-clf; plotToolbar(G,basis_sb.B);
-line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
-axis tight; c = colormap([1 1 1; jet]);
-colormap(c); colorbar;
+clf; plotToolbar(G,basis_sb.B,'filterzero',true);
+plotGrid(CG,'FaceColor','none');
+axis tight; colorbar;
 title('Basis functions plotted in the matrix');
 
 %% Compute multiscale solution

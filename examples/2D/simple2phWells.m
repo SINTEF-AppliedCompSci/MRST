@@ -160,11 +160,11 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
-clf; plotToolbar(G,basis_sb.B);
-plotCellData(G,2.25*(G.rock.poro-.05),'EdgeColor','none','FaceAlpha',.2);
-line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
-axis tight; c = colormap([1 1 1; jet]);
-colormap(c); colorbar;
+clf; plotToolbar(G,basis_sb.B,'filterzero',true);
+prm = log10(G.rock.perm); mx = max(prm); mn = min(prm);
+plotCellData(G,(prm-mn)./(mx-mn),'EdgeColor','none','FaceAlpha',.5);
+plotGrid(CG,'FaceColor','none');
+axis tight; colorbar;
 title('Basis functions plotted in the matrix');
 
 %% Compute multiscale solution
@@ -204,7 +204,7 @@ R = controlVolumeRestriction(CG.partition);
 count = 1;
 figure; set(gcf,'Position',[0 0 800 400]); colormap(flipud(winter));
 for i=1:2, subplot(1,2,i),
-   plotCellData(G,2.25*(G.rock.poro-.05),'EdgeColor','none','FaceAlpha',.4);
+   plotCellData(G,(prm-mn)./(mx-mn),'EdgeColor','none','FaceAlpha',.4);
    drawnow;
 end
 [hms,hfs]=deal([]);
