@@ -21,7 +21,6 @@ checkMATLABversionHFM;
 % set to 0.02 meters. Additionally, we compute a triangulation using the
 % matrix grid nodes. The triangulation is used to locate cells penetrated
 % by the fracture plane in the next section.
-
 celldim = [25, 25, 25];
 physdim = [100 100 100];
 G = cartGrid(celldim, physdim);
@@ -41,7 +40,6 @@ checkIfCoplanar(fracplanes)
 % the fracture plane and a grid is defined over it. A 'non-neighboring
 % connection (NNC)' status is given to each fracture-matrix connection and
 % we compute the transmissibility for each NNC using the global CI.
-
 dispif(mrstVerbose, 'Processing user input...\n\n');
 [G,fracplanes] = preProcessingFractures(G, fracplanes, ...
                  'GlobTri', GlobTri, ...
@@ -58,9 +56,7 @@ view(15,20);
 % Set the permeability (K) as 1 Darcy in the matrix and 10000 Darcy in the
 % fractures. Additionally, set the porosity of the matrix and fractures to
 % 20% and 50%, respectively.
-
 dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
-
 G.rock.perm = ones(G.cells.num,1)*darcy();
 G.rock.poro = 0.2*ones(G.cells.num, 1);
 K_frac = 10000; % Darcy
@@ -74,7 +70,6 @@ G = makeRockFrac(G, K_frac, 'permtype','homogeneous','porosity', poro_frac);
 % * densities: [rho_w, rho_o] = [1000 700] kg/m^3
 % * viscosities: [mu_w, mu_o] = [1 1] cP.
 % * corey-coefficient: [2, 2] = [2 2].
-
 fluid = initSimpleFluid('mu' , [   1,  1] .* centi*poise     , ...
     'rho', [1000, 700] .* kilogram/meter^3, ...
     'n'  , [   2,   2]);
@@ -83,7 +78,6 @@ fluid = initSimpleFluid('mu' , [   1,  1] .* centi*poise     , ...
 % In this section, we combine the fracture and matrix grids into one grid.
 % The transmissibility for each face in the combined grid and each NNC is
 % computed and stored in the vector T.
-
 G = assembleGlobalGrid(G);
 G = computeEffectiveTrans(G);
 G.faces.tag = zeros(G.faces.num,1);
@@ -103,7 +97,6 @@ T = [T;G.nnc.T];
 % are described using a Peaceman model, giving an extra set of equations
 % that need to be assembled, see simpleWellExample.m for more details on
 % the Peaceman well model.
-
 [nx, ny, nz] = deal(G.cartDims(1), G.cartDims(2), G.cartDims(3));
 cellinj = nx*ny*(nz-1)+1:nx:nx*ny*nz;
 cellprod = nx:nx:nx*ny;
@@ -111,17 +104,16 @@ W   = addWell([], G.Matrix, G.Matrix.rock, flipud(cellinj), 'Type', 'rate',...
     'Val', 500/day, 'Sign',1, 'Comp_i', [1, 0], 'Name', 'Injector');
 W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod, 'Type', 'bhp', ...
     'Val', 100*barsa, 'Sign', -1, 'Comp_i', [0, 1], 'Name', 'Producer');
+plotWell(G,W);
 
 %% Initialize state variables
 % Once the transmissibilities are computed, we can generate the
 % transmissiblity matrix 'A' using the 'two-point flux approximation'
 % scheme and initialize the solution structure.
-
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
 state  = initResSol (G, 0);
 state.wellSol = initWellSol(W, 0);
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true); 
-
 
 %% Setup multiscale grids
 % Next, we define a 5-by-5-by-5 matrix coarse grid such that each coarse
@@ -131,19 +123,17 @@ state.wellSol = initWellSol(W, 0);
 % matrix basis functions. Fracture support region is defined based on a
 % topological distance based algorithm. The matrix and fracture coarse
 % grids are plotted in the next section.
-
 nw = struct; 
 for i = 1:numel(fracplanes)
     nw(i).lines = i;
 end
-% Partition matrix
 
+% Partition matrix
 coarseDims = [5 5 5];
 pm = partitionMatrix(G, 'coarseDims', coarseDims, 'use_metis', false);
 CGm = getRsbGridsMatrix(G, pm, 'Wells', W);
 
 % Partition fracture
-
 coarseDimsF = [3 4];
 p  = partitionFracture(G, pm, nw, 'partition_frac'   , true   , ...
     'use_metisF'       , false  , ...
@@ -153,8 +143,8 @@ p  = partitionFracture(G, pm, nw, 'partition_frac'   , true   , ...
 pf = p(G.Matrix.cells.num+1:end)-max(p(1:G.Matrix.cells.num));
 
 % Coarse Grids
-
 CG = generateCoarseGrid(G, p);
+
 % Add centroids / geometry information on coarse grid
 CG = coarsenGeometry(CG);
 Gf = assembleFracGrid(G);
@@ -162,22 +152,13 @@ CGf = generateCoarseGrid(Gf, pf);
 CGf = coarsenGeometry(CGf);
 
 % Support Regions
-
 [CG,CGf] = storeFractureInteractionRegion(CG, CGf, CGm, ...
     'excludeBoundary' , false , ...
     'removeCenters'   , false , ...
     'fullyCoupled'    , false );
 
-%% Plot coarsegrid
-
-clf; % plotToolbar(G.Matrix,G.Matrix.rock);
-colormap(jet); view(15,20);
-axis tight equal off
-plotGrid(CG, 'facealpha', 0, 'linewidth', 2);
-plotWell(G,W);
 
 %% Compute initial pressure
-
 dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
 state_fs = incompTPFA(state, G, T, fluid,  ...
     'Wells', W, 'MatrixOutput', true, 'use_trans',true);
@@ -191,27 +172,26 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
-clf; plotToolbar(G,basis_sb.B); view(-135,30)
+clf; plotToolbar(G,basis_sb.B,'filterzero',true); view(-135,30)
+plotGrid(CG,'FaceColor','none','LineWidth',1);
 axis tight; colormap(jet); colorbar;
 title('Basis Functions in the matrix');
 
 %% Compute multiscale solution
-
 dispif(mrstVerbose, 'Computing multiscale solution...\n\n');
 [state_ms,~] = incompMultiscale(state, CG, T, fluid, basis_sb,...
     'Wells', W,'use_trans',true);
 
 %% Plot initial pressure
-
 figure;
-plotToolbar(G, state_fs.pressure)
+plotToolbar(G, state_fs.pressure); plotWell(G,W); 
 colormap jet; colorbar
 view(15,20)
 axis tight off
 title('Fine scale')
 
 figure;
-plotToolbar(G, state_ms.pressure)
+plotToolbar(G, state_ms.pressure); plotWell(G,W); 
 colormap jet; colorbar
 view(15,20)
 axis tight off
@@ -239,28 +219,42 @@ title(L1_eq,'interpreter','latex');
 % this splitting of flow and transport can be reduced by iterating each
 % time step until e.g., the residual is below a certain user-prescribed
 % threshold (this is not done herein).
-
 pv     = poreVolume(G,G.rock);
 nt     = 30;
-t90   = 0.9*(sum(pv)/abs(sum(state_fs.wellSol(1).flux)));
-Time   = t90;
+Time   = 0.9*(sum(pv)/abs(sum(state_fs.wellSol(1).flux)));
 dT     = Time/nt;
 
 pvi = zeros(nt,1);
 sol_fs = cell(nt,1); sol_ms = cell(nt,1);
 e = zeros(nt,1);
 
+% Prepare plotting
+clf, set(gcf,'Position',[0 0 980 400]); colormap(flipud(winter));
+txt = {'Reference','F-MsRSB'};
+for i=1:2, subplot(1,2,i), 
+   plotGrid(cartGrid([1 1 1],physdim), 'FaceColor','none','EdgeColor','k','LineWidth',1);
+   plotWell(G,W); axis tight; view(20,15); title(txt{i});
+end
+[hfs,hms]=deal([]);
+
 t  = 0;
 B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);
 count = 1;
+hwb = waitbar(0,'Time loop');
 while t < Time,
     state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'wells', W, 'Trans', T);
     % Check for inconsistent saturations
     s = [state_fs.s(:,1); state_ms.s(:,1)];
     assert(max(s) < 1+eps && min(s) > -eps);
-
+    
+    % Plot solution
+    subplot(1,2,1); delete(hfs);
+    hfs = plotCellData(G, state_fs.s(:,1),state_fs.s(:,1)>1e-3);
+    subplot(1,2,2); delete(hms);
+    hms = plotCellData(G, state_fs.s(:,1),state_ms.s(:,1)>1e-3);
+   
     % Update solution of pressure equation.
     state_fs  = incompTPFA(state_fs , G, T, fluid, 'wells', W, 'use_trans',true);
 
@@ -275,17 +269,21 @@ while t < Time,
     sol_fs{count,1} = state_fs; sol_ms{count,1} = state_ms;
     % Increase time
     t = t + dT;
+    waitbar(t/Time, hwb);
     pvi(count) = 100*(sum(state_fs.wellSol(1).flux)*t)/sum(pv);
     e(count,1) = sum(abs(state_fs.s(:,1) - state_ms.s(:,1)).*pv)/sum(pv.*state_fs.s(:,1));
     
     fprintf([num2str(pvi(count)), '%% PV injected \n']);
     count = count + 1;
 end
+close(hwb);
 
 %% Plot saturations
-
-figure; plotToolbar(G,sol_fs); colormap(flipud(gray)); caxis([0 1]);view(15,20)
-figure; plotToolbar(G,sol_ms); colormap(flipud(gray)); caxis([0 1]);view(15,20)
+% To better see the evolution of the saturation front, you should change
+% the patch properties (click the colored triangle in the bottom row of the
+% menu) and set the faces to be semi-transparent (e.g., a value .5 to .7)
+figure; plotToolbar(G,sol_fs); colormap(flipud(winter)); plotWell(G,W); view(15,20);
+figure; plotToolbar(G,sol_ms); colormap(flipud(winter)); plotWell(G,W); view(15,20)
 
 %% Plot error in saturation 
 
