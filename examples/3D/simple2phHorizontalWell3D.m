@@ -1,9 +1,8 @@
-%{
-Two-phase example with a horizontal producer and injector modeling water
-injection in a 3-dimensional fractured porous media using the HFM module.
-Note that the 3D solvers are not capable of handling intersecting fracture
-planes.
-%}
+%% Water injection into a 3D fractured porous media
+% Two-phase example with a horizontal producer and injector simulating
+% water injection in a 3-dimensional fractured porous media using the HFM
+% module. Note that the 3D solvers are not capable of handling intersecting
+% fracture planes.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module

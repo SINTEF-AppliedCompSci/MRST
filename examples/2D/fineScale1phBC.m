@@ -1,11 +1,12 @@
-%% Introduction to HFM Simulation
+%% Single-Phase Problem Demonstrating the Hierarchical Fracture Model
 % In this first introductory example to the HFM module, we consider a
 % single-phase 2D example with Dirichlet boundary conditions and a
-% horizontal fracture in the centre. We compare the embedded discrete
-% fracture model to a fully resolved simulation in which the fracture and
-% matrix grid blocks are of the same size. Through this example, we will
-% introduce you to the basic steps necessary to set up and run a HFM
-% simulation.
+% horizontal central fracture in the centre. The example shows the effect
+% of a single fracture on the reservoir pressure distribution. Moreover,
+% the pressure solution obtained using an embedded discrete or hierarchical
+% fracture model is compared to the results obtained from a fully resolved
+% simulation where the fracture and matrix grid blocks are of the same
+% size.
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
@@ -94,7 +95,7 @@ Gr = computeGeometry(Gr);
 Gr.rock.perm = ones(Gr.cells.num,1) * darcy;
 fractureCells = 225*112+50:225*112+175;
 Gr.rock.perm(fractureCells) = 10000*darcy;
-clf; plotCellData(Gr,Gr.rock.perm);
+clf; plotCellData(Gr,Gr.rock.perm); axis equal tight
 
 %% Initialize state variables
 % Here, we initialize the solution structure for the two grids.

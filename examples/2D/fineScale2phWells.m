@@ -1,8 +1,10 @@
-%% Introduction to HFM Simulation: Two-Phase Simulation with Wells
-% In this second introductory example to the HFM module, we consider a
-% two-phase example with three intersecting fractures in the center of the
-% model. Oil is recovered by a production well in the NE corner, which is
-% supported by a water-injector in the SW corner.
+%% Two-Phase Problem with a Quarter Five-Spot Well Pattern
+% In this second introductory example to the HFM module, we show the impact
+% of fractures on fluid migration using the hierarchical/embedded fracture
+% model. To this end, we consider a two-phase example with three
+% intersecting fractures in the center of the model. Oil is recovered by a
+% production well in the NE corner, which is supported by a water-injector
+% in the SW corner. 
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module

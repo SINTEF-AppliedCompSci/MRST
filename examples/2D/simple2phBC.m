@@ -1,12 +1,13 @@
-%{
-Two-phase 2D example with water injection from the left boundary of a
-rectangular domain containing 2 intersecting fractures. The flow problem is
-solved both by a fine-scale and a multiscale solver.
+%% Two-Phase Problem with two Intersecting Fractures
+% Incompressible two-phase problem with water injection from the left
+% boundary of a square domain and production at the opposite face. The grid
+% contains 2 intersecting fractures. The flow problem is solved both by a
+% fine-scale and a multiscale solver.
+% 
+% Notice that you need to have Metis installed to get this example to work.
+% To get Metis working, you also need to set the global variable METISPATH.
+% This can be done in your 'startup_user.m' file.
 
-Notice that you need to have Metis installed to get this example to work.
-To get Metis working, you also need to set the global variable METISPATH.
-This can be done in your 'startup_user.m' file.
-%}
 
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
