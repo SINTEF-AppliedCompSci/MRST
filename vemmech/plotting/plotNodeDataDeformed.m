@@ -35,7 +35,7 @@ it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-MRST is distributed in the hope that it will be useful,
+MRST is distributed in the hope that it will be useful, 
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
@@ -45,23 +45,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   G.nodes.coords=G.nodes.coords+uu;
-   if(G.griddim==3)
-    cells=[1:G.cells.num]';   
-    [faces, ~] = boundaryFaces(G,cells);
+   G.nodes.coords = G.nodes.coords+uu;
+   if(G.griddim == 3)
+    cells = [1:G.cells.num]';   
+    [faces, ~] = boundaryFaces(G, cells);
    else
-    faces=[1:G.cells.num]';
+    faces = [1:G.cells.num]';
    end
   
    % Extract face topology for subset of grid faces and the coordinates for
    % the actual vertices ('verts') present in this topology.
    %
    face_topo  = str2func(sprintf('get_face_topo_%dd', G.griddim));
-   [f, verts] = face_topo     (G, faces);
+   [f, verts] = face_topo(G, faces);
    v          = G.nodes.coords(verts, :);
 
-   if isfield(G.nodes, 'z'),
-      assert (size(v,2) == 2, ...
+   if isfield(G.nodes, 'z'), 
+      assert (size(v, 2) == 2, ...
              ['Vertex Z coordinate cannot be specified in ', ...
               'a general 3D grid']);
 
@@ -70,15 +70,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Massage colour data into form suitable for 'FaceVertexCData' property.
    %
-   % From here, we assume that 'colour' is an m-by-1 (for indexed
-   % colouring) or m-by-3 (for 'true colour' colouring) array.
-   % Furthermore, 'm' is assumed to be either 1 (meaning all 'faces' should
-   % be coloured using a single colour), NUMEL(faces) when the individual
-   % faces are coloured separately, or G.nodes.num for interpolated face
-   % colouring.
+   % From here, we assume that 'colour' is an m-by-1 (for indexed colouring) or
+   % m-by-3 (for 'true colour' colouring) array.  Furthermore, 'm' is assumed to
+   % be either 1 (meaning all 'faces' should be coloured using a single colour),
+   % NUMEL(faces) when the individual faces are coloured separately, or
+   % G.nodes.num for interpolated face colouring.
    %
    
-    %colour = colour(verts,:);
+    % colour = colour(verts, :);
     fc     = 'interp';
    
 
@@ -95,18 +94,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Build final patch for graphical output (Note: added to GCA).
   
-   h = patch('Faces'          , f      , 'Vertices' , v , ...
-                'FaceVertexCData', node_data(verts,:) , 'FaceColor', fc, varargin{:});
+   h = patch('Faces', f, 'Vertices', v, ...
+             'FaceVertexCData', node_data(verts, :), ...
+             'FaceColor', fc, varargin{:});
    
    set(get(h, 'Parent'), 'ZDir', 'reverse')
-    %{
-   if plotOutline,
-      pts = findFaceOutline(G, faces);
-      do_hold = ishold();
-      hold on, plot3(pts(:,1), pts(:,2), pts(:,3), 'k');
-      if ~do_hold, hold off, end
-   end
-    %}
+
    if nargout > 0, varargout{1} = h; end
 end
 
@@ -119,8 +112,8 @@ function [f, present] = get_face_topo_2d(G, cells)  %#ok
    nn  = double(diff([G.cells.facePos(cells), ...
                       G.cells.facePos(cells + 1)], [], 2));
 
-   if(isfield(G.cells,'nodes') )
-      cellNodes=G.cells.nodes; 
+   if(isfield(G.cells, 'nodes') )
+      cellNodes = G.cells.nodes; 
    else
         cellNodes = getSortedCellNodes(G);
    end
@@ -177,11 +170,11 @@ function [f, present] = get_face_topo_3d(G, faces)  %#ok
 
    f(mcolon(off + 1, off + nn)) = node_num(fn);
 
-   tmp=isfinite(f);
-   nnode=sum(tmp,1);
-   ind=sub2ind(size(f),nnode,1:size(f,2));
-   tmp=repmat(f(ind),size(f,1),1);
-   f(isnan(f))=tmp(isnan(f));
+   tmp = isfinite(f);
+   nnode = sum(tmp, 1);
+   ind = sub2ind(size(f), nnode, 1:size(f, 2));
+   tmp = repmat(f(ind), size(f, 1), 1);
+   f(isnan(f)) = tmp(isnan(f));
    % PATCH requires that the 'Faces' property be a matrix of size
    % (number of faces)-by-(number of vertices).
    %
@@ -194,10 +187,10 @@ function [plotOutline, varargin] = do_outline_p(varargin)
    % Does caller of 'plotFaces' request an outline plot?
 
    plotOutline = false;
-   if numel(varargin) > 0,
+   if numel(varargin) > 0, 
       i = 1 + isnumeric(varargin{1});
       v = find(strcmpi(varargin(i : 2 : end), 'outline'));
-      if ~isempty(v),
+      if ~isempty(v), 
          % Find argument following last 'outline'
          plotOutline = varargin{i + 2*v(end) - 1};
 
@@ -210,7 +203,7 @@ end
 %--------------------------------------------------------------------------
 
 function rgb = get_rgb(colour)
-   switch lower(colour),
+   switch lower(colour), 
       case {'y', 'yellow' }, rgb = [1, 1, 0];
       case {'m', 'magenta'}, rgb = [1, 0, 1];
       case {'c', 'cyan'   }, rgb = [0, 1, 1];
@@ -228,10 +221,10 @@ end
 function pts = findFaceOutline(g, faces)
    assert (size(g.nodes.coords, 2) == 3);
    % Find points on border of collection of grid faces.
-   if numel(faces)==0, pts = zeros(0,3); return; end
+   if numel(faces) == 0, pts = zeros(0, 3); return; end
 
    cellNo = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
-   sgn    = 2*(cellNo == g.faces.neighbors(g.cells.faces(:,1), 1)) - 1;
+   sgn    = 2*(cellNo == g.faces.neighbors(g.cells.faces(:, 1), 1)) - 1;
    faceNo = rldecode(1:g.faces.num, diff(g.faces.nodePos), 2) .';
 
    fi     = false(g.faces.num, 1); fi(faces) = true;
@@ -241,27 +234,27 @@ function pts = findFaceOutline(g, faces)
    nodeflag(fn) = true;
 
    fe = faceEdges(g);
-   fe(sgn(faceNo)<0, :) = fe(sgn(faceNo)<0, [2,1]);
+   fe(sgn(faceNo)<0, :) = fe(sgn(faceNo)<0, [2, 1]);
 
-   fe = fe (fi(faceNo),:);
+   fe = fe (fi(faceNo), :);
    nodes = double(fe(all(nodeflag(fe), 2), :));
 
-   if numel(nodes) > 0,
+   if numel(nodes) > 0, 
       % Remove edges which appear more than once.  These edges are
       % considered internal in the collection of faces.  The remaining
       % edges are on the outer boundary.
       [nodes, n] = rlencode(sortrows(sort(nodes, 2)));
-      nodes(n>1,:) = [];
+      nodes(n>1, :) = [];
    end
 
    pts = nan(size(nodes, 1)*3, 3);
-   pts (1:3:end,:) = g.nodes.coords(nodes(:,1),:);
-   pts (2:3:end,:) = g.nodes.coords(nodes(:,2),:);
+   pts (1:3:end, :) = g.nodes.coords(nodes(:, 1), :);
+   pts (2:3:end, :) = g.nodes.coords(nodes(:, 2), :);
 end
 
 %--------------------------------------------------------------------------
 
 function fe = faceEdges(g)
-   fe = [g.faces.nodes, g.faces.nodes([2:end,1])];
-   fe(g.faces.nodePos(2:end)-1,2) = fe(g.faces.nodePos(1:end-1),1);
+   fe = [g.faces.nodes, g.faces.nodes([2:end, 1])];
+   fe(g.faces.nodePos(2:end)-1, 2) = fe(g.faces.nodePos(1:end-1), 1);
 end
