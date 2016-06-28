@@ -148,7 +148,8 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B);
-axis tight; c = colormap(jet);
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
+axis tight; c = colormap([1 1 1; jet]);
 colormap(c); colorbar;
 title('Basis functions plotted in the matrix');
 
@@ -162,14 +163,18 @@ dispif(mrstVerbose, 'Computing multiscale solution...\n\n');
 
 figure;
 plotToolbar(G, state_fs.pressure)
-colormap jet
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
+cx=caxis();
+colormap jet(25)
 view(90, 90)
 axis tight off
 title('Initial Pressure: Fine scale')
 
 figure;
 plotToolbar(G, state_ms.pressure)
-colormap jet
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
+caxis(cx);
+colormap jet(25)
 view(90, 90)
 axis tight off
 title('Initial Pressure: F-MsRSB')
@@ -197,11 +202,12 @@ dTplot = Time/3;
 N      = fix(Time/dTplot);
 
 state_ms.rhs = q;
-t  = 0; plotNo = 1; hfs = 'Reference Saturation: '; hms = 'F-MsRSB Saturation: ';
+t  = 0; plotNo = 1; hfs = 'Reference: '; hms = 'F-MsRSB: ';
 dispif(mrstVerbose, 'Solving Transport...\n\n');
 figure
 B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);
+hwb = waitbar(0,'Time loop');
 while t < Time,
     state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'bc', bc, 'Trans', T, 'verbose', true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'bc', bc, 'Trans', T);
@@ -223,22 +229,25 @@ while t < Time,
     
     % Increase time and continue if we do not want to plot saturations
     t = t + dT;
+    waitbar(t/Time,hwb);
     if ( t < plotNo*dTplot && t < Time), continue, end
     
     % Plot saturation
     heading = [num2str(convertTo(t,day)),  ' days'];
     
     r = 0.01;
-    subplot('position',[(plotNo-1)/N+r, 0.50, 1/N-2*r, 0.48]), cla
+    subplot('position',[(plotNo-1)/N+r, 0.50, 1/N-2*r, 0.44]), cla
     plotCellData(G, state_fs.s(:,1), 'edgealpha', 0.1);
     colormap(flipud(jet))
-    view(0,90), axis equal off, title([hfs heading])
+    view(0,90), axis equal off, title([hfs heading],'FontSize',8)
     
-    subplot('position',[(plotNo-1)/N+r, 0.02, 1/N-2*r, 0.48]), cla
+    subplot('position',[(plotNo-1)/N+r, 0.02, 1/N-2*r, 0.44]), cla
     plotCellData(G, state_ms.s(:,1), 'edgealpha', 0.1);
     colormap(flipud(jet))
-    view(0,90), axis equal off, title([hms heading])
+    view(0,90), axis equal off, title([hms heading],'FontSize',8)
     
     plotNo = plotNo+1;
+    drawnow
     
 end
+close(hwb);

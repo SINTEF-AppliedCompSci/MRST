@@ -116,14 +116,10 @@ fluid = initSimpleFluid('mu' , [   1,  2] .* centi*poise     , ...
 % need to be assembled, see simpleWellExample.m for more details on the
 % Peaceman well model.
 
-inj = 1;
-prod = celldim(1)*celldim(2);
-wellRadius = 0.1;
-
-W = addWell([], G.Matrix, G.Matrix.rock, inj,'InnerProduct', 'ip_tpf','Type', ...
-    'bhp', 'Val', 120*barsa,'Radius', wellRadius, 'Comp_i', [1, 0]);
-W = addWell(W, G.Matrix, G.Matrix.rock, prod, 'InnerProduct', 'ip_tpf', 'Type', ...
-    'bhp' , 'Val', 100*barsa, 'Radius', wellRadius, 'Comp_i', [0, 1]);
+W = addWell([], G.Matrix, G.Matrix.rock, 1,'InnerProduct', 'ip_tpf','Type', ...
+    'bhp', 'Val', 120*barsa,'Radius', .1, 'Comp_i', [1, 0]);
+W = addWell(W, G.Matrix, G.Matrix.rock, prod(celldim), 'InnerProduct', 'ip_tpf', 'Type', ...
+    'bhp' , 'Val', 100*barsa, 'Radius', .1, 'Comp_i', [0, 1]);
 
 %% Initialize state variables
 % Once the transmissibilities are computed, we can generate the
@@ -165,7 +161,9 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B);
-axis tight; c = colormap(jet);
+plotCellData(G,2.25*(G.rock.poro-.05),'EdgeColor','none','FaceAlpha',.2);
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','r','LineWidth',0.5);
+axis tight; c = colormap([1 1 1; jet]);
 colormap(c); colorbar;
 title('Basis functions plotted in the matrix');
 
@@ -204,12 +202,33 @@ t  = 0;
 B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);
 count = 1;
+figure; set(gcf,'Position',[0 0 800 400]); colormap(flipud(winter));
+for i=1:2, subplot(1,2,i),
+   plotCellData(G,2.25*(G.rock.poro-.05),'EdgeColor','none','FaceAlpha',.4);
+   drawnow;
+end
+[hms,hfs]=deal([]);
+hwb = waitbar(0,'Time loop');
 while t < Time,
     state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'wells', W, 'Trans', T);
     % Check for inconsistent saturations
     s = [state_fs.s(:,1); state_ms.s(:,1)];
     assert(max(s) < 1+eps && min(s) > -eps);
+
+    % Plot solutions
+    subplot(1,2,1);
+    delete(hfs);
+    hfs=plotCellData(G,state_fs.s(:,1),state_fs.s(:,1)>0,'EdgeColor','none');
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
+    view(0,90); caxis([0 1]); title('Fine scale');
+    
+    subplot(1,2,2);
+    delete(hms);
+    hms=plotCellData(G,state_ms.s(:,1),state_ms.s(:,1)>0,'EdgeColor','none');
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
+    view(0,90); caxis([0 1]); title('F-MsRSB');
+    drawnow
 
     % Update solution of pressure equation.
     state_fs  = incompTPFA(state_fs , G, T, fluid, 'wells', W, 'use_trans',true);
@@ -226,6 +245,7 @@ while t < Time,
     sol_fs{count,1} = state_fs; sol_ms{count,1} = state_ms;
     % Increase time
     t = t + dT;
+    waitbar(t/Time,hwb);
     pvi(count) = 100*(sum(state_fs.wellSol(1).flux)*t)/sum(pv);
     e(count,1) = sum(abs(state_fs.s(:,1) - state_ms.s(:,1)).*pv)/sum(pv.*state_fs.s(:,1));
     pfs(count,1) = state_fs.s(W(2).cells,1);
@@ -233,10 +253,12 @@ while t < Time,
     count = count + 1;
     
 end
+close(hwb);
+
 %% Plot saturations
 
 plotNo = 1;
-figure; hold on
+figure; hold on; colormap(flipud(winter))
 boundary = any(G.Matrix.faces.neighbors==0,2);
 facelist = 1:G.Matrix.faces.num;
 bfaces = facelist(boundary);
@@ -246,26 +268,21 @@ for i = nt/3:nt/3:nt
     % Plot saturation
     r = 0.01;
     subplot('position',[(plotNo-1)/N+r, 0.50, 1/N-2*r, 0.48]), cla
-    plotToolbar(G,state_fs.s(:,1));
-    for j = 1:size(fl,1)
-        line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
-    end
+    plotCellData(G,state_fs.s(:,1),'EdgeColor','none');
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
     plotFaces(G,bfaces,'k','linewidth',1)
     axis square off, 
-    title(['Reference Saturation: ', heading]);
-    colormap(flipud(jet)), view(0,90); caxis([0 1]);
+    title(['Reference: ', heading],'FontSize',8);
+    view(0,90); caxis([0 1]);
     
     subplot('position',[(plotNo-1)/N+r, 0.02, 1/N-2*r, 0.48]), cla
-    plotToolbar(G,state_ms.s(:,1));
-    for j = 1:size(fl,1)
-        line(fl(j,1:2:3),fl(j,2:2:4),'Color','r','LineWidth',0.5);
-    end
+    plotCellData(G,state_ms.s(:,1),'EdgeColor','none');
+    line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
     plotFaces(G,bfaces,'k','linewidth',1)
     axis square off, 
-    title(['F-MsRSB Saturation: ',  heading]);
-    colormap(flipud(jet)), view(0,90); caxis([0 1]);
+    title(['F-MsRSB: ',  heading],'FontSize',8);
+    view(0,90); caxis([0 1]);
     plotNo = plotNo+1;
-    
 end
 
 %% Plot water saturation at producer 

@@ -164,17 +164,17 @@ fn = getSmootherFunction('type', 'ilu');
     'useGMRES', true, 'reconstruct', true, 'getSmoother', fn);
 
 %% Plot results and convergence
-figure; colormap jet
+figure; colormap jet(25)
 plotCellData(G, state_fs.pressure,'EdgeColor','none')
 line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
-view(90, 90); colorbar
+view(90, 90); colorbar, cx=caxis();
 axis tight off
 title('Fine scale')
 
-figure; colormap jet
+figure; colormap jet(25)
 plotCellData(G, state_ms.pressure,'EdgeColor','none')
 line(fl(:,1:2:3)',fl(:,2:2:4)','Color','r','LineWidth',0.5);
-view(90, 90); colorbar
+view(90, 90); colorbar, caxis(cx);
 axis tight off
 title('F-MsRSB')
 
