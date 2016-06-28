@@ -116,7 +116,7 @@ for i = 1:nPh
         end
         bf = @(p, varargin) b*exp((p-opt.pRef)*c);
     end
-    kr = @(s) s.^n(i);
+    kr = @(s) s.^opt.n(i);
     
     fluid.(['rho', n, 'S']) = opt.rho(i);
     fluid.(['b', n]) = bf;
