@@ -106,7 +106,7 @@ for i = 1:nPh
     b = opt.b(i);
     if isempty(opt.c)
         % Constant value (incompressible phase)
-        bf = @(p, varargin) b*constantInverseFVF(p, varargin{:});
+        bf = @(p, varargin) b*constantReciprocalFVF(p, varargin{:});
     else
         % Compressibility on the form
         % b = b_ref exp((p-p_ref)*c)
@@ -137,7 +137,7 @@ if ~isempty(opt.cR)
 end
 end
 
-function B = constantInverseFVF(p, varargin)
+function B = constantReciprocalFVF(p, varargin)
 B = p*0 + 1;
 end
 
