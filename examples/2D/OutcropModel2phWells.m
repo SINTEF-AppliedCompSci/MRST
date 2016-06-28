@@ -68,6 +68,7 @@ for i = 1:numel(fieldnames(G.FracGrid))
     G.FracGrid.(['Frac',num2str(i)]).rock.poro = poro_frac*ones(G.FracGrid.(['Frac',num2str(i)]).cells.num,1);
 end
 clf; plotToolbar(G,G.rock); colormap(jet); colorbar
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','k');
 
 %% Define fluid properties
 
@@ -131,7 +132,8 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B);
-axis tight; c = colormap(jet);
+line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','k');
+axis tight; c = colormap([1 1 1; jet]);
 colormap(c); colorbar;
 title('Basis functions plotted in the matrix');
 
