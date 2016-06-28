@@ -87,7 +87,7 @@ function varargout = interactiveTrapping(inp, varargin)
     elseif ischar(inp)
         % Assume input is the name of a CO2 Storage Atlas grid
 
-        [gr, data, petroinfo] = getAtlasGrid(inp, 'coarsening', opt.coarsening , 'nz', 1);
+        [gr, data, petroinfo] = getAtlasGrid(inp, 'coarsening', opt.coarsening, 'nz', 1);
 
         % Grab topgrid
         top = data(cellfun(@(x) strcmpi(x.variant, 'top'), data));
