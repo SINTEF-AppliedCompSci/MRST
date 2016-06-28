@@ -316,7 +316,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             end
                         end
                     else
-                        warning(msg);
                         % Beat timestep with a hammer
                         warning([solver.getId(), 'Solver did not converge, cutting timestep'])
                         cuttingCount = cuttingCount + 1;
