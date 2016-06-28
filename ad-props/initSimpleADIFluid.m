@@ -49,6 +49,10 @@ function fluid = initSimpleADIFluid(varargin)
 %           where b_ref is the b-factor specified as keyword argument (see
 %           above) and p_ref is specified as a seperate keyword (default
 %           0).
+%   - cR    : Rock compressibility. If given, the fluid will contain a rock
+%           pore volume multiplier that gives a linear increase in pore
+%           volume with pressure, multiplied with cR,
+%           pv = pv_ref * (1 + (p-pRef)*cR)
 %   - p
 % RETURNS:
 %   fluid - struct containing the following functions (where X = 'W' [water],
@@ -88,6 +92,7 @@ opt = struct('mu',      [1, 1, 1], ...
              'b',       [1, 1, 1], ...
              'c',       [], ...
              'pRef',    0, ...
+             'cR',      [], ...
              'phases',  'WOG');
 opt = merge_options(opt, varargin{:});
 
@@ -119,6 +124,15 @@ for i = 1:nPh
     if strcmpi(n, 'O') && nPh > 2
         [fluid.krOW, fluid.krOG] = deal(kr);
     end
+end
+
+if ~isempty(opt.cR)
+    % Rock compressibility
+    cR = opt.cR;
+    assert(numel(cR) == 1, 'Rock compressibility must be given as a single number');
+    assert(cR >= 0, 'Rock compressibility must be a positive number');
+    fluid.cR = cR;
+    fluid.pvMultR = @(p)(1 + cR.*(p-opt.pRef));
 end
 end
 
