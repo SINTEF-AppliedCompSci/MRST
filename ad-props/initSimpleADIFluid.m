@@ -103,9 +103,10 @@ nPh = numel(names);
 assert(nPh == numel(unique(double(names))), 'Duplicate phases detected.');
 for i = 1:nPh
     n = names(i);
+    b = opt.b(i);
     if isempty(opt.c)
         % Constant value (incompressible phase)
-        bf = @(p, varargin) b(i)*constantInverseFVF(p, varargin{:});
+        bf = @(p, varargin) b*constantInverseFVF(p, varargin{:});
     else
         % Compressibility on the form
         % b = b_ref exp((p-p_ref)*c)
@@ -113,7 +114,7 @@ for i = 1:nPh
         if c < 0
             warning('Negative compressibility detected.')
         end
-        bf = @(p, varargin) b(i)*exp((p-opt.pRef)*c);
+        bf = @(p, varargin) b*exp((p-opt.pRef)*c);
     end
     kr = @(s) s.^n(i);
     
