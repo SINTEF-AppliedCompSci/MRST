@@ -87,9 +87,13 @@ end
 
 function [htext, hline] = plotSingleWellLabel(G, W, opt)
     if G.griddim == 3
-        top = min(G.nodes.coords(:, 3));
-        dist = max(G.nodes.coords(:, 3)) - top;
-        
+        if isfield(G,'nodes')
+           top = min(G.nodes.coords(:, 3));
+           dist = max(G.nodes.coords(:, 3)) - top;
+        else
+           top = min(G.cells.centroids(:, 3));
+           dist = max(G.cells.centroids(:, 3)) - top;
+        end
         topBore = G.cells.centroids(W.cells(1), :);
     else
         top = 0;
@@ -123,8 +127,11 @@ end
 function [R, curve, cells] = computeEffectiveRadius(G, W, opt)
     cells = W.cells;
     curve = G.cells.centroids(cells, :);
-    if opt.aspectScale
+    if opt.aspectScale && isfield(G,'nodes')
         aspect =  max(G.nodes.coords) - min(G.nodes.coords);
+        aspect = aspect./sum(aspect);
+    elseif isfield(G,'parent')
+        aspect =  max(G.parent.nodes.coords) - min(G.parent.nodes.coords);
         aspect = aspect./sum(aspect);
     else
         aspect = ones(1, G.griddim);
