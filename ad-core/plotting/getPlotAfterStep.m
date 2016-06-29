@@ -101,7 +101,7 @@ function [model, states, reports, solver, ok] = afterStepFunction(model, states,
     st = states(computed);   
     rep = reports(ctrl_computed);
     simtime = simtime(ctrl_computed);
-    if ~isnan(hwell) && ishandle(hdata)
+    if ~isnan(hdata) && ishandle(hdata)
         injData(model.G, st, current);
     end
     
