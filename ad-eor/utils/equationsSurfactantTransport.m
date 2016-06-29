@@ -1,7 +1,44 @@
 function [problem, state] = equationsSurfactantTransport(state0, state, ...
                                                       model, dt, drivingForces, varargin)
-    % Get linearized problem for oil/water/surfactant system with black oil-style
-    % properties
+%
+%
+% SYNOPSIS:
+%   function [problem, state] = equationsSurfactantTransport(state0, state, model, dt, drivingForces, varargin)
+%
+% DESCRIPTION: Assemble the linearized equations for an oil-water-surfactant
+% system, computing both the residuals and the Jacobians. 
+%    
+% Only the mass conservation equation for the surfactant is considered. The
+% pressure and saturations are set as constant.
+%  
+% This function is used to compute explicitly the concentration, when an
+% implicit-explicit approach is taken.
+%
+% The result is returned as an instance of the class LinearizedProblem which can
+% be solved using instances of LinearSolverAD.
+%
+% A description of the modeling equations can be found in the directory
+% ad-eor/docs.
+%
+%
+% PARAMETERS:
+%   state0        - State at previous times-step
+%   state         - State at current time-step
+%   model         - Model instance
+%   dt            - time-step
+%   drivingForces - Driving forces (boundary conditions, wells, ...)
+%   varargin      - optional parameters
+%
+% RETURNS:
+%   problem - Instance of LinearizedProblem
+%   state   - Updated state variable (fluxes, mobilities and more can be
+%             stored, the wellSol structure is also updated in case of control switching)
+%
+% EXAMPLE:
+%
+% SEE ALSO: LinearizedProblem, LinearSolverAD, equationsOilWaterSurfactant,
+% ImplicitExplicitOilWaterSurfactantModel, PressureSaturationSurfactantModel
+%
     opt = struct('Verbose', mrstVerbose, ...
                  'reverseMode', false, ...
                  'resOnly', false, ...

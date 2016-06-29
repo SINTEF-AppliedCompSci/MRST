@@ -200,18 +200,14 @@ if ~isempty(W)
 end
 
 [eqs, names, types] = deal(cell(1,2));
-eqInd = 1;
 if opt.solveForWater
     % water eq:
     wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
     if ~isempty(W)
         wat(wc) = wat(wc) - wflux_W;
     end
-    eqs{eqInd}   = wat;
-
-    names{eqInd} = 'water';
-    types{eqInd} = 'cell';
-    eqInd = eqInd + 1;
+else
+    wat = [];
 end
 
 if opt.solveForGas
@@ -226,10 +222,8 @@ if opt.solveForGas
     if ~isempty(W)
         gas(wc) = gas(wc) - wflux_G;
     end
-    eqs{eqInd}   = gas;
-    names{eqInd} = 'gas';
-    types{eqInd} = 'cell';
-    eqInd = eqInd + 1;
+else
+    gas = [];
 end
 
 if opt.solveForOil
@@ -244,12 +238,30 @@ if opt.solveForOil
     if ~isempty(W)
         oil(wc) = oil(wc) - wflux_O;
     end
-
-    eqs{eqInd}   = oil;
-    names{eqInd} = 'oil';
-    types{eqInd} = 'cell';
+else
+    oil = [];
 end
 
+phaseEqs = {wat, oil, gas};
+% Add in any fluxes / source terms prescribed as boundary conditions.
+phaseEqs = addFluxesFromSourcesAndBC(model, phaseEqs, ...
+                                       {pW, p, pG},...
+                                       {rhoW, rhoO, rhoG},...
+                                       {mobW, mobO, mobG}, ...
+                                       {bW, bO, bG},  ...
+                                       {sW, sO, sG}, ...
+                                       drivingForces);
+ix = 1;
+active = [opt.solveForWater, opt.solveForOil, opt.solveForGas];
+enames = {'water', 'oil', 'gas'};
+for i = 1:numel(active)
+    if active(i)
+        names{ix} = enames{i};
+        types{ix} = 'cell';
+        eqs{ix} = phaseEqs{i};
+        ix = ix + 1;
+    end
+end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

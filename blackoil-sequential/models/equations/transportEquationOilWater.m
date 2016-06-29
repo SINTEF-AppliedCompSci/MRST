@@ -11,9 +11,7 @@ opt = struct('Verbose', mrstVerbose, ...
              'stepOptions', []);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
-
 W = drivingForces.W;
-% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
@@ -144,7 +142,7 @@ if opt.solveForWater
     end
 
     eqs{1} = wat;
-    oil = zeros(G.cells.num, 1);
+    oil = [];
     names = {'water'};
     types = {'cell'};
 else
@@ -155,7 +153,7 @@ else
     if ~isempty(W)
         oil(wc) = oil(wc) - bOqO;
     end
-    wat = zeros(G.cells.num, 1);
+    wat = [];
     eqs{1} = oil;
     names = {'oil'};
     types = {'cell'};

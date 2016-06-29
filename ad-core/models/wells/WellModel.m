@@ -85,9 +85,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         nonlinearIteration
         % The current well controls
         W
-        % 
-        Rw
+        % Mapping from perforation index to well index. perf2well(ic) returns the well index of the
+        % perforation ix
         perf2well
+        % Inverse mapping for perf2wll. Rw(:, iw) returns the perforations that belongs to the well iw, in
+        % form of a logical vector
+        Rw
     end
     
     methods
@@ -314,16 +317,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 
                 % Phase cuts - fraction of reservoir conditions
-                if model.water
-                    ws(i).wcut = ws(i).qWr./ws(i).qTr;
+                if model.water && model.oil
+                    ws(i).wcut = ws(i).qWs./(ws(i).qWs + ws(i).qOs);
                 end
                 
                 if model.gas
-                    ws(i).gcut = ws(i).qGr./ws(i).qTr;
+                    ws(i).gcut = ws(i).qGs./ws(i).qTs;
                 end
                 
                 if model.oil
-                    ws(i).ocut = ws(i).qOr./ws(i).qTr;
+                    ws(i).ocut = ws(i).qOs./ws(i).qTs;
                 end
                 
                 % Gas/oil ratio

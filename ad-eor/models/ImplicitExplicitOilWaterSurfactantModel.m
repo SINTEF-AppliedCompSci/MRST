@@ -1,14 +1,45 @@
 classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
-% Oil/water/Surfactant system
-% This model is a two phase oil/water model, extended with the surfactant
-% component in addition.
+%
+%
+% SYNOPSIS:
+%   model = ImplicitExplicitOilWaterSurfactantModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: Implicit-explicit model for a oil water system with
+% surfactant. The implicit step consists of solving the oil-water system
+% implicitly with a fixed concentration of surfactant. Then, the transport
+% equation for the surfactant are solved explicitly, for fixed pressure and
+% saturation. A description of the surfactant model that is implemented can be
+% found in ad-eor/docs directory.
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock structure
+%   fluid    - Fluid structure
+%   varargin - optional parameter
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: OilWaterSurfactantBaseModel, FullyImplicitOilWaterSurfactantModel,
+% pressureSaturationSurfactantModel, explicitConcentrationModel
+%
 
     properties
 
+        % Instance of the model which is use for solving implicitly the pressure and
+        % saturation equation, only, with given surfactant concentration
         pressureSaturationSurfactantModel;
+
+        % Instance of the model which is used for solving the concentration equation
+        % explicitly.
         explicitConcentrationModel;
 
+        % Solver to be used for the pressure-saturation equations.
         pressureSaturationSurfactantSolver;
+
+        % Solver to be used for the concentration equations.
         explicitConcentrationSolver;
 
     end
@@ -18,6 +49,9 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
 
             model = model@OilWaterSurfactantBaseModel(G, rock, fluid, varargin{:});
             model = merge_options(model, varargin{:});
+
+            % Setup the properties specific to the model, see comments in
+            % properties block.
 
             model.pressureSaturationSurfactantModel = PressureSaturationSurfactantModel(G, rock, fluid, varargin{:});
             model.explicitConcentrationModel = ExplicitConcentrationModel(G, rock, fluid, varargin{:});
@@ -37,10 +71,12 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
             press_sat_solver = model.pressureSaturationSurfactantSolver;
             conc_solver = model.explicitConcentrationSolver;
 
+            % Solve the pressure - saturation equation for the time step dt.
             [state, press_sat_converged] = solveMinistep(press_sat_solver, press_sat_model, state, state0, dt, drivingForces);
 
             if press_sat_converged
-                % Solve for concentration
+                % If the pressure-saturation equations have been solved
+                % successfully, solve the concentration equation.
                 [new_state, conc_converged] = solveMinistep(conc_solver, conc_model, state, state0, ...
                                                             dt, drivingForces);
                 if conc_converged
@@ -53,18 +89,5 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
 
         end
 
-    end
-end
-
-
-function dts = splitTime(dt, mini_dt)
-    if mini_dt >= dt
-        dts = dt;
-        return
-    else
-        n = floor(dt/mini_dt);
-        dts = mini_dt*ones(n, 1);
-        dts = [dts; dt - n*mini_dt];
-        dts = dts(dts>0);
     end
 end

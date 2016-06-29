@@ -83,6 +83,20 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function state = validateState(model, state) %#ok
+        % Validate the state for use with the model. Should check that
+        % required fields are present and of the right dimensions. If the
+        % missing fields can be assigned default values, state is return
+        % with the required fields added. If they cannot be assigned
+        % reasonable default values, a descriptive error should be thrown
+        % telling the user what is missing or wrong (and ideally how to fix
+        % it).
+        
+        % Any state is valid for base class
+        return
+    end
+
+    % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces) %#ok
     % Update state based on Newton increments
         for i = 1:numel(problem.primaryVariables);
@@ -372,6 +386,39 @@ methods
         % Get struct with valid forces for model, with reasonable default
         % values.
         forces = struct();
+    end
+    
+    % --------------------------------------------------------------------%
+    function checkProperty(model, state, property, n_el, dim)
+        % Model    - model to be checked
+        % Property - Valid property (according to getVariableField)
+        % n_el     - Array of same size as dim, indicating how many entries
+        %            there should be along each dimension.
+        % dim      - Dimensions to check.
+        if numel(dim) > 1
+            assert(numel(n_el) == numel(dim));
+            % Recursively check all dimensions 
+            for i = 1:numel(dim)
+                model.checkProperty(state, property, n_el(i), dim(i));
+            end
+            return
+        end
+        fn = model.getVariableField(property);
+        assert(isfield(state, fn), ['Field ".', fn, '" missing! ', ...
+            property, ' must be supplied for model "', class(model), '"']);
+
+        if dim == 1
+            sn = 'rows';
+        elseif dim == 2
+            sn = 'columns';
+        else
+            sn = ['dimension ', num2str(dim)];
+        end
+        n_actual = size(state.(fn), dim);
+        assert(n_actual == n_el, ...
+            ['Dimension mismatch for ', sn, ' of property "', property, ...
+            '" (state.', fn, '): Expected ', sn, ' to have ', num2str(n_el), ...
+            ' entries but state had ', num2str(n_actual), ' instead.'])
     end
 end
 

@@ -1,8 +1,40 @@
 function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, ...
    model, dt, drivingForces, varargin)
-% Get linearized problem for oil/water/gas/polymer system with black
-% oil-style properties (wet-gas, live-oil)
 
+%
+%
+% SYNOPSIS:
+%   function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, model, dt, drivingForces, varargin)
+%
+% DESCRIPTION: Assemble the linearized equations for a blackoil system,
+% computing both the residuals and the Jacobians. Returns the result as an
+% instance of the class LinearizedProblem which can be solved using instances of
+% LinearSolverAD.
+%
+% A description of the modeling equations can be found in the directory
+% ad-eor/docs.
+%
+% PARAMETERS:
+%   state0        - State at previous times-step
+%   state         - State at current time-step
+%   model         - Model instance
+%   dt            - time-step
+%   drivingForces - Driving forces (boundary conditions, wells, ...)
+%   varargin      - optional parameters
+%
+% RETURNS:
+%   problem - Instance of LinearizedProblem
+%   state   - Updated state variable (fluxes, mobilities and more can be
+%             stored, the wellSol structure is also updated in case of control switching)
+%
+% EXAMPLE:
+%
+% SEE ALSO: LinearizedProblem, LinearSolverAD, equationsOilWater, OilWaterPolymerModel
+%
+
+% Get linearized problem for oil/water/polymer system with black oil-style
+% properties
+    
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
@@ -124,93 +156,89 @@ bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
 [vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
-
-% well equations :
-if ~isempty(W)
-    wm = WellModel();
-    if ~opt.reverseMode
-        % Store cell wise well variables in cell arrays and send to well
-        % model to get the fluxes and well control equations.
-        wc    = vertcat(W.cells);
-        pw    = p(wc);
-        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-        bw    = {bW(wc), bO(wc), bG(wc)};
-
-        [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-        mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        sat = {sW(wc), sO(wc), sG(wc)};
-
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
-            'maxComponents', rSatw, ...
-            'nonlinearIteration', opt.iteration);
-    else
-        error('not supported yet!');
-    end
-else
-    error('The polymer model does not support senarios without wells now!');
-end
-
-% s = model.operators;  % The previous s was overwritten with saturations.
-poro =  s.pv./G.cells.volumes;
-poroFace = s.faceAvg(poro);
-faceA = G.faces.areas(s.internalConn);
-
-% Bw * Fw should be flux
-Vw = vW./(poroFace .* faceA);
-
-% Using the upstreamed viscosity multiplier due to PLYVISC
-muWMultf = s.faceUpstr(upcw, muWMult);
-
-wc = vertcat(W.cells);
-muWMultW = muWMult(wc);
-
-[~, wciPoly, iInxW] = getWellPolymer(W);
-
-% Maybe should also apply this for PRODUCTION wells.
-muWMultW((iInxW(wciPoly==0))) = 1;
-
-
-% The water flux for the wells.
-fluxWaterWell = double(cqs{1});
-
-bwW = bW(wc);
-poroW = poro(wc);
-
-% the thickness of the well perforations in the cell
-welldir = { W.dir };
-i = cellfun('prodofsize', welldir) == 1;
-welldir(i) = arrayfun(@(w) repmat(w.dir, [ numel(w.cells), 1 ]), ...
-                      W(i), 'UniformOutput', false);
-welldir = vertcat(welldir{:});
-[dx, dy, dz] = cellDims(G, wc);
-thicknessWell = dz;
-thicknessWell(welldir == 'Y') = dy(welldir == 'Y');
-thicknessWell(welldir == 'X') = dx(welldir == 'X');
-
-% For the wells
-% The water velocity is computed at the reprensentative radius rR.
-if ~isfield(W, 'rR')
-    error('The representative radius of the well is not initialized');
-end
-rR = vertcat(W.rR);
-
-VwW = bwW.*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
-
-if ~opt.resOnly
-    muWMultW = muWMultW.val;
-    VwW = VwW.val;
-    muWMultf = muWMultf.val;
-    Vw = Vw.val;
-end
-
 if model.usingShear
+    % calculate well perforation rates :
+    if ~isempty(W)
+        wm = WellModel();
+        if ~opt.reverseMode
+            % Store cell wise well variables in cell arrays and send to well
+            % model to get the fluxes and well control equations.
+            wc    = vertcat(W.cells);
+            pw    = p(wc);
+            rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
+            bw    = {bW(wc), bO(wc), bG(wc)};
+
+            [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
+            mw    = {mobW(wc), mobO(wc), mobG(wc)};
+            sat = {sW(wc), sO(wc), sG(wc)};
+
+            [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
+                bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
+                'maxComponents', rSatw, ...
+                'nonlinearIteration', opt.iteration);
+        else
+            error('not supported yet!');
+        end
+    else
+        error('The polymer model does not support senarios without wells now!');
+    end
+
+    % s = model.operators;  % The previous s was overwritten with saturations.
+    poro =  s.pv./G.cells.volumes;
+    poroFace = s.faceAvg(poro);
+    faceA = G.faces.areas(s.internalConn);
+
+    % Bw * Fw should be flux
+    Vw = vW./(poroFace .* faceA);
+
+    % Using the upstreamed viscosity multiplier due to PLYVISC
+    muWMultf = s.faceUpstr(upcw, muWMult);
+
+    wc = vertcat(W.cells);
+    muWMultW = muWMult(wc);
+
+    [~, wciPoly, iInxW] = getWellPolymer(W);
+
+    % Maybe should also apply this for PRODUCTION wells.
+    muWMultW((iInxW(wciPoly==0))) = 1;
+
+
+    % The water flux for the wells.
+    fluxWaterWell = double(cqs{1});
+
+    bwW = bW(wc);
+    poroW = poro(wc);
+
+    % the thickness of the well perforations in the cell
+    welldir = { W.dir };
+    i = cellfun('prodofsize', welldir) == 1;
+    welldir(i) = arrayfun(@(w) repmat(w.dir, [ numel(w.cells), 1 ]), ...
+                          W(i), 'UniformOutput', false);
+    welldir = vertcat(welldir{:});
+    [dx, dy, dz] = cellDims(G, wc);
+    thicknessWell = dz;
+    thicknessWell(welldir == 'Y') = dy(welldir == 'Y');
+    thicknessWell(welldir == 'X') = dx(welldir == 'X');
+
+    % For the wells
+    % The water velocity is computed at the reprensentative radius rR.
+    if ~isfield(W, 'rR')
+        error('The representative radius of the well is not initialized');
+    end
+    rR = vertcat(W.rR);
+
+    VwW = bwW.*fluxWaterWell./(poroW .* rR .* thicknessWell * 2 * pi);
+
+    if ~opt.resOnly
+        muWMultW = muWMultW.val;
+        VwW = VwW.val;
+        muWMultf = muWMultf.val;
+        Vw = Vw.val;
+    end
+
     shearMultf = computeShearMult(model.fluid, abs(Vw), muWMultf);
     shearMultW = computeShearMult(model.fluid, abs(VwW), muWMultW);
-end
 
-
-if model.usingShear
     vW = vW ./ shearMultf;
     vP = vP ./ shearMultf;
 end
@@ -224,6 +252,15 @@ bWvW = s.faceUpstr(upcw, bW).*vW;
 bGvG = s.faceUpstr(upcg, bG).*vG;
 bWvP = s.faceUpstr(upcw, bW).*vP;
 
+% Store fluxes / properties for debugging / plotting, if requested.
+if model.outputFluxes
+    state = model.storeFluxes(state, vW, vO, vG);
+end
+if model.extraStateOutput
+    state = model.storebfactors(state, bW, bO, bG);
+    state = model.storeMobilities(state, mobW, mobO, mobG);
+    state = model.storeUpstreamIndices(state, upcw, upco, upcg);
+end
 % EQUATIONS ---------------------------------------------------------------
 
 % The first equation is the conservation of the water phase. This equation is
@@ -376,8 +413,9 @@ function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
     inj   = vertcat(W.sign)==1;
     polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
     wPoly = zeros(nnz(inj), 1);
-    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
+    W_inj = W(inj);
+    wPoly(polInj) = vertcat(W_inj(polInj).poly);
+    wciPoly = rldecode(wPoly, cellfun(@numel, {W_inj.cells}));
 
     % Injection cells
     nPerf = cellfun(@numel, {W.cells})';

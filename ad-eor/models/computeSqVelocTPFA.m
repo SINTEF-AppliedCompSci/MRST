@@ -1,15 +1,43 @@
 function sqVeloc = computeSqVelocTPFA(G, intInx)
-
-% Compute approximation of velocity for TPFA
 %
-% Note:
 %
-% * The approximation of acceptable when flow is closed to linear. In particular, it is very bad
-% when there is well cells.
+% SYNOPSIS:
+%   function sqVeloc = computeSqVelocTPFA(G, intInx)
 %
-% * We assume that there is no boundary flow.
+% DESCRIPTION: Setup the operator which computes an approximation of the square
+% of the velocity for each cell given fluxes on the faces. The following
+% method is used
 %
-% intInx is a logical vector giving the internal faces.
+% 1) For each face, we compute a square velocity by taking the square of the
+% flux after having divided it by the area. We obtain a scalar-valued variable
+% per face
+%
+% 2) From a scalar variable, a vector can be reconstructed on each face, using
+% the coordinate of the vector joining the cell centroid to the face
+% centroid. Let c denotes this vector, after renormalization, (example:
+% c=[1;0;0]' for a face of a Cartesian 3D grid) then, from a scalar value f on
+% the face, we construct the vector-valued variable given by f*c.
+%
+% 3) We use the reconstruction defined in 2) to construct vector-valued
+% square velocity from the scalar-valued square velocity defined in 1).
+%
+% 4) We take the average of the vector-valued obtained in 3) . We use a
+% weight in the average so that faces that are far from the cell centroid
+% contribute less than those that are close. See implementation for how this
+% is done.
+%
+% PARAMETERS:
+%   G      - Grid structure
+%   intInx - Logical vector giving the internal faces.
+%
+% RETURNS:
+%   sqVeloc - Function of the form u=sqVeloc(v), which returns cell-valued
+%   square of the velocity for given face-valued fluxes v.
+%
+% EXAMPLE:
+%
+% SEE ALSO: computeVelocTPFA
+%
 
     cellNo = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2).';
     dim    = size(G.nodes.coords, 2);

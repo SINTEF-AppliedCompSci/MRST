@@ -1,7 +1,24 @@
 classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
-    % ThreePhaseBlackOil/polymer system
-    % This model is a three phase black oil model, extended with
-    % a polymer component.
+%
+%
+% SYNOPSIS:
+%   model = ThreePhaseBlackOilPolymerModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: Fully implicit three phase blackoil model with polymer.
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock structure
+%   fluid    - Fluid structure
+%   varargin - optional parameters
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO:  equationsThreePhaseBlackOilPolymer, OilWaterPolymerModel
+%  
 
     properties
         % Polymer present
@@ -25,6 +42,13 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, ...
                 model, dt, drivingForces, varargin{:});
+        end
+
+        % --------------------------------------------------------------------%
+        function state = validateState(model, state)
+            state = validateState@ThreePhaseBlackOilModel(model, state);
+            % Polymer must be present
+            model.checkProperty(state, 'Polymer', [model.G.cells.num, 1], [1, 2]);
         end
 
         % --------------------------------------------------------------------%

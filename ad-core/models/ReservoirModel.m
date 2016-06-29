@@ -180,6 +180,19 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function state = validateState(model, state)
+        % Check parent class
+        state = validateState@PhysicalModel(model, state);
+        active = model.getActivePhases();
+        nPh = nnz(active);
+        nc = model.G.cells.num;
+        model.checkProperty(state, 'Pressure', [nc, 1], [1, 2]);
+        if nPh > 1
+            model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
+        end
+    end
+
+    % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
         % Generic update function for reservoir models containing wells
 
@@ -261,7 +274,7 @@ methods
                 index = model.satVarIndex('sg');
                 fn = 's';
             case {'s', 'sat', 'saturation'}
-                index = 1:numel(model.saturationVarNames);
+                index = ':';
                 fn = 's';
             case {'pressure', 'p'}
                 index = 1;

@@ -1,5 +1,37 @@
-function [problem, state] = equationsOilWaterPolymer(state0, state, ...
-   model, dt, drivingForces, varargin)
+function [problem, state] = equationsOilWaterPolymer(state0, state, model, dt, ...
+                                                     drivingForces, varargin)
+%
+%
+% SYNOPSIS:
+%   function [problem, state] = equationsOilWaterPolymer(state0, state, model, dt, drivingForces, varargin)
+%
+% DESCRIPTION: Assemble the linearized equations for an oil-water-polymer
+% system, computing both the residuals and the Jacobians. Returns the result as
+% an instance of the class LinearizedProblem which can be solved using instances
+% of LinearSolverAD.
+%
+% A description of the modeling equations can be found in the directory
+% ad-eor/docs.
+%
+%
+% PARAMETERS:
+%   state0        - State at previous times-step
+%   state         - State at current time-step
+%   model         - Model instance
+%   dt            - time-step
+%   drivingForces - Driving forces (boundary conditions, wells, ...)
+%   varargin      - optional parameters
+%
+% RETURNS:
+%   problem - Instance of LinearizedProblem
+%   state   - Updated state variable (fluxes, mobilities and more can be
+%             stored, the wellSol structure is also updated in case of control switching)
+%
+% EXAMPLE:
+%
+% SEE ALSO: LinearizedProblem, LinearSolverAD, equationsOilWater, OilWaterPolymerModel
+%
+
 % Get linearized problem for oil/water/polymer system with black oil-style
 % properties
 opt = struct('Verbose', mrstVerbose, ...
@@ -205,8 +237,9 @@ function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
     inj   = vertcat(W.sign)==1;
     polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
     wPoly = zeros(nnz(inj), 1);
-    wPoly(polInj) = vertcat(W(inj(polInj)).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W(inj).cells}));
+    W_inj = W(inj);
+    wPoly(polInj) = vertcat(W_inj(polInj).poly);
+    wciPoly = rldecode(wPoly, cellfun(@numel, {W_inj.cells}));
 
     % Injection cells
     nPerf = cellfun(@numel, {W.cells})';

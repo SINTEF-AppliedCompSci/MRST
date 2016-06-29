@@ -1,4 +1,5 @@
 function [G, rock, fluid, deck, state] = setupSPE1()
+    mrstModule add deckformat
     % Read and process file.
     pth = getDatasetPath('spe1');
     fn  = fullfile(pth, 'BENCH_SPE1.DATA');

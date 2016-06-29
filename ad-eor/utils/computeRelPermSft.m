@@ -1,4 +1,28 @@
 function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
+%
+%
+% SYNOPSIS:
+%   function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
+%
+% DESCRIPTION: Computes the water and oil relative permeabilities, using the
+% surfactant model as described in documentation that can be found in the
+% directory ad-eor/docs .
+%
+% PARAMETERS:
+%   sW    - Saturation
+%   c     - Concentration
+%   Nc    - Capillary number
+%   fluid - Fluid structure
+%
+% RETURNS:
+%   krW - Water relative permeability
+%   krO - Oil relative permeability
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 
     isSft = (double(c) > 0);
     m = 0*c;

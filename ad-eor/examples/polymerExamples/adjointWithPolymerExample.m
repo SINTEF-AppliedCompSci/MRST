@@ -85,7 +85,7 @@ modelPolymer = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck);
 modelOW = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
 
 % Convert the deck schedule into a MRST schedule by parsing the wells
-schedule = convertDeckScheduleToMRST(G, modelPolymer, rock, deck);
+schedule = convertDeckScheduleToMRST(modelPolymer, deck);
 
 
 %% Run the schedule

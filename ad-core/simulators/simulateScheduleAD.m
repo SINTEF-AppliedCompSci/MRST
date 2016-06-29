@@ -70,6 +70,26 @@ function [wellSols, states, schedulereport] = ...
 %                     class. Note that if you are passing a
 %                     NonLinearSolver, you might as well put it there.
 %
+% 'afterStepFn'     - Function handle to an optional function that will be
+%                     called after each successful report step in the
+%                     schedule. The function should take in the following
+%                     input arguments:
+%                     model    - The model used in the schedule
+%                     states   - A cell array of all states that are
+%                     computed, as well as possible empty entries where the
+%                     states have not been computed yet.
+%                     reports  - A cell array of reports for each step, with
+%                     empty entries for steps that have not been reached
+%                     yet.
+%                     solver   - The NonLinearSolver instance.
+%                     schedule - The current schedule.
+%                     simtime  - Array with the time in seconds taken by
+%                     the NonLinearSolver to compute each step. Entries not
+%                     computed will contain zeros.
+%
+%                     See "getPlotAfterStep" for more information and
+%                     "howtoAddPlotHook" for a worked example.
+%
 % RETURNS:
 %  wellSols         - Well solution at each control step (or timestep if
 %                     'OutputMinisteps' is enabled.
@@ -163,6 +183,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        state.wellSol = initWellSolAD(getWell(1), model, state);
     end
+
+    dispif(opt.Verbose, 'Validating initial state...\n')
+    state = model.validateState(state);
+    dispif(opt.Verbose, 'Initial state ready for simulation.\n')
 
     failure = false;
     simtime = zeros(nSteps, 1);

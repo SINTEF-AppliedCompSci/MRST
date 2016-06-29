@@ -97,7 +97,7 @@ switch simul_case
     error('simul_case not recognized.');
 end
 % Convert the deck schedule into a MRST schedule by parsing the wells
-schedule = convertDeckScheduleToMRST(G, modelSurfactant, rock, deck);
+schedule = convertDeckScheduleToMRST(modelSurfactant, deck);
 
 
 %% Run the schedule
