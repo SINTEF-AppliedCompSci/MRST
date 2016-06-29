@@ -129,7 +129,7 @@ dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
 state = incompTPFA(state, G, T, fluid, 'Wells', W, 'MatrixOutput', true, 'use_trans',true);
 
 %% Plot initial pressure
-figure;
+clf
 hp = plotCellData(G, state.pressure,'EdgeColor','none');
 xw = G.cells.centroids(vertcat(W.cells),:);
 hold on
@@ -170,8 +170,8 @@ while t < Time,
     assert(max(state.s(:,1)) < 1+eps && min(state.s(:,1)) > -eps);
 
     % Plot saturation
-    delete(hp),
-    plotCellData(G,state.s,state.s>0); drawnow; pause(.1);
+    delete(hp)
+    hp = plotCellData(G,state.s,state.s>0); drawnow; pause(.1);
     
     % Update solution of pressure equation.
     state  = incompTPFA(state, G, T, fluid, 'wells', W, 'use_trans',true);
