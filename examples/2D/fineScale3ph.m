@@ -55,7 +55,7 @@ G = CIcalculator2D(G,fracture);
 min_size = 5; cell_size = 10; % minimum and average cell size.
 [G,F,fracture] = gridFracture2D(G,fracture,'min_size',min_size,'cell_size',cell_size);
 clf; plotFractureNodes2D(G,F,fracture); 
-axis equal; box on
+axis equal tight; box on
 
 %% Set rock properties in fracture and matrix
 % For this example, we will generate the porosity as a Gaussian field. To
