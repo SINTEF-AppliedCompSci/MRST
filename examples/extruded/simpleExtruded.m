@@ -19,7 +19,6 @@ checkMATLABversionHFM;
 % through which the fracture grid would extend. In this example, we extrude
 % the matrix grid by 50 layers resulting in 50-by-50-by-50 fine cells. The
 % fracture grid is extruded from layer 11 through 40.
-
 celldim = [50 50];
 G = cartGrid(celldim);
 G = computeGeometry(G);
@@ -33,7 +32,6 @@ flayers = 11:40;
 % network consisting of 2 fracture lines. We also identify the fine-cells
 % in the matrix containing these fractures. Fracture aperture is set to
 % 0.04 meters. The matrix grid and fracture lines are plotted.
-
 dispif(mrstVerbose, 'Processing user input...\n\n');
 a = 1/25;
 [G,fracture] = processFracture2D(G,fl); fracture.aperture = a;
@@ -47,7 +45,6 @@ axis tight; box on
 % model (a.k.a. embedded discrete fracture model). Following that, we
 % compute a fracture grid where the fracture cell size is defined to be
 % 0.5 m. Next, the fracture grid is plotted on top of the matrix grid.
-
 dispif(mrstVerbose, 'Computing CI and constructing fracture grid...\n\n');
 G = CIcalculator2D(G,fracture);
 min_size = 0.5; cell_size = 0.5; % minimum and average cell size.
@@ -58,7 +55,6 @@ clf; plotFractureNodes2D(G,F,fracture); box on
 % Using makeLayers, we extrude the matrix grid and each fracture grid along
 % the z-direction. The fracture grid is extruded and readjusted in
 % accordance with 'flayers'.
-
 Gl = makeLayers(G,layers,flayers);
 
 %% Set rock properties in fracture and matrix
@@ -71,7 +67,6 @@ Gl = makeLayers(G,layers,flayers);
 % are then plotted. Fracture permeability is set to 1000 Darcy with 50%
 % porosity in each fracture grid cell. The rock properties are then
 % plotted.
-
 p = gaussianField(Gl.cartDims, [0.2 0.4], [9 5 5], 3.5);
 K = p.^3.*(1e-5)^2./(0.81*72*(1-p).^2);
 
@@ -86,7 +81,6 @@ axis tight equal off
 
 %% Define fluid properties
 % Define a single fluid of viscosity 1 cP and density 1000 kg/m3.
-
 fluid = initSingleFluid('mu' , 1*centi*poise, ...
     'rho', 1000*kilogram/meter^3);
 
@@ -100,7 +94,6 @@ fluid = initSingleFluid('mu' , 1*centi*poise, ...
 % transmissibility for each NNC using the CI's computed earlier. Vector T
 % contains the transmissibility for each face in the combined grid and each
 % NNC.
-
 [Gl,T] = makeNNCextruded(G,Gl,F,fracture,flayers);
 G = Gl; clear Gl
 
@@ -111,7 +104,6 @@ G = Gl; clear Gl
 % are described using a Peaceman model, giving an extra set of equations
 % that need to be assembled, see simpleWellExample.m for more details on
 % the Peaceman well model.
-
 [nx, ny, nz] = deal(G.cartDims(1), G.cartDims(2), G.cartDims(3));
 cellinj = nx*ny*(nz-1)+1:nx:nx*ny*nz;
 cellprod = nx:nx:nx*ny;
@@ -126,11 +118,17 @@ W   = addWell(W, G.Matrix, G.Matrix.rock, cellprod, ...
 % Once the transmissibilities are computed, we can generate the
 % transmissiblity matrix 'A' using the 'two-point flux approximation'
 % scheme and initialize the solution structure.
-
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
 state  = initResSol (G, 0);
 state.wellSol = initWellSol(W, 0);
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true);
+
+%% Solve fine-scale problem
+% The fine-scale pressure solution is computed using the boundary
+% conditions provided and the transmissiblity matrix computed earlier.
+dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
+state_fs = incompTPFA(state, G, T, fluid,  ...
+    'Wells', W, 'MatrixOutput', true, 'use_trans',true);
 
 %% Setup multiscale grids
 % Next, we define a 10-by-10-by-10 matrix coarse grid such that each coarse
@@ -141,17 +139,14 @@ state.wellSol = initWellSol(W, 0);
 % matrix basis functions. Fracture support region is defined based on a
 % topological distance based algorithm. The matrix and fracture coarse
 % grids are plotted in the next section.
-
 G.type{1,1} = 'layered';
 
 % Partition matrix
-
 coarseDims = [10 10 10];
 pm = partitionMatrix(G, 'coarseDims', coarseDims, 'use_metis', false);
 CGm = getRsbGridsMatrix(G, pm, 'fullyCoupled', false, 'Wells', W);
 
 % Partition fracture
-
 nw = fracture.network;
 coarseDimsF = [3 3];
 p  = partitionFracture(G, pm, nw, 'partition_frac'   , true   , ...
@@ -162,8 +157,8 @@ p = processPartition(G,compressPartition(p));
 pf = p(G.Matrix.cells.num+1:end)-max(p(1:G.Matrix.cells.num));
 
 % Coarse Grids
-
 CG = generateCoarseGrid(G, p);
+
 % Add centroids / geometry information on coarse grid
 CG = coarsenGeometry(CG);
 Gf = assembleFracGrid(G);
@@ -171,27 +166,11 @@ CGf = generateCoarseGrid(Gf, pf);
 CGf = coarsenGeometry(CGf);
 
 % Support Regions
-
 [CG,CGf] = storeFractureInteractionRegion(CG, CGf, CGm, ...
     'excludeBoundary' , false , ...
     'removeCenters'   , false , ...
     'fullyCoupled'    , false );
 
-%% Plot coarsegrid
-
-clf; % plotToolbar(G.Matrix,G.Matrix.rock);
-colormap(jet); view(-135,30)
-axis tight equal off
-plotGrid(CG, 'facealpha', 0, 'linewidth', 2);
-plotWell(G,W);
-
-%% Incompressible 1-phase FS
-% The fine scale pressure solution is computed using the boundary
-% conditions provided and the transmissiblity matrix computed earlier.
-
-dispif(mrstVerbose, '\nSolving fine-scale system...\n\n');
-state_fs = incompTPFA(state, G, T, fluid,  ...
-    'Wells', W, 'MatrixOutput', true, 'use_trans',true);
 
 %% Compute basis functions
 % Using the transmissibility matrix 'A' we compute the basis functions for
@@ -199,34 +178,18 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 % basis method. Note that the matrix 'A' does not contain any source terms
 % or boundary conditions. They are added to the coarse linear system when
 % computing the multiscale pressure in the next section.
-
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
 basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
-clf; plotToolbar(G,basis_sb.B); view(-135,30)
+clf; plotToolbar(G,basis_sb.B,'filterzero',true); view(-135,30)
+plotGrid(CG, 'FaceColor', 'none', 'linewidth', 1);
 axis tight; colormap(jet); colorbar;
 title('Basis Functions in the matrix');
 
 %% Compute multiscale solution
-
 state_ms = incompMultiscale(state, CG, T, fluid, basis_sb, 'Wells', W, ...
     'use_trans',true);
 
-%% Solve using MS-ILU and MS-GMRES
-% Compute an iterative multiscale solution using ILU and GMRES
-% preconditioners.
-
-fn = getSmootherFunction('type', 'ilu');
-
-[~,report] = incompMultiscale(state, CG, T, fluid, basis_sb,...
-    'Wells', W, 'use_trans', true, 'tolerance', 1e-8, 'iterations', 100,...
-    'useGMRES', false, 'reconstruct', true, 'getSmoother', fn);
-
-[~,report2] = incompMultiscale(state, CG, T, fluid, basis_sb,...
-    'Wells', W, 'use_trans', true, 'tolerance', 1e-8, 'iterations', 100,...
-    'useGMRES', true, 'reconstruct', true, 'getSmoother', fn);
-
-%% Plot results
-
+ %% Plot results
 figure;
 plotToolbar(G, state_fs.pressure)
 colormap jet; colorbar
@@ -247,11 +210,26 @@ plotToolbar(G, L1)
 colormap jet; colorbar
 view(-135,30)
 axis tight off
-L1_eq = '$$ \frac{| P_i^{fs}-P_i^{f-msrsb} | }{ P_i^{fs}} $$';
+L1_eq = '$$| P_i^{fs}-P_i^{ms} | / P_i^{fs} $$';
 title(L1_eq,'interpreter','latex');
 
-%% Plot convergence
+%% Solve using MS-ILU and MS-GMRES
+% As seen in the plots above, the multiscale method is able to capture the
+% general trend of the solution, but can have large pointwise errors. To
+% improve the approximation, we can compute iterative multiscale solutions
+% using ILU and GMRES preconditioners.
+fn = getSmootherFunction('type', 'ilu');
 
+[~,report] = incompMultiscale(state, CG, T, fluid, basis_sb,...
+    'Wells', W, 'use_trans', true, 'tolerance', 1e-8, 'iterations', 100,...
+    'useGMRES', false, 'reconstruct', true, 'getSmoother', fn);
+
+[~,report2] = incompMultiscale(state, CG, T, fluid, basis_sb,...
+    'Wells', W, 'use_trans', true, 'tolerance', 1e-8, 'iterations', 100,...
+    'useGMRES', true, 'reconstruct', true, 'getSmoother', fn);
+
+
+%% Plot convergence
 figure;
 semilogy(report.resvec, ':+'); hold on;
 semilogy(report2.resvec, 's-');
