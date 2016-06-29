@@ -89,10 +89,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-
     G = Grid;
-
     if mod(numel(varargin), 2) == 1
         initialSelection = varargin{1};
         if ~islogical(initialSelection)
@@ -137,11 +134,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         selectionName = '';
     end
-
     data = readStructField(accessdata(ni), selectionName);
-
-    
-
     % Constants
     if ~isfield(G, 'cartDims')
         G.cartDims = ones(1, G.griddim);
@@ -155,8 +148,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isfield(G.cells, 'indexMap');
         [ijk{:}] = ind2sub(G.cartDims, G.cells.indexMap(1:G.cells.num));
     end
-
-
     % Plotting parameters
     [...
      vecToggle, ...
@@ -316,9 +307,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Destructor
         delete(fig);
     end
-
     set(fig, 'CloseRequestFcn', @closeFcn);
-    
     if opt.startplayback
         playbutton = findobj(fig, 'Tag', 'mrst-datasetselector-play');
         if ~isempty(playbutton)
@@ -605,8 +594,6 @@ function limitLogical(src, event)
             logicalsubset.(f{i}) = 1:Mv(i);
         end
     end
-
-
     si = uicontrol(fi, 'Position', [0,   40, 100, 300], 'String', 1:Mv(1) , 'Style', 'listbox', 'Max', Mv(1), 'Value', logicalsubset.i, 'TooltipString', 'I');
     sj = uicontrol(fi, 'Position', [100, 40, 100, 300], 'String', 1:Mv(2) , 'Style', 'listbox', 'Max', Mv(2), 'Value', logicalsubset.j, 'TooltipString', 'J');
     if G.griddim == 3
@@ -786,8 +773,6 @@ function [d, fun, subset] = getData()
     end
 
     subset = initialSelection;
-
-
     subset = subset & minmax.active;
 
     if ~isnan(slices)
