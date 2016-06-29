@@ -119,11 +119,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         N = 1;
         accessdata = @(x) dataset;
     elseif iscell(dataset)
-%         try
-%             dataset = [dataset{:}];
-%         catch e
-%             error('To visualize cell data, all entries must be of the same type!');
-%         end
+        if all(cellfun(@isnumeric, dataset))
+            % Transform into structs
+            dataset = cellfun(@(x) struct('data', x), dataset, 'UniformOutput', false);
+        end
         accessdata = @(x) dataset{x};
     elseif strcmpi(class(dataset), 'ResultHandler')
         N = dataset.numelData();
@@ -143,7 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     
 
-    %% Constants
+    % Constants
     if ~isfield(G, 'cartDims')
         G.cartDims = ones(1, G.griddim);
     end
@@ -196,7 +195,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  );
              
     [opt, varargin] = merge_options(opt, varargin{:});
-    %%
 
     fig = gcf;
     % Delete previous instances of toolbar in same figure
