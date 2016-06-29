@@ -1,8 +1,26 @@
 classdef FullyImplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
-% Oil/water/Surfactant system
-% This model is a two phase oil/water model, extended with the surfactant
-% component in addition.
-
+%
+%
+% SYNOPSIS:
+%   model = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: Fully implicit model for an oil water system with surfactant. All
+% the equations are solved implicitly. A description of the surfactant model
+% that is implemented can be found in the directory ad-eor/docs .
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock structure
+%   fluid    - Fluid structure
+%   varargin - optional parameter
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: equationsOilWaterSurfactant, ImplicitExplicitOilWaterSurfactantModel
+%
 
     methods
 

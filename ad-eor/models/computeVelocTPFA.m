@@ -1,15 +1,41 @@
 function veloc = computeVelocTPFA(G, intInx)
+%
+%
+% SYNOPSIS:
+%   function veloc = computeVelocTPFA(G, intInx)
+%
+% DESCRIPTION: Setup the operator which computes an approximation of the square
+% of the velocity for each cell given fluxes on the faces. 
+%
+% We use a velocity reconstruction of the type  v_c  = 1/V * sum_{f} (x_f -x_c)u_f
+% where
+%    v_c : Approximated alue of the velocity at the cell center
+%    V   : Cell volume
+%    f   : Face
+%    x_f : Centroid of the face f
+%    x_c : Centroid of the cell
+%    u_f : flux at the face f
+%    
+% Such reconstruction is exact for linear functions and first order accurate,
+% when a mimetic discretization is used or, in the case of TPFA, if the grid is
+% K-orthogonal. Note that it gives very large errors for cells that contain
+% well, as the pressure in such cells is only badly approximated by linear
+% functions.
+%
+%
+% PARAMETERS:
+%   G      - Grid structure
+%   intInx - Logical vector giving the internal faces.
+%
+% RETURNS:
+%   sqVeloc - Function of the form u=sqVeloc(v), which returns cell-valued
+%   square of the velocity for given face-valued fluxes v.
+%
+% EXAMPLE:
+%
+% SEE ALSO: computeSqVelocTPFA
+%
 
-% Compute approximation of velocity for TPFA
-%
-% Note:
-%
-% * The approximation of acceptable when flow is closed to linear. In particular, it is very bad
-% when there is well cells.
-%
-% * We assume that there is no boundary flow.
-%
-% intInx is a logical vector giving the internal faces.
 
     cellNo = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2).';
     dim    = size(G.nodes.coords, 2);

@@ -1,6 +1,41 @@
-function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = ...
-        getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, ...
-        krW, T, gdz)
+function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
+%
+%
+% SYNOPSIS:
+%   function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
+%
+% DESCRIPTION: Given pressure, saturation and polymer concentration and some
+% other input variables, compute the fluxes and other properties, as listed
+% below. Used in the assembly of the blackoil equations with polymer.
+
+%
+% PARAMETERS:
+%   model - Instance of the model
+%   pO    - Pressure in oil phase
+%   sW    - Saturation
+%   c     - Polymer concentration
+%   ads   - Adsorption value
+%   krW   - Water relative permeability
+%   T     - Transmissibilities
+%   gdz   - z-gradient (to be used in computation of gravitational flux)
+%
+% RETURNS:
+%   vW         - Water flux
+%   vP         - Polymer flux
+%   bW         - Water surface volume factor
+%   muWeffMult - Effective viscosity multiplier 
+%   mobW       - Water mobility
+%   mobP       - Polymer mobility
+%   rhoW       - Water density
+%   pW         - Pressure in water phase
+%   upcw       - Water upstream direction
+%   a          - Coefficient appearing in the polymer model 
+%
+% EXAMPLE:
+%
+% SEE ALSO: equationsThreePhaseBlackOilPolymer
+%
+
     fluid = model.fluid;
     s = model.operators;
 

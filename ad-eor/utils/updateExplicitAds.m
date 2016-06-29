@@ -1,6 +1,25 @@
 function state = updateExplicitAds(state, model, varargin)
-% Explicit update of the concentration for the adsorption term
-% We update the surfactant concentration ensuring mass conservation
+%
+%
+% SYNOPSIS:
+%   function state = updateExplicitAds(state, model, varargin)
+%
+% DESCRIPTION: Update of the adsorption which ensures total mass
+% conservation. Used with an explicit transport solver.
+%
+% PARAMETERS:
+%   state    - State at current time-step.
+%   model    - Model instance
+%   varargin - Optional arguments
+%
+% RETURNS:
+%   state - State at current time-step with updated adsorption
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 
     opt = struct('desorptionThreshold', -inf);
     opt = merge_options(opt, varargin{:});
