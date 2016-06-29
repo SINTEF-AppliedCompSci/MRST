@@ -75,13 +75,17 @@ schedule = simpleSchedule(repmat(dT,1,25), 'bc', bc);
 [~,sstates] = simulateScheduleAD(state0, model, schedule);
 
 close all
-plotToolbar(G, sstates), caxis([0 1]); view(10,10)
+plotToolbar(G, sstates, 'field', 's:1','lockCaxis',true), 
+caxis([0 1]), view(10,10)
 colorbar
 
 %% Repeat simulation with visualization
 % The general solver has a hook, that enables you to visualize the progress
 % of the simulation (and stop it and continue running it in 'debug' mode).
+close all    
 fn = getPlotAfterStep(state0, model, schedule, ...
-                      'plotWell', false, 'plotReservoir', true);
+    'plotWell', false, 'plotReservoir', true, 'field', 's:1', ...
+    'lockCaxis',true, 'plot1d', true);
+
 [~,sstates,report] = ...
    simulateScheduleAD(state0, model, schedule,'afterStepFn', fn);
