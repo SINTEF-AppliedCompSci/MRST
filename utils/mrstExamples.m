@@ -107,7 +107,7 @@ function [subdir, mnames, mpaths] = getSub(path)
     % files.
     filter = @(x) ~strcmpi(x.name(1), '.') && ...
                   ~strcmpi(x.name, 'contents.m') && ...
-                  numel(x.name) > 2;
+                  (numel(x.name) > 2 || x.isdir);
     ok = arrayfun(filter, cand);
     cand = cand(ok);
     % Get subdirectories
