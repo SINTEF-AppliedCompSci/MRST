@@ -12,6 +12,15 @@
 mrstModule add ad-blackoil ad-core ad-props mrst-gui
 
 %% Set up model
+% We start by generating a model object that describes the reservoir. To
+% construct this model, we need three more fundamental structures: 'G'
+% represents the grid with reservoir geometry, 'rock' holds the
+% petrophysical properties, and 'fluid' gives the fluid properties. In
+% addition to the model object, we need a 'state' struct that defines the
+% initial state in the reservoir (pressure and fluid saturations and
+% compositions).
+
+% Construct 3D grid with 50 cells in the x-direction
 G = cartGrid([50, 1, 1], [1000, 10, 10]*meter);
 G = computeGeometry(G);
 
