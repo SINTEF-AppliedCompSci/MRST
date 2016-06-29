@@ -131,6 +131,7 @@ axis off
 % -------------------------------------------------------------------------
 % Plot the well-allocation factors for fine/coarse scale models
 for n=1:numel(opt.plotOnly)
+   set(0, 'CurrentFigure', current_fig);
    i = rem(n-1,nx)+1;
    j=ny-fix((n-1)/nx);
    axes('position', ...
