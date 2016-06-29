@@ -58,7 +58,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('plotWell', true, 'plotReservoir', true);
-    opt = merge_options(opt, varargin{:});
+    [opt, extra] = merge_options(opt, varargin{:});
     
     G = model.G;
     
@@ -82,7 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if opt.plotReservoir
         hdata = figure;
-        [~, injData] = plotToolbar(G, {state0; state0});
+        [~, injData] = plotToolbar(G, {state0; state0}, extra{:});
         axis tight
     else
         [hdata, injData] = deal(nan);
@@ -126,7 +126,7 @@ function T = getTimesteps(reports)
         for j = 1:numel(reports{i}.StepReports)
             r = reports{i}.StepReports{j};
             if r.Converged
-                T = [T; r.Timestep];
+                T = [T; r.Timestep]; %#ok<AGROW>
             end
         end
     end
