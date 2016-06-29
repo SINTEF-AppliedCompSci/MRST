@@ -28,8 +28,8 @@ G = computeGeometry(G);
 rock = struct('perm', darcy*ones(G.cells.num, 1), ...
               'poro', .3*ones(G.cells.num, 1));
 
-% Default fluid with unit values
-fluid = initSimpleADIFluid('n', [2 2]);
+% Default oil-water fluid with unit values
+fluid = initSimpleADIFluid('phases', 'WO', 'n', [2 2]);
 
 % Set up model and initial state.
 model = TwoPhaseOilWaterModel(G, rock, fluid);
@@ -58,11 +58,12 @@ for i = 1:n
 end
 
 %% Plot the result
-% To animate the solution: switch variable to 'states.s:1', lock the color
-% axis (click icon showing colorbar with a lock), and push 'Play'.
+% We set up a plot using plotToolbar from the mrst-gui module. Since the
+% problem is essentially one dimensional, we plot the water saturation
+% (first column of the "s" field in state) as a 1D plot.
 close all
-plotToolbar(G, states), caxis([0 1]); view(10,10)
-colorbar
+plotToolbar(G, states, 'field', 's:1', 'plot1d', true, ...
+                       'lockCaxis', true, 'startplayback', true);
 
 %% Repeat simulation with general solver
 % To use the general solver, we first need to set up a schedule that
