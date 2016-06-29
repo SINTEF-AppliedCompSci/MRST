@@ -163,7 +163,7 @@ basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
 clf; plotToolbar(G,basis_sb.B,'filterzero',true);
 prm = log10(G.rock.perm); mx = max(prm); mn = min(prm);
 G.nodes.z = 1e-3*ones(G.nodes.num,1);
-plotCellData(Gp,(prm-mn)./(mx-mn),'EdgeColor','none','FaceAlpha',.4);
+plotCellData(G,(prm-mn)./(mx-mn),'EdgeColor','none','FaceAlpha',.4);
 G.nodes = rmfield(G.nodes,'z');
 plotGrid(CG,'FaceColor','none');
 axis tight; colorbar;
