@@ -1,4 +1,62 @@
 function fn = getPlotAfterStep(state0, model, schedule, varargin)
+% Get a function that allows for dynamic plotting using simulateScheduleAD
+%
+% SYNOPSIS:
+% fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true,...
+%                                                'plotReservoir', false);
+%
+% DESCRIPTION:
+% The simulateScheduleAD function has a optional input argument
+% "afterStepFn" that allows for dynamic plotting after each step in the
+% simulation, for instance to show how the well curves progress during the
+% simulation, or to print out extra information to the command window. This
+% function is an implementation of one such function, that can add both a
+% panel showing the simulation progress, as well as interactive plots for
+% well and reservoir quantities.
+%
+%
+% REQUIRED PARAMETERS:
+%  state0, model, schedule - The input arguments to simulateScheduleAD that
+%                            will be used.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%
+%  'plotWell'      - Launch interactive plotting for well quantities using
+%                    "plotWellSols"
+%
+%  'plotReservoir' - Add an interactive plotting window for reservoir
+%                    quantities during the simulation. Note that, due to
+%                    limitations in the implementation, this window will
+%                    only be truly interactive after the simulation
+%                    finishes. You can, however, set the options (field for
+%                    plotting, locked color axis and so on) before
+%                    initiating the simulation itself.
+%
+% RETURNS:
+%  fn -  Function handle suitable for the "afterStepFn" input in
+%        simulateScheduleAD.
+%
+% SEE ALSO:
+%   simulateScheduleAD, howtoAddPlotHook (example)
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     opt = struct('plotWell', true, 'plotReservoir', true);
     opt = merge_options(opt, varargin{:});
     
