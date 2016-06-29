@@ -56,15 +56,3 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
     end
 end
 
-
-function dts = splitTime(dt, mini_dt)
-    if mini_dt >= dt
-        dts = dt;
-        return
-    else
-        n = floor(dt/mini_dt);
-        dts = mini_dt*ones(n, 1);
-        dts = [dts; dt - n*mini_dt];
-        dts = dts(dts>0);
-    end
-end
