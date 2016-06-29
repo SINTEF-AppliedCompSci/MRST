@@ -1,4 +1,35 @@
 function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, varargin)
+%
+%
+% SYNOPSIS:
+%   function Nc = computeCapillaryNumber(p, c, pBH, W, fluid, G, operators, varargin)
+%
+% DESCRIPTION: Computes the capillary number which is equal to the ratio between
+% absolute total velocity and the surface tension. See documentation in the
+% directory ad-eor/docs .
+%
+% PARAMETERS:
+%   p         - pressure
+%   c         - concentration
+%   pBH       - bottom hole pressure
+%   W         - Well structure
+%   fluid     - Fluid structure
+%   G         - Grid
+%   operators - discrete differential operator (Grad, T (transmissibilies), ...)
+%   varargin  - optional arguments
+%            
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   velocCompMethod   - if 'linear' (default), uses computeVelocTPFA 
+%                       if  'square', uses computeSqVelocTPFA
+%
+% RETURNS:
+%   Nc - Capillary number
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 
     opt = struct('velocCompMethod', 'linear');
     opt = merge_options(opt, varargin{:});

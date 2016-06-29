@@ -16,8 +16,8 @@ catch
 end
 
 
-% the data required for the example
-% if the data does not exist locally, download it automatically
+% The data required for the example
+% If the data does not exist locally, download it automatically
 fname = { '2D_THREEPHASE_POLY_HETER.DATA', 'POLY.inc' };
 files = fullfile(getDatasetPath('BlackoilPolymer2D', 'download', true), fname);
 
@@ -31,7 +31,7 @@ if ~all(e),
     error('Dataset:Incomplete', msg);
 end
 
-% parsing the data file
+% Parsing the data file
 deck = readEclipseDeck(files{1});
 deck = convertDeckUnits(deck);
 
@@ -59,7 +59,7 @@ schedule = convertDeckScheduleToMRST(modelBOPolymer, deck);
 %% Set the non-linear solver
 modelBOPolymer.useCNVConvergence = true;
 
-% choose the linear solver for pressure equation
+% Choose the linear solver for pressure equation
 if ~isempty(mrstPath('agmg'))
     mrstModule add agmg
     pSolver = AGMGSolverAD();
@@ -71,7 +71,7 @@ nonlinearsolver = getNonLinearSolver(modelBOPolymer, 'DynamicTimesteps', false, 
 nonlinearsolver.useRelaxation = true;
 
 
-%% plotting the initial saturations
+%% Plotting the initial saturations
 h=figure(1);
 set(h, 'Position', [100, 100, 900, 600]);
 clf;

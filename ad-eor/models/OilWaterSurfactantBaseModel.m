@@ -1,4 +1,26 @@
 classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
+%
+%
+% SYNOPSIS:
+%   model = OilWaterSurfactantBaseModel(G, rock, fluid, varargin)
+%
+% DESCRIPTION: Base class for model with oil, water and surfactant. Not
+% instanciated directly but used as a parent class.
+%
+% PARAMETERS:
+%   G        - Grid
+%   rock     - Rock structure
+%   fluid    - Fluid structure
+%   varargin - optional parameter
+%
+% RETURNS:
+%   class instance
+%
+% EXAMPLE:
+%
+% SEE ALSO: ImplicitExplicitOilWaterSurfactantModel, FullyImplicitOilWaterSurfactantModel
+%
+
 
     properties
         surfactant
@@ -25,7 +47,7 @@ classdef OilWaterSurfactantBaseModel < TwoPhaseOilWaterModel
         function varargout = evaluateRelPerm(model, sat, varargin)
             error('function evaluateRelPerm is not implemented for surfactant model')
         end
-        
+
         function state = validateState(model, state)
             state = validateState@TwoPhaseOilWaterModel(model, state);
             nc = model.G.cells.num;
