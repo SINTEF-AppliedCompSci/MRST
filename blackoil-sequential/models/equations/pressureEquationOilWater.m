@@ -131,11 +131,11 @@ if ~isempty(W)
         rhos = [f.rhoWS, f.rhoOS];
         bw   = {bW(wc), bO(wc)};
         mw   = {mobW(wc), mobO(wc)};
-        s = {sW(wc), 1 - sW(wc)};
+        sat = {sW(wc), 1 - sW(wc)};
 
         wm = model.wellmodel;
         [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
+                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, sat, {},...
                                              'nonlinearIteration', opt.iteration);
         eqs(2:3) = weqs;
         eqs{4} = ctrleqs;
@@ -152,7 +152,7 @@ if ~isempty(W)
     oil(wc) = oil(wc) - cqs{2};
 end
 
-eqs{1} = oil./bO + wat./bW;
+eqs{1} = (dt./s.pv).*(oil./bO + wat./bW);
 names{1} = 'pressure';
 types{1} = 'cell';
 

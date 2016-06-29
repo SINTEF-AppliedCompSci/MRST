@@ -7,7 +7,6 @@ classdef PressureOilWaterModel < TwoPhaseOilWaterModel
     
     methods
         function model = PressureOilWaterModel(G, rock, fluid, varargin)
-            
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);
             
             model.incTolPressure = 1e-3;

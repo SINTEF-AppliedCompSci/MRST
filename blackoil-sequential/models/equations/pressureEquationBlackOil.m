@@ -3,7 +3,6 @@ function [problem, state] = pressureEquationBlackOil(state0, state, model, dt, d
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
-             'redistributeRS', false, ...
              'staticWells',  false, ...
              'propsPressure', [], ...
              'iteration', -1);
@@ -11,7 +10,6 @@ opt = struct('Verbose', mrstVerbose, ...
 opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
-% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
@@ -75,11 +73,6 @@ end
 sO  = 1- sW  - sG;
 sO0 = 1- sW0 - sG0;
 
-if disgas && opt.redistributeRS
-    [sG, rs] = redistributeRS(f, p_prop, rs, sG, sO, ~st{1});
-    sO  = 1 - sW  - sG;
-    st  = getCellStatusVO(model, state,  sO,   sW,  sG);
-end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
 
 % FLIUD PROPERTIES ---------------------------------------------------
@@ -217,10 +210,10 @@ if ~isempty(W)
 
         
         mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        s = {sW(wc), sO(wc), sG(wc)};
+        sat = {sW(wc), sO(wc), sG(wc)};
 
         [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
+            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
             'maxComponents', rSatw, ...
             'nonlinearIteration', opt.iteration);
         eqs(2:4) = weqs;
@@ -252,38 +245,10 @@ a_w = 1./bW;
 a_o = cfac.*(1./bO - disgas*rs./bG);
 a_g = cfac.*(1./bG - vapoil*rv./bO);
 
-eqs{1} = oil.*a_o + wat.*a_w + gas.*a_g;
+eqs{1} = (dt./s.pv).*(oil.*a_o + wat.*a_w + gas.*a_g);
 
 names{1} = 'pressure';
 types{1} = 'cell';
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-end
-
-
-function [sG, rs] = redistributeRS(f, p, rs, sG, sO, isSat)
-    rsSat = f.rsSat(p);
-    % isSat = rs >= rsSat;
-
-    bG = f.bG(p);
-    bO = f.bO(p, rs, isSat);
-
-    assert(all(bO>0))
-
-    % Find total Rs if everything was dissolved, i.e. sort of the mass
-    % of gas for fixed compressibility
-    dRs = sG.*bG./(max(double(sO), 0.001).*bO);
-    rs = rs + dRs;
-    rs(~isfinite(double(rs))) = 0;
-    rs(double(rs)<0) = 0;
-
-    sG = 0*sG;
-
-    % Work out the overflow and put it into the gas phase
-    above = rs>rsSat;
-    overflow = rs(above) - rsSat(above);
-
-    rs(above) = rsSat(above);
-
-    sG(above) = overflow.*sO(above).*bO(above)./bG(above);
 end

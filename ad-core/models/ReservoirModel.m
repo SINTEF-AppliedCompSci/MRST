@@ -274,7 +274,7 @@ methods
                 index = model.satVarIndex('sg');
                 fn = 's';
             case {'s', 'sat', 'saturation'}
-                index = 1:numel(model.saturationVarNames);
+                index = ':';
                 fn = 's';
             case {'pressure', 'p'}
                 index = 1;
