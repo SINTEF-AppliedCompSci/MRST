@@ -6,9 +6,6 @@
 % polymer, then water flooding period with polymer, followed by a pure
 % water flooding phase without polymer.
 
-clear;
-close all;
-
 try
     require ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
 catch
