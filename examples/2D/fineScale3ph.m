@@ -12,7 +12,6 @@ mrstModule add mrst-gui;        % plotting routines
 mrstModule add ad-props ad-core % AD framework
 mrstModule add ad-blackoil      % Three phase simulator
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
-checkMATLABversionHFM;
 
 %% Grid and fracture lines
 % Construct a Cartesian grid comprising 50-by-20 cells, where each cell has

@@ -10,7 +10,6 @@
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
-checkMATLABversionHFM;
 
 %% Grid and fracture lines
 % Construct a Cartesian grid comprising 50-by-20 cells, where each cell has

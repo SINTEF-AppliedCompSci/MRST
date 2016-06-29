@@ -9,7 +9,6 @@ mrstModule add ad-core;         % NNC support for coarse grids
 mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
-checkMATLABversionHFM;
 
 %% Grid and fracture lines
 % We start by constructing a 2D Cartesian grid comprising 50-by-50 cells,

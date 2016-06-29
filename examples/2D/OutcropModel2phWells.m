@@ -20,7 +20,6 @@ mrstModule add new-multiscale;  % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
 pth = mrstPath('hfm');          % path to the module
-checkMATLABversionHFM;          % do you have sufficiently new MATLAB?
 
 %% Grid and fracture lines
 celldim = [100 100];
