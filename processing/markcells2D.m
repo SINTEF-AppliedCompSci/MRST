@@ -34,10 +34,14 @@ for j = 1:numel(frac.lines)
     frac.lines(j).cells = [];
 end
 xy = struct;
+csize = double(G.griddim<3)*sqrt(min(G.cells.volumes)) + ...
+        double(G.griddim>3)*(min(G.cells.volumes))^(1/3);
 for j = 1:numel(frac.lines)
     l1 = frac.lines(j).endp;
     xe = l1(1:2:3); ye = l1(2:2:4);
-    t = transpose(0:0.001:1);
+    r = csize/(sqrt(diff(xe)^2 + diff(ye)^2))/10;
+    t = transpose(0:r:1);
+    t = [t(1:end-1);unique([t(end);1])];
     xe = xe(1)*t+xe(2)*(1-t);
     ye = ye(1)*t+ye(2)*(1-t);
     xy(j).xe = xe;

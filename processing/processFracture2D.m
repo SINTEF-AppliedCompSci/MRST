@@ -67,9 +67,8 @@ opt = merge_options(opt, varargin{:});
 dispif(opt.verbose, 'Extracting independent fracture networks...\n\n');
 fracture = getIndepNetwork(fl);
 
-% Mark cells
+% Mark cells containing fractures
 dispif(opt.verbose, 'Marking cells containing fractures...\n\n');
-[G,fracture] = markcells2D(G,fracture); % Designed for 2D as of now
-
+[G,fracture] = markcells2D(G,fracture);
 
 return

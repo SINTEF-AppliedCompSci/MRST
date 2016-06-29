@@ -1,4 +1,4 @@
-function plotCI(G,fracture)
+function varargout = plotCI(G,fracture)
 % plotCI plots conductivity index as matrix cell data for all fracture
 % lines 
 
@@ -33,10 +33,9 @@ for i = 1:numel(fracture.lines)
     end
 end
 figure
-title('Fracture-matrix conductivity index per Line');
-plotGrid(G,'FaceColor','none','EdgeAlpha',0.1); hold on
+h = plotGrid(G,'FaceColor','none','EdgeAlpha',0.1); hold on
 plotToolbar(G,CI,'EdgeAlpha',0.1);
-c = colormap(jet);caxis([0 1]); c(1,:) = [1 1 1]; colormap(c); colorbar 
+colormap([1 1 1;jet(25)]); colorbar 
 ax = gca;
 for i = 1:numel(fracture.lines)
     x = [fracture.lines(linenum(i)).endp(1);fracture.lines(linenum(i)).endp(3)];
@@ -44,4 +43,7 @@ for i = 1:numel(fracture.lines)
     line(x,y,'Color','k','Parent',ax,'LineWidth',1.5);
 end
 hold off
+title('Fracture-matrix conductivity index per Line');
+axis equal tight
+if nargout > 0, varargout{1} = h; end
 return
