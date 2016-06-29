@@ -72,7 +72,7 @@ plotCellData(G, state.s(:, 1))
 axis equal tight off
 view(50, 20)
 title('Initial water saturation')
-colorbar
+colorbar, drawnow
 
 %% Set up boundary conditions and timesteps
 % Finally, we add a simple boundary condition of 100 bar pressure at the
@@ -118,16 +118,17 @@ schedule = simpleSchedule(dt, 'bc', bc);
 %% Plot the segregation process
 % We finish by plotting the water saturation at each timestep, showing how
 % the lighter fluid migrates upward and the heavier fluid downward.
-h = gcf();
+colorbar off; title('T=0');
+set(gca,'Position',[.13 .11 .335 .815]); subplot(1,2,2);
 for i = 1:numel(states)
-    figure(h); clf;
+    %figure(h); clf;
     
     % Neat title
-    str = ['after ', formatTimeRange(sum(dt(1:i))), ' (Step #', num2str(i), ')'];
+    str = ['t=', formatTimeRange(sum(dt(1:i)))];
     
     % Plotting
     plotCellData(G, states{i}.s(:, 1))
-    title(['Water saturation ', str])
+    title(str)
     
     % Make axis equal to show column structure
     axis equal tight off
