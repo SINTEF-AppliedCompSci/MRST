@@ -149,8 +149,10 @@ view(50, 50), axis tight
 % the simulation will consume some time, we launch a progress report and
 % a plotting tool for the well solutions (well rates and bottom-hole
 % pressures)
-[wellSols, states, report] = simulateScheduleAD(state0, model, schedule, ...
-   'afterStepFn',getPlotAfterStep(state0, model, schedule,'plotReservoir', false));
+fn = getPlotAfterStep(state0, model, schedule,'view',[50 50], ...
+                     'field','s:1','wells',W);
+[wellSols, states, report] = ...
+   simulateScheduleAD(state0, model, schedule,'afterStepFn',fn);
 
 
 %% Plot reservoir states
