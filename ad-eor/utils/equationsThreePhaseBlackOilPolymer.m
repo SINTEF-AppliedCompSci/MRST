@@ -156,7 +156,7 @@ bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
 [vG, bG, mobG, rhoG, pG, upcg] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
-if model.usingShear
+if model.usingShear || model.usingShearLog || model.usingShearLogshrate
     % calculate well perforation rates :
     if ~isempty(W)
         wm = WellModel();
@@ -236,8 +236,39 @@ if model.usingShear
         Vw = Vw.val;
     end
 
-    shearMultf = computeShearMult(model.fluid, abs(Vw), muWMultf);
-    shearMultW = computeShearMult(model.fluid, abs(VwW), muWMultW);
+
+    if model.usingShearLogshrate
+        % calculating the shear rate based on the velocity
+        if ~opt.resOnly
+            krwF = s.faceUpstr(upcw, krW.val);
+            swF = s.faceUpstr(upcw, sW.val);
+        end
+
+        if opt.resOnly
+            krwF = s.faceUpstr(upcw, krW);
+            swF = s.faceUpstr(upcw, sW);
+        end
+
+        permF = s.T ./faceA;
+        temp = permF.*swF.*krwF;
+
+        index = find(abs(Vw) > 0.);
+        Vw(index) = 4.8 * Vw(index).*sqrt(poroFace(index) ./temp(index));
+
+        % calculating the shear rate for the wells
+        rW = vertcat(W.r);
+        VwW = 4.8 * VwW ./(2*rW);
+    end
+
+    if model.usingShear
+        shearMultf = computeShearMult(model.fluid, abs(Vw), muWMultf);
+        shearMultW = computeShearMult(model.fluid, abs(VwW), muWMultW);
+    end
+
+    if model.usingShearLog || model.usingShearLogshrate
+        shearMultf = computeShearMultLog(model.fluid, abs(Vw), muWMultf);
+        shearMultW = computeShearMultLog(model.fluid, abs(VwW), muWMultW);
+    end
 
     vW = vW ./ shearMultf;
     vP = vP ./ shearMultf;
@@ -334,10 +365,10 @@ if ~isempty(W)
 
         [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
 
-        if ~model.usingShear
+        if ~model.usingShear && ~model.usingShearLog && ~model.usingShearLogshrate
             mw    = {mobW(wc), mobO(wc), mobG(wc)};
         end
-        if model.usingShear
+        if model.usingShear || model.usingShearLog || model.usingShearLogshrate
             mw    = {mobW(wc)./shearMultW, mobO(wc), mobG(wc)};
         end
 
@@ -531,4 +562,115 @@ function v = computeShearMult(fluid, Vw, muWMultf)
         v = (1 + (muWMultf - 1.).* M) ./ muWMultf;
     end
 
+end
+
+%%
+function zSh = computeShearMultLog(fluid, vW, muWMultf)
+    % The current version handles all the values one by one
+    % It needs to be improved for better performance.
+
+    refConcentration = fluid.plyshlog.refcondition(1);
+    refViscMult = fluid.muWMult(refConcentration);
+
+    plyshlogTable = fluid.plyshlog.data{1};
+
+    % the water velocity/shear rate in the PLYSHLOG table
+    waterVel = plyshlogTable(:,1);
+    % the viscosity factors in the PLYSHLOG table
+    refM = plyshlogTable(:,2);
+
+    % converting the table using the reference condition
+    refM = (refViscMult * refM -1)/(refViscMult-1);
+
+    % the minimum velocity/shear rate value specified in the table
+    % it should be the first entry value
+    minWaterVel = min(waterVel);
+
+    % only calcuate shear factors when polymer exists and velocity/shear rate
+    % is big enough
+    iShear = find((vW > minWaterVel) & (muWMultf > 1.));
+
+    P = muWMultf(iShear);
+
+    % convert the velocity/shear rate to their logarithms
+    V = log(waterVel);
+    vW0 = log(vW(iShear));
+
+    % function to decide the relative location of a point to a line
+    f = @(x,y, x0) x+y -x0;
+
+    % the shear factors remain to be calculated
+    z = ones(numel(iShear),1);
+
+    for i = 1:numel(iShear)
+
+       % for each value from P, we need to generate a table to calculate
+       % the shear factor
+       Z = (1 + (P(i) - 1) * refM)/ P(i);
+       % covert the shear factors to their logarithms
+       Z = log(Z);
+
+       % to flag the relative location of the line and line segments
+       % to help to determine the intersection point faster
+       sign = f(V, Z, vW0(i));
+
+       % to check if there is sign change
+       temp = sign(1:end-1).*sign(2:end);
+
+       % to find the index that sign changed
+       j = find(temp <= 0);
+
+       % make sure one and only one intersection point is found.
+       assert(numel(j) <= 1);
+
+       if (numel(j) == 1)
+           [~,z(i)] = findIntersection([V(j), Z(j); V(j+1), Z(j+1)], [0, vW0(i); vW0(i), 0]);
+       end
+
+       if (numel(j) == 0)
+           % out of the table range
+           % since we handled the small value already, this must be a big
+           % value.
+           assert(vW0(i) - Z(end) > V(end));
+           z(i) = Z(end);
+       end
+
+    end
+
+    z = exp(z);
+
+    % the shear factors
+    zSh = ones(numel(vW), 1);
+    zSh(iShear) = z;
+
+end
+
+
+%%
+% finding the intersection of one line segment l1 and one straight line l2
+% l1 is defined with the beginning and ending points.
+% l2 is defined with two points along the line.
+function [x, y] = findIntersection(l1, l2)
+
+    assert(all(size(l1) == [2 2]));
+    assert(all(size(l2) == [2 2]));
+
+    x1 = l1(1,1);
+    y1 = l1(1,2);
+    x2 = l1(2,1);
+    y2 = l1(2,2);
+
+    x3 = l2(1,1);
+    y3 = l2(1,2);
+    x4 = l2(2,1);
+    y4 = l2(2,2);
+
+    d = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4);
+
+    assert(d ~= 0);
+
+    x = ((x3-x4)*(x1*y2-y1*x2)-(x1-x2)*(x3*y4-y3*x4))/d;
+    y = ((y3-y4)*(x1*y2-y1*x2)-(y1-y2)*(x3*y4-y3*x4))/d;
+
+    assert(x >= min(x1,x2) && x <= max(x1,x2));
 end
