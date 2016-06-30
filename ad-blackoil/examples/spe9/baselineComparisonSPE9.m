@@ -1,11 +1,35 @@
 %% Ninth Comparative Solution Project
-% This example runs the model from Killough, J. E. 1995. Ninth SPE
-% comparative solution project: A reexamination of black-oil simulation. In
-% SPE Reservoir Simulation Symposium,  12-15 February 1995, San Antonio,
-% Texas. SPE 29110-MS, doi: 10.2118/29110-MS
+% This example runs the model from the SPE9 benchmark, which was posed
+% twenty years ago to compare contemporary black-oil simulators (Killough,
+% 1995). The reservoir is described by a 24 × 25 × 15 grid, having a 10
+% degree dipping-angle in the x-direction. By current standards, the model
+% is quite small, but contains a few features that will still pose
+% challenges for black-oil simulators. The 25 producers initially operate
+% at a maximum rate of 1500 STBO/D, which is lowered to 100 STBO/D from day
+% 300 to 360, and the raised up again to its initial value until the end of
+% simulation at 900 days. The single water injector is set to a maximum
+% rate of 5000 STBW/D with a maximum bottom-hole pressure of 4000 psi at
+% reference depth. This setup will cause free gas to form after ~100 days
+% when the reservoir pressure is reduced below the original saturation
+% pressure. The free gas migrates to the top of the reservoir. During the
+% simulation most of the wells convert from rate control to pressure
+% control. A second problem is a discontinuity in the water-oil capillary
+% pressure curve, which may cause difficulties in the Newton solver when
+% saturations are changing significantly.
+%
+% In this comprehensive example, we will discuss the various parameters
+% that enter the model and show how to set up state-of-the-art simulation
+% using a CPR preconditioner with algebraic multigrid solver.
+%
+%   Killough, J. E. 1995. Ninth SPE comparative solution project: A
+%   reexamination of black-oil simulation. In SPE Reservoir Simulation
+%   Symposium,  12-15 February 1995, San Antonio, Texas. SPE 29110-MS, doi:
+%   10.2118/29110-MS
+
+mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat
 
 %% Set up model
-% This <ninth SPE comparative solution project> consists of a water
+% This <Ninth SPE Comparative Solution Project> consists of a water
 % injection problem in a highly heterogenous reservoir. There is one
 % injector and 25 producers. The problem is set up to be solved using a
 % black-oil model. The data set we provide is a modified version of input
@@ -16,9 +40,7 @@
 %
 % We have put most of the boilerplate setup into the setupSPE9 function.
 
-mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat
 [G, rock, fluid, deck, state0] = setupSPE9();
-
 
 % Determine the model automatically from the deck. It should be a
 % three-phase black oil model with gas dissoluton.
@@ -35,10 +57,10 @@ model %#ok, intentional display
 schedule = convertDeckScheduleToMRST(model, deck);
 
 %% Set up linear solver
-% We proceed to setup a CPR-type
-% solver, using the AGMG linear solver as the multigrid preconditioner. The
-% CPR preconditioner attempts to decouple the fully implicit equation set
-% into a pressure component and a transport component.
+% We proceed to setup a CPR-type solver, using the AGMG linear solver as
+% the multigrid preconditioner. The CPR preconditioner attempts to decouple
+% the fully implicit equation set into a pressure component and a transport
+% component.
 %
 % The pressure is mathematically elliptic/parabolic in nature, and
 % multigrid is well suited for solving these highly coupled, challenging
@@ -60,27 +82,23 @@ end
 linsolve = CPRSolverAD('ellipticSolver', pressureSolver);
 
 %% Plot the rock permeability
-% The SPE9 data set has a anisotropic, inhomogenous permeability field. The
-% vertical permeability is 1/10th of the horizontal values. We plot the
+% The SPE9 data set has an anisotropic, inhomogenous permeability field.
+% The vertical permeability is 1/10th of the horizontal values. We plot the
 % permeability using a log10 transform to better see the contrast.
 v = [15, 30];
-G = model.G;
-rock = model.rock;
+[G, rock] = deal(model.G, model.rock);
 
-clf;
+clf
 plotCellData(G, log10(rock.perm(:, 1)))
-logColorbar();
-axis tight
-view(v)
+logColorbar(); axis tight, view(v)
 title('SPE9 Horizontal permeability');
 
 %% Plot the grid porosity
-clf;
+cla
 plotCellData(G, rock.poro)
-colorbar();
-axis tight
-view(v)
+colorbar()
 title('SPE9 Porosity');
+
 %% Plot a single vertical set of cells
 % While the grid is structured, the grid has varying cell size along the
 % vertical axis. To show this in detail, we plot the porosity in a single
@@ -88,12 +106,11 @@ title('SPE9 Porosity');
 % subset corresponding to the first column (upper left corner of the grid).
 %
 % By using axis equal we see the actual aspect ratio of the cells.
-clf;
+clf
 [ii, jj] = gridLogicalIndices(G);
 plotCellData(G, rock.poro, ii == 1 & jj == 1)
-colorbar
-axis equal tight
-view(v);
+colorbar, axis equal tight, view(v)
+
 %% Plot initial saturation of oil and water
 % Initially, the reservoir does not contain free gas. We plot the initial
 % saturations using the RGB plotting feature, where a three column matrix
@@ -102,24 +119,23 @@ view(v);
 % in the order WOG we need to permute the column index slightly to get red
 % oil, blue water and green gas.
 s = state0.s(:, [2, 3, 1]);
-clf;
+clf
 plotCellData(G, s)
-axis tight
-view(v)
+axis tight; view(v)
 
 %% Examine gas dissolved in oil phase
 % Even though there is no free gas initially, there is significant amounts
 % of gas dissolved in the oil phase. The dissolved gas will bubble into
 % free gas when the pressure drops below the bubble point pressure. For a
-% given pressure there is a fixed amount of gas which can be dissolved in
+% given pressure there is a fixed amount of gas that can be dissolved in
 % the black-oil instantanous dissolution model. To illustrate how saturated
 % the initial conditions are, we plot the function
 %
 % $$ g(p) = \frac{R_s}{R_s^{sat}(p)}  $$
 %
 % I.e. how close the oil phase is to being completely saturated for the
-% current pressure. A value near 1 means that the liquid is close to
-% saturated and any values above 1 will immediately lead to free gas
+% current pressure. A value near one means that the liquid is close to
+% saturated and any values above one will immediately lead to free gas
 % appearing in the simulation model.
 %
 % As we can see from the figure, free gas will appear very quickly should
@@ -127,38 +143,34 @@ view(v)
 Rs_sat = model.fluid.rsSat(state0.pressure);
 Rs = state0.rs;
 
-clf;
+clf
 plotCellData(G, Rs./Rs_sat)
-axis tight
-colorbar
-view(v)
+axis tight; colorbar, view(v)
 title('Fraction of maximum gas saturation in oil phase - g(p)');
+
 %% Plot the wells
-% Since there is a very large amount of wells, we plot the wells without
-% any labels and simply color the injector in red and the producers in
-% blue.
+% Since there is a large number of wells, we plot the wells without
+% any labels and simply color the injector in blue and the producers in
+% red.
 W = schedule.control(1).W;
 sgn = [W.sign];
-clf;
+clf
 plotGrid(G, 'FaceColor', 'none')
-plotWell(G, W(sgn>0), 'fontsize', 0) 
-plotWell(G, W(sgn<0), 'fontsize', 0, 'color', 'b') 
+plotWell(G, W(sgn>0), 'fontsize', 0, 'color', 'b') 
+plotWell(G, W(sgn<0), 'fontsize', 0, 'color', 'r') 
+axis tight; view(v)
 
-axis tight
-view(v)
 %% Examine the schedule
 % The simulation schedule consists of three control periods. All 26 wells
-% are present during the entire simulation, but their prescribed rates
-% will change.
-%
-% The injector is injecting a constant water rate, while the producers all
-% produce a constant oil rate, letting bottom hole pressures and gas/water
-% production vary.
-%
-% Since all producers have the same controls, we can examine PROD2 in
-% detail. We plot the controls, showing that the well rate drops sharply
-% midway during the simulation
+% are present during the entire simulation, but their prescribed rates will
+% change. The injector is injecting a constant water rate, while the
+% producers all produce a constant oil rate, letting bottom hole pressures
+% and gas/water production vary. Since all producers have the same
+% controls, we can examine PROD2 in detail. We plot the controls, showing
+% that the well rate drops sharply midway during the simulation
+
 wno = find(strcmp({schedule.control(1).W.name}, 'PROD2'));
+
 % Extract controls for all timesteps
 P = arrayfun(@(ctrl) schedule.control(ctrl).W(wno).val, schedule.step.control);
 T = cumsum(schedule.step.val);
@@ -166,24 +178,27 @@ stairs(T/year, P, '.-k')
 xlabel('Time (years)')
 ylabel('Oil rate (m^3/s)')
 title('Controls for PROD2')
+
 %% Examine well limits
 % Note that the well controls are not the only way of controlling a well.
 % Limits can be imposed on wells, either due to physical or mathematical
-% considerations. In this case, the fixed oil rate is the default setting,
+% considerations. In this case, fixed oil rate is the default setting,
 % but the well will switch controls if the pressure drops below a
 % threshold. This is found in the lims field for each well. 
 % 
-% Since this is a producer, the bhp limit is considered a lower limit, but
-% for a producer it would be interpreted as a maximum limit to avoid either
-% equipment failure or formation of rock fractures.
+% Since this is a producer, the bhp limit is considered a lower limit,
+% whereas a bhp limit for an injector would be interpreted as a maximum
+% limit to avoid either equipment failure or formation of rock fractures.
 clc
 disp(['Well limits for ', schedule.control(1).W(wno).name, ':'])
 disp(schedule.control(1).W(wno).lims)
 
 %% Plot relative permeability curves
-% For a three phase model we  have four relative permeability curves. One
+% For a three-phase model we have four relative permeability curves. One
 % for both gas and water and two curves for the oil phase. The oil relative
-% permeability is tabulated for both water-oil and oil-gas systems.
+% permeability is tabulated for both water-oil and oil-gas systems, and as
+% we can see from the following plot, this gives a number of kinks that
+% will tend to pose challenges for the Newton solver.
 f = model.fluid;
 s = (0:0.05:1)';
 
@@ -210,10 +225,10 @@ title('Gas relative permeability curve')
 ylabel('k_r')
 
 %% Plot three-phase relative permeability
-% For a simulation model the situation where all three phases are presen
-% simultaneously in a single cell using some function to combine these
-% curves in a reasonable manner, resulting in a two dimensional relative
-% permeability model. We use the Stone I model.
+% When all three phases are present simultaneously in a single cell, we
+% need to use some functional relationship to combine the two-phase curves
+% in a reasonable manner, resulting in a two-dimensional relative
+% permeability model. Herein, we use the Stone I model.
 %
 close all
 
@@ -230,8 +245,8 @@ surf(x, y, krO)
 xlabel('sW')
 ylabel('sG')
 title('Oil relative permeability')
-view(150, 50)
-axis tight
+view(150, 50); axis tight
+
 %% Plot capillary pressure curves
 % SPE9 contains significant capillary pressure, making the problem more
 % nonlinear as the flow directions and phase potential gradients are highly
@@ -244,16 +259,18 @@ set([l1, l2], 'LineWidth', 2);
 grid on
 legend('Oil-Gas capillary pressure', 'Oil-Water capillary pressure', 'location', 'southeast')
 xlabel('Oil saturation (Two phase)')
+
 %% Plot compressibility
-% The Black-Oil model treats fluid compressibility through tabulated
-% functions often referred to as B-factors. To find the mass of a given
-% volume at a specific reservoir pressure $p_R$, we write
+% The black-oil model treats fluid compressibility through tabulated
+% functions often referred to as formation volume factors (or B-factors).
+% To find the mass of a given volume at a specific reservoir pressure
+% $p_R$, we write
 %
 % $$ M_\alpha = V_R \rho_\alpha^s b_\alpha (p_R) $$
 %
-% where $\alpha$ refers to either the phase, V_R the volume taken up at
-% reservoir conditions and $\rho_\alpha^s$ the surface / reference density
-% where the b-factor is 1.
+% where $\alpha$ refers to either the phase, V_R the volume occupied at
+% reservoir conditions and $\rho_\alpha^s$ is the surface / reference
+% density when the B-factor is 1.
 %
 % Note that MRST by convention only uses small b to describe fluid models.
 % The relation between B and b is simply the reciprocal $b = 1/B$ and will
@@ -268,8 +285,8 @@ xlabel('Oil saturation (Two phase)')
 % modelling the poroelastic expansion of the pore volume available for
 % flow. As the rock itself shrinks, more fluid can fit inside it.
 %
-% Note that while the curves shown are all approximately linear, there's no
-% such requirement on the fluid model.
+% Note that although the curves shown in this particular case are all
+% approximately linear, there is no such requirement on the fluid model.
 pressure = (50:10:500)'*barsa;
 
 close all
@@ -293,6 +310,7 @@ grid on
 title('Rock compressibility')
 ylabel('1 + c_r (p - p_s)')
 xlabel('Pressure [bar]');
+
 %% Plot oil compressibility
 % Since we allow the gas phase to dissolve into the oil phase,
 % compressibility does not only depend on the pressure: The amount of
@@ -301,7 +319,7 @@ xlabel('Pressure [bar]');
 % We handle this by having saturated and undersatured tables for the
 % formation volume factors (FVF). This is reflected in the figure:
 % Unsaturated FVF curves will diverge into from the main downwards sloping
-% trend into almost constant curves sloping upwards.
+% trend into almost constant curves sloping downwards.
 %
 % Physically, the undersaturated oil will swell as more gas is being
 % introduced into the oil, increasing the volume more than the pressure
@@ -328,11 +346,11 @@ xlabel('Pressure [bar]')
 
 %% Plot the viscosity
 % The viscosity can also depend on the pressure and dissolved components in
-% a very similar manner as the compressibility. Again we note that the
-% water phase is unaffected by the pressure, the gas changes viscosity
-% quite a bit. As with $b_o$, the oil viscosibility depends more on the
-% amount of dissolved gas than the pressure itself and we have undersatured
-% tables to show.
+% a similar manner as the compressibility. Again, we note that the water
+% phase is unaffected by the pressure, the gas changes viscosity quite a
+% bit. As with $b_o$, the oil viscosibility depends more on the amount of
+% dissolved gas than the pressure itself and we have undersatured tables to
+% show.
 %
 % SPE9 only allows gas to dissolve into oil, and not the other way around.
 % Generally, the black-oil model is a pseudo-compositional model where both
@@ -359,21 +377,27 @@ grid on
 title('Oil viscosity')
 ylabel('\mu_o')
 xlabel('Pressure')
+
 %% Simulate the schedule
 % We run the schedule. We provide the initial state, the model (containing
 % the black oil model in this case) and the schedule with well controls,
 % and control time steps. The simulator may use other timesteps internally,
 % but it will always return values at the specified control steps.
+close all
 model.verbose = false;
+fn = getPlotAfterStep(state0, model, schedule, ...
+    'plotWell', false, 'plotReservoir', false);
 [wellsols, states, reports] =...
-    simulateScheduleAD(state0, model, schedule, 'LinearSolver', linsolve);
+    simulateScheduleAD(state0, model, schedule, ...
+                       'LinearSolver', linsolve, 'afterStepFn', fn);
 
 %% Launch interactive plot tool for well curves
 % The interactive viewer can be used to visualize the wells and is the best
 % choice for interactive viewing.
 
-plotWellSols(wellsols, cumsum(schedule.step.val), 'field', 'qWs')
+plotWellSols(wellsols, cumsum(schedule.step.val), 'field', 'qTr')
 h = gcf;
+
 %% Load comparison data from commercial solver
 % To validate the simulator output, we load in a pre-run dataset from a
 % industry standard commercial solver run using the same inputs.
@@ -383,6 +407,7 @@ compare = fullfile(addir, 'examples', 'spe9', 'compare');
 
 compd = 1:(size(smry.data, 2));
 Tcomp =  smry.get(':+:+:+:+', 'YEARS', compd);
+
 %% Set up plotting functions
 % We will plot the timesteps with different colors to see the difference
 % between the results clearly.
@@ -393,9 +418,10 @@ T = convertTo(cumsum(schedule.step.val), year);
 
 mrstplot = @(data) plot(T, data, '-b', 'linewidth', 2);
 compplot = @(data) plot(Tcomp, data, 'ro', 'linewidth', 2);
-%% Plot two different injectors 
-% We plot the bottom hole pressures for two somewhat arbitrarily chosen
-% injectors to show the accuracy of the pressure.
+
+%% Plot two different producers 
+% We plot the bottom-hole pressures for two somewhat arbitrarily chosen
+% producers to show the accuracy of the pressure.
 clf
 names = {'PROD13', 'PROD18'};
 nn = numel(names);
@@ -418,6 +444,7 @@ for i = 1:nn
     ylabel('Pressure (Pa)')
 end
 legend({'MRST', 'ECL'})
+
 %% Plot the gas production rate
 % We plot the gas production rate (at surface conditions).
 clf
@@ -438,6 +465,7 @@ for i = 1:nn
     ylabel('Gas rate (m^3/s)')
 end
 legend({'MRST', 'ECL'})
+
 %% Changing controls
 % We saw earlier that all wells are initially rate controlled, but in
 % practice a large number of wells will switch controls during the
@@ -463,8 +491,7 @@ X = repmat(1:nw, nstep, 1);
 Y = repmat(T, 1, nw);
 clf
 surf(X, Y, double(ctrls))
-view(90, 90)
-colormap jet
+view(90, 90); colormap jet
 ylabel('Time (years)')
 xlabel('Well #');
 title('Dark red color indicate BHP controls')
@@ -475,28 +502,21 @@ axis tight
 % after the final timestep. By scaling the color axis by the minimum of the
 % final state and the maximum of the first state, we can clearly see how
 % the pressure has dropped due to fluid extraction.
-
 h1 = figure;
 h2 = figure;
 
 p_start = states{1}.pressure;
 p_end = states{end}.pressure;
-cscale = [min(p_end), max(p_start)];
+cscale = convertTo([min(p_end), max(p_start)],barsa);
 
 figure(h1); clf;
-plotCellData(G, p_start)
-axis tight
-colorbar
-view(v)
-caxis(cscale);
+plotCellData(G, convertTo(p_start,barsa))
+axis tight; colorbar, view(v), caxis(cscale);
 title('Pressure after first timestep')
 
 figure(h2); clf;
-plotCellData(G, p_end)
-axis tight
-colorbar
-view(v)
-caxis(cscale);
+plotCellData(G, convertTo(p_end,barsa))
+axis tight; colorbar, view(v), caxis(cscale);
 title('Pressure after final timestep')
 
 %% Plot free gas
@@ -511,18 +531,12 @@ cscale = [0, max(sg)];
 
 figure(h1); clf;
 plotCellData(G, sg0)
-axis tight
-colorbar
-view(v)
-caxis(cscale);
+axis tight; colorbar; view(v); caxis(cscale);
 title('Free gas after first timestep')
 
 figure(h2); clf;
 plotCellData(G, sg)
-axis tight
-colorbar
-view(v)
-caxis(cscale);
+axis tight; colorbar, view(v), caxis(cscale);
 title('Free gas after final timestep')
 
 %% Plot dissolved gas
@@ -540,31 +554,24 @@ cscale = [0, max(gasinoil_0)];
 
 figure(h1); clf;
 plotCellData(G, gasinoil_0)
-axis tight
-colorbar
-view(v)
-caxis(cscale);
+axis tight; colorbar; view(v); caxis(cscale);
 title('Gas in after first timestep')
 
 figure(h2); clf;
 plotCellData(G, gasinoil)
-axis tight
-colorbar
-view(v)
-caxis(cscale);
+axis tight; colorbar; view(v); caxis(cscale);
 title('Gas in oil after final timestep')
+
 %% Plot phase distribution
 s0 = states{1}.s(:, [2, 3, 1]);
 s = states{end}.s(:, [2, 3, 1]);
 
 figure(h1); clf;
 plotCellData(G, s0)
-axis tight
-view(v)
+axis tight; view(v)
 title('Phase distribution after first timestep')
 
 figure(h2); clf;
 plotCellData(G, s)
-axis tight
-view(v)
+axis tight; view(v)
 title('Phase distribution after final timstep')

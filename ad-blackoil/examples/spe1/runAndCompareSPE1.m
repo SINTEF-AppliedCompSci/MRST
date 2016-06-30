@@ -1,5 +1,29 @@
+%% The Odeh Benchmark (SPE1) 
+% The first SPE project comparing black-oil reservoir simulators was
+% organized by Odeh (1981) and describes a depletion problem with gas
+% injection in a small 10×10×3 reservoir with a producer and an injector
+% placed in diagonally opposite corners. The porosity is uniform and equal
+% 0.3, whereas the permeability is isotropic with values 500, 50, and 200
+% md in the three layers with thickness 20, 30, and 50 ft. The reservoir is
+% initially undersaturated with a pressure field that is constant in each
+% layer, a uniform mixture of water (Sw = 0.12) and oil (So = 0.88) with no
+% initial free gas (Sg = 0.0) and a constant dissolved gas-oil ratio (Rs )
+% throughout the model.
+%
+% The problem is specified using an industry-standard input format, and the
+% solution computed by MRST is compared to that of a commercial reservoir 
+% simulator (Eclipse 100). The original problem was posed to study ten
+% years of production; herein, we only report and compare solutions for the
+% first 1216 days.
+
+%
+% Odeh, A.S. 1981. Comparison of Solutions to a Three-Dimensional Black-Oil
+% Reservoir Simulation Problem. J Pet Technol 33 (1): 13–25. SPE-9723-PA.
+% http://dx.doi.org/10.2118/9723-PA 
+%
 mrstModule add ad-fi ad-props deckformat mrst-gui ad-core ad-blackoil
 
+%% Set up the problem
 % Because several examples use the SPE1 dataset, the initial setup is
 % delegated to a helper function. See the inside for documentation.
 [G, rock, fluid, deck, state] = setupSPE1();
@@ -18,38 +42,31 @@ schedule = convertDeckScheduleToMRST(model, deck);
 % permeability along the z axis. The wells are completed in the upper and
 % lower layer for the injector and producer respectively. To get a well
 % object, we simply process the first control from the schedule.
-%
-% Note that a schedule is not necessary to solve problems using the fully
-% implicit solver: solvefiADI is capable of taking a well object directly
-% and solving for a single time step in a manner similar to the other MRST
-% solvers.
 figure;
-
-% Pick the only well control present
-W = schedule.control(1).W;
-
 plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
              'FaceAlpha', 0.5, 'EdgeAlpha', 0.3, 'EdgeColor', 'k');
-plotWell(G, W);
+plotWell(G, schedule.control(1).W);    % Pick the only well control present
 title('Permeability (mD)')
-axis tight;
-view(35, 40);
-colorbar('SouthOutside');
+axis tight, view(35, 40), colorbar('SouthOutside');
 
 %% Run the entire schedule
+% Here, we will run the schedule as it is described in the input file. Note
+% that a schedule is not necessary to solve problems using the fully 
+% implicit solver. The function 'solvefiADI' from the 'ad-fi' module (which
+% implements fully implicit ad solvers *without* object orientation) is
+% capable of taking a well structure directly and solve for a single time
+% step in a manner similar e.g., to the incompressible MRST solvers.
 [wellSols, states, report] = simulateScheduleAD(state, model, schedule);
 
 %% Plot the well solutions and simulator states
 % We setup interactive viewers for both well solutions and the reservoir
 % states.
-
 plotWellSols(wellSols, report.ReservoirTime)
 
 figure;
 plotToolbar(G, states)
 plotWell(G, schedule.control(1).W)
-axis tight
-view(-10, 60)
+axis tight, view(-10, 60)
 
 %% Make plots to compare solution with a commercial simulator
 % Load summary from binary file and find indices of the producer and
@@ -66,12 +83,12 @@ ind = 2:118;
 % Put the well solution data into a format more suitable for plotting
 [qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
 
-% Get timesteps for both the reference and the MRST run
+% Get timesteps for both the reference and the MRST solution
 T = convertTo(cumsum(schedule.step.val), year);
 Tcomp =  smry.get(':+:+:+:+', 'YEARS', ind);
 
 
-%% Plot Producer Gas/Oil ratio
+%% Plot producer gas/oil ratio
 % The most interesting part of the SPE1 case is the gas/oil ratio at the
 % producer. We convert the field units and plot the dimensionless ratio.
 % As should be apparent from the figure, the implicit solver is able to
@@ -81,37 +98,39 @@ clf
 ecl = convertFrom(smry.get('PRODUCER', 'WGOR', ind), 1000*ft^3/stb)';
 mrst = qGs(:,prod)./qOs(:,prod);
 
+mrstarg = {'LineWidth', 2};
+eclarg = {'ro','MarkerSize',5,'MarkerFaceColor',[.6 .6 .6]};
 hold on
-plot(T, mrst)
-plot(Tcomp, ecl, 'r');
-legend({'MRST', 'Eclipse'})
+plot(T, mrst, mrstarg{:})
+plot(Tcomp, ecl, eclarg{:});
+legend({'MRST', 'Eclipse'},2)
 xlabel('Time [Years]')
 title('Gas rate / Oil rate')
 
-%% Plot Injector Bottom Hole Pressure
-% The injector is rate controlled and so the bottom hole pressure is solved
+%% Plot producer bottom-hole pressure
+% The injector is rate controlled and so the bottom-hole pressure is solved
 % in the implicit loop. Plot it to verify accuracy.
 figure(4)
 clf
 ecl = convertFrom(smry.get('PRODUCER', 'WBHP', ind), psia)';
 mrst = bhp(:,prod);
 hold on
-plot(T,     convertTo(mrst, barsa))
-plot(Tcomp, convertTo(ecl, barsa), 'r');
+plot(T,     convertTo(mrst, barsa), mrstarg{:})
+plot(Tcomp, convertTo(ecl, barsa), eclarg{:});
 legend({'MRST', 'Eclipse'})
 xlabel('Time [Years]')
 ylabel('bar')
-title('Bottom hole pressure (Producer)')
+title('Bottom-hole pressure (producer)')
 
-%% Plot Injector Bottom Hole Pressure
+%% Plot injector bottom-hole pressure
 figure(5)
 clf
 ecl = convertFrom(smry.get('INJECTOR', 'WBHP', ind), psia)';
 mrst = bhp(:,inj);
 hold on
-plot(T,     convertTo(mrst, barsa))
-plot(Tcomp, convertTo(ecl, barsa), 'r');
+plot(T,     convertTo(mrst, barsa), mrstarg{:})
+plot(Tcomp, convertTo(ecl, barsa),  eclarg{:});
 legend({'MRST', 'Eclipse'})
 xlabel('Time [Years]')
 ylabel('bar')
-title('Bottom hole pressure (Injector)')
+title('Bottom-hole pressure (injector)')

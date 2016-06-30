@@ -23,7 +23,7 @@ function plotReportIterations(report, schedule)
     T_all = (T_mini + T_ctrl(substepNo))/tunit;
     % The actual timesteps that converged
     T = [0; T_mini(ok) + T_ctrl(substepNo(ok))]/tunit;
-    figure;
+    newplot;
     hold on
     
     nsub = numel(T_all);

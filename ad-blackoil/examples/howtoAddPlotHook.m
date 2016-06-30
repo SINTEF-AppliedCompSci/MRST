@@ -8,7 +8,7 @@ mrstModule add ad-core ad-blackoil ad-props ad-fi mrst-gui deckformat
 
 [G, rock, fluid, deck, state0] = setupSPE1();
 model = selectModelFromDeck(G, rock, fluid, deck);
-schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+schedule = convertDeckScheduleToMRST(model, deck);
 
 %% Set up plotting function
 % We set up a function handle that takes in the current simulator
