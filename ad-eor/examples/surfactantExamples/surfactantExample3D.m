@@ -1,4 +1,4 @@
-%% 
+%%
 % This example contains a simple $31\times31\times3$ fine grid containing two
 % injectors in opposite corners and one producer in the middle of the
 % domain. All wells are completed in the top layers of cells.
@@ -28,7 +28,6 @@ G = initEclipseGrid(deck);
 G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
-
 
 
 %% Set up simulation parameters
@@ -82,4 +81,20 @@ resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'clea
                                                   schedule, 'OutputHandler', ...
                                                   resulthandler);
 
+<<<<<<< HEAD:ad-eor/examples/surfactantExamples/surfactantExample3D.m
 plotToolbar(G, statesSurfactant, 'startplayback', true)
+=======
+switch simul_case
+  case '1D'
+    plotToolbar(G, statesSurfactant, 'field', 's:1', ...
+                'startplayback', true, 'plot1d', true)
+  case '2D'
+    plotToolbar(G, statesSurfactant, 'field', 's:2','lockCaxis',true);
+    plotWell(G,schedule.control(1).W);
+    view(15,40), axis tight, caxis([.1 .9]); colorbar
+
+    plotWellSols(wellSolsSurfactant,'field','bhp');
+  otherwise
+    error('simul_case not recognized.');
+end
+>>>>>>> 9d624337ceb38f0e6cfb62a899c71e4e0477d21a:ad-eor/examples/surfactantExamples/surfactantExample.m
