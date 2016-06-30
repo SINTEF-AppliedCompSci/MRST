@@ -18,7 +18,7 @@ Gt = topSurfaceGrid(...
   readIGEMSIRAP('1_OSSNP1.irap', [], 'dir', idir, 'save', false));
 
 %% Find trap volumes, traps and trees
-res = trapAnalysis(Gt, 'cell');
+res = trapAnalysis(Gt, true);
 trapvols = volumesOfTraps(Gt, res);
 trees = maximizeTrapping(Gt, 'res', res, 'removeOverlap', true);
 
