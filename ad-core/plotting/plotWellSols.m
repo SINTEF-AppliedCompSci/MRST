@@ -218,14 +218,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'Style', 'checkbox', 'Value', 0, ...
               'String','Zoom to data', 'Callback', @drawPlot, ...
               'Position',[.01 .2 .95 .1]);
-
+    stairplot = uicontrol('Units', 'normalized', 'Parent', bg,...
+              'Style', 'checkbox', 'Value', 0 ,...
+              'String','Stair-step plot', 'Callback', @drawPlot, ...
+              'Position',[.01 .1 .95 .1]);
     if hasTimesteps || nargout > 1
         % Toggle to use timesteps for spacing, otherwise the x nodes will
         % be equidistant.
         showdt = uicontrol('Units', 'normalized', 'Parent', bg,...
                   'Style', 'checkbox', 'Value', hasTimesteps ,...
                   'String','Use timesteps', 'Callback', @drawPlot, ...
-                  'Position',[.01 .1 .95 .1]);
+                  'Position',[.01 0 .95 .1]);
     end
     % Line width of the plot
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
@@ -339,7 +342,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 else
                     c = cmap(j, :);
                 end
-                plot(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
+                if get(stairplot, 'Value')
+                    pltfn = @stairs;
+                else
+                    pltfn = @plot;
+                end
+                
+                pltfn(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
                 Mv = max(Mv, max(d));
                 mv = min(mv, min(d));
                 
