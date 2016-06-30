@@ -3,7 +3,6 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
     properties
         conserveWater
         conserveOil
-        staticUpwind
         upwindType
     end
     

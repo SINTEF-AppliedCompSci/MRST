@@ -1,29 +1,45 @@
 classdef SequentialPressureTransportModel < ReservoirModel
+% Sequential meta-model which solves pressure and transport using a fixed
+% flux splitting
     properties
+        % Model for computing the pressure
         pressureModel
+        % Model for the transport subproblem after pressure is found
         transportModel
         
+        % NonLinearSolver instance used for pressure updates
         pressureNonLinearSolver
+        % NonLinearSolver instance used for saturation/mole fraction updates
         transportNonLinearSolver
-        
+        % Utility prop for setting pressure linear solver
         pressureLinearSolver
+        % Utility prop for setting transport linear solver
         transportLinearSolver
         
+        % Outer tolerance, which, if stepFunctionIsLinear is set to false,
+        % is used to check if the pressure must be recomputed after
+        % transport has been solved, in order to converge to the fully
+        % implicit solution.
         outerTolerance
+        % Indicates if we check well values when outer loop is enabled
         outerCheckWellConvergence
+        % Maximum outer loops for a given step. When maxOuterIterations is
+        % reached, the solver will act as if the step converged and
+        % continue.
         maxOuterIterations
     end
     
     methods
         function model = SequentialPressureTransportModel(pressureModel, transportModel, varargin)
             model = model@ReservoirModel([]);
-             
+            % Set up defaults
             model.pressureModel  = pressureModel;
             model.transportModel = transportModel;
             model.outerTolerance = 1e-3;
             model.outerCheckWellConvergence = false;
             model.maxOuterIterations = 2;
-            
+            % Default: We do not use outer loop.
+            model.stepFunctionIsLinear = true;
             model = merge_options(model, varargin{:});
             
             % Transport model determines the active phases
@@ -52,19 +68,19 @@ classdef SequentialPressureTransportModel < ReservoirModel
             end
             
             model.transportNonLinearSolver.errorOnFailure = false;
-            model.stepFunctionIsLinear = true;
-            
         end
         
         function [state, report] = stepFunction(model, state, state0, dt,...
                                                 drivingForces, linsolve, nonlinsolve,...
                                                 iteration, varargin)
-            % Solve pressure
+            % Solve pressure and transport sequentially
             psolver = model.pressureNonLinearSolver;
             tsolver = model.transportNonLinearSolver;
-            
+            % Get the forces used in the step
             forceArg = getDrivingForces(model.pressureModel, drivingForces);
             
+            % First, solve the pressure using the pressure nonlinear
+            % solver.
             [state, pressureReport] = ...
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
@@ -72,7 +88,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             pressure_ok = pressureReport.Converged;
             
             if pressure_ok
-                % Solve transport
+                % If pressure converged, we proceed to solve the transport
                 [state, transportReport] = ...
                     tsolver.solveTimestep(state0, dt, model.transportModel,...
                                 'initialGuess', state, ...
@@ -133,6 +149,8 @@ classdef SequentialPressureTransportModel < ReservoirModel
         end
         
         function varargout = getActivePhases(model)
+            % Transport model solves for saturations, so that is where the
+            % active phases are defined
             varargout = cell(1, nargout);
             [varargout{:}] = model.transportModel.getActivePhases();
         end

@@ -1,14 +1,18 @@
 classdef PressureOilWaterModel < TwoPhaseOilWaterModel
-    % Two phase oil/water system without dissolution
+    % Pressure model for two phase oil/water system without dissolution
     properties
+        % Increment tolerance for pressure. Computes convergence in
+        % pressure as the reduction in increments (scaled by the min/max
+        % pressure of the reservoir)
         incTolPressure
+        % Boolean indicating if increment tolerance is being used
         useIncTol
     end
     
     methods
         function model = PressureOilWaterModel(G, rock, fluid, varargin)
             model = model@TwoPhaseOilWaterModel(G, rock, fluid);
-            
+            % Reasonable defaults
             model.incTolPressure = 1e-3;
             model.useIncTol = true;
             model = merge_options(model, varargin{:});
