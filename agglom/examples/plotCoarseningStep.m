@@ -1,4 +1,4 @@
-function plotCoarseningStep(p, G, I1, I2, L, U, no, flag)
+function plotCoarseningStep(p, G, I1, I2, L, U, no, flag)                  %#ok<INUSD>
 %Make a plot of the results of one step in a coarsening algorithm
 %
 % SYNOPSIS:
@@ -36,16 +36,17 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+targs = {'FontSize',10,'FontWeight','normal'};
 clf
 subplot(2,3,[1 4]),
 if nargin<8
    plotCellData(G, mod(p, 17), 'EdgeColor', 'none');
 else
    plotCellData(G, I2,'FaceAlpha',.5, 'EdgeColor', 'none');
-   h=outlineCoarseGrid(G, p);
+   outlineCoarseGrid(G, p);
 end
 view(2), axis tight off;
-title(sprintf('Step %d: %d blocks', no, max(p)));
+title(sprintf('Step %d: %d blocks', no, max(p)),targs{:});
 
 plural = {'', 's'};
 
@@ -58,7 +59,7 @@ axis tight, set(gca,'ylim',[0 4*L]);
 
 nviol = sum(accumarray(p, I1 .* G.cells.volumes) < L);
 title(sprintf('Volume indicator: lower bound, %d violation%s', ...
-              nviol, plural{1 + (nviol ~= 1)}));
+              nviol, plural{1 + (nviol ~= 1)}),targs{:});
 
 subplot(2,3,[5 6]);
 U = U * sum(I2.*G.cells.volumes) / G.cells.num;
@@ -68,4 +69,4 @@ axis tight, set(gca,'ylim',[0 2*U]);
 
 nviol = sum(accumarray(p, I2 .* G.cells.volumes) > U);
 title(sprintf('Flow indicator: upper bound, %d violation%s', ...
-              nviol, plural{1 + (nviol ~= 1)}));
+              nviol, plural{1 + (nviol ~= 1)}),targs{:});
