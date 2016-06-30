@@ -7,7 +7,8 @@
 % followed by a water flooding phase without surfactant. Finally, the water rate
 % is reduced for the final time steps.
 %
-% data from DECK
+% The data is read from deck (SURFACTANT3D.DATA) which uses the same
+% surfactant properties as the 1D example.
 
 try
     require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
@@ -16,7 +17,6 @@ catch
 end
 
 current_dir = fileparts(mfilename('fullpath'));
-
 fn = fullfile(current_dir, 'SURFACTANT3D.DATA');
 gravity on
 
@@ -24,20 +24,18 @@ deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 
 fluid = initDeckADIFluid(deck);
-
-
 G = initEclipseGrid(deck);
 G = computeGeometry(G);
-
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
 
 
 %% Set up simulation parameters
-% We want a layer of oil on top of the reservoir and water on the bottom.
-% To do this, we alter the initial state based on the logical height of
-% each cell. The resulting oil concentration is then plotted.
+% We want a layer of oil on top of the reservoir and water on the bottom.  To do
+% this, we alter the initial state based on the logical height of each
+% cell. Initially, the pressure is constant and the surfactant concentration is
+% zero.
 
 ijk = gridLogicalIndices(G);
 
@@ -48,9 +46,10 @@ state0.s(ijk{3} == 2, 2) = .8;
 % Enforce s_w + s_o = 1;
 state0.s(:,1) = 1 - state0.s(:,2);
 
-% Add zero surfactant concentration to the state.
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = state0.c;
+state0.ads = computeEffAds(state0.c, 0, modelSurfactant.fluid);
+state0.adsmax = state0.ads;
 
 clf
 plotCellData(G, state0.s(:,2));
@@ -61,13 +60,14 @@ view(70, 30);
 colorbar;
 
 
-%% Set up systems.
+%% Set up the model
 
 modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
                                                   'extraStateOutput', true);
 
-% Convert the deck schedule into a MRST schedule by parsing the wells
+%% Convert the deck schedule into a MRST schedule by parsing the wells
+
 schedule = convertDeckScheduleToMRST(modelSurfactant, deck);
 
 
@@ -76,8 +76,6 @@ schedule = convertDeckScheduleToMRST(modelSurfactant, deck);
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
-state0.ads = computeEffAds(state0.c, 0, modelSurfactant.fluid);
-state0.adsmax = state0.ads;
 
 resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, ...
