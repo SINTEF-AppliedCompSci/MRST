@@ -1,141 +1,71 @@
+%% Introduction to Coarse Grids in MRST
+% In MRST, a coarse grid always refers to a grid that is defined as
+% a partition of another grid, which is referred to as the 'fine' grid. The
+% coarsegrid module defines a basic grid structure for such coarse grids
+% and supplies simple tools for partitioning fine grids. In this example,
+% we will show you the basics of the coarse-grid structure and how to
+% define partitions of simple 2D Cartesian grids.
+
 mrstModule add coarsegrid
+plotPartition = @(G, p) plotCellData(G, p, 'EdgeColor','w','EdgeAlpha',.2);
 
-%% Partition a Cartesian 2D grid
-% We use partitionUI which exploits the logical structure and creates a
-% uniform grid in logical space.
+%% 2x2 partition of a 4x4 Cartesian grid
+% To define a coarse grid, we must first compute a partition. To this end,
+% we use partitionCartGrid, which exploits the logical structure and creates
+% a uniform partitioning in logical space.
+G = computeGeometry(cartGrid([4,4]));
+p = partitionCartGrid(G.cartDims, [2,2]);
+plotPartition(G, p);
+colormap(jet), axis tight off
 
-clf
-G = cartGrid([20,20]);
-p = partitionUI(G, [5,5]);
-plotCellData(G, p, 'EdgeColor', 'w');
-colormap(colorcube(32)); caxis([0 32])
-
-%% Partition a 3D grid in much the same manner
-G = cartGrid([20,20,8]);
-p = partitionUI(G, [5,5,3]);
-
-clf
-plotCellData(G, p, 'Edgecolor', 'w')
-view(60,30);
-colormap(colorcube(125));
-
-%% Create a faulted grid and partition it
-% We create a grid and partition it logically in ij-space and along
-% specific layers along the k-space.
-close
-grdecl = simpleGrdecl([10 10 7], .15);
-G = processGRDECL(grdecl);
-% Layer 1 will go from 1 to 3 - 1, layer 2 from 3 to 6 - 1 and so on
-L = [1 3 6 8];
-% We can easily find the thickness of the layers
-diff(L)
-
-% The partition is disconnected across the fault. processPartition can
-% amend this by adding new coarse blocks.
-p_initial = partitionLayers(G, [5,5], L);
-p = processPartition(G, p_initial); mp = max(p);
-
-figure(1); clf
-CGi = generateCoarseGrid(G,p_initial);
-plotCellData(G, p_initial, 'EdgeAlpha', .2);
-plotFaces(CGi,(1:CGi.faces.num),'FaceColor','none','EdgeColor','w','LineWidth',2);
-title(['Before processPartition (Total blocks: ' num2str(max(p_initial)) ')'])
-view(60,65); colormap(colorcube(mp)); caxis([1 mp]); axis tight off
-
-figure(2); clf
-CG = generateCoarseGrid(G,p);
-plotCellData(G, p, 'EdgeAlpha', .2);
-plotFaces(CG,(1:CG.faces.num),'FaceColor','none','EdgeColor','w','LineWidth',2);
-title(['After processPartition (Total blocks: ' num2str(mp) ')'])
-view(60,65); colormap(colorcube(mp)); caxis([1 mp]); axis tight off
-
-%% Geometry information can be added to a coarse grid
-% By calling coarsenGeometry on a grid which has been returned
-% from processGeometry, we can get coarse centroids, volumes and so on.
-G  = computeGeometry(G);
+%% Generate coarse-grid structure
+% We can then call the routine that builds the structure representing the
+% coarse grid. As a naming convention, we usually call this grid CG. The
+% coarse grid can be passed on to any plotting routine in MRST. By calling
+% coarsenGeometry on a grid which has been returned from processGeometry,
+% we can get coarse centroids, volumes and so on.
 CG = generateCoarseGrid(G, p);
 CG = coarsenGeometry(CG);
 
-clf
-cg_cent = CG.cells.centroids;
-g_cent = G.cells.centroids;
-hold on;
-plotPts = @(pts, varargin) plot3(pts(:,1), pts(:,2), pts(:,3), varargin{:});
+cla
+plotCellData(CG, (1:CG.cells.num)', 'EdgeColor','w','EdgeAlpha',.5);
+plotFaces(CG, (1:CG.faces.num)', 'FaceColor','none','LineWidth', 2);
 
-plotPts(cg_cent, '*r');
-plotPts(g_cent, '.')
+%% Show cell/block indices
+% In its basic form, the structure only represents topological information
+% that specifies the relationship between blocks and block interfaces, etc.
+% The structure also contains information of the underlying fine grid. Let
+% us start by plotting cell/block indices
+tg = text(G.cells.centroids(:,1), G.cells.centroids(:,2), ...
+   num2str((1:G.cells.num)'),'FontSize',16, 'HorizontalAlignment','center');
+tcg = text(CG.cells.centroids(:,1), CG.cells.centroids(:,2), ...
+   num2str((1:CG.cells.num)'),'FontSize',24, 'HorizontalAlignment','center');
+axis off;
+set(tcg,'BackgroundColor','w','EdgeColor','none');
+colormap(.5*jet+.5*ones(size(jet)));
 
-plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', .1)
-outlineCoarseGrid(G, p, 'facealpha', .1);
-hold off
-view(15,85);
-% axis tight off
-legend({'Coarse centroids', 'Fine Centroids'}, 'Location', 'NorthOutside')
-
-%% The coarse grid contains maps to fine scale
-% The coarse grid also contains lookup tables for mapping the coarse grid
-% to fine scales. Here we visualize a single coarse face consisting of
-% several fine faces along with its neighbors in red and blue respectively
-% on the fine grid.
-
-i = 300;
-sub = CG.faces.connPos(i):CG.faces.connPos(i+1)-1;
-finefaces = CG.faces.fconn(sub);
-
-neighbors = CG.faces.neighbors(i,:);
-clf
-plotFaces(G, finefaces)
-plotGrid(G, p == neighbors(1), 'facec', 'red', 'facea', .3)
-plotGrid(G, p == neighbors(2), 'facec', 'blue', 'facea', .3)
-view(-50, 10)
-
-%% No need for logical indices
-% The partition vector is just that - a vector with one entry for each fine
-% cell containing the partition the cell belongs to. We can generate an
-% arbitrary coarse grid without using any information relating to a
-% structured grid.
-%
-% For instance, if we want to partition a grid uniformly in space based on
-% cell coordinates, the product of two periodic functions will do nicely.
-% We divide the grid into a 3x3 coarse grid in this way by exploiting that
-% the sine function changes sign in intervals of pi.
-
-nx = 3; ny = 3;
-
-G = cartGrid([20, 20], [1 1]);
-G = computeGeometry(G);
-
-% First create the periodic function
-f = @(v) sin(pi*nx*v(:,1)) .* sin(pi*ny*v(:,2));
-% Evaluate it in the centroids
-fval = f( G.cells.centroids);
-
-% We divide the grid into two parts based on the sign of the function
-p = double(fval > 0) + 1;
-% Which is then postprocessed to create connected domains.
-
-p = processPartition(G, p);
-
-% This vector can generate coarse grids just as partitionUI did.
-CG = generateCoarseGrid(G, p);
-
-clf
-% Plot the function values
-subplot(1,2,1);
-v = reshape(f(G.cells.centroids), G.cartDims(1), G.cartDims(2));
-surf(v)
-title('f(x)')
-subplot(1,2,2);
-% Plot the resulting partitions
-title('Resulting partition')
-plotCellData(G, mod(p, 13), 'EdgeColor', 'w');
+%% Show face indices of fine/coarse grids
+delete([tg; tcg]);
+tg = text(G.faces.centroids(:,1), G.faces.centroids(:,2), ...
+   num2str((1:G.faces.num)'),'FontSize',14, 'HorizontalAlignment','center');
+tcg = text(CG.faces.centroids(:,1), CG.faces.centroids(:,2), ...
+   num2str((1:CG.faces.num)'),'FontSize',24, 'HorizontalAlignment','center');
+set(tcg,'BackgroundColor','w','EdgeColor','none');
 
 
 %% Solvers using coarse grids
-% Some solvers may use the coarse grids. Utilities such as coarsenBC make
-% it easier to solve problems at several scales.
+% The coarse grid will in most aspects behave as the standard grids and can
+% be used in many of the solvers in MRST. Utilities such as 'coarsenBC'
+% makes it easier to solve problems at several scales.
 
 mrstModule add incomp;
+
+% Make a somewhat larger grid
+G  = cartGrid([20, 20], [1 1]);
+G  = computeGeometry(G);
+p  = partitionCartGrid(G.cartDims,[5 2]);
+CG = generateCoarseGrid(G, p);
+CG = coarsenGeometry(CG);
 
 % Trivial fluid
 fluid = initSingleFluid('mu', 1, 'rho', 1);
@@ -146,15 +76,13 @@ T = computeTrans(G, rock);
 state = initState(G, [], 0);
 bc = pside([], G, 'left', 100*barsa);
 bc = pside(bc, G, 'right', 0*barsa);
+
 % Solve for fine scale
 state = incompTPFA(state, G, T, fluid, 'bc', bc);
 
-% Use the provided coarse grid
-CG = coarsenGeometry(CG);
-
-% Create the same trivial permeability. This could be replaced by for
-% example an upscaling routine from the upscaling module if the
-% permeability was non-uniform.
+% Create the same trivial permeability for the coarse grid. This could be
+% replaced by for example an upscaling routine from the upscaling module if
+% the permeability was non-uniform.
 rock.perm = ones(CG.cells.num, 1);
 T_coarse = computeTrans(CG, rock);
 state_coarse = initState(CG, [], 0);
@@ -165,10 +93,11 @@ state_coarse = incompTPFA(state_coarse, CG, T_coarse, fluid, 'bc', bc_coarse);
 
 % Plot the solutions
 subplot(2,1,1)
-plotCellData(G, state.pressure, 'edgec', 'k')
-title('Fine scale solution')
+plotCellData(G, state.pressure,'EdgeColor','k','EdgeAlpha',.2)
+title('Fine-scale solution')
 subplot(2,1,2)
-plotCellData(G, state_coarse.pressure(p), 'edgec', 'k')
-title('Coarse scale solution')
+plotCellData(CG, state_coarse.pressure,'EdgeColor','none')
+plotFaces(CG,(1:CG.faces.num)','FaceColor','none');
+title('Coarse-scale solution')
 
 % #COPYRIGHT_EXAMPLE#
