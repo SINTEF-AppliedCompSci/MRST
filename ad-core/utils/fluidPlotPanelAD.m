@@ -59,8 +59,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 };
     
     if model.oil
-        names = [names, 'Oil viscosity'];
-        names = [names, 'Oil b-factor'];
+        names = [names, 'Oil viscosity', ...
+                        'Oil b-factor'];
+        functions = [functions, {@(name) plotStuff(model, {'muO'})}];
     end
     
     
@@ -94,22 +95,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         p = opt.pressureRange;
         s = subdiv(0, 1);
 
-        rs = 0;
-        rv = 0;
+        rsMax = 0;
+        rvMax = 0;
         if model.disgas
-            rs = f.rsSat(p);
+            rsMax = f.rsSat(p);
         end
         if model.vapoil
-            rv = f.rvSat(p);
+            rvMax = f.rvSat(p);
         end
         n = sum(model.getActivePhases);
 
         legflag = false(size(fields));
-        data = nan(numel(p), n);
 
         ctr = 0;
         yl = '';
-        for i = 1:numel(fields)
+        cla;
+        hold on
+        nf = numel(fields);
+        colors = lines(nf);
+        for i = 1:nf
             fn = fields{i};
 %             if ~isfield(f, fn)
 %                 continue
@@ -119,41 +123,42 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             switch(lower(fn))
 
                 case {'krw', 'krg', 'krog', 'kro', 'krow'}
-                    data(:, ctr) = f.(fn)(s);
+                    data = f.(fn)(s);
                     x = s;
                     xl = 'Saturation';
                 case {'pcow', 'pcog'}
-                    data(:, ctr) = f.(fn)(s);
+                    data = f.(fn)(s);
                     x = s;
                     xl = 'Saturation';
                 case {'bo', 'bg', 'bw'}
-                    data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
+                    data = evalSat(model, f, fn, p, rsMax, rvMax);
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
                 case {'rhoo', 'rhog', 'rhow'}
                     bsub = ['b', fn(end)];
                     rho = f.(['rho', fn(end), 'S']);
-                    b = evalSat(model, f, bsub, p, rs, rv);
+                    b = evalSat(model, f, bsub, p, rsMax, rvMax);
                    
-                    data(:, ctr) = b*rho;
+                    data = b*rho;
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
                     yl = 'Density [kg/m^3]';
                 case {'muw', 'muo', 'mug'}
-                    data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
+                    data = evalSat(model, f, fn, p, rsMax, rvMax);
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
                 case {'rssat', 'rvsat'}
-                    data(:, ctr) = f.(fn)(p);
+                    data = f.(fn)(p);
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
                 case {'pvmultr'}
-                    data(:, ctr) = f.(fn)(p);
+                    data = f.(fn)(p);
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
             end
+            plot(x, data, 'linewidth', 2, 'color', colors(i, :))
         end
-        plot(x, data, 'linewidth', 2)
+        
         grid on
         legend(fields(legflag))
         xlabel(xl)
@@ -188,14 +193,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         title(name);
     end
 
-%     function plotCompressibility(model, name)
-%         plotStuff(model, {'bW', 'bO', 'bG'});
-%         if checkBO(model)
-%             title([name, ' (saturated curves)']);
-%         else
-%             title(name);
-%         end
-%     end
     function plotDensity(model, name)
         plotStuff(model, {'rhoW', 'rhoO', 'rhoG'});
         if checkBO(model)
