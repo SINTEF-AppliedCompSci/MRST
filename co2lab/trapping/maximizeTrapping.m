@@ -1,4 +1,4 @@
-function [trees, v] = maximizeTrapping(G, varargin)
+function [trees, vols] = maximizeTrapping(G, varargin)
 %Find the N best injection trees, with optional compensation for overlap
 %
 % SYNOPSIS:
@@ -30,7 +30,7 @@ function [trees, v] = maximizeTrapping(G, varargin)
 %           - value: Total value of the tree. If N >= number of
 %                    traps and removeOverlap is enabled, this will sum to
 %                    total trap volume over all trees.
-
+%   vols  - Individual trap volumes
 %{
 #COPYRIGHT#
 %}
@@ -47,7 +47,8 @@ function [trees, v] = maximizeTrapping(G, varargin)
     end
     
     v = volumesOfTraps(G, opt.res, 1:max(opt.res.traps));
-
+    vols = v;
+    
     % All root nodes - traps that are downstream from every other trap
     if opt.calculateAll
         rn = 1:max(opt.res.traps);

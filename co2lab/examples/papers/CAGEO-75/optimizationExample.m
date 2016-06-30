@@ -34,7 +34,7 @@ rock = struct('poro', repmat(pd.avgporo, G.cells.num, 1), ...
 % distinction is not important, but the overlap must be considered when
 
 res = trapAnalysis(Gt, true);
-[trees, trapvols] = maximizeTrapping(Gt, 'res', res, 'removeOverlap', true);
+trees = maximizeTrapping(Gt, 'res', res, 'removeOverlap', true);
 trees_nooverlap = maximizeTrapping(Gt, 'res', res, 'removeOverlap', false);
 
 %%
