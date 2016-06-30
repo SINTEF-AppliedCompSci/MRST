@@ -4,7 +4,7 @@ function G = triangulateFaces(G, f)
 % DESCRIPTION
 %   For each face listed in F, face center as compute average of face node
 %   coordinates.  Use face center to triangulate face.  remove original
-%   fase and add triangular faces.
+%   face and add triangular faces.
 %
 %   If no face list F is given, all faces in G are triangulated.  This
 %   should make a grid with curved faces polyhedral, i.e., a grid with onlu

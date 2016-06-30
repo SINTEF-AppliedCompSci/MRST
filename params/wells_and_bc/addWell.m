@@ -504,7 +504,9 @@ else
 end
 
 welldir = lower(welldir);
-
+if numel(welldir) == 1
+    welldir = repmat(welldir, numel(cells), 1);
+end
 re = zeros(size(welldir, 1), 1);
 
 % The following formualtion only works for Cartisian mesh

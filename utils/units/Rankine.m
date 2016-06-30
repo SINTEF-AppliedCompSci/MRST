@@ -2,7 +2,7 @@ function T = Rankine()
 %Temperature of one Rankine (in units of Kelvin).
 %
 % SYNOPSIS:
-%   d = meter()
+%   T = Rankine()
 %
 % PARMETERS:
 %   None.

@@ -60,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Loop over candidate functions, adding to array as we go (dynamic
     % expansion is ok since the number of datasets is relatively small).
-    [info, present] = deal([]);
+    [info, present] = deal([], logical([]));
     for i = 1:nD
         [name, name, ext] = fileparts(names{i}); %#ok
         if ~strcmpi(ext, '.m')
