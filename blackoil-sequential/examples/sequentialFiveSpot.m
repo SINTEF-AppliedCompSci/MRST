@@ -91,28 +91,21 @@ state = initResSol(G, 0, initSat);
 figure; plotToolbar(G, rock)
 
 %%
-% [state, model, schedule] = setupSPE10_AD('layers', 15);
 seqModel = getSequentialModelFromFI(model);
-seqModel.pressureModel.useIncTol = false
-% seqModel.transportModel.conserveGas = true;
-% seqModel.transportModel.conserveWater = true;
-% seqModel.transportModel.conserveOil = false;
-% stepSel = StateChangeTimeStepSelector('targetProps', 's', 'targetChangeAbs', 0.25, 'firstRampupStepRelative', 0.01);
-% solver = NonLinearSolver('timeStepSelector', stepSel);
-solver = [];
+
 %%
 timer = tic();
-[wsSeq, statesSeq] = simulateScheduleAD(state, seqModel, schedule, 'nonlinearsolver', solver);
+[wsSeq, statesSeq] = simulateScheduleAD(state, seqModel, schedule);
 t_split = toc(timer);
 %% Run the entire schedule
 % solver.timeStepSelector.reset();
 
 timer = tic();
-[wsFIMP, statesFIMP] = simulateScheduleAD(state, model, schedule, 'nonlinearsolver', solver);
+[wsFIMP, statesFIMP] = simulateScheduleAD(state, model, schedule);
 t_fi = toc(timer);
 
 %%
-plotWellSols({wsSeq, wsFIMP}, cumsum(schedule.step.val), 'datasetnames', {'Sequential', 'FIMP'})
+plotWellSols({wsSeq, wsFIMP}, cumsum(schedule.step.val), 'datasetnames', {'Sequential', 'FIMP'}, 'linestyles', {'-'})
 
 
 
