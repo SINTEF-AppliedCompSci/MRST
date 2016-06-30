@@ -1,18 +1,14 @@
-try
-   require coarsegrid
-catch
-   mrstModule add coarsegrid
-end
+mrstModule add coarsegrid
 
 %% Partition a Cartesian 2D grid
 % We use partitionUI which exploits the logical structure and creates a
 % uniform grid in logical space.
 
-clf;
+clf
 G = cartGrid([20,20]);
 p = partitionUI(G, [5,5]);
 plotCellData(G, p, 'EdgeColor', 'w');
-colorbar
+colormap(colorcube(32)); caxis([0 32])
 
 %% Partition a 3D grid in much the same manner
 G = cartGrid([20,20,8]);
@@ -21,42 +17,43 @@ p = partitionUI(G, [5,5,3]);
 clf
 plotCellData(G, p, 'Edgecolor', 'w')
 view(60,30);
+colormap(colorcube(125));
 
 %% Create a faulted grid and partition it
 % We create a grid and partition it logically in ij-space and along
 % specific layers along the k-space.
-
+close
 grdecl = simpleGrdecl([10 10 7], .15);
 G = processGRDECL(grdecl);
 % Layer 1 will go from 1 to 3 - 1, layer 2 from 3 to 6 - 1 and so on
 L = [1 3 6 8];
 % We can easily find the thickness of the layers
-diff(L) %#ok intentional display
+diff(L)
 
 % The partition is disconnected across the fault. processPartition can
 % amend this by adding new coarse blocks.
 p_initial = partitionLayers(G, [5,5], L);
-p = processPartition(G, p_initial);
+p = processPartition(G, p_initial); mp = max(p);
 
-figure(1);
-clf
-plotCellData(G, mod(p_initial, 7), 'Edgecolor', 'w')
-title(['Before processPartition (Total blocks: ' num2str(numel(unique(p_initial))) ')'])
-view(60,30);
+figure(1); clf
+CGi = generateCoarseGrid(G,p_initial);
+plotCellData(G, p_initial, 'EdgeAlpha', .2);
+plotFaces(CGi,(1:CGi.faces.num),'FaceColor','none','EdgeColor','w','LineWidth',2);
+title(['Before processPartition (Total blocks: ' num2str(max(p_initial)) ')'])
+view(60,65); colormap(colorcube(mp)); caxis([1 mp]); axis tight off
 
-figure(2);
-clf
-plotCellData(G, mod(p, 7), 'Edgecolor', 'w')
-title(['After processPartition (Total blocks: ' num2str(numel(unique(p))) ')'])
-view(60,30);
+figure(2); clf
+CG = generateCoarseGrid(G,p);
+plotCellData(G, p, 'EdgeAlpha', .2);
+plotFaces(CG,(1:CG.faces.num),'FaceColor','none','EdgeColor','w','LineWidth',2);
+title(['After processPartition (Total blocks: ' num2str(mp) ')'])
+view(60,65); colormap(colorcube(mp)); caxis([1 mp]); axis tight off
 
 %% Geometry information can be added to a coarse grid
 % By calling coarsenGeometry on a grid which has been returned
 % from processGeometry, we can get coarse centroids, volumes and so on.
-G = computeGeometry(G);
-
+G  = computeGeometry(G);
 CG = generateCoarseGrid(G, p);
-
 CG = coarsenGeometry(CG);
 
 clf
@@ -76,10 +73,10 @@ view(15,85);
 legend({'Coarse centroids', 'Fine Centroids'}, 'Location', 'NorthOutside')
 
 %% The coarse grid contains maps to fine scale
-%The coarse grid also contains lookup tables for mapping the coarse grid to
-%fine scales. Here we visualize a single coarse face consisting of several
-%fine faces along with its neighbors in red and blue respectively on the
-%fine grid.
+% The coarse grid also contains lookup tables for mapping the coarse grid
+% to fine scales. Here we visualize a single coarse face consisting of
+% several fine faces along with its neighbors in red and blue respectively
+% on the fine grid.
 
 i = 300;
 sub = CG.faces.connPos(i):CG.faces.connPos(i+1)-1;
@@ -138,6 +135,8 @@ plotCellData(G, mod(p, 13), 'EdgeColor', 'w');
 % Some solvers may use the coarse grids. Utilities such as coarsenBC make
 % it easier to solve problems at several scales.
 
+mrstModule add incomp;
+
 % Trivial fluid
 fluid = initSingleFluid('mu', 1, 'rho', 1);
 
@@ -171,3 +170,5 @@ title('Fine scale solution')
 subplot(2,1,2)
 plotCellData(G, state_coarse.pressure(p), 'edgec', 'k')
 title('Coarse scale solution')
+
+% #COPYRIGHT_EXAMPLE#
