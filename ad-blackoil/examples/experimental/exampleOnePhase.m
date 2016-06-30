@@ -60,20 +60,13 @@ schedule=struct('control',struct('W',W_c),'step',step);
 % Set up reservoir
 % We turn on gravity and set up reservoir and scaling factors.
 gravity on
-
-clear state;
-state.pressure = ones(G.cells.num,1)*p_res;
-state.s = repmat([1 0],G.cells.num,1);
-state.wellSols= initWellSolLocal(W, state);
-
 clear wModel
 clear nonlinear
-
 clear state;
 fluid.bW=@(p) 1+(p-p_res)*1e-4/barsa;
 state.pressure = ones(G.cells.num,1)*p_res;
 state.s = repmat([1 0],G.cells.num,1);
-state.wellSols= initWellSolLocal(W, state);
+state.wellSols= initWellSol(W, state);
 state=rmfield(state,'s');
 grav=zeros(1,G.griddim);grav(G.griddim)=10;
 wModel = WaterModel(G, rock, fluid,'gravity',grav);%, 'deck', deck);
