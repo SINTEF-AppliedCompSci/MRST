@@ -36,6 +36,8 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %                    builtin "view()" for more information. Defaults to
 %                    empty for no modification to the default.
 %
+%  'wells'         - Wells for the reservoir plotting (using plotWell) 
+%
 % RETURNS:
 %  fn -  Function handle suitable for the "afterStepFn" input in
 %        simulateScheduleAD.
@@ -63,7 +65,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('plotWell',        true, ...
                  'plotReservoir',   true, ...
-                 'view',            []);
+                 'view',            [],   ...
+                 'wells',           []);
     [opt, extra] = merge_options(opt, varargin{:});
     
     G = model.G;
@@ -92,6 +95,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         axis tight
         if ~isempty(opt.view)
             view(opt.view)
+        end
+        if ~isempty(opt.wells)
+           plotWell(G, opt.wells)
         end
     else
         [hdata, injData] = deal(nan);
