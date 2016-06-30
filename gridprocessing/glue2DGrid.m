@@ -389,10 +389,22 @@ function cells = concat_cells(G1, G2)
    num  = G1.cells.num + G2.cells.num;
    imap = []; % Concatenated grids have no sensible indexMap.
 
+   %tag=[];
+   if(isfield(G1.cells,'tag'))
+       tag=G1.cells.tag;
+   else
+       tag=zeros(G1.cells.num,1);
+   end
+   if(isfield(G2.cells,'tag'))
+       tag=[tag;G2.cells.tag];
+   else
+       tag=[tag;zeros(G2.cells.num,1)];
+   end
    cells = struct('num'     , num  , ...
                   'facePos' , fpos , ...
                   'faces'   , faces, ...
-                  'indexMap', imap );
+                  'indexMap', imap,...
+                  'tag',tag)
 end
 
 %--------------------------------------------------------------------------
