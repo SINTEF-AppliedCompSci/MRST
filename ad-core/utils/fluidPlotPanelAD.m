@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     active = [true; ...
               true; ...
-              isfield(model.fluid, 'pvMult'); ...
+              isfield(model.fluid, 'pvMultR'); ...
               true; ...
               isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG'); ...
               model.disgas || model.vapoil; ...
@@ -147,11 +147,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 case {'pcow', 'pcog'}
                     data = f.(fn)(s);
                     x = s;
+                    data = data/barsa;
                     xl = 'Saturation';
+                    yl = 'Capillary pressure [bar]';
                 case {'bo', 'bg', 'bw'}
                     [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
                     x = x/barsa;
-                    xl = 'Pressure (barsa)';
+                    yl = 'Reciprocal formation volume factor: b(p) = 1/B(p)';
+                    xl = 'Pressure [bar]';
                 case {'rhoo', 'rhog', 'rhow'}
                     bsub = ['b', fn(end)];
                     rho = f.(['rho', fn(end), 'S']);
@@ -159,20 +162,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    
                     data = b*rho;
                     x = x/barsa;
-                    xl = 'Pressure (barsa)';
+                    xl = 'Pressure [bar]';
                     yl = 'Density [kg/m^3]';
                 case {'muw', 'muo', 'mug'}
                     [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    data = data/(centi*poise);
                     x = x/barsa;
-                    xl = 'Pressure (barsa)';
+                    xl = 'Pressure [bar]';
+                    yl = 'Viscosity [cP]';
                 case {'rssat', 'rvsat'}
                     data = f.(fn)(p);
                     x = p/barsa;
-                    xl = 'Pressure (barsa)';
+                    xl = 'Pressure [bar]';
                 case {'pvmultr'}
                     data = f.(fn)(p);
                     x = p/barsa;
-                    xl = 'Pressure (barsa)';
+                    xl = 'Pressure [bar]';
+                    yl = 'Pore volume multiplier';
             end
             if size(data, 2) > 1
                 for j = 1:size(data, 2)
@@ -269,20 +275,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         if ix == 1
-            surf(x, y, krW)
+            contourf(x, y, krW)
             title('Water relative permeability')
         elseif ix == 2
-            surf(x, y, krO)
+            contourf(x, y, krO)
             title('Oil relative permeability')
         else
-            surf(x, y, krG)
+            contourf(x, y, krG)
             title('Gas relative permeability')
         end
         caxis([0, 1]);
         shading interp
         axis equal tight
-        % view(0, 90)
-        view(-35, 45);
+        view(0, 90)
         xlabel('S_w')
         ylabel('S_g')
         colorbar
@@ -302,7 +307,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if checkBO(model)
             if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
                 mrs = max(rsMax);
-                rs = 0:mrs/10:mrs;
+                rs = 0:mrs/20:mrs;
                 [x, rs_g] = meshgrid(x, rs);
                 rssat = zeros(size(x));
                 for i = 1:size(x, 1)
