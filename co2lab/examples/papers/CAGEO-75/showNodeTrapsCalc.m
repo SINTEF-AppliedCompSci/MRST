@@ -9,7 +9,7 @@ Gt = topSurfaceGrid(G);
 %% Start analysis
 % Set breakpoint on line 63 of computeNodeTraps and call this function
 dbstop in computeNodeTraps at 63;
-res = computeNodeTraps(Gt); 
+res = computeNodeTraps(Gt, []); 
 
 %% Visualization inside computeNodeTraps
 % Assuming that you have come to line 63 of computeNodeTraps, run the
