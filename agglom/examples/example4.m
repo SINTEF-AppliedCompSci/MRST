@@ -28,17 +28,13 @@
 %   solvers, September 2010.
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
+mrstModule add agglom coarsegrid spe10 incomp;
+
 %% Set up and solve flow problem
 % As our example, we consider a standard five spot with heterogeneity
 % sampled from Model 2 of the 10th SPE Comparative Solution Project, which
 % we assume that the user has downloaded to a specific data directory using
 % the functions supplied as part of the MRST data sets.
-try
-   require agglom coarsegrid spe10 incomp
-catch me
-   mrstModule add agglom coarsegrid spe10 incomp;
-end
-
 [G, W, rock] = SPE10_setup(25);
 rock.poro    = max(rock.poro, 1e-3);
 rock.perm    = rock.perm(:,1);
@@ -165,3 +161,5 @@ plotWell(G,W); axis tight off
 subplot(1,3,3)
 plotCellData(G,iVel,'EdgeColor','none')
 outlineCoarseGrid(G, p); axis tight off
+
+% #COPYRIGHT_EXAMPLE#

@@ -9,16 +9,11 @@
 %   solvers, September 2010,
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
+mrstModule add agglom coarsegrid spe10 incomp diagnostics;
 
 %% Set up and solve flow problem
 % As our example, we consider a standard five spot with heterogeneity
 % sampled from Model 2 of the 10th SPE Comparative Solution Project.
-try
-   require agglom coarsegrid spe10 incomp diagnostics
-catch me
-   mrstModule add agglom coarsegrid spe10 incomp diagnostics;
-end
-
 [G, W, rock] = SPE10_setup(25);
 rock.poro = max(rock.poro, 1e-4);
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
@@ -41,20 +36,21 @@ iT = -log10(T.*Tr); iT = iT - min(iT) + 1;
 % may be expensive for very large grids). Afterwards, we process the
 % partition to check for disconnected blocks that need to be split.
 clf
+targs = {'FontSize',10,'FontWeight','normal'};
 p1 = segmentIndicator(G, iV, 4);
 pS = partitionUI(G, [3,6,1]);
 [b, i, p] = unique([pS, p1], 'rows'); %#ok<*ASGLU>
 p  = processPartition(G, p);
 
-subplot(1,3,1), title('Segmented')
+subplot(1,3,1), title('Segmented',targs{:})
 plotCellData(G,iV,'EdgeColor','none')
 outlineCoarseGrid(G,p1); axis equal tight off
 
-subplot(1,3,2), title('Static')
+subplot(1,3,2), title('Static',targs{:})
 plotCellData(G,iV,'EdgeColor','none')
 outlineCoarseGrid(G,pS); axis equal tight off
 
-subplot(1,3,3), title('Combined')
+subplot(1,3,3), title('Combined',targs{:})
 plotCellData(G,iV,'EdgeColor','none')
 outlineCoarseGrid(G,p); axis equal tight off
 
@@ -73,13 +69,13 @@ clf;
 subplot(1,2,1);
 plotCellData(G, iV, 'EdgeColor', 'none');
 h1 = outlineCoarseGrid(G, p1); axis equal tight off;
-title('Without preserved partitioning');
+title('Without preserved partitioning',targs{:});
 
 subplot(1,2,2);
 plotCellData(G, iV, 'EdgeColor', 'none');
 outlineCoarseGrid(G, pS,'EdgeColor',[.8 .8 .8],'LineWidth',4);
 h2 = outlineCoarseGrid(G, p2); axis equal tight off;
-title('With preserved static partitioning');
+title('With preserved static partitioning',targs{:});
 
 %%
 % Both partitions would typically be used as input to further refinement
@@ -120,7 +116,7 @@ p = mergeBlocks(p, G, rock.poro, iT, NL);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,1)
 plotCellData(G, iT, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
-axis tight off, title(sprintf('TOF:\n%d blocks', max(p)));
+axis tight off, title(sprintf('TOF:\n%d blocks', max(p)),targs{:});
 
 p = mergeBlocks(pt, G, rock.poro, iT, NL);
 p = refineUniformShape(p, G, iT, NU, 'fixPart', pu);
@@ -128,7 +124,7 @@ p = mergeBlocks(p, G, rock.poro, iT, 0.75*NL);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,2)
 plotCellData(G, iT, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
-axis tight off, title(sprintf('Hybrid TOF:\n%d blocks', max(p)));
+axis tight off, title(sprintf('Hybrid TOF:\n%d blocks', max(p)),targs{:});
 
 pv = segmentIndicator(G, iV, 10);
 p = mergeBlocks(pv, G, rock.poro, iT, NL);
@@ -137,7 +133,7 @@ p = mergeBlocks(p, G, rock.poro, iT, NL);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,3)
 plotCellData(G, iV, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
-axis tight off, title(sprintf('Vel:\n%d blocks', max(p)));
+axis tight off, title(sprintf('Vel:\n%d blocks', max(p)),targs{:});
 
 ps = partitionUI(G, [6 22 1]);
 [b,j,p]  = unique([pv, ps], 'rows');
@@ -148,7 +144,7 @@ p = mergeBlocks(p, G, rock.poro, iV, NL, 'static_partition', ps);
 [b, p] = findConfinedBlocks(G, p);
 subplot(1,4,4)
 plotCellData(G, iV, 'EdgeColor', 'none'), outlineCoarseGrid(G,p);
-axis tight off, title(sprintf('Hybrid vel:\n%d blocks', max(p)));
+axis tight off, title(sprintf('Hybrid vel:\n%d blocks', max(p)),targs{:});
 
 %%
 % Comparing the two time-of-flight grids, we see that the hybrid approach
@@ -156,3 +152,5 @@ axis tight off, title(sprintf('Hybrid vel:\n%d blocks', max(p)));
 % Comparing the hybrid time-of-flight and the hybrid velocity grid, we see
 % that the latter has regular coarse blocks in all zones of low flow
 % because of the static 6x22 partition.
+
+% #COPYRIGHT_EXAMPLE#

@@ -17,15 +17,11 @@
 %   solvers, September 2010,
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
+mrstModule add agglom coarsegrid spe10 mimetic incomp diagnostics;
+
 %% Set up and solve flow problem
 % As our example, we consider a standard five spot with heterogeneity
 % sampled from Model 2 of the 10th SPE Comparative Solution Project.
-try
-   require agglom coarsegrid spe10 mimetic incomp diagnostics
-catch me
-   mrstModule add agglom coarsegrid spe10 mimetic incomp diagnostics;
-end
-
 [G, W, rock] = SPE10_setup(25);
 rock.poro = max(rock.poro, 1e-4);
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
@@ -133,3 +129,5 @@ for i=1:3
    outlineCoarseGrid(G,p);
    axis tight off, title(sprintf('%d blocks', max(p)));
 end
+
+% #COPYRIGHT_EXAMPLE#

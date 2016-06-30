@@ -24,11 +24,8 @@
 %   solvers, September 2010.
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
-try
-   require agglom coarsegrid
-catch me
-   mrstModule add agglom coarsegrid
-end
+mrstModule add agglom coarsegrid
+
 %% Create a simple model
 % We consider an 8x8 Cartesian grid with an artificial flow indicator in
 % the form of a sine-wave making an angle with the coordinate directions.
@@ -122,3 +119,5 @@ for i=1:4
    outlineCoarseGrid(G,p(:,i),'Color','k'),
    title(sprintf('refineGreedy%d',i)); axis off equal
 end
+
+% #COPYRIGHT_EXAMPLE#

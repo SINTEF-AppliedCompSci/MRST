@@ -9,11 +9,8 @@
 %   solvers, September 2010,
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
-try
-   require agglom coarsegrid
-catch me
-   mrstModule add agglom coarsegrid;
-end
+mrstModule add agglom coarsegrid;
+
 %% Model with two facies
 % As a first case, we consider 40x40 fine grid for which the image
 % 'facies1.png' represents some geological object that is defined on a
@@ -107,3 +104,5 @@ subplot(2,2,4), cla
 plotCellData(G,facies,'EdgeColor','none')
 axis equal tight, title('Details of partition');
 outlineCoarseGrid(G,p,'w'); axis([130 300 320 490])
+
+% #COPYRIGHT_EXAMPLE#

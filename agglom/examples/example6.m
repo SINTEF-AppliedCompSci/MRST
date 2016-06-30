@@ -26,6 +26,8 @@
 %   solvers, September 2010,
 %   http://www.sintef.no/Projectweb/GeoScale/Publications/
 
+mrstModule add agglom coarsegrid spe10 diagnostics incomp mimetic;
+
 %% Parameters controlling case setup
 layer = 20;          % which layer from the SPE10 model
 adaptBlocks = true;  % refine all cells within a marked block
@@ -38,12 +40,6 @@ fluxTol = 1e-2;      % refine on both sides when net flux is below fluxTol
 % initalise a fluid object. Note the viscosities. For simpler flow-pattern
 % we use a quarter five-spot source/sink configuration, instead of the
 % five-spot well configuration.
-try
-   require agglom coarsegrid spe10 diagnostics incomp mimetic
-catch me
-   mrstModule add agglom coarsegrid spe10 diagnostics incomp mimetic;
-end
-
 gravity off
 
 [G, W, rock] = SPE10_setup(25); clear W %#ok<ASGLU>
@@ -126,6 +122,7 @@ clf, set(gcf, 'OuterPosition', [p0(1:2), 820, 640]);
 wc  = zeros(param.nPres*param.nSub+1, 4); wc(2:end,:) = NaN;
 err = zeros(param.nPres*param.nSub+1, 3); err(2:end,:) = NaN;
 T   = 0:DT:T;
+mytitle =@(x) title(x, 'FontSize',10,'FontWeight','normal');
 for i = 1:param.nPres,
    for j = 1:param.nSub,
 
@@ -230,22 +227,22 @@ for i = 1:param.nPres,
       clf
       axes('position',[.04 .35 .2 .6])
       plotCellData(G, rf.s, 'EdgeColor', 'none'), axis equal tight off
-      title(sprintf('Fine: %d cells', G.cells.num));
+      mytitle(sprintf('Fine: %d cells', G.cells.num));
 
       axes('position',[.28 .35 .2 .6])
       plotCellData(G, rc.s, 'EdgeColor', 'none'), axis equal tight off
       outlineCoarseGrid(G, CG.partition, 'EdgeColor', 'w', 'EdgeAlpha', 0.3);
-      title(sprintf('Coarse: %d blocks', CG.cells.num));
+      mytitle(sprintf('Coarse: %d blocks', CG.cells.num));
 
       axes('position',[.52 .35 .2 .6])
       plotCellData(G, ra1.s, 'EdgeColor', 'none'), axis equal tight off
       outlineCoarseGrid(G, aG1.partition, 'EdgeColor', 'w', 'EdgeAlpha', 0.3);
-      title(sprintf('Adaptive #1: %d blocks', aG1.cells.num))
+      mytitle(sprintf('Adaptive #1: %d blocks', aG1.cells.num))
 
       axes('position',[.76 .35 .2 .6])
       plotCellData(G, ra2.s, 'EdgeColor', 'none'), axis equal tight off
       outlineCoarseGrid(G, aG2.partition, 'EdgeColor', 'w', 'EdgeAlpha', 0.3);
-      title(sprintf('Adaptive #2: %d blocks', aG2.cells.num));
+      mytitle(sprintf('Adaptive #2: %d blocks', aG2.cells.num));
 
 
       % Plot error curves and water cut
@@ -255,7 +252,7 @@ for i = 1:param.nPres,
                     ra1.s(G.cells.num), ra2.s(G.cells.num) ];
       plot(T, wc),
       legend('Fine','Coarse', 'Adaptive #1', 'Adaptive #2', 2);
-      axis([T(1) T(end) -.05 1.05]), title('Water cut')
+      axis([T(1) T(end) -.05 1.05]), mytitle('Water cut')
 
       axes('position',[.54 .05 .42 .25])
       err(ind,:) = [sum(abs(rc.s - rf.s).*pv), ...
@@ -263,7 +260,7 @@ for i = 1:param.nPres,
                     sum(abs(ra2.s - rf.s).*pv)]./sum(rf.s .* pv);
       plot(T, err),
       legend('Coarse', 'Adaptive #1', 'Adaptive #2', 1);
-      set(gca,'XLim',[T(1) T(end)]), title('Error')
+      set(gca,'XLim',[T(1) T(end)]), mytitle('Error')
 
       drawnow
    end
@@ -284,6 +281,6 @@ for i = 1:param.nPres,
    ra2C.cflux = accumarray(cfC, sgnC .* ra2.flux(subC), [CG.faces.num, 1]);
    % Fluxes for the adaptive coarse grid will be updated after the grid has
    % been generated in the main loop.
-
-   %%
 end
+
+% #COPYRIGHT_EXAMPLE#
