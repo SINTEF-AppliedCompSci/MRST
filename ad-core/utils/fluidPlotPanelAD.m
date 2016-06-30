@@ -127,7 +127,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             legflag(i) = true;
             ctr = ctr + 1;
             switch(lower(fn))
-
                 case {'krw', 'krg', 'krog', 'kro', 'krow'}
                     data = f.(fn)(s);
                     x = s;
@@ -137,20 +136,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     x = s;
                     xl = 'Saturation';
                 case {'bo', 'bg', 'bw'}
-                    [x, data] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
                     x = x/barsa;
                     xl = 'Pressure (barsa)';
                 case {'rhoo', 'rhog', 'rhow'}
                     bsub = ['b', fn(end)];
                     rho = f.(['rho', fn(end), 'S']);
-                    [x, b] = evalSat(model, f, bsub, p, rsMax, rvMax);
+                    [x, b, ok] = evalSat(model, f, bsub, p, rsMax, rvMax);
                    
                     data = b*rho;
                     x = x/barsa;
                     xl = 'Pressure (barsa)';
                     yl = 'Density [kg/m^3]';
                 case {'muw', 'muo', 'mug'}
-                    [x, data] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
                     x = x/barsa;
                     xl = 'Pressure (barsa)';
                 case {'rssat', 'rvsat'}
@@ -162,7 +161,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
             end
-            h = plot(x, data, 'linewidth', 2, 'color', colors(i, :));
+            if size(data, 2) > 1
+                for j = 1:size(data, 2)
+                    o = ok(:, j);
+                    % Ok are saturated lines, draw as thick lines
+                    h = plot(x(o, j), data(o, j), 'linewidth', 2, 'color', colors(i, :));
+                    % Not ok are undersaturated, draw as thin lines
+                    plot(x(~o, j), data(~o, j), '--', 'linewidth', 1, 'color', colors(i, :));
+                end
+            else
+                h = plot(x, data, 'linewidth', 2, 'color', colors(i, :));
+            end
             legh(i) = h(1);
         end
         
@@ -244,7 +253,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         x = (start:dx:stop)';
     end
 
-    function [x, y] = evalSat(model, f, fn, x, rsMax, rvMax)
+    function [x, y, ok] = evalSat(model, f, fn, x, rsMax, rvMax)
+        ok = true(size(x));
         if checkBO(model)
             if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
                 mrs = max(rsMax);
@@ -257,6 +267,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
                 saturated = rs_g >= rssat;
                 rs_g(saturated) = rssat(saturated);
+                ok = saturated';
                 y = f.(fn)(x, rs_g, saturated)';
                 x = x';
             elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
@@ -270,6 +281,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
                 saturated = rs_g >= rvsat;
                 rs_g(saturated) = rvsat(saturated);
+                ok = saturated';
                 y = f.(fn)(x, rs_g, saturated)';
                 x = x';
             else
