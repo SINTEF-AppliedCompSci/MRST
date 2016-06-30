@@ -1,5 +1,6 @@
 function fluidPlotPanelAD(model, varargin)
-% Create simple plot of fluid model for a given simulation model.
+% Create a interactive plotting panel for a given model that shows
+% different fluids properties.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
@@ -42,20 +43,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     plotaxis  = subplot('Position', [.75*lm, lm, pw, 1-2*lm]);
     ctrlpanel = uipanel('Position', [lm+pw, .25*lm, 1-1.25*lm-pw,  1-1.25*lm], ...
                         'Title',  'Property');
-    
+    true3ph = model.water && model.oil && model.gas;
     names = {'Viscosity',...
-             'Relperm', ...
+             'Relative permeability', ...
              'Rock compressibility', ...
              'Densities', ...
              'Capillary pressure', ...
-             'Max Rs/Rv'
+             'Max Rs/Rv', ...
+             '3ph-relperm: Water', ...
+             '3ph-relperm: Oil', ...
+             '3ph-relperm: Gas' ...
              };
     functions = {@(name) plotViscosity(model, name), ...
                  @(name) plotRelperm(model, name),...
                  @(name) plotPVMult(model, name),...
                  @(name) plotDensity(model, name), ...
                  @(name) plotCapillaryPressure(model, name), ...
-                 @(name) plotMaxR(model, name)
+                 @(name) plotMaxR(model, name), ...
+                 @(name) plot3phRelPerm(model, name, 1), ...
+                 @(name) plot3phRelPerm(model, name, 2), ...
+                 @(name) plot3phRelPerm(model, name, 3) ...
                 };
     
     active = [true; ...
@@ -63,7 +70,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               isfield(model.fluid, 'pvMult'); ...
               true; ...
               isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG'); ...
-              model.disgas || model.vapoil];
+              model.disgas || model.vapoil; ...
+              true3ph;
+              true3ph;
+              true3ph];
               
               
     names = names(active);
@@ -75,8 +85,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if model.(lower(ph));
             names = [names, [ph, ' viscosity'], ...
                             [ph, ' b-factor']];
-            functions = [functions, {@(name) plotStuff(model, {['mu', ph(1)]}), ...
-                                     @(name) plotStuff(model, {['b', ph(1)]})}];
+            functions = [functions, {@(name) plotStuff(model, {['mu', ph(1)]}, name), ...
+                                     @(name) plotStuff(model, {['b', ph(1)]}, name)}];
         end
     end
     
@@ -89,6 +99,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function drawPlot(src, event)
         axis(plotaxis);
+        colorbar off;
+        axis normal
+        view(0, 90);
         ix = get(propsel, 'Value');
         fn = functions{ix};
         name = names{ix};
@@ -99,7 +112,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     drawPlot([], []);
 
 
-    function plotStuff(model, fields)
+    function plotStuff(model, fields, plottitle)
         f = model.fluid;
         p = opt.pressureRange;
         s = subdiv(0, 1);
@@ -179,15 +192,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         legend(legh, fields(legflag))
         xlabel(xl)
         ylabel(yl);
+        if nargin == 3
+            title(plottitle)
+        end
     end
 
     function plotViscosity(model, name)
         plotStuff(model, {'muW', 'muO', 'muG'});
-        if checkBO(model)
-            title([name, ' (saturated curves)']);
-        else
-            title([name, 'Viscosity']);
-        end
+        title('Viscosity');
     end
 
     function plotRelperm(model, name)
@@ -211,11 +223,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function plotDensity(model, name)
         plotStuff(model, {'rhoW', 'rhoO', 'rhoG'});
-        if checkBO(model)
-            title([name, ' (saturated curves)']);
-        else
-            title(name);
-        end
+        title(name);
     end
 
     function plotCapillaryPressure(model, name)
@@ -247,9 +255,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         plotStuff(model, {'pvMultR'});
         title(name);
     end
+    
+    function plot3phRelPerm(model, name, ix)
+        cla;
+        s = subdiv(0, 1, 50);
+        [x, y] = meshgrid(s);
+        [krW, krO, krG] = deal(zeros(size(x)));
+        
+        for i = 1:size(x, 1)
+            xi = x(i, :);
+            yi = y(i, :);
+            [krW(i, :), krO(i, :), krG(i, :)] = model.relPermWOG(xi, 1 - xi - yi, yi, model.fluid);
+        end
+        
+        if ix == 1
+            surf(x, y, krW)
+            title('Water relative permeability')
+        elseif ix == 2
+            surf(x, y, krO)
+            title('Oil relative permeability')
+        else
+            surf(x, y, krG)
+            title('Gas relative permeability')
+        end
+        caxis([0, 1]);
+        shading interp
+        axis equal tight
+        % view(0, 90)
+        view(-35, 45);
+        xlabel('S_w')
+        ylabel('S_g')
+        colorbar
+        legend off
+    end
 
-    function x = subdiv(start, stop)
-        dx = (stop - start)/250;
+    function x = subdiv(start, stop, n)
+        if nargin < 3
+            n = 100;
+        end
+        dx = (stop - start)/n;
         x = (start:dx:stop)';
     end
 
