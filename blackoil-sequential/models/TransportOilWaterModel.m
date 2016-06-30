@@ -15,9 +15,10 @@ classdef TransportOilWaterModel < TwoPhaseOilWaterModel
             model.conserveWater = false;
             model.conserveOil   = true;
             
-            model.staticUpwind  = false;
             model.upwindType = 'potential';
-
+            model.useCNVConvergence = false;
+            model.nonlinearTolerance = 1e-3;
+            
             model = merge_options(model, varargin{:});
             
             assert(~(model.conserveWater && model.conserveOil), ... 

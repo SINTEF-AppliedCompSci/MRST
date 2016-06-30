@@ -246,9 +246,9 @@ a_o = cfac.*(1./bO - disgas*rs./bG);
 a_g = cfac.*(1./bG - vapoil*rv./bO);
 
 eqs{1} = (dt./s.pv).*(oil.*a_o + wat.*a_w + gas.*a_g);
-
 names{1} = 'pressure';
 types{1} = 'cell';
 
+state.timestep = dt;
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end

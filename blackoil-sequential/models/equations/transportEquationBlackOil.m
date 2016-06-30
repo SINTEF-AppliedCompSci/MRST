@@ -14,7 +14,6 @@ W = drivingForces.W;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
-G = model.G;
 f = model.fluid;
 
 disgas = model.disgas;
@@ -26,7 +25,12 @@ vapoil = model.vapoil;
 % Properties at previous timestep
 [p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
                                 'pressure', 'water', 'gas', 'rs', 'rv');
-
+% If timestep has been split relative to pressure, linearly interpolate in
+% pressure.
+if isfield(state, 'timestep')
+    dt_frac = dt/state.timestep;
+    p = p.*dt_frac + p0.*(1-dt_frac);
+end
 %Initialization of primary variables ----------------------------------
 st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
 st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
@@ -98,12 +102,7 @@ Gw = gp - dpW;
 Go = gp - dpO;
 Gg = gp - dpG;
 
-% Stored upstream indices
-if model.staticUpwind
-    flag = state.upstreamFlag;
-else
-    flag = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
-end
+flag = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
 
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
@@ -115,7 +114,6 @@ mobOf = s.faceUpstr(upco, mobO);
 mobGf = s.faceUpstr(upcg, mobG);
 % Tot mob
 totMob = mobOf + mobWf + mobGf;
-totMob = max(totMob, sqrt(eps));
 
 f_w = mobWf./totMob;
 f_o = mobOf./totMob;
@@ -259,6 +257,9 @@ for i = 1:numel(active)
         names{ix} = enames{i};
         types{ix} = 'cell';
         eqs{ix} = phaseEqs{i};
+        if ~model.useCNVConvergence
+            eqs{ix} = eqs{ix}.*(dt./s.pv);
+        end
         ix = ix + 1;
     end
 end
