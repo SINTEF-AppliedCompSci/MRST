@@ -16,7 +16,9 @@ function [p, binAngle, binRadius, dist] = refineNearWell(pts, wellpt, varargin)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %  maxRadius   - The distance in meters for which a partition will be
-%                applied. (Defaults to inf, i.e. all points).
+%                applied. (Defaults to inf, i.e. all points). If maxRadius
+%                is a two-vector, the partition is applied inside a
+%                rectangle rather than inside a circle.
 %
 %  angleBins   - The number of sectors the region will be divided into
 %                along the angle around the point. 
@@ -110,9 +112,14 @@ end
 
 
 function [ind, dist, outside] = partitionBins(pts, p0, binNum, useLogBins, maxRadius)
-    dist = len(bsxfun(@minus, pts(:, 1:2), p0(1:2)));
-    outside = dist > maxRadius;
-    
+    if numel(maxRadius)==1
+       dist = len(bsxfun(@minus, pts(:, 1:2), p0(1:2)));
+       outside = dist > maxRadius;
+    else
+       dist = abs(bsxfun(@minus, pts(:,1:2), p0(1:2)));
+       outside = any(bsxfun(@rdivide, dist, maxRadius)>1,2);
+       dist = len(dist);
+   end
     d = normalize(dist);
     if useLogBins
         d = d*10 + 1;
