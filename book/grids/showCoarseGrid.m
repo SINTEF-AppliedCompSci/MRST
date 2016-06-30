@@ -12,7 +12,7 @@ CG = generateCoarseGrid(G, p);
 
 clf
 plotCellData(G,(1:G.cells.num)','LineStyle',':');
-plotGridNew(CG,'faceColor','none','LineWidth',3);
+plotGrid(CG,'faceColor','none','LineWidth',3);
 colormap((jet(G.cells.num)+repmat(2,G.cells.num,3))/3);
 
 %% 
@@ -49,7 +49,7 @@ pf = processFacePartition(G, pv, pf);
 CG = generateCoarseGrid(G, pv, pf);
 
 CG = coarsenGeometry(CG);
-plotFacesNew(CG,1:CG.faces.num,'Marker','+','MarkerSize',8,'LineWidth',2);
+plotFaces(CG,1:CG.faces.num,'Marker','+','MarkerSize',8,'LineWidth',2);
 h=get(gca,'children');set(h(1),'LineWidth',2)
 text(CG.faces.centroids(:,1), CG.faces.centroids(:,2), ...
    num2str((1:CG.faces.num)'),'FontSize',20, 'HorizontalAlignment','center');
@@ -69,8 +69,8 @@ q = partitionUI(G,[4, 4, 2]);
 CG = generateCoarseGrid(G, p, ...
    cellPartitionToFacePartition(G,q));
 
-plotCellDataNew(CG,(1:max(p))');
-plotFacesNew(CG,1:CG.faces.num,...
+plotCellData(CG,(1:max(p))');
+plotFaces(CG,1:CG.faces.num,...
    'FaceColor' , 'none' , 'LineWidth' ,2);
 view(3); axis off
 colormap(.5*(jet(128)+ones(128,3)));
@@ -99,8 +99,8 @@ clf
 show = false(1,CG.faces.num);
 show(boundaryFaces(CG)) = true;
 show(boundaryFaces(CG,neigh)) = false;
-plotFacesNew(CG, show,'FaceColor',[1 1 .7]);
-plotFacesNew(CG,boundaryFaces(CG,neigh),'FaceColor','none','LineWidth', 2);
+plotFaces(CG, show,'FaceColor',[1 1 .7]);
+plotFaces(CG,boundaryFaces(CG,neigh),'FaceColor','none','LineWidth', 2);
 plotFaces(G, ff, 'FaceColor', 'g')
 plotGrid(G, p == neigh(1), 'FaceColor', 'none', 'EdgeColor', 'r')
 plotGrid(G, p == neigh(2), 'FaceColor', 'none', 'EdgeColor', 'b')
