@@ -1,75 +1,106 @@
-%% Refine coarsegrids near wells / specific points in xy-plane
-mrstModule add multiscale-devel coarsegrid libgeometry mrst-gui
+%% Generate Coarse Grids with Near-Well Refinement
+% Pressure gradients and flow rates will typically be much larger near
+% wells than inside the reservoir. The accuracy with which we represent the
+% flow in and out of wells will to a large extent determine the accuracy of
+% an overall simulation and as a result one therefore often desires to have
+% higher grid resolution in the near-well zone than inside the reservoir.
+%
+% In this example, we will use the function 'refineNearWell' to make coarse
+% grids with various types of near-well refinement.
 
-% Grid
+mrstModule add coarsegrid
+plotPartition = @(p) plotCellData(G, p, 'EdgeColor','w','EdgeAlpha',.2);
+
+%% Make fine grid and far-field partitioning
+% To demonstrate the various coarsening types, we start with a simple
+% rectangular domain discretized by a uniform Cartesian grid. As our first
+% far-field coarse grid, we use an almost uniform partitioning
+
 G = cartGrid([150 150 5], [100 100 1]*meter);
 p0 = partitionUI(G, [3 3 1]);
-G = mcomputeGeometry(G);
+G = computeGeometry(G);
 
-% Fake a rock
+% Make a dummy rock object which is required to set up wells
 clear rock
 rock.perm = ones(G.cells.num, 1);
 
-% Make two wells
-W = [];
-W = verticalWell(W, G, rock, ...
-                 round(G.cartDims(1)/2), ...
-                 round(G.cartDims(1)/2), [], ...
-                 'InnerProduct', 'ip_tpf');
-W = verticalWell(W, G, rock, 1, 1, [], ...
-                 'InnerProduct', 'ip_tpf');
+% Make two wells: one in the center and one in the SW corner
+W = verticalWell([], G, rock, round(G.cartDims(1)/2), ...
+                 round(G.cartDims(1)/2), [],'InnerProduct', 'ip_tpf');
+W = verticalWell(W, G, rock, 1, 1, [], 'InnerProduct', 'ip_tpf');
+
+% Plot the partitioned grid
+clf
+plotPartition(p0); outlineCoarseGrid(G, p0)
+plotWell(G, W, 'height', 1/2)
+axis tight off, view(25, 60), colormap(colorcube(max(p0)))
 
 %% Show two different refinements per well
+% The function 'refineNearWell' takes a set of points and partitions these
+% according to the distance in the xy-plane from a single well point. Here,
+% we will this function to refine the coarse blocks that contains wells.
+% For the first well, we will partition the wellblock into five radial and
+% six angular sections. The second well lies at the SW corner of the
+% wellblock and hence, we only partition it into five radial sections. The
+% width of the radial sections is set to decay as log(r).
 p = p0;
+angSectors = [6 1];
+radSectors = [5 5];
 for i = 1:numel(W)
-    if i == 1
-        sectors = 6;
-    else
-        sectors = 1;
-    end
-    wc = W(i).cells(1);
-
+    % Find the well blocks
+    wc      = W(i).cells(1);
     pt_well = G.cells.centroids(wc, :);
 
     cells = p == p(wc);
     pts = G.cells.centroids(cells, :);
-    out = refineNearWell(pts, pt_well, 'angleBins', sectors, 'radiusBins', 5, 'logbins', true, 'maxRadius', inf);
+    out = refineNearWell(pts, pt_well, 'angleBins', angSectors(i), ...
+         'radiusBins', radSectors(i), 'logbins', true, 'maxRadius', inf);
 
     p(cells) = max(p) + out;
 end
-close all
-plotToolbar(G, mod(p, 13), 'edgec', 'w' , 'edgea', .2)
-outlineCoarseGrid(G, p)
+clf
+plotPartition(p); outlineCoarseGrid(G, p)
 plotWell(G, W, 'height', 1/2)
-axis tight off
-view(25, 60)
-%% Different amount of sectors as we move away from the center
+axis tight off, view(25, 60), colormap(colorcube(max(p)))
+
+
+%% Increasing number of angular sectors away from the center
+% It is also possible to set the number of angular sectors so that it
+% increases as we move radially out from the well point
 pt_well1 = G.cells.centroids(W(1).cells(1), :);
-out = refineNearWell(G.cells.centroids, pt_well1, 'angleBins', [2 4 8 16],...
-                                                  'radiusBins', 4,...
-                                                  'logbins', true,...
-                                                  'maxRadius', inf);
+out = refineNearWell(G.cells.centroids, pt_well1, 'logbins', true, ...
+   'angleBins', [2 4 8 16], 'radiusBins', 4, 'maxRadius', inf);
 
-close all
-plotToolbar(G, mod(out, 13), 'edgec', 'w' , 'edgea', .2)
-outlineCoarseGrid(G, out)
+clf
+plotPartition(out); outlineCoarseGrid(G, out)
 plotWell(G, W(1), 'height', 1/2)
-axis tight off
-view(25, 60)
+axis tight off, view(25, 60), colormap(colorcube(max(out)))
 
-
-%% Use only radius to plot, with a unstructured grid underneath
-mrstModule add mrst-experimental
+%% Unstructured coarse grid with radial refinement
+% In the last example, we will use METIS to make an unstructured partition
+% that adapts to the underlying geology. To this end, we generate a
+% lognormal permeability distribution and use the resulting
+% transmissibilities as edge-weights in the graph-partitioning algorithm of
+% METIS so that it tries to make grid blocks having as homogeneous
+% permeability as possible. We then combine this partition with a radial
+% refinement. (The result is not guaranteed to give accurate simulations,
+% but the example illustrates the flexibility in they type of coarsening.)
+rock.perm = logNormLayers(G.cartDims, [300 200]*milli*darcy, 'sz', [51 3 3]);
 T = computeTrans(G, rock);
-p = partitionMETIS(G, T, 10);
-%% Refine near the well
-p_loc = refineNearWell(G.cells.centroids, pt_well1, 'angleBins', 5, 'radiusBins', 4, 'logbins', true, 'maxRadius', 15*meter);
+p = partitionMETIS(G, T, 20, 'useLog', true);
+
+p_loc = refineNearWell(G.cells.centroids, pt_well1, 'angleBins', 6, ...
+   'radiusBins', 4, 'logbins', true, 'maxRadius', [15 10]*meter);
 local = p_loc>0;
 p(local) = p_loc(local) + max(p);
 
-close all
-plotToolbar(G, mod(p, 13), 'edgec', 'w' , 'edgea', .2)
-outlineCoarseGrid(G, p)
+clf
+plotGrid(G, 'EdgeColor', 'w' , 'EdgeAlpha', .2); outlineCoarseGrid(G, p)
 plotWell(G, W(1), 'height', 1/2)
-axis tight off
-view(25, 60)
+axis tight off, view(25, 60)
+
+axes('Position',[.02 .78 .2 .2]); 
+plotCellData(G,log10(rock.perm),'EdgeColor','none'); 
+view(25,60), axis tight off; colormap(jet)
+
+% #COPYRIGHT_EXAMPLE#
