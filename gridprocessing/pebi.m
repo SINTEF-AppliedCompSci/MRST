@@ -295,7 +295,7 @@ function isparallel = compareNormals(nn1,nn2, coord)
    n  = [diff(y(nn1), 1, 2), -diff(x(nn1), 1, 2)];
    e  = [diff(x(nn2), 1, 2),  diff(y(nn2), 1, 2)];
    ip = abs(sum(n.*e, 2));
-   isparallel = (ip < 10*eps);
+   isparallel = (ip < 10*sqrt(eps));
 end
 
 function p = circumcenter(G)
@@ -336,7 +336,7 @@ function [t, n] = pointInside(t, p, points)
    wy = diff(reshape(y([t, t(:,1)])',4,[]), 1, 1)';
 
    a = (vx.*wy - vy.*wx);
-   t = all(a > -eps, 2);
+   t = all(a > -sqrt(eps), 2);
    assert(all(sum(sign(a(~t,:)') == -1, 1) == 1), ...
       'Internal error in pebi.m');
    [n,dummy] = find(sign(a(~t,:)') == -1); %#ok
