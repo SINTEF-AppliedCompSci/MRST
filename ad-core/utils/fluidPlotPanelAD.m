@@ -1,4 +1,4 @@
-function fluidPlotPanelAD(model)
+function fluidPlotPanelAD(model, varargin)
 % Create simple plot of fluid model for a given simulation model.
 
 %{
@@ -19,8 +19,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    opt = struct('pressureRange', []);
+    opt = merge_options(opt, varargin{:});
 
-
+    if isempty(opt.pressureRange)
+        p0 = max(model.minimumPressure, 0);
+        p1 = min(model.maximumPressure, 1000*barsa);
+        opt.pressureRange = subdiv(p0, p1);
+    end
     % Make a figure that's wider than the default.
     df = get(0, 'DefaultFigurePosition');
     fh = figure('Position', df.*[1 1 1.75 1]);
@@ -76,121 +82,122 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     drawPlot([], []);
-end
 
-function plotStuff(model, fields)
-    f = model.fluid;
-    p = subdiv(0, 1000*barsa);
-    s = subdiv(0, 1);
 
-    rs = 0;
-    rv = 0;
-    n = sum(model.getActivePhases);
+    function plotStuff(model, fields)
+        f = model.fluid;
+        p = opt.pressureRange;
+        s = subdiv(0, 1);
 
-    legflag = false(size(fields));
-    data = nan(numel(p), n);
-    
-    ctr = 0;
-    
-    for i = 1:numel(fields)
-        fn = fields{i};
-        if ~isfield(f, fn)
-            continue
+        rs = 0;
+        rv = 0;
+        n = sum(model.getActivePhases);
+
+        legflag = false(size(fields));
+        data = nan(numel(p), n);
+
+        ctr = 0;
+
+        for i = 1:numel(fields)
+            fn = fields{i};
+            if ~isfield(f, fn)
+                continue
+            end
+            legflag(i) = true;
+            ctr = ctr + 1;
+            switch(lower(fn))
+
+                case {'krw', 'krg', 'krog', 'kro', 'krow'}
+                    data(:, ctr) = f.(fn)(s);
+                    x = s;
+                    xl = 'Saturation';
+                case {'pcow', 'pcog'}
+                    data(:, ctr) = f.(fn)(s);
+                    x = s;
+                    xl = 'Saturation';
+                case {'bo', 'bg', 'bw'}
+                    data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
+                    x = p/barsa;
+                    xl = 'Pressure (barsa)';
+                case {'muw', 'muo', 'mug'}
+                    data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
+                    x = p/barsa;
+                    xl = 'Pressure (barsa)';
+                case {'rssat', 'rvsat'}
+                    data(:, ctr) = f.(fn)(p);
+                    x = p/barsa;
+                    xl = 'Pressure (barsa)';
+                case {'pvmultr'}
+                    data(:, ctr) = f.(fn)(p);
+                    x = p/barsa;
+                    xl = 'Pressure (barsa)';
+            end
         end
-        legflag(i) = true;
-        ctr = ctr + 1;
-        switch(lower(fn))
-            
-            case {'krw', 'krg', 'krog', 'kro', 'krow'}
-                data(:, ctr) = f.(fn)(s);
-                x = s;
-                xl = 'Saturation';
-            case {'pcow', 'pcog'}
-                data(:, ctr) = f.(fn)(s);
-                x = s;
-                xl = 'Saturation';
-            case {'bo', 'bg', 'bw'}
-                data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
-            case {'muw', 'muo', 'mug'}
-                data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
-            case {'rssat', 'rvsat'}
-                data(:, ctr) = f.(fn)(p);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
-            case {'pvmultr'}
-                data(:, ctr) = f.(fn)(p);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
+        plot(x, data, 'linewidth', 2)
+        grid on
+        legend(fields(legflag))
+        xlabel(xl)
+    end
+
+    function plotViscosity(model, name)
+        plotStuff(model, {'muW', 'muO', 'muG'});
+        if checkBO(model)
+            title([name, ' (saturated curves)']);
+        else
+            title(name);
         end
     end
-    plot(x, data, 'linewidth', 2)
-    grid on
-    legend(fields(legflag))
-    xlabel(xl)
-end
 
-function plotViscosity(model, name)
-    plotStuff(model, {'muW', 'muO', 'muG'});
-    if checkBO(model)
-        title([name, ' (saturated curves)']);
-    else
+    function plotRelperm(model, name)
+        plotStuff(model, {'krW', 'krOW', 'krOG', 'krO', 'krG'});
         title(name);
     end
-end
 
-function plotRelperm(model, name)
-    plotStuff(model, {'krW', 'krOW', 'krOG', 'krO', 'krG'});
-    title(name);
-end
+    function plotCompressibility(model, name)
+        plotStuff(model, {'bW', 'bO', 'bG'});
+        if checkBO(model)
+            title([name, ' (saturated curves)']);
+        else
+            title(name);
+        end
+    end
 
-function plotCompressibility(model, name)
-    plotStuff(model, {'bW', 'bO', 'bG'});
-    if checkBO(model)
-        title([name, ' (saturated curves)']);
-    else
+    function plotCapillaryPressure(model, name)
+        plotStuff(model, {'pcOW', 'pcOG'});
+        title('Capillary pressure');
+    end
+
+    function plotMaxR(model, name)
+        plotStuff(model, {'rsSat', 'rvSat'});
         title(name);
     end
-end
 
-function plotCapillaryPressure(model, name)
-    plotStuff(model, {'pcOW', 'pcOG'});
-    title('Capillary pressure');
-end
+    function plotPVMult(model, name)
+        plotStuff(model, {'pvMultR'});
+        title(name);
+    end
 
-function plotMaxR(model, name)
-    plotStuff(model, {'rsSat', 'rvSat'});
-    title(name);
-end
+    function x = subdiv(start, stop)
+        dx = (stop - start)/250;
+        x = (start:dx:stop)';
+    end
 
-function plotPVMult(model, name)
-    plotStuff(model, {'pvMultR'});
-    title(name);
-end
-
-function x = subdiv(start, stop)
-    dx = (stop - start)/250;
-    x = (start:dx:stop)';
-end
-
-function y = evalSat(model, f, fn, x, rs, rv)
-    if checkBO(model)
-        if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
-            y = f.(fn)(x, rs, true);
-        elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
-            y = f.(fn)(x, rv, true);
+    function y = evalSat(model, f, fn, x, rs, rv)
+        if checkBO(model)
+            if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
+                y = f.(fn)(x, rs, true);
+            elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
+                y = f.(fn)(x, rv, true);
+            else
+                y = f.(fn)(x);
+            end
         else
             y = f.(fn)(x);
         end
-    else
-        y = f.(fn)(x);
     end
-end
 
-function ind = checkBO(model)
-    ind = isa(model, 'ThreePhaseBlackOilModel') &&...
-           (model.disgas || model.vapoil);
+    function ind = checkBO(model)
+        ind = isa(model, 'ThreePhaseBlackOilModel') &&...
+               (model.disgas || model.vapoil);
+    end
 end
