@@ -1,5 +1,12 @@
 function spe10SurfanctantExample()
-% Surfactant example for a SPE10 layer.
+%
+%
+% SYNOPSIS:
+%   function spe10SurfanctantExample()
+%
+% DESCRIPTION: Example of an oil-water-surfactant system for a layer of SPE10
+% model. We use here a fully implicit solver.
+%
 
     try
         require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui spe10 ad-fi
