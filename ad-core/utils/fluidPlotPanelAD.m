@@ -46,13 +46,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     names = {'Viscosity',...
              'Relperm', ...
              'Rock compressibility', ...
-             'Compressibility'};
-    if isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG')
-        names{end + 1} = 'Capillary pressure';
+             'Densities', ...
+             'Capillary pressure', ...
+             'Max Rs/Rv'
+             };
+    functions = {@(name) plotViscosity(model, name), ...
+                 @(name) plotRelperm(model, name),...
+                 @(name) plotPVMult(model, name),...
+                 @(name) plotDensity(model, name), ...
+                 @(name) plotCapillaryPressure(model, name), ...
+                 @(name) plotMaxR(model, name)
+                };
+    
+    if model.oil
+        names = [names, 'Oil viscosity'];
+        names = [names, 'Oil b-factor'];
     end
-    if checkBO(model)
-        names{end + 1} = 'Max dissolution';
-    end
+    
+    
+%     if isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG')
+%         names{end + 1} = 'Capillary pressure';
+%     end
+%     if checkBO(model)
+%         names{end + 1} = 'Max dissolution';
+%     end
     propsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'listbox',...
               'String', names, 'Callback', @drawPlot, ...
@@ -62,23 +79,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function drawPlot(src, event)
         axis(plotaxis);
-        name = names{get(propsel, 'Value')};
-        switch lower(name)
-            case 'viscosity'
-                plotViscosity(model, name)
-            case 'relperm'
-                plotRelperm(model, name)
-            case 'capillary pressure'
-                plotCapillaryPressure(model, name)
-            case 'compressibility'
-                plotCompressibility(model, name)
-            case 'max dissolution'
-                plotMaxR(model, name);
-            case 'rock compressibility'
-                plotPVMult(model, name);
-            otherwise
-                disp(name)
-        end
+        ix = get(propsel, 'Value');
+        fn = functions{ix};
+        name = names{ix};
+        
+        fn(name);
     end
 
     drawPlot([], []);
@@ -91,18 +96,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         rs = 0;
         rv = 0;
+        if model.disgas
+            rs = f.rsSat(p);
+        end
+        if model.vapoil
+            rv = f.rvSat(p);
+        end
         n = sum(model.getActivePhases);
 
         legflag = false(size(fields));
         data = nan(numel(p), n);
 
         ctr = 0;
-
+        yl = '';
         for i = 1:numel(fields)
             fn = fields{i};
-            if ~isfield(f, fn)
-                continue
-            end
+%             if ~isfield(f, fn)
+%                 continue
+%             end
             legflag(i) = true;
             ctr = ctr + 1;
             switch(lower(fn))
@@ -119,6 +130,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
+                case {'rhoo', 'rhog', 'rhow'}
+                    bsub = ['b', fn(end)];
+                    rho = f.(['rho', fn(end), 'S']);
+                    b = evalSat(model, f, bsub, p, rs, rv);
+                   
+                    data(:, ctr) = b*rho;
+                    x = p/barsa;
+                    xl = 'Pressure (barsa)';
+                    yl = 'Density [kg/m^3]';
                 case {'muw', 'muo', 'mug'}
                     data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
                     x = p/barsa;
@@ -137,6 +157,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         grid on
         legend(fields(legflag))
         xlabel(xl)
+        ylabel(yl);
     end
 
     function plotViscosity(model, name)
@@ -144,17 +165,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if checkBO(model)
             title([name, ' (saturated curves)']);
         else
-            title(name);
+            title([name, 'Viscosity']);
         end
     end
 
     function plotRelperm(model, name)
-        plotStuff(model, {'krW', 'krOW', 'krOG', 'krO', 'krG'});
+        krnames = {};
+        if model.water
+            krnames = [krnames, 'krW'];
+        end
+        if model.oil
+            if model.water && model.gas
+                krnames = [krnames, 'krOW', 'krOG'];
+            else
+                krnames = [krnames, 'krO'];
+            end
+        end
+        if model.gas
+            krnames = [krnames, 'krG'];
+        end
+        plotStuff(model, krnames);
         title(name);
     end
 
-    function plotCompressibility(model, name)
-        plotStuff(model, {'bW', 'bO', 'bG'});
+%     function plotCompressibility(model, name)
+%         plotStuff(model, {'bW', 'bO', 'bG'});
+%         if checkBO(model)
+%             title([name, ' (saturated curves)']);
+%         else
+%             title(name);
+%         end
+%     end
+    function plotDensity(model, name)
+        plotStuff(model, {'rhoW', 'rhoO', 'rhoG'});
         if checkBO(model)
             title([name, ' (saturated curves)']);
         else
@@ -168,7 +211,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotMaxR(model, name)
-        plotStuff(model, {'rsSat', 'rvSat'});
+        rnames = {};
+        if model.disgas
+            rnames = [rnames, 'rsSat'];
+        end
+        if model.vapoil
+            rnames = [rnames, 'rvSat'];
+        end
+        plotStuff(model, rnames);
         title(name);
     end
 
@@ -185,9 +235,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     function y = evalSat(model, f, fn, x, rs, rv)
         if checkBO(model)
             if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
-                y = f.(fn)(x, rs, true);
+                y = f.(fn)(x, rs, true(size(x)));
             elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
-                y = f.(fn)(x, rv, true);
+                y = f.(fn)(x, rv, true(size(x)));
             else
                 y = f.(fn)(x);
             end
