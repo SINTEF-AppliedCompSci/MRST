@@ -115,7 +115,7 @@ function varargout = interactiveTrapping(inp, varargin)
         Gt.petroinfo = petroinfo{1};
     end
 
-    res = trapAnalysis(Gt, strcmpi(opt.method, 'cell'));
+    res = trapAnalysis(Gt, strcmpi(opt.method, true));
 
     if isempty(res.trap_adj) || all(res.trap_adj(:)==0)
         disp('No trap adjacency graph produced. Does the grid have any traps?')
