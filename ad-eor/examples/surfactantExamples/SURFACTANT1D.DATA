@@ -53,7 +53,7 @@ EQUALS
 PROPS    ===============================================================
 
 SWOF
---  Saturatio       Relperm         Relperm     Capillary
+--  Saturation      Relperm         Relperm     Capillary
 --                  Water           Oil         pressure
 -- Table 1 - Immiscible curves - SATNUM
     0.2000	    0.000           0.5000	1.76

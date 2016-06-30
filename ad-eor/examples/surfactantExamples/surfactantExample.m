@@ -1,10 +1,11 @@
 %% Read case from file
-% This example contains a simple $31\times31\times3$ fine grid containing
-% two injectors in opposite corners and one producer in the middle of the
+% This example contains a simple $31\times31\times3$ fine grid containing two
+% injectors in opposite corners and one producer in the middle of the
 % domain. All wells are completed in the top layers of cells.
 %
-% The schedule being used contains first a period of injection with surfactant, followed by a water
-% flooding phase without surfactant. Finally, the water rate is reduced for the final time steps.
+% The schedule being used contains first a period of injection with surfactant,
+% followed by a water flooding phase without surfactant. Finally, the water rate
+% is reduced for the final time steps.
 %
 
 try
@@ -86,16 +87,10 @@ end
 
 %% Set up systems.
 
-switch simul_case
-  case '1D'
-    % modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck);
-    modelSurfactant = OilWaterSurfactantModel1D(G, rock, fluid, 'inputdata', deck, 'extraStateOutput', ...
-                                                true);
-  case '2D'
-    modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck);
-  otherwise
-    error('simul_case not recognized.');
-end
+modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, ...
+                                                  'inputdata', deck, ...
+                                                  'extraStateOutput', true);
+
 % Convert the deck schedule into a MRST schedule by parsing the wells
 schedule = convertDeckScheduleToMRST(modelSurfactant, deck);
 
@@ -109,8 +104,9 @@ state0.ads = computeEffAds(state0.c, 0, modelSurfactant.fluid);
 state0.adsmax = state0.ads;
 
 resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
-[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, schedule, ...
-                                                  'OutputHandler', resulthandler);
+[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, modelSurfactant, ...
+                                                  schedule, 'OutputHandler', ...
+                                                  resulthandler);
 
 switch simul_case
   case '1D'
