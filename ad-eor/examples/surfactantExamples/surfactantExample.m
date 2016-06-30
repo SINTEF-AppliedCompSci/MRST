@@ -7,12 +7,7 @@
 % followed by a water flooding phase without surfactant. Finally, the water rate
 % is reduced for the final time steps.
 %
-
-try
-    require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
-catch
-    mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
-end
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
 current_dir = fileparts(mfilename('fullpath'));
 simul_case = '1D'; % '1D' or '2D'
@@ -39,7 +34,6 @@ G = computeGeometry(G);
 
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
-
 
 
 %% Set up simulation parameters
@@ -110,9 +104,14 @@ resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'clea
 
 switch simul_case
   case '1D'
-    plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true)
+    plotToolbar(G, statesSurfactant, 'field', 's:1', ...
+                'startplayback', true, 'plot1d', true)
   case '2D'
-    plotToolbar(G, statesSurfactant, 'startplayback', true)
+    plotToolbar(G, statesSurfactant, 'field', 's:2','lockCaxis',true);
+    plotWell(G,schedule.control(1).W);
+    view(15,40), axis tight, caxis([.1 .9]); colorbar
+    
+    plotWellSols(wellSolsSurfactant,'field','bhp');
   otherwise
     error('simul_case not recognized.');
 end
