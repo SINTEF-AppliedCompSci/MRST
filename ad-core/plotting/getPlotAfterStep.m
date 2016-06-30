@@ -32,6 +32,10 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %                    plotting, locked color axis and so on) before
 %                    initiating the simulation itself.
 %
+%  'view'          - View angle for the reservoir plotting. Se Matlab
+%                    builtin "view()" for more information. Defaults to
+%                    empty for no modification to the default.
+%
 % RETURNS:
 %  fn -  Function handle suitable for the "afterStepFn" input in
 %        simulateScheduleAD.
@@ -57,7 +61,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('plotWell', true, 'plotReservoir', true);
+    opt = struct('plotWell',        true, ...
+                 'plotReservoir',   true, ...
+                 'view',            []);
     [opt, extra] = merge_options(opt, varargin{:});
     
     G = model.G;
@@ -84,6 +90,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         hdata = figure;
         [~, injData] = plotToolbar(G, {state0; state0}, extra{:});
         axis tight
+        if ~isempty(opt.view)
+            view(opt.view)
+        end
     else
         [hdata, injData] = deal(nan);
     end
