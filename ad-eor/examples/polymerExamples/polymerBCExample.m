@@ -32,14 +32,14 @@ model = OilWaterPolymerModel(G, rock, fluid);
 
 % Setup some schedule
 dt = 25*day;
-nt = 10;
+nt = 40;
 clear schedule
 timesteps = repmat(dt, nt, 1);
 
 %% Pressure (Dirichlet) Boundary Condition
 
 % Create Dirichlet boundary condition
-bc = pside([], G, 'xmin', 300*barsa, 'sat', [1 0]);
+bc = pside([], G, 'xmin', 500*barsa, 'sat', [1 0]);
 bc = pside(bc, G, 'xmax', 100*barsa, 'sat', [0 0]);
 bc.poly = 4.*ones(size(bc.sat,1), 1);
 
@@ -50,16 +50,16 @@ schedule = simpleSchedule(timesteps, 'bc', bc);
 
 % Plot results in GUI
 figure;
-plotToolbar(G, states);
+plotToolbar(G, states,'field', 's:1','lockCaxis',true);
 view([-10, 14]);
 axis tight;
-colorbar;
+colorbar; caxis([0 1]);
 
 %% Flux (Neumann) Boundary Condition
 
 % Create Neumann boundary condition
-bc = fluxside([], G, 'xmin',  0.004, 'sat', [1 0]);
-bc = fluxside(bc, G, 'xmax', -0.004, 'sat', [0 0]);
+bc = fluxside([], G, 'xmin',  0.005, 'sat', [1 0]);
+bc = fluxside(bc, G, 'xmax', -0.005, 'sat', [0 0]);
 bc.poly = 4.*ones(size(bc.sat,1), 1);
 schedule = simpleSchedule(timesteps, 'bc', bc);
 
@@ -68,10 +68,10 @@ schedule = simpleSchedule(timesteps, 'bc', bc);
 
 % Plot results in GUI
 figure;
-plotToolbar(G, states);
+plotToolbar(G, states,'field', 's:1','lockCaxis',true);
 view([-10, 14]);
 axis tight;
-colorbar;
+colorbar; caxis([0 1]);
 
 
 %% Source
@@ -91,8 +91,8 @@ schedule = simpleSchedule(timesteps, 'bc', bc);
 
 % Plot results in GUI
 figure;
-plotToolbar(G, states);
+plotToolbar(G, states,'field', 's:1','lockCaxis',true);
 view([-10, 14]);
 axis tight;
-colorbar;
+colorbar; caxis([0 1]);
 
