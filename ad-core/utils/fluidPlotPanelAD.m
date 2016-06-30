@@ -58,19 +58,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  @(name) plotMaxR(model, name)
                 };
     
-    if model.oil
-        names = [names, 'Oil viscosity', ...
-                        'Oil b-factor'];
-        functions = [functions, {@(name) plotStuff(model, {'muO'})}];
+    active = [true; ...
+              true; ...
+              isfield(model.fluid, 'pvMult'); ...
+              true; ...
+              isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG'); ...
+              model.disgas || model.vapoil];
+              
+              
+    names = names(active);
+    functions = functions(active);
+    
+    phases = {'Water', 'Oil', 'Gas'};
+    for it = 1:numel(phases)
+        ph = phases{it};
+        if model.(lower(ph));
+            names = [names, [ph, ' viscosity'], ...
+                            [ph, ' b-factor']];
+            functions = [functions, {@(name) plotStuff(model, {['mu', ph(1)]}), ...
+                                     @(name) plotStuff(model, {['b', ph(1)]})}];
+        end
     end
     
-    
-%     if isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG')
-%         names{end + 1} = 'Capillary pressure';
-%     end
-%     if checkBO(model)
-%         names{end + 1} = 'Max dissolution';
-%     end
     propsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'listbox',...
               'String', names, 'Callback', @drawPlot, ...
@@ -106,7 +115,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         n = sum(model.getActivePhases);
 
         legflag = false(size(fields));
-
+        legh = zeros(size(fields));
         ctr = 0;
         yl = '';
         cla;
@@ -115,9 +124,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         colors = lines(nf);
         for i = 1:nf
             fn = fields{i};
-%             if ~isfield(f, fn)
-%                 continue
-%             end
             legflag(i) = true;
             ctr = ctr + 1;
             switch(lower(fn))
@@ -131,21 +137,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     x = s;
                     xl = 'Saturation';
                 case {'bo', 'bg', 'bw'}
-                    data = evalSat(model, f, fn, p, rsMax, rvMax);
-                    x = p/barsa;
+                    [x, data] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    x = x/barsa;
                     xl = 'Pressure (barsa)';
                 case {'rhoo', 'rhog', 'rhow'}
                     bsub = ['b', fn(end)];
                     rho = f.(['rho', fn(end), 'S']);
-                    b = evalSat(model, f, bsub, p, rsMax, rvMax);
+                    [x, b] = evalSat(model, f, bsub, p, rsMax, rvMax);
                    
                     data = b*rho;
-                    x = p/barsa;
+                    x = x/barsa;
                     xl = 'Pressure (barsa)';
                     yl = 'Density [kg/m^3]';
                 case {'muw', 'muo', 'mug'}
-                    data = evalSat(model, f, fn, p, rsMax, rvMax);
-                    x = p/barsa;
+                    [x, data] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    x = x/barsa;
                     xl = 'Pressure (barsa)';
                 case {'rssat', 'rvsat'}
                     data = f.(fn)(p);
@@ -156,11 +162,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     x = p/barsa;
                     xl = 'Pressure (barsa)';
             end
-            plot(x, data, 'linewidth', 2, 'color', colors(i, :))
+            h = plot(x, data, 'linewidth', 2, 'color', colors(i, :));
+            legh(i) = h(1);
         end
         
         grid on
-        legend(fields(legflag))
+        legend(legh, fields(legflag))
         xlabel(xl)
         ylabel(yl);
     end
@@ -203,7 +210,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotCapillaryPressure(model, name)
-        plotStuff(model, {'pcOW', 'pcOG'});
+        cnames = {};
+        fld = {'pcOW', 'pcOG'};
+        for i = 1:numel(fld)
+            if isfield(model.fluid, fld{i})
+                cnames = [cnames, fld{i}];
+            end
+        end
+
+        plotStuff(model, cnames);
         title('Capillary pressure');
     end
 
@@ -229,12 +244,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         x = (start:dx:stop)';
     end
 
-    function y = evalSat(model, f, fn, x, rs, rv)
+    function [x, y] = evalSat(model, f, fn, x, rsMax, rvMax)
         if checkBO(model)
             if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
-                y = f.(fn)(x, rs, true(size(x)));
+                mrs = max(rsMax);
+                rs = 0:mrs/10:mrs;
+                [x, rs_g] = meshgrid(x, rs);
+                rssat = zeros(size(x));
+                for i = 1:size(x, 1)
+                    rssat(i, :) = f.rsSat(x(i, :));
+                end
+
+                saturated = rs_g >= rssat;
+                rs_g(saturated) = rssat(saturated);
+                y = f.(fn)(x, rs_g, saturated)';
+                x = x';
             elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
-                y = f.(fn)(x, rv, true(size(x)));
+                mrs = max(rvMax);
+                rv = 0:mrs/10:mrs;
+                [x, rs_g] = meshgrid(x, rv);
+                rvsat = zeros(size(x));
+                for i = 1:size(x, 1)
+                    rvsat(i, :) = f.rvSat(x(i, :));
+                end
+
+                saturated = rs_g >= rvsat;
+                rs_g(saturated) = rvsat(saturated);
+                y = f.(fn)(x, rs_g, saturated)';
+                x = x';
             else
                 y = f.(fn)(x);
             end
