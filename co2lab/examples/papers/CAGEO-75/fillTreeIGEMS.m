@@ -59,7 +59,7 @@ hold off
 ht = [];
 for v=0:0.25:1
    injectedVolume = tree.value*v;
-   fill = findPerculationVolumes(tree.traps, injectedVolume, trapvols);
+   fill = findPercolationVolumes(tree.traps, injectedVolume, trapvols);
 
    delete(ht); ht = [];
    for i=1:numel(tree.traps)

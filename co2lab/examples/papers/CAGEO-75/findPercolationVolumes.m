@@ -1,4 +1,4 @@
-function fill = findPerculationVolumes(traps, injectionAmount, trapvols)
+function fill = findPercolationVolumes(traps, injectionAmount, trapvols)
     nt = numel(traps);
     fill = zeros(nt, 1);
     for i = nt:-1:1
