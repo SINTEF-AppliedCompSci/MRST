@@ -1,8 +1,13 @@
 %% 
-% This 1D 
+% This example contains a simple $31\times31\times3$ fine grid containing two
+% injectors in opposite corners and one producer in the middle of the
+% domain. All wells are completed in the top layers of cells.
 %
-% data from deck
+% The schedule being used contains first a period of injection with surfactant,
+% followed by a water flooding phase without surfactant. Finally, the water rate
+% is reduced for the final time steps.
 %
+% data from DECK
 
 try
     require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
@@ -12,13 +17,14 @@ end
 
 current_dir = fileparts(mfilename('fullpath'));
 
-fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
-gravity off
+fn = fullfile(current_dir, 'SURFACTANT3D.DATA');
+gravity on
 
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
 
 fluid = initDeckADIFluid(deck);
+
 
 G = initEclipseGrid(deck);
 G = computeGeometry(G);
@@ -33,13 +39,26 @@ rock  = compressRock(rock, G.cells.indexMap);
 % To do this, we alter the initial state based on the logical height of
 % each cell. The resulting oil concentration is then plotted.
 
+ijk = gridLogicalIndices(G);
 
-nc = G.cells.num;
-state0 = initResSol(G, 300*barsa, [ .2, .8]);
+state0 = initResSol(G, 300*barsa, [ .9, .1]);
+state0.s(ijk{3} == 1, 2) = .9;
+state0.s(ijk{3} == 2, 2) = .8;
+
+% Enforce s_w + s_o = 1;
+state0.s(:,1) = 1 - state0.s(:,2);
 
 % Add zero surfactant concentration to the state.
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = state0.c;
+
+clf
+plotCellData(G, state0.s(:,2));
+plotGrid(G, 'facec', 'none')
+title('Oil concentration')
+axis tight off
+view(70, 30);
+colorbar;
 
 
 %% Set up systems.
@@ -65,5 +84,4 @@ resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'clea
                                                   schedule, 'OutputHandler', ...
                                                   resulthandler);
 
-figure()
-plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true)
+plotToolbar(G, statesSurfactant, 'startplayback', true)
