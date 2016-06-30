@@ -89,8 +89,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 fprintf('s.\n');
             end
             for j = 1:nex
-                fprintf('\t<a href="matlab: edit %s">%s\n</a>',...
-                                                allfiles{j}, allnames{j});
+                % Split by path + examples to get base folder path
+                spl = strsplit(allfiles{j}, fullfile(pth, ['examples', filesep]));
+                fprintf('    <a href="matlab: edit %s">%s\n</a>',...
+                                                allfiles{j}, spl{end});
             end
         end
         examplePaths{i} = allfiles;
