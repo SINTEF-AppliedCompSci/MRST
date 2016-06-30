@@ -9,7 +9,6 @@
 % grids with various types of near-well refinement.
 
 mrstModule add coarsegrid
-plotPartition = @(p) plotCellData(G, p, 'EdgeColor','w','EdgeAlpha',.2);
 
 %% Make fine grid and far-field partitioning
 % To demonstrate the various coarsening types, we start with a simple
@@ -19,6 +18,7 @@ plotPartition = @(p) plotCellData(G, p, 'EdgeColor','w','EdgeAlpha',.2);
 G = cartGrid([150 150 5], [100 100 1]*meter);
 p0 = partitionUI(G, [3 3 1]);
 G = computeGeometry(G);
+plotPartition = @(p) plotCellData(G, p, 'EdgeColor','w','EdgeAlpha',.2);
 
 % Make a dummy rock object which is required to set up wells
 clear rock
