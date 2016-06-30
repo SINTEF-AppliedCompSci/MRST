@@ -8,9 +8,9 @@ classdef ThreePhaseBlackOilPolymerModel < ThreePhaseBlackOilModel
         polymer
         % Using PLYSHEAR shear model based on water velocity
         usingShear
-	% Using PLYSHLOG shear model based on water velocity
+	    % Using PLYSHLOG shear model based on water velocity
         usingShearLog
-	% Using PLYSHLOG shear model base on water shear rate
+	    % Using PLYSHLOG shear model base on water shear rate
         usingShearLogshrate
     end
 

@@ -205,40 +205,38 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
     end
 
 
-if model.usingShearLogshrate
-    % calculating the shear rate based on the velocity
-    if ~opt.resOnly
-        krwF = s.faceUpstr(upcw, krW.val);
-        swF = s.faceUpstr(upcw, sW.val);
+    if model.usingShearLogshrate
+        % calculating the shear rate based on the velocity
+        if ~opt.resOnly
+            krwF = s.faceUpstr(upcw, krW.val);
+            swF = s.faceUpstr(upcw, sW.val);
+        end
+
+        if opt.resOnly
+            krwF = s.faceUpstr(upcw, krW);
+            swF = s.faceUpstr(upcw, sW);
+        end
+
+        permF = s.T ./faceA;
+        temp = permF.*swF.*krwF;
+
+        index = find(abs(Vw) > 0.);
+        Vw(index) = 4.8 * Vw(index).*sqrt(poroFace(index) ./temp(index));
+
+        % calculating the shear rate for the wells
+        rW = vertcat(W.r);
+        VwW = 4.8 * VwW ./(2*rW);
     end
 
-    if opt.resOnly
-        krwF = s.faceUpstr(upcw, krW);
-        swF = s.faceUpstr(upcw, sW);
+    if model.usingShear
+        shearMultf = computeShearMult(model.fluid, abs(Vw), muWMultf);
+        shearMultW = computeShearMult(model.fluid, abs(VwW), muWMultW);
     end
 
-    permF = s.T ./faceA;
-    temp = permF.*swF.*krwF;
-
-    index = find(abs(Vw) > 0.);
-    Vw(index) = 4.8 * Vw(index).*sqrt(poroFace(index) ./temp(index));
-end
-
-if model.usingShearLogshrate
-    % calculating the shear rate for the wells
-    rW = vertcat(W.r);
-    VwW = 4.8 * VwW ./(2*rW);
-end
-
-if model.usingShear
-    shearMultf = computeShearMult(model.fluid, abs(Vw), muWMultf);
-    shearMultW = computeShearMult(model.fluid, abs(VwW), muWMultW);
-end
-if model.usingShearLog || model.usingShearLogshrate
-    shearMultf = computeShearMultLog(model.fluid, abs(Vw), muWMultf);
-    shearMultW = computeShearMultLog(model.fluid, abs(VwW), muWMultW);
-end
-
+    if model.usingShearLog || model.usingShearLogshrate
+        shearMultf = computeShearMultLog(model.fluid, abs(Vw), muWMultf);
+        shearMultW = computeShearMultLog(model.fluid, abs(VwW), muWMultW);
+    end
 
     vW = vW ./ shearMultf;
     vP = vP ./ shearMultf;
@@ -536,6 +534,8 @@ end
 
 %%
 function zSh = computeShearMultLog(fluid, vW, muWMultf)
+    % The current version handles all the values one by one
+    % It needs to be improved for better performance.
 
     refConcentration = fluid.plyshlog.refcondition(1);
     refViscMult = fluid.muWMult(refConcentration);
