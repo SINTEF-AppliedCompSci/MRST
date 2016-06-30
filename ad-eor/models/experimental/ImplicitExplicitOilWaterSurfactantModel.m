@@ -59,6 +59,8 @@ classdef ImplicitExplicitOilWaterSurfactantModel < OilWaterSurfactantBaseModel
             model.pressureSaturationSurfactantSolver = NonLinearSolver();
             model.explicitConcentrationSolver = NonLinearSolver();
 
+            model = merge_options(model, varargin{:});
+
         end
 
         function [state, report] = stepFunction(model, state, state0, dt, ...
