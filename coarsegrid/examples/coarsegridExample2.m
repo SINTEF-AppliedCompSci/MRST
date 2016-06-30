@@ -39,8 +39,10 @@ plotGrid(G); view(15,60); axis tight off
 
 %%
 % Since the grid only covers subregion of its bounding box, the partition
-% vector will not be contiguous. To get a contigous partition vector, we
-% use the function 'compressPartition'
+% vector will not be contiguous. To avoid having to treat special cases
+% arising from non-contigous partition vectors, most routines in MRST
+% require partition vectors to be contiguous. To get a contigous partition
+% vector, we use the function 'compressPartition'
 clf
 p = partitionUI(G,[5 5 4]);
 subplot(2,1,1); bar(accumarray(p,1)); shading flat
