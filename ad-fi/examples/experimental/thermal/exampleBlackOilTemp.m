@@ -32,6 +32,10 @@ switch mycase
         fluid = initDeckADIFluid(deck);
     case 'simple'
         fluid=initSimpleADIFluid('mu', [0.4 4 0.04]*centi*poise, 'rho', [1000 700 100], 'n', [2 2 2]);
+        fluid.rsSat =@(x) 0*x; 
+        fluid.relPerm = @(sw, sg, varargin) deal(fluid.krW(sw, varargin{:}),fluid.krO(1 - sw - sg, varargin{:}),fluid.krG(sg, varargin{:}));
+
+
     otherwise
         error();
 end
@@ -58,11 +62,7 @@ gravity off
 
 
 
- system.nonlinear.tolMB=1e-5
- system.nonlinear.tolCNV=1e-7
- system.nonlinear.tol=1e-5;
- system.nonlinear.use_ecltol=false;
-system = rmfield(system,'getEquations');
+
 % for match 1./muO has to be interpolated linearly
 %system.getEquations @=  eqsfiBlackOilExplicitWells;
 %Wext=processWellsLocal(G, rock, schedule.control(1));
@@ -78,8 +78,11 @@ fluid.uR = @(T) cR.*T;
 fluid.hW = @(p,T) cW.*T;
 fluid.hG = @(p,T) 0.1*cW.*T;
 fluid.hO = @(p,T) 0.7*cW.*T;
-system = initADISystem({'Oil','Water','Gas','disgas'}, G, rock, fluid, 'cpr', false);
-
+system = initADISystem({'Oil','Water','Gas','disgas','T'}, G, rock, fluid, 'cpr', false);
+system.nonlinear.tolMB=1e-5
+system.nonlinear.tolCNV=1e-7
+system.nonlinear.tol=1e-5;
+system.nonlinear.use_ecltol=false;
 
 W=[];
 W = verticalWell(W, G, rock,  1,   1, (1:G.cartDims(3)),     ...
@@ -131,6 +134,7 @@ x0.smin=x0.s;
 x0.T=300*ones(G.cells.num,1);
 x0.rs = fluid.rsSat(x0.pressure);
 x0.rs(x0.s(:,3)==0)=0.4*x0.rs(x0.s(:,3)==0);
+x0.rv=0;
 state=x0;
 %state.T=373*ones(G.cells.num,1);
 timer = tic;
@@ -138,8 +142,8 @@ myfys='oil'
 myfys='boil_temp'
 switch myfys
     case 'boil_temp'
-        system.stepFunction =@ stepBlackOilTemp;
-        system.getEquations =@ eqsfiBlackOilTemp;
+        %system.stepFunction =@ stepBlackOilTemp;
+        %system.getEquations =@ eqsfiBlackOilTemp;
         system.updateState  =@  updateStateBlackOilTemp;
         fluid.muW =@(p,T) fluid.muW(p)./(1+1e-2.*(T-300));
         fluid.muO =@(p,rs,isSat,T) fluid.muO(p,rs,isSat)./(1+10e-1.*(T-300));
@@ -160,19 +164,20 @@ toc(timer)
 % If you have problems with getting good plots you can set useVolume to
 % false.
 nn=4;
+figure(),
 subplot(nn,1,1);
 xc=G.cells.centroids(:,1);
 for i=1:numel(states)
     state=states{i};
-    subplot(nn,1,1)
+    subplot(nn,1,1),cla
     plot(xc,state.pressure/barsa)
-    subplot(nn,1,2)
+    subplot(nn,1,2),cal
     plot(xc,state.s);legend('water','oil','gas')
-    subplot(nn,1,3)
+    subplot(nn,1,3),cla
     plot(xc,state.rs)
-    subplot(nn,1,4)
+    subplot(nn,1,4),cla
     plot(xc,state.T)
-    pause(0.1);
+    pause(0.01);
 end
 
 
