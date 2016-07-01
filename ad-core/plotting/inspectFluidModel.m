@@ -1,4 +1,4 @@
-function fluidPlotPanelAD(model, varargin)
+function varargout = inspectFluidModel(model, varargin)
 % Create a interactive plotting panel for a given model that shows
 % different fluids properties.
 
@@ -27,10 +27,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         p0 = max(model.minimumPressure, 0);
         p1 = min(model.maximumPressure, 1000*barsa);
         opt.pressureRange = subdiv(p0, p1);
+    else
+        opt.pressureRange = reshape(opt.pressureRange, [], 1);
     end
     % Make a figure that's wider than the default.
     df = get(0, 'DefaultFigurePosition');
     fh = figure('Position', df.*[1 1 1.75 1]);
+    if nargout > 0
+        varargout{1} = fh;
+    end
     % We want to ensure that the lines are nice and pretty even if the user
     % has messed with the defaults.
     set(fh, 'Renderer', 'painters');
@@ -204,7 +209,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotViscosity(model, name)
-        plotStuff(model, {'muW', 'muO', 'muG'});
+        vnames = {'muW', 'muO', 'muG'};
+        act = model.getActivePhases();
+        plotStuff(model, vnames(act));
         title('Viscosity');
     end
 
@@ -228,7 +235,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotDensity(model, name)
-        plotStuff(model, {'rhoW', 'rhoO', 'rhoG'});
+        rnames = {'rhoW', 'rhoO', 'rhoG'};
+        act = model.getActivePhases();
+        plotStuff(model, rnames(act));
         title(name);
     end
 
