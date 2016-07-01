@@ -1,7 +1,7 @@
 %% Basic Objects in MRST Workflows
 %
 % The most fundamental object in MRST is the grid.  This dual purpose
-% object bothd discretises a model's geometry and serves as a database to
+% object both discretises a model's geometry and serves as a database to
 % which static and dynamic properties and other objects are attached.
 % Examples of such associate data are
 %
@@ -20,7 +20,7 @@
 % collection of open datasets that are either hosted on the MRST website or
 % published on other sites.
 
-%%% Activate Requisite Modules
+%% Activate Requisite Modules
 %
 % MRST comes equipped with a graphical user interface for interactively
 % exploring static and dynamic properties attached to a grid.  We enable
@@ -30,11 +30,14 @@
 % features that can be enabled and disabled on demand.  For now we will not
 % discuss this feature any further, but interested readers can find out
 % more about it in the
-% <http://www.sintef.no/projectweb/mrst/downloadable-resources/release-notes-for-mrst-2014a/#ModSysTutorial Release Notes for MRST 2014a>.
+% <http://www.sintef.no/projectweb/mrst/downloadable-resources/release-notes-for-mrst-2014a/#ModSysTutorial
+% Release Notes for MRST 2014a>. We also activate the |deckformat| module,
+% which contains functionality for reading and parsing data files given in
+% the industry-standard ECLIPSE format.
 
 mrstModule add mrst-gui deckformat
 
-%%% Simple Cartesian Model
+%% Simple Cartesian Model
 %
 % We start with a simple Cartesian model.  Function |cartGrid| creates
 % shoe-box like models using a pair (for 2D) or triplet (for 3D) of
@@ -99,7 +102,7 @@ for k = 1:3, camlight(-60, 50), end
 % functions |logNormLayers| and |gaussianField| may be used to sample
 % random fields in a spatial region with various degress of correlation,
 % but we recommend that more complete geostatistical software be employed
-% in a more realistic situations.  Here we simply demonstrate that we can
+% in a more realistic situations.  Here, we simply demonstrate that we can
 % visualise spatially varying data.  Note that the formula that derives the
 % permeability field from the porosity fields makes certain simplifying
 % assumptions about the nature of the rock and its grains.  Function
@@ -154,12 +157,12 @@ display([ { info(present).name }      ; ...
 % MRST's function |getDatasetPath| returns the full path of a particular
 % dataset on the local computer system.  We take care to convert the input
 % data to MRST's strict SI only unit conventions in the process.  Using
-% strict SI units means that no solver or simulator need to be aware of any
-% particular unit convention.  Note moreover that in order to visualise the
-% pore-volume field we need to compute the bulk (geometric) volume of all
-% grid cells.  This calculation, along with cell and connection centroids,
-% connection areas, and connection normals, is affected by MRST's built-in
-% function |computeGeometry|.
+% strict SI units means that no solver or simulator needs to be aware of
+% any particular unit convention.  Note moreover that in order to visualise
+% the pore-volume field we need to compute the bulk (geometric) volume of
+% all grid cells.  This calculation, along with cell and connection
+% centroids, connection areas, and connection normals, is affected by
+% MRST's built-in function |computeGeometry|.
 grdecl = readGRDECL(fullfile(getDatasetPath('BedModel2'), ...
                              'BedModel2.grdecl'));
 
@@ -170,8 +173,26 @@ rock = compressRock(grdecl2Rock(grdecl), G.cells.indexMap);
 pvol = poreVolume(G, rock);
 
 clf
-plotCellData(G, pvol), colorbar
+plotCellData(G, pvol,'EdgeAlpha',.1), colorbar
 view([-32, 22]), xlabel('x'), ylabel('y'), zlabel('Depth'), grid on
+
+%%
+% This model gives a high-resolution presentation of a 30×30×6 cm^3
+% sedimentary bed that contains six different rock types. The model is
+% represented in the form of a grid with 30×30×333 cells and is a good
+% example of a corner-point grid having a large number of inactive cells
+% and cells with degenerate geometry. We add the rock types to the |rock|
+% structure and then launch the |plotToolbar| viewer to let you inspect the
+% model in more detail. (We also correct the length scale, which is not
+% given correctly in the input data.) To better understand the model, you
+% can, for instance, push the 'ijk' button to view the model in logical
+% space rather than in physical space, or use the histogram picker to
+% inspect the distribution of each individual rock type.
+
+G.nodes.coords = G.nodes.coords*centi;
+rock.rocktype = grdecl.SATNUM(G.cells.indexMap);
+plotToolbar(G, rock,'field','rocktype');
+view([-32, 22]), xlabel('x'), ylabel('y'), zlabel('Depth'), axis tight
 
 %% Initialise Complete Simulation Case From ECLIPSE Data
 %
