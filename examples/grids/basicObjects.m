@@ -177,16 +177,21 @@ plotCellData(G, convertTo(pvol, (centi*meter)^3), 'EdgeAlpha', 0.1), colorbar
 view([-32, 22]), xlabel('x'), ylabel('y'), zlabel('Depth'), grid on
 
 %%
-% This model gives a high-resolution presentation of a 30×30×6 cm^3
-% sedimentary bed that contains six different rock types. The model is
-% represented in the form of a grid with 30×30×333 cells and is a good
-% example of a corner-point grid having a large number of inactive cells
-% and cells with degenerate geometry. We add the rock types to the |rock|
-% structure and then launch the |plotToolbar| viewer to let you inspect the
-% model in more detail. To better understand the model, you can, for
-% instance, push the 'ijk' button to view the model in logical space rather
-% than in physical space, or use the histogram picker to inspect the
-% distribution of each individual rock type.
+% This model is a high-resolution discretisation of a 30-by-30-by-6 cm^3
+% sedimentary bed that contains six different rock types.  The model is
+% represented by a grid with 30-by-30-by-333 cells of which nearly 70% are
+% inactive due to pinch-out.  Moreover, most of the remaining active cells
+% have degenerate geometry.  For visualisation purposes we add the rock
+% types--represented as integer values in the |SATNUM| array of the input
+% data--to the |rock| structure and then launch the |plotToolbar| viewer to
+% let you interactively inspect the model in more detail.  The 'ijk' button
+% allows you to view the model in logical space rather than in physical
+% space which is useful to reveal the structure of the model.  Using the
+% histogram picker we can further inspect the distribution of each
+% individual rock type throughout the model.  We also recommend using the
+% interactive slice plane to view the interior of the model.  This part is
+% normally obstructed when statically visualising the geometry by means of
+% the lower-level tool |plotCellData|.
 
 rock.rocktype = grdecl.SATNUM(G.cells.indexMap);
 plotToolbar(G, rock,'field','rocktype');
