@@ -142,8 +142,8 @@ myfys='oil'
 myfys='boil_temp'
 switch myfys
     case 'boil_temp'
-        %system.stepFunction =@ stepBlackOilTemp;
-        %system.getEquations =@ eqsfiBlackOilTemp;
+        system.stepFunction =@(state0, state, meta, dt, W, G, system, varargin) stepBlackOilTemp(state0, state, meta, dt, G, W, system, fluid);
+        system.getEquations =@ eqsfiBlackOilTemp;
         system.updateState  =@  updateStateBlackOilTemp;
         fluid.muW =@(p,T) fluid.muW(p)./(1+1e-2.*(T-300));
         fluid.muO =@(p,rs,isSat,T) fluid.muO(p,rs,isSat)./(1+10e-1.*(T-300));
@@ -171,7 +171,7 @@ for i=1:numel(states)
     state=states{i};
     subplot(nn,1,1),cla
     plot(xc,state.pressure/barsa)
-    subplot(nn,1,2),cal
+    subplot(nn,1,2),cla
     plot(xc,state.s);legend('water','oil','gas')
     subplot(nn,1,3),cla
     plot(xc,state.rs)
