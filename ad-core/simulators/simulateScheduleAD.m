@@ -172,7 +172,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     [wellSols, states, reports] = deal(cell(nSteps, 1));
     wantStates = nargout > 1;
-    wantReport = nargout > 2;
+    wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
     getWell = @(index) schedule.control(schedule.step.control(index)).W;
     state = initState;
