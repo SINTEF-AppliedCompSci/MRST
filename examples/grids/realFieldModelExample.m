@@ -13,7 +13,8 @@ catch %#ok<CTCH>
 end
 
 %% Check for existence of input model data
-grdecl = fullfile(ROOTDIR, 'examples', 'grids', 'GSmodel.grdecl');
+dpath = getDatasetPath('norne');
+grdecl = fullfile(dpath, 'GSmodel.grdecl');
 if ~exist(grdecl, 'file'),
    error('Model data is not available.')
 end
@@ -237,3 +238,5 @@ end
 
 %%
 displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
