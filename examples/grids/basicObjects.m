@@ -233,6 +233,15 @@ plotCellData(G, state.s(:, [3, 2, 1])), axis tight, grid on
 [htop, htext, hs, hline] = plotWell(G, wells);
 view([55, 40]), xlabel('x'), ylabel('y'), zlabel('Depth')
 
+%%
+%
+% Once initialised, this model can now be simulated using the set of
+% dynamic well constraints.  As an example of such a simulation, one that
+% uses MRST's automatic (algorithmic) differentiation framework, we suggest
+% the reader review our
+% <matlab:edit(fullfile(mrstPath('ad-blackoil'),'examples','spe9','blackoilTutorialSPE9.m'))
+% SPE-9 black-oil simulation tutorial>.
+
 %% Copyright Notice
 %
 % #COPYRIGHT_EXAMPLE#
