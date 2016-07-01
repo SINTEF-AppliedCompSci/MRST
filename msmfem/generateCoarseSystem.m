@@ -99,8 +99,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-error(nargchk(5, inf, nargin, 'struct'));
+mrstNargInCheck(5, [], nargin);
 
 [verbose, weight, weighting, overlap, activeBnd, ...
    src, bc, global_inf] = parse_args(G, CG, rock, varargin{:});
