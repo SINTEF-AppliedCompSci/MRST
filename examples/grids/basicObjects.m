@@ -166,14 +166,14 @@ display([ { info(present).name }      ; ...
 grdecl = readGRDECL(fullfile(getDatasetPath('BedModel2'), ...
                              'BedModel2.grdecl'));
 
-grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
+grdecl = convertInputUnits(grdecl, getUnitSystem('LAB'));
 
 G    = computeGeometry(processGRDECL(grdecl));
 rock = compressRock(grdecl2Rock(grdecl), G.cells.indexMap);
 pvol = poreVolume(G, rock);
 
 clf
-plotCellData(G, pvol,'EdgeAlpha',.1), colorbar
+plotCellData(G, convertTo(pvol, (centi*meter)^3), 'EdgeAlpha', 0.1), colorbar
 view([-32, 22]), xlabel('x'), ylabel('y'), zlabel('Depth'), grid on
 
 %%
@@ -183,13 +183,11 @@ view([-32, 22]), xlabel('x'), ylabel('y'), zlabel('Depth'), grid on
 % example of a corner-point grid having a large number of inactive cells
 % and cells with degenerate geometry. We add the rock types to the |rock|
 % structure and then launch the |plotToolbar| viewer to let you inspect the
-% model in more detail. (We also correct the length scale, which is not
-% given correctly in the input data.) To better understand the model, you
-% can, for instance, push the 'ijk' button to view the model in logical
-% space rather than in physical space, or use the histogram picker to
-% inspect the distribution of each individual rock type.
+% model in more detail. To better understand the model, you can, for
+% instance, push the 'ijk' button to view the model in logical space rather
+% than in physical space, or use the histogram picker to inspect the
+% distribution of each individual rock type.
 
-G.nodes.coords = G.nodes.coords*centi;
 rock.rocktype = grdecl.SATNUM(G.cells.indexMap);
 plotToolbar(G, rock,'field','rocktype');
 view([-32, 22]), xlabel('x'), ylabel('y'), zlabel('Depth'), axis tight

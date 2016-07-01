@@ -9,6 +9,7 @@ function u = getUnitSystem(s)
 %       values are:
 %          - 'METRIC' --  Metric unit conventions (lengths in meter &c)
 %          - 'FIELD'  --  Field unit conventions (lengths in feet &c)
+%          - 'LAB'    --  Lab unit conventions (lengths in cm &c)
 %          - 'SI'     --  Strict SI conventions (all conversion factors 1)
 %
 % RETURNS:
@@ -58,6 +59,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     'viscosity', centi*poise       , ...
                     'perm'     , milli*darcy       , ...
                     'trans'    , centi*poise * stb / (day * psia));
+
+      case 'lab',
+         u = struct('length'      , centi*meter, ...
+                    'time'        , hour       , ...
+                    'viscosity'   , centi*poise, ...
+                    'perm'        , milli*darcy, ...
+                    'trans'       , centi*poise * (centi*meter)^3 / (hour * atm));
 
       case 'si',
          % SI units.  MRST extension.  Idempotency.
