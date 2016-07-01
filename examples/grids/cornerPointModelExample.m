@@ -2,11 +2,7 @@
 % In this example we will show several examples how to manipulate and plot
 % corner-point data. As an example, we will use a family of simple models
 % with a single fault, which can be realized in different resolutions.
-try
-   require coarsegrid
-catch  %#ok<CTCH>
-   mrstModule add coarsegrid
-end
+
 
 %% Creating and visualizing a small realization of the model
 % We start by generating an input stream in the Eclipse format (GRDECL) for
@@ -176,7 +172,9 @@ end
 
 %% Creating a coarse partitioning
 % Base on the fine-grid model, we will now create a 5x4x3 coarse
-% partitioning with an uneven partitioning in the vertical direction.
+% partitioning with an uneven partitioning in the vertical direction. To
+% this end, we will use functionality from the |coarsegrid| module.
+mrstModule add coarsegrid
 nz = G.cartDims(3);
 blockIx = partitionLayers(G,[5 4], ceil([1 nz/2 nz nz+1]));
 cla
@@ -212,6 +210,15 @@ for i = 1 : numel(blocks),
             'FaceColor', col(mod(i, numel(col)) + 1));
 end
 
+%%
+% Alternatively, we can view the partitioning using |explosionView|, which
+% moves all blocks out a certain distance from the centerpoint of the
+% model.
+cla
+G = computeGeometry(G);
+explosionView(G,blockIx,.5), view(30,50); axis tight off
+colormap(colorcube(max(blockIx)))
+
 %% Build the coarse-grid
 % Having obtained a partition we are satisfied with, we build the
 % coarse-grid structure. This structure consists of three parts:
@@ -233,7 +240,7 @@ CG.faces       %  (intentional display)
 % highlight the faces that have been marked as lying on a fault
 cla
 plotBlockAndNeighbors(CG, blocks(1), 'PlotFaults', false([2, 1]))
-view(30, 50)
+view(30, 50), axis tight, colormap(jet)
 
 %%
 % The next block lies at a fault, so therefore we highlight the fault faces
@@ -244,3 +251,5 @@ view(20, 30)
 
 %%
 displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
