@@ -34,11 +34,7 @@
 %
 % The grid and the wells will be the same for both approaches.
 
-try
-   require mimetic incomp
-catch %#ok<CTCH>
-   mrstModule add mimetic incomp
-end
+mrstModule add mimetic incomp
 
 %% Define and process geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
@@ -77,7 +73,7 @@ cellsWell1 =  1 : nx*ny : nx*ny*nz;
 radius     = .1;
 W = addWell([], G, rock, cellsWell1,          ...
             'Type', 'rate', 'Val', 1.0/day(), ...
-            'Radius', radius, 'InnerProduct', 'ip_tpf', 'Comp_i', [1, 0]);
+            'Radius', radius, 'InnerProduct', 'ip_tpf', 'Comp_i', 1);
 
 %%
 %  The second well is horizontal in the 'y' direction:
@@ -90,7 +86,7 @@ cellsWell2 = nx : ny : nx*ny;
 W = addWell(W, G, rock, cellsWell2,      ...
             'Type', 'bhp' , 'Val', 1*barsa(), ...
             'Radius', radius, 'Dir', 'y', 'InnerProduct', 'ip_tpf', ...
-            'Comp_i', [0, 1]);
+            'Comp_i', 1);
 
 
 %% APPROACH 1: Direct/Classic TPFA
@@ -104,7 +100,7 @@ T = computeTrans(G, rock, 'Verbose', true);
 % Initialize well solution structure (with correct bhp).
 % No need to assemble well system (wells are added to the linear system
 % inside the incompTPFA-solver).
-resSol1 = initState(G, W, 0, [1, 0]);
+resSol1 = initState(G, W, 0, 1);
 
 % Solve linear system construced from T and W to obtain solution for flow
 % and pressure in the reservoir and the wells. Notice that the TPFA solver
@@ -121,7 +117,7 @@ IP = computeMimeticIP(G, rock, 'Verbose', true, ...
 %%
 % Generate the components of the mimetic linear system corresponding to the
 % two wells and initialize the solution structure (with correct bhp)
-resSol2 = initState(G, W, 0, [1, 0]);
+resSol2 = initState(G, W, 0, 1);
 
 %%
 % Solve mimetic linear hybrid system
@@ -140,13 +136,13 @@ disp(['DeltaP, mimetic TPFA: ', num2str(dP2)])
 % Plot the pressure and producer inflow profile
 clf
 subplot(2,2,1)
-   plotCellData(G, convertTo(resSol1.pressure, barsa));
+   plotCellData(G, convertTo(resSol1.pressure, barsa),'EdgeColor','none');
    title('Pressure: direct TPFA')
    view(3), camproj perspective, axis tight off, camlight headlight
    colorbar; cax = caxis;
 
 subplot(2,2,2)
-   plotCellData(G, convertTo(resSol2.pressure, barsa));
+   plotCellData(G, convertTo(resSol2.pressure, barsa),'EdgeColor','none');
    title('Pressure: mimetic TPFA')
    view(3), camproj perspective, axis tight off, camlight headlight
    colorbar; caxis(cax);
@@ -159,5 +155,7 @@ subplot(2,2,3:4)
    legend('Direct','Mimetic')
    title('Producer inflow profile [m^3/d]');
 
-%%
+%% Copyright notice
 displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
