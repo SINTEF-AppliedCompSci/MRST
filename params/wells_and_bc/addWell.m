@@ -135,7 +135,7 @@ if ~isempty(W) && ~isfield(W, 'WI'),
          'from now on.']);
 end
 
-error(nargchk(4, inf, nargin, 'struct'));
+mrstNargInCheck(4, [], nargin);
 numC = numel(cellInx);
 
 

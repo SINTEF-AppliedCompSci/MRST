@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function G = tensorGrid3D(x, y, z, varargin)
-   error(nargchk(3, 5, nargin, 'struct'));
+   mrstNargInCheck(3, 5, nargin);
 
    %-----------------------------------------------------------------------
    % Check input data -----------------------------------------------------
@@ -260,7 +260,7 @@ end
 
 
 function G =tensorGrid2D(x, y, varargin)
-   error(nargchk(2, 4, nargin, 'struct'));
+   mrstNargInCheck(2, 4, nargin);
    opt = struct('cellnodes', false);
    opt = merge_options(opt, varargin{:});
 

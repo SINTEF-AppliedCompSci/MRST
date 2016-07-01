@@ -85,8 +85,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-error(nargchk(4, 14, nargin, 'struct'));
+mrstNargInCheck(4, 14, nargin);
 
 if ~isfield(G, 'cartDims'),
    error('psideh:NotImplemented', ...
