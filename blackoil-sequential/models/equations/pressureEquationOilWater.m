@@ -15,7 +15,6 @@ W = drivingForces.W;
 
 s = model.operators;
 f = model.fluid;
-G = model.G;
 
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
 [p0, sW0] = model.getProps(state0, 'pressure', 'water');
@@ -156,6 +155,7 @@ eqs{1} = (dt./s.pv).*(oil./bO + wat./bW);
 names{1} = 'pressure';
 types{1} = 'cell';
 
+state.timestep = dt;
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 for i = 1:numel(W)

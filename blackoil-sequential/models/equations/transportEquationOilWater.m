@@ -15,7 +15,6 @@ W = drivingForces.W;
 
 s = model.operators;
 f = model.fluid;
-G = model.G;
 
 assert(~(opt.solveForWater && opt.solveForOil));
 
@@ -23,7 +22,13 @@ assert(~(opt.solveForWater && opt.solveForOil));
 
 [p0, sW0] = model.getProps(state0, 'pressure', 'water');
 
-
+% If timestep has been split relative to pressure, linearly interpolate in
+% pressure.
+pFlow = p;
+if isfield(state, 'timestep')
+    dt_frac = dt/state.timestep;
+    p = p.*dt_frac + p0.*(1-dt_frac);
+end
 %Initialization of independent variables ----------------------------------
 
 if ~opt.resOnly,
@@ -108,12 +113,8 @@ flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
 % Stored upstream indices
-if model.staticUpwind
-    flag = state.upstreamFlag;
-else
-    [flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
-    flag = flag_v;
-end
+[flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+flag = flag_v;
 
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
@@ -121,12 +122,10 @@ upco  = flag(:, 2);
 upcw_g = flag_g(:, 1);
 upco_g = flag_g(:, 2);
 
-
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 
 totMob = (mobOf + mobWf);
-totMob = max(totMob, sqrt(eps));
     
 mobWf_G = s.faceUpstr(upcw_g, mobW);
 mobOf_G = s.faceUpstr(upco_g, mobO);
@@ -161,7 +160,7 @@ end
 
 tmpEqs = {wat, oil};
 tmpEqs = addFluxesFromSourcesAndBC(model, tmpEqs, ...
-                                   {pW, p},...
+                                   {pFlow, pFlow},...
                                    {rhoW, rhoO},...
                                    {mobW, mobO}, ...
                                    {bW, bO},  ...
@@ -172,6 +171,8 @@ if opt.solveForWater
 else
     eqs{1} = tmpEqs{2};
 end
-                                   
+if ~model.useCNVConvergence
+    eqs{1} = eqs{1}.*(dt./s.pv);
+end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end

@@ -1,5 +1,6 @@
-function fluidPlotPanelAD(model)
-% Create simple plot of fluid model for a given simulation model.
+function fluidPlotPanelAD(model, varargin)
+% Create a interactive plotting panel for a given model that shows
+% different fluids properties.
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
@@ -19,8 +20,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    opt = struct('pressureRange', []);
+    opt = merge_options(opt, varargin{:});
 
-
+    if isempty(opt.pressureRange)
+        p0 = max(model.minimumPressure, 0);
+        p1 = min(model.maximumPressure, 1000*barsa);
+        opt.pressureRange = subdiv(p0, p1);
+    end
     % Make a figure that's wider than the default.
     df = get(0, 'DefaultFigurePosition');
     fh = figure('Position', df.*[1 1 1.75 1]);
@@ -36,17 +43,53 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     plotaxis  = subplot('Position', [.75*lm, lm, pw, 1-2*lm]);
     ctrlpanel = uipanel('Position', [lm+pw, .25*lm, 1-1.25*lm-pw,  1-1.25*lm], ...
                         'Title',  'Property');
-    
+    true3ph = model.water && model.oil && model.gas;
     names = {'Viscosity',...
-             'Relperm', ...
+             'Relative permeability', ...
              'Rock compressibility', ...
-             'Compressibility'};
-    if isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG')
-        names{end + 1} = 'Capillary pressure';
+             'Densities', ...
+             'Capillary pressure', ...
+             'Max Rs/Rv', ...
+             '3ph-relperm: Water', ...
+             '3ph-relperm: Oil', ...
+             '3ph-relperm: Gas' ...
+             };
+    functions = {@(name) plotViscosity(model, name), ...
+                 @(name) plotRelperm(model, name),...
+                 @(name) plotPVMult(model, name),...
+                 @(name) plotDensity(model, name), ...
+                 @(name) plotCapillaryPressure(model, name), ...
+                 @(name) plotMaxR(model, name), ...
+                 @(name) plot3phRelPerm(model, name, 1), ...
+                 @(name) plot3phRelPerm(model, name, 2), ...
+                 @(name) plot3phRelPerm(model, name, 3) ...
+                };
+    
+    active = [true; ...
+              true; ...
+              isfield(model.fluid, 'pvMultR'); ...
+              true; ...
+              isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG'); ...
+              model.disgas || model.vapoil; ...
+              true3ph;
+              true3ph;
+              true3ph];
+              
+              
+    names = names(active);
+    functions = functions(active);
+    
+    phases = {'Water', 'Oil', 'Gas'};
+    for it = 1:numel(phases)
+        ph = phases{it};
+        if model.(lower(ph));
+            names = [names, [ph, ' viscosity'], ...
+                            [ph, ' b-factor']];
+            functions = [functions, {@(name) plotStuff(model, {['mu', ph(1)]}, name), ...
+                                     @(name) plotStuff(model, {['b', ph(1)]}, name)}];
+        end
     end
-    if checkBO(model)
-        names{end + 1} = 'Max dissolution';
-    end
+    
     propsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'listbox',...
               'String', names, 'Callback', @drawPlot, ...
@@ -56,141 +99,250 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function drawPlot(src, event)
         axis(plotaxis);
-        name = names{get(propsel, 'Value')};
-        switch lower(name)
-            case 'viscosity'
-                plotViscosity(model, name)
-            case 'relperm'
-                plotRelperm(model, name)
-            case 'capillary pressure'
-                plotCapillaryPressure(model, name)
-            case 'compressibility'
-                plotCompressibility(model, name)
-            case 'max dissolution'
-                plotMaxR(model, name);
-            case 'rock compressibility'
-                plotPVMult(model, name);
-            otherwise
-                disp(name)
-        end
+        colorbar off;
+        axis normal
+        view(0, 90);
+        ix = get(propsel, 'Value');
+        fn = functions{ix};
+        name = names{ix};
+        
+        fn(name);
     end
 
     drawPlot([], []);
-end
 
-function plotStuff(model, fields)
-    f = model.fluid;
-    p = subdiv(0, 1000*barsa);
-    s = subdiv(0, 1);
 
-    rs = 0;
-    rv = 0;
-    n = sum(model.getActivePhases);
+    function plotStuff(model, fields, plottitle)
+        f = model.fluid;
+        p = opt.pressureRange;
+        s = subdiv(0, 1);
 
-    legflag = false(size(fields));
-    data = nan(numel(p), n);
-    
-    ctr = 0;
-    
-    for i = 1:numel(fields)
-        fn = fields{i};
-        if ~isfield(f, fn)
-            continue
+        rsMax = 0;
+        rvMax = 0;
+        if model.disgas
+            rsMax = f.rsSat(p);
         end
-        legflag(i) = true;
-        ctr = ctr + 1;
-        switch(lower(fn))
-            
-            case {'krw', 'krg', 'krog', 'kro', 'krow'}
-                data(:, ctr) = f.(fn)(s);
-                x = s;
-                xl = 'Saturation';
-            case {'pcow', 'pcog'}
-                data(:, ctr) = f.(fn)(s);
-                x = s;
-                xl = 'Saturation';
-            case {'bo', 'bg', 'bw'}
-                data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
-            case {'muw', 'muo', 'mug'}
-                data(:, ctr) = evalSat(model, f, fn, p, rs, rv);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
-            case {'rssat', 'rvsat'}
-                data(:, ctr) = f.(fn)(p);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
-            case {'pvmultr'}
-                data(:, ctr) = f.(fn)(p);
-                x = p/barsa;
-                xl = 'Pressure (barsa)';
+        if model.vapoil
+            rvMax = f.rvSat(p);
+        end
+        n = sum(model.getActivePhases);
+
+        legflag = false(size(fields));
+        legh = zeros(size(fields));
+        ctr = 0;
+        yl = '';
+        cla;
+        hold on
+        nf = numel(fields);
+        colors = lines(nf);
+        for i = 1:nf
+            fn = fields{i};
+            legflag(i) = true;
+            ctr = ctr + 1;
+            switch(lower(fn))
+                case {'krw', 'krg', 'krog', 'kro', 'krow'}
+                    data = f.(fn)(s);
+                    x = s;
+                    xl = 'Saturation';
+                case {'pcow', 'pcog'}
+                    data = f.(fn)(s);
+                    x = s;
+                    data = data/barsa;
+                    xl = 'Saturation';
+                    yl = 'Capillary pressure [bar]';
+                case {'bo', 'bg', 'bw'}
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    x = x/barsa;
+                    yl = 'Reciprocal formation volume factor: b(p) = 1/B(p)';
+                    xl = 'Pressure [bar]';
+                case {'rhoo', 'rhog', 'rhow'}
+                    bsub = ['b', fn(end)];
+                    rho = f.(['rho', fn(end), 'S']);
+                    [x, b, ok] = evalSat(model, f, bsub, p, rsMax, rvMax);
+                   
+                    data = b*rho;
+                    x = x/barsa;
+                    xl = 'Pressure [bar]';
+                    yl = 'Density [kg/m^3]';
+                case {'muw', 'muo', 'mug'}
+                    [x, data, ok] = evalSat(model, f, fn, p, rsMax, rvMax);
+                    data = data/(centi*poise);
+                    x = x/barsa;
+                    xl = 'Pressure [bar]';
+                    yl = 'Viscosity [cP]';
+                case {'rssat', 'rvsat'}
+                    data = f.(fn)(p);
+                    x = p/barsa;
+                    xl = 'Pressure [bar]';
+                case {'pvmultr'}
+                    data = f.(fn)(p);
+                    x = p/barsa;
+                    xl = 'Pressure [bar]';
+                    yl = 'Pore volume multiplier';
+            end
+            if size(data, 2) > 1
+                for j = 1:size(data, 2)
+                    o = ok(:, j);
+                    % Ok are saturated lines, draw as thick lines
+                    h = plot(x(o, j), data(o, j), 'linewidth', 2, 'color', colors(i, :));
+                    % Not ok are undersaturated, draw as thin lines
+                    plot(x(~o, j), data(~o, j), '--', 'linewidth', 1, 'color', colors(i, :));
+                end
+            else
+                h = plot(x, data, 'linewidth', 2, 'color', colors(i, :));
+            end
+            legh(i) = h(1);
+        end
+        
+        grid on
+        legend(legh, fields(legflag))
+        xlabel(xl)
+        ylabel(yl);
+        if nargin == 3
+            title(plottitle)
         end
     end
-    plot(x, data, 'linewidth', 2)
-    grid on
-    legend(fields(legflag))
-    xlabel(xl)
-end
 
-function plotViscosity(model, name)
-    plotStuff(model, {'muW', 'muO', 'muG'});
-    if checkBO(model)
-        title([name, ' (saturated curves)']);
-    else
+    function plotViscosity(model, name)
+        plotStuff(model, {'muW', 'muO', 'muG'});
+        title('Viscosity');
+    end
+
+    function plotRelperm(model, name)
+        krnames = {};
+        if model.water
+            krnames = [krnames, 'krW'];
+        end
+        if model.oil
+            if model.water && model.gas
+                krnames = [krnames, 'krOW', 'krOG'];
+            else
+                krnames = [krnames, 'krO'];
+            end
+        end
+        if model.gas
+            krnames = [krnames, 'krG'];
+        end
+        plotStuff(model, krnames);
         title(name);
     end
-end
 
-function plotRelperm(model, name)
-    plotStuff(model, {'krW', 'krOW', 'krOG', 'krO', 'krG'});
-    title(name);
-end
-
-function plotCompressibility(model, name)
-    plotStuff(model, {'bW', 'bO', 'bG'});
-    if checkBO(model)
-        title([name, ' (saturated curves)']);
-    else
+    function plotDensity(model, name)
+        plotStuff(model, {'rhoW', 'rhoO', 'rhoG'});
         title(name);
     end
-end
 
-function plotCapillaryPressure(model, name)
-    plotStuff(model, {'pcOW', 'pcOG'});
-    title('Capillary pressure');
-end
+    function plotCapillaryPressure(model, name)
+        cnames = {};
+        fld = {'pcOW', 'pcOG'};
+        for i = 1:numel(fld)
+            if isfield(model.fluid, fld{i})
+                cnames = [cnames, fld{i}];
+            end
+        end
 
-function plotMaxR(model, name)
-    plotStuff(model, {'rsSat', 'rvSat'});
-    title(name);
-end
+        plotStuff(model, cnames);
+        title('Capillary pressure');
+    end
 
-function plotPVMult(model, name)
-    plotStuff(model, {'pvMultR'});
-    title(name);
-end
+    function plotMaxR(model, name)
+        rnames = {};
+        if model.disgas
+            rnames = [rnames, 'rsSat'];
+        end
+        if model.vapoil
+            rnames = [rnames, 'rvSat'];
+        end
+        plotStuff(model, rnames);
+        title(name);
+    end
 
-function x = subdiv(start, stop)
-    dx = (stop - start)/250;
-    x = (start:dx:stop)';
-end
+    function plotPVMult(model, name)
+        plotStuff(model, {'pvMultR'});
+        title(name);
+    end
+    
+    function plot3phRelPerm(model, name, ix)
+        cla;
+        s = subdiv(0, 1, 50);
+        [x, y] = meshgrid(s);
+        [krW, krO, krG] = deal(zeros(size(x)));
+        
+        for i = 1:size(x, 1)
+            xi = x(i, :);
+            yi = y(i, :);
+            [krW(i, :), krO(i, :), krG(i, :)] = model.relPermWOG(xi, 1 - xi - yi, yi, model.fluid);
+        end
+        
+        if ix == 1
+            contourf(x, y, krW)
+            title('Water relative permeability')
+        elseif ix == 2
+            contourf(x, y, krO)
+            title('Oil relative permeability')
+        else
+            contourf(x, y, krG)
+            title('Gas relative permeability')
+        end
+        caxis([0, 1]);
+        shading interp
+        axis equal tight
+        view(0, 90)
+        xlabel('S_w')
+        ylabel('S_g')
+        colorbar
+        legend off
+    end
 
-function y = evalSat(model, f, fn, x, rs, rv)
-    if checkBO(model)
-        if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
-            y = f.(fn)(x, rs, true);
-        elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
-            y = f.(fn)(x, rv, true);
+    function x = subdiv(start, stop, n)
+        if nargin < 3
+            n = 100;
+        end
+        dx = (stop - start)/n;
+        x = (start:dx:stop)';
+    end
+
+    function [x, y, ok] = evalSat(model, f, fn, x, rsMax, rvMax)
+        ok = true(size(x));
+        if checkBO(model)
+            if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
+                mrs = max(rsMax);
+                rs = 0:mrs/20:mrs;
+                [x, rs_g] = meshgrid(x, rs);
+                rssat = zeros(size(x));
+                for i = 1:size(x, 1)
+                    rssat(i, :) = f.rsSat(x(i, :));
+                end
+
+                saturated = rs_g >= rssat;
+                rs_g(saturated) = rssat(saturated);
+                ok = saturated';
+                y = f.(fn)(x, rs_g, saturated)';
+                x = x';
+            elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
+                mrs = max(rvMax);
+                rv = 0:mrs/10:mrs;
+                [x, rs_g] = meshgrid(x, rv);
+                rvsat = zeros(size(x));
+                for i = 1:size(x, 1)
+                    rvsat(i, :) = f.rvSat(x(i, :));
+                end
+
+                saturated = rs_g >= rvsat;
+                rs_g(saturated) = rvsat(saturated);
+                ok = saturated';
+                y = f.(fn)(x, rs_g, saturated)';
+                x = x';
+            else
+                y = f.(fn)(x);
+            end
         else
             y = f.(fn)(x);
         end
-    else
-        y = f.(fn)(x);
     end
-end
 
-function ind = checkBO(model)
-    ind = isa(model, 'ThreePhaseBlackOilModel') &&...
-           (model.disgas || model.vapoil);
+    function ind = checkBO(model)
+        ind = isa(model, 'ThreePhaseBlackOilModel') &&...
+               (model.disgas || model.vapoil);
+    end
 end
