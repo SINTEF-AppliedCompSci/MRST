@@ -86,20 +86,19 @@ plotWell(G, W)
 axis tight
 
 %% Set up simulation model
-% We set up a two-phase oil-watersimulation model based on automatic
+% We set up a two-phase oil-water simulation model based on automatic
 % differentiation. The resulting object is a special case of a general
 % three-phase model and to instantiate it, we start by constructing a
 % three-phase fluid structure with properties given for oil, water, and
-% gas. (The gas properties will be neglected once we construct the
-% two-phase object). Water is assumed to be incompressible, whereas oil has
-% constant compressibility, giving a reciprocal formation volume factor of
-% the form,  $b_o(p) = b_0 exp[c (p - p_0)]$. To define this relation, we
-% set the 'bo' field of the fluid structure to be an anonymous function
-% that calls the builtin 'exp' function with appropriate arguments. Since
-% the fluid model is a struct containing function handles, it is simple to
-% modify the fluid to use alternate functions. We then pass the fundamental
-% structures (grid, rock and fluid) onto the two-phase oil/water model
-% constructor.
+% gas. (The gas properties will be neglected once we construct the two-phase
+% object). Water is assumed to be incompressible, whereas oil has constant
+% compressibility, giving a reciprocal formation volume factor of the form,
+% $b_o(p) = b_0 exp[c (p - p_0)]$. To define this relation, we set the 'bo'
+% field of the fluid structure to be an anonymous function that calls the
+% builtin 'exp' function with appropriate arguments. Since the fluid model is a
+% struct containing function handles, it is simple to modify the fluid to use
+% alternate functions. We then pass the fundamental structures (grid, rock and
+% fluid) onto the two-phase oil/water model constructor.
 
 % Three-phase template model
 fluid = initSimpleADIFluid('mu',    [1, 5, 0]*centi*poise, ...
