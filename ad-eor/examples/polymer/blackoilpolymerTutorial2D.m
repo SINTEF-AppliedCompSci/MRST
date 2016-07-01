@@ -102,89 +102,25 @@ for i=1:3
     axis tight off; view(20,8); caxis([0, 1]); colorbar;
 end
 
-%% Run the schedule
+%% Run the schedule with plotting function
 % Once a system has been created it is trivial to run the schedule. Any
 % options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
+% The AD-solvers allow for dyanmic plotting during the simulation process.
+% We set up the following function to plot the evolution of the related
+% variables (s:2 means oil saturation by default), the change of the well
+% curves, and the a panel showing simulation progress. You can customize
+% the function based on your own preference.
+
 fn = getPlotAfterStep(state0, model, schedule, ...
-    'plotWell', false, 'plotReservoir', false);
+    'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
+    'field', 's:2');
 
 [wellSols, states, reports] = ...
     simulateScheduleAD(state0, model, schedule, ...
                     'NonLinearSolver', nonlinearsolver, 'afterStepFn', fn);
 
-%% plotting the well data
-figure(2)
-set(gcf,'Position', [100, 50, 900, 1300]);
-T = convertTo(cumsum(schedule.step.val), day);
-[qWs, qOs, qGs, bhp] = wellSolToVector(wellSols);
-
-subplot(5,2,1); title('BHPs for injection wells');
-plot(T, convertTo(bhp(:,1), barsa));
-ylabel('bhp (bar)'); xlabel('time (day)');
-
-subplot(5,2,2); title('BHPs for production wells');
-plot(T, convertTo(bhp(:,2), barsa));
-ylabel('bhp (bar)'); xlabel('time (day)');
-
-subplot(5,2,3); title('water injection rate');
-plot(T, convertTo(qWs(:,1), meter^3/day));
-ylabel('WWIR (m^3/day)'); xlabel('time (day)');
-
-subplot(5,2,4); title('Water Production Rate');
-plot(T, convertTo(qWs(:,2), meter^3/day));
-ylabel('WWPR (m^3/day)'); xlabel('time (day)');
-
-subplot(5,2,5); title('oil injection rate');
-plot(T, convertTo(qOs(:,1), meter^3/day));
-ylabel('WOIR (m^3/day)'); xlabel('time (day)');
-
-subplot(5,2,6); title('oil production rate');
-plot(T, convertTo(qOs(:,2), meter^3/day));
-ylabel('WOPR (m^3/day)'); xlabel('time (day)');
-
-subplot(5,2,7); title('gas injection rate');
-plot(T, convertTo(qGs(:,1), meter^3/day));
-ylabel('WGIR (m^3/day)'); xlabel('time (day)');
-
-subplot(5,2,8); title('gas production rate');
-plot(T, convertTo(qGs(:,2), meter^3/day));
-ylabel('WGPR (m^3/day)'); xlabel('time (day)');
-
-qWPoly = getWellOutput(wellSols, 'qWPoly');
-sign = getWellOutput(wellSols, 'sign');
-qWPoly = sign .* qWPoly;
-
-subplot(5,2,9); title('polymer injection rate');
-plot(T, convertTo(qWPoly(:,1), kilogram/day));
-ylabel('WCIR (kg/day)'); xlabel('time (day)');
-
-subplot(5,2,10); title('polymer production rate');
-plot(T, convertTo(qWPoly(:,2), kilogram/day));
-ylabel('WCPR (kg/day)'); xlabel('time (day)');
-
-%% plotting the animated saturation evolution
-numStep = size(states, 1);
-figure(3); set(gcf,'Position', [700, 100, 900, 600]);
-for iStep = 1:10:numStep
-    stateStep = states{iStep,1};
-
-    for i=1:3,
-        subplot(2,2,i), cla
-        plotCellData(G, stateStep.s(:,i),'EdgeColor','k');
-        title([phases{i} ' saturation']);
-        axis tight off, view(26,18); colorbar; caxis([0 1]);
-    end
-
-    subplot(2,2,4); cla
-    plotCellData(G, stateStep.c,'EdgeColor','k');
-    title('Polymer concentration')
-    axis tight off; view(26,18); colorbar; caxis([0 1]);
-
-    drawnow; pause(0.5);
-
-end
 %%
 % save resMRSTPolymer wellSols states schedule;
 fprintf('The simulation has been finished! \n');

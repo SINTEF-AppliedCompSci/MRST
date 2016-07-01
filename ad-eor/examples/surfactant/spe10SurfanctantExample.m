@@ -115,7 +115,7 @@ function spe10SurfanctantExample()
     % rock density (used to compute adsoprtion)
     fluid.rhoRSft = 2650*kilo*gram/meter^3;
 
-    modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid);
+    modelSurfactant = OilWaterSurfactantModel(G, rock, fluid);
 
     % Schedule setup
 
