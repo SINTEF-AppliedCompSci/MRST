@@ -112,7 +112,7 @@ for k = 1:3, camlight(-60, 50), end
 poro = reshape(gaussianField(G.cartDims, [0.2, 0.4]), [], 1);
 perm = poro.^3 .* (1e-5)^2 ./ (0.81 * 72 * (1 - poro).^2);
 
-rock   = makeRock(G, convertFrom(perm, milli*darcy), poro);
+rock   = makeRock(G, perm, poro);
 rock_r = compressRock(rock, Gr.cells.indexMap);
 
 clf, subplot(1,2,1)
