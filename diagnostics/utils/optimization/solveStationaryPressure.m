@@ -301,11 +301,11 @@ function totMob = getTotalMobility(fluid, state, pressure)
     end
     isSat = (sG>0) | (1 - sW + sG)  == 0;
 
-    if abs(nargin(fluid.relPerm)) == 2
-        [krW, krO] = fluid.relPerm(sW);
-        krG = 0;
+    if size(state.s, 2) == 3
+        [krW, krO, krG] = relPerm3ph(fluid, sW, sG);
     else
-        [krW, krO, krG] = fluid.relPerm(sW, sG);
+        [krW, krO] = relPerm2ph(fluid, sW);
+        krG = 0;
     end
 
     l_wat = krW./fluid.muW(pressure);
@@ -550,3 +550,14 @@ for i = 1:n
     end
 end     
 end
+
+function [krW, krO, krG] = relPerm3ph(fluid, sw, sg, varargin)
+    krW = fluid.krW(sw, varargin{:});
+    krO = fluid.krO(1 - sw - sg, varargin{:});
+    krG = fluid.krG(sg, varargin{:});
+end
+ 
+function [krW, krO] = relPerm2ph(fluid, sw, varargin)
+    krW = fluid.krW(sw, varargin{:});
+    krO = fluid.krO(1 - sw, varargin{:});
+ end
