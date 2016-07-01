@@ -5,8 +5,7 @@ function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
 %   function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
 %
 % DESCRIPTION: Computes the water and oil relative permeabilities, using the
-% surfactant model as described in documentation that can be found in the
-% directory ad-eor/docs .
+% surfactant model as described in  ad-eor/docs/surtactant_model.pdf
 %
 % PARAMETERS:
 %   sW    - Saturation
@@ -30,7 +29,7 @@ function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
        logNc = log(Nc(isSft))/log(10);
        % We cap logNc (as done in Eclipse)
        logNc = min(max(-20, logNc), 20);
-       m(isSft) = fluid.miscfact(logNc, 'cellInx', find(isSft));
+       m(isSft) = fluid.miscfact(logNc);
     end
 
     sWcon    = fluid.sWcon;    % Residual water saturation   without surfactant
