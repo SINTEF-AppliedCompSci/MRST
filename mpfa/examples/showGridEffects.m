@@ -6,11 +6,7 @@
 % represented on a skewed grid, and we compare the MPFA-O solution with
 % solutions computed by the TPFA method and a mimetic method.
 
-try
-    require incomp mimetic mpfa
-catch %#ok<CTCH>
-    mrstModule add incomp mimetic mpfa
-end
+mrstModule add incomp mimetic mpfa
 
 %% Set up simulation model
 gravity off
