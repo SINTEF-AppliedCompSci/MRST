@@ -228,6 +228,14 @@ plotCellData(G, state.s(:, [3, 2, 1])), axis tight, grid on
 [htop, htext, hs, hline] = plotWell(G, wells);
 view([55, 40]), xlabel('x'), ylabel('y'), zlabel('Depth')
 
+%%
+% The |ad-core| and |ad-blackoil| modules contain simulators and tools for
+% simulating this type of models. In particular, the script
+% |blackoilTutorialSPE9| discusses the various data elements that make up
+% the SPE9 model in more detail, performs a full simulation, and analyzes
+% the simulation results. To get a list of other tutorials that comes with
+% these modules, type |mrstExamples ad-core ad-blackoil|.
+
 %% Copyright Notice
 %
 % #COPYRIGHT_EXAMPLE#
