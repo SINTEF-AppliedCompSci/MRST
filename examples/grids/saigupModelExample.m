@@ -15,16 +15,10 @@
 % by visualizing some of the coarse blocks and how they are connected with
 % their neighbors.
 % </html>
-try
-   require coarsegrid
-catch %#ok<CTCH>
-   mrstModule add coarsegrid
-end
 
 %% Check for existence of input model data
-% The model can be downloaded from the the MRST page
-%
-% http://www.sintef.no/Projectweb/MRST/
+% The SAIGUP model is one of the standard data sets provided with MRST. We
+% therefore check if it is present, and if not, download and install it.
 
 pth = getDatasetPath('SAIGUP');
 grdecl = fullfile(pth, 'SAIGUP.GRDECL');
@@ -38,9 +32,9 @@ grdecl = readGRDECL(grdecl)    %#ok  (intentional display)
 %
 % * The dimension of the underlying logical Cartesian grid (keyword
 % SPECGRID, equal 40x120x20)
-% * The coordinates of the pillars (keyword COORD, 6x41x121 values)
-% * The coordinates along the pillars (keyword ZCORN, 8x40x120x20 values)
-% * The flag for active/inactive cells (keyword ACTNUM, 40x120x20 values)
+% * The coordinates of the pillars (keyword COORD, 6×41×121 values)
+% * The coordinates along the pillars (keyword ZCORN, 8×40×120×20 values)
+% * The flag for active/inactive cells (keyword ACTNUM, 40×120×20 values)
 %
 % Since the keyword ACTNUM is present, the model is likely to contain both
 % active and inactive cells. To be able to plot both the active and the
@@ -67,18 +61,18 @@ G             = processGRDECL(grdecl, 'Verbose', true, 'checkgrid', false);
 
 %%
 % In the first phase, we process all faces with normals in the logical
-% i-direction. There should be 40x120x22=105600, out of which 96778 are
+% i-direction. There should be 40×120×22=105600, out of which 96778 are
 % not degenerate or at a fault. In the next phase, we process the faults
 % and split faces to obtain a matching grid. Here there are faults at 521
 % pairs of pillars and the splitting of these results in 27752 new faces.
 % If each face were split in two, we would have obtained
-% 521x(20x2+2)=21882, which means that some of the faces have been split
+% 521×(20×2+2)=21882, which means that some of the faces have been split
 % into at least three subfaces. The process is then repeated in the logical
 % j-direction.
 %
 % The processing assumes that there are no faults in the logical
 % k-direction and therefore processes only regular connections. In absence
-% of inactive or pinched cells, there should be (20+1+4)x120x40=120000
+% of inactive or pinched cells, there should be (20+1+4)×120×40=120000
 % faces (where +4 is due to the artificial cells) in the k-direction. The
 % result of the grid processing is a new structure G, outlined below
 
@@ -120,10 +114,13 @@ end
 grdecl.ACTNUM = actnum; clear actnum;
 G = processGRDECL(grdecl);
 
+clf,
+plotGrid(G,'EdgeAlpha',.1); view(-100,40); axis tight off
+
 %% Partition the grid in logical space
-% We construct a coarse grid by partitioning the grid uniformly as 6x12x3
+% We construct a coarse grid by partitioning the grid uniformly as 6×12×3
 % coarse blocks in index space. This process partitions all cells in the
-% logical 40x120x20 grid, including cells that are inactive. The number of
+% logical 40×120×20 grid, including cells that are inactive. The number of
 % active cells within each coarse block is shown in the bar plot below.
 %
 % As we can see from the bar plot, there are several coarse block that
@@ -185,8 +182,8 @@ subplot('position',[0.025 0.025 0.95 0.95])
 % * a cellFaces array as in the fine-grid structure
 CG = generateCoarseGrid(G, blockIx);
 CG             %#ok  (intentional display)
-CG.cells       %#ok  (intentional display)
-CG.faces       %#ok  (intentional display)
+CG.cells       %     (intentional display)
+CG.faces       %     (intentional display)
 
 %%
 % Let us now use |CG| to inspect some of the blocks in the coarse grid. To
@@ -231,3 +228,5 @@ end
 
 %%
 displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
