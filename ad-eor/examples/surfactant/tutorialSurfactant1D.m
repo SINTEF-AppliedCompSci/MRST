@@ -1,21 +1,26 @@
-%%
-% 1D test case oil-water-surfactant
+%% 1D Tutorial For a Oil-Water-Surfactant system
+% The input data is read from a deck using Eclipse format
+% (SURFACTANT1D.DATA). The surfactant property (see file surfact.inc) are taken
+% from SPE paper 145036.
 %
-% The input data is read from deck (SURFACTANT1D.DATA). The surfactant property,
-% which are read from file surfact.inc, are taken from SPE paper 145036 (see
-% more details in input file).
+% Surfactant is added to water in order to decrease the surface tension so
+% that residual oil is mobilized. See more detail about the modeling equation
+% in ad-eor/docs
 %
-% Water and surfactant are injected at the left-hand side and oil is produced
-% at the right-hand side at given pressure.
+% In this example, water and surfactant are injected at the left-hand side and
+% oil is produced at the right-hand side at a given pressure.
 %
 % In a first period, only water is injected. Then, for a second period,
 % surfactant is added to the water.
 
-try
-    require ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
-catch
-    mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
-end
+%% We load the relevant module
+%
+
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
+
+
+%% We load the input data and setup the grid, rock and fluid structures
+% 
 
 current_dir = fileparts(mfilename('fullpath'));
 fn = fullfile(current_dir, 'SURFACTANT1D.DATA');
@@ -30,7 +35,13 @@ G = computeGeometry(G);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 
-%% Set up initial state
+%% Visualize the fluid property
+%
+
+% We gathered the plotting command for this tutorial in the following function
+vizSurfProperty();
+
+%% Set up the initial state
 % Constant pressure, residual water saturation, no surfactant
 
 nc = G.cells.num;
@@ -41,8 +52,12 @@ state0.ads = computeEffAds(state0.c, 0, modelSurfactant.fluid); % adsorption
 state0.adsmax = state0.ads;
 
 %% Set up the model
+% 
+% The F
+%
+%
 
-modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, ...
+modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
                                                   'extraStateOutput', true);
 

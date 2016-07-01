@@ -61,18 +61,21 @@ colorbar;
 
 %% Set up the model
 
-modelSurfactant = FullyImplicitOilWaterSurfactantModel(G, rock, fluid, ...
-                                                  'inputdata', deck, ...
-                                                  'extraStateOutput', true);
+modelSurfactant = OilWaterSurfactantModel(G, rock, fluid, 'inputdata', deck, ...
+                                          'extraStateOutput', true);
 
-%% Convert the deck schedule into a MRST schedule by parsing the wells
+%% Setup the schedule
+
+% The wells and wells controls obtained from the input deck are parsed and a
+% MRST schedule is set up.
 
 schedule = convertDeckScheduleToMRST(modelSurfactant, deck);
 
 
 %% Run the schedule
-% Once a system has been created it is trivial to run the schedule. Any
-% options such as maximum non-linear iterations and tolerance can be set in
+% 
+% We use the function simulateScheduleAD to run the simulation
+% Options such as maximum non-linear iterations and tolerance can be set in
 % the system struct.
 
 
@@ -81,20 +84,4 @@ resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'clea
                                                   schedule, 'OutputHandler', ...
                                                   resulthandler);
 
-<<<<<<< HEAD:ad-eor/examples/surfactantExamples/surfactantExample3D.m
 plotToolbar(G, statesSurfactant, 'startplayback', true)
-=======
-switch simul_case
-  case '1D'
-    plotToolbar(G, statesSurfactant, 'field', 's:1', ...
-                'startplayback', true, 'plot1d', true)
-  case '2D'
-    plotToolbar(G, statesSurfactant, 'field', 's:2','lockCaxis',true);
-    plotWell(G,schedule.control(1).W);
-    view(15,40), axis tight, caxis([.1 .9]); colorbar
-
-    plotWellSols(wellSolsSurfactant,'field','bhp');
-  otherwise
-    error('simul_case not recognized.');
-end
->>>>>>> 9d624337ceb38f0e6cfb62a899c71e4e0477d21a:ad-eor/examples/surfactantExamples/surfactantExample.m
