@@ -90,8 +90,8 @@ CG = coarsenGeometry(generateCoarseGrid(G, p));
 crock = convertRock2Coarse(G, CG, rock);
 
 figure(1); subplot(1,2,2); 
-plotCellDataNew(CG,crock.poro);
-plotFacesNew(CG, boundaryFaces(CG),...
+plotCellData(CG,crock.poro);
+plotFaces(CG, boundaryFaces(CG),...
    'EdgeColor', [0.4 0.4 0.4],'EdgeAlpha',.5, 'FaceColor', 'none'); view(3);
 plotWell(G,W,'Color','k'); axis off tight
 
