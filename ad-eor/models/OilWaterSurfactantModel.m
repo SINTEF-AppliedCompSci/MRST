@@ -51,7 +51,7 @@ classdef OilWaterSurfactantModel < TwoPhaseOilWaterModel
         end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
-            [state, report] = updateState@OilWaterSurfactantBaseModel(model, state, problem,  dx, ...
+            [state, report] = updateState@TwoPhaseOilWaterModel(model, state, problem,  dx, ...
                                                               drivingForces);
             % cap the concentration (only if implicit solver for concentration)
             c = model.getProp(state, 'surfactant');
