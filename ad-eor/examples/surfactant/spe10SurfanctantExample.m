@@ -1,5 +1,4 @@
-
-%% Oil-water-surfactant system for a layer of SPE10 model
+%% Oil-Water-Surfactant System for a Layer of the SPE10 Model
 %
 
 %% Load The Necessary Modules
@@ -77,7 +76,7 @@ fluid.cR = cR;
 fluid.pvMultR = @(p)(1 + cR.*(p-pRef));
 
 
-%% Setup Surfactant Properties
+%% Setup the Surfactant Properties
 % We use tabulated values. The surfactant parameters are the same as in the
 % surfactant tutorials.
 %
@@ -121,8 +120,8 @@ fluid.rhoRSft = 2650*kilo*gram/meter^3;
 
 model = OilWaterSurfactantModel(G, rock, fluid);
 
-%% Define wells
-
+%% Define the Wells
+%
 injeIJ = [56  10];        % Location of injection well
 prodIJ = [ 5 211];        % Location of production well
 rate   = 100*meter^3/day; % Injection rate
@@ -148,8 +147,8 @@ W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
                  'Sign'   , -1);
 
 
-%% Setup schedule
-
+%% Setup the Schedule
+%
 % We simulate the formation of a surfactant plug.
 % Three periods:
 % 1) water only
@@ -183,7 +182,7 @@ schedule.control = control;
 
 schedule = refineSchedule(0, 0.1*day*ones(10, 1), schedule);
 
-%% Setup initial state
+%% Setup the initial state
 %
 state0 = initResSol(G, bhp, [sWcon, 1 - sWcon]);
 state0.c      = zeros(G.cells.num, 1);
@@ -192,18 +191,19 @@ state0.ads    = computeEffAds(state0.c, 0, fluid);
 state0.adsmax = state0.ads;
 
 %% visualize the model properties
+%
 example_name = 'spe10';
 vizSurfactantModel();
 
-%% Run  the schedule
-close all
-resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'cleardir', true);
-solver = NonLinearSolver('Verbose', true);
+%% Run the simulation
+%
 fn = getPlotAfterStep(state0, model, schedule, 'plotWell', false, 'plotReservoir', ...
                               false);
-[wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, model, ...
-                                                  schedule, 'OutputHandler', ...
-                                                  resulthandler, 'NonLinearSolver', ...
-                                                  solver, 'afterStepFn', fn);
+[wellSols, states] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', ...
+                                        fn);
+
+%% Inspect the results using plotToolbar
+%
+plotToolbar(G, states);
 
 
