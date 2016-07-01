@@ -58,6 +58,11 @@ model = OilWaterSurfactantModel(G, rock, fluid, ...
                                                   'inputdata', deck, ...
                                                   'extraStateOutput', true);
 
+%% Convert the deck schedule into a MRST schedule by parsing the wells
+%
+
+schedule = convertDeckScheduleToMRST(model, deck);
+
 
 %% Visualize some properties of the model we have setup
 %
@@ -67,10 +72,6 @@ example_name = '1D';
 vizSurfactantModel;
 
 
-%% Convert the deck schedule into a MRST schedule by parsing the wells
-%
-
-schedule = convertDeckScheduleToMRST(model, deck);
 
 %% Run the schedule
 %
