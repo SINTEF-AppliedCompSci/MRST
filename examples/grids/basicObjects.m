@@ -150,9 +150,9 @@ display([ { info(present).name }      ; ...
 % Function |processGRDECL| constructs MRST grids from ECLIPSE-style input.
 % Such data can be input using either function |readGRDECL| or function
 % |readEclipseDeck|.  The latter is intended for complete simulation cases,
-% i.e., ECLIPSE-style .DATA files, whereas the former is intendeded for
-% reading loosely coupled grid data without forming a complete state
-% machine to represent temporally changing wells and related constraints.
+% i.e., ECLIPSE-style .DATA files, whereas the former reads loosely coupled
+% grid data and does not form a state machine to handle temporally changing
+% wells and related constraints.
 %
 % MRST's function |getDatasetPath| returns the full path of a particular
 % dataset on the local computer system.  We take care to convert the input
