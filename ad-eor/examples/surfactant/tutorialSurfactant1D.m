@@ -3,9 +3,9 @@
 % (SURFACTANT1D.DATA). The surfactant property (see file surfact.inc) are taken
 % from SPE paper 145036.
 %
-% Surfactant is added to water in order to decrease the surface tension so
-% that residual oil is mobilized. See more detail about the modeling equation
-% in ad-eor/docs
+% Surfactant is added to water in order to decrease the surface tension so that,
+% in particular, the residual oil is mobilized. See more detail about the
+% modeling equations in ad-eor/docs
 %
 % In this example, water and surfactant are injected at the left-hand side and
 % oil is produced at the right-hand side at a given pressure.
