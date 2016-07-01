@@ -171,7 +171,7 @@ methods
         
         if doSetup
             if isempty(G) || isempty(model.rock)
-                warning('mrst:ReservoirModel', ...
+                dispif(model.verbose, 'mrst:ReservoirModel', ...
                     'Invalid grid/rock pair supplied. Operators have not been set up.')
             else
                 model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
