@@ -81,12 +81,9 @@ fluid.pvMultR = @(p)(1 + cR.*(p-pRef));
 
 
 % Interfacial surface tension
-ift = [[   0;    0.1;  0.5;    1;   30;  100],...
-       [0.05; 0.0005; 1e-5; 1e-6; 1e-6; 1e-6] ...
-      ];
-ift(:, 2) = ift(:, 2)*Newton/meter;
-ift = extendTab(ift); % extend to constant values.
-fluid.ift = @(c) interpReg({ift}, c, {':'});
+% Let us define it as a given function (meant to be a rough interpolation of
+% the data in surfac.inc)
+fluid.ift = @(c) ((0.05*exp(-17*c) + 1e-6)*Newton/meter);
 
 % Interpolation factor
 miscfact = [[-10; -5.5;   -4; -3; 2], ...
