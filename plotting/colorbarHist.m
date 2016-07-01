@@ -11,7 +11,8 @@ function [hcb, hax] = colorbarHist(q, lim, varargin)
 %    lim - defines the range of values used to set limits of colorbar and
 %          axis of histogram for q
 %    loc - location of colorbar: 'East','West', or 'South' (default)
-%    n   - number of bins in histogram (default: 50)
+%    n   - number of bins in histogram (default: 50). See the documentation
+%          of hist for the interpretation of this parameter.
 %
 % RETURNS:
 %    hc  - graphics handle to colorbar
@@ -25,28 +26,32 @@ if nargin==4,
 else
    nbins = 51;
 end
-[counts,bins] = hist(q, linspace(min(lim),max(lim),nbins));
+if numel(nbins)==1
+    [counts,bins] = hist(q, linspace(min(lim),max(lim),nbins));
+else
+    [counts,bins] = hist(q, nbins);
+end
 
 if nargin==2 || ((nargin>2) && strcmpi(varargin{1},'South'))
    cbPos = 'SouthOutside';
    cbAdd = -[0 0.09 0 0.03];
    cbLoc = 'left';
    axAdd = [0 -.03 0 .03];
-   axLim = [min(lim) max(lim) -1 max(counts+1)];
+   axLim = [min(lim)-eps, max(lim)+eps, -1-eps, max(1,1.1*max(counts))+eps];
    hbar  = @(x,y) bar(x,y,'hist');
 elseif strcmpi(varargin{1},'east')
    cbPos = 'EastOutside';
    cbAdd = [.06 .1 -.03 -.2];
    axAdd = [.09 .1 0    -.2];
    cbLoc = 'left';
-   axLim = [-1 max(counts+1) min(lim) max(lim)];
+   axLim = [-1-eps, max(1,1.1*max(counts))+eps, min(lim)-eps, max(lim)+eps];
    hbar  = @(x,y) barh(x,y,'hist');
 elseif strcmpi(varargin{1},'west')
    cbPos = 'WestOutside';
    cbAdd = -[.06 -.1 .03 .2];
    axAdd = -[.12 -.1  0  .2];
    cbLoc = 'right';
-   axLim = [-max(counts+1) 1 min(lim) max(lim)];
+   axLim = [-max(1,1.1*max(counts))-eps, 1+eps, min(lim)-eps, max(lim)+eps];
    hbar  = @(x,y) barh(x,-y,'hist');
 else
    error('Color bar location not supported');
