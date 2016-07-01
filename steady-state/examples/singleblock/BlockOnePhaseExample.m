@@ -11,7 +11,7 @@
 %% Add MRST modules
 
 % We rely on the following MRST modules
-mrstModule add incomp upscaling
+mrstModule add incomp upscaling steady-state
 
 % In addition, we will use the SPE10 grid as an example model
 mrstModule add spe10

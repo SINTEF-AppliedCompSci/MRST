@@ -8,7 +8,7 @@
 % boundary conditions, such each dimension must have at least two cells.
 % 
 
-mrstModule add ad-blackoil ad-core ad-props
+mrstModule add ad-blackoil ad-core ad-props upscaling steady-state
 
 
 %% Setup example

@@ -4,7 +4,7 @@ opt = struct(...
    );
 opt = merge_options(opt, varargin{:});
 
-%% Check input
+% Check input
 
 nreg = numel(swir);
 assert(numel(sor)==nreg, 'Wrong size of sor');
@@ -16,7 +16,7 @@ krwmax = opt.krwmax.*ones(nreg,1);
 
 
 
-%% Compute relative permeability
+% Compute relative permeability
 
 sW   = linspace(0, 1, opt.nsat)';
 kr = cell(1, nreg);

@@ -9,7 +9,7 @@ opt = struct(...
 opt = merge_options(opt, varargin{:});
 
 
-%% Check input
+% Check input
 
 surft = opt.surft;
 assert(isscalar(surft), 'Surface tension must be scalar');
@@ -26,7 +26,7 @@ swir = opt.swir.*ones(nreg,1);
 sor  = opt.sor.*ones(nreg,1);
 
 
-%% Compute capillary pressure
+% Compute capillary pressure
 
 sW   = linspace(0, 1, nsat)';
 cosa = cos(pi*opt.cangle/180); % cosine of contact angle

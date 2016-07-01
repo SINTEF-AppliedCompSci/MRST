@@ -1,5 +1,5 @@
 function updata = LayeredExactUpscaling(K, krW, krO, Rk, varargin)
-%% Description
+% Description
 %
 % The model consists of three stacked horizontal layers. Bottom and top
 % layers are of rock type 1, while the middle layer is of rock type 2.
@@ -13,7 +13,7 @@ opt = merge_options(opt, varargin{:});
 require ad-fi
 
 
-%% Properties
+% Properties
 
 Lz      = opt.Lz;
 dz1     = opt.dz1;
@@ -45,22 +45,22 @@ assert( all(all(relperm>=0)) && all(all(rk>=0)) );
 
 
 
-%% Upscaling of Absolute Permeability
+% Upscaling of Absolute Permeability
 
 KU  = upscalePerm(Lz, dz, perm);
 
 
-%% Upscaling of Relative Permeability
+% Upscaling of Relative Permeability
 
 krU = upscaleRelperm(Lz, dz, perm, KU, relperm);
 
 
-%% Upscaling of Rk
+% Upscaling of Rk
 
 rkU = upscaleRk(Lz, dz, perm, KU, relperm, krU, rk);
 
 
-%% Set solution structure
+% Set solution structure
 
 % Absperm data
 updata.perm = KU;
