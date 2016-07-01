@@ -1,21 +1,28 @@
-%% Read case from file
-% This example contains a simple $31\times31\times3$ fine grid containing
-% two injectors in opposite corners and one producer in the middle of the
-% domain. All wells are completed in the top layers of cells.
+%% Computation of Adjoints for Polymer and Waterflooding
+% In this example, we demonstrate how one can use an adjoint simulation to
+% compute gradients (sensitivities). To illustrate this, we compare water
+% and polymer flooding in a simple box-shaped reservoir represented on a
+% uniform 31×31×3 Cartesian grid with homogeneous rock properties. The well
+% pattern consists of a producer in the center of the reservoir and two
+% injectors in the northeast and southwest corners; all wells are completed
+% in the top layer. Somewhat unrealistic, the well schedule consists of a
+% period of injection with polymer, followed by a water flooding phase
+% without polymer. Finally, the water rate is reduced for the final time
+% steps. For comparison, we also simulate a case with pure waterflooding.
 %
-% The schedule being used contains first a period of injection with
-% polymer, followed by a water flooding phase without polymer. Finally, the
-% water rate is reduced for the final time steps.
+% The implementation and computational strategy used to obtain adjoints is
+% independent of the actual system considered and a similar approach can be
+% used for other systems and setups with minor (and obvious) modifications.
 %
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
 
-try
-   require ad-core ad-blackoil ad-eor ad-props deckformat optimization
-catch
-    mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
-end
+%% Read input file and setup basic structures
+% The computational setup is described in an input file on the ECLIPSE
+% input format. We start by reading this file and extracting the necessary
+% structures to represent grid, petrophysics, and fluid properties.
 
 current_dir = fileparts(mfilename('fullpath'));
-fn    = fullfile(current_dir, 'POLYMER.DATA');
+fn  = fullfile(current_dir, 'POLYMER.DATA');
 
 deck = readEclipseDeck(fn);
 deck = convertDeckUnits(deck);
@@ -34,13 +41,12 @@ fluid.krO = fluid.krOW;
 
 gravity on
 
-%% Set up simulation parameters
-% We want a layer of oil on top of the reservoir and water on the bottom.
-% To do this, we alter the initial state based on the logical height of
-% each cell. The resulting oil concentration is then plotted.
+%% Set up initial reservoir state
+% Initially, the reservoir is filled by oil on top and water at the bottom.
+% The horizontal oil-water contact passes through the second grid layer and
+% hence we get different saturations in each of the three grid layers.
 
 ijk = gridLogicalIndices(G);
-
 state0 = initResSol(G, 300*barsa, [ .9, .1]);
 state0.s(ijk{3} == 1, 2) = .9;
 state0.s(ijk{3} == 2, 2) = .8;
@@ -52,34 +58,32 @@ state0.s(:,1) = 1 - state0.s(:,2);
 state0.c    = zeros(G.cells.num, 1);
 state0.cmax = zeros(G.cells.num, 1);
 
-clf
+clf, title('Oil concentration')
 plotCellData(G, state0.s(:,2));
 plotGrid(G, 'facec', 'none')
-title('Oil concentration')
-axis tight off
-view(70, 30);
-colorbar;
+axis tight off, view(70, 30), colorbar;
 
 %% Plot polymer properties
-% When polymer is added to the water phase, the viscosity of the water
-% phase containing polymer is increased. Because mobility is defined as
-% $\lambda_w = \frac{K}{mu_w}$, this makes the water much less mobile. As a
-% problem with water injection with regards to oil production is that the
-% water is much more mobile than the hydrocarbons we are trying to
-% displace, injecting a polymer may be beneficial towards oil recovery.
+% In the basic setup, water is much more mobile than the oil we are trying
+% to displace, and as a result, a pure waterflooding will not be very
+% efficient. To improve the oil recovery, we will add polymer to the
+% injected water phase. This will increase the viscosity of the water
+% phase and hence make the water much less mobile, which in turn will
+% increase the local displacement efficiency and also the volumetric sweep.
+% To see the effect of polymer on the water viscosity, we plot the visocity
+% multiplier, which is based on tabulated data given in the input file
 dc = 0:.1:fluid.cmax;
-plot(dc, fluid.muWMult(dc))
+plot(dc, fluid.muWMult(dc),'LineWidth',2)
 title('muW Multiplier')
-xlabel('Polymer concentration')
-ylabel('kg/m^3')
+xlabel('Polymer concentration [kg/m^3]')
 
 
-%% Set up systems.
+%% Set up systems
 % To quantify the effect of adding the polymer to the injected water, we
 % will solve the same system both with and without polymer. This is done by
-% creating both a Oil/Water/Polymer system and a Oil/Water system. Note
-% that since the data file already contains polymer as an active phase we
-% do not need to pass initADISystem anything other than the deck.
+% creating an Oil/Water/Polymer system and an Oil/Water system. Note that
+% since the data file already contains polymer as an active phase, we do not
+% need to pass initADISystem anything other than the deck.
 
 modelPolymer = OilWaterPolymerModel(G, rock, fluid, 'inputdata', deck);
 modelOW = TwoPhaseOilWaterModel(G, rock, fluid, 'inputdata', deck);
@@ -98,11 +102,12 @@ schedule = convertDeckScheduleToMRST(modelPolymer, deck);
 
 [wellSolsOW, statesOW] = simulateScheduleAD(state0, modelOW, schedule);
 
+plotWellSols({wellSolsPolymer; wellSolsOW},'datasetnames',{'Polymer','Water'});
 
 %% Objective functions
 % Create objective functions for the different systems. We set up
-% approximate prices in USD for both the oil price and the injection cost
-% of the different phases. The polymer injection cost is per kg injected.
+% approximate prices in USD for both the oil and the injection cost of the
+% different phases. The polymer injection cost is per kg injected.
 prices = {'OilPrice',            100  , ...
           'WaterProductionCost',   1  , ...
           'WaterInjectionCost',    0.1, ...
@@ -121,49 +126,46 @@ objectivePolymer = ...
     @(polyprice) NPVOWPolymer(G, wellSolsPolymer, schedule, prices{:}, ...
                               'PolymerInjectionCost', polyprice);
 
-objectiveCheapPolymer     = objectivePolymer( 1.0);
-objectiveRegularPolymer   = objectivePolymer( 5.0);
-objectiveExpensivePolymer = objectivePolymer(15.0);
+objectiveInexpensivePolymer = objectivePolymer( 1.0);
+objectiveRegularPolymer     = objectivePolymer( 5.0);
+objectiveExpensivePolymer   = objectivePolymer(15.0);
 
 %% Plot accumulated present value
-% In each time step the objective function is now the net present value of
-% the reservoir, i.e. the cost of doing that timestep. However, the most
+% The objective function is now the net present value of the reservoir at
+% each time step, i.e. the cost of doing that timestep. However, the most
 % interesting value is here the accumulated net present value, as it will
-% show us the profit for the lifetime of the reservoir. We plot the three
-% different polymer cost as well as the total profit without polymer
+% show us the profit over the lifetime of the reservoir. We plot the three
+% different polymer costs, as well as the total profit without polymer
 % injection.
 %
-% While polymer injection is happening, the polymer value is lower than
+% While polymer is injected, the net present value may be lower than
 % without polymer as there is an increased cost. Once the polymer injection
-% phase is over, we reap the benefits and get an increased oil output
-% resulting in a bigger total value for the reservoir lifetime.
+% phase is over, however, we hope to reap the benefits and get an increased
+% oil output resulting in a bigger total value for the reservoir lifetime.
 
 figure(gcf); clf;
-
 cumt = cumsum(schedule.step.val);
-
 v = @(value) cumsum([value{:}]);
-
 
 plot(convertTo(cumt, year), ...
      convertTo([v(objectiveOW)            ; ...
-                v(objectiveCheapPolymer)  ; ...
+                v(objectiveInexpensivePolymer)  ; ...
                 v(objectiveRegularPolymer); ...
-                v(objectiveExpensivePolymer)], 1e6))
+                v(objectiveExpensivePolymer)], 1e6),'LineWidth',2)
 
 legend('Without polymer'       , ...
-       'With cheap polymer'    , ...
+       'With inexpensive polymer'    , ...
        'With regular polymer'  , ...
-       'With expensive polymer')
-
+       'With expensive polymer',2)
 title('Net present value')
 ylabel('Million USD')
 xlabel('Years')
+axis tight
 
-%% Compute gradient using the adjoint formulation
+%% Compute gradients using the adjoint formulation
 % We pass a function handle to the polymer equations and calculate the
 % gradient with regards to our control variables. The control variables are
-% defined as the last two variables, i.e. well closure (rate/BHP) and
+% defined as the last two variables, i.e., well closure (rate/BHP) and
 % polymer injection rate.
 
 adjointGradient = ...
@@ -172,10 +174,10 @@ adjointGradient = ...
 
 
 %% Plot the gradients
-% Plot the polymer and well gradients. Note that the second injection well
-% which injects less polymer should be matched with the first to maximize
+% Plot the polymer and well gradients. Note that the second injection well,
+% which injects less polymer, should be matched with the first to maximize
 % the value. If we were to employ this example in an optimization loop
-% using some external algorithm we could optimize the polymer injection
+% using some external algorithm, we could optimize the polymer injection
 % rate with regards to the total reservoir value.
 
 figure(gcf); clf;
@@ -194,55 +196,49 @@ for i = 1:ng
     xlabel('Well #')
 end
 
-%% Plot the schedule
-% We visualize the schedule and plot both the water, oil and polymer
-% concentration using a simple supplied volume renderer. At the same time
-% we visualize the sum of the oil/water ratio in the producer for both
-% with and without polymer injection in a single pie chart.
+%% Animation of simulation results
+% We animate the computed solutions. The animation shows all cells with
+% water saturation exceeding the residual saturation, as well as a pie
+% chart that shows the oil/water ratio in the producer with and
+% without polymer injection in a single chart. If you have a powerful
+% computer, you can replace the cell plot by a simple volume renderer by
+% uncommenting the corresponding lines.
 
 W = schedule.control(1).W;
-figure(gcf); clf; 
-view(10,65);
-drawnow;
-
-[az, el] = deal(6, 60);
-
+figure(gcf); clf
 nDigits = floor(log10(numel(statesPolymer) - 1)) + 1;
-
-
 for i = 1 : numel(statesPolymer) - 1,
     injp  = wellSolsPolymer{i}(3);
     injow = wellSolsOW{i}(3);
-
     state = statesPolymer{i + 1};
 
-    subplot(1, 3, 3)
+    subplot(1, 3, 3), cla
     rates = injp.sign .* [injow.qWs, injow.qOs injp.qWs, injp.qOs];
     pie(rates./sum(rates))
     legend('Water (No polymer)', 'Oil (No polymer)', ...
            'Water (With polymer', 'Oil (Polymer)',   ...
            'Location', 'SouthOutside')
-
     title('Producer OW ratio')
-    subplot(1, 3, [1 2])
-    cla
+    
+    subplot(1, 3, [1 2]), cla
     plotGrid(G, 'facea', 0,'edgea', .05, 'edgec', 'k');
+    %{
     plotGridVolumes(G, state.s(:,2), 'cmap', @copper, 'N', 10)
     plotGridVolumes(G, state.s(:,1), 'cmap', @winter, 'N', 10)
     plotGridVolumes(G, state.c,      'cmap', @autumn, 'N', 10)
+    %}
+    plotCellData(G,state.s(:,1),state.s(:,1)>.1);
     plotWell(G, W);
-    axis tight off
-
+    axis tight off, view(6,60)
     title(sprintf('Step %0*d (%s)', nDigits, i, formatTimeRange(cumt(i))));
-
-    view(az, el);
     drawnow;
 end
 
 %% Plot the accumulated water and oil production for both cases
 % We concat the well solutions and plot the accumulated producer rates for
-% both the polymer and the non-polymer run. The result shows that
-
+% both the polymer and the non-polymer run. The result shows that the
+% polymer injection both gives more produced oil and less produced water
+% and hence is a feasible stategy in this particular example.
 figure(gcf); clf;
 wspoly = vertcat(wellSolsPolymer{:});
 wsow = vertcat(wellSolsOW{:});
@@ -253,7 +249,7 @@ data = -([ [wsow(:,3).qWs]   ; ...
            [wspoly(:,3).qOs] ] .');
 data = bsxfun(@times, data, schedule.step.val);
 
-plot(convertTo(cumt, year), convertTo(data, stb));
+plot(convertTo(cumt, year), cumsum(convertTo(data, stb)),'LineWidth',2);
 legend({'Water without polymer', 'Water with polymer', ...
         'Oil without polymer', 'Oil with polymer'}, 'Location', 'NorthEast');
 ylabel('stb');
