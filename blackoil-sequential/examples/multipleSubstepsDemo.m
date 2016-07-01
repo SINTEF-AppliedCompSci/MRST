@@ -82,12 +82,16 @@ seqModel.transportNonLinearSolver.timeStepSelector = stepSel;
 % timesteps. The solution that is refined in time is quite different,
 % however, demonstrating that the numerical truncation error due to the
 % temporal discretization can significantly impact the simulation results.
+x = G.cells.centroids(:, 1);
+
 for i = 1:numel(statesFine)
     figure(1); clf, hold on
-    plot(states{i}.s(:, 1), '-')
-    plot(statesSeq{i}.s(:, 1), '.')
-    plot(statesFine{i}.s(:, 1), '--')
+    plot(x, states{i}.s(:, 1), '-')
+    plot(x, statesSeq{i}.s(:, 1), '.')
+    plot(x, statesFine{i}.s(:, 1), '--')
     ylim([0, 1])
     legend('Fully implicit', 'Sequential', 'Sequential \Delta s_{max} = 0.01');
+    ylabel('Water saturation');
+    xlabel('x coordinate');
     pause(0.1)
 end

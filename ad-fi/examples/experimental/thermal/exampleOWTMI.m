@@ -188,7 +188,7 @@ x0.M=M0;
 %x0.s=x0.z(:,[2,1]);
 
 %Wext=processWells(G, rock, deck.SCHEDULE.control(1));
-Wext=processWellsLocal(G, rock, deck.SCHEDULE.control(1));
+Wext=processWells(G, rock, deck.SCHEDULE.control(1));
 for i=1:numel(Wext)
   Wext(i).T=273;
   Wext(i).I=0*ones(1,size(x0.I,2));
