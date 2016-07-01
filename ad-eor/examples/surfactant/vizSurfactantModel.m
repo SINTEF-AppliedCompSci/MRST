@@ -49,7 +49,7 @@ end
 s = (0 : 0.05 : 1)';
 
 switch example_name
-  case '2D'
+  case {'1D', '2D'}
     % We use deck input. For such input, different relative permeabilities can be
     % assigned to different cell. In our case, they are the same everywhere and
     % we choose the first cell to comput them for plotting.
