@@ -35,7 +35,6 @@ krOW = coreyPhaseRelpermAD(n, sOres, krOres, sWcon + sOres);
 
 fluid.krW = krW;
 fluid.krOW = krOW;
-fluid.relPerm = @(sW) (relPermHelper(sW, krW, krOW));
 fluid.sWcon = sWcon;
 fluid.sOres = sOres;
 
@@ -51,7 +50,6 @@ krOWSft = coreyPhaseRelpermAD(n, sOresSft, krOresSft, sWconSft + sOresSft);
 fluid.krWSft = krWSft;
 fluid.krOWSft = krOWSft;
 
-fluid.relPermSft = @(sW) (relPermHelper(sW, krWSft, krOWSft));
 fluid.sWconSft   = sWconSft;
 fluid.sOresSft   = sOresSft;
 
@@ -95,7 +93,7 @@ miscfact = [[-10; -5.5;   -4; -3; 2], ...
             [  0;    0;  0.5;  1; 1] ...
            ];
 miscfact = extendTab(miscfact); % extend to constant values.
-fluid.miscfact = @(Nc) interpReg({miscfact}, Nc, {':'});
+fluid.miscfact = @(Nc, varargin) interpReg({miscfact}, Nc, {':'});
 
 % Viscosity multiplier
 muWSft = [[   0;  30; 100], ...

@@ -29,7 +29,7 @@ function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
        logNc = log(Nc(isSft))/log(10);
        % We cap logNc (as done in Eclipse)
        logNc = min(max(-20, logNc), 20);
-       m(isSft) = fluid.miscfact(logNc);
+       m(isSft) = fluid.miscfact(logNc, 'cellInx', find(isSft));
     end
 
     sWcon    = fluid.sWcon;    % Residual water saturation   without surfactant
@@ -45,11 +45,13 @@ function [krW, krO] = computeRelPermSft(sW, c, Nc, fluid)
 
     % Rescaling of the saturation - without surfactant
     sNcWnoSft = (1 - sWcon - sOres).*sNcEff + sWcon;
-    [krNcWnoSft, krNcOnoSft] = fluid.relPerm(sNcWnoSft);
+    krNcWnoSft = fluid.krW(sNcWnoSft);
+    krNcOnoSft = fluid.krOW(1 - sNcWnoSft);
 
     % Rescaling of the saturation - with surfactant
     sNcWSft =  (1 - sWconSft - sOresSft).*sNcEff + sWconSft;
-    [krNcWSft, krNcOSft] = fluid.relPermSft(sNcWSft);
+    krNcWSft = fluid.krW(sNcWSft);
+    krNcOSft = fluid.krOW(1 - sNcWSft);
 
     krW = m.*krNcWSft + (1 - m).*krNcWnoSft;
     krO = m.*krNcOSft + (1 - m).*krNcOnoSft;
