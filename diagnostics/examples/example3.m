@@ -1,4 +1,4 @@
-%% Example 3: Upscaling
+%% Upscaling a Subset of SPE 10
 % In this example we illustrate how allocation factors for well pairs can
 % be used to assess the quality of upscaling.  As our example, we consider
 % a subsample of Model 2 from the 10th SPE Comparative Solution Project
@@ -6,39 +6,49 @@
 % producers at each of the four corners.
 
 mrstModule add diagnostics spe10 coarsegrid agmg incomp
-
-%% Set up fine-scale problem
+% Check for agmg
 if ~exist('agmg', 'file') || ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,
    error('This example requires the AGMG linear solver package');
 end
 
+%% Set up fine-scale problem
+% We pick the fifteen topmost layers of the 3D model and use this as our
+% test problem
 fprintf(1,'Setting up fine-scale problem ...');
+
+% Grid
 cartDims = [  60,  220, 15];
 physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
+G  = cartGrid(cartDims, physDims);
+G  = computeGeometry(G);
+
+% Rock
 rock = SPE10_rock(1:cartDims(end));
 rock.perm = convertFrom(rock.perm, milli*darcy);
 rock.poro = max(rock.poro, 1e-4);
-G  = cartGrid(cartDims, physDims);
-G  = computeGeometry(G);
+
+% Wells
+W = [];
 wtype    = {'bhp', 'bhp', 'bhp', 'bhp', 'bhp', 'bhp'};
 wtarget  = [200,   200,   200,   200,   500,   500  ] .* barsa();
 wrad     = [0.125, 0.125, 0.125, 0.125, 0.125, 0.125] .* meter;
 wloc     = [  1,   60,     1,   60,  20, 40;
               1,    1,   220,  220, 130, 90];
 wname    = {'P1', 'P2', 'P3', 'P4', 'I1', 'I2'};
-W = [];
 for w = 1 : numel(wtype),
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
                     'Radius', wrad(w), 'Name', wname{w}, ...
                     'InnerProduct', 'ip_tpf');
 end
+
+% Single-phase fluid
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 fprintf(1,'done\n');
 
 %% Solve flow problem and compute flow diagnostics
-fprintf(1,'Solving fine-scale problem ...');
+fprintf(1,'Solving fine-scale problem with diagnostics ...');
 rS = initState(G, W, 0);
 T  = computeTrans(G, rock);
 rS = incompTPFA(rS, G, T, fluid, 'wells', W, 'LinSolve', @(A,b) agmg(A,b,1));
@@ -53,16 +63,17 @@ fprintf(1,'done\n');
 % Notice that the computational cost of the flow-based method may be quite
 % high for large subsets of the SPE10 model. For the porosity, we use a
 % simple average.
+cfac      = [5 5 3];
 flowbased = true;
+
 fprintf(1,'Upscaling ...');
-cfac = [5 5 3];
 p  = partitionUI(G, cartDims./cfac);
 if flowbased
    mrstModule add upscaling agglom coarsegrid
    CG = generateCoarseGrid(G, p);
    crock.perm = upscalePerm(G, CG, rock, 'Verbose',true);
 else
-   for i=1:3;
+   for i=1:3; %#ok<UNRCH>
       K = accumarray(p,1./rock.perm(:,i))./accumarray(p,1);
       crock.perm(:,i) = 1./K;
    end
@@ -106,3 +117,8 @@ fprintf(1,'done\n');
 % connections and flow patterns predicted by the fine-scale model
 figure; set(gcf,'Position',[700 50 660 760]);
 plotWellAllocationComparison(Dc,WPc,D,WP);
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
+% 
