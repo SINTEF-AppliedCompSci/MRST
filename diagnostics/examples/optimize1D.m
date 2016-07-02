@@ -1,74 +1,63 @@
-%% 1D flow diagnostics adjoint optimization example
-% This example demonstrates the diagnostics based well optimization
+%% Well Optimization using Adjoints and Flow Diagnostics
+% This example demonstrates the diagnostics-based well optimization
 % framework on a very simple 1D problem with two injectors and a single
 % producer.
 %
-% We begin by defining a simple 10x1x1 grid discretized into 101 fine
-% cells.
 mrstModule add ad-fi diagnostics ad-props incomp
-N = 100 + 1;
-% Define the middle of the domain
-mid = floor(N/2);
 
-G = cartGrid([N, 1, 1], [10, 1, 1]);
-G = computeGeometry(G);
-
-%% Setup porosity field, wells and other definitions
-% We divide the problem into two regions: One region $x < 5$ where the
-% porosity is set to 0.5 and a region $x > 5$ where the porosity is 1. In
-% the center, $x = 5$, the porosity is set to the average (0.75).
+%% Setup model
+% We consider a rectangular 10-by-1-by-1 m^3 discretized into 101 cells. We
+% divide the reservoir into two regions: One region (x<5) where the
+% porosity is set to 0.5 and a region x>5 where the porosity is 1. In the
+% center (x = 5), the porosity is set to the average (0.75).
 %
-% Two injectors are defined. One at the left boundary of the domain (x = 0)
-% and another at the right end of the domain (x = 10). Both are allocated
-% the same injection rate, even though they are in different porosity
-% regions.
+% Two injectors are defined. One at the left boundary of the domain and
+% another at the right end of the domain. Both are allocated the same
+% injection rate, even though they are in different porosity regions.
 %
 % A single BHP controlled producer is placed in the exact middle of the
 % domain, effectively making the reservoir into two distinct regions: The
 % low porosity region swept by the first injector and the high porosity
 % region swept by the other injector.
 
+% Grid
+N = 101; mid = floor(N/2);
+G = cartGrid([N, 1, 1], [10, 1, 1]);
+G = computeGeometry(G);
+
+% Petrophysics
+[lowporo,highporo] = deal(.5,1);
 rock.poro = ones(G.cells.num, 1);
-lowporo =  .5;
-highporo = 1;
-
-% Left domain
-rock.poro(1:mid) = lowporo;
-rock.poro(mid+1:end) = highporo;
-rock.poro(mid) = (lowporo + highporo)/2 ;
-% Trivial permeability
+rock.poro(1:mid) = lowporo;                 % West part of reservoir
+rock.poro(mid+1:end) = highporo;            % East part of reservoir
+rock.poro(mid) = (lowporo + highporo)/2 ;   % Center cell
 rock.perm = ones(G.cells.num, 1);
-
-W = [];
-% Left injector
-W = verticalWell(W, G, rock, 1, 1, [], 'Val', 1*meter^3/day, ...
-                 'Type', 'rate', 'Name', 'Injector 1', ...
-                 'InnerProduct', 'ip_tpf');
-
-% Right injector
-W = verticalWell(W, G, rock, N, 1, [], 'Val', 1*meter^3/day, ...
-                 'Type', 'rate', 'Name', 'Injector 2', ...
-                 'InnerProduct', 'ip_tpf');
-
-% Add producer with zero bottom hole pressure for pressure support
-W = verticalWell(W, G, rock, mid, 1, [], 'Val', 0, 'Type', 'bhp', ...
-                 'Name', 'Producer', 'InnerProduct', 'ip_tpf');
 
 T = computeTrans(G, rock);
 pv = poreVolume(G, rock);
 
-% Reservoir state
+% Wells
+W = verticalWell([], G, rock, 1, 1, [],  ...  % Injector: West
+                 'Val', 1*meter^3/day, 'Type', 'rate', ...
+                 'Name', 'I1', 'InnerProduct', 'ip_tpf');
+             
+W = verticalWell(W, G, rock, N, 1, [], ...    % Injector: East
+                 'Val', 1*meter^3/day,  'Type', 'rate', ...
+                 'Name', 'I2', 'InnerProduct', 'ip_tpf');
 
+W = verticalWell(W, G, rock, mid, 1, [], ...  % Producer: Center
+                 'Val', 0, 'Type', 'bhp', ...
+                 'Name', 'P', 'InnerProduct', 'ip_tpf');
+
+% Reservoir state
 state0 = initResSol(G, 0*barsa, [1 0 0]);
 % state0.wellSol = initWellSol(W, 0);
 
 % Reservoir fluid and ad-system
-mu = [1 1 1];
-n = [1 1 1];
-
-fluid_ad = initSimpleADIFluid('mu', mu, 'n', n);
+fluid_ad = initSimpleADIFluid('mu',[1 1 1], 'n', [1 1 1]);
 
 s = initADISystem({'Oil', 'Water'}, G, rock, fluid_ad);
+
 %% Define objective function and plot domain
 % The Lorenz coefficient is used here, which will have values between 0
 % (homogenous displacement, perfect sweep) and 1 (infinitely hetereogenous
@@ -127,37 +116,31 @@ clf
 % optimized well configuration shouws equal arrival times from each
 % injector, indicating an optimal solution.
 clf
-pw = @() plotWell(G, W, 'height', 0.05, 'radius', 0, 'Color', 'red');
+pw = @() plotWell(G, W, 'height', 1, 'radius', 0, 'Color', 'red');
 
-subplot(2,2,1:2)
-ind = 1;
+subplot(4,1,1:2), title('Time of flight')
 x = G.cells.centroids(:,1);
 initial = history.D(1).tof(:,1);
 optimized = history.D(end).tof(:,1);
-
 hold on
 plot(x, [initial, optimized]./max(initial), 'LineWidth', 2)
-
 grid on
-title('Time of flight')
 legend({'Initial TOF', 'Optimized TOF'});
 
-subplot(2,2,3)
-plotCellData(G, history.D(1).tof(:,1))
-title('Initial')
-[htop, htext] = pw();
+subplot(4,1,3), title('Initial')
+plotCellData(G, history.D(1).tof(:,1),'EdgeColor','k','EdgeAlpha',.1)
+[htop, htext] = pw(); %#ok<ASGLU>
 set(htext, 'Interpreter', 'None')
-axis tight off equal
-view(20, 40)
+axis normal off
+view(-4, 40)
 
-subplot(2,2,4)
+subplot(4,1,4), title('Optimized')
 colormap winter
-plotCellData(G, history.D(end).tof(:,1))
-title('Optimized')
+plotCellData(G, history.D(end).tof(:,1),'EdgeColor','k','EdgeAlpha',.1)
 [htop, htext] = pw();
 set(htext, 'Interpreter', 'None')
-axis tight off equal
-view(20, 40)
+axis tight off
+view(-4, 40)
 
 %% Plot sweep and flow capacity diagrams
 % The Lorenz coefficient is really a derived measure from the flow-capacity
@@ -172,23 +155,18 @@ view(20, 40)
 [F_end, Phi_end] = computeFandPhi(pv, history.D(end).tof);
 
 clf;
-
-subplot(2,1,1)
+subplot(2,1,1), title('Flow-capacity diagram')
 plot([Phi_0, Phi_end], [F_0, F_end], 'linewidth', 2)
 legend({'Equal rates', 'Optimized rates'}, 'location', 'SouthEast')
-xlabel('\Phi')
-ylabel('F')
-title('Flow-capacity diagram')
-grid on
+xlabel('\Phi'), ylabel('F'), grid on
 
-subplot(2,1,2)
+subplot(2,1,2), title('Sweep')
 [Ev_0, tD_0] = computeSweep(F_0, Phi_0);
 [Ev_end, tD_end] = computeSweep(F_end, Phi_end);
 plot([tD_0, tD_end], [Ev_0, Ev_end], 'linewidth', 2)
 legend({'Equal rates', 'Optimized rates'}, 'location', 'SouthEast')
-xlabel('\Phi')
-ylabel('F')
-title('Sweep')
-grid on
-axis tight
+xlabel('\Phi'), ylabel('F'), grid on, axis tight
 
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
