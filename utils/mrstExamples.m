@@ -4,11 +4,14 @@ function varargout = mrstExamples(varargin)
 % SYNOPSIS:
 %       mrstExamples('ad-blackoil')
 %       mrstExamples()
+%       mrstExamples('all')
 %       exList = mrstExamples('ad-blackoil', 'diagnostics')
 %
 % PARAMETERS:
 %   input - Any number of strings that are the names of registered mrst
-%           modules (see mrstPath / mrstModule).
+%           modules (see mrstPath / mrstModule). As a option, a single
+%           string 'all' can be given to list the examples in all
+%           registered modules.
 %
 % RETURNS:
 %   ex    - A cell array of same length of the number of input arguments,
@@ -50,10 +53,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargin == 0
         varargin = {'core'};
     end
+    if any(strcmpi(varargin, 'all'))
+        % List all modules, including core
+        assert(nargin == 1, ...
+            'Verb ''all'' can only be used as the only input.');
+        varargin = mrstPath();
+        % Put core first in the module list
+        varargin = ['core'; varargin];
+    end
     doPrint = nargout == 0;
-
-    examplePaths = cell(nargin, 1);
-    for i = 1:numel(varargin)
+    npaths = numel(varargin);
+    examplePaths = cell(npaths, 1);
+    for i = 1:npaths
         name = varargin{i};
 
         if isempty(name) || strcmpi(name, 'core')
