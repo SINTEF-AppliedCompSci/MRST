@@ -177,9 +177,4 @@ updata = upAbsPermPres(block, updata);
 
 %% Upscale Permeability
 
-updata = upRk(block, updata, 'viscous', 'dims', 1);
-
-
-
-
-
+updata = upRelPerm(block, updata, 'viscous', 'dims', 1);
