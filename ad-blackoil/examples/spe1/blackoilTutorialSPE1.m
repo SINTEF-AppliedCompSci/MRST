@@ -1,7 +1,7 @@
 %% The Odeh Benchmark (SPE1) 
 % The first SPE project comparing black-oil reservoir simulators was
 % organized by Odeh (1981) and describes a depletion problem with gas
-% injection in a small 10×10×3 reservoir with a producer and an injector
+% injection in a small 10x10x3 reservoir with a producer and an injector
 % placed in diagonally opposite corners. The porosity is uniform and equal
 % 0.3, whereas the permeability is isotropic with values 500, 50, and 200
 % md in the three layers with thickness 20, 30, and 50 ft. The reservoir is
