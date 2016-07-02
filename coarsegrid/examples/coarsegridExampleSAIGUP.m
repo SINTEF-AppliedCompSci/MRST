@@ -15,9 +15,9 @@ G = processGRDECL(grdecl);
 G = computeGeometry(G);
 
 %% Partition the grid in logical space
-% We construct a coarse grid by partitioning the grid uniformly as 6×12×3
+% We construct a coarse grid by partitioning the grid uniformly as 6x12x3
 % coarse blocks in index space. This process partitions all cells in the
-% logical 40×120×20 grid, including cells that are inactive.  We therefore
+% logical 40x120x20 grid, including cells that are inactive.  We therefore
 % compress the partitioning to remove blocks that contain no active cells,
 % and then renumber the overall partitioning. Some of the blocks may
 % contain disconnected cells because of erosion, faults, etc. We therefore
