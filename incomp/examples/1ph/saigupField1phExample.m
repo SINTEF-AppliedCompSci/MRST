@@ -110,7 +110,7 @@ radius = .1; W = [];
 for i = 1 : numel(I),
    W = verticalWell(W, G, rock, I(i), J(i), 1:nz, 'Type', 'rate', ...
                     'InnerProduct', 'ip_tpf', ...
-                    'Val', R(i), 'Radius', radius, 'Comp_i', [1, 0], ...
+                    'Val', R(i), 'Radius', radius, 'Comp_i', 1, ...
                     'name', ['I$_{', int2str(i), '}$']);
 end
 plotGrid(G, vertcat(W.cells), 'FaceColor', 'b','EdgeAlpha',0.1);
@@ -123,7 +123,7 @@ for i = 1 : numel(I),
    W = verticalWell(W, G, rock, I(i), J(i), 1:nz, 'Type', 'bhp', ...
                     'InnerProduct', 'ip_tpf', ...
                     'Val', 300*barsa(), 'Radius', radius, ...
-                    'name', ['P$_{', int2str(i), '}$'], 'Comp_i', [0, 1]);
+                    'name', ['P$_{', int2str(i), '}$'], 'Comp_i', 0);
 end
 plotGrid(G, vertcat(W(prod_off + 1 : end).cells), 'FaceColor', 'r');
 plotWell(G,W,'height',30);
@@ -134,7 +134,7 @@ plotWell(G,W,'height',30);
 % harmonic averaging the one-sided transmissibilities and solve the
 % resulting linear system to obtain pressures and fluxes.
 T    = computeTrans(G, rock);
-rSol = initState(G, W, 350*barsa, [0, 1]);
+rSol = initState(G, W, 350*barsa, 1);
 rSol = incompTPFA(rSol, G, T, fluid, 'wells', W);
 
 
