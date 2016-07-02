@@ -40,10 +40,8 @@ fluid = initSimpleADIFluid('phases','W',           ... % Fluid phase: water
 % direction. By default, the gravity in MRST is a 3-component vector that
 % points in the positive z-direction. Here, we set it to a 2-component
 % vector pointing in the negative y-direction.
-gravity('y'); grav = gravity;
-wModel = WaterModel(G, rock, fluid,'gravity',-grav(1:2));
-
-% Enable this to get convergence reports when solving schedules
+g = norm(gravity);
+wModel = WaterModel(G, rock, fluid,'gravity',[0 -g]);
 
 %% Drive mechansims and schedule
 % The second thing we need to specify is the mechanisms that will drive
