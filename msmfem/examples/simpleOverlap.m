@@ -177,11 +177,11 @@ subplot(2,3,3)
    title('Flux - overlap')   ; caxis(cx)
 
 subplot(2,3,5)
-   plot_flux(well_bas(W(1)));
+   plot_flux(full(well_bas(W(1))));
    axis([0, 20, 0, 20]);  cx = caxis;
    title('Well basis - no overlap')
 
 subplot(2,3,6)
-   plot_flux(well_bas(W1(1)));
+   plot_flux(full(well_bas(W1(1))));
    axis([0, 20, 0, 20]); caxis(cx);
    title('Well basis - overlap')

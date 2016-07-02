@@ -185,7 +185,7 @@ bf = S.BI * extractBF({ CS.basis{faces} }, size(G.cells.faces,1), CG);
 % each individual basis function, and normalize the data to have same
 % colour limit for each basis function.
 d = sparse(cellNo, 1 : size(G.cells.faces,1), 1) * abs(bf);
-d = bsxfun(@rdivide, d, max(d));
+d = full(bsxfun(@rdivide, d, max(d)));
 
 %%
 % Extract the fine-scale cells in each of the four coarse blocks for
