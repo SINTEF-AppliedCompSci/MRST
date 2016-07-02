@@ -1,4 +1,4 @@
-%% Basic Grid Operations and Manipulations
+%% Basic Grid Tutorial: Rectilinear/Curvilinear Grids
 % In this tutorial, we describe how you can use MRST to construct Cartesian
 % and rectilinear grids for rectangular and non-rectangular domains and
 % show how you can populate your grid with petrophysical properties. To

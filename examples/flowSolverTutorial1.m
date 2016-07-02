@@ -11,14 +11,10 @@
 % structure.
 %
 % The purpose of the example is to show the basic steps for setting up,
-% solving, and visualizing a flow problem. More details on the grid
-% structure, the structure used to hold the solutions, and so on, are given
-% in the <simpleBC.html basic flow-solver tutorial>.
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+% solving, and visualizing a flow problem. More details about
+% incompressible flow solvers can be found in the |incomp| module.
+
+mrstModule add incomp
 
 %% Define the model
 % To set up a model, we need: a grid, rock properties (permeability), a
@@ -49,3 +45,5 @@ view(3), colorbar
 set(gca,'DataAspect',[1 1 10]);
 %%
 displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#

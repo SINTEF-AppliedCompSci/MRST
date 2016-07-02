@@ -1,7 +1,6 @@
 % Worked examples demonstrating features of the MRST.
 %
 % Folders
-%   1ph                 - Examples demonstrating one-phased flow
-%   2ph                 - Examples demonstrating two-phased flow
 %   data                - Folder for downloaded datasets used in examples
+%   datasets            - Examples discussing some of the standard datasets used in MRST
 %   grids               - Examples demonstrating generation, manipulation and visualization of grids.

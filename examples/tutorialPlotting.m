@@ -81,7 +81,7 @@ colorbar, view(30,50)
 % domain. Let us then plot pressure values for the middle of the domain. We
 % also plot an empty grid to see where we are actually plotting. In
 % addition, we use the |plotWell| function to show wells.
-[i j k] = ind2sub(G.cartDims, 1:G.cells.num);
+[i,j,k] = ind2sub(G.cartDims, 1:G.cells.num);
 clf;
 plotGrid(G, 'FaceAlpha', 0, 'EdgeAlpha', .1)
 plotCellData(G, sol.pressure, j == round(G.cartDims(2)/2))

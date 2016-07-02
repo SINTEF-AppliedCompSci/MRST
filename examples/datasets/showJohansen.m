@@ -58,18 +58,20 @@ colorbar, view(3), axis tight off, view(-20,40), zoom(1.2)
 clf
 p = reshape(load([sector, '_Porosity.txt'])', prod(G.cartDims), []);
 poro = p(G.cells.indexMap); clear p
-hp = plotCellData(G, poro,'EdgeColor','k','EdgeAlpha',0.1);
-colorbar; caxis([0.1 0.3]), view(-45,15), axis tight off, zoom(1.2)
+plotCellData(G, poro,'EdgeColor','k','EdgeAlpha',0.1);
+colorbarHist(poro,[0.09 0.31],'West',50); view(-45,15), axis tight off, zoom(1.2)
 
 %%
 % From the plot, it seems like the formation has been pinched out and only
 % contains the shale layers in the front part of the model. We verify this
 % by plotting a filtered porosity field in which all values smaller than or
 % equal 0.1 have been taken out.
-delete(hp), view(-15,40)
+clf
+view(-15,40)
 plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
-plotCellData(G, poro, find(poro>0.1), ...
-             'EdgeColor','k','EdgeAlpha',0.1);
+plotCellData(G, poro, poro>0.1, 'EdgeColor','k','EdgeAlpha',0.1);
+colorbarHist(poro(poro>.1),[0.09 0.31],'West',50);
+axis tight off, zoom(1.45), camdolly(0,.2,0);
 
 %% Permeability
 % The permeability is given as a scalar field (Kx) similarly as the
@@ -79,33 +81,46 @@ clf
 K = reshape(load([sector, '_Permeability.txt']')', prod(G.cartDims), []);
 perm = bsxfun(@times, [1 1 0.1], K(G.cells.indexMap)).*milli*darcy; clear K;
 rock = makeRock(G, perm, poro);
-hp = plotCellData(G,log10(rock.perm(:,1)),'EdgeColor','k','EdgeAlpha',0.1);
+p  = log10(rock.perm(:,1));
+plotCellData(G,p,'EdgeColor','k','EdgeAlpha',0.1);
 view(-45,15), axis tight off, zoom(1.2)
 
 % Manipulate the colorbar to get the ticks we want
-h = colorbar;
 cs = [0.01 0.1 1 10 100 1000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));
+h = colorbarHist(p,caxis,'West',100);
 set(h, 'XTick', 0.5, 'XTickLabel','mD', ...
    'YTick', log10(cs*milli*darcy), 'YTickLabel', num2str(cs'));
 
 %%
 % To show more of the permeability structure, we strip away the shale
 % layers, starting with the layers with lowest permeability on top.
-delete(hp), view(-20,35)
+clf
+idx = p>log10(0.01*milli*darcy);
 plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
-hp = plotCellData(G,log10(rock.perm(:,1)), ...
-                  find(rock.perm(:,1)>0.01*milli*darcy), ...
-                  'EdgeColor','k', 'EdgeAlpha', 0.1);
+plotCellData(G, p, idx, 'EdgeColor','k', 'EdgeAlpha', 0.1);
+view(-20,35), axis tight off, zoom(1.45), camdolly(0,.12,0);
 
+cs = [0.1 1 10 100 1000];
+cx = log10([.05 1010]*milli*darcy); caxis(cx);
+h = colorbarHist(p(idx),cx,'West',50);
+set(h, 'XTick', 0.5, 'XTickLabel','mD', ...
+   'YTick', log10(cs*milli*darcy), 'YTickLabel', num2str(cs'));
+         
 %%
 % Then we also take away the lower shale layer and plot the permeability
 % using a linear color scale.
-delete(hp);
-hp = plotCellData(G, convertTo(rock.perm(:,1), milli*darcy), ...
-                  find(rock.perm(:,1)>0.1*milli*darcy), ...
-                  'EdgeColor','k', 'EdgeAlpha', 0.1);
-caxis auto; colorbar, view(-150,50)
+clf
+idx = p>log10(0.1*milli*darcy);
+plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
+plotCellData(G, p, idx, 'EdgeColor','k', 'EdgeAlpha', 0.1);
+view(-20,35), axis tight off, zoom(1.45), camdolly(0,.12,0);
+
+cs = [10 100 1000];
+cx = log10([9 1010]*milli*darcy); caxis(cx);
+h = colorbarHist(p(idx),cx,'West',50); caxis(cx);
+set(h, 'XTick', 0.5, 'XTickLabel','mD', ...
+   'YTick', log10(cs*milli*darcy), 'YTickLabel', num2str(cs'));
 
 %% Well
 % Finally, we read the well data and plot the injection well at the correct
@@ -114,7 +129,10 @@ w = load([sector, '_Well.txt']);
 W = verticalWell([], G, rock,  w(1,1), w(1,2), w(1,3):w(1,4),  ...
                  'InnerProduct', 'ip_tpf', ...
                  'Radius', 0.1, 'name', 'I');
-plotWell(G,W,'height',1000,'color','r');
-zoom out
+plotWell(G,W,'height',500,'color','b');
 
+
+%% Copyright notice
 displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
