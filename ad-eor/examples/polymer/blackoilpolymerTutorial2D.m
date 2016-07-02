@@ -1,19 +1,20 @@
 % 2D Three-Phase Polymer Injection Case
-% This example contains a simple 4000 m × 200 m × 125 m reservoir described
-% on 20 × 1 × 5 uniform Cartesian grid. One injection well is located in
-% the bottom two layers and one production well is located in the top two
-% layers. Hydrostatic equilibration is used for initialization.
-
+%
+% This example contains a simple 4000 m-by-200 m-by-125 m reservoir
+% described on 20-by-1-by-5 uniform Cartesian grid. One injection well is
+% located in the bottom two layers and one production well is located in
+% the top two layers. Hydrostatic equilibration is used for initialization.
+%
 % The polymer injection schedule follows a typical polymer waterflooding
 % strategy. The flooding process begins with primary waterflooding for 1260
 % days, followed by a polymer slug injected over 1700 days, and then
 % switching back to water injection. The injection well is under rate
-% control with target rate 1000 m3 /day and upper limit of 450 bar on the
+% control with target rate 1000 m3/day and upper limit of 450 bar on the
 % bottom-hole pressure (bhp), whereas the production well is under pressure
 % control with target bottom-home pressure 260 bar.
 
-mrstModule add ad-core ad-blackoil ad-eor ad-fi ad-props deckformat
-close all;
+mrstModule add ad-core ad-blackoil ad-eor ad-fi ad-props ...
+               deckformat mrst-gui
 
 %% Set up model and initial conditions
 % The data required for the example
@@ -99,8 +100,7 @@ nonlinearsolver.useRelaxation = true;
 
 %% To check the fluid properties interactively
 
-fluidPlotPanelAD(model);
-
+inspectFluidModel(model)
 
 %% TODO: plotting the polymer properties
 
