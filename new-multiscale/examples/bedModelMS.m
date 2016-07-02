@@ -10,7 +10,8 @@ G = computeGeometry(G);
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
 
 %%
-mrstModule add mrst-gui
+mrstModule add mrst-gui coarsegrid
+
 figure;
 plotToolbar(G, rock);
 axis tight off
