@@ -5,9 +5,9 @@
 % with a different well pattern consisting of two central injectors and
 % producers at each of the four corners.
 
-%% Set up fine-scale problem
 mrstModule add diagnostics spe10 coarsegrid agmg incomp
 
+%% Set up fine-scale problem
 if ~exist('agmg', 'file') || ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,
    error('This example requires the AGMG linear solver package');
@@ -97,22 +97,12 @@ fprintf(1,'done\n');
 
 %% Compare allocation factors
 % We contrast the allocation factors for the injection wells computed on
-% the fine and the coarse model. Ideally, bars on the negative axis that
-% represent the allocation factors for the coarse model should be the
-% mirror of the bars on the positive axis that represent the allocation
-% factors for the fine model. To simplify the comparison, the fine-scale
-% allocation factors are indicated by lines on top of those of the coarse
-% scale.
-figure;
-for i=1:numel(D.inj)
-   subplot(1,2,i)
-   barh(WP.inj(i).z, cumsum(WP.inj(i).alloc,1),'stacked');
-   lh=legend(W(D.prod).name,4);
-   hold on
-   barh(WPc.inj(i).z, -cumsum(WPc.inj(i).alloc,1), 'stacked');
-   plot(-cumsum(cumsum(WP.inj(i).alloc,1),2), WP.inj(i).z, '+-k');
-   hold off, axis tight
-   set(lh,'units','pixels'); lp = get(lh,'OuterPosition');
-   set(lh, 'FontSize',6, 'OuterPosition',[lp(1:2)+[lp(3)-60 0] 60 60]);
-   title(W(D.inj(i)).name);
-end
+% the fine and the coarse model. In the plot, the colored bars represent
+% allocation computed by the upscaled model, whereas the line bars come
+% from the fine-scale model. Since the bars represent the cumulative
+% influx from toe to heel of the well, similar to the plot from a
+% production logging tool (PLT), the bars should match at the top of each
+% coarse perforation if the upscaled model is able to reproduce the
+% connections and flow patterns predicted by the fine-scale model
+figure; set(gcf,'Position',[700 50 660 760]);
+plotWellAllocationComparison(Dc,WPc,D,WP);
