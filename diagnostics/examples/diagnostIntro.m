@@ -208,3 +208,7 @@ computeLorenz(F,Phi)
 % This quantity is usually related to dimensionless time td=dPhi/dF
 [Ev,tD] = computeSweep(F,Phi);
 clf, plot(tD,Ev,'.');
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
