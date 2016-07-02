@@ -1,7 +1,12 @@
 % Files
-%   example1.m - Example 1: Basic flow diagnostics
-%   example2.m - Example 2: Well-pair diagnostics
-%   example3.m - Example 3: Upscaling
+%  diagnostIntro              -- Introduction to flow diagnostics
+%  diangostFlowPatterns       -- Analysis of flow patterns for SPE10 layer
+%  diagnostOptimize1D         -- Very simplified 1D rate optimization
+%  diagnostOptimWellPlacement -- Optimization of well placement and rates 
+%  diagnostUpscaleIntro       -- Use of diagnostics to verify upscaling
+%  diagnostUpscaleSPE10       -- Verify upscaling: 60x220x20 subset of SPE 10
+%  diagnostViewerDemo         -- Diagnostics GUI launched for realistic model
+%  diagnostWellPairs          -- Analysis of well-pair connections for SPE10
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
