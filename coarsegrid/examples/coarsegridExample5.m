@@ -8,7 +8,7 @@
 % In this example, we will use the function 'refineNearWell' to make coarse
 % grids with various types of near-well refinement.
 
-mrstModule add coarsegrid
+mrstModule add coarsegrid incomp
 
 %% Make fine grid and far-field partitioning
 % To demonstrate the various coarsening types, we start with a simple
