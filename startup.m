@@ -72,6 +72,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       mrstModule('add', autoload{:})
    end
+   % Display welcome message
+   mrstStartupMessage();
 end
 
 %--------------------------------------------------------------------------
