@@ -12,6 +12,7 @@ function fluid = initSimpleADIFluid(varargin)
 %
 % PARAMETERS:
 %   'pn'/pv - List of property names/property values.  Possibilities are:
+%
 %   - phases: A string containing up to three of the letters W, O, G,
 %           representing water, oil and gas respectively. The values of
 %           this input argument determines the interpretation of the other
@@ -27,33 +28,45 @@ function fluid = initSimpleADIFluid(varargin)
 %           kg/m^3. See the examples and the end of the documentation for
 %           more information.
 %
-%   - mu    : vector of viscosity values for phases present. For a
+%   - mu    vector of viscosity values for phases present. For a
 %           three-phase model, this will be [muW, muO, muG].
 %           Default is [1 1 1].
-%   - rho   : vector of surface density values for phases present. For a
+%
+%   - rho   vector of surface density values for phases present. For a
 %           three-phase model, this will be [rhoWS, rhoOS, rhoGS].
 %           Default is [1 1 1].
-%   - n     : vector of the degrees of the monomials describing relative
+%
+%   - n     vector of the degrees of the monomials describing relative
 %           permeability for each phase. Default is [1 1 1] (linear
 %           relative permeabilities for each phase). If the model is a
 %           three-phase model, oil-water and oil-gas relative permeability
 %           curves will also be added.
-%   - b     : Inverse formation volume factors. The reservoir density of a
+%
+%   - b     Inverse formation volume factors. The reservoir density of a
 %           phase is defined as rho_reservoir = rho_surf * b. The inverse
 %           formation volume factor, denoted small b, is the reciprocal of
 %           the large B often seen in literature,
 %           B = 1/b.
-%   - c     : Compressibility factor. If specified for each phase, it will
+%
+%   - c     Compressibility factor. If specified for each phase, it will
 %           result in b-factors on the form
-%           b(p) = b_ref exp((p-p_ref)*c)
+%               b(p) = b_ref * exp((p-pRef)*c),
 %           where b_ref is the b-factor specified as keyword argument (see
-%           above) and p_ref is specified as a seperate keyword (default
-%           0).
-%   - cR    : Rock compressibility. If given, the fluid will contain a rock
+%           above) and pRef is specified as a seperate keyword (default: 0)
+%
+%   - cR    Rock compressibility. If given, the fluid will contain a rock
 %           pore volume multiplier that gives a linear increase in pore
 %           volume with pressure, multiplied with cR,
-%           pv = pv_ref * (1 + (p-pRef)*cR)
-%   - p
+%               pv = pv_ref * (1 + (p-pRef)*cR)
+%           where pv_ref is the pore volume specified by the grid and rock
+%           models
+%
+%   - pRef  Reference pressure used in conjunction with rock and fluid
+%           compressibility factors c and cr, i.e.,
+%               b(p) = b_ref * exp((p-p_ref)*c)
+%               pv = pv_ref * (1 + (p-pRef)*cR)
+%           Default value is pRef=0
+%
 % RETURNS:
 %   fluid - struct containing the following functions (where X = 'W' [water],
 %           'O' [oil] and 'G' [gas])
