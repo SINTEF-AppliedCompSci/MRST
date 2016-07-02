@@ -82,12 +82,12 @@ cell2 = 37 + ny*37;
 W = addWell(W, G, rock, cell1,      ...
             'Type', 'bhp' , 'Val', .0*barsa(), ...
             'Radius', 0.1, 'InnerProduct', 'ip_tpf', ...
-            'Comp_i', [0, 1]);
+            'Comp_i', 0);
 
 W = addWell(W, G, rock, cell2,      ...
             'Type', 'bhp' , 'Val', 1*barsa(), ...
             'Radius', 0.1, 'InnerProduct', 'ip_tpf', ...
-            'Comp_i', [0, 1]);
+            'Comp_i', 0);
 
 %% Solve the systems.
 % First we initiate a pressure system. This structure is always required,
@@ -103,7 +103,7 @@ W = addWell(W, G, rock, cell2,      ...
 % with the multiscale sovler with conservative flow and lastly using the
 % multiscale solver without conservative flow.
 
-sol = initState(G, [], 0, [1, 0]);
+sol = initState(G, [], 0, 1);
 
 T = computeTrans(G, rock);
 

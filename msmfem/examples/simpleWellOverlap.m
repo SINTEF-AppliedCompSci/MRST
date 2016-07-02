@@ -70,10 +70,10 @@ gravity off
 W = verticalWell([], G, rock,  8,  8, 1:G.cartDims(3), ...
                  'InnerProduct', 'ip_simple', ...
                  'Type', 'rate', 'Val', 1*meter^3/day, ...
-                 'Radius', 0.1, 'Comp_i', [1, 0]);
+                 'Radius', 0.1, 'Comp_i', 1);
 W = verticalWell(W , G, rock, 33, 33, 1:G.cartDims(3), ...
                  'InnerProduct', 'ip_simple', ...
-                 'Type', 'bhp', 'Val', 0, 'Radius', 0.1, 'Comp_i', [0, 1]);
+                 'Type', 'bhp', 'Val', 0, 'Radius', 0.1, 'Comp_i', 0);
 
 %% Partition the grid and compute mimetic innerproduct
 % We partition the fine grid uniformly into 5-by-5-by-1 blocks using no
@@ -121,16 +121,16 @@ W1 = generateCoarseWellSystem(G, S, CG, CS, mob, rock, W1, ...
 %  as input to solveIncompFlowMS.
 
 % Fine scale reference solution:
-ref = initState(G, W, 0, [0, 1]);
+ref = initState(G, W, 0, 1);
 ref = incompMimetic(ref, G, S, fluid, 'wells', W);
 
 % Coarse scale - no overlap:
-s = initState(G, W, 0, [1, 0]);
+s = initState(G, W, 0, 1);
 s = solveIncompFlowMS(s,  G, CG, part, S, CS, fluid, ...
                       'wells', W, 'Solver', 'mixed');
 
 % Coarse scale - overlap:
-s1 = initState(G, W, 0, [1, 0]);
+s1 = initState(G, W, 0, 1);
 s1 = solveIncompFlowMS(s1, G, CG, part, S, CS, fluid, ...
                        'wells', W1, 'Solver', 'mixed');
 
@@ -161,12 +161,12 @@ subplot(2,3,3)
    title('Flux - overlap')   ; caxis(cx)
 
 subplot(2,3,5)
-   plot_flux(well_bas(W(1)));
+   plot_flux(full(well_bas(W(1))));
    axis([0, 20, 0, 20]);  cx = caxis;
    title('Well basis - no overlap')
 
 subplot(2,3,6)
-   plot_flux(well_bas(W1(1)));
+   plot_flux(full(well_bas(W1(1))));
    axis([0, 20, 0, 20]); caxis(cx);
    title('Well basis - overlap')
 

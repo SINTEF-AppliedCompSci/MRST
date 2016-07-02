@@ -86,7 +86,7 @@ switch lower(gridtype)
         error('Unknown case')
 end
 
-sol = initState(G, [], 0, [1, 0]);
+sol = initState(G, [], 0, 1);
 T = computeTrans(G, rock);
 
 % Plot the permeability
