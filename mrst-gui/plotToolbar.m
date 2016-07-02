@@ -312,7 +312,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    function closeFcn(src, event)
+    function closeFcn(src, event) %#ok<*INUSD>
         % Destructor
         delete(fig);
     end
@@ -465,7 +465,7 @@ function plotHistogram(varargin)
         end
         histh = figure;
     end
-    [d, fun, subset] = getData();
+    [d, fun, subset] = getData(); %#ok<ASGLU>
     d = double(d);
     if histAll
         data_hist = d;
@@ -523,7 +523,7 @@ function plotHistogram(varargin)
 end
 
 
-function histClickHandler(src, event, x, h, d)
+function histClickHandler(src, event, x, h, d) %#ok<INUSL>
     seltype = get(histh, 'SelectionType');
     inside = abs(d - x) <= 1.0001*h/2;
     switch seltype
@@ -646,8 +646,8 @@ function adjustPatch(src, event)
 
     set(gcf, 'Name', 'Change patch style');
 
-    [se, ee] = linkedSlider(fi, [10,60], 0, 1, get(ph, 'EdgeAlpha'), 'Edge');
-    [sf, ef] = linkedSlider(fi, [10,90], 0, 1, get(ph, 'FaceAlpha'), 'Face');
+    [se, ee] = linkedSlider(fi, [10,60], 0, 1, get(ph, 'EdgeAlpha'), 'Edge'); %#ok<NASGU>
+    [sf, ef] = linkedSlider(fi, [10,90], 0, 1, get(ph, 'FaceAlpha'), 'Face'); %#ok<NASGU>
     applyfun = @(src, event) set(ph, 'FaceAlpha', get(sf, 'Value'), 'EdgeAlpha', get(se, 'Value'));
 
     patchcolor = @(src, event) set(ph, 'EdgeColor', uisetcolor(get(ph, 'EdgeColor')));
@@ -657,7 +657,7 @@ end
 
 function replotPatch(varargin)
 
-    [d, fun, subset] = getData();
+    [d, fun, subset] = getData(); %#ok<ASGLU>
     set(0, 'CurrentFigure', mainFig)
 
     plotAsVector = any(ishandle(vecToggle)) && strcmpi(get(vecToggle, 'State'), 'on');
