@@ -1,19 +1,18 @@
-%% Example 1: Basic flow diagnostics
+%% SPE Example 1: Flow Diagnostics for 2D Five-Spot Problem
 % In this example we will demonstrate how we can use time-of-flight and
 % stationary tracer distribution computed using a standard finite-volume
-% method to derive three different measures for heterogeneity:
+% method to visualize flow patterns and compute three different measures
+% for dynamic heterogeneity:
 %
 % # flow-capacity/storage-capacity diagram,
 % # the Lorenz coefficient
 % # sweep efficiency
 %
-% Technical description: see Shavali et al. (SPE 146446), Shook and
-% Mitchell (SPE 124625).
+mrstModule add diagnostics spe10 incomp
 
 %% Set up and solve flow problem
 % As our example, we consider a standard five spot with heterogeneity
 % sampled from Model 2 of the 10th SPE Comparative Solution Project.
-mrstModule add diagnostics spe10 incomp
 [G, W, rock] = SPE10_setup(25);
 rock.poro = max(rock.poro, 1e-4);
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
@@ -37,9 +36,26 @@ subplot(1,2,2); plotCellData(G,log10(sum(D.tof,2)),pargs{:}); axis equal tight
 %%
 % Threshold the tracer regions using time-of-flight to show the development
 % of flooded regions
+figure('Position',[600 360 840 460]);
+subplot(2,4,[1 2 5 6]);
+hold on
+contour(reshape(G.cells.centroids(:,1),G.cartDims), ...
+              reshape(G.cells.centroids(:,2),G.cartDims), ...
+              reshape(D.tof(:,1)/year,G.cartDims),1:25,...
+          'LineWidth',1,'Color','k');
+xw = G.cells.centroids(vertcat(W.cells),:);
+plot(xw(:,1), xw(:,2), 'ok',...
+    'LineWidth',2,'MarkerSize',8,'MarkerFaceColor',[.5 .5 .5])
+hold off, box on, axis tight, cpos = [3 4 7 8];
+title('Time-of-flight');
+
 for i=1:4
-   subplot(2,2,i); plotCellData(G,D.ppart, D.tof(:,1)<5*i*year,pargs{:});
-   title(['Flooded after ' num2str(i*5) ' years']); axis equal tight off;
+   subplot(2,4,cpos(i)); cla
+   plotCellData(G,D.ppart, D.tof(:,1)<5*i*year,pargs{:});
+   hold on, plot(xw(:,1),xw(:,2),'ok','LineWidth',2)
+   title(['Flooded after ' num2str(i*5) ' years']);
+   axis tight, box on
+   set(gca,'XTick',[],'YTick',[]);
 end
 
 %% Compute and display flow-capacity/storage-capacity diagram
@@ -59,3 +75,7 @@ fprintf(1, 'Lorenz coefficient: %f\n', computeLorenz(F,Phi));
 % Analogue: 1D displacement using the F-Phi curve as a flux function
 [Ev,tD] = computeSweep(F,Phi);
 figure, plot(tD,Ev,'.');
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
