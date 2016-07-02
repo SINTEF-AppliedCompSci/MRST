@@ -46,7 +46,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Somewhat magic numbers because the gui in matlab has some magic
     % constants itself.
     plotaxis  = subplot('Position', [.75*lm, lm, pw, 1-2*lm]);
-    ctrlpanel = uipanel('Position', [lm+pw, .25*lm, 1-1.25*lm-pw,  1-1.25*lm], ...
+    ctrlpanel = uipanel('Position', [lm+pw, .25*lm, 1-1.25*lm-pw, 1-1.25*lm], ...
                         'Title',  'Property');
     true3ph = model.water && model.oil && model.gas;
     names = {'Viscosity',...
@@ -89,9 +89,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ph = phases{it};
         if model.(lower(ph));
             names = [names, [ph, ' viscosity'], ...
-                            [ph, ' b-factor']];
-            functions = [functions, {@(name) plotStuff(model, {['mu', ph(1)]}, name), ...
-                                     @(name) plotStuff(model, {['b', ph(1)]}, name)}];
+                            [ph, ' b-factor']];                            %#ok<AGROW>
+            functions = [functions, ...
+                {@(name) plotStuff(model, {['mu', ph(1)]}, name), ...
+                @(name) plotStuff(model, {['b', ph(1)]}, name)}];          %#ok<AGROW>
         end
     end
     
@@ -102,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
           
 
-    function drawPlot(src, event)
+    function drawPlot(src, event)                                          %#ok<*INUSD>
         axis(plotaxis);
         colorbar off;
         axis normal
@@ -130,7 +131,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if model.vapoil
             rvMax = f.rvSat(p);
         end
-        n = sum(model.getActivePhases);
+        % n = sum(model.getActivePhases);
 
         legflag = false(size(fields));
         legh = zeros(size(fields));
@@ -246,7 +247,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fld = {'pcOW', 'pcOG'};
         for i = 1:numel(fld)
             if isfield(model.fluid, fld{i})
-                cnames = [cnames, fld{i}];
+                cnames = [cnames, fld{i}];                                 %#ok<AGROW>
             end
         end
 
@@ -271,7 +272,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         title(name);
     end
     
-    function plot3phRelPerm(model, name, ix)
+    function plot3phRelPerm(model, name, ix)                               %#ok<INUSL>
         cla;
         s = subdiv(0, 1, 50);
         [x, y] = meshgrid(s);
@@ -280,7 +281,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         for i = 1:size(x, 1)
             xi = x(i, :);
             yi = y(i, :);
-            [krW(i, :), krO(i, :), krG(i, :)] = model.relPermWOG(xi, 1 - xi - yi, yi, model.fluid);
+            [krW(i, :), krO(i, :), krG(i, :)] = ...
+                model.relPermWOG(xi, 1 - xi - yi, yi, model.fluid);
         end
         
         if ix == 1
