@@ -294,7 +294,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             title('Gas relative permeability')
         end
         caxis([0, 1]);
-        shading interp
         axis equal tight
         view(0, 90)
         xlabel('S_w')
