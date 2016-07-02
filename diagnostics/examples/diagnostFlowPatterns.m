@@ -1,4 +1,4 @@
-%% SPE Example 1: Flow Diagnostics for 2D Five-Spot Problem
+%% Flow Pattern and Dynamic Heterogeneity for 2D Five-Spot Problem
 % In this example we will demonstrate how we can use time-of-flight and
 % stationary tracer distribution computed using a standard finite-volume
 % method to visualize flow patterns and compute three different measures
