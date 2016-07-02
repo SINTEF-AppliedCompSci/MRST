@@ -19,9 +19,11 @@ for k = 1:ns
     set(gca,'FontSize', 14)
     hold on
     plotCellData(G, states{k}.s(:,2))
-    s = states{k}.s(:,1);
-    [krw, kro] = fluid.relPerm(s, 0*s);
-    %[krw, kro] = fluid.relPerm(states{k}.s(:,1));
+
+    sw  = states{k}.s(:,1);
+    krw = fluid.krW(sw);
+    kro = fluid.krO(0*sw);
+
     muw = fluid.muW(states{k}.pressure);
     muo = fluid.muO(states{k}.pressure);
     bw = fluid.bW(200*barsa);   % FVF at reference pressure
@@ -37,9 +39,3 @@ for k = 1:ns
     plotWell(G, W, 'Fontsize', 14, 'Color', 'k')
 end
 end
-
-
-    
-
-
-

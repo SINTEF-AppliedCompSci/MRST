@@ -35,7 +35,7 @@ fluid.rhoGS = 10;
 
 eos = initDeckEOSModel(deck);
 model = ThreePhaseCompositionalModel(G, rock, fluid, eos.fluid, 'water', false);
-schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+schedule = convertDeckScheduleToMRST(model, deck);
 
 % Manually set the injection composition
 [schedule.control.W.components] = deal([0, 1, 0]);
