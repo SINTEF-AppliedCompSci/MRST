@@ -33,9 +33,9 @@ grdecl    %#ok  (intentional display)
 %
 % * The dimension of the underlying logical Cartesian grid (keyword
 % SPECGRID, equal 40x120x20)
-% * The coordinates of the pillars (keyword COORD, 6×41×121 values)
-% * The coordinates along the pillars (keyword ZCORN, 8×40×120×20 values)
-% * The flag for active/inactive cells (keyword ACTNUM, 40×120×20 values)
+% * The coordinates of the pillars (keyword COORD, 6x41x121 values)
+% * The coordinates along the pillars (keyword ZCORN, 8x40x120x20 values)
+% * The flag for active/inactive cells (keyword ACTNUM, 40x120x20 values)
 %
 % Since the keyword ACTNUM is present, the model is likely to contain both
 % active and inactive cells. To be able to plot both the active and the
@@ -62,21 +62,21 @@ G             = processGRDECL(grdecl, 'Verbose', true, 'checkgrid', false);
 % above the top and below the bottom of the model, but not touching the
 % model.  (See the tutorial <cornerPointModelExample.html#1 "Read, Display,
 % and Manipulate"> for more details). In the following, we therefore work
-% with a 40×120×22 model.
+% with a 40x120x22 model.
 %
 % In the first phase, we process all faces with normals in the logical
-% i-direction. There should be 40×120×22=105600, out of which 96778 are
+% i-direction. There should be 40x120x22=105600, out of which 96778 are
 % not degenerate or at a fault. In the next phase, we process the faults
 % and split faces to obtain a matching grid. Here there are faults at 521
 % pairs of pillars and the splitting of these results in 27752 new faces.
 % If each face were split in two, we would have obtained
-% 521×(20×2+2)=21882, which means that some of the faces have been split
+% 521x(20x2+2)=21882, which means that some of the faces have been split
 % into at least three subfaces. The process is then repeated in the logical
 % j-direction.
 %
 % The processing assumes that there are no faults in the logical
 % k-direction and therefore processes only regular connections. In absence
-% of inactive or pinched cells, there should be (20+1+4)×120×40=120000
+% of inactive or pinched cells, there should be (20+1+4)x120x40=120000
 % faces (where +4 is due to the artificial cells) in the k-direction. The
 % result of the grid processing is a new structure G, outlined below
 
