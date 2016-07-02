@@ -3,15 +3,10 @@
 % example uses the same geological dataset as in saigupField1phExample with
 % a number of arbitrary wells. The example is short, as the primary purpose
 % is to create the interactive figures produced by interactiveDiagnostics.
-%
-%% Set up grid and rock
 mrstModule add diagnostics mrst-gui incomp
+
+%% Set up grid and rock
 grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
-
-if ~exist(grdecl, 'file'),
-   error('SAIGUP model data is not available.')
-end
-
 grdecl = readGRDECL(grdecl);
 
 actnum        = grdecl.ACTNUM;
@@ -34,36 +29,37 @@ W = [];
 gcz = G.cells.centroids;
 [pi,ii] = deal(1);
 for i = 5:12:G.cartDims(1)
-    for j = 5:25:G.cartDims(2)
-        c = ijk{1} == i & ijk{2} == j;
-        if any(c)
-            c = find(c);
-            x = gcz(c(1), 1); y = gcz(c(1), 2);
-            if x > 500 && x < 2000 && y < 7000 && y > 1000
-                % Set up rate controlled injectors for cells in the middle
-                % of the domain
-                val = sum(pv)/(1000*day);
-                type = 'rate';
-                name = ['I' num2str(ii)];
-                ii = ii + 1;
-            else
-                % Set up BHP controlled producers at the boundary of the
-                % domain
-                val = 250*barsa;
-                type = 'bhp';
-                name = ['P' num2str(pi)];
-                pi = pi + 1;
-            end
-
-            W = addWell(W, G, rock, c, 'Type', type, 'Val', val, 'Name', name, 'InnerProduct', 'ip_tpf');
-        end
-    end
+   for j = 5:25:G.cartDims(2)
+      c = ijk{1} == i & ijk{2} == j;
+      if any(c)
+         c = find(c);
+         x = gcz(c(1), 1); y = gcz(c(1), 2);
+         if x > 500 && x < 2000 && y < 7000 && y > 1000
+            % Set up rate controlled injectors for cells in the middle
+            % of the domain
+            val = sum(pv)/(1000*day);
+            type = 'rate';
+            name = ['I' num2str(ii)];
+            ii = ii + 1;
+         else
+            % Set up BHP controlled producers at the boundary of the
+            % domain
+            val = 250*barsa;
+            type = 'bhp';
+            name = ['P' num2str(pi)];
+            pi = pi + 1;
+         end
+         W = addWell(W, G, rock, c, 'Type', type, 'Val', val, ...
+             'Name', name, 'InnerProduct', 'ip_tpf');
+      end
+   end
 end
 % Plot the resulting well setup
 clf
-plotCellData(G, rock.poro),
+plotCellData(G, rock.poro,'EdgeColor','k','EdgeAlpha',.1),
 plotWell(G, W)
 view(-100, 25)
+
 %% Set up a reservoir state
 % This is not strictly needed for the diagnostics application, but it
 % allows us to see the reservoir component distribution around producers
@@ -100,3 +96,7 @@ clf;
 interactiveDiagnostics(G, rock, W, 'state', state);
 view(-100, 25)
 axis tight
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
