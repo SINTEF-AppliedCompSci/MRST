@@ -1,69 +1,45 @@
-%% Example demonstrating well placement and optimization
-% This example shows the well placement algorithm and/or the well rate
-% optimization algorithm on regular cartesian grids. The script optimizes
-% the wells and then runs incompressible simulations with different fluid
-% properties to evaluate the validity of the optimization.
+%% Optimizing Well Placement and Rates
+% This tutorial shows algorithms for optimized well placement and/or
+% optimization of injection rates for regular Cartesian grids. The script
+% optimizes the wells and then runs incompressible simulations with
+% different fluid properties to evaluate the validity of the optimization.
 %
 % Depending on the configuration, this example may take some time to run.
 % Different options can be changed for different results. The default is to
 % optimize the placement of the wells, but not their rates.
 
-mrstModule add deckformat ad-fi ad-props diagnostics spe10 mrst-gui incomp
+mrstModule add ad-fi ad-props diagnostics spe10 incomp
+close all
 
-% Start with a five spot-like well setup. Otherwise, place all injectors
-% near the middle of the domain.
-fiveSpotWells = true;
-% Optimize the rates during each step of the well placement
-optimizeSubsteps = true;
-% Optimize placement. If not, only injection will be optimized
-optimizePlacement = true;
-
-% Search radius for movement of wells. Larger radius may converge faster.
-wradius = 5;
-
-% Uncomment favored permeability type
-% Lognormal
-rocktype = 'tarbert';
-% Channelized
-% rocktype = 'ness';
-% Uniform
-% rocktype = 'uniform';
-
-% Define grid size. If spe10 data is used, set Nx to a maximum of 60 and Ny
-% to a maximum of 220. The default case is a simple 60x60 grid for speed.
-
-Nx = 60;
-% Ny = 220;
-Ny = 60;
-Nz = 1;
+%% Parameters that determine the setup
+fiveSpotWells = true;          % If false: all injectors near the middle
+optimizeSubsteps = true;       % If false: rates not optimized for each step
+optimizePlacement = true;      % If false: only iinjection rates optimized
+wradius = 5;                   % Search radius for well movement. Larger
+                               % values may give faster convergence
+rocktype = 'tarbert';          % Values: 'tarbert', 'ness', 'uniform'
+[Nx,Ny,Nz] = deal(60,60,1);    % Grid size. SPE: Nx<=60, Ny<=220
 
 switch lower(rocktype)
-   case 'ness',    [offset, uniformRock] = deal(65, false);
-   case 'tarbert', [offset, uniformRock] = deal(0 , false);
-   case 'uniform', [offset, uniformRock] = deal(0 , true );
+   case 'ness',
+       [offset, uniformRock] = deal(65, false);
+   case 'tarbert',
+       [offset, uniformRock] = deal(0 , false);
+   case 'uniform', 
+       [offset, uniformRock] = deal(0 , true );
+       [optimizeSubsteps,fiveSpotWells,wradius] = deal(false,false,1);
    otherwise
       error('Unknown setup!')
 end
 
-if uniformRock
-    % The homogenous test case has optimization of substeps disabled by
-    % default
-    optimizeSubsteps = false;
-    fiveSpotWells = false;
-    wradius = 1;
-end
-
-%% Set up grid, wells and other required quantities
-% We set up wells and other quantities based on the options in the previous
-% section. This code is a bit verbose because it allows for different
-% options in the same example.
+%% Set up reservoir and fluid properties
+% This code is a bit verbose because it allows for different options in the
+% same example.
 
 % Grid setup
-dims = [Nx, Ny, Nz];
-pdims = dims.*[20, 10, 2].*ft();
-
-G = cartGrid(dims, pdims);
+G = cartGrid([Nx, Ny, Nz], [Nx, Ny, Nz].*[20, 10, 2].*ft);
 G = computeGeometry(G);
+
 % Rock setup
 if uniformRock
     rock.poro = repmat(0.3,             [G.cells.num, 1]);
@@ -71,117 +47,99 @@ if uniformRock
 else
     rock = SPE10_rock(1:Nx, 1:Ny, (1:Nz) + offset);
     rock.perm = convertFrom(rock.perm, milli*darcy);
-    mp = 0.01;
-    rock.poro(rock.poro < mp) = mp;
+    rock.poro(rock.poro < 0.01) = 0.01;
 end
-
 pv = poreVolume(G, rock);
 T = computeTrans(G, rock);
 
-W = [];
-W_prod = [];
-
-% Inject pore volume over 10 years per injector
-inRate = sum(pv)/(10*year);
-addw =  @(W, i, j, k) verticalWell(W, G, rock, i, j, k, ...
-                                   'Val', inRate, 'Type', 'rate');
-
-midx = ceil(Nx/2);
-midy = ceil(Ny/2);
-
-ik = [];
-for i = -1:2:1
-    for j = -1:2:1
-        if fiveSpotWells
-            % Set up injector in each corner
-            W = addw(W, Nx*(i==1) + 1*(i==-1), Ny*(j==1) + 1*(j==-1), ik);
-        else
-            % Set up injectors jumbled around the producer
-            W = addw(W, midx - 10*i, midy - 10*j, ik);
-        end
-    end
-end
-% Producer
-W_prod = verticalWell(W_prod, G, rock, midx, midy, [], ...
-                      'Val', 0, 'Type', 'bhp', 'Name', 'Producer');
-
-nw = numel(W);
-% Setup well struct so the first four wells are the injectors, and then the
-% targets for the well optimization.
-targets = 1:nw;
-W = [W; W_prod];
-
 % State
-state0 = initResSol(G, 0*barsa, [0 1 0]);
 
 % Fluid, ad system
-mu = [1, 1, 1].*centi*poise;
-n  = [1, 1, 1];
-fluid_ad = initSimpleADIFluid('mu', mu, 'n', n);
+fluid_ad = initSimpleADIFluid('mu', [1,1,1].*centi*poise, 'n', [1,1,1]);
+
+% Create AD system
 sys = initADISystem({'Oil', 'Water'}, G, rock, fluid_ad);
 
-% Minimum fluid injection is 1/4 of the injection rate. This can be
-% changed.
-minRate = inRate/4;
 
-% Finally, plot everything together
-close all
+%% Set up wells
+% The wells are set to inject one pore volume per injector over a total
+% period of ten years. We use the array |targets| to keep track of the
+% wells whose rates are to be optimized. If |fiveSpotWells| is true, the
+% injectors are set in the corners of the domain. Otherwise, they are
+% positioned ten cells away from the producer.
+inRate  = sum(pv)/(10*year);                     % Initial rate
+minRate = inRate/4;                              % Minimum allowed rate
+[midx, midy] = deal(ceil(Nx/2), ceil(Ny/2));     % Midpoint: producer
+addw =  @(W, i, j, k) ...
+    verticalWell(W, G, rock, i, j, k, 'Val', inRate, 'Type', 'rate');
+W = [];
+for i = -1:2:1
+   for j = -1:2:1
+      if fiveSpotWells
+         % Set up injector in each corner
+         W = addw(W, Nx*(i==1) + 1*(i==-1), Ny*(j==1) + 1*(j==-1), []);
+      else
+         % Set up injectors jumbled around the producer
+         W = addw(W, midx - 10*i, midy - 10*j, []);
+      end
+   end
+end
+targets = 1:numel(W);                   % Indices of wells to be optimized
+W = [W; verticalWell([], G, rock, midx, midy, [], ...
+                     'Val', 0, 'Type', 'bhp', 'Name', 'P')];
+
+%% Plot the initial setup
+clf
 plotCellData(G, log10(rock.perm(:, 1)), 'EdgeAlpha', 0.125);
-plotWell(G, W);
-axis equal tight
+plotWell(G, W, 'height',.25);
+axis tight, set(gca,'DataAspect',[1 1 .01]), view(-30,50)
+
 %% Set up objective functions and optimize
-% The optimization may take some time of both rates and placement is to be
-% optimized.
+% As objective function for the optimization, we will use the Lorenz
+% coefficient, which means that we try to equilibrate the length of all
+% flow paths. The optimization may take some time if both rates and
+% placement are to be optimized.
 
-% Lorenz coefficient
+% Objective function
 objective = getObjectiveDiagnostics(G, rock, 'minlorenz');
-% Function handle for pressure solve
-solvePressure = @(W, varargin) ...
+
+% Handle for pressure solver
+state0 = initResSol(G, 0*barsa, [0 1 0]);
+solvePressure = @(W, varargin) ... 
    solveStationaryPressure(G, state0, sys, W, fluid_ad, pv, T, ...
-                           'objective', objective, varargin{:});
+   'objective', objective, varargin{:});
 
-[state, D, grad0] = solvePressure(W);
-% Disp initial objective value
-grad0.objective.val
-optWells = @(W, varargin) ...
-   optimizeWellPlacementDiagnostics(G, W, rock, objective, targets, ...
-                                    D, minRate, state0, fluid_ad, pv, ...
-                                    T, sys, varargin{:});
+% Solve pressure and display objective value
+[state, D, grad0] = solvePressure(W); grad0.objective.val
 
-optTOF = @(W, varargin) ...
-   optimizeTOF(G, W, fluid_ad, pv, T, sys,state0, minRate, objective, ...
-               'targets', targets, 'plotProgress', true, varargin{:});
-
+% Optimize
 if optimizePlacement
     [W_opt, wellHistory, optHistory] = ...
-       optWells(W, 'optimizesubsteps', optimizeSubsteps, ...
-                'searchRadius', wradius, 'wellSteps', 1, ...
-                'plotProgress', true);
-    [state_o, D_best, grad] = solvePressure(W_opt, 'linsolve', @mldivide);
+        optimizeWellPlacementDiagnostics(G, W, rock, objective, targets, ...
+               D, minRate, state0, fluid_ad, pv,T, sys, ...
+               'optimizesubsteps', optimizeSubsteps, ...
+               'searchRadius', wradius, 'wellSteps', 1, ...
+               'plotProgress', true);
+    [state_o, D_best, grad] = ...
+        solvePressure(W_opt, 'linsolve', @mldivide);
 else
-    [D_best, W_best, history] = optTOF(W);
+    [D_best, W_best, history] = ...
+        optimizeTOF(G, W, fluid_ad, pv, T, sys,state0, minRate, ...
+               objective, 'targets', targets, 'plotProgress', true); %#ok<UNRCH>
     wellHistory = [];
 end
 
 %% Plot well paths
 % We plot the paths taken by the well placement algorithm. This will only
 % plot the porosity if only the injection rates is optimized.
-
-clf
-hold on
-if uniformRock
-    ec = 'k';
-else
-    ec = 'none';
-end
+clf, hold on
+if uniformRock, ec = 'k'; else ec = 'none'; end
 plotCellData(G, rock.poro, 'FaceAlpha', 1, 'EdgeColor', ec, 'EdgeAlpha', 0.1)
 gc = G.cells.centroids;
-colors = {'r', 'g', 'b', 'y'};
+colors = {'r', 'w', 'b', 'm'};
 for i = 1:numel(targets)
     v = W(targets(i)).cells;
-    for j = 1:numel(wellHistory)
-        v = [v; wellHistory{j}(i).visited];                     %#ok<AGROW>
-    end
+    for j = 1:numel(wellHistory), v = [v; wellHistory{j}(i).visited]; end  %#ok<AGROW>
 
     plot3(gc(v, 1), gc(v, 2), -ones(numel(v), 1), ...
           ['o--', colors{i}], 'LineWidth', 2, 'MarkerSize', 10, ...
@@ -207,13 +165,11 @@ plot3(gc([W_opt.cells], 1), gc([W_opt.cells], 2), ...
 % If the optimization was successful, the regions with very high total time
 % of flight that corresponding to poor sweep should be reduced. The highest
 % travel time is colorized dark red.
-%
-clear cx
-close all
+% 
+clear cx, close all
 Wells = {W, W_opt};
 WellNames = {'Original', 'Optimized placement'};
-Phis = [];
-Fs = [];
+[Phis, Fs] = deal([]);
 clf
 for i = 1:numel(Wells)
     [state, Dx, gradpost] = solvePressure(Wells{i});
@@ -221,29 +177,24 @@ for i = 1:numel(Wells)
     Lc = computeLorenz(F, Phi);
 
     subplot(2,1, i)
-    plotCellData(G, log10(sum(Dx.tof, 2)), 'EdgeAlpha', 0.125)
-    if exist('cx', 'var')
-        caxis(cx)
-    else
-        cx = caxis();
-    end
+    plotCellData(G, log10(sum(Dx.tof, 2)), 'EdgeColor','none')
+    if exist('cx', 'var'), caxis(cx), else cx = caxis();end
     title(sprintf('%s, L_c = %1.2f', WellNames{i}, Lc))
     plotWellsPrint(G, Wells{i}, D)
-
-    axis tight equal off
-    colorbar
+    axis tight off; colorbar
+    
     Phis = [Phis, Phi];                                         %#ok<AGROW>
     Fs = [Fs, F];                                               %#ok<AGROW>
 end
-% Add the baseline optimal case (i.e. a linear function of Phi)
+% Add the baseline optimal case (i.e., a linear function of Phi)
 Phis = [Phis, Phi];
 Fs = [Fs, Phi];
+
 %% Plot the storage / flow capacity diagrams
 % We also plot the flow capacity / storage capacity diagram (F-Phi) curves
 % for both the base and optimized case. As the Lorenz' coefficient is
 % defined proportionally to the integral between the idealized curve and
 % actual curve, the improvement is easy to see from the resulting plot.
-
 figure;
 plot(Phis, Fs, '--', 'LineWidth', 2)
 if fiveSpotWells
@@ -262,23 +213,23 @@ legend({fs, 'Improved well placement', 'Idealized displacement'}, ...
 % To validate that the optimization correlates with the simulated oil
 % recovery, we simulate a five year period using two different fluids.
 %
-% The first fluid contains the same values for both oil and water,
-% effectively giving us a red/blue-water problem that should give very good
-% oil recovery even for the base case, as the saturation fronts will be
-% sharp and the water will displace the "oil" efficiently.
+% The first fluid model has idential properties for both phases effectively
+% giving us a red/blue-water problem that should give very good oil
+% recovery even for the base case, as the saturation fronts will be sharp
+% and the water will displace the "oil" efficiently.
 %
-% The second fluid object will contain a significant viscosity ratio of 10,
-% which makes oil recovery much more challenging because the fronts will be
-% smeared. The purpose of this fluid is to validate that the single phase
-% optimization procedure still has merit when extended to multiphase
-% problems. For simplicity, the problem is incompressible and uses a
-% pressure/transport splitting for speed.
+% The second fluid model has a significant viscosity ratio of 10, which
+% makes oil recovery much more challenging because the displacing fluid
+% will tend to finger through the resident fluid. The purpose of this setup
+% is to validate that the single-phase optimization procedure still has
+% merit when extended to multiphase problems. For simplicity, the problem
+% is incompressible and uses a pressure/transport splitting for speed.
 
 % Define recovery via pore volume
 recov = @(state) 1 - sum(state.s(:,2).*pv)/sum(pv);
 close all
 
-% Make a copy of the wells, and explicitly make them two phase wells.
+% Make a copy of the wells, and explicitly make them two-phase wells.
 W_initial = W;
 W_improved = W_opt;
 for i = 1:numel(W_initial)
@@ -340,34 +291,29 @@ for i = 1:numel(fluids)
         initial = [initial; state_a]; %#ok
         improved = [improved; state_b]; %#ok
         Time = Time + dt;
-        clf
         sa = state_a.s(:,2);
         sb = state_b.s(:,2);
 
         % Plot the base case
         set(0, 'CurrentFigure', h);
-        subplot(2,2,1)
+        subplot(2,2,1), cla
         plotCellData(G, sa, 'EdgeAlpha', 0.125);
         title('Oil saturation, base case')
-        caxis([0, 1])
-        axis tight off
+        caxis([0, 1]), axis tight off
 
         % Plot the improved case
-        subplot(2,2,2)
+        subplot(2,2,2), cla
         plotCellData(G, sb, 'EdgeAlpha', 0.125);
         title('Oil saturation, optimized')
-        caxis([0, 1])
-        axis tight off
+        caxis([0, 1]), axis tight off
 
         % Plot the historic oil production underway
-        subplot(2,2, 3:4)
+        subplot(2,2, 3:4), cla
         plot(convertTo(cumsum(repmat(dt, [numel(initial), 1])), year), ...
             100*arrayfun(recov, [initial, improved]), '-', 'LineWidth', 2)
-        xlim([0, endtime/year])
-        ylim([0, 100]);
+        xlim([0, endtime/year]), ylim([0, 100]);
         grid on
-        xlabel('Years')
-        ylabel('Oil recovered (%)')
+        xlabel('Years'), ylabel('Oil recovered (%)')
         legend('Base case', 'Optimized', 'location', 'southeast')
         title(['Recovery for ', fluid.name, ' fluid']);
         drawnow
@@ -383,6 +329,7 @@ for i = 1:numel(fluids)
     states_initial{i} = initial;
     states_improved{i} = improved;
 end
+
 %% Plot the recovery at the half-way point
 % If we simulate long enough, almost all oil will certainly be recovered.
 % We plot the half-way point after 2.5 years to show the oil saturation
@@ -398,7 +345,7 @@ for i = 1:nr
     sb = improved(ind).s(:,2);
 
     subplot(2, nr, 1 + (i-1)*nr)
-    plotCellData(G, sa, 'EdgeAlpha', 0.125)
+    plotCellData(G, sa, 'EdgeColor', 'none')
     plotWellsPrint(G, W, D)
     view(0, 89);
     title(sprintf('Recovery baseline, %s: %4.1f%%', ...
@@ -408,7 +355,7 @@ for i = 1:nr
     caxis([0, 1])
 
     subplot(2, nr, 2 + (i-1)*nr)
-    plotCellData(G, sb, 'EdgeAlpha', 0.125)
+    plotCellData(G, sb, 'EdgeColor', 'none')
     plotWellsPrint(G, W_opt, D)
     view(0, 89);
     title(sprintf('Recovery improved, %s: %4.1f%%', ...
@@ -418,13 +365,14 @@ for i = 1:nr
 
     axis tight off
 end
+
 %% Plot both problems in the same plot
 % We plot the oil recovery for both fluid problems simultanously, showing
 % that the optimized placement improves recovery in either case. The effect
 % on oil recovery from viscosity differences is also shown to be
 % significant.
 
-clf
+figure
 t = convertTo(cumsum(repmat(dt, [numel(states_initial{1}), 1])), year);
 y = [states_initial{1}, states_initial{2}, ...
      states_improved{1}, states_improved{2}];
@@ -437,3 +385,7 @@ legend('Five spot, unit fluids',       ...
        'Optimized wells, unit fluids', ...
        'Optimized wells, oil/water',   ...
        'Location', 'SouthEast')
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
