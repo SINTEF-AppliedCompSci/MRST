@@ -431,8 +431,8 @@ end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 end
-%--------------------------------------------------------------------------
 
+%--------------------------------------------------------------------------
 
 function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
     if isempty(W)
@@ -458,6 +458,8 @@ function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
     iInxW = iInx(compi(perf2well(iInx),1)==1);
 end
 
+%--------------------------------------------------------------------------
+
 % Effective adsorption, depending of desorption or not
 function y = effads(c, cmax, f)
    if f.adsInx == 2
@@ -466,6 +468,8 @@ function y = effads(c, cmax, f)
       y = f.ads(c);
    end
 end
+
+%--------------------------------------------------------------------------
 
 function [dx, dy, dz] = cellDims(G, ix)
 % cellDims -- Compute physical dimensions of all cells in single well
@@ -515,6 +519,7 @@ function [dx, dy, dz] = cellDims(G, ix)
     end
 end
 
+%--------------------------------------------------------------------------
 
 % Computer the Shear Mutliplier by solving EQ 52.12 in TD
 % Vw should be the absolute value?
@@ -564,7 +569,8 @@ function v = computeShearMult(fluid, Vw, muWMultf)
 
 end
 
-%%
+%--------------------------------------------------------------------------
+
 function zSh = computeShearMultLog(fluid, vW, muWMultf)
     % The current version handles all the values one by one
     % It needs to be improved for better performance.
@@ -645,8 +651,8 @@ function zSh = computeShearMultLog(fluid, vW, muWMultf)
 
 end
 
+%--------------------------------------------------------------------------
 
-%%
 % finding the intersection of one line segment l1 and one straight line l2
 % l1 is defined with the beginning and ending points.
 % l2 is defined with two points along the line.
