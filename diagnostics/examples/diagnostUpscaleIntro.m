@@ -4,11 +4,8 @@
 % the well-allocation factor is the percentage of the flux in/out of the
 % completion that can be attributed to a pair of injection and production
 % wells.
-try
-   require agglom upscaling coarsegrid diagnostics incomp;
-catch %#ok<CTCH>
-   mrstModule add agglom upscaling coarsegrid diagnostics incomp;
-end
+
+mrstModule add agglom upscaling coarsegrid diagnostics incomp
 
 %% Make model
 % We make a small model that consists of two different facies with
@@ -178,3 +175,7 @@ end
 plotWell(G,W,'Color','k');
 view(-40,10); axis tight off; caxis([1 nit+npt]);
 colormap(cmap);
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
