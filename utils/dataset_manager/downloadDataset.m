@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isempty(info.website)
                 fprintf('\nGo to the dataset webpage for more information: \n\n    <a href="%s">%s</a> \n \n', info.website, info.website);
             end
-            fprintf('Dataset should be placed in directory:\n\n    %s (case sensitive)\n', pth);
+            fprintf('Dataset should be placed in directory:\n\n    %s (%s)\n', pth, check_case_sensitive());
             ok = false;
         else
             % We know how to download it
@@ -107,4 +107,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             varargout{2} = ok;
         end
     end
+end
+
+%--------------------------------------------------------------------------
+
+function s = check_case_sensitive
+   if ispc,
+      s = 'case insensitive';
+   else
+      s = 'case sensitive';
+   end
 end
