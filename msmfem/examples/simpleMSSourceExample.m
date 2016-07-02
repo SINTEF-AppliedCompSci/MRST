@@ -25,8 +25,7 @@ function simpleMSSourceExample(varargin)
    G = cartGrid(cellDims, cellDims);
    G = computeGeometry(G);
 
-   rock.perm  = repmat(100 * (darcy() / 1000), [G.cells.num, 1]);
-   rock.poro = repmat(0.3,                    [G.cells.num, 1]);
+   rock = makeRock(G, 100*milli*darcy, 0.3);
 
    fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
                            'rho', [1000, 700]*kilogram/meter^3, ...
