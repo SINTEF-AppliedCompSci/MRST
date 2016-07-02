@@ -11,7 +11,10 @@
 % problems with large changes in mobility and well controls.
 %
 % We begin by loading the required modules
-mrstModule add ad-core ad-blackoil blackoil-sequential spe10
+
+mrstModule add ad-core ad-blackoil ad-props ...
+               blackoil-sequential spe10 mrst-gui
+
 %% Set up grid and rock structure
 % We define a 50x50x1 grid, spanning a 1km by 1km domain. The porosity is
 % assigned via a gaussian field and a synthethic permeability is computed
