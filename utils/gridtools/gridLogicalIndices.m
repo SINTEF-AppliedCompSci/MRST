@@ -49,11 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            ['Logical indices requires that the grid ', ...
             'has a valid ''cartDims'' field.']);
 
-    if exist('narginchk', 'builtin'),
-        narginchk(1, 2);
-    else
-        error(nargchk(1, 2, nargin, 'struct'));
-    end
+    mrstNargInCheck(1, 2, nargin);
 
     if nargin == 2 && isnumeric(varargin{1}),
         gcell = reshape(G.cells.indexMap(varargin{1}), [], 1);

@@ -8,7 +8,7 @@ function G = tessellationGrid(p, t)
 %   P     - Node coordinates.  Must be an m-by-2 matrix, one row for each
 %           node/point.
 %
-%   T     - Tesseløation list: an n-by-k matrix where each row holds node
+%   T     - Tessellation list: an n-by-k matrix where each row holds node
 %           numbers for a k-polygon.
 %
 % RETURNS:

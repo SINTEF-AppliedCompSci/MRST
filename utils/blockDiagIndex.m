@@ -61,14 +61,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   if exist('narginchk', 'builtin'),
-      narginchk(1, 2);
-   else
-      error(nargchk(1, 2, nargin, 'struct'));
-   end
-
-   %error(nargoutchk(1, 2, nargout, 'struct'));
+   mrstNargInCheck(1, 2, nargin);
 
    if nargin == 1, n = m; end
 
