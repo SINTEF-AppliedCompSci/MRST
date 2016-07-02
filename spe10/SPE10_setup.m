@@ -60,12 +60,8 @@ rock      = SPE10_rock(layers);
 rock.perm = convertFrom(rock.perm, milli*darcy);
 
 %% Define grid
-if ~readCache({cartDims}, 'verbose', false),
-   G = cartGrid(cartDims, physDims);
-   G = computeGeometry(G);
-
-   writeCache({cartDims}, {'G'});
-end
+G = cartGrid(cartDims, physDims);
+G = computeGeometry(G);
 
 %% Define wells
 % All wells completed in all layers of (reduced?) model
