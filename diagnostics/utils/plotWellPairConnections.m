@@ -51,14 +51,15 @@ for i=1:numel(D.inj)
             localRegion = find(D.ipart == i & D.ppart == p);
             center = sum(G.cells.centroids(localRegion, :).* ...
                 repmat(pv(localRegion), 1, G.griddim), 1)/sum(pv(localRegion));
+
             pts = [ipos; center; ppos];
 
-            htext = text(center(1), center(2), center(3), ...
+            thick = 20*alloc/(maxAlloc);
+
+            htext = text(center(1), center(2), center(3)-2*thick, ...
                 sprintf('%2.1f%%', 100*(alloc/sum(ialloc))),...
                 'VerticalAlignment', 'Bottom', 'FontWeight', ...
-                'bold', 'FontSize', 12, 'Color', colorizeWell('inj', i, D));
-
-            thick = 20*alloc/(maxAlloc);
+                'bold', 'FontSize', 12, 'Color', 'k');
 
             hline = plot3(pts(:,1), pts(:,2), pts(:,3),...
                 '-','LineWidth', thick, 'Color', colorizeWell('prod', p, D));
