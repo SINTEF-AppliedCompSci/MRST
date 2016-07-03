@@ -4,6 +4,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        prolongationType
        controlVolumeRestriction
        updateBasis
+       resetBasis
        basis
        localSolver
        coarsegrid
@@ -32,6 +33,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
            solver.useGMRES = false;
            solver.useMEX = true;
            solver.mexGrid = [];
+           solver.resetBasis = false;
            solver.basisIterations = ceil(50*(Nf/Nc).^(1/dim));
            
            solver = merge_options(solver, varargin{:});
@@ -80,7 +82,7 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        end
 
        function solver = createBasis(solver, A)
-           if isempty(solver.basis)
+           if isempty(solver.basis) || solver.resetBasis
                if solver.verbose
                    fprintf('Constructing multiscale basis of type %s', solver.prolongationType)
                    if solver.controlVolumeRestriction
