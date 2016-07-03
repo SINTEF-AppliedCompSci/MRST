@@ -1,11 +1,15 @@
-function [cells, isOutside] = getEnclosingCellsByFace(G, pts)
+function [cells, isOutside] = getEnclosingCellsByFace(G, pts, varargin)
+    opt = struct('candidates', []);
+    opt = merge_options(opt, varargin{:});
 
     bf = boundaryFaces(G);
     
     % Take all cells centers + boundary faces
 
     tripts = [G.cells.centroids; G.faces.centroids(bf, :)];
-    cellNo = [(1:G.cells.num)'; sum(G.faces.neighbors(bf, :), 2)];
+    if isempty(opt.candidates)
+        cellNo = [(1:G.cells.num)'; sum(G.faces.neighbors(bf, :), 2)];
+    end
     T = delaunayTriangulation(tripts);
 
     loc = T.nearestNeighbor(pts);
@@ -23,7 +27,11 @@ function [cells, isOutside] = getEnclosingCellsByFace(G, pts)
         ok = false;
         tri = any(T.ConnectivityList == loc(i), 2);
         conn = T.ConnectivityList(tri, :);
-        candidates = cellNo(unique(conn(:)));
+        if isempty(opt.candidates)
+            candidates = cellNo(unique(conn(:)));
+        else
+            candidates = opt.candidates;
+        end
         
         for j = 1:numel(candidates)
             c = candidates(j);
