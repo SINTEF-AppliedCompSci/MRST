@@ -40,7 +40,7 @@ view(90, 90);
 state = incompTPFA(state, G, T, fluid, 'MatrixOutput', true, 'bc', bc);
 
 %% Set up coarsegrid
-mrstModule add new-multiscale
+mrstModule add msrsb
 
 coarsen = [5 10 5];
 coarsedims = ceil(G.cartDims./coarsen);

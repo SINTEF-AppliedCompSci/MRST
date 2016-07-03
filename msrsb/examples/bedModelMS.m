@@ -10,7 +10,7 @@ G = computeGeometry(G);
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
 
 %%
-mrstModule add mrst-gui coarsegrid
+mrstModule add mrst-gui coarsegrid msrsb
 
 figure;
 plotToolbar(G, rock);
