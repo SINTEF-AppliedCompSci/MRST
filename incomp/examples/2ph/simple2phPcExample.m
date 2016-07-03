@@ -12,23 +12,19 @@
 % $$ \phi \frac{\partial S}{\partial t} +
 %     \nabla \cdot (f_w(S)(v + K\lambda_o \nabla p_c)) = q_w$$
 %
-% <html>This tutorial shows a 2D case with homogeneous permeability and
-% porosity and linear capillary pressure curve and is based on the example
-% <a href="simple2phWellExample.html>simple2phWellExample.m</a>.
-% </html>
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+% This tutorial shows a 2D case with homogeneous permeability and
+% porosity and linear capillary pressure curve and is based on the
+% <matlab:edit('incompTutorialWells2ph.m') incompTutorialWells2ph>  example.
+%
+mrstModule add incomp
+verbose = true;
+
 %% Construct simple Cartesian test case
 nx = 40; ny = 40; nz = 1;
 G         = cartGrid([nx ny nz]);
 G         = computeGeometry(G);
 rock      = makeRock(G, 100*milli*darcy, 0.3);
-
-x = linspace(0, 1, 11) .';
-y = linspace(1, 0, 11) .';
+hT  = computeTrans(G, rock, 'Verbose', verbose);
 
 %% Define fluid and capillary pressure curve
 % We define the relative permeability and the capillary pressure in form of
@@ -38,8 +34,14 @@ y = linspace(1, 0, 11) .';
 % non-wetting phase, i.e. $$ p_c = p_{nw} - p_w $$.
 pc_form = 'nonwetting';
 cap_scale = 10;
+x = linspace(0, 1, 11) .';
+y = linspace(1, 0, 11) .';
 [kr, pc]  = tabulatedSatFunc([x, x.^2, y.^2, y.*cap_scale*barsa]);
-%%
+
+clf,
+subplot(1,2,1), plot(x,kr(x),'LineWidth',2); title('Relative permeability');
+subplot(1,2,2), plot(x,pc(x),'LineWidth',2); title('Capillary function');
+
 % Define constant properties for viscosity and density
 props = constantProperties([   1,  10] .* centi*poise, ...
                            [1000, 700] .* kilogram/meter^3);
@@ -52,6 +54,7 @@ props = constantProperties([   1,  10] .* centi*poise, ...
 fluid = struct('properties', props                  , ...
                'saturation', @(x, varargin)    x.s  , ...
                'relperm'   , kr);
+
 %%
 % Then make another fluid object identical to the one above except for the
 % capillary pressure term 'pc'.
@@ -68,15 +71,14 @@ xDummy.s = linspace(0, 1, numel(xDummy.s))'; ...
 pc = convertTo(fluid_pc.pc(xDummy), barsa);
 
 clf
-plot(xDummy.s, pc);
+plot(xDummy.s, pc, 'LineWidth',2);
 xlabel('s_w'); ylabel('pc [bar]');
 title('Capillary pressure curve')
 
 
-%% Set wells
+%% Set wells and ininitialize reservoir state
 rate = 0.5*meter^3/day;
 bhp  = 1*barsa;
-
 W = verticalWell([], G, rock, 1, 1, 1:nz,          ...
                  'InnerProduct', 'ip_tpf', ...
                  'Type', 'rate', 'Val', rate, ...
@@ -86,16 +88,10 @@ W = verticalWell(W, G, rock, nx, ny, 1:nz,     ...
                  'Type','bhp', 'Val', bhp, ...
                  'Radius', .1, 'Dir', 'x', 'Name', 'P', 'Comp_i', [0 1]);
 
-
-%% Set up solution structures and assemble linear system
 rSol    = initState(G, W, 0, [0.2, 0.8]);
 rSol_pc = initState(G, W, 0, [0.2, 0.8]);
-
 gravity off
 verbose = false;
-
-trans  = computeTrans(G, rock, 'Verbose', verbose);
-
 
 %% Set up pressure and transport solvers
 % This example uses an implicit transport solver, an explicit solver can be
@@ -107,15 +103,14 @@ trans  = computeTrans(G, rock, 'Verbose', verbose);
 % false for the transport solver. If more information about the convergence
 % of the method is required; use verbose = true.
 
-psolve  = @(state, fluid) incompTPFA(state, G, trans, fluid, 'wells', W);
-tsolve  = @(state, dT, fluid) implicitTransport(state, G, dT, rock, ...
-                                                fluid, 'wells', W, ...
-                                                'verbose', verbose);
-%%
+psolve  = @(state, fluid) ...
+    incompTPFA(state, G, hT, fluid, 'wells', W);
+tsolve  = @(state, dT, fluid) ...
+    implicitTransport(state, G, dT, rock, fluid, 'wells', W, 'verbose', verbose);
+%
 % Alternatively we could have defined an explicit transport solver by
-
-% tsolve = @(state, dT) explicitTransport(state, G, dT, rock, fluid, ...
-%                                        'wells', W, 'verbose', verbose);
+% tsolve = @(state, dT) ...
+%     explicitTransport(state, G, dT, rock, fluid, 'wells', W, 'verbose', verbose);
 
 %% Solve initial pressure in reservoir
 % Observe that we supply different fluid objects for the two solutions, one
@@ -166,13 +161,15 @@ while t < T,
    heading = [num2str(convertTo(t,day)),  ' days'];
    r = 0.01;
    subplot('position',[(plotNo-1)/N+r, 0.50, 1/N-2*r, 0.48]), cla
-   plotCellData(G, rSol.s(:,1));
-   caxis([0 1]), view(60,50), axis equal off, title([h1 heading])
+   plotCellData(G, rSol.s(:,1),'EdgeColor','none');
+   caxis([0 1]), view(60,50), axis tight off, set(gca,'dataasp',[12 12 1]),
+   title([h1 heading])
 
    subplot('position',[(plotNo-1)/N+r, 0.02, 1/N-2*r, 0.48]), cla
-   plotCellData(G, rSol_pc.s(:,1));
-   caxis([0 1]), view(60,50), axis equal off, title([h2 heading])
-
+   plotCellData(G, rSol_pc.s(:,1),'EdgeColor','none');
+   caxis([0 1]), view(60,50), axis tight off, set(gca,'dataasp',[12 12 1]),
+   title([h2 heading])
+   drawnow
 
    plotNo = plotNo+1;
 
@@ -185,9 +182,11 @@ end
 %
 clf
 n = numel(p_org(:,1));
-plot(1:n,p_org(:,1),'-o',1:n,p_pc(:,1),'--*')
+plot(1:n,p_org(:,1),'-o',1:n,p_pc(:,1),'--s','MarkerSize',8,'MarkerFaceColor',[.7 .7 .7])
 legend('No capillary pressure','Linear capillary pressure','Location','Best');
+axis tight
 title('Water breakthrough at heel');
 
-%%
-displayEndOfDemoMessage(mfilename)
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
