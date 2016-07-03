@@ -77,9 +77,9 @@ state0 = model.computeFlash(state0, 1);
 
 lf = get(0, 'DefaultFigurePosition');
 h = figure('Position', lf + [0, 0, 350, 0]);
-n = numel(states);
 ref = load(fullfile(pth, 'comparison.mat'));
 data = {states, ref.statesECL, ref.statesGPRS};
+n = min(cellfun(@numel, data));
 names = {'MRST', 'E300', 'AD-GPRS'};
 markers = {'-', '.', '--'};
 cnames = model.EOSModel.fluid.names;
@@ -92,15 +92,19 @@ for i = 1:nd
     end
 end
 lw = [1, 2, 2];
+colors = lines(ncomp);
 for step = 1:n
     figure(h); clf; hold on
     for i = 1:numel(data)
         s = data{i}{step};
-        plot([s.components{:}], markers{i}, 'linewidth', lw(i));
+        comp = [s.components{:}];
+        for j = 1:ncomp
+            plot(comp(:, j), markers{i}, 'linewidth', lw(i), 'color', colors(j, :));
+        end
     end
     legend(l, 'location', 'eastoutside');
     ylim([0, 1]);
-    pause(0.05)
+    pause(0.01)
 end
 %% Compare pressure and saturations
 % We also plot a more detailed comparison between MRST and E300 to show
