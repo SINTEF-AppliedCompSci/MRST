@@ -13,7 +13,7 @@
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
 mrstModule add ad-core;         % NNC support for coarse grids
-mrstModule add new-multiscale;  % MsRSB solversop
+mrstModule add msrsb;           % MsRSB solversop
 mrstModule add mrst-gui;        % plotting routines
 checkLineSegmentIntersect;      % ensure lineSegmentIntersect.m is on path
     
