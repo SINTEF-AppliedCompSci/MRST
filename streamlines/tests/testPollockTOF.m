@@ -1,19 +1,28 @@
-try
-    require mimetic incomp diagnostics streamlines
-catch
-    mrstModule add mimetic incomp diagnostics streamlines
-end
+%% Compare Time-of-Flight Computed by Steamlines and by Finite-Volumes
+% MRST offers two ways of computing time-of-flight for Cartesian grids:
+% 
+% * using Polloc tracing from the |streamlines| module
+% * using finite-volume methods from the |diagnostics| module
+% 
+% Pollock's method gives pointwise values of high accuracy for Cartesian
+% grids, but this method has not yet been implemented for general
+% unstructured grids. The finite-volume method computes time-of-flight in a
+% volume-averaged sense, and will hence not have high pointwise accuracy,
+% but can readily be applied to any type of valid MRST grid.
+mrstModule add mimetic incomp diagnostics streamlines
+
+%% Setup model and solve flow problem
+% We consider a 60x60 grid with a quarter five-spot well pattern. The
+% petrophysical quantities can either be uniform, or sampled from a
+% Gaussian distribution. Pollock's method is not yet implemented for
+% non-unit porosity values, but this minor deficiency can be circumvented
+% by appropriate postprocessing and scaling of cell increments
 
 G = cartGrid([60,60]);
 G = computeGeometry(G);
 
-% NB non-unit porosity not working in pollock...
-
-rock.perm = repmat(10*milli*darcy, [G.cells.num, 1]);
-rock.poro = repmat(1,            [G.cells.num, 1]);
-
-%load Udata
-%rock.perm = reshape(KU(1,1:60,1:60,37), [], 1);
+rock.poro = ones(G.cells.num, 1);
+% rock.perm = 10*milli*darcy*ones(G.cells.num, 1);
 rock.perm = convertFrom(logNormLayers([G.cartDims, 1], 1), milli*darcy);
 
 fluid = initSimpleFluid('mu',  [1, 1]*centi*poise', ...
@@ -26,9 +35,11 @@ src = addSource([], [1, G.cells.num], [1.1, -1.1], 'sat', [1.0 0.0;1.0,0.0]);
 x = initResSol(G, 0, 0);
 x = incompMimetic(x, G, IP, fluid, 'src', src);
 
+%% Trace and plot streamlines
 numStreamlines = 500;
-
-
+clf,
+scrsz = get(0,'ScreenSize')
+set(gcf,'Position',[0 scrsz(4)-scrsz(3)/3 scrsz(3) scrsz(3)/3]);
 subplot(1,3,1);
 title('Streamlines');
 h = plotGrid(G, 'facea', 0.3, 'edgea',0.1);
@@ -41,6 +52,7 @@ dispif(true, 'Traced %d steps in %d streamlines in %g second\n', ...
    sum(cellfun(@numel, t)), numStreamlines, thetime);
 streamline(xyz);
 
+%% Extract time-of-flight
 subplot(1,3,2);
 title('Streamline time of flight')
 
@@ -57,9 +69,7 @@ c  = vertcat(c{:});  c  = c(i);
 % Compute weithed average of time of flight in each cell that has been
 % crossed by one or more streamlines,
 %
-%         ---               /   ---
-% tof_i = \   t_ij*ct_ij   /    \     t_ij
-%         /__ j           /     /__ j
+%    tof_i = sum(t_ij*ct_ij; j) / sum(t_ij; j)
 %
 % where t_ij is the time-of-flight diff through cell i of streamline j
 
@@ -67,16 +77,20 @@ tof = accumarray(c, ct.*t, [G.cells.num, 1], [], inf)./...
    accumarray(c, t,     [G.cells.num, 1], [], 1);
 
 
-plotCellData(G, tof);
+plotCellData(G, tof, 'EdgeColor','none');
 axis equal tight;
 
+%% Compute time-of-flight using diagnostics tools
 subplot(1,3,3);
 title('Finite-volume time of flight')
 fdTOF = computeTimeOfFlight(x, G, rock, 'src', src);
-plotCellData(G, fdTOF);
+plotCellData(G, fdTOF,'EdgeColor','none');
 axis equal tight;
 
 % Use fdTOF for caxis scalling as this does not change randomly.
 subplot(1,3,2), caxis([0,fdTOF(src.cell(end))])
 subplot(1,3,3), caxis([0,fdTOF(src.cell(end))])
 
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
