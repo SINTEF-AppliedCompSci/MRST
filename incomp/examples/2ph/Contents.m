@@ -1,11 +1,12 @@
 % Two-phase flow examples.
 %
 % Files
-%   inclinedGravityColumn.m - Investigate effects of gravity in an inclined geometry.
-%   realField2phExample.m   - Transport solver: Example of a Real Field Model
-%   saigupField2phExample.m - Transport solver: Example of a realistic Field Model
-%   simple2phPcExample.m    - Pressure Solver with capillary pressure:
-%   simple2phWellExample.m  - Basic Transport-Solver Tutorial
+%   incompTutorialWells2ph.m   - Basic two-phase flow-solver tutorial
+%
+%   incompTutorialGravCol2ph.m - Investigate effects of gravity in an inclined geometry.
+%   incompExampleNorne2ph.m    - Transport solver: example of a real field model
+%   incompExampleSAIGUP2ph.m   - Transport solver: example of a realistic field model
+%   incompTutorialCapPres.m    - Pressure solver with capillary pressure:
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
