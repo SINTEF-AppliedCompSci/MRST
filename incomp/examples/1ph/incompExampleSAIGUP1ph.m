@@ -1,4 +1,4 @@
-%% Pressure Solver: Example of a realistic Field Model
+%% SAIGUP: Solving One-Phase Flow on a Realistic Corner-Point Model
 % In the example, we will solve the single-phase pressure equation
 %
 % $$\nabla\cdot v = q, \qquad v=\textbf{--}\frac{K}{\mu}\nabla p,$$
