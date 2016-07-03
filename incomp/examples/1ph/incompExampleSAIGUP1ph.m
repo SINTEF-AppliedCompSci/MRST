@@ -3,43 +3,24 @@
 %
 % $$\nabla\cdot v = q, \qquad v=\textbf{--}\frac{K}{\mu}\nabla p,$$
 %
-% <html>
 % using the corner-point geometry from synthetic reservoir model from the
-% <a href="http://www.nr.no/saigup">SAIGUP</a>
-% study.
-% </html>
-% <html>
+% <http://www.nr.no/saigup SAIGUP> study.
+%
 % The purpose of this example is to demonstrate how the two-point flow solver
 % can be applied to compute flow on a real grid model that has degenerate
 % cell geometries and non-neighbouring connections arising from a number of
 % faults, and inactive cells. A more thorough examination of the model is
-% given in a <a href="../../grids/html/saigupModelExample.html">grid
-% example</a> and a <a
-% href="../../grids/html/multiplierExampleSAIGUP.html">fault multiplier
-% example</a>.  For a more complex real field example, consider the <a
-% href="http://www.sintef.no/Projectweb/MRST/Tutorials/Real-Field-Model-II/
-% ">real-field example</a> on the MRST webpage.</html>
+% given in a <matlab:edit('showSAIGUP.m') showSAIGUP> example.
 %
-% <html> Experimentation with this model is continued in <a
-% href="../../2ph/html/saigupField2phExample.html">
-% another example</a>, in which we solve a simplified two-phase model.
-% </html>
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
-%% Check for existence of input model data
-% The model can be downloaded from the the MRST page
-%
-% http://www.sintef.no/Projectweb/MRST/
-
-pth = getDatasetPath('SAIGUP');
-grdecl = fullfile(pth, 'SAIGUP.GRDECL');
+% Experimentation with this model is continued in
+% <matlab:edit('incompNorne2ph.m') incompSAIGUP2ph.m>, in which we solve a
+% simplified two-phase model.
+mrstModule add incomp
 
 %% Read model data and convert units
 % The model data is provided as an ECLIPSE input file that can be read
 % using the <matlab:doc('readGRDECL') readGRDECL> function.
+grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 grdecl = readGRDECL(grdecl);
 
 %%
@@ -77,10 +58,13 @@ rock.perm(~is_pos, 3) = min(rock.perm(is_pos, 3));
 %%
 % Plot the logarithm of the permeability in the x-direction
 clf,
-plotCellData(G,log10(rock.perm(:,1)),'EdgeColor','k','EdgeAlpha',0.1);
-axis off, view(-110,18); h=colorbar('horiz'); zoom(1.5)
+K = log10(rock.perm(:,1));
+plotCellData(G,K,'EdgeColor','k','EdgeAlpha',0.1);
+set(gca,'dataasp',[15 15 2]);
+axis off, view(-110,18); zoom(2),
 cs = [0.1 1 10 100 1000 4000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));
+h=colorbarHist(K,caxis,'South',100); camdolly(.2, 0, 0);
 set(h, 'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(round(cs)'));
 
 %% Set fluid data
@@ -158,4 +142,5 @@ colorbar, axis tight off; view(-80,36)
 zoom(1.3);
 
 %%
-displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
