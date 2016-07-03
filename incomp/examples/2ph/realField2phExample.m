@@ -1,5 +1,6 @@
-%% Transport solver: Example of a Real Field Model
-% Consider a two-phase oil-water problem. Solve the two-phase pressure equation
+%% Norne: Two-Phase Incompressible Simulator
+% In this example we will solve an incompressible two-phase oil-water
+% problem, which consists of an elliptic pressure equation
 %
 % $$\nabla\cdot v = q, \qquad v=\textbf{--}\lambda K\nabla p,$$
 %
@@ -11,38 +12,28 @@
 % $$ \phi \frac{\partial S}{\partial t} +
 %     \nabla \cdot (f_w(S) v) = q_w$$
 %
-% where phi is the rock porosity, f is the Buckley-Leverett fractional
-% flow function, and q_w is the water source term.
+% where phi is the rock porosity, f is the Buckley-Leverett fractional flow
+% function, and q_w is the water source term.
 %
-% <html>
-% This is an independent continuation of <a
-% href="../../1ph/html/realField1phExample.html">real-field example</a>, in
-% which we solved the corresponding single-phase problem using the
-% corner-point geometry of a real-field model that has faults and inactive
-% cells.
-% </html>
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+% This is an independent continuation of
+% <maltab:edit('incompExampleNorne1ph.m') incompExampleNorne1ph>, in
+% which we solved the corresponding single-phase problem for the
+% <matlab:exit('showNorne.m') Norne model>, which is a synthetic, but
+% realistic model of a shallow-marine reservoir.
+
+mrstModule add incomp
 linsolve = @mldivide;
 
-%% Check for existence of input model data
-grdecl = fullfile(ROOTDIR, 'examples', 'grids', 'GSmodel.grdecl');
-if ~exist(grdecl, 'file'),
-   error('Model data is not available.')
-end
-
-%% Read and process the model
-% <html>
-% We start by reading the model from a file in the Eclipse formate
-% (GRDECL). As shown when <a
-% href="../../grids/html/realFieldModelExample.html">examining the model in
-% more detail</a><realFieldModelExample.html>, the grid has two components,
-% of which we will only use the first one.
-% </html>
+%% Setup the model
+% How to read and setup the geological model was discussed in detail in the
+% <matlab:exit('showNorne.m') showNorne> and
+% <maltab:edit('incompExampleNorne1ph.m') incompExampleNorne1ph> tutorials.
+% Here, we therefore just exectute the necessarry commands without further
+% comments,
+grdecl = fullfile(getDatasetPath('norne'), 'OPM.GRDECL');
 grdecl = readGRDECL(grdecl);
+grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
+
 G = processGRDECL(grdecl); clear grdecl;
 G = computeGeometry(G(1));
 
@@ -61,18 +52,31 @@ K          = logNormLayers(G.cartDims, rand([9, 1]), 'sigma', 2);
 K          = K(G.cells.indexMap);
 K          = 200 + (K-min(K))/(max(K)-min(K))*1800;
 rock.perm  = convertFrom(K, milli*darcy);
-rock.poro  = 0.25 * (K ./ 200).^0.1; %clear K;
+rock.poro  = 0.25 * (K ./ 200).^0.1;
+rock.ntg   = ones(size(K)); 
 fluid      = initSimpleFluid('mu' , [   1,   5]*centi*poise     , ...
                              'rho', [1014, 859]*kilogram/meter^3, ...
                              'n'  , [   2,   2]);
 
-clf,
-   plotCellData(G,log10(rock.perm),'EdgeColor','k');
-   axis off, view(15,60), h=colorbar('horiz');
-   cs = [200 400 700 1000 1500 2000];
-   caxis(log10([min(cs) max(cs)]*milli*darcy));
-   set(h, 'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(round(cs)'));
-   zoom(2.5), title('Log_{10} of x-permeability [mD]');
+%% Visualize the model
+% Set various visualization parameters
+myview = struct('vw',   [30,50],    ...  % view angla
+                'zoom', 2.5,        ...  % zoom
+                'asp',  [15 15 2],  ...  % data aspect ratio
+                'wh',   30,         ...  % well height above reservoir
+                'cb',   'horiz'     ...  % colorbar location
+                );
+
+% Plot the data
+clf, title('Log_{10} of x-permeability [mD]');
+plotCellData(G,log10(rock.perm),'EdgeColor','k','EdgeAlpha',0.1);
+set(gca,'dataasp',myview.asp);
+axis off, view(myview.vw); zoom(myview.zoom), colormap(jet)
+
+cs = [200 400 700 1000 1500 2000];
+caxis(log10([min(cs) max(cs)]*milli*darcy));
+h = colorbarHist(log10(rock.perm),caxis,'South',100);
+set(h, 'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(cs'));
 
 %% Introduce wells
 % The reservoir is produced using a set production wells controlled by
@@ -97,6 +101,7 @@ end
 % Set vertical producers, completed in the upper 14 layers
 I = [17, 12, 25, 35, 15];
 J = [23, 51, 51, 95, 94];
+P = [300, 300, 300, 200, 200];
 nPW = (1:numel(I))+max(nIW);
 for i = 1 : numel(I),
    W = verticalWell(W, G, rock, I(i), J(i), 1:14, 'Type', 'bhp', ...
@@ -107,12 +112,14 @@ end
 
 % Plot grid outline and the wells
 clf
-   subplot('position',[0.02 0.02 0.96 0.96]);
-   plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
-   axis tight off, zoom(1.1), view(-5,58)
-   plotWell(G,W,'height',200);
-   plotGrid(G, vertcat(W(nIW).cells), 'FaceColor', 'b');
-   plotGrid(G, vertcat(W(nPW).cells), 'FaceColor', 'r');
+plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
+axis tight off,
+view(myview.vw), set(gca,'dataasp',myview.asp), zoom(myview.zoom*.75);
+plotWell(G,W,'height',50);
+plotGrid(G, vertcat(W(nIW).cells), 'FaceColor', 'b');
+plotGrid(G, vertcat(W(nPW).cells), 'FaceColor', 'r');
+camdolly(0, .3, 0);
+
 
 %% Transmissibilities and initial state
 % Initialize solution structures and compute transmissibilities from
@@ -125,31 +132,37 @@ rSol  = initState(G, W, 0, [0, 1]);
 % and pressure in the reservoir and the wells.
 rSol = incompTPFA(rSol, G, trans, fluid, 'wells', W, ...
                        'LinSolve', linsolve);
-clf
-   plotCellData(G, convertTo(rSol.pressure(1:G.cells.num), barsa), ...
-                'EdgeColor', 'k');
-   title('Initial pressure'), colorbar('horiz')
-   plotWell(G, W, 'height', 200, 'color', 'w');
-   axis tight off; view(20,80);
-   zoom(2)
+
+clf, title('Initial pressure')
+plotCellData(G, convertTo(rSol.pressure(1:G.cells.num), barsa), ...
+    'EdgeColor', 'k', 'EdgeAlpha', 0.1);
+plotWell(G, W, 'height', myview.wh, 'color', 'k');
+axis tight off, view(myview.vw)
+set(gca,'dataasp',myview.asp), zoom(myview.zoom*.9)
+colorbar(myview.cb), colormap(jet)
+camdolly(0,.3,0)
 
 %% Main loop
 % In the main loop, we alternate between solving the transport and the flow
 % equations. The transport equation is solved using the standard implicit
 % single-point upwind scheme with a simple Newton-Raphson nonlinear solver.
-T      = 3*year();
-dT     = T;
-dTplot = T;%5*year();
+T      = 6*year();
+dT     = .5*year;
+dTplot = dT;
 pv     = poreVolume(G,rock);
 
 % Prepare plotting of saturations
 clf
-   plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.1);
-   plotWell(G, W, 'height', 200, 'color', 'c');
-   axis off, view(30,50), colormap(flipud(jet))
-   colorbar('horiz'); hs = []; ha=[]; zoom(2.5)
+plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', .1);
+plotWell(G, W, 'height', myview.wh, 'color', 'k');
+view(myview.vw), set(gca,'dataasp',myview.asp), zoom(myview.zoom/1.2);
+axis tight off
+h=colorbar(myview.cb); colormap(flipud(winter)),
+set(h,'Position',[.13 .07 .77 .05]);
+camdolly(0,0.2,0)
+[hs,ha] = deal([]); caxis([0 1]);
 
-% Start the main loop
+%% Start the main loop
 t  = 0;  plotNo = 1;
 while t < T,
    rSol = implicitTransport(rSol, G, dT, rock, fluid, 'wells', W);
@@ -164,14 +177,13 @@ while t < T,
    t = t + dT;
    if ( t < plotNo*dTplot && t <T), continue, end
 
-   %%
    % Plot saturation
    delete([hs, ha])
-   hs = plotCellData(G, rSol.s(:,1), find(rSol.s(:,1) > 0.01));
-   ha = annotation('textbox', [0.6 0.2 0.5 0.1], 'LineStyle', 'none', ...
+   hs = plotCellData(G, rSol.s(:,1), find(rSol.s(:,1) > 0.01),'EdgeColor','none');
+   ha = annotation('textbox', [0 0.93 0.32 0.07], ...
                    'String', ['Water saturation at ', ...
                               num2str(convertTo(t,year)), ' years']);
-   view(30, 50+7*(plotNo-1)), drawnow
+   drawnow
    plotNo = plotNo+1;
 end
 

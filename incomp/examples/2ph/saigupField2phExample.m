@@ -1,6 +1,6 @@
-%% Transport solver: Example of a realistic Field Model
-% Consider a two-phase oil-water problem. Solve the two-phase pressure
-% equation
+%% SAIGUP: Solving Two-Phase Flow on a Realistic Corner-Point Model
+% In this example we will solve an incompressible two-phase oil-water
+% problem, which consists of an elliptic pressure equation
 %
 % $$\nabla\cdot v = q, \qquad v=\textbf{--}\lambda K\nabla p,$$
 %
@@ -15,16 +15,14 @@
 % where phi is the rock porosity, f is the Buckley-Leverett fractional flow
 % function, and q_w is the water source term.
 %
-% <html> This is an independent continuation of <a
-% href="../../1ph/html/saigupField1phExample.html"> a realistic field
-% example</a>, in which we solved the corresponding single-phase problem
-% using the corner-point geometry of a synthetic reservoir model that has
-% faults and inactive cells. </html>
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+% This is an independent continuation of
+% <maltab:edit('incompExampleSAIGUP1ph.m') incompExampleSAIGUP1ph>, in
+% which we solved the corresponding single-phase problem for the
+% <matlab:exit('showSAIGUP.m') SAIGUP model>, which is a synthetic, but
+% realistic model of a shallow-marine reservoir.
+
+mrstModule add incomp
+
 %% Decide which linear solver to use
 %
 % We use MATLAB(R)'s built-in <matlab:doc('mldivide') |mldivide|>
@@ -37,60 +35,51 @@ end
 linsolve_p = @mldivide;  % Pressure
 linsolve_t = @mldivide;  % Transport (implicit)
 
-%% Check for existence of input model data
-% The model can be downloaded from the the MRST page
-%
-% http://www.sintef.no/Projectweb/MRST/
+% If you have AGMG available
+% mrstModule add agmg
+% linsolve_p = @agmg;  % Pressure
+% linsolve_t = @agmg;  % Transport (implicit)
 
-pth = getDatasetPath('SAIGUP');
-grdecl = fullfile(pth, 'SAIGUP.GRDECL');
-
-%% Read model data and convert units
-% The model data is provided as an ECLIPSE input file that can be read
-% using the <matlab:doc('readGRDECL') readGRDECL> function.
+%% Setup the model
+% How to read and setup the geological model was discussed in detail in the
+% <matlab:exit('showSAIGUP.m') showSAIGUP> and
+% <maltab:edit('incompExampleSAIGUP1ph.m') incompExampleSAIGUP1ph>
+% tutorials. Here, we therefore just exectute the necessarry commands
+% without further comments,
+grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 grdecl = readGRDECL(grdecl);
+grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
 
-%%
-% MRST uses the strict SI conventions in all of its internal calculations.
-% The SAIGUP model, however, is provided using the ECLIPSE 'METRIC'
-% conventions (permeabilities in mD and so on).  We use the functions
-% <matlab:doc('getUnitSystem') getUnitSystem> and
-% <matlab:doc('convertInputUnits') convertInputUnits> to assist in
-% converting the input data to MRST's internal unit conventions.
-usys   = getUnitSystem('METRIC');
-grdecl = convertInputUnits(grdecl, usys);
-
-%% Define geometry and rock properties
-% We generate a space-filling geometry using the
-% <matlab:doc('processGRDECL') processGRDECL> function and then compute a
-% few geometric primitives (cell volumes, centroids, etc.) by means of the
-% <matlab:doc('computeGeometry') computeGeometry> function.
 G = processGRDECL  (grdecl);
 G = computeGeometry(G);
 
-%%
-% The media (rock) properties can be extracted by means of the
-% <matlab:doc('grdecl2Rock') grdecl2Rock> function.
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
-
-%% Modify the permeability to avoid singular tensors
-% The input data of the permeability in the SAIGUP realisation is an
-% anisotropic tensor with zero vertical permeability in a number of cells.
-% We work around this issue by (arbitrarily) assigning the minimum positive
-% vertical (cross-layer) permeability to the grid blocks that have zero
-% cross-layer permeability.
 is_pos                = rock.perm(:, 3) > 0;
 rock.perm(~is_pos, 3) = min(rock.perm(is_pos, 3));
 
 %%
-% Plot the logarithm of the permeability in the z-direction
+% Plot the logarithm of the permeability in the z-direction. The model has
+% a large number of very small permeabilities (shown in dark blue), and in
+% the histogram we have only included permeability values that are larger
+% than 1 micro darcy.
+myview = struct('vw',   [-110,18],  ...  % view angla
+                'zoom', 1.6,        ...  % zoom
+                'asp',  [15 15 2],  ...  % data aspect ratio
+                'wh',   50,         ...  % well height above reservoir
+                'cb',   'horiz'     ...  % colorbar location
+                );
+K   = rock.perm(:,3);  idx = K>1e-3*milli*darcy;
 clf,
-   plotCellData(G,log10(rock.perm(:,3)),'EdgeColor','k','EdgeAlpha',0.1);
-   axis tight off, view(-110,18); h=colorbar('horiz');
-   cs = [0.1 1 10 100 500 2000];
-   caxis(log10([min(cs) max(cs)]*milli*darcy));
-   set(h, 'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(round(cs)'));
+plotCellData(G,log10(K),'EdgeColor','k','EdgeAlpha',0.1);
+set(gca,'dataasp',myview.asp);
+axis off, view(myview.vw); zoom(myview.zoom*1.2), colormap(jet)
 
+cs = [0.001 0.01 0.1 1 10 100 1000];
+caxis(log10([min(cs) max(cs)]*milli*darcy));
+h = colorbarHist(log10(K(idx)),caxis,'South',100);
+set(h, 'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(cs'));
+camdolly(.2, 0, 0);
+ 
 %% Set fluid data
 % For the two-phase fluid model, we use values:
 %
@@ -134,12 +123,12 @@ end
 
 % Plot grid outline and the wells
 clf
-   subplot('position',[0.02 0.02 0.96 0.96]);
-   plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
-   axis tight off, view(-120,50)
-   plotWell(G,W,'height',200);
-   plotGrid(G, vertcat(W(nIW).cells), 'FaceColor', 'b');
-   plotGrid(G, vertcat(W(nPW).cells), 'FaceColor', 'r');
+plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
+axis tight off,
+view(myview.vw), set(gca,'dataasp',myview.asp), zoom(myview.zoom);
+plotWell(G,W,'height',50);
+plotGrid(G, vertcat(W(nIW).cells), 'FaceColor', 'b');
+plotGrid(G, vertcat(W(nPW).cells), 'FaceColor', 'r');
 
 %% Compute transmissibilities and init reservoir
 trans = computeTrans(G, rock, 'Verbose', true);
@@ -157,29 +146,33 @@ solve_transp = @(x, dt) ...
 % and pressure in the reservoir and the wells.
 rSol = solve_press(rSol);
 
-clf
-   plotCellData(G, convertTo(rSol.pressure(1:G.cells.num), barsa), ...
-                'EdgeColor', 'k', 'EdgeAlpha', 0.1);
-   title('Initial pressure'), colorbar;
-   plotWell(G, W, 'height', 200, 'color', 'k');
-   axis tight off; view(-80,36); caxis([300 400])
+clf, title('Initial pressure')
+plotCellData(G, convertTo(rSol.pressure(1:G.cells.num), barsa), ...
+    'EdgeColor', 'k', 'EdgeAlpha', 0.1);
+plotWell(G, W, 'height', myview.wh, 'color', 'k');
+axis tight off, view(myview.vw)
+set(gca,'dataasp',myview.asp), zoom(myview.zoom), camdolly(.1,.15,0)
+caxis([300 400]), colorbar(myview.cb), colormap(jet)
 
 %% Main loop
 % In the main loop, we alternate between solving the transport and the flow
 % equations. The transport equation is solved using the standard implicit
 % single-point upwind scheme with a simple Newton-Raphson nonlinear solver.
-T      = 8*year();
-dT     = T/4;
-dTplot = 2*year();
+T      = 12*year();
+dT     = year();
+dTplot = year();
 pv     = poreVolume(G,rock);
 
 % Prepare plotting of saturations
 clf
-   subplot('position',[0.02 0.02 0.96 0.96]);
-   plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.1);
-   plotWell(G, W, 'height', 200, 'color', 'c');
-   axis off, view(-80,36), axis tight, colormap(flipud(jet))
-   colorbar; hs = []; ha=[];
+plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', .1);
+plotWell(G, W, 'height', myview.wh, 'color', 'k');
+view(myview.vw), set(gca,'dataasp',myview.asp), zoom(myview.zoom);
+axis tight off
+h=colorbar(myview.cb); colormap(flipud(winter)),
+set(h,'Position',[.13 .07 .77 .05]);
+camdolly(.05,0,0)
+[hs,ha] = deal([]); caxis([0 1]);
 
 % Start the main loop
 t  = 0;  plotNo = 1;
@@ -196,17 +189,16 @@ while t < T,
    t = t + dT;
    if ( t < plotNo*dTplot && t <T), continue, end
 
-   %%
    % Plot saturation
    delete([hs, ha])
-   hs = plotCellData(G, rSol.s(:,1), find(rSol.s(:,1) > 0.01));
-   ha = annotation('textbox', [0.1714 0.8214 0.5000 0.1000], 'LineStyle', 'none', ...
+   hs = plotCellData(G, rSol.s(:,1), find(rSol.s(:,1) > 0.01),'EdgeColor','none');
+   ha = annotation('textbox', [0 0.93 0.32 0.07], ...
                    'String', ['Water saturation at ', ...
                               num2str(convertTo(t,year)), ' years']);
-   view(-80, 36), drawnow, caxis([0 1])
+   drawnow
    plotNo = plotNo+1;
 
 end
-
 %%
-displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
