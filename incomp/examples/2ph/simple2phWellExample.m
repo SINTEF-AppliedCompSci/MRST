@@ -14,32 +14,32 @@
 % where phi is the rock porosity, f is the Buckley-Leverett fractional
 % flow function, and q_w is the water source term.
 %
-% <html>
-% This is a continuation of the <a
-% href="../../1ph/html/simpleBC.html">basic flow-solver tutorial</a>, in
-% which we solved the corresponding single-phase problem using the
-% two-point pressure solver. Here, we demonstrate how this flow solver can
-% be extended by an explicit or an implicit two-phase transport solver. The
-% grid is Cartesian with isotropic, homogeneous permeability. See the <a
-% href="../../1ph/html/simpleBC.html">basic flow-solver tutorial</a> for
-% more details on the grid structure, the structure used to hold the
-% solutions, etc.
-% </html>
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+% This is a continuation of the <matlab:edit('incompIntro.m') incompIntro>
+% flow-solver tutorial</a>, in which we solved the corresponding
+% single-phase problem using the two-point pressure solver. Here, we
+% demonstrate how this flow solver can be extended by an explicit or an
+% implicit two-phase transport solver. The grid is Cartesian with
+% isotropic, homogeneous permeability. See the
+% <matlab:edit('incompIntro.m') basic flow-solver tutorial</a> for more
+% details on the grid structure, the structure used to hold the solutions,
+% etc.
+
+mrstModule add incomp
 
 %% Define geometry and rock parameters
 % Construct a Cartesian grid of size 20-by-20-by-5 cells, where each cell
-% has dimension 1-by-1-by-1. Set the permeability $K$ to be homogeneous,
-% isotropic and equal 100 mD and the porosity to be equal to 0.3.
+% has dimension 1-by-1-by-1. Set the permeability K to be homogeneous,
+% isotropic and equal 100 mD and the porosity to be equal to 0.3. Compute
+% one-sided (half) transmissibilities from input grid and rock properties.
 nx = 20; ny = 20; nz = 5;
 G = cartGrid([nx, ny, nz]);
 G = computeGeometry(G);
-rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
-rock.poro  = repmat(0.3, [G.cells.num, 1]);
+
+rock.perm  = 100*milli*darcy*ones(G.cells.num, 1);
+rock.poro  = .3*ones(G.cells.num, 1);
+rock.ntg   = ones(G.cells.num, 1);
+
+hT  = computeTrans(G, rock, 'Verbose', true);
 
 %% Define the two-phase fluid model
 % The <matlab:help('initSimpleFluid') two-phase fluid model> has default values:
@@ -52,29 +52,20 @@ fluid = initSimpleFluid('mu' , [   1,  10] .* centi*poise     , ...
 
 %%
 % The fluid model represented by the <matlab:help('fluid') fluid structure>
-% is the two-phase incompressible counterpart to the fluid model of the
-% Black Oil <matlab:help('pvt') 'pvt'> function.
+% is the two-phase incompressible counterpart to the fluid models used in
+% the <matlab:mrstExamples('ad-blackoil') black-oil framework>
 %
 s=linspace(0,1,20)'; kr=fluid.relperm(s);
-plot(s, kr(:,1), 'b', s, kr(:,2), 'r');
+plot(s, kr(:,1), 'b', s, kr(:,2), 'r', 'LineWidth',2);
 title('Relative permeability curves')
 legend('Water','Oil','Location','Best')
 
-
-%% Initialize and construct linear system
-% Initialize solution structure with reservoir pressure equal 0 and initial
-% water saturation equal 0.0 (reservoir is filled with oil). Compute
-% transmissibilities from input grid and rock properties.
-trans  = computeTrans(G, rock, 'Verbose', true);
-
 %% Introduce wells
-% <html>
 % We will include two wells, one rate-controlled vertical well and one
 % horizontal well controlled by bottom-hole pressure. Wells are described
 % using a Peacemann model, giving an extra set of equations that need to be
-% assembled, see <a href="../../1ph/html/simpleWellExample.html#3"> "Using
-% Peacemann well models"</a> for more details.
-% </html>
+% assembled, see the <matlab:edit('incompTutorialWells.m') tutorial on well
+% models> for more details.
 W = addWell([], G, rock, 1 : nx*ny : nx*ny*nz,          ...
             'InnerProduct', 'ip_tpf', ...
             'Type', 'rate', 'Val', 1.0/day(), ...
@@ -101,9 +92,8 @@ rSol = initState(G, W, 0, [0, 1]);
 % Solve linear system construced from S and W to obtain solution for flow
 % and pressure in the reservoir and the wells.
 gravity off
-rSol = incompTPFA(rSol, G, trans, fluid, 'wells', W);
+rSol = incompTPFA(rSol, G, hT, fluid, 'wells', W);
 
-%%
 % Report initial state of reservoir
 subplot(2,1,1), cla
    plotCellData(G, convertTo(rSol.pressure(1:G.cells.num), barsa));
@@ -150,8 +140,8 @@ while t < T,
    assert(max(s) < 1+eps && min(s) > -eps);
 
    % Update solution of pressure equation.
-   rSol  = incompTPFA(rSol , G, trans, fluid, 'wells', W);
-   rISol = incompTPFA(rISol, G, trans, fluid, 'wells', W);
+   rSol  = incompTPFA(rSol , G, hT, fluid, 'wells', W);
+   rISol = incompTPFA(rISol, G, hT, fluid, 'wells', W);
 
    % Measure water saturation in production cells in saturation
    e = [e; sum(abs(rSol.s(:,1) - rISol.s(:,1)).*pv)/sum(pv)]; %#ok
@@ -172,6 +162,7 @@ while t < T,
    subplot('position',[(plotNo-1)/N+r, 0.02, 1/N-2*r, 0.48]), cla
    plotCellData(G, rISol.s(:,1));
    view(60,50), axis equal off, title([hi heading])
+   drawnow
 
    plotNo = plotNo+1;
 end
@@ -183,12 +174,15 @@ end
 % verify this, we can plot the error or the breakthrough curves
 %
 n = size(pe,1);
-subplot(1,2,1),
-   plot(1:n,e*100,'-o'), title('Percentage saturation discrepancy')
-subplot(1,2,2),
-   plot(1:n,pe(:,1),'-o',1:n,pi(:,1),'--*')
-   legend('Explicit','Implicit','Location','Best');
-   title('Water breakthrough at heel');
+pargs = {'MarkerSize',6,'MarkerFaceColor',[.5 .5 .5]};
+subplot(2,1,1),
+   plot(1:n,e*100,'-o', pargs{:}),
+   title('Percentage saturation discrepancy')
+subplot(2,1,2),
+   plot(1:n,pe(:,1),'-o',1:n,pi(:,1),'-s',pargs{:})
+   legend('Explicit','Implicit','Location','NorthWest');
+   title('Water breakthrough at heel'); axis tight
 
 %%
-displayEndOfDemoMessage(mfilename)
+
+% #COPYRIGHT_EXAMPLE#
