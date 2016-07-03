@@ -11,6 +11,7 @@
 % geological model will be simple a Cartesian grid with anisotropic,
 % homogeneous permeability.
 
+mrstModule add incomp
 
 %% Define geometry
 % Construct a Cartesian grid of size 200-by-100-by-100 (=2,000,000) cells
@@ -22,14 +23,10 @@ G = cartGrid([nx, ny, nz], [10, 10, 4]);
 
 %% Process geometry
 % The computation of geometric information (centroids and volumes of the
-% cells and centroids, normals, and areas for the faces) is significantly
-% faster if one uses the C-accelerated routine instead of the standard call
-% to computeGeometry(G)
-try
-   require libgeometry incomp
-catch %#ok<CTCH>
-   mrstModule add libgeometry incomp
-end
+% cells and centroids, normals, and areas for the faces) was accelerated
+% significantly in MRST R2016a, but is still faster if one uses the
+% C-accelerated routine instead of the standard call to computeGeometry(G)
+mrstModule add libgeometry incomp
 G = mcomputeGeometry(G);
 
 %% Set rock and fluid data
@@ -63,11 +60,12 @@ resSol = incompTPFA(resSol, G, T, fluid, 'bc', bc, ...
                     'LinSolve', @(A,b) agmg(A,b,1));
 
 clf
-plotCellData(G, convertTo(resSol.pressure(1:G.cells.num), barsa()));
+plotCellData(G, convertTo(resSol.pressure(1:G.cells.num), barsa()),'EdgeColor','none');
 title('Cell Pressure [bar]')
 xlabel('x'), ylabel('y'), zlabel('Depth');
 view(3); camproj perspective; axis tight;
 colorbar
 
-%%
-displayEndOfDemoMessage(mfilename)
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

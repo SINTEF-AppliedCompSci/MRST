@@ -11,11 +11,8 @@
 %
 % In this example, we will show how to compute time-of-flight from a given
 % flux field.
-try
-    require incomp diagnostics
-catch %#ok<CTCH>
-    mrstModule add incomp diagnostics
-end
+mrstModule add incomp diagnostics
+
 %% Setup model
 % As our model, we will use a logically Cartesian grid in which the
 % node perturbed so that grid lines form curves and not lines. For
@@ -35,6 +32,11 @@ src = addSource(src, G.cells.num, -sum(poreVolume(G, rock)), 'sat', 1);
 % Compute transmissibilities and solve pressure equation
 trans  = computeTrans(G, rock);
 xr = incompTPFA(initResSol(G, 0), G, trans, fluid, 'src', src);
+clf,
+plotCellData(G,xr.pressure, 'edgecolor','k','edgealpha',.05);
+title('pressure')
+axis equal tight;colormap jet
+colorbar
 
 %% Compute time-of-flight
 % Once the fluxes are given, the time-of-flight equation is discretized
@@ -45,6 +47,10 @@ toc(t0)
 
 clf,
 plotCellData(G, T, 'edgecolor','k','edgealpha',0.05);
-title('time of flight');
+title('time-of-flight');
 caxis([0,0.8]);axis equal tight;colormap jet
 colorbar
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

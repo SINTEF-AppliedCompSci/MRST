@@ -22,11 +22,9 @@
 % for a Cartesian grid and isotropic, homogeneous permeability. See the
 % <simpleBC.html basic flow-solver tutorial> for more details
 % on the grid structure, the structure used to hold the solutions, etc.
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+
+mrstModule add incomp
+
 
 %% Define grid, rock and fluid data
 % Construct a Cartesian grid of size 20-by-20-by-5 cells, where each cell
@@ -77,7 +75,7 @@ disp('Well #2: '); display(W(2));
 % (The plot will later be moved to subplot(2,2,1), hence we first find the
 % corresponding axes position before generating the handle graphics).
 subplot(2,2,1), pos = get(gca,'Position'); clf
-   plotGrid(G, 'FaceColor', 'none');
+   plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha',.1);
    view(3), camproj perspective, axis tight off, camlight headlight
    [ht, htxt, hs] = plotWell(G, W, 'radius', radius, 'height', 2);
    set(htxt, 'FontSize', 16);
@@ -111,16 +109,17 @@ subplot(2,2,2)
    title('Producer inflow profile [m^3/d]');
 
 subplot(2,2,3)
-   plotCellData(G, convertTo(resSol.pressure(1:G.cells.num), barsa));
+   plotCellData(G, convertTo(resSol.pressure(1:G.cells.num), barsa),'EdgeColor','none');
    title('Pressure [bar]')
    view(3), camproj perspective, axis tight off, camlight headlight
 
 subplot(2,2,4)
    cellNo = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
    cf     = accumarray(cellNo, abs(resSol.flux(G.cells.faces(:,1))) );
-   plotCellData(G, convertTo(cf, meter^3/day) );
+   plotCellData(G, convertTo(cf, meter^3/day),'EdgeColor','none' );
    title('Sqrt of flux intensity [m^3/day]')
    view(3), camproj perspective, axis tight off, camlight headlight
 
-%%
-displayEndOfDemoMessage(mfilename)
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

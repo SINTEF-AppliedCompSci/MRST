@@ -10,26 +10,15 @@
 % solver applied to a case with corner-point grids given as from an input
 % stream in the industry-standard Eclipse(TM) format.
 %
-% <html>
-% More details of how to read, process, and manipulate corner-point data
-% are given in a <a
-% href="../../grids/html/cornerPointModelExample.html">separate
-% example</a>.
-% </html>
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+
+mrstModule add incomp
 
 %% Generate the corner-point grid
 % The corner-point grid is generated using a standard MATLAB(R) meshgrid
 % which is then transformed to make sloping pillars and wavy layers. The
 % corner-point grid is represented as a GRDECL structure, which is the same
 % structure as is returned from readGRDECL.  If an extra parameter is
-% passed to the simpleGrdecl function, it adds a fault to the model. This
-% behavior is used in one of the <simpleCornerPointExampleMS.html
-% multiscale examples>.
+% passed to the simpleGrdecl function, it adds a fault to the model. 
 nc = [20, 20, 5];
 grdecl = simpleGrdecl(nc);        % No fault in model
 
@@ -51,11 +40,11 @@ G = computeGeometry(G, 'Verbose', true);
 
 %% Make rock and fluid data
 % We generate a lognormal and layered permeability and specify that we are
-% working with a single-phase fluid; type "help initSingleFluid" to see
-% default values for density and viscosity. Our flow solver is constructed
-% for a general incompressible flow and thus requires the evaluation of a
-% total mobility function, which in our case equals one in the whole
-% domain.
+% working with a single-phase fluid; type <matlab:helpt('initSingleFluid')
+% "help initSingleFluid"> to see default values for density and viscosity.
+% Our flow solver is constructed for a general incompressible flow and thus
+% requires the evaluation of a total mobility function, which in our case
+% equals one in the whole domain.
 perm = convertFrom(logNormLayers(nc, [100, 400, 50]), milli*darcy());
 rock = makeRock(G, perm, 1);
 fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
@@ -114,5 +103,7 @@ subplot('Position',[0.51 0.25 0.48 0.5]),
    title('Sqrt - Flux intensity [m^3/day]')
    view(3), camproj perspective, axis tight off, camlight headlight
 
-%%
-displayEndOfDemoMessage(mfilename)
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
+

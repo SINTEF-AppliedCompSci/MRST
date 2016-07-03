@@ -1,8 +1,7 @@
 %% How to Specify Sources and Boundary Conditions
 % This example shows how to set up a combination of source and boundary
-% conditions and is a continuation of two previous examples, <simpleBC.html
-% the basic flow-solver tutorial> and the <gravityColumn.html gravity
-% column example>.
+% conditions and is a continuation of the <matlab:edit('incompIntro.m')
+% introduction to the incompressible solvers in MRST>.
 try
     require incomp
 catch %#ok<CTCH>
@@ -44,7 +43,7 @@ bc = pside([], G, 'LEFT', 10*barsa());
 % To check that boundary conditions and sources are placed at the correct
 % location, we plot the model.
 subplot(2,2,1), pos = get(gca,'Position'); clf
-plotGrid(G,    'FaceColor', 'none');
+plotGrid(G,    'FaceColor', 'none', 'EdgeAlpha',.1);
 plotGrid(G, c, 'FaceColor', 'r');
 plotFaces(G, bc.face, 'b');
 title('Boundary conditions and source-cells')
@@ -67,7 +66,7 @@ rSol = incompTPFA(rSol, G, T, fluid, 'MatrixOutput', true, ...
 % when plotting the results. Although it is not strictly necessary here, we
 % show how to make shorthands to simplify the plotting.
 cellNo    = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
-plot_var  = @(x) plotCellData(G, x);
+plot_var  = @(x) plotCellData(G, x, 'EdgeColor','none');
 plot_pres = @(x) plot_var(convertTo(x.pressure(1:G.cells.num), barsa()));
 plot_flux = @(x) plot_var(accumarray(cellNo, ...
    abs(convertTo(faceFlux2cellFlux(G, x.flux), meter^3/day))));
@@ -88,5 +87,6 @@ plot_flux(rSol);
 title('Sqrt of flux intensity [m^3/day]')
 view(3), camproj perspective, axis tight equal, camlight headlight
 
-%%
-displayEndOfDemoMessage(mfilename)
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

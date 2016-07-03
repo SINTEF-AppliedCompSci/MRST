@@ -17,11 +17,9 @@
 % # how to assemble and solve linear systems,
 % # useful routines for visualizing and interacting with the grids and
 % simulation results.
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
+
+mrstModule add incomp
+
 %% Define geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
 % has dimension 1-by-1-by-1. Because our flow solvers are applicable for
@@ -116,5 +114,6 @@ xlabel('x'), ylabel('y'), zlabel('Depth');
 view(3); shading faceted; camproj perspective; axis tight;
 colorbar
 
-%%
-displayEndOfDemoMessage(mfilename)
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
