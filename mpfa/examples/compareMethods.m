@@ -1,4 +1,4 @@
-%% Consistent Discretization
+%% Comparison of TPFA, MPFA-O, and Mimetic
 % The two-point flux-approximation (TPFA) method, which is the current
 % industry standard discretization method, is not consistent and only
 % convergent on K-orthogonal grids. In this example, we will compare this
@@ -198,7 +198,7 @@ subplot(2,3,5)
 
 subplot(2,3,3)
    plotCellData(G, resSol3.pressure(1:G.cells.num) ./ barsa());
-   title('Pressure: mpfa'); view(2), axis tight off
+   title('Pressure: MPFA'); view(2), axis tight off
    colorbar('Location','SouthOutside');
 subplot(2,3,6)
    mesh(X,Y,reshape(resSol3.pressure(1:G.cells.num) ./ barsa(),G.cartDims));
@@ -218,3 +218,4 @@ mrstModule('add', MODS{:})
 %%
 displayEndOfDemoMessage(mfilename)
 
+% #COPYRIGHT_EXAMPLE#
