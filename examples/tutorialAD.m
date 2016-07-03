@@ -43,17 +43,21 @@ disp([1 -y -x]*3*exp(-x*y))
 
 disp('Automatic differentiation:')
 [x,y] = initVariablesADI(1,2);
-z = 3*exp(-x.*y)
+z = 3*exp(-x.*y)                                                           %#ok<*NOPTS>
 
 
 %% Demonstrate the importance of vectorization
-m = 15;
+m = 14;
 [n,t1,t2,t3,t4] = deal(zeros(m,1));
+clc
+disp('Table: timing for differentiation of z=xy');
+disp('   nvec  analytic     vectorized   loop+mtimes  loop+times');
+disp('   --------------------------------------------------------');
 for i = 1:m
    n(i) = 2^(i-1);
    xv = rand(n(i),1); yv=rand(n(i),1);
    [x,y] = initVariablesADI(xv,yv);
-   tic, z = xv.*yv; zx=yv; zy = xv; t1(i)=toc;
+   tic, z = xv.*yv; zx=yv; zy = xv; t1(i)=toc;                             %#ok<*NASGU>
    tic, z = x.*y;                   t2(i)=toc;
    if i<17
       tic, for k =1:n(i), z(k)=x(k)*y(k); end;  t3(i)=toc;
@@ -62,6 +66,8 @@ for i = 1:m
    fprintf('%7d: %6.5f sec, %6.5f sec, %6.5f sec, %6.5f sec\n', ...
       n(i), t1(i), t2(i), t3(i), t4(i))
 end
+disp('   --------------------------------------------------------');
+disp('');
 loglog(n,t1,'-*',n,t2,'-+',n,t3,'-o',n,t4,'-s');
 legend('analytical','vectorized','for+mtimes','for+times',2);
 
@@ -72,7 +78,9 @@ eq1 = [ 3,  2, -4]*x + 5;
 eq2 = [ 1, -4,  2]*x + 1;
 eq3 = [-2,- 2.  4]*x - 6;
 eq = cat(eq1,eq2,eq3);
-u  = -eq.jac{1}\eq.val
+disp(eq.jac{1})
+disp(eq.val)
+u  = -eq.jac{1}\eq.val; disp(u)
 
 %% Use AD to solve the nonlinear Rosenbrock problem
 % Problem: minimize f(x,y) = (a-x)^2 + b(y-x^2)^2 = 0
