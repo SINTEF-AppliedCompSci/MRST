@@ -1,6 +1,7 @@
 experimental        export-ignore
 ad-refactor         export-ignore
-blackoil-sequential export-ignore
+compositional       export-ignore
+ad-unittest         export-ignore
 .gitignore          export-ignore
 .gitattributes      export-ignore
 
