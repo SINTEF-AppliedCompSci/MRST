@@ -1,4 +1,5 @@
 %% Quarter five spot
+mrstModule add mimetic incomp
 [nx,ny] = deal(64);
 G = cartGrid([nx,ny],[500,500]);
 G.nodes.coords = twister(G.nodes.coords);
@@ -89,7 +90,7 @@ for i=1:4
    S = computeMimeticIP(g{i}, rock);
    pv = sum(poreVolume(g{i}, rock));
 
-   tmp = (g{i}.cells.centroids - repmat([450, 500],g{i}.cells.num,[])).^2;
+   tmp = (g{i}.cells.centroids - repmat([450, 500],g{i}.cells.num,1)).^2;
    [~,ind] = min(sum(tmp,2));
    src{i} = addSource(src{i}, ind, -.02*pv/year);
 
@@ -206,7 +207,7 @@ plotWell(G,Wt(in+1:end),'height',30,'color','b');
 state = initState(G, Wt, 350*barsa, 1);
 tstate = incompTPFA(state, G, hT, fluid, 'wells', Wt);
 
-mrstModule add AGMG
+mrstModule add agmg
 mstate = incompMimetic(state, G, S, fluid, 'wells', Wm, 'LinSolve', @agmg);
 
 % Plot pressure discrepancy
