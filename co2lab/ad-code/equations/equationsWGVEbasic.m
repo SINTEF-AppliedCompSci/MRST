@@ -44,6 +44,7 @@ function [problem, state] = equationsWGVEbasic(model, state0, state, dt, driving
          else
              warning('using non adjoint form for backward simulation: Hysteresis may be not properly handled')
             [p0, sG0, ~, ~, ~] = initVariablesADI(p0, sG0, zw, zw, zw);
+            sGmax = max(sG, sGmax0);
          end
       end
    elseif ~opt.adjointForm
