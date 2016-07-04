@@ -143,6 +143,7 @@ sol(1)  = struct('time', 0, 'pressure', double(p_ad), ...
 
 %% Main loop
 t = 0; step = 0;
+hwb = waitbar(0,'Simulation..');
 while t < totTime,
    t = t + dt;
    step = step + 1;
@@ -192,9 +193,10 @@ while t < totTime,
       sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
                             'bhp', double(bhp_ad), 'qS', double(qS_ad), ...
 			    'T', double(T_ad), 'qH', sum(double(hq)));
+      waitbar(t/totTime,hwb);
    end
 end
-
+close(hwb)
 %% Plot production rate
 clf, set(gca,'FontSize',20);
 stairs([sol(2:end).time]/day,-[sol(2:end).qS]*day,'LineWidth',2);

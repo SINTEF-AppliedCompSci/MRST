@@ -115,6 +115,7 @@ sol(1)  = struct('time', 0, 'pressure', double(p_ad), ...
 
 %% Main loop
 t = 0; step = 0;
+hwb = waitbar(t,'Simulation ..');
 while t < totTime,
    t = t + dt;
    step = step + 1;
@@ -150,9 +151,10 @@ while t < totTime,
    else % store solution
       sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
                             'bhp', double(bhp_ad), 'qS', double(qS_ad));
+      waitbar(t/totTime,hwb);
    end
 end
-
+close(hwb);
 %% Plot production rate and pressure decay
 clf,
 [ha,hr,hp] = plotyy(...

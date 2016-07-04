@@ -113,6 +113,7 @@ for method=1:2
 
       % Time loop
       t = 0; step = 0;
+      hwb = waitbar(0,'Simulation ..');
       while t < totTime,
          t = t + dt;
          step = step + 1;
@@ -147,8 +148,10 @@ for method=1:2
          else % store solution
             sol(step+1)  = struct('time', t, 'pressure', double(p_ad), ...
                'bhp', double(bhp_ad), 'qS', double(qS_ad));
+           waitbar(t/totTime,hwb)
          end
       end
+      close(hwb)
       myrate(2:end,n) = -[sol(2:end).qS]*day;
       mypres(:,n) = mean([sol(:).pressure]/barsa);
       mytime = [sol(1:end).time]/day;
