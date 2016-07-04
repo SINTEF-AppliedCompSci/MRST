@@ -431,3 +431,7 @@ pause(0.1);
 %%
 % save resMRSTPolymer wellSols states schedule;
 fprintf('The simulation has been finished! \n');
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
