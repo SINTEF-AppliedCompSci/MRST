@@ -14,6 +14,7 @@
 % independent of the actual system considered and a similar approach can be
 % used for other systems and setups with minor (and obvious) modifications.
 %
+
 mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat optimization
 
 %% Read input file and setup basic structures
@@ -200,13 +201,13 @@ end
 % We animate the computed solutions. The animation shows all cells with
 % water saturation exceeding the residual saturation, as well as a pie
 % chart that shows the oil/water ratio in the producer with and
-% without polymer injection in a single chart. If you have a powerful
-% computer, you can replace the cell plot by a simple volume renderer by
-% uncommenting the corresponding lines.
-
+% without polymer injection in a single chart. 
 W = schedule.control(1).W;
 figure(gcf); clf
 nDigits = floor(log10(numel(statesPolymer) - 1)) + 1;
+subplot(1,3,[1 2])
+plotGrid(G, 'facea', 0,'edgea', .05, 'edgec', 'k'); plotWell(G,W);
+axis tight off, view(6,60), hs = [];
 for i = 1 : numel(statesPolymer) - 1,
     injp  = wellSolsPolymer{i}(3);
     injow = wellSolsOW{i}(3);
@@ -218,22 +219,34 @@ for i = 1 : numel(statesPolymer) - 1,
     legend('Water (No polymer)', 'Oil (No polymer)', ...
            'Water (With polymer', 'Oil (Polymer)',   ...
            'Location', 'SouthOutside')
-    title('Producer OW ratio')
+    title('Producer OW ratio'), drawnow,
     
-    subplot(1, 3, [1 2]), cla
-    plotGrid(G, 'facea', 0,'edgea', .05, 'edgec', 'k');
-    %{
-    plotGridVolumes(G, state.s(:,2), 'cmap', @copper, 'N', 10)
-    plotGridVolumes(G, state.s(:,1), 'cmap', @winter, 'N', 10)
-    plotGridVolumes(G, state.c,      'cmap', @autumn, 'N', 10)
-    %}
-    plotCellData(G,state.s(:,1),state.s(:,1)>.1);
-    plotWell(G, W);
-    axis tight off, view(6,60)
+    subplot(1, 3, [1 2]), delete(hs);
+    hs = plotCellData(G,state.s(:,1),state.s(:,1)>.101);
     title(sprintf('Step %0*d (%s)', nDigits, i, formatTimeRange(cumt(i))));
     drawnow;
 end
 
+%%
+% If you have a powerful computer, you can replace the cell plot by a
+% simple volume renderer by uncommenting the corresponding lines.
+%{
+clf,
+plotGrid(G,'facea', 0,'edgea', .05, 'edgec', 'k'); plotWell(G,W);
+axis tight off, view(6,60)
+for i=1:numel(statesPolymer)-1
+    cla
+    state = statesPolymer{i + 1};
+    plotGrid(G, 'facea', 0,'edgea', .05, 'edgec', 'k');
+    plotGridVolumes(G, state.s(:,2), 'cmap', @copper, 'N', 10)
+    plotGridVolumes(G, state.s(:,1), 'cmap', @winter, 'N', 10)
+    plotGridVolumes(G, state.c,      'cmap', @autumn, 'N', 10)
+    plotWell(G,W);
+    title(sprintf('Step %0*d (%s)', nDigits, i, formatTimeRange(cumt(i))));
+    drawnow
+end
+%}
+    
 %% Plot the accumulated water and oil production for both cases
 % We concat the well solutions and plot the accumulated producer rates for
 % both the polymer and the non-polymer run. The result shows that the
