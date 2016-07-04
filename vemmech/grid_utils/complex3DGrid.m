@@ -21,14 +21,17 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
         G = computeGeometry(G);
 
       case 'sbed'
-        % Extreme 3D test case
-        % grdecl = readGRDECL('C:\Users\hnil\Documents\BITBUCKET\mrst-mechanics-fractures\test_cases\data\WaveIrregular.grdecl');
-        grdecl = readGRDECL('/home/xavier/Matlab/Projects/project-mechanics-fractures/test_cases/data/WaveIrregular.grdecl');
+        grdecl = readGRDECL(fullfile(getDatasetPath('BedModel2'), ...
+                                     'BedModel2.grdecl'));
+
+        grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
+
         grdecl.ZCORN = min(grdecl.ZCORN, 5)-1;
         grdecl.ZCORN = max(grdecl.ZCORN, 1)-1;
-        grdecl_c = cutGrdecl(grdecl, [1 15;1 15; 1 333]);
+        grdecl_c = cutGrdecl(grdecl, [1 15;1 15; 1 333]); % consider only a
+                                                          % part of the sbed model
         G = processGRDECL(grdecl_c, 'Tolerance', opt.gtol);
-        if(opt.triangulate)
+        if (opt.triangulate)
             faces = unique(G.cells.faces(any(bsxfun(@eq, G.cells.faces(:, 2), [5, 6]), 2), 1));
             G = triangulateFaces(G, faces');
         end
