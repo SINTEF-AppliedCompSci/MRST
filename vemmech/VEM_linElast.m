@@ -1,43 +1,33 @@
 function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
-%[uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
-% solve linear elastisity problem using the Virtual Element method. Main
+%
+%
+% SYNOPSIS:
+%   function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
+%
+% DESCRIPTION: solve linear elastisity problem using the Virtual Element method. Main
 % mechanics solver. Without face degree of freedom. Meant to be run for any
 % dimension. 
-% 
-% SYNOPSIS:
-% [uu, extra] = VEM_linElast(C, nu, el_bc, load, varargin)
-% 
-% OUTPUT
-% uu is matrix of size [G.nodes.num, G.griddim] of displacement of nodes
-% 
+%
 % PARAMETERS:
-% G     - Grid structure as described by grid_structure, which all so
-%         has the mappings from G = mrstGridWithFullMappings(G). Some options 
-%         need G = computeGeometryCalc(G).
-% E     - Youngs modulo    (http: //en.wikipedia.org/wiki/Shear_modulus)
-% nu    - Poisson's ratio
-% el_bc - boundary condition of type struct('disp_bc', [], 'force_bc', [])
-% 
-% 
-% 'pn' / pv - List of 'key' / value pairs for supplying optional parameters.
-% The supported options are
-% opt = struct('type', 'lorenzo', ...       % method for stiffnessmatrix
-%              'linsolve', @mldivide, ...   % solver
-%              'local_assembly', false, ... % use local assembly
-%              'do_local', false); % local forcecalculation
-% 
-% COMMENTS:
-% For all the solvetypes exept lorenzo the assembly code is for general 
-% elastisty tensor in voit's notation:
+%   G        - Grid structure as described by grid_structure, which also
+%              has the mappings from G = mrstGridWithFullMappings(G). 
+%              Some options need G = computeGeometryCalc(G).
+%   C        - Elasticity tensor
+%   el_bc    - boundary condition of type struct('disp_bc', [], 'force_bc', [])
+%   load     - loading term 
+%   varargin - 
+%
+% RETURNS:
+%   uu    - Displacement field
+%   extra - Extra outputs
+%
+% EXAMPLE:
+%
+% COMMENTS: The assembly code is for general elastisty tensor in voit's notation:
 % http://en.wikipedia.org/wiki/Voigt_notation 
 %
 % SEE ALSO:
-% square_2D_example, convergens_test, plotNodeData, plotGridDeformed
-% ------------ 
 
-%{ 
-Copyright 2009 - 2014 SINTEF ICT, Applied Mathematics
-%} 
 
     opt = struct('type'         , 'mrst'                          , ...
                  'linsolve'     , @mldivide                       , ...
@@ -74,11 +64,13 @@ Copyright 2009 - 2014 SINTEF ICT, Applied Mathematics
     end
     
     % Apply Diriclet boundary conditions
+    % NB: Partial Diriclet boundary conditions in the primary direction is allowed
+    % for now.
     % If duplicated  values exist, remove them.
     bc = el_bc.disp_bc; 
     [bcnodes, j, i] = unique(bc.nodes);
     if(numel(bcnodes) ~= numel(bc.nodes))
-        %       warning('boundary conditions have mulitiple definitions')
+        %  warning('boundary conditions have mulitiple definitions')
     end
     u_bc = bc.uu(j, :);
     mask = zeros(numel(bcnodes), G.griddim); 
@@ -89,8 +81,6 @@ Copyright 2009 - 2014 SINTEF ICT, Applied Mathematics
     mask = mask > 0; 
 
     % Find the logical vector to remove Diriclet boundary conditions
-    % NB: Partial Diriclet boundary conditions in the primary direction is allowed
-    % for now.
     ndof = G.griddim * G.nodes.num; 
     if(all(mask(:) == true))    
         dirdofs = mcolon(G.griddim * (bcnodes - 1) + 1, G.griddim * (bcnodes - 1) + G.griddim)';
@@ -196,23 +186,25 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
     switch opt.force_method
         
       case 'node_force'
-        % Use node-based integration
+        % Evaluate forces at nodes. The result is weighted, using adjacent
+        % cell volume contributions, see Paulino et al's paper (doi:10.1016/j.cma.2014.05.005)
         
         X = G.nodes.coords(nodes, :);
-        
-        % Build X with vertex coordinates weights to calculate volume
-        % force term.  
-        % For 2D the weights are calulated in G = computeGemoetryCalc(G), but for 3D
-        % it has to be done. At the moment they are taken as volume / number of nodes of cell.
-        
         w = qcvol;
         ll = bsxfun(@times, load(X), w)';
         
       case  'cell_force_baric'
-        % Use cell based intgration
+        %
+        % Evaluate the forces at nodes. Then, from the nodal values, compute the (exact)
+        % L^2 projection on each cell and, using this cell values, assemble
+        % the load term in term of the degrees of freedom.
+        %
+        % The VEM theory tells us that there exist virtual basis such that the
+        % two steps above can be done exactly. See Ahmad et al (doi:10.1016/j.camwa.2013.05.015)
+        %
 
-        nlc      = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
-        X    = rldecode(G.cells.centroids(cells, :), nlc);
+        nlc = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
+        X = rldecode(G.cells.centroids(cells, :), nlc);
         lcellnum = rldecode(cells, nlc);
         BB = nan(numel(cells), 1);
         for i = 1:G.griddim
@@ -223,33 +215,42 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         XB   = X - rldecode(BB, nlc);
         vols = rldecode(G.cells.volumes(cells, :), nlc);
         
-        % Build X with vertex coordinates
-        % weights to calculate volume forse term.
-        % for 2D the weights are calulatedin G = computeGemoetryCalc(G), but for 3D it has
-        % to be done. At the moment they are taken as volume / number of nodes of cell.
-        % w = G.weights.cell_nodes(inodes);
-        
+        % weights to calculate volume force term from the nodal values.
         if(G.griddim == 3)
             w = (vols ./ rldecode(nlc, nlc) + sum(qc_all(inodes, :) .* (XB), 2));
         else
             assert(G.griddim == 2)
             w = (vols ./ rldecode(nlc, nlc) + sum(qc_all(inodes, :) .* (XB), 2));
         end
-        % strange that symmetry will force all weights to be equal.
         ll   = bsxfun(@times, load(X), w)';
         
       case 'cell_force'
+        % Evaluate the force at cell centroids. Then, for each node, sum up each
+        % adjacent cell contributions after weighting them with volume
+        % contribution.
         
-        nlc      = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
-        X    = rldecode(G.cells.centroids(cells, :), nlc);
-        ll   = bsxfun(@times, load(X), qcvol)';
+        nlc = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
+        X   = rldecode(G.cells.centroids(cells, :), nlc);
+        w = qcvol;
+        ll  = bsxfun(@times, load(X), w)';
         
       case 'dual_grad_type'
-        
-        nlc      = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
-        X    = rldecode(G.cells.centroids(cells, :), nlc);
+        % For the virtual basis, there exists a natural divergence operator (from node
+        % values to cell values) that can be computed exactly. This operator
+        % does not depend on the stabilisation term which is chosen for the
+        % stiffness matrix
+        %
+        % By duality we can define a gradient operator (from cell-values to
+        % node values). When the force can be expressed as a gradient, this
+        % gives us a way to compute the load term which is implemented here.
+        %
+        % Such computation has appeared to be more stable, see reference.
+        %
+        %
+        nlc     = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
+        X       = rldecode(G.cells.centroids(cells, :), nlc);
         rel_vec = -(X-G.nodes.coords(nodes, :));
-        ll   = bsxfun(@times, load(X), qc_all.*rel_vec)';
+        ll      = bsxfun(@times, load(X), qc_all.*rel_vec)';
       
       otherwise
         error('No such force  calculation')
