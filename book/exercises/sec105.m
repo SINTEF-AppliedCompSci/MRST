@@ -1,4 +1,4 @@
-function sec95()
+function sec105()
 %% Single-phase compressible AD solver with thermal effects
 % The purpose of the example is to give demonstrate rapid prototying in
 % MRST using the automatic differentiation (AD) class. To this end, we
@@ -8,6 +8,7 @@ function sec95()
 % computational setup is the same with a single horizontal well draining
 % fluids from a simple box-geometry reservoir.
 
+mrstModule add incomp
 
 %% Set up model: grid, perm and poro
 [nx,ny,nz] = deal( 10,  10, 10);
@@ -28,8 +29,8 @@ model.cmup  = 2e-3/barsa;
 model.cmut  = 1e-3;
 model.T_r   = 300;
 
-model.alpha = 1e-3/barsa;
-model.beta  = 5e-4;
+model.alpha = 5e-3;
+model.beta  = 1e-3/barsa;
 model.rho_r = 850*kilogram/meter^3;
 model.rho_S = 750*kilogram/meter^3;
 rho = @(p,T) ...
@@ -243,7 +244,7 @@ bhT = ones(size(wc))*200;
 g = norm(gravity);
 
 rhob   = m.rho_r .* (1+m.beta*(bhp -m.p_r)).*exp(-m.alpha*(bhT -m.T_r));
-Hfb    = m.Cp*bhT + (1-m.T_r*m.ch).*(bhp -m.p_r)./rhob;
+Hfb    = m.Cp*bhT + (1-m.T_r*m.alpha).*(bhp -m.p_r)./rhob;
 muW    = m.mu0*(1+m.cmup*(p(wc)-m.p_r)).*exp(-m.cmut*(T(wc)-m.T_r));
 p_conn = bhp + g*dz.*rhob;
 q_conn = WI .* (rho(wc)./muW).*(p_conn-p(wc));
