@@ -13,7 +13,7 @@ opt.hanging      = false;
 opt.free_top     = true;
 opt.use_pressure = false;
 opt.triangulate  = true;  % triangulate some faces
-opt.vertical     = false; %only valid for norne
+opt.vertical     = false; % only relevant for norne test case
 opt.gravity_load = true;
 opt.top_load     = true;
 opt.gtol         = 0.1e-1;
@@ -22,12 +22,24 @@ grid_case        = 'box';
 opt.cartDims     = [[1 1]*3 10];
 opt.flipgrid     = false;
 
-grid_case = 'box'; % Other choices: 'grdecl' 'sbed' 'norne'
+grid_case_number = input(['Choose a grid (type corresponding number): box [1], ' ...
+                    'sbed [2], Norne [3]\n']);
+switch grid_case_number
+  case 1
+    grid_case = 'box';
+  case 2
+    grid_case = 'sbed';
+  case 3
+    grid_case = 'Norne';
+  otherwise
+    error('Choose grid case by typing number between 1 and 3.');
+end
+
 
 %% Construct grid
 
 G = complex3DGrid(opt, grid_case);
-if(opt.flipgrid)
+if (opt.flipgrid)
     G = flipGrid(G);
 end
 G = mrstGridWithFullMappings(G);
