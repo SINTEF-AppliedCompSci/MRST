@@ -1,11 +1,11 @@
 %% Set up and run a five-spot problem with water-alternating-gas (WAG) drive
 % One approach to hydrocarbon recovery is to inject gas or water. In the
 % water-alternating-gas approach, wells change between injection of gas and
-% water in order to improve the sweep efficiency.
+% water to improve the sweep efficiency.
 %
 % In this example, we set up a five-spot injection pattern where the
 % injector controls alternate between water and gas. The primary purpose of
-% this example is not to demonstrate an ideal or realistic
+% the example is not to demonstrate an ideal or realistic
 % WAG-configuration, but rather how to set up a problem with changing well
 % controls and to demonstrate how the sequential solvers perform on
 % problems with large changes in mobility and well controls.
@@ -16,8 +16,8 @@ mrstModule add ad-core ad-blackoil ad-props ...
                blackoil-sequential spe10 mrst-gui
 
 %% Set up grid and rock structure
-% We define a 50x50x1 grid, spanning a 1km by 1km domain. The porosity is
-% assigned via a gaussian field and a synthethic permeability is computed
+% We define a 50x50x1 grid, spanning a 1 km by 1km domain. The porosity is
+% assigned via a Gaussian field and a synthethic permeability is computed
 % using a standard correlation.
 
 cartDims = [50, 50, 1];
@@ -37,6 +37,7 @@ plotCellData(G, rock.poro)
 axis equal tight
 colorbar
 title('Porosity')
+
 %% Set up wells and schedule
 % The injection scenario corresponds to injecting one pore volume of gas
 % and water over 30 years at standard conditions. We first place wells in
@@ -99,8 +100,9 @@ axis equal tight
 set(gca, 'YTick', []);
 xlabel('Time [year]')
 title('Control changes over time: Red for gas injection, blue for water')
+
 %% Set up fluid and simulation model
-% We set up a three phase fluid with quadratic relative permeability
+% We set up a three-phase fluid with quadratic relative permeability
 % curves, significant viscosity contrast between the phases and
 % compressibility for the oil and gas phases.
 fluid = initSimpleADIFluid('phases',    'WOG', ...
@@ -115,12 +117,15 @@ model = ThreePhaseBlackOilModel(G, rock, fluid, 'disgas', false, 'vapoil', false
 seqModel = getSequentialModelFromFI(model);
 % Set up initial reservoir at 100 bar pressure and completely oil filled.
 state = initResSol(G, 100*barsa, [0, 1, 0]);
+
 %% Simulate the schedule using the sequential solver
 % We simulate the full schedule using simulateScheduleAD
 [wsSeq, statesSeq] = simulateScheduleAD(state, seqModel, schedule);
+
 %% Simulate the schedule using a fully implicit solver
 % For comparison purposes, we also solve the fully implicit case
 [wsFIMP, statesFIMP] = simulateScheduleAD(state, model, schedule);
+
 %% Plot producer rates
 % We plot the producer water, gas and oil rates. We can see the effect of
 % the alternating controls directly on the production curves and we use a
@@ -131,7 +136,6 @@ names = {'qWs', 'qOs', 'qGs'};
 hold on
 t = cumsum(schedule.step.val)/day;
 colors = lines(3);
-
 
 % q = getWellOutput(wsSeq, 'qWs'
 for i = 1:numel(names)
@@ -146,6 +150,7 @@ legend('Water, sequential', 'Water FIMP', 'Oil, sequential', ...
 xlabel('Time [days]')
 ylabel('Production at standard conditions [m^3/day]')
 axis tight
+
 %% Plot the injector bottom hole pressure
 % The injector bottom hole pressure has a bigger discrepancy between the
 % two schemes, since the injectors use the cell total mobility to compute
@@ -165,6 +170,7 @@ end
 xlabel('Time [days]')
 ylabel('Injector bottom hole pressure [bar]')
 axis tight
+
 %% Launch interactive plotting
 % Finally we launch interactive viewers for the well curves and reservoir
 % quantities.
