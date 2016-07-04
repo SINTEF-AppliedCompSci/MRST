@@ -93,4 +93,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Setup complete, now let MEX do its thing...
    mex('-outdir', pth, '-output', caller, ...
        ['-I', pth], ['-L', pth], '-largeArrayDims', args{:});
+
+   if ispc,
+      % Unconditionally expose output (= caller) to MATLAB environment.
+      % This is needed on Windows to avoid infinite loops when BUILDMEX is
+      % used to affect automatic compilation of MEX-based accelerators
+      % through a gateway routine of the form
+      %
+      %     function varargout = accel_mex(varargin)
+      %        buildmex(...)
+      %
+      %        [varargout{1:nargout}] = accel_mex(varargin{:})
+      %     end
+      %
+      % Without this sledgehammer (i.e., unconditionally invoking REHASH)
+      % MATLAB does not detect that there is a new (MEXed) version of a
+      % particular M-language gateway function and the recursive call ends
+      % up in the gateway routine rather than the accelerator.
+      %
+      rehash
+   end
 end
