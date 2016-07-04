@@ -98,7 +98,7 @@ nonlinearsolver = getNonLinearSolver(model, 'DynamicTimesteps', false, ...
                                      'LinearSolver', linsolve);
 nonlinearsolver.useRelaxation = true;
 
-%% To check the fluid properties interactively
+%% Visualize the properties of the black-oil fluid model
 
 inspectFluidModel(model)
 
@@ -109,7 +109,6 @@ set(h, 'Position', [100, 100, 1200, 300]);
 % plotting the viscosity multiplier, which describes the viscosity
 % enhancement effect due to polymer mixing
 subplot(1,3,1);
-set(gca,'FontSize',20);
 c = (0:0.3:3);
 vismult = fluid.muWMult(c);
 plot(c, vismult, '-*', 'linewidth', 2);
@@ -195,7 +194,7 @@ pause(0.1);
 % variables (s:2 means oil saturation by default), the change of the well
 % curves, and the a panel showing simulation progress. You can customize
 % the function based on your own preference.
-
+close all
 fn = getPlotAfterStep(state0, model, schedule, ...
     'plotWell', true, 'plotReservoir', true, 'view', [20, 8], ...
     'field', 's:2');
@@ -305,7 +304,7 @@ pause(0.1);
 %% Run the simulation without shear effect.
 % You can load the files{3} to run the simulation.
 % Here we just modify the model directly to disable the shear effect.
-
+close all
 model.usingShear = false;
 
 fn = getPlotAfterStep(state0, model, schedule, ...
