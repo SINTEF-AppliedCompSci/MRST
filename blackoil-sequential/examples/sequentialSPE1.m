@@ -18,6 +18,7 @@ mrstModule add ad-core ad-blackoil ad-props
 
 model = selectModelFromDeck(G, rock, fluid, deck);
 schedule = convertDeckScheduleToMRST(model, deck);
+
 %% Run the entire fully implicit schedule
 % We simulate the schedule with a fully implicit scheme, i.e. where we
 % solve for both saturations and pressure simultanously.

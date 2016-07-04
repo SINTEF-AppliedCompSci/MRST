@@ -31,6 +31,7 @@ stepSel = StateChangeTimeStepSelector('targetProps', {'s'},...
 % Run problem
 solver = NonLinearSolver('timeStepSelector', stepSel);
 [wsSeq, statesSeq, repSeq] = simulateScheduleAD(state, seqModel, schedule, 'NonLinearSolver', solver);
+
 %% Simulate fully implicit
 % Solve the fully implicit version of the problem, with a CPR
 % preconditioner that uses the same linear solver for the pressure as the
@@ -39,6 +40,7 @@ solver.timeStepSelector.reset();
 solver.LinearSolver = CPRSolverAD('ellipticSolver', psolver);
 
 [wsFIMP, statesFIMP, repFIMP] = simulateScheduleAD(state, model, schedule, 'NonLinearSolver', solver);
+
 %% Plot simulation time taken
 % The sequential solver can be much faster than the fully implicit solver
 % for certain problems.
@@ -48,6 +50,7 @@ plot(cumsum(repFIMP.SimulationTime)/60, 'r-o')
 ylabel('Simulation time [minutes]')
 xlabel('Control step #')
 legend('Sequential implicit', 'Fully implicit')
+
 %% Plot the results in interactive viewers
 G = model.G;
 W = schedule.control(1).W;
