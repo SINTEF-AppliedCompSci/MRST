@@ -110,3 +110,7 @@ ylabel('Viscosity (cP)');
 title('Water Viscosity at reference pressure');
 
 drawnow;
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
