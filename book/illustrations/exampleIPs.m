@@ -1,6 +1,7 @@
 %% Two-point inner product
 % Illustrate the choice of inner product for a simple rectangular cell
 % [-1,1]x[-1,1]
+K   = eye(2);
 C   = [-1 0; 1 0; 0 -1; 0 1]; 
 N   = 2*C; 
 vol = 4;
