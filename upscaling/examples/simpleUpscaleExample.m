@@ -3,12 +3,8 @@
 % absolute permeability for a 2D Cartesian model. The routines we use are
 % also applicable in 3D.
 
-%% Load the required modules
-try
-   require upscaling coarsegrid mimetic incomp
-catch %#ok<CTCH>
-   mrstModule add upscaling coarsegrid mimetic incomp
-end
+% Load the required modules
+mrstModule add upscaling coarsegrid mimetic incomp
 verbose = true;
 
 %% Define fine-scale model and coarse grid
@@ -112,3 +108,7 @@ stairs([x-.5*dx(1); x(end)+.5*dx(end)], flux2_face([1:end end]), 'b-')
 hold off
 title('Normal velocity on outflow boundary')
 legend({'Fine scale', 'Upscaled'},'Location','best')
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

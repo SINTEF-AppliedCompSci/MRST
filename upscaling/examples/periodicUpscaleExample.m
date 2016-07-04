@@ -6,12 +6,8 @@
 % steady-state upscaling for the capillary and the viscous limits, as well
 % as based on a dynamic simulation.
 
-%% Load the required modules
-try
-   require mimetic upscaling spe10 incomp deckformat
-catch %#ok<CTCH>
-   mrstModule add mimetic upscaling spe10 incomp deckformat
-end
+% Load the required modules
+mrstModule add mimetic upscaling spe10 incomp deckformat
 
 %% Set up a simple grid with periodic boundaries
 % Make a grid in which the right boundary wraps around with left boundary,
@@ -131,3 +127,6 @@ for i = 1:2
    legend({'x', 'y', 'z'}, 'location', 'Best')
 end
 
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

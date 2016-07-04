@@ -10,12 +10,9 @@
 % use a set of relatively simple calls to 'accumarray' to perform the
 % upscaling.
 % </html>
-%% Load the required modules
-try
-   require upscaling coarsegrid
-catch %#ok<CTCH>
-   mrstModule add upscaling coarsegrid
-end
+%
+% Load the required modules
+mrstModule add upscaling coarsegrid
 
 %% Load and process data
 % We assume that the data has been downloaded and placed in the appropriate
@@ -64,3 +61,7 @@ set(h(1),'FaceColor',[0 0 0.4])
 set(h(2),'FaceColor',[0.7 0 0],'FaceAlpha',.4)
 legend('original','upscaled');
 title('permeability histogram'); xlabel('mD')
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

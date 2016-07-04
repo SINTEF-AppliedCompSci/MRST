@@ -2,11 +2,7 @@ function [kr]=simpleRelpermUpscalingExample2D(perm_case,fluid_case)
 %% This demonstrate the method used for relperm upscaling
 %  The default setup is a quasi 1D case
 
-try
-   require mimetic upscaling incomp
-catch
-   mrstModule add mimetic upscaling incomp
-end
+mrstModule add mimetic upscaling incomp
 
 warning('off','mrst:periodic_bc');
 figure(3),clf
@@ -34,9 +30,9 @@ sat_vec = 0.1:0.2:0.9;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Upscale using MRST upscaling
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%end%%%%%%%%%%
 [sat_mat, kr, perm, krK] = upscaleRelperm(G, rock, fluid, dp_scale,...
-                                     sat_vec, 'periodic', true, 'dir', 1)
+                                     sat_vec, 'periodic', true, 'dir', 1); %#ok<NASGU,ASGLU>
 % plot the result
 figure(1),clf
 plot(sat_mat,[kr{1}(:,[1,4]),kr{2}(:,[1,4])],'*-')
@@ -99,7 +95,7 @@ for i=1:numel(sat_vec);
 
 
    % make initial saturation to for the statoinary state calculation
-   eff_sat=sum(state.s.*pv)./sum(pv);
+   eff_sat=sum(state.s.*pv)/sum(pv);
    if(eff_sat > 0 )
         state.s=state.s*(sat/eff_sat);
    else
@@ -190,7 +186,7 @@ for i=1:numel(sat_vec);
        ylabel('Pc (in barsa)')
        xlabel('x');
        %title(['Capillary pressure for stationary state with average saturation', num2str(sat_vec(i))])
-       title(['Capillary pressure for stationary state'])
+       title('Capillary pressure for stationary state')
        if(sat_vec(i)<0.5)
         ind=floor(numel(mcells)/4)+1;
          text(G.cells.centroids(ind,1),mpc(ind,1)/barsa+0.5,['S = ', num2str(sat_vec(i))])
@@ -262,7 +258,7 @@ switch perm_case
         rock.poro=0.1*ones(G.cells.num,1);
         rock.perm=sperm*ones(G.cells.num,1);
     case 'random'
-        RandStream.setDefaultStream(RandStream('mt19937ar','seed',1));
+        RandStream.setGlobalStream(RandStream('mt19937ar','seed',1));
         rock.perm=sperm*rand(G.cells.num,1);
         rock.poro=0.1*ones(G.cells.num,1);
     case 'brick'
@@ -275,14 +271,14 @@ switch perm_case
         %rock.perm=sperm*milli*darcy*rand(G.cells.num,1);
         rock.perm=sperm*ones(G.cells.num,1);
         rock.poro=0.1*ones(G.cells.num,1);
-        cell=sub2ind(G.cartDims,floor(nx/2)+1,floor(ny/2)+1);
+        % cell=sub2ind(G.cartDims,floor(nx/2)+1,floor(ny/2)+1);
         perm_tmp=reshape(rock.perm,G.cartDims);
         perm_tmp(:,1:2:end)=1e-4*perm_tmp(:,1:2:end);
         %perm_tmp(1:2:end,:)=1e-2*perm_tmp(1:2:end,:);
         rock.perm=perm_tmp(:);
         %rock.perm(cell)=1e-4*rock.perm(cell)
     case 'lognormal'
-        RandStream.setDefaultStream(RandStream('mt19937ar','seed',1));
+        RandStream.setGlobalStream(RandStream('mt19937ar','seed',1));
         rock.perm=logNormLayers(G.cartDims,'std',1)*sperm;
         rock.poro=0.1*ones(G.cells.num,1);
     otherwise
@@ -432,7 +428,7 @@ function [Gp,bcp] = makePeriodicGridMulti(G,bcl,bcr,dprl)
  ntags=size(G.cells.faces,2)-1;
  faces=nan(size(G.cells.faces,1),ntags+2);
  faces(:,[1,3:ntags+2])=G.cells.faces;
- faces(:,2)=[1:size(G.cells.faces,1)]';
+ faces(:,2)=(1:size(G.cells.faces,1))';
  G.cells.faces=faces;
  % assert it is some consitancy between the two bounaries
  assert(numel(bcl)==numel(bcr))
@@ -456,14 +452,14 @@ function [Gp,bcp] = makePeriodicGridMulti(G,bcl,bcr,dprl)
       end
       assert(all(abs(G.faces.areas(bcl{i}.face)-G.faces.areas(bcr{i}.face))<1e-10))
       rm_faces= [rm_faces;bcl{i}.face,bcr{i}.face];%#ok
-      ns=[ns;numel(bcl{i}.face)];
-      dp=[dp;dprl{i}];
+      ns=[ns;numel(bcl{i}.face)]; %#ok<AGROW>
+      dp=[dp;dprl{i}]; %#ok<AGROW>
       %tags=[tags;repmat(i,,1)];
-      cells=[cells;sum(G.faces.neighbors(bcr{i}.face,:),2)];
+      cells=[cells;sum(G.faces.neighbors(bcr{i}.face,:),2)]; %#ok<AGROW>
    end
    [Gp,f]=removeInternalBoundary(G,rm_faces);
    dp=rldecode(dp,ns);
-   tags=rldecode([1:G.griddim]',ns);
+   tags=rldecode((1:G.griddim)',ns);
    bcp=struct('face',f,'value',dp,'tags',tags,'sign',2*(Gp.faces.neighbors(f,1)==cells)-1,'upcells',cells);
    Gp.cells.faces=[Gp.cells.faces(:,1),G.cells.faces(Gp.cells.faces(:,2),3:end),Gp.cells.faces(:,2)];
    Gp.cells.centroids=G.cells.centroids;
