@@ -268,3 +268,6 @@ legend({'Water without polymer', 'Water with polymer', ...
 ylabel('stb');
 xlabel('Years');
 
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#

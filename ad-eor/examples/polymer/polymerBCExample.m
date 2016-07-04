@@ -96,3 +96,6 @@ view([-10, 14]);
 axis tight;
 colorbar; caxis([0 1]);
 
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
