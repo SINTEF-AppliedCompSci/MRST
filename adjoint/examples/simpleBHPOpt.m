@@ -1,35 +1,12 @@
-% simple adjoint test using BHP-control
+%%  Simple Adjoint Test Using BHP-control
 
-%{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-
-try
-   require adjoint mimetic incomp
-catch
-   mrstModule add adjoint mimetic incomp
-end
+mrstModule add adjoint mimetic incomp
 
 % whether or not to show output
 verbose = false;
 verboseLevel = 0;
 
-% Define model ------------------------------------------------------------
+%% Define model
 nx = 21; ny = 21; nz = 1;
 G = cartGrid([nx ny nz], [5*nx 5*ny 1*nz]);
 G = computeGeometry(G);
@@ -44,7 +21,7 @@ fluid  = initCoreyFluid('mu' , [1, 5] .* centi*poise, ...
 fluid  = adjointFluidFields(fluid);
 
 
-% Wells and initial rates -------------------------------------------------
+%% Wells and initial rates
 radius = .1;
 totVol = sum(poreVolume(G, rock));
 totTime = 500*day;
@@ -68,19 +45,19 @@ for k = 1:nProd
                 'Radius', radius, 'Name', nm, 'Comp_i', [1, 0], 'Sign', -1, 'InnerProduct', 'ip_tpf');
 end
 
-% System components -------------------------------------------------------
+%% System components
 S = computeMimeticIP(G, rock, 'Type', 'comp_hybrid', 'Verbose', verbose, ...
                      'InnerProduct', 'ip_tpf');
 W = assembleWellSystem(G, W, 'Type', 'comp_hybrid');
 
-% Initialize --------------------------------------------------------------
+%% Initialize
 state = initResSol(G, 0.0);
 state.wellSol = initWellSol(W, 0);
 
-% Objective function ------------------------------------------------------
+%% Objective function
 objectiveFunction = str2func('simpleNPV');
 
-% Initialize schedule and controls ----------------------------------------
+%% Initialize schedule and controls
 numSteps = 10;
 schedule = initSchedule(W, 'NumSteps', numSteps, 'TotalTime', ...
                         totTime, 'Verbose', verbose);
@@ -92,7 +69,7 @@ controls = initControls(schedule, 'ControllableWells', (1:numel(W)), ...
                                   'Verbose', verbose, ...
                                   'NumControlSteps', numSteps);
 
-% Run optimization --------------------------------------------------------
+%% Run optimization
 [simRes, schedule, controls, out] = optimizeObjective(G, S, W, rock, ...
                                         fluid, state, schedule, ...
                                         controls, objectiveFunction, ...
@@ -100,3 +77,21 @@ controls = initControls(schedule, 'ControllableWells', (1:numel(W)), ...
                                         'objChangeTol',  5e-4, ...
                                         'VerboseLevel', verboseLevel);
 
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
