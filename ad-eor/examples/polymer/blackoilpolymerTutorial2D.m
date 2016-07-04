@@ -21,8 +21,8 @@ mrstModule add ad-core ad-blackoil ad-eor ad-fi ad-props ...
 % If the data does not exist locally, download it automatically
 % The following are all the files needed for this tutorial
 % The first two files are the data for a simulation with shear-thinning
-% effects. The second two fils are the data for a simulation without shear
-% effects. The last two are the reference results from Eclipse.
+% effect. The second two fils are the data for a simulation without shear
+% effect. The last two are the reference results from Eclipse.
 fname = {'BOPOLYMER.DATA', ...
          'POLY.inc', ...
          'BOPOLYMER_NOSHEAR.DATA', ...
@@ -42,7 +42,7 @@ if ~all(e),
     error('Dataset:Incomplete', msg);
 end
 
-% Parsing the data file with shear-thinning effects.
+% Parsing the data file with shear-thinning effect.
 deck = readEclipseDeck(files{1});
 % The deck is using metric system, MRST uses SI unit internally
 deck = convertDeckUnits(deck);
@@ -204,7 +204,7 @@ fn = getPlotAfterStep(state0, model, schedule, ...
     simulateScheduleAD(state0, model, schedule, ...
                     'NonLinearSolver', nonlinearsolver, 'afterStepFn', fn);
 
-%% Comparing results with the reference results from commercial simualtor.
+%% Comparing the result with reference result from commercial simualtor.
 % loading the reference result smary.mat
 load (files{5});
 % the time for the reference result
@@ -212,6 +212,7 @@ T_ref = smry.get(':+:+:+:+', 'TIME', ':');
 % the time for the MRST result
 T_mrst = convertTo(cumsum(schedule.step.val), day);
 
+% generate a color map for plotting use.
 color_map = lines(10);
 color_mrst = color_map(1, :);
 color_ref  = color_map(2, :);
@@ -227,7 +228,7 @@ set(gca,'FontSize',20);
 set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'INJE01';
 reference = smry.get(well_name, 'WWIR', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan;
 mrst = convertTo(abs(getWellOutput(wellSols, 'qWs', well_name)), ...
                                                               meter^3/day);
@@ -247,7 +248,7 @@ set(gca,'FontSize',20);
 set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'INJE01';
 reference = smry.get(well_name, 'WBHP', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan;
 mrst = convertTo(abs(getWellOutput(wellSols, 'bhp', well_name)), barsa);
 hold on;
@@ -266,7 +267,7 @@ set(gca,'FontSize',20);
 set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'PROD01';
 reference = smry.get(well_name, 'WOPR', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan;
 mrst = convertTo(abs(getWellOutput(wellSols, 'qOs', well_name)), ...
                                                               meter^3/day);
@@ -286,7 +287,7 @@ set(gca,'FontSize',20);
 set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'PROD01';
 reference = smry.get(well_name, 'WWPR', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan;
 mrst = convertTo(abs(getWellOutput(wellSols, 'qWs', well_name)), ...
                                                              meter^3/day);
@@ -301,7 +302,7 @@ legend({'MRST', 'reference'})
 pause(0.1);
 
 
-%% Run the simulation without shear effects.
+%% Run the simulation without shear effect.
 % You can load the files{3} to run the simulation.
 % Here we just modify the model directly to disable the shear effect.
 
@@ -333,7 +334,7 @@ set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'INJE01';
 reference = smry.get(well_name, 'WWIR', ':');
 reference_noshear = smry_noshear.get(well_name, 'WWIR', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan; reference_noshear(1) = nan;
 
 mrst = convertTo(abs(getWellOutput(wellSols, 'qWs', well_name)),...
@@ -360,7 +361,7 @@ set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'INJE01';
 reference = smry.get(well_name, 'WBHP', ':');
 reference_noshear = smry_noshear.get(well_name, 'WBHP', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan; reference_noshear(1) = nan;
 mrst = convertTo(abs(getWellOutput(wellSols, 'bhp', well_name)), barsa);
 mrst_noshear = convertTo(abs(getWellOutput(wellSolsNoShear, 'bhp', ...
@@ -384,7 +385,7 @@ set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'PROD01';
 reference = smry.get(well_name, 'WOPR', ':');
 reference_noshear = smry_noshear.get(well_name, 'WOPR', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan; reference_noshear(1) = nan;
 mrst = convertTo(abs(getWellOutput(wellSols, 'qOs', well_name)), ...
                                                           meter^3/day);
@@ -409,7 +410,7 @@ set(h, 'Position', [100, 100, 900, 600]);
 well_name = 'PROD01';
 reference = smry.get(well_name, 'WWPR', ':');
 reference_noshear = smry_noshear.get(well_name, 'WWPR', ':');
-% the first result of the commerical simualtor is always zero.
+% the first value of the result of the commerical simualtor is always zero.
 reference(1) = nan; reference_noshear(1) = nan;
 mrst = convertTo(abs(getWellOutput(wellSols, 'qWs', well_name)), ...
                                                               meter^3/day);
