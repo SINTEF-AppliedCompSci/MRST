@@ -11,7 +11,7 @@
 % We start by reading the model from a file in the Eclipse format (GRDECL),
 % picking the sector model with five vertical layers in the Johansen
 % formation and with five shale layers above and one below.
-sector = fullfile(ROOTDIR, 'examples', 'data', 'johansen', 'NPD5');
+sector = fullfile(getDatasetPath('johansen'), 'NPD5');
 filename = [sector, '.grdecl'];
 G = processGRDECL(readGRDECL(filename));
 

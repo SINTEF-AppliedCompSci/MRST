@@ -14,18 +14,13 @@
 % downloaded from the <http://www.sintef.no/Projectweb/MRST>MRST webpage
 %
 
-%% Unpack the model
-% Assuming that the SAIGUP data set has been downloaded to the current
-% directory (or another directory in the path), the following command will
-% unpack the model and place it in a standard path
-
-% untar('SAIGUP.tar.gz', fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP'))
 
 %% Show the structural model
 % We start by reading the model from a file in the Eclipse format (GRDECL),
 % The file contains both active and inactive cells
-grdecl = readGRDECL(fullfile(ROOTDIR, 'examples', ...
-   'data', 'SAIGUP','SAIGUP.GRDECL'));
+grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
+grdecl = readGRDECL(grdecl);
+
 %%
 % MRST uses the strict SI conventions in all of its internal caluclations.
 % The SAIGUP model, however, is provided using the ECLIPSE 'METRIC'
