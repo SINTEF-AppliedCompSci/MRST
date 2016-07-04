@@ -1,9 +1,7 @@
 %% Oil-Water-Surfactant System for a Layer of the SPE10 Model
 %
-
-%% Load The Necessary Modules
-%
-mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui spe10 ad-fi
+mrstModule add ad-core ad-blackoil ad-eor ad-props ...
+    deckformat mrst-gui spe10 ad-fi
 
 %% Use setupSPE10_AD to Fetch an Oil-Water Model
 % We pick up only one layer
@@ -19,8 +17,8 @@ fluid = model.fluid;
 %
 % Setup the fluid properties for our case
 %
-% Setup the relative permeabilities using Corey model for the fluid without surfactant and
-% saturated with surfactant
+% Setup the relative permeabilities using Corey model for the fluid without
+% surfactant and saturated with surfactant
 %
 
 % Relative permeabilities - without surfactant
@@ -169,9 +167,9 @@ val3 = linspace(surfinj_stop_time, end_time, round( ...
 step.val     = [diff(val1'); ...
                 diff(val2'); ...
                 diff(val3')];
-step.control = [repmat(1, [numel(val1) - 1, 1]); ... 
-                repmat(2, [numel(val2) - 1, 1]); ... 
-                repmat(1, [numel(val3) - 1, 1])];
+step.control = [  ones(numel(val1)-1, 1); ... 
+                2*ones(numel(val2)-1, 1); ... 
+                  ones(numel(val3)-1, 1)];
 schedule.step    = step;
 schedule.control = control;
 
@@ -197,8 +195,11 @@ fn = getPlotAfterStep(state0, model, schedule, 'plotWell', false, 'plotReservoir
 [wellSols, states] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', ...
                                         fn);
 
-%% Inspect the results using plotToolbar
+%% Inspect the results
 %
 plotToolbar(G, states);
+plotWellSols(wellSols);
 
+%% Copyright notice
 
+% #COPYRIGHT_EXAMPLE#

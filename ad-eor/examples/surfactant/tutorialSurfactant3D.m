@@ -10,10 +10,6 @@
 % The data is read from deck (SURFACTANT3D.DATA)
 %
 
-
-%% We load the necessary modules
-%
-
 mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
 %% We load the input data and setup the grid, rock and fluid structures
@@ -100,3 +96,10 @@ resulthandler = ResultHandler('dataDirectory', pwd, 'dataFolder', 'cache', 'clea
 [wellSolsSurfactant, statesSurfactant] = simulateScheduleAD(state0, model, ...
                                                   schedule, 'OutputHandler', ...
                                                   resulthandler);
+plotToolbar(G,statesSurfactant,'field','s:1')
+view(70,30), plotWell(G,W), axis tight off
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
+

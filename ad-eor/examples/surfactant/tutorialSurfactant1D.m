@@ -83,4 +83,9 @@ vizSurfactantModel;
                                                   schedule);
 
 figure()
-plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true)
+plotToolbar(G, statesSurfactant, 'startplayback', true, 'plot1d', true, 'field', 's:1');
+
+%% Copyright notice
+
+% #COPYRIGHT_EXAMPLE#
+
