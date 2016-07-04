@@ -50,13 +50,25 @@ function [el_bc, load] = makeCompactionTest(G, opt)
     % On left side node displacement in the x direction only, this is done by mask
     bc_el_sides = bc;
     if(~opt.hanging || opt.islinear)
-        for i = 1 : 2*(G.griddim-1)
+        for i = 1 : 2*(G.griddim - 1)
+            % On vertical boundary faces : 
+            % Rolling in tangential directions, i.e.  
+            % no displacement in  the normal direction
             bc_el_sides{i}.el_bc.disp_bc.mask(:, G.griddim) = false;
+            if(G.griddim==3)
+                if(i <= 2)
+                    bc_el_sides{i}.el_bc.disp_bc.mask(:,2) = false;
+                elseif (i <= 4)
+                    bc_el_sides{i}.el_bc.disp_bc.mask(:,1) = false;
+                end
+            end
         end
         for i = 2*G.griddim
+            % bottom boundary faces
             bc_el_sides{i}.el_bc.disp_bc.mask(:, 1:(G.griddim-1)) = false;
         end
         for i = 2*G.griddim - 1
+            % 
             if(opt.free_top)
                 bc_el_sides{i} = []; 
             else    

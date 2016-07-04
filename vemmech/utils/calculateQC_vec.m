@@ -70,8 +70,8 @@ function [qc, qf, qcvol] = calculateQC_vec(G)
       lind  = sub2ind(size(A), cells, nodes(ind)); 
       cn    = reshape(full(A(lind)), [], 1); 
       %
-      pyrvol = sum(rcord.*qcl,2);
-      qcvol = qcvol+accumarray(cn, pyrvol, [num_cn, 1])/3;
+      pyrvol = sum(rcord.*qcl, 2);
+      qcvol = qcvol + accumarray(cn, pyrvol, [num_cn, 1])/3;
       for i = 1:G.griddim
          qc(:, i) = qc(:, i) + accumarray(cn, qcl(:, i), [num_cn, 1]); 
       end

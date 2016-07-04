@@ -5,6 +5,8 @@ function G = squareGrid(cartDims, L, varargin)
 %   G = squareGrid(cartDims, L, varargin)
 %
 % DESCRIPTON:
+% figure()
+% plotGrid(squareGrid([4, 4],[3, 3], 'grid_type', 'boxed4', 'disturb', 0.1))
 % 
 % REQUIRED PARAMETERS:
 %   cartDims  - 
@@ -52,27 +54,6 @@ function G = squareGrid(cartDims, L, varargin)
         t = delaunayn(p);
         G = triangleGrid(p, t);
       
-      case 'triangle2'  
-        rng('default');
-        fd = @(p) drectangle(p, 0, opt.L(1), 0, opt.L(2));
-        fh = @(p) huniform(p);
-        [p, t] = distmesh2d(fd, fh, sqrt(prod(opt.L)/prod(opt.cartDims)), [0, 0;opt.L(1), opt.L(2)], [0, 0;opt.L(1), 0;0, opt.L(2);opt.L(1), opt.L(2)]);
-        G = triangleGrid(p, t);
-        if(opt.disturb > 0)
-            G = twister(G, opt.disturb);
-        end
-      
-      case 'triangle3'  
-        rng('default')
-        fd = @(p) drectangle(p, 0, 1, 0, 1);
-        fh = @(p) huniform(p);
-        [p, t] = distmesh2d(fd, fh, sqrt(1/prod(opt.cartDims)), [0, 0;1, 1], [0, 0;1, 0;0, 1;1, 1]);
-        G = triangleGrid(p, t);
-        if(opt.disturb > 0)
-            G = twister(G, opt.disturb);
-        end
-        G.nodes.coords = bsxfun(@times, G.nodes.coords, opt.L);  
-      
       case 'pebi'
         G_tmp = cartGrid(opt.cartDims, opt.L);
         if(opt.disturb > 0)
@@ -85,52 +66,15 @@ function G = squareGrid(cartDims, L, varargin)
         G = removeShortEdges(G, min(opt.L)/(max(opt.cartDims)*10));
         G = sortEdges(G);
       
-      case 'pebi2'
-        rng('default')
-        G_tmp = cartGrid(opt.cartDims, opt.L);
-        internal = all((G_tmp.nodes.coords>0) & (G_tmp.nodes.coords< repmat(opt.L, G_tmp.nodes.num, 1)), 2);
-        G_tmp.nodes.coords(internal, :) = G_tmp.nodes.coords(internal, :)...
-            +bsxfun(@times, rand(size(G_tmp.nodes.coords(internal, :))), opt.disturb*opt.L./max(opt.cartDims));
-        if(opt.disturb > 0)
-            G_tmp = twister(G_tmp, opt.disturb);
-        end
-        p = [G_tmp.nodes.coords(:, 1), G_tmp.nodes.coords(:, 2)];
-        t = delaunayn(p);
-        G = triangleGrid(p, t);
-        G = pebi(G);
-        G = removeShortEdges(G, min(opt.L)/(max(opt.cartDims)*10));
-        G = sortEdges(G);
-      
-      case 'pebi3'
-        rng('default')
-        fd = @(p) drectangle(p, 0, opt.L(1), 0, opt.L(2));
-        fh = @(p) huniform(p);
-        [p, t] = distmesh2d(fd, fh, sqrt(prod(opt.L)/prod(opt.cartDims)), [0, 0;opt.L(1), opt.L(2)], [0, 0;opt.L(1), 0;0, opt.L(2);opt.L(1), opt.L(2)]);
-        G = triangleGrid(p, t);
-        G = pebi(G);
-        if(opt.disturb > 0)
-            G = twister(G, opt.disturb);
-        end
-        G = removeShortEdges(G, min(opt.L)/(max(opt.cartDims)*10));
-        G = sortEdges(G);   
-      
-      case 'pebi4'
-        rng('default')
-        fd = @(p) drectangle(p, 0, 1, 0, 1);
-        fh = @(p) huniform(p);
-        [p, t] = distmesh2d(fd, fh, sqrt(1/prod(opt.cartDims)), [0, 0;1, 1], [0, 0;1, 0;0, 1;1, 1])
-        [p, t, pix] = fixmesh(p, t);
-        G = triangleGrid(p, t);
-        G = sortEdges(G);
-        G = pebi(G);
-        if(opt.disturb > 0)
-            G = twister(G, opt.disturb);
-        end
-        G.nodes.coords = bsxfun(@times, G.nodes.coords, opt.L);
-        G = removeShortEdges(G, min(opt.L)/(max(opt.cartDims)*10));
-        G = sortEdges(G);    
-      
       case   {'boxes1', 'boxes2', 'boxes3', 'boxes4'}
+        % boxes side by side
+        % 4 alternatives
+        % Run : 
+        %
+        % figure()
+        % plotGrid(squareGrid([4, 4],[3, 3], 'grid_type', 'boxed4', 'disturb', 0.1))
+        %
+        % to see result for each type
         G1 = cartGrid(opt.cartDims, opt.L);
         G2 = cartGrid(2*opt.cartDims+1, opt.L);
         G = glue2DGrid(G1, translateGrid(G2, [opt.L(1), -0.0]));
@@ -164,6 +108,14 @@ function G = squareGrid(cartDims, L, varargin)
         G = sortEdges(G);
       
       case   {'mixed1', 'mixed2', 'mixed3', 'mixed4'}
+        % Mixes cells with different types, Cartesian, pebi and triangles
+        % 4 alternatives
+        % Run : 
+        %
+        % figure()
+        % plotGrid(squareGrid([4, 4],[3, 3], 'grid_type', 'mixed4', 'disturb', 0.1))
+        %
+        % to see result for eacj type.
         G1 = squareGrid(opt.cartDims, opt.L, 'grid_type', 'cartgrid', 'disturb', opt.disturb);
         G2 = squareGrid(opt.cartDims+1, opt.L, 'grid_type', 'pebi', 'disturb', opt.disturb);
         G = glue2DGrid(G1, translateGrid(G2, [opt.L(1), -0.0]));
@@ -200,7 +152,7 @@ function G = squareGrid(cartDims, L, varargin)
       otherwise
         error('no such grid type')
     end
-
+    
     if(~strcmp(opt.grid_type, 'cartgrid'))
         Lx  = max(G.nodes.coords(:, 1));
         Ly  = max(G.nodes.coords(:, 2));

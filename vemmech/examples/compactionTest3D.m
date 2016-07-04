@@ -1,10 +1,7 @@
 
 %% Define parameters
 
-griddim = 3;
-opt = struct('L'         , [1000 1000 100], ...
-             'cartDims'  , ones(1, griddim)*ceil((1e3).^(1/griddim)), ...
-             'grid_type' , 'triangle', ...
+opt = struct('grid_type' , 'triangle', ...
              'disturb'   , 0.0, ...     % parameter for  grid distortion
              'E'         , 0.3*1e9, ... % Young's modulus
              'nu'        , 0.4, ...
@@ -15,8 +12,8 @@ opt.force_method = 'dual_grad_type';
 opt.hanging      = false;
 opt.free_top     = true;
 opt.use_pressure = false;
-opt.triangulate  = true;% triangulate some faces
-opt.vertical     = false;%only valid for norne
+opt.triangulate  = true;  % triangulate some faces
+opt.vertical     = false; %only valid for norne
 opt.gravity_load = true;
 opt.top_load     = true;
 opt.gtol         = 0.1e-1;
@@ -25,7 +22,7 @@ grid_case        = 'box';
 opt.cartDims     = [[1 1]*3 10];
 opt.flipgrid     = false;
 
-grid_case = 'box'; % Other choices: 'grdecl' 'sbed' 'norne' 'model3'
+grid_case = 'box'; % Other choices: 'grdecl' 'sbed' 'norne'
 
 %% Construct grid
 

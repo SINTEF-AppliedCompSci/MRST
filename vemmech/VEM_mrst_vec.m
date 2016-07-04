@@ -1,27 +1,28 @@
 function [S, operators] = VEM_mrst_vec(G, C, varargin)
 %
-% Compute the full VEM stiffness matrix; optionally return interediate
-% operators
-% 
-% Assembly based on Paulino's paper in 3D
-% Vectorized version. The notations follow Paulino's paper.
-% 
-% S = |E| W_c D W_c^T + (I - P_P)^T s (I - P_P)
 %
 % SYNOPSIS:
 %   function [S, operators] = VEM_mrst_vec(G, C, varargin)
 %
 % DESCRIPTION:
+%   Compute the full VEM stiffness matrix; optionally returns intermediate
+%   operators
+% 
+%   Assembly based on Paulino's paper in 3D. The notations follow Paulino's paper.
+%
+%   Vectorized version. 
+% 
+%   S = |E| W_c D W_c^T + (I - P_P)^T s (I - P_P)
 %
 % PARAMETERS:
 %   G        - Grid (2D or 3D)
-%   C        - matrix where each represent the elasticity tensor for the grid
+%   C        - matrix where each row represents the elasticity tensor for the grid
 %              cell corresponding to that row
 %   varargin - options are:
 %              'blocksize' - size of blocks (# of cells) for vectorized calc.
 %
 % RETURNS:
-%   S         - full VEM system matrix, including rows/columns for Dirichlet nodes
+%   S         - full VEM system matrix, including rows/columns for Dirichlet nodes.
 %   operators - will contain the fields: 
 %               - D      - matrix of normalized strain energies for each cell
 %               - WC     - matrix for projection of basis functions onto
