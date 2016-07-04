@@ -3,6 +3,9 @@
 % realizations and measure the ratio between the outflows computed on the
 % upscaled and the original fine-scale model.
 
+mrstModule add coarsegrid incomp spe10 upscaling
+
+%% Setup case
 G = computeGeometry(cartGrid([8 8 8]));
 coarse = [1 1 1];
 cG = computeGeometry(cartGrid(coarse,G.cartDims));
@@ -10,14 +13,15 @@ fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
                             'rho', 1014*kilogram/meter^3);
 fl = {'East', 'North', 'Top'};
 fr = {'West', 'South', 'Bottom'};
-clc
+
+clc, clf, set(gcf,'Position',[500 400 800 300]);
 disp('                      Arithmetic        Harmonic      Harm-arith');
 for n=1:3
    disp('-----------------------------------------------------------------');
    switch n
       case 1
          K = repmat([50 150 400 300 10 250 100 350], ...
-            prod(G.cartDims(1:2)),[]);
+            prod(G.cartDims(1:2)),1);
          rock.perm = K(:)*[1 1 1]*milli*darcy;
          disp('Layered:');
       case 2

@@ -4,6 +4,8 @@
 % the effective permeabilities obtained by arithmetic, harmonic, and
 % harmonic-arithmetic averaging.
 mrstModule add spe10 coarsegrid;
+
+%% Setup model
 fine = [40 60];
 G    = cartGrid(fine, fine);
 G    = computeGeometry(G);

@@ -5,6 +5,8 @@
 % porosity inside this coarse cell, the porosity inside the coarse block,
 % and the coarse model
 
+mrstModule add coarsegrid upscaling
+
 %% Fine model
 G  = computeGeometry(cartGrid([40 20 15]));
 K1 = gaussianField(G.cartDims, [300 2000]); 
@@ -36,20 +38,20 @@ CG = generateCoarseGrid(G, p);
 crock.poro = accumarray(p, rock.poro)./accumarray(p,1);
 plotGrid(CG,1,'FaceColor','none','EdgeColor','k','LineWidth',1.5);
 set(gcf,'PaperPositionMode','auto');
-print -dpng illUpscaling-fine.png;
+% print -dpng illUpscaling-fine.png;
 
 %% Plot cells inside a single block
 figure;
 plotCellData(G,rock.poro, p==1, 'EdgeColor','k'); 
 view(3); axis equal off; caxis([0.2 0.4]);
-print -dpng illUpscaling-cells.png;
+% print -dpng illUpscaling-cells.png;
 
 %% Plot the corresponding coarse block
 figure;
 cG = computeGeometry(cartGrid(G.cartDims/5,G.cartDims));
 plotCellData(cG,crock.poro,1,'EdgeColor','k','LineWidth',1.5);
 view(3); axis equal off; caxis([0.2 0.4]);
-print -dpng illUpscaling-block.png;
+% print -dpng illUpscaling-block.png;
 
 %% Coarse model
 figure('Position', [680 280 560 540]);
@@ -64,4 +66,4 @@ pos=get(hc,'Position'); set(hc,'Position',pos + [.2    0 -.2 .01],'FontSize',12)
 pos=get(hh,'Position'); set(hh,'Position',pos + [.2 -.025 -.2 .01]);
 set(gca,'Position',[.13 .2 .775 .775])
 set(gcf,'PaperPositionMode','auto');
-print -dpng illUpscaling-coarse.png;
+% print -dpng illUpscaling-coarse.png;

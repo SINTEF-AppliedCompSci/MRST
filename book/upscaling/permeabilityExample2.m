@@ -3,6 +3,8 @@
 % realizations and measure the ratio between the outflows computed on the
 % upscaled and the original fine-scale model.
 
+mrstModule add coarsegrid incomp spe10 upscaling
+
 %% Set up grid
 warning('off','mrst:periodic_bc');
 G = computeGeometry(cartGrid([8 8 8]));
@@ -28,6 +30,7 @@ ofaces    = cell(d,1);
 for j=1:d, ofaces{j} = bcp.face(bcp.tags==j); end
 
 clc;
+figure('Position',[440 460 800 300]);
 disp('                      Harm/arith      Axial drop        Periodic');
 for n=1:3
    disp('--------------------------------------------------------------------');

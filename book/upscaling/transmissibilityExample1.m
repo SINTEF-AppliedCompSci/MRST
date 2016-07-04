@@ -3,7 +3,7 @@
 % the transmissibility associated with the coarse interface between two
 % blocks in the x-direction
 
-mrstModule add incomp;
+mrstModule add coarsegrid incomp;
 
 %% Set up model
 [Lx,Ly] = deal(200,100);

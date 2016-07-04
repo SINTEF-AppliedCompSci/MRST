@@ -7,11 +7,8 @@
 % use a simple flow-based method to upscale permeability, while if
 % use_trans=true, we use a more comprehensive method to upscale the
 % transmissibilities and the well indices.
-try
-   require agglom upscaling coarsegrid diagnostics incomp;
-catch %#ok<CTCH>
-   mrstModule add agglom upscaling coarsegrid diagnostics incomp;
-end
+mrstModule add agglom upscaling coarsegrid diagnostics incomp;
+
 use_trans = false;
 
 %% Make model
@@ -51,7 +48,7 @@ subplot(1,2,1);
 plotCellData(G,rock.poro,'EdgeAlpha',.5); view(3);
 plotWell(G,W,'Color','k'); axis off tight
 pax = [min(rock.poro) max(rock.poro)];
-[hc hh] = colorbarHist(rock.poro, pax,'West');
+[hc,hh] = colorbarHist(rock.poro, pax,'West');
 pos = get(hh,'Position'); set(hh,'Position', pos - [.01 0 0 0]);
 pos = get(hc,'Position'); set(hc,'Position', pos - [.03 0 0 0]);
 set(gca,'Position',[.12 .075 .315 .9])
@@ -95,7 +92,7 @@ WPf = computeWellPairs(xd, G, rock, Wdf, Df);
 p  = partitionCartGrid(G.cartDims, [5 5 15]);
 CG = coarsenGeometry(generateCoarseGrid(G, p));
 crock = convertRock2Coarse(G, CG, rock);
-if use_trans
+if use_trans  %#ok<*UNRCH>
    [~,CTrans] = upscaleTrans(CG, hT, 'match_method', 'max_flux', ...
                           'bc_method', 'bc_simple');
    [~,~,WC]   = upscaleTrans(CG, hT, 'match_method', 'lsq_flux', ...
@@ -111,8 +108,8 @@ else
    p = (1:G.cells.num)';
 end
 figure(1); subplot(1,2,2);
-plotCellDataNew(CG,crock.poro);
-plotFacesNew(CG, boundaryFaces(CG),...
+plotCellData(CG,crock.poro);
+plotFaces(CG, boundaryFaces(CG),...
    'EdgeColor', [0.4 0.4 0.4],'EdgeAlpha',.5, 'FaceColor', 'none'); view(3);
 plotWell(G,W,'Color','k'); axis off tight
 [hc,hh]=colorbarHist(crock.poro, pax,'East');
