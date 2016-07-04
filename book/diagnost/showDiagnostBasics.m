@@ -45,44 +45,44 @@ set([hf; hb],'Color','w','LineWidth',1.5);
 hd=plotCellData(G,D.tof(:,1),'EdgeColor','none','FaceAlpha',.6);
 colormap(parula(32));
 axis equal off;
-print -dpng diagnost-ftof.png;
+% print -dpng diagnost-ftof.png;
 
 %% Backward time-of-flight
 delete(hd);
 hd=plotCellData(G,D.tof(:,2),'EdgeColor','none','FaceAlpha',.6);
-print -dpng diagnost-btof.png;
+% print -dpng diagnost-btof.png;
 
 %% Total travel time/residence time
 delete(hd);
 hd=plotCellData(G,sum(D.tof,2),'EdgeColor','none','FaceAlpha',.6);
-print -dpng diagnost-ttof.png;
+% print -dpng diagnost-ttof.png;
 
 %% Tracer from I1
 delete(hd);
 t = D.itracer(:,1);
 hd = plotCellData(G, t, t>1e-6, 'EdgeColor','none','FaceAlpha',.6);
-print -dpng diagnost-C-I1.png;
+% print -dpng diagnost-C-I1.png;
 
 %% Tracer from P2
 delete(hd);
 t = D.ptracer(:,2);
 hd = plotCellData(G, t, t>1e-6, 'EdgeColor','none','FaceAlpha',.6);
-print -dpng diagnost-C-P2.png;
+% print -dpng diagnost-C-P2.png;
 
 %% Flooded regions
 delete(hd);
 hd = plotCellData(G,D.ipart,'EdgeColor','none','FaceAlpha',.6);
-print -dpng diagnost-ipart.png;
+% print -dpng diagnost-ipart.png;
 
 %% Drainage regions
 delete(hd);
 hd = plotCellData(G,D.ppart,'EdgeColor','none','FaceAlpha',.6);
-print -dpng diagnost-ppart.png;
+% print -dpng diagnost-ppart.png;
 
 %% Well regions: I1<->P1, I2<->P3
 delete(hd);
 hd = plotCellData(G,D.ipart, D.ppart~=2, 'EdgeColor','none','FaceAlpha',.6);
-print -dpng diagnost-wreg.png;
+% print -dpng diagnost-wreg.png;
 
 %% Compute time-of-flights inside each well region
 T = computeTimeOfFlight(state, G, rock, 'wells', W, ...
@@ -92,7 +92,7 @@ T = computeTimeOfFlight(state, G, rock, 'wells', W, ...
 [F,Phi] = computeFandPhi(poreVolume(G,rock), D.tof);
 clf,
 plot(Phi,F,'.',[0 1],[0 1],'--'); set(gca,'FontSize',20);
-print -depsc2 diagnost-FPhi.eps;
+% print -depsc2 diagnost-FPhi.eps;
 
 %% Lorenz coefficient
 computeLorenz(F,Phi)
@@ -101,4 +101,4 @@ computeLorenz(F,Phi)
 [Ev,tD] = computeSweep(F,Phi);
 clf
 plot(tD,Ev,'.'); set(gca,'FontSize',20);
-print -depsc2 diagnost-sweep.eps;
+% print -depsc2 diagnost-sweep.eps;
