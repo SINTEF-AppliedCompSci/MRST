@@ -102,7 +102,40 @@ nonlinearsolver.useRelaxation = true;
 
 inspectFluidModel(model)
 
-%% TODO: plotting the polymer properties
+%% Plotting the polymer properties
+h=figure(); clf
+set(h, 'Position', [100, 100, 1200, 300]);
+
+% plotting the viscosity multiplier, which describes the viscosity
+% enhancement effect due to polymer mixing
+subplot(1,3,1);
+set(gca,'FontSize',20);
+c = (0:0.3:3);
+vismult = fluid.muWMult(c);
+plot(c, vismult, '-*', 'linewidth', 2);
+xlabel('polymer concentration (kg/m^3)');
+ylabel('viscosity multiplier');
+title('Polymer viscosity multiplier');
+
+% plotting the polymer adsportion function
+subplot(1,3,2);
+ads = fluid.ads(c);
+plot(c, ads, '-*', 'linewidth', 2);
+xlabel('polymer concentration (kg/m^3)');
+ylabel('adsorped polymer (kg/kg)');
+title('Polymer adsorption');
+
+% plotting the shear factor
+% from the plot we can see, the polymer in this example holds
+% shear-thinning flow rheology.
+subplot(1,3,3);
+v = 10.^(-11:1:0);
+shear_factor = fluid.plyshearMult(v);
+semilogx(v, shear_factor, '-*', 'linewidth', 2);
+xlabel('water velocity (m/s)');
+ylabel('shear factor');
+title('Shear effect');
+
 
 %% Plotting the grid, wells, and porosity and permeability
 h=figure(); clf
@@ -270,7 +303,7 @@ pause(0.1);
 
 %% Run the simulation without shear effects.
 % You can load the files{3} to run the simulation.
-% Here we just modify the model to disable the shear effects.
+% Here we just modify the model directly to disable the shear effect.
 
 model.usingShear = false;
 
@@ -286,6 +319,8 @@ fn = getPlotAfterStep(state0, model, schedule, ...
 % load the reference results for the non-shear case.
 load (files{6});
 % the time for the reference result
+% since the commercial software might cut the time steps, the actually used
+% schedule can be different from the previous running with shear-thinning.
 T_ref_noshear = smry.get(':+:+:+:+', 'TIME', ':');
 
 color_mrst_noshear = color_map(3, :);
