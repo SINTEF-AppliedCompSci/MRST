@@ -13,11 +13,7 @@
 % The example also sets up a complete input deck (in Eclipse format) which
 % can be used for simulation by traditional solvers
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
+mrstModule add co2lab incomp
 
 %% Background
 % We start with the multiphase version of Darcy's law:
