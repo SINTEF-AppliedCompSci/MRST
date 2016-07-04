@@ -1,6 +1,7 @@
 %% Heterogeneous quarter five-spot
 % In this example, we will study a heterogeneous quarter five-spot with
 % petrophysical data sampled from the topmost layer of the SPE 10 data set.
+mrstModule add incomp
 
 %% Set up model and parameters
 load rndseed.mat; rng(S);
@@ -87,9 +88,10 @@ plot(t,cellfun(@(x) x(2).Sw, wellSol));   set(gca,'XLim',[0 1.5]);
 figure;
 plot(t,cellfun(@(x) x(2).wcut, wellSol)); set(gca,'XLim',[0 1.5]);
 figure;
+spv = sum(x0.s(:,2).*rock.poro.*G.cells.volumes);
 plot(t,cumsum(bsxfun(@times, abs(cellfun(@(x) x(2).qOs, wellSol)), dt)));
 hold on;
-plot(t,spv-mb,'-.','LineWidth',2);
+plot(t,spv-mb,'-.','LineWidth',3);
 plot([0 T],[spv spv],'--k');
 hold off;
 set(gca,'XLim',[0 1.5]);

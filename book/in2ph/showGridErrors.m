@@ -9,6 +9,8 @@
 % different preferrential flow directions and hence generally give
 % different solutions.
 
+mrstModule add incomp
+
 %% Common parts of the two simulation setups
 T = 5*year; 
 % nstep=1;

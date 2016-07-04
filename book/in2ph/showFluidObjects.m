@@ -1,3 +1,7 @@
+
+%% Demonstrate various analytical fluid models
+mrstModule add incomp
+
 %% Simple fluid model
 fluid = initSimpleFluid('mu' , [   1,  1]*centi*poise     , ...
                        'rho', [1000, 1000]*kilogram/meter^3, ...

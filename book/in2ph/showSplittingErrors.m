@@ -2,7 +2,7 @@
 % We use the standard quarter five-spot test case to illustrate splitting
 % errors that may arise when using a sequential solution procedure to
 % simulate multiphase flow 
-
+mrstModule add incomp
 
 %% Set up model
 T = 5*year;
@@ -31,6 +31,9 @@ colormap(flipud(.5*jet(10)+.5*ones(10,3)));
 % displacement front. To get the front as accurately as possible, we use an
 % explicit scheme and update the pressure for (almost) every step of the
 % transport solver.
+
+% NB: REMEMBER TO REPORT THE NUMBER OF TIME STEPS!
+
 x  = initState(G,W,100*barsa, [0 1]);
 for n=1:4
     for i=1:8
@@ -72,7 +75,7 @@ end
 % Finally, we consider the solution at time 0.6 PVI and compute splitting
 % solutions with a sequence of increasing splitting time steps. As the
 % number of splitting steps increases, the approximate solution gradually
-% approxes the correct solution.
+% approaches the correct solution.
 nstep = [1 4 16 64];
 figure('Position',[300 550 1100 300]);
 C= contour(reshape(G.cells.centroids(:,1), G.cartDims),...

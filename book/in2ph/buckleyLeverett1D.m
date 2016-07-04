@@ -1,3 +1,8 @@
+%% Classic test case: 1D Buckley-Leverett
+% We investigate the effect of time step on the accuracy and convergence of
+% the implicit transport solver
+mrstModule add incomp
+
 G = computeGeometry(cartGrid([100,1]));
 rock = makeRock(G, 100*milli*darcy, 0.2);
 
@@ -36,6 +41,7 @@ hold off
 set(gcf,'Position',[1120 55 230 760],'PaperPositionMode','auto');
 
 %% Plot results with various number of time steps
+figure
 plot(G.cells.centroids(:,1), rSole.s(:,1),'k--','LineWidth',1.5);
 leg = cell(7,1); leg{1} = 'Expl: 199 steps';
 
