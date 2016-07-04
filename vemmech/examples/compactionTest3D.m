@@ -11,7 +11,7 @@ opt = struct('L'         , [1000 1000 100], ...
              'islinear'  , false);      % Poison's ratio
 opt.L            = [15 15 3];
 opt.islinear     = false;
-opt.nodeforce    = false;
+opt.force_method = 'dual_grad_type';
 opt.hanging      = false;
 opt.free_top     = true;
 opt.use_pressure = false;
@@ -25,7 +25,7 @@ grid_case        = 'box';
 opt.cartDims     = [[1 1]*3 10];
 opt.flipgrid     = false;
 
-grid_case = 'box'; % Other choices: 'grdecl' 'sbed' 'norne' 'model3' 
+grid_case = 'box'; % Other choices: 'grdecl' 'sbed' 'norne' 'model3'
 
 %% Construct grid
 
@@ -37,7 +37,7 @@ G = mrstGridWithFullMappings(G);
 G = computeGeometry(G);
 
 figure()
-clf; 
+clf;
 plotGrid(G);
 
 
@@ -72,7 +72,7 @@ end
 
 bbsize = 30000-(G.griddim-2)*20000;
 uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ...
-                  'node_force', opt.nodeforce, 'pressure', ...
+                  'force_method', opt.force_method, 'pressure', ...
                   pressure(G.cells.centroids));
 
 %% Assemble divergence operator, see paper
@@ -81,7 +81,7 @@ div = VEM_div(G);
 
 %% Plotting
 
-figure(); 
+figure();
 clf;
 plotNodeDataDeformed(G, uu(:, 3), uu);cb = colorbar;view(3)
 cdiv = div*reshape(uu', [], 1);
@@ -102,7 +102,7 @@ divana = @(z) (ff./C(1, 1))-double(opt.gravity_load)*50*300*(-2*(z-top))/C(1, 1)
 z = G.nodes.coords(:, 3);
 z(abs(ana(z))<max(abs(ana(z)))*1e-2) = nan;
 zl = unique(z);
-figure(), 
+figure(),
 subplot(4, 1, 1)
 plot(z, uu(:, 3), '*', zl, ana(zl))
 subplot(4, 1, 2)

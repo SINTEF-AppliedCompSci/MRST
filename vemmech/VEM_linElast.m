@@ -1,5 +1,5 @@
 function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
-%[uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
+% [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 % solve linear elastisity problem using the Virtual Element method. Main
 % mechanics solver. Without face degree of freedom. Meant to be run for any
 % dimension. 

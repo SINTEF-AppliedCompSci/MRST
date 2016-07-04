@@ -219,6 +219,5 @@ function G = squareGrid(cartDims, L, varargin)
         G.cells.faces = [G.cells.faces(:, 1), tag(G.cells.faces(:, 1))];
     end
     G = mrstGridWithFullMappings(G);
-    G = computeGeometryCalc(G);
 
 end
