@@ -6,7 +6,7 @@ figure('Position',[440 290 860 500]);
 plotCellData(G,rock.poro,'EdgeAlpha',.1); view(74,74);
 
 %%
-mrstModule add libgeometry;
+mrstModule add libgeometry incomp;
 rad = @(x,y) sum(bsxfun(@minus,x(:,1:2),y).^2,2);
 G = mcomputeGeometry(G);
 pv = sum(poreVolume(G,rock));
@@ -43,7 +43,7 @@ plotGrid(G,'EdgeAlpha',.1,'FaceColor','none'); axis off
 mrstModule add coarsegrid streamlines
 cla
 p = partitionUI(G,[1 1 G.cartDims(3)]);
-plotCellData(G,D.ipart,p>1,'EdgeAlpha',.1,'EdgeColor','k','FaceAlpha',.6);
+plotCellData(G,D.ppart,p>1,'EdgeAlpha',.1,'EdgeColor','k','FaceAlpha',.6);
 ip = find( (abs(G.cells.centroids(:,1)-15.5)<.6) & (p==1) & ...
    ((G.cells.centroids(:,2)<35) | (G.cells.centroids(:,2)>65)));
 h=streamline(pollock(G,state,ip(1:1:end),'reverse',true)); 
