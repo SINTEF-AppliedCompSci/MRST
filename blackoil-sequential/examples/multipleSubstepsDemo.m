@@ -37,6 +37,7 @@ bc = pside(bc, G, 'xmax', 0*barsa, 'sat', [0, 1]);
 dT = 20*day;
 schedule = simpleSchedule(repmat(dT,1,25), 'bc', bc);
 [~, states] = simulateScheduleAD(state0, model, schedule);
+
 %% Get a sequential model
 % We can set up a sequential model from the fully implicit model. The
 % sequential model is a special model that solves each control step with a
@@ -51,31 +52,34 @@ seqModel = getSequentialModelFromFI(model);
 disp(seqModel.pressureModel)
 % Display the pressure model
 disp(seqModel.transportModel);
+
 %% Simulate sequential base case
 % We can now simply pass the sequential model to simulateScheduleAD just
 % like we did with the regular fully implicit model.
 [~, statesSeq] = simulateScheduleAD(state0, seqModel, schedule);
+
 %% Set up timestep selection based on target change quantities
 % We will now compute a solution with refined time steps. As the time-steps
-% becomes smaller, the solution becomes more accurate. In order to achieve
-% increased accuracy without manually changing the timesteps, we can use
-% a automatic timestep selector based on saturation change targets. We let
-% the solver aim for a maximum saturation change of 1% in each cell during
-% the timesteps to get very small steps.
+% become smaller, the solution becomes more accurate. To achieve increased
+% accuracy without manually changing the timesteps, we can use an automatic
+% time-step selector based on saturation change targets. We let the solver
+% aim for a maximum saturation change of 1% in each cell during the
+% timesteps to get very small steps.
 stepSel = StateChangeTimeStepSelector(...
           'targetProps', 's',...            % Saturation as change target
           'targetChangeAbs', 0.01,...       % Target change of 0.01
           'firstRampupStepRelative', 0.01); % Initial rampup step is dt0/100
 
 %% Simulate with refined timesteps
-% The main issue with small timesteps is that they can be very time
-% consuming to compute, especially as the full system has to be solved at
-% every step. We therefore pass the step selector to the nonlinear solver
-% corresponding to the transport subproblem in order to only take small
-% steps in the transport solver itself, leaving the pressure only to be
-% updated in the original control steps.
+% The main issue with small timesteps is that they can be very
+% time-consuming to compute, especially as the full system has to be solved
+% at every step. We therefore pass the step selector to the nonlinear
+% solver corresponding to the transport subproblem to only take small steps
+% in the transport solver itself, leaving the pressure only to be updated
+% in the original control steps.
 seqModel.transportNonLinearSolver.timeStepSelector = stepSel;
 [~, statesFine, repFine] = simulateScheduleAD(state0, seqModel, schedule);
+
 %% Plot and compare the three different solutions
 % By plotting the three solutions simultanously, we see that the fully
 % implicit and sequential implicit give the same solution for the same
