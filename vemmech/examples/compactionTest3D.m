@@ -1,32 +1,46 @@
+%% Compaction test case 3D
+% 
+% Boundary conditions: rolling condition on left-hand side
+%
+%
+% Possibility to include a top load.
+%
+% Homogeneous medium, analytical solution, irregular grid
+
+%% Load required modules
+
+mrstModule add vemmech
+
 
 %% Define parameters
 
 opt = struct('grid_type' , 'triangle', ...
              'disturb'   , 0.0, ...     % parameter for  grid distortion
              'E'         , 0.3*1e9, ... % Young's modulus
-             'nu'        , 0.4, ...
-             'islinear'  , false);      % Poison's ratio
+             'nu'        , 0.4, ...     % Poison's ratio
+             'islinear'  , false);
 opt.L            = [15 15 3];
 opt.islinear     = false;
 opt.force_method = 'dual_grad_type';
 opt.hanging      = false;
-opt.free_top     = true;
-opt.use_pressure = false;
-opt.triangulate  = true;  % triangulate some faces
-opt.vertical     = false; % only relevant for norne test case
-opt.gravity_load = true;
-opt.top_load     = true;
-opt.gtol         = 0.1e-1;
-opt.ref          = 10;
-grid_case        = 'box';
-opt.cartDims     = [[1 1]*3 10];
-opt.flipgrid     = false;
+opt.free_top     = true;  % If true, the nodes at the top can move freely (no
+                          % boundary condition given there)
+opt.triangulate  = true;  % Triangulate some faces
+opt.vertical     = false; % Only relevant for norne test case (straightens up
+                          % the pillars, see paper )
+opt.gravity_load = true;  % Use gravity load
+opt.top_load     = true;  % Use force applied at the top
+opt.gtol         = 0.1e-1; % Grid tolerance parameter (used when calling
+                           % processGRDECL, see documentation there)
+opt.ref          = 10;     % Refinement parameter, only used for Norne
+opt.flipgrid     = false;  % Rotate the grid (z->x, x->y, y->z) (see paper )
 
 grid_case_number = input(['Choose a grid (type corresponding number): box [1], ' ...
                     'sbed [2], Norne [3]\n']);
 switch grid_case_number
   case 1
     grid_case = 'box';
+    opt.cartDims     = [[1 1]*3 10]; % set the Cartesian dimension for the box case
   case 2
     grid_case = 'sbed';
   case 3
@@ -56,33 +70,16 @@ plotGrid(G);
 
 
 %% Define rock parameters
-Ev = repmat(opt.E, G.cells.num, 1);
-nuv = repmat(opt.nu, G.cells.num, 1);
-C = Enu2C(Ev, nuv, G);
-lsolve = @mldivide;
-
-G = computeGeometry(G);
-
-% Change load for pressure since it is a constant vector
-if(opt.use_pressure)
-    minp           = -max(sum(load(G.faces.centroids).*G.faces.centroids, 2));
-    pressure       = @(X)(-sum(load(X).*X, 2)-minp);
-    load           = @(X)(load(X)*0);
-    bccoord        = G.faces.centroids(el_bc.force_bc.faces, :);
-    press_boundary = sum(pressure(bccoord));
-    bsign          = (2* (G.faces.neighbors(el_bc.force_bc.faces, 2) == 0)-1);
-    normals        = -bsxfun(@times, G.faces.normals(el_bc.force_bc.faces, :), bsign);
-    el_bc.force_bc.force = el_bc.force_bc.force+bsxfun(@times, normals, press_boundary);
-else
-    pressure = @(X)(-sum(load(X).*X, 2)*0.0);
-end
+Ev     = repmat(opt.E, G.cells.num, 1);
+nuv    = repmat(opt.nu, G.cells.num, 1);
+C      = Enu2C(Ev, nuv, G);
 
 %% Assemble and solve the system
 
 bbsize = 30000-(G.griddim-2)*20000;
+lsolve = @mldivide;
 uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ...
-                  'force_method', opt.force_method, 'pressure', ...
-                  pressure(G.cells.centroids));
+                  'force_method', opt.force_method);
 
 %% Assemble divergence operator, see paper
 

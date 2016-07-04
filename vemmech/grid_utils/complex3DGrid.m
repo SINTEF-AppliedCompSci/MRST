@@ -21,9 +21,9 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
         G = computeGeometry(G);
 
       case 'sbed'
+        % Load the grid for the sbed model as eclipse input
         grdecl = readGRDECL(fullfile(getDatasetPath('BedModel2'), ...
                                      'BedModel2.grdecl'));
-
         grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
 
         grdecl.ZCORN = min(grdecl.ZCORN, 5)-1;
@@ -38,18 +38,11 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
         figure();
         plotGrid(G);
 
-      case 'model3'
-        % extream 3D test case
-        grdecl = readGRDECL('/home/hnil/heim/SVN/simsvn/data/original_datafiles/test_cases/model3.grdecl');
-        G = processGRDECL(grdecl);
-        G = mrstGridWithFullMappings(G);
-        G = computeGeometry(G);
-        figure();
-        clf;
-        plotGrid(G);
-
       case 'norne'
-        grdecl = readGRDECL('C:\Users\hnil\Documents\DATA\norne2015\norne\INCLUDE\GRID\IRAP_1005.GRDECL');
+        % Load the grid for the Norne model as eclipse input
+        grdecl = readGRDECL(fullfile(getDatasetPath('BedModel2'), ...
+                                     'BedModel2.grdecl'));
+        grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
         grdecl = cutGrdecl(grdecl, [10 25;35 55;1 22]);
         if(opt.vertical)
             grdecl_org = verticalGrdecl(grdecl);
@@ -73,28 +66,6 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
             faces = unique(G.cells.faces(any(bsxfun(@eq, G.cells.faces(:, 2), [5, 6]), 2), 1));
             G = triangulateFaces(G, faces');
         end
-        figure();
-        clf;
-        plotGrid(G);
-
-      case 'norne_box'
-        grdecl = readGRDECL('C:\Users\hnil\Documents\DATA\norne2015\norne\INCLUDE\GRID\IRAP_1005.GRDECL');
-        grdecl = cutGrdecl(grdecl, [10 25;35 55;1 22]);
-        if(opt.vertical)
-            grdecl_org = verticalGrdecl(grdecl);
-        else
-            grdecl_org = grdecl;
-        end
-        G_org = processGRDECL(grdecl_org);
-
-        grdecl = padGrdecl(grdecl, [true, true, true], [60 50;40 40;10 10]*3, 'relative', true);
-        grdecl = coarseGrdecl(grdecl, [1 1 grdecl.cartDims(end)]);
-        if(opt.vertical)
-            grdecl = verticalGrdecl(grdecl);
-        end
-        grdecl = refineGrdecl(grdecl, opt.ref);
-        G = processGRDECL(grdecl, 'Tolerance', opt.gtol);
-        G = computeGeometry(G);
         figure();
         clf;
         plotGrid(G);

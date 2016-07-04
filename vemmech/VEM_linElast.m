@@ -64,8 +64,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
     end
     
     % Apply Diriclet boundary conditions
-    % NB: Partial Diriclet boundary conditions in the primary direction is allowed
-    % for now.
+    % NB: Only rolling conditions  the Cartesian directions is allowed for now.
     % If duplicated  values exist, remove them.
     bc = el_bc.disp_bc; 
     [bcnodes, j, i] = unique(bc.nodes);
