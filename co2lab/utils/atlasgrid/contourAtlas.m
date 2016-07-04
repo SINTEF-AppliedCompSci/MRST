@@ -60,11 +60,18 @@ function varargout = contourAtlas(info, varargin)
     
     if isempty(color)
        data = get(h, 'UserData');
-       dpts = unique([data{:}]);
-       colors = flipud(jet(N+1));
-       for i = 1:numel(h)
-          set(h(i), 'LineWidth', l)
-          set(h(i), 'Color', colors(dpts == get(h(i), 'UserData'), :));
+
+       if ~ isempty(data),
+          if iscell(data),
+             data = [ data{:} ];
+          end
+
+          dpts = unique(data);
+          colors = flipud(jet(N+1));
+          for i = 1:numel(h)
+             set(h(i), 'LineWidth', l)
+             set(h(i), 'Color', colors(dpts == get(h(i), 'UserData'), :));
+          end
        end
     else
        set(h,'Color',color);
