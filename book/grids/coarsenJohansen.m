@@ -7,7 +7,8 @@
 
 mrstModule add coarsegrid;
 
-sector = fullfile(ROOTDIR, 'examples', 'data', 'johansen', 'NPD5');
+dpath = getDatasetPath('johansen');
+sector = fullfile(dpath, 'NPD5');
 filename = [sector, '.grdecl'];
 G = processGRDECL(readGRDECL(filename));
 G = computeGeometry(G);
@@ -50,7 +51,7 @@ cn = diff(CG.cells.facePos);
 figure('Position',[0 60 560 820])
 subplot(2,1,1);
 plotGrid(G,'FaceColor','none','EdgeAlpha',.1);
-plotGridNew(CG,cn>6);
+plotGrid(CG,cn>6);
 
 h1=[];
 val = cumsum(ones(G.cartDims),3); val=val(G.cells.indexMap);
@@ -58,11 +59,11 @@ kn = zeros(size(cn)); kn(p) = val;
 ind = find(cn>6 & kn==1);
 for i=1:numel(ind)
    subplot(2,1,1); delete(h1);
-   h1 = plotGridNew(CG,ind(i),'FaceColor','r');
+   h1 = plotGrid(CG,ind(i),'FaceColor','r');
    
    subplot(2,1,2); cla;
    plotGrid(G,p==ind(i)); 
-   plotGridNew(CG,ind(i),'FaceColor','none','LineWidth',2); 
+   plotGrid(CG,ind(i),'FaceColor','none','LineWidth',2); 
    title(['Block number: ' num2str(ind(i))]);
    view(3); drawnow;
    
@@ -79,10 +80,10 @@ plotGrid(G,'FaceColor','none','EdgeAlpha',.1);
 axis off; zoom(1.3);
 for i=1:6
    subplot(2,4,2:3);
-   plotGridNew(CG,block(i),'FaceColor',col(i,:));
+   plotGrid(CG,block(i),'FaceColor',col(i,:));
    subplot(2,4,ind(i));
    plotGrid(G,p==block(i),'FaceColor',col(i,:));
-   plotGridNew(CG,block(i),'FaceColor','none','LineWidth',2);
+   plotGrid(CG,block(i),'FaceColor','none','LineWidth',2);
    view(3); axis tight off 
    zoom(1.3)
 end

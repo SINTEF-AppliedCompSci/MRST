@@ -1,11 +1,7 @@
 %% How to Partition Grids
 % In this script, we go through several examples that demonstrate various
 % methods for partitioning grids using MRST
-try 
-   require coarsegrid
-catch %#ok<CTCH>
-   mrstModule add coarsegrid
-end
+mrstModule add coarsegrid
 
 %% Partition a Cartesian 2D grid
 % We use partitionUI which exploits the logical structure and creates a

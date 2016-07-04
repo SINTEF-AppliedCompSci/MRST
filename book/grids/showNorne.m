@@ -11,15 +11,11 @@
 % Here, we will use the simulation model released as part of "Package 2:
 % Full Field model" (2013) as an example of a real reservoir.
 
-mrstModule add mrst-experimental
-
 %% Read model
-grdecl = fullfile(ROOTDIR, 'examples', 'data', 'norne', 'GSmodel.grdecl');
-if ~exist(grdecl, 'file'),
-   error('Model data is not available.')
-end
+grdecl = fullfile(getDatasetPath('norne'), 'OPM.GRDECL');
 grdecl = readGRDECL(grdecl);
-
+usys   = getUnitSystem('METRIC');
+grdecl = convertInputUnits(grdecl, usys);
 
 %% Visualize the whole model including inactive cells
 % Save ACTNUM until later and then override the ACTNUM values to obtain a

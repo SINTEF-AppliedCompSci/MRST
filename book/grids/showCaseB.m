@@ -1,7 +1,7 @@
 %% Stair-stepped grid
 mrstModule add mrst-experimental
 clf
-grdecl = readGRDECL('Case_B4/B4_Stairstep_36x48/stairstepgrid.grdecl');
+grdecl = readGRDECL(fullfile(getDatasetPath('CaseB4'),'stairstep_36x48.grdecl'));
 Gs = processGRDECL(grdecl);
 Gs = computeGeometry(Gs);
 Kx = logNormLayers(Gs.cartDims, [10 50 400 50 10], ...
@@ -23,7 +23,7 @@ axis tight off, view(150,50), zoom(1.2)
 
 %% Corner-point grid
 clf
-grdecl = readGRDECL('Case_B4/B4_Pillar_36x48/pillargrid.grdecl');
+grdecl = readGRDECL(fullfile(getDatasetPath('CaseB4'),'pillar_36x48.grdecl'));
 Gp = processGRDECL(grdecl);
 Gp = computeGeometry(Gp);
 plotCellData(Gp,Kx(Gp.cells.indexMap),'EdgeColor','k'); 

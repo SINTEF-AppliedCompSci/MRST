@@ -9,4 +9,4 @@ Pw2 = bsxfun(@plus, Pw, [12; 6]);
 [x,y] = meshgrid(0:.5:14, 0:.5:8);
 P = unique([Pw1'; Pw2'; x(:) y(:)], 'rows');
 G = pebi(triangleGrid(P));
-
+plotGrid(G);

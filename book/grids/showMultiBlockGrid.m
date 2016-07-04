@@ -59,10 +59,10 @@ i = sum(N.*n,2)==-1; G2.cells.faces(i,2) = 3;
 i = sum(N.*n,2)== 1; G2.cells.faces(i,2) = 4;
 
 % Glue grids together
-G = myGlue2DGrid(G1, translateGrid(G2,[1 0]));
-G = myGlue2DGrid(G,  translateGrid(G1,[2 0]));
-G = myGlue2DGrid(G3, translateGrid(G, [0 1]));
-G = myGlue2DGrid(G,  translateGrid(G3,[0 2]));
+G = glue2DGrid(G1, translateGrid(G2,[1 0]));
+G = glue2DGrid(G,  translateGrid(G1,[2 0]));
+G = glue2DGrid(G3, translateGrid(G, [0 1]));
+G = glue2DGrid(G,  translateGrid(G3,[0 2]));
 G = twister(G);
 clf
 plotGrid(G,'FaceColor','none');

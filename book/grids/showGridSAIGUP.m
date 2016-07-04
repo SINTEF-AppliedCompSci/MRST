@@ -14,8 +14,13 @@
 % downloaded from the <http://www.sintef.no/Projectweb/MRST>MRST webpage
 
 %% Load data and convert units
-grdecl = readGRDECL(fullfile(ROOTDIR, 'examples', 'data', ...
-   'SAIGUP','SAIGUP.GRDECL'));
+% We start by reading the model from a file in the Eclipse format (GRDECL)
+% that can be read using the <matlab:doc('readGRDECL') readGRDECL>
+% function. (If the model is not available the
+% <matlab:doc('getDatasetPath') getDatasetPath> function will download and
+% install it for you).
+grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
+grdecl = readGRDECL(grdecl);
 usys   = getUnitSystem('METRIC');
 grdecl = convertInputUnits(grdecl, usys);
 

@@ -52,7 +52,7 @@ Gt = triangleGrid([P; P([1 3 2],1), -P([1 3 2],2)],reshape(1:6,3,2)');
 plotGrid(Gt,'FaceColor','none'); axis equal off;
 plotGrid(Gt,'FaceColor','none','LineWidth',2);
 axis equal off
-print -depsc2 convexConcave-1.eps;
+% print -depsc2 convexConcave-1.eps;
 
 %%
 % To make a full tiling, we make a basic pattern consisting of four
@@ -75,7 +75,7 @@ i=repmat((1:2)',G.cells.num/2,1);
 clf; plotCellData(G,i(:));
 %plotFaces(G,find(any(G.faces.neighbors==0,2)),'EdgeColor','r','LineWidth',2);
 axis equal tight off; drawnow
-print -depsc2 convexConcave-2.eps;
+% print -depsc2 convexConcave-2.eps;
 
 
 %% Example 3: nonagonal tiles
@@ -166,7 +166,7 @@ i=repmat((1:2)',G.cells.num/2,1);
 clf
 plotCellData(G,i(:));
 axis equal off
-print -depsc2 trigon.eps;
+% print -depsc2 trigon.eps;
 
 %%
 % Add the first set of points, making an irregular hexagonal tile
@@ -183,7 +183,7 @@ i=repmat((1:2)',G.cells.num/2,1);
 clf
 plotCellData(G,i(:));
 axis equal off
-print -depsc2 hexagon.eps;
+% print -depsc2 hexagon.eps;
 
 %%
 % Reshape into irregular nonagons
@@ -200,7 +200,7 @@ i=repmat((1:2)',G.cells.num/2,1);
 clf
 plotCellData(G,i(:));
 axis equal off
-print -depsc2 nonagon.eps;
+% print -depsc2 nonagon.eps;
 
 %%
 % Reshape into irregular dodecagons
@@ -218,7 +218,7 @@ i=repmat((1:2)',G.cells.num/2,1);
 clf
 plotCellData(G,i(:));
 axis equal off
-print -depsc2 dodecagon.eps;
+% print -depsc2 dodecagon.eps;
 
 %% Reshape into irregular pentadecagon
 e      = e(:,[1:5 5]);
@@ -234,7 +234,7 @@ i=repmat((1:2)',G.cells.num/2,1);
 clf
 plotCellData(G,i(:));
 axis equal off;
-print -depsc2 pentadecagon.eps;
+% print -depsc2 pentadecagon.eps;
 
 %%
 %{

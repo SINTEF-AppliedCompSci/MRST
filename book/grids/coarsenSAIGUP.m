@@ -12,11 +12,10 @@
 % an appropriate production strategy for an approximately 20 year period.
 % Herein, we will inspect in detail one instance of the model, which can be
 % downloaded from the <http://www.sintef.no/Projectweb/MRST>MRST webpage
+
+%% Load dataset
 mrstModule add libgeometry
-filename = fullfile(ROOTDIR, 'examples', 'data', 'SAIGUP', 'SAIGUP.GRDECL');
-if ~exist(filename, 'file'),
-   error('SAIGUP model data is not available.')
-end
+filename = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 G = processGRDECL(readGRDECL(filename));
 try
    G = mcomputeGeometry(G);
@@ -75,7 +74,7 @@ show = blockVols<.1*meanVol;
 figure
 plotGrid(G,'FaceColor','none','EdgeAlpha',.05);
 bcol = zeros(max(p),1); bcol(show)=1:sum(show); 
-plotCellDataNew(CG,bcol, show);
+plotCellData(CG,bcol, show);
 axis tight off; set(gca,'DataAspect',[1 1 0.1]); 
 view(-65,55); zoom(1.4); camdolly(0,-0.2,0)
 colormap(lines);
