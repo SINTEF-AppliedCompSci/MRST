@@ -4,10 +4,9 @@
 
 
 %% Homogeneous, isotropic properties
-G = cartGrid([10 10]);
-rock.poro = repmat( 0.2, [G.cells.num,1]);
-rock.perm = repmat( 200*milli*darcy, [G.cells.num,1]);
-clf
+G = cartGrid([1000 100]);
+rock.poro = .2*ones(G.cells.num,1);
+rock.perm = 200*milli*darcy*ones(G.cells.num,1);
 plotCellData(G, rock.poro,'EdgeColor','w'); 
 
 %% Homogeneous, anisotropic properties
