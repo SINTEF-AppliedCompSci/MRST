@@ -105,6 +105,7 @@ axis off; view(-80,36)
 h=colorbar; set(h,'Position',[0.88 0.15 0.03 0.67]);
 
 %% Time-of-flight analysis
+mrstModule add diagnostics
 tf = computeTimeOfFlight(state, G, rock, 'wells', W)/year;
 tb = computeTimeOfFlight(state, G, rock, 'wells', W, 'reverse', true)/year;
 

@@ -4,6 +4,8 @@
 % controlled by bottom-hole pressure. The reservoir is a regular box with
 % homogeneous petrophysical properties.
 
+mrstModule add incomp
+
 %% Set up reservoir model
 [nx,ny,nz] = deal(20,20,5);
 G = computeGeometry( cartGrid([nx,ny,nz], [500 500 25]) );
@@ -51,7 +53,7 @@ subplot(2,2,2)
    title('Producer inflow profile [m^3/d]');
 
 subplot(2,2,3)
-   plotCellData(G, convertTo(state.pressure(1:G.cells.num), barsa));
+   plotCellData(G, convertTo(state.pressure(1:G.cells.num), barsa),'EdgeAlpha',.1);
    title('Pressure [bar]')
    view(3), camproj perspective, axis tight off
 
@@ -62,7 +64,7 @@ subplot(2,2,4)
    K = false(nz,1); K([1 end]) = true;
    cf = accumarray(getCellNoFaces(G), ...
       abs(faceFlux2cellFlux(G, state.flux)));
-   plotCellData(G, convertTo(cf, meter^3/day), I(i) | J(j) | K(k),'EdgeColor', .8*[1 1 1]);
+   plotCellData(G, convertTo(cf, meter^3/day), I(i) | J(j) | K(k),'EdgeAlpha',.1);
    title('Flux intensity [m^3/day]')
    view(-40,20), camproj perspective, axis tight, box on
    set(gca,'XTick',[],'YTick',[],'ZTick',[]);

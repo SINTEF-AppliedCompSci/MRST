@@ -32,6 +32,7 @@ clear P* x y;
 
 
 %% Simulation loop
+mrstModule add incomp diagnostics
 state = cell(4,1);
 src   = cell(4,1);
 bc    = cell(4,1);
@@ -45,7 +46,7 @@ for i=1:4
    hT = simpleComputeTrans(g{i}, rock);
    pv = sum(poreVolume(g{i}, rock));
 
-   tmp = (g{i}.cells.centroids - repmat([450, 500],g{i}.cells.num,[])).^2;
+   tmp = (g{i}.cells.centroids - repmat([450, 500],g{i}.cells.num,1)).^2;
    [~,ind] = min(sum(tmp,2));
    src{i} = addSource(src{i}, ind, -.02*pv/year);
 

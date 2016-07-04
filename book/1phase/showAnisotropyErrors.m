@@ -4,6 +4,7 @@
 % discretisations on complex grids". Comput. Geosci., 16(2):297-322, 2012.
 % DOI: 10.1007/s10596-011-9244-4
 addpath(fullfile(fileparts(mfilename('fullpath')), 'src'))
+mrstModule add incomp mimetic mpfa
 
 %% First example
 % This example corresponds to Figure 7 in the paper, which illustrates

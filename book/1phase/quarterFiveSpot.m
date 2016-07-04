@@ -11,7 +11,7 @@
 % the flux field as well as the corresponding time-of-flight, i.e., the
 % time it takes for a neutral particle to travel from a fluid inlet (source
 % term, well, inflow boundary, etc) to a given point in the reservoir.
-
+mrstModule add incomp
 
 %% Set up grid and petrophysical data
 % We use a Cartesian grid of size nx-by-ny with homogeneous petrophysical
@@ -101,6 +101,7 @@ set([hf; hb],'Color','k');
 % reservoir. Isocontours of the time-of-flight define natural time lines in
 % the reservoir, and to emphasize this fact, we plot the time-of-flight
 % using only a few colors.
+mrstModule add diagnostics
 tof = computeTimeOfFlight(state, G, rock, 'src', src);
 
 clf,

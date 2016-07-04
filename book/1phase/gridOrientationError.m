@@ -1,5 +1,7 @@
 %% Compare grid-orientation effects for TPFA/mimetic schemes
 
+mrstModule add incomp mimetic
+
 % Rectangular reservoir with a skew grid.
 G = cartGrid([41,20],[2,1]);
 makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
@@ -45,7 +47,7 @@ plotCellData(G, s_mi.pressure, 'EdgeColor', 'k', 'EdgeAlpha', .05);
 
 %%
 % Compare time-of-flight
-mrstModule add streamlines
+mrstModule add streamlines diagnostics
 subplot(2,2,3);
 tof_tp = computeTimeOfFlight(s_tp, G, rock, 'src', src);
 plotCellData(G, tof_tp, tof_tp<.2,'EdgeColor','none'); caxis([0 .2]); box on

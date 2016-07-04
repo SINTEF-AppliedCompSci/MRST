@@ -11,6 +11,7 @@
 % at the midpoint of the upper geological layer
 % # Corner-point model with the same type of Dirichlet/Neumann boundary
 % conditions on the left and right global boundaries
+mrstModule add incomp
 
 addpath('src');
 setup = 3;

@@ -7,6 +7,7 @@
 % symmetric. In particular, since our discretization method is not
 % consistent, the dissymmetry does not decay with increasing grid
 % resolution and hence the method does not converge.
+mrstModule add incomp diagnostics streamlines
 
 figure('Position', [440 450 865 351]);
 T = nan(30,2);

@@ -15,6 +15,7 @@
 % structure, the structure used to hold the solutions, and so on, are given
 % in the <simpleBC.html basic flow-solver tutorial>.
 addpath('src');
+mrstModule add incomp
 
 %% Define the model
 % To set up a model, we need: a grid, rock properties (permeability), a
