@@ -102,6 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if strcmpi(module, 'mrst')
             % Core mode
             m = [];
+            module = 'core';
             name = 'MRST Core';
         else
             set(descr, 'String', getDescription(module))
@@ -141,12 +142,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function d = getDescription(module)
-    pth = mrstPath(module);
+    if strcmpi(module, 'mrst')
+        pth = ROOTDIR();
+    else
+        pth = mrstPath(module);
+    end
     files = dir(pth);
     d = 'No description available.';
     for i = 1:numel(files)
-        if strcmpi(files(i).name, 'contents.m')
+        if strcmpi(files(i).name, 'readme') || strcmpi(files(i).name, 'readme.txt')
             d = fileread(fullfile(pth, files(i).name));
+            break;
         end
     end
 end
