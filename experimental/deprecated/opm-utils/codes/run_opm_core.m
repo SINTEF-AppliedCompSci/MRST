@@ -1,5 +1,5 @@
 function output_dir = run_opm_core(param, simulator)
-   error(nargchk(0, 2, nargin, 'struct'));
+   mrstNargInCheck(0, 2, nargin);
 
    codes_core = fullfile('examples', 'sim_2p_incomp_reorder');
 

@@ -92,10 +92,7 @@ function S = computeMimeticIPVE(G, rock, varargin)
 #COPYRIGHT#
 %}
 
-% $Date: 2012-01-30 11:41:03 +0100 (Mon, 30 Jan 2012) $
-% $Revision: 9020 $
-
-error(nargchk(2, inf, nargin, 'struct'));
+mrstNargInCheck(2, [], nargin);
 
 opt = struct('InnerProduct', 'ip_simple', ...
              'verbose',      false,       ...
