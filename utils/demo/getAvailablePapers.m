@@ -1,18 +1,24 @@
 function papers = getAvailablePapers()
-%
+% Get structs for all papers known to MRST
 %
 % SYNOPSIS:
-%   
+%   papers = getAvailablePapers();
 %
 % DESCRIPTION:
-%   
+%   Get structs (as defined by createPaperStruct) for all known papers.
+%   Papers are known to MRST if they are found as functions in the papers/
+%   subdirectory on the form "papers_name()" in the folder where
+%   getAvailablePapers is found.
 %
 % REQUIRED PARAMETERS:
+%  None.
 %
 % RETURNS:
-%   
+%  A list of all papers, as structs.
+%
 % SEE ALSO:
-%   
+%   createPaperStruct, mrstExploreModules, mrstReferencesGUI
+%
 
 %{
 Copyright 2009-2015 SINTEF ICT, Applied Mathematics.

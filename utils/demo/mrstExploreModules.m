@@ -1,4 +1,40 @@
-function mrstExploreModules()
+function varargout = mrstExploreModules()
+% Interactively explore MRST modules and corresponding examples
+%
+% SYNOPSIS:
+%   mrstExploreModules();
+%
+% DESCRIPTION:
+%   Launches an interactive graphical user interface for examining MRST
+%   modules, their examples and relevant papers.
+%
+% REQUIRED PARAMETERS:
+%   None.
+%
+% RETURNS:
+%   h  - Figure handle for the window (if requested).
+%
+% SEE ALSO:
+%   mrstReferencesGUI, moduleGUI, mrstModule, mrstExamples
+
+%{
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     df = get(0, 'DefaultFigurePosition');
     
     modules = sort(mrstPath());
@@ -39,7 +75,7 @@ function mrstExploreModules()
                  'String', 'Relevant papers', ...
                  'min', 0, 'max', inf, ...
                  'HorizontalAlignment', 'center', 'FontSize', 16);
-    paperh = mrstReferencesGUI(f, midpos);
+    paperh = mrstReferencesGUI([], f, midpos);
     
     % Right column: List of examples and corresponding buttons
     exlist = uicontrol(f, 'Units', 'normalized', ...
@@ -78,7 +114,7 @@ function mrstExploreModules()
         [examples, examplenames] = getExamples(module);
         set(exlist, 'String', examplenames);
         set(exlist, 'Value', 1);
-        paperh = mrstReferencesGUI(f, midpos, m);
+        paperh = mrstReferencesGUI(m, f, midpos);
     end
 
     function onClickExample(src, event)
@@ -93,6 +129,10 @@ function mrstExploreModules()
     end
 
     onClickModule(modlist, []);
+    
+    if nargout > 0
+        varargout{1} = f;
+    end
 end
 
 function d = getDescription(module)
