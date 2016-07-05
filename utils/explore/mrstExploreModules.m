@@ -119,6 +119,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function onClickExample(src, event)
         ix = get(exlist, 'Value');
+        if isempty(examples)
+            return
+        end
         fn = examples{ix};
         if strcmpi(get(src, 'Tag'), 'publishbutton')
             webfile = publish(fn);

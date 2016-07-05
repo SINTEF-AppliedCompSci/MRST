@@ -103,6 +103,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                            auth, ...
                            [paper.published, ' ', formatYear(paper.year)], ...
                            });
+        if isempty(paper.url)
+            set(openurl, 'Enable', 'off');
+        else
+            set(openurl, 'Enable', 'on');
+        end
+        if isempty(paper.fileurl)
+            set(openfile, 'Enable', 'off');
+        else
+            set(openfile, 'Enable', 'on');
+        end
     end
 
     function openFieldBrowser(src, event, fld)
@@ -112,24 +122,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if isempty(f)
             errordlg('No URL supplied!')
         else
-            web(f);
+            web(f, '-browser');
         end
     end
     bg = uipanel(panel, ...
                  'Units', 'normalized', ...
                  'Position', [0, 0, 1, .1]);
     
-    uicontrol(bg, 'Units', 'normalized',...
+    openurl = uicontrol(bg, 'Units', 'normalized',...
                   'Position', [0, 0, .2, 1], ...
                   'Style', 'pushbutton', ...
                   'String', 'View', ...
-                  'callback', @(src, event) openFieldBrowser(src, event, 'url'))
+                  'callback', @(src, event) openFieldBrowser(src, event, 'url'));
               
-    uicontrol(bg, 'Units', 'normalized',...
+    openfile = uicontrol(bg, 'Units', 'normalized',...
                   'Position', [.2, 0, .2, 1], ...
                   'Style', 'pushbutton', ...
                   'String', 'Preprint', ...
-                  'callback', @(src, event) openFieldBrowser(src, event, 'fileurl'))
+                  'callback', @(src, event) openFieldBrowser(src, event, 'fileurl'));
 
     onClickPapers(picker, []);
     % Return panel handle
