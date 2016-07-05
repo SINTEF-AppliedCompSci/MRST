@@ -72,13 +72,7 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     W = verticalWell(W, G, rock, 30, 110, [], 'Name', 'I1', 'radius', 5*inch, ...
         'Type', 'rate', 'Val', volFrac*5000*stb/day, 'comp_i', [1, 0], 'Sign', 1);
     
-    stepNum = opt.T/opt.dt;
-    frac = rem(stepNum, 1);
-    
-    dt = repmat(opt.dt, floor(stepNum), 1);
-    if frac > 0
-        dt = [dt; opt.dt*frac];
-    end
+    dt = rampupTimesteps(opt.T, opt.dt);
     
     schedule = simpleSchedule(dt, 'W', W);
 end
