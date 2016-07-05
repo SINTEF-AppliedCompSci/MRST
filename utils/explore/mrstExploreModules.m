@@ -124,6 +124,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         fn = examples{ix};
         if strcmpi(get(src, 'Tag'), 'publishbutton')
+            modNo = get(modlist, 'Value');
+            mrstModule('add', modules{modNo});
             webfile = publish(fn);
             web(webfile);
         else
