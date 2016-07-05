@@ -20,12 +20,36 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% $Date: 2014-01-10 10:30:11 +0100 (Fri, 10 Jan 2014) $
-% $Revision: 12139 $
+   build_mrst_path_tree();
 
+   % Register known third-party modules
+   mod_3rdparty = { 'matlab_bgl' };
+   activate_3rdparty_modules(mod_3rdparty);
+
+   % If there exists a startup_user.m file in the root dir of MRST, we
+   % execute this file.
+   run_local();
+
+   % Automatically load selected modules for backwards compatibility.
+   autoload = { 'incomp' };
+   load_compat_modules(autoload);
+
+   % Display welcome message
+   mrstStartupMessage();
+end
+
+%--------------------------------------------------------------------------
+
+function d = rootdir
    d = fileparts(mfilename('fullpath'));
-   m = fullfile(d, 'modules');
+end
 
+%--------------------------------------------------------------------------
+
+function build_mrst_path_tree
+   d = rootdir();
+
+   m = fullfile(d, 'modules');
    p = split_path(genpath(d));
 
    i =     strncmp(m, p, length(m));
@@ -37,43 +61,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Add modules as module root directory
    mrstPath('addroot', m);
-
-   % Register known third-party modules
-   mod_3rdparty = { 'matlab_bgl' };
-   thirdparty   = @(m) fullfile(d, 'utils', '3rdparty', m);
-   for mod = reshape(mod_3rdparty, 1, []),
-      mrstPath('add', mod{1}, thirdparty(mod{1}));
-   end
-
-   % If there exists a startup_user.m file in the root dir of MRST, we
-   % execute this file.
-   local = fullfile(ROOTDIR, 'startup_user.m');
-   if exist(local, 'file') == 2
-       run_local(local);
-   end
-
-   % Automatically load selected modules for backwards compatibility.
-   autoload = { 'incomp' };
-   p = mrstPath('search', autoload{:});
-
-   if isempty(p),
-      autoload = {};
-   elseif iscellstr(p),
-      autoload = autoload(cellfun(@isempty, p));
-   end
-
-   if ~isempty(autoload),
-      pl = 's'; if numel(autoload) == 1, pl = ''; end
-
-      fprintf(['Note: Automatically loading selected ', ...
-               'module%s for backwards compatibility:\n'], pl);
-
-      fprintf('  * %s\n', autoload{:});
-
-      mrstModule('add', autoload{:})
-   end
-   % Display welcome message
-   mrstStartupMessage();
 end
 
 %--------------------------------------------------------------------------
@@ -89,6 +76,44 @@ end
 
 %--------------------------------------------------------------------------
 
-function run_local(local)
-   run(local)
+function activate_3rdparty_modules(mod_3rdparty)
+   d          = rootdir();
+   thirdparty = @(m) fullfile(d, 'utils', '3rdparty', m);
+
+   for mod = reshape(mod_3rdparty, 1, []),
+      mrstPath('add', mod{1}, thirdparty(mod{1}));
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function load_compat_modules(mlist)
+   p = mrstPath('search', mlist{:});
+
+   if isempty(p),
+      mlist = {};
+   elseif iscellstr(p),
+      mlist = mlist(~ cellfun(@isempty, p));
+   end
+
+   if ~isempty(mlist),
+      pl = 's'; if numel(mlist) == 1, pl = ''; end
+
+      fprintf(['Note: Automatically loading selected ', ...
+               'module%s for backwards compatibility:\n'], pl);
+
+      fprintf('  * %s\n', mlist{:});
+
+      mrstModule('add', mlist{:})
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function run_local
+   local = fullfile(rootdir, 'startup_user.m');
+
+   if exist(local, 'file') == 2
+      run(local);
+   end
 end
