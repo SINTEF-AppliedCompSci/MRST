@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          otherwise,
             if header.number == 0,
-               data = struct('type', ttype, 'values', {});
+               data = struct('type', ttype, 'values', {{}});
                return
             else
                error(msgid('Type:Unknown'), ...
@@ -95,7 +95,6 @@ end
 %--------------------------------------------------------------------------
 
 function header = read_meta(fid)
-   skip_separator(fid);
 
    name = fread(fid, 8, 'uint8=>char') .';
 
@@ -121,8 +120,6 @@ function header = read_meta(fid)
       nel  = fread(fid, 1, 'int32', 'ieee-be');
       type = fread(fid, 4, 'uint8=>char') .';
 
-      skip_separator(fid);
-
       name       = strtrim       (name);
 
       if nel > 0,
@@ -136,6 +133,8 @@ function header = read_meta(fid)
          type_prec  = NaN;
       end
       ok         = true;
+      % skip to start of record
+      fseek(fid, 8, 'cof');
    end
 
    header = struct('number', nel       , ...
@@ -153,23 +152,10 @@ function values = read_record(fid, header)
    if header.number > 0,
       n      = header.number;
       prec   = header.prec;
-      blksiz = header.blksiz;
-
-      values = zeros([n, 1]);
-      off    = 0;
-      ix     = (1 : blksiz) .';
-
-      while n > blksiz,
-         values(off + ix) = readField(fid, blksiz, prec);
-
-         n   = n   - blksiz;
-         off = off + blksiz;
-      end
-
-      assert (off + n == numel(values), ...
-              'Internal error in record reading.');
-
-      values(off + (1 : n)) = readField(fid, n, prec);
+      values = fread(fid, n, prec, 8, 'ieee-be');
+      % skip to start of next header unless n is muliplum of 1000 in which 
+      % case the skip has already been performed 
+      if ~feof(fid) && mod(n,1000)~=0, fseek(fid, 8, 'cof');end   
    else
       values = [];
    end
@@ -181,20 +167,11 @@ function values = read_char_record(fid, header)
    if header.number > 0,
       n      = header.number;
       prec   = header.prec;
-      blksiz = header.blksiz;
-
-      kws   = [];
-      nchar = blksiz * header.size;
-      while n > blksiz,
-         a   = reshape(readField(fid, nchar, prec), 1, []);
-
-         kws = [kws, a];         %#ok    % Willfully ignore MLINT warnings.
-
-         n   = n - blksiz;
-      end
-
-      a      = reshape(readField(fid, n * header.size, prec), 1, []);
-      values = { cellstr(char(reshape([kws, a], 8, []) .')) };
+      a      = reshape(fread(fid, n * header.size, prec, 8), 1, []);
+      values = { cellstr(char(reshape(a, 8, []) .')) };
+      % skip to start of next header unless n is muliplum of 840 in which 
+      % case the skip has already been performed 
+      if ~feof(fid) && mod(n, 840)~=0, fseek(fid, 8, 'cof');end
    else
       values = { [] };
    end
@@ -204,7 +181,6 @@ end
 
 function size = get_type_size(type)
    size = 4;
-
    if any(strcmp(type, {'CHAR', 'DOUB'})),
       size = 8;
    end
@@ -224,28 +200,14 @@ end
 
 function precision = get_type_prec(type)
    switch type,
-      case 'INTE', precision = 'int32';
-      case 'REAL', precision = 'float32';
-      case 'DOUB', precision = 'float64';
-      case 'CHAR', precision = 'char';
-      case 'LOGI', precision = 'int32';
+      case 'INTE', precision = '1000*int32';
+      case 'REAL', precision = '1000*float32';
+      case 'DOUB', precision = '1000*float64';
+      case 'CHAR', precision = '840*uchar=>char';
+      case 'LOGI', precision = '1000*int32';
       otherwise,
          error('Field type ''%s'' is unsupported.', type);
    end
 end
 
-%--------------------------------------------------------------------------
 
-function values = readField(fid, n, precision)
-   skip_separator(fid);
-
-   values = fread(fid, n, precision, 'ieee-be');
-
-   skip_separator(fid);
-end
-
-%--------------------------------------------------------------------------
-
-function skip_separator(fid)
-   fseek(fid, 4, 'cof');
-end
