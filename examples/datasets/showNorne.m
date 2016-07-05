@@ -3,7 +3,7 @@
 % reservoir is found in Jurrasic sandstone at a depth of 2500 meter below
 % sea level. Operator Statoil and partners (ENI and Petoro) have agreed
 % with NTNU to release large amounts of subsurface data from the Norne
-% field for research and education purposes.  TheH
+% field for research and education purposes.  The
 % <http://www.ipt.ntnu.no/~norne/wiki/doku.php Norne Benchmark> datasets
 % are hosted and supported by the Center for Integrated Operations in the
 % Petroleum Industry (IO Center) at NTNU. Recently, the
@@ -16,13 +16,21 @@
 mrstModule add deckformat
 
 %% Read and process the model
-% For simplicity, we assume that all the pertinent sections of the model
-% have been downloaded and concatenated into a single input model. To get
-% the grid, it is sufficient to concatenate the two files
-% |IRAP_1005.GRDECL| and |ACTNUM_0704.prop| into a single file, which we
-% here have called |OPM.GRDECL|. Refer to |showSAIGUP| for a more
-% in-depth discussion of how to read and process such input data.
-grdecl = fullfile(getDatasetPath('norne'), 'OPM.GRDECL');
+% As the Norne dataset is available from the OPM project's public GitHub
+% repository, we can download a suitable subset of the simulation model and
+% process that subset.  Function |makeNorneSubsetAvailable| checks if the
+% corner-point geometry and associate petrophysical properties (porosity,
+% permeability and net-to-gross factors) is already available and downloads
+% this subset if it is not.  Similarly, function |makeNorneGRDECL| creates
+% a simple .GRDECL file with a known name that includes the datafiles in
+% the correct order.  We refer to example |showSAIGUP| for a more in-depth
+% discussion of how to read and process such input data.
+
+if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
+   error('Unable to obtain simulation model subset');
+end
+
+grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
 usys   = getUnitSystem('METRIC');
 grdecl = convertInputUnits(grdecl, usys);
