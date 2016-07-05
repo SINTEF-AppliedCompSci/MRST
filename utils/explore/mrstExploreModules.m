@@ -35,15 +35,25 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    df = get(0, 'DefaultFigurePosition');
-    
+    persistent f
+    if ~isempty(f) && ishandle(f)
+        % Avoid creating more than one window, since we can't rely on close all
+        % to get rid of them.
+        close(f)
+    end
+
+    figNo = 100;
+    while ishandle(figNo)
+        figNo = figNo + 1;
+    end
     modules = sort(mrstPath());
     modules = ['MRST'; modules];
     lwidth = 0.20;
     midwidth = 1 - 2*lwidth;
     midpos = [lwidth, 0, midwidth, .5];
     [examples, examplenames] = deal([]);
-    f = figure;
+    df = get(0, 'DefaultFigurePosition');
+    f = figure(figNo);
     set(f,     'Name',          'MRST module explorer', ...
                'Toolbar',       'none', ...
                'NumberTitle',   'off', ...
@@ -105,10 +115,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             module = 'core';
             name = 'MRST Core';
         else
-            set(descr, 'String', getDescription(module))
             m = {module};
             name = ['Module "', module, '"'];
         end
+         set(descr, 'String', getDescription(module))
         delete(paperh);
         set(titl, 'String', name);
         
@@ -139,10 +149,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargout > 0
         varargout{1} = f;
     end
+    set(f, 'HandleVisibility',  'off')
 end
 
 function d = getDescription(module)
-    if strcmpi(module, 'mrst')
+    if strcmpi(module, 'core')
         pth = ROOTDIR();
     else
         pth = mrstPath(module);
