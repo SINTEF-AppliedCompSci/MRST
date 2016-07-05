@@ -21,6 +21,24 @@ function [grdecl, unrec] = readGRDECL(fn, varargin)
 %                             keywords. NB! Are interpreted as one value
 %                             per cell. Default value: {}
 %
+%               - missing_include --
+%                             Callback function through which to handle
+%                             missing INCLUDE files.  Must support the
+%                             syntax
+%
+%                                missing_include(id, msg)
+%
+%                             with 'id' being a message ID and 'msg' being
+%                             a string (diagnostic message).
+%
+%                             Default value: missing_include = @error (end
+%                             input reading with an error/failure if we
+%                             encounter a missing INCLUDE file).
+%
+%                             Other possible values are @warning (report
+%                             warning), @(varargin) [] (ignore everything)
+%                             and similar.
+%
 % RETURNS:
 %   grdecl - Output structure containing the known, though mostly
 %            unprocessed, fields of the GRDECL specification, i.e., the
@@ -75,10 +93,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-opt = struct('verbose' , mrstVerbose, ...
-             'cartDims', []         , ...
-             'grdecl'  , []         , ...
-             'keywords', {{}});
+opt = struct('verbose'        , mrstVerbose, ...
+             'cartDims'       , []         , ...
+             'grdecl'         , []         , ...
+             'keywords'       , {{}}       , ...
+             'missing_include', @error);
 opt = merge_options(opt, varargin{:});
 
 if isempty(opt.grdecl),
@@ -155,10 +174,17 @@ while ~feof(fid),
                inc_fn = fullfile(fileparts(fn), inc_fn);
             end
 
+            if ~ exist(inc_fn, 'file')
+               msg = sprintf('Include file ''%s'' missing', inc_fn);
+               opt.missing_include('INCLUDE:Missing', msg);
+               continue
+            end
+
             dispif(opt.verbose, ' -> ''%s''\n', inc_fn);
             grdecl = readGRDECL(inc_fn, 'cartDims', cartDims, ...
                                 'verbose', opt.verbose,       ...
-                                'grdecl', grdecl);
+                                'grdecl', grdecl,             ...
+                                'missing_include', opt.missing_include);
             dispif(opt.verbose, ' <- ''%s''\n', inc_fn);
 
             if isempty(cartDims) && isfield(grdecl, 'cartDims') && ...
