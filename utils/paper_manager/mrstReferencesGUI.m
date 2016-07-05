@@ -91,7 +91,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'Style', 'text');
     function onClickPapers(src, event)
         ix = get(src, 'Value');
-        
         paper = papers(ix);
         
         if isempty(paper.authors)
@@ -116,7 +115,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function openFieldBrowser(src, event, fld)
-        ix = get(src, 'Value');
+        ix = get(picker, 'Value');
         paper = papers(ix);
         f = paper.(fld);
         if isempty(f)
