@@ -120,13 +120,10 @@ plotGrid(G(2),pargs{:},'FaceColor','r');
 view(-110,50), axis tight off, set(gca,'DataAspect',[20 11 1]); zoom(1.7);
 
 %% Outline petrophysical properties
-% To also include the petrophysical data, we need to either also
-% concatenate the files |NTG_0704.prop|, |PERM_0704.prop|, and
-% |PORO_0704.prop| into the same input file as the grid specification, or
-% alternatively work with the full data file and remove the parts that we
-% are not interested in. Here, we assume that this has been done so that
-% the necessary data has been read into the |grdecl| structure.  We can
-% then extract the petrophysical properties. Notice that here, the rock 
+% The petrophysical properties are included in the simulation model subset
+% represented by function |makeNorneSubsetAvailable|.  Consequently, the
+% necessary data has been read into the |grdecl| structure.  We can then
+% extract the petrophysical properties. Notice that here, the rock
 close all, G = G(1);
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
 
