@@ -149,7 +149,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargout > 0
         varargout{1} = f;
     end
-    set(f, 'HandleVisibility',  'Callback')
+    set(f, 'HandleVisibility',  'off')
 end
 
 function d = getDescription(module)
