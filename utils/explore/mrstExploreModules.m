@@ -115,10 +115,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             module = 'core';
             name = 'MRST Core';
         else
-            set(descr, 'String', getDescription(module))
             m = {module};
             name = ['Module "', module, '"'];
         end
+         set(descr, 'String', getDescription(module))
         delete(paperh);
         set(titl, 'String', name);
         
@@ -153,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function d = getDescription(module)
-    if strcmpi(module, 'mrst')
+    if strcmpi(module, 'core')
         pth = ROOTDIR();
     else
         pth = mrstPath(module);
