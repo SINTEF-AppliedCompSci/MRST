@@ -113,6 +113,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         name = names{ix};
         
         fn(name);
+        axis auto;
     end
 
     drawPlot([], []);
