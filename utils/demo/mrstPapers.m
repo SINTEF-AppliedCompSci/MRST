@@ -1,4 +1,0 @@
-function papers = mrstPapers()
-    
-end
-
