@@ -31,6 +31,8 @@ function paper = createPaperStruct(id, name, varargin)
 %   'modules'   - Cell array of the names modules where the paper is
 %                 relevant as documentation or background information.
 %
+%   'doi'       - Digital object identifier for the publication.
+%
 % RETURNS:
 %   paper   - Struct with defaulted values for keywords not specified.
 %
@@ -59,6 +61,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'published', '',...
                    'url', '',...
                    'year', -1, ...
+                   'doi',   '', ...
                    'modules', {{}}, ...
                    'fileurl', '');
     paper = merge_options(paper, varargin{:});
