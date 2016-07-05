@@ -99,8 +99,11 @@ nonlinearsolver = getNonLinearSolver(model, 'DynamicTimesteps', false, ...
 nonlinearsolver.useRelaxation = true;
 
 %% Visualize the properties of the black-oil fluid model
-
-inspectFluidModel(model)
+% We launch the interactive viewer for the black-oil fluid model, and
+% specify the pressure range for which the tables are given. Note that
+% extrapolation beyond the specified values for black-oil properties can
+% result in non-physical curves, depending on how the input was given.
+inspectFluidModel(model, 'pressureRange', (50:10:600)*barsa)
 
 %% Plotting the polymer properties
 h=figure(); clf
