@@ -73,6 +73,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          if strcmp(name, 'LGR') 
              lgrInfo = updateLGRInfo(lgrInfo, field); 
          end
+         
+         % need to check if nnchead is for lgs
+         if strcmp(name, 'NNCHEAD') 
+             gridno = field.values(2);
+             if gridno > 0
+                 lgrInfo = updateLGRInfo(lgrInfo, gridno);
+             end
+         end
+         
          if any(strcmp(name, {'ENDLGR', 'LGRSGONE'})) 
              lgrInfo.inLGRSection = false; 
          end
@@ -113,19 +122,22 @@ end
 
 %--------------------------------------------------------------------------
 
-function lgrInfo = updateLGRInfo(lgrInfo, field)
+function lgrInfo = updateLGRInfo(lgrInfo, input)
 if nargin == 0
     lgrInfo = struct('curLGRNum',         0, ...
                      'inLGRSection',  false, ...
                      'names',          {{}});
-else
-    curname  = field.values{1};
+elseif isstruct(input) % input is lgr-field
+    curname  = input.values{1};
     curnum   = find(strcmp(curname, lgrInfo.names), 1);
     if isempty(curnum)
         curnum = numel(lgrInfo.names) + 1;
         lgrInfo.names{curnum} = curname;
     end
     lgrInfo.curLGRNum    = curnum;
+    lgrInfo.inLGRSection = true;
+elseif isnumeric(input) % nnc-info for local grid
+    lgrInfo.curLGRNum  = input(1);
     lgrInfo.inLGRSection = true;
 end
 end
