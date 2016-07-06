@@ -1,8 +1,4 @@
 function [div] = VEM_div(G)
-
-%{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
     if (G.griddim == 3)
         div = VEM3D_div(G);
     else
