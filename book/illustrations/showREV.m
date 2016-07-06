@@ -14,7 +14,7 @@ text(1e-5,0.85,'Microscopic effects','FontSize',12);
 hold off
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -51,7 +51,7 @@ axis tight off, view(150,50), zoom(1.2)
 % axis tight off, view(104,28);
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

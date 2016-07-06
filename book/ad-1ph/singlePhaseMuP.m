@@ -194,7 +194,7 @@ legend('c_\mu=0', 'c_\mu=0.002', 'c_\mu=0.005',4);
 axis tight
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
