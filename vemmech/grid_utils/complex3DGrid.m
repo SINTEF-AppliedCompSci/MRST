@@ -44,18 +44,18 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
                                      'BedModel2.grdecl'));
         grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
         grdecl = cutGrdecl(grdecl, [10 25;35 55;1 22]);
-        if(opt.vertical)
+        if (opt.vertical)
             grdecl_org = verticalGrdecl(grdecl);
         else
             grdecl_org = grdecl;
         end
         G_org = processGRDECL(grdecl_org);
-        if(opt.triangulate)
+        if (opt.triangulate)
             faces = unique(G_org.cells.faces(any(bsxfun(@eq, G_org.cells.faces(:, 2), [5, 6]), 2), 1));
             G_org = triangulateFaces(G_org, faces');
         end
-        grdecl = padGrdecl(grdecl, [true, true, true], [60 50;40 40;10 10]*3, 'relative', true);
-        if(opt.vertical)
+        grdecl = padGrdecl(grdecl, [true, true, true], [60 50; 40 40; 10 10]*3, 'relative', true);
+        if (opt.vertical)
             grdecl = verticalGrdecl(grdecl);
         end
         grdecl = refineGrdeclLayers(grdecl, [1 1], opt.ref);
