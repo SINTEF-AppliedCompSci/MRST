@@ -99,7 +99,7 @@
 %        Number of global faces in grid.
 %
 %    - nodePos --
-%        Indirection map of size [num+1,1] into the 'faceNodes' array.
+%        Indirection map of size [num+1,1] into the 'faces.nodes' array.
 %        Specifically, the node information of face 'i' is found in the
 %        submatrix
 %
