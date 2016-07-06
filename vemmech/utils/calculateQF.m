@@ -11,7 +11,6 @@ function [qf, qf_vol] = calculateQF(G)
 %   G - Grid structure
 %
 % RETURNS:
-
 %
 %   qf     -    Elementary assembly integrals : One (2D) vector value in each
 %               cell, which corresponds to the two components of the integral of
