@@ -5,22 +5,21 @@ function [CG, interaction, triangulations] = storeInteractionRegion(CG, varargin
 %   CG = storeInteractionRegion(CG);
 %
 % DESCRIPTION:
-%   Compute and store the interaction regions for coarse blocks. Each
-%   coares block will be assigned a set of fine cells for which a MsRSB
-%   basis function will be supported. The underlying functions use
+%   Compute and store the interaction/support regions for coarse blocks.
+%   Each coares block will be assigned a set of fine cells for which a
+%   MsRSB basis function will be supported. The underlying functions use
 %   delaunay triangulation to get the support for unstructured models.
 %
 % REQUIRED PARAMETERS:
 %   CG     - Desired coarse grid.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   TODO
-%
+%    localTriangulation - Use a local triangulation for each block. Usually
+%                         gives the best results.%
 % RETURNS:
-%  CG
+%  CG      - Coarsegrid with additional field CG.cells.interaction
 %
 % EXAMPLE:
-%    
 %
 % SEE ALSO:
 %   storeIteractionRegionCart
@@ -66,8 +65,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                    'centerOverride', opt.centerOverride, ...
                                    'edgeBoundaryCenters', opt.edgeBoundaryCenters);
     end
-    
-    
     % Extend face points outside of domain so that we have edge that reach
     % outside the domain
     facePts = G.faces.centroids(CG.faces.centers, :);
@@ -78,8 +75,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     interaction = cell(CG.cells.num, 1);
     [assigned, isCenter] = deal(false(G.cells.num, 1));
     isCenter(centers) = true;
-    
-    % faceCell = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .';
     faceNodePos = rldecode(1 : G.faces.num, diff(G.faces.nodePos), 2) .';
     
     if ~opt.localTriangulation
