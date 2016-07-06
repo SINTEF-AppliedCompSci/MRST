@@ -76,7 +76,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     centers = CG.cells.centers;
 
     interaction = cell(CG.cells.num, 1);
-    assigned = false(G.cells.num, 1);
+    [assigned, isCenter] = deal(false(G.cells.num, 1));
+    isCenter(centers) = true;
     
     % faceCell = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .';
     faceNodePos = rldecode(1 : G.faces.num, diff(G.faces.nodePos), 2) .';
@@ -97,20 +98,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         if sum(CG.partition == i) == 1 && opt.skipSingleCellBlocks
             c = find(CG.partition == i);
-            if 1
-                n = c;
-            else
-                n = G.faces.neighbors(any(G.faces.neighbors == c, 2), :);
-                n = unique(n(:));
-                n = n(n~=0);
-            end
-            interaction{i} = n;
-            assigned(n) = true;
+            interaction{i} = c;
+            assigned(c) = true;
             continue;
         end
         [coarseCells, coarseFaces] = coarseNeighbors(CG, i, opt.useMultipoint, faceNodePos);
         
-        coarseCells = [coarseCells; i]; %#ok not really the case
+        coarseCells = [coarseCells; i]; %#ok
         
         if opt.localTriangulation
             if opt.useFaces
@@ -189,6 +183,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ok(i) = true;
         
         isLocal = ok(CG.partition(cells));
+        % Avoid the centers of other blocks
+        isCenter(centers(i)) = false;
+        isLocal = isLocal & ~isCenter(cells);
+        isCenter(centers(i)) = true;
         
         interaction{i} = cells(isLocal);
         if opt.largeBasis
