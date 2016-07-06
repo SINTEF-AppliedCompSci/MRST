@@ -112,6 +112,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             set(openfile, 'Enable', 'on');
         end
+        if isempty(paper.doi)
+            set(getcitation, 'Enable', 'off');
+        else
+            set(getcitation, 'Enable', 'on');
+        end
     end
 
     function openFieldBrowser(src, event, fld)
@@ -124,6 +129,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             web(f, '-browser');
         end
     end
+
+    function getCitation(src, event)
+        ix = get(picker, 'Value');
+        paper = papers(ix);
+        f = paper.doi;
+        if isempty(f)
+            errordlg('No DOI supplied for paper!')
+        else
+            % We query the DOI database and request bibtex as output
+            opt = weboptions('ContentType', 'text', ...
+                             'KeyName', 'Accept', ...
+                             'KeyValue', 'application/x-bibtex');
+            bib = webread(['http://doi.org/', f], opt);
+            bib = regexprep(bib,' +',' ');
+            ch = figure('Position',      getCitationPosition(), ...
+                        'Name',          paper.name, ...
+                        'Toolbar',       'none', ...
+                        'NumberTitle',   'off', ...
+                        'MenuBar',       'none');
+            wrn = ['Bibtex entry automatically generated from DOI.org. ',...
+                   'Please verify information before using!'];
+            uicontrol(ch, 'Style', 'edit', ...
+                          'String', 'bibtex', ...
+                          'Max', 1e3, ...
+                          'String', {wrn, '', bib}, ...
+                          'Units', 'normalized', ...
+                          'HorizontalAlignment', 'left', ...
+                          'position', [0, 0, 1, 1]);
+        end
+    end
+
     bg = uipanel(panel, ...
                  'Units', 'normalized', ...
                  'Position', [0, 0, 1, .1]);
@@ -139,6 +175,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   'Style', 'pushbutton', ...
                   'String', 'Preprint', ...
                   'callback', @(src, event) openFieldBrowser(src, event, 'fileurl'));
+
+    getcitation = uicontrol(bg, 'Units', 'normalized',...
+                  'Position', [.4, 0, .2, 1], ...
+                  'Style', 'pushbutton', ...
+                  'String', 'Export citation', ...
+                  'callback', @(src, event) getCitation(src, event));
 
     onClickPapers(picker, []);
     % Return panel handle
@@ -158,3 +200,15 @@ function s = formatYear(yr)
     end
 end
 
+function pos = getCitationPosition()
+    % First, get dimensions of first monitor
+    monpos = get(0, 'MonitorPositions');
+    monsz = monpos(1, 3:4);
+    % Try to create a window that is reasonably large, but not so large
+    % that it is bigger than the monitor itself
+    w = min(0.5*monsz(1), 1000);
+    h = min(0.5*monsz(2), 400);
+    % Place the window centered
+    start = (monsz - [w, h])/2;
+    pos = [start, w, h];
+end
