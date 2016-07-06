@@ -79,7 +79,7 @@ function [Res, Jac, gflux, q] = twophaseJacobian(G, state, rock, fluid, varargin
 %   - multipliers for gravity flux.  Handle this in 'getFlux'
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

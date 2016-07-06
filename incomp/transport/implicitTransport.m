@@ -114,7 +114,7 @@ function [state, report] = implicitTransport(state, G, tf, ...
 %   explicitTransport, private/twophaseJacobian, private/newtonRaphson2ph.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

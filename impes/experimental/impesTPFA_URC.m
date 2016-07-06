@@ -150,7 +150,7 @@ function [state,dt,report,sreport] = impesTPFA_URC(state0, G, T, fluid, dt, pv, 
 %   compTPFA, poreVolume.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

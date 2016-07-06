@@ -107,7 +107,7 @@ subplot('Position',[0.51 0.25 0.48 0.5]),
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

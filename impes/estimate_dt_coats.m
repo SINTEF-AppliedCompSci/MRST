@@ -6,7 +6,7 @@ function dt=estimate_dt_coats(G,trans,pv,mob,dmob,p,rho,pc,dpc,clf_fac)
 % assumption of black oil model i.e. water do not mix with gas.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
