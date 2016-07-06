@@ -195,7 +195,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function d = getDescription(module)
-    if strcmpi(module, 'core')
+    if strcmpi(module, 'mrst')
         pth = ROOTDIR();
     else
         pth = mrstPath(module);
