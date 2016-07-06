@@ -150,7 +150,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             errordlg('No DOI supplied for paper!')
         else
             % We query the DOI database and request bibtex as output
-            if exist('weboptions', 'file') && 0
+            if exist('weboptions', 'file')
                 opt = weboptions('ContentType', 'text', ...
                                  'KeyName', 'Accept', ...
                                  'KeyValue', 'application/x-bibtex');
