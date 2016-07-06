@@ -110,10 +110,10 @@
 %
 %    - nodes --
 %        A (G.faces.nodePos(end)-1)-by-2 array of vertices in the grid.
-%        Specifically, if 'faces.nodes(i,1)==j', then local vertex `i' is
-%        part of global face number `j' and corresponds to global vertex
-%        'faces.nodes(i,2)'.  To conserve memory, only the last column is
-%        stored.  The first column can be constructed using the statement
+%        Specifically, if 'faces.nodes(i,1)==j', then global vertex
+%        'faces.nodes(i,2)' is part of the global face number `j'. To conserve
+%        memory, only the last column is stored. The first column can be
+%        constructed using the statement
 %
 %           rldecode(1:G.faces.num, diff(G.faces.nodePos), 2) .'
 %
