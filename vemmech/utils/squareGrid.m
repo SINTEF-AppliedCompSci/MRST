@@ -4,10 +4,9 @@ function G = squareGrid(cartDims, L, varargin)
 %   G = squareGrid(cartDims, L, varargin)
 %
 % DESCRIPTON:
-% make square with different grid types starting from cartesian.
-% Try for example:
-% figure()
-% plotGrid(squareGrid([4, 4],[3, 3], 'grid_type', 'boxed4', 'disturb', 0.1))
+% make square with different irregular grid types starting from cartesian.
+%
+% run script exploreSquareGrid.m to see the different possibilities
 %
 % REQUIRED PARAMETERS:
 %   cartDims  - Cartesian dimensions
