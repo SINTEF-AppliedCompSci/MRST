@@ -31,7 +31,7 @@ function G = computeGeometryVE(G, varargin)
 %   PLEASE NOTE: Face normals have length equal to face areas
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

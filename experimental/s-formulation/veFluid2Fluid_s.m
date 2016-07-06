@@ -3,7 +3,7 @@ function fluidimp = veFluid2Fluid(G,fluid,H)
 % used with s-formulation, at the moment hack and hardcoded geometry
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

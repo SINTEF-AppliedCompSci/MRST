@@ -79,7 +79,7 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
 %   - multipliers for gravity flux.  Handle this in 'getFlux'
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -847,7 +847,7 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc)
 %   - implement gravity effects for pressure boundary and wells
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

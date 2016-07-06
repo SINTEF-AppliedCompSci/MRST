@@ -34,7 +34,7 @@ function varargout = plotPlume(G, Gt, h, varargin)
 %   plotCellData, plotGrid, newplot, patch, shading.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

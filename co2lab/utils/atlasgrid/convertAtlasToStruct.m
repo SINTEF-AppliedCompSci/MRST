@@ -34,7 +34,7 @@ function sqform = convertAtlasToStruct(meta_thick, meta_top, data_thick, data_to
 %   getAlasGrid
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

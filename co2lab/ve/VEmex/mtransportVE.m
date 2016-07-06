@@ -76,7 +76,7 @@ function varargout = mtransportVE(sol, Gt, dT, rock, fluid, varargin)
 %   h_max - Maximal thickness of CO2.   
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

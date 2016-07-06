@@ -22,7 +22,7 @@ function f1 = family_1(family_2)
 %   readEclipseDeck, writeDeck.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
