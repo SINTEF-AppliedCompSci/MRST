@@ -23,7 +23,7 @@ function p = compressPartition(p)
 %   partitionCartGrid, partitionUI, processPartition, generateCoarseGrid.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

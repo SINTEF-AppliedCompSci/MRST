@@ -5,7 +5,7 @@
 %   msMatrixStructure.m - Build synthetic matrix with same sparsity as hybrid coarse system matrix.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

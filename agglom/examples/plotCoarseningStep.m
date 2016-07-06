@@ -19,7 +19,7 @@ function plotCoarseningStep(p, G, I1, I2, L, U, no, flag)                  %#ok<
 %          coarse blocks
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

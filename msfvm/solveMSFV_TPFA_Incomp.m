@@ -124,7 +124,7 @@ function state = solveMSFV_TPFA_Incomp(state, G, CG, T, fluid, varargin)
 %   incompTPFA on which the multiscale solver is based
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -2,7 +2,7 @@ function Sp=computeMimeticIPGp(G, Gp, rock, varargin)
 % Wrapper for computeMimeticIP for periodic grids.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
