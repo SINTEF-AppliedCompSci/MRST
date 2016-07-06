@@ -27,7 +27,7 @@ function dyidx = dinterpTable(x, y, xi, varargin)
 %   dinterpq1, interpTable, interp1, spline.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

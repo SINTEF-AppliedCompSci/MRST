@@ -2,7 +2,7 @@ function [info, present] = dataset_caseb4()
 % Info function for CaseB4 dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

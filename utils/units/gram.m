@@ -11,7 +11,7 @@ function m = gram()
 %   m - Numeric value, in units of kilogram, of a mass of one gram.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

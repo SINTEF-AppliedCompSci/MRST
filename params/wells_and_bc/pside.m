@@ -64,7 +64,7 @@ function bc = pside(bc, G, side, pressure, varargin)
 %   fluxside, addBC, grid_structure.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

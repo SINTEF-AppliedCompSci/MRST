@@ -2,7 +2,7 @@ function [info, present] = dataset_bedmodel2()
 % Info function for bedModel2 dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -132,7 +132,7 @@ bar(f(x(:,1),x(:,2)).^.1,'b'); axis tight; set(gca,'YTick',[]);
 
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
