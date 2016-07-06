@@ -56,8 +56,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                    'centerOverride', opt.centerOverride, ...
                                    'edgeBoundaryCenters', opt.edgeBoundaryCenters);
     end
-
-    
     ijk = gridLogicalIndices(G);
     ijk = [ijk{:}];
     

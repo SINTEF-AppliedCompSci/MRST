@@ -20,13 +20,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-
     s = incompTPFA(state, G, T, fluid, ...
                                       'use_trans', numel(T) == G.faces.num, ...
                                       varargin{:}, ...
                                       'LinSolve', @(A, x) zeros(size(x, 1), 1), 'MatrixOutput', true);
-    
     A = s.A;
     rhs = s.rhs;
 end

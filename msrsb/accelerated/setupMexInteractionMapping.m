@@ -1,4 +1,5 @@
 function CG = setupMexInteractionMapping(CG, varargin)
+% Setup mex mapping for cppMultiscaleBasis
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

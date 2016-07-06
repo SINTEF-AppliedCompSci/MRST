@@ -1,3 +1,7 @@
+/*
+ * Copyright 2016 (c) SINTEF ICT, Applied Mathematics.
+ * Maintained by Olav Moyner <olav.moyner@sintef.no>
+ */
 #include <iostream>
 #include "basis_solver.h"
 #include <string>
@@ -8,7 +12,6 @@
 #include <omp.h>
 #include "main.h"
 
-// #define USEMEX
 #ifdef USEMEX
 #include <mex.h>
 #include <matrix.h>

@@ -39,8 +39,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-
     opt = struct('enforceCenter', false, ...
                  'iterations',    round(10*CG.parent.cells.num/CG.cells.num), ...
                  'incrementTol',  1e-3, ...
@@ -54,8 +52,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
     centers = mapCenters(CG);
     CG.cells.centers = centers;
-    
-    
     A = A - diag(sum(A, 2));
     
     if ~isfield(CG.cells, 'interaction')
@@ -124,6 +120,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 function increment = removeOutOfBounds(increment, interactionMap)
-
     increment = increment.*interactionMap;
 end

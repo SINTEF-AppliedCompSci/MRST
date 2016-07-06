@@ -15,7 +15,7 @@ function [CG, interaction, triangulations] = storeInteractionRegion(CG, varargin
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %    localTriangulation - Use a local triangulation for each block. Usually
-%                         gives the best results.%
+%                         gives the best results.
 % RETURNS:
 %  CG      - Coarsegrid with additional field CG.cells.interaction
 %

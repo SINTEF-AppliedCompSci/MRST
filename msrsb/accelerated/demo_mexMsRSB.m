@@ -1,4 +1,4 @@
-mrstModule add coarsegrid new-multiscale scratchpad libgeometry
+mrstModule add coarsegrid msrsb libgeometry incomp
 % Some different test cases
 testcase = 'simple';
 

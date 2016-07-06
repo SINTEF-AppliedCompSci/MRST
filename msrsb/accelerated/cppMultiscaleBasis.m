@@ -1,4 +1,5 @@
 function [I, report] = cppMultiscaleBasis(CG, A, varargin)
+% Create MsRSB basis using MEX code
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

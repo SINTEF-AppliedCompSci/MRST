@@ -1,3 +1,7 @@
+/*
+ * Copyright 2016 (c) SINTEF ICT, Applied Mathematics.
+ * Maintained by Olav Moyner <olav.moyner@sintef.no>
+ */
 #pragma once
 #include "data_defs.h"
 #include <string>

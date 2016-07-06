@@ -1,3 +1,7 @@
+/*
+ * Copyright 2016 (c) SINTEF ICT, Applied Mathematics.
+ * Maintained by Olav Moyner <olav.moyner@sintef.no>
+ */
 #include <iostream>
 #include "basis_solver.h"
 #include <fstream>

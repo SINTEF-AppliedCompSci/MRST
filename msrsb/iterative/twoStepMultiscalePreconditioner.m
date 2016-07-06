@@ -1,5 +1,5 @@
 function x = twoStepMultiscalePreconditioner(A, b, solveCoarse, smooth, it)
-% Apply two step multiscale preconditioner
+% Apply two step multiscale preconditioner. Internal routine.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -19,7 +19,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
     if nargin < 5
         it = 1;
     end

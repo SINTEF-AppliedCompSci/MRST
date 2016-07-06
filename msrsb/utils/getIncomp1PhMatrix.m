@@ -24,6 +24,7 @@ if nargin < 3
 end
 
 if nargin < 4
+    require incomp
     fluid = initSingleFluid('rho', 1, 'mu', 1);
 end
 
