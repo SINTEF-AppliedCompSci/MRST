@@ -1,28 +1,32 @@
 function G = squareGrid(cartDims, L, varargin)
-% make square with different grid types starting from cartesian
 %
 % SYNOPSIS:
 %   G = squareGrid(cartDims, L, varargin)
 %
 % DESCRIPTON:
+% make square with different grid types starting from cartesian.
+% Try for example:
 % figure()
 % plotGrid(squareGrid([4, 4],[3, 3], 'grid_type', 'boxed4', 'disturb', 0.1))
-% 
+%
 % REQUIRED PARAMETERS:
-%   cartDims  - 
-% 
-%   L         -
+%   cartDims  - Cartesian dimensions
+%   L         - Physical lengths
 %
 % OPTIONAL PARAMETERS:
-%    
-%   grid_type
 %
-%   disturb
+%   grid_type - Possible types are  'cartgrid' 'triangle' 'pebi' 'boxes[1-4]'
+%               'mixed[1-4]'. Run the scripts given in the comments below to
+%               see how the grid look likes. Only the 'cartgrid' type is
+%               implemented for 3D. The others apply uniquely for 2D.
+%   disturb   - The grids can be twisted, essentially to break the Cartesian
+%               structure. The parameter disturb determines the amount of
+%               twisting that is introduced.
 %
-% RETURNS: 
-% 
-%   G   - grid
-    
+% RETURNS:
+%
+%   G   - Grid structure
+
 
     opt = struct('grid_type' , 'cartgrid', ...
                  'disturb'   , 0.0);
@@ -36,16 +40,18 @@ function G = squareGrid(cartDims, L, varargin)
     else
         assert(strcmp(opt.grid_type, 'cartgrid'))
     end
-    
+
     switch opt.grid_type
-      
+
       case 'cartgrid'
+        % Standard Cartesian grid
         G = cartGrid(opt.cartDims, opt.L);
         if(opt.disturb > 0)
             G = twister(G, opt.disturb);
         end
-      
+
       case 'triangle'
+        % Grid made of triangles
         G_tmp = cartGrid(opt.cartDims, opt.L);
         if(opt.disturb > 0)
             G_tmp = twister(G_tmp, opt.disturb);
@@ -53,8 +59,9 @@ function G = squareGrid(cartDims, L, varargin)
         p = [G_tmp.nodes.coords(:, 1), G_tmp.nodes.coords(:, 2)];
         t = delaunayn(p);
         G = triangleGrid(p, t);
-      
+
       case 'pebi'
+        % Pebi grid, dual of delaunay grid.
         G_tmp = cartGrid(opt.cartDims, opt.L);
         if(opt.disturb > 0)
             G_tmp = twister(G_tmp, opt.disturb);
@@ -65,16 +72,17 @@ function G = squareGrid(cartDims, L, varargin)
         G = pebi(G);
         G = removeShortEdges(G, min(opt.L)/(max(opt.cartDims)*10));
         G = sortEdges(G);
-      
+
       case   {'boxes1', 'boxes2', 'boxes3', 'boxes4'}
         % boxes side by side
         % 4 alternatives
-        % Run : 
+        % Run :
         %
         % figure()
         % plotGrid(squareGrid([4, 4],[3, 3], 'grid_type', 'boxed4', 'disturb', 0.1))
         %
-        % to see result for each type
+        % and change 'boxes4' to to the other parameters to explore the
+        % different alternatives that are proposed.
         G1 = cartGrid(opt.cartDims, opt.L);
         G2 = cartGrid(2*opt.cartDims+1, opt.L);
         G = glue2DGrid(G1, translateGrid(G2, [opt.L(1), -0.0]));
@@ -106,16 +114,17 @@ function G = squareGrid(cartDims, L, varargin)
         G.nodes.coords(:, 1) = G.nodes.coords(:, 1)*opt.L(1)./Lx;
         G.nodes.coords(:, 2) = G.nodes.coords(:, 2)*opt.L(2)./Ly;
         G = sortEdges(G);
-      
+
       case   {'mixed1', 'mixed2', 'mixed3', 'mixed4'}
         % Mixes cells with different types, Cartesian, pebi and triangles
         % 4 alternatives
-        % Run : 
+        % Run :
         %
         % figure()
         % plotGrid(squareGrid([4, 4],[3, 3], 'grid_type', 'mixed4', 'disturb', 0.1))
         %
-        % to see result for eacj type.
+        % and change 'mixed4' to to the other parameters to explore the
+        % different alternatives that are proposed.
         G1 = squareGrid(opt.cartDims, opt.L, 'grid_type', 'cartgrid', 'disturb', opt.disturb);
         G2 = squareGrid(opt.cartDims+1, opt.L, 'grid_type', 'pebi', 'disturb', opt.disturb);
         G = glue2DGrid(G1, translateGrid(G2, [opt.L(1), -0.0]));
@@ -148,11 +157,11 @@ function G = squareGrid(cartDims, L, varargin)
         G.nodes.coords(:, 1) = G.nodes.coords(:, 1)*opt.L(1)./Lx;
         G.nodes.coords(:, 2) = G.nodes.coords(:, 2)*opt.L(2)./Ly;
         G = sortEdges(G);
-        
+
       otherwise
         error('no such grid type')
     end
-    
+
     if(~strcmp(opt.grid_type, 'cartgrid'))
         Lx  = max(G.nodes.coords(:, 1));
         Ly  = max(G.nodes.coords(:, 2));
