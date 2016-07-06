@@ -28,7 +28,6 @@ G=computeGeometry(G);
 % gennerate extra mappings needed
 G=mrstGridWithFullMappings(G);
 % generate weights needed
-G=computeGeometryCalc(G);
 figure()
 clf,plotGrid(G)
 %% Find sides of domain
