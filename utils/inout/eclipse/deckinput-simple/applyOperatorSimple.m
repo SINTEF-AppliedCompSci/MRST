@@ -35,7 +35,7 @@ function sect = applyOperatorSimple(sect, fid, cartDims, box, kw)
 %   readGRID, readEDIT, readPROPS, readREGIONS, readSOLUTION.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

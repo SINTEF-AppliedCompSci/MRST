@@ -181,7 +181,7 @@ displayEndOfDemoMessage(mfilename)
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

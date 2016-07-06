@@ -37,7 +37,7 @@ function [data, pos] = removeFromPackedData(pos, data, remove)
 %       removeFromPackedData(G.faces.nodePos, G.faces.nodes, 100:110);
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

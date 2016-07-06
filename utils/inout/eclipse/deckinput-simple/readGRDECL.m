@@ -73,7 +73,7 @@ function [grdecl, unrec] = readGRDECL(fn, varargin)
 %   processGRDECL.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

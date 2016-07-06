@@ -51,7 +51,7 @@ function [G, order, f] = glue2DGrid(G1, G2)
 %   computeGeometry.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
