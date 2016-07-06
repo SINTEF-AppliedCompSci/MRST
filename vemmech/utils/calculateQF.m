@@ -1,8 +1,8 @@
-function [qf, qf_vol] = calculateQF_vec(G)
+function [qf, qf_vol] = calculateQF(G)
 %
 %
 % SYNOPSIS:
-%   function [qf, qf_vol] = calculateQF_vec(G)
+%   function [qf, qf_vol] = calculateQF(G)
 %
 % DESCRIPTION:  Calculate elementary integrals that are used to assemble the
 % stiffness matrix for the 2D case. 

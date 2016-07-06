@@ -16,7 +16,7 @@ Copyright 2009 - 2014 SINTEF ICT, Applied Mathematics
                        (2 * (G.faces.neighbors(faces, 1) == cellfaces) - 1));
     nfl       = G.faces.nodePos(faces + 1) - G.faces.nodePos(faces);
     nvec  = bsxfun(@rdivide, nvec, G.faces.areas(faces));
-    [qc, qf] = calculateQC_vec(G);
+    [qc, qf] = calculateQC(G);
     nvec = bsxfun(@rdivide, nvec, G.faces.areas(faces));
     matel = reshape(bsxfun(@times, rldecode(nvec, nfl), qf(inodes))', [], 1);
     jind  = mcolon(G.griddim * (nodes - 1) + 1, G.griddim * (nodes - 1) + G.griddim);

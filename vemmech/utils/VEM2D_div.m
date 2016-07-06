@@ -14,14 +14,14 @@ end
 % ---------------------------------------------------------------------------- 
 
 function div = VEM2d_loc_int(G, opt)
-    qf     = calculateQF_vec(G); 
+    qf     = calculateQF(G); 
     qf     = reshape(qf', [], 1); 
     dofs   = mcolon(G.griddim * (G.cells.nodes - 1) + 1, ...
                     G.griddim * (G.cells.nodes - 1) + G.griddim); 
     ndofs  = G.nodes.num * G.griddim; 
     cellno = rldecode([1:G.cells.num]', diff(G.cells.nodePos) * G.griddim); 
     
-    if(opt.addface_dof)
+    if (opt.addface_dof)
         
         ncf        = diff(G.cells.facePos); 
         fcellno    = rldecode([1:G.cells.num]', ncf); 
@@ -38,35 +38,3 @@ function div = VEM2d_loc_int(G, opt)
     
 end
 
-% ---------------------------------------------------------------------------- 
-
-function div = VEM2d_loc(G)
-% Calculate the q used in the formulation so it is in G.cells.nodes format
-    qf = zeros(size(G.cells.faces, 1), 2); 
-    cellno = rldecode([1:G.cells.num]', diff(G.cells.nodePos)); 
-
-    for numblocks = 1 : 1
-        cells = 1:G.cells.num; 
-        inodes1 = mcolon(G.cells.nodePos(cells), G.cells.nodePos(cells + 1) - 2); 
-        inodes2 = mcolon(G.cells.nodePos(cells) + 1, G.cells.nodePos(cells + 1) - 1); 
-        ifaces = mcolon(G.cells.facePos(cells), G.cells.facePos(cells + 1) - 1); 
-        faces = G.cells.faces(ifaces, 1); 
-        sign = 2 * (G.faces.neighbors(faces, 1) == cellno) - 1; 
-        N = bsxfun(@times, G.faces.normals(faces', :), sign); 
-        qf(inodes1, :) = qf(inodes1, :) + N(inodes1, :); 
-        qf(inodes2, :) = qf(inodes2, :) + N(inodes1, :); 
-        qf(G.cells.nodePos(cells), :) = ... 
-            qf(G.cells.nodePos(cells), :) + ...
-            N(G.cells.nodePos(cells + 1) - 1, :); 
-        qf(G.cells.nodePos(cells + 1) - 1, :) = ...
-            qf(G.cells.nodePos(cells + 1) - 1, :) + ...
-            N(G.cells.nodePos(cells + 1) - 1, :); 
-        qf = qf / 2; 
-        inodes = mcolon(G.cells.nodePos(cells), G.cells.nodePos(cells + 1) - 1); 
-        nodes = G.cells.nodes(inodes); 
-        dofs = mcolon(2 * nodes - 1, 2 * nodes); 
-        cellnum = rldecode(cells', diff(G.cells.nodePos) * 2); 
-        qf = qf'; 
-        div = sparse(cellnum, dofs', qf(:), G.cells.num, 2 * G.nodes.num); 
-    end
-end

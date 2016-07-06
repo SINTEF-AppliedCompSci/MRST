@@ -1,7 +1,7 @@
-function [qc, qf, qcvol] = calculateQC_vec(G)
+function [qc, qf, qcvol] = calculateQC(G)
 %
 % SYNOPSIS:
-%   function [qc, qf, qcvol] = calculateQC_vec(G)
+%   function [qc, qf, qcvol] = calculateQC(G)
 %
 % DESCRIPTION:  Calculate elementary integrals that are used to assemble the
 % stiffness matrix for the 3D case. The precise definitions can be found in [Gain et al].
