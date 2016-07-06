@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    else
 
       s = [ row(tokens.unquoted)           ; ...
-            [ row(tokens.quoted), { '' } ] ]; ...
+            [ row(tokens.quoted), { '' } ] ];
    end
 
    s = explode(row(s));
