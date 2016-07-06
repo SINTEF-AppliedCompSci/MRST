@@ -31,7 +31,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    run_local();
 
    % Automatically load selected modules for backwards compatibility.
-   autoload = { 'incomp' };
+   autoload = {};
    load_compat_modules(autoload);
 
    % Display welcome message
@@ -88,6 +88,9 @@ end
 %--------------------------------------------------------------------------
 
 function load_compat_modules(mlist)
+   if isempty(mlist)
+       return
+   end
    p = mrstPath('search', mlist{:});
 
    if isempty(p),
