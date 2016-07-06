@@ -46,5 +46,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Split body into paragraphs and squash each paragraph to a single line
    % with words separated by single space.
-   h = normaliseTextBox([ t{1}, regexp(t{2}, '\n\s*\n', 'split') ]);
+   if numel(t)>1
+       h = normaliseTextBox([ t{1}, regexp(t{2}, '\n\s*\n', 'split') ]);
+   else
+       h = normaliseTextBox(t{1});
+   end
 end
