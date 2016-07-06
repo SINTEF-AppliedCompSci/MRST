@@ -8,7 +8,7 @@
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
 mrstModule add ad-core;         % NNC support for coarse grids
-mrstModule add new-multiscale;  % MsRSB solvers
+mrstModule add msrsb;           % MsRSB solvers
 mrstModule add mrst-gui;        % plotting routines
 checkMATLABversionHFM;
 
