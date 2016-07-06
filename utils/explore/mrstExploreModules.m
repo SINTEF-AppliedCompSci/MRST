@@ -188,7 +188,7 @@ function pos = getPanelPosition()
     monsz = monpos(1, 3:4);
     % Try to create a window that is reasonably large, but not so large
     % that it is bigger than the monitor itself
-    w = min(0.8*monsz(1), 1200);
+    w = min(0.8*monsz(1), 1500);
     h = min(0.8*monsz(2), 1000);
     % Place the window centered
     start = (monsz - [w, h])/2;
