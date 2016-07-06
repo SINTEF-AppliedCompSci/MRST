@@ -1,12 +1,12 @@
-function G = mrstGridWithFullMappings(G)
+function G = createAugmentedGrid(G)
 %
 %
 % SYNOPSIS:
-%   function G = mrstGridWithFullMappings(G)
+%   function G = createAugmentedGrid(G)
 %
 % DESCRIPTION: The grid structure as described by grid_structure lacks some
 % mappings and structures that are needed for the assembly of the VEM
-% method. Those are added by calling the function mrstGridWithFullMappings.
+% method. Those are added by calling the function createAugmentedGrid.
 %
 % PARAMETERS:
 %   G - Grid structure as described by grid_structure.

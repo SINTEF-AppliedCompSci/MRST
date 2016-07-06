@@ -26,7 +26,7 @@ end
 G=computeGeometry(G);
 
 % gennerate extra mappings needed
-G=mrstGridWithFullMappings(G);
+G=createAugmentedGrid(G);
 % generate weights needed
 figure()
 clf,plotGrid(G)

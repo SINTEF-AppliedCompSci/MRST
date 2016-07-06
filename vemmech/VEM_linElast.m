@@ -10,7 +10,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 %
 % PARAMETERS:
 %   G        - Grid structure as described by grid_structure, which also
-%              has the mappings from G = mrstGridWithFullMappings(G).
+%              has the mappings from G = createAugmentedGrid(G).
 %              Some options need G = computeGeometryCalc(G).
 %   C        - Elasticity tensor
 %   el_bc    - boundary condition of type struct('disp_bc', [], 'force_bc', [])

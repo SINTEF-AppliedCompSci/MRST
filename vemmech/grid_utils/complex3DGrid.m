@@ -11,13 +11,13 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
             G = triangulateFaces(G, [face]');
         end
         G = computeGeometry(G);
-        G = mrstGridWithFullMappings(G);
+        G = createAugmentedGrid(G);
 
       case 'grdecl'
 
         grdecl = simpleGrdecl([2, 1, 2]*ceil((1e3).^(1/griddim)), 0.15);
         G = processGRDECL(grdecl);
-        G = mrstGridWithFullMappings(G);
+        G = createAugmentedGrid(G);
         G = computeGeometry(G);
 
       case 'sbed'

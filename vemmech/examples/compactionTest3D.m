@@ -56,7 +56,7 @@ G = complex3DGrid(opt, grid_case);
 if (opt.flipgrid)
     G = flipGrid(G);
 end
-G = mrstGridWithFullMappings(G);
+G = createAugmentedGrid(G);
 G = computeGeometry(G);
 
 figure()

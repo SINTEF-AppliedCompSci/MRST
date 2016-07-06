@@ -170,6 +170,6 @@ function G = squareGrid(cartDims, L, varargin)
         end
         G.cells.faces = [G.cells.faces(:, 1), tag(G.cells.faces(:, 1))];
     end
-    G = mrstGridWithFullMappings(G);
+    G = createAugmentedGrid(G);
 
 end
