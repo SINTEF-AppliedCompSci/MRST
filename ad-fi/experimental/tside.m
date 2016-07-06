@@ -1,4 +1,4 @@
-function bc = pside(bc, G, side, T, varargin)
+function bc = tside(bc, G, side, T, varargin)
 %Impose pressure boundary condition on global side.
 %
 % SYNOPSIS:
@@ -88,7 +88,7 @@ if ~isfield(G, 'cartDims'),
          'PSIDE is not implemented for this grid type.');
 end
 
-error(nargchk(4, 10, nargin, 'struct'))
+mrstNargInCheck(4, 10, nargin);
 
 if nargin == 4 || ischar(varargin{1}),
    % pside(bc, G, side, p, ['pn1', pv1, ...]).  Use entire face.
