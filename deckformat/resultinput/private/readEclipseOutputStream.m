@@ -64,8 +64,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       if ~isempty(field),
          % '+' -> p, '-' -> 'n', and other non-word characters to '_'.
          %
-         name = regexprep(name, {'+', '-'}, {'p', 'n'});
-         name = genvarname(regexprep(name, '\W', '_'));
+         if ~isvarname(name)
+             name = regexprep(name, {'+', '-'}, {'p', 'n'});
+             name = genvarname(regexprep(name, '\W', '_'));
+         end
          
          % keep track of lgr-fields
          if strcmp(name, 'LGR') 
