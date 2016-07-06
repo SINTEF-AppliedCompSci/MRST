@@ -118,11 +118,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         module = mods{ix};
         if strcmpi(module, 'mrst')
             % Core mode
-            m = [];
             module = 'core';
             name = 'MRST Core';
         else
-            m = {module};
             name = ['Module "', module, '"'];
         end
         delete(paperh);
@@ -131,7 +129,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [examples, examplenames] = getExamples(module);
         set(exlist, 'String', examplenames);
         set(exlist, 'Value', 1);
-        paperh = mrstReferencesGUI(m, f, midpos);
+        paperh = mrstReferencesGUI({module}, f, midpos);
         setMainBoxText();
     end
 
@@ -188,7 +186,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         set(descr, 'String', str);
     end
 
-    onClickModule(modlist, []);
+    onClickModule(modlist, {'core'});
     
     if nargout > 0
         varargout{1} = f;
@@ -207,8 +205,10 @@ function d = getDescription(module)
     for i = 1:numel(files)
         if strcmpi(files(i).name, 'readme') || strcmpi(files(i).name, 'readme.txt')
             d = fileread(fullfile(pth, files(i).name));
-            d = mrstSplitText(d);
-            break;
+            if ~isempty(d)
+                d = mrstSplitText(d);
+                break;
+            end
         end
     end
 end
