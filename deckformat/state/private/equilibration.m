@@ -7,7 +7,7 @@ function [press, s, rs, rv] = equilibration(G, deck, fluid, pix)
 %   initEclipseState.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

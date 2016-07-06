@@ -12,7 +12,7 @@
 
 
 /*
-  Copyright 2011-2015 SINTEF ICT, Applied Mathematics.
+  Copyright 2011-2016 SINTEF ICT, Applied Mathematics.
 */
 
 #ifndef MRST_FLUID_H_HEADER

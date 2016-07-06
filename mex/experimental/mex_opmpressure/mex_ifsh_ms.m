@@ -21,7 +21,7 @@ function varargout = mex_ifsh_ms(varargin)
 %   mex_ifsh, mex_generate_coarsegrid, mex_generate_coarsesystem.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

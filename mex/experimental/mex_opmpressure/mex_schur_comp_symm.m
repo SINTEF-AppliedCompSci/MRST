@@ -64,7 +64,7 @@ function varargout = mex_schur_comp_symm(varargin)
 %   mex_ip_simple, mex_compute_press_flux.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

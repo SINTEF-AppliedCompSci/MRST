@@ -1,7 +1,7 @@
 function [W, x, G, fluid, deck, report, errorrept] = ...
       runAndCompareComp(dir, only_run, error_tol)
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

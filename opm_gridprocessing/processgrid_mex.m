@@ -20,7 +20,7 @@ function varargout = processgrid_mex(varargin)
 %   processGRDECL, readGRDECL, deactivateZeroPoro, removeCells.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -39,7 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-% Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 % Mex gateway by Jostein R. Natvig, SINTEF ICT.
 
 
