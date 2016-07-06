@@ -5,7 +5,7 @@ function [state, meta] = stepOW(state0, state, meta, dt, G, W, system, fluid, va
 % explanation of how the ad-fi solvers are implemented.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

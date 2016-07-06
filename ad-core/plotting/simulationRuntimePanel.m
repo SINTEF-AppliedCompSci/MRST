@@ -2,7 +2,7 @@ function ok = simulationRuntimePanel(model, states, ctrl_reports, solver, schedu
 % Internal function for drawing panel during simulation
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

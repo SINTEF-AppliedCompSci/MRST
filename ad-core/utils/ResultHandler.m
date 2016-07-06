@@ -27,7 +27,7 @@ classdef ResultHandler < handle
 %   Class instance that in some limited aspects acts like a cell array
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

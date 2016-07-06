@@ -2,7 +2,7 @@ function x = assignValue(x, v, inx)
 % Assign values to ADI object by way of indices, without changing jacobians
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
