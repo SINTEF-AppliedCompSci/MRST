@@ -90,6 +90,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Right column: List of examples and corresponding buttons
     exlist = uicontrol(f, 'Units', 'normalized', ...
                  'Position', [midwidth + lwidth, .05, lwidth, .95],...
+                 'Callback', @setMainBoxText, ...
                  'Style', 'listbox');
 
     uicontrol(f, 'Units', 'normalized', ...
@@ -118,7 +119,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             m = {module};
             name = ['Module "', module, '"'];
         end
-         set(descr, 'String', getDescription(module))
         delete(paperh);
         set(titl, 'String', name);
         
@@ -126,10 +126,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         set(exlist, 'String', examplenames);
         set(exlist, 'Value', 1);
         paperh = mrstReferencesGUI(m, f, midpos);
+        setMainBoxText();
     end
 
     function onClickExample(src, event)
-        ix = get(exlist, 'Value');
+        ix = gegt(exlist, 'Value');
         if isempty(examples)
             return
         end
@@ -142,6 +143,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         else
             edit(fn);
         end
+    end
+
+    function setMainBoxText(src, event)
+        ix = get(exlist, 'Value');
+        if isempty(examples)
+            fn = '';
+        else
+            fn = examples{ix};
+        end
+        
+        modNo = get(modlist, 'Value');
+        module = modules{modNo};
+        
+        if ~isempty(fn)
+            exDescr = help(fn);
+        else
+            exDescr = '';
+        end
+        modDescr = getDescription(module);
+        if isempty(exDescr)
+            str = modDescr;
+        else
+            exDescr = mrstSplitText(exDescr);
+            str = [modDescr, sprintf('\n'), 'Selected example:', exDescr];
+        end
+        set(descr, 'String', str);
     end
 
     onClickModule(modlist, []);
@@ -159,10 +186,11 @@ function d = getDescription(module)
         pth = mrstPath(module);
     end
     files = dir(pth);
-    d = 'No description available.';
+    d = ['No README available for ', module];
     for i = 1:numel(files)
         if strcmpi(files(i).name, 'readme') || strcmpi(files(i).name, 'readme.txt')
             d = fileread(fullfile(pth, files(i).name));
+            d = mrstSplitText(d);
             break;
         end
     end
