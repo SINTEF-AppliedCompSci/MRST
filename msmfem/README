@@ -1,1 +1,3 @@
-Routines supporting the Multiscale Mixed Finite-Element (MSMFE) method for the pressure equation.
+Implementation of the Multiscale Mixed Finite-Element (MsMFE) method for elliptic (Poisson-type) pressure equations.
+
+See also the msrsb and msfv modules for alternative multiscale methods.
