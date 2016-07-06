@@ -1,1 +1,1 @@
-This module contains support for streamline-based methods.
+This module implements Pollock's method for streamline-tracing on structured grids
