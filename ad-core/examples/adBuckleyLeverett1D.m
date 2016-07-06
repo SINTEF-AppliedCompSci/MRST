@@ -3,7 +3,7 @@
 % to basic functionality in the object-oriented automatic differentiation
 % framework.
 %
-% The Buckley-Leverett problem descirbes an incompressible displacement in
+% The Buckley-Leverett problem describes an incompressible displacement in
 % a 1D homogeneous and horizontal medium with water injected at the left
 % boundary x=0 and fluids produced at the right boundary x=L. We assume
 % that the fluids have unit viscosity and density and have relative
