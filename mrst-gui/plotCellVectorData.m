@@ -60,7 +60,7 @@ function handles = plotCellVectorData(G, data, varargin)
 %   plotCellData, plotToolbar, quiver3, quiver
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

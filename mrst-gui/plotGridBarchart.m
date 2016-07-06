@@ -2,7 +2,7 @@ function plotGridBarchart(G, data, varargin)
 % Plot barcharts on top of grid for cell data
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

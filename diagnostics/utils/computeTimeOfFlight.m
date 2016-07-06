@@ -114,7 +114,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %   simpleTimeOfFlight, solveIncompFlow.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
