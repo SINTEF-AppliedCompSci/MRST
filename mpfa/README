@@ -1,1 +1,1 @@
-Routines supporting the MPFA-O method for the pressure equation.
+Implementation of the multipoint flux-approximation (MPFA-O) method for incompressible (Poisson-type) pressure equations
