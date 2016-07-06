@@ -1,4 +1,4 @@
-function varargout = mrstReferencesGUI(modules, parent, pos)
+function varargout = mrstReferencesGUI(modules, parent, pos, name)
 % Draw a panel for exploring relevant papers for MRST
 %
 % SYNOPSIS:
@@ -64,6 +64,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargin < 3
         pos = [0, 0, 1, 1];
     end
+    if nargin < 4
+        name = '';
+    end
     panel = uipanel(parent, 'position', pos);
     papers = getAvailablePapers();
     
@@ -77,10 +80,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(papers)
         papers = createPaperStruct('name', 'No papers found');
     end
-    
+    if ~isempty(name)
+        nh = .1;
+        uicontrol(panel, 'Style', 'text', ...
+                    'Units',    'normalized', ...
+                    'Position', [0, 1-nh, 1, nh], ...
+                    'FontSize', 16, ...
+                    'String',   name);
+    else
+        nh = 0;
+    end
     names = arrayfun(@(x) x.name, papers, 'UniformOutput', false);
     picker = uicontrol(panel, 'Units', 'normalized', ...
-                 'Position', [0, .4, 1, .6],...
+                 'Position', [0, .4, 1, .6-nh],...
                  'Style', 'listbox',...
                  'String', names, ...
                  'Callback', @onClickPapers);
