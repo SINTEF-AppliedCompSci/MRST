@@ -279,7 +279,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         
         function ws = updateWellSolStatistics(wellmodel, ws, sources, model)
             % Store extra output, typically black oil-like
-            perf2well = wellmodel.getPerfToWellMap();
+            p2w = wellmodel.getPerfToWellMap();
             
             gind = model.getPhaseIndex('G');
             oind = model.getPhaseIndex('O');
@@ -288,7 +288,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 bf  = cellfun(@double, wellmodel.bfactors, 'UniformOutput', false);
             else
                 bf = cell(numel(sources), 1);
-                [bf{:}] = deal(ones(size(perf2well)));
+                [bf{:}] = deal(ones(size(p2w)));
             end
             src = cellfun(@double, sources, 'UniformOutput', false);
             for i = 1:numel(ws)
@@ -296,21 +296,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 ws(i).qTs = 0;
                 ws(i).qTr = 0;
                 if model.gas
-                    tmp = sum(src{gind}(perf2well == i)./bf{gind}(perf2well == i));
+                    tmp = sum(src{gind}(p2w == i)./bf{gind}(p2w == i));
                     ws(i).qGr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qGs;
                 end
                 
                 if model.oil
-                    tmp = sum(src{oind}(perf2well == i)./bf{oind}(perf2well == i));
+                    tmp = sum(src{oind}(p2w == i)./bf{oind}(p2w == i));
                     ws(i).qOr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qOs;
                 end
                 
                 if model.water
-                    tmp = sum(src{wind}(perf2well == i)./bf{wind}(perf2well == i));
+                    tmp = sum(src{wind}(p2w == i)./bf{wind}(p2w == i));
                     ws(i).qWr = tmp;
                     ws(i).qTr = ws(i).qTr + tmp;
                     ws(i).qTs = ws(i).qTs + ws(i).qWs;
@@ -346,12 +346,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 qt_s = (qt_s + q_s{ph}).*wellStatus;
             end
             inj = double(qt_s) > 0;
-            perf2well = wellmodel.getPerfToWellMap();            
+            p2w = wellmodel.getPerfToWellMap();            
             compi = vertcat(wellmodel.W.compi);
-            perfcompi = compi(perf2well, :);
+            perfcompi = compi(p2w, :);
 
-            Rw    = sparse((1:numel(perf2well))', perf2well, 1, numel(perf2well), numel(wellmodel.W));
-            drawdown = -(Rw*bhp+vertcat(wellSol.cdp)) + wellmodel.referencePressure;
+            RMw    = sparse((1:numel(p2w))', p2w, 1, numel(p2w), numel(wellmodel.W));
+            drawdown = -(RMw*bhp+vertcat(wellSol.cdp)) + wellmodel.referencePressure;
             
             
             [kr, mu, sat] = deal(cell(1, nph));
@@ -392,12 +392,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 else
                     mu{ix} = f.muG(drawdown);
                 end
-                ix = ix + 1;
             end
             mob = cellfun(@(x, y) x./y, kr, mu, 'UniformOutput', false);
             
             for i = 1:nph
-                injperf = inj(perf2well);
+                injperf = inj(p2w);
                 wellmodel.mobilities{i}(injperf) = mob{i}(injperf).*perfcompi(injperf, i);
             end
         end
