@@ -46,22 +46,23 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   this_dir = fileparts(mfilename('fullpath'));
-
-   if nargin > 2,
-      varargin = stringify_values(varargin{:});
+   args = stringify_values(varargin{:});
+   
+   if ~isempty(args),
+      args = [ { 'get' }, { args } ];
    end
 
-   [res, stat] = perl(fullfile(this_dir, 'wget.pl'), ...
-                      file, url, varargin{:});
+   s = urlread(url, args{:});
 
-   if stat ~= 0,
-      warning('Download:Failed', ...
-              'Failed to download %s from %s: %s (Ignored).', ...
-              res, file, url);
+   [fid, msg] = fopen(file, 'wb');
 
-      file = [];
+   if fid < 0,
+      error('Open:Fail', 'Failed to open file ''%s'': %s', file, msg)
    end
+
+   fprintf(fid, '%s', s);
+
+   fclose(fid);
 end
 
 %--------------------------------------------------------------------------
