@@ -6,10 +6,16 @@
 %  A multiscale restriction-smoothed basis method for high contrast porous
 %  media represented on unstructured grids. J. Comput. Phys, Vol. 304, pp.
 %  46-71, 2016. DOI: 10.1016/j.jcp.2015.10.010
-
+%
+% Note that this example uses MEX-accelerated computation of basis functions
+% which requires that MEX is set up and configured to work with an
+% installed C++ compiler on your machine.
 
 mrstModule add coarsegrid msrsb ad-core mrst-gui incomp
 %% Read and set up the Norne model
+% We use a subset of the Norne model that is used in other examples in
+% MRST. We set up a model with anisotropic permeability based on the
+% vertical permeability.
 mrstModule add deckformat
 
 if ~(makeNorneSubsetAvailable() && makeNorneGRDECL()),
@@ -24,9 +30,12 @@ grdecl = convertInputUnits(grdecl, usys);
 G = processGRDECL(grdecl);
 G = computeGeometry(G(1));
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
-K = rock.perm;
-rock.perm = [K, K, 0.1*K];
-%%
+K = rock.perm(:, 1);
+% Set some anisotropy. The Norne subset model at the moment does include
+% not the multipliers that result in the vertical permeability  that was
+% used in the paper.
+rock.perm = [K, K, 0.05*K];
+%% Plot permeability and porosity
 figure;
 plotCellData(G, log10(rock.perm(:, 1)));
 axis equal tight off
@@ -34,15 +43,6 @@ daspect([1 1 0.2])
 view(85, 20);
 colorbar
 title('Horizontal permeability (log10)')
-
-figure;
-plotCellData(G, log10(rock.perm(:, 3)));
-axis equal tight off
-daspect([1 1 0.2])
-view(85, 20);
-colorbar
-title('Vertical permeability (log10)')
-
 
 figure;
 plotCellData(G, rock.poro);
@@ -53,7 +53,8 @@ colorbar
 title('Porosity')
 %% Set up wells 
 % We set up a number of somewhat arbitrary wells around the domain. We
-% inject one pore volume of water distributed over three injectors.
+% drain a complete pore volume using three producers, with four injectors
+% at fixed bottom hole pressures that give pressure support.
 totTime = 100*year;
 N_step = 100;
 dt = totTime/N_step;
@@ -71,16 +72,19 @@ wells = [13, 88,  -1; ...
 W = [];
 [inum, pnum] = deal(1);
 for i = 1:size(wells, 1);
-    W = verticalWell(W, G, rock, wells(i, 1), wells(i, 2), [], 'comp_i', [1, 0], 'type', 'bhp');
+    % Set well
+    W = verticalWell(W, G, rock, wells(i, 1), wells(i, 2), [],...
+                     'comp_i', [1, 0], 'type', 'bhp');
     if wells(i, 3) == 1
+        % Producer
         W(i).val = -sum(pv)/(totTime*sum(wells(:, 3) == 1));
         W(i).type = 'rate';
 
         W(i).name = ['P', num2str(pnum)];
         W(i).sign = -1;
         pnum = pnum + 1;
-
     else
+        % Injector
         W(i).val = 500*barsa;
         W(i).sign = 1;
         W(i).name = ['I', num2str(inum)];
@@ -96,7 +100,7 @@ plotGrid(G, vertcat(W.cells), 'FaceColor', 'none', 'EdgeColor', 'b')
 axis equal tight off
 daspect([1 1 0.2])
 view(85, 20);
-%%
+%% Simulate the base case
 T = getFaceTransmissibility(G, rock);
 fluid = initSimpleFluid('mu', [1, 5]*centi*poise, 'n', [2, 2], 'rho', [0, 0]);
 
@@ -120,7 +124,13 @@ for i = 1:N_step
     fprintf('Ok!\n');
 end
 
-%%
+%% Set up coarse grid
+% We have two options. The first is to use a fully unstructured coarse grid
+% based on Metis. The second is to simply use a combination of uniform
+% partitioning and splitting of carse blocks over faults.
+%
+% We use METIS if available. If you have METIS installed, but are unable to
+% use it in MRST, please see the documentation in callMetisMatrix.
 global METISPATH
 useMETIS = ~isempty(METISPATH);
 
@@ -138,6 +148,7 @@ else
 end
 p = compressPartition(p);
 
+% Merge smaller blocks
 mrstModule add agglom
 p0 = p;
 fconn = ones(G.faces.num, 1);
@@ -147,26 +158,33 @@ p = mergeBlocksByConnections(G, p, fconn, 25);
 p = processPartition(G, p);
 p = compressPartition(p);
 
+% Plot the coarse grid
 CG = generateCoarseGrid(G, p);
-figure; plotCellData(G, mod(p, 13))
-plotGrid(CG, 'facec', 'none', 'edgec', 'w', 'linewidth', 2)
-
-%%
+figure; plotCellData(G, mod(p, 13), 'EdgeColor', 'none')
+plotGrid(CG, 'facec', 'none', 'edgec', 'w', 'linewidth', 1)
+axis equal tight off
+daspect([1 1 0.2])
+view(85, 20);
+%% Set up support regions required for MsRSB and move center points to wells
 CG = coarsenGeometry(CG);
 CG = addCoarseCenterPoints(CG);
 CG = setCentersByWells(CG, W);
-           
-CG = storeInteractionRegion(CG, 'ensureConnected', false);
-%%
-A = getIncomp1PhMatrix(G, T);
+CG = storeInteractionRegion(CG, 'ensureConnected', true);
+CG = setupMexInteractionMapping(CG);
 
-getBasis = @(A) getMultiscaleBasis(CG, A, 'type', 'MsRSB', 'useMex', true);
+%% Set up basis functions
+% By default, we use the C-accelerated version 
+useCompiledBasis = true;
+A = getIncomp1PhMatrix(G, T);
+% Update basis functions every now and then
+updateBasis = true;
+
+getBasis = @(A) getMultiscaleBasis(CG, A, 'type', 'MsRSB', 'useMex', useCompiledBasis);
 basis0 = getBasis(A);
 
-%%
+%% Solve multiscale without iterations
+% We solve the base case where only the multiscale solver is used.
 basis = basis0;
-
-updateBasis = true;
 W_ms = W;
 fn = getSmootherFunction('type', 'ilu');
 
@@ -191,7 +209,11 @@ for i = 1:N_step
     fprintf('Ok!\n');
 end
 
-%%
+%% Solve using multiscale with additional iterations
+% We can apply 5 multiscale-ILU(0) cycles at each step in order to improve
+% the solution quality at a low cost. The pressure is still far from
+% converged, but this will help the solver to get the impact of wells
+% correctly.
 psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W_ms, ...
     'getSmoother', fn, 'iterations', 5, 'useGMRES', true);
 basis = basis0;
@@ -213,8 +235,7 @@ for i = 1:N_step
     fprintf('Ok!\n');
 end
 
-%%
-
+%% Set up interactive plotting of reservoir states
 names = {'Finescale', 'MsRSB', 'MsRSB (5 cycles)'};
 
 close all; plotToolbar(G, states);
@@ -241,8 +262,8 @@ plotWell(G, W);
 title(names{3});
 colorbar('horiz')
 
-%%
-T = cumsum([0; repmat(dt, N_step, 1)]);
+%% Launch interactive plotting of wells
+Time = cumsum([0; repmat(dt, N_step, 1)]);
 
 ws_ref = convertIncompWellSols(W, states, fluid);
 ws_ms = convertIncompWellSols(W, states_ms, fluid);
@@ -250,4 +271,4 @@ ws_it = convertIncompWellSols(W, states_it, fluid);
 
 ws = {ws_ref, ws_ms, ws_it};
 shortname = {'ref', 'ms', 'it'};
-plotWellSols(ws, T, 'datasetnames', names)
+plotWellSols(ws, Time, 'datasetnames', names)
