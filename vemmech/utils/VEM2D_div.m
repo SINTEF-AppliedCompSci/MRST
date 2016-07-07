@@ -1,4 +1,4 @@
-function [div] = VEM2D_div(G)
+function [div] = VEM2D_div(G, varargin)
 %
 %
 % SYNOPSIS:
