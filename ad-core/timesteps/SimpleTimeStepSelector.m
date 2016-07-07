@@ -23,7 +23,8 @@ classdef SimpleTimeStepSelector < handle
 %
 %
 % SEE ALSO:
-%   IterationCountTimeStepSelector, NonLinearSolver
+%   IterationCountTimeStepSelector, NonLinearSolver, 
+%   StateChangeTimeStepSelector
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

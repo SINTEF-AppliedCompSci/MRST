@@ -1,21 +1,38 @@
 function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, status, sO, x, rs, rv, pressure)
-    % define sG, rs and rv in terms of x
-    % We cast "sO" to double to avoid cancellation of derivatives when
-    % calculating the final sO later.
-    sG = status{2}.*double(sO) + status{3}.*x;
-    if model.disgas
-        rsSat = model.fluid.rsSat(pressure);
-        rs = (~status{1}).*rsSat + status{1}.*x;
-    else % otherwise rs = rsSat = const
-        rsSat = rs;
-    end
-    if model.vapoil
-        rvSat = model.fluid.rvSat(pressure);
-        rv = (~status{2}).*rvSat + status{2}.*x;
-    else % otherwise rv = rvSat = const
-        rvSat = rv;
-    end
-end
+% Compute solution variables for the gas/oil/rs/rv-variable in black-oil
+%
+% SYNOPSIS:
+%   [sG, rs, rv, rsSat, rvSat] = ...
+% calculateHydrocarbonsFromStatusBO(model, status, sO, x, rs, rv, pressure)
+%
+% DESCRIPTION:
+%   The ThreePhaseBlackOil model has a single unknown that represents
+%   either gas, oil, oil in gas (rs) and gas in oil (rv) on a cell-by-cell
+%   basis. The purpose of this function is to easily compute the different
+%   quantities from the "x"-variable and other properties, with correct
+%   derivatives if any of them are AD-variables.
+%
+% REQUIRED PARAMETERS:
+%   model - ThreePhaseBlackOilModel-derived class. Determines if
+%           vapoil/disgas is being used and contains the fluid model.
+%
+%   status - Status flag as defined by "getCellStatusVO"
+%
+%   sO     - The tentative oil saturation.
+%
+%   x      - Variable that is to be decomposed into sG, sO, rs, rv, ...
+%
+%   rs, rv - Dissolved gas, vaporized oil
+%
+%   pressure - Reservoir oil pressure
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   'field'   -  
+% RETURNS:
+%   
+%
+% SEE ALSO:
+%   equationsBlackOil, getCellStatusVO
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -35,3 +52,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    sG = status{2}.*sO + status{3}.*x;
+    if model.disgas
+        rsSat = model.fluid.rsSat(pressure);
+        rs = (~status{1}).*rsSat + status{1}.*x;
+    else % otherwise rs = rsSat = const
+        rsSat = rs;
+    end
+    if model.vapoil
+        rvSat = model.fluid.rvSat(pressure);
+        rv = (~status{2}).*rvSat + status{2}.*x;
+    else % otherwise rv = rvSat = const
+        rvSat = rv;
+    end
+end
+

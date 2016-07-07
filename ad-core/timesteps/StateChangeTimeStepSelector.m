@@ -1,8 +1,31 @@
 classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
+% The StateChangeTimeStepSelector is a time-step selector that attempts to
+% ensure that certain properties of the state change at target rates during
+% the simulation. This can often be a good way of controlling timesteps and
+% minimizing numerical error if good estimates of the error are known.
+%
+% See the doctoral dissertation of H. Cao "Development of techniques for
+% general purpose simulators", Stanford, 2002.
+%
     properties
+        % The target properties to time control. Cell array of N strings,
+        % each of which are suitable for the simulation model's getProp
+        % function. Typically, this means that the property name has been
+        % implemented in the Model's "getVariableField" member function.
+        % See PhysicalModel for more information.
         targetProps = {};
+        % Target change (relative units). This is a double array of the
+        % same size as targetProps, where the relative change in properties
+        % are set to these targets. The i-th property will use the i-th
+        % entry of targetChangeRel. Set values to inf to not apply relative
+        % changes.
         targetChangeRel = [];
+        % Target change (absolute units). Double array of the same length
+        % as targetProps. The absolute units are useful when dealing with
+        % non-scaled values.
         targetChangeAbs = [];
+        % Relaxation factor. Larger values mean less severe changes in
+        % time-steps.
         relaxFactor = 1;
     end
     
@@ -22,11 +45,11 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
             end
             
             assert(numel(selector.targetProps) == numel(selector.targetChangeRel) && ...
-                   numel(selector.targetProps) == numel(selector.targetChangeAbs));
+                   numel(selector.targetProps) == numel(selector.targetChangeAbs), ...
+                   'targetProps must be equal in length to the targets!');
         end
         
         function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr)
-            dt0 = dt;
             dt = computeTimestep@IterationCountTimeStepSelector(selector, dt, dt_prev, model, solver, state_prev, state_curr);
             
             if isempty(state_prev)

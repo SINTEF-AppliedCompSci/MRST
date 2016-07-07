@@ -1,4 +1,6 @@
 function bG = getbG_BO(model, p, rv, isLiquid)
+% Utility function for evaluating the reciprocal gas formation volume
+% factor function.
     if model.vapoil
         bG = model.fluid.bG(p, rv, isLiquid);
     else

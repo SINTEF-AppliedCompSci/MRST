@@ -1,6 +1,11 @@
 function [state, converged, failure, its, reports] = solveMinistep(solver, model, state, state0, dt, drivingForces)
 % Attempt to solve a single mini timestep while trying to avoid
 % stagnation or oscillating residuals.
+%
+% Note: This is an internal function for the NonLinearSolver class that is
+% exposed for testing purposes. Do not use directly, as the interface may
+% disappear or change without prior notice. Instead, use
+% NonLinearSolver.solveTimestep() instead.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

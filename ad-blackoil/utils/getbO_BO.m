@@ -1,4 +1,6 @@
 function bG = getbO_BO(model, p, rs, isSaturated)
+% Utility function for evaluating the reciprocal oil formation volume
+% factor function.
     if isprop(model, 'disgas') && model.disgas
         bG = model.fluid.bO(p, rs, isSaturated);
     else

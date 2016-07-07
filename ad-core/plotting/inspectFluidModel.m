@@ -1,6 +1,25 @@
 function varargout = inspectFluidModel(model, varargin)
 % Create a interactive plotting panel for a given model that shows
 % different fluids properties.
+%
+% SYNOPSIS:
+%   h = inspectFluidModel(model)
+%
+% DESCRIPTION:
+%   Launch an interactive plotting interface for the fluid model.
+%
+% REQUIRED PARAMETERS:
+%   model - Some ReservoirModel-derived class with a valid fluid model.
+%           This function has primarily been tested for black-oil and
+%           black-oil similar fluids.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   'pressureRange'   -  An array of the pressures values to be used for
+%                        pressure-dependent properties. Defaults to
+%                        max(model.minimumPressure, 0) to min(model.maximumPressure, 1000*barsa)
+% RETURNS:
+%   h    - Figure handle to the plotting panel.
+%
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

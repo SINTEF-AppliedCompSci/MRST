@@ -1,16 +1,34 @@
-function [pcOW, pcOG] = getCapillaryPressureBO(f, sW, sG)
-    [pcOW, pcOG] = deal(0);
-    
-    % Check for capillary pressure (p_cow)
-    if isfield(f, 'pcOW') && ~isempty(sW)
-        pcOW  = f.pcOW(sW);
-    end
-    
-    % Check for capillary pressure (p_cog)
-    if isfield(f, 'pcOG') && ~isempty(sG) && nargin > 1
-        pcOG  = f.pcOG(sG);
-    end
-end
+function [pcOW, pcOG] = getCapillaryPressureBO(fluid, sW, sG)
+%Compute oil-water and oil-gas capillary pressures
+%
+% SYNOPSIS:
+%   [pcOW, pcOG] = getCapillaryPressureBO(f, sW, sG)
+%
+% DESCRIPTION:
+%   Compute the capillary pressures relative to the oil pressure
+%
+% REQUIRED PARAMETERS:
+%   fluid     - AD fluid model, from for example initDeckADIFluid or
+%               initSimpleADIFluid.
+%
+%   sW        - Water saturation. Used to evaluate the water-oil capillary
+%               pressure.
+%
+%   sG        - Gas saturation. Used to evaluate the oil-gas capillary
+%               pressure.
+% RETURNS:
+%   pcOW - Pressure difference between the oil and water pressures. The
+%          water phase pressure can be computed as
+%          pW = pO - pcOW;
+%
+%   pcOG - Pressure difference between the oil and gas pressures. The
+%          water phase pressure can be computed as
+%          pG = pO + pcOG;
+%
+% NOTE:
+%     Mind the different sign for the computation of the phase pressures
+%     above!
+% 
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -30,3 +48,16 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    [pcOW, pcOG] = deal(0);
+    
+    % Check for capillary pressure (p_cow)
+    if isfield(fluid, 'pcOW') && ~isempty(sW)
+        pcOW  = fluid.pcOW(sW);
+    end
+    
+    % Check for capillary pressure (p_cog)
+    if isfield(fluid, 'pcOG') && ~isempty(sG) && nargin > 1
+        pcOG  = fluid.pcOG(sG);
+    end
+end
+

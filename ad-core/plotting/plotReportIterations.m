@@ -1,6 +1,24 @@
 function plotReportIterations(report, schedule)
-% Utility for showing convergence behavior of report from
-% simulateScheduleAD.
+% Plot nonlinear convergence behavior for simulateScheduleAD output
+%
+% SYNOPSIS:
+%   plotReportIterations(report, schedule)
+%
+% DESCRIPTION:
+%   Creates a plot in the current figure of the nonlinear convergence
+%   behavior of a report and schedule pair. Timesteps and ministeps are
+%   visualized, along with green and red boxes that indicate successful
+%   and wasted iterations respectively.
+%
+% REQUIRED PARAMETERS:
+%   report   - Report as returned by simulateScheduleAD.
+%
+%   schedule - The schedule passed to simulateScheduleAD to produce the
+%              report.
+%
+% RETURNS:
+%   Nothing.
+
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

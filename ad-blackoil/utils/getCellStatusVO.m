@@ -1,12 +1,37 @@
-function st = getCellStatusVO(model, state, oil, wat, gas)
-% Status should be passed on from updateStateVO (to be sure definition is
-% identical). rs and rv are assumed to be compatible, i.e. rx = rxSat for
-% saturated cells and rx <= rxSat for undersaturated. Three values of
-% status are:
-% status 0: should not occur (almost water only -> state 3)
-% status 1 oil, no gas  : x = rs, sg = 0    , rv = rvMax
-% status 2 gas, no oil  : x = rv, sg = 1-sw , rs = rsMax
-% status 3 oil and gas  : x = sg, rs = rsMax, rv = rvMax
+function st = getCellStatusVO(model, state, sO, sW, sG)
+% Get status flags for each cell in a black-oil model
+%
+% SYNOPSIS:
+%   st = getCellStatusVO(model, state, sO, sW, sG)
+%
+% DESCRIPTION:
+%   Get the status flags for the number of phases present.
+%
+% REQUIRED PARAMETERS:
+%   model     - ThreePhaseBlackOilModel-derived class. Typically,
+%               equationsBlackOil will be called from the class
+%               getEquations member function.
+%
+%   state     - The state for which the status flags are to be computed.
+%
+%   sO        - Oil saturation. One value per cell in the simulation grid.
+%
+%   sW        - Water saturation. One value per cell in the simulation grid.
+%
+%   sG        - Gas saturation. One value per cell in the simulation grid.
+%
+% RETURNS:
+%   st - Cell array with three columns with one entry per cell. The
+%        interpretation of each flag: 
+%      Col 1: A cell is flagged as true if oil is present, but gas
+%      is not present.
+%      Col 2: A cell is flagged as true if gas is present, but oil
+%      is not present.
+%      Col 3: A cell is flagged as true if both gas and oil are present and
+%      true three-phase flow is occuring.
+%
+% SEE ALSO:
+%   ThreePhaseBlackOilModel
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -28,18 +53,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     if isfield(state, 'status')
+        % Status should be passed on from updateStateVO (to be sure definition is
+        % identical). rs and rv are assumed to be compatible, i.e. rx = rxSat for
+        % saturated cells and rx <= rxSat for undersaturated. Three values of
+        % status are:
+        % status 0: should not occur (almost water only -> state 3)
+        % status 1 oil, no gas  : x = rs, sg = 0    , rv = rvMax
+        % status 2 gas, no oil  : x = rv, sg = 1-sw , rs = rsMax
+        % status 3 oil and gas  : x = sg, rs = rsMax, rv = rvMax
         status = state.status;
     else
-        watOnly    = wat > 1- sqrt(eps);
+        watOnly    = sW > 1- sqrt(eps);
         if ~model.vapoil
             oilPresent = true;
         else
-            oilPresent = or(oil > 0, watOnly);
+            oilPresent = or(sO > 0, watOnly);
         end
         if ~model.disgas
             gasPresent = true;
         else
-            gasPresent = or(gas > 0, watOnly);
+            gasPresent = or(sG > 0, watOnly);
         end
         status = oilPresent + 2*gasPresent;
     end

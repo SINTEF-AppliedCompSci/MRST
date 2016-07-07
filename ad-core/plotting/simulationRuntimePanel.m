@@ -1,5 +1,6 @@
 function ok = simulationRuntimePanel(model, states, ctrl_reports, solver, schedule, simtime, varargin)
-% Internal function for drawing panel during simulation
+% Internal function for drawing panel during simulation. See
+% getPlotAfterStep.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

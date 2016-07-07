@@ -24,9 +24,6 @@ function state = updateStateBlackOilGeneric(model, state, problem, dx, drivingFo
 %
 %   drivingForces - Wells etc.
 %
-% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-%   
-%
 % RETURNS:
 %   state - Updated state.
 
@@ -51,7 +48,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 state0 = state;
 W = drivingForces.Wells;
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 [disgas, vapoil] = deal(false);
 
