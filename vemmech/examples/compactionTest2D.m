@@ -18,7 +18,8 @@ opt.gtol           = 0.1e-1;
 % opt.ref            = 10;
 opt.twist          = true;
 opt.disturb        = 0.05;
-% Two different methods are implemented to compute the loading term, see paper
+% Two different methods are implemented to compute the loading term, see
+% paper [Andersen et al: http://arxiv.org/abs/1606.09508v1].
 opt.force_method   = 'cell_force'; % 'dual_grad_type'
 
 %% Construct grid

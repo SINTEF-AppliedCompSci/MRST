@@ -11,7 +11,6 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 % PARAMETERS:
 %   G        - Grid structure as described by grid_structure, which also
 %              has the mappings from G = createAugmentedGrid(G).
-%              Some options need G = computeGeometryCalc(G).
 %   C        - Elasticity tensor
 %   el_bc    - boundary condition of type struct('disp_bc', [], 'force_bc', [])
 %   load     - loading term
@@ -105,7 +104,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 
     %% Calculate load terms
     % There are several alternatives, which may lead to different errors in particular for thin
-    % long cells, see paper
+    % long cells, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1]
     f = calculateVolumeTerm(G, load, qc_all, qcvol, opt);
     if(~isempty(opt.pressure))
         div = VEM_div(G);
@@ -185,7 +184,7 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
 
       case 'node_force'
         % Evaluate forces at nodes. The result is weighted, using adjacent
-        % cell volume contributions, see Paulino et al's paper (doi:10.1016/j.cma.2014.05.005)
+        % cell volume contributions, see paper [Gain et al: doi:10.1016/j.cma.2014.05.005]
 
         X = G.nodes.coords(nodes, :);
         w = qcvol;

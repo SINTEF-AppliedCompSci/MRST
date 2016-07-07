@@ -1,9 +1,28 @@
 function G = sortEdges(G)
+%
+%
+% SYNOPSIS:
+%   function G = sortEdges(G)
+%
+% DESCRIPTION: Each face has an orientation. A face indexed by i is oriented
+% from G.faces.neighbors(i, 1) to G.faces.neighbors(i, 2). The edges should be
+% ordered in G.faces.edges (see full_grid_structure) counter-clock-wise with
+% respect to the face orientation. The function sortEdges guarantes that this
+% ordering is satisfied. Such check has only to be done in 2D because the 3D
+% grid_structure standard always guarantees that it holds.
+%
+% PARAMETERS:
+%   G - Grid structure
+%
+% RETURNS:
+%   G - Grid structure with sorted edges.
+%
+% EXAMPLE:
+%
+% SEE ALSO: full_grid_structure
+%
 
-%{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
-    assert(G.griddim == 2);%??? is this correct
+    assert(G.griddim == 2);
     G = sortCellFaces(G);
 
 end
@@ -75,7 +94,7 @@ function G = sortCellFaces(G)
         map(map>0) = (1:sum(map>0))';
         edges      = map(edges);
 
-        % Sort edges e.
+        % Sort edges 
         m = 1:numel(cf);         % edge permutation
         s = ones(numel(cf), 1);  % edge sign
         for k = 1:numel(cf), 
@@ -97,7 +116,7 @@ function G = sortCellFaces(G)
             s  =  flipud(-s);
         end
 
-        % All edges in e should be oriented from columns 1 to 2, and
+        % All edges should be oriented from columns 1 to 2, and
         % cell e should be oriented when parsed from first to last edge.
         assert( all(  edges(:, 2) == edges([2:numel(cf), 1], 1)  ) )
 
