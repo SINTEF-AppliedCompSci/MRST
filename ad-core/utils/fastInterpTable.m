@@ -1,11 +1,24 @@
 function yi = fastInterpTable(X, Y, xi)
-   if isempty(xi)
-       yi = [];
-       return
-   end
-   F = griddedInterpolant(X, Y, 'linear', 'linear');
-   yi = F(xi);
-end
+% Fast interpolation of table, using griddedInterpolant
+%
+% SYNOPSIS:
+%   yi = fastInterpTable(X, Y, xi)
+%
+% DESCRIPTION:
+%   A simple wrapper for griddedInterpolant for fast interpolation of
+%   simple data in the AD-framework. Always defaults to linear
+%   interpolation with linear extrapolation.
+%
+% REQUIRED PARAMETERS:
+%   x  - Sample X-coordinates
+%
+%   y  - Sample function values
+%
+%   xi - The X-coordinates at which the linear interpolant is to be
+%        evaluated.
+%
+% RETURNS:
+%   yi - Linear function interpolating (x, y) evaluated at xi.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -25,3 +38,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+   if isempty(xi)
+       yi = [];
+       return
+   end
+   F = griddedInterpolant(X, Y, 'linear', 'linear');
+   yi = F(xi);
+end
+
