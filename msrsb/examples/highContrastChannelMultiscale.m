@@ -15,7 +15,7 @@
 %  46-71, 2016. DOI: 10.1016/j.jcp.2015.10.010
 
 % Load modules
-mrstModule add msrsb incomp spe10 coarsegrid mrst-gui msfvm
+mrstModule add msrsb incomp coarsegrid mrst-gui msfvm
 
 %% We set up the domain
 % The domain consists of 65 by 65 fine cells and a permeability field that
@@ -54,7 +54,8 @@ plotToolbar(G, rock.perm/darcy());
 colorbar
 axis equal tight off
 outlineCoarseGrid(G, p, 'w')
-%% Solve fine scale problem
+
+%% Solve fine-scale problem
 % We simulate 1/4 pore volume injected, corresponding to the channel being
 % completely filled. Some fluid will infiltrate into the low permeability
 % region, which is where we will see the approximation error made by the
@@ -74,6 +75,8 @@ W = verticalWell(W, G, rock, G.cartDims(1), G.cartDims(2), [],...
 state0 = initResSol(G, 0, [0, 1]);
 T = computeTrans(G, rock);
 ref = incompTPFA(state0, G, T, fluid, 'MatrixOutput', true, 'Wells', W);
+
+%% Coarse grid and basis functions
 % Grid structure from partition vector
 CG = generateCoarseGrid(G, p);
 % Add centroids / geometry information on coarse grid
@@ -106,6 +109,8 @@ basis2.R = controlVolumeRestriction(CG2.partition);
 
 ms = incompMultiscale(state0, CG, T, fluid, basis, 'wells', W);
 ms2 = incompMultiscale(state0, CG2, T, fluid, basis2, 'wells', W);
+
+
 %% Simulate time loop
 % We do not need to update the pressure for either solver, as the unit
 % fluid results in no mobility changes during the simulation
@@ -123,6 +128,7 @@ for j = 1:Nt
     disp('Solving TPFA')
     ref = [ref; tsolve(ref(end))];
 end
+
 %% Finally, plot the results
 figure;
 subplot(2, 2, 1)
@@ -151,3 +157,31 @@ axis equal tight off
 caxis([0, 1])
 title('MsRSB (post-adapted grid)')
 outlineCoarseGrid(G, CG2.partition, 'w', 'linewidth', 1)
+
+%% Copyright notice
+
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
