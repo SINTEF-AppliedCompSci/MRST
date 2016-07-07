@@ -25,18 +25,48 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    INCLUDE = {};
 
-   LINK = { };
-
    OPTS = { '-O', '-largeArrayDims', '-DUSEMEX=""'};
 
    SRC = {'main.cpp', 'basis_solver.cpp'};
 
-   LIBS = {  };
-    
-   
-   buildmex(CFLAGS{:}, LDFLAGS{:}, ...
-            INCLUDE{:}, LINK{:}, OPTS{:}, SRC{:}, LIBS{:});
+   [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params;
 
+   
+   buildmex(CFLAGS{:}, CXXFLAGS{:}, LDFLAGS{:}, ...
+            INCLUDE{:}, LINK{:}, OPTS{:}, SRC{:}, LIBS{:});
+        
    % Call MEX'ed edition.
    [varargout{1:nargout}] = mex_cppMultiscaleBasis(varargin{:});
+end
+
+function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
+   e = mexext('all');
+   a = e(strcmp({ e.ext }, mexext)).arch;
+
+   if ispc,
+
+      mwlib = @(lib) ...
+      fullfile(matlabroot, 'extern', 'lib', a, 'microsoft', ...
+               ['libmw', lib, '.lib']);
+
+      CXXFLAGS  = { '/MD', '/openmp' };
+      LINK      = { };
+      iomp5     = { '/link', '/nodefaultlib:vcomp', 'libiomp5md' };
+      libstdcpp = { };
+
+   elseif isunix,
+
+       mwlib = @(lib) ['-lmw', lib];
+
+       CXXFLAGS = ...
+          {'CXXFLAGS="-D_GNU_SOURCE', '-fPIC', '-O3', '-std=c++0x',  ...
+           '-fopenmp"'};
+
+       LINK = { ['-L', fullfile(matlabroot, 'sys', 'os', a)] };
+
+       iomp5     = { '-liomp5' };
+       libstdcpp = { '-lstdc++' };
+   end
+
+   LIBS = [ iomp5, { mwlib('lapack'), mwlib('blas') }, libstdcpp ];
 end
