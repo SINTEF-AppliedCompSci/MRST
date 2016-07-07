@@ -1,18 +1,20 @@
-% Routines for visual inspection of grid geometry and field properties.
+% PLOTTING
+%   Routines for visual inspection of grid geometry and field properties.
 %
 % Files
-%   boundaryFaces.m         - Extract boundary faces from set of grid cells.
-%   outlineCoarseGrid.m     - Impose outline of coarse grid on existing grid plot.
-%   plotBlockAndNeighbors.m - Plot a coarse block and its neighbors to current axes (reversed Z axis).
-%   plotCellData.m          - Plot exterior grid faces, coloured by given data, to current axes.
-%   plotContours.m          - Plot contours of cell data.
-%   plotFaceData.m          - Plot face data on exterior grid faces to current axes (reversed Z axis).
-%   plotFaces.m             - Plot selection of coloured grid faces to current axes (reversed Z axis).
-%   plotFaults.m            - Plot faults in model
-%   plotGrid.m              - Plot exterior grid faces to current axes (reversed Z axis).
-%   plotGridVolumes.m       - Plot partially transparent isosurfaces for a set of values
-%   plotSlice.m             - Plot Cartesian slices of cell data on faces
-%   plotWell.m              - Plot well trajectories into current axes.
+%   boundaryFaces         - Extract boundary faces from set of grid cells.
+%   colorbarHist          - Make colorbar with histogram on top
+%   outlineCoarseGrid     - Impose outline of coarse grid on existing grid plot.
+%   plotBlockAndNeighbors - Plot a coarse block and its neighbours to current axes (reversed Z axis).
+%   plotCellData          - Plot exterior grid faces, coloured by given data, to current axes.
+%   plotContours          - Plot contours of cell data.
+%   plotFaceData          - Plot face data on exterior grid faces to current axes (reversed Z axis).
+%   plotFaces             - Plot selection of coloured grid faces to current axes (reversed Z axis).
+%   plotFaults            - Plot faults in model
+%   plotGrid              - plots exterior grid faces to current axes.
+%   plotGridVolumes       - Plot partially transparent isosurfaces for a set of values
+%   plotSlice             - Plot Cartesian slices of cell data on faces
+%   plotWell              - Plot well trajectories into current axes.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

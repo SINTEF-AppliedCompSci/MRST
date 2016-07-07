@@ -1,8 +1,11 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% DATASET_MANAGER
+%   Support routines for managing collection of external datasets
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   downloadDataset      - Download a dataset given by name, subject to availability
+%   getAvailableDatasets - Get a list of structs indicating possible and present datasets in MRST
+%   getDatasetPath       - Get the path of a dataset (optionally: try to download it if missing)
+%   modelDownloadExample - Listing data directory
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,16 +1,14 @@
-% Support for wells and boundary conditions.
+% WELLS_AND_BC
+%   Support for wells and boundary conditions.
 %
 % Files
-%   addBC               - Add boundary condition to (new or existing) BC object
-%   addSource           - Add an explicit source to (new or existing) source object.
-%   addWell             - Insert a well into the simulation model.
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
-%   controlWell         - Change well control target and/or value.
-%   fluxside            - Impose flux boundary condition on global side.
-%   pside               - Impose pressure boundary condition on global side.
-%   psideh              - Impose hydrostatic Dirichlet boundary condition (pressure) on global side.
-%   verticalWell        - Insert a vertical well into the simulation model.
-%   processWells        - Construct MRST well structure from ECLIPSE input deck control.
+%   addBC        - Add boundary condition to (new or existing) BC object
+%   addSource    - Add an explicit source to (new or existing) source object.
+%   addWell      - Insert a well into the simulation model.
+%   fluxside     - Impose flux boundary condition on global side.
+%   pside        - Impose pressure boundary condition on global side.
+%   psideh       - Impose hydrostatic pressure boundary condition on global side.
+%   verticalWell - Insert a vertical well into the simulation model.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,12 +1,14 @@
-% Routines related to rock data (permeability and porosity).
+% ROCK
+%   Routines related to rock data (permeability and porosity).
 %
 % Files
-%   gaussianField.m         - Compute realization of lognormal, isotropic permeability field.
-%   grdecl2Rock.m           - Extract rock properties from input deck (grdecl structure)
-%   logNormLayers.m         - Compute realization of lognormal, isotropic permeability field.
-%   permTensor.m            - Expand permeability tensor to full format.
-%   permeabilityConverter.m -
-%   poreVolume.m            - Compute pore volumes of individual cells in grid.
+%   gaussianField         - Compute realization of lognormal, isotropic permeability field.
+%   grdecl2Rock           - Extract rock properties from input deck (grdecl structure)
+%   logNormLayers         - Compute realization of lognormal, isotropic permeability field.
+%   makeRock              - Create rock structure from given permeabilty and porosity values
+%   permeabilityConverter - add tensor permeability to the grdecl.permtensor
+%   permTensor            - Expand permeability tensor to full format.
+%   poreVolume            - Compute pore volumes of individual cells in grid.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

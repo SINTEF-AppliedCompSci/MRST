@@ -1,5 +1,8 @@
+% EXAMPLES
+%   Collection of examples that demonstrate common grid operations
+%
 % Files
-%   gridHelpersExample.m - Create a grid and add helpers
+%   gridHelpersExample - Create a grid and add helpers
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

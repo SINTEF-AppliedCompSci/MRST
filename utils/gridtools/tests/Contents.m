@@ -1,5 +1,8 @@
+% TESTS
+%   Mosty internal test code to verify the grid tools
+%
 % Files
-%   test_gridtools.m - Test data
+%   test_gridtools - Test data
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,7 +1,8 @@
-% Functions for setting simulation parameters
+% PARAMS
+%   Functions for setting simulation parameters
 %
 % Files
-%   gravity.m    - Manage effects of gravity.
+%   gravity - Manage effects of gravity.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

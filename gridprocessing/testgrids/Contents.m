@@ -1,15 +1,19 @@
+% TESTGRIDS
+%   Simple to moderately advanced synthetic test models
+%
 % Files
-%   cartesianGrdecl.m      - Construct Cartesian grid with variable physical cell sizes.
-%   extrudedTriangleGrid.m - Build a synthetic grid with a curved fault in the lateral direction
-%   makeModel3.m           - Build a synthetic geometry with two faults.
-%   oneSlopingFault.m      - Make a GRDECL structure for a box grid with a single sloping fault.
-%   pinchMiddleCell.m      - Create corner-point descriptions with variable number of pinched nodes
-%   pinchedLayersGrdecl.m  - Make a GRDECL structure for simple corner-point grid, possibly faulted.
-%   pinchedNode.m          - Define two-cell corner-point specification with single, pinched vertex
-%   raisedColumn.m         - Create corner-point description of 2-by-1-by-2 grid with one fault
-%   simpleGrdecl.m         - Make a GRDECL structure for simple corner-point grid, possibly faulted.
-%   threeLayers.m          - Construct a corner point discretization of a three-layered structure.
-%   twister.m              - Permutes x- and y-coordinates of nodes in a grid.
+%   cartesianGrdecl      - Construct Cartesian grid with variable physical cell sizes.
+%   createPinchedColumn  - Create a single column containing a single pinched layer of thickess 0.01
+%   extrudedTriangleGrid - Build a synthetic grid with a curved fault in the lateral direction
+%   makeModel3           - Build a synthetic geometry with two faults.
+%   oneSlopingFault      - Make a GRDECL structure for a box grid with a single sloping fault.
+%   pinchedLayersGrdecl  - Make a GRDECL structure for simple corner-point grid, possibly faulted.
+%   pinchedNode          - Define two-cell corner-point specification with single, pinched vertex
+%   pinchMiddleCell      - Create corner-point descriptions with variable number of pinched nodes
+%   raisedColumn         - Create corner-point description of 2-by-1-by-2 grid with one fault
+%   simpleGrdecl         - Make a GRDECL structure for simple corner-point grid, possibly faulted.
+%   threeLayers          - Construct a corner point discretization of a three-layered structure.
+%   twister              - Permutes x- and y-coordinates of nodes in a grid.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

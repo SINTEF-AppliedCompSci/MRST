@@ -1,27 +1,37 @@
-% Examples demonstrating the construction and manipulation of grid datastructures.
+% GRIDPROCESSING
+%   Construct and manipulate the MRST grid datastructures.
 %
 % Files
-%   buildCornerPtNodes.m     - Construct physical nodal coordinates for CP grid.
-%   buildCornerPtPillars.m   - Construct physical nodal coordinates for CP grid.
-%   cart2active.m            - Compute active cell numbers from linear Cartesian index.
-%   cartGrid.m               - Construct 2d or 3d Cartesian grid in physical space.
-%   cellNodes.m              - Extract local-to-global vertex numbering for grid cells.
-%   computeGeometry.m        - Compute geometry of grid.
-%   extractSubgrid.m         - Construct valid grid definition from subset of existing grid cells.
-%   grid_structure.m         - Grid structure used in MATLAB Reservoir Simulation Toolbox.
-%   hexahedralGrid.m         - Construct valid grid definition from points and list of hexahedra
-%   makeInternalBoundary.m   - Make internal boundary in grid along FACES
-%   makeLayeredGrid.m        - Extrude 2D grid to layered 3D grid with n layers.
-%   pebi.m                   - Compute dual grid of triangular grid G.
-%   processFaults.m          - Construct fault structure from input specification (keyword 'FAULTS')
-%   processGRDECL.m          - Compute grid topology and geometry from pillar grid description.
-%   removeCells.m            - Remove cells from grid and renumber cells, faces and nodes.
-%   removeFaultBdryFaces.m   - Remove fault faces on boundary
-%   removeInternalBoundary.m - Remove internal boundary in grid by merging faces in face list N
-%   removePinch.m            - Uniquify nodes, remove pinched faces and cells.
-%   tensorGrid.m             - Construct Cartesian grid with variable physical cell sizes.
-%   tetrahedralGrid.m        - Construct valid grid definition from points and tetrahedron list
-%   triangleGrid.m           - Construct valid grid definition from points and triangle list
+%   buildCornerPtNodes     - Construct physical nodal coordinates for CP grid.
+%   buildCornerPtPillars   - Construct physical nodal coordinates for CP grid.
+%   cart2active            - Compute active cell numbers from linear Cartesian index.
+%   cartGrid               - Construct 2d or 3d Cartesian grid in physical space.
+%   cellNodes              - Extract local-to-global vertex numbering for grid cells.
+%   checkAndRepairZCORN    - Detect and repair artifacts that may occur in corner-point specification.
+%   computeGeometry        - Compute geometry of grid.
+%   extractSubgrid         - Construct valid grid definition from subset of existing grid cells.
+%   glue2DGrid             - Connect two 2D grids along common edge
+%   grid_structure         - Grid structure used in the MATLAB Reservoir Simulation Toolbox.
+%   hexahedralGrid         - Construct valid grid definition from points and list of hexahedra
+%   makeInternalBoundary   - Make internal boundary in grid along specified faces.
+%   makeLayeredGrid        - Extrude 2D grid to layered 3D grid with n layers.
+%   pebi                   - Compute dual grid of triangular grid G.
+%   processFaults          - Construct fault structure from input specification (keyword 'FAULTS')
+%   processGRDECL          - Compute grid topology and geometry from pillar grid description.
+%   processNNC             - Establish explicit non-neighbouring connections from NNC keyword
+%   processPINCH           - Establish vertical non-neighbouring across pinched-out layers
+%   removeCells            - Remove cells from grid and renumber cells, faces and nodes.
+%   removeFaultBdryFaces   - Remove fault faces on boundary
+%   removeInternalBoundary - Remove internal boundary in grid by merging faces in face list N
+%   removeIntGrid          - Cast any grid fields that are presently int32 to double
+%   removePinch            - Uniquify nodes, remove pinched faces and cells.
+%   removeShortEdges       - Replace short edges in G by a single node.
+%   splitDisconnectedGrid  - Split grid into disconnected components
+%   tensorGrid             - Construct Cartesian grid with variable physical cell sizes.
+%   tessellationGrid       - Construct valid grid definition from points and tessellation list
+%   tetrahedralGrid        - Construct valid grid definition from points and tetrahedron list
+%   triangleGrid           - Construct valid grid definition from points and triangle list
+%   triangulateFaces       - Split face f in grid G into subfaces.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,8 +1,9 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% UTILS
+%   Utility functions to simplify discussion in certain dataset examples
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   makeNorneGRDECL          - Create containing datafile for subset of Norne simulation model
+%   makeNorneSubsetAvailable - Ensure availability of subset of Norne simulation model
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

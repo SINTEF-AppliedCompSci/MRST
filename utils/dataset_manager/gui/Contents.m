@@ -1,8 +1,8 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% GUI
+%   Interactive interface for exploring collection of datasets
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   mrstDatasetGUI - Open dataset management user interface
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

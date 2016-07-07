@@ -1,8 +1,12 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% DECKINPUT-SIMPLE
+%   Simplified input of grid-related data keywords in ECLIPSE format
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   applyOperatorSimple - Apply ECLIPSE/FrontSim operator to input array.
+%   cutGrdecl           - Extract logically Cartesian subset of a corner-point description
+%   readDefaultedKW     - Read data, possibly containing default designators, for a single keyword.
+%   readDefaultedRecord - Read data, possibly containing default designators, for a single record.
+%   readGRDECL          - Read subset of ECLIPSE GRID file
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,8 +1,11 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% DATASETS
+%   Examples that demonstrate how to work with external datasets
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   showJohansen - Visualizing the Johansen Data Set
+%   showNorne    - Introduction to the Norne Model
+%   showSAIGUP   - Introduction to the SAIGUP Model
+%   showSPE10    - Modle 2 of the 10th SPE Comparative Solution Project
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

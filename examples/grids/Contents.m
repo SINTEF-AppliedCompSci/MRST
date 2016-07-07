@@ -1,13 +1,11 @@
-% Examples demonstrating grid handling.
+% GRIDS
+%   Examples that demonstrate multiple aspects of the MRST grid structure
 %
 % Files
-%   cornerPointModelExample.m - How to Read, Display, and Manipulate Corner-Point Grids
-%   gridFactoryExamples.m     - Create a 2D grid
-%   multiplierExampleSAIGUP.m - Effects of Transmissibility Multipliers
-%   realFieldModelExample.m   - Corner-Point Grids: Example of a Real-Field Model
-%   saigupModelExample.m      - Corner-Point Grids: Example of a realistic Field Model
-%   showJohansen.m            - Visualizing the Johansen Data Set
-%   visualizationTutorial.m   - Visualizing in MRST
+%   gridTutorialCornerPoint - How to Read, Display, and Manipulate Corner-Point Grids
+%   gridTutorialIntro       - Overview of Grid Factory Routines
+%   gridTutorialStruct      - Basic Grid Tutorial: Rectilinear/Curvilinear Grids
+%   gridTutorialUnstruct    - Basic Grid Operations and Manipulations: Rectilinear/Curvilinear Grids
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

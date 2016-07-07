@@ -1,13 +1,16 @@
+% PRIVATE
+%   Low-level support routines for simplified ECLIPSE data input
+%
 % Files
-%   readEQUIL.m            - Read EQUIL keyword
-%   readFaults.m           - Read FAULTS keyword
-%   readMultfelt.m         - Read MULTFELT keyword
-%   readOperator.m         - Read MULTFELT keyword
-%   readOperatorModField.m - Read operator KEYWORDS
-%   readRecordString.m     - Read single record string data (unconverted).
-%   readSCHEDULE_orig.m    - Read (simplified version of) SCHEDULE section of ECLIPSE input deck.
-%   readVector.m           - Input vector of floating point numbers from GRDECL file.
-%   splitString.m          - Split string on multiple whitespace into a cell array of strings.
+%   readEQUIL            - Read EQUIL keyword
+%   readFaults           - Read FAULTS keyword
+%   readMultfelt         - Read MULTFELT keyword
+%   readOperator         - Read MULTFELT keyword
+%   readOperatorModField - Read operator KEYWORDS
+%   readRecordString     - Read single record string data (unconverted).
+%   readSCHEDULE_orig    - Read (simplified version of) SCHEDULE section of ECLIPSE input deck.
+%   readVector           - Input vector of floating point numbers from GRDECL file.
+%   splitString          - Split string on multiple whitespace into a cell array of strings.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

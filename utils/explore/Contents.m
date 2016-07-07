@@ -1,8 +1,10 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% EXPLORE
+%   Interactive interface for exploring MRST examples and research papers
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   mrstExploreModules - Interactively explore MRST modules and corresponding examples
+%   mrstSplitText      - Split example introduction (help text) into header and paragraphs
+%   normaliseTextBox   - Remove explicit line breaks from string for presentation in GUI text box
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

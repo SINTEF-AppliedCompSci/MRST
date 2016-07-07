@@ -1,8 +1,8 @@
 % PRIVATE
-%   Low-level implementation routines for Well/BC code
+%   Support routines for interactive MRST exploration GUI
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   removeCarriageReturn - Internal function (undocumented)
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,8 +1,8 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% AD_UTILS
+%   Support routines for MRST AD implementation
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   lMultdiag - J = lMultDiag(d, J1)  
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

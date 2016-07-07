@@ -1,8 +1,11 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% UTILS
+%   Supporting routines for managing collection of external datasets
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   datasetInfoStruct   - Get a struct containing standardized information about a dataset
+%   downloadAllDatasets - Download all datasets known to MRST and available for direct download
+%   getDatasetInfo      - Get info struct for a given dataset.
+%   listDatasetExamples - List all MRST examples using a specific dataset
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

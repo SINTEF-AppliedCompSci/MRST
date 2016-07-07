@@ -1,8 +1,9 @@
-% PRIVATE
-%   Low-level implementation routines for Well/BC code
+% EQUIL
+%   Simplified implementation of hydrostatic equilibrium for model initialisation
 %
 % Files
-%   boundaryFaceIndices - Retrieve face indices belonging to subset of global outer faces.
+%   simpleEquilibrium      - Routine for creating simple initial equilibriums
+%   test_simpleEquilibrium - Small test for the simple equilibrium routine
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
