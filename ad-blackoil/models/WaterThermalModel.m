@@ -1,19 +1,18 @@
 classdef WaterThermalModel < ReservoirModel
-    % Two phase oil/water system without dissolution
+    % Single phase water model with thermal effects. Should be considered
+    % experimental and intentionally undocumented, as this feature is
+    % subject to change in the future.
     properties
-
     end
     
     methods
         function model = WaterThermalModel(G, rock, fluid, varargin)
-            
             model = model@ReservoirModel(G, rock, fluid);
             
             % This is the model parameters for oil/water
             model.oil = false;
             model.gas = false;
             model.water = true;
-            %model.addflux=true;
             
             % Blackoil -> use CNV style convergence 
             model.useCNVConvergence = false;
