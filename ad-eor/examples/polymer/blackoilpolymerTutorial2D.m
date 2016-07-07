@@ -75,27 +75,21 @@ state0.cmax    = zeros([G.cells.num, 1]);
 schedule = convertDeckScheduleToMRST(model, deck);
 
 %% Select nonlinear and linear solvers
-% Use the AGMG algebraic multigrid solver if this is present, and if not,
-% use the default MATLAB solver, which is a direct solver based on LU
-% factorization. For this case, which is small in term of numbers of cells
-% and unknowns, the direct solver is efficient enough, while for larger
-% cases, the AGMG will improve the solution speed and be required.
 
-% Using physically normalized residuals
+% Using physically normalized residuals for non-linear convergence
+% calcuation.
 model.useCNVConvergence = true;
 
-% Choose the linear solver for pressure equation
-if ~isempty(mrstPath('agmg'))
-    mrstModule add agmg
-    pSolver = AGMGSolverAD();
-else
-    pSolver = BackslashSolverAD();
-end
-
-% set up the CPR linear solver
-linsolve = CPRSolverAD('ellipticSolver', pSolver);
+% Setting up the non-linear solver.
+% Since the size of the current prolbem is relatively small, the direct
+% linear solver provided by MATLAB is efficient enough, so we are not using
+% CPR-preconditioned linear sover by specifying 'useCPR' to be false.
+% For bigger problem, you should try to activate CPR-preconditioned linear
+% solver by specifying 'useCPR' to be true. By doing that, AGMG algebraic
+% multigrid solver will be used if it is present. For much larger cases,
+% the AGMG will improve the solution speed significantly and be required.
 nonlinearsolver = getNonLinearSolver(model, 'DynamicTimesteps', false, ...
-                                     'LinearSolver', linsolve);
+                                     'useCPR', false);
 nonlinearsolver.useRelaxation = true;
 
 %% Visualize the properties of the black-oil fluid model
