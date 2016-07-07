@@ -57,6 +57,8 @@ methods
     function [fn, index] = getVariableField(model, name)
         switch(lower(name))
             case {'rs', 'rv'}
+                % RS and RV for gas dissolving into the oil phase and oil
+                % components vaporizing into the gas phase respectively.
                 fn = lower(name);
                 index = 1;
             otherwise
@@ -187,6 +189,7 @@ methods
     
     % --------------------------------------------------------------------%
     function scaling = getScalingFactorsCPR(model, problem, names)
+        % Get approximate, impes-like pressure scaling factors
         nNames = numel(names);
         
         scaling = cell(nNames, 1);
