@@ -10,6 +10,8 @@
 %  46-71, 2016. DOI: 10.1016/j.jcp.2015.10.010
 
 mrstModule add  msrsb coarsegrid mrst-gui incomp
+
+%%  Grid and petrophysics
 % We have stored a image containing the inclusions
 img = imread(fullfile(mrstPath('msrsb'), 'examples', 'inclusions.png'));
 img = double(img(:,:,1));
@@ -18,9 +20,11 @@ dims = size(img);
 pdims = [1 1]*kilo*meter;
 G = cartGrid(dims, pdims);
 active = find(img == 255);
+
 % Extract active cells
 G = extractSubgrid(G, active);
 G = computeGeometry(G);
+
 % Create a simple log-normal permeability field and map onto active subset
 k = logNormLayers(G.cartDims);
 perm = k(G.cells.indexMap)*darcy;
@@ -28,30 +32,14 @@ poro = 0.5;
 rock = makeRock(G, perm, poro);
 T = computeTrans(G, rock);
 
-% Single phase unit fluid model. Since we are solving a single-phase
-% incompressible problem without gravity, the values here does not matter.
-fluid = initSimpleFluid('rho', [1, 1], 'mu', [1, 1], 'n', [1 1]);
-simple = true;
-if simple
-    % Simple coarse grid
-    cdims = [10, 10];
-    coarsedims = ceil(G.cartDims./cdims);
-    p = partitionUI(G, coarsedims);
-else
-    % Alternative: Use Metis (if installed)
-    p = partitionMETIS(G, T, 200);
-end
-p = processPartition(G, p);
-p = compressPartition(p);
+clf,
+plotCellData(G,log10(rock.perm),'EdgeColor','none')
 
-% Plot the grid, log10 of permeability and coarse grid
-figure;
-plotCellData(G, log10(rock.perm), 'EdgeColor', 'none')
-outlineCoarseGrid(G, p, 'k')
-title('Grid, permeability and coarse grid')
-axis equal tight
-colorbar
-%% Solve fine scale problem
+% Single-phase unit fluid model. Since we are solving a single-phase
+% incompressible problem without gravity, the values here do not matter.
+fluid = initSimpleFluid('rho', [1, 1], 'mu', [1, 1], 'n', [1 1]);
+
+%% Solve fine-scale problem
 % We inject one pore volume over ten years with wells in opposing corners.
 time = 10*year;
 Nt = 100;
@@ -68,6 +56,32 @@ W = verticalWell(W, G, rock, G.cartDims(1), G.cartDims(2), [],...
 % Compute reference
 state0 = initResSol(G, 0, [0, 1]);
 ref0 = incompTPFA(state0, G, T, fluid, 'MatrixOutput', true, 'Wells', W);
+
+clf, plotCellData(G,ref0.pressure/barsa,'EdgeColor','none');
+
+%% Coarse partition
+simple = true;
+if simple
+    % Simple coarse grid
+    cdims = [10, 10];
+    coarsedims = ceil(G.cartDims./cdims);
+    p = partitionUI(G, coarsedims);
+else
+    % Alternative: Use Metis (if installed)
+    p = partitionMETIS(G, T, 200); %#ok<UNRCH>
+end
+p = processPartition(G, p);
+p = compressPartition(p);
+
+% Plot the grid, log10 of permeability and coarse grid
+clf
+plotCellData(G, log10(rock.perm), 'EdgeColor', 'none')
+outlineCoarseGrid(G, p, 'k')
+title('Grid, permeability and coarse grid')
+axis equal tight
+colorbar
+
+%% Coarse grid and basis functions
 % Generate partition vector
 CG = generateCoarseGrid(G, p);
 % Add centroids / geometry information on coarse grid
@@ -78,6 +92,7 @@ A = getIncomp1PhMatrix(G, T);
 % Compute basis and solve for multiscale flux/pressure.
 basis = getMultiscaleBasis(CG, A, 'type', 'msrsb');
 ms0 = incompMultiscale(state0, CG, T, fluid, basis, 'wells', W);
+
 %% Solve the time loop, and plot saturations as they progress
 dt = time/Nt;
 tsolve = @(state) implicitTransport(state, G, dt, rock, fluid, 'wells', W);
@@ -132,3 +147,32 @@ h2 = figure; plotter(ms);
 axis equal tight; colormap(cmap)
 title('MsRSB')
 caxis(c);
+
+%% Copyright notice
+
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
+
