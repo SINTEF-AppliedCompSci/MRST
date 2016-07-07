@@ -11,15 +11,15 @@ function grdecl = verticalGrdecl(grdecl, varargin)
 %   grdecl   - Grid structure in Eclipse format
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   method - 'all' : all pillars are made vertical
+%
+%            'sides' : Only the pillare on the sides are made vertical
+%
 %
 % RETURNS:
 %   grdecl - Grid structure with vertical pillars in Eclipse format.
 %
 % EXAMPLE:
-%   method - 'all' : all pillars are made vertical
-%
-%            'sides' : Only the pillare on the sides are made vertical
-%
 % SEE ALSO:
 %
 
