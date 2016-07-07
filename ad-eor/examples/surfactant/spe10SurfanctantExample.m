@@ -117,7 +117,7 @@ model = OilWaterSurfactantModel(G, rock, fluid);
 %
 injeIJ = [56  10];        % Location of injection well
 prodIJ = [ 5 211];        % Location of production well
-rate   = 100*meter^3/day; % Injection rate
+rate   = 2*meter^3/day;   % Injection rate
 bhp    = 200*barsa;       % Pressure at production well
 nz     = G.cartDims(3);
 
@@ -153,11 +153,11 @@ control(1).W = W;
 [W([W.sign] > 0).surfact] = 50*kilogram/meter^3;
 control(2).W = W;
 
-surfinj_start_time = 100*day;
-surfinj_stop_time  = 150*day;
-end_time           = 300*day;
+surfinj_start_time = 1000*day;
+surfinj_stop_time  = 1500*day;
+end_time           = 3000*day;
 
-dt = 1*day;
+dt = 10*day;
 val1 = linspace(0, surfinj_start_time, round(surfinj_start_time/dt));
 val2 = linspace(surfinj_start_time, surfinj_stop_time, round( ...
     (surfinj_stop_time - surfinj_start_time)/dt));
@@ -173,7 +173,7 @@ step.control = [  ones(numel(val1)-1, 1); ...
 schedule.step    = step;
 schedule.control = control;
 
-schedule = refineSchedule(0, 0.1*day*ones(10, 1), schedule);
+schedule = refineSchedule(0, day*ones(10, 1), schedule);
 
 %% Setup the initial state
 %
@@ -197,6 +197,7 @@ fn = getPlotAfterStep(state0, model, schedule, 'plotWell', false, 'plotReservoir
 
 %% Inspect the results
 %
+figure
 plotToolbar(G, states);
 plotWellSols(wellSols);
 
