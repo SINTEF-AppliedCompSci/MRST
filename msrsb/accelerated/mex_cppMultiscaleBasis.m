@@ -49,9 +49,9 @@ function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
       fullfile(matlabroot, 'extern', 'lib', a, 'microsoft', ...
                ['libmw', lib, '.lib']);
 
-      CXXFLAGS  = { '/MD', '/openmp' };
+      CXXFLAGS  = { };
       LINK      = { };
-      iomp5     = { '/link', '/nodefaultlib:vcomp', 'libiomp5md' };
+      iomp5     = { };
       libstdcpp = { };
 
    elseif isunix,
