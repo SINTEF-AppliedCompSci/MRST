@@ -21,7 +21,7 @@ function [G, bc, test_cases] = squareLayersTest(varargin)
 
    G = squareGrid(opt.cartDims, opt.L, 'grid_type', opt.grid_type, 'disturb', opt.disturb);
    G = createAugmentedGrid(G);
-   G = computeGeometryCalc(G);
+   G = computeGeometry(G);
    bc = cell(2*G.griddim, 1);
    
    if (strcmp(opt.grid_type, 'cartgrid'))
