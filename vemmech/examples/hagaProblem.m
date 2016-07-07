@@ -1,9 +1,5 @@
 %{
-This example set up a poro elastic problem which mimic a slize of of
-overburden, with a infinite horizontal well in god aquifer at the bottum of
-the domain. The poro elastic equation is put together explicitely an the
-time loop is exposed. At the end we simulate the same case by using poro
-elastic solvers.
+This example set up a poro elastic problem 
 %}
 %{
 Copyright 2009-2014 SINTEF ICT, Applied Mathematics
@@ -13,13 +9,14 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
 %% Define parameters
 opt=struct('L',[1 1],...
     'cartDims',[10 10]*3,...
-    'grid_type','triangle',...
+    'grid_type','cartgrid',...
     'disturb',0.0,... %parameter for disturbing grid
     'E',1e9,...  %youngs modolo
     'nu',0.3);% poiso ratio
 
 %% define Grid
 G=squareGrid(opt.cartDims,opt.L,'grid_type',opt.grid_type,'disturb',opt.disturb);
+G=computeGeometry(G)
 figure()
 clf,plotGrid(G)
 %% Find sides of domain
@@ -28,13 +25,8 @@ oside={'Left','Right','Back','Front'};
 bc=cell(4,1);
 for i=1:numel(oside);
     faces=G.cells.faces((G.cells.faces(:,2)==i),1);
-    faces =faces(sum(G.faces.neighbors(faces,:)>0,2)==1)
-    assert(all(sum(G.faces.neighbors(faces,:)>0,2)==1))
-    %{
-    bc{i}=pside([],G,oside{i},0);
-    bc{i}= rmfield(bc{i},'type');
-    bc{i}= rmfield(bc{i},'sat');
-    %}
+    faces =faces(sum(G.faces.neighbors(faces,:)>0,2)==1);
+    assert(all(sum(G.faces.neighbors(faces,:)>0,2)==1));
     bc{i}=addBC([],faces,'pressure',0);
 end
 % finde node of the differens sides and prepare elastisity boundary
@@ -60,7 +52,7 @@ bcdisp=@(x) x*0.0;
 % set up boundary conditions for each side
 clear bc_el_sides
 % set direclet boundary conditions at selected sides
-% on left side nod displace ment in x direction only, this is done by
+% on left side node displace ment in x direction only, this is done by
 % mask
 bc_el_sides{1}=bc{1};
 bc_el_sides{1}.el_bc.disp_bc.mask(:,2)=false;
@@ -88,11 +80,8 @@ disp_node=bcdisp(G.nodes.coords(nodes,:));
 disp_faces=bcdisp(G.faces.centroids(faces,:));
 disp_bc=struct('nodes',nodes,'uu',disp_node,'faces',faces,'uu_face',disp_faces,'mask',mask);
 % define forces at boundary
-%find midpoint face set all force corresponding to the "weight fo the ting
-%at limited area
 sigma=opt.L(2)/10;force=100*barsa;
-%face_force =@(x) force*exp(-(((x(:,1)-opt.L(1)/2))./sigma).^2)+10*barsa;
-face_force =@(x) force*ones(size(x,1),1);%;%exp(-(((x(:,1)-opt.L(1)/2))./sigma).^2)+10*barsa;
+face_force =@(x) force*ones(size(x,1),1);
 faces=bc{4}.face;
 % make force boundary structure NB force is in units Pa/m^3
 force_bc=struct('faces',faces,'force',bsxfun(@times,face_force(G.faces.centroids(faces,:)),[0 -1]));
@@ -103,8 +92,8 @@ el_bc=struct('disp_bc',disp_bc,'force_bc',force_bc);
 %% define rock parameters
 Ev=repmat(opt.E,G.cells.num,1);nuv=repmat(opt.nu,G.cells.num,1);
 
+% solve linear elastic system
 C=Enu2C(Ev,nuv,G);
-%[uu,p,S,A,extra]=VEM2D_linElast2f(G,C,el_bc,load,'dual_field',false);
 [uu,extra]=VEM_linElast(G,C,el_bc,load);
 As=extra.disc.A;
 gradP=extra.disc.gradP;
@@ -115,44 +104,38 @@ Vdir=extra.disc.V_dir;
 ind_s=[1:size(As,1)]';%#ok
 
 
-% find discretization of mechanics
 % find discretizationin of flow
 perm=1e-1*darcy*ones(G.cells.num,1);
 rock=struct('perm',reshape(perm,[],1),'poro',0.1*ones(G.cells.num,1),'alpha',ones(G.cells.num,1));
 fluid=initSingleFluid('mu',1*centi*poise,'rho',1000);
-fluid.cr=1e-4/barsa;
-T=computeTrans(G,rock);
-pv=poreVolume(G,rock);
-pressure=100*barsa*ones(G.cells.num,1);
-state=struct('pressure',pressure,'s',ones(G.cells.num,1),'flux',zeros(G.faces.num,1));
+fluid.cr=1e-5/barsa;
+% set time steps
 dt=0.1e-3;
-mcoord=[5000 200];
-[dd,wc]=min(sum(bsxfun(@minus,G.cells.centroids,mcoord).^2,2));
-%sub=floor(G.cartDims/2);
-%wc=sub2ind(G.cartDims,sub(1),sub(2));
-%W=addWell([],G,rock,wc,'type','bhp','val',3000*barsa);
-W=[];
-bc_f=[];
-%bc=pside(bc,G,'Left',100*barsa);
-%bc=pside(bc,G,'Right',100*barsa);
-bc_f=bc{4};
+
+W=[]; % no wells
+bc_f=bc{4}; % set fluid boudnary conditions on only top
 
 %% define problem probelm an run it in the solver
 problem=struct('G',G,'W',W,'bc_f',bc_f,'fluid',fluid,'rock',rock,...
-    'Ev',Ev,'nuv',nuv,'el_bc',el_bc,'load',load);
+    'C',C,'el_bc',el_bc,'load',load,'src',[]);
 % use Ev an muv for now
 pressure=1*barsa*ones(G.cells.num,1);
-%uu0=uu
+% set initial pressure
 uu0=zeros(size(uu));
+% define init states
 state0=struct('pressure',pressure,'s',ones(G.cells.num,1),'flux',zeros(G.faces.num,1),'uu',uu0);
+% define schedule
 schedule=struct('step',struct('val',dt*ones(10,1)));
-states=poroElastisityLinear(state0,G,problem,schedule,'do_plot',false)
+
+%% Solve Poro elastic problem
+%
+states=poroElastisityLinear(state0,G,problem,schedule,'do_plot',false);
 %%
 figure(1),clf,
 fac=10;% plot deformed grid with a factor 10 for dispalcement compeared with initial state
 for i=1:numel(states)
     %clf,plotCellDataDeformed(G,states{i}.pressure/barsa,states{i}.uu*fac),colorbar
-    clf,plotCellDataDeformed(G,states{i}.pressure/barsa,state0.uu+(states{i}.uu-state0.uu)*fac),colorbar
+    clf,plotCellDataDeformed(G,states{i}.pressure/barsa,state0.uu+(states{i}.uu-state0.uu)*fac);colorbar
     title(['Time', num2str(states{i}.t/day),' dayes'])
     pause(0.1)
 end
@@ -162,9 +145,7 @@ figure(33)
 yn=G.nodes.coords(:,end);
 yc=G.cells.centroids(:,end);
 for i=1:numel(states)
-    %clf,plotCellDataDeformed(G,states{i}.pressure/barsa,states{i}.uu*fac),colorbar
-    %clf,plot(yn,states{i}.uu)
-    clf,plot(yc,states{i}.pressure/barsa,'*')
+    clf,plot(yc,states{i}.pressure/barsa,'*');
     
 end
 

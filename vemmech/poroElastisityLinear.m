@@ -16,7 +16,7 @@ opt = merge_options(opt, varargin{:});
 %problem.el_bc, problem.load, 'dual_field', false);
 %C = Enu2C(problem.Ev, problem.nuv,G);
 C = problem.C;
-[uu_t, extra] = VEM_linElast(G, C, problem.el_bc, problem.load, 'dual_field', false);
+[uu_t, extra] = VEM_linElast(G, C, problem.el_bc, problem.load);
 As = extra.disc.A;
 gradP = extra.disc.gradP;
 div = extra.disc.div;
