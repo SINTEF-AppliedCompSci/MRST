@@ -1,11 +1,23 @@
 function timesteps = getReportMinisteps(report)
-    timesteps = [];
-    for i = 1:numel(report.ControlstepReports)
-        cr = report.ControlstepReports{i};
-        steprep = cr.StepReports(cellfun(@(x) x.Converged, cr.StepReports));
-        timesteps = [timesteps; cellfun(@(x) x.Timestep, steprep)]; %#ok
-    end
-end
+% Get the timesteps used for the ministeps of a report
+%
+% SYNOPSIS:
+%   timesteps = getReportMinisteps(report)
+%
+% DESCRIPTION:
+%   Get the actual ministeps used by simulateScheduleAD.
+%
+% REQUIRED PARAMETERS:
+%   report - Report from simulateScheduleAD. 
+%
+% RETURNS:
+%   timesteps - The timesteps used to solve the problem. These differ from
+%               the control steps (schedule.step.val) in that they are the
+%               actual timesteps taken by the solver (due to timestep
+%               cutting, adaptive timestepping and so on)
+%
+% SEE ALSO:
+%   SimulateScheduleAD
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -25,3 +37,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    timesteps = [];
+    for i = 1:numel(report.ControlstepReports)
+        cr = report.ControlstepReports{i};
+        steprep = cr.StepReports(cellfun(@(x) x.Converged, cr.StepReports));
+        timesteps = [timesteps; cellfun(@(x) x.Timestep, steprep)]; %#ok
+    end
+end
+
+
