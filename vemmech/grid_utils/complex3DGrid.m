@@ -4,8 +4,13 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
 %   [G, G_org] = complex3DGrid(opt, grid_case)
 % 
 %  Example:
-%    G=complex3DGrid(struct('vertical',true,'triangulate',false,'ref',1,'gtol',1e-3),'norne');plotGrid(G)
-%
+%    G=complex3DGrid(struct('vertical',true,'triangulate',false,'ref',1,'gtol',1e-3),'norne');clf,plotGrid(G),view(3)
+%    G=complex3DGrid(struct('triangulate',false,'gtol',1e-3),'sbed');clf,plotGrid(G),view(3)
+%    G=complex3DGrid(struct('triangulate',true,'gtol',1e-3),'sbed');clf,plotGrid(G),view(3)
+%    G=complex3DGrid(struct('triangulate',false,'gtol',1e-3),'sbed');clf,plotGrid(flipGrid(G)),view(3)
+%    G=complex3DGrid(struct('cartDims',[3,3,3],'L',[3 3 3],'disturb',0.04,'triangulate',false),'box');clf,plotGrid(G),view(3)
+%    G=complex3DGrid([],'grdecl'); clf, plotGrid(G), view(3)
+
 
     G_org = [];
     switch grid_case
@@ -21,7 +26,7 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
         G = createAugmentedGrid(G);
 
       case 'grdecl'
-
+        griddim=3;
         grdecl = simpleGrdecl([2, 1, 2]*ceil((1e3).^(1/griddim)), 0.15);
         G = processGRDECL(grdecl);
         G = createAugmentedGrid(G);
