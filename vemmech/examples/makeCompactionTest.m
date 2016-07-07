@@ -1,4 +1,4 @@
-function [el_bc, load] = makeCompactionTest(G, opt)
+function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 %
 %
 % SYNOPSIS:
@@ -15,6 +15,11 @@ function [el_bc, load] = makeCompactionTest(G, opt)
 %          'hanging'      : no vertical displacement on the sides
 %          'free_top'     : no force applied on top
 %          'top_load'     : constant pressure applied on top
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%  'gravity'   - value for gravity (default gravity = 10)
+%  'density'   - value for density in kg/m^3 (default density = 3000)
+%  'top_force' - value for top load in ? (default top_load = 30000)
 %          
 % RETURNS:
 %   el_bc - Elastic boundary condition structure. It contains the fields
@@ -33,14 +38,19 @@ function [el_bc, load] = makeCompactionTest(G, opt)
 %                  'force' : value of the force that is applied
 %    
 %   load  - load function, can be evaluated anywhere, independently of the
-%   grid structure
+%   grid structure.
 %
 % EXAMPLE:
 %
 % SEE ALSO:
 %
 
+    opt2 = struct('gravity'  , 10, ... 
+                  'density'  , 3000, ...
+                  'top_force', 30000 );
+    opt2 = merge_options(opt2, varargin{:});
 
+    
     sides = {'XMin', 'XMax', 'YMin', 'YMax', 'ZMin', 'ZMax'};
     for j = 1 : G.griddim
         Lmax = max(G.faces.centroids(:, j));
@@ -69,8 +79,8 @@ function [el_bc, load] = makeCompactionTest(G, opt)
 
     %% Setup gravity load
     
-    density = 3000; % kg/m^3
-    grav = 10;      % gravity 
+    density = opt2.density; 
+    grav = opt2.gravity;    
     gdir = zeros(1, G.griddim);
     gdir(end) = 1;
     if (opt.islinear)
@@ -140,8 +150,10 @@ function [el_bc, load] = makeCompactionTest(G, opt)
     if (opt.top_load)
         fvec = zeros(1, G.griddim);
         fvec(G.griddim) = 1;
-        H = max(G.nodes.coords(:, G.griddim))-min(G.nodes.coords(:, G.griddim));
-        face_force = @(x) H*10*3000*repmat(-fvec, size(x, 1), 1);
+        H = max(G.nodes.coords(:, ...
+                               G.griddim))-min(G.nodes.coords(:, G.griddim));
+        top_force = opt2.top_force;
+        face_force = @(x) H*top_force*repmat(-fvec, size(x, 1), 1);
         faces = bc{2*G.griddim-1}.face;
         % Make force boundary structure. NB: force unit is  Pa/m^3.
         force_bc = struct('faces', faces, 'force', face_force(G.faces.centroids(faces, :)));
