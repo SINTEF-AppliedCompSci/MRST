@@ -1,4 +1,4 @@
-function [smry, smspec] = readSummaryLocal(prefix, keyWords)
+function [smry, smspec] = readEclipseSummaryUnFmt(prefix, keyWords)
 %Undocumented utility function
 
 %{
@@ -54,14 +54,15 @@ if fid < 0, error([smry_file, ': ', msg]); end
 % jump to start
 fseek(fid, 4, 'cof');
     
-fprintf(['Reading info from roughly ', num2str(estNum), ' ministeps...\n'])
-nums = 0;
+dispif(mrstVerbose, ['Reading info from roughly ', num2str(estNum), ' ministeps:      '])
+curStep = 0;
 while ~feof(fid)
     [name, field] = readFieldUnFmt(fid);
     if strcmp(name, 'MINISTEP')
         ministep = field.values;
-        if (50*ministep/estNum) > nums
-            fprintf('*');nums=nums+1;
+        curStep = curStep +1;
+        if mod(curStep, 100) == 0
+           dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ministep/estNum));
         end
     end
     if strcmp(name, 'PARAMS')
@@ -70,7 +71,8 @@ while ~feof(fid)
     end
 end
 fclose(fid);
-fprintf(['\nActual number of ministeps: ', num2str(ministep+1), '\n']);
+dispif(mrstVerbose, '\b\b\b\b%3d%%', 100);
+dispif(mrstVerbose, ['\nActual number of ministeps: ', num2str(ministep+1), '\n']);
 
 data = data(:, ministeps);
 
