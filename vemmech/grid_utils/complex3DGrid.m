@@ -54,7 +54,7 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
           grdecl = readGRDECL(grdecl);
           usys   = getUnitSystem('METRIC');
           grdecl = convertInputUnits(grdecl, usys);
-  
+        grdecl = cutGrdecl(grdecl, [10 25;35 55;1 22]);
         if (opt.vertical)
             grdecl_org = verticalGrdecl(grdecl);
         else
