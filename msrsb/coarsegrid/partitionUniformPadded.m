@@ -26,6 +26,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     coarseDim = dims - 1;
     spacings = cell(G.griddim, 1);
     for d = 1:G.griddim
+       v = ijk(:, d);
        B = coarseDim(d);
        if B == 0
            spacings{d} = M(d);
