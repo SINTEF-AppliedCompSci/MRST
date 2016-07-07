@@ -114,9 +114,13 @@ fluid.rhoRSft = 2650*kilo*gram/meter^3;
 model = OilWaterSurfactantModel(G, rock, fluid);
 
 %% Define the Wells
-%
-injeIJ = [56  10];        % Location of injection well
-prodIJ = [ 5 211];        % Location of production well
+% The wells are set to operate with a high rate and no pressure limit.
+% Hence, the pressure will rise to far above what can be used in real
+% operational settings. However, the main point of the example is to force
+% flow through large parts of the heterogeneous reservoir and observe the
+% evolution of the displacement fronts.
+injeIJ = [59  17];        % Location of injection well
+prodIJ = [ 2 194];        % Location of production well
 rate   = 2*meter^3/day;   % Injection rate
 bhp    = 200*barsa;       % Pressure at production well
 nz     = G.cartDims(3);
@@ -190,16 +194,15 @@ vizSurfactantModel();
 
 %% Run the simulation
 %
-fn = getPlotAfterStep(state0, model, schedule, 'plotWell', false, 'plotReservoir', ...
-                              false);
+fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...
+                      'plotReservoir', false);
 [wellSols, states] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', ...
                                         fn);
 
 %% Inspect the results
 %
-figure
-plotToolbar(G, states);
-plotWellSols(wellSols);
+figure, plotToolbar(G, states,'field','s:1'); plotWell(G,W,'height',.5);
+view(-10,40); axis tight
 
 %% Copyright notice
 
