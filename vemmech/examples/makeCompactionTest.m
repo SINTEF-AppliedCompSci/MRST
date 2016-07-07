@@ -1,4 +1,45 @@
 function [el_bc, load] = makeCompactionTest(G, opt)
+%
+%
+% SYNOPSIS:
+%   function [el_bc, load] = makeCompactionTest(G, opt)
+%
+% DESCRIPTION: Set up the compaction test by computing the elastic boundary
+% conditions and the load term.
+%
+% PARAMETERS:
+%   G   - Grid
+%   opt - Structure with fields:
+%          'islinear'     :
+%          'gravity_load' : Includes gravity in load
+%          'hanging'      : no vertical displacement on the sides
+%          'free_top'     : no force applied on top
+%          'top_load'     : constant pressure applied on top
+%          
+% RETURNS:
+%   el_bc - Elastic boundary condition structure. It contains the fields
+%             'disp_bc'  : displacement boundary condition. It contains the 
+%                          fields
+%                  'nodes'    : nodes where the displacement condition is applied   
+%                  'uu'       : value for the displacement
+%                  'faces'    : value for the displacement
+%                  'uu_faces' : value for the displacement
+%                  'mask'     : if false then displacement values that are
+%                               imposed in given Cartesian directions are in
+%                               fact ignored.
+%             'force_bc'  : force boundary condition applied on faces. It contains the 
+%                           fields
+%                  'faces' : faces where the force is applied
+%                  'force' : value of the force that is applied
+%    
+%   load  - load function, can be evaluated anywhere, independently of the
+%   grid structure
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 
     sides = {'XMin', 'XMax', 'YMin', 'YMax', 'ZMin', 'ZMax'};
     for j = 1 : G.griddim
