@@ -35,7 +35,7 @@ if(opt.twist)
     G = twister(G, opt.disturb);
 end
 
-G = mrstGridWithFullMappings(G);
+G = createAugmentedGrid(G);
 G = computeGeometry(G);
 
 figure()

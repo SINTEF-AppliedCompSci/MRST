@@ -6,6 +6,7 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
 %  Example:
 %    G=complex3DGrid(struct('vertical',true,'triangulate',false,'ref',1,'gtol',1e-3),'norne');plotGrid(G)
 %
+
     G_org = [];
     switch grid_case
 
@@ -17,13 +18,13 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
             G = triangulateFaces(G, [face]');
         end
         G = computeGeometry(G);
-        G = mrstGridWithFullMappings(G);
+        G = createAugmentedGrid(G);
 
       case 'grdecl'
 
         grdecl = simpleGrdecl([2, 1, 2]*ceil((1e3).^(1/griddim)), 0.15);
         G = processGRDECL(grdecl);
-        G = mrstGridWithFullMappings(G);
+        G = createAugmentedGrid(G);
         G = computeGeometry(G);
 
       case 'sbed'
@@ -53,36 +54,32 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
           grdecl = readGRDECL(grdecl);
           usys   = getUnitSystem('METRIC');
           grdecl = convertInputUnits(grdecl, usys);
-          % Load the grid for the Norne model as eclipse input
-          %grdecl = readGRDECL(fullfile(getDatasetPath('BedModel2'), ...
-          %                             'BedModel2.grdecl'));
-          %grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
-          grdecl = cutGrdecl(grdecl, [10 25;35 55;1 22]);
-          if(opt.vertical)
-              grdecl_org = verticalGrdecl(grdecl);
-          else
-              grdecl_org = grdecl;
-          end
-          G_org = processGRDECL(grdecl_org);
-          if(opt.triangulate)
-              faces = unique(G_org.cells.faces(any(bsxfun(@eq, G_org.cells.faces(:, 2), [5, 6]), 2), 1));
-              G_org = triangulateFaces(G_org, faces');
-          end
-          grdecl = padGrdecl(grdecl, [true, true, true], [60 50;40 40;10 10]*3, 'relative', true);
-          if(opt.vertical)
-              grdecl = verticalGrdecl(grdecl);
-          end
-          grdecl = refineGrdeclLayers(grdecl, [1 1], opt.ref);
-          grdecl = refineGrdeclLayers(grdecl, [grdecl.cartDims(3) grdecl.cartDims(3)], opt.ref);
-          G = processGRDECL(grdecl, 'Tolerance', opt.gtol);
-          G = computeGeometry(G);
-          if(opt.triangulate)
-              faces = unique(G.cells.faces(any(bsxfun(@eq, G.cells.faces(:, 2), [5, 6]), 2), 1));
-              G = triangulateFaces(G, faces');
-          end
-          figure();
-          clf;
-          plotGrid(G);
+  
+        if (opt.vertical)
+            grdecl_org = verticalGrdecl(grdecl);
+        else
+            grdecl_org = grdecl;
+        end
+        G_org = processGRDECL(grdecl_org);
+        if (opt.triangulate)
+            faces = unique(G_org.cells.faces(any(bsxfun(@eq, G_org.cells.faces(:, 2), [5, 6]), 2), 1));
+            G_org = triangulateFaces(G_org, faces');
+        end
+        grdecl = padGrdecl(grdecl, [true, true, true], [60 50; 40 40; 10 10]*3, 'relative', true);
+        if (opt.vertical)
+            grdecl = verticalGrdecl(grdecl);
+        end
+        grdecl = refineGrdeclLayers(grdecl, [1 1], opt.ref);
+        grdecl = refineGrdeclLayers(grdecl, [grdecl.cartDims(3) grdecl.cartDims(3)], opt.ref);
+        G = processGRDECL(grdecl, 'Tolerance', opt.gtol);
+        G = computeGeometry(G);
+        if(opt.triangulate)
+            faces = unique(G.cells.faces(any(bsxfun(@eq, G.cells.faces(:, 2), [5, 6]), 2), 1));
+            G = triangulateFaces(G, faces');
+        end
+        figure();
+        clf;
+        plotGrid(G);
 
       otherwise
         error();

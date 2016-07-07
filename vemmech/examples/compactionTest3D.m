@@ -56,7 +56,7 @@ G = complex3DGrid(opt, grid_case);
 if (opt.flipgrid)
     G = flipGrid(G);
 end
-G = mrstGridWithFullMappings(G);
+G = createAugmentedGrid(G);
 G = computeGeometry(G);
 
 figure()
@@ -78,8 +78,10 @@ C      = Enu2C(Ev, nuv, G);
 
 bbsize = 30000-(G.griddim-2)*20000;
 lsolve = @mldivide;
+fprintf('running ... ');
 uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ...
                   'force_method', opt.force_method);
+fprintf('done!\n');
 
 %% Assemble divergence operator, see paper
 

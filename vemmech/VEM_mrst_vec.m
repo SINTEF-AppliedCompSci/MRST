@@ -46,9 +46,9 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
     opt = merge_options(opt, varargin{:});
 
     if (G.griddim == 3)
-        qc_all = calculateQC_vec(G);
+        qc_all = calculateQC(G);
     else
-        qf_all = calculateQF_vec(G);
+        qf_all = calculateQF(G);
     end
 
     D_all = C2D(C, G);

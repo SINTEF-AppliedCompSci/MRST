@@ -20,7 +20,7 @@ function [G, bc, test_cases] = squareLayersTest(varargin)
    end
 
    G = squareGrid(opt.cartDims, opt.L, 'grid_type', opt.grid_type, 'disturb', opt.disturb);
-   G = mrstGridWithFullMappings(G);
+   G = createAugmentedGrid(G);
    G = computeGeometryCalc(G);
    bc = cell(2*G.griddim, 1);
    

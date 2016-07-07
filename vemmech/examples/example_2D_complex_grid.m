@@ -86,7 +86,7 @@ clf,plotGrid(G);%,plotGrid(G4,'FaceColor','r')
 G=sortEdges(G);
 %%
 % gennerate extra mappings needed
-G=mrstGridWithFullMappings(G);
+G=createAugmentedGrid(G);
 % generate weights needed
 G=computeGeometryCalc(G);
 figure()
