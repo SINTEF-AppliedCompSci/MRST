@@ -13,7 +13,7 @@ G = processGRDECL(grdecl);
 G = computeGeometry(G(1));
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
 %%
-mrstModule add coarsegrid scratchpad ad-core ad-blackoil multiscale-devel mrst-gui
+mrstModule add coarsegrid msrsb ad-core mrst-gui incomp
 %%
 totTime = 100*year;
 N_step = 100;
@@ -99,12 +99,10 @@ for i = 1:min(N_step, lim)
     states = [states; solver(state)];
     fprintf('Ok!\n');
 end
-%%
-figure; plotToolbar(G, states);
-axis equal tight off
-daspect([1 1 0.1])
 
 %%
+global METISPATH
+useMETIS = ~isempty(METISPATH);
 
 G.cells.facePos = double(G.cells.facePos);
 
@@ -112,13 +110,13 @@ cdims = ceil(G.cartDims./[15, 10, 10]);
 % p = partitionUniformPadded(G, cdims);
 % p = partitionUI(G, cdims);
 
-if 1
+if useMETIS
     p = partitionMETIS(G, T, 250);
     p = processPartition(G, p);
 else
-    p = partitionUniformPadded(G, [cdims(1:2), 1]).*partitionUI(G, [1, 1, cdims(3)]);
-%     p = partitionUI(G, cdims);
-%     p = partitionMETIS(G, T, 370);
+    padded = partitionUniformPadded(G, [cdims(1:2), 1]);
+    uni = partitionUI(G, [1, 1, cdims(3)]);
+    p = padded.*uni;
 
     G_fault = makeInternalBoundary(G, find(G.faces.tag > 0));
     p = processPartition(G_fault, p);
@@ -127,7 +125,6 @@ p = compressPartition(p);
 
 mrstModule add agglom
 p0 = p;
-% p = mergeBlocks(p, G, (1:G.cells.num)', ones(G.cells.num, 1), 10, 'Verbose', true);
 fconn = ones(G.faces.num, 1);
 fconn(G.faces.tag > 0) = 0;
 p = mergeBlocksByConnections(G, p, fconn, 25);
@@ -139,27 +136,24 @@ CG = generateCoarseGrid(G, p);
 figure; plotCellData(G, mod(p, 13))
 plotGrid(CG, 'facec', 'none', 'edgec', 'w', 'linewidth', 2)
 %%
-mrstModule add new-multiscale
+mrstModule add msrsb
 CG = coarsenGeometry(CG);
-CG = addCoarseCenterPoints(CG, ...
-               'adjustCenters', true, ...
-               'adjustDims', 1:3, ...
-               'edgeBoundaryCenters', true);
-
+CG = addCoarseCenterPoints(CG);
 CG = setCentersByWells(CG, W);
            
-% CG = storeInteractionRegionCart(CG);
-CG = storeInteractionRegion(CG, 'localTriangulation', true, 'ensureConnected', false);
+CG = storeInteractionRegion(CG, 'ensureConnected', false);
 %%
 A = getIncomp1PhMatrix(G, T);
-basis0 = getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', true, 'tolerance', 1e-3, 'iterations', 200);
+
+getBasis = @(A) getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', true, 'iterations', 150);
+basis0 = getBasis(A);
 
 %%
 basis = basis0;
 
 updateBasis = true;
 W_ms = W;
-fn = getSmootherFunction('type', 'jacobi', 'iterations', 5);
+fn = getSmootherFunction('type', 'ilu');
 
 psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W_ms, ...
     'getSmoother', fn, 'iterations', 0);
@@ -167,10 +161,10 @@ psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W
 states_ms = psolve(state0, basis);
 for i = 1:min(N_step, lim)
     state = states_ms(end);
-    A = getIncomp1PhMatrix(G, T, state, fluid);
-    
+
     if updateBasis && mod(i, 10) == 0 && i > 1
-        basis = getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', true, 'tolerance', 1e-3, 'iterations', 200);
+        A = getIncomp1PhMatrix(G, T, state, fluid);
+        basis = getBasis(A);
     end
     
     fprintf('Step %d of %d: ', i, N_step);
@@ -184,7 +178,8 @@ end
 
 %%
 psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W_ms, ...
-    'getSmoother', fn, 'iterations', 5);
+    'getSmoother', fn, 'iterations', 5, 'useGMRES', true);
+basis = basis0;
 
 states_it = psolve(state0, basis);
 for i = 1:min(N_step, lim)
@@ -192,7 +187,8 @@ for i = 1:min(N_step, lim)
     A = getIncomp1PhMatrix(G, T, state, fluid);
     
     if updateBasis && mod(i, 10) == 0 && i > 1
-        basis = getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', true, 'tolerance', 1e-3, 'iterations', 200);
+        A = getIncomp1PhMatrix(G, T, state, fluid);
+        basis = getBasis(A);
     end
     
     fprintf('Step %d of %d: ', i, N_step);
@@ -220,9 +216,9 @@ axis equal tight off
 daspect([1 1 0.1])
 caxis(c);
 
-ws_ref = convertIncompWellSols(W, states);
-ws_ms = convertIncompWellSols(W, states_ms);
-ws_it = convertIncompWellSols(W, states_it);
+ws_ref = convertIncompWellSols(W, states, fluid);
+ws_ms = convertIncompWellSols(W, states_ms, fluid);
+ws_it = convertIncompWellSols(W, states_it, fluid);
 
 ws = {ws_ref, ws_ms, ws_it};
 wsn = {'Finescale', 'Multiscale', 'Multiscale (5 cycles)'};
