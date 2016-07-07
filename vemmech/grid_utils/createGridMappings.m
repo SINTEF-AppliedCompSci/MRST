@@ -1,19 +1,31 @@
-function w  = createGridMappings(g)
-
-%{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
-%% Create mapping from sub-half-face to cell, node, face, half-face and
-%% sub-face
+function w  = createGridMappings(G)
+%
+%
+% SYNOPSIS:
+%   function w  = createGridMappings(g)
+%
+% DESCRIPTION: Create preliminary structures which is used to conveniently
+% set up the grid mapping, see full_grid_structure.
+%
+% PARAMETERS:
+%   G - Grid structure
+%
+% RETURNS:
+%   w - preliminary structure to be used in createAugmentedGrid
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
     
-    cellno   = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
-    col      = 1 + (cellno == g.faces.neighbors(g.cells.faces(:,1), 2));
-    nhfaces  = g.cells.facePos(end)-1;
-    hfaces   = accumarray([g.cells.faces(:,1), col], 1:nhfaces);
-    hfaces   = rldecode(hfaces, diff(g.faces.nodePos));
-    cells    = rldecode(g.faces.neighbors, diff(g.faces.nodePos));
-    nodes    = repmat(g.faces.nodes, [2,1]);
-    faces    = repmat(rldecode(1:g.faces.num, diff(g.faces.nodePos),2)', [2,1]);
+    cellno   = rldecode(1:G.cells.num, diff(G.cells.facePos), 2) .';
+    col      = 1 + (cellno == G.faces.neighbors(G.cells.faces(:,1), 2));
+    nhfaces  = G.cells.facePos(end)-1;
+    hfaces   = accumarray([G.cells.faces(:,1), col], 1:nhfaces);
+    hfaces   = rldecode(hfaces, diff(G.faces.nodePos));
+    cells    = rldecode(G.faces.neighbors, diff(G.faces.nodePos));
+    nodes    = repmat(G.faces.nodes, [2,1]);
+    faces    = repmat(rldecode(1:G.faces.num, diff(G.faces.nodePos),2)', [2,1]);
     i        = cells~=0;
     w        = [cells(i), nodes(i), hfaces(i), faces(i)];
     w        = double(sortrows(w));
