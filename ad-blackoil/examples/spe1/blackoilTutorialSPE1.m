@@ -103,7 +103,7 @@ eclarg = {'ro','MarkerSize',5,'MarkerFaceColor',[.6 .6 .6]};
 hold on
 plot(T, mrst, mrstarg{:})
 plot(Tcomp, ecl, eclarg{:});
-legend({'MRST', 'Eclipse'},2)
+legend({'MRST', 'Eclipse'})
 xlabel('Time [Years]')
 title('Gas rate / Oil rate')
 
