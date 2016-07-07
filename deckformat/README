@@ -17,3 +17,5 @@ Functionality for reading, writing, and processing ECLIPSE input files. The core
 - SCHEDULE: definition of wells and description of operating schedule
 
 Along with the input reading, the module offers several functions to construct fundamental MRST objects (e.g., grids, fluids, rock-properties or wells) from the descriptions of a particular simulation deck.
+
+This module also supports reading and processing ECLIPSE output files (such as grid, init, summary and restart vectors). This enables visualising an ECLIPSE simulation case with associate dynamic data in MRST as well as using existing ECLIPSE runs to initialise an MRST simulation case.
