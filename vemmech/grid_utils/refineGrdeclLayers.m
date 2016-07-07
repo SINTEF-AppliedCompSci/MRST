@@ -1,4 +1,23 @@
-function ngrdecl = refineGrdeclLayers(grdecl, layers, ref, varargin)
+function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
+%
+%
+% SYNOPSIS:
+%   function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
+%
+% DESCRIPTION: Refine grid in vertical direction
+%
+% PARAMETERS:
+%   grdecl   - Grid in Eclipse format
+%   layers   - layers to be refined
+%   ref      - refinement factor
+%
+% RETURNS:
+%   ngrdecl - refined grid in eclipse format.
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
 
     [xyz, zcorn] = grdeclXYZ(grdecl);
     zcorn1 = zcorn(:, :, 1:2*(layers(1)-1));
