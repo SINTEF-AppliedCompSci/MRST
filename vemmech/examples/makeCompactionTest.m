@@ -12,7 +12,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 %   opt - Structure with fields:
 %          'islinear'     :
 %          'gravity_load' : Includes gravity in load
-%          'hanging'      : no vertical displacement on the sides
+%          'hanging'      : no displacement on the sides
 %          'free_top'     : no force applied on top
 %          'top_load'     : constant pressure applied on top
 %
