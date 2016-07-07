@@ -1,22 +1,26 @@
 function printConvergenceReport(names, values, converged, iteration)
-    nl = cellfun(@numel, names);
-    sep = repmat('=', 1, sum(max(nl, 8)) + 3*numel(nl) + 8);
-    if iteration == 1
-        fprintf('%s\n', sep);
-        fprintf('| It # ');
-        fprintf('| %-8s ', names{:});
-        fprintf('|\n%s\n', sep);
-    end
-    fprintf('| %4d ', iteration);
-    for i = 1:numel(values)
-        linen = max(nl(i), 8);
-        fprintf(['| %-', num2str(linen), '.2e '], values(i));
-    end
-    fprintf('|\n')
-    if converged
-        fprintf('%s\n', sep);
-    end
-end
+% Print a neatly formatted convergence report
+%
+% SYNOPSIS:
+% printConvergenceReport({'myEquation', 'yourEquation'}, [1, 25], [true, false], it);
+%
+% DESCRIPTION:
+%   Print convergence report to the Command Window. Two lines are plotted
+%   for the first iteration, and one line for succeeding iterations.
+%
+% REQUIRED PARAMETERS:
+%   names     - Names of the different convergence measures. Cell array of
+%               length N where N is the number of different measures (for
+%               instance, residual norms for different equations)
+%
+%   values    - Double array of length N, where each entry corresponds to 
+%               the current value of the different named measures.
+%
+%   converged - Boolean indicating if convergence has been achieved.
+%
+% RETURNS:
+%   Nothing.
+%
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -36,3 +40,23 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+    nl = cellfun(@numel, names);
+    sep = repmat('=', 1, sum(max(nl, 8)) + 3*numel(nl) + 8);
+    if iteration == 1
+        fprintf('%s\n', sep);
+        fprintf('| It # ');
+        fprintf('| %-8s ', names{:});
+        fprintf('|\n%s\n', sep);
+    end
+    fprintf('| %4d ', iteration);
+    for i = 1:numel(values)
+        linen = max(nl(i), 8);
+        fprintf(['| %-', num2str(linen), '.2e '], values(i));
+    end
+    fprintf('|\n')
+    if converged
+        fprintf('%s\n', sep);
+    end
+end
+
