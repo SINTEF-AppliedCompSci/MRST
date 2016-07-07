@@ -1,6 +1,26 @@
 function x = assignValue(x, v, inx)
 % Assign values to ADI object by way of indices, without changing jacobians
-
+%
+% SYNOPSIS:
+%   x = assignValue(x, v, inx)
+% DESCRIPTION:
+%   Replace the numerical values of a ADI or double, without changing the
+%   Jacobians. This can lead to inconsistent Jacobians and variables so it
+%   should only be used if you really know what you are doing!
+%
+% REQUIRED PARAMETERS:
+%   x - ADI or double where values are to be replaced.
+%
+%   v - Values that will replace some subset of x.
+%
+% inx - The indices into x that v will replace. That is, after the call, 
+%       double(x(ix)) == v
+%
+% RETURNS:
+%   x - Modified version of input with same class.
+%
+% SEE ALSO:
+%   ADI
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
