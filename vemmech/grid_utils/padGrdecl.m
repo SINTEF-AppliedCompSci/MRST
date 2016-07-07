@@ -1,4 +1,28 @@
 function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
+%
+%
+% SYNOPSIS:
+%   function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
+%
+% DESCRIPTION: Adds padding on all the sides of a corner point grid in order to
+% make it a Cartesian box
+%
+% PARAMETERS:
+%   grdecl   - Grid in eclipse format
+%   dirs     - Padding directions
+%   box      - Number of elements in each padding layer
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   relative - 
+%
+% RETURNS:
+%   grdecl_new - Grid in eclipse format, with padding.
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
     opt = struct('relative', false);
     opt = merge_options(opt, varargin{:});
     [~, zcorn] = grdeclXYZ(grdecl);
@@ -23,8 +47,8 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
         return
     end
 
-    % Rotate model and move to "origo"   
-    grdecl = grdecl_new;        
+    % Rotate model and move to "origo"
+    grdecl = grdecl_new;
     [xyz, zcorn] = grdeclXYZ(grdecl);
     vecx = xyz([1 2], end, 1)-xyz([1 2], 1, 1);
     vecy = xyz([1 2], 1, end)-xyz([1 2], 1, 1);
@@ -41,7 +65,7 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
     xyz([4, 5], :, :) = bsxfun(@minus, xyz([4, 5], :, :), origo);
     org_max = max(reshape(xyz([1, 2], :, :), 2, [])')';
     org_min = min(reshape(xyz([1, 2], :, :), 2, [])')';
-    
+
     if (dirs(1)) % Padding in x-direction
         cartdims = grdecl.cartDims + [2 0 0];
         zcorn_new = nan(cartdims*2);
@@ -64,7 +88,7 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
             pos1 = [org_min(1)-box(1, 1), 0];
             pos2 = [org_max(1)+box(1, 2), 0];
         end
-        
+
         xyz_new([1, 2], 1, :) = bsxfun(@times, xyz_new([1, 2], 1, :), vec');
         xyz_new([1, 2], 1, :) = bsxfun(@plus, xyz_new([1, 2], 1, :), pos1');
         xyz_new([1, 2], end, :) = bsxfun(@times, xyz_new([1, 2], end, :), vec');
@@ -105,7 +129,7 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
         xyz_new([1, 2], :, 1) = bsxfun(@plus, xyz_new([1, 2], :, 1), pos1');
         xyz_new([1, 2], :, end) = bsxfun(@times, xyz_new([1, 2], :, end), vec');
         xyz_new([1, 2], :, end) = bsxfun(@plus, xyz_new([1, 2], :, end), pos2');
-        
+
         xyz_new([4, 5], :, 1) = xyz_new([1, 2], :, 1);
         xyz_new([4, 5], :, end) = xyz_new([1, 2], :, end);
         if (box(1, 1)<org_min(1) && box(1, 2)<org_max(1))
