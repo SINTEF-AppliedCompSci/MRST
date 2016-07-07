@@ -100,9 +100,6 @@ void mexFunction(
 	Grid grid;
 	ConnMatrix mat;
 	double * basis;
-
-	bool useMexOutput = true ;
-
 	std::string fn;
 
 
