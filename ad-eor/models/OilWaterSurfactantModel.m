@@ -72,16 +72,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [state, report] = updateState@TwoPhaseOilWaterModel(model, state, problem,  dx, ...
                                                               drivingForces);
             % cap the concentration (only if implicit solver for concentration)
-            c = model.getProp(state, 'surfactant');
-            state = model.setProp(state, 'surfactant', max(c, 0) );
-
+            if model.surfactant
+                c = model.getProp(state, 'surfactant');
+                state = model.setProp(state, 'surfactant', max(c, 0) );
+            end
         end
         
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             [state, report] = updateAfterConvergence@TwoPhaseOilWaterModel(model, state0, state, dt, ...
                                                               drivingForces);
-            state = updateAdsorption(state0, state, model);
-
+              if model.surfactant
+                  c     = model.getProp(state, 'surfactant');
+                  cmax  = model.getProp(state, 'surfactantmax');
+                  state = model.setProp(state, 'surfactantmax', max(cmax, c));
+                  state = updateAdsorption(state0, state, model);
+              end
         end
         
         function varargout = evaluateRelPerm(model, sat, varargin)
