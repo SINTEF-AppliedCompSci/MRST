@@ -26,7 +26,7 @@ axis off vis3d tight, view([1 -1.5 .3]), camproj perspective
 spec = processEclipseRestartSpec(prefix, 'all');
 steps = 1:20;
 rstrt = readEclipseRestartUnFmt(prefix, spec, steps);
-
+%%
 % The data-arrangement in rstrt is not compatible with plotToolbar, hence
 % we need to rearrage the data as a struct-array. At the same time we only
 % pick data that matches the number of grid cells.
@@ -35,7 +35,7 @@ f  = fieldnames(rstrt); f = f(ix);
 % rearrange restart-data to array of structs for plotting
 data = cellfun(@(x)rstrt.(x), f, 'UniformOutput', false);
 data = cell2struct(vertcat(data{:}), f, 1);
-
+%%
 % Plot selected restart data
 figure, plotToolbar(G, data);
 axis off vis3d tight, view([1 -1.5 .3]), camproj perspective
