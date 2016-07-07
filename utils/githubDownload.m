@@ -135,9 +135,14 @@ function files = download_files(repo, url, opt)
    wait((~ isfinite(wait)) | (wait < 0)) = default_wait();
 
    files = {};
+   
+   wsave = @web_save;
+   if exist('websave', 'file') == 2,
+      wsave = @websave;
+   end
 
    for i = 1 : numel(url),
-      files = wget(files, odir, url{i});
+      files = wget(files, odir, url{i}, wsave);
 
       pause(wait(i));
    end
@@ -212,14 +217,16 @@ end
 
 %--------------------------------------------------------------------------
 
-function files = wget(files, odir, url)
+function files = wget(files, odir, url, wsave)
    assert (ischar(url), 'Internal Error');
 
    cmp = split(url);
 
-   f = websave(fullfile(odir, cmp{end}), url, 'raw', true);
+   f = wsave(fullfile(odir, cmp{end}), url, 'raw', true);
 
-   files = [ files, { f } ];
+   if ~ isempty(f),
+      files = [ files, { f } ];
+   end
 end
 
 %--------------------------------------------------------------------------
