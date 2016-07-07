@@ -137,7 +137,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         [examples, examplenames] = getExamples(module);
         set(exlist, 'String', examplenames);
         set(exlist, 'Value', 1);
-        paperh = mrstReferencesGUI({module}, paperPanel, [0, 0, 1, 1], 'Relevant papers');
+        paperh = mrstReferencesGUI({module}, paperPanel, [0, 0, 1, 1], 'Relevant literature');
         setMainBoxText();
     end
 
