@@ -1,3 +1,15 @@
+%% Water injection in a field model using the MsRSB-method
+% This example demonstrates the use of the MsRSB method to a synthethic
+% waterflood on the grid and petrophysical properties from a real field. 
+%
+% This example is a modified version of Example 4.3.6 in
+%  A multiscale restriction-smoothed basis method for high contrast porous
+%  media represented on unstructured grids. J. Comput. Phys, Vol. 304, pp.
+%  46-71, 2016. DOI: 10.1016/j.jcp.2015.10.010
+
+
+mrstModule add coarsegrid msrsb ad-core mrst-gui incomp
+%% Read and set up the Norne model
 mrstModule add deckformat
 
 if ~(makeNorneSubsetAvailable() && makeNorneGRDECL()),
@@ -12,9 +24,36 @@ grdecl = convertInputUnits(grdecl, usys);
 G = processGRDECL(grdecl);
 G = computeGeometry(G(1));
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
+K = rock.perm;
+rock.perm = [K, K, 0.1*K];
 %%
-mrstModule add coarsegrid msrsb ad-core mrst-gui incomp
-%%
+figure;
+plotCellData(G, log10(rock.perm(:, 1)));
+axis equal tight off
+daspect([1 1 0.2])
+view(85, 20);
+colorbar
+title('Horizontal permeability (log10)')
+
+figure;
+plotCellData(G, log10(rock.perm(:, 3)));
+axis equal tight off
+daspect([1 1 0.2])
+view(85, 20);
+colorbar
+title('Vertical permeability (log10)')
+
+
+figure;
+plotCellData(G, rock.poro);
+axis equal tight off
+daspect([1 1 0.2])
+view(85, 20);
+colorbar
+title('Porosity')
+%% Set up wells 
+% We set up a number of somewhat arbitrary wells around the domain. We
+% inject one pore volume of water distributed over three injectors.
 totTime = 100*year;
 N_step = 100;
 dt = totTime/N_step;
@@ -34,12 +73,8 @@ W = [];
 for i = 1:size(wells, 1);
     W = verticalWell(W, G, rock, wells(i, 1), wells(i, 2), [], 'comp_i', [1, 0], 'type', 'bhp');
     if wells(i, 3) == 1
-        if 0
-            W(i).val = 250*barsa;
-        else
-            W(i).val = -sum(pv)/(totTime*sum(wells(:, 3) == 1));
-            W(i).type = 'rate';
-        end
+        W(i).val = -sum(pv)/(totTime*sum(wells(:, 3) == 1));
+        W(i).type = 'rate';
 
         W(i).name = ['P', num2str(pnum)];
         W(i).sign = -1;
@@ -53,33 +88,18 @@ for i = 1:size(wells, 1);
     end
 end
 
-
+% Plot the grid, the wells and the perforated cells
 close all
 plotGrid(G, 'FaceColor', 'none', 'EdgeA', .2)
 plotWell(G, W)
-axis tight
-
 plotGrid(G, vertcat(W.cells), 'FaceColor', 'none', 'EdgeColor', 'b')
-% 
-% figure;
-% ijk = gridLogicalIndices(G);
-% ijk = [ijk{:}];
-% plotToolbar(G, ijk)
-% axis tight off
+axis equal tight off
+daspect([1 1 0.2])
+view(85, 20);
 %%
-
 T = getFaceTransmissibility(G, rock);
-% T(G.faces.tag > 0) = 0.1*T(G.faces.tag > 0);
+fluid = initSimpleFluid('mu', [1, 5]*centi*poise, 'n', [2, 2], 'rho', [0, 0]);
 
-% fluid = initSimpleFluid('mu', [1, 1]*centi*poise, 'n', [1, 1],...
-%                         'rho', [750, 1000]*kilogram/meter^3);
-fluid = initSimpleFluid('mu', [1, 5]*centi*poise, 'n', [2, 2],...
-                        'rho', [750, 1000]*kilogram/meter^3);
-
-%%
-
-lim = inf
-% lim = 5;
 state0 = initResSol(G, 0, [0, 1]);
 gravity reset off
 
@@ -89,7 +109,7 @@ solver = @(state) implicitTransport(state, G, dt, rock, fluid, 'wells', W);
 state = psolve(state0);
 
 states = state;
-for i = 1:min(N_step, lim)
+for i = 1:N_step
     fprintf('Step %d of %d: ', i, N_step);
     
     fprintf('Solving pressure... ');
@@ -104,12 +124,7 @@ end
 global METISPATH
 useMETIS = ~isempty(METISPATH);
 
-G.cells.facePos = double(G.cells.facePos);
-
 cdims = ceil(G.cartDims./[15, 10, 10]);
-% p = partitionUniformPadded(G, cdims);
-% p = partitionUI(G, cdims);
-
 if useMETIS
     p = partitionMETIS(G, T, 250);
     p = processPartition(G, p);
@@ -135,8 +150,8 @@ p = compressPartition(p);
 CG = generateCoarseGrid(G, p);
 figure; plotCellData(G, mod(p, 13))
 plotGrid(CG, 'facec', 'none', 'edgec', 'w', 'linewidth', 2)
+
 %%
-mrstModule add msrsb
 CG = coarsenGeometry(CG);
 CG = addCoarseCenterPoints(CG);
 CG = setCentersByWells(CG, W);
@@ -145,7 +160,7 @@ CG = storeInteractionRegion(CG, 'ensureConnected', false);
 %%
 A = getIncomp1PhMatrix(G, T);
 
-getBasis = @(A) getMultiscaleBasis(CG, A, 'type', 'rsb', 'useMex', true, 'iterations', 150);
+getBasis = @(A) getMultiscaleBasis(CG, A, 'type', 'MsRSB', 'useMex', true);
 basis0 = getBasis(A);
 
 %%
@@ -159,7 +174,7 @@ psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W
     'getSmoother', fn, 'iterations', 0);
 
 states_ms = psolve(state0, basis);
-for i = 1:min(N_step, lim)
+for i = 1:N_step
     state = states_ms(end);
 
     if updateBasis && mod(i, 10) == 0 && i > 1
@@ -182,10 +197,8 @@ psolve = @(state, basis) incompMultiscale(state, CG, T, fluid, basis, 'wells', W
 basis = basis0;
 
 states_it = psolve(state0, basis);
-for i = 1:min(N_step, lim)
+for i = 1:N_step
     state = states_it(end);
-    A = getIncomp1PhMatrix(G, T, state, fluid);
-    
     if updateBasis && mod(i, 10) == 0 && i > 1
         A = getIncomp1PhMatrix(G, T, state, fluid);
         basis = getBasis(A);
@@ -201,336 +214,40 @@ for i = 1:min(N_step, lim)
 end
 
 %%
+
+names = {'Finescale', 'MsRSB', 'MsRSB (5 cycles)'};
+
 close all; plotToolbar(G, states);
 axis equal tight off
-daspect([1 1 0.1])
-c = caxis();
+daspect([1 1 0.2])
+view(85, 20);
+plotWell(G, W);
+title(names{1});
+colorbar('horiz')
 
 figure; plotToolbar(G, states_ms);
 axis equal tight off
-daspect([1 1 0.1])
-caxis(c);
+daspect([1 1 0.2])
+view(85, 20);
+plotWell(G, W);
+title(names{2});
+colorbar('horiz')
 
 figure; plotToolbar(G, states_it);
 axis equal tight off
-daspect([1 1 0.1])
-caxis(c);
+daspect([1 1 0.2])
+view(85, 20);
+plotWell(G, W);
+title(names{3});
+colorbar('horiz')
+
+%%
+T = cumsum([0; repmat(dt, N_step, 1)]);
 
 ws_ref = convertIncompWellSols(W, states, fluid);
 ws_ms = convertIncompWellSols(W, states_ms, fluid);
 ws_it = convertIncompWellSols(W, states_it, fluid);
 
 ws = {ws_ref, ws_ms, ws_it};
-wsn = {'Finescale', 'Multiscale', 'Multiscale (5 cycles)'};
 shortname = {'ref', 'ms', 'it'};
-plotWellSols(ws, 'datasetnames', wsn)
-
-
-%%
-close all
-
-FZ = 15;
-inj  = find(vertcat(W.sign) > 0);
-prod = find(vertcat(W.sign) < 0);
-markers = {'-', '--', '.-'};
-figsize = [100, 100, 900, 450];
-grafsize = [100, 100, 550, 350];
-time = cumsum(repmat(dt, N_step, 1))/year;
-
-%% Producer BHP
-figure('position', grafsize, 'name', 'prod_bhp');
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    [welldata, wellnames, fldnames] = getWellOutput(ws{i}, 'bhp', prod);
-    plot(time, welldata(2:end, :, 1)/barsa, markers{i})
-    axis tight
-    ylim([200, 400])
-end
-
-ylabel('Bottom hole pressure [bar]')
-xlabel('Time [year]')
-
-h = legend(wellnames, 'box', 'off', 'location', 'north', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-p = gcf;
-tmpf = figure;
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    plot(1, 1, markers{i}, 'color', 'k', 'linewidth', 2, 'markersize', 20)
-end
-h2 = legend(wsn, 'location', 'north', 'box', 'off', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-copyobj(h2, p)
-close(tmpf)
-%% Producer oil rate
-figure('position', grafsize, 'name', 'prod_oil');
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    [welldata, wellnames, fldnames] = getWellOutput(ws{i}, 'qOs', prod);
-    d = abs(welldata(2:end, :, 1));
-    d = convertTo(d, 1000*stb/day);
-    plot(time, d, markers{i})
-    axis tight
-end
-
-ylabel('Oil production [Mbbl/day]')
-xlabel('Time [year]')
-
-h = legend(wellnames, 'box', 'off', 'location', 'north', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-p = gcf;
-tmpf = figure;
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    plot(1, 1, markers{i}, 'color', 'k', 'linewidth', 2, 'markersize', 20)
-end
-h2 = legend(wsn, 'location', 'north', 'box', 'off', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-copyobj(h2, p)
-close(tmpf)
-
-%% Producer water rate
-figure('position', grafsize, 'name', 'prod_water');
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    [welldata, wellnames, fldnames] = getWellOutput(ws{i}, 'qWs', prod);
-    d = abs(welldata(2:end, :, 1));
-    d = convertTo(d, 1000*stb/day);
-    plot(time, d, markers{i})
-    axis tight
-end
-
-ylabel('Water production [Mbbl/day]')
-xlabel('Time [year]')
-
-h = legend(wellnames, 'box', 'off', 'location', 'north', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-p = gcf;
-tmpf = figure;
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    plot(1, 1, markers{i}, 'color', 'k', 'linewidth', 2, 'markersize', 20)
-end
-h2 = legend(wsn, 'location', 'north', 'box', 'off', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-copyobj(h2, p)
-close(tmpf)
-
-%% Injector water
-figure('position', grafsize, 'name', 'inj_water');
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    [welldata, wellnames, fldnames] = getWellOutput(ws{i}, 'qWs', inj);
-    d = abs(welldata(2:end, :, 1));
-    d = cumsum(d, 1);
-    plot(time, d, markers{i})
-    axis tight
-end
-
-ylabel('Cumulative injection [m^3]')
-xlabel('Time [year]')
-
-h = legend(wellnames, 'box', 'off', 'location', 'north', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-p = gcf;
-tmpf = figure;
-set(gca, 'fontsize', FZ)
-hold on
-for i = 1:numel(ws)
-    plot(1, 1, markers{i}, 'color', 'k', 'linewidth', 2, 'markersize', 20)
-end
-h2 = legend(wsn, 'location', 'north', 'box', 'off', 'color', 'none', 'linewidth', 0, 'EdgeColor', [1 1 1]);
-copyobj(h2, p)
-close(tmpf)
-%%
-v = [-170, 15];
-% v = [70, 20];
-
-data = {states, states_ms, states_it};
-
-for i = 1:numel(data)
-    s = data{i};
-    
-    figure('position', figsize, 'name', [shortname{i}, '_sw']);
-    plotCellData(G, s(end).s(:, 1), 'EdgeColor', 'w', 'EdgeAlpha', 0.25)
-    view(v)
-    axis tight off
-    daspect([1 1 0.25])
-    plotWell(G, W, 'color', 'k')
-    if i == 1
-        c = caxis();
-    else
-        caxis(c);
-    end
-end
-
-
-for i = 1:numel(data)
-    s = data{i};
-    
-    figure('position', figsize, 'name', [shortname{i}, '_pressure']);
-    plotCellData(G, s(end).pressure, 'EdgeColor', 'w', 'EdgeAlpha', 0.25)
-    view(v)
-    axis tight off
-    daspect([1 1 0.25])
-    plotWell(G, W, 'color', 'k')
-    if i == 1
-        c = caxis();
-    else
-        caxis(c);
-    end
-end
-
-%%
-c = [min(log10(rock.perm(:))), max(log10(rock.perm(:)))];
-
-snp = 'xyz';
-
-for i = [1, 3]
-    figure('position', figsize, 'name', ['perm', snp(i)]);
-    plotCellData(G, log10(rock.perm(:, i)), 'EdgeColor', 'w', 'EdgeAlpha', 0.25)
-    view(v)
-    axis tight off
-    daspect([1 1 0.25])
-    plotWell(G, W, 'color', 'k')
-    caxis(c)
-end
-
-figure('position', figsize, 'name', 'poro');
-plotCellData(G, (rock.poro), 'EdgeColor', 'w', 'EdgeAlpha', 0.25)
-view(v)
-axis tight off
-daspect([1 1 0.25])
-plotWell(G, W, 'color', 'k')
-
-
-
-%% Saving plots
-mrstModule add export_fig
-
-msdir = mrstPath('query', 'multiscale-devel');
-
-fdir = fullfile(msdir, 'papers', 'mrsb', 'incomp', 'figures', 'norne');
-if ~exist(fdir, 'dir')
-    mkdir(fdir)
-end
-saveplot = @(h, ext) export_fig(fullfile(fdir, [get(h, 'Name'), '.', ext]), h, '-transparent');
-
-ch = get(0, 'Children');
-for i = 1:numel(ch)
-    figure(ch(i));
-    
-    disp(['Saving plot ', num2str(i), ' of ', num2str(numel(ch))]);
-    
-    types = get(get(gca, 'Children'), 'Type');
-    
-    if any(strcmpi(types, 'patch'))
-        saveplot(ch(i), 'png')
-    else
-        saveplot(ch(i), 'pdf')
-    end
-end
-%% Debug stuff follows
-return
-%%
-close all
-plotGrid(G, 'facec', 'none', 'edgea', .05)
-plotWellData(G, W, {states(1).wellSol.flux})
-axis equal tight off
-daspect([1 1 0.1])
-
-figure
-plotGrid(G, 'facec', 'none', 'edgea', .05)
-plotWellData(G, W, {states_ms(1).wellSol.flux})
-axis equal tight off
-daspect([1 1 0.1])
-%%
-ms = states_ms(1).pressure;
-rf = states(1).pressure;
-it = states_it(1).pressure;
-% ms = states_ms(end).s(:, 1);
-% rf = states(end).s(:, 1);
-
-N = 1
-norm(ms - rf, N)/norm(rf, N)
-norm(it - rf, N)/norm(rf, N)
-
-
-%%
-rf = sqrt(sum(faceFlux2cellVelocity(G, states(1).flux).^2, 2));
-ms = sqrt(sum(faceFlux2cellVelocity(G, states_ms(1).flux).^2, 2));
-
-fn = @(x) log10(x);
-
-figure;
-plotCellData(G, fn(rf), 'EdgeColor', 'w', 'EdgeAlpha', .2);
-axis  tight off
-view(90, 90)
-c = caxis();
-set(gcf, 'Name', 'v_ref');
-
-figure;
-plotCellData(G, fn(ms), 'EdgeColor', 'w', 'EdgeAlpha', .2);
-axis  tight off
-view(90, 90)
-caxis(c);
-set(gcf, 'Name', 'v_ms');
-
-
-figure;
-plotCellData(G, abs(rf-ms)./max(rf), 'EdgeColor', 'w', 'EdgeAlpha', .2);
-axis  tight off
-% caxis([0, 1])
-view(90, 90)
-set(gcf, 'Name', 'v_err');
-%%
-for i = 1:CG.cells.num
-    figure(1); clf
-    plotGrid(G, CG.cells.interaction{i}, 'facec', 'none')
-    plotGrid(G, CG.partition == i)
-    pause
-end
-%%
-figure;
-for i = 1:numel(W)
-    plotCellData(G, CG.partition, ismember(CG.partition, CG.partition(W(i).cells)), 'facea', .2)
-    
-end
-plotWell(G, W);
-%%
-bad = states_ms(1).pressure > max(states(1).pressure);
-badc = unique(CG.partition(bad));
-
-% for i = 1:CG.cells.num
-for i = badc'
-    figure(1); clf
-    plotGrid(G, CG.cells.interaction{i}, 'facec', 'none')
-    plotGrid(G, CG.partition == i)
-    pause
-end
-
-%%
-figure('position', figsize);
-% Gplot = generateCoarseGrid(G, ones(G.cells.num, 1));
-% plotGrid(Gplot, 'faceColor', 'w', 'EdgeColor', 'k', 'EdgeAlpha', 0.1, 'FAcea', .1)
-% plotFaces(G, 'faceColor', 'y', 'EdgeColor', 'none', 'outline', true, 'facea', .2)
-% plotGrid(G, 'edgecolor', 'none', 'facea', .2)
-
-fa = G.cells.faces(G.cells.faces(:, 2) == 6, 1);
-d = log10(rock.perm(:, 3));
-
-layers = 1:G.cells.num;
-[ii, jj, kk] = gridLogicalIndices(G);
-% layers = mod(kk, 5) == 0 | kk == max(kk) | kk == min(kk);
-layers = kk == max(kk) | kk == min(kk);
-
-plotFaces(G, fa(layers), d(layers), 'facea', .2, 'edgec', 'none', 'outline', true)
-
-% set(gca, 'ZDir', 'normal')
-% camlight(30, 60)
-% set(gca, 'ZDir', 'reverse')
-
-view(v)
-axis tight off
-daspect([1 1 0.25])
-plotWell(G, W, 'color', 'k')
+plotWellSols(ws, T, 'datasetnames', names)
