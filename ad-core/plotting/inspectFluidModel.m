@@ -304,6 +304,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [krW(i, :), krO(i, :), krG(i, :)] = ...
                 model.relPermWOG(xi, 1 - xi - yi, yi, model.fluid);
         end
+        % If sW and sG sum up to more than unity, pad with NaN.
+        unphys = x + y > 1;
+        krW(unphys) = nan;
+        krO(unphys) = nan;
+        krG(unphys) = nan;
         
         if ix == 1
             contourf(x, y, krW)
