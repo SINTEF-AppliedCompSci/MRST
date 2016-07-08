@@ -10,11 +10,12 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 % PARAMETERS:
 %   G   - Grid
 %   opt - Structure with fields:
-%          'islinear'     :
 %          'gravity_load' : Includes gravity in load
-%          'hanging'      : no vertical displacement on the sides
+%          'hanging'      : no displacement on the sides
 %          'free_top'     : no force applied on top
 %          'top_load'     : constant pressure applied on top
+%          'islinear'     : impose some linear displacement
+%                           (in vertical direction)
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %  'gravity'   - value for gravity (default gravity = 10)
@@ -27,8 +28,13 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 %                          fields
 %                  'nodes'    : nodes where the displacement condition is applied   
 %                  'uu'       : value for the displacement
-%                  'faces'    : value for the displacement
+%
+%                  The two following fields are not used in the VEM implementation
+%                  but becomes relevant for other methods such as MPSA, see paper
+%
+%                  'faces'    : faces displacement
 %                  'uu_faces' : value for the displacement
+%
 %                  'mask'     : if false then displacement values that are
 %                               imposed in given Cartesian directions are in
 %                               fact ignored.

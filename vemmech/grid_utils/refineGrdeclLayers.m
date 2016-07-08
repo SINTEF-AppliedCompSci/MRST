@@ -8,11 +8,11 @@ function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
 %
 % PARAMETERS:
 %   grdecl   - Grid in Eclipse format
-%   layers   - layers to be refined
-%   ref      - refinement factor
+%   layers   - Refine vertical layers from layers(1) to layers(2)
+%   ref      - Vertical refinement factor for each cell
 %
 % RETURNS:
-%   ngrdecl - refined grid in eclipse format.
+%   ngrdecl - Refined grid in eclipse format.
 %
 % EXAMPLE:
 %

@@ -1,12 +1,11 @@
 function C = Enu2C(E, nus, G)
 %
-% For each cell, construct the 3x3 (in 2D) or 6x6 (in 3D) matrix representing
-% the elasticity tensor.
 %
 % SYNOPSIS:
 %   function C = Enu2C(E, nus, G)
 %
-% DESCRIPTION:
+% DESCRIPTION: For each cell, construct the 3x3 (in 2D) or 6x6 (in 3D) matrix
+% representing the elasticity tensor.
 %
 % In 3D, the matrix of the elasticity tensor for a given cell is written:
 %
@@ -28,11 +27,8 @@ function C = Enu2C(E, nus, G)
 %       cells.  Each row thus represents the entries of the elasticity tensor
 %       for a specific cell.
 
-% convert form Voigt notation to matrix in VEM format of vem formulation
+% convert from Voigt notation to matrix in VEM format of vem formulation
 
-%{ 
-   Copyright 2009 - 2014 SINTEF ICT, Applied Mathematics
-%} 
    if(G.griddim == 2)
       z = zeros(numel(nus), 1); 
       C = [reshape([1 - nus, nus    , z          ]', [], 1), ...

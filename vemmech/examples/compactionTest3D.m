@@ -20,20 +20,23 @@ opt = struct('grid_type' , 'triangle', ...
              'nu'        , 0.4, ...     % Poison's ratio
              'islinear'  , false);
 opt.L            = [15 15 3];
-opt.islinear     = false;
+opt.islinear     = false; % if true, the boundary condition is a given linear
+                          % displacement, see function makeCompactionTest.
+% Two different methods are implemented to compute the loading term, see
+% paper [Andersen et al: http://arxiv.org/abs/1606.09508v1].
 opt.force_method = 'dual_grad_type';
 opt.hanging      = false;
 opt.free_top     = true;  % If true, the nodes at the top can move freely (no
                           % boundary condition given there)
 opt.triangulate  = false;  % Triangulate some faces
 opt.vertical     = true; % Only relevant for norne test case (straightens up
-                          % the pillars, see paper )
+                          % the pillars, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1])
 opt.gravity_load = true;  % Use gravity load
 opt.top_load     = true;  % Use force applied at the top
 opt.gtol         = 0.1e-1; % Grid tolerance parameter (used when calling
                            % processGRDECL, see documentation there)
 opt.ref          = 10;     % Refinement parameter, only used for Norne
-opt.flipgrid     = false;  % Rotate the grid (z->x, x->y, y->z) (see paper )
+opt.flipgrid     = false;  % Rotate the grid (z->x, x->y, y->z) (see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1])
 
 grid_case_number = input(['Choose a grid (type corresponding number): box [1], ' ...
                     'sbed [2], Norne [3]\n']);
@@ -89,8 +92,8 @@ uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ..
                   'force_method', opt.force_method);
 fprintf('done!\n');
 
-%% Assemble divergence operator, see paper
-
+%% Assemble divergence operator
+% There exists a 
 div = VEM_div(G);
 
 %% Plotting
