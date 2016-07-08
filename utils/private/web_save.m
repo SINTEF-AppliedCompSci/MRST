@@ -49,20 +49,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    args = stringify_values(varargin{:});
    
    if ~isempty(args),
-      args = [ { 'get' }, { args } ];
+      args = [ { 'Get' }, { args } ];
    end
 
-   s = urlread(url, args{:});
+   [file, ok] = urlwrite(url, file, args{:});
 
-   [fid, msg] = fopen(file, 'wb');
-
-   if fid < 0,
-      error('Open:Fail', 'Failed to open file ''%s'': %s', file, msg)
+   if ~ ok,
+      % Failed to download file from URL.
+      file = [];
    end
-
-   fprintf(fid, '%s', s);
-
-   fclose(fid);
 end
 
 %--------------------------------------------------------------------------
