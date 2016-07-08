@@ -95,7 +95,9 @@ CG.dual = DG;
 
 % Compute basis functions, use very strict tolerance and an excessive
 % amount of iterations to avoid any round-of error from basis functions not
-% being converged
+% being converged. For this reason, we use a C-accelerated version of the
+% MsRSB solver. If this fails to compile on your computer, you can change
+% the 'useMex' argument to false and wait a little longer for the result.
 A = getIncomp1PhMatrix(G, T);
 basisfv = getMultiscaleBasis(CG, A, 'type', 'msfvm');
 msfv = incompMultiscale(state0, CG, T, fluid, basisfv, 'wells', W);
