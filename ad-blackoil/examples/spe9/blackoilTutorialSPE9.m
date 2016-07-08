@@ -403,7 +403,7 @@ h = gcf;
 % industry standard commercial solver run using the same inputs.
 addir = mrstPath('ad-blackoil');
 compare = fullfile(addir, 'examples', 'spe9', 'compare');
-[smry, smspec]  = readSummaryLocal(fullfile(compare, 'SPE9'));
+smry = readEclipseSummaryUnFmt(fullfile(compare, 'SPE9'));
 
 compd = 1:(size(smry.data, 2));
 Tcomp =  smry.get(':+:+:+:+', 'YEARS', compd);
