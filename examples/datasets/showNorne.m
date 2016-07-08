@@ -160,11 +160,9 @@ colorbarHist(rock.ntg,[.05 1],'South',100);
 % Permeability
 % The permeability is generally a tridiagonal tensor K = diag(Kx, Ky, Kz).
 % For the Norne model, the data file only specifies Kx, and then various
-% manipulations are done to get the correct vertical permeability. These
-% are not incorporated herein, and hence we only show the horizontal
-% component of the permeability.
+% manipulations are done to get the correct vertical permeability.
 clf
-p = log10(rock.perm(:,1));
+p = log10(rock.perm(:,3));
 plotCellData(G,p, pargs{:});
 axis tight off; set(gca,'DataAspect',[1 1 0.1]);
 view(-110,55); zoom(1.8);
@@ -172,6 +170,20 @@ view(-110,55); zoom(1.8);
 % Manipulate the colorbar to get the ticks we want
 cs = [1 10 100 1000 10000];
 caxis(log10([min(cs) max(cs)]*milli*darcy));
+hc = colorbarHist(p(~isinf(p)),caxis,'South',100);
+set(hc, 'YTick', 0.5, 'YTickLabel','mD', ...
+    'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(cs'));
+
+%%
+clf
+p = log10(rock.perm(:,3));
+plotCellData(G,p, pargs{:});
+axis tight off; set(gca,'DataAspect',[1 1 0.1]);
+view(-110,55); zoom(1.8);
+    
+% Manipulate the colorbar to get the ticks we want
+cs = [0.1 1 10 100 1000];
+caxis(log10([.1 2500]*milli*darcy));
 hc = colorbarHist(p(~isinf(p)),caxis,'South',100);
 set(hc, 'YTick', 0.5, 'YTickLabel','mD', ...
     'XTick', log10(cs*milli*darcy), 'XTickLabel', num2str(cs'));
