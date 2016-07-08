@@ -21,6 +21,7 @@ function fbc = addFluidContribMechVEM(G, bc, rock, isdirdofs)
 %
 % SEE ALSO:
 %
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

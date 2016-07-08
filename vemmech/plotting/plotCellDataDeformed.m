@@ -20,6 +20,7 @@ function h = plotCellDataDeformed(G, data, u, varargin)
 %
 % SEE ALSO: plotCellData
 %
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

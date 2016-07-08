@@ -1,5 +1,5 @@
 function w  = createGridMappings(G)
-%
+% Add preliminary mappings to be used in createAugmentedGrid
 %
 % SYNOPSIS:
 %   function w  = createGridMappings(g)

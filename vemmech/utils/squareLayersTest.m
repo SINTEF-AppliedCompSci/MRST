@@ -278,11 +278,11 @@ function [G, bc, test_cases] = squareLayersTest(varargin)
 
    % Test case from Jan Nordbotten
    %
-   %%
+   %
    %
    % [sol, load, sigma] = testcaseNordbotten() % seems to be only for laplaze equation
    %
-   %%
+   %
 end
 
 function testcase = makeDirTestCase(G, bc, C, load, bcdisp, solution)

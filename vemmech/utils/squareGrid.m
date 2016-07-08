@@ -4,7 +4,7 @@ function G = squareGrid(cartDims, L, varargin)
 %   G = squareGrid(cartDims, L, varargin)
 %
 % DESCRIPTON:
-% make square with different irregular grid types starting from cartesian.
+% Make square with different irregular grid types starting from cartesian.
 %
 % run script exploreSquareGrid.m to see the different possibilities
 %
@@ -25,6 +25,7 @@ function G = squareGrid(cartDims, L, varargin)
 % RETURNS:
 %
 %   G   - Grid structure
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

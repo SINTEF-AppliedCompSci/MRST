@@ -1,5 +1,5 @@
 function [S, operators] = VEM_assemble(G, C, varargin)
-%
+% Assemble the virtual element stiffness matrix and intermediate operators
 %
 % SYNOPSIS:
 %   function [S, operators] = VEM_assemble(G, C, varargin)
@@ -8,30 +8,34 @@ function [S, operators] = VEM_assemble(G, C, varargin)
 %   Compute the full VEM stiffness matrix; optionally returns intermediate
 %   operators
 % 
-%   Assembly based on Paulino's paper in 3D. The notations follow Paulino's paper.
+%   Assembly based on Paulino's paper in 3D. The notations follow Paulino's
+%   paper.
 %
 %   Vectorized version. 
 % 
 %   S = |E| W_c D W_c^T + (I - P_P)^T s (I - P_P)
 %
 % PARAMETERS:
-%   G        - Grid (2D or 3D)
-%   C        - matrix where each row represents the elasticity tensor for the grid
-%              cell corresponding to that row
+%   G        - Grid (2D or 3D) C        - matrix where each row represents
+%              the elasticity tensor for the grid cell corresponding to
+%              that row
 %   varargin - options are:
-%              'blocksize' - size of blocks (# of cells) for vectorized calc.
+%              'blocksize' - size of blocks (# of cells) for vectorized
+%              calc.
 %
 % RETURNS:
-%   S         - full VEM system matrix, including rows/columns for Dirichlet nodes.
-%   operators - will contain the fields: 
-%               - D      - matrix of normalized strain energies for each cell
+%   S         - full VEM system matrix, including rows/columns for
+%   Dirichlet nodes. operators - will contain the fields:
+%               - D      - matrix of normalized strain energies for each
+%                          cell
 %               - WC     - matrix for projection of basis functions onto
-%                          space of constant strain modes 'c'
+%                          space of constant strain modes 'c' 
 %               - assemb -
 %
 % EXAMPLE:
 %
 % SEE ALSO: VEM_linElast
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
@@ -89,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     for iblocks = 1:numel(blocks)
         cells = blocks{iblocks};
-        %% Here every thing should be done only for the cells in block
+        % Here every thing should be done only for the cells in block
         inodes = mcolon(G.cells.nodePos(cells), (G.cells.nodePos(cells+1)-1))';
         linodes = [1:numel(inodes)]';
         nodes = G.cells.nodes(inodes)';
@@ -176,7 +180,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         NR = sparse(ib, jb, reshape(NR', [], 1), nlin*numel(cells), mat_sz)';
         NC = sparse(ib, jb, reshape(NC', [], 1), nlin*numel(cells), mat_sz)';
         
-        %% Define the projection operators in nodal basis
+        % Define the projection operators in nodal basis
         PR = NR*WR'; % Rigid body rotation
         PC = NC*WC'; % Other linear displacements
         PP = PR+PC;  % Projection to linear displacement

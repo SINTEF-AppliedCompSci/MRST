@@ -1,5 +1,5 @@
 function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
-%
+% Assemble and solve the linear elasticity equations using VEM
 %
 % SYNOPSIS:
 %   function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
@@ -50,6 +50,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 %
 % SEE ALSO:
 %
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
@@ -137,13 +138,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     isdirdofs(dirdofs) = true;
 
 
-    %% Calculate the boundary conditions
+    % Calculate the boundary conditions
     V_dir = nan(ndof, 1);
     V_dir(isdirdofs) = u_bc(:);
     V_dir(~isdirdofs) = 0;
     rhso = -S * V_dir;
 
-    %% Calculate load terms
+    % Calculate load terms
     % There are several alternatives, which may lead to different errors in particular for thin
     % long cells, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1]
     f = calculateVolumeTerm(G, load, qc_all, qcvol, opt);

@@ -1,5 +1,5 @@
 function [div] = VEM_div(G)
-%
+% Discrete div operator for the virtual element method
 %
 % SYNOPSIS:
 %   function [div] = VEM_div(G)
@@ -22,6 +22,7 @@ function [div] = VEM_div(G)
 %
 % SEE ALSO:
 %
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
