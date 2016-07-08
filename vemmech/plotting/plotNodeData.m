@@ -19,7 +19,6 @@ function varargout = plotNodeData(G, node_data, varargin)
 %
 %
 % EXAMPLE:
-
 %
 % SEE ALSO:
 %   plotCellData, plotGrid, newplot, patch, shading.
