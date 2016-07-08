@@ -1,5 +1,5 @@
 function G = createAugmentedGrid(G)
-%
+% Extend grid with mappings needed for the virtual element solver
 %
 % SYNOPSIS:
 %   function G = createAugmentedGrid(G)
@@ -24,6 +24,24 @@ function G = createAugmentedGrid(G)
 %
 % SEE ALSO:
 %
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
 
     if (G.griddim == 3)
@@ -58,13 +76,13 @@ function G = createAugmentedGrid(G)
     end
     w = createGridMappings(G);
 
-    %% Setup node to face mapping
+    % Setup node to face mapping
     n2f = unique([w(:, 2), w(:, 4)], 'rows', 'sorted');
     [pos, val] = map2Pos(n2f);
     G.nodes.facePos = pos;
     G.nodes.faces = val;
 
-    %% Setup cell to node mapping
+    % Setup cell to node mapping
     if (G.griddim == 3)
         c2n = unique([w(:, 1), w(:, 2)], 'rows', 'sorted');
         [pos, val] = map2Pos(c2n);
@@ -72,7 +90,7 @@ function G = createAugmentedGrid(G)
         G.cells.nodes = val;
     end
 
-    %% Setup node to cell mapping
+    % Setup node to cell mapping
     n2c = unique([w(:, 2), w(:, 1)], 'rows', 'sorted');
     [pos, val] = map2Pos(n2c);
     G.nodes.cellPos = pos;

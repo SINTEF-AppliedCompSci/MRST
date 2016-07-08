@@ -9,7 +9,7 @@
 %   twophaseTransport.m       - twophaseTransport -- Examples of two-phase transport on small Cartesian
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

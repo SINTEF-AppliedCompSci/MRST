@@ -66,7 +66,7 @@ function [flux, press, lam, varargout] = schurComplementSymm(BI, C, D, ...
 %   tpfSymm, mixedSymm, solveIncompFlow, solveIncompFlowMS.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -1,20 +1,46 @@
 function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
-%
+% Assemble and solve the linear elasticity equations using VEM
 %
 % SYNOPSIS:
 %   function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 %
-% DESCRIPTION: solve linear elastisity problem using the Virtual Element method. Main
-% mechanics solver. Without face degree of freedom. Meant to be run for any
-% dimension.
-%
+% DESCRIPTION: Assemble and solve the linear elastisity equations using the
+% Virtual Element method.
 % PARAMETERS:
-%   G        - Grid structure as described by grid_structure, which also
-%              has the mappings from G = createAugmentedGrid(G).
+%   G        - Grid structure as described by full_grid_structure
 %   C        - Elasticity tensor
-%   el_bc    - boundary condition of type struct('disp_bc', [], 'force_bc', [])
+%   el_bc    - Elastic boundary condition structure. It contains the fields
+%             'disp_bc'  : displacement boundary condition. It contains the
+%                          fields
+%                  'nodes'    : nodes where the displacement condition is applied
+%                  'uu'       : value for the displacement
+%
+%                  The two following fields are not used in the VEM implementation
+%                  but becomes relevant for other methods such as MPSA, see paper
+%
+%                  'faces'    : faces displacement
+%                  'uu_faces' : value for the displacement
+%
+%                  'mask'     : if false then displacement values that are
+%                               imposed in given Cartesian directions are in
+%                               fact ignored.
+%             'force_bc'  : force boundary condition applied on faces. It contains the
+%                           fields
+%                  'faces' : faces where the force is applied
+%                  'force' : value of the force that is applied
+%
 %   load     - loading term
-%   varargin -
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%  'linsolve'             - Linear solver
+%  'blocksize'            - block size used in the assembly
+%  'add_operators'        - Add operator in output
+%  'force_method'         - Method for computing the loading term, see function calculateVolumeTerm below for
+%                           a list of the possible alternatives.
+%  'alpha_scaling'        - Coefficient of the stabilisation term (default 1)
+%  'S'                    - Stabilization matrix to use (used only in very special cases, experimental feature)
+%  'experimental_scaling' - Scaling proposed in [Andersen et al: http://arxiv.org/abs/1606.09508v1]
+%  'pressure'             - Pressure field, used at loading term
 %
 % RETURNS:
 %   uu    - Displacement field
@@ -22,11 +48,27 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 %
 % EXAMPLE:
 %
-% COMMENTS: The assembly code is for general elastisty tensor in voit's notation:
-% http://en.wikipedia.org/wiki/Voigt_notation
-%
 % SEE ALSO:
+%
 
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     opt = struct('linsolve'     , @mldivide                       , ...
                  'blocksize'    , 30000 - (G.griddim - 2) * 20000 , ...
@@ -39,13 +81,13 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
     opt = merge_options(opt, varargin{:});
     opt.add_operators = opt.add_operators && nargout>1;
     if(opt.add_operators)
-        [S, extra] = VEM_mrst_vec(G, C, ...
+        [S, extra] = VEM_assemble(G, C, ...
                                   'blocksize'            , opt.blocksize, ...
                                   'alpha_scaling'        , opt.alpha_scaling, ...
                                   'S'                    , opt.S, ...
                                   'experimental_scaling' , opt.experimental_scaling);
     else
-        S = VEM_mrst_vec(G, C, ...
+        S = VEM_assemble(G, C, ...
                          'blocksize'           , opt.blocksize, ...
                          'alpha_scaling'       , opt.alpha_scaling, ...
                          'S'                   , opt.S, ...
@@ -62,7 +104,7 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
     end
 
     % Apply Diriclet boundary conditions
-    % NB: Only rolling conditions  the Cartesian directions is allowed for now.
+    % NB: Only rolling conditions in the Cartesian directions is allowed for now.
     % If duplicated  values exist, remove them.
     bc = el_bc.disp_bc;
     [bcnodes, j, i] = unique(bc.nodes);
@@ -96,13 +138,13 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
     isdirdofs(dirdofs) = true;
 
 
-    %% Calulate the boundary conditions
+    % Calculate the boundary conditions
     V_dir = nan(ndof, 1);
     V_dir(isdirdofs) = u_bc(:);
     V_dir(~isdirdofs) = 0;
     rhso = -S * V_dir;
 
-    %% Calculate load terms
+    % Calculate load terms
     % There are several alternatives, which may lead to different errors in particular for thin
     % long cells, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1]
     f = calculateVolumeTerm(G, load, qc_all, qcvol, opt);
@@ -196,7 +238,7 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         % L^2 projection on each cell and, using this cell values, assemble
         % the load term in term of the degrees of freedom.
         %
-        % The VEM theory tells us that there exist virtual basis such that the
+        % The VEM theory tells us that there exist a virtual basis such that the
         % two steps above can be done exactly. See Ahmad et al (doi:10.1016/j.camwa.2013.05.015)
         %
 
@@ -212,7 +254,7 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         XB   = X - rldecode(BB, nlc);
         vols = rldecode(G.cells.volumes(cells, :), nlc);
 
-        % weights to calculate volume force term from the nodal values.
+        % Weights to calculate the volume force term from the nodal values.
         if(G.griddim == 3)
             w = (vols ./ rldecode(nlc, nlc) + sum(qc_all(inodes, :) .* (XB), 2));
         else
@@ -222,7 +264,7 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         ll   = bsxfun(@times, load(X), w)';
 
       case 'cell_force'
-        % Evaluate the force at cell centroids. Then, for each node, sum up each
+        % Evaluate the force at the cell centroids. Then, for each node, sum up each
         % adjacent cell contributions after weighting them with volume
         % contribution.
 
@@ -241,7 +283,7 @@ function f = calculateVolumeTerm(G, load, qc_all, qcvol, opt)
         % node values). When the force can be expressed as a gradient, this
         % gives us a way to compute the load term which is implemented here.
         %
-        % Such computation has appeared to be more stable, see reference.
+        % Such computation has appeared to be more stable, see [Andersen et al: http://arxiv.org/abs/1606.09508v1].
         %
         %
         nlc     = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);

@@ -6,11 +6,7 @@
 % represented on a skewed grid, and we compare the MPFA-O solution with
 % solutions computed by the TPFA method and a mimetic method.
 
-try
-    require incomp mimetic mpfa
-catch %#ok<CTCH>
-    mrstModule add incomp mimetic mpfa
-end
+mrstModule add incomp mimetic mpfa
 
 %% Set up simulation model
 gravity off
@@ -99,7 +95,7 @@ fprintf(['Cell Pressure Error:\n', ...
         err_press(xr1, p), err_press(xr2, p), err_press(xr3, p));
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

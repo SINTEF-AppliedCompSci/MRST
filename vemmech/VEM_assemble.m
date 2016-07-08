@@ -1,43 +1,59 @@
-function [S, operators] = VEM_mrst_vec(G, C, varargin)
-%
+function [S, operators] = VEM_assemble(G, C, varargin)
+% Assemble the virtual element stiffness matrix and intermediate operators
 %
 % SYNOPSIS:
-%   function [S, operators] = VEM_mrst_vec(G, C, varargin)
+%   function [S, operators] = VEM_assemble(G, C, varargin)
 %
 % DESCRIPTION:
 %   Compute the full VEM stiffness matrix; optionally returns intermediate
 %   operators
 % 
-%   Assembly based on Paulino's paper in 3D. The notations follow Paulino's paper.
+%   Assembly based on Paulino's paper in 3D. The notations follow Paulino's
+%   paper.
 %
 %   Vectorized version. 
 % 
 %   S = |E| W_c D W_c^T + (I - P_P)^T s (I - P_P)
 %
 % PARAMETERS:
-%   G        - Grid (2D or 3D)
-%   C        - matrix where each row represents the elasticity tensor for the grid
-%              cell corresponding to that row
+%   G        - Grid (2D or 3D) C        - matrix where each row represents
+%              the elasticity tensor for the grid cell corresponding to
+%              that row
 %   varargin - options are:
-%              'blocksize' - size of blocks (# of cells) for vectorized calc.
+%              'blocksize' - size of blocks (# of cells) for vectorized
+%              calc.
 %
 % RETURNS:
-%   S         - full VEM system matrix, including rows/columns for Dirichlet nodes.
-%   operators - will contain the fields: 
-%               - D      - matrix of normalized strain energies for each cell
+%   S         - full VEM system matrix, including rows/columns for
+%   Dirichlet nodes. operators - will contain the fields:
+%               - D      - matrix of normalized strain energies for each
+%                          cell
 %               - WC     - matrix for projection of basis functions onto
-%                          space of constant strain modes 'c'
+%                          space of constant strain modes 'c' 
 %               - assemb -
 %
 % EXAMPLE:
 %
 % SEE ALSO: VEM_linElast
 
-
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    
 
     opt = struct('blocksize', 1000, ...
                  'alpha_scaling', 1, ...
@@ -77,7 +93,7 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
 
     for iblocks = 1:numel(blocks)
         cells = blocks{iblocks};
-        %% Here every thing should be done only for the cells in block
+        % Here every thing should be done only for the cells in block
         inodes = mcolon(G.cells.nodePos(cells), (G.cells.nodePos(cells+1)-1))';
         linodes = [1:numel(inodes)]';
         nodes = G.cells.nodes(inodes)';
@@ -138,7 +154,7 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
         WR = zeros(G.griddim*nn, nlin);
         nlcl = rldecode(nlc, nlc);
         if (G.griddim == 3)
-            % XX is 2*q_i in Paulino eqs 77
+            % XX is 2*q_i in [Gain et al : doi:10.1016/j.cma.2014.05.005] eqs 77
             XX = bsxfun(@rdivide, qc_all(inodes, :), G.cells.volumes(cellnum));
             WC(:, 1:3) = [reshape([XX(:, 1), zz]', [], 1), reshape([z, XX(:, 2), z]', [], 1), reshape([zz, XX(:, 3)]', [], 1)];
             XX = XX/2; % now XX is q_i
@@ -164,7 +180,7 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
         NR = sparse(ib, jb, reshape(NR', [], 1), nlin*numel(cells), mat_sz)';
         NC = sparse(ib, jb, reshape(NC', [], 1), nlin*numel(cells), mat_sz)';
         
-        %% Define the projection operators in nodal basis
+        % Define the projection operators in nodal basis
         PR = NR*WR'; % Rigid body rotation
         PC = NC*WC'; % Other linear displacements
         PP = PR+PC;  % Projection to linear displacement
@@ -186,7 +202,7 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
 
         if isempty(opt.S)
             % Calculate the inner product by adding the consistent part on linear
-            % displacement and the stabilization part for the orthonal of linear
+            % displacement and the stabilization part for the orthogonal of linear
             % displacements.
             DNC = diag(NC'*NC);
             if(~opt.experimental_scaling)

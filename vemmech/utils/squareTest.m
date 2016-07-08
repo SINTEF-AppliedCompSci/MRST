@@ -1,9 +1,60 @@
 function [G, bc, test_cases] = squareTest(varargin)
-% function make test cases for linear elastisity
-
-% OPTIONS
-% make_testcase : true if the solution with linear displacement is tested.
+% Different test cases for linear elasticity on square domains
 %
+% SYNOPSIS:
+%   function [G, bc, test_cases] = squareTest(varargin)
+%
+% DESCRIPTION: Set up different test cases to test the linear elasticity
+% code.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%     'L'              - Physical dimension
+%     'cartDims'       - Cartesian dimension
+%     'grid_type'      - grid type (see squareGrid function)
+%     'disturb'        - Disturbance coefficient
+%     'E'              - Young's modulus
+%     'nu'             - Poisson's ratio
+%     'make_testcases' - If true, compute linear displacement test cases.
+%     'test_name'      - test case name. The alternatives are
+%                           'original_2D_test'
+%                           'hanging_rod_2D'                     
+%                           'weighted_slop_rod_2D_dir'           
+%                           'weighted_slop_rod_2D'               
+%                           'weighted_slop_rod_2D_nobcleftright' 
+%                           'rod_2D_pressure'                    
+%                           'rod_2D_pressure_nobcleftright'      
+%                           'rod_2D_point_pressure'              
+%                           'rod_2D_point_pressure_noleftrighbc' 
+%                           'all'
+%
+% RETURNS:
+%   G          - Grid structure
+%   bc         - Boundary conditions
+%   test_cases - Cell structure with the test cases
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
    
    opt = struct('L', [1 1], ...
                 'cartDims', [20 20], ...
@@ -114,7 +165,6 @@ function [G, bc, test_cases] = squareTest(varargin)
           load = @(x) -repmat([0, 1], size(x, 1), 1);
           bcdisp = @(x) [sin(x(:, 1)*pi)*0.1, sin(x(:, 1)*pi)*0.5]*0.0;
           solution = [];
-          %bc_left_right = {bc{1:3}};
           bc_left_right = {bc{[1, 2, 3]}};%#ok
           test_cases{end+1} = makeDirTestCase(G, bc_left_right, C, load, bcdisp, solution);
           test_cases{end}.name = 'weighted_slop_rod_2D_dir';
@@ -124,7 +174,6 @@ function [G, bc, test_cases] = squareTest(varargin)
           load = @(x) -repmat([0, 1], size(x, 1), 1);
           bcdisp = @(x) [sin(x(:, 1)*pi)*0.1, sin(x(:, 1)*pi)*0.5]*0.0;
           solution = [];
-          %bc_left_right = {bc{1:3}};
           clear bc_left_right
           bc_left_right{1} = bc{1};
           bc_left_right{1}.el_bc.disp_bc.mask(:, 2) = false;
@@ -132,9 +181,6 @@ function [G, bc, test_cases] = squareTest(varargin)
           bc_left_right{2}.el_bc.disp_bc.mask(:, 2) = false;
           bc_left_right{3} = bc{3};
           bc_left_right{3}.el_bc.disp_bc.mask(:, 1) = false;
-          %fac = E*(1-opt.nu)/((1+nu)*(1-2*nu));
-          %solution = @(cc) [zeros(size(cc(:, 1))), (1/fac)*(cc(:, 2)-2*Ly).*cc(:, 2)];
-          %bc_left_right = {bc_left_right{3}};
           test_cases{end+1} = makeDirTestCase(G, bc_left_right, C, load, bcdisp, solution);
           test_cases{end}.name = 'weighted_slop_rod_2D';
           
@@ -144,13 +190,9 @@ function [G, bc, test_cases] = squareTest(varargin)
           load = @(x) -repmat([0, 1], size(x, 1), 1);
           bcdisp = @(x) [sin(x(:, 1)*pi)*0.1, sin(x(:, 1)*pi)*0.5]*0.0;
           solution = [];
-          %bc_left_right = {bc{1:3}};
           clear bc_left_right
           bc_left_right{1} = bc{3};
           bc_left_right{1}.el_bc.disp_bc.mask(:, 1) = false;
-          %fac = E*(1-opt.nu)/((1+nu)*(1-2*nu));
-          %solution = @(cc) [zeros(size(cc(:, 1))), (1/fac)*(cc(:, 2)-2*Ly).*cc(:, 2)];
-          %bc_left_right = {bc_left_right{3}};
           test_cases{end+1} = makeDirTestCase(G, bc_left_right, C, load, bcdisp, solution);
           test_cases{end}.name = 'weighted_slop_rod_2D_nobcleftright';
           
@@ -167,10 +209,7 @@ function [G, bc, test_cases] = squareTest(varargin)
           bc_left_right{2}.el_bc.disp_bc.mask(:, 2) = false;
           bc_left_right{3} = bc{3};
           bc_left_right{3}.el_bc.disp_bc.mask(:, 1) = false;
-          % bc_left_right = {bc_left_right{3}};
-          % find midpoint face set all force corresponding to the "weight fo the ting
-          % at limited area
-          force = 1;%*sum(G.cells.volumes)/Lx;
+          force = 1;
           face_force = @(x) force*ones(size(x(:, 1)));
           faces = bc{4}.face;
           force_bc = struct('faces', faces, 'force', bsxfun(@times, face_force(G.faces.centroids(faces, :)), [0 -1]));
@@ -187,10 +226,7 @@ function [G, bc, test_cases] = squareTest(varargin)
           clear bc_left_right
           bc_left_right{1} = bc{3};
           bc_left_right{1}.el_bc.disp_bc.mask(:, 1) = false;
-          %bc_left_right = {bc_left_right{3}};
-          %find midpoint face set all force corresponding to the "weight fo the ting
-          %at limited area
-          force = 1; %*sum(G.cells.volumes)/Lx;
+          force = 1; 
           face_force = @(x) force*ones(size(x(:, 1)));
           faces = bc{4}.face;
           force_bc = struct('faces', faces, 'force', bsxfun(@times, face_force(G.faces.centroids(faces, :)), [0 -1]));
@@ -210,11 +246,8 @@ function [G, bc, test_cases] = squareTest(varargin)
           bc_left_right{2}.el_bc.disp_bc.mask(:, 2) = false;
           bc_left_right{3} = bc{3};
           bc_left_right{3}.el_bc.disp_bc.mask(:, 1) = false;
-          %bc_left_right = {bc_left_right{3}};
-          %find midpoint face set all force corresponding to the "weight fo the ting
-          %at limited area
           sigma = Ly/10;
-          force = 1e-2;%*sum(G.cells.volumes)/Lx;
+          force = 1e-2;
           face_force = @(x) force*exp(-(((x(:, 1)-Lx/2))./sigma).^2);
           faces = bc{4}.face;
           force_bc = struct('faces', faces, 'force', bsxfun(@times, face_force(G.faces.centroids(faces, :)), [0 -1]));
@@ -230,11 +263,8 @@ function [G, bc, test_cases] = squareTest(varargin)
           clear bc_left_right
           bc_left_right{1} = bc{3};
           bc_left_right{1}.el_bc.disp_bc.mask(:, 1) = false;
-          %bc_left_right = {bc_left_right{3}};
-          %find midpoint face set all force corresponding to the "weight fo the ting
-          %at limited area
           sigma = Ly/10;
-          force = 1;%*sum(G.cells.volumes)/Lx;
+          force = 1;
           face_force = @(x) force*exp(-(((x(:, 1)-Lx/2))./sigma).^2);
           faces = bc{4}.face;
           force_bc = struct('faces', faces, 'force', bsxfun(@times, face_force(G.faces.centroids(faces, :)), [0 -1]));
@@ -264,13 +294,6 @@ function [G, bc, test_cases] = squareTest(varargin)
    end
 
 
-   % Test case from Jan Nordbotten
-   %
-   %%
-   %
-   % [sol, load, sigma] = testcaseNordbotten() % seems to be only for laplaze equation
-   %
-   %%
 end
 
 function testcase = makeDirTestCase(G, bc, C, load, bcdisp, solution)
@@ -289,6 +312,4 @@ function testcase = makeDirTestCase(G, bc, C, load, bcdisp, solution)
    testcase = struct('el_bc', el_bc, 'C', C, 'load', load, 'disp_sol', bcdisp, 'solution', solution);
 end
 
-% body forse test
-% http://www.it.uu.se/edu/course/homepage/finmet2/vt13/proj1.pdf
 

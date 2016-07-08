@@ -1,1 +1,1 @@
-Implicit 
+This module contains an implementation of a pressure/transport solver using an Implicit Pressure, Explicit Saturation (IMPES) strategy for compressible black-oil flow. The module is for all practical purposes depricated and we recommend that you instead look into the ad-blackoil and blackoil-sequential modules.

@@ -1,9 +1,9 @@
 function state = lincompTPFA(dt, state, G, T,pv, fluid, varargin)
-%Solve incompressible flow problem (fluxes/pressures) using TPFA method.
+% Solve weakly compressible flow problem (fluxes/pressures) using TPFA method.
 %
 % SYNOPSIS:
-%   state = incompTPFA(state, G, T, fluid)
-%   state = incompTPFA(state, G, T, fluid, 'pn1', pv1, ...)
+%   state = lincompTPFA(state, G, T, fluid)
+%   state = lincompTPFA(state, G, T, fluid, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   This function assembles and solves a (block) system of linear equations
@@ -20,7 +20,7 @@ function state = lincompTPFA(dt, state, G, T,pv, fluid, varargin)
 %   state  - Reservoir and well solution structure either properly
 %            initialized from functions 'initResSol' and 'initWellSol'
 %            respectively, or the results from a previous call to function
-%            'incompTPFA' and, possibly, a transport solver such as
+%            'lincompTPFA' and, possibly, a transport solver such as
 %            function 'implicitTransport'.
 %
 %   G, T   - Grid and half-transmissibilities as computed by the function
@@ -53,7 +53,7 @@ function state = lincompTPFA(dt, state, G, T,pv, fluid, varargin)
 %                  Default value: LinSolve = @mldivide (backslash).
 %
 %   MatrixOutput - Whether or not to return the final system matrix 'A' to
-%                  the caller of function 'incompTPFA'.
+%                  the caller of function 'lincompTPFA'.
 %                  Logical.  Default value: MatrixOutput = FALSE.
 %
 %   verbose - Enable output.  Default value dependent upon global verbose
@@ -96,7 +96,7 @@ function state = lincompTPFA(dt, state, G, T,pv, fluid, varargin)
 %   warning is printed in the command window. This warning is printed with
 %   message ID
 %
-%           'incompTPFA:DrivingForce:Missing'
+%           'lincompTPFA:DrivingForce:Missing'
 %
 % EXAMPLE:
 %    G   = computeGeometry(cartGrid([3, 3, 5]));
@@ -119,7 +119,7 @@ function state = lincompTPFA(dt, state, G, T,pv, fluid, varargin)
 %    state         = initResSol (G, 10);
 %    state.wellSol = initWellSol(G, 10);
 %
-%    state = incompTPFA(state, G, T, f, 'bc', bc, 'src', src, ...
+%    state = lincompTPFA(state, G, T, f, 'bc', bc, 'src', src, ...
 %                       'wells', W, 'MatrixOutput', true);
 %
 %    plotCellData(G, state.pressure)
@@ -129,7 +129,7 @@ function state = lincompTPFA(dt, state, G, T,pv, fluid, varargin)
 %   initWellSol.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -334,8 +334,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if opt.MatrixOutput,
       state.A   = A;
       state.rhs = rhs;
-      %state.orhs=orhs;
-      state.ct=sparse(1:G.cells.num,1:G.cells.num,cr*pv,nv,nv);
+      state.ct = sparse(1:G.cells.num, 1 : G.cells.num, cr*pv, nv, nv);
    end
    A=A+ct;
    %orhs=rhs;

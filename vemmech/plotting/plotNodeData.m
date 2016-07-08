@@ -1,18 +1,17 @@
 function varargout = plotNodeData(G, node_data, varargin)
-%Plot selection of coloured grid faces to current axes (reversed Z axis).
 %
 % SYNOPSIS:
 %       plotNodeData(G, data)
 %
 % PARAMETERS:
-%   G       - Grid data structure.
+%   G         - Grid data structure.
 %
-%   node_data   
+%   node_data - Data at nodes to be plotted.  
 %
 %
-%   'pn'/pv - List of other property name/value pairs.  OPTIONAL.
-%             This list will be passed directly on to function PATCH
-%             meaning all properties supported by PATCH are valid.
+%   'pn'/pv   - List of other property name/value pairs.  OPTIONAL.
+%               This list will be passed directly on to function PATCH
+%               meaning all properties supported by PATCH are valid.
 %
 % RETURNS:
 %   h - Handle to resulting PATCH object.  The patch object is added to the
@@ -20,13 +19,12 @@ function varargout = plotNodeData(G, node_data, varargin)
 %
 %
 % EXAMPLE:
-
 %
 % SEE ALSO:
 %   plotCellData, plotGrid, newplot, patch, shading.
 
 %{
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -45,10 +43,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     if(G.griddim == 3)
-        cells = [1:G.cells.num]';   
+        cells = [1 : G.cells.num]';   
         [faces, ~] = boundaryFaces(G, cells);
     else
-        faces = [1:G.cells.num]';
+        faces = [1 : G.cells.num]';
     end
     
     % Extract face topology for subset of grid faces and the coordinates for
@@ -170,7 +168,7 @@ function [f, present] = get_face_topo_3d(G, faces)  %#ok
 
     tmp = isfinite(f);
     nnode = sum(tmp, 1);
-    ind = sub2ind(size(f), nnode, 1:size(f, 2));
+    ind = sub2ind(size(f), nnode, 1 : size(f, 2));
     tmp = repmat(f(ind), size(f, 1), 1);
     f(isnan(f)) = tmp(isnan(f));
     % PATCH requires that the 'Faces' property be a matrix of size
@@ -193,7 +191,7 @@ function [plotOutline, varargin] = do_outline_p(varargin)
             plotOutline = varargin{i + 2*v(end) - 1};
 
             % Remove pairs of 'outline'/value from varargin.
-            varargin([i+2*v-2, i+2*v-1]) = [];
+            varargin([i + 2*v - 2, i + 2*v - 1]) = [];
         end
     end
 end
@@ -221,9 +219,9 @@ function pts = findFaceOutline(g, faces)
     % Find points on border of collection of grid faces.
     if numel(faces) == 0, pts = zeros(0, 3); return; end
 
-    cellNo = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
+    cellNo = rldecode(1 : g.cells.num, diff(g.cells.facePos), 2) .';
     sgn    = 2*(cellNo == g.faces.neighbors(g.cells.faces(:, 1), 1)) - 1;
-    faceNo = rldecode(1:g.faces.num, diff(g.faces.nodePos), 2) .';
+    faceNo = rldecode(1 : g.faces.num, diff(g.faces.nodePos), 2) .';
 
     fi     = false(g.faces.num, 1); fi(faces) = true;
     fn     = g.faces.nodes(fi(faceNo));
@@ -246,13 +244,13 @@ function pts = findFaceOutline(g, faces)
     end
 
     pts = nan(size(nodes, 1)*3, 3);
-    pts (1:3:end, :) = g.nodes.coords(nodes(:, 1), :);
-    pts (2:3:end, :) = g.nodes.coords(nodes(:, 2), :);
+    pts (1 : 3 : end, :) = g.nodes.coords(nodes(:, 1), :);
+    pts (2 : 3 : end, :) = g.nodes.coords(nodes(:, 2), :);
 end
 
 %--------------------------------------------------------------------------
 
 function fe = faceEdges(g)
-    fe = [g.faces.nodes, g.faces.nodes([2:end, 1])];
-    fe(g.faces.nodePos(2:end)-1, 2) = fe(g.faces.nodePos(1:end-1), 1);
+    fe = [g.faces.nodes, g.faces.nodes([2 : end, 1])];
+    fe(g.faces.nodePos(2 : end) - 1, 2) = fe(g.faces.nodePos(1 : end-1), 1);
 end

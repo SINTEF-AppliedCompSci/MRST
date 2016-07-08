@@ -1,1 +1,1 @@
-Routines supporting the mimetic method for the pressure equation.
+Implementation of mimetic finite volume methods for incompressible (Poisson-type) pressure equations

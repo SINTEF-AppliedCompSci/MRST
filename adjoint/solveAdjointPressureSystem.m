@@ -4,7 +4,7 @@ function [adjRes] = solveAdjointPressureSystem(G, S, W, rock, fluid, simRes, adj
 % NOTE: actually curent time step +1
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

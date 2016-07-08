@@ -1,0 +1,57 @@
+%% Simple 2D example
+%
+%
+
+%% Set up the rock parameters and the grid
+%
+
+E  = 1;    % Young's modulus
+nu = 0.3;  % Poisson's ratio
+
+L = [1 1]; % Grid domain
+dims = [16 16]; % The grid size
+
+% Parameter used to twist the grid so that the Cartesian symmetries are
+% broken and we can test the method on more irregular grid.
+disturb = 0.03;
+
+test_name = 'original_2D_test'; % list of test names to be found in file
+                                % squareTest.
+grid_type = 'mixed4'; % Run the script exploreSquareGrid to see the grids
+                      % that have been set up to test this VEM code with
+                      % respect to different grid features.
+
+% We use the utility function squareTest to set up the problem, that is
+% defining the load and boundary conditions.
+[G, bc, test_cases] = squareTest('E', E, 'nu', nu, 'cartDims', dims, ...
+                                 'L', L, 'grid_type', grid_type, 'disturb', disturb, ...
+                                 'make_testcases', false, 'test_name', test_name);
+G = computeGeometry(G);
+
+% We recover the problem parameters using the structure test_cases
+testcase = test_cases{1};
+el_bc    = testcase.el_bc; % The boundary conditions
+load     = testcase.load;  % The load
+C        = testcase.C;     % The material parameters in Voigts notations
+
+%% We assemble and solve the equations
+%
+[uVEM, extra] = VEM_linElast(G, C, el_bc, load);
+
+%% We plot the results
+%
+plotopts = {'EdgeAlpha', 0.0, 'EdgeColor', 'none'};
+plotopts1 = {'EdgeAlpha', 0.1};
+figure();
+subplot(3, 1, 1);
+plotNodeData(G, uVEM(:, 1), plotopts{:}); colorbar();
+title('x displacement');
+subplot(3, 1, 2);
+plotNodeData(G, uVEM(:, 2), plotopts{:}); colorbar();
+title('y displacement');
+subplot(3, 1, 3);
+% We compute the divergence
+vdiv = VEM2D_div(G);
+mdiv = vdiv*reshape(uVEM', [], 1)./G.cells.volumes;
+title('Divergence');
+plotCellDataDeformed(G, mdiv, uVEM, plotopts1{:}); colorbar();
