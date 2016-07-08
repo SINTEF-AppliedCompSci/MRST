@@ -1,5 +1,5 @@
 function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
-%
+% Add padding to corner-point grid so it is embedded in a box
 %
 % SYNOPSIS:
 %   function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)

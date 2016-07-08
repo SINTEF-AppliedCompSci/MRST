@@ -3,6 +3,7 @@ function D = C2D(C, G)
 % tensor (C) associated with grid (G).
 %
 % convert form voit notation to matrix in VEM format of vem formulation
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

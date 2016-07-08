@@ -8,7 +8,7 @@
 % function squareTest.m, 
 %
 
-mrstModule add incomp
+mrstModule add incomp vemmech
 
 %% Define the grid and rock parameters
 %
@@ -177,6 +177,10 @@ fac = rock.poro(1);
 zeromat = sparse(size(Af, 1) - G.cells.num, size(div, 2));
 SS = [As, [fac*(-gradP), zeromat']; [fac*div; zeromat], ct + dt*Af];
 
+% Set up bigger figures
+df = get(0, 'DefaultFigurePosition');
+figure(1); set(1, 'Position', df.*[0.8, 1, 3, 1])
+figure(2); set(2, 'Position', df.*[1, 1, 3, 1])
 
 while t < end_time
     t = t + dt;

@@ -58,8 +58,8 @@ end
 %% Set up the loading term
 %
 % Gravity is our loading term
-density = 3000*0; %kg/m^3
-grav = 0; %gravity
+density = 3000; %kg/m^3
+grav = 10; %gravity
 load = @(x) - (grav*density)*repmat([0, 1], size(x, 1), 1);
 
 %% Set up the displacement boundary condtions

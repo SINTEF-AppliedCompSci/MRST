@@ -1,5 +1,5 @@
 function [div] = VEM2D_div(G, varargin)
-%
+% Discrete div operator for the virtual element method in 2D
 %
 % SYNOPSIS:
 %   function [div] = VEM2D_div(G)
@@ -27,6 +27,7 @@ function [div] = VEM2D_div(G, varargin)
 %
 % SEE ALSO:
 %
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

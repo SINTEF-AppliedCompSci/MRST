@@ -1,5 +1,5 @@
 function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
-%
+% Refine a GRDECL structure in the vertical direction
 %
 % SYNOPSIS:
 %   function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
@@ -18,6 +18,7 @@ function ngrdecl = refineGrdeclLayers(grdecl, layers, ref)
 %
 % SEE ALSO:
 %
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

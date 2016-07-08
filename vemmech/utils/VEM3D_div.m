@@ -1,5 +1,5 @@
 function [div] = VEM3D_div(G)
-%
+% Discrete div operator for the virtual element method in 3D
 %
 % SYNOPSIS:
 %   function [div] = VEM3D_div(G)
@@ -22,6 +22,7 @@ function [div] = VEM3D_div(G)
 %
 % SEE ALSO:
 %
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
@@ -54,7 +55,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nfl       = G.faces.nodePos(faces + 1) - G.faces.nodePos(faces);
     nvec  = bsxfun(@rdivide, nvec, G.faces.areas(faces));
     [qc, qf] = calculateQC(G);
-    nvec = bsxfun(@rdivide, nvec, G.faces.areas(faces));
     matel = reshape(bsxfun(@times, rldecode(nvec, nfl), qf(inodes))', [], 1);
     jind  = mcolon(G.griddim * (nodes - 1) + 1, G.griddim * (nodes - 1) + G.griddim);
     iind  = rldecode(cellfaces, nfl * 3);

@@ -1,10 +1,11 @@
 function [G, bc, test_cases] = squareTest(varargin)
-%
+% Different test cases for linear elasticity on square domains
 %
 % SYNOPSIS:
 %   function [G, bc, test_cases] = squareTest(varargin)
 %
-% DESCRIPTION: Set up different test cases to test the linear elasticity code.
+% DESCRIPTION: Set up different test cases to test the linear elasticity
+% code.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %     'L'              - Physical dimension

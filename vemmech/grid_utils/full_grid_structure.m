@@ -1,4 +1,4 @@
-%Grid structure used in the MATLAB Reservoir Simulation Toolbox.
+%Extended grid structure used in the vemmech module
 %
 % SYNOPSIS:
 %   Description of the grid structure with augmented mappings and structures

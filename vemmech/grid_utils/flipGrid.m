@@ -1,5 +1,5 @@
-function G_new = flipGrid(G);
-%
+function G_new = flipGrid(G)
+% Flip a grid (z->x, x->y, y->z)
 %
 % SYNOPSIS:
 %   function G_new = flipGrid(G);

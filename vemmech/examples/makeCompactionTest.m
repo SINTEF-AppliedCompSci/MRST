@@ -53,7 +53,8 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 
     opt2 = struct('gravity'  , 10, ... 
                   'density'  , 3000, ...
-                  'top_force', 30000 );
+                  'top_force', 30000,...
+                  'rolling_vertical', false);
     opt2 = merge_options(opt2, varargin{:});
 
     
@@ -70,7 +71,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
         end
     end
 
-    %% Find the node of the different sides and set up the elastisity boundary conditions
+    % Find the node of the different sides and set up the elastisity boundary conditions
 
     for i = 1 : 2*G.griddim
         inodes = mcolon(G.faces.nodePos(bc{i}.face), G.faces.nodePos(bc{i}.face+1)-1);
@@ -83,7 +84,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
         bc{i}.el_bc = struct('disp_bc', disp_bc, 'force_bc', []);
     end
 
-    %% Set up the gravity load
+    % Set up the gravity load
     
     density = opt2.density; 
     grav = opt2.gravity;    
@@ -102,7 +103,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
         load = @(x)(-(0*density)*repmat(gdir, size(x, 1), 1));
     end
 
-    %% Set the Dirichlet boundary conditions at the selected sides
+    % Set the Dirichlet boundary conditions at the selected sides
 
     bc_el_sides = bc;
     if (~opt.hanging || opt.islinear)
@@ -110,7 +111,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
             % On vertical boundary faces : Rolling in the tangential directions, that is we
             % only impose zero displacement in the normal direction.
             bc_el_sides{i}.el_bc.disp_bc.mask(:, G.griddim) = false;
-            if (G.griddim == 3)
+            if (G.griddim == 3 && ~opt2.rolling_vertical)
                 if (i <= 2)
                     bc_el_sides{i}.el_bc.disp_bc.mask(:, 2) = false;
                 elseif (i <= 4)

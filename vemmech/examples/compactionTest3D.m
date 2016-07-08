@@ -25,7 +25,7 @@ opt.force_method = 'dual_grad_type';
 opt.hanging      = false; % If true, zero displacement on the vertical sides.
 opt.free_top     = true;  % If true, the nodes at the top can move freely (no
                           % boundary condition given there)
-opt.triangulate  = true;  % If true, the horizontal faces are triangulated.
+opt.triangulate  = false;  % If true, the horizontal faces are triangulated.
 opt.vertical     = false; % Only relevant for norne test case (straightens up
                           % the pillars, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1])
 opt.gravity_load = true;  % Use gravity load
@@ -44,12 +44,13 @@ switch grid_case_number
   case 2
     grid_case = 'sbed';
   case 3
-    grid_case = 'Norne';
+    grid_case = 'norne';
   otherwise
     error('Choose grid case by typing number between 1 and 3.');
 end
 
 G = complex3DGrid(opt, grid_case);
+
 if (opt.flipgrid)
     G = flipGrid(G);
 end
@@ -66,14 +67,21 @@ plotGrid(G);
 view(3);
 
 %% Setup the loads and the boundary conditions
+if(strcmp(grid_case,'norne'))
+    %only rolling in vertical direction this is need since norne has
+    %irregular sides and the code do not have genneral implementation of
+    %rolling condition at this point
+    [el_bc, load] = makeCompactionTest(G, opt, 'rolling_vertical', true)
+else
+    [el_bc, load] = makeCompactionTest(G, opt);
+end
 
-[el_bc, load] = makeCompactionTest(G, opt);
 
 %% Assemble and solve the system
 
 bbsize = 30000-(G.griddim-2)*20000;
 lsolve = @mldivide;
-fprintf('running ... ');
+fprintf('Running ... ');
 uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ...
                   'force_method', opt.force_method);
 fprintf('done!\n');
@@ -91,9 +99,9 @@ ff = abs(el_bc.force_bc.force(1, 3));
 start = max(G.faces.centroids(:, 3));
 top = min(G.faces.centroids(:, 3));
 [lambda, mu] = ENu2LMu_3D(opt.E, opt.nu);
-ana = @(z) ff*(z-start)./(C(1, 1))+double(opt.gravity_load)*10*300*((z).^2-(start).^2)/C(1, 1);
-ana = @(z) ff*(z-start)./(C(1, 1))-double(opt.gravity_load)*50*300*((top-start).^2 - (z-top).^2)/C(1, 1);
-divana = @(z) (ff./C(1, 1))-double(opt.gravity_load)*50*300*(-2*(z-top))/C(1, 1);
+gfac = 10*3000/2% gravity is 10, density is 3000, 2 is because of derivative
+ana = @(z) ff*(z-start)./(C(1, 1))-double(opt.gravity_load)*gfac*((top-start).^2 - (z-top).^2)/C(1, 1);
+divana = @(z) (ff./C(1, 1))-double(opt.gravity_load)*gfac*(-2*(z-top))/C(1, 1);
 
 %% Comparison plots
 
