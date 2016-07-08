@@ -100,6 +100,8 @@ faces = bc{4}.face;
 % Set up the force boundary structure,
 % Note that the unit for the  force is  Pa/m^3.
 force_bc = struct('faces', faces, 'force', bsxfun(@times, face_force(G.faces.centroids(faces, :)), [0 -1]));
+
+
 % Final structure defining the boundary conditions
 el_bc = struct('disp_bc', disp_bc, 'force_bc', force_bc);
 
