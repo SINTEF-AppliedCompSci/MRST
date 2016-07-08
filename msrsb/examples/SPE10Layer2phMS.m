@@ -1,16 +1,20 @@
-%% Simulate a transport problem with the MsRSB
+%% Simulate a transport problem with the MsRSB method
 % This example is a simple demonstration in how to use the multiscale
 % solver to solve a transport problem using the incomp module.
 
-%%  Set up the fine-scale model
-% We set up a layer of SPE10, just as in exampleMs. 
-layerNo = 85;
-% layerNo = 1;
-
 mrstModule add mrst-gui spe10 coarsegrid incomp
+
+
+%%  Set up the fine-scale model
+% We set up a layer of SPE10, just as in the introductory single-phase
+% <matlab:edit('exampleMs.m') exampleMs> example.
+
+% Grid an petrophysics
+layerNo = 85;
 [G, ~, rock] = SPE10_setup(layerNo);
 mp = 0.01;
 rock.poro(rock.poro < mp) = mp;
+
 % Transmissibilities on fine scale
 T = computeTrans(G, rock);
 
@@ -33,7 +37,8 @@ plotToolbar(G, log10(rock.perm(:, 1)));
 axis equal tight off
 colormap jet
 view(90, 90);
-%% Set up coarsegrid
+
+%% Define coarse partition and support regions
 % Set up a uniform coarsegrid
 mrstModule add msrsb
 
@@ -52,11 +57,16 @@ CG = storeInteractionRegionCart(CG);
 %% Set up basis functions
 A = getIncomp1PhMatrix(G, T);
 basis = getMultiscaleBasis(CG, A, 'type', 'msrsb');
+
 %% Simulate the problem
 % We simulate the whole injection period with a fluid model with equal
 % viscosities and quadratic Corey coefficients for the relative
 % permeability. Since the total mobility does not change significantly, we
 % opt to keep the basis functions static throughout the simulation.
+% Moreover, we only use a single multiscale solve and do not introduce
+% extra iterations to reduce the fine-scale residual towared machine
+% precision. As a result, the multiscale approximation will deviate
+% somewhat from the fine-scale TPFA solution.
 
 dt = time/Nt;
 figure(1);
