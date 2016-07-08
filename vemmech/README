@@ -1,1 +1,1 @@
-Routines supporting the vem method for elasticity.
+A preliminary module implementing a basic virtual element discretization (VEM) for linear elasticity problems.
