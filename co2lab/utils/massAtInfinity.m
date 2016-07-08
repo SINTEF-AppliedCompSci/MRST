@@ -115,11 +115,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    dispif(mrstVerbose, '\n------------------\n')
    dispif(mrstVerbose, '\nThere is a total of %5.3f Mt CO2 in domain.\n', sum(tmp)/1e9 )
    dispif(mrstVerbose, '\nThe boundary catchments contain %5.3f Mt CO2 (%3.3f %% of tot).\n', ...
-          sum( tmp(ta.trap_regions==0) )/1e9, sum( tmp(ta.trap_regions==0) )/sum(tmp)*100 )
+          sum( tmp(ta.trap_regions==0) )/1e9, sum( tmp(ta.trap_regions==0) )./sum(tmp)*100 )
    dispif(mrstVerbose, '\nThe spill-path catchments contain %5.3f Mt (%3.3f %% of tot) CO2,\n', ...
-          sum( tmp(ta.trap_regions~=0) )/1e9, sum( tmp(ta.trap_regions~=0) )/sum(tmp)*100 )
+          sum( tmp(ta.trap_regions~=0) )/1e9, sum( tmp(ta.trap_regions~=0) )./sum(tmp)*100 )
    dispif(mrstVerbose, 'of which %5.3f Mt (%3.3f %% of tot) is in traps.\n\n', ...
-          sum( tmp(ta.traps~=0) )/1e9, sum( tmp(ta.traps~=0) )/sum(tmp)*100 )
+          sum( tmp(ta.traps~=0) )/1e9, sum( tmp(ta.traps~=0) )./sum(tmp)*100 )
    
    % Reports of specific catchments (and boundary catchment by default):
    if ~isempty(opt.report_trap_regions)
