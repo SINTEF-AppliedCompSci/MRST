@@ -36,7 +36,6 @@ function [div] = VEM3D_div(G)
     nfl       = G.faces.nodePos(faces + 1) - G.faces.nodePos(faces);
     nvec  = bsxfun(@rdivide, nvec, G.faces.areas(faces));
     [qc, qf] = calculateQC(G);
-    nvec = bsxfun(@rdivide, nvec, G.faces.areas(faces));
     matel = reshape(bsxfun(@times, rldecode(nvec, nfl), qf(inodes))', [], 1);
     jind  = mcolon(G.griddim * (nodes - 1) + 1, G.griddim * (nodes - 1) + G.griddim);
     iind  = rldecode(cellfaces, nfl * 3);
