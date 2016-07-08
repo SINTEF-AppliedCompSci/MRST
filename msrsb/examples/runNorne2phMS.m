@@ -31,26 +31,36 @@ grdecl = convertInputUnits(grdecl, usys);
 G = processGRDECL(grdecl);
 G = computeGeometry(G(1));
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
-K = rock.perm(:, 1);
-% Set some anisotropy. The Norne subset model at the moment does include
-% not the multipliers that result in the vertical permeability  that was
-% used in the paper.
-rock.perm = [K, K, 0.05*K];
 
+% Backwards compatible plotting
+if isnumeric(gcf)
+    myZoom = @zoom;
+else
+    myZoom = @(varargin) [];
+end
 %% Plot permeability and porosity
 figure;
 plotCellData(G, log10(rock.perm(:, 1)));
 axis equal tight off
 daspect([1 1 0.2])
-view(85, 45); zoom(1.2)
+view(85, 45); myZoom(1.2);
 colorbar
 title('Horizontal permeability (log10)')
+
+figure;
+plotCellData(G, log10(rock.perm(:, 3)));
+axis equal tight off
+daspect([1 1 0.2])
+view(85, 45); myZoom(1.2);
+colorbar
+title('Vertical permeability (log10)')
+
 
 figure;
 plotCellData(G, rock.poro);
 axis equal tight off
 daspect([1 1 0.2])
-view(85, 45); zoom(1.2)
+view(85, 45); myZoom(1.2);
 colorbar
 title('Porosity')
 
@@ -102,7 +112,7 @@ plotWell(G, W)
 plotGrid(G, vertcat(W.cells), 'FaceColor', 'none', 'EdgeColor', 'b')
 axis equal tight off
 daspect([1 1 0.2])
-view(80, 65); zoom(1.5)
+view(80, 65); myZoom(1.5);
 
 %% Simulate the base case
 T = getFaceTransmissibility(G, rock);
@@ -168,7 +178,7 @@ figure; plotCellData(G, mod(p, 13), 'EdgeColor', 'none')
 plotGrid(CG, 'facec', 'none', 'edgec', 'w', 'linewidth', 1)
 axis equal tight off
 daspect([1 1 0.2])
-view(85, 45); zoom(1.5)
+view(85, 45); myZoom(1.5);
 
 %% Set up support regions required for MsRSB and move center points to wells
 CG = coarsenGeometry(CG);
