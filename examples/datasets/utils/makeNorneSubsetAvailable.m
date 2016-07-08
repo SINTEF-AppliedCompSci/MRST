@@ -94,48 +94,8 @@ end
 
 function ok = download(repo, rev, coll, files, idir)
    sfiles = githubDownload(repo, 'Revision', rev, ...
-                           'File', strcat(coll, '/', files));
+                           'File', strcat(coll, '/', files), ...
+                           'Dest', idir);
 
-   [ok, msg, id] = ensure_idir_exists(idir);
-
-   if ok,
-      ok = all(cellfun(@(f) movefile(f, idir), sfiles));
-   else
-      error(id, ['Unable to guarantee existence of Norne ', ...
-                'INCLUDE directory: %s'], msg);
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function [ok, msg, id] = ensure_idir_exists(idir)
-   [ok, msg, id] = create_if_not_exists(idir);
-
-   if ~ ok, return, end
-
-   [ok, attr, id] = fileattrib(idir);
-
-   if ~ ok,
-      msg = sprintf(['Failed to obtain meta-data about ', ...
-                     'directory (%s)'], attr);
-
-   elseif ~ attr.UserWrite,
-      id  = 'Directory:NotWritable';
-      msg = 'Directory not user writable';
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function [ok, msg, id] = create_if_not_exists(idir)
-   [ok, msg, id] = deal(true, '', '');
-
-   if ~ isdir(idir),
-      [ok, msg, id] = mkdir(idir);
-
-      if ~ ok,
-         msg = sprintf('Failed to create directory (%s)', msg);
-         return
-      end
-   end
+   ok = ~ isempty(sfiles);
 end

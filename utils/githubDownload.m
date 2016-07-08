@@ -31,6 +31,12 @@ function files = githubDownload(repository, varargin)
 %                      contents of the GitHub repository.
 %                      String.  Default value: Base = mrstDataDirectory().
 %
+%                  - Dest --
+%                      Directory into which the downloaded file set will be
+%                      moved.  Only taken into account if non-empty.
+%                      String.  Default value: Dest = '' (leave downloaded
+%                      files in original download location).
+%
 %                  - Pause --
 %                      Amount of time to wait between successive requests
 %                      to GitHub web services.  Only relevant when explicit
@@ -84,6 +90,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    opt = struct('revision', 'master',          ...
                 'base',     mrstDataDirectory, ...
+                'dest',     '',                ...
                 'file',     {{}},              ...
                 'pause',    default_wait,      ...
                 'all',      false);
@@ -100,6 +107,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    files = download(repository, object_url(repository, opt), opt);
+
+   if ~ isempty(opt.dest),
+      files = move_to_dest(files, opt.dest);
+   end
 end
 
 %--------------------------------------------------------------------------
@@ -119,7 +130,7 @@ end
 function files = download_files(repo, url, opt)
    odir = outputdir(opt.base, repo);
 
-   [ok, msg, id] = ensure_odir_exists(odir);
+   [ok, msg, id] = ensure_dir_exists(odir);
 
    if ~ ok,
       error(id, ['Unable to ensure existence of writable ', ...
@@ -146,6 +157,39 @@ function files = download_files(repo, url, opt)
 
       pause(wait(i));
    end
+end
+
+%--------------------------------------------------------------------------
+
+function files = move_to_dest(files, dest)
+   [ok, msg, id] = ensure_dir_exists(dest);
+
+   if ok,
+      [ok, msg] = cellfun(@(f) movefile(f, dest), files, ...
+                          'UniformOutput', false);
+
+      ok = [ ok{:} ];
+
+      if ~ all(ok),
+         args  = [ reshape(files(~ok), 1, []) ; ...
+                   reshape(msg(~ok)  , 1, []) ];
+
+         nchar = max(cellfun('prodofsize', args(1, :)));
+         args  = [ repmat({ nchar }, [ 1, size(args, 2) ]) ; args ];
+
+         msg = sprintf('  * %*s: %s\n', args{:});
+
+         pl = '';  if size(msg, 2) > 1, pl = 's'; end
+
+         warning('FileMove:Failure', ...
+                 'Failed to move file%s to destination\n%s', pl, msg);
+      end
+   else
+      warning(id, ['Failed to ensure existence of ', ...
+                   'destination directory %s: %s'], dest, msg);
+   end
+
+   if ~ all(ok), files = {}; end
 end
 
 %--------------------------------------------------------------------------
@@ -183,12 +227,12 @@ end
 
 %--------------------------------------------------------------------------
 
-function [ok, msg, id] = ensure_odir_exists(odir)
-   [ok, msg, id] = create_if_not_exists(odir);
+function [ok, msg, id] = ensure_dir_exists(d)
+   [ok, msg, id] = create_if_not_exists(d);
 
    if ~ ok, return, end
 
-   [ok, attr, id] = fileattrib(odir);
+   [ok, attr, id] = fileattrib(d);
 
    if ~ ok,
       msg = sprintf(['Failed to obtain meta-data about ', ...
