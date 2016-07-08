@@ -3,7 +3,7 @@
 % Use the utility function squareLayersTest to set up the problem. You may look
 % at the documentation of this function and try the other settings presented there
 % by modifying this example.
-
+mrstModule add vemmech
 %% Set up the rock parameters and the grid
 %
 

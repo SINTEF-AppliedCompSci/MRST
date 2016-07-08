@@ -4,7 +4,7 @@
 %  can be computed exactly in this case. We compare it with the numerical
 %  solution
 %
-
+mrstModule add vemmech
 %% Define the fluid and rock parameters and set up the grid.
 
 opt = struct('grid_type', 'cartgrid', ... % see squareGrid

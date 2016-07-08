@@ -73,7 +73,7 @@ view(3);
 
 bbsize = 30000-(G.griddim-2)*20000;
 lsolve = @mldivide;
-fprintf('running ... ');
+fprintf('Running ... ');
 uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ...
                   'force_method', opt.force_method);
 fprintf('done!\n');
@@ -91,7 +91,6 @@ ff = abs(el_bc.force_bc.force(1, 3));
 start = max(G.faces.centroids(:, 3));
 top = min(G.faces.centroids(:, 3));
 [lambda, mu] = ENu2LMu_3D(opt.E, opt.nu);
-ana = @(z) ff*(z-start)./(C(1, 1))+double(opt.gravity_load)*10*300*((z).^2-(start).^2)/C(1, 1);
 ana = @(z) ff*(z-start)./(C(1, 1))-double(opt.gravity_load)*50*300*((top-start).^2 - (z-top).^2)/C(1, 1);
 divana = @(z) (ff./C(1, 1))-double(opt.gravity_load)*50*300*(-2*(z-top))/C(1, 1);
 
