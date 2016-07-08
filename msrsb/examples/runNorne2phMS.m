@@ -12,6 +12,7 @@
 % installed C++ compiler on your machine.
 
 mrstModule add coarsegrid msrsb ad-core mrst-gui incomp
+
 %% Read and set up the Norne model
 % We use a subset of the Norne model that is used in other examples in
 % MRST. We set up a model with anisotropic permeability based on the
@@ -35,12 +36,13 @@ K = rock.perm(:, 1);
 % not the multipliers that result in the vertical permeability  that was
 % used in the paper.
 rock.perm = [K, K, 0.05*K];
+
 %% Plot permeability and porosity
 figure;
 plotCellData(G, log10(rock.perm(:, 1)));
 axis equal tight off
 daspect([1 1 0.2])
-view(85, 20);
+view(85, 45); zoom(1.2)
 colorbar
 title('Horizontal permeability (log10)')
 
@@ -48,9 +50,10 @@ figure;
 plotCellData(G, rock.poro);
 axis equal tight off
 daspect([1 1 0.2])
-view(85, 20);
+view(85, 45); zoom(1.2)
 colorbar
 title('Porosity')
+
 %% Set up wells 
 % We set up a number of somewhat arbitrary wells around the domain. We
 % drain a complete pore volume using three producers, with four injectors
@@ -99,7 +102,8 @@ plotWell(G, W)
 plotGrid(G, vertcat(W.cells), 'FaceColor', 'none', 'EdgeColor', 'b')
 axis equal tight off
 daspect([1 1 0.2])
-view(85, 20);
+view(80, 65); zoom(1.5)
+
 %% Simulate the base case
 T = getFaceTransmissibility(G, rock);
 fluid = initSimpleFluid('mu', [1, 5]*centi*poise, 'n', [2, 2], 'rho', [0, 0]);
@@ -164,7 +168,8 @@ figure; plotCellData(G, mod(p, 13), 'EdgeColor', 'none')
 plotGrid(CG, 'facec', 'none', 'edgec', 'w', 'linewidth', 1)
 axis equal tight off
 daspect([1 1 0.2])
-view(85, 20);
+view(85, 45); zoom(1.5)
+
 %% Set up support regions required for MsRSB and move center points to wells
 CG = coarsenGeometry(CG);
 CG = addCoarseCenterPoints(CG);
