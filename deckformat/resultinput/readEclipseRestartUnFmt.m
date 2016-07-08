@@ -1,70 +1,96 @@
-function [rstrt, rsspec] = readEclipseRestartUnFmt(prefix, varargin)
-%Read unformatted (binary) ECLIPSE restart data
+function output = readEclipseRestartUnFmt(prefix, spec, steps)
+%Read unformatted (binary) ECLIPSE unified or multiple restart file(s)
 %
 % SYNOPSIS:
-%   [restart, rsspec] = readEclipseRestartUnFmt(prefix)
+%   output = readEclipseRestartUnFmt(prefix, spec, steps)
 %
 % PARAMETERS:
-%   prefix - Path-name prefix from which to construct list of summary file
-%            names.  Specifically, this function reads files which match
-%            the regular expressions
+%   prefix - Name (string) of file(s) (omitting extensions) containing 
+%            unformatted ECLIPSE results. 
 %
-%                [prefix, '\.RSSPEC']  (unformatted restart specification)
-%                [prefix, '\.X\d{4}']  (unformatted restart files)
+%   spec   - Specifiaction (struct) of restart data as obtained by
+%            processEclipseRestartSpec. If empty or not given, 
+%            processEclipseRestartSpec will be called with default options.
 %
-%            Use function 'readEclipseRestartFmt' to read formatted
-%            (text/ASCII) restart data.
+%   steps  - List (indices) of steps to read. If empty or not given, all 
+%            steps are read.            
 %
 % RETURNS:
-%   restart - Restart data structure.  One field for each restart data item
-%             in the set of restart files.  Individual restart data items
-%             are stored in separate columns of the corresponding cell
-%             array.
-%
-%   rsspec  - Restart specifiction obtained from the '.RSSPEC' file.
+%   output - Data structure containing restart field data for requested 
+%            fields/steps. 
 %
 % SEE ALSO:
-%   readEclipseSummaryUnFmt, readEclipseRestartFmt.
+%   readEclipseOutputFileFmt, readEclipseRestartSpec.
 
-%{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-
-
-   opt = struct('RestartFields', {{}});
-   opt = merge_options(opt, varargin{:});
-
-   is_open_pre = fopen('all');
-
-   [dname, fp] = fileparts(prefix);
-   if isempty(dname),
-      dname = '.';
-   end
-
-   rstReader = @readEclipseOutputFileUnFmt;
-   rsspec    = rstReader([prefix, '.RSSPEC']);
-
-   rstfiles  = matchResultFiles(dname, [fp, '\.X\d{4}']);
-   rstrt     = readEclipseRestart(rstfiles, rstReader, opt);
-
-   is_open_post = fopen('all');
-
-   assert (all(size(is_open_pre) == size(is_open_post)) && ...
-           all(is_open_pre == is_open_post),               ...
-           'Restart reader leaks file identifiers.');
+if nargin < 2 || isempty(spec)
+    spec = processEclipseRestartSpec(prefix);
 end
+if nargin < 3 || isempty(steps)
+    steps = 1:numel(spec.time);
+end
+
+% Check compatibility of steps
+isOK = and(steps >= 1, steps <= numel(spec.time));
+if any(~isOK)
+    warning('Ignoring out-of-range entries of input-vector ''steps''.')
+    steps = steps(isOK);
+    if isempty(steps)
+        output = [];
+        return;
+    end
+end
+    
+% Preallocate
+[maxnum, ix] = max(cellfun(@numel, spec.keywords(steps)));   
+nms = cellfun(@fixVarName, spec.keywords{steps(ix)}, 'UniformOutput', false);  
+v   = repmat({cell(1, numel(steps))}, maxnum, 1);
+output = cell2struct(v, nms);
+
+% Read
+if strcmp(spec.type, 'unified')
+    [fid, msg] = fopen([prefix, '.UNRST'], 'rb', 'ieee-be');
+    if fid < 0, error([fname, ': ', msg]); end
+end
+dispif(mrstVerbose, 'Reading restart:     ')
+for ks = 1:numel(steps)
+    dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ks/numel(steps)));
+    step = steps(ks);
+    if strcmp(spec.type, 'multiple')
+        [fid, msg] = fopen(spec.fnames{step}, 'rb',  'ieee-be');
+        if fid < 0, error([fname, ': ', msg]); end
+    end
+    nms  = cellfun(@fixVarName, spec.keywords{step}, 'UniformOutput', false);
+    p    = spec.pointers{step};
+    n    = spec.num{step};
+    prec = spec.prec{step};
+    for kf = 1:numel(nms)
+        curp = ftell(fid);
+        fseek(fid, p(kf)+28-curp, 0);
+        if n(kf)>0
+        if ~strcmp(prec{kf}, '840*uchar=>char')
+            output.(nms{kf}){ks} = fread(fid, n(kf), prec{kf}, 8);
+        else
+            v = fread(fid, 8*n(kf), prec{kf}, 8);
+            output.(nms{kf}){ks} = cellstr(reshape(v , 8, n(kf))');
+        end
+        end
+    end
+    if strcmp(spec.type, 'multiple')
+        fid = fclose(fid);
+    end
+end
+if strcmp(spec.type, 'unified')
+    fclose(fid);
+end
+fprintf(',  done\n')
+end
+        
+%--------------------------------------------------------------------------
+
+function name = fixVarName(name)
+    if ~isvarname(name)
+        name = regexprep(name, {'+', '-'}, {'p', 'n'});
+        name = genvarname(regexprep(name, '\W', '_'));
+    end
+end
+     

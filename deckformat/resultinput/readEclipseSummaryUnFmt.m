@@ -1,44 +1,8 @@
-function [smry, smspec] = readEclipseSummaryUnFmt(prefix)
-%Read unformatted (binary) ECLIPSE summary data
-%
-% SYNOPSIS:
-%   [summary, smspec] = readEclipseSummaryUnFmt(prefix)
-%
-% PARAMETERS:
-%   prefix - Path-name prefix from which to construct list of summary file
-%            names.  Specifically, this function reads files which match
-%            the regular expressions
-%
-%                [prefix, '\.SMSPEC']  (unformatted summary specification)
-%                [prefix, '\.S\d{4}']  (unformatted summary files)
-%
-%            Use function 'readEclipseSummaryFmt' to read formatted
-%            (text/ASCII) summary data.
-%
-% RETURNS:
-%   summary - Summary data structure.  All MINISTEP results of an ECLIPSE
-%             run concatenated together.  Also includes an additional
-%             sub-structure, UNITS, whose fields contain a textual
-%             representation of unit of measurement of the corresponding
-%             summary field such as
-%
-%                 summary.UNITS.TIME  = 'DAYS'
-%                 summary.UNITS.WBHP  = 'BARSA'
-%                 summary.UNITS.WOPR  = 'SM3/DAY'
-%                 summary.UNITS.YEARS = 'YEARS'
-%                 summary.UNITS.TCPU  = 'SECONDS'
-%
-%   smspec  - Summary specifiction obtained from the '.SMSPEC' file.
-%             Contains MINISTEP times and all summary vectors declared in
-%             the run deck.  Additionally contains a field, '.RptTime' that
-%             specifies the times at which restart files (3D data) is
-%             reported.
-%
-% SEE ALSO:
-%   readEclipseSummaryFmt.
+function [smry, smspec] = readEclipseSummaryUnFmt(prefix, keyWords)
+%Undocumented utility function
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -56,24 +20,108 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+smspec = readEclipseOutputFileUnFmt([prefix, '.SMSPEC']);
 
-   is_open_pre = fopen('all');
+nameList = smspec.WGNAMES.values;
+kwrdList = smspec.KEYWORDS.values;
 
-   [dname, fp] = fileparts(prefix);
-   if isempty(dname),
-      dname = '.';
-   end
+numFull = numel(nameList);
 
-   smspec = readEclipseOutputFileUnFmt([prefix, '.SMSPEC']);
-   summaryfiles = matchResultFiles(dname, [fp, '\.S\d{4}']);
-
-   smry = readEclipseSummary(summaryfiles, smspec,            ...
-                             @(fn) fopen(fn, 'r', 'ieee-be'), ...
-                             @readFieldUnFmt);
-
-   is_open_post = fopen('all');
-
-   assert (all(size(is_open_pre) == size(is_open_post)) && ...
-           all(is_open_pre == is_open_post),               ...
-           'Summary reader leaks file identifiers.');
+if nargin > 1
+    keyWords = keyWords(:);
+    rowInx = ismember(kwrdList, keyWords);
+    nameList = nameList(rowInx);
+    kwrdList = kwrdList(rowInx);
+else
+    rowInx = (1:numel(nameList))';
 end
+
+[names, nInx, nInx] = unique(nameList);                                %#ok
+[kwrds, kInx, kInx] = unique(kwrdList);                                %#ok
+nlist  = numel(nameList);
+
+smry_file = [prefix, '.UNSMRY'];
+%estimate number of ministeps
+d = dir(smry_file);
+estNum = floor(d.bytes/(4*numFull));
+
+data = zeros(nlist, estNum);
+ministeps = false(1, estNum);
+
+[fid, msg] = fopen(smry_file, 'r', 'ieee-be');
+if fid < 0, error([smry_file, ': ', msg]); end
+
+% jump to start
+fseek(fid, 4, 'cof');
+    
+dispif(mrstVerbose, ['Reading info from roughly ', num2str(estNum), ' ministeps:      '])
+curStep = 0;
+while ~feof(fid)
+    [name, field] = readFieldUnFmt(fid);
+    if strcmp(name, 'MINISTEP')
+        ministep = field.values;
+        curStep = curStep +1;
+        if mod(curStep, 100) == 0
+           dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ministep/estNum));
+        end
+    end
+    if strcmp(name, 'PARAMS')
+        data(:, ministep+1) = field.values(rowInx);
+        ministeps(ministep+1) = true;
+    end
+end
+fclose(fid);
+dispif(mrstVerbose, '\b\b\b\b%3d%%', 100);
+dispif(mrstVerbose, ['\nActual number of ministeps: ', num2str(ministep+1), '\n']);
+
+data = data(:, ministeps);
+
+smry.WGNAMES  = names;
+smry.KEYWORDS = kwrds;
+smry.nInx     = nInx;
+smry.kInx     = kInx;
+smry.data     = data;
+
+smry = addSmryFuncs(smry);
+
+%--------------------------------------------------------------------------
+
+function smry = addSmryFuncs(smry)
+smry.get    = @(nm,kw,ms)getData(smry, nm, kw, ms);
+smry.getInx = @(nm,kw)getRowInx(smry,nm,kw);
+smry.getNms = @(kw)getNames(smry,kw);
+smry.getKws = @(nm)getKeywords(smry, nm);
+
+
+function nms = getNames(smry,kw)
+rInx   = getRowInx(smry, [], kw);
+nmPos  = unique(smry.nInx(rInx));
+nms    = smry.WGNAMES(nmPos);
+
+function kws = getKeywords(smry,nm)
+rInx   = getRowInx(smry, nm, []);
+kwPos  = unique(smry.kInx(rInx));
+kws    = smry.KEYWORDS(kwPos);
+
+function s = getData(smry, nm, kw, ms)
+rInx = getRowInx(smry, nm, kw);
+s = smry.data(rInx, ms);
+
+function rInx = getRowInx(smry, nm, kw)
+nlist = numel(smry.kInx);
+if ~isempty(nm)
+    i = find(strcmp(smry.WGNAMES, nm));
+    rInxN = (smry.nInx==i);
+else
+    rInxN = true(nlist, 1);
+end
+if ~isempty(kw)
+    j = find(strcmp(smry.KEYWORDS, kw));
+    rInxK = (smry.kInx==j);
+else
+    rInxK = true(nlist, 1);
+end
+rInx = and(rInxN, rInxK);
+
+
+

@@ -1,4 +1,4 @@
-function output = readEclipseOutputFileUnFmt(fname)
+function varargout = readEclipseOutputFileUnFmt(fname)
 %Read unformatted (binary) ECLIPSE output/result file
 %
 % SYNOPSIS:
@@ -43,10 +43,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   [fid, msg] = fopen(fname, 'r', 'ieee-be');
+   [fid, msg] = fopen(fname, 'rb', 'ieee-be');
    if fid < 0, error([fname, ': ', msg]); end
-
-   output = readEclipseOutputStream(fid, @readFieldUnFmt);
+   
+   % skip first 4  
+   fseek(fid, 4, 'cof');
+   
+   [varargout{1:nargout}] = readEclipseOutputStream(fid, @readFieldUnFmt);
 
    fclose(fid);
 end
