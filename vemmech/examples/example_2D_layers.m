@@ -1,11 +1,13 @@
 %% Example using three layers with different parameters in each layer
-%
-% Use the utility function squareLayersTest to set up the problem. You may look
-% at the documentation of this function and try the other settings presented there
-% by modifying this example.
+% We set up a 
+
 mrstModule add vemmech
+
 %% Set up the rock parameters and the grid
 %
+% Use the utility function squareLayersTest to set up the problem. You may
+% look at the documentation of this function and try the other settings
+% presented there by modifying this example.
 
 E  = [1; 10; 1];      % Define the Youngs moduli in the layers
 nu = [0.3; 0.3; 0.3]; % Define the Poisson's ratio in the layers
@@ -25,12 +27,12 @@ test_name = 'hanging_rod_2D';
 disturb = 0.042;
 
 % The utility function squareLayersTest sets up the problem.
-[G, bc, test_cases] = squareLayersTest('E', E, 'nu', nu, 'zlayers', zlayers, 'cartDims', ...
-                                       dims, 'L', L, 'grid_type', grid_type, 'disturb', ...
-                                       disturb, 'make_testcases', false, 'test_name', ...
-                                       test_name);
+[G, bc, test_cases] = squareLayersTest('E', E, 'nu', nu, 'zlayers', ...
+    zlayers, 'cartDims', dims, 'L', L, 'grid_type', grid_type, 'disturb', ...
+    disturb, 'make_testcases', false, 'test_name', test_name);
 G = computeGeometry(G);
-
+figure,
+plotGrid(G); 
 
 % We recover the problem parameters using the structure test_cases
 testcase = test_cases{1};
@@ -46,7 +48,7 @@ C        = testcase.C;     % The material parameters in Voigts notations
 %
 plotopts = {'EdgeAlpha', 0.0, 'EdgeColor', 'none'};
 plotopts1 = {'EdgeAlpha', 0.1};
-figure();
+figure('Position',get(0, 'DefaultFigurePosition').*[1 1 1 2]);
 subplot(3, 1, 1);
 plotNodeData(G, uVEM(:, 1), plotopts{:}); colorbar();
 title('x displacement');
@@ -58,4 +60,4 @@ subplot(3, 1, 3);
 vdiv = VEM2D_div(G);
 mdiv = vdiv*reshape(uVEM', [], 1)./G.cells.volumes;
 title('Divergence');
-plotCellDataDeformed(G, mdiv, uVEM, plotopts1{:}); colorbar();
+plotCellDataDeformed(G, mdiv, uVEM, plotopts1{:}); colorbar(); axis tight

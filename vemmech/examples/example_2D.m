@@ -1,6 +1,11 @@
-%% Simple 2D example
-%
-%
+%% Linear Elasticity on Complex Grid
+% We consider a case with a complex block-structured grid, in which each
+% individual block is gridded using different grid types: curvilinear
+% quadrilateral blocks, unstructured Voronoi grids, and triangular grids.
+% The purpose of the example is to highlight the flexibility of the virtual
+% element method.
+
+mrstModule add vemmech
 
 %% Set up the rock parameters and the grid
 %
@@ -27,6 +32,7 @@ grid_type = 'mixed4'; % Run the script exploreSquareGrid to see the grids
                                  'L', L, 'grid_type', grid_type, 'disturb', disturb, ...
                                  'make_testcases', false, 'test_name', test_name);
 G = computeGeometry(G);
+clf, plotGrid(G);
 
 % We recover the problem parameters using the structure test_cases
 testcase = test_cases{1};
@@ -42,7 +48,7 @@ C        = testcase.C;     % The material parameters in Voigts notations
 %
 plotopts = {'EdgeAlpha', 0.0, 'EdgeColor', 'none'};
 plotopts1 = {'EdgeAlpha', 0.1};
-figure();
+figure('Position',get(0, 'DefaultFigurePosition').*[1 1 1 2]);
 subplot(3, 1, 1);
 plotNodeData(G, uVEM(:, 1), plotopts{:}); colorbar();
 title('x displacement');

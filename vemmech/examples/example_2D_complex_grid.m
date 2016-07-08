@@ -27,6 +27,7 @@ title('Deformed grid');
 [Lx, Ly] = deal(opt.L(1), opt.L(2));
 assert(G.griddim == 2);
 x = [0, Lx];
+bc = cell(4,1);
 for i = 1 : 2
     faces = find(abs(G.faces.centroids(:, 1) - x(i)) < eps);
     bc{i} = addBC([], faces, 'pressure', 0);
@@ -136,7 +137,7 @@ colorbar();
 %
 figure()
 fac = 1;
-plotGridDeformed(G, uu*fac);
+plotGridDeformed(G, uu*fac); axis tight
 title('The deformed grid');
 
 %% Calculate and plot the divergence
@@ -144,7 +145,7 @@ title('The deformed grid');
 vdiv = VEM_div(G);
 mdiv = vdiv*reshape(uu', [], 1)./G.cells.volumes;
 figure()
-plotCellDataDeformed(G, mdiv, uu*fac, plotopts1{ : });
+plotCellDataDeformed(G, mdiv, uu*fac, plotopts1{ : }); axis tight
 colorbar()
 title('Divergence of the displacement field');
 
