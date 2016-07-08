@@ -401,6 +401,7 @@ h = gcf;
 %% Load comparison data from commercial solver
 % To validate the simulator output, we load in a pre-run dataset from a
 % industry standard commercial solver run using the same inputs.
+mrstModule add ad-fi
 addir = mrstPath('ad-blackoil');
 compare = fullfile(addir, 'examples', 'spe9', 'compare');
 [smry, smspec]  = readSummaryLocal(fullfile(compare, 'SPE9'));
