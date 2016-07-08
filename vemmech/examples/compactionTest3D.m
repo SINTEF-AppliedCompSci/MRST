@@ -1,18 +1,11 @@
 %% Compaction test case 3D
-% 
-% Boundary conditions: rolling condition on left-hand side
 %
-%
-% Possibility to include a top load.
-%
-% Homogeneous medium, analytical solution, irregular grid
 
 %% Load required modules
 
 mrstModule add vemmech
 
-
-%% Define parameters
+%% Define the fluid and rock parameters and set up the grid.
 
 opt = struct('grid_type' , 'triangle', ...
              'disturb'   , 0.0, ...     % parameter for  grid distortion
@@ -22,10 +15,10 @@ opt = struct('grid_type' , 'triangle', ...
 opt.L            = [15 15 3];
 opt.islinear     = false; % if true, the boundary condition is a given linear
                           % displacement, see function makeCompactionTest.
-% Two different methods are implemented to compute the loading term, see
+% Different methods are implemented to compute the loading term, see
 % paper [Andersen et al: http://arxiv.org/abs/1606.09508v1].
 opt.force_method = 'dual_grad_type';
-opt.hanging      = false;
+opt.hanging      = false; % If true, zero displacement on the vertical sides.
 opt.free_top     = true;  % If true, the nodes at the top can move freely (no
                           % boundary condition given there)
 opt.triangulate  = true;  % Triangulate some faces
@@ -52,9 +45,6 @@ switch grid_case_number
     error('Choose grid case by typing number between 1 and 3.');
 end
 
-
-%% Construct grid
-
 G = complex3DGrid(opt, grid_case);
 if (opt.flipgrid)
     G = flipGrid(G);
@@ -62,20 +52,18 @@ end
 G = createAugmentedGrid(G);
 G = computeGeometry(G);
 
-figure()
-clf;
-plotGrid(G);
-
-
-%% Setup loads
-
-[el_bc, load] = makeCompactionTest(G, opt);
-
-
-%% Define rock parameters
 Ev     = repmat(opt.E, G.cells.num, 1);
 nuv    = repmat(opt.nu, G.cells.num, 1);
 C      = Enu2C(Ev, nuv, G);
+
+figure()
+clf;
+plotGrid(G);
+view(3);
+
+%% Setup the loads and the boundary conditions
+
+[el_bc, load] = makeCompactionTest(G, opt);
 
 %% Assemble and solve the system
 
@@ -86,17 +74,12 @@ uu = VEM_linElast(G, C, el_bc, load, 'linsolve', lsolve, 'blocksize', bbsize, ..
                   'force_method', opt.force_method);
 fprintf('done!\n');
 
-%% Assemble divergence operator
-% There exists a 
-div = VEM_div(G);
-
-%% Plotting
-
 figure();
 clf;
-plotNodeDataDeformed(G, uu(:, 3), uu);cb = colorbar;view(3)
-cdiv = div*reshape(uu', [], 1);
-axis off
+plotNodeDataDeformed(G, uu(:, 3), uu);
+view(3);
+title('Vertical displacement')
+
 
 %% Compute  the analytical solution
 
@@ -110,20 +93,18 @@ divana = @(z) (ff./C(1, 1))-double(opt.gravity_load)*50*300*(-2*(z-top))/C(1, 1)
 
 %% Comparison plots
 
-z = G.nodes.coords(:, 3);
+z = G.nodes.coords(:, G.griddim);
 z(abs(ana(z))<max(abs(ana(z)))*1e-2) = nan;
 zl = unique(z);
+
 figure(),
-subplot(4, 1, 1)
-plot(z, uu(:, 3), '*', zl, ana(zl))
-subplot(4, 1, 2)
-err = (uu(:, 3)-ana(z))./abs(ana(z));
-plot(z, err, '*')
-subplot(4, 1, 3)
+plot(z, uu(:, G.griddim), '*', zl, ana(zl))
+title('Displacement in the vertical direction')
+legend({'computed solution', 'analytical solution'})
+
+figure()
+zc = G.cells.centroids(:, G.griddim);
 div = VEM_div(G);
-plot(G.cells.centroids(:, 3), div*reshape(uu', [], 1)./G.cells.volumes, '*');
-subplot(4, 1, 4)
-div = VEM_div(G);
-zc = G.cells.centroids(:, 3);
-diverr = (div*reshape(uu', [], 1)./G.cells.volumes-divana(zc))./abs(divana(zc));
-plot(zc, diverr, '*');
+plot(zc, div*reshape(uu', [], 1)./G.cells.volumes, '*', zc, divana(zc));
+title('Divergence');
+legend({'computed solution', 'analytical solution'})

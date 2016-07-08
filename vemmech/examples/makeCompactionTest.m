@@ -20,7 +20,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %  'gravity'   - value for gravity (default gravity = 10)
 %  'density'   - value for density in kg/m^3 (default density = 3000)
-%  'top_force' - value for top load in ? (default top_load = 30000)
+%  'top_force' - value for top force (default top_force = 30000)
 %          
 % RETURNS:
 %   el_bc - Elastic boundary condition structure. It contains the fields
