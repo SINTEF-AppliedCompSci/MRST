@@ -18,7 +18,7 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
       case 'box'
         G = squareGrid(opt.cartDims, opt.L, 'grid_type', 'cartgrid', 'disturb', opt.disturb);
         G_old = computeGeometry(G);
-        if(opt.triangulate)
+        if (opt.triangulate)
             face = unique(G.cells.faces(any(bsxfun(@eq, G.cells.faces(:, 2), [5, 6]), 2), 1));
             G = triangulateFaces(G, [face]');
         end

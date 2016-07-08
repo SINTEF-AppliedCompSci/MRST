@@ -1,8 +1,8 @@
-function [S, operators] = VEM_mrst_vec(G, C, varargin)
+function [S, operators] = VEM_assemble(G, C, varargin)
 %
 %
 % SYNOPSIS:
-%   function [S, operators] = VEM_mrst_vec(G, C, varargin)
+%   function [S, operators] = VEM_assemble(G, C, varargin)
 %
 % DESCRIPTION:
 %   Compute the full VEM stiffness matrix; optionally returns intermediate
@@ -138,7 +138,7 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
         WR = zeros(G.griddim*nn, nlin);
         nlcl = rldecode(nlc, nlc);
         if (G.griddim == 3)
-            % XX is 2*q_i in Paulino eqs 77
+            % XX is 2*q_i in [Gain et al : doi:10.1016/j.cma.2014.05.005] eqs 77
             XX = bsxfun(@rdivide, qc_all(inodes, :), G.cells.volumes(cellnum));
             WC(:, 1:3) = [reshape([XX(:, 1), zz]', [], 1), reshape([z, XX(:, 2), z]', [], 1), reshape([zz, XX(:, 3)]', [], 1)];
             XX = XX/2; % now XX is q_i
@@ -186,7 +186,7 @@ Copyright 2009-2014 SINTEF ICT, Applied Mathematics
 
         if isempty(opt.S)
             % Calculate the inner product by adding the consistent part on linear
-            % displacement and the stabilization part for the orthonal of linear
+            % displacement and the stabilization part for the orthogonal of linear
             % displacements.
             DNC = diag(NC'*NC);
             if(~opt.experimental_scaling)

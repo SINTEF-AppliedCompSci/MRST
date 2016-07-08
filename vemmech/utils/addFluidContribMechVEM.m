@@ -1,4 +1,27 @@
 function fbc = addFluidContribMechVEM(G, bc, rock, isdirdofs)
+%
+%
+% SYNOPSIS:
+%   function fbc = addFluidContribMechVEM(G, bc, rock, isdirdofs)
+%
+% DESCRIPTION: Setup the force boundary condition for the mechanics
+% corresponding to the fluid boundary condition.
+%
+% PARAMETERS:
+%   G         - Grid structure
+%   bc        - Fluid boundary conditions.
+%   rock      - Rock structure
+%   isdirdofs - Degrees of freedom where in fact Dirichlet boundary
+%               conditions are imposed
+%
+% RETURNS:
+%   fbc - Force load for the mechanical system.
+%
+% EXAMPLE:
+%
+% SEE ALSO:
+%
+
 
     if (~isempty(bc))
         faces    = bc.face;
@@ -31,11 +54,10 @@ function fbc = addFluidContribMechVEM(G, bc, rock, isdirdofs)
         lfalpha = rock.alpha(sum(G.faces.neighbors(facenum, :), 2));%scale the face with alpha
         force   = bsxfun(@times, qf, lfalpha.*rldecode(bc.value, lnn));
         % transform to dofs numbering
-        %assert(all(isdirdofs(dofs) == 0));
         force = force';
         ndof  = G.nodes.num*G.griddim;
         fbc   = accumarray(dofs', force(:)', [ndof, 1]);
-        % map to current degees of freedom
+        % maps to current degees of freedom
         fbc   = fbc(~isdirdofs);
     else
         ndof  = G.nodes.num*G.griddim;

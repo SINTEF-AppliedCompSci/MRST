@@ -1,5 +1,9 @@
 %% Compaction test case in 2D
 %
+%  A constant force is imposed at the top and gravity load. The analytical solution
+%  can be computed exactly in this case. We compare it with the numerical
+%  solution
+%
 
 %% Define the fluid and rock parameters and set up the grid.
 
@@ -14,7 +18,7 @@ opt.L              = [15*10/10 15];
 opt.hanging        = false;
 opt.free_top       = true; % If true, the nodes at the top can move freely (no
                            % boundary condition given there)
-opt.triangulate    = true; % Some faces are triangulated, see below
+opt.triangulate    = true; % If true, the horizontal faces are triangulated.
 opt.gravity_load   = true; % Use gravity load
 opt.top_load       = false;
 opt.gtol           = 0.1e-1; % Grid tolerance parameter (used when calling

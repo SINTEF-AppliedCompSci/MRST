@@ -118,7 +118,8 @@ el_bc = struct('disp_bc', disp_bc, 'force_bc', force_bc);
 As        = extra.disc.A;     % Global stiffness matrix
 div       = extra.disc.div;   % Divergence operator
 gradP     = extra.disc.gradP; % Gradient operator (dual of div)
-isdirdofs = extra.disc.isdirdofs; 
+isdirdofs = extra.disc.isdirdofs; % Degrees of freedom where in fact
+                                  % Dirichlet boundary conditions are imposed.
 rhs_s     = extra.disc.rhs;   % Right-hand side
 Vdir      = extra.disc.V_dir; %
 ind_s     = [1 : size(As, 1)]';%#ok

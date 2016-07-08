@@ -44,7 +44,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 %                  'force' : value of the force that is applied
 %    
 %   load  - load function, can be evaluated anywhere, independently of the
-%   grid structure.
+%           grid structure.
 %
 % EXAMPLE:
 %
@@ -70,7 +70,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
         end
     end
 
-    %% Find node of the different sides and prepare elastisity boundary conditions
+    %% Find the node of the different sides and set up the elastisity boundary conditions
 
     for i = 1 : 2*G.griddim
         inodes = mcolon(G.faces.nodePos(bc{i}.face), G.faces.nodePos(bc{i}.face+1)-1);
@@ -83,7 +83,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
         bc{i}.el_bc = struct('disp_bc', disp_bc, 'force_bc', []);
     end
 
-    %% Setup gravity load
+    %% Set up the gravity load
     
     density = opt2.density; 
     grav = opt2.gravity;    
@@ -102,7 +102,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
         load = @(x)(-(0*density)*repmat(gdir, size(x, 1), 1));
     end
 
-    %% Set Dirichlet boundary conditions at selected sides
+    %% Set the Dirichlet boundary conditions at the selected sides
 
     bc_el_sides = bc;
     if (~opt.hanging || opt.islinear)

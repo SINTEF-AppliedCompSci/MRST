@@ -1,5 +1,9 @@
 %% Compaction test case 3D
 %
+%  A constant force is imposed at the top and gravity load. The analytical solution
+%  can be computed exactly in this case. We compare it with the numerical
+%  solution
+%
 
 %% Load required modules
 
@@ -21,7 +25,7 @@ opt.force_method = 'dual_grad_type';
 opt.hanging      = false; % If true, zero displacement on the vertical sides.
 opt.free_top     = true;  % If true, the nodes at the top can move freely (no
                           % boundary condition given there)
-opt.triangulate  = true;  % Triangulate some faces
+opt.triangulate  = true;  % If true, the horizontal faces are triangulated.
 opt.vertical     = false; % Only relevant for norne test case (straightens up
                           % the pillars, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1])
 opt.gravity_load = true;  % Use gravity load
