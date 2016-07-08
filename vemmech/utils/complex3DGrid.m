@@ -1,15 +1,47 @@
 function [G, G_org] = complex3DGrid(opt, grid_case)
-%   complex3DGrid used to make 3D grid examples for testcases of mechanics
+%
+%
 % SYNOPSIS:
-%   [G, G_org] = complex3DGrid(opt, grid_case)
-% 
-%  Example:
+%   function [G, G_org] = complex3DGrid(opt, grid_case)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%
+%   opt       -  Parameter structure with fields
+%        L            - Physical dimension ('box' and 'grdecl' case)
+%        cartDims     - Cartesian dimension ('box' and 'grdecl' case)
+%        disturb      - disturbance parameter for the grid ('box' case)
+%        triangulate  - If true, the horizontal faces are triangulated.
+%        vertical     - Only relevant for Norne grid (straightens up
+%                       the pillars, see paper [Andersen et al: http://arxiv.org/abs/1606.09508v1])
+%        gtol         - Grid tolerance parameter (used when calling
+%                       processGRDECL, see documentation there)
+%        ref          - Refinement parameter, only used for Norne grid
+%
+%   grid_case - 3D Grid cases that are set up here.
+%          'box'    - grid set up using squareGrid function
+%          'grdecl' - grid set up using Eclipse format
+%          'sbed'   - run dataset_bedmodel2() to get a full description
+%          'Norne'  - run dataset_norne() to get a full description
+%
+% RETURNS:
+%   G     - Grid that has been created
+%   G_org - Original grid without refinement (only 'Norne' case)
+%
+% EXAMPLE:
 %    G=complex3DGrid(struct('vertical',true,'triangulate',false,'ref',1,'gtol',1e-3),'norne');clf,plotGrid(G),view(3)
 %    G=complex3DGrid(struct('triangulate',false,'gtol',1e-3),'sbed');clf,plotGrid(G),view(3)
 %    G=complex3DGrid(struct('triangulate',true,'gtol',1e-3),'sbed');clf,plotGrid(G),view(3)
 %    G=complex3DGrid(struct('triangulate',false,'gtol',1e-3),'sbed');clf,plotGrid(flipGrid(G)),view(3)
 %    G=complex3DGrid(struct('cartDims',[3,3,3],'L',[3 3 3],'disturb',0.04,'triangulate',false),'box');clf,plotGrid(G),view(3)
 %    G=complex3DGrid([],'grdecl'); clf, plotGrid(G), view(3)
+%
+% SEE ALSO:
+%
+
+
+
 
 
     G_org = [];
@@ -54,7 +86,7 @@ function [G, G_org] = complex3DGrid(opt, grid_case)
           if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
               error('Unable to obtain simulation model subset');
           end
-          
+
           grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
           grdecl = readGRDECL(grdecl);
           usys   = getUnitSystem('METRIC');
