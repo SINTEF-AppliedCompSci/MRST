@@ -47,7 +47,8 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
 
     opt2 = struct('gravity'  , 10, ... 
                   'density'  , 3000, ...
-                  'top_force', 30000 );
+                  'top_force', 30000,...
+                  'rolling_vertical', false);
     opt2 = merge_options(opt2, varargin{:});
 
     
@@ -104,7 +105,7 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
             % On vertical boundary faces : Rolling in the tangential directions, that is we
             % only impose zero displacement in the normal direction.
             bc_el_sides{i}.el_bc.disp_bc.mask(:, G.griddim) = false;
-            if (G.griddim == 3)
+            if (G.griddim == 3 && ~opt2.rolling_vertical)
                 if (i <= 2)
                     bc_el_sides{i}.el_bc.disp_bc.mask(:, 2) = false;
                 elseif (i <= 4)

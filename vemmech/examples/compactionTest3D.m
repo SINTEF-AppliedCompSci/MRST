@@ -25,8 +25,8 @@ opt.force_method = 'dual_grad_type';
 opt.hanging      = false;
 opt.free_top     = true;  % If true, the nodes at the top can move freely (no
                           % boundary condition given there)
-opt.triangulate  = true;  % Triangulate some faces
-opt.vertical     = false; % Only relevant for norne test case (straightens up
+opt.triangulate  = false;  % Triangulate some faces
+opt.vertical     = true; % Only relevant for norne test case (straightens up
                           % the pillars, see paper )
 opt.gravity_load = true;  % Use gravity load
 opt.top_load     = true;  % Use force applied at the top
@@ -44,7 +44,7 @@ switch grid_case_number
   case 2
     grid_case = 'sbed';
   case 3
-    grid_case = 'Norne';
+    grid_case = 'norne';
   otherwise
     error('Choose grid case by typing number between 1 and 3.');
 end
@@ -65,8 +65,14 @@ plotGrid(G);
 
 
 %% Setup loads
-
-[el_bc, load] = makeCompactionTest(G, opt);
+if(strcmp(grid_case,'norne'))
+    %only rolling in vertical direction this is need since norne has
+    %irregular sides and the code do not have genneral implementation of
+    %rolling condition at this point
+    [el_bc, load] = makeCompactionTest(G, opt, 'rolling_vertical', true)
+else
+    [el_bc, load] = makeCompactionTest(G, opt);
+end
 
 
 %% Define rock parameters
