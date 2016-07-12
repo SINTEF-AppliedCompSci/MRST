@@ -92,8 +92,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     % Polymer
-    mobP = (mobW.*c)./(a + (1-a)*cbar);
-    vP   = - s.faceUpstr(upcw, mobP).*s.T.*dpW;
+    mobP = mobW./(a + (1-a)*cbar);
+    vP   = - s.faceUpstr(upcw, mobP.*c).*s.T.*dpW;
 
 end
 
