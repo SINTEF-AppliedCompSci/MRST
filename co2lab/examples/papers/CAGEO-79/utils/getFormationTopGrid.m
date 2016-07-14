@@ -23,7 +23,7 @@ function [Gt, rock2D, petrodata] = getFormationTopGrid(formation,coarsening_leve
     [grdecl dataset petroinfo] = ...
         getAtlasGrid(formation, 'coarsening', coarsening_level);%#ok
 
-    % Computing the Utsira top-surface grid
+    % Computing the top-surface grid
     G = processGRDECL(grdecl{1});
     ncvec=nan(numel(G),1);
     for i=1:numel(ncvec)
@@ -42,7 +42,10 @@ function [Gt, rock2D, petrodata] = getFormationTopGrid(formation,coarsening_leve
     % Setting up the rock structure
     petrodata   = petroinfo{1};
     rock2D.perm = repmat(petrodata.avgperm, Gt.cells.num, 1);
-    rock2D.poro = repmat(petrodata.avgporo, Gt.cells.num, 1); 
+    rock2D.poro = repmat(petrodata.avgporo, Gt.cells.num, 1);
+    if isfield(petrodata,'avgntg')
+        rock2D.ntg  = repmat(petrodata.avgntg,  Gt.cells.num, 1);
+    end
     
     
     % Update rock structure to include heterogeneous values, if they exist.
