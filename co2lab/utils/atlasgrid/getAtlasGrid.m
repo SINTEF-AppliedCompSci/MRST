@@ -324,13 +324,13 @@ function avgrock = getAvgRock(name)
         % Norwegian Sea (chp 5 of "CO2 Storage Atlas: Norwegian
         % Contential Shelf" from NPD)
         case 'tilje'
-            tmp = [140 0.21]; % pg. 102
+            tmp = [140 0.21 0.30]; % pg. 102 (including net-to-gross)
         case 'are'
-            tmp = [140 0.21]; % pg. 102
+            tmp = [140 0.21 0.30]; % pg. 102 (including net-to-gross)
         case 'garn'
-            tmp = [580 0.27]; % pg. 103
+            tmp = [580 0.27 0.25]; % pg. 103 (including net-to-gross)
         case 'ile'
-            tmp = [580 0.27]; % pg. 103
+            tmp = [580 0.27 0.25]; % pg. 103 (including net-to-gross)
         case 'not'
             tmp = [NaN NaN]; % pg. 87, 96: Not is a sealing formation
         case 'ror'
@@ -341,4 +341,7 @@ function avgrock = getAvgRock(name)
     end
     avgrock.avgperm = tmp(1)*milli*darcy;
     avgrock.avgporo = tmp(2);
+    if numel(tmp) == 3
+       avgrock.avgntg = tmp(3);
+    end
 end
