@@ -26,7 +26,7 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
 
    %% Compute and add column information
    [Gt.columns, Gt.cells.columnPos, Gt.cells.H] = ...
-       compute_column_info(G, col_cells(:, active_cols));
+       compute_column_info(G, col_cells(:, active_cols), tfaces);
    
    %% Fill in the remaining fields
    Gt.parent          = G;
@@ -61,7 +61,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [cols, col_pos, H] = compute_column_info(G, col_cells)
+function [cols, col_pos, H] = compute_column_info(G, col_cells, tfaces)
 
    col_sizes = sum(col_cells~=0)';
    col_pos = cumsum([1; col_sizes]);
@@ -74,8 +74,9 @@ function [cols, col_pos, H] = compute_column_info(G, col_cells)
    
    [top_faces, bot_faces] = identify_lateral_faces(G, cols.cells);
 
-   cols.z = G.faces.centroids(bot_faces, 3);   
-   cols.dz = cols.z - G.faces.centroids(top_faces, 3);
+   ref_z = rldecode(G.faces.centroids(tfaces, 3), col_sizes);
+   cols.z = G.faces.centroids(bot_faces, 3) - ref_z;   
+   cols.dz = G.faces.centroids(bot_faces, 3) - G.faces.centroids(top_faces, 3);
    H = accumarray(rldecode((1:length(col_sizes))', col_sizes'), cols.dz);
    
 end
@@ -189,6 +190,7 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    Gt.griddim = 2;
    Gt.type = [G.type, {'topSurfaceGrid'}]; % @ change to mfilename
    Gt.cells.map3DFace = tfaces;
+   Gt.cells.normals = G.faces.normals(tfaces, :);
    
    if isfield(G, 'cartDims')
       Gt.cartDims = G.cartDims(1:end-1);
