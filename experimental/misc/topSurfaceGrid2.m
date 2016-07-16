@@ -9,14 +9,17 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
    tfaces = identify_top_faces(G, col_cells(1, active_cols));
    
    %% Construct the 2D grid
-   Gt = top_faces_to_grid(G, tfaces);
+   % 'orient' informs about edge orientation, and will be used later when
+   % identifying cell neighbors.  However, this has to wait until unwanted
+   % discontinuities have been removed (see a couple of lines further down)
+   [Gt, orient] = construct_grid_from_top_faces(G, tfaces);
    
    %% Identify fault nodes
-   fault_nodes = identify_fault_nodes(G, Gt, opt.AddFaults);
-   
+   fault_nodes = identify_fault_nodes(G, Gt, tfaces, opt.AddFaults);
    
    %% Stitch-up non-fault discontinuities
-   Gt = stitch_surface_discontinuities(Gt, fault_nodes);
+   % also identify cell neighbors.
+   Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient);
    
    %% Compute extra fields
    
@@ -24,29 +27,75 @@ end
 
 % ----------------------------------------------------------------------------
 
-function Gt = stitch_surface_discontinuities(Gt, fault_nodes)
+function Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient)
 
    % identify nodes that are identical when z-coordinate is ignored, but
-   % separate otherwise  
-   [ncoords, ixs] = uniqueNodes(Gt.nodes.coords);
+   % separate otherwise.
+   coords = [Gt.nodes.coords, zeros(length(Gt.nodes.coords), 1)];
+   coords(fault_nodes, end) = 1:length(fault_nodes); % prevents fault nodes from merging
+   [ncoords, nc_ix] = uniqueNodes(coords);
    
+   [nc_ix_sorted, ix2] = sort(nc_ix);
+   ix2_inv(ix2) = 1:length(ix2); % permutation sorting back to original order
+   
+   pairs = (diff(nc_ix_sorted) == 0); % 'true' indicates a pair of nodes to unify
+   p_ix = find(pairs);
+   
+   n1 = ix2_inv(p_ix); % index of first node in each pair in the original nodelist
+   n2 = ix2_inv(p_ix+1); % index of second node in each pair in the original nodelist
+   
+   % % removing fault nodes (these should not be stitched)
+   % n1 = setdiff(n1, fault_nodes);
+   % n2 = setdiff(n2, fault_nodes);
+   % assert(length(n1) == length(n2)); % fault nodes should always include both
+            
+   % Updating Gt
+   Gt.nodes.num = size(ncoords, 1);
+   Gt.nodes.coords = ncoords(:, 1:2);
+   Gt.nodes.z = accumarray(nc_ix, Gt.nodes.z) ./ accumarray(nc_ix, 1);
+   
+   Gt.faces.nodes = nc_ix(Gt.faces.nodes);
+   
+   % With topology now in place, we can finally compute cell neighbors
+   Gt.faces.neighbors = ...
+       find_neighbors(Gt.cells.faces, diff(Gt.cells.facePos), orient);
 end
 
 % ----------------------------------------------------------------------------
 
-function fnodes = identify_fault_nodes(G, Gt, add_faults)
+function fnodes = identify_fault_nodes(G, Gt, top_faces, add_faults)
 
    fnodes = [];
-   if ~add_faults
+   if ~add_faults | ~isfield(G.faces, 'tag')
       return
    end
-   error('unimplemented');
    
+   % Identify 3D nodes linked to top faces in 3D grid
+   top_nodes_3D = false(G.nodes.num, 1);
+   top_nodes_3D(G.faces.nodes(mcolon(G.faces.nodePos(top_faces), ...
+                                     G.faces.nodePos(top_faces+1)-1))) = true;
+   
+   % Identify 3D nodes associated with fault, and also the top node subset
+   fault_nodes_3D = false(G.nodes.num, 1);
+   fault_nodes_3D(G.faces.nodes(mcolon(...
+       G.faces.nodePos(logical(G.faces.tag)), ...
+       G.faces.nodePos(circshift(logical(G.faces.tag), 1))))) = true;
+
+   top_fault_nodes = top_nodes_3D & fault_nodes_3D;
+   
+   % Searching for the corresponding nodes in the 2D grid
+   clist = [[Gt.nodes.coords, Gt.nodes.z], [1:length(Gt.nodes.coords)]'; ...
+            G.nodes.coords(top_fault_nodes,:), inf(sum(top_fault_nodes), 1)];
+   
+   clist = sortrows(clist);
+   dup_ix = all(diff(clist(:,1:3)) == 0, 2);
+   
+   fnodes = clist(dup_ix, 4);
 end
 
 % ----------------------------------------------------------------------------
 
-function Gt = top_faces_to_grid(G, tfaces)
+function [Gt, orient] = construct_grid_from_top_faces(G, tfaces)
    
    % get a list with (nonunique) coordinates for involved nodes
    fnodes_start = G.faces.nodePos(tfaces);
@@ -77,10 +126,10 @@ function Gt = top_faces_to_grid(G, tfaces)
    % Removing duplicates from edge set
    [uedges, faces] = uniqueNodes(edges);
    
-   % Setting the 'faces' struct.
+   % Setting the 'faces' struct.  The 'neighbor' field will have to wait
+   % until unwanted discontinuities have been removed from the grid.
    Gt.faces = struct('num', size(uedges, 1), 'nodePos', [1:2:numel(uedges)+1], ...
                      'nodes', reshape(uedges', numel(uedges), []), ...
-                     'neighbors', find_neighbors(faces, f_nodenum, orient), ...
                      'z', mean([Gt.nodes.z(uedges(:,1)), Gt.nodes.z(uedges(:,2))],2));
    
    %% Constructing cells of Gt (i.e. corresponding to top faces in the 3D grid)
@@ -90,6 +139,10 @@ function Gt = top_faces_to_grid(G, tfaces)
    %% Other immediate fields
    Gt.griddim = 2;
    Gt.type = [G.type, {'topSurfaceGrid'}];
+   
+   % Forwarding the essential information about edge orientation 
+   orient = orient(:,1);
+   orient(orient==2) = -1;
 end
 
 
@@ -99,47 +152,15 @@ function neigh = find_neighbors(cell_faces, num_cell_faces, orient)
    num_cells = numel(num_cell_faces);
    cellInx = rldecode([1:num_cells]', num_cell_faces);
 
-   mat = accumarray([cell_faces, cellInx], 1, [], [], [], true);
-   assert(all(sum(mat,2) <= 2)); % max 2 neighbors per face
-   assert(all(sum(mat,2) > 0)); % no face without at least one neighbor
-   
-   cs = cumsum(mat, 2);
-   [r1, n1] = find(mat & (cs==1));
-   [r2, n2] = find(mat & (cs==2));
+   mat = accumarray([cell_faces, cellInx], orient, [], [], [], true);
+
+   [r1, n1] = find(mat == 1);
+   [r2, n2] = find(mat == -1);
    
    neigh = zeros(size(mat, 1), 2);
    neigh(r1,1) = n1;
    neigh(r2,2) = n2;
-
-   % determining orientation
-   dir_mat = accumarray([cell_faces, cellInx], orient(:,1));
-   flip = dir_mat(sub2ind(size(dir_mat), r1, n1)) == 2;
-   neigh(flip,:) = fliplr(neigh(flip,:));
 end
-
-% % ----------------------------------------------------------------------------
-% function neigh = find_neighbors(cell_faces, num_cell_faces, orient)
-
-%    num_cells = numel(num_cell_faces);
-%    cellInx = rldecode([1:num_cells]', num_cell_faces);
-
-%    mat = accumarray([cell_faces, cellInx], 1, [], [], [], true);
-%    assert(all(sum(mat,2) <= 2)); % max 2 neighbors per face
-%    assert(all(sum(mat,2) > 0)); % no face without at least one neighbor
-   
-%    cs = cumsum(mat, 2);
-%    [r1, n1] = find(mat & (cs==1));
-%    [r2, n2] = find(mat & (cs==2));
-   
-%    neigh = zeros(size(mat, 1), 2);
-%    neigh(r1,1) = n1;
-%    neigh(r2,2) = n2;
-
-%    % determining orientation
-%    dir_mat = accumarray([cell_faces, cellInx], orient(:,1));
-%    flip = dir_mat(sub2ind(size(dir_mat), r1, n1)) == 2;
-%    neigh(flip,:) = fliplr(neigh(flip,:));
-% end
 
 % ----------------------------------------------------------------------------
 
