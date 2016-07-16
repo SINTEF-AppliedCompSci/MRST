@@ -157,7 +157,7 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    
    if isfield(G, 'cartDims')
       Gt.cartDims = G.cartDims(1:end-1);
-      [I, J] = ind2sub(G.cartDims, G.cells.indexMap(tcells));
+      [I, J, ~] = ind2sub(G.cartDims, G.cells.indexMap(tcells));
       Gt.cells.ij = [I, J];
       Gt.cells.indexMap = sub2ind(Gt.cartDims, I, J);
    end
