@@ -49,7 +49,7 @@ function [cols, col_pos, H] = compute_column_info(G, col_cells)
 
    cols.z = G.faces.centroids(bot_faces, 3);   
    cols.dz = cols.z - G.faces.centroids(top_faces, 3);
-   H = accumarray(rldecode([1:length(col_sizes)]', col_sizes'), cols.dz);
+   H = accumarray(rldecode((1:length(col_sizes))', col_sizes'), cols.dz);
    
 end
 
@@ -62,15 +62,6 @@ function Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient)
    coords = [Gt.nodes.coords, zeros(length(Gt.nodes.coords), 1)];
    coords(fault_nodes, end) = 1:length(fault_nodes); % prevents fault nodes from merging
    [ncoords, nc_ix] = uniqueNodes(coords);
-   
-   [nc_ix_sorted, ix2] = sort(nc_ix);
-   ix2_inv(ix2) = 1:length(ix2); % permutation sorting back to original order
-   
-   pairs = (diff(nc_ix_sorted) == 0); % 'true' indicates a pair of nodes to unify
-   p_ix = find(pairs);
-   
-   n1 = ix2_inv(p_ix); % index of first node in each pair in the original nodelist
-   n2 = ix2_inv(p_ix+1); % index of second node in each pair in the original nodelist
    
    % Updating Gt
    Gt.nodes.num = size(ncoords, 1);
@@ -89,7 +80,7 @@ end
 function fnodes = identify_fault_nodes(G, Gt, top_faces, add_faults)
 
    fnodes = [];
-   if ~add_faults | ~isfield(G.faces, 'tag')
+   if ~add_faults || ~isfield(G.faces, 'tag')
       return
    end
    
@@ -107,7 +98,7 @@ function fnodes = identify_fault_nodes(G, Gt, top_faces, add_faults)
    top_fault_nodes = top_nodes_3D & fault_nodes_3D;
    
    % Searching for the corresponding nodes in the 2D grid
-   clist = [[Gt.nodes.coords, Gt.nodes.z], [1:length(Gt.nodes.coords)]'; ...
+   clist = [[Gt.nodes.coords, Gt.nodes.z], (1:length(Gt.nodes.coords))'; ...
             G.nodes.coords(top_fault_nodes,:), inf(sum(top_fault_nodes), 1)];
    
    clist = sortrows(clist);
@@ -151,7 +142,7 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    
    % Setting the 'faces' struct.  The 'neighbor' field will have to wait
    % until unwanted discontinuities have been removed from the grid.
-   Gt.faces = struct('num', size(uedges, 1), 'nodePos', [1:2:numel(uedges)+1], ...
+   Gt.faces = struct('num', size(uedges, 1), 'nodePos', (1:2:numel(uedges)+1), ...
                      'nodes', reshape(uedges', numel(uedges), []), ...
                      'z', mean([Gt.nodes.z(uedges(:,1)), Gt.nodes.z(uedges(:,2))],2));
    
@@ -166,7 +157,7 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    
    if isfield(G, 'cartDims')
       Gt.cartDims = G.cartDims(1:end-1);
-      [I, J, K] = ind2sub(G.cartDims, G.cells.indexMap(tcells));
+      [I, J] = ind2sub(G.cartDims, G.cells.indexMap(tcells));
       Gt.cells.ij = [I, J];
       Gt.cells.indexMap = sub2ind(Gt.cartDims, I, J);
    end
@@ -181,7 +172,7 @@ end
 function neigh = find_neighbors(cell_faces, num_cell_faces, orient)
 
    num_cells = numel(num_cell_faces);
-   cellInx = rldecode([1:num_cells]', num_cell_faces);
+   cellInx = rldecode((1:num_cells)', num_cell_faces);
 
    mat = accumarray([cell_faces, cellInx], orient, [], [], [], true);
 
@@ -229,12 +220,12 @@ function [tfaces, bfaces] = identify_lateral_faces(G, cells)
   
   % picking the shallowest face
   [~, row] = min(z_mat);
-  tfaces = f_mat(row(:) + [0:numel(cells)-1]' * max(fnum));
+  tfaces = f_mat(row(:) + (0:numel(cells)-1)' * max(fnum));
 
   % picking the deepest faces
   z_mat(nz_mat < 1/2) = -inf;
   [~, row] = max(z_mat);
-  bfaces = f_mat(row(:) + [0:numel(cells)-1]' * max(fnum));
+  bfaces = f_mat(row(:) + (0:numel(cells)-1)' * max(fnum));
   
 end
 
@@ -258,7 +249,7 @@ function [active_cols, col_cells] = identify_column_cells(G)
    
    % remove the inactive top cells from matrix
    keeps = lnum(ones(lsize, 1)) - inactive_upper; % how many elements to keep per pillar
-   c_ixs = rldecode([1:lsize]', keeps); % column indices
+   c_ixs = rldecode((1:lsize)', keeps); % column indices
    r_ixs = mcolon(inactive_upper+1, lnum * ones(lsize, 1))';
    vals  = col_cells(sub2ind([lnum, lsize], r_ixs, c_ixs));
    r_ixs_new = mcolon(ones(size(inactive_upper)), lnum - inactive_upper)';
