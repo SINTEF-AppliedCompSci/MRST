@@ -126,7 +126,7 @@ keyboard;
 % rock structure, we can now easily compute the storage volumes for each
 % trap.
 
-trap_volumes = computeTrapVolume(Gt, ts, rock2D.poro, 1:num_traps);
+trap_volumes = volumesOfTraps(Gt, ts, 1:num_traps, 'poro',rock2D.poro);
 
 total_trapping_capacity = sum(trap_volumes);
 fprintf('Total trapping capacity is: %6.2e\n\n', total_trapping_capacity);

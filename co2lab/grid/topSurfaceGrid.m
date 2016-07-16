@@ -155,12 +155,12 @@ activeCells = (cumprod(A+C, 3)-C);
 g_old = g;
 
 if ~all(activeCells(:))
-   mlist = mrstModule;
+   %mlist = mrstModule;
    %mrstModule add libgeometry;
    g = removeCells(g, cart2active(g, find(~activeCells)));
    g = remove_disc_cells(g, verbose);
    g = computeGeometry(g);
-   mrstModule('reset',mlist{:});
+   %mrstModule('reset',mlist{:});
 end
 A = false(g.cartDims);
 A(g.cells.indexMap) = true;

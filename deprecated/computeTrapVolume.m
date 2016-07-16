@@ -29,5 +29,3 @@ function vol = computeTrapVolume(Gt, tstruct, poro, trap_ixs)
       vol(i) = sum(cell_vols);
   end
 end
-
-  

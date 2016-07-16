@@ -84,7 +84,7 @@ title('Utsira subset and Sleipner grid')
 % the amount of CO2 stored, both a porosity and a reference density of CO2
 % is required.
 
-trapvol_sleipner = sum(volumesOfTraps(Gt_sleipner, res_sleipner));
+trapvol_sleipner = sum(volumesOfTraps(Gt_sleipner, res_sleipner, []));
 area_sleipner = sum(Gt_sleipner.cells.volumes);
 
 finescaletraps = trapvol_sleipner/area_sleipner;
@@ -92,7 +92,7 @@ fprintf(['\nBy using the Atlas grid, approximately %2.5g liters of trapping\n'..
          'volume is not resolved per m^2 of area\n'], 1000*finescaletraps);
 
 %% Extrapolate this estimate to the whole Utsira formation
-trapvol_utsira = sum(volumesOfTraps(Gt_utsira, res_utsira));
+trapvol_utsira = sum(volumesOfTraps(Gt_utsira, res_utsira, []));
 
 area_utsira = sum(Gt_utsira.cells.volumes);
 lost_volume = area_utsira*finescaletraps;
@@ -152,7 +152,7 @@ axis tight off
 title('Adjusted versus original Sleipner grid')
 
 %% Find new trapping volume
-trapvol_adjusted = sum(volumesOfTraps(Gt_adjusted, res_adjusted));
+trapvol_adjusted = sum(volumesOfTraps(Gt_adjusted, res_adjusted, []));
 
 finescaletraps = trapvol_adjusted/area_sleipner;
 fprintf(['\nBy using the Atlas grid, approximately %2.5g liters of trapping\n'...

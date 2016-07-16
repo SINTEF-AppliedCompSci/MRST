@@ -112,7 +112,7 @@ function [ctraps, ctrap_zvals, ctrap_regions, csommets, ctrap_connectivity, criv
     lmerge(i,:) = []; %#ok
     rmerge(:,i) = []; %#ok
     
-    ctrap_connectivity = lmerge * ctrap_connectivity * rmerge;
+    ctrap_connectivity = spones(lmerge * ctrap_connectivity * rmerge);
 
     % Update rivers
     upstream_regs = find(ntrap_connectivity(:,i));

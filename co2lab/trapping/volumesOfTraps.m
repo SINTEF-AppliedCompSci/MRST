@@ -1,4 +1,4 @@
-function v = volumesOfTraps(Gt, res, varargin)
+function v = volumesOfTraps(Gt, res, traps, varargin)
 % Compute volumes of (a subset of) precomputed structural traps
 % 
 % SYNOPSIS:
@@ -7,9 +7,12 @@ function v = volumesOfTraps(Gt, res, varargin)
 % PARAMETERS:
 %   Gt       - top surface grid
 %   res      - trap structure, as computed by trapAnalysis
-%   varargin - may contain a vector with indices of traps for which to
-%              compute volumes, or can be left empty, if volumes are to be
-%              computed for _all_ traps
+%   traps    - vector with indices of traps for which to compute volumes.  If
+%              empty, volumes are computed for _all_ traps.
+%   varargin - keyword/value pairs for additional parameters.  Possible
+%              options are:
+%              * 'poro' - vector of porosities (default 1)
+%              
 %
 % RETURNS:
 %   v - vector containing volumes for each specified trap
@@ -19,21 +22,22 @@ function v = volumesOfTraps(Gt, res, varargin)
 %   trapAnalysis    
 %
 
-    if nargin == 2
-        trap = 1:max(res.traps);
-    else
-        trap = varargin{1};
+    opt.poro = ones(Gt.cells.num, 1);
+    opt = merge_options(opt, varargin{:});
+    
+    if isempty(traps)
+       traps = 1:max(res.traps);
     end
-    v = zeros(1,numel(trap));
-    for i = 1:numel(trap)
-        ind     = res.traps == trap(i);
+    
+    for i = 1:numel(traps)
+        ind     = res.traps == traps(i);
         z       = Gt.cells.z(ind);
-        fill_z  = res.trap_z(trap(i));
+        fill_z  = res.trap_z(traps(i));
 
         assert(all((fill_z - z)>=0));
 
         H       = Gt.cells.H(ind);
         h_plume = min((fill_z - z),H);    
-        v(i)    = sum(max(eps, Gt.cells.volumes(ind).*h_plume));
+        v(i)    = sum(max(eps, Gt.cells.volumes(ind) .* h_plume .* opt.poro(ind)));
     end
 end

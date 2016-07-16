@@ -44,7 +44,7 @@ for i = 1:N
     Grids{i} = Gt;
     % Create trapping and store volumes of each trap
     res{i} = trapAnalysis(Gt, true);
-    res{i}.volumes = volumesOfTraps(Gt, res{i});
+    res{i}.volumes = volumesOfTraps(Gt, res{i}, []);
 end
 toc;
 

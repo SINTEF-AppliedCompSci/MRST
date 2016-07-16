@@ -150,9 +150,9 @@ for i=1:ng
    res{i}.zmin      = min(Gt.cells.z);
    res{i}.zmax      = max(Gt.cells.z);
    res{i}.volume    = sum(G.cells.volumes);
-   res{i}.ctrapvols = volumesOfTraps(Gt,tac);
+   res{i}.ctrapvols = volumesOfTraps(Gt,tac, []);
    res{i}.ccapacity = sum(res{i}.ctrapvols);
-   res{i}.ntrapvols = volumesOfTraps(Gt,tan);
+   res{i}.ntrapvols = volumesOfTraps(Gt,tan, []);
    res{i}.ncapacity = sum(res{i}.ntrapvols);
    fprintf('done\n');
 end

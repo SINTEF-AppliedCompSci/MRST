@@ -181,7 +181,7 @@ function reportAnalysis(coarse_grid, coarsetraps, theta_x_vec, theta_y_vec, ...
     % Also, disregard cells that are traps anyway on the coarse grid
     ind = ind & (coarsetraps.traps == 0); 
     
-    trapvol_coarse  = sum(volumesOfTraps(coarse_grid, coarsetraps));
+    trapvol_coarse  = sum(volumesOfTraps(coarse_grid, coarsetraps, []));
     
     % Identify the unique tilt that was found to lead to maximum subscale
     % trapping capacity, using our subsampled grid:
@@ -300,7 +300,7 @@ end
 % ----------------------------------------------------------------------------
 function [vol, area, resS] = computeTrapVolAndArea(Gt)
     resS  = trapAnalysis(Gt, true); % use 'false' for node-based algorithm
-    vol  = sum(volumesOfTraps(Gt, resS));
+    vol  = sum(volumesOfTraps(Gt, resS, []));
     area = sum(Gt.cells.volumes);
 end
 

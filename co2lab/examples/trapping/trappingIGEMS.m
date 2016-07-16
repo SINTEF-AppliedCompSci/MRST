@@ -111,7 +111,7 @@ view(-90,90); axis equal tight
 % trap.
 
 poro = .2*ones(Gt.cells.num,1);
-trap_volumes = computeTrapVolume(Gt, ts, poro, 1:num_traps);
+trap_volumes = volumesOfTraps(Gt, ts, 1:num_traps, 'poro', poro);
 
 total_trapping_capacity = sum(trap_volumes);
 fprintf('Total trapping capacity is: %6.2e\n\n', total_trapping_capacity);

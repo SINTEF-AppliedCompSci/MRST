@@ -10,10 +10,19 @@ function res = trapAnalysis(Gt, method, varargin)
 % OPTIONAL PARAMETERS:
 %   varargin - pair of 'key'/'value', where currently supported key is:
 %              * closed_boundary_edges - by default, boundary edges are
-%                                       considered open, but the boundary
-%                                       edges whose indices are found in the
-%                                       vector 'closed_boundary_edges' will
-%                                       be considered closed (no flow across)
+%                                        considered open, but the boundary
+%                                        edges whose indices are found in the
+%                                        vector 'closed_boundary_edges' will
+%                                        be considered closed (no flow across)
+%              * project_to_cells - when running the edge-based trapping
+%                                   implementation, all information is expressed
+%                                   in terms of nodes, but will by default be
+%                                   converted into information that relates to
+%                                   cells.  If 'project_to_cells' is set to
+%                                   false, information will be returned in
+%                                   terms of nodes. (Flag does not apply if
+%                                   the cell-centroid based implementation is
+%                                   run).
 %     
 % DESCRIPTION:
 %   The function computes and summarizes information that describes the
@@ -59,6 +68,7 @@ function res = trapAnalysis(Gt, method, varargin)
       'Use true/false (or 1/0), not ''true''/''false''.'])
   
   opt.closed_boundary_edges = [];
+  opt.project_to_cells = true;
   opt = merge_options(opt, varargin{:});
   
   if method
@@ -74,12 +84,14 @@ function res = trapAnalysis(Gt, method, varargin)
       mrstModule('reset', mlist{:})
   else
       % we will use the edge-based method
-      res = edge_based_trap_analysis(Gt, opt.closed_boundary_edges);
+      res = edge_based_trap_analysis(Gt, ...
+                                     opt.closed_boundary_edges, ...
+                                     opt.project_to_cells); 
   end
 end
 
 %===============================================================================
-function res = edge_based_trap_analysis(Gt, closed_bedges)
+function res = edge_based_trap_analysis(Gt, closed_bedges, project)
    
     % Identifying closed boundary nodes, if any
     closed_bnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_bedges), ...
@@ -88,17 +100,30 @@ function res = edge_based_trap_analysis(Gt, closed_bedges)
     % Computing essential trap information, based on geometry of edges
     ntraps = computeNodeTraps(Gt, closed_bnodes);
 
-    % Projecting trap information onto cells (from edges)
-    [ctraps, ctrap_zvals, ctrap_regions, csommets, cadj, crivers] = ...
-        n2cTraps(Gt, ntraps.trap_regions, ntraps.trap_zvals, ntraps.dstr_neigh, ...
-                 ntraps.connectivity, ntraps.traps, ntraps.rivers);  
-    
-    res.traps        = ctraps;
-    res.trap_z       = ctrap_zvals;
-    res.trap_regions = ctrap_regions;
-    res.trap_adj     = cadj;
-    res.cell_lines   = crivers';
-    res.top          = csommets;
+    if project
+       % Projecting trap information onto cells (from edges)
+       [ctraps, ctrap_zvals, ctrap_regions, csommets, cadj, crivers] = ...
+           n2cTraps(Gt, ntraps.trap_regions, ntraps.trap_zvals, ntraps.dstr_neigh, ...
+                    ntraps.connectivity, ntraps.traps, ntraps.rivers);  
+       
+       res.traps        = ctraps;
+       res.trap_z       = ctrap_zvals;
+       res.trap_regions = ctrap_regions;
+       res.trap_adj     = cadj;
+       res.cell_lines   = crivers';
+       res.top          = csommets;
+    else
+       res.traps        = ntraps.traps;;
+       res.trap_z       = ntraps.trap_zvals;
+       res.trap_regions = ntraps.trap_regions;
+       res.trap_adj     = ntraps.connectivity;
+       res.cell_lines   = ntraps.rivers';
+       
+       node_sommets = zeros(size(res.trap_regions));
+       node_sommets(intersect(find(ntraps.dstr_neigh == 0), ...
+                              find(ntraps.trap_regions ~=0))) = 1;
+       res.top          = node_sommets;
+    end
 end
 
 %===============================================================================

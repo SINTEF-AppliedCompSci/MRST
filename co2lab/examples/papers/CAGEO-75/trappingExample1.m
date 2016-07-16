@@ -77,7 +77,7 @@ colormap(jet);
 % descending order. In addition, we relate the trap volume to the total
 % volume of the sandbox.
 rock2D.poro = 0.25 * ones(G.cells.num, 1);
-trap_volumes = computeTrapVolume(Gt, res, rock2D.poro, 1:num_traps);
+trap_volumes = volumesOfTraps(Gt, res, 1:num_traps, 'poro', rock2D.poro);
 
 total_trapping_capacity = sum(trap_volumes);
 pv = sum(poreVolume(Gt,rock2D));

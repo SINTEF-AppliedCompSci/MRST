@@ -19,7 +19,7 @@ Gt = topSurfaceGrid(...
 
 %% Find trap volumes, traps and trees
 res = trapAnalysis(Gt, true);
-trapvols = volumesOfTraps(Gt, res);
+trapvols = volumesOfTraps(Gt, res, []);
 trees = maximizeTrapping(Gt, 'res', res, 'removeOverlap', true);
 
 %% Plot the surface and the spill paths
