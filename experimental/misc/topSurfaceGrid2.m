@@ -2,8 +2,10 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
 
    opt = merge_options(struct('AddFaults', false), varargin{:});
    
-   %% Identify columns in layered 3D grid
-   [active_cols, col_cells] = identify_column_cells(G);
+   %% Identify columns in layered 3D grid; remove unused cells from G
+   % cells in G that will not contribute to the top surface grid 
+   % will be removed
+   [active_cols, col_cells, G] = identify_column_cells(G);
    
    %% Identify top faces
    tcells = col_cells(1, active_cols); % top cells
@@ -30,6 +32,31 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
    Gt.parent          = G;
    Gt.grav_pressure   = @(G, omega) gravPressureVE_s(G, omega);
    Gt.primitives      = @primitivesMimeticVE_s;
+   
+   if isfield(G, 'cartDims')
+      % also add face tags
+      fnum = length(Gt.cells.faces);
+      tag_seq = determine_facetag_sequence(G);
+      Gt.cells.faces = [Gt.cells.faces, repmat(tag_seq, fnum/4, 1)];
+   end
+   
+   %% Compute geometry
+   Gt = compute_geometry(Gt);
+end
+
+% ----------------------------------------------------------------------------
+
+function Gt = compute_geometry(Gt)
+
+   Gt = computeGeometryVE_2D(Gt);
+   if(any(Gt.cells.volumes < 0))
+      disp('Wrong sign of volumes. Changing to absolute values.')  
+      Gt.cells.volumes = abs(Gt.cells.volumes);
+   end
+   if(any(Gt.faces.areas<0))
+      disp('Wrong sign of areas. Changing to absolute values.')  
+      Gt.faces.areas=abs(Gt.cells.areas);
+   end
 end
 
 % ----------------------------------------------------------------------------
@@ -63,12 +90,20 @@ function Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient)
    coords(fault_nodes, end) = 1:length(fault_nodes); % prevents fault nodes from merging
    [ncoords, nc_ix] = uniqueNodes(coords);
    
-   % Updating Gt
+   % Updating Gt nodes
    Gt.nodes.num = size(ncoords, 1);
    Gt.nodes.coords = ncoords(:, 1:2);
    Gt.nodes.z = accumarray(nc_ix, Gt.nodes.z) ./ accumarray(nc_ix, 1);
-   
+
+   % Updating Gt faces
    Gt.faces.nodes = nc_ix(Gt.faces.nodes);
+   [new_fnodes, nfix] = uniqueNodes(reshape(Gt.faces.nodes, 2, [])');
+   Gt.faces.nodes = reshape(transpose(new_fnodes), [], 1);
+   Gt.faces.num = length(Gt.faces.nodes)/2;
+   Gt.faces.nodePos = (1:2:(numel(Gt.faces.nodes)+1))';
+   
+   % Updating Gt cells
+   Gt.cells.faces = nfix(Gt.cells.faces);
    
    % With topology now in place, we can finally compute cell neighbors
    Gt.faces.neighbors = ...
@@ -127,11 +162,11 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    
    %% Constructing face field (i.e. edges) of Gt
    % We start with a set of edges containing duplicates
-   edges = [fnodes_ixs, [0;fnodes_ixs(1:end-1)]];
+   edges = [fnodes_ixs, [fnodes_ixs(2:end);0]];
    last_node_ix = cumsum(f_nodenum); % last node per face
    first_node_ix = [1; last_node_ix(1:end-1)+1]; % first node per face
       
-   edges(first_node_ix, 2) = edges(last_node_ix, 1);
+   edges(last_node_ix, 2) = edges(first_node_ix, 1);
    
    % orienting each edge according to node index, but keeping track of original
    % (correct) orientation
@@ -142,7 +177,7 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    
    % Setting the 'faces' struct.  The 'neighbor' field will have to wait
    % until unwanted discontinuities have been removed from the grid.
-   Gt.faces = struct('num', size(uedges, 1), 'nodePos', (1:2:numel(uedges)+1), ...
+   Gt.faces = struct('num', size(uedges, 1), 'nodePos', (1:2:numel(uedges)+1)', ...
                      'nodes', reshape(uedges', numel(uedges), []), ...
                      'z', mean([Gt.nodes.z(uedges(:,1)), Gt.nodes.z(uedges(:,2))],2));
    
@@ -152,7 +187,7 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    
    %% Other immediate fields
    Gt.griddim = 2;
-   Gt.type = [G.type, {'topSurfaceGrid'}];
+   Gt.type = [G.type, {'topSurfaceGrid'}]; % @ change to mfilename
    Gt.cells.map3DFace = tfaces;
    
    if isfield(G, 'cartDims')
@@ -231,10 +266,11 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [active_cols, col_cells] = identify_column_cells(G)
+function [active_cols, col_cells, G] = identify_column_cells(G)
 % 'active_cols': 'true' for all columns with at least one active cell.
 % 'col_cells': Matrix containing the indices of active cells for each column.
 %              Each column in this matrix correspond to a vertical stack of cells.
+% 'G'        : The input grid G is modified if cells have to be removed.
    
    [lsize, lnum] = layer_size_and_number(G);
    
@@ -259,11 +295,20 @@ function [active_cols, col_cells] = identify_column_cells(G)
    
    % for each row, true until first zero is encountered
    keeps = logical(cumprod(col_cells)); 
+   discard_cells = reshape(col_cells(~keeps), [], 1);
+   discard_cells = discard_cells(discard_cells ~= 0);
    col_cells(~keeps) = 0;
                           
    % Determine which pillars contain at least one cell
    active_cols = logical(sum(col_cells));
    
+   %% Remove discarded cells from parent grid
+   if ~isempty(discard_cells)
+      G = computeGeometry(removeCells(G, discard_cells));
+      % call function again, this time with a grid that does not need any
+      % further removals.  (This is the easiest way to deal with the new indexing).
+      [active_cols, col_cells, G] = identify_column_cells(G);
+   end
 end
 
 % ----------------------------------------------------------------------------
@@ -281,4 +326,30 @@ function [lsize, lnumber] = layer_size_and_number(G)
       lsize   = prod(G.cartDims(1:2));
       lnumber = G.cartDims(3);
    end
+end
+
+% ----------------------------------------------------------------------------
+
+function seq = determine_facetag_sequence(G)
+% determine the W/E/S/N sequence following the edges of the top surface of a
+% cell.  Assuming all cells have the same layout, we determine this sequence
+% looking only at the first grid cell.
+   assert(isfield(G, 'cartDims')); % should only be attempted for cartesian grids!
+   
+   faces = G.cells.faces(G.cells.facePos(1):G.cells.facePos(2)-1, :);
+   faces = sortrows(faces, 2); % now should be sorted according to logical direction
+   faces = faces(1:5,1); % discard tags, and bottom face (which we do not need)
+   
+   nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+   assert(numel(nodes) == 20);
+   nodes = reshape(nodes, 4, 5); % column 5 corresponds to the nodes of the top face
+
+   ixfun = @(u, v) find(arrayfun(@(x) numel(intersect(nodes(:,x), [u, v]))==2, 1:4));
+   
+   seq = zeros(4,1);
+   seq(1) = ixfun(nodes(1, end), nodes(2, end)); % cardinal dir. for first top edge
+   seq(2) = ixfun(nodes(2, end), nodes(3, end)); % cardinal dir. for 2nd top edge
+   seq(3) = ixfun(nodes(3, end), nodes(4, end)); % cardinal dir. for 3rd top edge
+   seq(4) = ixfun(nodes(4, end), nodes(1, end)); % cardinal dir. for 4th top edge
+   
 end
