@@ -6,13 +6,14 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
    [active_cols, col_cells] = identify_column_cells(G);
    
    %% Identify top faces
-   tfaces = identify_top_faces(G, col_cells(1, active_cols));
+   tcells = col_cells(1, active_cols); % top cells
+   tfaces = identify_lateral_faces(G, tcells); % top faces
    
    %% Construct the 2D grid
    % 'orient' informs about edge orientation, and will be used later when
    % identifying cell neighbors.  However, this has to wait until unwanted
    % discontinuities have been removed (see a couple of lines further down)
-   [Gt, orient] = construct_grid_from_top_faces(G, tfaces);
+   [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces);
    
    %% Identify fault nodes
    fault_nodes = identify_fault_nodes(G, Gt, tfaces, opt.AddFaults);
@@ -20,8 +21,35 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
    %% Stitch-up non-fault discontinuities
    % also identify cell neighbors.
    Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient);
+
+   %% Compute and add column information
+   [Gt.columns, Gt.cells.columnPos, Gt.cells.H] = ...
+       compute_column_info(G, col_cells(:, active_cols));
    
-   %% Compute extra fields
+   %% Fill in the remaining fields
+   Gt.parent          = G;
+   Gt.grav_pressure   = @(G, omega) gravPressureVE_s(G, omega);
+   Gt.primitives      = @primitivesMimeticVE_s;
+end
+
+% ----------------------------------------------------------------------------
+
+function [cols, col_pos, H] = compute_column_info(G, col_cells)
+
+   col_sizes = sum(col_cells~=0)';
+   col_pos = cumsum([1; col_sizes]);
+
+   start_ix = cumsum([1;repmat(size(col_cells, 1), size(col_cells, 2), 1)]);
+   start_ix = start_ix(1:end-1);
+   end_ix = start_ix + col_sizes - 1;
+   
+   cols.cells = col_cells(mcolon(start_ix, end_ix))';
+   
+   [top_faces, bot_faces] = identify_lateral_faces(G, cols.cells);
+
+   cols.z = G.faces.centroids(bot_faces, 3);   
+   cols.dz = cols.z - G.faces.centroids(top_faces, 3);
+   H = accumarray(rldecode([1:length(col_sizes)]', col_sizes'), cols.dz);
    
 end
 
@@ -44,11 +72,6 @@ function Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient)
    n1 = ix2_inv(p_ix); % index of first node in each pair in the original nodelist
    n2 = ix2_inv(p_ix+1); % index of second node in each pair in the original nodelist
    
-   % % removing fault nodes (these should not be stitched)
-   % n1 = setdiff(n1, fault_nodes);
-   % n2 = setdiff(n2, fault_nodes);
-   % assert(length(n1) == length(n2)); % fault nodes should always include both
-            
    % Updating Gt
    Gt.nodes.num = size(ncoords, 1);
    Gt.nodes.coords = ncoords(:, 1:2);
@@ -95,7 +118,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [Gt, orient] = construct_grid_from_top_faces(G, tfaces)
+function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    
    % get a list with (nonunique) coordinates for involved nodes
    fnodes_start = G.faces.nodePos(tfaces);
@@ -139,6 +162,14 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tfaces)
    %% Other immediate fields
    Gt.griddim = 2;
    Gt.type = [G.type, {'topSurfaceGrid'}];
+   Gt.cells.map3DFace = tfaces;
+   
+   if isfield(G, 'cartDims')
+      Gt.cartDims = G.cartDims(1:end-1);
+      [I, J, K] = ind2sub(G.cartDims, G.cells.indexMap(tcells));
+      Gt.cells.ij = [I, J];
+      Gt.cells.indexMap = sub2ind(Gt.cartDims, I, J);
+   end
    
    % Forwarding the essential information about edge orientation 
    orient = orient(:,1);
@@ -164,7 +195,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function tfaces = identify_top_faces(G, cells)
+function [tfaces, bfaces] = identify_lateral_faces(G, cells)
 
   % Etablishing total number of faces for each cell to consider
   start_ix = G.cells.facePos(cells);
@@ -198,8 +229,12 @@ function tfaces = identify_top_faces(G, cells)
   
   % picking the shallowest face
   [~, row] = min(z_mat);
-  
   tfaces = f_mat(row(:) + [0:numel(cells)-1]' * max(fnum));
+
+  % picking the deepest faces
+  z_mat(nz_mat < 1/2) = -inf;
+  [~, row] = max(z_mat);
+  bfaces = f_mat(row(:) + [0:numel(cells)-1]' * max(fnum));
   
 end
 
