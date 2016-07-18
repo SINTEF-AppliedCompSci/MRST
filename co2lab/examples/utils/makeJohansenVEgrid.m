@@ -1,4 +1,4 @@
-function [G, Gt, rock, rock2D, bcIxVE] = makeJohansenVEgrid()
+function [G, Gt, rock, rock2D, bcIx, bcIxVE] = makeJohansenVEgrid(varargin)
 %Make a VE model based upon a data set of the Johansen formation
 %
 % SYNOPSIS:
@@ -27,6 +27,10 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeJohansenVEgrid()
 %  subsequent 3D and/or VE simulations of CO2 injection and migration and
 %  are therefore stored to file to avoid time-consuming processing.
 %
+%  If illustrative plots are desired during the grid manipulation process,
+%  run script as:
+%                  makeJohansenVEgrid('do_plot', true)  
+%
 %  The data files necessary to run the example can be downloaded from the
 %  <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 %  website>.
@@ -40,13 +44,15 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeJohansenVEgrid()
 
 try
    disp(' -> Reading Johansen.mat');
-   datadir = fullfile(mrstPath('co2lab'),'data','mat');
+    datadir = fullfile(mrstPath('co2lab'),'data','mat');
    load(fullfile(datadir,'Johansen'));
    return;
 catch %#ok<*CTCH>
    disp(' -> Reading failed, constructing grid models');
 end
 
+   opt = merge_options(struct('do_plot', false), varargin{:});
+   
 %% Load model and construct VE grid
 % Load grid geometry - you will most likely have to change the path,
 % depending upon where you have stored the Johansen data-set
@@ -101,12 +107,14 @@ cells2D_1 = find(Gt.cells.ij(:,1) == 43 & Gt.cells.ij(:,2) <= 44);
 cells2D_2 = find(Gt.cells.ij(:,1) == 44 & Gt.cells.ij(:,2) <= 44);
 
 % Plot the cells on opposite sides
-figure;
-plotGrid(Gt, 'faceColor', 'none');
-plotGrid(Gt, cells2D_1, 'faceColor', 'r')
-plotGrid(Gt, cells2D_2, 'faceColor', 'g')
-axis tight off,
-title('Cells on opposite sides of sealing fault'),
+if opt.do_plot
+   figure;
+   plotGrid(Gt, 'faceColor', 'none');
+   plotGrid(Gt, cells2D_1, 'faceColor', 'r')
+   plotGrid(Gt, cells2D_2, 'faceColor', 'g')
+   axis tight off,
+   title('Cells on opposite sides of sealing fault'),
+end
 
 % Find the faces at the fault. Construct a mapping facesMat defined such
 % that facesMat(i,j)=k if face <k> is shared by cells <i> and <j>.
@@ -142,15 +150,19 @@ ix2 = boundaryFaceIndices(G, 'LEFT', 1:20,   1:ny, 1:nz);
 ix3 = boundaryFaceIndices(G, 'RIGHT', 1:nx, ny-10:ny, 1:nz);
 ix4 = boundaryFaceIndices(G, 'FRONT', 1:nx/2-8, ny/2:ny, 1:nz);
 
-figure;
-subplot(1,2,1)
-plotGrid(G, 'faceColor', 'none', 'EdgeAlpha', 0.1)
-plotFaces(G, ix1, 'r');
-plotFaces(G, ix2, 'g');
-plotFaces(G, ix3, 'y')
-plotFaces(G, ix4, 'm');
-view(-7,60), axis tight off;
-title('3D grid');
+if opt.do_plot
+   figure;
+   subplot(1,2,1)
+   plotGrid(G, 'faceColor', 'none', 'EdgeAlpha', 0.1)
+   plotFaces(G, ix1, 'r');
+   plotFaces(G, ix2, 'g');
+   plotFaces(G, ix3, 'y')
+   plotFaces(G, ix4, 'm');
+   view(-7,60), axis tight off;
+   title('3D grid');
+end
+
+bcIx = [ix1; ix2; ix3; ix4];
 
 % boundary 2D
 nx = Gt.cartDims(1); ny=Gt.cartDims(2);
@@ -163,25 +175,29 @@ ix4 = boundaryFaceIndices(Gt, 'FRONT', 1:nx/2-8, ny/2:ny, []);
 ix1 = ix1(Gt.faces.centroids(ix1,2)>6.714*1e6);
 ix2 = ix2(Gt.faces.centroids(ix2,1)>5.4*1e5);
 %
-subplot(1,2,2)
-plotGrid(Gt, 'faceColor', 'none', 'EdgeAlpha', 0.1)
-plotGrid(Gt, sum(Gt.faces.neighbors(ix1,:),2), 'faceColor', 'r')
-plotGrid(Gt, sum(Gt.faces.neighbors(ix2,:),2), 'faceColor', 'g')
-plotGrid(Gt, sum(Gt.faces.neighbors(ix3,:),2), 'faceColor', 'y')
-plotGrid(Gt, sum(Gt.faces.neighbors(ix4,:),2), 'faceColor', 'm')
-axis tight off
-title('2D grid of top surface');
+if opt.do_plot
+   subplot(1,2,2)
+   plotGrid(Gt, 'faceColor', 'none', 'EdgeAlpha', 0.1)
+   plotGrid(Gt, sum(Gt.faces.neighbors(ix1,:),2), 'faceColor', 'r')
+   plotGrid(Gt, sum(Gt.faces.neighbors(ix2,:),2), 'faceColor', 'g')
+   plotGrid(Gt, sum(Gt.faces.neighbors(ix3,:),2), 'faceColor', 'y')
+   plotGrid(Gt, sum(Gt.faces.neighbors(ix4,:),2), 'faceColor', 'm')
+   axis tight off
+   title('2D grid of top surface');
+end
 
 bcIxVE = [ix1; ix2; ix3; ix4];
 clear ix1 ix2 ix3 ix4 nx ny nz
 
-figure
-internal=all(Gt.faces.neighbors>0,2);
-bcells=sum(Gt.faces.neighbors(~internal,:),2);
-
-plotFaces(G,Gt.cells.map3DFace(bcells));  
-plotFaces(G,Gt.cells.map3DFace,'FaceColor','none','edgea',0.1);
-plotFaces(G,find(G.faces.tag>0),'FaceColor','r');
+if opt.do_plot
+   figure
+   internal=all(Gt.faces.neighbors>0,2);
+   bcells=sum(Gt.faces.neighbors(~internal,:),2);
+   
+   plotFaces(G,Gt.cells.map3DFace(bcells));  
+   plotFaces(G,Gt.cells.map3DFace,'FaceColor','none','edgea',0.1);
+   plotFaces(G,find(G.faces.tag>0),'FaceColor','r');
+end
 
 %% Store data
 disp(' -> Writing Johansen.mat')
@@ -190,6 +206,6 @@ if ~isdir(datadir)
    mkdir(datadir);
 end
 
-save(fullfile(datadir,'Johansen'), 'G', 'Gt', 'rock', 'rock2D', 'bcIxVE');
+save(fullfile(datadir,'Johansen'), 'G', 'Gt', 'rock', 'rock2D', 'bcIx', 'bcIxVE');
 
 end
