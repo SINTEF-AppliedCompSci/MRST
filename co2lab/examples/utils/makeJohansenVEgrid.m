@@ -1,4 +1,4 @@
-function [G, Gt, rock, rock2D, bcIx, bcIxVE] = makeJohansenVEgrid(varargin)
+function [G, rock, bcIx, Gt, rock2D, bcIxVE] = makeJohansenVEgrid(varargin)
 %Make a VE model based upon a data set of the Johansen formation
 %
 % SYNOPSIS:
@@ -172,8 +172,8 @@ ix3 = boundaryFaceIndices(Gt, 'RIGHT', 1:nx, ny-10:ny, []);
 ix4 = boundaryFaceIndices(Gt, 'FRONT', 1:nx/2-8, ny/2:ny, []);
 
 %remove faces connected to main fault
-ix1 = ix1(Gt.faces.centroids(ix1,2)>6.714*1e6);
-ix2 = ix2(Gt.faces.centroids(ix2,1)>5.4*1e5);
+% ix1 = ix1(Gt.faces.centroids(ix1,2)>6.714*1e6); 
+% ix2 = ix2(Gt.faces.centroids(ix2,1)>5.4*1e5);
 %
 if opt.do_plot
    subplot(1,2,2)

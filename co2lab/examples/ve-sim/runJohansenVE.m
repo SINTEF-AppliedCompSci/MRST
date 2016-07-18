@@ -36,7 +36,7 @@ disp('');
 % surface, assuming that the major fault is sealing, and identify all outer
 % boundaries that are open to flow. Store grid and rock structures to file
 % to avoid time-consuming processing.
-[G, Gt, rock, rock2D, ~, bcIxVE] = makeJohansenVEgrid();
+[G, rock, ~, Gt, rock2D, bcIxVE] = makeJohansenVEgrid();
 
 %% Set time and fluid parameters
 gravity on
