@@ -48,6 +48,7 @@ assert(Gt.griddim==2)
 assert(numel(Gt.columns.cells)==Gt.parent.cells.num)
 
 % compute2D geometry
+type = Gt.type;
 Gt=computeGeometry(Gt);
 Gt.cells.z= Gt.parent.faces.centroids(Gt.cells.map3DFace, 3);
 %faceCentroids = (coords(faceEdges(:,2),:)+ coords(faceEdges(:,1),:))/2;
@@ -56,5 +57,6 @@ Gt.cells.z= Gt.parent.faces.centroids(Gt.cells.map3DFace, 3);
 faceEdges = reshape(Gt.faces.nodes,2,[])';
 z = (Gt.nodes.z(faceEdges(:,2))+ Gt.nodes.z(faceEdges(:,1)))/2;
 Gt.faces.z=z;
-Gt.type = [Gt.parent.type, mfilename];
-
+%Gt.type = [Gt.parent.type, mfilename];
+Gt.type = [type, mfilename]; % @@ Was there a reason for refering to the
+                                % parent type instead?  
