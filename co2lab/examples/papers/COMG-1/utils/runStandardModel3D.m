@@ -183,10 +183,10 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    % krW = coreyPhaseRelpermAD(opt.n, res_vals(2));
    % krG = coreyPhaseRelpermAD(opt.n, res_vals(1));
 
-   krW = roundedLinRelperm(res_vals(1), 1 - res_vals(2), res_vals(1)/20);
-   krG = roundedLinRelperm(res_vals(2), 1 - res_vals(1), res_vals(2)/20);
+   fluid.krW = roundedLinRelperm(res_vals(1), 1 - res_vals(2), res_vals(1)/20);
+   fluid.krG = roundedLinRelperm(res_vals(2), 1 - res_vals(1), res_vals(2)/20);
    
-   fluid.relPerm = @(sg) deal(krW(1-sg), krG(sg));
+   %fluid.relPerm = @(sg) deal(krW(1-sg), krG(sg));
    
    if params.is_instant;
       fluid.dis_rate = 0; % value of zero indicates instant dissolution

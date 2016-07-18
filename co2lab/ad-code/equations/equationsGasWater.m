@@ -59,7 +59,7 @@ function [problem, state] = equationsGasWater(model, state0, state, dt, drivingF
     end
     % ----------------------------------------------------------------------------
     
-    [krW, krG] = f.relPerm(sG);
+    [krW, krG] = deal(f.krW(1-sG), f.krG(sG));
     
     % computing densities, mobilities and upstream indices
     [bW, mobW, fluxW] = compMFlux(p - pcGW, f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
