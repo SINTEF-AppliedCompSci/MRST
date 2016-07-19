@@ -1,11 +1,15 @@
-function [Gt, G] = topSurfaceGrid2(G, varargin)
+function [Gt, G, transMult] = topSurfaceGrid2(G)
 
-   opt = merge_options(struct('AddFaults', false), varargin{:});
-   
    %% Identify columns in layered 3D grid; remove unused cells from G
    % cells in G that will not contribute to the top surface grid 
    % will be removed
    [active_cols, col_cells, G] = identify_column_cells(G);
+   
+   %% Identify connectivity between columns
+   % Absent the presence of faults, this task would be trivial on cartesian
+   % grids.  However, a general algorithm is needed in order to handle
+   % general layered grids.
+   col_adj = determine_column_connectivity(G, active_cols, col_cells);
    
    %% Identify top faces
    tcells = col_cells(1, active_cols); % top cells
@@ -17,16 +21,19 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
    % discontinuities have been removed (see a couple of lines further down)
    [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces);
    
-   %% Identify fault nodes
-   fault_nodes = identify_fault_nodes(G, Gt, tfaces, opt.AddFaults);
+   %% Identify fault edges
+   ffaces = identify_fault_faces(G, Gt, tfaces);
    
-   %% Stitch-up non-fault discontinuities
-   % also identify cell neighbors.
-   Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient);
-
+   %% Stitch-up surface discontinuities
+   % update fault faces in case grid faces are merged
+   [Gt, ffaces] = stitch_surface_discontinuities(Gt, ffaces, col_adj, orient);
+   
    %% Compute and add column information
    [Gt.columns, Gt.cells.columnPos, Gt.cells.H] = ...
        compute_column_info(G, col_cells(:, active_cols), tfaces);
+
+   %% Compute transmissibility multipliers for partially overlapping faults
+   transMult = computeFaultTrans(Gt, ffaces);
    
    %% Fill in the remaining fields
    Gt.parent          = G;
@@ -42,6 +49,110 @@ function [Gt, G] = topSurfaceGrid2(G, varargin)
    
    %% Compute geometry
    Gt = compute_geometry(Gt);
+end
+
+% ----------------------------------------------------------------------------
+
+function adj_mat = determine_column_connectivity(G, active_cols, col_cells)
+
+   num_cols = length(active_cols);
+   num_cells = G.cells.num;
+   
+   %% making map from cells to column
+   cmap = [col_cells(:), ...
+           reshape((repmat(1:size(col_cells, 2), size(col_cells, 1), 1)), [], 1)];
+   cmap = cmap(cmap(:, 1) ~= 0, :); % removing lines corresponding to padding
+
+   % matrix mapping cells to columns
+   cell_col_mat = spones(accumarray(cmap, 1, [num_cells, num_cols], @sum, 0, true));
+   
+   %% matrix mapping connectivity between cells (i.e. neighbors)
+   neighs = G.faces.neighbors;
+   neighs = neighs(prod(neighs, 2) ~= 0, :); % keep only internal faces
+   
+   cell_cell_mat = accumarray(neighs, 1, [num_cells, num_cells], @sum, 0, true);
+   cell_cell_mat = spones(cell_cell_mat + cell_cell_mat');
+   
+   %% Matrix mapping columns to columns
+   adj_mat = spones(cell_col_mat' * cell_cell_mat * cell_col_mat);
+   adj_mat(logical(speye(num_cols))) = 0; % set diagonal to zero
+   
+   %% Removing empty columns
+   acolix = find(active_cols);
+   adj_mat = adj_mat(acolix, acolix);
+end
+
+% ----------------------------------------------------------------------------
+
+function transMult = computeFaultTrans(Gt, ffaces)
+   
+   neigh_cols = Gt.faces.neighbors(ffaces, :);
+   int_ind    = prod(neigh_cols, 2) ~= 0;
+   neigh_cols = neigh_cols(int_ind, :); % only internal pairs
+   ffaces     = ffaces(int_ind);
+   
+   col_tops    = Gt.cells.z(neigh_cols);
+   col_heights = Gt.cells.H(neigh_cols);
+   col_bots    = col_heights + col_tops;
+   
+   % Determine vertical extent of column overlap for  each neighbor pair
+   min_heights = min(col_heights, [], 2);
+   overlap = max(min(col_bots, [], 2) - max(col_tops, [], 2), 0);
+   
+   transMult = ones(Gt.faces.num, 1);
+   transMult(ffaces) = overlap ./ min_heights;
+   
+end
+
+% ----------------------------------------------------------------------------
+
+function [fault_nodes, tMult] = handle_fault_overlap(G, Gt, fault_nodes, type)
+
+   if ~strcmpi(type, 'partial')
+      tMult = [];
+      return;
+   end
+   
+   ffaces = find_connecting_faces(Gt, fault_nodes);
+
+   % To check for overlap, we first need a proto-grid where faults have been
+   % completely stitched (i.e. ignored)
+   Gt_temp = topSurfaceGrid2(G, 'fault_type', 'ignore', 'skip_geometry', true);
+   
+   % Cell indices will be the same in Gt and Gt_temp, so the following line
+   % is fine.  Face and node indices will, however, be different.
+   fneighs = Gt_temp.faces.neighbors(ffaces); % neighboring cells across fault
+   
+   ztop = Gt.cells.z(fneighs); % top coordinate for both cells across fault
+   zbot = ztop + Gt.cells.H(fneighs);
+   Hmin = min(Gt.cells.H(fneighs), [], 2); % shortest column for each neighbor pair
+   
+   % Determine vertical length of column overlap for each neighbor pair
+   overlap = max(min(zbot, [], 2) - max(ztop, [], 2), 0); 
+   
+   % Remove fault nodes corresponding to faces where overlap was found
+   olap_faces = ffaces(overlap > 0);
+   olap_nodes = unique(G.faces.nodes(mcolon(G.faces.nodePos(olap_faces), ...
+                                            G.faces.nodePos(olap_faces+1)-1)));
+   fault_nodes = setdiff(fault_nodes, olap_nodes);
+   
+   % Reduce transmissibility of partially overlapping columns
+   
+end
+   
+% ----------------------------------------------------------------------------
+
+function cfaces = find_connecting_faces(Gt, nodes)
+
+   fnum = Gt.faces.num; % total number of faces
+   n_ind = false(Gt.nodes.num, 1);
+   n_ind(nodes) = true;
+   fnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(1:fnum), ...
+                                  Gt.faces.nodePos(2:fnum+1)-1));
+   fnode_ind = reshape(n_ind(fnodes), 2, []);
+   
+   cfaces = find(prod(fnode_ind))'; % all faces whose endpoints are both in 'nodes'
+   
 end
 
 % ----------------------------------------------------------------------------
@@ -83,21 +194,58 @@ end
 
 % ----------------------------------------------------------------------------
 
-function Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient)
+function [Gt, ffaces] = stitch_surface_discontinuities(Gt, ffaces, col_adj, orient)
 
-   % identify nodes that are identical when z-coordinate is ignored, but
-   % separate otherwise.
-   coords = [Gt.nodes.coords, zeros(length(Gt.nodes.coords), 1)];
-   coords(fault_nodes, end) = 1:length(fault_nodes); % prevents fault nodes from merging
-   [ncoords, nc_ix] = uniqueNodes(coords);
+   % find the adjacencies currently implied by topology of Gt
+   neighs = find_neighbors(Gt.cells.faces, diff(Gt.cells.facePos), orient);
+   neighs = neighs(prod(neighs, 2) ~= 0, :); % only consider internal faces
+   Gt_cell_adj = accumarray(neighs, 1, size(col_adj), @sum, 0, true);
+   Gt_cell_adj = spones(Gt_cell_adj + Gt_cell_adj');
+   mcon = col_adj - Gt_cell_adj; % matrix representing still missing connections
+   assert(min(mcon(:)) >= 0); % there should only be zero and one values in 'mcon'
+   [I, J] = ind2sub(size(mcon), find(triu(mcon))); % neighbors not yet accounted for by Gt
    
-   % Updating Gt nodes
-   Gt.nodes.num = size(ncoords, 1);
-   Gt.nodes.coords = ncoords(:, 1:2);
-   Gt.nodes.z = accumarray(nc_ix, Gt.nodes.z) ./ accumarray(nc_ix, 1);
+   % Each cell neighbor pair will require merging of two node pairs.  We
+   % identify the two nodepairs whose members are closest to each other.
+   N1 = padded_nodelist(Gt, I, NaN); % padded list of nodes per cell in I
+   N2 = padded_nodelist(Gt, J, NaN); % padded list of nodes per cell in J
+   
+   comb = combvec(1:size(N1,2), 1:size(N2, 2));
+   dist2 = nan(length(I), size(comb, 2));
+   r = 1;
+   for i = comb
+      dist2(:,r) = sum((Gt.nodes.coords(N1(:, i(1)),:) - ...
+                        Gt.nodes.coords(N2(:, i(2)),:)).^2, 2);
+      r = r+1;
+   end
+   [~, ix] = sort(dist2,2);
+   
+   N1 = N1'; N1_rix = cumsum([0; repmat(size(N1, 1), size(N1,2)-1, 1)]);
+   N2 = N2'; N2_rix = cumsum([0; repmat(size(N2, 1), size(N2,2)-1, 1)]);
+      
+   npairs = [N1(N1_rix + comb(1, ix(:, 1))'), ...
+             N2(N2_rix + comb(2, ix(:, 1))'); ...  % first pair of closest nodes
+             N1(N1_rix + comb(1, ix(:, 2))'), ...
+             N2(N2_rix + comb(2, ix(:, 2))')];     % second pair of closest nodes
+   
+   % remove duplicates.  This will now become the list of node pairs to merge
+   npairs = unique(sort(npairs, 2), 'rows');
+   
+   % Compute and set new coordinates for the nodes to merge
+   new_coords = (Gt.nodes.coords(npairs(:, 1),:) + Gt.nodes.coords(npairs(:,2),:))/2;
+   new_z = (Gt.nodes.z(npairs(:,1)) + Gt.nodes.z(npairs(:,2)))/2;
+   
+   Gt.nodes.coords([npairs(:,1); npairs(:,2)], :) = [new_coords; new_coords];
+   Gt.nodes.z([npairs(:,1); npairs(:,2)]) = [new_z; new_z];
+
+   % Merging nodes and updating indexing
+   [unodes, fnodes_ixs] = uniqueNodes([Gt.nodes.coords, Gt.nodes.z]);
+   Gt.nodes.num = size(unodes(:,1));
+   Gt.nodes.coords = unodes(:,1:2);
+   Gt.nodes.z = unodes(:, 3);
 
    % Updating Gt faces
-   Gt.faces.nodes = nc_ix(Gt.faces.nodes);
+   Gt.faces.nodes = fnodes_ixs(Gt.faces.nodes);
    [new_fnodes, nfix] = uniqueNodes(reshape(Gt.faces.nodes, 2, [])');
    Gt.faces.nodes = reshape(transpose(new_fnodes), [], 1);
    Gt.faces.num = length(Gt.faces.nodes)/2;
@@ -105,6 +253,7 @@ function Gt = stitch_surface_discontinuities(Gt, fault_nodes, orient)
    
    % Updating Gt cells
    Gt.cells.faces = nfix(Gt.cells.faces);
+   ffaces = nfix(ffaces); % update indices to fault faces as well
    
    % With topology now in place, we can finally compute cell neighbors
    Gt.faces.neighbors = ...
@@ -113,13 +262,38 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fnodes = identify_fault_nodes(G, Gt, top_faces, add_faults)
+function padded =  padded_nodelist(Gt, cell_ix, fill_val)
+   faces = Gt.cells.faces(mcolon(Gt.cells.facePos(cell_ix), ...
+                                 Gt.cells.facePos(cell_ix+1)-1));
+   nodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(faces), ...
+                                 Gt.faces.nodePos(faces+1)-1));
+   % An assumption here is that each face has exactly two nodes, which should
+   % always be true in 2D
+   num_faces      = Gt.cells.facePos(cell_ix+1) - Gt.cells.facePos(cell_ix);
+   ctrl           = rldecode((1:numel(cell_ix))', 2 * num_faces); 
+   nodes_cells    = unique([nodes, ctrl], 'rows', 'stable');
+   [~, num_nodes] = rlencode(nodes_cells(:,2));
+   assert(all(num_nodes == num_faces)); % just to be sure our assumption hold
+   
+   padded = fill_val * ones(max(num_nodes), numel(cell_ix));
+
+   row_start_ix = cumsum([1; max(num_nodes) * ones(numel(cell_ix)-1, 1)]);
+
+   padded(mcolon(row_start_ix, row_start_ix + num_nodes - 1)) = nodes_cells(:,1);
+
+   padded = padded';
+end
+
+% ----------------------------------------------------------------------------
+
+function [ffaces, fnodes] = identify_fault_faces(G, Gt, top_faces, fault_type)
 
    fnodes = [];
-   if ~add_faults || ~isfield(G.faces, 'tag')
+   if ~isfield(G.faces, 'tag')
+      % no fault information present
       return
    end
-   
+             
    % Identify 3D nodes linked to top faces in 3D grid
    top_nodes_3D = false(G.nodes.num, 1);
    top_nodes_3D(G.faces.nodes(mcolon(G.faces.nodePos(top_faces), ...
@@ -141,6 +315,9 @@ function fnodes = identify_fault_nodes(G, Gt, top_faces, add_faults)
    dup_ix = all(diff(clist(:,1:3)) == 0, 2);
    
    fnodes = clist(dup_ix, 4);
+   
+   % Identifying the corresponding faces
+   ffaces = find_connecting_faces(Gt, fnodes);
 end
 
 % ----------------------------------------------------------------------------
