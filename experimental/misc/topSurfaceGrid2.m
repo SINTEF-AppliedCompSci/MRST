@@ -106,42 +106,6 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [fault_nodes, tMult] = handle_fault_overlap(G, Gt, fault_nodes, type)
-
-   if ~strcmpi(type, 'partial')
-      tMult = [];
-      return;
-   end
-   
-   ffaces = find_connecting_faces(Gt, fault_nodes);
-
-   % To check for overlap, we first need a proto-grid where faults have been
-   % completely stitched (i.e. ignored)
-   Gt_temp = topSurfaceGrid2(G, 'fault_type', 'ignore', 'skip_geometry', true);
-   
-   % Cell indices will be the same in Gt and Gt_temp, so the following line
-   % is fine.  Face and node indices will, however, be different.
-   fneighs = Gt_temp.faces.neighbors(ffaces); % neighboring cells across fault
-   
-   ztop = Gt.cells.z(fneighs); % top coordinate for both cells across fault
-   zbot = ztop + Gt.cells.H(fneighs);
-   Hmin = min(Gt.cells.H(fneighs), [], 2); % shortest column for each neighbor pair
-   
-   % Determine vertical length of column overlap for each neighbor pair
-   overlap = max(min(zbot, [], 2) - max(ztop, [], 2), 0); 
-   
-   % Remove fault nodes corresponding to faces where overlap was found
-   olap_faces = ffaces(overlap > 0);
-   olap_nodes = unique(G.faces.nodes(mcolon(G.faces.nodePos(olap_faces), ...
-                                            G.faces.nodePos(olap_faces+1)-1)));
-   fault_nodes = setdiff(fault_nodes, olap_nodes);
-   
-   % Reduce transmissibility of partially overlapping columns
-   
-end
-   
-% ----------------------------------------------------------------------------
-
 function cfaces = find_connecting_faces(Gt, nodes)
 
    fnum = Gt.faces.num; % total number of faces
@@ -205,6 +169,19 @@ function [Gt, ffaces] = stitch_surface_discontinuities(Gt, ffaces, col_adj, orie
    assert(min(mcon(:)) >= 0); % there should only be zero and one values in 'mcon'
    [I, J] = ind2sub(size(mcon), find(triu(mcon))); % neighbors not yet accounted for by Gt
    
+   if ~isempty(I)
+      [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J);
+   end
+   
+   % With topology now in place, we can finally compute cell neighbors
+   Gt.faces.neighbors = ...
+       find_neighbors(Gt.cells.faces, diff(Gt.cells.facePos), orient);
+end
+
+% ----------------------------------------------------------------------------
+
+function [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J)
+
    % Each cell neighbor pair will require merging of two node pairs.  We
    % identify the two nodepairs whose members are closest to each other.
    N1 = padded_nodelist(Gt, I, NaN); % padded list of nodes per cell in I
@@ -251,13 +228,10 @@ function [Gt, ffaces] = stitch_surface_discontinuities(Gt, ffaces, col_adj, orie
    Gt.faces.num = length(Gt.faces.nodes)/2;
    Gt.faces.nodePos = (1:2:(numel(Gt.faces.nodes)+1))';
    
-   % Updating Gt cells
+   % Updating Gt cells and fault face indexing
    Gt.cells.faces = nfix(Gt.cells.faces);
    ffaces = nfix(ffaces); % update indices to fault faces as well
    
-   % With topology now in place, we can finally compute cell neighbors
-   Gt.faces.neighbors = ...
-       find_neighbors(Gt.cells.faces, diff(Gt.cells.facePos), orient);
 end
 
 % ----------------------------------------------------------------------------
@@ -286,9 +260,9 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [ffaces, fnodes] = identify_fault_faces(G, Gt, top_faces, fault_type)
+function [ffaces, fnodes] = identify_fault_faces(G, Gt, top_faces)
 
-   fnodes = [];
+   fnodes = []; ffaces = [];
    if ~isfield(G.faces, 'tag')
       % no fault information present
       return
