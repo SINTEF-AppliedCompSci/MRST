@@ -53,19 +53,19 @@ function [problem, state] = equationsGasWater(model, state0, state, dt, drivingF
     trans = s.T .* transMult;
     
     % Check for capillary pressure
-    pcGW = 0;
-    if isfield(f, 'pcGW')
-        pcGW = f.pcGW(sG);
+    pcWG = 0;
+    if isfield(f, 'pcWG')
+        pcWG = f.pcWG(sG);
     end
     % ----------------------------------------------------------------------------
     
     [krW, krG] = deal(f.krW(1-sG), f.krG(sG));
     
     % computing densities, mobilities and upstream indices
-    [bW, mobW, fluxW] = compMFlux(p - pcGW, f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
+    [bW, mobW, fluxW] = compMFlux(p - pcWG, f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
     [bG, mobG, fluxG] = compMFlux(p,        f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
 
-    bW0 = f.bW(p0 - pcGW, t);
+    bW0 = f.bW(p0 - pcWG, t);
     bG0 = f.bG(p0, t);
     
     % --------------------------- Continuity equations ---------------------------

@@ -55,7 +55,7 @@ function fluid = setup_fluid(p_ref, rhoWS, rhoGS, cap_press)
    fluid.muG = @(p, varargin) mug * ones(size(p)); 
    fluid.muW = @(p, varargin) muw * ones(size(p));
    
-   fluid.pcGW = @(sg, p, varargin) cap_press * sg;
+   fluid.pcWG = @(sg, p, varargin) cap_press * sg;
    
    kr = coreyPhaseRelpermAD(1, 0);
    fluid.relPerm = @(sg) deal(kr(1-sg), kr(sg));

@@ -178,7 +178,7 @@ function [fluid, params] = setup_fluid_model(opt, aquifer, residual, fluid_type,
    fluid = rmfield(fluid, 'krW');
    fluid = rmfield(fluid, 'pcWG');
    
-   fluid.pcGW = @(sg, p, varagin) opt.cap_press * sg;
+   fluid.pcWG = @(sg, p, varagin) opt.cap_press * sg;
    
    % krW = coreyPhaseRelpermAD(opt.n, res_vals(2));
    % krG = coreyPhaseRelpermAD(opt.n, res_vals(1));
