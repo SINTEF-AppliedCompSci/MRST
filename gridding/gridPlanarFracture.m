@@ -170,13 +170,7 @@ if opt.gridType == 3
         try
             Gf = pebi(Gf);
             close gcf
-            assert(size(t,1)>opt.minTriangles*5,'');
-            % Rotate axis back to original position
-            nc = Gf.nodes.coords;
-            R = [cos(theta) sin(theta); -sin(theta) cos(theta)];
-            nc = transpose(R*nc');
-            Gf.nodes.coords = nc;
-            
+            assert(size(t,1)>opt.minTriangles*5,'');     
             computeGeometry(Gf);
             break;
         catch
