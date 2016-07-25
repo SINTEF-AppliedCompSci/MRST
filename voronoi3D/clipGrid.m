@@ -58,7 +58,6 @@ function [V, C, symV] = clipGrid(dt,bound,varargin)
 % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}  
-
 opt = struct('bisectN', [],...
              'bisectX0',[]);
            
@@ -133,26 +132,24 @@ function NT = findNeighbours(V, t)
           find(sum(ismember(V,VT([3,1])),2)==2)];
 end
 
-
-
 function [Q, CT] = updateQue(Q, symV, CT, E, NC, s, t,tmin)
-    % Find possible new cells
-    symV = horzcat(symV{:})';
-    
-    bNew = unique(symV(symV>0));
-    tNew = -unique(symV(tmin<=symV & symV<0));
-    for i = 1:numel(bNew)
-       if isempty(CT{E(bNew(i),NC(bNew(i),:))}) || ~any(CT{E(bNew(i),NC(bNew(i),:))}==t) %New cell facet pair
-           Q = [Q; t, E(bNew(i),NC(bNew(i),:))];
-           CT{E(bNew(i),NC(bNew(i),:))} = [CT{E(bNew(i),NC(bNew(i),:))}, t];
-       end
+% Find possible new cells
+symV = horzcat(symV{:})';
+
+bNew = unique(symV(symV>0));
+tNew = -unique(symV(tmin<=symV & symV<0));
+for i = 1:numel(bNew)
+   if isempty(CT{E(bNew(i),NC(bNew(i),:))}) || ~any(CT{E(bNew(i),NC(bNew(i),:))}==t) %New cell facet pair
+       Q = [Q; t, E(bNew(i),NC(bNew(i),:))];
+       CT{E(bNew(i),NC(bNew(i),:))} = [CT{E(bNew(i),NC(bNew(i),:))}, t];
+   end
+end
+for i = 1:numel(tNew)
+    if ~any(CT{s}==tNew(i))
+       Q = [Q; tNew(i), s];
+       CT{s} = [CT{s}, tNew(i)];
     end
-    for i = 1:numel(tNew)
-        if ~any(CT{s}==tNew(i))
-           Q = [Q; tNew(i), s];
-           CT{s} = [CT{s}, tNew(i)];
-        end
-    end
+end
 end
 
 function [V, C, symV] = cleanUpGrid(V, C,symV)
