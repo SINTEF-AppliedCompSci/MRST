@@ -800,6 +800,11 @@ classdef EquationOfStateModel < PhysicalModel
             rho = p.*M./(R.*T.*Z);
         end
         
+        function [sL, sV] = computeSaturations(model, rhoL, rhoV, x, y, L, Z_L, Z_V)
+            sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
+            sV = 1 - sL;
+        end
+        
         function mu = computeViscosity(model, P, rho, T, x, isLiquid)
             % Compute viscosity using the Lohrenz, Bray and Clark
             % correlation for hydrocarbon mixtures (LBC viscosity)

@@ -10,7 +10,12 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
     methods
         function model = ThreePhaseCompositionalModel(G, rock, fluid, compFluid, varargin)
             model = model@ReservoirModel(G, rock, fluid);
-            model.EOSModel = EquationOfStateModel(G, compFluid);
+            
+            if isa(compFluid, 'CompositionalFluid')
+                model.EOSModel = EquationOfStateModel(G, compFluid);
+            elseif isa(compFluid, 'EquationOfStateModel')
+                model.EOSModel = compFluid;
+            end
             
             model.EOSModel.verbose = false;
             
@@ -292,6 +297,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 [x, y, L, Z_L, Z_V] = model.getProps(state, 'x', 'y', 'L', 'Z_L', 'Z_V');
                 [report.t_derivatives, report.t_compressibility] = deal(0);
             end
+            
             t1 = tic();
             xM = model.EOSModel.getMassFraction(x);
             yM = model.EOSModel.getMassFraction(y);
@@ -302,8 +308,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             rhoV = model.EOSModel.computeDensity(p, y, Z_V, temp, false);
             report.t_density = toc(t2);
             
-            sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
-            sV = 1 - sL;
+            [sL, sV] = model.EOSModel.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
             
             t3 = tic();
             if nargout > 6
