@@ -50,13 +50,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        extraReport
        % Verbose output enabler
        verbose
+       % Boolean indicating if the solver should replace NaN in the results
+       replaceNaN
+       % Boolean indicating if the solver should replace Inf in the results
+       replaceInf
+       % If replaceNaN is enabled, this is the value that will be inserted
+       replacementNaN
+       % If replaceInf is enabled, this is the value that will be inserted
+       replacementInf
    end
    methods
        function solver = LinearSolverAD(varargin)
-           solver.tolerance     = 1e-8;
-           solver.maxIterations = 25;
-           solver.extraReport   = false;
-           solver.verbose       = mrstVerbose();
+           solver.tolerance       = 1e-8;
+           solver.maxIterations   = 25;
+           solver.extraReport     = false;
+           solver.verbose         = mrstVerbose();
+           solver.replaceNaN      = false;
+           solver.replaceInf      = false;
+           solver.replacementNaN  = 0;
+           solver.replacementInf  = 0;
            solver = merge_options(solver, varargin{:});
            
            assert(solver.maxIterations >= 0);
@@ -99,7 +111,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            timer = tic();
            [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
            report.SolverTime = toc(timer);
-           
+           if solver.replaceNaN
+               result(isnan(result)) = solver.replacementNaN;
+           end
+           if solver.replaceInf
+               result(isinf(result)) = solver.replacementInf;
+           end
            dx = solver.storeIncrements(problem, result);
        end
        
