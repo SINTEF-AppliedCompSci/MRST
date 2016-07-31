@@ -959,17 +959,6 @@ function v = toCell(x)
     end
 end
 
-function v = outerProduct(a, b)
-    nn = numel(a);
-
-    v = cell(nn, nn);
-    for i = 1:nn
-        for j = 1:nn
-            v{i, j} = a{i}.*b{j};
-        end
-    end
-end
-
 function dx = getJac(x, ix)
     if isa(x, 'ADI')
         dx = diag(x.jac{ix});
@@ -977,80 +966,6 @@ function dx = getJac(x, ix)
         dx = x.jac(:, ix);
     else
         dx = 0;
-    end
-end
-
-function [Si, A, B] = setMixDerivatives(p, x, Si, A, B, Si_dp, Si_dx, A_dp, A_dx, B_dp, B_dx)
-% Set derivatives for EOS coefficients using the chain rule
-    hasP = isa(p, 'ADI');
-    hasx = isa(x{1}, 'ADI');
-    
-    if hasP
-        s = p;
-    elseif hasx
-        s = x{1};
-    else
-        % No ADI present
-        return
-    end
-    ncomp = numel(x);
-    ncell = numel(double(p));
-    
-    njac = numel(s.jac);
-    A = double2ADI(A, s);
-    B = double2ADI(B, s);
-    
-    vx = (1:ncell)';
-    makeDiag = @(x) makeDiagonal(x, vx, ncell);
-    
-    for ii = 1:njac
-        if ~all(size(A.jac{ii}) == ncell)
-            continue
-        end
-        vA = 0;
-        vB = 0;
-        if hasP
-            dp = diag(p.jac{ii});
-            vA = vA + A_dp.*dp;
-            vB = vB + B_dp.*dp;
-%             A.jac{ii} = A.jac{ii} + makeDiag(A_dp)*p.jac{ii};
-%             B.jac{ii} = B.jac{ii} + makeDiag(B_dp)*p.jac{ii};
-        end
-        if hasx
-            for xNo = 1:ncomp
-                dx = diag(x{xNo}.jac{ii});
-                vA = vA + A_dx{xNo}.*dx;
-                vB = vB + B_dx{xNo}.*dx;
-                % A.jac{ii} = A.jac{ii} + makeDiag(A_dx{xNo})*x{xNo}.jac{ii};
-                % B.jac{ii} = B.jac{ii} + makeDiag(B_dx{xNo})*x{xNo}.jac{ii};
-            end
-        end
-        A.jac{ii} = makeDiag(vA);
-        B.jac{ii} = makeDiag(vB);
-    end
-   
-    for sNo = 1:numel(Si)
-        Si{sNo} = double2ADI(Si{sNo}, s);
-        if hasP
-            DSdp = makeDiag(Si_dp{sNo});
-        end
-        for ii = 1:njac
-            if ~all(size(A.jac{ii}) == ncell)
-                continue
-            end
-            if hasP
-                Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + DSdp*p.jac{ii};
-            end
-            if hasx
-                v = 0;
-                for xNo = 1:ncomp
-                    if any(Si_dx{sNo, xNo}) || nnz(x{xNo}.jac{ii}) > 0
-                       v = v + Si_dx{sNo, xNo}.*diag(x{xNo}.jac{ii});
-                    end
-                end
-                Si{sNo}.jac{ii} = Si{sNo}.jac{ii} + makeDiag(v);
-            end
-        end
     end
 end
 
