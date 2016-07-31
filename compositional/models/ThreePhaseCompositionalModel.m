@@ -239,18 +239,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 state.eos.iterations = 0;
                 state.eos.cellcount = 0;
             end
-            
-            if isfield(state, 'L');
-                L0 = state.L;
-            else
-                L0 = [];
-            end
             [state, report] = model.EOSNonLinearSolver.solveTimestep(state, dt, model.EOSModel);
-            
-            % stability chop for liquid fraction
 
             if ~isempty(report)
-%                 fprintf('Flash computed in %d iterations\n', report.StepReports{1}.Iterations);
                 state.eos.iterations = state.eos.iterations + report.StepReports{1}.Iterations;
                 state.eos.cellcount = state.eos.cellcount + sum(cellfun(@(x) x.ActiveCells, report.StepReports{1}.NonlinearReport));
                 

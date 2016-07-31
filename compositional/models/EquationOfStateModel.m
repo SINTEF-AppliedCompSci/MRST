@@ -353,7 +353,7 @@ classdef EquationOfStateModel < PhysicalModel
             [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
         end
         
-        function eosdata = getPropertiesFastAD(model, P, T, x, y)
+        function eosdata = getPropertiesFastAD(model, P, T, x, y, Z_L, Z_V)
             % Get packed properties (fugacity, Z-factors) with FastAD type
             % to easily get derivatives
             P = double(P);
@@ -363,15 +363,17 @@ classdef EquationOfStateModel < PhysicalModel
             
             [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
-
-            Z_L = model.computeLiquidZ(double(A_L), double(B_L));
-            Z_V = model.computeLiquidZ(double(A_V), double(B_V));
             
-            Z_L = FastAD(Z_L, 0*P.jac);
-            Z_V = FastAD(Z_V, 0*P.jac);
+            if nargin < 6
+                Z_L = model.computeLiquidZ(double(A_L), double(B_L));
+                Z_V = model.computeLiquidZ(double(A_V), double(B_V));
 
-            Z_L = model.setZDerivatives(Z_L, A_L, B_L);
-            Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+                Z_L = FastAD(Z_L, 0*P.jac);
+                Z_V = FastAD(Z_V, 0*P.jac);
+                
+                Z_L = model.setZDerivatives(Z_L, A_L, B_L);
+                Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+            end
             f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
             f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
             
