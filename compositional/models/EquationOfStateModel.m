@@ -459,30 +459,44 @@ classdef EquationOfStateModel < PhysicalModel
                         dx = extractDiag(x0);
                         dX = [dx{:}];
                         xIx = (xoffset+1):(xoffset+ncomp);
-                        dZ_L = dZ_L + sum(Z_L.jac(:, xIx).*dX, 2);
+                        if isa(Z_L, 'FastAD')
+                            dZ_L = dZ_L + sum(Z_L.jac(:, xIx).*dX, 2);
+                        end
                     end
                     if hasy
                         dy = extractDiag(y0);
                         dY = [dy{:}];
                         yIx = (yoffset+1):(yoffset+ncomp);
-                        dZ_V = dZ_V + sum(Z_V.jac(:, yIx).*dY, 2);
+                        if isa(Z_V, 'FastAD')
+                            dZ_V = dZ_V + sum(Z_V.jac(:, yIx).*dY, 2);
+                        end
                     end
                     
                     if wantFugacity
                         for i = 1:ncomp
+                            has_f_L = isa(f_L{i}, 'FastAD');
+                            has_f_V = isa(f_V{i}, 'FastAD');
                             pi = 1;
                             df_L = 0;
                             df_V = 0;
                             if hasP
-                                df_L = df_L + f_L{i}.jac(:, pi).*dP;
-                                df_V = df_V + f_V{i}.jac(:, pi).*dP;
+                                if has_f_L
+                                    df_L = df_L + f_L{i}.jac(:, pi).*dP;
+                                end
+                                if has_f_V
+                                    df_V = df_V + f_V{i}.jac(:, pi).*dP;
+                                end
                             end
 
                             if hasx
-                                df_L = df_L + sum(f_L{i}.jac(:, xIx).*dX, 2);
+                                if has_f_L
+                                    df_L = df_L + sum(f_L{i}.jac(:, xIx).*dX, 2);
+                                end
                             end
                             if hasy
-                                df_V = df_V + sum(f_V{i}.jac(:, yIx).*dY, 2);
+                                if has_f_V
+                                    df_V = df_V + sum(f_V{i}.jac(:, yIx).*dY, 2);
+                                end
                             end
 
                             f_L0{i}.jac{jacNo} = DM(df_L);
@@ -616,7 +630,13 @@ classdef EquationOfStateModel < PhysicalModel
             TS = double(TP);
             LP = L;
             
+            isFIMP = isa(pP, 'ADI') && isa(zP{1}, 'ADI');
             [eqsPrim, ~, ~, ~, ~, ~, pack]  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, []);
+            if ~isFIMP
+                % Packed variables are missing derivatives, set them up
+                % again
+                pack = [];
+            end
             eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, pack);
             
             ep = cat(eqsPrim{:});
