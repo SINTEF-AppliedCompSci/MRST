@@ -99,6 +99,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 state = model.setProp(state, 'Temperature', repmat(T, ncell, 1));
             end
             model.checkProperty(state, 'Temperature', [ncell, 1], [1, 2]);
+            state = model.computeFlash(state, inf);
         end
 
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
