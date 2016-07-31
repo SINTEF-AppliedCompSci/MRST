@@ -353,76 +353,72 @@ classdef EquationOfStateModel < PhysicalModel
             [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
         end
         
-        function [Z_L, Z_V, f_L, f_V, rep, packed] = getEquilibriumProperties(model, P, T, x, y, Z_L, Z_V, packed)
+        function eosdata = getPropertiesFastAD(model, P, T, x, y)
+            % Get packed properties (fugacity, Z-factors) with FastAD type
+            % to easily get derivatives
+            P = double(P);
+            T = double(T);
+            x = cellfun(@double, x, 'UniformOutput', false);
+            y = cellfun(@double, y, 'UniformOutput', false);
+            
+            [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
+            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
+
+            Z_L = model.computeLiquidZ(double(A_L), double(B_L));
+            Z_V = model.computeLiquidZ(double(A_V), double(B_V));
+            
+            Z_L = FastAD(Z_L, 0*P.jac);
+            Z_V = FastAD(Z_V, 0*P.jac);
+
+            Z_L = model.setZDerivatives(Z_L, A_L, B_L);
+            Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+            f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
+            f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
+            
+            eosdata = struct();
+            eosdata.Z_L = Z_L;
+            eosdata.Z_V = Z_V;
+            eosdata.f_L = f_L;
+            eosdata.f_V = f_V;
+        end
+        
+        function [Z_L, Z_V, f_L, f_V] = getProperties(model, P, T, x, y)
+            [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
+
+            Z_L = model.computeLiquidZ(double(A_L), double(B_L));
+            Z_V = model.computeLiquidZ(double(A_V), double(B_V));
+
+            Z_L = model.setZDerivatives(Z_L, A_L, B_L);
+            Z_V = model.setZDerivatives(Z_V, A_V, B_V);
+            
+            f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
+            f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
+        end
+        
+        function [Z_L, Z_V, f_L, f_V, rep] = getEquilibriumProperties(model, P, T, x, y, Z_L, Z_V, packed)
             [s, isAD] = getAD(P, x, y);
             wantFugacity = nargout > 2;
-            wantPacked = nargout > 5;
-            precomputed = nargin > 7 && ~isempty(packed);
             
             useFast = isAD && model.fastDerivatives;
             rep = struct('t_compressibility', 0, 't_mixture', 0, 't_fugacity', 0);
             if useFast
-                x0 = x;
-                y0 = y;
-                P0 = P;
-                P = double(P);
-                ncell = numel(P);
-                x = cellfun(@double, x, 'UniformOutput', false);
-                y = cellfun(@double, y, 'UniformOutput', false);
-            end
-            if ~(precomputed && useFast)
-                if useFast
-                    [P, x{:}, y{:}] = initVariablesFastAD(P, x{:}, y{:});
+                if isempty(packed)
+                    packed = model.getPropertiesFastAD(P, T, x, y);
                 end
-                timer = tic();
-                [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
-                rep.t_mixture = toc(timer);
-
-                timer = tic();
-                if isempty(Z_L)
-                    Z_L = model.computeLiquidZ(double(A_L), double(B_L));
-                end
-                if isempty(Z_V)
-                    Z_V = model.computeVaporZ(double(A_V), double(B_V));
-                end
-
-                if isa(s, 'ADI');
-                    if useFast
-                        Z_L = FastAD(Z_L, 0*P.jac);
-                        Z_V = FastAD(Z_V, 0*P.jac);
-                    else
-                        Z_L = double2ADI(Z_L, s);
-                        Z_V = double2ADI(Z_V, s);
-                    end
-                    Z_L = model.setZDerivatives(Z_L, A_L, B_L);
-                    Z_V = model.setZDerivatives(Z_V, A_V, B_V);
-                end
-                rep.t_compressibility = toc(timer);
-
-                timer = tic();
-                if wantFugacity
-                    f_L = model.computeFugacity(P, x, Z_L, A_L, B_L, Si_L, Bi);
-                    f_V = model.computeFugacity(P, y, Z_V, A_V, B_V, Si_V, Bi);
-                end
-                rep.t_fugacity = toc(timer);
-
-                if wantPacked
-                    packed = struct();
-                    packed.f_L = f_L;
-                    packed.f_V = f_V;
-                    packed.Z_L = Z_L;
-                    packed.Z_V = Z_V;
-                end
+                [Z_L, Z_V, f_L, f_V] = deal(packed.Z_L, packed.Z_V, packed.f_L, packed.f_V);
             else
-                f_L = packed.f_L;
-                f_V = packed.f_V;
-                Z_L = packed.Z_L;
-                Z_V = packed.Z_V;
+                [Z_L, Z_V, f_L, f_V] = model.getProperties(P, T, x, y);
             end
+            
             if useFast
                 % Fit derivatives into normal ADI structure by way of the
                 % chain rule
-                ncomp = numel(x);
+                x0 = x;
+                y0 = y;
+                P0 = P;
+                ncell = model.G.cells.num;
+
+                ncomp = model.fluid.getNumberOfComponents();
                 Z_L0 = double2ADI(double(Z_L), s);
                 Z_V0 = double2ADI(double(Z_V), s);
                 
@@ -556,19 +552,16 @@ classdef EquationOfStateModel < PhysicalModel
         end
         
         
-        function [Z_L, Z_V] = getCompressibility(model, state, P, T, x, y, packed)
-            if nargin < 7
-                packed = [];
-            end
-            [Z_L, Z_V] = getEquilibriumProperties(model, P, T, x, y, state.Z_L, state.Z_V, packed);
+        function [Z_L, Z_V] = getCompressibility(model, state, P, T, x, y)
+            [Z_L, Z_V] = getEquilibriumProperties(model, P, T, x, y, state.Z_L, state.Z_V, state.eos.packed);
         end
         
-        function [eqs, f_L, f_V, Z_L, Z_V, rep, pack] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V, pack)
+        function [eqs, f_L, f_V, Z_L, Z_V, rep] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V, packed)
             t1 = tic();
             if nargin < 10
-                pack = [];
+                packed = [];
             end
-            [Z_L, Z_V, f_L, f_V, rep, pack] = model.getEquilibriumProperties(P, T, x, y, Z_L, Z_V, pack);
+            [Z_L, Z_V, f_L, f_V, rep] = model.getEquilibriumProperties(P, T, x, y, Z_L, Z_V, packed);
             
             ncomp = numel(x);
             timer = tic();
@@ -600,7 +593,7 @@ classdef EquationOfStateModel < PhysicalModel
             rep.t_remainder = toc(t1) - (rep.t_fugacity + rep.t_mixture + rep.t_compressibility + rep.t_assembly);
         end
 
-        function [x, y, LL, pack] = getPhaseFractionAsADI(model, state, pP, TP, z0)
+        function [x, y, LL, packed] = getPhaseFractionAsADI(model, state, pP, TP, z0)
             % Compute derivatives for values obtained by solving the
             % equilibrium equations (molar fractions in each phase, liquid
             % mole fraction).
@@ -629,15 +622,9 @@ classdef EquationOfStateModel < PhysicalModel
             pS = double(pP);
             TS = double(TP);
             LP = L;
-            
-            isFIMP = isa(pP, 'ADI') && isa(zP{1}, 'ADI');
-            [eqsPrim, ~, ~, ~, ~, ~, pack]  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, []);
-            if ~isFIMP
-                % Packed variables are missing derivatives, set them up
-                % again
-                pack = [];
-            end
-            eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, pack);
+            packed = state.eos.packed;
+            eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, packed);
+            eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, packed);
             
             ep = cat(eqsPrim{:});
             es = cat(eqsSec{:});
@@ -947,6 +934,8 @@ classdef EquationOfStateModel < PhysicalModel
             state.K{i}(x == 0) = 1;
             state.K{i}(~isfinite(state.K{i})) = 1;
         end
+        % Set derivatives
+        state.eos.packed = model.getPropertiesFastAD(state.pressure, state.T, state.x, state.y);
     end
 
     end
