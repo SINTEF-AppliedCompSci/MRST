@@ -275,13 +275,6 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 sV = 1 - sL;
                 state.s = [sL, sV];
             end
-            if ~isempty(L0) && 0
-                tol = 1e-4;
-                state.L(L == 1 & L0 < 1 - tol) = 1 - tol;
-                state.L(L0 == 1 & L < 1 - tol) = 1 - tol;
-                state.L(L == 0 & L0 > tol) = tol;
-                state.L(L > tol & L0 == 0) = tol;
-            end
         end
     
         function [xM, yM, sL, sV, rhoL, rhoV, muL, muV, report] = computeTwoPhaseFlowProps(model, state, p, temp, z)
