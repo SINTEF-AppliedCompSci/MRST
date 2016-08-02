@@ -239,6 +239,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 state.eos.iterations = 0;
                 state.eos.cellcount = 0;
             end
+            state0 = state;
             [state, report] = model.EOSNonLinearSolver.solveTimestep(state, dt, model.EOSModel);
 
             if ~isempty(report)
@@ -246,6 +247,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 state.eos.cellcount = state.eos.cellcount + sum(cellfun(@(x) x.ActiveCells, report.StepReports{1}.NonlinearReport));
                 
                 if ~report.StepReports{1}.Converged
+                    state = model.EOSModel.updateAfterConvergence(state0, state, dt, struct());
                     disp('!!! Flash did not converge');
                     fprintf('Final residuals: ')
                     fprintf('%1.4g ', report.StepReports{1}.NonlinearReport{end}.Residuals)
