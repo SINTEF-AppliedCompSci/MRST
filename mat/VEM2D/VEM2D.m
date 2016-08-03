@@ -1,4 +1,4 @@
-function [sol, varargout] = VEM2D(G, f, bc, k, varargin)
+function [sol, varargout] = VEM2D(state, G, rock, fluid, f, bc, k, varargin)
 %   Solves the 2D Poisson equation using a kth order virtual element
 %   method.
 %
@@ -119,7 +119,7 @@ end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src);
+[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src, fluid, rock);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 

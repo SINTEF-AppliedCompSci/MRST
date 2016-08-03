@@ -1,5 +1,5 @@
 function [A, b, PNstarT] ...
-               = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src)
+               = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src, fluid, rock)
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 2D Poisson equation.
 %
@@ -52,12 +52,12 @@ function [A, b, PNstarT] ...
 
 nN = G.nodes.num;
 nE = G.faces.num;
-nK = G.cells.num;
+nP = G.cells.num;
 
 nk   = (k+1)*(k+2)/2;
-NK   = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
-nker = NK - nk;
-N  = nN + nE*(k-1) + nK*k*(k-1)/2;
+NP   = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
+nker = NP - nk;
+N  = nN + nE*(k-1) + nP*k*(k-1)/2;
 
 dofPosA = [1, cumsum((diff(G.cells.nodePos') + ...
                       diff(G.cells.facePos')*(k-1) + k*(k-1)/2).^2) + 1];
@@ -81,9 +81,12 @@ else
     PNstarT = 0;
 end
 
+K = permTensor(rock,2);
+[mu,rho] = fluid.properties();
+
 %%  ASSEMBLE GLOBAL STIFFNESS MATRIX AND LOAD VECTOR                     %%
 
-step = floor(nK/10);
+step = floor(nP/10);
 
 iiA = zeros(1,dofPosA(end)-1);
 jjA = zeros(1,dofPosA(end)-1);
@@ -96,36 +99,38 @@ bVec = zeros(1,dofPosb(end)-1);
 fprintf('Computing local block matrices ...\n')
 tic;
 
-for K = 1:nK
+for P = 1:nP
 
-    if rem(K,step) == 0
-        fprintf('... Calculating local block matrix for cell %d\n', K);
+    if rem(P,step) == 0
+        fprintf('... Calculating local block matrix for cell %d\n', P);
     end 
     
     if numel(sigma) > 1
-        sigmaK = sigma(sigmaPos(K):sigmaPos(K+1)-1);
+        sigmaK = sigma(sigmaPos(P):sigmaPos(P+1)-1);
     else
         sigmaK = sigma;
     end
     
-    [AK, bK, dofVec, PNstar] ...
-     = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigmaK, cartGridQ, rate(K));
-
-    NK = numel(dofVec);
+    KP = K(P,:);
     
-    iiK = repmat(dofVec', NK, 1);
-    jjK = repmat(dofVec , NK, 1);
+    [AK, bK, dofVec, PNstar] ...
+     = VEM2D_loc(G, P, f, m, grad_m, int_m, k, sigmaK, cartGridQ, rate(P), KP, mu, rho);
+
+    NP = numel(dofVec);
+    
+    iiK = repmat(dofVec', NP, 1);
+    jjK = repmat(dofVec , NP, 1);
     jjK = jjK(:);
     
-    iiA(dofPosA(K):dofPosA(K+1)-1) = iiK;
-    jjA(dofPosA(K):dofPosA(K+1)-1) = jjK;
-    AVec(dofPosA(K):dofPosA(K+1)-1)= AK(:);
+    iiA(dofPosA(P):dofPosA(P+1)-1) = iiK;
+    jjA(dofPosA(P):dofPosA(P+1)-1) = jjK;
+    AVec(dofPosA(P):dofPosA(P+1)-1)= AK(:);
 
-    iib(dofPosb(K):dofPosb(K+1)-1) = dofVec;
-    bVec(dofPosb(K):dofPosb(K+1)-1) = bK;
+    iib(dofPosb(P):dofPosb(P+1)-1) = dofVec;
+    bVec(dofPosb(P):dofPosb(P+1)-1) = bK;
     
     if projectors
-        PNstarT(dofPosb(K):dofPosb(K+1)-1,:) = PNstar';
+        PNstarT(dofPosb(P):dofPosb(P+1)-1,:) = PNstar';
     end
     
 end

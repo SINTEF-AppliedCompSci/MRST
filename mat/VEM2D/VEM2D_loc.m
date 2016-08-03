@@ -1,5 +1,5 @@
-function [AK, bK, dofVec, PNstar] ...
-          = VEM2D_loc(G, K, f, m, grad_m, int_m, k, sigma, cartGridQ, rate)
+function [AP, bP, dofVec, PNstar] ...
+          = VEM2D_loc(G, P, f, m, grad_m, int_m, k, sigma, cartGridQ, rate, KP, mu, rho)
 %   Calculates local stiffness matrix and load term for the virtual element
 %   method for the 2D Poisson equation.
 %
@@ -47,11 +47,12 @@ function [AK, bK, dofVec, PNstar] ...
 
 %%  CELL DATA                                                            %%
 
-Kc = G.cells.centroids(K,:);
-hK = G.cells.diameters(K);
-aK = G.cells.volumes(K);
+Pc = G.cells.centroids(P,:);
+hP = G.cells.diameters(P);
+aP = G.cells.volumes(P);
+KP = [KP([1,3]);KP([2,4])]; % Permeability tensor, transposed.
 
-edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+edgeNum = G.cells.facePos(P):G.cells.facePos(P+1)-1;
 edges   = G.cells.faces(edgeNum);
 if size(edges,1) == 1;
     edges = edges';
@@ -60,7 +61,7 @@ nE          = size(edges,1);
 Ec          = G.faces.centroids(edges,:);
 hE          = G.faces.areas(edges,:);
 edgeNormals = G.faces.normals(edges,:);
-edgeSign    = (-ones(nE,1)).^(G.faces.neighbors(edges,1) ~= K); 
+edgeSign    = (-ones(nE,1)).^(G.faces.neighbors(edges,1) ~= P); 
 edgeNormals = bsxfun(@times, edgeNormals, edgeSign);
 
 nodeNum = mcolon(G.faces.nodePos(edges),G.faces.nodePos(edges+1)-1);
@@ -79,7 +80,7 @@ NK = nN + nE*(k-1) + k*(k-1)/2;
 
 X = [G.nodes.coords(nodes,:); Ec];
 
-Xmon = bsxfun(@minus,X,Kc)/hK;                     
+Xmon = bsxfun(@minus,X,Pc)/hP;                     
 
 %%  CALCULATE B AND D MATRICES                                           %%
 
@@ -92,18 +93,18 @@ if k == 1
                    [edgeNormals(nE,:);edgeNormals(1:nE-1,:)]];
     
     
-    intB = .5*sum(grad_m(XintB).*repmat(edgeNormals,2,1),2);
+    intB = .5*sum(grad_m(XintB)*KP.*repmat(edgeNormals,2,1),2);
     intB = reshape(intB,2*nE,2);
-    intB = (intB(1:nE,:) + intB(nE+1:2*nE,:))/hK;
+    intB = (intB(1:nE,:) + intB(nE+1:2*nE,:))/hP;
     B = [ones(1,NK)/NK; intB'];
     
-    H = aK;
+    H = aP;
     if isa(f,'function_handle')
         fHat = f(X(1:nN,:));
     else
         fHat = f*ones(nN,1);
     end
-    fHat = fHat + rate/aK;
+    fHat = fHat + rate/aP;
     rateVec = 0;
     
     dofVec = nodes;
@@ -115,7 +116,7 @@ elseif k == 2
                    + [int_m(Xmon(2:nN,:));int_m(Xmon(1,:))])/6  ...
                    +  int_m(Xmon(nN+1:end,:))*2/3              , ...
                    edgeNormals(:,1));
-    intD = sum(intD,1)*hK/aK;
+    intD = sum(intD,1)*hP/aP;
     D = [m(Xmon); intD];
 
     XintB = [Xmon(1:nN,:); Xmon(1:nN,:); Xmon(nN+1:end,:)];
@@ -126,20 +127,20 @@ elseif k == 2
     intB = sum(grad_m(XintB).*repmat(edgeNormals,5,1),2);
     intB = reshape(intB,3*nN,5);
     intB = [(intB(1:nN,:) + intB(nN+1:2*nN,:))/6; ...
-             intB(2*nN+1:end,:)*2/3]/hK;
+             intB(2*nN+1:end,:)*2/3]/hP;
          
     B = zeros(nk, NK);
     B(1,NK) = 1;
     B(2:nk, 1:NK-1) = intB';
-    B([4, 6], NK) = B([4, 6], NK) - 2*aK/hK^2;
+    B([4, 6], NK) = B([4, 6], NK) - 2*aP/hP^2;
 
     H = zeros(nkk, nkk);
-    H(1,:) = intD(:, [1,2,3])*aK;
-    H(2,:) = intD(:, [2,4,5])*aK;
-    H(3,:) = intD(:, [3,5,6])*aK;
+    H(1,:) = intD(:, [1,2,3])*aP;
+    H(2,:) = intD(:, [2,4,5])*aP;
+    H(3,:) = intD(:, [3,5,6])*aP;
     
     if isa(f,'function_handle')
-        fInt = polygonInt(G, K, f, k+1)/aK;
+        fInt = polygonInt(G, P, f, k+1)/aP;
         fHat = [f(X); fInt];
     else
         fHat = f*ones(2*nN+1,1);
@@ -147,7 +148,7 @@ elseif k == 2
     rateVec = zeros(NK,1);
     rateVec(NK) = rate;
     
-    dofVec = [nodes', edges' + G.nodes.num, K + G.nodes.num + G.faces.num];
+    dofVec = [nodes', edges' + G.nodes.num, P + G.nodes.num + G.faces.num];
     
 end
 
@@ -169,9 +170,9 @@ else
 end
 
 sigma = diag(sigma,0);
-AK = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
+AP = PNstar'*Mtilde*PNstar + (eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
 
 PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
-bK = PNstar0'*H*PNstar0*fHat + rateVec;
+bP = PNstar0'*H*PNstar0*fHat + rateVec;
 
 end
