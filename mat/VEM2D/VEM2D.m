@@ -1,12 +1,12 @@
-function [sol, varargout] = VEM2D(state, G, rock, fluid, f, bc, k, varargin)
-%   Solves the 2D Poisson equation using a kth order virtual element
+function [state, varargout] = VEM2D(state, G, rock, fluid, k, varargin)
+%   stateves the 2D Poisson equation using a kth order virtual element
 %   method.
 %
 %   SYNOPSIS:
-%       [sol, varargout] = VEM2D(G, f, k, bc, varargin)
+%       [state, varargout] = VEM2D(G, f, k, bc, varargin)
 %
 %   DESCRIPTION:
-%       Solves the Poisson equation
+%       stateves the Poisson equation
 %
 %           -\Delta u = f
 %
@@ -34,11 +34,11 @@ function [sol, varargout] = VEM2D(state, G, rock, fluid, f, bc, k, varargin)
 %                      of \Pi^\nabla in the monomial basis \mathcal_k(K)
 %                      will be added to grid structure G.
 %       cellAverages - Boolean. If true, exact cell averages of
-%                      approximated solution will be calculated
+%                      approximated stateution will be calculated
 %                      for 1st order VEM. Useful for countour plots.
 %
 %   RETURNS:
-%       sol          - Solution struct. Contans the fileds
+%       state          - stateution struct. Contans the fileds
 %                           * nodeValues, values at the nodes.
 %                           * edgeValues, values at the edge
 %                             midpoints. Empty for k = 1.
@@ -59,7 +59,7 @@ function [sol, varargout] = VEM2D(state, G, rock, fluid, f, bc, k, varargin)
 %       bEdg = find(any(G.faces.neighbors == 0,2));
 %       f    = @(X) X(:,1).^2 - X(:,2).^2;
 %       bc   = VEM2D_addBC([], boundaryEdges, 'pressure', 0);
-%       sol  = VEM2D(G,f,bc,2);
+%       state  = VEM2D(G,f,bc,2);
 %
 %   REFERENCES:
 %       [1]     - The virtual element method as a common framework for
@@ -82,48 +82,49 @@ nk   = (k+1)*(k+2)/2;
 NK   = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
 nker = sum(NK - nk);
 
-opt = struct('sigma'       , 1         , ...
-             'cartGridQ'   , false     , ...
+opt = struct('bc'          , []        , ...
              'src'         , []        , ...
+             'srcFunc'     , 0         , ...
+             'sigma'       , 1         , ...
+             'cartGridQ'   , false     , ...
              'projectors'  , false     , ...
              'cellAverages', false     );
 opt = merge_options(opt, varargin{:});
 
-sigma        = opt.sigma;
-cartGridQ    = opt.cartGridQ;
-src          = opt.src;
-projectors   = opt.projectors;
-cellAverages = opt.cellAverages;
-
 %%  CHECK CORRECTNESS OF INPUT                                           %%
 
-assert(G.griddim == 2, 'VEM2D is only supproted for 2D grids');
+assert(G.griddim == 2, 'VEM2D is only supproted for 2D grids')
 
-if ~isa(f, 'function_handle')
-    assert(numel(f) == 1, ...
-             'Source function f must either be scalar or function handle');
+if ~isa(opt.srcFunc, 'function_handle')
+    assert(numel(opt.srcFunc) == 1, ...
+             'Source function f must either be scalar or function handle')
 end
 
-assert(k == 1 | k == 2, 'VEM only implemented for 1st and second order');
+assert(k == 1 | k == 2, 'VEM only implemented for 1st and 2nd order')
 
-assert(any(numel(sigma) == [sum(nker),1]), ...
-     'Number of elements in paramter matrix sigma must be 1 or sum(nker)');
+assert(any(numel(opt.sigma) == [sum(nker),1]), ...
+    'Number of elements in parameter matrix sigma must be 1 or sum(nker)')
 
-assert(islogical(projectors), ' ''projectors'' must be boolean')
+assert(islogical(opt.projectors), ' ''projectors'' must be boolean')
 
-assert(islogical(cellAverages), ' ''cellAverages'' must be boolean')
+assert(islogical(opt.cellAverages), ' ''cellAverages'' must be boolean')
         
-if cellAverages
-    projectors = true;
+if opt.cellAverages
+    opt.projectors = true;
+end
+
+if isempty(opt.bc)
+    opt.bc = VEM2D_addBC(bc, G, boundaryFaces(G), 'flux', 0);
 end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,PNstarT] = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src, fluid, rock);
+[A,b,PNstarT] = VEM2D_glob(G, rock, fluid, k, opt.bc, opt.src, ...
+                    opt.srcFunc, opt.sigma, opt.cartGridQ, opt.projectors);
 
-%%  SOLVE LINEAR SYSTEM                                                  %%
+%%  stateVE LINEAR SYSTEM                                                  %%
 
-fprintf('Solving linear system ...\n')
+fprintf('stateving linear system ...\n')
 tic;
 
 U = A\b;
@@ -131,17 +132,17 @@ U = A\b;
 stop = toc;
 fprintf('Done in %f seconds.\n\n', stop);
 
-%%  MAKE SOLUTION STRUCT                                                 %%
+%%  MAKE stateUTION STRUCT                                                 %%
 
 nodeValues  = full( U( 1:nN)                            );
 edgeValues  = full( U((1:nE*(k-1)) + nN)                );
 cellMoments = full( U((1:nK*k*(k-1)/2) + nN + nE*(k-1)) );
 
-sol = struct(...
+state = struct(...
              'nodeValues' , {nodeValues} , ...
              'edgeValues' , {edgeValues} , ...
              'cellMoments', {cellMoments}     );
-if projectors
+if opt.projectors
     G.cells.('PNstarT') = PNstarT;
     PNstarPos = [1, cumsum(diff(G.cells.nodePos') + ...
                            diff(G.cells.facePos')*(k-1) + k*(k-1)/2) + 1];
@@ -149,8 +150,8 @@ if projectors
     varargout(1) = {G};
 end
 
-if cellAverages && k == 1
-    sol = calculateCellAverages(G, sol);
+if opt.cellAverages && k == 1
+    state = calculateCellAverages(G, state);
 end
          
 end

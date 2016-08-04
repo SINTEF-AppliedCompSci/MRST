@@ -1,5 +1,5 @@
-function [A, b, PNstarT] ...
-               = VEM2D_glob(G, f, k, bc, sigma, cartGridQ, projectors, src, fluid, rock)
+function [A, b, PNstarT] = VEM2D_glob(G, rock, fluid, k, bc, src, ...
+                                     srcFunc, sigma, cartGridQ, projectors)
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 2D Poisson equation.
 %
@@ -106,15 +106,15 @@ for P = 1:nP
     end 
     
     if numel(sigma) > 1
-        sigmaK = sigma(sigmaPos(P):sigmaPos(P+1)-1);
+        sigmaP = sigma(sigmaPos(P):sigmaPos(P+1)-1);
     else
-        sigmaK = sigma;
+        sigmaP = sigma;
     end
     
     KP = K(P,:);
     
-    [AK, bK, dofVec, PNstar] ...
-     = VEM2D_loc(G, P, f, m, grad_m, int_m, k, sigmaK, cartGridQ, rate(P), KP, mu, rho);
+    [AK, bK, dofVec, PNstar] = VEM2D_loc(G, P, KP, mu, rho, k, rate(P), ...
+                             srcFunc, sigmaP, cartGridQ, m, grad_m, int_m);
 
     NP = numel(dofVec);
     
@@ -143,6 +143,6 @@ b = sparse(iib, ones(1, numel(iib)), bVec, N, 1);
 
 %%  APPLY BOUNDARY CONDITIONS                                            %%
 
-[A,b] = VEM2D_bc(G,A,b,bc,k);
+[A,b] = VEM2D_bc(G,A,b,bc,k,mu);
 
 end
