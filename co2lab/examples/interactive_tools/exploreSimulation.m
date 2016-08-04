@@ -44,7 +44,7 @@ function exploreSimulation(varargin)
    var.data              = []; % current face data to plot
    var.loops             = []; % one or more loops of boundary faces
    var.loops_bc          = []; % bc for all faces (0: closed, 1: semi-open, 2: open)
-   var.co2               = CO2props('sharp_phase_boundary', false);%, 'rhofile', 'rho_demo');
+   var.co2               = CO2props('sharp_phase_boundary', false);% @@ line can probably be removed
    var.wells             = reset_wells(opt.max_num_wells);
    % Temporary variables used by different functions
    temps = [];

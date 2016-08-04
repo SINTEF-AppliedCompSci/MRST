@@ -7,3 +7,4 @@ data/igems/*
 data/sleipner/*
 data/johansen/*
 /co2lab/utils/co2props/sampled_tables/*.mat
+/co2lab/examples/papers/CAGEO-79/results/

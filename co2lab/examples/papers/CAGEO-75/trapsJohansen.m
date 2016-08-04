@@ -29,8 +29,14 @@ end
 
 % Extract the part that represents the Johansen formation
 grdecl = cutGrdecl(grdecl,[1 grdecl.cartDims(1); 1 grdecl.cartDims(2);  6 11]);
-Gs  = processgrid(grdecl);
-Gs  = mcomputeGeometry(Gs);
+try
+   Gs = processgrid(grdecl);
+   Gs = mcomputeGeometry(Gs);
+catch
+   Gs = processGRDECL(grdecl);
+   Gs = computeGeometry(Gs);
+end
+
 Gts = topSurfaceGrid(Gs);
 
 % Get the position of the well (data given from 'Sector5_Well.txt');
@@ -54,8 +60,13 @@ end
 
 % Extract the part that represents the Johansen formation
 grdecl = cutGrdecl(grdecl,[1 grdecl.cartDims(1); 1 grdecl.cartDims(2);  10 14]);
-Gf  = processgrid(grdecl);
-Gf  = mcomputeGeometry(Gf);
+try
+   Gf = processgrid(grdecl);
+   Gf = mcomputeGeometry(Gf);
+catch
+   Gf = processGRDECL(grdecl);
+   Gf = computeGeometry(Gf);
+end
 Gtf = topSurfaceGrid(Gf);
 
 % Get the position of the well
@@ -64,8 +75,13 @@ d = sqrt(sum(bsxfun(@minus, Gtf.cells.centroids, wcent(1:2)).^2, 2));
 
 %% Load atlas data
 grdecl = getAtlasGrid('Johansenfm');
-Ga  = processgrid(grdecl{1});
-Ga  = mcomputeGeometry(Ga);
+try
+   Ga = processgrid(grdecl{1});
+   Ga = mcomputeGeometry(Ga);
+catch
+   Ga = processGRDECL(grdecl{1});
+   Ga = computeGeometry(Ga);
+end
 Gta = topSurfaceGrid(Ga);
 
 % Get the position of the well

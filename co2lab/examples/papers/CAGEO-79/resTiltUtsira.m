@@ -290,7 +290,11 @@ function Gt = makeTiltedTopSurface(theta_x, theta_y, xdom, ydom, interp)
     G.nodes.coords(:,3) = G.nodes.coords(:,3) - min(G.nodes.coords(:,3)) + 1000;
     
     % computing geometry and extracting top surface grid 
-    Gt = topSurfaceGrid(mcomputeGeometry(G));
+    try
+       Gt = topSurfaceGrid(mcomputeGeometry(G));
+    catch
+       Gt = topSurfaceGrid(computeGeometry(G));       
+    end
 end
 
 % ----------------------------------------------------------------------------
@@ -320,14 +324,23 @@ function [Gt_sleipner, Gt_utsira] = prepareGrids(sl_file, utsira_coarsening_leve
     
     % Converting to MRST format, computing geometry and extracting the top
     % surface grid
-    Gt_sleipner = topSurfaceGrid(mcomputeGeometry(mprocessGRDECL(grdecl)));
-    
+    try
+       Gt_sleipner = topSurfaceGrid(mcomputeGeometry(mprocessGRDECL(grdecl)));
+    catch
+       Gt_sleipner = topSurfaceGrid(computeGeometry(processGRDECL(grdecl)));
+    end
+       
     %% Load Utsira atlas grid
     grdecl = getAtlasGrid('Utsirafm', 'coarsening', utsira_coarsening_level);
     
     % Converting to MRST format, computing geometry and extracting the top
     % surface grid
-    Gt_utsira = topSurfaceGrid(mcomputeGeometry(mprocessGRDECL(grdecl{1})));
+    try
+       Gt_utsira = topSurfaceGrid(mcomputeGeometry(mprocessGRDECL(grdecl{1})));
+    catch
+       Gt_utsira = topSurfaceGrid(computeGeometry(processGRDECL(grdecl{1})));
+    end
+    
 end
 
 % ----------------------------------------------------------------------------

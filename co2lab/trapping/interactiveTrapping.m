@@ -52,7 +52,22 @@ function varargout = interactiveTrapping(inp, varargin)
 %   trapAnalysis, showTrappingStructure, showTrapsInteractively
 
 %{
-#COPYRIGHT#
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    opt = struct('coarsening',    1,     ...
@@ -87,7 +102,7 @@ function varargout = interactiveTrapping(inp, varargin)
     elseif ischar(inp)
         % Assume input is the name of a CO2 Storage Atlas grid
 
-        [gr, data, petroinfo] = getAtlasGrid(inp, 'coarsening', opt.coarsening , 'nz', 1);
+        [gr, data, petroinfo] = getAtlasGrid(inp, 'coarsening', opt.coarsening, 'nz', 1);
 
         % Grab topgrid
         top = data(cellfun(@(x) strcmpi(x.variant, 'top'), data));
@@ -115,7 +130,7 @@ function varargout = interactiveTrapping(inp, varargin)
         Gt.petroinfo = petroinfo{1};
     end
 
-    res = trapAnalysis(Gt, strcmpi(opt.method, 'cell'));
+    res = trapAnalysis(Gt, strcmpi(opt.method, true));
 
     if isempty(res.trap_adj) || all(res.trap_adj(:)==0)
         disp('No trap adjacency graph produced. Does the grid have any traps?')

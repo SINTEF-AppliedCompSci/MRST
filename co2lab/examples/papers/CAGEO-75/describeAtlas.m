@@ -104,9 +104,13 @@ viewMat = [-58 50; -90 65; -120 30; -120 30; -110 60; -110 60; ...
    105 55; 60 20; -100 55; 90 45];
 for i=1:ng;
    grdecl = getAtlasGrid(grdecls{i}.name, 'coarsening', 1);
-   %G = processGRDECL(grdecl{1});
-   G = processgrid(grdecl{1});
-   G = mcomputeGeometry(G(1));
+   try
+      G = processgrid(grdecl{1});
+      G = mcomputeGeometry(G(1));
+   catch
+      G = processGRDECL(grdecl{1});
+      G = computeGeometry(G(1));
+   end
    clf;
    plotGrid(G,'FaceColor', 'y', 'EdgeAlpha', .05);
    view(viewMat(i,:)); axis tight off
@@ -130,11 +134,16 @@ for i=1:ng
    fprintf('------------------------------------------------\n');
    fprintf('Processing %s ....\n', grdecls{i}.name);
    grdecl  = getAtlasGrid(grdecls{i}.name, 'coarsening', 1);
-   G       = mprocessGRDECL(grdecl{1});
-   G       = mcomputeGeometry(G(1));
-   Gt      = topSurfaceGrid(G);
-   tan     = trapAnalysis(Gt, false);
-   tac     = trapAnalysis(Gt, true);
+   try
+      G = mprocessGRDECL(grdecl{1});
+      G = mcomputeGeometry(G(1));
+   catch
+      G = processGRDECL(grdecl{1});
+      G = computeGeometry(G(1));
+   end
+   Gt  = topSurfaceGrid(G);
+   tan = trapAnalysis(Gt, false);
+   tac = trapAnalysis(Gt, true);
    
    res{i}.name      = grdecls{i}.name;
    res{i}.cells     = Gt.cells.num;

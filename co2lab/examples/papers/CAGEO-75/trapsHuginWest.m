@@ -4,8 +4,14 @@
 % node-based and the cell-based algorithms
 moduleCheck('libgeometry', 'opm_gridprocessing');
 grdecl = getAtlasGrid('Huginfmwest');
-G      = processgrid(grdecl{1}); clear grdecl;
-G      = mcomputeGeometry(G(1));
+try
+   G = processgrid(grdecl{1}); clear grdecl;
+   G = mcomputeGeometry(G(1));
+catch
+   G = processGRDECL(grdecl{1}); clear grdecl;
+   G = computeGeometry(G(1));
+end
+
 
 %% Show the whole formation with trapping structure
 Gt = topSurfaceGrid(G);

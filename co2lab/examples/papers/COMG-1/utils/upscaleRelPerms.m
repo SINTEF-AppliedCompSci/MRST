@@ -2,7 +2,7 @@
 % Compute numerically upscaled relative permeabilities for a set of
 % representative dip angles.
 
-moduleCheck('co2lab', 'upscaling', 'mimetic');
+moduleCheck('co2lab', 'upscaling', 'incomp', 'mimetic');
 gravity on;
 
 % Preallocate memory
@@ -56,8 +56,8 @@ for j=1:numel(theta_vec)
    hTp   = hT(hfmap);
    dhfzp = dhfz(hfmap);
    psolver = @(state, Gp, fluid_pure, bcp_new, rock) ...
-      solveIncompFlow(state, Gp, computeMimeticIPGp(G,Gp,rock), ...
-                      fluid_pure, 'bcp', bcp_new);
+      incompMimetic(state, Gp, computeMimeticIPGp(G,Gp,rock), ...
+                    fluid_pure, 'bcp', bcp_new);
    fluid_pure = initSingleFluid('mu',1,'rho',1);
    perm = upscalePermeabilityPeriodic(Gp,bcp,1,psolver,fluid_pure,rock,L);
    psolver_transport= @(state,Gp,fluid_nc,bcp) noflow(state);

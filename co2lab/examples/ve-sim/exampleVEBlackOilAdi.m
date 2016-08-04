@@ -63,7 +63,7 @@ x0.pressure = ipress*barsa +(z(:)-z(end))*norm(gravity)*deck.PROPS.DENSITY(2);
 x0.sGmax = x0.s(:,2);
 
 model = TwoPhaseOilWaterModel(G, rock, fluid);
-schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+schedule = convertDeckScheduleToMRST(model, deck);
 
 %% Run the schedule setup in the file
 % Before we can run the schedule, we make sure that we have an initial

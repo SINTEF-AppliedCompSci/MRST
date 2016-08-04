@@ -25,13 +25,23 @@ coord = coord';
 sleipner_deck.COORD=coord(:);
 %}
 % Create top surface grids for Sleipner and Utsira (uncoarsened)
-G_sleipner  = processGRDECL(sleipner_deck);
-G_sleipner  = mcomputeGeometry(G_sleipner);
+try
+   G_sleipner  = processgrid(sleipner_deck);
+   G_sleipner  = mcomputeGeometry(G_sleipner);
+catch
+   G_sleipner  = processGRDECL(sleipner_deck);
+   G_sleipner  = computeGeometry(G_sleipner);
+end
+
 Gt_sleipner = topSurfaceGrid(G_sleipner);
 
 %%
 grdecl_utsira = getAtlasGrid('Utsirafm', 'coarsening', 1);
-G_utsira = mprocessGRDECL(grdecl_utsira{1});
+try
+   G_utsira = mprocessGRDECL(grdecl_utsira{1});
+catch
+   G_utsira = processGRDECL(grdecl_utsira{1});
+end
 Gt_utsira = topSurfaceGrid(G_utsira);
 
 % Create trap analysis for Sleipner
