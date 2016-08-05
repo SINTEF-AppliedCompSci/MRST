@@ -1,10 +1,11 @@
-function [AK, bK, dofVec, PNstar] = VEM3D_loc(G, K, f, k, m, sigma, rate)
+function [AP, bP, dofVec, PNstar] ...
+      = incompVEM3D_loc(G, P, KP, mu, rho, k, rate, f, sigma, cartGridQ, m)
 %--------------------------------------------------------------------------
 %   Calculates local stiffness matrix and load term for the virtual element
 %   method for the 2D Poisson equation.
 %
 %   SYNOPSIS:
-%       [AK, bK, dofVec, PNstar] = VEM2D_loc(G, f, K, k, alpha, rate)
+%       [AP, bP, dofVec, PNstar] = VEM2D_loc(G, f, K, k, alpha, rate)
 %
 %   DESCRIPTION:
 %       Calculates local stiffness matrix and load term for cell K of grid
@@ -47,8 +48,8 @@ function [AK, bK, dofVec, PNstar] = VEM3D_loc(G, K, f, k, m, sigma, rate)
 
 %%  CELL DATA                                                            %%
 
-                            %   Node data for cell K.
-nodeNum = G.cells.nodePos(K):G.cells.nodePos(K+1)-1;
+                            %   Node data for cell P.
+nodeNum = G.cells.nodePos(P):G.cells.nodePos(P+1)-1;
 nodes   = G.cells.nodes(nodeNum);
 if size(nodes,1) == 1;
     nodes = nodes';
@@ -57,27 +58,29 @@ if k == 1
     X = G.nodes.coords(nodes,:);
 end
 nN      = size(nodes,1);
-Kc  = G.cells.centroids(K,:);
-hK  = G.cells.diameters(K);
-aK = G.cells.volumes(K);
+Pc  = G.cells.centroids(P,:);
+hP  = G.cells.diameters(P);
+aP = G.cells.volumes(P);
 nE = 0; nF = 0;
 
-faceNum     = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+KP = [KP(1:3); KP(4:6); KP(7:9)];
+
+faceNum     = G.cells.facePos(P):G.cells.facePos(P+1)-1;
 faces       = G.cells.faces(faceNum);
 if size(faces,1) == 1;
     faces = faces';
 end
 
 if k == 2
-                                %   Edge data for cell K.
-    edgeNum = G.cells.edgePos(K):G.cells.edgePos(K+1)-1;
+                                %   Edge data for cell P.
+    edgeNum = G.cells.edgePos(P):G.cells.edgePos(P+1)-1;
     edges   = G.cells.edges(edgeNum);
     if size(edges,1) == 1;
         edges = edges';
     end
     nE      = size(edges,1);
 
-    faceNum     = G.cells.facePos(K):G.cells.facePos(K+1)-1;
+    faceNum     = G.cells.facePos(P):G.cells.facePos(P+1)-1;
     faces       = G.cells.faces(faceNum);
     if size(faces,1) == 1;
         faces = faces';
@@ -85,27 +88,27 @@ if k == 2
     nF          = size(faces,1);
     faceAreas   = G.faces.areas(faces);
     faceNormals = G.faces.normals(faces,:);
-    faceSigns    = (-ones(nF,1)).^(G.faces.neighbors(faces,1) ~= K);
+    faceSigns    = (-ones(nF,1)).^(G.faces.neighbors(faces,1) ~= P);
     faceNormals = bsxfun(@times, faceNormals,faceSigns);
     fFaceIntegrals = G.faces.fFaceIntegrals(faces);
 
-                                %   Cell data for cell K.
-    fCellIntegral = G.cells.fCellIntegrals(K);
+                                %   Cell data for cell P.
+    fCellIntegral = G.cells.fCellIntegrals(P);
     
     X = [G.nodes.coords(nodes,:); G.edges.centroids(edges,:)];
         
 end
 
-Xmon = bsxfun(@minus, X, Kc)/hK;
+Xmon = bsxfun(@minus, X, Pc)/hP;
 
 nk  = (k+1)*(k+2)*(k+3)/6;
 nkk = k*(k+1)*(k+2)/6;
-NK  = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
+NP  = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
 
 %%  BUILD MATRIX B AND D                                                 %%
 
-B = zeros(nk, NK);
-intPos = G.cells.BintPos(K):G.cells.BintPos(K+1)-1;
+B = zeros(nk, NP);
+intPos = G.cells.BintPos(P):G.cells.BintPos(P+1)-1;
 
 if k == 1
     
@@ -115,43 +118,43 @@ if k == 1
     
     D = m(Xmon);
 
-    H = aK;
+    H = aP;
     if isa(f,'function_handle')
         fHat = f(X);
     else
         fHat = f*ones(nN,1);
     end
-    fHat = fHat + rate/aK;
+    fHat = fHat + rate/aP;
     rateVec = 0;
     
     dofVec = nodes;
     
 elseif k == 2
-    B(1,NK) = 1;
+    B(1,NP) = 1;
     B(2:4, nN + nE*(k-1) + 1: nN + nE*(k-1) + nF*k*(k-1)/2) = ...
-    faceNormals'/hK;
+    faceNormals'/hP;
     dofVec = [nodes', edges' + G.nodes.num, ...
               faces' + G.nodes.num + G.edges.num];
-    B(5:nk,1:NK-1) = G.cells.Bint(intPos, dofVec);
-    B([5,8,10],NK) = -2*aK/hK.^2;
+    B(5:nk,1:NP-1) = G.cells.Bint(intPos, dofVec);
+    B([5,8,10],NP) = -2*aP/hP.^2;
     
     m3D = @(X) [ones(size(X,1),1), ...
-                (X(:,1)-Kc(1))/hK, ...
-                (X(:,2)-Kc(2))/hK, ...
-                (X(:,3)-Kc(3))/hK, ...
-                (X(:,1)-Kc(1)).^2/hK^2, ...
-                (X(:,1)-Kc(1)).*(X(:,2)-Kc(2))/hK^2, ...
-                (X(:,1)-Kc(1)).*(X(:,3)-Kc(3))/hK^2, ...
-                (X(:,2)-Kc(2)).^2/hK^2, ...
-                (X(:,2)-Kc(2)).*(X(:,3)-Kc(3))/hK^2, ...
-                (X(:,3)-Kc(3)).^2/hK^2];
+                (X(:,1)-Pc(1))/hP, ...
+                (X(:,2)-Pc(2))/hP, ...
+                (X(:,3)-Pc(3))/hP, ...
+                (X(:,1)-Pc(1)).^2/hP^2, ...
+                (X(:,1)-Pc(1)).*(X(:,2)-Pc(2))/hP^2, ...
+                (X(:,1)-Pc(1)).*(X(:,3)-Pc(3))/hP^2, ...
+                (X(:,2)-Pc(2)).^2/hP^2, ...
+                (X(:,2)-Pc(2)).*(X(:,3)-Pc(3))/hP^2, ...
+                (X(:,3)-Pc(3)).^2/hP^2];
     
     faceIntegrals = polygonInt3D(G, faces, m3D, 2);
-    cellIntegrals = polyhedronInt(G, K, m3D, 2);
+    cellIntegrals = polyhedronInt(G, P, m3D, 2);
     
     D = [m(Xmon)                                    ; ...
          bsxfun(@rdivide, faceIntegrals, faceAreas) ; ...
-         cellIntegrals/aK                          ];
+         cellIntegrals/aP                          ];
 
     H = [cellIntegrals([1,2,3,4])  ; ...
          cellIntegrals([2,5,6,7])  ; ...
@@ -161,16 +164,16 @@ elseif k == 2
     if isa(f,'function_handle')
         fHat = [f(X); ...
                fFaceIntegrals./faceAreas;
-               fCellIntegral/aK];
+               fCellIntegral/aP];
     else
         fHat = f*ones(nN + nE + nF +1,1);
     end
-    rateVec = zeros(NK,1);
-    rateVec(NK) = rate;
+    rateVec = zeros(NP,1);
+    rateVec(NP) = rate;
     
     dofVec = [nodes', edges' + G.nodes.num, ...
               faces' + G.nodes.num + G.edges.num, ...
-              K + G.nodes.num + G.edges.num + G.faces.num];
+              P + G.nodes.num + G.edges.num + G.faces.num];
 
 end
 
@@ -182,13 +185,14 @@ PN = D*PNstar;
 
 Mtilde = [zeros(1,nk); M(2:nk,:)];
 
-Q = orth(eye(NK)-PN);
+Q = orth(eye(NP)-PN);
 
 sigma = diag(sigma,0);
-AK = PNstar'*Mtilde*PNstar + hK*(eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
+AP = PNstar'*Mtilde*PNstar ...
+  + (KP(1,1) + KP(2,2) + KP(3,3))*hP*(eye(NP)-PN)'*Q*sigma*Q'*(eye(NP)-PN);
 
 PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
 
-bK = PNstar0'*H*PNstar0*fHat + rateVec;
+bP = PNstar0'*H*PNstar0*fHat + rateVec;
 
 end

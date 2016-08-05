@@ -111,19 +111,17 @@ for P = 1:nP
         sigmaP = sigma;
     end
     
-    KP = K(P,:);
-    
-    [AK, bK, dofVec, PNstar] = VEM2D_loc(G, P, KP, mu, rho, k, rate(P), ...
-                             srcFunc, sigmaP, cartGridQ, m, grad_m, int_m);
+    [AK, bK, dofVec, PNstar] = VEM2D_loc(G, P, K(P,:), mu, rho, k, ...
+                    rate(P), srcFunc, sigmaP, cartGridQ, m, grad_m, int_m);
 
     NP = numel(dofVec);
     
-    iiK = repmat(dofVec', NP, 1);
-    jjK = repmat(dofVec , NP, 1);
-    jjK = jjK(:);
+    iiP = repmat(dofVec', NP, 1);
+    jjP = repmat(dofVec , NP, 1);
+    jjP = jjP(:);
     
-    iiA(dofPosA(P):dofPosA(P+1)-1) = iiK;
-    jjA(dofPosA(P):dofPosA(P+1)-1) = jjK;
+    iiA(dofPosA(P):dofPosA(P+1)-1) = iiP;
+    jjA(dofPosA(P):dofPosA(P+1)-1) = jjP;
     AVec(dofPosA(P):dofPosA(P+1)-1)= AK(:);
 
     iib(dofPosb(P):dofPosb(P+1)-1) = dofVec;

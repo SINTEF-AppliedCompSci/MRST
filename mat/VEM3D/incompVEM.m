@@ -1,4 +1,4 @@
-function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
+function [state, varargout] = incompVEM(state, G, rock, fluid, k, varargin)
 %   Solves the 2D Poisson equation using a kth order virtual element
 %   method.
 %
@@ -73,97 +73,114 @@ function [sol, varargout] = VEM3D(G, f, bc, k, varargin)
    for details.
 %}
 
-addpath('../');
-
 %%  MERGE INPUT PARAMETRES                                               %%
 
-nN = G.nodes.num;
-nE = G.edges.num;
-nF = G.faces.num;
-nK = G.cells.num;
-
-nk   = (k+1)*(k+2)*(k+3)/6;
-NK   = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) ...
-       + diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
-nker = sum(NK - nk);
-
-opt = struct('sigma'          , 1     , ...
-             'src'            , []    , ...
-             'faceProjectors' , false , ...
-             'cellProjectors' , false , ...
-             'faceAverages'   , false , ...
-             'cellAverages'   , false     );
+opt = struct('bc'             , []       , ...
+             'src'            , []       , ...
+             'srcFunc'        , []       , ...
+             'sigma'          , 1        , ...
+             'cartGridQ'      , false    , ...
+             'faceProjectors' , false    , ...
+             'cellProjectors' , false    , ...
+             'facePressure'   , false    , ...
+             'cellPressure'   , false    , ...
+             'linSolve'       , @mldivide, ...
+             'matrixOutput'   , false         );
+             
 opt = merge_options(opt, varargin{:});
-
-sigma          = opt.sigma;
-src            = opt.src;
-faceProjectors = opt.faceProjectors;
-cellProjectors = opt.cellProjectors;
-faceAverages   = opt.faceAverages;
-cellAverages   = opt.cellAverages;
 
 %%  CHECK CORRECTNESS OF INPUT                                           %%
 
-assert(G.griddim == 3, 'VEM3D is only supported for 3D grids');
+assert(G.griddim == 3, 'Physical dimensin must be 2 or 3.');
 
-if ~isa(f, 'function_handle')
-    assert(numel(f) == 1, ...
-             'Source function f must either be scalar or function handle');
+assert(k == 1 | k == 2, 'Method order must be 1 or 2.');
+
+nN = G.nodes.num;
+nF = G.faces.num;
+nK = G.cells.num;
+
+if G.griddim == 2
+    nE = 0;
+    nk = (k+1)*(k+2)/2;
+    NK = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
+else
+    nE = G.edges.num;
+    nk = (k+1)*(k+2)*(k+3)/6;
+    NK = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) ...
+       + diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
+end
+nker = sum(NK - nk);
+
+
+if ~isa(opt.srcFunc, 'function_handle')
+    assert(numel(opt.srcFunc) == 1 || 0, ...
+    'Source function ''srcFunc'' must either be scalar or function handle')
 end
 
-assert(k == 1 | k == 2, 'VEM only implemented for 1st and 2nd order');
+assert(any(numel(opt.sigma) == [sum(nker),1]), ...
+    'Number of elements in parameter matrix sigma must be 1 or sum(nker)')
 
-assert(any(numel(sigma) == [sum(nker),1]), ...
-     'Number of elements in paramter matrix sigma must be 1 or sum(nker)');
+if isempty(opt.bc)
+    opt.bc = VEM2D_addBC(opt.bc, G, boundaryFaces(G), 'flux', 0);
+end
 
-assert(islogical(cellProjectors), ' ''cellProjectors'' must be boolean')
+if isempty(opt.srcFunc)
+    opt.srcFunc = 0;
+end
 
-assert(islogical(faceAverages), ' ''faceAverages'' must be boolean')
-
-assert(islogical(cellAverages), ' ''cellAverages'' must be boolean')
-        
-if cellAverages
-    cellProjectors = true;
+if opt.cellPressure
+    opt.cellProjectors = true;
 end
 
 %%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
 
-[A,b,G] ...
-            = VEM3D_glob(G, f, bc, k, sigma, cellProjectors, src);
+if G.griddim == 2
+    [A,b,G] = incompVEM2D_glob();
+else
+    [A,b,G] = incompVEM3D_glob(G, rock, fluid, k, opt.bc, opt.src, ...
+                opt.srcFunc, opt.sigma, opt.cartGridQ, opt.cellProjectors);
+end
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
 fprintf('Solving linear system ...\n')
 tic;
 
-U = A\b;
+U = opt.linSolve(A,b);
 
 stop = toc;
 fprintf('Done in %f seconds.\n\n', stop);
 
-%%  MAKE SOLUTION STRUCT                                                 %%
+if opt.matrixOutput
+    state.A = A;
+    state.rhs = b;
+end
 
-nodeValues  = full( U( 1:nN)                                             );
-edgeValues  = full( U((1:nE*(k-1))       + nN)                           );
-faceMoments = full( U((1:nF*k*(k-1)/2)   + nN + nE*(k-1))                );
-cellMoments = full( U((1:nK*k*(k^2-1)/6) + nN + nE*(k-1) + nF*k*(k-1)/2) );
+%%  UPDATE STATE                                                         %%
 
-sol = struct(...
-             'nodeValues' , {nodeValues} , ...
-             'edgeValues' , {edgeValues} , ...
-             'faceMoments', {faceMoments}, ...
-             'cellMoments', {cellMoments}     );
+state.nodePressure = ...
+              full( U( 1:nN)                                             );
+state.edgePressure = ...
+              full( U((1:nE*(k-1))       + nN)                           );
+state.facePressure = ...
+              full( U((1:nF*k*(k-1)/2)   + nN + nE*(k-1))                );
+state.cellPressure = ...
+              full( U((1:nK*k*(k^2-1)/6) + nN + nE*(k-1) + nF*k*(k-1)/2) );
 
-if any([faceProjectors, cellProjectors])
+if any([opt.faceProjectors, opt.cellProjectors])
     varargout(1) = {G};
 end
 
-if faceAverages && k == 1
-    sol = calculateFaceAverages(G, sol);
+if opt.facePressure && k == 1
+    state.facePressure = calculateFacePressure(G, state);
 end
 
-if cellAverages && k == 1
-    sol = calculateCellAverages(G, sol);
+if opt.cellPressure && k == 1
+    if G.girddim == 2
+        state.pressure = calculateCellPressure2D(G,state);
+    else
+        state.pressure = calculateCellPressure3D(G, state);
+    end
 end
          
 end

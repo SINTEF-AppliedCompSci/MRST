@@ -1,4 +1,5 @@
-function [A, b, G] = VEM3D_glob(G, f, bc, k, sigma, cellProjectors, src)
+function [A, b, G] = incompVEM3D_glob(G, rock, fluid, k, bc, src, ...
+                                srcFunc, sigma, cartGridQ, cellProjectors);
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 2D Poisson equation.
 %
@@ -53,13 +54,13 @@ function [A, b, G] = VEM3D_glob(G, f, bc, k, sigma, cellProjectors, src)
 nN = G.nodes.num;
 nE = G.edges.num;
 nF = G.faces.num;
-nK = G.cells.num;
+nP = G.cells.num;
 
 nk   = (k+1)*(k+2)*(k+3)/6;
-NK   = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) + ...
+NP   = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) + ...
        diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
-nker = NK - nk;
-N  = nN + nE*(k-1) + nF*k*(k-1)/2 + nK*k*(k^2-1)/6;
+nker = NP - nk;
+N  = nN + nE*(k-1) + nF*k*(k-1)/2 + nP*k*(k^2-1)/6;
 
 %%  COMPUTE FACE PROJECTORS, MONOMIAL DOFS AND SOURCE TERM INTEGRALS     %%
 
@@ -91,8 +92,8 @@ fprintf('Done in %f seconds.\n\n', stop);
 
 %%  CREATE MAPPINGS                                                      %%
 
-dofPosA = [1, cumsum((NK.^2)') + 1];
-dofPosb = [1, cumsum( NK'    ) + 1];
+dofPosA = [1, cumsum((NP.^2)') + 1];
+dofPosb = [1, cumsum( NP'    ) + 1];
 
 %%  ADJUST INPUT AND OUTPUT PARAMETRES                                   %%
 
@@ -111,9 +112,12 @@ else
     PNstarT = 0;
 end
 
+K = permTensor(rock,2);
+[mu, rho] = fluid.properties();
+
 %%  ASSEMBLE GLOBAL STIFFNESS MATRIX AND LOAD VECTOR                     %%
 
-step = floor(nK/10);
+step = floor(nP/10);
 
 iiA = zeros(1,dofPosA(end)-1);
 jjA = zeros(1,dofPosA(end)-1);
@@ -126,36 +130,36 @@ bVec = zeros(1,dofPosb(end)-1);
 fprintf('Computing local block matrices ...\n')
 tic;
 
-for K = 1:nK
+for P = 1:nP
 
-    if rem(K,step) == 0
-        fprintf('... Calculating local block matrix for cell %d\n', K);
+    if rem(P,step) == 0
+        fprintf('... Calculating local block matrix for cell %d\n', P);
     end 
     
     if numel(sigma) > 1
-        sigmaK = sigma(sigmaPos(K):sigmaPos(K+1)-1);
+        sigmaP = sigma(sigmaPos(P):sigmaPos(P+1)-1);
     else
-        sigmaK = sigma;
+        sigmaP = sigma;
     end
     
-    [AK, bK, dofVec, PNstar] ...
-       = VEM3D_loc(G, K, f, k, m, sigmaK, rate(K));
+    [AP, bP, dofVec, PNstar] = VEM3D_loc(G, P, K(P,:), mu, rho, k, rate(P), ...
+                                            srcFunc, sigmaP, cartGridQ, m);
 
-    NK = numel(dofVec);
+    NP = numel(dofVec);
     
-    iiK = repmat(dofVec', NK, 1);
-    jjK = repmat(dofVec , NK, 1);
-    jjK = jjK(:);
+    iiP = repmat(dofVec', NP, 1);
+    jjP = repmat(dofVec , NP, 1);
+    jjP = jjP(:);
     
-    iiA(dofPosA(K):dofPosA(K+1)-1) = iiK;
-    jjA(dofPosA(K):dofPosA(K+1)-1) = jjK;
-    AVec(dofPosA(K):dofPosA(K+1)-1)= AK(:);
+    iiA(dofPosA(P):dofPosA(P+1)-1) = iiP;
+    jjA(dofPosA(P):dofPosA(P+1)-1) = jjP;
+    AVec(dofPosA(P):dofPosA(P+1)-1)= AP(:);
 
-    iib(dofPosb(K):dofPosb(K+1)-1) = dofVec;
-    bVec(dofPosb(K):dofPosb(K+1)-1) = bK;
+    iib(dofPosb(P):dofPosb(P+1)-1) = dofVec;
+    bVec(dofPosb(P):dofPosb(P+1)-1) = bP;
     
     if cellProjectors
-        PNstarT(dofPosb(K):dofPosb(K+1)-1,:) = PNstar';
+        PNstarT(dofPosb(P):dofPosb(P+1)-1,:) = PNstar';
     end
     
 end

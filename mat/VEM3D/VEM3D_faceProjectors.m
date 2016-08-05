@@ -112,11 +112,19 @@ Xmon = bsxfun(@rdivide, X - repmat(rldecode(Fc,numFaceNodes,1),3,1), ...
 
 edgeNormals = bsxfun(@times, edgeNormals, G.edges.lengths(edges));
 
+
 %%  CALCULATE INTEGRALS FOR D AND B MATRICES                             %%
 
 if k == 1
     
     D = m(Xmon(1:nN,:));
+    
+    g_m = grad_m(Xmon(2*nN+1:end,:));
+    ii = repmat(1:nE,1,2);
+    jj = [1:2:2*nE, 2:2:2*nE];
+    g_m = sparse(ii, jj, g_m(:), 2*nE, 2*nP
+    
+    
     
     intB = .5*sum(grad_m(Xmon(2*nN+1:end,:)).*repmat(edgeNormals,2,1),2);
     intB = reshape(intB, nN, 2);
@@ -201,8 +209,8 @@ nq = size(Xq,1);
 N = G.nodes.num + G.edges.num*(k-1) + G.faces.num*k*(k-1)/2;
 % I = zeros(G.cells.num*6,N);
 
-Kc = G.cells.centroids;
-hK = G.cells.diameters;
+Pc = G.cells.centroids;
+hP = G.cells.diameters;
 TPos = (0:3:3*nF)+1;
 intPos = (0:nk:nk*G.cells.num)+1;
 cellFaces = [G.cells.faces(:,1), ...
@@ -221,7 +229,7 @@ for F = 1:nF
     %   Cell, edge and node data for face F
     
     cells = cellFaces(cellFaces(:,1) == F,2);
-    nK = size(cells,1);
+    nP = size(cells,1);
     nodeNum = G.faces.nodePos(F):G.faces.nodePos(F+1)-1;
     faceNodes = nodes(nodeNum,:);
     XF = X(nodeNum,:);
@@ -267,10 +275,10 @@ for F = 1:nF
     %   Map form local to global coordinates and scale for use in 3D
     %   monomials.
     
-        XKmon = Xhat*TF' + repmat(bT,nTri*nq,1);
-        XKmon = bsxfun(@rdivide, ...
-                    repmat(XKmon,nK,1) - rldecode(Kc(cells,:),nq*nTri*ones(nK,1),1), ...
-                    rldecode(hK(cells),nq*nTri*ones(nK,1),1));
+        XPmon = Xhat*TF' + repmat(bT,nTri*nq,1);
+        XPmon = bsxfun(@rdivide, ...
+                    repmat(XPmon,nP,1) - rldecode(Pc(cells,:),nq*nTri*ones(nP,1),1), ...
+                    rldecode(hP(cells),nq*nTri*ones(nP,1),1));
     
     end
     
@@ -281,9 +289,9 @@ for F = 1:nF
     %   Scale and correct directions of face normals.
     
     faceNormal = faceNormals(F,:)/aF(F);
-    faceSign = (-ones(nK,1)).^(repmat(neighbors(F,1),nK,1) ~= cells); 
-    faceNormal =  bsxfun(@times, repmat(faceNormal,nq*nTri*nK,1),...
-                      rldecode(faceSign,nq*nTri*ones(nK,1),1));
+    faceSign = (-ones(nP,1)).^(repmat(neighbors(F,1),nP,1) ~= cells); 
+    faceNormal =  bsxfun(@times, repmat(faceNormal,nq*nTri*nP,1),...
+                      rldecode(faceSign,nq*nTri*ones(nP,1),1));
                   
     %   Evaluate monomials at quadrature points.
     
@@ -292,12 +300,12 @@ for F = 1:nF
     if k == 1
         grad_mVals = faceNormal;
         grad_mVals = bsxfun(@rdivide, grad_mVals,...
-                        rldecode(hK(cells),nq*nTri*ones(nK,1),1));
+                        rldecode(hP(cells),nq*nTri*ones(nP,1),1));
     elseif k == 2
-    grad_mVals = sum(grad_m3D(XKmon).*repmat(faceNormal,6,1),2);
-    grad_mVals = reshape(grad_mVals, nq*nTri*nK, 6);
+    grad_mVals = sum(grad_m3D(XPmon).*repmat(faceNormal,6,1),2);
+    grad_mVals = reshape(grad_mVals, nq*nTri*nP, 6);
     grad_mVals = bsxfun(@rdivide, grad_mVals,...
-                        rldecode(hK(cells),nq*nTri*ones(nK,1),1));
+                        rldecode(hP(cells),nq*nTri*ones(nP,1),1));
     end
     
         
@@ -321,17 +329,17 @@ for F = 1:nF
         B1int = [B1int; int(:)];
     end
         
-    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nK,1);
+    detAw = repmat(rldecode(detA,nq*ones(nTri,1),1).*repmat(vol*w',nTri,1),nP,1);
     
     grad_mVals = bsxfun(@times,grad_mVals,detAw);
     
-    ii = repmat((1:nq*nTri*nK)',nk,1);
-    jj = 1:nk*nK; jj = reshape(jj,nk,[])';
+    ii = repmat((1:nq*nTri*nP)',nk,1);
+    jj = 1:nk*nP; jj = reshape(jj,nk,[])';
     jj = repmat(jj(:)',nq*nTri,1);
     jj = jj(:);
-    grad_mVals = sparse(ii, jj, grad_mVals(:), nq*nTri*nK, nk*nK);
+    grad_mVals = sparse(ii, jj, grad_mVals(:), nq*nTri*nP, nk*nP);
     
-    int = grad_mVals'*repmat(PNphi, nK,1);
+    int = grad_mVals'*repmat(PNphi, nP,1);
 
     iiB = [iiB; repmat(intNum', numel(dofVec),1)];
     jj  = repmat(dofVec, numel(intNum), 1);
