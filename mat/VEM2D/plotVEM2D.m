@@ -1,4 +1,4 @@
-function h = plotVEM2D(G, sol, k, varargin)
+function h = plotVEM2D(G, state, k, varargin)
 %   Plots the 2D solution obtained from VEM.
 %
 %   SYNOPSIS:
@@ -30,7 +30,7 @@ for K = 1:nK
     nodes = G.cells.nodes(nodeNum);
     if k == 1    
         X = G.nodes.coords(nodes,:);
-        Z = sol.nodeValues(nodes);
+        Z = state.nodePressure(nodes);
         fill3(X(:,1), X(:,2), Z, Z, varargin{:});
     elseif k == 2
         edgeNum = G.cells.facePos(K):G.cells.facePos(K+1)-1;
@@ -40,8 +40,8 @@ for K = 1:nK
         X(1:2:end,:) = G.nodes.coords(nodes,:);
         X(2:2:end,:) = G.faces.centroids(edges,:);
         Z = zeros(nN + nE,1);
-        Z(1:2:end) = sol.nodeValues(nodes);
-        Z(2:2:end) = sol.edgeValues(edges);
+        Z(1:2:end) = state.nodePressure(nodes);
+        Z(2:2:end) = state.facePressure(edges);
         fill3(X(:,1), X(:,2), Z, Z, varargin{:});
     end
     hold on;

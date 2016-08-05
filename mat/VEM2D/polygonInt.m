@@ -52,13 +52,24 @@ for i = 1:nK
     bA = X(tri(:,1),:);
     A = X(tri(:,2:end),:) - repmat(bA,2,1);
     A = A(mcolon(1:nTri,2*nTri,nTri),:);
-    A = mat2cell(A,2*ones(nTri,1),2);
-    D = cellfun(@(X) abs(det(X)), A);
+    Ad = reshape(A',2,2,[]);
+    D = abs(squeeze(Ad(1,1,:).*Ad(2,2,:) - Ad(1,2,:).*Ad(2,1,:)));
     
-    Xhat = cell2mat(cellfun(@(X) Xq*X, A, 'uniformOutput', false));
-    Xhat = Xhat + rldecode(bA,nq*ones(nTri,1),1);
+    ii = repmat((1:2*nTri)',2,1);
+    jj = 1:2*nTri;
+    jj = reshape(jj,2,[])';
+    jj = repmat(jj(:)',2,1);
+    jj = jj(:);
+    
+    A = sparse(ii, jj, A(:), 2*nTri, 2*nTri);
+    
+    XhatTmp = repmat(Xq,1,nTri)*A + repmat(reshape(bA',1,[]),nq,1);
+    Xhat = zeros(nq*nTri,2);
+    Xhat(:,1) = reshape(XhatTmp(:,1:2:end),[],1);
+    Xhat(:,2) = reshape(XhatTmp(:,2:2:end),[],1);
+    
     I(i,:) = vol*repmat(w,1,nTri).*(rldecode(D,nq*ones(nTri,1),1))'*f(Xhat);
-    
+     
 end
 
 end

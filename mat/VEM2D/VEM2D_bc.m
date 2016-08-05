@@ -1,4 +1,4 @@
-function [A, b] = VEM2D_bc(G, A, b, bc, k, mu)
+function [A, b] = VEM2D_bc(G, A, b, bc, k)
 %   Incorporates boundary conditions in stiffness matrix A and load term b,
 %   obtained using a kth order VEM.
 %
@@ -51,7 +51,7 @@ uNodes = unique(nodes);
 nUN = numel(uNodes);
 S = (repmat(nodes,1,nUN) == repmat(uNodes',nN,1))';
 
-vals = mu*bc.value(strcmp(bc.type,'flux'),:);
+vals = bc.value(strcmp(bc.type,'flux'),:);
 
 if k == 1
     vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths/3];

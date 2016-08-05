@@ -92,7 +92,7 @@ if k == 1
     edgeNormals = [edgeNormals;...
                    [edgeNormals(nE,:);edgeNormals(1:nE-1,:)]];
     
-    intB = .5*sum(grad_m(XintB)*KP.*repmat(edgeNormals,2,1),2);
+    intB = .5*sum(grad_m(XintB)*KP.*repmat(edgeNormals,2,1),2)/mu;
     intB = reshape(intB,2*nE,2);
     intB = (intB(1:nE,:) + intB(nE+1:2*nE,:))/hP;
     
@@ -125,7 +125,7 @@ elseif k == 2
                    [edgeNormals(nE,:);edgeNormals(1:nE-1,:)]; ...
                    edgeNormals];
     
-    intB = sum(grad_m(XintB)*KP.*repmat(edgeNormals,5,1),2);
+    intB = sum(grad_m(XintB)*KP.*repmat(edgeNormals,5,1),2)/mu;
     intB = reshape(intB,3*nN,5);
     intB = [(intB(1:nN,:) + intB(nN+1:2*nN,:))/6; ...
              intB(2*nN+1:end,:)*2/3]/hP;
@@ -133,8 +133,8 @@ elseif k == 2
     B = zeros(nk, NK);
     B(1,NK) = 1;
     B(2:nk, 1:NK-1) = intB';
-    B(4,NK) = B(4,NK) - 2*aP*KP(1,1)/hP^2;
-    B(6,NK) = B(6,NK) - 2*aP*KP(2,2)/hP^2;
+    B(4,NK) = B(4,NK) - 2*aP*KP(1,1)/(mu*hP^2);
+    B(6,NK) = B(6,NK) - 2*aP*KP(2,2)/(mu*hP^2);
 %     B([4, 6], NK) = B([4, 6], NK) - 2*aP/hP^2;
 
     H = zeros(nkk, nkk);
@@ -144,12 +144,12 @@ elseif k == 2
     
     if isa(f,'function_handle')
         fInt = polygonInt(G, P, f, k+1)/aP;
-        fHat = mu*[f(X); fInt];
+        fHat = [f(X); fInt];
     else
-        fHat = mu*f*ones(2*nN+1,1);
+        fHat = f*ones(2*nN+1,1);
     end
     rateVec = zeros(NK,1);
-    rateVec(NK) = mu*rate;
+    rateVec(NK) = rate;
     
     dofVec = [nodes', edges' + G.nodes.num, P + G.nodes.num + G.faces.num];
     
@@ -173,7 +173,7 @@ else
 end
 
 sigma = diag(sigma,0);
-AP = PNstar'*Mtilde*PNstar + trace(KP)*(eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
+AP = PNstar'*Mtilde*PNstar + (KP(1,1)+KP(2,2))*(eye(NK)-PN)'*Q*sigma*Q'*(eye(NK)-PN);
 
 PNstar0 = M(1:nkk,1:nkk)\B(1:nkk,:);
 bP = PNstar0'*H*PNstar0*fHat + rateVec;

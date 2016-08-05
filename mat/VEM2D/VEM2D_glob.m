@@ -143,6 +143,6 @@ b = sparse(iib, ones(1, numel(iib)), bVec, N, 1);
 
 %%  APPLY BOUNDARY CONDITIONS                                            %%
 
-[A,b] = VEM2D_bc(G,A,b,bc,k,mu);
+[A,b] = VEM2D_bc(G,A,b,bc,k);
 
 end
