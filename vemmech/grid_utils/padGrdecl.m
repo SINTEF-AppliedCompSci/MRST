@@ -10,7 +10,7 @@ function grdecl_new = padGrdecl(grdecl, dirs, box, varargin)
 % PARAMETERS:
 %   grdecl   - Grid in eclipse format
 %   dirs     - Padding directions
-%   box      - Number of elements in each padding layer
+%   box      - Size of elements in each padding layer
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   relative - 
