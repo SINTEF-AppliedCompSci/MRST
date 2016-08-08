@@ -101,14 +101,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         plotGrid(G);
 
       case 'norne'
-          if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
-              error('Unable to obtain simulation model subset');
-          end
+        if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
+            error('Unable to obtain simulation model subset');
+        end
 
-          grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
-          grdecl = readGRDECL(grdecl);
-          usys   = getUnitSystem('METRIC');
-          grdecl = convertInputUnits(grdecl, usys);
+        grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
+        grdecl = readGRDECL(grdecl);
+        usys   = getUnitSystem('METRIC');
+        grdecl = convertInputUnits(grdecl, usys);
         grdecl = cutGrdecl(grdecl, [10 25;35 55;1 22]);
         if (opt.vertical)
             grdecl_org = verticalGrdecl(grdecl);
