@@ -48,28 +48,59 @@ function [AP, bP, dofVec, PNstar] ...
 
 %%  CELL DATA                                                            %%
 
-                            %   Node data for cell P.
-nodeNum = G.cells.nodePos(P):G.cells.nodePos(P+1)-1;
-nodes   = G.cells.nodes(nodeNum);
-if size(nodes,1) == 1;
-    nodes = nodes';
-end
+faceNum = G.cells.facePos(P):G.cells.facePos(P+1)-1;
+faces = G.cells.faces(faceNum);
+faceNormals = G.faces.normals(faceNum,:);
+nF = numel(faces);
+if size(faces,1) == 1; faces = faces'; end
+
+edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
+edges   = G.faces.edges(edgeNum);
+edgeNormals = G.faces.edgeNormals(edgeNum,:);
+if size(edges,1) == 1; edges = edges'; end
+
+nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces),...
+                                              G.faces.nodePos(faces+1)-1));
+                                          
+% nodes   = reshape(nodes,2,[])';
+% nodes(G.faces.edgeSign(edgeNum) == -1,:) ...
+%         = nodes(G.faces.edgeSign(edgeNum) == -1,2:-1:1);
+% nodes   = reshape(nodes,[],1);
+
+Xn = G.nodes.coords(nodes,:);
+Xe = G.edges.centroids(edges,:);
+
+
+%%  MAP FROM GLOBAL TO LOCAL COORDINATES                                 %%
+
+%   Build local coordinate systems. x -> x*C' + d.
+ii = [1;cumsum(diff(G.faces.nodePos(faces)))];
+vec1 = Xn(ii+1,:) - Xn(ii,:);
+vec1 = bsxfun(@rdivide, vec1, sqrt(sum(vec1.^2,2)));
+vec2 = cross(faceNormals,vec1,2);
+vec2 = bsxfun(@rdivide, vec2, sqrt(sum(vec2.^2,2)));
+vec1 = vec1'; vec2 = vec2';
+
+ii = repmat(1:3*nF,1,2);
+jj1 = repmat(1:2:2*nF,3,1);
+jj2 = repmat(2:2:2*nF,3,1);
+jj = [jj1(:); jj2(:)];
+C = sparse(ii,jj,[vec1(:);vec2(:)]);
+d    = G.faces.centroids(faces,:);
+
+XF   = (Xn-rldecode(d,diff(G.faces.nodes),1))*C;
+                                          
 if k == 1
     X = G.nodes.coords(nodes,:);
 end
-nN      = size(nodes,1);
-Pc  = G.cells.centroids(P,:);
-hP  = G.cells.diameters(P);
+nN = size(nodes,1);
+Pc = G.cells.centroids(P,:);
+hP = G.cells.diameters(P);
 aP = G.cells.volumes(P);
 nE = 0; nF = 0;
 
-KP = [KP(1:3); KP(4:6); KP(7:9)];
-
-faceNum     = G.cells.facePos(P):G.cells.facePos(P+1)-1;
-faces       = G.cells.faces(faceNum);
-if size(faces,1) == 1;
-    faces = faces';
-end
+KP = [KP(1:3); KP(4:6); KP(7:9)];                                          
+                                          
 
 if k == 2
                                 %   Edge data for cell P.

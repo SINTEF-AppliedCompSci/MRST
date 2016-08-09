@@ -70,7 +70,7 @@ tic;
 
 fprintf('... computing face projectors\n');
 
-G = VEM3D_faceProjectors(G,k);
+% G = VEM3D_faceProjectors(G,k);
 
 if k == 2    
     fprintf('... computing source term integrals\n');
@@ -142,7 +142,7 @@ for P = 1:nP
         sigmaP = sigma;
     end
     
-    [AP, bP, dofVec, PNstar] = VEM3D_loc(G, P, K(P,:), mu, rho, k, rate(P), ...
+    [AP, bP, dofVec, PNstar] = incompVEM3D_loc(G, P, K(P,:), mu, rho, k, rate(P), ...
                                             srcFunc, sigmaP, cartGridQ, m);
 
     NP = numel(dofVec);

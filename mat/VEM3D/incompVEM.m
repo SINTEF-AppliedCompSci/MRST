@@ -111,6 +111,9 @@ else
 end
 nker = sum(NK - nk);
 
+if isempty(opt.srcFunc)
+    opt.srcFunc = 0;
+end
 
 if ~isa(opt.srcFunc, 'function_handle')
     assert(numel(opt.srcFunc) == 1 || 0, ...
@@ -121,11 +124,11 @@ assert(any(numel(opt.sigma) == [sum(nker),1]), ...
     'Number of elements in parameter matrix sigma must be 1 or sum(nker)')
 
 if isempty(opt.bc)
-    opt.bc = VEM2D_addBC(opt.bc, G, boundaryFaces(G), 'flux', 0);
-end
-
-if isempty(opt.srcFunc)
-    opt.srcFunc = 0;
+    if G.griddim == 2
+        opt.bc = VEM2D_addBC(opt.bc, G, boundaryFaces(G), 'flux', 0);
+    else
+        opt.bc = VEM3D_addBC(opt.bc, boundaryFaces(G), 'flux', 0);
+    end
 end
 
 if opt.cellPressure
