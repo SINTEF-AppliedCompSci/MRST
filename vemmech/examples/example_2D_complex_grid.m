@@ -1,6 +1,11 @@
 %% A short example solving linear elasticity on a complex grids
 %
 
+%% Load required modules
+
+mrstModule add vemmech
+
+
 %% Define parameters
 %
 opt = struct('L'         , [1 1], ...
