@@ -15,7 +15,7 @@ opt = struct('L'         , [1 1], ...
              'E'         , 4e7, ...  %youngs modolo
              'nu'        , 0.44);% poiso ratio
 
-%% make a mixed type of gird
+%% make a mixed type of grid
 %
 
 G = squareGrid(opt.cartDims, opt.L, 'grid_type', 'mixed4', 'disturb', opt.disturb);
