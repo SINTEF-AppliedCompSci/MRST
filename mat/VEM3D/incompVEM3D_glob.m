@@ -112,7 +112,7 @@ else
     PNstarT = 0;
 end
 
-K = permTensor(rock,2);
+K = permTensor(rock,3);
 [mu, rho] = fluid.properties();
 
 %%  ASSEMBLE GLOBAL STIFFNESS MATRIX AND LOAD VECTOR                     %%

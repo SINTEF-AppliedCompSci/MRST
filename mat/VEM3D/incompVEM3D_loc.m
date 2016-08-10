@@ -1,5 +1,5 @@
 function [AP, bP, dofVec, PNstar] ...
-      = incompVEM3D_loc(G, P, KP, mu, rho, k, rate, f, sigma, cartGridQ, m)
+      = incompVEM3D_loc(G, P, KP, mu, rho, k, rate, f, sigma, cartGridQ, m, grad_m, int_m, mF)
 %--------------------------------------------------------------------------
 %   Calculates local stiffness matrix and load term for the virtual element
 %   method for the 2D Poisson equation.
@@ -51,6 +51,8 @@ function [AP, bP, dofVec, PNstar] ...
 faceNum = G.cells.facePos(P):G.cells.facePos(P+1)-1;
 faces = G.cells.faces(faceNum);
 faceNormals = G.faces.normals(faceNum,:);
+Fc = G.faces.centroids(faces,:);
+hF = G.faces.diameters(faces,:);
 nF = numel(faces);
 if size(faces,1) == 1; faces = faces'; end
 
@@ -59,37 +61,34 @@ edges   = G.faces.edges(edgeNum);
 edgeNormals = G.faces.edgeNormals(edgeNum,:);
 if size(edges,1) == 1; edges = edges'; end
 
-nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces),...
-                                              G.faces.nodePos(faces+1)-1));
-                                          
-% nodes   = reshape(nodes,2,[])';
-% nodes(G.faces.edgeSign(edgeNum) == -1,:) ...
-%         = nodes(G.faces.edgeSign(edgeNum) == -1,2:-1:1);
-% nodes   = reshape(nodes,[],1);
+nodeNum = mcolon(G.faces.nodePos(faces),G.faces.nodePos(faces+1)-1);
+nodes = G.faces.nodes(nodeNum);
 
+nN = numel(nodes);
 Xn = G.nodes.coords(nodes,:);
 Xe = G.edges.centroids(edges,:);
 
+C = G.faces.C(mcolon(G.faces.CPos(faces),G.faces.CPos(faces+1)-1),:);
+C = sparseBlockDiag(C, 3*ones(1,nF), 1); 
 
-%%  MAP FROM GLOBAL TO LOCAL COORDINATES                                 %%
+KP = [KP(1:3); KP(4:6); KP(7:9)];  
+KF = C'*sparseBlockDiag(repmat(KP, nF, 1), 3*ones(1,nF), 1)*C;
+% KF = squeezeBlockDiag(KF,2*ones(1,nF),2*nF,2);
 
-%   Build local coordinate systems. x -> x*C' + d.
-ii = [1;cumsum(diff(G.faces.nodePos(faces)))];
-vec1 = Xn(ii+1,:) - Xn(ii,:);
-vec1 = bsxfun(@rdivide, vec1, sqrt(sum(vec1.^2,2)));
-vec2 = cross(faceNormals,vec1,2);
-vec2 = bsxfun(@rdivide, vec2, sqrt(sum(vec2.^2,2)));
-vec1 = vec1'; vec2 = vec2';
+numFaceNodes = G.faces.nodePos(faces+1)-G.faces.nodePos(faces);
+numFaceEdges = G.faces.edgePos(faces+1)-G.faces.edgePos(faces);
 
-ii = repmat(1:3*nF,1,2);
-jj1 = repmat(1:2:2*nF,3,1);
-jj2 = repmat(2:2:2*nF,3,1);
-jj = [jj1(:); jj2(:)];
-C = sparse(ii,jj,[vec1(:);vec2(:)]);
-d    = G.faces.centroids(faces,:);
+XFN = G.faces.faceCoords(nodeNum,:);
+XFmon = bsxfun(@rdivide, XFN, rldecode(hF, numFaceNodes,1));
+% DF = mF(XFmon);
 
-XF   = (Xn-rldecode(d,diff(G.faces.nodes),1))*C;
-                                          
+
+NEF = G.faces.edgeNormalsC(edgeNum,:);
+NEF = sparseBlockDiag(NEF, numFaceEdges, 1);
+
+nn = repmat(numFaceEdges,1,2);
+BF = NEF*KF;
+
 if k == 1
     X = G.nodes.coords(nodes,:);
 end
@@ -99,7 +98,7 @@ hP = G.cells.diameters(P);
 aP = G.cells.volumes(P);
 nE = 0; nF = 0;
 
-KP = [KP(1:3); KP(4:6); KP(7:9)];                                          
+                                        
                                           
 
 if k == 2
