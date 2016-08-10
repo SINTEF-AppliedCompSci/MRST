@@ -116,7 +116,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 state = model.updateStateFromIncrement(state, dx{wIx}, problem, 'sW', model.dsMaxRel, model.dsMaxAbs);
                 state.s(:, 1) = max(min(state.s(:, 1), 1), 0);
                 
-                state.s(:, 2) = state.Z_L.*state.L./(state.Z_L.*state.L + state.Z_V.*(1 - state.L));
+                state.s(:, 2) = (1 - state.s(:, 1)).*state.Z_L.*state.L./(state.Z_L.*state.L + state.Z_V.*(1 - state.L));
                 state.s(:, 3) = 1 - state.s(:, 2) - state.s(:, 3);
 
                 [vars, ix] = model.stripVars(vars, {'sw'});
