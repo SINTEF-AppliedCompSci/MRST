@@ -9,7 +9,7 @@ function [fluid, info] = getCompositionalFluidCase(name, varargin)
             acc = [0.00854, 0.228, 0.16733, 0.38609, 0.80784, 1.23141];
             Z_c = [0.28981, 0.27055, 0.27588, 0.25668, 0.21967, 0.18250];
             
-            V_c = Z_c.*mw*8.314.*T_c./P_c;
+            V_c = Z_c.*8.314.*T_c./P_c;
             T_ref = 273.15 + 25;
             P_ref = 1*atm;
             
@@ -56,7 +56,13 @@ function [fluid, info] = getCompositionalFluidCase(name, varargin)
                             'initial',   [1], ...
                             'pressure', 75*barsa, ...
                             'temp', 273.15 + 150);
-
+        case 'watermethane'
+            names = {'Methane', 'Water'};
+            fluid = CoolPropsCompositionalFluid(names);
+            info = makeInfo('injection', [1, 0], ...
+                            'initial',   [0.01, 0.99], ...
+                            'pressure', 75*barsa, ...
+                            'temp', 273.15 + 150);
         otherwise
             error('Unknown case')
     end
