@@ -104,15 +104,16 @@ if model.water
     rWvW = s.faceUpstr(upcw, rhoW).*vW;
     water = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 ) + s.Div(rWvW);
 else
-    [rWvW, upcw, bW] = deal([]);
+    [rWvW, upcw, bW, rhoW] = deal([]);
 end
 if model.outputFluxes
     state = model.storeFluxes(state, rWvW, rOvO, rGvG);
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
-    state = model.storeMobilities(state, mobW, mobO, []);
+    state = model.storeMobilities(state, mobW, mobO, mobG);
     state = model.storeUpstreamIndices(state, upcw, upco, upcg);
+    state = model.storeDensities(state, rhoW, rhoO, rhoG);
 end
 
 % water equation + n component equations
