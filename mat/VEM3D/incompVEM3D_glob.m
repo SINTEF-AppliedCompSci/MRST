@@ -1,5 +1,5 @@
 function [A, b, G] = incompVEM3D_glob(G, rock, fluid, k, bc, src, ...
-                                srcFunc, sigma, cartGridQ, cellProjectors);
+                                srcFunc, sigma, cartGridQ, cellProjectors)
 %   Assmebles the global stiffness matrix and load term for the virtual
 %   element method for the 2D Poisson equation.
 %
@@ -50,6 +50,7 @@ function [A, b, G] = incompVEM3D_glob(G, rock, fluid, k, bc, src, ...
 %%  RETRIEVE MONOMIALS, SET FUNCTION SPACE DIMS                          %%
 
 [m, ~, ~] = retrieveMonomials(3,k);
+[mF, ~, ~] = retrieveMonomials(2,k);
 
 nN = G.nodes.num;
 nE = G.edges.num;
@@ -143,7 +144,7 @@ for P = 1:nP
     end
     
     [AP, bP, dofVec, PNstar] = incompVEM3D_loc(G, P, K(P,:), mu, rho, k, rate(P), ...
-                                            srcFunc, sigmaP, cartGridQ, m);
+                                            srcFunc, sigmaP, cartGridQ, m, mF);
 
     NP = numel(dofVec);
     

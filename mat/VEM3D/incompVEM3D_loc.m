@@ -1,5 +1,5 @@
 function [AP, bP, dofVec, PNstar] ...
-      = incompVEM3D_loc(G, P, KP, mu, rho, k, rate, f, sigma, cartGridQ, m, grad_m, int_m, mF)
+      = incompVEM3D_loc(G, P, KP, mu, rho, k, rate, f, sigma, cartGridQ, m, mF)
 %--------------------------------------------------------------------------
 %   Calculates local stiffness matrix and load term for the virtual element
 %   method for the 2D Poisson equation.
@@ -59,7 +59,10 @@ if size(faces,1) == 1; faces = faces'; end
 edgeNum = mcolon(G.faces.edgePos(faces),G.faces.edgePos(faces+1)-1);
 edges   = G.faces.edges(edgeNum);
 edgeNormals = G.faces.edgeNormals(edgeNum,:);
+nE = numel(edges);
+hE = G.edges.lengths(edges);
 if size(edges,1) == 1; edges = edges'; end
+
 
 nodeNum = mcolon(G.faces.nodePos(faces),G.faces.nodePos(faces+1)-1);
 nodes = G.faces.nodes(nodeNum);
@@ -73,21 +76,37 @@ C = sparseBlockDiag(C, 3*ones(1,nF), 1);
 
 KP = [KP(1:3); KP(4:6); KP(7:9)];  
 KF = C'*sparseBlockDiag(repmat(KP, nF, 1), 3*ones(1,nF), 1)*C;
-% KF = squeezeBlockDiag(KF,2*ones(1,nF),2*nF,2);
 
 numFaceNodes = G.faces.nodePos(faces+1)-G.faces.nodePos(faces);
 numFaceEdges = G.faces.edgePos(faces+1)-G.faces.edgePos(faces);
 
 XFN = G.faces.faceCoords(nodeNum,:);
 XFmon = bsxfun(@rdivide, XFN, rldecode(hF, numFaceNodes,1));
-% DF = mF(XFmon);
+DF = mF(XFmon);
+DF = sparseBlockDiag(DF, numFaceNodes, 1);
 
 
-NEF = G.faces.edgeNormalsC(edgeNum,:);
+NEF = bsxfun(@rdivide, G.faces.edgeNormalsC(edgeNum,:), rldecode(hF, numFaceEdges, 1));
 NEF = sparseBlockDiag(NEF, numFaceEdges, 1);
 
 nn = repmat(numFaceEdges,1,2);
-BF = NEF*KF;
+BF = .5*NEF*KF;
+
+ii = 1:nE; jj = ii;
+jj(2:end) = jj(1:end-1);
+jj([1;cumsum(G.faces.edgePos(faces(1:end-1)+1)    ...
+            -G.faces.edgePos(faces(1:end-1)))+1]) ...
+ = ii(cumsum(G.faces.edgePos(faces+1)-G.faces.edgePos(faces)));
+
+nk = (k+1)*(k+2)/2;
+
+BF = BF(ii,:) + BF(jj,:);
+BF = [.5*(hE(ii) + hE(jj)),squeezeBlockDiag(BF,numFaceEdges, nE, nk-1)];
+BF = sparseBlockDiag(BF', numFaceEdges, 2);
+
+MF = BF*DF;
+PNFstar = MF\BF;
+PNF = DF*PNFstar;
 
 if k == 1
     X = G.nodes.coords(nodes,:);
@@ -136,6 +155,7 @@ nkk = k*(k+1)*(k+2)/6;
 NP  = nN + nE*(k-1) + nF*k*(k-1)/2 + k*(k^2-1)/6;
 
 %%  BUILD MATRIX B AND D                                                 %%
+
 
 B = zeros(nk, NP);
 intPos = G.cells.BintPos(P):G.cells.BintPos(P+1)-1;
