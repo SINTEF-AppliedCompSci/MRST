@@ -10,6 +10,7 @@ classdef EquationOfStateModel < PhysicalModel
         % substitution if used instead.
         useNewton
         fastDerivatives
+        performFlash
     end
     
     properties (Access = private)
@@ -30,6 +31,7 @@ classdef EquationOfStateModel < PhysicalModel
             model.nonlinearTolerance = 1e-4;
             model.useNewton = false;
             model.fastDerivatives = true;
+            model.performFlash = true;
             
             model = model.setType(eosname);
         end
@@ -159,13 +161,17 @@ classdef EquationOfStateModel < PhysicalModel
             K = subset(K0, active);
             P = P(active);
             T = T(active);
-
-            if model.useNewton
-                % Newton-based solver for equilibrium
-                [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
+            
+            if model.performFlash
+                if model.useNewton
+                    % Newton-based solver for equilibrium
+                    [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
+                else
+                    % Successive substitution solver for equilibrium
+                    [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                end
             else
-                % Successive substitution solver for equilibrium
-                [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                [x, y, K, Z_L, Z_V, L, equilvals] = model.updateWithoutFlash(P, T, z, K, L);
             end
             values = max(equilvals, [], 1);
             conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
@@ -211,6 +217,23 @@ classdef EquationOfStateModel < PhysicalModel
                             'Converged',    isConverged, ...
                             'Residuals',    values);
             report.ActiveCells = sum(active);
+        end
+        
+        function [x, y, K, Z_L, Z_V, L, values] = updateWithoutFlash(model, P, T, z, K, L)
+            % Determine overall liquid fraction
+            L = model.solveRachfordRice(L, K, z);
+            % Compute liquid component fraction
+            x = model.computeLiquid(L, K, z);
+            % Vapor component fraction
+            y = model.computeVapor(L, K, z);
+            % Reduced values for pressure etc (divided by critical values)
+            % [Pr, Tr] = model.getReducedPT(P, T);
+            acf = (toCell(model.fluid.acentricFactors));
+            [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x, y, acf);
+            % Solve EOS for each phase
+            Z_L = model.computeLiquidZ(A_L, B_L);
+            Z_V = model.computeVaporZ(A_V, B_V);
+            values = zeros(model.G.cells.num, numel(x));
         end
         
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
@@ -389,7 +412,12 @@ classdef EquationOfStateModel < PhysicalModel
 
             Z_L = model.computeLiquidZ(double(A_L), double(B_L));
             Z_V = model.computeLiquidZ(double(A_V), double(B_V));
-
+            s = getSampleAD(P, T, x{:}, y{:});
+            if isa(s, 'ADI')
+                Z_L = double2ADI(Z_L, s);
+                Z_V = double2ADI(Z_V, s);
+            end
+                
             Z_L = model.setZDerivatives(Z_L, A_L, B_L);
             Z_V = model.setZDerivatives(Z_V, A_V, B_V);
             
@@ -398,7 +426,7 @@ classdef EquationOfStateModel < PhysicalModel
         end
         
         function [Z_L, Z_V, f_L, f_V, rep] = getEquilibriumProperties(model, P, T, x, y, Z_L, Z_V, packed)
-            [s, isAD] = getAD(P, x, y);
+            [s, isAD] = getSampleAD(P, x{:}, y{:});
             wantFugacity = nargout > 2;
             
             useFast = isAD && model.fastDerivatives;
@@ -558,7 +586,7 @@ classdef EquationOfStateModel < PhysicalModel
             [Z_L, Z_V] = getEquilibriumProperties(model, P, T, x, y, state.Z_L, state.Z_V, state.eos.packed);
         end
         
-        function [eqs, f_L, f_V, Z_L, Z_V, rep] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V, packed)
+        function [eqs, f_L, f_V, Z_L, Z_V, rep] = equationsEquilibrium(model, P, T, x, y, z, L, Z_L, Z_V, K, packed)
             t1 = tic();
             if nargin < 10
                 packed = [];
@@ -576,7 +604,11 @@ classdef EquationOfStateModel < PhysicalModel
             eqs{end} = emptyJac + (isLiq | isVap);
             for i = 1:ncomp
                 eqs{i} = z{i} - L.*x{i} - (1-L).*y{i} + emptyJac;
-                eqs{i+ncomp} = (f_V{i} - f_L{i}) + emptyJac;
+                if model.performFlash 
+                    eqs{i+ncomp} = (f_V{i} - f_L{i}) + emptyJac;
+                else
+                    eqs{i+ncomp} = (x{i} - K{i}.*y{i}) + emptyJac;
+                end
                 eqs{end} = eqs{end} - ~isLiq.*y{i} + ~isVap.*x{i} + emptyJac;
                 
                 if any(isPure)
@@ -601,6 +633,7 @@ classdef EquationOfStateModel < PhysicalModel
             % mole fraction).
             zP = z0;
             L = state.L;
+            K = state.K;
             zD = cellfun(@double, zP, 'UniformOutput', false);
             % Compute secondary variables as pure doubles
             xD = state.x;
@@ -625,8 +658,8 @@ classdef EquationOfStateModel < PhysicalModel
             TS = double(TP);
             LP = L;
             packed = state.eos.packed;
-            eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, packed);
-            eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, packed);
+            eqsPrim  = model.equationsEquilibrium(pP, TP, xP, yP, zP, LP, Z_L, Z_V, K, packed);
+            eqsSec = model.equationsEquilibrium(pS, TS, xS, yS, zS, LS, Z_L, Z_V, K, packed);
             
             ep = cat(eqsPrim{:});
             es = cat(eqsSec{:});
@@ -962,20 +995,6 @@ end
 
 function D = makeDiagonal(x, vx, ncell)
     D = sparse(vx, vx, x, ncell, ncell);
-end
-
-function [s, isAD] = getAD(P, x, y)
-    isAD = true;
-    if isa(P, 'ADI')
-        s = P;
-    elseif isa(x{1}, 'ADI')
-        s = x{1};
-    elseif isa(y{1}, 'ADI')
-        s = y{1};
-    else
-        s = [];
-        isAD = false;
-    end
 end
 
 %{
