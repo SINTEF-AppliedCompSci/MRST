@@ -346,6 +346,15 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
                 names = ['deltaP', names];
             end
         end
+        
+        function state = storeDensities(model, state, rhoW, rhoO, rhoG)
+            % Densities
+            isActive = model.getActivePhases();
+
+            state.mob = zeros(model.G.cells.num, sum(isActive));
+            rho = {double(rhoW), double(rhoO), double(rhoG)};
+            state = model.setPhaseData(state, rho, 'rho');
+        end
     end
 end
 
