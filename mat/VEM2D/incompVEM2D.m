@@ -97,6 +97,10 @@ opt = merge_options(opt, varargin{:});
 
 assert(G.griddim == 2, 'VEM2D is only supproted for 2D grids')
 
+if isempty(opt.srcFunc)
+    opt.srcFunc = 0;
+end
+
 if ~isa(opt.srcFunc, 'function_handle')
     assert(numel(opt.srcFunc) == 1 || 0, ...
     'Source function ''srcFunc'' must either be scalar or function handle')
@@ -113,10 +117,6 @@ assert(islogical(opt.cellPressure), ' ''cellPressure'' must be boolean')
         
 if opt.cellPressure
     opt.projectors = true;
-end
-
-if isempty(opt.srcFunc)
-    opt.srcFunc = 0;
 end
 
 if isempty(opt.bc)

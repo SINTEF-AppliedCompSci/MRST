@@ -8,7 +8,7 @@ nn = numel(n);
 
 assert((d == 1 && sum(n) == r) || ...
        (d == 2 && sum(n) == c)       );
-
+   
 if d == 1
     ii = repmat(1:r,1,c);
     jj = mcolon(1:c, (1:c)+nn*c-1, c); 

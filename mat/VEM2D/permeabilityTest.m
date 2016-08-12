@@ -56,7 +56,7 @@ S = computeMimeticIP(G, rock);
 
 %%  Solve
 
-solVEM = VEM2D(state, G, rock, fluid, 2, 'bc', bcVEM, 'cellPressure', true);
+solVEM = incompVEM2D(state, G, rock, fluid, 2, 'bc', bcVEM, 'cellPressure', true);
 solTPFA = incompTPFA(state, G, T, fluid, 'bc', bcMRST);
 solMPFA = incompMPFA(state, G, TMPFA, fluid, 'bc', bcMRST);
 solMFD  = solveIncompFlow(state, G, S, fluid, 'bc', bcMRST);

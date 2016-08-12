@@ -4,9 +4,9 @@ function A = squeezeBlockDiag(A, n, r, c)
 N = numel(n);
 
 if r == R
-    A = A*repmat(eye(c),N,1);
+    A = A*repmat(speye(c),N,1);
 else
-    A = repmat(eye(r),1,N)*A;
+    A = repmat(speye(r),1,N)*A;
 end
 
 end
