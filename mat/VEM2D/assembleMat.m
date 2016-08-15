@@ -17,4 +17,6 @@ P = sparse(ii,jj,1, numel(S.dofVec), G.nodes.num);
 
 A = P'*A*P;
 
+
+
 U = A\ones(G.nodes.num,1);
