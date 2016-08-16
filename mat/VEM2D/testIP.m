@@ -1,8 +1,12 @@
 clc; clear all; close all;
 
 addpath('../VEM3D/');
+mrstModule add mimetic
 
-G = cartGrid([2,2]);
+n = 100;
+k = 2;
+G = cartGrid([n,n]);
+
 
 G = computeVEM2DGeometry(G);
 G = sortEdges(G);
@@ -10,15 +14,15 @@ G = sortEdges(G);
 state = initState(G, [], 0);
 rock.perm = ones(G.cells.num,1);
 fluid = initSingleFluid('mu', 1, 'rho', 1);
+src = addSource([], [1,2], 1);
 
 tic;
-A = computeVirtualIP(G, rock, fluid, 2);
+S = computeVirtualIP(G, rock, fluid, k);
 toc
 
-% tic;
-% S = computeMimeticIP(G, rock);
-% toc
-% 
-% tic;
-% state = incompVEM2D(state, G, rock, fluid, 1);
-% toc
+tic;
+SMim = computeMimeticIP(G, rock);
+toc
+
+
+state = incompVEM(state, G, S, fluid, 'src', src);

@@ -105,7 +105,7 @@ if k == 1
     else
         fHat = f*ones(nN,1);
     end
-    fHat = mu*(fHat + rate/aP);
+    fHat = fHat + rate/aP;
     rateVec = 0;
     
     dofVec = nodes;

@@ -1,4 +1,4 @@
-function [state, varargout] = incompVEM(state, G, rock, fluid, k, varargin)
+function [state, varargout] = incompVEM(state, G, S, fluid, varargin)
 %   Solves the 2D Poisson equation using a kth order virtual element
 %   method.
 %
@@ -91,13 +91,13 @@ opt = merge_options(opt, varargin{:});
 
 %%  CHECK CORRECTNESS OF INPUT                                           %%
 
-assert(G.griddim == 3, 'Physical dimensin must be 2 or 3.');
+assert(G.griddim == 2 || G.griddim == 3, 'Physical dimensin must be 2 or 3.');
 
-assert(k == 1 | k == 2, 'Method order must be 1 or 2.');
-
+k  = S.order;
 nN = G.nodes.num;
 nF = G.faces.num;
-nK = G.cells.num;
+nP = G.cells.num;
+N  = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
 
 if G.griddim == 2
     nE = 0;
@@ -135,29 +135,13 @@ if opt.cellPressure
     opt.cellProjectors = true;
 end
 
-%%  COMPUTE STIFFNESS MATRIX, LOAD TERM AND PROJECTORS                   %%
+%%  COMPUTE GLOBAL MATRIX AND RIGHT-HAND SIDE                            %%
 
-if G.griddim == 2
-    [A,b,G] = incompVEM2D_glob();
-else
-    [A,b,G] = incompVEM3D_glob(G, rock, fluid, k, opt.bc, opt.src, ...
-                opt.srcFunc, opt.sigma, opt.cartGridQ, opt.cellProjectors);
-end
+[A, rhs] = glob(G, S, opt.src, k, N);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
-fprintf('Solving linear system ...\n')
-tic;
-
-U = opt.linSolve(A,b);
-
-stop = toc;
-fprintf('Done in %f seconds.\n\n', stop);
-
-if opt.matrixOutput
-    state.A = A;
-    state.rhs = b;
-end
+U = opt.linSolve(A, rhs);
 
 %%  UPDATE STATE                                                         %%
 
@@ -168,7 +152,7 @@ state.edgePressure = ...
 state.facePressure = ...
               full( U((1:nF*k*(k-1)/2)   + nN + nE*(k-1))                );
 state.cellPressure = ...
-              full( U((1:nK*k*(k^2-1)/6) + nN + nE*(k-1) + nF*k*(k-1)/2) );
+              full( U((1:nP*k*(k^2-1)/6) + nN + nE*(k-1) + nF*k*(k-1)/2) );
 
 if any([opt.faceProjectors, opt.cellProjectors])
     varargout(1) = {G};
@@ -185,5 +169,30 @@ if opt.cellPressure && k == 1
         state.pressure = calculateCellPressure3D(G, state);
     end
 end
-         
+
+%--------------------------------------------------------------------------
+
+function [A, rhs] = glob(G, S, src, k, N)
+    
+    ii = 1:numel(S.dofVec); jj = S.dofVec;
+    P = sparse(ii,jj,1, numel(S.dofVec), N);
+    A = P'*S.A*P;
+
+    if ~isempty(src)
+        if k == 1
+            rhs = zeros(G.cells.num,1);
+            rhs(src.cell) = src.rate.*G.cells.volumes(src.cell);
+            rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
+            rhs = S.PiN1'*S.PiN1*rhs;
+            rhs = P'*rhs;
+        else
+            rhs = zeros(N,1);
+            rhs(src.cell + G.nodes.num + G.faces.num) = src.rate';
+        end
+        
+    else
+        rhs = zeros(N,1);
+    end
+end
+
 end

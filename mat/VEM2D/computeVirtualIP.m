@@ -33,7 +33,10 @@ numCellNodes = diff(G.cells.nodePos);
 
 %%  FUNCTION SPACE DIMENSIONS
 
+nP = G.cells.num;
+
 nk   = (k+1)*(k+2)/2;
+nkk  = k*(k+1)/2;
 NP   = numCellNodes + numCellFaces*(k-1) + k*(k-1)/2;
 nker = NP - nk;
 
@@ -47,7 +50,10 @@ if k == 1
                   G.nodes.coords(nodes,:) ...
                   - rldecode(G.cells.centroids, numCellNodes, 1), ...
                     rldecode(G.cells.diameters, numCellNodes,1));
-    D = sparseBlockDiag(m(Xmon), numCellNodes, 1);
+    D = m(Xmon);
+    D1 = D(:, 1:nkk);
+    D = sparseBlockDiag(D, numCellNodes, 1);
+    D1 = sparseBlockDiag(D1, NP, 1);
 
 else
     
@@ -65,24 +71,26 @@ else
     intD = bsxfun(@times, I*intD, G.cells.diameters./G.cells.volumes);
     
     
-    ii = mcolon([1;cumsum(NP(1:end-1))+1],[1;cumsum(NP(1:end-1))+1]+numCellNodes-1);
-    jj = ii + rldecode(numCellNodes, numCellNodes, 1)';
+    nodeDof = mcolon([1;cumsum(NP(1:end-1))+1],[1;cumsum(NP(1:end-1))+1]+numCellNodes-1);
+    edgeDof = nodeDof + rldecode(numCellNodes, numCellNodes, 1)';
     D = zeros(sum(NP), nk);
-    D([ii, jj],:) = m(Xmon);
+    D([nodeDof, edgeDof],:) = m(Xmon);
     D(cumsum(NP),:) = intD;
+    
     D = sparseBlockDiag(D, NP, 1);
     
 end
 
 %%  CALCULATE B MATRICES
 
+%   Make permeability matrices, divided by mu.
+
 K = zeros(2*G.cells.num, 2);
 KK = permTensor(rock,2);
-K([1:2:end,2:2:end],:) = [KK(:,1:2);KK(:,3:4)];
+K([1:2:end,2:2:end],:) = [KK(:,1:2);KK(:,3:4)]/mu;
 
 if k == 1
     
-
     K = sparseBlockDiag(K, 2*ones(1,G.cells.num), 1);
     
     faceNormals = bsxfun(@rdivide, faceNormals, ...
@@ -102,63 +110,69 @@ if k == 1
     B = B(ii,:) + B(jj,:);
     B = [.5*(faceAreas(ii) + faceAreas(jj)), ...
                                    squeezeBlockDiag(B,numCellFaces, nF, nk-1)];
+    
+    B1 = B(:,1:nkk);
+    B1 = sparseBlockDiag(B1', NP, 2);
+                               
     B = sparseBlockDiag(B', NP, 2);
 
 else
 
     K = sparseBlockDiag(repmat(K,5,1), 2*ones(1,5*G.cells.num), 1);
     
-    intBN = sparseBlockDiag(grad_m(Xmon), repmat(numCellNodes+numCellFaces,5,1), 1)*K;
-    intBN = squeezeBlockDiag(intBN, repmat(numCellNodes + numCellFaces,5,1), sum(numCellNodes + numCellFaces)*5, 2);    
-%     
-%     ii = 1:nN; jj = ii;
-%     jj(2:end) = jj(1:end-1);
-%     jj([1;cumsum(numCellNodes(1:end-1))+1]) = ii(cumsum(numCellNodes));
-%     
+    intB = sparseBlockDiag(grad_m(Xmon), repmat(numCellNodes+numCellFaces,5,1), 1)*K;
+    intB = squeezeBlockDiag(intB, repmat(numCellNodes + numCellFaces,5,1), sum(numCellNodes + numCellFaces)*5, 2);    
     
+    %   Dot product by length-weighted face normals.
     
-    intB = sum(intBN([1:5*nN, 1:5*nN, 5*nN+1:end],:).*repmat(faceNormals,5*3 ,1),2);
-    intB = reshape(intB,3*nN,5);
-    tmp  = intB(G.faces.nodePos(2:end) - 1 + nN,:);
-    intB(nN+2:2*nN,:) = intB(nN+1:2*nN-1,:);
-    intB(G.faces.nodePos(1:end-1)+nN,:) = tmp;
-
-    intB = bsxfun( ...
-           @rdivide                                                       , ...
-           [(intB(1:nN,:) + intB(nN+1:2*nN,:))/6; intB(2*nN+1:end,:)*2/3] , ...
-           repmat(rldecode(G.cells.diameters,diff(G.faces.edgePos),1),2,1));
-
-    diffVec = cumsum(diff(G.faces.nodePos));
-    ii = [mcolon(G.faces.nodePos(1:end-1)                        ...
-                 + [0;diffVec(1:end-1) + (1:nF-1)']            , ...
-                 G.faces.nodePos(2:end)                          ...
-                 + [0;diffVec(1:end-1) + (1:nF-1)'] -1)        , ...
-          mcolon(G.faces.nodePos(1:end-1) + diffVec + (0:nF-1)', ...
-                 G.faces.nodePos(2:end)   + diffVec + (0:nF-1)' - 1)];
-    NF = 2*diff(G.faces.nodePos) + 1;
-    N = sum(2*diff(G.faces.nodePos) + 1);
-
-    %   Matrices B built as transpose
+    ii = 1:nN; jj = ii;
+    jj(2:end) = jj(1:end-1);
+    jj(G.cells.nodePos(1:end-1)) = ii(G.cells.nodePos(2:end)-1);
     
-    BT         = zeros(N,6);
-    BT(ii,2:6) = intB;
-    vec        = zeros(nF,6);
-    vec(:,1)   = 1; vec(:, [4,6]) = [-2*aF./G.faces.diameters.^2, -2*aF./G.faces.diameters.^2];
-    BT(2*diffVec' + (1:nF),:) = vec;
+    iiN = repmat(1:nN, 1, 5) + rldecode(0:(nN+nF):4*(nN+nF), nN*ones(1,5), 2);
+    iiF =  iiN + nN;
+    
+    intB = sum(intB([iiN, iiN, iiF],:).*...
+               [repmat(faceNormals,5,1); repmat(faceNormals(jj,:),5,1); repmat(faceNormals,5,1)], 2);
+    
+    %   Evaluate line integrals using three-point Gauss-Lobatto.
+           
+    intB = [reshape((intB(1:numel(iiN)) + intB(numel(iiN)+1:2*numel(iiN)))/6, nN, 5);
+            reshape(intB(2*numel(iiN)+1:end)*2/3, nN, 5)];
+    
+    intB = bsxfun(@rdivide, intB, repmat(rldecode(G.cells.diameters,diff(G.cells.nodePos),1),2,1));
+
+    %   Assmble matrices.
+    
+    B = zeros(sum(NP), nk);
+    B([nodeDof, edgeDof],2:nk) = intB;
+    vec = zeros(G.cells.num,6);
+    vec(:, [1,4,6]) = [ones(G.cells.num,1), ...
+                       bsxfun(@times, -2*[KK(:,1), KK(:,1)], ...
+                       G.cells.volumes./(mu*G.cells.diameters.^2))];
+   B(cumsum(NP),:) = vec;
+   
+   B = sparseBlockDiag(B', NP, 2);
 
 end
 
-%%  CALCULATE PROJECTOION OPERATORS
+    %%  CALCULATE PROJECTOION OPERATORS
 
 M = B*D;
 PiNstar = M\B;
 PiN = D*PiNstar;
 
-NP = numCellNodes;
-nker = NP - nk;
+clear B D;
+
 sigma = spdiags(rldecode(KK(:,1)+KK(:,4),nker,1), 0, sum(nker), sum(nker));
 
 M(1:nk:end,:) = 0;
+
+%%  CALCULATE H MATRIX
+
+if k == 1
+    PiN1 = (B1*D1)\B1;
+end
 
 %%  CALCULATE Q MATRIX
 
@@ -170,11 +184,10 @@ ind3   = [1; cumsum(NP.*nker)+1];
 ii     = zeros(sum(nker.*NP),1); jj = ii; Q = ii;
 
 for P = 1:G.cells.num 
-
-
+    
     PiNP = PiN(ind1(P):ind1(P+1)-1,ind1(P):ind1(P+1)-1);
 
-    QP   = orth(eye(numCellNodes(P))-PiNP);
+    QP   = orth(eye(NP(P))-PiNP);
     ii(ind3(P):ind3(P+1)-1) = repmat((ind1(P):ind1(P+1)-1)', nker(P),1);
     jjP = repmat(ind2(P):ind2(P+1)-1, NP(P), 1);
     jj(ind3(P):ind3(P+1)-1) = jjP(:);
@@ -188,11 +201,29 @@ Q = sparse(ii, jj, Q(:), sum(NP), sum(nker));
 I = speye(size(PiN,1));
 A = PiNstar'*M*PiNstar + (I-PiN)'*Q*sigma*Q'*(I-PiN);
 
+%%  
+
 %%  MAKE SOLUTION STRUCT
 
+if G.griddim == 2
+    vec = [1, cumsum(NP(1:end-1))' + 1];
+    iiN = mcolon(vec, vec + numCellNodes'-1);
+    iiF = mcolon(vec + numCellNodes', vec + numCellNodes' + numCellFaces'*(k-1)-1);
+    iiP = mcolon(vec + numCellNodes' + numCellFaces', vec + numCellNodes' + numCellFaces' + k*(k-1)/2 -1);
+    if k == 1
+        dofVec([iiN, iiF, iiP]) = nodes';
+    else
+        dofVec([iiN, iiF, iiP]) = [nodes', faces' + G.nodes.num, (1:G.cells.num) + G.nodes.num + G.faces.num*(k-1)];
+    end
+end
+
 S.A = A;
-S.dofVec = nodes;
+S.dofVec = dofVec;
 S.PNstar = PiNstar;
+if k == 1
+    S.PiN1 = PiN1;
+end
+S.order  = k;
 
 end
 
