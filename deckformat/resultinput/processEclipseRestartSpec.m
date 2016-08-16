@@ -116,7 +116,19 @@ for k = 1:numel(spec.time)
         spec.keywords{k}{kz} = ['ZTRACER_', spec.keywords{k}{kz+1}];
     end
 end
-    
+  
+% Process possible multiple appearing ICAQ, SCAQ, ACAQ
+flds = {'ICAQNUM', 'SCAQNUM', 'ACAQNUM'};
+for k = 1:numel(spec.time)
+    for fk = 1:numel(flds)
+        ix = find(strcmp(flds{fk}, spec.keywords{k}));
+        for fkix = 1:numel(ix)
+            spec.keywords{k}{ix(fkix)} = [spec.keywords{k}{ix(fkix)}, '_', num2str(fkix)]; 
+            spec.keywords{k}{ix(fkix)+1} = [spec.keywords{k}{ix(fkix)+1}, '_', num2str(fkix)]; 
+        end
+    end
+end
+
 % Process LGR sectiona and output
 outputSpecLGR = nargout > 1;
 if outputSpecLGR
