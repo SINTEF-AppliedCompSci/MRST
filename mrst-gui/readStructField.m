@@ -54,10 +54,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         s = s.(fname);
     end
-    if size(s, 2) == 3 && numel(subind) == 1
+    if size(s, 2) == 3 && numel(subind) == 1 && isnumeric(s)
         jind = 1:3;
         s = bsxfun(@rdivide, s, sum(s,2));
     end
-
-    data = s(:, jind);
+    if iscell(s)
+        data = s{jind};
+    else
+        data = s(:, jind);
+    end
 end

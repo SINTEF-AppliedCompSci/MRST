@@ -58,6 +58,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         return
+    elseif iscell(s) && all(cellfun(@numel, s) == G.cells.num)
+        flds = arrayfun(@(x) [name, ':', num2str(x)], (1:numel(s)).', ...
+                    'UniformOutput', false);
+        return
     end
     if isstruct(s)
         f = fieldnames(s);

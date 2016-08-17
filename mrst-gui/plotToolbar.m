@@ -139,6 +139,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     elseif strcmpi(class(dataset), 'ResultHandler')
         N = dataset.numelData();
         accessdata = @(x) dataset{x};
+    else
+        error('Unable to find fields in input with G.cells.num rows');
     end
 
     datasetname = inputname(2);
