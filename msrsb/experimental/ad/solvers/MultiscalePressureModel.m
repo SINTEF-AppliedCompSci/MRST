@@ -149,7 +149,12 @@ classdef MultiscalePressureModel < ReservoirModel
                                        'ResOnly', true, 'iteration', inf, ...
                                        'propsPressure', propsPressure, 'staticwells', true);
 
-         end
+        end
+         
+        function state = validateState(model, state)
+            state = model.pressureModel.validateState(state);
+        end
+
     end
     
 
