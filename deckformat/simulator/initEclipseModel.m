@@ -49,6 +49,13 @@ function [G, rock, fluid, state, wells, ...
 %   deck  - Raw input deck as defined by functions 'readEclipseDeck' and
 %           'convertDeckUnits'.  Especially usefull for the dynamic
 %           SCHEDULE information pertaining to switching well controls.
+%
+% SEE ALSO:
+%   initEclipseGrid, initEclipseState, processWells.
+
+%{
+#COPYRIGHT#
+%}
 
    require deckformat
 
