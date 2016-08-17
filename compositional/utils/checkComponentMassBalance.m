@@ -4,6 +4,10 @@ function checkComponentMassBalance(model, state0, states, schedule, n)
         n = numel(states);
     end
     
+    if ~isfield(state0, 'L')
+        state0 = model.computeFlash(state0, schedule.step.val(1), 1);
+    end
+    
     states = states(1:n);
     dt = schedule.step.val(1:n);
 
