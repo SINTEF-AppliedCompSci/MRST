@@ -212,7 +212,7 @@ function selectionCallback(src, event)
         name = cellfields{get(structh, 'Value')};
         cellfields = getStructFields(G, accessfcn(N), setname);
         set(structh, 'String', cellfields)
-        nameind = find(strcmpi(cellfields, name));
+        nameind = find(strcmp(cellfields, name));
         if isempty(nameind)
             nameind = 1;
         end
