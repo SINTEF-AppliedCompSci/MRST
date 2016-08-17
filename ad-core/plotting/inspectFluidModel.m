@@ -182,11 +182,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     yl = 'Reciprocal formation volume factor: b(p) = 1/B(p)';
                     xl = 'Pressure [bar]';
                 case {'rhoo', 'rhog', 'rhow'}
-                    bsub = ['b', fn(end)];
-                    rho = f.(['rho', fn(end), 'S']);
-                    [x, b, ok] = evalSat(model, f, bsub, p, rsMax, rvMax);
-                   
-                    data = b*rho;
+                    phLetter = fn(end);
+                    bsub = ['b', phLetter];
+                    rho = f.(['rho', phLetter, 'S']);
+                    [x, b, ok, r] = evalSat(model, f, bsub, p, rsMax, rvMax);
+                    if strcmpi(phLetter, 'o') && model.disgas
+                        % Account for solution gas
+                        rhoO = rho;
+                        rhoG = f.rhoGS;
+                        data = b.*(r.*rhoG + rhoO);
+                    elseif strcmpi(phLetter, 'g') && model.vapoil
+                        % Account for vaporized oil
+                        rhoG = rho;
+                        rhoO = f.rhoOS;
+                        data = b.*(r.*rhoO + rhoG);
+                    else
+                        data = b*rho;
+                    end
                     x = x/barsa;
                     xl = 'Pressure [bar]';
                     yl = 'Density [kg/m^3]';
@@ -337,7 +349,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         x = (start:dx:stop)';
     end
 
-    function [x, y, ok] = evalSat(model, f, fn, x, rsMax, rvMax)
+    function [x, y, ok, rs_g] = evalSat(model, f, fn, x, rsMax, rvMax)
         ok = true(size(x));
         if checkBO(model)
             if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
@@ -354,6 +366,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 ok = saturated';
                 y = f.(fn)(x, rs_g, saturated)';
                 x = x';
+                rs_g = rs_g';
             elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
                 mrs = max(rvMax);
                 rv = 0:mrs/10:mrs;
@@ -368,8 +381,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 ok = saturated';
                 y = f.(fn)(x, rs_g, saturated)';
                 x = x';
+                rs_g = rs_g';
             else
                 y = f.(fn)(x);
+                rs_g = nan;
             end
         else
             y = f.(fn)(x);
