@@ -136,6 +136,15 @@ for i = 1:ncomp
                     rhoO.*pvMult.*sO.*xM{i} - rhoO0.*pvMult0.*sO0.*xM0{i} + ...
                     rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i}) ...
           + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
+    if model.water
+        pureWater = double(sW) == 1;
+        if any(pureWater)
+            % Cells with pure water should just retain their composition to
+            % avoid singular systems
+            eqs{i+woffset}(pureWater) = eqs{i+woffset}(pureWater) + ...
+                            1e-3*(z{i}(pureWater) - double(z{i}(pureWater)));
+        end
+    end
 end
 
 
