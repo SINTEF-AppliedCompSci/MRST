@@ -159,7 +159,10 @@ end
     %%  CALCULATE PROJECTOION OPERATORS
 
 M = B*D;
-PiNstar = M\B;
+
+[ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
+kk = sub2ind(size(M), ii, jj);
+PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
 PiN = D*PiNstar;
 
 clear B D;
@@ -183,18 +186,30 @@ ind1   = [1; cumsum(NP)+1];
 ind3   = [1; cumsum(NP.*nker)+1];
 ii     = zeros(sum(nker.*NP),1); jj = ii; Q = ii;
 
+PiNPos = [1; cumsum(NP.^2) + 1];
+QPos   = [1; cumsum(NP.*nker)+1];
+
+ii = blockDiagIndex(NP);
+PiNvec = full(PiN(ii));
+
 for P = 1:G.cells.num 
     
-    PiNP = PiN(ind1(P):ind1(P+1)-1,ind1(P):ind1(P+1)-1);
-
-    QP   = orth(eye(NP(P))-PiNP);
-    ii(ind3(P):ind3(P+1)-1) = repmat((ind1(P):ind1(P+1)-1)', nker(P),1);
-    jjP = repmat(ind2(P):ind2(P+1)-1, NP(P), 1);
-    jj(ind3(P):ind3(P+1)-1) = jjP(:);
-    Q(ind3(P):ind3(P+1)-1) = QP(:);
+    PiNP = reshape(PiNvec(PiNPos(P):PiNPos(P+1)-1), NP(P), NP(P));
+    QP = orth(eye(NP(P))-PiNP);
+    Q(QPos(P):QPos(P+1)-1) = QP(:);
+    
+%     PiNP = PiN(ind1(P):ind1(P+1)-1,ind1(P):ind1(P+1)-1);
+% 
+%     QP   = orth(eye(NP(P))-PiNP);
+%     ii(ind3(P):ind3(P+1)-1) = repmat((ind1(P):ind1(P+1)-1)', nker(P),1);
+%     jjP = repmat(ind2(P):ind2(P+1)-1, NP(P), 1);
+%     jj(ind3(P):ind3(P+1)-1) = jjP(:);
+%     Q(ind3(P):ind3(P+1)-1) = QP(:);
     
 end
-Q = sparse(ii, jj, Q(:), sum(NP), sum(nker));
+
+[ii,jj] = blockDiagIndex(NP, nker);
+Q = sparse(ii, jj, Q, sum(NP), sum(nker));
 
 %%  CALCULATE LOCAL BLOCK MATRICES
     

@@ -82,4 +82,22 @@ b(dofVec) = vals;
 I = spdiags(ones(NK,1),0,NK,NK);
 A(dofVec,:) = I(dofVec,:);
 
-end 
+end
+
+%--------------------------------------------------------------------------
+
+% function vals = interpolateBC(bc)
+% 
+%     vals = zeros(numel(bc.face), 3);
+%     
+%     isNeu = strcmp(bc.type, 'flux');
+%     vals(isNeu,:) = .5*repmat(bc.value(isNeu), 1, 3);
+%     
+%     isDir = strcmp(bc.type, 'pressure');
+%     faces = bc.faces(isDir);
+%     nodes = G.faces.nodes(mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces+1)-1));
+%     
+%     nodes = reshape(nodes',2,[])'
+%     nodes = sort(nodes(:,1))
+%     
+% end
