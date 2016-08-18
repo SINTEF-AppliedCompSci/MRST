@@ -65,6 +65,9 @@ function [wellSols, states, schedulereport] = ...
 %                     to disk during the simulation or in-situ
 %                     visualization. See the ResultHandler base class.
 %
+% 'ReportHandler'   - Same as 'OutputHandler', but for the reports for the
+%                     individual report steps.
+%
 % 'LinearSolver'    - Class instance subclassed from LinearSolverAD. Used
 %                     to solve linearized problems in the NonLinearSolver
 %                     class. Note that if you are passing a
@@ -136,6 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'OutputMinisteps', false, ...
                  'NonLinearSolver', [], ...
                  'OutputHandler',   [], ...
+                 'ReportHandler',   [], ...
                  'afterStepFn',     [], ...
                  'LinearSolver',    []);
 
@@ -258,7 +262,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if ~isempty(opt.OutputHandler)
             opt.OutputHandler{ind} = states_step;
         end
-
+        
+        if ~isempty(opt.ReportHandler)
+            opt.ReportHandler{ind} = report;
+        end
+        
         if wantStates
             states(ind) = states_step;
         end
