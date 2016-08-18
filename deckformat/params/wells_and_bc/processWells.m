@@ -31,6 +31,10 @@ function W = processWells(G, rock, control, varargin)
 %           - DepthReorder -- Boolean indicating if we should attempt to
 %                             reorder the perforations by depth. Should
 %                             only be used for vertical wells. Default off.
+%           - strictParsing -- Throw errors if unsupported well controls
+%                              are encountered. If disabled, wells with
+%                              unsupported controls will recieve NaN values
+%                              for control and phase composition.
 %           - createDefaultWell -- If enabled, this function will not parse
 %                              any wells, but simply return a default well
 %                              structure suitable for further modification.
@@ -89,6 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('InnerProduct',     'ip_tpf', ...
                 'Verbose',           mrstVerbose(), ...
                 'DepthReorder',      false, ...
+                'strictParsing',     true, ...
                 'createDefaultWell', false);
    opt = merge_options(opt, varargin{:});
 
@@ -321,7 +326,14 @@ function W = process_wconhist(W, control, G, rock, well_id, p, opt)
           val = - sum([control.WCONHIST{i, 4:5}]);
           compi = [1, 1, 0];
         case 'resv'
-          error('RESV for WCONHIST not supported');
+          if opt.strictParsing
+             error('RESV for WCONHIST not supported');
+          else
+             warning(['RESV for WCONHIST not supported. '...
+                      'Inserting NaN values for control in well %s.'], nm);
+          end
+          val = nan;
+          compi = [nan, nan, nan];
         case 'bhp'
           val = control.WCONHIST{i, 10};
 
