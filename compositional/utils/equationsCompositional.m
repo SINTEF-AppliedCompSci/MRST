@@ -70,14 +70,14 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Oil flux
-rhoOf  = s.faceAvg(rhoO);
+rhoOf  = s.faceAvg(sO.*rhoO)./max(s.faceAvg(sO), 1e-8);
 mobO   = krO./muO;
 dpO    = s.Grad(p) - rhoOf.*gdz;
 upco  = (double(dpO)<=0);
 vO = -s.faceUpstr(upco, mobO).*T.*dpO;
 
 % Gas flux
-rhoGf  = s.faceAvg(rhoG);
+rhoGf  = s.faceAvg(sG.*rhoG)./max(s.faceAvg(sG), 1e-8);
 mobG   = krG./muG;
 dpG    = s.Grad(p) - rhoGf.*gdz;
 upcg  = (double(dpG)<=0);
