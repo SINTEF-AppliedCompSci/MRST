@@ -59,7 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-   require coarsegrid
+   require coarsegrid incomp
 
    opt = struct('ufactor', 1.5, ...
                 'ncuts',   1, ...
