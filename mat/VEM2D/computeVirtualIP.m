@@ -1,9 +1,4 @@
-function S = computeVirtualIP(G,rock,fluid,k)
-
-
-%%  EXTRACT FLUID PROPERTIES
-
-[mu, ~] = fluid.properties();
+function S = computeVirtualIP(G,rock,k)
 
 %%  GET NODE AND FACE DATA
 
@@ -32,8 +27,6 @@ nN = numel(nodes);
 numCellNodes = diff(G.cells.nodePos);
 
 %%  FUNCTION SPACE DIMENSIONS
-
-nP = G.cells.num;
 
 nk   = (k+1)*(k+2)/2;
 nkk  = k*(k+1)/2;
@@ -83,11 +76,9 @@ end
 
 %%  CALCULATE B MATRICES
 
-%   Make permeability matrices, divided by mu.
-
 K = zeros(2*G.cells.num, 2);
 KK = permTensor(rock,2);
-K([1:2:end,2:2:end],:) = [KK(:,1:2);KK(:,3:4)]/mu;
+K([1:2:end,2:2:end],:) = [KK(:,1:2);KK(:,3:4)];
 
 if k == 1
     
@@ -97,7 +88,7 @@ if k == 1
                                  rldecode(G.cells.diameters, numCellFaces, 1));
     faceNormals = sparseBlockDiag(faceNormals, numCellFaces, 1);
 
-    B = .5*faceNormals*K/mu;
+    B = .5*faceNormals*K;
 
     ii = 1:nF; jj = ii;
     jj(2:end) = jj(1:end-1);
@@ -105,23 +96,27 @@ if k == 1
                 -G.cells.facePos(1:end-2))+1]) ...
      = ii(cumsum(G.cells.facePos(2:end)-G.cells.facePos(1:end-1)));
 
-    nk = (k+1)*(k+2)/2;
-
     B = B(ii,:) + B(jj,:);
     B = [.5*(faceAreas(ii) + faceAreas(jj)), ...
                                    squeezeBlockDiag(B,numCellFaces, nF, nk-1)];
     
-    B1 = B(:,1:nkk);
+        B1 = B(:,1:nkk);
     B1 = sparseBlockDiag(B1', NP, 2);
                                
     B = sparseBlockDiag(B', NP, 2);
 
 else
-
-    K = sparseBlockDiag(repmat(K,5,1), 2*ones(1,5*G.cells.num), 1);
     
-    intB = sparseBlockDiag(grad_m(Xmon), repmat(numCellNodes+numCellFaces,5,1), 1)*K;
-    intB = squeezeBlockDiag(intB, repmat(numCellNodes + numCellFaces,5,1), sum(numCellNodes + numCellFaces)*5, 2);    
+    gm = grad_m(Xmon);
+    ii = repmat((1:5*sum(numCellNodes+ numCellFaces))',2,1);
+    jj = repmat(1:2,5*sum(numCellNodes + numCellFaces),1);
+    add = repmat([rldecode((0:2:2*(G.cells.num-1))', numCellNodes,1);rldecode((0:2:2*(G.cells.num-1))', numCellFaces,1)], 5,1);
+    jj = bsxfun(@plus,jj,add);
+    jj = jj(:);
+    
+    intB = sparse(ii, jj, gm(:), 5*sum(numCellNodes+ numCellFaces), 2*G.cells.num)*K;
+    
+ 
     
     %   Dot product by length-weighted face normals.
     
@@ -147,9 +142,9 @@ else
     B = zeros(sum(NP), nk);
     B([nodeDof, edgeDof],2:nk) = intB;
     vec = zeros(G.cells.num,6);
-    vec(:, [1,4,6]) = [ones(G.cells.num,1), ...
-                       bsxfun(@times, -2*[KK(:,1), KK(:,1)], ...
-                       G.cells.volumes./(mu*G.cells.diameters.^2))];
+    vec(:, [1,4:6]) = [ones(G.cells.num,1), ...
+                       bsxfun(@times, -2*[KK(:,1),KK(:,2), KK(:,4)], ...
+                       G.cells.volumes./G.cells.diameters.^2)];
    B(cumsum(NP),:) = vec;
    
    B = sparseBlockDiag(B', NP, 2);
@@ -179,13 +174,7 @@ end
 
 %%  CALCULATE Q MATRIX
 
-ind2   = [1; cumsum(nker)+1];
-
-ind1   = [1; cumsum(NP)+1];
-
-ind3   = [1; cumsum(NP.*nker)+1];
-ii     = zeros(sum(nker.*NP),1); jj = ii; Q = ii;
-
+Q = zeros(sum(nker.*NP),1);
 PiNPos = [1; cumsum(NP.^2) + 1];
 QPos   = [1; cumsum(NP.*nker)+1];
 
@@ -194,18 +183,9 @@ PiNvec = full(PiN(ii));
 
 for P = 1:G.cells.num 
     
-    PiNP = reshape(PiNvec(PiNPos(P):PiNPos(P+1)-1), NP(P), NP(P));
-    QP = orth(eye(NP(P))-PiNP);
+    QP = null(reshape(PiNvec(PiNPos(P):PiNPos(P+1)-1), NP(P), NP(P)));
     Q(QPos(P):QPos(P+1)-1) = QP(:);
-    
-%     PiNP = PiN(ind1(P):ind1(P+1)-1,ind1(P):ind1(P+1)-1);
-% 
-%     QP   = orth(eye(NP(P))-PiNP);
-%     ii(ind3(P):ind3(P+1)-1) = repmat((ind1(P):ind1(P+1)-1)', nker(P),1);
-%     jjP = repmat(ind2(P):ind2(P+1)-1, NP(P), 1);
-%     jj(ind3(P):ind3(P+1)-1) = jjP(:);
-%     Q(ind3(P):ind3(P+1)-1) = QP(:);
-    
+        
 end
 
 [ii,jj] = blockDiagIndex(NP, nker);
@@ -242,6 +222,31 @@ S.order  = k;
 
 end
 
+% function Q = orth(A)
+% %ORTH   Orthogonalization.
+% %   Q = ORTH(A) is an orthonormal basis for the range of A.
+% %   That is, Q'*Q = I, the columns of Q span the same space as 
+% %   the columns of A, and the number of columns of Q is the 
+% %   rank of A.
+% %
+% %   Class support for input A:
+% %      float: double, single
+% %
+% %   See also SVD, RANK, NULL.
+% 
+% %   Copyright 1984-2011 The MathWorks, Inc. 
+% 
+% [Q,S] = svd(A,'econ'); %S is always square.
+% if ~isempty(S)
+%     S = diag(S);
+%     tol = max(size(A)) * S(1) * eps(class(A));
+%     r = sum(S > tol);
+%     Q = Q(:,1:r);
+% end
+% 
+% end
+
+
 
 
 % ii = zeros(sum(NP.*nker),1); jj = ii; Q = ii;
@@ -268,6 +273,33 @@ end
 %     PPP = PiNvec(isPiNP);
 %     PiNP = sparse(iii, jjj, PPP);
 
+
+% ind2   = [1; cumsum(nker)+1];
+% 
+% ind1   = [1; cumsum(NP)+1];
+% 
+% ind3   = [1; cumsum(NP.*nker)+1];
+% ii     = zeros(sum(nker.*NP),1); jj = ii; Q = ii;
+
 % [iiPiN, jjPiN, PiNvec] = find(PiN);
 % lo = 1; hi = 0; isPiNP = 0;
 % lo = 0;
+
+
+        
+    
+%     PiNP = PiN(ind1(P):ind1(P+1)-1,ind1(P):ind1(P+1)-1);
+% 
+%     QP   = orth(eye(NP(P))-PiNP);
+%     ii(ind3(P):ind3(P+1)-1) = repmat((ind1(P):ind1(P+1)-1)', nker(P),1);
+%     jjP = repmat(ind2(P):ind2(P+1)-1, NP(P), 1);
+%     jj(ind3(P):ind3(P+1)-1) = jjP(:);
+%     Q(ind3(P):ind3(P+1)-1) = QP(:);
+
+%     K = repmat(K,10,1);
+    
+%     intB = sparseBlockDiag(grad_m(Xmon), repmat([numCellNodes;numCellFaces],5,1), 1)*K;
+%     intB = squeezeBlockDiag(intB, repmat(numCellNodes + numCellFaces,5,1), sum(numCellNodes + numCellFaces)*5, 2);   
+
+%     K = sparseBlockDiag(repmat(K,5,1), 2*ones(1,5*G.cells.num), 1);
+%     K = repmat(K,10,1);

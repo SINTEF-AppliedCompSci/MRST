@@ -135,11 +135,13 @@ if opt.cellPressure
     opt.cellProjectors = true;
 end
 
+
+[mu, rho] = fluid.properties();
 %%  ASSEMBLE GLOBAL MATRIX AND COMPUTE RIGHT-HAND SIDE                   %%
 
-[A, rhs] = glob(G, S, opt.src, k, N);
+[A, rhs] = glob(G, S, opt.src, k, N, mu);
 
-[A, rhs] = imposeBC(G, opt.bc, k, A, rhs);
+[A, rhs] = imposeBC(G, opt.bc, k, mu, A, rhs);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
@@ -176,7 +178,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = glob(G, S, src, k, N)
+function [A, rhs] = glob(G, S, src, k, N, mu)
     
     ii = 1:numel(S.dofVec); jj = S.dofVec;
     P = sparse(ii,jj,1, numel(S.dofVec), N);
@@ -188,10 +190,10 @@ function [A, rhs] = glob(G, S, src, k, N)
             rhs(src.cell) = src.rate.*G.cells.volumes(src.cell);
             rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
             rhs = S.PiN1'*S.PiN1*rhs;
-            rhs = P'*rhs;
+            rhs = mu*P'*rhs;
         else
             rhs = zeros(N,1);
-            rhs(src.cell + G.nodes.num + G.faces.num) = src.rate';
+            rhs(src.cell + G.nodes.num + G.faces.num) = mu*src.rate';
         end
         
     else
@@ -201,50 +203,58 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = imposeBC(G, bc, k, A, rhs)
+function [A, rhs] = imposeBC(G, bc, k, mu, A, rhs)
 
-bc = interpolateBC(G, bc);
+if ~isfield(bc, 'func') 
+    bc = mrst2vem(bc, G);
+else
+    bc.value = zeros(numel(bc.face), 3);
+    for i = 1:numel(bc.face)
+        g = bc.func{i};
+        n = G.faces.nodes(G.faces.nodePos(bc.face(i)):G.faces.nodePos(bc.face(i)+1)-1);
+        bc.value(i,:) = [g(G.nodes.coords(n,:))', ...
+                         g(G.faces.centroids(bc.face(i),:))];
+    end
+end
 
 NK = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
 
-edges   = bc.face(strcmp(bc.type,'flux'));
-edgeLengths = G.faces.areas(edges);
+f   = bc.face(strcmp(bc.type,'flux'));
+fa = G.faces.areas(f);
 
-nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges +1)-1);
-nodes   = G.faces.nodes(nodeNum);
-nN = numel(nodes);
-uNodes = unique(nodes);
-nUN = numel(uNodes);
-S = (repmat(nodes,1,nUN) == repmat(uNodes',nN,1))';
+n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f +1)-1));
+nn = numel(n);
+un = unique(n);
+nun = numel(un);
+S = (repmat(n,1,nun) == repmat(un',nn,1))';
 
-vals = bc.value(strcmp(bc.type,'flux'),:);
-
-if k == 1
-    vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths/3];
-    vals = bsxfun(@plus, vals(:,1:2), vals(:,3));
-    vals = reshape(vals',[],1);
-    vals = S*vals;
-    dofVec = uNodes';
-elseif k == 2
-    vals = vals.*[edgeLengths/6, edgeLengths/6, edgeLengths*2/3];
-    vals = [S*reshape(vals(:,1:2)',[],1); vals(:,3)];
-    dofVec = [uNodes', edges' + G.nodes.num];
-end
-rhs(dofVec) = rhs(dofVec) + vals;
-
-edges   = bc.face(strcmp(bc.type,'pressure'));
-nodeNum = mcolon(G.faces.nodePos(edges), G.faces.nodePos(edges +1)-1);
-nodes   = G.faces.nodes(nodeNum);
-vals = bc.value(strcmp(bc.type,'pressure'),:);
+v = mu*bc.value(strcmp(bc.type,'flux'),:);
 
 if k == 1
-    vals = reshape(vals(:,1:2)',[],1);
-    dofVec = nodes';
+    v = v.*[fa/6, fa/6, fa/3];
+    v = bsxfun(@plus, v(:,1:2), v(:,3));
+    v = reshape(v',[],1);
+    v = S*v;
+    dofVec = un';
 elseif k == 2
-    dofVec = [nodes', edges' + G.nodes.num];
-    vals = [reshape(vals(:,1:2)',[],1); vals(:,3)];
+    v = v.*[fa/6, fa/6, fa*2/3];
+    v = [S*reshape(v(:,1:2)',[],1); v(:,3)];
+    dofVec = [un', f' + G.nodes.num];
 end
-rhs(dofVec) = vals;
+rhs(dofVec) = rhs(dofVec) + v;
+
+f   = bc.face(strcmp(bc.type,'pressure'));
+n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f +1)-1));
+v = bc.value(strcmp(bc.type,'pressure'),:);
+
+if k == 1
+    v = reshape(v(:,1:2)',[],1);
+    dofVec = n';
+elseif k == 2
+    dofVec = [n', f' + G.nodes.num];
+    v = [reshape(v(:,1:2)',[],1); v(:,3)];
+end
+rhs(dofVec) = v;
 I = spdiags(ones(NK,1),0,NK,NK);
 A(dofVec,:) = I(dofVec,:);
 
@@ -252,60 +262,23 @@ end
 
 %--------------------------------------------------------------------------
 
-function bc = interpolateBC(G, bc)
-
-    value = zeros(numel(bc.face), 3);
+function bc = mrst2vem(bc, G)
     
     isNeu = strcmp(bc.type, 'flux');
-    value(isNeu,:) = .5*repmat(bc.value(isNeu), 1, 3);
+    
+    bc.value(isNeu) ...
+        = bc.value(isNeu)./G.faces.areas(bc.face(isNeu));
+
+    bc.value = repmat(bc.value, 1,3);
     
     isDir = strcmp(bc.type, 'pressure');
-    f = bc.face(isDir);
-    fSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,2) ~= 0); 
     
-    ve = bc.value(isDir);
+    gD = scatteredInterpolant(G.faces.centroids(bc.face(isDir),:), ...
+                                                        bc.value(isDir,1));
+    n = G.faces.nodes(mcolon(G.faces.nodePos(bc.face(isDir)), ...
+                             G.faces.nodePos(bc.face(isDir)+1)-1));
+    vn = gD(G.nodes.coords(n,:));
     
-    nodes = G.faces.nodes(mcolon(G.faces.nodePos(f), ...
-                                 G.faces.nodePos(f+1)-1));
-    if size(nodes,1) == 1; nodes = nodes'; end
-    nodes   = reshape(nodes,2,[])';
-    nodes(fSign == -1,:) = nodes(fSign == -1, 2:-1:1);
+    bc.value(isDir,1:2) = reshape(vn,2,[])';
     
-    
-    M = bsxfun(@eq, repmat(nodes(:,2)', size(nodes,1), 1), nodes(:,1));
-    pn = M*(1:numel(f))';
-    nn = M'*(1:numel(f))';
-        
-    d = sqrt(sum((G.faces.centroids(f( pn(pn~= 0)),:)-G.faces.centroids(f(pn~=0),:)).^2,2));
-    a = (ve(pn(pn ~= 0))-ve(pn ~= 0))./d;
-    fa = G.faces.areas(f);
-    
-    vn = zeros(numel(nodes)/2 + nnz(pn==0),1);
-    
-    isInt = false(numel(vn),1);
-    isInt(1) = pn(1);
-    j = 2;
-    for i = 2:numel(pn)
-        isInt(j) = any([pn(i),nn(i-1)]~= 0, 2);
-        j = j+1;
-        if pn(i) == 0 && nn(i-1) == 0
-            j = j+1;
-        end
-    end
-    
-    vn(isInt) = a.*fa(pn~=0)/2 + ve(pn~=0);
-    
-    ii = find(pn==0) - (0:nnz(pn==0)-1)';
-    jj = find(pn==0) + (0:nnz(pn==0)-1)';
-    vn(jj) = a(ii).*fa(pn==0)/2 + ve(pn==0);
-    
-    ii = find(nn==0) - (1:nnz(nn==0))';
-    jj = find(nn==0) + (1:nnz(nn==0))';
-    vn(jj) = -a(ii).*fa(nn==0)/2 + ve(nn==0);
-    
-    vn = reshape(rldecode(vn, isInt+1, 1),2,[])';
-    value(isDir,:) = [vn, ve];
-    
-    bc.value = value;
-      
 end

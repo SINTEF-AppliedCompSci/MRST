@@ -19,7 +19,6 @@ f = boundaryFaces(G);
 
 gD = @(X) X(:,2);
 
-% bc = VEM2D_addBC([], G, f, 'pressure', gD(G.faces.centroids(f,:)));
 bc = addBC([], f, 'pressure', gD(G.faces.centroids(f,:)));
 
 tic;
@@ -29,9 +28,6 @@ toc
 tic;
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 toc
-
-
-
 
 plotVEM2D(G, state, 2)
 
