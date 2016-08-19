@@ -104,7 +104,7 @@ if model.water
     rWvW = s.faceUpstr(upcw, rhoW).*vW;
     water = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 ) + s.Div(rWvW);
 else
-    [rWvW, upcw, bW, rhoW] = deal([]);
+    [rWvW, mobW, upcw, bW, rhoW] = deal([]);
 end
 if model.outputFluxes
     state = model.storeFluxes(state, rWvW, rOvO, rGvG);
