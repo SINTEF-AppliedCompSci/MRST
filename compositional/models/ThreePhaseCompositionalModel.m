@@ -112,16 +112,23 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             % Saturation update
             wIx = strcmpi(vars, 'sw');
             
+            vL = state.Z_L.*state.L;
+            vV = state.Z_V.*(1-state.L);
+            vT = vL + vV;
             if any(wIx)
                 state = model.updateStateFromIncrement(state, dx{wIx}, problem, 'sW', model.dsMaxRel, model.dsMaxAbs);
                 state.s(:, 1) = max(min(state.s(:, 1), 1), 0);
-                
-                state.s(:, 2) = (1 - state.s(:, 1)).*state.Z_L.*state.L./(state.Z_L.*state.L + state.Z_V.*(1 - state.L));
-                state.s(:, 3) = 1 - state.s(:, 2) - state.s(:, 3);
+                void = 1 - state.s(:, 1);
 
                 [vars, ix] = model.stripVars(vars, {'sw'});
                 removed(~removed) = removed(~removed) | ix;
+                state.dsW = abs(state0.s(:, 1) - state.s(:, 1));
+            else
+                void = 1;
             end
+            % Liquid
+            state.s(:, 1 + model.water) = void.*vL./vT;
+            state.s(:, 2 + model.water) = void.*vV./vT;
             
             % Components
             cnames = model.EOSModel.fluid.names;
@@ -321,6 +328,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
                 if problem.iterationNo > 1
                     v = problem.state.dz(1:ncomp);
+                    if model.water
+                        values(1) = norm(problem.state.dsW, inf);
+                    end
                 else
                     v = inf(1, ncomp);
                 end
