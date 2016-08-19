@@ -165,7 +165,10 @@ function kr= krW(sw,opt,varargin)
       kr = sw; 
    end
    kr = kr .* opt.krw; 
-   assert(all(double(kr) == 0 | double(sw)>opt.res_water));
+   
+   kr(sw <= opt.res_water) = 0; % normally it is the case, but slight inaccuracies may
+                                % invalidate this assumption.
+   % assert(all(double(kr) == 0 | double(sw)>opt.res_water));
    % assert(all(double(kr(double(sw) <= opt.res_water)) == 0));
 end
 
