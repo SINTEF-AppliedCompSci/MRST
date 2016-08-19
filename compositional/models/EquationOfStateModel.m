@@ -269,6 +269,7 @@ classdef EquationOfStateModel < PhysicalModel
             values = abs([f_r{:}] - 1);
             for i = 1:ncomp
                 K{i} = max(K{i}.*abs(f_r{i}), 1e-12);
+                K{i}(~isfinite(K{i})) = 1;
             end
         end
         
