@@ -159,6 +159,10 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Pressure comes first, so validate that.
             state = model.pressureModel.validateState(state);
         end
+        
+        function [fn, index] = getVariableField(model, name)
+            [fn, index] = model.pressureModel.getVariableField(name);
+        end
     end
 end
 
