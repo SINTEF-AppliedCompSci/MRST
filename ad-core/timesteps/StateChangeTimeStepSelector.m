@@ -27,6 +27,7 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
         % Relaxation factor. Larger values mean less severe changes in
         % time-steps.
         relaxFactor = 1;
+        previousState;
     end
     
     methods
@@ -53,8 +54,13 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
             dt = computeTimestep@IterationCountTimeStepSelector(selector, dt, dt_prev, model, solver, state_prev, state_curr);
             
             if isempty(state_prev)
-                return
+                if isempty(selector.previousState)
+                    return
+                else
+                    state_prev = selector.previousState;
+                end
             end
+            selector.previousState = state_curr;
             dt_next = inf;
             for i = 1:numel(selector.targetProps)
                 fn = selector.targetProps{i};
