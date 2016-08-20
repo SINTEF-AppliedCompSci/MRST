@@ -144,6 +144,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % for now, connection status can only be true if well status is true  
    for k = 1:numel(W)
        W(k).cstatus = and(W(k).status, W(k).cstatus);
+       % if all completions are closed, well must be off
+       W(k).status = and(W(k).status, any(W(k).cstatus));
    end
 end
 
