@@ -323,12 +323,6 @@ function w = readWelOpen(fid, w)
 
    data = toDouble(data, numeric);
 
-   if ~ all([ data{:, 3:end} ] < 0),
-      warning('WELOPEN:Connection', ...
-             ['MRST does not support opening/closing individual ', ...
-              'well connections through ''WELOPEN''.']);
-   end
-
    for kw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
       if isfield(w, kw{1}) && ...
             ~ (isempty(data) || isempty(w.(kw{1}))),
