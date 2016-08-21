@@ -116,6 +116,11 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
             
             
         end
+    
+        function reset(selector)
+            reset@IterationCountTimeStepSelector(selector);
+            selector.previousState = [];
+        end
     end
 end
 
