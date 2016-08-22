@@ -76,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             bad = (isOscillating | isStagnated) | isOk;
             relax = all(bad) && ~all(isOk);
             if relax
-                dispif(solver.verbose, ...
+                dispif(solver.verbose > 0, ...
                     'Convergence issues detected. Applying relaxation to Newton solver.\n');
                 solver.relaxationParameter = max(solver.relaxationParameter - solver.relaxationIncrement, solver.minRelaxation);
             else

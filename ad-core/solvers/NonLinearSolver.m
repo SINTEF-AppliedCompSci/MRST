@@ -307,7 +307,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         if solver.errorOnFailure
                             error(msg);
                         else
-                            warning(msg);
+                            if solver.verbose >= 0
+                                warning(msg);
+                            end
                             converged = false;
                             if ~(solver.continueOnFailure && failure)
                                 % Unless this was a failure and a special
@@ -316,8 +318,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                             end
                         end
                     else
-                        % Beat timestep with a hammer
-                        warning([solver.getId(), 'Solver did not converge, cutting timestep'])
+                        if solver.verbose >= 0
+                            % Beat timestep with a hammer
+                            warning([solver.getId(), 'Solver did not converge, cutting timestep'])
+                        end
                         cuttingCount = cuttingCount + 1;
                         dt = dt/2;
                     end
@@ -329,7 +333,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if acceptCount ~= 1, pl_mini = 's'; else pl_mini = ''; end
             if itCount     ~= 1, pl_it   = 's'; else pl_it   = ''; end
 
-            dispif(solver.verbose, ...
+            dispif(solver.verbose > 0, ...
                    [solver.getId(), ...
                     'Solved timestep with %d accepted ministep%s', ...
                     ' (%d rejected, %d total iteration%s)\n'], ...
