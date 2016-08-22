@@ -318,10 +318,10 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
 
                 offset = model.water;
                 ncomp = numel(model.EOSModel.fluid.names);
-                if isa(model, 'TransportCompositionalModel')
+                if isa(model, 'TransportCompositionalModel') 
                     % We might be missing a 
-                    ncomp = ncomp - model.conserveWater;
-                    offset = model.conserveWater;
+                    ncomp = ncomp - (model.conserveWater && model.water);
+                    offset = (model.conserveWater && model.water);
                 end
 
                 values = cellfun(@(x) norm(double(x), inf), problem.equations);
