@@ -4,17 +4,13 @@ function G = voronoi2mrst(V, C, varargin)
 %
 % SYNOPSIS:
 %   G = voronoi2mrst(V,C)
-%   G = voronoi2mrst(...,'Name1',Value1)
 %
 % PARAMETERS:
 %   V         A nx3 array containing the vertices of the Voronoi diagram,
 %             as obtained from [V, C] = voronoin(pts)
 %   C         A cell array where each element coresponds to one cell,
 %             as obtained from [V, C] = voronoin(pts)
-%   aux       - OPTIONAL
-%             Default set to false. A logical array which specify axillary
-%             cells. If element aux(k) = false, cell number k will be
-%             removed.
+%
 % RETURNS:
 %   G                - Valid MRST grid definition.  
 %
@@ -25,8 +21,7 @@ function G = voronoi2mrst(V, C, varargin)
 % Y(1:2:end) = Y(1:2:end) + dt/2;
 % pts = [X(:), Y(:),Z(:)];
 % [V,C] = voronoin(pts);
-% aux = cellfun(@(c) any(c==1)), C);
-% G = voronoi2mrst(V,C,'aux',aux);
+% G = voronoi2mrst(V,C);
 % plotGrid(G);
 % axis equal
 %
@@ -42,27 +37,34 @@ function G = voronoi2mrst(V, C, varargin)
 assert(size(V, 2) == 3, ...
       ['Function ''%s'' is only supported in three ', ...
        'space dimensions.'], mfilename);
+     
+if isinf(V(1,1))
+  warning(['Found cells extending to infinity. These cells will be ', ...
+           'removed from the converted grid'])
+  rem = cellfun(@(c) any(isinf(V(c,1))), C);
+  C   = C(~rem);
+  V   = V(2:end,:);
+  C   = cellfun(@(c) c-1, C,'un',false);
+end
 
-% Remove auxillary cells
-opt = struct('aux', false(numel(C),1));
-opt = merge_options(opt, varargin{:});
-C            = C(~opt.aux)';
-cell2Node    = cumsum([1, cellfun(@numel, C)]);
-activeVertex = cell2mat(C);
+% Create mapping from cells to nodes.
+cell2Node    = cumsum([1; cellfun(@numel, C)])';
+activeVertex = cell2mat(C');
 [activeVertex, ~, C] = unique(activeVertex);
 V            = V(activeVertex,:);
 
 % Set number of cells
 G.cells.num  = numel(cell2Node)-1;
 
-% Find half faces
+% Find half faces for all cells
 facePos    = ones(G.cells.num+1,1);
 hf         = [];      
 hf2NodePos = [1]; 
 
 for i = 1:G.cells.num
     % Calculate convex hull
-    hull = C(cell2Node(i)-1+convhull(V(C(cell2Node(i):cell2Node(i+1)-1),:),'simplify',true));
+    H = convhull(V(C(cell2Node(i):cell2Node(i+1)-1),:),'simplify',true);
+    hull         = C(cell2Node(i)-1+H);
     % Merge triangle faces into polygons
     [hull, localPos] = remParFaces(V, hull);
     hf           = [hf; hull];
@@ -73,7 +75,7 @@ for i = 1:G.cells.num
 end
 G.cells.facePos = facePos;
 
-% Find faces
+% Find faces from the half faces.
 [nodes, nodePos, ic] = uniqueFace(hf,hf2NodePos);
 
 G.faces.nodePos = nodePos;
