@@ -50,7 +50,22 @@ function varargout = getAtlasGrid(varargin)
 %   convertAtlasTo3D, downloadDataSets
 
 %{
-#COPYRIGHT#
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 if nargout == 0
    n = getNames();
@@ -309,13 +324,13 @@ function avgrock = getAvgRock(name)
         % Norwegian Sea (chp 5 of "CO2 Storage Atlas: Norwegian
         % Contential Shelf" from NPD)
         case 'tilje'
-            tmp = [140 0.21]; % pg. 102
+            tmp = [140 0.21 0.30]; % pg. 102 (including net-to-gross)
         case 'are'
-            tmp = [140 0.21]; % pg. 102
+            tmp = [140 0.21 0.30]; % pg. 102 (including net-to-gross)
         case 'garn'
-            tmp = [580 0.27]; % pg. 103
+            tmp = [580 0.27 0.25]; % pg. 103 (including net-to-gross)
         case 'ile'
-            tmp = [580 0.27]; % pg. 103
+            tmp = [580 0.27 0.25]; % pg. 103 (including net-to-gross)
         case 'not'
             tmp = [NaN NaN]; % pg. 87, 96: Not is a sealing formation
         case 'ror'
@@ -326,4 +341,7 @@ function avgrock = getAvgRock(name)
     end
     avgrock.avgperm = tmp(1)*milli*darcy;
     avgrock.avgporo = tmp(2);
+    if numel(tmp) == 3
+       avgrock.avgntg = tmp(3);
+    end
 end

@@ -21,7 +21,22 @@ function varargout = contourAtlas(info, varargin)
 %   h         - handle to graphics produced by the routine
 
 %{
-#COPYRIGHT#
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     if nargin == 1
         N = 10;
@@ -60,11 +75,18 @@ function varargout = contourAtlas(info, varargin)
     
     if isempty(color)
        data = get(h, 'UserData');
-       dpts = unique([data{:}]);
-       colors = flipud(jet(N+1));
-       for i = 1:numel(h)
-          set(h(i), 'LineWidth', l)
-          set(h(i), 'Color', colors(dpts == get(h(i), 'UserData'), :));
+
+       if ~ isempty(data),
+          if iscell(data),
+             data = [ data{:} ];
+          end
+
+          dpts = unique(data);
+          colors = flipud(jet(N+1));
+          for i = 1:numel(h)
+             set(h(i), 'LineWidth', l)
+             set(h(i), 'Color', colors(dpts == get(h(i), 'UserData'), :));
+          end
        end
     else
        set(h,'Color',color);

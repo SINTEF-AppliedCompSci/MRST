@@ -79,7 +79,22 @@ function [Res, Jac] = twophaseJacobianWithVE_s(G, state, rock, fluid, varargin)
 %   - multipliers for gravity flux.  Handle this in 'getFlux'
 
 %{
-#COPYRIGHT#
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % $Date: 2012-09-19 14:15:12 +0200 (Wed, 19 Sep 2012) $
@@ -832,7 +847,22 @@ function q = computeTransportSourceTerm(state, G, wells, src, bc)
 %   - implement gravity effects for pressure boundary and wells
 
 %{
-#COPYRIGHT#
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % $Date: 2012-09-19 14:15:12 +0200 (Wed, 19 Sep 2012) $
