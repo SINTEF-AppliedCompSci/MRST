@@ -390,7 +390,7 @@ classdef EquationOfStateModel < PhysicalModel
             
             if nargin < 6
                 Z_L = model.computeLiquidZ(double(A_L), double(B_L));
-                Z_V = model.computeLiquidZ(double(A_V), double(B_V));
+                Z_V = model.computeVaporZ(double(A_V), double(B_V));
 
                 Z_L = FastAD(Z_L, 0*P.jac);
                 Z_V = FastAD(Z_V, 0*P.jac);
@@ -412,7 +412,7 @@ classdef EquationOfStateModel < PhysicalModel
             [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = model.getMixtureFugacityCoefficients(P, T, x, y, model.fluid.acentricFactors);
 
             Z_L = model.computeLiquidZ(double(A_L), double(B_L));
-            Z_V = model.computeLiquidZ(double(A_V), double(B_V));
+            Z_V = model.computeVaporZ(double(A_V), double(B_V));
             s = getSampleAD(P, T, x{:}, y{:});
             if isa(s, 'ADI')
                 Z_L = double2ADI(Z_L, s);
