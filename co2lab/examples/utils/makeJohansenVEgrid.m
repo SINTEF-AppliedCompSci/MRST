@@ -104,7 +104,7 @@ G = computeGeometry(G(1));
 clear grdecl
 
 % Construct VE grid
-[Gt, G] = topSurfaceGrid(G,'AddFaults',false);
+[Gt, G] = topSurfaceGrid(G);
 
 % Construct structure with petrophyiscal data. Vertical permeability is set
 % to 0.1 times the horizontal permeability. NB!
@@ -138,18 +138,19 @@ facesMat = sparse(double(Gt.faces.neighbors(:,1))+1, ...
 facesMat = facesMat + facesMat';
 faultFaces2D = diag( facesMat(cells2D_1+1, cells2D_2+1) );
 
-% Make internal boundary and compute the geometry of the resulting grid
-Gt = makeInternalBoundary(Gt, faultFaces2D);
-Gt = computeGeometryVE(Gt);
+%% Following code deprecated with new topSurfaceGrid routine
+% % Make internal boundary and compute the geometry of the resulting grid
+% Gt = makeInternalBoundary(Gt, faultFaces2D);
+% Gt = computeGeometryVE(Gt);
 
-% The function 'topSurfaceGrid' does not handle faults correctly when the
-% cells on opposite sides are not phyiscally in contact with each other.
-% Instead of producing a discontinuity in the 'z' value, an average value
-% is used.  Hence, we need to manually reset the 'z' value of these cells
-% (marked in red and green in the plot) to avoid an incorrect flow
-Gt.cells.z([cells2D_1; cells2D_2]) = ...
-    G.faces.centroids(Gt.cells.map3DFace([cells2D_1; cells2D_2]), 3);
-clear cells2D_1 cells2D_2 % facesMat faultFaces2D
+% % The function 'topSurfaceGrid' does not handle faults correctly when the
+% % cells on opposite sides are not phyiscally in contact with each other.
+% % Instead of producing a discontinuity in the 'z' value, an average value
+% % is used.  Hence, we need to manually reset the 'z' value of these cells
+% % (marked in red and green in the plot) to avoid an incorrect flow
+% Gt.cells.z([cells2D_1; cells2D_2]) = ...
+%     G.faces.centroids(Gt.cells.map3DFace([cells2D_1; cells2D_2]), 3);
+% clear cells2D_1 cells2D_2 % facesMat faultFaces2D
 
 
 %% FIND PRESSURE BOUNDARY

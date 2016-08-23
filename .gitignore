@@ -8,3 +8,11 @@ data/sleipner/*
 data/johansen/*
 /co2lab/utils/co2props/sampled_tables/*.mat
 /co2lab/examples/papers/CAGEO-79/results/
+/co2lab/data/atlas
+/Link to figurer
+/co2lab/ve/VEmex/VETransportCPU.mexa64
+co2lab/ve/VEmex/build
+experimental/misc/external_code
+/states.mat
+/wellSol.mat
+figs/
