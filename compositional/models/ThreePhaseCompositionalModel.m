@@ -20,7 +20,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model.EOSModel.verbose = false;
             
             model.EOSNonLinearSolver = NonLinearSolver();
-            model.EOSNonLinearSolver.verbose = false;
+            model.EOSNonLinearSolver.verbose = -1;
             model.EOSNonLinearSolver.maxIterations = 100;
             model.EOSNonLinearSolver.maxTimestepCuts = 0;
             model.EOSNonLinearSolver.useRelaxation = true;
