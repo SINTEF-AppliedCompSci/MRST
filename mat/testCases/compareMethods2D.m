@@ -3,18 +3,19 @@ clc; clear; close all;
 mrstModule add mimetic
 mrstModule add mpfa
 addpath('../VEM2D/')
+addpath('../VEM3D/')
 
 tol= 1e-6;
 
-i = 3;
+i = 1;
 switch i
     case 1
 
         load('unstructPebi.mat');
 
         k = 2;
-
-        rock.perm = ones(G.cells.num,1);
+        rock.perm = [rand(G.cells.num,1)*1000,rand(G.cells.num,1)]*1e-12;
+%         rock.perm = ones(G.cells.num,1);
         fluid = initSingleFluid('mu', 1, 'rho', 1);
 
         C = [.5, .5];
@@ -29,23 +30,26 @@ switch i
         fNeuS = f(isNeuS);
         fDir = f(~any([isNeuN, isNeuS],2));
 
-        bcFunc = addBCFunc([], fDir, 'pressure', gD);
-        bcFunc = addBCFunc(bcFunc, fNeuN, 'flux', gN);
-        bcFunc = addBCFunc(bcFunc, fNeuS, 'flux', @(X) -gN(X));
-
-        bc = func2mrstBC(bcFunc, G);
-
+%         bcFunc = addBCFunc([], fDir, 'pressure', gD);
+%         bcFunc = addBCFunc(bcFunc, fNeuN, 'flux', gN);
+%         bcFunc = addBCFunc(bcFunc, fNeuS, 'flux', @(X) -gN(X));
+%         bcFunc = addBCFunc([], fDir, 'pressure', 0);
+%         bc = func2mrstBC(bcFunc, G);
+        bc = addBC([], f, 'pressure', 0);
+        bcFunc = bc;
+        
         c = 1:G.cells.num;
         src = addSource([], c(G.cells.tag), 1);
     
     case 2
         
-        k = 2;
+        k = 1;
         src = [];
         
-        G = unitSquare([20,20],[1,1]);
-        G = computeVEM2DGeometry(G);
+        G = unitSquare([10,10],[1,1]);
         sortEdges(G);
+        G = computeVEM2DGeometry(G);
+        
         rock.perm = repmat([10, 0, 1]*1e-12, G.cells.num,1);
         mu = 100; rho = 1;
         fluid = initSingleFluid('mu', mu, 'rho', rho);
@@ -65,8 +69,6 @@ switch i
 %         bcFunc = addBCFunc(bcFunc, f(~any([isIn, isOut], 2)), 'flux', 0);
         
         bcFunc = bc;
-        
-        sum(bc.value)
         
         bFunc = bc;
         
@@ -119,9 +121,14 @@ S = computeVirtualIP(G, rock, k);
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bcFunc, 'src', src);
 toc
 
+if k == 1
+    stateVEM.cellPressure = calculatePressure(G, stateVEM);
+end
+
 subplot(2,2,1)
 plotCellData(G, stateVEM.cellPressure);
 axis([0,1,0,1]);
+title('VEM')
 colorbar;
 
 S = computeMimeticIP(G, rock);
@@ -130,6 +137,7 @@ stateMFD = incompMimetic(state, G, S, fluid, 'bc', bc, 'src', src);
 subplot(2,2,2)
 plotCellData(G, stateMFD.pressure);
 axis([0,1,0,1]);
+title('MFD')
 colorbar;
 
 T = computeTrans(G, rock);
@@ -138,6 +146,7 @@ stateTPFA = incompTPFA(state, G, T, fluid, 'bc', bc, 'src', src);
 subplot(2,2,3)
 plotCellData(G, stateTPFA.pressure);
 axis([0,1,0,1]);
+title('TPFA')
 colorbar;
 
 T = computeMultiPointTrans(G, rock);
@@ -146,6 +155,7 @@ stateMPFA = incompMPFA(state, G, T, fluid, 'bc', bc, 'src', src);
 subplot(2,2,4)
 plotCellData(G, stateMPFA.pressure);
 axis([0,1,0,1]);
+title('MPFA')
 colorbar;
 
 fprintf('\nDifference\n-----------------\n')

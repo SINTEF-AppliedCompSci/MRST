@@ -23,6 +23,16 @@ G = computeGeometry(G);
 G = mrstGridWithFullMappings(G);
 
 cellDiameters = zeros(G.cells.num,1);
+
+% x = G.nodes.coords(G.cells.nodes,1);
+% y = G.nodes.coords(G.cells.nodes,2);
+% ncn = diff(G.cells.nodePos);
+% [ii,jj] = blockDiagIndex(ncn);
+% xx = sparse(ii,jj,rldecode(x,rldecode(ncn,ncn,1),1));
+% yy = sparse(ii,jj,rldecode(y,rldecode(ncn,ncn,1),1));
+% bsxfun(@minus,xx,x)
+% bsxfun(@minus,yy,y)
+
 for i = 1:G.cells.num
     nodeNum = G.cells.nodePos(i):G.cells.nodePos(i+1)-1;
     nodes = G.cells.nodes(nodeNum);

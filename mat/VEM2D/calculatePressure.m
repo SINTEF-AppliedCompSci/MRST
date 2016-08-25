@@ -37,7 +37,7 @@ function p = calculatePressure(G, state)
    for details.
 %}
 
-if isempty(state.pressure)
+if isempty(state.cellPressure)
 
     nK = G.cells.num;
     [m, ~, ~] = retrieveMonomials(2,1);
