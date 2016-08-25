@@ -141,12 +141,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'OutputHandler',   [], ...
                  'ReportHandler',   [], ...
                  'afterStepFn',     [], ...
+                 'restartStep',     1, ...
                  'LinearSolver',    []);
 
     opt = merge_options(opt, varargin{:});
 
     %----------------------------------------------------------------------
-
+    if opt.restartStep ~= 1
+        nStep = numel(schedule.step.val);
+        assert(numel(opt.restartStep) == 1 && ...
+               opt.restartStep <= nStep &&...
+               opt.restartStep > 1, ...
+        ['Restart step must be an index between 1 and ', num2str(nStep), '.']);
+        schedule.step.control = schedule.step.control(opt.restartStep:end);
+        schedule.step.val = schedule.step.val(opt.restartStep:end);
+    end
+    
     dt = schedule.step.val;
     tm = [0 ; reshape(cumsum(dt), [], 1)];
 
@@ -173,7 +183,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     solver.timeStepSelector.reset();
 
     nSteps = numel(dt);
-
     [wellSols, states, reports] = deal(cell(nSteps, 1));
     wantStates = nargout > 1;
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
@@ -260,11 +269,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         wellSols(ind) = wellSols_step;
 
         if ~isempty(opt.OutputHandler)
-            opt.OutputHandler{ind} = states_step;
+            opt.OutputHandler{ind + opt.restartStep - 1} = states_step;
         end
         
         if ~isempty(opt.ReportHandler)
-            opt.ReportHandler{ind} = report;
+            opt.ReportHandler{ind + opt.restartStep - 1} = report;
         end
         
         if wantStates
