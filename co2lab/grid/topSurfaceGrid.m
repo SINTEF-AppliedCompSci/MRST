@@ -1,4 +1,4 @@
-function [Gt, G, transMult] = topSurfaceGrid2(G)
+function [Gt, G, transMult] = topSurfaceGrid(G)
 
    %% Identify columns in layered 3D grid; remove unused cells from G
    % cells in G that will not contribute to the top surface grid 
@@ -187,7 +187,7 @@ function [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J)
    N1 = padded_nodelist(Gt, I, NaN); % padded list of nodes per cell in I
    N2 = padded_nodelist(Gt, J, NaN); % padded list of nodes per cell in J
    
-   comb = combvec(1:size(N1,2), 1:size(N2, 2));
+   comb = combination_pairs(1:size(N1,2), 1:size(N2, 2));
    dist2 = nan(length(I), size(comb, 2));
    r = 1;
    for i = comb
@@ -233,6 +233,15 @@ function [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J)
    ffaces = nfix(ffaces); % update indices to fault faces as well
    
 end
+
+% ----------------------------------------------------------------------------
+function c = combination_pairs(l1, l2)
+   % return list of 2D vecs representing all possible combinations of
+   % one element from l1 and one element from l2
+   [A, B] = meshgrid(1:numel(l1), 1:numel(l2));
+   c = [l1(A(:)); l2(B(:))];
+end
+
 
 % ----------------------------------------------------------------------------
 
