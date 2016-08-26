@@ -189,6 +189,8 @@ else
     T = sparse(ii, jj, T(:));
     Kmat = squeezeBlockDiag(T'*Kmat*T, repmat(2, [numel(f), 1]), 2*numel(f), 2);
     
+    clear T;
+    
     e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
     n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
    
@@ -198,9 +200,9 @@ else
     iin = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
     iie = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
     if k == 1
-        x = x(iin,:);
+        xx = x(iin,:);
     else
-        x = [x(iin,:); ec(iie,:)];
+        xx = [x(iin,:); ec(iie,:)];
     end
     
     NP   = nfn + nfe*(k-1) + k*(k-1)/2;
@@ -218,7 +220,7 @@ else
     [BF, DF, ~, ~] = computeBD2D(zeros(numel(f),2), G.faces.diameters(f), ...
                                  G.faces.areas(f), nfn(f), nfe(f), ...
                                  en(iie,:), G.edges.lengths(e), ePos, ...
-                                 x, numel(n), nPos, ...
+                                 xx, numel(n), nPos, ...
                                  Kmat, ...
                                  NP, k, G.griddim);
 
@@ -234,6 +236,7 @@ else
     
     [m, grad_m, int_m] = retrieveMonomials(3, k);
     ncn = diff(G.cells.nodePos);
+    nce = diff(G.cells.edgePos);
     ncf = diff(G.cells.facePos);
     
     if k == 1
@@ -242,10 +245,70 @@ else
                                  rldecode(G.cells.diameters, ncn, 1));
         D = sparseBlockDiag(m(xMon), diff(G.cells.nodePos), 1);
     else
-        xMon = bsxfun(@rdivide, G.nodes.coords(G.cells.nodes,:) ...
-                       - rldecode(G.cells.centroids, ncn,1), ...
-                         rldecode(G.cells.diameters, ncn, 1));
+        xMon = bsxfun(@rdivide, [G.nodes.coords(G.cells.nodes   , :); ...
+                                 G.edges.centroids(G.cells.edges, :)] ...
+                       - rldecode(repmat(G.cells.centroids,2,1), [ncn; nce],1), ...
+                         rldecode(repmat(G.cells.diameters,2,1), [ncn; nce], 1));
+        DfInt = m(bsxfun(@rdivide, G.faces.centroids(G.cells.faces(:,1),:) ...
+                                 - rldecode(G.cells.centroids, ncf, 1), ...
+                                   rldecode(G.cells.diameters, ncf, 1)));
+        [xq, w, xr] = triangleQuadRule(2);
+        
+        T = zeros(3, 2*G.faces.num);
+        T(:,[1:2:end, 2:2:end]) = [v1, v2];
+        alpha = [2 0 0; 1 1 0; 1 0 1; 0 2 0; 0 1 1; 0 0 2];
+        alpha = alpha*T;
+        
+        
+        cc = (rldecode(G.cells.centroids,ncf,1)-G.faces.centroids)*T;
+
+        alpha(:,1:2:end) = alpha(:,1:2:end) + 1;
+%         alpha = rldecode(reshape(alpha',2,[])', repmat(nfn,6,1),1);
+        
+        alpha = reshape(alpha,6*2,[]);
+        alpha = reshape(alpha(:,f),6,[]);
+        
+        
+        
+        
+        ii = 1:sum(nfn); jj = ii;
+        jj(2:end) = jj(1:end-1);
+        jj([1;cumsum(G.faces.nodePos(2:end-1)    ...
+            -G.faces.nodePos(1:end-2))+1]) ...
+            = ii(cumsum(G.faces.nodePos(2:end)-G.faces.nodePos(1:end-1)));
+        
+        int = [repmat(x, 6, 1);repmat(ec,6,1)].^repmat(alpha,2,1);
+        int = int(:,1).*int(:,2);
+        int = (int(1:6*sum(nfn)).*repmat(en(:,1),6,1) + int(1:6*sum(nfn)).*repmat(en(jj,1),6,1))/6 ...
+            + int(6*sum(nfn)+1:end).*repmat(en(:,1),6,1)*2/3;
+        
+        I = sparseBlockDiag(ones(1, 6*sum(nfe)), repmat(nfe,6,1), 2);
+        DfInt(:,5:end) = reshape(I*int,G.faces.num, 6);
+        
+        
+%         
+%         int = 
+%         int = ((int(:,1).*int(:,2)).*repmat(en(:,1),6,1) + ...
+%               (int(:,1).*int(:,2)).*repmat(en(jj,1),6,1))./alpha(:,1);
+% 
+%         DfInt
+        
+%         xyInt = 
+%         rldecode([xInt(:), yInt(:)], repmat(nfn,6,1),1);.*en,2)
+        
+%         
+%         enf = sum([xInt(:),yInt(:)].*rldecode(en,2);
+        
+%         alpha = sparseBlockDiag(alpha*T, 2*ones(G.faces.num,1), 2);
+        
+        
     end
+    
+    %%  CALCULATE B MATRICES
+%     
+%     if k == 1
+%         Kmat = permTensor(K, 3);
+%     end
     
 end
 
@@ -389,3 +452,11 @@ else
 end
 
 end
+
+%         xExp = alpha(:,1:2:end) ~= 0;
+%         yExp = ~xExp & alpha(:,2:2:end) ~=0;
+%         alpha(:,[1:2:end,2:2:end]) = alpha(:, [1:2:end,2:2:end]) + [xExp, yExp];
+
+%         xyExp = zeros(6, size(T,2));
+%         xyExp(:,[1:2:end,2:2:end]) = [xExp,yExp];
+%         xyExp = rldecode(reshape(xyExp',2,[])', repmat(nfn,6,1),1);
