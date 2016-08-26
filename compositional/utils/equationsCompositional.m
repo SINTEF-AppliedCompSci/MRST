@@ -116,6 +116,7 @@ if model.extraStateOutput
     state = model.storeDensities(state, rhoW, rhoO, rhoG);
 end
 
+
 % water equation + n component equations
 [eqs, types, names] = deal(cell(1, ncomp + model.water));
 
@@ -222,7 +223,7 @@ if ~isempty(W)
         for i = 1:numel(W)
             wp = wm.perf2well == i;
             state.wellSol(i).flux = fluxt(wp);
-            state.wellSol(i).components = compSrc(i, :);
+            state.wellSol(i).components = sum(compSrc(wp, :));
         end
     end
 end
