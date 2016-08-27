@@ -54,7 +54,8 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
     opt2 = struct('gravity'  , 10, ... 
                   'density'  , 3000, ...
                   'top_force', 30000,...
-                  'rolling_vertical', false);
+                  'rolling_vertical', false,...
+                  'tol',sqrt(eps));
     opt2 = merge_options(opt2, varargin{:});
 
     
@@ -63,11 +64,16 @@ function [el_bc, load] = makeCompactionTest(G, opt, varargin)
         Lmax = max(G.faces.centroids(:, j));
         Lmin = min(G.faces.centroids(:, j));
         x = [Lmin, Lmax];
-        for i = 1 : 2      
-            mside         = sides{2*(j-1)+i};
-            tmp           = pside([], G, mside, 0);
-            faces         = tmp.face;
-            bc{i + (j - 1)*2} = addBC([], faces, 'pressure', 0);
+        for i = 1 : 2
+             if(~isfield(G, 'cartDims'))
+                faces = find(abs(G.faces.centroids(:, j)-x(i))<opt2.tol);
+                assert(all(any(G.faces.neighbors(faces,:)==0,2)));
+             else
+                mside         = sides{2*(j-1)+i};
+                tmp           = pside([], G, mside, 0);
+                faces         = tmp.face;
+             end
+             bc{i + (j - 1)*2} = addBC([], faces, 'pressure', 0);
         end
     end
 
