@@ -138,10 +138,10 @@ end
 
 function [cols, col_pos, H] = compute_column_info(G, col_cells, tfaces)
 
-   col_sizes = sum(col_cells~=0)';
-   col_pos = cumsum([1; col_sizes]);
+   col_sizes = sum(col_cells~=0, 1)';
+   col_pos = cumsum([1; col_sizes], 1);
 
-   start_ix = cumsum([1;repmat(size(col_cells, 1), size(col_cells, 2), 1)]);
+   start_ix = cumsum([1;repmat(size(col_cells, 1), size(col_cells, 2), 1)], 1);
    start_ix = start_ix(1:end-1);
    end_ix = start_ix + col_sizes - 1;
    
@@ -319,7 +319,7 @@ function [Gt, orient] = construct_grid_from_top_faces(G, tcells, tfaces)
    [unodes, fnodes_ixs] = uniqueNodes(coords); 
    
    %% constructing node field of Gt
-   Gt.nodes = struct('num', numel(unodes), 'coords', unodes(:,1:2), 'z', unodes(:,3));
+   Gt.nodes = struct('num', size(unodes, 1), 'coords', unodes(:,1:2), 'z', unodes(:,3));
    
    %% Constructing face field (i.e. edges) of Gt
    % We start with a set of edges containing duplicates
@@ -443,7 +443,7 @@ function [active_cols, col_cells, G] = identify_column_cells(G)
    %% First, we peel away inactive cells _above_ the top surface
    
    % following line gives us the number of inactive cells at the top of each pillar
-   inactive_upper = sum(cumsum(col_cells) == 0)'; 
+   inactive_upper = sum(cumsum(col_cells, 1) == 0, 1)'; 
    
    % remove the inactive top cells from matrix
    keeps = lnum(ones(lsize, 1)) - inactive_upper; % how many elements to keep per pillar
@@ -456,13 +456,13 @@ function [active_cols, col_cells, G] = identify_column_cells(G)
    %% Then, we peel away any cells _below_ remaining, inactive cells
    
    % for each row, true until first zero is encountered
-   keeps = logical(cumprod(col_cells)); 
+   keeps = logical(cumprod(col_cells, 1)); 
    discard_cells = reshape(col_cells(~keeps), [], 1);
    discard_cells = discard_cells(discard_cells ~= 0);
    col_cells(~keeps) = 0;
                           
    % Determine which pillars contain at least one cell
-   active_cols = logical(sum(col_cells));
+   active_cols = logical(sum(col_cells, 1));
    
    %% Remove discarded cells from parent grid
    if ~isempty(discard_cells)
