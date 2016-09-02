@@ -5,6 +5,7 @@ clc; clear; close all;
 %   3) Point source problem, both orders.
 
 i = 3;
+
 switch i
     case 1
 
@@ -78,28 +79,20 @@ switch i
         
     case 3
         
-        tol= 1e-6;
-%         G = voronoiCube(10,[1,1,1])
         G = cartGrid([2,2,2], [1,1,1]);
         G = computeVEM3DGeometry(G);
         
-        k = 1;
-        
-%         K = [1,0,0,0,0,1];
+        k = 2;
         
         mu = 100; rho = 1;
-%         gD = @(X) -(K(2) + K(3))/K(1)*X(:,1).^2 + X(:,1).*X(:,2) + X(:,2).^2;
-%         gN = @(X) -((2*X(:,2)-X(:,1))*K(2) - 2*K(3)*X(:,1) + K(1)*X(:,2))/mu;
-        
+
         rock.perm = repmat(1, G.cells.num,1);
         fluid = initSingleFluid('mu', mu, 'rho', 1);
 
         tol = 1e-6;
         f = boundaryFaces(G);
         isNeu = abs(G.faces.centroids(f,1))<tol;
-%         
-%         bc = addBCFunc([], f(isNeu), 'flux', gN);
-%         bc = addBCFunc(bc, f(~isNeu), 'pressure', gD);
+
         bc = addBC([], f, 'pressure', 0);
         tic;
         S = computeVirtualIP(G, rock, k);

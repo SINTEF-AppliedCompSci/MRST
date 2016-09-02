@@ -189,7 +189,7 @@ else
     T = sparse(ii, jj, T(:));
     Kmat = squeezeBlockDiag(T'*Kmat*T, repmat(2, [numel(f), 1]), 2*numel(f), 2);
     
-    clear T;
+%     clear T;
     
     e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
     n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
@@ -254,36 +254,147 @@ else
                                    rldecode(G.cells.diameters, ncf, 1)));
         [xq, w, xr] = triangleQuadRule(2);
         
-        T = zeros(3, 2*G.faces.num);
-        T(:,[1:2:end, 2:2:end]) = [v1, v2];
-        alpha = [2 0 0; 1 1 0; 1 0 1; 0 2 0; 0 1 1; 0 0 2];
-        alpha = alpha*T;
+%         for P = 1:G.cells.num
+%             m = @(X) bsxfun(@minus, X(:,1), G.cells.centroids(P,:))/G.cells.diameters(P);
+%             f = G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1);
+%             fInt = polygonInt3D(G, f, m, k);
+%         end
+%         PInt = polyhedronInt(G, 1:G.cells.num, m, k);
         
         
-        cc = (rldecode(G.cells.centroids,ncf,1)-G.faces.centroids)*T;
+        alphaQuad = [0 1 0 2 1 0];
+        betaQuad  = [0 0 1 0 1 2];
 
-        alpha(:,1:2:end) = alpha(:,1:2:end) + 1;
-%         alpha = rldecode(reshape(alpha',2,[])', repmat(nfn,6,1),1);
+        x = binomialExpansion(v1(1,:)',v2(1,:)', G.faces.centroids(:,1),1,k);
+        y = binomialExpansion(v1(2,:)',v2(2,:)', G.faces.centroids(:,2), 1,k);
+        z = binomialExpansion(v1(3,:)',v2(3,:)', G.faces.centroids(:,3), 1,k);
+        c5 = binomialExpansion(v1(1,:)',v2(1,:)', G.faces.centroids(:,2), 2,k);
+%                   binomialExpansion(v1(2,:)',v2(2,:)',2,k); ...
+%                   binomialExpansion(v1(3,:)',v2(3,:)',2,k)]; % 5, 8, 10
+        alphaQuad = alphaQuad + 1;
+        c5 = bsxfun(@rdivide, c5, alphaQuad);
+              
+        [alphaBi, betaBi, cBi]  = polyProducts([x; x; y], [y; z; z], G.faces.num);% 6, 7, 9
         
-        alpha = reshape(alpha,6*2,[]);
-        alpha = reshape(alpha(:,f),6,[]);
+        alphaBi = alphaBi+1;
+        cBi = bsxfun(@rdivide, cBi, alphaBi);
         
+        ncfn = sparse(rldecode((1:G.cells.num)', diff(G.cells.facePos),1) , f , 1)*nfn;
         
+        cc = rldecode(G.cells.centroids, ncfn, 1);
+        cd = rldecode(G.cells.diameters, ncfn, 1);
         
+        x = sparseBlockDiag(bsxfun(@rdivide,(G.nodes.coords(n,:)-cc),cd), nfn(f), 1);
+        x = squeezeBlockDiag(x*T, nfn(f), sum(nfn(f)), 2);
         
-        ii = 1:sum(nfn); jj = ii;
+        ec = sparseBlockDiag(bsxfun(@rdivide,(G.edges.centroids(e,:)-cc),cd), nfn(f), 1);
+        ec = squeezeBlockDiag(ec*T, nfn(f), sum(nfn(f)), 2);
+        
+        en = sparseBlockDiag(G.faces.edgeNormals(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1),:), nfn(f), 1);
+        en = squeezeBlockDiag(en*T, nfn(f), sum(nfn(f)), 2);
+        
+        pos = [1;cumsum(nfn(f))+1];
+        ii = 1:size(x,1); jj = ii;
         jj(2:end) = jj(1:end-1);
-        jj([1;cumsum(G.faces.nodePos(2:end-1)    ...
-            -G.faces.nodePos(1:end-2))+1]) ...
-            = ii(cumsum(G.faces.nodePos(2:end)-G.faces.nodePos(1:end-1)));
+        jj([1;cumsum(pos(2:end-1)    ...
+                    -pos(1:end-2))+1]) ...
+        = ii(cumsum(pos(2:end)-pos(1:end-1)));
         
-        int = [repmat(x, 6, 1);repmat(ec,6,1)].^repmat(alpha,2,1);
-        int = int(:,1).*int(:,2);
-        int = (int(1:6*sum(nfn)).*repmat(en(:,1),6,1) + int(1:6*sum(nfn)).*repmat(en(jj,1),6,1))/6 ...
-            + int(6*sum(nfn)+1:end).*repmat(en(:,1),6,1)*2/3;
+        enx = en(:,1).*G.edges.lengths(e);
         
-        I = sparseBlockDiag(ones(1, 6*sum(nfe)), repmat(nfe,6,1), 2);
-        DfInt(:,5:end) = reshape(I*int,G.faces.num, 6);
+        monValQuad = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6),alphaQuad).*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6), betaQuad);
+        
+        monValQuad = (bsxfun(@times, monValQuad(ii,:), enx) + bsxfun(@times, monValQuad(jj,:), enx))/6 ...
+                + bsxfun(@times, monValQuad(size(x,1)+1:end,:), enx)*2/3;
+        
+        monValQuad = sparseBlockDiag(monValQuad, nfn(f), 1);
+
+%         c5 = sparseBlockDiag(c5(f,:)', ones(1, numel(f)), 2);
+        c5 = c5(f,:)';
+
+        I = sparseBlockDiag(ones(1, sum(nfn(f))), nfn(f), 2); 
+        fInt1 = I*monValQuad*c5(:);
+        
+        
+        
+%         
+%         monValBi = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6*6),alphaBi).*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6*6), betaBi);
+%         monValBi = (bsxfun(@times, monValBi(ii,:), enx) + bsxfun(@times, monValBi(jj,:), enx))/6 ...
+%                 + bsxfun(@times, monValBi(size(x,1)+1:end,:), enx)*2/3;
+%         monValBi = sparseBlockDiag(monValBi, nfn(f), 1);
+%         cBi      = sparseBlockDiag(cBi(f,:)', ones(1, numel(f)), 2);
+%         
+%         fInt = monValQuad*c5 + monValBi*cBi;
+%         
+%         I = sparseBlockDiag(ones(1, sum(nfn(f))), nfn(f), 2);
+%         fInt = I*fInt
+% 
+        cc = G.cells.centroids;
+        cn = G.cells.num;
+        cd = G.cells.diameters;
+        tic
+        m = @(x) [bsxfun(@rdivide, bsxfun(@minus, repmat(x(:,1),1,cn), cc(:,1)').^2, cd'.^2), ...
+                  bsxfun(@rdivide, bsxfun(@minus, repmat(x(:,1),1,cn), cc(:,1)').* ...
+                                   bsxfun(@minus, repmat(x(:,2),1,cn), cc(:,2)'), cd'.^2), ...
+                  bsxfun(@rdivide, bsxfun(@minus, repmat(x(:,1),1,cn), cc(:,1)').* ...
+                                   bsxfun(@minus, repmat(x(:,3),1,cn), cc(:,3)'), cd'.^2), ...
+                  bsxfun(@rdivide, bsxfun(@minus, repmat(x(:,2),1,cn), cc(:,2)').^2, cd'.^2), ...
+                  bsxfun(@rdivide, bsxfun(@minus, repmat(x(:,2),1,cn), cc(:,2)').* ...
+                                   bsxfun(@minus, repmat(x(:,3),1,cn), cc(:,3)'), cd'.^2), ...
+                  bsxfun(@rdivide, bsxfun(@minus, repmat(x(:,3),1,cn), cc(:,3)').^2, cd'.^2)];
+                               
+        fInt = polygonInt3D(G, 1:G.faces.num, m, 2);
+        cInt = polyhedronInt(G, 1:G.cells.num, m, 2);
+        toc
+        a = 1;
+        
+        
+%         for P = 1:G.cells.num
+%             mm = @(X) ((X(:,1)-G.cells.centroids(P,1))/G.cells.diameters(P)).^2;
+%             
+%             mm = @(X) ((X(:,1)-G.cells.centroids(P,1)).*...
+%                         (X(:,2)-G.cells.centroids(P,2)))./G.cells.diameters(P).^2;
+%             
+%             f = G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1);
+%             II = polygonInt3D(G, f, mm, 2)
+%         end
+        
+        %         
+%         a = 1;
+        
+
+        
+
+%         T = zeros(3, 2*G.faces.num);
+%         T(:,[1:2:end, 2:2:end]) = [v1, v2];
+%         alpha = [2 0 0; 1 1 0; 1 0 1; 0 2 0; 0 1 1; 0 0 2];
+%         alpha = alpha*T;
+%         
+%         
+%         cc = (rldecode(G.cells.centroids,ncf,1)-G.faces.centroids)*T;
+% 
+%         alpha(:,1:2:end) = alpha(:,1:2:end) + 1;
+% %         alpha = rldecode(reshape(alpha',2,[])', repmat(nfn,6,1),1);
+%         
+%         alpha = reshape(alpha,6*2,[]);
+%         alpha = reshape(alpha(:,f),6,[]);
+%         
+%         
+%         
+%         
+%         ii = 1:sum(nfn); jj = ii;
+%         jj(2:end) = jj(1:end-1);
+%         jj([1;cumsum(G.faces.nodePos(2:end-1)    ...
+%             -G.faces.nodePos(1:end-2))+1]) ...
+%             = ii(cumsum(G.faces.nodePos(2:end)-G.faces.nodePos(1:end-1)));
+%         
+%         int = [repmat(x, 6, 1);repmat(ec,6,1)].^repmat(alpha,2,1);
+%         int = int(:,1).*int(:,2);
+%         int = (int(1:6*sum(nfn)).*repmat(en(:,1),6,1) + int(1:6*sum(nfn)).*repmat(en(jj,1),6,1))/6 ...
+%             + int(6*sum(nfn)+1:end).*repmat(en(:,1),6,1)*2/3;
+%         
+%         I = sparseBlockDiag(ones(1, 6*sum(nfe)), repmat(nfe,6,1), 2);
+%         DfInt(:,5:end) = reshape(I*int,G.faces.num, 6);
         
         
 %         
@@ -451,6 +562,37 @@ else
 
 end
 
+end
+
+function coeff = binomialExpansion(a, b, c, n, nMax)
+    
+    if n == 1
+        alpha = [1,0,0]; beta = [0,1,0]; gamma = [0,0,1];
+    else
+        alpha = [2,1,1,0,0,0]; beta = [0,1,0,2,1,0]; gamma = [0,0,1,0,1,2];
+    end
+    
+    r = size(a,1);     
+    coeff = repmat(factorial(n)./(factorial(alpha).*factorial(beta).*factorial(gamma)), r, 1);
+    coeff = coeff.*bsxfun(@power, a,repmat(alpha,r,1))...
+         .*bsxfun(@power, b,repmat(beta,r,1))...
+         .*bsxfun(@power, c,repmat(gamma,r,1));
+%     coeff = [zeros(r, polyDim(n-1,2)), coeff, zeros(r, polyDim(nMax,2)-polyDim(n,2))];
+
+end
+
+function [alpha, beta, c] = polyProducts(c1,c2,nf)
+    cPos = 1:6:6*(nf+1);
+    alph = [0, 1, 0, 2, 1 0]; bet = [0, 0, 1, 0, 1, 2];
+    for i = 1:6
+        c(:, cPos(i):cPos(i+1)-1) = c1(:, [i:end, 1:i-1]).*c2;
+        alpha(cPos(i):cPos(i+1)-1) = alph + alph([i:end, 1:i-1]);
+        beta(cPos(i):cPos(i+1)-1) = bet + bet([i:end, 1:i-1]);
+    end
+end
+
+function nk = polyDim(k, dim)
+    nk = nchoosek(k+dim,k);
 end
 
 %         xExp = alpha(:,1:2:end) ~= 0;
