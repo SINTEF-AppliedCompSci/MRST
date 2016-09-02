@@ -15,11 +15,11 @@ classdef NonLinearSolverSLS < NonLinearSolver
       function solver = NonLinearSolverSLS(varargin)
          solver = solver@NonLinearSolver(varargin{:});
          solver.lambda_prev = [];
-         %solver.f_prev = 0; 
+         solver.f_prev = 0; 
          solver.dx_prev = {};
          solver.dx_scaling = [];
          
-         tmp = merge_options(struct('H', 0.03, 'f_scaling', []), varargin{:});
+         tmp = merge_options(struct('H', 0.02, 'f_scaling', []), varargin{:});
          solver.H = tmp.H;
          solver.f_scaling = tmp.f_scaling;
          
@@ -31,96 +31,108 @@ classdef NonLinearSolverSLS < NonLinearSolver
       end
       % ----------------------------------------------------------------------------
       function resetSLSfields(solver)
+         solver.f_scaling = [];
          solver.lambda_prev = [];
          solver.dx_prev = {};
          solver.dx_scaling = [];
-      end
-      % ----------------------------------------------------------------------------
-      function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
-         
-         if isempty(solver.dx_scaling)
-            % At first iteration, initialize f_scaling (hopefully, the
-            % residuals are reasonable representative)
-            for i = 1:numel(dx)
-               if strcmpi(problem.primaryVariables{i}, 'pressure') ||...
-                  strcmpi(problem.primaryVariables{i}, 'bhp')
-                  solver.dx_scaling(i) = 1 ./ (5*max(problem.state.pressure));
-               else
-                  solver.dx_scaling(i) = 1;
-               end
-               %solver.dx_scaling(i) = 1./max(max(dx{i}), 1);
-            end
-         end
-         
-         if isempty(solver.dx_prev)
-            solver.dx_prev = dx;
-            for i = 1:numel(dx)
-               solver.dx_prev{i} = solver.dx_prev{i} * 0;
-            end
-         end
-         if isempty(solver.lambda_prev)
-            solver.lambda_prev = ones(numel(dx), 1);
-         end
-         
-                              
-         %f = vertcat(dx{:}) .* solver.f_scaling;
-
-         %% Using derivative-based controller
-         % for i = 1:numel(dx)
-         %    lambda(i) = sqrt( (2 * solver.H * solver.lambda_prev(i)) / ...
-         %                      (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i)));
-         %    lambda(i) = min(lambda(i), 1);
-         % end
-         
-         %% Using Richardson controller
-         for i = 1:numel(dx)
-            lambda(i) = solver.H / (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i));
-            lambda(i) = min(lambda(i), 1);
-         end
-         
-         lambda
-         %% updating internal state
-         solver.dx_prev = dx;
-         solver.lambda_prev = lambda;
-         
-         for i = 1:numel(dx)
-            dx{i} = dx{i} * lambda(i);
-         end
+         solver.f_prev = 0;
       end
       % % ----------------------------------------------------------------------------
       % function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
          
-      %    if isempty(solver.f_scaling)
+      %    if isempty(solver.dx_scaling)
       %       % At first iteration, initialize f_scaling (hopefully, the
       %       % residuals are reasonable representative)
-      %       solver.f_scaling = solver.initFScaling(dx);
+      %       for i = 1:numel(dx)
+      %          if strcmpi(problem.primaryVariables{i}, 'pressure') ||...
+      %             strcmpi(problem.primaryVariables{i}, 'bhp')
+      %             solver.dx_scaling(i) = 1 ./ (5*max(problem.state.pressure));
+      %          else
+      %             solver.dx_scaling(i) = 1;
+      %          end
+      %          %solver.dx_scaling(i) = 1./max(max(dx{i}), 1);
+      %       end
       %    end
+         
+      %    if isempty(solver.dx_prev)
+      %       solver.dx_prev = dx;
+      %       for i = 1:numel(dx)
+      %          solver.dx_prev{i} = solver.dx_prev{i} * 0;
+      %       end
+      %    end
+      %    if isempty(solver.lambda_prev)
+      %       solver.lambda_prev = ones(numel(dx), 1);
+      %    end
+         
                               
-      %    f = vertcat(dx{:}) .* solver.f_scaling;
+      %    %f = vertcat(dx{:}) .* solver.f_scaling;
 
       %    %% Using derivative-based controller
-      %    % lambda = sqrt( (2 * solver.H * solver.lambda_prev) / ...
-      %    %                norm(f - solver.f_prev));
-      %    % lambda = min(lambda,1);
+      %    for i = 1:numel(dx)
+      %       lambda(i) = sqrt( (2 * solver.H * solver.lambda_prev(i)) / ...
+      %                         (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i)));
+      %       lambda(i) = min(lambda(i), 1);
+      %    end
          
       %    %% Using Richardson controller
-      %    lambda = solver.H / norm(f - solver.f_prev);
-      %    lambda = min(lambda, 1)
+      %    % for i = 1:numel(dx)
+      %    %    lambda(i) = solver.H / (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i));
+      %    %    lambda(i) = min(lambda(i), 1);
+      %    % end
          
+      %    lambda
       %    %% updating internal state
-      %    solver.f_prev = f;
+      %    solver.dx_prev = dx;
       %    solver.lambda_prev = lambda;
          
       %    for i = 1:numel(dx)
-      %       dx{i} = dx{i} * lambda;
+      %       dx{i} = dx{i} * lambda(i);
       %    end
       % end
       % ----------------------------------------------------------------------------
-      function fscaling = initFScaling(solver, dx)
-         fscaling = rldecode(1./cellfun(@max, dx), cellfun(@numel, dx));
-         fscaling(fscaling > 1) = 1; % @ necessary?
-         fscaling(isinf(fscaling)) = 1;
+      function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
+         
+         if isempty(solver.f_scaling)
+            % At first iteration, initialize f_scaling (hopefully, the
+            % residuals are reasonable representative)
+            solver.f_scaling = solver.initFScaling(problem, dx);
+         end
+                              
+         f = vertcat(dx{:}) .* solver.f_scaling;
 
+         %% Using derivative-based controller
+         % lambda = sqrt( (2 * solver.H * solver.lambda_prev) / ...
+         %                norm(f - solver.f_prev));
+         % lambda = min(lambda,1);
+         
+         %% Using Richardson controller
+         lambda = solver.H / norm(f - solver.f_prev);
+         lambda = min(lambda, 1)
+         
+         %% updating internal state
+         solver.f_prev = f;
+         solver.lambda_prev = lambda;
+         
+         for i = 1:numel(dx)
+            dx{i} = dx{i} * lambda;
+         end
+      end
+      % ----------------------------------------------------------------------------
+      function fscaling = initFScaling(solver, problem, dx)
+
+         tmp = dx;
+         for i = 1:numel(dx)
+            if strcmpi(problem.primaryVariables{i}, 'pressure') || ...
+                       strcmpi(problem.primaryVariables{i}, 'bhp')
+               tmp{i} = tmp{i} * 0 + 1 ./ (2*max(problem.state.pressure));
+            else
+               tmp{i} = tmp{i} * 0 + 1;
+            end
+         end
+         fscaling = vertcat(tmp{:});
+         %fscaling = rldecode(1./(2*cellfun(@max, dx)), cellfun(@numel, dx));
+         %fscaling(fscaling > 1) = 1; % @ necessary?
+         %fscaling(isinf(fscaling)) = 1;
       end
    end % methods
    
