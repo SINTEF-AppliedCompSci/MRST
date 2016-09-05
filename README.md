@@ -10,11 +10,13 @@ Examples of usage for the three options can be found in mpfa_ex, mpsa_ex and bio
 
 Further information on the methods implemented herein, in particular the discretization of elasticity and poro-mechanics, can be found in the following papers (all open access):
 
-   J. M. Nordbotten: Stable cell-center finite volume disrcetizaiton for
+J. M. Nordbotten: Stable cell-center finite volume disrcetizaiton for
    Biot equations - SIAM J. Numer. Anal. 54(2) 942-968.
-   J. M. Nordbotten: Convergence of a cell-centered finite volume discretization 
+
+J. M. Nordbotten: Convergence of a cell-centered finite volume discretization 
    for linear elasticity - SIAM J. Numer. Anal. 53(2) 2605-2625.
-   E. Keilegavlen, J. M. Nordbotten: Finite volume methods for elasticity with weak
+
+E. Keilegavlen, J. M. Nordbotten: Finite volume methods for elasticity with weak
    symmetry, arXiv:1512.01042
    
 The implementation of elasticity is based on the forumlation described in the latter. 
