@@ -6,6 +6,7 @@ function bi = blockInverter(opt)
 % It has been copied to a separate file to enable access from other
 % funcions.
 %
+% Copyright statement from the original file is pasted below.
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 

@@ -1,7 +1,28 @@
 % Example setting up and solving a simple 2D flow problem using MPFA. 
 %
-% For information on MRST-functions, confer the MRST documentation at 
+% The example assumes MRST is the Matlab path. For information on
+% MRST-functions, confer the MRST documentation at
 %   http://www.sintef.no/projectweb/mrst/
+%
+%{
+Copyright 2015-2016, University of Bergen.
+
+This file is part of FVBiot.
+
+FVBiot is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+FVBiot is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this file.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
 
 clear
 % Initialize a Cartesian grid.

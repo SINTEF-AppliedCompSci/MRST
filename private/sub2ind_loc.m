@@ -1,9 +1,6 @@
 function ndx = sub2ind_loc(siz,varargin)
-
-
-%{ 
-Copyright 2014 Jan Nordbotten jan.nordbotten@math.uib.no
-%} 
+% Matlab's sub2ind, pulled out here for computational efficiency.
+%
 siz = double(siz); 
 
 %Compute linear indices
