@@ -10,17 +10,26 @@ mrstModule add incomp mimetic mpfa
 
 %% Set up simulation model
 gravity off
-G = cartGrid([30, 30]);
+G = cartGrid([1, 1],[1 1]);
 G.nodes.coords = twister(G.nodes.coords);
 G = computeGeometry(G);
+X=G.nodes.coords(:,1);Y=G.nodes.coords(:,2);
+X=[X;G.cells.centroids(:,1)+0.2];Y=[Y;G.cells.centroids(:,2)]
+p     = [X(:), Y(:)];
+t     = delaunayn(p);
+G     = triangleGrid(p, t);
+G = computeGeometry(G);
+rock.perm = ones(G.cells.num, 1);
 
-rock.perm = 0.1*darcy*ones(G.cells.num, 1);
+xfaces=find(abs(G.faces.centroids(:,1))<1e-4)
+yfaces=find(abs(G.faces.centroids(:,1)-1)<1e-4)
+bc=addBC([],xfaces,'pressure',2)
+bc=addBC(bc,yfaces,'pressure',1)
+%bc  = pside([], G, 'left',  2);
+%bc  = pside(bc, G, 'right', 1);
 
-bc  = pside([], G, 'left',  2);
-bc  = pside(bc, G, 'right', 1);
-
-fluid = initSingleFluid('mu' ,    1*centi*poise     , ...
-                        'rho', 1014*kilogram/meter^3);
+fluid = initSingleFluid('mu' ,    1     , ...
+                        'rho', 0);
 
 %% Mimetic method
 fprintf('Mimetic method\t... ')
@@ -32,7 +41,7 @@ toc
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
-T1  = computeMultiPointTrans(G, rock);
+T1  = computeMultiPointTrans(G, rock,'eta',1/3);
 xr2 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
                  'bc', bc,'MatrixOutput',true);
 toc
@@ -76,7 +85,7 @@ colorbar('Position',[.92 .11 .02 .34])
 
  
 %% Compute discrepancies in flux and errors in pressure
-p.pressure = 2 - G.cells.centroids(:,1)/G.cartDims(1);
+p.pressure = 2 - G.cells.centroids(:,1);
 err        = @(q1, q2) norm(q1 - q2, inf);
 err_press  = @(x1, x2) err(x1.pressure(1:G.cells.num), ...
                            x2.pressure(1:G.cells.num));
@@ -112,5 +121,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+        %%
+max(max(xr2.A-xr2.A'))/max(abs(xr2.A(:)))
      

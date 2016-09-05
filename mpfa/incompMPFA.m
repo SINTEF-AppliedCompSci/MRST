@@ -165,6 +165,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [totmob, omega, rho] = dynamic_quantities(state, fluid);
 
    % Needed after introduction of gravity
+   TT=T;
    Tg = T.Tg;
    T  = T.T;
 
@@ -189,18 +190,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [ff, gg, hh, grav, dF, dC] = computePressureRHS(g, omega, ...
                                                    opt.bc, opt.src);
    b  = any(g.faces.neighbors==0, 2);
+   bf  = any(g.faces.neighbors==0, 2);
    I1 = [(1:g.cells.num)'; g.cells.num + find(b)];
-   D  = sparse(1:size(g.cells.faces,1), double(g.cells.faces(:,1)), 1);
-   A  = [C, -D(:,b)]' * T(:,I1);
-
+   %D  = sparse(1:size(g.cells.faces,1), double(g.cells.faces(:,1)), 1);
+   %D=TT.D;
+   sb = full(sum(TT.D, 1)) == 1;
+   %d1=TT.d1;
+   %c1=TT.c1;
+   %T=c1'*Do*iDoBDo*Do';
+    %end
+   %T = Tg*[C, -D(:,b)*d1(b,:)];
+   %C=TT.C;
+   %T =  TT.hfhf*[C, -D(:,b)];
+   A  = [TT.C, -TT.D(:,sb)]' *  TT.hfhf*[TT.C, -TT.D(:,sb)];
+   %A  = [C, -D(:,b)]' * Tg(:,I1);
    % Gravity contribution for each face
    cf  = g.cells.faces(:,1);
    j   = i(cf) | dF(cf);
    s   = 2*(g.faces.neighbors(cf, 1) == cellNo) - 1;
-   fg  = [C, -D(:,b)]' * (Tg * grav);
+   %fg  = [C, -D(:,b)]' * (Tg * grav);
    %fg  = accumarray(cf(j), grav(j).*s(j), [g.faces.num, 1]);
 
-   rhs = [gg; -hh(b)];
+   hh_tmp = TT.d1*hh;
+   rhs = [gg; -hh_tmp(sb)];
    %% Eliminate all but the cellpressure
    %BB=A(nc+1:end,nc+1:end);
    %AA=A(1:nc,1:nc);
@@ -220,19 +232,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    factor = A(1,1);
    assert (factor > 0)
+   %subp=nan(size(A,1),1);
    if any(dF),
-      ind        = [false(g.cells.num, 1) ; dF(b)];
-      rhs        = rhs - A(:,ind)*dC;
-      rhs(ind)   = factor*dC;
+      dF_tmp=TT.d1(sb,:)*dF
+      ind        = [false(g.cells.num, 1) ; dF_tmp>0];
+      is_press = strcmpi('pressure', opt.bc.type);
+      face     = opt.bc.face (is_press);
+      bcval    = opt.bc.value (is_press);
+      dC_tmp=TT.d1(sb,face)*bcval;
+      rhs        = rhs - A(:,g.cells.num+1:end)*dC_tmp;
+      rhs(ind)   = factor*dC_tmp(dF_tmp>0);
       A(ind,:)   = 0;
       A(:,ind)   = 0;
       A(ind,ind) = factor * speye(sum(ind));
    end
+   
 
    %remove
    %A=A(1:nc,1:nc);
    nnp=length(rhs);
-   rhs=rhs-fg;
+   rhs=rhs;%-fg;
    rhs=[rhs;zeros(nw, 1)];
 
    %%%%%%%%%%%%%%%%%%%
@@ -323,8 +342,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %flux = -sgn.*ft((fpress(~i)-p(c)-grav));
 
    state.pressure(1 : nc) = p(1 : nc);
-   state.flux(:)          = cellFlux2faceFlux(g, T(:, I1) * p(1 : nnp));
-
+   %state.flux(:)          = cellFlux2faceFlux(g, T(:, I1) * p(1 : nnp));
+   %C=TT.C;
+   %T =  TT.hfhf*[C, -D(:,b)];
+   %A  = [C, -D(:,b)]' *  TT.hfhf*[C, -D(:,b)];
+   
+   state.flux = TT.d1'*TT.Do'*TT.hfhf*[TT.C, -TT.D(:,sb)]*(p);%?????-dg);
+   state.flux(~b)=state.flux(~b)/4;
    state.boundaryPressure = p(nc + 1 : nnp);
 
    for k = 1 : nw,
