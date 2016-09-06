@@ -51,7 +51,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         askFirst = true;
     end
     
-    [info, present] = eval(['dataset_', lower(name), '()']);
+    [info, present] = feval(['dataset_', lower(name)]);
     name = info.name;
     pth = fullfile(mrstDataDirectory(), name);
     
