@@ -42,7 +42,7 @@ nR = size(rSites,1);
 rGs = zeros(nR,1);
 rPri = zeros(nR,1);
 
-[rSites,removed] = faultSufCond(rSites,F.c.CC,F.c.R);
+[rSites,removed] = faultSufCond3D(rSites,F.c.CC,F.c.R);
 rGs = rGs(~removed);
 rPri = rPri(~removed);
 
