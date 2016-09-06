@@ -1,5 +1,5 @@
 function [kr]=simpleRelpermUpscalingExample2D(perm_case,fluid_case)
-%% This demonstrate the method used for relperm upscaling
+% This demonstrate the method used for relperm upscaling
 %  The default setup is a quasi 1D case
 
 mrstModule add mimetic upscaling incomp
@@ -102,7 +102,7 @@ for i=1:numel(sat_vec);
         state.s=ones(size(state.s))*sat;
    end
    state.s=ones(size(state.s))*sat;
-   %% search for stationary state
+   % search for stationary state
    init_state=state;
    it=0;
    stationary=false;
@@ -144,7 +144,8 @@ for i=1:numel(sat_vec);
       end
       it=it+1;
    end
-   %% Plot the stationary state
+   
+   % Plot the stationary state
    %
    figure(3)
    pv=poreVolume(G,rock);
@@ -219,14 +220,14 @@ for i=1:numel(sat_vec);
    phase_fluxkr(i,:)=[sum(states{1}.flux(x_faces).*sign_x),sum(states{2}.flux(x_faces).*sign_x)];
    disp(['Saturation ',num2str(sat)])
 end
-%%
+
 mu = fluid.properties();
 upperm=permkr;
 % compare the upscaled permeability with the original
 disp(['Upscaled perm is ', num2str(upperm/(milli*darcy)),...
    ' input was ', num2str(sperm)])
 
-%% plot the upscaled relperms.
+% plot the upscaled relperms.
 % the result below depend on that upscaled permeability is scalar
 figure(2)
 ir_up=bsxfun(@rdivide,bsxfun(@times,phase_fluxkr,mu),(upperm*dpx*Ly/Lx));
@@ -251,6 +252,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % help functions to set ups several test cases and fluid is below here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function rock=makePerm(perm_case,G)
 sperm=100*milli*darcy;
 switch perm_case
@@ -285,6 +287,9 @@ switch perm_case
         error('No such permability field implemented');
 end
 end
+
+%--------------------------------------------------------------------------
+
 function [fluid_pure,fluid,fluid_nc]=makeFluids(fluid_case,rock,G,Lx,Ly,varargin)
 opt=struct('mu',[1 1],'n',[1 1]);
 opt=merge_options(opt,varargin{:});
@@ -325,6 +330,9 @@ switch fluid_case
         error('No such model')
 end
 end
+
+%--------------------------------------------------------------------------
+
 function fluid = initSimpleFluidPeriodicPcMulti(varargin)
 %Initialize incompressible two-phase fluid model (analytic rel-perm).
 %
@@ -389,13 +397,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   'relperm'   , kr,...
                   'pc'        , pc);
 end
+
 %-------------------------------------------------------------------------
+
 function varargout = pc_funct(state,opt)
    ns=numel(state.s(:,1));
    space_var=0.3*sin(2*pi*opt.G.cells.centroids(:,1)/opt.L(1));
    varargout{1}                 = opt.amplitude*(space_var+(1-state.s(:,1)));
    if nargout > 1, varargout{2} = -repmat(opt.amplitude,ns,1); end
 end
+
 %--------------------------------------------------------------------------
 
 function varargout = properties(opt, varargin)
@@ -423,6 +434,9 @@ function varargout = relperm(s, opt, varargin)
                       a(2) .* s2 .^ (opt.n(2) - 2)];
    end
 end
+
+%--------------------------------------------------------------------------
+
 function [Gp,bcp] = makePeriodicGridMulti(G,bcl,bcr,dprl)
 % hack due to feature of remove internal baundary
  ntags=size(G.cells.faces,2)-1;
