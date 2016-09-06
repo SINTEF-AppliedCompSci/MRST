@@ -19,7 +19,7 @@ function ok = makeNorneSubsetAvailable
 % RETURNS:
 %   ok - Whether or not the Norne simulation model subset consisting of the
 %        geometry description (corner-point format) and the petrophysical
-%        properties (permeability, porosity, net-to-gross) are availble in
+%        properties (permeability, porosity, net-to-gross) is availble in
 %        the Norne dataset directory.
 %
 % SEE ALSO:

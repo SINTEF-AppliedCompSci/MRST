@@ -62,6 +62,10 @@ function ok = create_grdecl()
 
    if fid < 0,
       warning('Open:Fail', 'Failed to open GRDECL output file: %s\n', msg);
+
+      ok = false;
+
+      return;
    end
 
    write_grdecl(fid);
