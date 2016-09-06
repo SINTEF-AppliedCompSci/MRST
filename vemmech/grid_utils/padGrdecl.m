@@ -70,10 +70,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [xyz, zcorn] = grdeclXYZ(grdecl);
     vecx = xyz([1 2], end, 1)-xyz([1 2], 1, 1);
     vecy = xyz([1 2], 1, end)-xyz([1 2], 1, 1);
-    vecx = vecx/norm(vecx)
-    vecy = vecy/norm(vecy)
+    vecx = vecx/norm(vecx);
+    vecy = vecy/norm(vecy);
     vecy = vecy-sum(vecx.*vecy, 1)*vecx;
-    vecy = vecy/norm(vecy)
+    vecy = vecy/norm(vecy);
     U = [vecx, vecy];
     xyz_ss = size(xyz);
     xyz([1, 2], :, :) = reshape(U'*reshape(xyz([1, 2], :, :), 2, []), 2, xyz_ss(2), xyz_ss(3));
