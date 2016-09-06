@@ -37,10 +37,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    success = true;
-
-   format = @(s,n) [repmat([s, ' '], [1, n]), '\n'];
 
    [fid, msg] = fopen(filename, 'wt');
    if fid < 0, error(msg); end
@@ -49,61 +46,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'using the MRST toolbox.\n\n']);
 
    if isfield(grdecl, 'cartDims'),
-      fprintf(fid, 'SPECGRID\n%d %d %d 1 F\n/\n\n', grdecl.cartDims);
+      fprintf(fid, 'SPECGRID\n%d %d %d 1 F\n/\n', grdecl.cartDims);
    end
 
-   if isfield(grdecl, 'COORD')
-      fprintf(fid, 'COORD\n');
-      fprintf(fid, format('%12f', 6), grdecl.COORD);
-      fprintf(fid, '/\n\n');
-   end
+   format = @(elmfmt, n) [repmat([' ', elmfmt], [1, n]), '\n'];
 
-   if isfield(grdecl, 'ZCORN'),
-      fprintf(fid, 'ZCORN\n');
-      fprintf(fid, format('%12f', 8), grdecl.ZCORN);
-      fprintf(fid, '/\n\n');
-   end
+   write = @(elms_per_line, elmfmt, flds) ...
+      write_fields(fid, grdecl, flds, format(elmfmt, elms_per_line));
 
-   if isfield(grdecl, 'ACTNUM'),
-      fprintf(fid, 'ACTNUM\n');
-      fprintf(fid, format('%d', 20), grdecl.ACTNUM);
-      fprintf(fid, '/');
-   end
+   write( 6, '%12f'  , { 'COORD' });
+   write( 8, '%12f'  , { 'ZCORN' });
+   write(20, '%d'    , { 'ACTNUM', 'SATNUM' });
+   write( 4, '%18.5e', [ { 'PORO' }, ...
+                         strcat('PERM', { 'X', 'Y', 'Z' }) ]);
 
-   if isfield(grdecl, 'SATNUM'),
-      fprintf(fid, '\n\nSATNUM\n');
-      fprintf(fid, format('%d', 20), grdecl.SATNUM);
-      fprintf(fid, '/');
-   end
-
-   if isfield(grdecl, 'PORO'),
-      fprintf(fid, '\n\nPORO\n');
-      fprintf(fid, format('%18.5e', 4), grdecl.PORO);
-      fprintf(fid, '/');
-   end
-
-   if isfield(grdecl, 'PERMX'),
-      fprintf(fid, '\n\nPERMX\n');
-      fprintf(fid, format('%18.5e', 4), grdecl.PERMX);
-      fprintf(fid, '/');
-   end
-
-   if isfield(grdecl, 'PERMY'),
-      fprintf(fid, '\n\nPERMY\n');
-      fprintf(fid, format('%18.5e', 4), grdecl.PERMY);
-      fprintf(fid, '/');
-   end
-
-   if isfield(grdecl, 'PERMZ'),
-      fprintf(fid, '\n\nPERMZ\n');
-      fprintf(fid, format('%18.5e', 4), grdecl.PERMZ);
-      fprintf(fid, '/');
-   end
-
-   fprintf(fid, '\n');
    fclose(fid);
 
    if nargout > 0,
       varargout{1} = success;
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function write_fields(fid, grdecl, fields, fmt)
+   for fld = reshape(fields(isfield(grdecl, fields)), 1, []),
+      fprintf(fid, '\n%s\n', fld{1});
+      fprintf(fid, fmt, grdecl.(fld{1}));
+      fprintf(fid, '/\n');
    end
 end
