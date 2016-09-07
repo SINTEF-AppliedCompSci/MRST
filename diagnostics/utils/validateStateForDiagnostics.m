@@ -2,7 +2,7 @@ function state = validateStateForDiagnostics(state)
 %Validate and fix state for flow diagnostics
 %
 % SYNOPSIS:
-%   state = validateStateForDiagnostics
+%   state = validateStateForDiagnostics(state)
 %
 % DESCRIPTION:
 %   Routine for ensuring that states are suitable for diagnostic routines.
@@ -10,7 +10,7 @@ function state = validateStateForDiagnostics(state)
 %   give component fluxes that must be combined to form the flux. This
 %   routine will, if possible, ensure that flux exists in the state.
 %
-% REQUIRED PARAMETERS:
+% PARAMETERS:
 %   state - State produced by one of MRST's solvers.
 %
 % RETURNS:
@@ -21,7 +21,7 @@ function state = validateStateForDiagnostics(state)
 %   produce the correct fields.
 %
 % SEE ALSO:
-%   computeTOFandTracer
+%   computeTOFandTracer.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -59,5 +59,4 @@ if  isfield(state, 'wellSol')
           state.wellSol(i).flux = sum(state.wellSol(i).cqs, 2);
        end
    end
-end
 end
