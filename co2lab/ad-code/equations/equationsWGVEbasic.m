@@ -87,7 +87,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    krG = krG * mobMult;
 
    % Transmissibility
-   trans = s.T * transMult;
+   trans = s.T .* transMult;
 
    % Gravity gradient per face, including the gravity component resulting
    % from caprock geometry

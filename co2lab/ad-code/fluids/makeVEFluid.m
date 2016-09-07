@@ -141,7 +141,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% Adding other modifications
    fluid.pvMultR = @(p) 1 + opt.pvMult_fac * (p - opt.pvMult_p_ref);
 
-
+   % Transmissibility multipliers could be those supplied from the
+   % topSurfaceGrid function to represent reduced transmissibilities in
+   % partially overlapping faults.
+   if ~isempty(opt.transMult)
+      int_ix = ~any(Gt.faces.neighbors==0, 2);
+      fluid.transMult = @(p) opt.transMult(int_ix);
+   end
+   
 end
 
 % ============================================================================
@@ -207,17 +214,20 @@ function opt = default_options()
    opt.alpha           = 0.5;   % Exponent used in Brooks-Corey type capillary pressure curve
    opt.beta            = 3;     % Exponent of Brooks-Corey type relperm curve
    opt.surface_tension = 30e-3; % Surface tension used in 'P-K-scaled table'
-   opt.invPc3D         = []     % Inverse Pc function to use for computing
+   opt.invPc3D         = [];    % Inverse Pc function to use for computing
                                 % capillary fringe.  If empty, a Brooks-Corey
                                 % type curve will be constructed using 'C', and
                                 % 'alpha' above.
-   opt.kr3D            = []     % CO2 relperm curve.  If empty, Brooks-Corey
+   opt.kr3D            = [];    % CO2 relperm curve.  If empty, Brooks-Corey
                                 % type relperm curve with exponent 'beta'
                                 % will be created.
    % Various parameters
    opt.pvMult_p_ref    = 100 * barsa;  % reference pressure for pore volume multiplier
    opt.pvMult_fac      = 1e-5 / barsa; % pore volume compressibility
 
+   % Modify transmissibilities (such as due to faults in the 3D grid)
+   opt.transMult = [];
+   
 end
 
 % ----------------------------------------------------------------------------
