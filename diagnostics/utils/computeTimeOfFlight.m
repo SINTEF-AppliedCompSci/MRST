@@ -318,7 +318,6 @@ function [A, pv] = thresholdConnectedComponents(A, pv, maxIn, opt)
     % Find strongly connected components in flux-matrix:
     [p,r,r]= dmperm(A); %#ok
     % Pick components containing more than a single cell
-    d = diff(r);
     ix = find(diff(r)>1);
     if ~isempty(ix)
         nc = numel(p);
