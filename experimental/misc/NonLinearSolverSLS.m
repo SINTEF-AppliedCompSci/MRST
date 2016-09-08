@@ -19,7 +19,7 @@ classdef NonLinearSolverSLS < NonLinearSolver
          solver.dx_prev = {};
          solver.dx_scaling = [];
          
-         tmp = merge_options(struct('H', 0.02, 'f_scaling', []), varargin{:});
+         tmp = merge_options(struct('H', 0.2, 'f_scaling', []), varargin{:});
          solver.H = tmp.H;
          solver.f_scaling = tmp.f_scaling;
          
@@ -37,7 +37,7 @@ classdef NonLinearSolverSLS < NonLinearSolver
          solver.dx_scaling = [];
          solver.f_prev = 0;
       end
-      % % ----------------------------------------------------------------------------
+      % ----------------------------------------------------------------------------
       % function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
          
       %    if isempty(solver.dx_scaling)
@@ -46,7 +46,7 @@ classdef NonLinearSolverSLS < NonLinearSolver
       %       for i = 1:numel(dx)
       %          if strcmpi(problem.primaryVariables{i}, 'pressure') ||...
       %             strcmpi(problem.primaryVariables{i}, 'bhp')
-      %             solver.dx_scaling(i) = 1 ./ (5*max(problem.state.pressure));
+      %             solver.dx_scaling(i) = 1 ./ (1*max(problem.state.pressure));
       %          else
       %             solver.dx_scaling(i) = 1;
       %          end
@@ -68,17 +68,30 @@ classdef NonLinearSolverSLS < NonLinearSolver
       %    %f = vertcat(dx{:}) .* solver.f_scaling;
 
       %    %% Using derivative-based controller
-      %    for i = 1:numel(dx)
-      %       lambda(i) = sqrt( (2 * solver.H * solver.lambda_prev(i)) / ...
-      %                         (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i)));
-      %       lambda(i) = min(lambda(i), 1);
-      %    end
-         
-      %    %% Using Richardson controller
       %    % for i = 1:numel(dx)
-      %    %    lambda(i) = solver.H / (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i));
+      %    %    lambda(i) = sqrt( (2 * solver.H * solver.lambda_prev(i)) / ...
+      %    %                      (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i)));
       %    %    lambda(i) = min(lambda(i), 1);
       %    % end
+         
+      %    % %% Using Odd's modified derivative-based controller
+      %    % for i = 1:numel(dx)
+      %    %    f      = dx{i} * solver.dx_scaling(i);
+      %    %    f_prev = solver.dx_prev{i} * solver.dx_scaling(i);
+      %    %    fac = 2 * solver.H * norm(f) / norm(f-f_prev);
+      %    %    lambda(i) = solver.lambda_prev(i) * fac;
+      %    %    lambda(i) = min(lambda(i), 1);
+      %    % end
+         
+         
+      %    %% Using Richardson controller
+      %    for i = 1:numel(dx)
+      %       f1 = dx{i} / norm(dx{i});
+      %       f2 = solver.dx_prev{i} / norm(solver.dx_prev{i});
+      %       lambda(i) = solver.H / (norm(f1 - f2));
+      %       %lambda(i) = solver.H / (norm(dx{i} - solver.dx_prev{i}) * solver.dx_scaling(i));
+      %       lambda(i) = min(lambda(i), 1);
+      %    end
          
       %    lambda
       %    %% updating internal state
@@ -91,13 +104,16 @@ classdef NonLinearSolverSLS < NonLinearSolver
       % end
       % ----------------------------------------------------------------------------
       function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
-         
+         solver.H = 0.5; % @@
          if isempty(solver.f_scaling)
             % At first iteration, initialize f_scaling (hopefully, the
             % residuals are reasonable representative)
             solver.f_scaling = solver.initFScaling(problem, dx);
          end
-                              
+         if isempty(solver.lambda_prev)
+            solver.lambda_prev = 1;
+         end                              
+
          f = vertcat(dx{:}) .* solver.f_scaling;
 
          %% Using derivative-based controller
@@ -105,8 +121,18 @@ classdef NonLinearSolverSLS < NonLinearSolver
          %                norm(f - solver.f_prev));
          % lambda = min(lambda,1);
          
+         %% Using Odd's modified derivative-based controller
+         % DOESN'T WORK
+         % lambda = solver.lambda_prev * 2 * solver.H * norm(f) / norm(f-solver.f_prev);
+         % lambda = min(lambda,1)
+         
          %% Using Richardson controller
-         lambda = solver.H / norm(f - solver.f_prev);
+         % SEEMS TO WORK WELL WITH THE NEW SCALING I INTRODUCED (NOT
+         % REFLECTED IN PAPER)
+         f1 = f / norm(f);
+         f2 = solver.f_prev / norm(solver.f_prev);
+         lambda = solver.H / norm(f1 - f2);
+         %lambda = solver.H / norm(f - solver.f_prev)
          lambda = min(lambda, 1)
          
          %% updating internal state
