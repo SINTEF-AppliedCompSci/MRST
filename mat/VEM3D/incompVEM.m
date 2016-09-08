@@ -97,19 +97,21 @@ k  = S.order;
 nN = G.nodes.num;
 nF = G.faces.num;
 nP = G.cells.num;
-N  = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
+% N  = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
 
 if G.griddim == 2
     nE = 0;
     nk = (k+1)*(k+2)/2;
-    NK = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
+    NP = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
+    N = G.nodes.num + G.faces.num*polyDim(k-2, 1) + G.cells.num*polyDim(k-2, 2);
 else
     nE = G.edges.num;
     nk = (k+1)*(k+2)*(k+3)/6;
-    NK = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) ...
+    NP = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) ...
        + diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
+    N = G.nodes.num + G.edges.num*polyDim(k-2, 1) + G.faces.num*polyDim(k-2, 2) + G.cells.num*polyDim(k-2, 3);
 end
-nker = sum(NK - nk);
+nker = sum(NP - nk);
 
 if isempty(opt.srcFunc)
     opt.srcFunc = 0;
@@ -141,7 +143,7 @@ end
 
 [A, rhs] = glob(G, S, opt.src, k, N, mu);
 
-[A, rhs] = imposeBC(G, opt.bc, k, mu, A, rhs);
+[A, rhs] = imposeBC(G, opt.bc, k, N, mu, A, rhs);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
@@ -180,8 +182,7 @@ end
 
 function [A, rhs] = glob(G, S, src, k, N, mu)
     
-    ii = 1:numel(S.dofVec); jj = S.dofVec;
-    P = sparse(ii,jj,1, numel(S.dofVec), N);
+        P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
     A = P'*S.A*P;
 
     if ~isempty(src)
@@ -203,60 +204,83 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = imposeBC(G, bc, k, mu, A, rhs)
+function [A, rhs] = imposeBC(G, bc, k, N, mu, A, rhs)
 
-if ~isfield(bc, 'func') 
-    bc = mrst2vem(bc, G);
-else
-    bc.value = zeros(numel(bc.face), 3);
-    for i = 1:numel(bc.face)
-        g = bc.func{i};
-        n = G.faces.nodes(G.faces.nodePos(bc.face(i)):G.faces.nodePos(bc.face(i)+1)-1);
-        bc.value(i,:) = [g(G.nodes.coords(n,:))', ...
-                         g(G.faces.centroids(bc.face(i),:))];
+if G.griddim == 2
+
+    if ~isfield(bc, 'func') 
+        bc = mrst2vem(bc, G);
+    else
+        bc.value = zeros(numel(bc.face), 3);
+        for i = 1:numel(bc.face)
+            g = bc.func{i};
+            n = G.faces.nodes(G.faces.nodePos(bc.face(i)):G.faces.nodePos(bc.face(i)+1)-1);
+            bc.value(i,:) = [g(G.nodes.coords(n,:))', ...
+                             g(G.faces.centroids(bc.face(i),:))];
+        end
     end
+
+    f   = bc.face(strcmp(bc.type,'flux'));
+    fa = G.faces.areas(f);
+
+    n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f +1)-1));
+    nn = numel(n);
+    un = unique(n);
+    nun = numel(un);
+    S = (repmat(n,1,nun) == repmat(un',nn,1))';
+
+    v = mu*bc.value(strcmp(bc.type,'flux'),:);
+
+    if k == 1
+        v = v.*[fa/6, fa/6, fa/3];
+        v = bsxfun(@plus, v(:,1:2), v(:,3));
+        v = reshape(v',[],1);
+        v = S*v;
+        dofVec = un';
+    elseif k == 2
+        v = v.*[fa/6, fa/6, fa*2/3];
+        v = [S*reshape(v(:,1:2)',[],1); v(:,3)];
+        dofVec = [un', f' + G.nodes.num];
+    end
+    rhs(dofVec) = rhs(dofVec) + v;
+
+    f   = bc.face(strcmp(bc.type,'pressure'));
+    n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f +1)-1));
+    v = bc.value(strcmp(bc.type,'pressure'),:);
+
+    if k == 1
+        v = reshape(v(:,1:2)',[],1);
+        dofVec = n';
+    elseif k == 2
+        dofVec = [n', f' + G.nodes.num];
+        v = [reshape(v(:,1:2)',[],1); v(:,3)];
+    end
+    rhs(dofVec) = v;
+    I = spdiags(ones(N,1),0,N,N);
+    A(dofVec,:) = I(dofVec,:);
+else
+
+    isDir = strcmp(bc.type, 'pressure');
+    f = bc.face(isDir);
+
+
+    for i = 1:numel(f)
+        n = G.faces.nodes(G.faces.nodePos(f(i)):G.faces.nodePos(f(i)+1)-1);
+        e = G.faces.edges(G.faces.edgePos(f(i)):G.faces.edgePos(f(i)+1)-1);
+        g = bc.func{i};
+        rhs([n; e + G.nodes.num; f + G.nodes.num + G.edges.num]) ...
+            = [g(G.nodes.coords(n,:)); g(G.edges.centroids(e,:)); ...
+               polygonInt3D(G, f, g, k+1)./G.faces.areas(f)];
+    end
+
+    n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+    e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+    dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
+    
+    I = spdiags(ones(N,1),0,N,N);
+    A(dofVec,:) = I(dofVec, :);
+    
 end
-
-NK = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
-
-f   = bc.face(strcmp(bc.type,'flux'));
-fa = G.faces.areas(f);
-
-n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f +1)-1));
-nn = numel(n);
-un = unique(n);
-nun = numel(un);
-S = (repmat(n,1,nun) == repmat(un',nn,1))';
-
-v = mu*bc.value(strcmp(bc.type,'flux'),:);
-
-if k == 1
-    v = v.*[fa/6, fa/6, fa/3];
-    v = bsxfun(@plus, v(:,1:2), v(:,3));
-    v = reshape(v',[],1);
-    v = S*v;
-    dofVec = un';
-elseif k == 2
-    v = v.*[fa/6, fa/6, fa*2/3];
-    v = [S*reshape(v(:,1:2)',[],1); v(:,3)];
-    dofVec = [un', f' + G.nodes.num];
-end
-rhs(dofVec) = rhs(dofVec) + v;
-
-f   = bc.face(strcmp(bc.type,'pressure'));
-n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f +1)-1));
-v = bc.value(strcmp(bc.type,'pressure'),:);
-
-if k == 1
-    v = reshape(v(:,1:2)',[],1);
-    dofVec = n';
-elseif k == 2
-    dofVec = [n', f' + G.nodes.num];
-    v = [reshape(v(:,1:2)',[],1); v(:,3)];
-end
-rhs(dofVec) = v;
-I = spdiags(ones(NK,1),0,NK,NK);
-A(dofVec,:) = I(dofVec,:);
 
 end
 
@@ -281,4 +305,10 @@ function bc = mrst2vem(bc, G)
     
     bc.value(isDir,1:2) = reshape(vn,2,[])';
     
+end
+
+%--------------------------------------------------------------------------
+
+function nk = polyDim(k, dim)
+    nk = nchoosek(k+dim,k);
 end
