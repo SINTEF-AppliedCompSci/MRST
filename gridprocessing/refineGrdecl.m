@@ -20,7 +20,7 @@ function grdecl = refineGrdecl(grdecl, dim, varargin)
 %   - NB! not handle flowbased upscaling 'MULTZ','MULTX','MULTY'
 %
 %
-% COMMENT : Function is not fully tested. To be used with care.
+% IMPORTANT NOTICE : This function is not fully tested. To be used with care.
 %
 % PARAMETERS:
 %   grdecl   - grid in eclipse format
