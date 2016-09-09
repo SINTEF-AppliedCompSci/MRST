@@ -251,7 +251,7 @@ else
         xMon = bsxfun(@rdivide, G.nodes.coords(G.cells.nodes,:) ...
                                - rldecode(G.cells.centroids, ncn,1), ...
                                  rldecode(G.cells.diameters, ncn, 1));
-        D = sparseBlockDiag(m(xMon), diff(G.cells.nodePos), 1);
+        D = sparseBlockDiag(m(xMon), NP, 1);
     else
         
         ccf = rldecode(G.cells.centroids, diff(G.cells.facePos), 1);
@@ -582,11 +582,15 @@ else
     c2 = c(:,1); c3 = c(:,2); c4 = c(:,3);
     
     c2 = bsxfun(@times,PiNFstar, c2');
+    c3 = bsxfun(@times,PiNFstar, c3');
+    c4 = bsxfun(@times,PiNFstar, c4');
     
     alpha = [0 1 0]'; beta = [0 0 1]';
     alpha = alpha+1;
     c2 = bsxfun(@rdivide, c2, repmat(alpha, numel(f), 1));
-   
+    c3 = bsxfun(@rdivide, c3, repmat(alpha, numel(f), 1));
+    c4 = bsxfun(@rdivide, c4, repmat(alpha, numel(f), 1));
+    
     eNum = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
     e = G.faces.edges(eNum);
     en = G.faces.edgeNormals(eNum,:);
@@ -605,9 +609,9 @@ else
     en = squeezeBlockDiag(en*T, nfn(f), sum(nfn(f)), 2);
     enx = en(:,1).*G.edges.lengths(e);
     
-    mVals = bsxfun(@power, repmat([x(:,1); en(:,1)],1,nk-1), alpha')...
-          .*bsxfun(@power, repmat([x(:,2); en(:,2)],1,nk-1), beta');
-
+    mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,nk-1), alpha')...
+          .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,nk-1), beta');
+      
     pos = [1;cumsum(nfn(f))+1];
     ii = 1:size(x,1); jj = ii;
     jj(1:end-1) = jj(2:end);
@@ -615,30 +619,63 @@ else
     
     mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(size(x,1)+1:end,:)*2/3, enx);
     
-    vec = [0; cumsum(nfe(f))];
-    iife = mcolon(rldecode(vec(1:end-1)+1, NF(f), 1), rldecode(vec(2:end), NF(f), 1));
+    If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
+    mVals = If*mVals;
     
-    mVals = mVals(iife,:);
+%     mVals = rldecode(mVals, NF(f),1)
+%     
+%     vec = [0; cumsum(nfe(f))];
+%     iife = mcolon(rldecode(vec(1:end-1)+1, NF(f), 1), rldecode(vec(2:end), NF(f), 1));
+%     
+%     mVals = mVals(iife,:);
     
-    mVals = sparseBlockDiag(mVals, nfe(f), 1);
-    int = mVals*c2;
+    mVals = sparseBlockDiag(mVals, ones(numel(f),1), 1);
+    int2 = mVals*c2;
+    int2 = squeezeBlockDiag(int2, NF(f), 1, sum(NF(f)));
+    int3 = mVals*c3;
+    int3 = squeezeBlockDiag(int3, NF(f), 1, sum(NF(f)));
+    int4 = mVals*c4;
+    int4 = squeezeBlockDiag(int4, NF(f), 1, sum(NF(f)));
     
-    If = sparseBlockDiag(ones(1, sum(rldecode(nfe(f), NF(f),1))), rldecode(nfe(f), NF(f),1), 2); 
+%     NFf = NF(f);
+%     dof = [0; cumsum(NFf(1:end-1))] + 1;
+%     
+%     iiN = mcolon(dof, dof + nfn(f) - 1);
     
-%     int = If*int
-
-a = 1;
-% 
-%     ii = 1:nf; jj = ii;
-%     jj(2:end) = jj(1:end-1);
-%     jj([1;cumsum(fPos(2:end-1)    ...
-%                 -fPos(1:end-2))+1]) ...
-%      = ii(cumsum(fPos(2:end)-fPos(1:end-1)));
-% 
-%     B = B(ii,:) + B(jj,:);
-%     B = [.5*(fa(ii) + fa(jj)), ...
-%                                    squeezeBlockDiag(B,ncf, nf, nk-1)];
+    fDof = n;
+    
+    f2glob = sparse(fDof,1:numel(fDof),1);
+    
+%     dof = [0; cumsum(NP(1:end-1))]+1;
+%     iiN = mcolon(dof, dof + ncn -1);
         
+    cDof = G.cells.nodes;
+    cDof = cDof(cDof~=0);
+    glob2c = sparse(1:numel(cDof), cDof, 1);
+    
+    f2c = glob2c*f2glob;
+    
+    for P = 1:G.cells.num
+        nn = n(
+    end
+    
+    int2 = f2c*int2';
+    int3 = f2c*int3';
+    int4 = f2c*int4';
+    
+    BT = zeros(sum(NP), nk);
+    
+    cdi = rldecode(G.cells.diameters, NP, 1);
+    BT(:,2:end) = bsxfun(@rdivide, [int2, int3, int4], cdi);
+    BT(:,1) = rldecode(1./NP, NP, 1);
+    
+    B = sparseBlockDiag(BT', NP, 2);
+    
+    M = B*D;
+    
+    PiNstar = M\B;
+    PiN = D*PiNstar; 
+    
     else
         
     alpha = [0 1 0 0 2 1 1 0 0 0];
@@ -886,6 +923,8 @@ a = 1;
     PiNstar = M\B;
     PiN = D*PiNstar;
     
+    end
+    
     %   Calculate Q matrices-
     Q = zeros(sum(nker.*NP),1);
     PiNPos = [1; cumsum(NP.^2) + 1];
@@ -910,8 +949,6 @@ a = 1;
     M(1:nk:end,:) = 0;
     I = speye(size(PiN,1));
     A = PiNstar'*M*PiNstar + (I-PiN)'*Q*sigma*Q'*(I-PiN);
-        
-    end
     
     %   Make solution struct.
     
@@ -935,9 +972,9 @@ a = 1;
     S.A = A;
     S.dofVec = dofVec;
     S.PNstar = PiNstar;
-    if k == 1
-        S.PiN1 = PiN1;
-    end
+%     if k == 1
+%         S.PiN1 = PiN1;
+%     end
     S.order  = k;
     end
     

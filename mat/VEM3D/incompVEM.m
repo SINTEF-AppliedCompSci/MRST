@@ -268,15 +268,24 @@ else
         n = G.faces.nodes(G.faces.nodePos(f(i)):G.faces.nodePos(f(i)+1)-1);
         e = G.faces.edges(G.faces.edgePos(f(i)):G.faces.edgePos(f(i)+1)-1);
         g = bc.func{i};
+        if k == 1
+            rhs(n) = g(G.nodes.coords(n,:));
+        else
+            
         rhs([n; e + G.nodes.num; f + G.nodes.num + G.edges.num]) ...
             = [g(G.nodes.coords(n,:)); g(G.edges.centroids(e,:)); ...
                polygonInt3D(G, f, g, k+1)./G.faces.areas(f)];
+        end
     end
 
     n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-    e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
-    dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
     
+    if k == 1
+       dofVec = n; 
+    else
+        e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+        dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
+    end
     I = spdiags(ones(N,1),0,N,N);
     A(dofVec,:) = I(dofVec, :);
     
@@ -310,5 +319,10 @@ end
 %--------------------------------------------------------------------------
 
 function nk = polyDim(k, dim)
-    nk = nchoosek(k+dim,k);
+
+    if k < 0
+        nk = 0;
+    else
+        nk = nchoosek(k+dim,k);
+    end
 end
