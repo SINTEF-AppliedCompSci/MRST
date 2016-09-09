@@ -139,6 +139,18 @@ end
 
 % ----------------------------------------------------------------------------
 
-function kr = krW(so, p, fluid, opt, varargin)
-   kr=interpTable(opt.table_water.S,opt.table_water.kr, 1-so);
+function kr = krW(sw, p, fluid, opt, varargin)
+   
+   % approximation built on sharp interface assumption, with water
+   % immobilized above and flowing regularly below
+   sg = 1-sw;
+      
+   loc_opt = struct('sGmax', []);
+   loc_opt = merge_options(loc_opt, varargin{:});
+   
+   sg_free = free_sg(sg, loc_opt.sGmax, opt);
+
+   sw_eff = sw - (sg_free./(1-opt.res_water)) .* opt.res_water;
+   
+   kr=interpTable(opt.table_water.S,opt.table_water.kr, 1-sw);
 end
