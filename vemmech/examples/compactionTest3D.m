@@ -71,7 +71,7 @@ if(strcmp(grid_case,'norne'))
     %only rolling in vertical direction this is need since norne has
     %irregular sides and the code do not have genneral implementation of
     %rolling condition at this point
-    [el_bc, load] = makeCompactionTest(G, opt, 'rolling_vertical', true)
+    [el_bc, load] = makeCompactionTest(G, opt, 'rolling_vertical', true);
 else
     [el_bc, load] = makeCompactionTest(G, opt);
 end
@@ -99,7 +99,7 @@ ff = abs(el_bc.force_bc.force(1, 3));
 start = max(G.faces.centroids(:, 3));
 top = min(G.faces.centroids(:, 3));
 [lambda, mu] = ENu2LMu_3D(opt.E, opt.nu);
-gfac = 10*3000/2% gravity is 10, density is 3000, 2 is because of derivative
+gfac = 10*3000/2; % gravity is 10, density is 3000, 2 is because of derivative
 ana = @(z) ff*(z-start)./(C(1, 1))-double(opt.gravity_load)*gfac*((top-start).^2 - (z-top).^2)/C(1, 1);
 divana = @(z) (ff./C(1, 1))-double(opt.gravity_load)*gfac*(-2*(z-top))/C(1, 1);
 
