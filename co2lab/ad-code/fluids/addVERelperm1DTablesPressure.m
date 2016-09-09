@@ -151,6 +151,7 @@ function kr = krW(sw, p, fluid, opt, varargin)
    sg_free = free_sg(sg, loc_opt.sGmax, opt);
 
    sw_eff = sw - (sg_free./(1-opt.res_water)) .* opt.res_water;
+   sw_eff(sw_eff<0) = 0; % Should not logically happen, but just in case
    
-   kr=interpTable(opt.table_water.S,opt.table_water.kr, 1-sw);
+   kr = interpTable(opt.table_water.S,opt.table_water.kr, 1-sw_eff);
 end
