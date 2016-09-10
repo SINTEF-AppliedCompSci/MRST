@@ -24,7 +24,7 @@ function [h, h_max] = upscaledSat2height(S, S_max, Gt, varargin)
 %              * If a _general_ model is assumed, then the function needs the
 %              following argument:
 %                - pcWG(S, p, S_max) - upscaled capillary pressure as a
-%                                      funciton of upscaled saturation,
+%                                      function of upscaled saturation,
 %                                      current pressure and max. upscaled
 %                                      saturation.
 %                - rhoW(p)           - density of water [oil] phase, as a

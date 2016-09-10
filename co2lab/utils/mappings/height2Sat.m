@@ -41,11 +41,14 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-if(~isfield(fluid, 'sw'))
+if isfield(fluid, 'res_gas')
+   % ADI-type fluid
+   sr = fluid.res_gas;
+   sw = fluid.res_water;
+elseif(~isfield(fluid, 'sw'))
    [mu, rho, sr] = fluid.properties();                                     %#ok
-   fluid.sr = sr(1);
-   fluid.sw = sr(2);
+   sr = sr(1);
+   sw = sr(2);
 end
 % magn = @(v)(sqrt(sum(v.^2,2)));
 %n    = Gt.cells.normals(:,3)./magn(Gt.cells.normals);
@@ -67,12 +70,12 @@ cellNoInCol = mcolon(ones(Gt.cells.num,1), diff(Gt.cells.columnPos))';
 f = rldecode(n, nc)-cellNoInCol+1;
 
 % completely filled cells
-s(Gt.columns.cells(f>0)) = 1*(1-fluid.sw);
+s(Gt.columns.cells(f>0)) = 1*(1-sw);
 
 %partially filled cells
-s(Gt.columns.cells(f==0)) = t(n<nc)*(1-fluid.sw);
+s(Gt.columns.cells(f==0)) = t(n<nc)*(1-sw);
 
-if fluid.sr>0 &&any(sol.h_max>sol.h)
+if sr>0 &&any(sol.h_max>sol.h)
    % %hysteresis:
    [n_sr, t_sr] = fillDegree(sol.h_max, Gt);
    % remove all cells where sol.h_max-sol.h == 0 and leave only the fraction that is
@@ -84,13 +87,13 @@ if fluid.sr>0 &&any(sol.h_max>sol.h)
    f_sr = rldecode(n_sr, nc)-cellNoInCol+1;
    %s_copy = s;
    % cells with residual saturation in the whole cell
-   s(Gt.columns.cells(f_sr>0 & f<0)) = fluid.sr;
+   s(Gt.columns.cells(f_sr>0 & f<0)) = sr;
    % cells with residual saturation in bottom part of a cell and free co2 on top
    currSat = s(Gt.columns.cells(f_sr>0 &f ==0));
-   s(Gt.columns.cells(f_sr>0 & f==0)) = currSat+(1-t(ix2))*fluid.sr;
+   s(Gt.columns.cells(f_sr>0 & f==0)) = currSat+(1-t(ix2))*sr;
    % cells with possible residual saturation in part of the cell and water in the bottom
    currSat = s(Gt.columns.cells(f_sr==0));
-   s(Gt.columns.cells(f_sr==0)) = currSat + t_sr(n_sr<nc)*fluid.sr;
+   s(Gt.columns.cells(f_sr==0)) = currSat + t_sr(n_sr<nc)*sr;
 
    %residual = sum(s-s_copy)
 
