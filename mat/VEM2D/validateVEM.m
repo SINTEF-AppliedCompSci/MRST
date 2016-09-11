@@ -79,7 +79,12 @@ switch i
         
     case 3
         
-        G = cartGrid([2,2,2], [1,1,1]);
+        
+        n = 1;
+        G = cartGrid([n,n,n], [1,1,1]);
+        
+%         G = voronoiCube(100, [1,1,1]);
+        
         G = computeVEM3DGeometry(G);
         
         k = 2;
@@ -88,18 +93,21 @@ switch i
 
         rock.perm = repmat(1, G.cells.num,1);
         fluid = initSingleFluid('mu', mu, 'rho', 1);
-
+        state = initState(G, [], 0);
+        
         tol = 1e-6;
         f = boundaryFaces(G);
-        isNeu = abs(G.faces.centroids(f,1))<tol;
+        
+        gD = @(x) 100*x(:,3).*x(:,1);
 
-        bc = addBC([], f, 'pressure', 0);
+        bc = addBCFunc([], f, 'pressure', gD);
         tic;
         S = computeVirtualIP(G, rock, k);
         state = incompVEM(state, G, S, fluid, 'bc', bc);
         toc
         
-        fprintf('\nError: %.2d\n\n', norm(state.nodePressure -  gD(G.nodes.coords)));
+        fprintf('\nError: %.2d\n\n', ...
+                norm(state.nodePressure -  gD(G.nodes.coords))/norm(gD(G.nodes.coords)));
         
         plotVEM2D(G, state, k);
         
