@@ -694,14 +694,18 @@ else
     [alpha, beta, c5] = polyProducts(c5, PiNFstar, alpha, beta);
     c2 = bsxfun(@times, PiNFstar, c2);
     
+    alpha = alpha +1;
+    c5 = bsxfun(@rdivide, c5, alpha);
+    alp = [0 1 0 2 1 0]; alp = alp+1;
+    bet = [0 0 1 0 1 2];
+    c2 = bsxfun(@rdivide, c2, alp);
+    
+    
     c5 = sparseBlockDiag(c5',NF(f), 2);
     c2 = sparseBlockDiag(c2', NF(f), 2);
     
-    alpha = alpha +1;
-    c5 = bsxfun(@rdivide, c5, repmat(alpha', numel(f), 1));
-    alp = [0 1 0 2 1 0]; alp = alp+1;
-    bet = [0 0 1 0 1 2];
-    c2 = bsxfun(@rdivide, c2, repmat(alp', numel(f), 1));
+    
+%     c2 = bsxfun(@rdivide, PiNFstar, repmat(alp', numel(f),1));
     
     
     m2 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alp)...
