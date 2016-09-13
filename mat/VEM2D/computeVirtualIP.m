@@ -742,7 +742,7 @@ else
     c9y = sparseBlockDiag(c9y', NF(f), 2);
     c9z = sparseBlockDiag(c9z', NF(f), 2);
     c10 = sparseBlockDiag(c10', NF(f), 2);
-    
+
     alpha = alpha + 1;
     c5  = bsxfun(@rdivide, c5 , repmat(alpha', numel(f), 1));
     c6x = bsxfun(@rdivide, c6x, repmat(alpha', numel(f), 1));
