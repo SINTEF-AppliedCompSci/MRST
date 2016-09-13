@@ -671,69 +671,135 @@ else
     
     else
     
-    c2 = [1; 0; 0];
-    c5 = [2; 0 ; 0];
+    c5  = [2; 0; 0];
+    c8  = [0; 2; 0];
+    c10 = [0; 0; 2];
     fn = sparseBlockDiag(fn, ncf, 1);
-    c2 = fn*Kmat*c2;
-    
+    c24 = fn*Kmat;
+    c2 = c24(:,1); c3 = c24(:,2); c4 = c24(:,3);
     c5 = fn*Kmat*c5;
+    c8 = fn*Kmat*c8;
+    c10 = fn*Kmat*c10;
     
     cx = trinomialExpansion(v1(1,f)', v2(1,f)', G.faces.centroids(f,1)-ccf(:,1), 1);
-    c5 = bsxfun(@times, cx(:, [3,1,2]), c5);
-    c5 = [c5, zeros(numel(f),3)];
+    cx = cx(:,[3,1,2]);
+    cy = trinomialExpansion(v1(2,f)', v2(2,f)', G.faces.centroids(f,2)-ccf(:,2), 1);
+    cy = cy(:,[3,1,2]);
+    cz = trinomialExpansion(v1(3,f)', v2(3,f)', G.faces.centroids(f,3)-ccf(:,3), 1);
+    cz = cz(:,[3,1,2]);
     
-    alpha = [0 1 0 2 1 0];
-    beta  = [0 0 1 0 1 2];
+    c5  = bsxfun(@times, cx, c5 ); c5  = [c5 , zeros(numel(f),3)];
+    c6x = bsxfun(@times, cy, c2 ); c6x = [c6x, zeros(numel(f),3)];
+    c6y = bsxfun(@times, cx, c3 ); c6y = [c6y, zeros(numel(f),3)];
+    c7x = bsxfun(@times, cz, c2 ); c7x = [c7x, zeros(numel(f),3)];
+    c7z = bsxfun(@times, cx, c4 ); c7z = [c7z, zeros(numel(f),3)];
+    c8  = bsxfun(@times, cy, c8 ); c8  = [c8 , zeros(numel(f),3)];
+    c9y = bsxfun(@times, cz, c3 ); c9y = [c9y, zeros(numel(f),3)];
+    c9z = bsxfun(@times, cy, c4 ); c9z = [c9z, zeros(numel(f),3)];
+    c10 = bsxfun(@times, cz, c10); c10 = [c10, zeros(numel(f),3)];
     
     PiNFstar = squeezeBlockDiag(PiNFstar', NF(f), sum(NF(f)), polyDim(2,2));
     
+    c2  = rldecode(c2 , NF(f), 1);
+    c3  = rldecode(c3 , NF(f), 1);
+    c4  = rldecode(c4 , NF(f), 1);
+    c5  = rldecode(c5 , NF(f), 1);
+    c6x = rldecode(c6x, NF(f), 1);
+    c6y = rldecode(c6y, NF(f), 1);
+    c7x = rldecode(c7x, NF(f), 1);
+    c7z = rldecode(c7z, NF(f), 1);
+    c8  = rldecode(c8 , NF(f), 1);
+    c9y = rldecode(c9y, NF(f), 1);
+    c9z = rldecode(c9z, NF(f), 1);
+    c10 = rldecode(c10, NF(f), 1);
     
-    c5 = rldecode(c5, NF(f), 1);
-    c2 = rldecode(c2, NF(f), 1);
+    a = [0 1 0 2 1 0];
+    b = [0 0 1 0 1 2];
     
-    [alpha, beta, c5] = polyProducts(c5, PiNFstar, alpha, beta);
     c2 = bsxfun(@times, PiNFstar, c2);
+    c3 = bsxfun(@times, PiNFstar, c3);
+    c4 = bsxfun(@times, PiNFstar, c4);
     
-    c5 = sparseBlockDiag(c5',NF(f), 2);
-    c2 = sparseBlockDiag(c2', NF(f), 2);
+    [alpha, beta, c5 ] = polyProducts(c5 , PiNFstar, a, b);
+    [~    , ~   , c6x] = polyProducts(c6x, PiNFstar, a, b);
+    [~    , ~   , c6y] = polyProducts(c6y, PiNFstar, a, b);
+    [~    , ~   , c7x] = polyProducts(c7x, PiNFstar, a, b);
+    [~    , ~   , c7z] = polyProducts(c7z, PiNFstar, a, b);
+    [~    , ~   , c8 ] = polyProducts(c8 , PiNFstar, a, b);
+    [~    , ~   , c9y] = polyProducts(c9y, PiNFstar, a, b);
+    [~    , ~   , c9z] = polyProducts(c9z, PiNFstar, a, b);
+    [~    , ~   , c10] = polyProducts(c10, PiNFstar, a, b);
     
-    alpha = alpha +1;
-    c5 = bsxfun(@rdivide, c5, repmat(alpha', numel(f), 1));
-    alp = [0 1 0 2 1 0]; alp = alp+1;
+    c2  = sparseBlockDiag(c2' , NF(f), 2);
+    c3  = sparseBlockDiag(c3' , NF(f), 2);
+    c4  = sparseBlockDiag(c4' , NF(f), 2);
+    c5  = sparseBlockDiag(c5' , NF(f), 2);
+    c6x = sparseBlockDiag(c6x', NF(f), 2);
+    c6y = sparseBlockDiag(c6y', NF(f), 2);
+    c7x = sparseBlockDiag(c7x', NF(f), 2);
+    c7z = sparseBlockDiag(c7z', NF(f), 2);
+    c8  = sparseBlockDiag(c8' , NF(f), 2);
+    c9y = sparseBlockDiag(c9y', NF(f), 2);
+    c9z = sparseBlockDiag(c9z', NF(f), 2);
+    c10 = sparseBlockDiag(c10', NF(f), 2);
+    
+    alpha = alpha + 1;
+    c5  = bsxfun(@rdivide, c5 , repmat(alpha', numel(f), 1));
+    c6x = bsxfun(@rdivide, c6x, repmat(alpha', numel(f), 1));
+    c6y = bsxfun(@rdivide, c6y, repmat(alpha', numel(f), 1));
+    c7x = bsxfun(@rdivide, c7x, repmat(alpha', numel(f), 1));
+    c7z = bsxfun(@rdivide, c7z, repmat(alpha', numel(f), 1));
+    c8  = bsxfun(@rdivide, c8 , repmat(alpha', numel(f), 1));
+    c9y = bsxfun(@rdivide, c9y, repmat(alpha', numel(f), 1));
+    c9z = bsxfun(@rdivide, c9z, repmat(alpha', numel(f), 1));
+    c10 = bsxfun(@rdivide, c10, repmat(alpha', numel(f), 1));
+    
+    alp = [0 1 0 2 1 0];
     bet = [0 0 1 0 1 2];
+    alp = alp+1;
     c2 = bsxfun(@rdivide, c2, repmat(alp', numel(f), 1));
+    c3 = bsxfun(@rdivide, c3, repmat(alp', numel(f), 1));
+    c4 = bsxfun(@rdivide, c4, repmat(alp', numel(f), 1));
     
-    
-    m2 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alp)...
+    m2m4 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alp)...
           .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6), bet);
       
-    mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6*6), alpha)...
-          .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6*6), beta);
+    m5m10 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6*6), alpha)...
+          .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6*6), beta );
       
     pos = [1;cumsum(nfn(f))+1];
     ii = 1:size(x,1); jj = ii;
     jj(1:end-1) = jj(2:end);
     jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
     
-    mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(size(x,1)+1:end,:)*2/3, enx);
-    
+    m2m4 = bsxfun(@times, (m2m4(ii,:) + m2m4(jj,:))/6 + m2m4(size(x,1)+1:end,:)*2/3, enx);
     If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
-    mVals = If*mVals;
+    m2m4 = If*m2m4;
+    m2m4 = sparseBlockDiag(m2m4, ones(numel(f),1), 1);
     
-    mVals = sparseBlockDiag(mVals, ones(numel(f),1), 1);
-    
-    m2 = bsxfun(@times, (m2(ii,:) + m2(jj,:))/6 + m2(size(x,1)+1:end,:)*2/3, enx);
-    
+    m5m10 = bsxfun(@times, (m5m10(ii,:) + m5m10(jj,:))/6 + m5m10(size(x,1)+1:end,:)*2/3, enx);
     If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
-    m2 = If*m2;
+    m5m10 = If*m5m10;
+    m5m10 = sparseBlockDiag(m5m10, ones(numel(f),1), 1);
     
-    m2 = sparseBlockDiag(m2, ones(numel(f),1), 1);
-    
-    
-    int5 = mVals*c5;
-    int5 = squeezeBlockDiag(int5, NF(f), 1, sum(NF(f)));
-    int2 = m2*c2;
+    int2 = m2m4*c2;
     int2 = squeezeBlockDiag(int2, NF(f), 1, sum(NF(f)));
+    int3 = m2m4*c3;
+    int3 = squeezeBlockDiag(int3, NF(f), 1, sum(NF(f)));
+    int4 = m2m4*c4;
+    int4 = squeezeBlockDiag(int4, NF(f), 1, sum(NF(f)));
+    int5 = m5m10*c5;
+    int5 = squeezeBlockDiag(int5, NF(f), 1, sum(NF(f)));
+    int6 = m5m10*c6x + m5m10*c6y;
+    int6 = squeezeBlockDiag(int6, NF(f), 1, sum(NF(f)));
+    int7 = m5m10*c7x + m5m10*c7z;
+    int7 = squeezeBlockDiag(int7, NF(f), 1, sum(NF(f)));
+    int8 = m5m10*c8;
+    int8 = squeezeBlockDiag(int8, NF(f), 1, sum(NF(f)));
+    int9 = m5m10*c9y + m5m10*c9z;
+    int9 = squeezeBlockDiag(int9, NF(f), 1, sum(NF(f)));
+    int10 = m5m10*c10;
+    int10 = squeezeBlockDiag(int10, NF(f), 1, sum(NF(f)));
     
     ii = rldecode((1:numel(f))', NF(f), 1);
     
@@ -749,12 +815,27 @@ else
                              f + G.nodes.num + G.edges.num];
 %     jj([iiN; iiE; iiF]) = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
     
-    int5 = sparse(ii, fDof, int5, numel(f), N);
+    
     int2 = sparse(ii, fDof, int2, numel(f), N);
+    int3 = sparse(ii, fDof, int3, numel(f), N);
+    int4 = sparse(ii, fDof, int4, numel(f), N);
+    int5 = sparse(ii, fDof, int5, numel(f), N);
+    int6 = sparse(ii, fDof, int6, numel(f), N);
+    int7 = sparse(ii, fDof, int7, numel(f), N);
+    int8 = sparse(ii, fDof, int8, numel(f), N);
+    int9 = sparse(ii, fDof, int9, numel(f), N);
+    int10 = sparse(ii, fDof, int10, numel(f), N);
     
     If = sparseBlockDiag(ones(1,sum(ncf)), ncf, 2);
-    int5 = (If*int5)'; int5 = int5(:);
     int2 = (If*int2)'; int2 = int2(:);
+    int3 = (If*int3)'; int3 = int3(:);
+    int4 = (If*int4)'; int4 = int4(:);
+    int5  = (If*int5)' ; int5  = int5(:);
+    int6 = (If*int6)'; int6 = int6(:);
+    int7 = (If*int7)'; int7 = int7(:);
+    int8  = (If*int8)' ; int8  = int8(:);
+    int9  = (If*int9)' ; int9  = int9(:);
+    int10 = (If*int10)'; int10 = int10(:);
     
     dof = [0; cumsum(NP(1:end-1))]+1;
     iiN = mcolon(dof, dof + ncn -1)';
@@ -771,9 +852,17 @@ else
     vec = repmat(N,G.cells.num,1);
     vec = [0; cumsum(vec(1:end-1))];
     cDof = cDof + rldecode(vec, NP-1,1);
-    int5 = int5(cDof);
     
     int2 = int2(cDof);
+    int3 = int3(cDof);
+    int4 = int4(cDof);
+    int5 = int5(cDof);
+    int6 = int6(cDof);
+    int7 = int7(cDof);
+    int8 = int8(cDof);
+    int9 = int9(cDof);
+    int10 = int10(cDof);
+    
     
     alpha = [0 1 0 0 2 1 1 0 0 0];
     beta  = [0 0 1 0 0 1 0 2 1 0];
