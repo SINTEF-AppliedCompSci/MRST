@@ -334,43 +334,6 @@ else
         c9 = c9';
         m9fInt = I*mVals*c9(:)./cd.^2;
         
-        m5fI = []; m8fI = []; m10fI = []; m6fI = []; m7fI = []; m9fI = [];
-        
-%         for P = 1:G.cells.num
-%             
-%             ff = G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1);
-%             
-%             mm = @(X) ((X(:,1)-G.cells.centroids(P,1))/G.cells.diameters(P)).^2;
-%             m5fI = [m5fI; polygonInt3D(G, ff, mm, 2)];
-%             
-%             mm = @(X) ((X(:,2)-G.cells.centroids(P,2))/G.cells.diameters(P)).^2;
-%             m8fI = [m8fI; polygonInt3D(G, ff, mm, 2)];
-%             
-%             mm = @(X) ((X(:,3)-G.cells.centroids(P,3))/G.cells.diameters(P)).^2;
-%             m10fI = [m10fI; polygonInt3D(G, ff, mm, 2)];  
-%             
-%             mm = @(X) (X(:,1)-G.cells.centroids(P,1)).*(X(:,2)-G.cells.centroids(P,2))...
-%                       ./G.cells.diameters(P)^2;
-%             m6fI = [m6fI; polygonInt3D(G, ff, mm, 2)];
-%             
-%             mm = @(X) (X(:,1)-G.cells.centroids(P,1)).*(X(:,3)-G.cells.centroids(P,3))...
-%                       ./G.cells.diameters(P)^2;
-%             m7fI = [m7fI; polygonInt3D(G, ff, mm, 2)];
-%             
-%             mm = @(X) (X(:,2)-G.cells.centroids(P,2)).*(X(:,3)-G.cells.centroids(P,3))...
-%                       ./G.cells.diameters(P)^2;
-%             m9fI = [m9fI; polygonInt3D(G, ff, mm, 2)];
-%             
-%         end 
-%         
-%         norm(m5fI - m5fInt)
-%         norm(m6fI - m6fInt)
-%         norm(m7fI - m7fInt)
-%         norm(m8fI - m8fInt)
-%         norm(m9fI - m9fInt)
-%         norm(m10fI - m10fInt)
-        
-        
         fSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
                   ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
         fn = bsxfun(@times, G.faces.normals(f,:), fSign./G.faces.areas(f));
@@ -464,44 +427,7 @@ else
         
         c9 = c9';
         m9cInt = Ic*If*mVals*c9(:)./G.cells.diameters.^2;
-        
-%         m5cI = []; m8cI = []; m10cI = [];
-%         m6cI = []; m7cI = []; m9cI = [];
-%         
-%         for P = 1:G.cells.num
-%             
-%             mm = @(X) ((X(:,1)-G.cells.centroids(P,1))/G.cells.diameters(P)).^2;
-%             m5cI = [m5cI; polyhedronInt(G, P, mm, 2)];
-%             
-%             mm = @(X) ((X(:,2)-G.cells.centroids(P,2))/G.cells.diameters(P)).^2;
-%             m8cI = [m8cI; polyhedronInt(G, P, mm, 2)];
-%             
-%             mm = @(X) ((X(:,3)-G.cells.centroids(P,3))/G.cells.diameters(P)).^2;
-%             m10cI = [m10cI; polyhedronInt(G, P, mm, 2)];  
-%             
-%             mm = @(X) (X(:,1)-G.cells.centroids(P,1)).*(X(:,2)-G.cells.centroids(P,2))...
-%                       ./G.cells.diameters(P)^2;
-%             m6cI = [m6cI; polyhedronInt(G, P, mm, 2)];
-%             
-%             mm = @(X) (X(:,1)-G.cells.centroids(P,1)).*(X(:,3)-G.cells.centroids(P,3))...
-%                       ./G.cells.diameters(P)^2;
-%             m7cI = [m7cI; polyhedronInt(G, P, mm, 2)];
-%             
-%             mm = @(X) (X(:,2)-G.cells.centroids(P,2)).*(X(:,3)-G.cells.centroids(P,3))...
-%                       ./G.cells.diameters(P)^2;
-%             m9cI = [m9cI; polyhedronInt(G, P, mm, 2)];
-% %             
-%         end 
-%         
-%         norm(m5cI - m5cInt)
-%         norm(m6cI - m6cInt)
-%         norm(m7cI - m7cInt)
-%         norm(m8cI - m8cInt)
-%         norm(m9cI - m9cInt)
-%         norm(m10cI - m10cInt)
-%         a = 1;
-        
-        
+                
         alpha = [0 1 0 0 2 1 1 0 0 0];
         beta  = [0 0 1 0 0 1 0 2 1 0];
         gamma = [0 0 0 1 0 0 1 0 1 2];
@@ -535,18 +461,8 @@ else
                  .*bsxfun(@power, repmat(fcMon(:,2),1, 3), beta (2:4) ) ...
                  .*bsxfun(@power, repmat(fcMon(:,3),1, 3), gamma(2:4) );
             
-        mI = [];
-        for P = 1:G.cells.num
-            mm = @(x) [x(:,1)-G.cells.centroids(P,1), ...
-                      x(:,2)-G.cells.centroids(P,2), ...
-                      x(:,3)-G.cells.centroids(P,3)]./G.cells.diameters(P);
-%             ff = G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1);
-            mI = [mI; polyhedronInt(G, P, mm,7)];
-  
-        end
 
         dof = [0; cumsum(NP(1:end-1))] + 1;
-%         sub = rldecode(-1:-1:-G.cells.num);
              
         iiN = mcolon(dof, dof + ncn - 1);
         iiE = mcolon(dof + ncn, dof + ncn + nce - 1);
@@ -569,8 +485,6 @@ else
     NF = diff(G.faces.nodePos) + diff(G.faces.edgePos)*polyDim(k-2, 1) + polyDim(k-2, 2);
     
     Kmat  = reshape(K', 3, [])';
-    
-    
     
     fn = bsxfun(@rdivide, G.faces.normals(f,:),G.faces.areas(f));
     fSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
@@ -671,46 +585,33 @@ else
     
     else
     
-    c5  = [2; 0; 0];
-    c8  = [0; 2; 0];
-    c10 = [0; 0; 2];
     fn = sparseBlockDiag(fn, ncf, 1);
-    c24 = fn*Kmat;
-    c2 = c24(:,1); c3 = c24(:,2); c4 = c24(:,3);
-    c5 = fn*Kmat*c5;
-    c8 = fn*Kmat*c8;
-    c10 = fn*Kmat*c10;
-    
+    c = fn*Kmat;
+    c2 = c(:,1); c3 = c(:,2); c4 = c(:,3);
+    c5 = c2*2; c8 = c3*2; c10 = c4*2;
+     
     cx = trinomialExpansion(v1(1,f)', v2(1,f)', G.faces.centroids(f,1)-ccf(:,1), 1);
-    cx = cx(:,[3,1,2]);
     cy = trinomialExpansion(v1(2,f)', v2(2,f)', G.faces.centroids(f,2)-ccf(:,2), 1);
-    cy = cy(:,[3,1,2]);
     cz = trinomialExpansion(v1(3,f)', v2(3,f)', G.faces.centroids(f,3)-ccf(:,3), 1);
-    cz = cz(:,[3,1,2]);
-    
-    c5  = bsxfun(@times, cx, c5 ); c5  = [c5 , zeros(numel(f),3)];
-    c6x = bsxfun(@times, cy, c2 ); c6x = [c6x, zeros(numel(f),3)];
-    c6y = bsxfun(@times, cx, c3 ); c6y = [c6y, zeros(numel(f),3)];
-    c7x = bsxfun(@times, cz, c2 ); c7x = [c7x, zeros(numel(f),3)];
-    c7z = bsxfun(@times, cx, c4 ); c7z = [c7z, zeros(numel(f),3)];
-    c8  = bsxfun(@times, cy, c8 ); c8  = [c8 , zeros(numel(f),3)];
-    c9y = bsxfun(@times, cz, c3 ); c9y = [c9y, zeros(numel(f),3)];
-    c9z = bsxfun(@times, cy, c4 ); c9z = [c9z, zeros(numel(f),3)];
-    c10 = bsxfun(@times, cz, c10); c10 = [c10, zeros(numel(f),3)];
+        
+    zer = zeros(numel(f),3);
+    c5  = bsxfun(@times, cx(:,[3,1,2]), c5 )                          ; c5  = [c5 , zer];
+    c6  = bsxfun(@times, cy(:,[3,1,2]), c2 ) + bsxfun(@times, cx, c3 ); c6  = [c6 , zer];
+    c7  = bsxfun(@times, cz(:,[3,1,2]), c2 ) + bsxfun(@times, cx, c4 ); c7  = [c7 , zer];
+    c8  = bsxfun(@times, cy(:,[3,1,2]), c8 )                          ; c8  = [c8 , zer];
+    c9  = bsxfun(@times, cz(:,[3,1,2]), c3 ) + bsxfun(@times, cy, c4 ); c9  = [c9 , zer];
+    c10 = bsxfun(@times, cz(:,[3,1,2]), c10)                          ; c10 = [c10, zer];
     
     PiNFstar = squeezeBlockDiag(PiNFstar', NF(f), sum(NF(f)), polyDim(2,2));
     
     c2  = rldecode(c2 , NF(f), 1);
     c3  = rldecode(c3 , NF(f), 1);
     c4  = rldecode(c4 , NF(f), 1);
-    c5  = rldecode(c5 , NF(f), 1);
-    c6x = rldecode(c6x, NF(f), 1);
-    c6y = rldecode(c6y, NF(f), 1);
-    c7x = rldecode(c7x, NF(f), 1);
-    c7z = rldecode(c7z, NF(f), 1);
+    c5  = rldecode(c5 , NF(f), 1);    
+    c6  = rldecode(c6 , NF(f), 1);
+    c7  = rldecode(c7 , NF(f), 1);
     c8  = rldecode(c8 , NF(f), 1);
-    c9y = rldecode(c9y, NF(f), 1);
-    c9z = rldecode(c9z, NF(f), 1);
+    c9  = rldecode(c9 , NF(f), 1);
     c10 = rldecode(c10, NF(f), 1);
     
     a = [0 1 0 2 1 0];
@@ -719,53 +620,47 @@ else
     c2 = bsxfun(@times, PiNFstar, c2);
     c3 = bsxfun(@times, PiNFstar, c3);
     c4 = bsxfun(@times, PiNFstar, c4);
-    
-    [alpha, beta, c5 ] = polyProducts(c5 , PiNFstar, a, b);
-    [~    , ~   , c6x] = polyProducts(c6x, PiNFstar, a, b);
-    [~    , ~   , c6y] = polyProducts(c6y, PiNFstar, a, b);
-    [~    , ~   , c7x] = polyProducts(c7x, PiNFstar, a, b);
-    [~    , ~   , c7z] = polyProducts(c7z, PiNFstar, a, b);
+    [alpha510, beta510, c5 ] = polyProducts(c5 , PiNFstar, a, b);
+    [~    , ~   , c6 ] = polyProducts(c6 , PiNFstar, a, b);
+    [~    , ~   , c7 ] = polyProducts(c7 , PiNFstar, a, b);
     [~    , ~   , c8 ] = polyProducts(c8 , PiNFstar, a, b);
-    [~    , ~   , c9y] = polyProducts(c9y, PiNFstar, a, b);
-    [~    , ~   , c9z] = polyProducts(c9z, PiNFstar, a, b);
+    [~    , ~   , c9 ] = polyProducts(c9 , PiNFstar, a, b);
     [~    , ~   , c10] = polyProducts(c10, PiNFstar, a, b);
+    
+    alpha24 = [0 1 0 2 1 0];
+    beta24  = [0 0 1 0 1 2];
+    alpha24 = alpha24+1;
+    c2 = bsxfun(@rdivide, c2, alpha24);
+    c3 = bsxfun(@rdivide, c3, alpha24);
+    c4 = bsxfun(@rdivide, c4, alpha24);
+    
+    alpha510 = alpha510 + 1;
+    c5  = bsxfun(@rdivide, c5 , alpha510);
+    c6  = bsxfun(@rdivide, c6 , alpha510);
+    c7  = bsxfun(@rdivide, c7 , alpha510);
+    c8  = bsxfun(@rdivide, c8 , alpha510);
+    c9  = bsxfun(@rdivide, c9 , alpha510);
+    c10 = bsxfun(@rdivide, c10, alpha510);
     
     c2  = sparseBlockDiag(c2' , NF(f), 2);
     c3  = sparseBlockDiag(c3' , NF(f), 2);
     c4  = sparseBlockDiag(c4' , NF(f), 2);
     c5  = sparseBlockDiag(c5' , NF(f), 2);
-    c6x = sparseBlockDiag(c6x', NF(f), 2);
-    c6y = sparseBlockDiag(c6y', NF(f), 2);
-    c7x = sparseBlockDiag(c7x', NF(f), 2);
-    c7z = sparseBlockDiag(c7z', NF(f), 2);
+    c6  = sparseBlockDiag(c6' , NF(f), 2);
+    c7  = sparseBlockDiag(c7' , NF(f), 2);
     c8  = sparseBlockDiag(c8' , NF(f), 2);
-    c9y = sparseBlockDiag(c9y', NF(f), 2);
-    c9z = sparseBlockDiag(c9z', NF(f), 2);
+    c9  = sparseBlockDiag(c9' , NF(f), 2);
     c10 = sparseBlockDiag(c10', NF(f), 2);
 
-    alpha = alpha + 1;
-    c5  = bsxfun(@rdivide, c5 , repmat(alpha', numel(f), 1));
-    c6x = bsxfun(@rdivide, c6x, repmat(alpha', numel(f), 1));
-    c6y = bsxfun(@rdivide, c6y, repmat(alpha', numel(f), 1));
-    c7x = bsxfun(@rdivide, c7x, repmat(alpha', numel(f), 1));
-    c7z = bsxfun(@rdivide, c7z, repmat(alpha', numel(f), 1));
-    c8  = bsxfun(@rdivide, c8 , repmat(alpha', numel(f), 1));
-    c9y = bsxfun(@rdivide, c9y, repmat(alpha', numel(f), 1));
-    c9z = bsxfun(@rdivide, c9z, repmat(alpha', numel(f), 1));
-    c10 = bsxfun(@rdivide, c10, repmat(alpha', numel(f), 1));
+    m2m4 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alpha24)...
+          .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6), beta24);
+    fc = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6), alpha24-1 + beta24);
+    m2m4 = m2m4./fc;
     
-    alp = [0 1 0 2 1 0];
-    bet = [0 0 1 0 1 2];
-    alp = alp+1;
-    c2 = bsxfun(@rdivide, c2, repmat(alp', numel(f), 1));
-    c3 = bsxfun(@rdivide, c3, repmat(alp', numel(f), 1));
-    c4 = bsxfun(@rdivide, c4, repmat(alp', numel(f), 1));
-    
-    m2m4 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alp)...
-          .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6), bet);
-      
-    m5m10 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6*6), alpha)...
-          .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6*6), beta );
+    m5m10 = bsxfun(@power, repmat([x(:,1);ec(:,1)],1,6*6), alpha510)...
+          .*bsxfun(@power, repmat([x(:,2);ec(:,2)],1,6*6), beta510 );
+    fc = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6*6), alpha510-1 + beta510);
+    m5m10 = m5m10./fc;
       
     pos = [1;cumsum(nfn(f))+1];
     ii = 1:size(x,1); jj = ii;
@@ -773,7 +668,8 @@ else
     jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
     
     m2m4 = bsxfun(@times, (m2m4(ii,:) + m2m4(jj,:))/6 + m2m4(size(x,1)+1:end,:)*2/3, enx);
-    If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
+    If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2);
+    
     m2m4 = If*m2m4;
     m2m4 = sparseBlockDiag(m2m4, ones(numel(f),1), 1);
     
@@ -790,13 +686,20 @@ else
     int4 = squeezeBlockDiag(int4, NF(f), 1, sum(NF(f)));
     int5 = m5m10*c5;
     int5 = squeezeBlockDiag(int5, NF(f), 1, sum(NF(f)));
-    int6 = m5m10*c6x + m5m10*c6y;
+%     
+%     int6 = m5m10*c6x + m5m10*c6y;
+%     int6 = squeezeBlockDiag(int6, NF(f), 1, sum(NF(f)));
+%     
+    int6 = m5m10*c6;
     int6 = squeezeBlockDiag(int6, NF(f), 1, sum(NF(f)));
-    int7 = m5m10*c7x + m5m10*c7z;
+    
+%     int7 = m5m10*c7x + m5m10*c7z;
+    int7 = m5m10*c7;
     int7 = squeezeBlockDiag(int7, NF(f), 1, sum(NF(f)));
     int8 = m5m10*c8;
     int8 = squeezeBlockDiag(int8, NF(f), 1, sum(NF(f)));
-    int9 = m5m10*c9y + m5m10*c9z;
+%     int9 = m5m10*c9y + m5m10*c9z;
+    int9 = m5m10*c9;
     int9 = squeezeBlockDiag(int9, NF(f), 1, sum(NF(f)));
     int10 = m5m10*c10;
     int10 = squeezeBlockDiag(int10, NF(f), 1, sum(NF(f)));
@@ -863,279 +766,14 @@ else
     int9 = int9(cDof);
     int10 = int10(cDof);
     
-    
-    alpha = [0 1 0 0 2 1 1 0 0 0];
-    beta  = [0 0 1 0 0 1 0 2 1 0];
-    gamma = [0 0 0 1 0 0 1 0 1 2];
-    c     = [1 1 1 1 1 1 1 1 1 1];    
-    [c_1, c_2, c_3, alphax, betay, gammaz] = polyGrad(c, alpha, beta, gamma);
-    
-    cc = Kmat*[c_1; c_2; c_3];
-    
-    vec = rldecode((1:3:3*G.cells.num)', diff(G.cells.facePos), 1);
-    ii = mcolon(vec, vec + 2);    
-    
-    fn = bsxfun(@rdivide, G.faces.normals(f,:),G.faces.areas(f));
-    fSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
-                  ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
-    fn = bsxfun(@times, fn, fSign);
-    
-    fn = reshape(fn', [], 1);
-    
-    cc = bsxfun(@times, cc(ii,:), fn);
-    cc = reshape(cc', 3*10, [])';
-    
-     alpha = [alphax, alpha, alpha ];
-     beta  = [beta  , betay, beta  ];
-     gamma = [gamma , gamma, gammaz];
-    
-    cx = trinomialExpansion(v1(1,f)', v2(1,f)', G.faces.centroids(f,1)-ccf(:,1), 1);
-    cy = trinomialExpansion(v1(2,f)', v2(2,f)', G.faces.centroids(f,2)-ccf(:,2), 1);
-    cz = trinomialExpansion(v1(3,f)', v2(3,f)', G.faces.centroids(f,3)-ccf(:,3), 1);    
-    
-    a1 = [0 1 0]; b1 = [0 0 1];
-    [a2, b2, cxy] = polyProducts(cx, cy, a1, b1);
-    [~, ~, cxz] = polyProducts(cx, cz, a1, b1);
-    [~, ~, cyz] = polyProducts(cy, cz, a1, b1);
-    
-%     c2  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 2) , zeros(numel(f), 3)];
-%     c3  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 3) , zeros(numel(f), 3)];
-%     c4  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 4) , zeros(numel(f), 3)];
-%     c5  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 5) , zeros(numel(f), 3)];
-%     c6  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 6) , zeros(numel(f), 3)];
-%     c7  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 7) , zeros(numel(f), 3)];
-%     c8  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 8) , zeros(numel(f), 3)];
-%     c9  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 9) , zeros(numel(f), 3)];
-%     c10 = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 10), zeros(numel(f), 3)];
-
-    c2  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 2);
-    c3  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 3);
-    c4  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 4);
-    c5  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 5);
-    c6  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 6);
-    c7  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 7);
-    c8  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 8);
-    c9  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 9);
-    c10 = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 10);
-
-
-%     cx = cx(:, [3,1,2]); cy = cy(:,[3,1,2]); cz = cz(:,[3,1,2]);
-%     
-%     c2 = [cc(:,2), zeros(numel(f),5)];
-%     c3 = [cc(:,13), zeros(numel(f),5)];
-%     c4 = [cc(:,24), zeros(numel(f),5)];
-%     
-% %     c5 = trinomialExpansion(v1(1,f)',v2(1,f)', G.faces.centroids(f,1) - ccf(:,1), 1);
-% %     cy = trinomialExpansion(v1(2,f)',v2(2,f)', G.faces.centroids(f,2) - ccf(:,2), 1);
-% %     cz = trinomialExpansion(v1(3,f)',v2(3,f)', G.faces.centroids(f,3) - ccf(:,3), 1);
-%     c5 = [bsxfun(@times, cc(:,5), cx), zeros(numel(f), 3)];
-%     c6 = [bsxfun(@times, cc(:,6), cx) + bsxfun(@times, cc(:,16), cy), zeros(numel(f), 3)];
-%     c7 = [bsxfun(@times, cc(:,7), cx) + bsxfun(@times, cc(:,27), cz), zeros(numel(f), 3)];    
-%     c8 = [bsxfun(@times, cc(:,18), cy), zeros(numel(f), 3)];
-%     c9 = [bsxfun(@times, cc(:,19), cy) + bsxfun(@times, cc(:,29), cz), zeros(numel(f), 3)];
-%     c10 = [bsxfun(@times, cc(:,30), cz), zeros(numel(f), 3)];
-%     
-    
-    
-      
-    PiNFstar = squeezeBlockDiag(PiNFstar', NF(f), sum(NF(f)), polyDim(2,2));
-% 
-%     
-%     cx = bsxfun(@times, [cx(:,3), cx(:, 1:2), zeros(numel(f), 3)], 2*G.faces.normals(f,1));
-    
-%     
-    a = [0 1 0 2 1 0]; b = [0 0 1 0 1 2];
-    
-    c2 = rldecode(c2, NF(f), 1);
-    [alpha, beta, c2] = polyProducts(c2, PiNFstar, a, b);
-
-    c3 = rldecode(c3, NF(f), 1);
-    [~, ~, c3] = polyProducts(c3, PiNFstar, a, b);
-
-    c4 = rldecode(c4, NF(f), 1);
-    [~, ~, c4] = polyProducts(c4, PiNFstar, a, b);
-
-    c5 = rldecode(c5, NF(f), 1);
-    [~, ~, c5] = polyProducts(c5, PiNFstar, a, b);
-
-    c6 = rldecode(c6, NF(f), 1);
-    [~,~, c6] = polyProducts(c6, PiNFstar, a, b);
-    
-    c7 = rldecode(c7, NF(f), 1);
-    [~,~, c7] = polyProducts(c7, PiNFstar, a,b );
-    
-    c8 = rldecode(c8, NF(f), 1);
-    [~,  ~, c8] = polyProducts(c8, PiNFstar, a,b);
-    
-    c9 = rldecode(c9, NF(f), 1);
-    [~,~, c9] = polyProducts(c9, PiNFstar, a,b);
-    
-    c10 = rldecode(c10, NF(f), 1);
-    [~,~, c10] = polyProducts(c10, PiNFstar, a,b);
-    
-    
-    alpha = alpha + 1;
-    c2 = bsxfun(@rdivide, c2, alpha);
-    c3 = bsxfun(@rdivide, c3, alpha);
-    c4 = bsxfun(@rdivide, c4, alpha);
-    c5 = bsxfun(@rdivide, c5, alpha);
-    c6 = bsxfun(@rdivide, c6, alpha);
-    c7 = bsxfun(@rdivide, c7, alpha);
-    c8 = bsxfun(@rdivide, c8, alpha);
-    c9 = bsxfun(@rdivide, c9, alpha);
-    c10 = bsxfun(@rdivide, c10, alpha);
-    
-%     
-%     
-%     cx = bsxfun(@times, [cx(:,3), cx(:, 1:2), zeros(numel(f), 3)], 2*G.faces.normals(f,1));
-%     cx = rldecode(cx, NF(f), 1);
-%     
-%     alpha = [0 1 0 2 1 0]; beta = [0 0 1 0 1 2];
-%     [alpha, beta, c] = polyProducts(cx, PiNFstar, alpha, beta);
-    
-    vec = [0; cumsum(nfe(f))];
-    iifn = mcolon(rldecode(vec(1:end-1)+1, NF(f), 1), rldecode(vec(2:end), NF(f), 1));
-    
-    pos = [1;cumsum(nfn(f))+1];
-    ii = 1:size(x,1); jj = ii;
-    jj(1:end-1) = jj(2:end);
-    jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
-    
-    
-%     cDiam = rldecode(rldecode(G.cells.diameters, ncf, 1), nfn(f), 1);
-%     x = bsxfun(@rdivide, x, cDiam);
-%     ec = bsxfun(@rdivide, ec, cDiam);
-%     
-%     mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6*6), alpha)...
-%           .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6*6), beta);
-%       
-% %     mVals = bsxfun(@times, 
-%     mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(nn + 1:end,:)*2/3, enx);
-%     
-    mVals = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,6*6), alpha)...
-          .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,6*6), beta);
-    mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/12 + (mVals(nn + 1:2*nn,:) + mVals(2*nn+1:3*nn,:))*5/12, enx);
-    
-    mVals = mVals(iifn,:);
-    
-    
-    mVals = sparseBlockDiag(mVals, rldecode(nfe(f), NF(f),1), 1);
-    
-
-    
-%     NFf = NF(f);
-%     dof = [0; cumsum(NFf(1:end-1))] + 1;
-%     
-%     iiN = mcolon(dof, dof + nfn(f) - 1);
-%     iiE = mcolon(dof + nfn(f), dof + nfn(f) + nfe(f) - 1);
-%     iiF = mcolon(dof + nfn(f) + nfe(f), dof + nfn(f) + nfe(f));
-%     
-%     fDof([iiN, iiE, iiF]) = [n; ...
-%                              e + G.nodes.num; ...
-%                              f + G.nodes.num + G.edges.num];
-%     
-%     f2glob = sparse(fDof,1:numel(fDof),1);
-%     
-%     dof = [0; cumsum(NP(1:end-1))]+1;
-%     iiN = mcolon(dof, dof + ncn -1);
-%     iiE = mcolon(dof + ncn, dof + ncn + nce -1);
-%     iiF = mcolon(dof + ncn + nce, dof + ncn + nce + ncf - 1);
-%     
-%     cDof([iiN, iiE, iiF]) = [G.cells.nodes; ...
-%                              G.cells.edges + G.nodes.num; ...
-%                              f + G.nodes.num + G.edges.num];
-%     cDof = cDof(cDof~=0);
-%     glob2c = sparse(1:numel(cDof), cDof, 1);
-    
-%     f2c = glob2c*f2glob;
-    
-    If = sparseBlockDiag(ones(1, sum(rldecode(nfe(f), NF(f),1))), rldecode(nfe(f), NF(f),1), 2); 
-    
-    c2 = c2';
-    int2 = If*mVals*c2(:);
-    
-    ii = rldecode((1:numel(f))', NF(f), 1);
-        
-    NFf = NF(f);
-    dof = [0; cumsum(NFf(1:end-1))] + 1;
-    
-    iiN = mcolon(dof, dof + nfn(f) - 1);
-    iiE = mcolon(dof + nfn(f), dof + nfn(f) + nfe(f) - 1);
-    iiF = mcolon(dof + nfn(f) + nfe(f), dof + nfn(f) + nfe(f));
-    
-    jj([iiN, iiE, iiF]) = [n; ...
-                           e + G.nodes.num; ...
-                           f + G.nodes.num + G.edges.num];
-    
-    
-    int2 = sparse(ii, jj, int2, numel(f), N);
-    
-    int2 = int2'; int2 = int2(:);
-    
-    vec = repmat(N,G.cells.num,1);
-    vec = [0; cumsum(vec(1:end-1))];
-    
-    dof = [0; cumsum(NP(1:end-1))]+1;
-    iiN = mcolon(dof, dof + ncn -1)';
-    iiE = mcolon(dof + ncn, dof + ncn + nce -1)';
-    iiF = mcolon(dof + ncn + nce, dof + ncn + nce + ncf - 1)';
-    
-    cDof = zeros(sum(NP), 1);
-    
-    cDof([iiN; iiE; iiF]) = [G.cells.nodes; ...
-                             G.cells.edges + G.nodes.num; ...
-                             f + G.nodes.num + G.edges.num];
-    cDof = cDof(cDof~= 0,:);
-                         
-    cDof = cDof + rldecode(vec, NP-1,1);
-    int2 = int2(ii);
-%     int3 = int3(ii);
-%     int4 = int4(ii);
-    
-    
-%     int3 = sparse(ii, jj, int3);
-%     int4 = sparse(ii, jj, int4);
-%     
-    debug = If*mVals*c2(:);
-    
-    
-    c3 = c3';
-    m3Int = f2c*If*mVals*c3(:);
-        
-    c4 = c4';
-    m4Int = f2c*If*mVals*c4(:);
-    
-    m2m4I = bsxfun(@times, [sum(cc(:, 2:nk:3*nk),2), sum(cc(:, 3:nk:3*nk),2), sum(cc(:, 4:nk:3*nk),2)], G.faces.areas(f));
-    m2m4Int = zeros(sum(NP-1), 3);
-    
-    m2m4Int(iiF'-rldecode(cumsum(ones(G.cells.num, 1))-1, ncf,1), :) = m2m4I;
-    
-    c5 = c5';
-    m5Int = f2c*If*mVals*c5(:);
-    
-    c6 = c6';
-    m6Int = f2c*If*mVals*c6(:);
-        
-    c7 = c7';
-    m7Int = f2c*If*mVals*c7(:);
-        
-    c8 = c8';
-    m8Int = f2c*If*mVals*c8(:);
-    
-    c9 = c9';
-    m9Int = f2c*If*mVals*c9(:);
-        
-    c10 = c10';
-    m10Int = f2c*If*mVals*c10(:);
-    
     BT = zeros(sum(NP), nk);
     
     vec = [0; cumsum(NP)] + 1;
     ii = mcolon(vec(1:end-1), vec(2:end)-2);
     
     cdi = rldecode(G.cells.diameters, NP-1, 1);
-    BT(ii,2:end) = [m2m4Int, ...
-                    bsxfun(@rdivide, [m5Int, m6Int, m7Int, m8Int, m9Int, m10Int], cdi.^2)];
+    BT(ii,2:end) = [bsxfun(@rdivide, [int2, int3, int4], cdi), ...
+                    bsxfun(@rdivide, [int5, int6, int7, int8, int9, int10], cdi.^2)];
                                      
     
     vec = zeros(G.cells.num,nk);
@@ -1186,7 +824,7 @@ else
     iiF = mcolon(vec + ncn + nce*polyDim(k-2, 1), ...
                  vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) - 1);
     iiP = mcolon(vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2), ...
-                 vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) - 1);
+                 vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2));
              
     if k == 1
         dofVec([iiN, iiE, iiF, iiP]) = G.cells.nodes';
@@ -1470,3 +1108,268 @@ end
 %         xyExp = zeros(6, size(T,2));
 %         xyExp(:,[1:2:end,2:2:end]) = [xExp,yExp];
 %         xyExp = rldecode(reshape(xyExp',2,[])', repmat(nfn,6,1),1);
+
+
+%     alpha = [0 1 0 0 2 1 1 0 0 0];
+%     beta  = [0 0 1 0 0 1 0 2 1 0];
+%     gamma = [0 0 0 1 0 0 1 0 1 2];
+%     c     = [1 1 1 1 1 1 1 1 1 1];    
+%     [c_1, c_2, c_3, alphax, betay, gammaz] = polyGrad(c, alpha, beta, gamma);
+%     
+%     cc = Kmat*[c_1; c_2; c_3];
+%     
+%     vec = rldecode((1:3:3*G.cells.num)', diff(G.cells.facePos), 1);
+%     ii = mcolon(vec, vec + 2);    
+%     
+%     fn = bsxfun(@rdivide, G.faces.normals(f,:),G.faces.areas(f));
+%     fSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
+%                   ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
+%     fn = bsxfun(@times, fn, fSign);
+%     
+%     fn = reshape(fn', [], 1);
+%     
+%     cc = bsxfun(@times, cc(ii,:), fn);
+%     cc = reshape(cc', 3*10, [])';
+%     
+%      alpha = [alphax, alpha, alpha ];
+%      beta  = [beta  , betay, beta  ];
+%      gamma = [gamma , gamma, gammaz];
+%     
+%     cx = trinomialExpansion(v1(1,f)', v2(1,f)', G.faces.centroids(f,1)-ccf(:,1), 1);
+%     cy = trinomialExpansion(v1(2,f)', v2(2,f)', G.faces.centroids(f,2)-ccf(:,2), 1);
+%     cz = trinomialExpansion(v1(3,f)', v2(3,f)', G.faces.centroids(f,3)-ccf(:,3), 1);    
+%     
+%     a1 = [0 1 0]; b1 = [0 0 1];
+%     [a2, b2, cxy] = polyProducts(cx, cy, a1, b1);
+%     [~, ~, cxz] = polyProducts(cx, cz, a1, b1);
+%     [~, ~, cyz] = polyProducts(cy, cz, a1, b1);
+%     
+% %     c2  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 2) , zeros(numel(f), 3)];
+% %     c3  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 3) , zeros(numel(f), 3)];
+% %     c4  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 4) , zeros(numel(f), 3)];
+% %     c5  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 5) , zeros(numel(f), 3)];
+% %     c6  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 6) , zeros(numel(f), 3)];
+% %     c7  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 7) , zeros(numel(f), 3)];
+% %     c8  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 8) , zeros(numel(f), 3)];
+% %     c9  = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 9) , zeros(numel(f), 3)];
+% %     c10 = [expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 10), zeros(numel(f), 3)];
+% 
+%     c2  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 2);
+%     c3  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 3);
+%     c4  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 4);
+%     c5  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 5);
+%     c6  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 6);
+%     c7  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 7);
+%     c8  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 8);
+%     c9  = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 9);
+%     c10 = expandGradients(alpha, beta, gamma, cc, cx, cy, cz, a1, b1, cxy, cxz, cyz, a2, b2, nk, 10);
+% 
+% 
+% %     cx = cx(:, [3,1,2]); cy = cy(:,[3,1,2]); cz = cz(:,[3,1,2]);
+% %     
+% %     c2 = [cc(:,2), zeros(numel(f),5)];
+% %     c3 = [cc(:,13), zeros(numel(f),5)];
+% %     c4 = [cc(:,24), zeros(numel(f),5)];
+% %     
+% % %     c5 = trinomialExpansion(v1(1,f)',v2(1,f)', G.faces.centroids(f,1) - ccf(:,1), 1);
+% % %     cy = trinomialExpansion(v1(2,f)',v2(2,f)', G.faces.centroids(f,2) - ccf(:,2), 1);
+% % %     cz = trinomialExpansion(v1(3,f)',v2(3,f)', G.faces.centroids(f,3) - ccf(:,3), 1);
+% %     c5 = [bsxfun(@times, cc(:,5), cx), zeros(numel(f), 3)];
+% %     c6 = [bsxfun(@times, cc(:,6), cx) + bsxfun(@times, cc(:,16), cy), zeros(numel(f), 3)];
+% %     c7 = [bsxfun(@times, cc(:,7), cx) + bsxfun(@times, cc(:,27), cz), zeros(numel(f), 3)];    
+% %     c8 = [bsxfun(@times, cc(:,18), cy), zeros(numel(f), 3)];
+% %     c9 = [bsxfun(@times, cc(:,19), cy) + bsxfun(@times, cc(:,29), cz), zeros(numel(f), 3)];
+% %     c10 = [bsxfun(@times, cc(:,30), cz), zeros(numel(f), 3)];
+% %     
+%     
+%     
+%       
+%     PiNFstar = squeezeBlockDiag(PiNFstar', NF(f), sum(NF(f)), polyDim(2,2));
+% % 
+% %     
+% %     cx = bsxfun(@times, [cx(:,3), cx(:, 1:2), zeros(numel(f), 3)], 2*G.faces.normals(f,1));
+%     
+% %     
+%     a = [0 1 0 2 1 0]; b = [0 0 1 0 1 2];
+%     
+%     c2 = rldecode(c2, NF(f), 1);
+%     [alpha, beta, c2] = polyProducts(c2, PiNFstar, a, b);
+% 
+%     c3 = rldecode(c3, NF(f), 1);
+%     [~, ~, c3] = polyProducts(c3, PiNFstar, a, b);
+% 
+%     c4 = rldecode(c4, NF(f), 1);
+%     [~, ~, c4] = polyProducts(c4, PiNFstar, a, b);
+% 
+%     c5 = rldecode(c5, NF(f), 1);
+%     [~, ~, c5] = polyProducts(c5, PiNFstar, a, b);
+% 
+%     c6 = rldecode(c6, NF(f), 1);
+%     [~,~, c6] = polyProducts(c6, PiNFstar, a, b);
+%     
+%     c7 = rldecode(c7, NF(f), 1);
+%     [~,~, c7] = polyProducts(c7, PiNFstar, a,b );
+%     
+%     c8 = rldecode(c8, NF(f), 1);
+%     [~,  ~, c8] = polyProducts(c8, PiNFstar, a,b);
+%     
+%     c9 = rldecode(c9, NF(f), 1);
+%     [~,~, c9] = polyProducts(c9, PiNFstar, a,b);
+%     
+%     c10 = rldecode(c10, NF(f), 1);
+%     [~,~, c10] = polyProducts(c10, PiNFstar, a,b);
+%     
+%     
+%     alpha = alpha + 1;
+%     c2 = bsxfun(@rdivide, c2, alpha);
+%     c3 = bsxfun(@rdivide, c3, alpha);
+%     c4 = bsxfun(@rdivide, c4, alpha);
+%     c5 = bsxfun(@rdivide, c5, alpha);
+%     c6 = bsxfun(@rdivide, c6, alpha);
+%     c7 = bsxfun(@rdivide, c7, alpha);
+%     c8 = bsxfun(@rdivide, c8, alpha);
+%     c9 = bsxfun(@rdivide, c9, alpha);
+%     c10 = bsxfun(@rdivide, c10, alpha);
+%     
+% %     
+% %     
+% %     cx = bsxfun(@times, [cx(:,3), cx(:, 1:2), zeros(numel(f), 3)], 2*G.faces.normals(f,1));
+% %     cx = rldecode(cx, NF(f), 1);
+% %     
+% %     alpha = [0 1 0 2 1 0]; beta = [0 0 1 0 1 2];
+% %     [alpha, beta, c] = polyProducts(cx, PiNFstar, alpha, beta);
+%     
+%     vec = [0; cumsum(nfe(f))];
+%     iifn = mcolon(rldecode(vec(1:end-1)+1, NF(f), 1), rldecode(vec(2:end), NF(f), 1));
+%     
+%     pos = [1;cumsum(nfn(f))+1];
+%     ii = 1:size(x,1); jj = ii;
+%     jj(1:end-1) = jj(2:end);
+%     jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
+%     
+%     
+% %     cDiam = rldecode(rldecode(G.cells.diameters, ncf, 1), nfn(f), 1);
+% %     x = bsxfun(@rdivide, x, cDiam);
+% %     ec = bsxfun(@rdivide, ec, cDiam);
+% %     
+% %     mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6*6), alpha)...
+% %           .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6*6), beta);
+% %       
+% % %     mVals = bsxfun(@times, 
+% %     mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(nn + 1:end,:)*2/3, enx);
+% %     
+%     mVals = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,6*6), alpha)...
+%           .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,6*6), beta);
+%     mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/12 + (mVals(nn + 1:2*nn,:) + mVals(2*nn+1:3*nn,:))*5/12, enx);
+%     
+%     mVals = mVals(iifn,:);
+%     
+%     
+%     mVals = sparseBlockDiag(mVals, rldecode(nfe(f), NF(f),1), 1);
+%     
+% 
+%     
+% %     NFf = NF(f);
+% %     dof = [0; cumsum(NFf(1:end-1))] + 1;
+% %     
+% %     iiN = mcolon(dof, dof + nfn(f) - 1);
+% %     iiE = mcolon(dof + nfn(f), dof + nfn(f) + nfe(f) - 1);
+% %     iiF = mcolon(dof + nfn(f) + nfe(f), dof + nfn(f) + nfe(f));
+% %     
+% %     fDof([iiN, iiE, iiF]) = [n; ...
+% %                              e + G.nodes.num; ...
+% %                              f + G.nodes.num + G.edges.num];
+% %     
+% %     f2glob = sparse(fDof,1:numel(fDof),1);
+% %     
+% %     dof = [0; cumsum(NP(1:end-1))]+1;
+% %     iiN = mcolon(dof, dof + ncn -1);
+% %     iiE = mcolon(dof + ncn, dof + ncn + nce -1);
+% %     iiF = mcolon(dof + ncn + nce, dof + ncn + nce + ncf - 1);
+% %     
+% %     cDof([iiN, iiE, iiF]) = [G.cells.nodes; ...
+% %                              G.cells.edges + G.nodes.num; ...
+% %                              f + G.nodes.num + G.edges.num];
+% %     cDof = cDof(cDof~=0);
+% %     glob2c = sparse(1:numel(cDof), cDof, 1);
+%     
+% %     f2c = glob2c*f2glob;
+%     
+%     If = sparseBlockDiag(ones(1, sum(rldecode(nfe(f), NF(f),1))), rldecode(nfe(f), NF(f),1), 2); 
+%     
+%     c2 = c2';
+%     int2 = If*mVals*c2(:);
+%     
+%     ii = rldecode((1:numel(f))', NF(f), 1);
+%         
+%     NFf = NF(f);
+%     dof = [0; cumsum(NFf(1:end-1))] + 1;
+%     
+%     iiN = mcolon(dof, dof + nfn(f) - 1);
+%     iiE = mcolon(dof + nfn(f), dof + nfn(f) + nfe(f) - 1);
+%     iiF = mcolon(dof + nfn(f) + nfe(f), dof + nfn(f) + nfe(f));
+%     
+%     jj([iiN, iiE, iiF]) = [n; ...
+%                            e + G.nodes.num; ...
+%                            f + G.nodes.num + G.edges.num];
+%     
+%     
+%     int2 = sparse(ii, jj, int2, numel(f), N);
+%     
+%     int2 = int2'; int2 = int2(:);
+%     
+%     vec = repmat(N,G.cells.num,1);
+%     vec = [0; cumsum(vec(1:end-1))];
+%     
+%     dof = [0; cumsum(NP(1:end-1))]+1;
+%     iiN = mcolon(dof, dof + ncn -1)';
+%     iiE = mcolon(dof + ncn, dof + ncn + nce -1)';
+%     iiF = mcolon(dof + ncn + nce, dof + ncn + nce + ncf - 1)';
+%     
+%     cDof = zeros(sum(NP), 1);
+%     
+%     cDof([iiN; iiE; iiF]) = [G.cells.nodes; ...
+%                              G.cells.edges + G.nodes.num; ...
+%                              f + G.nodes.num + G.edges.num];
+%     cDof = cDof(cDof~= 0,:);
+%                          
+%     cDof = cDof + rldecode(vec, NP-1,1);
+%     int2 = int2(ii);
+% %     int3 = int3(ii);
+% %     int4 = int4(ii);
+%     
+%     
+% %     int3 = sparse(ii, jj, int3);
+% %     int4 = sparse(ii, jj, int4);
+% %     
+%     debug = If*mVals*c2(:);
+%     
+%     
+%     c3 = c3';
+%     m3Int = f2c*If*mVals*c3(:);
+%         
+%     c4 = c4';
+%     m4Int = f2c*If*mVals*c4(:);
+%     
+%     m2m4I = bsxfun(@times, [sum(cc(:, 2:nk:3*nk),2), sum(cc(:, 3:nk:3*nk),2), sum(cc(:, 4:nk:3*nk),2)], G.faces.areas(f));
+%     m2m4Int = zeros(sum(NP-1), 3);
+%     
+%     m2m4Int(iiF'-rldecode(cumsum(ones(G.cells.num, 1))-1, ncf,1), :) = m2m4I;
+%     
+%     c5 = c5';
+%     m5Int = f2c*If*mVals*c5(:);
+%     
+%     c6 = c6';
+%     m6Int = f2c*If*mVals*c6(:);
+%         
+%     c7 = c7';
+%     m7Int = f2c*If*mVals*c7(:);
+%         
+%     c8 = c8';
+%     m8Int = f2c*If*mVals*c8(:);
+%     
+%     c9 = c9';
+%     m9Int = f2c*If*mVals*c9(:);
+%         
+%     c10 = c10';
+%     m10Int = f2c*If*mVals*c10(:);

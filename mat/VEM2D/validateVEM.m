@@ -4,7 +4,7 @@ clc; clear; close all;
 %   2) Validation of consistency for second order.
 %   3) Point source problem, both orders.
 
-i = 3;
+i = 4;
 
 switch i
     case 1
@@ -12,7 +12,7 @@ switch i
         tol= 1e-6;
         G = unitSquare([10,10],[1,1]);
         G = sortEdges(G);
-        G = computeVEM2DGeometry(G);
+        G = computeVEMGeometry(G);
 
         state = initState(G, [], 0);
 
@@ -109,7 +109,40 @@ switch i
         fprintf('\nError: %.2d\n\n', ...
                 norm(state.nodePressure -  gD(G.nodes.coords))/norm(gD(G.nodes.coords)));
         
-        plotVEM2D(G, state, k);
+    case 4
         
+        n = 7;
+        G = cartGrid([n,n,n],[1,1,1]);
+        
+%         G = voronoiCube(100, [1,1,1]);
+        
+        G = computeVEMGeometry(G);
+        
+        k = 2;
+        
+        mu = 1; rho = 1;
+
+        rock.perm = repmat(1, G.cells.num,1);
+        fluid = initSingleFluid('mu', mu, 'rho', 1);
+        state = initState(G, [], 0);
+        
+        tol = 1e-6;
+        f = boundaryFaces(G);
+        
+        gD = @(x) x(:,2).^2 - x(:,3).^2;
+
+        bc = addBCFunc([], f, 'pressure', gD);
+        tic;
+        S = computeVirtualIP(G, rock, k);
+        state = incompVEM(state, G, S, fluid, 'bc', bc);
+        toc
+        
+        p = [gD(G.nodes.coords); gD(G.edges.centroids); ...
+             polygonInt3D(G, 1:G.faces.num, gD, 2)./G.faces.areas; ...
+             polyhedronInt(G, 1:G.cells.num, gD, 2)./G.cells.volumes];
+        P = [state.nodePressure; state.edgePressure; state.facePressure; state.cellPressure];
+         
+        fprintf('\nError: %.2d\n\n', ...
+                norm(p-P)/norm(p));
 end
 
