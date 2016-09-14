@@ -69,8 +69,8 @@ if G.griddim == 2
     M = B*D;
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
-    PiNstar = M\B;
+    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+%     PiNstar = M\B;
     PiN = D*PiNstar;
 
     clear B D;
@@ -219,9 +219,8 @@ else
     MF = BF*DF;
     [ii, jj] = blockDiagIndex(repmat(nk, [numel(f) ,1]));
     kk = sub2ind(size(MF), ii, jj);
-%     PiNFstar = sparse(ii, jj, invv(full(MF(kk)), repmat(nk, [G.cells.num, 1])))*BF;
-
-    PiNFstar = MF\BF;
+    PiNFstar = sparse(ii, jj, invv(full(MF(kk)), repmat(nk, [numel(f), 1])))*BF;
+%     PiNFstar = MF\BF;
     
     clear BF DF;
     
@@ -595,12 +594,12 @@ else
     cz = trinomialExpansion(v1(3,f)', v2(3,f)', G.faces.centroids(f,3)-ccf(:,3), 1);
         
     zer = zeros(numel(f),3);
-    c5  = bsxfun(@times, cx(:,[3,1,2]), c5 )                          ; c5  = [c5 , zer];
-    c6  = bsxfun(@times, cy(:,[3,1,2]), c2 ) + bsxfun(@times, cx, c3 ); c6  = [c6 , zer];
-    c7  = bsxfun(@times, cz(:,[3,1,2]), c2 ) + bsxfun(@times, cx, c4 ); c7  = [c7 , zer];
-    c8  = bsxfun(@times, cy(:,[3,1,2]), c8 )                          ; c8  = [c8 , zer];
-    c9  = bsxfun(@times, cz(:,[3,1,2]), c3 ) + bsxfun(@times, cy, c4 ); c9  = [c9 , zer];
-    c10 = bsxfun(@times, cz(:,[3,1,2]), c10)                          ; c10 = [c10, zer];
+    c5  = bsxfun(@times, cx(:,[3,1,2]), c5 )                                     ; c5  = [c5 , zer];
+    c6  = bsxfun(@times, cy(:,[3,1,2]), c2 ) + bsxfun(@times, cx(:,[3,1,2]), c3 ); c6  = [c6 , zer];
+    c7  = bsxfun(@times, cz(:,[3,1,2]), c2 ) + bsxfun(@times, cx(:,[3,1,2]), c4 ); c7  = [c7 , zer];
+    c8  = bsxfun(@times, cy(:,[3,1,2]), c8 )                                     ; c8  = [c8 , zer];
+    c9  = bsxfun(@times, cz(:,[3,1,2]), c3 ) + bsxfun(@times, cy(:,[3,1,2]), c4 ); c9  = [c9 , zer];
+    c10 = bsxfun(@times, cz(:,[3,1,2]), c10)                                     ; c10 = [c10, zer];
     
     PiNFstar = squeezeBlockDiag(PiNFstar', NF(f), sum(NF(f)), polyDim(2,2));
     
@@ -654,13 +653,13 @@ else
 
     m2m4 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alpha24)...
           .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6), beta24);
-    fc = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6), alpha24-1 + beta24);
-    m2m4 = m2m4./fc;
+    fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6), alpha24-1 + beta24);
+    m2m4 = m2m4./fd;
     
     m5m10 = bsxfun(@power, repmat([x(:,1);ec(:,1)],1,6*6), alpha510)...
           .*bsxfun(@power, repmat([x(:,2);ec(:,2)],1,6*6), beta510 );
-    fc = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6*6), alpha510-1 + beta510);
-    m5m10 = m5m10./fc;
+    fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6*6), alpha510-1 + beta510);
+    m5m10 = m5m10./fd;
       
     pos = [1;cumsum(nfn(f))+1];
     ii = 1:size(x,1); jj = ii;
@@ -786,7 +785,11 @@ else
     
     M = B*D;
     
-    PiNstar = M\B;
+    [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
+    kk = sub2ind(size(M), ii, jj);
+    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+    
+%     PiNstar = M\B;
     PiN = D*PiNstar;
     
     end
@@ -824,7 +827,7 @@ else
     iiF = mcolon(vec + ncn + nce*polyDim(k-2, 1), ...
                  vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) - 1);
     iiP = mcolon(vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2), ...
-                 vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2));
+                 vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) -1*(k == 1));
              
     if k == 1
         dofVec([iiN, iiE, iiF, iiP]) = G.cells.nodes';

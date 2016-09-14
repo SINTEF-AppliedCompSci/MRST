@@ -4,7 +4,7 @@ clc; clear; close all;
 %   2) Validation of consistency for second order.
 %   3) Point source problem, both orders.
 
-i = 4;
+i = 3;
 
 switch i
     case 1
@@ -45,7 +45,7 @@ switch i
         tol= 1e-6;
         G = unitSquare([10,10],[1,1]);
         G = sortEdges(G);
-        G = computeVEM2DGeometry(G);
+        G = computeVEMGeometry(G);
 
         state = initState(G, [], 0);
         
@@ -80,14 +80,15 @@ switch i
     case 3
         
         
-        n = 1;
-        G = cartGrid([n,n,n], [1,1,1]);
+        n = 10;
+%         G = cartGrid([n,n,n], [1,1,10000]);
         
-%         G = voronoiCube(100, [1,1,1]);
+        G = voronoiCube(10, [1,1,1000]);
         
-        G = computeVEM3DGeometry(G);
+%         G = computeVEM3DGeometry(G);
+        G = computeVEMGeometry(G);
         
-        k = 2;
+        k = 1;
         
         mu = 100; rho = 1;
 
@@ -98,7 +99,7 @@ switch i
         tol = 1e-6;
         f = boundaryFaces(G);
         
-        gD = @(x) 100*x(:,3).*x(:,1);
+        gD = @(x) x(:,3);
 
         bc = addBCFunc([], f, 'pressure', gD);
         tic;
@@ -107,14 +108,16 @@ switch i
         toc
         
         fprintf('\nError: %.2d\n\n', ...
-                norm(state.nodePressure -  gD(G.nodes.coords))/norm(gD(G.nodes.coords)));
+                norm(state.nodePressure -  gD(G.nodes.coords)));
         
     case 4
         
-        n = 7;
+        n = 5;
         G = cartGrid([n,n,n],[1,1,1]);
         
-%         G = voronoiCube(100, [1,1,1]);
+        G = voronoiCube(5, [1,1,1]);
+        
+%         G = computeVEM3DGeometry(G);
         
         G = computeVEMGeometry(G);
         
@@ -122,11 +125,10 @@ switch i
         
         mu = 1; rho = 1;
 
-        rock.perm = repmat(1, G.cells.num,1);
+        rock.perm = ones(G.cells.num,1);
         fluid = initSingleFluid('mu', mu, 'rho', 1);
         state = initState(G, [], 0);
-        
-        tol = 1e-6;
+
         f = boundaryFaces(G);
         
         gD = @(x) x(:,2).^2 - x(:,3).^2;
@@ -134,8 +136,8 @@ switch i
         bc = addBCFunc([], f, 'pressure', gD);
         tic;
         S = computeVirtualIP(G, rock, k);
-        state = incompVEM(state, G, S, fluid, 'bc', bc);
         toc
+        state = incompVEM(state, G, S, fluid, 'bc', bc);
         
         p = [gD(G.nodes.coords); gD(G.edges.centroids); ...
              polygonInt3D(G, 1:G.faces.num, gD, 2)./G.faces.areas; ...
@@ -143,6 +145,6 @@ switch i
         P = [state.nodePressure; state.edgePressure; state.facePressure; state.cellPressure];
          
         fprintf('\nError: %.2d\n\n', ...
-                norm(p-P)/norm(p));
+                norm(p-P));
 end
 
