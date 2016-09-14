@@ -1,10 +1,15 @@
 function state = computeVEMFlux(G, rock, state, bc)
 
 T = computeTrans(G, rock);
+% 
+% fSign = (-1).^(G.faces.neighbors(G.cells.faces(:,1),1) == rldecode((1:G.cells.num)', diff(G.cells.facePos),1));
+% 
+% T(fSign==-1) = -T(fSign==-1);
 
-ii = 1:G.faces.num;
-
-
+% flux = T.*rldecode(state.cellPressure, diff(G.cells.facePos),1)...
+%                  -state.facePressure(G.cells.faces(:,1));
+% [~,ii] = unique(G.cells.faces(:,1));
+% flux = flux(ii);
 
 ii = G.cells.faces(:,1);
 jj = 1:numel(G.cells.faces(:,1));

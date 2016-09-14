@@ -69,8 +69,8 @@ if G.griddim == 2
     M = B*D;
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
-%     PiNstar = M\B;
+%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+    PiNstar = M\B;
     PiN = D*PiNstar;
 
     clear B D;
@@ -219,8 +219,8 @@ else
     MF = BF*DF;
     [ii, jj] = blockDiagIndex(repmat(nk, [numel(f) ,1]));
     kk = sub2ind(size(MF), ii, jj);
-    PiNFstar = sparse(ii, jj, invv(full(MF(kk)), repmat(nk, [numel(f), 1])))*BF;
-%     PiNFstar = MF\BF;
+%     PiNFstar = sparse(ii, jj, invv(full(MF(kk)), repmat(nk, [numel(f), 1])))*BF;
+    PiNFstar = MF\BF;
     
     clear BF DF;
     
