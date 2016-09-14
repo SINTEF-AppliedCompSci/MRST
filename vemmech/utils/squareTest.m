@@ -63,7 +63,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'E', 1, ...  %youngs modolo
                 'nu', 0.3, ...% poiso ratio
                 'make_testcases', true, ...
-                'test_name', 'all');
+                'test_name', 'all',...
+                'triangulate',true);
    opt = merge_options(opt, varargin{:});
 
    if(numel(opt.cartDims) == 2)
@@ -73,6 +74,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    G = squareGrid(opt.cartDims, opt.L, 'grid_type', opt.grid_type, 'disturb', opt.disturb);
+   if(opt.triangulate)
+      faces=[1:G.faces.num]';
+      G=triangulateFaces(G,faces);
+   end
    G = createAugmentedGrid(G);
    G = computeGeometry(G);
    bc = cell(2*G.griddim, 1);
