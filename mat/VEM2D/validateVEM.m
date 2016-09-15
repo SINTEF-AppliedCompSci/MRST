@@ -4,7 +4,7 @@ clc; clear; close all;
 %   2) Validation of consistency for second order.
 %   3) Point source problem, both orders.
 
-i = 3;
+i = 5;
 
 switch i
     case 1
@@ -73,17 +73,17 @@ switch i
         state = incompVEM(state, G, S, fluid, 'bc', bc);
         toc
         
-        fprintf('\nError: %.2d\n\n', norm(state.nodePressure -  gD(G.nodes.coords)));
+        fprintf('\nError: %.2d\n\n', norm(state.nodePressure -  gD(G.nodes.coords))/norm(gD(G.nodes.coords)));
         
         plotVEM2D(G, state, k);
         
     case 3
         
         
-        n = 10;
-%         G = cartGrid([n,n,n], [1,1,10000]);
+        n = 5;
+        G = cartGrid([n,n,n], [1,1,10000]);
         
-        G = voronoiCube(10, [1,1,1000]);
+%         G = voronoiCube(2000, [1,1,1000]);
         
 %         G = computeVEM3DGeometry(G);
         G = computeVEMGeometry(G);
@@ -101,7 +101,8 @@ switch i
         
         gD = @(x) x(:,3);
 
-        bc = addBCFunc([], f, 'pressure', gD);
+%         bc = addBCFunc([], f, 'pressure', gD);
+        bc = addBCFunc([], f, 'flux', 0);
         tic;
         S = computeVirtualIP(G, rock, k);
         state = incompVEM(state, G, S, fluid, 'bc', bc);
@@ -146,5 +147,29 @@ switch i
          
         fprintf('\nError: %.2d\n\n', ...
                 norm(p-P));
+            
+    case 5
+        
+        G = voronoiCube(100, [1,1,1]);
+        G = computeVEMGeometry(G);
+        
+        k = 1;
+        
+        mu = 1; rho = 1;
+        rock.perm = ones(G.cells.num,1);
+        fluid = initSingleFluid('mu', mu, 'rho', 1);
+        state = initState(G, [], 0);
+
+        d = sum(bsxfun(@minus, G.cells.centroids, [.5,.5,.5]).^2,2);
+        srcCell = find(d == min(d));
+        srcCell = srcCell(1);
+        src = addSource([], srcCell, 100);
+        
+        tic;
+        S = computeVirtualIP(G, rock, k);
+        toc
+        state = incompVEM(state, G, S, fluid, 'src', src);
+        
+%         fprintf('\nError: %.2d\n\n', norm());
 end
 

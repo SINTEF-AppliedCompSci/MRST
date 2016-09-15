@@ -125,13 +125,13 @@ end
 assert(any(numel(opt.sigma) == [sum(nker),1]), ...
     'Number of elements in parameter matrix sigma must be 1 or sum(nker)')
 
-if isempty(opt.bc)
-    if G.griddim == 2
-        opt.bc = VEM2D_addBC(opt.bc, G, boundaryFaces(G), 'flux', 0);
-    else
-        opt.bc = VEM3D_addBC(opt.bc, boundaryFaces(G), 'flux', 0);
-    end
-end
+% if isempty(opt.bc)
+%     if G.griddim == 2
+%         opt.bc = VEM2D_addBC(opt.bc, G, boundaryFaces(G), 'flux', 0);
+%     else
+%         opt.bc = VEM3D_addBC(opt.bc, boundaryFaces(G), 'flux', 0);
+%     end
+% end
 
 if opt.cellPressure
     opt.cellProjectors = true;
@@ -143,7 +143,11 @@ end
 
 [A, rhs] = glob(G, S, opt.src, k, N, mu);
 
-[A, rhs] = imposeBC(G, opt.bc, k, N, mu, A, rhs);
+if isempty(opt.bc)
+   A(1,1) = 2*A(1,1); 
+else
+    [A, rhs] = imposeBC(G, S, opt.bc, k, N, mu, A, rhs);
+end
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
 
@@ -176,6 +180,12 @@ if opt.cellPressure && k == 1
     end
 end
 
+
+if opt.matrixOutput
+    state.A = A;
+    state.rhs = rhs;
+end
+
 end
 
 %--------------------------------------------------------------------------
@@ -204,7 +214,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = imposeBC(G, bc, k, N, mu, A, rhs)
+function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
 
 if G.griddim == 2
 
@@ -260,35 +270,143 @@ if G.griddim == 2
     A(dofVec,:) = I(dofVec,:);
 else
 
-    isDir = strcmp(bc.type, 'pressure');
-    f = bc.face(isDir);
+    if isfield(bc, 'func')
+        isDir = strcmp(bc.type, 'pressure');
+        f = bc.face(isDir);
 
 
-    for i = 1:numel(f)
-        n = G.faces.nodes(G.faces.nodePos(f(i)):G.faces.nodePos(f(i)+1)-1);
-        e = G.faces.edges(G.faces.edgePos(f(i)):G.faces.edgePos(f(i)+1)-1);
-        g = bc.func{i};
-        if k == 1
-            rhs(n) = g(G.nodes.coords(n,:));
-        else
-            
-        rhs([n; e + G.nodes.num; f + G.nodes.num + G.edges.num]) ...
-            = [g(G.nodes.coords(n,:)); g(G.edges.centroids(e,:)); ...
-               polygonInt3D(G, f, g, k+1)./G.faces.areas(f)];
+        for i = 1:numel(f)
+            n = G.faces.nodes(G.faces.nodePos(f(i)):G.faces.nodePos(f(i)+1)-1);
+            e = G.faces.edges(G.faces.edgePos(f(i)):G.faces.edgePos(f(i)+1)-1);
+            g = bc.func{i};
+            if k == 1
+                rhs(n) = g(G.nodes.coords(n,:));
+            else
+
+            rhs([n; e + G.nodes.num; f + G.nodes.num + G.edges.num]) ...
+                = [g(G.nodes.coords(n,:)); g(G.edges.centroids(e,:)); ...
+                   polygonInt3D(G, f, g, k+1)./G.faces.areas(f)];
+            end
         end
-    end
 
-    n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-    
-    if k == 1
-       dofVec = n; 
+        n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+
+        if k == 1
+            dofVec = n; 
+        else
+            e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+            dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
+        end
+
+        I = spdiags(ones(N,1),0,N,N);
+        A(dofVec,:) = I(dofVec, :);
+
     else
-        e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
-        dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
-    end
-    I = spdiags(ones(N,1),0,N,N);
-    A(dofVec,:) = I(dofVec, :);
     
+        rhs = zeros(N,1);
+
+        isNeu = strcmp(bc.type, 'flux');
+        f = bc.face(isNeu);
+        v = bc.value(isNeu)./G.faces.areas(f);
+
+%         if k == 1
+%             NF = diff(G.faces.nodePos);
+%             PiNFstar = squeezeBlockDiag(S.PiNFstar, NF(G.cells.faces(:,1)), polyDim(k, 2), sum(NF(G.cells.faces(:,1))) );
+%             pos = [0; cumsum(NF)]+1;
+%             c = bsxfun(@times,PiNFstar(:, mcolon(pos(f), pos(f+1)-1)), rldecode(v, NF(f),1)');
+%             alpha = [0 1 0]; beta = [0 0 1];
+%             alpha = alpha+1;
+%             c = bsxfun(@rdivide, c, alpha');
+%             c = sparseBlockDiag(c, NF(f), 2); 
+%             
+%             nfn = diff(G.faces.nodePos);
+%             nfe = diff(G.faces.edgePos);
+% 
+%             %   Compute local coordinates for each face.
+%             
+%             eNum = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
+%             e  = G.faces.edges(eNum);
+%             en = G.faces.edgeNormals(eNum,:);
+%             en = bsxfun(@times, en, G.edges.lengths(e));
+% 
+%             n   = G.edges.nodes(mcolon(G.edges.nodePos(e),G.edges.nodePos(e+1)-1));
+%             n   = reshape(n,2,[])';
+%             n(G.faces.edgeSign(eNum) == -1,:) = n(G.faces.edgeSign(eNum) == -1,2:-1:1);
+%             n   = n(:,1);
+% 
+%             x = G.nodes.coords(n,:);
+% 
+%             v1 = (x(G.faces.nodePos(f)+1,:) - x(G.faces.nodePos(f),:));
+%             v1 = bsxfun(@rdivide, v1, sqrt(sum(v1.^2,2)));
+%             v2 = cross(G.faces.normals,v1,2);
+%             v2 = bsxfun(@rdivide, v2, sqrt(sum(v2.^2,2)));
+%             v1 = v1'; v2 = v2';
+%             T  = sparseBlockDiag([v1(:), v2(:)], repmat(3,[numel(f),1]), 1);
+%             x = sparseBlockDiag(x-rldecode(G.faces.centroids(f,:), nfn(f),1) , nfn(f), 1);    
+%             x = squeezeBlockDiag(x*T, nfn(f), sum(nfn(f)), 2);
+% 
+%             ec = sparseBlockDiag(G.edges.centroids(e,:)-rldecode(G.faces.centroids, nfe(f), 1), nfe(f), 1);
+%             ec = squeezeBlockDiag(ec*T, nfe(f), sum(nfe(f)), 2);
+% 
+%             en = sparseBlockDiag(en, nfe(f), 1);    
+%             en = squeezeBlockDiag(en*T, nfe(f), sum(nfe(f)), 2);
+%             enx = en(:,1).*G.edges.lengths(e);
+%             
+%             pos = [1;cumsum(nfn(f))+1];
+%             ii = 1:size(x,1); jj = ii;
+%             jj(1:end-1) = jj(2:end);
+%             jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
+% 
+%             mVals = bsxfun(@power, [x(:,1); ec(:,1)], alpha)...
+%                   .*bsxfun(@power, [x(:,2); ec(:,2)], beta);
+%            
+%             mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(size(x,1)+1:end,:)*2/3, enx);
+%             If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
+%             mVals = If*mVals;
+% 
+%             mVals = sparseBlockDiag(mVals, ones(numel(f),1), 1);
+%             int = mVals*c;
+%             int = squeezeBlockDiag(int, NF(f), 1, sum(NF(f)))';
+%             
+%             n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+%             rhs(n) = int;
+% 
+%         else
+%             rhs(f + G.nodes.num + G.edges.num) = rhs(f + G.nodes.num + G.edges.num) + v;
+%         end
+
+        nfn = diff(G.faces.nodePos);
+        nfe = diff(G.faces.edgePos);
+
+        isDir = strcmp(bc.type, 'pressure');
+        f = bc.face(isDir);
+        v = bc.value(isDir);
+
+        n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+%         ii = rldecode((1:numel(f))', nfn(f),1);
+%         nn = sum(sparse(ii, n, 1, numel(f), G.nodes.num),1)';
+%         nn = nn(n);
+%         v = rldecode(v, nfn(f), 1)./nn;
+%         jj = 1:numel(n);
+%         ii = n;
+%         In = sparse(ii, jj, 1);
+%         v = In*v;
+%         nn = sum(bsxfun(@eq, repmat(1:G.nodes.num, [numel(n), 1]),n), 2);
+        rhs(n) = rldecode(v, nfn(f), 1);
+
+        if k == 1
+            dofVec = n;
+        else
+            e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+            ne = sum(bsxfun(@eq, repmat(1:G.edges.num, [numel(e), 1]),e), 2);
+            rhs(e + G.nodes.num) = rldecode(v, nfe(f), 1)./ne;
+            rhs(f + G.nodes.num + G.edges.num) = v;
+            dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
+        end
+
+        I = spdiags(ones(N,1),0,N,N);
+        A(dofVec,:) = I(dofVec, :);
+    end
 end
 
 end
