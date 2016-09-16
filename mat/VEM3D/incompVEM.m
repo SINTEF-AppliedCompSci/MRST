@@ -192,13 +192,13 @@ end
 
 function [A, rhs] = glob(G, S, src, k, N, mu)
     
-        P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
+    P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
     A = P'*S.A*P;
 
     if ~isempty(src)
         if k == 1
             rhs = zeros(G.cells.num,1);
-            rhs(src.cell) = src.rate.*G.cells.volumes(src.cell);
+            rhs(src.cell) = src.rate;%.*G.cells.volumes(src.cell);
             rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
             rhs = S.PiN1'*S.PiN1*rhs;
             rhs = mu*P'*rhs;
@@ -302,8 +302,6 @@ else
         A(dofVec,:) = I(dofVec, :);
 
     else
-    
-        rhs = zeros(N,1);
 
         isNeu = strcmp(bc.type, 'flux');
         f = bc.face(isNeu);

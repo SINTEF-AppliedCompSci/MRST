@@ -861,8 +861,9 @@ else
 
     S.A = A;
     S.dofVec = dofVec;
-    S.PNstar = PiNstar;
+    S.PiNstar = PiNstar;
     S.PiNFstar = PiNFstar;
+    S.faceCoords = [v1(:), v2(:)];
     if k == 1
         S.PiN1 = PiN1;
     end

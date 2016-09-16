@@ -80,7 +80,7 @@ switch i
     case 3
         
         
-        n = 5;
+        n = 10;
         G = cartGrid([n,n,n], [1,1,10000]);
         
 %         G = voronoiCube(2000, [1,1,1000]);
@@ -92,7 +92,7 @@ switch i
         
         mu = 100; rho = 1;
 
-        rock.perm = repmat(1, G.cells.num,1);
+        rock.perm = ones(G.cells.num,1);
         fluid = initSingleFluid('mu', mu, 'rho', 1);
         state = initState(G, [], 0);
         
@@ -101,8 +101,8 @@ switch i
         
         gD = @(x) x(:,3);
 
-%         bc = addBCFunc([], f, 'pressure', gD);
-        bc = addBCFunc([], f, 'flux', 0);
+        bc = addBCFunc([], f, 'pressure', gD);
+%         bc = addBCFunc([], f, 'flux', 0);
         tic;
         S = computeVirtualIP(G, rock, k);
         state = incompVEM(state, G, S, fluid, 'bc', bc);
@@ -150,26 +150,52 @@ switch i
             
     case 5
         
-        G = voronoiCube(100, [1,1,1]);
+        n = 20;
+        G = cartGrid([n,n,n], [1,1,1]);
+%         G = voronoiCube(10, [1,1,1]);
         G = computeVEMGeometry(G);
         
         k = 1;
         
         mu = 1; rho = 1;
         rock.perm = ones(G.cells.num,1);
-        fluid = initSingleFluid('mu', mu, 'rho', 1);
+        fluid = initSingleFluid('mu', mu, 'rho', rho);
         state = initState(G, [], 0);
 
-        d = sum(bsxfun(@minus, G.cells.centroids, [.5,.5,.5]).^2,2);
+        d = sum(bsxfun(@minus, G.cells.centroids, .25*[1,1,1]).^2,2);
         srcCell = find(d == min(d));
         srcCell = srcCell(1);
-        src = addSource([], srcCell, 100);
+        src = addSource([], srcCell, 10000);
         
+        d = sum(bsxfun(@minus, G.cells.centroids, .75*[1,1,1]).^2,2);
+        srcCell = find(d == min(d));
+        srcCell = srcCell(1);
+        src = addSource(src, srcCell, -10000);
+        
+        b = boundaryFaces(G);
+%         bc = addBC([], b, 'pressure', 0);
+%         bc = [];
+                
         tic;
         S = computeVirtualIP(G, rock, k);
         toc
-        state = incompVEM(state, G, S, fluid, 'src', src);
+        stateVEM = incompVEM(state, G, S, fluid, 'src', src);
+        stateVEM = calculateCellPressure(stateVEM, G, S);
         
-%         fprintf('\nError: %.2d\n\n', norm());
+        
+%         figure;
+%         r = sqrt(sum(bsxfun(@minus, G.cells.centroids, [0.5, 0.5, 0.5]).^2,2));
+%         plot(r, stateVEM.cellPressure, '.');
+%         figure;
+%         r = sqrt(sum(bsxfun(@minus, G.nodes.coords, [0.5, 0.5, 0.5]).^2,2));
+%         plot(r, stateVEM.nodePressure, '.');
+        
+        
+        S = computeMimeticIP(G, rock);
+        stateMFD = incompMimetic(state, G, S, fluid, 'src', src);
+        
+        fprintf('\nError: %.2f\n\n', norm(stateVEM.cellPressure - stateMFD.pressure)/norm(stateMFD.pressure));
+        
+%         
 end
 
