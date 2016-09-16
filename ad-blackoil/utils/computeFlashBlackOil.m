@@ -72,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rv0 = model.getProp(state0, 'rv');
     
     etol = sqrt(eps);
-    % Detrmine staus of updated cells -----------------------------------------
+    % Determine status of updated cells -----------------------------------------
     watOnly  = sw > 1-etol;
 
     % phase transitions sg <-> rs  --------------------------------------------
