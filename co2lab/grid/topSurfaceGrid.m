@@ -217,7 +217,7 @@ function [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J)
 
    % Merging nodes and updating indexing
    [unodes, fnodes_ixs] = uniqueNodes([Gt.nodes.coords, Gt.nodes.z]);
-   Gt.nodes.num = size(unodes(:,1));
+   Gt.nodes.num = size(unodes, 1);
    Gt.nodes.coords = unodes(:,1:2);
    Gt.nodes.z = unodes(:, 3);
 
