@@ -66,7 +66,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Flag boundary nodes as those having less than nine members of
     % their neighborhood, causing (at least) the last index of 'nhood' to be
     % zero. 
-    boundary_nodes = (nhood(:,end) == 0);
+    %boundary_nodes = (nhood(:,end) == 0);
+    
+    boundary_edges = find(prod(Gt.faces.neighbors,2)==0);
+    boundary_nodes = false(Gt.nodes.num, 1);
+    boundary_nodes(Gt.faces.nodes(mcolon(Gt.faces.nodePos(boundary_edges), ...
+                                         Gt.faces.nodePos(boundary_edges+1)-1))) = true;
     open_boundary_nodes = boundary_nodes;
     open_boundary_nodes(closed_bnodes) = false;
 
