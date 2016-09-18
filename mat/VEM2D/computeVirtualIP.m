@@ -586,7 +586,23 @@ else
     
     cdi = rldecode(G.cells.diameters, NP, 1);
     BT(:,2:end) = bsxfun(@rdivide, [int2, int3, int4], cdi);
-    BT(:,1) = rldecode(1./NP, NP, 1);
+    
+    PiNFs = squeezeBlockDiag(PiNFstar, NF(f), 3, sum(NF(f)));
+    
+    ii = rldecode((1:numel(f))', NF(f), 1);
+    jj = n;
+    PiNFs = sparse(ii, jj, PiNFs(1,:));
+    PiNFs = (If*PiNFs)';
+    
+    vec = repmat(G.nodes.num,G.cells.num,1);
+    vec = [0; cumsum(vec(1:end-1))];
+    ii = G.cells.nodes + rldecode(vec, NP,1);
+    PiNFs = PiNFs(ii);
+    
+    cfa = rldecode(If*G.faces.areas(f), NP, 1);
+    
+    BT(:,1) = PiNFs.*cfa;
+%     BT(:,1) = rldecode(1./NP, NP, 1);
     
     B = sparseBlockDiag(BT', NP, 2);
     B1 = sparseBlockDiag(BT(:,1)', NP, 2);
