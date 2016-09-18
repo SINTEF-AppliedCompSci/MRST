@@ -208,12 +208,22 @@ function [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J)
    % remove duplicates.  This will now become the list of node pairs to merge
    npairs = unique(sort(npairs, 2), 'rows');
    
-   % Compute and set new coordinates for the nodes to merge
-   new_coords = (Gt.nodes.coords(npairs(:, 1),:) + Gt.nodes.coords(npairs(:,2),:))/2;
-   new_z = (Gt.nodes.z(npairs(:,1)) + Gt.nodes.z(npairs(:,2)))/2;
+   % Compute and set new coordinates for nodes to merge
+   comp = connected_components(npairs, Gt.nodes.num, 2); 
+   comp_norm = bsxfun(@rdivide, comp, sum(comp, 2)); % normalize rows
+   new_z = comp_norm * Gt.nodes.z;
+   new_coords = comp_norm * Gt.nodes.coords;
+   ixs = logical(sum(comp));
+   Gt.nodes.z(ixs) = sum(bsxfun(@times, comp(:,ixs), new_z));
+   Gt.nodes.coords(ixs,1) = sum(bsxfun(@times, comp(:,ixs), new_coords(:,1)));
+   Gt.nodes.coords(ixs,2) = sum(bsxfun(@times, comp(:,ixs), new_coords(:,2)));
+      
+   % % Compute and set new coordinates for the nodes to merge
+   % new_coords = (Gt.nodes.coords(npairs(:, 1),:) + Gt.nodes.coords(npairs(:,2),:))/2;
+   % new_z = (Gt.nodes.z(npairs(:,1)) + Gt.nodes.z(npairs(:,2)))/2;
    
-   Gt.nodes.coords([npairs(:,1); npairs(:,2)], :) = [new_coords; new_coords];
-   Gt.nodes.z([npairs(:,1); npairs(:,2)]) = [new_z; new_z];
+   % Gt.nodes.coords([npairs(:,1); npairs(:,2)], :) = [new_coords; new_coords];
+   % Gt.nodes.z([npairs(:,1); npairs(:,2)]) = [new_z; new_z];
 
    % Merging nodes and updating indexing
    [unodes, fnodes_ixs] = uniqueNodes([Gt.nodes.coords, Gt.nodes.z]);
@@ -232,6 +242,25 @@ function [Gt, ffaces] = stitch_neighbors(Gt, ffaces, I, J)
    Gt.cells.faces = nfix(Gt.cells.faces);
    ffaces = nfix(ffaces); % update indices to fault faces as well
    
+end
+
+% ----------------------------------------------------------------------------
+
+function comp = connected_components(arcs, node_num, min_size)
+  % Return connected components of graph described by the provided,
+  % bidirectional arcs.  Filter out components of size smaller than 'min_size'.
+  
+     M = accumarray(arcs, 1, [node_num node_num], [], [], true);
+     M = spones(M + M' + speye(node_num));
+     M_next = spones(M^2);
+     while numel(find(M_next - M)) > 0
+        M = M_next;
+        M_next = spones(M^2);
+     end
+     
+     comp_sizes = sum(M);
+     keep = comp_sizes >= min_size;
+     comp = unique(M(keep,:), 'rows');
 end
 
 % ----------------------------------------------------------------------------
