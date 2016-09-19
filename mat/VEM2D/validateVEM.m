@@ -4,7 +4,7 @@ clc; clear all; close all;
 %   2) Validation of consistency for second order.
 %   3) Point source problem, both orders.
 
-i = 3;
+i = 6;
 
 switch i
     case 1
@@ -212,9 +212,9 @@ switch i
         k = 1;
         
         n = 11;
-        G = cartGrid([n,n,n], [1,1,1]);
+        xMax = 1; yMax = 1; zMax = 5;
+        G = cartGrid([n,n,n], [xMax, yMax, zMax]);
         G = computeVEMGeometry(G);
-        G = sortEdges(G);
         
         rock.perm = ones(G.cells.num,1);
         mu = 1; rho = 1;
@@ -222,14 +222,14 @@ switch i
         state = initState(G, [], 0);
         
         Q = 1;
-        d = sum(bsxfun(@minus, G.cells.centroids, .5*[1,1,1]).^2,2);
+        d = sum(bsxfun(@minus, G.cells.centroids, .5*[xMax, yMax, zMax]).^2,2);
         srcCell = find(d == min(d));
         srcCell = srcCell(1);
         src = addSource([], srcCell, Q);
                 
         [bf, cc] = boundaryFaces(G);
         bn = G.faces.nodes(mcolon(G.faces.nodePos(bf), G.faces.nodePos(bf+1)-1));
-        gD = @(x) Q./(4*pi*sqrt(sum(bsxfun(@minus, x, [.5,.5,.5]).^2,2)));
+        gD = @(x) Q./(4*pi*sqrt(sum(bsxfun(@minus, x, .5*[xMax, yMax, zMax]).^2,2)));
         bc = addBC([], bf, 'pressure', gD(G.faces.centroids(bf,:)));
         bcVEM = addBCFunc([], bf, 'pressure', gD);
         
@@ -242,12 +242,13 @@ switch i
         SMFD = computeMimeticIP(G, rock);
         stateMFD = incompMimetic(state, G, SMFD, fluid, 'src', src, 'bc', bc);
         
-        gr = @(r) Q./(4*pi*r);
-        rr = 0:.01:.8;
         
         figure;
-        rN = sqrt(sum(bsxfun(@minus, G.nodes.coords, [0.5, 0.5, 0.5]).^2,2));
-        rC = sqrt(sum(bsxfun(@minus, G.cells.centroids, [0.5, 0.5, 0.5]).^2,2));
+        rN = sqrt(sum(bsxfun(@minus, G.nodes.coords, .5*[xMax, yMax, zMax]).^2,2));
+        rC = sqrt(sum(bsxfun(@minus, G.cells.centroids, .5*[xMax, yMax, zMax]).^2,2));
+        gr = @(r) Q./(4*pi*r);
+        rr = linspace(0, max(rC), 1000);
+        
         plot(rN, stateVEM.nodePressure, 'o', rC, stateMFD.pressure, 'd', rr, gr(rr), '-.');
         ylim([0 Q]);
         
