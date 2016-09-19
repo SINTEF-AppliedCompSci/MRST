@@ -94,9 +94,11 @@ function state = calculateCellPressure(state, G, S)
 %     int = squeezeBlockDiag(int, NPf, 1, sum(NPf))';
 %     I = sparseBlockDiag(ones(1, sum(NP.*ncf)), NP.*ncf, 2); 
 %     state.cellPressure = full(I*int);
+
+    nk= polyDim(S.order, G.griddim);
     
     ncn = diff(G.cells.nodePos);
-    c = squeezeBlockDiag(S.PiNstar, ncn, 4, sum(ncn));
+    c = squeezeBlockDiag(S.PiNstar, ncn, nk, sum(ncn));
     c = c(1,:)';
     ii = rldecode((1:G.cells.num)', ncn, 1);
     jj = 1:numel(G.cells.nodes);
@@ -104,25 +106,12 @@ function state = calculateCellPressure(state, G, S)
     state.cellPressure = full(I*(c.*state.nodePressure(G.cells.nodes)));
       
 end
-    
-function coeff = trinomialExpansion(a, b, c, n)
-    
-    if n == 0
-        alpha = 0; beta = 0; gamma = 0;
-    elseif n == 1
-        alpha = [1,0,0]; beta = [0,1,0]; gamma = [0,0,1];
-    elseif n == 2
-        alpha = [2,1,1,0,0,0]; beta = [0,1,0,2,1,0]; gamma = [0,0,1,0,1,2];
+
+function nk = polyDim(k, dim)
+    if k == -1
+        nk = 0;
     else
-        alpha = [3 2 2 1 1 1 0 0 0 0];
-        beta  = [0 1 0 2 0 1 3 2 1 0];
-        gamma = [0 0 1 0 2 1 0 1 2 3];
+    nk = nchoosek(k+dim,k);
     end
-    
-    r = size(a,1);     
-    coeff = repmat(factorial(n)./(factorial(alpha).*factorial(beta).*factorial(gamma)), r, 1);
-    coeff = coeff.*bsxfun(@power, a,repmat(alpha,r,1))...
-         .*bsxfun(@power, b,repmat(beta,r,1))...
-         .*bsxfun(@power, c,repmat(gamma,r,1));
-    
 end
+    

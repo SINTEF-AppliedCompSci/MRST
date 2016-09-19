@@ -119,7 +119,7 @@ if G.griddim == 2
 
     S.A = A;
     S.dofVec = dofVec;
-    S.PNstar = PiNstar;
+    S.PiNstar = PiNstar;
     if k == 1
         S.PiN1 = PiN1;
     end
@@ -541,6 +541,7 @@ else
     
     
     
+
     mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,nk-1), alpha)...
           .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,nk-1), beta);
       
@@ -553,6 +554,7 @@ else
     
     If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
     mVals = If*mVals;
+    mVals(:,2:3) = bsxfun(@rdivide, mVals(:,2:3), G.faces.diameters(f));
     
     mVals = sparseBlockDiag(mVals, ones(numel(f),1), 1);
     int2 = mVals*c2;
@@ -587,22 +589,22 @@ else
     cdi = rldecode(G.cells.diameters, NP, 1);
     BT(:,2:end) = bsxfun(@rdivide, [int2, int3, int4], cdi);
     
-    PiNFs = squeezeBlockDiag(PiNFstar, NF(f), 3, sum(NF(f)));
-    
-    ii = rldecode((1:numel(f))', NF(f), 1);
-    jj = n;
-    PiNFs = sparse(ii, jj, PiNFs(1,:));
-    PiNFs = (If*PiNFs)';
-    
-    vec = repmat(G.nodes.num,G.cells.num,1);
-    vec = [0; cumsum(vec(1:end-1))];
-    ii = G.cells.nodes + rldecode(vec, NP,1);
-    PiNFs = PiNFs(ii);
-    
-    cfa = rldecode(If*G.faces.areas(f), NP, 1);
-    
-    BT(:,1) = PiNFs.*cfa;
-%     BT(:,1) = rldecode(1./NP, NP, 1);
+%     PiNFs = squeezeBlockDiag(PiNFstar, NF(f), 3, sum(NF(f)));
+%     
+%     ii = rldecode((1:numel(f))', NF(f), 1);
+%     jj = n;
+%     PiNFs = sparse(ii, jj, PiNFs(1,:));
+%     PiNFs = (If*PiNFs)';
+%     
+%     vec = repmat(G.nodes.num,G.cells.num,1);
+%     vec = [0; cumsum(vec(1:end-1))];
+%     ii = G.cells.nodes + rldecode(vec, NP,1);
+%     PiNFs = PiNFs(ii);
+%     
+%     cfa = rldecode(If*G.faces.areas(f), NP, 1);
+%     
+%     BT(:,1) = PiNFs.*cfa;
+    BT(:,1) = rldecode(1./NP, NP, 1);
     
     B = sparseBlockDiag(BT', NP, 2);
     B1 = sparseBlockDiag(BT(:,1)', NP, 2);

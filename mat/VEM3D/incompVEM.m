@@ -201,11 +201,10 @@ function [A, rhs] = glob(G, S, src, k, N, mu)
             rhs(src.cell) = src.rate;
             rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
             PiNstar = squeezeBlockDiag(S.PiNstar, diff(G.cells.nodePos), ...
-                                       4, sum(diff(G.cells.nodePos)))';
-            rhs = rhs.*PiNstar(:,1);
-            
+                                       polyDim(1, G.griddim), sum(diff(G.cells.nodePos)))';
+            rhs = rhs.*PiNstar(:,1);            
             rhs = mu*P'*rhs;
-            
+             
 %             rhs = zeros(G.cells.num,1);
 %             rhs(src.cell) = src.rate;%.*G.cells.volumes(src.cell);
 %             rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
@@ -415,7 +414,7 @@ else
         A(dofVec,:) = I(dofVec, :);
     end
 end
-
+    
 end
 
 %--------------------------------------------------------------------------

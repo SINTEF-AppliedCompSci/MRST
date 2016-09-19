@@ -67,9 +67,9 @@ cellFaceNodes = G.faces.nodes(nodeNum);
 cellFaceNodes(cNodes) = newNodes(loc(cNodes))';
 G.faces.nodes(nodeNum) = cellFaceNodes;
 
-for i = 1:numel(cellFaceNodes)
-    plot(G.nodes.coords(nodes,1),G.nodes.coords(nodes,2),'.','markersize',20)
-end
+% for i = 1:numel(cellFaceNodes)
+%     plot(G.nodes.coords(nodes,1),G.nodes.coords(nodes,2),'.','markersize',20)
+% end
 
 nodeNum = mcolon(G.cells.nodePos(cells),G.cells.nodePos(cells+1)-1);
 cellNodes = G.cells.nodes(nodeNum);
