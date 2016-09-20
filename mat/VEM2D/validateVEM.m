@@ -4,7 +4,7 @@ clc; clear all; close all;
 %   2) Validation of consistency for second order.
 %   3) Point source problem, both orders.
 
-i = 6;
+i = 5;
 
 switch i
     case 1
@@ -42,7 +42,7 @@ switch i
 
     case 2
     
-        G = unitSquare([10,10],[1,1]);
+        G = unitSquare([5,10],[1,1]);
         G = sortEdges(G);
         G = computeVEMGeometry(G);
 
@@ -108,7 +108,7 @@ switch i
 
         
         state = initState(G, [], 0);
-        k = 2;
+        k = 1;
         tic;
         S = computeVirtualIP(G, rock, k);
         state = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src);
@@ -171,26 +171,22 @@ switch i
         
     case 5
         
-        n = 5;
-        G = cartGrid([n,n,n],[1,1,1]);
+        n = 2;
+%         G = cartGrid([n,n,n],[1,100,1]);
         
         G = voronoiCube(5, [1,1,1]);
-        
-%         G = computeVEM3DGeometry(G);
         
         G = computeVEMGeometry(G);
         
         k = 2;
-        
-        mu = 1; rho = 1;
 
         rock.perm = ones(G.cells.num,1);
-        fluid = initSingleFluid('mu', mu, 'rho', 1);
+        fluid = initSingleFluid('mu', 1, 'rho', 1);
         state = initState(G, [], 0);
 
         f = boundaryFaces(G);
         
-        gD = @(x) x(:,2).^2 - x(:,3).^2;
+        gD = @(x) x(:,1);
 
         bc = addBCFunc([], f, 'pressure', gD);
         tic;
@@ -211,51 +207,61 @@ switch i
 
         k = 1;
         
-        n = 11;
-        xMax = 1; yMax = 1; zMax = 5;
+        n = 21;
+        xMax = 1; yMax = 1; zMax = 1;
         G = cartGrid([n,n,n], [xMax, yMax, zMax]);
+%         G = voronoiCube(1000, [xMax, yMax, zMax]);        
         G = computeVEMGeometry(G);
-        
-        rock.perm = ones(G.cells.num,1);
-        mu = 1; rho = 1;
-        fluid = initSingleFluid('mu', mu, 'rho', rho);
-        state = initState(G, [], 0);
         
         Q = 1;
         d = sum(bsxfun(@minus, G.cells.centroids, .5*[xMax, yMax, zMax]).^2,2);
         srcCell = find(d == min(d));
         srcCell = srcCell(1);
         src = addSource([], srcCell, Q);
-                
+        xSrc = G.cells.centroids(srcCell, :);
+        
+        rock.perm = ones(G.cells.num,1);
+        mu = 1; rho = 1;
+        fluid = initSingleFluid('mu', mu, 'rho', rho);
+        state = initState(G, [], 0);
+        
         [bf, cc] = boundaryFaces(G);
         bn = G.faces.nodes(mcolon(G.faces.nodePos(bf), G.faces.nodePos(bf+1)-1));
-        gD = @(x) Q./(4*pi*sqrt(sum(bsxfun(@minus, x, .5*[xMax, yMax, zMax]).^2,2)));
+        gD = @(x) Q./(4*pi*sqrt(sum(bsxfun(@minus, x, xSrc).^2,2)));
         bc = addBC([], bf, 'pressure', gD(G.faces.centroids(bf,:)));
         bcVEM = addBCFunc([], bf, 'pressure', gD);
         
         tic;
-        S = computeVirtualIP(G, rock, k);
+        SVEM = computeVirtualIP(G, rock, k,  'innerProduct', 'ip_simple');
         toc
-        stateVEM = incompVEM(state, G, S, fluid, 'src', src, 'bc', bcVEM, 'matrixOutput', true);
-        stateVEM = calculateCellPressure(stateVEM, G, S);
+        stateVEM = incompVEM(state, G, SVEM, fluid, 'src', src, 'bc', bcVEM);
+        stateVEM = calculateCellPressure(stateVEM, G, SVEM);
         
         SMFD = computeMimeticIP(G, rock);
         stateMFD = incompMimetic(state, G, SMFD, fluid, 'src', src, 'bc', bc);
         
+        %%
         
         figure;
-        rN = sqrt(sum(bsxfun(@minus, G.nodes.coords, .5*[xMax, yMax, zMax]).^2,2));
-        rC = sqrt(sum(bsxfun(@minus, G.cells.centroids, .5*[xMax, yMax, zMax]).^2,2));
+        rN = sqrt(sum(bsxfun(@minus, G.nodes.coords, xSrc).^2,2));
+        rC = sqrt(sum(bsxfun(@minus, G.cells.centroids, xSrc).^2,2));
         gr = @(r) Q./(4*pi*r);
         rr = linspace(0, max(rC), 1000);
         
-        plot(rN, stateVEM.nodePressure, 'o', rC, stateMFD.pressure, 'd', rr, gr(rr), '-.');
+        plot(rN, stateVEM.nodePressure, '.', rC, stateVEM.cellPressure, 'o', rC, stateMFD.pressure, 'd', rr, gr(rr), '-.');
         ylim([0 Q]);
         
+        pc = find(G.cells.centroids(:,3) > .5);
+        figure;
+        plotCellData(G, stateVEM.cellPressure(pc), pc)
+        axis equal
+                
         tr = true(G.cells.num,1);
         tr(rC < 1*mean(G.cells.diameters)^2) = false;
+        err = norm(stateVEM.cellPressure(tr) - gD(G.cells.centroids(tr,:)))/norm(gD(G.cells.centroids(tr,:)));
+        fprintf('Error: %.2f %%\n', err*100);
+
         
-        norm(stateVEM.cellPressure(tr) - gD(G.cells.centroids(tr,:)))/norm(gD(G.cells.centroids(tr,:)))
         
 %         figure;
 %         plot(rN(bn), stateVEM.nodePressure(bn), '.', rN(bn), gD(G.nodes.coords(bn,:)), 'sq')
