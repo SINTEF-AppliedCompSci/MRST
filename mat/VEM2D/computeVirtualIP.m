@@ -51,39 +51,46 @@ if ~isempty(opt.sigma)
     assert(numel(opt.sigma) == sum(nker));
 end
 
-
-%%  CALCULATE 2D PROJECTOION OPERATORS
-
 K = permTensor(rock, G.griddim);
 
+%   Faces for each cell.
+f    = G.cells.faces(:,1);
+fn   = G.faces.normals(f,:);
+fSgn = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
+       ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
+fn   = bsxfun(@times, fn, fSgn);
+if size(f,1) == 1; f = f'; end
+
 if G.griddim == 2
-    
-    %   Calculate projection operators for each cell.
-    
-    %   Number of nodes and faces for each cell.
-    ncn = diff(G.cells.nodePos);
-    ncf = diff(G.cells.facePos);
-    
-    %   Faces for each cell.
-    f = G.cells.faces(:,1);
-    fn = G.faces.normals(f,:);
-    faceSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
-                  ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
-    fn = bsxfun(@times, fn, faceSign);
-    if size(f,1) == 1; f = f'; end
 
     %   Nodes for each face of each cell.
-    n = G.faces.nodes(mcolon(G.faces.nodePos(f), ...
-                                 G.faces.nodePos(f+1)-1));
+    n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
     if size(n,1) == 1; n = n'; end
     n   = reshape(n,2,[])';
-    n(faceSign == -1,:) = n(faceSign == -1,2:-1:1);
+    n(fSgn == -1,:) = n(fSgn == -1,2:-1:1);
     n   = n(:,1);
     
-    %   Function space dimensions.
+else
     
-    NP   = ncn + ncf*(k-1) + k*(k-1)/2;
-    nker = NP - nk;
+    %   Edges for each face of each cell
+    eNum = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
+    e    = G.faces.edges(eNum);
+    if size(e,1) == 1; e = e'; end
+    en = G.faces.edgeNormals(eNum,:);
+    enx  = en(:,1);
+    
+    %   Nodes for each edge of each face of each cell
+    n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
+    if size(n,1) == 1; n = n'; end
+    n = reshape(n,2,[])';
+    n(G.faces.edgeSign == -1,:) = n(G.faces.edgeSign == -1, 2:-1:1);
+    n = n(:,1);
+end
+
+
+%%  CALCULATE LOCAL STIFFNESS MATRICES FOR EACH CELL
+
+if G.griddim == 2
 
     %   Coordinates for degrees of freedom.
     if k == 1
@@ -95,19 +102,17 @@ if G.griddim == 2
     Kmat = reshape(K', 2, [])';
     
     %   Calculate B and D matrices.
-    [B, D, B1, D1] = computeBD2D(G.cells.centroids, G.cells.diameters, ...
-                                 G.cells.volumes, ncn, ncf, ...
-                                 fn, G.faces.areas(f), G.cells.facePos, ...
-                                 x, numel(n), G.cells.nodePos, ...
-                                 Kmat, ...
-                                 NP, k, G.griddim);
+    [B, D] = computeBD2D(G.cells.centroids, G.cells.diameters, ...
+                         G.cells.volumes, ncn, ncf, fn,        ...
+                         G.faces.areas(f), G.cells.facePos, x, ...
+                         numel(n), G.cells.nodePos, Kmat, NP, k, G.griddim);
     
     %   Calculate projection operators in monomial (star) and VEM bases.
     M = B*D;
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
-    PiNstar = M\B;
+    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+%     PiNstar = M\B;
     PiN = D*PiNstar;
 
     clear B D;
@@ -120,118 +125,54 @@ if G.griddim == 2
 
     %   Make solution struct.
     S = makeSolutionStruct(G, NP, k, A, PiNstar, [], [], []);
-else
     
-    %%  3D CASE
+else
     
     %%  CALCULATE PROJECTION OPERATORS FOR EACH FACE
     
-    nfn = diff(G.faces.nodePos);
-    nfe = diff(G.faces.edgePos);
+    nkf = polyDim(k, G.griddim-1);
     
     %   Compute local coordinates for each face.
-
-    e  = G.faces.edges;   
-    en = G.faces.edgeNormals;
-    en = bsxfun(@times, en, G.edges.lengths(e));
-
-    n   = G.edges.nodes(mcolon(G.edges.nodePos(e),G.edges.nodePos(e+1)-1));
-    n   = reshape(n,2,[])';
-    n(G.faces.edgeSign == -1,:) = n(G.faces.edgeSign == -1,2:-1:1);
-    n   = n(:,1);
-    nn = numel(n);
-    
-    x = G.nodes.coords(n,:);
-
-    v1 = (x(G.faces.nodePos(1:end-1)+1,:) - x(G.faces.nodePos(1:end-1),:));
-    v1 = bsxfun(@rdivide, v1, sqrt(sum(v1.^2,2)));
-    v2 = cross(G.faces.normals,v1,2);
-    v2 = bsxfun(@rdivide, v2, sqrt(sum(v2.^2,2)));
-    v1 = v1'; v2 = v2';
-    T  = sparseBlockDiag([v1(:), v2(:)], repmat(3,[G.faces.num,1]), 1);
-    x = sparseBlockDiag(x-rldecode(G.faces.centroids, nfn,1) , nfn, 1);    
-    x = squeezeBlockDiag(x*T, nfn, sum(nfn), 2);
-                    
-    ec = sparseBlockDiag(G.edges.centroids(e,:)-rldecode(G.faces.centroids, nfe, 1), nfe, 1);
-    ec = squeezeBlockDiag(ec*T, nfe, sum(nfe), 2);
-    
-    en = sparseBlockDiag(en, nfe, 1);    
-    en = squeezeBlockDiag(en*T, nfe, sum(nfe), 2);
- 
-    %   Function space dimensions.
-    
-    
-    f = G.cells.faces(:,1);
-        
-    Kmat = rldecode(K, diff(G.cells.facePos), 1);
-    Kmat = Kmat';
+    [v1, v2, xf, ecf, enf] = faceCoorSys(G);
+     
+    %   Project permeability tensors onto each face.
+    Kmat = rldecode(K, diff(G.cells.facePos), 1); Kmat = Kmat';
     [ii,jj] = blockDiagIndex(repmat(3,[size(Kmat,2), 1]));
     Kmat = sparse(ii, jj, Kmat(:));
-    
-    T = [v1', v2'];
-    T = T(f,:);
+    T = [v1', v2']; T = T(f,:);
     [ii, jj] = blockDiagIndex(repmat(3,[size(T,1),1]),repmat(2,[size(T,1),1]));
     T = T';
     T = sparse(ii, jj, T(:));
     Kmat = squeezeBlockDiag(T'*Kmat*T, repmat(2, [numel(f), 1]), 2*numel(f), 2);
-    
-%     clear T;
-    
-    e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
-    n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-   
-    
-    %   Coordinates for degrees of freedom.
-    
+      
+    %   Coordinates for degrees of freedom. 
     iin = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
     iie = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
-    if k == 1
-        xx = x(iin,:);
-    else
-        xx = [x(iin,:); ec(iie,:)];
-    end
+    if k == 1; xx = xf(iin,:); else xx = [xf(iin,:); ecf(iie,:)]; end
     
-    NP   = nfn + nfe*(k-1) + k*(k-1)/2;
-    NP = NP(f);
-    
-    ePos = diff(G.faces.edgePos);
-    ePos = ePos(f);
-    ePos = [1;cumsum(ePos)+1];
-    nPos = diff(G.faces.nodePos);
-    nPos = nPos(f);
-    nPos = [1;cumsum(nPos)+1];
-    
+    ePos = diff(G.faces.edgePos); ePos = ePos(f); ePos = [1;cumsum(ePos)+1];
+    nPos = diff(G.faces.nodePos); nPos = nPos(f); nPos = [1;cumsum(nPos)+1];
     
     %   Calculate B and D matrices.
-    [BF, DF, ~, ~] = computeBD2D(zeros(numel(f),2), G.faces.diameters(f), ...
-                                 G.faces.areas(f), nfn(f), nfe(f), ...
-                                 en(iie,:), G.edges.lengths(e), ePos, ...
-                                 xx, numel(n), nPos, ...
-                                 Kmat, ...
-                                 NP, k, G.griddim);
+    [BF, DF] = computeBD2D(zeros(numel(f),2), G.faces.diameters(f), ...
+                           G.faces.areas(f), nfn(f), nfe(f), ...
+                           enf(iie,:), G.edges.lengths(e), ePos, xx, ...
+                           numel(n), nPos, Kmat, NF(f), k, G.griddim);
 
     %   Calculate projection operators in monomial (star) and VEM bases.
     MF = BF*DF;
-    [ii, jj] = blockDiagIndex(repmat(nk, [numel(f) ,1]));
+    [ii, jj] = blockDiagIndex(repmat(nkf, [numel(f) ,1]));
     kk = sub2ind(size(MF), ii, jj);
-%     PiNFstar = sparse(ii, jj, invv(full(MF(kk)), repmat(nk, [numel(f), 1])))*BF;
-    PiNFstar = MF\BF;
+    PiNFstar = sparse(ii, jj, invv(full(MF(kk)), ...
+                      repmat(nkf, [numel(f), 1]))   )*BF;
+%     PiNFstar = MF\BF;
     
     clear BF DF;
     
     %%  CALCULATE D MATRICES
     
     [m, grad_m, int_m] = retrieveMonomials(3, k);
-    ncn = diff(G.cells.nodePos);
-    nce = diff(G.cells.edgePos);
-    ncf = diff(G.cells.facePos);
-    
-    NP = diff(G.cells.nodePos) + diff(G.cells.edgePos)*polyDim(k-2,1) ...
-       + diff(G.cells.facePos)*polyDim(k-2, 2) + k*(k^2-1)/6*polyDim(k-2,3);
-    nk = polyDim(k, G.griddim);
-    
-    nker = NP-nk;
-    
+
     f = G.cells.faces(:,1);
     eNum = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
     e = G.faces.edges(eNum);
@@ -616,9 +557,9 @@ else
     
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
     
-    PiNstar = M\B;
+%     PiNstar = M\B;
 
     PiN = D*PiNstar; 
     
@@ -845,18 +786,18 @@ else
     
     M = B*D;
     
-    I = [];
-    for P = 1:G.cells.num
-        gm5gm5 = @(x) 4*(x(:,1)-G.cells.centroids(P,1)).^2/G.cells.diameters(P)^2;
-        
-        I = [I; polyhedronInt(G, P, gm5gm5, 2)];
-    end
+%     I = [];
+%     for P = 1:G.cells.num
+%         gm5gm5 = @(x) 4*(x(:,1)-G.cells.centroids(P,1)).^2/G.cells.diameters(P)^2;
+%         
+%         I = [I; polyhedronInt(G, P, gm5gm5, 2)];
+%     end
 
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
     
-%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;    
-    PiNstar = M\B;
+    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;    
+%     PiNstar = M\B;
     PiN = D*PiNstar;
     
     end
@@ -1007,6 +948,44 @@ else
 
 end
 
+end
+
+%--------------------------------------------------------------------------
+
+function [v1, v2, x, ec, en] = faceCoorSys(G)
+
+    e  = G.faces.edges;   
+    en = G.faces.edgeNormals;
+    en = bsxfun(@times, en, G.edges.lengths(e));
+
+    n   = G.edges.nodes(mcolon(G.edges.nodePos(e),G.edges.nodePos(e+1)-1));
+    n   = reshape(n,2,[])';
+    n(G.faces.edgeSign == -1,:) = n(G.faces.edgeSign == -1,2:-1:1);
+    n   = n(:,1);
+    nn = numel(n);
+    
+    x = G.nodes.coords(n,:);
+
+    v1 = (x(G.faces.nodePos(1:end-1)+1,:) - x(G.faces.nodePos(1:end-1),:));
+    v1 = bsxfun(@rdivide, v1, sqrt(sum(v1.^2,2)));
+    v2 = cross(G.faces.normals,v1,2);
+    v2 = bsxfun(@rdivide, v2, sqrt(sum(v2.^2,2)));
+    v1 = v1'; v2 = v2';
+    T  = sparseBlockDiag([v1(:), v2(:)], repmat(3,[G.faces.num,1]), 1);
+    
+    nfn = diff(G.faces.nodePos);
+    nfe = diff(G.faces.edgePos);
+    
+    x = sparseBlockDiag(x-rldecode(G.faces.centroids, nfn,1) , nfn, 1);    
+    x = squeezeBlockDiag(x*T, nfn, sum(nfn), 2);
+                    
+    ec = sparseBlockDiag(G.edges.centroids(e,:)-rldecode(G.faces.centroids, nfe, 1), nfe, 1);
+    ec = squeezeBlockDiag(ec*T, nfe, sum(nfe), 2);
+    
+    en = sparseBlockDiag(en, nfe, 1);    
+    en = squeezeBlockDiag(en*T, nfe, sum(nfe), 2);
+
+    
 end
 
 %--------------------------------------------------------------------------

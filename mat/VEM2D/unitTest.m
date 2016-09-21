@@ -35,7 +35,7 @@ G = computeVEMGeometry(unitSquare([10,10],[1,1]));
 G = sortEdges(G);
 gD = @(x) x(:,1).^2 - x(:,2).^2 + x(:,1).*x(:,2);
 bf = boundaryFaces(G);
-bc = addBC([], bf, 'pressure', gD(G.faces.centroids(bf,:)));
+bc = addBCFunc([], bf, 'pressure', gD);
 rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
 fluid      = initSingleFluid('mu' , 1*centi*poise, ...
                              'rho', 1000*kilogram/meter^3);
@@ -61,8 +61,7 @@ gD = @(x) x(:,1) + x(:,2) + x(:,3);
 bf = boundaryFaces(G);
 bc = addBCFunc([], bf, 'pressure', gD);
 
-% rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
-rock.perm = ones(G.cells.num,1);
+rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
 fluid      = initSingleFluid('mu' , 1*centi*poise, ...
                              'rho', 1000*kilogram/meter^3);
 state = initState(G, [], 0);
@@ -88,8 +87,7 @@ gD = @(x) x(:,1).^2 - x(:,2).^2;
 bf = boundaryFaces(G);
 bc = addBCFunc([], bf, 'pressure', gD);
 
-% rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
-rock.perm = ones(G.cells.num,1);
+rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
 fluid      = initSingleFluid('mu' , 1*centi*poise, ...
                              'rho', 1000*kilogram/meter^3);
 state = initState(G, [], 0);
