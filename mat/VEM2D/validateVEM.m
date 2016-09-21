@@ -4,7 +4,7 @@ clc; clear all; close all;
 %   2) Validation of consistency for second order.
 %   3) Point source problem, both orders.
 
-i = 5;
+i = 1;
 
 switch i
     case 1
@@ -171,11 +171,21 @@ switch i
         
     case 5
         
-        n = 2;
-%         G = cartGrid([n,n,n],[1,100,1]);
-        
-        G = voronoiCube(5, [1,1,1]);
-        
+        n = 1;
+%         G = cartGrid([n,n,n],[1,1,1]);
+%         G = computeVEMGeometry(G);
+% %         G.nodes.coords(:,1) = G.nodes.coords(:,1) + G.nodes.coords(:,3);
+%         G.nodes.coords(:,1) = G.nodes.coords(:,1).^2;
+%         G.nodes.coords(:,2) = G.nodes.coords(:,2).^2;
+%         G.nodes.coords(:,3) = G.nodes.coords(:,3).^2;
+        xx = linspace(0,1,3); yy = linspace(0,1,3); zz = linspace(0, 1, 3);
+        [x,y,z] = meshgrid(xx, yy, zz);
+        p = [x(:), y(:), z(:)];
+        G = tetrahedralGrid(p);
+        G = voronoiCube(100, [1,1,1]);
+%         
+%         p = [0 0 0; 1 0 0; 0 1 0; 0 0 1];
+%         G = tetrahedralGrid(p);
         G = computeVEMGeometry(G);
         
         k = 2;
@@ -186,7 +196,7 @@ switch i
 
         f = boundaryFaces(G);
         
-        gD = @(x) x(:,1);
+        gD = @(x) x(:,1).^2 - x(:,3).^2;
 
         bc = addBCFunc([], f, 'pressure', gD);
         tic;
@@ -201,6 +211,8 @@ switch i
          
         fprintf('\nError: %.2d\n\n', ...
                 norm(p-P));
+            
+        plotCellData(G, state.cellPressure)
             
     case 6
 

@@ -1,4 +1,4 @@
-function S = computeVirtualIP(G,rock,k, varargin)
+function S = computeVirtualIP(G, rock, k, varargin)
 
 %%  MERGE INPUT PARAMETRES                                               %%
 
@@ -6,17 +6,55 @@ opt = struct('innerProduct', 'ip_simple', ...
              'sigma'       , []              );
 opt = merge_options(opt, varargin{:});
 
+%%  CFUNCTION SPACE DIMENSIONS
+
+%   Polynomial space dimension
+nk = polyDim(k, G.griddim);
+
+ncn = diff(G.cells.nodePos);
+ncf = diff(G.cells.facePos);
+if G.griddim == 3; nce = diff(G.cells.edgePos);
+else nce = zeros(G.cells.num,1); G.edges.num = 0; end
+
+%   Number of dofs for each face
+if G.griddim == 3
+    nfn = diff(G.faces.nodePos);
+    nfe = diff(G.faces.edgePos);
+    NF  = nfn ...
+        + nfe*polyDim(k-2, G.griddim-2) ...
+        +     polyDim(k-2, G.griddim-1);
+end
+
+%   Number of dofs for each cell
+NP = ncn                           ...
+   + nce*polyDim(k-2, G.griddim-2) ...
+   + ncf*polyDim(k-2, G.griddim-1) ...
+   +     polyDim(k-2, G.griddim);
+
+%   Dimension of \ker \Pi^\nabla
+nker = NP - nk;
+
+%   Total number of dofs
+N = G.nodes.num                           ...
+  + G.edges.num*polyDim(k-2, G.griddim-2) ...
+  + G.faces.num*polyDim(k-2, G.griddim-1) ...
+  + G.cells.num*polyDim(k-2, G.griddim  );
 
 %%  CHECK CORRECTNESS OF INPUT
+
+ipNames = {'ip_simple' , 'ip_custom'};
+
+assert(any(strcmp(opt.innerProduct, ipNames)), ...
+       'Unknown inner product ''%s''.', opt.innerProduct);
 
 if ~isempty(opt.sigma)
     assert(numel(opt.sigma) == sum(nker));
 end
 
+
 %%  CALCULATE 2D PROJECTOION OPERATORS
 
-K = permTensor(rock,G.griddim);
-nk   = (k+1)*(k+2)/2;
+K = permTensor(rock, G.griddim);
 
 if G.griddim == 2
     
@@ -68,59 +106,19 @@ if G.griddim == 2
     M = B*D;
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
-%     PiNstar = M\B;
+%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+    PiNstar = M\B;
     PiN = D*PiNstar;
 
     clear B D;
 
-%     %   Calculate Q matrices-
-%     Q = zeros(sum(nker.*NP),1);
-%     PiNPos = [1; cumsum(NP.^2) + 1];
-%     QPos   = [1; cumsum(NP.*nker)+1];
-%     ii = blockDiagIndex(NP);
-%     PiNvec = full(PiN(ii));
-% 
-%     for P = 1:G.cells.num 
-%         QP = null(reshape(PiNvec(PiNPos(P):PiNPos(P+1)-1), NP(P), NP(P)));
-%         Q(QPos(P):QPos(P+1)-1) = QP(:);
-%     end
-% 
-%     [ii,jj] = blockDiagIndex(NP, nker);
-%     Q = sparse(ii, jj, Q, sum(NP), sum(nker));
-% 
-%     %   Calculate local discrete bilinear forms.
-%     if isempty(opt.sigma)
-%         opt.sigma = rldecode(K(:,1)+K(:,4),nker,1);
-%     end
-%     sigma = spdiags(opt.sigma, 0, sum(nker), sum(nker));
-% 
-%     M(1:nk:end,:) = 0;
-%     I = speye(size(PiN,1));
     SS = stabilityTerm(opt.innerProduct, opt.sigma, G, K, PiN, NP, nker);
     
+    M(1:nk:end,:) = 0;
+    I = speye(size(PiN,1));
     A = PiNstar'*M*PiNstar + (I-PiN)'*SS*(I-PiN);
 
     %   Make solution struct.
-    
-%     vec = [1, cumsum(NP(1:end-1))' + 1];
-%     iiN = mcolon(vec, vec + ncn'-1);
-%     iiF = mcolon(vec + ncn', vec + ncn' + ncf'*(k-1)-1);
-%     iiP = mcolon(vec + ncn' + ncf', vec + ncn' + ncf' + k*(k-1)/2 -1);
-%     if k == 1
-%         dofVec([iiN, iiF, iiP]) = n';
-%     else
-%         dofVec([iiN, iiF, iiP]) = [n', f' + G.nodes.num, (1:G.cells.num) + G.nodes.num + G.faces.num*(k-1)];
-%     end
-% 
-%     S.A = A;
-%     S.dofVec = dofVec;
-%     S.PiNstar = PiNstar;
-%     if k == 1
-%         S.PiN1 = PiN1;
-%     end
-%     S.order  = k;
-
     S = makeSolutionStruct(G, NP, k, A, PiNstar, [], [], []);
 else
     
@@ -216,8 +214,8 @@ else
     MF = BF*DF;
     [ii, jj] = blockDiagIndex(repmat(nk, [numel(f) ,1]));
     kk = sub2ind(size(MF), ii, jj);
-    PiNFstar = sparse(ii, jj, invv(full(MF(kk)), repmat(nk, [numel(f), 1])))*BF;
-%     PiNFstar = MF\BF;
+%     PiNFstar = sparse(ii, jj, invv(full(MF(kk)), repmat(nk, [numel(f), 1])))*BF;
+    PiNFstar = MF\BF;
     
     clear BF DF;
     
@@ -613,15 +611,14 @@ else
     BT(:,1) = rldecode(1./NP, NP, 1);
     
     B = sparseBlockDiag(BT', NP, 2);
-    B1 = sparseBlockDiag(BT(:,1)', NP, 2);
     
     M = B*D;
     
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
     
-%     PiNstar = M\B;
+    PiNstar = M\B;
 
     PiN = D*PiNstar; 
     
@@ -702,17 +699,26 @@ else
     %   (m^2-m^4) and four-point (m^5-m^10) Gauss-Lobatto quadratures.
     m2m4 = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alpha24)...
           .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6), beta24);
+    alpha = [0 1 0 2 1 0]; beta = [0 0 1 0 1 2];
     fd = bsxfun(@power, ...
                 repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6), ...
-                alpha24-1 + beta24);
+                alpha + beta);
     m2m4 = m2m4./fd;
     
-    nn = size(x,1);
+%     nn = size(x,1);
+%     xx = bsxfun(@rdivide, [x; xq1; xq2], repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 3, 1));
+%     
+%     m5m10 = bsxfun(@power, repmat(xx(:,1),1,6*6), alpha510)...
+%            .*bsxfun(@power, repmat(xx(:,2),1,6*6), beta510);
+%     
     m5m10 = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,6*6), alpha510)...
            .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,6*6), beta510);
-    fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 3, 1), 1, 6*6), alpha510-1 + beta510);
+    alpha = [0 1 0 2 1 0]; beta = [0 0 1 0 1 2];
+    alpha = repmat(alpha, 1,6); beta = repmat(beta,1 ,6);
+    fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 3, 1), 1, 6*6), alpha + beta);
+%     fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 3, 1), 1, 6*6), alpha510-1 + beta510);
     m5m10 = m5m10./fd;
-%     
+    
 %     m5m10 = bsxfun(@power, repmat([x(:,1);ec(:,1)],1,6*6), alpha510)...
 %           .*bsxfun(@power, repmat([x(:,2);ec(:,2)],1,6*6), beta510 );
 %     fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), nfn(f), 1), 2, 1), 1, 6*6), alpha510-1 + beta510);
@@ -733,7 +739,11 @@ else
     m5m10 = If*m5m10;
     m5m10 = sparseBlockDiag(m5m10, ones(numel(f),1), 1);
     
-    
+%     fdi = rldecode(G.faces.diameters(f), NF(f), 1)';
+%     
+%     c6 = bsxfun(@times, c6, fdi);
+%     c7 = bsxfun(@times, c7, fdi);
+%     c9 = bsxfun(@times, c9, fdi);
     
     %   Map to global dofs and sum for each cell
     int2  = squeezeBlockDiag(m2m4*c2  , NF(f), 1, sum(NF(f)));
@@ -752,6 +762,13 @@ else
     iiN = mcolon(dof, dof + nfn(f) - 1);
     iiE = mcolon(dof + nfn(f), dof + nfn(f) + nfe(f) - 1);
     iiF = mcolon(dof + nfn(f) + nfe(f), dof + nfn(f) + nfe(f));
+    
+%     e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+%     n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
+%     n = reshape(n,2,[])';
+%     n(G.faces.edgeSign(eNum) == -1,:) = n(G.faces.edgeSign(eNum) == -1,2:-1:1);
+%     n = n(:,1);
+    
     fDof([iiN, iiE, iiF]) = [n; ...
                              e + G.nodes.num; ...
                              f + G.nodes.num + G.edges.num];
@@ -838,8 +855,8 @@ else
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
     
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;    
-%     PiNstar = M\B;
+%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;    
+    PiNstar = M\B;
     PiN = D*PiNstar;
     
     end
@@ -996,13 +1013,16 @@ end
 
 function SS = stabilityTerm(innerProduct, sigma, G, K, PiN, NP, nker)
 
+    if G.griddim == 2; iiK = [1 4]; else iiK = [1 5 9]; end
+
     switch innerProduct
 
         case 'ip_simple'
             
-            SS = spdiags(rldecode(G.cells.diameters.^(G.griddim-2) ...
-                                  .*sum(K(:,[1, 5, 9]),2)/3,NP,1) ...
-                                  , 0, sum(NP), sum(NP)              );
+           
+            SS = spdiags(rldecode(G.cells.diameters.^(G.griddim-2)  ...
+                                  .*sum(K(:,iiK),2)/numel(iiK),NP,1), ...
+                                  0, sum(NP), sum(NP)              );
         
         case 'ip_custom'
             
@@ -1023,7 +1043,7 @@ function SS = stabilityTerm(innerProduct, sigma, G, K, PiN, NP, nker)
     
             if isempty(sigma)
                 sigma = rldecode(G.cells.diameters.^(G.griddim-2) ...
-                                 .*sum(K(:,[1, 5, 9]),2),nker,1);
+                                 .*sum(K(:,iiK),2),nker,1);
             end
 
             SS = Q*spdiags(sigma, 0, sum(nker), sum(nker))*Q';

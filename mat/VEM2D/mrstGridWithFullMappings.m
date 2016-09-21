@@ -63,7 +63,7 @@ if(G.griddim==3)
     G.nodes.edges=val;
 else
     %G=sortEdges(G);
-    warning('Hope for sorted edges')
+%     warning('Hope for sorted edges')
     %ifaces=mcolon(G.cells.facePos(1:end-1),G.cells.facePos(2:end));
     %faces=G.cells.faces(ifaces);
     faces=G.cells.faces(:,1);
