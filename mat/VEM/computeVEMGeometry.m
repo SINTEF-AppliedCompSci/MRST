@@ -59,7 +59,7 @@ function G = computeVEMGeometry(G)
         edgeVec = G.nodes.coords(nodes(2:2:end),:)-G.nodes.coords(nodes(1:2:end-1),:);
         edgeVec = edgeVec.*repmat(signs,1,3);
         normals = cross(edgeVec, rldecode(faceNormals, diff(G.faces.edgePos), 1));
-        normals = normals./repmat(sqrt(sum(normals.^2,2)),1,3);
+        normals = bsxfun(@times, normals, 1./sqrt(sum(normals.^2,2)));
 
         clear faceNormals edgeNum edges signs nodeNum nodes edgeVec
 

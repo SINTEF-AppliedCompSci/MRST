@@ -83,7 +83,7 @@ else
     n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
     if size(n,1) == 1; n = n'; end
     n = reshape(n,2,[])';
-    n(G.faces.edgeSign == -1,:) = n(G.faces.edgeSign == -1, 2:-1:1);
+    n(G.faces.edgeSign(eNum) == -1,:) = n(G.faces.edgeSign(eNum) == -1, 2:-1:1);
     n = n(:,1);
 end
 
@@ -170,116 +170,161 @@ else
     clear BF DF;
     
     %%  CALCULATE D MATRICES
-    
-    [m, grad_m, int_m] = retrieveMonomials(3, k);
 
-    f = G.cells.faces(:,1);
-    eNum = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
-    e = G.faces.edges(eNum);
-    en = G.faces.edgeNormals(eNum,:);
-    n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
-    n = reshape(n,2,[])';
-    n(G.faces.edgeSign(eNum) == -1,:) = n(G.faces.edgeSign(eNum) == -1,2:-1:1);
-    n = n(:,1);
+    %   Fix face normal signs and normalize.
+    fSgn = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
+              ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
+    fn = bsxfun(@times, G.faces.normals(f,:), fSgn./G.faces.areas(f));
+    
+    %   Express monomial coordinates in face coordinates.
+    fc  = rldecode(G.faces.centroids(f,:), nfn(f), 1);
+    x   = sparseBlockDiag(G.nodes.coords(n,:)-fc, nfn(f), 1);
+    x   = squeezeBlockDiag(x*T, nfn(f), sum(nfn(f)), 2);
+    ec  = sparseBlockDiag(G.edges.centroids(e,:) - fc, nfn(f), 1);
+    ec  = squeezeBlockDiag(ec*T, nfn(f), sum(nfn(f)), 2);
+    en  = sparseBlockDiag(en, nfn(f), 1);
+    en  = squeezeBlockDiag(en*T, nfn(f), sum(nfn(f)), 2);
+    enx = en(:,1).*G.edges.lengths(e);
 
     if k == 1
+        
+        %   For k = 1, the entries of D are the values of the monomials at
+        %   the veritces of each cell.
+        
+        [alpha, beta, gamma] = retrieveMonomials(k, G.griddim);
         xMon = bsxfun(@rdivide, G.nodes.coords(G.cells.nodes,:) ...
                                - rldecode(G.cells.centroids, ncn,1), ...
                                  rldecode(G.cells.diameters, ncn, 1));
-        mVals = m(xMon);
+        mVals = bsxfun(@power, xMon(:,1), alpha) ...
+              .*bsxfun(@power, xMon(:,2), beta ) ...
+              .*bsxfun(@power, xMon(:,3), gamma);
+          
         D = sparseBlockDiag(mVals, NP, 1);
-        D1 = sparseBlockDiag(mVals(:,1), NP, 1);
-        
+                
     else
         
-        ccf = rldecode(G.cells.centroids, diff(G.cells.facePos), 1);
+        %   For k = 2 the entries of D are the values of the monomials at
+        %   the vertices and edge centroids of each cells, the first
+        %   moments of each monomial over each face of each cell, and the
+        %   first moments of each monomial over each cell.
+        
+        [alpha, beta, gamma] = retrieveMonomials(k, G.griddim);
+        
+        %   Evaluate monomials at cell vetrices.
+        xMon = bsxfun(@rdivide, G.nodes.coords(G.cells.nodes,:) ...
+                              - rldecode(G.cells.centroids, ncn, 1), ...
+                                rldecode(G.cells.diameters, ncn, 1));
+                            
+        mn =   bsxfun(@power, repmat(xMon(:,1),1, nk), alpha) ...
+             .*bsxfun(@power, repmat(xMon(:,2),1, nk), beta ) ...
+             .*bsxfun(@power, repmat(xMon(:,3),1, nk), gamma );
+         
+        %   Evaluate monomials at cell edge centroids.
+        ecMon = bsxfun(@rdivide, G.edges.centroids(G.cells.edges,:) ...
+                              - rldecode(G.cells.centroids, nce, 1), ...
+                                rldecode(G.cells.diameters, nce, 1));
+        
+        me =   bsxfun(@power, repmat(ecMon(:,1),1, nk), alpha) ...
+             .*bsxfun(@power, repmat(ecMon(:,2),1, nk), beta ) ...
+             .*bsxfun(@power, repmat(ecMon(:,3),1, nk), gamma );
+        
+        %   Evaluate first moment of each linear monomial over each cell
+        %   face using centroid rule. (First moment of each linear monomial
+        %   over each cell is zero).
+        fcMon = bsxfun(@rdivide, G.faces.centroids(f,:) ...
+                              - rldecode(G.cells.centroids, ncf, 1), ...
+                                rldecode(G.cells.diameters, ncf, 1));
+         
+        linfInt = bsxfun(@power, repmat(fcMon(:,1),1,3), alpha(2:4) ) ...
+                 .*bsxfun(@power, repmat(fcMon(:,2),1, 3), beta (2:4) ) ...
+                 .*bsxfun(@power, repmat(fcMon(:,3),1, 3), gamma(2:4) );
+            
+        
+        %   Calculate first moment of each monomial over each cell face.
+        
+        %   Repeat cell centroids in number of faces per cell.
+        ccf = rldecode(G.cells.centroids, ncf, 1);
 
-        cx = trinomialExpansion(v1(1,f)',v2(1,f)', G.faces.centroids(f,1) - ccf(:,1), 1);
-        cy = trinomialExpansion(v1(2,f)',v2(2,f)', G.faces.centroids(f,2) - ccf(:,2), 1);
-        cz = trinomialExpansion(v1(3,f)',v2(3,f)', G.faces.centroids(f,3) - ccf(:,3), 1);
+        %   Express x-x_P, y-y_P, and z-z_P in face coordinates.
+        cx = trinomialExpansion(v1(1,f)',v2(1,f)', ...
+                                     G.faces.centroids(f,1) - ccf(:,1), 1);
+        cy = trinomialExpansion(v1(2,f)',v2(2,f)', ...
+                                     G.faces.centroids(f,2) - ccf(:,2), 1);
+        cz = trinomialExpansion(v1(3,f)',v2(3,f)', ...
+                                     G.faces.centroids(f,3) - ccf(:,3), 1);
         
+        %   Express bilinear monomials in local face coordinates.
         alpha = [1 0 0]; beta  = [0 1 0];
-        
         [alphaBi, betaBi, c6] = polyProducts(cx, cy, alpha, beta);
         [~      , ~     , c7] = polyProducts(cx, cz, alpha, beta);
         [~      , ~     , c9] = polyProducts(cy, cz, alpha, beta);
+        cBi = [c6', c7', c9'];
         
+        %   Divide by x-exponent.
         alphaBi = alphaBi+1;
-        c6 = bsxfun(@rdivide, c6, alphaBi);
-        c7 = bsxfun(@rdivide, c7, alphaBi);
-        c9 = bsxfun(@rdivide, c9, alphaBi);
+        cBi = bsxfun(@rdivide, cBi, alphaBi');
+%         c6 = bsxfun(@rdivide, c6, alphaBi);
+%         c7 = bsxfun(@rdivide, c7, alphaBi);
+%         c9 = bsxfun(@rdivide, c9, alphaBi);
         
-        c5  = trinomialExpansion(v1(1,f)', v2(1,f)', G.faces.centroids(f,1) - ccf(:,1), 2);
-        c8  = trinomialExpansion(v1(2,f)', v2(2,f)', G.faces.centroids(f,2) - ccf(:,2), 2);
-        c10 = trinomialExpansion(v1(3,f)', v2(3,f)', G.faces.centroids(f,3) - ccf(:,3), 2);
+        %   Express quadratic monimials in local face coordinates.
+        c5  = trinomialExpansion(v1(1,f)', v2(1,f)', ...
+                                     G.faces.centroids(f,1) - ccf(:,1), 2);
+        c8  = trinomialExpansion(v1(2,f)', v2(2,f)', ...
+                                     G.faces.centroids(f,2) - ccf(:,2), 2);
+        c10 = trinomialExpansion(v1(3,f)', v2(3,f)', ...
+                                     G.faces.centroids(f,3) - ccf(:,3), 2);
+        cQuad = [c5', c8', c10'];
         
+        %   Divide by x-exponent.
         alphaQuad = [2 1 1 0 0 0];
         betaQuad  = [0 1 0 2 1 0];
         alphaQuad = alphaQuad + 1;
-        c5 = bsxfun(@rdivide, c5, alphaQuad);
-        c8 = bsxfun(@rdivide, c8, alphaQuad);
-        c10 = bsxfun(@rdivide, c10, alphaQuad);
-        
-        fc = rldecode(G.faces.centroids(f,:), nfn(f), 1);
-        x = sparseBlockDiag(G.nodes.coords(n,:)-fc, nfn(f), 1);
-        x = squeezeBlockDiag(x*T, nfn(f), sum(nfn(f)), 2);
-        ec = sparseBlockDiag(G.edges.centroids(e,:) - fc, nfn(f), 1);
-        ec = squeezeBlockDiag(ec*T, nfn(f), sum(nfn(f)), 2);
-        en = sparseBlockDiag(en, nfn(f), 1);
-        en = squeezeBlockDiag(en*T, nfn(f), sum(nfn(f)), 2);
-        enx = en(:,1).*G.edges.lengths(e);
-        
+        cQuad = bsxfun(@rdivide, cQuad, alphaQuad');
+
+        %   Integrate each monimial over each face of each cell using
+        %   three-point Gauss-Lobatto on each edge.
         pos = [1;cumsum(nfn(f))+1];
-        ii = 1:size(x,1); jj = ii;
+        ii  = 1:size(x,1); jj = ii;
         jj(1:end-1) = jj(2:end);
-        jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
+        jj(cumsum(pos(2:end)-pos(1:end-1))) ...
+                           = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
+        
+        I = sparseBlockDiag(ones(1, sum(nfn(f))), nfn(f), 2); 
         
         mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,6), alphaQuad)...
               .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,6), betaQuad);
-        mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(size(x,1)+1:end,:)*2/3, enx);
+        mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 ...
+                              + mVals(size(x,1)+1:end,:)*2/3, enx);
         mVals = sparseBlockDiag(mVals, nfn(f), 1);
         
-        I = sparseBlockDiag(ones(1, sum(nfn(f))), nfn(f), 2); 
-        cd = rldecode(G.cells.diameters, diff(G.cells.facePos), 1);
-        
-        c5 = c5';
-        m5fInt = I*mVals*c5(:)./cd.^2;
-        
-        c8 = c8';
-        m8fInt = I*mVals*c8(:)./cd.^2;
-        
-        c10 = c10';
-        m10fInt = I*mVals*c10(:)./cd.^2;
+        quadfInt = I*mVals*reshape(cQuad, size(mVals,2), 3);
         
         mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,3*3), alphaBi)...
               .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,3*3), betaBi);
-        mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(size(x,1)+1:end,:)*2/3, enx);
+        mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 ...
+                              + mVals(size(x,1)+1:end,:)*2/3, enx);
         mVals = sparseBlockDiag(mVals, nfn(f), 1);
         
-        I = sparseBlockDiag(ones(1, sum(nfn(f))), nfn(f), 2); 
+        bifInt = I*mVals*reshape(cBi, size(mVals,2), 3);
+        
         cd = rldecode(G.cells.diameters, diff(G.cells.facePos), 1);
+        fInt = bsxfun(@rdivide, ...
+                      [quadfInt(:,1), bifInt(:,1:2), ...
+                       quadfInt(:,2), bifInt(:,3) , quadfInt(:,3)],...
+                       G.faces.areas(f).*cd.^2);
         
-        c6 = c6';
-        m6fInt = I*mVals*c6(:)./cd.^2;
+        %   Calculate first moments of each monomial over each cell.
         
-        c7 = c7';
-        m7fInt = I*mVals*c7(:)./cd.^2;
+        %   Express antiderivatives of bilinear monomials in face
+        %   coordinates.
+        cy = [cy, zeros(numel(f), polyDim(k, G.griddim) - polyDim(k-1,G.griddim))];
+        cz = [cz, zeros(numel(f), polyDim(k, G.griddim) - polyDim(k-1,G.griddim))];        
+        c5 = [zeros(numel(f), polyDim(k-1, G.griddim)-1), c5];
+        c8 = [zeros(numel(f), polyDim(k-1, G.griddim)-1), c8];
         
-        c9 = c9';
-        m9fInt = I*mVals*c9(:)./cd.^2;
-        
-        fSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
-                  ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
-        fn = bsxfun(@times, G.faces.normals(f,:), fSign./G.faces.areas(f));
-        
-        cx = [cx, zeros(numel(f), polyDim(2, 3) - polyDim(1,3))];
-        cy = [cy, zeros(numel(f), polyDim(2, 3) - polyDim(1,3))];
-        cz = [cz, zeros(numel(f), polyDim(2, 3) - polyDim(1,3))];
-        c5 = [zeros(numel(f), polyDim(1, 3)-1), bsxfun(@times, c5', alphaQuad)];
-        c8 = [zeros(numel(f), polyDim(1, 3)-1), bsxfun(@times, c8', alphaQuad)];
-        
-        alpha = [1 0 0 2 1 1 0 0 0]; beta = [0 1 0 0 1 0 2 1 0];
-        
+        alpha = [1 0 0 2 1 1 0 0 0];
+        beta  = [0 1 0 0 1 0 2 1 0];
         [alphaBi, betaBi, c6] = polyProducts(c5, cy, alpha, beta);
         [~      , ~     , c7] = polyProducts(c5, cz, alpha, beta);
         [~      , ~     , c9] = polyProducts(c8, cz, alpha, beta);
@@ -289,33 +334,32 @@ else
         c9 = bsxfun(@times, c9, fn(:,2)/2);
          
         alphaBi = alphaBi +1;
+        cBi = bsxfun(@rdivide, [c6', c7', c9'], alphaBi');
         
-        c6 = bsxfun(@rdivide, c6, alphaBi);
-        c7 = bsxfun(@rdivide, c7, alphaBi);
-        c9 = bsxfun(@rdivide, c9, alphaBi);
+        %   Express antiderivatives of quadratic monimials in face
+        %   coordinates.
+        c5  = trinomialExpansion(v1(1,f)', v2(1,f)', ...
+                                     G.faces.centroids(f,1) - ccf(:,1), 3);
+        c8  = trinomialExpansion(v1(2,f)', v2(2,f)', ...
+                                     G.faces.centroids(f,2) - ccf(:,2), 3);
+        c10 = trinomialExpansion(v1(3,f)', v2(3,f)', ...
+                                     G.faces.centroids(f,3) - ccf(:,3), 3);
         
-        c5 = trinomialExpansion(v1(1,f)', v2(1,f)', G.faces.centroids(f,1) - ccf(:,1), 3);
-        c8 = trinomialExpansion(v1(2,f)', v2(2,f)', G.faces.centroids(f,2) - ccf(:,2), 3);
-        c10 = trinomialExpansion(v1(3,f)', v2(3,f)', G.faces.centroids(f,3) - ccf(:,3), 3);
-        
-        c5 = bsxfun(@times, c5, fn(:,1)/3);
-        c8 = bsxfun(@times, c8, fn(:,2)/3);
+        c5  = bsxfun(@times, c5 , fn(:,1)/3);
+        c8  = bsxfun(@times, c8 , fn(:,2)/3);
         c10 = bsxfun(@times, c10, fn(:,3)/3);
         
         alphaQuad = [3 2 2 1 1 1 0 0 0 0];
         betaQuad  = [0 1 0 2 0 1 3 2 1 0];
         alphaQuad = alphaQuad + 1;
+        cQuad = bsxfun(@rdivide, [c5', c8', c10'], alphaQuad');
         
-        
-        c5 = bsxfun(@rdivide, c5, alphaQuad);
-        c8 = bsxfun(@rdivide, c8, alphaQuad);
-        c10 = bsxfun(@rdivide, c10, alphaQuad);
-        
+        %   Integrate each monomial over each cell using four-point
+        %   Gauss-Lobatto on each edge.
         pos = [1;cumsum(nfn(f))+1];
         ii = 1:size(x,1); jj = ii;
         jj(1:end-1) = jj(2:end);
         jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
-        
         
         eVec = G.nodes.coords(G.edges.nodes(2:2:end),:)...
              - G.nodes.coords(G.edges.nodes(1:2:end),:);
@@ -328,246 +372,132 @@ else
         xq2 = sparseBlockDiag(xq2(e,:)-fc, nfn(f), 1);
         xq2 = squeezeBlockDiag(xq2*T, nfn(f), sum(nfn(f)), 2);
         
-        
         nn = size(x,1);
-        mVals = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,10), alphaQuad)...
-              .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,10), betaQuad);
+        mVals = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,nk), alphaQuad)...
+              .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,nk), betaQuad);
         mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/12 + (mVals(nn + 1:2*nn,:) + mVals(2*nn+1:3*nn,:))*5/12, enx);
         mVals = sparseBlockDiag(mVals, nfn(f), 1);
         
         If = sparseBlockDiag(ones(1, sum(nfn(f))), nfn(f), 2); 
         Ic = sparseBlockDiag(ones(1, sum(ncf)), ncf, 2); 
         
-        c5 = c5';
-        m5cInt = Ic*If*mVals*c5(:)./G.cells.diameters.^2;
+        quadcInt = Ic*If*mVals*reshape(cQuad, size(mVals,2), 3);
         
-        c8 = c8';
-        m8cInt = Ic*If*mVals*c8(:)./G.cells.diameters.^2;
-        
-        c10 = c10';
-        m10cInt = Ic*If*mVals*c10(:)./G.cells.diameters.^2;
-        
-        nn = size(x,1);
         mVals = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,9*9), alphaBi)...
               .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,9*9), betaBi);
         mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/12 + (mVals(nn + 1:2*nn,:) + mVals(2*nn+1:3*nn,:))*5/12, enx);
         mVals = sparseBlockDiag(mVals, nfn(f), 1);
         
-        c6 = c6';
-        m6cInt = Ic*If*mVals*c6(:)./G.cells.diameters.^2;
+        bicInt = Ic*If*mVals*reshape(cBi, size(mVals,2), 3);
         
-        c7 = c7';
-        m7cInt = Ic*If*mVals*c7(:)./G.cells.diameters.^2;
-        
-        c9 = c9';
-        m9cInt = Ic*If*mVals*c9(:)./G.cells.diameters.^2;
-                
-        alpha = [0 1 0 0 2 1 1 0 0 0];
-        beta  = [0 0 1 0 0 1 0 2 1 0];
-        gamma = [0 0 0 1 0 0 1 0 1 2];
-        
-        ncn = diff(G.cells.nodePos);
-        nce = diff(G.cells.edgePos);
-        ncf = diff(G.cells.facePos);
-        
-        
-        xMon = bsxfun(@rdivide, G.nodes.coords(G.cells.nodes,:) ...
-                              - rldecode(G.cells.centroids, ncn, 1), ...
-                                rldecode(G.cells.diameters, ncn, 1));
-                            
-        mn =   bsxfun(@power, repmat(xMon(:,1),1, nk), alpha) ...
-             .*bsxfun(@power, repmat(xMon(:,2),1, nk), beta ) ...
-             .*bsxfun(@power, repmat(xMon(:,3),1, nk), gamma );
-         
-        ecMon = bsxfun(@rdivide, G.edges.centroids(G.cells.edges,:) ...
-                              - rldecode(G.cells.centroids, nce, 1), ...
-                                rldecode(G.cells.diameters, nce, 1));
-        
-        me =   bsxfun(@power, repmat(ecMon(:,1),1, nk), alpha) ...
-             .*bsxfun(@power, repmat(ecMon(:,2),1, nk), beta ) ...
-             .*bsxfun(@power, repmat(ecMon(:,3),1, nk), gamma );
-        
-        fcMon = bsxfun(@rdivide, G.faces.centroids(f,:) ...
-                              - rldecode(G.cells.centroids, ncf, 1), ...
-                                rldecode(G.cells.diameters, ncf, 1));
-         
-        m2m4fInt = bsxfun(@power, repmat(fcMon(:,1),1,3), alpha(2:4) ) ...
-                 .*bsxfun(@power, repmat(fcMon(:,2),1, 3), beta (2:4) ) ...
-                 .*bsxfun(@power, repmat(fcMon(:,3),1, 3), gamma(2:4) );
-            
-
+        cInt = bsxfun(@rdivide, ...
+            [quadcInt(:,1), bicInt(:,1:2), quadcInt(:,2), bicInt(:,3), quadcInt(:,3)], ...
+            G.cells.volumes.*G.cells.diameters.^2);
+    
+        %   Assmeble D matrices.
         dof = [0; cumsum(NP(1:end-1))] + 1;
-             
         iiN = mcolon(dof, dof + ncn - 1);
         iiE = mcolon(dof + ncn, dof + ncn + nce - 1);
         iiF = mcolon(dof + ncn + nce, dof + ncn + nce + ncf - 1);
         iiP = mcolon(dof + ncn + nce + ncf, dof + ncn + nce + ncf);
-        
+
         D([iiN, iiE, iiF, iiP], :) ...
-            = [mn; me; ...
-               ones(numel(f), 1), m2m4fInt, ...
-               bsxfun(@rdivide, [m5fInt, m6fInt, m7fInt, m8fInt, m9fInt, m10fInt], G.faces.areas(f)); ...
-               ones(G.cells.num,1), zeros(G.cells.num, 3), ...
-               bsxfun(@rdivide, [m5cInt, m6cInt, m7cInt, m8cInt, m9cInt, m10cInt], G.cells.volumes)];
+            = [mn; me; ones(numel(f), 1), linfInt, fInt; ...
+               ones(G.cells.num,1), zeros(G.cells.num, 3), cInt];
         D = sparseBlockDiag(D, NP, 1);
-        
-%         DD = [];
-%         for P = 1:G.cells.num
-%             xP = G.cells.centroids(P,:);
-%             hP = G.cells.diameters(P);
-%             m = @(x) [ones(size(x,1),1), ...
-%                       (x(:,1)-xP(1))/hP, ...
-%                       (x(:,2)-xP(2))/hP, ...
-%                       (x(:,3)-xP(3))/hP, ...
-%                       (x(:,1)-xP(1)).^2/hP^2, ...
-%                       (x(:,1)-xP(1)).*(x(:,2)-xP(2))/hP^2, ...
-%                       (x(:,1)-xP(1)).*(x(:,3)-xP(3))/hP^2, ...
-%                       (x(:,2)-xP(2)).^2/hP^2, ...
-%                       (x(:,2)-xP(2)).*(x(:,3)-xP(3))/hP^2, ...
-%                       (x(:,3)-xP(3)).^2/hP^2];
-%             I = [m(G.nodes.coords(G.cells.nodes(G.cells.nodePos(P):G.cells.nodePos(P+1)-1),:)); ...
-%                  m(G.edges.centroids(G.cells.edges(G.cells.edgePos(P):G.cells.edgePos(P+1)-1),:)); ...
-%                  bsxfun(@rdivide, polygonInt3D(G, G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1), m, 2), ...
-%                         G.faces.areas(G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1))); ...
-%                  polyhedronInt(G, P, m, 2)./G.cells.volumes(P)];
-%             DD = [DD; I(:)];
-%         end
-%         [ii, jj] = blockDiagIndex(NP, nk*ones(G.cells.num,1));
-%         DD = sparse(ii,jj,DD);
-%         norm(D-DD, 'fro')
+
     end
     
     %% CALCULATE B MATRICES
     
-    N = G.nodes.num + G.edges.num*polyDim(k-2,1) + G.faces.num*polyDim(k-2,2) + G.cells.num*polyDim(k-2,3);    
-    NF = diff(G.faces.nodePos) + diff(G.faces.edgePos)*polyDim(k-2, 1) + polyDim(k-2, 2);
+    %   Calculate integrals of \nabla \phi^i K \nabla m^\alpha over each
+    %   cell using
+    %   \int_P \nabla \phi^i K \nabla m^\alpha dx = 
+    %         \int_\partial \Pi^\nabla \phi^i K \nabla m^\alpha \cdot n ds.
     
+    %   Calculate K n_f
     Kmat  = reshape(K', 3, [])';
-    
-    fn = bsxfun(@rdivide, G.faces.normals(f,:),G.faces.areas(f));
-    fSign = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
-                  ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
-    fn = bsxfun(@times, fn, fSign);
+    c = sparseBlockDiag(fn, ncf, 1)*Kmat;
     
     if k == 1
         
-    fc = rldecode(G.faces.centroids(f,:), nfn(f), 1);
-    x = sparseBlockDiag(G.nodes.coords(n,:)-fc, nfn(f), 1);
-    x = squeezeBlockDiag(x*T, nfn(f), sum(nfn(f)), 2);
-    ec = sparseBlockDiag(G.edges.centroids(e,:) - fc, nfn(f), 1);
-    ec = squeezeBlockDiag(ec*T, nfn(f), sum(nfn(f)), 2);
-    en = sparseBlockDiag(en, nfn(f), 1);
-    en = squeezeBlockDiag(en*T, nfn(f), sum(nfn(f)), 2);
-    enx = en(:,1).*G.edges.lengths(e);
+        %   All integrands are linear, and we use centroid rule to evaluate
+        %   integrals.
+
+        c = rldecode(c, nfe(f), 1);
+
+        PiNFs = squeezeBlockDiag(PiNFstar, NF(f), polyDim(k, 2), sum(NF(f)));
         
-%     Kmat = sparseBlockDiag(Kmat, 3*ones(1,G.cells.num), 1);
-    fn = sparseBlockDiag(fn, ncf, 1);
-    c = fn*Kmat;
-    c = rldecode(c, nfe(f), 1);
-    
-    alpha = [0 1 0]; beta = [0 0 1];
-    alpha = alpha+1;
-    
-    PiNFs = squeezeBlockDiag(PiNFstar, NF(f), polyDim(k, 2), sum(NF(f)));
-    
-    c2 = bsxfun(@rdivide, repmat(c(:,1), 1, polyDim(k, 2)), alpha)'.*PiNFs;
-    c3 = bsxfun(@rdivide, repmat(c(:,2), 1, polyDim(k, 2)), alpha)'.*PiNFs;
-    c4 = bsxfun(@rdivide, repmat(c(:,3), 1, polyDim(k, 2)), alpha)'.*PiNFs;
-    
-    c2 = sparseBlockDiag(c2, NF(f), 2);
-    c3 = sparseBlockDiag(c3, NF(f), 2);
-    c4 = sparseBlockDiag(c4, NF(f), 2);
+        [alpha, beta] = retrieveMonomials(k, G.griddim-1); alpha = alpha+1;
 
-    eNum = mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1);
-    e = G.faces.edges(eNum);
-    en = G.faces.edgeNormals(eNum,:);
-    n = G.edges.nodes(mcolon(G.edges.nodePos(e), G.edges.nodePos(e+1)-1));
-    n = reshape(n,2,[])';
-    n(G.faces.edgeSign(eNum) == -1,:) = n(G.faces.edgeSign(eNum) == -1,2:-1:1);
-    n = n(:,1);
-    nn= numel(n);
+        c2 = bsxfun(@rdivide, repmat(c(:,1), 1, polyDim(k, 2)), alpha)'.*PiNFs;
+        c3 = bsxfun(@rdivide, repmat(c(:,2), 1, polyDim(k, 2)), alpha)'.*PiNFs;
+        c4 = bsxfun(@rdivide, repmat(c(:,3), 1, polyDim(k, 2)), alpha)'.*PiNFs;
 
-    mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,nk-1), alpha)...
-          .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,nk-1), beta);
-      
-    pos = [1;cumsum(nfn(f))+1];
-    ii = 1:size(x,1); jj = ii;
-    jj(1:end-1) = jj(2:end);
-    jj(cumsum(pos(2:end)-pos(1:end-1))) = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
-    
-    mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 + mVals(size(x,1)+1:end,:)*2/3, enx);
-    
-    If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
-    mVals = If*mVals;
-    mVals(:,2:3) = bsxfun(@rdivide, mVals(:,2:3), G.faces.diameters(f));
-    
-    mVals = sparseBlockDiag(mVals, ones(numel(f),1), 1);
-    int2 = mVals*c2;
-    int2 = squeezeBlockDiag(int2, NF(f), 1, sum(NF(f)));
-    int3 = mVals*c3;
-    int3 = squeezeBlockDiag(int3, NF(f), 1, sum(NF(f)));
-    int4 = mVals*c4;
-    int4 = squeezeBlockDiag(int4, NF(f), 1, sum(NF(f)));
-    
-    ii = rldecode((1:numel(f))', NF(f), 1);
-    jj = n;
-    
-    int2 = sparse(ii, jj, int2);
-    int3 = sparse(ii, jj, int3);
-    int4 = sparse(ii, jj, int4);
-    
-    If = sparseBlockDiag(ones(1,sum(ncf)), ncf, 2);
-    int2 = (If*int2)'; int2 = int2(:);
-    int3 = (If*int3)'; int3 = int3(:);
-    int4 = (If*int4)'; int4 = int4(:);
-    
-    
-    vec = repmat(G.nodes.num,G.cells.num,1);
-    vec = [0; cumsum(vec(1:end-1))];
-    ii = G.cells.nodes + rldecode(vec, NP,1);
-    int2 = int2(ii);
-    int3 = int3(ii);
-    int4 = int4(ii);
-    
-    BT = zeros(sum(NP), nk);
-    
-    cdi = rldecode(G.cells.diameters, NP, 1);
-    BT(:,2:end) = bsxfun(@rdivide, [int2, int3, int4], cdi);
-    
-%     PiNFs = squeezeBlockDiag(PiNFstar, NF(f), 3, sum(NF(f)));
-%     
-%     ii = rldecode((1:numel(f))', NF(f), 1);
-%     jj = n;
-%     PiNFs = sparse(ii, jj, PiNFs(1,:));
-%     PiNFs = (If*PiNFs)';
-%     
-%     vec = repmat(G.nodes.num,G.cells.num,1);
-%     vec = [0; cumsum(vec(1:end-1))];
-%     ii = G.cells.nodes + rldecode(vec, NP,1);
-%     PiNFs = PiNFs(ii);
-%     
-%     cfa = rldecode(If*G.faces.areas(f), NP, 1);
-%     
-%     BT(:,1) = PiNFs.*cfa;
-    BT(:,1) = rldecode(1./NP, NP, 1);
-    
-    B = sparseBlockDiag(BT', NP, 2);
-    
-    M = B*D;
-    
-    [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
-    kk = sub2ind(size(M), ii, jj);
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
-    
-%     PiNstar = M\B;
+        c = bsxfun(@times, c, PiNFs(1,:)');
+        
+        c2 = sparseBlockDiag(c2, NF(f), 2);
+        c3 = sparseBlockDiag(c3, NF(f), 2);
+        c4 = sparseBlockDiag(c4, NF(f), 2);
 
-    PiN = D*PiNstar; 
-    
+        %   Integrate over each face of each cell using three-point
+        %   Gauss-Lobatto on each edge.
+        mVals = bsxfun(@power, repmat([x(:,1); ec(:,1)],1,nk-1), alpha)...
+              .*bsxfun(@power, repmat([x(:,2); ec(:,2)],1,nk-1), beta );
+
+        pos = [1;cumsum(nfn(f))+1];
+        ii = 1:size(x,1); jj = ii;
+        jj(1:end-1) = jj(2:end);
+        jj(cumsum(pos(2:end)-pos(1:end-1))) ...
+                           = ii([1;cumsum(pos(2:end-1) - pos(1:end-2))+1]);
+
+        mVals = bsxfun(@times, (mVals(ii,:) + mVals(jj,:))/6 ...
+                                      + mVals(size(x,1)+1:end,:)*2/3, enx);
+
+        If = sparseBlockDiag(ones(1, sum(nfe(f))), nfe(f), 2); 
+        mVals = If*mVals;
+        mVals(:,2:3) = bsxfun(@rdivide, mVals(:,2:3), G.faces.diameters(f));
+
+        mVals = sparseBlockDiag(mVals, ones(numel(f),1), 1);
+        int2 = squeezeBlockDiag(mVals*c2, NF(f), 1, sum(NF(f)));
+        int3 = squeezeBlockDiag(mVals*c3, NF(f), 1, sum(NF(f)));
+        int4 = squeezeBlockDiag(mVals*c4, NF(f), 1, sum(NF(f)));
+
+%         int = If*c;
+        
+        %   Map to global coordinates
+        ii = rldecode((1:numel(f))', NF(f), 1);
+        int2 = sparse(ii, n, int2);
+        int3 = sparse(ii, n, int3);
+        int4 = sparse(ii, n, int4);
+%         int2 = sparse(ii, n, c(:,1));
+%         int3 = sparse(ii, n, c(:,2));
+%         int4 = sparse(ii, n, c(:,3));
+%         int = int(sparse(ii, n, int)
+        
+        %   For each cell, sum all face integrals
+        If   = sparseBlockDiag(ones(1,sum(ncf)), ncf, 2);
+        int2 = (If*int2)'; int2 = int2(:);
+        int3 = (If*int3)'; int3 = int3(:);
+        int4 = (If*int4)'; int4 = int4(:);
+        int  = [int2(:), int3(:), int4(:)];
+
+        vec  = repmat(G.nodes.num,G.cells.num,1);
+        vec  = [0; cumsum(vec(1:end-1))];
+        cDof = G.cells.nodes + rldecode(vec, NP,1);
+        int  = int(cDof,:);
+        
+        %   Assemble B matrices.
+        BT = zeros(sum(NP), nk);
+        cd = rldecode(G.cells.diameters, NP, 1);
+        BT(:,2:end) = bsxfun(@rdivide, int, cd);
+        BT(:,1)     = rldecode(1./NP, NP, 1);
+        B  = sparseBlockDiag(BT', NP, 2);
+
     else
     
-    %   Calculate K \nabla m^\alpha \cdot n. For m^2 to m^4, these are constant. 
-    fn = sparseBlockDiag(fn, ncf, 1);
-    c = fn*Kmat;
+     
+     
     c2 = c(:,1); c3 = c(:,2); c4 = c(:,3);
     c5 = c2*2; c8 = c3*2; c10 = c4*2;
     
@@ -784,23 +714,33 @@ else
     
     B = sparseBlockDiag(BT', NP, 2);
     
+%     M = B*D;
+%     
+% %     I = [];
+% %     for P = 1:G.cells.num
+% %         gm5gm5 = @(x) 4*(x(:,1)-G.cells.centroids(P,1)).^2/G.cells.diameters(P)^2;
+% %         
+% %         I = [I; polyhedronInt(G, P, gm5gm5, 2)];
+% %     end
+% 
+%     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
+%     kk = sub2ind(size(M), ii, jj);
+%     
+%     PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;    
+% %     PiNstar = M\B;
+%     PiN = D*PiNstar;
+%     
+    end
+    
     M = B*D;
     
-%     I = [];
-%     for P = 1:G.cells.num
-%         gm5gm5 = @(x) 4*(x(:,1)-G.cells.centroids(P,1)).^2/G.cells.diameters(P)^2;
-%         
-%         I = [I; polyhedronInt(G, P, gm5gm5, 2)];
-%     end
-
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
+    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
     
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;    
 %     PiNstar = M\B;
-    PiN = D*PiNstar;
-    
-    end
+
+    PiN = D*PiNstar; 
     
     SS = stabilityTerm(opt.innerProduct, opt.sigma, G, K, PiN, NP, nker);
     M(1:nk:end,:) = 0;
@@ -821,7 +761,7 @@ function [B, D, B1, D1] = computeBD2D(cc, cd, cv, ncn, ncf, fn, fa, fPos, x, nn,
 
 B1 = []; D1 = [];
 
-[m, grad_m, int_m] = retrieveMonomials(2,k);
+[m, grad_m, int_m] = retrieveMonomials2(2,k);
 
 nk = (k+1)*(k+2)/2;
 nkk = k*(k+1)/2;
@@ -1135,6 +1075,29 @@ function [alpha, beta, coeff] = polyProducts(coeff1,coeff2,alph, bet)
     end
 end
 
+function [alpha, beta, gamma] = retrieveMonomials(k, dim)
+    if dim == 2
+        gamma = [];
+        if k == 1
+            alpha = [0 1 0];
+            beta  = [0 0 1];
+        else
+            alpha = [0 1 0 2 1 0];
+            beta  = [0 0 1 0 1 2];
+        end
+    else
+        if k == 1
+            alpha = [0 1 0 0];
+            beta  = [0 0 1 0];
+            gamma = [0 0 0 1];
+        else
+            alpha = [0 1 0 0 2 1 1 0 0 0];
+            beta  = [0 0 1 0 0 1 0 2 1 0];
+            gamma = [0 0 0 1 0 0 1 0 1 2];
+        end
+    end
+end
+           
 %--------------------------------------------------------------------------
 
 function nk = polyDim(k, dim)
@@ -1144,4 +1107,30 @@ function nk = polyDim(k, dim)
     nk = nchoosek(k+dim,k);
     end
 end
+
+%         
+%         DD = [];
+%         for P = 1:G.cells.num
+%             xP = G.cells.centroids(P,:);
+%             hP = G.cells.diameters(P);
+%             m = @(x) [ones(size(x,1),1), ...
+%                       (x(:,1)-xP(1))/hP, ...
+%                       (x(:,2)-xP(2))/hP, ...
+%                       (x(:,3)-xP(3))/hP, ...
+%                       (x(:,1)-xP(1)).^2/hP^2, ...
+%                       (x(:,1)-xP(1)).*(x(:,2)-xP(2))/hP^2, ...
+%                       (x(:,1)-xP(1)).*(x(:,3)-xP(3))/hP^2, ...
+%                       (x(:,2)-xP(2)).^2/hP^2, ...
+%                       (x(:,2)-xP(2)).*(x(:,3)-xP(3))/hP^2, ...
+%                       (x(:,3)-xP(3)).^2/hP^2];
+%             I = [m(G.nodes.coords(G.cells.nodes(G.cells.nodePos(P):G.cells.nodePos(P+1)-1),:)); ...
+%                  m(G.edges.centroids(G.cells.edges(G.cells.edgePos(P):G.cells.edgePos(P+1)-1),:)); ...
+%                  bsxfun(@rdivide, polygonInt3D(G, G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1), m, 2), ...
+%                         G.faces.areas(G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1))); ...
+%                  polyhedronInt(G, P, m, 2)./G.cells.volumes(P)];
+%             DD = [DD; I(:)];
+%         end
+%         [ii, jj] = blockDiagIndex(NP, nk*ones(G.cells.num,1));
+%         DD = sparse(ii,jj,DD);
+%         norm(D-DD, 'fro')
 
