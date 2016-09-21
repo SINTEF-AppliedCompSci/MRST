@@ -441,8 +441,14 @@ function [tfaces, bfaces] = identify_lateral_faces(G, cells)
                    sqrt(sum(G.faces.normals(f_mat(:), 1:end-1).^2, 2)), ...
                    max(fnum), []);
   
-  z_mat(nz_mat < 1/2) = inf; % these sides are more vertical than horizontal,
-                             % disregard them by giving them infinite depth
+  threshold = sort(nz_mat, 'descend'); 
+  threshold = threshold(2,:); % second largest value
+  z_mat(bsxfun(@lt, nz_mat, threshold)) = inf; % disregard all but the two
+                                               % must 'horizontal' faces, by
+                                               % giving them infinite depth
+  
+  % z_mat(nz_mat < threshold(:)) = inf; % these sides are more vertical than horizontal,
+  %                            % disregard them by giving them infinite depth
   
   % picking the shallowest face
   [~, row] = min(z_mat);
