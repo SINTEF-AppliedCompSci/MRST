@@ -1,4 +1,13 @@
-function varargout = interactiveGridBuilder()
+function varargout = interactiveGridBuilder(varargin)
+    opt = struct('image', '');
+    opt = merge_options(opt, varargin{:});
+    
+    if ~isempty(opt.image)
+        I = imread(opt.image);
+        I = flipud(I);
+    else
+        I = [];
+    end
     h = figure();
     
     axwidth = 0.75;
@@ -54,6 +63,15 @@ function varargout = interactiveGridBuilder()
 
     function drawOutline()
         cla(pax);
+        get(gca)
+        if ~isempty(I)
+            imh = imshow(I, 'Parent', pax, 'XData', [0, 1], 'YData', [0, 1]);
+            set(imh, 'HitTest', 'off');
+            axis normal
+        end
+        set(gca, 'XAxisLocation', 'bottom');
+        set(gca, 'YDir', 'normal');
+        get(gca)
         hold on
         if ~isempty(outline)
             plot(pax, outline(:, 1), outline(:, 2));
@@ -70,7 +88,7 @@ function varargout = interactiveGridBuilder()
         if ~isempty(points)
             plot(points(:,1), points(:, 2), 'bo');
         end
-        
+
         ylim([0, 1]);
         xlim([0, 1]);
     end
@@ -154,6 +172,7 @@ function varargout = interactiveGridBuilder()
         varargout{1} = out;
         uiresume();
     end
+    drawOutline();
     if nargout > 0
         uiwait(gcf);
     end
