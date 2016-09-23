@@ -22,15 +22,19 @@ function varargout = interactiveGridBuilder(varargin)
                      'String', 'Draw outline', 'Style', 'pushbutton', ...
                      'callback', @drawButtonHandler);
 
-    linebutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.8, 1, 0.1],...
-                     'String', 'Draw line', 'Style', 'pushbutton', ...
-                     'callback', @lineButtonHandler);
-   
-    pointbutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.7, 1, 0.1],...
+    faultbutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.8, 1, 0.1],...
+                     'String', 'Draw fault', 'Style', 'pushbutton', ...
+                     'callback', @(src, event) lineButtonHandler(src, event, 'fault'));
+
+    wellbutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.7, 1, 0.1],...
+                     'String', 'Draw well', 'Style', 'pushbutton', ...
+                     'callback', @(src, event) lineButtonHandler(src, event, 'well'));
+
+    pointbutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.6, 1, 0.1],...
                      'String', 'Add point', 'Style', 'pushbutton', ...
                      'callback', @pointButtonHandler);
                  
-    undobutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.6, 1, 0.1],...
+    undobutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.5, 1, 0.1],...
                      'String', 'Undo', 'Style', 'pushbutton', ...
                      'callback', @undoButtonHandler);
     if nargout > 0
@@ -50,11 +54,12 @@ function varargout = interactiveGridBuilder(varargin)
     msgbox = uicontrol(h, 'units', 'normalized', 'Position', [0, 0, axwidth, 1 - axheight],...
                      'String', '', 'Style', 'edit', 'Min', 0, 'Max', 1e6);
                  
-    allbuttons = [drawbutton; linebutton; pointbutton];
+    allbuttons = [drawbutton; faultbutton; wellbutton; pointbutton; undobutton];
     outline = [];
-    lines = {[]};
+    faults = {[]};
+    wells = {[]};
     points = [];
-    lastPick = nan;
+    lastPick = [];
     
     function displayMessage(msg)
         set(msgbox, 'String', msg);
@@ -70,28 +75,39 @@ function varargout = interactiveGridBuilder(varargin)
     end
 
     function undoButtonHandler(src, event)
-        switch lastPick
-            case 1
-                % Outline
-                outline = [];
-                msg = 'Grid outline removed!';
-            case 2
-                % Line
-                if numel(lines) > 1
-                    lines = lines([1:end-2, end]);
-                end
-                msg = 'Last line segment removed!';
-            case 3
-                % Point
-                if ~isempty(points)
-                    points = points(1:end-1, :);
-                end
-                msg = 'Last point removed!';
-            otherwise
-                msg = 'Nothing to remove!';
+        if isempty(lastPick)
+            msg = 'Nothing to remove';
+        else
+            switch lastPick(end)
+                case 1
+                    % Outline
+                    outline = [];
+                    msg = 'Grid outline removed!';
+                case 2
+                    % Line
+                    if numel(faults) > 1
+                        faults = faults([1:end-2, end]);
+                    end
+                    msg = 'Last fault removed!';
+                case 3
+                    % Line
+                    if numel(wells) > 1
+                        wells = wells([1:end-2, end]);
+                    end
+                    msg = 'Last well trajectory removed!';
+                case 4
+                    % Point
+                    if ~isempty(points)
+                        points = points(1:end-1, :);
+                    end
+                    msg = 'Last point removed!';
+                otherwise
+                    error('Internal error: Unknown ID for undo');
+            end
+            lastPick = lastPick(1:end-1);
         end
         displayMessage(msg);
-        drawOutline();
+        drawAllElementsOnAxis();
     end
 
     function drawButtonHandler(src, event)
@@ -103,9 +119,9 @@ function varargout = interactiveGridBuilder(varargin)
         disableButtons()
     end
     
-    function lineButtonHandler(src, event)
-        set(h, 'WindowButtonDownFcn', @addLinePt);
-        displayMessage(['Adding a line segment. Left click to add points to'...
+    function lineButtonHandler(src, event, type)
+        set(h, 'WindowButtonDownFcn', @(src, event) addLinePt(src, event, type));
+        displayMessage(['Adding a ', type, ' segment. Left click to add points to'...
             ' current line, and right click to mark current line as complete.']);
         disableButtons()
     end
@@ -118,8 +134,9 @@ function varargout = interactiveGridBuilder(varargin)
         disableButtons()
     end
 
-    function drawOutline()
+    function drawAllElementsOnAxis()
         cla(pax);
+        % Draw background image, if it exists
         if ~isempty(I)
             imh = imshow(I, 'Parent', pax, 'XData', [0, 1], 'YData', [0, 1]);
             set(imh, 'HitTest', 'off');
@@ -128,18 +145,25 @@ function varargout = interactiveGridBuilder(varargin)
         set(gca, 'XAxisLocation', 'bottom');
         set(gca, 'YDir', 'normal');
         hold on
+        % Draw outline
         if ~isempty(outline)
-            plot(pax, outline(:, 1), outline(:, 2));
+            plot(pax, outline(:, 1), outline(:, 2), 'k', 'linewidth', 2);
         end
-        
-        for i = 1:numel(lines)
-            if isempty(lines{i})
+        % Draw the faults
+        for i = 1:numel(faults)
+            if isempty(faults{i})
                 continue
             end
-            
-            plot(lines{i}(:, 1), lines{i}(:, 2), 'r');
+            plot(faults{i}(:, 1), faults{i}(:, 2), 'r', 'linewidth', 2);
         end
-        
+        % Draw well trajectories
+        for i = 1:numel(wells)
+            if isempty(wells{i})
+                continue
+            end
+            plot(wells{i}(:, 1), wells{i}(:, 2), 'b', 'linewidth', 2);
+        end
+        % Draw the points
         if ~isempty(points)
             plot(points(:,1), points(:, 2), 'bo');
         end
@@ -158,24 +182,36 @@ function varargout = interactiveGridBuilder(varargin)
         
         if ~strcmpi(get(h, 'SelectionType'), 'normal')
             set(h, 'WindowButtonDownFcn', []);
-            drawOutline();
+            drawAllElementsOnAxis();
             enableButtons();
             return
         end
         
         points = [points; pt];
-        lastPick = 3;
-        drawOutline();
+        lastPick = [lastPick; 4];
+        drawAllElementsOnAxis();
     end
 
-    function addLinePt(src, event)
+    function addLinePt(src, event, type)
         pt = get(h, 'currentpoint');
         pt = getLocalAxisCoordinate(pt);
-        
-        if ~strcmpi(get(h, 'SelectionType'), 'normal') && ~isempty(lines{end})
+        isFault = strcmpi(type, 'fault');
+        if ~strcmpi(get(h, 'SelectionType'), 'normal') && ...
+            ((~isempty(faults{end}) && isFault) || (~isempty(wells{end}) && ~isFault))
             set(h, 'WindowButtonDownFcn', []);
-            lines{end+1} = [];
-            drawOutline();
+            
+            if isFault
+                if ~isempty(faults{end})
+                    faults{end+1} = [];
+                    lastPick = [lastPick; 2];
+                end
+            else
+                if ~isempty(wells{end})
+                    wells{end+1} = [];
+                    lastPick = [lastPick; 3];
+                end
+            end
+            drawAllElementsOnAxis();
             enableButtons();
             return
         end
@@ -183,10 +219,13 @@ function varargout = interactiveGridBuilder(varargin)
         if pt(1) > 1 || pt(2) > 1
             return
         end
+        if isFault
+            faults{end} = [faults{end}; pt];
+        else
+            wells{end} = [wells{end}; pt];
+        end
         
-        lines{end} = [lines{end}; pt];
-        lastPick = 2;
-        drawOutline();
+        drawAllElementsOnAxis();
     end
 
     function addOutlinePt(src, event)
@@ -196,8 +235,9 @@ function varargout = interactiveGridBuilder(varargin)
         if ~strcmpi(get(h, 'SelectionType'), 'normal') && ~isempty(outline)
             outline = [outline; outline(1, :)];
             set(h, 'WindowButtonDownFcn', []);
-            drawOutline();
+            drawAllElementsOnAxis();
             enableButtons();
+            lastPick = [lastPick; 1];
             return
         end
 
@@ -206,14 +246,14 @@ function varargout = interactiveGridBuilder(varargin)
         end
         
         outline = [outline; pt];
-        lastPick = 1;
-        drawOutline();
+        drawAllElementsOnAxis();
     end
 
     function out = packOutput(src, event)
         out = struct();
         out.points = points;
-        out.lines = lines(1:end-1);
+        out.faults = faults(1:end-1);
+        out.wells = wells(1:end-1);
         if ~isempty(outline)
             out.outline = outline(1:end-1, :);
         else
@@ -252,7 +292,7 @@ function varargout = interactiveGridBuilder(varargin)
     end
 
 
-    drawOutline();
+    drawAllElementsOnAxis();
     if nargout > 0
         uiwait(gcf);
     end

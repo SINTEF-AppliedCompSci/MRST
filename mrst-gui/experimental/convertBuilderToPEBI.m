@@ -1,13 +1,17 @@
 function G = convertBuilderToPEBI(out, n, varargin)
     require upr
-    fault = out.lines;
+    fault = out.faults;
     bdr = out.outline;
     wells = cell(1, size(out.points, 1));
     for i = 1:numel(wells)
         wells{i} = out.points(i, :);
     end
-    
-    L = fault;
+    wells = [wells, out.wells];
+    if isempty(fault)
+        L = {};
+    else
+        L = fault;
+    end
     % Trick the gridder to make outline of the domain as faces so we can
     % remove the final cells
     if ~isempty(bdr)
