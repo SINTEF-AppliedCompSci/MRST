@@ -24,7 +24,7 @@ end
 nf = numel(f);
 
 t  = repmat({t}, 1, nf);
-g     = repmat({g   }, 1, nf);
+g  = repmat({g}, 1, nf);
 
 bc.face = [bc.face; f(:)];
 bc.type = [bc.type, t   ];

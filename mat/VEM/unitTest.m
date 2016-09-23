@@ -9,6 +9,7 @@ tic
 G = computeVEMGeometry(unitSquare([10,10],[1,1]));
 
 gD = @(x) x(:,1) + 10*x(:,2);
+
 bf = boundaryFaces(G);
 bc = addBC([], bf, 'pressure', gD(G.faces.centroids(bf,:)));
 
@@ -43,7 +44,11 @@ state = initState(G, [], 0);
 S = computeVirtualIP(G, rock, 2);
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 
-err = norm(state.nodePressure - gD(G.nodes.coords));
+p = [gD(G.nodes.coords); gD(G.faces.centroids); ...
+     polygonInt(G, 1:G.cells.num, gD, 2)./G.cells.volumes];
+P = [state.nodePressure; state.facePressure; state.cellPressure];
+
+err = norm(p-P);
 fprintf('Error: \t %.2d.\t', err);
 
 toc;
@@ -95,7 +100,12 @@ state = initState(G, [], 0);
 S = computeVirtualIP(G, rock, 2);
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 
-err = norm(state.nodePressure - gD(G.nodes.coords));
+p = [gD(G.nodes.coords); gD(G.edges.centroids); ...
+     polygonInt3D(G, 1:G.faces.num, gD, 2)./G.faces.areas; ...
+     polyhedronInt(G, 1:G.cells.num, gD, 2)./G.cells.volumes];
+P = [state.nodePressure; state.edgePressure; state.facePressure; state.cellPressure];
+
+err = norm(p-P);
 fprintf('Error: \t %.2d.\t', err);
 
 toc;

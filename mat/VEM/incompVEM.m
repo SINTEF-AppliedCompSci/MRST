@@ -218,6 +218,154 @@ end
 
 %--------------------------------------------------------------------------
 
+function [A, rhs] = imposeBCC(G, S, bc, k, N, mu, A, rhs)
+    
+    if isfield(bc, 'func')
+
+        isNeu = find(strcmp(bc.type, 'flux'));
+        for i = 1:numel(isNeu)
+            f = bc.face{isNeu(i)};
+            g = bc.func{isNeu(i)};
+            if G.griddim == 2
+                n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+                if k == 1
+                    v = bsxfun(@times, bsxfun(@plus, ...
+                                reshape(g(G.nodes.coords(n,:)), 2, [])'/6, ...
+                                g(G.faces.centroids(f,:))/3), G.faces.areas(f));
+                    v = reshape(v', [], 1);
+                    rhs = rhs + sparse(n,1:numel(n), 1, N, numel(n))*v;
+                else
+                    vn = bsxfun(@times, g(G.nodes.coords(n,:)), ...
+                    rldecode(G.faces.areas(f)/6, diff(G.faces.nodePos), 1));
+                    vn = reshape(vn', [], 1);
+                    vf = g(G.faces.centroids(f,:)).*G.faces.areas(f)*2/3;
+                    
+                    v = [sparse(n, 1:numel(n), 1)*vn; vf];
+                    rhs([n; f + G.nodes.num]) = rhs([n; f + G.nodes.num]) + v;
+                end
+            else
+                
+            end
+
+        end
+        
+        isDir = find(strcmp(bc.type, 'pressure'));
+                    
+        I = speye(N);
+        for i = 1:numel(isDir)
+            f = bc.face{isDir(i)};
+            g = bc.func{isDir(i)};
+            n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+            n = unique(n);
+            if k == 1
+                dofVec = n;
+                rhs(dofVec) = g(G.nodes.coords(n,:));
+
+            else
+                if G.griddim == 2
+                    dofVec = [n; f + G.nodes.num];
+                    rhs(dofVec) = [g(G.nodes.coords(n,:)); g(G.faces.centroids(f,:))];
+                else
+                    e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+                    dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
+                    rhs(dofVec) = [g(G.nodes.coords(n,:)); ...
+                                   g(G.faces.centroids(f,:)); ...
+                                   polygonInt3D(G, f, g, 3)./G.faces.areas(f)];
+                end
+            end
+            A(dofVec,:) = I(dofVec,:);
+        end
+    else
+       
+        if G.griddim == 2
+            
+            NF = diff(G.faces.nodePos);
+            
+            isNeu = strcmp(bc.type, 'flux');
+            if nnz(isNeu)>0
+                f = bc.face(isNeu);
+            v = bc.value(isNeu);
+
+            n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+            
+            if k == 1
+                v = rldecode(v.*G.faces.areas(f)/2, NF(f), 1);
+                rhs(n) = rhs(n) + v;
+            else
+                v = [rldecode(v.*G.faces.areas(f)/6, NF(f), 1); ...
+                     v.*G.faces.areas(f)*2/3];
+                rhs([n; f + G.nodes.num]) = v;
+            end
+            end
+            
+            isDir= strcmp(bc.type, 'pressure');
+            
+            if nnz(isDir)>0
+            f = bc.face(isDir);
+            v = bc.value(isDir);
+            
+            n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+            rhs(n) = rldecode(v, NF(f), 1);
+            
+            if k == 1
+                dofVec = n;
+            else
+                rhs(f + G.nodes.num) = v;
+                dofVec = [n; f + G.nodes.num];
+            end
+            
+            I = speye(N);
+            A(dofVec,:) = I(dofVec,:);
+            end
+
+        else
+            
+        isNeu = strcmp(bc.type, 'flux');
+        f = bc.face(isNeu);
+        v = bc.value(isNeu);
+        
+        if k == 1
+            
+            NF = diff(G.faces.nodePos);
+            PiNFstar = squeezeBlockDiag(S.PiNFstar, NF, 4, sum(NF));
+            pos = [0; cumsum(NF)] + 1;
+            v = rldecode(v, NF(f), 1).*PiNFstar(1,mcolon(pos(f), pos(f+1)-1))';
+            n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+            rhs(n) = rhs(n) + v;
+            
+        else
+            rhs(f + G.nodes.num + G.edges.num) = ...
+                rhs(f + G.nodes.num + G.edges.num) + v;
+        end
+        
+        nfn = diff(G.faces.nodePos);
+        nfe = diff(G.faces.edgePos);
+
+        isDir = strcmp(bc.type, 'pressure');
+        f = bc.face(isDir);
+        v = bc.value(isDir);
+
+        n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+        rhs(n) = rldecode(v, nfn(f), 1);
+
+        if k == 1
+            dofVec = n;
+        else
+            e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+            ne = sum(bsxfun(@eq, repmat(1:G.edges.num, [numel(e), 1]),e), 2);
+            rhs(e + G.nodes.num) = rldecode(v, nfe(f), 1)./ne;
+            rhs(f + G.nodes.num + G.edges.num) = v;
+            dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
+        end
+
+        I = spdiags(ones(N,1),0,N,N);
+        A(dofVec,:) = I(dofVec, :);
+        end
+            
+    end
+end
+%--------------------------------------------------------------------------
+
 function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
 
 if G.griddim == 2
