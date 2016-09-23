@@ -11,7 +11,8 @@ function varargout = interactiveGridBuilder(varargin)
     h = figure();
     
     axwidth = 0.75;
-    pax = subplot('Position', [0, 0, axwidth, 1]);
+    axheight = 0.8;
+    pax = subplot('Position', [0, 1-axheight, axwidth, axheight]);
     panel = uipanel(h, 'Position', [axwidth, 0, 1-axwidth, 1]);
     set(pax,'HitTest','off')
     
@@ -45,13 +46,19 @@ function varargout = interactiveGridBuilder(varargin)
     uicontrol(panel, 'units', 'normalized', 'Position', [0, offset, 1, 0.1],...
                      'String', 'Save in workspace', 'Style', 'pushbutton', ...
                      'callback', @workspaceButtonHandler);
-
-    
+                 
+    msgbox = uicontrol(h, 'units', 'normalized', 'Position', [0, 0, axwidth, 1 - axheight],...
+                     'String', '', 'Style', 'edit', 'Min', 0, 'Max', 1e6);
+                 
     allbuttons = [drawbutton; linebutton; pointbutton];
     outline = [];
     lines = {[]};
     points = [];
     lastPick = nan;
+    
+    function displayMessage(msg)
+        set(msgbox, 'String', msg);
+    end
     
     function disableButtons()
         set(allbuttons, 'Enable', 'off');
@@ -59,6 +66,7 @@ function varargout = interactiveGridBuilder(varargin)
 
     function enableButtons()
         set(allbuttons, 'Enable', 'on');
+        displayMessage('');
     end
 
     function undoButtonHandler(src, event)
@@ -66,35 +74,47 @@ function varargout = interactiveGridBuilder(varargin)
             case 1
                 % Outline
                 outline = [];
+                msg = 'Grid outline removed!';
             case 2
                 % Line
                 if numel(lines) > 1
                     lines = lines([1:end-2, end]);
                 end
+                msg = 'Last line segment removed!';
             case 3
                 % Point
                 if ~isempty(points)
                     points = points(1:end-1, :);
                 end
+                msg = 'Last point removed!';
             otherwise
-                return
+                msg = 'Nothing to remove!';
         end
+        displayMessage(msg);
         drawOutline();
     end
 
     function drawButtonHandler(src, event)
         outline = [];
         set(h, 'WindowButtonDownFcn', @addOutlinePt);
+        displayMessage(['Drawing domain outline. Left click to add points'...
+            ' and right-click to stop drawing. Polygon is automatically'...
+            ' closed on right-click']);
         disableButtons()
     end
     
     function lineButtonHandler(src, event)
         set(h, 'WindowButtonDownFcn', @addLinePt);
+        displayMessage(['Adding a line segment. Left click to add points to'...
+            ' current line, and right click to mark current line as complete.']);
         disableButtons()
     end
 
     function pointButtonHandler(src, event)
         set(h, 'WindowButtonDownFcn', @addPoint);
+        displayMessage(['Adding points to grid. Left click to add points. '...
+            'Right click when done.']);
+
         disableButtons()
     end
 
@@ -130,10 +150,7 @@ function varargout = interactiveGridBuilder(varargin)
 
     function addPoint(src, event)
         pt = get(h, 'currentpoint');
-        figpos = get(h, 'Position');
-
-        pt = pt./figpos(3:end);
-        pt(1) = pt(1)/axwidth;
+        pt = getLocalAxisCoordinate(pt);
         
         if pt(1) > 1 || pt(2) > 1
             return
@@ -153,7 +170,7 @@ function varargout = interactiveGridBuilder(varargin)
 
     function addLinePt(src, event)
         pt = get(h, 'currentpoint');
-        figpos = get(h, 'Position');
+        pt = getLocalAxisCoordinate(pt);
         
         if ~strcmpi(get(h, 'SelectionType'), 'normal') && ~isempty(lines{end})
             set(h, 'WindowButtonDownFcn', []);
@@ -162,9 +179,7 @@ function varargout = interactiveGridBuilder(varargin)
             enableButtons();
             return
         end
-        pt = pt./figpos(3:end);
-        pt(1) = pt(1)/axwidth;
-        
+
         if pt(1) > 1 || pt(2) > 1
             return
         end
@@ -176,7 +191,7 @@ function varargout = interactiveGridBuilder(varargin)
 
     function addOutlinePt(src, event)
         pt = get(h, 'currentpoint');
-        figpos = get(h, 'Position');
+        pt = getLocalAxisCoordinate(pt);
         
         if ~strcmpi(get(h, 'SelectionType'), 'normal') && ~isempty(outline)
             outline = [outline; outline(1, :)];
@@ -185,9 +200,7 @@ function varargout = interactiveGridBuilder(varargin)
             enableButtons();
             return
         end
-        pt = pt./figpos(3:end);
-        pt(1) = pt(1)/axwidth;
-        
+
         if pt(1) > 1 || pt(2) > 1
             return
         end
@@ -210,7 +223,10 @@ function varargout = interactiveGridBuilder(varargin)
 
     function workspaceButtonHandler(src, event)
         out = packOutput();
-        assignin('base', 'GridBuilderOutput', out);
+        nm = 'GridBuilderOutput';
+        assignin('base', nm, out);
+        displayMessage(['Stored output as variable ''', nm, ...
+                        ''' in workspace.']);
     end
 
     function returnButtonHandler(src, event, wantClose)
@@ -228,6 +244,14 @@ function varargout = interactiveGridBuilder(varargin)
             delete(h)
         end
     end
+    function pt = getLocalAxisCoordinate(pt)
+        figpos = get(h, 'Position');
+        pt = pt./figpos(3:end);
+        pt(2) = pt(2) - (1-axheight);
+        pt = pt./[axwidth, axheight];
+    end
+
+
     drawOutline();
     if nargout > 0
         uiwait(gcf);
