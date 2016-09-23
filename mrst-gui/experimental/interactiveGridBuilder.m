@@ -1,9 +1,20 @@
 function varargout = interactiveGridBuilder(varargin)
+
+    if mod(nargin, 2) ~= 0
+        input = varargin{1};
+        varargin = varargin(2:end);
+    else
+        input = [];
+    end
     opt = struct('image', '');
     opt = merge_options(opt, varargin{:});
     
     if ~isempty(opt.image)
-        I = imread(opt.image);
+        if isnumeric(opt.image)
+            I = opt.image;
+        else
+            I = imread(opt.image);
+        end
         I = flipud(I);
     else
         I = [];
@@ -60,6 +71,7 @@ function varargout = interactiveGridBuilder(varargin)
     wells = {[]};
     points = [];
     lastPick = [];
+    unpackOutput(input);
     
     function displayMessage(msg)
         set(msgbox, 'String', msg);
@@ -258,6 +270,20 @@ function varargout = interactiveGridBuilder(varargin)
             out.outline = outline(1:end-1, :);
         else
             out.outline = [];
+        end
+    end
+
+    function unpackOutput(input)
+        if isempty(input)
+            return
+        end
+        points = input.points;
+        faults = [input.faults, {[]}];
+        wells = [input.wells, {[]}];
+        points = input.points;
+        outline = input.outline;
+        if ~isempty(outline)
+            outline = [outline; outline(1, :)];
         end
     end
 
