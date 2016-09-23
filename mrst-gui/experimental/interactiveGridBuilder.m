@@ -28,15 +28,30 @@ function varargout = interactiveGridBuilder(varargin)
     pointbutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.7, 1, 0.1],...
                      'String', 'Add point', 'Style', 'pushbutton', ...
                      'callback', @pointButtonHandler);
+                 
+    undobutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.6, 1, 0.1],...
+                     'String', 'Undo', 'Style', 'pushbutton', ...
+                     'callback', @undoButtonHandler);
     if nargout > 0
+        returned = false;
         returnbutton = uicontrol(panel, 'units', 'normalized', 'Position', [0, 0.0, 1, 0.1],...
                          'String', 'Return values', 'Style', 'pushbutton', ...
-                         'callback', @returnButtonHandler);
+                         'callback', @(src, event) returnButtonHandler(src, event, false));
+        set(gcf, 'CloseRequestFcn', @(varargin) returnButtonHandler(h, [], true));
+        offset = 0.1;
+    else
+        offset = 0;
     end
+    uicontrol(panel, 'units', 'normalized', 'Position', [0, offset, 1, 0.1],...
+                     'String', 'Save in workspace', 'Style', 'pushbutton', ...
+                     'callback', @workspaceButtonHandler);
+
+    
     allbuttons = [drawbutton; linebutton; pointbutton];
     outline = [];
     lines = {[]};
     points = [];
+    lastPick = nan;
     
     function disableButtons()
         set(allbuttons, 'Enable', 'off');
@@ -45,6 +60,28 @@ function varargout = interactiveGridBuilder(varargin)
     function enableButtons()
         set(allbuttons, 'Enable', 'on');
     end
+
+    function undoButtonHandler(src, event)
+        switch lastPick
+            case 1
+                % Outline
+                outline = [];
+            case 2
+                % Line
+                if numel(lines) > 1
+                    lines = lines([1:end-2, end]);
+                end
+            case 3
+                % Point
+                if ~isempty(points)
+                    points = points(1:end-1, :);
+                end
+            otherwise
+                return
+        end
+        drawOutline();
+    end
+
     function drawButtonHandler(src, event)
         outline = [];
         set(h, 'WindowButtonDownFcn', @addOutlinePt);
@@ -63,7 +100,6 @@ function varargout = interactiveGridBuilder(varargin)
 
     function drawOutline()
         cla(pax);
-        get(gca)
         if ~isempty(I)
             imh = imshow(I, 'Parent', pax, 'XData', [0, 1], 'YData', [0, 1]);
             set(imh, 'HitTest', 'off');
@@ -71,7 +107,6 @@ function varargout = interactiveGridBuilder(varargin)
         end
         set(gca, 'XAxisLocation', 'bottom');
         set(gca, 'YDir', 'normal');
-        get(gca)
         hold on
         if ~isempty(outline)
             plot(pax, outline(:, 1), outline(:, 2));
@@ -112,6 +147,7 @@ function varargout = interactiveGridBuilder(varargin)
         end
         
         points = [points; pt];
+        lastPick = 3;
         drawOutline();
     end
 
@@ -134,6 +170,7 @@ function varargout = interactiveGridBuilder(varargin)
         end
         
         lines{end} = [lines{end}; pt];
+        lastPick = 2;
         drawOutline();
     end
 
@@ -156,10 +193,11 @@ function varargout = interactiveGridBuilder(varargin)
         end
         
         outline = [outline; pt];
+        lastPick = 1;
         drawOutline();
     end
 
-    function returnButtonHandler(src, event)
+    function out = packOutput(src, event)
         out = struct();
         out.points = points;
         out.lines = lines(1:end-1);
@@ -168,12 +206,31 @@ function varargout = interactiveGridBuilder(varargin)
         else
             out.outline = [];
         end
-        
-        varargout{1} = out;
+    end
+
+    function workspaceButtonHandler(src, event)
+        out = packOutput();
+        assignin('base', 'GridBuilderOutput', out);
+    end
+
+    function returnButtonHandler(src, event, wantClose)
+        if returned
+            if wantClose
+                delete(h)
+            end
+            return;
+        end
+        varargout{1} = packOutput();
+        returned = true;
         uiresume();
+        set(returnbutton, 'Enable', 'off');
+        if wantClose
+            delete(h)
+        end
     end
     drawOutline();
     if nargout > 0
         uiwait(gcf);
     end
 end
+
