@@ -184,7 +184,7 @@ inflow  = accumarray([n(:, 2); n(:, 1)], [in; -out]);
 
 % The diagonal entries are equal to the sum of outfluxes minus divergence 
 % which equals the influx plus 2x the positive source terms. 
-d = inflow + 2*qp; 
+d = inflow + qp; 
 
 %--------------------------------------------------------------------------
 % Handling of t -> inf (if opt.allowInf == false):
@@ -229,7 +229,7 @@ end
 numTrRHS = numel(tr);
 TrRHS = zeros(nc,numTrRHS);
 for i=1:numTrRHS,
-   TrRHS(tr{i},i) = 2*qp(tr{i});
+   TrRHS(tr{i},i) = qp(tr{i});
 end
 
 % Time of flight for velocity field.
