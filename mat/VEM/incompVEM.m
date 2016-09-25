@@ -218,30 +218,33 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = imposeBCC(G, S, bc, k, N, mu, A, rhs)
+function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
+    
+    nfn = diff(G.faces.nodePos);
     
     if isfield(bc, 'func')
-
+        
         isNeu = find(strcmp(bc.type, 'flux'));
         for i = 1:numel(isNeu)
             f = bc.face{isNeu(i)};
             g = bc.func{isNeu(i)};
+            n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
             if G.griddim == 2
-                n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
                 if k == 1
                     v = bsxfun(@times, bsxfun(@plus, ...
                                 reshape(g(G.nodes.coords(n,:)), 2, [])'/6, ...
                                 g(G.faces.centroids(f,:))/3), G.faces.areas(f));
                     v = reshape(v', [], 1);
-                    rhs = rhs + sparse(n,1:numel(n), 1, N, numel(n))*v;
+                    rhs = rhs + sparse(n, 1:numel(n), 1, N, numel(n))*v;
                 else
-                    vn = bsxfun(@times, g(G.nodes.coords(n,:)), ...
-                    rldecode(G.faces.areas(f)/6, diff(G.faces.nodePos), 1));
+                    vn = bsxfun(@times, g(G.nodes.coords(n,:))/6, ...
+                                rldecode(G.faces.areas(f), nfn(f), 1));
                     vn = reshape(vn', [], 1);
-                    vf = g(G.faces.centroids(f,:)).*G.faces.areas(f)*2/3;
+                    vf = g(G.faces.centroids(f,:))*2/3.*G.faces.areas(f);
                     
-                    v = [sparse(n, 1:numel(n), 1)*vn; vf];
-                    rhs([n; f + G.nodes.num]) = rhs([n; f + G.nodes.num]) + v;
+                    v = sparse(n, 1:numel(n), 1, N, numel(n))*vn;
+                    v(f + G.nodes.num) = vf;
+                    rhs = rhs + v;
                 end
             else
                 
@@ -269,12 +272,13 @@ function [A, rhs] = imposeBCC(G, S, bc, k, N, mu, A, rhs)
                     e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
                     dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
                     rhs(dofVec) = [g(G.nodes.coords(n,:)); ...
-                                   g(G.faces.centroids(f,:)); ...
+                                   g(G.edges.centroids(e,:)); ...
                                    polygonInt3D(G, f, g, 3)./G.faces.areas(f)];
                 end
             end
             A(dofVec,:) = I(dofVec,:);
         end
+        
     else
        
         if G.griddim == 2
@@ -284,38 +288,40 @@ function [A, rhs] = imposeBCC(G, S, bc, k, N, mu, A, rhs)
             isNeu = strcmp(bc.type, 'flux');
             if nnz(isNeu)>0
                 f = bc.face(isNeu);
-            v = bc.value(isNeu);
+                v = bc.value(isNeu);
 
-            n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-            
-            if k == 1
-                v = rldecode(v.*G.faces.areas(f)/2, NF(f), 1);
-                rhs(n) = rhs(n) + v;
-            else
-                v = [rldecode(v.*G.faces.areas(f)/6, NF(f), 1); ...
-                     v.*G.faces.areas(f)*2/3];
-                rhs([n; f + G.nodes.num]) = v;
-            end
+                n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+
+                if k == 1
+                    v = mu*rldecode(v, NF(f), 1);
+                    rhs = rhs + 1/2*sparse(n, 1:numel(n), 1, N, numel(n))*v;
+                else
+                    v = [rldecode(v.*G.faces.areas(f)/6, NF(f), 1); ...
+                         v.*G.faces.areas(f)*2/3];
+                    rhs([n; f + G.nodes.num]) = v;
+                end
             end
             
             isDir= strcmp(bc.type, 'pressure');
             
             if nnz(isDir)>0
-            f = bc.face(isDir);
-            v = bc.value(isDir);
-            
-            n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-            rhs(n) = rldecode(v, NF(f), 1);
-            
-            if k == 1
-                dofVec = n;
-            else
-                rhs(f + G.nodes.num) = v;
-                dofVec = [n; f + G.nodes.num];
-            end
-            
-            I = speye(N);
-            A(dofVec,:) = I(dofVec,:);
+                
+                f = bc.face(isDir);
+                v = bc.value(isDir);
+
+                n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+                rhs(n) = rldecode(v, NF(f), 1);
+
+                if k == 1
+                    dofVec = n;
+                else
+                    rhs(f + G.nodes.num) = v;
+                    dofVec = [n; f + G.nodes.num];
+                end
+
+                I = speye(N);
+                A(dofVec,:) = I(dofVec,:);
+                
             end
 
         else
@@ -366,7 +372,7 @@ function [A, rhs] = imposeBCC(G, S, bc, k, N, mu, A, rhs)
 end
 %--------------------------------------------------------------------------
 
-function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
+function [A, rhs] = imposeBCC(G, S, bc, k, N, mu, A, rhs)
 
 if G.griddim == 2
 

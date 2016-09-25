@@ -14,19 +14,36 @@ fluid      = initSingleFluid('mu' , 1*centi*poise, ...
                              'rho', 1000*kilogram/meter^3);
 state = initState(G, [], 0);
 
-gD = @(x) x(:,1) + 10*x(:,2);
-gN = @(x) rock.perm(1)*ones(size(x,1), 1);
 
+Q = 1;
 bf = boundaryFaces(G);
 e  = abs(G.faces.centroids(bf,1)-1) < tol;
-bc = addBCVEM([], bf(~e), 'pressure', gD);
-bc = addBCVEM(bc, bf( e), 'flux'    , gN);
+bc = addBC([], bf(~e), 'pressure', 0);
+bc = addBC(bc, bf( e), 'flux'    , -Q*G.faces.areas(bf(e))/(sum(G.faces.areas(bf(e)))));
+
+C = [.25,.5];
+d = sum(bsxfun(@minus, G.cells.centroids, C).^2,2);
+srcCell = find(d == min(d));
+src = addSource([], srcCell(1), Q);
 
 S = computeVirtualIP(G, rock, 1);
-state = incompVEM(state, G, S, fluid, 'bc', bc);
+stateVEM = incompVEM    (state, G, S, fluid, 'bc', bc, 'src', src);
+stateVEM = calculateCellPressure(stateVEM, G, S);
 
-err = norm(state.nodePressure - gD(G.nodes.coords));
-fprintf('Error: \t %.2d.\t', err);
+S = computeMimeticIP(G, rock);
+stateMFD = incompMimetic(state, G, S, fluid, 'bc', bc, 'src', src);
+
+
+err = norm(stateVEM.cellPressure - stateMFD.pressure)/norm(stateMFD.pressure);
+fprintf('Error: \t %.2f %%\t', err*100);
+
+subplot(1,2,1);
+plotCellData(G, stateVEM.cellPressure);
+colorbar;
+
+subplot(1,2,2);
+plotCellData(G, stateMFD.pressure);
+colorbar;
 
 toc;
 
