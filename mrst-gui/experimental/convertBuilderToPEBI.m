@@ -27,8 +27,11 @@ function G = convertBuilderToPEBI(out, n, varargin)
     if ~isempty(bdr)
         % Extract subgrid defined by bounding box
         G = computeGeometry(G);
+        G0 = G;
         keep = inpolygon(G.cells.centroids(:, 1), G.cells.centroids(:, 2),...
                          bdr_closed(:, 1), bdr_closed(:, 2));
-        G = extractSubgrid(G, keep);
+        [G, gc, gf] = extractSubgrid(G, keep);
+        G.cells.tag = G0.cells.tag(gc);
+        G.faces.tag = G0.faces.tag(gf);
     end
 end
