@@ -4,7 +4,7 @@ clc; clear all; close all;
 %   2) Validation of consistency for second order.
 %   3) Point source problem, both orders.
 
-i = 1;
+i = 6;
 
 switch i
     case 1
