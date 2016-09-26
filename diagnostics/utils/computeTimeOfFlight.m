@@ -60,21 +60,21 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %           additional right-hand side to the original tof-system. Output
 %           given as additional columns in T.
 %
-%   allowInf - Switch to turn off (true) or on (false) maximal TOF 
+%   allowInf - Switch to turn off (true) or on (false) maximal TOF
 %           thresholding. Default is false.
 %
-%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned 
-%           systems. Default (empty) is 50*PVI (pore-volumes-injected). 
+%   maxTOF - Maximal TOF thresholding to avoid singular/ill-conditioned
+%           systems. Default (empty) is 50*PVI (pore-volumes-injected).
 %           Only takes effect if 'allowInf' is set to false.
 %
 %   solver - Function handle to solver for use in TOF/tracer equations.
 %           Default (empty) is matlab mldivide (i.e., \)
 %
 %   processCycles - Extend TOF thresholding to strongly connected
-%           components in flux graph by considering Dulmage-Mendelsohn 
-%           decomposition (dmperm). Recommended for highly cyclic flux 
-%           fields. Only takes effect if 'allowInf' is set to false.      
-%   
+%           components in flux graph by considering Dulmage-Mendelsohn
+%           decomposition (dmperm). Recommended for highly cyclic flux
+%           fields. Only takes effect if 'allowInf' is set to false.
+%
 %
 %
 % RETURNS:
@@ -99,7 +99,7 @@ function [T, A, q] = computeTimeOfFlight(state, G, rock, varargin)
 %       and n_ij is the outward-pointing normal of cell i for grid face ij.
 %       The discretization uses a simple model for cells containing inflow.
 %       If q_i denotes the rate and V_i the volume of cell i, then T_i is
-%       set to half the time it takes to fill the cell, T_i = V_i/(2q_i). 
+%       set to half the time it takes to fill the cell, T_i = V_i/(2q_i).
 %
 %       OPTIONAL.  Only returned if specifically requested.
 %
@@ -143,7 +143,7 @@ opt = struct('bc',              [], ...
              'solver',          [], ...
              'processCycles',   false, ...
              'computeWellTOFs', false);
-         
+
 opt = merge_options(opt, varargin{:});
 
 checkInput(G, rock, opt)
@@ -182,9 +182,9 @@ in  = max(state.flux(i), 0);
 % Cell wise total inflow
 inflow  = accumarray([n(:, 2); n(:, 1)], [in; -out]);
 
-% The diagonal entries are equal to the sum of outfluxes minus divergence 
-% which equals the influx plus 2x the positive source terms. 
-d = inflow + qp; 
+% The diagonal entries are equal to the sum of outfluxes minus divergence
+% which equals the influx plus the positive source terms.
+d = inflow + qp;
 
 %--------------------------------------------------------------------------
 % Handling of t -> inf (if opt.allowInf == false):
@@ -201,11 +201,11 @@ if ~opt.allowInf
         dispif(mrstVerbose, ...
                '%s maximal TOF set to %5.2f years.\n', str, opt.maxTOF/year)
     end
-    
+
     % Find cells that reach max TOF locally
     maxIn = max(d);
     aboveMax = full(pv./ (max(d, eps*maxIn)) ) > opt.maxTOF;
-    
+
     % Set aboveMax-cells to maxTOF
     d(aboveMax)  = maxIn;
     pv(aboveMax) = maxIn*opt.maxTOF;
@@ -219,7 +219,7 @@ A  = sparse(n(:,2), n(:,1),  in, nc, nc)...
    + sparse(n(:,1), n(:,2), -out, nc, nc);
 A = -A + spdiags(d, 0, nc, nc);
 
-if ~opt.allowInf && opt.processCycles 
+if ~opt.allowInf && opt.processCycles
     [A, pv] = thresholdConnectedComponents(A, pv, maxIn, opt);
 end
 
@@ -329,7 +329,7 @@ function [A, pv] = thresholdConnectedComponents(A, pv, maxIn, opt)
         q_in = full(diag(C'*A*C));
         % Threshold
         compAboveMax = full((C'*pv)./ (max(q_in, eps*maxIn)) ) > opt.maxTOF;
-        
+
         if any(compAboveMax)
             badCells = (vertcat(c{compAboveMax}));
             dispif(mrstVerbose, 'Found %d strongly connected components, ', nnz(compAboveMax));
