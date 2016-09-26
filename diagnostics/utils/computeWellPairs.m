@@ -91,9 +91,8 @@ for i=1:ni
    if isempty(qik)
        continue;
    end
-   ci  = D.itracer(W(D.inj(i)).cells,i);
    cj  = D.ptracer(W(D.inj(i)).cells,:);
-   WP.inj(i).alloc  = repmat(qik.*ci, 1, np) .* cj;% / sum(qik);
+   WP.inj(i).alloc  = repmat(qik, 1, np) .* cj;% / sum(qik);
    WP.inj(i).ralloc = qik - sum(WP.inj(i).alloc, 2);
    WP.inj(i).z      = W(D.inj(i)).dZ + W(D.inj(i)).refDepth;
    WP.inj(i).name   = W(D.inj(i)).name;
@@ -104,8 +103,7 @@ for i=1:np
        continue;
    end
    ci  = D.itracer(W(D.prod(i)).cells,:);
-   cj  = D.ptracer(W(D.prod(i)).cells,i);
-   WP.prod(i).alloc  = repmat(qjk.*cj, 1, ni) .* ci;% / sum(qjk);
+   WP.prod(i).alloc  = repmat(qjk, 1, ni) .* ci;% / sum(qjk);
    WP.prod(i).ralloc = qjk - sum(WP.prod(i).alloc, 2);
    WP.prod(i).z      = W(D.prod(i)).dZ + W(D.prod(i)).refDepth;
    WP.prod(i).name   = W(D.prod(i)).name;
