@@ -64,7 +64,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    data = readRecordString(fid);
 
    % An all-default (i.e., empty) record terminates the keyword.
@@ -73,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %
    if ~isempty(data) && ~all(isspace(data)),
       % Tokenize data.
-      data = splitString(strtrim(data));
+      data = removeQuotes(tokenizeRecord(strtrim(data)));
 
       % Detect "default" strings of the form n*.
       is_def = regexp(data, '^(\d+)\*$', 'tokens', 'once');

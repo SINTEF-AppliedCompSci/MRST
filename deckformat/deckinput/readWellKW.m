@@ -60,12 +60,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    switch kw,
       % Keywords related to individual wells
       case 'COMPDAT' , w = readCompDat (fid, w);
+      case 'COMPSEGS', w = readCompSegs(fid, w);
       case 'WCONHIST', w = readWConHist(fid, w);
       case 'WCONINJ' , w = readWConInj (fid, w);
       case 'WCONINJE', w = readWConInje(fid, w);
       case 'WCONINJH', w = readWConInjh(fid, w);
       case 'WCONPROD', w = readWConProd(fid, w);
       case 'WELOPEN' , w = readWelOpen (fid, w);
+      case 'WELSEGS' , w = readWelSegs (fid, w);
       case 'WELSPECS', w = readWellSpec(fid, w);
       case 'WPOLYMER', w = readWPolymer(fid, w);
       case 'WSURFACT', w = readWSurfact(fid, w);
@@ -192,6 +194,36 @@ end
 
 %--------------------------------------------------------------------------
 
+function w = readCompSegs(fid, w)
+   well = strtrim(removeQuotes(readRecordString(fid)));
+
+   %             1     2     3     4    5      6      7
+   template = { '-1', '-1', '-1', '0', '0.0', 'NaN', 'Default', ...
+      ...
+      ...     %  8     9      10     11
+                'NaN', 'NaN', 'NaN', '0' };
+
+   numeric  = [1:6, 8:numel(template)];
+   compsegs = toDouble(readDefaultedKW(fid, template), numeric);
+
+   if isempty(w.COMPSEGS),
+      w.COMPSEGS = { well, compsegs };
+   else
+      i = strcmp(w.COMPSEGS(:,1), well);
+
+      if any(i),
+         assert (sum(i) == 1, ...
+                 'Well ''%s'' Specified More Than Once in COMPSEGS', well);
+
+         w.COMPSEGS(i, 2) = compsegs;
+      else
+         w.COMPSEGS = [ w.COMPSEGS ; { well, compsegs } ];
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
 function w = readWConInj(fid, w)
    %            1          2          3       4          5      6
    template = {'Default', 'Default', 'OPEN', 'Default', 'inf', 'inf', ...
@@ -291,12 +323,6 @@ function w = readWelOpen(fid, w)
 
    data = toDouble(data, numeric);
 
-   if ~ all([ data{:, 3:end} ] < 0),
-      warning('WELOPEN:Connection', ...
-             ['MRST does not support opening/closing individual ', ...
-              'well connections through ''WELOPEN''.']);
-   end
-
    for kw = { 'WCONINJ', 'WCONINJE', 'WCONINJH' },
       if isfield(w, kw{1}) && ...
             ~ (isempty(data) || isempty(w.(kw{1}))),
@@ -327,6 +353,101 @@ function w = readWelOpen(fid, w)
       else
          error('Internal error processing ''WELOPEN''');
       end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function w = readWelSegs(fid, w)
+   %          1       2      3      4         5          6      7
+   r1 =    { 'Well', 'NaN', 'NaN', 'NaN', 'Default', 'HFA', 'HO', ...
+      ...
+      ... %   8      9      10     11     12
+             'NaN', 'NaN', '0.0', '0.0', '0.0' };
+
+   r1 = readDefaultedRecord(fid, r1);
+   if ~ any(strcmp(r1{5}, { 'INC', 'ABS' })),
+      error('WELSEGS:DefaultTubing', ...
+            'Item 5 (tubing type information) cannot be defaulted');
+   end
+
+   numeric = [ 2:4, 8:12 ];
+   r1 = toDouble(r1, numeric);
+
+   i = NaN;
+   if ~ isempty(w.WELSEGS),
+      i = find(strcmp(w.WELSEGS(:,1), r1{1}));
+      if isempty(i), i = NaN; end
+   end
+
+   defaulted = isnan([r1{numeric}]);
+   if any(defaulted),
+      def = numeric(defaulted);
+
+      if ~ isnan(i),
+         r1(def) = w.WELSEGS{i,2}.header(def);
+      else
+         r1(def) = { 0.0 };
+
+         if any(def == 4), r1(4) = { 1.0e-5 }; end
+      end
+   end
+
+   rest = [repmat({'NaN'}, [1, 10]), { '0.0', '0.0' }, ...
+           repmat({'NaN'}, [1,  3])];
+   rest = readDefaultedKW(fid, rest);
+   rest = toDouble(rest, 1 : size(rest, 2));
+
+   [r, c] = find(isnan(reshape([ rest{:} ], size(rest))));
+
+   % Defaulted cross-sectional area (A = pi * (D/2) ^ 2).
+   k = c == 9;
+   rest(r(k), 9) = cellfun(@(d) pi .* d.^2 ./ 4, rest(r(k), 7), ...
+                           'UniformOutput', false);
+
+   % Defaulted segment volume (V = A*L).
+   k = c == 10;
+   if any(k),
+      if strcmp(r1{5}, 'ABS'),
+         n = cellfun(@(b, e) e - b + 1, rest(r(k), 1), rest(r(k), 2), ...
+                     'UniformOutput', false);
+
+         len = repmat({0.0}, [ 1 + size(rest, 1), 1 ]);
+         len(1) = r1(3);
+         len(vertcat(rest{:,2})) = rest(:, 5);
+
+         e = rest(r(k), 5);
+         b = len(vertcat(rest{r(k), 4}));
+         d = cellfun(@(b, e, n) (e - b) / n, ...
+                     b, e, n, 'UniformOutput', false);
+
+         clear len b e n
+      else
+         d = rest(r(k), 5);
+      end
+
+      rest(r(k), 10) = cellfun(@times, d, rest(r(k), 9), ...
+                               'UniformOutput', false);
+   end
+
+   % Defaulted cross-sectional area of pipe wall for thermal conductivity
+   k = c == 13;
+   rest(r(k), 13) = r1(10);
+
+   % Defaulted volumetric heat capacity of pipe wall
+   k = c == 14;
+   rest(r(k), 14) = r1(11);
+
+   % Defaulted thermal conductivity of pipe wall
+   k = c == 15;
+   rest(r(k), 15) = r1(12);
+
+   sgmt = struct('header', { r1(2:end) }, 'segments', { rest });
+
+   if isnan(i),
+      w.WELSEGS = [ w.WELSEGS ; { r1{1}, sgmt } ];
+   else
+      w.WELSEGS{i,2} = sgmt;
    end
 end
 

@@ -60,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       % interpolation.
       %
       data = readRecordString(fid);    % Treat table data as single record.
-      data = splitString(strtrim(data));
+      data = splitString(removeQuotes(data));
 
       if isempty(data),
          if t > 1,
