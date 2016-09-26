@@ -49,7 +49,11 @@ elseif(~isfield(fluid, 'sw'))
    [mu, rho, sr] = fluid.properties();                                     %#ok
    sr = sr(1);
    sw = sr(2);
+else
+   sw = fluid.sw;
+   sr = fluid.sr;
 end
+
 % magn = @(v)(sqrt(sum(v.^2,2)));
 %n    = Gt.cells.normals(:,3)./magn(Gt.cells.normals);
 %h = n.*h;
