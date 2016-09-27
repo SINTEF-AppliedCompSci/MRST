@@ -1,4 +1,4 @@
-function [state, varargout] = incompVEM(state, G, S, fluid, varargin)
+function state = incompVEM(state, G, S, fluid, varargin)
 %   Solves the 2D Poisson equation using a kth order virtual element
 %   method.
 %
@@ -77,11 +77,6 @@ function [state, varargout] = incompVEM(state, G, S, fluid, varargin)
 
 opt = struct('bc'             , []       , ...
              'src'            , []       , ...
-             'srcFunc'        , []       , ...
-             'sigma'          , 1        , ...
-             'cartGridQ'      , false    , ...
-             'faceProjectors' , false    , ...
-             'cellProjectors' , false    , ...
              'facePressure'   , false    , ...
              'cellPressure'   , false    , ...
              'linSolve'       , @mldivide, ...
@@ -91,52 +86,32 @@ opt = merge_options(opt, varargin{:});
 
 %%  CHECK CORRECTNESS OF INPUT                                           %%
 
-assert(G.griddim == 2 || G.griddim == 3, 'Physical dimensin must be 2 or 3.');
-
-k  = S.order;
-nN = G.nodes.num;
-nF = G.faces.num;
-nP = G.cells.num;
-% N  = G.nodes.num + G.faces.num*(k-1) + G.cells.num*k*(k-1)/2;
+assert(G.griddim == 2 || G.griddim == 3, 'Physical dimension must be 2 or 3.');
 
 if G.griddim == 2
-    nE = 0;
-    nk = (k+1)*(k+2)/2;
-    NP = diff(G.cells.nodePos) + diff(G.cells.facePos)*(k-1) + k*(k-1)/2;
-    N = G.nodes.num + G.faces.num*polyDim(k-2, 1) + G.cells.num*polyDim(k-2, 2);
-else
-    nE = G.edges.num;
-    nk = (k+1)*(k+2)*(k+3)/6;
-    NP = diff(G.cells.nodePos) + diff(G.cells.edgePos)*(k-1) ...
-       + diff(G.cells.facePos)*k*(k-1)/2 + k*(k^2-1)/6;
-    N = G.nodes.num + G.edges.num*polyDim(k-2, 1) + G.faces.num*polyDim(k-2, 2) + G.cells.num*polyDim(k-2, 3);
-end
-nker = sum(NP - nk);
-
-if isempty(opt.srcFunc)
-    opt.srcFunc = 0;
+    G.edges.num = 0;
 end
 
-if ~isa(opt.srcFunc, 'function_handle')
-    assert(numel(opt.srcFunc) == 1 || 0, ...
-    'Source function ''srcFunc'' must either be scalar or function handle')
-end
-
-assert(any(numel(opt.sigma) == [sum(nker),1]), ...
-    'Number of elements in parameter matrix sigma must be 1 or sum(nker)')
-
-if opt.cellPressure
-    opt.cellProjectors = true;
-end
+N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
+                + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
+                + G.cells.num*polyDim(S.order - 2, G.griddim    );
 
 [mu, rho] = fluid.properties();
 
 %%  ASSEMBLE GLOBAL MATRIX AND COMPUTE RIGHT-HAND SIDE                   %%
 
-[A, rhs] = glob(G, S, opt.src, k, N, mu);
+% [A, rhs] = assembleSystem(state, G, S, fluid, opt);
+% 
+[A, rhs] = glob(G, S, opt.src, N, mu);
 
-if isempty(opt.bc)
-  if k == 1
+pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
+
+if ~isempty(opt.bc)
+    [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N, mu);
+end
+
+if ~pressure_bc
+  if S.order == 1
       n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
       i = n(1);
   else
@@ -147,8 +122,6 @@ if isempty(opt.bc)
       end
   end
     A(i,i) = 2*A(i,i); 
-else
-    [A, rhs] = imposeBC(G, S, opt.bc, k, N, mu, A, rhs);
 end
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
@@ -159,63 +132,127 @@ end
 
 p = opt.linSolve(A, rhs);
 
-grav = gravity();
+gvec = gravity();
 if G.griddim == 3
-    if k == 1
-        pot = rho*grav(3)*G.nodes.coords(:,3);
+    if S.order == 1
+        pot = rho*gvec(3)*G.nodes.coords(:,3);
     else
-        pot = rho*grav(3)*[G.nodes.coords(:,3)   ; G.edges.centroids(:,3); ...
+        pot = rho*gvec(3)*[G.nodes.coords(:,3)   ; G.edges.centroids(:,3); ...
                            G.faces.centroids(:,3); G.cells.centroids(:,3)];
     end
     p = p-pot;
 end
 
-%%  UPDATE STATE                                                         %%
+%%  UPDATE PRESSURE STATE                                                %%
 
-state.nodePressure = ...
-              full( p( 1:nN)                                             );
-state.edgePressure = ...
-              full( p((1:nE*(k-1))       + nN)                           );
-state.facePressure = ...
-              full( p((1:nF*k*(k-1)/2)   + nN + nE*(k-1))                );
-state.cellPressure = ...
-              full( p((1:nP*k*(k^2-1)/6) + nN + nE*(k-1) + nF*k*(k-1)/2) );
-
-if opt.facePressure && k == 1
-    state.facePressure = calculateFacePressure(G, state);
+state.nodePressure ...
+               = full(p(1:G.nodes.num));
+state.edgePressure ...
+               = full(p((1:G.edges.num*polyDim(S.order-2, G.griddim-2)) ...
+                           + G.nodes.num));
+state.facePressure ...
+               = full(p((1:G.faces.num*polyDim(S.order-2, G.griddim-1)) ...
+                           + G.nodes.num ...
+                           + G.edges.num*polyDim(S.order-2, G.griddim-2)));
+state.pressure     ...
+               = full(p((1:G.cells.num*polyDim(S.order-2, G.griddim  )) ...
+                           + G.nodes.num ...
+                           + G.edges.num*polyDim(S.order-2, G.griddim-2)...
+                           + G.faces.num*polyDim(S.order-2, G.griddim-1)));
+                       
+if opt.facePressure
+    state.facePressure = facePressure(state, G, S, 1:G.faces.num);
 end
 
-if opt.cellPressure && k == 1
-    if G.girddim == 2
-        state.pressure = calculateCellPressure2D(G,state);
-    else
-        state.pressure = calculateCellPressure3D(G, state);
+if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
+    state.pressure = cellPressure(state, G, S);
+    if isempty(state.facePressure)
+        state.facePressure(boundaryFaces(G)) = facePressure(state, G, S, boundaryFaces(G));
     end
 end
-
+    
+if ~isempty(S.T)
+    state.flux = computeFlux(state, G, S)/mu;
+end
 
 if opt.matrixOutput
-    state.A = A;
+    state.A   = A;
     state.rhs = rhs;
 end
 
 end
 
+function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
+    
+if G.griddim == 2
+    G.edges.num = 0;
+end
+
+N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
+                + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
+                + G.cells.num*polyDim(S.order - 2, G.griddim    );
+
+    [A, rhs] = glob(G, S, opt.src, N, 1);
+
+%     totmob = dynamic_quantities(state, fluid);
+%     
+%     tm = zeros(N,1);
+%     
+%     ii = rldecode((1:G.nodes.num)', diff(G.nodes.cellPos),1);
+%     jj = G.nodes.cells;
+%     P = sparse(ii, jj,1);
+%     tm(1:G.nodes.num) = P*totmob./sum(P,2);
+%     
+%     tm((1:G.edges.num*polyDim(k-2,G.griddim-2)) + G.nodes.num) ...
+%                   = sparse(G.cells.edges, 1:numel(G.cells.edges), 1)*totmob;
+%               
+%     tm((1:G.faces.num*polyDim(k-2, G.griddim-1)) + G.nodes.num + G.edges.num ) ...
+%                  = sparse(G.cells.faces, 1:numel(G.cells.faces), 1)*totmob;
+%              
+%     tm((1:G.cells.num*polyDim(k-2, G.griddim-1)) + G.nodes.num + G.edges.num +G.faces.num) ...
+%                  = sparse(G.cells.faces, 1:numel(G.cells.faces), 1)*totmob;
+%    
+%     A = spdiags(tm, 0, N, N)\A;
+    
+    pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
+
+    if ~isempty(opt.bc)
+        [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N, 1);
+    end
+
+    if ~pressure_bc
+      if S.order == 1
+          n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
+          i = n(1);
+      else
+          if G.griddim == 2  
+              i = G.nodes.num + G.faces.num + 1;
+          else
+              i = G.nodes.num + G.edges.num + G.faces.num + 1;
+          end
+      end
+        A(i,i) = 2*A(i,i); 
+    end
+    
+
+
+end
+
 %--------------------------------------------------------------------------
 
-function [A, rhs] = glob(G, S, src, k, N, mu)
+function [A, rhs] = glob(G, S, src, N, mu)
     
     P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
     A = P'*S.A*P;
 
     if ~isempty(src)
-        if k == 1
+        if S.order == 1
 
             rhs = zeros(G.cells.num,1);
             rhs(src.cell) = src.rate;
             rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
             PiNstar = squeezeBlockDiag(S.PiNstar, diff(G.cells.nodePos), ...
-                                       polyDim(1, G.griddim), sum(diff(G.cells.nodePos)))';
+                 polyDim(S.order, G.griddim), sum(diff(G.cells.nodePos)))';
             rhs = rhs.*PiNstar(:,1);            
             rhs = mu*P'*rhs;
 
@@ -236,7 +273,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
+function [A, rhs] = imposeBC(A, rhs, G, S, bc, N, mu)
     
     nfn = diff(G.faces.nodePos);
     
@@ -248,7 +285,7 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
             g = bc.func{isNeu(i)};
             n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
             if G.griddim == 2
-                if k == 1
+                if S.order == 1
                     v = bsxfun(@times, bsxfun(@plus, ...
                                 reshape(g(G.nodes.coords(n,:)), 2, [])'/6, ...
                                 g(G.faces.centroids(f,:))/3), G.faces.areas(f));
@@ -278,7 +315,7 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
             g = bc.func{isDir(i)};
             n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
             n = unique(n);
-            if k == 1
+            if S.order == 1
                 dofVec = n;
                 rhs(dofVec) = g(G.nodes.coords(n,:));
 
@@ -313,7 +350,7 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
                 P = sparse(n, 1:numel(n), 1, N, numel(n));
                 vn = mu*rldecode(v, NF(f), 1);
                 
-                if k == 1
+                if S.order == 1
                     rhs = rhs + 1/2*P*vn;
                 else
                     rhs = rhs + 1/6*P*vn;
@@ -331,7 +368,7 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
                 n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
                 rhs(n) = rldecode(v, NF(f), 1);
 
-                if k == 1
+                if S.order == 1
                     dofVec = n;
                 else
                     rhs(f + G.nodes.num) = v;
@@ -352,10 +389,10 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
         n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
         v = bc.value(isNeu);
         
-        if k == 1
+        if S.order == 1
             
             PiNFstar = squeezeBlockDiag(S.PiNFstar, ...
-                         NF(G.cells.faces(:,1)), polyDim(k, G.griddim-1), ...
+                         NF(G.cells.faces(:,1)), polyDim(S.order, G.griddim-1), ...
                          sum(NF(G.cells.faces(:,1))));
             pos = [0; cumsum(NF)] + 1;
             v = mu*rldecode(v, NF(f), 1).*PiNFstar(1,mcolon(pos(f), pos(f+1)-1))';
@@ -370,7 +407,7 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
             
         else
             rhs(f + G.nodes.num + G.edges.num) = ...
-                rhs(f + G.nodes.num + G.edges.num) + mu*v;
+                                 rhs(f + G.nodes.num + G.edges.num) + mu*v;
         end
         
         
@@ -382,7 +419,7 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
 
         rhs(n) = rldecode(v, nfn(f), 1);
 
-        if k == 1
+        if S.order == 1
             dofVec = n;
         else
             e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
@@ -391,14 +428,85 @@ function [A, rhs] = imposeBC(G, S, bc, k, N, mu, A, rhs)
             dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
         end
 
-        I = spdiags(ones(N,1),0,N,N);
+        I = speye(N);
         A(dofVec,:) = I(dofVec, :);
         end
             
     end
 end
+
+function p = facePressure(state, G, S, f)
+     
+    if G.griddim == 2
+        
+        n = G.faces.nodes(mcolon(G.faces.nodePos(f),G.faces.nodePos(f+1)-1));
+        [ii, jj] = blockDiagIndex(ones(numel(f),1), 2*ones(numel(f),1));
+        p = 1/2*sparse(ii, jj, 1)*state.nodePressure(n);
+
+    else
+        
+        cf = G.cells.faces(:,1);
+        nfn = diff(G.faces.nodePos);
+        c = squeezeBlockDiag(S.PiNFstar, nfn(cf),...
+              polyDim(S.order, G.griddim-1), sum(cf));
+        [ii, jj] = blockDiagIndex(ones(numel(cf),1), nfn(cf));
+        c = sparse(ii,jj,c(1,:));
+        [~,J, ~] = unique(cf);
+        c = c(J,:);
+        c = c(:, sum(abs(c),1) ~= 0);
+        c = squeezeBlockDiag(c, nfn, 1, sum(nfn))'; 
+        pos = [0; cumsum(nfn)] +1;
+        c = c(mcolon(pos(f), pos(f+1)-1)); 
+
+        ii = rldecode((1:numel(f))', nfn(f), 1);
+        jj = 1:sum(nfn(f));
+        I = sparse(ii,jj,1);
+        e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+        n = G.edges.nodes(mcolon(G.edges.nodePos(e),G.edges.nodePos(e+1)-1));
+        n = reshape(n, 2, [])';
+        n(G.faces.edgeSign(f) == -1,:) = n(G.faces.edgeSign(f) == -1, 2:-1:1);
+        n = n(:,1);
+        p = full(I*(c.*state.nodePressure(n)));
+
+    end
+end
+
+function p = cellPressure(state, G, S)
+    
+    ncn = diff(G.cells.nodePos);
+    c = squeezeBlockDiag(S.PiNstar, ncn, polyDim(S.order, G.griddim), sum(ncn));
+    c = c(1,:)';
+    ii = rldecode((1:G.cells.num)', ncn, 1);
+    jj = 1:numel(G.cells.nodes);
+    I = sparse(ii,jj,1);
+    p = full(I*(c.*state.nodePressure(G.cells.nodes)));
+    
+end
+
 %--------------------------------------------------------------------------
 
+function flux = computeFlux(state, G, S)
+    
+    f  = any(G.faces.neighbors == 0,2);
+    
+    ii = [(1:G.cells.num)'; G.cells.num + find(f)];
+    p = [state.pressure; state.facePressure(f)];
+    flux = cellFlux2faceFlux(G, S.T.T(:, ii) * p);
+
+end
+
+%--------------------------------------------------------------------------
+
+function totmob = dynamic_quantities(state, fluid)
+
+   [mu, ~] = fluid.properties(state);
+   s       = fluid.saturation(state);
+   kr      = fluid.relperm(s, state);
+   
+   mob    = bsxfun(@rdivide, kr, mu);
+   totmob = sum(mob, 2);
+
+end
 
 %--------------------------------------------------------------------------
 

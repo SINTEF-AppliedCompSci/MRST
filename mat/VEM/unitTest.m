@@ -10,6 +10,7 @@ tic
 G = computeVEMGeometry(unitSquare([10,10],[1,1]));
 
 rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
+mu = 1*centi*poise;
 fluid      = initSingleFluid('mu' , 1*centi*poise, ...
                              'rho', 1000*kilogram/meter^3);
 state = initState(G, [], 0);
@@ -25,8 +26,8 @@ bc = addBCVEM(bc, bf( e), 'flux'    , gN);
 S = computeVirtualIP(G, rock, 1);
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 
-err = norm(state.nodePressure - gD(G.nodes.coords));
-fprintf('Error: \t %.2d.\t', err);
+errP = norm(state.nodePressure - gD(G.nodes.coords));
+fprintf('Pressure error: \t %.2d. \t', errP);
 
 toc;
 
@@ -48,17 +49,17 @@ gN = @(x) 2*rock.perm(1)*x(:,1);
 bf = boundaryFaces(G);
 e  = abs(G.faces.centroids(bf,1)-1) < tol;
 bc = addBCVEM([], bf(~e), 'pressure', gD);
-bc = addBCVEM(bc, bf( e), 'flux'    , gN);
+bc = addBCVEM(bc, bf( e), 'flux', gN);
 
 S = computeVirtualIP(G, rock, 2);
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 
 p = [gD(G.nodes.coords); gD(G.faces.centroids); ...
      polygonInt(G, 1:G.cells.num, gD, 2)./G.cells.volumes];
-P = [state.nodePressure; state.facePressure; state.cellPressure];
+P = [state.nodePressure; state.facePressure; state.pressure];
 
-err = norm(p-P);
-fprintf('Error: \t %.2d.\t', err);
+errP = norm(p-P);
+fprintf('Pressure error: \t %.2d. \t', errP);
 
 toc;
 
@@ -79,11 +80,12 @@ gD = @(x) x(:,1) + x(:,2) + x(:,3);
 bf = boundaryFaces(G);
 bc = addBCVEM([], bf, 'pressure', gD);
 
-S = computeVirtualIP(G, rock, 1);
+S = computeVirtualIP(G, rock, 1, 'trans', true);
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 
-err = norm(state.nodePressure - gD(G.nodes.coords));
-fprintf('Error: \t %.2d.\t', err);
+errP = norm(state.nodePressure - gD(G.nodes.coords));
+
+fprintf('Pressure error: \t %.2d. \t', errP);
 
 toc;
 
@@ -95,26 +97,28 @@ tic
 
 G = computeVEMGeometry(voronoiCube(100,[1,1,1]));
 
-gD = @(x) x(:,1).^2 - x(:,2).^2;
-
-bf = boundaryFaces(G);
-bc = addBCVEM([], bf, 'pressure', gD);
-
-rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
+K = 100*milli*darcy*rand(1,3);
+rock.perm = repmat(K, [G.cells.num,1]);
 fluid      = initSingleFluid('mu' , 1*centi*poise, ...
                              'rho', 1000*kilogram/meter^3);
 state = initState(G, [], 0);
 
-S = computeVirtualIP(G, rock, 2);
+gD = @(x) x(:,1).^2 - K(1)/K(2)*x(:,2).^2;
+
+bf = boundaryFaces(G);
+bc = addBCVEM([], bf, 'pressure', gD);
+
+S = computeVirtualIP(G, rock, 2, 'trans', false);
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 
 p = [gD(G.nodes.coords); gD(G.edges.centroids); ...
      polygonInt3D(G, 1:G.faces.num, gD, 2)./G.faces.areas; ...
      polyhedronInt(G, 1:G.cells.num, gD, 2)./G.cells.volumes];
-P = [state.nodePressure; state.edgePressure; state.facePressure; state.cellPressure];
+P = [state.nodePressure; state.edgePressure; state.facePressure; state.pressure];
 
-err = norm(p-P);
-fprintf('Error: \t %.2d.\t', err);
+errP = norm(p-P);
+
+fprintf('Pressure error: \t %.2d. \t', errP);
 
 toc;
 

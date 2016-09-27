@@ -3,7 +3,8 @@ function S = computeVirtualIP(G, rock, k, varargin)
 %%  MERGE INPUT PARAMETRES                                               %%
 
 opt = struct('innerProduct', 'ip_simple', ...
-             'sigma'       , []              );
+             'sigma'       , []         , ...
+             'trans'       , true            );
 opt = merge_options(opt, varargin{:});
 
 %%  CFUNCTION SPACE DIMENSIONS
@@ -86,6 +87,14 @@ else
     n = n(:,1);
 end
 
+%%  CALCULATE MULTIPOINT TRANSMISSIBILITY FOR FLUX CALCULATIONS          %%
+
+if opt.trans
+    T = computeMultiPointTrans(G, rock);
+else
+    T = [];
+end
+
 if G.griddim == 2
 
     %%  CALCULATE LOCAL STIFFNESS MATRICES FOR EACH CELL
@@ -122,7 +131,7 @@ if G.griddim == 2
     A = PiNstar'*M*PiNstar + (I-PiN)'*SS*(I-PiN);
 
     %   Make solution struct.
-    S = makeSolutionStruct(G, NP, k, A, PiNstar, [], [], []);
+    S = makeSolutionStruct(G, NP, k, A, T, PiNstar, [], [], []);
     
 else
     
@@ -137,11 +146,10 @@ else
     Kmat = rldecode(K, diff(G.cells.facePos), 1); Kmat = Kmat';
     [ii,jj] = blockDiagIndex(repmat(3,[size(Kmat,2), 1]));
     Kmat = sparse(ii, jj, Kmat(:));
-    T = [v1', v2']; T = T(f,:);
-    [ii, jj] = blockDiagIndex(repmat(3,[size(T,1),1]),repmat(2,[size(T,1),1]));
-    T = T';
-    T = sparse(ii, jj, T(:));
-    Kmat = squeezeBlockDiag(T'*Kmat*T, repmat(2, [numel(f), 1]), 2*numel(f), 2);
+    F = [v1; v2]; F = F(:,f);
+    [ii, jj] = blockDiagIndex(3*ones(numel(f),1), 2*ones(numel(f),1));
+    F = sparse(ii, jj, F(:));
+    Kmat = squeezeBlockDiag(F'*Kmat*F, repmat(2, [numel(f), 1]), 2*numel(f), 2);
       
     %   Coordinates for degrees of freedom. 
     iin = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
@@ -187,11 +195,11 @@ else
  
     [jj, ii] = blockDiagIndex(3*ones(numel(f),1), nfn(f));
     x = (G.nodes.coords(n,:)-fc)'     ; x = sparse(ii, jj, x(:));
-    x   = squeezeBlockDiag(x*T, nfn(f), sum(nfn(f)), 2);
+    x   = squeezeBlockDiag(x*F, nfn(f), sum(nfn(f)), 2);
     ec  = (G.edges.centroids(e,:)-fc)'; ec  = sparse(ii, jj, ec(:));
-    ec  = squeezeBlockDiag(ec*T, nfn(f), sum(nfn(f)), 2);
+    ec  = squeezeBlockDiag(ec*F, nfn(f), sum(nfn(f)), 2);
     en  = en'                         ; en  = sparse(ii, jj, en(:));
-    en  = squeezeBlockDiag(en*T, nfn(f), sum(nfn(f)), 2);
+    en  = squeezeBlockDiag(en*F, nfn(f), sum(nfn(f)), 2);
     enx = en(:,1).*G.edges.lengths(e);
 
     if k == 1
@@ -382,10 +390,10 @@ else
         [jj, ii] = blockDiagIndex(3*ones(numel(f),1), nfn(f));
         
         xq1 = (xq1(e,:)-fc)'     ; xq1 = sparse(ii, jj, xq1(:));
-        xq1 = squeezeBlockDiag(xq1*T, nfn(f), sum(nfn(f)), 2);
+        xq1 = squeezeBlockDiag(xq1*F, nfn(f), sum(nfn(f)), 2);
         
         xq2 = (xq2(e,:)-fc)'     ; xq2 = sparse(ii, jj, xq2(:));
-        xq2 = squeezeBlockDiag(xq2*T, nfn(f), sum(nfn(f)), 2);
+        xq2 = squeezeBlockDiag(xq2*F, nfn(f), sum(nfn(f)), 2);
         
         %   Integrate each monomial over each edge of each face of each
         %   cell.
@@ -686,7 +694,7 @@ else
     A = PiNstar'*M*PiNstar + (I-PiN)'*SS*(I-PiN);
 
     %   Make solution struct.
-    S = makeSolutionStruct(G, NP, k, A, PiNstar, PiNFstar, v1, v2);
+    S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2);
     
 end
 
@@ -943,7 +951,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function S = makeSolutionStruct(G, NP, k, A, PiNstar, PiNFstar, v1, v2)
+function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2)
 %   Make solution struct.
 
     ncn = diff(G.cells.nodePos);
@@ -989,6 +997,7 @@ function S = makeSolutionStruct(G, NP, k, A, PiNstar, PiNFstar, v1, v2)
     end
     
     S.A          = A;
+    S.T          = T;
     S.dofVec     = dofVec;
     S.PiNstar    = PiNstar;
     S.PiNFstar   = PiNFstar;
@@ -1067,6 +1076,17 @@ function [alpha, beta, gamma] = retrieveMonomials(k, dim)
 end
            
 %--------------------------------------------------------------------------
+
+function totmob = dynamic_quantities(state, fluid)
+
+   [mu, ~] = fluid.properties(state);
+   s       = fluid.saturation(state);
+   kr      = fluid.relperm(s, state);
+   
+   mob    = bsxfun(@rdivide, kr, mu);
+   totmob = sum(mob, 2);
+
+end
 
 function nk = polyDim(k, dim)
 %   Calculates the dimension of the space of polynomials of degree less
