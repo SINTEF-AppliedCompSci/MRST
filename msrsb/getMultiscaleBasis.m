@@ -125,6 +125,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 b = constructLocalMSFVBasis(CG, DG, A);
                 B = b.B;
             end
+        case 'constant'
+            B = controlVolumeRestriction(CG.partition)';
         otherwise
             error('Unknown basis function type')
     end
