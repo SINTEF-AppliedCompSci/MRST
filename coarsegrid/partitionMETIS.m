@@ -1,4 +1,4 @@
-    function p = partitionMETIS(G, T, n, varargin)
+function p = partitionMETIS(G, T, n, varargin)
 %Partition grid according to connection strengths
 %
 % SYNOPSIS:
