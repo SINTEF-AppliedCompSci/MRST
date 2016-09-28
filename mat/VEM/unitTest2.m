@@ -1,11 +1,9 @@
 require mimetic
 
-clc; clear; close all;
+clear; close all;
 tol = 1e-6;
 
 %%  2D 1ST AND 2ND ORDER
-
-fprintf('2D test ... \n')
 
 G = computeVEMGeometry(unitSquare([10,10],[1,1]));
 
@@ -42,7 +40,7 @@ stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src);
 
 pErr = norm(stateVEM.pressure - stateMFD.pressure)/norm(stateMFD.pressure);
 fErr = norm(stateVEM.flux - stateMFD.flux)/norm(stateMFD.flux);
-fprintf('1st order: \t pressure error: \t %5.2f %%\t', pErr*100);
+fprintf('2D 1st order: \t pressure error: \t %5.2f %%\t', pErr*100);
 fprintf('flux error: \t %5.2f%%\t ', fErr*100);
 
 toc
@@ -54,14 +52,12 @@ stateVEM = incompVEM    (state, G, S, fluid, 'bc', bc, 'src', src);
 
 pErr = norm(stateVEM.pressure - stateMFD.pressure)/norm(stateMFD.pressure);
 fErr = norm(stateVEM.flux - stateMFD.flux)/norm(stateMFD.flux);
-fprintf('1st order: \t pressure error: \t %5.2f %%\t', pErr*100);
+fprintf('2D 2nd order: \t pressure error: \t %5.2f %%\t', pErr*100);
 fprintf('flux error: \t %5.2f%%\t ', fErr*100);
 
 toc
 
 %%  3D 1ST AND 2ND ORDER
-
-fprintf('3D tests... \n')
 
 G = computeVEMGeometry(voronoiCube(500,[1,1,1]));
 
@@ -107,7 +103,7 @@ stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src);
 
 pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));
 fErr = norm(stateVEM.flux - stateMFD.flux)/norm(stateMFD.flux);
-fprintf('1st order: \t pressure error: \t %5.2f %%\t', pErr*100);
+fprintf('3D 1st order: \t pressure error: \t %5.2f %%\t', pErr*100);
 fprintf('flux error: \t %5.2f%%\t ', fErr*100);
 
 toc
@@ -119,7 +115,7 @@ stateVEM = incompVEM    (state, G, S, fluid, 'bc', bc, 'src', src);
 
 pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));
 fErr = norm(stateVEM.flux - stateMFD.flux)/norm(stateMFD.flux);
-fprintf('1st order: \t pressure error: \t %5.2f %%\t', pErr*100);
+fprintf('3D 2nd order: \t pressure error: \t %5.2f %%\t', pErr*100);
 fprintf('flux error: \t %5.2f%%\t ', fErr*100);
 
 toc

@@ -1,9 +1,9 @@
-clc; clear; close all;
+clear; close all;
 tol = 1e-6;
 
 %%  2D 1ST ORDER
 
-fprintf('Test 1 of 4, 2D 1st order ... ')
+fprintf('2D 1st order: ')
 
 tic
 
@@ -33,7 +33,7 @@ toc;
 
 %%  2D 2ND ORDER
 
-fprintf('Test 2 of 4, 2D 2nd order ... ')
+fprintf('2D 2nd order: ')
 
 tic
 
@@ -65,7 +65,7 @@ toc;
 
 %%  3D 1ST ORDER
 
-fprintf('Test 3 of 4, 3D 1st order ... ')
+fprintf('3D 1st order: ')
 
 tic
 
@@ -91,7 +91,7 @@ toc;
 
 %%  3D 2ND ORDER
 
-fprintf('Test 4 of 4, 3D 2nd order ... ')
+fprintf('3D 2nd order: ')
 
 tic
 

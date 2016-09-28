@@ -79,6 +79,7 @@ opt = struct('bc'             , []       , ...
              'src'            , []       , ...
              'facePressure'   , false    , ...
              'cellPressure'   , false    , ...
+             'conservativeFlux', false, ...
              'linSolve'       , @mldivide, ...
              'matrixOutput'   , false         );
              
@@ -100,35 +101,9 @@ N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
 
 %%  ASSEMBLE GLOBAL MATRIX AND COMPUTE RIGHT-HAND SIDE                   %%
 
-% [A, rhs] = assembleSystem(state, G, S, fluid, opt);
-% 
-[A, rhs] = glob(G, S, opt.src, N, mu);
-
-pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
-
-if ~isempty(opt.bc)
-    [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N, mu);
-end
-
-if ~pressure_bc
-  if S.order == 1
-      n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
-      i = n(1);
-  else
-      if G.griddim == 2  
-          i = G.nodes.num + G.faces.num + 1;
-      else
-          i = G.nodes.num + G.edges.num + G.faces.num + 1;
-      end
-  end
-    A(i,i) = 2*A(i,i); 
-end
+[A, rhs] = assembleSystem(state, G, S, fluid, opt);
 
 %%  SOLVE LINEAR SYSTEM                                                  %%
-
-% [ii, jj, A] = find(A);
-% u = ii > jj; d = ii == jj;
-% A = sparse(ii(u), jj(u) , A(u), N, N) + sparse(jj(u), ii(u), A(u), N,N) + sparse(ii(d), jj(d), A(d), N,N); 
 
 p = opt.linSolve(A, rhs);
 
@@ -172,7 +147,10 @@ if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
 end
     
 if ~isempty(S.T)
-    state.flux = computeFlux(state, G, S)/mu;
+    state.flux = computeFlux(state, G, S, opt.bc, mu)/mu;
+    if opt.conservativeFlux
+        state.flux = conserveFlux(state, G, opt.bc);
+    end
 end
 
 if opt.matrixOutput
@@ -188,11 +166,13 @@ if G.griddim == 2
     G.edges.num = 0;
 end
 
+[mu, rho] = fluid.properties();
+
 N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
                 + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
                 + G.cells.num*polyDim(S.order - 2, G.griddim    );
 
-    [A, rhs] = glob(G, S, opt.src, N, 1);
+    [A, rhs] = glob(G, S, opt.src, N, mu);
 
 %     totmob = dynamic_quantities(state, fluid);
 %     
@@ -217,7 +197,7 @@ N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
     pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
 
     if ~isempty(opt.bc)
-        [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N, 1);
+        [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N, mu);
     end
 
     if ~pressure_bc
@@ -449,25 +429,26 @@ function p = facePressure(state, G, S, f)
         nfn = diff(G.faces.nodePos);
         c = squeezeBlockDiag(S.PiNFstar, nfn(cf),...
               polyDim(S.order, G.griddim-1), sum(cf));
-        [ii, jj] = blockDiagIndex(ones(numel(cf),1), nfn(cf));
-        c = sparse(ii,jj,c(1,:));
-        [~,J, ~] = unique(cf);
-        c = c(J,:);
-        c = c(:, sum(abs(c),1) ~= 0);
-        c = squeezeBlockDiag(c, nfn, 1, sum(nfn))'; 
-        pos = [0; cumsum(nfn)] +1;
-        c = c(mcolon(pos(f), pos(f+1)-1)); 
+        c = c(1,:)';
 
-        ii = rldecode((1:numel(f))', nfn(f), 1);
-        jj = 1:sum(nfn(f));
+        ii = rldecode((1:numel(cf))', nfn(cf), 1);
+        jj = 1:sum(nfn(cf));
         I = sparse(ii,jj,1);
-        e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
+                
+        e = G.faces.edges(mcolon(G.faces.edgePos(cf), G.faces.edgePos(cf+1)-1));
         n = G.edges.nodes(mcolon(G.edges.nodePos(e),G.edges.nodePos(e+1)-1));
         n = reshape(n, 2, [])';
         n(G.faces.edgeSign(f) == -1,:) = n(G.faces.edgeSign(f) == -1, 2:-1:1);
         n = n(:,1);
+        
         p = full(I*(c.*state.nodePressure(n)));
-
+        
+        ii = cf;
+        jj = 1:numel(cf);
+        I = sparse(ii, jj, 1);
+        p = I*p./sum(I,2);        
+        p = p(f);
+        
     end
 end
 
@@ -485,14 +466,86 @@ end
 
 %--------------------------------------------------------------------------
 
-function flux = computeFlux(state, G, S)
+function flux = computeFlux(state, G, S, bc, mu)
     
-    f  = any(G.faces.neighbors == 0,2);
+    bf = boundaryFaces(G);
     
-    ii = [(1:G.cells.num)'; G.cells.num + find(f)];
-    p = [state.pressure; state.facePressure(f)];
+    ii = [(1:G.cells.num)'; G.cells.num + bf];
+    p = [state.pressure; state.facePressure(bf)];
     flux = cellFlux2faceFlux(G, S.T.T(:, ii) * p);
+    
+    if ~isfield(bc, 'func')
+    
+        isNeu = strcmp(bc.type, 'flux');
+        f = bc.face(isNeu);
+        flux(f) = bc.value(isNeu)*mu;
 
+    end
+
+end
+
+function flux = conserveFlux(state, G, bc)
+
+f = G.cells.faces(:,1);
+ncf = diff(G.cells.facePos);
+fSgn = 1 - 2*(G.faces.neighbors(f,1) ~= rldecode((1:G.cells.num)', ncf,1));
+
+[ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
+r = -sparse(ii,jj,1)*(stateVEM.flux(f).*fSgn);
+
+if norm(r) > 1e-15
+
+    ncf = diff(G.cells.facePos);
+
+    fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f));
+    delta = (fn*K)';
+    [ii, jj] = blockDiagIndex(3*ones(numel(f),1), ones(numel(f),1));
+    delta = sparse(ii,jj,delta(:));
+
+    fn = fn';
+    fn = sparse(ii,jj,fn(:));
+    delta = fn'*delta;
+    delta = delta*ones(size(delta,1),1);
+
+    ii = f;
+    jj = (1:numel(f))';
+    P = sparse(ii, jj,1);
+    omega = P*delta;
+
+    for i = 1:G.faces.num
+        d = delta(f == i);
+        omega(i) = omega(i)/(numel(d)*prod(d));
+    end
+
+    B = zeros(G.cells.num, G.cells.num);
+
+    for i = 1:G.cells.num
+        fi = G.cells.faces(G.cells.facePos(i):G.cells.facePos(i+1)-1);
+        for j = 1:G.cells.num
+            fj = G.cells.faces(G.cells.facePos(j):G.cells.facePos(j+1)-1);
+            ff = fi(ismember(fi, fj));
+            ffSgn = 1-2*(G.faces.neighbors(ff,1) ~= i);
+            B(i,j) = -sum(1./omega(ff).*G.faces.areas(ff).*ffSgn);
+        end
+    end
+
+    beta = B\r;
+    beta = rldecode(beta, ncf,1);
+    I = sparse(f, 1:numel(f), 1);
+    beta = I*beta.*G.faces.areas;
+
+    flux = stateVEM.flux - 1./omega.*beta;
+
+    [ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
+    r = -sparse(ii,jj,1)*(stateVEM.flux(f).*fSgn);
+    if norm(r)/norm(flux) > 1e-15;
+        warning('Could not construct conservative flux field');
+    end
+
+else
+    flux = state.flux;
+end
+    
 end
 
 %--------------------------------------------------------------------------
