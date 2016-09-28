@@ -1,4 +1,4 @@
-function [p_ms, report] = solveMultiscaleIteratively(A, q, basis, getSmootherFn, tol, iterations, LinSolve, useGMRES, verbose)
+function [p_ms, report] = solveMultiscaleIteratively(A, q, p_ms, basis, getSmootherFn, tol, iterations, LinSolve, useGMRES, verbose)
 %Apply iterations to a multiscale problem
 %
 % SYNOPSIS:
@@ -49,11 +49,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    if nargin < 9
+    if nargin < 10
         verbose = mrstVerbose();
-        if nargin < 8
+        if nargin < 9
             useGMRES = false;
-            if nargin < 7
+            if nargin < 8
                 LinSolve = @(A, b) mldivide(A, b);
             end
         end
@@ -64,7 +64,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     A_c = R*A*B;    
     mssolver = @(d) B*LinSolve(A_c, (R*d));
     
-    p_ms = mssolver(q);
+    if isempty(p_ms)
+        p_ms = mssolver(q);
+    end
     
     if iterations > 0
         assert(~isempty(getSmootherFn), 'Need smoother function if iterations are to be used');
