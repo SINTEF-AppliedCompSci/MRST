@@ -3,8 +3,6 @@ tol = 1e-6;
 
 %%  2D 1ST ORDER
 
-fprintf('2D 1st order: ')
-
 tic
 
 G = computeVEMGeometry(unitSquare([10,10],[1,1]));
@@ -27,13 +25,11 @@ S = computeVirtualIP(G, rock, 1);
 state = incompVEM(state, G, S, fluid, 'bc', bc);
 
 errP = norm(state.nodePressure - gD(G.nodes.coords));
-fprintf('Pressure error: \t %.2d. \t', errP);
+fprintf('2D 1st order: \t Pressure error: \t %.2d. \t', errP);
 
 toc;
 
 %%  2D 2ND ORDER
-
-fprintf('2D 2nd order: ')
 
 tic
 
@@ -59,13 +55,11 @@ p = [gD(G.nodes.coords); gD(G.faces.centroids); ...
 P = [state.nodePressure; state.facePressure; state.pressure];
 
 errP = norm(p-P);
-fprintf('Pressure error: \t %.2d. \t', errP);
+fprintf('2D 2nd order: \t Pressure error: \t %.2d. \t', errP);
 
 toc;
 
 %%  3D 1ST ORDER
-
-fprintf('3D 1st order: ')
 
 tic
 
@@ -85,13 +79,11 @@ state = incompVEM(state, G, S, fluid, 'bc', bc);
 
 errP = norm(state.nodePressure - gD(G.nodes.coords));
 
-fprintf('Pressure error: \t %.2d. \t', errP);
+fprintf('3D 1st order:\t Pressure error: \t %.2d. \t', errP);
 
 toc;
 
 %%  3D 2ND ORDER
-
-fprintf('3D 2nd order: ')
 
 tic
 
@@ -118,7 +110,7 @@ P = [state.nodePressure; state.edgePressure; state.facePressure; state.pressure]
 
 errP = norm(p-P);
 
-fprintf('Pressure error: \t %.2d. \t', errP);
+fprintf('3D 2nd order:\t Pressure error: \t %.2d. \t', errP);
 
 toc;
 

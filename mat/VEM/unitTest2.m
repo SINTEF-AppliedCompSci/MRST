@@ -25,7 +25,7 @@ e  = abs(G.faces.centroids(bf,1)-1) < tol;
 bc = addBC([], bf(~e), 'pressure', 0);
 bc = addBC(bc, bf( e), 'flux'    , -Q*G.faces.areas(bf(e))/(sum(G.faces.areas(bf(e)))));
 
-C = [.25,.5];
+C = [.5,.5];
 d = sum(bsxfun(@minus, G.cells.centroids, C).^2,2);
 srcCell = find(d == min(d));
 src = addSource([], srcCell(1), Q);
@@ -33,12 +33,15 @@ src = addSource([], srcCell(1), Q);
 S = computeMimeticIP(G, rock);
 stateMFD = incompMimetic(state, G, S, fluid, 'bc', bc, 'src', src);
 
+tr = sum(bsxfun(@minus, G.cells.centroids, C).^2,2) > 1*G.cells.diameters(srcCell(1))^2;
+
 tic
+
 
 S = computeVirtualIP(G, rock, 1);
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src);
 
-pErr = norm(stateVEM.pressure - stateMFD.pressure)/norm(stateMFD.pressure);
+pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));
 fErr = norm(stateVEM.flux - stateMFD.flux)/norm(stateMFD.flux);
 fprintf('2D 1st order: \t pressure error: \t %5.2f %%\t', pErr*100);
 fprintf('flux error: \t %5.2f%%\t ', fErr*100);
@@ -48,9 +51,9 @@ toc
 tic
 
 S = computeVirtualIP(G, rock, 2);
-stateVEM = incompVEM    (state, G, S, fluid, 'bc', bc, 'src', src);
+stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src, 'conservativeFlux', true);
 
-pErr = norm(stateVEM.pressure - stateMFD.pressure)/norm(stateMFD.pressure);
+pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));
 fErr = norm(stateVEM.flux - stateMFD.flux)/norm(stateMFD.flux);
 fprintf('2D 2nd order: \t pressure error: \t %5.2f %%\t', pErr*100);
 fprintf('flux error: \t %5.2f%%\t ', fErr*100);
@@ -59,7 +62,7 @@ toc
 
 %%  3D 1ST AND 2ND ORDER
 
-G = computeVEMGeometry(voronoiCube(500,[1,1,1]));
+G = computeVEMGeometry(voronoiCube(200,[1,1,1]));
 
 rot = @(theta, eta, psi) [1 0 0; 0 cos(theta), -sin(theta); 0 sin(theta) cos(theta)]...
                         *[cos(eta) 0 sin(eta); 0 1 0; -sin(eta) 0 cos(eta)         ]...
@@ -94,7 +97,7 @@ C = G.cells.centroids(srcCell(1),:);
 S = computeMimeticIP(G, rock);
 stateMFD = incompMimetic(state, G, S, fluid, 'bc', bc, 'src', src);
 
-tr = sum(bsxfun(@minus, G.cells.centroids, C).^2,2) > 2*G.cells.diameters(srcCell(1))^2;
+tr = sum(bsxfun(@minus, G.cells.centroids, C).^2,2) > 1*G.cells.diameters(srcCell(1))^2;
 
 tic
 

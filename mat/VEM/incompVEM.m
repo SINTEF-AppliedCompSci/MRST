@@ -73,31 +73,30 @@ function state = incompVEM(state, G, S, fluid, varargin)
    for details.
 %}
 
-%%  MERGE INPUT PARAMETRES                                               %%
+%   Merge input parameters
 
-opt = struct('bc'             , []       , ...
-             'src'            , []       , ...
-             'facePressure'   , false    , ...
-             'cellPressure'   , false    , ...
-             'conservativeFlux', false, ...
-             'linSolve'       , @mldivide, ...
-             'matrixOutput'   , false         );
+opt = struct('bc'              , []       , ...
+             'src'             , []       , ...
+             'facePressure'    , false    , ...
+             'cellPressure'    , false    , ...
+             'conservativeFlux', false    , ...
+             'linSolve'        , @mldivide, ...
+             'matrixOutput'    , false         );
              
 opt = merge_options(opt, varargin{:});
 
-%%  CHECK CORRECTNESS OF INPUT                                           %%
+%   Check options
 
 assert(G.griddim == 2 || G.griddim == 3, 'Physical dimension must be 2 or 3.');
 
-if G.griddim == 2
-    G.edges.num = 0;
-end
-
-N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
-                + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
-                + G.cells.num*polyDim(S.order - 2, G.griddim    );
-
-[mu, rho] = fluid.properties();
+% %   
+% if G.griddim == 2
+%     G.edges.num = 0;
+% end
+% 
+% N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
+%                 + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
+%                 + G.cells.num*polyDim(S.order - 2, G.griddim    );
 
 %%  ASSEMBLE GLOBAL MATRIX AND COMPUTE RIGHT-HAND SIDE                   %%
 
@@ -107,56 +106,11 @@ N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
 
 p = opt.linSolve(A, rhs);
 
-gvec = gravity();
-if G.griddim == 3
-    if S.order == 1
-        pot = rho*gvec(3)*G.nodes.coords(:,3);
-    else
-        pot = rho*gvec(3)*[G.nodes.coords(:,3)   ; G.edges.centroids(:,3); ...
-                           G.faces.centroids(:,3); G.cells.centroids(:,3)];
-    end
-    p = p-pot;
-end
+% p = addGravity(p, G);
 
+state = packSolution(state, p, G, S, fluid, opt);
 %%  UPDATE PRESSURE STATE                                                %%
 
-state.nodePressure ...
-               = full(p(1:G.nodes.num));
-state.edgePressure ...
-               = full(p((1:G.edges.num*polyDim(S.order-2, G.griddim-2)) ...
-                           + G.nodes.num));
-state.facePressure ...
-               = full(p((1:G.faces.num*polyDim(S.order-2, G.griddim-1)) ...
-                           + G.nodes.num ...
-                           + G.edges.num*polyDim(S.order-2, G.griddim-2)));
-state.pressure     ...
-               = full(p((1:G.cells.num*polyDim(S.order-2, G.griddim  )) ...
-                           + G.nodes.num ...
-                           + G.edges.num*polyDim(S.order-2, G.griddim-2)...
-                           + G.faces.num*polyDim(S.order-2, G.griddim-1)));
-                       
-if opt.facePressure
-    state.facePressure = facePressure(state, G, S, 1:G.faces.num);
-end
-
-if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
-    state.pressure = cellPressure(state, G, S);
-    if isempty(state.facePressure)
-        state.facePressure(boundaryFaces(G)) = facePressure(state, G, S, boundaryFaces(G));
-    end
-end
-    
-if ~isempty(S.T)
-    state.flux = computeFlux(state, G, S, opt.bc, mu)/mu;
-    if opt.conservativeFlux
-        state.flux = conserveFlux(state, G, opt.bc);
-    end
-end
-
-if opt.matrixOutput
-    state.A   = A;
-    state.rhs = rhs;
-end
 
 end
 
@@ -467,77 +421,83 @@ end
 %--------------------------------------------------------------------------
 
 function flux = computeFlux(state, G, S, bc, mu)
-    
+
     bf = boundaryFaces(G);
     
     ii = [(1:G.cells.num)'; G.cells.num + bf];
     p = [state.pressure; state.facePressure(bf)];
-    flux = cellFlux2faceFlux(G, S.T.T(:, ii) * p);
+    flux = cellFlux2faceFlux(G, S.T.T(:, ii) * p)/mu;
     
     if ~isfield(bc, 'func')
-    
+        
         isNeu = strcmp(bc.type, 'flux');
         f = bc.face(isNeu);
-        flux(f) = bc.value(isNeu)*mu;
+        fSgn  = - 1 + 2*(G.faces.neighbors(f,2) ~= 0);
+        flux(f) = bc.value(isNeu).*fSgn;
 
     end
 
 end
 
-function flux = conserveFlux(state, G, bc)
+function flux = conserveFluxxx(state, G, src)
 
 f = G.cells.faces(:,1);
 ncf = diff(G.cells.facePos);
 fSgn = 1 - 2*(G.faces.neighbors(f,1) ~= rldecode((1:G.cells.num)', ncf,1));
 
 [ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
-r = -sparse(ii,jj,1)*(stateVEM.flux(f).*fSgn);
+P = sparse(ii, jj, 1);
+if ~isempty(src)
+    rhs = sparse(src.cell, ones(numel(src.cell),1), src.rate, G.cells.num, 1);
+else
+    rhs = zeros(G.cells.num,1);
+end
+r = rhs-P*(state.flux(f).*fSgn);
 
-if norm(r) > 1e-15
+if norm(r)/norm(state.flux) > 1e-15
 
-    ncf = diff(G.cells.facePos);
+%     fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f));
+%     delta = (fn*K)';
+%     [ii, jj] = blockDiagIndex(3*ones(numel(f),1), ones(numel(f),1));
+%     delta = sparse(ii,jj,delta(:));
+% 
+%     fn = fn';
+%     fn = sparse(ii,jj,fn(:));
+%     delta = fn'*delta;
+%     delta = delta*ones(size(delta,1),1);
+% 
+%     ii = f;
+%     jj = (1:numel(f))';
+%     P = sparse(ii, jj,1);
+%     omega = P*delta;
+% 
+%     for i = 1:G.faces.num
+%         d = delta(f == i);
+%         omega(i) = omega(i)/(numel(d)*prod(d));
+%     end
+    
+    omega = ones(G.faces.num,1);
 
-    fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f));
-    delta = (fn*K)';
-    [ii, jj] = blockDiagIndex(3*ones(numel(f),1), ones(numel(f),1));
-    delta = sparse(ii,jj,delta(:));
+    c = G.faces.neighbors(f,:);
+    c(fSgn == -1,:) = c(fSgn == -1, 2:-1:1);
+    c = c(:,2);
+    ii = rldecode((1:G.cells.num)', ncf,1);
+    nz = c~=0; ii = ii(nz); c = c(nz);
+    B = sparse(ii, c, -1./omega(f(nz)).*G.faces.areas(f(nz)).*fSgn(nz));
 
-    fn = fn';
-    fn = sparse(ii,jj,fn(:));
-    delta = fn'*delta;
-    delta = delta*ones(size(delta,1),1);
+    [ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
+    ca = sparse(ii,jj,1)*(1./omega(f).*G.faces.areas(f).*fSgn);
 
-    ii = f;
-    jj = (1:numel(f))';
-    P = sparse(ii, jj,1);
-    omega = P*delta;
-
-    for i = 1:G.faces.num
-        d = delta(f == i);
-        omega(i) = omega(i)/(numel(d)*prod(d));
-    end
-
-    B = zeros(G.cells.num, G.cells.num);
-
-    for i = 1:G.cells.num
-        fi = G.cells.faces(G.cells.facePos(i):G.cells.facePos(i+1)-1);
-        for j = 1:G.cells.num
-            fj = G.cells.faces(G.cells.facePos(j):G.cells.facePos(j+1)-1);
-            ff = fi(ismember(fi, fj));
-            ffSgn = 1-2*(G.faces.neighbors(ff,1) ~= i);
-            B(i,j) = -sum(1./omega(ff).*G.faces.areas(ff).*ffSgn);
-        end
-    end
+    B = B + sparse(1:G.cells.num, 1:G.cells.num, -ca);
 
     beta = B\r;
     beta = rldecode(beta, ncf,1);
     I = sparse(f, 1:numel(f), 1);
     beta = I*beta.*G.faces.areas;
 
-    flux = stateVEM.flux - 1./omega.*beta;
+    flux = state.flux - 1./omega.*beta;
 
-    [ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
-    r = -sparse(ii,jj,1)*(stateVEM.flux(f).*fSgn);
+    r = rhs-P*(flux(f).*fSgn);
     if norm(r)/norm(flux) > 1e-15;
         warning('Could not construct conservative flux field');
     end
@@ -546,6 +506,62 @@ else
     flux = state.flux;
 end
     
+end
+
+function state = packSolution(state, p, G, S, fluid, opt)
+
+[mu, rho] = fluid.properties();
+
+gvec = gravity();
+if G.griddim == 3
+    if S.order == 1
+        pot = rho*gvec(3)*G.nodes.coords(:,3);
+    else
+        pot = rho*gvec(3)*[G.nodes.coords(:,3)   ; G.edges.centroids(:,3); ...
+                           G.faces.centroids(:,3); G.cells.centroids(:,3)];
+    end
+    p = p-pot;
+end
+
+if G.griddim == 2
+    G.edges.num = 0;
+end
+
+state.nodePressure ...
+               = full(p(1:G.nodes.num));
+state.edgePressure ...
+               = full(p((1:G.edges.num*polyDim(S.order-2, G.griddim-2)) ...
+                           + G.nodes.num));
+state.facePressure ...
+               = full(p((1:G.faces.num*polyDim(S.order-2, G.griddim-1)) ...
+                           + G.nodes.num ...
+                           + G.edges.num*polyDim(S.order-2, G.griddim-2)));
+state.pressure     ...
+               = full(p((1:G.cells.num*polyDim(S.order-2, G.griddim  )) ...
+                           + G.nodes.num ...
+                           + G.edges.num*polyDim(S.order-2, G.griddim-2)...
+                           + G.faces.num*polyDim(S.order-2, G.griddim-1)));
+                       
+if opt.facePressure
+    state.facePressure = facePressure(state, G, S, 1:G.faces.num);
+end
+
+if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
+    state.pressure = cellPressure(state, G, S);
+    if isempty(state.facePressure)
+        state.facePressure(boundaryFaces(G)) = facePressure(state, G, S, boundaryFaces(G));
+    end
+end
+    
+if ~isempty(S.T)
+    state.flux = computeFlux(state, G, S, opt.bc, mu);
+end
+
+if opt.matrixOutput
+    state.A   = A;
+    state.rhs = rhs;
+end
+
 end
 
 %--------------------------------------------------------------------------
