@@ -1,4 +1,4 @@
-function G = voronoi2mrst(V, C, varargin)
+function G = voronoi2mrst(V, C)
 % Transform Voronoi diagram stored in a Qhull grid structure to a MRST grid
 % structure.
 %
