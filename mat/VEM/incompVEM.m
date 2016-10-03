@@ -1,80 +1,123 @@
 function state = incompVEM(state, G, S, fluid, varargin)
-%   Solves the 2D Poisson equation using a kth order virtual element
-%   method.
+%Solve incompressible flow problem (fluxes/pressures) using first or second
+%order virtual element method.
 %
-%   SYNOPSIS:
-%       [sol, varargout] = VEM2D(G, f, k, bc, varargin)
+% SYNOPSIS:
+%   state = incompVEM(state, G, S, fluid)
+%   state = incompVEM(state, G, S, fluid, 'pn1', pv1, ...)
 %
-%   DESCRIPTION:
-%       Solves the Poisson equation
+% DESCRIPTION:
+%   This function assembles and solves a set of linear equations defining
+%   the pressure at the nodes (first order), faces, edges and cells (second
+%   order) for the reservoir simulation problem defined by Darcy's law,
+%   sources and boundary conditions.
 %
-%           -\Delta u = f,
+% REQUIRED PARAMETERS:
+%   state  - Reservoir and well solution structure either properly
+%            initialized from function 'initState', or the results from a
+%            previous call to function 'incompVEM' and, possibly, a
+%            transport solver such as function 'explicitTransport'.
 %
-%       using the virtual element method of order k. See [1] for details.
+%   G, S   - Grid and (VEM) linear system data structures as defined by
+%            function 'computeVirtualIP'.
 %
-%   REQUIRED PARAMETERS:
-%       G          - 2D MRST grid, with sorted edges, G = sortEdges(G), and
-%                    computed VEM geometry, G = computeVEMGeometry(G).
-%       f          - Source term. Either a function handle, or a scalar. In
-%                    the latter case it is interpreted as a constant
-%                    function.
-%       k          - Method order. Supported orders are k = 1 and k = 2.
-%       bc         - Struct of boundary conditions constructed using
-%                    VEM2D_addBC.
+%   fluid  - Fluid data structure as described by 'fluid_structure'.
 %
-%   OPTIONAL PARAMETERS:
-%       sigma        - G.cells.num x nker matrix of constants for scaling
-%                      of the local load terms.
-%                      nker = \dim \ker \Pi^\nabla. See [1] for detail.
-%       src          - Source term struct constructed using addSource.
-%       projectors   - Boolean. If true, matrix representations
-%                      of \Pi^\nabla in the monomial basis \mathcal_k(K)
-%                      will be added to grid structure G.
-%       faceAverages - Boolean. If true, exact face averages of
-%                      approximated solution will be calculated
-%                      for 1st order VEM. Useful for countour plots.
-%       cellAverages - Boolean. If true, exact cell averages of
-%                      approximated solution will be calculated
-%                      for 1st order VEM. Useful for countour plots.
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   bc     - Boundary condition structure as defined by function 'addBC'.
+%            This structure accounts for all external boundary conditions
+%            to the reservoir flow.  May be empty (i.e., bc = []) which is
+%            interpreted as all external no-flow (homogeneous Neumann)
+%            conditions. Can also be a strucutre defined by the function
+%            'addBCFunc', wich allows for function handle boundary
+%            conditions for easy patch testing.
 %
-%   RETURNS:
-%       sol          - Solution struct. Contans the fileds
-%                           * nodeValues, values at the nodes.
-%                           * edgeValues, values at the edge
-%                             midpoints. Empty for k = 1.
-%                           * cellMoments, the first moment (avearge) over
-%                             each cell. Empty for k = 1 unless
-%                             cellAverages = true.
+%   src    - Explicit source contributions as defined by function
+%            'addSource'.  May be empty (i.e., src = []) which is
+%            interpreted as a reservoir model without explicit sources.
 %
-%   OPTIONAL RETURN VALUE:
-%       G            - If projectors = true or cellAverages = true, qrid
-%                      structure with projectors \Pi^\nabla in the
-%                      monomial basis \mathcal_k(K).
+%   facePressure -
+%            Whether or not to calculate face pressures if a first order
+%            method is used. Defalut value: facePressure = FALSE.
 %
-%   EXAMPLE:
-%   
-%       G    = cartGrid([10,10]);
-%       G    = sortEdges(G)
-%       G    = computeVEMGeometry(G);
-%       bEdg = find(any(G.faces.neighbors == 0,2));
-%       f    = @(X) X(:,1).^2 - X(:,2).^2;
-%       bc   = VEM2D_addBC([], boundaryEdges, 'pressure', 0);
-%       sol  = VEM2D(G,f,2,bc);
+%   cellPressure -
+%            Whether or not to calculate cell pressures if a first order
+%            method is used. Defalut value: cellPressure = FALSE.
 %
-%   REFERENCES:
-%       [1]     - Ø. S. Klemetsdal: 'The virtual element method as a common
-%                 framework for finite element and finite difference
-%                 methods - Numerical and theoretical analysis'. MA thesis.
-%                 Norwegian University of Science and Technology.
-%-----------------------------------------------------------------ØSK-2016-
+%   conservativeFlux - 
+%           Wheter or not to apply postprocessing to make the calculated
+%           flux field conservative in the local sense, necessary on order
+%           to use incompVEM in transport solvers. Defalut value:
+%           conservativeFlux = FALSE.
+%
+%   LinSolve -
+%            Handle to linear system solver software to which the fully
+%            assembled system of linear equations will be passed.  Assumed
+%            to support the syntax
+%
+%                        x = LinSolve(A, b)
+%
+%            in order to solve a system Ax=b of linear equations.
+%            Default value: LinSolve = @mldivide (backslash).
+%
+%   MatrixOutput -
+%            Whether or not to return the final system matrix 'A' to the
+%            caller of function 'incompMimetic'.
+%            Logical.  Default value: MatrixOutput = FALSE.
+%
+% RETURNS:
+%   state - Update reservoir and well solution structure with new values
+%           for the fields:
+%              - nodePressure -- Pressure values for all nodes in the
+%                                discretized resrvoir model, 'G'.
+%              - edgePressure -- If G.griddim = 3, pressure values for all
+%                                edges in the discretized resrvoir model,
+%                                'G'.
+%              - facePressure -- If G.griddim = 3, pressure values for all
+%                                faces in the discretized resrvoir model,
+%                                'G'.
+%              - pressure     -- Pressure values for all cells in the
+%                                discretised reservoir model, 'G'.
+%              - flux         -- Flux across global interfaces
+%                                corresponding to the rows of
+%                                'G.faces.neighbors'.
+%              - A        -- System matrix.  Only returned if specifically
+%                            requested by setting option 'MatrixOutput'.
+%
+%
+% NOTE:
+%   If there are no external influences, i.e., if all of the structures
+%   'W', 'bc', and 'src' are empty and there are no effects of gravity, and
+%   no system right hand side has been supplied externally, then the input
+%   state is returned unchanged and a warning is printed in the command
+%   window.  This warning is printed with message ID
+%
+%           'incompMimetic:DrivingForce:Missing'
+%
+% SEE ALSO:
+%   computeVirtualIP, addBC, addBCFunc addSource, initSimpleFluid
+%   initState, solveIncompFlowMS.
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
-   for details.
+Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 %   Merge input parameters
-
 opt = struct('bc'              , []       , ...
              'src'             , []       , ...
              'facePressure'    , false    , ...
@@ -86,74 +129,44 @@ opt = struct('bc'              , []       , ...
 opt = merge_options(opt, varargin{:});
 
 %   Check options
-
 assert(G.griddim == 2 || G.griddim == 3, 'Physical dimension must be 2 or 3.');
 
-% %   
-% if G.griddim == 2
-%     G.edges.num = 0;
-% end
-% 
-% N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
-%                 + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
-%                 + G.cells.num*polyDim(S.order - 2, G.griddim    );
-
-%%  ASSEMBLE GLOBAL MATRIX AND COMPUTE RIGHT-HAND SIDE                   %%
-
+%   Assemble and solve global system
 [A, rhs] = assembleSystem(state, G, S, fluid, opt);
+p        = opt.linSolve(A, rhs);
 
-%%  SOLVE LINEAR SYSTEM                                                  %%
-
-p = opt.linSolve(A, rhs);
-
-% p = addGravity(p, G);
-
+%   Pack solution struct
 state = packSolution(state, p, G, S, fluid, opt);
-%%  UPDATE PRESSURE STATE                                                %%
-
 
 end
+
+%--------------------------------------------------------------------------
 
 function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
-    
-if G.griddim == 2
-    G.edges.num = 0;
-end
+%   Assembles the global system by summing the local matrices and applying
+%   boundary conditions.
 
-[mu, rho] = fluid.properties();
-
-N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
-                + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
-                + G.cells.num*polyDim(S.order - 2, G.griddim    );
-
-    [A, rhs] = glob(G, S, opt.src, N, mu);
-
-%     totmob = dynamic_quantities(state, fluid);
-%     
-%     tm = zeros(N,1);
-%     
-%     ii = rldecode((1:G.nodes.num)', diff(G.nodes.cellPos),1);
-%     jj = G.nodes.cells;
-%     P = sparse(ii, jj,1);
-%     tm(1:G.nodes.num) = P*totmob./sum(P,2);
-%     
-%     tm((1:G.edges.num*polyDim(k-2,G.griddim-2)) + G.nodes.num) ...
-%                   = sparse(G.cells.edges, 1:numel(G.cells.edges), 1)*totmob;
-%               
-%     tm((1:G.faces.num*polyDim(k-2, G.griddim-1)) + G.nodes.num + G.edges.num ) ...
-%                  = sparse(G.cells.faces, 1:numel(G.cells.faces), 1)*totmob;
-%              
-%     tm((1:G.cells.num*polyDim(k-2, G.griddim-1)) + G.nodes.num + G.edges.num +G.faces.num) ...
-%                  = sparse(G.cells.faces, 1:numel(G.cells.faces), 1)*totmob;
-%    
-%     A = spdiags(tm, 0, N, N)\A;
-    
-    pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
-
-    if ~isempty(opt.bc)
-        [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N, mu);
+    if G.griddim == 2
+        G.edges.num = 0;
     end
 
+    %   Total number of dofs.
+    N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
+                    + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
+                    + G.cells.num*polyDim(S.order - 2, G.griddim    );
+
+    %   Assemble global system.
+    [A, rhs] = glob(state, G, S, fluid, opt.src, N);
+    
+    %   Apply boundary condtitions.
+    if ~isempty(opt.bc)
+        [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N);
+    end
+    
+    %   If no pressure bc is given, we follow the MRST convention of
+    %   normalizing the pressure to zero in the first cell (or, for k = 1,
+    %   the first node of the first cell.
+    pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
     if ~pressure_bc
       if S.order == 1
           n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
@@ -168,19 +181,34 @@ N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
         A(i,i) = 2*A(i,i); 
     end
     
-
-
 end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = glob(G, S, src, N, mu)
-    
-    P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
-    A = P'*S.A*P;
+function [A, rhs] = glob(state, G, S, fluid, src, N)
+%   Assemble global system.    
 
+    %   Number of dofs per cell.
+    NP = diff(G.cells.nodePos) ...
+       + diff(G.cells.facePos)*polyDim(S.order-2, G.griddim-1) ...
+       + polyDim(S.order-2, G.griddim);
+    if G.griddim == 3
+        NP = NP + diff(G.cells.edgePos)*polyDim(S.order-2, G.griddim-2);
+    end
+    
+    %   Multiply by total mobility for each cell.
+    tm = totmob(state, fluid);
+    tm = spdiags(rldecode(tm, NP, 1),0, sum(NP), sum(NP));
+    
+    %   Sum contribution from each cell.
+    P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
+    A = P'*(tm*S.A)*P;
+    
+    %   Add source terms to rhs.
     if ~isempty(src)
         if S.order == 1
+            %   The first moment over the cell can be calculated exactly
+            %   from teh def of the local VEM space.
 
             rhs = zeros(G.cells.num,1);
             rhs(src.cell) = src.rate;
@@ -188,30 +216,124 @@ function [A, rhs] = glob(G, S, src, N, mu)
             PiNstar = squeezeBlockDiag(S.PiNstar, diff(G.cells.nodePos), ...
                  polyDim(S.order, G.griddim), sum(diff(G.cells.nodePos)))';
             rhs = rhs.*PiNstar(:,1);            
-            rhs = mu*P'*rhs;
+            rhs = P'*rhs;
 
         else
+            %   The first moment over the cell is now a degree of freedom.
+            
             rhs = zeros(N,1);
             if G.griddim == 2
                 ii = src.cell + G.nodes.num + G.faces.num;
             else
                 ii = src.cell + G.nodes.num + G.edges.num + G.faces.num;
             end
-            rhs(ii) = mu*src.rate';
+              rhs(ii) = src.rate;
         end
         
     else
         rhs = zeros(N,1);
     end
+    
 end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = imposeBC(A, rhs, G, S, bc, N, mu)
-    
+function [A, rhs] = imposeBC(A, rhs, G, S, bc, N)
+%   Impose boundary conditions. Can either be function handles for each
+%   cell (for pathc testing purposes only), or MRST grid structure.
+
     nfn = diff(G.faces.nodePos);
     
-    if isfield(bc, 'func')
+    if ~isfield(bc, 'func')
+        %   Standard MRST BC struc.
+        
+        NF = diff(G.faces.nodePos);
+        
+        %   Neumann boundary faces.
+        isNeu = strcmp(bc.type, 'flux');            
+        f = bc.face(isNeu);
+        v = bc.value(isNeu);
+        n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+        
+        if G.griddim == 2
+            %   VEM basis funciton are polynomials on each face, use
+            %   centroid rule (k=1) or three-point (k=2) Gauss-Lobatto.
+            
+            P = sparse(n, 1:numel(n), 1, N, numel(n));
+            vn = rldecode(v, NF(f), 1);
+            if S.order == 1
+                rhs = rhs + 1/2*P*vn;
+            else
+                rhs = rhs + 1/6*P*vn;
+                rhs(f + G.nodes.num) = 2/3*v;
+            end
+
+            
+        else
+            %   For k = 1, we use the projection onto the linear monomials
+            %   and the centroid rule to evaluate (g, \phi^i)_{0,f}.
+            %   For k = 2, they are given from the degrees of freedom.
+            
+            if S.order == 1
+
+                PiNFstar = squeezeBlockDiag(S.PiNFstar, ...
+                             NF(G.cells.faces(:,1)), polyDim(S.order, G.griddim-1), ...
+                             sum(NF(G.cells.faces(:,1))));
+                pos = [0; cumsum(NF)] + 1;
+                v = rldecode(v, NF(f), 1).*PiNFstar(1,mcolon(pos(f), pos(f+1)-1))';
+
+                NFf = NF(f);
+                ii = rldecode((1:numel(f))', NFf, 1);
+                dof = [0; cumsum(NFf(1:end-1))] + 1;
+                iiN = mcolon(dof, dof + nfn(f) - 1);
+                fDof(iiN) = n;
+                v = sum(sparse(fDof, ii, v, N, numel(f)),2);            
+                rhs = rhs + v;
+
+            else
+                
+                rhs(f + G.nodes.num + G.edges.num) = ...
+                                    rhs(f + G.nodes.num + G.edges.num) + v;
+
+            end
+
+        end
+        
+        %   Dirichlet boundary faces. We assue the pressure is constant on
+        %   each face.
+        isDir = strcmp(bc.type, 'pressure');
+        f = bc.face(isDir);
+        n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+        v = bc.value(isDir);
+        
+        rhs(n) = rldecode(v, NF(f), 1);
+
+        if S.order == 1
+            dofVec = n;
+        else
+            
+            if G.griddim == 2
+                
+                rhs(f + G.nodes.num) = v;
+                dofVec = [n; f + G.nodes.num];
+            
+            else
+                
+                nfe = diff(G.faces.edgePos);
+                e = G.faces.edges(mcolon(G.faces.edgePos(f), ...
+                                         G.faces.edgePos(f+1)-1));
+                rhs(e + G.nodes.num) = rldecode(v, nfe(f), 1);
+                rhs(f + G.nodes.num + G.edges.num) = v;
+                dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
+                
+            end
+            
+        end
+
+        I = speye(N);
+        A(dofVec,:) = I(dofVec, :);
+
+    else
         
         isNeu = find(strcmp(bc.type, 'flux'));
         for i = 1:numel(isNeu)
@@ -267,105 +389,7 @@ function [A, rhs] = imposeBC(A, rhs, G, S, bc, N, mu)
             end
             A(dofVec,:) = I(dofVec,:);
         end
-        
-    else
-       
-        NF = diff(G.faces.nodePos);
-        
-        if G.griddim == 2
-            
-            isNeu = strcmp(bc.type, 'flux');
-            
-            if nnz(isNeu)>0
-                
-                f = bc.face(isNeu);
-                v = bc.value(isNeu);
-                n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-                P = sparse(n, 1:numel(n), 1, N, numel(n));
-                vn = mu*rldecode(v, NF(f), 1);
-                
-                if S.order == 1
-                    rhs = rhs + 1/2*P*vn;
-                else
-                    rhs = rhs + 1/6*P*vn;
-                    rhs(f + G.nodes.num) = 2/3*mu*v;
-                end
-            end
-            
-            isDir= strcmp(bc.type, 'pressure');
-            
-            if nnz(isDir)>0
-                
-                f = bc.face(isDir);
-                v = bc.value(isDir);
 
-                n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-                rhs(n) = rldecode(v, NF(f), 1);
-
-                if S.order == 1
-                    dofVec = n;
-                else
-                    rhs(f + G.nodes.num) = v;
-                    dofVec = [n; f + G.nodes.num];
-                end
-
-                I = speye(N);
-                A(dofVec,:) = I(dofVec,:);
-                
-            end
-
-        else
-            
-        nfe = diff(G.faces.edgePos);
-            
-        isNeu = strcmp(bc.type, 'flux');
-        f = bc.face(isNeu);
-        n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-        v = bc.value(isNeu);
-        
-        if S.order == 1
-            
-            PiNFstar = squeezeBlockDiag(S.PiNFstar, ...
-                         NF(G.cells.faces(:,1)), polyDim(S.order, G.griddim-1), ...
-                         sum(NF(G.cells.faces(:,1))));
-            pos = [0; cumsum(NF)] + 1;
-            v = mu*rldecode(v, NF(f), 1).*PiNFstar(1,mcolon(pos(f), pos(f+1)-1))';
-            
-            NFf = NF(f);
-            ii = rldecode((1:numel(f))', NFf, 1);
-            dof = [0; cumsum(NFf(1:end-1))] + 1;
-            iiN = mcolon(dof, dof + nfn(f) - 1);
-            fDof(iiN) = n;
-            v = sum(sparse(fDof, ii, v, N, numel(f)),2);            
-            rhs = rhs + v;
-            
-        else
-            rhs(f + G.nodes.num + G.edges.num) = ...
-                                 rhs(f + G.nodes.num + G.edges.num) + mu*v;
-        end
-        
-        
-
-        isDir = strcmp(bc.type, 'pressure');
-        f = bc.face(isDir);
-        n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-        v = bc.value(isDir);
-
-        rhs(n) = rldecode(v, nfn(f), 1);
-
-        if S.order == 1
-            dofVec = n;
-        else
-            e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
-            rhs(e + G.nodes.num) = rldecode(v, nfe(f), 1);%./ne;
-            rhs(f + G.nodes.num + G.edges.num) = v;
-            dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
-        end
-
-        I = speye(N);
-        A(dofVec,:) = I(dofVec, :);
-        end
-            
     end
 end
 
@@ -420,15 +444,25 @@ end
 
 %--------------------------------------------------------------------------
 
-function flux = computeFlux(state, G, S, bc, mu)
+function flux = computeFlux(state, G, S, fluid, bc)
+    
+    tm = totmob(state, fluid);
+    
+    ii    = [(1:G.cells.num)'; max(G.faces.neighbors, [], 2)];
 
+   totmobMat = spdiags(tm(ii), 0, numel(ii),numel(ii));
+   T      = S.T.T * totmobMat;
+    
     bf = boundaryFaces(G);
+    
+    
+    
     
     ii = [(1:G.cells.num)'; G.cells.num + bf];
     p = [state.pressure; state.facePressure(bf)];
-    flux = cellFlux2faceFlux(G, S.T.T(:, ii) * p)/mu;
+    flux = cellFlux2faceFlux(G, T(:, ii)*p);
     
-    if ~isfield(bc, 'func')
+    if ~isempty(bc) && ~isfield(bc, 'func')
         
         isNeu = strcmp(bc.type, 'flux');
         f = bc.face(isNeu);
@@ -439,78 +473,11 @@ function flux = computeFlux(state, G, S, bc, mu)
 
 end
 
-function flux = conserveFluxxx(state, G, src)
 
-f = G.cells.faces(:,1);
-ncf = diff(G.cells.facePos);
-fSgn = 1 - 2*(G.faces.neighbors(f,1) ~= rldecode((1:G.cells.num)', ncf,1));
-
-[ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
-P = sparse(ii, jj, 1);
-if ~isempty(src)
-    rhs = sparse(src.cell, ones(numel(src.cell),1), src.rate, G.cells.num, 1);
-else
-    rhs = zeros(G.cells.num,1);
-end
-r = rhs-P*(state.flux(f).*fSgn);
-
-if norm(r)/norm(state.flux) > 1e-15
-
-%     fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f));
-%     delta = (fn*K)';
-%     [ii, jj] = blockDiagIndex(3*ones(numel(f),1), ones(numel(f),1));
-%     delta = sparse(ii,jj,delta(:));
-% 
-%     fn = fn';
-%     fn = sparse(ii,jj,fn(:));
-%     delta = fn'*delta;
-%     delta = delta*ones(size(delta,1),1);
-% 
-%     ii = f;
-%     jj = (1:numel(f))';
-%     P = sparse(ii, jj,1);
-%     omega = P*delta;
-% 
-%     for i = 1:G.faces.num
-%         d = delta(f == i);
-%         omega(i) = omega(i)/(numel(d)*prod(d));
-%     end
-    
-    omega = ones(G.faces.num,1);
-
-    c = G.faces.neighbors(f,:);
-    c(fSgn == -1,:) = c(fSgn == -1, 2:-1:1);
-    c = c(:,2);
-    ii = rldecode((1:G.cells.num)', ncf,1);
-    nz = c~=0; ii = ii(nz); c = c(nz);
-    B = sparse(ii, c, -1./omega(f(nz)).*G.faces.areas(f(nz)).*fSgn(nz));
-
-    [ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
-    ca = sparse(ii,jj,1)*(1./omega(f).*G.faces.areas(f).*fSgn);
-
-    B = B + sparse(1:G.cells.num, 1:G.cells.num, -ca);
-
-    beta = B\r;
-    beta = rldecode(beta, ncf,1);
-    I = sparse(f, 1:numel(f), 1);
-    beta = I*beta.*G.faces.areas;
-
-    flux = state.flux - 1./omega.*beta;
-
-    r = rhs-P*(flux(f).*fSgn);
-    if norm(r)/norm(flux) > 1e-15;
-        warning('Could not construct conservative flux field');
-    end
-
-else
-    flux = state.flux;
-end
-    
-end
 
 function state = packSolution(state, p, G, S, fluid, opt)
 
-[mu, rho] = fluid.properties();
+[~, rho] = fluid.properties(state);
 
 gvec = gravity();
 if G.griddim == 3
@@ -554,7 +521,7 @@ if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
 end
     
 if ~isempty(S.T)
-    state.flux = computeFlux(state, G, S, opt.bc, mu);
+    state.flux = computeFlux(state, G, S, fluid, opt.bc);
 end
 
 if opt.matrixOutput
@@ -566,14 +533,14 @@ end
 
 %--------------------------------------------------------------------------
 
-function totmob = dynamic_quantities(state, fluid)
+function tm = totmob(state, fluid)
 
    [mu, ~] = fluid.properties(state);
    s       = fluid.saturation(state);
    kr      = fluid.relperm(s, state);
    
    mob    = bsxfun(@rdivide, kr, mu);
-   totmob = sum(mob, 2);
+   tm = sum(mob, 2);
 
 end
 

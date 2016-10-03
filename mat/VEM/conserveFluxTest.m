@@ -4,6 +4,8 @@ clc; clear; close all;
 
 G = computeVEMGeometry(voronoiCube(100,[1,1,1]));
 
+G = computeVEMGeometry(cartGrid([5,5,5],[1,1,1]));
+
 rot = @(theta, eta, psi) [1 0 0; 0 cos(theta) -sin(theta); 0 sin(theta) cos(theta)]...
                         *[cos(eta) 0 sin(eta); 0 1 0; -sin(eta) 0 cos(eta)         ]...
                         *[cos(psi) -sin(psi) 0; sin(psi) cos(psi) 0; 0 0 1         ];

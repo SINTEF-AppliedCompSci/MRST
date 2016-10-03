@@ -9,12 +9,12 @@ G = computeVEMGeometry(unitSquare([10,10],[1,1]));
 
 rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
 mu = 1*centi*poise;
-fluid      = initSingleFluid('mu' , 1*centi*poise, ...
+fluid      = initSingleFluid('mu' , mu, ...
                              'rho', 1000*kilogram/meter^3);
 state = initState(G, [], 0);
 
 gD = @(x) x(:,1) + 10*x(:,2);
-gN = @(x) rock.perm(1)*ones(size(x,1), 1);
+gN = @(x) rock.perm(1)*ones(size(x,1), 1)/mu;
 
 bf = boundaryFaces(G);
 e  = abs(G.faces.centroids(bf,1)-1) < tol;
@@ -33,15 +33,15 @@ toc;
 
 tic
 
-G = computeVEMGeometry(unitSquare([10,10],[1,1]));
-
-rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
-fluid      = initSingleFluid('mu' , 1*centi*poise, ...
-                             'rho', 1000*kilogram/meter^3);
+% G = computeVEMGeometry(unitSquare([10,10],[1,1]));
+% 
+% rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
+% fluid      = initSingleFluid('mu' , 1*centi*poise, ...
+%                              'rho', 1000*kilogram/meter^3);
 state = initState(G, [], 0);
 
 gD = @(x) x(:,1).^2 - x(:,2).^2;
-gN = @(x) 2*rock.perm(1)*x(:,1);
+gN = @(x) 2*rock.perm(1)*x(:,1)/mu;
 bf = boundaryFaces(G);
 e  = abs(G.faces.centroids(bf,1)-1) < tol;
 bc = addBCVEM([], bf(~e), 'pressure', gD);
