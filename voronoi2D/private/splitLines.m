@@ -54,7 +54,7 @@ for i = 1:numel(L1)
   % Split line
   IC = [IC; i*ones(numel(newLine),1)];
   splitLines = [splitLines,newLine];
-  l2Pos      = linePos - cumsum(ones(size(linePos,1),1)) +1;
+  l2Pos      = linePos - cumsum(ones(size(linePos,1),1)); %+1;
   linePos    = repmat(linePos, 1,numel(k));
   [~, kLine] = max(bsxfun(@ge,l2Pos,k'),[],1);
   cutMat(i,kLine) = true;

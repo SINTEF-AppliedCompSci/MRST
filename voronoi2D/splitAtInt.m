@@ -92,23 +92,23 @@ for i = 1:size(tmpCut,1)
     case 0
       numNew = sum(cutId(i,:)) + 1;
       toNum = numEl + numNew;
-      L1Cut(numEl+1:toNum) = [zeros(numNew-1,1); 0];
+      L1Cut(numEl+1:toNum,1) = [zeros(numNew-1,1); 0];
     case 1
       numNew = sum(cutId(i,:)) + 1;
       toNum = numEl + numNew;
-      L1Cut(numEl+1:toNum) = [zeros(numNew-1,1); 1];
+      L1Cut(numEl+1:toNum,1) = [zeros(numNew-1,1); 1];
     case 2
       numNew = sum(cutId(i,:)) + 1;
       toNum = numEl + numNew;
-      L1Cut(numEl+1:toNum) = [2; zeros(numNew-1,1)];
+      L1Cut(numEl+1:toNum,1) = [2; zeros(numNew-1,1)];
     case 3 
       if sum(cutId(i,:))
         numNew = sum(cutId(i,:)) + 1;
         toNum = numEl + numNew;
-        L1Cut(numEl+1:toNum) = [2; zeros(numNew-2,1); 1];
+        L1Cut(numEl+1:toNum,1) = [2; zeros(numNew-2,1); 1];
       else
         toNum = numEl + 1;
-        L1Cut(numEl+1) = 3;
+        L1Cut(numEl+1,1) = 3;
       end
   end
   numEl = toNum;
