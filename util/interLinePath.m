@@ -13,7 +13,13 @@ function [p] = interLinePath(line, fh, lineDist,sePtn, varargin)
 
     % Parameters
     TOL = 1e-4; maxIt = 10000;
-
+    if size(line,1)==1
+      p = line;
+      return
+    elseif isempty(line)
+      p = [];
+      return
+    end
     % Create initial points, equally distributed.
     p = eqInterpret(line, lineDist,sePtn);
     % add auxillary points

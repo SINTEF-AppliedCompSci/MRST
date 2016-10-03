@@ -1,4 +1,4 @@
-function [pts,removed] = faultSufCond(pts, CC, CR)
+function [pts,removed] = faultSufCond3D(pts, CC, CR)
 % Enforces the sufficient fault condition
 %
 % SYNOPSIS:
