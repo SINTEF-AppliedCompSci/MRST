@@ -3,6 +3,8 @@ function [L, x, y, Z_L, Z_V] = standaloneFlash(p, T, z, EOSModel)
     solver = NonLinearSolver();
     solver.maxTimestepCuts = 0;
     solver.maxIterations = 200;
+    solver.continueOnFailure = true;
+    solver.errorOnFailure = false;
     
     state = struct();
 
