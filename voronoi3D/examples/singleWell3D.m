@@ -18,17 +18,17 @@ rho = @(p) wGs*ones(size(p,1),1);
 
 %% Create well
 wellLine = [0.5,0.5,0.01;0.8,0.5,0.5;0.8,0.5,0.99];
-wellPts  = createWellGridPoints3D({wellLine},rho);
+W        = createWellGridPoints3D({wellLine},rho);
 %% Create reservoir sites
 n = round((1/gs)^3);
 rSites = rand(n,3);
 
 %% Enforce sufficient well condition
-[rSites,removed] = wellSufCond3D(rSites, wellPts);
+[rSites,removed] = wellSufCond3D(rSites, W);
 
 
 %% Create Grid
-pts = [wellPts;rSites];
+pts = [W.pts;rSites];
 
 bdrDT = delaunayTriangulation(bdr);
 Gd = clippedPebi3D(pts,bdrDT);
@@ -40,5 +40,5 @@ axis equal
 figure()
 c = Gd.cells.centroids(:,2)<0.5;
 plotGrid(Gd,c)
-plotGrid(Gd,1:size(wellPts,1),'facecolor','r')
+plotGrid(Gd,1:size(W.pts,1),'facecolor','r')
 axis equal

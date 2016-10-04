@@ -1,4 +1,4 @@
-function [pts,removed] = wellSufCond3D(pts, wellPts)
+function [pts,removed] = wellSufCond3D(pts, W)
 % Enforces the sufficient well condition
 %
 % SYNOPSIS:
@@ -11,8 +11,15 @@ function [pts,removed] = wellSufCond3D(pts, wellPts)
 %             wellPts(k,:) if it is inside the ball centered at 
 %             (wellPts(k,:) + wellpts(l,:))/2 with radius 
 %             norm(wellPts(k,:) - wellpts(l,:))/2
-%   wellPts - A mx3 array of well points.
-%
+%   W           - A struct with elements
+%     W.pts     - A mx3 array of well points. The well points interpolates
+%                 the given well paths, with a distance given by rho.
+%     W.wellPos - A mapping from wellLines to W.nodes. 
+%     W.nodes   - W.pts is not ordered randomly. Also two wells 
+%                 might share one well point. To find the well points that
+%                 belong to well i, we can use the following code:
+%                 W.pts(W.nodes(wellPos(i):wellPos(i)-1),:) 
+%   
 % RETURNS:
 %   pts     - A kx3 array of points (k<=n). No points in the retured pts is
 %             inside any of the balls. E.g. If a point pts(i,:) from the 
@@ -21,21 +28,21 @@ function [pts,removed] = wellSufCond3D(pts, wellPts)
 %             point pts(i,:) is innside at least one of the balls.
 %
 % EXAMPLE:
-% pts = rand(6000,3);
-% x = linspace(0,1,5)';
-% y = 0.5*ones(numel(x),1);
-% z = 0.5*sin(x)+0.5;
-% wellPts = [x,y,z];
-% [~,removed] = wellSufCond3D(pts, wellPts);
-% figure()
-% hold on
-% plot3(pts(removed,1), pts(removed,2), pts(removed,3),'.','markersize',15)
-% plot3(wellPts(:,1),wellPts(:,2),wellPts(:,3),'.r');
-% axis equal
+%   pts = rand(6000,3);
+%   x = linspace(0,1,5)';
+%   y = 0.5*ones(numel(x),1);
+%   z = 0.5*sin(x)+0.5;
+%   wellPts = {[x,y,z]};
+%   W = createWellGridPoints3D(wellPts, @(x) 0.3*ones(size(x,1),1));
+%   [~,removed] = wellSufCond3D(pts,W);
+%   figure()
+%   hold on
+%   plot3(pts(removed,1), pts(removed,2), pts(removed,3),'.','markersize',15)
+%   plot3(W.pts(:,1),W.pts(:,2),W.pts(:,3),'.r');
+%   axis equal
 %
 % SEE ALSO:
-%   compositePebiGrid, pebi, clippedPebi3D, clipGrid,
-%   createWellGridPoints3D
+%   clippedPebi3D, clipGrid, createWellGridPoints3D, faultSufCond3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -44,27 +51,23 @@ function [pts,removed] = wellSufCond3D(pts, wellPts)
 %}  
 TOL = 10*eps;
 
-removed = zeros(size(pts,1),1);
-if size(wellPts,1)<=1  
+interWell = W.wellPos(2:end-1) - 1;
+removed   = zeros(size(pts,1),1);
+if size(W.pts,1)<=1  
   removed = logical(removed);  
   return
 end
-CC = (wellPts(1:end-1,:) + wellPts(2:end,:))/2;
-RSqr = sum((wellPts(1:end-1,:) - wellPts(2:end,:)).^2,2)/4;
+CC              = (W.pts(W.nodes(1:end-1),:) + W.pts(W.nodes(2:end),:))/2;
+RSqr            = sum((W.pts(W.nodes(1:end-1),:) - W.pts(W.nodes(2:end),:)).^2,2)/4;
+CC(interWell,:)   = [];
+RSqr(interWell) = [];
 
 nc = size(CC,1);
-np = size(pts,1);
 
 for i = 1:nc
   distSqr = sum(bsxfun(@minus, CC(i,:), pts).^2,2);
   removed = removed + (distSqr<RSqr(i)-TOL);
 end
 removed = logical(removed);
-pts = pts(~removed,:);
+pts     = pts(~removed,:);
 end
-
-
-
-
-
-
