@@ -13,7 +13,7 @@ function [fluid, info] = getCompositionalFluidCase(name, varargin)
             T_ref = 273.15 + 25;
             P_ref = 1*atm;
             
-            names = {'N2/CH4', 'CO2', 'C2-5', 'C8-13', 'C14-24', 'C25-80'};
+            names = {'N2/CH4', 'CO2', 'C2-5', 'C6-13', 'C14-24', 'C25-80'};
             fluid = CompositionalFluid(names, T_c, P_c, V_c, acc, mw, T_ref, P_ref);
             
             bic = [0.11883, 0, 0, 0,0, 0;...
