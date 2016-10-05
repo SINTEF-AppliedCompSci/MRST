@@ -33,8 +33,8 @@ if isfield(state, 'timestep')
     p = p.*dt_frac + p0.*(1-dt_frac);
 end
 %Initialization of primary variables ----------------------------------
-st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
-st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
+st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
+st0 = model.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize

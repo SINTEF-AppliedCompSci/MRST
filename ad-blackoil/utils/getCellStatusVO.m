@@ -1,4 +1,4 @@
-function st = getCellStatusVO(model, state, sO, sW, sG)
+function st = getCellStatusVO(sO, sW, sG, varargin)
 % Get status flags for each cell in a black-oil model
 %
 % SYNOPSIS:
@@ -8,17 +8,22 @@ function st = getCellStatusVO(model, state, sO, sW, sG)
 %   Get the status flags for the number of phases present.
 %
 % REQUIRED PARAMETERS:
-%   model     - ThreePhaseBlackOilModel-derived class. Typically,
-%               equationsBlackOil will be called from the class
-%               getEquations member function.
-%
-%   state     - The state for which the status flags are to be computed.
 %
 %   sO        - Oil saturation. One value per cell in the simulation grid.
 %
 %   sW        - Water saturation. One value per cell in the simulation grid.
 %
 %   sG        - Gas saturation. One value per cell in the simulation grid.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%  
+%   status - status that can be provided fom the state for which the status
+%            flags are to be computed.
+%
+%   vapoil - true if there can be vaporized oil 
+%
+%   disgas  - true if there can be dissolved gas 
+%
 %
 % RETURNS:
 %   st - Cell array with three columns with one entry per cell. The
@@ -52,7 +57,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    if isfield(state, 'status')
+    opt = struct('status', [],...
+                 'vapoil', false,...
+                 'disgas' , false);
+
+    opt = merge_options(opt, varargin{:});
+    
+    if ~isempty(opt.status)
         % Status should be passed on from updateStateVO (to be sure definition is
         % identical). rs and rv are assumed to be compatible, i.e. rx = rxSat for
         % saturated cells and rx <= rxSat for undersaturated. Three values of
@@ -61,15 +72,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % status 1 oil, no gas  : x = rs, sg = 0    , rv = rvMax
         % status 2 gas, no oil  : x = rv, sg = 1-sw , rs = rsMax
         % status 3 oil and gas  : x = sg, rs = rsMax, rv = rvMax
-        status = state.status;
+        status = opt.status;
     else
         watOnly    = sW > 1- sqrt(eps);
-        if ~model.vapoil
+        if ~opt.vapoil
             oilPresent = true;
         else
             oilPresent = or(sO > 0, watOnly);
         end
-        if ~model.disgas
+        if ~opt.disgas
             gasPresent = true;
         else
             gasPresent = or(sG > 0, watOnly);
@@ -77,12 +88,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         status = oilPresent + 2*gasPresent;
     end
 
-    if ~model.disgas
+    if ~opt.disgas
         st1 = false;
     else
         st1 = status==1;
     end
-    if ~model.vapoil
+    if ~opt.vapoil
         st2 = false;
     else
         st2 = status==2;

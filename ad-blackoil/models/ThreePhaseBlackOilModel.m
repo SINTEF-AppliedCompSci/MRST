@@ -133,7 +133,7 @@ methods
             sg = model.getProp(state, 'sg');
 
             % Magic status flag, see inside for doc
-            st = getCellStatusVO(model, state0, so, sw, sg);
+            st = model.getCellStatusVO(state0, so, sw, sg);
 
             dr = model.getIncrement(dx, problem, 'x');
             dsw = model.getIncrement(dx, problem, 'sw');
@@ -236,6 +236,16 @@ methods
             [scaling{~handled}] = other{:};
         end
     end
+    
+    function st = getCellStatusVO(model, state, sO, sW, sG)
+        status = [];
+        if isfield(state, 'status')
+            status = state.status;
+        end
+        st = getCellStatusVO(sO, sW, sG, 'status', status, 'vapoil', ...
+                                 model.vapoil, 'disgas', model.disgas);
+    end
+    
 end
 end
 
