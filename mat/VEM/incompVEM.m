@@ -117,8 +117,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+%   Written by Øystein Strengehagen Klemetsdal, SINTEF ICT/NTNU, 2016.
+
 %   Merge input parameters
-opt = struct('bc'              , []       , ...
+opt = struct('wells'           , []       , ...
+             'bc'              , []       , ...
              'src'             , []       , ...
              'facePressure'    , false    , ...
              'cellPressure'    , false    , ...
@@ -154,9 +157,20 @@ function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
     N = G.nodes.num + G.edges.num*polyDim(S.order - 2, G.griddim - 2) ...
                     + G.faces.num*polyDim(S.order - 2, G.griddim - 1) ...
                     + G.cells.num*polyDim(S.order - 2, G.griddim    );
-
-    %   Assemble global system.
-    [A, rhs] = glob(state, G, S, fluid, opt.src, N);
+    
+    %   calculate total mobilities-
+    tmob = totmob(state, fluid);
+                
+    %   Assemble global matrix
+    [A, P] = glob(state, G, S, fluid, N, tmob);
+    
+    %   Compute right-hand side
+    rhs = computeRHS(G, S, P, N, opt);
+    
+    %   Add well contributions
+    [A, rhs] = addWells(A, rhs, G, S, tmob, N, opt);
+    
+    
     
     %   Apply boundary condtitions.
     if ~isempty(opt.bc)
@@ -185,7 +199,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, rhs] = glob(state, G, S, fluid, src, N)
+function [A, P] = glob(state, G, S, fluid, N, tmob)
 %   Assemble global system.    
 
     %   Number of dofs per cell.
@@ -197,14 +211,85 @@ function [A, rhs] = glob(state, G, S, fluid, src, N)
     end
     
     %   Multiply by total mobility for each cell.
-    tm = totmob(state, fluid);
-    tm = spdiags(rldecode(tm, NP, 1),0, sum(NP), sum(NP));
+    tmob = totmob(state, fluid);
+    tmob = spdiags(rldecode(tmob, NP, 1),0, sum(NP), sum(NP));
     
     %   Sum contribution from each cell.
     P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
-    A = P'*(tm*S.A)*P;
+    A = P'*(tmob*S.A)*P;
     
-    %   Add source terms to rhs.
+%     %   Add source terms to rhs.
+%     src = opt.src;
+%     if ~isempty(src)
+%         if S.order == 1
+%             %   The first moment over the cell can be calculated exactly
+%             %   from teh def of the local VEM space.
+% 
+%             rhs = zeros(G.cells.num,1);
+%             rhs(src.cell) = src.rate;
+%             rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
+%             PiNstar = squeezeBlockDiag(S.PiNstar, diff(G.cells.nodePos), ...
+%                  polyDim(S.order, G.griddim), sum(diff(G.cells.nodePos)))';
+%             rhs = rhs.*PiNstar(:,1);            
+%             rhs = P'*rhs;
+% 
+%         else
+%             %   The first moment over the cell is now a degree of freedom.
+%             
+%             rhs = zeros(N,1);
+%             if G.griddim == 2
+%                 ii = src.cell + G.nodes.num + G.faces.num;
+%             else
+%                 ii = src.cell + G.nodes.num + G.edges.num + G.faces.num;
+%             end
+%               rhs(ii) = src.rate;
+%         end
+%         
+%     else
+%         rhs = zeros(N,1);
+%     end
+    
+%     W = opt.wells;
+%    
+%     
+%     if ~isempty(W),
+%           
+%         wc    = vertcat(W.cells);
+% 
+% %           isBhp   = strcmpi('bhp', { W.type } .');
+%         dofVec = G.nodes.num + G.edges.num*polyDim(S.order-2, G.griddim-2) ...
+%                       + G.faces.num*polyDim(S.order-2, G.griddim-1) ...
+%                       + wc;
+%       rhs(dofVec) = vertcat(W.val);
+%       I = speye(size(A));
+%       % Diagonal transmissibility matrix (inner product).
+%       v = tm(wc) .* vertcat(W.WI);
+%       if ~strcmpi(opt.Solver, 'hybrid'), v = 1 ./ v; end
+%       A{1} = sparse(i, i, v, n, n); % 
+%       A(dofVec, :) = I(dofVec,:);
+%           nW    = numel(W);
+% 
+%           % Diagonal transmissibility matrix (inner product).
+%           v = totmob(wc).* vertcat(W.WI);
+% 
+%           % Which (and what) are the prescribed well bottom-hole pressures?
+%           isBhp   = strcmpi('bhp', { W.type } .');
+%           dC   = reshape([ W(isBhp).val ], [], 1);
+% 
+%           % Form linsys rhs contributions, {1} -> pressure, {2} -> rate.
+%           b{1} = -vertcat(W.val);  b{1}(~isBhp) = 0;  % Remove rates
+%           b{2} = -vertcat(W.val);  b{2}( isBhp) = 0;  % Remove pressures
+
+      % Expand well pressure rhs to each perforation, adjust for gravity
+      % effects if applicable (i.e., when NORM(gravity())>0 and W.dZ~=0).
+%           dp   = norm(gravity()) * vertcat(W.dZ) .* omega(wc);
+%           b{1} = rldecode(b{1}, nc) - dp;
+end
+
+function rhs = computeRHS(G, S, P, N, opt)
+%   Compute Right-hand side.
+
+    src = opt.src;
     if ~isempty(src)
         if S.order == 1
             %   The first moment over the cell can be calculated exactly
@@ -236,6 +321,26 @@ function [A, rhs] = glob(state, G, S, fluid, src, N)
     
 end
 
+function [A, rhs] = addWells(A, rhs, G, S, tmob, N, opt)
+
+   W = opt.wells;
+   
+    
+    if ~isempty(W),
+          
+        wc    = vertcat(W.cells);
+        dofVec = G.nodes.num + G.edges.num*polyDim(S.order-2, G.griddim-2) ...
+                             + G.faces.num*polyDim(S.order-2, G.griddim-1) ...
+                             + wc;
+        rhs(dofVec) = vertcat(W.val);
+        v = ones(N,1);
+%         v(dofVec) = tmob(wc).*vertcat(W.WI);
+        I = spdiags(v, 0, N,N);
+        A(dofVec, :) = I(dofVec,:);
+        
+    end
+
+end
 %--------------------------------------------------------------------------
 
 function [A, rhs] = imposeBC(A, rhs, G, S, bc, N)

@@ -43,13 +43,20 @@ N = G.nodes.num                           ...
 
 %%  CHECK CORRECTNESS OF INPUT
 
-ipNames = {'ip_simple' , 'ip_custom'};
+if strcmp(opt.innerProduct, 'ip_fem') && ~any(strcmp(G.type, 'cart')) && k ~= 1
+    warning('innerProduct ''ip_fem'' only valid for 1st order and cartesian grid. Using ip_simple instead.');
+    opt.innerProduct = 'ip_simple';
+end
+
+ipNames = {'ip_simple' , 'ip_custom', 'ip_fem'};
 
 assert(any(strcmp(opt.innerProduct, ipNames)), ...
        'Unknown inner product ''%s''.', opt.innerProduct);
 
 if ~isempty(opt.sigma)
-    assert(numel(opt.sigma) == sum(nker));
+    assert((strcmp(opt.innerProduct, 'ip_custom') &&numel(opt.sigma) == sum(nker)) || ...
+           (strcmp(opt.innerProduct, 'ip_fem') &&numel(opt.sigma) == G.cells.num));
+    
 end
 
 K = permTensor(rock, G.griddim);
@@ -944,6 +951,26 @@ function SS = stabilityTerm(innerProduct, sigma, G, K, PiN, NP, nker)
             end
 
             SS = Q*spdiags(sigma, 0, sum(nker), sum(nker))*Q';
+            
+        case 'ip_fem'
+            
+            xx = G.nodes.coords(G.cells.nodes,:);
+            [ii, jj] = blockDiagIndex(diff(G.cells.nodePos), ones(G.cells.num,1));
+            x = sparse(ii,jj,xx(:,1));
+            y = sparse(ii,jj,xx(:,1));
+            
+            hx = abs(max(x,[], 1)- min(x,[],1))';
+            hy = abs(max(y,[], 1)- min(y,[],1))';
+
+            Q = sqrt(9./(4*rldecode(hx.*hy, 4*ones(G.cells.num,1),1))).*rldecode([-1,1,-1,1]', G.cells.num,1);
+            Q = sparse(ii,jj,Q);
+            
+            if isempty(sigma)
+                sigma = ones(G.cells.num,1);
+            end
+            
+            Lambda = spdiags(3*(K(:,1)./hx.^2 + K(:,4)./hy.^2).*sigma, 0, G.cells.num, G.cells.num);
+            SS = Q*(Q'*Q)*Lambda*(Q'*Q)*Q';
         
     end
     
