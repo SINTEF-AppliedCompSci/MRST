@@ -182,17 +182,17 @@ function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
     %   the first node of the first cell.
     pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
     if ~pressure_bc
-      if S.order == 1
-          n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
-          i = n(1);
-      else
-          if G.griddim == 2  
-              i = G.nodes.num + G.faces.num + 1;
-          else
-              i = G.nodes.num + G.edges.num + G.faces.num + 1;
-          end
-      end
-        A(i,i) = 2*A(i,i); 
+        if S.order == 1
+            n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
+            i = n(1);
+        else
+            if G.griddim == 2  
+                i = G.nodes.num + G.faces.num + 1;
+            else
+                i = G.nodes.num + G.edges.num + G.faces.num + 1;
+            end
+        end
+            A(i,i) = 2*A(i,i);
     end
     
 end
@@ -211,79 +211,13 @@ function [A, P] = glob(state, G, S, fluid, N, tmob)
     end
     
     %   Multiply by total mobility for each cell.
-    tmob = totmob(state, fluid);
+%     tmob = totmob(state, fluid);
     tmob = spdiags(rldecode(tmob, NP, 1),0, sum(NP), sum(NP));
     
     %   Sum contribution from each cell.
     P = sparse(1:numel(S.dofVec), S.dofVec, 1, numel(S.dofVec), N);
     A = P'*(tmob*S.A)*P;
-    
-%     %   Add source terms to rhs.
-%     src = opt.src;
-%     if ~isempty(src)
-%         if S.order == 1
-%             %   The first moment over the cell can be calculated exactly
-%             %   from teh def of the local VEM space.
-% 
-%             rhs = zeros(G.cells.num,1);
-%             rhs(src.cell) = src.rate;
-%             rhs = rldecode(rhs, diff(G.cells.nodePos), 1);
-%             PiNstar = squeezeBlockDiag(S.PiNstar, diff(G.cells.nodePos), ...
-%                  polyDim(S.order, G.griddim), sum(diff(G.cells.nodePos)))';
-%             rhs = rhs.*PiNstar(:,1);            
-%             rhs = P'*rhs;
-% 
-%         else
-%             %   The first moment over the cell is now a degree of freedom.
-%             
-%             rhs = zeros(N,1);
-%             if G.griddim == 2
-%                 ii = src.cell + G.nodes.num + G.faces.num;
-%             else
-%                 ii = src.cell + G.nodes.num + G.edges.num + G.faces.num;
-%             end
-%               rhs(ii) = src.rate;
-%         end
-%         
-%     else
-%         rhs = zeros(N,1);
-%     end
-    
-%     W = opt.wells;
-%    
-%     
-%     if ~isempty(W),
-%           
-%         wc    = vertcat(W.cells);
-% 
-% %           isBhp   = strcmpi('bhp', { W.type } .');
-%         dofVec = G.nodes.num + G.edges.num*polyDim(S.order-2, G.griddim-2) ...
-%                       + G.faces.num*polyDim(S.order-2, G.griddim-1) ...
-%                       + wc;
-%       rhs(dofVec) = vertcat(W.val);
-%       I = speye(size(A));
-%       % Diagonal transmissibility matrix (inner product).
-%       v = tm(wc) .* vertcat(W.WI);
-%       if ~strcmpi(opt.Solver, 'hybrid'), v = 1 ./ v; end
-%       A{1} = sparse(i, i, v, n, n); % 
-%       A(dofVec, :) = I(dofVec,:);
-%           nW    = numel(W);
-% 
-%           % Diagonal transmissibility matrix (inner product).
-%           v = totmob(wc).* vertcat(W.WI);
-% 
-%           % Which (and what) are the prescribed well bottom-hole pressures?
-%           isBhp   = strcmpi('bhp', { W.type } .');
-%           dC   = reshape([ W(isBhp).val ], [], 1);
-% 
-%           % Form linsys rhs contributions, {1} -> pressure, {2} -> rate.
-%           b{1} = -vertcat(W.val);  b{1}(~isBhp) = 0;  % Remove rates
-%           b{2} = -vertcat(W.val);  b{2}( isBhp) = 0;  % Remove pressures
 
-      % Expand well pressure rhs to each perforation, adjust for gravity
-      % effects if applicable (i.e., when NORM(gravity())>0 and W.dZ~=0).
-%           dp   = norm(gravity()) * vertcat(W.dZ) .* omega(wc);
-%           b{1} = rldecode(b{1}, nc) - dp;
 end
 
 function rhs = computeRHS(G, S, P, N, opt)
