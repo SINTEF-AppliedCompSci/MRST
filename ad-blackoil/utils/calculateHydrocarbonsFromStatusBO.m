@@ -1,6 +1,6 @@
 function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(fluid, ...
                                                       status, sO, x, rs, rv, ...
-                                                      pressure, varargin)
+                                                      pressure, disgas, vapoil)
 % Compute solution variables for the gas/oil/rs/rv-variable in black-oil
 %
 % SYNOPSIS:
@@ -15,18 +15,22 @@ function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(fluid, .
 %   derivatives if any of them are AD-variables.
 %
 % REQUIRED PARAMETERS:
-%   model - ThreePhaseBlackOilModel-derived class. Determines if
-%           vapoil/disgas is being used and contains the fluid model.
+%   model    - ThreePhaseBlackOilModel-derived class. Determines if
+%              vapoil/disgas is being used and contains the fluid model.
 %
-%   status - Status flag as defined by "getCellStatusVO"
+%   status   - Status flag as defined by "getCellStatusVO"
 %
-%   sO     - The tentative oil saturation.
+%   sO       - The tentative oil saturation.
 %
-%   x      - Variable that is to be decomposed into sG, sO, rs, rv, ...
+%   x        - Variable that is to be decomposed into sG, sO, rs, rv, ...
 %
-%   rs, rv - Dissolved gas, vaporized oil
+%   rs, rv   - Dissolved gas, vaporized oil
 %
 %   pressure - Reservoir oil pressure
+%
+%   disgas   - true if dissolved gas should be taken into account
+%
+%   vapoil   - true if vaporized oil should be taken into account
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   'field'   -  
@@ -56,18 +60,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('disgas', false,...
-                 'vapoil', false);
-    opt = merge_options(opt, varargin{:});
 
     sG = status{2}.*sO + status{3}.*x;
-    if opt.disgas
+    if disgas
         rsSat = fluid.rsSat(pressure);
         rs = (~status{1}).*rsSat + status{1}.*x;
     else % otherwise rs = rsSat = const
         rsSat = rs;
     end
-    if opt.vapoil
+    if vapoil
         rvSat = fluid.rvSat(pressure);
         rv = (~status{2}).*rvSat + status{2}.*x;
     else % otherwise rv = rvSat = const
