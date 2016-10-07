@@ -246,6 +246,14 @@ methods
                                  model.vapoil, 'disgas', model.disgas);
     end
     
+    function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, ...
+                                                          status, sO, x, rs, ...
+                                                          rv, pressure)
+        [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model.fluid, ...
+                                                          status, sO, x, rs, ...
+                                                          rv, pressure, model.disgas, model.vapoil);
+    end
+    
 end
 end
 

@@ -1,4 +1,6 @@
-function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, status, sO, x, rs, rv, pressure)
+function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(fluid, ...
+                                                      status, sO, x, rs, rv, ...
+                                                      pressure, disgas, vapoil)
 % Compute solution variables for the gas/oil/rs/rv-variable in black-oil
 %
 % SYNOPSIS:
@@ -13,18 +15,22 @@ function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, s
 %   derivatives if any of them are AD-variables.
 %
 % REQUIRED PARAMETERS:
-%   model - ThreePhaseBlackOilModel-derived class. Determines if
-%           vapoil/disgas is being used and contains the fluid model.
+%   model    - ThreePhaseBlackOilModel-derived class. Determines if
+%              vapoil/disgas is being used and contains the fluid model.
 %
-%   status - Status flag as defined by "getCellStatusVO"
+%   status   - Status flag as defined by "getCellStatusVO"
 %
-%   sO     - The tentative oil saturation.
+%   sO       - The tentative oil saturation.
 %
-%   x      - Variable that is to be decomposed into sG, sO, rs, rv, ...
+%   x        - Variable that is to be decomposed into sG, sO, rs, rv, ...
 %
-%   rs, rv - Dissolved gas, vaporized oil
+%   rs, rv   - Dissolved gas, vaporized oil
 %
 %   pressure - Reservoir oil pressure
+%
+%   disgas   - true if dissolved gas should be taken into account
+%
+%   vapoil   - true if vaporized oil should be taken into account
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   'field'   -  
@@ -52,15 +58,18 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+
+
     sG = status{2}.*sO + status{3}.*x;
-    if model.disgas
-        rsSat = model.fluid.rsSat(pressure);
+    if disgas
+        rsSat = fluid.rsSat(pressure);
         rs = (~status{1}).*rsSat + status{1}.*x;
     else % otherwise rs = rsSat = const
         rsSat = rs;
     end
-    if model.vapoil
-        rvSat = model.fluid.rvSat(pressure);
+    if vapoil
+        rvSat = fluid.rvSat(pressure);
         rv = (~status{2}).*rvSat + status{2}.*x;
     else % otherwise rv = rvSat = const
         rvSat = rv;
