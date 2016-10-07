@@ -1,4 +1,6 @@
-function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, status, sO, x, rs, rv, pressure)
+function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(fluid, ...
+                                                      status, sO, x, rs, rv, ...
+                                                      pressure, varargin)
 % Compute solution variables for the gas/oil/rs/rv-variable in black-oil
 %
 % SYNOPSIS:
@@ -52,15 +54,21 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+
+    opt = struct('disgas', false,...
+                 'vapoil', false);
+    opt = merge_options(opt, varargin{:});
+
     sG = status{2}.*sO + status{3}.*x;
-    if model.disgas
-        rsSat = model.fluid.rsSat(pressure);
+    if opt.disgas
+        rsSat = fluid.rsSat(pressure);
         rs = (~status{1}).*rsSat + status{1}.*x;
     else % otherwise rs = rsSat = const
         rsSat = rs;
     end
-    if model.vapoil
-        rvSat = model.fluid.rvSat(pressure);
+    if opt.vapoil
+        rvSat = fluid.rvSat(pressure);
         rv = (~status{2}).*rvSat + status{2}.*x;
     else % otherwise rv = rvSat = const
         rvSat = rv;
