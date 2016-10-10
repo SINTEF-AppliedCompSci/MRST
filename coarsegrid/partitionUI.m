@@ -41,7 +41,11 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
+if ~isfield(G, 'cartDims')
+   error(msgid('grid_structure:Invalid'), ...
+         ['Grid must be be logically Cartiesian to use partitionUI.'...
+         ' Missing field ''cartDim''.']);
+end
 if ~grid_ok(G),
    error(msgid('grid_structure:Invalid'), ...
          'Grid is not a valid grid_structure structure');
