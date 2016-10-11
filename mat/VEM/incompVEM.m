@@ -181,17 +181,17 @@ function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
     %   normalizing the pressure to zero in the first cell (or, for k = 1,
     %   the first node of the first cell.
     pressure_bc = ~isempty(opt.bc) && any(strcmpi('pressure', opt.bc.type));
-    if ~pressure_bc
-        if S.order == 1
-            n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
-            i = n(1);
-        else
+    if ~pressure_bc && S.order == 2
+%         if S.order == 1
+%             n = G.cells.nodes(G.cells.nodePos(1):G.cells.nodePos(2)-1);
+%             i = n(1);
+%         else
             if G.griddim == 2  
                 i = G.nodes.num + G.faces.num + 1;
             else
                 i = G.nodes.num + G.edges.num + G.faces.num + 1;
             end
-        end
+%         end
             A(i,i) = 2*A(i,i);
     end
     
