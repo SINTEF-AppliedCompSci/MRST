@@ -92,5 +92,9 @@ end
 
 function newPts = mirror(pts, x0, n)
 % Mirrors pts on plane
-newPts = pts - 2*bsxfun(@minus, pts, x0)*n'*n;
+d = -2*bsxfun(@minus, pts, x0)*n';
+if any(d<eps)
+  warning('Found site almost on, or outside boundary! Can not guarantee for results')
+end
+newPts = pts + d*n;
 end

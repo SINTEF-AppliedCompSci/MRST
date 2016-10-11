@@ -66,7 +66,7 @@ nc = size(CC,1);
 
 for i = 1:nc
   distSqr = sum(bsxfun(@minus, CC(i,:), pts).^2,2);
-  removed = removed + (distSqr<RSqr(i)-TOL);
+  removed = removed + (distSqr<RSqr(i)+TOL);
 end
 removed = logical(removed);
 pts     = pts(~removed,:);

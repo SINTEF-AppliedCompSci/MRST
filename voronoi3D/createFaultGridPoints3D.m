@@ -26,6 +26,8 @@ function [F] = createFaultGridPoints3D(faultTri, rho)
 %                 between the two points on oposite sides of the fault.
 %     F.f.pri   - Priority of the fault points. The points belonging to
 %                 faultTri{i} is given a priority i.
+%     F.f.l     - A mapping from fault points to fault surfaces. Fault
+%                 point F.f.pts(k,:) is generated from surface F.f.l(k).
 %     F.c.CC    - The center coordinates of the balls used to create the
 %                 points F.f.pts. This is equivalent to the verties of the
 %                 triangulations in the cell arrray faultTri.
@@ -63,6 +65,7 @@ function [F] = createFaultGridPoints3D(faultTri, rho)
 F.f.pts  = [];
 F.f.Gs   = [];
 F.f.pri  = [];
+F.f.l    = [];
 F.c.CC   = [];
 F.c.R    = [];
 F.l.fPos =  1;
@@ -76,9 +79,9 @@ for i = 1:numel(faultTri)
   CC        = reshape(dF.Points(dF.ConnectivityList',:)',9,[])';
   R         = reshape(R(dF.ConnectivityList',:),3,[])';
   [fPts,Gs] = ballInt(CC(:,1:3),R(:,1),CC(:,4:6),R(:,2),CC(:,7:9),R(:,3));
-  p = round(fPts*10^15)/10^15;
-  [~, IA] = unique(p,'rows');
-  fPts = fPts(IA,:);
+  p         = round(fPts*10^14)/10^14;
+  [~, IA]   = unique(p,'rows');
+  fPts      = fPts(IA,:);
   
   CC        = reshape(CC',3,[])';
   F.l.fPos  = [F.l.fPos; size(F.f.pts,1)+1+size(fPts,1)];
@@ -88,8 +91,10 @@ for i = 1:numel(faultTri)
   F.c.R     = [F.c.R; reshape(R',[],1)];
   F.f.pri   = [F.f.pri; i*ones(size(fPts,1),1)];
   F.f.Gs    = [F.f.Gs; Gs];
+  F.f.l     = [F.f.l;  i*ones(size(fPts,1),1)];
 end
 
 F.l.f = (1:F.l.fPos(end)-1)';
 F.l.c = (1:F.l.cPos(end)-1)';
+
 end

@@ -58,8 +58,9 @@ W.wellPos = ones(numel(wellLines)+1,1);
 W.pts = [];
 for i = 1:numel(wellLines)
   l = wellLines{i};
-  lineDist = rho((l(1,:) + l(end,:))/2);
-  wellPts = interLinePath(l, rho, lineDist, [0,0]);
+  
+  lineDist = rho{i}((l(1,:) + l(end,:))/2);
+  wellPts = interLinePath(l, rho{i}, lineDist, [0,0]);
   W.wellPos(i+1) = W.wellPos(i) + size(wellPts,1);
   W.pts = [W.pts; wellPts];
 end

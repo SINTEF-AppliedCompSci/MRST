@@ -18,7 +18,7 @@ rho = @(p) wGs*ones(size(p,1),1);
 
 %% Create well
 wellLine = [0.5,0.5,0.01;0.8,0.5,0.5;0.8,0.5,0.99];
-W        = createWellGridPoints3D({wellLine},rho);
+W        = createWellGridPoints3D({wellLine},{rho});
 %% Create reservoir sites
 n = round((1/gs)^3);
 rSites = rand(n,3);
@@ -35,7 +35,7 @@ Gd = clippedPebi3D(pts,bdrDT);
 Gd = computeGeometry(Gd);
 %% Plot grid
 plotGrid(Gd)
-plotGrid(Gd,1:size(wellPts,1),'facecolor','r')
+plotGrid(Gd,1:size(W.pts,1),'facecolor','r')
 axis equal
 figure()
 c = Gd.cells.centroids(:,2)<0.5;
