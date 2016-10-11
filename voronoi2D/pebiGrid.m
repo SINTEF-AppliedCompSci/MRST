@@ -231,10 +231,10 @@ end
 [Pts,~,sorting] = distmesh2d(fd, hres, ds, rectangle, fixedPts);
 
 % Distmesh change the order of all points. We undo this sorting.
-isFault = false(size(Pts,1),1); isFault(1:size(F.f.pts,1)) = true;
+isFault = false(max(sorting),1); isFault(1:size(F.f.pts,1)) = true;
 isFault = isFault(sorting);
 [~,If]   = sort(sorting(isFault));
-isWell  = false(size(Pts,1),1); isWell(size(F.f.pts,1)+(1:size(wellPts,1)))= true;
+isWell  = false(max(sorting),1); isWell(size(F.f.pts,1)+(1:size(wellPts,1)))= true;
 isWell  = isWell(sorting);
 [~,Iw]   = sort(sorting(isWell));
 isRes   = ~isFault & ~isWell;

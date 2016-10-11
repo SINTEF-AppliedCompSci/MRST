@@ -70,7 +70,7 @@ function [G,F] = compositePebiGrid(celldim, pdims, varargin)
 %
 % RETURNS:
 %   G                - Valid grid definition.  
-%                        The fields
+%                        Contains extra fields:
 %                          - G.cells.tag is TRUE for all well cells.
 %                          - G.faces.tag is TRUE for all fault edges. 
 %
@@ -146,7 +146,7 @@ else
   assert(numel(protD) == numel(opt.wellLines));
   protD = protD(IC);
 end
-
+  
 
 
 % Create well points
