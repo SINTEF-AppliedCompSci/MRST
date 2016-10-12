@@ -27,6 +27,9 @@ classdef SequentialPressureTransportModel < ReservoirModel
         % reached, the solver will act as if the step converged and
         % continue.
         maxOuterIterations
+        % Update pressure based on new mobilities before proceeding to next
+        % step
+        reupdatePressure
     end
     
     methods
@@ -40,6 +43,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
             model.maxOuterIterations = 2;
             % Default: We do not use outer loop.
             model.stepFunctionIsLinear = true;
+            model.reupdatePressure = false;
             model = merge_options(model, varargin{:});
             
             % Transport model determines the active phases
@@ -99,7 +103,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 transportReport = [];
             end
             values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals;
-            
+
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
                 % Alternate mode: If outer loop is enabled, we will revisit
@@ -146,6 +150,14 @@ classdef SequentialPressureTransportModel < ReservoirModel
                                 
             report.PressureSolver =  pressureReport;
             report.TransportSolver= transportReport;
+            
+            if model.reupdatePressure && converged
+                state = ...
+                    psolver.solveTimestep(state0, dt, model.pressureModel,...
+                            'initialGuess', state, ...
+                            forceArg{:});
+                [~, state] = model.transportModel.getEquations(state0, state, dt, drivingForces, 'resOnly', true, 'iteration', inf);
+            end
         end
         
         function varargout = getActivePhases(model)
