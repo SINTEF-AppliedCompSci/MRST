@@ -210,8 +210,10 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       qWs = vertcat(sol.qWs);
       p = state.pressure;
       sG = state.s(:,2);
+      sGmax = state.sGmax;
       if opt.ComputePartials
-         [p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
+         %[p, sG, qWs, qGs, pBHP] = initVariablesADI(p, sG, qWs, qGs, pBHP);%#ok
+         [p, sG, sGmax, qWs, qGs, pBHP] = initVariablesADI(p, sG, sGmax, qWs, qGs, pBHP);%#ok
       end
       dt = dts(step);
       injInx = (vertcat(sol.sign) > 0);
