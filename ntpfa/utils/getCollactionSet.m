@@ -77,7 +77,8 @@ function coSet = getCollactionSet(G, rock)
         
         if ~successFace
             selfNodes = unique(gridFaceNodes(G, selfFaces));
-            disp('Extending definition to nodes, unable to find face basis');
+            dispif(mrstVerbose > 1, 'Half-face %d of %d...\n', i, n_hf);
+            dispif(mrstVerbose > 1, 'Extending definition to nodes, unable to find face basis');
             % Should probably be more careful about these nodes
             [T, type, coeff, ix, successFace] = collocateSet(G, fpt, c, selfFaces, selfNodes, -l);
             assert(successFace)
@@ -90,7 +91,6 @@ function coSet = getCollactionSet(G, rock)
         ix_face(i, :) = ix;
         c_face(i, :) = coeff;
         act_face(i, :) = ix == c & type == 1;
-        fprintf('%d of %d...\n', i, n_hf);
     end
     coSet.T = T_all;
     coSet.T_norm = cellfun(@(x) sqrt(sum(x.^2, 2)), T_all, 'UniformOutput', false);
@@ -148,7 +148,6 @@ function [T, types, coefficients, globIx, ok] = collocateSet(G, centerpt, cells,
 end
 
 function [T, ixSet, coeff, done] = getSetForHF(center, l, pts)
-    disp('Starting!')
     dim = size(pts, 2);
 %     assert(dim == 3);
     N = size(pts, 1);
