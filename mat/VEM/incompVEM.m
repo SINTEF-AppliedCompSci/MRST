@@ -139,7 +139,7 @@ assert(G.griddim == 2 || G.griddim == 3, 'Physical dimension must be 2 or 3.');
 p        = opt.linSolve(A, rhs);
 
 %   Pack solution struct
-state = packSolution(state, p, G, S, fluid, opt);
+state = packSolution(state, p, G, S, fluid, opt, A);
 
 end
 
@@ -484,37 +484,49 @@ end
 %--------------------------------------------------------------------------
 
 function flux = computeFlux(state, G, S, fluid, bc)
-    
+
     tm = totmob(state, fluid);
     
     ii    = [(1:G.cells.num)'; max(G.faces.neighbors, [], 2)];
 
-   totmobMat = spdiags(tm(ii), 0, numel(ii),numel(ii));
-   T      = S.T.T * totmobMat;
+    totmobMat = spdiags(tm(ii), 0, numel(ii),numel(ii));
+    T      = S.T.T * totmobMat;
     
     bf = boundaryFaces(G);
-    
-    
-    
     
     ii = [(1:G.cells.num)'; G.cells.num + bf];
     p = [state.pressure; state.facePressure(bf)];
     flux = cellFlux2faceFlux(G, T(:, ii)*p);
     
-    if ~isempty(bc) && ~isfield(bc, 'func')
-        
+    neu = false(G.faces.num, 1);
+    bf = boundaryFaces(G);
+    neu(bf) = true;
+    v = zeros(G.faces.num,1);
+    if ~isempty(bc)
+        neu(bc.face(strcmp(bc.type, 'pressure'))) = false;
         isNeu = strcmp(bc.type, 'flux');
         f = bc.face(isNeu);
         fSgn  = - 1 + 2*(G.faces.neighbors(f,2) ~= 0);
-        flux(f) = bc.value(isNeu).*fSgn;
-
+        v(f) = bc.value(isNeu).*fSgn;
     end
+    flux(neu) = v(neu);
+%     
+%     flux(neu) = 0;
+%     
+%     if ~isempty(bc) && ~isfield(bc, 'func')
+%         
+%         isNeu = strcmp(bc.type, 'flux');
+%         f = bc.face(isNeu);
+%         fSgn  = - 1 + 2*(G.faces.neighbors(f,2) ~= 0);
+%         flux(f) = bc.value(isNeu).*fSgn;
+% 
+%     end
 
 end
 
 
 
-function state = packSolution(state, p, G, S, fluid, opt)
+function state = packSolution(state, p, G, S, fluid, opt, A)
 
 [~, rho] = fluid.properties(state);
 
@@ -565,7 +577,6 @@ end
 
 if opt.matrixOutput
     state.A   = A;
-    state.rhs = rhs;
 end
 
 end

@@ -142,6 +142,22 @@ if G.griddim == 2
     
 else
     
+    %   To reduce memory usage, if k = 2, we partition the grid into chunks
+    %   of ~1000 cells, and and compute the local matrices for each cell
+    %   chunk in a loop.
+    
+    
+%     ncb = ceil(G.cells.num/400);
+%     nc = floor(G.cells.num/ncb);
+%     cPos = 1:nc:G.cells.num;
+%     cPos(end) = cPos(end) + (G.cells.num - cPos(end)) + 1;
+%     
+%     for i = 1:ncb
+%         cells = 
+%     ii(end) = ii(end) + 1;
+%     ii(end) = ii(end) + (G.cells.num - ii(end));
+    
+    
     %%  CALCULATE PROJECTION OPERATORS FOR EACH FACE
     
     nkf = polyDim(k, G.griddim-1);
@@ -573,25 +589,9 @@ else
 
         %   Integrate monomials over each edge of each face using four-point
         %   (m^5-m^10) Gauss-Lobatto quadratures.
-        
-%         xx = 
-%         m5m10 = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,6*6), alpha510)...
-%                .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,6*6), beta510);
-%         alpha = [0 1 0 2 1 0]; beta = [0 0 1 0 1 2];
-%         alpha = repmat(alpha, 1,6); beta = repmat(beta,1 ,6);
-%         fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), ...
-%                nfn(f), 1), 3, 1), 1, polyDim(k, G.griddim-1)^2), alpha + beta);
-% 
-%         m5m10 = m5m10./fd;
 
         m5m10 = bsxfun(@power, repmat([x(:,1); xq1(:,1); xq2(:,1)],1,15), alpha510)...
                .*bsxfun(@power, repmat([x(:,2); xq1(:,2); xq2(:,2)],1,15), beta510);
-%         alpha = [0 1 0 2 1 0]; beta = [0 0 1 0 1 2];
-%         alpha = repmat(alpha, 1,6); beta = repmat(beta,1 ,6);
-%         fd = bsxfun(@power, repmat(repmat(rldecode(G.faces.diameters(f), ...
-%                nfn(f), 1), 3, 1), 1, polyDim(k, G.griddim-1)^2), alpha + beta);
-% 
-%         m5m10 = m5m10./fd;
 
         pos = [1;cumsum(nfn(f))+1];
         ii = 1:size(x,1); jj = ii;
@@ -600,7 +600,6 @@ else
 
         m5m10 = (Ie*bsxfun(@times, (m5m10(ii,:) + m5m10(jj,:))/12 ...
                     + (m5m10(nn + 1:2*nn,:) + m5m10(2*nn+1:3*nn,:))*5/12, enx))';
-%         [jj, ii] = blockDiagIndex(6*6*ones(numel(f),1), ones(numel(f),1));
         [jj, ii] = blockDiagIndex(15*ones(numel(f),1), ones(numel(f),1));
         m5m10 = sparse(ii, jj, m5m10(:));
 
