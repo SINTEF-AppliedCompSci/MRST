@@ -223,7 +223,7 @@ if ~isempty(W)
         for i = 1:numel(W)
             wp = wm.perf2well == i;
             state.wellSol(i).flux = fluxt(wp);
-            state.wellSol(i).components = sum(compSrc(wp, :));
+            state.wellSol(i).components = (compSrc(wp, :));
         end
     end
 end
