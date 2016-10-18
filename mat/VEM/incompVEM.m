@@ -1,5 +1,5 @@
 function state = incompVEM(state, G, S, fluid, varargin)
-%Solve incompressible flow problem (fluxes/pressures) using first or second
+%Solve incompressible flow problem (fluxes/pressures) a first or second
 %order virtual element method.
 %
 % SYNOPSIS:
@@ -487,19 +487,60 @@ function flux = computeFlux(state, G, S, fluid, bc)
 
     tm = totmob(state, fluid);
     
-    ii    = [(1:G.cells.num)'; max(G.faces.neighbors, [], 2)];
+    if strcmp(S.transType, 'mpfa')
+    
+        ii    = [(1:G.cells.num)'; max(G.faces.neighbors, [], 2)];
 
-    totmobMat = spdiags(tm(ii), 0, numel(ii),numel(ii));
-    T      = S.T.T * totmobMat;
-    
-    bf = boundaryFaces(G);
-    
-    ii = [(1:G.cells.num)'; G.cells.num + bf];
-    p = [state.pressure; state.facePressure(bf)];
-    flux = cellFlux2faceFlux(G, T(:, ii)*p);
+        totmobMat = spdiags(tm(ii), 0, numel(ii),numel(ii));
+        T      = S.T.T * totmobMat;
+
+        bf = boundaryFaces(G);
+
+        ii = [(1:G.cells.num)'; G.cells.num + bf];
+        p = [state.pressure; state.facePressure(bf)];
+        flux = cellFlux2faceFlux(G, T(:, ii)*p);
+
+    elseif strcmp(S.transType, 'tpfa')
+        
+        
+       [neighborship, ~] = getNeighbourship(G, 'Topological', true);
+       [cellNo, cf, ~] = getCellNoFaces(G);
+       nif    = size(neighborship, 1);
+              
+       % Identify internal faces
+       i  = all(neighborship ~= 0, 2);
+       ni   = neighborship(i,:);
+        
+        T  = S.T .* tm(cellNo);
+        ft = 1 ./ accumarray(cf, 1 ./ T, [nif, 1]);
+ 
+%      f = G.cells.faces(:,1);
+%     fSgn  = 1 - 2*(G.faces.neighbors(f,1) ~= rldecode((1:G.cells.num)', diff(G.cells.facePos),1));
+%         pd = rldecode(state.pressure, diff(G.cells.facePos), 1) ...
+%              - state.facePressure(f);
+% %        fSgn = 1;
+%         flux = T.*pd(f);
+%         
+%         P = sparse(f, 1:numel(f),1);
+%         P = bsxfun(@rdivide, P, sum(P,2));
+%         
+%         flux = P*flux;
+        
+        
+%         G.faces.neighbors(:,2) 
+        
+        p = state.pressure;
+        flux = -accumarray(find(i),  ft(i) .*(p(ni(:,2))-p(ni(:,1))), [nif, 1]);
+           sgn  = 2*(G.faces.neighbors(~i,2)==0)-1;
+              c    = sum(G.faces.neighbors(~i,:),2) ;
+          flux(~i) = -sgn.*ft(~i).*( state.facePressure(~i) - p(c));
+%         
+        
+    end
     
     neu = false(G.faces.num, 1);
     bf = boundaryFaces(G);
+
     neu(bf) = true;
     v = zeros(G.faces.num,1);
     if ~isempty(bc)
@@ -510,6 +551,7 @@ function flux = computeFlux(state, G, S, fluid, bc)
         v(f) = bc.value(isNeu).*fSgn;
     end
     flux(neu) = v(neu);
+
 %     
 %     flux(neu) = 0;
 %     

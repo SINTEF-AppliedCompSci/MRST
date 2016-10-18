@@ -4,7 +4,7 @@ function S = computeVirtualIP(G, rock, k, varargin)
 
 opt = struct('innerProduct', 'ip_simple', ...
              'sigma'       , []         , ...
-             'trans'       , true            );
+             'trans'       , 'mpfa'          );
 opt = merge_options(opt, varargin{:});
 
 %%  CFUNCTION SPACE DIMENSIONS
@@ -96,8 +96,10 @@ end
 
 %%  CALCULATE MULTIPOINT TRANSMISSIBILITY FOR FLUX CALCULATIONS          %%
 
-if opt.trans
+if strcmp(opt.trans, 'mpfa')
     T = computeMultiPointTrans(G, rock);
+elseif strcmp(opt.trans, 'tpfa')
+    T = computeTrans(G, rock);
 else
     T = [];
 end
@@ -138,7 +140,7 @@ if G.griddim == 2
     A = PiNstar'*M*PiNstar + (I-PiN)'*SS*(I-PiN);
 
     %   Make solution struct.
-    S = makeSolutionStruct(G, NP, k, A, T, PiNstar, [], [], []);
+    S = makeSolutionStruct(G, NP, k, A, T, PiNstar, [], [], [], opt);
     
 else
     
@@ -700,7 +702,7 @@ else
     A = PiNstar'*M*PiNstar + (I-PiN)'*SS*(I-PiN);
 
     %   Make solution struct.
-    S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2);
+    S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2, opt);
     
 end
 
@@ -977,7 +979,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2)
+function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2, opt)
 %   Make solution struct.
 
     ncn = diff(G.cells.nodePos);
@@ -1024,6 +1026,7 @@ function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2)
     
     S.A          = A;
     S.T          = T;
+    S.transType  = opt.trans;
     S.dofVec     = dofVec;
     S.PiNstar    = PiNstar;
     S.PiNFstar   = PiNFstar;
