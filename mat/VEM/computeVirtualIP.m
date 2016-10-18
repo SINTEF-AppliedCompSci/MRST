@@ -4,7 +4,7 @@ function S = computeVirtualIP(G, rock, k, varargin)
 
 opt = struct('innerProduct', 'ip_simple', ...
              'sigma'       , []         , ...
-             'trans'       , 'mpfa'          );
+             'trans'       , []          );
 opt = merge_options(opt, varargin{:});
 
 %%  CFUNCTION SPACE DIMENSIONS

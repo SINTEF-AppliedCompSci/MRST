@@ -125,6 +125,7 @@ opt = struct('wells'           , []       , ...
              'src'             , []       , ...
              'facePressure'    , false    , ...
              'cellPressure'    , false    , ...
+             'calculateFlux'   , true     , ...
              'conservativeFlux', false    , ...
              'linSolve'        , @mldivide, ...
              'matrixOutput'    , false         );
@@ -484,9 +485,48 @@ end
 %--------------------------------------------------------------------------
 
 function flux = computeFlux(state, G, S, fluid, bc)
+%   Compute fluxes from cell and face pressures using TPFA of MPFA scheme.
 
     tm = totmob(state, fluid);
+
+    if isempty(S.T)
+        
+        f    = G.cells.faces(:,1);
+        fSgn = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
+               ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
+        if size(f,1) == 1; f = f'; end
+
+        %   Nodes for each face of each cell.
+        n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+        if size(n,1) == 1; n = n'; end
+        n   = reshape(n,2,[])';
+        n(fSgn == -1,:) = n(fSgn == -1,2:-1:1);
+        n   = n(:,1);
+        
+        NP = diff(G.cells.nodePos);
+        p = state.nodePressure(n);
+        x = G.nodes.coords(n,:);
+        
+        [ii,jj] = blockDiagIndex(ones(G.cells.num,1), NP);
+        pm = sparse(ii,jj,p);
+        [ii,jj] = blockDiagIndex(NP, G.griddim*ones(G.cells.num,1));
+        xm = sparse(ii, jj, x);
+        
+        totmobMat = spdiags(rldecode(tm, NP, 1), 0, sum(NP), sum(NP));
+        A = totmobMat\S.A;
+        Kgradp = bsxfun(@rdivide, squeezeBlockDiag((pm*A*xm), ones(G.cells.num,1), G.cells.num, G.griddim), G.cells.volumes);
+        
+        flux = sum(rldecode(-Kgradp, diff(G.cells.facePos),1).*G.faces.normals(f,:),2);
+        P = sparse(f, 1:numel(f),1);
+        P = bsxfun(@rdivide, P, sum(P,2));
+        flux = P*flux;
+        
+    end
+        
     
+    tm = totmob(state, fluid);
+    
+    %   MPFA.
     if strcmp(S.transType, 'mpfa')
     
         ii    = [(1:G.cells.num)'; max(G.faces.neighbors, [], 2)];
@@ -495,49 +535,32 @@ function flux = computeFlux(state, G, S, fluid, bc)
         T      = S.T.T * totmobMat;
 
         bf = boundaryFaces(G);
-
         ii = [(1:G.cells.num)'; G.cells.num + bf];
         p = [state.pressure; state.facePressure(bf)];
         flux = cellFlux2faceFlux(G, T(:, ii)*p);
 
+    %   TPFA.
     elseif strcmp(S.transType, 'tpfa')
         
-        
-       [neighborship, ~] = getNeighbourship(G, 'Topological', true);
-       [cellNo, cf, ~] = getCellNoFaces(G);
-       nif    = size(neighborship, 1);
+        [neighborship, ~] = getNeighbourship(G, 'Topological', true);
+        [cellNo, cf, ~] = getCellNoFaces(G);
+        nif    = size(neighborship, 1);
               
-       % Identify internal faces
-       i  = all(neighborship ~= 0, 2);
-       ni   = neighborship(i,:);
+        ii  = all(neighborship ~= 0, 2);
+        ni   = neighborship(ii,:);
         
         T  = S.T .* tm(cellNo);
         ft = 1 ./ accumarray(cf, 1 ./ T, [nif, 1]);
- 
-%      f = G.cells.faces(:,1);
-%     fSgn  = 1 - 2*(G.faces.neighbors(f,1) ~= rldecode((1:G.cells.num)', diff(G.cells.facePos),1));
-%         pd = rldecode(state.pressure, diff(G.cells.facePos), 1) ...
-%              - state.facePressure(f);
-% %        fSgn = 1;
-%         flux = T.*pd(f);
-%         
-%         P = sparse(f, 1:numel(f),1);
-%         P = bsxfun(@rdivide, P, sum(P,2));
-%         
-%         flux = P*flux;
-        
-        
-%         G.faces.neighbors(:,2) 
         
         p = state.pressure;
-        flux = -accumarray(find(i),  ft(i) .*(p(ni(:,2))-p(ni(:,1))), [nif, 1]);
-           sgn  = 2*(G.faces.neighbors(~i,2)==0)-1;
-              c    = sum(G.faces.neighbors(~i,:),2) ;
-          flux(~i) = -sgn.*ft(~i).*( state.facePressure(~i) - p(c));
-%         
+        flux = -accumarray(find(ii),  ft(ii) .*(p(ni(:,2))-p(ni(:,1))), [nif, 1]);
+        sgn  = 2*(G.faces.neighbors(~ii,2)==0)-1;
+        c    = sum(G.faces.neighbors(~ii,:),2) ;
+        flux(~ii) = -sgn.*ft(~ii).*( state.facePressure(~ii) - p(c));  
         
     end
     
+    %   Replace flux on neumann faces by prescribed value.
     neu = false(G.faces.num, 1);
     bf = boundaryFaces(G);
 
@@ -551,18 +574,6 @@ function flux = computeFlux(state, G, S, fluid, bc)
         v(f) = bc.value(isNeu).*fSgn;
     end
     flux(neu) = v(neu);
-
-%     
-%     flux(neu) = 0;
-%     
-%     if ~isempty(bc) && ~isfield(bc, 'func')
-%         
-%         isNeu = strcmp(bc.type, 'flux');
-%         f = bc.face(isNeu);
-%         fSgn  = - 1 + 2*(G.faces.neighbors(f,2) ~= 0);
-%         flux(f) = bc.value(isNeu).*fSgn;
-% 
-%     end
 
 end
 
@@ -613,7 +624,7 @@ if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
     end
 end
     
-if ~isempty(S.T)
+if opt.calculateFlux
     state.flux = computeFlux(state, G, S, fluid, opt.bc);
 end
 
