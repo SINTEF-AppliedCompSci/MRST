@@ -5,7 +5,7 @@ tol = 1e-6;
 
 %%  2D 1ST AND 2ND ORDER
 
-G = computeVEMGeometry(unitSquare([10,10],[1,1]));
+G = computeVEMGeometry(pebiSquare([10,10],[1,1]));
 
 
 rot = @(theta) [cos(theta), -sin(theta); sin(theta), cos(theta)];
@@ -33,9 +33,9 @@ stateMPFA = incompMPFA(state, G, T, fluid, 'bc', bc);
 
 tic
 
-S = computeVirtualIP(G, rock, 1);
+S = computeVirtualIP(G, rock, 1, 'trans', 'mpfa');
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bc);
-cflux = conserveFlux(stateVEM, G, rock, fluid, bc, []);
+[cflux, r] = conserveFlux(stateVEM, G, rock, 'bc', bc);
 
 pErr  = norm(stateVEM.pressure - stateMPFA.pressure)/norm(stateMPFA.pressure);
 fErr  = norm(stateVEM.flux - stateMPFA.flux)/norm(stateMPFA.flux);
@@ -48,9 +48,9 @@ toc
 
 tic
 
-S = computeVirtualIP(G, rock, 2);
+S = computeVirtualIP(G, rock, 2, 'trans', 'mpfa');
 stateVEM = incompVEM    (state, G, S, fluid, 'bc', bc);
-cflux = conserveFlux(stateVEM, G, rock, fluid, bc, []);
+cflux = conserveFlux(stateVEM, G, rock, 'bc', bc);
 
 pErr = norm(stateVEM.pressure - stateMPFA.pressure)/norm(stateMPFA.pressure);
 fErr = norm(stateVEM.flux - stateMPFA.flux)/norm(stateMPFA.flux);
@@ -63,7 +63,7 @@ toc
 
 %%  3D 1ST AND 2ND ORDER
 
-G = computeVEMGeometry(voronoiCube(200,[1,1,1]));
+G = computeVEMGeometry(pebiCube(200,[1,1,1]));
 
 rot = @(theta, eta, psi) [1 0 0; 0 cos(theta), -sin(theta); 0 sin(theta) cos(theta)]...
                         *[cos(eta) 0 sin(eta); 0 1 0; -sin(eta) 0 cos(eta)         ]...
@@ -93,9 +93,9 @@ stateMPFA = incompMPFA(state, G, T, fluid, 'bc', bc);
 
 tic
 
-S = computeVirtualIP(G, rock, 1);
+S = computeVirtualIP(G, rock, 1, 'trans', 'mpfa');
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'facePressure', true);
-cflux = conserveFlux(stateVEM, G, rock, fluid, bc, []);
+cflux = conserveFlux(stateVEM, G, rock, 'bc', bc);
 
 pErr = norm(stateVEM.pressure - stateMPFA.pressure)/norm(stateMPFA.pressure);
 fErr = norm(stateVEM.flux - stateMPFA.flux)/norm(stateMPFA.flux);
@@ -108,9 +108,9 @@ toc
 
 tic
 
-S = computeVirtualIP(G, rock, 2);
+S = computeVirtualIP(G, rock, 2, 'trans', 'mpfa');
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bc);
-cflux = conserveFlux(stateVEM, G, rock, fluid, bc, []);
+cflux = conserveFlux(stateVEM, G, rock, 'bc', bc);
 
 pErr = norm(stateVEM.pressure - stateMPFA.pressure)/norm(stateMPFA.pressure);
 fErr = norm(stateVEM.flux - stateMPFA.flux)/norm(stateMPFA.flux);

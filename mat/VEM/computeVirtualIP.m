@@ -988,17 +988,40 @@ function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2, opt)
     iiN = mcolon(vec, vec + ncn-1);
         
     if G.griddim == 2
+        
+            %   Faces for each cell.
+        f    = G.cells.faces(:,1);
+        fn   = G.faces.normals(f,:);
+        fSgn = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
+               ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
+        fn   = bsxfun(@times, fn, fSgn);
+        if size(f,1) == 1; f = f'; end
+
+
+        %   Nodes for each face of each cell.
+        n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+        if size(n,1) == 1; n = n'; end
+        n   = reshape(n,2,[])';
+        n(fSgn == -1,:) = n(fSgn == -1,2:-1:1);
+        n   = n(:,1)';
+
                 
         iiF = mcolon(vec + ncn, vec + ncn + ncf*polyDim(k-2, 1) -1);
         iiP = mcolon(vec + ncn + ncf*polyDim(k-2, 1), ...
                      vec + ncn + ncf*polyDim(k-2, 1) + polyDim(k-2, 2) -1);
         if k == 1
-            dofVec([iiN, iiF, iiP]) = G.cells.nodes';
+%             dofVec([iiN, iiF, iiP]) = G.cells.nodes';
+            dofVec([iiN, iiF, iiP]) = n;
         else
             dofVec([iiN, iiF, iiP]) ...
-                = [G.cells.nodes',...
+                = [n,...
                    G.cells.faces(:,1)' + G.nodes.num, ...
-                   (1:G.cells.num) + G.nodes.num + G.faces.num*polyDim(k-2, 2)];
+                   (1:G.cells.num) + G.nodes.num + G.faces.num*polyDim(k-2, 2)];                
+
+%                   = [G.cells.nodes',...
+%                    G.cells.faces(:,1)' + G.nodes.num, ...
+%                    (1:G.cells.num) + G.nodes.num + G.faces.num*polyDim(k-2, 2)];
+
         end
         
     else

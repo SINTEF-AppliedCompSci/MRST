@@ -236,7 +236,7 @@ function rhs = computeRHS(G, S, P, N, opt)
             PiNstar = squeezeBlockDiag(S.PiNstar, diff(G.cells.nodePos), ...
                  polyDim(S.order, G.griddim), sum(diff(G.cells.nodePos)))';
             rhs = rhs.*PiNstar(:,1);            
-            rhs = P'*rhs;
+            rhs = full(P'*rhs);
 
         else
             %   The first moment over the cell is now a degree of freedom.
@@ -488,46 +488,112 @@ function flux = computeFlux(state, G, S, fluid, bc)
 %   Compute fluxes from cell and face pressures using TPFA of MPFA scheme.
 
     tm = totmob(state, fluid);
-
+    
     if isempty(S.T)
         
         f    = G.cells.faces(:,1);
         fSgn = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
                ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
         if size(f,1) == 1; f = f'; end
-
-        %   Nodes for each face of each cell.
-        n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
-        if size(n,1) == 1; n = n'; end
-        n   = reshape(n,2,[])';
-        n(fSgn == -1,:) = n(fSgn == -1,2:-1:1);
-        n   = n(:,1);
         
-        NP = diff(G.cells.nodePos);
-        p = state.nodePressure(n);
-        x = G.nodes.coords(n,:);
+        k = S.order;
+        d = G.griddim;
+        ncn = diff(G.cells.nodePos);
+        ncf = diff(G.cells.facePos);
+        if G.griddim == 2
+            nce = zeros(G.cells.num,1);
+        else
+            nce = diff(G.cells.edgePos);
+        end
         
+        %   Dofs per cell
+        NP = ncn + nce.*polyDim(k-2,d-2) ...
+                 + ncf*polyDim(k-2, d-1) ...
+                 + polyDim(k-2, d);
+             
+        %   Map from global to local node dofs.
+        vec = [1; cumsum(NP(1:end-1)) + 1];
+        iiN = mcolon(vec, vec + ncn-1);
+        
+        %   Initialize pressure vector and r = dof([x,y,z]).
+        p = zeros(sum(NP),1);
+        r = zeros(G.griddim, sum(NP));
+        
+        if G.griddim == 2
+            
+            %   Map from global to local face and cell dofs.
+            iiF = mcolon(vec + ncn, vec + ncn + ncf*polyDim(k-2, d-2) -1);
+            iiP = mcolon(vec + ncn + ncf*polyDim(k-2, d-2), ...
+                         vec + ncn + ncf*polyDim(k-2, d-2) + polyDim(k-2, d-1) -1);
+            
+            %   Nodes for each face of each cell.
+            n   = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+            if size(n,1) == 1; n = n'; end
+            n   = reshape(n,2,[])';
+            n(fSgn == -1,:) = n(fSgn == -1,2:-1:1);
+            n   = n(:,1);
+            
+            %   Shuffle presure and polynomial dofs.
+            if k == 1
+                p([iiN, iiF, iiP]) = state.nodePressure(n);
+                r(:, [iiN, iiF, iiP]) = G.nodes.coords(n,:)';
+            else
+                p([iiN, iiF, iiP]) = [state.nodePressure(n); state.facePressure(f); state.pressure];
+                r(:, [iiN, iiF, iiP]) = [G.nodes.coords(n,:); G.faces.centroids(f,:); G.cells.centroids]';
+            end
+            
+        else
+            
+            %   Map from global to local edge, face and cell dofs.
+            iiE = mcolon(vec + ncn, vec + ncn + nce*polyDim(k-2, 1) - 1);
+            iiF = mcolon(vec + ncn + nce*polyDim(k-2, 1), ...
+                         vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) - 1);
+            iiP = mcolon(vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2), ...
+                         vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) + polyDim(k-2,3)-1);
+            
+            %   Suffle pressure and polyomial dofs.
+            if k == 1
+                p([iiN, iiE, iiF, iiP]) = state.nodePressure(G.cells.nodes);
+                r(:, [iiN, iiE, iiF, iiP]) = G.nodes.coords(G.cells.nodes,:)';
+            else
+                p([iiN, iiE, iiF, iiP]) ...
+                    = [state.nodePressure(G.cells.nodes); ...
+                       state.edgePressure(G.cells.edges); ...
+                       state.facePressure(f); ...
+                       state.pressure];
+                r(:, [iiN, iiE, iiF, iiP]) ...
+                                  = [G.nodes.coords(G.cells.nodes,:); ...
+                                     G.edges.centroids(G.cells.edges,:); ...
+                                     G.faces.centroids(f,:); ...
+                                     G.cells.centroids]';
+            end
+        end
+        
+        %   Put in block matrix form
         [ii,jj] = blockDiagIndex(ones(G.cells.num,1), NP);
-        pm = sparse(ii,jj,p);
-        [ii,jj] = blockDiagIndex(NP, G.griddim*ones(G.cells.num,1));
-        xm = sparse(ii, jj, x);
+        pm = sparse(ii,jj,p');
+        [jj,ii] = blockDiagIndex(G.griddim*ones(G.cells.num,1), NP);
+        rm = sparse(ii, jj, r(:));
         
+        %   Divide local matrices A^P by total mobility.
         totmobMat = spdiags(rldecode(tm, NP, 1), 0, sum(NP), sum(NP));
         A = totmobMat\S.A;
-        Kgradp = bsxfun(@rdivide, squeezeBlockDiag((pm*A*xm), ones(G.cells.num,1), G.cells.num, G.griddim), G.cells.volumes);
         
-        flux = sum(rldecode(-Kgradp, diff(G.cells.facePos),1).*G.faces.normals(f,:),2);
+        %   Calculate K \nabla p for each cell.
+        Kgradp = bsxfun(@rdivide, squeezeBlockDiag((pm*A*rm), ...
+            ones(G.cells.num,1), G.cells.num, G.griddim), G.cells.volumes);
+        
+        %   calculate flux for each face of each cell.
+        flux = sum(rldecode(-Kgradp, diff(G.cells.facePos),1)...
+                                                 .*G.faces.normals(f,:),2);
+        
+        %   Compute face fluxes by arithmetic mean.
         P = sparse(f, 1:numel(f),1);
         P = bsxfun(@rdivide, P, sum(P,2));
         flux = P*flux;
         
-    end
-        
-    
-    tm = totmob(state, fluid);
-    
     %   MPFA.
-    if strcmp(S.transType, 'mpfa')
+    elseif strcmp(S.transType, 'mpfa')
     
         ii    = [(1:G.cells.num)'; max(G.faces.neighbors, [], 2)];
 
@@ -583,16 +649,16 @@ function state = packSolution(state, p, G, S, fluid, opt, A)
 
 [~, rho] = fluid.properties(state);
 
-gvec = gravity();
-if G.griddim == 3
-    if S.order == 1
-        pot = rho*gvec(3)*G.nodes.coords(:,3);
-    else
-        pot = rho*gvec(3)*[G.nodes.coords(:,3)   ; G.edges.centroids(:,3); ...
-                           G.faces.centroids(:,3); G.cells.centroids(:,3)];
-    end
-    p = p-pot;
-end
+% gvec = gravity();
+% if G.griddim == 3
+%     if S.order == 1
+%         pot = rho*gvec(3)*G.nodes.coords(:,3);
+%     else
+%         pot = rho*gvec(3)*[G.nodes.coords(:,3)   ; G.edges.centroids(:,3); ...
+%                            G.faces.centroids(:,3); G.cells.centroids(:,3)];
+%     end
+%     p = p-pot;
+% end
 
 if G.griddim == 2
     G.edges.num = 0;

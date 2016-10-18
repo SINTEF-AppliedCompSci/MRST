@@ -33,7 +33,11 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
     r = rhs-P*(state.flux(f).*fSgn);
 
     %   If above tolerance, apply postprocessing.
-    if norm(r)/norm(rhs) < 1e-15
+    den = rhs;
+    if nnz(rhs) == 0
+        den = state.flux;
+    end
+    if norm(r)/norm(den) < 1e-15
         warning('Flux already conservative. No need for postprocessing.');
         flux = state.flux; 
     else
@@ -88,7 +92,7 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
         flux = state.flux + G.faces.areas.*beta./omega;
 
         r = rhs-P*(flux(f).*fSgn);
-        if norm(r)/norm(rhs) > 1e-15;
+        if norm(r)/norm(den) > 1e-15;
             warning('Could not construct conservative flux field');
         end
 

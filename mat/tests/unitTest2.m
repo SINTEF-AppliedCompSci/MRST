@@ -5,7 +5,7 @@ tol = 1e-6;
 
 %%  2D 1ST AND 2ND ORDER
 
-G = computeVEMGeometry(unitSquare([10,10],[1,1]));
+G = computeVEMGeometry(pebiSquare([10,10],[1,1]));
 
 rot = @(theta) [cos(theta), -sin(theta); sin(theta), cos(theta)];
 K    = spdiags(100*milli*darcy*rand([2*G.cells.num, 1]), 0, 2*G.cells.num, 2*G.cells.num);
@@ -38,7 +38,7 @@ tr = sum(bsxfun(@minus, G.cells.centroids, C).^2,2) > 1*G.cells.diameters(srcCel
 tic
 
 
-S = computeVirtualIP(G, rock, 1);
+S = computeVirtualIP(G, rock, 1, 'trans', 'mpfa');
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src);
 
 pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));
@@ -50,7 +50,7 @@ toc
 
 tic
 
-S = computeVirtualIP(G, rock, 2);
+S = computeVirtualIP(G, rock, 2, 'trans', 'mpfa');
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src, 'conservativeFlux', true);
 
 pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));
@@ -62,7 +62,7 @@ toc
 
 %%  3D 1ST AND 2ND ORDER
 
-G = computeVEMGeometry(voronoiCube(200,[1,1,1]));
+G = computeVEMGeometry(pebiCube(200,[1,1,1]));
 
 rot = @(theta, eta, psi) [1 0 0; 0 cos(theta), -sin(theta); 0 sin(theta) cos(theta)]...
                         *[cos(eta) 0 sin(eta); 0 1 0; -sin(eta) 0 cos(eta)         ]...
@@ -101,7 +101,7 @@ tr = sum(bsxfun(@minus, G.cells.centroids, C).^2,2) > 1*G.cells.diameters(srcCel
 
 tic
 
-S = computeVirtualIP(G, rock, 1);
+S = computeVirtualIP(G, rock, 1, 'trans', 'mpfa');
 stateVEM = incompVEM(state, G, S, fluid, 'bc', bc, 'src', src);
 
 pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));
@@ -113,7 +113,7 @@ toc
 
 tic
 
-S = computeVirtualIP(G, rock, 2);
+S = computeVirtualIP(G, rock, 2, 'trans', 'mpfa');
 stateVEM = incompVEM    (state, G, S, fluid, 'bc', bc, 'src', src);
 
 pErr = norm(stateVEM.pressure(tr) - stateMFD.pressure(tr))/norm(stateMFD.pressure(tr));

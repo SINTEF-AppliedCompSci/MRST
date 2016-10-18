@@ -5,7 +5,7 @@ tol = 1e-6;
 
 tic
 
-G = computeVEMGeometry(unitSquare([10,10],[1,1]));
+G = computeVEMGeometry(pebiSquare([10,10],[1,1]));
 
 rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
 mu = 1*centi*poise;
@@ -22,7 +22,7 @@ bc = addBCVEM([], bf(~e), 'pressure', gD);
 bc = addBCVEM(bc, bf( e), 'flux'    , gN);
 
 S = computeVirtualIP(G, rock, 1);
-state = incompVEM(state, G, S, fluid, 'bc', bc);
+state = incompVEM(state, G, S, fluid, 'bc', bc, 'calculateFlux', false);
 
 errP = norm(state.nodePressure - gD(G.nodes.coords));
 fprintf('2D 1st order: \t Pressure error: \t %.2d. \t', errP);
@@ -33,7 +33,7 @@ toc;
 
 tic
 
-% G = computeVEMGeometry(unitSquare([10,10],[1,1]));
+% G = computeVEMGeometry(pebiSquare([10,10],[1,1]));
 % 
 % rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
 % fluid      = initSingleFluid('mu' , 1*centi*poise, ...
@@ -48,7 +48,7 @@ bc = addBCVEM([], bf(~e), 'pressure', gD);
 bc = addBCVEM(bc, bf( e), 'flux', gN);
 
 S = computeVirtualIP(G, rock, 2);
-state = incompVEM(state, G, S, fluid, 'bc', bc);
+state = incompVEM(state, G, S, fluid, 'bc', bc, 'calculateFlux', false);
 
 p = [gD(G.nodes.coords); gD(G.faces.centroids); ...
      polygonInt(G, 1:G.cells.num, gD, 2)./G.cells.volumes];
@@ -63,7 +63,7 @@ toc;
 
 tic
 
-G = computeVEMGeometry(voronoiCube(100,[1,1,1]));
+G = computeVEMGeometry(pebiCube(100,[1,1,1]));
 rock.perm  = repmat(100*milli*darcy, [G.cells.num, 1]);
 fluid      = initSingleFluid('mu' , 1*centi*poise, ...
                              'rho', 1000*kilogram/meter^3);
@@ -74,8 +74,8 @@ gD = @(x) x(:,1) + x(:,2) + x(:,3);
 bf = boundaryFaces(G);
 bc = addBCVEM([], bf, 'pressure', gD);
 
-S = computeVirtualIP(G, rock, 1, 'trans', true);
-state = incompVEM(state, G, S, fluid, 'bc', bc);
+S = computeVirtualIP(G, rock, 1);
+state = incompVEM(state, G, S, fluid, 'bc', bc, 'calculateFlux', false);
 
 errP = norm(state.nodePressure - gD(G.nodes.coords));
 
@@ -87,7 +87,7 @@ toc;
 
 tic
 
-G = computeVEMGeometry(voronoiCube(100,[1,1,1]));
+G = computeVEMGeometry(pebiCube(100,[1,1,1]));
 
 K = 100*milli*darcy*rand(1,3);
 rock.perm = repmat(K, [G.cells.num,1]);
@@ -100,8 +100,8 @@ gD = @(x) x(:,1).^2 - K(1)/K(2)*x(:,2).^2;
 bf = boundaryFaces(G);
 bc = addBCVEM([], bf, 'pressure', gD);
 
-S = computeVirtualIP(G, rock, 2, 'trans', false);
-state = incompVEM(state, G, S, fluid, 'bc', bc);
+S = computeVirtualIP(G, rock, 2);
+state = incompVEM(state, G, S, fluid, 'bc', bc, 'calculateFlux', false);
 
 p = [gD(G.nodes.coords); gD(G.edges.centroids); ...
      polygonInt3D(G, 1:G.faces.num, gD, 2)./G.faces.areas; ...
