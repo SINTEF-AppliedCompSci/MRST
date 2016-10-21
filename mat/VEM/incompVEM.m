@@ -126,7 +126,7 @@ opt = struct('wells'           , []       , ...
              'facePressure'    , false    , ...
              'cellPressure'    , false    , ...
              'calculateFlux'   , true     , ...
-             'conservativeFlux', false    , ...
+             'conserveFlux'    , false    , ...
              'linSolve'        , @mldivide, ...
              'matrixOutput'    , false         );
              
@@ -587,6 +587,7 @@ function flux = computeFlux(state, G, S, fluid, bc)
         flux = sum(rldecode(-Kgradp, diff(G.cells.facePos),1)...
                                                  .*G.faces.normals(f,:),2);
         
+%         omega = calculateFaceWeights(G, rock);
         %   Compute face fluxes by arithmetic mean.
         P = sparse(f, 1:numel(f),1);
         P = bsxfun(@rdivide, P, sum(P,2));
@@ -700,6 +701,29 @@ end
 
 end
 
+function [theta, omega] = calculateFaceWeights(G, rock)
+
+        K = permTensor(rock, G.griddim)';
+        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1));
+        K = sparse(ii, jj, K(:));
+        
+        fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f))';
+        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1), ncf);
+        fnMat = sparse(ii,jj, fn(:));
+        delta = fnMat'*K*fnMat;
+        delta = spdiags(delta, 0);
+
+        ii = f;
+        jj = (1:numel(f))';
+        omega = sparse(ii, jj,1)*delta;
+
+        for i = 1:G.faces.num
+            d = delta(f == i);
+            omega(i) = omega(i)/(numel(d)*prod(d));
+        end
+        
+end
+        
 %--------------------------------------------------------------------------
 
 function tm = totmob(state, fluid)

@@ -2,7 +2,8 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
 
     %   Merge input parameters
     opt = struct('bc'              , []       , ...
-                 'src'             , []       );
+                 'src'             , []       , ...
+                 'faceWeights'     , 'permWeighted');
 
     opt = merge_options(opt, varargin{:});
     
@@ -43,25 +44,27 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
     else
 
         %   Calculate weights omega for weighted L^2-norm
-        
-        K = permTensor(rock, G.griddim)';
-        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1));
-        K = sparse(ii, jj, K(:));
-        
-        fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f))';
-        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1), ncf);
-        fnMat = sparse(ii,jj, fn(:));
-        delta = fnMat'*K*fnMat;
-        delta = spdiags(delta, 0);
 
-        ii = f;
-        jj = (1:numel(f))';
-        omega = sparse(ii, jj,1)*delta;
-
-        for i = 1:G.faces.num
-            d = delta(f == i);
-            omega(i) = omega(i)/(numel(d)*prod(d));
-        end
+%         K = permTensor(rock, G.griddim)';
+%         [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1));
+%         K = sparse(ii, jj, K(:));
+%         
+%         fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f))';
+%         [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1), ncf);
+%         fnMat = sparse(ii,jj, fn(:));
+%         delta = fnMat'*K*fnMat;
+%         delta = spdiags(delta, 0);
+% 
+%         ii = f;
+%         jj = (1:numel(f))';
+%         omega = sparse(ii, jj,1)*delta;
+% 
+%         for i = 1:G.faces.num
+%             d = delta(f == i);
+%             omega(i) = omega(i)/(numel(d)*prod(d));
+%         end
+        
+        omega = computeFaceWeights(G, rock, opt);
 
 %         omega = ones(G.faces.num,1);
     
@@ -98,4 +101,36 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
 
     end
 
+end
+
+function omega = computeFaceWeights(G, rock, opt)
+
+    if strcmp(opt.faceWeights, 'permWeighted')
+        
+        f = G.cells.faces(:,1);
+        ncf = diff(G.cells.facePos);
+        fSgn = 1 - 2*(G.faces.neighbors(f,1) ~= rldecode((1:G.cells.num)', ncf,1));
+        
+        K = permTensor(rock, G.griddim)';
+        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1));
+        K = sparse(ii, jj, K(:));
+        
+        fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f))';
+        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1), ncf);
+        fnMat = sparse(ii,jj, fn(:));
+        delta = fnMat'*K*fnMat;
+        delta = spdiags(delta, 0);
+
+        ii = f;
+        jj = (1:numel(f))';
+        omega = sparse(ii, jj,1)*delta;
+
+        for i = 1:G.faces.num
+            d = delta(f == i);
+            omega(i) = omega(i)/(numel(d)*prod(d));
+        end
+    elseif strcmp(opt.faceWeights, 'ones')
+        omega = ones(G.faces.num,1);
+    end
+    
 end
