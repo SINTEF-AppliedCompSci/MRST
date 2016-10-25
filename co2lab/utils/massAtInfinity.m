@@ -322,8 +322,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Varargout:
    will_stay = stay_straps + stay_resid; % kg
    
-   assert( sum(masses) - ( double(will_stay) + will_leak ) < 2e-1 )
-   
+   % we ensure balance of mass inventory within tolerance of 0.1% of total
+   % mass
+   assert( abs( sum(masses) - ( double(will_stay) + will_leak ) ) < 1e-3 * sum(masses), ...
+       'There is a mismatch between mass calculations')
    
    %% 5. Reporting (optional)
 
