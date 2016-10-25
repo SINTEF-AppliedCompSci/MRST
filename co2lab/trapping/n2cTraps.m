@@ -131,7 +131,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     lmerge(i,:) = []; %#ok
     rmerge(:,i) = []; %#ok
     
-    ctrap_connectivity = lmerge * ctrap_connectivity * rmerge;
+    ctrap_connectivity = spones(lmerge * ctrap_connectivity * rmerge);
 
     % Update rivers
     upstream_regs = find(ntrap_connectivity(:,i));
