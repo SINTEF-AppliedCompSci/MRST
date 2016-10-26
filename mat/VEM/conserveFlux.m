@@ -43,56 +43,33 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
         flux = state.flux; 
     else
 
-        %   Calculate weights omega for weighted L^2-norm
-
-%         K = permTensor(rock, G.griddim)';
-%         [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1));
-%         K = sparse(ii, jj, K(:));
-%         
-%         fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f))';
-%         [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1), ncf);
-%         fnMat = sparse(ii,jj, fn(:));
-%         delta = fnMat'*K*fnMat;
-%         delta = spdiags(delta, 0);
-% 
-%         ii = f;
-%         jj = (1:numel(f))';
-%         omega = sparse(ii, jj,1)*delta;
-% 
-%         for i = 1:G.faces.num
-%             d = delta(f == i);
-%             omega(i) = omega(i)/(numel(d)*prod(d));
-%         end
-        
+        %   Calculate weights omega
         omega = computeFaceWeights(G, rock, opt);
 
-%         omega = ones(G.faces.num,1);
-    
         %   Build matrix systems as if all half-face normals have
         %   orientation out of the cell.
         
-        %   Off-diagonal element (ij,) equals minus the face area of common
+        %   Off-diagonal element (i,j) equals minus the face area of common
         %   face for cell i and j.
         c = G.faces.neighbors(f,:);
         c(fSgn == -1,:) = c(fSgn == -1, 2:-1:1);
         nz = c(:,2) ~= 0;
-        B = sparse(c(nz,1), c(nz,2), -G.faces.areas(f(nz))./omega(f(nz)), G.cells.num, G.cells.num);
-
+        B = sparse(c(nz,1), c(nz,2), -G.faces.areas(f(nz)).*omega(nz), ...
+                                                 G.cells.num, G.cells.num);
+        
         %   Diagonal element (i,i) equals sum of face areas for cell i.
         I = ones(numel(f),1);
         I(neu(f)) = 0;
         [ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
-        ca = sparse(ii,jj,I)*(G.faces.areas(f)./omega(f));
+        ca = sparse(ii,jj,I)*(G.faces.areas(f).*omega);
         B = B + spdiags(ca, 0, G.cells.num, G.cells.num);
 
         beta = B\r;
         beta = rldecode(beta, ncf,1);
         beta(neu(f)) = 0;
 
-%         I = sparse(f,1:numel(f),1);
-        beta = sparse(f, 1:numel(f), I)*(beta.*fSgn);
-    %     beta = I*(beta);%.*sum(I,2);
-        flux = state.flux + G.faces.areas.*beta./omega;
+        beta = sparse(f, 1:numel(f), I)*(omega.*beta.*fSgn);
+        flux = state.flux + G.faces.areas.*beta;
 
         r = rhs-P*(flux(f).*fSgn);
         if norm(r)/norm(den) > 1e-15;
@@ -123,14 +100,21 @@ function omega = computeFaceWeights(G, rock, opt)
 
         ii = f;
         jj = (1:numel(f))';
-        omega = sparse(ii, jj,1)*delta;
+        omega = 1./(sparse(ii, jj,1)*delta);
 
         for i = 1:G.faces.num
             d = delta(f == i);
-            omega(i) = omega(i)/(numel(d)*prod(d));
+            omega(i) = omega(i)*(numel(d)*prod(d));
         end
+        
+        omega = omega(f);
+        
+    elseif strcmp(opt.faceWeights, 'tpf')
+        
+        omega = computeTrans(G, rock)./G.faces.areas(G.cells.faces(:,1));
+        
     elseif strcmp(opt.faceWeights, 'ones')
-        omega = ones(G.faces.num,1);
+        omega = ones(numel(G.cells.faces(:,1)),1);
     end
     
 end
