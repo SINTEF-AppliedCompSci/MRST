@@ -260,18 +260,24 @@ function [A, rhs] = addWells(A, rhs, G, S, tmob, N, opt)
 
    W = opt.wells;
    
-    
     if ~isempty(W),
-          
+        
         wc    = vertcat(W.cells);
-        dofVec = G.nodes.num + G.edges.num*polyDim(S.order-2, G.griddim-2) ...
-                             + G.faces.num*polyDim(S.order-2, G.griddim-1) ...
-                             + wc;
-        rhs(dofVec) = vertcat(W.val);
-        v = ones(N,1);
-%         v(dofVec) = tmob(wc).*vertcat(W.WI);
-        I = spdiags(v, 0, N,N);
-        A(dofVec, :) = I(dofVec,:);
+        I = speye(N);
+        
+        if S.order == 1
+            n = G.cells.nodes(mcolon(G.cells.nodePos(wc), G.cells.nodePos(wc+1)-1));
+            ncn = diff(G.cells.nodePos);
+            A(n,:) = I(n,:);
+            rhs(n) = rldecode(W.val, ncn(wc),1);
+            
+        else
+            dofVec = G.nodes.num + G.edges.num*polyDim(S.order-2, G.griddim-2) ...
+                                 + G.faces.num*polyDim(S.order-2, G.griddim-1) ...
+                                 + wc;
+            A(dofVec, :) = I(dofVec,:);
+            rhs(dofVec) = W.val;
+        end
         
     end
 
