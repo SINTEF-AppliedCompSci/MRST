@@ -50,8 +50,8 @@ elseif(~isfield(fluid, 'sw'))
    sr = sr(1);
    sw = sr(2);
 else
-   sw = fluid.sw;
    sr = fluid.sr;
+   sw = fluid.sw;
 end
 
 % magn = @(v)(sqrt(sum(v.^2,2)));
