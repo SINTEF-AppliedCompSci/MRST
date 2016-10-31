@@ -583,7 +583,7 @@ function flux = computeFlux(state, G, S, fluid, bc)
         
         %   Divide local matrices A^P by total mobility.
         totmobMat = spdiags(rldecode(tm, NP, 1), 0, sum(NP), sum(NP));
-        A = totmobMat\S.A;
+        A = totmobMat*S.A;
         
         %   Calculate K \nabla p for each cell.
         Kgradp = bsxfun(@rdivide, squeezeBlockDiag((pm*A*rm), ...
