@@ -417,7 +417,7 @@ function [tfaces, bfaces] = identify_lateral_faces(G, cells)
   % Etablishing total number of faces for each cell to consider
   start_ix = G.cells.facePos(cells);
   end_ix = G.cells.facePos(cells+1); % really one-past end
-  fnum = end_ix - start_ix;
+  fnum = double(end_ix - start_ix);
   
   rep = [fnum, max(fnum) - fnum]'; % second row represents padding
 

@@ -162,8 +162,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    u = schedule2control(schedule, scaling);
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
-                                     'lineSearchMaxIt', 10, 'gradTol', 2e-3);
-                                     %'lineSearchMaxIt', 20, 'gradTol', 1e-3);
+                                     'lineSearchMaxIt', 10, 'gradTol', 1e-3);
+                                     %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
    
    %% Preparing solution structures
    
