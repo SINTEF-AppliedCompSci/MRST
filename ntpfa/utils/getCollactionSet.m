@@ -70,7 +70,7 @@ function coSet = getCollactionSet(G, rock)
         cells = N(selfFaces(~isJump), :);
         cells(cells == c) = 0;
         cells = sum(cells, 2);
-        
+
         [T, type, coeff, ix, successCell] = collocateSet(G, cpt, cells, fa, [], l);
         assert(successCell)
         
@@ -114,7 +114,7 @@ function coSet = getCollactionSet(G, rock)
         act_face(i, :) = ix == c & type == 1;
     end
     coSet.jumpFace = jumpFlag;
-%     coSet.T = T_all;
+    coSet.T = T_all;
 %     coSet.T_norm = cellfun(@(x) sqrt(sum(x.^2, 2)), T_all, 'UniformOutput', false);
     coSet.C = {c_cell, c_face};
     coSet.types = {type_cell, type_face};
@@ -122,6 +122,8 @@ function coSet = getCollactionSet(G, rock)
     coSet.l = L;
     coSet.active = {act_cell, act_face};
     
+%     exclude_cell = struct('ix', faceNo, 'type', 2);
+%     exclude_face = struct('ix', cellNo, 'type', 1);
     % Construct mapping operators
     ops = cell(dim, 2);
     Pc = speye(G.cells.num);
@@ -130,9 +132,14 @@ function coSet = getCollactionSet(G, rock)
     
     for i = 1:dim
         for j = 1:2
+            if j == 1
+                exclude = G.faces.neighbors(faceNo, 2);
+            else
+                exclude = G.faces.neighbors(faceNo, 1);
+            end
             gi = coSet.globalIndices{j}(:, i);
-            ti =  coSet.types{j}(:, i);
-            ops{i, j} = getInterpolationOperator(Pc, Pf, Pn, gi, ti);
+            ti = coSet.types{j}(:, i);
+            ops{i, j} = getInterpolationOperator(Pc, Pf, Pn, gi, ti, exclude);
         end
     end
     coSet.pressureOperators = ops;
@@ -140,12 +147,19 @@ function coSet = getCollactionSet(G, rock)
     
     coSet = storeFaceSet(G, rock, coSet, faceSign, L_face);
     
+    
+    intx = all(G.faces.neighbors > 0, 2);
     ops = cell(dim, 2);
     for i = 1:dim
         for j = 1:2
+            if j == 1
+                exclude = G.faces.neighbors(intx, 2);
+            else
+                exclude = G.faces.neighbors(intx, 1);
+            end
             gi = coSet.faceSet.globalIndices{j}(:, i);
             ti =  coSet.faceSet.types{j}(:, i);
-            ops{i, j} = getInterpolationOperator(Pc, Pf, Pn, gi, ti);
+            ops{i, j} = getInterpolationOperator(Pc, Pf, Pn, gi, ti, exclude);
         end
     end
     coSet.faceSet.pressureOperators = ops;
@@ -328,7 +342,7 @@ function [C, D] = getCoefficients2D(t1, t2, l)
 %     l_new = t1*C(1) + t2*C(2);
 %     C = C./norm(l_new, 2);
     l_new = t1*C(1) + t2*C(2);
-    assert(norm(l - l_new)/norm(l) < 1e-12);
+%     assert(norm(l - l_new)/norm(l) < 1e-12);
 %     C
 %     D1 = computeDCoefficient2D(l, t2);
 %     D2 = computeDCoefficient2D(t1, l);
@@ -405,6 +419,8 @@ function coSet = storeFaceSet(G, rock, coSet, faceSign, L_face)
     end
     faceSet.l = L_face(intx, :);
 
-    
+    exclude_left = struct('ix', G.faces.neighbors(intx, 2), 'type', 1);
+    exclude_right = struct('ix', G.faces.neighbors(intx, 2), 'type', 1);
+
     coSet.faceSet = faceSet;
 end

@@ -3,12 +3,13 @@ function [T, flux] = computeNonLinearTrans(G, coSet, cellPressure)
         warning('Negative pressure in cells. Will fall back to linear TPFA.');
     end
     flux = nan;
-    T = computeJumpTransmissibilities(G, coSet, cellPressure);
+    T_hf = computeJumpTransmissibilities(G, coSet, cellPressure);
     T_face = computeContTransmissibilities(G, coSet, cellPressure);
     
     jump = coSet.jumpFace;
+    T = T_face;
     for i = 1:2
-        T{i} = T{i}.*jump + T_face{i}.*~jump;
+        T{i} = T_hf{i}.*jump + ~jump.*T_face{i};
     end
 end
 
@@ -20,6 +21,26 @@ function d = computeWeight(lnorm, c, p, exclude)
     d = d.*lnorm;
 end
 
+function d = computeWeight2(lnorm, c, p)
+    d = 0;
+    for i = 1:numel(p)
+        d = d + p{i}.*c(:, i);
+    end
+    d = d.*lnorm;
+end
+
+function [u_c, u_f] = get_mu(d_c, d_f)
+    thold = 0;
+    bad = d_c <= thold | d_f <= thold;
+    d_c(bad) = 1;
+    d_f(bad) = 1;
+    
+    d_tot = d_c + d_f;
+    % intentional swapping of terms
+    u_c = d_f./d_tot;
+    u_f = d_c./d_tot;
+end
+
 function T = computeJumpTransmissibilities(G, coSet, cellPressure)
     cellNo = getCellNoFaces(G);
     faceNo = G.cells.faces(:, 1);
@@ -27,45 +48,60 @@ function T = computeJumpTransmissibilities(G, coSet, cellPressure)
     dim = G.griddim;
     n_hf = size(faceNo, 1);
     lnorm = sqrt(sum(coSet.l.^2, 2));
-
+    
+    elimWeights = false;
     
     pp = cell(dim, 1);
     [pp{:}] = deal(double2ADI(zeros(n_hf, 1), cellPressure));
     [p_c, p_f] = deal(pp);
+    
+    sum_c = zeros(n_hf, G.griddim);
+    sum_f = zeros(n_hf, G.griddim);
     for i = 1:dim
-        p_c{i} = coSet.pressureOperators{i, 1}(cellPressure);
-        p_f{i} = coSet.pressureOperators{i, 2}(cellPressure);
+        op_c = coSet.pressureOperators{i, 1};
+        op_f = coSet.pressureOperators{i, 2};
+        
+        if elimWeights
+            p_c{i} = op_c.P_passive*cellPressure;
+            p_f{i} = op_f.P_passive*cellPressure;
+        
+            sum_c(:, i) = sum(op_c.P_active, 2);
+            sum_f(:, i) = sum(op_f.P_active, 2);
+        else
+            p_c{i} = op_c.P*cellPressure;
+            p_f{i} = op_f.P*cellPressure;
+        end
     end
     
     Ac = coSet.active{1};
     Af = coSet.active{2};
-    d_c = computeWeight(lnorm, coSet.C{1}, p_c, Ac);
-    d_f = computeWeight(lnorm, coSet.C{2}, p_f, Af);
-    
-    thold = 0;
-    bad = d_c <= thold & d_f <= thold;
-    d_c(bad) = 1;
-    d_f(bad) = 1;
-    
-    d_tot = d_c + d_f;
-    
-    % intentional swapping of terms
-    u_c = d_f./d_tot;
-    u_f = d_c./d_tot;
-    
+    if elimWeights
+        d_c = computeWeight2(lnorm, coSet.C{1}, p_c);
+        d_f = computeWeight2(lnorm, coSet.C{2}, p_f);
+    else
+        d_c = computeWeight(lnorm, coSet.C{1}, p_c, Ac);
+        d_f = computeWeight(lnorm, coSet.C{2}, p_f, Af);
+    end
+
+    [u_c, u_f] = get_mu(d_c, d_f);
+
     deviation = -u_f.*d_f + u_c.*d_c;
     unity = u_f + u_c;
     
     all_c = coSet.C{1};
     all_f = coSet.C{2};
     
-%     [max(abs(deviation.val)), max(abs(double(unity)- 1))]
-    N_c = lnorm.*(u_c.*(sum(all_c, 2)) + u_f.*(sum(Af.*all_f, 2)));
-    N_f = lnorm.*(u_f.*(sum(all_f, 2)) + u_c.*(sum(Ac.*all_c, 2)));
-
+    if elimWeights
+        N_c = lnorm.*(u_c.*(sum(all_c, 2)) + u_f.*(sum(all_f.*sum_f, 2)));
+        N_f = lnorm.*(u_f.*(sum(all_f, 2)) + u_c.*(sum(all_c.*sum_c, 2)));
+    else
+        N_c = lnorm.*(u_c.*(sum(all_c, 2)) + u_f.*(sum(all_f.*Af, 2)));
+        N_f = lnorm.*(u_f.*(sum(all_f, 2)) + u_c.*(sum(all_c.*Ac, 2)));
+    end
+    
     H = sparse(faceNo, (1:numel(faceNo))', 1);
     N_tot = H*N_f;
-    assert(all(N_tot > 0))
+    assert(all(N_tot >= 0))
     
     left  = G.faces.neighbors(faceNo, 1) == cellNo;
     right = ~left;
@@ -120,7 +156,7 @@ function T = computeJumpTransmissibilities(G, coSet, cellPressure)
             assert(abs(e) < 1e-12)
         end
     end
-    assert(all(N_f > 0));
+    assert(all(N_f >= 0));
     assert(all(double(T{1})>=0))
     assert(all(double(T{2})>=0))
 end
@@ -133,40 +169,52 @@ function [T, intx] = computeContTransmissibilities(G, coSet, cellPressure)
     n_intf = size(intx, 1);
     lnorm = sqrt(sum(coSet.faceSet.l.^2, 2));
    
+    elimWeights = false;
     
     pp = cell(dim, 1);
     [pp{:}] = deal(double2ADI(zeros(n_intf, 1), cellPressure));
     [p_l, p_r] = deal(pp);
+    sum_l = zeros(n_intf, G.griddim);
+    sum_r = zeros(n_intf, G.griddim);
+
     for i = 1:dim
-        p_l{i} = coSet.faceSet.pressureOperators{i, 1}(cellPressure);
-        p_r{i} = coSet.faceSet.pressureOperators{i, 2}(cellPressure);
+        op_l = coSet.faceSet.pressureOperators{i, 1};
+        op_r = coSet.faceSet.pressureOperators{i, 2};
+        
+        if elimWeights
+            p_l{i} = op_l.P_passive*cellPressure;
+            p_r{i} = op_r.P_passive*cellPressure;
+            sum_l(:, i) = sum(op_l.P_active, 2);
+            sum_r(:, i) = sum(op_r.P_active, 2);
+        else
+            p_l{i} = op_l.P*cellPressure;
+            p_r{i} = op_r.P*cellPressure;
+        end
     end
     
-    A_l = coSet.faceSet.active{1};
-    A_r = coSet.faceSet.active{2};
-    d_l = computeWeight(lnorm, coSet.faceSet.C{1}, p_l, A_l);
-    d_r = computeWeight(lnorm, coSet.faceSet.C{2}, p_r, A_r);
-    
-    thold = 0;
-    bad = d_l <= thold & d_r <= thold;
-    d_l(bad) = 1;
-    d_r(bad) = 1;
-    
-    d_tot = d_l + d_r;
-    
-    % intentional swapping of terms
-    u_l = d_r./d_tot;
-    u_r = d_l./d_tot;
-    
+    if elimWeights
+        d_l = computeWeight2(lnorm, coSet.faceSet.C{1}, p_l);
+        d_r = computeWeight2(lnorm, coSet.faceSet.C{2}, p_r);
+    else
+        A_l = coSet.faceSet.active{1};
+        A_r = coSet.faceSet.active{2};
+        d_l = computeWeight(lnorm, coSet.faceSet.C{1}, p_l, A_l);
+        d_r = computeWeight(lnorm, coSet.faceSet.C{2}, p_r, A_r);
+    end
+    [u_l, u_r] = get_mu(d_l, d_r);
     % deviation = -u_r.*d_r + u_l.*d_l;
     % unity = u_r + u_l;
     
     all_l = coSet.faceSet.C{1};
     all_r = coSet.faceSet.C{2};
+    if elimWeights
+        T_l = lnorm.*(u_l.*(sum(all_l, 2)) + u_r.*(sum(sum_r.*all_r, 2)));
+        T_r = lnorm.*(u_r.*(sum(all_r, 2)) + u_l.*(sum(sum_l.*all_l, 2)));
+    else
+        T_l = lnorm.*(u_l.*(sum(all_l, 2)) + u_r.*(sum(all_r.*A_r, 2)));
+        T_r = lnorm.*(u_r.*(sum(all_r, 2)) + u_l.*(sum(all_l.*A_l, 2)));
+    end
     
-    T_l = lnorm.*(u_l.*(sum(all_l, 2)) + u_r.*(sum(A_r.*all_r, 2)));
-    T_r = lnorm.*(u_r.*(sum(all_r, 2)) + u_l.*(sum(A_l.*all_l, 2)));
-
     TT = (double2ADI(zeros(G.faces.num, 1), cellPressure));
     T = {TT, TT};
     T{1}(intx) = T_l;
