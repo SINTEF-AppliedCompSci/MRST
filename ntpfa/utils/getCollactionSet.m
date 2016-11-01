@@ -6,6 +6,9 @@ function coSet = getCollactionSet(G, rock)
     n_hf = size(G.cells.faces, 1);
     dim = G.griddim;
     
+    jumpFlag = getJumpFlag(G, rock);
+    faceSign = zeros(n_hf, 1);
+    N = G.faces.neighbors;
     % This builds a collocation set for the nonlinear two-point flux
     % approximation. Generally, we construct the necessary coefficients and
     % vectors as a preprocessing step. 
@@ -36,11 +39,13 @@ function coSet = getCollactionSet(G, rock)
     % L is the face normal vectors, scaled by cell permeability and face
     % area. One for each half face.
     L = zeros(n_hf, dim);
-
+    L_face = zeros(G.faces.num, dim);
+    
     cellNo = rldecode(1 : G.cells.num, ...
                      diff(G.cells.facePos), 2) .';
     faceNo = G.cells.faces(:, 1);
-    
+    isBF = false(G.faces.num, 1);
+    isBF(boundaryFaces(G)) = true;
     for i = 1:n_hf
         c = cellNo(i);
         f = faceNo(i);
@@ -50,14 +55,23 @@ function coSet = getCollactionSet(G, rock)
         
         % Compute permeability scaled normal vector
         sgn = 1 - 2*(G.faces.neighbors(f, 2) == c);
+        faceSign(i) = sgn;
         normal = G.faces.normals(f, :);
         K = getK(rock, c, dim);
         l = normal*sgn*K;
         L(i, :) = l;
+        L_face(f, :) = normal*K;
         
         % Cell to half-face collaction
         cpt = G.cells.centroids(c, :);
-        [T, type, coeff, ix, successCell] = collocateSet(G, cpt, [], selfFaces, [], l);
+        
+        isJump = jumpFlag(selfFaces);
+        fa = selfFaces(isJump);
+        cells = N(selfFaces(~isJump), :);
+        cells(cells == c) = 0;
+        cells = sum(cells, 2);
+        
+        [T, type, coeff, ix, successCell] = collocateSet(G, cpt, cells, fa, [], l);
         assert(successCell)
         
         for j = 1:dim
@@ -65,14 +79,21 @@ function coSet = getCollactionSet(G, rock)
         end
         type_cell(i, :) = type;
         ix_cell(i, :) = ix;
-        c_cell(i, :) = coeff;
+        c_cell(i, :) = coeff;%./factor;
         act_cell(i, :) = ix == f & type == 2;
         
         % Half-face to cell collaction
         fpt = G.faces.centroids(f, :);
         hfFaces =  intersect(adjFaces, selfFaces);
-%         hfFaces = adjFaces;
-        [T, type, coeff, ix, successFace] = collocateSet(G, fpt, c, hfFaces, [], -l);
+        
+        isJump = jumpFlag(hfFaces);
+        fa = hfFaces(isJump);
+        cells = N(hfFaces(~isJump), :);
+        cells(cells == c) = 0;
+        cells = sum(cells, 2);
+        cells = [cells; c];
+        
+        [T, type, coeff, ix, successFace] = collocateSet(G, fpt, cells, fa, [], -l);
 
         
         if ~successFace
@@ -89,11 +110,12 @@ function coSet = getCollactionSet(G, rock)
         end
         type_face(i, :) = type;
         ix_face(i, :) = ix;
-        c_face(i, :) = coeff;
+        c_face(i, :) = coeff;%./factor;
         act_face(i, :) = ix == c & type == 1;
     end
-    coSet.T = T_all;
-    coSet.T_norm = cellfun(@(x) sqrt(sum(x.^2, 2)), T_all, 'UniformOutput', false);
+    coSet.jumpFace = jumpFlag;
+%     coSet.T = T_all;
+%     coSet.T_norm = cellfun(@(x) sqrt(sum(x.^2, 2)), T_all, 'UniformOutput', false);
     coSet.C = {c_cell, c_face};
     coSet.types = {type_cell, type_face};
     coSet.globalIndices = {ix_cell, ix_face};
@@ -103,7 +125,7 @@ function coSet = getCollactionSet(G, rock)
     % Construct mapping operators
     ops = cell(dim, 2);
     Pc = speye(G.cells.num);
-    Pf = getFaceFromCellInterpolator(G);
+    Pf = getFaceFromCellInterpolator(G, rock);
     Pn = getNodeFromCellInterpolator(G);
     
     for i = 1:dim
@@ -114,6 +136,19 @@ function coSet = getCollactionSet(G, rock)
         end
     end
     coSet.pressureOperators = ops;
+    
+    
+    coSet = storeFaceSet(G, rock, coSet, faceSign, L_face);
+    
+    ops = cell(dim, 2);
+    for i = 1:dim
+        for j = 1:2
+            gi = coSet.faceSet.globalIndices{j}(:, i);
+            ti =  coSet.faceSet.types{j}(:, i);
+            ops{i, j} = getInterpolationOperator(Pc, Pf, Pn, gi, ti);
+        end
+    end
+    coSet.faceSet.pressureOperators = ops;
 end
 
 function K = getK(rock, cell, dim)
@@ -258,7 +293,13 @@ function [T, ixSet, coeff, done] = getSetForHF(center, l, pts)
         ixSet = allsets(sb, :);
         done = all(isfinite(coeff));
     end
+
     T = t(ixSet', :);
+    for i = 1:numel(coeff)
+        coeff(i) = coeff(i)./norm(T(i, :), 2);
+    end
+%     coeff = bsxfun(@rdivide, coeff, sqrt(sum(T.^2, 2)));;
+%     T = bsxfun(@rdivide, T, sqrt(sum(T.^2, 2)));
     assert(all(coeff >= 0));
 end
 
@@ -276,18 +317,18 @@ function [C, D] = getCoefficients2D(t1, t2, l)
     D = nan;
     C = [0, 0];
     
-    t1 = [t1, 0]./norm(t1, 2);
-    t2 = [t2, 0]./norm(t2, 2);
-    l = [l, 0]./norm(l, 2);
+    t1 = [t1, 0];%./norm(t1, 2);
+    t2 = [t2, 0];%./norm(t2, 2);
+    l = [l, 0];%./norm(l, 2);
     n = [0, 0, 1];
     C(1) = dot(n, cross(t2, l))/dot(n, cross(t2, t1));
     C(2) = dot(n, cross(t1, l))/dot(n, cross(t1, t2));
-    C = round(C, 8);
+%     C = round(C, 8);
 %     
 %     l_new = t1*C(1) + t2*C(2);
 %     C = C./norm(l_new, 2);
-%     l_new = t1*C(1) + t2*C(2);
-%     norm(l - l_new)/norm(l)
+    l_new = t1*C(1) + t2*C(2);
+    assert(norm(l - l_new)/norm(l) < 1e-12);
 %     C
 %     D1 = computeDCoefficient2D(l, t2);
 %     D2 = computeDCoefficient2D(t1, l);
@@ -297,6 +338,12 @@ function [C, D] = getCoefficients2D(t1, t2, l)
 %     C = [D1, D2]./D;
 end
 
+function flag = getJumpFlag(G, rock)
+    flag = true(G.faces.num, 1);
+    N = G.faces.neighbors;
+    intx = all(N > 0, 2);
+    flag(intx) = ~all(rock.perm(N(intx, 1), :) == rock.perm(N(intx, 2), :), 2);
+end
 
 function [C, D] = getCoefficients3D(t1, t2, t3, l)
     D1 = computeDCoefficient3D(l, t2, t3);
@@ -316,4 +363,48 @@ function [pts, types, ix] = getCandidatePoints(G, cells, faces, nodes)
            G.faces.centroids(faces, :); ...
            G.nodes.coords(nodes, :)];
     types = rldecode((1:3)', [numel(cells); numel(faces); numel(nodes)]);
+end
+
+function coSet = storeFaceSet(G, rock, coSet, faceSign, L_face)
+    dim = G.griddim;
+    [C_l, C_r, types_l, types_r, glob_l, glob_r, active_l, active_r] = ...
+                                            deal(zeros(G.faces.num, dim));
+    left = faceSign == 1;
+    right = ~left;
+    
+    lf = G.cells.faces(left);
+    rf = G.cells.faces(right);
+    
+    C_l(lf, :) = coSet.C{1}(left, :);
+    C_r(rf, :) = coSet.C{1}(right, :);
+
+    types_l(lf, :) = coSet.types{1}(left, :);
+    types_r(rf, :) = coSet.types{1}(right, :);
+    
+    glob_l(lf, :) = coSet.globalIndices{1}(left, :);
+    glob_r(rf, :) = coSet.globalIndices{1}(right, :);
+    
+    active_l(lf, :) = coSet.active{1}(left, :);
+    active_r(rf, :) = coSet.active{1}(right, :);
+    
+    
+    
+    faceSet = struct();
+    faceSet.C = {C_l, C_r};
+    faceSet.types = {types_l, types_r};
+    faceSet.globalIndices = {glob_l, glob_r};
+    faceSet.active = {active_l, active_r};
+    
+    % Remove external
+    intx = all(G.faces.neighbors > 0, 2);
+    for i = 1:2
+        faceSet.C{i} = faceSet.C{i}(intx, :);
+        faceSet.types{i} = faceSet.types{i}(intx, :);
+        faceSet.globalIndices{i} = faceSet.globalIndices{i}(intx, :);
+        faceSet.active{i} = faceSet.active{i}(intx, :);
+    end
+    faceSet.l = L_face(intx, :);
+
+    
+    coSet.faceSet = faceSet;
 end
