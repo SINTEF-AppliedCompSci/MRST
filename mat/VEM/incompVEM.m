@@ -173,7 +173,7 @@ function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
     
     
     
-    %   Apply boundary condtitions.
+    %   Apply boundary conditions.
     if ~isempty(opt.bc)
         [A, rhs] = imposeBC(A, rhs, G, S, opt.bc, N);
     end
