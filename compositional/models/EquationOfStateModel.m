@@ -843,6 +843,11 @@ classdef EquationOfStateModel < PhysicalModel
             rho = p.*M./(R.*T.*Z);
         end
         
+        function rho = computeMolarDensity(model, p, x, Z, T, isLiquid)
+            ncomp = numel(model.fluid.names);
+            R = 8.3144598;
+            rho = p./(R.*T.*Z);
+        end
         function [sL, sV] = computeSaturations(model, rhoL, rhoV, x, y, L, Z_L, Z_V)
             sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
             sV = 1 - sL;
