@@ -1,4 +1,4 @@
-function [G,F] = compositePebiGrid(celldim, pdims, varargin)
+function [G,Pts,F] = compositePebiGrid(celldim, pdims, varargin)
 % Construct a 2D composite Pebi grid. A cartesian background grid that is 
 % refined around faults and wells.
 %
@@ -72,7 +72,30 @@ function [G,F] = compositePebiGrid(celldim, pdims, varargin)
 %   G                - Valid grid definition.  
 %                        Contains extra fields:
 %                          - G.cells.tag is TRUE for all well cells.
-%                          - G.faces.tag is TRUE for all fault edges. 
+%                          - G.faces.tag is TRUE for all fault edges.
+%   Pts              - Array [G.cells.num x 3] of the Voronoi sites.
+%   F                 Struct with elements:
+%       F.f.pts       Point coordinates
+%       F.f.Gs        Grid spacing for each fault point. This is the distance
+%                     between the two points on oposite sides of a fault.
+%       F.f.c         Map from fault points to circles
+%       F.f.cPos      Fault point i was created using circle
+%                     F.f.c(F.f.cPos(i):F.f.cPos(i+1)-1).
+%       F.c.CC        Coordinates to circle centers
+%       F.c.R         Radius of circles
+%       F.c.f         Map from circles to fault points
+%       F.c.fPos      Circle i created fault points
+%                     F.c.f(F.c.fPos(i):F.c.fPos(i+1)-1)
+%       F.c.l         Map from circles to fault
+%       F.c.lPos      Circle i lies on fault paths
+%                     F.l.c(F.l.cPos(i):F.l.cPos(i+1)-1) 
+%       F.l.f         Map from fault lines to fault points
+%       F.l.fPos      Fault points F.l.f(F.l.fPos(i):F.l.fPos(i+1)-1) is 
+%                     created for fault i.
+%       F.l.c         Map from fault paths to circles
+%       F.l.cPos      Circle F.l.c(F.l.cPos(i):F.l.cPos(i+1)-1) is created
+%                     for fault i.
+%       F.l.l         faultLine from input.
 %
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
