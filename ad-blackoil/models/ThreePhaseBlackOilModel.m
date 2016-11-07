@@ -254,6 +254,50 @@ methods
                                                           rv, pressure, model.disgas, model.vapoil);
     end
     
+    
+    function components = getDissolutionMatrix(model, rs, rv)
+        actPh = model.getActivePhases();
+        nPh = nnz(actPh);
+        if ~model.disgas
+            rs = [];
+        end
+        if ~model.vapoil
+            rv = [];
+        end
+        
+        components = cell(1, nPh);
+        [components{:}] = deal(cell(1, nPh));
+        ix = 1;
+        jx = 1;
+        for i = 1:3
+            if ~actPh(i)
+                continue
+            end
+            for j = 1:3
+                if ~actPh(j)
+                    continue
+                end
+                if i == 2 && j == 3
+                    components{i}{j} = rv;
+                elseif i == 3 && j == 2
+                    components{i}{j} = rs;
+                end
+                jx = jx + 1;
+            end
+            ix = ix + 1;
+        end
+    end
+    
+    function components = getDissolutionMatrixMax(model, pressure)
+        [rsMax, rvMax] = deal([]);
+        if model.disgas
+            rsMax = model.fluid.rsSat(pressure);
+        end
+        if model.vapoil
+            rvMax = model.fluid.rvSat(pressure);
+        end
+        components = model.getDissolutionMatrix(rsMax, rvMax);
+    end
 end
 end
 

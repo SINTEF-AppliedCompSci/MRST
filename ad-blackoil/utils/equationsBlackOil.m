@@ -95,10 +95,12 @@ W = drivingForces.W;
 [p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
     'pressure', 'water', 'gas', 'rs', 'rv');
 
-bhp    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
-qGs    = vertcat(wellSol.qGs);
+if ~isempty(W)
+    model.wellmodel = model.wellmodel.setReservoirModel(model);
+    [wellVars, wellVarNames, wellMap] = model.wellmodel.getFacilityPrimaryVariables(wellSol);
+else
+    [wellVars, wellVarNames, wellMap] = deal({});
+end
 
 %Initialization of primary variables ----------------------------------
 st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
@@ -115,8 +117,8 @@ end
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
-        [p, sW, x, qWs, qOs, qGs, bhp] = ...
-            initVariablesADI(p, sW, x, qWs, qOs, qGs, bhp);
+        [p, sW, x, wellVars{:}] = ...
+            initVariablesADI(p, sW, x, wellVars{:});
     else
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
         % Set initial gradient to zero
@@ -135,7 +137,7 @@ if ~opt.reverseMode
 end
 % We will solve for pressure, water and gas saturation (oil saturation
 % follows via the definition of saturations) and well rates + bhp.
-primaryVars = {'pressure', 'sW', gvar, 'qWs', 'qOs', 'qGs', 'bhp'};
+primaryVars = {'pressure', 'sW', gvar, wellVarNames{:}};
 
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
@@ -238,37 +240,20 @@ end
 % Finally, add in and setup well equations
 if ~isempty(W)
     wm = model.wellmodel;
+    
     if ~opt.reverseMode
-        % Store cell wise well variables in cell arrays and send to ewll
-        % model to get the fluxes and well control equations.
-        wc    = vertcat(W.cells);
-        pw    = p(wc);
-        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-        bw    = {bW(wc), bO(wc), bG(wc)};
+        sat = {sW, sO, sG};
+        components = model.getDissolutionMatrix(rs, rv);
+        rho = {bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS};
         
-        [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-        mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        s = {sW(wc), sO(wc), sG(wc)};
-        
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, s, rw,...
-            'maxComponents', rSatw, ...
-            'nonlinearIteration', opt.iteration);
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(4:6) = weqs;
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{7} = ctrleqs;
-        
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
+        [srcMass, srcVol, weqs, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, wellVars, wellMap, p, sat, rho, components, opt.iteration);
+        rhoS = [f.rhoWS, f.rhoOS, f.rhoGS];
         for i = 1:3
-            eqs{i}(wc) = eqs{i}(wc) - cqs{i};
+            eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
         end
-        names(4:7) = {'waterWells', 'oilWells', 'gasWells', 'closureWells'};
-        types(4:7) = {'perf', 'perf', 'perf', 'well'};
+        eqs(4:7) = weqs;
+        names(4:7) = wnames;
+        types(4:7) = wtypes;
     else
         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
