@@ -24,20 +24,11 @@ classdef SimpleWell < PhysicalModel
         end
         
         function [vars, names] = getWellPrimaryVariables(well, wellSol, resmodel)
-            actPh = resmodel.getActivePhases();
-            activeVars = [actPh, true];
-            names = {'qWs', 'qOs', 'qGs', 'bhp'};
-            names = names(activeVars);
-            
-            vars = cell(1, nnz(activeVars));
-            for i = 1:numel(names)
-                if activeVars(i)
-                    vars{i} = wellSol.(names{i});
-                end
-            end
+            names = {};
+            vars = {};
         end
         
-        function wellSol = updateConnectionPressureDrop(well, wellSol, model, wellvars, p, sat, rho, comp)
+        function wellSol = updateConnectionPressureDrop(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp)
             toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
             rho     = cell2mat(toDb(rho));
             
@@ -94,7 +85,102 @@ classdef SimpleWell < PhysicalModel
             if its == maxIts
                 error(['Problem with topology for well: ', wellSol.name, '. Segments appear not to be connected'])
             end
-            wellSol(k).cdp = cdp;
+            wellSol.cdp = cdp;
+        end
+        
+        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp)
+            if ~well.allowControlSwitching
+                % We cannot change controls, so we return
+                return
+            end
+            if isfield(well.W, 'status') && ~well.W.status
+                % Well is inactive
+                return
+            end
+            lims = well.W.lims;
+            qs_double = cellfun(@double, q_s);
+            qs_t = sum(qs_double);
+            
+            actPh = model.getActivePhases();
+            gasIx = sum(actPh(1:3));
+            oilIx = sum(actPh(1:2));
+            watIx = 1;
+            
+            if ~isnumeric(lims)
+                lims.vrat = -inf;
+                
+                if wellSol.sign > 0
+                    modes   = {'bhp', 'rate', 'rate'};
+                    flags = [double(bhp) > lims.bhp, ...
+                             qs_t > lims.rate, ...
+                             qs_t < lims.vrat];
+                else
+                    modes   = {'bhp', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
+
+                    % insert dummy limits for missing fields
+                    missing_fields = {modes{~cellfun(@(x) isfield(lims, x), modes)}};
+                    for f = missing_fields
+                       lims = setfield(lims, f{:}, -inf);
+                    end
+                    
+                    
+                    
+                    [q_w, q_o, q_g] = deal(0);
+                    if model.water
+                        q_w = qs_double(watIx);
+                    end
+                    
+                    if model.oil
+                        q_o = qs_double(oilIx);
+                    end
+                    
+                    if model.gas
+                        q_g = qs_double(gasIx);
+                    end
+                    
+                    flags = [double(bhp) < lims.bhp,  ...
+                        q_o          < lims.orat, ...
+                        q_w + q_o    < lims.lrat, ...
+                        q_g          < lims.grat, ...
+                        q_w          < lims.wrat, ...
+                        qs_t         > -lims.vrat];
+                end
+            else
+                modes = {};
+                flags = false;
+                assert(isinf(lims))
+            end
+            % limits we need to check (all others than w.type):
+            chkInx = ~strcmp(wellSol.type, modes);
+            vltInx = find(flags(chkInx), 1);
+            if ~isempty(vltInx)
+                withinLimits = false;
+                modes  = modes(chkInx);
+                switchMode = modes{vltInx};
+                fprintf('Well %s: Control mode changed from %s to %s.\n', sol(wnr).name, sol(wnr).type, switchMode);
+                wellSol.type = switchMode;
+                wellSol.val  = lims.(switchMode);
+            else
+                withinLimits = true;
+            end
+            
+            if ~withinLimits
+                v  = wellSol.val;
+                switch wellSol.type
+                    case 'bhp'
+                        bhp = assignValue(bhp, v, k);
+                    case 'rate'
+                        for ix = 1:numel(q_s)
+                            q_s{ix} = assignValue(q_s{ix}, v*w.compi(ix), 1);
+                        end
+                    case 'orat'
+                        q_s{oilIx} = assignValue(q_s{oilIx}, v, k);
+                    case 'wrat'
+                        q_s{watIx} = assignValue(q_s{watIx}, v, k);
+                    case 'grat'
+                        q_s{gasIx} = assignValue(q_s{gasIx}, v, k);
+                end % No good guess for qOs, etc...
+            end
         end
     end
 end

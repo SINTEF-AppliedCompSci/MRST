@@ -97,9 +97,11 @@ W = drivingForces.W;
 
 if ~isempty(W)
     model.wellmodel = model.wellmodel.setReservoirModel(model);
-    [wellVars, wellVarNames, wellMap] = model.wellmodel.getFacilityPrimaryVariables(wellSol);
+    [qWell, bhp, wellVars, wellExtraNames, wellMap] = model.wellmodel.getFacilityPrimaryVariables(wellSol);
+    wellVarNames = ['qWs', 'qOs', 'qGs', 'bhp', wellExtraNames];
 else
-    [wellVars, wellVarNames, wellMap] = deal({});
+    [qWell, wellVars, wellVarNames, wellMap] = deal({});
+    bhp = [];
 end
 
 %Initialization of primary variables ----------------------------------
@@ -117,8 +119,8 @@ end
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
-        [p, sW, x, wellVars{:}] = ...
-            initVariablesADI(p, sW, x, wellVars{:});
+        [p, sW, x, qWell{:}, bhp, wellVars{:}] = ...
+            initVariablesADI(p, sW, x, qWell{:}, bhp, wellVars{:});
     else
         x0 = st0{1}.*rs0 + st0{2}.*rv0 + st0{3}.*sG0;
         % Set initial gradient to zero
@@ -242,11 +244,11 @@ if ~isempty(W)
     wm = model.wellmodel;
     
     if ~opt.reverseMode
-        sat = {sW, sO, sG};
+        mob = {mobW, mobO, mobG};
         components = model.getDissolutionMatrix(rs, rv);
         rho = {bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS};
         
-        [srcMass, srcVol, weqs, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, wellVars, wellMap, p, sat, rho, components, opt.iteration);
+        [srcMass, srcVol, weqs, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, opt.iteration);
         rhoS = [f.rhoWS, f.rhoOS, f.rhoGS];
         for i = 1:3
             eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);

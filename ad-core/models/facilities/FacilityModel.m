@@ -32,8 +32,16 @@ classdef FacilityModel < PhysicalModel
             nwell = numel(model.WellModels);
         end
         
-        function [variables, names, wellmap] = getFacilityPrimaryVariables(model, wellSol)
+        function [rates, bhp, vars, names, wellmap] = getFacilityPrimaryVariables(model, wellSol)
             nw = model.getNumberOfWells();
+            bhp = vertcat(wellSol.bhp);
+            
+            
+            qWs = vertcat(wellSol.qWs);
+            qOs = vertcat(wellSol.qOs);
+            qGs = vertcat(wellSol.qGs);
+            rates = {qWs, qOs, qGs};
+            rates = rates(model.ReservoirModel.getActivePhases());
             for i = 1:nw
                 [v, n] = model.WellModels{i}.getWellPrimaryVariables(wellSol, model.ReservoirModel);
                 if i == 1
@@ -46,6 +54,7 @@ classdef FacilityModel < PhysicalModel
                 for j = 1:numel(v)
                     vars{i, j} = v{j};
                 end
+
             end
             
             variables = cell(1, nv);
@@ -60,33 +69,46 @@ classdef FacilityModel < PhysicalModel
             model.ReservoirModel = resModel;
         end
         
-        function [srcMass, srcVol, eqs, enames, etypes, wellSol] = getWellContributions(model, wellSol, wellvars, wellMap, p, sat, rho, comp, iteration)
+        function [srcMass, srcVol, eqs, ctrleq, enames, etypes, wellSol] = getWellContributions(model, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, iteration)
             if isnan(iteration) || iteration < 0
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate wellbore pressure-drop will never be updated']);
             end
             
             nw = model.getNumberOfWells();
+            
+            allEqs = cell(nw, 1);
+            ctrlEq = cell(nw, 1);
             for i = 1:nw
                 wm = model.WellModels{i};
                 
                 W = wm.W;
                 wc = W.cells;
                 pw = p(wc);
-                satw = getCellSubset(sat, wc);
+                mobw = getCellSubset(mob, wc);
                 rhow = getCellSubset(rho, wc);
                 compw = getComponentCellSubset(comp, wc);
                 varw = getVariableSubsetWell(wellvars, wellMap, i);
+                qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
+                bh = bhp(i);
                 % Update pressure
                 if iteration == 1
-                    wellSol(i) = wm.updateConnectionPressureDrop(wellSol(i), model.ReservoirModel, varw, pw, satw, rhow, compw);
+                    wellSol(i) = wm.updateConnectionPressureDrop(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw);
                 end
                 % Update limits
-                wellSol(i) = wm.updateConnectionPressureDrop(wellSol(i), model.ReservoirModel, varw, pw, satw, rhow, compw);
-                
-                % Set up equations
+                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw);
+                if ~ok
+                    bhp(i) = bh;
+                    for phNo = 1:numel(qw)
+                        qWell{phNo}(i) = qw{phNo};
+                    end
+                end
+               % Set up equations
+               
             end
         end
+        
+        
         
         function wellSol = updateWellSol(model, wellSol)
             
