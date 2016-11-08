@@ -328,7 +328,7 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
         
-        function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, P, T, x, y, acf)
+        function [A_ij, Bi] = getMixingParameters(model, P, T, acf)
             % Calculate intermediate values for fugacity computation
             ncomp = model.fluid.getNumberOfComponents();
             [Pr, Tr] = model.getReducedPT(P, T);
@@ -373,6 +373,11 @@ classdef EquationOfStateModel < PhysicalModel
                     A_ij{i, j} = (Ai{i}.*Ai{j}).^(1/2).*(1 - bic(i, j));
                 end
             end
+        end
+        
+        function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, P, T, x, y, acf)
+            % Calculate intermediate values for fugacity computation
+            [A_ij, Bi] = model.getMixingParameters(P, T, acf);
             [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
             [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
         end
