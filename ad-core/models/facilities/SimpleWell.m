@@ -27,6 +27,27 @@ classdef SimpleWell < PhysicalModel
             names = {};
             vars = {};
         end
+        % allEqs{i}, allCtrl{i}, allMass{i}, allVol{i}, wellSol(i)]
+        function [weqs, ctrlEq, qMass, qVol, wellSol] = computeWellEquations(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw)
+            [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw);
+            ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
+            % Update well properties which are not primary variables
+            toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
+            cq_sDb = cell2mat(toDouble(qMass));
+            
+            % TODO: Should divide by masses!!!
+            wellSol.cqs     = cq_sDb;
+            wellSol.cstatus = cstatus;
+            wellSol.status  = status;
+        end
+        
+        function [names, types] = getWellEquationNames(well, resmodel)
+            act = resmodel.getActivePhases();
+            names = {'waterWells', 'oilWells', 'gasWells'};
+            types = {'perf', 'perf', 'perf'};
+            names = names(act);
+            types = types(act);
+        end
         
         function wellSol = updateConnectionPressureDrop(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp)
             toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
@@ -157,7 +178,7 @@ classdef SimpleWell < PhysicalModel
                 withinLimits = false;
                 modes  = modes(chkInx);
                 switchMode = modes{vltInx};
-                fprintf('Well %s: Control mode changed from %s to %s.\n', sol(wnr).name, sol(wnr).type, switchMode);
+                fprintf('Well %s: Control mode changed from %s to %s.\n', wellSol.name, wellSol.type, switchMode);
                 wellSol.type = switchMode;
                 wellSol.val  = lims.(switchMode);
             else
@@ -168,17 +189,17 @@ classdef SimpleWell < PhysicalModel
                 v  = wellSol.val;
                 switch wellSol.type
                     case 'bhp'
-                        bhp = assignValue(bhp, v, k);
+                        bhp = assignValue(bhp, v, 1);
                     case 'rate'
                         for ix = 1:numel(q_s)
                             q_s{ix} = assignValue(q_s{ix}, v*w.compi(ix), 1);
                         end
                     case 'orat'
-                        q_s{oilIx} = assignValue(q_s{oilIx}, v, k);
+                        q_s{oilIx} = assignValue(q_s{oilIx}, v, 1);
                     case 'wrat'
-                        q_s{watIx} = assignValue(q_s{watIx}, v, k);
+                        q_s{watIx} = assignValue(q_s{watIx}, v, 1);
                     case 'grat'
-                        q_s{gasIx} = assignValue(q_s{gasIx}, v, k);
+                        q_s{gasIx} = assignValue(q_s{gasIx}, v, 1);
                 end % No good guess for qOs, etc...
             end
         end

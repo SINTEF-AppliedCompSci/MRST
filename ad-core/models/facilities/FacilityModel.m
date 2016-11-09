@@ -78,9 +78,13 @@ classdef FacilityModel < PhysicalModel
             nw = model.getNumberOfWells();
             
             allEqs = cell(nw, 1);
-            ctrlEq = cell(nw, 1);
+            allCtrl = cell(nw, 1);
+            
+            allVol = cell(nw, 1);
+            allMass = cell(nw, 1);
             for i = 1:nw
                 wm = model.WellModels{i};
+                [enames, etypes] = wm.getWellEquationNames(model.ReservoirModel);
                 
                 W = wm.W;
                 wc = W.cells;
@@ -103,9 +107,19 @@ classdef FacilityModel < PhysicalModel
                         qWell{phNo}(i) = qw{phNo};
                     end
                 end
-               % Set up equations
-               
+               % Set up well equations and source terms
+               [allEqs{i}, allCtrl{i}, allMass{i}, allVol{i}, wellSol(i)] =...
+                   wm.computeWellEquations(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw);
+               % Set up control equations
             end
+            nPh = nnz(model.ReservoirModel.getActivePhases);
+            [srcMass, srcVol, eqs] = deal(cell(1, nPh));
+            for phNo = 1:nPh
+                srcMass{phNo} = combineCellData(allMass, phNo);
+                srcVol{phNo} = combineCellData(allVol, phNo);
+                eqs{phNo} = combineCellData(allEqs, phNo);
+            end
+            ctrleq = vertcat(allCtrl{:});
         end
         
         
@@ -115,7 +129,8 @@ classdef FacilityModel < PhysicalModel
         end
         
         function wc = getWellCells(model)
-            
+            c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
+            wc = vertcat(c{:});
         end
         
     end
@@ -129,6 +144,11 @@ function celldata = getComponentCellSubset(celldata, wc)
             end
         end
     end
+end
+
+function d = combineCellData(data, ix)
+    d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
+    d = vertcat(d{:});
 end
 
 function subset = getCellSubset(celldata, wc)
