@@ -28,12 +28,12 @@ for i = 1:numel(b)
 end
 
 Tw = W.WI;
-compi = repmat(W.compi, nc, 1);
+compi = W.compi;
 
 wellStatus = W.status;
 % Perforations/completions are closed if the well are closed or they are
 % individually closed
-perfStatus = W.cstatus*wellStatus;
+perfStatus = W.cstatus.*wellStatus;
 % Closed shut connection by setting WI = 0
 Tw(~perfStatus) = 0;
 
