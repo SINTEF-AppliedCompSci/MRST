@@ -4,6 +4,7 @@ function S = computeVirtualIP(G, rock, k, varargin)
 
 opt = struct('innerProduct', 'ip_simple', ...
              'sigma'       , []         , ...
+             'w'           , []         , ...
              'trans'       , []          );
 opt = merge_options(opt, varargin{:});
 
@@ -48,7 +49,7 @@ if strcmp(opt.innerProduct, 'ip_fem') && ~any(strcmp(G.type, 'cart')) && k ~= 1
     opt.innerProduct = 'ip_simple';
 end
 
-ipNames = {'ip_simple' , 'ip_custom', 'ip_fem'};
+ipNames = {'ip_simple' , 'ip_custom', 'ip_fem', 'ip_fd'};
 
 assert(any(strcmp(opt.innerProduct, ipNames)), ...
        'Unknown inner product ''%s''.', opt.innerProduct);
@@ -133,7 +134,7 @@ if G.griddim == 2
 
     clear B D;
 
-    SS = stabilityTerm(opt.innerProduct, opt.sigma, G, K, PiN, NP, nker);
+    SS = stabilityTerm(G, K, PiN, NP, nker, opt);
     
     M(1:nk:end,:) = 0;
     I = speye(size(PiN,1));
@@ -696,7 +697,7 @@ else
 %     PiNstar = M\B;
     PiN = D*PiNstar; 
     
-    SS = stabilityTerm(opt.innerProduct, opt.sigma, G, K, PiN, NP, nker);
+    SS = stabilityTerm(G, K, PiN, NP, nker, opt);
     M(1:nk:end,:) = 0;
     I = speye(size(PiN,1));
     A = PiNstar'*M*PiNstar + (I-PiN)'*SS*(I-PiN);
@@ -906,7 +907,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function SS = stabilityTerm(innerProduct, sigma, G, K, PiN, NP, nker)
+function SS = stabilityTerm(G, K, PiN, NP, nker, opt)
 %   Construct stability term. 
 %
 %   ip_simple: Identity matrix multiplied by trace of permeability tensor
@@ -919,7 +920,9 @@ function SS = stabilityTerm(innerProduct, sigma, G, K, PiN, NP, nker)
 %
 
     if G.griddim == 2; iiK = [1 4]; else iiK = [1 5 9]; end
-
+    
+    innerProduct = opt.innerProduct;
+    
     switch innerProduct
 
         case 'ip_simple'
@@ -945,7 +948,8 @@ function SS = stabilityTerm(innerProduct, sigma, G, K, PiN, NP, nker)
 
             [ii,jj] = blockDiagIndex(NP, nker);
             Q = sparse(ii, jj, Q, sum(NP), sum(nker));
-    
+            
+            sigma = opt.sigma;
             if isempty(sigma)
                 sigma = rldecode(G.cells.diameters.^(G.griddim-2) ...
                                  .*sum(K(:,iiK),2),nker,1);
@@ -953,25 +957,35 @@ function SS = stabilityTerm(innerProduct, sigma, G, K, PiN, NP, nker)
 
             SS = Q*spdiags(sigma, 0, sum(nker), sum(nker))*Q';
             
-        case 'ip_fem'
+        case {'ip_fem', 'ip_fd'}
+            %   Currently only for cartesian grids with rectangular cells..
             
             xx = G.nodes.coords(G.cells.nodes,:);
             [ii, jj] = blockDiagIndex(diff(G.cells.nodePos), ones(G.cells.num,1));
-            x = sparse(ii,jj,xx(:,1));
-            y = sparse(ii,jj,xx(:,1));
+%             x = sparse(ii,jj,xx(:,1));
+%             y = sparse(ii,jj,xx(:,2));
+            x = reshape(xx(:,1), 4, []);
+            y = reshape(xx(:,2), 4, []);
             
-            hx = abs(max(x,[], 1)- min(x,[],1))';
-            hy = abs(max(y,[], 1)- min(y,[],1))';
+            hx = abs(max(x,[], 1)- min(x,[],1))'/2;
+            hy = abs(max(y,[], 1)- min(y,[],1))'/2;
 
-            Q = sqrt(9./(4*rldecode(hx.*hy, 4*ones(G.cells.num,1),1))).*rldecode([-1,1,-1,1]', G.cells.num,1);
+            Q = sqrt(9./(4*rldecode(hx.*hy, 4*ones(G.cells.num,1),1))).*repmat([-1,1,-1,1]', G.cells.num,1);
             Q = sparse(ii,jj,Q);
             
-            if isempty(sigma)
+            if isempty(opt.sigma)
                 sigma = ones(G.cells.num,1);
             end
             
-            Lambda = spdiags(3*(K(:,1)./hx.^2 + K(:,4)./hy.^2).*sigma, 0, G.cells.num, G.cells.num);
-            SS = Q*(Q'*Q)*Lambda*(Q'*Q)*Q';
+            factor = 1; w = opt.w;
+            if strcmp(innerProduct, 'ip_fd')
+                if isempty(w)
+                    w = 1;
+                end
+                factor = 3*w;
+            end
+            Lambda = spdiags(factor*3*(K(:,1)./hx.^2 + K(:,4)./hy.^2), 0, G.cells.num, G.cells.num);
+            SS = Q*((Q'*Q)\Lambda/(Q'*Q))*Q';
         
     end
     
