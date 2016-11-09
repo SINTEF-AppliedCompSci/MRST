@@ -1,4 +1,4 @@
-function [eqs, cq_mass, mix_s, status, cstatus, cq_r] = computeWellContributionsSingleWell(wellmodel, wellSol, resmodel, q_s, pBH, varw, p, mob, rho, components)
+function [eqs, cq_mass, mix_s, status, cstatus, cq_vol] = computeWellContributionsSingleWell(wellmodel, wellSol, resmodel, q_s, pBH, varw, p, mob, rho, components)
 
 % W = wellmodel.W;
 % p = wellmodel.referencePressure;
@@ -20,7 +20,12 @@ nc = numel(wc);
 numPh = numel(q_s);
 
 % OBS!!
-b = rho;
+% b = rho;
+b = cell(numPh, 1);
+rhoS = resmodel.getSurfaceDensities();
+for i = 1:numel(b)
+    b{i} = rho{i}./rhoS(i);
+end
 
 Tw = W.WI;
 compi = repmat(W.compi, nc, 1);
@@ -115,26 +120,25 @@ end
 % injecting connections total volumerates
 cqt_i = -(connInjInx.*Tw).*(mt.*drawdown);
 % volume ratio between connection and standard conditions
-volRat  = computeMassVolumeRatio(mix_s, b, components, resmodel);
+volRat  = compVolRat(mix_s, b, components, resmodel);
 % injecting connections total volumerates at standard condintions
 cqt_is = cqt_i./volRat;
 % connection phase volumerates at standard conditions (for output):
-cq_mass = cell(1,numPh);
+cq_s = cell(1,numPh);
 for ph = 1:numPh
-    cq_mass{ph} = cq_ps{ph} + mix_s{ph}.*cqt_is;
+    cq_s{ph} = cq_ps{ph} + mix_s{ph}.*cqt_is;
 end
 
 % Reservoir condition fluxes
-cq_r = cell(1, numPh);
+cq_vol = cell(1, numPh);
 for ph = 1:numPh
-    cq_r{ph} = connInjInx.*cqt_i.*compi(ph) + ~connInjInx.*cq_p{ph};
+    cq_vol{ph} = connInjInx.*cqt_i.*compi(ph) + ~connInjInx.*cq_p{ph};
 end
 %---------------------- WELL EQUATIONS     -------------------------------
 % Well equations
-rhoS = resmodel.getSurfaceDensities();
 eqs = cell(1, numPh);
 for ph = 1:numPh
-    eqs{ph} = rhoS(ph)*q_s{ph} - sum(cq_mass{ph});
+    eqs{ph} = q_s{ph} - sum(cq_s{ph});
 end
 
 if ~all(wellStatus)
@@ -149,19 +153,24 @@ mix_s   = cell2mat( cellfun(@double, mix_s, 'UniformOutput', false));
 cstatus = ~closedConns;
 % For now, don't change status here
 status = vertcat(wellSol.status);
+
+cq_mass = cell(1, numPh);
+for i = 1:numel(b)
+    cq_mass{i} = cq_s{i}.*rhoS(i);
+end
 end
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
 % PRIVATE FUNCTIONS
-function qrho = conn2surf(v, rho, r, model)
+function qrho = conn2surf(v, b, r, model)
     % in and output cells of ADI
     nPh = numel(v);
-    rhov = cell(1,nPh);
+    bv = cell(1,nPh);
     for ph = 1:nPh
-        rhov{ph} = rho{ph}.*v{ph};
+        bv{ph} = b{ph}.*v{ph};
     end
-    qrho = rhov;
+    qrho = bv;
 
 
     dg = isprop(model, 'disgas') && model.disgas;
@@ -171,20 +180,20 @@ function qrho = conn2surf(v, rho, r, model)
         [~, isoil] = model.getVariableField('so');
         if isa(model, 'ThreePhaseBlackOilModel')
             if dg
-                qrho{isgas} = qrho{isgas} + r{isgas}{isoil}.*rhov{isoil};
+                qrho{isgas} = qrho{isgas} + r{isgas}{isoil}.*bv{isoil};
             end
             if vo
-                qrho{isoil} = qrho{isoil} + r{isoil}{isgas}.*rhov{isgas};
+                qrho{isoil} = qrho{isoil} + r{isoil}{isgas}.*bv{isgas};
             end
         elseif dg
-            qrho{isgas} = qrho{isgas} + r{isgas}{isoil}.*rhov{isoil};
+            qrho{isgas} = qrho{isgas} + r{isgas}{isoil}.*bv{isoil};
         end
     end
 end
 %--------------------------------------------------------------------------
-function massRatio  = computeMassVolumeRatio(cmix_s, rho, r, model)
+function volRat  = compVolRat(cmix_s, b, r, model)
     % first extend mix_s to number of connections:
-    nPh = numel(rho);
+    nPh = numel(b);
     tmp = cmix_s;
 
 
@@ -213,9 +222,9 @@ function massRatio  = computeMassVolumeRatio(cmix_s, rho, r, model)
         end
     end
 
-    massRatio = 0;
+    volRat = 0;
     for ph = 1:nPh
-        massRatio = massRatio + tmp{ph}./rho{ph};
+        volRat = volRat + tmp{ph}./b{ph};
     end
 end
 

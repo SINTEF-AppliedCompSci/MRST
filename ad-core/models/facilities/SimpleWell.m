@@ -31,6 +31,7 @@ classdef SimpleWell < PhysicalModel
         function [weqs, ctrlEq, qMass, qVol, wellSol] = computeWellEquations(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw)
             [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw);
             ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
+            
             % Update well properties which are not primary variables
             toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
             cq_sDb = cell2mat(toDouble(qMass));

@@ -258,8 +258,8 @@ if ~isempty(W)
         names(4:6) = wnames;
         types(4:6) = wtypes;
         eqs{7} = ctrleq;
-        names{7} = 'control';
-        types{7} = 'ctrl';
+        names{7} = 'closureWells';
+        types{7} = 'well';
     else
         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
