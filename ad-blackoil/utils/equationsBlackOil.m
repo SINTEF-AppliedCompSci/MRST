@@ -248,14 +248,18 @@ if ~isempty(W)
         components = model.getDissolutionMatrix(rs, rv);
         rho = {bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS};
         
-        [srcMass, srcVol, weqs, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, opt.iteration);
+        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, opt.iteration);
         rhoS = [f.rhoWS, f.rhoOS, f.rhoGS];
+        wc = wm.getWellCells();
         for i = 1:3
             eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
         end
-        eqs(4:7) = weqs;
-        names(4:7) = wnames;
-        types(4:7) = wtypes;
+        eqs(4:6) = weqs;
+        names(4:6) = wnames;
+        types(4:6) = wtypes;
+        eqs{7} = ctrleq;
+        names{7} = 'control';
+        types{7} = 'ctrl';
     else
         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
