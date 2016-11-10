@@ -4,20 +4,29 @@ classdef FacilityModel < PhysicalModel
         ReservoirModel
     end
     
+    properties (Access = protected)
+        addedPrimaryVarNames = {};
+    end
     methods
-        function model = FacilityModel()
+        function model = FacilityModel(reservoirModel)
             model = model@PhysicalModel([]);
             model.WellModels = {};
+            model.ReservoirModel = reservoirModel;
         end
         
         function model = setupWells(model, W)
+            % Set up wells for changed controls or first simulation step
             nw = numel(W);
             if model.getNumberOfWells == 0
+                % First time setup
+                pvars = cell(nw, 1);
                 model.WellModels = cell(nw, 1);
                 for i = 1:nw
                     % Set up models. SimpleWell for the time being
                     model.WellModels{i} = SimpleWell(W(i));
+                    pvars{i} = model.WellModels{i}.getExtraPrimaryVariableNames();
                 end
+                model.addedPrimaryVarNames = unique([pvars{:}]);
             else
                 assert(model.getNumberOfWells == nw)
                 for i = 1:nw
@@ -30,21 +39,43 @@ classdef FacilityModel < PhysicalModel
         end
         
         function nwell = getNumberOfWells(model)
+            % Compute number of wells in facility
             nwell = numel(model.WellModels);
         end
         
-        function [rates, bhp, vars, names, wellmap] = getFacilityPrimaryVariables(model, wellSol)
-            nw = model.getNumberOfWells();
+        function names = getPrimaryVariableNames(model, wellSol)
+            % This includes both the basic variables, and the variables
+            % added by complex wells (if any)
+            names = [model.getBasicPrimaryVariableNames(), model.addedPrimaryVarNames];
+        end
+        
+        function names = getBasicPrimaryVariableNames(model)
+            % Basic primary variables are phase rates + bhp for active
+            % phases in the model.
+            actPh = model.ReservoirModel.getActivePhases();
+            names = {'qWs', 'qOs', 'qGs', 'bhp'};
+            names = names([actPh, true]);
+        end
+
+        function [rates, bhp, names] = getBasicPrimaryVariables(model, wellSol)
+            actPh = model.ReservoirModel.getActivePhases();
             bhp = vertcat(wellSol.bhp);
-            
-            
             qWs = vertcat(wellSol.qWs);
             qOs = vertcat(wellSol.qOs);
             qGs = vertcat(wellSol.qGs);
             rates = {qWs, qOs, qGs};
-            rates = rates(model.ReservoirModel.getActivePhases());
+            rates = rates(actPh);
+            
+            names = model.getBasicPrimaryVariableNames();
+        end
+        
+        function [vars, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
+            % Extra primary variables are variables required by more
+            % advanced wells that are in addition to the basic facility
+            % variables (rates + bhp).
+            nw = model.getNumberOfWells();
             for i = 1:nw
-                [v, n] = model.WellModels{i}.getWellPrimaryVariables(wellSol, model.ReservoirModel);
+                [v, n] = model.WellModels{i}.getExtraPrimaryVariables(wellSol, model.ReservoirModel);
                 if i == 1
                     % Currently assuming that all wells are of the same
                     % type
@@ -67,10 +98,15 @@ classdef FacilityModel < PhysicalModel
         end
         
         function model = setReservoirModel(model, resModel)
+            % Store pointer to reservoir model (used to figure out which
+            % components and phases are present)
             model.ReservoirModel = resModel;
         end
         
         function [srcMass, srcVol, eqs, ctrleq, enames, etypes, wellSol] = getWellContributions(model, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, iteration)
+            % Get the source terms due to the wells, control and well
+            % equations and updated well sol. Main gateway for adding wells
+            % to a set of equations.
             if isnan(iteration) || iteration < 0
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate wellbore pressure-drop will never be updated']);
@@ -122,8 +158,7 @@ classdef FacilityModel < PhysicalModel
             ctrleq = vertcat(allCtrl{:});
         end
         
-        
-        
+
         function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
             % Figure out if wells are shut, or changed ontrols
             for wno = 1:numel(wellSol)

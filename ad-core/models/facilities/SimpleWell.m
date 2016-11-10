@@ -23,11 +23,15 @@ classdef SimpleWell < PhysicalModel
             well.W = W;
         end
         
-        function [vars, names] = getWellPrimaryVariables(well, wellSol, resmodel)
+        function names = getExtraPrimaryVariableNames(well)
             names = {};
+        end
+        
+        function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
+            names = well.getExtraPrimaryVariableNames();
             vars = {};
         end
-        % allEqs{i}, allCtrl{i}, allMass{i}, allVol{i}, wellSol(i)]
+        
         function [weqs, ctrlEq, qMass, qVol, wellSol] = computeWellEquations(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw)
             [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw);
             ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);

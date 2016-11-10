@@ -97,8 +97,9 @@ W = drivingForces.W;
 
 if ~isempty(W)
     model.wellmodel = model.wellmodel.setReservoirModel(model);
-    [qWell, bhp, wellVars, wellExtraNames, wellMap] = model.wellmodel.getFacilityPrimaryVariables(wellSol);
-    wellVarNames = ['qWs', 'qOs', 'qGs', 'bhp', wellExtraNames];
+    [qWell, bhp, basicWellNames] = model.wellmodel.getBasicPrimaryVariables(wellSol);
+    [wellVars, wellExtraNames, wellMap] = model.wellmodel.getExtraPrimaryVariables(wellSol);
+    wellVarNames = [basicWellNames, wellExtraNames];
 else
     [qWell, wellVars, wellVarNames, wellMap] = deal({});
     bhp = [];

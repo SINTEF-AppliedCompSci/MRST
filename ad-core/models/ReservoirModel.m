@@ -76,9 +76,7 @@ properties
     saturationVarNames
     % Names of components
     componentVarNames
-    % Names of well fields that may be updated by the model.
-    wellVarNames
-
+    
     % Use alternate tolerance scheme
     useCNVConvergence
 
@@ -152,7 +150,6 @@ methods
 
         model.saturationVarNames = {'sw', 'so', 'sg'};
         model.componentVarNames  = {};
-        model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
 
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
@@ -307,8 +304,9 @@ methods
         % Well variables, saturation variables and the rest. This is
         % useful because the saturation variables usually are updated
         % together, and the well variables are a special case.
+        wellvars = model.wellmodel.getPrimaryVariableNames();
         isSat   = cellfun(@(x) any(strcmpi(model.saturationVarNames, x)), vars);
-        isWells = cellfun(@(x) any(strcmpi(model.wellVarNames, x)), vars);
+        isWells = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
 
         wellVars = vars(isWells);
         satVars  = vars(isSat);
