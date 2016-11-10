@@ -36,8 +36,7 @@ classdef SimpleWell < PhysicalModel
             toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
             cq_sDb = cell2mat(toDouble(qMass));
             
-            % TODO: Should divide by masses!!!
-            wellSol.cqs     = cq_sDb;
+            wellSol.cqs     = bsxfun(@rdivide, cq_sDb, resmodel.getSurfaceDensities);
             wellSol.cstatus = cstatus;
             wellSol.status  = status;
         end
@@ -193,7 +192,7 @@ classdef SimpleWell < PhysicalModel
                         bhp = assignValue(bhp, v, 1);
                     case 'rate'
                         for ix = 1:numel(q_s)
-                            q_s{ix} = assignValue(q_s{ix}, v*w.compi(ix), 1);
+                            q_s{ix} = assignValue(q_s{ix}, v*well.W.compi(ix), 1);
                         end
                     case 'orat'
                         q_s{oilIx} = assignValue(q_s{oilIx}, v, 1);
@@ -202,6 +201,32 @@ classdef SimpleWell < PhysicalModel
                     case 'grat'
                         q_s{gasIx} = assignValue(q_s{gasIx}, v, 1);
                 end % No good guess for qOs, etc...
+            end
+        end
+        
+        function [wellSol, well_shut] = updateWellSolAfterStep(well, resmodel, wellSol)
+            w = well.W;
+            % Check if producers are becoming injectors and vice versa. The indexes
+            % of such wells are stored in inx.
+            wsg = w.sign;
+            ssg = sign(getTotalRate(wellSol));
+            closed = wsg ~= ssg;
+            % A well can be set to zero rate without beeing shut down. We update inx
+            % to take into account this fact.
+            closed = closed & ~strcmpi(w.type, 'bhp') & w.val ~= 0;
+            if closed && ~well.allowSignChange && well.allowControlSwitching
+                fprintf('Well %s shut down.\n', w.name);
+                wellSol.status = false;
+                well_shut = true;
+            else
+                well_shut = false;
+            end
+            
+            switched = ~strcmpi(wellSol.type, w.type);
+            if switched
+                fprintf('Well %s has switched from %s to %s.\n', w.name, ...
+                                                                 w.type, ...
+                                                                 wellSol.type);
             end
         end
     end
@@ -276,4 +301,22 @@ if dg || vo
 end
 
 volRat = sum(x./b ,2);
+end
+
+function qt = getTotalRate(sol)
+   ns = numel(sol);
+   qt       = zeros([ns, 1]);
+   if ns == 0
+       return
+   end
+   typelist = {'qWs', 'qOs', 'qGs'};
+   types    = typelist(isfield(sol(1), typelist));
+   for w = 1:ns
+      for t = reshape(types, 1, []),
+         x = sol(w).(t{1});
+         if ~isempty(x),
+            qt(w) = qt(w) + x;
+         end
+      end
+   end
 end

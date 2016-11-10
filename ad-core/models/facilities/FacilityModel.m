@@ -25,6 +25,7 @@ classdef FacilityModel < PhysicalModel
                     % overwrite of existing wells
                     model.WellModels{i}.updateWell(W(i));
                 end
+                % Update wellSol as well
             end
         end
         
@@ -110,7 +111,6 @@ classdef FacilityModel < PhysicalModel
                % Set up well equations and source terms
                [allEqs{i}, allCtrl{i}, allMass{i}, allVol{i}, wellSol(i)] =...
                    wm.computeWellEquations(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw);
-               % Set up control equations
             end
             nPh = nnz(model.ReservoirModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
@@ -124,8 +124,12 @@ classdef FacilityModel < PhysicalModel
         
         
         
-        function wellSol = updateWellSol(model, wellSol)
-            
+        function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
+            % Figure out if wells are shut, or changed ontrols
+            for wno = 1:numel(wellSol)
+                wm = model.WellModels{wno};
+                wellSol(wno) = wm.updateWellSolAfterStep(resmodel, wellSol(wno));
+            end
         end
         
         function wc = getWellCells(model)

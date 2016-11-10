@@ -207,18 +207,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     for i = 1:nSteps
         step_header(i);
-
+        state0 = state;
+        
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
             W = fstruct.W;
+            model.wellmodel = model.wellmodel.setupWells(W);
             prevControl = currControl;
+            state0.wellSol = initWellSolAD(W, model, state);
         end
 
         timer = tic();
-
-        state0 = state;
-        state0.wellSol = initWellSolAD(W, model, state);
+%         state0.wellSol = initWellSolAD(W, model, state);
 
         if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
@@ -242,10 +243,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose,
            disp_step_convergence(report.Iterations, t);
         end
-
+        state.wellSol = model.wellmodel.updateWellSolAfterStep(model, state.wellSol);
+        
 %         W = updateSwitchedControls(state.wellSol, W, ...
-%                 'allowWellSignChange',   model.wellmodel.allowWellSignChange, ...
-%                 'allowControlSwitching', model.wellmodel.allowControlSwitching);
+%                 'allowWellSignChange',   true, ...
+%                 'allowControlSwitching', true);
 
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
