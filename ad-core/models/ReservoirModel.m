@@ -155,8 +155,6 @@ methods
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
         model.upstreamWeightInjectors = false;
-        
-        model.wellmodel = WellModel();
         % Gravity defaults to the global variable
         model.gravity = gravity(); %#ok
         [model, unparsed] = merge_options(model, varargin{:}); %#ok
@@ -187,6 +185,7 @@ methods
         if nPh > 1
             model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
+        state = model.wellmodel.validateState(state);
     end
 
     % --------------------------------------------------------------------%
@@ -198,6 +197,11 @@ methods
         % in wellSol and are in general more messy to work with).
         [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
 
+        % Update the wells
+        if isfield(state, 'wellSol')
+            [state.wellSol, restVars] = model.wellmodel.updateWellSol(state.wellSol, problem, dx, drivingForces, restVars);
+        end
+        
         % Update saturations in one go
         state  = model.updateSaturations(state, dx, problem, satVars);
 
@@ -213,10 +217,6 @@ methods
             end
         end
 
-        % Update the wells
-        if isfield(state, 'wellSol')
-            state.wellSol = model.wellmodel.updateWellSol(state.wellSol, problem, dx, drivingForces);
-        end
         report = [];
     end
 

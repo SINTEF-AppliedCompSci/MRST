@@ -219,8 +219,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         timer = tic();
-%         state0.wellSol = initWellSolAD(W, model, state);
-
         if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
                                             forces{:}, 'controlId', currControl);
@@ -244,10 +242,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            disp_step_convergence(report.Iterations, t);
         end
         state.wellSol = model.wellmodel.updateWellSolAfterStep(model, state.wellSol);
-        
-%         W = updateSwitchedControls(state.wellSol, W, ...
-%                 'allowWellSignChange',   true, ...
-%                 'allowControlSwitching', true);
 
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps

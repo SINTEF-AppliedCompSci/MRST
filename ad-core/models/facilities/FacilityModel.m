@@ -14,7 +14,7 @@ classdef FacilityModel < PhysicalModel
             model.ReservoirModel = reservoirModel;
         end
         
-        function model = setupWells(model, W)
+        function model = setupWells(model, W, wellmodels)
             % Set up wells for changed controls or first simulation step
             nw = numel(W);
             if model.getNumberOfWells == 0
@@ -23,7 +23,16 @@ classdef FacilityModel < PhysicalModel
                 model.WellModels = cell(nw, 1);
                 for i = 1:nw
                     % Set up models. SimpleWell for the time being
-                    model.WellModels{i} = SimpleWell(W(i));
+                    if nargin < 3
+                        if isfield(W(i), 'isMS') && W(i).isMS
+                            wm = MultisegmentWell(W(i));
+                        else
+                            wm = SimpleWell(W(i));
+                        end
+                    else
+                        wm = wellmodels{i};
+                    end
+                    model.WellModels{i} = wm;
                     pvars{i} = model.WellModels{i}.getExtraPrimaryVariableNames();
                 end
                 model.addedPrimaryVarNames = unique([pvars{:}]);
@@ -174,7 +183,11 @@ classdef FacilityModel < PhysicalModel
         
         
         % Implementation details for stand-alone model
-        function wellSol = updateWellSol(model, wellSol, problem, dx, drivingForces) %#ok
+        function [wellSol, restVars] = updateWellSol(model, wellSol, problem, dx, drivingForces, restVars) %#ok
+            if nargin < 6
+                restVars = problem.primaryVariables;
+            end
+            
             % Update the wellSol struct
             if numel(wellSol) == 0
                 % Nothing to be done if there are no wells
@@ -197,6 +210,8 @@ classdef FacilityModel < PhysicalModel
                 for j = 1:numel(wellSol)
                     wellSol(j).(wf) = wellSol(j).(wf) + dv(j);
                 end
+                % Field is taken care of
+                restVars = model.stripVars(restVars, wf);
             end
         end
         
@@ -246,7 +261,14 @@ classdef FacilityModel < PhysicalModel
             end
             report = [];
         end
-
+        
+        function state = validateState(model, state)
+            if isfield(state, 'wellSol')
+                for wno = 1:numel(model.WellModels)
+                    state.wellSol(wno) = model.WellModels{wno}.validateWellSol(state.wellSol(wno));
+                end
+            end
+        end
     end
 end
 

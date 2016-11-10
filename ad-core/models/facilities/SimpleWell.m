@@ -23,6 +23,10 @@ classdef SimpleWell < PhysicalModel
             well.W = W;
         end
         
+        function wsol = validateWellSol(well, wsol)
+            
+        end
+        
         function names = getExtraPrimaryVariableNames(well)
             names = {};
         end
