@@ -177,6 +177,7 @@ if model.outputFluxes
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
+    state = model.storeDensity(state, bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS);
     state = model.storeMobilities(state, mobW, mobO, mobG);
     state = model.storeUpstreamIndices(state, upcw, upco, upcg);
 end

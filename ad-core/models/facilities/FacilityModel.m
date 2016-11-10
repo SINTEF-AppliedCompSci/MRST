@@ -43,7 +43,7 @@ classdef FacilityModel < PhysicalModel
             nwell = numel(model.WellModels);
         end
         
-        function names = getPrimaryVariableNames(model, wellSol)
+        function names = getPrimaryVariableNames(model)
             % This includes both the basic variables, and the variables
             % added by complex wells (if any)
             names = [model.getBasicPrimaryVariableNames(), model.addedPrimaryVarNames];
@@ -172,6 +172,81 @@ classdef FacilityModel < PhysicalModel
             wc = vertcat(c{:});
         end
         
+        
+        % Implementation details for stand-alone model
+        function wellSol = updateWellSol(model, wellSol, problem, dx, drivingForces) %#ok
+            % Update the wellSol struct
+            if numel(wellSol) == 0
+                % Nothing to be done if there are no wells
+                return
+            end
+            wellVars = model.getPrimaryVariableNames();
+            resModel = model.ReservoirModel;
+            for i = 1:numel(wellVars)
+                wf = wellVars{i};
+                dv = model.getIncrement(dx, problem, wf);
+
+                if strcmpi(wf, 'bhp')
+                    % Bottom hole is a bit special - we apply the pressure update
+                    % limits here as well.
+                    bhp = vertcat(wellSol.bhp);
+                    dv = resModel.limitUpdateRelative(dv, bhp, resModel.dpMaxRel);
+                    dv = resModel.limitUpdateAbsolute(dv, resModel.dpMaxAbs);
+                end
+
+                for j = 1:numel(wellSol)
+                    wellSol(j).(wf) = wellSol(j).(wf) + dv(j);
+                end
+            end
+        end
+        
+        function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
+            opt = struct('iteration', nan, 'resOnly', false);
+            opt = merge_options(opt, varargin{:});
+            wellSol = state.wellSol;
+            resmodel = model.ReservoirModel;
+            % Get variables from facility and wells
+            [qWell, bhp, basicWellNames] = model.getBasicPrimaryVariables(wellSol);
+            [wellVars, wellExtraNames, wellMap] = model.getExtraPrimaryVariables(wellSol);
+            if ~opt.resOnly
+                [qWell{:}, bhp, wellVars{:}] = initVariablesADI(qWell{:}, bhp, wellVars{:});
+            end
+            
+            if isa(resmodel, 'ThreePhaseBlackOilModel')
+                [rs, rv] = resmodel.getProps(state, 'rs', 'rv');
+            else
+                [rs, rv] = deal([]);
+            end
+            assert(isfield(state, 'rho'));
+            assert(isfield(state, 'mob'));
+            p = resmodel.getProp(state, 'pressure');
+            
+            nPh = size(state.rho, 2);
+            [mob, rho] = deal(cell(1, nPh));
+            for i = 1:nPh
+                mob{i} = state.mob(:, i);
+                rho{i} = state.rho(:, i);
+            end
+            components = resmodel.getDissolutionMatrix(rs, rv);
+            [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
+                model.getWellContributions(wellSol, qWell, bhp, wellVars, ...
+                        wellMap, p, mob, rho, components, opt.iteration);
+            
+            eqs = {weqs{:}, ctrleq};
+            names = {wnames{:}, 'closureWells'};
+            types = {wtypes{:}, 'well'};
+            
+            primaryVars = {basicWellNames{:}, wellExtraNames{:}};
+            problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+        end
+        
+        function [state, report] = updateState(model, state, problem, dx, drivingForces)
+            if isfield(state, 'wellSol')
+                state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces);
+            end
+            report = [];
+        end
+
     end
 end
 

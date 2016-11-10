@@ -196,7 +196,7 @@ methods
         % Split variables into three categories: Regular/rest variables, saturation
         % variables (which sum to 1 after updates) and well variables (which live
         % in wellSol and are in general more messy to work with).
-        [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
+        [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
 
         % Update saturations in one go
         state  = model.updateSaturations(state, dx, problem, satVars);
@@ -215,7 +215,7 @@ methods
 
         % Update the wells
         if isfield(state, 'wellSol')
-            state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
+            state.wellSol = model.wellmodel.updateWellSol(state.wellSol, problem, dx, drivingForces);
         end
         report = [];
     end
@@ -393,38 +393,6 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function wellSol = updateWellSol(model, wellSol, problem, dx, drivingForces, wellVars) %#ok
-        % Update the wellSol struct
-        if numel(wellSol) == 0
-            % Nothing to be done if there are no wells
-            return
-        end
-        if nargin < 6
-            % Get the well variables directly from the problem,
-            % otherwise assume that they are known by the user
-            [~, ~, wellVars] = ...
-                splitPrimaryVariables(model, problem.primaryVariables);
-        end
-
-        for i = 1:numel(wellVars)
-            wf = wellVars{i};
-            dv = model.getIncrement(dx, problem, wf);
-
-            if strcmpi(wf, 'bhp')
-                % Bottom hole is a bit special - we apply the pressure update
-                % limits here as well.
-                bhp = vertcat(wellSol.bhp);
-                dv = model.limitUpdateRelative(dv, bhp, model.dpMaxRel);
-                dv = model.limitUpdateAbsolute(dv, model.dpMaxAbs);
-            end
-
-            for j = 1:numel(wellSol)
-                wellSol(j).(wf) = wellSol(j).(wf) + dv(j);
-            end
-        end
-    end
-
-    % --------------------------------------------------------------------%
     function state = setPhaseData(model, state, data, fld, subs)
         % Given a structure field name and a cell array of data for
         % each phase, store them as columns with the given field name
@@ -484,12 +452,22 @@ methods
     end
     
     % --------------------------------------------------------------------%
+    function state = storeDensity(model, state, rhoW, rhoO, rhoG)
+        % Store compressibility / surface factors for plotting and
+        % output.
+        isActive = model.getActivePhases();
+
+        state.rho = zeros(model.G.cells.num, sum(isActive));
+        rho = {double(rhoW), double(rhoO), double(rhoG)};
+        state = model.setPhaseData(state, rho, 'rho');
+    end
+    % --------------------------------------------------------------------%
     function state = storebfactors(model, state, bW, bO, bG)
         % Store compressibility / surface factors for plotting and
         % output.
         isActive = model.getActivePhases();
 
-        state.mob = zeros(model.G.cells.num, sum(isActive));
+        state.bfactor = zeros(model.G.cells.num, sum(isActive));
         b = {double(bW), double(bO), double(bG)};
         state = model.setPhaseData(state, b, 'bfactor');
     end
