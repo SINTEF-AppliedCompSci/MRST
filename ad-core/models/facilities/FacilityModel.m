@@ -33,7 +33,7 @@ classdef FacilityModel < PhysicalModel
                         wm = wellmodels{i};
                     end
                     model.WellModels{i} = wm;
-                    pvars{i} = model.WellModels{i}.getExtraPrimaryVariableNames();
+                    pvars{i} = model.WellModels{i}.getExtraPrimaryVariableNames(model.ReservoirModel);
                 end
                 model.addedPrimaryVarNames = unique([pvars{:}]);
             else
@@ -78,31 +78,35 @@ classdef FacilityModel < PhysicalModel
             names = model.getBasicPrimaryVariableNames();
         end
         
-        function [vars, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
+        function [variables, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
             % Extra primary variables are variables required by more
             % advanced wells that are in addition to the basic facility
             % variables (rates + bhp).
+            names = model.addedPrimaryVarNames;
+            
             nw = model.getNumberOfWells();
-            for i = 1:nw
-                [v, n] = model.WellModels{i}.getExtraPrimaryVariables(wellSol, model.ReservoirModel);
-                if i == 1
-                    % Currently assuming that all wells are of the same
-                    % type
-                    nv = numel(v);
-                    vars = cell(nw, nv);
-                    names = n;
-                end
-                for j = 1:numel(v)
-                    vars{i, j} = v{j};
-                end
+            nv = numel(names);
+            vars = cell(nw, nv);
+            
+            if nv > 0
+                for i = 1:nw
+                    [v, n] = model.WellModels{i}.getExtraPrimaryVariables(wellSol(i), model.ReservoirModel);
 
+                    for j = 1:numel(v)
+                        % Map into array of added primary variables
+                        ix = strcmpi(names, n{j});
+                        vars{i, ix} = v{j};
+                    end
+                    
+                end
             end
             
-            variables = cell(1, nv);
+            
             wellmap = cell(1, nv);
+            variables = cell(1, nv);
             for j = 1:nv
                 variables{j} = vertcat(vars{:, j});
-                wellmap{j} = rldecode((1:nw)', cellfun(@numel, vars(:, j)));
+%                 wellmap{j} = rldecode((1:nw)', cellfun(@numel, vars(:, j)));
             end
         end
         
@@ -128,6 +132,13 @@ classdef FacilityModel < PhysicalModel
             
             allVol = cell(nw, 1);
             allMass = cell(nw, 1);
+            
+            addedVars = model.addedPrimaryVarNames;
+            maps = cell(1, numel(addedVars));
+            for varNo = 1:numel(addedVars)
+                maps{varNo} = model.getWellVariableMap(addedVars{varNo});
+            end
+            
             for i = 1:nw
                 wm = model.WellModels{i};
                 [enames, etypes] = wm.getWellEquationNames(model.ReservoirModel);
@@ -138,7 +149,7 @@ classdef FacilityModel < PhysicalModel
                 mobw = getCellSubset(mob, wc);
                 rhow = getCellSubset(rho, wc);
                 compw = getComponentCellSubset(comp, wc);
-                varw = getVariableSubsetWell(wellvars, wellMap, i);
+                varw = getVariableSubsetWell(wellvars, maps, i);
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
@@ -187,6 +198,7 @@ classdef FacilityModel < PhysicalModel
             if nargin < 6
                 restVars = problem.primaryVariables;
             end
+            nw = model.getNumberOfWells();
             
             % Update the wellSol struct
             if numel(wellSol) == 0
@@ -206,13 +218,22 @@ classdef FacilityModel < PhysicalModel
                     dv = resModel.limitUpdateRelative(dv, bhp, resModel.dpMaxRel);
                     dv = resModel.limitUpdateAbsolute(dv, resModel.dpMaxAbs);
                 end
-
+                isVarWell = model.getWellVariableMap(wf);
                 for j = 1:numel(wellSol)
-                    wellSol(j).(wf) = wellSol(j).(wf) + dv(j);
+                    subs = isVarWell == j;
+                    if any(subs)
+                        wellSol(j) = model.WellModels{j}.incrementProp(wellSol(j), wf, dv(subs));
+                    end
                 end
                 % Field is taken care of
                 restVars = model.stripVars(restVars, wf);
             end
+        end
+        
+        function isVarWell = getWellVariableMap(model, wf)
+            nw = model.getNumberOfWells();
+            counts = cellfun(@(x) x.getVariableCounts(wf), model.WellModels);
+            isVarWell = rldecode((1:nw)', counts);
         end
         
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
@@ -265,7 +286,12 @@ classdef FacilityModel < PhysicalModel
         function state = validateState(model, state)
             if isfield(state, 'wellSol')
                 for wno = 1:numel(model.WellModels)
-                    state.wellSol(wno) = model.WellModels{wno}.validateWellSol(state.wellSol(wno));
+                    new_ws = model.WellModels{wno}.validateWellSol(model.ReservoirModel, state.wellSol(wno));
+                    % Hack to avoid adding fields manually
+                    flds = fieldnames(new_ws);
+                    for j = 1:numel(flds)
+                        state.wellSol(wno).(flds{j}) = new_ws.(flds{j});
+                    end
                 end
             end
         end

@@ -23,17 +23,31 @@ classdef SimpleWell < PhysicalModel
             well.W = W;
         end
         
-        function wsol = validateWellSol(well, wsol)
+        function wsol = validateWellSol(well, resmodel, wsol)
             
         end
         
-        function names = getExtraPrimaryVariableNames(well)
+        function counts = getVariableCounts(wm, fld)
+            try
+                fn = wm.getVariableField(fld);
+            catch
+                fn = [];
+            end
+            if isempty(fn)
+                counts = 0;
+            else
+                counts = 1;
+            end
+        end
+        
+        function names = getExtraPrimaryVariableNames(well, resmodel)
             names = {};
         end
         
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
-            names = well.getExtraPrimaryVariableNames();
-            vars = {};
+            names = well.getExtraPrimaryVariableNames(resmodel);
+            vars = cell(size(names));
+            [vars{:}] = well.getProps(wellSol, names{:});
         end
         
         function [weqs, ctrlEq, qMass, qVol, wellSol] = computeWellEquations(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw)
@@ -237,6 +251,26 @@ classdef SimpleWell < PhysicalModel
                                                                  wellSol.type);
             end
         end
+        
+        function [fn, index] = getVariableField(model, name)
+            % Get the index/name mapping for the model (such as where
+            % pressure or water saturation is located in state)
+            index = 1;
+            switch(lower(name))
+                case 'bhp'
+                    fn = 'bhp';
+                case 'qos'
+                    fn = 'qOs';
+                case 'qgs'
+                    fn = 'qGs';
+                case 'qws'
+                    fn = 'qWs';
+                otherwise
+                    % This will throw an error for us
+                    [fn, index] = getVariableField@PhysicalModel(model, name);
+            end
+        end
+
     end
 end
 
