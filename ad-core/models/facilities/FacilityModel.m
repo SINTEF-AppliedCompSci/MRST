@@ -83,26 +83,26 @@ classdef FacilityModel < PhysicalModel
             % advanced wells that are in addition to the basic facility
             % variables (rates + bhp).
             names = model.addedPrimaryVarNames;
-            
             nw = model.getNumberOfWells();
             nv = numel(names);
             vars = cell(nw, nv);
             
+            wellmap = zeros(nw, nv);
             if nv > 0
+                all_ix = (1:nv)';
                 for i = 1:nw
                     [v, n] = model.WellModels{i}.getExtraPrimaryVariables(wellSol(i), model.ReservoirModel);
 
                     for j = 1:numel(v)
                         % Map into array of added primary variables
                         ix = strcmpi(names, n{j});
+                        wellmap(i, j) = all_ix(ix);
                         vars{i, ix} = v{j};
                     end
                     
                 end
             end
-            
-            
-            wellmap = cell(1, nv);
+
             variables = cell(1, nv);
             for j = 1:nv
                 variables{j} = vertcat(vars{:, j});
@@ -116,7 +116,7 @@ classdef FacilityModel < PhysicalModel
             model.ReservoirModel = resModel;
         end
         
-        function [srcMass, srcVol, eqs, ctrleq, enames, etypes, wellSol] = getWellContributions(model, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, iteration)
+        function [srcMass, srcVol, eqs, ctrleq, enames, etypes, wellSol] = getWellContributions(model, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
             % Get the source terms due to the wells, control and well
             % equations and updated well sol. Main gateway for adding wells
             % to a set of equations.
@@ -150,14 +150,17 @@ classdef FacilityModel < PhysicalModel
                 rhow = getCellSubset(rho, wc);
                 compw = getComponentCellSubset(comp, wc);
                 varw = getVariableSubsetWell(wellvars, maps, i);
+                
+                % Renumber to the ordering of variables for this well
+                renum = wellMap(i, wellMap(i, :) > 0);
+                varw = varw(renum);
+                
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
-                if iteration == 1
-                    wellSol(i) = wm.updateConnectionPressureDrop(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw);
-                end
+                wellSol(i) = wm.updateConnectionPressureDrop(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
                 % Update limits
-                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw);
+                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
                 if ~ok
                     bhp(i) = bh;
                     for phNo = 1:numel(qw)
@@ -166,7 +169,7 @@ classdef FacilityModel < PhysicalModel
                 end
                % Set up well equations and source terms
                [allEqs{i}, allCtrl{i}, allMass{i}, allVol{i}, wellSol(i)] =...
-                   wm.computeWellEquations(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw);
+                   wm.computeWellEquations(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
             end
             nPh = nnz(model.ReservoirModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
@@ -222,6 +225,8 @@ classdef FacilityModel < PhysicalModel
                 for j = 1:numel(wellSol)
                     subs = isVarWell == j;
                     if any(subs)
+                        % Put this into WellModel so that we can have
+                        % limits on properties
                         wellSol(j) = model.WellModels{j}.incrementProp(wellSol(j), wf, dv(subs));
                     end
                 end
@@ -266,7 +271,7 @@ classdef FacilityModel < PhysicalModel
             components = resmodel.getDissolutionMatrix(rs, rv);
             [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
                 model.getWellContributions(wellSol, qWell, bhp, wellVars, ...
-                        wellMap, p, mob, rho, components, opt.iteration);
+                        wellMap, p, mob, rho, components, dt, opt.iteration);
             
             eqs = {weqs{:}, ctrleq};
             names = {wnames{:}, 'closureWells'};

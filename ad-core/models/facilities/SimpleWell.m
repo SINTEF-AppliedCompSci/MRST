@@ -50,7 +50,7 @@ classdef SimpleWell < PhysicalModel
             [vars{:}] = well.getProps(wellSol, names{:});
         end
         
-        function [weqs, ctrlEq, qMass, qVol, wellSol] = computeWellEquations(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw)
+        function [weqs, ctrlEq, qMass, qVol, wellSol] = computeWellEquations(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw, dt, iteration)
             [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw);
             ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
             
@@ -71,7 +71,10 @@ classdef SimpleWell < PhysicalModel
             types = types(act);
         end
         
-        function wellSol = updateConnectionPressureDrop(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp)
+        function wellSol = updateConnectionPressureDrop(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
+            if iteration ~= 1
+                return
+            end
             toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
             rho     = cell2mat(toDb(rho));
             
@@ -131,7 +134,7 @@ classdef SimpleWell < PhysicalModel
             wellSol.cdp = cdp;
         end
         
-        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp)
+        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
             if ~well.allowControlSwitching
                 % We cannot change controls, so we return
                 return

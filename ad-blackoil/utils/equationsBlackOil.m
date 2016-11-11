@@ -250,7 +250,7 @@ if ~isempty(W)
         components = model.getDissolutionMatrix(rs, rv);
         rho = {bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS};
         
-        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, opt.iteration);
+        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
         rhoS = [f.rhoWS, f.rhoOS, f.rhoGS];
         wc = wm.getWellCells();
         for i = 1:3
