@@ -92,8 +92,8 @@ W = drivingForces.W;
 [p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 % Properties at previous timestep
-[p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
-    'pressure', 'water', 'gas', 'rs', 'rv');
+[p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
+    'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
 if ~isempty(W)
     model.wellmodel = model.wellmodel.setReservoirModel(model);
@@ -250,7 +250,8 @@ if ~isempty(W)
         components = model.getDissolutionMatrix(rs, rv);
         rho = {bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS};
         
-        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = wm.getWellContributions(wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
+        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
+            wm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
         rhoS = [f.rhoWS, f.rhoOS, f.rhoGS];
         wc = wm.getWellCells();
         for i = 1:3
@@ -263,7 +264,7 @@ if ~isempty(W)
         names{7} = 'closureWells';
         types{7} = 'well';
     else
-        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
+        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

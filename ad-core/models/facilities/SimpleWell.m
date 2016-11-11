@@ -50,7 +50,7 @@ classdef SimpleWell < PhysicalModel
             [vars{:}] = well.getProps(wellSol, names{:});
         end
         
-        function [weqs, ctrlEq, qMass, qVol, wellSol] = computeWellEquations(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw, dt, iteration)
+        function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw, dt, iteration)
             [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw);
             ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
             
@@ -61,6 +61,8 @@ classdef SimpleWell < PhysicalModel
             wellSol.cqs     = bsxfun(@rdivide, cq_sDb, resmodel.getSurfaceDensities);
             wellSol.cstatus = cstatus;
             wellSol.status  = status;
+            extra = {};
+            extraNames = {};
         end
         
         function [names, types] = getWellEquationNames(well, resmodel)
@@ -71,7 +73,7 @@ classdef SimpleWell < PhysicalModel
             types = types(act);
         end
         
-        function wellSol = updateConnectionPressureDrop(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
+        function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
             if iteration ~= 1
                 return
             end
@@ -134,7 +136,7 @@ classdef SimpleWell < PhysicalModel
             wellSol.cdp = cdp;
         end
         
-        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
+        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
             if ~well.allowControlSwitching
                 % We cannot change controls, so we return
                 return

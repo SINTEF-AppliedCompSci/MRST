@@ -116,7 +116,7 @@ classdef FacilityModel < PhysicalModel
             model.ReservoirModel = resModel;
         end
         
-        function [srcMass, srcVol, eqs, ctrleq, enames, etypes, wellSol] = getWellContributions(model, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
+        function [srcMass, srcVol, eqs, ctrleq, enames, etypes, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
             % Get the source terms due to the wells, control and well
             % equations and updated well sol. Main gateway for adding wells
             % to a set of equations.
@@ -127,7 +127,9 @@ classdef FacilityModel < PhysicalModel
             
             nw = model.getNumberOfWells();
             
-            allEqs = cell(nw, 1);
+            allBaseEqs = cell(nw, 1);
+            allExtraEqs = cell(nw, 1);
+            allExtraNames = cell(nw, 1);
             allCtrl = cell(nw, 1);
             
             allVol = cell(nw, 1);
@@ -158,9 +160,9 @@ classdef FacilityModel < PhysicalModel
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
-                wellSol(i) = wm.updateConnectionPressureDrop(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
                 % Update limits
-                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
                 if ~ok
                     bhp(i) = bh;
                     for phNo = 1:numel(qw)
@@ -168,16 +170,21 @@ classdef FacilityModel < PhysicalModel
                     end
                 end
                % Set up well equations and source terms
-               [allEqs{i}, allCtrl{i}, allMass{i}, allVol{i}, wellSol(i)] =...
-                   wm.computeWellEquations(wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+               [allBaseEqs{i}, allCtrl{i}, allExtraEqs{i}, allExtraNames{i}, allMass{i}, allVol{i}, wellSol(i)] =...
+                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
             end
             nPh = nnz(model.ReservoirModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
             for phNo = 1:nPh
                 srcMass{phNo} = combineCellData(allMass, phNo);
                 srcVol{phNo} = combineCellData(allVol, phNo);
-                eqs{phNo} = combineCellData(allEqs, phNo);
+                eqs{phNo} = combineCellData(allBaseEqs, phNo);
             end
+            % 
+            ee = vertcat(allExtraEqs{:});
+            nn = vertcat(allExtraNames{:});
+            eqs = {eqs{:}, ee{:}};
+            enames = {enames{:}, nn};
             ctrleq = vertcat(allCtrl{:});
         end
         
