@@ -5,8 +5,11 @@ classdef FacilityModel < PhysicalModel
     end
     
     properties (Access = protected)
+        % Canonical list of all extra primary variables added by the wells
         addedPrimaryVarNames = {};
+        % Canonical list of additional equations
         addedEquationNames = {};
+        % Canonical list of the types of the added equations
         addedEquationTypes = {};
     end
     methods
@@ -34,17 +37,22 @@ classdef FacilityModel < PhysicalModel
                     else
                         wm = wellmodels{i};
                     end
+                    % Get the added primary variables for this well, plus
+                    % the equations and equation types it adds
                     pvars{i} = wm.getExtraPrimaryVariableNames(model.ReservoirModel);
                     [eqnames{i}, eqtypes{i}] = wm.getExtraEquationNames(model.ReservoirModel);
                     model.WellModels{i} = wm;
                 end
-                model.addedPrimaryVarNames = unique([pvars{:}]);
-                [model.addedEquationNames, keepix] = unique([eqnames{:}]);
+                % Combine the different equations and types added by the
+                % different wells into a canonical ordering.
+                model.addedPrimaryVarNames = uniqueStable([pvars{:}]);
+                [model.addedEquationNames, keepix] = uniqueStable([eqnames{:}]);
                 
                 etypes = [eqtypes{:}];
                 model.addedEquationTypes = etypes(keepix);
             else
-                assert(model.getNumberOfWells == nw)
+                assert(model.getNumberOfWells == nw, ...
+                    'Number of wells in facility model has changed during simulation')
                 for i = 1:nw
                     % Update with new wells. Typically just a quick
                     % overwrite of existing wells
@@ -74,6 +82,7 @@ classdef FacilityModel < PhysicalModel
         end
 
         function [rates, bhp, names] = getBasicPrimaryVariables(model, wellSol)
+            % Get phase rates + bhp for active phases
             actPh = model.ReservoirModel.getActivePhases();
             bhp = vertcat(wellSol.bhp);
             qWs = vertcat(wellSol.qWs);
@@ -113,7 +122,6 @@ classdef FacilityModel < PhysicalModel
             variables = cell(1, nv);
             for j = 1:nv
                 variables{j} = vertcat(vars{:, j});
-%                 wellmap{j} = rldecode((1:nw)', cellfun(@numel, vars(:, j)));
             end
         end
         
@@ -190,6 +198,9 @@ classdef FacilityModel < PhysicalModel
                    allExtraEqs{i, ix} = extraEqs{eqNo};
                end
             end
+            % We have assembled all equations for each well. Combine the
+            % equations from the different wells into one (array) of each
+            % type.
             nPh = nnz(model.ReservoirModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
             for phNo = 1:nPh
@@ -197,24 +208,20 @@ classdef FacilityModel < PhysicalModel
                 srcVol{phNo} = combineCellData(allVol, phNo);
                 eqs{phNo} = combineCellData(allBaseEqs, phNo);
             end
-            % 
+            % If we have extra equations, add them in 
             extraEqs = cell(1, n_extra);
             for i = 1:n_extra
                 ok = ~cellfun(@isempty, allExtraEqs(:, i));
                 extraEqs{i} = vertcat(allExtraEqs{ok, i});
             end
+            % Equations are the base, common variables as well as any extra
+            % equations added due to complex wells.
             names = horzcat(basenames, enames);
             types = horzcat(basetypes, etypes);
             
             eqs = {eqs{:}, extraEqs{:}};
-%             ee = vertcat(allExtraEqs{:});
-%             nn = vertcat(allExtraNames{:});
-%             eqs = {eqs{:}, ee{:}};
-%             enames = {enames{:}, nn};
             ctrleq = vertcat(allCtrl{:});
-            
         end
-        
 
         function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
             % Figure out if wells are shut, or changed ontrols
@@ -228,15 +235,12 @@ classdef FacilityModel < PhysicalModel
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
         end
-        
-        
+
         % Implementation details for stand-alone model
         function [wellSol, restVars] = updateWellSol(model, wellSol, problem, dx, drivingForces, restVars) %#ok
             if nargin < 6
                 restVars = problem.primaryVariables;
             end
-            nw = model.getNumberOfWells();
-            
             % Update the wellSol struct
             if numel(wellSol) == 0
                 % Nothing to be done if there are no wells
@@ -279,6 +283,7 @@ classdef FacilityModel < PhysicalModel
             opt = struct('iteration', nan, 'resOnly', false);
             opt = merge_options(opt, varargin{:});
             wellSol = state.wellSol;
+            wellSol0 = state0.wellSol;
             resmodel = model.ReservoirModel;
             % Get variables from facility and wells
             [qWell, bhp, basicWellNames] = model.getBasicPrimaryVariables(wellSol);
@@ -304,7 +309,7 @@ classdef FacilityModel < PhysicalModel
             end
             components = resmodel.getDissolutionMatrix(rs, rv);
             [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
-                model.getWellContributions(wellSol, qWell, bhp, wellVars, ...
+                model.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, ...
                         wellMap, p, mob, rho, components, dt, opt.iteration);
             
             eqs = {weqs{:}, ctrleq};
@@ -333,6 +338,13 @@ classdef FacilityModel < PhysicalModel
                     end
                 end
             end
+        end
+        
+        function forces = getValidDrivingForces(model)
+            forces = getValidDrivingForces@PhysicalModel(model);
+            forces.W   = [];
+            forces.bc  = [];
+            forces.src = [];
         end
     end
 end
