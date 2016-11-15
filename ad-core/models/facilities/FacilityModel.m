@@ -6,6 +6,8 @@ classdef FacilityModel < PhysicalModel
     
     properties (Access = protected)
         addedPrimaryVarNames = {};
+        addedEquationNames = {};
+        addedEquationTypes = {};
     end
     methods
         function model = FacilityModel(reservoirModel)
@@ -19,7 +21,7 @@ classdef FacilityModel < PhysicalModel
             nw = numel(W);
             if model.getNumberOfWells == 0
                 % First time setup
-                pvars = cell(nw, 1);
+                [pvars, eqnames, eqtypes] = deal(cell(nw, 1));
                 model.WellModels = cell(nw, 1);
                 for i = 1:nw
                     % Set up models. SimpleWell for the time being
@@ -32,10 +34,15 @@ classdef FacilityModel < PhysicalModel
                     else
                         wm = wellmodels{i};
                     end
+                    pvars{i} = wm.getExtraPrimaryVariableNames(model.ReservoirModel);
+                    [eqnames{i}, eqtypes{i}] = wm.getExtraEquationNames(model.ReservoirModel);
                     model.WellModels{i} = wm;
-                    pvars{i} = model.WellModels{i}.getExtraPrimaryVariableNames(model.ReservoirModel);
                 end
                 model.addedPrimaryVarNames = unique([pvars{:}]);
+                [model.addedEquationNames, keepix] = unique([eqnames{:}]);
+                
+                etypes = [eqtypes{:}];
+                model.addedEquationTypes = etypes(keepix);
             else
                 assert(model.getNumberOfWells == nw)
                 for i = 1:nw
@@ -116,7 +123,7 @@ classdef FacilityModel < PhysicalModel
             model.ReservoirModel = resModel;
         end
         
-        function [srcMass, srcVol, eqs, ctrleq, enames, etypes, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
+        function [srcMass, srcVol, eqs, ctrleq, names, types, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
             % Get the source terms due to the wells, control and well
             % equations and updated well sol. Main gateway for adding wells
             % to a set of equations.
@@ -128,12 +135,17 @@ classdef FacilityModel < PhysicalModel
             nw = model.getNumberOfWells();
             
             allBaseEqs = cell(nw, 1);
-            allExtraEqs = cell(nw, 1);
-            allExtraNames = cell(nw, 1);
             allCtrl = cell(nw, 1);
-            
             allVol = cell(nw, 1);
             allMass = cell(nw, 1);
+            
+            enames = model.addedEquationNames;
+            etypes = model.addedEquationTypes;
+            n_extra = numel(enames);
+            assert(numel(etypes) == n_extra);
+            
+            allExtraEqs = cell(nw, n_extra);
+
             
             addedVars = model.addedPrimaryVarNames;
             maps = cell(1, numel(addedVars));
@@ -141,10 +153,10 @@ classdef FacilityModel < PhysicalModel
                 maps{varNo} = model.getWellVariableMap(addedVars{varNo});
             end
             
+            [basenames, basetypes] = model.WellModels{1}.getWellEquationNames(model.ReservoirModel);
             for i = 1:nw
                 wm = model.WellModels{i};
-                [enames, etypes] = wm.getWellEquationNames(model.ReservoirModel);
-                
+
                 W = wm.W;
                 wc = W.cells;
                 pw = p(wc);
@@ -170,8 +182,13 @@ classdef FacilityModel < PhysicalModel
                     end
                 end
                % Set up well equations and source terms
-               [allBaseEqs{i}, allCtrl{i}, allExtraEqs{i}, allExtraNames{i}, allMass{i}, allVol{i}, wellSol(i)] =...
+               [allBaseEqs{i}, allCtrl{i}, extraEqs, extraNames, allMass{i}, allVol{i}, wellSol(i)] =...
                    wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+               for eqNo = 1:numel(extraEqs)
+                   % Map into global list of equations
+                   ix = strcmpi(enames, extraNames{eqNo});
+                   allExtraEqs{i, ix} = extraEqs{eqNo};
+               end
             end
             nPh = nnz(model.ReservoirModel.getActivePhases);
             [srcMass, srcVol, eqs] = deal(cell(1, nPh));
@@ -181,11 +198,21 @@ classdef FacilityModel < PhysicalModel
                 eqs{phNo} = combineCellData(allBaseEqs, phNo);
             end
             % 
-            ee = vertcat(allExtraEqs{:});
-            nn = vertcat(allExtraNames{:});
-            eqs = {eqs{:}, ee{:}};
-            enames = {enames{:}, nn};
+            extraEqs = cell(1, n_extra);
+            for i = 1:n_extra
+                ok = ~cellfun(@isempty, allExtraEqs(:, i));
+                extraEqs{i} = vertcat(allExtraEqs{ok, i});
+            end
+            names = horzcat(basenames, enames);
+            types = horzcat(basetypes, etypes);
+            
+            eqs = {eqs{:}, extraEqs{:}};
+%             ee = vertcat(allExtraEqs{:});
+%             nn = vertcat(allExtraNames{:});
+%             eqs = {eqs{:}, ee{:}};
+%             enames = {enames{:}, nn};
             ctrleq = vertcat(allCtrl{:});
+            
         end
         
 

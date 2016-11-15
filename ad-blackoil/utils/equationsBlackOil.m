@@ -257,12 +257,13 @@ if ~isempty(W)
         for i = 1:3
             eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
         end
-        eqs(4:6) = weqs;
-        names(4:6) = wnames;
-        types(4:6) = wtypes;
-        eqs{7} = ctrleq;
-        names{7} = 'closureWells';
-        types{7} = 'well';
+        offset = numel(weqs);
+        eqs(end+1:end+offset) = weqs;
+        names(end+1:end+offset) = wnames;
+        types(end+1:end+offset) = wtypes;
+        eqs{end+1} = ctrleq;
+        names{end+1} = 'closureWells';
+        types{end+1} = 'well';
     else
         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
     end

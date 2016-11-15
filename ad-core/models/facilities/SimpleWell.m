@@ -44,6 +44,10 @@ classdef SimpleWell < PhysicalModel
             names = {};
         end
         
+        function [names, types] = getExtraEquationNames(well, resmodel)
+            [names, types] = deal({});
+        end
+        
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
             names = well.getExtraPrimaryVariableNames(resmodel);
             vars = cell(size(names));
