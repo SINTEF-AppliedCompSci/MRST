@@ -244,8 +244,9 @@ methods
                           all(conv_wells) && ...
                           all(values_all(rest) < tol);
                       
-            values = [v_cells, v_wells];
-            names = horzcat(namesWOG, namesWell);
+            values = [v_cells, v_wells, values_all(rest)];
+            restNames = problem.equationNames(rest);
+            names = horzcat(namesWOG, namesWell, restNames);
         else
             % Use strict tolerances on the residual without any 
             % fingerspitzengefuhlen by calling the parent class
