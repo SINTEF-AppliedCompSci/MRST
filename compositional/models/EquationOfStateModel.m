@@ -936,7 +936,9 @@ classdef EquationOfStateModel < PhysicalModel
                 for i = 1:numel(Z.jac)
 
                     [n, m] = size(Z.jac{i});
-                    if n ~= m
+                    if n == 0 || m ~= numel(z);
+                        % There are either no derivatives present or the
+                        % derivatives are not of the right dimension
                         continue
                     end
                     dE2 = getJac(E2, i);
