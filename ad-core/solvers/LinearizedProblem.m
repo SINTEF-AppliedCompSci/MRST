@@ -181,6 +181,10 @@ methods
            problem.b = eqs.val;
        end
     end
+    % --------------------------------------------------------------------%
+    function [result, report] = processResultAfterSolve(problem, result, report)
+        % Do nothing
+    end
     
     % --------------------------------------------------------------------%
     function problem = clearSystem(problem)

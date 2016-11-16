@@ -110,6 +110,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            
            timer = tic();
            [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
+           [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            if solver.replaceNaN
                result(isnan(result)) = solver.replacementNaN;
