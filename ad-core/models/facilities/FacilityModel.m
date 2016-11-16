@@ -1,10 +1,12 @@
 classdef FacilityModel < PhysicalModel
     properties
         WellModels
-        ReservoirModel
+        
+        toleranceWellBHP;
+        toleranceWellRate;
     end
     
-    properties (Access = protected)
+    properties (SetAccess = protected)
         % Canonical list of all extra primary variables added by the wells
         addedPrimaryVarNames = {};
         % Canonical list of additional equations
@@ -12,11 +14,21 @@ classdef FacilityModel < PhysicalModel
         % Canonical list of the types of the added equations
         addedEquationTypes = {};
     end
+    
+    properties (SetAccess = immutable)
+        ReservoirModel
+    end
+
     methods
-        function model = FacilityModel(reservoirModel)
+        function model = FacilityModel(reservoirModel, varargin)
             model = model@PhysicalModel([]);
-            model.WellModels = {};
+            
+            model.toleranceWellBHP = 1*barsa;
+            model.toleranceWellRate = 1/day;
+            
+            model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
+            model.WellModels = {};
         end
         
         function model = setupWells(model, W, wellmodels)
@@ -58,8 +70,13 @@ classdef FacilityModel < PhysicalModel
                     % overwrite of existing wells
                     model.WellModels{i}.updateWell(W(i));
                 end
-                % Update wellSol as well
             end
+        end
+        
+        function W = getWellStruct(model)
+            % Compute number of wells in facility
+            W = cellfun(@(x) x.W, model.WellModels, 'UniformOutput', false);
+            W = vertcat(W{:});
         end
         
         function nwell = getNumberOfWells(model)
@@ -123,12 +140,6 @@ classdef FacilityModel < PhysicalModel
             for j = 1:nv
                 variables{j} = vertcat(vars{:, j});
             end
-        end
-        
-        function model = setReservoirModel(model, resModel)
-            % Store pointer to reservoir model (used to figure out which
-            % components and phases are present)
-            model.ReservoirModel = resModel;
         end
         
         function [srcMass, srcVol, eqs, ctrleq, names, types, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
@@ -328,14 +339,21 @@ classdef FacilityModel < PhysicalModel
         end
         
         function state = validateState(model, state)
-            if isfield(state, 'wellSol')
-                for wno = 1:numel(model.WellModels)
-                    new_ws = model.WellModels{wno}.validateWellSol(model.ReservoirModel, state.wellSol(wno));
-                    % Hack to avoid adding fields manually
-                    flds = fieldnames(new_ws);
-                    for j = 1:numel(flds)
-                        state.wellSol(wno).(flds{j}) = new_ws.(flds{j});
-                    end
+            if ~isfield(state, 'wellSol')
+                if ~isfield(state, 'wellSol') || isempty(state.wellSol),
+                   if isfield(state, 'wellSol'),
+                      state = rmfield(state, 'wellSol');
+                   end
+                   W = model.getWellStruct();
+                   state.wellSol = initWellSolAD(W, model.ReservoirModel, state);
+                end
+            end
+            for wno = 1:numel(model.WellModels)
+                new_ws = model.WellModels{wno}.validateWellSol(model.ReservoirModel, state.wellSol(wno));
+                % Hack to avoid adding fields manually
+                flds = fieldnames(new_ws);
+                for j = 1:numel(flds)
+                    state.wellSol(wno).(flds{j}) = new_ws.(flds{j});
                 end
             end
         end

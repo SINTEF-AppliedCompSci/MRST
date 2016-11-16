@@ -96,7 +96,7 @@ W = drivingForces.W;
     'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
 if ~isempty(W)
-    model.wellmodel = model.wellmodel.setReservoirModel(model);
+%     model.wellmodel = model.wellmodel.setReservoirModel(model);
     [qWell, bhp, basicWellNames] = model.wellmodel.getBasicPrimaryVariables(wellSol);
     [wellVars, wellExtraNames, wellMap] = model.wellmodel.getExtraPrimaryVariables(wellSol);
     wellVarNames = [basicWellNames, wellExtraNames];

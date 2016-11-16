@@ -187,18 +187,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wantStates = nargout > 1;
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
-    getWell = @(index) schedule.control(schedule.step.control(index)).W;
-    state = initState;
-    if ~isfield(state, 'wellSol') || isempty(state.wellSol),
-       if isfield(state, 'wellSol'),
-          state = rmfield(state, 'wellSol');
-       end
-
-       state.wellSol = initWellSolAD(getWell(1), model, state);
-    end
-
+    % Initialize wells
+    dispif(opt.Verbose, 'Preparing well state\n')
+    % Set up facility model in order to ensure that we can properly
+    % validate the initial well state
+    W = schedule.control(schedule.step.control(1)).W;
+    model.wellmodel = model.wellmodel.setupWells(W);
+    dispif(opt.Verbose, 'Wells are ready...\n')
+    
     dispif(opt.Verbose, 'Validating initial state...\n')
-    state = model.validateState(state);
+    state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ready for simulation.\n')
 
     failure = false;
@@ -212,10 +210,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
-            W = fstruct.W;
-            model.wellmodel = model.wellmodel.setupWells(W);
+            model.wellmodel = model.wellmodel.setupWells(fstruct.W);
             prevControl = currControl;
-            state0.wellSol = initWellSolAD(W, model, state);
+            state0.wellSol = initWellSolAD(fstruct.W, model, state);
         end
 
         timer = tic();
