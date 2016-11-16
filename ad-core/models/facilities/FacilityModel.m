@@ -2,8 +2,9 @@ classdef FacilityModel < PhysicalModel
     properties
         WellModels
         
-        toleranceWellBHP;
-        toleranceWellRate;
+        toleranceWellBHP
+        toleranceWellRate
+        ReservoirModel
     end
     
     properties (SetAccess = protected)
@@ -13,10 +14,6 @@ classdef FacilityModel < PhysicalModel
         addedEquationNames = {};
         % Canonical list of the types of the added equations
         addedEquationTypes = {};
-    end
-    
-    properties (SetAccess = immutable)
-        ReservoirModel
     end
 
     methods

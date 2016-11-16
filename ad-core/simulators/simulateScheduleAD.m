@@ -192,7 +192,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Set up facility model in order to ensure that we can properly
     % validate the initial well state
     W = schedule.control(schedule.step.control(1)).W;
-    model.wellmodel = model.wellmodel.setupWells(W);
+    model.FacilityModel = model.FacilityModel.setupWells(W);
     dispif(opt.Verbose, 'Wells are ready...\n')
     
     dispif(opt.Verbose, 'Validating initial state...\n')
@@ -210,7 +210,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
-            model.wellmodel = model.wellmodel.setupWells(fstruct.W);
+            model.FacilityModel = model.FacilityModel.setupWells(fstruct.W);
             prevControl = currControl;
             state0.wellSol = initWellSolAD(fstruct.W, model, state);
         end
@@ -238,7 +238,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose,
            disp_step_convergence(report.Iterations, t);
         end
-        state.wellSol = model.wellmodel.updateWellSolAfterStep(model, state.wellSol);
+        state.wellSol = model.FacilityModel.updateWellSolAfterStep(model, state.wellSol);
 
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps

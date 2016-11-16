@@ -82,17 +82,22 @@ s = model.operators;
 % Properties at current timestep
 [p, sW, wellSol] = model.getProps(state, 'pressure', 'water', 'wellsol');
 % Properties at previous timestep
-[p0, sW0] = model.getProps(state0, 'pressure', 'water');
+[p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellSol');
 
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
+if ~isempty(W)
+    [qWell, pBH, basicWellNames] = model.FacilityModel.getBasicPrimaryVariables(wellSol);
+    [wellVars, wellExtraNames, wellMap] = model.FacilityModel.getExtraPrimaryVariables(wellSol);
+    wellVarNames = [basicWellNames, wellExtraNames];
+else
+    [qWell, wellVars, wellVarNames, wellMap] = deal({});
+    pBH = [];
+end
 
 % Initialize independent variables.
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, qWs, qOs, pBH] = initVariablesADI(p, sW, qWs, qOs, pBH);
+        [p, sW, qWell{:}, pBH, wellVars{:}] = initVariablesADI(p, sW, qWell{:}, pBH, wellVars{:});
     else
         zw = zeros(size(pBH));
         [p0, sW0, zw, zw, zw] = initVariablesADI(p0, sW0, zw, zw, zw); %#ok
@@ -101,7 +106,7 @@ if ~opt.resOnly,
 end
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations) and well rates + bhp.
-primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
+primaryVars = {'pressure', 'sW', wellVarNames{:}};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
@@ -167,32 +172,26 @@ if model.outputFluxes
 end
 % Finally, add in and setup well equations
 if ~isempty(W)
-    wm = model.wellmodel;
+    wm = model.FacilityModel;
     if ~opt.reverseMode
-        wc    = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [model.fluid.rhoWS, model.fluid.rhoOS];
-        bw   = {bW(wc), bO(wc)};
-        mw   = {mobW(wc), mobO(wc)};
-        s = {sW(wc), sO(wc)};
-
-        [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-                                             'nonlinearIteration', opt.iteration);
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(3:4) = weqs;
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{5} = ctrleqs;
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
+        mob = {mobW, mobO};
+        rho = {bW.*model.fluid.rhoWS, bO.*model.fluid.rhoOS};
         
-        names(3:5) = {'waterWells', 'oilWells', 'closureWells'};
-        types(3:5) = {'perf', 'perf', 'well'};
+        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
+            wm.getWellContributions(wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, dt, opt.iteration);
+        rhoS = model.getSurfaceDensities();
+        wc = wm.getWellCells();
+        for i = 1:2
+            eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
+        end
+        offset = numel(weqs);
+        eqs(end+1:end+offset) = weqs;
+        names(end+1:end+offset) = wnames;
+        types(end+1:end+offset) = wtypes;
+        eqs{end+1} = ctrleq;
+        names{end+1} = 'closureWells';
+        types{end+1} = 'well';
+
     else
         [eqs(3:5), names(3:5), types(3:5)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end

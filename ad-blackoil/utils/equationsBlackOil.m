@@ -50,7 +50,7 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
 % RETURNS:
 %   problem - LinearizedProblemAD class instance, containing the water, oil
 %             and gas conservation equations, as well as well equations
-%             specified by the WellModel class.
+%             specified by the FacilityModel class.
 %
 %   state   - Updated state. Primarily returned to handle changing well
 %             controls from the well model.
@@ -96,9 +96,8 @@ W = drivingForces.W;
     'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
 if ~isempty(W)
-%     model.wellmodel = model.wellmodel.setReservoirModel(model);
-    [qWell, bhp, basicWellNames] = model.wellmodel.getBasicPrimaryVariables(wellSol);
-    [wellVars, wellExtraNames, wellMap] = model.wellmodel.getExtraPrimaryVariables(wellSol);
+    [qWell, bhp, basicWellNames] = model.FacilityModel.getBasicPrimaryVariables(wellSol);
+    [wellVars, wellExtraNames, wellMap] = model.FacilityModel.getExtraPrimaryVariables(wellSol);
     wellVarNames = [basicWellNames, wellExtraNames];
 else
     [qWell, wellVars, wellVarNames, wellMap] = deal({});
@@ -243,7 +242,7 @@ end
 
 % Finally, add in and setup well equations
 if ~isempty(W)
-    wm = model.wellmodel;
+    wm = model.FacilityModel;
     
     if ~opt.reverseMode
         mob = {mobW, mobO, mobG};

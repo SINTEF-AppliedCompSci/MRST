@@ -101,7 +101,7 @@ properties
     gravity
     
     % Well model used to compute fluxes etc from well controls
-    wellmodel
+    FacilityModel
 end
 
 methods
@@ -179,7 +179,7 @@ methods
         if nPh > 1
             model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
-        state = model.wellmodel.validateState(state);
+        state = model.FacilityModel.validateState(state);
     end
 
     % --------------------------------------------------------------------%
@@ -193,7 +193,7 @@ methods
 
         % Update the wells
         if isfield(state, 'wellSol')
-            [state.wellSol, restVars] = model.wellmodel.updateWellSol(state.wellSol, problem, dx, drivingForces, restVars);
+            [state.wellSol, restVars] = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, restVars);
         end
         
         % Update saturations in one go
@@ -226,7 +226,7 @@ methods
             % Use convergence model similar to commercial simulator
             [conv_cells, v_cells, isWOG, namesWOG] = CNV_MBConvergence(model, problem);
             [conv_wells, v_wells, namesWell, isWell] = ...
-                model.wellmodel.checkFacilityConvergence(problem);
+                model.FacilityModel.checkFacilityConvergence(problem);
             % Get the values for all equations, just in case there are some
             % values that are not either wells or standard 3ph conservation
             % equations
@@ -299,7 +299,7 @@ methods
         % Well variables, saturation variables and the rest. This is
         % useful because the saturation variables usually are updated
         % together, and the well variables are a special case.
-        wellvars = model.wellmodel.getPrimaryVariableNames();
+        wellvars = model.FacilityModel.getPrimaryVariableNames();
         isSat   = cellfun(@(x) any(strcmpi(model.saturationVarNames, x)), vars);
         isWells = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
 
