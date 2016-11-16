@@ -1,4 +1,4 @@
-function [G,F] = compositePebiGrid(celldim, pdims, varargin)
+function [G,Pts,F] = compositePebiGrid(celldim, pdims, varargin)
 % Construct a 2D composite Pebi grid. A cartesian background grid that is 
 % refined around faults and wells.
 %
@@ -72,7 +72,10 @@ function [G,F] = compositePebiGrid(celldim, pdims, varargin)
 %   G                - Valid grid definition.  
 %                        Contains extra fields:
 %                          - G.cells.tag is TRUE for all well cells.
-%                          - G.faces.tag is TRUE for all fault edges. 
+%                          - G.faces.tag is TRUE for all fault edges.
+%   Pts              - Array [G.cells.num x 3] of the Voronoi sites.
+%   F                - Struct with elements as returned from 
+%                      createFaultGridPoints
 %
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};

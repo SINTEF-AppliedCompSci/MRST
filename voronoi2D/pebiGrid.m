@@ -1,4 +1,4 @@
-function G = pebiGrid(resGridSize, pdims, varargin)
+function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 % Construct a 2D Pebi grid.
 %
 % SYNOPSIS:
@@ -84,12 +84,15 @@ function G = pebiGrid(resGridSize, pdims, varargin)
 %   G                - Valid grid definition.  
 %                        The fields
 %                          - G.cells.tag is TRUE for all well cells.
-%                          - G.faces.tag is TRUE for all fault edges. 
+%                          - G.faces.tag is TRUE for all fault edges.
+%   Pts              - Array [G.cells.num x 3] of the Voronoi sites.
+%   F                - Struct with elements as returned from 
+%                      createFaultGridPoints
 %
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
 %   wl = {[0.2,0.8;0.8,0.2]};
-%   G  = compositePebiGrid(1/10,[1,1],'wellLines',wl,'faultLines',fl)
+%   G  = pebiGrid(1/10,[1,1],'wellLines',wl,'faultLines',fl)
 %   cla, plotGrid(G)
 %
 % SEE ALSO

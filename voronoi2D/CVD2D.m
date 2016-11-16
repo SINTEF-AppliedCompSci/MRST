@@ -1,5 +1,5 @@
-function [G,optPts,f,g] = createCVD(pts,bnd,varargin)
-% Construct a 2D centroidal Voronoi Diagram)CVD). The CVD is found by
+function [G,optPts,f,g] = CVD2D(pts,bnd,varargin)
+% Construct a 2D centroidal Voronoi Diagram (CVD). The CVD is found by
 % minimizing the CVD energy function using the lbfgs algorithm.
 %
 % SYNOPSIS:
@@ -32,7 +32,7 @@ function [G,optPts,f,g] = createCVD(pts,bnd,varargin)
 %              Default value 200. Maximum number of iteration in the 
 %              lbfgs algorithm.
 %   minStep  - OPTIONAL
-%              DefaultValue 10*eps. if step length is smaler than minStep,
+%              DefaultValue 10*eps. If step length is smaler than minStep,
 %              the lbfgs returns
 % RETURNS:
 %   G        - Valid MRST grid definition.
@@ -45,7 +45,7 @@ function [G,optPts,f,g] = createCVD(pts,bnd,varargin)
 % EXAMPLE:
 %   p = rand(30,2);
 %   bnd = [0,0;0,1;1,1;1,0];
-%   G = createCVD(p,bnd);
+%   G = CVD2D(p,bnd);
 %   plotGrid(G);
 %   axis equal tight
 %
