@@ -85,10 +85,6 @@ properties
 
     % MB tolerance values (2-norm-like)
     toleranceMB;
-    % Well tolerance if CNV is being used
-    toleranceWellBHP;
-    % Well tolerance if CNV is being used
-    toleranceWellRate;
 
     % Input data used to instantiate the model
     inputdata
@@ -145,8 +141,6 @@ methods
         model.useCNVConvergence = false;
         model.toleranceCNV = 1e-3;
         model.toleranceMB = 1e-7;
-        model.toleranceWellBHP = 1*barsa;
-        model.toleranceWellRate = 1/day;
 
         model.saturationVarNames = {'sw', 'so', 'sg'};
         model.componentVarNames  = {};
@@ -231,8 +225,8 @@ methods
         if model.useCNVConvergence
             % Use convergence model similar to commercial simulator
             [conv_cells, v_cells, isWOG, namesWOG] = CNV_MBConvergence(model, problem);
-            [conv_wells, v_wells, isWell, namesWell] = checkWellConvergence(model, problem);
-
+            [conv_wells, v_wells, namesWell, isWell] = ...
+                model.wellmodel.checkFacilityConvergence(problem);
             % Get the values for all equations, just in case there are some
             % values that are not either wells or standard 3ph conservation
             % equations

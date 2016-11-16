@@ -364,6 +364,17 @@ classdef FacilityModel < PhysicalModel
             forces.bc  = [];
             forces.src = [];
         end
+        
+        function [convergence, values, names, evaluated] = checkFacilityConvergence(model, problem)
+            % For checking on the subset of variables specific to the
+            % facility
+            [convergence, values, evaluated, names] = checkWellConvergence(model, problem);
+        end
+        
+        function [convergence, values, names] = checkConvergence(model, problem, varargin)
+            % Used when facility is run as a stand-alone model
+            [convergence, values, names] = model.checkFacilityConvergence(problem);
+        end
     end
 end
 
