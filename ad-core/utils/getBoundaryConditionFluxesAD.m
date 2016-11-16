@@ -147,7 +147,7 @@ for i = 1:nPh
         % determined by the sat field
         subs = isP & injP;
         q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
-        q_s(subs)  = bBC(subs).*q_res;
+        q_s(subs)  = rhoBC(subs).*q_res./rhoS(i);
         q_r(subs) = q_res;
         clear subs
     end
@@ -167,7 +167,7 @@ for i = 1:nPh
         f = mobBC(subs)./totMob(subs);
         tmp = f.*bc.value(subs);
         q_s(subs) = tmp;
-        q_r(subs) = tmp./bBC(subs);
+        q_r(subs) = tmp.*rhoS(i)./rhoBC(subs);
     end
     qSurf{i} = q_s;
     qRes{i} = q_r;
