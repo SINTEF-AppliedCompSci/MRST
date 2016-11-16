@@ -229,6 +229,9 @@ classdef FacilityModel < PhysicalModel
             
             eqs = {eqs{:}, extraEqs{:}};
             ctrleq = vertcat(allCtrl{:});
+            
+            [wc, srcMass, srcVol] = model.handleRepeatedPerforatedcells(wc, srcMass, srcVol);
+            
         end
 
         function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
@@ -371,6 +374,27 @@ classdef FacilityModel < PhysicalModel
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             % Used when facility is run as a stand-alone model
             [convergence, values, names] = model.checkFacilityConvergence(problem);
+        end
+    end
+    
+    methods (Static)
+        function [wc, varargout] = handleRepeatedPerforatedcells(wc, varargin)
+            % This function treats repeated indices in wc (typically due to
+            % multiple wells intersecting a single cell). The output will
+            % have no repeats in wc, and add together any terms in cqs.
+            varargout = varargin;
+            [c, ic, ic] = uniqueStable(wc);                     %#ok<ASGLU>
+            if numel(c) ~= numel(wc)
+                A = sparse(ic, (1:numel(wc))', 1, numel(c), numel(wc));
+                wc = c;
+                for srcNo = 1:numel(varargin)
+                    cqs = varargin{srcNo};
+                    for k=1:numel(cqs)
+                        cqs{k} = A*cqs{k};
+                    end
+                    varargout{srcNo} = cqs;
+                end
+            end
         end
     end
 end

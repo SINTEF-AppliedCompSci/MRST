@@ -314,6 +314,7 @@ methods
         % assumes that the first nPh equations are the conservation
         % equations, according to the canonical MRST W-O-G ordering,
         fm = model.FacilityModel;
+        nPh = nnz(model.getActivePhases);
         assert(numel(eqs) == nPh);
         [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
             fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
