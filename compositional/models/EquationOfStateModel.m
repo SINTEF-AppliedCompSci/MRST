@@ -921,32 +921,54 @@ classdef EquationOfStateModel < PhysicalModel
             frac = cellfun(@(x) x./totMass, mass, 'UniformOutput', false);
         end
         
-        function Z = setZDerivatives(model, Z, A, B)
+        function Z = setZDerivatives(model, Z, A, B, cellJacMap)
             % Z comes from the solution of a cubic equation of state, so
             % the derivatives are not automatically computed. By
             % differentiating the cubic EOS manually and solving for dZ/du
             % where u is some primary variable, we can still obtain
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
+            if nargin < 5
+                cellJacMap = cell(numel(Z.jac), 1);
+            end
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
             e2 = double(E2);
             e1 = double(E1);
             z = double(Z);
             if isa(Z, 'ADI')
                 for i = 1:numel(Z.jac)
+                    if isempty(cellJacMap{i})
+                        [n, m] = size(Z.jac{i});
+                        if n == 0 || m ~= numel(z);
+                            % There are either no derivatives present or the
+                            % derivatives are not of the right dimension
+                            continue
+                        end
+                        dE2 = getJac(E2, i);
+                        dE1 = getJac(E1, i);
+                        dE0 = getJac(E0, i);
 
-                    [n, m] = size(Z.jac{i});
-                    if n == 0 || m ~= numel(z);
-                        % There are either no derivatives present or the
-                        % derivatives are not of the right dimension
-                        continue
+                        d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
+                        Z.jac{i} = sparse((1:n)', (1:m)', d, n, m);
+                    else
+                        map = cellJacMap{i};
+                        zi = z(map);
+                        e2i = e2(map);
+                        e1i = e1(map);
+                        
+                        [n, m] = size(Z.jac{i});
+                        if n == 0 || m ~= numel(zi);
+                            % There are either no derivatives present or the
+                            % derivatives are not of the right dimension
+                            continue
+                        end
+                        dE2 = getJacSub(E2, i, map);
+                        dE1 = getJacSub(E1, i, map);
+                        dE0 = getJacSub(E0, i, map);
+
+                        d = -(dE2.*zi.^2 + dE1.*zi + dE0)./(3*zi.^2 + 2*zi.*e2i + e1i);
+                        Z.jac{i} = sparse(map, (1:m)', d, n, m);
                     end
-                    dE2 = getJac(E2, i);
-                    dE1 = getJac(E1, i);
-                    dE0 = getJac(E0, i);
-
-                    d = -(dE2.*z.^2 + dE1.*z + dE0)./(3*z.^2 + 2*z.*e2 + e1);
-                    Z.jac{i} = sparse((1:n)', (1:m)', d, n, m);
                 end
             elseif isa(Z, 'FastAD')
                 for i = 1:size(Z.jac, 2)
@@ -1001,6 +1023,22 @@ function dx = getJac(x, ix)
         dx = diag(x.jac{ix});
     elseif isa(x, 'FastAD')
         dx = x.jac(:, ix);
+    else
+        dx = 0;
+    end
+end
+
+function dx = getJacSub(x, ix, map)
+    if isa(x, 'ADI')
+        [ii, jj, vv] = find(x.jac{ix});
+        if isempty(vv)
+            dx = 0;
+        else
+            keep = ii == map(jj);
+            dx = zeros(size(map));
+            dx(jj(keep)) = vv(keep);
+%             dx = vv;
+        end
     else
         dx = 0;
     end
