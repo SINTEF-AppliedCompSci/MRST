@@ -229,12 +229,14 @@ names = {'water', 'oil', 'gas'};
 types = {'cell', 'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
+rho = {rhoW, rhoO, rhoG};
+mob = {mobW, mobO, mobG};
+sat = {sW, sO, sG};
 [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
                                        {pW, p, pG},...
-                                       {rhoW,     rhoO, rhoG},...
-                                       {mobW,     mobO, mobG}, ...
-                                       {bW, bO, bG},  ...
-                                       {sW, sO, sG}, ...
+                                       rho,...
+                                       mob, ...
+                                       sat, ...
                                        drivingForces);
 if model.outputFluxes
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, qRes{3}, drivingForces);
@@ -242,27 +244,9 @@ end
 
 % Finally, add in and setup well equations
 if ~isempty(W)
-    wm = model.FacilityModel;
-    
     if ~opt.reverseMode
-        mob = {mobW, mobO, mobG};
-        components = model.getDissolutionMatrix(rs, rv);
-        rho = {bW.*f.rhoWS, bO.*f.rhoOS, bG.*f.rhoGS};
-        
-        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
-            wm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
-        rhoS = [f.rhoWS, f.rhoOS, f.rhoGS];
-        wc = wm.getWellCells();
-        for i = 1:3
-            eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
-        end
-        offset = numel(weqs);
-        eqs(end+1:end+offset) = weqs;
-        names(end+1:end+offset) = wnames;
-        types(end+1:end+offset) = wtypes;
-        eqs{end+1} = ctrleq;
-        names{end+1} = 'closureWells';
-        types{end+1} = 'well';
+        components = model.getDissolutionMatrix(rs, rv);        
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt);
     else
         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
     end

@@ -160,12 +160,15 @@ names = {'water', 'oil'};
 types = {'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
+
 [eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
                                        {pW, p},...
-                                       {rhoW,     rhoO},...
-                                       {mobW,     mobO}, ...
-                                       {bW, bO},  ...
-                                       {sW, sO}, ...
+                                       rho, ...
+                                       mob, ...
+                                       sat, ...
                                        drivingForces);
 if model.outputFluxes
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
@@ -173,25 +176,8 @@ end
 % Finally, add in and setup well equations
 if ~isempty(W)
     wm = model.FacilityModel;
-    if ~opt.reverseMode
-        mob = {mobW, mobO};
-        rho = {bW.*model.fluid.rhoWS, bO.*model.fluid.rhoOS};
-        
-        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
-            wm.getWellContributions(wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, dt, opt.iteration);
-        rhoS = model.getSurfaceDensities();
-        wc = wm.getWellCells();
-        for i = 1:2
-            eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
-        end
-        offset = numel(weqs);
-        eqs(end+1:end+offset) = weqs;
-        names(end+1:end+offset) = wnames;
-        types(end+1:end+offset) = wtypes;
-        eqs{end+1} = ctrleq;
-        names{end+1} = 'closureWells';
-        types{end+1} = 'well';
-
+    if ~opt.reverseMode        
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, dt, opt);
     else
         [eqs(3:5), names(3:5), types(3:5)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end

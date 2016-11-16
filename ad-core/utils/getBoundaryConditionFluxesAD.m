@@ -1,4 +1,4 @@
-function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, s, bc)
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
@@ -107,13 +107,13 @@ for i = 1:nPh
     totMob = totMob + cellToBCMap*mob{i};
 end
 
+rhoS = model.getSurfaceDensities();
 for i = 1:nPh
     
     [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), mob{i}));
     
     pBC   = cellToBCMap*pressure{i};
     rhoBC = cellToBCMap*rho{i};
-    bBC   = cellToBCMap*b{i};
     mobBC = cellToBCMap*mob{i};
     sBC   = cellToBCMap*s{i};
     
@@ -137,7 +137,7 @@ for i = 1:nPh
         % Write out the flux equation over the interface
         subs = isP & ~injP;
         q_res = mobBC(subs).*T(subs).*dP(~injDir);
-        q_s(subs) = bBC(subs).*q_res;
+        q_s(subs) = rhoBC(subs).*q_res./rhoS(i);
         q_r(subs) = q_res;
         clear subs
     end
