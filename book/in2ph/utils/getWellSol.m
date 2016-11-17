@@ -9,6 +9,7 @@ for i=1:numel(W)
     fc   = lamc(:,1)./sum(lamc,2);
     lamw = fluid.relperm(W(i).compi)./mu;
     fw   = lamw(:,1)./sum(lamw,2);
+    wellSol(i).name = W(i).name;
     wellSol(i).bhp  = x.wellSol(i).pressure;
     wellSol(i).wcut = iout.*fc + iin.*fw;
     wellSol(i).Sw   = iout.*x.s(W(i).cells,1) + iin.*W(i).compi(1);
