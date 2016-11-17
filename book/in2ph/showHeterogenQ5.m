@@ -1,9 +1,11 @@
 %% Heterogeneous quarter five-spot
 % In this example, we will study a heterogeneous quarter five-spot with
-% petrophysical data sampled from the topmost layer of the SPE 10 data set.
+% petrophysical data generated from a random Gaussian field.
 mrstModule add incomp
 
 %% Set up model and parameters
+% Use a fixed seed for the random generator so that results are
+% reproducible from one run to the next.
 load rndseed.mat; rng(S);
 T        = 1.5;
 dims     = [60 60];
