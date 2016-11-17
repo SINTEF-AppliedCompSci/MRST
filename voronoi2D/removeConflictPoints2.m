@@ -1,5 +1,5 @@
 function [P1, removed] = removeConflictPoints2(P1,P2,dist)
-% Remove any points from a set that is to close to an other set.
+% Remove any points from a set that is too close to an other set.
 %
 % SYNOPSIS:
 %   [Pts, removed] = removeConflicPoints2(P1,P2,dist)

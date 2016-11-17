@@ -1,30 +1,43 @@
 % Unstructured PEBI-grids for Reservoir (upr) module
 %
-% Routines for creating unstructured PEBI-grids adapting to faults and wells
-% Examples in /examples
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
+%
+% Routines for creating unstructured PEBI-grids adapting to faults and 
+% wells
 % 
-% AUTHOR: runarlb@stud.ntnu.no
+% AUTHOR: Runar Lie Berge                              (runar.berge@uib.no)
 %
 %
 % ./
+%  COPYRIGHT.txt         - Copyright file
+%  license.txt           - GNU License file
 %  startup.m             - Creates all necessary mappings to run UPR.
 %  README                - General readme file
-%  COPYRIGHT.txt         - Copyright file
+%  Unstructured 
+%  [PEBI-grids Adapting 
+%  to Geological Features
+%  in Subsurface 
+%  Reservoir.pdf]         - Master thesis containing detailed description
+%                           of UPR
 %
 % /voronoi2D
-%   README              - README for files in voronoi2D folder
+%   README2d            - README for files in voronoi2D folder
 %   clippedPebi2D       - 2D PEBI-grid clipped against polygon boundary
-%   createCVD           - Centroidal Voronoi Diagram
-%   faultSufCond        - Enforce suficient fault condition
 %   compositePebiGrid   - Creates a conforming PEBI-grid embedded in a
 %                         Cartesian background grid.
+%   createFaultGridPoints - Creates a set of Voronoi sites equidistant on
+%                           both sides of a set of faults
+%   createWellGridPoints - Creates a set of Voronoi sites tracing a set of
+%                          wells
+%   CVD2D               - Create a Centroidal Voronoi Diagram
+%   faultSufCond        - Enforce suficient fault condition
 %   pebiGrid            - Creates a fully unstructured PEBI-grid by using
 %                         DistMesh
-%   createFaultGridPoints - Creates a set of Voronoi sites equidistant on
-%                           both sides of a fault
-%   createWellGridPoints - Creates a set of Voronoi sites tracing a well
-%   plotLinePath         - Plots a fault or a well path
-%   README2d             - Readme file for voronoi2D
+%   plotLinePath        - Plots a fault or a well path
 %   removeConflictPoints2 - Remove sites that are too close to each other
 %   splitAtInt          - Split a fault or well paths at the intersections.
 %   /examples
@@ -37,9 +50,30 @@
 %     showOPtionValuesPebiGrid          - Show the different parameters you
 %                                         can pass to pebiGrid
 %     statisticalFractures              - Reservoir with many fractures
-%     threeIntersectingFaults           - Thre faults that intersects
+%     threeIntersectingFaults           - Three faults that intersects
 %     wellBranching                     - Intersecting wells
 %
+% /voronoi3D
+%   README3D            - README for files in the voronoi3D directory
+%   ballInt             - Calculate the intersection of spheres
+%   calcNormals         - Find the normals of each face in a triangulation
+%   clipGrid            - Find the intersection of a Voronoi diagram and a
+%                         surface in 3D
+%   compositePebiGrid3D - Construct a conforming PEBI-grid embedded in a
+%                         cartesian background grid
+%   createFaultGridPoints3D - Creates a set of points equidistant on both
+%                             sides of a triangulation
+%   createWellGridPoints3D - Creates a set of points tracing a well path
+%   CVD3D               - create a 3D Centroidal Voronoi diagram
+%   faultSufCond3D      - enforce sufficent and necessary fault condition
+%   fixFaultIntersection - Removes fault points at the intersection of
+%                          faults
+%   isColinear          - Tests if points lie on a straight line
+%   mirroredPebi        - Creates a 3D PEBI-grid of a convext hull by
+%                         mirroring all points around the boundary faces
+%   voronoi2mrst        - Transform the output of VORONOIN() to a MRST grid
+%                         structure
+%   wellSufCond3D       - Enforces the well condition 
 %
 % /distMesh:            - Contains a modifed version of distMesh.
 % /util:                - Contains some utility functions.  

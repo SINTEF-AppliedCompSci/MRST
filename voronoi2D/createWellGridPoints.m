@@ -2,7 +2,7 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 % Places well grid points along wells.
 %
 % SYNOPSIS:
-%   [wellPts, wGs] = createWellGridPoints(F,faultGridSize)
+%   [wellPts, wGs, protPts, pGs] = createWellGridPoints(F,faultGridSize)
 %   [...] = createWellGridPoints(..., 'Name1', Value1, 'Name2', Value2,...)
 %
 % Parameters:
@@ -72,6 +72,8 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %   wellPts         Array of all generated well points.
 %   wGs             Distance between consecutive well points.
 %   protPts         Array of generated protection points.
+%   pGs             Array with the distance between wellSite(i,:) and its
+%                   protection Points
 %
 % EXAMPLE
 %   wl = {[0.2,0.2;0.8,0.8]};
@@ -82,7 +84,8 @@ function [wellPts, wGs, protPts,pGs] = createWellGridPoints(wellLines, wellGridS
 %   plot(wPts(:,1),wPts(:,2),'.r','markersize',20)
 %
 % SEE ALSO:
-%   pebiGrid, compositePebiGrid, createFaultGridPoints, splitWells, pebi.
+%   pebiGrid, compositePebiGrid, createFaultGridPoints, pebi
+%   createWellGridPoints3D.
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

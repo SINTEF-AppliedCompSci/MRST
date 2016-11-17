@@ -5,14 +5,14 @@ function G = clippedPebi2D(p, bnd)
 %   G = clippedPebi2D(p, bnd)
 %
 % PARAMETERS:
-%   p        A n X 2 array of coordinates. Each coordinate coresponds to 
+%   p      - A n X 2 array of coordinates. Each coordinate coresponds to 
 %            one Voronoi site.
-%   bnd      a k X 2 array of coordinates. Each coordinate coresponds to a
+%   bnd    - A k X 2 array of coordinates. Each coordinate coresponds to a
 %            vertex in the polygon boundary. The coordinates must be
 %            ordered clockwise or counter clockwise. 
 %
 % RETURNS:
-%   G                - Valid MRST grid definition.
+%   G      - Valid MRST grid definition.
 %
 % EXAMPLE:
 %   p = rand(30,2);
@@ -22,7 +22,7 @@ function G = clippedPebi2D(p, bnd)
 %   axis equal tight
 %
 % SEE ALSO
-%   compositePebiGrid, pebi, pebiGrid
+%   compositePebiGrid, pebi, pebiGrid, clippedPebi3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

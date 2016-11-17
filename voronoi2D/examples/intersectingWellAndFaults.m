@@ -2,9 +2,12 @@
 % This script contains an example of a single well intersected by several
 % faults. It uses the two wrapper-functions compositePebiGrid(..) and 
 % pebiGrid(..) to create a PEBI-grid conforming to the faults and wells.
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 
 %% Set well and fault paths
 % voronoi2D store well and fault paths as arrays in cells. Each row in 

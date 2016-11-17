@@ -4,7 +4,12 @@
 % Reservoir Modeling Using Adaptive Gridding with Global Scale Up. In
 % Proceedings of the SPE Reservoir Simulation Symposium, The Woodlands,
 % Texas, Jan. 2009. doi: 10.2118/118946-MS.
-%
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 
 %% load Geometry.
 % The faults was drawn in inkscape, and then we extracted the coordinates
@@ -30,9 +35,8 @@ F = createFaultGridPoints(fault, fGs,'fCut',fCut);
 plot(F.f.pts(:,1), F.f.pts(:,2),'.','markersize',15);
 
 %% Create reservoir sites
-% We create the reservoir sites by minimizing the CVD energy function. This
-% is done by calling the routine createCVD. OBS this can take som time. It
-% needs around 200 iterations.
+% We crate a set of random reservoir sites. Then we remove any outside our
+% domain.
 n = 1500;
 pInit = bsxfun(@plus,bsxfun(@times, rand(n,2),(max(bdr) - min(bdr))), min(bdr));
 keep = inpolygon(pInit(:,1),pInit(:,2),bdr(:,1), bdr(:,2));
@@ -42,11 +46,13 @@ pInit = removeConflictPoints2(pInit,F.f.pts,F.f.Gs);
 %% Create CVD.
 % We now create the CVD by minimizing the CVD energy function using the
 % L-BFGS agorithm. We do this by calling the wrapping function createCVD.
-% This takes some time - between 100 and 200 iterations, so we have saved
+% This takes some time, so we have saved
 % the output in a file: 'datasets/reservoirWithComplexFaultNetwork.mat'.
+% In this file maxIt was set to 200, but you get good results even after 10
+% iterations.
 % If you wish to run the optimization yourself, uncomment the following
 % code:
-%G = createCVD(pInit, bdr,'fixedPts', F.f.pts);
+%G = CVD2D(pInit, bdr,'fixedPts', F.f.pts,'maxIt',10);
 load('datasets/reservoirWithComplexFaultNetwork.mat')
 
 %% Plot grid

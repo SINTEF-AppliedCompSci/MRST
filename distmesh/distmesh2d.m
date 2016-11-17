@@ -57,7 +57,7 @@ function [p,t, IC]=distmesh2d(fd,fh,h0,bbox,pfix,varargin)
 %   Copyright (C) 2004-2012 Per-Olof Persson. See COPYRIGHT.TXT for details.
 
 dptol=.001; ttol=.1; Fscale=1.2; deltat=.2; geps=.001*h0; deps=sqrt(eps)*h0;
-densityctrlfreq=30; maxIt = 1000;
+densityctrlfreq=30; maxIt = 200;
 
 % 1. Create initial distribution in bounding box (equilateral triangles)
 [x,y]=meshgrid(bbox(1,1):h0:bbox(2,1),bbox(1,2):h0*sqrt(3)/2:bbox(2,2));

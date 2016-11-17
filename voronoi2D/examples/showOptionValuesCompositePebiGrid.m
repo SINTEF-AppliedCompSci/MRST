@@ -1,6 +1,11 @@
 %% Example
 % In this example we show all optional options for compositePebiGrid.
 
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 %% wellLines
 % This sets the wells in our reservoir. The wells are stored as a cell
 % array, each element corresponding to one well

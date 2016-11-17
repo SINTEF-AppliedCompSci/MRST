@@ -3,6 +3,13 @@
 % Before you run this code you probably want to reduce the maximum number
 % of iterations in distmesh to around 30-40 or this will take a very long
 % time
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
+
 %% load dataset
 load('datasets/statistical_fractures.mat')
 l = mat2cell(fl, ones(size(fl,1),1), size(fl,2));

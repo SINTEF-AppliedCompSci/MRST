@@ -19,6 +19,7 @@ function [fig] = plotLinePath(lines, varargin)
 %   plotLinePath(l)
 % SEE ALSO
 %   plotGrid
+
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.

@@ -2,9 +2,11 @@
 % This script contains an example a well branching. It contains several 
 % well-intersections. 
 
-
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}  
 
 %% Set well paths
 % voronoi2D store well as arrays in cells. Each row in 

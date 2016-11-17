@@ -30,7 +30,7 @@ function [p, removed] = faultSufCond(p, F)
 %   plot(p(~r,1), p(~r,2),'.b');
 %
 % SEE ALSO
-%   compositePebiGrid, pebi, pebiGrid, clippedPebi2D
+%   compositePebiGrid, pebi, pebiGrid, clippedPebi2D, faultSufCond3D
 
 %{
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

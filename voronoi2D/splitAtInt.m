@@ -51,9 +51,8 @@ function [splitL1, L1Cut, L1L2Cut, IC] = splitAtInt(L1, L2)
 %   name = {};
 %   for i = 1:numel(L1)
 %     plot(L1{i}(:,1), L1{i}(:,2))
-%     name = [name;num2str(i)];
 %   end
-%   legend(name);
+%   plotLinePath(L2)
 %   disp(L1Cut)
 %   disp(L1L2Cut)
 %
