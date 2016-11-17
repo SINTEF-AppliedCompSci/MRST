@@ -78,6 +78,27 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %                       refinement transition around faults. The density
 %                       function for the reservoir grid is set by
 %                       rho~exp(-distance to fault / faultEps).
+%   polyBdr            - OPTIONAL 
+%                       Default value []. plyBdr is a array of size [k,2].
+%                       if k>=3 polyBdr gives the vertices of the reservoir
+%                       boundary. For this domain:
+%                                  .(x1,y1)
+%                                 / \ 
+%                         (x3,y3).---.(x2,y2)
+%                       polyBdr would be [x1,y1;x2,y2;x3,y3]. The set of
+%                       vertices must run clockwise or counterclockwise.
+%                       Note that if k>=3 the innput pdims will have no
+%                       effect.
+%   sufFaultCond       - OPTIONAL 
+%                      Default value true. If sufFaultCond = false we don
+%                      not enforce the sufficient and necessary fault
+%                      condition. Instead we enforce a less strict 
+%                      condition and remove any reservoir sites that are 
+%                      closer to the fault sites than the fault grid size.
+%                      Note that Conformity is then not guaranteed. You
+%                      might still set this to false if you have problems
+%                      with bad cells at the end of your faults because the
+%                      sufficient condition removes some reservoir points. 
 %
 %
 % RETURNS:
@@ -119,7 +140,9 @@ opt = struct('wellLines',       {{}}, ...
              'circleFactor',    0.6,...
              'faultRho',        @(x) ones(size(x,1),1),...
              'protLayer',       false, ...
-             'protD',           {{@(p) ones(size(p,1),1)*resGridSize/10}});
+             'protD',           {{@(p) ones(size(p,1),1)*resGridSize/10}},...
+						 'polyBdr',         zeros(0,2), ...
+						 'sufFaultCond',    true);
 
 opt          = merge_options(opt, varargin{:});
 circleFactor = opt.circleFactor;
@@ -211,27 +234,37 @@ else
 end
 % Create Reservoir grid points
 % set domain function
-x = pdims;
-rectangle = [0,0; x(1),x(2)];   
-fd = @(p) drectangle(p, 0, x(1), 0, x(2));
-% Set fixed points
-corners = [0,0; 0,x(2); x(1),0; x(1),x(2)];
-
-% Add wells an faults as fixed points
-fixedPts = [F.f.pts; wellPts; protPts; corners];
+polyBdr = opt.polyBdr;
+[k,l] = size(polyBdr);
+if 0<k && k<3
+	warning('Polygon must have at least 3 edges. Assuming rectangular domain');
+end
+if k<3
+	x = pdims;
+	rectangle = [0,0; x(1),x(2)];
+	fd = @(p,varargin) drectangle(p, 0, x(1), 0, x(2));
+	corners = [0,0; 0,x(2); x(1),0; x(1),x(2)];
+	vararg  = [];
+else
+  assert(l==2,'polygon boundary is only supported in 2D');
+	rectangle = [min(polyBdr); max(polyBdr)];
+	corners   = polyBdr;
+	fd        = @dpoly;
+	vararg    = [polyBdr;polyBdr(1,:)];
+end	
 
 if faultRef && wellRef
   ds = min(wellGridSize,faultGridSize);
-  hres = @(x) min(hresf(p), hresw(p));
+  hres = @(x,varargin) min(hresf(p), hresw(p));
 elseif faultRef
   ds = faultGridSize;
-  hres = hresf;
+  hres = @(p,varargin) hresf;
 else 
   ds = wellGridSize;
-  hres = hresw;
+  hres = @(p, varargin) hresw(p);
 end
-  
-[Pts,~,sorting] = distmesh2d(fd, hres, ds, rectangle, fixedPts);
+fixedPts = [F.f.pts; wellPts; protPts; corners];  
+[Pts,~,sorting] = distmesh2d(fd, hres, ds, rectangle, fixedPts,vararg);
 
 % Distmesh change the order of all points. We undo this sorting.
 isFault = false(max(sorting),1); isFault(1:size(F.f.pts,1)) = true;
@@ -247,17 +280,24 @@ fPts = fPts(If,:);
 wPts = Pts(isWell,:);
 wPts = wPts(Iw,:);
 
-Pts = faultSufCond(Pts(isRes,:),F);
+if opt.sufFaultCond
+	Pts = faultSufCond(Pts(isRes,:),F);
+else
+	Pts  = removeConflictPoints2(Pts(isRes,:),F.f.pts, F.f.Gs);
+end
 Pts  = [fPts; wPts; Pts];
 % Create grid
-t    = delaunay(Pts);
-% Fix boundary
-pmid = (Pts(t(:,1),:)+Pts(t(:,2),:)+Pts(t(:,3),:))/3;% Compute centroids
-t    = t(fd(pmid)<-0.001*wellGridFactor,:);    % Keep interior triangles
+if k<3
+	t    = delaunay(Pts);
+	% Fix boundary
+	pmid = (Pts(t(:,1),:)+Pts(t(:,2),:)+Pts(t(:,3),:))/3;% Compute centroids
+	t    = t(fd(pmid,vararg)<-0.001*wellGridFactor,:);   % Keep interior triangles
 
-G = triangleGrid(Pts, t);
-G = pebi(G);
-
+	G = triangleGrid(Pts, t);
+	G = pebi(G);
+else
+	G = clippedPebi2D(Pts, polyBdr);
+end
 % label fault faces.
 if ~isempty(F.f.pts)
   N      = G.faces.neighbors + 1; 

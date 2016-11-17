@@ -66,7 +66,17 @@ function [G,Pts,F] = compositePebiGrid(celldim, pdims, varargin)
 %                       and distace between the circles. A small value will
 %                       place the fault points close the the faults, while
 %                       a large value will place the far from the faults.
-%
+%   polyBdr            - OPTIONAL 
+%                       Default value []. plyBdr is a array of size [k,2].
+%                       if k>=3 polyBdr gives the vertices of the reservoir
+%                       boundary. For this domain:
+%                                  .(x1,y1)
+%                                 / \ 
+%                         (x3,y3).---.(x2,y2)
+%                       polyBdr would be [x1,y1;x2,y2;x3,y3]. The set of
+%                       vertices must run clockwise or counterclockwise.
+%                       Note that if k>=3 the innput pdims will have no
+%                       effect.
 %
 % RETURNS:
 %   G                - Valid grid definition.  
@@ -101,7 +111,8 @@ opt = struct('wellLines',       {{}}, ...
              'faultGridFactor', 1,  ...
              'circleFactor',    0.6,  ...  
              'protLayer',false, ...
-             'protD', {{@(p) ones(size(p,1),1)*norm(celldim)/10}});         
+             'protD', {{@(p) ones(size(p,1),1)*norm(celldim)/10}},...
+						 'polyBdr',         zeros(0,2));
 
 opt = merge_options(opt, varargin{:});
 circleFactor = opt.circleFactor;
@@ -167,14 +178,30 @@ F = createFaultGridPoints(faultLines, faultGridSize, 'circleFactor', circleFacto
                           'fCut',fCut,'fwCut', fwCut);
 
 % Create reservoir grid
-dx = pdims(1)/ceil(pdims(1)/celldim(1));
-dy = pdims(2)/ceil(pdims(2)/celldim(2));
-vx = 0:dx:pdims(1);
-vy = 0:dy:pdims(2);
-
+polyBdr = opt.polyBdr;
+[k,l] = size(polyBdr);
+if 0<k && k<3
+	warning('Polygon must have at least 3 edges. Assuming rectangular domain');
+end
+if k>3
+	dx = pdims(1)/ceil(pdims(1)/celldim(1));
+	dy = pdims(2)/ceil(pdims(2)/celldim(2));
+	vx = 0:dx:pdims(1);
+	vy = 0:dy:pdims(2);
+else
+	assert(l==2,'polygon boundary is only supported in 2D');
+	lDim = [min(polyBdr); max(polyBdr)];
+	dx = diff(lDim(:,1))/ceil(diff(lDim(:,1))/celldim(1));
+	dy = diff(lDim(:,2))/ceil(diff(lDim(:,2))/celldim(2));
+	vx = lDim(1,1):dx:lDim(2,1);
+	vy = lDim(1,2):dy:lDim(2,2);
+end
 [X, Y] = meshgrid(vx, vy);
-
 resPtsInit = [X(:), Y(:)];
+if k>=3
+	 IN        = inpolygon(resPtsInit(:,1),resPtsInit(:,2), polyBdr(:,1), polyBdr(:,2));
+	resPtsInit = resPtsInit(IN,:);
+end
 
 % Refine reservoir grid
 if ~isempty(wellPts)
@@ -198,9 +225,12 @@ resPts = removeConflictPoints2(resPts, F.c.CC, F.c.R);
 
 % Create Grid
 Pts = [F.f.pts; wellPts;protPts; resPts];
-G = triangleGrid(Pts);
-G = pebi(G);
-
+if k<3
+	G = triangleGrid(Pts);
+	G = pebi(G);
+else
+	G = clippedPebi2D(Pts,polyBdr);
+end
 % label fault faces.
 if ~isempty(F.f.pts)
   N      = G.faces.neighbors + 1; 
