@@ -1,4 +1,4 @@
-function [x,f,gNorm] = lbfgs(x0, F, dt, varargin)
+function [x,f,gNorm] = lbfgs(x0, F, varargin)
     % limitet-memory bfgs optimization function
     %
     % Arguments:
@@ -13,13 +13,21 @@ function [x,f,gNorm] = lbfgs(x0, F, dt, varargin)
     %               gradF(x) <= tol*gradF(x0)
     %   minStep     if steplength is less than minStep, the function
     %               returns
+    %   inDomain    function with default value @(x) true(size(x,1),1).
+    %               should return a array of logical where the i'th element
+    %               is false if the i'th input point is outside your
+    %               domain.
+    %   
     % Returns:
     %   x           optimal point
     %   f           functioin value at each step
     %   gNorm       norm of the gradient at each step
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Runar Lie Berge (runarlb@stud.ntnu.no)                           2016
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}
 
     opt = struct('storedVec', 5,    ...
                  'maxIt',     1000, ...

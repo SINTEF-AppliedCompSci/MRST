@@ -20,4 +20,3 @@ its author by adding a reference to: Runar Lie Berge, Unstructured Pebi
 Grids Adapting to Geological Features in Subsurface Reservoirs, June 2016,
 Master Thesis, Department of Mathematics, Norwegian University of Science
 and Technology.
-

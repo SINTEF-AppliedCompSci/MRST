@@ -1,4 +1,11 @@
 function [p, symP] = clipPolygon(p, n, x0, symP, bisector,varargin)
+% Clip a polygon against a set of bounding planes
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}
 TOL = 100*eps;
 
 assert(size(n,1)==size(x0,1),'unconsistent size of n and x0');

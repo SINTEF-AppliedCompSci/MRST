@@ -73,8 +73,19 @@
 %                         mirroring all points around the boundary faces
 %   voronoi2mrst        - Transform the output of VORONOIN() to a MRST grid
 %                         structure
-%   wellSufCond3D       - Enforces the well condition 
+%   wellSufCond3D       - Enforces the well condition
+%   /examples
+%       compositePebiGridWithTwoFaults - Create a grid using the composite
+%                                        wrapping function of a reservoir
+%                                        with two intersecting faults
+%       CVDoptimization     - Create a CVD grid of a reservoir with a
+%                             single fault
+%       saltDome            - Create a salt dome
+%       transformQhullGridStructure2MrstGridStructure - Show how to
+%                             create a valid MRST grid from the returned
+%                             values of voronoin()
+%       wellBranching   - A multilateral well
+%       
 %
 % /distMesh:            - Contains a modifed version of distMesh.
-% /util:                - Contains some utility functions.  
-%
+% /util:                - Contains some utility functions.

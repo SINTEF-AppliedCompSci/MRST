@@ -10,7 +10,11 @@ function [p] = interLinePath(line, fh, lineDist,sePtn, varargin)
     %               points (Relative to fh = 1)
     % varargin:    
     %               Arguments passed to fh
-
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}
     % Parameters
     TOL = 1e-4; maxIt = 10000;
     if size(line,1)==1

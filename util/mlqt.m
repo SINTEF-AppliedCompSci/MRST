@@ -14,7 +14,12 @@ function [res] = mlqt(cellCenter, bndr, cellSize, varargin)
     % Output:
     %   res             Struct containg the new cell centers, and the cell
     %                   sizes
-    % Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+
+%{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Copyright (C) 2016 Runar Lie Berge. See COPYRIGHT.TXT for details.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%}
     
     %% Load options
     opt = struct('level', 1, ...
