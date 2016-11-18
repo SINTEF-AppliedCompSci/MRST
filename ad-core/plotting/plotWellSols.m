@@ -431,6 +431,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        dims = get(fh, 'Position');
        newdims = dims.*[1, 1, pw + dap(1), 1];
        tmpfig = figure('Position', newdims);
+       set(tmpfig,'PaperPositionMode','auto');
        if isnan(double(legh))
            ax = copyobj(plotaxis, tmpfig);
        else
