@@ -9,15 +9,16 @@ mrstModule add incomp
 % To get an inclined reservoir, we manipulate the gravity direction. Since
 % gravity is a persistent and global variable, it is important that we
 % reset the gravity at the end of the script
-rotdeg = 40;
+theta  = 40;
 height = 40;
 exmpl  = 2;
 n      = [ 20,  2,  100];
 box_sz = [100, 10, 200];
 
 % Grid
-G      = cartGrid(n, box_sz); CG = cartGrid([1 1 1],box_sz);
-G      = computeGeometry(G);
+G  = cartGrid(n, box_sz);
+G  = computeGeometry(G);
+CG = cartGrid([1 1 1],box_sz); % used to create outline of sandbox
 
 % Petrophysical data
 if exmpl == 1
@@ -39,13 +40,9 @@ fluid  = initSimpleFluid('mu' , [  0.307,   0.049] .* centi*poise     , ...
                          'n'  , [  2    ,   2    ]);
 
 % Redefine gravity direction
-rot   = @(theta) makehgtform('xrotate',  theta(1), ...
-                             'yrotate', -theta(2), ...
-                             'zrotate', -theta(3));
-mul   = @(a,b,n) a(1:n,1:n) * reshape(b(1:n), [], 1);
-angle = [0, pi*rotdeg/180, 0];
+R = makehgtform('yrotate',-pi*theta/180);
 gravity reset on
-gravity(mul(rot(angle), gravity(), 3));
+gravity( R(1:3,1:3)*gravity().' );
 
 % Create special colormap
 s  = linspace(0, 1, 64).';
@@ -62,10 +59,10 @@ xr = incompTPFA(xr, G, T, fluid);
 %% Plot initial data
 clf
 h = plotGrid(CG, 'FaceColor', 'none', 'EdgeColor', 'k','LineWidth',4);
-rotate(h,[0 1 0],rotdeg);
+rotate(h,[0 1 0],theta);
 view([0,0])
 hs = plotCellData(G, xr.s, xr.s < .995, 'EdgeColor', 'none');
-rotate(hs,[0 1 0],rotdeg);
+rotate(hs,[0 1 0],theta);
 caxis([0 1]); colormap(cm), axis equal tight off
 
 % dPlot = [20 100 250 500 1000 1500 2500 inf]*day;
@@ -85,10 +82,10 @@ for k = 1 : numel(dT),
    t = t + dT(k);
    delete(hs)
    hs = plotCellData(G, xr.s, xr.s <.995, 'EdgeColor', 'none');
-   rotate(hs,[0 1 0],rotdeg);
+   rotate(hs,[0 1 0],theta);
    title(sprintf('%.2f days', t/day));
    drawnow
-  
+
    %{
    if t>=dPlot(ip)-eps,
        colorbar off; title([]);
@@ -98,7 +95,7 @@ for k = 1 : numel(dT),
        ip = ip+1;
    end
    %}
-   
+
    % Compute new flow field.
    xr = incompTPFA(xr, G, T, fluid);
 end
