@@ -72,7 +72,7 @@ for n=1:N
        if x.s(W(2).cells,1)<eps
            W(2).bt = (n-1)*M+m+1;
        end
-       fprintf(1,', %d',m);
+       fprintf(1,'%d, ',m);
     end
     fprintf(1,'\n');
     if n>4, continue, end;
@@ -95,9 +95,9 @@ for n=1:N
     
     % Plot multiphase solution as function of single-phase time-of-flight
     subplot(2,4,4+n)
-    set(gca,'position',get(gca,'position')+[0 .1 0 0]);
+    set(gca,'position',get(gca,'position')+[0 .12 0 0]);
     plot(tau(:,1)/tbf,x.s(:,1),'.k','MarkerSize',4);
-    drawnow;
+    set(gca,'XLim',[0 2]); drawnow;
 end
 
 %% Plot production curves
