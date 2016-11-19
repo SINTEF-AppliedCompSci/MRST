@@ -1,5 +1,4 @@
 %% Stair-stepped grid
-mrstModule add mrst-experimental
 clf
 grdecl = readGRDECL(fullfile(getDatasetPath('CaseB4'),'stairstep_36x48.grdecl'));
 Gs = processGRDECL(grdecl);
@@ -39,16 +38,17 @@ plotCellData(g,kx(g.cells.indexMap)','EdgeColor','k'),
 axis tight off, view(150,50), zoom(1.2)
 
 %% Visualize results
-% clf
-% subplot(1,2,1); 
-% plotCellData(Gs, log10(K(Gs.cells.indexMap)), 'EdgeColor', 'k', 'EdgeAlpha',0.1);
-% set(gca,'dataaspect',[32 44 2.5])
-% axis tight off, view(104,28);
+clf
+set(gcf,'Position', [300 450 1000 330]);
+subplot(1,2,1); 
+plotCellData(Gs, log10(Kx(Gs.cells.indexMap)), 'EdgeColor', 'k', 'EdgeAlpha',0.1);
+set(gca,'dataaspect',[32 44 2.5])
+axis tight off, view(104,28);
 % 
-% subplot(1,2,2);
-% plotCellData(Gp, log10(K(Gp.cells.indexMap)),'EdgeColor', 'k', 'EdgeAlpha',0.1);
-% set(gca,'dataaspect',[32 44 2.5])
-% axis tight off, view(104,28);
+subplot(1,2,2);
+plotCellData(Gp, log10(Kx(Gp.cells.indexMap)),'EdgeColor', 'k', 'EdgeAlpha',0.1);
+set(gca,'dataaspect',[32 44 2.5])
+axis tight off, view(104,28);
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
