@@ -1,5 +1,5 @@
 function ok = makeSPE9OutputAvailable
-%Ensure availability of subset of Norne simulation model
+%Ensure availability of the SPE 9 data set
 %
 % SYNOPSIS:
 %   ok = makeSPE9OutputAvailable
