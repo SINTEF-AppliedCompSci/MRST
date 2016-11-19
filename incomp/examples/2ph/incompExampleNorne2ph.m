@@ -30,7 +30,7 @@ linsolve = @mldivide;
 % <maltab:edit('incompExampleNorne1ph.m') incompExampleNorne1ph> tutorials.
 % Here, we therefore just exectute the necessarry commands without further
 % comments,
-grdecl = fullfile(getDatasetPath('norne'), 'OPM.GRDECL');
+grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
 grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));
 
