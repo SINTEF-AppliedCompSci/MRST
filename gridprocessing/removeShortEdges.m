@@ -92,15 +92,21 @@ function G = removeEdges(G, E)
     A = A+A'+speye(size(A));
    
     [a,b,c,d]=dmperm(A);
-   
+
     % find groups of nodes that will be merged
     nno = rldecode(1:numel(c)-1, diff(c), 2)';
-    x   = accumarray(nno, G.nodes.coords(a,1))./accumarray(nno, 1);
-    y   = accumarray(nno, G.nodes.coords(a,2))./accumarray(nno, 1);
     map = zeros(G.nodes.num, 1);
     map(a) = nno;
+
+    x   = accumarray(nno, G.nodes.coords(a,1))./accumarray(nno, 1);
+    y   = accumarray(nno, G.nodes.coords(a,2))./accumarray(nno, 1);
+    if G.griddim == 3
+        z = accumarray(nno, G.nodes.coords(a,3))./accumarray(nno, 1);
+        G.nodes.coords = [x,y,z];
+    else
+        G.nodes.coords = [x,y];
+    end
     G.faces.nodes  = map(G.faces.nodes);
-    G.nodes.coords = [x,y];
     G.nodes.num    = numel(x);
     G.nodes.original_ID = nan;
 end
