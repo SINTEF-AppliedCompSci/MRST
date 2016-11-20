@@ -377,6 +377,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         if get(gridtog, 'Value')
             grid on
+        else
+            grid off
         end
         
         if get(logy, 'Value')
