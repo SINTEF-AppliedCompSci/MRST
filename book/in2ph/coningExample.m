@@ -60,9 +60,9 @@ rSol = initState(G, W, 0, [0, 1]);
 rSol = incompTPFA(rSol, G, hT, fluid, 'wells', W);
 
 t = 0; 
-p = nan(numel(dT),numel(W(1).cells));
 colormap(flipud(winter))
-%%
+wellSols = cell(numel(dT),1);
+%
 for i=1:numel(dT),
    rSol = implicitTransport(rSol, G, dT(i), rock, fluid, 'wells', W);
 
@@ -73,7 +73,7 @@ for i=1:numel(dT),
    rSol  = incompTPFA(rSol , G, hT, fluid, 'wells', W);
 
    % Measure water saturation in production cells in saturation
-   p(i,:) = rSol.s(W(1).cells,1)';
+   wellSols{i} = getWellSol(W, rSol, fluid);
 
    % Increase time
    t = t + dT(i);
@@ -85,6 +85,8 @@ for i=1:numel(dT),
    caxis([0 1]); drawnow
 end
 
-figure, 
-[Ym,Tm]=meshgrid(y,cumsum(dT));
+figure,
+p = cellfun(@(x) x(1).qO', wellSols,'UniformOutput',false);
+p = vertcat(p{:});
+[Ym,Tm]=meshgrid(G.cells.centroids(W(1).cells,2),cumsum(dT));
 plot3(Ym,Tm,p,'-ok','MarkerSize',5,'MarkerFaceColor',[.5 .5 .5]);
