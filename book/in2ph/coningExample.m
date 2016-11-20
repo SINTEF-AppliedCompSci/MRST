@@ -11,8 +11,8 @@ G = computeGeometry(G);
 flt = @(c) (c(:,1)-x0)*(z1-z0)/(x1-x0) + z0 - c(:,3);
 
 rock.poro = .2*ones(G.cells.num,1);
-rock.perm = ones(G.cells.num,1)*100*milli*darcy;
-rock.perm(flt(G.cells.centroids)>0) = 10*milli*darcy;
+rock.perm = ones(G.cells.num,1)*500*milli*darcy;
+rock.perm(flt(G.cells.centroids)>0) = 50*milli*darcy;
 rock.poro(flt(G.cells.centroids)>0) = 0.1;
 
 hT = computeTrans(G,rock);
@@ -35,8 +35,6 @@ W = addWell(W,  G, rock, find(sum(bsxfun(@minus,x,[1437.5 487.5]).^2,2)<320),  .
             'Comp_i', [1 0], 'Name', 'I', 'Dir','z');
 
 plotWell(G,W,'height',50,'radius',.01);
-%plotGrid(G,W(1).cells,'FaceColor','g');
-%plotGrid(G,W(2).cells,'FaceColor','b');
 
 CG = generateCoarseGrid(G,(flt(G.cells.centroids)>0)+1);
 plotFaces(CG,1:CG.faces.num,'FaceColor','none','LineWidth',1);
@@ -50,8 +48,8 @@ fluid = initSimpleFluid('mu' , [   1,  10] .* centi*poise     , ...
                         'n'  , [   2,   2]);
 
 %% Simulation loop
-N  = 400;
-T  = 20000*day();
+N  = 450;
+T  = 4500*day();
 dT = T/N*ones(N,1);
 dT = [dT(1)*sort(2.^-[1:4 4])'; dT(2:end)];
 
@@ -62,6 +60,7 @@ rSol = incompTPFA(rSol, G, hT, fluid, 'wells', W);
 t = 0; 
 colormap(flipud(winter))
 wellSols = cell(numel(dT),1);
+set(gca,'XTick',[],'Ytick',[],'ZTick',[]);
 %
 for i=1:numel(dT),
    rSol = implicitTransport(rSol, G, dT(i), rock, fluid, 'wells', W);
@@ -83,10 +82,29 @@ for i=1:numel(dT),
    hs = plotCellData(G, rSol.s(:,1), (rSol.s(:,1)>.01), pargs{:});
    title([num2str(convertTo(t,day)),  ' days']),
    caxis([0 1]); drawnow
+   % print('-dpng','-r0',sprintf('img/con-%03d.png',i));
 end
 
+%% Oil rate, with peak production indicated by red line
 figure,
-p = cellfun(@(x) x(1).qO', wellSols,'UniformOutput',false);
-p = vertcat(p{:});
-[Ym,Tm]=meshgrid(G.cells.centroids(W(1).cells,2),cumsum(dT));
-plot3(Ym,Tm,p,'-ok','MarkerSize',5,'MarkerFaceColor',[.5 .5 .5]);
+[Ym,Tm] = meshgrid(G.cells.centroids(W(1).cells,2),cumsum(dT)/year);
+p       = cellfun(@(x) abs(x(1).qO)', wellSols,'UniformOutput',false);
+p       = vertcat(p{:})*day;
+[~,j]   = max(p);
+m       = sub2ind(size(p),j,1:numel(W(1).cells));
+surf(Ym,Tm,p); shading interp; colormap(parula(20));
+hold on; plot3(Ym(m),Tm(m),p(m), '-r','LineWidth',2); hold off
+axis tight, view(100,35)
+
+%% Water production, with breakthrough indicated by red line
+figure,
+p  = cellfun(@(x) abs(x(1).qW)', wellSols,'UniformOutput',false);
+p  = vertcat(p{:})*day;
+j  = sum(~(p>1e-3));
+m  = sub2ind(size(p),j,1:numel(W(1).cells));
+surf(Ym,Tm,p); shading interp; colormap(parula(20));
+hold on; plot3(Ym(m),Tm(m),p(m), '-r','LineWidth',2); hold off
+axis tight, view(45,35)
+
+%% Plot surface rates etc using GUI
+plotWellSols(wellSols, cumsum(dT));
