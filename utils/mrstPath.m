@@ -217,7 +217,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                lst = repmat({ '' }, [1, numel(mods)]);
                [lst{~notfound}] = pth{:};
 
-               if (nargout == 1) && (numel(lst) > 1),
+               if (nargout == 1) && (numel(lst) ~= 1),
 
                   varargout{1} = lst;
 
