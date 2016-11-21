@@ -46,6 +46,10 @@ function downloadMBGL
    fclose(fid);
    fprintf('done\n');
 
+   fprintf('Update module mapping to new location of MatlabBGL ... ');
+   mrstPath('reregister', 'matlab_bgl', fullfile(dest, 'matlab_bgl'));
+   fprintf('done\n');
+
    % Create a modload.m that's compatible with the new, third-party
    % component.
    copyfile(fullfile(dest, 'private', 'modload.m.in'), ...
