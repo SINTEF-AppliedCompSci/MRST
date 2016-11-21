@@ -314,18 +314,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     xlabel('Step #')
                 end
                 
-                if get(csum, 'Value')
+                [tit, d, yl, doCsum] ...
+                    = getWellUnit(d, fld, ...
+                                  getFieldString(unitsel, true), ...
+                                  get(csum,'Value'));
+                ylabel(yl);
+                if doCsum
                     d = cumtrapz(x*xunit, d);
                 end
-                
+
                 if get(abst, 'Value')
                     d = abs(d);
                 end
-                
-                [tit, d, yl] = getWellUnit(d, fld, ...
-                                           getFieldString(unitsel, true), ...
-                                           get(csum,'Value'));
-                ylabel(yl);
 
                 linew = get(wsl, 'Value');
                 if linew == 0;
@@ -504,9 +504,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [tit, d, yl] = getWellUnit(d, fld, usys, isCsum)
+function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
     isMetric = strcmpi(usys, 'si');
     
+    doCsum = false;
     yl = '';
     tit = fld;
     switch lower(fld)
@@ -521,6 +522,8 @@ function [tit, d, yl] = getWellUnit(d, fld, usys, isCsum)
                 otherwise
                     ph = 'total';
             end
+            
+            doCsum = isCsum;
             
             if numel(fld) == 3 && lower(fld(3)) == 'r'
                 tmp = 'reservoir';
@@ -557,6 +560,7 @@ function [tit, d, yl] = getWellUnit(d, fld, usys, isCsum)
             end
         case 'gor'
             tit = [fld, ': Gas/oil ratio at surface conditions'];
+            doCsum = isCsum;
         case {'ocut', 'wcut', 'gcut'}
             switch lower(fld(1))
                 case 'o'
