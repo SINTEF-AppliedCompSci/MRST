@@ -1,32 +1,48 @@
 function [info, present] = getAvailableDatasets()
-%Get a list of structs indicating possible and present datasets in MRST
+%Get a list of structures indicating possible and present datasets in MRST
 %
 % SYNOPSIS:
 %   [info, present] = getAvailableDatasets
 %
 % DESCRIPTION:
-%   This function gathers info structs about all datasets MRST knows about.
-%   The info struct will contain useful information about the dataset, such
-%   as the name, type of model, download location, any MRST examples using
-%   that dataset and so on.
+%   This function collects descriptive information about all datasets known
+%   to MRST.  One structure contains useful information about a particular
+%   dataset, such as its name, type of model (e.g., characteristics of the
+%   model geometry, the model's petrophysical properties, active fluid
+%   phases, common simulation scenarios), online location (URL) from which
+%   to download the data, any MRST examples using that dataset and so on.
 %
-%   getAvailableDatasets relies on functions in the "datasets" directory o
-%   nthe form "dataset_name" which produces the info structs and checks if
-%   the dataset is already present.
+%   Function getAvailableDatasets relies on dedicated helper functions
+%   named 'dataset_*' (lower-case) located in the sudirectory 'datasets' of
+%   this function's location.  Each helper function produces a single
+%   collection of metadata about a particular dataset and determines if the
+%   associated dataset is already present (i.e., downloaded).
 %
-% REQUIRED PARAMETERS:
+%   Creating a new dataset consequently means implementing a new dataset_*
+%   function.
+%
+% PARAMETERS:
 %   None.
 %
 % RETURNS:
-%   info    - A array of structs, where each element corresponds to
-%             information about a given dataset. See datasetInfoStruct for
-%             possible fields, along with their meanings.
+%   info    - An array of structures in which each array element provides
+%             information about a separate dataset.  See datasetInfoStruct
+%             for possible fields, along with their meanings.
 % 
-%   present - Boolean array of the same size as info. If present(i) is
-%             true, the dataset with name info(i).name is already
-%             downloaded and available for use by MRST.
+%   present - Logical array of the same size as 'info'.  If 'present(i)' is
+%             true, the dataset named 'info(i).name' is already downloaded
+%             and exists in the directory returned by function
+%
+%                 mrstDataDirectory
+%
+%             This dataset is therefore directly available for use by MRST.
+%             Otherwise, the dataset may be retrieved interactively through
+%             a graphical user interface (function 'mrstDatasetGUI') or
+%             programmatically by means of function 'downloadDataset' or
+%             'downloadAllDatasets'.
+%
 % SEE ALSO:
-%   mrstDatasetGUI, datasetInfoStruct
+%   mrstDatasetGUI, mrstDataDirectory, datasetInfoStruct, downloadDataset.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
