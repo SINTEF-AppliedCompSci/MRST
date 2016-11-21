@@ -3,6 +3,8 @@
 
 #include <mex.h>
 
+#include <lapack.h>
+
 static int
 args_ok(int nlhs, int nrhs, const mxArray *prhs[]);
 
@@ -60,12 +62,6 @@ mexFunction(int nlhs,       mxArray *plhs[],
         mexErrMsgTxt(errmsg);
     }
 }
-
-
-#if !defined(_WIN32)
-#define dgetrf dgetrf_
-#define dgetri dgetri_
-#endif
 
 
 /* ---------------------------------------------------------------------- */
