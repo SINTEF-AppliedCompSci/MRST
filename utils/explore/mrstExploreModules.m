@@ -208,14 +208,18 @@ function d = getDescription(module)
     end
     files = dir(pth);
     d = ['No README available for ', module];
-    for i = 1:numel(files)
-        if strcmpi(files(i).name, 'readme') || strcmpi(files(i).name, 'readme.txt')
-            d = fileread(fullfile(pth, files(i).name));
-            if ~isempty(d)
-                d = mrstSplitText(d);
-                break;
-            end
-        end
+
+    files = { files(~ [files.isdir]).name };
+
+    i = strcmpi(files, 'readme') | ...
+        strcmpi(files, 'readme.txt');
+
+    if any(i),
+       readme = fileread(fullfile(pth, files{find(i, 1, 'first')}));
+
+       if ~ isempty(readme),
+          d = mrstSplitText(readme);
+       end
     end
 end
 
