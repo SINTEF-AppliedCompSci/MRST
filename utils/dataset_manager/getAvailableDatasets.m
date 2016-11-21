@@ -62,29 +62,42 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    pth = mfilename('fullpath');
-    pth = pth(1:(end-numel(mfilename()) - 1));
-    sets = dir(fullfile(pth, 'datasets'));
-    
-    % Extract functions that start with dataset and is not directories
-    sn = 'dataset';
-    ok = strncmp({sets.name}, sn, numel(sn)) & ~[sets.isdir];
 
-    names = {sets(ok).name}';
-    
-    nD = numel(names);
-    
-    % Loop over candidate functions, adding to array as we go (dynamic
-    % expansion is ok since the number of datasets is relatively small).
-    [info, present] = deal([], logical([]));
-    for i = 1:nD
-        [name, name, ext] = fileparts(names{i}); %#ok
-        if ~strcmpi(ext, '.m')
-            continue
-        end
-        
-        [info_i, ok] = eval([name, '()']);
-        info = [info; info_i];  %#ok
-        present = [present; ok];%#ok
-    end
+   % Loop over candidate functions, adding to arrays as we go (dynamic
+   % expansion is ok since the number of datasets is relatively small).
+   [info, present] = deal([], logical([]));
+
+   for dataset = reshape(identify_datasets(), 1, []),
+      [info, present] = inspect_dataset(info, present, dataset{1});
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function sets = identify_datasets()
+   sets = what(fullfile(this_directory(), 'datasets'));
+   sets = sets.m(is_dataset(sets.m));
+end
+
+%--------------------------------------------------------------------------
+
+function [info, present] = inspect_dataset(info, present, dataset)
+   [name, name] = fileparts(dataset);                           %#ok<ASGLU>
+
+   [info_i, ok] = feval(name);
+
+   info    = [info    ; info_i];
+   present = [present ; ok    ];
+end
+
+%--------------------------------------------------------------------------
+
+function d = this_directory()
+   d = fileparts(mfilename('fullpath'));
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_dataset(sets)
+   tf = ~ cellfun(@isempty, regexp(sets, '^dataset_'));
 end
