@@ -322,7 +322,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     d = abs(d);
                 end
                 
-                [tit, d, yl] = getWellUnit(d, fld, getFieldString(unitsel, true));
+                [tit, d, yl] = getWellUnit(d, fld, ...
+                                           getFieldString(unitsel, true), ...
+                                           get(csum,'Value'));
                 ylabel(yl);
 
                 linew = get(wsl, 'Value');
@@ -502,7 +504,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [tit, d, yl] = getWellUnit(d, fld, usys)
+function [tit, d, yl] = getWellUnit(d, fld, usys, isCsum)
     isMetric = strcmpi(usys, 'si');
     
     yl = '';
@@ -525,12 +527,25 @@ function [tit, d, yl] = getWellUnit(d, fld, usys)
             else
                 tmp = 'surface';
             end
-            tit = [fld, ': Well ', tmp, ' rate (', ph, ')'];
-            if isMetric
-                yl = 'm^3/s';
+            if isCsum
+                tit = [fld, ': Cumulative ', tmp, ' production (', ph, ')'];
             else
-                yl = 'stb/day';
-                d = convertTo(d, stb/day);
+                tit = [fld, ': Well ', tmp, ' rate (', ph, ')'];
+            end
+            if isMetric
+                if isCsum,
+                    yl = 'm^3';
+                else
+                    yl = 'm^3/s';
+                end
+            else
+                if isCsum
+                    yl = 'stb';
+                    d  = convertTo(d, stb);
+                else
+                    yl = 'stb/day';
+                    d = convertTo(d, stb/day);
+                end
             end
         case {'bhp', 'pressure'}
             tit = [fld, ': Bottom hole pressure'];
