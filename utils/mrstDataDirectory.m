@@ -51,9 +51,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(DATADIR)
         % Default datadir
         DATADIR = fullfile(ROOTDIR, 'examples', 'data');
-        if exist(DATADIR, 'dir') ~= 7
-            mkdir(DATADIR)
+        if ~isdir(DATADIR)
+            [ok, msg, id] = mkdir(DATADIR);
+
+            if ~ok,
+               error(id, 'Failed to create Data Directory ''%s'': %s', ...
+                     DATADIR, msg);
+            end
         end
+
+        mlock
     end
     
     if nargin == 0 && nargout == 0
@@ -63,7 +70,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         newDir = varargin{1};
         assert(ischar(newDir), 'Data directory must be a string');
         if isdir(newDir)
+            munlock
             DATADIR = newDir;
+            mlock
         else
             warning(['Supplied directory ''', newDir, ''' is not a directory.', ...
                      ' Data directory has not been changed']);
