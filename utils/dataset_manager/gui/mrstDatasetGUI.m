@@ -107,7 +107,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                        'BackgroundColor', 'w', ...
                        'Style', 'Edit', 'String', txt);
         
-        canDownload = ~isempty(I.fileurl);
+        canDownload = datasetHasCustomDownloadFcn(I) || ...
+                      datasetHasValidFileURL     (I);
+
         onDisk = present(current);
         
         if onDisk
