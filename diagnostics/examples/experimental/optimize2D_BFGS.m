@@ -4,7 +4,7 @@ mrstModule add ad-fi diagnostics ad-props spe10 incomp
 useBasis = false;
 useAGMG  = false;
 
-[G, W, rock] = SPE10_setup(75);
+[G, W, rock] = getSPE10setup(75);
 rock.poro = max(rock.poro, 1e-4);
 
 

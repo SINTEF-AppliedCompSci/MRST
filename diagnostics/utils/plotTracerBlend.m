@@ -48,7 +48,7 @@ function varargout = plotTracerBlend(G, partition, maxconc, varargin)
 %       if specifically requested.
 %
 % EXAMPLES:
-%   [G, W, rock] = SPE10_setup(1:10);
+%   [G, W, rock] = getSPE10setup(1:10);
 %
 %   is_pos = rock.poro > 0;
 %   rock.poro(~is_pos) = min(rock.poro(is_pos));
