@@ -10,7 +10,7 @@ ofs = [0, 0];
 wloc     = [  1 + ofs(1),   60 - ofs(1),     1 + ofs(1),   60 - ofs(1),   30 ;
               1 + ofs(2),    1 + ofs(2),   220 - ofs(2),  220 - ofs(2),  110 ];
 
-[G, W, rock] = SPE10_setup(layers, wloc);
+[G, W, rock] = getSPE10setup(layers, wloc);
 
 mp = 0.01;
 rock.poro(rock.poro < mp) = mp;

@@ -11,7 +11,7 @@ mrstModule add mrst-gui spe10 coarsegrid incomp
 
 % Grid an petrophysics
 layerNo = 85;
-[G, ~, rock] = SPE10_setup(layerNo);
+[G, ~, rock] = getSPE10setup(layerNo);
 mp = 0.01;
 rock.poro(rock.poro < mp) = mp;
 

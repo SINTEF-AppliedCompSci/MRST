@@ -71,7 +71,7 @@ switch lower(gridtype)
         Nz = 12;
         mrstModule add spe10 mex
 
-        [Gspe, W, rockspe] = SPE10_setup((1:Nz) + offset);
+        [Gspe, W, rockspe] = getSPE10setup((1:Nz) + offset);
         % Normalize coordinates to make it easier to map the values
         normalize = @(x) bsxfun(@rdivide, x, max(x));
         c = normalize(Gspe.cells.centroids);

@@ -1,6 +1,6 @@
 mrstModule add mex spe10 multiscale-devel coarsegrid mrst-gui libgeometry
 if 0
-    [G, W, rock] = SPE10_setup(1);
+    [G, W, rock] = getSPE10setup(1);
     iscart = true;
 elseif 0
     load /data/norne
@@ -8,8 +8,7 @@ elseif 0
 else
     G = cartGrid([100, 100, 10], [3 3 2]);
     rock = struct('perm', ones(G.cells.num, 1));
-    % rock = SPE10_rock(1:G.cartDims(1), 1:G.cartDims(2), 1:G.cartDims(3));
-    % rock.perm = convertFrom(rock.perm(:, 1), milli*darcy);
+    % rock = getSPE10rock(1:G.cartDims(1), 1:G.cartDims(2), 1:G.cartDims(3));
     G = mcomputeGeometry(G);
     iscart = false;
 end

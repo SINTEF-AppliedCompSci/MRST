@@ -31,7 +31,7 @@ gravity on
 % We will simulate on the top 5 layers.
 layers = 1:6;
 
-[G, W, rock] = SPE10_setup(layers);
+[G, W, rock] = getSPE10setup(layers);
 
 
 % SPE10 contains zero and extremely low porosities. For the purpose of this

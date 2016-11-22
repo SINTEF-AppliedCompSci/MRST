@@ -35,7 +35,7 @@ mrstModule add agglom coarsegrid spe10 incomp;
 % sampled from Model 2 of the 10th SPE Comparative Solution Project, which
 % we assume that the user has downloaded to a specific data directory using
 % the functions supplied as part of the MRST data sets.
-[G, W, rock] = SPE10_setup(25);
+[G, W, rock] = getSPE10setup(25);
 rock.poro    = max(rock.poro, 1e-3);
 rock.perm    = rock.perm(:,1);
 fluid        = initSingleFluid('mu' , 1*centi*poise     , ...

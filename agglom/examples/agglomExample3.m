@@ -22,7 +22,7 @@ mrstModule add agglom coarsegrid spe10 mimetic incomp diagnostics;
 %% Set up and solve flow problem
 % As our example, we consider a standard five spot with heterogeneity
 % sampled from Model 2 of the 10th SPE Comparative Solution Project.
-[G, W, rock] = SPE10_setup(25);
+[G, W, rock] = getSPE10setup(25);
 rock.poro = max(rock.poro, 1e-4);
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 rS = initState(G, W, 0);

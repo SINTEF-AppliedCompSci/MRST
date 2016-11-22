@@ -16,7 +16,7 @@ layerNo = 85;
 % layerNo = 1;
 
 mrstModule add mrst-gui spe10 coarsegrid incomp
-[G, ~, rock] = SPE10_setup(layerNo);
+[G, ~, rock] = getSPE10setup(layerNo);
 
 % Transmissibilities on fine scale
 T = computeTrans(G, rock);

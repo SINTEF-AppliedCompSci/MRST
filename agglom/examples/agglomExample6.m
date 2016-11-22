@@ -42,7 +42,7 @@ fluxTol = 1e-2;      % refine on both sides when net flux is below fluxTol
 % five-spot well configuration.
 gravity off
 
-[G, W, rock] = SPE10_setup(25); clear W %#ok<ASGLU>
+[G, W, rock] = getSPE10setup(25); clear W %#ok<ASGLU>
 rock.poro    = max(rock.poro, 1e-3);
 fluid        = initSimpleFluid('mu' , [   1,  .2]*centi*poise     , ...
                                'rho', [1014, 859]*kilogram/meter^3, ...

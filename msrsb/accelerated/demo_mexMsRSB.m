@@ -23,7 +23,7 @@ switch lower(testcase)
     case 'spe10'
         mrstModule add spe10
         layers = 1:85;
-        [G, ~, rock] = SPE10_setup(layers);
+        [G, ~, rock] = getSPE10setup(layers);
         p = partitionUI(G, [6, 11, ceil(G.cartDims(3)./5)]);
     otherwise
         error();

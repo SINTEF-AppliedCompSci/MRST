@@ -13,7 +13,7 @@ layerNo = 85;
 % layerNo = 1;
 
 mrstModule add mrst-gui spe10 coarsegrid incomp
-[G, ~, rock] = SPE10_setup(layerNo);
+[G, ~, rock] = getSPE10setup(layerNo);
 G = cartGrid(G.cartDims(1:2));
 G = computeGeometry(G);
 rock.perm = rock.perm(:, 1);
