@@ -31,6 +31,10 @@ function varargout = plotWellSols(wellsols, varargin)
 %
 %   'datasetnames' - A cell array of dataset names used for the legend when
 %                    plotting multiple datasets.
+%
+%   'timescale'    - A string for the default choice for axis time-scale. A
+%                    string which matches either choice:
+%                    'days', 'minutes', 'seconds', 'hours', 'years'
 % RETURNS:
 %   fh     - figure handle to plotting panel
 %
@@ -90,6 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'field',       'bhp', ...
                  'linestyles', {{'-', '--', '-.', ':'}}, ...
                  'markerstyles', {{'o', '.', 'd', '*'}}, ...
+                 'timescale',   'days', ...
                  'figure',      [], ...
                  'datasetnames', {{}});
     [opt, plotvararg] = merge_options(opt, varargin{:});
@@ -158,9 +163,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'Style', 'popup',...
               'String', {'SI', 'Field'}, 'Callback', @drawPlot, ...
               'Position',[leftOffset, .85, blocksz/2, .1]);
+    timechoices = {'Years', 'Days', 'Hours', 'Minutes', 'Seconds'};
+    timescales = [year(), day(), hour(), minute(), second()];
+    
     timesel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'popup',...
-              'String', {'Day', 'Hours', 'Min', 'Seconds'}, 'Callback', @drawPlot, ...
+              'Value', find(strcmpi(opt.timescale, timechoices)), ...
+              'String', timechoices, ...
+              'Callback', @drawPlot, ...
               'Position',[leftOffset + blocksz/2, .85, blocksz/2, .1]);
     % Right column
     % Select active wells for plotting
@@ -312,8 +322,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 
                 d = getData(wname, wellnames, fld, wellsols{i});
                 if hasTimesteps && get(showdt, 'Value')
-                    x = timesteps{i}/day;
-                    xlabel('Time (days)')
+                    timescaleix = get(timesel, 'Value');
+                    nowTime = timechoices{timescaleix};
+                    timescale = timescales(timescaleix);
+                    x = timesteps{i}/timescale;
+                    xlabel(['Time [', nowTime, ']'])
                     xunit = day;
                 else
                     x = 1:numel(d);
