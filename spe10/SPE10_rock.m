@@ -1,6 +1,9 @@
 function rock = SPE10_rock(varargin)
 %Define rock properties for Model 2 of tenth SPE CSP
 %
+% This function is DEPRECATED and will be removed in a future version of
+% MRST.  Please switch to using function getSPE10rock instead.
+%
 % SYNOPSIS:
 %   rock = SPE10_rock
 %   rock = SPE10_rock(layers)
@@ -32,10 +35,7 @@ function rock = SPE10_rock(varargin)
 %          the specified layers or cell subset.
 %
 % NOTE:
-%   The permeability data is returned unconverted, meaning the data is
-%   given in whatever units are provided in the MAT-file representation
-%   "spe10_rock.mat" in the directory containing "SPE10_rock.m".
-%   This is typically milli*darcy.
+%   The permeability data is returned in units of milli*darcy.
 %
 %   It is the caller's responsibility to convert this data into MRST's
 %   strict SI-only unit conventions.  Function 'convertFrom' provides one
@@ -45,7 +45,7 @@ function rock = SPE10_rock(varargin)
 %   rock = SPE10_rock(85)
 %
 % SEE ALSO:
-%   SPE10_setup, make_spe10_data, convertFrom, milli, darcy.
+%   getSPE10rock, SPE10_setup, convertFrom, milli, darcy.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -66,50 +66,17 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   persistent WarningEmitted;
 
-   assert (all(cellfun(@isnumeric, varargin)), ...
-           'Input arrays must be numeric.');
+   if isempty(WarningEmitted),
+      warning('SPEFunc:Deprecated', ...
+             ['Function %s is deprecated and will be removed in a ', ...
+              'future version of MRST\nPlease use the replacement ', ...
+              'function getSPE10rock instead.'], mfilename);
 
-   [Nx, Ny, Nz] = deal(60, 220, 85);
-                                          % ()
-   [I, J, K]    = deal(1:Nx, 1:Ny, 1:Nz); % Default (entire dataset)
-
-   if nargin == 1,
-                                          % (layers)
-      K = varargin{1};                    % Caller specified ind. layers
-
-   elseif nargin == 3,
-                                          % (I, J, K)
-      [I, J, K] = deal(varargin{:});      % Caller specified box
-
-   elseif nargin ~= 0,
-      error(['Syntax is\n\t'              , ...
-             'rock = %s         %% or\n\t', ...
-             'rock = %s(layers) %% or\n\t', ...
-             'rock = %s(I, J, K)'], mfilename, mfilename, mfilename);
+      WarningEmitted = true;
    end
 
-   assert (all((0 < I) & (I <= Nx)), 'I outside valid range 1:60');
-   assert (all((0 < J) & (J <= Ny)), 'J outside valid range 1:220');
-   assert (all((0 < K) & (K <= Nz)), 'K outside valid range 1:85');
-
-   % Load data in pre-processed form.
-   rock_file = fullfile(fileparts(mfilename('fullpath')), 'spe10_rock');
-   if ~exist([rock_file, '.mat'], 'file'),
-      ok = make_spe10_data;
-      assert (ok);
-   end
-   data = load(rock_file);
-   rock = data.rock; % Fa-Fa-Fa
-
-   % Extract caller's requested subset from 'rock' data
-   %
-   % Return only PERM and PORO data and exclude any other information that
-   % might be stored in on-disk representation of rock data.
-   %
-   [I, J, K] = ndgrid(I, J, K);
-   ix = sub2ind([Nx, Ny, Nz], I(:), J(:), K(:));
-
-   rock = struct('perm', rock.perm(ix, :), ...
-                 'poro', rock.poro(ix   ));
+   rock      = getSPE10rock(varargin{:});
+   rock.perm = convertTo(rock.perm, milli*darcy);
 end
