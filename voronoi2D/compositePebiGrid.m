@@ -31,6 +31,12 @@ function [G,Pts,F] = compositePebiGrid(celldim, pdims, varargin)
 %                       which specify the radius of each refinement level.
 %                       The default value -1 calls the default level step
 %                       in the mlqt function.
+%   wellRho           - OPTIONAL
+%                       Default value @(x) ones(size(x,1),1). Function gives
+%                       the relative distance between well points. If
+%                       wellRho=0.5 in an area the distance between
+%                       well-cells will be
+%                       0.5*wellGridFactor*min(resGridSize)
 %   protLayer           - OPTIONAL.
 %                       Default set to false. If set to true a protection layer
 %                       is added on both sides of the well
@@ -107,6 +113,7 @@ opt = struct('wellLines',       {{}}, ...
              'wellGridFactor',  1,  ...
              'mlqtMaxLevel',    0,    ...
              'mlqtLevelSteps',  -1,   ...
+						 'wellRho',         @(x) ones(size(x,1),1),...
              'faultLines',      {{}}, ...
              'faultGridFactor', 1,  ...
              'circleFactor',    0.6,  ...  
@@ -122,7 +129,7 @@ wellGridSize   = min(celldim)*opt.wellGridFactor;
 faultGridSize  = min(celldim)*opt.faultGridFactor;
 mlqtMaxLevel   = opt.mlqtMaxLevel;
 mlqtLevelSteps = opt.mlqtLevelSteps;
-
+wellRho        = @(x) wellGridSize*opt.wellRho(x);
 % Test input
 
 assert(numel(pdims)==2);
@@ -138,7 +145,6 @@ end
 if numel(celldim)~=2
   error('CELLDIM must have 2 elements')
 end
-
 
 % Load faults and Wells
 faultLines                = opt.faultLines;
@@ -171,7 +177,7 @@ sePtn = [wfCut==2|wfCut==3, wfCut==1|wfCut==3];
 sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
 [wellPts, wGs,protPts,pGs] = createWellGridPoints(wellLines, wellGridSize,'sePtn', ...
                                               sePtn,'wCut',wCut,'protLayer',opt.protLayer,...
-                                              'protD',protD);
+                                              'protD',protD,'wellRho',wellRho);
 
 % Create fault points
 F = createFaultGridPoints(faultLines, faultGridSize, 'circleFactor', circleFactor,...
@@ -183,7 +189,7 @@ polyBdr = opt.polyBdr;
 if 0<k && k<3
 	warning('Polygon must have at least 3 edges. Assuming rectangular domain');
 end
-if k>3
+if k<3
 	dx = pdims(1)/ceil(pdims(1)/celldim(1));
 	dy = pdims(2)/ceil(pdims(2)/celldim(2));
 	vx = 0:dx:pdims(1);
@@ -210,7 +216,7 @@ if ~isempty(wellPts)
     for i = 1:size(resPtsInit,1)
         res = [res; mlqt(resPtsInit(i,:), wellPts, celldim, varArg{:})];
     end
-    resPts = vec2mat([res{:,1}],2);
+    resPts = vertcat(res{:, 1});
     %resGridSize = 0.5*[res{:,2}]';
 else
     resPts = resPtsInit;

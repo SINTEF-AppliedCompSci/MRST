@@ -98,7 +98,8 @@ opt   = struct('wfCut',zeros(numel(wellLines),1),...
                'wCut',zeros(numel(wellLines),1),...
                'sePtn', zeros(numel(wellLines),2),...
                'protLayer',false, ...
-               'protD', {{@(p) ones(size(p,1),1)*wellGridSize/10}});
+               'protD', {{@(p) ones(size(p,1),1)*wellGridSize/10}},...
+							 'wellRho',@(x)wellGridSize*constFunc(x));
 opt   = merge_options(opt,varargin{:});
 wfCut = opt.wfCut;
 wCut  = opt.wCut;
@@ -121,7 +122,7 @@ for i = 1:numel(wellLines)  % create well points
       p = wellLine;
       wellSpace = wellGridSize;
   else
-      [p, ~] = eqInterpret(wellLine, wellGridSize, sePtn(i,:));
+      p = interLinePath(wellLine, opt.wellRho,wellGridSize, sePtn(i,:));
       if isempty(p)
         continue
       end

@@ -6,109 +6,113 @@ function [G,Pts,F] = pebiGrid(resGridSize, pdims, varargin)
 %   G = pebiGrid(...,'Name1',Value1,'Name2',Value2,...)
 %
 % PARAMETERS
-%   resGridSize       - Size of the reservoir grid cells, in units of
-%                       meters. 
-%   pdims             - Vector, length 2, [xmax, ymax], of physical size in
-%                       units of meters of the computational domain. 
+%   resGridSize     - Size of the reservoir grid cells, in units of
+%                     meters. 
+%   pdims           - Vector, length 2, [xmax, ymax], of physical size in
+%                     units of meters of the computational domain. 
 %
-%   wellLines         - OPTIONAL.
-%                       Default value empty. A struct of vectors. Each 
-%                       vector, size nw x 2, is the coordinates of a 
-%                       well-trace. The well is assumed to be linear 
-%                       between the coorinates. If the vector only contains 
-%                       one coordinate, the well is treated as a point well.
-%   wellGridFactor    - OPTIONAL.
-%                       Default value is 0.5. This gives the relative grid
-%                       size of the well grid cells compared to reservoir 
-%                       grid cells. If wellGridFactor=0.5 the well cells 
-%                       will be about half the size of the reservoir cells.
-%   wellRefinement    - OPTIONAL
-%                       Default value FALSE. Set to true to turn on
-%                       refinement around wells.
-%   wellEps           - OPTIONAL
-%                       Default value 0.25/max(pdims). wellEps set the
-%                       refinement transition around wells. The density
-%                       function for the reservoir grid is set by
-%                       rho~exp(-distance to well / wellEps).
-%   protLayer           - OPTIONAL.
-%                       Default set to false. If set to true a protection layer
-%                       is added on both sides of the well
-%                       .          .             .  Protection Layer
-%                                                   protD(dist between points)
-%                       .----------.-------------.  Well path
-%     
-%                       .          .             .  Protection Layer
-%     
-%    protD              - OPTIONAL.
-%                       Default value wellGridSize/10. Cell array of Functions.
-%                       The array should have either one function or one 
-%                       function for  each well path.
-%                       The functions give the distance from well sites 
-%                       to the protection sites. The function is evaluated along 
-%                       the well path such that protD(0) is the start of the 
-%                       well while protD(1) is the end of the well.
-%   faultLines        - OPTIONAL
-%                       Default value empty. A struct of vectors.  Each 
-%                       vector, size nf x 2, is the coordinates of a 
-%                       fault-trace. The fault is assumed to be linear 
-%                       between the coorinates
-%   faultGridFactor   - OPTIONAL.
-%                       Default value is 0.5. This gives the relative grid
-%                       size of the fault grid cells compared to reservoir 
-%                       grid cells. If faultGridFactor=0.5 the fault cells 
-%                       will be about half the size of the reservoir cells.
-%   circleFactor      - OPTIONAL.
-%                       Default value 0.6.  Valid values are between 0.5 
-%                       and 1. circleFactor controll the size of the 
-%                       circles used to create the fault grid points. The 
-%                       circleFactor is the ratio between the radius, 
-%                       and distace between the circles. A small value will
-%                       place the fault points close the the faults, while
-%                       a large value will place the far from the faults.
-%   faultRho          - OPTIONAL.
-%                       Default value 1. Function that gives the relative
-%                       distance between fault sites along a path. If
-%                       faultRho=0.5 in a area, the fault sites will here
-%                       be about 50% closer than in other areas.
-%   fautRefinement    - OPTIONAL
-%                       Default value FALSE. Set to true to turn on
-%                       refinement around faults.
-%   faultEps           - OPTIONAL
-%                       Default value 0.25/max(pdims). faultEps set the
-%                       refinement transition around faults. The density
-%                       function for the reservoir grid is set by
-%                       rho~exp(-distance to fault / faultEps).
-%   polyBdr            - OPTIONAL 
-%                       Default value []. plyBdr is a array of size [k,2].
-%                       if k>=3 polyBdr gives the vertices of the reservoir
-%                       boundary. For this domain:
-%                                  .(x1,y1)
-%                                 / \ 
-%                         (x3,y3).---.(x2,y2)
-%                       polyBdr would be [x1,y1;x2,y2;x3,y3]. The set of
-%                       vertices must run clockwise or counterclockwise.
-%                       Note that if k>=3 the innput pdims will have no
-%                       effect.
-%   sufFaultCond       - OPTIONAL 
-%                      Default value true. If sufFaultCond = false we don
-%                      not enforce the sufficient and necessary fault
-%                      condition. Instead we enforce a less strict 
-%                      condition and remove any reservoir sites that are 
-%                      closer to the fault sites than the fault grid size.
-%                      Note that Conformity is then not guaranteed. You
-%                      might still set this to false if you have problems
-%                      with bad cells at the end of your faults because the
-%                      sufficient condition removes some reservoir points. 
+%   wellLines       - OPTIONAL.
+%                     Default value empty. A struct of vectors. Each 
+%                     vector, size nw x 2, is the coordinates of a 
+%                     well-trace. The well is assumed to be linear 
+%                     between the coorinates. If the vector only contains 
+%                     one coordinate, the well is treated as a point well.
+%   wellGridFactor  - OPTIONAL.
+%                     Default value is 1. This gives the relative grid
+%                     size of the well grid cells compared to reservoir 
+%                     grid cells. If wellGridFactor=0.5 the well cells 
+%                     will be about half the size of the reservoir cells.
+%   wellRefinement  - OPTIONAL
+%                     Default value FALSE. Set to true to turn on
+%                     refinement around wells.
+%   wellEps         - OPTIONAL
+%                     Default value 0.25/max(pdims). wellEps set the
+%                     refinement transition around wells. The density
+%                     function for the reservoir grid is set by
+%                     rho~exp(-distance to well / wellEps).
+%   wellRho         - OPTIONAL
+%                     Default value @(x) ones(size(x,1),1). Function gives
+%                     the relative distance between well points. If
+%                     wellRho=0.5 in an area the distance between
+%                     well-cells will be 0.5*wellGridFactor*resGridSize
+%   protLayer       - OPTIONAL.
+%                     Default set to false. If set to true a protection layer
+%                     is added on both sides of the well
+%                     .          .             .  Protection Layer
+%                                                 protD(dist between points)
+%                     .----------.-------------.  Well path
 %
+%                     .          .             .  Protection Layer
+%     
+%    protD          - OPTIONAL.
+%                     Default value wellGridSize/10. Cell array of Functions.
+%                     The array should have either one function or one 
+%                     function for  each well path.
+%                     The functions give the distance from well sites 
+%                     to the protection sites. The function is evaluated along 
+%                     the well path such that protD(0) is the start of the 
+%                     well while protD(1) is the end of the well.
+%   faultLines      - OPTIONAL
+%                     Default value empty. A struct of vectors.  Each 
+%                     vector, size nf x 2, is the coordinates of a 
+%                     fault-trace. The fault is assumed to be linear 
+%                     between the coorinates
+%   faultGridFactor - OPTIONAL.
+%                     Default value is 0.5. This gives the relative grid
+%                     size of the fault grid cells compared to reservoir 
+%                     grid cells. If faultGridFactor=0.5 the fault cells 
+%                     will be about half the size of the reservoir cells.
+%   circleFactor    - OPTIONAL.
+%                     Default value 0.6.  Valid values are between 0.5 
+%                     and 1. circleFactor controll the size of the 
+%                     circles used to create the fault grid points. The 
+%                     circleFactor is the ratio between the radius, 
+%                     and distace between the circles. A small value will
+%                     place the fault points close the the faults, while
+%                     a large value will place the far from the faults.
+%   faultRho        - OPTIONAL.
+%                     Default value 1. Function that gives the relative
+%                     distance between fault sites along a path. If
+%                     faultRho=0.5 in a area, the fault sites will here
+%                     be about 50% closer than in other areas.
+%   fautRefinement  - OPTIONAL
+%                     Default value FALSE. Set to true to turn on
+%                     refinement around faults.
+%   faultEps         - OPTIONAL
+%                     Default value 0.25/max(pdims). faultEps set the
+%                     refinement transition around faults. The density
+%                     function for the reservoir grid is set by
+%                     rho~exp(-distance to fault / faultEps).
+%   polyBdr          - OPTIONAL 
+%                     Default value []. plyBdr is a array of size [k,2].
+%                     if k>=3 polyBdr gives the vertices of the reservoir
+%                     boundary. For this domain:
+%                                .(x1,y1)
+%                               / \ 
+%                       (x3,y3).---.(x2,y2)
+%                     polyBdr would be [x1,y1;x2,y2;x3,y3]. The set of
+%                     vertices must run clockwise or counterclockwise.
+%                     Note that if k>=3 the innput pdims will have no
+%                     effect.
+%   sufFaultCond     - OPTIONAL 
+%                    Default value true. If sufFaultCond = false we don
+%                    not enforce the sufficient and necessary fault
+%                    condition. Instead we enforce a less strict 
+%                    condition and remove any reservoir sites that are 
+%                    closer to the fault sites than the fault grid size.
+%                    Note that Conformity is then not guaranteed. You
+%                    might still set this to false if you have problems
+%                    with bad cells at the end of your faults because the
+%                    sufficient condition removes some reservoir points. 
 %
 % RETURNS:
-%   G                - Valid grid definition.  
-%                        The fields
-%                          - G.cells.tag is TRUE for all well cells.
-%                          - G.faces.tag is TRUE for all fault edges.
-%   Pts              - Array [G.cells.num x 3] of the Voronoi sites.
-%   F                - Struct with elements as returned from 
-%                      createFaultGridPoints
+%   G              - Valid grid definition.  
+%                      The fields
+%                        - G.cells.tag is TRUE for all well cells.
+%                        - G.faces.tag is TRUE for all fault edges.
+%   Pts            - Array [G.cells.num x 3] of the Voronoi sites.
+%   F              - Struct with elements as returned from 
+%                    createFaultGridPoints
 %
 % EXAMPLE:
 %   fl = {[0.2,0.2;0.8,0.8]};
@@ -134,6 +138,7 @@ opt = struct('wellLines',       {{}}, ...
              'wellRefinement',  false, ...
              'faultRefinement', false, ...
              'wellEps',         -1,...
+						 'wellRho',         @(x) ones(size(x,1),1),...
              'faultEps',        -1,...
              'faultLines',      {{}}, ...
              'faultGridFactor', 1, ...
@@ -144,16 +149,17 @@ opt = struct('wellLines',       {{}}, ...
 						 'polyBdr',         zeros(0,2), ...
 						 'sufFaultCond',    true);
 
-opt          = merge_options(opt, varargin{:});
-circleFactor = opt.circleFactor;
-wellRef      =  opt.wellRefinement;
-faultRef     = opt.faultRefinement;
-wellEps      = opt.wellEps;
-faultEps     = opt.faultEps;
+opt             = merge_options(opt, varargin{:});
+circleFactor    = opt.circleFactor;
+wellRef         =  opt.wellRefinement;
+faultRef        = opt.faultRefinement;
+wellEps         = opt.wellEps;
+faultEps        = opt.faultEps;
 % Set grid sizes
 wellGridFactor  = opt.wellGridFactor;
 faultGridFactor = opt.faultGridFactor;
 wellGridSize    = resGridSize*wellGridFactor;
+wellRho         = @(x) wellGridSize*opt.wellRho(x);
 faultGridSize   = resGridSize*faultGridFactor;
 faultRho = opt.faultRho;
 
@@ -209,7 +215,7 @@ sePtn = (1.0+faultOffset/wellGridSize)*sePtn;
 
 [wellPts, wGs,protPts,pGs] = createWellGridPoints(wellLines, wellGridSize,'sePtn',sePtn,...
                                               'wCut',wCut,'protLayer',opt.protLayer,...
-                                              'protD',protD  );
+                                              'protD',protD,'wellRho',wellRho);
 
 
 % create distance functions
@@ -258,7 +264,7 @@ if faultRef && wellRef
   hres = @(x,varargin) min(hresf(p), hresw(p));
 elseif faultRef
   ds = faultGridSize;
-  hres = @(p,varargin) hresf;
+  hres = @(p,varargin) hresf(p);
 else 
   ds = wellGridSize;
   hres = @(p, varargin) hresw(p);

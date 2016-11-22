@@ -87,6 +87,19 @@ plotGrid(G2,G2.cells.tag,'faceColor','b')
 title('wellEps = 1/2')
 axis equal
 
+%% wellRho
+% A function that sets the relative size of the fault sites in the domain.
+w = {[0.2,0.3;0.8,0.7]};
+gS = 0.1;
+pdims=[1,1];
+wellRho = @(p) 1 - 0.9*p(:,1);
+G = pebiGrid(gS, pdims,'wellLines',w,'wellRho',wellRho);
+
+figure()
+plotGrid(G)
+plotGrid(G,G.cells.tag,'facecolor','b')
+title('wellRhoRho=@(p) 1 - 0.9*p(:,1)')
+axis equal
 
 %% ProtLayer
 % Adds a protection layer around wells. The protection sites are place
@@ -187,8 +200,8 @@ axis equal
 f = {[0.2,0.3;0.8,0.7]};
 gS = 0.1;
 pdims=[1,1];
-faultRho = @(p) 1 - 0.9*p(:,1);
-G = pebiGrid(gS, pdims,'faultLines',f,'faultRho',faultRho);
+wellRho = @(p) 1 - 0.9*p(:,1);
+G = pebiGrid(gS, pdims,'faultLines',f,'faultRho',wellRho);
 
 figure()
 plotGrid(G)
