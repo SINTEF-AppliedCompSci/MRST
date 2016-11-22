@@ -184,3 +184,14 @@ plotGrid(G2)
 title('circleFactor=0.9')
 axis equal
 
+%% PolyBdr
+% Create a non-square reservoir domain
+bdr   = [0,0;-0.5,1;0.5,1.5;1,1];
+gs    = [0.1,0.1];
+pdims = [1,1]; % can be set to anything
+G = compositePebiGrid(gs,pdims,'polyBdr',bdr);
+
+figure()
+plotGrid(G)
+title('Polygon boundary')
+axis equal tight
