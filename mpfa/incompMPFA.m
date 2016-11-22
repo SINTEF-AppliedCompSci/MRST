@@ -174,11 +174,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    %totmob = fluid.Lt(state);
    totmob_mat = spdiags(totmob(ind), 0, numel(ind),numel(ind));
-   T      = T * totmob_mat;
+   T      = TT.T * totmob_mat;
 
-   totmob_mat = spdiags(rldecode(totmob, diff(g.cells.facePos)), 0, ...
-                        size(g.cells.faces,1), size(g.cells.faces,1));
-   Tg     = Tg * totmob_mat;
+   totmob_mat = spdiags(rldecode(totmob, diff(g.cells.facePos)*2), 0, ...
+                        size(g.cells.faces,1)*2, size(g.cells.faces,1)*2);
+   %Tg     = Tg * totmob_mat;
 
    % identify internal faces
    i  = all(g.faces.neighbors ~= 0, 2);
@@ -187,8 +187,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Note: Function 'computeRHS' is a modified version of function
    % 'computePressureRHS' which was originally written to support the
    % hybrid mimetic method.
-   [ff, gg, hh, grav, dF, dC] = computePressureRHS(g, omega, ...
-                                                   opt.bc, opt.src);
+   %[ff, gg, hh, grav, dF, dC] = computePressureRHS(g, omega, ...
+   %                                                opt.bc, opt.src);
+   [~, gg, hh, grav, dF, ~] = computePressureRHS(g, omega, ...
+                                                   opt.bc, opt.src);                                          
    b  = any(g.faces.neighbors==0, 2);
    bf  = any(g.faces.neighbors==0, 2);
    I1 = [(1:g.cells.num)'; g.cells.num + find(b)];
@@ -202,7 +204,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %T = Tg*[C, -D(:,b)*d1(b,:)];
    %C=TT.C;
    %T =  TT.hfhf*[C, -D(:,b)];
-   A  = [TT.C, -TT.D(:,sb)]' *  TT.hfhf*[TT.C, -TT.D(:,sb)];
+   A  = [TT.C, -TT.D(:,sb)]' *totmob_mat* TT.hfhf*[TT.C, -TT.D(:,sb)];
    %A  = [C, -D(:,b)]' * Tg(:,I1);
    % Gravity contribution for each face
    cf  = g.cells.faces(:,1);
@@ -347,7 +349,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %T =  TT.hfhf*[C, -D(:,b)];
    %A  = [C, -D(:,b)]' *  TT.hfhf*[C, -D(:,b)];
    
-   state.flux = TT.d1'*TT.Do'*TT.hfhf*[TT.C, -TT.D(:,sb)]*(p);%?????-dg);
+   state.flux = TT.d1'*TT.Do'*totmob_mat*TT.hfhf*[TT.C, -TT.D(:,sb)]*(p);%?????-dg);
    state.flux(~b)=state.flux(~b)/4;
    state.boundaryPressure = p(nc + 1 : nnp);
 
