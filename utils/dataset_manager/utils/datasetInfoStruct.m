@@ -42,6 +42,12 @@ function [info, present] = datasetInfoStruct(varargin)
 % 'modelType'       - The type of the model (e.g. grid only, black oil,
 %                     corner point).
 %
+% 'downloadFcn'     - Custom dataset download function.  Handle to function
+%                     that takes no input parameters and returns a status
+%                     code signifying whether or not the file data was
+%                     successfully downloaded.  If specified, this value
+%                     takes presedence over the 'fileurl' parameter.
+%
 % RETURNS:
 %  info             - Struct with info fields as listed above.
 %
