@@ -161,7 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     unitsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'popup',...
-              'String', {'SI', 'Field'}, 'Callback', @drawPlot, ...
+              'String', {'SI', 'Field', 'Lab'}, 'Callback', @drawPlot, ...
               'Position',[leftOffset, .85, blocksz/2, .1]);
     timechoices = {'Years', 'Days', 'Hours', 'Minutes', 'Seconds'};
     timescales = [year(), day(), hour(), minute(), second()];
@@ -526,6 +526,7 @@ end
 
 function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
     isMetric = strcmpi(usys, 'si');
+    isField = strcmpi(usys, 'field');
     
     doCsum = false;
     yl = '';
@@ -556,12 +557,14 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
                 tit = [fld, ': Well ', tmp, ' rate (', ph, ')'];
             end
             if isMetric
+                % Metric
                 if isCsum,
                     yl = 'm^3';
                 else
                     yl = 'm^3/s';
                 end
-            else
+            elseif isField
+                % Field units
                 if isCsum
                     yl = 'stb';
                     d  = convertTo(d, stb);
@@ -569,14 +572,26 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
                     yl = 'stb/day';
                     d = convertTo(d, stb/day);
                 end
+            else
+                % Lab units
+                if isCsum
+                    yl = 'cm^3';
+                    d  = convertTo(d, (centi*meter)^3);
+                else
+                    yl = 'cm^3/hour';
+                    d = convertTo(d, (centi*meter)^3/hour);
+                end
             end
         case {'bhp', 'pressure'}
             tit = [fld, ': Bottom hole pressure'];
-            if ~isMetric
+            if isMetric
                 yl = 'Pascal';
-            else
+            elseif isField
                 yl = 'Barsa';
                 d = convertTo(d, barsa);
+            else
+                yl = 'atm';
+                d = convertTo(d, atm());
             end
         case 'gor'
             tit = [fld, ': Gas/oil ratio at surface conditions'];
@@ -597,11 +612,14 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
             tit = [fld, ': Well control value'];
         case 'cdp'
             tit = [fld, ': Pressure drop from reference depth to first perforation'];
-            if ~isMetric
+            if isMetric
                 yl = 'Pascal';
-            else
+            elseif isField
                 yl = 'Barsa';
                 d = convertTo(d, barsa);
+            else
+                yl = 'atm';
+                d = convertTo(d, atm());
             end
         otherwise
             disp('Unknown well field - no unit found');
