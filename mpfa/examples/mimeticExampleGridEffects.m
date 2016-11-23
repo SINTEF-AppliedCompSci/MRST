@@ -8,13 +8,14 @@
 
 mrstModule add incomp mimetic mpfa
 
-%% Set up simulation model
+%% Set up simulation model'
+eta=0;
 gravity off;
-gravity('reset',[0 1]);
+gravity('reset',[0.3 0.3]);
 gravity on;
 g_vec=gravity();g_vec=g_vec(1:2)';
 L=[1 1]
-dim=[1 1]
+dim=[10 10]
 G = cartGrid(dim,L);
 G.nodes.coords = twister(G.nodes.coords);
 G = computeGeometry(G);
@@ -30,16 +31,16 @@ G = computeGeometry(G);
 %}
 perm=1;
 rock.perm = perm*ones(G.cells.num, 1);
-fluid = initSingleFluid('mu' ,    1     , ...
+fluid = initSingleFluid('mu' ,    10     , ...
                         'rho', 1);
 [~,rho]=fluid.properties();                    
 xfaces=find(abs(G.faces.centroids(:,1))<1e-4)
 yfaces=find(abs(G.faces.centroids(:,1)-1)<1e-4)
-bc_left=0;bc_right=0;
+bc_left=2;bc_right=1;
 bc=addBC([],xfaces,'pressure',bc_left+rho*G.faces.centroids(xfaces,:)*g_vec)
 bc=addBC(bc,yfaces,'pressure',bc_right+rho*G.faces.centroids(yfaces,:)*g_vec)
-%bc  = pside([], G, 'left',  2);
-%bc  = pside(bc, G, 'right', 1);
+%bc  = pside([], G, 'left',  bc_left);
+%bc  = pside(bc, G, 'right', bc_right);
 
 
 
@@ -53,7 +54,7 @@ toc
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
-T1  = computeMultiPointTrans(G, rock,'eta',1/3);
+T1  = computeMultiPointTrans(G, rock,'eta',eta);
 xr2 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
                  'bc', bc,'MatrixOutput',true);
 toc
@@ -97,10 +98,10 @@ colorbar('Position',[.92 .11 .02 .34])
 figure(1)
 
 %% Compute discrepancies in flux and errors in pressure
-[~,rho]=fluid.properties();
+[mu,rho]=fluid.properties();
 p=struct('p',[],'flux',[]);
 p.pressure= (bc_left -(bc_left-bc_right)*G.cells.centroids(:,1)/L(1))+rho*G.cells.centroids*g_vec;
-v=perm*(bc_right-bc_left)/L(1);
+v=(perm/mu)*(bc_right-bc_left)/L(1);
 p.flux=G.faces.normals(:,1)*v;
 err        = @(q1, q2) norm(q1 - q2, inf);
 err_press  = @(x1, x2) err(x1.pressure(1:G.cells.num), ...
