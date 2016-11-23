@@ -68,7 +68,7 @@ subplot(3, 2, [2 4])
 subplot(3, 2, [5 6]);
    plot(1:nz, convertTo(sol .pressure(1:nx*ny:nx*ny*nz), barsa()), '-o',...
         1:nz, convertTo(xrMs.pressure(1:nx*ny:nx*ny*nz), barsa()), '-*');
-   legend('fine','coarse',2);
+   legend('fine','coarse','Location','NorthWest');
 
 %%
 displayEndOfDemoMessage(mfilename)

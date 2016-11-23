@@ -251,7 +251,8 @@ for i = 1:param.nPres,
       wc(ind,:) = [ rf.s(G.cells.num), rc.s(G.cells.num), ...
                     ra1.s(G.cells.num), ra2.s(G.cells.num) ];
       plot(T, wc),
-      legend('Fine','Coarse', 'Adaptive #1', 'Adaptive #2', 2);
+      legend('Fine','Coarse', 'Adaptive #1', 'Adaptive #2', ...
+             'Location', 'NorthWest');
       axis([T(1) T(end) -.05 1.05]), mytitle('Water cut')
 
       axes('position',[.54 .05 .42 .25])
@@ -259,7 +260,8 @@ for i = 1:param.nPres,
                     sum(abs(ra1.s - rf.s).*pv), ...
                     sum(abs(ra2.s - rf.s).*pv)]./sum(rf.s .* pv);
       plot(T, err),
-      legend('Coarse', 'Adaptive #1', 'Adaptive #2', 1);
+      legend('Coarse', 'Adaptive #1', 'Adaptive #2', ...
+             'Location', 'NorthEast');
       set(gca,'XLim',[T(1) T(end)]), mytitle('Error')
 
       drawnow
