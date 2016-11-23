@@ -163,7 +163,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    n      = nc + nw;
 
    [totmob, omega, rho] = dynamic_quantities(state, fluid);
-
+   
    % Needed after introduction of gravity
    TT=T;
    Tg = T.Tg;
@@ -178,7 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    totmob_mat = spdiags(rldecode(totmob, diff(g.cells.facePos)*2), 0, ...
                         size(g.cells.faces,1)*2, size(g.cells.faces,1)*2);
-   totFace_mob=1./accumarray(g.cells.faces,1./totmob(rldecode([1:g.cells.num]', diff(g.cells.facePos))));
+   totFace_mob=1./accumarray(g.cells.faces(:,1),1./totmob(rldecode([1:g.cells.num]', diff(g.cells.facePos))));
    b  = any(g.faces.neighbors==0, 2);
    totFace_mob(~b)=totFace_mob(~b)/2;
    tothface_mob_mat=diag(TT.d1*totFace_mob);
@@ -224,6 +224,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % to be equivalent coupled reservoir simulation the value of
    % sum of upwind mobility should be used.
    A=e_div*tothface_mob_mat*cf_mtrans;
+   ndof=size(A,1);
    %dghf=TT.hfhf * grav;
    %rhs_g= [TT.C, -TT.D(:,sb)]'*dghf;
    dghf= TT.Do'*TT.hfhf * grav;
@@ -278,7 +279,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %remove
    %A=A(1:nc,1:nc);
    nnp=length(rhs);
-   rhs=rhs;%-fg;
    rhs=[rhs;zeros(nw, 1)];
 
    %%%%%%%%%%%%%%%%%%%
@@ -376,7 +376,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    omega(TT.cno)
    
    %state.flux = TT.d1'*TT.Do'*totmob_mat*TT.hfhf*[TT.C, -TT.D(:,sb)]*(p);%?????-dg);
-   state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p - tothface_mob_mat*dghf);%?????-dg);
+   state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p(1:ndof) - tothface_mob_mat*dghf);%?????-dg);
    state.flux(~b)=state.flux(~b)/2;
    state.boundaryPressure = p(nc + 1 : nnp);
 
