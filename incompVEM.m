@@ -1,6 +1,6 @@
 function state = incompVEM(state, G, S, fluid, varargin)
-%Solve incompressible flow problem (fluxes/pressures) a first or second
-%order virtual element method.
+%Solve incompressible flow problem (fluxes/pressures) using a first or
+%second order virtual element method.
 %
 % SYNOPSIS:
 %   state = incompVEM(state, G, S, fluid)
@@ -10,12 +10,13 @@ function state = incompVEM(state, G, S, fluid, varargin)
 %   This function assembles and solves a set of linear equations defining
 %   the pressure at the nodes (first order), faces, edges and cells (second
 %   order) for the reservoir simulation problem defined by Darcy's law,
-%   sources and boundary conditions.
+%   sources and boundary conditions. The fluxes are reconstructed from the
+%   pressure solution.
 %
 % REQUIRED PARAMETERS:
 %   state  - Reservoir and well solution structure either properly
-%            initialized from function 'initState', or the results from a
-%            previous call to function 'incompVEM' and, possibly, a
+%            initialized from function 'initState', or as the results from
+%            a previous call to function 'incompVEM' and, possibly, a
 %            transport solver such as function 'explicitTransport'.
 %
 %   G, S   - Grid and (VEM) linear system data structures as defined by
@@ -29,7 +30,7 @@ function state = incompVEM(state, G, S, fluid, varargin)
 %            to the reservoir flow.  May be empty (i.e., bc = []) which is
 %            interpreted as all external no-flow (homogeneous Neumann)
 %            conditions. Can also be a strucutre defined by the function
-%            'addBCFunc', wich allows for function handle boundary
+%            'addBCVEM', wich allows for function handle boundary
 %            conditions for easy patch testing.
 %
 %   src    - Explicit source contributions as defined by function
@@ -37,18 +38,12 @@ function state = incompVEM(state, G, S, fluid, varargin)
 %            interpreted as a reservoir model without explicit sources.
 %
 %   facePressure -
-%            Whether or not to calculate face pressures if a first order
+%            Whether or not to calculate face pressures if a first-order
 %            method is used. Defalut value: facePressure = FALSE.
 %
 %   cellPressure -
-%            Whether or not to calculate cell pressures if a first order
+%            Whether or not to calculate cell pressures if a first-order
 %            method is used. Defalut value: cellPressure = FALSE.
-%
-%   conservativeFlux - 
-%           Wheter or not to apply postprocessing to make the calculated
-%           flux field conservative in the local sense, necessary on order
-%           to use incompVEM in transport solvers. Defalut value:
-%           conservativeFlux = FALSE.
 %
 %   LinSolve -
 %            Handle to linear system solver software to which the fully
@@ -62,7 +57,7 @@ function state = incompVEM(state, G, S, fluid, varargin)
 %
 %   MatrixOutput -
 %            Whether or not to return the final system matrix 'A' to the
-%            caller of function 'incompMimetic'.
+%            caller of function 'incompVEM'.
 %            Logical.  Default value: MatrixOutput = FALSE.
 %
 % RETURNS:
@@ -70,36 +65,27 @@ function state = incompVEM(state, G, S, fluid, varargin)
 %           for the fields:
 %              - nodePressure -- Pressure values for all nodes in the
 %                                discretized resrvoir model, 'G'.
-%              - edgePressure -- If G.griddim = 3, pressure values for all
-%                                edges in the discretized resrvoir model,
-%                                'G'.
-%              - facePressure -- If G.griddim = 3, pressure values for all
-%                                faces in the discretized resrvoir model,
-%                                'G'.
-%              - pressure     -- Pressure values for all cells in the
+%              - edgePressure -- If G.griddim = 3 and method order = 2,
+%                                pressure values for all edges in the
+%                                discretized resrvoir model, 'G'.
+%              - facePressure -- If method order = 2 or facePressure =
+%                                true, pressure values for all faces in the
+%                                discretized resrvoir model, 'G'.
+%              - pressure     -- If method order = 2 or cellPressure =
+%                                true, Pressure values for all cells in the
 %                                discretised reservoir model, 'G'.
-%              - flux         -- Flux across global interfaces
-%                                corresponding to the rows of
-%                                'G.faces.neighbors'.
-%              - A        -- System matrix.  Only returned if specifically
-%                            requested by setting option 'MatrixOutput'.
-%
-%
-% NOTE:
-%   If there are no external influences, i.e., if all of the structures
-%   'W', 'bc', and 'src' are empty and there are no effects of gravity, and
-%   no system right hand side has been supplied externally, then the input
-%   state is returned unchanged and a warning is printed in the command
-%   window.  This warning is printed with message ID
-%
-%           'incompMimetic:DrivingForce:Missing'
+%              - flux         -- If calculateFlux = true, fluxes across
+%                                global interfaces corresponding to the
+%                                rows of 'G.faces.neighbors'.
+%              - A            -- System matrix.  Only returned if
+%                                specifically requested by setting option
+%                                'MatrixOutput'.
 %
 % SEE ALSO:
-%   computeVirtualIP, addBC, addBCFunc addSource, initSimpleFluid
-%   initState, solveIncompFlowMS.
+%   computeVirtualIP, addBC, addBCVEM addSource, initSimpleFluid initState.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -119,14 +105,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 %   Written by Øystein Strengehagen Klemetsdal, SINTEF ICT/NTNU, 2016.
 
+%%  Main function
+%--------------------------------------------------------------------------
+
 %   Merge input parameters
-opt = struct('wells'           , []       , ...
-             'bc'              , []       , ...
+opt = struct('bc'              , []       , ...
              'src'             , []       , ...
              'facePressure'    , false    , ...
              'cellPressure'    , false    , ...
              'calculateFlux'   , true     , ...
-             'conserveFlux'    , false    , ...
              'linSolve'        , @mldivide, ...
              'matrixOutput'    , false         );
              
@@ -144,6 +131,7 @@ state = packSolution(state, p, G, S, fluid, opt, A);
 
 end
 
+%%  Helper functions
 %--------------------------------------------------------------------------
 
 function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
@@ -163,15 +151,10 @@ function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
     tmob = totmob(state, fluid);
                 
     %   Assemble global matrix
-    [A, P] = glob(state, G, S, fluid, N, tmob);
+    [A, P] = glob(G, S, N, tmob);
     
     %   Compute right-hand side
     rhs = computeRHS(G, S, P, N, opt);
-    
-    %   Add well contributions
-    [A, rhs] = addWells(A, rhs, G, S, tmob, N, opt);
-    
-    
     
     %   Apply boundary conditions.
     if ~isempty(opt.bc)
@@ -191,15 +174,14 @@ function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
         else
             i = G.nodes.num + G.edges.num + G.faces.num + 1;
         end
-%         end
-            A(i,i) = 2*A(i,i);
+        A(i,i) = 2*A(i,i);
     end
     
 end
 
 %--------------------------------------------------------------------------
 
-function [A, P] = glob(state, G, S, fluid, N, tmob)
+function [A, P] = glob(G, S, N, tmob)
 %   Assemble global system.    
 
     %   Number of dofs per cell.
@@ -211,7 +193,6 @@ function [A, P] = glob(state, G, S, fluid, N, tmob)
     end
     
     %   Multiply by total mobility for each cell.
-%     tmob = totmob(state, fluid);
     tmob = spdiags(rldecode(tmob, NP, 1),0, sum(NP), sum(NP));
     
     %   Sum contribution from each cell.
@@ -227,7 +208,7 @@ function rhs = computeRHS(G, S, P, N, opt)
     if ~isempty(src)
         if S.order == 1
             %   The first moment over the cell can be calculated exactly
-            %   from teh def of the local VEM space.
+            %   from the def of the local VEM space.
 
             rhs = zeros(G.cells.num,1);
             rhs(src.cell) = src.rate;
@@ -255,32 +236,6 @@ function rhs = computeRHS(G, S, P, N, opt)
     
 end
 
-function [A, rhs] = addWells(A, rhs, G, S, tmob, N, opt)
-
-   W = opt.wells;
-   
-    if ~isempty(W),
-        
-        wc    = vertcat(W.cells);
-        I = speye(N);
-        
-        if S.order == 1
-            n = G.cells.nodes(mcolon(G.cells.nodePos(wc), G.cells.nodePos(wc+1)-1));
-            ncn = diff(G.cells.nodePos);
-            A(n,:) = I(n,:);
-            rhs(n) = rldecode(W.val, ncn(wc),1);
-            
-        else
-            dofVec = G.nodes.num + G.edges.num*polyDim(S.order-2, G.griddim-2) ...
-                                 + G.faces.num*polyDim(S.order-2, G.griddim-1) ...
-                                 + wc;
-            A(dofVec, :) = I(dofVec,:);
-            rhs(dofVec) = W.val;
-        end
-        
-    end
-
-end
 %--------------------------------------------------------------------------
 
 function [A, rhs] = imposeBC(A, rhs, G, S, bc, N)
@@ -314,7 +269,7 @@ function [A, rhs] = imposeBC(A, rhs, G, S, bc, N)
             end
 
             
-        else
+        else            
             %   For k = 1, we use the projection onto the linear monomials
             %   and the centroid rule to evaluate (g, \phi^i)_{0,f}.
             %   For k = 2, they are given from the degrees of freedom.
@@ -379,20 +334,35 @@ function [A, rhs] = imposeBC(A, rhs, G, S, bc, N)
         A(dofVec,:) = I(dofVec, :);
 
     else
+        %   VEM-specific BCs, given as function handels.
         
+        %   Neumann faces, only supported in 2D.
         isNeu = find(strcmp(bc.type, 'flux'));
+        if nnz(isNeu) > 0
+        
+            assert(G.griddim == 2, ...
+                   'Neumann conditions for addBCVEM only supported in 2D');
+        
+        end
+        
         for i = 1:numel(isNeu)
+            
             f = bc.face{isNeu(i)};
             g = bc.func{isNeu(i)};
             n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
+            
             if G.griddim == 2
+                
                 if S.order == 1
+                
                     v = bsxfun(@times, bsxfun(@plus, ...
                                 reshape(g(G.nodes.coords(n,:)), 2, [])'/6, ...
                                 g(G.faces.centroids(f,:))/3), G.faces.areas(f));
                     v = reshape(v', [], 1);
                     rhs = rhs + sparse(n, 1:numel(n), 1, N, numel(n))*v;
+                    
                 else
+                    
                     vn = bsxfun(@times, g(G.nodes.coords(n,:))/6, ...
                                 rldecode(G.faces.areas(f), nfn(f), 1));
                     vn = reshape(vn', [], 1);
@@ -401,7 +371,9 @@ function [A, rhs] = imposeBC(A, rhs, G, S, bc, N)
                     v = sparse(n, 1:numel(n), 1, N, numel(n))*vn;
                     v(f + G.nodes.num) = vf;
                     rhs = rhs + v;
+                    
                 end
+                
             else
                 
             end
@@ -411,42 +383,113 @@ function [A, rhs] = imposeBC(A, rhs, G, S, bc, N)
         isDir = find(strcmp(bc.type, 'pressure'));
                     
         I = speye(N);
+        
         for i = 1:numel(isDir)
+            
             f = bc.face{isDir(i)};
             g = bc.func{isDir(i)};
             n = G.faces.nodes(mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1));
             n = unique(n);
+            
             if S.order == 1
+            
                 dofVec = n;
                 rhs(dofVec) = g(G.nodes.coords(n,:));
 
             else
+                
                 if G.griddim == 2
+                
                     dofVec = [n; f + G.nodes.num];
                     rhs(dofVec) = [g(G.nodes.coords(n,:)); g(G.faces.centroids(f,:))];
+                    
                 else
+                    
                     e = G.faces.edges(mcolon(G.faces.edgePos(f), G.faces.edgePos(f+1)-1));
                     dofVec = [n; e + G.nodes.num; f + G.nodes.num + G.edges.num];
                     rhs(dofVec) = [g(G.nodes.coords(n,:)); ...
                                    g(G.edges.centroids(e,:)); ...
                                    polygonInt3D(G, f, g, 3)./G.faces.areas(f)];
+                               
                 end
+                
             end
+            
             A(dofVec,:) = I(dofVec,:);
+
         end
 
     end
 end
 
+%--------------------------------------------------------------------------
+
+function state = packSolution(state, p, G, S, fluid, opt, A)
+% Packs state solution struct, and adds face- cell pressures and flux if
+% requested.
+
+    if G.griddim == 2
+        G.edges.num = 0;
+    end
+
+    state.nodePressure ...
+               = full(p(1:G.nodes.num));
+    state.edgePressure ...
+               = full(p((1:G.edges.num*polyDim(S.order-2, G.griddim-2)) ...
+                           + G.nodes.num));
+    state.facePressure ...
+               = full(p((1:G.faces.num*polyDim(S.order-2, G.griddim-1)) ...
+                           + G.nodes.num ...
+                           + G.edges.num*polyDim(S.order-2, G.griddim-2)));
+    state.pressure     ...
+               = full(p((1:G.cells.num*polyDim(S.order-2, G.griddim  )) ...
+                           + G.nodes.num ...
+                           + G.edges.num*polyDim(S.order-2, G.griddim-2)...
+                           + G.faces.num*polyDim(S.order-2, G.griddim-1)));
+    
+    %   Calculate face pressures.
+    if opt.facePressure
+        state.facePressure = facePressure(state, G, S, 1:G.faces.num);
+    end
+
+    %   Calculate cell pressures. This must also be done it we use
+    %   two-point or multipoint transmissibilities to reconstruct the flux.
+    if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
+        state.pressure = cellPressure(state, G, S);
+        if isempty(state.facePressure)
+            state.facePressure(boundaryFaces(G)) ...
+                             = facePressure(state, G, S, boundaryFaces(G));
+        end
+    end
+    
+    %   Calculate flux.
+    if opt.calculateFlux
+        state.flux = computeFlux(state, G, S, fluid, opt.bc);
+    end
+
+    %   return global matrix.
+    if opt.matrixOutput
+        state.A = A;
+    end
+
+end
+
 function p = facePressure(state, G, S, f)
+%   Calculate face pressures.
      
     if G.griddim == 2
+        %   The pressure is linear on the faces, and we use linear
+        %   interpolation to calculate the face pressures.
         
         n = G.faces.nodes(mcolon(G.faces.nodePos(f),G.faces.nodePos(f+1)-1));
         [ii, jj] = blockDiagIndex(ones(numel(f),1), 2*ones(numel(f),1));
         p = 1/2*sparse(ii, jj, 1)*state.nodePressure(n);
 
     else
+        %   We know that the face pressure is a function in the 2D VEM
+        %   space on each face, and we use this and the projection operator
+        %   \Pi^\nabla to calculate the face pressures.
+        %   NOTE: This calculates the pressure at ALL faces...
         
         cf = G.cells.faces(:,1);
         nfn = diff(G.faces.nodePos);
@@ -476,6 +519,8 @@ function p = facePressure(state, G, S, f)
 end
 
 function p = cellPressure(state, G, S)
+%   Calculates the cell pressures using the node pressures and the
+%   projection operator \Pi^\nabla.
     
     ncn = diff(G.cells.nodePos);
     c = squeezeBlockDiag(S.PiNstar, ncn, polyDim(S.order, G.griddim), sum(ncn));
@@ -490,7 +535,8 @@ end
 %--------------------------------------------------------------------------
 
 function flux = computeFlux(state, G, S, fluid, bc)
-%   Compute fluxes from cell and face pressures using TPFA of MPFA scheme.
+%   Reconstruct fluxes from pressure field. Can be done using TPFA of MPFA
+%   scheme.
 
     tm = totmob(state, fluid);
     
@@ -543,8 +589,10 @@ function flux = computeFlux(state, G, S, fluid, bc)
                 p([iiN, iiF, iiP]) = state.nodePressure(n);
                 r(:, [iiN, iiF, iiP]) = G.nodes.coords(n,:)';
             else
-                p([iiN, iiF, iiP]) = [state.nodePressure(n); state.facePressure(f); state.pressure];
-                r(:, [iiN, iiF, iiP]) = [G.nodes.coords(n,:); G.faces.centroids(f,:); G.cells.centroids]';
+                p([iiN, iiF, iiP]) = [state.nodePressure(n); ...
+                                    state.facePressure(f); state.pressure];
+                r(:, [iiN, iiF, iiP]) = [G.nodes.coords(n,:); ...
+                               G.faces.centroids(f,:); G.cells.centroids]';
             end
             
         else
@@ -552,9 +600,12 @@ function flux = computeFlux(state, G, S, fluid, bc)
             %   Map from global to local edge, face and cell dofs.
             iiE = mcolon(vec + ncn, vec + ncn + nce*polyDim(k-2, 1) - 1);
             iiF = mcolon(vec + ncn + nce*polyDim(k-2, 1), ...
-                         vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) - 1);
-            iiP = mcolon(vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2), ...
-                         vec + ncn + nce*polyDim(k-2, 1) + ncf*polyDim(k-2, 2) + polyDim(k-2,3)-1);
+                         vec + ncn + nce*polyDim(k-2, 1) ...
+                                   + ncf*polyDim(k-2, 2) - 1);
+            iiP = mcolon(vec + ncn + nce*polyDim(k-2, 1) ...
+                 + ncf*polyDim(k-2, 2), ...
+                         vec + ncn + nce*polyDim(k-2, 1) ...
+                                   + ncf*polyDim(k-2, 2) + polyDim(k-2,3)-1);
             
             %   Suffle pressure and polyomial dofs.
             if k == 1
@@ -580,7 +631,7 @@ function flux = computeFlux(state, G, S, fluid, bc)
         [jj,ii] = blockDiagIndex(G.griddim*ones(G.cells.num,1), NP);
         rm = sparse(ii, jj, r(:));
         
-        %   Divide local matrices A^P by total mobility.
+        %   Divide local matrices by total mobility.
         totmobMat = spdiags(rldecode(tm, NP, 1), 0, sum(NP), sum(NP));
         A = totmobMat*S.A;
         
@@ -588,11 +639,10 @@ function flux = computeFlux(state, G, S, fluid, bc)
         Kgradp = bsxfun(@rdivide, squeezeBlockDiag((pm*A*rm), ...
             ones(G.cells.num,1), G.cells.num, G.griddim), G.cells.volumes);
         
-        %   calculate flux for each face of each cell.
+        %   Calculate flux for each face of each cell.
         flux = sum(rldecode(-Kgradp, diff(G.cells.facePos),1)...
                                                  .*G.faces.normals(f,:),2);
         
-%         omega = calculateFaceWeights(G, rock);
         %   Compute face fluxes by arithmetic mean.
         P = sparse(f, 1:numel(f),1);
         P = bsxfun(@rdivide, P, sum(P,2));
@@ -632,7 +682,9 @@ function flux = computeFlux(state, G, S, fluid, bc)
         
     end
     
-    %   Replace flux on neumann faces by prescribed value.
+    %   Replace flux on neumann faces by prescribed value. Not supported
+    %   for addBCVEM.
+    
     neu = false(G.faces.num, 1);
     bf = boundaryFaces(G);
 
@@ -648,107 +700,17 @@ function flux = computeFlux(state, G, S, fluid, bc)
     flux(neu) = v(neu);
 
 end
-
-
-
-function state = packSolution(state, p, G, S, fluid, opt, A)
-
-[~, rho] = fluid.properties(state);
-
-% gvec = gravity();
-% if G.griddim == 3
-%     if S.order == 1
-%         pot = rho*gvec(3)*G.nodes.coords(:,3);
-%     else
-%         pot = rho*gvec(3)*[G.nodes.coords(:,3)   ; G.edges.centroids(:,3); ...
-%                            G.faces.centroids(:,3); G.cells.centroids(:,3)];
-%     end
-%     p = p-pot;
-% end
-
-if G.griddim == 2
-    G.edges.num = 0;
-end
-
-state.nodePressure ...
-               = full(p(1:G.nodes.num));
-state.edgePressure ...
-               = full(p((1:G.edges.num*polyDim(S.order-2, G.griddim-2)) ...
-                           + G.nodes.num));
-state.facePressure ...
-               = full(p((1:G.faces.num*polyDim(S.order-2, G.griddim-1)) ...
-                           + G.nodes.num ...
-                           + G.edges.num*polyDim(S.order-2, G.griddim-2)));
-state.pressure     ...
-               = full(p((1:G.cells.num*polyDim(S.order-2, G.griddim  )) ...
-                           + G.nodes.num ...
-                           + G.edges.num*polyDim(S.order-2, G.griddim-2)...
-                           + G.faces.num*polyDim(S.order-2, G.griddim-1)));
-                       
-if opt.facePressure
-    state.facePressure = facePressure(state, G, S, 1:G.faces.num);
-end
-
-if (opt.cellPressure || ~isempty(S.T)) && isempty(state.pressure)
-    state.pressure = cellPressure(state, G, S);
-    if isempty(state.facePressure)
-        state.facePressure(boundaryFaces(G)) = facePressure(state, G, S, boundaryFaces(G));
-    end
-end
-    
-if opt.calculateFlux
-    state.flux = computeFlux(state, G, S, fluid, opt.bc);
-end
-
-if opt.matrixOutput
-    state.A   = A;
-end
-
-end
-
-function [theta, omega] = calculateFaceWeights(G, rock)
-
-        K = permTensor(rock, G.griddim)';
-        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1));
-        K = sparse(ii, jj, K(:));
-        
-        fn = bsxfun(@times,G.faces.normals(f,:), fSgn./G.faces.areas(f))';
-        [ii, jj] = blockDiagIndex(G.griddim*ones(G.cells.num,1), ncf);
-        fnMat = sparse(ii,jj, fn(:));
-        delta = fnMat'*K*fnMat;
-        delta = spdiags(delta, 0);
-
-        ii = f;
-        jj = (1:numel(f))';
-        omega = sparse(ii, jj,1)*delta;
-
-        for i = 1:G.faces.num
-            d = delta(f == i);
-            omega(i) = omega(i)/(numel(d)*prod(d));
-        end
-        
-end
         
 %--------------------------------------------------------------------------
 
 function tm = totmob(state, fluid)
+%   Calculate total mobility.
 
-   [mu, ~] = fluid.properties(state);
-   s       = fluid.saturation(state);
-   kr      = fluid.relperm(s, state);
-   
-   mob    = bsxfun(@rdivide, kr, mu);
-   tm = sum(mob, 2);
+    [mu, ~] = fluid.properties(state);
+    s       = fluid.saturation(state);
+    kr      = fluid.relperm(s, state);
 
-end
+    mob = bsxfun(@rdivide, kr, mu);
+    tm  = sum(mob, 2);
 
-%--------------------------------------------------------------------------
-
-function nk = polyDim(k, dim)
-
-    if k < 0
-        nk = 0;
-    else
-        nk = nchoosek(k+dim,k);
-    end
 end
