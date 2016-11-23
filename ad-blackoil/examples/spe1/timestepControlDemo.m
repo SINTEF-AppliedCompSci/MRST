@@ -101,7 +101,7 @@ for i = 1:numel(timesteps);
     plot(time{i}/day, timesteps{i}/day, '-o', 'linewidth', 2, 'color', c(i, :))
     grid on
 end
-legend(l,2)
+legend(l,'Location','NorthWest')
 
 %% Compare solution accuracy (well curves)
 % Looking at the various well curves, we see that whereas the water rate
