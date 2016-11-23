@@ -638,7 +638,7 @@ function flux = computeFlux(state, G, S, fluid, bc)
 
     neu(bf) = true;
     v = zeros(G.faces.num,1);
-    if ~isempty(bc)
+    if ~isempty(bc) && ~isfield(bc, 'func')
         neu(bc.face(strcmp(bc.type, 'pressure'))) = false;
         isNeu = strcmp(bc.type, 'flux');
         f = bc.face(isNeu);
