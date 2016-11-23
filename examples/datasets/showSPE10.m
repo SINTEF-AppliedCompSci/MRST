@@ -23,12 +23,11 @@ mrstModule add spe10
 % Notice that |SPE10_rock| returns permeabilities in units [md], which
 % hence need to be converted to SI units before the model is used for
 % simulations.
-rock = SPE10_rock();
+rock = getSPE10rock();
 p = reshape(rock.poro,60,220,85); 
 Kx = reshape(log10(rock.perm(:,1)),60,220,85);
 Ky = reshape(log10(rock.perm(:,2)),60,220,85);
 Kz = reshape(log10(rock.perm(:,3)),60,220,85);
-rock.perm = convertFrom(rock.perm, milli*darcy);
 
 %% show p
 clf
