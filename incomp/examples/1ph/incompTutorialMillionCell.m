@@ -11,6 +11,10 @@
 % geological model will be simple a Cartesian grid with anisotropic,
 % homogeneous permeability.
 
+if isempty(mrstPath('agmg'))
+   error('This Example Requires the AGMG Module');
+end
+
 mrstModule add incomp
 
 %% Define geometry
