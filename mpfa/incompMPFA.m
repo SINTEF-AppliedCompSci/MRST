@@ -224,7 +224,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % to be equivalent coupled reservoir simulation the value of
    % sum of upwind mobility should be used.
    A=e_div*tothface_mob_mat*cf_mtrans;
-   ndof=size(A,1);
    %dghf=TT.hfhf * grav;
    %rhs_g= [TT.C, -TT.D(:,sb)]'*dghf;
    dghf= TT.Do'*TT.hfhf * grav;
@@ -376,7 +375,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    omega(TT.cno)
    
    %state.flux = TT.d1'*TT.Do'*totmob_mat*TT.hfhf*[TT.C, -TT.D(:,sb)]*(p);%?????-dg);
-   state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p(1:ndof) - tothface_mob_mat*dghf);%?????-dg);
+   state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p(1:nnp) - tothface_mob_mat*dghf);%?????-dg);
    state.flux(~b)=state.flux(~b)/2;
    state.boundaryPressure = p(nc + 1 : nnp);
 
