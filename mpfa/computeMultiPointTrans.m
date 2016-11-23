@@ -1,4 +1,4 @@
-function T = computeMultiPointTrans(g, rock, varargin)
+function [T,T_noflow] = computeMultiPointTrans(g, rock, varargin)
 %Compute multi-point transmissibilities.
 %
 % SYNOPSIS:
@@ -158,20 +158,73 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    %% Compute multi-point transmissibilities
    % for all faces in terms of cell pressures and outer boundary pressures.
-   b = full(sum(D, 1)) == 1;
+  
    %T = c1'*Dm*inv(Dm'*B*Dm)*Dm'*[C, -D(:,b)*d1(b,:)];
     %if(nargout==2)
-   Tg=c1'*Do*iDoBDo*Do';
-    %end
-   T = Tg*[C, -D(:,b)*d1(b,:)];
-   Tg=Tg*c1;
+  
    tocif(opt.verbose, t0);
    % c1'*D*d1 har samme struktur som vanlig D.
    % T er feil størrelse å returnere dersom gravitasjon skal håndteres
    % skikkelig.  Gravitasjonsleddet kommer inn som c1'*Dm*iDmBDm*Dm'*f.
    % Siden gravitasjonsbidraget for all subfaces er likt kan de sikkert
    % skrives om til c1'*Dm*iDmBDm*Dm'*F*g der F*G=f.
-   T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
+   %T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
+   %{
+    %old structure
+    b = full(sum(D, 1)) == 1;
+    Tg=c1'*Do*iDoBDo*Do';
+    %end
+    T = Tg*[C, -D(:,b)*d1(b,:)];
+    Tg=Tg*c1;
+    T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
+   %}
+   sb = full(sum(D, 1)) == 1;
+   %cf_mtrans=Do'*Do*iDoBDo*Do'*[C, -D(:,sb)];
+   cf_mtrans=iDoBDo*Do'*[C, -D(:,sb)];
+   % define div operaor
+   e_div =  [C, -D(:,sb)]'*Do;
+   % multiply fluxes with harmonic mean of mobility
+   % this to avid for re asssembly
+   % to be equivalent coupled reservoir simulation the value of
+   % sum of upwind mobility should be used.
+   %cf_trans_g=Do'*Do*iDoBDo*Do';
+   cf_trans_g=iDoBDo*Do';
+   T=struct('cf_trans',cf_mtrans,...% transmisibility calculate K\grad on mpfa faces form cell pressures and boundary pressures
+            'e_div',e_div,...%calulate div on cells and mpfa fluxes at boundary from mpfa fluxes
+            'cf_trans_g',cf_trans_g,... %calulate gravity contribution form gravity diferences from mpfa half faces
+            'd1',d1,...%mapp from mpfa faces to faces
+            'R',R,...% the continuity points fo for calculating gravity contricutions
+            'cno',cno,...%cno for mpfa faces
+            'sb',sb...%defines the mpfa boundary faces
+            );
+   %%
+   % the usefull trans for  other methods are
+   %Trans =d1'*iDoBDo*Do';
+   % resdused Trans for neumann baundary
+   nc=size(C,2);
+   iface=~sb;
+   Trans=cf_mtrans;%iDoBDo*Do'*[C, -D(:,sb)];
+   A=Trans(iface,1:nc);
+   B=Trans(iface,nc+1:end);
+   C=Trans(~iface,1:nc);
+   D=Trans(~iface,nc+1:end);
+   rTrans = A-B*inv(D)*C;
+   % reduce to internal normal
+   
+   %%
+   intfaces=~any(g.faces.neighbors==0,2);
+   rTrans = d1(iface,intfaces)'*rTrans; % mpfa trans from cell pressure to internal fluxes
+   N=g.faces.neighbors(intfaces,:);
+   
+   %% gravity contributaion 
+   gTrans = iDoBDo*d1; % not that this mapes form gravity differncces over faces including outer faces.
+   % gravity trans ???
+   rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:))
+   rgTrans = d1(iface,intfaces)'*rgTrans;   
+   %need testing
+   T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
+       'rgTrans',rgTrans','N',N);%calculate mpfa gravity contribution from "gravity difference between cells and cells to bounary faces" to internal face flux 
+   
    %T(:,all(T==0, 1))=[];
 end
 
