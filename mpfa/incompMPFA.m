@@ -178,6 +178,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    totmob_mat = spdiags(rldecode(totmob, diff(g.cells.facePos)*2), 0, ...
                         size(g.cells.faces,1)*2, size(g.cells.faces,1)*2);
+   totFace_mob=1./accumarray(g.cells.faces,1./totmob(rldecode([1:g.cells.num]', diff(g.cells.facePos))));
+   b  = any(g.faces.neighbors==0, 2);
+   totFace_mob(~b)=totFace_mob(~b)/2;
+   tothface_mob_mat=diag(TT.d1*totFace_mob);
    %Tg     = Tg * totmob_mat;
 
    % identify internal faces
@@ -189,8 +193,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % hybrid mimetic method.
    %[ff, gg, hh, grav, dF, dC] = computePressureRHS(g, omega, ...
    %                                                opt.bc, opt.src);
-   [~, gg, hh, grav, dF, ~] = computePressureRHS(g, omega, ...
-                                                   opt.bc, opt.src);                                          
+   %[~, gg, hh, grav, dF, ~] = computePressureRHS(g, omega, ...
+   %                                                opt.bc, opt.src);
+   [~, gg, hh, ~, dF, ~] = computePressureRHS(g, omega, ...
+                                                   opt.bc, opt.src);
+   % add gravity contribution for each mpfa half face
+   grav     = -omega(TT.cno) .* (TT.R * reshape(g_vec(1:g.griddim), [], 1));  
+   
    b  = any(g.faces.neighbors==0, 2);
    bf  = any(g.faces.neighbors==0, 2);
    I1 = [(1:g.cells.num)'; g.cells.num + find(b)];
@@ -204,7 +213,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %T = Tg*[C, -D(:,b)*d1(b,:)];
    %C=TT.C;
    %T =  TT.hfhf*[C, -D(:,b)];
-   A  = [TT.C, -TT.D(:,sb)]' *totmob_mat* TT.hfhf*[TT.C, -TT.D(:,sb)];
+   % defin \grad operators to all mpfa sidnes (That is halv of a normal
+   % face)
+   cf_mtrans=TT.Do'*TT.hfhf*[TT.C, -TT.D(:,sb)];
+   % define div operaor form mfpa sides to celle values in addtion to the
+   % fluxes out of boundary.
+   e_div =  [TT.C, -TT.D(:,sb)]'*TT.Do;
+   % multiply fluxes with harmonic mean of mobility
+   % this to avid for re asssembly
+   % to be equivalent coupled reservoir simulation the value of
+   % sum of upwind mobility should be used.
+   A=e_div*tothface_mob_mat*cf_mtrans;
+   %dghf=TT.hfhf * grav;
+   %rhs_g= [TT.C, -TT.D(:,sb)]'*dghf;
+   dghf= TT.Do'*TT.hfhf * grav;
+   rhs_g= [TT.C, -TT.D(:,sb)]'*TT.Do*tothface_mob_mat*dghf;
+   %A  = [TT.C, -TT.D(:,sb)]' *totmob_mat* TT.hfhf*[TT.C, -TT.D(:,sb)];
    %A  = [C, -D(:,b)]' * Tg(:,I1);
    % Gravity contribution for each face
    cf  = g.cells.faces(:,1);
@@ -215,6 +239,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    hh_tmp = TT.d1*hh;
    rhs = [gg; -hh_tmp(sb)];
+   rhs=rhs+rhs_g;
    %% Eliminate all but the cellpressure
    %BB=A(nc+1:end,nc+1:end);
    %AA=A(1:nc,1:nc);
@@ -348,9 +373,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %C=TT.C;
    %T =  TT.hfhf*[C, -D(:,b)];
    %A  = [C, -D(:,b)]' *  TT.hfhf*[C, -D(:,b)];
+   omega(TT.cno)
    
-   state.flux = TT.d1'*TT.Do'*totmob_mat*TT.hfhf*[TT.C, -TT.D(:,sb)]*(p);%?????-dg);
-   state.flux(~b)=state.flux(~b)/4;
+   %state.flux = TT.d1'*TT.Do'*totmob_mat*TT.hfhf*[TT.C, -TT.D(:,sb)]*(p);%?????-dg);
+   state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p - tothface_mob_mat*dghf);%?????-dg);
+   state.flux(~b)=state.flux(~b)/2;
    state.boundaryPressure = p(nc + 1 : nnp);
 
    for k = 1 : nw,
