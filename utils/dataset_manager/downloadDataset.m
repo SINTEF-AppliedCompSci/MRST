@@ -127,7 +127,7 @@ function ok = download_URL(info, pth)
    [ext, ext, ext] = fileparts(furl);                           %#ok<ASGLU>
 
    fprintf('Attempting to download ''%s'' dataset (%.1f MB)...\n', ...
-           name, info.filesize);
+           info.name, info.filesize);
 
    is_known = any(strcmpi(ext, { '.gz', '.tgz', '.zip' }));
 
