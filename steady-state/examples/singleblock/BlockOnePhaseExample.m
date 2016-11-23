@@ -22,8 +22,7 @@ mrstModule add spe10
 
 % Rock
 I = 1:5; J = 30:35; K = 1:5; % Make some selection
-rock = SPE10_rock(I, J, K); % Get SPE10 rock
-rock.perm = convertFrom(rock.perm, milli*darcy); % Convert units
+rock = getSPE10rock(I, J, K); % Get SPE10 rock
 
 % Grid
 cellsize = [20, 10, 2].*ft; % Cell size (ft -> m)

@@ -33,8 +33,7 @@ set(fh, 'OuterPosition', op.*[1 1 2.4 1]);
 
 % Rock
 I = 1:5; J = 30:35; K = 1:5; % Make some selection
-rock = SPE10_rock(I, J, K); % Get SPE10 rock
-rock.perm = convertFrom(rock.perm, milli*darcy); % Convert units
+rock = getSPE10rock(I, J, K); % Get SPE10 rock
 rock.poro(rock.poro==0) = min(rock.poro(rock.poro>0)); % Remove zero poro
 
 % Grid

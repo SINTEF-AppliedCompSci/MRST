@@ -29,9 +29,11 @@ bcr{3}=pside([],G,'BOTTOM',0);  bcl{3}=pside([],G,'TOP',0);
 %% Extract a small subset of SPE10 to upscale.
 x = 51; y = 11; z = 1;
 
-rock = SPE10_rock(x:(x-1+G.cartDims(1)),...
-                  y:(y-1+G.cartDims(2)),...
-                  z:(z-1+G.cartDims(3)));
+rock = getSPE10rock(x:(x-1+G.cartDims(1)),...
+                    y:(y-1+G.cartDims(2)),...
+                    z:(z-1+G.cartDims(3)));
+rock.perm = convertTo(rock.perm, milli*darcy);
+
 clf
 plotCellData(G, log10(rock.perm(:,1))); view(3); axis tight
 title('Fine scale permeability')
