@@ -171,9 +171,11 @@ for n=1:numel(opt.plotOnly)
    set(gca,args{1},'reverse', args{2}, [zm zM + sqrt(eps)] + [-.1 .1]*(zM-zm));
 
    if max(wp(k).alloc(:))>0
-      hl=legend(h(k),wp(k).name,4); set(hl,'FontSize',8); legend boxoff
+      hl=legend(h(k),wp(k).name,'Location','SouthEast');
+      set(hl,'FontSize',8); legend boxoff
    else
-      hl=legend(h(k),wp(k).name,3); set(hl,'FontSize',8); legend boxoff
+      hl=legend(h(k),wp(k).name,'Location','SouthWest');
+      set(hl,'FontSize',8); legend boxoff
    end
    set(gca,'XTickLabel',[],'YTickLabel',[]);
    waitbar(n/numel(opt.plotOnly),wb,['Well ', num2str(k+1)])

@@ -204,9 +204,11 @@ for i=1:num_plots
    set(gca,aargs{1},'reverse', aargs{2}, [zm zM + sqrt(eps)] + [-.1 .1]*(zM-zm));
 
    if max(wp1(i).alloc(:))>0
-      hl=legend(h(i),wp1(i).name,4); set(hl,'FontSize',8); legend boxoff
+      hl=legend(h(i),wp1(i).name,'Location','SouthEast');
+      set(hl,'FontSize',8); legend boxoff
    else
-      hl=legend(h(i),wp1(i).name,3); set(hl,'FontSize',8); legend boxoff
+      hl=legend(h(i),wp1(i).name,'Location','SouthWest');
+      set(hl,'FontSize',8); legend boxoff
    end
    waitbar(i/num_plots,wb,['Well ', num2str(i+1)])
 end
