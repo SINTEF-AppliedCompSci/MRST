@@ -4,6 +4,10 @@ classdef SimpleWell < PhysicalModel
         allowCrossflow
         allowSignChange
         allowControlSwitching
+        
+        dpMaxRel
+        dpMaxAbs
+        dsMaxAbs
     end
     
     methods
@@ -14,6 +18,9 @@ classdef SimpleWell < PhysicalModel
             well.allowSignChange = false;
             well.allowControlSwitching = true;
             
+            well.dpMaxRel = inf;
+            well.dpMaxAbs = inf;
+            well.dsMaxAbs = inf;
             if nargin > 1
                 well = merge_options(well, varargin{:});
             end
@@ -235,6 +242,21 @@ classdef SimpleWell < PhysicalModel
             end
         end
         
+        function wellSol = updateWellSol(well, wellSol, variables, dx)
+            isBHP = strcmpi(variables, 'bhp');
+            if any(isBHP)
+                dv = dx{isBHP};
+                dv = well.limitUpdateRelative(dv, wellSol.bhp, well.dpMaxRel);
+                dv = well.limitUpdateAbsolute(dv, well.dpMaxAbs);
+                wellSol.bhp = wellSol.bhp + dv;
+                variables = variables(~isBHP);
+                dx = dx(~isBHP);
+            end
+            for i = 1:numel(dx)
+                wellSol = well.updateStateFromIncrement(wellSol, dx{i}, [], variables{i});
+            end
+        end
+        
         function [wellSol, well_shut] = updateWellSolAfterStep(well, resmodel, wellSol)
             w = well.W;
             % Check if producers are becoming injectors and vice versa. The indexes
@@ -279,7 +301,10 @@ classdef SimpleWell < PhysicalModel
                     [fn, index] = getVariableField@PhysicalModel(model, name);
             end
         end
-
+        
+        function ws = ensureWellSolConsistency(well, ws) %#ok
+            % Run after the update step to ensure consistency of variables
+        end
     end
 end
 

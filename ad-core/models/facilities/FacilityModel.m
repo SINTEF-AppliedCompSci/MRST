@@ -43,6 +43,9 @@ classdef FacilityModel < PhysicalModel
                         else
                             wm = SimpleWell(W(i));
                         end
+                        wm.dsMaxAbs = model.ReservoirModel.dsMaxAbs;
+                        wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
+                        wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
                     else
                         wm = wellmodels{i};
                     end
@@ -259,28 +262,30 @@ classdef FacilityModel < PhysicalModel
             end
             wellVars = model.getPrimaryVariableNames();
             resModel = model.ReservoirModel;
-            for i = 1:numel(wellVars)
-                wf = wellVars{i};
+            
+            nVars = numel(wellVars);
+            nW = numel(wellSol);
+            activeVars = false(nW, nVars);
+            dx_well = cell(nW, nVars);
+            for varNo = 1:nVars
+                wf = wellVars{varNo};
                 dv = model.getIncrement(dx, problem, wf);
 
-                if strcmpi(wf, 'bhp')
-                    % Bottom hole is a bit special - we apply the pressure update
-                    % limits here as well.
-                    bhp = vertcat(wellSol.bhp);
-                    dv = resModel.limitUpdateRelative(dv, bhp, resModel.dpMaxRel);
-                    dv = resModel.limitUpdateAbsolute(dv, resModel.dpMaxAbs);
-                end
                 isVarWell = model.getWellVariableMap(wf);
-                for j = 1:numel(wellSol)
-                    subs = isVarWell == j;
+                for wNo = 1:numel(wellSol)
+                    subs = isVarWell == wNo;
                     if any(subs)
-                        % Put this into WellModel so that we can have
-                        % limits on properties
-                        wellSol(j) = model.WellModels{j}.incrementProp(wellSol(j), wf, dv(subs));
+                        activeVars(wNo, varNo) = true;
+                        dx_well{wNo, varNo} = dv(subs);
                     end
                 end
                 % Field is taken care of
                 restVars = model.stripVars(restVars, wf);
+            end
+            for wNo = 1:numel(wellSol)
+                act = activeVars(wNo, :);
+                dxw = dx_well(wNo, act);
+                wellSol(wNo) = model.WellModels{wNo}.updateWellSol(wellSol(wNo), wellVars(act), dxw);
             end
         end
         
