@@ -69,7 +69,7 @@ end
 disp('   --------------------------------------------------------');
 disp('');
 loglog(n,t1,'-*',n,t2,'-+',n,t3,'-o',n,t4,'-s');
-legend('analytical','vectorized','for+mtimes','for+times',2);
+legend('analytical','vectorized','for+mtimes','for+times','Location','NorthEast');
 
 
 %% Use automatic differentation to assmble a linear system
