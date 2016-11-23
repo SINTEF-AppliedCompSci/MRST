@@ -20,8 +20,7 @@ G  = cartGrid(cartDims, physDims);
 G  = computeGeometry(G);
 
 % Rock
-rock = SPE10_rock(1:cartDims(end));
-rock.perm = convertFrom(rock.perm, milli*darcy);
+rock = getSPE10rock(1:cartDims(end));
 rock.poro = max(rock.poro, 1e-4);
 
 % Wells

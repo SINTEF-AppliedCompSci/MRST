@@ -45,8 +45,7 @@ if uniformRock
     rock.poro = repmat(0.3,             [G.cells.num, 1]);
     rock.perm = repmat(100*milli*darcy, [G.cells.num, 1]);
 else
-    rock = SPE10_rock(1:Nx, 1:Ny, (1:Nz) + offset);
-    rock.perm = convertFrom(rock.perm, milli*darcy);
+    rock = getSPE10rock(1:Nx, 1:Ny, (1:Nz) + offset);
     rock.poro(rock.poro < 0.01) = 0.01;
 end
 pv = poreVolume(G, rock);
