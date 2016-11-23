@@ -36,9 +36,8 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
     fluid.pvMultR = @(p)(1 + cR.*(p-pRef));
 
     
-    rock = SPE10_rock(opt.layers);
-    rock.perm = convertFrom(rock.perm, milli*darcy);
-    
+    rock = getSPE10rock(opt.layers);
+
     % Compute pore volume fraction of the full model
     volFrac = sum(rock.poro)/1.9141e+05;
     rock.poro(rock.poro < opt.minporo) = opt.minporo;
