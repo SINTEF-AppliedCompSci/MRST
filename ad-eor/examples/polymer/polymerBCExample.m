@@ -84,7 +84,7 @@ srcVals  = 0.001.*ones(numel(srcCells),1);
 src = addSource( [], srcCells,  srcVals, 'sat', [1 0]);
 src = addSource(src, snkCells, -srcVals, 'sat', [0 0]);
 src.poly = 4.*ones(size(src.sat,1), 1);
-schedule = simpleSchedule(timesteps, 'bc', bc);
+schedule = simpleSchedule(timesteps, 'src', src);
 
 % Simulate
 [~, states] = simulateScheduleAD(state0, model, schedule);
