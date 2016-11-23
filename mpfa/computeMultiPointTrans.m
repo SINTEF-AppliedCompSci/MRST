@@ -109,7 +109,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       t0 = tic;
    end
 
-   B = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt);
+   [B,R] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt);
    B = processFaceTrans(B, g, opt.facetrans(:,1), opt.facetrans(:,2), fno);
 
    tocif(opt.verbose, t0);
@@ -171,7 +171,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % skikkelig.  Gravitasjonsleddet kommer inn som c1'*Dm*iDmBDm*Dm'*f.
    % Siden gravitasjonsbidraget for all subfaces er likt kan de sikkert
    % skrives om til c1'*Dm*iDmBDm*Dm'*F*g der F*G=f.
-   T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do);
+   T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
    %T(:,all(T==0, 1))=[];
 end
 
@@ -204,7 +204,7 @@ function [cno, nno, hfno, fno, subfno, subhfno] = createMapping(g)
    subhfno = (1:numel(cno))';
 end
 
-function B = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
+function [B,Rvec] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
    [a, blocksz] = rlencode([cno,nno]);
    dims         = size(g.nodes.coords, 2);
    assert(all(blocksz==dims));
@@ -217,9 +217,9 @@ function B = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
    % Use original face centroids and cell centroids, NOT actual subface
    % centroids.  This corresponds to an MPFA method (O-method)
    %R     = g.faces.centroids(fno,:) - g.cells.centroids(cno,:);
-   R      = g.faces.centroids(fno,:) - g.cells.centroids(cno,:)+...
+   Rvec      = g.faces.centroids(fno,:) - g.cells.centroids(cno,:)+...
             opt.eta*(g.nodes.coords(nno,:)-g.faces.centroids(fno,:));
-   R     = sparse(i,j,R);
+   R     = sparse(i,j,Rvec);
 
    % Subface sign == face sign
    sgn   = 2*(cno == g.faces.neighbors(fno,1)) -1;
