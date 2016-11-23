@@ -1,9 +1,10 @@
-function [flux, r] = conserveFlux(state, G, rock,  varargin)
+function [state, r] = conserveFlux(state, G, rock,  varargin)
 
     %   Merge input parameters
     opt = struct('bc'              , []       , ...
                  'src'             , []       , ...
-                 'faceWeights'     , 'permWeighted');
+                 'faceWeights'     , 'permWeighted', ...
+                 'tol'             , 1e-14         );
 
     opt = merge_options(opt, varargin{:});
     
@@ -38,9 +39,8 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
     if nnz(rhs) == 0
         den = state.flux;
     end
-    if norm(r)/norm(den) < 1e-15
+    if norm(r)/norm(den) < opt.tol
         warning('Flux already conservative. No need for postprocessing.');
-        flux = state.flux; 
     else
 
         %   Calculate weights omega
@@ -63,6 +63,10 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
         [ii, jj] = blockDiagIndex(ones(G.cells.num,1), ncf);
         ca = sparse(ii,jj,I)*(G.faces.areas(f).*omega);
         B = B + spdiags(ca, 0, G.cells.num, G.cells.num);
+        
+        if nnz(neu) == numel(bf)
+            B(1,1) = 2*B(1,1);
+        end
 
         beta = B\r;
         beta = rldecode(beta, ncf,1);
@@ -72,10 +76,12 @@ function [flux, r] = conserveFlux(state, G, rock,  varargin)
         flux = state.flux + G.faces.areas.*beta;
 
         r = rhs-P*(flux(f).*fSgn);
-        if norm(r)/norm(den) > 1e-15;
+        if norm(r)/norm(den) > opt.tol;
             warning('Could not construct conservative flux field');
         end
 
+        state.flux = flux;
+        
     end
 
 end
