@@ -23,11 +23,12 @@ rock = makeRock(G, 100*milli*darcy, 0.5);
 %% Defining the fluid properties
 % In this section, we set up a generic fluid suitable for solvers based on
 % automatic differentiation. The fluid model is by default incompressible.
-% We define all three phases (water, oil and gas), but we will only use the
-% first two in practice.
-fluid = initSimpleADIFluid('mu', [1, 10, 1]*centi*poise, ...
-                           'n',  [1 1 1], ...
-                           'rho', [1000, 700, 250]*kilogram/meter^3);
+% We define two phases: Oil and water with significant differences in
+% density and viscosity.
+fluid = initSimpleADIFluid('phases', 'WO', ...
+                           'mu', [1, 10]*centi*poise, ...
+                           'n',  [1, 1], ...
+                           'rho', [1000, 700]*kilogram/meter^3);
                         
 %% Defining the model
 % The model object contains all functions necessary to simulate a
