@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     elseif ~datasetHasValidFileURL(info)
         % Empty (or non-string) file URL.  Don't know how to do this.
 
-        fail(info);
+        fail(info, pth);
         ok = false;
     else
         % Static, non-empty string URL for dataset file.  Direct Download.
@@ -97,7 +97,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function fail(info)
+function fail(info, pth)
    % Display instructions
    fprintf('Dataset ''%s'' not directly available for download.\n', ...
            info.name);
