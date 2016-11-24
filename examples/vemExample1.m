@@ -45,8 +45,7 @@
 % the resulting bilinear form is positive definite and stable.  The flux
 % field can easily be reconstructed from the pressure solution. For details
 % on constructing the VEM function spaces, and implementing the method, see
-% \cite{klemetsdal2016virtual, beirao2013basic, ahmad2013equivalent,
-% beirao2014hitchhiker}.
+% for example <http://hdl.handle.net/11250/2405996 Klemetsdal 2016>.
 
 try
    require upr vem
@@ -80,6 +79,7 @@ G = mirroredPebi(points, boundary);
 % Having generated the grid structure, we plot the result.
 
 clf, plotGrid(G); view(3); axis equal
+light('Position',[-50 -50 -100], 'Style', 'infinite')
 
 %%
 % The VEM implementation uses grid properties that are not computed by the
@@ -137,10 +137,26 @@ bc = addBC(bc, bFaces(east), 'pressure', 0        );
 % using <matlab:help('computeVirtualIP') computeVirtualIP>, where we must
 % provide the grid and rock structures, and method order.
 
-S1 = computeVirtualIP(G, rock, 1);
+S1 = computeVirtualIP(G, rock, 1); disp(S1);
 S2 = computeVirtualIP(G, rock, 2);
 
 %%
+% The resulting solution structure has the following fields:
+%
+% # A: Block diagonal matrx with the local bilinear forms on the
+%   diagonal.
+% # ip: Choice of stability term for the inner products. Possible choices
+% are 'ip_simple', 'ip_qfamily', 'ip_fem', and 'ip_fd'.
+% # dofVec: Map from local to global degrees of freedom.
+% # PiNstar and PiNFstar: Matrix representations of the projection
+% operator $\Pi$ on the cells and faces of the grid.
+% # faceCoords: Local 2D coordinate systems on each face.
+% # order: Method order.
+% # T, transType: The implementation also supports flux reconstruction
+% using the TPFA or MPFA schemes. This can be obtained by setting the
+% 'trans' option to 'tpfa' or 'mpfa'. In this case, T and transType holds
+% the half-face transmissibilities, and the corresponding scheme.
+%
 % Next, we compute the solution using both first-order and second-order
 % VEM. The first-order VEM uses the pressure at the nodes as degrees of
 % freedom. However, it is possible to reconstruct the cell pressures of the
@@ -205,3 +221,26 @@ plot3(xc(:,1), xc(:,2), xc(:,3), 'o')
 
 subplot(2,2,4)
 spy(state2.A)
+
+%%
+% The construciton of these linear systems can be quite expensive in terms
+% of computational effort, especially for reservoir models with many cells.
+% In order to speed up the construction, one can use C-accelerated MEX
+% functions in <matlab:help('computeVirtualIP') computeVirtualIP>. This is
+% done by setting 'invertBlocks' to 'MEX'. Note that this relies on being
+% able to build the required MEX functions:
+
+tic
+fprintf('Computing innerproducts using mldivide \t ... ');
+computeVirtualIP(G, rock, 2);
+toc
+
+tic
+fprintf('Computing innerproducts using MEX \t ... ');
+computeVirtualIP(G, rock, 2, 'invertBlocks', 'MEX');
+toc
+
+%%
+% For larger resrvoir models, using C-accelerated MEX functions is usually
+% several orders of magnitude faster, and should always be used if
+% possible.

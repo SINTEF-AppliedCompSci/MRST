@@ -1,12 +1,8 @@
 %% Solving transport problems with VEM
 % In this example, we will use the virtual element method (VEM) solver in
-% MRST, and show how to set up and use it to solve the single-phase
-% pressure equation
-%
-% $$\nabla\cdot v = q, \qquad v=\textbf{--}\frac{K}{\mu}\nabla p,$$
-%
-% for a problem with one source and one sink. We will then use the
-% resulting solution to solve the associated transport problem. To
+% MRST, and show how to set up and use it to solve a transport problem in
+% which we inject a hight-viscosity fluid in a reservoir with varying
+% permeability, which is initially filled with a low viscosity fluid. To
 % emphasize the importance of using a consistent discretization method for
 % grids that are not K-orthogonal, we will compare the solution to the
 % Two-point flux approximation (TPFA) mehod.
@@ -18,30 +14,19 @@ catch
 end
 
 %% Define geometry
-% We will use the UPR module to construct fully unstructured
-% PEBI-grid covering the domain $[0, 1000]\times[0, 1000]$. To generate the
-% grid, will use the function <matlab:help('pebiGrid') pebiGrid>, in which
-% we define the average gridcell size, the physical grid sizes in the axial
-% directions, and the well coordinates.
+% We will use the UPR module to construct a composite PEBI-grid covering
+% the domain $[0, 1000]\times[0, 1000]$, divided into three regions of
+% highly varying permeability, with a source term placed in the lower left
+% corner, and a sink term in the upper right corner. See the UPR module on
+% how to contruct such grids.
 
-gridLimits = [1, 1];
-wellCoordinates = {[0.1, 0.1].*gridLimits; [0.9, 0.9].*gridLimits};
-n = 20;
-
-G = pebiGrid(gridLimits(1)/n, gridLimits, 'wellLines', wellCoordinates);
-
-G.nodes.coords = G.nodes.coords*1000;
-G = computeVEMGeometry(G);
+addpath 'utils/', [G, c] = producerInjectorGrid();
 
 %%
-% Having generated the grid structure, we plot the result. The source and
-% sink cells are indicated in blue and red, respecitvely.
+% Having generated the grid structure, we plot the result.
 
-clf
-plotGrid(G);
+clf, plotGrid(G, 'facecolor', 'none');
 srcCells = find(G.cells.tag);
-plotGrid(G, srcCells(1), 'facecolor', 'b');
-plotGrid(G, srcCells(2), 'facecolor', 'r');
 axis equal off
 
 %%
@@ -54,37 +39,55 @@ axis equal off
 G = computeVEMGeometry(G);
 
 %%  Define rock and fluid properties
-% We set the permeability to be homogeneous and anisotropic
+% Numbering the grid regions from the lower left corner to the upper right
+% corner, we set permeability in region $i$ to be
 %
-% $$ K = R(\pi/4)\left(\begin{array}{cc}
+% $$ K_i = R(\theta_i)\left(\begin{array}{cc}
 %      1000 & 0 \\ 0 & 10
-%      \end{array}\right)R(\pi/4)^T, $$
+%      \end{array}\right)R(\theta_i)^T, $$
 %
-% where $R(\theta)$ is a rotation matrix
+% in units of 100 mD, where $R(\theta)$ is a rotation matrix
 %
 % $$ R(\theta) = \left(\begin{array}{cc}
 %      \cos(\theta) & -\sin(\theta) \\ \sin(\theta) & \cos(\theta)
 %      \end{array}\right). $$
 %
-% We use <matlab:help('makeRock') makeRock>, to define this permeability
-% tensor, and let the porosity be 0.3 in all cells. We will consider a
-% scenario in which we inject water at a constant rate in the reservoir,
-% which is initially filled with oil. We define a fluid structure with
-% these two fluids using  <matlab:help('initSimpleFluid') initSimpleFluid>.
-% For simplicity, we set both Corey coefficients to 1. Finally, we use
-% <matlab:help('initResSol') initResSol> to initialize the state. Here, we
-% must indicate that the initial saturation is 1 for oil, and 0 for water.
 
-perm = diag([1000, 10])*milli*darcy();
+K = diag([1000, 10])*milli*darcy();
 R = @(t) [cos(t) -sin(t); sin(t) cos(t)];
-t = pi/4;
-perm = R(t)*perm*R(t)';
 
+KK{1} = R(pi/4)*K*R(pi/4)';
+KK{2} = K;
+KK{3} = R(pi/2)*K*R(pi/2)';
+KK{4} = K;
+
+%%
+% The structure c consists of four logical vectors identifying the cells
+% belonging to each region, and we use this to set the permeability in each
+% region. To define a full, symmetric permeability tensor, we specify the
+% upper-triangular part. The rock structure is then constructed using
+% <matlab:help('makeRock') makeRock>, where we set the porosity to 0.3:
+
+perm = zeros(G.cells.num, 3);
+for i = 1:numel(c)
+    perm(c{i},:) = repmat(KK{i}([1,2,4]), nnz(c{i}), 1);
+end
+    
 poro = 0.3;
-rock = makeRock(G, perm([1,2,4]), poro);
+rock = makeRock(G, perm, poro);
 
-fluid = initSimpleFluid('mu' , [   1,  100]*centi*poise     , ...
-                        'rho', [1014,  800]*kilogram/meter^3, ...
+%%
+% We will consider a scenario in which we inject a hihg-viscosity fluid at
+% a constant rate in the reservoir, which is initially filled with a fluid
+% with lower viscosity. We define a fluid structure with these two fluids
+% using <matlab:help('initSimpleFluid') initSimpleFluid>. For simplicity,
+% we set both phase relative permeability exponents to 1. Finally, we use
+% <matlab:help('initResSol') initResSol> to initialize the state. Here, we
+% must indicate that the initial saturation is 0 for the fluid we are
+% injecting, and 1 for the fluid which initially occupies the pore volume.
+
+fluid = initSimpleFluid('mu' , [   5,    1]*centi*poise     , ...
+                        'rho', [1000,  800]*kilogram/meter^3, ...
                         'n'  , [   1,    1]                      );
                     
 [stateVEM, stateTPFA] = deal(initResSol(G, 0, [0,1]));
@@ -94,9 +97,9 @@ fluid = initSimpleFluid('mu' , [   1,  100]*centi*poise     , ...
 % injection rate equal one pore volume per 10 years. The source and sink
 % terms are constructed using <matlab:help('addSource') addSource>. For the
 % source term, we must specify the saturation of the injected fluid. Since
-% want to inject water, we set this to [1,0].
+% want to fluid 1, we set this to [1,0].
 
-Q = 100*sum(poreVolume(G,rock))/(10*year);
+Q = sum(poreVolume(G,rock))/(10*year);
 src = addSource([], find(G.cells.tag), [Q, -Q], 'sat', [1,0; 0,1]); 
 
 %% Constructing the linear systems
@@ -113,7 +116,7 @@ SVEM  = computeVirtualIP(G, rock, 1);
 % the solution is applied to the transport solver. To avoid this, we must
 % thus postprocess the VEM solution. This is done using
 % <matlab:help('conserveFlux') conserveFlux>, in which we provide any
-% sources, sinks and boundary conditions. as for the MRST-solver, all
+% sources, sinks and boundary conditions. As for the solvers in MRST, all
 % boundaries without prescribed boundary conditions are interpreted as
 % no-flow boundaries.
 %
@@ -121,13 +124,12 @@ SVEM  = computeVirtualIP(G, rock, 1);
 % rate in the sink cell.
 
 T = 10*year;
-nT = 50;
+nT = 100;
 dT = T/nT;
 
 [productionRateVEM, productionRateTPFA] = deal(zeros(nT,1));
 
 t = linspace(0,T/year,nT);
-r = cell(nT,1);
 
 for i = 1:nT
     
@@ -154,11 +156,17 @@ for i = 1:nT
     productionRateTPFA(i) = day*Q*stateVEM.s(src.cell(2),2);
     
     subplot(2,2,3:4)
-    plot(t(1:i), productionRateVEM(1:i), t(1:i), productionRateTPFA(1:i))
-    axis([0 T/year 0 day*Q])
+    h = plot(t(1:i), productionRateVEM( 1:i), ...
+             t(1:i), productionRateTPFA(1:i), 'lineWidth', 2);
+    axis([0 T/year 0 1.1*day*Q])
     xlabel('Time [years]');
     ylabel('Production rate [m^3/day]');
     legend('TPFA', 'VEM')
     pause(0.0001)
     
 end
+
+%%
+% We see that there are significant differences in the two saturation
+% profiles and production curves, with TPFA failing to capture the effect
+% of the rotated permeability fields in regions one and four.

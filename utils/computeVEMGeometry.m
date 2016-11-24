@@ -2,7 +2,7 @@ function G = computeVEMGeometry(G)
 %Computes VEM geometry of MRST grid G.
 %
 %   SYNOPSIS:
-%       G = computeVEM3DGeometry(G)
+%       G = computeVEMGeometry(G)
 %
 %   DESCRIPTION:
 %       Computes geometry using MRST functions G = computeGeometry(G) and G
@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
     
     G = computeGeometry(G);
-    G = mrstGridWithFullMappings(G);
+    G = createAugmentedGrid(G);
     
     if G.griddim == 2
         %   In 2D we only need to calculate cell diameters.

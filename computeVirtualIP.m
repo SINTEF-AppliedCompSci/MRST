@@ -1187,13 +1187,14 @@ function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2, opt)
     end
     
     S.A          = A;
-    S.T          = T;
-    S.transType  = opt.trans;
+    S.ip         = opt.innerProduct;
     S.dofVec     = dofVec;
     S.PiNstar    = PiNstar;
     S.PiNFstar   = PiNFstar;
     S.faceCoords = [v1(:), v2(:)];
     S.order      = k;
+    S.T          = T;
+    S.transType  = opt.trans;
     
 end
     
