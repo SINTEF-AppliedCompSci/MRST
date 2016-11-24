@@ -1,12 +1,17 @@
-%% Comparison of TPFA, MPFA-O, and Mimetic
-% The two-point flux-approximation (TPFA) method, which is the current
-% industry standard discretization method, is not consistent and only
-% convergent on K-orthogonal grids. In this example, we will compare this
-% method to two consistent methods that are also available in two different
-% modules in MRST: a mimetic method with two-point inner product, and a
-% MPFA-O multi-point flux approximation method.
+%% Example 1: Cartesian Grid with Anistropic Permeability
+% The multipoint flux-approximation (MPFA-O) method is developed to be
+% consistent on grids that are not K-orthogonal. In this example, we
+% introduce how to use the method by applying it to a problem with
+% anisotropic permeability. For comparison, we also compute solutions with
+% two other methods: (i) the two-point flux-approximation (TFPA) method,
+% which is not consistent and only convergent on K-orthogonal grids; and
+% the mimetic finite-difference (MFD) method, which is consistent and
+% applicable to general polyhedral grids. For the MFD method, we will use
+% an inner product that simplifies to a two-point method on K-orthogonal
+% grids.
 %
-% To compare the methods, we condiser the single-phase pressure equation
+%
+% To compare the methods, we consider the single-phase pressure equation
 %
 % $$\nabla\cdot v = q, \qquad v=\textbf{--}\frac{K}{\mu}\nabla p,$$
 %
