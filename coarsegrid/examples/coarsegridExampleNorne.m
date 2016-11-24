@@ -14,7 +14,7 @@ mrstModule add coarsegrid
 % the stack of twelve cells that are disconnected from the rest of the
 % model.
 dpath  = getDatasetPath('norne');
-grdecl = fullfile(dpath, 'NORNE.grdecl');
+grdecl = fullfile(dpath, 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
 G = processGRDECL(grdecl);
 G = computeGeometry(G(1));
