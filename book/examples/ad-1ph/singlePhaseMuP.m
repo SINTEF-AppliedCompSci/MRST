@@ -25,8 +25,7 @@ avg  = @(x) 0.5 * (x(N(:,1)) + x(N(:,2)));
 %rock.perm = repmat(30*milli*darcy, [G.cells.num, 1]);
 %rock.poro = repmat(0.3 , [G.cells.num, 1]);
 mrstModule add spe10
-rock = SPE10_rock(41:50,101:110,1:10);
-rock.perm = rock.perm*milli*darcy;
+rock = getSPE10rock(41:50,101:110,1:10);
 
 cr   = 1e-6/barsa;
 p_r  = 200*barsa;

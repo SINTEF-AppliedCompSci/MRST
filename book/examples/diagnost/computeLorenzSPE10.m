@@ -37,8 +37,7 @@ for n=1:85
     % --- Set petrophysical data for this particular layer
     % To avoid problems with very small porosity values, we explicitly
     % impose a lower threshold of 1e-4
-    rock = SPE10_rock(1:cartDims(1),1:cartDims(2),n);
-    rock.perm = convertFrom(rock.perm, milli*darcy);
+    rock = getSPE10rock(1:cartDims(1),1:cartDims(2),n);
     rock.poro = max(rock.poro, 1e-4);
     
     % --- Set up well model
@@ -80,8 +79,7 @@ if minCase
 else
     [~,n]=max(Lc);                                                         
 end
-rock = SPE10_rock(1:cartDims(1),1:cartDims(2),n);
-rock.perm = convertFrom(rock.perm, milli*darcy);
+rock = getSPE10rock(1:cartDims(1),1:cartDims(2),n);
 rock.poro = max(rock.poro, 1e-4);
 pv = poreVolume(G, rock);
 

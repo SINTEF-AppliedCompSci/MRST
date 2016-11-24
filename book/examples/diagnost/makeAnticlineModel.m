@@ -5,8 +5,7 @@ mrstModule add spe10 coarsegrid
 [nx,ny,nz] = deal(30,30,15);
 G = cartGrid([nx ny nz], [nx ny nz].*[20 10 2]*ft);
 
-rock = SPE10_rock(1:nx,1:ny,nz:-1:1);
-rock.perm = rock.perm.*milli*darcy;
+rock = getSPE10rock(1:nx,1:ny,nz:-1:1);
 rock.poro(rock.poro==0) = 1e-5;
 %rock.perm = 10*milli*darcy*ones(G.cells.num,1);
 %rock.poro = 0.2*ones(G.cells.num,1);

@@ -18,8 +18,7 @@ wloc     = [  1,   60,     1,   60,  20, 40;
               1,    1,   220,  220, 130, 90];
 wname    = {'P1', 'P2', 'P3', 'P4', 'I1', 'I2'};
 
-rock = SPE10_rock(1:cartDims(end));
-rock.perm = convertFrom(rock.perm, milli*darcy);
+rock = getSPE10rock(1:cartDims(end));
 rock.poro = max(rock.poro, 1e-4);
 G  = cartGrid(cartDims, physDims);
 G  = mcomputeGeometry(G);

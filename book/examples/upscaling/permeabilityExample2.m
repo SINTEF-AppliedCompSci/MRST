@@ -41,12 +41,10 @@ for n=1:3
          disp('Layered:');
       case 2
          disp('Tarbert');
-         rock = SPE10_rock(49:56,9:16,1:8);
-         rock.perm = rock.perm.*milli*darcy;
+         rock = getSPE10rock(49:56,9:16,1:8);
       case 3
          disp('Upper Ness');
-         rock = SPE10_rock(9:16,9:16,43:50);
-         rock.perm = rock.perm.*milli*darcy;
+         rock = getSPE10rock(9:16,9:16,43:50);
    end
    hT = computeTrans(G, rock);
 

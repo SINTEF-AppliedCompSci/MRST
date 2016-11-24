@@ -21,9 +21,9 @@ doprint = false;
 % The first time you access the model, it will be downloaded from the
 % official websiet of the comparative solution project. Depending upon your
 % internet connection, this may take quite a while, so please be patient.
-rock = SPE10_rock();
+rock = getSPE10rock();
 p = rock.poro; 
-K = rock.perm;
+K = convertTo(rock.perm,milli*darcy);
 
 %% show p
 slice( reshape(p,60,220,85), [1 220], 60, [1 85]); 

@@ -28,10 +28,9 @@ if ~exist('agmg', 'file') || ...
 end
 
 fprintf(1,'Setting up fine-scale problem ...');
-cartDims = [  60,  220, 36];
-physDims = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
-rock = SPE10_rock([1 1:cartDims(end)-1]);
-rock.perm = convertFrom(rock.perm, milli*darcy);
+cartDims  = [  60,  220, 36];
+physDims  = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
+rock      = getSPE10rock([1 1:cartDims(end)-1]);
 rock.poro = max(rock.poro, 1e-4);
 G  = cartGrid(cartDims, physDims);
 G  = mcomputeGeometry(G);
