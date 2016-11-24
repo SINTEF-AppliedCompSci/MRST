@@ -1,6 +1,6 @@
 function state = incompVEM(state, G, S, fluid, varargin)
-%Solve incompressible flow problem (fluxes/pressures) using a first or
-%second order virtual element method.
+%Solve incompressible flow problem (fluxes/pressures) using a first- or
+%second-order virtual element method.
 %
 % SYNOPSIS:
 %   state = incompVEM(state, G, S, fluid)
@@ -61,8 +61,8 @@ function state = incompVEM(state, G, S, fluid, varargin)
 %            Logical.  Default value: MatrixOutput = FALSE.
 %
 % RETURNS:
-%   state - Update reservoir and well solution structure with new values
-%           for the fields:
+%   state - Update reservoir solution structure with new values for the
+%           fields:
 %              - nodePressure -- Pressure values for all nodes in the
 %                                discretized resrvoir model, 'G'.
 %              - edgePressure -- If G.griddim = 3 and method order = 2,
@@ -103,7 +103,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-%   Written by Øystein Strengehagen Klemetsdal, SINTEF ICT/NTNU, 2016.
+%   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
 
 %%  Main function
 %--------------------------------------------------------------------------
@@ -150,7 +150,7 @@ function [A, rhs] = assembleSystem(state, G, S, fluid, opt)
     %   calculate total mobilities-
     tmob = totmob(state, fluid);
                 
-    %   Assemble global matrix
+    %   Assemble global matrix A. P is a map from local to global dofs.
     [A, P] = glob(G, S, N, tmob);
     
     %   Compute right-hand side

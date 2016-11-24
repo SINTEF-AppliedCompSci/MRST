@@ -1,10 +1,134 @@
 function S = computeVirtualIP(G, rock, k, varargin)
+%Compute local inner products for the frist- or second order virtual
+%element method (VEM).
+%
+% SYNOPSIS:
+%   S = computeVirtualIP(G, rock, k)
+%   S = computeVirtualIP(G, rock, k, pn1, 'vn1', ...)
+%
+% REQUIRED PARAMETERS:
+%   G    - Grid structure as described by grid_structure.
+%
+%   rock - Rock data structure with valid field 'perm'.  The
+%          permeability is assumed to be in measured in units of
+%          metres squared (m^2).  Use function 'darcy' to convert from
+%          (milli)darcies to m^2, e.g.,
+%
+%          perm = convertFrom(perm, milli*darcy)
+%
+%          if the permeability is provided in units of millidarcies.
+%
+%          The field rock.perm may have ONE column for a scalar
+%          permeability in each cell, TWO/THREE columns for a diagonal
+%          permeability in each cell (in 2/3 D) and THREE/SIX columns
+%          for a symmetric full tensor permeability.  In the latter
+%          case, each cell gets the permeability tensor
+%
+%          K_i = [ k1  k2 ]      in two space dimensions
+%                [ k2  k3 ]
+%
+%          K_i = [ k1  k2  k3 ]  in three space dimensions
+%                [ k2  k4  k5 ]
+%                [ k3  k5  k6 ]
+%
+%   k    - Method order. A k-th order method vil recover k-th order
+%          pressure fields exactly. Supported values are 1 and 2.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%
+%   innerProduct - The choice of stability term in the inner
+%                  product. String. Default value = 'ip_simple'.
+%                  Supported values are:
+%                    - 'ip_simple'  : 'Standard' VEM stability term equal
+%                                      to trace(K)h^(dim-2) I.
+%
+%                    - 'ip_qfamily' : Parametric family of inner products.
+% 
+%                    - 'ip_fem'     : Inner product resembling the finite
+%                                     element mehtod on regular Cartesian
+%                                     grids.
+%                    - 'ip_fd'      : Inner product resembling a
+%                                     combination of two finite difference
+%                                     stencils, one using the regular
+%                                     Cartesian coordinate axes (Fc), and
+%                                     one using the cell diagonals (Fd) as
+%                                     axes on regular Cartesian grids.
+%
+%  sigma          - Extra parameters to inner product
+%                   ip_qfamily. Must be either a single scalar value, or
+%                   nker values per cell, where nker is the dim of the
+%                   nullspace of the projeciton operator \Pi^\nabla.
+%
+%  w              - Extra parameter to the inner product ip_fd,
+%                   corresponding to the weighting of the two FD stencils,
+%                   wFc + (1-w)Fd. Positive scalar vale.
+%
+%  invertBlocks   - Method by which to invert a sequence of
+%                   small matrices that arise in the
+%                   discretisation. String.
+%                   Supported values are:
+%                     - MATLAB : Use the MATLAB function mldivide
+%                                (backslash) (the default).
+%
+%                     - MEX    : Use two C-accelerated MEX functions to
+%                                extract and invert, respectively, the
+%                                blocks along the diagonal of a sparse
+%                                matrix.  This method is often faster by a
+%                                significant margin, but relies on being
+%                                able to build the required MEX functions.
+%
+%  trans          - Fluxes can alternatively be reconstructed from the
+%                   VEM pressure field using the TPFA or MPFA scheme.
+%                   String. Supported values are 'mpfa' and 'tpfa'.
+%
+% RETURNS:
+%  S - Pressure linear system structure having the following fields:
+%        - A       : Block diagonal matrix with the local inner products
+%                    on the diagonal.
+%        - order   : Order k of the VEM method.
+%        - ip      : Inner product name.
+%        - PiNstar : Block diagonal matrix with the Projection operators
+%                    \Pi^\nabla in the monomial basis for each cell.
+%        - PiNFstar: Block diagonal matrix with the Projection operators
+%                    \Pi^\nabla in the monomial basis for each face of
+%                    each cell. Empty if G.griddim = 2.
+%        - faceCoords: Local 2D coordinate systems for each face if
+%                    G.griddim = 3.
+%        - dofVec  : Map from local to global degrees of freedom.
+%        - T, transType: If MPFA or TPFA scheme is to be used for flux
+%                    reconstructiom, T and transType are the corresponding
+%                    transmissibilites and type.
+%
+% SEE ALSO:
+%   incompVEM, darcy, permTensor.
 
-%%  MERGE INPUT PARAMETRES                                               %%
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+%   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
+
+%  MERGE INPUT PARAMETRES                                               %%
 
 opt = struct('innerProduct', 'ip_simple', ...
              'sigma'       , []         , ...
              'w'           , []         , ...
+             'invertBlocks', 'MATLAB'   , ...
              'trans'       , []          );
 opt = merge_options(opt, varargin{:});
 
@@ -42,23 +166,35 @@ N = G.nodes.num                           ...
   + G.faces.num*polyDim(k-2, G.griddim-1) ...
   + G.cells.num*polyDim(k-2, G.griddim  );
 
-%%  CHECK CORRECTNESS OF INPUT
+%%  CHECK INPUT
 
-if strcmp(opt.innerProduct, 'ip_fem') && ~any(strcmp(G.type, 'cart')) && k ~= 1
-    warning('innerProduct ''ip_fem'' only valid for 1st order and cartesian grid. Using ip_simple instead.');
+if any(strcmp(opt.innerProduct, {'ip_fem', 'ip_fd'})) && ...
+   ((~any(strcmp(G.type, 'cart')) && k > 1) || G.griddim > 2)
+    warning(['innerProduct ''ip_fem'' and ''ip_fd'' only valid for 2D 1st order and', ...
+             'Cartesian grid. Using ip_simple instead.']);
     opt.innerProduct = 'ip_simple';
 end
 
-ipNames = {'ip_simple' , 'ip_custom', 'ip_fem', 'ip_fd'};
+ipNames = {'ip_simple' , 'ip_qfamily', 'ip_fem', 'ip_fd'};
 
 assert(any(strcmp(opt.innerProduct, ipNames)), ...
-       'Unknown inner product ''%s''.', opt.innerProduct);
+                        'Unknown inner product ''%s''.', opt.innerProduct);
 
 if ~isempty(opt.sigma)
-    assert((strcmp(opt.innerProduct, 'ip_custom') &&numel(opt.sigma) == sum(nker)) || ...
-           (strcmp(opt.innerProduct, 'ip_fem') &&numel(opt.sigma) == G.cells.num));
-    
+    assert((strcmp(opt.innerProduct, 'ip_qfamily') ...
+                                   && numel(opt.sigma) == sum(nker)) || ...
+           (any(strcmp(opt.innerProduct, {'ip_fem', 'ip_fd'})) ...
+                                   && numel(opt.sigma) == G.cells.num));
 end
+
+% if G.griddim == 3 && strcmp(opt.invertBlocks, 'MATLAB')
+%     warning(['Computing VEM inner products in 3D without ', ...
+%              '''invertBlocks'' set to ''MEX'' can be very slow. ', ...
+%              'Press ENTER to continue, or ctrl-C to abort']);
+%     pause;
+% end
+
+%%  EXTRACT PREMABILITY, FACES, EDGES AND NODES
 
 K = permTensor(rock, G.griddim);
 
@@ -128,8 +264,12 @@ if G.griddim == 2
     M = B*D;
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
-%     PiNstar = M\B;
+    
+    if strcmp(opt.invertBlocks, 'MEX')
+        PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+    else
+        PiNstar = M\B;
+    end
     PiN = D*PiNstar;
 
     clear B D;
@@ -144,22 +284,6 @@ if G.griddim == 2
     S = makeSolutionStruct(G, NP, k, A, T, PiNstar, [], [], [], opt);
     
 else
-    
-    %   To reduce memory usage, if k = 2, we partition the grid into chunks
-    %   of ~1000 cells, and and compute the local matrices for each cell
-    %   chunk in a loop.
-    
-    
-%     ncb = ceil(G.cells.num/400);
-%     nc = floor(G.cells.num/ncb);
-%     cPos = 1:nc:G.cells.num;
-%     cPos(end) = cPos(end) + (G.cells.num - cPos(end)) + 1;
-%     
-%     for i = 1:ncb
-%         cells = 
-%     ii(end) = ii(end) + 1;
-%     ii(end) = ii(end) + (G.cells.num - ii(end));
-    
     
     %%  CALCULATE PROJECTION OPERATORS FOR EACH FACE
     
@@ -477,7 +601,8 @@ else
     
     %   Calculate K n_f
     Kmat  = reshape(K', 3, [])';
-    c = sparseBlockDiag(fn, ncf, 1)*Kmat;
+    [jj, ii] = blockDiagIndex(3*ones(G.cells.num,1), ncf);
+    fn = fn'; c = sparse(ii,jj,fn(:))*Kmat;
     
     if k == 1
         
@@ -693,8 +818,12 @@ else
     
     [ii, jj] = blockDiagIndex(repmat(nk, [G.cells.num ,1]));
     kk = sub2ind(size(M), ii, jj);
-    PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
-%     PiNstar = M\B;
+    
+    if strcmp(opt.invertBlocks, 'MEX')
+        PiNstar = sparse(ii, jj, invv(full(M(kk)), repmat(nk, [G.cells.num, 1])))*B;
+    else
+        PiNstar = M\B;
+    end
     PiN = D*PiNstar; 
     
     SS = stabilityTerm(G, K, PiN, NP, nker, opt);
@@ -712,6 +841,7 @@ end
 %--------------------------------------------------------------------------
 
 function [B, D] = computeBD2D(cc, cd, cv, ncn, ncf, fn, fa, fPos, x, nn, nPos, K, NP, k)
+%   Calculate B and D matrices in 2D.
 
 nk = polyDim(k, 2);
 nc = numel(cv);
@@ -784,9 +914,12 @@ if k == 1
     %   Only linear monomials, use centroide rule.
     
     %   Calculate K n_f
-    K = sparseBlockDiag(K, 2*ones(1,nc), 1);
+    [ii,jj] = blockDiagIndex(2*ones(size(cc,1),1));
+    K = K'; K = sparse(ii,jj,K(:));
+    
     fn = bsxfun(@rdivide, fn, rldecode(cd, ncf, 1));
-    fn = sparseBlockDiag(fn, ncf, 1);
+    [jj, ii] = blockDiagIndex(2*ones(size(cc,1),1), ncf);
+    fn = fn'; fn = sparse(ii,jj,fn(:));
 
     %   Use centroid rule to evaluate integrals.
     BT = .5*fn*K;
@@ -910,14 +1043,15 @@ end
 function SS = stabilityTerm(G, K, PiN, NP, nker, opt)
 %   Construct stability term. 
 %
-%   ip_simple: Identity matrix multiplied by trace of permeability tensor
-%              and cell diameter to the power of dim-2.
+%   ip_simple : Identity matrix multiplied by trace of permeability tensor
+%               and cell diameter to the power of dim-2.
 %
-%   ip_custom: Stability term Q \Sigma Q^T, where Q is an orthogonal basis
-%              for \ker \Pi^\nabla, and \Sigma is an n_\ker x n_\ker
-%              diagonal matrix, with diagonal entries specified by input
-%              sigma.
-%
+%   ip_qfamily: Stability term Q \Sigma Q^T, where Q is an orthogonal basis
+%               for \ker \Pi^\nabla, and \Sigma is an n_\ker x n_\ker
+%               diagonal matrix, with diagonal entries specified by input
+%               sigma.
+%   ip_fem    : FEM for Cartesian grids. Only supported in 2D 1st order.
+%   ip_fd     : FD for Cartesian grids. Only supported in 2D 1st order.
 
     if G.griddim == 2; iiK = [1 4]; else iiK = [1 5 9]; end
     
@@ -932,7 +1066,7 @@ function SS = stabilityTerm(G, K, PiN, NP, nker, opt)
                                   .*sum(K(:,iiK),2)/numel(iiK),NP,1), ...
                                   0, sum(NP), sum(NP)              );
         
-        case 'ip_custom'
+        case 'ip_qfamily'
             
             Q = zeros(sum(nker.*NP),1);
             PiNPos = [1; cumsum(NP.^2) + 1];
@@ -958,24 +1092,22 @@ function SS = stabilityTerm(G, K, PiN, NP, nker, opt)
             SS = Q*spdiags(sigma, 0, sum(nker), sum(nker))*Q';
             
         case {'ip_fem', 'ip_fd'}
-            %   Currently only for cartesian grids with rectangular cells..
             
             xx = G.nodes.coords(G.cells.nodes,:);
             [ii, jj] = blockDiagIndex(diff(G.cells.nodePos), ones(G.cells.num,1));
-%             x = sparse(ii,jj,xx(:,1));
-%             y = sparse(ii,jj,xx(:,2));
             x = reshape(xx(:,1), 4, []);
             y = reshape(xx(:,2), 4, []);
             
             hx = abs(max(x,[], 1)- min(x,[],1))'/2;
             hy = abs(max(y,[], 1)- min(y,[],1))'/2;
 
-            Q = sqrt(9./(4*rldecode(hx.*hy, 4*ones(G.cells.num,1),1))).*repmat([-1,1,-1,1]', G.cells.num,1);
+            Q = sqrt(9./(4*rldecode(hx.*hy, 4*ones(G.cells.num,1),1)))...
+                                     .*repmat([-1,1,-1,1]', G.cells.num,1);
             Q = sparse(ii,jj,Q);
             
-            if isempty(opt.sigma)
-                sigma = ones(G.cells.num,1);
-            end
+%             if isempty(opt.sigma)
+%                 sigma = ones(G.cells.num,1);
+%             end
             
             factor = 1; w = opt.w;
             if strcmp(innerProduct, 'ip_fd')
@@ -984,9 +1116,9 @@ function SS = stabilityTerm(G, K, PiN, NP, nker, opt)
                 end
                 factor = 3*w;
             end
-            Lambda = spdiags(factor*3*(K(:,1)./hx.^2 + K(:,4)./hy.^2), 0, G.cells.num, G.cells.num);
+            Lambda = spdiags(factor*3*(K(:,1)./hx.^2 + K(:,4)./hy.^2), ...
+                                              0, G.cells.num, G.cells.num);
             SS = Q*((Q'*Q)\Lambda/(Q'*Q))*Q';
-        
     end
     
 end
@@ -1008,7 +1140,6 @@ function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2, opt)
         fn   = G.faces.normals(f,:);
         fSgn = (-ones(numel(f),1)).^(G.faces.neighbors(f,1) ...
                ~= rldecode((1:G.cells.num)', diff(G.cells.facePos), 1)); 
-        fn   = bsxfun(@times, fn, fSgn);
         if size(f,1) == 1; f = f'; end
 
 
@@ -1024,18 +1155,12 @@ function S = makeSolutionStruct(G, NP, k, A, T, PiNstar, PiNFstar, v1, v2, opt)
         iiP = mcolon(vec + ncn + ncf*polyDim(k-2, 1), ...
                      vec + ncn + ncf*polyDim(k-2, 1) + polyDim(k-2, 2) -1);
         if k == 1
-%             dofVec([iiN, iiF, iiP]) = G.cells.nodes';
             dofVec([iiN, iiF, iiP]) = n;
         else
             dofVec([iiN, iiF, iiP]) ...
                 = [n,...
                    G.cells.faces(:,1)' + G.nodes.num, ...
-                   (1:G.cells.num) + G.nodes.num + G.faces.num*polyDim(k-2, 2)];                
-
-%                   = [G.cells.nodes',...
-%                    G.cells.faces(:,1)' + G.nodes.num, ...
-%                    (1:G.cells.num) + G.nodes.num + G.faces.num*polyDim(k-2, 2)];
-
+                   (1:G.cells.num) + G.nodes.num + G.faces.num*polyDim(k-2, 2)];
         end
         
     else
@@ -1102,9 +1227,9 @@ end
 %--------------------------------------------------------------------------
 
 function [alpha, beta, coeff] = polyProducts(coeff1,coeff2,alph, bet)
-%   Calculates the product of polynomials on the form
-%   (\sum_i coeff1(i)*x^alph(i)*bet^(i))*(sum_i coeff2(i)*x^alph(i)*bet(i))
-%   into the form \sum_i coeff(i)*x^alpha(i)*y^beta(i).
+%   Calculates the product of polynomials on the form (\sum_i
+%   coeff1(i)*x^alph(i)*y^bet(i))*(sum_i coeff2(i)*x^alph(i)*y^bet(i)) into
+%   the form \sum_i coeff(i)*x^alpha(i)*y^beta(i).
 
     [r,c] = size(coeff1);
     cPos  = 1:c:c*c+1;
@@ -1142,53 +1267,3 @@ function [alpha, beta, gamma] = retrieveMonomials(k, dim)
 end
            
 %--------------------------------------------------------------------------
-
-function totmob = dynamic_quantities(state, fluid)
-
-   [mu, ~] = fluid.properties(state);
-   s       = fluid.saturation(state);
-   kr      = fluid.relperm(s, state);
-   
-   mob    = bsxfun(@rdivide, kr, mu);
-   totmob = sum(mob, 2);
-
-end
-
-function nk = polyDim(k, dim)
-%   Calculates the dimension of the space of polynomials of degree less
-%   than or equal to k in dim dimensions.
-
-    if k == -1
-        nk = 0;
-    else
-    nk = nchoosek(k+dim,k);
-    end
-    
-end
-
-%         
-%         DD = [];
-%         for P = 1:G.cells.num
-%             xP = G.cells.centroids(P,:);
-%             hP = G.cells.diameters(P);
-%             m = @(x) [ones(size(x,1),1), ...
-%                       (x(:,1)-xP(1))/hP, ...
-%                       (x(:,2)-xP(2))/hP, ...
-%                       (x(:,3)-xP(3))/hP, ...
-%                       (x(:,1)-xP(1)).^2/hP^2, ...
-%                       (x(:,1)-xP(1)).*(x(:,2)-xP(2))/hP^2, ...
-%                       (x(:,1)-xP(1)).*(x(:,3)-xP(3))/hP^2, ...
-%                       (x(:,2)-xP(2)).^2/hP^2, ...
-%                       (x(:,2)-xP(2)).*(x(:,3)-xP(3))/hP^2, ...
-%                       (x(:,3)-xP(3)).^2/hP^2];
-%             I = [m(G.nodes.coords(G.cells.nodes(G.cells.nodePos(P):G.cells.nodePos(P+1)-1),:)); ...
-%                  m(G.edges.centroids(G.cells.edges(G.cells.edgePos(P):G.cells.edgePos(P+1)-1),:)); ...
-%                  bsxfun(@rdivide, polygonInt3D(G, G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1), m, 2), ...
-%                         G.faces.areas(G.cells.faces(G.cells.facePos(P):G.cells.facePos(P+1)-1))); ...
-%                  polyhedronInt(G, P, m, 2)./G.cells.volumes(P)];
-%             DD = [DD; I(:)];
-%         end
-%         [ii, jj] = blockDiagIndex(NP, nk*ones(G.cells.num,1));
-%         DD = sparse(ii,jj,DD);
-%         norm(D-DD, 'fro')
-
