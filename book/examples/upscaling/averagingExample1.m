@@ -9,8 +9,8 @@ mrstModule add spe10 coarsegrid;
 fine = [40 60];
 G    = cartGrid(fine, fine);
 G    = computeGeometry(G);
-rock = SPE10_rock(1:fine(1),1:fine(2),46);
-rock.perm = convertFrom(rock.perm(:,1:2), milli*darcy);
+rock = getSPE10rock(1:fine(1),1:fine(2),46);
+rock.perm = rock.perm(:,1:2);
 
 % The coarse grid
 coarse = [10 15];
