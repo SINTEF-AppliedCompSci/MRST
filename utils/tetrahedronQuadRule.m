@@ -1,5 +1,5 @@
 function [Xq, w, V, vol] = tetrahedronQuadRule(k)
-%   Returns quadrature rule for the reference terahedron with vertices V.
+%Returns quadrature rule for the reference terahedron with vertices V.
 %
 %   SYNOPSIS:
 %       [Xq, w, V, vol] = polyhedronQuadRule(k)
@@ -27,13 +27,27 @@ function [Xq, w, V, vol] = tetrahedronQuadRule(k)
 %   REFERENCES:
 %       [1]     - http://people.sc.fsu.edu/~jburkardt/m_src/...
 %                          tetrahedron_arbq_rule/tetrahedron_arbq_rule.html
-%-----------------------------------------------------------------ØSK-2016-
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
-   for details.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+%   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
 
 assert( k == 2 | k == 3 | k == 7, ...
        'Only supported quadrature precissions are 2, 3 and 7');

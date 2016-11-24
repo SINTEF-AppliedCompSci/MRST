@@ -1,6 +1,5 @@
 function G = computeVEMGeometry(G)
-
-%   Computes VEM geometry of MRST grid G.
+%Computes VEM geometry of MRST grid G.
 %
 %   SYNOPSIS:
 %       G = computeVEM3DGeometry(G)
@@ -8,26 +7,45 @@ function G = computeVEMGeometry(G)
 %   DESCRIPTION:
 %       Computes geometry using MRST functions G = computeGeometry(G) and G
 %       = mrstGridWithFullMappings(G), and computes edge data and cell
-%       diameters. edge data is organized in the same way as face data in
-%       2D. See also MRTS functions computeGeomerty and
-%       mrstGridWithFullMappings for details and copyright info.
+%       diameters. Edge data is organized in the same way as face data in
+%       2D.
 %
 %   REQUIRED PARAMETERS:
-%       G   - 3D MRST grid.
+%       G   - MRST grid.
 %
 %   RETURNS:
-%       G   - Grid with computed VEM geometry.  
-%-----------------------------------------------------------------ØSK-2016-
+%       G   - Grid with computed VEM geometry.
+%
+% SEE ALSO:
+%   computeVirtualIP, incompVEM.
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
-   for details.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+%   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
+    
     G = computeGeometry(G);
     G = mrstGridWithFullMappings(G);
     
     if G.griddim == 2
+        %   In 2D we only need to calculate cell diameters.
+        
         x = G.nodes.coords(G.cells.nodes,:);
         ncn = diff(G.cells.nodePos);
         l = rldecode([0;cumsum(ncn(1:end-1))]+1, diff(G.cells.nodePos),1);
@@ -37,7 +55,9 @@ function G = computeVEMGeometry(G)
         [ii, jj] = blockDiagIndex(ncn.^2, ones(G.cells.num,1));
         cellDiameters = full(max(sparse(ii,jj,cellDiameters),[],1)');
         G.cells.('diameters') = cellDiameters;
+        
     else
+        %   In 3D, we also need edge data, and face diameters.
 
         %   Calculate edge lengths and edge centroids
         nodeNum = mcolon(G.edges.nodePos(1:end-1),G.edges.nodePos(2:end)-1);

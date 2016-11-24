@@ -1,9 +1,9 @@
 function  I = polygonInt3D(G, faces, f, k)
-%   Integrates the function f over each face in faces of grid 3D G, using a
-%   quadrature rule of precision k.
+%Integrates the function f over each face in faces of 3D grid G, using a
+%quadrature rule of precision k.
 %
 %   SYNOPSIS:
-%       I = polygonInt(G, cells, f, k)
+%       I = polygonInt(G, faces, f, k)
 %
 %   DESCRIPTION:
 %       Approximates the integrals
@@ -26,12 +26,29 @@ function  I = polygonInt3D(G, faces, f, k)
 %
 %   RETURNS:
 %       I       - Approximated solution to the integral.
-%-----------------------------------------------------------------ØSK-2016-
+%
 
 %{
-   Copyright (C) 2016 Øystein Strengehagen Klemetsdal. See COPYRIGHT.txt
-   for details.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+%   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
+
 
 [Xq, w, ~, vol] = triangleQuadRule(k);
 nq = size(Xq,1);

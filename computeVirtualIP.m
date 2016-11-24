@@ -123,7 +123,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 %   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
 
-%  MERGE INPUT PARAMETRES                                               %%
+%%  MERGE INPUT PARAMETRES                                               %%
 
 opt = struct('innerProduct', 'ip_simple', ...
              'sigma'       , []         , ...
