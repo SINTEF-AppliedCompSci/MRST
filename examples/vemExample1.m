@@ -48,9 +48,9 @@
 % for example <http://hdl.handle.net/11250/2405996 Klemetsdal 2016>.
 
 try
-   require upr vem
+   require upr vem incomp vemmech
 catch
-   mrstModule add upr vem
+   mrstModule add upr vem incomp vemmech
 end
 
 %% Define geometry
@@ -86,7 +86,9 @@ light('Position',[-50 -50 -100], 'Style', 'infinite')
 % MRST-function <matlab:help('computeGeometry') computeGeometry>, such as
 % cell diameters and edge normals. Thus, we compute the geometry using
 % <matlab:help('computeVEMGeometry') computeVEMGeometry>. Note that this
-% function uses <matlab:help('computeGeometry') computeGeometry>.
+% function uses <matlab:help('computeGeometry') computeGeometry> and the
+% function <matlab:help('createAugmentedGrid') createAugmentedGrid> from
+% the VEM module for geomechanics.
 
 G = computeVEMGeometry(G);
 

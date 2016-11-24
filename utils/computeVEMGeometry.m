@@ -40,6 +40,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 %   Written by Øystein Strengehagen Klemetsdal, SINTEF/NTNU, 2016.
     
+    require vemmech
+    
     G = computeGeometry(G);
     G = createAugmentedGrid(G);
     
