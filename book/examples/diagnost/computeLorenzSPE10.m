@@ -64,7 +64,7 @@ for n=1:85
 end
 close(h);
 clf; set(gcf,'Position',[470 420 900 250]);
-h=bar(Lc,'Style','hist'); 
+h=bar(Lc,'hist');
 axis tight; set(h,'FaceColor',[.95 .95 1],'EdgeColor',[0 0 .7]);
 hold on, h=plot([35.5 35.5],[0 .75],'--k','LineWidth',2); hold off;
 

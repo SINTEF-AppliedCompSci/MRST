@@ -177,7 +177,7 @@ myrate(1,:)=0;
 plot(mytime, cumsum(myrate(:,1:3)),'LineWidth',2);
 set(gca,'FontSize',16);
 xlabel('time [days]'); ylabel('cummulative product [m^3]');
-legend('c_\mu=0', 'c_\mu=0.002', 'c_\mu=0.005',4);
+legend('c_\mu=0', 'c_\mu=0.002', 'c_\mu=0.005', 'Location', 'SouthEast');
 
 figure(4);
 p = [100*barsa,205*barsa];
@@ -189,7 +189,7 @@ end
 plot(convertTo(p,barsa),convertTo(mup,centi*poise),'LineWidth',2);
 set(gca,'FontSize',16);
 xlabel('pressure [bar]'); ylabel('viscosity [cP]');
-legend('c_\mu=0', 'c_\mu=0.002', 'c_\mu=0.005',4);
+legend('c_\mu=0', 'c_\mu=0.002', 'c_\mu=0.005', 'Location', 'SouthEast');
 axis tight
 
 %{
