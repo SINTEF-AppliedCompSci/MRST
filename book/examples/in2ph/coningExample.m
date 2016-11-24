@@ -1,5 +1,5 @@
 %% Simulate model with water coning
-mrstModule add incomp coarsegrid
+mrstModule add incomp coarsegrid ad-core
 
 
 %% Make grid and assign petrophysical properties

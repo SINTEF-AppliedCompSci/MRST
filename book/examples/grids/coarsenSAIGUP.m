@@ -14,7 +14,7 @@
 % downloaded from the <http://www.sintef.no/Projectweb/MRST>MRST webpage
 
 %% Load dataset
-mrstModule add libgeometry
+mrstModule add libgeometry coarsegrid
 filename = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
 G = processGRDECL(readGRDECL(filename));
 try
