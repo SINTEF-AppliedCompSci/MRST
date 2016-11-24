@@ -1,5 +1,154 @@
 function [Gt, G, transMult] = topSurfaceGrid(G)
+%Make a hybrid grid of the top surface of a 3D grid having a logical
+%ijk-index (e.g., a corner-point grid or a logically Cartesian grid)
+%
+% SYNOPSIS:
+%   [Gt,G] = topSurfaceGrid(G)
+%
+% PARAMETERS:
+%   G       - 3D grid as described by grid_structure.
+%
+%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
+%            supported options are:
+%              'Verbose' -- boolean, whether to show log messages or not.
+%                           Default value: mrstVerbose
+%              'AddFaults' -- boolean indicating if faults should be added
+%                             to the resulting 2D model.
+%
+% RETURNS:
+%   Gt - structure representing the top-surface grid. The structure
+%      consists of two parts:
+%
+%      (i) the surface projected onto the xy-plane represented as a
+%          standard 2D grid that follows the standard grid conventions as
+%          outlined in grid_structure,
+%
+%      (ii) a set of extra fields that represent the surface elevation, the
+%          3D surface normals, the elevation of the bottom surface, the
+%          height of the surface, the columns of volumetric cells attached
+%          to each cell (quadrilateral patch) in the 2D grid, etc.
+%
+%      Altogether, the hybrid grid structure contains the following fields:
+%
+%      - cells   -- A structure specifying properties for each individual
+%                   cell in the grid. See CELLS below for details.
+%
+%      - faces   -- A structure specifying properties for each individual
+%                   face in the grid. See FACES below for details.
+%
+%      - nodes   -- A structure specifying properties for each individual
+%                   node (vertex) in the grid. See NODES below for details.
+%
+%      - columns -- A structure specifying properties of each individual
+%                   vertically-averaged column. See COLUMNS below for
+%                   details.
+%
+%      - type    -- A cell array of strings describing the history of grid
+%                   constructor and modifier functions through which this
+%                   particular grid has been defined.
+%
+%   G -  3D grid with connected columns and no disconnected cells,
+%      corresponding to Gt. Important to use this 3D grid when doing
+%      comparisons or if 2D data is mapped back to 3D grid.
+%
+%
+% FIELDS in a 2D top-surface grid:
+%
+%   COLUMNS - Cell structure Gt.columns that represents the column of
+%   cells in the 3D grid that are attached to each cell in the top-surface
+%   grid. Containts the fields:
+%
+%     - cells  -- A G.cells.num-by-1 array of cell indices from the
+%                 3D grid, which together with Gt.cells.columnPos
+%                 define the columns attached to the top surface.
+%
+%     - dz     -- A G.cells.num-by-1 array of heights of the cells in the
+%                 3D grid defined as the vertical difference between
+%                 the centroids of the top and bottom surfaces of each
+%                 cell (faces labelled 5 and 6).
+%
+%     - z      -- A G.cells.num-by-1 array of the z-component of the
+%                 centroid of the bottom surface of each cell, defined
+%                 relative to the height of the centroid of the top
+%                 surface, i.e., a column-wise cumsum of columns.dz.
+%
+%
+%   CELLS - Cell structure Gt.cells, as described by grid_structure
+%   but with the extra fields:
+%
+%     - columnPos -- Indirection map of size [num+1,1] into the
+%                  'columns.cells' array. Specifically, the cells in the
+%                  column of the 3D grid corresponding to cell 'i' in the
+%                  top-surface grid are found in the submatrix
+%
+%                    Gt.columns.cells(columnPos(i):columnPos(i+1)-1,:)
+%
+%                  The number of cells in the each column can be computed
+%                  by the statement DIFF(columnPos)
+%
+%     - map3DFace -- A cells.num-by-1 array that maps between a cell in the
+%                  top-surface grid and the corresponding top face in the
+%                  underlying 3D grid, i.e., cell 'i' corresponds to face
+%                  number Gt.cells.map3DFace(i).
+%
+%     - ij      -- A map of size [num,1] giving logical indices of the
+%                  cells in the top-surface grid
+%
+%     - H       -- A  array of formation heights, one for each cell
+%
+%     - normals -- normal vector of the surface represented by each cell
+%
+%     - z       -- A cells.num-by-1 array of the third coordinate of the
+%                  cell centroids in R^3. The first two coordinates are
+%                  given in Gt.cells.
+%
+%
+%   FACES - Cell structure Gt.faces, as described in grid_structure
+%   but with the following extra field created by a subsequent call to
+%   computeGeometryVE:
+%
+%     - z       -- A faces.num-by-1 array of the third coordinate of the
+%                  face centroids in R^3. The first two coordinates are
+%                  given in Gt.faces.centroids.
+%
+%
+%   NODES - Cell structure Gt.nodes, as described in grid_structure
+%   but with the following extra field created by a subsequent call to
+%   computeGeometryVE:
+%
+%     - z       -- A nodes.num-by-1 array of the third coordinate of the
+%                  node positions in R^3, i.e., the z-coordinate of the
+%                  top surface of the original grid. The first two
+%                  coordinates are given in Gt.nodes.coords.
+%
+%
+% COMMENTS:
+%   PLEASE NOTE:
+%   The current implementation does not honour faults and internal
+%   boundaries from 3D grid, i.e., it is possible to get false connections
+%   over faults if there is no jump in the ij index over the fault in the
+%   3D grid.
 
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+   
    %% Identify columns in layered 3D grid; remove unused cells from G
    % cells in G that will not contribute to the top surface grid 
    % will be removed
