@@ -51,6 +51,7 @@ rock.perm(~is_pos, 3) = 1e-6*min(rock.perm(is_pos, 3));
 hT   = computeTrans(G, rock);
 
 %% Set fluid data
+mrstModule add incomp
 gravity reset on
 fluid = initSingleFluid('mu',1*centi*poise,'rho', 1000*kilogram/meter^3);
 

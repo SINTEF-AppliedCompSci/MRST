@@ -86,7 +86,7 @@ for i=[4 1:3]
   plot(r, state{i}.pressure/barsa, [col(i) '.'],'MarkerSize',ms(i));
 end
 axis([0 300 40 50]);
-h=legend(ttext{[4 1:3]},4); set(h,'FontSize',14);
+h=legend(ttext{[4 1:3]},'Location','SouthEast'); set(h,'FontSize',14);
 chld = get(h,'Children');
 set(chld(1:3:end),'MarkerSize',20);
 % print -depsc2 stencil-rad.eps;

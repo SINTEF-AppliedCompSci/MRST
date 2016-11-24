@@ -134,7 +134,7 @@ for method=1:4
    subplot(2,2,method); colormap(.6*jet+.4*ones(size(jet)));
    cwp = cumsum(WPc.inj(2).alloc,1); amax = max([sum(cwp,2); amax]);
    barh(WPc.inj(2).z, cwp, 'stacked', 'BarWidth', .98, 'EdgeColor','none');
-   lh=legend(W(D.prod).name,4);
+   lh=legend(W(D.prod).name,'Location','SouthWest');
    hold on
    cwp = cumsum(WP.inj(2).alloc,1);  amax = max([sum(cwp,2); amax]);
    if size(cwp,1)<20
