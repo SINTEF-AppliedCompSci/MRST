@@ -104,15 +104,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if ~isfield(CG.faces,'region')
                 CG = partitionMSTPFA(CG);
             end
-
             faceb = createFaceBasis(CG, A);
             B = assembleCoarseOperatorsPartition(CG, faceb);
         case {'msfvm', 'msfv'}
             require msfvm
-            assert(exist('createMSFVBasis', 'file') > 0, 'MsTPFA basis functions not available');
             assert(isfield(CG, 'dual'), 'The MsFV method requires a dual grid!');
             DG = CG.dual;
             if opt.implicitDual
+                assert(exist('createMSFVBasis', 'file') > 0, 'Implicit MsFV basis functions not available');
                 if ~isfield(DG, 'll')
                     DG.ll = DG.lineedge;
                 end
