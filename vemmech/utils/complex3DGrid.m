@@ -101,9 +101,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         plotGrid(G);
 
       case 'norne'
-        if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
-            error('Unable to obtain simulation model subset');
-        end
 
         grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
         grdecl = readGRDECL(grdecl);
