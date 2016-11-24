@@ -7,8 +7,7 @@ Dxyz = [400, 400, 10];
 G = cartGrid(nxyz, Dxyz);
 G = computeGeometry(G);
 
-rock = SPE10_rock(1:40, 101:140, 4);
-rock.perm = convertFrom(rock.perm, milli*darcy);
+rock = getSPE10rock(1:40, 101:140, 4);
 
 % fluid
 pRef = 200*barsa;
