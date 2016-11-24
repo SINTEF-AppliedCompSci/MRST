@@ -12,7 +12,7 @@
 % Full Field model" (2013) as an example of a real reservoir.
 
 %% Read model
-grdecl = fullfile(getDatasetPath('norne'), 'OPM.GRDECL');
+grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
 usys   = getUnitSystem('METRIC');
 grdecl = convertInputUnits(grdecl, usys);
