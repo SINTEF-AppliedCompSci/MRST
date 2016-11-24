@@ -30,7 +30,7 @@ for i = 1:m
       n(i), t1(i), t2(i), t3(i), t4(i))
 end
 loglog(n,t1,'-*',n,t2,'-+',n,t3,'-o',n,t4,'-s');
-legend('analytical','vectorized','for+mtimes','for+times',2);
+legend('analytical','vectorized','for+mtimes','for+times','Location','NorthWest');
 
 
 %% Use automatic differentation to assmble a linear system

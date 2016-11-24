@@ -107,7 +107,7 @@ dt = [0; ones(N*M,1)*T/(N*M)]; t = 1.2*cumsum(dt)/T;
 figure;
 plot(t,cellfun(@(x) x(2).Sw, wellSols),'--', ...
     t,cellfun(@(x) x(2).wcut, wellSols),'-','LineWidth',1);
-legend('Sw in completion','Water cut',2);
+legend('Sw in completion','Water cut','Location','NorthWest');
 axis([0 max(t) -.05 1.0]);
 
 %%

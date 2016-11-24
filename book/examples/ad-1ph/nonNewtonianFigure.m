@@ -31,12 +31,14 @@ subplot(1,2,1);
 stairs(time, rate, 'LineWidth', 2);
 set(gca,'FontSize',12);
 xlabel('time [days]'); ylabel('rate [m^3/day]');
-legend('Newtonian', 'Cell-based', 'Face-based', 'Face-based (not well)', 1);
+legend('Newtonian', 'Cell-based', 'Face-based', 'Face-based (not well)', ...
+       'Location', 'NorthEast');
 subplot(1,2,2);
 plot(time, avgpres,'o','LineWidth', 2);
 set(gca,'FontSize',12,'YAxisLocation','right');
 xlabel('time [days]'); ylabel('avg pressure [bar]');
-legend('Newtonian', 'Cell-based', 'Face-based', 'Face-based (not well)', 4);
+legend('Newtonian', 'Cell-based', 'Face-based', 'Face-based (not well)', ...
+       'Location', 'SouthEast');
 set(gcf,'PaperPositionMode','auto');
 
 %%

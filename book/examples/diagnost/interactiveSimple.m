@@ -35,6 +35,7 @@ W = addWell(W, G, rock, round(G.cells.num-(n/2-.5)*nx+.3*nx), ...
 
 %%
 close all;
+mrstModule add diagnostics
 interactiveDiagnostics(G, rock, W, 'showGrid', true);
 axis normal tight; view(0,90);
 
