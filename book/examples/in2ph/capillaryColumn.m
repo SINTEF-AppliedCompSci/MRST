@@ -39,7 +39,7 @@ pause
 exmpl = 1;
 G  = computeGeometry(cartGrid([20, 1, 40], [100 1 100]));
 if exmpl==1,
-   perm  = @(x) (350*x/dims(1) + 50).*milli*darcy;
+   perm  = @(x) (350*x/100 + 50).*milli*darcy;
    rock  = makeRock(G, perm(G.cells.centroids(:,1)), .1);
    dT    = .01;
    histb = false;
