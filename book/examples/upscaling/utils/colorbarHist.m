@@ -30,7 +30,7 @@ end
 if nargin==2 || ((nargin>2) && strcmpi(varargin{1},'South'))
    cbPos = 'SouthOutside';
    cbAdd = -[0 0.09 0 0.03];
-   cbLoc = 'left';
+   cbLoc = 'bottom';
    axAdd = [0 -.03 0 .03];
    axLim = [min(lim) max(lim) -1 max(counts+1)];
    hbar  = @(x,y) bar(x,y,'hist');
@@ -54,14 +54,14 @@ end
 
 ha = gca;
 caxis(lim)
-hcb = colorbar(cbPos);
+hcb = colorbar(cbPos); drawnow;
 apos = get(ha,'Position');
 pos=get(hcb,'Position');
-set(hcb,'Position',max(pos + cbAdd,.01), 'YAxisLocation', cbLoc);
+set(hcb,'Position',max(pos + cbAdd,.01), 'YAxisLocation', cbLoc); drawnow;
    
-set(ha,'Position',apos);
+set(ha,'Position',apos); drawnow;
 hax = axes('Position',max(pos + axAdd,.01));
-hbar(bins,counts)
+hbar(bins,counts); drawnow;
 axis tight off, axis(axLim);
 h = findobj(gca,'Type','patch');
 set(h,'FaceColor','none','EdgeColor',[.2 .2 .2]);
