@@ -32,7 +32,7 @@ else
     rock.poro = p(:);
     rock.perm = K(:);
 end
-T      = computeTrans(G, rock, 'verbose', true);
+T  = computeTrans(G, rock, 'verbose', true);
 
 % Fluid
 fluid  = initSimpleFluid('mu' , [  0.307,   0.049] .* centi*poise     , ...
@@ -58,7 +58,7 @@ xr = incompTPFA(xr, G, T, fluid);
 
 %% Plot initial data
 clf
-h = plotGrid(CG, 'FaceColor', 'none', 'EdgeColor', 'k','LineWidth',4);
+h = plotGrid(CG, 'FaceColor', 'none', 'EdgeColor', 'k','LineWidth',2);
 rotate(h,[0 1 0],theta);
 view([0,0])
 hs = plotCellData(G, xr.s, xr.s < .995, 'EdgeColor', 'none');
