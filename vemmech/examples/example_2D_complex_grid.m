@@ -24,7 +24,7 @@ G = createAugmentedGrid(G);
 G = computeGeometry(G);
 figure()
 plotGrid(G);
-title('Deformed grid');
+title('Original grid');
 
 %% Find sides of domain
 %
