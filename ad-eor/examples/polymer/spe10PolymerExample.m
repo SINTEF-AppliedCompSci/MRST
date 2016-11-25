@@ -88,35 +88,34 @@ W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
 %
 % We simulate the formation of a polymer plug.
 % Three periods:
-% 1) water only         (1000 days)
-% 2) water + polymer    (500 days)
-% 3) water only         (1500 days)
+% 1) water only         (100 days)
+% 2) water + polymer    (50 days)
+% 3) water only         (150 days)
+%
+% We set up a short schedule so that the computations do not take to much
+% time in this example.
+%
 
 [W.poly] = deal(0);
 control(1).W = W;
-[W([W.sign] > 0).surfact] = 50*kilogram/meter^3;
+[W([W.sign] > 0).poly] = 2*kilogram/meter^3;
 control(2).W = W;
 
-polyinj_start_time = 1000*day;
-polyinj_stop_time  = 1500*day;
-end_time           = 3000*day;
+polyinj_stop_time  = 150*day;
+end_time           = 300*day;
 
 dt = 10*day;
-val1 = linspace(0, polyinj_start_time, round(poly_start_time/dt));
-val2 = linspace(polyinj_start_time, polyinj_stop_time, round( ...
-    (polyinj_stop_time - polyinj_start_time)/dt));
-val3 = linspace(polyinj_stop_time, end_time, round( ...
-    (end_time - polyinj_stop_time)/dt));
 
+val1 = linspace(0, polyinj_stop_time, round(polyinj_stop_time/dt));
+val2 = linspace(polyinj_stop_time, end_time, round((end_time -polyinj_stop_time)/dt));
 step.val     = [diff(val1'); ...
-                diff(val2'); ...
-                diff(val3')];
-step.control = [  ones(numel(val1)-1, 1); ... 
-                2*ones(numel(val2)-1, 1); ... 
-                  ones(numel(val3)-1, 1)];
+                diff(val2')];
+step.control = [2*ones(numel(val1)-1, 1); ... 
+                1*ones(numel(val2)-1, 1)];
 schedule.step    = step;
 schedule.control = control;
 
+% Refine schedule at start.
 schedule = refineSchedule(0, day*ones(10, 1), schedule);
 
 %% Setup the initial state
