@@ -1,25 +1,22 @@
-%% Oil-Water-Surfactant System for a Layer of the SPE10 Model
+%% Black-Oil Polymer System for a Layer of the SPE10 Model
 %
 mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui spe10 ...
     ad-fi
 
-%% Use setupSPE10_AD to Fetch an Oil-Water Model
-% We pick up only one layer
+%% Use setupSPE10_AD to Fetch the SPE10 model
+% We pick up only one layer 
 %
 layers = 35;
 [~, model, ~] = setupSPE10_AD('layers', layers);
-
+% We recover the grid and rock properties from the model
 G = model.G;
 rock = model.rock;
 
-%% Modify the Fluid Properties
-%
-% Setup the fluid properties for our case
-%
-% Setup the relative permeabilities using Corey model for the fluid without
-% surfactant and saturated with surfactant
-%
 
+%% Fluid Properties
+%
+% We use the same blackoil properties as in the 2D case.
+%
 fname = {'BOPOLYMER.DATA', ...
          'POLY.inc', ...
          'BOPOLYMER_NOSHEAR.DATA', ...
@@ -47,7 +44,7 @@ deck = convertDeckUnits(deck);
 % permeability, etc.
 fluid = initDeckADIFluid(deck);
 
-% Constructing the physical model used for this simulation
+%% Constructing the physical model used for this simulation
 % Here, we use three phase blackoil-polymer model
 model = ThreePhaseBlackOilPolymerModel(G, rock, fluid);
 model.disgas = true;
@@ -67,7 +64,8 @@ bhp    = 200*barsa;       % Pressure at production well
 nz     = G.cartDims(3);
 
 W = [];
-% Set up injection well
+% Set up injection well (rate control)
+% The polymer injection concentration is set later, see below
 W = verticalWell(W, G, rock, injeIJ(1), injeIJ(2), 1:nz, ...
                  'Type'   , 'rate', ...
                  'Val'    , rate, ...
@@ -75,7 +73,7 @@ W = verticalWell(W, G, rock, injeIJ(1), injeIJ(2), 1:nz, ...
                  'Comp_i' , [1, 0, 0], ...
                  'name'   , 'INJE', ...
                  'Sign'   , 1);
-% Set up production well
+% Set up production well (pressure control)
 bhpProd = 100*barsa;
 W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
                  'Type'   , 'bhp', ...
@@ -88,7 +86,7 @@ W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
 
 %% Setup the Schedule
 %
-% We simulate the formation of a surfactant plug.
+% We simulate the formation of a polymer plug.
 % Three periods:
 % 1) water only         (1000 days)
 % 2) water + polymer    (500 days)
@@ -126,11 +124,11 @@ schedule = refineSchedule(0, day*ones(10, 1), schedule);
 sWcon = fluid.sWcon;
 nc = G.cells.num;
 state0.pressure = ones(nc, 1)*bhpProd;
-state0.s = ones(nc, 1)*[0, 0, 1];
-state0.rs = 0.5*fluid.rsSat(state0.pressure);
-state0.rv = zeros(nc, 1);
-state0.c      = zeros(G.cells.num, 1);
-state0.cmax   = state0.c;
+state0.s        = ones(nc, 1)*[0, 0, 1];
+state0.rs       = 0.5*fluid.rsSat(state0.pressure);
+state0.rv       = zeros(nc, 1);
+state0.c        = zeros(G.cells.num, 1);
+state0.cmax     = state0.c;
 
 %% visualize the model properties
 %
@@ -139,6 +137,7 @@ vizPolymerModel();
 
 %% Run the simulation
 %
+% Generates function handle that set up dynamic plotting for the simulation
 fn = getPlotAfterStep(state0, model, schedule, 'plotWell', true, ...
                       'plotReservoir', false);
 [wellSols, states] = simulateScheduleAD(state0, model, schedule, 'afterStepFn', ...
