@@ -147,10 +147,7 @@ function files = download_files(repo, url, opt)
 
    files = {};
 
-   wsave = @web_save;
-   if exist('websave', 'file') == 2,
-      wsave = @websave;
-   end
+   wsave = mrstWebSave();
 
    for i = 1 : numel(url),
       files = wget(files, odir, url{i}, wsave);
