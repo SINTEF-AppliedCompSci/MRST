@@ -177,7 +177,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'state remains unchanged.\n']);
    end
 
-   %% ---------------------------------------------------------------------
+   % ---------------------------------------------------------------------
    dispif(opt.Verbose, 'Setting up linear system...\t\t\t');
    t0 = ticif (opt.Verbose);
 
@@ -224,7 +224,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          grav = grav + cc;
       end
    end
-   clear mob
 
    sgn = 2*(neighborship(cf, 1) == cellNo) - 1;
    j   = i(cf) | dF(cf);
@@ -260,13 +259,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       w        = k + nc;
 
       wi       = W(k).WI .* totmob(wc);
-
-      dp       = norm(gravity()) * W(k).dZ*sum(rho .* W(k).compi, 2);
+      dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
       d   (wc) = d   (wc) + wi;
-
+      state.wellSol(k).cdp = dp;
       if     strcmpi(W(k).type, 'bhp'),
          ww=max(wi);
-         %ww=1.0;
          rhs (w)  = rhs (w)  + ww*W(k).val;
          rhs (wc) = rhs (wc) + wi.*(W(k).val + dp);
          C{k}     = -sparse(1, nc);
@@ -309,7 +306,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    tocif(opt.Verbose, t0);
 
 
-   %% ---------------------------------------------------------------------
+   % ---------------------------------------------------------------------
    dispif(opt.Verbose, 'Solving linear system...\t\t\t');
    t0 = ticif (opt.Verbose);
 
@@ -336,7 +333,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    clear A rhs;
 
-   %% ---------------------------------------------------------------------
+   % ---------------------------------------------------------------------
    dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t');
    t0 = ticif (opt.Verbose);
 
@@ -372,8 +369,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    state.facePressure     = fpress;
 
    for k = 1 : nw,
-      wc       = W(k).cells;
-      dp       = norm(gravity()) * W(k).dZ*sum(rho .* W(k).compi, 2);
+      wc = W(k).cells;
+      dp = state.wellSol(k).cdp;
       state.wellSol(k).flux     = W(k).WI.*totmob(wc).*(p(nc+k) + dp - p(wc));
       state.wellSol(k).pressure = p(nc + k);
    end
