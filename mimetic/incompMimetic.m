@@ -155,7 +155,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
+   require incomp
    opt = struct('bc', [], 'src', [], 'wells', [], 'rhs', [], ...
                 'bcp'         , []         ,                 ...
                 'Solver'      , 'hybrid'   ,                 ...
@@ -182,13 +182,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       s.sizeC = size(s.C);
       s.sizeD = size(s.D);
 
-      [A, b, dF, dC] = build_system(state, g, s, opt.wells, ...
+      [A, b, dF, dC, dp] = build_system(state, g, s, opt.wells, ...
                                     opt.bc, opt.src, fluid, opt);
 
       solver   = pick_solver(g, s, dF, dC, opt);
       x        = solver(A, b);
 
-      state = pack_solution(state, g, s, x{1:3}, opt);
+      state = pack_solution(state, g, s, x{1:3}, dp, opt);
 
       if opt.MatrixOutput, state.A = x{4}; end
    end
@@ -249,8 +249,8 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, b, dF, dC] = build_system(state, g, s, w, bc, src, fluid, opt)
-   [totmob, omega, cappress] = dynamic_quantities(g, state, fluid, opt);
+function [A, b, dF, dC, dp] = build_system(state, g, s, w, bc, src, fluid, opt)
+   [mob, totmob, omega, rho, cappress] = dynamic_quantities(g, state, fluid, opt);
 
    % Build system components B, C, D, f, g, and h for final hybrid system
    %
@@ -280,7 +280,7 @@ function [A, b, dF, dC] = build_system(state, g, s, w, bc, src, fluid, opt)
    %    b{3} = h = [ hr   ;    hw ]  % VERTCAT
    %
    [Ar, br, dFr, dCr] = syscomp_res  (g, s, totmob, omega, bc, src, opt);
-   [Aw, bw, dFw, dCw] = syscomp_wells(g, w, totmob, omega,          opt);
+   [Aw, bw, dFw, dCw, dp] = syscomp_wells(g, w, mob, totmob, rho, opt);
 
    % Include effects of capillary pressure
    if ~isempty(cappress),
@@ -388,7 +388,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function state = pack_solution(state, g, s, flux, pres, lam, opt)
+function state = pack_solution(state, g, s, flux, pres, lam, dp, opt)
    if ~isfield(state, 'facePressure'),
       state.facePressure = zeros([g.faces.num, 1]);
    end
@@ -398,6 +398,7 @@ function state = pack_solution(state, g, s, flux, pres, lam, opt)
 
    if ~isempty(opt.wells),
       nw  = numel(opt.wells);
+      i_c = 0;
       i_f = s.sizeB(1);
       i_p = s.sizeD(2);
 
@@ -406,7 +407,9 @@ function state = pack_solution(state, g, s, flux, pres, lam, opt)
 
          state.wellSol(k).flux     = -flux(i_f + 1 : i_f + nperf);
          state.wellSol(k).pressure =  lam (i_p + 1 : i_p +   1  );
+         state.wellSol(k).cdp      =  dp(i_c + 1 : i_c + nperf);
 
+         i_c = i_c + nperf;
          i_f = i_f + nperf;
          i_p = i_p +   1  ;
       end
@@ -462,12 +465,13 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, b, dF, dC] = syscomp_wells(G, W, mob, omega, opt)
+function [A, b, dF, dC, dp] = syscomp_wells(G, W, mob, totmob, rho, opt)
    % Assume empty well structure by default...
    A  = cell([1, 3]);
    b  = cell([1, 2]);
    dF = logical([]);
    dC = [];
+   dp = [];
 
    if ~isempty(W),
       % but fill in values when there nevertheless are some...
@@ -476,13 +480,14 @@ function [A, b, dF, dC] = syscomp_wells(G, W, mob, omega, opt)
       nW    = numel(W);
 
       % Diagonal transmissibility matrix (inner product).
-      v = mob(wc) .* vertcat(W.WI);
+      v = totmob(wc) .* vertcat(W.WI);
       if ~strcmpi(opt.Solver, 'hybrid'), v = 1 ./ v; end
       A{1} = sparse(i, i, v, n, n); % == spdiags(v,0,n,n), but more direct.
 
       % Connection matrices {2} -> C and {3} -> D for all wells.
+      w2p = rldecode(1:nW, nperf, 2);
       A{2} = sparse(i, wc                      , 1, n, G.cells.num);
-      A{3} = sparse(i, rldecode(1:nW, nperf, 2), 1, n, nW         );
+      A{3} = sparse(i, w2p, 1, n, nW         );
 
       % Which (and what) are the prescribed well bottom-hole pressures?
       dF   = strcmpi('bhp', { W.type } .');
@@ -494,7 +499,11 @@ function [A, b, dF, dC] = syscomp_wells(G, W, mob, omega, opt)
 
       % Expand well pressure rhs to each perforation, adjust for gravity
       % effects if applicable (i.e., when NORM(gravity())>0 and W.dZ~=0).
-      dp   = norm(gravity()) * vertcat(W.dZ) .* omega(wc);
+      dp = zeros(numel(wc), 1);
+      g = norm(gravity);
+      for k = 1:numel(W)
+         dp(w2p == k) = computeIncompWellPressureDrop(W(k), mob, rho, g);
+      end
       b{1} = rldecode(b{1}, nperf) - dp;
    end
 end
@@ -542,7 +551,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [totmob, omega, cappress] = ...
+function [mob, totmob, omega, rho, cappress] = ...
       dynamic_quantities(g, state, fluid, opt)
 
    [mu, rho] = fluid.properties(state);
@@ -561,10 +570,7 @@ function [totmob, omega, cappress] = ...
       else
          cappress = [];
       end
-
    else
-
       cappress = [];
-
    end
 end
