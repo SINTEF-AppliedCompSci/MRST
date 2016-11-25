@@ -82,7 +82,7 @@ for i=1:numel(dT),
    hs = plotCellData(G, rSol.s(:,1), (rSol.s(:,1)>.01), pargs{:});
    title([num2str(convertTo(t,day)),  ' days']),
    caxis([0 1]); drawnow
-   % print('-dpng','-r0',sprintf('img/con-%03d.png',i));
+
 end
 
 %% Oil rate, with peak production indicated by red line
