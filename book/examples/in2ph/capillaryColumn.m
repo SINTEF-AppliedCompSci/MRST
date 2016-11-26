@@ -3,39 +3,7 @@
 % direction
 mrstModule add incomp
 
-%% Uniform column
-gravity reset on
-G     = computeGeometry(cartGrid([1, 1, 40], [1, 1, 100]));
-rock  = makeRock(G, 0.1*darcy, .1);
-fluid = initSimpleFluidJfunc('mu' , [0.30860, 0.056641]*centi*poise, ...
-          'rho', [ 975.86,  686.54]*kilogram/meter^3, ...
-          'n' , [      2,       2], ...
-          'surf_tension',1*barsa/sqrt(mean(rock.poro)/(mean(rock.perm))),...
-          'rock',rock);
-                     
-% Set up the fluid distribution, compute pressure and saturation
-hT = computeTrans(G, rock);
-xr = initResSol(G, 100.0*barsa, 0.0); xr.s(end/2+1:end) = 1.0;
-xr = incompTPFA(xr, G, hT, fluid);
-xr = implicitTransport(xr, G, year, rock, fluid);
-
-% Plot the 3D solution
-figure(1);
-subplot(1,3,1:2);
-plotCellData(G,xr.s(:,1),'EdgeColor','none');
-set(gca,'XTick',[],'YTick',[]); box on; view(3); caxis([0 1]);
-
-% Plot 2D profile of the solution
-subplot(1,3,3); 
-plot(xr.s(:,1),G.cells.centroids(:,3),'-o',...
-    'MarkerSize',8,'MarkerFaceColor',[.5,.5,.5]);
-set(gca,'XTick',[],'YDir','reverse');
-pause
-
-
-%% Vertical section with varying permeability
-
-% Grid, permeability, and fluid object
+%% Grid, permeability, and fluid object
 exmpl = 1;
 G  = computeGeometry(cartGrid([20, 1, 40], [100 1 100]));
 if exmpl==1,
@@ -62,21 +30,30 @@ fluid = initSimpleFluidJfunc('mu' , [0.30860, 0.056641]*centi*poise, ...
       'surf_tension',1*barsa/sqrt(mean(rock.poro)/(mean(rock.perm))),...
       'rock',rock);
 
-% Initial data
+%% Initial data
 t = 0;
 xr = initResSol(G, 100.0*barsa, 0.0);
 xr.s(G.cells.centroids(:,3)>50) = 1.0;
 
-% Time loop
-clf
-subplot(1,2,1),
-plotCellData(G,log10(rock.perm),'EdgeColor','none'); view(0,0), axis tight
-if histb,
-   [h,az] = colorbarHist(log10(rock.perm),[-14 -12],'South');
-   set(h,'XTick',-14:-12,'XTickLabel',{'10', '100', '1000'});
+%% Plot permeability and prepare for saturation
+clf, set(gcf,'Position',[0   450  1280   370]);
+cax1 = subplot(1,3,1);
+colormap(cax1, parula);
+if exmpl==2,
+    plotCellData(G,log10(rock.perm),'EdgeColor','none'); view(0,0), axis tight
+    [h,az] = colorbarHist(log10(rock.perm),[-14 -12],'South');
+    set(h,'XTick',-14:-12,'XTickLabel',{'10', '100', '1000'});
+else
+    K = convertTo(rock.perm,milli*darcy);
+    plotCellData(G,K,'EdgeColor','none'); view(0,0), axis tight
+    [h,az] = colorbarHist(K,[50 400],'South',40);
 end
+set(az,'Position',get(az,'Position')-[0 0 0 .02]);
 
-subplot(1,2,2);
+cax2 = subplot(1,3,2);
+colormap(cax2, [zeros(128,1) linspace(.8,0,128)' linspace(0,.7,128)']);
+
+%% Time loop
 dt = dT*[1 1 2 2 3 3 4 4 repmat(5,[1,96])]*year;
 dt = [dt(1).*sort(repmat(2.^-[1:5 5],1,1)) dt(2:end)];
 s  = xr.s(:,1); 
@@ -97,3 +74,7 @@ for k = 1 : numel(dt),
    s = xr.s(:,1);
    
 end
+
+%% Draw plot of pc versus S
+subplot(1,3,3)
+plot(xr.s, fluid.pc(xr)/barsa,'o');
