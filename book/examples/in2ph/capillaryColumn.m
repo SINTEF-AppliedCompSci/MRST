@@ -63,6 +63,7 @@ for k = 1 : numel(dt),
    t  = t+dt(k);
      
    % Plot solution
+   cla
    plotCellData(G,xr.s(:,1),'EdgeColor','none');
    view(0,0); axis tight; caxis([0 1]);
    title(sprintf('time: %.1f yrs', t/year));
