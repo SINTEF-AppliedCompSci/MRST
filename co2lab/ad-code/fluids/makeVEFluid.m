@@ -35,6 +35,104 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                   options.  See detailed documentation of available options
 %                   in the function 'default_options()' below.
 %
+% OPTIONAL ARGUMENTS:
+% A non-exhaustive overview of key optional arguments (refer to the internal
+% function `default_options` to see the full range of options)
+%
+% Optional arguments related to the type of compressibility and viscosity
+% model used
+% 
+%   fixedT      - If left empty, fluid properties will depend on pressure and
+%                 temperature.  If set to a scalar, this will be considered
+%                 the constant temperature of the simulated system, and fluid
+%                 properties will only depend on pressure.
+%  
+%   co2_rho_ref - Reference density value for CO2 (used in black-oil formulation)
+%   wat_rho_ref - Reference density value for water (used in black-oil formulation)
+%   co2_rho_pvt - Compressibility model for CO2.  Possibilities are:
+%                 * empty array ([]) - CO2 considered incompressible (uses
+%                                      value for `co2_rho_ref`)
+%                 * [cw, p_ref]      - constant compressibility.  `cw` is the
+%                                      (scalar) compressibility, `p_ref` the
+%                                      (scalar) reference pressure.
+%                 * [pm, pM, tm, tM] - Interpolate from a sampled table that
+%                                      covers the pressure interval [pm, pM] and
+%                                      the temperature interval [tm, tM].
+%                 The default option is number 3 on the above list.  A
+%                 sampled table corresponding to the default values of
+%                 `pm`/`pM` and `tm`/`tM` is provided with CO2lab.  Other
+%                 tables can be generated with CoolProps.
+%   wat_rho_pvt - Same as `co2_rho_pvt`, but for water/brine.
+%   co2_mu_ref  - Reference viscosity for CO2
+%   wat_mu_ref  - Reference viscosity for water
+%   co2_mu_pvt  - Viscosity model for CO2.  Possibilities are:
+%                 * empty array ([]) - CO2 viscosity considered constant
+%                                      (uses value for `co2_mu_ref`)
+%                 * [c, p_ref]       - Pressure-dependent viscosity with
+%                                      constant coefficient (analog to
+%                                      constant compressibility).  `c` is the
+%                                      scalar coefficient, whereas `p_ref` is
+%                                      the reference pressure.
+%                 * [pm, pM, tm, tM] - Interpolate from a sampled table that
+%                                      covers the pressure interval [pm, pM]
+%                                      and the temperature interval [tm, tM].
+%                 The default option is the first on the above list,
+%                 i.e. constant viscostiy.
+%   wat_mu_pvt  - Same as `co2_mu_pvt`, but for water/brine.
+% 
+% Optional arguments related to sampled property tables:
+%   p_range / t_range - Each of these fields should be on the form [min, max], 
+%                       descibing the pressure and temperature range for
+%                       which the sampled property table should be generated.
+%   pnum / tnum       - Number of (equidistant) samples for pressure and
+%                       temperature when generating sampled property tables.
+%
+% Optional arguments related to residual saturation and dissolution 
+% 
+%  residual    - Two component vector, where first component represent
+%                residual brine saturation and second component residual CO2
+%                saturation.  Default is [0 0] (no residual saturation).
+%  dissolution - True or false, depending on whether or not to include CO2
+%                dissolution into brine in the model.
+%  dis_rate    - If dissolution is active, this option describes the
+%                dissolution rate.  A zero value means "instantaneous"
+%                dissolution, a positive value specifies a finite
+%                rate. (default: 5e-11).
+%  dis_max     - Maximum dissolution (default: 0.03)
+%
+% Optional arguments related to subscale rugosity of top surface
+%   
+%  surf_topo - What model to use for top surface rugosity.  Options are:
+%              'smooth', 'sinus', 'inf_rough', and 'square'.  This option is
+%              only used if the relperm model has been set to 'sharp
+%              interface'.
+%  top_trap  - Name of file containing the height of the top trap, either as
+%              a single scalar value or as a value per cell.  Only used for
+%              the relperm model 'sharp interface'.  Default is empty (no
+%              subscale trapping).
+%  surf_topo - Topography model used when computing the impact of caprock
+%              rugosity.  Options are 'smooth', 'sinus', 'inf_rough', and
+%              'square'.  Default is 'smooth'.
+%     
+% Optional arguments related to models for relative permeability and capillary
+% pressure.  Relperm parameters are relevant for relperm-models 'S-table',
+% 'P-scaled table', or 'P-K-scaled table'.
+%
+%  C               - scaling factor in Brooks-Corey type capillary pressure curve
+%  alpha           - exponent used in Brooks-Corey type capillary pressure curve
+%  beta            - exponent of Brooks-Corey type relperm curve
+%  surface_tension - surface tension used in 'P-K-scaled table'
+%  invPc3D         - inverse Pc function to use for computing capillary
+%                    fringe.  If empt, a Brooks-Corey type curve will be
+%                    constructed using 'C' and 'alpha' above.
+%  kr3D            - CO2 relperm curve.  If empty, a Brooks-Corey type
+%                    relperm curve with exponent 'beta' will be created.
+%   
+% Optional arguments related the rock matrix
+%
+%  pvMult_p_ref - Reference pressure for pore volume multiplier (default: 10 MPa)
+%  pvMult_fac   - pore volume compressibility (default: 1e-5 / bar)
+%  transMult    - modify transmissilbilties (such as due fo faults in the 3D grid)
 %
 % RETURNS:
 %   fluid - struct containing the following functions (where X = 'W' [water]
