@@ -48,7 +48,7 @@ if ~isempty(wellPts)
     for i = 1:size(resPtsInit,1)
         res = [res; mlqt(resPtsInit(i,:), wellPts, [d,d], varArg{:})];
     end
-    resPts = vec2mat([res{:,1}],2);
+    resPts = vertcat(res{:,1});
     %resGridSize = 0.5*[res{:,2}]';
 else
     resPts = resPtsInit;
