@@ -121,7 +121,7 @@ end
 % of the plume, a pie chart of trapped versus free volume, a plane view of
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
-opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], ...
+opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.res_water], ...
    'maxH', 5, 'Wadd', 10, 'view', [130 50]};
 plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,6), opts{:});
 

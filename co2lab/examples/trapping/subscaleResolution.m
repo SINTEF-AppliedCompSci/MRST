@@ -130,7 +130,7 @@ Gt_adjusted.faces.z = adjust(Gt_adjusted.faces.z, Gt_adjusted.faces.centroids);
 Gt_adjusted.nodes.z = adjust(Gt_adjusted.nodes.z, Gt_adjusted.nodes.coords);
 
 % Recompute geometry to get correct centroids
-Gt_adjusted = computeGeometryVE(Gt_adjusted);
+Gt_adjusted = computeGeometryVE_2D(Gt_adjusted);
 
 res_adjusted = trapAnalysis(Gt_adjusted, true);
 

@@ -8,13 +8,6 @@ function [Gt, G, transMult] = topSurfaceGrid(G)
 % PARAMETERS:
 %   G       - 3D grid as described by grid_structure.
 %
-%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%            supported options are:
-%              'Verbose' -- boolean, whether to show log messages or not.
-%                           Default value: mrstVerbose
-%              'AddFaults' -- boolean indicating if faults should be added
-%                             to the resulting 2D model.
-%
 % RETURNS:
 %   Gt - structure representing the top-surface grid. The structure
 %      consists of two parts:
@@ -102,6 +95,9 @@ function [Gt, G, transMult] = topSurfaceGrid(G)
 %                  cell centroids in R^3. The first two coordinates are
 %                  given in Gt.cells.
 %
+%     - grav_pressure and primitives
+%               -- these two fields are necessary when solving the system 
+%                  sequentially using "solveIncompFlow" with an s-formulation.
 %
 %   FACES - Cell structure Gt.faces, as described in grid_structure
 %   but with the following extra field created by a subsequent call to
@@ -148,6 +144,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+   %% Ensure that computeGeometry has been called on G
+   if ~isfield(G.faces, 'centroids')
+      try
+         G = mcomputeGeometry(G);
+      catch
+         G = computeGeometry(G);
+      end
+   end
    
    %% Identify columns in layered 3D grid; remove unused cells from G
    % cells in G that will not contribute to the top surface grid 

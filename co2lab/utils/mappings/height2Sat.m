@@ -49,9 +49,6 @@ elseif(~isfield(fluid, 'sw'))
    [mu, rho, sr] = fluid.properties();                                     %#ok
    sr = sr(1);
    sw = sr(2);
-else
-   sr = fluid.sr;
-   sw = fluid.sw;
 end
 
 % magn = @(v)(sqrt(sum(v.^2,2)));
