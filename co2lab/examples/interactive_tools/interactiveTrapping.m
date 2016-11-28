@@ -87,7 +87,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
    
    if strcmpi(opt.method, 'cell')
-       moduleCheck('coarsegrid');
+       require('coarsegrid');
    end
    
    opt = merge_options(opt, varargin{:});

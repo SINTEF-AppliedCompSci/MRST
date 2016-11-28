@@ -2,8 +2,7 @@
 % In this example, we show how to generate analytically upscaled fluid
 % objects from an 1D aquifer model having small-scale caprock undulations.
 
-clear all;
-moduleCheck('co2lab');
+mrstModule add co2lab;
 
 %% Make aquifer models
 % We generate two realizations of the aquifer model, one with small-scale
@@ -95,10 +94,10 @@ for k = 1:numel(fluid)
    end
    plot(sGv * 50, krG, markers{k}, 'LineWidth', 2)
 end
-
+%%
 % The numerically upscaled models are loaded from a precomputed file. If it
 % does not yet exist, compute it.
-savefilename = 'data/upscaled_relperm_theta';
+savefilename = fullfile(mrstPath('co2lab'), 'examples', 'papers', 'COMG-1', 'data', 'upscaled_relperm_theta');
 if (exist([savefilename, '.mat'])==2 && ...
     ask_user('Saved result found.  Re-use? [y/n] '))%#ok
    fprintf('Re-using old result.\n');
@@ -114,5 +113,5 @@ plot(us.sat_mat*50, squeeze(us.krCO2(:,:,1)),'*-');
 % Set legend and finish
 lnames = {'fine scale', 'accretion layer', 'square', 'sinusoidal', ...
    'numerical: \theta=0','numerical: \theta=0.0162','numerical: \theta=0.03'};
-legend(lnames, 2, 'FontSize', 12);
+legend(lnames, 'Location', 'NorthWest', 'FontSize', 12);
 axis([0 4 0 0.08]);

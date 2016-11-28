@@ -15,8 +15,7 @@
 % because it altogether involves 1400 realizations that each have 300x600
 % cells.
 
-mrstModule add co2lab;
-moduleCheck('coarsegrid','matlab_bgl');
+mrstModule add co2lab coarsegrid matlab_bgl;
 
 %% Compute volumes for all realizations
 names = dir(fullfile(mrstPath('co2lab'), 'data', 'igems', 'surfaces'));

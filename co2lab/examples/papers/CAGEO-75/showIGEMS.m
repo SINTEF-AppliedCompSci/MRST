@@ -34,8 +34,7 @@
 % In this example, we compute fold and fault traps for one realization of
 % each of the fifteen scenarios.
 
-mrstModule add co2lab;
-moduleCheck('coarsegrid', 'matlab_bgl');
+mrstModule add co2lab coarsegrid matlab_bgl;
 
 %% Download data if necessary
 idir = fullfile(mrstPath('co2lab'), 'data', 'igems');

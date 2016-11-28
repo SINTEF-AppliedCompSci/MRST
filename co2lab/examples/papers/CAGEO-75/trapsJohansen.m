@@ -11,8 +11,7 @@
 % (ii) a model of a somewhat larger region derived from the CO2 Storage
 % Atlas for the Norwegian North Sea.
 
-mrstModule add co2lab;
-moduleCheck('libgeometry','opm_gridprocessing','coarsegrid','matlab_bgl');
+mrstModule add co2lab libgeometry opm_gridprocessing coarsegrid matlab_bgl
 
 %% Load NPD data: sector model
 try

@@ -1,6 +1,6 @@
 function showSecondPlioExample()
 
-   moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-props');
+   mrstModule add coarsegrid deckformat mex ad-core ad-props
    gravity reset on;
 
    %% Ascertain presence of saved results, and load them

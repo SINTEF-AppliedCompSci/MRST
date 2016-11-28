@@ -43,7 +43,7 @@ function  [initState, Gt, schedule, fluid] = runSimulation(Gt, rock, schedule, v
    
    opt = merge_options(opt, varargin{:});
    
-   moduleCheck('ad-props', 'mex', 'co2lab');
+   mrstModule add ad-props mex co2lab
    gravity on;
    
    % specified range for sampled property tables

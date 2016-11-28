@@ -2,8 +2,7 @@
 % This formation has a very low percentage (0.02%) of trapping compared to
 % the overall volume of the whole model
 
-moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-props');
-
+mrstModule add coarsegrid deckformat mex ad-core ad-props
 grdecl = getAtlasGrid('Pliocenesand');
 G      = processGRDECL(grdecl{1});
 G      = computeGeometry(G(1));
