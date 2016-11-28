@@ -10,11 +10,8 @@
 % color specifications. Sorry..
 % If colors are not specified, each fracture gets assigned a unique tag.
 
-try
-   require dfm incomp
-catch
-   mrstModule add dfm incomp
-end
+mrstModule add dfm incomp
+
 
 fractures = fullfile(mrstPath('dfm'), 'simpleSystem.odp');
 
