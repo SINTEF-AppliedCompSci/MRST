@@ -8,6 +8,9 @@ end
 f.BO     = @(po, varargin)BO(po, pvcdo, reg, varargin{:});
 f.bO     = @(po, varargin)bO(po, pvcdo, reg, varargin{:});
 f.BOxmuO = @(po, varargin)BOxmuO(po, pvcdo, reg, varargin{:});
+
+f.muO = @(po, varargin) bO(po, pvcdo, reg, varargin{:}).*...
+                    BOxmuO(po, pvcdo, reg, varargin{:});
 end
 
 function v = BO(po, pvcdo, reg, varargin)
