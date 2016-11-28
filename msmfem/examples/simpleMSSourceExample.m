@@ -11,11 +11,7 @@ function simpleMSSourceExample(varargin)
 % RETURNS:
 %   Nothing.
 
-   try
-      require coarsegrid mimetic msmfem incomp
-   catch
-      mrstModule add coarsegrid mimetic msmfem incomp
-   end
+   mrstModule add coarsegrid mimetic msmfem incomp
 
    cellDims   = [4, 4, 1];
    coarseDims = [ 2,  2, 1];

@@ -2,7 +2,7 @@
 % In this example, we will take a closer look at ways of working with the
 % geometry and topology of the coarse grids
 
-
+mrstModule add coarsegrid
 %% Subdivision of Coarse Faces
 % So far, we have assumed that there is only a single connection between
 % two neighboring coarse blocks. This connection is built up of all faces

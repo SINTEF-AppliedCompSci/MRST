@@ -10,12 +10,7 @@
 % Tutorial"> and the flow-solver tutorial <simpleSRCandBC.html "How to
 % Specify Sources and Boundary Conditions">.
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
-
+mrstModule add coarsegrid mimetic msmfem incomp
 %% Define and visualize the model
 % We construct the Cartesian grid, set a lognormal, layered, isotropic
 % permeability with given mean, and use the default single-phase fluid with

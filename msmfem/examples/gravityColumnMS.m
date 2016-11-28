@@ -10,12 +10,7 @@
 % without going into specific details. More details can be found in the
 % <simpleBCMS.html "Basic Multiscale Tutorial">.
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
-
+mrstModule add coarsegrid mimetic msmfem incomp
 %% Define the model
 % The domain [0,1]x[0,1]x[0,30] is discretized using a Cartesian grid with
 % homogeneous isotropic permeability of 100 mD. The fluid has density 1000

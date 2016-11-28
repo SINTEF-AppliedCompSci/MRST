@@ -1,11 +1,7 @@
 % simpleMSBCExample
 % The example shows how to put Dirichlet boundary conditions on the system.
+mrstModule add coarsegrid mimetic msmfem incomp
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
 
 cellDims = [40, 40, 10];
 verbose  = true;

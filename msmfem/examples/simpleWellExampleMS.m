@@ -8,12 +8,7 @@
 % example is built upon the flow-solver tutorial <simpleWellExample.html
 % "Using Peacemann well models">.
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
-
+mrstModule add coarsegrid mimetic msmfem incomp
 %% Define the model and set data
 % We construct the Cartesian grid, set the permeability to 100 mD, and
 % use the default single-phase fluid with density 1000 kg/m^3 and viscosity

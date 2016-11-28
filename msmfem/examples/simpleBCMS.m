@@ -10,12 +10,7 @@
 % example is built upon the setup used in the <simpleBC.html "Basic
 % Flow-Solver Tutorial">.
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
-
+mrstModule add coarsegrid mimetic msmfem incomp
 %% Define and visualize the model
 % We construct the Cartesian grid, set a lognormal anisotropic
 % permeability with mean equal [1000 100 10] mD, and use the default

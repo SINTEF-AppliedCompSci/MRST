@@ -10,12 +10,7 @@
 %
 % This example shows the use of overlap around the well.
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
-
+mrstModule add coarsegrid mimetic msmfem incomp
 %% What is overlap?
 % Overlap means that we extend the support of the multiscale basis
 % functions, that is, we include more fine cells when computing the basis

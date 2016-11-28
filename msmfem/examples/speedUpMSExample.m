@@ -18,12 +18,7 @@
 % <simpleWellExampleMS.html>. It is recommended that you look at this
 % tutorial first.
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
-
+mrstModule add coarsegrid mimetic msmfem incomp
 %% Define the model and set data
 % We construct the Cartesian grid, set the permeability to 100 mD, and
 % use a single-phase fluid with density 1000 kg/m^3 and viscosity 1 cP.

@@ -57,12 +57,7 @@
 %
 %  This example shows the use of overlap around the well.
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
-
+mrstModule add coarsegrid mimetic msmfem incomp
 %% Define and visualize the model
 nx = 40; ny = 40; nz = 2;
 cellDims = [nx, ny, nz];

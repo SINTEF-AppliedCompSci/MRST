@@ -6,11 +6,7 @@
 %
 % for a Cartesian grid with isotropic, homogeneous permeability
 
-try
-   require coarsegrid mimetic msmfem incomp
-catch
-   mrstModule add coarsegrid mimetic msmfem incomp
-end
+mrstModule add coarsegrid mimetic msmfem incomp
 
 %% Define and visualize the model
 % We construct the Cartesian grid, set the permeability to 100 mD, and
