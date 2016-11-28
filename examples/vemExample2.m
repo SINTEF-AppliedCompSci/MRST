@@ -1,7 +1,7 @@
 %% Solving transport problems with VEM
 % In this example, we will use the virtual element method (VEM) solver in
 % MRST, and show how to set up and use it to solve a transport problem in
-% which we inject a hight-viscosity fluid in a reservoir with varying
+% which we inject a high-viscosity fluid in a reservoir with varying
 % permeability, which is initially filled with a low-viscosity fluid. To
 % emphasize the importance of using a consistent discretization method for
 % grids that are not K-orthogonal, we will compare the solution to the
@@ -173,7 +173,7 @@ for i = 1:nT
     xlabel('Time [years]');
     ylabel('Production rate [m^3/day]');
     legend('TPFA', 'VEM')
-    pause(0.0001)
+    drawnow
     
 end
 
