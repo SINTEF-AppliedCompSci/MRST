@@ -202,6 +202,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    %% Compute geometry
    Gt = compute_geometry(Gt);
+   
+   %% Following line takes a bit of computation but will speed up plotting later
+   
+   Gt.cells.sortedCellNodes = getSortedCellNodes(Gt);
+   
 end
 
 % ----------------------------------------------------------------------------
