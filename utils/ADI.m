@@ -229,6 +229,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       function h = rdivide(u,v)% './'
           h = times(u, power(v, -1));
+%          if ~isa(v,'ADI')
+%              % v is a scalar
+%              h = ADI(u.val./v, lMultDiag(1./v, u.jac));
+%          elseif ~isa(u, 'ADI')
+%              % u is a scalar
+%              h = times(u, power(v, -1));
+%          else
+%              % both are ADI
+%              
+%              h = ADI(u.val./v.val, lMultDiag(1./u.val.^2,...
+%                 plusJac(...
+%                 lMultDiag(v.val, u.jac), ...
+%                 lMultDiag(-u.val, v.jac)))...
+%                 );
+%          end
       end
 
       %--------------------------------------------------------------------
