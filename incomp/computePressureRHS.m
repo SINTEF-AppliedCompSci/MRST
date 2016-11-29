@@ -159,8 +159,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       is_flux              = strcmpi('flux', bc.type);
       hh(bc.face(is_flux)) = - bc.value(is_flux);
    end
-
-   assert (~any(dC < 0));  % Pressure conditions should always be non-neg.
 end
 
 %--------------------------------------------------------------------------

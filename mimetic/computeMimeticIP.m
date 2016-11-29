@@ -104,7 +104,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-error(nargchk(2, inf, nargin, 'struct'));
+mrstNargInCheck(2, [], nargin);
 
 opt = struct('InnerProduct', 'ip_simple', ...
              'verbose',      mrstVerbose, ...

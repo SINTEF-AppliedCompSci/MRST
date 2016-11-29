@@ -19,12 +19,7 @@
 % # useful routines for visualizing and interacting with the grids and
 % simulation results.
 
-try
-   require mimetic incomp
-catch  %#ok<CTCH>
-   mrstModule add mimetic incomp
-end
-
+mrstModule add mimetic incomp
 %% Define geometry
 % Construct a Cartesian grid of size 10-by-10-by-4 cells, where each cell
 % has dimension 1-by-1-by-1. Because our flow solvers are applicable for

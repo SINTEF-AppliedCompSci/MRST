@@ -9,9 +9,11 @@ mrstModule add incomp
 % To get an inclined reservoir, we manipulate the gravity direction. Since
 % gravity is a persistent and global variable, it is important that we
 % reset the gravity at the end of the script
+rotdeg = 40;
+height = 40;
 n      = [ 20,  2,  100];
 box_sz = [100, 10, 200];
-G      = cartGrid(n, box_sz);
+G      = cartGrid(n, box_sz); CG = cartGrid([1 1 1],box_sz);
 G      = computeGeometry(G);
 rock   = makeRock(G, 0.1*darcy, 0.3);
 T      = computeTrans(G, rock, 'verbose', true);
@@ -25,41 +27,39 @@ rot   = @(theta) makehgtform('xrotate',  theta(1), ...
                              'yrotate', -theta(2), ...
                              'zrotate', -theta(3));
 mul   = @(a,b,n) a(1:n,1:n) * reshape(b(1:n), [], 1);
-angle = [0, pi/4, 0];
+angle = [0, pi*rotdeg/180, 0];
 gravity reset on
 gravity(mul(rot(angle), gravity(), 3));
 
-%% Solve flow problem
+%% Compute initial pressure distribution
 % Put region of CO2 at bottom of reservoir.
 xr = initResSol(G, 1*barsa, 1);
 d  = gravity() ./ norm(gravity);
-c  = G.cells.centroids * d.' > 110;
-xr.s(c) = 0;
+dc = G.cells.centroids * d.';
+xr.s(dc>max(dc)-height) = 0;
 xr = incompTPFA(xr, G, T, fluid);
 
 cla reset
 h = plotCellData(G, convertTo(xr.pressure(1:G.cells.num), barsa), ...
                  'EdgeColor', 'k', 'EdgeAlpha', 0.1, 'FaceAlpha', 0.625);
-rotate(h,[0 1 0],pi/4*90);
-view([0,0]), axis tight off
-colorbar, colormap(jet)
+rotate(h,[0 1 0],rotdeg);
+view([0,0]), axis equal tight off
+colorbar, colormap(jet(10))
 
 %% Prepare to plot during simulation
 clf
-h = plotGrid(G, 'FaceColor', 'none', 'EdgeAlpha', 0.1);
-rotate(h,[0 1 0],pi/4*90);
+h = plotGrid(CG, 'FaceColor', 'none', 'EdgeColor', 'k','LineWidth',1);
+rotate(h,[0 1 0],rotdeg);
 view([0,0]), axis tight off
 hs = plotCellData(G, xr.s, xr.s < .995, 'EdgeColor', 'none');
-rotate(hs,[0 1 0],pi/4*90);
-s  = linspace(0, 1, 128).';
+rotate(hs,[0 1 0],rotdeg);
+s  = linspace(0, 1, 64).';
 cm = [1-s.^(13/16), 1-s.^6, s.^6];
-caxis([0 1]); colormap(cm), colorbar
+caxis([0 1]); colormap(cm), colorbar, axis equal
 
 %% Run simulation
 % For accuracy, the time step is gradually ramped up
-dT = [1, 2, 2, 5, 5, 10, 15, 20, 40, 50, 50, ...
-      100, 100, 200, 200, 300, 400, 500] .* day();
-dT = [dT, [2, 2, 2, 4, 5, 5, 10, 10, repmat(15, [1, 54])].*year()]/200;
+dT = [.5, .5, 1, 1, 1, 2, 2, 2, 5, 5, 10, 10, 15, 20, repmat(25,[1,97])].*day();
 t = 0;
 for k = 1 : numel(dT),
    xr = implicitTransport(xr, G, dT(k), rock, fluid, 'Verbose', false);
@@ -71,7 +71,8 @@ for k = 1 : numel(dT),
    t = t + dT(k);
    delete(hs)
    hs = plotCellData(G, xr.s, xr.s <.995, 'EdgeColor', 'none');
-   rotate(hs,[0 1 0],pi/4*90);
+   rotate(hs,[0 1 0],rotdeg);
+   title(sprintf('%.2f days', t/day));
    drawnow
 
    % Compute new flow field.

@@ -2,12 +2,7 @@
 % This example shows how to set up a combination of source and boundary
 % conditions and is a continuation of the <matlab:edit('incompIntro.m')
 % introduction to the incompressible solvers in MRST>.
-try
-    require incomp
-catch %#ok<CTCH>
-    mrstModule add incomp
-end
-
+mrstModule add incomp
 %% Define grid, rock and fluid data
 % Construct a Cartesian grid of size nx-by-ny-by-nz cells, where each cell
 % has dimension 1-by-1-by-1 m. Set an isotropic and homogeneous

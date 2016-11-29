@@ -1,10 +1,16 @@
-%% Grid-orientation effect
-% This example demonstrates the basic use of the MPFA-O pressure solver. To
-% this end, we consider a square [0,30]x[0,30] m^2 with uniform
-% permeability and a prescribed pressure drop from the left to the right
-% boundary, which gives an analytical solution p(x,y)=2-x/30. The domain is
-% represented on a skewed grid, and we compare the MPFA-O solution with
-% solutions computed by the TPFA method and a mimetic method.
+%% Example 2: Grid-orientation effect
+% The multipoint flux-approximation (MPFA-O) scheme is developed to be
+% consistent on grids that are not necessarily K-orthogonal. This example
+% demonstrates the basic use of the MPFA-O pressure solver by applying it
+% to a single-phase flow problem posed on a square [0,30]x[0,30] m^2 with
+% homogeneous and isotropic permeability. To discretize the problem, we
+% introduce a skewed, curvilinear grid in which the majority of the grid
+% cells are not K-orthogonal. The classical TPFA scheme can therefore be
+% expected to give significant grid-orientation effects. To investigate
+% this, we consider a single-phase flow problem with a prescribed pressure
+% drop from the left to the right boundary, which gives an analytical
+% solution p(x,y)=2-x/30. We compare the MPFA-O solution with solutions
+% computed by the TPFA method and a mimetic method.
 
 mrstModule add incomp mimetic mpfa
 
@@ -44,19 +50,19 @@ bc=addBC(bc,yfaces,'pressure',bc_right+rho*G.faces.centroids(yfaces,:)*g_vec)
 
 
 
-%% Mimetic method
-fprintf('Mimetic method\t... ')
-tic
-S = computeMimeticIP(G, rock);
-xr1 = incompMimetic(initResSol(G, 0, 0), G, S, fluid, 'bc', bc);
-toc
-
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
 T1  = computeMultiPointTrans(G, rock,'eta',eta);
-xr2 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
+xr1 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
                  'bc', bc,'MatrixOutput',true);
+toc
+
+%% Mimetic method
+fprintf('Mimetic method\t... ')
+tic
+S = computeMimeticIP(G, rock);
+xr2 = incompMimetic(initResSol(G, 0, 0), G, S, fluid, 'bc', bc);
 toc
 
 %% TPFA method
@@ -77,27 +83,28 @@ plot_flux  = @(x) plot_var(convertTo(flux_int(x), meter^3/day));
 clf, set(gcf,'Position',[300 250 1000 500]);
 
 subplot(2,3,1),
-plot_flux(xr1); cax = caxis; axis equal tight, title('Mimetic')
+plot_flux(xr1); cax=caxis();  axis equal tight, title('Flux: MPFA-O')
 
 subplot(2,3,2),
-plot_flux(xr2); caxis(cax);  axis equal tight, title('MPFA-O')
+plot_flux(xr2); caxis(cax); axis equal tight, title('Flux: Mimetic')
 
 subplot(2,3,3),
-plot_flux(xr3); caxis(cax);  axis equal tight, title('TPFA')
+plot_flux(xr3); caxis(cax);  axis equal tight, title('Flux: TPFA')
 colorbar('Position',[.92 .58 .02 .34])
 
 subplot(2,3,4),
-plot_press(xr1); cax = caxis; axis equal tight, title('Mimetic')
+plot_press(xr1); cax=caxis();  axis equal tight, title('Pressure: MPFA-O')
 
 subplot(2,3,5),
-plot_press(xr2); caxis(cax);  axis equal tight, title('MPFA-O')
+plot_press(xr2); caxis(cax); axis equal tight, title('Pressure: Mimetic')
 
 subplot(2,3,6),
-plot_press(xr3); caxis(cax);  axis equal tight, title('TPFA')
+plot_press(xr3); caxis(cax);  axis equal tight, title('Pressure: TPFA')
 colorbar('Position',[.92 .11 .02 .34])
 figure(1)
 
 %% Compute discrepancies in flux and errors in pressure
+<<<<<<< HEAD:mpfa/examples/mimeticExampleGridEffects.m
 [mu,rho]=fluid.properties();
 p=struct('p',[],'flux',[]);
 p.pressure= (bc_left -(bc_left-bc_right)*G.cells.centroids(:,1)/L(1))+rho*G.cells.centroids*g_vec;
@@ -124,9 +131,26 @@ fprintf(['\nInternal flux error:\n', ...
 
 fprintf(['Cell Pressure Error:\n', ...
          '\to Mimetic        : %.15e\n',  ...
+=======
+p.pressure = 2 - G.cells.centroids(:,1)/G.cartDims(1);
+err_press  = @(x1, x2) ...
+    norm(x1.pressure - x2.pressure, inf) / norm(x1.pressure, inf);
+err_flux   = @(x1, x2) norm(flux_int(x1) - flux_int(x2), inf);
+
+fprintf(['\nMaximum difference in face fluxes:\n', ...
+         '\to MPFA-O /TPFA   : %.15e\n',   ...
+         '\to MPFA-O /Mimetic: %.15e\n',   ...
+         '\to Mimetic/TPFA   : %.15e\n\n', ...
+         ], ...
+        err_flux(xr1, xr3), err_flux(xr1, xr2), err_flux(xr2, xr3));
+
+fprintf(['Relative error in cell pressures:\n', ...
+>>>>>>> master:mpfa/examples/mpfaExample2.m
          '\to MPFA-O         : %.15e\n',  ...
-         '\to TPFA           : %.15e\n'], ...
-        err_press(xr1, p), err_press(xr2, p), err_press(xr3, p));
+         '\to Mimetic        : %.15e\n',  ...
+         '\to TPFA           : %.15e\n',  ...
+         ], ...
+         err_press(xr1, p), err_press(xr2, p), err_press(xr3, p));
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

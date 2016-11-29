@@ -9,11 +9,8 @@
 % will be chosen instead of the core MRST functions. If this is not taken
 % care of, strange error messages will probably result
 
-try
-   require dfm incomp
-catch
-   mrstModule add dfm incomp
-end
+mrstModule add dfm incomp
+
 
 % Initialize a grid
 Nx = [10 10];

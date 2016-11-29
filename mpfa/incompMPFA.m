@@ -160,8 +160,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    nw     = length(opt.wells);
    %n      = nc + nw;
 
-   [totmob, omega, rho] = dynamic_quantities(state, fluid);
-   
+   [mob, totmob, omega, rho] = dynamic_quantities(state, fluid);
+
    % Needed after introduction of gravity
    TT=T;
    totFace_mob=...
@@ -258,9 +258,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       wi       = W(k).WI .* totmob(wc);
 
-      dp       = norm(gravity()) * W(k).dZ*sum(rho .* W(k).compi, 2);
+      dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
       d   (wc) = d   (wc) + wi;
-
+      state.wellSol(k).cdp = dp;
       if     strcmpi(W(k).type, 'bhp'),
          ww=max(wi);
          %ww=1.0;
@@ -315,8 +315,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    state.boundaryPressure = p(nc + 1 : nnp);
 
    for k = 1 : nw,
-      wc       = W(k).cells;
-      dp       = norm(gravity()) * W(k).dZ*sum(rho.*W(k).compi, 2);
+      wc = W(k).cells;
+      dp = state.wellSol(k).cdp;
       state.wellSol(k).flux = W(k).WI.*totmob(wc).*(p(nnp+k) + dp - p(wc));
       state.wellSol(k).pressure = p(nnp + k);
    end
@@ -339,7 +339,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [totmob, omega, rho] = dynamic_quantities(state, fluid)
+function [mob, totmob, omega, rho] = dynamic_quantities(state, fluid)
    [mu, rho] = fluid.properties(state);
    s         = fluid.saturation(state);
    kr        = fluid.relperm(s, state);

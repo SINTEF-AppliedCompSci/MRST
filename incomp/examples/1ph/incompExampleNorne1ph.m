@@ -28,7 +28,7 @@ mrstModule add incomp
 % model from a file in the Eclipse formate (GRDECL). As shown in this
 % overview, the model has two components, of which we will only use the
 % first one.
-grdecl = fullfile(getDatasetPath('norne'), 'OPM.GRDECL');
+grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
 usys   = getUnitSystem('METRIC');
 grdecl = convertInputUnits(grdecl, usys);
