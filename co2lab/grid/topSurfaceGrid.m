@@ -194,10 +194,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    Gt.primitives      = @primitivesMimeticVE_s;
    
    if isfield(G, 'cartDims')
-      % also add face tags
-      fnum = length(Gt.cells.faces);
-      tag_seq = determine_facetag_sequence(G);
-      Gt.cells.faces = [Gt.cells.faces, repmat(tag_seq, fnum/4, 1)];
+      try
+         % also add face tags
+         fnum = length(Gt.cells.faces);
+         tag_seq = determine_facetag_sequence(G);
+         Gt.cells.faces = [Gt.cells.faces, repmat(tag_seq, fnum/4, 1)];
+      catch
+         % Did not manage to extract tags, likely due to degenerate faces in
+         % G.  Warn user, and do not add tags
+         warning('Could not add face tags. 3D grid G has no regular cell.');
+      end
    end
    
    %% Compute geometry
@@ -700,10 +706,15 @@ end
 function seq = determine_facetag_sequence(G)
 % determine the W/E/S/N sequence following the edges of the top surface of a
 % cell.  Assuming all cells have the same layout, we determine this sequence
-% looking only at the first grid cell.
+% looking only at the first "regular" grid cell.
    assert(isfield(G, 'cartDims')); % should only be attempted for cartesian grids!
    
-   faces = G.cells.faces(G.cells.facePos(1):G.cells.facePos(2)-1, :);
+   % Identify "model cell", with 6 faces
+   cix = find_model_3D_cell(G);
+   assert(~isempty(cix)); % if empty, no cell in 3D grid has all 6 faces,
+                          % where each face has 4 nodes.
+   
+   faces = G.cells.faces(G.cells.facePos(cix):G.cells.facePos(cix+1)-1, :);
    faces = sortrows(faces, 2); % now should be sorted according to logical direction
    faces = faces(1:5,1); % discard tags, and bottom face (which we do not need)
    
@@ -719,4 +730,33 @@ function seq = determine_facetag_sequence(G)
    seq(3) = ixfun(nodes(3, end), nodes(4, end)); % cardinal dir. for 3rd top edge
    seq(4) = ixfun(nodes(4, end), nodes(1, end)); % cardinal dir. for 4th top edge
    
+end
+
+% ----------------------------------------------------------------------------
+
+function cix = find_model_3D_cell(G)
+
+   % Search for a cell in the 3D grid that is a topological hexahedron,
+   % i.e. 6 faces where each face has 4 distinct corners
+   
+   % candidate cells are those with 6 faces
+   candidates = find(diff(G.cells.facePos)==6);
+   
+   % Search for a candidate whose faces are all quadrilaterals
+   found = false;
+   for cix = candidates'
+
+      faces = G.cells.faces(G.cells.facePos(cix):G.cells.facePos(cix+1)-1,:);
+      faces = faces(:,1);
+
+      num_sides = G.faces.nodePos(faces+1) - G.faces.nodePos(faces);
+      
+      found = all(num_sides == 4);
+      if found
+         break;
+      end
+   end
+   if ~found
+      cix = [];
+   end
 end
