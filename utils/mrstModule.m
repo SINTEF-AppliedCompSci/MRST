@@ -78,12 +78,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    persistent MODLIST
-   persistent BEHAVIOUR
 
    % Enforce cell array type.
    if isempty(MODLIST), MODLIST = {}; end
-
-   if isempty(BEHAVIOUR), BEHAVIOUR = 'experimental'; end
 
    if nargin > 0,
       assert (iscellstr(varargin), 'All parameters must be strings.');
@@ -96,7 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             MODLIST = prune_modules(MODLIST);
 
             if ~ (isempty(mods) || all(cellfun(@isempty, mods))),
-               MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
+               MODLIST = add_modules(MODLIST, mods);
                mlock
             else
                munlock
@@ -104,7 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'clear',
             munlock
-            MODLIST = clear_modules(MODLIST, BEHAVIOUR);
+            MODLIST = clear_modules(MODLIST);
 
          case 'list',
             MODLIST = prune_modules(MODLIST);
@@ -119,39 +116,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'reset',
             munlock
-            MODLIST = clear_modules(MODLIST, BEHAVIOUR);
+            MODLIST = clear_modules(MODLIST);
 
             if ~ (isempty(mods) || all(cellfun(@isempty, mods))),
                mlock
-               MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
+               MODLIST = add_modules(MODLIST, mods);
             end
 
          case 'gui'
             moduleGUI();
 
-          case {'behavior', 'behaviour'}
-            if nargin == 1
-                % Print to screen the current behaviour
-                fprintf('Current mrstModule behaviour is "%s".\n', BEHAVIOUR);
-            else
-                % We have been given a new behaviour
-                nextmode = lower(mods{1});
-                if ~strcmp(nextmode, BEHAVIOUR)
-                    % The behaviour has changed.
-                    munlock
-                    assert(strcmp(nextmode, 'experimental') ||...
-                           strcmp(nextmode, 'release'));
-                    mods = MODLIST;
-                    % Clear modules with previous behavior mode
-                    MODLIST = clear_modules(MODLIST, BEHAVIOUR);
-                    % Set new behaviour mode
-                    BEHAVIOUR = nextmode;
-                    % Add modules, this time changing the included/excluded
-                    % folders according to the current directive.
-                    MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
-                    mlock
-                end
-            end
          otherwise,
             error(msgid('Command:Unsupported'), ...
                  ['Command word ''%s'' unsupported. Must be one of ', ...
@@ -195,7 +169,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function lst = add_modules(lst, mods, behaviour)
+function lst = add_modules(lst, mods)
    pth = path_search(mods);
    fnd = ~ cellfun(@isempty, pth);
 
@@ -224,7 +198,7 @@ function lst = add_modules(lst, mods, behaviour)
             run(mloadfb);
          end
 
-         dirs = filter_module_dirs(mroot, behaviour);
+         dirs = filter_module_dirs(mroot);
          addpath(dirs{:});
 
       catch ME
@@ -259,13 +233,13 @@ end
 
 %--------------------------------------------------------------------------
 
-function lst = clear_modules(lst, behaviour)
+function lst = clear_modules(lst)
    if ~isempty(lst),
       p = path_search(lst);
       p = p(~ cellfun(@isempty, p));
 
       for r = reshape(p, 1, []),
-         dirs = filter_module_dirs(r{1}, behaviour);
+         dirs = filter_module_dirs(r{1});
          rmpath(dirs{:});
       end
 
@@ -297,19 +271,13 @@ end
 
 %--------------------------------------------------------------------------
 
-function dirs = filter_module_dirs(root, behaviour)
+function dirs = filter_module_dirs(root)
    if ~isempty(root),
       dirs  = split_path(genpath(root));
       vcdir = [regexptranslate('escape', filesep), '\.(git|hg|svn)'];
 
       is_vcdir = ~cellfun(@isempty, regexp(dirs, vcdir));
       exclude  = is_vcdir | cellfun(@isempty, dirs);
-
-      if strcmpi(behaviour, 'release')
-          exdir = [regexptranslate('escape', filesep), '\experimental'];
-          is_exdir = ~cellfun(@isempty, regexp(dirs, exdir));
-          exclude = exclude | is_exdir;
-      end
 
       dirs = dirs(~exclude);
    else
