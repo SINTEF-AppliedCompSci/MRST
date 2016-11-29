@@ -1,4 +1,4 @@
-mrstModule add ad-core ad-blackoil ad-props mrst-gui
+mrstModule add ad-core ad-blackoil ad-props mrst-gui spe10
 gravity reset on
 
 %% Model Geometry
