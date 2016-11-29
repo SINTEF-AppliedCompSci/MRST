@@ -158,7 +158,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    nc     = g.cells.num;
    nw     = length(opt.wells);
-   %n      = nc + nw;
 
    [mob, totmob, omega, rho] = dynamic_quantities(state, fluid);
 
@@ -190,33 +189,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % in 2D)
    %sb = full(sum(TT.D, 1)) == 1;
    %cf_mtrans=TT.Do'*TT.hfhf*[TT.C, -TT.D(:,sb)];
-   cf_mtrans=TT.cf_trans
+   cf_mtrans = TT.cf_trans;
    % define div operaor form mfpa sides to celle values in addtion to the
    % fluxes out of boundary.
    %e_div =  [TT.C, -TT.D(:,sb)]'*TT.Do;
-   e_div=TT.e_div;
+   e_div = TT.e_div;
    % multiply fluxes with harmonic mean of mobility
    % this to avid for re asssembly
    % to be equivalent coupled reservoir simulation the value of
    % sum of upwind mobility should be used.
    A=e_div*tothface_mob_mat*cf_mtrans;
-   %dghf= TT.Do'*TT.hfhf * grav;
    dghf= TT.cf_trans_g * grav;
-   %rhs_g= [TT.C, -TT.D(:,sb)]'*TT.Do*tothface_mob_mat*dghf;
    rhs_g= e_div*tothface_mob_mat*dghf;
  
    hh_tmp = TT.d1*hh;
    rhs = [gg; -hh_tmp(TT.sb)];
-   rhs=rhs+rhs_g;
-   %% Eliminate all but the cellpressure
-   %BB=A(nc+1:end,nc+1:end);
-   %AA=A(1:nc,1:nc);
-   %DD=A(nc+1:end,1:nc);
-   %DU=A(1:nc,nc+1:end);
-   %A=AA-DU*inv(BB)*DD;
-   %rhs=rhs(1:nc)+DU*inv(BB)*rhs(nc+1:end);
-   %B=A(nc+1:end,
-   %A=inv(A(nc+1:end)A(1:nc,1:nc)
+   rhs = rhs+rhs_g;
    %% Dirichlet condition
    % If there are Dirichlet conditions, move contribution to rhs.  Replace
    % equations for the unknowns by speye(*)*x(dF) = dC.
@@ -224,24 +212,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    factor = A(1,1);
    assert (factor > 0)
-   %subp=nan(size(A,1),1);
    if any(dF),
-      dF_tmp=TT.d1(TT.sb,:)*dF
+      dF_tmp     = TT.d1(TT.sb,:)*dF;
       ind        = [false(g.cells.num, 1) ; dF_tmp>0];
-      is_press = strcmpi('pressure', opt.bc.type);
-      face     = opt.bc.face (is_press);
-      bcval    = opt.bc.value (is_press);
-      dC_tmp=TT.d1(TT.sb,face)*bcval;
+      is_press   = strcmpi('pressure', opt.bc.type);
+      face       = opt.bc.face (is_press);
+      bcval      = opt.bc.value (is_press);
+      dC_tmp     = TT.d1(TT.sb,face)*bcval;
       rhs        = rhs - A(:,g.cells.num+1:end)*dC_tmp;
       rhs(ind)   = factor*dC_tmp(dF_tmp>0);
       A(ind,:)   = 0;
       A(:,ind)   = 0;
       A(ind,ind) = factor * speye(sum(ind));
    end
-   
-
-   %remove
-   %A=A(1:nc,1:nc);
    nnp=length(rhs);
    rhs=[rhs;zeros(nw, 1)];
 
@@ -261,9 +244,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
       d   (wc) = d   (wc) + wi;
       state.wellSol(k).cdp = dp;
-      if     strcmpi(W(k).type, 'bhp'),
+      if strcmpi(W(k).type, 'bhp'),
          ww=max(wi);
-         %ww=1.0;
          rhs (w)  = rhs (w)  + ww*W(k).val;
          rhs (wc) = rhs (wc) + wi.*(W(k).val + dp);
          C{k}     = -sparse(1, nnp);
@@ -300,15 +282,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% ---------------------------------------------------------------------
    dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t');
    ticif (opt.Verbose);
-  state.pressure(1 : nc) = p(1 : nc);
+   state.pressure(1 : nc) = p(1 : nc);
    % Reconstruct face pressures and fluxes.
-   %fpress     =  ...
-%          accumarray(g.cells.faces(:,1), (p(cellNo)+grav).*T, [g.faces.num,1])./ ...
-%          accumarray(g.cells.faces(:,1), T, [G.faces.num,1]);
-
-
-   % Neumann faces
-   
    b         = any(g.faces.neighbors==0, 2);   
    state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p(1:nnp) - tothface_mob_mat*dghf);%
    state.flux(~b)=state.flux(~b)/2;

@@ -126,7 +126,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    C     = sparse(subhfno, cno, 1);
 
    % c1 adds up sub-half-face contributions for each half-face
-   c1     = sparse(subhfno, hfno, 1);
+   % c1     = sparse(subhfno, hfno, 1);
 
    % d1 adds up sub-face contributions for each face.
    d1     = sparse(subfno, fno, 1);
@@ -217,15 +217,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    N=g.faces.neighbors(intfaces,:);
    
    %% gravity contributaion 
-   gTrans = iDoBDo*d1; % not that this mapes form gravity differncces over faces including outer faces.
+   gTrans = iDoBDo*d1; % note that this maps from gravity differences over faces including outer faces.
    % gravity trans ???
-   rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:))
+   rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:));
    rgTrans = d1(iface,intfaces)'*rgTrans;   
-   %need testing
-   T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
+   % Create transmissibility as a hidden, undocumented output
+   if nargout > 1
+      T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
        'rgTrans',rgTrans','N',N);%calculate mpfa gravity contribution from "gravity difference between cells and cells to bounary faces" to internal face flux 
-   
-   %T(:,all(T==0, 1))=[];
+   end
 end
 
 %--------------------------------------------------------------------------
