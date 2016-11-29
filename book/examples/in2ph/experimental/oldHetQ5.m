@@ -1,17 +1,19 @@
-%% Heterogeneous quarter five-spot
-% In this example, we will study a heterogeneous quarter five-spot with
-% petrophysical data sampled from the topmost layer of the SPE 10 data set.
+%% Heterogeneous quarter five-spot: temporal splitting errors
+% In this example, we use a heterogeneous quarter five-spot with
+% petrophysical data sampled from the topmost layer of the SPE 10 data set
+% as an example to illustrate splitting errors that may arise when using a
+% sequential solution procedure. We consider three different mobility
+% ratios: an unfavorable, equal mobilities, and favorable.
 
 mrstModule add incomp spe10
 
 %% Set up model and parameters
-T        = 0.5;
-dims     = [60 120 1];
-domain   = dims.*[20 10 2]*ft;
-G        = computeGeometry(cartGrid(dims,domain));
-rock     = SPE10_rock((1:dims(1)),(1:dims(2))+60,1);
-rock.perm = rock.perm*milli*darcy;
+dims      = [60 120 1];
+domain    = dims.*[20 10 2]*ft;
+G         = computeGeometry(cartGrid(dims,domain));
+rock      = getSPE10rock((1:dims(1)),(1:dims(2))+60,1);
 rock.poro = max(rock.poro,.0005);
+pv        = poreVolume(G,rock);
 gravity reset off
 
 rate   = sum(poreVolume(G,rock));
@@ -22,146 +24,129 @@ W = addWell(W,G, rock, G.cells.num, 'Type', 'rate', ...
 hT = computeTrans(G, rock);
 x0 = initState(G,W,100*barsa, [0 1]);
 
-cval = linspace(0,1,11); cval=.5*cval(1:end-1)+.5*cval(2:end);
 
-%% Compare fingering effects
-% We start by comparing fingering effects in a heterogeneous quarter
-% five-spot problem as function of viscosity ratio. We show that an
-% unfavorable mobility ratio (viscosity of injected water is less than the
-% viscosity of the resident oil) leads to pronounced fingers whereas a
-% piston-like displacement with minimal fingering effects is observed for a
-% favorable mobility ratio.
-%
-% To this end, we compute solutions for three different viscosity ratios,
-% mu_w : mu_o = N, for N=10, 1, and 1/10. To compare the resulting
-% displacement fronts, we use an estimate of 1D wave speeds to estimate how
-% fast each displacement front propagates relative to a passive particle,
-% and then use this to scale the final time so that the fronts have swept a
-% comparable spatial region of the reservoir.
-N      = 10;
-mu     = [1 N; 1 1 ; N 1];
-g      = @(N) N./(2*(sqrt(N+1)-1));
-tscale = g([N 1 1/N]);
+%% Self convergence with respect to time step
+% For the first test, we illustrate difference in self convergence as a
+% function of mobility ratio M = muw/muo for M=0.1, 1, and 10. These cases
+% have a leading displacement profile that moves faster than the Darcy
+% velocity by a factor rvel=1/(2M(sqrt((M+1)/M)-1)). For each mobility
+% ratio, we set up a simulation that would take 2^m time splitting steps to
+% reach 0.5 PVI for m=1:6. However, to get saturation profiles that cover a
+% more similar portion of the reservoir, we scale the end time for M=0.1
+% and M=10 by rvel(1)/rvel(M). The self convergence is measured relative to
+% a solution that would have used 256 steps to get to 0.5 PVI.
+mu     = [1 10; 1 1 ; 10 1];
+rvel   = @(M) 1./(2.*M.*(sqrt((M+1)./M)-1));
+tscale = rvel(mu(:,1)./mu(:,2));
 tscale = tscale(2)./tscale;
-M      = 40;
-set(gcf,'Position',[300 550 1100 300]);
-colormap(flipud(.5*jet(10)+.5*ones(10,3)));
-for n=1:3
-    fluid = initSimpleFluid('mu', mu(n,:).* centi*poise, ...
-        'rho', [1000,1000].*kilogram/meter^3, 'n',  [2 2]);
-    x  = x0;
-    for i=1:round(tscale(n)*M)
-       x  = incompTPFA(x, G, hT, fluid, 'wells', W);
-       x  = implicitTransport(x, G, T/M, rock, fluid, 'wells', W);
-    end
-    subplot(1,3,n);
+T      = 0.5;
+
+% Prepare plotting
+set(gcf,'Position',[200 550 1240 480]);
+cval = linspace(0,1,11); 
+cval = .5*cval(1:end-1)+.5*cval(2:end);
+plotData = @(x) ... 
     contourf(reshape(G.cells.centroids(:,1), G.cartDims),...
-        reshape(G.cells.centroids(:,2), G.cartDims), ...
-        reshape(x.s(:,1),G.cartDims), [cval 1]);
-    axis equal; axis([0 domain(1) 0 domain(2)]);
-    title(sprintf('Viscosity ratio %d:%d',mu(n,:)));
-    set(gca,'XTick',[],'YTick',[]);
-    drawnow;
-end
+    reshape(G.cells.centroids(:,2), G.cartDims), ...
+    reshape(x.s(:,1),G.cartDims), [cval 1]);
+colormap(flipud(.5*jet(10)+.5*ones(10,3)));
 
-%% Show evolution of 
-
-%% Self-convergence with respect to time step
-% We repeat the experiment above and measure the self-convergence with
-% respect to number of time steps for the three different viscosity ratios
-pv = poreVolume(G,rock);
+% Loop over all three viscosity ratios
 err = zeros(3,6);
-set(gcf,'Position',[300 550 1100 480]);
 for n=1:3
     fluid = initSimpleFluid('mu', mu(n,:).* centi*poise, ...
         'rho', [1000,1000].*kilogram/meter^3, 'n',  [2 2]);
-    for m=[7 1:6]
-        x  = x0;
-        M = round(tscale(n)*2^m);
-        for i=1:M;
+    for m=[8 1:6]
+        
+        % Time loop
+        [x,dt,t,tend]  = deal(x0, T*2^(-m), 0, tscale(n)*T);
+        while t<tend
             x = incompTPFA(x, G, hT, fluid, 'wells', W);
-            x = implicitTransport(x, G, tscale(n)*T/M, rock, fluid, 'wells', W);
+            [tl,dtl,tle] = deal(0,T/2^8, min(tend-t,dt));
+            while tl < tle
+                x = implicitTransport(x, G, dtl, rock, fluid, 'wells', W);
+                tl = tl+dtl;
+            end
+            t = t+dt;
         end
-        if m==7,
-            sref = x.s(:,1);
-            snorm = sum(abs(sref).*pv);
+        
+        % Compute discrepancy from reference solution
+        if m==8,
+            sref = x.s(:,1); snorm = sum(abs(sref).*pv);
         else
             err(n,m) = sum(abs(x.s(:,1)-sref).*pv)/snorm;
-            subplot(3,6,sub2ind([6,3],m,n))
-            contourf(reshape(G.cells.centroids(:,1), G.cartDims),...
-               reshape(G.cells.centroids(:,2), G.cartDims), ...
-               reshape(x.s(:,1),G.cartDims), [cval 1]);
-            axis equal; axis([0 domain(1) 0 domain(2)]);
-            if n==1, 
-                title(sprintf('%d steps',2^m));
-            else
-                pos=get(gca,'position');
-                set(gca,'position',pos+(n-1).*[0 .025 0 0]);
-            end
-            set(gca,'XTick',[],'YTick',[]);
-            drawnow;
         end
+        
+        % Plot contour plot of solution
+        subplot(3,7,sub2ind([7,3],min(m,7),n))
+        plotData(x); axis equal; axis([0 domain(1) 0 domain(2)]);
+        if n==1,
+            title(sprintf('%d steps',2^m));
+        else
+            pos=get(gca,'position');
+            set(gca,'position',pos+(n-1).*[0 .05 0 0]);
+        end
+        set(gca,'XTick',[],'YTick',[]);
+        drawnow;
     end
 end
+
+% Plot convergence
 figure
 semilogy(err','o-','MarkerSize',7,'MarkerFaceColor',[.8 .8 .8],'LineWidth',1);
-set(gca,'XTick',1:6,'XTickLabel',{2.^[1:6]}); legend('1:10','1:1','10:1');
+set(gca,'XTick',1:6,'XTickLabel',{2.^(1:6)}); legend('1:10','1:1','10:1');
 
-%% Well curves: error as function of time step
-T = 1.5;
-[Mx,My,Mz] = deal(2^3*T/0.5, 2^5*T/0.5, 2^7*T/0.5);
-[tx,ty,tz] = deal(zeros(Mx,1),zeros(My,1),zeros(Mz,1));
-[aerrx,rerrx,wx] = deal(zeros(Mx,3));
-[aerry,rerry,wy] = deal(zeros(My,3));
-wz = zeros(Mz,3);
-spv  = sum(pv);
+%% Well curves convergence
+% We repeate the same simulation as above, except that we continue until
+% 1.5 PVI for all three mobility ratios. We run simulations with constant
+% time-step length (3*4^[0:4] steps) and with a rampup.
+Tn    = 1.5;
+
+% Constant time step
+nstep = [1 4 16 64 256];
+dt    = T/nstep(end);
+wellSols = cell(nstep(end),numel(nstep),3);
+
+% Rampup 
+dT = repmat(T/32, Tn/T*32,1);
+dT = [dT(1)*sort(repmat((2.^-[1:4 4])',2,1)); dT(3:end)];
+wSol     = cell(numel(dT),3);
 for n=1:3
+    fprintf('Fluid %d: ', n);
     fluid = initSimpleFluid('mu', mu(n,:).* centi*poise, ...
         'rho', [1000,1000].*kilogram/meter^3, 'n',  [2 2]);
-    [x,y,z] = deal(x0);
-    [ij,ik] = deal(1);
-    for i=1:Mx
-        disp(i)
-        x = incompTPFA(x, G, hT, fluid, 'wells', W);
-        x = implicitTransport(x, G, T/Mx, rock, fluid, 'wells', W);
-        wx(i,n) = x.s(W(2).cells,1);
-        tx(i) = T/Mx;
-        for j=1:My/Mx
-            y = incompTPFA(y, G, hT, fluid, 'wells', W);
-            y = implicitTransport(y, G, T/My, rock, fluid, 'wells', W);
-            wy(ij,n) = y.s(W(2).cells,1);
-            ty(ij) = T/My;
-            for k=1:Mz/My
-                z = incompTPFA(z, G, hT, fluid, 'wells', W);
-                z = implicitTransport(z, G, T/Mz, rock, fluid, 'wells', W);
-                wz(ik,n) = z.s(W(2).cells,1);
-                tz(ik) = T/Mz;
-                ik = ik+1;
+    for k=1:numel(nstep)
+        x = x0;
+        ws = 1;
+        fprintf('%d,', nstep(k));
+        for i=1:nstep(k)*Tn/T
+            x = incompTPFA(x, G, hT, fluid, 'wells', W);
+            for m=1:nstep(end)/nstep(k)
+                x = implicitTransport(x, G, dt, rock, fluid, 'wells', W);
+                wellSols{ws,k,n} = getWellSol(W, x, fluid); ws = ws+1;
             end
-            aerry(ij,n) = sum(abs(z.s(:,1)-y.s(:,1)).*pv);
-            rerry(ij,n) = aerry(ij,n)/sum(z.s(:,1).*pv);
-            aerry(ij,n) = aerry(ij,n)/spv;
-            ij = ij+1;
         end
-        aerrx(i,n) = sum(abs(z.s(:,1)-x.s(:,1)).*pv);
-        rerrx(i,n) = aerrx(i,n)/sum(z.s(:,1).*pv);
-        aerrx(i,n) = aerrx(i,n)/spv;
+    end
+    fprintf('rampup\n');
+    x = x0;
+    for i=1:numel(dT)
+        x = incompTPFA(x, G, hT, fluid, 'wells', W);
+        x = implicitTransport(x, G, dT(i), rock, fluid, 'wells', W);
+        wSol{i,n} = getWellSol(W, x, fluid);
     end
 end
+
+
 %%
-figure
-semilogy(cumsum(tx),aerrx,'o-','MarkerSize',7,'MarkerFaceColor',[.8 .8 .8],'LineWidth',1);
-hold on
-semilogy(cumsum(ty),aerry,'-s','MarkerSize',4,'MarkerFaceColor',[.8 .8 .8],'LineWidth',1);
-hold off
-legend('1:10, n=8','1:1','10:1','1:10, n=32','1:1','10:1'); axis tight
-%
-figure
-semilogy(cumsum(tx),rerrx,'o-','MarkerSize',7,'MarkerFaceColor',[.8 .8 .8],'LineWidth',1);
-hold on
-semilogy(cumsum(ty),rerry,'-s','MarkerSize',4,'MarkerFaceColor',[.8 .8 .8],'LineWidth',1);
-hold off
-legend('1:10, n=8','1:1','10:1','1:10, n=32','1:1','10:1'); axis tight
-%
-figure; 
-plot(cumsum(tx),wx,'--o',cumsum(ty),wy,'-s',cumsum(tz),wz,'-','MarkerSize',4);
+n = 2;
+[tws,dsn,t] = deal(cell(1,numel(nstep)+1));
+for i=1:numel(nstep)
+    tws(i) = {vertcat(wellSols(:,i,n))};
+    t(i)   = {cumsum(dt*ones(Tn/T*nstep(end),1))};
+    dsn(i) = {num2str(nstep(i))};
+end
+tws(end) = {vertcat(wSol(:,n))};
+t(end)   = {cumsum(dT)};
+dsn(end) = {'rampup'};
+
+plotWellSols(tws,t, 'datasetnames', dsn);
