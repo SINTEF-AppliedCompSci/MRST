@@ -324,7 +324,19 @@ function [Gt, ffaces] = stitch_surface_discontinuities(Gt, ffaces, col_adj, orie
    Gt_cell_adj = accumarray(neighs, 1, size(col_adj), @sum, 0, true);
    Gt_cell_adj = spones(Gt_cell_adj + Gt_cell_adj');
    mcon = col_adj - Gt_cell_adj; % matrix representing still missing connections
-   assert(min(mcon(:)) >= 0); % there should only be zero and one values in 'mcon'
+   if min(mcon(:)) == -1
+      % There are cells in 2D grid that share edges, but the corresponding
+      % columns from the 3D grid are not connected.  This can happen for
+      % pinch-outs, where the columns in the 3D grid are physically adjacent,
+      % but do not share any vertical face (cell thickness vanishes where
+      % columns meet).  If this happens, warn user.  In the 2D grid, the
+      % cells will still be considered neighbors.  It could be considered to
+      % insert an extra internal face and make them non-neighbors in a future
+      % implementation @@.
+      warning(['Degenerate edges in 3D grid has led to adjacent cells in 2D ' ...
+               'grid that should not be considered neighbors.']);
+      mcon(mcon < 0) = 0;
+   end
    [I, J] = ind2sub(size(mcon), find(triu(mcon))); % neighbors not yet accounted for by Gt
    
    if ~isempty(I)
