@@ -5,7 +5,7 @@ function resTiltUtsira(varargin)
     opt.save_tilt_filename      = 'utsira_subtrap_function.mat';
     opt = merge_options(opt,varargin{:});
     
-    moduleCheck('matlab_bgl', 'coarsegrid', 'opm_gridprocessing', 'libgeometry');
+    mrstModule('add', 'matlab_bgl', 'coarsegrid', 'opm_gridprocessing', 'libgeometry');
     close all;
     
     %% Load the two datasets (Utsira from CO2 atlas, and Sleipner from IEAGHG)

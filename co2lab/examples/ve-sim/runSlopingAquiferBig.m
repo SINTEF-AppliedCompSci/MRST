@@ -12,12 +12,7 @@
 % * processgrid (replaces processGRDECL)
 % * mcomputegeometry (replaces computeGeometry)
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
+mrstModule add co2lab
 %% Write header
 clc;
 disp('================================================================');
@@ -97,7 +92,7 @@ catch me
    disp('Using matlab ve-transport');
    cpp_accel = false;
 end
-moduleCheck('mimetic');
+mrstModule add mimetic
 
 % Find trapping structure in grid. Used for calculation of trapped volumes
 ts=findTrappingStructure(Gt);

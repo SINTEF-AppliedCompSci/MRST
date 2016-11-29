@@ -13,13 +13,7 @@
 % <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 % website>.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
-moduleCheck mimetic
+mrstModule add co2lab mimetic
 
 %% Display header
 clc;

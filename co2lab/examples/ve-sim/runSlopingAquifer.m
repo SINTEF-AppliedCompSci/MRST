@@ -10,11 +10,7 @@
 %
 % The simulation is done using the vertical average/equilibrium framework.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
+mrstModule add co2lab
 
 %% Write header
 clear, clc;

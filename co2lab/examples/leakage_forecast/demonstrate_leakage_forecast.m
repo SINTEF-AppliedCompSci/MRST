@@ -2,7 +2,7 @@
 % By assuming a system's flow dynamics are gravity-dominated, we determine
 % the amount of co2 remaining in the domain using spill-point dynamics.
 
-
+mrstModule add co2lab
 %% 1. Synthetic grid
 % For simplicity, we first consider a synthetic grid of a sloping and
 % perturbed topsurface. Beginning with a domain that is fully saturated

@@ -16,12 +16,7 @@
 % resolution when simulating long-term migration because coarsening may
 % have a large impact on the trapped CO2 volumes.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
+mrstModule add co2lab
 %% Load data and create grids
 fprintf('Constructing Sleipner model...');
 sleipner_deck = readGRDECL(fullfile(mrstPath('co2lab'), ...

@@ -12,7 +12,7 @@
 % the larger Utsira formation and by comparing the local features we can
 % see the level of detail which has been lost by coarsening.
 
-moduleCheck('co2lab', 'mex', 'coarsegrid', 'matlab_bgl', 'libgeometry', 'opm_gridprocessing');
+mrstModule('add','co2lab', 'mex', 'coarsegrid', 'matlab_bgl', 'libgeometry', 'opm_gridprocessing');
 
 sleipner_deck = readGRDECL(fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'));
 

@@ -22,14 +22,7 @@
 % This example assumes that you have already downloaded the North Sea
 % datasets from the NPD webpages. If you have not done so, you can use the
 % following command: downloadDataSets('atlas')
-
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
-moduleCheck deckformat
+mrstModule add co2lab deckformat
 
 fprintf('Loading atlas data (this may take a few minutes)..');
 [grdecls, rawdata] = getAtlasGrid(getNorthSeaNames()); %#ok

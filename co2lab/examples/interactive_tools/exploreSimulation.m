@@ -1,7 +1,7 @@
 function exploreSimulation(varargin)
    
    gravity on;
-   moduleCheck('ad-core');
+   mrstModule add ad-core;
 
    rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
    

@@ -3,13 +3,7 @@
 % can be used to simulate a VE model. For the actual simulation, we use the
 % fully-implicit solver in MRST, based on automatic differentiation.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab ad-props
-end
-
-moduleCheck deckformat ad-core ad-props ad-blackoil
+mrstModule add co2lab ad-props deckformat ad-core ad-props ad-blackoil
 
 %% Parameters for the simulation
 gravity on
