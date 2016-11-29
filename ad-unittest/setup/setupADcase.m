@@ -17,6 +17,6 @@ function [deck, schedule, model, rock] = setupADcase(fn)
     fluid = initDeckADIFluid(deck);
     
     model = selectModelFromDeck(G, rock, fluid, deck);
-    schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+    schedule = convertDeckScheduleToMRST(model, deck);
     
 end
