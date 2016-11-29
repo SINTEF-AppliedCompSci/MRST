@@ -306,7 +306,7 @@ function dirs = filter_module_dirs(root, behaviour)
       exclude  = is_vcdir | cellfun(@isempty, dirs);
 
       if strcmpi(behaviour, 'release')
-          exdir = [regexptranslate('escape', filesep), '\experimental'];
+          exdir = [regexptranslate('escape', filesep), 'experimental'];
           is_exdir = ~cellfun(@isempty, regexp(dirs, exdir));
           exclude = exclude | is_exdir;
       end
