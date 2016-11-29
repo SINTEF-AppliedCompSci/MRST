@@ -4,6 +4,7 @@
 mrstModule add incomp
 
 %% Grid, permeability, and fluid object
+gravity reset on
 exmpl = 1;
 G  = computeGeometry(cartGrid([20, 1, 40], [100 1 100]));
 if exmpl==1,
