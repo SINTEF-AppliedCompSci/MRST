@@ -8,6 +8,7 @@
 % corners and producers in the SE and NW corners. The two setups will have
 % different preferrential flow directions and hence generally give
 % different solutions.
+mrstModule add incomp
 
 %% Difference in grid-orientation effects with mobility ratio
 % This effect is typically associated with instable displacements. To show
