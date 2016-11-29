@@ -374,7 +374,7 @@ function plotMain(Gt, res, bf, atlasdata)
     if showLight
         light;
         lighting phong
-        light('Position',[max(Gt.cells.centroids) 4*max(Gt.cells.z)],'Style','infinite');
+        light('Position',[max(Gt.cells.centroids) -4*max(Gt.cells.z)],'Style','infinite');
     end
     if trap==0, return, end;
     

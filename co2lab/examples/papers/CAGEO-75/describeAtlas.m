@@ -114,7 +114,7 @@ for i=1:ng;
    clf;
    plotGrid(G,'FaceColor', 'y', 'EdgeAlpha', .05);
    view(viewMat(i,:)); axis tight off
-   light('Position',[-1 -1 1],'Style','infinite');lighting phong
+   light('Position',[-1 -1 -1],'Style','infinite');lighting phong
    
    drawnow
    %print('-dpng', ['grids/' grdecls{i}.name '.png']);

@@ -46,9 +46,9 @@ if isfield(fluid, 'res_gas')
    sr = fluid.res_gas;
    sw = fluid.res_water;
 elseif(~isfield(fluid, 'sw'))
-   [mu, rho, sr] = fluid.properties();                                     %#ok
-   sr = sr(1);
-   sw = sr(2);
+   [mu, rho, res] = fluid.properties();                                     %#ok
+   sr = res(1);
+   sw = res(2);
 end
 
 % magn = @(v)(sqrt(sum(v.^2,2)));

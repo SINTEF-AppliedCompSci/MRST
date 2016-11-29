@@ -123,8 +123,8 @@ T = T.*Gt.cells.H(gridCellNo(Gt));
 
 %% Set up fluid
 fluid = initSimpleVEFluid_s('mu' , mu , 'rho', rho, ...
-                                'height'  , Gt.cells.H,...
-                                'sr', [srco2, sw],'kwm',kwm);
+                            'height'  , Gt.cells.H,...
+                            'sr', [srco2, sw],'kwm',kwm);
                             
 %% Set up well and boundary conditions
 % This example is using an incompressible model for both rock and fluid. If

@@ -78,7 +78,7 @@ for i=1:ng;
    clf;
    plotGrid(G,'FaceColor', [1 .9 .9], 'EdgeAlpha', .05);
    view(viewMat(i,:)); axis tight off
-   light('Position',[-1 -1 1],'Style','infinite');lighting phong
+   light('Position',[-1 -1 -1],'Style','infinite');lighting phong
    title(grdecls{i}.name)
    drawnow
 end
