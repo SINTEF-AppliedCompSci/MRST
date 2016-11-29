@@ -14,14 +14,14 @@
 
 mrstModule add incomp mimetic mpfa
 
-%% Set up simulation model'
+%% Set up simulation model
 eta=0;
 gravity off;
 gravity('reset',[0.3 0.3]);
 gravity on;
 g_vec=gravity();g_vec=g_vec(1:2)';
-L=[1 1]
-dim=[10 10]
+L = [1 1];
+dim= [10 10];
 G = cartGrid(dim,L);
 G.nodes.coords = twister(G.nodes.coords);
 G = computeGeometry(G);
@@ -30,9 +30,9 @@ if(G.cells.num==1)
     X=[X;G.cells.centroids(:,1)+0.2];Y=[Y;G.cells.centroids(:,2)];
 end
 %%{
-p     = [X(:), Y(:)];
-t     = delaunayn(p);
-G     = triangleGrid(p, t);
+ref     = [X(:), Y(:)];
+t     = delaunayn(ref);
+G     = triangleGrid(ref, t);
 G = computeGeometry(G);
 %}
 perm=1;
@@ -40,15 +40,11 @@ rock.perm = perm*ones(G.cells.num, 1);
 fluid = initSingleFluid('mu' ,    10     , ...
                         'rho', 1);
 [~,rho]=fluid.properties();                    
-xfaces=find(abs(G.faces.centroids(:,1))<1e-4)
-yfaces=find(abs(G.faces.centroids(:,1)-1)<1e-4)
+xfaces = find(abs(G.faces.centroids(:,1))<1e-4);
+yfaces = find(abs(G.faces.centroids(:,1)-1)<1e-4);
 bc_left=2;bc_right=1;
-bc=addBC([],xfaces,'pressure',bc_left+rho*G.faces.centroids(xfaces,:)*g_vec)
-bc=addBC(bc,yfaces,'pressure',bc_right+rho*G.faces.centroids(yfaces,:)*g_vec)
-%bc  = pside([], G, 'left',  bc_left);
-%bc  = pside(bc, G, 'right', bc_right);
-
-
+bc = addBC([],xfaces,'pressure',bc_left+rho*G.faces.centroids(xfaces,:)*g_vec);
+bc = addBC(bc,yfaces,'pressure',bc_right+rho*G.faces.centroids(yfaces,:)*g_vec);
 
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
@@ -104,53 +100,30 @@ colorbar('Position',[.92 .11 .02 .34])
 figure(1)
 
 %% Compute discrepancies in flux and errors in pressure
-<<<<<<< HEAD:mpfa/examples/mimeticExampleGridEffects.m
 [mu,rho]=fluid.properties();
-p=struct('p',[],'flux',[]);
-p.pressure= (bc_left -(bc_left-bc_right)*G.cells.centroids(:,1)/L(1))+rho*G.cells.centroids*g_vec;
-v=(perm/mu)*(bc_right-bc_left)/L(1);
-p.flux=G.faces.normals(:,1)*v;
+ref = initResSol(G, 0);
+ref.pressure = (bc_left -(bc_left - bc_right)*G.cells.centroids(:,1)/L(1)) + rho*G.cells.centroids*g_vec;
+v = (perm/mu)*(bc_right-bc_left)/L(1);
+ref.flux = G.faces.normals(:,1)*v;
 err        = @(q1, q2) norm(q1 - q2, inf);
 err_press  = @(x1, x2) err(x1.pressure(1:G.cells.num), ...
                            x2.pressure(1:G.cells.num));
 err_flux   = @(x1, x2) err(flux_int(x1), flux_int(x2));
-%{
-fprintf(['\nFlux Difference:\n', ...
-         '\to Mimetic/MPFA-O : %.15e\n',    ...
-         '\to Mimetic/TPFA   : %.15e\n',    ...
-         '\to MPFA-O /TPFA   : %.15e\n\n'], ...
-        err_flux(xr1, xr2), err_flux(xr1, xr3), err_flux(xr2, xr3));
-%}
+
 fprintf(['\nInternal flux error:\n', ...
          '\to Mimetic        : %.15e\n',    ...
          '\to MPFA-O         : %.15e\n',    ...
          '\to TPFA           : %.15e\n\n'], ...
-        err_flux(xr1, p), err_flux(xr2, p), err_flux(xr3, p));
+        err_flux(xr1, ref), err_flux(xr2, ref), err_flux(xr3, ref));
     
     
 
 fprintf(['Cell Pressure Error:\n', ...
          '\to Mimetic        : %.15e\n',  ...
-=======
-p.pressure = 2 - G.cells.centroids(:,1)/G.cartDims(1);
-err_press  = @(x1, x2) ...
-    norm(x1.pressure - x2.pressure, inf) / norm(x1.pressure, inf);
-err_flux   = @(x1, x2) norm(flux_int(x1) - flux_int(x2), inf);
-
-fprintf(['\nMaximum difference in face fluxes:\n', ...
-         '\to MPFA-O /TPFA   : %.15e\n',   ...
-         '\to MPFA-O /Mimetic: %.15e\n',   ...
-         '\to Mimetic/TPFA   : %.15e\n\n', ...
-         ], ...
-        err_flux(xr1, xr3), err_flux(xr1, xr2), err_flux(xr2, xr3));
-
-fprintf(['Relative error in cell pressures:\n', ...
->>>>>>> master:mpfa/examples/mpfaExample2.m
          '\to MPFA-O         : %.15e\n',  ...
-         '\to Mimetic        : %.15e\n',  ...
          '\to TPFA           : %.15e\n',  ...
          ], ...
-         err_press(xr1, p), err_press(xr2, p), err_press(xr3, p));
+         err_press(xr1, ref), err_press(xr2, ref), err_press(xr3, ref));
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -170,6 +143,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-        %%
-max(max(xr2.A-xr2.A'))/max(abs(xr2.A(:)))
      
