@@ -30,7 +30,11 @@ end
 if nargin==2 || ((nargin>2) && strcmpi(varargin{1},'South'))
    cbPos = 'SouthOutside';
    cbAdd = -[0 0.09 0 0.03];
-   cbLoc = 'bottom';
+   if verLessThan('matlab','8.4')
+       cbLoc = 'left';
+   else
+       cbLoc = 'bottom';
+   end
    axAdd = [0 -.03 0 .03];
    axLim = [min(lim) max(lim) -1 max(counts+1)];
    hbar  = @(x,y) bar(x,y,'hist');
