@@ -128,7 +128,7 @@ function res = simple_panel_plot(state, tstep, Gt, schedule, sr, sw, fluid, rock
     tot_injected = compute_total_vol_injected(tstep, schedule) * fluid.rhoGS; % ref. rho OK here
 
     % adding height fields
-    [state.h, state.h_max] = computePlumeHeight(Gt, state, sw, sr);
+    [state.h, state.h_max] = compute_plume_height(Gt, state, sw, sr);
     
     % Compute mass distribution
     masses = massTrappingDistributionVEADI(Gt, state.pressure, state.s(:,2), ...
@@ -227,4 +227,15 @@ end
     
  end
  
+ % ----------------------------------------------------------------------------
+ 
+ function [h, h_max] = compute_plume_height(Gt, state, sw, sr)
+    
+    if isfield(state, 'sGmax')
+       smax = state.sGmax; % we operate with dissolution
+    else
+       smax = state.smax(:,2); % no dissolution.  Current max = historical max
+    end
+    [h, h_max] = upscaledSat2height(state.s(:,2), smax, Gt, 'resSat', [sw, sr]);
+ end
  

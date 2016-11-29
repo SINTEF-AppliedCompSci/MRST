@@ -1,4 +1,4 @@
-function [h, h_max] = computePlumeHeight(Gt, state, sw, sr)
+function [h, h_max] = computeHeightOfPlume(Gt, state, sw, sr)
 
     % computing height corresponding to the current saturation state
     if isfield(state, 'sGmax')

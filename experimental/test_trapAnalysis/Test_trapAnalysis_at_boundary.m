@@ -10,7 +10,7 @@ final_state=states.final_state;
 
 
 % compute co2 heights:
-[h, h_max] = computePlumeHeight(Gt, final_state, 0, 0);
+[h, h_max] = computeHeightOfPlume(Gt, final_state, 0, 0);
 
 
 % notice when node-based trap analysis is performed, the co2 heights are

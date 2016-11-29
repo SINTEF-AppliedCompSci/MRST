@@ -1,4 +1,23 @@
 function plotTrappingDistribution(ax, report, varargin)
+% 
+% Generate a trapping inventory plot from a simulation result.  
+% 
+% The simulation result (set of states) first needs to be repackaged using the
+% 'makeReports' function.
+%
+% SYNOPSIS:
+%   function plotTrappingDistribution(ax, report, varargin)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   ax       - handle to figure into which to draw the plot
+%   report   - simulation results, repackaged using the 'makeReports' function
+%   varargin - optional argument pairs allowing to specify the location and
+%              orientation of the legend. 
+%
+% SEE ALSO:
+% makeReports
 
     opt.legend_location = 'eastoutside';
     opt.legend_orientation = 'vertical';
@@ -38,7 +57,7 @@ function plotTrappingDistribution(ax, report, varargin)
          % convertTo([mass_hist(:, 1:7), mass_hist(:,8)-sum(mass_hist(:,1:7),2)], ...
          %           mega*kilo));
     
-    % Setting colors consistent with rest of the paper
+    % Setting consistent colors
     col = getInventoryColors([7 6 5 5 4 3 2 1]);
     col(4,:) = 1/2 * (col(3,:) + col(5,:));
     chld = get(gca, 'Children');
