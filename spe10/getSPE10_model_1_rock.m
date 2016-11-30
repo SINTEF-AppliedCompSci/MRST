@@ -10,7 +10,10 @@ function rock = getSPE10_model_1_rock()
 % RETURNS:
 %   rock - Rock structure having fields 'perm' and 'poro' for the entire
 %          100-by-1-by-20 cell geometry of the first benchmark dataset of
-%          the tenth SPE comparative solution project.
+%          the tenth SPE comparative solution project.  The permeability
+%          distribution is a correlated geostatistically generated field
+%          whereas the porosity is homogenous (phi=0.2) throughout the
+%          formation.
 %
 % NOTE:
 %   The permeability data is returned in strict SI units (metres squared).
