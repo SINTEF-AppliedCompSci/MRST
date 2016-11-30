@@ -1,5 +1,13 @@
+% EXAMPLES
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   agglomExample1     - Example 1: The Nonuniform Coarsening Algorithm
+%   agglomExample2     - Example 2: Constrained coarsening
+%   agglomExample3     - Example 3: Different Flow Indicators
+%   agglomExample4     - Example 4: Nonuniform Coarsening of SPE10
+%   agglomExample5     - Example 5: Hybrid Grids
+%   agglomExample6     - Example 6: Adaptive Refinement of Grid
+%   plotCoarseningStep - Make a plot of the results of one step in a coarsening algorithm
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

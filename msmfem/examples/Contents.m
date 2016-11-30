@@ -1,17 +1,16 @@
 % Files
-%   gravityColumnMS.m            - Multiscale Pressure Solver: Simple Case Driven by Gravity
-%   makeOverlapFigs.m            - {
-%   simpleBCMS.m                 - Basic Multiscale Tutorial
-%   simpleCornerPointExampleMS.m - Multiscale Pressure Solver: Simple Corner-Point Grid with Linear Pressure Drop
-%   simpleMSBCExample.m          - simpleMSBCExample
-%   simpleMSExample.m            - Multiscale Pressure Solver: Flow Driven by Horizontal and Vertical Well
-%   simpleMSSourceExample.m      - simpleMSSourceExample -- Demonstrate handling of explicit sources in
-%   simpleOverlap.m              - Multiscale Pressure Solver with Overlap:
-%   simpleSRCandBCMS.m           - Multiscale: Sources and Boundary Conditions
-%   simpleWellExampleMS.m        - Multiscale Pressure Solver: Flow Driven by Horizontal and Vertical Well
-%   simpleWellOverlap.m          - Multiscale Pressure Solver with Overlap:
-%   speedUpMSExample.m           - Multiscale Pressure Solver Speed up:
-%   updateBasisMSExample.m       - Multiscale Pressure Solver: Dynamic update of basis functions
+%   gravityColumnMS            - Multiscale Pressure Solver: Simple Case Driven by Gravity
+%   simpleBCMS                 - Basic Multiscale Tutorial
+%   simpleCornerPointExampleMS - Multiscale Pressure Solver: Simple Corner-Point Grid with Linear Pressure Drop
+%   simpleMSBCExample          - simpleMSBCExample
+%   simpleMSExample            - Multiscale Pressure Solver: Flow Driven by Horizontal and Vertical Well
+%   simpleMSSourceExample      - simpleMSSourceExample -- Demonstrate handling of explicit sources in
+%   simpleOverlap              - Multiscale Pressure Solver with Overlap:
+%   simpleSRCandBCMS           - Multiscale: Sources and Boundary Conditions
+%   simpleWellExampleMS        - Multiscale Pressure Solver: Flow Driven by Horizontal and Vertical Well
+%   simpleWellOverlap          - Multiscale Pressure Solver with Overlap:
+%   speedUpMSExample           - Multiscale Pressure Solver Speed up:
+%   updateBasisMSExample       - Multiscale Pressure Solver: Dynamic update of basis functions
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

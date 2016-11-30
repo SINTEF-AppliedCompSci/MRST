@@ -1,8 +1,8 @@
 % Files
-%   evalBasisSource.m   - Evaluate synthetic basis function driving source term.
-%   extractBF.m         - Form matrix of resevoir basis function values (mixed/hybrid)
-%   extractWellBF.m     - Form matrix of well basis function values.
-%   msMatrixStructure.m - Build synthetic matrix with same sparsity as hybrid coarse system matrix.
+%   evalBasisSource   - Evaluate synthetic basis function driving source term.
+%   extractBF         - Form matrix of resevoir basis function values (mixed/hybrid)
+%   extractWellBF     - Form matrix of well basis function values.
+%   msMatrixStructure - Build synthetic matrix with same sparsity as hybrid coarse system matrix.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

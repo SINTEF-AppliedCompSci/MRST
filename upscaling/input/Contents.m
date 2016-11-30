@@ -1,7 +1,7 @@
 % Files
-%   compFracFlowInv.m         - only valid for S in [swco, sowcr]
-%   initSWOFFluidJfunc.m      - Initialize incompressible two-phase fluid model with J scaling of pc.
-%   readTabulatedJFluidFile.m - Read tabulated J fluid. See examples for syntax.
+%   compFracFlowInv         - only valid for S in [swco, sowcr]
+%   initSWOFFluidJfunc      - Initialize incompressible two-phase fluid model with J scaling of pc.
+%   readTabulatedJFluidFile - Read tabulated J fluid. See examples for syntax.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

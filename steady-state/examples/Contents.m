@@ -1,5 +1,7 @@
+% EXAMPLES
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   periodicBoundaryExample - Periodic Boundary Conditions for AD code
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

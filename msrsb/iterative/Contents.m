@@ -1,5 +1,10 @@
+% ITERATIVE
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   getSmootherFunction             - Get function for setting up smoother functions
+%   simpleIterativeSolver           - Simple preconditioned iterative solver with same syntax as GMRES
+%   solveMultiscaleIteratively      - Apply iterations to a multiscale problem
+%   twoStepMultiscalePreconditioner - Apply two step multiscale preconditioner. Internal routine.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,8 +1,10 @@
 % Files
-%   faultMSFVExample.m            - Example demonstrating Multiscale Finite Volume Solver over a fault for a corner point grid.
-%   simple2phMsFV.m               - A simple two phase problem solved using the Multiscale Finite Volume method
-%   simpleIterativeMSFVMExample.m - Multiscale Finite Volume Pressure solver: Iterative improvements
-%   simpleMSFVExample.m           - Multiscale Finite Volume Pressure Solver
+%   PEBImsfvExample             - MsFV example on PEBI grid
+%   contrastAndAspectError      - Example demonstrating the effects of aspect ratios and contrast on msfvm
+%   faultMSFVExample            - Example demonstrating Multiscale Finite Volume Solver over a fault for a corner point grid.
+%   simple2phMsFV               - A simple two phase problem solved using the Multiscale Finite Volume method
+%   simpleIterativeMSFVMExample - Multiscale Finite Volume Pressure solver: Iterative improvements
+%   simpleMSFVExample           - Multiscale Finite Volume Pressure Solver
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

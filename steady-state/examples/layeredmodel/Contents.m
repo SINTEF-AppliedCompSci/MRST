@@ -1,5 +1,8 @@
+% LAYEREDMODEL
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   LayeredExactUpscaling - Description
+%   LayeredPolymerExample - Layered Model Polymer Upscaling Example
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

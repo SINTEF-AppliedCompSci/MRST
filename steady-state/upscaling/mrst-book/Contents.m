@@ -1,5 +1,10 @@
+% MRST-BOOK
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   addDefaultWellFields -
+%   coarsenWells         - Generate well structure according to coarse grid Gc
+%   hT2T                 -
+%   upscaleTransGlobal   - Calculate upscaled transmissibilities for a coarse model
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

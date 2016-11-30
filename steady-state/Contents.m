@@ -1,5 +1,11 @@
+% STEADY-STATE
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   GridBlock               - Base class for upscaling a single block
+%   OnePhaseUpscaler        - One phase upscaling
+%   TwoPhaseTwoStepUpscaler - Two phase upscaling
+%   TwoPhaseUpscaler        - Two phase upscaling
+%   Upscaler                - Base class for upscaling classes
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

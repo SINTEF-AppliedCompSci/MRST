@@ -1,5 +1,9 @@
+% SINGLEBLOCK
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   BlockOnePhaseExample - One-Phase Block Upscaling Example
+%   BlockPolymerExample  - Block Polymer Example
+%   BlockTwoPhaseExample - Block Two-Phase Example
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

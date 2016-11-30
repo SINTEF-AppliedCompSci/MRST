@@ -1,8 +1,8 @@
 % Files
-%   cpGridHarmonic.m                  - Harmonic Upscaling of Realistic Field Model
-%   periodicUpscaleExample.m          - Relative permeability upscaling example
-%   simpleRelpermUpscalingExample2D.m - This demonstrate the method used for relperm upscaling
-%   simpleUpscaleExample.m            - Simple upscaling example
+%   cpGridHarmonic                  - Harmonic Upscaling of Realistic Field Model
+%   periodicUpscaleExample          - Steady-state permeability upscaling
+%   simpleRelpermUpscalingExample2D - This demonstrate the method used for relperm upscaling
+%   simpleUpscaleExample            - Single-phase upscaling
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

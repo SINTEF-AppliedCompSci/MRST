@@ -1,5 +1,8 @@
+% MSRSB
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   getMultiscaleBasis - Get multiscale basis functions for a given coarse grid and system matrix
+%   incompMultiscale   - Solve incompressible TPFA flow problem using approximate multiscale method
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

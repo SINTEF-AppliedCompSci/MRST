@@ -1,5 +1,11 @@
 % Files
-%   simpleCoarseGridExample.m - Partition a Cartesian 2D grid
+%   coarsegridExample1      - Introduction to Coarse Grids in MRST
+%   coarsegridExample2      - Second Coarse-Grid Tutorial: Partitioning More Complex Grids
+%   coarsegridExample3      - More About Coarsegrid Geometry/Topology
+%   coarsegridExample4      - More about partition vectors
+%   coarsegridExample5      - Generate Coarse Grids with Near-Well Refinement
+%   coarsegridExampleNorne  - Coarsening the Norne Simulation Model
+%   coarsegridExampleSAIGUP - Coarsening the SAIGUP Model
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

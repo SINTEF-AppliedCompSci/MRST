@@ -1,5 +1,7 @@
+% MSRSB
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   iteratedJacobiBasis - Set up basis function for the MsRSB (multiscale restricted smoothed basis) method
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

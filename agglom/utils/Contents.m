@@ -1,13 +1,16 @@
 % Files
-%   blockConnectivity.m            - Build block-to-neighbours map by transposing neighbourship definition
-%   blockNeighbours.m              - Identify the neighbours of a particular coarse block.
-%   blockNeighbourship.m           - Derive coarse-scale neighbourship from fine-scale information
-%   coarse_sat.m                   - Converts a fine saturation field to a coarse saturation field, weighted
-%   convertBC2Coarse.m             - Convert fine-scale boundary conditions to coarse scale.
-%   convertRock2Coarse.m           - Create coarse-scale porosity field for solving transport equation.
-%   convertSource2Coarse.m         - Accumulate fine-scale source terms to coarse scale
-%   findConfinedBlocks.m           - Identify coarse blocks confined entirely within a single other block.
-%   signOfFineFacesOnCoarseFaces.m - Identify fine-scale flux direction corresponding to coarse-scale outflow
+%   blockConnectivity            - Build block-to-neighbours map by transposing neighbourship definition
+%   blockNeighbours              - Identify the neighbours of a particular coarse block.
+%   blockNeighbourship           - Derive coarse-scale neighbourship from fine-scale information
+%   coarse_sat                   - Converts a fine saturation field to a coarse saturation field, weighted
+%   convertBC2Coarse             - Convert fine-scale boundary conditions to coarse scale.
+%   convertRock2Coarse           - Create coarse-scale porosity field for solving transport equation.
+%   convertSource2Coarse         - Accumulate fine-scale source terms to coarse scale
+%   findConfinedBlocks           - Identify coarse blocks confined entirely within a single other block.
+%   mergeBlocksByConnections     - Merge blocks based on connection strength
+%   mergeSingleNeighbour         -
+%   removeConfinedBlocks         - Remove singular confined blocks and expose groups of confined blocks
+%   signOfFineFacesOnCoarseFaces - Identify fine-scale flux direction corresponding to coarse-scale outflow
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

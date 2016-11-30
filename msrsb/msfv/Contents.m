@@ -1,5 +1,8 @@
+% MSFV
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   constructLocalMSFVBasis - Compute basis functions from explicit dual grid.
+%   makeExplicitDual        - {
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

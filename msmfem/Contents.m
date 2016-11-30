@@ -3,18 +3,31 @@
 % Files
 %   basisMatrixHybrid            - Form hybrid versions of the multiscale basis function matrices.
 %   basisMatrixMixed             - Form mixed versions of the multiscale basis function matrices.
-%   compressPartition            - Renumber coarse block partitioning to remove any empty coarse blocks.
 %   dynamicCoarseWeight          - Compute synthetic multiscale weighting function.
-%   generateCoarseGrid           - Build coarse grid data structure from partion of existing fine grid.
 %   generateCoarseSystem         - Construct coarse system component matrices from fine grid model.
 %   generateCoarseWellSystem     - Construct coarse system component matrices for well contributions.
-%   partitionCartGrid            - Partition a Cartesian grid.
-%   partitionLayers              - Partition grid uniformly in logical (I,J) direction, non-uniformly in K.
-%   partitionUI                  - Partition grid uniformly in logical space.
-%   processPartition             - Split disconnected coarse blocks into new blocks.
 %   solveCoarsePsysBO            - Solve coarsened fine-scale well system (for Black Oil).
 %   solveIncompFlowMS            - Solve coarse (multiscale) pressure system.
 %   solveIncompFlowMSSpeedUp     - Solve (multiscale) pressure system assuming that some values are precomputed.
-%   speedUpMS                    - preassemble basis
-%   subFaces                     - Extract fine-grid faces constituting individual coarse grid faces.
+%   speedUpMS                    - Precompute MsMFE basis reduction matrices in order speed up assembly
 %   unpackWellSystemComponentsMS - Extract coarse linear system components from wells.
+%   updateBasisFunc              - Update basis functions in regions where the total mobility has changed
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

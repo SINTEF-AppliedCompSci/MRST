@@ -1,5 +1,11 @@
+% COARSEGRID
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   basisToCoarseGrid          -
+%   coarseNeighbors            - Determine coarse neighbors for a given coarse cell (MPFA or TPFA-like).
+%   partitionUniformPadded     - Equivialent to partitionUI from the coarsegrid module, with a small
+%   storeInteractionRegion     - Store interaction region for coarse grid
+%   storeInteractionRegionCart - Store MPFA-like interaction region for coarse grid made from logical partitioning.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

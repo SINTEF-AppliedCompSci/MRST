@@ -1,9 +1,12 @@
 % Files
-%   coarsenBC.m        - Construct coarse-grid boundary conditions from fine-grid boundary cond.
-%   coarsenFlux.m      - Compute net flux on coarse faces
-%   coarsenGeometry.m  -
-%   fineToCoarseSign.m - Compute sign change between fine faces and coarse faces.
-%   invertPartition.m  - Invert partition (cell->block mapping) to create block->cell mapping.
+%   callMetisMatrix  - Partition connectivity graph whilst accounting for connection strengths
+%   coarseDataToFine - Convert coarse grid dataset into fine grid representation
+%   coarsenBC        - Construct coarse-grid boundary conditions from fine-grid boundary cond.
+%   coarsenFlux      - Compute net flux on coarse faces
+%   coarsenGeometry  - SYNOPSIS:
+%   fineToCoarseSign - Compute sign change between fine faces and coarse faces.
+%   invertPartition  - Invert partition (cell->block mapping) to create block->cell mapping.
+%   isSamePartition  - Check if two partition vectors represent the same grid partition
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

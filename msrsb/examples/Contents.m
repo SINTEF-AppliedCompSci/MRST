@@ -1,5 +1,12 @@
+% EXAMPLES
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   bedModelMS                    - Example: High-resolution bed model
+%   exampleMs                     - Simple Conceptual Multiscale Example (Layers of SPE10)
+%   highContrastChannelMultiscale - Problem comparing different multiscale methods on an idealized channel
+%   inclusionsMultiscale          - Multiscale solver with inactive cells / inclusions
+%   runNorne2phMS                 - Water injection in a field model using the MsRSB-method
+%   SPE10Layer2phMS               - Simulate a transport problem with the MsRSB method
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

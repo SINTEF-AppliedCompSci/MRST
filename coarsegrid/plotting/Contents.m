@@ -1,5 +1,9 @@
+% PLOTTING
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   explosionView   - Plot a partition as an explosion view
+%   plotCellNumbers - Debug function which plots cell numbers on a (subset) of cells
+%   plotFaceNumbers - Debug utility which plots face numbers on a (subset) of faces.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

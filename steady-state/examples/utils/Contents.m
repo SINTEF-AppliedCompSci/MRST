@@ -1,5 +1,9 @@
+% UTILS
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   getCoreyRelperm      -
+%   getExampleCapPres    - Returns a capillary-pressure curves for each region. Returns a cell array
+%   getExampleFluidProps - Returns a structure with fluid properties for use with the examples.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

@@ -1,5 +1,5 @@
 % Files
-%   testMSGlobInf.m - Test of use of global information in multiscale basis functions.
+%   testMSGlobInf - Test of use of global information in multiscale basis functions.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

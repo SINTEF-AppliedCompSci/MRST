@@ -1,5 +1,10 @@
+% AD
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   equationsOilWater_BCP       - Get linearized problem for oil/water system with black oil-style
+%   getFluxAndPropsOil_BO_BCP   -
+%   getFluxAndPropsWater_BO_BCP -
+%   TwoPhaseOilWaterModel_BCP   - Two phase oil/water system without dissolution
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

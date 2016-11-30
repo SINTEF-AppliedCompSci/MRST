@@ -1,5 +1,8 @@
+% COARSEGRID
+%
 % Files
-%   test_newplotting - Demo for new plotting routines
+%   addNodeDataToCoarseGrid - Add node data to upscaled grid CG
+%   createUpscaledFluid     - Creates an upscaled fluid from given data.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
