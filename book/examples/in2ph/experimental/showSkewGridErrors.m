@@ -1,9 +1,23 @@
-%% Compare grid-orientation effects for TPFA/mimetic schemes
+%% Compare grid-orientation effects for skew grids
+% In this example we consider a symmetric well pattern on a skew grid to
+% study the grid-orientation effects for the combined single-point upwind
+% and TPFA/mimetic schemes. The script contains two different examples,
+% both describing a 400 x 100 m^2 reservoir section. The first (exmpl=1)
+% describes a horizontal reservoir cross-section in which water is injected
+% from one well at the midpoint of the north perimeter and fluids are
+% produced from two wells along the south perimeter, located 50 m from the
+% SE and SW corners, respectively. The second case (exmpl=2) describes a
+% vertical cross-section, where water is injected from two horizontal
+% injectors at the bottom of the reservoir and fluids produced from a
+% horizontal producer at the top of the reservoir. In both cases, the well
+% operate under bottom-hole control.
 
 mrstModule add incomp mimetic
+gravity reset off;
+exmpl = 1;        % type of cross-section: 1 - horizontal,  2 - vertical
 
 % Final time and number of time steps
-pvi = 1200*day;
+T = 1200*day;
 nstep =120;
 
 % Rectangular reservoir with a skew grid.
@@ -22,12 +36,22 @@ IP   = computeMimeticIP(G, rock);
 % Symmetric well pattern
 wcells = findEnclosingCell(G,[200 97.5; 50 2.5; 350 2.5]);
 rate   = sum(poreVolume(G,rock));
-W = addWell([], G, rock, wcells(1), 'Type', 'bhp', ...
-    'Val', 200*barsa, 'name', 'I', 'radius', .1, 'Comp_i', [1 0]);
-W = addWell(W, G, rock, wcells(2), 'Type', 'bhp', ...
-    'Val', 100*barsa, 'name', 'P1', 'radius', .1, 'Comp_i', [0 1]);
-W = addWell(W, G, rock, wcells(3), 'Type', 'bhp', ...
-    'Val', 100*barsa, 'name', 'P2', 'radius', .1, 'Comp_i', [0 1]);
+if exmpl==1,
+    W = addWell([], G, rock, wcells(1), 'Type', 'bhp', ...
+        'Val', 200*barsa, 'name', 'I', 'radius', .1, 'Comp_i', [1 0]);
+    W = addWell(W, G, rock, wcells(2), 'Type', 'bhp', ...
+        'Val', 100*barsa, 'name', 'P1', 'radius', .1, 'Comp_i', [0 1]);
+    W = addWell(W, G, rock, wcells(3), 'Type', 'bhp', ...
+        'Val', 100*barsa, 'name', 'P2', 'radius', .1, 'Comp_i', [0 1]);
+else
+    gravity(norm(gravity())*[0 -1 0]);
+    W = addWell([], G, rock, wcells(1), 'Type', 'bhp', ...
+        'Val', 100*barsa, 'name', 'P', 'radius', .1, 'Comp_i', [0 1]);
+    W = addWell(W, G, rock, wcells(2), 'Type', 'bhp', ...
+        'Val', 200*barsa, 'name', 'I1', 'radius', .1, 'Comp_i', [1 0]);
+    W = addWell(W, G, rock, wcells(3), 'Type', 'bhp', ...
+        'Val', 200*barsa, 'name', 'I2', 'radius', .1, 'Comp_i', [1 0]);
+end
 
 % Two-phase fluid
 fluid = initSimpleFluid('mu', [1 10].*centi*poise, ...
@@ -40,18 +64,20 @@ pargs = {'EdgeColor','k','EdgeAlpha',.05};
 
 [xtp,xmi] = deal(initState(G,W,100*barsa, [0 1]));
 
-dt = repmat(pvi/nstep,1,nstep);
+dt = repmat(T/nstep,1,nstep);
 dt = [dt(1).*sort(repmat(2.^-[1:5 5],1,1)) dt(2:end)];
 N  = numel(dt);
 wellSols = cell(N,2);
 t  = 0;
 for n=1:N
+    t = t + dt(n);
     
     xtp  = incompTPFA(xtp, G, hT, fluid, 'wells', W);
     xtp  = implicitTransport(xtp, G, dt(n), rock, fluid, 'wells', W);
     wellSols{n,1} = getWellSol(W, xtp, fluid);
     subplot(2,2,1), cla, 
-       plotCellData(G, xtp.pressure, pargs{:});
+       plotCellData(G, xtp.pressure/barsa, pargs{:});
+       caxis([100 200]); title(sprintf('TPFA: %.0f days', t/day));
     subplot(2,2,3), cla,
        % plotGrid(G,'FaceColor','none');
        plotCellData(G, xtp.s(:,1),xtp.s(:,1)>.01,pargs{:});
@@ -61,14 +87,22 @@ for n=1:N
     xmi  = implicitTransport(xmi, G, dt(n), rock, fluid, 'wells', W);
     wellSols{n,2} = getWellSol(W, xmi, fluid);
     subplot(2,2,2), cla,
-       plotCellData(G, xmi.pressure, pargs{:});
+       plotCellData(G, xmi.pressure/barsa, pargs{:});
+       caxis([100 200]); title(sprintf('Mimetic: %.0f days', t/day));
+       colorbar('peer', gca,[0.94 0.58 0.0175 0.345]);
     subplot(2,2,4), cla,
        % plotGrid(G,'FaceColor','none');
        plotCellData(G, xmi.s(:,1),xmi.s(:,1)>.01, pargs{:});
        axis([0 400 0 100]); caxis([0 1]);
-    drawnow
+       colorbar('peer', gca,[0.94 0.105 0.0175 0.345]);
     
-    t = t + dt(n);
+    for i=1:4,
+        subplot(2,2,i), hold on
+        plot(G.cells.centroids(wcells,1),G.cells.centroids(wcells,2),...
+            'ok','MarkerSize',6,'MarkerFaceColor',[.6 .6 .6]);
+        hold off
+    end
+    drawnow
 end
 
 plotWellSols({wellSols(:,1), wellSols(:,2)}, ...
