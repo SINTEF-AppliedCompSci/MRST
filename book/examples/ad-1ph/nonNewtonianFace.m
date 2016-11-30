@@ -22,8 +22,7 @@ div  = @(x)-C'*x;
 avg  = @(x) 0.5 * (x(N(:,1)) + x(N(:,2)));
 
 %% Rock model and transmissibilities
-rock.perm = repmat(30*milli*darcy, [G.cells.num, 1]);
-rock.poro = repmat(0.3 , [G.cells.num, 1]);
+rock = makeRock(G, 30*mmilli*darcy, 0.3);
 
 cr   = 1e-6/barsa;
 p_r  = 200*barsa;

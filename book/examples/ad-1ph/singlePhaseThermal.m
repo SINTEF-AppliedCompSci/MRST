@@ -15,8 +15,8 @@ G = cartGrid([nx, ny, nz], [Dx, Dy, Dz]);
 G = computeGeometry(G);
 
 %% Define rock model
-rock.perm = repmat(30*milli*darcy, [G.cells.num, 1]);
-rock.poro = repmat(0.3, [G.cells.num, 1]);
+rock = makeRock(G, 30*milli*darcy, 0.3);
+
 cr   = 1e-6/barsa;
 p_r  = 200*barsa;
 pv_r = poreVolume(G, rock);
