@@ -11,12 +11,14 @@
 %}  
 
 %% load dataset
-load('datasets/statistical_fractures.mat')
+pth = fullfile(mrstPath('upr'), 'datasets', 'statistical_fractures.mat');
+load(pth)
 l = mat2cell(fl, ones(size(fl,1),1), size(fl,2));
 l = l';
 offset = 2;
 l = cellfun(@(c) reshape(c', 2,[])' + offset,l,'un',false);
 
+clf;
 plotLinePath(l);
 %% Set grid parameters.
 % We need to refine the grid in some areas since some fractures are very
@@ -30,6 +32,7 @@ amp = [0.5,0.7,0.3,0.3,0.4,0.4,0.4,.6,.3,.45,.45,.2,.3,0.25,0.55,0.45,0.6];
 faultRho =@(p) min(ones(size(p,1),1), ...
                    min(bsxfun(@times, amp,exp(bsxfun(@rdivide, pdist2(p,refPts),eps))),[],2));
 %% Generate grid
+% Note that this may take some time to execute
 G = pebiGrid(15,[35,120],'faultLines',l,'faultGridFactor',1/50,...
              'circleFactor',0.62,'faultRefinement',true,'faultEps',5,...
              'faultRho', faultRho);

@@ -16,6 +16,7 @@ gS = 0.1;
 pdims=[1,1];
 G = pebiGrid(gS, pdims,'wellLines',w);
 
+clf
 plotGrid(G);
 hold on
 plotGrid(G,G.cells.tag,'facecolor','b')

@@ -24,6 +24,7 @@ G1   = voronoi2mrst(Vn, Cn);
 G2 = voronoi2mrst(V,C);
 
 %% Plot grid
+clf;
 plotGrid(G1)
 axis equal tight
 view(40,30)
