@@ -130,7 +130,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          ~isempty(deck.SCHEDULE.control),
 
       wells = processWells(G, rock, deck.SCHEDULE.control(1), ...
-                           'InnerProduct', 'ip_tpf');
+                           'InnerProduct', 'ip_tpf', 'StrictParsing', false);
       state.wellSol = initWellSol(wells, max(state.pressure)); % Galt
 
    else
