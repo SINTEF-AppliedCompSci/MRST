@@ -1,7 +1,7 @@
-% Models for three-phase compressible fluids.
+% SIMULATOR
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   initEclipseModel - Initialise basic MRST objects from ECLIPSE input file (*.DATA)
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

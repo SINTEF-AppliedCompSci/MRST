@@ -1,5 +1,5 @@
 % Files
-%   initEclipseGrid.m - Construct MRST grid from ECLIPSE GRID section.
+%   initEclipseGrid - Construct MRST grid from ECLIPSE GRID section.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

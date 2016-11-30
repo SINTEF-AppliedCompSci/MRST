@@ -1,7 +1,12 @@
-% Models for three-phase compressible fluids.
+% UTILS
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   combineWellPaths   - Combine multiple simple paths into a full tree
+%   findWellPathCells  - Convert well path to the intersected cells
+%   getWellFromPath    - Convert well path to MRST well.
+%   makeSingleWellpath - Create well path from points (and optional connectivity and active flag)
+%   plotWellPath       - Plot a well path
+%   refineSpline       - Refine a curve to higher resolution using spline interpolation
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

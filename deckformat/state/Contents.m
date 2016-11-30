@@ -1,7 +1,7 @@
-% Models for three-phase compressible fluids.
+% STATE
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   initEclipseState - Initialise reservoir state using hydrostatic equilibration
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

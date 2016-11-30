@@ -1,7 +1,7 @@
-% Models for three-phase compressible fluids.
+% EXAMPLES
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   wellTrajectoryExample - Define a model
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

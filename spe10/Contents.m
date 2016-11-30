@@ -1,7 +1,13 @@
-% Models for three-phase compressible fluids.
+% SPE10
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   getSPE10rock    - Define rock properties for Model 2 of tenth SPE CSP
+%   getSPE10setup   - Initialise properties for Model 2 of tenth SPE Comparative Solution Project
+%   grdeclBox       - Make a GRDECL structure for simple corner-point grid, possibly faulted.
+%   make_spe10_data - Create on-disk (MAT file) representation of SPE 10 'rock' data.
+%   setupSPE10_AD   -
+%   SPE10_rock      - Define rock properties for Model 2 of tenth SPE CSP
+%   SPE10_setup     - Initialise properties for Model 2 of tenth SPE Comparative Solution Project
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

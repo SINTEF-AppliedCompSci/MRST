@@ -1,6 +1,7 @@
 % Files
-%   compressRock.m    - Compress rock properties to active cells only
-%   initEclipseRock.m - Extract rock properties from input deck
+%   compressRock    - Compress rock properties to active cells only
+%   computeTranMult - Compute transmissibility multipliers.
+%   initEclipseRock - Extract rock properties from input deck
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

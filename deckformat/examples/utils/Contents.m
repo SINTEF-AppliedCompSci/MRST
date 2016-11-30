@@ -1,7 +1,7 @@
-% Models for three-phase compressible fluids.
+% UTILS
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   makeSPE9OutputAvailable - Ensure availability of the SPE 9 data set
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

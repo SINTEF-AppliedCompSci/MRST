@@ -1,7 +1,8 @@
-% Models for three-phase compressible fluids.
+% WELLS_AND_BC
+%   Support for Constructing Wells and Boundary Conditions From Input Decks
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   processWells - Construct MRST well structure from ECLIPSE input deck control.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

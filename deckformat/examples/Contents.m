@@ -1,7 +1,9 @@
-% Models for three-phase compressible fluids.
+% EXAMPLES
 %
 % Files
-%   initEclipseFluid - Construct an MRST fluid object from an ECLIPSE input deck
+%   diagnosticsFromEclipseOutput  - Read/convert ECLIPSE output and visualize using interactive diagnostics
+%   readAndConvertEclipseOutput   - Read ECLIPSE output and convert to MRST grid and solution structures
+%   readAndVisualizeEclipseOutput - Read ECLIPSE output and visualize
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
