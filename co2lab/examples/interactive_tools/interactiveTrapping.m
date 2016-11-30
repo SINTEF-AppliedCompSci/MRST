@@ -372,9 +372,9 @@ function plotMain(Gt, res, bf, atlasdata)
     end
     
     if showLight
-        light;
+        light('position', [max(Gt.cells.centroids) 0],'Style','local');
         lighting phong
-        light('Position',[max(Gt.cells.centroids) -4*max(Gt.cells.z)],'Style','infinite');
+        %light('Position',[max(Gt.cells.centroids) -4*max(Gt.cells.z)],'Style','infinite');
     end
     if trap==0, return, end;
     
