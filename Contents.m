@@ -17,15 +17,15 @@
 %  license.txt           - GNU License file
 %  startup.m             - Creates all necessary mappings to run UPR.
 %  README                - General readme file
-%  Unstructured 
-%  [PEBI-grids Adapting 
+%  [Unstructured 
+%  PEBI-grids Adapting 
 %  to Geological Features
 %  in Subsurface 
-%  Reservoir.pdf]         - Master thesis containing detailed description
-%                           of UPR
+%  Reservoir.pdf]        - Master thesis containing detailed description
+%                          of UPR
 %
 % /voronoi2D
-%   README2d            - README for files in voronoi2D folder
+%   README2D            - README for files in voronoi2D folder
 %   clippedPebi2D       - 2D PEBI-grid clipped against polygon boundary
 %   compositePebiGrid   - Creates a conforming PEBI-grid embedded in a
 %                         Cartesian background grid.

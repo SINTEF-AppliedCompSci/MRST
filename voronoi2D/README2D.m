@@ -6,15 +6,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % Voronoi-2D contains several functions for generating unstructured Voronoi
-% grids (or Pebi grids) in MRST (http://www.sintef.no/MRST). The main focus 
+% grids (or Pebi grids) in MRST (http://www.sintef.no/MRST). The main focus
 % of this software is the construction of Pebi grids conforming to faults, 
 % fractures or other geological structures. 
 % 
 % Voronoi-2D supports two different types of structures.
-% For the first structure one wants cell edges to follow the 
-% structure. For the second type, one wants cell centroids to follow 
-% the structure. In Voronoi-2D is the first type of structure is 
-% exclusively called for faults, and the second type for wells. 
+% For the first structure one wants cell edges to follow the
+% structure. For the second type, one wants cell centroids to follow
+% the structure. In Voronoi2D the first type of structure is
+% exclusively called for faults, and the second type for wells.
 % 
 % 
 % Voronoi-2D contains the following functions
@@ -49,7 +49,7 @@
 % - faultSufCond enforces the sufficient fault condition.
 %
 % - pebiGrid is an interface function that can be called to create a valid 
-%   MRST grid structure. It creates a fully unstructured pebi grid that 
+%   MRST grid structure. It creates a fully unstructured PEBI-grid that 
 %   conforms to faults and wells. It uses the software DistMesh to create 
 %   the background grid. DistMesh is a software for creating unstructured 
 %   delaunay triangulations: Per-Olof Persson and Gilbert Strang, "A Simple

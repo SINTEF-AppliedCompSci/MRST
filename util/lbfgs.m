@@ -4,7 +4,6 @@ function [x,f,gNorm] = lbfgs(x0, F, varargin)
     % Arguments:
     %   x0          initial guess
     %   F           Objective function
-    %   dt          delaunay triangulation class of the boundary
     %
     % varargin:
     %   storedVec   Number of vectors used to approximate hessian

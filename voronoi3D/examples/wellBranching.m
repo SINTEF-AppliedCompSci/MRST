@@ -27,7 +27,7 @@ G = computeGeometry(G);
 %% plot
 color = get(gca,'ColorOrder');
 close all
-c = G.cells.centroids(:,2) < y/2;
+c = G.cells.centroids(:,2) < y/2.01;
 plotGrid(G,c)
 plotGrid(G,G.cells.tag,'facecolor','red')
 view(180,0)

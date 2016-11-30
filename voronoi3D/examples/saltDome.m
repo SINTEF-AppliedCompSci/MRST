@@ -23,8 +23,8 @@ bdr   = [ 0, 0, 0;  ...
 
 %% Set gridding parameters
 
-fGs = x/20;
-dt = x/20;
+fGs = x/10;
+dt = x/10;
 rho = @(p) fGs*ones(size(p,1),1);
 
 %% Create fault

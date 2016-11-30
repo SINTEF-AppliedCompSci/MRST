@@ -154,7 +154,8 @@ end
 
 function [V, C, symV] = cleanUpGrid(V, C,symV)
     % Remove duplicate vertexes
-    [V,IA,IC] = uniquetol(V,1e-10,'byRows',true);
+		V = round(V*1e10)*1e-10;
+    [V,IA,IC] = unique(V,2);
     symV = symV(IA,:);
     C = cellfun(@(c) unique(IC(c))', C,'UniformOutput',false);
     
