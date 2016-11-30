@@ -1,20 +1,18 @@
 %% Compare grid-orientation effects for TPFA/mimetic schemes
 
-mrstModule add incomp mimetic
+mrstModule add incomp mimetic streamlines diagnostics
 
 % Rectangular reservoir with a skew grid.
 G = cartGrid([41,20],[2,1]);
 makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
-%G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
-G.nodes.coords = twister(G.nodes.coords);
-G.nodes.coords(:,1) = 2*G.nodes.coords(:,1);
-
+G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
+% G.nodes.coords = twister(G.nodes.coords);
+% G.nodes.coords(:,1) = 2*G.nodes.coords(:,1);
+G = computeGeometry(G);
 
 % Homogeneous reservoir properties
-rock.poro = .2*ones(G.cells.num,1);
-rock.perm = 100*ones(G.cells.num,1)*milli*darcy;
-G = computeGeometry(G);
-pv = sum(poreVolume(G,rock));
+rock = makeRock(G, 100*milli*darcy, .2);
+pv   = sum(poreVolume(G,rock));
 
 % Symmetric well pattern
 srcCells = findEnclosingCell(G,[2 .975; .5 .025; 3.5 .025]);
@@ -38,7 +36,6 @@ plotCellData(G, s_tp.pressure, 'EdgeColor', 'k', 'EdgeAlpha', .05);
 
 %%
 % Mimetic solution
-mrstModule add mimetic
 S = computeMimeticIP(G, rock);
 s_mi = initState(G, [], 0);
 s_mi = incompMimetic(s_mi, G, S, fluid, 'src', src);
@@ -47,7 +44,6 @@ plotCellData(G, s_mi.pressure, 'EdgeColor', 'k', 'EdgeAlpha', .05);
 
 %%
 % Compare time-of-flight
-mrstModule add streamlines diagnostics
 subplot(2,2,3);
 tof_tp = computeTimeOfFlight(s_tp, G, rock, 'src', src);
 plotCellData(G, tof_tp, tof_tp<.2,'EdgeColor','none'); caxis([0 .2]); box on
@@ -56,7 +52,6 @@ hf = streamline(pollock(G, s_tp, seed, 'substeps', 1) );
 hb = streamline(pollock(G, s_tp, seed, 'substeps', 1, 'reverse' , true));
 set ([ hf ; hb ], 'Color' , 'k' );
 
-mrstModule add diagnostics
 subplot(2,2,4);
 tof_mi = computeTimeOfFlight(s_mi, G, rock, 'src', src);
 plotCellData(G, tof_mi, tof_mi<.2,'EdgeColor','none'); caxis([0 .2]); box on

@@ -19,8 +19,7 @@ mrstModule add incomp
 [nx,ny] = deal(32);
 G = cartGrid([nx,ny],[500,500]);
 G = computeGeometry(G);
-rock.perm = ones(G.cells.num, 1)*100*milli*darcy;
-rock.poro = ones(G.cells.num, 1)*.2;
+rock = makeRock(G, 100*milli*darcy, .2);
 
 %% Compute half transmissibilities
 % All we need to know to develop the spatial discretization is the reservoir

@@ -17,13 +17,12 @@ for i=1:1:30
    G = cartGrid([i*20+1,i*10],[2,1]);
    makeSkew = @(c) c(:,1) + .4*(1-(c(:,1)-1).^2).*(1-c(:,2));
    G.nodes.coords(:,1) = 2*makeSkew(G.nodes.coords);
+   G = computeGeometry(G);
    disp(['  Grid: ' num2str(G.cartDims)]);
    
    % Homogeneous reservoir properties
-   rock.poro = .2*ones(G.cells.num,1);
-   rock.perm = 100*ones(G.cells.num,1)*milli*darcy;
-   G = computeGeometry(G);
-   pv = sum(poreVolume(G,rock));
+   rock = makeRock(G, 100*milli*darcy, .2);
+   pv   = sum(poreVolume(G,rock));
 
    % Symmetric well pattern
    srcCells = findEnclosingCell(G,[2 .975; .5 .025; 3.5 .025]);
