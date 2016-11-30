@@ -1,7 +1,8 @@
+% TESTS
+%
 % Files
-%   testPollock2D  - Streamlines for a 2D Quater Five-Spot Well Pattern
-%   testPollock3D  - Streamlines for a 3D Quater Five-Spot Well Pattern
-%   testPollockTOF - Compare Time-of-Flight Computed by Steamlines and by Finite-Volumes
+%   test_mrstFigure  -
+%   testWellPlotting - 3d plotting
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
