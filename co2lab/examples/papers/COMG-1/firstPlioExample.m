@@ -8,7 +8,7 @@
 % can therefore not rely on structural trapping and should instead consider
 % residual trapping.
 
-mrstModule add co2lab incomp ad-core
+mrstModule add co2lab incomp ad-core coarsegrid;
 gravity reset on;
 
 grdecl = getAtlasGrid('Pliocenesand');

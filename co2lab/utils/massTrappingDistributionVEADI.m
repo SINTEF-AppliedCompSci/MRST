@@ -22,8 +22,9 @@ function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sW, h, h_
 %   sw         - liquid residual saturation (scalar)
 %   trapstruct - trapping structure
 %   dh         - subtrapping capacity (empty, or one value per grid cell of Gt)
-%   rs         - dissolved, one value per cell of grid
-
+%   varargin   - optional parameters/value pairs.  This currently only
+%                includes the option 'rs', which specifies the amount of
+%                dissolved CO2 (in its absence, dissolution is ignored).
 %
 % RETURNS:
 %   masses - vector with 7 components, representing:
