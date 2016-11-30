@@ -1,5 +1,5 @@
 function state = solveMSFV_TPFA_Incomp_DFM(state, G, CG, T, fluid, varargin)
-% Solve incompressible flow problem (flux/pressures) using a multiscale
+%SOLVEMSFV_TPFA_INCOMP_DFM Modified to allow for hybrid cells
 % finite volume method.
 %
 % THIS FILE IS MODIFIED FROM THE ORIGINAL solveMSFV_TPFA_Incomp.m

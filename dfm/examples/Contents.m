@@ -1,7 +1,6 @@
 % Files
-%   cartesianFractureGrid.m - Basic Cartesian fracture grid
-%   matlabFractureGrid.m    - Unstructured fracture grid created by Matlab functions
-%   triangleFractureGrid.m  - Unstructured fracture grid created using the Triangle software
+%   cartesianFractureGrid - Basic Cartesian fracture grid
+%   matlabFractureGrid    - Unstructured fracture grid created by Matlab functions
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

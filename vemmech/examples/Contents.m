@@ -1,15 +1,12 @@
-% One-phase flow examples.
+% EXAMPLES
 %
 % Files
-%   incompExampleNorne1ph     - Norne: Single-Phase Pressure Solver
-%   incompExampleSAIGUP1ph    - SAIGUP: Solving One-Phase Flow on a Realistic Corner-Point Model
-%   incompIntro               - Basic Flow-Solver Tutorial
-%   incompTutorialCornerPoint - Pressure Solver: Simple Corner-Point Grid with Linear Pressure Drop
-%   incompTutorialMillionCell - Simulation of a Mega-cell Model
-%   incompTutorialSRCandBC    - How to Specify Sources and Boundary Conditions
-%   incompTutorialTOF         - Time-of-flight
-%   incompTutorialWells       - Using Peacemann Well Models
-%   simpleTimeOfFlight        - Time-of-flight
+%   compactionTest2D        - Compaction test case in 2D
+%   compactionTest3D        - Compaction test case 3D
+%   example_2D              - Linear Elasticity on Complex Grid
+%   example_2D_complex_grid - A short example solving linear elasticity on a complex grids
+%   example_2D_layers       - Example using three layers with different parameters in each layer
+%   example_poroelasticity  - Example of poro-elastic problem
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

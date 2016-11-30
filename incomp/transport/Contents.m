@@ -1,8 +1,8 @@
 % Routines for solving transport/saturation equation.
 %
 % Files
-%   explicitTransport - Explicit single point upwind transport solver for two-phase flow.
-%   implicitTransport - Implicit single point upwind transport solver for two-phase flow.
+%   explicitTransport - Explicit single-point upstream mobility-weighted transport solver for two-phase flow.
+%   implicitTransport - Implicit single-point upstream mobility-weighted transport solver for two-phase flow.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

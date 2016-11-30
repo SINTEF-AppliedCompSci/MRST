@@ -1,7 +1,7 @@
 % Files
-%   compareGradients.m - compareGradients - compare gradients computed numerically and with adjoint
-%   simpleBHPOpt.m     - simple adjoint test using BHP-control
-%   simpleRateOpt.m    - simple adjoint test using rate - control
+%   compareGradients - Compare Gradient Computed Numerically and by Adjoint Equations
+%   simpleBHPOpt     - Simple Adjoint Test Using BHP-control
+%   simpleRateOpt    - Simple Adjoint Test Using Rate-Control
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

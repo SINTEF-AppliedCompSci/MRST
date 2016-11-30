@@ -1,8 +1,8 @@
 % Files
-%   mixedSymm.m                - Solve symmetric system of linear eqns using reduction to a mixed system.
-%   schurComplementSymm.m      - Solve symmetric system of linear eqns using Schur Complement analysis.
-%   schurComplementSymmFault.m - Solve symmetric system of linear eqns using Schur Complement analysis.
-%   tpfSymm.m                  - Solve symmetric system of linear eqns using reduction to two-point system.
+%   mixedSymm                - Solve symmetric system of linear eqns using reduction to a mixed system.
+%   schurComplementSymm      - Solve symmetric system of linear eqns using Schur Complement analysis.
+%   schurComplementSymmFault - Solve symmetric system of linear eqns using Schur Complement analysis.
+%   tpfSymm                  - Solve symmetric system of linear eqns using reduction to two-point system.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

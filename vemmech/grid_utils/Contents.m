@@ -1,15 +1,14 @@
-% One-phase flow examples.
+% GRID_UTILS
 %
 % Files
-%   incompExampleNorne1ph     - Norne: Single-Phase Pressure Solver
-%   incompExampleSAIGUP1ph    - SAIGUP: Solving One-Phase Flow on a Realistic Corner-Point Model
-%   incompIntro               - Basic Flow-Solver Tutorial
-%   incompTutorialCornerPoint - Pressure Solver: Simple Corner-Point Grid with Linear Pressure Drop
-%   incompTutorialMillionCell - Simulation of a Mega-cell Model
-%   incompTutorialSRCandBC    - How to Specify Sources and Boundary Conditions
-%   incompTutorialTOF         - Time-of-flight
-%   incompTutorialWells       - Using Peacemann Well Models
-%   simpleTimeOfFlight        - Time-of-flight
+%   createAugmentedGrid - Extend grid with mappings needed for the virtual element solver
+%   createGridMappings  - Add preliminary mappings to be used in createAugmentedGrid
+%   flipGrid            - Flip a grid (z->x, x->y, y->z)
+%   full_grid_structure - Extended grid structure used in the vemmech module
+%   padGrdecl           - Add padding to corner-point grid so it is embedded in a box
+%   refineGrdeclLayers  - Refine a GRDECL structure in the vertical direction
+%   sortEdges           - Sort edges in G.faces.edges counter-clockwise to face orientation
+%   verticalGrdecl      - Transform GRDECL pillars into vertical pillars
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

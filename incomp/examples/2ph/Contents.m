@@ -1,12 +1,11 @@
 % Two-phase flow examples.
 %
 % Files
-%   incompTutorialWells2ph.m   - Basic two-phase flow-solver tutorial
-%
-%   incompTutorialGravCol2ph.m - Investigate effects of gravity in an inclined geometry.
-%   incompExampleNorne2ph.m    - Transport solver: example of a real field model
-%   incompExampleSAIGUP2ph.m   - Transport solver: example of a realistic field model
-%   incompTutorialCapPres.m    - Pressure solver with capillary pressure:
+%   incompExampleNorne2ph    - Norne: Two-Phase Incompressible Simulator
+%   incompExampleSAIGUP2ph   - SAIGUP: Solving Two-Phase Flow on a Realistic Corner-Point Model
+%   incompTutorialCapPres    - Pressure Solver with capillary pressure:
+%   incompTutorialGravCol2ph - Two-Phase Flow in Inclined Gravity Column
+%   incompTutorialWells2ph   - Basic Transport-Solver Tutorial
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

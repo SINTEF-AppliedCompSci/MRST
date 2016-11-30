@@ -1,15 +1,8 @@
-% One-phase flow examples.
+% VEMMECH
 %
 % Files
-%   incompExampleNorne1ph     - Norne: Single-Phase Pressure Solver
-%   incompExampleSAIGUP1ph    - SAIGUP: Solving One-Phase Flow on a Realistic Corner-Point Model
-%   incompIntro               - Basic Flow-Solver Tutorial
-%   incompTutorialCornerPoint - Pressure Solver: Simple Corner-Point Grid with Linear Pressure Drop
-%   incompTutorialMillionCell - Simulation of a Mega-cell Model
-%   incompTutorialSRCandBC    - How to Specify Sources and Boundary Conditions
-%   incompTutorialTOF         - Time-of-flight
-%   incompTutorialWells       - Using Peacemann Well Models
-%   simpleTimeOfFlight        - Time-of-flight
+%   VEM_assemble - Assemble the virtual element stiffness matrix and intermediate operators
+%   VEM_linElast - Assemble and solve the linear elasticity equations using VEM
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

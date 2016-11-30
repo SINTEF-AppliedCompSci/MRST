@@ -1,6 +1,6 @@
 % Files
-%   recovery.m  - recovery -- objective function calculating water volume at last time step
-%   simpleNPV.m - Simple net-present-value function - no discount factor
+%   recovery  - Objective function calculating water volume at last time step
+%   simpleNPV - Simple net-present-value function - no discount factor
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
