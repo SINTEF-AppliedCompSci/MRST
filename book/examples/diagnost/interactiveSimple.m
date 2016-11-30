@@ -17,8 +17,7 @@ p = gaussianField(G.cartDims(1:2), [0.2 0.4], [11 3], 2.5);
 p(round(2*end/3):end,round(end/3)) = 1e-3;
 p(1:round(end/3),round(2*end/3)) = 1e-3;
 K = p.^3.*(1.5e-5)^2./(0.81*72*(1-p).^2);
-rock.poro = p(:);
-rock.perm = K(:);
+rock = makeRock(G, K(:), p(:));
 
 %% Set up and solve flow problem, compute diagnostics
 n = 12;

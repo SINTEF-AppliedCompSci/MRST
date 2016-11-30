@@ -5,8 +5,7 @@
 
 %% Homogeneous, isotropic properties
 G = cartGrid([1000 100]);
-rock.poro = .2*ones(G.cells.num,1);
-rock.perm = 200*milli*darcy*ones(G.cells.num,1);
+rock = makeRock(G, 200*milli*darcy,.2);
 plotCellData(G, rock.poro,'EdgeColor','w'); 
 
 %% Homogeneous, anisotropic properties
@@ -19,8 +18,7 @@ plotCellData(G, rock.perm./max(rock.perm(:)), 'edgeColor', 'w');
 G = cartGrid([50 20]);
 p = gaussianField(G.cartDims, [0.2 0.4], [11 3], 2.5);
 K = p.^3.*(1e-5)^2./(0.81*72*(1-p).^2);
-rock.poro = p(:);
-rock.perm = K(:);
+rock = makeRock(G, K(:), p(:));
 
 clf
 plotCellData(G,rock.poro);
@@ -31,8 +29,7 @@ colorbar('horiz'); axis equal tight;
 G = cartGrid([50 20 10]);
 p = gaussianField(G.cartDims, [0.2 0.4], [5 3 1], 2.5);
 K = p.^3.*(1e-5)^2./(0.81*72*(1-p).^2);
-rock.poro = p(:);
-rock.perm = K(:);
+rock = makeRock(G, K(:), p(:));
 
 clf
 plotCellData(G,convertTo(rock.perm,milli*darcy));

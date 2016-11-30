@@ -6,8 +6,7 @@ G = cartGrid([nx,ny,1],[500,250,10]);
 G = computeGeometry(G);
 p = gaussianField(G.cartDims(1:2), [0.2 0.4], [11 3], 2.5);
 K = p.^3.*(1.5e-5)^2./(0.81*72*(1-p).^2);
-rock.poro = p(:);
-rock.perm = K(:);
+rock = makeRock(G, K(:), p(:));
 hT = computeTrans(G, rock);
 
 %% Set up and solve flow problem, compute diagnostics

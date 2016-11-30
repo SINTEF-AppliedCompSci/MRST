@@ -29,8 +29,7 @@ else
     a = (log(darcy)-b)/(.4 - .05);
     p = gaussianField(G.cartDims, [0.05 0.4], [3 1 11], 4.5);
     K = exp(a*(p-.05)+b);
-    rock.poro = p(:);
-    rock.perm = K(:);
+    rock = makeRock(G, K(:), p(:));
 end
 T  = computeTrans(G, rock, 'verbose', true);
 
