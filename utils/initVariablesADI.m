@@ -7,7 +7,7 @@ function varargout = initVariablesADI(varargin)
 %
 % PARAMETERS:
 %   Any number of variables in either column vector format or as scalars.
-%   These variables will be instansiate as adi objects containing both a
+%   These variables will be instantiate as ADI objects containing both a
 %   .val field and a .jac jacobian. These variables will start with
 %   identity jacobians with regards to themselves and zero jacobians with
 %   regards to the other variables (implicitly defined by the ordering of

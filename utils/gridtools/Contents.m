@@ -2,7 +2,7 @@
 %   Functions that collect common operations on the MRST grid structure
 %
 % Files
-%   checkGrid             - UNTITLED Summary of this function goes here
+%   checkGrid             - Apply Basic Consistency Checks to MRST Grid Geometry
 %   compareGrids          - Determine if two grid structures are the same.
 %   connectedCells        - Compute connected components of grid cell subsets.
 %   findEnclosingCell     - Find cells with closest centroid (in Euclidian norm) in a 2D grid.

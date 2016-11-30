@@ -4,6 +4,7 @@
 % Files
 %   makeNorneGRDECL          - Create containing datafile for subset of Norne simulation model
 %   makeNorneSubsetAvailable - Ensure availability of subset of Norne simulation model
+%   makeSPE10DataAvailable   - Ensure availability of Models 1 and 2 from tenth SPE Comparative Solution Project
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

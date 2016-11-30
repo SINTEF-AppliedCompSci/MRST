@@ -18,6 +18,27 @@ function [hcb, hax] = colorbarHist(q, lim, varargin)
 %    hc  - graphics handle to colorbar
 %    hh  - graphics handle to histogram
 %
+% SEE ALSO:
+%   hist.
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
 assert(any(nargin==[2,3,4]), 'Incorrect number of input arguments');
 
@@ -35,7 +56,11 @@ end
 if nargin==2 || ((nargin>2) && strcmpi(varargin{1},'South'))
    cbPos = 'SouthOutside';
    cbAdd = -[0 0.09 0 0.03];
-   cbLoc = 'left';
+   if ~exist('verLessThan','file') || verLessThan('matlab','8.4')
+      cbLoc = 'left';
+   else
+      cbLoc = 'bottom';
+   end
    axAdd = [0 -.03 0 .03];
    axLim = [min(lim)-eps, max(lim)+eps, -1-eps, max(1,1.1*max(counts))+eps];
    hbar  = @(x,y) bar(x,y,'hist');
