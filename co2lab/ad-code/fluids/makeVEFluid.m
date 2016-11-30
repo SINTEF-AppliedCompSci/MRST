@@ -223,7 +223,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        fluid = make_p_scaled_fluid(fluid, Gt, opt.residual, C, opt.alpha, ...
                                    opt.beta, opt.invPc3D, opt.kr3D);
      case 'P-K-scaled table'
-       fluid = make_p_k_scaled_fluid(fluid, Gt, rock, opt.residual, opt.alpha, ...
+       fluid = make_p_k_scaled_fluid(fluid, Gt, rock, opt.residual, C,  opt.alpha, ...
                                      opt.beta, opt.invPc3D, opt.kr3D);
      otherwise
        error([type, ': no such fluid case.']);
@@ -575,7 +575,7 @@ function fluid = make_p_scaled_fluid(fluid, Gt, residual, C, alpha, beta, ...
 
 % ----------------------------------------------------------------------------
 
-function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, alpha, beta, ...
+function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, C, alpha, beta, ...
                                        invPc3D, kr3D)
 
    % Integral transformed from dz to dp, and using Leverett's J-function
@@ -587,6 +587,8 @@ function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, alpha, beta, .
    tabSw   = linspace(0, 1, 100)';
    tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
 
+   C = max(C ./ kscale);
+   
    % Establish fine-scale functions
    if isempty(invPc3D)
       invPc3D = @(p) max((C ./ (p + C)).^(1 / alpha) , residual(1));
