@@ -3,8 +3,8 @@
 mrstModule add incomp mimetic
 
 % Final time and number of time steps
-pvi = 1.2;
-nstep = 60;
+pvi = 1200*day;
+nstep =120;
 
 % Rectangular reservoir with a skew grid.
 G = cartGrid([41,20],[2,1]);
@@ -22,12 +22,12 @@ IP   = computeMimeticIP(G, rock);
 % Symmetric well pattern
 wcells = findEnclosingCell(G,[200 97.5; 50 2.5; 350 2.5]);
 rate   = sum(poreVolume(G,rock));
-W = addWell([], G, rock, wcells(1), 'Type', 'rate', ...
-    'Val', rate, 'name', 'I', 'radius', .1, 'Comp_i', [1 0]);
-W = addWell(W, G, rock, wcells(2), 'Type', 'rate', ...
-    'Val', -.5*rate, 'name', 'P1', 'radius', .1, 'Comp_i', [0 1]);
-W = addWell(W, G, rock, wcells(3), 'Type', 'rate', ...
-    'Val', -.5*rate, 'name', 'P2', 'radius', .1, 'Comp_i', [0 1]);
+W = addWell([], G, rock, wcells(1), 'Type', 'bhp', ...
+    'Val', 200*barsa, 'name', 'I', 'radius', .1, 'Comp_i', [1 0]);
+W = addWell(W, G, rock, wcells(2), 'Type', 'bhp', ...
+    'Val', 100*barsa, 'name', 'P1', 'radius', .1, 'Comp_i', [0 1]);
+W = addWell(W, G, rock, wcells(3), 'Type', 'bhp', ...
+    'Val', 100*barsa, 'name', 'P2', 'radius', .1, 'Comp_i', [0 1]);
 
 % Two-phase fluid
 fluid = initSimpleFluid('mu', [1 10].*centi*poise, ...
