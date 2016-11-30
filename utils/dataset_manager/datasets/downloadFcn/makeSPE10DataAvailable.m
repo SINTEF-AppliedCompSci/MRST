@@ -108,7 +108,13 @@ function ok = do_download_model1()
    % archive *or* the archive file downloaded from the SPE web site and
    % retrieve relative permeability data.
 
-   do_download('perm_case1.zip', 'first');
+   fprintf('Downloading ''Model 1'' from Tenth SPE CSP (9 kB) ... ');
+
+   t0 = tic;
+   do_download('perm_case1.zip');
+   t0 = toc(t0);
+
+   fprintf(' Done [%.1f s]\n', t0);
 
    wget = mrstWebSave();
 
@@ -124,26 +130,28 @@ function ok = do_download_model2()
    % Data files not available in unpacked form.  Extract local
    % archive *or* the archive file downloaded from the SPE web site.
 
-   do_download('por_perm_case2a.zip', 'second');
+   fprintf(['Downloading ''Model 2'' from Tenth SPE CSP ', ...
+            '(20 MB--Please Be Patient) ... ']);
+
+   t0 = tic;
+   do_download('por_perm_case2a.zip');
+   t0 = toc(t0);
+
+   fprintf(' Done [%.1f s]\n', t0);
 
    ok = have_perm_poro_input();
 end
 
 %--------------------------------------------------------------------------
 
-function do_download(zipfile, comment)
+function do_download(zipfile)
    if output_exists(zipfile)
       url = output_file(zipfile);
    else
       url = [csp_url(), zipfile];
    end
 
-   dispif(mrstVerbose, ...
-         ['Please wait while the %s SPE10 ', ...
-          'dataset is downloaded...'], comment);
-
    unzip(url, output_directory());
-   dispif(mrstVerbose, 'Done\n');
 end
 
 %--------------------------------------------------------------------------
