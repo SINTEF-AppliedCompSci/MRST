@@ -17,9 +17,7 @@ G = computeGeometry(G);
 [K1,K2,p1,p2] = deal(200,1000,.1,.3);
 layer = @(c) (c(:,3)-2150)<0; % <0: high perm on top, >0: low on top
 
-rock.poro = p1*ones(G.cells.num,1);
-rock.perm = ones(G.cells.num,1)*K1*milli*darcy;
-
+rock = makeRock(G, K1*milli*darcy, p1);
 rock.poro(layer(G.cells.centroids)) = p2;
 rock.perm(layer(G.cells.centroids)) = K2*milli*darcy;
 

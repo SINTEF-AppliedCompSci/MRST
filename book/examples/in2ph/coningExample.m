@@ -10,8 +10,7 @@ G = computeGeometry(G);
 [x0,x1,z0,z1] = deal(675,1250,2050,2250);
 flt = @(c) (c(:,1)-x0)*(z1-z0)/(x1-x0) + z0 - c(:,3);
 
-rock.poro = .2*ones(G.cells.num,1);
-rock.perm = ones(G.cells.num,1)*500*milli*darcy;
+rock = makeRock(G, 500*milli*darcy, .2);
 rock.perm(flt(G.cells.centroids)>0) = 50*milli*darcy;
 rock.poro(flt(G.cells.centroids)>0) = 0.1;
 
