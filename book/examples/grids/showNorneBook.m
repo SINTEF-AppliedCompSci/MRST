@@ -1,15 +1,34 @@
-%% The Norne Field
+%% Introduction to the Norne Model
 % Norne is an oil and gas field lies located in the Norwegian Sea. The
 % reservoir is found in Jurrasic sandstone at a depth of 2500 meter below
 % sea level. Operator Statoil and partners (ENI and Petoro) have agreed
 % with NTNU to release large amounts of subsurface data from the Norne
-% field for research and education purposes.  The Norne Benchmark datasets
+% field for research and education purposes.  The
+% <http://www.ipt.ntnu.no/~norne/wiki/doku.php Norne Benchmark> datasets
 % are hosted and supported by the Center for Integrated Operations in the
-% Petroleum Industry (IO Center) at NTNU:
-% http://www.ipt.ntnu.no/~norne/wiki/doku.php 
+% Petroleum Industry (IO Center) at NTNU. Recently, the
+% <http://www.opm-project.org OPM Initiative> released the full simulation
+% model as an open data set on <https://github.com/OPM/opm-data GitHub>.
 %
-% Here, we will use the simulation model released as part of "Package 2:
-% Full Field model" (2013) as an example of a real reservoir.
+% Here, we will go through the grid and petrophysical properties from the
+% simulation model.
+
+mrstModule add deckformat
+
+%% Read and process the model
+% As the Norne dataset is available from the OPM project's public GitHub
+% repository, we can download a suitable subset of the simulation model and
+% process that subset.  Function |makeNorneSubsetAvailable| checks if the
+% corner-point geometry and associate petrophysical properties (porosity,
+% permeability and net-to-gross factors) is already available and downloads
+% this subset if it is not.  Similarly, function |makeNorneGRDECL| creates
+% a simple .GRDECL file with a known name that includes the datafiles in
+% the correct order.  We refer to example |showSAIGUP| for a more in-depth
+% discussion of how to read and process such input data.
+
+if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
+   error('Unable to obtain simulation model subset');
+end
 
 %% Read model
 grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
@@ -27,8 +46,9 @@ G             = processGRDECL(grdecl,'checkgrid', false);
 %%
 % Having obtained the grid, we first plot the outline of the whole model
 % and highlight all faults
-newplot;
-plotGrid(G,'FaceColor','none','EdgeAlpha',0.1);
+clf
+pargs = {'EdgeAlpha'; 0.1; 'EdgeColor'; 'k'};
+plotGrid(G,'FaceColor','none', pargs{:});
 plotFaces(G,find(G.faces.tag>0), ...
    'FaceColor','red','FaceAlpha',0.2, 'EdgeColor','r','EdgeAlpha',0.1);
 axis off; view(-155,80); zoom(1.7);
@@ -36,12 +56,10 @@ axis off; view(-155,80); zoom(1.7);
 %%
 % We then distinguish the active and inactive cells
 cla;
-plotGrid(G,find(~actnum(G.cells.indexMap)), ...
-   'FaceColor','none','EdgeAlpha',0.1);
-plotGrid(G,find( actnum(G.cells.indexMap)), ...
-   'FaceColor','y', 'EdgeAlpha',0.1);
+plotGrid(G,find(~actnum(G.cells.indexMap)), 'FaceColor','none',pargs{:});
+plotGrid(G,find( actnum(G.cells.indexMap)), 'FaceColor','y', pargs{:});
 
-%% Consider a subgrid of the model
+%% Show various subsets of the model
 % Prepare to extract a subgrid - show the part that will be extracted
 clear ijk;
 [ijk{1:3}] = ind2sub(G.cartDims, G.cells.indexMap(:));
@@ -67,8 +85,8 @@ grdecl.ACTNUM = actnum;
 cut_grdecl = cutGrdecl(grdecl, [6 15; 80 100; 1 22]);
 g = computeGeometry(processGRDECL(cut_grdecl));
 
-figure, clf
-plotCellData(g,g.cells.volumes,'EdgeColor','k','EdgeAlpha',.1);
+figure
+plotCellData(g,g.cells.volumes, pargs{:});
 colormap(jet), brighten(.5)
 axis tight off, view(210,15); zoom(1.2);
 
