@@ -17,21 +17,22 @@
 mrstModule add spe10
 
 %% Load the model
-% The first time you access the model, it will be downloaded from the
-% official websiet of the comparative solution project. Depending upon your
-% internet connection, this may take quite a while, so please be patient.
-% Notice that |SPE10_rock| returns permeabilities in units [md], which
-% hence need to be converted to SI units before the model is used for
-% simulations.
+% The first time you access the model, the MRST dataset system will prompt
+% you to download the model from the official website of the comparative
+% solution project. Depending upon your internet connection this may take
+% quite a while--even several minutes--so please be patient. Notice that
+% |getSPE10rock| returns permeabilities in strict SI units (i.e., m^2), and
+% the petrophysical data of this model may therefore be used directly in
+% simulations in MRST.
 rock = getSPE10rock();
-p = reshape(rock.poro,60,220,85); 
+p = reshape(rock.poro,60,220,85);
 Kx = reshape(log10(rock.perm(:,1)),60,220,85);
 Ky = reshape(log10(rock.perm(:,2)),60,220,85);
 Kz = reshape(log10(rock.perm(:,3)),60,220,85);
 
 %% show p
 clf
-slice( p, [1 220], 60, [1 85]); 
+slice( p, [1 220], 60, [1 85]);
 shading flat, axis equal, set(gca,'zdir','reverse'), box on;
 set(gca,'XTick',[],'YTick',[],'ZTick',[]);
 colorbarHist(p(:),[-.01 max(p(:))],'South',100);
@@ -39,7 +40,7 @@ colorbarHist(p(:),[-.01 max(p(:))],'South',100);
 %% show Kx/Ky
 % These are identical so we only plot one of them
 clf
-slice( Kx, [1 220], 60, [1 85]); 
+slice( Kx, [1 220], 60, [1 85]);
 shading flat, axis equal, set(gca,'zdir','reverse'), box on;
 set(gca,'XTick',[],'YTick',[],'ZTick',[]);
 h=colorbarHist(Kx(:), caxis, 'South', 100);
@@ -48,7 +49,7 @@ set(h,'YTick',mean(get(h,'YLim')),'YTickLabel','mD');
 
 %% show Kz
 clf
-slice( Kz, [1 220], 60, [1 85]); 
+slice( Kz, [1 220], 60, [1 85]);
 shading flat, axis equal, set(gca,'zdir','reverse'), box on;
 set(gca,'XTick',[],'YTick',[],'ZTick',[]);
 h=colorbarHist(Kz(:), caxis, 'South', 100);
@@ -61,7 +62,7 @@ hist(Kx(220*60*35+1:end),101);
 hold on
 hist(Kx(1:220*60*35),101)
 hold off
-h=get(gca,'Children'); 
+h=get(gca,'Children');
 set(h(1),'EdgeColor',[0 0 0.4],'FaceColor','none')
 set(h(2),'EdgeColor',[0.7 0 0],'FaceColor','none')
 h=legend('Ness','Tarbert'); set(h,'FontSize',16);
@@ -72,7 +73,7 @@ hist(Kz(1:220*60*35),101)
 hold on
 hist(Kz(220*60*35+1:end),101);
 hold off
-h=get(gca,'Children'); 
+h=get(gca,'Children');
 set(h(2),'EdgeColor',[0 0 0.4],'FaceColor','none')
 set(h(1),'EdgeColor',[0.7 0 0],'FaceColor','none')
 h=legend('Tarbert','Ness');set(h,'FontSize',16);
@@ -84,7 +85,7 @@ N=histc(pN,pb); bar(pb,N,'histc');
 hold on
 N=histc(pT,pb); bar(pb,N,'histc');
 hold off;
-h=get(gca,'Children'); 
+h=get(gca,'Children');
 set(h(1),'EdgeColor',[0 0 0.4],'FaceColor','none')
 set(h(2),'EdgeColor',[0.7 0 0],'FaceColor','none')
 h=legend('Ness','Tarbert');set(h,'FontSize',16);
