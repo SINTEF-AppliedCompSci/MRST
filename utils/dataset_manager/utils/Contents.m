@@ -2,10 +2,12 @@
 %   Supporting routines for managing collection of external datasets
 %
 % Files
-%   datasetInfoStruct   - Get a struct containing standardized information about a dataset
-%   downloadAllDatasets - Download all datasets known to MRST and available for direct download
-%   getDatasetInfo      - Get info struct for a given dataset.
-%   listDatasetExamples - List all MRST examples using a specific dataset
+%   datasetInfoStruct           - Get a struct containing standardized information about a dataset
+%   datasetHasCustomDownloadFcn - Predicate for whether or not a dataset provides a custom download function
+%   datasetHasValidFileURL      - Predicate for whether or not a dataset provides a valid file URL
+%   downloadAllDatasets         - Download all datasets known to MRST and available for direct download
+%   getDatasetInfo              - Get info struct for a given dataset.
+%   listDatasetExamples         - List all MRST examples using a specific dataset
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

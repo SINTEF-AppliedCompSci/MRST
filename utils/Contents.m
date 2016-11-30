@@ -34,6 +34,7 @@
 %   mrstPath              - Establish and maintain mapping from module names to system directory paths
 %   mrstStartupMessage    - Print a welcome message with helpful commands for new MRST users
 %   mrstVerbose           - Globally control default settings for MRST verbose information.
+%   mrstWebSave           - Get Call-Back for Downloading Online Resources Specified by URLs
 %   msgid                 - Construct Error/Warning message ID by prepending function name.
 %   multiEig              - Solve sequence of general (unsymmetric) eigenvalue problems using LAPACK
 %   multiSymmEig          - Solve sequence of symmetric eigenvalue problems using LAPACK

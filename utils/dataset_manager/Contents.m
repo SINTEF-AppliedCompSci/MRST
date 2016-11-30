@@ -3,7 +3,7 @@
 %
 % Files
 %   downloadDataset      - Download a dataset given by name, subject to availability
-%   getAvailableDatasets - Get a list of structs indicating possible and present datasets in MRST
+%   getAvailableDatasets - Get a list of structures indicating possible and present datasets in MRST
 %   getDatasetPath       - Get the path of a dataset (optionally: try to download it if missing)
 %   modelDownloadExample - Listing data directory
 

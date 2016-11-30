@@ -2,6 +2,7 @@
 %   Examples that demonstrate how to work with external datasets
 %
 % Files
+%   showCaseB4   - Stair-stepped grid
 %   showJohansen - Visualizing the Johansen Data Set
 %   showNorne    - Introduction to the Norne Model
 %   showSAIGUP   - Introduction to the SAIGUP Model
