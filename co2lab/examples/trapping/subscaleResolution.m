@@ -16,12 +16,7 @@
 % resolution when simulating long-term migration because coarsening may
 % have a large impact on the trapped CO2 volumes.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
+mrstModule add co2lab
 %% Load data and create grids
 fprintf('Constructing Sleipner model...');
 sleipner_deck = readGRDECL(fullfile(mrstPath('co2lab'), ...
@@ -130,7 +125,7 @@ Gt_adjusted.faces.z = adjust(Gt_adjusted.faces.z, Gt_adjusted.faces.centroids);
 Gt_adjusted.nodes.z = adjust(Gt_adjusted.nodes.z, Gt_adjusted.nodes.coords);
 
 % Recompute geometry to get correct centroids
-Gt_adjusted = computeGeometryVE(Gt_adjusted);
+Gt_adjusted = computeGeometryVE_2D(Gt_adjusted);
 
 res_adjusted = trapAnalysis(Gt_adjusted, true);
 

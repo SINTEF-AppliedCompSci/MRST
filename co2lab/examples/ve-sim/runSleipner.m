@@ -28,12 +28,7 @@
 % The last mentioned function requires that you have built the solver in
 % the src/VEmex directory.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
+mrstModule add co2lab mimetic
 %% Display header
 clc
 disp('================================================================');
@@ -42,7 +37,6 @@ disp('   using C++ accelleration in the transport solver');
 disp('================================================================');
 disp(' ');
 
-moduleCheck mimetic
 
 %% Construct stratigraphic, petrophysical, and VE models
 % The 3D model consists of a grid (G) and petrophysical parameters (rock).
@@ -121,7 +115,7 @@ end
 % of the plume, a pie chart of trapped versus free volume, a plane view of
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
-opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], ...
+opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.res_water], ...
    'maxH', 5, 'Wadd', 10, 'view', [130 50]};
 plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,6), opts{:});
 

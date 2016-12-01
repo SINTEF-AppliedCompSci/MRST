@@ -10,11 +10,7 @@
 %
 % The simulation is done using the vertical average/equilibrium framework.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
+mrstModule add co2lab
 
 %% Write header
 clear, clc;
@@ -96,7 +92,7 @@ ts=findTrappingStructure(Gt);
 % of the plume, a pie chart of trapped versus free volume, a plane view of
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
-opts = {'slice', wellIx,  'maxH', 15, 'Saxis', [0 1-fluidVE.sw], ...
+opts = {'slice', wellIx,  'maxH', 15, 'Saxis', [0 1-fluidVE.res_water], ...
    'view', [-7, 25], 'Wadd', 100};
 plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,6), opts{:});
 

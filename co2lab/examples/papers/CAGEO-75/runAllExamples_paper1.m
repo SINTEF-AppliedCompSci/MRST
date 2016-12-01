@@ -8,9 +8,9 @@
 showNodeTrapsCalc;
 
 % Then, set a breakpoint in computeNodeTraps:
-dbstop in computeNodeTraps;
+dbstop in computeNodeTraps at 93;
 
-% Then run line 11 of 
+% Then run line 12 of 
 showNodeTrapsCalc;
 
 % When the breakpoint in computeNodeTraps, run the remaining lines of

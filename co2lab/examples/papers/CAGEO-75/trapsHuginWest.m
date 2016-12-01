@@ -2,7 +2,7 @@
 % This formation has the largest difference in the trap volumes. We extract
 % a subset in the south of the model and compare the traps computed by the
 % node-based and the cell-based algorithms
-moduleCheck('libgeometry', 'opm_gridprocessing');
+mrstModule add libgeometry opm_gridprocessing
 grdecl = getAtlasGrid('Huginfmwest');
 try
    G = processgrid(grdecl{1}); clear grdecl;

@@ -135,7 +135,7 @@ methods
    end
    %
    function [problem, state] = ...
-          getEquationsAdjoint(model, state0, state, dt, drivingForces, varargin)
+          getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
       if(strcmp(model.adjointType,'nohyst'))
           % do nothing
          [problem, state] = model.equation(model         , ...

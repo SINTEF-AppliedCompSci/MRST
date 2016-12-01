@@ -9,11 +9,8 @@
 % or not defined is removed, giving a GRDECL file defining the intersection
 % of these datasets.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
+mrstModule add co2lab
+
 
 %% Example: Utsira formation
 % The formations discussed in the atlas cover large areas, and even though
@@ -57,7 +54,7 @@ view(90,45)
 % processing.
 
 % Load module
-moduleCheck('libgeometry','opm_gridprocessing'); 
+mrstModule add libgeometry opm_gridprocessing
 
 % Count number of sand bodies
 grdecls = getAtlasGrid(getNorthSeaNames(),'coarsening',10);
@@ -81,7 +78,7 @@ for i=1:ng;
    clf;
    plotGrid(G,'FaceColor', [1 .9 .9], 'EdgeAlpha', .05);
    view(viewMat(i,:)); axis tight off
-   light('Position',[-1 -1 1],'Style','infinite');lighting phong
+   light('Position',[-1 -1 -1],'Style','infinite');lighting phong
    title(grdecls{i}.name)
    drawnow
 end

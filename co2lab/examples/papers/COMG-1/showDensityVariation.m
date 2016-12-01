@@ -5,7 +5,7 @@
 % hydrostatic pressure computed from a constant brine density of 1100
 % kg/m^3, there will be different regimes of the density variation
 % depending upon the depth of the aquifer
-moduleCheck('co2lab');
+mrstModule add co2lab;
 
 gravity on
 rhoW  = 1100 * kilogram / meter^3;

@@ -13,7 +13,7 @@
 % rough of estimate the information missing in the coarse Atlas grids, we will
 % also compare the relatively fine scale Sleipner grid with the same region in
 % the Utsira formation, where Sleipner is located.
-moduleCheck('coarsegrid', 'deckformat', 'mex', 'matlab_bgl', 'opm_gridprocessing', ...
+mrstModule('add', 'coarsegrid', 'deckformat', 'mex', 'matlab_bgl', 'opm_gridprocessing', ...
             'libgeometry');
    
 

@@ -142,8 +142,10 @@ if (t==0)
   set(h, 'color', 'white');
 
   if ~prm.wireH
-     x = reshape(Gt.nodes.coords(:,1),Gt.cartDims+1);
-     y = reshape(Gt.nodes.coords(:,2),Gt.cartDims+1);
+     x = reshape(Gt.cells.centroids(:,1), Gt.cartDims);
+     y = reshape(Gt.cells.centroids(:,2), Gt.cartDims);
+     % x = reshape(Gt.nodes.coords(:,1),Gt.cartDims+1);
+     % y = reshape(Gt.nodes.coords(:,2),Gt.cartDims+1);
   else
      h2 = [];
   end
@@ -235,12 +237,13 @@ if prm.wireH
 else
    cla
    hplot = reshape(sol.h(:,1),Gt.cartDims);
-   hplot = hplot([1:end end],:);
-   hplot = hplot(:,[1:end end]);
+   % hplot = hplot([1:end end],:);
+   % hplot = hplot(:,[1:end end]);
    pcolor(x,-y,hplot); shading flat; caxis([0 prm.maxH])
    hold on; 
    colorbar
-   contour(x,-y,reshape(Gt.nodes.z,Gt.cartDims+1),5,'w'); 
+   contour(x,-y,reshape(Gt.cells.z,Gt.cartDims),5,'w'); 
+   %   contour(x,-y,reshape(Gt.nodes.z,Gt.cartDims+1),5,'w'); 
    hold off, axis tight off
 end
 title('Height of CO2-column');

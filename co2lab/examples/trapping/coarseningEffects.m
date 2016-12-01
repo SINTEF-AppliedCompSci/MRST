@@ -19,13 +19,7 @@
 % 3000x3000 m^2. The resolution in both grids is fairly large in compared
 % with typical simulation grids in petroleum application.
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
-moduleCheck coarsegrid deckformat
+mrstModule add co2lab coarsegrid deckformat
 
 N = 6;
 [Grids, res] = deal(cell(numel(N),1));

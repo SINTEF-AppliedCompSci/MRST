@@ -12,7 +12,7 @@ function example4(varargin)
     opt.dis_max       = 0.02;
     
     opt = merge_options(opt, varargin{:});
-    moduleCheck('ad-core');
+    mrstModule add ad-core;
     gravity on;
     
     %% Loading grid and subscale trapping function

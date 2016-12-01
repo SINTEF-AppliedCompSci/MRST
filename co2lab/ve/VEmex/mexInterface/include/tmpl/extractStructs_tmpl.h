@@ -82,8 +82,8 @@ Fluid<Real>     *extractFluidStruct(const mxArray *fluid_struct)
     Real mu[2]    = {(Real) mu_tmp[0], (Real) mu_tmp[1]};
     Real rho[2]   = {(Real) rho_tmp[0], (Real) rho_tmp[1]};
     Real kwm[2]   = {(Real) kwm_tmp[0], (Real) kwm_tmp[1]};
-    Real sr       = (Real) mxGetScalar(mxGetField(fluid_struct, 0, "sr"));
-    Real sw       = (Real) mxGetScalar(mxGetField(fluid_struct, 0, "sw"));
+    Real sr       = (Real) mxGetScalar(mxGetField(fluid_struct, 0, "res_gas"));
+    Real sw       = (Real) mxGetScalar(mxGetField(fluid_struct, 0, "res_water"));
     Real flux     = (Real) mxGetScalar(mxGetField(fluid_struct, 0,
                 "fluxInterp"));
 

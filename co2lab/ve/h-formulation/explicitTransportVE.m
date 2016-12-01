@@ -207,9 +207,9 @@ while t < tf,
       if any(state.h_max-state.h > 0) %account for residual CO2
          kr_h_max = integrateVertically(rock.perm(:,1), state.h_max, G_top);
          mob = [fluid.kwm(1)*kr./fluid.mu(1), ...
-            fluid.kwm(2)*(kr_H-kr-(kr_h_max-kr)*fluid.sr)./fluid.mu(2)];
+            fluid.kwm(2)*(kr_H-kr-(kr_h_max-kr)*fluid.res_gas)./fluid.mu(2)];
          dmob = [fluid.kwm(1)*dkr./fluid.mu(1), ...
-            fluid.kwm(2)*(dkr*fluid.sr)./fluid.mu(2)];
+            fluid.kwm(2)*(dkr*fluid.res_gas)./fluid.mu(2)];
       else
          mob = [fluid.kwm(1)*kr./fluid.mu(1), ...
                 fluid.kwm(2)*(kr_H-kr)./fluid.mu(2)];
@@ -256,7 +256,7 @@ while t < tf,
       ff_all(is_int)=ff;
       dt_tmp=pv(cellNo(hf_int))./(ff_all(G_top.cells.faces(hf_int,1)));
       % coats claims no safety is needed, but experienced oscilation
-      dt_tmp=opt.cfl_fac*min(dt_tmp)*(1-(fluid.sr+fluid.sw));
+      dt_tmp=opt.cfl_fac*min(dt_tmp)*(1-(fluid.res_gas+fluid.res_water));
 
       if dt_tmp > 0
          dt=min(tf-t,dt_tmp);
@@ -272,13 +272,13 @@ while t < tf,
       end
    elseif(any(strcmp(opt.time_stepping,{'dynamic','simple'})))
       if first_time
-         pv_res=pv.*(1-fluid.sw-fluid.sr);
+         pv_res=pv.*(1-fluid.res_water-fluid.res_gas);
          first_time = false;
          dt_para = estimate_parabolic_timestep(dt, G_top, df.*g_vec, ...
                                                n_z, pv_res, opt);
       end
       if(strcmp(opt.time_stepping,'dynamic'))
-         pv_res=pv.*(1-fluid.sw-fluid.sr);% use safe value
+         pv_res=pv.*(1-fluid.res_water-fluid.res_gas);% use safe value
          dt_dyn = dynamic_dt_from_dh(G_top, H(f_w, dz)./(pv_res), opt, state);
          dt = opt.cfl_fac*dt_dyn;
          dt = min(dt,2*dt_para);
@@ -301,7 +301,7 @@ while t < tf,
       vol= integrateVertically(pv_3D', state.h(:,1), G_top);
       vol_t_max= integrateVertically(pv_3D', state.h_max(:,1), G_top);
       % total volume of CO2 = free CO2 + residual CO2
-      vol_t = (vol_t_max-vol)*fluid.sr+vol*(1-fluid.sw);
+      vol_t = (vol_t_max-vol)*fluid.res_gas+vol*(1-fluid.res_water);
 
       % calculate new total volume of CO2
       vol_t = vol_t-dt.*H(f_w, dz);
@@ -309,31 +309,31 @@ while t < tf,
       % find cells where the total volume of CO2 now is larger than
       % vol_t_max from the previous time step, i.e. where h_max must be
       % updated
-      hyst_ind=vol_t>vol_t_max*(1-fluid.sw);
+      hyst_ind=vol_t>vol_t_max*(1-fluid.res_water);
       % update max total volume in these cells
-      vol_t_max(hyst_ind)=vol_t(hyst_ind)./(1-fluid.sw);
+      vol_t_max(hyst_ind)=vol_t(hyst_ind)./(1-fluid.res_water);
 
       % calculate volume of free CO2
-      vol_new=(vol_t-vol_t_max*fluid.sr)./(1-fluid.sw-fluid.sr);
+      vol_new=(vol_t-vol_t_max*fluid.res_gas)./(1-fluid.res_water-fluid.res_gas);
       % update h = height/thickness of free C02
       state.h = invertVerticalFunction(vol_new,G_top,G_top.columns.z,cum_vol3D);
       state.h_max=min(max(state.h_max,state.h), G_top.cells.H);
 
    else
       % total volume of CO2
-      vol=pv.*((state.h_max-state.h)*fluid.sr+state.h*(1-fluid.sw));
+      vol=pv.*((state.h_max-state.h)*fluid.res_gas+state.h*(1-fluid.res_water));
       % new total volume of C02
       vol_new=vol-dt.*H(f_w, dz);
 
-      vol_max=state.h_max.*pv*(1-fluid.sw);
+      vol_max=state.h_max.*pv*(1-fluid.res_water);
       % cells where h_max has increased during the timestep
       hyst_ind=vol_new>vol_max;
       state.h_max(hyst_ind,:) = vol_new(hyst_ind,:)./...
-                                (pv(hyst_ind).*(1-fluid.sw));
+                                (pv(hyst_ind).*(1-fluid.res_water));
       state.h_max = min(state.h_max, G_top.cells.H);
       % update height/thickness of free CO2
-      state.h = (vol_new-state.h_max.*pv.*fluid.sr)./ ...
-                 (pv.*(1-fluid.sw-fluid.sr));
+      state.h = (vol_new-state.h_max.*pv.*fluid.res_gas)./ ...
+                 (pv.*(1-fluid.res_water-fluid.res_gas));
    end
 
    % Correct possible bad heights
@@ -408,7 +408,7 @@ end
       dt = min(dt, dt_advection);
    end
 
-   dt = dt * opt.cfl_fac*(1-(fluid.sr+fluid.sw));
+   dt = dt * opt.cfl_fac*(1-(fluid.res_gas+fluid.res_water));
 end
 
 %--------------------------------------------------------------------------

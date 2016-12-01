@@ -1,6 +1,6 @@
 function showSecondPlioExample()
 
-   moduleCheck('coarsegrid', 'deckformat', 'mex', 'ad-core', 'ad-props');
+   mrstModule add coarsegrid deckformat mex ad-core ad-props
    gravity reset on;
 
    %% Ascertain presence of saved results, and load them
@@ -76,9 +76,13 @@ function showSecondPlioExample()
          cc = FF_cc(xx, yy);
          cc(cc<.1) = NaN;
          [c, a] = contourf(xx, yy, cc, 1e-1);%#ok
-         set(get(a, 'Children'), 'FaceColor', col(n, :), 'EdgeColor', col(n, :));
-         set(a, 'EdgeColor', col(n, :));
-
+         if verLessThan('matlab', '8.4')
+            set(get(a, 'Children'), 'FaceColor', col(n, :), 'EdgeColor', col(n, :));
+            set(a, 'EdgeColor', col(n, :));
+         else
+            set(a, 'facecolor', col(n, :));
+            set(a, 'edgecolor', col(n, :));
+         end
       end
       FF_zz = TriScatteredInterp(x, y, Gt.cells.z); %#ok
       zvec = FF_zz(xx, yy);
@@ -164,10 +168,14 @@ function showSecondPlioExample()
         state.h_max = h_max;
         % calculated distributions only valid for sharp interface.
         dh = Gt.cells.z * 0; % no subscale trapping
-        
+        if isfield(state, 'rs')
+           rs = state.rs;
+        else
+           rs = 0;
+        end
         masses = massTrappingDistributionVEADI(Gt, state.pressure, state.s(:,2), ...
                                                state.s(:,1), h, h_max, rock2D, ...
-                                               fluid, ta, dh);
+                                               fluid, ta, dh, 'rs', rs);
         
         % store all masses as a matrix with rows repersenting time
         outcomes{m}.masses(step, :) = [masses, totMass]; % #ok

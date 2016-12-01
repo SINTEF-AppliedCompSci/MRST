@@ -80,11 +80,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     [krW, krG] = deal(f.krW(1-sG), f.krG(sG));
     
     % computing densities, mobilities and upstream indices
-    [bW, mobW, fluxW] = compMFlux(p - pcWG, f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
-    [bG, mobG, fluxG] = compMFlux(p,        f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
+    [bW, mobW, fluxW] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);
+    [bG, mobG, fluxG] = compMFlux(p + pcWG, f.bG, f.muG, f.rhoGS, trMult, krG, s, trans, model);
 
-    bW0 = f.bW(p0 - pcWG, t);
-    bG0 = f.bG(p0, t);
+    bW0 = f.bW(p0, t);
+    bG0 = f.bG(p0 + pcWG, t);
     
     % --------------------------- Continuity equations ---------------------------
     
@@ -93,6 +93,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % ---------------------------- Boundary conditions ----------------------------
 
+    % @@ should capillary pressure be sent in too?
     [bc_cells, b_fW, b_fG] = ...
         BCFluxes(G, s, p, t, f, drivingForces.bc, krW, krG, transMult, trMult);
 

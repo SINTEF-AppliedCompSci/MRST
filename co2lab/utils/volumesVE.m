@@ -66,10 +66,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     pv = rock.poro.*G.cells.volumes;
     if nargin==4
-       trapped  = sum((sol.h_max-sol.h).*pv)*fluid.sr;
+       trapped  = sum((sol.h_max-sol.h).*pv)*fluid.res_gas;
        plumeVol = sum(sol.h.*pv);
-       freeRes  = plumeVol*fluid.sr;
-       free     = plumeVol*(1-fluid.sw-fluid.sr);
+       freeRes  = plumeVol*fluid.res_gas;
+       free     = plumeVol*(1-fluid.res_water-fluid.res_gas);
        vol      = [trapped freeRes free];
     elseif nargin==5
        if isfield(ts, 'z_spill_loc')
@@ -86,11 +86,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        hdift     = max(min(zt, sol.h_max) - min(zt, sol.h),0);
        strucVol  = sum(min(zt, sol.h).*pv);
        plumeVol  = sum(sol.h.* pv) - strucVol;
-       resStruc  = (strucVol + sum(hdift.*pv)) * fluid.sr;
-       freeStruc = strucVol*(1 - fluid.sr - fluid.sw);
-       freeRes   = plumeVol*fluid.sr;
-       freeMov   = plumeVol*(1-fluid.sw - fluid.sr);
-       resTrap   = sum(max(sol.h_max - max(zt, sol.h),0).*pv ).*fluid.sr;
+       resStruc  = (strucVol + sum(hdift.*pv)) * fluid.res_gas;
+       freeStruc = strucVol*(1 - fluid.res_gas - fluid.res_water);
+       freeRes   = plumeVol*fluid.res_gas;
+       freeMov   = plumeVol*(1-fluid.res_water - fluid.res_gas);
+       resTrap   = sum(max(sol.h_max - max(zt, sol.h),0).*pv ).*fluid.res_gas;
        vol       = max([resStruc, resTrap, freeRes, freeStruc, freeMov],0);
     end
 end

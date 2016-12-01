@@ -1,18 +1,42 @@
-function reports = makeReports(Gt, states, rock, fluid, schedule, ...
-                               residual, traps, dh)
-   % This function does intermediate processing of simulation data for
-   % further visualization by 'selectedResultsMultiplot'.
-
-   % residual on form: [s_water, s_co2]
-   % states on form:   {initState, states{:}} to include initial state
-
+function reports = makeReports(Gt, states, rock, fluid, schedule, residual, traps, dh)
+%
+% This function does intermediate processing of simulation data in order to
+% generate inventory plots using 'plotTrappingDistribution'.
+% 
+% Currently, only rate controlled wells are supported (not pressure-controlled).
+% 
+% SYNOPSIS:
+%   function reports = makeReports(Gt, states, rock, fluid, schedule, residual, traps, dh)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   Gt       - top surface grid used in the simulation
+%   states   - result from a simulation (cell array of states, including
+%              initial state)
+%   rock     - rock object used in the simulation
+%   fluid    - fluid object used in the simulation
+%   schedule - schedule used in the simulation (NB: only rate controlled
+%              wells supported at present)
+%   residual - residual saturations, on the form [s_water, s_co2]
+%   traps    - trapping structure (from trapAnalysis of Gt)
+%   dh       - subscale trapping capacity (empty, or one value per grid cell
+%              of Gt)
+%
+% RETURNS:
+%   reports - a structure array of 'reports', that can be provided to the
+%   'plotTrappingDistribution' function.
+%
+% SEE ALSO:
+% plotTrappingDistribution
+   
    assert( numel(states) == numel(schedule.step.val)+1 , ...
        'Ensure the initial state has been included in the varargin ''states''.')
    
    tot_inj = 0;
    for i = 1:numel(states)
 
-      [h, h_max] = computePlumeHeight(Gt, states{i}, residual(1), residual(2));
+      [h, h_max] = compute_plume_height(Gt, states{i}, residual(1), residual(2));
 
       if i == 1
          reports(i).t         = 0; %#ok
@@ -45,4 +69,15 @@ function reports = makeReports(Gt, states, rock, fluid, schedule, ...
    end
    
 end
+% ----------------------------------------------------------------------------
 
+function [h, h_max] = compute_plume_height(Gt, state, sw, sr)
+    
+    if isfield(state, 'sGmax')
+       smax = state.sGmax; % we operate with dissolution
+    else
+       smax = state.smax(:,2); % no dissolution.  Current max = historical max
+    end
+    [h, h_max] = upscaledSat2height(state.s(:,2), smax, Gt, 'resSat', [sw, sr]);
+ end
+ 

@@ -8,13 +8,6 @@ function [Gt, G, transMult] = topSurfaceGrid(G)
 % PARAMETERS:
 %   G       - 3D grid as described by grid_structure.
 %
-%  'pn'/pv - List of 'key'/value pairs defining optional parameters.  The
-%            supported options are:
-%              'Verbose' -- boolean, whether to show log messages or not.
-%                           Default value: mrstVerbose
-%              'AddFaults' -- boolean indicating if faults should be added
-%                             to the resulting 2D model.
-%
 % RETURNS:
 %   Gt - structure representing the top-surface grid. The structure
 %      consists of two parts:
@@ -102,6 +95,9 @@ function [Gt, G, transMult] = topSurfaceGrid(G)
 %                  cell centroids in R^3. The first two coordinates are
 %                  given in Gt.cells.
 %
+%     - grav_pressure and primitives
+%               -- these two fields are necessary when solving the system 
+%                  sequentially using "solveIncompFlow" with an s-formulation.
 %
 %   FACES - Cell structure Gt.faces, as described in grid_structure
 %   but with the following extra field created by a subsequent call to
@@ -148,6 +144,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+   %% Ensure that computeGeometry has been called on G
+   if ~isfield(G.faces, 'centroids')
+      try
+         G = mcomputeGeometry(G);
+      catch
+         G = computeGeometry(G);
+      end
+   end
    
    %% Identify columns in layered 3D grid; remove unused cells from G
    % cells in G that will not contribute to the top surface grid 
@@ -190,14 +194,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    Gt.primitives      = @primitivesMimeticVE_s;
    
    if isfield(G, 'cartDims')
-      % also add face tags
-      fnum = length(Gt.cells.faces);
-      tag_seq = determine_facetag_sequence(G);
-      Gt.cells.faces = [Gt.cells.faces, repmat(tag_seq, fnum/4, 1)];
+      try
+         % also add face tags
+         fnum = length(Gt.cells.faces);
+         tag_seq = determine_facetag_sequence(G);
+         Gt.cells.faces = [Gt.cells.faces, repmat(tag_seq, fnum/4, 1)];
+      catch
+         % Did not manage to extract tags, likely due to degenerate faces in
+         % G.  Warn user, and do not add tags
+         warning('Could not add face tags. 3D grid G has no regular cell.');
+      end
    end
    
    %% Compute geometry
    Gt = compute_geometry(Gt);
+   
+   %% Following line takes a bit of computation but will speed up plotting later
+   
+   Gt.cells.sortedCellNodes = getSortedCellNodes(Gt);
+   
 end
 
 % ----------------------------------------------------------------------------
@@ -315,7 +330,19 @@ function [Gt, ffaces] = stitch_surface_discontinuities(Gt, ffaces, col_adj, orie
    Gt_cell_adj = accumarray(neighs, 1, size(col_adj), @sum, 0, true);
    Gt_cell_adj = spones(Gt_cell_adj + Gt_cell_adj');
    mcon = col_adj - Gt_cell_adj; % matrix representing still missing connections
-   assert(min(mcon(:)) >= 0); % there should only be zero and one values in 'mcon'
+   if min(mcon(:)) == -1
+      % There are cells in 2D grid that share edges, but the corresponding
+      % columns from the 3D grid are not connected.  This can happen for
+      % pinch-outs, where the columns in the 3D grid are physically adjacent,
+      % but do not share any vertical face (cell thickness vanishes where
+      % columns meet).  If this happens, warn user.  In the 2D grid, the
+      % cells will still be considered neighbors.  It could be considered to
+      % insert an extra internal face and make them non-neighbors in a future
+      % implementation @@.
+      warning(['Degenerate edges in 3D grid has led to adjacent cells in 2D ' ...
+               'grid that should not be considered neighbors.']);
+      mcon(mcon < 0) = 0;
+   end
    [I, J] = ind2sub(size(mcon), find(triu(mcon))); % neighbors not yet accounted for by Gt
    
    if ~isempty(I)
@@ -679,10 +706,15 @@ end
 function seq = determine_facetag_sequence(G)
 % determine the W/E/S/N sequence following the edges of the top surface of a
 % cell.  Assuming all cells have the same layout, we determine this sequence
-% looking only at the first grid cell.
+% looking only at the first "regular" grid cell.
    assert(isfield(G, 'cartDims')); % should only be attempted for cartesian grids!
    
-   faces = G.cells.faces(G.cells.facePos(1):G.cells.facePos(2)-1, :);
+   % Identify "model cell", with 6 faces
+   cix = find_model_3D_cell(G);
+   assert(~isempty(cix)); % if empty, no cell in 3D grid has all 6 faces,
+                          % where each face has 4 nodes.
+   
+   faces = G.cells.faces(G.cells.facePos(cix):G.cells.facePos(cix+1)-1, :);
    faces = sortrows(faces, 2); % now should be sorted according to logical direction
    faces = faces(1:5,1); % discard tags, and bottom face (which we do not need)
    
@@ -698,4 +730,33 @@ function seq = determine_facetag_sequence(G)
    seq(3) = ixfun(nodes(3, end), nodes(4, end)); % cardinal dir. for 3rd top edge
    seq(4) = ixfun(nodes(4, end), nodes(1, end)); % cardinal dir. for 4th top edge
    
+end
+
+% ----------------------------------------------------------------------------
+
+function cix = find_model_3D_cell(G)
+
+   % Search for a cell in the 3D grid that is a topological hexahedron,
+   % i.e. 6 faces where each face has 4 distinct corners
+   
+   % candidate cells are those with 6 faces
+   candidates = find(diff(G.cells.facePos)==6);
+   
+   % Search for a candidate whose faces are all quadrilaterals
+   found = false;
+   for cix = candidates'
+
+      faces = G.cells.faces(G.cells.facePos(cix):G.cells.facePos(cix+1)-1,:);
+      faces = faces(:,1);
+
+      num_sides = G.faces.nodePos(faces+1) - G.faces.nodePos(faces);
+      
+      found = all(num_sides == 4);
+      if found
+         break;
+      end
+   end
+   if ~found
+      cix = [];
+   end
 end

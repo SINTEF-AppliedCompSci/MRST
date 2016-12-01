@@ -12,12 +12,7 @@
 % * processgrid (replaces processGRDECL)
 % * mcomputegeometry (replaces computeGeometry)
 
-try
-   require co2lab
-catch %#ok<CTCH>
-   mrstModule add co2lab
-end
-
+mrstModule add co2lab
 %% Write header
 clc;
 disp('================================================================');
@@ -97,7 +92,7 @@ catch me
    disp('Using matlab ve-transport');
    cpp_accel = false;
 end
-moduleCheck('mimetic');
+mrstModule add mimetic
 
 % Find trapping structure in grid. Used for calculation of trapped volumes
 ts=findTrappingStructure(Gt);
@@ -107,7 +102,7 @@ ts=findTrappingStructure(Gt);
 % of the plume, a pie chart of trapped versus free volume, a plane view of
 % the plume from above, and two cross-sections in the x/y directions
 % through the well
-opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.sw], ...
+opts = {'slice', wellIx, 'Saxis', [0 1-fluidVE.res_water], ...
    'maxH', 200, 'Wadd', 1000};
 plotPanelVE(G, Gt, W, sol, 0.0, zeros(1,6), opts{:});
 

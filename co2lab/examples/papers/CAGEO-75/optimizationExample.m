@@ -76,7 +76,7 @@ legend({'Without overlap', 'Overlap'},'location', 'southwest')
 % injectors are to be placed. We also find the best single injection cell
 % if we assume that the boundary between two different trap regions spills
 % over to both the neighboring trap regions. 
-moduleCheck('mrst-gui');
+mrstModule add mrst-gui;
 if ishandle(h); close(h); end;
 h = figure('position', fp.*[1 1 2.5 1.5]);
 
