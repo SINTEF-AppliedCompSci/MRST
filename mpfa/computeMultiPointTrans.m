@@ -1,4 +1,4 @@
-function T = computeMultiPointTrans(g, rock, varargin)
+function [T,T_noflow] = computeMultiPointTrans(g, rock, varargin)
 %Compute multi-point transmissibilities.
 %
 % SYNOPSIS:
@@ -84,7 +84,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    opt = struct('verbose',      mrstVerbose,   ...
                 'facetrans',    zeros([0, 2]), ...
-                'invertBlocks', 'matlab');
+                'invertBlocks', 'matlab',...
+                'eta',0);
    opt = merge_options(opt, varargin{:});
    opt.invertBlocks = blockInverter(opt);
 
@@ -108,7 +109,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       t0 = tic;
    end
 
-   B = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt);
+   [B,R] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt);
    B = processFaceTrans(B, g, opt.facetrans(:,1), opt.facetrans(:,2), fno);
 
    tocif(opt.verbose, t0);
@@ -125,7 +126,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    C     = sparse(subhfno, cno, 1);
 
    % c1 adds up sub-half-face contributions for each half-face
-   c1     = sparse(subhfno, hfno, 1);
+   % c1     = sparse(subhfno, hfno, 1);
 
    % d1 adds up sub-face contributions for each face.
    d1     = sparse(subfno, fno, 1);
@@ -157,21 +158,74 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    %% Compute multi-point transmissibilities
    % for all faces in terms of cell pressures and outer boundary pressures.
-   b = full(sum(D, 1)) == 1;
+  
    %T = c1'*Dm*inv(Dm'*B*Dm)*Dm'*[C, -D(:,b)*d1(b,:)];
     %if(nargout==2)
-   Tg=c1'*Do*iDoBDo*Do';
-    %end
-   T = Tg*[C, -D(:,b)*d1(b,:)];
-   Tg=Tg*c1;
+  
    tocif(opt.verbose, t0);
    % c1'*D*d1 har samme struktur som vanlig D.
    % T er feil størrelse å returnere dersom gravitasjon skal håndteres
    % skikkelig.  Gravitasjonsleddet kommer inn som c1'*Dm*iDmBDm*Dm'*f.
    % Siden gravitasjonsbidraget for all subfaces er likt kan de sikkert
    % skrives om til c1'*Dm*iDmBDm*Dm'*F*g der F*G=f.
-   T=struct('T',T,'Tg',Tg);
-   %T(:,all(T==0, 1))=[];
+   %T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
+   %{
+    %old structure
+    b = full(sum(D, 1)) == 1;
+    Tg=c1'*Do*iDoBDo*Do';
+    %end
+    T = Tg*[C, -D(:,b)*d1(b,:)];
+    Tg=Tg*c1;
+    T=struct('T',T,'Tg',Tg,'hfhf',Do*iDoBDo*Do','c1',c1,'D',D,'d1',d1,'C',C,'Do',Do,'R',R,'cno',cno);
+   %}
+   sb = full(sum(D, 1)) == 1;
+   %cf_mtrans=Do'*Do*iDoBDo*Do'*[C, -D(:,sb)];
+   cf_mtrans=iDoBDo*Do'*[C, -D(:,sb)];
+   % define div operaor
+   e_div =  [C, -D(:,sb)]'*Do;
+   % multiply fluxes with harmonic mean of mobility
+   % this to avid for re asssembly
+   % to be equivalent coupled reservoir simulation the value of
+   % sum of upwind mobility should be used.
+   %cf_trans_g=Do'*Do*iDoBDo*Do';
+   cf_trans_g=iDoBDo*Do';
+   T=struct('cf_trans',cf_mtrans,...% transmisibility calculate K\grad on mpfa faces form cell pressures and boundary pressures
+            'e_div',e_div,...%calulate div on cells and mpfa fluxes at boundary from mpfa fluxes
+            'cf_trans_g',cf_trans_g,... %calulate gravity contribution form gravity diferences from mpfa half faces
+            'd1',d1,...%mapp from mpfa faces to faces
+            'R',R,...% the continuity points fo for calculating gravity contricutions
+            'cno',cno,...%cno for mpfa faces
+            'sb',sb...%defines the mpfa boundary faces
+            );
+   %%
+   % the usefull trans for  other methods are
+   %Trans =d1'*iDoBDo*Do';
+   % resdused Trans for neumann baundary
+   nc=size(C,2);
+   iface=~sb;
+   Trans=cf_mtrans;%iDoBDo*Do'*[C, -D(:,sb)];
+   A=Trans(iface,1:nc);
+   B=Trans(iface,nc+1:end);
+   C=Trans(~iface,1:nc);
+   D=Trans(~iface,nc+1:end);
+   rTrans = A-B*inv(D)*C;
+   % reduce to internal normal
+   
+   %%
+   intfaces=~any(g.faces.neighbors==0,2);
+   rTrans = d1(iface,intfaces)'*rTrans; % mpfa trans from cell pressure to internal fluxes
+   N=g.faces.neighbors(intfaces,:);
+   
+   %% gravity contributaion 
+   gTrans = iDoBDo*d1; % note that this maps from gravity differences over faces including outer faces.
+   % gravity trans ???
+   rgTrans = gTrans(iface,:) + B*(D\gTrans(~iface,:));
+   rgTrans = d1(iface,intfaces)'*rgTrans;   
+   % Create transmissibility as a hidden, undocumented output
+   if nargout > 1
+      T_noflow=struct('rTrans',rTrans,...%calculate K\grad from cell pressures assuming no flow boundary 
+       'rgTrans',rgTrans','N',N);%calculate mpfa gravity contribution from "gravity difference between cells and cells to bounary faces" to internal face flux 
+   end
 end
 
 %--------------------------------------------------------------------------
@@ -203,7 +257,7 @@ function [cno, nno, hfno, fno, subfno, subhfno] = createMapping(g)
    subhfno = (1:numel(cno))';
 end
 
-function B = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
+function [B,Rvec] = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
    [a, blocksz] = rlencode([cno,nno]);
    dims         = size(g.nodes.coords, 2);
    assert(all(blocksz==dims));
@@ -215,8 +269,10 @@ function B = computeLocalFluxMimeticIP(g, rock, cno, fno, nno, subhfno, opt)
 
    % Use original face centroids and cell centroids, NOT actual subface
    % centroids.  This corresponds to an MPFA method (O-method)
-   R     = g.faces.centroids(fno,:) - g.cells.centroids(cno,:);
-   R     = sparse(i,j,R);
+   %R     = g.faces.centroids(fno,:) - g.cells.centroids(cno,:);
+   Rvec      = g.faces.centroids(fno,:) - g.cells.centroids(cno,:)+...
+            opt.eta*(g.nodes.coords(nno,:)-g.faces.centroids(fno,:));
+   R     = sparse(i,j,Rvec);
 
    % Subface sign == face sign
    sgn   = 2*(cno == g.faces.neighbors(fno,1)) -1;

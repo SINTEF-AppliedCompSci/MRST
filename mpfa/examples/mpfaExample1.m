@@ -71,7 +71,7 @@ G = computeGeometry(G);
 % We make a non diagonal rock tensor
 theta=30*pi/180;
 U=[cos(theta),sin(theta);-sin(theta),cos(theta)];
-rocktensor = U'*diag([0.1,100])*U;
+rocktensor = U'*diag([0.1,10])*U;
 rocktensor =[rocktensor(1,1),rocktensor(1,2),rocktensor(2,2)];
 rock = makeRock(G, rocktensor .* 1e-3*darcy, 1);
 fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
@@ -151,30 +151,18 @@ resSol1 = incompTPFA(resSol1, G, T, fluid, 'wells', W, 'bc',bc);
 %% APPROACH 2: Mimetic with TPFA-inner product
 % Initialize solution structure with reservoir pressure equal 0. Compute
 % the mimetic inner product from input grid and rock properties.
-IP = computeMimeticIP(G, rock, 'InnerProduct', 'ip_tpf');
-
-%%
-% Generate the components of the mimetic linear system corresponding to the
-% two wells and initialize the solution structure (with correct bhp)
+IP = computeMimeticIP(G, rock, 'InnerProduct', 'ip_simple');
 resSol2 = initState(G, W, 0);
 
-%%
-% Solve mimetic linear hybrid system
+%% Solve mimetic linear hybrid system
 resSol2 = incompMimetic(resSol2, G, IP, fluid, 'wells', W_mim, 'bc', bc);
 
 %% APPROACH 3: MPFA method
-% Initialize solution structure with reservoir pressure equal 0.
 % Compute the transmisibility matrix for mpfa
-T_mpfa = computeMultiPointTrans(G, rock);
-
-%%
-% Generate the components of the mimetic linear system corresponding to the
-% two wells and initialize the solution structure (with correct bhp)
-% We can use the same well structure as for TPFA
+T_mpfa = computeMultiPointTrans(G, rock,'eta',1/3);
 resSol3 = initState(G, W, 0);
 
-%%
-% Solve mimetic linear hybrid system
+%% Solve MPFA pressure
 resSol3 = incompMPFA(resSol3, G, T_mpfa, fluid, 'wells', W,'bc',bc);
 
 
