@@ -63,5 +63,5 @@ for i=1:numel(names)
    plotCellData(Gt, z, z>0,'EdgeColor','none');
    axis equal, axis([0 60000 0 30000]);
    view(-90,90);  box on, set(gca,'XTick',[],'YTick',[]); caxis([0 50]);
-   print('-dpng','-r300',[names(i).name(3:end-4) 'png']);
+   % print('-dpng','-r300',[names(i).name(3:end-4) 'png']);
 end
