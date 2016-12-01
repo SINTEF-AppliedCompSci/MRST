@@ -42,7 +42,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 assert(any(nargin==[2,3,4]), 'Incorrect number of input arguments');
 
-if nargin==4, 
+if nargin==4,
    nbins = varargin{2}+1;
 else
    nbins = 51;
@@ -80,18 +80,18 @@ elseif strcmpi(varargin{1},'west')
    hbar  = @(x,y) barh(x,-y,'hist');
 else
    error('Color bar location not supported');
-end 
+end
 
 ha = gca;
 caxis(lim)
-hcb = colorbar(cbPos);
+hcb = colorbar(cbPos); drawnow;
 apos = get(ha,'Position');
 pos=get(hcb,'Position');
-set(hcb,'Position',max(pos + cbAdd,.01), 'YAxisLocation', cbLoc);
-   
-set(ha,'Position',apos);
+set(hcb,'Position',max(pos + cbAdd,.01), 'YAxisLocation', cbLoc); drawnow;
+
+set(ha,'Position',apos); drawnow;
 hax = axes('Position',max(pos + axAdd,.01));
-hbar(bins,counts)
+hbar(bins,counts); drawnow;
 axis tight off, axis(axLim);
 h = findobj(gca,'Type','patch');
 set(h,'FaceColor','none','EdgeColor',[.2 .2 .2]);
