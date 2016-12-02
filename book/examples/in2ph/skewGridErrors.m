@@ -12,7 +12,7 @@
 % horizontal producer at the top of the reservoir. In both cases, the well
 % operate under bottom-hole control.
 
-mrstModule add incomp mimetic
+mrstModule add incomp mimetic ad-core
 gravity reset off;
 exmpl = 1;        % type of cross-section: 1 - horizontal,  2 - vertical
 
