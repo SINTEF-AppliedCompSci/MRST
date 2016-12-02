@@ -1,6 +1,6 @@
 The MRST Numerical CO2 Laboratory combines results of more than one decade of academic research and development of mathematical models and numerical methods for CO2 storage modeling combined into a unified toolchain that is easy and intuitive to use. The software is flexible and efficient and can be used to study realistic injection scenarios, or function as a platform for rapid prototyping of new models and computational methods.
 
-
+Different vertical equilibrium models are included, ranging from simple incompressible immiscibile two-phase models to compressible models with CO2 dissolution. A range of interactive tools makes it easy to visualize how CO2 will migrate and behave under different conditions and for different saline aquifers.
 
 The module offers:
 
