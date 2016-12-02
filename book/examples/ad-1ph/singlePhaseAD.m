@@ -17,7 +17,7 @@ G = computeGeometry(G);
 plotGrid(G); view(3); axis tight
 
 %% Define rock model
-rock = makeRock(G, 30*mmilli*darcy, 0.3);
+rock = makeRock(G, 30*milli*darcy, 0.3);
 
 cr   = 1e-6/barsa;
 p_r  = 200*barsa;
