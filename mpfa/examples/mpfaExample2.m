@@ -15,23 +15,41 @@
 mrstModule add incomp mimetic mpfa
 
 %% Set up simulation model
-gravity off
-G = cartGrid([30, 30]);
+eta=0;
+gravity off;
+gravity('reset',[0.3 0.3]);
+gravity on;
+g_vec=gravity();g_vec=g_vec(1:2)';
+L = [1 1];
+dim= [10 10];
+G = cartGrid(dim,L);
 G.nodes.coords = twister(G.nodes.coords);
 G = computeGeometry(G);
-
-rock.perm = 0.1*darcy*ones(G.cells.num, 1);
-
-bc  = pside([], G, 'left',  2);
-bc  = pside(bc, G, 'right', 1);
-
-fluid = initSingleFluid('mu' ,    1*centi*poise     , ...
-                        'rho', 1014*kilogram/meter^3);
+X=G.nodes.coords(:,1);Y=G.nodes.coords(:,2);
+if(G.cells.num==1)
+    X=[X;G.cells.centroids(:,1)+0.2];Y=[Y;G.cells.centroids(:,2)];
+end
+%%{
+ref     = [X(:), Y(:)];
+t     = delaunayn(ref);
+G     = triangleGrid(ref, t);
+G = computeGeometry(G);
+%}
+perm=1;
+rock.perm = perm*ones(G.cells.num, 1);
+fluid = initSingleFluid('mu' ,    10     , ...
+                        'rho', 1);
+[~,rho]=fluid.properties();                    
+xfaces = find(abs(G.faces.centroids(:,1))<1e-4);
+yfaces = find(abs(G.faces.centroids(:,1)-1)<1e-4);
+bc_left=2;bc_right=1;
+bc = addBC([],xfaces,'pressure',bc_left+rho*G.faces.centroids(xfaces,:)*g_vec);
+bc = addBC(bc,yfaces,'pressure',bc_right+rho*G.faces.centroids(yfaces,:)*g_vec);
 
 %% MPFA-O method
 fprintf('MPFA-O method\t... ')
 tic
-T1  = computeMultiPointTrans(G, rock);
+T1  = computeMultiPointTrans(G, rock,'eta',eta);
 xr1 = incompMPFA(initResSol(G, 0, 0), G, T1, fluid, ...
                  'bc', bc,'MatrixOutput',true);
 toc
@@ -79,27 +97,33 @@ plot_press(xr2); caxis(cax); axis equal tight, title('Pressure: Mimetic')
 subplot(2,3,6),
 plot_press(xr3); caxis(cax);  axis equal tight, title('Pressure: TPFA')
 colorbar('Position',[.92 .11 .02 .34])
+figure(1)
 
- 
 %% Compute discrepancies in flux and errors in pressure
-p.pressure = 2 - G.cells.centroids(:,1)/G.cartDims(1);
-err_press  = @(x1, x2) ...
-    norm(x1.pressure - x2.pressure, inf) / norm(x1.pressure, inf);
-err_flux   = @(x1, x2) norm(flux_int(x1) - flux_int(x2), inf);
+[mu,rho]=fluid.properties();
+ref = initResSol(G, 0);
+ref.pressure = (bc_left -(bc_left - bc_right)*G.cells.centroids(:,1)/L(1)) + rho*G.cells.centroids*g_vec;
+v = (perm/mu)*(bc_right-bc_left)/L(1);
+ref.flux = G.faces.normals(:,1)*v;
+err        = @(q1, q2) norm(q1 - q2, inf);
+err_press  = @(x1, x2) err(x1.pressure(1:G.cells.num), ...
+                           x2.pressure(1:G.cells.num));
+err_flux   = @(x1, x2) err(flux_int(x1), flux_int(x2));
 
-fprintf(['\nMaximum difference in face fluxes:\n', ...
-         '\to MPFA-O /TPFA   : %.15e\n',   ...
-         '\to MPFA-O /Mimetic: %.15e\n',   ...
-         '\to Mimetic/TPFA   : %.15e\n\n', ...
-         ], ...
-        err_flux(xr1, xr3), err_flux(xr1, xr2), err_flux(xr2, xr3));
+fprintf(['\nInternal flux error:\n', ...
+         '\to Mimetic        : %.15e\n',    ...
+         '\to MPFA-O         : %.15e\n',    ...
+         '\to TPFA           : %.15e\n\n'], ...
+        err_flux(xr1, ref), err_flux(xr2, ref), err_flux(xr3, ref));
+    
+    
 
-fprintf(['Relative error in cell pressures:\n', ...
-         '\to MPFA-O         : %.15e\n',  ...
+fprintf(['Cell Pressure Error:\n', ...
          '\to Mimetic        : %.15e\n',  ...
+         '\to MPFA-O         : %.15e\n',  ...
          '\to TPFA           : %.15e\n',  ...
          ], ...
-         err_press(xr1, p), err_press(xr2, p), err_press(xr3, p));
+         err_press(xr1, ref), err_press(xr2, ref), err_press(xr3, ref));
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -119,5 +143,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
      

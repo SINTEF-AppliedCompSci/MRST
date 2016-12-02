@@ -1,10 +1,5 @@
 %% Document example prerequisites
-try
-   require impes spe10 deckformat
-catch
-   mrstModule add impes spe10 deckformat
-end
-
+mrstModule add impes spe10 deckformat
 %% Define an oil/gas system
 % The fluid data is contained in the file 'simpleOilGas.txt'. We read and
 % process this using the deckformat module.

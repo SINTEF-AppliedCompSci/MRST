@@ -1,15 +1,15 @@
-% One-phase flow examples.
+% UTILS
 %
 % Files
-%   incompExampleNorne1ph     - Norne: Single-Phase Pressure Solver
-%   incompExampleSAIGUP1ph    - SAIGUP: Solving One-Phase Flow on a Realistic Corner-Point Model
-%   incompIntro               - Basic Flow-Solver Tutorial
-%   incompTutorialCornerPoint - Pressure Solver: Simple Corner-Point Grid with Linear Pressure Drop
-%   incompTutorialMillionCell - Simulation of a Mega-cell Model
-%   incompTutorialSRCandBC    - How to Specify Sources and Boundary Conditions
-%   incompTutorialTOF         - Time-of-flight
-%   incompTutorialWells       - Using Peacemann Well Models
-%   simpleTimeOfFlight        - Time-of-flight
+%   adjacentFacesForFace         -
+%   computeNonLinearTrans        -
+%   getCollactionSet             -
+%   getFaceFromCellInterpolator  - Get nodes
+%   getFaceFromCellInterpolatorN -
+%   getInterpolationOperator     - Pcell = speye(G.cells.num);
+%   getNodeFromCellInterpolator  - Get nodes
+%   incompSinglePhaseNTPFA       -
+%   interpolatedFacePressure     -
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

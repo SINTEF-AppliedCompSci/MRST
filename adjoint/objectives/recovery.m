@@ -1,5 +1,5 @@
 function [obj] = recovery(G, S, W, rock, fluid, simRes, schedule, controls, varargin)
-% recovery -- objective function calculating water volume at last time step
+%Objective function calculating water volume at last time step
 %
 % SYNOPSIS:
 %   obj = (G, S, W, rock, fluid, simRes, schedule, controls, varargin)

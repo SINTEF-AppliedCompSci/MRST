@@ -155,64 +155,56 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'state remains unchanged.\n']);
    end
 
-   cellNo = rldecode(1:g.cells.num, diff(g.cells.facePos), 2) .';
-   cf     = g.cells.faces(:,1);
-   nf     = g.faces.num;
+   
    nc     = g.cells.num;
    nw     = length(opt.wells);
-   n      = nc + nw;
 
    [mob, totmob, omega, rho] = dynamic_quantities(state, fluid);
 
    % Needed after introduction of gravity
-   Tg = T.Tg;
-   T  = T.T;
-
-   C      = sparse(1:size(g.cells.faces, 1), cellNo, 1);
-   ind    = [(1:g.cells.num)'; max(g.faces.neighbors, [], 2)];
-
-   %totmob = fluid.Lt(state);
-   totmob_mat = spdiags(totmob(ind), 0, numel(ind),numel(ind));
-   T      = T * totmob_mat;
-
-   totmob_mat = spdiags(rldecode(totmob, diff(g.cells.facePos)), 0, ...
-                        size(g.cells.faces,1), size(g.cells.faces,1));
-   Tg     = Tg * totmob_mat;
+   TT=T;
+   totFace_mob=...
+   1./accumarray(g.cells.faces(:,1),1./totmob(rldecode([1:g.cells.num]', diff(g.cells.facePos))));
+   b  = any(g.faces.neighbors==0, 2);
+   totFace_mob(~b)=totFace_mob(~b);
+   tothface_mob_mat=diag(TT.d1*totFace_mob);
+   %Tg     = Tg * totmob_mat;
 
    % identify internal faces
-   i  = all(g.faces.neighbors ~= 0, 2);
+   
 
    % Boundary conditions and source terms.
    % Note: Function 'computeRHS' is a modified version of function
    % 'computePressureRHS' which was originally written to support the
    % hybrid mimetic method.
-   [ff, gg, hh, grav, dF, dC] = computePressureRHS(g, omega, ...
+   [~, gg, hh, ~, dF, ~] = computePressureRHS(g, omega, ...
                                                    opt.bc, opt.src);
+   % add gravity contribution for each mpfa half face
+   grav     = -omega(TT.cno) .* (TT.R * reshape(g_vec(1:g.griddim), [], 1));  
+   
    b  = any(g.faces.neighbors==0, 2);
-   I1 = [(1:g.cells.num)'; g.cells.num + find(b)];
-   D  = sparse(1:size(g.cells.faces,1), double(g.cells.faces(:,1)), 1);
-   A  = [C, -D(:,b)]' * T(:,I1);
-
-   % Gravity contribution for each face
-   cf  = g.cells.faces(:,1);
-   j   = i(cf) | dF(cf);
-   s   = 2*(g.faces.neighbors(cf, 1) == cellNo) - 1;
-   fg  = [C, -D(:,b)]' * (Tg * grav);
-   %fg  = accumarray(cf(j), grav(j).*s(j), [g.faces.num, 1]);
-
-   rhs = [gg; -hh(b)];
-   %% Eliminate all but the cellpressure
-   %BB=A(nc+1:end,nc+1:end);
-   %AA=A(1:nc,1:nc);
-   %DD=A(nc+1:end,1:nc);
-   %DU=A(1:nc,nc+1:end);
-
-   %A=AA-DU*inv(BB)*DD;
-   %rhs=rhs(1:nc)+DU*inv(BB)*rhs(nc+1:end);
-
-   %B=A(nc+1:end,
-   %A=inv(A(nc+1:end)A(1:nc,1:nc)
-
+   %D  = sparse(1:size(g.cells.faces,1), double(g.cells.faces(:,1)), 1);
+   %D=TT.D;
+   % find outer boundary mpfa faces (two times the normal number of faces
+   % in 2D)
+   %sb = full(sum(TT.D, 1)) == 1;
+   %cf_mtrans=TT.Do'*TT.hfhf*[TT.C, -TT.D(:,sb)];
+   cf_mtrans = TT.cf_trans;
+   % define div operaor form mfpa sides to celle values in addtion to the
+   % fluxes out of boundary.
+   %e_div =  [TT.C, -TT.D(:,sb)]'*TT.Do;
+   e_div = TT.e_div;
+   % multiply fluxes with harmonic mean of mobility
+   % this to avid for re asssembly
+   % to be equivalent coupled reservoir simulation the value of
+   % sum of upwind mobility should be used.
+   A=e_div*tothface_mob_mat*cf_mtrans;
+   dghf= TT.cf_trans_g * grav;
+   rhs_g= e_div*tothface_mob_mat*dghf;
+ 
+   hh_tmp = TT.d1*hh;
+   rhs = [gg; -hh_tmp(TT.sb)];
+   rhs = rhs+rhs_g;
    %% Dirichlet condition
    % If there are Dirichlet conditions, move contribution to rhs.  Replace
    % equations for the unknowns by speye(*)*x(dF) = dC.
@@ -221,18 +213,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    factor = A(1,1);
    assert (factor > 0)
    if any(dF),
-      ind        = [false(g.cells.num, 1) ; dF(b)];
-      rhs        = rhs - A(:,ind)*dC;
-      rhs(ind)   = factor*dC;
+      dF_tmp     = TT.d1(TT.sb,:)*dF;
+      ind        = [false(g.cells.num, 1) ; dF_tmp>0];
+      is_press   = strcmpi('pressure', opt.bc.type);
+      face       = opt.bc.face (is_press);
+      bcval      = opt.bc.value (is_press);
+      dC_tmp     = TT.d1(TT.sb,face)*bcval;
+      rhs        = rhs - A(:,g.cells.num+1:end)*dC_tmp;
+      rhs(ind)   = factor*dC_tmp(dF_tmp>0);
       A(ind,:)   = 0;
       A(:,ind)   = 0;
       A(ind,ind) = factor * speye(sum(ind));
    end
-
-   %remove
-   %A=A(1:nc,1:nc);
    nnp=length(rhs);
-   rhs=rhs-fg;
    rhs=[rhs;zeros(nw, 1)];
 
    %%%%%%%%%%%%%%%%%%%
@@ -251,9 +244,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       dp       = computeIncompWellPressureDrop(W(k), mob, rho, norm(gravity));
       d   (wc) = d   (wc) + wi;
       state.wellSol(k).cdp = dp;
-      if     strcmpi(W(k).type, 'bhp'),
+      if strcmpi(W(k).type, 'bhp'),
          ww=max(wi);
-         %ww=1.0;
          rhs (w)  = rhs (w)  + ww*W(k).val;
          rhs (wc) = rhs (wc) + wi.*(W(k).val + dp);
          C{k}     = -sparse(1, nnp);
@@ -278,10 +270,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    A = [A, C'; C D];
    A = A+sparse(1:nc,1:nc,d,size(A,1),size(A,2));
 
-   %if norm(gravity()) > 0,
-
-   %        rhs = rhs + T(:,I1)'*fg(cf);
-   %end
+  
    if ~any(dF) && (isempty(W) || ~any(strcmpi({W.type }, 'bhp'))),
       A(1) = A(1)*2;
    end
@@ -293,38 +282,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% ---------------------------------------------------------------------
    dispif(opt.Verbose, 'Computing fluxes, face pressures etc...\t\t');
    ticif (opt.Verbose);
-
-   % Reconstruct face pressures and fluxes.
-   %fpress     =  ...
-%          accumarray(g.cells.faces(:,1), (p(cellNo)+grav).*T, [g.faces.num,1])./ ...
-%          accumarray(g.cells.faces(:,1), T, [G.faces.num,1]);
-
-
-   % Neumann faces
-   b         = any(g.faces.neighbors==0, 2);
-   %fpress(b) = fpress(b) - hh(b)./ft(b);
-
-
-   % Contribution from gravity
-   %fg         = accumarray(cf, grav.*sgn, [nf, 1]);
-   %fpress(~i) = fpress(~i) + fg(~i);
-
-   % Dirichlet faces
-   %fpress(dF) = dC;
-
-
-   % Sign for boundary faces
-   %sgn  = 2*(G.faces.neighbors(~i,2)==0)-1;
-   %ni   = G.faces.neighbors(i,:);
-   %flux = -accumarray(find(i),  ft(i) .*(p(ni(:,2))-p(ni(:,1))-fg(i)), [nf, 1]);
-   %c    = sum(G.faces.neighbors(~i,:),2) ;
-   %fg  = accumarray(cf, grav, [nf, 1]);
-   %flux(~i) = -sgn.*ft(~i).*( fpress(~i) - p(c) - fg(~i) );
-   %flux = -sgn.*ft((fpress(~i)-p(c)-grav));
-
    state.pressure(1 : nc) = p(1 : nc);
-   state.flux(:)          = cellFlux2faceFlux(g, T(:, I1) * p(1 : nnp));
-
+   % Reconstruct face pressures and fluxes.
+   b         = any(g.faces.neighbors==0, 2);   
+   state.flux = TT.d1'*(tothface_mob_mat*cf_mtrans*p(1:nnp) - tothface_mob_mat*dghf);%
+   state.flux(~b)=state.flux(~b)/2;
    state.boundaryPressure = p(nc + 1 : nnp);
 
    for k = 1 : nw,

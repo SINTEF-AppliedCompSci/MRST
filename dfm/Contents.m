@@ -5,38 +5,40 @@
 % AUTHOR: tor.harald.sandve@iris.no
 %
 % new files
-%   addhybrid              - Generates the hybrid cells
-%   computeHybridTrans     - Computes the hybrid transmissibilities using TPFA
-%   computeMultiPointTrans - Computes the hybrid transmissibilities using
-%                            O-MPFA
-%   testNormals            - Rutine to check that the direction of the normals
-%                            is from neighbor 1 to 2.
+%   addhybrid                   - Add hybrid cells to the grid structure.
+%   build_fractures_mod         - Build fracture network that serves as constraints in the triangulation.
+%   computeHybridTrans          - Computes the hybrid-hybrid transmissibilities between a hybrid cell 1 and 2
+%   nodeType                    - return node type
+%   plotEdges                   - plot lines
+%   testNormals                 - Tests if the normals points from neighbor 1 to 2 and returns the index of
+%   triangulate                 - Make a Delaunay Triangulation and return a Mrst grid
+%
 %   /plotting/plotFractures - Plots 2d hybridcells.
-%   build_fractures_mod     - read fracture date from open-office or .mat files
-%   plotEdges 	 		- plot lines
-%   nodeType			- return the node type: 0: interior, 1: edge 2: corner.
-%   triangulate			- create Delaunay triangulation based on a cloud of points and a set of constrains
 %
 % Files modified from  core MRST functions. Use these to
+%   computeTrans_DFM            - Compute transmissibilities using a two-point scheme.
+%   computeMultiPointTrans_DFM  - Compute multi-point transmissibilities.
+%   twophaseJacobian_DFM        - Residual and Jacobian of single point upwind solver for two-phase flow.
+%   explicitTransport_DFM       - Explicit single point upwind transport solver for two-phase flow.
+%   implicitTransport_DFM       - Implicit single point upwind transport solver for two-phase flow.
+%   removeInternalBoundary_DFM  - Remove internal boundary in grid by merging faces in face list N
 %
-%   computeTrans_DFM           - Modified to compute hybrid-normal
-%                                transmissibilities using a modified TPFA
-%   computeMultiPointTrans_DFM - Modified to compute hybrid-normal
-%                                transmissibilities using a modified MPFA
-%   computeTPFA_DFM            - Modified to allow for cell2cell connections
-%   computeMPFA_DFM            - Modified to allow for cell2cell connections
-%   twophaseJacobian_DFM       - Modified to allow for cell2cell connections
-%   explicitTransport_DFM      - Modified to allow for cell2cell connections
-%   implicitTransport_DFM      - Modified to allow for cell2cell connections
-%   removeInternalBoundary_DFM - Modified to update grid geometry as well as the topology
 %   /plotting/                 - Modification to plotting rutines to handle
-%  computeTimeOfFlight		- Modified to allow for cell2cell connections
-%
 %
 % /private.
 %  - Files needed since we can not access private folders from this location
 %
 % /examples:
-%  matlabFractureGrid   - Unstructured fracture grid created by Matlab functions
-%  triangleFractureGrid - Unstructured fracture grid created using the Triangle software
-%
+%   add_point                   - Add a new point to the cloud.
+%   computeHybridMPTrans        - Computes the hybrid-hybrid transmissibilities. Also update the grid and
+%   computeTimeOfFlight_DFM     - Compute time of flight using finite-volume scheme.
+%   distance_to_closest_line    - Copyright 2011-2012 University of Bergen
+%   incompMPFA_DFM              - Solve incompressible flow problem (fluxes/pressures) using MPFA-O method.
+%   incompTPFA_DFM              - Solve incompressible flow problem (fluxes/pressures) using TPFA method.
+%   lines_intersect             - [pt] = lines_intersect (vertices, edge1, edge2)
+%   partition_edges             - [vertices, new_edges, num_added] = ...
+%   read_openoffice             - Read fractures drawn in Libreoffice, and represent them as points and
+%   removeFractureIntersections - Partition intersecting edges by adding a point in the intersection.
+%   remove_closepoints          - Remove all points that are too close to the lines, since these will only
+%   snap_to_grid                - Move vertices to the closest (structured) grid point.
+%   split_edge                  - Split an edge into two parts

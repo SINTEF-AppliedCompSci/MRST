@@ -3,8 +3,8 @@
 % Files
 %   initCoreyFluid       - Initialize incompressible two-phase fluid model (res. sat., an. rel-perm).
 %   initSimpleFluid      - Initialize incompressible two-phase fluid model (analytic rel-perm).
-%   initSimpleFluidJfunc - Initialize incompressible two-phase fluid model (analytic rel-perm).
-%   initSimpleFluidPc    - Initialize incompressible two-phase fluid model (analytic rel-perm).
+%   initSimpleFluidJfunc - Two-phase fluid model with Leverett J-function capillary pressure
+%   initSimpleFluidPc    - Initialize incompressible two-phase fluid model with capillary forces
 %   initSingleFluid      - Initialize incompressible single phase fluid model.
 
 %{

@@ -4,17 +4,12 @@
 % then discretized with both two- and multi-point flux expressions, and a
 % two-phase transport problem is solved.
 
-try
-   require dfm incomp
-catch
-   mrstModule add dfm incomp
-end
-
+mrstModule add dfm incomp
 % Create an initial distribution of points
 N     = 20;
 N1    = N;
 N2    = N;
-[X Y] = meshgrid(0:1:N1, 0:1:N2);
+[X, Y] = meshgrid(0:1:N1, 0:1:N2);
 X     = sqrt(3) / 2 * X;
 Y(:,2:2:end) = Y(:,2:2:end)+0.5;
 p     = [X(:), Y(:)];

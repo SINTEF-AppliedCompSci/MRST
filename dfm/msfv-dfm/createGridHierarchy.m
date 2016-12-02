@@ -1,5 +1,5 @@
 function [g_dual,g_fine]= createGridHierarchy(coarseFractures,fineFractures,varargin)
-% Create a two level grid hierarchy
+%CREATEGRIDHIERARCHY Generates the fine-scale grid and the dual-coarse grid
 %
 % SYNOPSIS
 % [g_dual,g_fine,box,opt] = createGridHierarchy(coarseGrids,fineFractures,varargin)

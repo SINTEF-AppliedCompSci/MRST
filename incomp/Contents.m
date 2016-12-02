@@ -1,10 +1,11 @@
 % Support for incompressible flow/transport problems
 %
 % Files
-%   capPressureRHS      - Compute capillary pressure contribution to system RHS
-%   computeFacePressure - Compute face pressure using two-point flux approximation.
-%   computePressureRHS  - Compute right-hand side contributions to pressure linear system.
-%   incompTPFA          - Solve incompressible flow problem (fluxes/pressures) using TPFA method.
+%   capPressureRHS                - Compute capillary pressure contribution to system RHS
+%   computeFacePressure           - Compute face pressure using two-point flux approximation.
+%   computeIncompWellPressureDrop - Compute incompressible connection pressure drop for a single well
+%   computePressureRHS            - Compute right-hand side contributions to pressure linear system.
+%   incompTPFA                    - Solve incompressible flow problem (fluxes/pressures) using TPFA method.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

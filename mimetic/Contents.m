@@ -1,13 +1,9 @@
 % Routines supporting the mimetic method for the pressure equation.
 %
 % Files
-%   assembleWellSystem         - Generate pressure linear system components for wells.
-%   calculateFaultTrans        - Compute transmissibilities of faults and add them to grid and optionaly
-%   computeMimeticIP           - Compute mimetic inner product matrices.
-%   packageWellSol             - Convert well fluxes and pressures to structure form.
-%   solveIncompFlow            - Solve incompressible flow problem (fluxes/pressures).
-%   solveIncompFlowFault       - Solve incompressible flow problem (fluxes/pressures) with fault and
-%   unpackWellSystemComponents - Extract hybrid linear system components from wells.
+%   computeMimeticIP - Compute mimetic inner product matrices.
+%   incompMimetic    - Solve incompressible flow problem (fluxes/pressures).
+%   solveIncompFlow  - Solve incompressible flow problem (fluxes/pressures). [DEPRECATED]
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

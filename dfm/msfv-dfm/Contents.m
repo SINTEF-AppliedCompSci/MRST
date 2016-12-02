@@ -7,10 +7,6 @@
 %
 % new files
 %   createGridHierarchy    	- Generates the fine-scale grid and the dual-coarse grid
-%			  	 with necessary tags to create the grids needed in  MSFVM
-%   extractDualDFM   		- Extract the dual grid is needed in MSFVM from the grid hierarchy
-%   partitionByAggregation 	- create a partition based on aggregating cells with seeds given by the node
-%				cells
 %
 %   /util/findClosestCell 	- Find the closest cells to a given coordinate in 2D
 %   /util/getFractureCells 	- Extract cell indexes corresponding to fractures and fracture intersection
@@ -22,8 +18,8 @@
 %   /util/removeDuplicates 	- remove duplicated fractures and vertices
 %   /private/makeCoarseDualGrid - Create the Coarse dual grid
 %   /private/makeFineGridHybrid - Create a fine-grid constrained by fractures and the dual coarse grid
-%				The constrains are represented by hybrid cells of first kind
-%				and their intersection with hybrid cells of second kind
+%				  The constrains are represented by hybrid cells of first kind
+%				  and their intersection with hybrid cells of second kind
 %   /private/readFractures   	- Extract fracture network from files
 %
 % Files modified from the MSFVM module.
@@ -32,5 +28,5 @@
 %   /util/plotDual_DFM   	- Modified to plot hybrid cells
 %   /util/removeCells_mod  	- Modified to update additional face fields as tags, centroids etc.
 %
-%
-
+%   partitionDualDFM          - Create the dual grid structure as used by MSFVM
+%   partitioningByAggregation - Create primal partitioning by aggregation with node cells as seeds.
