@@ -89,12 +89,12 @@ for n=1:N
     subplot(2,2,2), cla,
        plotCellData(G, xmi.pressure/barsa, pargs{:});
        caxis([100 200]); title(sprintf('Mimetic: %.0f days', t/day));
-       colorbar('peer', gca,[0.94 0.58 0.0175 0.345]);
+       colorbar('peer', gca, 'Position', [0.94 0.58 0.0175 0.345]);
     subplot(2,2,4), cla,
        % plotGrid(G,'FaceColor','none');
        plotCellData(G, xmi.s(:,1),xmi.s(:,1)>.01, pargs{:});
        axis([0 400 0 100]); caxis([0 1]);
-       colorbar('peer', gca,[0.94 0.105 0.0175 0.345]);
+       colorbar('peer', gca, 'Position', [0.94 0.105 0.0175 0.345]);
     
     for i=1:4,
         subplot(2,2,i), hold on
