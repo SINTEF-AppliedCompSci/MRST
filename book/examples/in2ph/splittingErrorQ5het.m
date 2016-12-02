@@ -5,7 +5,7 @@
 % sequential solution procedure. We consider three different mobility
 % ratios: an unfavorable, equal mobilities, and favorable.
 
-mrstModule add incomp spe10
+mrstModule add incomp spe10 ad-core
 
 %% Set up model and parameters
 dims      = [60 120 1];
