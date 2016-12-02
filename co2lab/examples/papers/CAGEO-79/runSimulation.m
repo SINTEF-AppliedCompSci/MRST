@@ -130,10 +130,17 @@ function res = simple_panel_plot(state, tstep, Gt, schedule, sr, sw, fluid, rock
     % adding height fields
     [state.h, state.h_max] = compute_plume_height(Gt, state, sw, sr);
     
+    % dissolution info, if any
+    if isfield(state, 'rs')
+       rs = state.rs;
+    else
+       rs = 0;
+    end
+
     % Compute mass distribution
     masses = massTrappingDistributionVEADI(Gt, state.pressure, state.s(:,2), ...
                                            state.s(:,1), h, h_max, rock, ...
-                                           fluid, traps, dh);
+                                           fluid, traps, dh, 'rs', rs);
     
     %% plotting figure
     clf;
