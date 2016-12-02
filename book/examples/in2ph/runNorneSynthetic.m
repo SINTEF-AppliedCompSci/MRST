@@ -16,7 +16,7 @@
 % <http://www.opm-project.org OPM Initiative> released the full simulation
 % model as an open data set on <https://github.com/OPM/opm-data GitHub>.
 
-mrstModule add deckformat
+mrstModule add deckformat incomp
 gravity reset on
 
 %% Read and process the model
