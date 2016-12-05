@@ -7,9 +7,9 @@
 % simulation." Geoscience Data Journal 1.2 (2014): 192-195.
 
 mrstModule add ad-core ad-blackoil deckformat
-% Realizations can be set to [] for base cae, or a number between 1 and 100
+% Realizations can be set to 0 for base cae, or a number between 1 and 100
 % for different permeabilities.
-realization = [];
+realization = 0;
 [G, rock, fluid, deck, state] = setupEGG('realization', realization);
 model = selectModelFromDeck(G, rock, fluid, deck);
 schedule = convertDeckScheduleToMRST(model, deck);

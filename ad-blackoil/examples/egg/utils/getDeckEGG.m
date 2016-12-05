@@ -1,5 +1,5 @@
 function deck = getDeckEGG(varargin)
-    opt = struct('realization', []);
+    opt = struct('realization', 0);
     opt = merge_options(opt, varargin{:});
     
     mrstModule add deckformat ad-props
@@ -9,7 +9,9 @@ function deck = getDeckEGG(varargin)
 
     deck = readEclipseDeck(fn);
     
-    if ~isempty(opt.realization)
+    assert(opt.realization >= 0 && opt.realization <= 100, ...
+        'Egg realization must be a number between 0 and 100.')
+    if opt.realization > 0
         fn  = fullfile(pth, 'Permeability_Realizations', ...
             ['PERM', num2str(opt.realization), '_ECL.INC']);
         nc = prod(deck.GRID.cartDims);
