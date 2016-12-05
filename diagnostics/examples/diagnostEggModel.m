@@ -13,7 +13,7 @@
 %% We first solve the base case using a pressure solver
 % Set up pressure solver and solve base case.
 mrstModule add deckformat ad-blackoil blackoil-sequential diagnostics
-[G, rock, fluid, deck, state0] = setupEGG('realization', []);
+[G, rock, fluid, deck, state0] = setupEGG('realization', 0);
 model = PressureOilWaterModel(G, rock, fluid);
 schedule = convertDeckScheduleToMRST(model, deck);
 W = schedule.control(1).W;
