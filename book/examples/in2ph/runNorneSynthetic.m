@@ -202,6 +202,5 @@ for n=1:numel(dt)
    ha = annotation('textbox', [0 0.93 0.35 0.07], 'String', ...
        sprintf('Water saturation at %5.2f years', convertTo(t,year)));
    drawnow
-   print('-dpng', '-r0', sprintf('img/norne-%03d.png',plotNo));
    plotNo = plotNo+1;
 end
