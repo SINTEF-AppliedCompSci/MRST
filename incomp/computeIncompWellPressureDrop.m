@@ -1,22 +1,23 @@
 function dp = computeIncompWellPressureDrop(W, mob, rho, g)
-% Compute incompressible connection pressure drop for a single well
+%Compute incompressible connection pressure drop for a single well
 %
 % SYNOPSIS:
-%       dp = computeIncompWellPressureDrop(W, mob, rho, g)
+%   dp = computeIncompWellPressureDrop(W, mob, rho, g)
 %
 % PARAMETERS:
-%       W   - Well struct (see addWell)
+%   W   - Well structure as defined by function addWell.
 %
-%       mob - G.cells.num x n_ph array of cell mobilities
+%   mob - Phase mobilities for each cell in model.
 %
-%       rho - n_ph array of densities
+%   rho - Fluid mass densities.  One scalar for each fluid phase.
 %
-%       g   - Norm of gravity along z-axis
+%   g   - Norm of gravity along z-axis
 %
 % RETURNS:
-%       dp  - Column vector with numel(W.cells). Contains pressure drop
-%       from the bottom hole pressures, under certain assumptions for
-%       the incompressible, linear pressure equation.
+%   dp - Column vector of size numel(W.cells).  Contains each completion's
+%        pressure drop along the well bore from the bottom hole pressure
+%        reference depth, under certain assumptions for the incompressible,
+%        linear pressure equation.
 %
 % NOTES:
 %   In order to avoid nonlinear behavior for wells, this function assumes
@@ -27,7 +28,7 @@ function dp = computeIncompWellPressureDrop(W, mob, rho, g)
 %   proportional to the well indices.
 %
 % SEE ALSO:
-%   incompTPFA, incompMimetic, incompMPFA
+%   addWell, incompTPFA, incompMimetic, incompMPFA
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -48,19 +49,70 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% A well is a injector if the sign is set or the control is set to a
-% positive rate. Otherwise, we assume that it is a producer.
-isInj = W.sign > 0 || (strcmpi(W.type, 'rate') && W.val > 0);
-if isInj
-    % We compute a simple mixture of the injected fluids
-    rhoMix = rho*W.compi';
-else
-    % We compute approximate phase fluxes by taking the fractional
-    % mobility in each cell, weighted by the densities. The flux is
-    % estimated roughly as proportional to the well index.
-    wc = W.cells;
-    mobw = mob(wc, :);
-    f = bsxfun(@rdivide, mobw, sum(mobw, 2));
-    rhoMix = sum(W.WI.*(f*rho'))./sum(W.WI);
+   check_input(W, mob, rho)
+
+   np = numel(rho);
+
+   if is_injector(W)
+      % We compute a simple mixture of the injected fluids
+      i = 1 : min(np, size(W.compi));
+
+      rhoMix = rho(i) * W.compi(i)';
+   else
+      % We compute approximate phase fluxes by taking the fractional flow
+      % in each cell, weighted by the densities.  The flux is estimated
+      % roughly as proportional to the well index.
+      i = 1 : min(np, size(mob, 2));
+
+      mobw = mob(W.cells, :);
+      f    = bsxfun(@rdivide, mobw, sum(mobw, 2));
+
+      rhoMix = sum(W.WI .* (f(i) * rho(i)')) ./ sum(W.WI);
+   end
+
+   dp = g * (W.dZ * rhoMix);
 end
-dp = g * W.dZ*rhoMix;
+
+%--------------------------------------------------------------------------
+
+function check_input(W, mob, rho)
+   persistent NI NP NM
+
+   nchanged = 0;
+
+   if isempty(NI), NI = numel(W.compi); nchanged = nchanged + 1; end
+   if isempty(NP), NP = numel(rho);     nchanged = nchanged + 1; end
+   if isempty(NM), NM = size(mob, 2);   nchanged = nchanged + 1; end
+
+   [NP, nchanged] = change_if_modified(NP, nchanged, numel(rho));
+   [NI, nchanged] = change_if_modified(NI, nchanged, numel(W.compi));
+   [NM, nchanged] = change_if_modified(NM, nchanged, size(mob, 2));
+
+   if (nchanged > 0) && ((NI ~= NP) || (NM ~= NP))
+      np = min([NI, NM, NP]);
+      pl = '';  if np ~= 1, pl = 's'; end
+
+      warning('NumPhase:Inconsistent', ...
+             ['Inconsistent Number of Phases.  ', ...
+              'Using %d Phase%s (=min([%d, %d, %d])).'], ...
+              np, pl, NI, NP, NM);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_injector(W)
+   % A well is an injector if the sign is set (and positive) or the well is
+   % constrained to a positive rate target.  Otherwise, we assume that the
+   % well is a producer.
+   tf = (W.sign > 0) || (strcmpi(W.type, 'rate') && (W.val > 0));
+end
+
+%--------------------------------------------------------------------------
+
+function [n, count] = change_if_modified(n, count, new)
+   if n ~= new
+      n     = new;
+      count = count + 1;
+   end
+end
