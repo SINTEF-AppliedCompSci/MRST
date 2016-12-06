@@ -77,6 +77,12 @@ end
 function sets = identify_datasets()
    sets = what(fullfile(this_directory(), 'datasets'));
    sets = sets.m(is_dataset(sets.m));
+
+   edir = fullfile(this_directory(), 'datasets', 'experimental');
+   if isdir(edir)
+      s    = what(edir);
+      sets = [ sets ; s.m(is_dataset(s.m)) ];
+   end
 end
 
 %--------------------------------------------------------------------------
