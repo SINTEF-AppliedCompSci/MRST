@@ -42,7 +42,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     [info, present] = getAvailableDatasets();
 
-    info = info(~present & arrayfun(@(x) ~isempty(x.fileurl), info));
+    info = info(~present);
+
+    pick = arrayfun(@datasetHasValidFileURL     , info) | ...
+           arrayfun(@datasetHasCustomDownloadFcn, info);
+
+    info = info(pick);
     
     if isempty(info)
         disp('All known datasets are already installed');
