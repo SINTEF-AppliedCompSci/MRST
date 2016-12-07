@@ -8,6 +8,7 @@
 %   partitionLayers              - Partition grid uniformly in logical (I,J) direction, non-uniformly in K.
 %   partitionMETIS               - Partition grid according to connection strengths
 %   partitionUI                  - Partition grid uniformly in logical space.
+%   partitionTensor              - Partition Logically Cartesian Grid Into Tensor Product Blocks
 %   processFacePartition         - Ensure that all coarse faces are connected collections of fine faces.
 %   processPartition             - Split disconnected coarse blocks into new blocks.
 %   refineNearWell               - Partition a set of points based on proximity to a well point
