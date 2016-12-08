@@ -248,7 +248,7 @@ function produce_graphs(simres)
       ax = axis();
       axis([ 0 28 ax(3) ax(4)])
       set(gca, 'YDir', 'reverse', 'FontSize', 16);
-      legend(legendtext{:}, 4, 'Location', 'SouthWest');
+      legend(legendtext{:}, 'Location', 'SouthWest');
    end
 end
 

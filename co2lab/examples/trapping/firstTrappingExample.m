@@ -3,7 +3,7 @@
 % accumulation areas, spill paths, etc. To this end, we will use a simple
 % shoe-box with a dip and a perturbed top surface.
 
-mrstModule add co2lab
+mrstModule add co2lab coarsegrid
 %% Make grid and rock data
 % We consider a sandbox of dimensions 10 km x 5 km x 50 m, that lies at a
 % depth of 1000 m and has an inclination in the x-direction. For the top

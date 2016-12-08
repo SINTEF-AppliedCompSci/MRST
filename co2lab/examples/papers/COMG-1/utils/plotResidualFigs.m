@@ -28,7 +28,7 @@ function plotResidualFigs(simres)
    end
    axis tight
    set(gca, 'YDir', 'reverse', 'FontSize', 16);
-   legend(legendtext{1:2}, 4);
+   legend(legendtext{1:2}, 'Location', 'SouthEast');
 
    %% Second figure
    figure; hold on;

@@ -60,7 +60,7 @@
 %      can setup injection rates and timesteps through a simple user
 %      interface and stop simulations by closing the visualization window.
 
-mrstModule add co2lab
+mrstModule add co2lab coarsegrid
 % Select trapping algorithm
 useCell = true;
 

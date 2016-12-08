@@ -26,6 +26,6 @@ function plotUpscalingFigs(simres)
    end
    axis tight
    set(gca, 'YDir', 'reverse', 'FontSize', 12);
-   h = legend(legendtext{:}, 4); set(h, 'FontSize', 14);
+   h = legend(legendtext{:}, 'Location', 'SouthEast'); set(h, 'FontSize', 14);
    set(gcf, 'Position', [680 580 800 420]);
 end

@@ -185,35 +185,12 @@ function res = cell_based_trap_analysis(Gt)
     % Computing trap regions (based on separate algorithm for now)
     %[C, N, CC] = maxTPFAGravityMatrix(Gt);
     C = maxTPFAGravityMatrix(Gt);
-    b = components(C+C');
-    % b = b(1:end-1); % removing 'out-of-region' index
+    
+    % identifying spill region of each trap
     res.trap_regions = zeros(size(res.traps));
-    for c = unique(b)'
-        affected_cells = find(b == c);
-        affected_region = nonzeros(unique(res.traps(affected_cells)));
-        
-        myswitch=numel(affected_region);
-        if(myswitch>0)
-            tcells=affected_cells(res.traps(affected_cells)>0);
-            if(~(min(Gt.cells.z(tcells))==min(Gt.cells.z(affected_cells))))
-               myswitch=0;
-               dispif(mrstVerbose, ['Warning, top point of region higher than ' ...
-                                   'trap in region.  Include in outside traps.\n']); 
-            end            
-        end
-        switch myswitch;
-          case 0
-            % this is the 'outside' region
-            res.trap_regions(affected_cells) = 0;
-          case 1
-            % this should be the normal case            
-            res.trap_regions(affected_cells) = affected_region(1);
-          otherwise
-            dispif(mrstVerbose, ['Warning, ambiguous spill region detected.  ' ...
-                                'Assign to highest trap\n'], numel(affected_region)); 
-            [m,i]=min(Gt.cells.z(tcells));                  %#ok<ASGLU>
-            res.trap_regions(affected_cells) = res.traps(tcells(i(1)));
-        end
+    for t_ix = res.top(:)'
+       res.trap_regions(bfs(C', t_ix)>=0) = res.traps(t_ix);
     end
+    
 end
 
