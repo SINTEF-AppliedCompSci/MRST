@@ -12,7 +12,7 @@
 
 %% We first solve the base case using a pressure solver
 % Set up pressure solver and solve base case.
-mrstModule add deckformat ad-blackoil blackoil-sequential diagnostics
+mrstModule add deckformat ad-blackoil ad-core blackoil-sequential diagnostics
 [G, rock, fluid, deck, state0] = setupEGG('realization', 0);
 model = PressureOilWaterModel(G, rock, fluid);
 schedule = convertDeckScheduleToMRST(model, deck);
@@ -48,6 +48,7 @@ D_all{1} = D;
 ptracer = D.ptracer;
 itracer = D.itracer;
 
+t = 0;
 hold on
 for i = 1:n
     % Compute for all realizations
@@ -58,7 +59,9 @@ for i = 1:n
     model = PressureOilWaterModel(G, rock, fluid);
     state = solver.solveTimestep(state0, 1*year, model, 'W', W);
     % Compute diagnostics
+    tic();
     D = computeTOFandTracer(state, G, rock, 'wells', W);
+    t = t + toc();
     [F(:, i+1), Phi(:, i+1)] = computeFandPhi(poreVolume(G,rock), D.tof);    
     ptracer = ptracer + D.ptracer;
     itracer = itracer + D.itracer;
