@@ -24,8 +24,10 @@ muco2   = co2.mu(p_ref, t_ref) * Pascal * second; % co2 viscosity
 [G, rock, bcIx, ~, ~, bcIxVE] = makeJohansenVEgrid();
 
 % Specify well information
-wc = [3715, 10210, 16022, 21396, 26770]';
-%wc = [2930 9413 15435 20809 26183]';
+wc_global = false(G.cartDims);
+wc_global(48, 48, 6:10) = true;
+wc = find(wc_global(G.cells.indexMap));
+%wc = [3715, 10210, 16022, 21396, 26770]';
 inj_rate = 3.5 * mega * 1e3 / year / co2_rho;
 W = addWell([], G, rock, wc, ...
             'type', 'rate', ...  % inject at constant rate
