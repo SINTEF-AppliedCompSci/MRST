@@ -132,9 +132,6 @@ function ok = download_URL(info, pth)
 
    [ext, ext, ext] = fileparts(furl);                           %#ok<ASGLU>
 
-   fprintf('Attempting to download ''%s'' dataset (%.1f MB)...\n', ...
-           info.name, info.filesize);
-
    is_known = any(strcmpi(ext, { '.gz', '.tgz', '.zip' }));
 
    if ~ is_known,
@@ -155,7 +152,6 @@ function ok = download_URL(info, pth)
       end
 
       ok = true;
-      fprintf('Successfully downloaded dataset.\n');
    end
 end
 
@@ -169,7 +165,14 @@ function ok = do_download(info, askFirst, downloadFcn)
 
    ok = false;
    if do_get
+      fprintf('Attempting to download ''%s'' dataset (%.1f MB)...\n', ...
+              info.name, info.filesize);
+
       ok = downloadFcn();
+
+      if ok
+         fprintf('Successfully downloaded dataset.\n');
+      end
    end
 end
 
