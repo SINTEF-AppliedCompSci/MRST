@@ -2,31 +2,37 @@ function varargout = downloadDataset(name, askFirst)
 %Download a dataset given by name, subject to availability
 %
 % SYNOPSIS:
-%   [pth, ok] = downloadDataset('datasetname')
-%   % Do not ask for download permission
-%   [pth, ok] = downloadDataset('datasetname', false)
+%   [pth, ok] = downloadDataset(name)
+%   [pth, ok] = downloadDataset(name, askFirst)
 %
 % DESCRIPTION:
-%   Download a dataset, if available. If the dataset is not publicly
+%   Download a dataset if available.  If the dataset is not publicly
 %   available due to technical or license related reasons, instructions
 %   for manual download (if any) along with the dataset website will be
 %   printed.
 %
-% REQUIRED PARAMETERS:
-%   name     - The name of the dataset.
+% PARAMETERS:
+%   name     - Name (string) of the dataset to download.  Must be one of
+%              the names returned by function getAvailableDatasets.
 %
-%   askFirst - (OPTIONAL) Will ask in the command window before downloading
-%              any files, along with a estimate of how large the file(s)
-%              to be downloaded are.
-%
+%   askFirst - Whether or not to ask for permission in the command window
+%              before downloading any files.  Reports the size of the
+%              dataset for context.  LOGICAL.  If unspecified, treated as
+%              TRUE (*do* ask for permission before downloading files).
 %
 % RETURNS:
-%   pth      - Path where dataset was / should be placed.
+%   pth - Filesystem path where dataset was or should be placed.
 %
-%   ok       - Boolean indicating if the download was sucessful.
+%   ok  - Logical status code indicating whether or not the download
+%         process completed successfully.
+%
+% NOTE:
+%   Function downloadDataset is a fairly low-level facility and end-users
+%   should rarely call this function directly.  We recommend higher-level
+%   interfaces like function mrstDatasetGUI for interactive work.
 %
 % SEE ALSO:
-%   getAvailableDatasets, mrstDatasetGUI
+%   getAvailableDatasets, mrstDatasetGUI.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
