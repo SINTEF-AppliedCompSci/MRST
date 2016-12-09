@@ -1,5 +1,5 @@
 function [hcb, hax] = colorbarHist(q, lim, varargin)
-%COLORBARHIST Make colorbar with histogram on top
+%Make colorbar with histogram on top
 %
 % SYNOPSIS:
 %   colorbarHist(q, lim)
@@ -40,7 +40,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-assert(any(nargin==[2,3,4]), 'Incorrect number of input arguments');
+mrstNargInCheck(2,4,nargin);
 
 if nargin==4,
    nbins = varargin{2}+1;
