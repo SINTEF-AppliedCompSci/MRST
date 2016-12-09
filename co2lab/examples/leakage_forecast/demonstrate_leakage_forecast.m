@@ -134,7 +134,7 @@ schedule.step.val       = [istepvec; mstepvec];
 schedule.step.control   = [ones(isteps, 1); ones(msteps, 1) * 2];
 
 % Setting up injection well:
-wcinx = 4495;
+wcinx = findEnclosingCell(Gt, [4.7777e5, 6.8154e6]);
 W = addWell([], Gt.parent, rock2D, wcinx, ...
                 'name',     ['Winj' num2str(wcinx)],  ...
                 'Type',     'rate', ...
@@ -161,9 +161,6 @@ mrstVerbose off;
 
 
 % Using each instance of "states" to make forecast curve:
-% leak_penalty = 5;
-% [obj, Mi_tot, Ma] = leak_penalizer_at_infinity_Rerun(model, wellSols, ...
-%     states, schedule, leak_penalty, 1*atm, fluid.rhoWS, ta );
 Ma = zeros(numel(states),1);
 for i = 1:numel(states)
     Ma(i) = massAtInfinity( model.G, model.rock, states{i}.pressure, ...
