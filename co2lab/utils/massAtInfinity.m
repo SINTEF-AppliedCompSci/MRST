@@ -364,7 +364,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       will_leak_out_catch = sum(double(leaked_from_outside_catchments));
       will_leak_via_trees = sum_cellArray_of_ADI(mass_leaked_per_tree);
       if ~ishandle(opt.h)
-         figure(opt.h); set(gcf,'Position',[2684 901 560 420])
+         figure(opt.h);
       else
          % Avoid stealing focus if figure already exists
          set(0, 'CurrentFigure', opt.h); clf(opt.h)
