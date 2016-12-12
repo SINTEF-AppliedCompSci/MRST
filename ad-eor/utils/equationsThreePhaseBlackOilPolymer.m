@@ -34,7 +34,7 @@ function [problem, state] = equationsThreePhaseBlackOilPolymer(state0, state, ..
 
 % Get linearized problem for oil/water/polymer system with black oil-style
 % properties
-    
+
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
@@ -383,8 +383,13 @@ if ~isempty(W)
         eqs(5:7) = weqs;
 
         % Polymer well equations
+        % For production well, we need to consider the viscosity ratio
         [~, wciPoly, iInxW] = getWellPolymer(W);
         cw        = c(wc);
+        cbarw     = cw/f.cmax;
+        cw = cw ./ (a + (1-a).*cbarw);
+
+        % For injection well, it should be the injection concentration
         cw(iInxW) = wciPoly;
 
         bWqP = cw.*cqs{1};
