@@ -96,8 +96,8 @@ else
     gvar = 'sG';
 end
 
-if ~opt.resOnly,
-    if ~opt.reverseMode,
+if ~opt.resOnly
+    if ~opt.reverseMode
         % define primary varible x and initialize
         [p, sW, x, c, qWs, qOs, qGs, qWPoly, bhp] = ...
             initVariablesADI(p, sW, x, c, qWs, qOs, qGs, qWPoly, bhp);
@@ -491,7 +491,7 @@ function [dx, dy, dz] = cellDims(G, ix)
     ixc = G.cells.facePos;
     ixf = G.faces.nodePos;
 
-    for k = 1 : n,
+    for k = 1 : n
        c = ix(k);                                     % Current cell
        f = G.cells.faces(ixc(c) : ixc(c + 1) - 1, 1); % Faces on cell
        e = mcolon(ixf(f), ixf(f + 1) - 1);            % Edges on cell
@@ -505,13 +505,13 @@ function [dx, dy, dz] = cellDims(G, ix)
 
        % Size of bounding box
        dx(k) = M(1) - m(1);
-       if size(G.nodes.coords, 2) > 1,
+       if size(G.nodes.coords, 2) > 1
           dy(k) = M(2) - m(2);
        else
           dy(k) = 1;
        end
 
-       if size(G.nodes.coords, 2) > 2,
+       if size(G.nodes.coords, 2) > 2
           dz(k) = G.cells.volumes(ix(k))/(dx(k)*dy(k));
        else
           dz(k) = 0;
@@ -558,7 +558,7 @@ function v = computeShearMult(fluid, Vw, muWMultf)
 
     end
 
-    if (iter >= maxit) && (resnorm > abstol),
+    if (iter >= maxit) && (resnorm > abstol)
         error('Convergence failure within %d iterations\nFinal residual = %.8e', maxit, resnorm);
     end
 
