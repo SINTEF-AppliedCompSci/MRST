@@ -210,6 +210,19 @@ if nargout > 1
 end
 end
 
+function target_path = select_filepath(gdirs, gname)
+
+   for p = gdirs
+      
+      files = dir(p{:}); 
+      files = {files.name};
+      if any(cellfun(@(n) strcmpi(n, gname), files))
+         target_path = [p{:} '/' gname];
+         return;
+      end
+   end
+   error(['Could not find ' gname ' in any directory.']);
+end
 
 function datasets = readAtlasGrids(names, coarsening)
 
@@ -242,7 +255,9 @@ for i = 1:numel(grids)
     if any(strcmpi(g(end-3:end), {'.mat', '.prj'}))
         continue
     end
-    [meta, data] = readAAIGrid(fullfile(gdir, g));
+    
+    %[meta, data] = readAAIGrid(fullfile(gdir, g));
+    [meta, data] = readAAIGrid(select_filepath(gdir, g));
     
     % The rawdata files of North Sea formations have neg depth values for
     % top surface, while the rawdata files of Barents Sea formations have
@@ -268,7 +283,17 @@ end
 end
 
 function [n, gdir] = getNames()
-    gdir = getDatasetPath('co2atlas');
+   [n1, gdir1] = getNamesFromDataset('co2atlas');
+   [n2, gdir2] = getNamesFromDataset('co2atlasnorwegiansea');
+   [n3, gdir3] = getNamesFromDataset('co2atlasbarentssea');
+   
+   n = [n1, n2, n3];
+   gdir = {gdir1, gdir2, gdir3};
+end
+
+
+function [n, gdir] = getNamesFromDataset(dataset)
+    gdir = getDatasetPath(dataset);
 
     dir_grid = dir(gdir);
     n = {dir_grid(~[dir_grid.isdir]).name};
