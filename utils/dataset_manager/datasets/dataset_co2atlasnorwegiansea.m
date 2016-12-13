@@ -1,4 +1,4 @@
-function [info, present] = dataset_co2atlasnorwegian()
+function [info, present] = dataset_co2atlasnorwegiansea()
 % Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{

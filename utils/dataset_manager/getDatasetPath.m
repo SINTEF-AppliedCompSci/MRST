@@ -22,8 +22,8 @@ function pth = getDatasetPath(name, varargin)
 %              presence of data on disk.  This is mainly intended for the
 %              case of needing to manually download objects into the
 %              dataset's containing directory through some external means.
-%              Default value: skipAvailableCheck = FALSE (check avilability
-%              of dataset).
+%              Default value: skipAvailableCheck = FALSE (*do* check if the
+%              dataset is available).
 %
 % RETURNS:
 %   pth      - Path to dataset.
