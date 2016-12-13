@@ -98,6 +98,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    opt.last_control_is_migration = false; % if true, constrain last control
                                           % to zero rate
+   opt.lineSearchMaxIt  = 10;
+   opt.gradTol          = 1e-3;
+   opt.objChangeTol     = 5e-4;
    opt.obj_fun = @(dummy) 0;
    opt = merge_options(opt, varargin{:});
 
@@ -162,7 +165,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    u = schedule2control(schedule, scaling);
    [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
-                                     'lineSearchMaxIt', 10, 'gradTol', 1e-3);
+                                     'lineSearchMaxIt', opt.lineSearchMaxIt, ...
+                                     'gradTol',         opt.gradTol, ...
+                                     'objChangeTol',    opt.objChangeTol);
                                      %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
    
    %% Preparing solution structures
