@@ -1,24 +1,23 @@
 function papers = getAvailablePapers()
-% Get structs for all papers known to MRST
+%Get structures for all papers known to MRST
 %
 % SYNOPSIS:
-%   papers = getAvailablePapers();
+%   papers = getAvailablePapers
 %
 % DESCRIPTION:
-%   Get structs (as defined by createPaperStruct) for all known papers.
-%   Papers are known to MRST if they are found as functions in the papers/
-%   subdirectory on the form "papers_name()" in the folder where
-%   getAvailablePapers is found.
+%   Get structures (as defined by createPaperStruct) for all known papers.
+%   Papers are known to MRST if they are found as functions named 'paper_*'
+%   in the 'papers' subdirectory of the directory hosting function
+%   getAvailablePapers.
 %
-% REQUIRED PARAMETERS:
-%  None.
+% PARAMETERS:
+%   None.
 %
 % RETURNS:
-%  A list of all papers, as structs.
+%   A list of all papers known to MRST, as an array of structures.
 %
 % SEE ALSO:
-%   createPaperStruct, mrstExploreModules, mrstReferencesGUI
-%
+%   createPaperStruct, mrstExploreModules, mrstReferencesGUI.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
@@ -38,28 +37,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    pth = mfilename('fullpath');
-    pth = pth(1:(end-numel(mfilename()) - 1));
-    sets = dir(fullfile(pth, 'papers'));
-    
-    % Extract functions that start with dataset and is not directories
-    sn = 'paper';
-    ok = strncmp({sets.name}, sn, numel(sn)) & ~[sets.isdir];
 
-    names = {sets(ok).name}';
-    
-    nD = numel(names);
-    
+    this_dir = fileparts(mfilename('fullpath'));
+    sets     = what(fullfile(this_dir, 'papers'));
+
+    % Extract functions whose names start with 'paper_'.
+    ispaper  = ~ cellfun(@isempty, regexp(sets.m, '^paper_', 'match'));
+
     % Loop over candidate functions, adding to array as we go (dynamic
-    % expansion is ok since the number of datasets is relatively small).
+    % expansion is okay since the number of papers is relatively small).
     papers = [];
-    for i = 1:nD
-        [name, name, ext] = fileparts(names{i}); %#ok
-        if ~strcmpi(ext, '.m')
-            continue
-        end
-        
-        paper = eval([name, '()']);
-        papers = [papers; paper];
+    for func = reshape(sets.m(ispaper), 1, [])
+        [paper, paper] = fileparts(func{1});                    %#ok<ASGLU>
+
+        papers = [papers; feval(paper)];                        %#ok<AGROW>
     end
 end

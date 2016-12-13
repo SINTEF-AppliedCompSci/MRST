@@ -1,17 +1,15 @@
-function paper = createPaperStruct(id, name, varargin)
-% Create a struct containing information about a document that uses MRST
+function paper = createPaperStruct(id, title, varargin)
+%Create a structure containing information about a document that uses MRST
 %
 % SYNOPSIS:
-%   paper = createPaperStruct('name', 'Using MRST for cool stuff', ...)
-%
-% DESCRIPTION:
-%   
+%   paper = createPaperStruct(id, title)
+%   paper = createPaperStruct(id, title, 'pn1', pv1, ...)
 %
 % REQUIRED PARAMETERS:
-%   id     - A short string ID for the paper that can be used to
-%            programmatically refer to the same id over multiple revisions.
+%   id    - A short string ID for the paper that can be used to
+%           programmatically refer to the same id over multiple revisions.
 %
-%   name   - A string containing the name of the paper.
+%   title - A string containing the title of the paper.
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
 %   'authors'   - A string containing the names of the authors.
@@ -34,7 +32,7 @@ function paper = createPaperStruct(id, name, varargin)
 %   'doi'       - Digital object identifier for the publication.
 %
 % RETURNS:
-%   paper   - Struct with defaulted values for keywords not specified.
+%   paper - Structure with defaulted values for keywords not specified.
 %
 % SEE ALSO:
 %   getAvailablePapers, mrstReferencesGUI
@@ -66,5 +64,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                    'fileurl', '');
     paper = merge_options(paper, varargin{:});
     paper.id = id;
-    paper.name = name;
+    paper.name = title;
 end
