@@ -169,8 +169,22 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
             bw    = {bW(wc), bO(wc), bG(wc)};
 
             [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-            mw    = {mobW(wc), mobO(wc), mobG(wc)};
             sat = {sW(wc), sO(wc), sG(wc)};
+
+
+            mw    = {mobW(wc), mobO(wc), mobG(wc)};
+
+            % We assume the polymer in the wellbore is always fully mixed,
+            % we need to re-calculate injection mobility
+
+            [~, wciPoly, iInxW] = getWellPolymer(W);
+            cw        = c(wc);
+
+            % remove the old viscosity and applying the fully mixed viscosity
+            muWMultW = muWMult(wc);
+            muWFullyMixed = model.fluid.muWMult(cw);
+
+            mw{1}(iInxW) = mw{1}(iInxW) ./ muWFullyMixed(iInxW) .* muWMultW(iInxW);
 
             [cqs, weqs, ctrleqs, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
                 bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
@@ -197,7 +211,13 @@ if model.usingShear || model.usingShearLog || model.usingShearLogshrate
     wc = vertcat(W.cells);
     muWMultW = muWMult(wc);
 
+    % We assume the viscosity multiplier should be consistent with current
+    % way in handling the injection mobility, while the assumption is not
+    % verfied with any tests yet due to lack of the reference result.
+
     [~, wciPoly, iInxW] = getWellPolymer(W);
+    cw = c(wc);
+    muWMultW(iInxW) = model.fluid.muWMult(cw(iInxW));
 
     % Maybe should also apply this for PRODUCTION wells.
     muWMultW((iInxW(wciPoly==0))) = 1;
@@ -365,11 +385,23 @@ if ~isempty(W)
 
         [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
 
-        if ~model.usingShear && ~model.usingShearLog && ~model.usingShearLogshrate
-            mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        end
+        mw = {mobW(wc), mobO(wc), mobG(wc)};
+        % We assume the polymer in the wellbore is always fully mixed,
+        % we need to re-calculate injection mobility
+
+        [~, wciPoly, iInxW] = getWellPolymer(W);
+        cw        = c(wc);
+
+        % remove the old viscosity and applying the fully mixed viscosity
+        muWMultW = muWMult(wc);
+        muWFullyMixed = model.fluid.muWMult(cw);
+
+        mw{1}(iInxW) = mw{1}(iInxW) ./ muWFullyMixed(iInxW) .* muWMultW(iInxW);
+
+
         if model.usingShear || model.usingShearLog || model.usingShearLogshrate
-            mw    = {mobW(wc)./shearMultW, mobO(wc), mobG(wc)};
+            % applying the shear effects
+            mw{1}    = mw{1}./shearMultW;
         end
 
         s = {sW(wc), sO(wc), sG(wc)};
@@ -384,8 +416,6 @@ if ~isempty(W)
 
         % Polymer well equations
         % For production well, we need to consider the viscosity ratio
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        cw        = c(wc);
         cbarw     = cw/f.cmax;
         cw = cw ./ (a + (1-a).*cbarw);
 
