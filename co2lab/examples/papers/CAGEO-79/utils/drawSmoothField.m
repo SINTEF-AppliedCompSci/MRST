@@ -2,6 +2,7 @@ function ax = drawSmoothField(ax, grid, field, samples, varargin)
     
     opt.alpha = 1;
     opt.quickclip = false;
+    opt.field_threshold = [];
     opt = merge_options(opt, varargin{:});
     
     %% massaging input arguments
@@ -24,6 +25,11 @@ function ax = drawSmoothField(ax, grid, field, samples, varargin)
     Fsampled = F(x, y);
     if ~opt.quickclip
         Fsampled(~mask_fn(x, y)) = NaN;
+    end
+    
+    % also mask away any values below a specified threshold
+    if ~isempty(opt.field_threshold)
+        Fsampled(Fsampled < opt.field_threshold) = NaN;
     end
     
     h = pcolor(ax, xvec, yvec, reshape(Fsampled, samples(1), samples(2)));%, 'edgecolor', 'none');
