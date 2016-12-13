@@ -8,8 +8,10 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
     opt.plot_well_numbering = false;
     opt.plot_plume = true;
     opt.plot_traps = false;
+    opt.plot_rivers = false;
     opt.plume_threshold = 0.3;
     opt.background = '';
+    opt.background_threshold = [];
     opt.backgroundalpha = 0.7;
     opt.background_use_log = false;
     opt.quickclip = true;
@@ -21,6 +23,10 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
     opt.ymax = inf;
     opt.maplines = 40;
     opt.init_state = [];
+    opt.trapmethod = false;     % cell vs node based
+    opt.ta = [];                % computed if required and empty
+    opt.rivercolor = [1 0 0];
+    opt.trapcolor = [1 0 0];
     
     rho = getValuesSPE134891();
     opt.rhoRef = rho(2);
@@ -103,13 +109,22 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
         end
     
         traps = [];
+        rivers = [];
         if opt.plot_traps
-            ta = trapAnalysis(GtSub, false);
-            traps = ta.traps;
+            if isempty(opt.ta)
+                opt.ta = trapAnalysis(GtSub, opt.trapmethod);
+            end
+            traps = opt.ta.traps;
+            if opt.plot_rivers
+                rivers = opt.ta.cell_lines;
+            end
         end
         
         mapPlot(h, GtSub, ...
                 'traps', traps, ...
+                'trapcolor', opt.trapcolor, ...
+                'rivers', rivers, ...
+                'rivercolor', opt.rivercolor, ...
                 'title', sprintf('Year: %i', ceil(reports(ix).t/year)), ...
                 'plumes', plume, ...
                 'wellcells', wellcells, ...
@@ -117,6 +132,7 @@ function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
                 'plume_h_threshold', opt.plume_threshold, ...
                 'background', field, ...
                 'backgroundalpha', opt.backgroundalpha,...
+                'background_threshold', opt.background_threshold, ...
                 'quickclip', opt.quickclip,...
                 'maplines', opt.maplines, ...
                 'colorbarposition', 'southoutside');
