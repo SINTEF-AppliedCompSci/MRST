@@ -211,13 +211,13 @@ end
 end
 
 function target_path = select_filepath(gdirs, gname)
+   assert (ischar(gname), 'Internal Error');
 
-   for p = gdirs
-      
-      files = dir(p{:}); 
-      files = {files.name};
-      if any(cellfun(@(n) strcmpi(n, gname), files))
-         target_path = [p{:} '/' gname];
+   for p = reshape(gdirs, 1, [])
+
+      files = dir(p{1});
+      if any(strcmpi({files.name}, gname))
+         target_path = fullfile(p{1}, gname);
          return;
       end
    end
