@@ -3,8 +3,6 @@
 % Norwegian Petroleum Directorate's Compiled CO2 Storage Atlas of the
 % Norwegian Continental Shelf, found here:
 %       http://www.npd.no/en/Publications/Reports/Compiled-CO2-atlas/
-% For access to this dataset, please use the contact information provided
-% on the website.
 
 % We use a fairly coarsened version of this formation dataset, to reduce
 % the required time to run this example. Coarsening is controlled upon call
