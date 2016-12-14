@@ -14,7 +14,7 @@ function papers = getAvailablePapers()
 %   None.
 %
 % RETURNS:
-%   A list of all papers known to MRST, as an array of structures.
+%   papers - List of all papers known to MRST, as an array of structures.
 %
 % SEE ALSO:
 %   createPaperStruct, mrstExploreModules, mrstReferencesGUI.
