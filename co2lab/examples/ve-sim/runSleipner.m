@@ -46,7 +46,8 @@ disp(' ');
 % use C-accelerated MATLAB routines to process the data input and compute
 % geometry. Once the models are created, they are stored in a data file for
 % faster access at a later time.
-[G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel(true);
+[G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel('usemex',true, ...
+                                                    'assign_coords',false);
 
 %% Set time and fluid parameters
 % Fluid data are taken from paper SPE 134891

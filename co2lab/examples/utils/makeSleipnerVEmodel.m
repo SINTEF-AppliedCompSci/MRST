@@ -1,4 +1,4 @@
-function [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel(usemex)
+function [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel(varargin)
 %Make an VE model based upon the Sleipner data set from ieaghg.org
 %
 % SYNOPSIS:
@@ -10,42 +10,85 @@ function [G, Gt, rock, rock2D, bcIxVE] = makeSleipnerVEmodel(usemex)
 %   rock   - Data structure for 3D rock parameters
 %   rock2D - Data structure for rock parameters for topsurface grid
 %   bcIxVE - Index for pressure boundary conditions in topsurface grid
-%   usemex - Flag: if true, use C-accelerated routines for processing
-%            Eclipse input and computing geometry
+%
+% OPTIONS:
+%   usemex          - Flag: if true, use C-accelerated routines for
+%                   processing Eclipse input and computing geometry
+%   assign_coords   - Flag: if true, will read physical coordinates from
+%                   Sleipner's M9X1.grdecl datafile, and save as 
+%                   SleipnerGlobalCoords.mat, otherwise Sleipner.mat
 %
 % DESCRIPTION:
 %
 % SEE ALSO:
 %   runSleipner
 
-if nargin<1, usemex = true; end
+opt.usemex          = true;
+opt.assign_coords   = false;
+opt = merge_options(opt, varargin{:});
 
 try
-   disp(' -> Reading Sleipner.mat');
    datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
-   load(fullfile(datadir,'Sleipner'));
-   return;
+   if ~opt.assign_coords
+       disp(' -> Reading Sleipner.mat');
+       load(fullfile(datadir,'Sleipner'));
+       return;
+   else
+       disp(' -> Reading SleipnerGlobalCoords.mat');
+       load(fullfile(datadir,'SleipnerGlobalCoords'));
+       return;
+   end
 catch %#ok<*CTCH>
    disp('    Data set has not yet been constructed.');
 end
 
 %% Read data
+% First loading: to get cartDims, COORD, ZCORN, ACTNUM, PERMX, PERMZ, PORO
 try
    sdir = fullfile('data', 'sleipner');
    disp([' -> Reading data from: ' sdir]);
    grdecl = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
 catch
-   fprintf(1, '    Reading failed, please dowload data manually following');
-   fprintf(1, ' instructions\n    in "%s"\n', fullfile(sdir,'README'));
+   fprintf(1, '    Reading of SLEIPNER.DATA failed, please dowload data manually');
+   fprintf(1, ' following instructions\n    in "%s"\n', fullfile(sdir,'README'));
    return;
 end
 
-%% Process 3D grid and compute geometry
-% First, we map from left-hand to right-hand coordinate system. 
+% Second loading (optional): to get MAPUNITS, MAPAXES
+if opt.assign_coords
+   try
+       moduleCheck('deckformat', 'mex');
+       sl_file = fullfile(mrstPath('co2lab'), 'data', 'sleipner', 'M9X1.grdecl'); % IEAGHG 
+       fn      = fopen(sl_file);
+       gr      = readGRID(fn, fileparts(sl_file), initializeDeck());
+       fclose(fn); 
+       % Add MAPAXES and MAPUNITS to grdecl
+       grdecl.MAPAXES = gr.GRID.MAPAXES;
+       grdecl.MAPUNITS = gr.GRID.MAPUNITS;
+       clear gr sl_file
+   catch
+       fprintf(1, '    Reading of M9X1.grdecl failed, please dowload data manually');
+       fprintf(1, ' following instructions\n    in "%s"\n', fullfile(sdir,'README'));
+       return;
+   end
+end
+
+%% Process 3D grid and compute geometry 
 disp(' -> Processing grid');
-lines = reshape(grdecl.COORD,6,[]);
-lines([2 5],:) = -lines([2 5],:);
-grdecl.COORD = lines(:); clear lines
+
+if ~opt.assign_coords
+    % First, we map from left-hand to right-hand coordinate system. 
+    lines = reshape(grdecl.COORD,6,[]);
+    lines([2 5],:) = -lines([2 5],:);
+    grdecl.COORD = lines(:); clear lines
+else
+    % First, we recompute X and Y coordinates in terms of the provided axes
+    % (depths, Z, do not require any recomputation)
+    coords        = reshape(grdecl.COORD,3,[])';
+    coords(:,1:2) = mapAxes(coords(:,1:2), grdecl.MAPAXES);
+    coords        = coords';
+    grdecl.COORD  = coords(:); clear coords
+end
 
 % Then, we remove the bottom and top layers that contain shale
 grdecl.ACTNUM(grdecl.PERMX<200) = 0;
@@ -53,7 +96,7 @@ grdecl.ACTNUM(grdecl.PERMX<200) = 0;
 % Next, we process the grid and compute geometry, possibly using
 % C-accelerated routines
 G = [];
-if usemex,
+if opt.usemex,
    mlist = mrstModule;
    mrstModule add libgeometry opm_gridprocessing
    try
@@ -106,9 +149,14 @@ view([30 60]), axis tight; drawnow
 %}
 
 %% Store data
-disp(' -> Writing Sleipner.mat')
 if ~isdir(datadir)
-   mkdir(datadir);
+    mkdir(datadir);
 end
-save(fullfile(datadir,'Sleipner'), 'G', 'Gt', 'rock', 'rock2D', 'bcIxVE');
+if ~opt.assign_coords
+    disp(' -> Writing Sleipner.mat')
+    save(fullfile(datadir,'Sleipner'), 'G', 'Gt', 'rock', 'rock2D', 'bcIxVE');
+else
+    disp(' -> Writing SleipnerGlobalCoords.mat')
+    save(fullfile(datadir,'SleipnerGlobalCoords'), 'G', 'Gt', 'rock', 'rock2D', 'bcIxVE');
+end
 end
