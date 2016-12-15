@@ -255,6 +255,10 @@ for i = 1:numel(grids)
     if any(strcmpi(g(end-3:end), {'.mat', '.prj'}))
         continue
     end
+    % Skip any readme files
+    if any(strcmpi(g, {'readme.txt', 'readme'}))
+        continue
+    end
     
     %[meta, data] = readAAIGrid(fullfile(gdir, g));
     [meta, data] = readAAIGrid(select_filepath(gdir, g));
