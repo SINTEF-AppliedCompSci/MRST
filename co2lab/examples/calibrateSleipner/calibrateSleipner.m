@@ -2,7 +2,10 @@
 % This example calibrates the Sleipner model (top surface elevations, rock
 % property, CO2 entry rates, CO2 density) by minimizing the misfit between
 % simulated and observed CO2 plume thicknesses.
-
+%
+% The calibration result obtained by running this script is only one
+% possible solution that is found within a "family of optimals".
+%
 % For more details, see Nilsen et al. "Using sensitivities and
 % vertical-equilibrium models for parameter estimation of CO2 injection
 % models with application to Sleipner data", Energy Procedia, 2017.
@@ -12,6 +15,7 @@
 mrstModule add co2lab
 gravity('reset',[0 0 9.8])
 gravity on
+
 
 %% Set up model with a schedule of 12 years (1999-2010).
 % An initial simulation will be run.
@@ -38,13 +42,21 @@ end
 % Initial simulated heights vs. observed plume thicknesses
 plotObsAndSim(Gt, newplumes, states_base)
 
+
 %% Set limits of variables to optimize (will be stored in scaling.boxLims)
+% We calibrate specific variables of the benchmark model within certain
+% limits. The limits for grid elevation change (dzLims) refer to the
+% dimensional unit of meters for which the initial grid can change. The
+% limits for CO2 density, permeability, and porosity refer to the
+% multipliers applied to the initial variable values. The limits for CO2
+% entry rates (qLims) refer to the (constant) multiplier applied to the
+% initial 1999-2010 entry rates.
 q_mean = mean(arrayfun(@(x)x.W.val, schedule.control));
-dzLims  = [-5 5];
-qLims   = [0.1 1.5]*q_mean;
-rhoLims = [0.1 2];
-permLims = [0.5 12];
-poroLims = [0.5 1.4];
+dzLims  = [-5 5];           % elevations
+qLims   = [0.1 1.5]*q_mean; % rates (same multiplier applied to each rate)
+rhoLims = [0.4 2];          % CO2 density
+permLims = [0.5 12];        % permeability
+poroLims = [0.5 1.4];       % porosity
 
 
 %% Define objective function and compute initial value
@@ -87,22 +99,41 @@ fprintf('rate multiplier: %4.2f\n', u_opt(end-3)/q_mean);
 fprintf('rho mutiplier: %4.2f, perm mutiplier: %4.2f, poro mutiplier: %4.2f\n', u_opt(end-2), u_opt(end-1), u_opt(end)) 
 
 % Final simulated heights vs. observed plume thicknesses
-% @@
 plotObsAndSim(Gt, newplumes, states_opt)
 
 
 %% Store results
-history.hess = history.hess{end};       % NB: store only converged H to reduce datasize
-res = struct('perm', u_opt(end-1), ...  % NB: full u stored in history.u{end}
-             'poro', u_opt(end), ...
-             'rho', u_opt(end-2), ...
-             'rate', u_opt(end-3)/q_mean, ...
-             'dz', u_opt(1:end-4), ...
-             'v_base', sum(v_base), ...
-             'v_opt', v_opt, ...
+% We store the convergence details of the calibration (history), the
+% multipliers of the variables (mult), as well as the calibrated variables
+% in their proper units (perm, poro, rho, rate, dz). The calibrated
+% variables of perm and poro refer to their averaged values. The rate
+% multiplier is applied to each annual rate provided in the benchmark.
+history.hess = history.hess{end};   % NB: store only converged H to reduce datasize
+mult.poro = u_opt(end);             % NB: full u stored in history.u{end}
+mult.perm = u_opt(end-1);
+mult.rho  = u_opt(end-2);
+mult.rate = u_opt(end-3)/q_mean;
+res = struct('multipliers', mult, ...
+             'perm',    mult.perm * convertTo(mean(smodel.rock.perm),darcy), ...
+             'poro',    mult.poro * mean(smodel.rock.poro), ...
+             'rho',     mult.rho * smodel.fluid.rhoGS, ...
+             'rate',    mult.rate .* (arrayfun(@(x)x.W.val, schedule_base.control)), ...
+             'dz',      u_opt(1:end-4), ...
+             'v_base',  sum(v_base), ...
+             'v_opt',   v_opt, ...
              'scaling', scaling, ...
              'states_opt', {states_opt}, ...
-             'f', f, ...
              'history', history);
 
-save(['calibrateSleipnerResults.mat'], 'res', '-v7.3')
+save('calibrateSleipner_results.mat', 'res', '-v7.3')
+
+
+%% Some final output:
+% This is one possible solution that is found within a "family of optimals".
+fprintf('\nVariable             Initial    Calibrated    Unit \n')
+fprintf('----------------------------------------------------\n')
+fprintf(' avg. porosity      |  %1.3f   |  %1.3f      |      \n', mean(smodel.rock.poro), mult.poro*mean(smodel.rock.poro))
+fprintf(' avg. permeability  |  %2.3f   |  %2.3f      | darcy\n', convertTo(mean(smodel.rock.perm),darcy), mult.perm*convertTo(mean(smodel.rock.perm),darcy))
+fprintf(' CO2 density        |  %4.1f   |  %4.1f      | kg/m3\n', smodel.fluid.rhoGS, mult.rho*smodel.fluid.rhoGS)
+fprintf(' avg. CO2 entry rate| %0.4f   | %0.4f      | m3/s \n', q_mean, mult.rate*q_mean)
+
