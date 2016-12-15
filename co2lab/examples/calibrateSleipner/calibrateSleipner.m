@@ -137,3 +137,12 @@ fprintf(' avg. permeability  |  %2.3f   |  %2.3f      | darcy\n', convertTo(mean
 fprintf(' CO2 density        |  %4.1f   |  %4.1f      | kg/m3\n', smodel.fluid.rhoGS, mult.rho*smodel.fluid.rhoGS)
 fprintf(' avg. CO2 entry rate| %0.4f   | %0.4f      | m3/s \n', q_mean, mult.rate*q_mean)
 
+% Initial versus calibrated grid:
+figure
+subplot(1,2,1)
+title({'Initial';'top-surface elevations'})
+plotCellData(smodel.G, smodel.G.cells.z, 'edgealpha',0.1); colorbar; axis equal tight off
+subplot(1,2,2)
+title({'Calibrated';'top-surface elevations'})
+plotCellData(smodel.G, smodel.G.cells.z + res.dz, 'edgealpha',0.1); colorbar; axis equal tight off
+
