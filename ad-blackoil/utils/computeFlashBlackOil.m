@@ -1,5 +1,53 @@
 function state = computeFlashBlackOil(state, state0, model, status)
-    % Update state based on vapoil/disgas flash
+% Compute flash for a black-oil model with disgas/vapoil
+%
+% SYNOPSIS:
+%   state = computeFlashBlackOil(state, state0, model, status)
+%
+% DESCRIPTION:
+%   Compute flash to ensure that dissolved properties are within physically
+%   reasonable values, and simultanously avoid that properties go far
+%   beyond the saturated zone when they were initially unsaturated and vice
+%   versa.
+%
+% REQUIRED PARAMETERS:
+%   state  - State where saturations, rs, rv have been updated due to a
+%            Newton-step.
+%
+%   state0 - State from before the linearized update.
+%
+%   model  - The ThreePhaseBlackOil derived model used to compute the
+%            update.
+%
+%   status - Status flags from getCellStatusVO, applied to state0.
+%
+% RETURNS:
+%   state - Updated state where saturations and values are chopped near
+%           phase transitions.
+%
+% NOTE:
+%    Be mindful of the definition of state0. It is not necessarily the
+%    state at the previous timestep, but rather the state at the previous
+%    nonlinear iteration!
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
     fluid = model.fluid;
     
     disgas = model.disgas;
@@ -24,7 +72,7 @@ function state = computeFlashBlackOil(state, state0, model, status)
     rv0 = model.getProp(state0, 'rv');
     
     etol = sqrt(eps);
-    % Detrmine staus of updated cells -----------------------------------------
+    % Determine status of updated cells -----------------------------------------
     watOnly  = sw > 1-etol;
 
     % phase transitions sg <-> rs  --------------------------------------------
@@ -98,3 +146,4 @@ function state = computeFlashBlackOil(state, state0, model, status)
 
     state.status = oilPresent + 2*gasPresent;
 end
+

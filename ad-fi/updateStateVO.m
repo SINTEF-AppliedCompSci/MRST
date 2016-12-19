@@ -37,7 +37,7 @@ if vapoil
     rv  = rv + drv;
 end
 
-% Detrmine staus of updated cells -----------------------------------------
+% Determine status of updated cells -----------------------------------------
 watOnly  = sw(:,1) > 1-etol;
 
 % phase transitions sg <-> rs  --------------------------------------------

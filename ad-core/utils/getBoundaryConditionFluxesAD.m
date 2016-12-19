@@ -1,4 +1,4 @@
-function [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
+function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, bc)
 %Get boundary condition fluxes for a given set of values
 %
 % SYNOPSIS:
@@ -40,7 +40,7 @@ function [qSurf, BCTocellMap, BCcells] = getBoundaryConditionFluxesAD(model, pre
 %   addBC, pside, fluxside
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -70,7 +70,8 @@ assert(size(bc.sat, 2) == nPh, ...
     num2str(nPh), ', but input had ', num2str(size(bc.sat, 2)), ' columns.']);
 assert(~any(all(N > 0, 2)),'bc on internal boundary');
 ss = sum(bc.sat, 2);
-assert(all(ss == 1 | ss == 0));
+% Values should either sum to zero or one
+assert(all(ss - 1 < sqrt(eps) | ss < sqrt(eps)));
 
 % Mapping
 BCcells = sum(N, 2);
@@ -93,7 +94,7 @@ end
 
 isP = reshape(strcmpi(bc.type, 'pressure'), [], 1);
 
-qSurf = cell(nPh,1);
+[qSurf, qRes] = deal(cell(nPh,1));
 
 % Use sat field to determine what any inflow cells produce.
 sat = bc.sat;
@@ -108,7 +109,7 @@ end
 
 for i = 1:nPh
     
-    q = double2ADI(zeros(nbc, 1), mob{i});
+    [q_s, q_r] = deal(double2ADI(zeros(nbc, 1), mob{i}));
     
     pBC   = cellToBCMap*pressure{i};
     rhoBC = cellToBCMap*rho{i};
@@ -135,7 +136,9 @@ for i = 1:nPh
     if any(~injDir)
         % Write out the flux equation over the interface
         subs = isP & ~injP;
-        q(subs) = bBC(subs).*mobBC(subs).*T(subs).*dP(~injDir);
+        q_res = mobBC(subs).*T(subs).*dP(~injDir);
+        q_s(subs) = bBC(subs).*q_res;
+        q_r(subs) = q_res;
         clear subs
     end
     
@@ -143,7 +146,9 @@ for i = 1:nPh
         % In this case, pressure drives flow inwards, we get the injection rate
         % determined by the sat field
         subs = isP & injP;
-        q(subs)  = bBC(subs).*totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
+        q_res = totMob(subs).*T(subs).*dP(injDir).*sat(subs, i);
+        q_s(subs)  = bBC(subs).*q_res;
+        q_r(subs) = q_res;
         clear subs
     end
     % Treat flux / Neumann BC
@@ -152,16 +157,20 @@ for i = 1:nPh
     subs = ~isP &  injNeu;
     if any(subs)
         % Injection
-        q(subs) = bc.value(subs).*sat(subs, i);
+        q_s(subs) = bc.value(subs).*sat(subs, i);
+        q_r(subs) = bc.value(subs).*sat(subs, i)./bBC(subs);
     end
     subs = ~isP & ~injNeu;
     if any(subs)
         % Production fluxes, use fractional flow of total mobility to
         % estimate how much mass will be removed.
         f = mobBC(subs)./totMob(subs);
-        q(subs) = f.*bc.value(subs);
+        tmp = f.*bc.value(subs);
+        q_s(subs) = tmp;
+        q_r(subs) = tmp./bBC(subs);
     end
-    qSurf{i} = q;
+    qSurf{i} = q_s;
+    qRes{i} = q_r;
 end
 end
 

@@ -1,11 +1,11 @@
-function [state, meta] = stepOGTMI(state0, state, meta, dt, W, G, system, varargin)
+function [state, meta] = stepOGTMI(state0, state, meta, dt, G, W, system, fluid, varargin)
 % Do a single step of a nonlinear solve for a Oil-Water system
 % This function should in general not be called directly and is as such not
 % documented with regards to input/output: See solvefiADI for an
 % explanation of how the ad-fi solvers are implemented.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -32,7 +32,7 @@ s = system.s;
 %     solve = @(eqs) SolveEqsADIPOD(eqs, opt.podbasis);
 % else
 %eqs = eqsfiOGExplicitWells(state0, state, dt, G, W, s, fluid);
-eqs =system.getEquations(state0, state, dt, G, W, s, system.fluid);
+eqs =system.getEquations(state0, state, dt, G, W, s, fluid);
 if system.nonlinear.cpr && isempty(system.podbasis)
     if 0
     [dx, gmresits, gmresflag] =cprTwoPhaseExplicitWells(eqs,...
@@ -58,7 +58,7 @@ end
 
 searchfail = true;
 if system.nonlinear.linesearch
-    getEqs = @(state) system.getEquations(state0, state, dt, G, W, s, system.fluid, 'resOnly', true);
+    getEqs = @(state) system.getEquations(state0, state, dt, G, W, s, fluid, 'resOnly', true);
     upState = @(dx) updateState(state, dx);
     [state, dx, searchfail] = linesearchADI(state, dx, system, getEqs, upState, false);
 end

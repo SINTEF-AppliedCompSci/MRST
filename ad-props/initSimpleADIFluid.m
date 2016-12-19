@@ -1,9 +1,10 @@
 function fluid = initSimpleADIFluid(varargin)
-% Make a structure representing a three-component fluid (water, oil, gas)
-% and their properties (relative permeabilities, densities, viscosities).
-% Relative permeabilities are modeled as monomial functions of saturation.
-% Densities are assumed constant, so the returned formation volume factors
-% are constant equal to 1.
+% Make a structure representing a fluid with up to three phases (water,
+% oil, gas) and their properties (relative permeabilities, densities,
+% viscosities). Relative permeabilities are modeled as monomial functions
+% of saturation. Densities are assumed constant, so the returned formation
+% volume factors are constant equal to 1, unless compressibility factors
+% are given as optional arguments.
 %
 % SYNOPSIS:
 %   fluid = initSimpleADIFluid()
@@ -11,64 +12,167 @@ function fluid = initSimpleADIFluid(varargin)
 %
 % PARAMETERS:
 %   'pn'/pv - List of property names/property values.  Possibilities are:
-%   - mu  : vector of viscosity values for water, oil and gas, [muW, muO, muG].  
+%
+%   - phases: A string containing up to three of the letters W, O, G,
+%           representing water, oil and gas respectively. The values of
+%           this input argument determines the interpretation of the other
+%           input arguments. For instance, the default is WOG, which will
+%           lead to the 'rho' input argument
+%           ... 'rho', [1000, 700, 100]*kilogram/meter^3)
+%           to be interpreted as a water phase with density of 1000kg/m^3,
+%           the oil phase having a density 700 kg/m^3 and gas having a
+%           density of 100. However, if the input argument was 
+%           ... 'rho', [300, 500])
+%           and 'phases' was 'GO', it would be interpreted as a gas-oil
+%           system with gas density of 300kg/m^3 and oil densit yof 500
+%           kg/m^3. See the examples and the end of the documentation for
+%           more information.
+%
+%   - mu    vector of viscosity values for phases present. For a
+%           three-phase model, this will be [muW, muO, muG].
 %           Default is [1 1 1].
-%   - rho : vector of density values for water, oil and gas, [rhoW, rhoO, rhoG].
+%
+%   - rho   vector of surface density values for phases present. For a
+%           three-phase model, this will be [rhoWS, rhoOS, rhoGS].
 %           Default is [1 1 1].
-%   - n   : vector of the degrees of the monomials describing relative
-%           permeability for water, oil and gas [nW, nO, nG].  Default is
-%           [1 1 1] (linear relative permeabilities)
+%
+%   - n     vector of the degrees of the monomials describing relative
+%           permeability for each phase. Default is [1 1 1] (linear
+%           relative permeabilities for each phase). If the model is a
+%           three-phase model, oil-water and oil-gas relative permeability
+%           curves will also be added.
+%
+%   - b     Inverse formation volume factors. The reservoir density of a
+%           phase is defined as rho_reservoir = rho_surf * b. The inverse
+%           formation volume factor, denoted small b, is the reciprocal of
+%           the large B often seen in literature,
+%           B = 1/b.
+%
+%   - c     Compressibility factor. If specified for each phase, it will
+%           result in b-factors on the form
+%               b(p) = b_ref * exp((p-pRef)*c),
+%           where b_ref is the b-factor specified as keyword argument (see
+%           above) and pRef is specified as a seperate keyword (default: 0)
+%
+%   - cR    Rock compressibility. If given, the fluid will contain a rock
+%           pore volume multiplier that gives a linear increase in pore
+%           volume with pressure, multiplied with cR,
+%               pv = pv_ref * (1 + (p-pRef)*cR)
+%           where pv_ref is the pore volume specified by the grid and rock
+%           models
+%
+%   - pRef  Reference pressure used in conjunction with rock and fluid
+%           compressibility factors c and cr, i.e.,
+%               b(p) = b_ref * exp((p-p_ref)*c)
+%               pv = pv_ref * (1 + (p-pRef)*cR)
+%           Default value is pRef=0
 %
 % RETURNS:
 %   fluid - struct containing the following functions (where X = 'W' [water],
-%           'O' [oil] and 'G' [gas]) 
-%           * [krW, krO, krG] = relPerm(s_water, s_gas) - relative permeability functions         
-%           * rhoX         - density of X
-%           * rhoXS        - density of X at surface (equal to rhoX, since incompressible)
-%           * bX(p), BX(p) - formation volume factors and their inverses
-%                            (constants, always equal one)
-%           * muX(p)       - viscosity functions (constant)
-%           * krX(s)       - rel.perm for X
-%           * krOX(s)      - 
-%           * rsSat()      - saturation value for dissolved gas (always returns 0)
+%           'O' [oil] and 'G' [gas])
+%           * krW, krO, krG - Relative permeability functions
+%           * rhoXS         - density of X at surface conditions
+%           * bX(p)         - inverse formation volume factor
+%           * muX(p)        - viscosity functions (constant)
+%           * krX(s)        - rel.perm for X
+%           * krOW, krOG    - (If 3ph - oil-water and oil-gas rel.perm)
+%
+% EXAMPLES: 
+% Create an incompressible three-phase fluid with properties:
+% water: rhoS = 1000kg/m^3, mu = 1.0cP
+% oil:   rhoS =  700kg/m^3, mu = 5.0cP
+% gas :  rhoS =  200kg/m^3, mu = 0.1cP
+% And linear relative permeabilities
+% fluid = initSimpleADIFluid('phases', 'WOG', ...
+%                            'mu',      [1, 5, 0.1]*centi*poise,...
+%                            'rho'     [1000, 700, 200]*kilogram/meter^3)
+% 
+% Create a two-phase, oil-water fluid where the oil phase is weakly
+% compressible and quadratic relative permeabilities for both phases:
+% water: rhoS = 1000kg/m^3, mu = 1.0cP, incompressible
+% oil:   rhoS =  650kg/m^3, mu = 8.0cP, b(p)=exp((p-100*barsa)*1e-5/barsa)
+%
+% fluid = initSimpleADIFluid('phases', 'OW', ...
+%                            'mu',      [8, 1]*centi*poise, ...
+%                            'rho',     [650, 1000]*kilogram/meter^3 , ...
+%                            'n',       [2, 2], ...
+%                            'pRef',    100*barsa, ...
+%                            'c',       [1e-5, 0]/barsa);
 
-   opt = struct('mu', [1 1 1], 'rho', [1 1 1], 'n', [1 1 1]);
-   opt = merge_options(opt, varargin{:});
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
-   krW = @(sw, varargin) sw.^opt.n(1);
-   krO = @(so, varargin) so.^opt.n(2);
-   krG = @(sg, varargin) sg.^opt.n(3);
-   relperms = {krW, krO, krG};
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
-   fluid.relPerm = @(sw, sg, varargin) relPerm(krW, krO, krG, sw, sg, varargin{:});
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-   names = {'W', 'O', 'G'};
-   for i = 1:numel(names)
-       n = names{i};
-       bf = @(p, varargin) constantUnitBfactor(p, varargin{:});
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
-       fluid.(['rho', n]) = opt.rho(i);
-       fluid.(['rho', n, 'S']) = opt.rho(i);
-       fluid.(['b', n]) = bf;
-       fluid.(['B', n]) = bf;
-       fluid.(['mu', n]) = @(p, varargin) constantViscosity(opt.mu(i), p, varargin{:});
-       fluid.(['kr', n]) = relperms{i};
-       fluid.(['krO', n]) = relperms{i};
-   end
-   fluid.rsSat = @(varargin) varargin{1}*0;
+opt = struct('mu',      [1, 1, 1], ...
+             'rho',     [1, 1, 1], ...
+             'n',       [1, 1, 1], ...
+             'b',       [1, 1, 1], ...
+             'c',       [], ...
+             'pRef',    0, ...
+             'cR',      [], ...
+             'phases',  'WOG');
+opt = merge_options(opt, varargin{:});
+
+names = upper(opt.phases);
+assert(all(ismember(double(names), double('WOG'))), ...
+    'Input phases must be some combination of W for water, O for oil and G for gas!');
+nPh = numel(names);
+assert(nPh == numel(unique(double(names))), 'Duplicate phases detected.');
+for i = 1:nPh
+    n = names(i);
+    b = opt.b(i);
+    if isempty(opt.c)
+        % Constant value (incompressible phase)
+        bf = @(p, varargin) b*constantReciprocalFVF(p, varargin{:});
+    else
+        % Compressibility on the form
+        % b = b_ref exp((p-p_ref)*c)
+        c = opt.c(i);
+        if c < 0
+            warning('Negative compressibility detected.')
+        end
+        bf = @(p, varargin) b*exp((p-opt.pRef)*c);
+    end
+    kr = @(s) s.^opt.n(i);
+    
+    fluid.(['rho', n, 'S']) = opt.rho(i);
+    fluid.(['b', n]) = bf;
+    fluid.(['mu', n]) = @(p, varargin) constantViscosity(opt.mu(i), p, varargin{:});
+    fluid.(['kr', n]) = kr;
+    if strcmpi(n, 'O') && nPh > 2
+        [fluid.krOW, fluid.krOG] = deal(kr);
+    end
 end
 
-function [krW, krO, krG] = relPerm(krW, krO, krG, sw, sg, varargin)
-    krW = krW(sw, varargin{:});
-    krO = krO(1 - sw - sg, varargin{:});
-    krG = krG(sg, varargin{:});
+if ~isempty(opt.cR)
+    % Rock compressibility
+    cR = opt.cR;
+    assert(numel(cR) == 1, 'Rock compressibility must be given as a single number');
+    assert(cR >= 0, 'Rock compressibility must be a positive number');
+    fluid.cR = cR;
+    fluid.pvMultR = @(p)(1 + cR.*(p-opt.pRef));
+end
 end
 
-function B = constantUnitBfactor(p, varargin)
-    B = p*0 + 1;
+function B = constantReciprocalFVF(p, varargin)
+B = p*0 + 1;
 end
 
 function mu = constantViscosity(mu, p, varargin)
-    mu = p*0 + mu;
+mu = p*0 + mu;
 end

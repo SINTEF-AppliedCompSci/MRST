@@ -27,7 +27,7 @@ classdef ReservoirModel < PhysicalModel
 %   ThreePhaseBlackOilModel, TwoPhaseOilWaterModel, PhysicalModel
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -171,11 +171,24 @@ methods
         
         if doSetup
             if isempty(G) || isempty(model.rock)
-                warning('mrst:ReservoirModel', ...
+                dispif(model.verbose, 'mrst:ReservoirModel', ...
                     'Invalid grid/rock pair supplied. Operators have not been set up.')
             else
                 model.operators = setupOperatorsTPFA(G, model.rock, 'deck', model.inputdata);
             end
+        end
+    end
+
+    % --------------------------------------------------------------------%
+    function state = validateState(model, state)
+        % Check parent class
+        state = validateState@PhysicalModel(model, state);
+        active = model.getActivePhases();
+        nPh = nnz(active);
+        nc = model.G.cells.num;
+        model.checkProperty(state, 'Pressure', [nc, 1], [1, 2]);
+        if nPh > 1
+            model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
     end
 
@@ -261,7 +274,7 @@ methods
                 index = model.satVarIndex('sg');
                 fn = 's';
             case {'s', 'sat', 'saturation'}
-                index = 1:numel(model.saturationVarNames);
+                index = ':';
                 fn = 's';
             case {'pressure', 'p'}
                 index = 1;
@@ -442,6 +455,14 @@ methods
         state = model.setPhaseData(state, phasefluxes, 'flux', internal);
     end
     
+    function state = storeBoundaryFluxes(model, state, qW, qO, qG, forces)
+        if isempty(forces.bc) || ~isfield(forces, 'bc')
+            return
+        end
+        phasefluxes = {double(qW), double(qO), double(qG)};
+        state = model.setPhaseData(state, phasefluxes, 'flux', forces.bc.face);
+    end
+    
     % --------------------------------------------------------------------%
     function state = storeMobilities(model, state, mobW, mobO, mobG)
         % Utility function for storing the mobilities in the state
@@ -488,7 +509,7 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function varargout = evaluteRelPerm(model, sat, varargin)
+    function varargout = evaluateRelPerm(model, sat, varargin)
         % Evaluate the fluid relperm. Depending on the active phases,
         % we must evaluate the right fluid relperm functions and
         % combine the results. This function calls the appropriate

@@ -55,7 +55,7 @@ function gradients = computeGradientAdjointAD(state0, states, model, schedule, g
 %   computeGradientPerturbationAD, simulateScheduleAD
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -109,7 +109,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ck = schedule.step.control == k;
         for j = 1:ncv
             tmp = gradstep(ck, j);
-            gradients{j, k} = full(sum(horzcat(tmp{:}), 2));
+            gradients{j, k} = 0;
+            for i = 1:numel(tmp)
+                gradients{j, k} = gradients{j, k} + tmp{i};
+            end
         end
     end
 end

@@ -29,7 +29,7 @@ classdef IterationCountTimeStepSelector < SimpleTimeStepSelector
 %   SimpleTimeStepSelector, NonLinearSolver
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             selector = merge_options(selector, varargin{:});
         end
         
-        function dt = computeTimestep(selector, dt, model, solver)
+        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr)
             % Dynamically compute timestep
             hist = selector.history;
             nHist = numel(hist);

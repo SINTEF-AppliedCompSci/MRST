@@ -25,9 +25,10 @@ function [up, theta, r] = multiphaseUpwindIndices(G, vT, T, K, upstr)
             theta(:, l) = theta(:, l) + T.*(G(:, l) - G(:, j)).*kj;
         end
     end
-    [ix, r] = max(theta > 0, [], 2);
+    subs = theta < 0;
+    [ix, r] = max(~subs, [], 2);
     r = r - 1;
-    r(all(theta < 0, 2)) = nPh;
+    r(all(subs, 2)) = nPh;
     
     up = false(nF, nPh);
     for l = 1:nPh
@@ -39,3 +40,22 @@ function d = flattenAndMakeDouble(d)
     d = cellfun(@double, d, 'UniformOutput', false);
     d = [d{:}];
 end
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

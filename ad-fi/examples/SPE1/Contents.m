@@ -2,7 +2,7 @@
 %   SPE1fullyImplicitExample.m - SPE1 case for fully implicit black oil solver
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -21,7 +21,8 @@ function [converged CNV MB] = getConvergence(state, eqs, fluid, system, dt)
     gas_ind=sum(activePhases);
 
     if system.activeComponents.water,
-        BW = fluid.BW(state.pressure);
+        %BW = fluid.BW(state.pressure);
+        BW = 1./fluid.bW(state.pressure);
         RW = eqs{water_ind}.val;
         BW_avg = sum(BW)/nc;
         CNVW = BW_avg*dt*max(abs(RW)./pv);
@@ -37,9 +38,10 @@ function [converged CNV MB] = getConvergence(state, eqs, fluid, system, dt)
             % If we have liveoil, BO is defined not only by pressure, but
             % also by oil solved in gas which must be calculated in cells
             % where gas saturation is > 0.
-            BO = fluid.BO(state.pressure, state.rs, state.s(:,gas_ind)>0);
+            BO = 1./fluid.bO(state.pressure, state.rs, state.s(:,gas_ind)>0);
         else
-            BO = fluid.BO(state.pressure);
+            %BO = fluid.BO(state.pressure);
+            BO = 1./fluid.bO(state.pressure);
         end
         RO = eqs{oil_ind}.val;
         BO_avg = sum(BO)/nc;
@@ -53,9 +55,9 @@ function [converged CNV MB] = getConvergence(state, eqs, fluid, system, dt)
     % GAS
     if system.activeComponents.gas,
         if system.activeComponents.vapoil
-            BG = fluid.BG(state.pressure, state.rv, state.s(:,2)>0); % need to fix index...
+            BG = 1./fluid.bG(state.pressure, state.rv, state.s(:,2)>0); % need to fix index...
         else
-            BG = fluid.BG(state.pressure);
+            BG = 1./fluid.bG(state.pressure);
         end
         RG = eqs{gas_ind}.val;
         BG_avg = sum(BG)/nc;

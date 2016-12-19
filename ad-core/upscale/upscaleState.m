@@ -21,7 +21,7 @@ function state = upscaleState(coarsemodel, model, state)
 %
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -55,10 +55,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         s(:, i) = accumarray(p, pvs(:, i))./pvc;
     end
     state.s = s;
+    if isfield(state, 'components')
+        z = [state.components{:}];
+        pvz = bsxfun(@times, z, pvf);
+        for i = 1:numel(state.components)
+            state.components{i} = accumarray(p, pvz(:, i))./pvc;
+        end
+    end
     
     % Average the pressure (not entirely correct for compressible systems,
     % but we won't start evaluating properties in here).
     state.pressure = accumarray(p, state.pressure)./counts;
+    if isfield(state, 'T')
+        state.T = accumarray(p, state.T)./counts;
+    end
     
     state.flux = zeros(CG.faces.num, nph);
 end

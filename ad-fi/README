@@ -1,1 +1,0 @@
-A set of fully implicit solvers using automatic differentiation to calculate Jacobians. Contains support for adjoint calculation of derivatives.

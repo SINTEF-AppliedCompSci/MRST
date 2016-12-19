@@ -81,9 +81,9 @@ end
 
 trans=s.T.*transMult;
 % -------------------------------------------------------------------------
-[krW, krO] = f.relPerm(sW);
-%krW = f.krW(sW);
-%krO = f.krO(1-sW);
+%[krW, krO] = f.relPerm(sW);
+krW = f.krW(sW);
+krO = f.krO(1-sW);
 
 % water props (calculated at oil pressure OK?)
 %bW     = f.bW(p);

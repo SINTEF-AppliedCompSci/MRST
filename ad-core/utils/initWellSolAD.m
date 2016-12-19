@@ -31,7 +31,7 @@ function wellSol = initWellSolAD(W, model, state0, wellSolInit)
 %
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -86,6 +86,15 @@ if isprop(model, 'polymer') && model.polymer % polymer model
 	 [ws(:).qWPoly] = deal(0);
 end
 
+if isprop(model, 'surfactant') && model.surfactant % surfactant model
+	 [ws(:).qWSft] = deal(0);
+end
+
+if isprop(model, 'compositionalFluid') % Compositional model
+     ncomp = model.compositionalFluid.getNumberOfComponents();
+	 [ws(:).components] = deal(zeros(1, ncomp));
+end
+
 % just initialize fields that are not assigned in assignFromSchedule
 for k = 1:nw
     nConn = numel(W(k).cells);
@@ -112,6 +121,9 @@ for k = 1:nw
     end
     if isprop(model, 'polymer') && model.polymer
        ws(k).qWPoly = W(k).poly*ws(k).qWs;
+    end
+    if isprop(model, 'surfactant') && model.surfactant
+       ws(k).qWSft = W(k).surfact*ws(k).qWs;
     end
     
     ws(k).mixs = W(k).compi;
@@ -150,6 +162,9 @@ for k = 1:numel(W)
             end
             if isprop(model, 'polymer') && model.polymer
                 ws(k).qWPoly = W(k).poly*ws(k).qWs;
+            end
+            if isprop(model, 'surfactant') && model.surfactant
+               ws(k).qWSft = W(k).surfact*ws(k).qWs;
             end
         case 'orat'
             ws(k).qOs = v;

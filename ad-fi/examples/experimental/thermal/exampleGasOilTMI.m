@@ -29,7 +29,7 @@ ipress     = 200;                % Initial pressure
 [deck, G] = sinusDeckAdi_GasOilT([nx ny nz], [Lx Ly H], nsteps, dt, ...
                          -.1*pi/180, depth, phi, perm, ...
                          (H*phi*Lx*Ly)*0.2*day/year, ipress);
-
+G.cells.sortedCellNodes=getSortedCellNodes(G);
 % Alternatively, we could read deck from file and construct the grid
 % deck = readEclipseDeck( ...
 %    fullfile(VEROOTDIR,'data','decks','sinusDeckAdi.DATA');
@@ -161,7 +161,7 @@ switch mycase
 
 end
 %%
-systemOW  = initADISystem({'Oil', 'Gas','T'}, G, rock, fluid);
+systemOW  = initADISystem({'Oil', 'Gas','T','MI'}, G, rock, fluid);
 % calculate conducivity for fock
 fake_rock.perm=4.0*ones(G.cells.num,1);
 T = computeTrans(G,fake_rock);
@@ -200,7 +200,7 @@ x0.M=M0*0.0;
 %x0.s=x0.s(:,[2,1]);
 %x0.s=x0.z(:,[2,1]);
 
-Wext=processWellsLocal(G, rock, deck.SCHEDULE.control(1));
+Wext=processWells(G, rock, deck.SCHEDULE.control(1));
 for i=1:numel(Wext)
   Wext(i).T=273;
   Wext(i).I=ones(1,size(x0.I,2))*0.2;
@@ -210,9 +210,9 @@ end
 x0.M(1:(Wext(1).cells-4))=0.3;
 mrst_schedule = deck.SCHEDULE;
 mrst_schedule.W={Wext};
-systemOW.fluid = fluid;
-systemOW.getEquations =@ eqsfiOGTMIExplicitWells;
-systemOW.stepFunction =@ stepOGTMI;
+%systemOW.fluid = fluid;
+%systemOW.getEquations =@ eqsfiOGTMIExplicitWells;
+%systemOW.stepFunction =@ stepOGTMI;
 systemOW.nonlinear.tol=1e-8
 systemOW.s.TH=systemOW.s.TH*3e1;
 %[wellSols, states] = runScheduleADI(x0, G, rock, systemOW, deck.SCHEDULE,'Wext',Wext);
@@ -243,7 +243,7 @@ for nn=1:numel(states)
       semilogy(xc,state.I)
 
     drawnow;
-    pause(0.5)
+    pause(0.05)
 end
 %%
 figure(33),clf
@@ -256,7 +256,7 @@ plot(xc,state.s(:,2),'b',xc,(state.T-minT)./(maxT-minT),'r',xc,state.I(:,1),'g-'
 legend('water','T','I1','I2','M')
 set(gca,'FontSize',16)
 axis([0 300 0 1])
-myprint('ion_example')
+%myprint('ion_example')
 %%
 figure(44),clf
 plot(xc,x0.s(:,2),'k',xc,(x0.T-minT)./(maxT-minT),'r')

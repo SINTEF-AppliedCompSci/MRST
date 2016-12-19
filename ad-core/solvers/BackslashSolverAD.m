@@ -11,7 +11,7 @@ classdef BackslashSolverAD < LinearSolverAD
 %   LinearSolverAD
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -30,7 +30,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
    methods
        function [result, report] = solveLinearSystem(solver, A, b) %#ok
-           result = A\b;
+          result = A\b;
            % Nothing to report
            report = struct();
        end

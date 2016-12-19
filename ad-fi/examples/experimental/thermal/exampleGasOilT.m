@@ -102,7 +102,7 @@ x0.T=300*ones(G.cells.num,1);
 %x0.s=x0.s(:,[2,1]);
 %x0.s=x0.z(:,[2,1]);
 
-Wext=processWellsLocal(G, rock, deck.SCHEDULE.control(1));
+Wext=processWells(G, rock, deck.SCHEDULE.control(1));
 for i=1:numel(Wext)
   Wext(i).T=273;
   Wext(i).compi=[0 0 1];

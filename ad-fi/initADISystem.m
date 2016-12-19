@@ -34,7 +34,7 @@ function system = initADISystem(input, G, rock, fluid, varargin)
 %
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -127,7 +127,7 @@ if comp.gas
         if comp.disgas, ld = 'live'; else ld = 'dead';end
         if comp.vapoil, wd = 'wet' ; else wd = 'dry' ;end
         dispif(opt.Verbose, 'Found a three-phase system: %s oil, %s gas ...\n', ld, wd)
-        system.stepFunction = @(state0, state, meta, dt, W, G, system) stepVO(state0, state, meta, dt, G, W, system, fluid);
+        system.stepFunction = @(state0, state, meta, dt, W, G, system,varargin) stepVO(state0, state, meta, dt, G, W, system, fluid);
         system.getEquations = @eqsfiVO;
         system.cellwise   = 1:3;
         system.cpr.active = 1:3;
@@ -148,7 +148,7 @@ if comp.gas
        else
            if(comp.disgas)
                dispif(opt.Verbose, 'Found a Oil/Gas with disolution...\n')
-            system.stepFunction = @(state0, state, meta, dt, W, G, system) stepBlackOilOG(state0, state, meta, dt, G, W, system, fluid);
+            system.stepFunction = @(state0, state, meta, dt, W, G, system, varagin) stepBlackOilOG(state0, state, meta, dt, G, W, system, fluid);
             system.getEquations = @eqsfiBlackOilExplicitWellsOG;
             system.updateFinal  = @(state, state0) updateFinal(state, state0);
             system.cellwise = 1:3;
@@ -162,7 +162,7 @@ if comp.gas
                if(~comp.T)
 
                     dispif(opt.Verbose, 'Found a Oil/Gas system...\n')
-                    system.stepFunction = @(state0, state, meta, dt, W, G, system) stepOG(state0, state, meta, dt, G, W, system, fluid);
+                    system.stepFunction = @(state0, state, meta, dt, W, G, system, varargin) stepOG(state0, state, meta, dt, G, W, system, fluid);
                     system.getEquations = @eqsfiOGExplicitWells;
                     system.updateFinal  = @(state, state0) updateFinal(state, state0);
                     system.cellwise = 1:2;
@@ -171,7 +171,7 @@ if comp.gas
                else
                   if(~comp.MI)
                     dispif(opt.Verbose, 'Found a Oil/Gas system with tempratrue...\n')
-                    system.stepFunction = @(state0, state, meta, dt, W, G, system) stepOGT(state0, state, meta, dt, G, W, system, fluid);
+                    system.stepFunction = @(state0, state, meta, dt, W, G, system, varargin) stepOGT(state0, state, meta, dt, G, W, system, fluid);
                     system.getEquations = @eqsfiOGTExplicitWells;
                     system.updateFinal  = @(state, state0) updateFinal(state, state0);
                     system.cellwise = 1:3;
@@ -179,7 +179,7 @@ if comp.gas
                     system.cpr.active = 1:3;
                   else
                     dispif(opt.Verbose, 'Found a Oil/Gas system with tempratrue...\n')
-                    system.stepFunction = @(state0, state, meta, dt, W, G, system) stepOGTMI(state0, state, meta, dt, G, W, system, fluid);
+                    system.stepFunction = @(state0, state, meta, dt, W, G, system, varargin) stepOGTMI(state0, state, meta, dt, G, W, system, fluid);
                     system.getEquations = @eqsfiOGTMIExplicitWells;
                     system.updateFinal  = @(state, state0) updateFinal(state, state0);
                     system.cellwise = 1:3;
@@ -194,7 +194,7 @@ else
     if comp.polymer,
         dispif(opt.Verbose, 'Found a polymer system...\n');
 
-        system.stepFunction = @(state0, state, meta, dt, W, G, system) ...
+        system.stepFunction = @(state0, state, meta, dt, W, G, system, varargin) ...
            stepOWPolymer(state0, state, meta, dt, G, W, system, fluid);
 
         system.getEquations = @eqsfiOWPolymerExplicitWells;
@@ -212,7 +212,7 @@ else
         dispif(use_MI && opt.Verbose, ' with minerals');
         dispif(          opt.Verbose, ' ...\n');
 
-        system.stepFunction = @(state0, state, meta, dt, W, G, system) ...
+        system.stepFunction = @(state0, state, meta, dt, W, G, system,varargin) ...
             stepOW(state0, state, meta, dt, G, W, system, fluid, ...
             'temperature', use_T, 'minerals', use_MI);
         if use_T || use_MI

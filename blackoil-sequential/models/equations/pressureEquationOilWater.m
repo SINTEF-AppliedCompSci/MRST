@@ -11,7 +11,7 @@ opt = merge_options(opt, varargin{:});
 
 W = drivingForces.W;
 
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
+% assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
@@ -46,7 +46,7 @@ end
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
-[krW, krO] = model.evaluteRelPerm({sW, sO});
+[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p_prop, p0);
@@ -97,6 +97,20 @@ oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0) + s.Div(bOvO);
 % water:
 wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
 
+eqTmp = {wat, oil};
+[eqTmp, ~, qRes] = addFluxesFromSourcesAndBC(model, eqTmp, ...
+                                       {pW, p},...
+                                       {rhoW,     rhoO},...
+                                       {mobW,     mobO}, ...
+                                       {bW, bO},  ...
+                                       {sW, sO}, ...
+                                       drivingForces);
+wat = eqTmp{1};
+oil = eqTmp{2};
+
+if model.outputFluxes
+    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
+end
 [eqs, names, types] = deal({});
 
 % well equations
@@ -115,11 +129,11 @@ if ~isempty(W)
         rhos = [f.rhoWS, f.rhoOS];
         bw   = {bW(wc), bO(wc)};
         mw   = {mobW(wc), mobO(wc)};
-        s = {sW(wc), 1 - sW(wc)};
+        sat = {sW(wc), 1 - sW(wc)};
 
         wm = model.wellmodel;
         [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
+                                             pBH, {qWs, qOs}, pw, rhos, bw, mw, sat, {},...
                                              'nonlinearIteration', opt.iteration);
         eqs(2:3) = weqs;
         eqs{4} = ctrleqs;
@@ -136,10 +150,11 @@ if ~isempty(W)
     oil(wc) = oil(wc) - cqs{2};
 end
 
-eqs{1} = oil./bO + wat./bW;
+eqs{1} = (dt./s.pv).*(oil./bO + wat./bW);
 names{1} = 'pressure';
 types{1} = 'cell';
 
+state.timestep = dt;
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 
 for i = 1:numel(W)
@@ -148,3 +163,22 @@ for i = 1:numel(W)
 end
 
 end
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

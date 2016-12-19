@@ -31,6 +31,10 @@ function varargout = plotWellSols(wellsols, varargin)
 %
 %   'datasetnames' - A cell array of dataset names used for the legend when
 %                    plotting multiple datasets.
+%
+%   'timescale'    - A string for the default choice for axis time-scale. A
+%                    string which matches either choice:
+%                    'days', 'minutes', 'seconds', 'hours', 'years'
 % RETURNS:
 %   fh     - figure handle to plotting panel
 %
@@ -43,7 +47,7 @@ function varargout = plotWellSols(wellsols, varargin)
 %   simulateScheduleAD
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -90,6 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'field',       'bhp', ...
                  'linestyles', {{'-', '--', '-.', ':'}}, ...
                  'markerstyles', {{'o', '.', 'd', '*'}}, ...
+                 'timescale',   'days', ...
                  'figure',      [], ...
                  'datasetnames', {{}});
     [opt, plotvararg] = merge_options(opt, varargin{:});
@@ -134,98 +139,113 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         'Title',  'Selection');
     
     % Left column
+    xmargin = 0.01;
+    midmargin = xmargin/2;
+    blocksz = (1 - 2*xmargin - midmargin)/2;
+    leftOffset = blocksz + xmargin + midmargin;
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'text',...
               'String', 'Well property', ...
-              'Position',[.01 .9 .45 .1]);
+              'Position',[xmargin, .9, blocksz, .1]);
     % Field selection (bhp, water rate etc) 
     fieldsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'popup',...
               'Value', fnIndex, ...
               'String', fn, 'Callback', @drawPlot, ...
-              'Position',[.01 .85 .45 .1]);
+              'Position',[xmargin, .85, blocksz, .1]);
     % Select between metric and field units
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'text',...
               'String', 'Unit system', ...
-              'Position',[.51 .9 .45 .1]);
+              'Position',[leftOffset, .9, blocksz, .1]);
 
     unitsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'popup',...
-              'String', {'SI', 'field'}, 'Callback', @drawPlot, ...
-              'Position',[.51 .85 .45 .1]);
-          
+              'String', {'SI', 'Field', 'Lab'}, 'Callback', @drawPlot, ...
+              'Position',[leftOffset, .85, blocksz/2, .1]);
+    timechoices = {'Years', 'Days', 'Hours', 'Minutes', 'Seconds'};
+    timescales = [year(), day(), hour(), minute(), second()];
+    
+    timesel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
+              'Style', 'popup',...
+              'Value', find(strcmpi(opt.timescale, timechoices)), ...
+              'String', timechoices, ...
+              'Callback', @drawPlot, ...
+              'Position',[leftOffset + blocksz/2, .85, blocksz/2, .1]);
     % Right column
     % Select active wells for plotting
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'text',...
               'String', 'Well selection', ...
-              'Position',[.01 .8 .45 .05]);
+              'Position',[xmargin, .8, blocksz, .05]);
     wellsel = uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'listbox', 'Max', 1e9, 'Min', 1,...
               'String', wellnames, 'Callback', @drawPlot, ...
-              'Position',[.01 .2 .45 .6]);
+              'Position',[xmargin, .2, blocksz, .6]);
     
     % Select various options
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
               'Style', 'text',...
               'String', 'Misc', ...
-              'Position',[.51 .8 .45 .05]);
+              'Position',[leftOffset, .8, blocksz, .05]);
           
     bg = uibuttongroup('Units', 'normalized', 'Parent', ctrlpanel,...
-              'Position',[.51 .2 .45 .6]);
+              'Position',[leftOffset, .2, blocksz, .6]);
 
     % Show minor grid to make plot easier to read.
     gridtog = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', true, ...
               'String','Grid on', 'Callback', @drawPlot, ...
-              'Position',[.01 .9 .95 .1]);
+              'Position',[xmargin, .9, 1-xmargin .1]);
     % Log transform x axis
     logx = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', ...
               'String','Log (x)', 'Callback', @drawPlot, ...
-              'Position',[.01 .8 .95 .1]);
+              'Position',[xmargin, .8, 1-xmargin .1]);
     % Log transform y axis
     logy = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', ...
               'String','Log (y)', 'Callback', @drawPlot, ...
-              'Position',[.01 .7 .95 .1]);
+              'Position',[xmargin, .7, 1-xmargin .1]);
     % Draw markers
     hasmarker = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', ...
               'String','Markers', 'Callback', @drawPlot, ...
-              'Position',[.01 .6 .95 .1]);
+              'Position',[xmargin, .6, 1-xmargin .1]);
     % Show legend with well and dataset names
     useleg = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 1, ...
               'String','Legend', 'Callback', @drawPlot, ...
-              'Position',[.01 .5 .95 .1]);
+              'Position',[xmargin, .5, 1-xmargin .1]);
     legh = nan;
     % Cumulative sum - used for for example water production, but does not
     % necessarily make sense for pressure.
     csum = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 0, ...
               'String','Cumulative sum', 'Callback', @drawPlot, ...
-              'Position',[.01 .4 .95 .1]);
+              'Position',[xmargin, .4, 1-xmargin .1]);
     % Take abs value of data.
     abst = uicontrol('Units', 'normalized', 'Parent', bg,...
-              'Style', 'checkbox', 'Value', 0, ...
+              'Style', 'checkbox', 'Value', 1, ...
               'String','Absolute value', 'Callback', @drawPlot, ...
-              'Position',[.01 .3 .95 .1]);
+              'Position',[xmargin, .3, 1-xmargin .1]);
           
     % Zoom to data range
     zoomt = uicontrol('Units', 'normalized', 'Parent', bg,...
               'Style', 'checkbox', 'Value', 0, ...
               'String','Zoom to data', 'Callback', @drawPlot, ...
-              'Position',[.01 .2 .95 .1]);
-
+              'Position',[xmargin, .2, 1-xmargin .1]);
+    stairplot = uicontrol('Units', 'normalized', 'Parent', bg,...
+              'Style', 'checkbox', 'Value', 0 ,...
+              'String','Stair-step plot', 'Callback', @drawPlot, ...
+              'Position',[xmargin, .1, 1-xmargin .1]);
     if hasTimesteps || nargout > 1
         % Toggle to use timesteps for spacing, otherwise the x nodes will
         % be equidistant.
         showdt = uicontrol('Units', 'normalized', 'Parent', bg,...
                   'Style', 'checkbox', 'Value', hasTimesteps ,...
                   'String','Use timesteps', 'Callback', @drawPlot, ...
-                  'Position',[.01 .1 .95 .1]);
+                  'Position',[xmargin, 0, 1-xmargin .1]);
     end
     % Line width of the plot
     uicontrol('Units', 'normalized', 'Parent', ctrlpanel,...
@@ -302,8 +322,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 
                 d = getData(wname, wellnames, fld, wellsols{i});
                 if hasTimesteps && get(showdt, 'Value')
-                    x = timesteps{i}/day;
-                    xlabel('Time (days)')
+                    timescaleix = get(timesel, 'Value');
+                    nowTime = timechoices{timescaleix};
+                    timescale = timescales(timescaleix);
+                    x = timesteps{i}/timescale;
+                    xlabel(['Time [', nowTime, ']'])
                     xunit = day;
                 else
                     x = 1:numel(d);
@@ -311,16 +334,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     xlabel('Step #')
                 end
                 
-                if get(csum, 'Value')
+                [tit, d, yl, doCsum] ...
+                    = getWellUnit(d, fld, ...
+                                  getFieldString(unitsel, true), ...
+                                  get(csum,'Value'));
+                ylabel(yl);
+                if doCsum
                     d = cumtrapz(x*xunit, d);
                 end
-                
+
                 if get(abst, 'Value')
                     d = abs(d);
                 end
-                
-                [tit, d, yl] = getWellUnit(d, fld, getFieldString(unitsel, true));
-                ylabel(yl);
 
                 linew = get(wsl, 'Value');
                 if linew == 0;
@@ -339,7 +364,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 else
                     c = cmap(j, :);
                 end
-                plot(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
+                if get(stairplot, 'Value')
+                    pltfn = @stairs;
+                else
+                    pltfn = @plot;
+                end
+                
+                pltfn(x, d, [m, line], 'LineWidth', linew, 'color', c, plotvararg{:});
                 Mv = max(Mv, max(d));
                 mv = min(mv, min(d));
                 
@@ -368,6 +399,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         if get(gridtog, 'Value')
             grid on
+        else
+            grid off
         end
         
         if get(logy, 'Value')
@@ -422,6 +455,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        dims = get(fh, 'Position');
        newdims = dims.*[1, 1, pw + dap(1), 1];
        tmpfig = figure('Position', newdims);
+       set(tmpfig,'PaperPositionMode','auto');
        if isnan(double(legh))
            ax = copyobj(plotaxis, tmpfig);
        else
@@ -490,9 +524,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [tit, d, yl] = getWellUnit(d, fld, usys)
+function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum)
     isMetric = strcmpi(usys, 'si');
+    isField = strcmpi(usys, 'field');
     
+    doCsum = false;
     yl = '';
     tit = fld;
     switch lower(fld)
@@ -508,28 +544,58 @@ function [tit, d, yl] = getWellUnit(d, fld, usys)
                     ph = 'total';
             end
             
+            doCsum = isCsum;
+            
             if numel(fld) == 3 && lower(fld(3)) == 'r'
                 tmp = 'reservoir';
             else
                 tmp = 'surface';
             end
-            tit = [fld, ': Well ', tmp, ' rate (', ph, ')'];
-            if isMetric
-                yl = 'm^3/s';
+            if isCsum
+                tit = [fld, ': Cumulative ', tmp, ' production (', ph, ')'];
             else
-                yl = 'stb/day';
-                d = convertTo(d, stb/day);
+                tit = [fld, ': Well ', tmp, ' rate (', ph, ')'];
+            end
+            if isMetric
+                % Metric
+                if isCsum,
+                    yl = 'm^3';
+                else
+                    yl = 'm^3/s';
+                end
+            elseif isField
+                % Field units
+                if isCsum
+                    yl = 'stb';
+                    d  = convertTo(d, stb);
+                else
+                    yl = 'stb/day';
+                    d = convertTo(d, stb/day);
+                end
+            else
+                % Lab units
+                if isCsum
+                    yl = 'cm^3';
+                    d  = convertTo(d, (centi*meter)^3);
+                else
+                    yl = 'cm^3/hour';
+                    d = convertTo(d, (centi*meter)^3/hour);
+                end
             end
         case {'bhp', 'pressure'}
             tit = [fld, ': Bottom hole pressure'];
-            if ~isMetric
+            if isMetric
                 yl = 'Pascal';
-            else
+            elseif isField
                 yl = 'Barsa';
                 d = convertTo(d, barsa);
+            else
+                yl = 'atm';
+                d = convertTo(d, atm());
             end
         case 'gor'
             tit = [fld, ': Gas/oil ratio at surface conditions'];
+            doCsum = isCsum;
         case {'ocut', 'wcut', 'gcut'}
             switch lower(fld(1))
                 case 'o'
@@ -541,16 +607,19 @@ function [tit, d, yl] = getWellUnit(d, fld, usys)
             end
             tit = [fld, ': ', t, ' fraction at reservoir conditions'];
         case 'sign'
-            tit = [fld, ': Well sign (+1 for producer, -1 for injector'];
+            tit = [fld, ': Well sign (+1 for injector, -1 for producer)'];
         case 'val'
             tit = [fld, ': Well control value'];
         case 'cdp'
             tit = [fld, ': Pressure drop from reference depth to first perforation'];
-            if ~isMetric
+            if isMetric
                 yl = 'Pascal';
-            else
+            elseif isField
                 yl = 'Barsa';
                 d = convertTo(d, barsa);
+            else
+                yl = 'atm';
+                d = convertTo(d, atm());
             end
         otherwise
             disp('Unknown well field - no unit found');

@@ -1,6 +1,74 @@
 function [problem, state] = equationsOilWater(state0, state, model, dt, drivingForces, varargin)
-% Get linearized problem for oil/water system with black oil-style
-% properties
+% Generate linearized problem for the two-phase oil-water model
+%
+% SYNOPSIS:
+%   [problem, state] = equationsOilWater(state0, state, model, dt, drivingForces)
+%
+% DESCRIPTION:
+%   This is the core function of the two-phase oil-water solver. This
+%   function assembles the residual equations for the conservation of water
+%   and oil as well as required well equations. By default, Jacobians are
+%   also provided by the use of automatic differentiation.
+%
+% REQUIRED PARAMETERS:
+%   state0    - Reservoir state at the previous timestep. Assumed to have
+%               physically reasonable values.
+%
+%   state     - State at the current nonlinear iteration. The values do not
+%               need to be physically reasonable.
+%
+%   model     - TwoPhaseOilWaterModel-derived class. Typically,
+%               equationsOilWater will be called from the class
+%               getEquations member function.
+%
+%   dt        - Scalar timestep in seconds.
+%
+%   drivingForces - Struct with fields:
+%                   * W for wells. Can be empty for no wells.
+%                   * bc for boundary conditions. Can be empty for no bc.
+%                   * src for source terms. Can be empty for no sources.
+%
+% OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
+%   'Verbose'    -  Extra output if requested.
+%
+%   'reverseMode'- Boolean indicating if we are in reverse mode, i.e.
+%                  solving the adjoint equations. Defaults to false.
+%
+%   'resOnly'    - Only assemble residual equations, do not assemble the
+%                  Jacobians. Can save some assembly time if only the
+%                  values are required.
+%
+%   'iterations' - Nonlinear iteration number. Special logic happens in the
+%                  wells if it is the first iteration.
+% RETURNS:
+%   problem - LinearizedProblemAD class instance, containing the water
+%             and oil conservation equations, as well as well equations
+%             specified by the WellModel class.
+%
+%   state   - Updated state. Primarily returned to handle changing well
+%             controls from the well model.
+%
+% SEE ALSO:
+%   equationsBlackOil, TwoPhaseOilWaterModel
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
@@ -39,7 +107,7 @@ primaryVars = {'pressure', 'sW', 'qWs', 'qOs', 'bhp'};
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
-[krW, krO] = model.evaluteRelPerm({sW, sO});
+[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -87,13 +155,16 @@ names = {'water', 'oil'};
 types = {'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
-eqs = addFluxesFromSourcesAndBC(model, eqs, ...
+[eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
                                        {pW, p},...
                                        {rhoW,     rhoO},...
                                        {mobW,     mobO}, ...
                                        {bW, bO},  ...
                                        {sW, sO}, ...
                                        drivingForces);
+if model.outputFluxes
+    state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
+end
 % Finally, add in and setup well equations
 if ~isempty(W)
     wm = model.wellmodel;
@@ -128,3 +199,22 @@ if ~isempty(W)
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

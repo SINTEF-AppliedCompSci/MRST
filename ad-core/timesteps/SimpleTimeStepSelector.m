@@ -23,10 +23,11 @@ classdef SimpleTimeStepSelector < handle
 %
 %
 % SEE ALSO:
-%   IterationCountTimeStepSelector, NonLinearSolver
+%   IterationCountTimeStepSelector, NonLinearSolver, 
+%   StateChangeTimeStepSelector
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -109,15 +110,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             assert(selector.firstRampupStepRelative <= 1 && ...
                    selector.firstRampupStepRelative >  0);
             
-            selector.isStartOfCtrlStep = true;
-            selector.isFirstStep       = true;
-            selector.controlsChanged = true;
-            selector.stepLimitedByHardLimits = true;
+            selector.reset();
         end
         
         function reset(selector)
             selector.history = [];
             selector.previousControl = [];
+            selector.isStartOfCtrlStep = true;
+            selector.isFirstStep       = true;
+            selector.controlsChanged   = true;
+            selector.stepLimitedByHardLimits = true;
         end
         
         function storeTimestep(selector, report)
@@ -129,7 +131,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
         
-        function dt = pickTimestep(selector, dt, model, solver)
+        function dt = pickTimestep(selector, dt_prev, dt, model, solver, state_prev, state_curr)
             if selector.controlsChanged && ...
               (selector.resetOnControlsChanged || selector.isFirstStep);
                 % First relative check
@@ -139,12 +141,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 selector.stepLimitedByHardLimits = true;
             end
             dt0 = dt;
-            dt_new = selector.computeTimestep(dt, model, solver);
+            dt_new = selector.computeTimestep(dt, dt_prev, model, solver, state_prev, state_curr);
 
             % Ensure that step does not change too much
             change = dt_new/dt;
-            change = min(change, selector.maxRelativeAdjustment);
-            change = max(change, selector.minRelativeAdjustment);
+            if ~selector.isStartOfCtrlStep
+                % Apply maximum relative adjustment only if we are not at
+                % start of control step
+                change = min(change, selector.maxRelativeAdjustment);
+                change = max(change, selector.minRelativeAdjustment);
+            end
 
             dt = dt*change;
             
@@ -156,8 +162,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 if ~isempty(selector.history)
                     fprintf('Prev # its: %d -> ', selector.history(end).Iterations)
                 end
-                fprintf('Adjusted timestep by a factor %1.2f. dT: %s -> %s\n',...
-                    dt/dt0, formatTimeRange(dt0), formatTimeRange(dt));
+                fprintf('Suggested timestep modification of a factor %1.2f. dT: %s -> %s\n',...
+                    dt/dt0, formatTimeRange(dt0, 2), formatTimeRange(dt, 2));
             end
 
             if dt ~= dt_new
@@ -191,7 +197,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        function dt = computeTimestep(selector, dt, model, solver) %#ok
+        function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr) %#ok
             % Compute timestep dynamically - does nothing for base class    
         end
     end

@@ -7,8 +7,7 @@ Dxyz = [400, 400, 10];
 G = cartGrid(nxyz, Dxyz);
 G = computeGeometry(G);
 
-rock = SPE10_rock(1:40, 101:140, 4);
-rock.perm = convertFrom(rock.perm, milli*darcy);
+rock = getSPE10rock(1:40, 101:140, 4);
 
 % fluid
 pRef = 200*barsa;
@@ -56,4 +55,30 @@ schedule.step.val     = vertcat(ts{:});
 
 gravity on
 
+
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
 

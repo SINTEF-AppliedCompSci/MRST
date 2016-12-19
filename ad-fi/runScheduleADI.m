@@ -64,7 +64,7 @@ function varargout = ...
 %   solvefiADI
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -101,6 +101,11 @@ opt = struct('Verbose'          , mrstVerbose      , ...
              'minStepSize'      , 0);
 
 opt = merge_options(opt, varargin{:});
+
+warning('mrst:deprecation', ...
+    ['The ''ad-fi'' module has been replaced by the ''ad-core + ad-blackoil''',...
+    ' modules. ''ad-fi'' and associated routines may be removed in a future',...
+    ' release of MRST.'])
 
 vb = opt.Verbose;
 outputStates      = nargout > 1;

@@ -4,7 +4,7 @@ classdef ResultHandler < handle
 % SYNOPSIS:
 %   handler = ResultHandler()
 %
-%   handler = ResultHandler('dataprefix', 'mydata', 'writeToDisk', true);
+%   handler = ResultHandler('dataPrefix', 'mydata', 'writeToDisk', true);
 % 
 % DESCRIPTION:
 %   This class can be used to store and retrieve simulation results. It is
@@ -27,7 +27,7 @@ classdef ResultHandler < handle
 %   Class instance that in some limited aspects acts like a cell array
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -131,10 +131,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         function n = numelData(handler)
-            if handler.storeInMemory
-                n = numel(handler.data); 
-            elseif handler.writeToDisk
+            if handler.writeToDisk
                 n = numel(handler.getValidIds);
+            elseif handler.storeInMemory
+                n = numel(handler.data); 
             else
                 n = 0;
             end
@@ -280,6 +280,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 p = handler.getDataPath();
                 fp = fullfile(p, [handler.dataPrefix, '*.mat']);
                 delete(fp);
+            end
+        end
+        
+        function [state0, restartStep] = getRestart(handler)
+            nd = handler.numelData();
+            if nd > 0
+                s = substruct('{}', {nd});
+                state0 = handler.subsref(s);
+                restartStep = nd + 1;
+            else
+                state0 = [];
+                restartStep = 1;
             end
         end
     end

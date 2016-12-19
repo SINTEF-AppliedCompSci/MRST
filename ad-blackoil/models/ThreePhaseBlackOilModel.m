@@ -57,6 +57,8 @@ methods
     function [fn, index] = getVariableField(model, name)
         switch(lower(name))
             case {'rs', 'rv'}
+                % RS and RV for gas dissolving into the oil phase and oil
+                % components vaporizing into the gas phase respectively.
                 fn = lower(name);
                 index = 1;
             otherwise
@@ -70,6 +72,39 @@ methods
         [problem, state] = equationsBlackOil(state0, state, model, dt, ...
                         drivingForces, varargin{:});
 
+    end
+
+    % --------------------------------------------------------------------%
+    function state = validateState(model, state)
+        % Check parent class
+        state = validateState@ReservoirModel(model, state);
+        nc = model.G.cells.num;
+        if model.disgas
+            % RS must be supplied for all cells. This may cause an error.
+            model.checkProperty(state, 'rs', nc, 1);
+        else
+            % RS does not really matter. Assign single value.
+            fn = model.getVariableField('rs');
+            if ~isfield(state, fn)
+                dispif(model.verbose, ...
+                    ['Missing field "', fn, '" added since disgas is not enabled.\n']);
+                state.(fn) = 0;
+            end
+            clear fn
+        end
+        if model.vapoil
+            % RV must be supplied for all cells. This may cause an error.
+            model.checkProperty(state, 'rv', nc, 1);
+        else
+            % RS does not really matter. Assign single value.
+            fn = model.getVariableField('rv');
+            if ~isfield(state, fn)
+                dispif(model.verbose, ...
+                    ['Missing field "', fn, '" added since vapoil is not enabled.\n']);
+                state.(fn) = 0;
+            end
+            clear fn
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -98,7 +133,7 @@ methods
             sg = model.getProp(state, 'sg');
 
             % Magic status flag, see inside for doc
-            st = getCellStatusVO(model, state0, so, sw, sg);
+            st = model.getCellStatusVO(state0, so, sw, sg);
 
             dr = model.getIncrement(dx, problem, 'x');
             dsw = model.getIncrement(dx, problem, 'sw');
@@ -154,6 +189,7 @@ methods
     
     % --------------------------------------------------------------------%
     function scaling = getScalingFactorsCPR(model, problem, names)
+        % Get approximate, impes-like pressure scaling factors
         nNames = numel(names);
         
         scaling = cell(nNames, 1);
@@ -200,5 +236,42 @@ methods
             [scaling{~handled}] = other{:};
         end
     end
+    
+    function st = getCellStatusVO(model, state, sO, sW, sG)
+        status = [];
+        if isfield(state, 'status')
+            status = state.status;
+        end
+        st = getCellStatusVO(sO, sW, sG, 'status', status, 'vapoil', ...
+                                 model.vapoil, 'disgas', model.disgas);
+    end
+    
+    function [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model, ...
+                                                          status, sO, x, rs, ...
+                                                          rv, pressure)
+        [sG, rs, rv, rsSat, rvSat] = calculateHydrocarbonsFromStatusBO(model.fluid, ...
+                                                          status, sO, x, rs, ...
+                                                          rv, pressure, model.disgas, model.vapoil);
+    end
+    
 end
 end
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

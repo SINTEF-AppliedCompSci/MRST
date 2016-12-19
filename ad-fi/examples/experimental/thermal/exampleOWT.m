@@ -48,6 +48,7 @@ deck  = convertDeckUnits(deck);
 rock  = initEclipseRock(deck);
 rock  = compressRock(rock, G.cells.indexMap);
 fluid = initDeckADIFluid(deck);
+%fluid.relperm=@(Sw) deal(fluid.krW(Sw),fluid.krO(1-Sw));
 % set the capillary pressure and the VE relperms explicitely
 %Gt = topSurfaceGrid(G);
 %fluid_case='hystersis';
@@ -76,7 +77,7 @@ fluid.eW = @(T) cW.*T;
 fluid.eO = @(T) cW.*T;
 fluid.eR = @(T) cR.*T;
 
-systemOW  = initADISystem({'Oil', 'Water','Gas'}, G, rock, fluid);
+systemOW  = initADISystem({'Oil', 'Water','T'}, G, rock, fluid);
 % calculate conducivity for fock
 
 fake_rock.perm=4.0*ones(G.cells.num,1);
@@ -99,18 +100,18 @@ x0.s(:,2)=deck.SOLUTION.SOIL;
 x0.smax=x0.s;
 x0.smin=x0.s;
 x0.T=273*ones(G.cells.num,1);
-%x0.T(floor(G.cartDims(1)/2))=330;
+x0.T(floor(G.cartDims(1)/2))=330;
 
 %x0.s=x0.s(:,[2,1]);
 %x0.s=x0.z(:,[2,1]);
 
-%Wext=processWells(G, rock, deck.SCHEDULE.control(1));
-Wext=processWellsLocal(G, rock, deck.SCHEDULE.control(1));
+Wext=processWells(G, rock, deck.SCHEDULE.control(1));
+%Wext=processWellsLocal(G, rock, deck.SCHEDULE.control(1));
 for i=1:numel(Wext)
   Wext(i).T=273;
 %  Wext(i).I=ones(1,size(x0.I,2));
 end
-
+Wext(1).T=300;
 
 mrst_schedule = deck.SCHEDULE;
 mrst_schedule.W={Wext};

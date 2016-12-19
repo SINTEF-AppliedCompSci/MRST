@@ -14,6 +14,7 @@ W = drivingForces.W;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
+G = model.G;
 f = model.fluid;
 
 disgas = model.disgas;
@@ -25,9 +26,16 @@ vapoil = model.vapoil;
 % Properties at previous timestep
 [p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
                                 'pressure', 'water', 'gas', 'rs', 'rv');
+% If timestep has been split relative to pressure, linearly interpolate in
+% pressure.
+pFlow = p;
+if isfield(state, 'timestep')
+    dt_frac = dt/state.timestep;
+    p = p.*dt_frac + p0.*(1-dt_frac);
+end
 %Initialization of primary variables ----------------------------------
-st  = getCellStatusVO(model, state,  1-sW-sG,   sW,  sG);
-st0 = getCellStatusVO(model, state0, 1-sW0-sG0, sW0, sG0);
+st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
+st0 = model.getCellStatusVO(state0, 1-sW0-sG0, sW0, sG0);
 if ~opt.resOnly,
     if ~opt.reverseMode,
         % define primary varible x and initialize
@@ -60,7 +68,7 @@ primaryVars = {'sW', gvar};
 % Evaluate relative permeability
 sO  = 1 - sW  - sG;
 sO0 = 1 - sW0 - sG0;
-[krW, krO, krG] = model.evaluteRelPerm({sW, sO, sG});
+[krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -75,16 +83,16 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, p, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, p, sO, krO, T, gdz, rs, ~st{1});
+[vO, bO, mobO, rhoO, p, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz, rs, ~st{1});
 bO0 = getbO_BO(model, p0, rs0, ~st0{1});
 
 % Evaluate gas properties
 bG0 = getbG_BO(model, p0, rv0, ~st0{2});
-[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p, p, sG, krG, T, gdz, rv, ~st{2});
+[vG, bG, mobG, rhoG, pG, upcg, dpG] = getFluxAndPropsGas_BO(model, p, sG, krG, T, gdz, rv, ~st{2});
 
 % Get total flux from state
 flux = sum(state.flux, 2);
@@ -96,13 +104,7 @@ Gw = gp - dpW;
 Go = gp - dpO;
 Gg = gp - dpG;
 
-% Stored upstream indices
-if model.staticUpwind
-    flag = state.upstreamFlag;
-else
-    flag = multiphaseUpwindIndices({Gw, Go, Gg}, vT, T, ...
-            {mobW, mobO, mobG}, s.faceUpstr);
-end
+flag = getSaturationUpwind(model.upwindType, state, {Gw, Go, Gg}, vT, s.T, {mobW, mobO, mobG}, s.faceUpstr);
 
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
@@ -114,15 +116,14 @@ mobOf = s.faceUpstr(upco, mobO);
 mobGf = s.faceUpstr(upcg, mobG);
 % Tot mob
 totMob = mobOf + mobWf + mobGf;
-totMob = max(totMob, sqrt(eps));
 
 f_w = mobWf./totMob;
 f_o = mobOf./totMob;
 f_g = mobGf./totMob;
 
-vW = f_w.*(vT + T.*mobOf.*(Gw - Go) + T.*mobGf.*(Gw - Gg));
-vO = f_o.*(vT + T.*mobWf.*(Go - Gw) + T.*mobGf.*(Go - Gg));
-vG = f_g.*(vT + T.*mobWf.*(Gg - Gw) + T.*mobOf.*(Gg - Go));
+vW = f_w.*(vT + s.T.*mobOf.*(Gw - Go) + s.T.*mobGf.*(Gw - Gg));
+vO = f_o.*(vT + s.T.*mobWf.*(Go - Gw) + s.T.*mobGf.*(Go - Gg));
+vG = f_g.*(vT + s.T.*mobWf.*(Gg - Gw) + s.T.*mobOf.*(Gg - Go));
 
 bWvW = s.faceUpstr(upcw, bW).*vW;
 bOvO = s.faceUpstr(upco, bO).*vO;
@@ -142,8 +143,7 @@ if model.extraStateOutput
 end
 % well equations
 if ~isempty(W)
-
-    wflux = sum(vertcat(wellSol.flux), 2);
+    wflux = vertcat(wellSol.flux);
     cqs = vertcat(wellSol.cqs);
 
     perf2well = getPerforationToWellMapping(W);
@@ -197,8 +197,6 @@ if ~isempty(W)
         state.wellSol(i).qWs = sum(double(wflux_W(perfind)));
         state.wellSol(i).qGs = sum(double(wflux_G(perfind)));
     end
-else
-    [wflux_W, wflux_O, wflux_G, wc] = deal([]);
 end
 
 [eqs, names, types] = deal(cell(1,2));
@@ -206,12 +204,11 @@ eqInd = 1;
 if opt.solveForWater
     % water eq:
     wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
-    wat(wc) = wat(wc) - wflux_W;
-    eqs{eqInd}   = wat;
-
-    names{eqInd} = 'water';
-    types{eqInd} = 'cell';
-    eqInd = eqInd + 1;
+    if ~isempty(W)
+        wat(wc) = wat(wc) - wflux_W;
+    end
+else
+    wat = [];
 end
 
 if opt.solveForGas
@@ -223,13 +220,11 @@ if opt.solveForGas
     else
         gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
     end
-
-    gas(wc) = gas(wc) - wflux_G;
-
-    eqs{eqInd}   = gas;
-    names{eqInd} = 'gas';
-    types{eqInd} = 'cell';
-    eqInd = eqInd + 1;
+    if ~isempty(W)
+        gas(wc) = gas(wc) - wflux_G;
+    end
+else
+    gas = [];
 end
 
 if opt.solveForOil
@@ -241,13 +236,56 @@ if opt.solveForOil
     else
         oil = (s.pv/dt).*( pvMult.*bO.*sO - pvMult0.*bO0.*sO0 ) + s.Div(bOvO);
     end
-    oil(wc) = oil(wc) - wflux_O;
+    if ~isempty(W)
+        oil(wc) = oil(wc) - wflux_O;
+    end
+else
+    oil = [];
+end
 
-    eqs{eqInd}   = oil;
-    names{eqInd} = 'oil';
-    types{eqInd} = 'cell';
+phaseEqs = {wat, oil, gas};
+% Add in any fluxes / source terms prescribed as boundary conditions.
+phaseEqs = addFluxesFromSourcesAndBC(model, phaseEqs, ...
+                                       {pFlow, pFlow, pFlow},...
+                                       {rhoW, rhoO, rhoG},...
+                                       {mobW, mobO, mobG}, ...
+                                       {bW, bO, bG},  ...
+                                       {sW, sO, sG}, ...
+                                       drivingForces);
+ix = 1;
+active = [opt.solveForWater, opt.solveForOil, opt.solveForGas];
+enames = {'water', 'oil', 'gas'};
+for i = 1:numel(active)
+    if active(i)
+        names{ix} = enames{i};
+        types{ix} = 'cell';
+        eqs{ix} = phaseEqs{i};
+        if ~model.useCNVConvergence
+            eqs{ix} = eqs{ix}.*(dt./s.pv);
+        end
+        ix = ix + 1;
+    end
 end
 
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 

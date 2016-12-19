@@ -11,13 +11,10 @@ opt = struct('Verbose', mrstVerbose, ...
              'stepOptions', []);  % Compatibility only
 
 opt = merge_options(opt, varargin{:});
-
 W = drivingForces.W;
-assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
 f = model.fluid;
-G = model.G;
 
 assert(~(opt.solveForWater && opt.solveForOil));
 
@@ -25,8 +22,13 @@ assert(~(opt.solveForWater && opt.solveForOil));
 
 [p0, sW0] = model.getProps(state0, 'pressure', 'water');
 
-wflux = sum(vertcat(wellSol.flux), 2);
-
+% If timestep has been split relative to pressure, linearly interpolate in
+% pressure.
+pFlow = p;
+if isfield(state, 'timestep')
+    dt_frac = dt/state.timestep;
+    p = p.*dt_frac + p0.*(1-dt_frac);
+end
 %Initialization of independent variables ----------------------------------
 
 if ~opt.resOnly,
@@ -43,7 +45,7 @@ clear tmp
 
 % -------------------------------------------------------------------------
 sO = 1 - sW;
-[krW, krO] = model.evaluteRelPerm({sW, sO});
+[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -58,10 +60,10 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, p, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, p, sO, krO, T, gdz);
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
 
 gp = s.Grad(p);
 Gw = gp - dpW;
@@ -73,6 +75,7 @@ if model.extraStateOutput
 end
 
 if ~isempty(W)
+    wflux = sum(vertcat(wellSol.flux), 2);
     perf2well = getPerforationToWellMapping(W);
     wc = vertcat(W.cells);
     
@@ -110,41 +113,85 @@ flux = sum(state.flux, 2);
 vT = flux(model.operators.internalConn);
 
 % Stored upstream indices
-if model.staticUpwind
-    flag = state.upstreamFlag;
-else
-    flag = multiphaseUpwindIndices({Gw, Go}, vT, T, {mobW, mobO}, s.faceUpstr);
-end
+[flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+flag = flag_v;
 
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
+
+upcw_g = flag_g(:, 1);
+upco_g = flag_g(:, 2);
 
 mobOf = s.faceUpstr(upco, mobO);
 mobWf = s.faceUpstr(upcw, mobW);
 
 totMob = (mobOf + mobWf);
-totMob = max(totMob, sqrt(eps));
-
+    
+mobWf_G = s.faceUpstr(upcw_g, mobW);
+mobOf_G = s.faceUpstr(upco_g, mobO);
+mobTf_G = mobWf_G + mobOf_G;
+f_g = mobWf_G.*mobOf_G./mobTf_G;
 if opt.solveForWater
     f_w = mobWf./totMob;
-    bWvW   = s.faceUpstr(upcw, bW).*f_w.*(vT + T.*mobOf.*(Gw - Go));
+    bWvW   = s.faceUpstr(upcw, bW).*f_w.*vT + s.faceUpstr(upcw_g, bO).*f_g.*s.T.*(Gw - Go);
 
     wat = (s.pv/dt).*(pvMult.*bW.*sW       - pvMult0.*f.bW(p0).*sW0    ) + s.Div(bWvW);
-    wat(wc) = wat(wc) - bWqW;
-    
+    if ~isempty(W)
+        wat(wc) = wat(wc) - bWqW;
+    end
+
     eqs{1} = wat;
+    oil = [];
     names = {'water'};
     types = {'cell'};
 else
     f_o = mobOf./totMob;
-    bOvO   = s.faceUpstr(upco, bO).*f_o.*(vT + T.*mobWf.*(Go - Gw));
+    bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
 
     oil = (s.pv/dt).*( pvMult.*bO.*(1-sW) - pvMult0.*f.bO(p0).*(1-sW0) ) + s.Div(bOvO);
-    oil(wc) = oil(wc) - bOqO;
-    
+    if ~isempty(W)
+        oil(wc) = oil(wc) - bOqO;
+    end
+    wat = [];
     eqs{1} = oil;
     names = {'oil'};
     types = {'cell'};
 end
+
+tmpEqs = {wat, oil};
+tmpEqs = addFluxesFromSourcesAndBC(model, tmpEqs, ...
+                                   {pFlow, pFlow},...
+                                   {rhoW, rhoO},...
+                                   {mobW, mobO}, ...
+                                   {bW, bO},  ...
+                                   {sW, sO}, ...
+                                   drivingForces);
+if opt.solveForWater
+    eqs{1} = tmpEqs{1};
+else
+    eqs{1} = tmpEqs{2};
+end
+if ~model.useCNVConvergence
+    eqs{1} = eqs{1}.*(dt./s.pv);
+end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
+
+%{
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

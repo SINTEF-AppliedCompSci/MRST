@@ -65,10 +65,33 @@ function [wellSols, states, schedulereport] = ...
 %                     to disk during the simulation or in-situ
 %                     visualization. See the ResultHandler base class.
 %
+% 'ReportHandler'   - Same as 'OutputHandler', but for the reports for the
+%                     individual report steps.
+%
 % 'LinearSolver'    - Class instance subclassed from LinearSolverAD. Used
 %                     to solve linearized problems in the NonLinearSolver
 %                     class. Note that if you are passing a
 %                     NonLinearSolver, you might as well put it there.
+%
+% 'afterStepFn'     - Function handle to an optional function that will be
+%                     called after each successful report step in the
+%                     schedule. The function should take in the following
+%                     input arguments:
+%                     model    - The model used in the schedule
+%                     states   - A cell array of all states that are
+%                     computed, as well as possible empty entries where the
+%                     states have not been computed yet.
+%                     reports  - A cell array of reports for each step, with
+%                     empty entries for steps that have not been reached
+%                     yet.
+%                     solver   - The NonLinearSolver instance.
+%                     schedule - The current schedule.
+%                     simtime  - Array with the time in seconds taken by
+%                     the NonLinearSolver to compute each step. Entries not
+%                     computed will contain zeros.
+%
+%                     See "getPlotAfterStep" for more information and
+%                     "howtoAddPlotHook" for a worked example.
 %
 % RETURNS:
 %  wellSols         - Well solution at each control step (or timestep if
@@ -89,7 +112,7 @@ function [wellSols, states, schedulereport] = ...
 %   computeGradientAdjointAD, PhysicalModel
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -108,7 +131,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     assert (isa(model, 'PhysicalModel'), ...
-            'The model must be derived from PhyiscalModel');
+            'The model must be derived from PhysicalModel');
 
     validateSchedule(schedule);
 
@@ -116,13 +139,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'OutputMinisteps', false, ...
                  'NonLinearSolver', [], ...
                  'OutputHandler',   [], ...
+                 'ReportHandler',   [], ...
                  'afterStepFn',     [], ...
+                 'restartStep',     1, ...
                  'LinearSolver',    []);
 
     opt = merge_options(opt, varargin{:});
 
     %----------------------------------------------------------------------
-
+    if opt.restartStep ~= 1
+        nStep = numel(schedule.step.val);
+        assert(numel(opt.restartStep) == 1 && ...
+               opt.restartStep <= nStep &&...
+               opt.restartStep > 1, ...
+        ['Restart step must be an index between 1 and ', num2str(nStep), '.']);
+        schedule.step.control = schedule.step.control(opt.restartStep:end);
+        schedule.step.val = schedule.step.val(opt.restartStep:end);
+    end
+    
     dt = schedule.step.val;
     tm = [0 ; reshape(cumsum(dt), [], 1)];
 
@@ -145,11 +179,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         solver.LinearSolver = opt.LinearSolver;
     end
-    nSteps = numel(dt);
+    % Reset timestep selector in case it was used previously.
+    solver.timeStepSelector.reset();
 
+    nSteps = numel(dt);
     [wellSols, states, reports] = deal(cell(nSteps, 1));
     wantStates = nargout > 1;
-    wantReport = nargout > 2;
+    wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
     getWell = @(index) schedule.control(schedule.step.control(index)).W;
     state = initState;
@@ -160,6 +196,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
        state.wellSol = initWellSolAD(getWell(1), model, state);
     end
+
+    dispif(opt.Verbose, 'Validating initial state...\n')
+    state = model.validateState(state);
+    dispif(opt.Verbose, 'Initial state ready for simulation.\n')
 
     failure = false;
     simtime = zeros(nSteps, 1);
@@ -229,9 +269,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         wellSols(ind) = wellSols_step;
 
         if ~isempty(opt.OutputHandler)
-            opt.OutputHandler{ind} = states_step;
+            opt.OutputHandler{ind + opt.restartStep - 1} = states_step;
         end
-
+        
+        if ~isempty(opt.ReportHandler)
+            opt.ReportHandler{ind + opt.restartStep - 1} = report;
+        end
+        
         if wantStates
             states(ind) = states_step;
         end
@@ -299,14 +343,14 @@ function header = create_step_header(verbose, tm)
       nChar = 0;
    else
       % Non-verbose mode.  Do align '->' token in report-step range
-      nChar = numel(formatTimeRange(tm(end)));
+      nChar = numel(formatTimeRange(tm(end), 2));
    end
 
    header = @(i) ...
       fprintf('Solving timestep %0*d/%0*d: %-*s -> %s\n', ...
               nDigits, i, nDigits, nSteps, nChar, ...
-              formatTimeRange(tm(i + 0)), ...
-              formatTimeRange(tm(i + 1)));
+              formatTimeRange(tm(i + 0), 2), ...
+              formatTimeRange(tm(i + 1), 2));
 end
 
 %--------------------------------------------------------------------------

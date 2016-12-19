@@ -1,7 +1,8 @@
 % optimizeModel2D - optimize NPV for example-model of this folder
-% Require modules 
-require ad-core ad-blackoil ad-props optimization spe10
+
+mrstModule add ad-core ad-blackoil ad-props optimization spe10
 setupModel2D
+
 % Create model-object of class TwoPhaseOilWaterModel
 model  = TwoPhaseOilWaterModel(G, rock, fluid);
 % Set initial state and run simulation:
@@ -33,3 +34,30 @@ f = @(u)evalObjective(u, obj, state0, model, schedule, scaling);
 schedule_opt = control2schedule(u_opt, schedule, scaling);
 pth = fullfile(mrstPath('optimization'), 'examples', 'model2D', 'schedule_opt.mat');
 save(pth, 'schedule_opt')
+
+
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

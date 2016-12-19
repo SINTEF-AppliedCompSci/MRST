@@ -1,8 +1,9 @@
 function ok = simulationRuntimePanel(model, states, ctrl_reports, solver, schedule, simtime, varargin)
-% Internal function for drawing panel during simulation
+% Internal function for drawing panel during simulation. See
+% getPlotAfterStep.
 
 %{
-Copyright 2009-2015 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -154,8 +155,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         'Style', 'togglebutton', 'string', 'Pause',...
         'position', [0.65, .05, .3, .4])
     
-    
-    p2 = uipanel(p, 'position', [0 0 1 .10]);
     uicontrol(p2, 'units', 'Normalized', ...
         'Tag', 'dbstop', ...
         'callback', @dbstopHandler, ...
