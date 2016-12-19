@@ -208,6 +208,7 @@ function included = getContents(I)
     nn = nnz(stuff);
 
     count = 0;
+    included = '';
     for i = 1:numel(stuff)
         if ~stuff(i)
             continue
