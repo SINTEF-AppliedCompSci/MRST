@@ -104,7 +104,7 @@ title('Interfacial surface tension');
 
 figure()
 c = (0 : 10 : 200)';
-plot(c, fluid.muWSft(c),'LineWidth',2);
+plot(c, convertTo(fluid.muWSft(c), centi*poise), 'LineWidth', 2);
 xlabel('Surfactant concentration');
 ylabel('Viscosity (cP)');
 title('Water Viscosity at reference pressure');

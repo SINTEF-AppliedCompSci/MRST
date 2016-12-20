@@ -109,7 +109,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ck = schedule.step.control == k;
         for j = 1:ncv
             tmp = gradstep(ck, j);
-            gradients{j, k} = full(sum(horzcat(tmp{:}), 2));
+            gradients{j, k} = 0;
+            for i = 1:numel(tmp)
+                gradients{j, k} = gradients{j, k} + tmp{i};
+            end
         end
     end
 end

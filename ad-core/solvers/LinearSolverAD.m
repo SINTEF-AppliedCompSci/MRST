@@ -134,7 +134,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
            eqn = size(ii,1);
            dx = cell(eqn,1);
            for i = 1:eqn
-               dx{i} = result(ii(i,1):ii(i,2));
+               dx{i} = result(ii(i,1):ii(i,2), :);
            end
        end
        

@@ -148,9 +148,9 @@ W = verticalWell(W, G, rock, prodIJ(1), prodIJ(2), 1:nz, ...
 %
 % We simulate the formation of a surfactant plug.
 % Three periods:
-% 1) water only
-% 2) water + surfactant
-% 3) water only
+% 1) water only         (1000 days)
+% 2) water + surfactant (500 days)
+% 3) water only         (1500 days)
 
 [W.surfact] = deal(0);
 control(1).W = W;

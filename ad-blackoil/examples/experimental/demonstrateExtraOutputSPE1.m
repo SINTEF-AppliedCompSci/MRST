@@ -4,7 +4,7 @@ mrstModule add ad-props deckformat mrst-gui ad-core ad-blackoil
 model = selectModelFromDeck(G, rock, fluid, deck);
 
 
-schedule = convertDeckScheduleToMRST(G, model, rock, deck);
+schedule = convertDeckScheduleToMRST(model, deck);
 
 schedule.step.val = schedule.step.val(1:5);
 schedule.step.control = schedule.step.control(1:5);

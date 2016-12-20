@@ -257,7 +257,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if model.water && model.gas
                 krnames = [krnames, 'krOW', 'krOG'];
             else
-                krnames = [krnames, 'krO'];
+                krnames = [krnames, 'krOW'];
             end
         end
         if model.gas
@@ -351,6 +351,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function [x, y, ok, rs_g] = evalSat(model, f, fn, x, rsMax, rvMax)
         ok = true(size(x));
+        rs_g = nan;
         if checkBO(model)
             if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
                 mrs = max(rsMax);

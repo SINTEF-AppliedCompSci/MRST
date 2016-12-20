@@ -83,6 +83,11 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
+        [problem, state] = model.getEquations(state0, state, dt, drivingForces, varargin{:});
+    end
+
+    % --------------------------------------------------------------------%
     function state = validateState(model, state) %#ok
         % Validate the state for use with the model. Should check that
         % required fields are present and of the right dimensions. If the
@@ -208,7 +213,7 @@ methods
         forces = model.getDrivingForces(lookupCtrl(itNo));
         forces = merge_options(validforces, forces{:});
         
-        problem = model.getEquations(before, current, dt, forces, 'iteration', inf);
+        problem = model.getAdjointEquations(before, current, dt, forces, 'iteration', inf);
 
         if itNo < numel(dt_steps)
             after    = getState(itNo + 1);
@@ -216,7 +221,7 @@ methods
             % get forces and merge with valid forces
             forces_p = model.getDrivingForces(lookupCtrl(itNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
-            problem_p = model.getEquations(current, after, dt_next, forces_p,...
+            problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
                                 'iteration', inf, 'reverseMode', true);
         else
             problem_p = [];

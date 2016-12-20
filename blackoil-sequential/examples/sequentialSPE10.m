@@ -74,6 +74,20 @@ view(90, 90);
 plotWell(G, W);
 title('Fully-implicit')
 
+%%
+figure;
+subplot(1, 2, 1)
+bar([sum(repFIMP.SimulationTime), sum(repSeq.SimulationTime)]/60)
+set(gca, 'XTickLabel', {'Fully-implicit', 'Sequential'})
+ylabel('Simulation time [minutes]')
+set(gca, 'FontSize', 18)
+axis tight
+subplot(1, 2, 2)
+plotCellData(model.G, statesSeq{60}.s(:, 1), 'edgecolor', 'none')
+title('S_w')
+set(gca, 'FontSize', 18)
+
+axis equal tight off
 %% Copyright notice
 
 % <html>

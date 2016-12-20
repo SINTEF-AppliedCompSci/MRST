@@ -28,6 +28,7 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
         % time-steps.
         relaxFactor = 1;
         previousState;
+        previousDt;
     end
     
     methods
@@ -44,23 +45,28 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
             if numel(selector.targetChangeAbs) == 0
                 selector.targetChangeAbs = inf(1, nprops);
             end
-            
+            selector.previousDt = inf;
             assert(numel(selector.targetProps) == numel(selector.targetChangeRel) && ...
                    numel(selector.targetProps) == numel(selector.targetChangeAbs), ...
                    'targetProps must be equal in length to the targets!');
         end
         
         function dt = computeTimestep(selector, dt, dt_prev, model, solver, state_prev, state_curr)
+            dt0 = dt;
             dt = computeTimestep@IterationCountTimeStepSelector(selector, dt, dt_prev, model, solver, state_prev, state_curr);
             
             if isempty(state_prev)
                 if isempty(selector.previousState)
+                    selector.previousState = state_curr;
+                    selector.previousDt = dt0;
                     return
                 else
                     state_prev = selector.previousState;
+                    dt_prev = selector.previousDt;
                 end
             end
             selector.previousState = state_curr;
+            selector.previousDt = dt0;
             dt_next = inf;
             for i = 1:numel(selector.targetProps)
                 fn = selector.targetProps{i};
