@@ -10,7 +10,7 @@ mrstModule add coarsegrid
 totTime = 2000*day;
 gravity reset on
 
-layers = 1:5;
+layers = 1;
 nLayers = numel(layers);
 
 coarsefactors = [12 20 5];

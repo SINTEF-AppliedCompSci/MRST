@@ -60,7 +60,7 @@ end
 sO  = 1 - sW;
 sO0 = 1 - sW0;
 
-[krW, krO] = model.evaluteRelPerm({sW, sO});
+[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, ...
@@ -78,39 +78,39 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, p_prop, sW, c, ads, ...
+    getFluxAndPropsWaterPolymer_BO(model, p_prop, sW, c, ads, ...
     krW, T, gdz); %, 'shear', ~otherPropPressure);
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, ...
-    p, p_prop, sO, krO, T, gdz);
+    p_prop, sO, krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
-% if otherPropPressure
-%     % We have used a different pressure for property evaluation, undo the
-%     % effects of this on the fluxes.
-%     dp_diff = s.Grad(p) - s.Grad(p_prop);
-%     
-%     vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
-%     vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
-%     vP = -s.faceUpstr(upcw, mobP).*s.T.*(dpW + dp_diff);
-%     
-%     % If other property pressure is used, then the shear thinning is
-%     % computed here, and not above
-%     if usingShear
-%         poroFace  = s.faceAvg(model.rock.poro);
-%         faceArea  = model.G.faces.areas(s.internalConn);
-%         Vw        = vW./(poroFace .* faceArea); % water velocity
-%         muWMultf  = s.faceUpstr(upcw, muWMult);
-%         [shearMult, ~, shearReport] = ...
-%             getPolymerShearMultiplier(model, Vw, muWMultf);
-%         vW        = vW .* shearMult;
-%         vP        = vP .* shearMult;
-%         extraOutput.shearMult   = shearMult;
-%         extraOutput.shearReport = shearReport;
-%     end
-% end
+if otherPropPressure
+    % We have used a different pressure for property evaluation, undo the
+    % effects of this on the fluxes.
+    dp_diff = s.Grad(p) - s.Grad(p_prop);
+    
+    vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
+    vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
+    vP = -s.faceUpstr(upcw, mobP).*s.T.*(dpW + dp_diff);
+    
+    % If other property pressure is used, then the shear thinning is
+    % computed here, and not above
+    if usingShear
+        poroFace  = s.faceAvg(model.rock.poro);
+        faceArea  = model.G.faces.areas(s.internalConn);
+        Vw        = vW./(poroFace .* faceArea); % water velocity
+        muWMultf  = s.faceUpstr(upcw, muWMult);
+        [shearMult, ~, shearReport] = ...
+            getPolymerShearMultiplier(model, Vw, muWMultf);
+        vW        = vW .* shearMult;
+        vP        = vP .* shearMult;
+        extraOutput.shearMult   = shearMult;
+        extraOutput.shearReport = shearReport;
+    end
+end
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.

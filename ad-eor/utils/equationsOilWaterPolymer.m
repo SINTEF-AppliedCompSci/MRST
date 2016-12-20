@@ -120,7 +120,7 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, ...
     krW, T, gdz);
 bW0 = model.fluid.bW(p0);
@@ -185,7 +185,7 @@ types = {'cell', 'cell', 'cell'};
 
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
-[eqs, qBC, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
+[eqs, qBC, ~, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
    model, eqs, {pW, p}, {rhoW, rhoO}, {mobW, mobO}, {bW, bO},  ...
    {sW, sO}, drivingForces);
 
@@ -217,10 +217,7 @@ if ~isempty(W)
         s    = {sW(wc), sO(wc)};
         
         % Polymer well equations
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        cw        = c(wc);
-        cw(iInxW) = wciPoly;
-        
+        [~, wciPoly, iInxW] = getWellPolymer(W);        
         if usingShear
             % Compute shear rate multiplier for wells
             % The water velocity is computed using a the reprensentative 

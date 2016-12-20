@@ -1,4 +1,4 @@
-function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
+function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW, extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
 %
 %
 % SYNOPSIS:
@@ -94,7 +94,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Polymer
     mobP = mobW./(a + (1-a)*cbar);
     vP   = - s.faceUpstr(upcw, mobP.*c).*s.T.*dpW;
+    % Change viscositites (and hence mobilities and fluxes) due to polymer
+    % shear thinning/thickening
+    usingShear = isfield(f, 'plyshearMult') && opt.shear;
+    if usingShear
+        poroFace  = s.faceAvg(model.rock.poro);
+        faceArea  = model.G.faces.areas(s.internalConn);
+        Vw        = vW./(poroFace .* faceArea); % water velocity
+        muWMultf  = s.faceUpstr(upcw, muWMult);
+        [shearMult, ~, shearReport] = ...
+            getPolymerShearMultiplier(model, Vw, muWMultf);
+        vW        = vW .* shearMult;
+        vP        = vP .* shearMult;
+    end
 
+
+    extraOutput = [];
+    if usingShear
+        % The shear multiplier is returned in any case, as it is needed in the
+        % sequential solver
+        extraOutput.shearMult   = shearMult;
+    end
+
+    % Return extra output only if requested
+    if model.extraPolymerOutput
+        extraOutput.muWeff = muWeff;
+        muPeff = muWeff.*(a + (1-a)*cbar);
+        extraOutput.muPeff = muPeff;
+        extraOutput.Rk = Rk;
+        if usingShear
+            extraOutput.shearReport = shearReport;
+        end
+    end
 end
 
 
