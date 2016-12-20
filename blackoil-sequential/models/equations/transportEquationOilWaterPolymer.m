@@ -65,7 +65,7 @@ gdz = model.getGravityGradient();
 % Evaluate water and polymer properties
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
-[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
+[vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, a, dpW, extraOutput] = ...
     getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, ...
     gdz, 'shear', false); % shear effect is not used in transport
 
@@ -138,12 +138,9 @@ flux = sum(state.flux(:,1:2), 2);
 vT = flux(model.operators.internalConn);
 
 % Stored upstream indices
-if model.staticUpwind
-    flag = state.upstreamFlag;
-else
-    flag = multiphaseUpwindIndices({Gw, Go}, vT, s.T, {mobW, mobO}, ...
-        s.faceUpstr);
-end
+[flag_v, flag_g] = getSaturationUpwind(model.upwindType, state, {Gw, Go}, vT, s.T, {mobW, mobO}, s.faceUpstr);
+flag = flag_v;
+
 
 upcw  = flag(:, 1);
 upco  = flag(:, 2);
