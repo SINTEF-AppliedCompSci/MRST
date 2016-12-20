@@ -48,13 +48,10 @@ end
 primaryVars = {'pressure', 'qWs', 'qOs', 'qWPoly', 'bhp'};
 
 p_prop = opt.propsPressure;
-if isempty(p_prop)
+otherPropPressure = ~isempty(p_prop);
+if ~otherPropPressure
     p_prop = p;
 end
-% otherPropPressure = ~isempty(p_prop);
-% if ~otherPropPressure
-%     p_prop = p;
-% end
 
 % -------------------------------------------------------------------------
 sO  = 1 - sW;

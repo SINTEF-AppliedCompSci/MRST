@@ -1,4 +1,4 @@
-function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW, extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz)
+function [vW, vP, bW, muWeffMult, mobW, mobP, rhoW, pW, upcw, a, dpW, extraOutput] = getFluxAndPropsWaterPolymer_BO(model, pO, sW, c, ads, krW, T, gdz, varargin)
 %
 %
 % SYNOPSIS:
@@ -54,7 +54,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    opt = struct('shear', true);
+    opt = merge_options(opt, varargin{:});
     fluid = model.fluid;
     s = model.operators;
 
@@ -96,7 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     vP   = - s.faceUpstr(upcw, mobP.*c).*s.T.*dpW;
     % Change viscositites (and hence mobilities and fluxes) due to polymer
     % shear thinning/thickening
-    usingShear = isfield(f, 'plyshearMult') && opt.shear;
+    usingShear = isfield(fluid, 'plyshearMult') && opt.shear;
     if usingShear
         poroFace  = s.faceAvg(model.rock.poro);
         faceArea  = model.G.faces.areas(s.internalConn);

@@ -48,7 +48,7 @@ clear tmp
 
 % -------------------------------------------------------------------------
 sO = 1 - sW;
-[krW, krO] = model.evaluteRelPerm({sW, sO});
+[krW, krO] = model.evaluateRelPerm({sW, sO});
 
 % Multipliers for properties
 [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
@@ -66,12 +66,12 @@ gdz = model.getGravityGradient();
 ads  = effads(c, cmax, model);
 ads0 = effads(c0, cmax0, model);
 [vW, vP, bW, muWMult, mobW, mobP, rhoW, pW, upcw, dpW, extraOutput] = ...
-    getFluxAndPropsWaterPolymer_BO(model, p, p, sW, c, ads, krW, T, ...
+    getFluxAndPropsWaterPolymer_BO(model, p, sW, c, ads, krW, T, ...
     gdz, 'shear', false); % shear effect is not used in transport
 
 % Evaluate oil properties
 [vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, ...
-    p, sO, krO, T, gdz);
+    sO, krO, T, gdz);
 
 gp = s.Grad(p);
 Gw = gp - dpW;
