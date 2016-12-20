@@ -14,7 +14,6 @@ W = drivingForces.W;
 assert(isempty(drivingForces.bc) && isempty(drivingForces.src))
 
 s = model.operators;
-G = model.G;
 f = model.fluid;
 
 disgas = model.disgas;
@@ -200,7 +199,6 @@ if ~isempty(W)
 end
 
 [eqs, names, types] = deal(cell(1,2));
-eqInd = 1;
 if opt.solveForWater
     % water eq:
     wat = (s.pv/dt).*( pvMult.*bW.*sW - pvMult0.*bW0.*sW0 ) + s.Div(bWvW);
@@ -266,7 +264,6 @@ for i = 1:numel(active)
         ix = ix + 1;
     end
 end
-
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 

@@ -251,7 +251,6 @@ types{1} = 'cell';
 
 state.timestep = dt;
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-
 end
 
 %{

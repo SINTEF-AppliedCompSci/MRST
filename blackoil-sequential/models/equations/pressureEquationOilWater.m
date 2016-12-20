@@ -38,7 +38,8 @@ end
 primaryVars = {'pressure', 'qWs', 'qOs', 'bhp'};
 
 p_prop = opt.propsPressure;
-if isempty(opt.propsPressure)
+otherPropPressure = ~isempty(p_prop);
+if ~otherPropPressure
     p_prop = p;
 end
 
@@ -62,21 +63,21 @@ gdz = model.getGravityGradient();
 
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p, p_prop, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw, dpW] = getFluxAndPropsWater_BO(model, p_prop, sW, krW, T, gdz);
 bW0 = f.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p, p_prop, sO, krO, T, gdz);
+[vO, bO, mobO, rhoO, pO, upco, dpO] = getFluxAndPropsOil_BO(model, p_prop, sO, krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
-% if otherPropPressure
-%     % We have used a different pressure for property evaluation, undo the
-%     % effects of this on the fluxes.
-%     dp_diff = s.Grad(p) - s.Grad(p_prop);
-%     
-%     vW = -s.faceUpstr(upcw, mobW).*T.*(dpW + dp_diff);
-%     vO = -s.faceUpstr(upco, mobO).*T.*(dpO + dp_diff);
-% end
+if otherPropPressure
+    % We have used a different pressure for property evaluation, undo the
+    % effects of this on the fluxes.
+    dp_diff = s.Grad(p) - s.Grad(p_prop);
+    
+    vW = -s.faceUpstr(upcw, mobW).*s.T.*(dpW + dp_diff);
+    vO = -s.faceUpstr(upco, mobO).*s.T.*(dpO + dp_diff);
+end
 
 % These are needed in transport solver, so we output them regardless of
 % any flags set in the model.
