@@ -122,11 +122,11 @@ T = s.T.*transMult;
 gdz = model.getGravityGradient();
 
 % Evaluate water properties
-[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, p, sW, krW, T, gdz);
+[vW, bW, mobW, rhoW, pW, upcw] = getFluxAndPropsWater_BO(model, p, sW, krW, T, gdz);
 bW0 = model.fluid.bW(p0);
 
 % Evaluate oil properties
-[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, p, sO, krO, T, gdz);
+[vO, bO, mobO, rhoO, p, upco] = getFluxAndPropsOil_BO(model, p, sO, krO, T, gdz);
 bO0 = getbO_BO(model, p0);
 
 if model.outputFluxes
