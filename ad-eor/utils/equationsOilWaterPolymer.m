@@ -171,17 +171,19 @@ polymer = (s.pv.*(1-f.dps)/dt).*(pvMult.*bW.*sW.*c - ...
    pvMult0.*bW0.*sW0.*c0) + (s.pv/dt).* ...
    ( f.rhoR.*((1-poro)./poro).*(ads-ads0) ) + s.Div(bWvP);
 
+if ~opt.resOnly
+    epsilon = 1.e-8;
+    % the first way is based on the diagonal values of the resulting
+    % Jacobian matrix
+    eps = sqrt(epsilon)*mean(abs(diag(polymer.jac{3})));
+    % bad marks the cells prolematic in evaluating Jacobian
+    bad = abs(diag(polymer.jac{3})) < eps;
+    % the other way is to choose based on the water saturation
+    polymer(bad) = c(bad);
+end
 eqs   = {water, oil, polymer};
 names = {'water', 'oil', 'polymer'};
 types = {'cell', 'cell', 'cell'};
-
-% TODO: % Fix for (almost) zero water in the well
-% if isa(poly, 'ADI')
-%    epsilon = 1.e-8;
-%    epsilon = sqrt(epsilon)*mean(abs(diag(poly.jac{2})));
-%    bad     = abs(diag(poly.jac{2})) < epsilon;
-%    poly(bad) = c(bad);
-% end
 
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
