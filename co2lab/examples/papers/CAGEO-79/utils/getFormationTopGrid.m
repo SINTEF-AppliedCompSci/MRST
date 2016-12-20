@@ -22,7 +22,10 @@ function [Gt, rock2D, petrodata] = getFormationTopGrid(formation,coarsening_leve
     moduleCheck('libgeometry');
     [grdecl dataset petroinfo] = ...
         getAtlasGrid(formation, 'coarsening', coarsening_level);%#ok
-
+    
+    assert(~isempty(grdecl), ...
+        'Empty grdecl returned. Check the spelling of the formation name. Also ensure you have downloaded the dataset.')
+    
     % Computing the top-surface grid
     G = processGRDECL(grdecl{1});
     ncvec=nan(numel(G),1);

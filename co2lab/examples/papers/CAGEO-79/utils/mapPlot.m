@@ -34,6 +34,7 @@ function h = mapPlot(h, Gt, varargin)
     opt.quickclip = true;
     opt.background = [];
     opt.backgroundalpha = 1;
+    opt.background_threshold = [];
     opt.colorbar = 'background';
     opt.colorbarposition = 'South';
     
@@ -56,7 +57,8 @@ function h = mapPlot(h, Gt, varargin)
        ax = drawSmoothField(ax, Gt, ...
                             opt.background , 200           , ...
                             'quickclip'    , opt.quickclip , ...
-                            'alpha'        , opt.backgroundalpha);
+                            'alpha'        , opt.backgroundalpha, ...
+                            'field_threshold', opt.background_threshold);
        if strcmpi(opt.colorbar, 'background')
            caxis([min(opt.background), max(opt.background)]);
            hh = colorbar('peer', ax, opt.colorbarposition);

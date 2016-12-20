@@ -63,7 +63,9 @@ res_water = 0.1;
 res_gas = 0.2;
 
 % find well position
-cellnum = 5280;
+coord = [464328, 6646937]; 
+dist2 = sum(bsxfun(@minus, Gt.cells.centroids, coord).^2, 2);
+[~, cellnum] = min(dist2);
 [ix, iy] = ind2sub(Gt.cartDims, Gt.cells.indexMap(cellnum));
 wellIx = double([ix iy]);
 
