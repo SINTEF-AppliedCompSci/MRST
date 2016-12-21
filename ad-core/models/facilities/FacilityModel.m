@@ -43,12 +43,12 @@ classdef FacilityModel < PhysicalModel
                         else
                             wm = SimpleWell(W(i));
                         end
-                        wm.dsMaxAbs = model.ReservoirModel.dsMaxAbs;
-                        wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
-                        wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
                     else
                         wm = wellmodels{i};
                     end
+                    wm.dsMaxAbs = model.ReservoirModel.dsMaxAbs;
+                    wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
+                    wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
                     % Get the added primary variables for this well, plus
                     % the equations and equation types it adds
                     pvars{i} = wm.getExtraPrimaryVariableNames(model.ReservoirModel);
