@@ -98,6 +98,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    opt.last_control_is_migration = false; % if true, constrain last control
                                           % to zero rate
+     opt.maxIt = 10;
+                                      
    %{                                       
    opt.lineSearchMaxIt  = 10;
    opt.gradTol          = 1e-3;
@@ -282,7 +284,8 @@ function [val, der, wellSols, states] = ...
    
    % compute objective:
    vals = obj_fun(wellSols, states, schedule);
-   val  = sum(cell2mat(vals))/abs(objScaling);
+   vals=horzcat(vals{:});
+   val  = sum(vals,2)/abs(objScaling);
 
    % run adjoint:
    if nargout > 1
@@ -299,7 +302,7 @@ end
 function grd = scaleGradient(grd, schedule, boxLims, objScaling)
    dBox = boxLims(:, 2) - boxLims(:, 1); 
    for k = 1:numel(schedule.control)
-      grd{k} = (dBox / objScaling) .* grd{k}; 
+      grd{k} = (dBox / objScaling) .* grd{k}; % this exploits that .* make colume by colum if dBox is vector
    end
 end
     
