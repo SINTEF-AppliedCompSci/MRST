@@ -98,7 +98,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    opt.last_control_is_migration = false; % if true, constrain last control
                                           % to zero rate
-     opt.maxIt = 10;
+   opt.maxIt = 10;
+   opt.tol=1e-2;
+   opt.funtol=eps;
                                       
    %{                                       
    opt.lineSearchMaxIt  = 10;
@@ -171,14 +173,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    switch opt.post_method
        case 'box'
             [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator, 'linEq', linEqS, ...
-                                     'tol',1e-3,...
+                                     'tol',opt.tol,'funtol',opt.funtol,...
                                          'plotEvolution',true,'check_deriv', false,'maxIt',opt.maxIt);
                                      %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
        case 'eqc'
         ulim=[zeros(numel(u),1),ones(numel(u),1)];
         ulim(last_step_ix:end,end)=0;
         [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator,'ulim',ulim,'linEq', [], ...
-                                         'tol',1e-3,...
+                                         'tol',opt.tol,'funtol',opt.funtol,...
                                          'plotEvolution',true,'check_deriv', false,'maxIt',opt.maxIt);
        otherwise
            error()
