@@ -1,4 +1,4 @@
-function [optim, init, history] = optimizeRatesIpOpt(initState, model, schedule, ...
+function [optim, init, history] = optimizeRatesIPOPT(initState, model, schedule, ...
                                                 min_rates, max_rates, varargin)
 %
 % Compute an optimal set of injection rates for a proposed
@@ -111,9 +111,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.obj_fun = @(dummy) 0;
    opt = merge_options(opt, varargin{:});
 
-   opt.obj_fun = @(wellSols, states, schedule, varargin) ...
-                  leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty, ...
-                                 varargin{:});
+   opt.obj_fun =[];% @(wellSols, states, schedule, varargin) ...
+                  %leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty, ...
+                  %               varargin{:});
    
    opt = merge_options(opt, varargin{:});
    
@@ -174,7 +174,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    switch opt.post_method
        case 'eqc'
             [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator, 'linEq', linEqS, ...
-                                     'nlinIneq',opt.nlinIneq,... 
+                                     'nlinIneq',opt.nlinIneq/scaling.obj,... 
                                      'tol',opt.tol,'funtol',opt.funtol,...
                                          'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt);
                                      %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
@@ -182,7 +182,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ulim=[zeros(numel(u),1),ones(numel(u),1)];
         ulim(last_step_ix:end,end)=0;
         [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator,'ulim',ulim,'linEq', [], ...
-                                         'nlinIneq',opt.nlinIneq,... 
+                                         'nlinIneq',opt.nlinIneq/scaling.obj,... 
                                          'tol',opt.tol,'funtol',opt.funtol,...
                                          'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt);
        otherwise
@@ -307,7 +307,8 @@ end
 function grd = scaleGradient(grd, schedule, boxLims, objScaling)
    dBox = boxLims(:, 2) - boxLims(:, 1); 
    for k = 1:numel(schedule.control)
-      grd{k} = (dBox / objScaling) .* grd{k}; % this exploits that .* make colume by colum if dBox is vector
+      %grd{k} = (dBox / objScaling) .* grd{k}; % this exploits that .* make colume by colum if dBox is vector
+      grd{k} = bsxfun(@times,dBox,grd{k})/objScaling;
    end
 end
     

@@ -272,7 +272,7 @@ end
 function [mycells_p, z_spill]= bfs_argumented(A, N, Gtop, start_cell, opt)
 % Breadth first search, designed to first go in the direction of maximal
 % difference in height values of the centroids of two neighbouring cells
-
+require('matlab_bgl')
 % search all cells backwards connected
 cc=dfs(A', start_cell);
 cc=cc+1;cc(cc>0)=2;
