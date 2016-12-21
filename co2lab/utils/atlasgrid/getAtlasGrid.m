@@ -255,6 +255,10 @@ for i = 1:numel(grids)
     if any(strcmpi(g(end-3:end), {'.mat', '.prj'}))
         continue
     end
+    % Skip any readme files
+    if any(strcmpi(g, {'readme.txt', 'readme'}))
+        continue
+    end
     
     %[meta, data] = readAAIGrid(fullfile(gdir, g));
     [meta, data] = readAAIGrid(select_filepath(gdir, g));
@@ -313,7 +317,10 @@ function avgrock = getAvgRock(name)
             tmp = [1000, 0.2112];
         case 'sandnes'
             tmp = [150, 0.0875];
-        case 'sognefjord'
+        case {'sognefjord', 'fensfjord', 'krossfjord'}
+            % chp 4, p. 62 of Compiled Atlas says: Sognefjord Delta
+            % comprised of these three formations, partly separated by thin
+            % shales, and treated as one aquifer unit
             tmp = [300 0.1949];
         case 'statfjord'
             tmp = [200 0.1071];
@@ -329,16 +336,35 @@ function avgrock = getAvgRock(name)
             tmp = [1000	0.2500];
         case 'stord'
             tmp = [15 0.0600];
-        case 'hugin'
-            tmp = [500 0.1254];
+        case {'huginfmeast', 'huginfmwest'}
+            % chp 4, p. 44 of Compiled Atlas says: average porosity and
+            % permeability is between 16-20% and 0.1-4000 mD respectively.
+            % Only values for Hugin East are provided (see chp 4, p. 72).
+            tmp = [500 0.1254]; % taken from North Sea Atlas, p. 62
         case 'bryne'
             tmp = [150	0.1280];
+        case 'brentgrp'
+            % chp 4, p. 38 of Compiled Atlas: this group is located at a
+            % wide range of depths, so there is a complex distribution of
+            % porosity and permeability. Exact values not stated in Atlas.
+            tmp = [NaN NaN];
+        case 'ula'
+            % chp 4, p. 47 of Compiled Atlas says: porosities and
+            % permeabilities are reported in the range of 15-22% and
+            % 0.2-2800 mD respectively
+            tmp = [300 0.185];
+        case 'pliocenesand'
+            % Exact values not stated in Atlas, but this formation is said
+            % to be in communication with Skade (chp 4, p. 52)
+            tmp = [NaN NaN];
             
         % Barents Sea (chp 6 of "CO2 Storage Atlas: Norwegian
         % Contential Shelf" from NPD)
         case 'bjarmeland'
             tmp = [300 0.23];   % p. 130: permeabilities in the order of
                                 % 5-1000 mD have been recorded
+                                % NB: Heterogeneous perm, poro, ntg data
+                                % available for Prospect A
         case 'sto'
             tmp = [500 0.15];   % pg 128
         case 'nordmela'

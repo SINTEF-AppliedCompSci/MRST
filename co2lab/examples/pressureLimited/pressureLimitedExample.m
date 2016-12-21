@@ -3,8 +3,6 @@
 % Norwegian Petroleum Directorate's Compiled CO2 Storage Atlas of the
 % Norwegian Continental Shelf, found here:
 %       http://www.npd.no/en/Publications/Reports/Compiled-CO2-atlas/
-% For access to this dataset, please use the contact information provided
-% on the website.
 
 % We use a fairly coarsened version of this formation dataset, to reduce
 % the required time to run this example. Coarsening is controlled upon call
@@ -146,14 +144,14 @@ other.leak_penalty = cL;
 Gt = model.G;
 
 if saveResults
-    dirName = 'pressureLimitedExampleResults2';
+    dirName = 'pressureLimitedExampleResults';
     mkdir(dirName);
-    save([dirName '/' 'Gt'], 'Gt');
-    save([dirName '/' 'optim'], 'optim');
-    save([dirName '/' 'init0'], 'init0');
-    save([dirName '/' 'init'], 'init');
-    save([dirName '/' 'history'], 'history');
-    save([dirName '/' 'other'], 'other'); % @@ fluid structure is quite large
+    save(fullfile(dirName, 'Gt'),       'Gt');
+    save(fullfile(dirName, 'optim'),    'optim');
+    save(fullfile(dirName, 'init0'),    'init0');
+    save(fullfile(dirName, 'init'),     'init');
+    save(fullfile(dirName, 'history'),  'history');
+    save(fullfile(dirName, 'other'),    'other'); % @@ fluid structure is quite large
 end
 
 %% Post-processing
@@ -166,7 +164,7 @@ end
 %   6. initial vs optimized well rates
 %   7. initial vs optimized trapping inventory (with forecast curves)
 %   101: breakdown of forecast given initial rates
-%   102: breakdown of forecast givin optimized rates
+%   102: breakdown of forecast given optimized rates
 close all
 postProcessExample(Gt, init0, optim, other);
 

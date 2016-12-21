@@ -6,8 +6,6 @@ function [ model, schedule, initState, seainfo, other ] = makeBjarmelandModel( v
 % Directorate's Compiled CO2 Storage Atlas of the Norwegian Continental
 % Shelf, found here:
 %       http://www.npd.no/en/Publications/Reports/Compiled-CO2-atlas/
-% For access to this dataset, please use the contact information provided
-% on the website.
 
     opt.coarsening      = 10;
     opt.surface_pressure = 1 * atm;
