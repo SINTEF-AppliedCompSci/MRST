@@ -97,7 +97,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    opt.last_control_is_migration = false; % if true, constrain last control
-                                          % to zero rate
+   opt.nlinIneq=[];                                       % to zero rate
+   opt.check_deriv = false;
    opt.maxIt = 10;
    opt.tol=1e-2;
    opt.funtol=eps;
@@ -171,17 +172,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    u = schedule2control(schedule, scaling);
    switch opt.post_method
-       case 'box'
-            [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator, 'linEq', linEqS, ...
-                                     'tol',opt.tol,'funtol',opt.funtol,...
-                                         'plotEvolution',true,'check_deriv', false,'maxIt',opt.maxIt);
-                                     %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
        case 'eqc'
+            [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator, 'linEq', linEqS, ...
+                                     'nlinIneq',opt.nlinIneq,... 
+                                     'tol',opt.tol,'funtol',opt.funtol,...
+                                         'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt);
+                                     %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
+       case 'box'
         ulim=[zeros(numel(u),1),ones(numel(u),1)];
         ulim(last_step_ix:end,end)=0;
         [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator,'ulim',ulim,'linEq', [], ...
+                                         'nlinIneq',opt.nlinIneq,... 
                                          'tol',opt.tol,'funtol',opt.funtol,...
-                                         'plotEvolution',true,'check_deriv', false,'maxIt',opt.maxIt);
+                                         'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt);
        otherwise
            error()
    end
