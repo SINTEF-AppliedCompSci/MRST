@@ -1,5 +1,5 @@
 function obj = matchObservedOW(G, wellSols, schedule, observed, varargin)
-% Compute net present value of a schedule with well solutions
+% Compute mismatch-function 
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
