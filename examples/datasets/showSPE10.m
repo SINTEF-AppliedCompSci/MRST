@@ -1,4 +1,4 @@
-%% Modle 2 of the 10th SPE Comparative Solution Project
+%% Model 2 of the 10th SPE Comparative Solution Project
 % The data set was originally posed as a benchmark for upscaling methods.
 % The 3-D geological model consists of 60x220x85 grid cells, each of size
 % 20ftx10ftx2ft. The model is a geostatistical realization from the
@@ -26,9 +26,9 @@ mrstModule add spe10
 % simulations in MRST.
 rock = getSPE10rock();
 p = reshape(rock.poro,60,220,85);
-Kx = reshape(log10(rock.perm(:,1)),60,220,85);
-Ky = reshape(log10(rock.perm(:,2)),60,220,85);
-Kz = reshape(log10(rock.perm(:,3)),60,220,85);
+Kx = reshape(log10(rock.perm(:,1)),60,220,85) - log10(milli*darcy);
+Ky = reshape(log10(rock.perm(:,2)),60,220,85) - log10(milli*darcy);
+Kz = reshape(log10(rock.perm(:,3)),60,220,85) - log10(milli*darcy);
 
 %% show p
 clf
