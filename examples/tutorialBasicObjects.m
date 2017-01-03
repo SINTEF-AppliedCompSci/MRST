@@ -100,7 +100,7 @@ for k = 1:3, camlight(-60, 50), end
 %
 % MRST does not have advanced geostatistical functionality.  The two
 % functions |logNormLayers| and |gaussianField| may be used to sample
-% random fields in a spatial region with various degress of correlation,
+% random fields in a spatial region with various degrees of correlation,
 % but we recommend that more complete geostatistical software be employed
 % in a more realistic situations.  Here, we simply demonstrate that we can
 % visualise spatially varying data.  Note that the formula that derives the
