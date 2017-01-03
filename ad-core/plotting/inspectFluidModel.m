@@ -227,13 +227,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 case 'ads'
                     x = (0:0.01:f.cmax)';
                     data = f.(fn)(x);
-                    xl = 'Adsorption';
-                    yl = 'Polymer concentration';
+                    yl = 'Adsorption';
+                    xl = 'Polymer concentration';
                 case 'muwmult'
                     x = (0:0.01:f.cmax)';
                     data = f.(fn)(x);
-                    xl = 'Viscosity multiplier';
-                    yl = 'Polymer concentration';
+                    yl = 'Viscosity multiplier';
+                    xl = 'Polymer concentration';
             end
             if size(data, 2) > 1
                 for j = 1:size(data, 2)
