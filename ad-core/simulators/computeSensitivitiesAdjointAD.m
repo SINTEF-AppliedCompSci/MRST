@@ -65,7 +65,7 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
     sens = cell(1, numel(param));
     [sens{:}] = deal(0);
     % inititialize parameters to ADI
-    model = initModelParametersADI(model, param, pTypes);
+    modelParam = initModelParametersADI(model, param, pTypes);
     
     nstep = numel(schedule.step.val);
     lambda = [];
@@ -74,7 +74,7 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
         fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
         [~, lambda] = model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, lambda, step);
-        dFdth = partialWRTparam(model, getState, schedule, step);
+        dFdth = partialWRTparam(modelParam, getState, schedule, step);
         for kp = 1:numel(sens)
             sens{kp} = sens{kp} + dFdth{kp}'*lambda;
         end
