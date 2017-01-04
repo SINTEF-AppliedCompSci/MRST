@@ -84,6 +84,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             state = validateState@TwoPhaseOilWaterModel(model, state);
             % Polymer must be present
             model.checkProperty(state, 'Polymer', model.G.cells.num, 1);
+            fn = model.getVariableField('polymermax');
+            if ~isfield(state, fn)
+                state.(fn) = model.getProp(state, 'Polymer');
+            end
         end
 
         function [state, report] = updateState(model, state, problem, ...
