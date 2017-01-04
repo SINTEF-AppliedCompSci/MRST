@@ -303,9 +303,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           logu = log(u.val);
           h  = ADI(logu, lMultDiag(1./u.val, u.jac));
       end
+
       %--------------------------------------------------------------------
 
       function h = max(u,v) % this function should be expanded
+          if(nargin==1)
+              assert(isa(u,'ADI'));
+              [value,i] = max(u.val);
+              jacs      = subsrefJac(u.jac, i);
+              h         = ADI(value,jacs);
+              return;
+          end
+          assert(nargin==2);
           if ~isa(u, 'ADI'), % u is a DOUBLE
               value =  bsxfun(@max, u, v.val);
               inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
