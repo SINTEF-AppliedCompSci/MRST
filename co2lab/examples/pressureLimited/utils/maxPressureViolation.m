@@ -1,17 +1,22 @@
-function obj = maxPressure(model, states, schedule, penalty, plim, varargin)
+function obj = maxPressureViolation(model, states, schedule, plim, varargin)
 % states.pressure is a cell array.
 % schedule is only used for time steps.
-% penalty is a scalar.
 % plim is a cell array.
 
 
 % format of objective function:
-%   obj = max(0, sign(p - plim)) * penalty * (p - plim)^2
-% obj is computed for each time step (for both inj and mig periods).
+%   obj = [... 0 0 0 dp 0 0 0 0 0 ...]
+% where dp is max pressure violation (in Pascals)
+
+% obj is computed for each time step (for both inj and mig periods), but is
+% only non-zero at time step where max pressure violation occurred.
+
+% dp can be negative (indicating plim was not surpassed)
+
    
    opt.ComputePartials = false;
    opt.tStep = [];
-   opt.cells= [1:model.G.cells.num]';
+   opt.cells = [1:model.G.cells.num]';
    opt.tsteps= ones(numel(states),1);
    opt = merge_options(opt, varargin{:});
    
@@ -23,7 +28,7 @@ function obj = maxPressure(model, states, schedule, penalty, plim, varargin)
         dpmaxstep(i)=max(states{i}.pressure(opt.cells)-plim(opt.cells)); 
       end
    end
-   [dpmaxa,dmaxstep]=max(dpmatstep);
+   [dpmaxa,dmaxstep]=max(dpmaxstep);
    
    tSteps = opt.tStep;
    if isempty(tSteps)
@@ -66,7 +71,7 @@ function obj = maxPressure(model, states, schedule, penalty, plim, varargin)
         [p, ~, ~, ~, ~, ~] = initVariablesADI(p, sG, sGmax, qWs, qGs, pBHP); 
       end
       
-      tmp=max(p(opt.cells)-plim(opt.cells));
+      tmp=max(p(opt.cells)-plim(opt.cells)); % Pascals
       if(tSteps(step)==dmaxstep)
         assert(double(tmp)==dpmaxa);
         obj{step} = tmp;
