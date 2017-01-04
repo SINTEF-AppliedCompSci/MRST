@@ -47,10 +47,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargin < 3
         n = 8;
     end
-    rampup = 2*dt;
-    assert(time > rampup, 'Rampup time is larger than total time!');
+    if time == 0
+        dT = [];
+        return
+    end
     % Initial geometric series
     dt_init = (dt./2.^(n:-1:1))';
+    cs_time = cumsum(dt_init);
+    if any(cs_time > time)
+        dt_init = dt_init(cs_time < time);
+    end
+    
     % Remaining time that must be discretized
     dt_left = time - sum(dt_init);
     % Even steps
