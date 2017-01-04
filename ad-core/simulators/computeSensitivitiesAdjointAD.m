@@ -72,11 +72,15 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
     nt = nstep;
     for step = nt:-1:1
         fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
-        [~, lambda] = model.solveAdjoint(linsolve, getState, ...
+        lam = model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, lambda, step);
-        dFdth = partialWRTparam(modelParam, getState, schedule, step);
+        eqdth = partialWRTparam(modelParam, getState, schedule, step);
         for kp = 1:numel(sens)
-            sens{kp} = sens{kp} + dFdth{kp}'*lambda;
+            for nl = 1:numel(lam)
+                if isa(eqdth{nl}, 'ADI')
+                    sens{kp} = sens{kp} + eqdth{nl}.jac{kp}'*lam{nl};
+                end
+            end
         end
     end
     
@@ -97,8 +101,19 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
     end
 end
 
-function dFdth = partialWRTparam(model, getState, schedule, step)
-    eqs = blabla
+function eqdth = partialWRTparam(model, getState, schedule, step)
+    validforces = model.getValidDrivingForces();
+    current = getState(step);
+    before  = getState(step - 1);
+    dt_steps = schedule.step.val;
+    dt = dt_steps(step);
+    lookupCtrl = @(step) schedule.control(schedule.step.control(step));
+    % get forces and merge with valid forces
+    forces = model.getDrivingForces(lookupCtrl(step));
+    forces = merge_options(validforces, forces{:});
+    
+    problem = model.getEquations(before, current, dt, forces, 'iteration', inf, 'resOnly', true);
+    eqdth   = problem.equations;
 end
 
 function state = getStateFromInput(schedule, states, state0, i)
