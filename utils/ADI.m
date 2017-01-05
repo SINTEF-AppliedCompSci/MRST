@@ -314,7 +314,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               h         = ADI(value,jacs);
               return;
           end
-          assert(nargin==2);
+          assert(nargin==2, 'Max function implemented for up to 2 variables only.');
           if ~isa(u, 'ADI'), % u is a DOUBLE
               value =  bsxfun(@max, u, v.val);
               inx   = ~bsxfun(@gt,  u, v.val) + 1; % Pick 'v' if u <= v
