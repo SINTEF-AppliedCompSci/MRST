@@ -8,4 +8,6 @@ function fluid = addPolymerProperties(fluid, varargin)
     for i=1:numel(fns)
         fluid.(fns{i}) = polyFluid.(fns{i});
     end
+    fluid.dps = 0;
+    fluid.rhoR = 0;
 end
