@@ -354,7 +354,7 @@ classdef FacilityModel < PhysicalModel
                 end
             end
             for wno = 1:numel(model.WellModels)
-                new_ws = model.WellModels{wno}.validateWellSol(model.ReservoirModel, state.wellSol(wno));
+                new_ws = model.WellModels{wno}.validateWellSol(model.ReservoirModel, state.wellSol(wno), state);
                 % Hack to avoid adding fields manually
                 flds = fieldnames(new_ws);
                 for j = 1:numel(flds)

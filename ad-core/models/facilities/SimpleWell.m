@@ -30,7 +30,7 @@ classdef SimpleWell < PhysicalModel
             well.W = W;
         end
         
-        function wsol = validateWellSol(well, resmodel, wsol)
+        function wsol = validateWellSol(well, resmodel, wsol, state)
             
         end
         

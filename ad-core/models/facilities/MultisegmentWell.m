@@ -158,7 +158,7 @@ classdef MultisegmentWell < SimpleWell
             end
         end
         
-        function wellSol = validateWellSol(well, resmodel, wellSol)
+        function wellSol = validateWellSol(well, resmodel, wellSol, state)
             if ~isfield(wellSol, 'nodePressure')
                 % Need to initialize the well
                 W = well.W;
@@ -176,6 +176,68 @@ classdef MultisegmentWell < SimpleWell
                 m  = qs/sum(qs);
                 wellSol.nodeComp   = ones(nn-1, 1)*m;
                 wellSol.segmentFlux = -1*ones(sum(ns),1)/day;
+                
+                % assume for initialization a 10 kg/day influx from each
+                % connection:
+                wc = W.cells;
+                sc = state.s(wc,:);
+                pc = state.pressure(wc);
+                [krw, kro, krg] = resmodel.relPermWOG(sc(:,1), sc(:,2), sc(:,3), resmodel.fluid);
+                muw = resmodel.fluid.muW(pc);
+                bw = resmodel.fluid.bW(pc);
+                if resmodel.disgas
+                    muo = resmodel.fluid.muO(pc, state.rs(wc), false(size(wc)));
+                    bo  = resmodel.fluid.bO(pc, state.rs(wc), false(size(wc)));
+                    rs  = state.rs(wc);
+                else
+                    muo = resmodel.fluid.muO(pc);
+                    bo  = resmodel.fluid.bO(pc);
+                    rs = 0;
+                end
+                if resmodel.vapoil
+                    mug = resmodel.fluid.muG(pc, state.rv(wc), false(size(wc)));
+                    bg  = resmodel.fluid.bG(pc, state.rv(wc), false(size(wc)));
+                    rv  = state.rv(wc);
+                else
+                    mug = resmodel.fluid.muG(pc);
+                    bg = resmodel.fluid.bG(pc);
+                    rv = 0;
+                end
+                
+                
+                [mw, mo, mg] = deal(krw./muw, kro./muo, krg./mug);
+                %m = mw+mo+mg;
+                %[fw, fo, fg] = deal(mw./m, mo./m, mg./m);
+                cq = -10*ones(numel(W.cells), 1)/day;
+                
+                fwm = dens(1)*bw.*mw;
+                fom = dens(2)*(bo.*mo + bg.*rv.*mg);
+                fgm = dens(3)*(bg.*mg + bo.*rs.*mo);
+                
+                nodemix = W.cell2node*bsxfun(@rdivide, [fwm, fom, fgm], fwm + fom + fgm) ;
+                %nodemix = -M*((M'*M)\nodemix(2:end,:));
+                %qm
+                
+                cn = W.cell2node*cq;
+                M = well.operators.C(:, 2:end);
+                wellSol.segmentFlux =  -M*((M'*M)\cn(2:end));
+                %nodemix = W.cell2node*[fw, fo, fg];
+                nodemix_seg = -M*((M'*M)\nodemix(2:end,:));
+                tp = W.segments.topo(:,2)-1;
+                while any(sum(nodemix,2)==0)
+                    nodemix(tp, :) = nodemix_seg;
+                end
+                nodemix = bsxfun(@rdivide, nodemix, sum(nodemix,2));
+                nodemix = nodemix(2:end,:);
+                
+                wellSol.nodeComp = nodemix;
+                % adjust total rates
+                q_top = abs(well.operators.C(:,1)'*wellSol.segmentFlux);
+                wellSol.qWs  = -q_top*nodemix(1,1)*dens(1);
+                wellSol.qOs  = -q_top*nodemix(1,2)*dens(2);
+                wellSol.qGs  = -q_top*nodemix(1,3)*dens(3);
+                
+                
             end
         end
         
