@@ -929,7 +929,11 @@ classdef EquationOfStateModel < PhysicalModel
             % derivatives without making any assumptions other than the EOS
             % being a cubic polynomial
             if nargin < 5
+                if isa(Z, 'ADI')
                 cellJacMap = cell(numel(Z.jac), 1);
+                else
+                    cellJacMap = {};
+                end
             end
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
             e2 = double(E2);
