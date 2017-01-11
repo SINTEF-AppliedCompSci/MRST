@@ -168,7 +168,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
                     % Insert polymer data into values
                     values = [values(1:inx-1)  polyNorm   values(inx:end)];
-                    names  = [ names(1:inx-1) {'poly (cell)'}  names(inx:end)];
+                    names  = [ names(1:inx-1) {'dPolymer'}  names(inx:end)];
                 end
             end
             
