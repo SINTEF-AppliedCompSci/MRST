@@ -9,7 +9,9 @@ function G = tessellationGrid(p, t)
 %           node/point.
 %
 %   T     - Tessellation list: an n-by-k matrix where each row holds node
-%           numbers for a k-polygon.
+%           numbers for a k-polygon, or a n-by-1 cell array where each
+%           entry holds an array of node numbers, where the array length
+%           can vary for each entry
 %
 % RETURNS:
 %   G     - Valid grid definition.
@@ -63,6 +65,12 @@ function G = tessellationGrid(p, t)
 %   plotFaces(G,find(any(G.faces.neighbors==0,2)),'EdgeColor','r','LineWidth',2);
 %   axis tight off;
 %
+%   % Construct a polyhedral grid
+%   p = [0 0; 1 0 ; 0.4 0.6; 1.5 0.5; 0 1; 1 1];
+%   T = {[1 3 5],[3 6 5],[1 2 4 6 3]}';
+%   G = tessellationGrid(p, T);
+%   clf, plotGrid(G);
+%
 % SEE ALSO:
 %   triangleGrid, tetrahedralGrid, grid_structure.
 
@@ -93,15 +101,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    assert (nargin == 2,...
        'Must supply both a point set and a tessellation');
 
-   assert (all(max(t) <= size(p, 1)), ...
+   if iscell(t)
+      if size(t, 1) < size(t, 2)
+         assert(size(t, 1) == 1, ...
+            'Tesselation cell array must be one dimensional')
+         t = t';
+      end
+      n = cellfun(@numel, t);
+      tmp = arrayfun(@(n) rldecode([1:n 1]',[1 2*ones(1,n-1) 1]'), n, ...
+         'uniformOutput', false);
+      tt = cellfun(@(x, ix) reshape(x(ix),2,[]), ...
+         t, tmp, 'UniformOutput', false);
+      tt = [tt{:}];
+      nc = numel(t);
+   else
+      n   = size(t,2);
+      idx = rldecode([1:n 1]',[1 2*ones(1,n-1) 1]');
+      tt  = reshape(t(:, idx)', 2, []);
+      nc = size(t,1);
+      n = repmat(n, [nc, 1]);
+   end
+   
+   assert (all(max(tt) <= size(p, 1)), ...
        'Tessellation list ''T'' references invalid points.');
 
-   assert (all(min(t) > 0), ...
+   assert (all(min(tt) > 0), ...
        'Tessellation list ''T'' references invalid points.');
 
-   n = size(t,2);
-   idx               = rldecode([1:n 1]',[1 2*ones(1,n-1) 1]');
-   [fn, i]           = sort(reshape(t(:, idx)', 2, []));
+   [fn, i]           = sort(tt);
    [fn, cf, cf]      = unique(fn', 'rows');  %#ok
 
    G.faces.nodes     = reshape(fn', [], 1);
@@ -110,8 +137,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    G.nodes.coords    = p;
    G.nodes.num       = size(p, 1);
 
-   G.cells.num       = size(t, 1);
-   G.cells.facePos   = cumsum([1; repmat(n, [G.cells.num, 1])]);
+   G.cells.num       = nc;
+   G.cells.facePos   = cumsum([1; n]);
 
    cellNo            = rldecode(1:G.cells.num, diff(G.cells.facePos), 2).';
 
