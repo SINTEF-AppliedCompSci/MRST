@@ -274,7 +274,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if model.water && model.gas
                 krnames = [krnames, 'krOW', 'krOG'];
             else
-                krnames = [krnames, 'krOW'];
+                if isfield(model.fluid, 'krO')
+                    krnames = [krnames, 'krO'];
+                else
+                    krnames = [krnames, 'krOW'];
+                end
             end
         end
         if model.gas
