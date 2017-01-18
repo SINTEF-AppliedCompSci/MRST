@@ -1,7 +1,7 @@
 mrstModule add ad-fi deckformat mrst-gui ad-core ad-blackoil 
 mrstModule add blackoil-sequential ad-unittest
 %multiscale-devel
-mrstModule add blackoil-sequential spe10
+mrstModule add blackoil-sequential spe10 ad-props ad-eor
 
 mrstModule add coarsegrid
 
@@ -57,8 +57,9 @@ fluid.krW  = @(s, varargin) s.^2;
 
 
 p0 = 300*barsa;
-fluid.bO = @(p) 0.5 + (p-p0)./(1000*barsa);
-
+% fluid.bO = @(p) 0.5 + (p-p0)./(1000*barsa);
+c = 1e-4/barsa;
+fluid.bO = @(p, varargin) exp((p-p0)*c);
 %% Add some polymer fluid properties
 
 polyDeck  = readEclipseDeck('POLYMER.DATA');
@@ -105,9 +106,9 @@ state.cmax = zeros(G.cells.num, 1);
 
 state.wellSol = initWellSolAD(W, modelfi, state);
 
-lim = 5;
-schedule.step.val     = schedule.step.val(1:lim);
-schedule.step.control = schedule.step.control(1:lim);
+% lim = 5;
+% schedule.step.val     = schedule.step.val(1:lim);
+% schedule.step.control = schedule.step.control(1:lim);
 %%
 mrstModule add agmg
 mrstVerbose on
@@ -165,7 +166,8 @@ schedule_ms = convertReportToSchedule(report_split, schedule);
 % schedule_ms.step.val = schedule.step.val(1);
 % schedule_ms.step.control = schedule.step.control(1);
 
-
+%%
+[ws, states] = simulateScheduleAD(state, modelfi, schedule_ms);
 %%
 mrstModule add multiscale-devel coarsegrid mrst-experimental
 
