@@ -79,9 +79,25 @@ while ischar(lin) && (isempty(lin) || matches(lin, ['^\*|^\s+$|^\s*', cs])),
       %
 
       % Validate repeat description format.
+      %
+      % Algorithm:
+      %   1) Read character string starting from (pos - 1) up to first
+      %      blank (space) character.
+      %   2) Check if first two characters are exactly one digit and an
+      %      asterisk respectively.
+      %   3) If so, check that the remainder of the character string can be
+      %      parsed as a floating point value without any parse failures.
+      %
       fseek(fid, pos - 1, 'bof');
-      repdesc = fscanf(fid, '%c', 3);
-      if numel(repdesc) ~= 3 || ~matches(repdesc, '\d\*\d'),
+      check_string = fscanf(fid, '%s', 1);
+
+      [count, count, err, nchar] = ...
+         sscanf(check_string(3:end), '%f');                     %#ok<ASGLU>
+
+      if ~ matches(check_string(1:2), '\d\*') || ...
+         (count ~= 1) || ~ isempty(err)       || ...
+         (nchar ~= (numel(check_string) - 1))
+
          error('readGRDECL:RepeatDescr:Malformed',                    ...
                'Incorrect repeat description detected in keyword %s', ...
                field);
