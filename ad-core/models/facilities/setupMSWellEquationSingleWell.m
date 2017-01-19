@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % properties for connecting cells
     m = resProps.mob;
     b = resProps.b;
-    r = resProps.comp;
+    r = resProps.dissolved;
     pr = resProps.pressure;
 
     % Operators

@@ -33,7 +33,7 @@ classdef MultisegmentWell < SimpleWell
             end
         end
         
-        function [weqs, ctrlEq, weqsMS, extraNames, qMass, qSurf, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw, dt, iteration)
+        function [weqs, ctrlEq, weqsMS, extraNames, qMass, qSurf, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, dissolved, compw, dt, iteration)
             % Node pressures for the well
             pN = varw{1};
             % Mass fraction for the phases
@@ -46,7 +46,8 @@ classdef MultisegmentWell < SimpleWell
             resProps.pressure = pw;
             resProps.mob = mobw;
             resProps.rho = rhow;
-            resProps.comp = compw;
+            resProps.dissolved = dissolved;
+            resProps.components = compw;
             resProps.b = rhow;
             rhoS = resmodel.getSurfaceDensities();
             for i = 1:numel(resProps.b)
@@ -55,8 +56,8 @@ classdef MultisegmentWell < SimpleWell
                 % in terms of mass and surface volumes.
                 den = rhoS(i);
                 for j = 1:numel(resProps.b)
-                    if ~isempty(compw{j}{i})
-                        den = den + rhoS(j)*compw{j}{i};
+                    if ~isempty(dissolved{j}{i})
+                        den = den + rhoS(j)*dissolved{j}{i};
                     end
                 end
                 resProps.b{i} = resProps.b{i}./den;

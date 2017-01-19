@@ -157,7 +157,7 @@ classdef FacilityModel < PhysicalModel
             allNames = [names, enames];
         end
         
-        function [srcMass, srcVol, eqs, ctrleq, names, types, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
+        function [srcMass, srcVol, eqs, ctrleq, names, types, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
             % Get the source terms due to the wells, control and well
             % equations and updated well sol. Main gateway for adding wells
             % to a set of equations.
@@ -196,6 +196,7 @@ classdef FacilityModel < PhysicalModel
                 pw = p(wc);
                 mobw = getCellSubset(mob, wc);
                 rhow = getCellSubset(rho, wc);
+                disw = getComponentCellSubset(dissolved, wc);
                 compw = getComponentCellSubset(comp, wc);
                 varw = getVariableSubsetWell(wellvars, maps, i);
                 
@@ -206,9 +207,9 @@ classdef FacilityModel < PhysicalModel
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
-                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, disw, compw, dt, iteration);
                 % Update limits
-                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, disw, compw, dt, iteration);
                 if ~ok
                     bhp(i) = bh;
                     for phNo = 1:numel(qw)
@@ -217,7 +218,7 @@ classdef FacilityModel < PhysicalModel
                 end
                % Set up well equations and source terms
                [allBaseEqs{i}, allCtrl{i}, extraEqs, extraNames, allMass{i}, allVol{i}, wellSol(i)] =...
-                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, disw, compw, dt, iteration);
                for eqNo = 1:numel(extraEqs)
                    % Map into global list of equations
                    ix = strcmpi(enames, extraNames{eqNo});
@@ -338,10 +339,12 @@ classdef FacilityModel < PhysicalModel
                 mob{i} = state.mob(:, i);
                 rho{i} = state.rho(:, i);
             end
-            components = resmodel.getDissolutionMatrix(rs, rv);
+            dissolution = resmodel.getDissolutionMatrix(rs, rv);
+            % Note! Currently not valid for polymer or compositional
+            components = {};
             [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
                 model.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, ...
-                        wellMap, p, mob, rho, components, dt, opt.iteration);
+                        wellMap, p, mob, rho, dissolution, components, dt, opt.iteration);
             
             eqs = {weqs{:}, ctrleq};
             names = {wnames{:}, 'closureWells'};

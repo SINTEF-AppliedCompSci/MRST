@@ -239,8 +239,8 @@ end
 % Finally, add in and setup well equations
 if ~isempty(W)
     if ~opt.reverseMode
-        components = model.getDissolutionMatrix(rs, rv);        
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt);
+        dissolved = model.getDissolutionMatrix(rs, rv);
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
     else
         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
     end

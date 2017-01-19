@@ -61,8 +61,8 @@ classdef SimpleWell < PhysicalModel
             [vars{:}] = well.getProps(wellSol, names{:});
         end
         
-        function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw, dt, iteration)
-            [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw);
+        function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, dissolved, compw, dt, iteration)
+            [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, dissolved);
             ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
             
             % Update well properties which are not primary variables
@@ -84,7 +84,7 @@ classdef SimpleWell < PhysicalModel
             types = types(act);
         end
         
-        function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
+        function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
             if iteration ~= 1
                 return
             end
@@ -147,7 +147,7 @@ classdef SimpleWell < PhysicalModel
             wellSol.cdp = cdp;
         end
         
-        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
+        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
             if ~well.allowControlSwitching
                 % We cannot change controls, so we return
                 return

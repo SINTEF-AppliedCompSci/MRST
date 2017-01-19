@@ -305,7 +305,7 @@ methods
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
     
-    function [eqs, names, types, wellSol] = insertWellEquations(model, eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt)
+    function [eqs, names, types, wellSol] = insertWellEquations(model, eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt)
         % Utility function for setting up the well equations and adding
         % source terms for black-oil like models. Note that this currently
         % assumes that the first nPh equations are the conservation
@@ -314,7 +314,7 @@ methods
         nPh = nnz(model.getActivePhases);
         assert(numel(eqs) == nPh);
         [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
-            fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
+            fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt.iteration);
         rhoS = model.getSurfaceDensities();
         wc = fm.getWellCells();
         for i = 1:nPh
