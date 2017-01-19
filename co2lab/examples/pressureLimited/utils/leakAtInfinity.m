@@ -1,13 +1,16 @@
 function obj = leakAtInfinity(model, wellSols, states, schedule, ...
     penalty, surf_press, rho_water, ta, varargin)
-% new objective function to penalize leakage 'felt' at infinity, using
-% spill-point dynamics.
+% computes mass (in Gt) leaked by time infinity as long as penalty is set
+% to 1.
+% NB: obj value is in terms of a negative mass...
 
 % pressure is assumed to be hydrostatic at time infinity.
 
    opt.ComputePartials = false;
    opt.tStep = [];
    opt = merge_options(opt, varargin{:});
+   
+   assert(penalty == 1, 'Expected penalty value of 1.')
    
    num_timesteps = numel(schedule.step.val);
    tSteps = opt.tStep;
@@ -70,8 +73,8 @@ function obj = leakAtInfinity(model, wellSols, states, schedule, ...
          obj{step} = obj{step} +  penalty*vol_inf;
          if ~opt.ComputePartials
             fprintf('Total injected: %f (m3)\n', double(krull));
-            fprintf('Total leaked (by infinity): %f (m3)\n', double(krull - vol_inf));
-            fprintf('Penalty: %f \n', penalty)
+            %fprintf('Total leaked (by infinity): %f (m3)\n', double(krull - vol_inf));
+            %fprintf('Penalty: %f \n', penalty)
             fprintf('Score: %f (m3)\n\n', double(krull) - penalty * double(krull-vol_inf));
          end
       end
