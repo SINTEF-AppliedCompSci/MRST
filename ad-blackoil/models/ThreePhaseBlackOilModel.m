@@ -51,6 +51,9 @@ methods
                 error('Unknown dataset format!')
             end
         end
+        if isempty(model.FacilityModel)
+            model.FacilityModel = FacilityModel(model);
+        end
     end
     
     % --------------------------------------------------------------------%
@@ -254,6 +257,80 @@ methods
                                                           rv, pressure, model.disgas, model.vapoil);
     end
     
+    
+    function components = getDissolutionMatrix(model, rs, rv)
+        actPh = model.getActivePhases();
+        nPh = nnz(actPh);
+        if ~model.disgas
+            rs = [];
+        end
+        if ~model.vapoil
+            rv = [];
+        end
+        
+        components = cell(1, nPh);
+        [components{:}] = deal(cell(1, nPh));
+        ix = 1;
+        jx = 1;
+        for i = 1:3
+            if ~actPh(i)
+                continue
+            end
+            for j = 1:3
+                if ~actPh(j)
+                    continue
+                end
+                if i == 2 && j == 3
+                    components{i}{j} = rv;
+                elseif i == 3 && j == 2
+                    components{i}{j} = rs;
+                end
+                jx = jx + 1;
+            end
+            ix = ix + 1;
+        end
+    end
+    
+    function components = getDissolutionMatrixMax(model, pressure)
+        [rsMax, rvMax] = deal([]);
+        if model.disgas
+            rsMax = model.fluid.rsSat(pressure);
+        end
+        if model.vapoil
+            rvMax = model.fluid.rvSat(pressure);
+        end
+        components = model.getDissolutionMatrix(rsMax, rvMax);
+    end
+    
+    function rhoS = getSurfaceDensities(model)
+        active = model.getActivePhases();
+        props = {'rhoWS', 'rhoOS', 'rhoGS'};
+        rhoS = cellfun(@(x) model.fluid.(x), props(active));
+    end
+    
+    function [eqs, names, types, wellSol] = insertWellEquations(model, eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt)
+        % Utility function for setting up the well equations and adding
+        % source terms for black-oil like models. Note that this currently
+        % assumes that the first nPh equations are the conservation
+        % equations, according to the canonical MRST W-O-G ordering,
+        fm = model.FacilityModel;
+        nPh = nnz(model.getActivePhases);
+        assert(numel(eqs) == nPh);
+        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
+            fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
+        rhoS = model.getSurfaceDensities();
+        wc = fm.getWellCells();
+        for i = 1:nPh
+            eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
+        end
+        offset = numel(weqs);
+        eqs(end+1:end+offset) = weqs;
+        names(end+1:end+offset) = wnames;
+        types(end+1:end+offset) = wtypes;
+        eqs{end+1} = ctrleq;
+        names{end+1} = 'closureWells';
+        types{end+1} = 'well';
+    end
 end
 end
 

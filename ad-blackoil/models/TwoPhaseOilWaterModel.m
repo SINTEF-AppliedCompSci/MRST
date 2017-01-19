@@ -17,9 +17,9 @@ methods
         model.useCNVConvergence = true;
 
         model.saturationVarNames = {'sw', 'so'};
-        model.wellVarNames = {'qWs', 'qOs', 'bhp'};
 
         model = merge_options(model, varargin{:});
+        model.FacilityModel.ReservoirModel = model;
     end
     
     % --------------------------------------------------------------------%

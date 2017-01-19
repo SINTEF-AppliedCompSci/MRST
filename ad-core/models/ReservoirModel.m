@@ -76,9 +76,7 @@ properties
     saturationVarNames
     % Names of components
     componentVarNames
-    % Names of well fields that may be updated by the model.
-    wellVarNames
-
+    
     % Use alternate tolerance scheme
     useCNVConvergence
 
@@ -87,10 +85,6 @@ properties
 
     % MB tolerance values (2-norm-like)
     toleranceMB;
-    % Well tolerance if CNV is being used
-    toleranceWellBHP;
-    % Well tolerance if CNV is being used
-    toleranceWellRate;
 
     % Input data used to instantiate the model
     inputdata
@@ -107,7 +101,7 @@ properties
     gravity
     
     % Well model used to compute fluxes etc from well controls
-    wellmodel
+    FacilityModel
 end
 
 methods
@@ -147,19 +141,14 @@ methods
         model.useCNVConvergence = false;
         model.toleranceCNV = 1e-3;
         model.toleranceMB = 1e-7;
-        model.toleranceWellBHP = 1*barsa;
-        model.toleranceWellRate = 1/day;
 
         model.saturationVarNames = {'sw', 'so', 'sg'};
         model.componentVarNames  = {};
-        model.wellVarNames = {'qWs', 'qOs', 'qGs', 'bhp'};
 
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
         model.outputFluxes = true;
         model.upstreamWeightInjectors = false;
-        
-        model.wellmodel = WellModel();
         % Gravity defaults to the global variable
         model.gravity = gravity(); %#ok
         [model, unparsed] = merge_options(model, varargin{:}); %#ok
@@ -190,6 +179,7 @@ methods
         if nPh > 1
             model.checkProperty(state, 'Saturation', [nc, nPh], [1, 2]);
         end
+        state = model.FacilityModel.validateState(state);
     end
 
     % --------------------------------------------------------------------%
@@ -199,8 +189,13 @@ methods
         % Split variables into three categories: Regular/rest variables, saturation
         % variables (which sum to 1 after updates) and well variables (which live
         % in wellSol and are in general more messy to work with).
-        [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
+        [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
 
+        % Update the wells
+        if isfield(state, 'wellSol')
+            [state.wellSol, restVars] = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, restVars);
+        end
+        
         % Update saturations in one go
         state  = model.updateSaturations(state, dx, problem, satVars);
 
@@ -216,10 +211,6 @@ methods
             end
         end
 
-        % Update the wells
-        if isfield(state, 'wellSol')
-            state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
-        end
         report = [];
     end
 
@@ -234,8 +225,8 @@ methods
         if model.useCNVConvergence
             % Use convergence model similar to commercial simulator
             [conv_cells, v_cells, isWOG, namesWOG] = CNV_MBConvergence(model, problem);
-            [conv_wells, v_wells, isWell, namesWell] = checkWellConvergence(model, problem);
-
+            [conv_wells, v_wells, namesWell, isWell] = ...
+                model.FacilityModel.checkFacilityConvergence(problem);
             % Get the values for all equations, just in case there are some
             % values that are not either wells or standard 3ph conservation
             % equations
@@ -247,8 +238,9 @@ methods
                           all(conv_wells) && ...
                           all(values_all(rest) < tol);
                       
-            values = [v_cells, v_wells];
-            names = horzcat(namesWOG, namesWell);
+            values = [v_cells, v_wells, values_all(rest)];
+            restNames = problem.equationNames(rest);
+            names = horzcat(namesWOG, namesWell, restNames);
         else
             % Use strict tolerances on the residual without any 
             % fingerspitzengefuhlen by calling the parent class
@@ -307,8 +299,9 @@ methods
         % Well variables, saturation variables and the rest. This is
         % useful because the saturation variables usually are updated
         % together, and the well variables are a special case.
+        wellvars = model.FacilityModel.getPrimaryVariableNames();
         isSat   = cellfun(@(x) any(strcmpi(model.saturationVarNames, x)), vars);
-        isWells = cellfun(@(x) any(strcmpi(model.wellVarNames, x)), vars);
+        isWells = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
 
         wellVars = vars(isWells);
         satVars  = vars(isSat);
@@ -395,38 +388,6 @@ methods
     end
 
     % --------------------------------------------------------------------%
-    function wellSol = updateWellSol(model, wellSol, problem, dx, drivingForces, wellVars) %#ok
-        % Update the wellSol struct
-        if numel(wellSol) == 0
-            % Nothing to be done if there are no wells
-            return
-        end
-        if nargin < 6
-            % Get the well variables directly from the problem,
-            % otherwise assume that they are known by the user
-            [~, ~, wellVars] = ...
-                splitPrimaryVariables(model, problem.primaryVariables);
-        end
-
-        for i = 1:numel(wellVars)
-            wf = wellVars{i};
-            dv = model.getIncrement(dx, problem, wf);
-
-            if strcmpi(wf, 'bhp')
-                % Bottom hole is a bit special - we apply the pressure update
-                % limits here as well.
-                bhp = vertcat(wellSol.bhp);
-                dv = model.limitUpdateRelative(dv, bhp, model.dpMaxRel);
-                dv = model.limitUpdateAbsolute(dv, model.dpMaxAbs);
-            end
-
-            for j = 1:numel(wellSol)
-                wellSol(j).(wf) = wellSol(j).(wf) + dv(j);
-            end
-        end
-    end
-
-    % --------------------------------------------------------------------%
     function state = setPhaseData(model, state, data, fld, subs)
         % Given a structure field name and a cell array of data for
         % each phase, store them as columns with the given field name
@@ -486,12 +447,22 @@ methods
     end
     
     % --------------------------------------------------------------------%
+    function state = storeDensity(model, state, rhoW, rhoO, rhoG)
+        % Store compressibility / surface factors for plotting and
+        % output.
+        isActive = model.getActivePhases();
+
+        state.rho = zeros(model.G.cells.num, sum(isActive));
+        rho = {double(rhoW), double(rhoO), double(rhoG)};
+        state = model.setPhaseData(state, rho, 'rho');
+    end
+    % --------------------------------------------------------------------%
     function state = storebfactors(model, state, bW, bO, bG)
         % Store compressibility / surface factors for plotting and
         % output.
         isActive = model.getActivePhases();
 
-        state.mob = zeros(model.G.cells.num, sum(isActive));
+        state.bfactor = zeros(model.G.cells.num, sum(isActive));
         b = {double(bW), double(bO), double(bG)};
         state = model.setPhaseData(state, b, 'bfactor');
     end
