@@ -51,15 +51,15 @@ function obj = maxPressureViolation(model, states, schedule, plim, varargin)
       state = states{tSteps(step)}; %@@ +1?      
       p = state.pressure;
       % keep track of amount over or amount under plim at each time step
-      max_amount_surp(step) = max(0,max(p-plim));
+      max_amount_surp(step) = max(0,max(p(opt.cells)-plim(opt.cells)));
       if max_amount_surp(step) > 0
-          [~,cinx] = max(p-plim);
-          max_amount_surp_cinx(step) = cinx;
+          [~,cinx] = max(p(opt.cells)-plim(opt.cells));
+          max_amount_surp_cinx(step) = opt.cells(cinx);
       end
-      min_amount_under(step) = max(0,min(plim-p));
+      min_amount_under(step) = max(0,min(plim(opt.cells)-p(opt.cells)));
       if min_amount_under(step) > 0
-         [~,cinx] = min(max(0,(plim-p)));
-         min_amount_under_cinx(step) = cinx;
+         [~,cinx] = min(max(0,(plim(opt.cells)-p(opt.cells))));
+         min_amount_under_cinx(step) = opt.cells(cinx);
       end
       if opt.ComputePartials
         sG = state.s(:,2);   % place holders
@@ -95,6 +95,12 @@ function obj = maxPressureViolation(model, states, schedule, plim, varargin)
              end
              fprintf('Surpassed Plimit by %f (percent) of Plimit.\n', msg1)
              fprintf('Approached Plimit by %f (percent) of Plimit.\n', msg2)
+             fprintf('   in cell %d    at timestep %d \n', cinx, dmaxstep)
+             figure(min(opt.cells)), clf
+             plotGrid(model.G, 'facecolor','none', 'edgealpha',0.1),
+             plotCellData(model.G, model.G.cells.z, opt.cells, 'facecolor','y', 'edgealpha',0.1) % the cells being checked
+             plotCellData(model.G, model.G.cells.z, cinx, 'facecolor','r')
+             title(['cell ',num2str(cinx),', timestep ',num2str(dmaxstep)])
          end
       end
 
