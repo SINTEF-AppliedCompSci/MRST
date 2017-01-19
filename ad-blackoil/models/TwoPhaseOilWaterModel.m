@@ -19,7 +19,6 @@ methods
         model.saturationVarNames = {'sw', 'so'};
 
         model = merge_options(model, varargin{:});
-        model.FacilityModel.ReservoirModel = model;
     end
     
     % --------------------------------------------------------------------%
