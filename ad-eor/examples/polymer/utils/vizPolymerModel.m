@@ -98,13 +98,15 @@ title('Polymer adsorption');
 % plotting the shear factor
 % from the plot we can see, the polymer in this example holds
 % shear-thinning flow rheology.
-subplot(1,3,3);
-v = 10.^(-11:1:0);
-shear_factor = fluid.plyshearMult(v);
-semilogx(v, shear_factor, '-*', 'linewidth', 2);
-xlabel('water velocity (m/s)');
-ylabel('shear factor');
-title('Shear effect');
+if model.usingShear
+    subplot(1,3,3);
+    v = 10.^(-11:1:0);
+    shear_factor = fluid.plyshearMult(v);
+    semilogx(v, shear_factor, '-*', 'linewidth', 2);
+    xlabel('water velocity (m/s)');
+    ylabel('shear factor');
+    title('Shear effect');
+end
 
 
 drawnow;
