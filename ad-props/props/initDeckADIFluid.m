@@ -1,6 +1,58 @@
 function fluid = initDeckADIFluid(deck, varargin)
 
-reg = handleRegions(deck, varargin{:});
+
+ % this only work for full deck or first region.
+ opt.G = [];
+ opt.set_method='from_deck';
+ opt.regs=struct('PVTNUM',1,'SATNUM',1,'SURFNUM',1,'IMBNUM',1,'ROCKNUM',1);
+ opt =merge_options(opt,varargin{:})
+
+
+ %%
+ reg.PVTNUM = [];
+ reg.PVTINX = ':';
+ reg.SURFNUM = [];
+ reg.SURFINX = ':';
+ reg.SATINX=':';
+ reg.SATNUM = [];
+ reg.SATINX = ':';
+ reg.IMBNUM = [];
+ reg.IMBINX = ':';
+ reg.ROCKNUM = [];
+ reg.ROCKINX = ':';
+ switch opt.set_method
+     case 'from_deck'
+         reg = handleRegions(deck,opt.G);%, varargin{:});
+     case 'first_region'
+         %
+     case 'given_regions_ongrid'
+         %
+         nc=G.cells.num;
+         oo=ones(nc,1);
+         fname=fieldnames(reg);
+         for i=1:numel(fname)
+             if(isfield(opt.regs,fname{i}))
+                 if(numel(opts.regs.(fname{i}))==nc)
+                     reg.(fname{i})= opt.regs.(fname{i})*oo;
+                 else
+                     reg.(fname{i})= opt.regs.(fname{i});
+                 end
+             end
+         end
+     case 'one_region'
+         %
+         fname=fieldnames(reg);
+         for i=1:numel(fname)
+             if(isfield(opt.regs,fname{i}))
+                 assert(numel(opt.regs.(fname{i}))==1);
+                 reg.(fname{i})= opt.regs.(fname{i});
+             end
+         end
+         
+     otherwise
+         error('No surch region method')
+ end
+%reg = handleRegions(deck,opt.G);%, varargin{:});
 fluid = [];
 %props
 props = deck.PROPS;
