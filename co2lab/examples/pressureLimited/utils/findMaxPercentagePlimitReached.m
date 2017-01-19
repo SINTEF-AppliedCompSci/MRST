@@ -17,8 +17,13 @@ function [perc_of_plim_reach, perc_of_Pover_reach, cinxMax] = ...
     for j=1:numel(states)
         tmp = [tmp, states{j}.pressure];
     end
-    maxP_encountered = max(tmp')'; % cell array, 1:Gt.cells.num
-
+    %maxP_encountered = max(tmp')'; % cell array, 1:Gt.cells.num
+    maxP_encountered = max(tmp,[],2); % takes max value along rows instead 
+                                      % of column (to handle possibility
+                                      % that states is a single column
+                                      % array, not a cell array of many
+                                      % column arrays)
+    
     % Fraction of plim reached.
     frac = maxP_encountered./plim;
 
