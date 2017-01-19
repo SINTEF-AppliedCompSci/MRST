@@ -189,6 +189,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [opt, forcesArg] = merge_options(opt, varargin{:});
             % Merge in forces as varargin
             drivingForces = merge_options(drivingForces, forcesArg{:});
+            model = model.validateModel(drivingForces);
 
             assert(dT >= 0, [solver.getId(), 'Negative timestep detected.']);
 

@@ -51,9 +51,6 @@ methods
                 error('Unknown dataset format!')
             end
         end
-        if isempty(model.FacilityModel)
-            model.FacilityModel = FacilityModel(model);
-        end
     end
     
     % --------------------------------------------------------------------%

@@ -296,6 +296,10 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qGs';
                 case 'qws'
                     fn = 'qWs';
+                case 'qwpoly'
+                    fn = 'poly';
+                case 'qwsft'
+                    fn = 'surfact';
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@PhysicalModel(model, name);

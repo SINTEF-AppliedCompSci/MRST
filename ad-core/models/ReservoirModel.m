@@ -183,6 +183,19 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function model = validateModel(model, varargin)
+        if isempty(model.FacilityModel)
+            model.FacilityModel = FacilityModel(model); %#ok
+        end
+        if nargin > 1
+            W = varargin{1}.W;
+            model.FacilityModel = model.FacilityModel.setupWells(W);
+        end
+        model = validateModel@PhysicalModel(model, varargin{:});
+        return
+    end
+
+    % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
         % Generic update function for reservoir models containing wells
 

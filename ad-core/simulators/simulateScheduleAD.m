@@ -187,14 +187,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wantStates = nargout > 1;
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
-    % Initialize wells
-    dispif(opt.Verbose, 'Preparing well state\n')
-    % Set up facility model in order to ensure that we can properly
-    % validate the initial well state
-    W = schedule.control(schedule.step.control(1)).W;
-    model.FacilityModel = model.FacilityModel.setupWells(W);
-    dispif(opt.Verbose, 'Wells are ready...\n')
+    % Check if model is self-consistent and set up for current BC type
+    dispif(opt.Verbose, 'Preparing model for simulation...\n')
+    ctrl = schedule.control(schedule.step.control(1));
+    [forces, fstruct] = model.getDrivingForces(ctrl);
+    model = model.validateModel(fstruct);
+    dispif(opt.Verbose, 'Model ready for simulation...\n')
     
+    % Check if intiial state is reasonable
     dispif(opt.Verbose, 'Validating initial state...\n')
     state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ready for simulation.\n')

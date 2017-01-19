@@ -96,8 +96,21 @@ methods
         % reasonable default values, a descriptive error should be thrown
         % telling the user what is missing or wrong (and ideally how to fix
         % it).
-        
+
         % Any state is valid for base class
+        return
+    end
+
+    % --------------------------------------------------------------------%
+    function model = validateModel(model, varargin)
+        % Validate that a model is suitable for simulation. If the missing
+        % or inconsistent parameters can be fixed automatically, a updated
+        % model will be returned. Otherwise, an error should occur.
+        %
+        % Second input may be the forces struct argument. This function
+        % should NOT require forces arg to run, however.
+
+        % Base class is always suitable
         return
     end
 
