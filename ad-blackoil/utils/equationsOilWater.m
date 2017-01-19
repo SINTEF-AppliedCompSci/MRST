@@ -84,14 +84,7 @@ s = model.operators;
 % Properties at previous timestep
 [p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellSol');
 
-if ~isempty(W)
-    [qWell, pBH, basicWellNames] = model.FacilityModel.getBasicPrimaryVariables(wellSol);
-    [wellVars, wellExtraNames, wellMap] = model.FacilityModel.getExtraPrimaryVariables(wellSol);
-    wellVarNames = [basicWellNames, wellExtraNames];
-else
-    [qWell, wellVars, wellVarNames, wellMap] = deal({});
-    pBH = [];
-end
+[qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 % Initialize independent variables.
 if ~opt.resOnly,

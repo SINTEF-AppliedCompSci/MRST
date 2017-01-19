@@ -100,23 +100,32 @@ classdef FacilityModel < PhysicalModel
 
         function [rates, bhp, names] = getBasicPrimaryVariables(model, wellSol)
             % Get phase rates + bhp for active phases
-            actPh = model.ReservoirModel.getActivePhases();
-            bhp = vertcat(wellSol.bhp);
-            qWs = vertcat(wellSol.qWs);
-            qOs = vertcat(wellSol.qOs);
-            qGs = vertcat(wellSol.qGs);
-            rates = {qWs, qOs, qGs};
-            rates = rates(actPh);
-            
-            names = model.getBasicPrimaryVariableNames();
+            if model.getNumberOfWells() == 0
+                [rates, names] = deal({});
+                bhp = [];
+            else
+                actPh = model.ReservoirModel.getActivePhases();
+                bhp = vertcat(wellSol.bhp);
+                qWs = vertcat(wellSol.qWs);
+                qOs = vertcat(wellSol.qOs);
+                qGs = vertcat(wellSol.qGs);
+                rates = {qWs, qOs, qGs};
+                rates = rates(actPh);
+
+                names = model.getBasicPrimaryVariableNames();
+            end
         end
         
         function [variables, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
             % Extra primary variables are variables required by more
             % advanced wells that are in addition to the basic facility
             % variables (rates + bhp).
-            names = model.addedPrimaryVarNames;
             nw = model.getNumberOfWells();
+            if nw == 0
+                [variables, names, wellmap] = deal({});
+                return
+            end
+            names = model.addedPrimaryVarNames;
             nv = numel(names);
             vars = cell(nw, nv);
             
@@ -140,6 +149,12 @@ classdef FacilityModel < PhysicalModel
             for j = 1:nv
                 variables{j} = vertcat(vars{:, j});
             end
+        end
+        
+        function [rates, bhp, extra, allNames, wellMap] = getAllPrimaryVariables(model, wellSol)
+            [rates, bhp, names] = model.getBasicPrimaryVariables(wellSol);
+            [extra, enames, wellMap] = model.getExtraPrimaryVariables(wellSol);
+            allNames = [names, enames];
         end
         
         function [srcMass, srcVol, eqs, ctrleq, names, types, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
