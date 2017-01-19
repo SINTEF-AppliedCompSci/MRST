@@ -228,7 +228,10 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       
       if (tSteps(step) == num_timesteps)
          bG = model.fluid.bG(p);
-         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro;      
+         if ~isfield(model.rock,'ntg')
+             model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
+         end
+         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
          vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
          obj{step} = obj{step} + penalty * vol;
          if ~opt.ComputePartials
