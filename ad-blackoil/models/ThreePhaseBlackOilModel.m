@@ -313,18 +313,18 @@ methods
         fm = model.FacilityModel;
         nPh = nnz(model.getActivePhases);
         assert(numel(eqs) == nPh);
-        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
+        [src, wellsys, wellSol] = ...
             fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt.iteration);
         rhoS = model.getSurfaceDensities();
         wc = fm.getWellCells();
         for i = 1:nPh
-            eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
+            eqs{i}(wc) = eqs{i}(wc) - src.phaseMass{i}./rhoS(i);
         end
-        offset = numel(weqs);
-        eqs(end+1:end+offset) = weqs;
-        names(end+1:end+offset) = wnames;
-        types(end+1:end+offset) = wtypes;
-        eqs{end+1} = ctrleq;
+        offset = numel(wellsys.wellEquations);
+        eqs(end+1:end+offset) = wellsys.wellEquations;
+        names(end+1:end+offset) = wellsys.names;
+        types(end+1:end+offset) = wellsys.types;
+        eqs{end+1} = wellsys.controlEquation;
         names{end+1} = 'closureWells';
         types{end+1} = 'well';
     end

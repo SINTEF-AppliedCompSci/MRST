@@ -49,10 +49,17 @@ classdef SimpleWell < PhysicalModel
         
         function names = getExtraPrimaryVariableNames(well, resmodel)
             names = {};
+            if isprop(resmodel, 'polymer') && resmodel.polymer
+                names{end+1} = 'qWPoly';
+            end
         end
         
         function [names, types] = getExtraEquationNames(well, resmodel)
             [names, types] = deal({});
+            if isprop(resmodel, 'polymer') && resmodel.polymer
+                names{end+1} = 'polymerWells';
+                names{end+1} = 'perf';
+            end
         end
         
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)

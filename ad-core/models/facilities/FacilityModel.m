@@ -157,7 +157,7 @@ classdef FacilityModel < PhysicalModel
             allNames = [names, enames];
         end
         
-        function [srcMass, srcVol, eqs, ctrleq, names, types, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
+        function [sources, wellSystem, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
             % Get the source terms due to the wells, control and well
             % equations and updated well sol. Main gateway for adding wells
             % to a set of equations.
@@ -250,7 +250,14 @@ classdef FacilityModel < PhysicalModel
             ctrleq = vertcat(allCtrl{:});
             
             [wc, srcMass, srcVol] = model.handleRepeatedPerforatedcells(wc, srcMass, srcVol);
-            
+            wellSystem = struct('wellEquations', {eqs}, ...
+                                'names',  {names}, ...
+                                'types', {types}, ...
+                                'controlEquation', ctrleq);
+            sources = struct('phaseMass',   {srcMass}, ...
+                             'phaseVolume', {srcVol}, ...
+                             'sourceCells', wc);
+
         end
 
         function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
