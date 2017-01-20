@@ -349,13 +349,13 @@ classdef FacilityModel < PhysicalModel
             dissolution = resmodel.getDissolutionMatrix(rs, rv);
             % Note! Currently not valid for polymer or compositional
             components = {};
-            [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
+            [src, wellsys, state.wellSol] = ...
                 model.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, ...
                         wellMap, p, mob, rho, dissolution, components, dt, opt.iteration);
             
-            eqs = {weqs{:}, ctrleq};
-            names = {wnames{:}, 'closureWells'};
-            types = {wtypes{:}, 'well'};
+            eqs = {wellsys.wellEquations{:}, wellsys.controlEquation};
+            names = {wellsys.names{:}, 'closureWells'};
+            types = {wellsys.types{:}, 'well'};
             
             primaryVars = {basicWellNames{:}, wellExtraNames{:}};
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
