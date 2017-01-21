@@ -73,8 +73,8 @@ classdef FastAD
                 jj = bsxfun(@times, vv.*log(u), v.jac);
             else % u and v are both ADI
                 vv = u.val.^v.val;
-                jj = bsxfun(@plus, bsxfun(@times, vv.*(v.val./u.val), u.jac), ...
-                                   bsxfun(@times, vv.*log(u.val), u.jac));
+                jj = bsxfun(@mtimes, vv.*(v.val./u.val), u.jac) +...
+                     bsxfun(@mtimes, vv.*log(u.val), v.jac);
             end
             h = FastAD(vv, jj);
         end
