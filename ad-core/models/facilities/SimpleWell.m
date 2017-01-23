@@ -58,7 +58,7 @@ classdef SimpleWell < PhysicalModel
             [names, types] = deal({});
             if isprop(resmodel, 'polymer') && resmodel.polymer
                 names{end+1} = 'polymerWells';
-                names{end+1} = 'perf';
+                types{end+1} = 'perf';
             end
         end
         
@@ -68,8 +68,9 @@ classdef SimpleWell < PhysicalModel
             [vars{:}] = well.getProps(wellSol, names{:});
         end
         
-        function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, dissolved, compw, dt, iteration)
-            [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, dissolved);
+        function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, packed, dt, iteration)
+            % Compute well equations and well phase source terms
+            [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, packed);
             ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
             
             % Update well properties which are not primary variables
@@ -83,6 +84,37 @@ classdef SimpleWell < PhysicalModel
             extraNames = {};
         end
         
+        function [compEqs, compSrc, compNames, wellSol] = computeComponentContributions(well, wellSol0, wellSol, resmodel, q_s, bh, packed, qMass, qVol, dt, iteration)
+            % Compute component equations and component source terms
+            [compEqs, compSrc, compNames] = deal({});
+            if isprop(resmodel, 'polymer') && resmodel.polymer
+                % Polymer sources are by convention divided by rhoW
+                assert(resmodel.water, 'Polymer injection requires a water phase.');
+                f = resmodel.fluid;
+                if well.isInjector
+                    cw = well.W.poly;
+                else
+                    pix = strcmpi(resmodel.getComponentNames(), 'polymer');
+                    cw = packed.components{pix};
+                end
+                qWp = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
+                a = f.muWMult(f.cmax).^(1-f.mixPar);
+                cbarw     = cw/f.cmax;
+                % Water is always first
+                wix = 1;
+                qwSurf = qMass{wix}./f.rhoWS;
+                qP = cw.*qwSurf./(a + (1-a).*cbarw);
+
+                compEqs{end+1} = qWp - sum(cw.*qwSurf);
+                compSrc{end+1} = qP;
+                compNames{end+1} = 'polymerWells';
+            end
+        end
+        
+        function isInjector = isInjector(well)
+            isInjector = well.W.sign > 0;
+        end
+        
         function [names, types] = getWellEquationNames(well, resmodel)
             act = resmodel.getActivePhases();
             names = {'waterWells', 'oilWells', 'gasWells'};
@@ -91,10 +123,11 @@ classdef SimpleWell < PhysicalModel
             types = types(act);
         end
         
-        function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
+        function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, packed, dt, iteration)
             if iteration ~= 1
                 return
             end
+            [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
             toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
             rho     = cell2mat(toDb(rho));
             
@@ -304,7 +337,7 @@ classdef SimpleWell < PhysicalModel
                 case 'qws'
                     fn = 'qWs';
                 case 'qwpoly'
-                    fn = 'poly';
+                    fn = 'qWPoly';
                 case 'qwsft'
                     fn = 'surfact';
                 otherwise

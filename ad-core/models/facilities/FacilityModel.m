@@ -68,7 +68,7 @@ classdef FacilityModel < PhysicalModel
                 for i = 1:nw
                     % Update with new wells. Typically just a quick
                     % overwrite of existing wells
-                    model.WellModels{i}.updateWell(W(i));
+                    model.WellModels{i} = model.WellModels{i}.updateWell(W(i));
                 end
             end
         end
@@ -172,9 +172,13 @@ classdef FacilityModel < PhysicalModel
             allCtrl = cell(nw, 1);
             allVol = cell(nw, 1);
             allMass = cell(nw, 1);
+            allComp = cell(nw, 1);
             
             enames = model.addedEquationNames;
             etypes = model.addedEquationTypes;
+            cnames = model.ReservoirModel.getComponentNames();
+            ncomp = numel(cnames);
+            
             n_extra = numel(enames);
             assert(numel(etypes) == n_extra);
             
@@ -182,9 +186,9 @@ classdef FacilityModel < PhysicalModel
 
             
             addedVars = model.addedPrimaryVarNames;
-            maps = cell(1, numel(addedVars));
+            varmaps = cell(1, numel(addedVars));
             for varNo = 1:numel(addedVars)
-                maps{varNo} = model.getWellVariableMap(addedVars{varNo});
+                varmaps{varNo} = model.getWellVariableMap(addedVars{varNo});
             end
             
             [basenames, basetypes] = model.WellModels{1}.getWellEquationNames(model.ReservoirModel);
@@ -192,33 +196,31 @@ classdef FacilityModel < PhysicalModel
                 wm = model.WellModels{i};
 
                 W = wm.W;
-                wc = W.cells;
-                pw = p(wc);
-                mobw = getCellSubset(mob, wc);
-                rhow = getCellSubset(rho, wc);
-                disw = getComponentCellSubset(dissolved, wc);
-                compw = getComponentCellSubset(comp, wc);
-                varw = getVariableSubsetWell(wellvars, maps, i);
-                
-                % Renumber to the ordering of variables for this well
-                renum = wellMap(i, wellMap(i, :) > 0);
-                varw = varw(renum);
-                
+                packed = packPerforationProperties(W, p, mob, rho, dissolved, comp, wellvars, addedVars, varmaps, wellMap, i);
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
-                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, disw, compw, dt, iteration);
+                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
                 % Update limits
-                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, disw, compw, dt, iteration);
+                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
                 if ~ok
                     bhp(i) = bh;
                     for phNo = 1:numel(qw)
                         qWell{phNo}(i) = qw{phNo};
                     end
                 end
-               % Set up well equations and source terms
+               % Set up well equations and phase source terms
                [allBaseEqs{i}, allCtrl{i}, extraEqs, extraNames, allMass{i}, allVol{i}, wellSol(i)] =...
-                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, disw, compw, dt, iteration);
+                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
+               
+               % Get component source terms and corresponding equations (if
+               % any components are present)
+               [compEqs, allComp{i}, compNames, wellSol(i)] =...
+                   wm.computeComponentContributions(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, allMass{i}, allVol{i}, dt, iteration);
+               
+               extraEqs = {extraEqs{:}, compEqs{:}};
+               extraNames = {extraNames{:}, compNames{:}};
+               
                for eqNo = 1:numel(extraEqs)
                    % Map into global list of equations
                    ix = strcmpi(enames, extraNames{eqNo});
@@ -235,6 +237,11 @@ classdef FacilityModel < PhysicalModel
                 srcVol{phNo} = combineCellData(allVol, phNo);
                 eqs{phNo} = combineCellData(allBaseEqs, phNo);
             end
+            % Components are ordered canonically by reservoir model
+            srcComp = cell(1, ncomp);
+            for cNo = 1:ncomp
+                srcComp{cNo} = combineCellData(allComp, cNo);
+            end
             % If we have extra equations, add them in 
             extraEqs = cell(1, n_extra);
             for i = 1:n_extra
@@ -249,6 +256,7 @@ classdef FacilityModel < PhysicalModel
             eqs = {eqs{:}, extraEqs{:}};
             ctrleq = vertcat(allCtrl{:});
             
+            wc = model.getWellCells;
             [wc, srcMass, srcVol] = model.handleRepeatedPerforatedcells(wc, srcMass, srcVol);
             wellSystem = struct('wellEquations', {eqs}, ...
                                 'names',  {names}, ...
@@ -256,6 +264,7 @@ classdef FacilityModel < PhysicalModel
                                 'controlEquation', ctrleq);
             sources = struct('phaseMass',   {srcMass}, ...
                              'phaseVolume', {srcVol}, ...
+                             'components',  {srcComp}, ...
                              'sourceCells', wc);
 
         end

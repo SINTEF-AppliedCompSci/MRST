@@ -312,13 +312,18 @@ methods
         % equations, according to the canonical MRST W-O-G ordering,
         fm = model.FacilityModel;
         nPh = nnz(model.getActivePhases);
-        assert(numel(eqs) == nPh);
+%         assert(numel(eqs) == nPh);
         [src, wellsys, wellSol] = ...
             fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt.iteration);
         rhoS = model.getSurfaceDensities();
-        wc = fm.getWellCells();
+        wc = src.sourceCells;
         for i = 1:nPh
             eqs{i}(wc) = eqs{i}(wc) - src.phaseMass{i}./rhoS(i);
+        end
+        components = model.getComponentNames();
+        for i = 1:numel(components)
+            act = strcmpi(names, components{i});
+            eqs{act}(wc) = eqs{act}(wc) - src.components{i};
         end
         offset = numel(wellsys.wellEquations);
         eqs(end+1:end+offset) = wellsys.wellEquations;

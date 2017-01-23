@@ -294,7 +294,12 @@ methods
                 [fn, index] = getVariableField@PhysicalModel(model, name);
         end
     end
-    
+
+    % --------------------------------------------------------------------%
+    function names = getComponentNames(model)
+        names = {};
+    end
+
     % --------------------------------------------------------------------%
     function forces = getValidDrivingForces(model)
         forces = getValidDrivingForces@PhysicalModel(model);

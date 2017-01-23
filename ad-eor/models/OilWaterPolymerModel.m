@@ -54,7 +54,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % This is the model parameters for oil/water/polymer
             model.polymer = true;
             
-            model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
+%             model.wellVarNames = {'qWs', 'qOs', 'qWPoly', 'bhp'};
             
             model = merge_options(model, varargin{:});
             
@@ -109,7 +109,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                     model, name);
             end
         end
-        
+        function names = getComponentNames(model)
+            names = getComponentNames@TwoPhaseOilWaterModel(model);
+            if model.polymer
+                names{end+1} = 'polymer';
+            end
+        end
+
         function scaling = getScalingFactorsCPR(model, problem, names)
             nNames = numel(names);
 

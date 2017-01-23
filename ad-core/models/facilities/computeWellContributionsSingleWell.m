@@ -1,4 +1,5 @@
-function [eqs, cq_mass, mix_s, status, cstatus, cq_vol] = computeWellContributionsSingleWell(wellmodel, wellSol, resmodel, q_s, pBH, varw, p, mob, rho, components)
+function [eqs, cq_mass, mix_s, status, cstatus, cq_vol] = computeWellContributionsSingleWell(wellmodel, wellSol, resmodel, q_s, pBH, packed)
+[p, mob, rho, dissolved] = unpackPerforationProperties(packed);
 
 % W = wellmodel.W;
 % p = wellmodel.referencePressure;
@@ -78,7 +79,7 @@ for ph = 1:numPh
     cq_p{ph} = -conEff.*mob{ph}.*drawdown;
 end
 % producing connections phase volumerates at standard conditions:
-cq_ps = conn2surf(cq_p, b, components, resmodel);
+cq_ps = conn2surf(cq_p, b, dissolved, resmodel);
 % Sum of phase rates from producing connections at std conds:
 q_ps = cell(1, numPh);
 for ph = 1:numPh
@@ -120,7 +121,7 @@ end
 % injecting connections total volumerates
 cqt_i = -(connInjInx.*Tw).*(mt.*drawdown);
 % volume ratio between connection and standard conditions
-volRat  = compVolRat(mix_s, b, components, resmodel);
+volRat  = compVolRat(mix_s, b, dissolved, resmodel);
 % injecting connections total volumerates at standard condintions
 cqt_is = cqt_i./volRat;
 % connection phase volumerates at standard conditions (for output):
