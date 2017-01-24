@@ -378,15 +378,14 @@ classdef FacilityModel < PhysicalModel
         end
         
         function state = validateState(model, state)
-            if ~isfield(state, 'wellSol')
-                if ~isfield(state, 'wellSol') || isempty(state.wellSol),
-                   if isfield(state, 'wellSol'),
-                      state = rmfield(state, 'wellSol');
-                   end
-                   W = model.getWellStruct();
-                   state.wellSol = initWellSolAD(W, model.ReservoirModel, state);
+            if ~isfield(state, 'wellSol') || isempty(state.wellSol),
+                if isfield(state, 'wellSol'),
+                    state = rmfield(state, 'wellSol');
                 end
+                W = model.getWellStruct();
+                state.wellSol = initWellSolAD(W, model.ReservoirModel, state);
             end
+            
             for wno = 1:numel(model.WellModels)
                 new_ws = model.WellModels{wno}.validateWellSol(model.ReservoirModel, state.wellSol(wno), state);
                 % Hack to avoid adding fields manually
