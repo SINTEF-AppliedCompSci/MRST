@@ -188,7 +188,7 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function scaling = getScalingFactorsCPR(model, problem, names)
+    function scaling = getScalingFactorsCPR(model, problem, names, solver)
         % Get approximate, impes-like pressure scaling factors
         nNames = numel(names);
         
@@ -198,37 +198,83 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
-        p = mean(state.pressure);
-        
-        for iter = 1:nNames
-            name = lower(names{iter});
-            switch name
-                case 'oil'
-                    if model.disgas
-                       rs = fluid.rsSat(p);
-                       bO = fluid.bO(p, rs, true);
-                    else
-                       bO = fluid.bO(p);
-                    end
-                    s = 1./bO;
-                case 'water'
-                    bW = fluid.bW(p);
-                    s = 1./bW;
-                case 'gas'
-                    if model.vapoil
-                        rv = fluid.rvSat(p);
-                        bG = fluid.bG(p, rv, true);
-                    elseif model.gas
-                        bG = fluid.bG(p);
-                    end
-                    s = 1./bG;
-                otherwise
-                    continue
+        if isprop(solver, 'trueIMPES') && solver.trueIMPES
+            % Rigorous pressure equation (requires lots of evaluations)
+            p = state.pressure;
+            rs = state.rs;
+            rv = state.rv;
+            cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
+            for iter = 1:nNames
+                name = lower(names{iter});
+                switch name
+                    case 'oil'
+                        if model.disgas
+                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        if model.vapoil
+                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = cfac.*(1./bO - model.disgas*rs./bG);
+                    case 'water'
+                        bW = fluid.bW(p);
+                        s = 1./bW;
+                    case 'gas'
+                        if model.disgas
+                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        if model.vapoil
+                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = cfac.*(1./bG - model.vapoil*rv./bO);
+                    otherwise
+                        continue
+                end
+                sub = strcmpi(problem.equationNames, name);
+
+                scaling{iter} = s;
+                handled(sub) = true;
             end
-            sub = strcmpi(problem.equationNames, name);
-            
-            scaling{iter} = s;
-            handled(sub) = true;
+        else
+            % Very simple scaling factors, uniform over grid
+            p = mean(state.pressure);
+            for iter = 1:nNames
+                name = lower(names{iter});
+                switch name
+                    case 'oil'
+                        if model.disgas
+                           rs = fluid.rsSat(p);
+                           bO = fluid.bO(p, rs, true);
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        s = 1./bO;
+                    case 'water'
+                        bW = fluid.bW(p);
+                        s = 1./bW;
+                    case 'gas'
+                        if model.vapoil
+                            rv = fluid.rvSat(p);
+                            bG = fluid.bG(p, rv, true);
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = 1./bG;
+                    otherwise
+                        continue
+                end
+                sub = strcmpi(problem.equationNames, name);
+
+                scaling{iter} = s;
+                handled(sub) = true;
+            end
         end
         if ~all(handled)
             % Get rest of scaling factors from parent class
