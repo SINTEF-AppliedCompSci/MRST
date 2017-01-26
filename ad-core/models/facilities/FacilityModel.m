@@ -411,7 +411,9 @@ classdef FacilityModel < PhysicalModel
         
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             % Used when facility is run as a stand-alone model
-            [convergence, values, names] = model.checkFacilityConvergence(problem);
+            [convergence, values, names] = ...
+                model.checkFacilityConvergence(problem);
+            convergence = all(convergence);
         end
     end
     
