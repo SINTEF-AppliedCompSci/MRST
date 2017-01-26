@@ -167,7 +167,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    1./accumarray(g.cells.faces(:,1),1./totmob(rldecode([1:g.cells.num]', diff(g.cells.facePos))));
    b  = any(g.faces.neighbors==0, 2);
    totFace_mob(~b)=totFace_mob(~b);
-   tothface_mob_mat=diag(TT.d1*totFace_mob);
+   n = size(TT.d1, 1);
+   tothface_mob_mat = sparse(1:n, 1:n, TT.d1 * totFace_mob);
    %Tg     = Tg * totmob_mat;
 
    % identify internal faces
