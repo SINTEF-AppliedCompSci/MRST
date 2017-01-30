@@ -129,7 +129,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Pressure drop relation
     ddz = op.grad(w.nodes.depth);
     %rhoSeg = rhom(w.segments.topo(:,2));
-    rhoSeg = op.segmentUpstr(up, rhom(2:end));
+    % rhoSeg = op.segmentUpstr(up, rhom(2:end));
+    rhoSeg = op.aver(rhom);
     muSeg  = op.segmentUpstr(up, mum(2:end));
     dph = norm(gravity())*rhoSeg.*ddz;
     

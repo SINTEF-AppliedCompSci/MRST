@@ -17,9 +17,10 @@ classdef MultisegmentWell < SimpleWell
             well.operators.div  = @(x)C'*x;
             well.operators.segmentUpstr = @(flag, val)segmentUpstreamValue(flag, val, W.segments.topo);
             well.operators.C = C;
-            aver = sparse((1:ns)'*[1 1], W.segments.topo(1:end,:), ones(ns,1)*[1, ...
+            averMat = sparse((1:ns)'*[1 1], W.segments.topo(1:end,:), ones(ns,1)*[1, ...
                                 1], ns, nn);
-            well.operators.aver = bsxfun(@rdivide, aver, sum(aver, 2));
+            averMat = bsxfun(@rdivide, averMat, sum(averMat, 2));
+            well.operators.aver = @(val) (averMat*val);
         end
         
         function counts = getVariableCounts(wm, fld)
