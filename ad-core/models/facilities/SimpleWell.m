@@ -94,7 +94,8 @@ classdef SimpleWell < PhysicalModel
             
             active = model.getActivePhases();
             numPh = nnz(active);
-            rhoS = [model.fluid.rhoWS, model.fluid.rhoOS, model.fluid.rhoGS];
+            %rhoS = [model.fluid.rhoWS, model.fluid.rhoOS, model.fluid.rhoGS];
+            rhoS = model.getSurfaceDensities();
             rhoS = rhoS(active);
             
             b = bsxfun(@rdivide, rho, rhoS);

@@ -20,13 +20,33 @@ f = model.fluid;
 
 [p, T, wellSol] = model.getProps(state, 'pressure','temperature', 'wellsol');
 
-[p0 , T0] = model.getProps(state0, 'pressure','temperature');
+[p0 , T0, wellSol0] = model.getProps(state0, 'pressure','temperature','wellsol');
 
 pBH    = vertcat(wellSol.bhp);
 qWs    = vertcat(wellSol.qWs);
 
 %Initialization of independent variables ----------------------------------
-
+if ~isempty(W)
+    [qWell, bhp, basicWellNames] = model.FacilityModel.getBasicPrimaryVariables(wellSol);
+    [wellVars, wellExtraNames, wellMap] = model.FacilityModel.getExtraPrimaryVariables(wellSol);
+    wellVarNames = [basicWellNames, wellExtraNames];
+else
+    [qWell, wellVars, wellVarNames, wellMap] = deal({});
+    bhp = [];
+end
+if ~opt.resOnly,
+    if ~opt.reverseMode,
+        % define primary varible x and initialize
+        [p, T, qWell{:}, bhp, wellVars{:}] = ...
+            initVariablesADI(p, T, qWell{:}, bhp, wellVars{:});
+    else
+        zw = zeros(size(bhp));
+        [p0, T0, zw, zw] = ...
+            initVariablesADI(p0, T0, x0, zw, zw); %#ok
+        clear zw
+    end
+end
+%{
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
@@ -40,7 +60,7 @@ if ~opt.resOnly,
             zeros(size(pBH)));                          %#ok
     end
 end
-
+%}
 
 clear tmp
 %grav  = gravity;
@@ -96,7 +116,6 @@ eqs{1} = (s.pv/dt).*( pvMult.*bW - pvMult0.*bW0 ) + s.Div(bWvW);
                                           {p},...
                                         {rhoW},...
                                         {mobW}, ...
-                                        {bW},  ...
                                        {ones(G.cells.num,1)}, ...
                                        drivingForces);
                                    
@@ -138,10 +157,23 @@ if(~isempty(drivingForces.bcT))
 end
                                    
                                    
-primaryVars = {'pressure', 'T', 'qWs', 'bhp'};
+primaryVars = {'pressure', 'T', wellVarNames{:}};
 names = {'water', 'temperature'};
 types = {'cell', 'cell'};
 % well equations
+%sat = {sW, sO, sG};
+if ~isempty(W)
+    if ~opt.reverseMode
+        components = [];%model.getDissolutionMatrix(rs, rv);        
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap,...
+            p, {mobW}, {rhoW}, hW, components, dt, opt);
+    else
+        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
+    end
+end
+problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+eqs{2}=eqs{2}/1e6;
+%{
 if ~isempty(W)
     if ~opt.reverseMode
         wc    = vertcat(W.cells);
@@ -170,7 +202,7 @@ if ~isempty(W)
         %{
         hFw=f.rhoWS*wm.Rw*vertcat(W.hW);
         hFw(cqs{1}<0)=f.rhoWS*hW(wc(cqs{1}<0));%give wrong derivatives
-        %}
+        %%}
         eqs{2}(wc)= eqs{2}(wc) - hFw.*cqs{1};
         names(3:4) = {'waterWells', 'closureWells'};
         types(3:4) = {'perf', 'well'};
@@ -190,6 +222,7 @@ if ~isempty(W)
 end
 eqs{2}=eqs{2}/1e6;
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+%}
 end
 %--------------------------------------------------------------------------
 

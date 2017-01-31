@@ -46,7 +46,9 @@ else
         'Type', 'bhp', 'Val', 100*barsa+p_res, ...
         'Radius', 0.3, 'Name', 'P1','Comp_i',[0 1],'sign',1);
 end
-    
+for i=1:numel(W)
+    W(1).lims=inf;
+end
 dt=diff(linspace(0,100,20)*day);
 W_c={W};
 step=struct('control',ones(numel(dt),1),'val',dt);
