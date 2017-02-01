@@ -156,7 +156,7 @@ classdef MultisegmentWell < SimpleWell
             if nargout > 1
                 etypes = {'node', 'node', 'node'};
                 etypes = etypes(resmodel.getActivePhases());
-                types = {etypes{:}, 'seg', 'node'};
+                types = {etypes{:}, 'seg', 'alpha'};
             end
         end
         

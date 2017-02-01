@@ -47,22 +47,32 @@ function [convergence, values, evaluated, names] = checkWellConvergence(model, p
     %}
     isperf = problem.indexOfType('perf');
     iswell = problem.indexOfType('well');
+    isseg  = problem.indexOfType('seg');
+    isnode = problem.indexOfType('node');
     
-    evaluated = isperf | iswell;
+    evaluated = (isperf | iswell | isseg | isnode);
     
     ratevals = problem.equations(isperf);
-    bhpvals = problem.equations(iswell);
+    bhpvals  = problem.equations(iswell);
+    segvals  = problem.equations(isseg);
+    nodevals = problem.equations(isnode);
 
     values = [cellfun(@(x) norm(double(x), inf), ratevals), ...
-              cellfun(@(x) norm(double(x), inf), bhpvals)];
+              cellfun(@(x) norm(double(x), inf), bhpvals), ...
+              cellfun(@(x) norm(double(x), inf), segvals), ...
+              cellfun(@(x) norm(double(x), inf), nodevals)];
     
-    tmp = find(isperf | iswell);
+    tmp = find(evaluated);
     isperf = isperf(tmp);
     iswell = iswell(tmp);
+    isseg  = isseg(tmp);
+    isnode = isnode(tmp);
     
     convergence = false(size(tmp));
     convergence(isperf) = values(isperf) < model.toleranceWellRate;
     convergence(iswell) = values(iswell) < model.toleranceWellBHP;
+    convergence(isseg)  = values(isseg)  < model.wellEqsTol;
+    convergence(isnode) = values(isnode) < model.wellEqsTol;
     
     names = strcat(problem.equationNames(evaluated), ' (', problem.types(evaluated), ')');
 end

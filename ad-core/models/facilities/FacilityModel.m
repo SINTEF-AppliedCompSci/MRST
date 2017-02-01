@@ -4,6 +4,7 @@ classdef FacilityModel < PhysicalModel
 
         toleranceWellBHP
         toleranceWellRate
+        wellEqsTol
         ReservoirModel
     end
 
@@ -20,9 +21,9 @@ classdef FacilityModel < PhysicalModel
         function model = FacilityModel(reservoirModel, varargin)
             model = model@PhysicalModel([]);
 
-            model.toleranceWellBHP = 1*barsa;
+            model.toleranceWellBHP  = 1*barsa;
             model.toleranceWellRate = 1/day;
-
+            model.wellEqsTol        = 1e-6;
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
             model.WellModels = {};
@@ -408,7 +409,9 @@ classdef FacilityModel < PhysicalModel
         function [convergence, values, names, evaluated] = checkFacilityConvergence(model, problem)
             % For checking on the subset of variables specific to the
             % facility
-            [convergence, values, evaluated, names] = checkWellConvergence(model, problem);
+            [convergence, values, evaluated, names] = checkWellConvergence(model, ...
+                                                              problem);
+            
         end
 
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
