@@ -1,4 +1,4 @@
-function eq = setupWellControlEquations(sol, pBH, q_s, status, mix_s, model)
+function eq = setupWellControlEquationsSingleWell(sol, pBH, q_s, status, mix_s, model)
 %Setup well controll (residual) equations 
 %
 % SYNOPSIS:
@@ -82,30 +82,30 @@ else
         case 'orat'
             assert(model.oil, 'Oil phase must be present to control wells on oil rates');
             eq = q_s{io} - val;
-            if mix_s(io) == 0;
-                % No oil present, singular equation. Set to zero control.
-                eq = qt_s;
-            end
+            % if mix_s(io) == 0;
+            %     % No oil present, singular equation. Set to zero control.
+            %     eq = qt_s;
+            % end
         case 'wrat'
             assert(model.water, 'Water phase must be present to control wells on oil rates');
             eq = q_s{iw} - val;
-            if mix_s(iw) == 0;
-                % Set to zero control
-                eq = qt_s;
-            end
+            % if mix_s(iw) == 0;
+            %     % Set to zero control
+            %     eq = qt_s;
+            % end
         case 'grat'
             assert(model.gas, 'Gas phase must be present to control wells on oil rates');
             eq = q_s{ig} - val;
-            if mix_s(ig) == 0;
-                % Set to zero control
-                eq = qt_s;
-            end
+            % if mix_s(ig) == 0;
+            %     % Set to zero control
+            %     eq = qt_s;
+            % end
         case 'lrat'
             eq = q_s{iw} + q_s{io} - val;
-            if mix_s(iw) + mix_s(io) == 0;
-                % Set to zero control
-                eq = qt_s;
-            end
+            % if mix_s(iw) + mix_s(io) == 0;
+            %     % Set to zero control
+            %     eq = qt_s;
+            % end
         otherwise
             error(['Unknown well control ', type, ' for well ', wellSol.name]);
     end
