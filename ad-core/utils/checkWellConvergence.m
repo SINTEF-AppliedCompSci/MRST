@@ -49,30 +49,36 @@ function [convergence, values, evaluated, names] = checkWellConvergence(model, p
     iswell = problem.indexOfType('well');
     isseg  = problem.indexOfType('seg');
     isnode = problem.indexOfType('node');
+    isalpha  = problem.indexOfType('alpha');
     
-    evaluated = (isperf | iswell | isseg | isnode);
+    evaluated = (isperf | iswell | isseg | isnode | isalpha);
     
     ratevals = problem.equations(isperf);
     bhpvals  = problem.equations(iswell);
     segvals  = problem.equations(isseg);
     nodevals = problem.equations(isnode);
+    alphavals  = problem.equations(isalpha);
 
     values = [cellfun(@(x) norm(double(x), inf), ratevals), ...
               cellfun(@(x) norm(double(x), inf), bhpvals), ...
               cellfun(@(x) norm(double(x), inf), segvals), ...
-              cellfun(@(x) norm(double(x), inf), nodevals)];
+              cellfun(@(x) norm(double(x), inf), nodevals), ...
+              cellfun(@(x) norm(double(x), inf), alphavals), ...
+             ];
     
     tmp = find(evaluated);
     isperf = isperf(tmp);
     iswell = iswell(tmp);
     isseg  = isseg(tmp);
     isnode = isnode(tmp);
+    isalpha  = isalpha(tmp);
     
     convergence = false(size(tmp));
     convergence(isperf) = values(isperf) < model.toleranceWellRate;
     convergence(iswell) = values(iswell) < model.toleranceWellBHP;
     convergence(isseg)  = values(isseg)  < model.toleranceWellMS;
     convergence(isnode) = values(isnode) < model.toleranceWellMS;
+    convergence(isalpha)  = values(isalpha)  < model.toleranceWellMS;
     
     names = strcat(problem.equationNames(evaluated), ' (', problem.types(evaluated), ')');
 end
