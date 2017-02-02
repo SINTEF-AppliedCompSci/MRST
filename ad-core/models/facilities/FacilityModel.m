@@ -4,7 +4,7 @@ classdef FacilityModel < PhysicalModel
 
         toleranceWellBHP
         toleranceWellRate
-        wellEqsTol
+        toleranceWellMS
         ReservoirModel
     end
 
@@ -23,7 +23,7 @@ classdef FacilityModel < PhysicalModel
 
             model.toleranceWellBHP  = 1*barsa;
             model.toleranceWellRate = 1/day;
-            model.wellEqsTol        = 1e-6;
+            model.toleranceWellMS        = 1e-6;
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
             model.WellModels = {};

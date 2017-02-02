@@ -71,8 +71,8 @@ function [convergence, values, evaluated, names] = checkWellConvergence(model, p
     convergence = false(size(tmp));
     convergence(isperf) = values(isperf) < model.toleranceWellRate;
     convergence(iswell) = values(iswell) < model.toleranceWellBHP;
-    convergence(isseg)  = values(isseg)  < model.wellEqsTol;
-    convergence(isnode) = values(isnode) < model.wellEqsTol;
+    convergence(isseg)  = values(isseg)  < model.toleranceWellMS;
+    convergence(isnode) = values(isnode) < model.toleranceWellMS;
     
     names = strcat(problem.equationNames(evaluated), ' (', problem.types(evaluated), ')');
 end
