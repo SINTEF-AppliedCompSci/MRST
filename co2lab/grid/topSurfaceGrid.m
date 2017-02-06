@@ -275,6 +275,7 @@ function cfaces = find_connecting_faces(Gt, nodes)
    fnum = Gt.faces.num; % total number of faces
    n_ind = false(Gt.nodes.num, 1);
    n_ind(nodes) = true;
+   n_ind = double(n_ind); % handle type conversion issue for older versions of MATLAB
    fnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(1:fnum), ...
                                   Gt.faces.nodePos(2:fnum+1)-1));
    fnode_ind = reshape(n_ind(fnodes), 2, []);
@@ -459,7 +460,8 @@ function padded =  padded_nodelist(Gt, cell_ix, fill_val)
    % always be true in 2D
    num_faces      = Gt.cells.facePos(cell_ix+1) - Gt.cells.facePos(cell_ix);
    ctrl           = rldecode((1:numel(cell_ix))', 2 * num_faces); 
-   nodes_cells    = unique([nodes, ctrl], 'rows', 'stable');
+   %nodes_cells    = unique([nodes, ctrl], 'rows', 'stable');
+   nodes_cells    = uniqueStable([nodes, ctrl], 'rows'); % for backward compatibility
    [~, num_nodes] = rlencode(nodes_cells(:,2));
    assert(all(num_nodes == num_faces)); % just to be sure our assumption hold
    
