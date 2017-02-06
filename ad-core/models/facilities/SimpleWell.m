@@ -247,7 +247,7 @@ classdef SimpleWell < PhysicalModel
             else
                 modes = {};
                 flags = false;
-                assert(isinf(lims))
+                assert(isempty(lims) || isinf(lims))
             end
             % limits we need to check (all others than w.type):
             chkInx = ~strcmp(wellSol.type, modes);
