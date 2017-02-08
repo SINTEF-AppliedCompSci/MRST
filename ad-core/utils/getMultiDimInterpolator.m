@@ -1,30 +1,38 @@
 function fn = getMultiDimInterpolator(x, Y)
     sz = size(Y);
     assert(iscell(x));
-    assert(numel(sz) == numel(x));
-    assert(all(cellfun(@numel, x) == sz));
+    if numel(x) > 1
+        assert(numel(sz) == numel(x));
+        assert(all(cellfun(@numel, x) == sz));
+    end
     
     nvar = numel(x);
     dY = cell(nvar, 1);
     
-    T = griddedInterpolant(x, Y);
+    T = griddedInterpolant(x, Y, 'linear', 'linear');
     for i = 1:nvar
         dyi = diff(Y, 1, i);
         dxi = diff(x{i});
         
-        % Permute to allow for use of bsxfun
-        p = 1:nvar;
-        p(i) = 1;
-        p(1) = i;
 
-        dyidx = bsxfun(@rdivide, permute(dyi, p), dxi);
-        % Permute back
-        dyidx = ipermute(dyidx, p);
+        
+        % delta y / delta x
+        if nvar > 1
+            % Permute to allow for use of bsxfun
+            p = 1:nvar;
+            p(i) = 1;
+            p(1) = i;
+            dyidx = bsxfun(@rdivide, permute(dyi, p), dxi);
+            % Permute back
+            dyidx = ipermute(dyidx, p);
+        else
+            dyidx = dyi./dxi;
+        end
 
         % Evaluate using midpoints
         xi = x;
-        xi{i} = xi{i}(1:end-1) + dxi;
-        dY{i} = griddedInterpolant(xi, dyidx);
+        xi{i} = xi{i}(1:end-1) + dxi/2;
+        dY{i} = griddedInterpolant(xi, dyidx, 'nearest', 'nearest');
     end
     
     fn = @(varargin) interpTableND(T, dY, varargin{:});
