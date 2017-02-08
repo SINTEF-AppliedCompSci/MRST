@@ -644,7 +644,7 @@ function ctrl = convertControl(ctrl, u)
                 if strcmp(d.USYS, 'USYS')
                     usys = u;
                 else
-                    tmp = struct(ctrl.(key){i}.USYS, '');
+                    tmp = struct(ctrl.(key){i}.USYS, 1);
                     usys = unit_system(tmp);
                 end
                 if any(strcmp(d.FLOID, {'OIL', 'WAT', 'LIQ'}))
@@ -671,6 +671,7 @@ function ctrl = convertControl(ctrl, u)
                     % Injector
                     ctrl.(key){i}.BHP = convertFrom(ctrl.(key){i}.BHP, usys.press);
                 end
+                ctrl.(key){i}.USYS = 'SI';
             end
             continue;  % Not implemented
 
