@@ -60,7 +60,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             ctrl = readWellKW(fid, ctrl, kw);
 
-%{
          case 'VFPINJ',
             if ~def_ctrl,
                def_ctrl = true;
@@ -80,7 +79,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             [tid, vfpprod]    = readVFPPROD(fid);
             ctrl.VFPPROD{tid} = vfpprod;   clear tid vfpprod
-%}
 
          case {'DATES', 'TSTEP'},
             if def_ctrl,
@@ -274,4 +272,14 @@ end
 function deck = set_state(deck, schd, miss_kw)
    deck.SCHEDULE                   = schd;
    deck.UnhandledKeywords.SCHEDULE = unique(miss_kw);
+end
+
+function s = getUnitSystemString(deck)
+   possible = {'METRIC', 'FIELD', 'LAB', 'SI'};
+   for i = 1:numel(possible)
+       if isfield(deck.RUNSPEC, possible{i})
+           s = possible{i};
+           return
+       end
+   end
 end
