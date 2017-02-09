@@ -6,6 +6,9 @@ classdef FacilityModel < PhysicalModel
         toleranceWellRate
         toleranceWellMS
         ReservoirModel
+        
+        VFPTablesInjector
+        VFPTablesProducer
     end
 
     properties (SetAccess = protected)
@@ -23,7 +26,9 @@ classdef FacilityModel < PhysicalModel
 
             model.toleranceWellBHP  = 1*barsa;
             model.toleranceWellRate = 1/day;
-            model.toleranceWellMS        = 1e-6;
+            model.toleranceWellMS   = 1e-6;
+            model.VFPTablesInjector = {};
+            model.VFPTablesProducer = {};
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
             model.WellModels = {};
@@ -50,6 +55,16 @@ classdef FacilityModel < PhysicalModel
                     wm.dsMaxAbs = model.ReservoirModel.dsMaxAbs;
                     wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
                     wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
+                    
+                    vfp_ix = W(i).vfp_index;
+                    if vfp_ix > 0
+                        if wm.isInjector()
+                            vfp = model.VFPTablesInjector{vfp_ix};
+                        else
+                            vfp = model.VFPTablesProducer{vfp_ix};
+                        end
+                        wm.VFPTable = vfp;
+                    end
                     % Get the added primary variables for this well, plus
                     % the equations and equation types it adds
                     pvars{i} = wm.getExtraPrimaryVariableNames(model.ReservoirModel);

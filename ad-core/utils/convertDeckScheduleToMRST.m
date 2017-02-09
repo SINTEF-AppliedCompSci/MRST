@@ -48,7 +48,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('StepLimit', inf, ...
                  'EnsureConsistent', true);
-    opt = merge_options(opt, varargin{:});
+    [opt, wellArg] = merge_options(opt, varargin{:});
 
 
     if isfield(scheduleDeck, 'RUNSPEC') &&...
@@ -82,7 +82,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     for i = 1:nc
         % Parse well
-        W = processWells(model.G, model.rock, scheduleDeck.control(i));
+        W = processWells(model.G, model.rock, scheduleDeck.control(i), wellArg{:});
         
         for j = 1:numel(W)
             c = [W(j).compi, 0];
