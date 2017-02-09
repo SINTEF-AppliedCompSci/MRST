@@ -8,6 +8,6 @@ spy(J(p,q));
 n = find(diff(r)>1);
 hold on
 for j=n
-    plot(r([j j+1 j+1 j j]),r([j j j+1 j+1 j]),'-r');
+    plot(r([j j+1 j+1 j j])-.5,r([j j j+1 j+1 j])-.5,'-r');
 end
 hold off
