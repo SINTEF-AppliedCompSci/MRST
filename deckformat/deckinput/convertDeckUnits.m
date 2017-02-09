@@ -662,11 +662,33 @@ function ctrl = convertControl(ctrl, u)
                 % presently).
                 if strcmp(key, 'VFPPROD')
                     % Producer
-                    assert(ctrl.(key){i}.ALQ == 0, ...
-                        'ALQ enabled for VFPROD not yet supported.');
+                    ALQ = ctrl.(key){i}.ALQ;
+                    if ~(numel(ALQ) == 1 && ALQ == 0)
+                        switch ctrl.(key){i}.ALQID
+                            case {'', ' '}
+                                alq_unit = 1;
+                            case 'GRAT'
+                                alq_unit = usys.volume/usys.time;
+                            case 'IGLR'
+                                alq_unit = 1;
+                            case 'TGLR'
+                                alq_unit = 1;
+                            case 'PUMP'
+                                error('Pump rating not known');
+                            case 'COMP'
+                                error('Compressor unit not known');
+                            case {'DENG', 'DENO'}
+                                usys.density;
+                            case 'BEAN'
+                                usys.length;
+                            otherwise
+                                alq_unit = 1;
+                        end
+                        ctrl.(key){i}.ALQ = convertFrom(ALQ, alq_unit);
+                    end
                     assert(strcmp(ctrl.(key){i}.QID, 'BHP'), ...
                         'Temperature not supported for VFPROD.');
-                    ctrl.(key){i}.Q = convertFrom(ctrl.(key){i}.QID, usys.press);
+                    ctrl.(key){i}.Q = convertFrom(ctrl.(key){i}.Q, usys.press);
                 else
                     % Injector
                     ctrl.(key){i}.BHP = convertFrom(ctrl.(key){i}.BHP, usys.press);
