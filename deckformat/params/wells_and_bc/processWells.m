@@ -163,6 +163,7 @@ function W = process_wconinj(W, control, G, rock, well_id, p, opt)
         case 'rate', val = control.WCONINJ{i, 5};
         case 'resv', val = control.WCONINJ{i, 6};
         case 'bhp' , val = control.WCONINJ{i, 9};
+        case 'thp' , val = control.WCONINJ{i, 10};
 
         otherwise
           dispif(opt.Verbose, ...
@@ -189,8 +190,10 @@ function W = process_wconinj(W, control, G, rock, well_id, p, opt)
       if numel(W) > sizeW
          W(end).lims.rate = control.WCONINJ{i, 5};
          W(end).lims.bhp  = control.WCONINJ{i, 9};
+         W(end).lims.thp  = control.WCONINJ{i, 10};
          W(end).status    = status;
       end
+      W(end).vfp_index = control.WCONINJ{i, 11};
    end
 end
 
@@ -212,6 +215,7 @@ function W = process_wconinje(W, control, G, rock, well_id, p, opt)
           continue
           % val = control.WCONINJE{i, 6};
         case 'bhp' , val = control.WCONINJE{i, 7};
+        case 'thp' , val = control.WCONINJE{i, 8};
         otherwise
           dispif(opt.Verbose, ...
                  ['Control mode ''%s'' unsupported for injector ', ...
@@ -238,8 +242,10 @@ function W = process_wconinje(W, control, G, rock, well_id, p, opt)
       if numel(W) > sizeW
          W(end).lims.rate = control.WCONINJE{i, 5};
          W(end).lims.bhp  = control.WCONINJE{i, 7};
+         W(end).lims.bhp  = control.WCONINJE{i, 8};
          W(end).status    = status;
       end
+      W(end).vfp_index = control.WCONINJE{i, 9};
    end
 end
 
@@ -430,6 +436,10 @@ function W = process_wconprod(W, control, G, rock, well_id, p, opt)
           val   = control.WCONPROD{i, 9};
           compi = [0, 1, 0];  % Doesn't matter.
 
+        case 'thp',
+          val   = control.WCONPROD{i, 10};
+          compi = [0, 1, 0];  % Doesn't matter.
+
         otherwise
           dispif(opt.Verbose, ...
                  ['Control mode ''%s'' unsupported for producer ', ...
@@ -448,8 +458,10 @@ function W = process_wconprod(W, control, G, rock, well_id, p, opt)
          W(end).lims.grat = -control.WCONPROD{i, 6};
          W(end).lims.lrat = -control.WCONPROD{i, 7};
          W(end).lims.bhp  = control.WCONPROD{i, 9};
+         W(end).lims.thp  = control.WCONPROD{i, 10};
          W(end).status    = status;
       end
+      W(end).vfp_index = control.WCONPROD{i, 11};
    end
 end
 
