@@ -35,7 +35,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    mrstModule add deckformat ad-props
     % Read and process file.
     pth = getDatasetPath('spe9');
     fn  = fullfile(pth, 'BENCH_SPE9.DATA');
