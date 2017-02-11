@@ -1,4 +1,4 @@
-function [qSurf, cells] = getSourceFluxesAD(model, mob, b, s, src)
+function [qSurf, cells] = getSourceFluxesAD(model, mob, s, src)
 %Short description
 %
 % SYNOPSIS:

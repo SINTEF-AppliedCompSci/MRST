@@ -22,6 +22,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt = struct('cellInx', []);
    opt = merge_options(opt, varargin{:});
    nt  = numel(REGINX);
+   if(numel(REGNUM)==1)
+       reginx=cell(REGNUM,1);
+       if(isa(val,'ADI'))
+         N=numel(val.val);
+       else
+         N=numel(val);
+       end
+       reginx(REGNUM)={1:N};
+       return;
+   end
    
    if isempty(val)
       % Allow for empty val

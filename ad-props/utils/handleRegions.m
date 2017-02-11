@@ -1,11 +1,14 @@
-function reg = handleRegions(deck, G)
-if nargin == 2
-    an = G.cells.indexMap;
+function reg = handleRegions(deck, G, varargin)
+
+if ~isempty(G)% == 2
+    an = G.cells.indexMap;    
 elseif isfield(deck.GRID, 'ACTNUM')
     an = find(deck.GRID.ACTNUM);
 else
     an = ':';
 end
+  
+  
 % also need actnum/G.cells.indexmap
 % PVT-REGIONS
 ntpvt = 1;

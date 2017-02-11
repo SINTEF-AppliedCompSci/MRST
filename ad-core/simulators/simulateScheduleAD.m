@@ -187,18 +187,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     wantStates = nargout > 1;
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
-    getWell = @(index) schedule.control(schedule.step.control(index)).W;
-    state = initState;
-    if ~isfield(state, 'wellSol') || isempty(state.wellSol),
-       if isfield(state, 'wellSol'),
-          state = rmfield(state, 'wellSol');
-       end
-
-       state.wellSol = initWellSolAD(getWell(1), model, state);
-    end
-
+    % Check if model is self-consistent and set up for current BC type
+    dispif(opt.Verbose, 'Preparing model for simulation...\n')
+    ctrl = schedule.control(schedule.step.control(1));
+    [forces, fstruct] = model.getDrivingForces(ctrl);
+    model = model.validateModel(fstruct);
+    dispif(opt.Verbose, 'Model ready for simulation...\n')
+    
+    % Check if intiial state is reasonable
     dispif(opt.Verbose, 'Validating initial state...\n')
-    state = model.validateState(state);
+    state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ready for simulation.\n')
 
     failure = false;
@@ -207,19 +205,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     for i = 1:nSteps
         step_header(i);
-
+        state0 = state;
+        
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
-            W = fstruct.W;
+            model.FacilityModel = model.FacilityModel.setupWells(fstruct.W);
             prevControl = currControl;
+            state0.wellSol = initWellSolAD(fstruct.W, model, state);
         end
 
         timer = tic();
-
-        state0 = state;
-        state0.wellSol = initWellSolAD(W, model, state);
-
         if opt.OutputMinisteps
             [state, report, ministeps] = solver.solveTimestep(state0, dt(i), model, ...
                                             forces{:}, 'controlId', currControl);
@@ -242,10 +238,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose,
            disp_step_convergence(report.Iterations, t);
         end
-
-        W = updateSwitchedControls(state.wellSol, W, ...
-                'allowWellSignChange',   model.wellmodel.allowWellSignChange, ...
-                'allowControlSwitching', model.wellmodel.allowControlSwitching);
+        state.wellSol = model.FacilityModel.updateWellSolAfterStep(model, state.wellSol);
 
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps

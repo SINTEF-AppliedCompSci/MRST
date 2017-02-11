@@ -1,4 +1,4 @@
-function [eqs, qBC, qRes, BCTocellMap, qSRC, srcCells, bcCells] = addFluxesFromSourcesAndBC(model, eqs, pressure, rho, mob, b, s, forces)
+function [eqs, qBC, qRes, BCTocellMap, qSRC, srcCells, bcCells] = addFluxesFromSourcesAndBC(model, eqs, pressure, rho, mob, s, forces)
 %Add in fluxes imposed by sources and face boundary conditions
 %
 % DESCRIPTION:
@@ -67,7 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     if ~isempty(forces.bc)
         % Setup the fluxes from the boundary condition
-        [qBC, BCTocellMap, bcCells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, b, s, forces.bc);
+        [qBC, BCTocellMap, bcCells, qRes] = getBoundaryConditionFluxesAD(model, pressure, rho, mob, s, forces.bc);
 
         for i = 1:numel(qBC)
             % Subtract fluxes
@@ -80,7 +80,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if ~isempty(forces.src)
         % Fluxes from source terms
-        [qSRC, srcCells] = getSourceFluxesAD(model, mob, b, s, forces.src);
+        [qSRC, srcCells] = getSourceFluxesAD(model, mob, s, forces.src);
         for i = 1:numel(qSRC)
             if isempty(eqs{i})
                 continue

@@ -75,6 +75,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 ws.qGs = v;
             case 'lrat'
                 % Do nothing
+            case 'thp'
+                % Do nothing
             otherwise
                 error('Unknown well control mode');
         end
