@@ -72,13 +72,13 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
     nt = nstep;
     for step = nt:-1:1
         fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
-        lam = model.solveAdjoint(linsolve, getState, ...
+        [lami, lambda]= model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, lambda, step);
         eqdth = partialWRTparam(modelParam, getState, schedule, step);
         for kp = 1:numel(sens)
-            for nl = 1:numel(lam)
+            for nl = 1:numel(lami)
                 if isa(eqdth{nl}, 'ADI')
-                    sens{kp} = sens{kp} + eqdth{nl}.jac{kp}'*lam{nl};
+                    sens{kp} = sens{kp} - eqdth{nl}.jac{kp}'*lami{nl};
                 end
             end
         end
