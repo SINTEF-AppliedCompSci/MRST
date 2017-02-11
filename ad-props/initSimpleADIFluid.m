@@ -170,9 +170,9 @@ end
 end
 
 function B = constantReciprocalFVF(p, varargin)
-B = p*0 + 1;
+B = p.*0 + 1;
 end
 
 function mu = constantViscosity(mu, p, varargin)
-mu = p*0 + mu;
+mu = p.*0 + mu;
 end
