@@ -113,12 +113,16 @@ classdef EquationOfStateModel < PhysicalModel
         function Z = computeLiquidZ(model, A, B)
             % Pick smallest Z factors for liquid phase (least energy)
             Z = model.solveCubicEOS(A, B);
+            bad = bsxfun(@lt, Z, B);
+            Z(bad) = nan;
             Z = min(Z, [], 2); 
             assert(all(isfinite(Z) & Z > 0));
         end
         function Z = computeVaporZ(model, A, B)
             % Pick largest Z factors for vapor phase (most energy)
             Z = model.solveCubicEOS(A, B);
+            bad = bsxfun(@lt, Z, B);
+            Z(bad) = nan;
             Z = max(Z, [], 2); 
             assert(all(isfinite(Z) & Z > 0));
         end
@@ -577,7 +581,7 @@ classdef EquationOfStateModel < PhysicalModel
             [m1, m2] = model.getEOSCoefficients();
             ncomp = model.fluid.getNumberOfComponents();
             f = cell(1, ncomp);
-            a1 = -log(Z - B);
+            a1 = -log(Z-B);
             b1 = log((Z + m2.*B)./(Z + m1.*B)).*(A./((m1-m2).*B));
             b2 = (Z-1)./B;
             for i = 1:ncomp
