@@ -70,16 +70,25 @@ classdef MultiscaleVolumeSolverAD < LinearSolverAD
        
        function [dx, result, report] = solveLinearProblem(solver, problem0, model)
            % Solve a linearized problem
-           [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
-           
+           skipElim = isa(problem0, 'PressureReducedLinearSystem');
+           if skipElim
+               problem = problem0;
+           else
+               [problem, eliminated] = problem0.reduceToSingleVariableType('cell');
+           end
            problem = problem.assembleSystem();
            
            timer = tic();
-           [result, report] = solver.solveLinearSystem(problem.A, problem.b); 
+           [result, report] = solver.solveLinearSystem(problem.A, problem.b);
+           [result, report] = problem.processResultAfterSolve(result, report);
            report.SolverTime = toc(timer);
            
            dxCell = solver.storeIncrements(problem, result);
-           dx = problem.recoverFromSingleVariableType(problem0, dxCell, eliminated);
+           if skipElim
+               dx = dxCell;
+           else
+               dx = problem.recoverFromSingleVariableType(problem0, dxCell, eliminated);
+           end
        end
 
        function solver = createBasis(solver, A)
