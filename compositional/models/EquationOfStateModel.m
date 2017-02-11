@@ -115,16 +115,16 @@ classdef EquationOfStateModel < PhysicalModel
             Z = model.solveCubicEOS(A, B);
             bad = bsxfun(@lt, Z, B);
             Z(bad) = nan;
-            Z = min(Z, [], 2); 
-            assert(all(isfinite(Z) & Z > 0));
+            Z = min(Z, [], 2);
+            checkZ(Z);
         end
         function Z = computeVaporZ(model, A, B)
             % Pick largest Z factors for vapor phase (most energy)
             Z = model.solveCubicEOS(A, B);
             bad = bsxfun(@lt, Z, B);
             Z(bad) = nan;
-            Z = max(Z, [], 2); 
-            assert(all(isfinite(Z) & Z > 0));
+            Z = max(Z, [], 2);
+            checkZ(Z);
         end
         
         function [state, report] = stepFunction(model, state, state0, dt, drivingForces, linsolve, nonlinsolve, iteration, varargin)%#ok
@@ -1054,6 +1054,16 @@ end
 
 function D = makeDiagonal(x, vx, ncell)
     D = sparse(vx, vx, x, ncell, ncell);
+end
+
+function checkZ(Z)
+   % Give warning if bad values 
+   if any(Z < 0)
+       warning([num2str(nnz(Z<0)), ' negative Z-factors detected...']);
+   end
+   if any(~isfinite(Z))
+       warning([num2str(nnz(~isfinite(Z))), ' non-finite Z-factors detected...']);
+   end
 end
 
 %{
