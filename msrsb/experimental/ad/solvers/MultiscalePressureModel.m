@@ -99,9 +99,13 @@ classdef MultiscalePressureModel < ReservoirModel
             end
             problem = model.pressureModel.getEquations(state0, stateConverged, dt, forces,...
                 'iteration', inf, 'staticwells', true, extra{:});
-            A = -problem.equations{1}.jac{1};
-            b =  problem.equations{1}.val;
-            
+            if isa(problem, 'PressureReducedLinearSystem')
+                A = problem.A;
+                b = problem.b;
+            else
+                A = -problem.equations{1}.jac{1};
+                b =  problem.equations{1}.val;
+            end
             % Single pass of multiscale solver
             solver = model.multiscaleSolver;
             its = solver.maxIterations;
@@ -133,6 +137,7 @@ classdef MultiscalePressureModel < ReservoirModel
 
             report.reconstructionTime = toc(timer);
             report.reconstructionSolver = t_solve;
+            
             if 0
                 BHPix = find(arrayfun(@(x) strcmpi(x.type, 'bhp'), state.wellSol));
                 for i = 1:numel(BHPix)
