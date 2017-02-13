@@ -282,7 +282,9 @@ classdef FacilityModel < PhysicalModel
                              'phaseVolume', {srcVol}, ...
                              'components',  {srcComp}, ...
                              'sourceCells', wc);
-
+            if model.ReservoirModel.extraWellSolOutput
+                wellSol = model.setWellSolStatistics(wellSol, sources);
+            end
         end
 
         function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
@@ -296,6 +298,59 @@ classdef FacilityModel < PhysicalModel
         function wc = getWellCells(model)
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
+        end
+
+        function ws = setWellSolStatistics(model, ws, sources)
+            % Store extra output, typically black oil-like
+            p2w = getPerforationToWellMapping(model.getWellStruct());
+            
+            gind = model.ReservoirModel.getPhaseIndex('G');
+            oind = model.ReservoirModel.getPhaseIndex('O');
+            wind = model.ReservoirModel.getPhaseIndex('W');
+            srcRes = cellfun(@double, sources.phaseVolume, 'UniformOutput', false);
+            for i = 1:numel(ws)
+                % Store reservoir fluxes and total fluxes
+                ws(i).qTs = 0;
+                ws(i).qTr = 0;
+                if model.ReservoirModel.gas
+                    tmp = sum(srcRes{gind}(p2w == i));
+                    ws(i).qGr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qGs;
+                end
+                
+                if model.ReservoirModel.oil
+                    tmp = sum(srcRes{oind}(p2w == i));
+                    ws(i).qOr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qOs;
+                end
+                
+                if model.ReservoirModel.water
+                    tmp = sum(srcRes{wind}(p2w == i));
+                    ws(i).qWr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qWs;
+                end
+                
+                % Phase cuts - fraction of reservoir conditions
+                if model.ReservoirModel.water && model.ReservoirModel.oil
+                    ws(i).wcut = ws(i).qWs./(ws(i).qWs + ws(i).qOs);
+                end
+                
+                if model.ReservoirModel.gas
+                    ws(i).gcut = ws(i).qGs./ws(i).qTs;
+                end
+                
+                if model.ReservoirModel.oil
+                    ws(i).ocut = ws(i).qOs./ws(i).qTs;
+                end
+                
+                % Gas/oil ratio
+                if model.ReservoirModel.gas && model.ReservoirModel.oil
+                    ws(i).gor = ws(i).qGs/ws(i).qOs;
+                end
+            end
         end
 
         % Implementation details for stand-alone model
