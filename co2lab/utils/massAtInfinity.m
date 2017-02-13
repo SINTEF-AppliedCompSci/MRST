@@ -24,7 +24,7 @@ function [ will_stay, will_leak ] = massAtInfinity( Gt, rock, p, sG, sGmax, sF, 
 %           - p, current pressure (possible ADI var)
 %           - sG, sGmax, sF (possible ADI vars)
 %           - fluid structure containing:
-%               - res_water, res_gas, rhoGS, rhoGW, bG(p), pvMultR(p)
+%               - res_water, res_gas, rhoGS, rhoWS, bG(p), pvMultR(p)
 %               - (NB: fluid is assumed to be same structure used to get
 %               state results by simulateSchedule)
 %           - ta, trapping structure obtained using cell-based method
