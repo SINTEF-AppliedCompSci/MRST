@@ -185,7 +185,7 @@ for w = 1 : nW,
                      'AmbientStrength', prm.ambstr);
 
    if isfield(W(w), 'name') && ischar(W(w).name),
-      name = W(w).name;
+      name = escape_for_LaTeX_interpreter(W(w).name);
    else
       name = sprintf('W$_{%0*d}$', nWd, w);
    end
@@ -232,4 +232,20 @@ if dohold,
    hold on;
 else
    hold off;
+end
+
+%--------------------------------------------------------------------------
+
+function s = escape_for_LaTeX_interpreter(s)
+assert (ischar(s), 'Internal Logic Error');
+
+matches = @(re) ~ isempty(regexp(s, re, 'once'));
+
+if matches('_') && ~matches('$')
+   % String 's' contains at least one underscore but does *not* contain any
+   % '$' characters (which could mean that the name has already been
+   % escaped for the LaTeX interpreter of TEXT.)  Escape all '_' characters
+   % (i.e., replace by '\_') to satisfy syntax requirements of interpreter.
+
+   s = regexprep(s, '_', '\\_');
 end
