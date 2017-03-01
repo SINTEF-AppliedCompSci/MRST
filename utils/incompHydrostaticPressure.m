@@ -1,4 +1,4 @@
-function p = incompHydrostaticPressure(G, contacts, densities, varargin)
+function [p, fn] = incompHydrostaticPressure(G, contacts, densities, varargin)
     opt = struct('topPressure', 0, ...
                  'nsamples', 1000);
     opt = merge_options(opt, varargin{:});
@@ -22,5 +22,7 @@ function p = incompHydrostaticPressure(G, contacts, densities, varargin)
     end
    
     z = G.cells.centroids(:, 3);
-    p = interp1(zi, pdist, z);
+    
+    fn = @(z) interp1(zi, pdist, z, 'linear', 'extrap');
+    p = fn(z);
 end
