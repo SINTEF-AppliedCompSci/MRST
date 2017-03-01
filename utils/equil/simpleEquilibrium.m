@@ -101,10 +101,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cellNo = rldecode(1 : G.cells.num, ...
                     diff(G.cells.facePos), 2) .';
     fz = proj(G.faces.centroids(G.cells.faces(:, 1), :), vector);
+    cz = proj(G.cells.centroids, vector);
     top = accumarray(cellNo, fz, [], @max);
     bottom = accumarray(cellNo, fz, [], @min);
     
     width = top - bottom;
+    bad = width == 0;
     
     contacts = [-inf, contacts, inf];
     for i = 2:numel(contacts)
@@ -115,6 +117,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         distBottom = max(bottom, c_prev);
         
         s(:, i-1) = max(distTop - distBottom, 0)./width;
+        if any(bad)
+            % Cells with zero thickness
+            s(bad, i-1) = cz(bad) <= c_next & cz(bad) > c_prev;
+        end
     end
     % Reverse to be consistent with MRST's convention of heavier fluids
     % coming first.
