@@ -161,7 +161,7 @@ classdef MultisegmentWell < SimpleWell
         end
         
         function wellSol = validateWellSol(well, resmodel, wellSol, state)
-            if ~isfield(wellSol, 'nodePressure')
+            if ~isfield(wellSol, 'nodePressure') || isempty(wellSol.nodePressure)
                 % Need to initialize the well
                 W = well.W;
                 nn  = numel(W.nodes.depth);
