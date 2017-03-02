@@ -170,7 +170,10 @@ methods
         if (~(all(convergence) && doneMinIts) && ~onlyCheckConvergence)
             % Get increments for Newton solver
             [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
-
+            if any(cellfun(@(d) ~all(isfinite(d)), dx))
+                failure = true;
+                failureMsg = 'Linear solver produced non-finite values.';
+            end
             % Let the non-linear solver decide what to do with the
             % increments to get the best convergence
             dx = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
@@ -178,10 +181,6 @@ methods
             % Finally update the state. The physical model knows which
             % properties are actually physically reasonable.
             [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
-            if any(cellfun(@(d) ~all(isfinite(d)), dx))
-                failure = true;
-                failureMsg = 'Linear solver produced non-finite values.';
-            end
         end
         isConverged = (all(convergence) && doneMinIts) || model.stepFunctionIsLinear;
         
