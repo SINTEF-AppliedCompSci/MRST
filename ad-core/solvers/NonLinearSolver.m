@@ -85,9 +85,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         minRelaxation
         % Largest possible relaxation factor
         maxRelaxation
+        
+        useLinesearch
+        alwaysUseLinesearch
+        linesearchReductionFactor
+        linesearchDecreaseFactor
+        linesearchMaxIterations
+        convergenceIssues
 
-        % Internal bookkeeping.
-        previousIncrement
         % Abort a timestep if no reduction is residual is happening.
         enforceResidualDecrease
         % Stagnation tolerance - used in relaxation to determine of a
@@ -102,6 +107,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % failed timestep, treating it as a simply non-converged result
         % with the maximum number of iterations
         continueOnFailure
+    end
+    
+    properties (Access=private)
+        % Internal bookkeeping.
+        previousIncrement
+        previousStepReport
     end
 
     methods
@@ -119,9 +130,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relaxationIncrement = 0.1;
             solver.minRelaxation = 0.5;
             solver.maxRelaxation = 1;
+            
+            solver.useLinesearch = false;
+            solver.alwaysUseLinesearch = false;
+            solver.linesearchReductionFactor = 1/2;
+            solver.linesearchDecreaseFactor = 1;
+            solver.linesearchMaxIterations = 10;
 
             solver.enforceResidualDecrease = false;
             solver.stagnateTol = 1e-2;
+            solver.convergenceIssues = false;
 
             solver.errorOnFailure = true;
             solver.continueOnFailure = false;
@@ -358,6 +376,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Attempt to solve a single mini timestep while trying to avoid
             % stagnation or oscillating residuals.
             omega0 = solver.relaxationParameter;
+            solver.convergenceIssues = false;
             if model.stepFunctionIsLinear
                 maxIts = 0;
             else
@@ -390,8 +409,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     end
                 end
                 prev_best = stepReport.Residuals;
-
-                if solver.useRelaxation
+                
+                if solver.useRelaxation || solver.useLinesearch
                     % Store residual history during nonlinear loop to detect
                     % stagnation or oscillations in residuals.
                     if i == 1
@@ -399,7 +418,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     end
                     res(i, :) = stepReport.Residuals;
 
-                    isOk = res(i, :) <= model.nonlinearTolerance;
+                    isOk = stepReport.ResidualsConverged;
                     isOscillating = solver.checkForOscillations(res, i);
                     isStagnated = solver.checkForStagnation(res, i);
                     % We will use relaxations if all non-converged residuals are
@@ -407,8 +426,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     bad = (isOscillating | isStagnated) | isOk;
                     relax = all(bad) && ~all(isOk);
                     if relax
-                        dispif(solver.verbose > 0, ...
-                            'Convergence issues detected. Applying relaxation to Newton solver.\n');
+                        if solver.verbose > 0 && ~solver.convergenceIssues
+                            fprintf('Convergence issues detected.');
+                            if solver.useLinesearch
+                                fprintf(' Activating line search.\n');
+                            else
+                                fprintf(' Activating relaxation.\n');
+                            end
+                        end
+                        solver.convergenceIssues = true;
                         solver.relaxationParameter = max(solver.relaxationParameter - solver.relaxationIncrement, solver.minRelaxation);
                     else
                         solver.relaxationParameter = min(solver.relaxationParameter + solver.relaxationIncrement, solver.maxRelaxation);
@@ -419,6 +445,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             its = i - converged;
             reports = reports(~cellfun(@isempty, reports));
             solver.relaxationParameter = omega0;
+            solver.convergenceIssues = false;
             if converged
                 [state, r] = model.updateAfterConvergence(state0, state, dt, drivingForces);
                 reports{end}.FinalUpdate = r;
@@ -429,30 +456,58 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Attempt to stabilize newton increment by changing the values
             % of the increments.
             dx_prev = solver.previousIncrement;
-
             w = solver.relaxationParameter;
-            if w == 1
-                return
-            end
+            if w < 1
+                switch(lower(solver.relaxationType))
+                  case 'dampen'
+                    for i = 1:numel(dx)
+                        dx{i} = dx{i}*w;
+                    end
+                  case 'sor'
+                    if isempty(dx_prev)
+                        return
+                    end
+                    for i = 1:numel(dx)
+                        dx{i} = dx{i}*w + (1-w)*dx_prev{i};
+                    end
+                  case 'none'
 
-            switch(lower(solver.relaxationType))
-              case 'dampen'
-                for i = 1:numel(dx)
-                    dx{i} = dx{i}*w;
+                  otherwise
+                    error('Unknown relaxationType: Valid options are ''dampen'', ''none'' or ''sor''');
                 end
-              case 'sor'
-                if isempty(dx_prev)
-                    return
-                end
-                for i = 1:numel(dx)
-                    dx{i} = dx{i}*w + (1-w)*dx_prev{i};
-                end
-              case 'none'
-
-              otherwise
-                error('Unknown relaxationType: Valid options are ''dampen'', ''none'' or ''sor''');
             end
             solver.previousIncrement = dx;
+        end
+
+        function [stateNext, updateReport] = applyLinesearch(solver, model, state0, state, problem0, dx, drivingForces, varargin)
+            iteration = problem0.iterationNo;
+            dt = problem0.dt;
+
+            [ok0, v0] = model.checkConvergence(problem0);
+            v0 = ~ok0.*v0;
+            
+            assemble = @(state)  model.getEquations(state0, state, dt, drivingForces, ...
+                       'ResOnly', true, ...
+                       'iteration', iteration, ...
+                       varargin{:});
+
+            problem = problem0;
+
+            update = @(problem, dx) model.updateState(state, problem, dx, drivingForces);
+            factor = solver.linesearchDecreaseFactor;
+            for i = 1:solver.linesearchMaxIterations
+                [stateNext, updateReport] = update(problem, dx);
+                problem = assemble(stateNext);
+
+                [ok, v] = model.checkConvergence(problem);
+                v = ~ok.*v;
+                if all(ok) || (any(v < v0*factor) && all(v <= v0))
+                    dispif(solver.verbose, 'Linesearch reduction successful after %d steps!\n', i)
+                    return
+                end
+                dx = cellfun(@(x) x.*solver.linesearchReductionFactor, dx, 'UniformOutput', false);
+            end
+            dispif(solver.verbose, 'Linesearch was unable to reduce residual.\n');
         end
 
         function isOscillating = checkForOscillations(solver, res, index) %#ok

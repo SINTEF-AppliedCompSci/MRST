@@ -178,9 +178,14 @@ methods
             % increments to get the best convergence
             dx = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
 
-            % Finally update the state. The physical model knows which
-            % properties are actually physically reasonable.
-            [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+            if (nonlinsolve.useLinesearch && nonlinsolve.convergenceIssues) || ...
+                nonlinsolve.alwaysUseLinesearch
+                [state, updateReport] = nonlinsolve.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
+            else
+                % Finally update the state. The physical model knows which
+                % properties are actually physically reasonable.
+                [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+            end
         end
         isConverged = (all(convergence) && doneMinIts) || model.stepFunctionIsLinear;
         
