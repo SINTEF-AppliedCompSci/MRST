@@ -117,9 +117,11 @@ classdef MultisegmentWell < SimpleWell
                         dv = well.limitUpdateRelative(dv, ws.bhp, well.dpMaxRel);
                         dv = well.limitUpdateAbsolute(dv, well.dpMaxAbs);
                         ws.nodePressure = ws.nodePressure + dv;
+                        fprintf('Biggest update %s: %f bar\n', name, max(abs(dv))/barsa);
                     case {'rW', 'rO', 'rG'}
                         ws = well.updateStateFromIncrement(ws, dv, [], name, inf, well.dsMaxAbs);
                         ws = well.capProperty(ws, name, 0, 1);
+                        fprintf('Biggest update %s: %f\n', name, max(abs(dv)));
                     case 'vmix'
                         v = ws.segmentFlux;
                         if well.signChangeChop
@@ -132,6 +134,7 @@ classdef MultisegmentWell < SimpleWell
                             end
                         end
                         ws.segmentFlux = v + dv;
+                        fprintf('Biggest relative update %s: %f\n', name, max(abs(dv))/norm(ws.segmentFlux, inf));
                     otherwise
                         continue
                 end
@@ -245,9 +248,6 @@ classdef MultisegmentWell < SimpleWell
         
         function ws = ensureWellSolConsistency(well, ws) %#ok
             % guarantees that the sum of rW, rO, rG remains equal to one.
-%             no = 1 - sum(ws.nodeComp(:, [1 3]),2);
-%             ws.nodeComp(:,2)  = min(1, max(0, no));
-%             ws.nodeComp = ws.nodeComp./(sum(ws.nodeComp, 2)*[1 1 1]);
             ws.nodeComp = bsxfun(@rdivide, ws.nodeComp, sum(ws.nodeComp, 2));
         end
         

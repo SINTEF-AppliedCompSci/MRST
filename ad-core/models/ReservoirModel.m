@@ -246,11 +246,8 @@ methods
             values_all = norm(problem, inf);
             rest = ~(isWOG | isWell);
             
-            tol = model.nonlinearTolerance;
-            convergence = all(conv_cells) && ...
-                          all(conv_wells) && ...
-                          all(values_all(rest) < tol);
-                      
+            conv_rest = values_all(rest) < model.nonlinearTolerance;
+            convergence = [conv_cells, conv_wells, conv_rest];
             values = [v_cells, v_wells, values_all(rest)];
             restNames = problem.equationNames(rest);
             names = horzcat(namesWOG, namesWell, restNames);

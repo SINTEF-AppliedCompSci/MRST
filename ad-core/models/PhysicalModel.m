@@ -141,7 +141,7 @@ methods
         end
 
         values = norm(problem, n);
-        convergence = all(values < model.nonlinearTolerance);
+        convergence = values < model.nonlinearTolerance;
         names = strcat(problem.equationNames, ' (', problem.types, ')');
     end
 
@@ -167,7 +167,7 @@ methods
         failureMsg = '';
         failure = false;
         [linearReport, updateReport] = deal(struct());
-        if (~(convergence && doneMinIts) && ~onlyCheckConvergence)
+        if (~(all(convergence) && doneMinIts) && ~onlyCheckConvergence)
             % Get increments for Newton solver
             [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
 
@@ -183,8 +183,17 @@ methods
                 failureMsg = 'Linear solver produced non-finite values.';
             end
         end
-        isConverged = (convergence  && doneMinIts) || model.stepFunctionIsLinear;
+        isConverged = (all(convergence) && doneMinIts) || model.stepFunctionIsLinear;
         
+        if model.stepFunctionIsLinear
+            % If step function is linear, we need to call a residual only
+            % equation assembly to ensure that indirect quantities are set
+            % with the updated values (fluxes, mobilities and so on).
+            [~, state] = model.getEquations(state0, state, dt, drivingForces, ...
+                                   'ResOnly', true, ...
+                                   'iteration', iteration+1, ...
+                                   varargin{:});
+        end
         if model.verbose
             printConvergenceReport(resnames, values, isConverged, iteration);
         end
@@ -194,7 +203,8 @@ methods
                         'Failure',      failure, ...
                         'FailureMsg',   failureMsg, ...
                         'Converged',    isConverged, ...
-                        'Residuals',    values);
+                        'Residuals',    values, ...
+                        'ResidualsConverged', convergence);
     end
 
     % --------------------------------------------------------------------%
@@ -206,7 +216,8 @@ methods
                         'FailureMsg',   '', ...
                         'Converged',    false, ...
                         'FinalUpdate',  [],...
-                        'Residuals',    []);
+                        'Residuals',    [],...
+                        'ResidualsConverged', []);
         report = merge_options(report, varargin{:});
     end
 
