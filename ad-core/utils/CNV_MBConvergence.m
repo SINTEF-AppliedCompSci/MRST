@@ -137,7 +137,7 @@ function [converged, values, evaluated, names] = CNV_MBConvergence(model, proble
     CNV = [CNVW CNVO CNVG] ;
     converged_CNV = CNV <= tol_cnv;
 
-    converge = [converged_CNV(active), converged_MB(active)];
+    converged = [converged_CNV(active), converged_MB(active)];
     values = [CNV(active), MB(active)];
     cnv_names = {'CNV_W', 'CNV_O', 'CNV_G'};
     mb_names = {'MB_W', 'MB_O', 'MB_G'};
