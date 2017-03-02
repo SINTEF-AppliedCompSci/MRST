@@ -199,7 +199,7 @@ methods
                                    varargin{:});
         end
         if model.verbose
-            printConvergenceReport(resnames, values, isConverged, iteration);
+            printConvergenceReport(resnames, values, convergence, iteration);
         end
         report = model.makeStepReport(...
                         'LinearSolver', linearReport, ...
