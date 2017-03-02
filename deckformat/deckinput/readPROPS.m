@@ -139,7 +139,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'ROCK',
             tmpl(1:6) = { 'NaN' };
-            data      = readDefaultedKW(fid, tmpl, 'NRec', ntpvt);
+            data      = readDefaultedKW(fid, tmpl, 'NRec', ntrocc);
             prp.(kw)  = to_double(data);  clear tmpl
 
          case 'ROCKTAB'
