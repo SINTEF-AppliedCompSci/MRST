@@ -52,19 +52,8 @@ function [convergence, values, evaluated, names] = checkWellConvergence(model, p
     isalpha  = problem.indexOfType('alpha');
     
     evaluated = (isperf | iswell | isseg | isnode | isalpha);
-    
-    ratevals = problem.equations(isperf);
-    bhpvals  = problem.equations(iswell);
-    segvals  = problem.equations(isseg);
-    nodevals = problem.equations(isnode);
-    alphavals  = problem.equations(isalpha);
 
-    values = [cellfun(@(x) norm(double(x), inf), ratevals), ...
-              cellfun(@(x) norm(double(x), inf), bhpvals), ...
-              cellfun(@(x) norm(double(x), inf), segvals), ...
-              cellfun(@(x) norm(double(x), inf), nodevals), ...
-              cellfun(@(x) norm(double(x), inf), alphavals), ...
-             ];
+    values = cellfun(@(x) norm(double(x), inf), problem.equations(evaluated));
     
     tmp = find(evaluated);
     isperf = isperf(tmp);
