@@ -124,7 +124,7 @@ if ~isempty(W)
     end
 end
 
-eqs{1} = (dt./s.pv).*(oil./bO + water./bW);
+eqs{1} = (dt./s.pv).*(eqs{1}./bW + eqs{2}./bO);
 names{1} = 'pressure';
 types{1} = 'cell';
 eqs = eqs([1, 3:end]);
