@@ -171,7 +171,17 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Pressure comes first, so validate that.
             state = model.pressureModel.validateState(state);
         end
-        
+
+        function [model, state] = updateForChangedControls(model, state, forces)
+            [model.pressureModel, state] = model.pressureModel.updateForChangedControls@PhysicalModel(state, forces);
+        end
+
+        function model = validateModel(model, varargin)
+            model.pressureModel = model.pressureModel.validateModel(varargin{:});
+            model.transportModel = model.transportModel.validateModel(varargin{:});
+            return
+        end
+
         function [fn, index] = getVariableField(model, name)
             [fn, index] = model.pressureModel.getVariableField(name);
         end
