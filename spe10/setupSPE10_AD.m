@@ -52,7 +52,7 @@ function [state, model, schedule]  = setupSPE10_AD(varargin)
         mrstModule add libgeometry
         G = mcomputeGeometry(G);
     catch
-        G = mcomputeGeometry(G);
+        G = computeGeometry(G);
     end
     model = TwoPhaseOilWaterModel(G, rock, fluid, 'gravity', [0, 0, 9.80665]);
     model.minimumPressure = 1000*psia;
