@@ -126,6 +126,12 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function [model, state] = updateForChangedControls(model, state, drivingForces) %#ok
+        % Whenever controls change, this function should ensure that both
+        % model and state are up to date with the present set of driving
+        % forces.
+    end
+    % --------------------------------------------------------------------%
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
         % Update state based on non-linear increment after timestep has
         % converged. Defaults to doing nothing since not all models

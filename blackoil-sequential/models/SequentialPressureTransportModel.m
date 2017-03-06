@@ -102,7 +102,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 transport_ok = false;
                 transportReport = [];
             end
-            values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals;
+            
 
             converged = pressure_ok && transport_ok;
             if converged && ~model.stepFunctionIsLinear
@@ -117,12 +117,12 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 % and so on?)
                 [~, values] = model.pressureModel.checkConvergence(problem);
                 if model.outerCheckWellConvergence
-                    converged = all(values < model.outerTolerance);
                     lv = max(values);
                 else
-                    converged = values(1) < model.outerTolerance;
+                    values = values(1);
                     lv = values(1);
                 end
+                converged = all(values < model.outerTolerance);
                 converged = converged || iteration > model.maxOuterIterations;
                 if model.verbose
                     if converged
@@ -133,6 +133,9 @@ classdef SequentialPressureTransportModel < ReservoirModel
                     fprintf('OUTER LOOP step #%d with tolerance %1.4e: Largest value %1.4e -> %s \n', ...
                                                             iteration, model.outerTolerance, lv, s);
                 end
+            else
+                % Need to have some value
+                values = pressureReport.StepReports{end}.NonlinearReport{end}.Residuals(1);
             end
             if ~pressure_ok
                 FailureMsg = 'Pressure failed to converge.';
@@ -145,6 +148,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                                     'Failure',         failure, ...
                                     'Converged',       converged, ...
                                     'FailureMsg',      FailureMsg, ...
+                                    'ResidualsConverged', converged, ...
                                     'Residuals',       values ...
                                     );
                                 
@@ -171,7 +175,17 @@ classdef SequentialPressureTransportModel < ReservoirModel
             % Pressure comes first, so validate that.
             state = model.pressureModel.validateState(state);
         end
-        
+
+        function [model, state] = updateForChangedControls(model, state, forces)
+            [model.pressureModel, state] = model.pressureModel.updateForChangedControls@PhysicalModel(state, forces);
+        end
+
+        function model = validateModel(model, varargin)
+            model.pressureModel = model.pressureModel.validateModel(varargin{:});
+            model.transportModel = model.transportModel.validateModel(varargin{:});
+            return
+        end
+
         function [fn, index] = getVariableField(model, name)
             [fn, index] = model.pressureModel.getVariableField(name);
         end
