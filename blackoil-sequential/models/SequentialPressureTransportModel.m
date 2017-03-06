@@ -89,7 +89,7 @@ classdef SequentialPressureTransportModel < ReservoirModel
                 psolver.solveTimestep(state0, dt, model.pressureModel,...
                             'initialGuess', state, ...
                             forceArg{:});
-            pressure_ok = pressureReport.Converged;
+            pressure_ok = pressureReport.Converged || psolver.continueOnFailure;
             
             if pressure_ok
                 % If pressure converged, we proceed to solve the transport
