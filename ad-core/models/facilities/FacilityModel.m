@@ -495,7 +495,6 @@ classdef FacilityModel < PhysicalModel
             % Used when facility is run as a stand-alone model
             [convergence, values, names] = ...
                 model.checkFacilityConvergence(problem);
-            convergence = all(convergence);
         end
     end
 
@@ -521,33 +520,7 @@ classdef FacilityModel < PhysicalModel
     end
 end
 
-function celldata = getComponentCellSubset(celldata, wc)
-    for i = 1:numel(celldata)
-        for j = 1:numel(celldata{i});
-            if ~isempty(celldata{i}{j})
-                celldata{i}{j} = celldata{i}{j}(wc);
-            end
-        end
-    end
-end
-
 function d = combineCellData(data, ix)
     d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
     d = vertcat(d{:});
-end
-
-function subset = getCellSubset(celldata, wc)
-    subset = cell(size(celldata));
-    for i = 1:numel(subset)
-        if ~isempty(celldata{i})
-            subset{i} = celldata{i}(wc);
-        end
-    end
-end
-
-function subset = getVariableSubsetWell(vars, wellMap, ix)
-    subset = cell(size(vars));
-    for i = 1:numel(subset)
-        subset{i} = vars{i}(wellMap{i} == ix);
-    end
 end
