@@ -82,14 +82,14 @@ while ischar(lin) && (isempty(lin) || matches(lin, ['^\*|^\s+$|^\s*', cs])),
       %
       % Algorithm:
       %   1) Read character string starting from (pos - 1) up to first
-      %      blank (space) character.
+      %      blank (white-space) or termination ('/') character.
       %   2) Check if first two characters are exactly one digit and an
       %      asterisk respectively.
       %   3) If so, check that the remainder of the character string can be
       %      parsed as a floating point value without any parse failures.
       %
       fseek(fid, pos - 1, 'bof');
-      check_string = fscanf(fid, '%s', 1);
+      check_string = fscanf(fid, '%[^/ \n\r\v\t\f]', 1);
 
       [count, count, err, nchar] = ...
          sscanf(check_string(3:end), '%f');                     %#ok<ASGLU>
