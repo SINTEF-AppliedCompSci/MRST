@@ -89,12 +89,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  @(name) plot3phRelPerm(model, name, 3) ...
                 };
     
+    disgas = isprop(model, 'disgas') && model.disgas;
+    vapoil = isprop(model, 'vapoil') && model.vapoil;
     active = [true; ...
               true; ...
               isfield(model.fluid, 'pvMultR'); ...
               true; ...
               isfield(model.fluid, 'pcOW') || isfield(model.fluid, 'pcOG'); ...
-              model.disgas || model.vapoil; ...
+              disgas || vapoil; ...
               true3ph;
               true3ph;
               true3ph];
@@ -132,23 +134,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         name = names{ix};
         
         fn(name);
-        axis auto;
     end
 
     drawPlot([], []);
 
 
     function plotStuff(model, fields, plottitle)
+        axis on
         f = model.fluid;
         p = opt.pressureRange;
         s = subdiv(0, 1);
 
         rsMax = 0;
         rvMax = 0;
-        if model.disgas
+        if disgas
             rsMax = f.rsSat(p);
         end
-        if model.vapoil
+        if vapoil
             rvMax = f.rvSat(p);
         end
         % n = sum(model.getActivePhases);
@@ -186,12 +188,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     bsub = ['b', phLetter];
                     rho = f.(['rho', phLetter, 'S']);
                     [x, b, ok, r] = evalSat(model, f, bsub, p, rsMax, rvMax);
-                    if strcmpi(phLetter, 'o') && model.disgas
+                    if strcmpi(phLetter, 'o') && disgas
                         % Account for solution gas
                         rhoO = rho;
                         rhoG = f.rhoGS;
                         data = b.*(r.*rhoG + rhoO);
-                    elseif strcmpi(phLetter, 'g') && model.vapoil
+                    elseif strcmpi(phLetter, 'g') && vapoil
                         % Account for vaporized oil
                         rhoG = rho;
                         rhoO = f.rhoOS;
@@ -289,10 +291,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function plotMaxR(model, name)
         rnames = {};
-        if model.disgas
+        if disgas
             rnames = [rnames, 'rsSat'];
         end
-        if model.vapoil
+        if vapoil
             rnames = [rnames, 'rvSat'];
         end
         plotStuff(model, rnames);
@@ -322,22 +324,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         krO(unphys) = nan;
         krG(unphys) = nan;
         
+        [mapx, mapy] = ternaryAxis('names', {'S_w', 'S_o', 'S_g'});
+        xx = mapx(x, y, 1-x-y);
+        yy = mapy(x, y, 1-x-y);
         if ix == 1
-            contourf(x, y, krW)
+            contourf(xx, yy, krW)
             title('Water relative permeability')
         elseif ix == 2
-            contourf(x, y, krO)
+            contourf(xx, yy, krO)
             title('Oil relative permeability')
         else
-            contourf(x, y, krG)
+            contourf(xx, yy, krG)
             title('Gas relative permeability')
         end
+        axis equal
+
+        xlim([0, 1]);
+        ylim([0, 1]);
         caxis([0, 1]);
-        axis equal tight
-        view(0, 90)
         xlabel('S_w')
         ylabel('S_g')
-        colorbar
+        colorbar('horizontal')
         legend off
     end
 
@@ -353,7 +360,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ok = true(size(x));
         rs_g = nan;
         if checkBO(model)
-            if any(strcmpi(fn, {'muo', 'bo'})) && model.disgas
+            if any(strcmpi(fn, {'muo', 'bo'})) && disgas
                 mrs = max(rsMax);
                 rs = 0:mrs/20:mrs;
                 [x, rs_g] = meshgrid(x, rs);
@@ -368,7 +375,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 y = f.(fn)(x, rs_g, saturated)';
                 x = x';
                 rs_g = rs_g';
-            elseif any(strcmpi(fn, {'mug', 'bg'})) && model.vapoil
+            elseif any(strcmpi(fn, {'mug', 'bg'})) && vapoil
                 mrs = max(rvMax);
                 rv = 0:mrs/10:mrs;
                 [x, rs_g] = meshgrid(x, rv);
@@ -394,6 +401,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     function ind = checkBO(model)
         ind = isa(model, 'ThreePhaseBlackOilModel') &&...
-               (model.disgas || model.vapoil);
+               (disgas || vapoil);
     end
 end
