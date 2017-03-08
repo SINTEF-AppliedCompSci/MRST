@@ -166,27 +166,18 @@ classdef MultisegmentWell < SimpleWell
         function wellSol = validateWellSol(well, resmodel, wellSol, state)
             if ~isfield(wellSol, 'nodePressure') || isempty(wellSol.nodePressure)
                 % Need to initialize the well
+                
                 W = well.W;
                 nn  = numel(W.nodes.depth);
-                ns  = numel(W.segments.length);
+                %ns  = numel(W.segments.length);
+                % set initial node pressures equal to initial bhp 
                 wellSol.nodePressure = rldecode(wellSol.bhp, nn(:)-1);
-                % set masses according to top segment
-                qs = [wellSol.qWs, wellSol.qOs, wellSol.qGs];
-                qs = min(qs, -1/day);
-                wellSol.qWs  = qs(1);
-                wellSol.qOs  = qs(2);
-                wellSol.qGs  = qs(3);
-                dens = resmodel.getSurfaceDensities();
-                qs = qs.*dens;
-                m  = qs/sum(qs);
-                wellSol.nodeComp   = ones(nn-1, 1)*m;
-                wellSol.segmentFlux = -1*ones(sum(ns),1)/day;
                 
-                % assume for initialization a 10 kg/day influx from each
-                % connection:
                 wc = W.cells;
+                % get saturation and pressure from connecting cells
                 sc = state.s(wc,:);
                 pc = state.pressure(wc);
+                % compute connecting cells props:
                 [krw, kro, krg] = resmodel.relPermWOG(sc(:,1), sc(:,2), sc(:,3), resmodel.fluid);
                 muw = resmodel.fluid.muW(pc);
                 bw = resmodel.fluid.bW(pc);
@@ -209,24 +200,28 @@ classdef MultisegmentWell < SimpleWell
                     rv = 0;
                 end
                 
-                
+                % phase mobilities
                 [mw, mo, mg] = deal(krw./muw, kro./muo, krg./mug);
-                %m = mw+mo+mg;
-                %[fw, fo, fg] = deal(mw./m, mo./m, mg./m);
-                cq = -10*ones(numel(W.cells), 1)/day;
-                
+
+                % compute components weights for a unit volume rate  
+                dens = resmodel.getSurfaceDensities();
                 fwm = dens(1)*bw.*mw;
                 fom = dens(2)*(bo.*mo + bg.*rv.*mg);
                 fgm = dens(3)*(bg.*mg + bo.*rs.*mo);
                 
+                % devide by total to get component fractions in nodes
+                % connected to reservoir grid cells
                 nodemix = W.cell2node*bsxfun(@rdivide, [fwm, fom, fgm], fwm + fom + fgm) ;
-                %nodemix = -M*((M'*M)\nodemix(2:end,:));
-                %qm
-                
+       
+                % set a small rate and compute a "plausible" mass conservative mixture rate
+                % by solving least square problem 
+                cq = -10*ones(numel(W.cells), 1)/day;
                 cn = W.cell2node*cq;
                 M = well.operators.C(:, 2:end);
                 wellSol.segmentFlux =  -M*((M'*M)\cn(2:end));
-                %nodemix = W.cell2node*[fw, fo, fg];
+                
+                % set component mass fraction in undefined nodes equal to
+                % average upstream node mass fractions
                 nodemix_seg = -M*((M'*M)\nodemix(2:end,:));
                 tp = W.segments.topo(:,2)-1;
                 while any(sum(nodemix,2)==0)
