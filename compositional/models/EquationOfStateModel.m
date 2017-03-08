@@ -41,7 +41,8 @@ classdef EquationOfStateModel < PhysicalModel
             [E2, E1, E0] = model.getCubicCoefficients(A, B);
             if 1
                 % Use vectorized cubic solver
-                Z = mrstCubic(1, E2, E1, E0);
+                Z = cubicPositive(E2, E1, E0);
+%                 Z = mrstCubic(1, E2, E1, E0);
             else
                 % Fallback to Matlab's root solver
                 n = numel(A);
@@ -1064,6 +1065,14 @@ function checkZ(Z)
    if any(~isfinite(Z))
        warning([num2str(nnz(~isfinite(Z))), ' non-finite Z-factors detected...']);
    end
+end
+
+function Z = fallbackCubic(A, E2, E1, E0)
+    n = numel(A);
+    Z = zeros(n, 3);
+    for i = 1:n
+        Z(i, :) = roots([1, E2(i), E1(i), E0(i)]);
+    end
 end
 
 %{

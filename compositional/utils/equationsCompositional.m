@@ -2,6 +2,7 @@ function [problem, state] = equationsCompositional(state0, state, model, dt, dri
 opt = struct('Verbose',     mrstVerbose,...
             'reverseMode', false,...
             'resOnly',     false,...
+            'pressure',    false, ...
             'iteration',   -1);
 
 opt = merge_options(opt, varargin{:});
@@ -14,7 +15,7 @@ W = drivingForces.W;
 fluid = model.fluid;
 compFluid = model.EOSModel.fluid;
 
-state = model.computeFlash(state, dt, opt.iteration);
+% state = model.computeFlash(state, dt, opt.iteration);
 % Properties at current timestep
 [p, sW, z, temp, wellSol] = model.getProps(state, ...
     'pressure', 'water', 'z', 'T', 'wellSol');
@@ -104,10 +105,10 @@ if model.water
     rWvW = s.faceUpstr(upcw, rhoW).*vW;
     water = (s.pv/dt).*( rhoW.*pvMult.*sW - rhoW0.*pvMult0.*sW0 ) + s.Div(rWvW);
 else
-    [rWvW, mobW, upcw, bW, rhoW] = deal([]);
+    [vW, mobW, upcw, bW, rhoW] = deal([]);
 end
 if model.outputFluxes
-    state = model.storeFluxes(state, rWvW, rOvO, rGvG);
+    state = model.storeFluxes(state, vW, vO, vG);
 end
 if model.extraStateOutput
     state = model.storebfactors(state, bW, bO, bG);
@@ -129,13 +130,15 @@ else
     woffset = 0;
 end
 
+acc = cell(1, ncomp);
 for i = 1:ncomp
     names{i+woffset} = compFluid.names{i};
     types{i+woffset} = 'cell';
 
-    eqs{i+woffset} = (s.pv/dt).*( ...
+    acc{i} = (s.pv/dt).*( ...
                     rhoO.*pvMult.*sO.*xM{i} - rhoO0.*pvMult0.*sO0.*xM0{i} + ...
-                    rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i}) ...
+                    rhoG.*pvMult.*sG.*yM{i} - rhoG0.*pvMult0.*sG0.*yM0{i});
+    eqs{i+woffset} = acc{i} ...
           + s.Div(rOvO.*s.faceUpstr(upco, xM{i}) + rGvG.*s.faceUpstr(upcg, yM{i}));
     if model.water
         pureWater = double(sW) == 1;
@@ -184,7 +187,7 @@ if ~isempty(W)
         L_ix = woffset + 1;
         V_ix = woffset + 2;
         
-        [cqs, weqs, ctrleq, wc, state.wellSol]  = wm.computeWellFlux(model, W, wellSol, ...
+        [cqs, weqs, ctrleq, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
             bhp, rates, pw, rhows, bw, mw, sat, {},...
             'nonlinearIteration', opt.iteration);
         
@@ -219,7 +222,11 @@ if ~isempty(W)
             compSrc(:, i) = double(src);
             srcTot = srcTot + double(src);
         end
-        fluxt = double(srcTot);
+%         fluxt = double(srcTot);
+        fluxt = 0;
+        for i = 1:numel(cqr)
+            fluxt = fluxt + double(cqr{i});
+        end
         for i = 1:numel(W)
             wp = wm.perf2well == i;
             state.wellSol(i).flux = fluxt(wp);
@@ -232,7 +239,63 @@ if model.water
     wscale = dt./(s.pv*mean(double(rhoW)));
     eqs{1} = eqs{1}.*wscale;
 end
+
+if opt.pressure
+    if opt.resOnly
+        weights = cell(1, ncomp);
+        [weights{:}] = deal(1);
+    else
+        e = vertcat(acc{:});
+        e.jac = e.jac(1:ncomp);
+        c = cat(e);
+        A = c.jac{1};
+
+        ncomp = numel(state.components);
+        ncell = numel(state.pressure);
+        ndof = ncell*ncomp;% + 3*numel(state.wellSol);
+
+        b = zeros(ndof, 1);
+        b(1:ncell) = 1/barsa;
+
+        Ap = A';
+        w = Ap\b;
+        w = reshape(w, [], ncomp);
+
+        if 1
+            weights = cell(ncomp, 1);
+            liq = state.L == 1;
+            vap = state.L == 0;
+            two = ~liq | ~vap;
+            for i = 1:ncomp
+                weights{i} = liq.*(1./rhoO) + w(:, i).*two + vap.*(1./rhoG);
+            end
+        end
+    end
+    peq = 0;
+    for i = 1:ncomp
+        peq = peq + weights{i}.*eqs{i};
+    end
+    active = false(numel(primaryVars), 1);
+    active(1) = true;
+    active(ncomp+1:end) = true;
+
+    eqs{1} = peq;
+    
+    eqs = eqs(active);
+    for i = 1:numel(eqs)
+        eqs{i}.jac = eqs{i}.jac(active);
+    end
+    
+    names{1} = 'pressure';
+
+
+    primaryVars = primaryVars(active);
+    names = names(active);
+    types = types(active);
+end
+
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
+
 end
 
 %{
