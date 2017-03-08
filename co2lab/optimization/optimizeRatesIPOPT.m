@@ -1,4 +1,4 @@
-function [optim, init, history] = optimizeRates(initState, model, schedule, ...
+function [optim, init, history] = optimizeRatesIPOPT(initState, model, schedule, ...
                                                 min_rates, max_rates, varargin)
 %
 % Compute an optimal set of injection rates for a proposed
@@ -92,21 +92,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
    moduleCheck('ad-core', 'ad-props', 'optimization');
-
+   opt.post_method='eqc';
    opt.dryrun = false;    % if 'true', no optimization will take place
    opt.obj_scaling = [];  % Compute explicitly if not provided from outside
    opt.leak_penalty = 10; % Only used if 'obj_fun' not provided 
    opt.last_control_is_migration = false; % if true, constrain last control
-                                          % to zero rate
+   opt.nlinIneq=[];                                       % to zero rate
+   opt.check_deriv = false;
+   opt.maxIt = 10;
+   opt.tol=1e-2;
+   opt.funtol=eps;
+                                      
+   %{                                       
    opt.lineSearchMaxIt  = 10;
    opt.gradTol          = 1e-3;
    opt.objChangeTol     = 5e-4;
+   %}   
    opt.obj_fun = @(dummy) 0;
    opt = merge_options(opt, varargin{:});
 
-   opt.obj_fun = @(wellSols, states, schedule, varargin) ...
-                  leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty, ...
-                                 varargin{:});
+   opt.obj_fun =[];% @(wellSols, states, schedule, varargin) ...
+                  %leak_penalizer(model, wellSols, states, schedule, opt.leak_penalty, ...
+                  %               varargin{:});
    
    opt = merge_options(opt, varargin{:});
    
@@ -164,12 +171,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% Call optimization routine
    
    u = schedule2control(schedule, scaling);
-   [~, u_opt, history] = unitBoxBFGS(u, obj_evaluator, 'linEq', linEqS, ...
-                                     'lineSearchMaxIt', opt.lineSearchMaxIt, ...
-                                     'gradTol',         opt.gradTol, ...
-                                     'objChangeTol',    opt.objChangeTol);
+   switch opt.post_method
+       case 'eqc'
+            [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator, 'linEq', linEqS, ...
+                                     'nlinIneq',opt.nlinIneq/scaling.obj,... 
+                                     'tol',opt.tol,'funtol',opt.funtol,...
+                                         'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt);
                                      %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
-   
+       case 'box'
+        ulim=[zeros(numel(u),1),ones(numel(u),1)];
+        ulim(last_step_ix:end,end)=0;
+        [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator,'ulim',ulim,'linEq', [], ...
+                                         'nlinIneq',opt.nlinIneq/scaling.obj,... 
+                                         'tol',opt.tol,'funtol',opt.funtol,...
+                                         'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt);
+       otherwise
+           error()
+   end
+                                     %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
+   %}
    %% Preparing solution structures
    
    optim.schedule = control2schedule(u_opt, schedule, scaling);
@@ -228,10 +248,7 @@ function obj = leak_penalizer(model, wellSols, states, schedule, penalty, vararg
       
       if (tSteps(step) == num_timesteps)
          bG = model.fluid.bG(p);
-         if ~isfield(model.rock,'ntg')
-             model.rock.ntg = ones(model.G.cells.num,1); % in case ntg doesn't exist
-         end
-         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro .* model.rock.ntg;
+         pvol = model.G.cells.volumes .* model.G.cells.H .* model.rock.poro;      
          vol = ones(1, model.G.cells.num) * (pvol .* model.fluid.pvMultR(p) .* bG .* sG);
          obj{step} = obj{step} + penalty * vol;
          if ~opt.ComputePartials
@@ -272,7 +289,8 @@ function [val, der, wellSols, states] = ...
    
    % compute objective:
    vals = obj_fun(wellSols, states, schedule);
-   val  = sum(cell2mat(vals))/abs(objScaling);
+   vals=horzcat(vals{:});
+   val  = sum(vals,2)/abs(objScaling);
 
    % run adjoint:
    if nargout > 1
@@ -289,7 +307,8 @@ end
 function grd = scaleGradient(grd, schedule, boxLims, objScaling)
    dBox = boxLims(:, 2) - boxLims(:, 1); 
    for k = 1:numel(schedule.control)
-      grd{k} = (dBox / objScaling) .* grd{k}; 
+      %grd{k} = (dBox / objScaling) .* grd{k}; % this exploits that .* make colume by colum if dBox is vector
+      grd{k} = bsxfun(@times,dBox,grd{k})/objScaling;
    end
 end
     
