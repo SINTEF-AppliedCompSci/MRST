@@ -50,6 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
     opt = struct('tick', 0.2:0.2:0.8, ...
+                 'tickLabels', true, ...
                  'names', {{'X', 'Y', 'Z'}}, ...
                  'isox', true, ...
                  'isoy', true,...
@@ -62,9 +63,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     mapy = @(x, y, z) (sqrt(3)/2)*z./(x + y+ z);
 
     if ~isempty(opt.names)
-        text(0, 0, [opt.names{1},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center')
-        text(0.5, sqrt(3)/2, [opt.names{2},'=1'], 'verticalalignment', 'bottom', 'horizontalalignment', 'center')
-        text(1, 0, [opt.names{3},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center')
+        text(mapx(1, 0, 0), mapy(1, 0, 0), [opt.names{1},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center')
+        text(mapx(0, 1, 0), mapy(0, 1, 0), [opt.names{2},'=1'], 'verticalalignment', 'top', 'horizontalalignment', 'center')
+        text(mapx(0, 0, 1), mapy(0, 0, 1), [opt.names{3},'=1'], 'verticalalignment', 'bottom', 'horizontalalignment', 'center')
     end
     plot([0, 0.5, 1, 0], [0, sqrt(3)/2, 0, 0], 'k')
 
@@ -73,14 +74,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~isempty(opt.tick)
         for i = 1:numel(opt.tick)
             ti = opt.tick(i);
-            txt = num2str(ti);
-            text(mapx(1-ti, ti, 0), mapy(1-ti, ti, 0), txt, ...
-                'verticalalignment', 'top', 'horizontalalignment', 'center')
-            text(mapx(0, 1-ti, ti), mapy(0, 1-ti, ti), txt, ...
-                'verticalalignment', 'bottom', 'horizontalalignment', 'left')
-            text(mapx(1-ti, 0.0, ti), mapy(1-ti, 0.0, ti), txt, ...
-                'verticalalignment', 'bottom', 'horizontalalignment', 'right')
-            
+            if opt.tickLabels
+                txt = num2str(ti);
+                text(mapx(1-ti, ti, 0), mapy(1-ti, ti, 0), txt, ...
+                    'verticalalignment', 'top', 'horizontalalignment', 'center')
+                text(mapx(0, 1-ti, ti), mapy(0, 1-ti, ti), txt, ...
+                    'verticalalignment', 'bottom', 'horizontalalignment', 'left')
+                text(mapx(ti, 0.0, 1-ti), mapy(ti, 0.0, 1-ti), txt, ...
+                    'verticalalignment', 'bottom', 'horizontalalignment', 'right')
+            end
             seg = 0:0.01:1;
             if opt.isox
                 x = ti;
