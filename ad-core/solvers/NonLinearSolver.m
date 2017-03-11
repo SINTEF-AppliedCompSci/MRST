@@ -257,19 +257,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     fprintf('%sSolving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
                             solver.getId(), formatTimeRange(dt), dt / dT * 100, t_local / dT * 100)
                 end
-                [state, converged, failure, its, nonlinearReports] = ...
+                [state, failure, tmp] = ...
                     solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
 
                 % Store timestep info
-                clear tmp;
-                tmp.NonlinearReport = nonlinearReports;
+                converged = tmp.Converged;
+                its = tmp.Iterations;
                 tmp.LocalTime = t_local + dt;
-                tmp.Converged = converged;
-                tmp.Timestep = dt;
-                tmp.Iterations = its;
-
                 reports{end+1} = tmp; %#ok
-                stepsel.storeTimestep(tmp);
+                clear tmp
+                stepsel.storeTimestep(reports{end});
 
                 % Keep total itcount so we know how much time we are
                 % wasting
@@ -372,7 +369,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        function [state, converged, failure, its, reports] = solveMinistep(solver, model, state, state0, dt, drivingForces)
+        function [state, failure, report] = solveMinistep(solver, model, state, state0, dt, drivingForces)
             % Attempt to solve a single mini timestep while trying to avoid
             % stagnation or oscillating residuals.
             omega0 = solver.relaxationParameter;
@@ -450,13 +447,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [state, r] = model.updateAfterConvergence(state0, state, dt, drivingForces);
                 reports{end}.FinalUpdate = r;
             end
+            report = struct('NonlinearReport', {reports}, ...
+                            'Converged',       converged, ...
+                            'Timestep',        dt, ...
+                            'Iterations',      its);
         end
 
-        function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
+        function [dx, report] = stabilizeNewtonIncrements(solver, model, problem, dx)
             % Attempt to stabilize newton increment by changing the values
             % of the increments.
             dx_prev = solver.previousIncrement;
             w = solver.relaxationParameter;
+            report = struct('relaxationParameter', w);
             if w < 1
                 switch(lower(solver.relaxationType))
                   case 'dampen'
@@ -477,6 +479,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
             solver.previousIncrement = dx;
+            
         end
 
         function [stateNext, updateReport] = applyLinesearch(solver, model, state0, state, problem0, dx, drivingForces, varargin)

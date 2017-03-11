@@ -172,7 +172,7 @@ methods
         % Defaults
         failureMsg = '';
         failure = false;
-        [linearReport, updateReport] = deal(struct());
+        [linearReport, updateReport, stabilizeReport] = deal(struct());
         if (~(all(convergence) && doneMinIts) && ~onlyCheckConvergence)
             % Get increments for Newton solver
             [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
@@ -182,7 +182,7 @@ methods
             end
             % Let the non-linear solver decide what to do with the
             % increments to get the best convergence
-            dx = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
+            [dx, stabilizeReport] = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
 
             if (nonlinsolve.useLinesearch && nonlinsolve.convergenceIssues) || ...
                 nonlinsolve.alwaysUseLinesearch
@@ -214,6 +214,7 @@ methods
                         'FailureMsg',   failureMsg, ...
                         'Converged',    isConverged, ...
                         'Residuals',    values, ...
+                        'StabilizeReport', stabilizeReport,...
                         'ResidualsConverged', convergence);
     end
 
@@ -227,6 +228,7 @@ methods
                         'Converged',    false, ...
                         'FinalUpdate',  [],...
                         'Residuals',    [],...
+                        'StabilizeReport', [], ...
                         'ResidualsConverged', []);
         report = merge_options(report, varargin{:});
     end
