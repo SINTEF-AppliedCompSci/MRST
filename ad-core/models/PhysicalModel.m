@@ -186,7 +186,7 @@ methods
 
             if (nonlinsolve.useLinesearch && nonlinsolve.convergenceIssues) || ...
                 nonlinsolve.alwaysUseLinesearch
-                [state, updateReport] = nonlinsolve.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
+                [state, updateReport, stabilizeReport.linesearch] = nonlinsolve.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
             else
                 % Finally update the state. The physical model knows which
                 % properties are actually physically reasonable.

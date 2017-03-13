@@ -91,6 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         linesearchReductionFactor
         linesearchDecreaseFactor
         linesearchMaxIterations
+        linesearchConvergenceNames
         convergenceIssues
 
         % Abort a timestep if no reduction is residual is happening.
@@ -136,6 +137,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.linesearchReductionFactor = 1/2;
             solver.linesearchDecreaseFactor = 1;
             solver.linesearchMaxIterations = 10;
+            solver.linesearchConvergenceNames = {};
 
             solver.enforceResidualDecrease = false;
             solver.stagnateTol = 1e-2;
@@ -482,12 +484,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             
         end
 
-        function [stateNext, updateReport] = applyLinesearch(solver, model, state0, state, problem0, dx, drivingForces, varargin)
+        function [stateNext, updateReport, lineReport] = applyLinesearch(solver, model, state0, state, problem0, dx, drivingForces, varargin)
             iteration = problem0.iterationNo;
             dt = problem0.dt;
 
-            [ok0, v0] = model.checkConvergence(problem0);
+            [ok0, v0, names] = model.checkConvergence(problem0);
+            if isempty(solver.linesearchConvergenceNames)
+                activeNames = true(size(v0));
+            else
+                activeNames = ismember(names, solver.linesearchConvergenceNames);
+            end
             v0 = ~ok0.*v0;
+            v0 = v0(activeNames);
             
             assemble = @(state)  model.getEquations(state0, state, dt, drivingForces, ...
                        'ResOnly', true, ...
@@ -498,19 +506,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             update = @(problem, dx) model.updateState(state, problem, dx, drivingForces);
             factor = solver.linesearchDecreaseFactor;
-            for i = 1:solver.linesearchMaxIterations
+            converged = false;
+            for its = 1:solver.linesearchMaxIterations
                 [stateNext, updateReport] = update(problem, dx);
                 problem = assemble(stateNext);
 
                 [ok, v] = model.checkConvergence(problem);
                 v = ~ok.*v;
+                v = v(activeNames);
                 if all(ok) || (any(v < v0*factor) && all(v <= v0))
-                    dispif(solver.verbose, 'Linesearch reduction successful after %d steps!\n', i)
-                    return
+                    dispif(solver.verbose, 'Linesearch reduction successful after %d steps!\n', its)
+                    converged = true;
+                    break
                 end
                 dx = cellfun(@(x) x.*solver.linesearchReductionFactor, dx, 'UniformOutput', false);
             end
-            dispif(solver.verbose, 'Linesearch was unable to reduce residual.\n');
+            lineReport = struct('Iterations', its, ...
+                                'Converged', converged);
+            dispif(solver.verbose && ~converged, 'Linesearch was unable to reduce residual.\n');
         end
 
         function isOscillating = checkForOscillations(solver, res, index) %#ok
