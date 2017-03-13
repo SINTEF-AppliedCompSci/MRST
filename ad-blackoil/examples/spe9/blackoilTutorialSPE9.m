@@ -200,7 +200,7 @@ disp(schedule.control(1).W(wno).lims)
 % we can see from the following plot, this gives a number of kinks that
 % will tend to pose challenges for the Newton solver.
 f = model.fluid;
-s = (0:0.05:1)';
+s = (0:0.01:1)';
 
 figure;
 plot(s, f.krW(s), 'linewidth', 2)
@@ -241,11 +241,12 @@ for i = 1:size(x, 1)
     [~, krO(i, :), ~] = model.relPermWOG(xi, 1 - xi - yi, yi, f);
 end
 figure;
-surf(x, y, krO)
+krO(x+y>1)=nan;
+surfl(x, y, krO), shading interp
 xlabel('sW')
 ylabel('sG')
 title('Oil relative permeability')
-view(150, 50); axis tight
+view(150, 50); axis tight, camlight headlight
 
 %% Plot capillary pressure curves
 % SPE9 contains significant capillary pressure, making the problem more
@@ -337,7 +338,7 @@ saturated = rs_g >= rssat;
 rs_g0 = rs_g;
 rs_g(saturated) = rssat(saturated);
 
-figure;
+figure
 plot(p_g'/barsa, 1./f.bO(p_g, rs_g, saturated)', 'LineWidth', 2)
 grid on
 title('Oil formation volume factor')
@@ -357,7 +358,7 @@ xlabel('Pressure [bar]')
 % gas in oil ($R_v$) and oil in gas ($R_v$) can be included.
 close all
 figure;
-plot(pressure, f.muW(pressure), 'LineWidth', 2);
+plot(pressure/barsa, f.muW(pressure), 'LineWidth', 2);
 grid on
 title('Water viscosity')
 ylabel('\mu_w')
@@ -365,7 +366,7 @@ xlabel('Pressure');
 ylim([0, 1.5e-3])
 
 figure; 
-plot(pressure, f.muG(pressure), 'LineWidth', 2);
+plot(pressure/barsa, f.muG(pressure), 'LineWidth', 2);
 grid on
 title('Gas viscosity')
 ylabel('\mu_g')
