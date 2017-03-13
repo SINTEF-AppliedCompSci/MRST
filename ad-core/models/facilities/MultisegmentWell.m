@@ -17,9 +17,10 @@ classdef MultisegmentWell < SimpleWell
             well.operators.div  = @(x)C'*x;
             well.operators.segmentUpstr = @(flag, val)segmentUpstreamValue(flag, val, W.segments.topo);
             well.operators.C = C;
-            aver = sparse((1:ns)'*[1 1], W.segments.topo(1:end,:), ones(ns,1)*[1, ...
+            averMat = sparse((1:ns)'*[1 1], W.segments.topo(1:end,:), ones(ns,1)*[1, ...
                                 1], ns, nn);
-            well.operators.aver = bsxfun(@rdivide, aver, sum(aver, 2));
+            averMat = bsxfun(@rdivide, averMat, sum(averMat, 2));
+            well.operators.aver = @(val) (averMat*val);
         end
         
         function counts = getVariableCounts(wm, fld)
@@ -33,7 +34,7 @@ classdef MultisegmentWell < SimpleWell
             end
         end
         
-        function [weqs, ctrlEq, weqsMS, extraNames, qMass, qSurf, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw, dt, iteration)
+        function [weqs, ctrlEq, weqsMS, extraNames, qMass, qSurf, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, dissolved, compw, dt, iteration)
             % Node pressures for the well
             pN = varw{1};
             % Mass fraction for the phases
@@ -46,7 +47,8 @@ classdef MultisegmentWell < SimpleWell
             resProps.pressure = pw;
             resProps.mob = mobw;
             resProps.rho = rhow;
-            resProps.comp = compw;
+            resProps.dissolved = dissolved;
+            resProps.components = compw;
             resProps.b = rhow;
             rhoS = resmodel.getSurfaceDensities();
             for i = 1:numel(resProps.b)
@@ -55,8 +57,8 @@ classdef MultisegmentWell < SimpleWell
                 % in terms of mass and surface volumes.
                 den = rhoS(i);
                 for j = 1:numel(resProps.b)
-                    if ~isempty(compw{j}{i})
-                        den = den + rhoS(j)*compw{j}{i};
+                    if ~isempty(dissolved{j}{i})
+                        den = den + rhoS(j)*dissolved{j}{i};
                     end
                 end
                 resProps.b{i} = resProps.b{i}./den;
@@ -115,9 +117,11 @@ classdef MultisegmentWell < SimpleWell
                         dv = well.limitUpdateRelative(dv, ws.bhp, well.dpMaxRel);
                         dv = well.limitUpdateAbsolute(dv, well.dpMaxAbs);
                         ws.nodePressure = ws.nodePressure + dv;
+                        fprintf('Biggest update %s: %f bar\n', name, max(abs(dv))/barsa);
                     case {'rW', 'rO', 'rG'}
                         ws = well.updateStateFromIncrement(ws, dv, [], name, inf, well.dsMaxAbs);
                         ws = well.capProperty(ws, name, 0, 1);
+                        fprintf('Biggest update %s: %f\n', name, max(abs(dv)));
                     case 'vmix'
                         v = ws.segmentFlux;
                         if well.signChangeChop
@@ -130,6 +134,7 @@ classdef MultisegmentWell < SimpleWell
                             end
                         end
                         ws.segmentFlux = v + dv;
+                        fprintf('Biggest relative update %s: %f\n', name, max(abs(dv))/norm(ws.segmentFlux, inf));
                     otherwise
                         continue
                 end
@@ -154,34 +159,25 @@ classdef MultisegmentWell < SimpleWell
             if nargout > 1
                 etypes = {'node', 'node', 'node'};
                 etypes = etypes(resmodel.getActivePhases());
-                types = {etypes{:}, 'seg', 'node'};
+                types = {etypes{:}, 'seg', 'alpha'};
             end
         end
         
         function wellSol = validateWellSol(well, resmodel, wellSol, state)
-            if ~isfield(wellSol, 'nodePressure')
+            if ~isfield(wellSol, 'nodePressure') || isempty(wellSol.nodePressure)
                 % Need to initialize the well
+                
                 W = well.W;
                 nn  = numel(W.nodes.depth);
-                ns  = numel(W.segments.length);
+                %ns  = numel(W.segments.length);
+                % set initial node pressures equal to initial bhp 
                 wellSol.nodePressure = rldecode(wellSol.bhp, nn(:)-1);
-                % set masses according to top segment
-                qs = [wellSol.qWs, wellSol.qOs, wellSol.qGs];
-                qs = min(qs, -1/day);
-                wellSol.qWs  = qs(1);
-                wellSol.qOs  = qs(2);
-                wellSol.qGs  = qs(3);
-                dens = resmodel.getSurfaceDensities();
-                qs = qs.*dens;
-                m  = qs/sum(qs);
-                wellSol.nodeComp   = ones(nn-1, 1)*m;
-                wellSol.segmentFlux = -1*ones(sum(ns),1)/day;
                 
-                % assume for initialization a 10 kg/day influx from each
-                % connection:
                 wc = W.cells;
+                % get saturation and pressure from connecting cells
                 sc = state.s(wc,:);
                 pc = state.pressure(wc);
+                % compute connecting cells props:
                 [krw, kro, krg] = resmodel.relPermWOG(sc(:,1), sc(:,2), sc(:,3), resmodel.fluid);
                 muw = resmodel.fluid.muW(pc);
                 bw = resmodel.fluid.bW(pc);
@@ -204,24 +200,28 @@ classdef MultisegmentWell < SimpleWell
                     rv = 0;
                 end
                 
-                
+                % phase mobilities
                 [mw, mo, mg] = deal(krw./muw, kro./muo, krg./mug);
-                %m = mw+mo+mg;
-                %[fw, fo, fg] = deal(mw./m, mo./m, mg./m);
-                cq = -10*ones(numel(W.cells), 1)/day;
-                
+
+                % compute components weights for a unit volume rate  
+                dens = resmodel.getSurfaceDensities();
                 fwm = dens(1)*bw.*mw;
                 fom = dens(2)*(bo.*mo + bg.*rv.*mg);
                 fgm = dens(3)*(bg.*mg + bo.*rs.*mo);
                 
+                % devide by total to get component fractions in nodes
+                % connected to reservoir grid cells
                 nodemix = W.cell2node*bsxfun(@rdivide, [fwm, fom, fgm], fwm + fom + fgm) ;
-                %nodemix = -M*((M'*M)\nodemix(2:end,:));
-                %qm
-                
+       
+                % set a small rate and compute a "plausible" mass conservative mixture rate
+                % by solving least square problem 
+                cq = -10*ones(numel(W.cells), 1)/day;
                 cn = W.cell2node*cq;
                 M = well.operators.C(:, 2:end);
                 wellSol.segmentFlux =  -M*((M'*M)\cn(2:end));
-                %nodemix = W.cell2node*[fw, fo, fg];
+                
+                % set component mass fraction in undefined nodes equal to
+                % average upstream node mass fractions
                 nodemix_seg = -M*((M'*M)\nodemix(2:end,:));
                 tp = W.segments.topo(:,2)-1;
                 while any(sum(nodemix,2)==0)
@@ -243,9 +243,6 @@ classdef MultisegmentWell < SimpleWell
         
         function ws = ensureWellSolConsistency(well, ws) %#ok
             % guarantees that the sum of rW, rO, rG remains equal to one.
-%             no = 1 - sum(ws.nodeComp(:, [1 3]),2);
-%             ws.nodeComp(:,2)  = min(1, max(0, no));
-%             ws.nodeComp = ws.nodeComp./(sum(ws.nodeComp, 2)*[1 1 1]);
             ws.nodeComp = bsxfun(@rdivide, ws.nodeComp, sum(ws.nodeComp, 2));
         end
         

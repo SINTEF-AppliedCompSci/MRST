@@ -1,4 +1,4 @@
-function eq = setupWellControlEquations(sol, pBH, q_s, status, mix_s, model)
+function eq = setupWellControlEquationsSingleWell(well, sol0, sol, pBH, q_s, status, mix_s, model)
 %Setup well controll (residual) equations 
 %
 % SYNOPSIS:
@@ -66,6 +66,8 @@ end
 setToZeroRate = val == 0 & ~strcmpi(type, 'bhp');
 disabledWells  = ~status;
 
+mix_s = sum(abs(mix_s), 1);
+
 if ~status
     % The well is shut, set a trivial condition
     eq = (pBH(disabledWells) - bhp(disabledWells))/barsa;
@@ -106,8 +108,74 @@ else
                 % Set to zero control
                 eq = qt_s;
             end
+        case 'thp'
+            disp(type)
+            
+            vfp = well.VFPTable;
+            switch lower(vfp.flowType)
+                case 'oil'
+                    flow = q_s{io};
+                case 'gas'
+                    flow = q_s{ig};
+                case 'wat'
+                    flow = q_s{iw};
+                case 'liq'
+                    flow = 0;
+                    if model.oil
+                        flow = flow + q_s{io};
+                    end
+                    if model.gas
+                        flow = flow + q_s{ig};
+                    end
+                otherwise
+                    error(['Unknown VFP flow type: ''', vfp.flowType, '''']);
+            end
+            if well.isInjector()
+                bhp = vfp.evaluateBHP(flow, val);
+            else
+                switch lower(vfp.gasRatioType)
+                    case 'gor'
+                        % Gas/Oil ratio
+                        gr = q_s{ig}./q_s{io};
+                    case 'glr'
+                        % Gas/Liquid ratio
+                        l = 0;
+                        if model.water
+                            l = l + q_s{iw};
+                        end
+                        if model.oil
+                            l = l + q_s{io};
+                        end
+                        gr = q_s{ig}./l;
+                    case 'ogr'
+                        % Oil gas ratio
+                        gr = q_s{io}./q_s{ig};
+                    otherwise
+                        error('Unsupported gas ratio type for VFP');
+                end
+                
+                switch lower(vfp.waterRatioType)
+                    case 'wor'
+                        % Water/Oil ratio
+                        wr = q_s{iw}./q_s{io};
+                    case 'wct'
+                        % Water cut
+                        l = q_s{iw};
+                        if model.oil
+                            l = l + q_s{io};
+                        end
+                        wr = q_s{iw}./l;
+                    case 'wgr'
+                        % Water/Gas ratio
+                        wr = q_s{iw}./q_s{ig};
+                    otherwise
+                        error('Unsupported water ratio type for VFP');
+                end
+                bhp = vfp.evaluateBHP(flow, val, wr, gr);
+            end
+            eq = bhp - pBH;
         otherwise
-            error(['Unknown well control ', type, ' for well ', wellSol.name]);
+            error(['Unknown well control ', type, ' for well ', sol.name]);
     end
 end
 end

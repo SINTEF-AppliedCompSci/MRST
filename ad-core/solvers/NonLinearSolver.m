@@ -85,9 +85,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         minRelaxation
         % Largest possible relaxation factor
         maxRelaxation
+        
+        useLinesearch
+        alwaysUseLinesearch
+        linesearchReductionFactor
+        linesearchDecreaseFactor
+        linesearchMaxIterations
+        linesearchConvergenceNames
+        convergenceIssues
 
-        % Internal bookkeeping.
-        previousIncrement
         % Abort a timestep if no reduction is residual is happening.
         enforceResidualDecrease
         % Stagnation tolerance - used in relaxation to determine of a
@@ -102,6 +108,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % failed timestep, treating it as a simply non-converged result
         % with the maximum number of iterations
         continueOnFailure
+    end
+    
+    properties (Access=private)
+        % Internal bookkeeping.
+        previousIncrement
+        previousStepReport
     end
 
     methods
@@ -119,9 +131,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relaxationIncrement = 0.1;
             solver.minRelaxation = 0.5;
             solver.maxRelaxation = 1;
+            
+            solver.useLinesearch = false;
+            solver.alwaysUseLinesearch = false;
+            solver.linesearchReductionFactor = 1/2;
+            solver.linesearchDecreaseFactor = 1;
+            solver.linesearchMaxIterations = 10;
+            solver.linesearchConvergenceNames = {};
 
             solver.enforceResidualDecrease = false;
             solver.stagnateTol = 1e-2;
+            solver.convergenceIssues = false;
 
             solver.errorOnFailure = true;
             solver.continueOnFailure = false;
@@ -189,6 +209,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [opt, forcesArg] = merge_options(opt, varargin{:});
             % Merge in forces as varargin
             drivingForces = merge_options(drivingForces, forcesArg{:});
+            model = model.validateModel(drivingForces);
 
             assert(dT >= 0, [solver.getId(), 'Negative timestep detected.']);
 
@@ -238,19 +259,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     fprintf('%sSolving ministep : %s (%1.2f %% of control step, control step currently %1.2f %% complete)\n',...
                             solver.getId(), formatTimeRange(dt), dt / dT * 100, t_local / dT * 100)
                 end
-                [state, converged, failure, its, nonlinearReports] = ...
+                [state, failure, tmp] = ...
                     solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
 
                 % Store timestep info
-                clear tmp;
-                tmp.NonlinearReport = nonlinearReports;
+                converged = tmp.Converged;
+                its = tmp.Iterations;
                 tmp.LocalTime = t_local + dt;
-                tmp.Converged = converged;
-                tmp.Timestep = dt;
-                tmp.Iterations = its;
-
                 reports{end+1} = tmp; %#ok
-                stepsel.storeTimestep(tmp);
+                clear tmp
+                stepsel.storeTimestep(reports{end});
 
                 % Keep total itcount so we know how much time we are
                 % wasting
@@ -353,34 +371,159 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         end
 
-        function dx = stabilizeNewtonIncrements(solver, model, problem, dx)
+        function [state, failure, report] = solveMinistep(solver, model, state, state0, dt, drivingForces)
+            % Attempt to solve a single mini timestep while trying to avoid
+            % stagnation or oscillating residuals.
+            omega0 = solver.relaxationParameter;
+            solver.convergenceIssues = false;
+            if model.stepFunctionIsLinear
+                maxIts = 0;
+            else
+                maxIts = solver.maxIterations;
+            end
+            reports = cell(maxIts, 1);
+            for i = 1:(maxIts + 1)
+                % If we are past maximum number of iterations, step function will
+                % just check convergence and return
+                [state, stepReport] = ...
+                    model.stepFunction(state, state0, dt, drivingForces, ...
+                    solver.LinearSolver, solver, ...
+                    i);
+                converged  = stepReport.Converged;
+                failure    = stepReport.Failure;
+                reports{i} = stepReport;
+                if converged
+                    break
+                end
+                if failure
+                    break
+                end
+
+                if i > 1 && solver.enforceResidualDecrease
+                    if all(stepReport.Residuals >= prev_best)
+                        % We are not seeing reduction, but rather increase in the
+                        % residuals. Break and let the solver decide to either
+                        % abort or cut the timestep.
+                        break;
+                    end
+                end
+                prev_best = stepReport.Residuals;
+                
+                if solver.useRelaxation || solver.useLinesearch
+                    % Store residual history during nonlinear loop to detect
+                    % stagnation or oscillations in residuals.
+                    if i == 1
+                        res = nan(maxIts + 1, numel(stepReport.Residuals));
+                    end
+                    res(i, :) = stepReport.Residuals;
+
+                    isOk = stepReport.ResidualsConverged;
+                    isOscillating = solver.checkForOscillations(res, i);
+                    isStagnated = solver.checkForStagnation(res, i);
+                    % We will use relaxations if all non-converged residuals are
+                    % either stagnating or oscillating.
+                    bad = (isOscillating | isStagnated) | isOk;
+                    relax = all(bad) && ~all(isOk);
+                    if relax
+                        if solver.verbose > 0 && ~solver.convergenceIssues
+                            fprintf('Convergence issues detected.');
+                            if solver.useLinesearch
+                                fprintf(' Activating line search.\n');
+                            else
+                                fprintf(' Activating relaxation.\n');
+                            end
+                        end
+                        solver.convergenceIssues = true;
+                        solver.relaxationParameter = max(solver.relaxationParameter - solver.relaxationIncrement, solver.minRelaxation);
+                    else
+                        solver.relaxationParameter = min(solver.relaxationParameter + solver.relaxationIncrement, solver.maxRelaxation);
+                    end
+                end
+            end
+            % If we converged, the last step did not solve anything
+            its = i - converged;
+            reports = reports(~cellfun(@isempty, reports));
+            solver.relaxationParameter = omega0;
+            solver.convergenceIssues = false;
+            if converged
+                [state, r] = model.updateAfterConvergence(state0, state, dt, drivingForces);
+                reports{end}.FinalUpdate = r;
+            end
+            report = struct('NonlinearReport', {reports}, ...
+                            'Converged',       converged, ...
+                            'Timestep',        dt, ...
+                            'Iterations',      its);
+        end
+
+        function [dx, report] = stabilizeNewtonIncrements(solver, model, problem, dx)
             % Attempt to stabilize newton increment by changing the values
             % of the increments.
             dx_prev = solver.previousIncrement;
-
             w = solver.relaxationParameter;
-            if w == 1
-                return
-            end
+            report = struct('relaxationParameter', w);
+            if w < 1
+                switch(lower(solver.relaxationType))
+                  case 'dampen'
+                    for i = 1:numel(dx)
+                        dx{i} = dx{i}*w;
+                    end
+                  case 'sor'
+                    if isempty(dx_prev)
+                        return
+                    end
+                    for i = 1:numel(dx)
+                        dx{i} = dx{i}*w + (1-w)*dx_prev{i};
+                    end
+                  case 'none'
 
-            switch(lower(solver.relaxationType))
-              case 'dampen'
-                for i = 1:numel(dx)
-                    dx{i} = dx{i}*w;
+                  otherwise
+                    error('Unknown relaxationType: Valid options are ''dampen'', ''none'' or ''sor''');
                 end
-              case 'sor'
-                if isempty(dx_prev)
-                    return
-                end
-                for i = 1:numel(dx)
-                    dx{i} = dx{i}*w + (1-w)*dx_prev{i};
-                end
-              case 'none'
-
-              otherwise
-                error('Unknown relaxationType: Valid options are ''dampen'', ''none'' or ''sor''');
             end
             solver.previousIncrement = dx;
+            
+        end
+
+        function [stateNext, updateReport, lineReport] = applyLinesearch(solver, model, state0, state, problem0, dx, drivingForces, varargin)
+            iteration = problem0.iterationNo;
+            dt = problem0.dt;
+
+            [ok0, v0, names] = model.checkConvergence(problem0);
+            if isempty(solver.linesearchConvergenceNames)
+                activeNames = true(size(v0));
+            else
+                activeNames = ismember(names, solver.linesearchConvergenceNames);
+            end
+            v0 = ~ok0.*v0;
+            v0 = v0(activeNames);
+            
+            assemble = @(state)  model.getEquations(state0, state, dt, drivingForces, ...
+                       'ResOnly', true, ...
+                       'iteration', iteration, ...
+                       varargin{:});
+
+            problem = problem0;
+
+            update = @(problem, dx) model.updateState(state, problem, dx, drivingForces);
+            factor = solver.linesearchDecreaseFactor;
+            converged = false;
+            for its = 1:solver.linesearchMaxIterations
+                [stateNext, updateReport] = update(problem, dx);
+                problem = assemble(stateNext);
+
+                [ok, v] = model.checkConvergence(problem);
+                v = ~ok.*v;
+                v = v(activeNames);
+                if all(ok) || (any(v < v0*factor) && all(v <= v0))
+                    dispif(solver.verbose, 'Linesearch reduction successful after %d steps!\n', its)
+                    converged = true;
+                    break
+                end
+                dx = cellfun(@(x) x.*solver.linesearchReductionFactor, dx, 'UniformOutput', false);
+            end
+            lineReport = struct('Iterations', its, ...
+                                'Converged', converged);
+            dispif(solver.verbose && ~converged, 'Linesearch was unable to reduce residual.\n');
         end
 
         function isOscillating = checkForOscillations(solver, res, index) %#ok

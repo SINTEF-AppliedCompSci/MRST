@@ -14,10 +14,31 @@ classdef FastAD
             h = times(u, power(v, -1));
         end
         
+        function u = sum(u)
+            u.val = sum(u.val);
+            u.jac = sum(u.jac, 1);
+        end
+        
+      function h = gt(u, v)
+          h = gt(double(u), double(v));
+      end
+
+      %--------------------------------------------------------------------
+
+      function h = le(u, v)
+          h = le(double(u), double(v));
+      end
+
+      %--------------------------------------------------------------------
+
+      function h = lt(u, v)
+          h = lt(double(u), double(v));
+      end
+        
         function u = plus(u, v)
             if isa(u, 'FastAD') && isa(v, 'FastAD')
                 u.val = u.val + v.val;
-                u.jac = u.jac + v.jac;
+                u.jac = bsxfun(@plus, u.jac, v.jac);
             elseif isa(u, 'FastAD')
                 u.val = u.val + v;
             else

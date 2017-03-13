@@ -65,23 +65,19 @@ s = model.operators;
 
 % Properties at current timestep
 [p, sW, c, cmax, wellSol] = model.getProps(state, 'pressure', 'water', ...
-    'polymer', 'polymermax', 'wellsol');
+    'polymer', 'polymermax', 'wellSol');
 
 % Properties at previous timestep
-[p0, sW0, c0, cmax0] = model.getProps(state0, 'pressure', 'water', ...
-   'polymer', 'polymermax');
+[p0, sW0, c0, cmax0, wellSol0] = model.getProps(state0, 'pressure', 'water', ...
+   'polymer', 'polymermax', 'wellSol');
 
-pBH    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
-qWPoly = vertcat(wellSol.qWPoly);
-
+[qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 % Initialize independent variables.
 if ~opt.resOnly,
     % ADI variables needed since we are not only computing residuals.
     if ~opt.reverseMode,
-        [p, sW, c, qWs, qOs, qWPoly, pBH] = ...
-            initVariablesADI(p, sW, c, qWs, qOs, qWPoly, pBH);
+        [p, sW, c, qWell{:}, pBH, wellVars{:}] = ...
+            initVariablesADI(p, sW, c, qWell{:}, pBH, wellVars{:});
     else
         zw = zeros(size(pBH));
         [p0, sW0, c0, zw, zw, zw, zw] = ...
@@ -93,7 +89,7 @@ end
 % We will solve for pressure, water saturation (oil saturation follows via
 % the definition of saturations), polymer concentration and well rates +
 % bhp.
-primaryVars = {'pressure', 'sW', 'polymer', 'qWs', 'qOs', 'qWPoly', 'bhp'};
+primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
 
 % Evaluate relative permeability
 sO  = 1 - sW;
@@ -159,16 +155,19 @@ names = {'water', 'oil', 'polymer'};
 types = {'cell', 'cell', 'cell'};
 
 % Add in any fluxes / source terms prescribed as boundary conditions.
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
 [eqs, qBC, qRes, BCTocellMap, qSRC, srcCells] = addFluxesFromSourcesAndBC(...
-   model, eqs, {pW, p}, {rhoW, rhoO}, {mobW, mobO}, {bW, bO},  ...
-   {sW, sO}, drivingForces);
+   model, eqs, {pW, p}, rho, mob,  ...
+   sat, drivingForces);
 
 if model.outputFluxes
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, [], drivingForces);
 end
 % Add polymer boundary conditions
 if ~isempty(drivingForces.bc) && isfield(drivingForces.bc, 'poly')
-   injInx  = qBC{1} > 0; % water inflow indecies
+   injInx  = qBC{1} > 0; % water inflow indices
    cbc     = (BCTocellMap')*c; % BCTocellMap' = cellToBCMap
    cbc(injInx) = drivingForces.bc.poly(injInx);
    eqs{3}  = eqs{3} - BCTocellMap*(cbc.*qBC{1});
@@ -176,67 +175,20 @@ end
 
 % Add polymer source
 if ~isempty(drivingForces.src) && isfield(drivingForces.src, 'poly')
-   injInx  = qSRC{1} > 0; % water inflow indecies
+   injInx  = qSRC{1} > 0; % water inflow indices
    csrc    = c(srcCells);
    csrc(injInx) = drivingForces.src.poly(injInx);
    eqs{3}(srcCells) = eqs{3}(srcCells) - csrc.*qSRC{1};
 end
 
 % Finally, add in and setup well equations
-if ~isempty(W)
-    wm = model.wellmodel;
+if ~isempty(W) 
+    wm = model.FacilityModel;
     if ~opt.reverseMode
-        wc   = vertcat(W.cells);
-        pw   = p(wc);
-        rhos = [f.rhoWS, f.rhoOS];
-        bw   = {bW(wc), bO(wc)};
-        mw   = {mobW(wc), mobO(wc)};
-        s    = {sW(wc), sO(wc)};
-
-        [cqs, weqs, ctrleqs, wc, state.wellSol] = ...
-            wm.computeWellFlux(model, W, wellSol, ...
-            pBH, {qWs, qOs}, pw, rhos, bw, mw, s, {},...
-            'nonlinearIteration', opt.iteration);
-
-        % Store the well equations (relate well bottom hole pressures to
-        % influx).
-        eqs(4:5) = weqs;
-        % Store the control equations (trivial equations ensuring that each
-        % well will have values corresponding to the prescribed value)
-        eqs{7} = ctrleqs;
-        % Add source terms to the equations. Negative sign may be
-        % surprising if one is used to source terms on the right hand side,
-        % but this is the equations on residual form.
-        eqs{1}(wc) = eqs{1}(wc) - cqs{1};
-        eqs{2}(wc) = eqs{2}(wc) - cqs{2};
-
-        % Polymer well equations
-        [~, wciPoly, iInxW] = getWellPolymer(W);
-        cw        = c(wc);
-        cw(iInxW) = wciPoly;
-        cbarw     = cw/f.cmax;
-
-        % Divide away water mobility and add in polymer
-        bWqP = cw.*cqs{1}./(a + (1-a).*cbarw);
-        eqs{3}(wc) = eqs{3}(wc) - bWqP;
-
-        % Well polymer rate for each well is water rate in each perforation
-        % multiplied with polymer concentration in that perforated cell.
-        perf2well = getPerforationToWellMapping(W);
-        Rw = sparse(perf2well, (1:numel(perf2well))', 1, ...
-           numel(W), numel(perf2well));
-        eqs{6} = qWPoly - Rw*(cqs{1}.*cw);
-
-        names(4:7) = {'waterWells', 'oilWells', 'polymerWells', ...
-            'closureWells'};
-        types(4:7) = {'perf', 'perf', 'perf', 'well'};
+        
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {c}, dt, opt);
     else
-        [eq, n, typ] = ...
-            wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-        % Add another equation for polymer well rates
-        [eqs{4:7}] = deal(eq{1});
-        [names{4:7}] = deal(n{1});
-        [types{4:7}] = deal(typ{1});
+        [eqs(3:5), names(3:5), types(3:5)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
@@ -245,30 +197,6 @@ end
 
 %--------------------------------------------------------------------------
 
-
-function [wPoly, wciPoly, iInxW] = getWellPolymer(W)
-    if isempty(W)
-        wPoly = [];
-        wciPoly = [];
-        iInxW = [];
-        return
-    end
-    inj   = vertcat(W.sign)==1;
-    polInj = cellfun(@(x)~isempty(x), {W(inj).poly});
-    wPoly = zeros(nnz(inj), 1);
-    W_inj = W(inj);
-    wPoly(polInj) = vertcat(W_inj(polInj).poly);
-    wciPoly = rldecode(wPoly, cellfun(@numel, {W_inj.cells}));
-
-    % Injection cells
-    nPerf = cellfun(@numel, {W.cells})';
-    nw    = numel(W);
-    perf2well = rldecode((1:nw)', nPerf);
-    compi = vertcat(W.compi);
-    iInx  = rldecode(inj, nPerf);
-    iInx  = find(iInx);
-    iInxW = iInx(compi(perf2well(iInx),1)==1);
-end
 
 % Effective adsorption, depending of desorption or not
 function y = effads(c, cmax, model)

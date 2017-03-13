@@ -84,14 +84,7 @@ s = model.operators;
 % Properties at previous timestep
 [p0, sW0, wellSol0] = model.getProps(state0, 'pressure', 'water', 'wellSol');
 
-if ~isempty(W)
-    [qWell, pBH, basicWellNames] = model.FacilityModel.getBasicPrimaryVariables(wellSol);
-    [wellVars, wellExtraNames, wellMap] = model.FacilityModel.getExtraPrimaryVariables(wellSol);
-    wellVarNames = [basicWellNames, wellExtraNames];
-else
-    [qWell, wellVars, wellVarNames, wellMap] = deal({});
-    pBH = [];
-end
+[qWell, pBH, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 
 % Initialize independent variables.
 if ~opt.resOnly,
@@ -176,8 +169,8 @@ end
 % Finally, add in and setup well equations
 if ~isempty(W)
     wm = model.FacilityModel;
-    if ~opt.reverseMode        
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, dt, opt);
+    if ~opt.reverseMode
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
     else
         [eqs(3:5), names(3:5), types(3:5)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
     end

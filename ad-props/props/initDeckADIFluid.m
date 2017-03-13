@@ -4,11 +4,13 @@ function fluid = initDeckADIFluid(deck, varargin)
  % this only work for full deck or first region.
  opt.G = [];
  opt.set_method='from_deck';
- opt.regs=struct('PVTNUM',1,'SATNUM',1,'SURFNUM',1,'IMBNUM',1,'ROCKNUM',1);
- opt =merge_options(opt,varargin{:})
+ opt.regs=struct('PVTNUM',  1, ...
+                 'SATNUM',  1,...
+                 'SURFNUM', 1,...
+                 'IMBNUM',  1,...
+                 'ROCKNUM', 1);
+ opt = merge_options(opt,varargin{:});
 
-
- %%
  reg.PVTNUM = [];
  reg.PVTINX = ':';
  reg.SURFNUM = [];

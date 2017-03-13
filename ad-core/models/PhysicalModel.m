@@ -96,8 +96,21 @@ methods
         % reasonable default values, a descriptive error should be thrown
         % telling the user what is missing or wrong (and ideally how to fix
         % it).
-        
+
         % Any state is valid for base class
+        return
+    end
+
+    % --------------------------------------------------------------------%
+    function model = validateModel(model, varargin)
+        % Validate that a model is suitable for simulation. If the missing
+        % or inconsistent parameters can be fixed automatically, a updated
+        % model will be returned. Otherwise, an error should occur.
+        %
+        % Second input may be the forces struct argument. This function
+        % should NOT require forces arg to run, however.
+
+        % Base class is always suitable
         return
     end
 
@@ -112,6 +125,12 @@ methods
         report = [];
     end
 
+    % --------------------------------------------------------------------%
+    function [model, state] = updateForChangedControls(model, state, drivingForces) %#ok
+        % Whenever controls change, this function should ensure that both
+        % model and state are up to date with the present set of driving
+        % forces.
+    end
     % --------------------------------------------------------------------%
     function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
         % Update state based on non-linear increment after timestep has
@@ -128,7 +147,7 @@ methods
         end
 
         values = norm(problem, n);
-        convergence = all(values < model.nonlinearTolerance);
+        convergence = values < model.nonlinearTolerance;
         names = strcat(problem.equationNames, ' (', problem.types, ')');
     end
 
@@ -153,27 +172,40 @@ methods
         % Defaults
         failureMsg = '';
         failure = false;
-        [linearReport, updateReport] = deal(struct());
-        if (~(convergence && doneMinIts) && ~onlyCheckConvergence)
+        [linearReport, updateReport, stabilizeReport] = deal(struct());
+        if (~(all(convergence) && doneMinIts) && ~onlyCheckConvergence)
             % Get increments for Newton solver
             [dx, ~, linearReport] = linsolve.solveLinearProblem(problem, model);
-
-            % Let the non-linear solver decide what to do with the
-            % increments to get the best convergence
-            dx = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
-
-            % Finally update the state. The physical model knows which
-            % properties are actually physically reasonable.
-            [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
             if any(cellfun(@(d) ~all(isfinite(d)), dx))
                 failure = true;
                 failureMsg = 'Linear solver produced non-finite values.';
             end
+            % Let the non-linear solver decide what to do with the
+            % increments to get the best convergence
+            [dx, stabilizeReport] = nonlinsolve.stabilizeNewtonIncrements(model, problem, dx);
+
+            if (nonlinsolve.useLinesearch && nonlinsolve.convergenceIssues) || ...
+                nonlinsolve.alwaysUseLinesearch
+                [state, updateReport, stabilizeReport.linesearch] = nonlinsolve.applyLinesearch(model, state0, state, problem, dx, drivingForces, varargin{:});
+            else
+                % Finally update the state. The physical model knows which
+                % properties are actually physically reasonable.
+                [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+            end
         end
-        isConverged = (convergence  && doneMinIts) || model.stepFunctionIsLinear;
+        isConverged = (all(convergence) && doneMinIts) || model.stepFunctionIsLinear;
         
+        if model.stepFunctionIsLinear
+            % If step function is linear, we need to call a residual only
+            % equation assembly to ensure that indirect quantities are set
+            % with the updated values (fluxes, mobilities and so on).
+            [~, state] = model.getEquations(state0, state, dt, drivingForces, ...
+                                   'ResOnly', true, ...
+                                   'iteration', iteration+1, ...
+                                   varargin{:});
+        end
         if model.verbose
-            printConvergenceReport(resnames, values, isConverged, iteration);
+            printConvergenceReport(resnames, values, convergence, iteration);
         end
         report = model.makeStepReport(...
                         'LinearSolver', linearReport, ...
@@ -181,7 +213,9 @@ methods
                         'Failure',      failure, ...
                         'FailureMsg',   failureMsg, ...
                         'Converged',    isConverged, ...
-                        'Residuals',    values);
+                        'Residuals',    values, ...
+                        'StabilizeReport', stabilizeReport,...
+                        'ResidualsConverged', convergence);
     end
 
     % --------------------------------------------------------------------%
@@ -193,7 +227,9 @@ methods
                         'FailureMsg',   '', ...
                         'Converged',    false, ...
                         'FinalUpdate',  [],...
-                        'Residuals',    []);
+                        'Residuals',    [],...
+                        'StabilizeReport', [], ...
+                        'ResidualsConverged', []);
         report = merge_options(report, varargin{:});
     end
 

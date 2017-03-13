@@ -43,7 +43,7 @@ function fn = getPlotAfterStep(state0, model, schedule, varargin)
 %        simulateScheduleAD.
 %
 % SEE ALSO:
-%   simulateScheduleAD, howtoAddPlotHook (example)
+%   simulateScheduleAD, blackoilTutorialPlotHook (example)
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.

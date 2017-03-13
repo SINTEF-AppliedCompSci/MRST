@@ -140,10 +140,8 @@ if opt.solveForWater
         wat(wc) = wat(wc) - bWqW;
     end
 
-    eqs{1} = wat;
     oil = [];
-    names = {'water'};
-    types = {'cell'};
+    names = {'water'};    
 else
     f_o = mobOf./totMob;
     bOvO   = s.faceUpstr(upco, bO).*f_o.*vT + s.faceUpstr(upco_g, bO).*f_g.*s.T.*(Go - Gw);
@@ -153,24 +151,28 @@ else
         oil(wc) = oil(wc) - bOqO;
     end
     wat = [];
-    eqs{1} = oil;
     names = {'oil'};
-    types = {'cell'};
 end
+types = {'cell'};
+rho = {rhoW, rhoO};
+mob = {mobW, mobO};
+sat = {sW, sO};
 
-tmpEqs = {wat, oil};
-tmpEqs = addFluxesFromSourcesAndBC(model, tmpEqs, ...
+eqs = {wat, oil};
+eqs = addFluxesFromSourcesAndBC(model, eqs, ...
                                    {pFlow, pFlow},...
-                                   {rhoW, rhoO},...
-                                   {mobW, mobO}, ...
-                                   {bW, bO},  ...
-                                   {sW, sO}, ...
+                                   rho, ...
+                                   mob, ...
+                                   sat, ...
                                    drivingForces);
+
 if opt.solveForWater
-    eqs{1} = tmpEqs{1};
+    index = 1;
 else
-    eqs{1} = tmpEqs{2};
+    index = 2;
 end
+eqs = eqs(index);
+
 if ~model.useCNVConvergence
     eqs{1} = eqs{1}.*(dt./s.pv);
 end

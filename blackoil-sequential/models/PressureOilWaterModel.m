@@ -44,11 +44,10 @@ classdef PressureOilWaterModel < TwoPhaseOilWaterModel
             if ~isnan(problem.iterationNo) && model.useIncTol
                 if problem.iterationNo  > 1
                     values(1) = norm(problem.state.dpRel, inf);
-                    convergence = all([values(1) < model.incTolPressure, values(2:end) < model.nonlinearTolerance]);
                 else
                     values(1) = inf;
-                    convergence = false;
                 end
+                convergence = [values(1) < model.incTolPressure, values(2:end) < model.nonlinearTolerance];
                 names{1} = 'Delta P';
             end
         end

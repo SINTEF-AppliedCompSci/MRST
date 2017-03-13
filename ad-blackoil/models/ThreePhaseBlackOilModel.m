@@ -51,9 +51,6 @@ methods
                 error('Unknown dataset format!')
             end
         end
-        if isempty(model.FacilityModel)
-            model.FacilityModel = FacilityModel(model);
-        end
     end
     
     % --------------------------------------------------------------------%
@@ -191,7 +188,7 @@ methods
     end
     
     % --------------------------------------------------------------------%
-    function scaling = getScalingFactorsCPR(model, problem, names)
+    function scaling = getScalingFactorsCPR(model, problem, names, solver)
         % Get approximate, impes-like pressure scaling factors
         nNames = numel(names);
         
@@ -201,37 +198,83 @@ methods
         % Take averaged pressure for scaling factors
         state = problem.state;
         fluid = model.fluid;
-        p = mean(state.pressure);
-        
-        for iter = 1:nNames
-            name = lower(names{iter});
-            switch name
-                case 'oil'
-                    if model.disgas
-                       rs = fluid.rsSat(p);
-                       bO = fluid.bO(p, rs, true);
-                    else
-                       bO = fluid.bO(p);
-                    end
-                    s = 1./bO;
-                case 'water'
-                    bW = fluid.bW(p);
-                    s = 1./bW;
-                case 'gas'
-                    if model.vapoil
-                        rv = fluid.rvSat(p);
-                        bG = fluid.bG(p, rv, true);
-                    elseif model.gas
-                        bG = fluid.bG(p);
-                    end
-                    s = 1./bG;
-                otherwise
-                    continue
+        if isprop(solver, 'trueIMPES') && solver.trueIMPES
+            % Rigorous pressure equation (requires lots of evaluations)
+            p = state.pressure;
+            rs = state.rs;
+            rv = state.rv;
+            cfac = 1./(1 - model.disgas*model.vapoil*rs.*rv);
+            for iter = 1:nNames
+                name = lower(names{iter});
+                switch name
+                    case 'oil'
+                        if model.disgas
+                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        if model.vapoil
+                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = cfac.*(1./bO - model.disgas*rs./bG);
+                    case 'water'
+                        bW = fluid.bW(p);
+                        s = 1./bW;
+                    case 'gas'
+                        if model.disgas
+                           bO = fluid.bO(p, rs, rs >= fluid.rsSat(p));
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        if model.vapoil
+                            bG = fluid.bG(p, rv, rv >= fluid.rvSat(p));
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = cfac.*(1./bG - model.vapoil*rv./bO);
+                    otherwise
+                        continue
+                end
+                sub = strcmpi(problem.equationNames, name);
+
+                scaling{iter} = s;
+                handled(sub) = true;
             end
-            sub = strcmpi(problem.equationNames, name);
-            
-            scaling{iter} = s;
-            handled(sub) = true;
+        else
+            % Very simple scaling factors, uniform over grid
+            p = mean(state.pressure);
+            for iter = 1:nNames
+                name = lower(names{iter});
+                switch name
+                    case 'oil'
+                        if model.disgas
+                           rs = fluid.rsSat(p);
+                           bO = fluid.bO(p, rs, true);
+                        else
+                           bO = fluid.bO(p);
+                        end
+                        s = 1./bO;
+                    case 'water'
+                        bW = fluid.bW(p);
+                        s = 1./bW;
+                    case 'gas'
+                        if model.vapoil
+                            rv = fluid.rvSat(p);
+                            bG = fluid.bG(p, rv, true);
+                        elseif model.gas
+                            bG = fluid.bG(p);
+                        end
+                        s = 1./bG;
+                    otherwise
+                        continue
+                end
+                sub = strcmpi(problem.equationNames, name);
+
+                scaling{iter} = s;
+                handled(sub) = true;
+            end
         end
         if ~all(handled)
             % Get rest of scaling factors from parent class
@@ -308,26 +351,31 @@ methods
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
     
-    function [eqs, names, types, wellSol] = insertWellEquations(model, eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt)
+    function [eqs, names, types, wellSol] = insertWellEquations(model, eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt)
         % Utility function for setting up the well equations and adding
         % source terms for black-oil like models. Note that this currently
         % assumes that the first nPh equations are the conservation
         % equations, according to the canonical MRST W-O-G ordering,
         fm = model.FacilityModel;
         nPh = nnz(model.getActivePhases);
-        assert(numel(eqs) == nPh);
-        [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, wellSol] = ...
-            fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt.iteration);
+%         assert(numel(eqs) == nPh);
+        [src, wellsys, wellSol] = ...
+            fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt.iteration);
         rhoS = model.getSurfaceDensities();
-        wc = fm.getWellCells();
+        wc = src.sourceCells;
         for i = 1:nPh
-            eqs{i}(wc) = eqs{i}(wc) - srcMass{i}./rhoS(i);
+            eqs{i}(wc) = eqs{i}(wc) - src.phaseMass{i}./rhoS(i);
         end
-        offset = numel(weqs);
-        eqs(end+1:end+offset) = weqs;
-        names(end+1:end+offset) = wnames;
-        types(end+1:end+offset) = wtypes;
-        eqs{end+1} = ctrleq;
+        components = model.getComponentNames();
+        for i = 1:numel(components)
+            act = strcmpi(names, components{i});
+            eqs{act}(wc) = eqs{act}(wc) - src.components{i};
+        end
+        offset = numel(wellsys.wellEquations);
+        eqs(end+1:end+offset) = wellsys.wellEquations;
+        names(end+1:end+offset) = wellsys.names;
+        types(end+1:end+offset) = wellsys.types;
+        eqs{end+1} = wellsys.controlEquation;
         names{end+1} = 'closureWells';
         types{end+1} = 'well';
     end

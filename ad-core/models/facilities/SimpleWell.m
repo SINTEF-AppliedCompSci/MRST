@@ -8,6 +8,8 @@ classdef SimpleWell < PhysicalModel
         dpMaxRel
         dpMaxAbs
         dsMaxAbs
+        
+        VFPTable
     end
     
     methods
@@ -49,10 +51,17 @@ classdef SimpleWell < PhysicalModel
         
         function names = getExtraPrimaryVariableNames(well, resmodel)
             names = {};
+            if isprop(resmodel, 'polymer') && resmodel.polymer
+                names{end+1} = 'qWPoly';
+            end
         end
         
         function [names, types] = getExtraEquationNames(well, resmodel)
             [names, types] = deal({});
+            if isprop(resmodel, 'polymer') && resmodel.polymer
+                names{end+1} = 'polymerWells';
+                types{end+1} = 'perf';
+            end
         end
         
         function [vars, names] = getExtraPrimaryVariables(well, wellSol, resmodel)
@@ -61,9 +70,10 @@ classdef SimpleWell < PhysicalModel
             [vars{:}] = well.getProps(wellSol, names{:});
         end
         
-        function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw, dt, iteration)
-            [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, varw, pw, mobw, rhow, compw);
-            ctrlEq =  setupWellControlEquationsSingleWell(wellSol, bh, q_s, status, mix_s, resmodel);
+        function [weqs, ctrlEq, extra, extraNames, qMass, qVol, wellSol] = computeWellEquations(well, wellSol0, wellSol, resmodel, q_s, bh, packed, dt, iteration)
+            % Compute well equations and well phase source terms
+            [weqs, qMass, mix_s, status, cstatus, qVol] = computeWellContributionsSingleWell(well, wellSol, resmodel, q_s, bh, packed);
+            ctrlEq =  setupWellControlEquationsSingleWell(well, wellSol0, wellSol, bh, q_s, status, mix_s, resmodel);
             
             % Update well properties which are not primary variables
             toDouble = @(x)cellfun(@double, x, 'UniformOutput', false);
@@ -76,6 +86,37 @@ classdef SimpleWell < PhysicalModel
             extraNames = {};
         end
         
+        function [compEqs, compSrc, compNames, wellSol] = computeComponentContributions(well, wellSol0, wellSol, resmodel, q_s, bh, packed, qMass, qVol, dt, iteration)
+            % Compute component equations and component source terms
+            [compEqs, compSrc, compNames] = deal({});
+            if isprop(resmodel, 'polymer') && resmodel.polymer
+                % Polymer sources are by convention divided by rhoW
+                assert(resmodel.water, 'Polymer injection requires a water phase.');
+                f = resmodel.fluid;
+                if well.isInjector
+                    cw = well.W.poly;
+                else
+                    pix = strcmpi(resmodel.getComponentNames(), 'polymer');
+                    cw = packed.components{pix};
+                end
+                qWp = packed.extravars{strcmpi(packed.extravars_names, 'qwpoly')};
+                a = f.muWMult(f.cmax).^(1-f.mixPar);
+                cbarw     = cw/f.cmax;
+                % Water is always first
+                wix = 1;
+                qwSurf = qMass{wix}./f.rhoWS;
+                qP = cw.*qwSurf./(a + (1-a).*cbarw);
+
+                compEqs{end+1} = qWp - sum(cw.*qwSurf);
+                compSrc{end+1} = qP;
+                compNames{end+1} = 'polymerWells';
+            end
+        end
+        
+        function isInjector = isInjector(well)
+            isInjector = well.W.sign > 0;
+        end
+        
         function [names, types] = getWellEquationNames(well, resmodel)
             act = resmodel.getActivePhases();
             names = {'waterWells', 'oilWells', 'gasWells'};
@@ -84,10 +125,11 @@ classdef SimpleWell < PhysicalModel
             types = types(act);
         end
         
-        function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
+        function wellSol = updateConnectionPressureDrop(well, wellSol0, wellSol, model, q_s, bhp, packed, dt, iteration)
             if iteration ~= 1
                 return
             end
+            [p, mob, rho, dissolved, comp, wellvars] = unpackPerforationProperties(packed);
             toDb  = @(x)cellfun(@double, x, 'UniformOutput', false);
             rho     = cell2mat(toDb(rho));
             
@@ -148,7 +190,7 @@ classdef SimpleWell < PhysicalModel
             wellSol.cdp = cdp;
         end
         
-        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, comp, dt, iteration)
+        function [q_s, bhp, wellSol, withinLimits] = updateLimits(well, wellSol0, wellSol, model, q_s, bhp, wellvars, p, mob, rho, dissolved, comp, dt, iteration)
             if ~well.allowControlSwitching
                 % We cannot change controls, so we return
                 return
@@ -208,7 +250,7 @@ classdef SimpleWell < PhysicalModel
             else
                 modes = {};
                 flags = false;
-                assert(isinf(lims))
+                assert(isempty(lims) || isinf(lims))
             end
             % limits we need to check (all others than w.type):
             chkInx = ~strcmp(wellSol.type, modes);
@@ -297,6 +339,10 @@ classdef SimpleWell < PhysicalModel
                     fn = 'qGs';
                 case 'qws'
                     fn = 'qWs';
+                case 'qwpoly'
+                    fn = 'qWPoly';
+                case 'qwsft'
+                    fn = 'surfact';
                 otherwise
                     % This will throw an error for us
                     [fn, index] = getVariableField@PhysicalModel(model, name);

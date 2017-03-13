@@ -95,14 +95,8 @@ W = drivingForces.W;
 [p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
     'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
-if ~isempty(W)
-    [qWell, bhp, basicWellNames] = model.FacilityModel.getBasicPrimaryVariables(wellSol);
-    [wellVars, wellExtraNames, wellMap] = model.FacilityModel.getExtraPrimaryVariables(wellSol);
-    wellVarNames = [basicWellNames, wellExtraNames];
-else
-    [qWell, wellVars, wellVarNames, wellMap] = deal({});
-    bhp = [];
-end
+[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+
 
 %Initialization of primary variables ----------------------------------
 st  = model.getCellStatusVO(state,  1-sW-sG,   sW,  sG);
@@ -245,8 +239,8 @@ end
 % Finally, add in and setup well equations
 if ~isempty(W)
     if ~opt.reverseMode
-        components = model.getDissolutionMatrix(rs, rv);        
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, components, dt, opt);
+        dissolved = model.getDissolutionMatrix(rs, rv);
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
     else
         [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
     end

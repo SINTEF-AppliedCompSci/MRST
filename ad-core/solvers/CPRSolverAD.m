@@ -52,6 +52,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Name of elliptic-like variable which will be solved using
         % elliptic solver.
         ellipticVarName
+        % Use true impes decoupling strategy (if supported by model)
+        trueIMPES
     end
     methods
         function solver = CPRSolverAD(varargin)
@@ -62,6 +64,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.relativeTolerance = 1e-2;
             solver.pressureScaling = 1/(200*barsa);
             solver.diagonalTol = 1e-2;
+            solver.trueIMPES = false,
             solver.ellipticVarName = 'pressure';
             
             solver = merge_options(solver, varargin{:});
@@ -104,7 +107,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             nCell = problem.getEquationVarNum(1);
             
             % Get and apply scaling
-            scale = model.getScalingFactorsCPR(problem, problem.equationNames);
+            scale = model.getScalingFactorsCPR(problem, problem.equationNames, solver);
             
             for i = 1:numel(scale)
                 if numel(scale{i}) > 1 || scale{i} ~= 0

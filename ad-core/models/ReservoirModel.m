@@ -183,17 +183,37 @@ methods
     end
 
     % --------------------------------------------------------------------%
+    function model = validateModel(model, varargin)
+        if isempty(model.FacilityModel)
+            model.FacilityModel = FacilityModel(model); %#ok
+        end
+        if nargin > 1
+            W = varargin{1}.W;
+            model.FacilityModel = model.FacilityModel.setupWells(W);
+        end
+        model = validateModel@PhysicalModel(model, varargin{:});
+        return
+    end
+
+    % --------------------------------------------------------------------%
+    function [model, state] = updateForChangedControls(model, state, forces)
+        model.FacilityModel = model.FacilityModel.setupWells(forces.W);
+        state.wellSol = initWellSolAD(forces.W, model, state);
+        [model, state] = updateForChangedControls@PhysicalModel(model, state, forces);
+    end
+
+    % --------------------------------------------------------------------%
     function [state, report] = updateState(model, state, problem, dx, drivingForces)
         % Generic update function for reservoir models containing wells
 
         % Split variables into three categories: Regular/rest variables, saturation
         % variables (which sum to 1 after updates) and well variables (which live
         % in wellSol and are in general more messy to work with).
-        [restVars, satVars] = model.splitPrimaryVariables(problem.primaryVariables);
+        [restVars, satVars, wellVars] = model.splitPrimaryVariables(problem.primaryVariables);
 
         % Update the wells
         if isfield(state, 'wellSol')
-            [state.wellSol, restVars] = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, restVars);
+            state.wellSol = model.FacilityModel.updateWellSol(state.wellSol, problem, dx, drivingForces, wellVars);
         end
         
         % Update saturations in one go
@@ -212,6 +232,13 @@ methods
         end
 
         report = [];
+    end
+    % --------------------------------------------------------------------%
+    function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
+        [state, report] = updateAfterConvergence@PhysicalModel(model, state0, state, dt, drivingForces);
+        if ~isempty(model.FacilityModel)
+            state.wellSol = model.FacilityModel.updateWellSolAfterStep(state.wellSol);
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -233,11 +260,8 @@ methods
             values_all = norm(problem, inf);
             rest = ~(isWOG | isWell);
             
-            tol = model.nonlinearTolerance;
-            convergence = all(conv_cells) && ...
-                          all(conv_wells) && ...
-                          all(values_all(rest) < tol);
-                      
+            conv_rest = values_all(rest) < model.nonlinearTolerance;
+            convergence = [conv_cells, conv_wells, conv_rest];
             values = [v_cells, v_wells, values_all(rest)];
             restNames = problem.equationNames(rest);
             names = horzcat(namesWOG, namesWell, restNames);
@@ -281,7 +305,12 @@ methods
                 [fn, index] = getVariableField@PhysicalModel(model, name);
         end
     end
-    
+
+    % --------------------------------------------------------------------%
+    function names = getComponentNames(model)
+        names = {};
+    end
+
     % --------------------------------------------------------------------%
     function forces = getValidDrivingForces(model)
         forces = getValidDrivingForces@PhysicalModel(model);

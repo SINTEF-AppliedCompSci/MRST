@@ -1,12 +1,16 @@
 classdef FacilityModel < PhysicalModel
     properties
         WellModels
-        
+
         toleranceWellBHP
         toleranceWellRate
+        toleranceWellMS
         ReservoirModel
+        
+        VFPTablesInjector
+        VFPTablesProducer
     end
-    
+
     properties (SetAccess = protected)
         % Canonical list of all extra primary variables added by the wells
         addedPrimaryVarNames = {};
@@ -19,15 +23,17 @@ classdef FacilityModel < PhysicalModel
     methods
         function model = FacilityModel(reservoirModel, varargin)
             model = model@PhysicalModel([]);
-            
-            model.toleranceWellBHP = 1*barsa;
+
+            model.toleranceWellBHP  = 1*barsa;
             model.toleranceWellRate = 1/day;
-            
+            model.toleranceWellMS   = 1e-6;
+            model.VFPTablesInjector = {};
+            model.VFPTablesProducer = {};
             model = merge_options(model, varargin{:});
             model.ReservoirModel = reservoirModel;
             model.WellModels = {};
         end
-        
+
         function model = setupWells(model, W, wellmodels)
             % Set up wells for changed controls or first simulation step
             nw = numel(W);
@@ -49,6 +55,18 @@ classdef FacilityModel < PhysicalModel
                     wm.dsMaxAbs = model.ReservoirModel.dsMaxAbs;
                     wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
                     wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
+                    
+                    if isfield(W(i), 'vfp_index')
+                        vfp_ix = W(i).vfp_index;
+                        if vfp_ix > 0
+                            if wm.isInjector()
+                                vfp = model.VFPTablesInjector{vfp_ix};
+                            else
+                                vfp = model.VFPTablesProducer{vfp_ix};
+                            end
+                            wm.VFPTable = vfp;
+                        end
+                    end
                     % Get the added primary variables for this well, plus
                     % the equations and equation types it adds
                     pvars{i} = wm.getExtraPrimaryVariableNames(model.ReservoirModel);
@@ -59,7 +77,7 @@ classdef FacilityModel < PhysicalModel
                 % different wells into a canonical ordering.
                 model.addedPrimaryVarNames = uniqueStable([pvars{:}]);
                 [model.addedEquationNames, keepix] = uniqueStable([eqnames{:}]);
-                
+
                 etypes = [eqtypes{:}];
                 model.addedEquationTypes = etypes(keepix);
             else
@@ -68,28 +86,28 @@ classdef FacilityModel < PhysicalModel
                 for i = 1:nw
                     % Update with new wells. Typically just a quick
                     % overwrite of existing wells
-                    model.WellModels{i}.updateWell(W(i));
+                    model.WellModels{i} = model.WellModels{i}.updateWell(W(i));
                 end
             end
         end
-        
+
         function W = getWellStruct(model)
             % Compute number of wells in facility
             W = cellfun(@(x) x.W, model.WellModels, 'UniformOutput', false);
             W = vertcat(W{:});
         end
-        
+
         function nwell = getNumberOfWells(model)
             % Compute number of wells in facility
             nwell = numel(model.WellModels);
         end
-        
+
         function names = getPrimaryVariableNames(model)
             % This includes both the basic variables, and the variables
             % added by complex wells (if any)
             names = [model.getBasicPrimaryVariableNames(), model.addedPrimaryVarNames];
         end
-        
+
         function names = getBasicPrimaryVariableNames(model)
             % Basic primary variables are phase rates + bhp for active
             % phases in the model.
@@ -100,26 +118,35 @@ classdef FacilityModel < PhysicalModel
 
         function [rates, bhp, names] = getBasicPrimaryVariables(model, wellSol)
             % Get phase rates + bhp for active phases
-            actPh = model.ReservoirModel.getActivePhases();
-            bhp = vertcat(wellSol.bhp);
-            qWs = vertcat(wellSol.qWs);
-            qOs = vertcat(wellSol.qOs);
-            qGs = vertcat(wellSol.qGs);
-            rates = {qWs, qOs, qGs};
-            rates = rates(actPh);
-            
-            names = model.getBasicPrimaryVariableNames();
+            if model.getNumberOfWells() == 0
+                [rates, names] = deal({});
+                bhp = [];
+            else
+                actPh = model.ReservoirModel.getActivePhases();
+                bhp = vertcat(wellSol.bhp);
+                qWs = vertcat(wellSol.qWs);
+                qOs = vertcat(wellSol.qOs);
+                qGs = vertcat(wellSol.qGs);
+                rates = {qWs, qOs, qGs};
+                rates = rates(actPh);
+
+                names = model.getBasicPrimaryVariableNames();
+            end
         end
-        
+
         function [variables, names, wellmap] = getExtraPrimaryVariables(model, wellSol)
             % Extra primary variables are variables required by more
             % advanced wells that are in addition to the basic facility
             % variables (rates + bhp).
-            names = model.addedPrimaryVarNames;
             nw = model.getNumberOfWells();
+            if nw == 0
+                [variables, names, wellmap] = deal({});
+                return
+            end
+            names = model.addedPrimaryVarNames;
             nv = numel(names);
             vars = cell(nw, nv);
-            
+
             wellmap = zeros(nw, nv);
             if nv > 0
                 all_ix = (1:nv)';
@@ -132,7 +159,7 @@ classdef FacilityModel < PhysicalModel
                         wellmap(i, j) = all_ix(ix);
                         vars{i, ix} = v{j};
                     end
-                    
+
                 end
             end
 
@@ -141,8 +168,14 @@ classdef FacilityModel < PhysicalModel
                 variables{j} = vertcat(vars{:, j});
             end
         end
-        
-        function [srcMass, srcVol, eqs, ctrleq, names, types, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, comp, dt, iteration)
+
+        function [rates, bhp, extra, allNames, wellMap] = getAllPrimaryVariables(model, wellSol)
+            [rates, bhp, names] = model.getBasicPrimaryVariables(wellSol);
+            [extra, enames, wellMap] = model.getExtraPrimaryVariables(wellSol);
+            allNames = [names, enames];
+        end
+
+        function [sources, wellSystem, wellSol] = getWellContributions(model, wellSol0, wellSol, qWell, bhp, wellvars, wellMap, p, mob, rho, dissolved, comp, dt, iteration)
             % Get the source terms due to the wells, control and well
             % equations and updated well sol. Main gateway for adding wells
             % to a set of equations.
@@ -150,59 +183,62 @@ classdef FacilityModel < PhysicalModel
                 warning(['Iteration number is not passed on to well model,', ...
                          'this may indicate wellbore pressure-drop will never be updated']);
             end
-            
+
             nw = model.getNumberOfWells();
-            
+
             allBaseEqs = cell(nw, 1);
             allCtrl = cell(nw, 1);
             allVol = cell(nw, 1);
             allMass = cell(nw, 1);
-            
+            allComp = cell(nw, 1);
+
             enames = model.addedEquationNames;
             etypes = model.addedEquationTypes;
+            cnames = model.ReservoirModel.getComponentNames();
+            ncomp = numel(cnames);
+
             n_extra = numel(enames);
             assert(numel(etypes) == n_extra);
-            
+
             allExtraEqs = cell(nw, n_extra);
 
-            
+
             addedVars = model.addedPrimaryVarNames;
-            maps = cell(1, numel(addedVars));
+            varmaps = cell(1, numel(addedVars));
             for varNo = 1:numel(addedVars)
-                maps{varNo} = model.getWellVariableMap(addedVars{varNo});
+                varmaps{varNo} = model.getWellVariableMap(addedVars{varNo});
             end
-            
+
             [basenames, basetypes] = model.WellModels{1}.getWellEquationNames(model.ReservoirModel);
             for i = 1:nw
                 wm = model.WellModels{i};
 
                 W = wm.W;
-                wc = W.cells;
-                pw = p(wc);
-                mobw = getCellSubset(mob, wc);
-                rhow = getCellSubset(rho, wc);
-                compw = getComponentCellSubset(comp, wc);
-                varw = getVariableSubsetWell(wellvars, maps, i);
-                
-                % Renumber to the ordering of variables for this well
-                renum = wellMap(i, wellMap(i, :) > 0);
-                varw = varw(renum);
-                
+                packed = packPerforationProperties(W, p, mob, rho, dissolved, comp, wellvars, addedVars, varmaps, wellMap, i);
                 qw = cellfun(@(x) x(i), qWell, 'uniformoutput', false);
                 bh = bhp(i);
                 % Update pressure
-                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                wellSol(i) = wm.updateConnectionPressureDrop(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
                 % Update limits
-                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                [qw, bh, wellSol(i), ok] = wm.updateLimits(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
                 if ~ok
                     bhp(i) = bh;
                     for phNo = 1:numel(qw)
                         qWell{phNo}(i) = qw{phNo};
                     end
                 end
-               % Set up well equations and source terms
+               % Set up well equations and phase source terms
                [allBaseEqs{i}, allCtrl{i}, extraEqs, extraNames, allMass{i}, allVol{i}, wellSol(i)] =...
-                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, varw, pw, mobw, rhow, compw, dt, iteration);
+                   wm.computeWellEquations(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, dt, iteration);
+
+               % Get component source terms and corresponding equations (if
+               % any components are present)
+               [compEqs, allComp{i}, compNames, wellSol(i)] =...
+                   wm.computeComponentContributions(wellSol0(i), wellSol(i), model.ReservoirModel, qw, bh, packed, allMass{i}, allVol{i}, dt, iteration);
+
+               extraEqs = {extraEqs{:}, compEqs{:}};
+               extraNames = {extraNames{:}, compNames{:}};
+
                for eqNo = 1:numel(extraEqs)
                    % Map into global list of equations
                    ix = strcmpi(enames, extraNames{eqNo});
@@ -219,7 +255,12 @@ classdef FacilityModel < PhysicalModel
                 srcVol{phNo} = combineCellData(allVol, phNo);
                 eqs{phNo} = combineCellData(allBaseEqs, phNo);
             end
-            % If we have extra equations, add them in 
+            % Components are ordered canonically by reservoir model
+            srcComp = cell(1, ncomp);
+            for cNo = 1:ncomp
+                srcComp{cNo} = combineCellData(allComp, cNo);
+            end
+            % If we have extra equations, add them in
             extraEqs = cell(1, n_extra);
             for i = 1:n_extra
                 ok = ~cellfun(@isempty, allExtraEqs(:, i));
@@ -229,25 +270,92 @@ classdef FacilityModel < PhysicalModel
             % equations added due to complex wells.
             names = horzcat(basenames, enames);
             types = horzcat(basetypes, etypes);
-            
+
             eqs = {eqs{:}, extraEqs{:}};
             ctrleq = vertcat(allCtrl{:});
-            
+
+            wc = model.getWellCells;
             [wc, srcMass, srcVol] = model.handleRepeatedPerforatedcells(wc, srcMass, srcVol);
-            
+            wellSystem = struct('wellEquations', {eqs}, ...
+                                'names',  {names}, ...
+                                'types', {types}, ...
+                                'controlEquation', ctrleq);
+            sources = struct('phaseMass',   {srcMass}, ...
+                             'phaseVolume', {srcVol}, ...
+                             'components',  {srcComp}, ...
+                             'sourceCells', wc);
+            if model.ReservoirModel.extraWellSolOutput
+                wellSol = model.setWellSolStatistics(wellSol, sources);
+            end
         end
 
-        function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
+        function wellSol = updateWellSolAfterStep(model, wellSol)
             % Figure out if wells are shut, or changed ontrols
             for wno = 1:numel(wellSol)
                 wm = model.WellModels{wno};
-                wellSol(wno) = wm.updateWellSolAfterStep(resmodel, wellSol(wno));
+                wellSol(wno) = wm.updateWellSolAfterStep(model.ReservoirModel, wellSol(wno));
             end
         end
-        
+
         function wc = getWellCells(model)
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
+        end
+
+        function ws = setWellSolStatistics(model, ws, sources)
+            % Store extra output, typically black oil-like
+            p2w = getPerforationToWellMapping(model.getWellStruct());
+            
+            gind = model.ReservoirModel.getPhaseIndex('G');
+            oind = model.ReservoirModel.getPhaseIndex('O');
+            wind = model.ReservoirModel.getPhaseIndex('W');
+            srcRes = cellfun(@double, sources.phaseVolume, 'UniformOutput', false);
+            qR = [srcRes{:}];
+            for i = 1:numel(ws)
+                % Store reservoir fluxes and total fluxes
+                ws(i).qTs = 0;
+                ws(i).qTr = 0;
+                if model.ReservoirModel.gas
+                    tmp = sum(srcRes{gind}(p2w == i));
+                    ws(i).qGr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qGs;
+                end
+                
+                if model.ReservoirModel.oil
+                    tmp = sum(srcRes{oind}(p2w == i));
+                    ws(i).qOr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qOs;
+                end
+                
+                if model.ReservoirModel.water
+                    tmp = sum(srcRes{wind}(p2w == i));
+                    ws(i).qWr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qWs;
+                end
+                
+                % Phase cuts - fraction of reservoir conditions
+                if model.ReservoirModel.water && model.ReservoirModel.oil
+                    ws(i).wcut = ws(i).qWs./(ws(i).qWs + ws(i).qOs);
+                end
+                
+                if model.ReservoirModel.gas
+                    ws(i).gcut = ws(i).qGs./ws(i).qTs;
+                end
+                
+                if model.ReservoirModel.oil
+                    ws(i).ocut = ws(i).qOs./ws(i).qTs;
+                end
+                
+                % Gas/oil ratio
+                if model.ReservoirModel.gas && model.ReservoirModel.oil
+                    ws(i).gor = ws(i).qGs/ws(i).qOs;
+                end
+                
+                ws(i).flux = qR(p2w == i, :);
+            end
         end
 
         % Implementation details for stand-alone model
@@ -262,25 +370,27 @@ classdef FacilityModel < PhysicalModel
             end
             wellVars = model.getPrimaryVariableNames();
             resModel = model.ReservoirModel;
-            
+
             nVars = numel(wellVars);
             nW = numel(wellSol);
             activeVars = false(nW, nVars);
             dx_well = cell(nW, nVars);
             for varNo = 1:nVars
                 wf = wellVars{varNo};
-                dv = model.getIncrement(dx, problem, wf);
+                if any(strcmp(restVars, wf))
+                    dv = model.getIncrement(dx, problem, wf);
 
-                isVarWell = model.getWellVariableMap(wf);
-                for wNo = 1:numel(wellSol)
-                    subs = isVarWell == wNo;
-                    if any(subs)
-                        activeVars(wNo, varNo) = true;
-                        dx_well{wNo, varNo} = dv(subs);
+                    isVarWell = model.getWellVariableMap(wf);
+                    for wNo = 1:numel(wellSol)
+                        subs = isVarWell == wNo;
+                        if any(subs)
+                            activeVars(wNo, varNo) = true;
+                            dx_well{wNo, varNo} = dv(subs);
+                        end
                     end
+                    % Field is taken care of
+                    restVars = model.stripVars(restVars, wf);
                 end
-                % Field is taken care of
-                restVars = model.stripVars(restVars, wf);
             end
             for wNo = 1:numel(wellSol)
                 act = activeVars(wNo, :);
@@ -288,13 +398,13 @@ classdef FacilityModel < PhysicalModel
                 wellSol(wNo) = model.WellModels{wNo}.updateWellSol(wellSol(wNo), wellVars(act), dxw);
             end
         end
-        
+
         function isVarWell = getWellVariableMap(model, wf)
             nw = model.getNumberOfWells();
             counts = cellfun(@(x) x.getVariableCounts(wf), model.WellModels);
             isVarWell = rldecode((1:nw)', counts);
         end
-        
+
         function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
             opt = struct('iteration', nan, 'resOnly', false);
             opt = merge_options(opt, varargin{:});
@@ -307,52 +417,55 @@ classdef FacilityModel < PhysicalModel
             if ~opt.resOnly
                 [qWell{:}, bhp, wellVars{:}] = initVariablesADI(qWell{:}, bhp, wellVars{:});
             end
-            
+
             if isa(resmodel, 'ThreePhaseBlackOilModel')
                 [rs, rv] = resmodel.getProps(state, 'rs', 'rv');
             else
                 [rs, rv] = deal([]);
             end
-            assert(isfield(state, 'rho'));
-            assert(isfield(state, 'mob'));
+
+            if ~isfield(state, 'rho') || ~isfield(state, 'mob')
+                state = resmodel.computeRhoAndMob(state);
+            end
             p = resmodel.getProp(state, 'pressure');
-            
+
             nPh = size(state.rho, 2);
             [mob, rho] = deal(cell(1, nPh));
             for i = 1:nPh
                 mob{i} = state.mob(:, i);
                 rho{i} = state.rho(:, i);
             end
-            components = resmodel.getDissolutionMatrix(rs, rv);
-            [srcMass, srcVol, weqs, ctrleq, wnames, wtypes, state.wellSol] = ...
+            dissolution = resmodel.getDissolutionMatrix(rs, rv);
+            % Note! Currently not valid for polymer or compositional
+            components = {};
+            [src, wellsys, state.wellSol] = ...
                 model.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, ...
-                        wellMap, p, mob, rho, components, dt, opt.iteration);
-            
-            eqs = {weqs{:}, ctrleq};
-            names = {wnames{:}, 'closureWells'};
-            types = {wtypes{:}, 'well'};
-            
+                        wellMap, p, mob, rho, dissolution, components, dt, opt.iteration);
+
+            eqs = {wellsys.wellEquations{:}, wellsys.controlEquation};
+            names = {wellsys.names{:}, 'closureWells'};
+            types = {wellsys.types{:}, 'well'};
+
             primaryVars = {basicWellNames{:}, wellExtraNames{:}};
             problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
         end
-        
+
         function [state, report] = updateState(model, state, problem, dx, drivingForces)
             if isfield(state, 'wellSol')
                 state.wellSol = model.updateWellSol(state.wellSol, problem, dx, drivingForces);
             end
             report = [];
         end
-        
+
         function state = validateState(model, state)
-            if ~isfield(state, 'wellSol')
-                if ~isfield(state, 'wellSol') || isempty(state.wellSol),
-                   if isfield(state, 'wellSol'),
-                      state = rmfield(state, 'wellSol');
-                   end
-                   W = model.getWellStruct();
-                   state.wellSol = initWellSolAD(W, model.ReservoirModel, state);
+            if ~isfield(state, 'wellSol') || isempty(state.wellSol),
+                if isfield(state, 'wellSol'),
+                    state = rmfield(state, 'wellSol');
                 end
+                W = model.getWellStruct();
+                state.wellSol = initWellSolAD(W, model.ReservoirModel, state);
             end
+
             for wno = 1:numel(model.WellModels)
                 new_ws = model.WellModels{wno}.validateWellSol(model.ReservoirModel, state.wellSol(wno), state);
                 % Hack to avoid adding fields manually
@@ -362,26 +475,29 @@ classdef FacilityModel < PhysicalModel
                 end
             end
         end
-        
+
         function forces = getValidDrivingForces(model)
             forces = getValidDrivingForces@PhysicalModel(model);
             forces.W   = [];
             forces.bc  = [];
             forces.src = [];
         end
-        
+
         function [convergence, values, names, evaluated] = checkFacilityConvergence(model, problem)
             % For checking on the subset of variables specific to the
             % facility
-            [convergence, values, evaluated, names] = checkWellConvergence(model, problem);
+            [convergence, values, evaluated, names] = checkWellConvergence(model, ...
+                                                              problem);
+            
         end
-        
+
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             % Used when facility is run as a stand-alone model
-            [convergence, values, names] = model.checkFacilityConvergence(problem);
+            [convergence, values, names] = ...
+                model.checkFacilityConvergence(problem);
         end
     end
-    
+
     methods (Static)
         function [wc, varargout] = handleRepeatedPerforatedcells(wc, varargin)
             % This function treats repeated indices in wc (typically due to
@@ -404,33 +520,7 @@ classdef FacilityModel < PhysicalModel
     end
 end
 
-function celldata = getComponentCellSubset(celldata, wc)
-    for i = 1:numel(celldata)
-        for j = 1:numel(celldata{i});
-            if ~isempty(celldata{i}{j})
-                celldata{i}{j} = celldata{i}{j}(wc);
-            end
-        end
-    end
-end
-
 function d = combineCellData(data, ix)
     d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
     d = vertcat(d{:});
-end
-
-function subset = getCellSubset(celldata, wc)
-    subset = cell(size(celldata));
-    for i = 1:numel(subset)
-        if ~isempty(celldata{i})
-            subset{i} = celldata{i}(wc);
-        end
-    end
-end
-
-function subset = getVariableSubsetWell(vars, wellMap, ix)
-    subset = cell(size(vars));
-    for i = 1:numel(subset)
-        subset{i} = vars{i}(wellMap{i} == ix);
-    end
 end
