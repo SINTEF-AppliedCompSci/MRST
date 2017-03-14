@@ -27,11 +27,11 @@ G = computeGeometry(G);
 
 % Petrophysics
 [lowporo,highporo] = deal(.5,1);
-rock.poro = ones(G.cells.num, 1);
-rock.poro(1:mid) = lowporo;                 % West part of reservoir
-rock.poro(mid+1:end) = highporo;            % East part of reservoir
-rock.poro(mid) = (lowporo + highporo)/2 ;   % Center cell
-rock.perm = ones(G.cells.num, 1);
+poro = ones(G.cells.num, 1);
+poro(1:mid) = lowporo;                 % West part of reservoir
+poro(mid+1:end) = highporo;            % East part of reservoir
+poro(mid) = (lowporo + highporo)/2 ;   % Center cell
+rock = makeRock(G, 1, poro);
 
 T = computeTrans(G, rock);
 pv = poreVolume(G, rock);
