@@ -351,34 +351,6 @@ methods
         rhoS = cellfun(@(x) model.fluid.(x), props(active));
     end
     
-    function [eqs, names, types, wellSol] = insertWellEquations(model, eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt)
-        % Utility function for setting up the well equations and adding
-        % source terms for black-oil like models. Note that this currently
-        % assumes that the first nPh equations are the conservation
-        % equations, according to the canonical MRST W-O-G ordering,
-        fm = model.FacilityModel;
-        nPh = nnz(model.getActivePhases);
-%         assert(numel(eqs) == nPh);
-        [src, wellsys, wellSol] = ...
-            fm.getWellContributions(wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, components, dt, opt.iteration);
-        rhoS = model.getSurfaceDensities();
-        wc = src.sourceCells;
-        for i = 1:nPh
-            eqs{i}(wc) = eqs{i}(wc) - src.phaseMass{i}./rhoS(i);
-        end
-        components = model.getComponentNames();
-        for i = 1:numel(components)
-            act = strcmpi(names, components{i});
-            eqs{act}(wc) = eqs{act}(wc) - src.components{i};
-        end
-        offset = numel(wellsys.wellEquations);
-        eqs(end+1:end+offset) = wellsys.wellEquations;
-        names(end+1:end+offset) = wellsys.names;
-        types(end+1:end+offset) = wellsys.types;
-        eqs{end+1} = wellsys.controlEquation;
-        names{end+1} = 'closureWells';
-        types{end+1} = 'well';
-    end
 end
 end
 
