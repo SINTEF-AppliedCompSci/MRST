@@ -1,4 +1,4 @@
-function p = partitionMETIS(G, T, n, varargin)
+function [p, A] = partitionMETIS(G, T, n, varargin)
 %Partition grid according to connection strengths
 %
 % SYNOPSIS:
@@ -35,6 +35,8 @@ function p = partitionMETIS(G, T, n, varargin)
 %
 % RETURNS:
 %   p - Partition vector.  Contains no empty or multiply connected blocks.
+%
+%   A - Matrix used for partitioning.
 %
 % SEE ALSO:
 %   incompTPFA, callMetisMatrix, compressPartition, processPartition.
@@ -89,7 +91,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   'LinSolve', @(A, x) zeros(size(x)), ...
                   'use_trans',  numel(T) == G.faces.num, ...
                   'MatrixOutput', true);
-
+   A = x.A;
    % Call METIS with the
    %  - 'minconn' option (favours relatively square, convex blocks in
    %    regions of low contrast variance)
@@ -105,6 +107,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if opt.minconn
        opts = [opts, ' -minconn'];
    end
-   p = callMetisMatrix(x.A, n, opts);
+   p = callMetisMatrix(A, n, opts);
    p = processPartition(G, compressPartition(p));
 end
