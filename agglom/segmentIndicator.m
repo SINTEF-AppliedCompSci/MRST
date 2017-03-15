@@ -84,6 +84,7 @@ else
 end
 
 if opt.split
+   require coarsegrid
    partition = compressPartition(processPartition(G, partition));
 end
 dispif(opt.verbose, 'SegmentIndicator: %d blocks\n', max(partition));
