@@ -137,16 +137,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        eqshift=0;
    end
        
-       
+
+   %% Setting names of variables and equations
+   primaryVars = {'pressure' , 'sG'}; 
+   types = {'cell' , 'cell'};
+   names = {'water', 'gas'};  
+
 
    %% Setting up well equations
    if ~isempty(W) 
       if ~opt.reverseMode
          dissolved = {{[],[]},{[],[]}};  % two phases, no dissolution
-         primaryVars = {'pressure' , 'sG'}; 
-         types = {'cell' , 'cell'};
-         names = {'water', 'gas'};  
-         %add hysteres variable,equation and name
+         %add hysteresis variable, equation and name
          if(opt.adjointForm)
             primaryVars = {primaryVars{:}, 'sGmax'}; %#ok
             types = {types{:} , 'cell' };  %#ok   
