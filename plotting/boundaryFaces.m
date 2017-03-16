@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        sub = (1 : g.cells.num) .';
    end
 
-   present          = false([g.cells.num + 1, 1]);
+   present          = false(1, g.cells.num + 1);
    present(sub + 1) = true;
    present( 0  + 1) = false;  % Explicitly ignore cell '0' (outside).
 
