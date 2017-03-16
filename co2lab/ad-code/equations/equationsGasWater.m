@@ -193,8 +193,10 @@ function [cells, fluxW, fluxG] = BCFluxes(G, s, p, t, f, bc, krW, krG, transMult
     
     % Adjust upstream-weighted mobilities to prevent gas from re-entering the domain
     ix = dptermG > 0;
-    mobG(ix) = 0;
-    mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
+    if any(ix) 
+       mobG(ix) = 0;
+       mobW(ix) = trMult ./ f.muW(bp(ix), bt(ix));
+    end
  
     % compute fluxes
     fluxW = - bw .* mobW .* trans .* dptermW;

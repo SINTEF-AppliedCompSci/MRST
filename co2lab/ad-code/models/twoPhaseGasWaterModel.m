@@ -11,7 +11,7 @@ classdef twoPhaseGasWaterModel < ReservoirModel
         % ------------------------------------------------------------------------
         function model = twoPhaseGasWaterModel(G, rock, fluid, tsurf, tgrad, varargin)
            
-            model = model@ReservoirModel(G); 
+            model = model@ReservoirModel(G, varargin{:}); 
            
             %model.G     = G;
             model.fluid = fluid;
