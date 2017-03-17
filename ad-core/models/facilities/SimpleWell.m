@@ -136,8 +136,8 @@ classdef SimpleWell < PhysicalModel
             
             active = model.getActivePhases();
             numPh = nnz(active);
-            rhoS = [model.fluid.rhoWS, model.fluid.rhoOS, model.fluid.rhoGS];
-            rhoS = rhoS(active);
+            dens = {'rhoWS', 'rhoOS', 'rhoGS'};
+            rhoS = cellfun(@(x) model.fluid.(x), dens(active));
             
             b = bsxfun(@rdivide, rho, rhoS);
             w = well.W;
