@@ -1,36 +1,51 @@
 function varargout = mrstExamples(varargin)
-%PLOTGRID plots exterior grid faces to current axes.
+%Discover Example M-Files Pertaining to One or More MRST Modules
 %
 % SYNOPSIS:
-%       mrstExamples('ad-blackoil')
-%       mrstExamples()
-%       mrstExamples('all')
-%       exList = mrstExamples('ad-blackoil', 'diagnostics')
+%            mrstExamples [module list]
+%            mrstExamples all
+%   exList = mrstExamples(...)
 %
 % PARAMETERS:
-%   input - Any number of strings that are the names of registered mrst
-%           modules (see mrstPath / mrstModule). As a option, a single
-%           string 'all' can be given to list the examples in all
-%           registered modules.
+%   [module list] -
+%           Sequence of strings that are treated as names of registered
+%           MRST modules (see functions 'mrstPath' and 'mrstModule').  The
+%           special module name 'core', although not a module in a strict
+%           sense, represents those examples that are available in the base
+%           MRST package--i.e., without activating any modules at all.
+%
+%           Alternatively, the single string 'all' can be given to list the
+%           examples in all registered modules including the base MRST
+%           package.
 %
 % RETURNS:
-%   ex    - A cell array of same length of the number of input arguments,
-%           where each entry is a list of the paths to the examples
-%           corresponding to that module. For instance, if called as 
-%                ex = mrstExamples('firstmodule', 'secondmodule')
-%           ex{1} will be a cell array of the examples corresponding to the
-%           module "firstmodule" and so on.
+%   exList - A cell array of same length as the number of input arguments,
+%            where each entry itself is a list (cell array of strings) of
+%            the paths to the examples of the corresponding module.  For
+%            instance, if called as
+%
+%                exList = mrstExamples('ad-blackoil', 'diagnostics')
+%
+%            then 'exList{1}' will be a cell array of the examples relating
+%            to module 'ad-blackoil' while 'exList{2}' is a cell array of
+%            the examples of module 'diagnostics'.
+%
+%            If called using the special string 'all', then 'exList'
+%            contains one element for each known module and one additional
+%            element, specifically 'exList{1}', corresponding to the 'core'
+%            (i.e., base) MRST package.
 %
 % NOTES:
-%   If no output arguments are given, the routine instead prints clickable
+%   If no output argument is given, the routine instead prints clickable
 %   editor links of all examples to the command window.
 %
-%   Examples are defined as all *.m files found in the examples directory
-%   of a module. Subdirectories of the examples directory are also included
-%   in the search.
+%   Examples are defined as all M files found in the 'examples' directory
+%   of a module--excluding any M files in a subdirectory called 'utils'.
+%   Subdirectories of the 'examples' directory other than 'utils' are
+%   searched recursively.
 %
 % SEE ALSO:
-%   mrstModule, mrstPath
+%   mrstModule, mrstPath.
 
 %{
 Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
