@@ -179,7 +179,7 @@ function print_examples(module, allfiles)
    prt = [ reshape(allfiles, 1, []) ; ...
            reshape(ex,       1, []) ];
 
-   fprintf('    <a href="matlab: edit %s">%s</a>\n', prt{:});
+   fprintf('    <a href="matlab: edit ''%s''">%s</a>\n', prt{:});
 end
 
 %--------------------------------------------------------------------------
