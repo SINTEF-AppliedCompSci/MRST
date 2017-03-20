@@ -277,7 +277,6 @@ function cache = register_root(cache, mods)
    end
 
    mods = mods(i);  clear i
-   m2d  = @(r, m) cellfun(@(x) fullfile(r, x), m, 'UniformOutput', false);
 
    exclude = { 'data', 'deprecated', 'experimental' };
 
@@ -300,7 +299,7 @@ function cache = register_root(cache, mods)
          continue;
       end
 
-      rlist = reshape([m ; m2d(mroot{1}, m)], 1, []);
+      rlist = reshape([m ; fullfile(mroot{1}, m)], 1, []);
       cache = register_modules(cache, rlist);
    end
 end
@@ -330,9 +329,8 @@ function cache = register_modules(cache, mods)
 
    [I, J] = blockDiagIndex(size(mods, 1), numel(dsrc));
 
-   t = cellfun(@(r, m) fullfile(r, m), ...
-               reshape(dsrc(J), [],  1), ...
-               reshape(mods(I, 2), [], 1), 'UniformOutput', false);
+   t = fullfile(reshape(dsrc(J)   , [], 1), ...
+                reshape(mods(I, 2), [], 1));
    t = reshape(t, size(mods, 1), []);
 
    i = cellfun(@isdir, t);
