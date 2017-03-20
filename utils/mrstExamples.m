@@ -65,64 +65,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    if nargin == 0
-        varargin = {'core'};
-    end
-    if any(strcmpi(varargin, 'all'))
-        % List all modules, including core
-        assert(nargin == 1, ...
-            'Verb ''all'' can only be used as the only input.');
-        varargin = mrstPath();
-        % Put core first in the module list
-        varargin = ['core'; varargin];
-    end
-    doPrint = nargout == 0;
-    npaths = numel(varargin);
-    examplePaths = cell(npaths, 1);
+
+    varargin = parse_arguments(varargin{:});
+
+    doPrint      = nargout == 0;
+    npaths       = numel(varargin);
+    examplePaths = cell([npaths, 1]);
+
     for i = 1:npaths
         name = varargin{i};
+        pth  = get_module_path(name);
 
-        if isempty(name) || strcmpi(name, 'core')
-            pth = ROOTDIR();
-        else
-            pth = mrstPath(name);
-            if isempty(pth) && doPrint
-                fprintf('Module "%s" is not known to MRST\n', name);
-                continue;
-            end
+        if isempty(pth) && doPrint
+           fprintf('Module ''%s'' is not known to MRST (skipped)\n', name);
+           continue;
         end
-        dirs = {fullfile(pth, 'examples')};
-        ix = 1;
-        ndir = numel(dirs);
-        allfiles = {};
-        allnames = {};
-        while ix <= ndir
-            [d, names, paths] = getSub(dirs{ix});
-            dirs = [dirs, d{:}];                                           %#ok
-            allfiles = [allfiles, paths{:}];                               %#ok
-            allnames = [allnames, names{:}];                               %#ok
-            ix = ix + 1;
-            ndir = numel(dirs);
-        end
-        nex = numel(allnames);
+
+        examplePaths{i} = module_examples(pth);
+
         if doPrint
-            fprintf('Module "%s" has %d example', name, nex);
-            if nex == 1
-                fprintf(':\n');
-            elseif nex > 1
-                fprintf('s:\n');
-            else
-                fprintf('s.\n');
-            end
-            for j = 1:nex
-                % Split by path + examples to get base folder path
-                spl = strsplit(allfiles{j}, filesep);
-                sub = find(strcmpi(spl, 'examples')) + 1;
-                fprintf('    <a href="matlab: edit %s">%s\n</a>',...
-                                                allfiles{j}, fullfile(spl{sub:end}));
-            end
+           print_examples(name, examplePaths{i});
         end
-        examplePaths{i} = allfiles;
     end
 
     if ~doPrint
@@ -130,7 +93,98 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [subdir, mnames, mpaths] = getSub(path)
+%--------------------------------------------------------------------------
+
+function varargin = parse_arguments(varargin)
+   if nargin == 0
+      varargin = {'core'};
+   end
+
+   if any(strcmpi(varargin, 'all'))
+      % List all modules, including core
+      assert (nargin == 1, ...
+             ['Module designation ''all'' must be ', ...
+              'only argument if present']);
+
+      % Put core first in the module list
+      varargin = [{ 'core' }; reshape(sort(mrstPath()), [], 1)];
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function pth = get_module_path(name)
+   if isempty(name) || strcmpi(name, 'core')
+      pth = ROOTDIR();
+   else
+      pth = mrstPath(name);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function allfiles = module_examples(mroot)
+   dirs = {fullfile(mroot, 'examples')};
+   ix   = 1;
+   ndir = numel(dirs);
+
+   allfiles = {};
+
+   while ix <= ndir
+      [d, paths] = getSub(dirs{ix});
+
+      dirs     = [dirs    , reshape(d    , 1, [])];                    %#ok
+      allfiles = [allfiles, reshape(paths, 1, [])];                    %#ok
+
+      ix   = ix + 1;
+      ndir = numel(dirs);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function print_examples(module, allfiles)
+   nex = numel(allfiles);
+
+   fprintf('Module "%s" has %d example', module, nex);
+   if nex == 1
+      fprintf(':\n');
+   elseif nex > 1
+      fprintf('s:\n');
+   else
+      % nex == 0 -- No examples in this module.
+      fprintf('s.\n');
+      return
+   end
+
+   % Split pathnames on the token sequence
+   %
+   %    [filesep, 'examples', filesep]
+   %
+   % and derive the example file names relative to the 'examples' directory
+   % ('ex') for purpose of printing shortened, clickable EDIT links (URLs)
+   % in the Command Window.  We assume that there is but one occurrence of
+   % the above token sequence within each element of 'allfiles' so the
+   % relative name is the second component of the split pathname.
+
+   options = { 'split' };
+   if ispc
+      % Case insensitive pathname matching on MS Windows.
+      options = [ options, { 'ignorecase' } ];
+   end
+
+   sep = regexptranslate('escape', [filesep, 'examples', filesep]);
+
+   ex  = cellfun(@(p) p(2), regexp(allfiles, sep, options{:}));
+   prt = [ reshape(allfiles, 1, []) ; ...
+           reshape(ex,       1, []) ];
+
+   fprintf('    <a href="matlab: edit %s">%s</a>\n', prt{:});
+end
+
+%--------------------------------------------------------------------------
+
+function [subdir, mpaths] = getSub(path)
     cand = dir(path);
     % Filter very short names, hidden/up directory files and Contents.m
     % files.
@@ -148,5 +202,4 @@ function [subdir, mnames, mpaths] = getSub(path)
     
     subdir = arrayfun(@(x) fullfile(path, x.name), subdir, 'UniformOutput', false);
     mpaths = arrayfun(@(x) fullfile(path, x.name), mfiles, 'UniformOutput', false);
-    mnames = arrayfun(@(x) x.name, mfiles, 'UniformOutput', false);
 end
