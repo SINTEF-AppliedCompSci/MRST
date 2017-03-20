@@ -92,6 +92,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         linesearchDecreaseFactor
         linesearchMaxIterations
         linesearchConvergenceNames
+        linesearchResidualScaling
+        linesearchReductionFn
+        
         convergenceIssues
 
         % Abort a timestep if no reduction is residual is happening.
@@ -138,7 +141,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             solver.linesearchDecreaseFactor = 1;
             solver.linesearchMaxIterations = 10;
             solver.linesearchConvergenceNames = {};
-
+            solver.linesearchResidualScaling = 1;
+            solver.linesearchReductionFn = [];
+            
             solver.enforceResidualDecrease = false;
             solver.stagnateTol = 1e-2;
             solver.convergenceIssues = false;
@@ -316,7 +321,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                         % FailureMsg field that tells the user what
                         % went wrong.
                         msg = [msg, 'Model step resulted in failure state. Reason: ', ...
-                               nonlinearReports{end}.FailureMsg];
+                               reports{end}.NonlinearReports{end}.FailureMsg];
                     else
                         msg = [msg, 'Maximum number of substeps stopped timestep reduction'];
                     end
@@ -485,40 +490,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         function [stateNext, updateReport, lineReport] = applyLinesearch(solver, model, state0, state, problem0, dx, drivingForces, varargin)
+            assert(solver.linesearchReductionFactor < 1 & solver.linesearchReductionFactor > 0, ...
+                    'NonLinearSolver.linesearchReductionFactor must be less than unity and positive.');
             iteration = problem0.iterationNo;
             dt = problem0.dt;
-
-            [ok0, v0, names] = model.checkConvergence(problem0);
-            if isempty(solver.linesearchConvergenceNames)
-                activeNames = true(size(v0));
-            else
-                activeNames = ismember(names, solver.linesearchConvergenceNames);
-            end
-            v0 = ~ok0.*v0;
-            v0 = v0(activeNames);
-            
+            % Function handle for assembling system equations
             assemble = @(state)  model.getEquations(state0, state, dt, drivingForces, ...
                        'ResOnly', true, ...
                        'iteration', iteration, ...
                        varargin{:});
-
-            problem = problem0;
-
-            update = @(problem, dx) model.updateState(state, problem, dx, drivingForces);
+            % Function for computing updated values with a given delta
+            update = @(dx) model.updateState(state, problem0, dx, drivingForces);
             factor = solver.linesearchDecreaseFactor;
             converged = false;
+            
+            % Check convergence of previous iteration. This is the value to
+            % beat, i.e. we want a reduction in the residual with respect
+            % to this value.
+            [ok, val0, names] = model.checkConvergence(problem0);
+            activeNames = getActiveNames(solver, names);
+            vBest = linesearchApplyUpdate(solver, val0, ok, activeNames);
+            
             for its = 1:solver.linesearchMaxIterations
-                [stateNext, updateReport] = update(problem, dx);
+                [stateNext, updateReport] = update(dx);
                 problem = assemble(stateNext);
 
-                [ok, v] = model.checkConvergence(problem);
-                v = ~ok.*v;
-                v = v(activeNames);
-                if all(ok) || (any(v < v0*factor) && all(v <= v0))
+                [ok, val] = model.checkConvergence(problem);
+                v = linesearchApplyUpdate(solver, val, ok, activeNames);
+                if all(ok) || (any(v < vBest*factor) && all(v <= vBest))
                     dispif(solver.verbose, 'Linesearch reduction successful after %d steps!\n', its)
                     converged = true;
                     break
                 end
+                % Multiply the increments with the reduction factor
                 dx = cellfun(@(x) x.*solver.linesearchReductionFactor, dx, 'UniformOutput', false);
             end
             lineReport = struct('Iterations', its, ...
@@ -566,5 +570,24 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
+function v = linesearchApplyUpdate(solver, v, ok, active)
+    v = v./solver.linesearchResidualScaling;
+    v = v(active);
+    ok = ok(active);
 
+    if ~isempty(solver.linesearchReductionFn)
+        % Apply function
+        v = solver.linesearchReductionFn(v);
+    else
+        % Set converged value to zero
+        v = v.*~ok;
+    end
+end
 
+function activeNames = getActiveNames(solver, names)
+    if isempty(solver.linesearchConvergenceNames)
+        activeNames = true(size(names));
+    else
+        activeNames = ismember(names, solver.linesearchConvergenceNames);
+    end
+end
