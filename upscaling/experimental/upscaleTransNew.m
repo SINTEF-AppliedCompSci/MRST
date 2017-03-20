@@ -510,14 +510,15 @@ function [upscaled, ok] = ...
               max(abs(vertcat(cgstate.wellSol.flux))) < 1e-6);
 
        for k = 2 : numel(cgwells_tmp),
-          dc = cgstate.wellSol(k) .pressure - cgstate .wellSol(1).pressure;
+          dc = cgstate.wellSol(k) .pressure - cgstate.wellSol(1).pressure;
           df = upscaled.wellSol(k).pressure - upscaled.wellSol(1).pressure;
 
-          ok = ok && (abs(dc - df) / abs(df) < 1e-6);
+          ok = ok && (abs(dc - df) / abs(df) < 1e-6 || (df == 0 && dc == 0));
        end
     end
 
-    dispif(~ ok, 'something is not ok.\n')
+    dispif(~ ok, ['Upscaled transmissibility does not reproduce upscaling', ...
+                  ' scenario. Results may be inaccurate.\n'])
 end
 
 %--------------------------------------------------------------------------
