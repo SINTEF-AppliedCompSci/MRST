@@ -74,8 +74,7 @@ end
 %--------------------------------------------------------------------------
 
 function [CXXFLAGS, LINK, LIBS] = setup_machdep_build_params
-   e = mexext('all');
-   a = e(strcmp({ e.ext }, mexext)).arch;
+   a = computer('arch');
 
    if ispc,
 
