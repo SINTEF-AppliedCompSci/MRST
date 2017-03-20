@@ -182,6 +182,7 @@ function cgwells = makeCGWells(cg, wells)
 
       cgwells(i).cells     = cells;
       cgwells(i).WI        = nan([numel(cells), 1]);
+      cgwells(i).cstatus   = true([numel(cells), 1]);
       cgwells(i).dZ        = hpos - wells(i).refDepth;
       cgwells(i).fcellspos = fcellspos;
       cgwells(i).fcells    = tab(:,2);
