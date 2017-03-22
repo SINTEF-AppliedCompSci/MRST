@@ -208,6 +208,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             state.s(:, 1 + model.water) = void.*vL./vT;
             state.s(:, 2 + model.water) = void.*vV./vT;
             
+            state.components = ensureMinimumFraction(state.components);
+            state.x = ensureMinimumFraction(state.x);
+            state.y = ensureMinimumFraction(state.y);
+
+            
             if 0
                 if ishandle(1)
                     set(0, 'CurrentFigure', 1); clf

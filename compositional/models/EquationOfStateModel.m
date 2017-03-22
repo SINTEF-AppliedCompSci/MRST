@@ -157,49 +157,72 @@ classdef EquationOfStateModel < PhysicalModel
             y0 = state.y;
             
             % Only apply calculations for cells that have not converged yet
-            active = ~state.eos.converged;
-            state.eos.itCount(active) = state.eos.itCount(active) + 1;
-            L = L0(active);
-            subset = @(x, active) cellfun(@(y) y(active, :), x, 'UniformOutput', false);
+            if iteration == 1
+                [stable, x0, y0, L_stable, V_stable] = PhaseStabilityTest(model, state.components, state.pressure, state.T);
+                L0(L_stable) = 1;
+                L0(V_stable) = 0;
+                
+                acf = model.fluid.acentricFactors;
+                [Si_L, Si_V, A_L, A_V, B_L, B_V] = model.getMixtureFugacityCoefficients(P, T, x0, y0, acf);
+                % Solve EOS for each phase
+                Z0_L = model.computeLiquidZ(A_L, B_L);
+                Z0_V = model.computeVaporZ(A_V, B_V);
+
+                active = ~stable;
+            else
+                active = ~state.eos.converged;
+            end
             
-            z = subset(z, active);
-            K = subset(K0, active);
-            P = P(active);
-            T = T(active);
-            
-            if model.performFlash
-                if model.useNewton
-                    % Newton-based solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
+            if any(active)
+                state.eos.itCount(active) = state.eos.itCount(active) + 1;
+                L = L0(active);
+                subset = @(x, active) cellfun(@(y) y(active, :), x, 'UniformOutput', false);
+
+                z = subset(z, active);
+                K = subset(K0, active);
+                P = P(active);
+                T = T(active);
+
+                if model.performFlash
+                    if model.useNewton
+                        % Newton-based solver for equilibrium
+                        [x, y, K, Z_L, Z_V, L, equilvals] = model.newtonCompositionUpdate(P, T, z, K, L);
+                    else
+                        % Successive substitution solver for equilibrium
+                        [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                    end
                 else
-                    % Successive substitution solver for equilibrium
-                    [x, y, K, Z_L, Z_V, L, equilvals] = model.substitutionCompositionUpdate(P, T, z, K, L);
+                    [x, y, K, Z_L, Z_V, L, equilvals] = model.updateWithoutFlash(P, T, z, K, L);
+                end
+                values = max(equilvals, [], 1);
+                conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
+                conv = conv & iteration > nonlinsolve.minIterations;
+
+                isConverged = all(conv);
+                % Insert back the local values into global arrays
+                state.eos.converged(active) = conv;
+                % Insert updated values in active cells
+                [K_next, x_next, y_next] = deal(cell(1, ncomp));
+                for i = 1:ncomp
+                    K_next{i} = K0{i};
+                    x_next{i} = x0{i};
+                    y_next{i} = y0{i};
+
+                    K_next{i}(active) = K{i};
+                    x_next{i}(active) = x{i};
+                    y_next{i}(active) = y{i};
+                    L0(active) = L;
+
+                    Z0_L(active ) = Z_L;
+                    Z0_V(active ) = Z_V;
+
                 end
             else
-                [x, y, K, Z_L, Z_V, L, equilvals] = model.updateWithoutFlash(P, T, z, K, L);
-            end
-            values = max(equilvals, [], 1);
-            conv = max(equilvals, [], 2) <= model.nonlinearTolerance;
-            conv = conv & iteration > nonlinsolve.minIterations;
-
-            isConverged = all(conv);
-            % Insert back the local values into global arrays
-            state.eos.converged(active) = conv;
-            % Insert updated values in active cells
-            [K_next, x_next, y_next] = deal(cell(1, ncomp));
-            for i = 1:ncomp
-                K_next{i} = K0{i};
-                x_next{i} = x0{i};
-                y_next{i} = y0{i};
-
-                K_next{i}(active) = K{i};
-                x_next{i}(active) = x{i};
-                y_next{i}(active) = y{i};
-                L0(active) = L;
-
-                Z0_L(active ) = Z_L;
-                Z0_V(active ) = Z_V;
-
+                K_next = K0;
+                x_next = x0;
+                y_next = y0;
+                isConverged = true;
+                values = zeros(1, ncomp);
             end
             state.K = K_next;
             state.L = L0;
