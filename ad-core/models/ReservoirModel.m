@@ -567,7 +567,7 @@ methods
 
 % --------------------------------------------------------------------%
 
-function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, names, ...
+    function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, names, ...
                                                      types, wellSol0, wellSol, ...
                                                      qWell, bhp, wellVars, ...
                                                      wellMap, p, mob, rho, ...
@@ -603,6 +603,13 @@ function [eqs, names, types, wellSol, src] = insertWellEquations(model, eqs, nam
         names{end+1} = 'closureWells';
         types{end+1} = 'well';
     end
+    
+    function rhoS = getSurfaceDensities(model)
+        active = model.getActivePhases();
+        props = {'rhoWS', 'rhoOS', 'rhoGS'};
+        rhoS = cellfun(@(x) model.fluid.(x), props(active));
+    end
+
 end
 
 methods (Static)
