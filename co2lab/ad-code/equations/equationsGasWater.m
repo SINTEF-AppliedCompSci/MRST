@@ -116,20 +116,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
           [eqs(3:5), names(3:5), types(3:5)] = ...
               wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
        end
-    else
-       %eqs(3:5) = {bhp, bhp, bhp}; % empty ADIs
     end
 
     % ----------------------------------------------------------------------------
-
-    if isempty(W)
-       % Remove names/types associated with wells, as no well exist
-       types = types(1:2);
-      names = names(1:2);
-    end
-    
-    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
-    
+    problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt); 
 end
 
 % ============================= END MAIN FUNCTION =============================

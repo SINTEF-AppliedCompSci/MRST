@@ -18,6 +18,7 @@ classdef twoPhaseGasWaterModel < ReservoirModel
             model.oil   = false;
             model.gas   = true;
             model.water = true;
+            model.rock  = rock;
             model.t     = computeTemperatureField(G, tsurf, tgrad);
             model.name  = 'GasWater_2ph';
             model.saturationVarNames = {'sw', 'sg'}; % @@ Design: ideally, we
