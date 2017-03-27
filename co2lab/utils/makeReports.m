@@ -33,12 +33,19 @@ function reports = makeReports(Gt, states, rock, fluid, schedule, residual, trap
    assert( numel(states) == numel(schedule.step.val)+1 , ...
        'Ensure the initial state has been included in the varargin ''states''.')
    
-   tot_inj = 0;
    for i = 1:numel(states)
 
       [h, h_max] = compute_plume_height(Gt, states{i}, residual(1), residual(2));
 
       if i == 1
+         % initial state can contain non-zero co2 saturations (or heights)
+         ntg = ones(Gt.cells.num,1);
+         if isfield(rock,'ntg')
+            ntg = rock.ntg;
+         end
+         tot_inj = Gt.cells.volumes .* rock.poro .* ntg .* (1-fluid.res_water) ...
+             .* h .* fluid.rhoG(states{1}.pressure);
+         tot_inj = sum(tot_inj);
          reports(i).t         = 0; %#ok
          reports(i).W         = []; %#ok
       else
