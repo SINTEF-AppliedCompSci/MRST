@@ -176,6 +176,16 @@ methods
        if isempty(problem.A)
            % Ignore empty equations
            iseq = cellfun(@(x) ~isempty(x), problem.equations);
+           % Convert any non-empty, non-ADI equation to ADI
+           isdouble = iseq & cellfun(@(x)isa(x, 'double'), problem.equations);
+           if any(isdouble)
+               sample = find(~isdouble, 1, 'first');
+               ix = find(isdouble);
+               for k=1:numel(ix)
+                   problem.equations{ix(k)} = ...
+                       double2ADI(problem.equations{ix(k)}, problem.equations{sample});
+               end
+           end
            eqs = cat(problem.equations{iseq});
            problem.A = -eqs.jac{1};
            problem.b = eqs.val;

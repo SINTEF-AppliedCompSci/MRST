@@ -168,12 +168,7 @@ if model.outputFluxes
 end
 % Finally, add in and setup well equations
 if ~isempty(W)
-    wm = model.FacilityModel;
-    if ~opt.reverseMode
-        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
-    else
-        [eqs(3:5), names(3:5), types(3:5)] = wm.createReverseModeWellEquations(model, state0.wellSol, p0);
-    end
+    [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, pBH, wellVars, wellMap, p, mob, rho, {}, {}, dt, opt);
 end
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
