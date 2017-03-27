@@ -2,7 +2,7 @@ function scheduleMRST = convertDeckScheduleToMRST(model, scheduleDeck, varargin)
 % Convert deck-type schedule to MRST style schedule
 %
 % SYNOPSIS:
-%   schedule = convertDeckScheduleToMRST(G, model, rock, deck.SCHEDULE)
+%   schedule = convertDeckScheduleToMRST(model, deck.SCHEDULE)
 %
 % DESCRIPTION:
 %   Take a schedule in deck-style (from for example the output of

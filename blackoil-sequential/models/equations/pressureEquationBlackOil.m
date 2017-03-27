@@ -21,14 +21,12 @@ vapoil = model.vapoil;
 [p, sW, sG, rs, rv, wellSol] = model.getProps(state, ...
                                 'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 % Properties at previous timestep
-[p0, sW0, sG0, rs0, rv0] = model.getProps(state0, ...
-                                'pressure', 'water', 'gas', 'rs', 'rv');
+[p0, sW0, sG0, rs0, rv0, wellSol0] = model.getProps(state0, ...
+                                'pressure', 'water', 'gas', 'rs', 'rv', 'wellSol');
 
 
-bhp    = vertcat(wellSol.bhp);
-qWs    = vertcat(wellSol.qWs);
-qOs    = vertcat(wellSol.qOs);
-qGs    = vertcat(wellSol.qGs);
+[qWell, bhp, wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
+
 
 
 %Initialization of independent variables ----------------------------------
@@ -41,8 +39,8 @@ if ~opt.resOnly,
         % define primary varible x and initialize
         x = st{1}.*rs + st{2}.*rv + st{3}.*sG;
 
-        [p, qWs, qOs, qGs, bhp] = ...
-            initVariablesADI(p, qWs, qOs, qGs, bhp);
+        [p, qWell{:}, bhp, wellVars{:}] = ...
+            initVariablesADI(p, qWell{:}, bhp, wellVars{:});
         if ~otherPropPressure
             p_prop = p;
         end
@@ -73,7 +71,7 @@ end
 sO  = 1- sW  - sG;
 sO0 = 1- sW0 - sG0;
 
-primaryVars = {'pressure', 'qWs', 'qOs', 'qGs', 'bhp'};
+primaryVars = {'pressure', wellVarNames{:}};
 
 % FLIUD PROPERTIES ---------------------------------------------------
 [krW, krO, krG] = model.evaluateRelPerm({sW, sO, sG});
@@ -162,81 +160,33 @@ if model.disgas
 else
     gas = (s.pv/dt).*( pvMult.*bG.*sG - pvMult0.*bG0.*sG0 ) + s.Div(bGvG);
 end
+rho = {rhoW, rhoO, rhoG};
+mob = {mobW, mobO, mobG};
+sat = {sW, sO, sG};
 
-eqTmp = {wat, oil, gas};
-[eqTmp, ~, qRes] = addFluxesFromSourcesAndBC(model, eqTmp, ...
+eqs = {wat, oil, gas};
+names = {'water', 'oil', 'gas'};
+types = {'cell', 'cell', 'cell'};
+
+[eqs, ~, qRes] = addFluxesFromSourcesAndBC(model, eqs, ...
                                        {pW, p, pG},...
-                                       {rhoW,     rhoO, rhoG},...
-                                       {mobW,     mobO, mobG}, ...
-                                       {bW, bO, bG},  ...
-                                       {sW, sO, sG}, ...
+                                       rho,...
+                                       mob, ...
+                                       sat, ...
                                        drivingForces);
-wat = eqTmp{1};
-oil = eqTmp{2};
-gas = eqTmp{3};
 
 if model.outputFluxes
     state = model.storeBoundaryFluxes(state, qRes{1}, qRes{2}, qRes{3}, drivingForces);
 end
 
-[eqs, names, types] = deal(cell(1, 5));
-% well equations
+% Finally, add in and setup well equations
 if ~isempty(W)
-    wc    = vertcat(W.cells);
-    perf2well = getPerforationToWellMapping(W);
-    
-    wm = model.wellmodel;
-    [rw, rSatw] = wm.getResSatWell(model, wc, rs, rv, rsSat, rvSat);
-    
-    if opt.staticWells
-        q = vertcat(state.wellSol.flux);
-        
-        qW = q(:, 1);
-        qO = q(:, 2);
-        qG = q(:, 3);
-        
-        cqs = {...
-               bW(wc).*qW, ...
-               bO(wc).*(qO + qG.*rw{2}), ...
-               bG(wc).*(qG + qO.*rw{1}), ...
-               };
-
+    if ~opt.reverseMode
+        dissolved = model.getDissolutionMatrix(rs, rv);
+        [eqs, names, types, state.wellSol] = model.insertWellEquations(eqs, names, types, wellSol0, wellSol, qWell, bhp, wellVars, wellMap, p, mob, rho, dissolved, {}, dt, opt);
     else
-        % Store cell wise well variables in cell arrays and send to ewll
-        % model to get the fluxes and well control equations.
-        pw    = p(wc);
-        rhows = [f.rhoWS, f.rhoOS, f.rhoGS];
-        bw    = {bW(wc), bO(wc), bG(wc)};
-
-        
-        mw    = {mobW(wc), mobO(wc), mobG(wc)};
-        sat = {sW(wc), sO(wc), sG(wc)};
-
-        [cqs, weqs, ctrleqs, wc, state.wellSol, cqr]  = wm.computeWellFlux(model, W, wellSol, ...
-            bhp, {qWs, qOs, qGs}, pw, rhows, bw, mw, sat, rw,...
-            'maxComponents', rSatw, ...
-            'nonlinearIteration', opt.iteration);
-        eqs(2:4) = weqs;
-        eqs{5} = ctrleqs;
-
-        qW = double(cqr{1});
-        qO = double(cqr{2});
-        qG = double(cqr{3});
-
-        names(2:5) = {'oilWells', 'waterWells', 'gasWells', 'closureWells'};
-        types(2:5) = {'perf', 'perf', 'perf', 'well'};
+        [eqs(4:7), names(4:7), types(4:7)] = wm.createReverseModeWellEquations(model, wellSol0, p0);
     end
-    
-    % Store fluxes for the transport solver
-    fluxt = qW + qO + qG;
-    for i = 1:numel(W)
-        wp = perf2well == i;
-        state.wellSol(i).flux = fluxt(wp);
-    end
-    wat(wc) = wat(wc) - cqs{1}; % Add src to water eq
-    oil(wc) = oil(wc) - cqs{2}; % Add src to oil eq
-    gas(wc) = gas(wc) - cqs{3}; % Add src to gas eq
-
 end
 % Create actual pressure equation
 cfac = 1./(1 - disgas*vapoil*rs.*rv);
@@ -245,9 +195,18 @@ a_w = 1./bW;
 a_o = cfac.*(1./bO - disgas*rs./bG);
 a_g = cfac.*(1./bG - vapoil*rv./bO);
 
+wat = eqs{1};
+oil = eqs{2};
+gas = eqs{3};
+
 eqs{1} = (dt./s.pv).*(oil.*a_o + wat.*a_w + gas.*a_g);
 names{1} = 'pressure';
 types{1} = 'cell';
+
+% Strip phase equations
+eqs = eqs([1, 4:end]);
+names = names([1, 4:end]);
+types = types([1, 4:end]);
 
 state.timestep = dt;
 problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);

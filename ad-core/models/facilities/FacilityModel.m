@@ -56,14 +56,16 @@ classdef FacilityModel < PhysicalModel
                     wm.dpMaxAbs = model.ReservoirModel.dpMaxAbs;
                     wm.dpMaxRel = model.ReservoirModel.dpMaxRel;
                     
-                    vfp_ix = W(i).vfp_index;
-                    if vfp_ix > 0
-                        if wm.isInjector()
-                            vfp = model.VFPTablesInjector{vfp_ix};
-                        else
-                            vfp = model.VFPTablesProducer{vfp_ix};
+                    if isfield(W(i), 'vfp_index')
+                        vfp_ix = W(i).vfp_index;
+                        if vfp_ix > 0
+                            if wm.isInjector()
+                                vfp = model.VFPTablesInjector{vfp_ix};
+                            else
+                                vfp = model.VFPTablesProducer{vfp_ix};
+                            end
+                            wm.VFPTable = vfp;
                         end
-                        wm.VFPTable = vfp;
                     end
                     % Get the added primary variables for this well, plus
                     % the equations and equation types it adds
@@ -282,20 +284,78 @@ classdef FacilityModel < PhysicalModel
                              'phaseVolume', {srcVol}, ...
                              'components',  {srcComp}, ...
                              'sourceCells', wc);
-
+            if model.ReservoirModel.extraWellSolOutput
+                wellSol = model.setWellSolStatistics(wellSol, sources);
+            end
         end
 
-        function wellSol = updateWellSolAfterStep(model, resmodel, wellSol)
+        function wellSol = updateWellSolAfterStep(model, wellSol)
             % Figure out if wells are shut, or changed ontrols
             for wno = 1:numel(wellSol)
                 wm = model.WellModels{wno};
-                wellSol(wno) = wm.updateWellSolAfterStep(resmodel, wellSol(wno));
+                wellSol(wno) = wm.updateWellSolAfterStep(model.ReservoirModel, wellSol(wno));
             end
         end
 
         function wc = getWellCells(model)
             c = cellfun(@(x) x.W.cells, model.WellModels, 'UniformOutput', false);
             wc = vertcat(c{:});
+        end
+
+        function ws = setWellSolStatistics(model, ws, sources)
+            % Store extra output, typically black oil-like
+            p2w = getPerforationToWellMapping(model.getWellStruct());
+            
+            gind = model.ReservoirModel.getPhaseIndex('G');
+            oind = model.ReservoirModel.getPhaseIndex('O');
+            wind = model.ReservoirModel.getPhaseIndex('W');
+            srcRes = cellfun(@double, sources.phaseVolume, 'UniformOutput', false);
+            qR = [srcRes{:}];
+            for i = 1:numel(ws)
+                % Store reservoir fluxes and total fluxes
+                ws(i).qTs = 0;
+                ws(i).qTr = 0;
+                if model.ReservoirModel.gas
+                    tmp = sum(srcRes{gind}(p2w == i));
+                    ws(i).qGr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qGs;
+                end
+                
+                if model.ReservoirModel.oil
+                    tmp = sum(srcRes{oind}(p2w == i));
+                    ws(i).qOr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qOs;
+                end
+                
+                if model.ReservoirModel.water
+                    tmp = sum(srcRes{wind}(p2w == i));
+                    ws(i).qWr = tmp;
+                    ws(i).qTr = ws(i).qTr + tmp;
+                    ws(i).qTs = ws(i).qTs + ws(i).qWs;
+                end
+                
+                % Phase cuts - fraction of reservoir conditions
+                if model.ReservoirModel.water && model.ReservoirModel.oil
+                    ws(i).wcut = ws(i).qWs./(ws(i).qWs + ws(i).qOs);
+                end
+                
+                if model.ReservoirModel.gas
+                    ws(i).gcut = ws(i).qGs./ws(i).qTs;
+                end
+                
+                if model.ReservoirModel.oil
+                    ws(i).ocut = ws(i).qOs./ws(i).qTs;
+                end
+                
+                % Gas/oil ratio
+                if model.ReservoirModel.gas && model.ReservoirModel.oil
+                    ws(i).gor = ws(i).qGs/ws(i).qOs;
+                end
+                
+                ws(i).flux = qR(p2w == i, :);
+            end
         end
 
         % Implementation details for stand-alone model
@@ -317,18 +377,20 @@ classdef FacilityModel < PhysicalModel
             dx_well = cell(nW, nVars);
             for varNo = 1:nVars
                 wf = wellVars{varNo};
-                dv = model.getIncrement(dx, problem, wf);
+                if any(strcmp(restVars, wf))
+                    dv = model.getIncrement(dx, problem, wf);
 
-                isVarWell = model.getWellVariableMap(wf);
-                for wNo = 1:numel(wellSol)
-                    subs = isVarWell == wNo;
-                    if any(subs)
-                        activeVars(wNo, varNo) = true;
-                        dx_well{wNo, varNo} = dv(subs);
+                    isVarWell = model.getWellVariableMap(wf);
+                    for wNo = 1:numel(wellSol)
+                        subs = isVarWell == wNo;
+                        if any(subs)
+                            activeVars(wNo, varNo) = true;
+                            dx_well{wNo, varNo} = dv(subs);
+                        end
                     end
+                    % Field is taken care of
+                    restVars = model.stripVars(restVars, wf);
                 end
-                % Field is taken care of
-                restVars = model.stripVars(restVars, wf);
             end
             for wNo = 1:numel(wellSol)
                 act = activeVars(wNo, :);
@@ -362,7 +424,7 @@ classdef FacilityModel < PhysicalModel
                 [rs, rv] = deal([]);
             end
 
-            if ~isfield(state, 'rho') | ~isfield(state, 'mob')
+            if ~isfield(state, 'rho') || ~isfield(state, 'mob')
                 state = resmodel.computeRhoAndMob(state);
             end
             p = resmodel.getProp(state, 'pressure');
@@ -433,7 +495,6 @@ classdef FacilityModel < PhysicalModel
             % Used when facility is run as a stand-alone model
             [convergence, values, names] = ...
                 model.checkFacilityConvergence(problem);
-            convergence = all(convergence);
         end
     end
 
@@ -459,33 +520,7 @@ classdef FacilityModel < PhysicalModel
     end
 end
 
-function celldata = getComponentCellSubset(celldata, wc)
-    for i = 1:numel(celldata)
-        for j = 1:numel(celldata{i});
-            if ~isempty(celldata{i}{j})
-                celldata{i}{j} = celldata{i}{j}(wc);
-            end
-        end
-    end
-end
-
 function d = combineCellData(data, ix)
     d = cellfun(@(x) x{ix}, data, 'UniformOutput', false);
     d = vertcat(d{:});
-end
-
-function subset = getCellSubset(celldata, wc)
-    subset = cell(size(celldata));
-    for i = 1:numel(subset)
-        if ~isempty(celldata{i})
-            subset{i} = celldata{i}(wc);
-        end
-    end
-end
-
-function subset = getVariableSubsetWell(vars, wellMap, ix)
-    subset = cell(size(vars));
-    for i = 1:numel(subset)
-        subset{i} = vars{i}(wellMap{i} == ix);
-    end
 end

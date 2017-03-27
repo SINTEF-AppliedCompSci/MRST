@@ -210,9 +210,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         currControl = schedule.step.control(i);
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
-            model.FacilityModel = model.FacilityModel.setupWells(fstruct.W);
+            [model, state0]= model.updateForChangedControls(state, fstruct);
             prevControl = currControl;
-            state0.wellSol = initWellSolAD(fstruct.W, model, state);
         end
 
         timer = tic();
@@ -238,8 +237,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose,
            disp_step_convergence(report.Iterations, t);
         end
-        state.wellSol = model.FacilityModel.updateWellSolAfterStep(model, state.wellSol);
-
         % Handle massaging of output to correct expectation
         if opt.OutputMinisteps
             % We have potentially several ministeps desired as output
