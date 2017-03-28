@@ -169,8 +169,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          [eqs([3:5]+eqshift), names([3:5]+eqshift), types([3:5]+eqshift)] = ...
              wm.createReverseModeWellEquations(model, state0.wellSol, p0);%#ok
       end
-   else
-      eqs([3:5]+eqshift) = {bhp, bhp, bhp}; %#ok empty ADIs
+   % else
+   %    eqs([3:5]+eqshift) = {bhp, bhp, bhp}; %#ok empty ADIs
    end
    
    
