@@ -201,7 +201,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          Gt.cells.faces = [Gt.cells.faces, repmat(tag_seq, fnum/4, 1)];
          % reorder faces in Gt in a manner that is numerically advantageous
          % when used in linear sparse systems
-         %[Gt, transMult] = cartesian_face_reordering(Gt, transMult); 
+         [Gt, transMult] = cartesian_face_reordering(Gt, transMult); 
       catch
          % Did not manage to extract tags, likely due to degenerate faces in
          % G.  Warn user, and do not add tags
@@ -222,17 +222,31 @@ end
 function [Gt, transMult] = cartesian_face_reordering(Gt, transMult)
    assert(isfield(Gt, 'cartDims')); % optimization is only valid for cartesian grids
    
-   % determine cell-wise face permutation (assumed the same for all cells)
-   [~, ix1] = [1 3 2 4]'; % this is the face ordering we want
-   [~, ix2] = sort(Gt.cells.faces(1:4, 2)); % the face ordering we have
-   loc_permut = ix2(ix1); % permutation (vector of four integers)
-   p_mat = kron(speye(Gt.cells.num), spdiags(loc_permut(:), 0, 4, 4));
+   % Identify faces aligned with y-axis (ix1), and faces aligned with x-axis (ix2)
+   f = Gt.cells.faces;
+   ix1 = unique(reshape([f(f(:,2)==1, 1)'; f(f(:,2)==2, 1)'], [], 1), 'stable');
+   ix2 = unique([f(f(:,2)==3, 1); f(f(:,2)==4, 1)], 'stable');
    
-   % apply permutation to all relevant fields of Gt, as well as transMult
-   transMult = p_mat * transMult;
+   % The reordered face set should have all y-aligned faces first, then all
+   % x-aligned faces
+   f_order = [ix1; ix2];
+   [~, f_order_inv] = sort(f_order);
    
-   %Gt.faces.nodes = p_mat
+   % Permutation matrix
+   pmat = sparse(1:numel(f_order), f_order, 1);
    
+   % permuting faces
+   Gt.faces.nodes = reshape((pmat * reshape(Gt.faces.nodes, 2, [])')', [], 1);
+   Gt.faces.z         = pmat * Gt.faces.z;
+   Gt.faces.neighbors = pmat * Gt.faces.neighbors;
+   %Gt.faces.areas     = pmat * Gt.faces.areas;
+   %Gt.faces.normals   = pmat * Gt.faces.normals;
+   %Gt.faces.centroids = pmat * Gt.faces.centroids;
+   transMult = pmat * transMult;
+   
+   % updating references to faces
+   
+   Gt.cells.faces(:,1) = f_order_inv(Gt.cells.faces(:, 1));
 end
 
 % ----------------------------------------------------------------------------
