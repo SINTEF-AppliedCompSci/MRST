@@ -67,7 +67,7 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
   
     
     % inititialize parameters to ADI
-    modelParam = initModelParametersADI(model, schedule, param);
+    [modelParam, scheduleParam] = initModelParametersADI(model, schedule, param);
     
     nstep = numel(schedule.step.val);
     lambda = [];
@@ -76,7 +76,7 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
         fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
         [lami, lambda]= model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, lambda, step);
-        eqdth = partialWRTparam(modelParam, getState, schedule, step);
+        eqdth = partialWRTparam(modelParam, getState, scheduleParam, step);
         for kp = 1:numel(sens)
             for nl = 1:numel(lami)
                 if isa(eqdth{nl}, 'ADI')
@@ -87,7 +87,6 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
     end
     
     
-   
     % add regularization term
     if ~isempty(opt.Regularization)
         assert(numel(sens)==numel(opt.Regularization), ...
@@ -178,18 +177,27 @@ for stage = 1:2
                     ie = model.operators.internalConn;
                     model.operators.T = 1./(M(ie,:)*(1./(th{1}+th{2}+th{3})));
                 end
-            case 'welltrans'
+            case 'conntrans'
                 % assume wells are the same throughout sim
                 if stage == 1
                     m{k} = vertcat(schedule.control(1).W.WI);
                 else
-                    schedule = updateWellTrans(schedule, m{k});
+                    W    = schedule.control(1).W;
+                    ncon = arrayfun(@(x)numel(x.WI), W);
+                    for step = 1:numel(schedule.control)
+                        ix = 0;
+                        for wn = 1:numel(W) 
+                            schedule.control(step).W(wn).WI = m{k}(ix + (1:ncon(wn))');
+                            ix = ix + ncon(wn);
+                        end
+                    end
                 end
-            case {'swcr', 'swu', 'sowcr'}  
+            case {'swl', 'swcr', 'swu', 'sowcr'}  
                 if stage == 1
                     m{k} = model.fluid.(param{k});
                 else
-                    model.fluid.(param{k}) = m{k};
+                    % reset fluid-functions
+                    model.fluid = initSimpleScaledADIFluid(model.fluid, param{k}, m{k});
                 end
         end
     end
@@ -251,7 +259,7 @@ for k = 1:numel(param)
     p = param{k};
     pix = pix+1;
     switch p
-        case {'transmissibility', 'porevolume'}
+        case {'transmissibility', 'porevolume', 'conntrans', 'swl', 'swcr', 'swu', 'sowcr'}
             param_proc{pix} = param{k};
         case 'permeability'
             param_proc(pix:(pix+2)) = {'permx', 'permy', 'permz'};
