@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       data = readRecordString(fid);    % Treat table data as single record.
       data = splitString(removeQuotes(data));
 
-      if isempty(data),
+      if isempty(data) || all(cellfun(@isempty, data))
          if t > 1,
             % Quoth Scripture:
             %
