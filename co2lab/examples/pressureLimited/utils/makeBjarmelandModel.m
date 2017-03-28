@@ -20,6 +20,7 @@ function [ model, schedule, initState, seainfo, other ] = makeBjarmelandModel( v
                                                     % can be taken from the structural trapping 
                                                     % capacity upstream from well location, or 
                                                     % a scaled value
+    opt.wvals = []; % if empty, uses opt.qt, otherwise uses opt.wvals
     
     opt = merge_options(opt, varargin{:});
     assert( size(opt.wcoord,1) == numel(opt.qt) )
@@ -77,7 +78,11 @@ function [ model, schedule, initState, seainfo, other ] = makeBjarmelandModel( v
     %% Set up schedule:
     %   including injection wells & rates, migration rates, time steps, boundary conditions
     wqtots  = opt.qt./fluid.rhoGS;                  % this could be scaled down. % total volume (m3) to inject per well in terms of reference density
-    wvals   = wqtots./convertFrom(opt.itime,year);  % injection rates (m3/s) with respect to CO2 reference density
+    if isempty(opt.wvals)
+        wvals   = wqtots./convertFrom(opt.itime,year);  % injection rates (m3/s) with respect to CO2 reference density
+    else
+        wvals = opt.wvals;
+    end
     wcells = findEnclosingCell(Gt, opt.wcoord);
     assert( isfield(Gt,'parent') )
     W = [];

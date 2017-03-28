@@ -199,6 +199,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          fnum = length(Gt.cells.faces);
          tag_seq = determine_facetag_sequence(G);
          Gt.cells.faces = [Gt.cells.faces, repmat(tag_seq, fnum/4, 1)];
+         % reorder faces in Gt in a manner that is numerically advantageous
+         % when used in linear sparse systems
+         %[Gt, transMult] = cartesian_face_reordering(Gt, transMult); 
       catch
          % Did not manage to extract tags, likely due to degenerate faces in
          % G.  Warn user, and do not add tags
@@ -212,6 +215,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% Following line takes a bit of computation but will speed up plotting later
    
    Gt.cells.sortedCellNodes = getSortedCellNodes(Gt);
+   
+end
+
+% ----------------------------------------------------------------------------
+function [Gt, transMult] = cartesian_face_reordering(Gt, transMult)
+   assert(isfield(Gt, 'cartDims')); % optimization is only valid for cartesian grids
+   
+   % determine cell-wise face permutation (assumed the same for all cells)
+   [~, ix1] = [1 3 2 4]'; % this is the face ordering we want
+   [~, ix2] = sort(Gt.cells.faces(1:4, 2)); % the face ordering we have
+   loc_permut = ix2(ix1); % permutation (vector of four integers)
+   p_mat = kron(speye(Gt.cells.num), spdiags(loc_permut(:), 0, 4, 4));
+   
+   % apply permutation to all relevant fields of Gt, as well as transMult
+   transMult = p_mat * transMult;
+   
+   %Gt.faces.nodes = p_mat
    
 end
 

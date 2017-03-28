@@ -31,11 +31,11 @@ end
 
 %% Read data
 try
-   sdir = fullfile('data', 'sleipner');
+   sdir = fullfile(mrstPath('co2lab'), 'data', 'sleipner');
    disp([' -> Reading data from: ' sdir]);
-   grdecl = readGRDECL(fullfile(mrstPath('co2lab'), sdir, 'SLEIPNER.DATA'));
+   grdecl = readGRDECL(fullfile(sdir, 'SLEIPNER.DATA'));
 catch
-   fprintf(1, '    Reading failed, please dowload data manually following');
+   fprintf(1, '    Reading failed, please download data manually following');
    fprintf(1, ' instructions\n    in "%s"\n', fullfile(sdir,'README'));
    return;
 end
