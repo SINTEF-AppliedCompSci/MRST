@@ -60,6 +60,11 @@ classdef twoPhaseGasWaterModel < ReservoirModel
            state.sGmax = min(1,state.sGmax);
            state.sGmax = max(0,state.sGmax);
         end
+        
+        % ----------------------------------------------------------------------------
+        function rhoS = getSurfaceDensities(model)
+           rhoS = [model.fluid.rhoWS, model.fluid.rhoGS];
+        end
     end
     
 end
