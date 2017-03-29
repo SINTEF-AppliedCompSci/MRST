@@ -99,8 +99,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.last_control_is_migration = false; % if true, constrain last control
    opt.nlinIneq=[];                                       % to zero rate
    opt.check_deriv = false;
+   % read about termination criteria here: 
+   %        https://www.coin-or.org/Ipopt/documentation/node42.html
    opt.maxIt = 10;
    opt.tol=1e-2;
+   opt.acceptable_tol = 1e-4;
    opt.funtol=eps;
                                       
    %{                                       
@@ -176,7 +179,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [~, u_opt, history] = unitBoxIPOPT(u, obj_evaluator, 'linEq', linEqS, ...
                                      'nlinIneq',opt.nlinIneq/scaling.obj,... 
                                      'tol',opt.tol,'funtol',opt.funtol,...
-                                         'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt);
+                                         'plotEvolution',true,'check_deriv', opt.check_deriv,'maxIt',opt.maxIt, ...
+                                         'acceptable_tol',opt.acceptable_tol);
                                      %'lineSearchMaxIt', 10, 'gradTol', 2e-3);
        case 'box'
         ulim=[zeros(numel(u),1),ones(numel(u),1)];
