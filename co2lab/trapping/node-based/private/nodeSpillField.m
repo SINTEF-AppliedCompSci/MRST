@@ -1,4 +1,4 @@
-function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt, closed_bnodes)
+function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt, closed_bnodes, closed_fnodes)
 % Compute the spill field for the 2D grid 'Gt'.
 % The spill field consists of a classification of each of the nodes
 % in the grid as belonging to a specific spill region.  A spill region is defined by 
@@ -12,7 +12,8 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt, closed_bnodes)
 %    Gt            - a 2D grid with an associated z-field
 %    closed_bnodes - vector with indices of nodes on the closed part of the
 %                    boundary 
-%
+%    closed_fnodes - vector with indices of nodes along closed fault lines
+% 
 % RETURNS:    
 %   uslp_neigh  - One element per node in Gt, containing the index of the
 %                 'most (steepest) upslope' of its neighbor nodes, or '0'
@@ -57,8 +58,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Establishing list of all neighborhood relations between nodes.  Since
     % we are working on a 2D grid, we assume that all edges have two distinct
     % nodes, so we do not bother to use the 'Gt.faces.nodePos' indirection map.
-    neigh_rels = reshape(Gt.faces.nodes, 2, [])';
-    nodes_xyz  = [Gt.nodes.coords, Gt.nodes.z];
+    neigh_rels      = reshape(Gt.faces.nodes, 2, [])';
+    fnode_indicator = sum(ismember(neigh_rels, closed_fnodes(:)) > 0, 2);
+    neigh_rels      = neigh_rels(~fnode_indicator); % remove relations
+                                                    % involving nodes of
+                                                    % closed faults
+    nodes_xyz       = [Gt.nodes.coords, Gt.nodes.z];
     [uslp_neigh, nhood] = findUpslopeNeighbor(nodes_xyz, neigh_rels);
                                                
     
