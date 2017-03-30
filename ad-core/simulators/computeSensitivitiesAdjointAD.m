@@ -32,9 +32,9 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
 %
 % RETURNS:
 %
-%  'Parameters'     - Defaults to {'transmissibility', 'porevolumes'} which currenly are the only two options. 
+%  'Parameters'     - Defaults to {'transmissibility', 'porevolumes'}. 
 % 
-%  'ParameterTypes' - Defaults to 'value' for all. The other option is 'multiplyer'
+%  'ParameterTypes' - Defaults to 'value' for all. The other option is 'multiplier'
 %
 %  'Regularization' - One (sparse) matrix for each parameter-set, requires also modelBase 
 %
@@ -46,7 +46,7 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
 
 
     opt = struct('Parameters', {{'transmissibility', 'porevolume'}}, ...
-                 'ParameterTypes', {{'value', 'value'}}, ...
+                 'ParameterTypes', [], ...
                  'Regularization', [], ...
                  'LinearSolver',     [], ...
                  'modelBase', []);
@@ -60,14 +60,15 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
         linsolve = opt.LinearSolver;
     end
     
-    param  = checkParam(opt.Parameters);
-    pTypes = opt.ParameterTypes;
-    sens = cell(1, numel(param));
-    [sens{:}] = deal(0);
-  
+    [param, pTypes]  = checkParam(opt.Parameters, opt.ParameterTypes);
+   
+    sens = struct;
+    for k = 1:numel(param)
+        sens.(param{k}) = 0;
+    end
     
     % inititialize parameters to ADI
-    [modelParam, scheduleParam] = initModelParametersADI(model, schedule, param);
+    [modelParam, scheduleParam, paramValues] = initModelParametersADI(model, schedule, param);
     
     nstep = numel(schedule.step.val);
     lambda = [];
@@ -77,15 +78,20 @@ function sens = computeSensitivitiesAdjointAD(state0, states, model, schedule, g
         [lami, lambda]= model.solveAdjoint(linsolve, getState, ...
                                          getObjective, schedule, lambda, step);
         eqdth = partialWRTparam(modelParam, getState, scheduleParam, step);
-        for kp = 1:numel(sens)
+        for kp = 1:numel(param)
             for nl = 1:numel(lami)
                 if isa(eqdth{nl}, 'ADI')
-                    sens{kp} = sens{kp} - eqdth{nl}.jac{kp}'*lami{nl};
+                    sens.(param{kp}) = sens.(param{kp}) - eqdth{nl}.jac{kp}'*lami{nl};
                 end
             end
-        end
+        end 
     end
     
+    % multiply by value if type is multiplier:
+    multIx = find(strcmp(pTypes, 'multiplier'));
+    for k = 1:numel(multIx)
+        sens.(param{multIx(k)}) = sens.(param{multIx(k)}).*paramValues{multIx(k)};
+    end
     
     % add regularization term
     if ~isempty(opt.Regularization)
@@ -127,7 +133,7 @@ function state = getStateFromInput(schedule, states, state0, i)
     end
 end
 
-function [model, schedule] = initModelParametersADI(model, schedule, param)
+function [model, schedule, paramValues] = initModelParametersADI(model, schedule, param)
 np = numel(param);
 m = cell(1, np);
 % in stage 1, set values, in stage 2, initialize ADI
@@ -201,13 +207,17 @@ for stage = 1:2
                 end
         end
     end
-    % after setting values, initialize ADI:
-    [m{:}] = initVariablesADI(m{:});
+    if stage == 1
+        paramValues = m;
+        % after setting values, initialize ADI:
+        [m{:}] = initVariablesADI(m{:});
+    end
 end
 end
 
 
 function sens = addRegularizationSens(sens, param, pTypes, model, modelBase, reg)
+warning('Regularization not tested ...')
 np = numel(param);
 for k = 1:np
     switch param{k}
@@ -231,15 +241,12 @@ end
 end
 
 function ti = perm2directionalTrans(model, p, cdir)
-% special utility function (typically for sensitivity calculations)
-% for calculating transmissibility along coordinate direction cdir
+% special utility function for calculating transmissibility along coordinate direction cdir
 % In particular:
 % trans = t1+t2+t2, where ti = perm2dirtrans(model, perm(:, i), i);
 assert(size(p,2)==1, ...
        'Input p should be single column representing permeability in direction cdir');
-   
 % make perm represent diag perm tensor with zero perm orthogonal to cdir
-
 dp = double(p);
 r.perm = zeros(numel(dp), 3);
 r.perm(:, cdir) = dp;
@@ -252,8 +259,14 @@ if isa(p, 'ADI')
 end
 end
 
-function param_proc = checkParam(param)
+function [param_proc, types_proc] = checkParam(param, types)
+if isempty(types)
+   types = repmat({'value'}, 1, numel(param));
+end
+assert(numel(param)==numel(types));
 param_proc = param;
+types_proc = types;
+
 pix = 0;
 for k = 1:numel(param)
     p = param{k};
@@ -261,12 +274,20 @@ for k = 1:numel(param)
     switch p
         case {'transmissibility', 'porevolume', 'conntrans', 'swl', 'swcr', 'swu', 'sowcr'}
             param_proc{pix} = param{k};
+            types_proc{pix} = types{k};
         case 'permeability'
             param_proc(pix:(pix+2)) = {'permx', 'permy', 'permz'};
+            types_proc(pix:(pix+2)) = repmat(types(k), 1, 3);
             pix = pix+2;
         otherwise
             error('Unknown parameter: %s\n', param{k});
     end
 end
+if any(strcmp(param_proc, 'transmissibility')) && any(strcmp(param_proc, 'permx'))
+    warning('Cannot compute sensitivities for transmissibility and permeability in the same run ... ')
+    ix = strcmp(param_proc, 'transmissibility');
+    param_proc = param_proc(~ix);
+    types_proc = types_proc(~ix);
+end 
 end
 
