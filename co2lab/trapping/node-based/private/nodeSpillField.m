@@ -60,9 +60,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % nodes, so we do not bother to use the 'Gt.faces.nodePos' indirection map.
     neigh_rels      = reshape(Gt.faces.nodes, 2, [])';
     fnode_indicator = sum(ismember(neigh_rels, closed_fnodes(:)) > 0, 2);
-    neigh_rels      = neigh_rels(~fnode_indicator); % remove relations
-                                                    % involving nodes of
-                                                    % closed faults
+    neigh_rels      = neigh_rels(~fnode_indicator,:); % remove relations
+                                                      % involving nodes of
+                                                      % closed faults
     nodes_xyz       = [Gt.nodes.coords, Gt.nodes.z];
     [uslp_neigh, nhood] = findUpslopeNeighbor(nodes_xyz, neigh_rels);
                                                
