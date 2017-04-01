@@ -2,18 +2,17 @@
 % The purpose of the example is to show how one can implement compressible
 % multiphase flow models using automatic differentiation and the abstract
 % differentiation operators in MRST. To this end, we set up a relatively
-% simple model consisting of three layers, where the upper two layers are
-% filled with oil and the bottom layer is filled with water. Water is
-% injected in the lower south west corner and fluids are produced from the
-% upper north east corner. To mimic the effect of injector and producer
-% wells, we manipulate the flow equations to ensure reasonable
-% inflow/outflow for the perforated cells.
+% simple model in which the upper 2/3 is initially filled with oil and the
+% bottom 1/3 is filled with water. Water is injected in the lower southwest
+% corner and fluids are produced from the upper northeast corner. To mimic
+% the effect of injector and producer wells, we manipulate the flow
+% equations to ensure reasonable inflow/outflow for the perforated cells.
 %
 % The code can be run with compressible or incompressible fluids and rock.
 % (The compressibility of oil is somewhat exaggerated for illustration
-% purposes.) The last plots uses 'hold all' so that if you run the function
-% twice with compressible/incompressible model, the plots of pressures will
-% be added to the same figure.
+% purposes.) The last plots use 'hold all' so that if you run the function
+% twice with compressible/incompressible model, the plots of pressures,
+% condition numbers, and oil production will be added to the same plots.
 
 %isCompr = false;
 
@@ -96,6 +95,7 @@ equil = ode23(@(z,p) g.* rhoO(p), [0, max(G.cells.centroids(:,3))], pR);
 p0    = reshape(deval(equil, G.cells.centroids(:,3)), [], 1);  clear equil
 sW0   = zeros(G.cells.num, 1);
 sW0   = reshape(sW0,G.cartDims); sW0(:,:,nz)=1; sW0 = sW0(:);
+ioip  = sum(pv(p0).*(1-sW0));
 
 %% Schedule and injection/production
 nstep = 36;
@@ -171,10 +171,11 @@ for n=1:nstep
         eqs = {oil, water};
         eq  = cat(eqs{:});
         
+        % Measure condition number
+        cnd(i) = condest(eq.jac{1}); i = i+1;                              %#ok<SAGROW>
+        
         % Compute Newton update and update variable
         res = eq.val;
-        cnd(i,1) = n;
-        cnd(i,2) = condest(eq.jac{1}); i = i+1;
         upd = -(eq.jac{1} \ res);
         p.val  = p.val   + upd(pIx);
         sW.val = sW.val + upd(sIx);
@@ -184,8 +185,8 @@ for n=1:nstep
         nit     = nit + 1;
         fprintf('  Iteration %3d:  Res = %.4e\n', nit, resNorm);
     end
-    cnd(i,1) = NaN;
-    cnd(i,2) = NaN; i=i+1;
+    % Add line with NaN in cnd variable to signify end of time step
+    cnd(i) = NaN; i=i+1;                                                   %#ok<SAGROW>
     
     if nit > maxits,
         error('Newton solves did not converge')
@@ -222,14 +223,22 @@ plotyy(nan,nan,1:numel(dt),dt/day,@plot, ...
 
 %%
 figure(3); hold all
-bhp = arrayfun(@(x) x.pressure(inIx), sol)/barsa;
+ipr = arrayfun(@(x) x.pressure(inIx), sol)/barsa;
 t   = arrayfun(@(x) x.time, sol)/day;
-mp  = arrayfun(@(x) sum(x.pressure)/G.cells.num, sol)/barsa;
-plot(t,bhp,'-', t,mp, '--');
-
+fpr = arrayfun(@(x) sum(x.pressure)/G.cells.num, sol)/barsa;
+plot(t,ipr,'-', t,fpr, '--');
 % chl = get(gca,'Children');
 % col=flipud(lines(2));
 % for i=1:numel(chl), set(chl(i),'Color',col(ceil(i/2),:),'LineWidth',2); end
+
+%%
+figure(4); hold all
+oip = arrayfun(@(x) sum(pv(x.pressure).*(1-x.s)), sol);
+plot(t,ioip - oip,'-o','MarkerFaceColor',[.6 .6 .6])
+
+%%
+figure(5); hold all
+plot(cumsum(isnan(cnd))+1, 1./cnd,'-o');
 
 %%
 %{
